@@ -2,7 +2,7 @@
  * Real Home Integration Test Client
  *
  * Provides utilities for testing against actual smart home devices.
- * Supports Home Assistant, Ecobee, Hue, and LIFX.
+ * Supports Ecobee, Hue, and LIFX.
  */
 
 import { createLogger } from '../../../src/utils/safe-logger.js';
@@ -19,11 +19,6 @@ const log = createLogger({ module: 'real-home-client' });
 // =============================================================================
 
 export interface RealHomeConfig {
-  homeAssistant: {
-    url: string;
-    token: string;
-    configured: boolean;
-  };
   ecobee: {
     apiKey: string;
     userId: string;
@@ -49,11 +44,6 @@ export interface RealHomeConfig {
 
 export function getConfig(): RealHomeConfig {
   return {
-    homeAssistant: {
-      url: process.env.HOME_ASSISTANT_URL || '',
-      token: process.env.HOME_ASSISTANT_TOKEN || '',
-      configured: !!(process.env.HOME_ASSISTANT_URL && process.env.HOME_ASSISTANT_TOKEN),
-    },
     ecobee: {
       apiKey: process.env.ECOBEE_API_KEY || '',
       userId: process.env.TEST_USER_ID || 'test-user',
@@ -86,7 +76,7 @@ export interface RealDevice {
   id: string;
   name: string;
   type: 'light' | 'switch' | 'thermostat' | 'lock' | 'media' | 'sensor' | 'climate' | 'fan' | 'cover';
-  platform: 'home_assistant' | 'ecobee' | 'hue' | 'lifx';
+  platform: 'ecobee' | 'hue' | 'lifx';
   state: string;
   attributes: Record<string, unknown>;
   room?: string;
@@ -119,7 +109,7 @@ export interface ControlResult {
 }
 
 // =============================================================================
-// PHILIPS HUE DIRECT CLIENT (No Home Assistant needed!)
+// PHILIPS HUE DIRECT CLIENT
 // =============================================================================
 
 export class HueDirectClient {
@@ -237,99 +227,11 @@ export class LifxDirectClient {
 }
 
 // =============================================================================
-// HOME ASSISTANT CLIENT (Optional - for power users)
-// =============================================================================
-
-export class HomeAssistantClient {
-  private url: string;
-  private token: string;
-
-  constructor(url: string, token: string) {
-    this.url = url.replace(/\/$/, ''); // Remove trailing slash
-    this.token = token;
-  }
-
-  private async request<T>(endpoint: string, method = 'GET', body?: unknown): Promise<T | null> {
-    const url = `${this.url}/api/${endpoint}`;
-    
-    try {
-      const response = await fetch(url, {
-        method,
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-          'Content-Type': 'application/json',
-        },
-        body: body ? JSON.stringify(body) : undefined,
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        log.warn({ endpoint, status: response.status, error }, 'Home Assistant request failed');
-        return null;
-      }
-
-      return (await response.json()) as T;
-    } catch (error) {
-      log.error({ error: String(error), endpoint }, 'Home Assistant request error');
-      return null;
-    }
-  }
-
-  async checkConnection(): Promise<boolean> {
-    const result = await this.request<{ message: string }>('');
-    return result !== null;
-  }
-
-  async getStates(): Promise<Array<{
-    entity_id: string;
-    state: string;
-    attributes: Record<string, unknown>;
-  }> | null> {
-    return this.request('states');
-  }
-
-  async getState(entityId: string): Promise<{
-    entity_id: string;
-    state: string;
-    attributes: Record<string, unknown>;
-  } | null> {
-    return this.request(`states/${entityId}`);
-  }
-
-  async callService(domain: string, service: string, data: Record<string, unknown>): Promise<boolean> {
-    const result = await this.request(`services/${domain}/${service}`, 'POST', data);
-    return result !== null;
-  }
-
-  async turnOn(entityId: string, brightness?: number): Promise<boolean> {
-    const domain = entityId.split('.')[0];
-    const data: Record<string, unknown> = { entity_id: entityId };
-    if (brightness !== undefined && domain === 'light') {
-      data.brightness_pct = brightness;
-    }
-    return this.callService(domain, 'turn_on', data);
-  }
-
-  async turnOff(entityId: string): Promise<boolean> {
-    const domain = entityId.split('.')[0];
-    return this.callService(domain, 'turn_off', { entity_id: entityId });
-  }
-
-  async setThermostat(entityId: string, temperature: number): Promise<boolean> {
-    return this.callService('climate', 'set_temperature', {
-      entity_id: entityId,
-      temperature,
-    });
-  }
-}
-
-// =============================================================================
 // REAL HOME TEST CLIENT
 // =============================================================================
 
 export class RealHomeClient {
   private config: RealHomeConfig;
-  private haClient: HomeAssistantClient | null = null;
   private hueClient: HueDirectClient | null = null;
   private lifxClient: LifxDirectClient | null = null;
   private savedState: HomeState | null = null;
@@ -348,14 +250,6 @@ export class RealHomeClient {
     if (this.config.lifx.configured) {
       this.lifxClient = new LifxDirectClient(this.config.lifx.token);
     }
-
-    // Home Assistant is optional (for power users)
-    if (this.config.homeAssistant.configured) {
-      this.haClient = new HomeAssistantClient(
-        this.config.homeAssistant.url,
-        this.config.homeAssistant.token
-      );
-    }
   }
 
   // ---------------------------------------------------------------------------
@@ -363,14 +257,12 @@ export class RealHomeClient {
   // ---------------------------------------------------------------------------
 
   async checkConnections(): Promise<{
-    homeAssistant: boolean;
     ecobee: boolean;
     hue: boolean;
     lifx: boolean;
     anyDirectIntegration: boolean;
   }> {
     const results = {
-      homeAssistant: false,
       ecobee: false,
       hue: false,
       lifx: false,
@@ -401,11 +293,6 @@ export class RealHomeClient {
 
     // Track if any direct integration works
     results.anyDirectIntegration = results.ecobee || results.hue || results.lifx;
-
-    // Check Home Assistant (optional)
-    if (this.haClient) {
-      results.homeAssistant = await this.haClient.checkConnection();
-    }
 
     return results;
   }
@@ -487,49 +374,6 @@ export class RealHomeClient {
       }
     }
 
-    // =========================================================================
-    // HOME ASSISTANT (optional - for power users with additional devices)
-    // =========================================================================
-
-    if (this.haClient) {
-      const states = await this.haClient.getStates();
-      if (states) {
-        for (const state of states) {
-          const domain = state.entity_id.split('.')[0];
-          const typeMap: Record<string, RealDevice['type']> = {
-            light: 'light',
-            switch: 'switch',
-            climate: 'climate',
-            lock: 'lock',
-            media_player: 'media',
-            sensor: 'sensor',
-            fan: 'fan',
-            cover: 'cover',
-          };
-
-          if (typeMap[domain]) {
-            // Avoid duplicates if device is also in direct integration
-            const name = (state.attributes.friendly_name as string) || state.entity_id;
-            const alreadyExists = devices.some(
-              (d) => d.name.toLowerCase() === name.toLowerCase()
-            );
-
-            if (!alreadyExists) {
-              devices.push({
-                id: state.entity_id,
-                name,
-                type: typeMap[domain],
-                platform: 'home_assistant',
-                state: state.state,
-                attributes: state.attributes,
-                room: state.attributes.area_id as string | undefined,
-              });
-            }
-          }
-        }
-      }
-    }
-
     return devices;
   }
 
@@ -567,36 +411,13 @@ export class RealHomeClient {
     return state;
   }
 
+  /**
+   * Restore is not supported for the direct Hue/LIFX/Ecobee clients.
+   * Reset devices by hand after a live run.
+   */
   async restoreState(): Promise<{ restored: number; failed: number }> {
-    if (!this.savedState) {
-      log.warn('No saved state to restore');
-      return { restored: 0, failed: 0 };
-    }
-
-    let restored = 0;
-    let failed = 0;
-
-    for (const deviceState of this.savedState.devices) {
-      try {
-        if (deviceState.deviceId.startsWith('light.') || deviceState.deviceId.startsWith('switch.')) {
-          if (this.haClient) {
-            if (deviceState.state === 'on') {
-              const brightness = deviceState.attributes.brightness_pct as number;
-              await this.haClient.turnOn(deviceState.deviceId, brightness);
-            } else {
-              await this.haClient.turnOff(deviceState.deviceId);
-            }
-            restored++;
-          }
-        }
-      } catch (error) {
-        log.warn({ deviceId: deviceState.deviceId, error }, 'Failed to restore device state');
-        failed++;
-      }
-    }
-
-    log.info({ restored, failed }, '🔄 Home state restored');
-    return { restored, failed };
+    log.warn('State restore is not supported for direct integrations; reset devices manually');
+    return { restored: 0, failed: 0 };
   }
 
   // ---------------------------------------------------------------------------
@@ -663,26 +484,6 @@ export class RealHomeClient {
       return { success, device: deviceId, action };
     }
 
-    // =========================================================================
-    // HOME ASSISTANT (fallback for other devices)
-    // =========================================================================
-
-    if (deviceId.includes('.') && this.haClient) {
-      let success = false;
-      
-      if (action === 'on') {
-        success = await this.haClient.turnOn(deviceId, value);
-      } else if (action === 'off') {
-        success = await this.haClient.turnOff(deviceId);
-      } else if (action === 'set' && deviceId.startsWith('climate.')) {
-        success = await this.haClient.setThermostat(deviceId, value!);
-      } else if (action === 'set' && value !== undefined) {
-        success = await this.haClient.turnOn(deviceId, value);
-      }
-
-      return { success, device: deviceId, action };
-    }
-
     return { success: false, device: deviceId, action, error: 'Unknown device' };
   }
 
@@ -711,21 +512,6 @@ export class RealHomeClient {
       const result = await this.lifxClient.setAllLights(brightness, colorTemp);
       if (result) platforms.push('lifx');
       results.push(result);
-    }
-
-    // Home Assistant (for any remaining lights)
-    if (this.haClient) {
-      const states = await this.haClient.getStates();
-      if (states) {
-        const lights = states.filter((s) => s.entity_id.startsWith('light.'));
-        for (const light of lights) {
-          const result = brightness > 0
-            ? await this.haClient.turnOn(light.entity_id, brightness)
-            : await this.haClient.turnOff(light.entity_id);
-          results.push(result);
-        }
-        if (lights.length > 0) platforms.push('home_assistant');
-      }
     }
 
     return { success: results.length > 0 && results.some(Boolean), platforms };

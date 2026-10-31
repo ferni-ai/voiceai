@@ -1270,8 +1270,6 @@
       "notifications": "체크인 알림 시간",
       "toggleTheme": "라이트 / 다크 모드",
       "themeLanguage": "화면 스타일",
-      "linkSpotify": "Spotify 연결하기",
-      "spotifyConnected": "Spotify 연결됨",
       "vibeController": "분위기 설정하기",
       "spotifyRooms": "뮤직 룸",
       "thermostat": "스마트 홈 온도",
@@ -2419,10 +2417,6 @@
         "description": "Apple Watch 및 iPhone 건강 데이터와 동기화해요",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Fitbit 기기를 연결해요",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Garmin 웨어러블과 동기화해요",
         "name": "Garmin"
@@ -2776,8 +2770,7 @@
       "askFerni": "아니면 Ferni에게 음악을 틀어달라고 부탁해 보세요",
       "play": "재생",
       "pause": "일시 정지",
-      "skip": "건너뛰기",
-      "linkSpotify": "전체 곡을 들으려면 설정에서 Spotify를 연결해 주세요"
+      "skip": "건너뛰기"
     },
     "volume": "볼륨",
     "skipped": "건너뛰었어요",
@@ -3508,8 +3501,6 @@
     "accessLevelFullDesc": "모든 팀 멤버와 대화할 수 있어요",
     "accessLevelLimited": "제한됨",
     "accessLevelLimitedDesc": "Ferni만 가능",
-    "accessLevelSupervised": "감독됨",
-    "accessLevelSupervisedDesc": "통화 시 알림을 받아요",
     "eyebrow": "가족",
     "addMember": "가족 구성원 추가",
     "emptyText": "전화로 Ferni에게 연락할 가족 구성원을 추가해 보세요. 자동으로 인식되어 Ferni와 개별적으로 대화할 수 있어요.",
@@ -3611,7 +3602,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "소통 & 관계",
+        "role": "커뮤니케이션 코치 & 비서실장",
         "description": "대화를 나누고, 관계를 돈독히 하며, 자신을 더 잘 표현할 수 있도록 도와드릴게요.",
         "unlockHint": "Ferni에게 관계에 대한 이야기를 들려주세요",
         "unlockedMessage": "함께 살펴볼 만한 몇 가지 패턴을 발견했어요.",
@@ -5340,8 +5331,6 @@
     "from": "시작 시간",
     "beyondTheApp": "앱 너머에서",
     "beyondTheAppDesc": "중요한 순간이 오면, 당신이 있는 곳으로 찾아갈게요.",
-    "emailUpdates": "이메일 업데이트",
-    "emailUpdatesDesc": "마일스톤 축하와 주간 요약",
     "smsMessages": "SMS 메시지",
     "smsDesc": "무언가 감지되었을 때 보내는 간단한 체크인",
     "milestoneCelebrations": "마일스톤 축하",
@@ -7971,6 +7960,9 @@
     "improving": "올라가는 중",
     "declining": "요즘 조금 낮아요",
     "trendUnavailable": "이 추이를 불러오지 못했어요. 조금 있다가 다시 해 보세요.",
+    "notTalkedLately": "요즘 이건 이야기하지 않았어요:",
+    "asOfOnce": "{date} 기준 · 한 번 나온 이야기",
+    "asOfCount": "{date} 기준 · {count}번 나온 이야기",
     "trendUp": "상승",
     "trendDown": "하락",
     "trendStable": "안정",
@@ -8350,10 +8342,9 @@
     "appleHealthDesc": "수면, 활동 및 심박수 데이터",
     "ouraDesc": "수면의 질과 준비도 점수",
     "eightSleepDesc": "수면 분석과 온도 조절",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP 등",
+    "wearablesDesc": "Garmin, WHOOP 등",
     "calendarDesc": "일정, 회의, 비는 시간",
     "linkedInDesc": "커리어 맥락과 네트워크",
-    "spotifyDesc": "음악, 기분별 플레이리스트, 감상 기록",
     "ecobeeDesc": "집안 온도와 쾌적함",
     "vibeControllerDesc": "음악, 조명 등 제어하기",
     "connected": "연결됨"
@@ -8983,10 +8974,7 @@
     "trustJourneyExplore": "둘러보기",
     "customizeTitle": "나에게 맞게 설정하기",
     "customizeMessage": "테마, 소리 등을 조절해 보세요.",
-    "spotifyMessage": "Spotify를 연결해서 대화하는 동안의 기분을 설정해 보세요.",
-    "spotifyConnect": "연결하기",
-    "maybeLater": "나중에 할게요",
-    "spotifyTitle": "Spotify 연결하기"
+    "maybeLater": "나중에 할게요"
   },
   "mentorTeachings": {
     "learningFrom": "배우는 중",
@@ -10125,9 +10113,10 @@
     "title": "내가 기억하는 소소한 것들",
     "subtitle": "당신이 신경 쓰지 않아도 되도록요",
     "emptyTitle": "아직 설정된 것이 없어요",
-    "emptySubtitle": "매일 아침 인사를 건네거나, 스트레칭할 시간이라고 알려드릴까요? 무엇이든 말씀해 주세요.",
+    "emptySubtitle": "꾸준히 하고 싶은 일을 말씀해 주세요. 여기에 저장해 둘게요.",
     "emptyButton": "몇 가지 아이디어 보기",
     "addNew": "새로 추가하기",
+    "notRunningYet": "여기에 저장해 두었어요. 아직 저절로 실행되지는 않아요.",
     "triggers": {
       "dailyAt": "매일 {time}에",
       "dailyUnset": "매일 정해진 시간에",
@@ -10213,7 +10202,6 @@
     "connectFirstToManage": "먼저 연결해 주시면 관리해 드릴게요.",
     "monthlyLimitReached": "이번 달 제한에 도달했어요. 계속 대화하고 싶지만...",
     "enableMicPrompt": "목소리를 듣고 싶어요. 마이크 권한을 허용해 주시겠어요?",
-    "agentJoined": "{name}이(가) 참여했어요",
     "seeYouNextTime": "다음에 또 만나요!",
     "handoffFailed": "지금은 연결이 되지 않네요. 그래도 제가 곁에 있을게요!",
     "personaBack": "{name} 페르소나가 돌아왔어요!",
@@ -10510,7 +10498,6 @@
     "names": {
       "stockData": "주식 데이터",
       "marketData": "시장 데이터",
-      "weatherMaps": "날씨 및 지도",
       "historicalFacts": "역사적 사실",
       "smartHome": "스마트 홈",
       "lighting": "조명",
@@ -10807,7 +10794,10 @@
     "endTalk": "대화 종료",
     "connectingCancel": "연결 중입니다. 탭하여 취소",
     "connectingNow": "연결 중…",
-    "tapToCancel": "탭하여 취소"
+    "tapToCancel": "탭하여 취소",
+    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
+    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
+    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
   },
   "analyticsDashboard": {
     "title": "나의 여정",

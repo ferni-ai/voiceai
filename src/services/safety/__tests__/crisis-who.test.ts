@@ -29,6 +29,7 @@ import {
   parseWhoReply,
   resetWhoReads,
   resolveWhoMode,
+  sessionShowsSelfRisk,
   startWhoRead,
   whoHint,
   type WhoKind,
@@ -89,6 +90,9 @@ describe('parseWhoReply', () => {
     expect(parseWhoReply('{"who":"caller"}')).toBeNull();
     expect(parseWhoReply('not json')).toBeNull();
     expect(parseWhoReply('{"who":')).toBeNull();
+    // Braces that are not JSON: null, never a throw.
+    expect(parseWhoReply('{who: self}')).toBeNull();
+    expect(parseWhoReply('{"who":"self",}')).toBeNull();
   });
 });
 
@@ -102,6 +106,86 @@ describe('whoHint (the lexical forms, as a hint only)', () => {
     expect(
       whoHint(detectCrisis('what should i cook for dinner'), 'what should i cook for dinner')
     ).toEqual([]);
+  });
+});
+
+const IMMINENT_TP: CrisisVerdict = { risk: 'imminent', subject: 'third_party' };
+const IMMINENT_SELF: CrisisVerdict = { risk: 'imminent', subject: 'self' };
+// Own imminent risk the patterns miss in every CRISIS_MEANS_IN_HAND mode (#2717 reads
+// "i have the pills right here and i'm taking them now" on the patterns once live).
+const OWN_IMMINENT =
+  "i'm holding the pills and i'm going to swallow them and he said he'd kill himself";
+
+describe('applyWhoRead: the classifier imminent level on a self read', () => {
+  it("an own-imminent line beside a third-party clause gets main's self-imminent script", () => {
+    const found = detectCrisis(OWN_IMMINENT);
+    const main = applyClassifierVerdict(found, IMMINENT_SELF);
+    const flipped = applyClassifierVerdict(found, IMMINENT_TP);
+    expect(flipped.subject).toBe('third_party');
+    const live = applyWhoRead(flipped, { who: 'self' }, { verdict: IMMINENT_TP });
+    expect(live.subject).toBe('self');
+    expect(live.indicators).toContain('imminent_danger');
+    expect(guardFromDetection(live).shouldBlock).toBe(true);
+    expect(live.suggestedResponse).toBe(main.suggestedResponse);
+    expect(guardFromDetection(live).replacementResponse).toBe(
+      guardFromDetection(main).replacementResponse
+    );
+  });
+
+  it('a crisis-level verdict, or none, stays at crisis: no script', () => {
+    const flipped = third();
+    for (const verdict of [null, { risk: 'crisis', subject: 'third_party' } as const]) {
+      const live = applyWhoRead(flipped, { who: 'self' }, { verdict });
+      expect(live.indicators).not.toContain('imminent_danger');
+      expect(guardFromDetection(live).shouldBlock).toBe(false);
+    }
+  });
+
+  it('an imminent verdict never turns a bereaved read into a script', () => {
+    const live = applyWhoRead(third(), { who: 'bereaved' }, { verdict: IMMINENT_TP });
+    expect(live.subject).toBe('bereaved');
+    expect(guardFromDetection(live).shouldBlock).toBe(false);
+  });
+});
+
+describe('applyWhoRead: hard rule 2 across turns', () => {
+  const DISTRESS = ["i can't do this anymore", 'i feel like such a burden to everyone'];
+
+  it("the caller's own risk earlier in the session wins over a bereaved read", () => {
+    expect(sessionShowsSelfRisk(DISTRESS)).toBe(true);
+    const live = applyWhoRead(third(), { who: 'bereaved' }, { sessionSelf: true });
+    expect(live.subject).toBe('self');
+    expect(live.isCrisis).toBe(true);
+    const guidance = buildCrisisGuidance(live);
+    expect(guidance).toMatch(/Acknowledge their pain/);
+    expect(guidance).toMatch(/988/);
+    expect(guidance).not.toMatch(/grieving someone who has died/);
+    expect(guidance).not.toMatch(/on the person's behalf|on their behalf/);
+    // The scripted response is the caller's too, never the third-party one.
+    expect(live.suggestedResponse).toMatch(/988/);
+    expect(live.suggestedResponse).not.toMatch(/on their behalf/);
+  });
+
+  it('a quiet session keeps the grief route', () => {
+    expect(sessionShowsSelfRisk(['what should i cook for dinner', 'my brother called'])).toBe(
+      false
+    );
+    expect(sessionShowsSelfRisk([])).toBe(false);
+    expect(applyWhoRead(third(), { who: 'bereaved' }, { sessionSelf: false }).subject).toBe(
+      'bereaved'
+    );
+  });
+
+  it('startWhoRead reads the session from the earlier turns', async () => {
+    const input = {
+      latest: "my brother said he would kill himself and now he's gone",
+      earlier: DISTRESS,
+    };
+    const run = startWhoRead(input, detectCrisis(input.latest), {
+      env: LIVE,
+      generate: fakeWho('bereaved'),
+    });
+    expect((await run!.resolve(third())).subject).toBe('self');
   });
 });
 
@@ -216,7 +300,7 @@ describe('startWhoRead', () => {
     expect(generate).not.toHaveBeenCalled();
   });
 
-  it('starts at once when the patterns or risk words hint, and passes the hint in', async () => {
+  it('starts at once only when the patterns read third-party risk, and passes the hint in', async () => {
     const seen: string[] = [];
     const generate = fakeWho('bereaved', seen);
     const run = startWhoRead(INPUT, detectCrisis(INPUT.latest), { env: LIVE, generate });
@@ -226,13 +310,11 @@ describe('startWhoRead', () => {
     expect(generate).toHaveBeenCalledTimes(1);
   });
 
-  it('with no hint, reads only once a third-party read needs it', async () => {
+  it('without a third-party pattern read, reads only once a third-party read needs it', async () => {
     const seen: string[] = [];
     const generate = fakeWho('bereaved', seen);
-    const input = {
-      latest: 'my aunt said it so many times and in the spring she did',
-      earlier: [],
-    };
+    // Risk words alone ("gone") no longer start the read; they still go in as a hint.
+    const input = { latest: 'my aunt said it so many times and now she is gone', earlier: [] };
     const run = startWhoRead(input, detectCrisis(input.latest), { env: LIVE, generate });
     expect(generate).not.toHaveBeenCalled();
     const quiet = detectCrisis('what should i cook tonight');
@@ -240,7 +322,7 @@ describe('startWhoRead', () => {
     expect(generate).not.toHaveBeenCalled();
     expect((await run!.resolve(third())).subject).toBe('bereaved');
     expect(generate).toHaveBeenCalledTimes(1);
-    expect(JSON.parse(seen[0])).not.toHaveProperty('lexical');
+    expect(JSON.parse(seen[0]).lexical).toEqual(['risk_words']);
   });
 
   it('a timeout or error falls back to the read as it was', async () => {

@@ -18,6 +18,7 @@
 
 import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-metrics.js';
 import { attachTurnReceipts } from '../shared/turn-receipt-session.js';
+import { closeAgentSession } from '../shared/close-agent-session.js';
 import { voice, type JobContext, llm } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig, PersonaId } from '../../personas/types.js';
@@ -52,7 +53,7 @@ import {
   startHealthMonitoring,
   stopHealthMonitoring,
 } from '../shared/openai-health-monitor.js';
-// External STT: Sonata (USE_SONATA_STT=true)
+import * as forgotten from '../../memory/recall/forget-every-reader.js';
 
 // ============================================================================
 // CRITICAL PATH IMPORTS - Hoisted to module level for faster startup
@@ -146,6 +147,7 @@ import {
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
 import { callerHistory, firstTalkNote, rememberCallerHistory } from './greeting-direction.js';
+import { isUnplacedCaller, unsavedCallerNote } from './unknown-caller-honest.js';
 import { lastMoodNote } from '../../services/session/last-mood-note.js';
 import { lastTalkedAwareness } from './welcome-back.js';
 import { calendarDaysSince } from '../../utils/calendar-days.js';
@@ -329,8 +331,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   //   - These are active from the VERY FIRST MOMENT of connection
   //   - Concise, critical rules that must never be forgotten
   // Agent-level: Full persona prompt (identity, detailed tools, personality)
-  //   - Sent via LiveKit's updateInstructions() after session starts
-  //   - Contains full persona identity and detailed tool catalog
+  //   - Sent via updateInstructions() after session starts: full identity and tool catalog
 
   let systemPrompt: string;
   let modelBaseInstructions: string;
@@ -339,6 +340,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   try {
     mark('load_prompts_start');
     // Both levels in parallel; ALEX_CHIEF_OF_STAFF=on adds Alex's role (chief-of-staff-role.ts)
+    forgotten.prefetchForgotten(services.userId); // FORGET_EVERY_READER: read it alongside
     const [baseInstructions, loadedSystemPrompt, texts] = await Promise.all([
       loadModelBaseInstructions(),
       loadSystemPrompt(persona.id).then((prompt) => withChiefOfStaffRole(persona.id, prompt)),
@@ -349,11 +351,9 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     systemPrompt = loadedSystemPrompt;
     stableBase = baseInstructions;
 
-    // DATE/TIME AWARENESS - Critical for grounding agent in reality
-    // This is injected into model-level instructions so the agent knows
-    // the date/time from the VERY FIRST MOMENT (including greeting)
+    // DATE/TIME AWARENESS: in the model-level instructions so the agent knows the date and
+    // time from the VERY FIRST MOMENT (including greeting)
     // The caller's local time and part of day (time-context.ts); never the server's UTC clock.
-    // Append date/time to model base instructions (session-specific, not cached)
     const outboundAwareness = outboundCallerAwareness(outboundPartiesFor(sessionId));
     // FERNI_LOCAL_CLOCK=on: Ferni's own mountain-time clock, plus the caller's: the zone the
     // call settled (browser, else a verified owner's profile zone, never a sponsor's).
@@ -365,11 +365,12 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     const worldNowRule = worldNowEnabled() ? `${WORLD_NOW_RULE}\n` : '';
     // CALLER_CITY_CONTEXT=on: the city their device reported (caller-city.ts)
     const cityContext = callerCityContext(userData?.userLocation, Boolean(outboundAwareness));
+    const who = outboundAwareness || unsavedCallerNote(userId, sessionId); // UNKNOWN_CALLER_HONEST
     modelBaseInstructions =
-      baseInstructions + dateTimeContext + worldNowRule + cityContext + outboundAwareness + texts;
+      baseInstructions + dateTimeContext + worldNowRule + cityContext + who + texts;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
-    const userProfile = outboundAwareness ? undefined : services.userProfile;
+    const userProfile = outboundAwareness ? undefined : await forgotten.profileForPrompt(services);
     if (userProfile) {
       // Days since the last call count in the zone this call settled (phone-parity.ts)
       const callZone = userData?.callerTimezone ?? callerTimeZoneFor(sessionId);
@@ -406,7 +407,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
           userAwareness.push(...lastTalkedAwareness(daysSince)); // welcome-back.ts
         }
       } else if (!isReturningUser) {
-        userAwareness.push(firstTalkNote(sessionId)); // or a returning caller's note
+        userAwareness.push(firstTalkNote(sessionId, isUnplacedCaller(userId, false)));
       }
 
       // Key relationship facts (if available)
@@ -1064,7 +1065,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
     finalTools = capToolsToLimit(orchestratorTools, effectiveLimit);
     const cappedCount = Object.keys(finalTools).length;
     const droppedCount = toolCount - cappedCount;
-
     log.info(
       {
         personaId: persona.id,
@@ -1072,6 +1072,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         cappedCount,
         effectiveLimit,
         droppedCount,
+        droppedTools: toolNames.filter((name) => !(name in finalTools)), // names, for sweeps
       },
       `🎯 TOOL CAP: ${toolCount} → ${cappedCount} tools (limit: ${effectiveLimit}, dropped: ${droppedCount})`
     );
@@ -1609,7 +1610,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       nameLift?.(evt.transcript);
       const note = recall.noteFor(evt.transcript, { final: evt.isFinal });
       // CONTEXT_PACKET=on: what it picked rides the turn's packet, labelled (turn-packet.ts).
-      if (note) sendRecall(agent as unknown as RecallAgent, session, recall, note, evt.transcript);
+      sendRecall(agent as unknown as RecallAgent, session, recall, note, evt.transcript, userId);
     };
     const onRecallAgentState = (event: unknown) => {
       if ((event as { newState?: string }).newState === 'speaking') recall.newTurn();
@@ -2205,25 +2206,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
         }
       }
 
-      // FIX: Add timeout to session.close() to prevent indefinite hangs during handoff
-      // session.close() can block if the session is in a draining state
-      log.info({ sessionId, personaId: persona.id }, '🧹 [CLEANUP] Calling session.close()...');
-      const closeStart = Date.now();
-      try {
-        const closeTimeout = new Promise<void>((_, reject) => {
-          setTimeout(() => reject(new Error('session.close() timeout')), 3000);
-        });
-        await Promise.race([session.close(), closeTimeout]);
-        log.info(
-          { sessionId, personaId: persona.id, closeDurationMs: Date.now() - closeStart },
-          '🧹 [CLEANUP] ✅ session.close() completed'
-        );
-      } catch (err) {
-        log.warn(
-          { error: String(err), sessionId, closeDurationMs: Date.now() - closeStart },
-          '🧹 [CLEANUP] ⚠️ session.close() error or timeout'
-        );
-      }
+      // Bounded: session.close() can block while the session drains during handoff.
+      await closeAgentSession(session, { sessionId, personaId: persona.id });
 
       log.info(
         { personaId: persona.id, sessionId, totalCleanupDurationMs: Date.now() - cleanupStart },
@@ -2287,7 +2271,7 @@ export async function buildHandoffContext(config: AgentSetupConfig): Promise<str
   parts.push('[HANDOFF CONTEXT]');
   parts.push(...handoffIntro(previousPersonaId)); // teammate-relationship.ts
 
-  if (conversationSummary) {
+  if (await forgotten.rememberedText(userData?.userId, conversationSummary)) {
     parts.push(`\nConversation summary: ${conversationSummary}`);
   }
 

@@ -18,6 +18,7 @@
  * @module semantic-router/advanced/intelligent/orchestrator
  */
 
+import { errorFields } from '../../../../utils/error-class.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import type { SemanticRouterResult } from '../../types.js';
 
@@ -248,6 +249,7 @@ export class IntelligentRouterOrchestrator {
    */
   async route(input: string, context?: RoutingContext): Promise<RoutingDecision> {
     const startTime = performance.now();
+    const inputLength = input.length; // logs carry the length, never the caller's words
     const strategiesUsed: RoutingStrategy[] = [];
     const timing: RoutingDecision['timing'] = { total: 0 };
     const rawResults: RoutingDecision['rawResults'] = {};
@@ -278,11 +280,7 @@ export class IntelligentRouterOrchestrator {
           };
 
           log.debug(
-            {
-              input: input.slice(0, 50),
-              intent: icResult.intent.id,
-              confidence: icResult.confidence,
-            },
+            { inputLength, intent: icResult.intent.id, confidence: icResult.confidence },
             'Intent classifier made confident decision'
           );
         }
@@ -325,11 +323,7 @@ export class IntelligentRouterOrchestrator {
             };
 
             log.debug(
-              {
-                input: input.slice(0, 50),
-                stepCount: plan.steps.length,
-                confidence: plan.confidence,
-              },
+              { inputLength, stepCount: plan.steps.length, confidence: plan.confidence },
               'Goal planner created execution plan'
             );
           }
@@ -361,7 +355,7 @@ export class IntelligentRouterOrchestrator {
           };
 
           log.debug(
-            { input: input.slice(0, 50), toolId: topMatch.toolId, confidence: topMatch.confidence },
+            { inputLength, toolId: topMatch.toolId, confidence: topMatch.confidence },
             'Semantic router made confident decision'
           );
         }
@@ -537,7 +531,7 @@ export class IntelligentRouterOrchestrator {
       if (this.config.logMetrics) {
         log.info(
           {
-            input: input.slice(0, 50),
+            inputLength,
             decidedBy: decision.decidedBy,
             toolId: decision.toolId,
             confidence: decision.confidence?.toFixed(2),
@@ -556,7 +550,7 @@ export class IntelligentRouterOrchestrator {
         strategiesUsed,
       };
     } catch (error) {
-      log.error({ error, input: input.slice(0, 50) }, 'Routing failed');
+      log.error({ ...errorFields(error), inputLength }, 'Routing failed');
 
       timing.total = performance.now() - startTime;
 

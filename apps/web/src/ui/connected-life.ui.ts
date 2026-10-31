@@ -12,9 +12,13 @@ import { LINKEDIN_ENABLED } from '../config/linkedin.js';
 import { asModalDialog } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
-import { apiGet } from '../utils/api.js';
-import { getDeviceId } from '../state/app.state.js';
 import { visibleIntegrations } from '../config/menu-visibility.js';
+import {
+  fetchIntegrationStatuses,
+  renderTileAction,
+  type ConnectionStatus,
+  type IntegrationStatuses,
+} from './connected-life-status.js';
 
 const log = createLogger('ConnectedLife');
 
@@ -23,7 +27,6 @@ const log = createLogger('ConnectedLife');
 // ============================================================================
 
 type IntegrationCategory = 'health' | 'calendar' | 'vibe';
-type ConnectionStatus = 'connected' | 'disconnected' | 'pending';
 
 interface Integration {
   id: string;
@@ -37,11 +40,9 @@ interface ConnectedLifeCallbacks {
   onClose?: () => void;
   onConnectAppleHealth?: () => void;
   onConnectOura?: () => void;
-  onConnectEightSleep?: () => void;
   onConnectWearables?: () => void;
   onConnectCalendar?: () => void;
   onConnectLinkedIn?: () => void;
-  onConnectSpotify?: () => void;
   onConnectEcobee?: () => void;
   onOpenVibeController?: () => void;
 }
@@ -59,11 +60,9 @@ const ICONS = {
   // Individual integration icons
   appleHealth: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
   oura: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/></svg>',
-  eightSleep: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4v16"/><path d="M22 4v16"/><path d="M2 8h20"/><path d="M2 16h20"/><path d="M6 8v8"/><path d="M18 8v8"/></svg>',
   watch: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
   google: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',
   linkedin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>',
-  spotify: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 15s1.5-.5 4-.5 4 .5 4 .5"/><path d="M7 12s2-1 5-1 5 1 5 1"/><path d="M6 9s2.5-1.5 6-1.5 6 1.5 6 1.5"/></svg>',
   ecobee: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 4V10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0z"/><line x1="12" y1="14" x2="12" y2="10"/></svg>',
   controller: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>',
 };
@@ -71,17 +70,6 @@ const ICONS = {
 // ============================================================================
 // CONNECTED LIFE UI CLASS
 // ============================================================================
-
-interface IntegrationStatuses {
-  appleHealth: ConnectionStatus;
-  oura: ConnectionStatus;
-  eightSleep: ConnectionStatus;
-  wearables: ConnectionStatus;
-  googleCalendar: ConnectionStatus;
-  linkedin: ConnectionStatus;
-  spotify: ConnectionStatus;
-  ecobee: ConnectionStatus;
-}
 
 class ConnectedLifeUI {
   private container: HTMLElement | null = null;
@@ -91,11 +79,9 @@ class ConnectedLifeUI {
   private integrationStatuses: IntegrationStatuses = {
     appleHealth: 'disconnected',
     oura: 'disconnected',
-    eightSleep: 'disconnected',
     wearables: 'disconnected',
     googleCalendar: 'disconnected',
     linkedin: 'disconnected',
-    spotify: 'disconnected',
     ecobee: 'disconnected',
   };
 
@@ -113,8 +99,8 @@ class ConnectedLifeUI {
     this.callbacks = callbacks || {};
     this.cleanupOrphanedElements();
     
-    // Fetch current integration statuses before showing
-    await this.fetchIntegrationStatuses();
+    // Check the shown tiles before drawing; the menu's loading shell covers the wait
+    await this.refreshStatuses();
     
     this.createModal();
     this.isVisible = true;
@@ -140,64 +126,9 @@ class ConnectedLifeUI {
   // PRIVATE METHODS
   // ==========================================================================
 
-  private async fetchIntegrationStatuses(): Promise<void> {
-    try {
-      const response = await apiGet<{
-        integrations?: {
-          biometrics?: { connected: boolean; platform?: string };
-          calendar?: { connected: boolean };
-          linkedin?: { connected: boolean };
-        };
-      }>('/api/v1/integrations/status');
-
-      if (response.ok && response.data?.integrations) {
-        const { integrations } = response.data;
-        // Map API response to our statuses
-        if (integrations.biometrics?.connected) {
-          // Determine which biometric platform is connected
-          const platform = integrations.biometrics.platform?.toLowerCase() || '';
-          if (platform.includes('apple')) {
-            this.integrationStatuses.appleHealth = 'connected';
-          } else if (platform.includes('oura')) {
-            this.integrationStatuses.oura = 'connected';
-          } else if (platform.includes('eight') || platform.includes('sleep')) {
-            this.integrationStatuses.eightSleep = 'connected';
-          } else {
-            this.integrationStatuses.wearables = 'connected';
-          }
-        }
-        
-        if (integrations.calendar?.connected) {
-          this.integrationStatuses.googleCalendar = 'connected';
-        }
-        
-        if (integrations.linkedin?.connected) {
-          this.integrationStatuses.linkedin = 'connected';
-        }
-      }
-      
-      // Spotify link status is per device (without device_id the server reports SDK config)
-      try {
-        const spotifyResponse = await apiGet<{ linked: boolean }>('/spotify/status', { device_id: getDeviceId() });
-        if (spotifyResponse.ok && spotifyResponse.data?.linked) {
-          this.integrationStatuses.spotify = 'connected';
-        }
-      } catch {
-        // Spotify status check is optional
-      }
-      
-      // Check calendar status separately
-      try {
-        const calendarResponse = await apiGet<{ providers?: Record<string, { connected: boolean }> }>('/api/calendar/providers/status');
-        if (calendarResponse.ok && Object.values(calendarResponse.data?.providers ?? {}).some(p => p.connected)) {
-          this.integrationStatuses.googleCalendar = 'connected';
-        }
-      } catch {
-        // Calendar status check is optional
-      }
-    } catch (error) {
-      log.debug('Failed to fetch integration statuses, using defaults', error);
-    }
+  /** Statuses for the tiles that render (connected-life-status.ts) */
+  private async refreshStatuses(): Promise<void> {
+    this.integrationStatuses = await fetchIntegrationStatuses();
   }
 
   private createModal(): void {
@@ -289,13 +220,6 @@ class ConnectedLifeUI {
           description: t('connectedLife.ouraDesc'),
         },
         {
-          id: 'eight-sleep',
-          name: t('menu.items.eightSleep'),
-          icon: ICONS.eightSleep,
-          status: this.integrationStatuses.eightSleep,
-          description: t('connectedLife.eightSleepDesc'),
-        },
-        {
           id: 'wearables',
           name: t('menu.items.wearables'),
           icon: ICONS.watch,
@@ -320,13 +244,6 @@ class ConnectedLifeUI {
         }] : []),
       ],
       vibe: [
-        {
-          id: 'spotify',
-          name: 'Spotify',
-          icon: ICONS.spotify,
-          status: this.integrationStatuses.spotify,
-          description: t('connectedLife.spotifyDesc'),
-        },
         {
           id: 'ecobee',
           name: t('menu.items.thermostat'),
@@ -359,13 +276,7 @@ class ConnectedLifeUI {
               <h4>${int.name}</h4>
               <p>${int.description}</p>
             </div>
-            <div class="connected-life-integration-action">
-              ${
-                int.status === 'connected'
-                  ? `<span class="connected-life-status connected">${ICONS.check} ${t('connectedLife.connected')}</span>`
-                  : `<button class="connected-life-connect-btn" data-connect="${int.id}">${t('common.connect')}</button>`
-              }
-            </div>
+            <div class="connected-life-integration-action">${renderTileAction(int.id, int.status, ICONS.check)}</div>
           </div>
         `
           )
@@ -395,13 +306,19 @@ class ConnectedLifeUI {
       });
     });
 
-    // Connect button clicks
-    this.container.querySelectorAll('.connected-life-connect-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const integrationId = (btn as HTMLElement).dataset.connect;
-        this.handleConnect(integrationId);
-      });
+    // Connect and Try again, for whichever tab is drawn
+    this.container.querySelector('.connected-life-content')?.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.connected-life-connect-btn');
+      if (btn?.dataset.retry) void this.retryStatuses(btn);
+      else if (btn) this.handleConnect(btn.dataset.connect);
     });
+  }
+
+  private async retryStatuses(btn: HTMLButtonElement): Promise<void> {
+    btn.disabled = true;
+    await this.refreshStatuses();
+    const contentEl = this.container?.querySelector('.connected-life-content');
+    if (contentEl) contentEl.innerHTML = this.renderIntegrations();
   }
 
   private setTabActive(category: IntegrationCategory): void {
@@ -418,13 +335,6 @@ class ConnectedLifeUI {
     const contentEl = this.container?.querySelector('.connected-life-content');
     if (contentEl) {
       contentEl.innerHTML = this.renderIntegrations();
-      // Re-bind connect buttons
-      this.container?.querySelectorAll('.connected-life-connect-btn').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const integrationId = (btn as HTMLElement).dataset.connect;
-          this.handleConnect(integrationId);
-        });
-      });
     }
   }
 
@@ -438,9 +348,6 @@ class ConnectedLifeUI {
       case 'oura':
         this.callbacks.onConnectOura?.();
         break;
-      case 'eight-sleep':
-        this.callbacks.onConnectEightSleep?.();
-        break;
       case 'wearables':
         this.callbacks.onConnectWearables?.();
         break;
@@ -449,9 +356,6 @@ class ConnectedLifeUI {
         break;
       case 'linkedin':
         this.callbacks.onConnectLinkedIn?.();
-        break;
-      case 'spotify':
-        this.callbacks.onConnectSpotify?.();
         break;
       case 'ecobee':
         this.callbacks.onConnectEcobee?.();
@@ -709,6 +613,11 @@ const styles = `
   font-size: 0.8rem;
   color: var(--color-accent, #3D5A45);
   font-weight: 500;
+}
+
+.connected-life-status.error {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-1, 4px);
 }
 
 .connected-life-status svg {

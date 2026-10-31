@@ -4,7 +4,8 @@
  *
  * Target (approved 2026-10-11), dependencies pointing inward:
  *   L5 Experiences    web/API routes, phone, job and worker entrypoints     → may import anything
- *   L4 Orchestration  call session, turn pipeline, after-call use cases, flags → L4..L1
+ *   L4 Orchestration  call session, turn pipeline, after-call use cases, flags → L4..L1;
+ *                     a context only via its index.ts (L5 too: `orchestration-internal`)
  *   L3 Capabilities   the 10 CONTEXTS below; another context only via its index.ts → L3, L2
  *   L2 Shared kernel  Persona, User, Relationship, Turn, Moment, Time, domain events → L2
  *   L1 Platform       LiveKit, STT, TTS, LLM, Firestore, Redis, telemetry adapters → L1, L2, L3 ports
@@ -12,23 +13,46 @@
  * Keys are path prefixes; the longest wins. Values: 'L1'..'L5', 'L3:<context>' or
  * 'unassigned' (mixed dirs: reported, not checked, until their files move). A context's
  * public API is the index.ts of each prefix it owns. Moving a dir? Update its entry here
- * in the same PR, then `pnpm quality:arch --update`.
+ * in the same PR, then `pnpm quality:arch --update` and `pnpm docs:map` (ARCHITECTURE.md).
  */
 
 export const CONTEXTS = [
-  'identity', // who Ferni and the team are: personas, character
-  'perception', // sensing the user: prosody, biomarkers, detectors
-  'memory', // capture, recall, knowledge graph
-  'understanding', // making sense of the user and the conversation
-  'affect', // emotion: arcs, concern, wellbeing
-  'judgment', // safety, alignment, when to surface something
-  'expression', // how Ferni speaks: humanization, SSML, speech shaping, music
-  'relationship', // trust, rapport, the people in the user's life
-  'agency', // acting in the world: tools, tasks, integrations
-  'growth', // helping the user change: coaching, habits, commitments
+  'identity',
+  'perception',
+  'memory',
+  'understanding',
+  'affect',
+  'judgment',
+  'expression',
+  'relationship',
+  'agency',
+  'growth',
 ] as const;
 export type Context = (typeof CONTEXTS)[number];
 export type Layer = 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
+
+/** One line per context; `pnpm docs:map` prints it in ARCHITECTURE.md. */
+export const CONTEXT_PURPOSE: Record<Context, string> = {
+  identity: 'Who Ferni and the team are: personas, character',
+  perception: 'Sensing the user: prosody, biomarkers, detectors',
+  memory: 'Capture, recall, knowledge graph',
+  understanding: 'Making sense of the user and the conversation',
+  affect: 'Emotion: arcs, concern, wellbeing',
+  judgment: 'Safety, alignment, when to surface something',
+  expression: 'How Ferni speaks: humanization, SSML, speech shaping, music',
+  relationship: "Trust, rapport, the people in the user's life",
+  agency: 'Acting in the world: tools, tasks, integrations',
+  growth: 'Helping the user change: coaching, habits, commitments',
+};
+
+/** One line per layer outside L3, plus the unassigned bucket. */
+export const LAYER_PURPOSE: Record<Exclude<Layer, 'L3'> | 'unassigned', string> = {
+  L5: 'Experiences: web/API routes, phone, job and worker entrypoints. May import anything',
+  L4: 'Orchestration: call session, turn pipeline, after-call use cases, flags. Reaches a context only via its index.ts',
+  L2: 'Shared kernel: types, errors, translations, pure helpers (including the logger facade)',
+  L1: 'Platform: adapters for storage, models, speech engines and telemetry',
+  unassigned: 'Mixed dirs: reported, not checked, until their files move',
+};
 
 /** Every child of `parent` in `names` gets `value`. */
 const under = (parent: string, value: string, names: string[]): Record<string, string> =>

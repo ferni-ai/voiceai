@@ -13,11 +13,9 @@ import type { VoiceHumanizationCleanup } from './types.js';
 import { TOOL_HEALTH_CHECK_INTERVAL, MULTI_AGENT_MODE } from './constants.js';
 import { coordinatedSay } from '../../speech/coordination/index.js';
 import { outboundOpener, outboundPartiesFor } from '../shared/outbound-opener.js';
-import { computeDynamicVADDuration } from '../shared/performance/adaptive-timing.js';
-import { finops } from '../../services/observability/finops.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
-import { observeFinalTranscript } from '../shared/final-transcript-observer.js';
+import { createUserInputTranscribedHandler } from './user-input-transcribed.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
 import { noteCallerJoined } from './sip-caller.js';
@@ -455,23 +453,9 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   // never touches the reply. Promotion to live is gated on reviewing this log.
   const crisisGuardMode = resolveCrisisGuardMode();
 
-  const userInputTranscribedHandler = (event: unknown) => {
-    const evt = event as { transcript?: string; isFinal?: boolean };
-    if (evt.isFinal) {
-      userData.turnCount = ((userData.turnCount as number) || 0) + 1;
-      const transcript = evt.transcript || '';
-      process.stderr.write(`\n📝 [TURN ${userData.turnCount}] FINAL: ${transcript.length} chars\n`); // never the words
-      observeFinalTranscript({ transcript, userData, sessionId, crisisMode: crisisGuardMode });
-      if (transcript) {
-        const wordCount = transcript.split(/\s+/).filter((w: string) => w.length > 0).length;
-        const estimatedDurationSeconds = (wordCount / 150) * 60;
-        finops.recordSTTCost({ durationSeconds: Math.max(1, estimatedDurationSeconds), userId: userId ?? undefined, sessionId });
-        const dynamicVAD = computeDynamicVADDuration(sessionId, transcript, undefined, userData.emotionalState as string | undefined);
-        process.stderr.write(`[VAD] semantic=${dynamicVAD}ms for turn ${userData.turnCount}\n`);
-      }
-    }
-    transcriptHandler.handler(event as import('../voice-agent/transcript-handler.js').TranscriptEvent);
-  };
+  const userInputTranscribedHandler = createUserInputTranscribedHandler({
+    userData, userId, sessionId, crisisGuardMode, transcriptHandler,
+  });
 
   if (cachedDeps?.voice) {
     session.on(cachedDeps.voice.AgentSessionEventTypes.UserInputTranscribed, userInputTranscribedHandler);

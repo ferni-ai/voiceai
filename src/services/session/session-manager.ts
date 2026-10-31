@@ -147,6 +147,7 @@ import type { CreateSessionOptions, SessionServices } from '../types.js';
 
 // Handoff state (per-session, not global)
 import { createHandoffState, initializeFromPersistedData } from '../handoff/handoff-state.js';
+import { personasVisitedOf, startPersonaOf } from './active-persona.js';
 
 // Intelligence persistence - unified save/load for all learning engines
 import {
@@ -661,8 +662,7 @@ export async function createSessionServices(
           const updatedProfile = applyIntelligenceToProfile(current, uid); // + intelligence state
           services.userProfile = updatedProfile;
 
-          // Save to store
-          await global.store.saveProfile(updatedProfile);
+          await (await import('./last-summary.js')).saveKept(global.store, updatedProfile, uid);
 
           const durationMs = Date.now() - startTime;
           persistenceMetrics.recordAutoSave(sessionId, durationMs);
@@ -1209,7 +1209,6 @@ export async function createSessionServices(
               // 📊 OBSERVABILITY: Track breakthrough questions
               getLogger().info(
                 {
-                  questionPattern: questionAsked.slice(0, 80),
                   personaId,
                   topic,
                   engagement: signal.engagementScore.toFixed(2),
@@ -1542,7 +1541,7 @@ export async function createSessionServices(
             );
           }
 
-          await global.store.saveProfile(updated);
+          await (await import('./last-summary.js')).saveKept(global.store, updated, validatedUserId);
           services.userProfile = updated;
 
           getLogger().info(
@@ -1773,8 +1772,8 @@ export async function createSessionServices(
           }
 
           if (summary?.callerProvenance || summary?.keyPoints?.length) {
-            updatedProfile.lastConversationSummary = summary.keyPoints.slice(0, 2).join('; ');
-            if (summary.callerProvenance) updatedProfile.lastCallerSummary = updatedProfile.lastConversationSummary;
+            const { applyCheckedSummary } = await import('./last-summary.js'); // #2744 #2767
+            await applyCheckedSummary(updatedProfile, summary, validatedUserId);
           } else if (turns.length > 0) {
             // Always save a basic summary, so a returning user is recognized without the LLM
             const fallback = realtimeMemory.buildQuickSummary(turns, 50); // '' when only filler
@@ -1941,8 +1940,7 @@ export async function createSessionServices(
           }
 
           // ================================================================
-          // 🧠 HUMAN MEMORY: Extract relationship signals from conversation
-          // Dates, values, dreams, fears, growth markers, comfort patterns...
+          // 🧠 HUMAN MEMORY: relationship signals (dates, values, dreams, fears, growth, comfort)
           // ================================================================
           try {
             const { extractHumanSignals, mergeSignalsIntoMemory } =
@@ -1951,7 +1949,7 @@ export async function createSessionServices(
             if (turns.length > 0) {
               const signals = extractHumanSignals(turns, {
                 userId: validatedUserId,
-                personaId: services.personaId || 'ferni',
+                personaId: startPersonaOf(services), // unread by the extractor
                 userName: userProfile.preferredName || userProfile.name,
                 existingMemory: updatedProfile.humanMemory,
                 sessionEmotion: summary?.emotionalArc,
@@ -2074,14 +2072,14 @@ export async function createSessionServices(
             getLogger().debug({ error: String(indexErr) }, 'User memory indexer not available');
           }
 
-          // 📤 Analyze session for proactive outreach opportunities
-          // This extracts commitments, detects emotional state, and creates outreach triggers
+          // 📤 Outreach: commitments, emotional state and follow-up triggers from the call
           try {
             const { analyzeSessionForOutreach } = await import('../outreach/session-integration.js');
             const outreachResult = await analyzeSessionForOutreach({
               userId: validatedUserId,
               sessionId,
-              personaId: services.personaId || 'ferni',
+              personaId: startPersonaOf(services), // follow-ups stay with it (S2 decides owners)
+              personasVisited: personasVisitedOf(services), // the Maya habit check reads it
               turns: turns.map((t) => ({
                 role: t.role as 'user' | 'assistant',
                 content: t.content,

@@ -40,6 +40,7 @@ import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
 import { takeHandoffReason } from '../../tools/handoff/handoff-reasons.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { noteHandoffComplete } from '../../services/session/active-persona.js';
 import type { SessionServices } from '../../services/types.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import type { UserData } from '../shared/types.js';
@@ -177,6 +178,7 @@ export async function initializeMultiAgentSession(
     createPersonaAgent: agentFactory,
     onHandoffComplete: (from, to) => {
       log.info({ from, to, sessionId }, '🎭 Handoff complete');
+      noteHandoffComplete(services, to); // ACTIVE_PERSONA_ID: who speaks now (active-persona.ts)
       onHandoffComplete?.(from, to);
     },
     sessionId,

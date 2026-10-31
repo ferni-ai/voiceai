@@ -28,9 +28,15 @@ import type {
 import { DOMAIN_PRIORITY, DEFAULT_ESSENTIAL_DOMAINS } from './topic-mappings.js';
 import { TOPIC_PATTERNS } from './topic-patterns.js';
 import { predictionTopicPatterns } from './prediction-topics.js';
+import { smartHomeTopicPatterns } from './smart-home-topics.js';
+export { smartHomeTopicPatterns };
+import { rideTopicPatterns } from './ride-topics.js';
+export { rideTopicPatterns };
 import { flagOn } from '../../config/env-flag.js';
 import { LEAN_LOADER_DOMAINS, sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
 import { SAME_TURN_TOPIC_PATTERNS } from './same-turn-topics.js';
+import { TOPIC_LEAD_TOOLS, TOPIC_ONLY_TOOLS } from './travel-topics.js';
+import { leadToolsIn, toolsForDomains } from './domain-tool-set.js';
 
 // Re-export types
 export type {
@@ -42,6 +48,7 @@ export type {
 
 // Re-export mappings for consumers who need them
 export { TOPIC_TO_DOMAINS, DOMAIN_PRIORITY, DEFAULT_ESSENTIAL_DOMAINS } from './topic-mappings.js';
+export { TOPIC_PATTERNS } from './topic-patterns.js';
 
 // ============================================================================
 // DYNAMIC LOADER CLASS
@@ -52,6 +59,10 @@ export class DynamicToolLoader {
   private loadedDomains = new Map<ToolDomain, LoadedDomainState>();
   private toolContext: ToolContext | null = null;
   private unloadTimer: NodeJS.Timeout | null = null;
+  /** The last processMessage's lead tools, for its deferred update */
+  private leadTools: readonly string[] = [];
+  /** Per processMessage result: each already-loaded domain it re-offers, and the only tools it brings */
+  private reoffered = new WeakMap<readonly string[], ReadonlyMap<ToolDomain, string[]>>();
 
   constructor(config: Partial<DynamicLoaderConfig> = {}) {
     this.config = {
@@ -128,12 +139,16 @@ export class DynamicToolLoader {
     // WEEKLY_PREDICTION=on: "predict my week" loads Peter's game (prediction-topics.ts).
     const patterns = [
       ...TOPIC_PATTERNS,
+      ...rideTopicPatterns(), // RIDE_LINKS=on: "get me an uber" loads openRideLink only
       ...(flagOn('WEEKLY_PREDICTION') ? predictionTopicPatterns(this.toolContext?.userId) : []),
       ...(sameTurnToolsEnabled() ? SAME_TURN_TOPIC_PATTERNS : []),
+      ...smartHomeTopicPatterns(), // SMART_HOME_LIFX=on: "dim the lamp" loads the caller's lights
     ];
+    const leadTools = new Set<string>();
     for (const [topic, domains, pattern] of patterns) {
       if (pattern.test(lowerMessage)) {
         detectedTopics.push(topic);
+        TOPIC_LEAD_TOOLS[topic]?.forEach((id) => leadTools.add(id));
         for (const domain of domains) {
           const currentScore = domainScores.get(domain) || 0;
           const priority = DOMAIN_PRIORITY[domain] || 10;
@@ -154,6 +169,7 @@ export class DynamicToolLoader {
     return {
       detectedTopics,
       suggestedDomains,
+      leadTools: [...leadTools],
       confidence,
     };
   }
@@ -297,12 +313,14 @@ export class DynamicToolLoader {
    */
   async processMessage(message: string): Promise<ToolDomain[]> {
     const detection = this.detectTopics(message);
+    this.leadTools = detection.leadTools;
 
     if (detection.confidence < 0.3 || detection.suggestedDomains.length === 0) {
       return [];
     }
 
     const loadedDomains: ToolDomain[] = [];
+    const reoffered = new Map<ToolDomain, string[]>();
 
     for (const domain of detection.suggestedDomains) {
       if (!this.loadedDomains.has(domain)) {
@@ -314,6 +332,15 @@ export class DynamicToolLoader {
         // Update last used
         const state = this.loadedDomains.get(domain)!;
         state.lastUsedAt = new Date();
+        // Re-offer a loaded domain whose asked-for tool an earlier cap may have cut:
+        // that tool only (getToolsForDomains). The whole of productivity, which also
+        // registers searchFlights, put planTrip and searchHotels on the agent for
+        // "remind me to check in for my flight" (#3141 verify, 2026-10-30).
+        const lead = leadToolsIn(domain, this.leadTools);
+        if (lead.length > 0) {
+          loadedDomains.push(domain);
+          reoffered.set(domain, lead);
+        }
       }
     }
 
@@ -328,6 +355,7 @@ export class DynamicToolLoader {
       );
     }
 
+    if (reoffered.size > 0) this.reoffered.set(loadedDomains, reoffered);
     return loadedDomains;
   }
 
@@ -342,8 +370,15 @@ export class DynamicToolLoader {
     const loadedDomainList = Array.from(this.loadedDomains.keys());
 
     // Build tools from loaded domains, plus the essential tools by id
+    // TOPIC_ONLY_TOOLS: such a domain brings only its listed tools
     const result = toolRegistry.buildToolSet(
-      { domains: loadedDomainList, optional: [...this.essentialToolIds()] },
+      {
+        domains: loadedDomainList.filter((d) => !TOPIC_ONLY_TOOLS[d]),
+        optional: [
+          ...this.essentialToolIds(),
+          ...loadedDomainList.flatMap((d) => TOPIC_ONLY_TOOLS[d] ?? []),
+        ],
+      },
       this.toolContext
     );
 
@@ -355,33 +390,20 @@ export class DynamicToolLoader {
    * loads them. getCurrentTools() lists the essential domains first, so the
    * update's 64-tool cap kept those and cut the new domain: getCommuteTime
    * stayed unavailable all call (local, 2026-10-08).
+   *
+   * Passed processMessage's own result, a domain it re-offered (already
+   * loaded) brings only the lead tools it lists; any other list (handoffs)
+   * brings each domain whole.
    */
-  getToolsForDomains(domains: readonly string[]): Record<string, Tool> {
+  getToolsForDomains(
+    domains: readonly string[],
+    leadTools: readonly string[] = this.leadTools
+  ): Record<string, Tool> {
     const ctx = this.toolContext;
     if (!ctx) {
       throw new Error('DynamicToolLoader not initialized');
     }
-    const isDomain = (d: string): d is ToolDomain =>
-      (ALL_TOOL_DOMAINS as readonly string[]).includes(d);
-    const unknownDomains = domains.filter((d) => !isDomain(d));
-    if (unknownDomains.length > 0) {
-      getLogger().warn({ unknownDomains }, '🔄 Not tool domains; no tools offered for them');
-    }
-    // One domain at a time, then interleaved: offered one domain after another,
-    // the update's cap ran out inside the first. "find me a taco place nearby"
-    // loads information (57 tools) and local-search (6), and none of
-    // local-search's tools landed.
-    const perDomain = domains
-      .filter(isDomain)
-      .map((domain) => Object.entries(toolRegistry.buildToolSet({ domains: [domain] }, ctx).tools));
-    const interleaved: Record<string, Tool> = {};
-    for (let i = 0; perDomain.some((tools) => i < tools.length); i++) {
-      for (const tools of perDomain) {
-        const entry = tools[i];
-        if (entry && !(entry[0] in interleaved)) interleaved[entry[0]] = entry[1];
-      }
-    }
-    return interleaved;
+    return toolsForDomains(domains, ctx, leadTools, this.reoffered.get(domains));
   }
 
   // ==========================================================================

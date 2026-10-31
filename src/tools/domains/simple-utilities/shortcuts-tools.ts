@@ -306,7 +306,7 @@ const quickMusicDef: ToolDefinition = {
           const playTool = musicTools.find((t) => t.id === 'playMusic' || t.id === 'spotifyPlay');
 
           if (!playTool) {
-            return `Music isn't set up yet. Would you like to connect Spotify?`;
+            return "Music isn't available right now, so I can't play anything.";
           }
 
           const tool = playTool.create(ctx);
@@ -319,7 +319,7 @@ const quickMusicDef: ToolDefinition = {
           return result;
         } catch (error) {
           log.error({ error: String(error) }, 'Quick music failed');
-          return `I couldn't play music. Is Spotify connected?`;
+          return "I couldn't play music just now. Want me to try a different song?";
         }
       },
     });

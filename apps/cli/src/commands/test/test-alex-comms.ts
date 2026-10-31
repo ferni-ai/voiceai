@@ -4,7 +4,7 @@
  * 
  * Tests:
  * 1. Environment variable validation
- * 2. SendGrid email connectivity
+ * 2. Email (the ferni.ai Workspace mailbox)
  * 3. Twilio SMS connectivity
  * 4. Twilio phone call capability
  * 5. Reminder scheduling system
@@ -40,8 +40,6 @@ const log = {
 
 function validateEnvironment(): { valid: boolean; missing: string[] } {
   const required = [
-    'SENDGRID_API_KEY',
-    'SENDGRID_FROM_EMAIL',
     'TWILIO_ACCOUNT_SID',
     'TWILIO_AUTH_TOKEN',
     'TWILIO_PHONE_NUMBER',
@@ -79,80 +77,21 @@ function validateEnvironment(): { valid: boolean; missing: string[] } {
 }
 
 // ============================================================================
-// SENDGRID TEST
+// EMAIL TEST (the ferni.ai Workspace mailbox; no API key to check)
 // ============================================================================
 
-async function testSendGrid(sendTest: boolean = false, testEmail?: string): Promise<boolean> {
-  log.header('2. SendGrid Email Test');
-
-  const apiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL;
-
-  if (!apiKey || !fromEmail) {
-    log.error('SendGrid credentials not configured');
-    return false;
+async function testEmail(sendTest: boolean = false, testEmail?: string): Promise<boolean> {
+  log.header('2. Email Test (Workspace)');
+  if (!sendTest || !testEmail) {
+    log.info('Pass --send-test with a test email to send one');
+    return true;
   }
-
-  // Test API connectivity by checking API key validity
+  const { sendEmail } = await import('../src/services/communication-service.js');
   try {
-    const response = await fetch('https://api.sendgrid.com/v3/scopes', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (response.ok) {
-      log.success('SendGrid API key is valid');
-      const data = await response.json() as { scopes?: string[] };
-      const hasMailSend = data.scopes?.includes('mail.send');
-      if (hasMailSend) {
-        log.success('mail.send permission confirmed');
-      } else {
-        log.warn('mail.send permission not found in scopes - may still work');
-      }
-    } else if (response.status === 401) {
-      log.error('SendGrid API key is INVALID');
-      return false;
-    } else {
-      log.warn(`SendGrid API returned status ${response.status}`);
-    }
-
-    // Optionally send a test email
-    if (sendTest && testEmail) {
-      log.info(`Sending test email to ${testEmail}...`);
-      
-      const sendResponse = await fetch('https://api.sendgrid.com/v3/mail/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          personalizations: [{ to: [{ email: testEmail }] }],
-          from: { email: fromEmail, name: 'Alex Chen (Test)' },
-          subject: '✅ Alex Communication Test - Email',
-          content: [{
-            type: 'text/plain',
-            value: 'This is a test email from Alex Chen, your communication specialist.\n\nIf you received this, email sending is working!\n\n— Alex',
-          }],
-        }),
-        signal: AbortSignal.timeout(15000),
-      });
-
-      if (sendResponse.ok || sendResponse.status === 202) {
-        log.success(`Test email sent to ${testEmail}!`);
-      } else {
-        const error = await sendResponse.text();
-        log.error(`Failed to send test email: ${error}`);
-      }
-    }
-
+    log.success(await sendEmail(testEmail, '✅ Alex Communication Test - Email', 'If you received this, email sending is working!\n\n— Alex'));
     return true;
   } catch (error) {
-    log.error(`SendGrid test failed: ${error}`);
+    log.error(`Email test failed: ${error}`);
     return false;
   }
 }
@@ -491,7 +430,7 @@ ${colors.bold}╔═════════════════════
   results.push({ name: 'Environment', passed: envResult.valid });
 
   if (envResult.valid) {
-    results.push({ name: 'SendGrid Email', passed: await testSendGrid(sendTest, testEmail) });
+    results.push({ name: 'Email', passed: await testEmail(sendTest, testEmail) });
     results.push({ name: 'Twilio SMS', passed: await testTwilioSMS(sendTest, testPhone) });
     results.push({ name: 'Twilio Voice', passed: await testTwilioVoice(sendTest, testPhone) });
   } else {

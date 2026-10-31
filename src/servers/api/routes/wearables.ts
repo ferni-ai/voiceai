@@ -3,7 +3,7 @@
  *
  * Serves OAuth flows for wearable device integrations from the UI server.
  *
- * Providers: fitbit, oura, garmin, whoop (plus apple_health for unlink)
+ * Providers: oura, garmin, whoop (plus apple_health for unlink)
  *
  * Routes (the user is always the verified caller, never a query parameter):
  *   GET  /wearables/status                    → all provider statuses
@@ -20,6 +20,7 @@ import { consumeOAuthLinkState, peekOAuthLinkState } from '../../token/oauth-lin
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getVerifiedUserId } from '../request-identity.js';
 import { OAUTH_START_PATH } from './oauth-start.js';
+import { isLinkStatusV2, withLinkState } from '../../../services/identity/link-state.js';
 
 const log = createLogger({ module: 'WearablesRoutes' });
 
@@ -29,8 +30,8 @@ function withParam(returnUrl: string, key: string, value: string): string {
   return `${returnUrl}${sep}${key}=${encodeURIComponent(value)}`;
 }
 
-const OAUTH_PROVIDERS_PATTERN = 'fitbit|oura|garmin|whoop';
-const UNLINK_PROVIDERS_PATTERN = 'fitbit|oura|garmin|whoop|apple_health';
+const OAUTH_PROVIDERS_PATTERN = 'oura|garmin|whoop';
+const UNLINK_PROVIDERS_PATTERN = 'oura|garmin|whoop|apple_health';
 
 /**
  * Handle wearables OAuth routes
@@ -53,7 +54,10 @@ export async function handleWearablesRoutes(
       return true;
     }
 
-    const statuses = await wearables.getAllConnectionStatuses(user_id);
+    const legacy = await wearables.getAllConnectionStatuses(user_id);
+    const statuses = isLinkStatusV2()
+      ? await Promise.all(legacy.map((row) => withLinkState(user_id, row)))
+      : legacy;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ providers: statuses }));
     return true;

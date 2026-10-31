@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const logger = vi.hoisted(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }));
 const playerClose = vi.hoisted(() => vi.fn<() => Promise<void>>());
+const playerStart = vi.hoisted(() => vi.fn<() => Promise<void>>());
 
 vi.mock('../../../utils/safe-logger.js', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -17,7 +18,9 @@ vi.mock('../../../utils/safe-logger.js', async (importOriginal) => ({
 vi.mock('@livekit/agents', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@livekit/agents')>();
   class FakeBackgroundAudioPlayer {
-    async start(): Promise<void> {}
+    start(): Promise<void> {
+      return playerStart();
+    }
     play() {
       return { done: () => true, stop: () => {} };
     }
@@ -70,6 +73,18 @@ describe('clip player close', () => {
       'clip player closed after the room went away'
     );
     expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('releases the player (and its native AudioSource) when start fails', async () => {
+    playerStart.mockRejectedValueOnce(new Error('publish failed'));
+    const clips = await startBackchannelClips(
+      {} as never,
+      {} as never,
+      () => 'ferni',
+      () => null
+    );
+    expect(clips).toBeNull();
+    expect(playerClose).toHaveBeenCalledTimes(1);
   });
 
   it('warns on any other close failure instead of rejecting', async () => {

@@ -77,7 +77,7 @@ const VALIDATIONS: Record<string, ValidationTask> = {
   },
   integrations: {
     name: 'External Integrations',
-    description: 'Validate SendGrid, Twilio, Calendar, etc.',
+    description: 'Validate Twilio, Calendar, etc.',
     script: 'scripts/validate-integrations.ts',
     category: 'integration',
   },

@@ -26,6 +26,7 @@ import { dirname, join } from 'node:path';
 import { ThinkingLevel } from '@google/genai';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import * as google from '@livekit/agents-plugin-google';
+import { geminiBillingLabels, labelLlmChat } from '../../config/gemini-billing-labels.js';
 import { ALL_CANONICAL_IDS, DISPLAY_NAMES } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createCachedDeclarationsLLM, sharedDeclarationCache } from './gemini-declarations.js';
@@ -33,6 +34,7 @@ import { FastLaneLLM, fastLaneEnabled } from './fast-lane.js';
 import { HedgedLLM } from './hedged-llm.js';
 import { afterToolHedgeMs } from './after-tool-hedge.js';
 import { installVertexKeepAlive } from './vertex-keepalive.js';
+import { watchSttStream } from './stt-audio-diagnostics.js';
 import type {
   AgentSessionTurnDetection,
   LLMModelConfig,
@@ -303,7 +305,9 @@ export function logStreamOpens<T extends { stream: (...args: never[]) => unknown
   stt.stream = ((...args: never[]) => {
     opened += 1;
     log.info({ stream: opened, sinceCreatedMs: Date.now() - createdAt }, 'STT_STREAM_OPEN');
-    return open(...args);
+    const stream = open(...args);
+    watchSttStream(stt, stream, opened); // STT_AUDIO_DIAGNOSTICS (stt-audio-diagnostics.ts)
+    return stream;
   }) as T['stream'];
   return stt;
 }
@@ -391,8 +395,13 @@ export class CartesiaCascadeProvider implements ModelProvider {
     // Both models share one declaration cache, so a hedge reuses the
     // primary's converted tool schemas.
     const declarations = await sharedDeclarationCache();
+    // Every cascade model is on Vertex (vertexai: true), which takes billing labels.
+    const labels = geminiBillingLabels();
     const gemini = (o: CascadeLLMOptions): google.LLM =>
-      declarations ? createCachedDeclarationsLLM(o, declarations) : new google.LLM(o);
+      labelLlmChat(
+        declarations ? createCachedDeclarationsLLM(o, declarations) : new google.LLM(o),
+        labels
+      );
     const primary = gemini(opts);
     const main = hedge
       ? new HedgedLLM(

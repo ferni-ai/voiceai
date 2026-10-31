@@ -10,8 +10,10 @@ const PAYLOAD = '<img src=x onerror=alert(1)>';
 
 const apiGet = vi.fn();
 const apiPost = vi.fn();
+const apiPut = vi.fn();
+const apiDelete = vi.fn();
 const getUserId = vi.fn((): string | null => null);
-vi.mock('../../src/utils/api.js', () => ({ apiGet, apiPost, getUserId }));
+vi.mock('../../src/utils/api.js', () => ({ apiGet, apiPost, apiPut, apiDelete, getUserId }));
 vi.mock('../../src/ui/sound.ui.js', () => ({ soundUI: { play: vi.fn() } }));
 
 const { openChronicle, close } = await import('../../src/ui/chronicle.ui.js');
@@ -66,7 +68,7 @@ describe('The Chronicle renders words, not markup', () => {
         recentEntries: [
           { id: 'e1', content: PAYLOAD, type: 'text', createdAt: '2026-10-01T10:00:00Z' },
         ],
-        insights: [{ icon: 'sparkles', title: `t ${PAYLOAD}`, text: `d ${PAYLOAD}` }],
+        insights: [{ kind: 'theme', icon: 'sparkles', theme: PAYLOAD }],
         prompts: [],
         stats: { totalEntries: 1, currentStreak: 1, entriesThisWeek: 1, topThemes: [] },
       },
@@ -75,13 +77,12 @@ describe('The Chronicle renders words, not markup', () => {
     openChronicle();
     const content = document.querySelector('#chronicle-content');
     await vi.waitFor(() =>
-      expect(content?.querySelector('.chronicle-memory-content')).not.toBeNull()
+      expect(content?.querySelector('.chronicle-entry-content')).not.toBeNull()
     );
 
-    expect(content?.querySelector('.chronicle-memory-content')?.textContent).toContain(PAYLOAD);
-    expect(content?.querySelector('.chronicle-insight-title')?.textContent).toBe(`t ${PAYLOAD}`);
-    expect(content?.querySelector('.chronicle-insight-description')?.textContent).toBe(
-      `d ${PAYLOAD}`
+    expect(content?.querySelector('.chronicle-entry-content')?.textContent).toBe(PAYLOAD);
+    expect(content?.querySelector('.chronicle-insight-description')?.textContent).toContain(
+      `${PAYLOAD} keeps coming up`
     );
     expect(document.querySelector('img')).toBeNull();
   });

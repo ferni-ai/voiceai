@@ -1,13 +1,14 @@
 /**
  * Wires a TurnReceiptRecorder (turn-receipt.ts) to a live AgentSession: one
  * recorder per session, fed by the session's events, the TTS gateway's first
- * audio and pause-hold releases, and found by llmNode, withTurnReminder and the
- * barge-in paths through the note* calls.
+ * audio and pause-hold releases, the holds reported to turn-timing.ts, and found
+ * by llmNode, withTurnReminder and the barge-in paths through the note* calls.
  *
  * @module agents/shared/turn-receipt-session
  */
 import { onGatewayFirstAudio } from '../../speech/tts-gateway/first-audio-observer.js';
 import { onPauseHoldReleased } from '../../speech/output-control/pause-hold.js';
+import { onTurnTiming } from '../../speech/output-control/turn-timing.js';
 import {
   interruptionModeInUse,
   speechPausedForCaller,
@@ -26,8 +27,10 @@ import {
   type ToolView,
 } from './turn-input-tokens.js';
 import { eotCallFrom } from './turn-receipt-eot.js';
+import { watchToolRuns } from './turn-receipt-tool-timing.js';
 import { noteOfferedTools, withTurnMetricsBq } from './turn-receipt-bq.js';
 import { turnDetectionInUse } from './turn-patience.js';
+import { timelineFor } from './call-timeline.js';
 
 // One recorder per AgentSession, so llmNode and withTurnReminder can find it.
 const recorders = new WeakMap<object, TurnReceiptRecorder>();
@@ -42,6 +45,7 @@ export function noteReminder(session: object, note: ReminderNote): void {
 /** The barge-in fast path or LiveKit's barge-in model stopped Ferni (live-call-behaviors.ts). */
 export function noteBargeIn(session: object, source: BargeInSource): void {
   recorders.get(session)?.onBargeIn(source);
+  timelineFor(session)?.add({ kind: 'barge_in', speaker: 'caller', f: { by: source } });
 }
 
 /** llmNode: the request as it goes to the model, with the tools it carries. */
@@ -91,6 +95,11 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
     ],
     ['conversation_item_added', (ev) => rec.onItem((ev as { item?: never } | undefined)?.item)],
     ['function_tools_executed', (ev) => rec.onToolsExecuted((ev ?? {}) as never)],
+    // Each tool's start and result, from the speech that runs it (tool runs, answer audio).
+    [
+      'speech_created',
+      (ev) => watchToolRuns((ev as { speechHandle?: never })?.speechHandle, rec.onToolRun),
+    ],
     ['eot_prediction', (ev) => rec.onEot(eotCallFrom(ev, session))],
     [
       'agent_state_changed',
@@ -99,7 +108,7 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
         // LiveKit pauses a reply for the caller's voice and says "listening" (interruptByAudioActivity).
         const paused =
           oldState === 'speaking' && newState === 'listening' && speechPausedForCaller(session);
-        if (paused) rec.onBargeIn('vad');
+        if (paused) noteBargeIn(session, 'vad');
         rec.onAgentState(newState, paused);
       },
     ],
@@ -111,8 +120,11 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
     ['close', () => rec.flush()],
   ];
   for (const [event, handler] of handlers) session.on(event, handler);
-  const offAudio = onGatewayFirstAudio((sessionId, ttfbMs, pushMs) => {
-    if (sessionId === opts.sessionId) rec.onGatewayAudio(ttfbMs, pushMs);
+  const offAudio = onGatewayFirstAudio((sessionId, ttfbMs, pushMs, holds) => {
+    if (sessionId === opts.sessionId) rec.onGatewayAudio(ttfbMs, pushMs, holds);
+  });
+  const offTiming = onTurnTiming((sessionId, kind, ms) => {
+    if (sessionId === opts.sessionId) rec.onTiming(kind, ms);
   });
   const offHold = onPauseHoldReleased((sessionId, heldMs) => {
     if (sessionId === opts.sessionId) rec.onPauseHold(heldMs);
@@ -120,6 +132,7 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
   return () => {
     offAudio();
     offHold();
+    offTiming();
     rec.flush();
     for (const [event, handler] of handlers) session.off(event, handler);
     recorders.delete(session);

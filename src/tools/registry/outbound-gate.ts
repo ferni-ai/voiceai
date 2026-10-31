@@ -114,9 +114,9 @@ const textArg = (args: Record<string, unknown>, k: string): string => {
 };
 
 /**
- * A person from a persona's own life (Jim, Ferni's friend) asked for by name,
+ * A person from a persona's own life (Hollis, Ferni's friend) asked for by name,
  * with no number or address given and none of the owner's contacts by that
- * name: the refusal, or null. The owner's own Jim (saved, or given with a
+ * name: the refusal, or null. The owner's own Hollis (saved, or given with a
  * number) is reached as before.
  */
 async function canonTargetRefusal(
@@ -129,8 +129,8 @@ async function canonTargetRefusal(
   const { canonPeople, canonPersonIn } = await import('../../personas/index.js');
   const canon = canonPersonIn(target, await canonPeople());
   if (!canon) return null;
-  const { resolveContact } = await import('../domains/telephony/call-on-behalf.js');
-  if (await resolveContact(target, userId).catch(() => null)) return null;
+  const { findContact } = await import('../domains/telephony/call-on-behalf.js');
+  if (await findContact(target, userId).catch(() => null)) return null; // one, or a choice
   const name = canon[0].toUpperCase() + canon.slice(1);
   return (
     `Nothing was sent: ${name} is someone from my own life, and you have no saved number for ` +

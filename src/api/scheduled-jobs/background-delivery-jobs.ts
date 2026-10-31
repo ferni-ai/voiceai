@@ -8,6 +8,7 @@
  * POST /api/jobs/calendar-briefing           (every 15 minutes; MORNING_BRIEF texts)
  * POST /api/jobs/follow-through              (every 5 minutes; ?dryRun=true; FOLLOW_THROUGH_JOB)
  * POST /api/jobs/retry-pending-revocations  (every 15 minutes; Google revokes erasure queued)
+ * POST /api/jobs/held-scrub-sweep            (hourly; ?scan=all&after=<id>; HELD_SCRUB_SWEEP)
  *
  * @module api/scheduled-jobs/background-delivery-jobs
  */
@@ -56,13 +57,17 @@ type LoadTemporalWorld = (
  * loadTemporalWorld, WORLD_MODEL_TEMPORAL). The module isn't on every
  * branch yet, so it is looked up at run time: without it, no world items.
  */
-export async function worldDue(userId: string, timeZone?: string): Promise<WorldDue[]> {
+async function temporalWorldLoader(): Promise<LoadTemporalWorld | undefined> {
   const spec = '../../intelligence/world-model/temporal/load.js';
   const mod = (await import(spec).catch((error: unknown) => {
     log.debug({ error: String(error) }, 'No temporal world model on this server');
     return null;
   })) as { loadTemporalWorld?: LoadTemporalWorld } | null;
-  const world = await mod?.loadTemporalWorld?.(userId, { timeZone });
+  return mod?.loadTemporalWorld;
+}
+
+export async function worldDue(userId: string, timeZone?: string): Promise<WorldDue[]> {
+  const world = await (await temporalWorldLoader())?.(userId, { timeZone });
   return (world?.sinceLastCall ?? [])
     .filter((i) => i.kind === 'due')
     .map(({ factId, text }) => ({ factId, text }));
@@ -82,7 +87,11 @@ export async function handleDeliverScheduledActions(
       await import('../../services/outreach/proactive-channels/proactive-tick.js');
     const { defaultProactiveDeps } =
       await import('../../services/outreach/proactive-channels/default-deps.js');
-    const deps = { ...defaultProactiveDeps(), worldDue };
+    // Without the world model the tick gets no worldDue, and its run line says so.
+    const deps = {
+      ...defaultProactiveDeps(),
+      ...((await temporalWorldLoader()) && { worldDue }),
+    };
     const proactive = await runProactiveChannelsTick(deps, {
       dryRun: isDryRun(req),
     }).catch((error: unknown) => ({ enabled: true, error: String(error) }));
@@ -114,9 +123,12 @@ export async function handleExecuteScheduledOutreach(
 
 export async function handleCalendarTriggers(res: ServerResponse): Promise<void> {
   await run(res, 'calendar-triggers', async () => {
-    const { runCalendarTriggerCheck } =
-      await import('../../services/workflows/calendar-trigger-worker.js');
-    return { ...(await runCalendarTriggerCheck()) };
+    const [{ runCalendarTriggerCheck }, { isSavedQuietNow }] = await Promise.all([
+      import('../../services/workflows/calendar-trigger-worker.js'),
+      import('../../services/outreach/quiet-hours.js'),
+    ]);
+    // The menu's quiet hours hold the pre-meeting push (QUIET_HOURS_FROM_PREFS).
+    return { ...(await runCalendarTriggerCheck({ quietNow: isSavedQuietNow })) };
   });
 }
 
@@ -128,19 +140,27 @@ export async function handleCalendarTriggers(res: ServerResponse): Promise<void>
  */
 export async function handleCalendarBriefing(res: ServerResponse): Promise<void> {
   await run(res, 'calendar-briefing', async () => {
-    const [{ runMorningBriefs }, { defaultMorningBriefDeps }, { checkAndSendMorningBriefings }] =
-      await Promise.all([
-        import('../../services/outreach/morning-brief/brief-job.js'),
-        import('../../services/outreach/morning-brief/default-deps.js'),
-        import('../../tasks/scheduled/calendar-briefing-job.js'),
-      ]);
+    const [
+      { runMorningBriefs },
+      { defaultMorningBriefDeps },
+      { checkAndSendMorningBriefings },
+      { isSavedQuietNow },
+    ] = await Promise.all([
+      import('../../services/outreach/morning-brief/brief-job.js'),
+      import('../../services/outreach/morning-brief/default-deps.js'),
+      import('../../tasks/scheduled/calendar-briefing-job.js'),
+      import('../../services/outreach/quiet-hours.js'),
+    ]);
     const brief = await runMorningBriefs(await defaultMorningBriefDeps(), new Date()).catch(
       (error: unknown) => {
         log.error({ error: String(error) }, 'Morning brief run failed');
         return { recipients: [], report: { error: String(error) } };
       }
     );
-    const push = await checkAndSendMorningBriefings({ skipUsers: brief.recipients });
+    const push = await checkAndSendMorningBriefings({
+      skipUsers: brief.recipients,
+      quietNow: isSavedQuietNow, // the menu's quiet hours (QUIET_HOURS_FROM_PREFS)
+    });
     return { ...push, morningBrief: brief.report };
   });
 }
@@ -216,4 +236,33 @@ export async function handleRetryPendingRevocations(res: ServerResponse): Promis
       await import('../../services/identity/google-revocations.js');
     return { ...(await retryPendingRevocations()) };
   });
+}
+
+/**
+ * MINOR_CARE held-window scrubs that failed, for callers who never call again (held-scrub-sweep).
+ * Off unless the web server has HELD_SCRUB_SWEEP=on. ?scan=all reads every hold doc, for docs
+ * written before unscrubbedSince; it answers `next` when more remain (pass it as ?after=).
+ */
+export async function runHeldScrubSweepJob(opts: {
+  env?: Record<string, string | undefined>;
+  scanAll?: boolean;
+  after?: string;
+}): Promise<Record<string, unknown>> {
+  const { flagOn } = await import('../../config/env-flag.js');
+  if (!flagOn('HELD_SCRUB_SWEEP', opts.env)) return { skipped: 'flag-off' };
+  // The purge module registers every store's scrub (addHeldScrub): the ones a session start runs
+  await import('../../agents/voice-agent/minor-care-purge.js');
+  const { sweepHeldScrubs } = await import('../../services/trust-systems/held-scrub-sweep.js');
+  return { ...(await sweepHeldScrubs({ scanAll: opts.scanAll, after: opts.after })) };
+}
+
+export async function handleHeldScrubSweep(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
+  const params = new URL(req.url ?? '/', 'http://localhost').searchParams;
+  const after = params.get('after') || undefined;
+  await run(res, 'held-scrub-sweep', async () =>
+    runHeldScrubSweepJob({ scanAll: params.get('scan') === 'all', after })
+  );
 }

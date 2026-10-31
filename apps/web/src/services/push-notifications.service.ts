@@ -45,13 +45,10 @@ export interface PushNotification {
   personaId?: string;
 }
 
+/** Only what When I'll Check In still sets. Its per-type switches, which no sender obeyed, are gone (#2783). */
 export interface NotificationPreferences {
   enabled: boolean;
-  ritualReminders: boolean;
   streakMilestones: boolean;
-  predictionResults: boolean;
-  teamHuddles: boolean;
-  ferniCheckins: boolean;
   quietHoursStart?: string; // HH:MM format
   quietHoursEnd?: string;
 }
@@ -73,11 +70,7 @@ type NotificationCallback = (notification: PushNotification) => void;
 
 const DEFAULT_PREFERENCES: NotificationPreferences = {
   enabled: true,
-  ritualReminders: true,
   streakMilestones: true,
-  predictionResults: true,
-  teamHuddles: true,
-  ferniCheckins: true,
   quietHoursStart: '22:00',
   quietHoursEnd: '08:00',
 };
@@ -370,20 +363,8 @@ class PushNotificationsService {
   private shouldShowNotification(type: NotificationType): boolean {
     if (!this.preferences.enabled) return false;
 
-    switch (type) {
-      case 'ritual_reminder':
-        return this.preferences.ritualReminders;
-      case 'streak_milestone':
-        return this.preferences.streakMilestones;
-      case 'prediction_result':
-        return this.preferences.predictionResults;
-      case 'team_huddle':
-        return this.preferences.teamHuddles;
-      case 'ferni_checkin':
-        return this.preferences.ferniCheckins;
-      default:
-        return true;
-    }
+    // A false left in localStorage by the removed switches no longer hides anything.
+    return type === 'streak_milestone' ? this.preferences.streakMilestones : true;
   }
 
   private isQuietHours(): boolean {

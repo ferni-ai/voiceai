@@ -7,7 +7,8 @@
  * for Gemini 3, so the level must be set explicitly. These tests pin the
  * defaults so a later edit cannot silently re-enable hidden thinking.
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import * as google from '@livekit/agents-plugin-google';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getProviderIdSync as configProviderId } from '../../../config/model-provider-config.js';
 import { clearModelProvider, getProviderIdSync as factoryProviderId } from '../factory.js';
 import {
@@ -27,6 +28,8 @@ const ENV_KEYS = [
   'CASCADE_STT_KEYTERMS',
   'CASCADE_TURN_DETECTION',
   'VOICE_PIPELINE',
+  'GEMINI_BILLING_JOB',
+  'STT_AUDIO_DIAGNOSTICS',
 ];
 afterEach(() => {
   for (const k of ENV_KEYS) delete process.env[k];
@@ -182,6 +185,28 @@ describe('CartesiaCascadeProvider', () => {
     expect(llm.model).toBe('gemini-3.5-flash');
   });
 
+  it('labels every Gemini LLM request for the billing export', async () => {
+    process.env.GOOGLE_CLOUD_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || 'test-project';
+    process.env.GEMINI_BILLING_JOB = 'Unit Job';
+    const chat = vi.spyOn(google.LLM.prototype, 'chat').mockReturnValue({} as never);
+    try {
+      // The default cascade hedges: label both the primary and the backup model.
+      const hedged = (await provider.createLLMModel({ model: 'x', instructions: 'x' })) as {
+        primary: { chat: (opts: object) => unknown };
+        backup: { chat: (opts: object) => unknown };
+      };
+      hedged.primary.chat({ extraKwargs: { seed: 7 } });
+      hedged.backup.chat({});
+      const labels = { ferni_job: 'unit_job', ferni_env: 'local' };
+      expect(chat.mock.calls.map((c) => c[0])).toEqual([
+        { extraKwargs: { seed: 7, labels } },
+        { extraKwargs: { labels } },
+      ]);
+    } finally {
+      chat.mockRestore();
+    }
+  });
+
   it('creates a Cartesia STT with the built options', () => {
     process.env.CARTESIA_API_KEY = process.env.CARTESIA_API_KEY || 'test-key';
     const stt = provider.createSTT() as { model: string; provider: string };
@@ -325,5 +350,16 @@ describe('logStreamOpens', () => {
     expect(wrapped.stream({ language: 'en' } as never)).toBe('stream-1');
     expect(wrapped.stream()).toBe('stream-2');
     expect(calls).toEqual([[{ language: 'en' }], []]);
+  });
+
+  it('hands each stream to the STT_AUDIO_DIAGNOSTICS watch only when the flag is on', () => {
+    const pushFrame = (): void => {};
+    const stt = {
+      stream: () => ({ pushFrame, next: async () => ({ done: true }), close: () => {} }),
+    };
+    logStreamOpens(stt);
+    expect(stt.stream().pushFrame).toBe(pushFrame);
+    process.env.STT_AUDIO_DIAGNOSTICS = 'on';
+    expect(stt.stream().pushFrame).not.toBe(pushFrame);
   });
 });

@@ -81,7 +81,8 @@ export type ToolDomain =
   | 'life-thesis' // Life thesis: capturing and recalling "why" across all life domains
   | 'marketing' // Social media management: content generation, publishing, analytics
   | 'referral' // Viral growth via voice calls
-  | 'smart-home' // Home Assistant, smart lights, thermostats, locks, scenes
+  | 'smart-home' // Smart lights, thermostats, locks, scenes
+  | 'lifx-lights' // The verified caller's own LIFX lights (SMART_HOME_LIFX)
   | 'webhooks' // Webhook automations: IFTTT, Zapier, Home Assistant, Siri Shortcuts
   | 'books' // Book tracking, recommendations, reading lists
   | 'podcasts' // Podcast discovery, listening history, recommendations
@@ -134,6 +135,7 @@ export type ToolDomain =
   | 'projects' // Multi-task projects with templates
   | 'social-events' // Birthdays, anniversaries, gift tracking
   | 'transportation' // Uber/Lyft rides, commute tracking
+  | 'ride-links' // openRideLink: an Uber link with the trip filled in (RIDE_LINKS)
   | 'vehicle' // Maintenance schedules, registration alerts
   | 'workflows' // Custom automations, IFTTT-style triggers
   | 'routines' // Ferni's care routines - "What I Do For You"
@@ -222,6 +224,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'marketing',
   'referral',
   'smart-home',
+  'lifx-lights',
   'webhooks',
   'books',
   'podcasts',
@@ -276,6 +279,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'projects',
   'social-events',
   'transportation',
+  'ride-links',
   'vehicle',
   'workflows',
   'routines',
@@ -381,7 +385,8 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'life-thesis': 'lifestyle', // Life thesis - cross-persona motivation capture
   marketing: 'communication', // Social media management and content publishing
   referral: 'communication', // Voice referral calls for viral growth
-  'smart-home': 'productivity', // Home Assistant integration for smart home control
+  'smart-home': 'productivity', // Smart home control: lights, thermostats, speakers
+  'lifx-lights': 'productivity', // The caller's own LIFX lights
   webhooks: 'productivity', // Webhook automations for IFTTT, Zapier, etc.
   books: 'entertainment', // Book tracking, recommendations, reading lists
   podcasts: 'entertainment', // Podcast discovery, listening history
@@ -434,6 +439,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   projects: 'productivity', // Multi-task projects with templates
   'social-events': 'lifestyle', // Birthdays, anniversaries, gift tracking
   transportation: 'lifestyle', // Uber/Lyft rides, commute tracking
+  'ride-links': 'lifestyle', // An Uber link with the trip filled in
   vehicle: 'lifestyle', // Maintenance schedules, registration alerts
   workflows: 'productivity', // Custom automations, IFTTT-style triggers
   routines: 'lifestyle', // Ferni's care routines - "What I Do For You"
@@ -472,7 +478,7 @@ export type ExternalService =
   | 'google-contacts' // Google Contacts API
   | 'spotify' // Music streaming
   | 'sonos' // Sonos speakers
-  | 'sendgrid' // Email service
+  | 'email' // Email (the ferni.ai Workspace mailbox)
   | 'twilio' // SMS/phone service
   | 'openweather' // Weather API
   | 'newsapi' // News aggregation
@@ -558,31 +564,6 @@ export interface ServiceRegistry {
 }
 
 /**
- * Base tool interface for strict custom implementations
- *
- * Use this interface when you want TypeScript to validate your tool structure.
- */
-export interface StrictToolInterface {
-  /** Description shown to the LLM */
-  description: string;
-
-  /**
-   * Parameter schema - can be JSON Schema or Zod schema
-   * Optional when tool takes no parameters
-   */
-  parameters?: unknown;
-
-  /**
-   * Execute the tool with provided parameters
-   * Returns string for simple responses, or object for structured data
-   */
-  execute: (params: Record<string, unknown>) => Promise<unknown>;
-
-  /** Tool name (optional, defaults to ID) */
-  name?: string;
-}
-
-/**
  * Strict tool interface for our custom implementations.
  *
  * Use this when building tools that need full type safety.
@@ -652,24 +633,6 @@ export function assertTool(obj: unknown, name = 'tool'): asserts obj is Tool {
 }
 
 /**
- * Stricter tool interface for custom implementations
- */
-export interface StrictTool {
-  /** Tool description for LLM */
-  description: string;
-
-  /** Parameter schema (JSON Schema) */
-  parameters?: {
-    type: 'object';
-    properties: Record<string, unknown>;
-    required?: string[];
-  };
-
-  /** Execute the tool */
-  execute: (params: Record<string, unknown>) => Promise<unknown>;
-}
-
-/**
  * Tool definition for registry
  */
 export interface ToolDefinition {
@@ -694,9 +657,9 @@ export interface ToolDefinition {
   /** Factory function to create the tool instance */
   create: (_ctx: ToolContext) => Tool;
 
-  /** External services required by this tool */
-  requiredServices?: ExternalService[];
+  requiredServices?: ExternalService[]; // external services this tool needs
   requiresEnv?: readonly string[]; // env vars it needs; never registered while one is unset (tool-availability.ts)
+  availableWhen?: () => boolean; // false at registration: never registered (tool-availability.ts)
 
   /** Tool is experimental/beta */
   experimental?: boolean;
@@ -903,7 +866,7 @@ export class EnvironmentServiceRegistry implements ServiceRegistry {
     'google-contacts': () => !!process.env.GOOGLE_CONTACTS_CREDENTIALS,
     spotify: () => !!(process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET),
     sonos: () => !!(process.env.SONOS_CLIENT_ID && process.env.SONOS_CLIENT_SECRET),
-    sendgrid: () => !!process.env.SENDGRID_API_KEY,
+    email: () => true, // the Workspace mailbox needs no key (services/email-transport)
     openweather: () => !!process.env.OPENWEATHER_API_KEY,
     newsapi: () => !!process.env.NEWS_API_KEY,
     'alpha-vantage': () => !!process.env.ALPHA_VANTAGE_API_KEY,

@@ -85,15 +85,31 @@ export const PLACEHOLDER_IDS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Characters that change no visible letter: format characters (Cf: zero-width
+ * space/joiners, BOM, soft hyphen), other default-ignorables (Hangul fillers,
+ * variation selectors) and whitespace anywhere. No member id has any of them.
+ */
+const INVISIBLE = /[\p{Cf}\p{Default_Ignorable_Code_Point}\s]/gu;
+
+/**
+ * The id as compared, so a disguised placeholder still matches: NFKC (full-width,
+ * NBSP), invisible characters and whitespace dropped, lower case. Comparison only;
+ * never store or key by it.
+ */
+export function comparableId(userId: string): string {
+  return userId.normalize('NFKC').replace(INVISIBLE, '').toLowerCase();
+}
+
+/**
  * Whether this id is one of the buckets everyone without an id falls into:
- * missing, blank, or a placeholder. Narrower than namesNoAccount: an anon: or
- * onbehalf: id is minted per call, so it is nobody's account and no two calls
- * get the same one.
+ * missing, blank, a placeholder, or a bare anon:/onbehalf: prefix with no id.
+ * Narrower than namesNoAccount: an anon: or onbehalf: id with a body is minted
+ * per call, so it is nobody's account and no two calls get the same one.
  */
 export function isSharedPlaceholderId(userId: string | undefined | null): boolean {
   if (typeof userId !== 'string') return true;
-  const id = userId.trim().toLowerCase();
-  return !id || PLACEHOLDER_IDS.has(id);
+  const id = comparableId(userId);
+  return !id || PLACEHOLDER_IDS.has(id) || (NON_ACCOUNT_PREFIXES as readonly string[]).includes(id);
 }
 
 /** Whether this user id belongs to a test harness rather than a real person. */
@@ -109,12 +125,12 @@ export function nonAccountPrefixOf(userId: string): string | undefined {
 
 /**
  * Whether this id names no account: missing or blank, a placeholder, or an
- * anon:/onbehalf: session id. Case-insensitive and trimmed, so 'Anonymous' or
- * ' ANON:x' can't slip past. services/identity/member-identity.ts builds on it.
+ * anon:/onbehalf: session id. Compared as `comparableId` gives it, so 'Anonymous',
+ * ' ANON:x' or a zero-width/full-width disguise can't slip past. services/identity/member-identity.ts builds on it.
  */
 export function namesNoAccount(userId: string | undefined | null): boolean {
   if (typeof userId !== 'string') return true;
-  const id = userId.trim().toLowerCase();
+  const id = comparableId(userId);
   if (!id || PLACEHOLDER_IDS.has(id)) return true;
   return nonAccountPrefixOf(id) !== undefined;
 }

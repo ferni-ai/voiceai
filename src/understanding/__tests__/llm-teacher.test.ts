@@ -65,6 +65,27 @@ describe('the LLM teacher', () => {
     expect(clash(1, 2)).toBe(false);
   });
 
+  it("a free-text date costs only that date, not the turn's reading", async () => {
+    const time = { text: 'after the surgery', kind: 'point', relation: 'future' } as const;
+    const generate: GenerateFn = async (_s, user) => {
+      const u = JSON.parse(user) as Record<string, unknown>;
+      if ('QUESTION' in u) return JSON.stringify({ answered_prior_question });
+      if (!('EARLIER' in u))
+        return JSON.stringify({ affect_text, affect_situation, sincere: false });
+      return JSON.stringify({
+        ...core,
+        time_expressions: [{ ...time, start_iso: "mom's surgery", end_iso: null }],
+      });
+    };
+    const out = await llmTeacher(generate, 'parallel').read(
+      { ...CAR_INPUT, callerTimezone: undefined },
+      signal
+    );
+    expect(out?.reading).toEqual(
+      carReading({ time_expressions: [{ ...time, start_iso: null, end_iso: null }] })
+    );
+  });
+
   it('any malformed sub-answer makes the whole reading null', async () => {
     const generate: GenerateFn = async (_s, user) =>
       'QUESTION' in JSON.parse(user) ? '{"answered_prior_question":"maybe"}' : JSON.stringify(core);

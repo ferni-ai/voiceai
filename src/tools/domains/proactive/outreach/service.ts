@@ -54,15 +54,18 @@ export const NO_VERIFIED_EMAIL = 'No verified email address on this account';
 export const SAVED_NOT_VERIFIED =
   'I only text, call or email the phone number and email verified on your account, so if this is new, verify it in Settings first.';
 
-/** A Twilio call in the persona's voice (Cartesia TTS, else Twilio's voice). */
+/** A Twilio call in the persona's voice (Cartesia, else Twilio's); a held userId stops it. */
 async function makePhoneCall(
   phone: string,
   message: string,
-  personaId = 'ferni'
+  personaId: string,
+  userId: string
 ): Promise<{ success: boolean; callSid?: string; error?: string }> {
   try {
     const result = await callWithPersonaVoice(phone, message, personaId, {
       fallbackToTwilioVoice: true,
+      ownerUid: userId,
+      userId,
     });
     if (result.success) return { success: true, callSid: result.callSid };
     return { success: false, error: result.message };
@@ -82,9 +85,7 @@ interface SimpleToolDefinition {
 
 type ToolContext = { userId?: string; personaId?: string };
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// --- TYPES ---
 
 export interface UserContactInfo {
   phone?: string;
@@ -119,12 +120,10 @@ export async function setUserContactInfo(
   userId: string,
   info: Partial<UserContactInfo>
 ): Promise<void> {
-  // Update local cache
   const existing = userContactCache.get(userId) || {};
   const updated = { ...existing, ...info };
   userContactCache.set(userId, updated);
 
-  // Persist to user profile in Firestore
   try {
     const store = await getProfileStore();
     const profile = await store.getProfile(userId);
@@ -165,7 +164,6 @@ async function savedContactInfo(userId: string): Promise<UserContactInfo | undef
   const cached = userContactCache.get(userId);
   if (cached) return cached;
 
-  // Load from profile if not in cache
   try {
     const store = await getProfileStore();
     const profile = await store.getProfile(userId);
@@ -340,7 +338,7 @@ export async function callUser(
   try {
     // Normalize persona ID and use for voice
     const canonicalPersonaId = getCanonicalPersonaId(personaId);
-    const result = await makePhoneCall(phone, message, canonicalPersonaId);
+    const result = await makePhoneCall(phone, message, canonicalPersonaId, userId);
 
     if ('error' in result) {
       return { success: false, error: result.error };

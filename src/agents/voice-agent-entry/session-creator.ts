@@ -8,11 +8,13 @@
  */
 
 import type { PersonaConfig } from '../../personas/types.js';
+import { gateScriptedSay } from '../personas/scripted-name-gate.js';
 import { routeSayThroughModel } from '../shared/native-speech.js';
 import type { VoiceDeps } from '../voice-agent/phases/index.js';
 import type { UserLocation } from './types.js';
 import { USE_TOOL_GATEWAY } from './constants.js';
 import { createLightweightVoiceAgentRef } from './voice-agent-ref.js';
+import { resolveSessionVoice } from './session-voice.js';
 import { attachTurnMetrics } from '../shared/turn-metrics.js';
 import { createLogger as createTurnMetricsLogger } from '../../utils/safe-logger.js';
 
@@ -136,28 +138,11 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
   // =========================================================================
   // VOICE LOCALIZATION (International Accent Support)
   // =========================================================================
-  const { getDefaultVoiceConfig } = await import('../../config/cartesia-config.js');
-  const defaultVoice = getDefaultVoiceConfig();
-  const voiceConfig = sessionPersona.voice || defaultVoice;
-  let effectiveVoiceId = voiceConfig.voiceId;
-  let isLocalizedVoice = false;
-
-  if (userAccent && userAccent !== 'american') {
-    try {
-      const { getLocalizedVoiceId } =
-        await import('../../services/voice/cartesia-voice-localization.js');
-      const localizationResult = await getLocalizedVoiceId(sessionPersona.id, userAccent as import('../../config/voice-accents.js').EnglishAccent);
-      effectiveVoiceId = localizationResult.voiceId;
-      isLocalizedVoice = localizationResult.isLocalized;
-      process.stderr.write(
-        `[voice-agent-entry] 🌍 Voice localized: ${userAccent ? 'yes' : 'no'} (cached: ${localizationResult.cached})\n`
-      );
-    } catch (locErr) {
-      process.stderr.write(
-        `[voice-agent-entry] Voice localization failed (non-fatal): ${locErr}\n`
-      );
-    }
-  }
+  // A live custom agent keeps its own voice (session-voice.ts)
+  const { voiceConfig, effectiveVoiceId, isLocalizedVoice } = await resolveSessionVoice(
+    sessionPersona,
+    userAccent
+  );
 
   // ⚡ OPTIMIZATION: Parallelize independent module loads
   process.stderr.write(`[voice-agent-entry] ⚡ Starting parallel module loads...\n`);
@@ -469,6 +454,8 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
   if (session && modelProvider.speaksNatively?.()) {
     routeSayThroughModel(session as unknown as Parameters<typeof routeSayThroughModel>[0]);
   }
+  // NAME_GATE_V2: scripted say() lines get the name gate (agents/personas/scripted-name-gate.ts).
+  if (session) gateScriptedSay(session);
 
   // Add cleanup handler for retry counter WeakMap
   const { clearRetryCounter } = await import('../shared/sanitizer/index.js');

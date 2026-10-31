@@ -140,7 +140,7 @@ const userFinancialState = new Map<string, UserFinancialState>();
  * Detect recurring bills from transaction history
  */
 export async function detectBills(userId: string): Promise<Bill[]> {
-  const accessToken = getStoredAccessToken(userId);
+  const accessToken = await getStoredAccessToken(userId);
   if (!accessToken) return [];
 
   try {
@@ -276,7 +276,7 @@ function calculateRecurringConfidence(intervals: number[], expected: number): nu
  * Detect recurring income from transaction history
  */
 export async function detectIncome(userId: string): Promise<IncomeSource[]> {
-  const accessToken = getStoredAccessToken(userId);
+  const accessToken = await getStoredAccessToken(userId);
   if (!accessToken) return [];
 
   try {
@@ -388,7 +388,7 @@ export async function predictCashFlow(
   userId: string,
   daysOut = 14
 ): Promise<CashFlowForecast | null> {
-  const accessToken = getStoredAccessToken(userId);
+  const accessToken = await getStoredAccessToken(userId);
   if (!accessToken) return null;
 
   try {
@@ -558,7 +558,7 @@ export async function predictCashFlow(
  * Detect unusual spending patterns
  */
 export async function detectAnomalies(userId: string): Promise<SpendingAnomaly[]> {
-  const accessToken = getStoredAccessToken(userId);
+  const accessToken = await getStoredAccessToken(userId);
   if (!accessToken) return [];
 
   try {
@@ -658,7 +658,7 @@ export async function detectAnomalies(userId: string): Promise<SpendingAnomaly[]
  * Detect subscription services and creep over time
  */
 export async function detectSubscriptionCreep(userId: string): Promise<SubscriptionCreep | null> {
-  const accessToken = getStoredAccessToken(userId);
+  const accessToken = await getStoredAccessToken(userId);
   if (!accessToken) return null;
 
   try {

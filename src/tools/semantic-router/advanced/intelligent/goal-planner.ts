@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { errorFields } from '../../../../utils/error-class.js';
 import { GEMINI_MODEL, LLM_TIMEOUT_MS } from '../../../../config/gemini-config.js';
 
 const log = createLogger({ module: 'goal-planner' });
@@ -255,12 +256,11 @@ export class GoalPlanner {
           setTimeout(() => reject(new Error('Planning timeout')), this.config.planningTimeoutMs);
         }),
       ]);
-
       const plan = this.parsePlanResponse(response, userGoal, availableTools);
 
       log.info(
         {
-          goal: userGoal.slice(0, 50),
+          goalLength: userGoal.length,
           stepCount: plan.steps.length,
           confidence: plan.confidence,
           durationMs: performance.now() - startTime,
@@ -270,7 +270,7 @@ export class GoalPlanner {
 
       return plan;
     } catch (error) {
-      log.error({ error }, 'Plan creation failed, using heuristic');
+      log.error(errorFields(error), 'Plan creation failed, using heuristic');
       return this.heuristicPlan(userGoal, availableTools);
     }
   }
@@ -405,7 +405,7 @@ Respond ONLY with valid JSON:`;
         createdAt: new Date(),
       };
     } catch (error) {
-      log.warn({ error }, 'Failed to parse plan response');
+      log.warn(errorFields(error), 'Failed to parse plan response');
       return this.heuristicPlan(userGoal, availableTools);
     }
   }
@@ -533,7 +533,7 @@ Respond ONLY with valid JSON:`;
 
     log.info(
       {
-        goal: plan.goal.slice(0, 50),
+        goalLength: plan.goal.length,
         status: state.status,
         completed: state.completedSteps.length,
         failed: state.failedSteps.length,
@@ -575,7 +575,7 @@ Respond ONLY with valid JSON:`;
       state.failedSteps.push(step.id);
       options?.onStepError?.(step.id, error instanceof Error ? error : new Error(String(error)));
 
-      log.warn({ stepId: step.id, error }, 'Step failed');
+      log.warn({ stepId: step.id, ...errorFields(error) }, 'Step failed');
     } finally {
       state.executingSteps = state.executingSteps.filter((s) => s !== step.id);
     }

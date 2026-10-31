@@ -44,6 +44,21 @@ rules only when `--only` names one entry, so start it with
 `firebase emulators:start --only firestore:ferni-dev` (plain `--only firestore`
 starts with no rules: every read and write allowed).
 
+`scripts/devdb/copy-user.ts --uid <uid>` copies one person's records from prod into
+`ferni-dev` (dry run unless `--apply`). Under `bogle_users/{uid}` and `users/{uid}`
+it copies only the subcollections in its `COPIED_SUBCOLLECTIONS` allowlist, and every
+copied document goes through the export's secret filter (token fields, sealed token
+records and credential-looking values are dropped at any depth). Credentials and
+queues stay in prod, and so do the known stores of other people's data: contacts,
+calendar events and meetings with attendees (and their search-index entries), email
+correspondents, guest lists, people Ferni was asked to reach and what they said,
+check-in texts, tool-call arguments, OCR of uploaded images. Still copied, deferred
+to lane DC2: contacts' phones and emails in `entity_store`, phone numbers kept as free
+text in `dynamic_facts` / `dynamic_entities` / deep-extraction docs, `info_preferences`
+saved locations (behind `REQUIRE_FIX_MEMORY`, off), and legacy `follow_up_actions` and
+`knowledge_graph` docs with no writer. A new subcollection fails `copy-user.test.ts`
+until it is classified there.
+
 ## How work ships (one small chunk at a time)
 
 1. **Branch from `origin/main`**: `git fetch origin && git switch -c <type>/<slug> origin/main`.
@@ -107,14 +122,48 @@ checks; reviewable lines are counted by `scripts/ci/reviewable.sh`).
   full stops, or the model writes `,,`.
 - **No AI-disclosure prompt changes.** Ferni speaks as himself.
 
+## How we build (Seth, 2026-10-29: "this must be the way we develop code")
+
+Every change leaves the code cleaner than it found it. The measurable version
+is `docs/DEFINITION-OF-CLEAN.md` §3–§5; these are the rules a PR is reviewed
+against:
+
+- **One way to do each thing.** Before writing a helper, search for it
+  (`git grep`). Extend the existing one or move it into the shared module;
+  never add a second copy. Shared rules live in one place per context, e.g.
+  `src/memory/domain/` (contact data, person keys, forgotten topics).
+- **Clean architecture inside a context.** Pure rules in `domain/`, store
+  interfaces in `ports/`, I/O in `adapters/` (the only code that imports
+  Firestore or a vendor SDK), orchestration in `use-cases/`, tools and prompt
+  injection in `delivery/`. Callers import the context's `index.ts`. The
+  architecture gate enforces it (`pnpm quality:arch`).
+- **Names say what a thing does,** for a reader who has never seen the code:
+  `contact-data.ts`, `recall-people.ts`, `call-sheet.ts`, not `utils2.ts`,
+  `helpers.ts`, `manager.ts`, `v2`. Folders name a capability, not a layer
+  pile (`memory/`, not `services/misc/`).
+- **No dead code.** Delete what nothing calls, with grep proof, in the same PR
+  that replaces it (`pnpm quality:knip` fails new dead code). No flags left on
+  forever: a flag is removed once its rollout is done.
+- **Docs that match the code.** A plan for any multi-PR change in
+  `docs/plans/YYYY-MM-DD-<topic>.md`; a short `CLAUDE.md` per context that is
+  updated in the PR that changes what it describes. A wrong doc is a bug.
+- **Small, verified, flag-off PRs.** ≤ ~400 reviewable lines, new behaviour
+  behind an off-by-default flag, an independent verifier's pass on the exact
+  head before merge, fixtures fictional (555-01xx numbers, made-up names).
+
 ## Code conventions that aren't obvious from the code
 
 - **Logging**: `createLogger` from `src/utils/logger.js`, never `console.*`.
   Never swallow an error (`.catch(() => {})`); log it with context.
+  A linked account's token read calls `noteLinkedTokenUse(provider, uid, state)`
+  (`src/utils/linked-token-use.ts`; the shared `user-oauth-store` already does),
+  so the tool's "Tool execution tracked" line carries `link_provider`,
+  `link_uid_tag` (`bqHash('user', uid)`, never the uid) and `link_state`
+  (`agents/voice-agent/tool-outcome.ts`).
 - **Types**: no `any`, no `as any`. Use `unknown` and narrow.
-- **Layers** point inward: L5 entrypoints → L4 orchestration → L3 (ten capability
-  contexts, via each other's index.ts) → L2 shared kernel; L1 adapters implement L2/L3 ports.
-  Map: `apps/cli/src/commands/quality/architecture-layers.ts`; `pnpm quality:arch` fails new violations.
+- **Layers** point inward (L5 → L4 → L3 contexts → L2; L1 adapters implement ports).
+  Which folder is in which layer or context: [ARCHITECTURE.md](ARCHITECTURE.md), generated
+  from `architecture-layers.ts`. `pnpm quality:arch` fails new violations.
 - **Names**: files are kebab-case. Name by function, not acronym or version
   (`tool-classifier.ts`, not `ftis-v2.ts`). No persona names in tool files.
 - **Classifiers on user text** match whole words, never substrings
@@ -122,6 +171,10 @@ checks; reviewable lines are counted by `scripts/ci/reviewable.sh`).
 - **Frontend**: colors, durations and shadows come from design tokens
   (`var(--color-*)`); edit `design-system/tokens/*.json` and run
   `pnpm tokens:sync`. Never edit `*.generated.*`.
+- **Flags**: `pnpm flags:new NAME --default off --owner <area> --kind experiment`
+  writes `src/config/flags/NAME.ts`; commit only that file. The flag barrel and
+  the env-name list (`src/config/**/*.generated.ts`) are gitignored: install,
+  typecheck, build and tests regenerate them (`pnpm gen:lists` by hand).
 - **Tests**: Vitest, next to the code in `__tests__/`. A test named after a
   behaviour must fail when the behaviour is missing: no `>= 0` or `true` asserts.
 
@@ -135,10 +188,14 @@ pnpm lint:fix                # eslint autofix
 pnpm quality                 # typecheck + lint + format + builders (before a PR)
 pnpm tsx apps/cli/src/commands/quality/ratchet.ts   # the CI quality ratchet
 pnpm build:fast              # esbuild
+pnpm gen:lists               # flag barrel + env-name list (gitignored)
 ```
 
 ## Where to look (load on demand)
 
+- `ARCHITECTURE.md`: start here. Entry points, data stores, deploy surfaces,
+  where to add a tool, persona, flag, job or log marker, and the generated table
+  of every layer and context with its folders, `index.ts` and `CLAUDE.md`.
 - `docs/archive/2026-10-08-former-claude-md.md`: the former 2,000-line
   CLAUDE.md, archived. Subsystem overviews (memory, personas, tools, design
   system, CLI). **Partly outdated: verify against the code.**

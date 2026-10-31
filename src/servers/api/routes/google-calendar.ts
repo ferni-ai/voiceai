@@ -15,6 +15,14 @@ import {
 import { getVerifiedUserId } from '../request-identity.js';
 import { disconnectGoogleCalendar } from '../../../services/identity/google-calendar-disconnect.js';
 import { OAUTH_START_PATH } from './oauth-start.js';
+import { GOOGLE_CALENDAR_SCOPES } from '../../../config/google-calendar-scopes.js';
+import { isGoogleLinkHonest } from '../../../config/google-link-honest.js';
+import { getLinkState, isLinkStatusV2, linkFields } from '../../../services/identity/link-state.js';
+import {
+  INSUFFICIENT_SCOPE,
+  hasCalendarScope,
+  isInsufficientLink,
+} from '../../../services/identity/google-link-scope.js';
 import {
   googleCalendarClientId,
   googleCalendarClientSecret,
@@ -32,10 +40,20 @@ const GOOGLE_CALENDAR_CLIENT_SECRET = googleCalendarClientSecret();
 const GOOGLE_CALENDAR_REDIRECT_URI = googleCalendarRedirectUri(
   'https://app.ferni.ai/auth/google/callback'
 );
-const GOOGLE_CALENDAR_SCOPES = [
-  'https://www.googleapis.com/auth/calendar',
-  'https://www.googleapis.com/auth/calendar.events',
-].join(' ');
+const GOOGLE_CALENDAR_SCOPE_PARAM = GOOGLE_CALENDAR_SCOPES.join(' ');
+
+/**
+ * Granular consent: the user unticked the calendar. The grant is kept (so disconnect can
+ * revoke it) but stored as unusable; the user goes back to where they started, told to reconnect.
+ */
+function redirectInsufficientScope(res: ServerResponse, userId: string, returnUrl: string): true {
+  log.warn({ userId }, 'Google link without the calendar scope stored as insufficient_scope');
+  const sep = returnUrl.includes('?') ? '&' : '?';
+  const query = `calendar=google&status=${INSUFFICIENT_SCOPE}&calendar_error=${INSUFFICIENT_SCOPE}`;
+  res.writeHead(302, { Location: `${returnUrl}${sep}${query}` });
+  res.end();
+  return true;
+}
 
 /**
  * Handle Google Calendar OAuth routes
@@ -72,7 +90,7 @@ export async function handleGoogleCalendarRoutes(
     authUrl.searchParams.set('client_id', GOOGLE_CALENDAR_CLIENT_ID);
     authUrl.searchParams.set('redirect_uri', GOOGLE_CALENDAR_REDIRECT_URI);
     authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('scope', GOOGLE_CALENDAR_SCOPES);
+    authUrl.searchParams.set('scope', GOOGLE_CALENDAR_SCOPE_PARAM);
     authUrl.searchParams.set('access_type', 'offline');
     authUrl.searchParams.set('prompt', 'consent');
     authUrl.searchParams.set('state', state);
@@ -136,12 +154,15 @@ export async function handleGoogleCalendarRoutes(
 
       // Save tokens for this user (async - uses Firestore)
       const userId = stateData.uid;
+      const insufficient = isGoogleLinkHonest() && !hasCalendarScope(tokens.scope);
       await googleCalendarService.saveTokens(userId, {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token || '',
         expires_at: Date.now() + tokens.expires_in * 1000,
         scope: tokens.scope,
+        ...(insufficient ? { status: INSUFFICIENT_SCOPE } : {}),
       });
+      if (insufficient) return redirectInsufficientScope(res, userId, stateData.returnUrl);
 
       // Set up webhook watch channel for real-time sync
       try {
@@ -228,12 +249,18 @@ export async function handleGoogleCalendarRoutes(
 
     const userTokens = await googleCalendarService.getTokens(userId);
     const googleConfigured = !!(GOOGLE_CALENDAR_CLIENT_ID && GOOGLE_CALENDAR_CLIENT_SECRET);
+    const insufficient = !!userTokens && isInsufficientLink(userTokens);
+    const link = isLinkStatusV2()
+      ? linkFields(await getLinkState(userId, 'google_calendar'))
+      : null;
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(
       JSON.stringify({
         google_calendar_configured: googleConfigured,
-        linked: !!userTokens,
+        linked: !!userTokens && !insufficient,
+        ...(insufficient || link?.scopes_ok === false ? { status: INSUFFICIENT_SCOPE } : {}),
+        ...link,
         expires_at: userTokens?.expires_at || null,
         connect: googleConfigured ? CONNECT : null,
       })

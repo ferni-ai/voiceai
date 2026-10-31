@@ -23,6 +23,7 @@ import { SignJWT, decodeJwt, importPKCS8 } from 'jose';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { decryptData, encryptData } from '../../utils/token-encryption.js';
+import { erasureErrorCode } from '../platform/erasure-step.js';
 
 const log = createLogger({ module: 'siwa-tokens' });
 
@@ -180,7 +181,7 @@ export async function revokeAppleSignIn(uid: string, deps: SiwaDeps = {}): Promi
       await ref.delete();
     }
   } catch (error) {
-    log.error({ error: String(error) }, 'Sign in with Apple revocation failed');
+    log.error({ error: erasureErrorCode(error) }, 'Sign in with Apple revocation failed');
   }
   if (result !== 'revoked') log.warn({ result }, 'Sign in with Apple grant not revoked');
   return result;

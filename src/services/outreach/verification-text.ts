@@ -343,6 +343,7 @@ export async function textVerificationCode(
     personaId: 'ferni',
     userId,
     outreachId: `verify_${at}`,
+    askedNow: true, // they asked for the code
   });
   if (!result.success) {
     log.warn({ phoneLast4, error: redactNumbers(result.error) }, 'Code send failed');

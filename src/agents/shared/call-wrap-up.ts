@@ -58,6 +58,7 @@ import {
 } from './phone-goodbye.js';
 import {
   clearFarewell,
+  farewellSaid,
   ferniSaysGoodbye,
   markFarewell,
   reopenFarewell,
@@ -66,9 +67,11 @@ import {
 } from './call-farewell.js';
 import { holdWhileBusy, waitForQuiet, watchCaller, type CallerWatch } from './caller-activity.js';
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
+import { setPhoneMoveEnd } from '../../tools/domains/proactive/outreach/call-me-moves-to-phone.js';
 import { coordinatedSay } from '../../speech/coordination/session-integration.js';
 import { directedText, type Cue } from '../../speech/direction/index.js';
 import { watchReopenIdle } from './reopen-idle.js';
+import { crisisReadsExpected } from './goodbye-read.js';
 import {
   clearSessionClosing,
   isSessionClosing,
@@ -275,6 +278,33 @@ interface CallRoom {
   remoteParticipants?: { size: number };
 }
 
+/** How soon the app call's room closes once the phone it rang is answered. */
+export const MOVED_END_MS = 300;
+
+/**
+ * CALL_ME_MOVES_TO_PHONE: once the phone this app caller asked Ferni to ring is
+ * answered, the app call stops speaking at once (the phone is at their ear:
+ * nothing may play over it) and ends on the goodbye path within MOVED_END_MS
+ * (call-me-moves-to-phone.ts). No caller watch: the app's mic can still hear
+ * them talking on the phone, which must not reopen it. Crisis risk on the call
+ * still holds it open.
+ */
+export function attachPhoneMoveEnd(
+  session: object,
+  call: Pick<WrapUpCall, 'sessionId' | 'roomName' | 'callerInRoom' | 'hangUp' | 'setTimer'>
+): void {
+  const wrap: WrapUpCall = { ...call, graceMs: MOVED_END_MS };
+  setPhoneMoveEnd(session, async () => {
+    if (crisisRiskThisCall(call.sessionId)) return false;
+    try {
+      (session as { interrupt?: () => unknown }).interrupt?.();
+    } catch (error) {
+      log.warn({ sessionId: call.sessionId, error: String(error) }, 'Moved call not interrupted');
+    }
+    return wrapUpCall(wrap, 'goodbye_complete');
+  });
+}
+
 /**
  * Gives the agent its endCall: PHONE_GOODBYE's for a phone caller, this one
  * for an app caller with CALL_WRAP_UP on. With GOODBYE_ENDS_CALL or
@@ -300,13 +330,18 @@ export async function attachCallWrapUp(
 ): Promise<boolean> {
   const roomName = call.room.name ?? '';
   const phone = call.participant?.kind === ParticipantKind.SIP;
+  const callerInRoom = (): boolean => (call.room.remoteParticipants?.size ?? 0) > 0;
+  if (!phone && !call.onBehalf && call.session) {
+    const { sessionId, hangUp, setTimer } = call;
+    attachPhoneMoveEnd(call.session, { sessionId, roomName, callerInRoom, hangUp, setTimer });
+  }
   const wrapUp = callWrapUpEnabled(call.env) && !call.onBehalf;
   const endOnGoodbye = goodbyeEndsCallEnabled(call.env) && !call.onBehalf;
   if (!phone && !wrapUp && !endOnGoodbye) return false;
   const wrap: WrapUpCall = {
     sessionId: call.sessionId,
     roomName,
-    callerInRoom: () => (call.room.remoteParticipants?.size ?? 0) > 0,
+    callerInRoom,
     hangUp: call.hangUp,
     setTimer: call.setTimer,
     now: call.now,
@@ -319,6 +354,8 @@ export async function attachCallWrapUp(
       sessionId: call.sessionId,
       setTimer: call.setTimer,
       clearTimer: call.clearTimer,
+      // After a reopen a goodbye ends only on its clean crisis read, when reads run
+      readsExpected: () => crisisReadsExpected(call.env),
       onIdle: () =>
         void wrapUpCall(wrap, 'idle_after_goodbye').catch((error: unknown) =>
           log.error(
@@ -362,6 +399,29 @@ const REOPEN_CHECK_IN: Cue = {
   rejectIf: (line) => ferniSaysGoodbye(line.trimEnd().replace(/\?+$/, '')),
 };
 
+/**
+ * HELD_GOODBYE_CHECK_IN (default off, #2695): after a reopen with the
+ * classifier on, a goodbye pair whose turn got no crisis read holds the end
+ * (goodbye-read.ts), and the 60 s check-in is skipped while the goodbyes
+ * stand, so the caller heard 120 s of silence. With it on, Ferni checks in
+ * once after HELD_GOODBYE_CHECK_IN_MS of quiet; the call still ends only by
+ * the reopen idle. Never on a call with crisis risk (or a read in flight):
+ * that call keeps its silence, exactly as before.
+ */
+const HELD_GOODBYE_CHECK_IN: Cue = {
+  ...REOPEN_CHECK_IN,
+  moment: 'held_goodbye_checkin',
+  direction:
+    "They said goodbye, the call is still open, and they've gone quiet. Gently ask if they're still there, in no hurry. One short sentence; don't say goodbye.",
+  fallback: 'Still there? No rush.',
+};
+
+/** Both goodbyes stand, but only a missing read holds the end: no crisis risk, not closing. */
+function goodbyeHeldForRead(sessionId: string, env?: Env): boolean {
+  if (!farewellSaid(sessionId) || isSessionClosing(sessionId)) return false;
+  return crisisReadsExpected(env) && !crisisRiskThisCall(sessionId);
+}
+
 /** A reopened call ends after the usual idle, with one warm check-in first (reopen-idle.ts). */
 function idleAfterReopen(
   wrap: WrapUpCall,
@@ -372,6 +432,15 @@ function idleAfterReopen(
   const { sessionId } = wrap;
   // Goodbyes said again with the end held for crisis, or the call closing: say nothing
   const quiet = (): boolean => stayQuiet(sessionId, env);
+  /** Write the line, then say it only if `ok()` still holds and the caller isn't talking. */
+  const say = (cue: Cue, ok: () => boolean): void =>
+    void directedText(sessionId, cue).then((line) => {
+      // The call may have ended, or the caller started talking, while the line was written
+      if (ok() && !caller.busy()) {
+        coordinatedSay(sessionId, line.text, { allowInterruptions: true });
+      }
+    });
+  const held = (): boolean => goodbyeHeldForRead(sessionId, env);
   return () =>
     watchReopenIdle(session, {
       caller,
@@ -380,13 +449,16 @@ function idleAfterReopen(
       checkIn: () => {
         if (quiet()) return;
         log.info({ sessionId }, 'CALL_WRAP_UP quiet after reopen; checking in');
-        void directedText(sessionId, REOPEN_CHECK_IN).then((line) => {
-          // The call may have ended, or the caller started talking, while the line was written
-          if (!quiet() && !caller.busy()) {
-            coordinatedSay(sessionId, line.text, { allowInterruptions: true });
-          }
-        });
+        say(REOPEN_CHECK_IN, () => !quiet());
       },
+      ...(flagOn('HELD_GOODBYE_CHECK_IN', env) && {
+        heldGoodbyeCheckIn: () => {
+          if (!held()) return false;
+          log.info({ sessionId }, 'GOODBYE_END_HELD quiet after a held goodbye; checking in');
+          say(HELD_GOODBYE_CHECK_IN, held);
+          return true;
+        },
+      }),
       end: () => {
         log.info({ sessionId }, 'CALL_WRAP_UP quiet after reopen; ending the call');
         void wrapUpCall(wrap, 'idle_after_goodbye').catch((error: unknown) =>

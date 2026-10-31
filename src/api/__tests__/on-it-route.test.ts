@@ -3,7 +3,7 @@
  * the real engagement router and route; a request nothing claims gets the
  * server's unknown-route 404. Only the token check and the stores are faked.
  */
-import { createServer, type Server } from 'node:http';
+import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Errand } from '../../services/errands/index.js';
@@ -15,6 +15,16 @@ import {
   liveFollowUps,
   openErrands,
 } from '../../services/on-it/__tests__/fixtures.js';
+
+// Read once when auth-middleware loads, so set before the router is imported.
+vi.hoisted(() => {
+  process.env.API_KEYS = 'svc-key-synthetic';
+  process.env.ADMIN_API_KEYS = 'admin-key-synthetic';
+  // The dev-header path only exists in development; turn it on so the route's
+  // own Firebase-only check is what refuses a dev header.
+  process.env.NODE_ENV = 'development';
+  process.env.ADMIN_KEY = 'dev-admin-synthetic';
+});
 
 vi.mock('../../services/identity/firebase-auth.js', () => ({
   verifyFirebaseToken: vi.fn(async (token: string) =>
@@ -70,6 +80,7 @@ vi.mock('../on-it-deps.js', () => ({
 }));
 
 const { handleEngagementRoutes } = await import('../engagement-routes.js');
+const { authenticate } = await import('../auth-middleware.js');
 
 let server: Server;
 let base = '';
@@ -150,6 +161,33 @@ describe('GET /api/on-it', () => {
     const { res } = await get('', null);
 
     expect(res.status).toBe(401);
+    expect(stores.reads).toEqual([]);
+  });
+
+  it.each(['svc-key-synthetic', 'admin-key-synthetic'])(
+    '401 for an API key (%s): it names no one, so nothing is read',
+    async (key) => {
+      const res = await fetch(`${base}/api/on-it`, { headers: { 'x-api-key': key } });
+
+      expect(res.status).toBe(401);
+      expect(await res.text()).not.toContain('sections');
+      expect(stores.reads).toEqual([]);
+    }
+  );
+
+  it.each<Record<string, string>>([
+    { 'x-admin-key': 'dev-mode' },
+    { 'x-admin-key': 'dev-mode', 'x-user-id': 'uid-A' },
+    { 'x-admin-key': 'dev-admin-synthetic', 'x-user-id': 'uid-A' },
+  ])('401 for a dev header (%j), even in development: it names no one', async (headers) => {
+    // Precondition: the dev path is live, so a dev header does authenticate.
+    const req = { headers, socket: {} } as unknown as IncomingMessage;
+    expect(authenticate(req)?.authMethod).toBe('dev_mode');
+
+    const res = await fetch(`${base}/api/on-it`, { headers });
+
+    expect(res.status).toBe(401);
+    expect(await res.text()).not.toContain('sections');
     expect(stores.reads).toEqual([]);
   });
 
