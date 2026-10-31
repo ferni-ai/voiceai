@@ -84,10 +84,7 @@ type PatternCrisisType = Exclude<CrisisType, 'suicidal_ideation' | 'self_harm'>;
  * Pattern definitions for crisis detection.
  * Organized by crisis type with severity gradients.
  */
-const CRISIS_PATTERNS: Record<
-  PatternCrisisType,
-  { patterns: RegExp[]; severity: CrisisSeverity }[]
-> = {
+const CRISIS_PATTERNS: Record<PatternCrisisType, { patterns: RegExp[]; severity: CrisisSeverity }[]> = {
   domestic_abuse: [
     {
       patterns: [
