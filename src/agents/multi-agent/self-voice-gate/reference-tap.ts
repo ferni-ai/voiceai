@@ -17,6 +17,8 @@ const log = createLogger({ module: 'SelfVoiceReferenceTap' });
 const REF_RATE = 16_000;
 const PER_MS = REF_RATE / 1000;
 const RING = 2 * REF_RATE;
+/** Longest frame the tap schedules; TTS frames are 10–100 ms. */
+const MAX_FRAME_MS = 1000;
 
 /** One source's reference, decimated to 16 kHz mono, indexed by media sample (ms × 16). */
 export class RefRing {
@@ -25,10 +27,13 @@ export class RefRing {
   private end = 0;
 
   write(frame: AudioFrame, atMs: number): void {
-    // A 0 or NaN rate makes n Infinity and the copy loop never ends.
+    // Every loop below must stay bounded on the audio path: a 0, NaN or tiny
+    // rate or a huge sample count makes n unbounded, and past 2^53 i++ stops
+    // moving i. A real frame is far under one ring (2 s), so skip anything else.
     if (!(frame.sampleRate > 0) || !Number.isFinite(atMs)) return;
     const start = Math.round(atMs * PER_MS);
     const n = Math.floor((frame.samplesPerChannel * REF_RATE) / frame.sampleRate);
+    if (!(n > 0 && n <= RING) || start < 0 || !Number.isSafeInteger(start + n)) return;
     // Silence between the last write and this one (a gap between replies).
     for (let i = Math.max(this.end, start - RING); i < start; i++) this.ring[i % RING] = 0;
     const step = frame.sampleRate / REF_RATE;
@@ -88,9 +93,11 @@ export function tapAudioSource(
   };
   source.captureFrame = async function (this: Tappable, frame: AudioFrame): Promise<void> {
     try {
-      if (frame.samplesPerChannel > 0 && frame.sampleRate > 0) {
+      // NaN fails both tests, so a malformed frame never moves queueEnd.
+      const durMs = (frame.samplesPerChannel / frame.sampleRate) * 1000;
+      if (durMs > 0 && durMs <= MAX_FRAME_MS) {
         const at = Math.max(queueEnd, opts.now());
-        queueEnd = at + (frame.samplesPerChannel / frame.sampleRate) * 1000;
+        queueEnd = at + durMs;
         ring.write(frame, at);
       }
     } catch (error) {

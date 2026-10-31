@@ -101,4 +101,24 @@ describe('reference tap', () => {
     // The 0 Hz frame did not push the queue end to Infinity.
     expect(level(tapped, 2000)).toBeCloseTo(POWER, 5);
   });
+
+  it('skips malformed frames in bounded time and leaves scheduling alone', async () => {
+    const bad = (sampleRate: number, samplesPerChannel: number): AudioFrame =>
+      ({ data: new Int16Array(480), sampleRate, channels: 1, samplesPerChannel }) as unknown as AudioFrame;
+    const cases = [bad(1e-3, 480), bad(5e-324, 480), bad(24_000, Infinity), bad(24_000, 1e9)];
+    const ring = new RefRing();
+    const t0 = performance.now();
+    for (const f of cases) ring.write(f, 1000);
+    ring.write(tone(10), 2 ** 60); // past 2^53, where i++ stops moving i
+    expect(performance.now() - t0).toBeLessThan(100);
+    expect(level(ring, 1000)).toBe(0);
+    const source = new FakeSource();
+    const tapped = new RefRing();
+    tapAudioSource(source, tapped, { now: () => 2000 });
+    for (const f of cases) await source.captureFrame(f);
+    expect(source.captured).toBe(cases.length); // the original still runs
+    await source.captureFrame(tone(10));
+    // None of them pushed the queue end out: the real frame plays at now.
+    expect(level(tapped, 2000)).toBeCloseTo(POWER, 5);
+  });
 });
