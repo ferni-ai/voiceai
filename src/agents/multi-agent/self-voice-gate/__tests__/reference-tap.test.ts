@@ -86,4 +86,19 @@ describe('reference tap', () => {
     expect(broken.captured).toBe(1);
     expect(broken.cleared).toBe(1);
   });
+
+  it('skips a frame with no sample rate instead of hanging, and keeps scheduling', async () => {
+    const ring = new RefRing();
+    const silent = new AudioFrame(new Int16Array(480), 0, 1, 480);
+    ring.write(silent, 1000); // returned at all: no infinite loop
+    expect(level(ring, 1000)).toBe(0);
+    const source = new FakeSource();
+    const tapped = new RefRing();
+    tapAudioSource(source, tapped, { now: () => 2000 });
+    await source.captureFrame(silent);
+    expect(source.captured).toBe(1); // the original still runs
+    await source.captureFrame(tone(10));
+    // The 0 Hz frame did not push the queue end to Infinity.
+    expect(level(tapped, 2000)).toBeCloseTo(POWER, 5);
+  });
 });

@@ -25,6 +25,8 @@ export class RefRing {
   private end = 0;
 
   write(frame: AudioFrame, atMs: number): void {
+    // A 0 or NaN rate makes n Infinity and the copy loop never ends.
+    if (!(frame.sampleRate > 0) || !Number.isFinite(atMs)) return;
     const start = Math.round(atMs * PER_MS);
     const n = Math.floor((frame.samplesPerChannel * REF_RATE) / frame.sampleRate);
     // Silence between the last write and this one (a gap between replies).
@@ -86,7 +88,7 @@ export function tapAudioSource(
   };
   source.captureFrame = async function (this: Tappable, frame: AudioFrame): Promise<void> {
     try {
-      if (frame.samplesPerChannel > 0) {
+      if (frame.samplesPerChannel > 0 && frame.sampleRate > 0) {
         const at = Math.max(queueEnd, opts.now());
         queueEnd = at + (frame.samplesPerChannel / frame.sampleRate) * 1000;
         ring.write(frame, at);
