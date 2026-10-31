@@ -26,7 +26,7 @@ import { createPersistenceStore } from '../persistence/index.js';
 import { encryptData, decryptData } from '../../utils/token-encryption.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { queueGoogleRevocation, revokeGoogleToken } from './google-revocations.js';
-import { isGmailSendAsUserEnabled } from '../../config/gmail-send-flag.js';
+import { isGmailSendAsUserEnabledFor } from '../../config/gmail-send-flag.js';
 import {
   googleCalendarClientId,
   googleCalendarClientSecret,
@@ -162,10 +162,10 @@ export async function getGmailSendAddress(userId: string, strict = false): Promi
 
 /**
  * The address mail would go out from now: null when GMAIL_SEND_AS_USER is off
- * or there is no grant. Throws when Firestore can't be read.
+ * for this user or there is no grant. Throws when Firestore can't be read.
  */
 export async function gmailSendFrom(userId: string): Promise<string | null> {
-  return isGmailSendAsUserEnabled() ? getGmailSendAddress(userId, true) : null;
+  return (await isGmailSendAsUserEnabledFor(userId)) ? getGmailSendAddress(userId, true) : null;
 }
 
 /** Whether the user has a Gmail send grant. Throws when Firestore can't be read. */
@@ -305,7 +305,7 @@ async function postSend(token: string, raw: string): Promise<Response | null> {
  * we thought valid gets one refresh and one retry. Logs ids and statuses only.
  */
 export async function sendAsUser(userId: string, msg: GmailSendMessage): Promise<GmailSendOutcome> {
-  if (!isGmailSendAsUserEnabled()) return { status: 'not_connected' };
+  if (!(await isGmailSendAsUserEnabledFor(userId))) return { status: 'not_connected' };
   if (!ADDRESS.test(msg.to) || (msg.replyTo && !ADDRESS.test(msg.replyTo))) {
     return { status: 'bad_address' };
   }
