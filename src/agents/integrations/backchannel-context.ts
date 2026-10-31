@@ -1,5 +1,5 @@
 /**
- * Backchannels that fit what the caller is saying (BACKCHANNEL_CONTEXT=on).
+ * Backchannels that fit what the caller is saying.
  *
  * A listener's "mm-hm" reacts to the content: "oh no" to bad news, "whoa" to
  * a surprise, "ha" to something funny, "yeah" to a point they're making, and
@@ -13,12 +13,6 @@
  *
  * @module agents/integrations/backchannel-context
  */
-
-type Env = Record<string, string | undefined>;
-
-export function backchannelContextEnabled(env: Env = process.env): boolean {
-  return env.BACKCHANNEL_CONTEXT === 'on';
-}
 
 export type BackchannelContext =
   'bad_news' | 'tender' | 'surprise' | 'funny' | 'agreement' | 'narrative';

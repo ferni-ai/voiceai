@@ -55,7 +55,7 @@ describe('a quiet caller', () => {
   });
 });
 
-describe('the turn shape for a quiet caller (CANDOR=on, THINK_ALOUD=on, HUMAN_TEXTURE=on)', () => {
+describe('the turn shape for a quiet caller (CANDOR=on)', () => {
   const said = 'Not much going on.';
   const sig = regexSignals(said, callerMove(said));
   const reminders = (quiet: boolean | undefined): string[] =>
@@ -66,7 +66,6 @@ describe('the turn shape for a quiet caller (CANDOR=on, THINK_ALOUD=on, HUMAN_TE
 
   it('without it, the candor line and thinking aloud ride these turns', () => {
     vi.stubEnv('CANDOR', 'on');
-    vi.stubEnv('THINK_ALOUD', 'on');
     const r = reminders(undefined);
     expect(r.every((x) => CANDOR_LINE.test(x))).toBe(true);
     expect(r.some((x) => THINK_ALOUD_LINE.test(x))).toBe(true);
@@ -75,8 +74,6 @@ describe('the turn shape for a quiet caller (CANDOR=on, THINK_ALOUD=on, HUMAN_TE
 
   it('quiet: no verdict, no thinking aloud, no opinion line, on any draw, and the quiet line', () => {
     vi.stubEnv('CANDOR', 'on');
-    vi.stubEnv('THINK_ALOUD', 'on');
-    vi.stubEnv('HUMAN_TEXTURE', 'on');
     for (const r of reminders(true)) {
       expect(r).not.toMatch(CANDOR_LINE);
       expect(r).not.toMatch(THINK_ALOUD_LINE);

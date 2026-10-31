@@ -59,11 +59,9 @@ export const FLAGS_ACTION_TO_BYPASS = {
   AVATAR_REPLY_TONE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // getCurrentContext / getTodaySignificance in the caller's zone, with the cached weather
   AWARENESS_CALLER_TIME: { default: 'on', owner: 'tools', kind: 'kill-switch' },
-  BACKCHANNELS: { default: 'off', owner: 'platform', kind: 'experiment' },
   // on: live backchannels time the caller's pause on the audio clock and skip stale frames
   BACKCHANNEL_AUDIO_CLOCK: { default: 'off', owner: 'voice', kind: 'experiment' },
   BACKCHANNEL_CLIPS: { default: 'on', owner: 'voice', kind: 'config' },
-  BACKCHANNEL_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: live backchannels wait 260 ms after a sentence end / 390 ms otherwise and vary
   // their takes (backchannel-timing.ts)
   BACKCHANNEL_TIMING: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -83,7 +81,6 @@ export const FLAGS_HONEST_TO_IDENTITY = {
   HONEST_FRIEND: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: once the hour or part of day has come up, the turn's "Right now" line drops the clock (hour-once.ts)
   HOUR_ONCE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  HUMAN_TEXTURE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: POST /api/identity/merge-anonymous moves an anonymous account's data into the signed-in one
   IDENTITY_MERGE_ANON: { default: 'off', owner: 'platform', kind: 'experiment' },
 } as const satisfies Record<string, FlagSpec>;

@@ -98,7 +98,6 @@ const LEGACY_FLAG_MANIFEST = {
   CRISIS_GROUNDED_RELEASE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // a classifier-only crisis read of a bare "pass me to Nayan", with no risk on the call, gets the soft check-in
   CRISIS_TRANSFER_EVERYDAY: { default: 'off', owner: 'intelligence', kind: 'experiment' },
-  CURIOUS_DETAIL: { default: 'off', owner: 'voice', kind: 'experiment' },
   // after-call date extraction into world_facts (nothing reads them in a call yet)
   DATES_THAT_MATTER: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   DEBUG_AGENT: { default: 'off', owner: 'voice', kind: 'config' },
@@ -321,7 +320,6 @@ const LEGACY_FLAG_MANIFEST = {
   // on: preemptive replies are also synthesized before the commit (multi-agent/preemptive-tts.ts)
   PREEMPTIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRESENCE_CHECK_CAP: { default: 'off', owner: 'voice', kind: 'experiment' },
-  PRESENCE_HUM: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRESENCE_SNORE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRESENCE_SOUND_ASSETS: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRESENCE_SOUNDS: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -374,8 +372,6 @@ const LEGACY_FLAG_MANIFEST = {
   ...FLAGS_SPECIALIST_TO_SPECULATIVE,
   // off, shadow or live; the default is off under tests (speech/tts-gateway/director/gate.ts)
   SPEECH_DIRECTOR: { default: 'shadow', owner: 'voice', kind: 'experiment' },
-  // opt-in lever, read as SPEECH_DIRECTOR_<LEVER> from gate.ts (not a literal read)
-  SPEECH_DIRECTOR_LAUGHTER: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: the speech director contracts "that is" / "it is" / "I am not" where its subject opens
   // the clause (utils/spoken-contractions.ts, #2334). Audible only with
   // SPEECH_DIRECTOR=live and the normalize lever up.
