@@ -21,6 +21,7 @@ import {
 } from '../index.js';
 import { BuilderCategory } from '../core/categories.js';
 import { recordFollowUpAnswer } from '../../../services/coach-media/feedback.js';
+import { reportFollowThrough } from '../../../services/analytics/bq-followthrough.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   processCommitments,
@@ -82,6 +83,7 @@ async function buildCommitmentFollowUpContext(
     recordFollowUpAnswer(userId, answer, userText).catch((error: unknown) =>
       log.warn({ error: String(error) }, 'coach-media answer not stored')
     );
+    reportFollowThrough(userId, answer); // FOLLOWTHROUGH_BQ: its followthrough_outcomes row
   }
 
   // 1. If user made a new commitment, acknowledge it internally
