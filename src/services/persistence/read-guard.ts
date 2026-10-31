@@ -4,12 +4,14 @@
  * A non-strict PersistenceStore.load answers null on a read error, the same as "no doc", so a
  * consumer holds defaults ([], 0) and its next write merge-puts them over the stored values.
  * The guard marks a key whose latest load failed; until a load succeeds, setImmediate rejects
- * with ReadFailedWriteError. (set() is not guarded yet: ten consumers remember a failed load as
- * loaded and never reload, so refusing their set() would drop every later write.)
+ * with ReadFailedWriteError and set() drops the write (logged). A consumer that remembers which
+ * users it loaded must not count a failed load (load with strict: 'read'), or it never reloads.
  *
  * - Only the most recently started load sets or clears the mark, so a slow failing load can't
  *   mark a key after a newer one succeeded, and a slow success can't clear a newer failure.
- * - The mark affects only setImmediate here: get()/load() and their cache behave as before.
+ * - While marked, a cached copy isn't authoritative: get()/load() reload it, with backoff. If
+ *   that reload fails, a non-strict load still answers the cached copy (writes stay refused).
+ * - Concurrent loads that take any current copy share one read (sharedReads below).
  * - A write that doesn't depend on a read (a new OAuth grant replacing tokens, keys merged into
  *   a map) passes `{ safeWithoutRead: true }` and is never refused.
  *
@@ -36,6 +38,9 @@ export interface WriteOptions {
   safeWithoutRead?: boolean;
 }
 
+const RETRY_BASE_MS = 1_000;
+const RETRY_MAX_MS = 60_000;
+
 export function readGuard(collection: string, now: () => number = () => Date.now()) {
   let generation = 0;
   const latest = new Map<string, number>(); // key -> generation of the latest load started
@@ -57,12 +62,39 @@ export function readGuard(collection: string, now: () => number = () => Date.now
     failed(key: string): boolean {
       return marks.has(key);
     },
+    /** Marked, and the backoff since the last failed load has passed: read again, not the cache. */
+    reloadDue(key: string): boolean {
+      const mark = marks.get(key);
+      if (!mark) return false;
+      const wait = Math.min(RETRY_MAX_MS, RETRY_BASE_MS * 2 ** (mark.failures - 1));
+      return now() - mark.at >= wait;
+    },
     /** True when this write must not happen (logged). */
     refuses(key: string, options?: WriteOptions): boolean {
       if (options?.safeWithoutRead || !marks.has(key)) return false;
       log.warn({ collection, key }, 'Write refused: the last read failed');
       return true;
     },
+  };
+}
+
+/**
+ * One read per key at a time for loads that take any current copy (not `fresh`), so concurrent
+ * first-touch loads all succeed or all fail together. Two separate reads could split: the newer
+ * one's failure marked the key while the older one's caller counted the user loaded and never
+ * read again, so every later write was refused until restart. A `fresh` load always reads anew
+ * (a read already in flight may predate a write it must see); later joinable loads share it.
+ */
+export function sharedReads<T>() {
+  const inFlight = new Map<string, Promise<T>>();
+  return (key: string, joinable: boolean, read: () => Promise<T>): Promise<T> => {
+    const current = joinable ? inFlight.get(key) : undefined;
+    if (current) return current;
+    const reading = read();
+    inFlight.set(key, reading);
+    const done = () => void (inFlight.get(key) === reading && inFlight.delete(key));
+    reading.then(done, done);
+    return reading;
   };
 }
 

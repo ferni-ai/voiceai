@@ -30,7 +30,9 @@ Identity services handle:
 ### External Integrations
 | File | Purpose |
 |------|---------|
-| `apple-health-sync.ts` | Apple Health data sync |
+| `apple-health-sync.ts` | Apple Health data sync: daily totals only, never a sample, source name or device name |
+| `apple-health-daily-totals.ts` | The summary-only sync payload behind `APPLE_HEALTH_V2` (off): anything but listed daily totals is a 400 |
+| `apple-health-erase.ts` | Disconnect: erases every store the sync writes (token, indexed days, status, totals), reads it back, retries a failed pass; lists every store in its header |
 | `apple-health-types.ts` | Apple Health type definitions |
 | `ecobee-api.ts`, `ecobee-auth.ts`, `ecobee-types.ts` | Ecobee thermostat |
 | `oura-api.ts`, `oura-auth.ts`, `oura-types.ts` | Oura Ring (`oura-auth.ts` owns the sealed per-user grant: refresh, `needs_reauth`, revoke; connect is the wearables flow) |

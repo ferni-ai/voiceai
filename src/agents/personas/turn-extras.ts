@@ -122,6 +122,8 @@ export interface TurnSignals {
   trouble?: boolean;
   /** Crisis risk noted on this call (crisis-call-risk.ts, turn-holds.ts): no thinking aloud. */
   crisisRisk?: boolean;
+  /** No line may bar a question on this turn (exits-held.ts). */
+  exitsHeld?: boolean;
 }
 
 /** The model's understanding as signals. */
