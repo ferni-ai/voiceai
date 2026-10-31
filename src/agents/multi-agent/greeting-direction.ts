@@ -30,6 +30,7 @@ import {
 } from './friendship-anniversary.js';
 import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
+import { takeRecentTextFacts } from './recent-texts-awareness.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { calendarDaysSince, daysAgoInWords } from '../../utils/calendar-days.js';
 import * as notYet from './greeting-not-yet.js';
@@ -335,6 +336,7 @@ export async function directedGreeting(
       facts: {
         ...greetingFacts(partOfDay, userData?.userName, history),
         ...proactiveReasonFacts(proactive),
+        ...takeRecentTextFacts(sessionId), // CALL_KNOWS_RECENT_TEXTS: setup's read, never a new one
       },
       fallback: proactiveFallback(userData?.userName, personaId),
       urgency: 'now',
@@ -434,6 +436,7 @@ export async function directedGreeting(
         ),
         back
       ),
+      ...(unknown ? {} : takeRecentTextFacts(sessionId)), // not for a caller not recognised
       ...(firstCall ? stranger.FIRST_CALL_FACTS : {}),
       ...newsNow?.facts,
     },

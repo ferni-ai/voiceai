@@ -28,13 +28,23 @@ export function maxJobsPerWorker(
   return Number.isInteger(n) && n >= 1 ? n : 1;
 }
 
-/** The worker takes no new calls at its job cap or once real CPU load crosses the threshold. */
+let fullForRecycle = false;
+
+/** WORKER_RECYCLE (worker-recycle.ts): from now on the worker is full, whatever its load. */
+export function markFullForRecycle(): void {
+  fullForRecycle = true;
+}
+
+/**
+ * The worker takes no new calls at its job cap, once real CPU load crosses the
+ * threshold, or once it is draining to recycle.
+ */
 export function workerIsFull(
   activeJobs: number,
   load: number,
   maxJobs = maxJobsPerWorker()
 ): boolean {
-  return activeJobs >= maxJobs || load >= FULL_LOAD_THRESHOLD;
+  return fullForRecycle || activeJobs >= maxJobs || load >= FULL_LOAD_THRESHOLD;
 }
 
 /** Usable CPUs: NUM_CPUS override, else cgroup v2 `cpu.max` quota/period, else `fallback`. */
