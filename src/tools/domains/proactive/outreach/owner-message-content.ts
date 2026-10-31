@@ -7,7 +7,8 @@
  *
  * Every rule reads one form (foldToAscii): NFKC, accents dropped, Latin
  * look-alikes (dotless i, small capitals) as ASCII. A message passes only if:
- * 1. charset: after folding, ASCII letters, 0-9, spaces, newlines and . , ! ? ' - : ( ) /
+ * 1. charset: after folding, ASCII letters, 0-9, spaces, newlines, . , ! ? ' - : ( ) / & "
+ *    and emoji (no zero-width joiner); later rules read / & " as "-" and emoji as a space
  * 2. digits: fewer than 7 digits or number words in any 30 characters or any 14
  *    words (separators ignored; l/i/o/s dressed as digits count); no digits woven
  *    through a word; no 3-6 digit run within 3 words of call/dial/text/reply/send/ring
@@ -41,8 +42,9 @@ export type ContentBlock = (typeof CONTENT_BLOCKS)[number];
  */
 const DIGIT_RULE = { digits: 7, windowChars: 30, windowTokens: 14 } as const;
 
-/** After folding to ASCII: letters, digits, space, newline and . , ! ? ' - : ( ) / only (fe, 2026-10-31). */
-const CHARSET = /^[A-Za-z0-9 \n.,!?'\-:()/]*$/;
+/** After folding, the characters in rule 1 only (fe, 2026-10-31); no zero-width joiner, so a
+ * compound emoji is refused rather than glued together. */
+const CHARSET = /^[A-Za-z0-9 \n.,!?'\-:()/&"\p{Extended_Pictographic}\uFE0F]*$/u;
 /** Latin letters NFKD leaves alone that read as ASCII ones (dotless i, small capitals, ...). */
 const LATIN_LOOK_ALIKES: Readonly<Record<string, string>> = {
   ı: 'i', ȷ: 'j', ß: 'ss', æ: 'ae', Æ: 'AE', ø: 'o', Ø: 'O', œ: 'oe', Œ: 'OE', ł: 'l', Ł: 'L',
@@ -252,6 +254,7 @@ const foldToAscii = (text: string): string =>
   text
     .normalize('NFKC')
     .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
     .replace(/[^\p{ASCII}]/gu, (c) => LATIN_LOOK_ALIKES[c] ?? c);
@@ -275,8 +278,8 @@ const ADDRESS_DOTS = [
 export function blockedContent(text: string): ContentBlock | null {
   const folded = foldToAscii(text);
   if (!CHARSET.test(folded)) return 'charset';
-  // "/" is allowed for "1 1/4" and "1/1/2027", so every later rule reads it as "-": a separator
-  const form = folded.replace(/\//g, '-');
+  // Every later rule reads / & " as "-" and an emoji as a space: separators that can't glue or break a shape
+  const form = folded.replace(/[/&"]/g, '-').replace(/\p{Extended_Pictographic}/gu, ' ');
   if (vanityBlock(form)) return 'vanity_number';
   const lower = form.toLowerCase();
   if (/(?<![\p{L}0-9])(?:[\p{L}0-9] +){2,}[\p{L}0-9](?![\p{L}0-9])/u.test(lower)) return 'spaced_chars'; // prettier-ignore

@@ -72,9 +72,11 @@ describe('property: shapes a phishing text needs never pass', () => {
       'evildotcom',
       'evil dotnet',
       'go to evil dotcom now',
+      'dotcom',
     ]) {
       expect(blockedContent(text)).toBe('address_token');
     }
+    expect(blockedContent('go to evil d o t com')).not.toBeNull();
   });
 
   it('seven digits a word apart, inside 30 characters (only the character window sees it)', () => {
@@ -87,7 +89,7 @@ describe('property: shapes a phishing text needs never pass', () => {
   });
 
   it('characters outside the allowlist', () => {
-    const outside = ['@', '&', '%', '#', '$', '*', '+', '=', '"', ';', ...[0x2212, 0x00b7, 0x2022, 0x1f642].map((c) => String.fromCodePoint(c))]; // prettier-ignore
+    const outside = ['@', '%', '#', '$', '*', '+', '=', ';', ...[0x2212, 0x00b7, 0x2022, 0x200d].map((c) => String.fromCodePoint(c))]; // prettier-ignore
     const text = fc.tuple(pick(['see you', 'call mom', 'dinner at 7']), pick(outside), pick(['soon', 'ok', 'now'])).map((p) => p.join(' ')); // prettier-ignore
     fc.assert(fc.property(text, (t) => blockedContent(t) === 'charset'), { seed: 3227, numRuns: 300 }); // prettier-ignore
   });
@@ -254,13 +256,57 @@ describe('property: "/" separates like "-" in every number rule', () => {
   );
 });
 
+describe('emoji are allowed, and act as separators in every later rule', () => {
+  const EMOJI = [0x1f642, 0x1f389, 0x2764, 0x1f44d].map((c) => String.fromCodePoint(c));
+  const ZWJ = String.fromCodePoint(0x200d);
+
+  it('a domain glued with emoji is still a domain', () => {
+    const label = fc.stringMatching(/^[a-z]{2,10}$/);
+    const tld = fc.stringMatching(/^[a-z]{2,6}$/);
+    const glued = fc.tuple(label, pick(EMOJI), pick(['dot', '.', 'period']), pick(EMOJI), tld).map((p) => p.join('')); // prettier-ignore
+    fc.assert(fc.property(around(glued), (t) => blockedContent(t) === 'address_token'), { seed: 3227, numRuns: 300 }); // prettier-ignore
+    expect(blockedContent(`evil${EMOJI[0]}dot${EMOJI[0]}com`)).toBe('address_token');
+  });
+
+  it('digits split by emoji count toward the 7-in-30 window', () => {
+    const group = fc
+      .integer({ min: 100, max: 9999 })
+      .map(String)
+      .filter((g) => !/^1?8(00|88|77|66|55|44|33)/.test(g)); // toll-free is vanity
+    const phone = fc.tuple(fc.integer({ min: 200, max: 799 }), pick(EMOJI), group, pick(EMOJI), group).map((p) => p.join('')); // prettier-ignore
+    fc.assert(fc.property(phone, (t) => blockedContent(t) === 'digits'), { seed: 3227, numRuns: 300 }); // prettier-ignore
+    expect(blockedContent(`555${EMOJI[0]}201${EMOJI[0]}4477`)).toBe('digits');
+  });
+
+  it('emoji inside a credential ask do not hide it', () => {
+    const ask = fc.tuple(pick(['bank', 'card', 'pass', 'routing', 'verification']), pick(EMOJI), pick(['account', 'number', 'word', 'code'])); // prettier-ignore
+    const asks = ask.filter(([a, , b]) => ['bank account', 'card number', 'pass word', 'routing number', 'verification code'].includes(`${a} ${b}`)).map((p) => p.join('')); // prettier-ignore
+    fc.assert(fc.property(asks, (t) => blockedContent(t) === 'credential_ask'), { seed: 3227, numRuns: 200 }); // prettier-ignore
+  });
+
+  it('a zero-width joiner (compound emoji) is refused', () => {
+    expect(blockedContent(`family ${EMOJI[0]}${ZWJ}${EMOJI[1]}`)).toBe('charset');
+  });
+
+  it.each(['1&800&FERNI', '1"800"FERNI'])('& and " separate a vanity number too: %s', (text) => {
+    expect(blockedContent(text)).toBe('vanity_number');
+  });
+
+  it.each(['$5 now', '50% off', '#1 fan', '2+2', 'me@home'])(
+    'still outside the charset: %s',
+    (text) => {
+      expect(blockedContent(text)).toBe('charset');
+    }
+  );
+});
+
 describe('each rule', () => {
   it.each([
     ['visit example.com', 'address_token'],
     ['pat@example.com', 'charset'],
     ['call 555−555−0123', 'charset'],
     ['5 × 5', 'charset'],
-    ['see you \u{1F642}', 'charset'],
+    ['see you \u{1F642}', null],
     ['сall now', 'charset'],
     ['50% off', 'charset'],
     ['go to www example', 'address_token'],
@@ -383,6 +429,7 @@ const BENIGN = [
   'See you at the cafe on 2nd Avenue', 'Drink a glass of water every hour',
   'Remember the 1/1/2027 deadline for the lease', 'Anecdotes make the toast, keep it short',
   'Oh no, the oven! Check it at 5 p.m.', 'Call Abuela, the café opens at 8',
+  'Tom & Jerry tonight \u{1F389}', 'R&B playlist for the drive', 'Mom said \u201Ccall me\u201D',
 ]; // prettier-ignore
 
 describe(`false refusals on ${BENIGN.length} ordinary texts`, () => {
