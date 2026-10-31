@@ -8,7 +8,6 @@
  * while the voice (ferni:lid-blend) owns them.
  */
 
-import { gsap } from 'gsap';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DURATION } from '../../../src/config/animation-constants.js';
@@ -22,6 +21,8 @@ vi.mock('../../../src/utils/logger.js', () => ({
 type Expressions = typeof import('../../../src/ui/ferni-expressions.ui.js');
 type Feeling = keyof typeof DOME_POSES;
 
+// The instance the module graph uses: re-read after each vi.resetModules().
+let gsap: typeof import('gsap').gsap;
 const FRAME_S = 1 / 60;
 let clock = 0;
 let rafQueue: FrameRequestCallback[] = [];
@@ -107,9 +108,9 @@ function transition(fx: Expressions, from: Feeling, to: Feeling) {
   return { overshoot, arrived, durationMs: (lastMove + 1) * FRAME_S * 1000 };
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.resetModules();
-  (window as unknown as { gsap: typeof gsap }).gsap = gsap;
+  ({ gsap } = await import('gsap'));
   gsap.ticker.remove(gsap.updateRoot);
   gsap.globalTimeline.clear();
   clock = gsap.globalTimeline.time();
