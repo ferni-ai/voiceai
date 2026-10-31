@@ -9,6 +9,8 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     /// False in the iPad sidebar, where Settings is a page, not a sheet.
     var showsDone = true
+    /// The sign-in sheet hangs off the List: a sheet on a Section inside it doesn't present.
+    @State private var signingIn = false
 
     var body: some View {
         NavigationStack {
@@ -18,7 +20,7 @@ struct SettingsView: View {
                     NavigationLink("What Ferni remembers") { MemoryScreen(memory: model.memory, lock: model.memoryLock) }
                     SoundsToggle()
                 }
-                AccountSection(account: model.account, signOut: model.signOut)
+                AccountSection(account: model.account, signOut: model.signOut, signingIn: $signingIn)
                 Section {
                     NavigationLink("Help") { HelpView() }
                     NavigationLink("Delete account") { DeleteAccountView(delete: model.deleteAccount) }
@@ -33,6 +35,7 @@ struct SettingsView: View {
                     SettingsHeader("About")
                 }
             }
+            .sheet(isPresented: $signingIn) { SignInView(account: model.account) }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -62,6 +65,32 @@ private struct SettingsHeader: View {
     var body: some View { Text(title).foregroundStyle(FerniColor.textSecondary) }
 }
 
+/// What the Account section shows while the account is set up (critic L6):
+/// a spinner for a moment, then "taking longer than usual" with Try again,
+/// never a spinner forever; and when setting up fails or is slow, a way to
+/// get help (ferni.ai/help).
+enum AccountStatus: Equatable {
+    case working, slow, unavailable(String), ready
+
+    static let slowAfter: Double = 15
+    static let helpURL = URL(string: "https://ferni.ai/help/")!
+
+    static func shown(_ state: AccountStore.State, waited: Double) -> AccountStatus {
+        switch state {
+        case .starting: waited >= slowAfter ? .slow : .working
+        case .unavailable(let message): .unavailable(message)
+        case .signedIn, .needsSignIn: .ready
+        }
+    }
+
+    var offersHelp: Bool {
+        switch self {
+        case .slow, .unavailable: true
+        case .working, .ready: false
+        }
+    }
+}
+
 /// Who you are to Ferni, and the upgrade from "this phone" to "you, anywhere".
 private struct AccountSection: View {
     let account: AccountStore
@@ -69,17 +98,36 @@ private struct AccountSection: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var nonce = AppleNonce()
     @State private var confirmingSignOut = false
+    @Binding var signingIn: Bool
+    @State private var startedWaiting = Date.now
+    @State private var now = Date.now
 
     var body: some View {
+        let status = AccountStatus.shown(account.state, waited: now.timeIntervalSince(startedWaiting))
         Section {
             switch account.state {
+            case .starting where status == .slow:
+                Text("Setting up your account is taking longer than usual.").foregroundStyle(FerniColor.textSecondary)
+                Button("Try again") { Task { await account.start() } }
             case .starting:
                 LabeledContent("Account") { ProgressView() }
+                    .task {
+                        startedWaiting = .now
+                        try? await Task.sleep(for: .seconds(AccountStatus.slowAfter))
+                        now = .now
+                    }
             case .unavailable(let message):
                 Text(message).foregroundStyle(FerniColor.textSecondary)
                 Button("Try again") { Task { await account.start() } }
+            case .needsSignIn:
+                Text(SignInPrompt.askText).foregroundStyle(FerniColor.textSecondary)
+                Button("Sign in") { signingIn = true }
             case .signedIn(let user) where user.isSignedInWithApple:
                 LabeledContent("Signed in with Apple", value: user.email ?? "")
+                Button("Sign out", role: .destructive) { confirmingSignOut = true }
+                    .disabled(account.isWorking)
+            case .signedIn(let user) where !user.isAnonymous:
+                LabeledContent("Signed in", value: user.email ?? (user.providerIDs.contains("phone") ? String(localized: "With your phone number") : ""))
                 Button("Sign out", role: .destructive) { confirmingSignOut = true }
                     .disabled(account.isWorking)
             case .signedIn:
@@ -104,17 +152,22 @@ private struct AccountSection: View {
                 .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
                 .frame(minHeight: 48)
                 .disabled(account.isWorking)
+                Button(SignInPrompt.offerText) { signingIn = true }
             }
             if let notice = account.notice {
                 Text(notice).foregroundStyle(FerniColor.error)
             }
         } header: {
             SettingsHeader("Account")
+        } footer: {
+            if status.offersHelp {
+                Link("Get help with your account", destination: AccountStatus.helpURL)
+            }
         }
         .confirmationDialog("Sign out?", isPresented: $confirmingSignOut, titleVisibility: .visible) {
             Button("Sign out", role: .destructive) { Task { await signOut() } }
         } message: {
-            Text("Ferni will start fresh on this phone until you sign in again.")
+            Text("To talk with Ferni on this phone again, you'll sign in.")
         }
     }
 }
@@ -168,6 +221,15 @@ struct HelpView: View {
                 SettingsHeader("Suicide & Crisis Lifeline (US)")
             } footer: {
                 Text("Free and confidential, any time. If you're in danger, call 911.")
+            }
+            Section {
+                Link(destination: URL(string: "https://findahelpline.com")!) {
+                    Label("Find a helpline outside the US", systemImage: "globe")
+                }
+            } header: {
+                SettingsHeader("Outside the US")
+            } footer: {
+                Text("Free, confidential helplines in your country. If you're in danger, call your local emergency number.")
             }
         }
         .navigationTitle("Help")

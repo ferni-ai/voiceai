@@ -21,6 +21,30 @@ The minimum-build screen (`MinimumBuild`) shows only when the server names
 this build as too old. That route doesn't exist yet, so it never shows. It
 gates no feature.
 
+## Paid plans: unreachable, and what's left in the binary
+
+Ferni is free for now (2026-10-10). `PaidPlans.isOffered` is a constant
+`false`, so the app never prices, sells or restores a plan, and nothing
+leads to the StoreKit code (`SubscriptionService`, `PlanPurchaseModel`),
+which stays in the source so paid plans can come back. The constant is a
+`let`, not a build-time `#if`: the code is compiled, then stripped where the
+linker can.
+
+Measured on an unsigned Release archive (build 2026101918.59, 2026-10-19):
+
+| Looked for in `Ferni.app/Ferni` | Found |
+|---|---|
+| The four product IDs (`com.ferni.subscription.*`) | none |
+| Purchase copy ("Restore purchases", "Your plan", "per month") | none |
+| A `.storekit` configuration in the bundle | none |
+| The class names `SubscriptionService`, `PlanPurchaseModel` | yes, as Objective-C runtime names (`_TtC8FerniKit19SubscriptionService`). Swift classes are listed in `__objc_classlist`, which the linker never strips |
+| StoreKit | linked (`otool -L`), for one type: `StoreKit.Product` |
+
+So no purchase path, product or price ships, but a static scan will see
+StoreKit linked and those two class names. Linking StoreKit isn't a
+guideline issue on its own, and nothing a reviewer can reach depends on it.
+If even that should go, wrap `FerniKit/Store/` in `#if PAID_PLANS`.
+
 ## Signing in: no demo account needed
 
 The app signs in anonymously on first launch, so a reviewer can talk to Ferni
@@ -48,7 +72,7 @@ notes as a one-time link, never in this repository.
 | Live captions | During a call | What you and Ferni say. Turn them off under More, then Captions. |
 | Report a reply (1.2) | Long-press a caption, or More, then Report | Sends the reply and a reason. Needs PR #2038 on the server. |
 | Mute, End, More | Call controls | More: captions, report the last reply, Call 988. |
-| Help now | More (in a call), Settings, then Help | Call or text 988. |
+| Help now | More (in a call), Settings, then Help, or long-press the app icon: Get help now | Call or text 988; outside the US, findahelpline.com. The quick action is static, so it works even when Ferni can't connect. |
 | Teammates | Home, the team row (iPad: sidebar, then Team) | Choose who answers next. Locked teammates say why. |
 | The family table | During a call, when Ferni brings in a teammate | The teammate peeks in, they greet and swap, and the room light changes. |
 | "I'll remember" | Home, after a call | Up to three things Ferni kept, each with Forget. |
@@ -86,6 +110,7 @@ No tracking and no tracking domains. Required-reason APIs: UserDefaults
 
 - [ ] PR #2038 (reports) and PR #2004 (Apple revoke) merged and deployed.
 - [ ] H4 decided: `TAP_INTERRUPT` on in production, or the gesture removed.
+- [ ] `POST /api/identity/merge-anonymous` live in production with IDENTITY_MERGE_ANON on, before any external TestFlight or App Store build. Signing in to an account someone already has merges this phone's anonymous calls into it; without the route the app signs them in and quietly leaves those calls behind ("Earlier calls on this phone stay separate").
 - [ ] A device run of `docs/ios/device-test-checklist.md` on an iPhone and an iPad.
 - [x] The accessibility audit lane (XCUITest `performAccessibilityAudit`, default size and AX5): gating in CI on iPhone 17 Pro Max (0 findings); reported on iPad Pro 13" (see the note below).
 
