@@ -83,7 +83,6 @@ const refuse = (reason: OwnerMessageRefusal): OwnerMessageDecision => {
 
 /** An unverified call's message: allowed with the footer, or why not. Counts it when allowed. */
 function unverifiedDecision(message: OwnerMessage, call: object | undefined): OwnerMessageDecision {
-  if (!isMemberIdentity(message.ownerId)) return refuse('no_account');
   if (!call) return refuse('no_session'); // nothing to count against: fail closed
   for (const text of message.texts) {
     const blocked = typeof text === 'string' ? blockedContent(text) : null;
@@ -99,8 +98,9 @@ function unverifiedDecision(message: OwnerMessage, call: object | undefined): Ow
 export function ownerMessagePolicy(message: OwnerMessage): OwnerMessageDecision {
   if (!unverifiedOwnerMessageFilterOn()) return { outcome: 'unchanged' };
   const call = callSessionData(message.opts);
-  if (call && verifiedCallerId(call) === message.ownerId) return { outcome: 'unchanged' };
-  const decision = unverifiedDecision(message, call);
+  const member = isMemberIdentity(message.ownerId);
+  if (member && call && verifiedCallerId(call) === message.ownerId) return { outcome: 'unchanged' };
+  const decision = member ? unverifiedDecision(message, call) : refuse('no_account');
   if (decision.outcome === 'refused') {
     const sessionId = (call as { services?: { sessionId?: unknown } } | undefined)?.services?.sessionId; // prettier-ignore
     log.info(

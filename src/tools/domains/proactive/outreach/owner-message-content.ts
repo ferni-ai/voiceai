@@ -70,7 +70,7 @@ function lettersOnly(text: string, one: 'i' | 'l'): string {
 const EMAIL = /[\p{L}\p{N}._%+-]@[\p{L}\p{N}-]/u;
 const URL_MARK = /(?:[a-z][a-z0-9+.-]*:\/\/|www\.|\bhttps?:)/;
 const BARE_DOMAIN = /[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)*\.\p{L}{2,}(?![\p{L}\p{N}])/u;
-const SPELLED_TLD = new RegExp(`\\bdot\\s*(?:${TLDS})\\b`);
+const SPELLED_TLD = new RegExp(`dot\\s*(?:${TLDS})\\b`);
 const DIGIT_WORD = new RegExp(`\\b(?:${DIGIT_WORDS.join('|')})\\b`, 'g');
 /** Seven or more digits, any script, with spaces, dashes, dots or brackets between them. */
 const DIGIT_RUN = /\p{Nd}(?:[\s.,\-‐-―−()/+_*]*\p{Nd}){6,}/u;
