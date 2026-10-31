@@ -60,6 +60,7 @@ async function oneCall(): Promise<{ hello: number; note: string }> {
   clearOpenerClaims();
   const s = store();
   const deps = { now: () => NOW, store: s, mark: s.mark, forgotten: async () => [] };
+  const recentCrisis = async () => false;
   const dates = createDatesRecall({ userId: USER, ...deps });
   const recall = createMemoryRecall({
     userId: USER,
@@ -74,8 +75,11 @@ async function oneCall(): Promise<{ hello: number; note: string }> {
     dates,
     opener: true,
   });
-  const hello = await dateFor({ userId: USER, sessionId: 'once-1', zone: 'UTC' }, deps);
-  await hello?.commit(); // it won the arbiter
+  const hello = await dateFor(
+    { userId: USER, sessionId: 'once-1', zone: 'UTC' },
+    { ...deps, recentCrisis }
+  );
+  hello?.commit("Hey Riley. Priya's visit is tomorrow, isn't it."); // it won and said it
   await recall.ready;
   const note = recall.noteFor('Hey, it is me.', { final: true }) ?? '';
   return { hello: hello ? 1 : 0, note };

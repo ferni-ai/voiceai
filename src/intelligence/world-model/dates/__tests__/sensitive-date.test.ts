@@ -27,6 +27,53 @@ describe('sensitiveDate', () => {
   ])('%j -> %s', (label, expected) => {
     expect(sensitiveDate(label)).toBe(expected);
   });
+
+  // A heavy word always wins over an ordinary event word (the #3238 verify's held-out labels).
+  it.each([
+    'hospice visit',
+    'rehab visit',
+    'AA meeting',
+    'visit to the cemetery',
+    'move to memory care',
+    'dinner with the oncologist',
+    'custody meeting',
+    'supervised visit with the kids',
+    'prison visit',
+    'lawyer meeting',
+    'mortgage meeting',
+    'tax audit meeting',
+  ])('verifier held-out: %j is sensitive', (label) => {
+    expect(sensitiveDate(label)).toBe(true);
+  });
+
+  it.each([
+    'ER visit',
+    'NA meeting',
+    'parole hearing party',
+    'dialysis trip',
+    'follow-up visit with Dr. Lee',
+    'nursing home visit',
+    "Marcus's wake",
+    'foreclosure meeting',
+    'divorce mediation dinner',
+    'IRS meeting',
+    'radiation class',
+    'meeting with my sponsor',
+  ])('builder held-out: %j is sensitive', (label) => {
+    expect(sensitiveDate(label)).toBe(true);
+  });
+
+  it.each([
+    'date night',
+    "Maya's birthday party",
+    'work meeting',
+    'courtyard party', // "court" is a whole word
+    'taxi pickup', // so is "tax"
+    'awakening festival', // and "wake"
+    'Jordan visit', // a name, not a lexicon word
+  ])('still ordinary: %j', (label) => {
+    expect(sensitiveDate(label)).toBe(false);
+  });
 });
 
 describe('personFromLabel', () => {
@@ -36,6 +83,9 @@ describe('personFromLabel', () => {
     ["my mom's surgery", 'mom'],
     ['Dad biopsy', 'dad'],
     ['grandpa Surgery', 'grandpa'], // a capitalised topic word is never taken for a name
+    ['mom Oncology follow-up', 'mom'],
+    ['mom Dad dinner', 'mom'], // nor a relation word
+    ['sister Wedding', 'sister'], // nor an event word
     ["Rose, 10am at St. Mary's", null],
     ["Marcus's appointment", null], // a bare name is no relation from the lexicon
     ['', null],

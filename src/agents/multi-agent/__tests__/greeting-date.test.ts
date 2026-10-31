@@ -1,7 +1,7 @@
 /**
  * dateFor (DATES_IN_HELLO): a date the caller told Ferni about, within three
  * days, as a candidate for the hello's one thread. Picking it writes nothing;
- * only commit() marks it raised and claims the opener. A sensitive date is
+ * only commit(line), when the line names it, marks it raised and claims the opener. A sensitive date is
  * presence, never a question or its topic word. Fictional caller, fake store.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -41,6 +41,7 @@ function date(over: Partial<RaisableDate>): RaisableDate {
 }
 
 let stored: RaisableDate[] = [];
+let crisisLately = false;
 const listOpen = vi.fn(async () => stored);
 const store = { listOpen, listRaisedSince: async () => [], apply: async () => undefined };
 const mark = vi.fn(async () => undefined);
@@ -48,7 +49,13 @@ let n = 0;
 const pick = (userId: string = USER, sessionId = `gd-${++n}`) =>
   dateFor(
     { userId, sessionId, zone: 'UTC' },
-    { now: () => NOW, store, mark, forgotten: async () => [] }
+    {
+      now: () => NOW,
+      store,
+      mark,
+      forgotten: async () => [],
+      recentCrisis: async () => crisisLately,
+    }
   );
 
 beforeEach(() => {
@@ -57,6 +64,7 @@ beforeEach(() => {
   listOpen.mockClear();
   mark.mockClear();
   clearOpenerClaims();
+  crisisLately = false;
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -79,10 +87,26 @@ describe('dateFor picks without side effects', () => {
   it('commit marks it raised for its day and moment, and claims the opener as the greeting date', async () => {
     const sessionId = 'gd-commit';
     const c = await pick(USER, sessionId);
-    await c!.commit();
+    c!.commit("Hey Riley. Priya's visit is Friday, isn't it.");
     expect(mark).toHaveBeenCalledTimes(1);
     expect(mark).toHaveBeenCalledWith(USER, 'wd_1', TODAY, 'soon', sessionId);
     expect(takeOpenerClaim(USER)).toBe('greeting-date');
+  });
+
+  it.each(['Hey Riley. What are you up to?', 'Hey Riley. How was your week?', ''])(
+    'commit with a line that never names the date writes nothing: %j',
+    async (line) => {
+      const c = await pick();
+      c!.commit(line);
+      expect(mark).not.toHaveBeenCalled();
+      expect(takeOpenerClaim(USER)).toBeUndefined();
+    }
+  );
+
+  it('commit with a line that names only its day still counts', async () => {
+    const c = await pick();
+    c!.commit('Hey Riley. Big Friday coming.');
+    expect(mark).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -112,6 +136,14 @@ describe('a sensitive date is presence, not a question', () => {
     expect(c?.direction).not.toMatch(/\bscan\b|\?/);
   });
 
+  it('a sensitive date just passed: "this week", and the base direction asks nothing', async () => {
+    stored = [date({ value: 'hospice visit', eventDate: day(-2) })];
+    const c = await pick();
+    expect(c?.careful).toBe(true);
+    expect(c?.direction).toContain('Thinking of your sister Priya this week.');
+    expect(`${c?.base}${c?.direction}`).not.toMatch(/\?|quick easy question|hospice/i);
+  });
+
   it('an unclassifiable label is treated as sensitive', async () => {
     stored = [date({ value: "10am at St. Mary's" })];
     const c = await pick();
@@ -139,6 +171,12 @@ describe('dateFor gives nothing, and reads nothing, when it must not', () => {
     noteCrisisRisk('gd-crisis');
     await expect(pick(USER, 'gd-crisis')).resolves.toBeUndefined();
     expect(listOpen).not.toHaveBeenCalled();
+  });
+
+  it('within 14 days of a crisis-level signal', async () => {
+    crisisLately = true;
+    await expect(pick()).resolves.toBeUndefined();
+    expect(mark).not.toHaveBeenCalled();
   });
 
   it('a store that throws: no date, no throw', async () => {

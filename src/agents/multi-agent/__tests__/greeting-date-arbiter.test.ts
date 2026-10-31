@@ -7,17 +7,16 @@
  * raised and never claims the opener. Runs the real directedGreeting and
  * dateFor over fakes holding a fictional caller's dates.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface Cue {
   direction: string;
   facts: Record<string, string>;
   fallback: string;
 }
-const directedText = vi.fn(async (_s: string, _req: Cue) => ({
-  text: 'Hey Riley.',
-  source: 'actor',
-}));
+/** A line that names either date, so a winning date commits (greeting-date.ts commit). */
+const SAID = "Hey Riley. Thinking of Priya's visit, and of your grandma Rose.";
+const directedText = vi.fn(async (_s: string, _req: Cue) => ({ text: SAID, source: 'actor' }));
 vi.mock('../../../speech/direction/index.js', () => ({ directedText }));
 
 const on = vi.hoisted(() => ({
@@ -29,6 +28,7 @@ const on = vi.hoisted(() => ({
   letter: false,
   news: false,
   sensitive: false,
+  recentCrisis: false,
 }));
 const markWinSurfaced = vi.fn(async () => undefined);
 vi.mock('../../../services/superhuman/wins.js', () => ({
@@ -49,7 +49,8 @@ vi.mock('../../../intelligence/pondering/pondering.js', async (importOriginal) =
   ...(await importOriginal<object>()),
   isPonderingOn: () => on.ponder,
 }));
-vi.mock('../../../intelligence/pondering/pondering-opener.js', () => ({
+vi.mock('../../../intelligence/pondering/pondering-opener.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
   ponderingForOpener: async () => ({ text: 'How is the pottery class going?', item: {} }),
 }));
 vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
@@ -107,6 +108,10 @@ vi.mock('../../../intelligence/world-model/temporal/store.js', async (importOrig
   }),
   markFactRaised,
 }));
+vi.mock('../../../services/human-transfer/crisis-signals.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  hadCrisisWithin: async () => on.recentCrisis,
+}));
 vi.mock('../../../memory/recall/forget.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   forgottenTopicsOrNull: async () => [],
@@ -123,21 +128,31 @@ const { letterOfferDirection } =
   await import('../../../tools/domains/engagement/future-letters.js');
 const { clearOpenerClaims, takeOpenerClaim } =
   await import('../../../memory/recall/opener-claim.js');
+const { PRESENCE_GREETING_DIRECTION } = await import('../greeting-date.js');
 
 const USER = 'voice-eval-riley';
 const DATE = /There is something on their calendar soon/;
 const PRESENCE = /Thinking of your grandma Rose/;
 let n = 0;
 
-async function greet(setup: (sessionId: string) => void = () => {}): Promise<Cue> {
+async function greet(
+  setup: (sessionId: string) => void = () => {},
+  extra: Record<string, unknown> = {}
+): Promise<Cue> {
   const sessionId = `gda-${++n}`;
   setup(sessionId);
-  await directedGreeting(sessionId, 'jordan-taylor', { userId: USER, userName: 'Riley' });
+  await directedGreeting(sessionId, 'jordan-taylor', { userId: USER, userName: 'Riley', ...extra });
   await new Promise((r) => {
     setTimeout(r, 0); // the winner's commit is not awaited
   });
   return directedText.mock.calls.at(-1)![1];
 }
+
+// dateFor loads the intelligence barrel on first use: warm it so a cold import can't lose the
+// 400 ms race (in the agent the barrel is loaded long before any hello).
+beforeAll(async () => {
+  await import('../../../intelligence/index.js');
+}, 60_000);
 
 beforeEach(() => {
   vi.stubEnv('DATES_IN_HELLO', 'on');
@@ -235,12 +250,63 @@ describe('the date wins over what comes after it, which waits for a later call',
     expect(cue.direction).not.toContain(anniversaryDirection(party));
     expect(cue.direction).not.toMatch(/procedure/i);
   });
+
+  it('a sensitive date: the whole direction asks no question and invites none', async () => {
+    on.sensitive = true;
+    const cue = await greet();
+    expectDateWon(cue);
+    expect(cue.direction.startsWith(PRESENCE_GREETING_DIRECTION)).toBe(true);
+    expect(cue.direction).not.toContain('?');
+    expect(cue.direction).not.toMatch(/quick easy question|you may ask|ask how/i);
+  });
+});
+
+describe('the winner commits only when its line names the date', () => {
+  it.each([
+    ['ordinary', false, 'Hey Riley. What are you up to?'],
+    ['sensitive', true, 'Hey Riley. Good to hear you.'],
+  ])('%s: a line that ignores it marks nothing and claims nothing', async (_l, sensitive, line) => {
+    on.sensitive = sensitive;
+    directedText.mockResolvedValueOnce({ text: line, source: 'actor' });
+    const cue = await greet();
+    expect(cue.direction).toMatch(sensitive ? PRESENCE : DATE);
+    expect(markFactRaised).not.toHaveBeenCalled();
+    expect(takeOpenerClaim(USER)).toBeUndefined();
+  });
+
+  it('a line that names its day commits', async () => {
+    const day = new Date(Date.now() + 2 * DAY).toLocaleDateString('en-US', {
+      weekday: 'long',
+      timeZone: 'UTC',
+    });
+    directedText.mockResolvedValueOnce({
+      text: `Hey Riley. ${day} is the big day.`,
+      source: 'actor',
+    });
+    expectDateWon(await greet());
+  });
+
+  it('the scripted fallback never commits', async () => {
+    directedText.mockResolvedValueOnce({ text: SAID, source: 'understudy' });
+    const cue = await greet();
+    expect(cue.direction).toMatch(DATE);
+    expect(markFactRaised).not.toHaveBeenCalled();
+  });
 });
 
 describe('no date at all', () => {
   it('with crisis risk already on this call', async () => {
     const cue = await greet((s) => noteCrisisRisk(s));
     expectDateLost(cue);
+  });
+
+  it("within 14 days of a crisis-level signal (the pondered ask's window)", async () => {
+    on.recentCrisis = true;
+    expectDateLost(await greet());
+  });
+
+  it('on a first call, to a stranger', async () => {
+    expectDateLost(await greet(() => {}, { isReturningUser: false }));
   });
 
   it('for a caller the line does not recognise', async () => {

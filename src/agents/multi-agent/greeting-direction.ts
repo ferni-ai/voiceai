@@ -51,6 +51,7 @@ import { greetsAsFriend, isUnplacedCaller } from './unknown-caller-honest.js';
 import { launchDirection, takeCallLaunch } from '../shared/call-launch-hint.js';
 import { callNewsFor } from './call-news-opener.js';
 import { dateFor } from './greeting-date.js';
+import { firstThread } from './first-thread.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
 // to hear your voice!" every call, and the exclamations made the voice
@@ -383,13 +384,10 @@ export async function directedGreeting(
   const hold = notYet.openingRestraint(history, userData?.callerTimezone);
   const dueCheckIn = hold.allows(openCheckIn) ? openCheckIn : undefined;
   const launched = launchDirection(takeCallLaunch(sessionId)); // CALL_LAUNCH_CONTEXT: their reason
-  // A letter to future them on the day it was promised (future-letters.ts) is the opening's one
-  // thread: a win, a check-in or a pondered ask waits for a later call; it never waits for them.
-  // It yields to an unknown caller (never someone else's letter), their own reason and call news
-  // (CALL_NEWS_OPENER). Then a date they told about (DATES_IN_HELLO), never on a same-day return.
-  const newsNow = news && !unknown && !launched ? news : undefined;
-  const letterNow = letter && !unknown && !launched && !newsNow ? letter : undefined;
-  const dateNow = launched || letterNow || newsNow || unknown || hold.sameDay ? undefined : date;
+  // What decides the call, if anything (first-thread.ts): their reason, news, a letter, a date.
+  const dateWaits = hold.sameDay || stage === 'stranger';
+  const holds = { unknown: Boolean(unknown), launched: Boolean(launched), dateWaits };
+  const { newsNow, letterNow, dateNow } = firstThread({ news, letter, date }, holds);
   const first = launched || letterNow || newsNow || dateNow;
   const { win, checkIn } =
     unknown || hold.sameDay || first ? {} : openingThread(openWin, dueCheckIn);
@@ -404,17 +402,18 @@ export async function directedGreeting(
   const careful = newsNow?.careful || dateNow?.careful; // no playful hello, no party alongside
   const party = anniversary && !unknown && !careful ? anniversary : undefined;
   const direction =
-    greetingDirection(
-      personaId,
-      process.env,
-      {
-        topic: history?.lastTopic,
-        tender: back?.heldBack || careful,
-        firstCall,
-        unplaced,
-      },
-      introAs
-    ) +
+    (dateNow?.base ??
+      greetingDirection(
+        personaId,
+        process.env,
+        {
+          topic: history?.lastTopic,
+          tender: back?.heldBack || careful,
+          firstCall,
+          unplaced,
+        },
+        introAs
+      )) +
     (win ? WIN_DIRECTION : '') +
     (checkIn ? CHECK_IN_DIRECTION : '') +
     (ask && !unknown ? PONDER_DIRECTION : '') +
@@ -459,7 +458,7 @@ export async function directedGreeting(
     const threads = { checkIn, pondered: ask?.text, lastTopic: history?.lastTopic };
     claimIfAsked(userData.userId, spoken, { ...threads, userName: userData.userName });
   }
-  if (dateNow && directed.source === 'actor') dateNow.commit(); // only the winner, once spoken
+  if (dateNow && directed.source === 'actor') dateNow.commit(spoken); // the winner, if it said it
   return calmGreeting(spoken);
 }
 
