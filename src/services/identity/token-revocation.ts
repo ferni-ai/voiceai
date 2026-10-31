@@ -33,6 +33,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { boundedMap, budget, type Rate } from './lookup-budget.js';
 
 const log = createLogger({ module: 'token-revocation' });
 
@@ -57,11 +58,6 @@ export interface CheckedToken {
 type AccountState =
   { gone: true } | { gone: false; disabled: boolean; validAfterMs: number; noProvider: boolean };
 
-/** A token bucket: `burst` at once, then `perSecond` */
-interface Rate {
-  burst: number;
-  perSecond: number;
-}
 export interface Limits {
   normal: Rate;
   normalPerAccount: Rate;
@@ -81,7 +77,6 @@ const LIMITS: Limits = {
 
 const FRESH_MS = 60_000;
 const STALE_MS = 60 * 60_000;
-const MAX_ACCOUNTS = 10_000;
 const LOG_EVERY_MS = 60_000;
 const AUTH_FAILURES = [
   'app/network-error',
@@ -111,43 +106,6 @@ function countedLog(event: string, message: string) {
     log.warn({ event, count, cause: String(cause ?? 'none') }, message);
     loggedAt = now;
     count = 0;
-  };
-}
-
-/** A map that drops its oldest entry past MAX_ACCOUNTS */
-function boundedMap<V>() {
-  const map = new Map<string, V>();
-  return {
-    get: (key: string) => map.get(key),
-    set: (key: string, value: V) => {
-      map.delete(key); // re-inserted last, so the oldest entry is first to go
-      map.set(key, value);
-      if (map.size > MAX_ACCOUNTS) map.delete(map.keys().next().value as string);
-    },
-  };
-}
-
-/** take(now): one token from a bucket of `rate`, or false when it is empty */
-function bucket(rate: Rate) {
-  let tokens = rate.burst;
-  let filledAt = Infinity;
-  return (now: number): boolean => {
-    tokens = Math.min(rate.burst, tokens + (Math.max(0, now - filledAt) / 1000) * rate.perSecond);
-    filledAt = now;
-    if (tokens < 1) return false;
-    tokens -= 1;
-    return true;
-  };
-}
-
-/** A global bucket plus one per account: both must have a token */
-function budget(global: Rate, perAccount: Rate) {
-  const all = bucket(global);
-  const accounts = boundedMap<(now: number) => boolean>();
-  return (uid: string, now: number): boolean => {
-    let mine = accounts.get(uid);
-    if (!mine) accounts.set(uid, (mine = bucket(perAccount)));
-    return mine(now) && all(now);
   };
 }
 

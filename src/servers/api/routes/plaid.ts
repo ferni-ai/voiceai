@@ -38,7 +38,6 @@ export async function handlePlaidRoutes(
     // FIX BUG: The previous implementation never called reject() and didn't handle 'error' events.
     // If the request errored out (client disconnect, etc.), the promise would hang forever.
     return new Promise((resolve) => {
-      // Handle request errors to prevent hanging promises
       req.on('error', (err) => {
         log.error({ error: err.message }, 'Request error in Plaid exchange');
         if (!res.headersSent) {
