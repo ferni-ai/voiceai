@@ -19,7 +19,6 @@ import type {
   TurnContext,
 } from '../types.js';
 import type { ContextInjectionsResult } from './types.js';
-import { responseStyleHints } from './response-style-hints.js';
 
 import { diag } from '../../../services/diagnostic-logger.js';
 import { createBuilderBudget } from './builder-budget.js';
@@ -79,7 +78,6 @@ import {
   formatConversationHumanizingForPrompt,
 } from '../../../intelligence/context-builders/humanization/conversation-humanizing.js';
 
-import { getResponseEnhancements } from '../../../speech/response-naturalness.js';
 import { valueCapture } from '../../../services/monetization/value-capture.js';
 import { getBetterThanHuman } from '../../../conversation/superhuman/index.js';
 
@@ -1092,22 +1090,6 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
       });
     }
   }
-
-  // 13. Response naturalness (opener/catchphrase lines are gated in response-style-hints.ts)
-  const turnCount = userData.turnCount || 0;
-  const enhancements = getResponseEnhancements({
-    personaId: persona.id,
-    turnCount,
-    userEmotion: analysis.emotion.primary,
-    topicWeight: 'medium',
-    isQuestion: userText.includes('?'),
-    isFollowUp: turnCount > 0,
-    isGreeting: turnCount === 0,
-    isPositiveMoment:
-      analysis.emotion.primary === 'joy' || analysis.emotion.primary === 'anticipation',
-  });
-
-  injections.push(...responseStyleHints(enhancements));
 
   // 14. Conversation state summary
   if (userData.conversationState) {

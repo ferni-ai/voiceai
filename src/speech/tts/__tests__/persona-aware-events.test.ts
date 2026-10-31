@@ -38,15 +38,7 @@ describe('PersonaAwareTTS passes its inner TTS events to the session', () => {
     expect(metrics).toHaveBeenCalledWith(METRICS);
   });
 
-  it('re-emits the inner TTS errors with TTS_FORWARD_ERRORS on', () => {
-    vi.stubEnv('TTS_FORWARD_ERRORS', 'on');
-    const { inner, errors } = make();
-    inner().emit('error', ERROR);
-    expect(errors).toHaveBeenCalledWith(ERROR);
-  });
-
-  it('keeps inner errors off the session with TTS_FORWARD_ERRORS unset', () => {
-    vi.stubEnv('TTS_FORWARD_ERRORS', '');
+  it('keeps inner errors off the session', () => {
     const { inner, errors } = make();
     // Before the fix an 'error' emit on the inner TTS had no listener and threw.
     expect(() => inner().emit('error', ERROR)).not.toThrow();
@@ -54,14 +46,12 @@ describe('PersonaAwareTTS passes its inner TTS events to the session', () => {
   });
 
   it('does not throw when nobody listens on the outer TTS', () => {
-    vi.stubEnv('TTS_FORWARD_ERRORS', 'on');
     const outer = new PersonaAwareTTS('Ferni', { voiceId: 'voice-a' } as never);
     const inner = (outer as unknown as { personaTTS: EventEmitter }).personaTTS;
     expect(() => inner.emit('error', ERROR)).not.toThrow();
   });
 
   it('after a voice switch forwards the new inner TTS and drops the old one', () => {
-    vi.stubEnv('TTS_FORWARD_ERRORS', 'on');
     const { outer, inner, metrics, errors } = make();
     const old = inner();
     outer.switchVoice('Peter', 'voice-b');
@@ -77,7 +67,7 @@ describe('PersonaAwareTTS passes its inner TTS events to the session', () => {
     next.emit('metrics_collected', METRICS);
     next.emit('error', ERROR);
     expect(metrics).toHaveBeenCalledOnce();
-    expect(errors).toHaveBeenCalledOnce();
+    expect(errors).not.toHaveBeenCalled();
   });
 
   it('cleanup() stops forwarding', () => {

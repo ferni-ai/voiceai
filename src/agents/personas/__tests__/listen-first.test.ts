@@ -93,10 +93,7 @@ async function reminders(session: object): Promise<string[]> {
 
 /** The flags prod ran with on that call, so the turn shape draws what it drew there. */
 const PROD_FLAGS = {
-  HUMAN_TEXTURE: 'on',
-  THINK_ALOUD: 'on',
   ASK_ADVICE: 'on',
-  CURIOUS_DETAIL: 'on',
 };
 const saved = Object.fromEntries(
   ['LISTEN_FIRST', ...Object.keys(PROD_FLAGS)].map((k) => [k, process.env[k]])

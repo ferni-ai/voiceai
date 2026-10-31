@@ -17,6 +17,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 import { openTokens, sealTokens } from '../../utils/token-at-rest.js';
+import { errorClass } from '../../utils/error-class.js';
 import type { OuraTokens, OuraTokenResponse } from './oura-types.js';
 
 const log = createLogger({ module: 'oura-auth' });
@@ -82,6 +83,7 @@ export async function exchangeAuthorizationCode(
 ): Promise<OuraTokens | null> {
   if (!isApiConfigured()) return null;
 
+  let status: number | undefined;
   try {
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
@@ -98,9 +100,10 @@ export async function exchangeAuthorizationCode(
       },
       body: params.toString(),
     });
+    ({ status } = response);
 
     if (!response.ok) {
-      log.error({ status: response.status }, 'Failed to exchange Oura code');
+      log.error({ status, endpoint: OURA_TOKEN_URL }, 'Failed to exchange Oura code');
       return null;
     }
 
@@ -112,7 +115,11 @@ export async function exchangeAuthorizationCode(
       token_type: data.token_type,
     };
   } catch (error) {
-    log.error({ error: String(error) }, 'Error exchanging Oura code');
+    // The name only: a JSON parse error's message quotes the body, which is the token grant.
+    log.error(
+      { error: errorClass(error), status, endpoint: OURA_TOKEN_URL },
+      'Error exchanging Oura code'
+    );
     return null;
   }
 }
@@ -150,6 +157,7 @@ export async function getOuraAccessToken(userId: string): Promise<OuraAccess> {
 async function refreshTokens(userId: string, stale: OuraTokens): Promise<OuraAccess> {
   if (!isApiConfigured() || !stale.refresh_token) return { status: 'unavailable' };
 
+  let status: number | undefined;
   try {
     const response = await fetch(OURA_TOKEN_URL, {
       method: 'POST',
@@ -162,6 +170,7 @@ async function refreshTokens(userId: string, stale: OuraTokens): Promise<OuraAcc
       }).toString(),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
+    ({ status } = response);
 
     if (!response.ok) {
       const body = await response.text().catch(() => '');
@@ -192,7 +201,11 @@ async function refreshTokens(userId: string, stale: OuraTokens): Promise<OuraAcc
     log.info({ userId }, 'Oura token refreshed');
     return { status: 'ok', token: fresh.access_token };
   } catch (error) {
-    log.error({ error: String(error), userId }, 'Error refreshing Oura token');
+    // The name only: a JSON parse error's message quotes the body, which is the token grant.
+    log.error(
+      { error: errorClass(error), status, endpoint: OURA_TOKEN_URL, userId },
+      'Error refreshing Oura token'
+    );
     return { status: 'unavailable' };
   }
 }
@@ -218,7 +231,11 @@ export async function disconnectOura(userId: string): Promise<{ revoked: boolean
       if (!revoked)
         log.warn({ status: response.status, userId }, 'Oura did not confirm the revoke');
     } catch (error) {
-      log.warn({ error: String(error), userId }, 'Oura revoke request failed');
+      // The request URL carries the access token: log the endpoint and the error's name only.
+      log.warn(
+        { error: errorClass(error), endpoint: OURA_REVOKE_URL, userId },
+        'Oura revoke request failed'
+      );
     }
   }
   await deleteUserTokens(userId);

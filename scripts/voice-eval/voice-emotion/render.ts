@@ -50,7 +50,6 @@ process.env.CARTESIA_API_KEY = secrets.CARTESIA_API_KEY;
 Object.assign(process.env, {
   USE_TTS_GATEWAY: 'true',
   SPEECH_DIRECTOR: 'live',
-  SPEECH_DIRECTOR_LAUGHTER: 'live',
   LOG_LEVEL: process.env.LOG_LEVEL ?? 'silent',
 });
 const { getVoiceIdForPersona } = await import('../../../src/config/voice-ids.js');

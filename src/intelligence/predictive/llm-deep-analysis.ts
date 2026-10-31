@@ -394,60 +394,6 @@ export async function getLatestDeepAnalysis(userId: string): Promise<DeepAnalysi
 }
 
 // ============================================================================
-// CONTEXT BUILDER INTEGRATION
-// ============================================================================
-
-/**
- * Get deep analysis context for injection into real-time conversation
- *
- * This takes the pre-computed deep analysis and formats it for turn injection.
- * The LLM doesn't re-analyze - it uses cached insights.
- */
-export async function getDeepAnalysisContextForTurn(userId: string): Promise<string> {
-  if (!guards.isDeepAnalysisInCallOn()) return '';
-  const analysis = await getLatestDeepAnalysis(userId);
-  if (!analysis || analysis.insights.length === 0) {
-    return '';
-  }
-
-  // Only include high-confidence insights
-  const relevantInsights = analysis.insights.filter(guards.isSurfaceableInsight);
-
-  if (relevantInsights.length === 0) return '';
-
-  const sections: string[] = [];
-  sections.push('[DEEP INTELLIGENCE - Patterns Only You Notice]');
-
-  for (const insight of relevantInsights.slice(0, 3)) {
-    sections.push(`• ${insight.observation}`);
-    sections.push(`  Why it matters: ${insight.significance}`);
-  }
-
-  // Add active hypotheses
-  const activeHypotheses = analysis.hypotheses.filter(
-    (h) => h.probability > 0.5 && (h.timeframe === 'immediate' || h.timeframe === 'this_week')
-  );
-
-  if (activeHypotheses.length > 0) {
-    sections.push('\n[PREDICTIVE HYPOTHESES - Anticipate Their Needs]');
-    for (const hyp of activeHypotheses.slice(0, 2)) {
-      sections.push(`• ${hyp.prediction}`);
-      sections.push(`  Watch for: ${hyp.testableSignals.slice(0, 2).join(', ')}`);
-    }
-  }
-
-  // Add coaching guidance
-  if (analysis.coachingGuidance.length > 0) {
-    sections.push('\n[COACHING GUIDANCE]');
-    for (const guidance of analysis.coachingGuidance.slice(0, 2)) {
-      sections.push(`• ${guidance}`);
-    }
-  }
-
-  return sections.join('\n');
-}
-
-// ============================================================================
 // SCHEDULED JOB
 // ============================================================================
 
@@ -530,7 +476,6 @@ export async function recordDeepAnalysisFeedback(
 export const deepAnalysis = {
   run: runDeepAnalysis,
   getLatest: getLatestDeepAnalysis,
-  getContext: getDeepAnalysisContextForTurn,
   runBatch: runBatchDeepAnalysis,
   recordFeedback: recordDeepAnalysisFeedback,
 };
