@@ -57,7 +57,9 @@ async function callTwo(store: GrowthStore) {
   clearAllUserGrowth('u1');
   const stored = await store.load('u1', 'ferni');
   if (stored) loadPersonaGrowthProfile('u1', 'ferni', stored);
-  await new Promise((r) => setTimeout(r, 5)); // call 2 starts after call 1's record
+  await new Promise<void>((r) => {
+    setTimeout(r, 5); // call 2 starts after call 1's record
+  });
   const recall = createMemoryRecall({
     userId: 'u1',
     userName: 'Sam',
