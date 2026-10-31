@@ -51,7 +51,7 @@ beforeAll(async () => {
 const uidOf = (tag: string): string => `fact-${tag}-${Date.now().toString(36)}`;
 /** A person with a live record: the writer writes nothing for an erased one. */
 const liveUid = async (tag: string): Promise<string> => {
-  const uid = await liveUid(tag);
+  const uid = uidOf(tag);
   await db.collection('bogle_users').doc(uid).set({ displayName: 'Jo Rivera' });
   return uid;
 };
@@ -158,7 +158,8 @@ describe.skipIf(!emulator)('facts store (Firestore emulator)', () => {
     const out = await exportUserRecords(uid, undefined, db as never);
     const rows = out['bogle_users/{uid}/facts'] as Array<Record<string, unknown>>;
     expect(rows.map((r) => r.value).sort()).toEqual(['Austin', 'Tampa', 'a beagle named Biscuit']);
-    expect(await countUserRecords(uid, undefined, db as never)).toBe(3);
+    // 3 facts plus the live user record liveUid writes
+    expect(await countUserRecords(uid, undefined, db as never)).toBe(4);
 
     await eraseUserRecord(uid, db as never);
 

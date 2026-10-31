@@ -138,7 +138,7 @@ import { definitions as humanTransferToolDefs } from '../../tools/domains/human-
 import { definitions as habitsToolDefs } from '../../tools/domains/habits/index.js';
 
 // Wellness tools - self-care, health
-import { definitions as wellnessToolDefs } from '../../tools/domains/wellness/index.js';
+import { availableDefinitions as wellnessToolDefs } from '../../tools/domains/wellness/index.js';
 
 // Connection tools - relationship building
 import { definitions as connectionToolDefs } from '../../tools/domains/connection/index.js';
@@ -326,7 +326,7 @@ function buildWellnessTools(agentId: string): ToolSet {
   const ctx = createToolContext(agentId);
   const tools: Record<string, unknown> = {};
 
-  for (const def of wellnessToolDefs) {
+  for (const def of wellnessToolDefs()) {
     tools[def.id] = def.create(ctx);
   }
 

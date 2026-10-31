@@ -20,6 +20,18 @@ vi.mock('../../utils/firestore-utils.js', async () => {
   );
   return { ...actual, getFirestoreDb: vi.fn(actual.getFirestoreDb) };
 });
+// Production's store (Firestore on Cloud Run); outside production getStore() picks memory.
+// A web hang-up makes the caller's user record there before saving the session.
+vi.mock('../../memory/storage/store-factory.js', async () => {
+  const { getFirestoreStore } = await import('../../memory/storage/firestore-store.js');
+  return { getStore: async () => getFirestoreStore() };
+});
+
+// Firebase Auth has the caller whose hang-up makes their record (no Auth emulator here;
+// account-live-now.test.ts covers the lookup itself).
+vi.mock('../../services/identity/account-live-now.js', () => ({
+  accountLiveNow: async () => 'live',
+}));
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 process.env.GCLOUD_PROJECT ??= 'demo-menu-history';
