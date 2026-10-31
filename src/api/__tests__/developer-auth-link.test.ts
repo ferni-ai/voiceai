@@ -32,6 +32,7 @@ vi.mock('firebase-admin/auth', () => ({
       if (!claims) throw new Error('invalid token');
       return claims;
     },
+    getUser: async () => ({ disabled: false }), // a live account (token-revocation.ts)
   }),
 }));
 
