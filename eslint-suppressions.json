@@ -204,11 +204,6 @@
       "count": 1
     }
   },
-  "src/intelligence/scripted-hint-lines.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
   "src/intelligence/utils/injection-filter.ts": {
     "ferni/no-env-flag-compare": {
       "count": 2
@@ -229,17 +224,7 @@
       "count": 1
     }
   },
-  "src/servers/token/demo-rate-limit-shared.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
   "src/services/communication/intelligence-publisher.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
-  "src/services/context-awareness/context-inspection.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
     }
@@ -254,19 +239,9 @@
       "count": 1
     }
   },
-  "src/services/evalops/evaluation-persistence.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
   "src/services/gtm/gtm-config.ts": {
     "ferni/no-env-flag-compare": {
       "count": 2
-    }
-  },
-  "src/services/llm-utils.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
     }
   },
   "src/services/outreach/call-hours-guard.ts": {
@@ -342,11 +317,6 @@
   "src/startup.ts": {
     "ferni/no-env-flag-compare": {
       "count": 3
-    }
-  },
-  "src/tasks/task-entry-transition.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
     }
   },
   "src/tasks/task-manager.ts": {
