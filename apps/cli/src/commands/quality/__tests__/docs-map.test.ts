@@ -117,3 +117,44 @@ describe('docs:map --check (the CI gate)', () => {
     expect(run(['--root', root, '--check'])).toBe(1);
   });
 });
+
+describe('docs:map --check runs in CI for the files that change the table', () => {
+  const ci = readFileSync(
+    join(dirname(SCRIPT), '../../../../../.github/workflows/ci.yml'),
+    'utf8'
+  );
+  const lines = ci.split('\n');
+
+  /** The `include:` regex of the setup step with this id (pr-changes reads it as an ERE). */
+  const include = (id: string): RegExp => {
+    const m = new RegExp(`\\n {8}id: ${id}\\n(?: {8}.*\\n)*? {10}include: '([^']+)'`).exec(ci);
+    if (!m) throw new Error(`ci.yml: no include: for step ${id}`);
+    return new RegExp(m[1]!);
+  };
+  /** The job-level `if:` of the job with a step that runs `cmd`. */
+  const jobIf = (cmd: string): string => {
+    const at = lines.findIndex((l) => l.trim() === `run: ${cmd}`);
+    if (at < 0) throw new Error(`ci.yml: no step runs ${cmd}`);
+    let job = at;
+    while (job > 0 && !/^ {2}[\w-]+:$/.test(lines[job]!)) job--;
+    const cond = lines.slice(job, at).find((l) => /^ {4}if: /.test(l));
+    return cond ? cond.replace(/^ {4}if: /, '') : '';
+  };
+
+  it('counts a change to ARCHITECTURE.md or its generator, which `code` skips as root markdown', () => {
+    const paths = include('arch-map');
+    for (const p of [
+      'ARCHITECTURE.md',
+      'apps/cli/src/commands/quality/docs-map.ts',
+      'apps/cli/src/commands/quality/architecture-layers.ts',
+    ]) {
+      expect(paths.test(p), p).toBe(true);
+    }
+    expect(paths.test('README.md')).toBe(false);
+  });
+
+  it('gates the job that runs the check on that filter, not only on `code`', () => {
+    expect(ci).toContain('      arch-map: ${{ steps.arch-map.outputs.matched }}');
+    expect(jobIf('pnpm docs:map --check')).toContain("|| needs.setup.outputs.arch-map == 'true'");
+  });
+});
