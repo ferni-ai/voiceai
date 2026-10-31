@@ -123,6 +123,7 @@ class MayaNotificationService extends EventEmitter {
 
   // Persistence
   private persistenceStore: PersistenceStore<MayaNotificationData> | null = null;
+  private loadedUsers = new Set<string>(); // stored data read (a failed read doesn't count)
 
   // ============================================================================
   // INITIALIZATION
@@ -164,7 +165,8 @@ class MayaNotificationService extends EventEmitter {
     if (!this.persistenceStore) return;
 
     try {
-      const data = await this.persistenceStore.load(userId);
+      const data = await this.persistenceStore.load(userId, { strict: 'read' });
+      this.loadedUsers.add(userId);
       if (!data) return;
 
       // Rehydrate scheduled notifications
@@ -228,16 +230,10 @@ class MayaNotificationService extends EventEmitter {
   // ============================================================================
 
   async getPreferences(userId: string): Promise<MayaNotificationPreferences> {
-    // Check cache
+    // Read what is stored first: defaults cached after a failed read must not hide it
+    if (this.persistenceStore && !this.loadedUsers.has(userId)) await this.loadUserData(userId);
     const cached = this.userPreferences.get(userId);
     if (cached) return cached;
-
-    // Try to load from persistence
-    if (this.persistenceStore && !this.userPreferences.has(userId)) {
-      await this.loadUserData(userId);
-      const fromPersistence = this.userPreferences.get(userId);
-      if (fromPersistence) return fromPersistence;
-    }
 
     // Load from productivity store (legacy)
     const store = getProductivityStore();

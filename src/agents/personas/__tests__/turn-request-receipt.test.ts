@@ -13,7 +13,9 @@ import { withTurnReminder } from '../turn-request.js';
 
 describe('withTurnReminder → TURN_RECEIPT', () => {
   it("counts the director's notes and sizes the reminder it sends", () => {
-    const session = new EventEmitter();
+    const session = Object.assign(new EventEmitter(), {
+      userData: { services: { sessionId: 'RM_wire' } },
+    });
     const receipts: TurnReceipt[] = [];
     attachTurnReceipts(session as never, {
       sessionId: 'RM_wire',
