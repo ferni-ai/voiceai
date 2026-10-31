@@ -30,6 +30,15 @@ const log = createLogger({ module: 'commerce-tools' });
 // REGISTER ACTION TYPES
 // ============================================================================
 
+/** What grocery_order reports: a cart, never a placed order. */
+export function groceryCartOnlyMessage(added: number, requested: number): string {
+  return `No order placed: I put ${added} of ${requested} items in an Instacart cart, but I can't place the order.`;
+}
+
+/** What orderGroceries says: Instacart can't be connected, so there is no order path. */
+export const GROCERY_ORDER_UNAVAILABLE =
+  "I can't order groceries: Instacart can't be connected to Ferni. I can keep your shopping list organized so it's ready when you shop.";
+
 // Register grocery order action type
 registerActionType({
   type: 'grocery_order',
@@ -42,28 +51,23 @@ registerActionType({
     const payload = action.payload as GroceryOrderPayload;
     const client = getInstacartClient(context.userId);
 
-    // Create cart and add items
+    // Builds a cart only: nothing here places an order, so it never reports one.
     const cartResponse = await client.createCart(payload.storeId || '');
     if (!cartResponse.success || !cartResponse.data) {
       return { success: false, message: cartResponse.error || 'Failed to create cart' };
     }
 
+    let added = 0;
     for (const item of payload.items) {
-      if (item.productId) {
-        await client.addToCart(cartResponse.data.id, item.productId, item.quantity);
-      }
+      if (!item.productId) continue;
+      const response = await client.addToCart(cartResponse.data.id, item.productId, item.quantity);
+      if (response.success) added++;
     }
 
-    // Would create order here with delivery window
-    return {
-      success: true,
-      message: `Order placed for ${payload.items.length} items`,
-      externalId: cartResponse.data.id,
-    };
+    return { success: false, message: groceryCartOnlyMessage(added, payload.items.length) };
   },
   rollback: async () => {
-    // Cancel the order if possible
-    return { success: true, message: 'Order cancelled' };
+    return { success: true, message: 'No order was placed, so there was nothing to cancel.' };
   },
 });
 
@@ -78,7 +82,7 @@ const orderGroceriesDef: ToolDefinition = {
   domain: 'commerce',
   tags: ['grocery', 'shopping', 'order', 'instacart'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (): Tool => {
     return llm.tool({
       description: 'Order groceries from your shopping list via Instacart.',
       parameters: z.object({
@@ -91,28 +95,8 @@ const orderGroceriesDef: ToolDefinition = {
           .optional()
           .describe('Specific items to order (if not using shopping list)'),
       }),
-      execute: async (params: { fromShoppingList?: boolean; items?: string[] }) => {
-        const userId = ctx.userId;
-        if (!userId) {
-          return 'I need to know who you are to place an order.';
-        }
-
-        const client = getInstacartClient(userId);
-        if (!client.isConnected()) {
-          return 'Instacart is not connected yet. Would you like me to help you connect your account?';
-        }
-
-        // For now, return a helpful message about the feature
-        return (
-          `To order groceries, I'll need to:\n` +
-          `1. Find nearby stores\n` +
-          `2. Search for your items\n` +
-          `3. Create a cart and show you the total\n` +
-          `4. Confirm before placing the order\n\n` +
-          `This feature requires an Instacart business partnership. ` +
-          `In the meantime, you can manage your shopping list and I'll help you organize it.`
-        );
-      },
+      // Nothing here can place an order, so nothing is promised.
+      execute: async () => GROCERY_ORDER_UNAVAILABLE,
     });
   },
 };

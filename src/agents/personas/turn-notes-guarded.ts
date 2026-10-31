@@ -9,6 +9,7 @@ import { worldNowNote as raw_worldNowNote } from '../shared/world-now.js';
 import { confirmedActionNote as raw_confirmedActionNote } from '../../tools/domains/communication/outreach/outreach-confirm.js';
 import { tuneTurnNote as raw_tuneTurnNote } from './named-tune-note.js';
 import { minorCareNote as raw_minorCareNote } from '../../utils/minor-care.js';
+import { sexualBoundaryNote as raw_sexualBoundaryNote } from './sexual-boundary.js';
 import {
   inReturningCallerFlow as raw_inReturningCallerFlow,
   returningCallerTurnNote as raw_returningCallerTurnNote,
@@ -54,6 +55,7 @@ export const worldNowNote = guarded('worldNow', raw_worldNowNote, '', true);
 export const confirmedActionNote = guarded('confirmedAction', raw_confirmedActionNote, '', true);
 export const tuneTurnNote = guarded('namedTune', raw_tuneTurnNote, '', true);
 export const minorCareNote = guarded('minorCare', raw_minorCareNote, '', true);
+export const sexualBoundaryNote = guarded('sexualBoundary', raw_sexualBoundaryNote, '', true);
 export const inReturningCallerFlow = guarded(
   'returningFlow',
   raw_inReturningCallerFlow,

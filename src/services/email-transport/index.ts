@@ -14,6 +14,7 @@
  * @module services/email-transport
  */
 
+import { configuredEmailFrom } from '../../config/house-facts.js';
 import type { EmailSender } from '../../types/email-sender.js';
 import { createGmailSender, type GmailSenderDeps } from './gmail-sender.js';
 
@@ -32,7 +33,7 @@ export function createEmailSenderFromEnv(
   env: Env = process.env,
   deps: Partial<GmailSenderDeps> = {}
 ): EmailSender {
-  const from = env.EMAIL_FROM?.trim() || 'hello@ferni.ai';
+  const from = configuredEmailFrom(env) ?? 'hello@ferni.ai';
   const limit = Number.parseInt(env.EMAIL_DAILY_LIMIT ?? '', 10);
   return createGmailSender(
     {

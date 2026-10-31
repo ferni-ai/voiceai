@@ -2,9 +2,8 @@
  * Local Search Tool Definitions for Semantic Router
  *
  * Routes local business discovery queries.
- * Strategy: Google Places (primary) + Yelp (fallback/explicit)
- *
- * Users can say "on Yelp" or "on Google" to use a specific source.
+ * Source: Google Places. Yelp was removed 2026-10-30 (its API terms ban
+ * generative-model use), with the Yelp-only review and phone-lookup tools.
  *
  * @module tools/semantic-router/tool-definitions/local-search
  */
@@ -22,7 +21,7 @@ import type {
 export const searchLocalBusinessesTool: SemanticToolDefinition = {
   id: 'search_local_businesses',
   name: 'Search Local Businesses',
-  description: 'Search for local businesses like restaurants, shops, gyms, salons using Yelp.',
+  description: 'Search for local businesses like restaurants, shops, gyms, salons.',
   shortDescription: 'find local businesses',
   category: 'local-search',
 
@@ -38,10 +37,6 @@ export const searchLocalBusinessesTool: SemanticToolDefinition = {
       'in my area',
       'local',
       'best place for',
-      'on yelp',
-      'on google',
-      'check yelp',
-      'search google for',
     ],
     patterns: [
       /^(?:find|search|look)\s+(?:for\s+)?(?:a\s+)?(?:good\s+)?(.+?)\s+(?:near|in|around)\s+/i,
@@ -67,8 +62,6 @@ export const searchLocalBusinessesTool: SemanticToolDefinition = {
       { word: 'doctor', weight: 0.7 },
       { word: 'mechanic', weight: 0.8 },
       { word: 'plumber', weight: 0.8 },
-      { word: 'yelp', weight: 0.9 },
-      { word: 'google', weight: 0.8 },
     ],
     antiKeywords: ['online', 'website', 'app', 'download'],
   },
@@ -82,9 +75,6 @@ export const searchLocalBusinessesTool: SemanticToolDefinition = {
     'Find pet stores near 94102',
     'Any good spas in the area?',
     'Looking for a dry cleaner close by',
-    'Check Yelp for pizza places',
-    'Search Google for coffee shops',
-    'Find restaurants on Yelp',
   ],
 
   counterExamples: [
@@ -119,14 +109,6 @@ export const searchLocalBusinessesTool: SemanticToolDefinition = {
       required: false,
       extractionPatterns: [/(?:open\s+now|currently\s+open|that\s+is\s+open)/i],
     },
-    {
-      name: 'source',
-      type: 'string',
-      description: 'Explicit source preference',
-      required: false,
-      enumValues: ['google', 'yelp'],
-      extractionPatterns: [/(?:on|check|search)\s+(yelp|google)/i],
-    },
   ],
 
   confidence: {
@@ -150,13 +132,13 @@ export const searchLocalBusinessesTool: SemanticToolDefinition = {
 };
 
 // ============================================================================
-// FIND RESTAURANTS (Yelp-specific)
+// FIND RESTAURANTS
 // ============================================================================
 
 export const findRestaurantsTool: SemanticToolDefinition = {
-  id: 'find_restaurants_yelp',
+  id: 'find_restaurants',
   name: 'Find Restaurants',
-  description: 'Find restaurants with Yelp ratings, reviews, and reservation info.',
+  description: 'Find restaurants with ratings, review counts, and open status.',
   shortDescription: 'find restaurants',
   category: 'local-search',
 
@@ -272,175 +254,10 @@ export const findRestaurantsTool: SemanticToolDefinition = {
 };
 
 // ============================================================================
-// GET BUSINESS REVIEWS
-// ============================================================================
-
-export const getBusinessReviewsTool: SemanticToolDefinition = {
-  id: 'get_business_reviews',
-  name: 'Get Business Reviews',
-  description: 'Get customer reviews and ratings for a specific business.',
-  shortDescription: 'read reviews',
-  category: 'local-search',
-
-  triggers: {
-    phrases: [
-      'reviews for',
-      'what do people say about',
-      'is it good',
-      'any reviews',
-      'how is',
-      'what are the reviews',
-      'customer feedback',
-      'ratings for',
-    ],
-    patterns: [
-      /^(?:what\s+are\s+the\s+)?reviews?\s+(?:for|of)\s+(.+)/i,
-      /^(?:is|are)\s+(.+?)\s+(?:good|any\s+good)/i,
-      /^(?:what\s+do\s+people\s+say\s+about|how\s+is)\s+(.+)/i,
-      /^(?:tell\s+me\s+about|read)\s+reviews?\s+(?:for|of)\s+(.+)/i,
-    ],
-    keywords: [
-      { word: 'review', weight: 1.0 },
-      { word: 'reviews', weight: 1.0 },
-      { word: 'rating', weight: 0.9 },
-      { word: 'ratings', weight: 0.9 },
-      { word: 'feedback', weight: 0.7 },
-      { word: 'reputation', weight: 0.6 },
-      { word: 'good', weight: 0.3 },
-    ],
-    antiKeywords: ['write', 'leave', 'post', 'submit'],
-  },
-
-  examples: [
-    'Reviews for Blue Bottle Coffee',
-    'What do people say about State Bird Provisions?',
-    'Is Tartine any good?',
-    'How is the new Thai place on Valencia?',
-    'Read reviews for Zuni Cafe',
-    'What are the ratings for this restaurant?',
-  ],
-
-  counterExamples: ['Write a review', 'Leave a review', 'Post feedback'],
-
-  arguments: [
-    {
-      name: 'businessName',
-      type: 'string',
-      description: 'Name of the business',
-      required: true,
-      extractionPatterns: [
-        /reviews?\s+(?:for|of)\s+(.+?)$/i,
-        /(?:how\s+is|what\s+about)\s+(.+?)$/i,
-      ],
-    },
-  ],
-
-  confidence: {
-    baseScore: 0.85,
-    patternMatchBonus: 0.1,
-    keywordDensityMultiplier: 1.2,
-    negativeKeywordPenalty: 0.4,
-  },
-
-  execute: async (
-    args: Record<string, unknown>,
-    _context: ToolExecutionContext
-  ): Promise<ToolExecutionResult> => {
-    return {
-      success: true,
-      toolId: 'getBusinessReviews',
-      args,
-      delegateTo: 'domains/local-search',
-    };
-  },
-};
-
-// ============================================================================
-// LOOKUP BUSINESS BY PHONE
-// ============================================================================
-
-export const lookupBusinessByPhoneTool: SemanticToolDefinition = {
-  id: 'lookup_business_phone',
-  name: 'Lookup Business by Phone',
-  description: 'Find what business a phone number belongs to.',
-  shortDescription: 'identify business by phone',
-  category: 'local-search',
-
-  triggers: {
-    phrases: [
-      'what business is this',
-      'who does this number belong to',
-      'look up this number',
-      'whose number is',
-      'identify this phone number',
-      'what place is',
-    ],
-    patterns: [
-      /^(?:what|which)\s+(?:business|place|restaurant)\s+(?:is|has)\s+(?:this|the)\s+(?:phone\s+)?number/i,
-      /^(?:who|what)\s+does\s+(?:this|the)\s+number\s+belong\s+to/i,
-      /^(?:look\s+up|identify)\s+(?:this\s+)?(?:phone\s+)?number/i,
-      /^whose\s+(?:phone\s+)?number\s+is\s+/i,
-    ],
-    keywords: [
-      { word: 'phone', weight: 0.8 },
-      { word: 'number', weight: 0.7 },
-      { word: 'lookup', weight: 0.6 },
-      { word: 'identify', weight: 0.6 },
-      { word: 'belong', weight: 0.5 },
-    ],
-    antiKeywords: ['call', 'dial', 'text'],
-  },
-
-  examples: [
-    'What business is 415-555-1234?',
-    'Look up this phone number',
-    'Who does 212-555-0000 belong to?',
-    'What place has this number: (650) 555-1234?',
-    'Identify this business number',
-  ],
-
-  counterExamples: ['Call this number', 'Dial 555-1234', 'Text this number'],
-
-  arguments: [
-    {
-      name: 'phone',
-      type: 'string',
-      description: 'Phone number to look up',
-      required: true,
-      extractionPatterns: [
-        /(\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4})/,
-        /(\d{10,11})/,
-      ],
-    },
-  ],
-
-  confidence: {
-    baseScore: 0.9,
-    patternMatchBonus: 0.05,
-    keywordDensityMultiplier: 1.1,
-    negativeKeywordPenalty: 0.5,
-  },
-
-  execute: async (
-    args: Record<string, unknown>,
-    _context: ToolExecutionContext
-  ): Promise<ToolExecutionResult> => {
-    return {
-      success: true,
-      toolId: 'lookupBusinessByPhone',
-      args,
-      delegateTo: 'domains/local-search',
-    };
-  },
-};
-
-// ============================================================================
 // EXPORTS
 // ============================================================================
 
 export const localSearchTools: SemanticToolDefinition[] = [
   searchLocalBusinessesTool,
   findRestaurantsTool,
-  getBusinessReviewsTool,
-  lookupBusinessByPhoneTool,
 ];

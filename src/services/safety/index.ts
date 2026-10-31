@@ -44,6 +44,7 @@ export { crisisGuidedTurn, markCrisisTurn, unmarkCrisisTurn } from './crisis-tur
 // ============================================================================
 
 export {
+  CRISIS_RESOURCES as SAFETY_CRISIS_RESOURCES,
   generateCrisisResponse,
   getCrisisResources,
   getGroundingExercise,

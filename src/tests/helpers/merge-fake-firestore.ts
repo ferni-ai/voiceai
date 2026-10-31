@@ -20,6 +20,8 @@ export interface MergeFakeState {
   failReads?: Set<string>;
   /** Write count per path, served as the snapshot's updateTime. */
   versions: Map<string, number>;
+  /** Runs at the start of every doc read, before the snapshot is taken (a write racing a read). */
+  beforeRead?: (path: string) => void;
   /** Runs before every write (e.g. to simulate a token refresh racing the migration). */
   beforeWrite?: (path: string) => void;
 }
@@ -107,6 +109,7 @@ export function createMergeFakeFirestore(state: MergeFakeState) {
       path,
       id: path.split('/').pop() ?? '',
       get: async () => {
+        state.beforeRead?.(path);
         if (state.failReads?.has(path)) {
           throw Object.assign(new Error('simulated read failure'), { code: 14 });
         }
@@ -123,11 +126,13 @@ export function createMergeFakeFirestore(state: MergeFakeState) {
         const cur = state.docs.get(path);
         if (!cur) throw Object.assign(new Error('NOT_FOUND'), { code: 5 });
         guard(path);
-        // Firestore checks the precondition against the doc as it is now.
+        // Firestore checks the doc as it is now, after anything the hook did to it.
+        const now = state.docs.get(path);
+        if (!now) throw Object.assign(new Error('NOT_FOUND'), { code: 5 });
         if (pre?.lastUpdateTime && !pre.lastUpdateTime.isEqual(time(path))) {
           throw Object.assign(new Error('FAILED_PRECONDITION'), { code: 9 });
         }
-        state.docs.set(path, apply(cur, data, false));
+        state.docs.set(path, apply(now, data, false));
         state.writes.push({ path, op: 'update', data });
         bump(path);
       },

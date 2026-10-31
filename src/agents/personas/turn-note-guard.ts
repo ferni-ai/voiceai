@@ -64,12 +64,14 @@ export const fallbackNote = (): string => (active?.identityDropped ? UNVERIFIED_
 /**
  * `build()` with the turn's notes guarded. A failure outside every note still leaves the request
  * without stale turn context and with the unverified default; if even that fails, the request as
- * sent: a throwing builder never costs the turn its reply.
+ * sent: a throwing builder never costs the turn its reply. Either fallback passes `gate` first
+ * (the call report gate, turn-call-report.ts), as the built request does.
  */
 export function guardedTurn(
   log: Log,
   sessionId: string | undefined,
   request: llm.ChatContext,
+  gate: (request: llm.ChatContext) => llm.ChatContext,
   build: () => llm.ChatContext
 ): llm.ChatContext {
   const outer = active;
@@ -79,9 +81,9 @@ export function guardedTurn(
   } catch (error) {
     log.warn({ sessionId, errorName: errorName(error) }, 'TURN_REMINDER_FAILED: default only');
     try {
-      return withTurnStyleReminder(withoutStaleTurnContext(request), UNVERIFIED_SPEAKER_NOTE);
+      return withTurnStyleReminder(gate(withoutStaleTurnContext(request)), UNVERIFIED_SPEAKER_NOTE);
     } catch {
-      return request;
+      return gate(request); // never throws (turn-call-report.ts)
     }
   } finally {
     active = outer;

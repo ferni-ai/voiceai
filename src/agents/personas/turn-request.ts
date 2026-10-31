@@ -39,6 +39,7 @@ import { getDirector } from './director-notes.js';
 import { isFirstCall } from './first-call-rapport.js';
 import { accountMayKeepName, lastAgentLine, statedName } from './name-correction.js';
 import { priorCallsOf } from './personal-beats.js';
+import { noteCallReportReached, turnRequestFor } from './turn-call-report.js';
 import {
   worldFactLinesFor,
   worldFactsNoteFor,
@@ -109,10 +110,14 @@ export function withTurnReminder(
   options: TurnReminderOptions = {}
 ): llm.ChatContext {
   const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
-  return guardedTurn(log, sessionId, request, () => buildTurnReminder(request, session, options));
+  // Any fallback request still passes the call report gate (turn-call-report.ts, #3080).
+  const gate = (ctx: llm.ChatContext) => turnRequestFor(ctx, sessionId, options.shape === false)[0];
+  return guardedTurn(log, sessionId, request, gate, () =>
+    buildTurnReminder(request, session, options)
+  );
 }
 
-type TurnReminderOptions = { shape?: boolean; closeLoop?: boolean };
+type TurnReminderOptions = { shape?: boolean; closeLoop?: boolean; held?: Promise<unknown> | null };
 
 /**
  * A copy of the context with the turn reminder, plus what Ferni has already
@@ -125,16 +130,17 @@ function buildTurnReminder(
   session: object,
   options: TurnReminderOptions
 ): llm.ChatContext {
-  const chatCtx = withoutStaleTurnContext(request);
+  const crisis = options.shape === false;
+  const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
+  const [chatCtx, waits] = turnRequestFor(withoutStaleTurnContext(request), sessionId, crisis);
   // An invitation to open with a sound is for one request only (vocal-bursts.ts).
   safe.clearBurstOffer(session);
   const director = getDirector(session);
   const view = unlockViewFor((session as { userData?: unknown }).userData);
   const words = callerWords(chatCtx);
   // SCRIPT_FREE_REMINDER=on: no shared style or quoted lines; never on a crisis turn (script-free.ts).
-  const crisis = options.shape === false;
   const plain = !crisis && scriptFreeOn();
-  const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
+  noteCallReportReached(sessionId, chatCtx, { latest: words, held: options.held, crisis: waits });
   // NO_INVENTED_INTERNALS=on: asked how he's built after a tool failed, or he just made it up.
   const internals = crisis
     ? ''
@@ -190,10 +196,9 @@ function buildTurnReminder(
     // PORCH_LIGHT=on: softer and simpler on a call started in the caller's small hours.
     safe.porchLightNote(chatCtx, session, { careful: options.shape === false }),
     // MINOR_CARE=on: a caller who sounds under 18 (minor-care.ts), never with crisis guidance; shadow only logs.
-    safe.minorCareNote(sessionIdOf((session as { userData?: unknown }).userData), words, {
-      careful: options.shape === false,
-      asked: lastFerniLine(chatCtx.items),
-    }),
+    safe.minorCareNote(sessionId, words, { careful: crisis, asked: lastFerniLine(chatCtx.items) }),
+    // SEXUAL_TOPIC_BOUNDARY=on: not a verified owner, or under-18 signs: no sexual detail, ever.
+    safe.sexualBoundaryNote(sessionId, words, lastFerniLine(chatCtx.items)),
     // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
     safe.beatNote({
       said: words,

@@ -9,6 +9,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@google-cloud/firestore', () => ({
+  FieldValue: { delete: () => undefined },
   Firestore: class {
     constructor() {
       throw new Error('Firestore unavailable in this test');
@@ -64,13 +65,19 @@ async function createHook(): Promise<string> {
   return created.json.id as string;
 }
 
+// Webhooks are only saved sealed: give the store a token key (LOG_HASH_SECRET is the last link).
+const savedHashSecret = process.env.LOG_HASH_SECRET;
+
 beforeEach(() => {
+  process.env.LOG_HASH_SECRET = 'test-only-hash-secret';
   vi.spyOn(dns.promises, 'lookup').mockImplementation((async () => [
     { address: '93.184.215.14', family: 4 },
   ]) as unknown as typeof dns.promises.lookup);
 });
 
 afterEach(() => {
+  if (savedHashSecret === undefined) delete process.env.LOG_HASH_SECRET;
+  else process.env.LOG_HASH_SECRET = savedHashSecret;
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -100,6 +107,20 @@ describe('POST /api/webhooks', () => {
   it('creates a webhook for a public https URL', async () => {
     const id = await createHook();
     expect(id).toEqual(expect.any(String));
+  });
+
+  it('with no token key, answers 503 with an honest message and stores nothing', async () => {
+    delete process.env.LOG_HASH_SECRET;
+    const created = await call('POST', '/api/webhooks', {
+      name: 'Unsealed',
+      url: 'https://hooks.example.com/unsealed',
+      method: 'GET',
+      voiceTriggers: ['unsealed'],
+    });
+    expect(created.status).toBe(503);
+    expect(created.body).toContain('Nothing was saved');
+    const listed = await call('GET', '/api/webhooks');
+    expect(JSON.stringify(listed.json)).not.toContain('hooks.example.com/unsealed');
   });
 });
 

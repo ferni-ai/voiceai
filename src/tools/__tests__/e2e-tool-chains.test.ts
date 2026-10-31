@@ -64,11 +64,6 @@ vi.mock('../../memory/index.js', async () => ({
 // that suite's beforeEach; Vitest hoisted them here anyway, and Vitest 5
 // rejects vi.mock outside the top level.
 vi.mock('../../services/self-healing/index.js', () => ({
-  getHomeAssistantClient: vi.fn(() => ({
-    isHealthy: () => true,
-    get: vi.fn(() => Promise.resolve({ data: [], error: null })),
-    post: vi.fn(() => Promise.resolve({ data: {}, error: null })),
-  })),
   getHueClient: vi.fn(() => ({
     isHealthy: () => true,
     get: vi.fn(() => Promise.resolve({ data: {}, error: null })),
@@ -79,10 +74,6 @@ vi.mock('../../services/self-healing/index.js', () => ({
     get: vi.fn(() => Promise.resolve({ data: [], error: null })),
     put: vi.fn(() => Promise.resolve({ data: {}, error: null })),
   })),
-}));
-
-vi.mock('../../services/smart-home/home-assistant.js', () => ({
-  getHomeAssistantService: vi.fn(() => null),
 }));
 
 vi.mock('../../services/identity/ecobee-api.js', () => ({

@@ -60,6 +60,8 @@ const LEGACY_FLAG_MANIFEST = {
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
   CALL_JOURNAL: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALL_RESULT_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // on: one channel per call result: live if the owner is on, else one text or one push (call-result-once.ts)
+  CALL_RESULT_ONE_CHANNEL: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_JOURNAL_ASK: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALL_WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
   CANDOR: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -204,6 +206,8 @@ const LEGACY_FLAG_MANIFEST = {
   GAME_STATE: { default: 'off', owner: 'platform', kind: 'experiment' },
   // read by the @google/genai SDK itself (getEnv), not by src/
   GOOGLE_GENAI_USE_VERTEXAI: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: a Google link without the calendar scope is stored as insufficient_scope, and Gmail reads say "not permitted" instead of an empty inbox (config/google-link-honest.ts)
+  GOOGLE_LINK_HONEST: { default: 'off', owner: 'tools', kind: 'experiment' },
   // on: a goodbye (or "hang up") ends the call after Ferni's goodbye plays, app and phone; never on crisis risk (call-farewell.ts)
   GOODBYE_ENDS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // on: good news gets a react, name it, ask about the moment note (agents/personas/good-news-bigger.ts)
