@@ -31,6 +31,7 @@
 import { createHash } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
+import { latencyArmPercent, withLatencyArm } from './latency-arm.js';
 import {
   firestoreCohortStore,
   firestoreFlagHolders,
@@ -314,22 +315,32 @@ export async function envForCaller(
 }
 
 /**
- * At call start: apply the caller's cohort flags, if this is on and safe.
+ * At call start: apply the caller's cohort flags, if this is on and safe, and
+ * the call's latency A/B arm (latency-arm.ts), drawn from `sessionId`, which
+ * reaches callers who are not members too. The caller's own values beat the arm.
  * Never throws and never waits longer than READ_TIMEOUT_MS; on any failure
- * the call runs with the agent's own flags.
+ * the call runs with the agent's own flags, plus its arm.
  */
 export async function applyCallerFlags(
   userId: string | undefined,
-  opts: { store?: CohortStore; env?: NodeJS.ProcessEnv; timeoutMs?: number } = {}
+  opts: {
+    store?: CohortStore;
+    env?: NodeJS.ProcessEnv;
+    timeoutMs?: number;
+    sessionId?: string;
+  } = {}
 ): Promise<string[]> {
   const env = opts.env ?? process.env;
-  if (!cohortFlagsEnabled(env)) return [];
+  const cohorts = cohortFlagsEnabled(env);
+  if (!cohorts && latencyArmPercent(env) <= 0) return [];
   if (!oneCallPerProcess(env)) {
     log.warn('Cohort flags skipped: a worker can run several calls at once');
     return [];
   }
+  const apply = (flags: Record<string, string>): string[] =>
+    applyFlags(withLatencyArm(opts.sessionId, flags, env), env);
   // The previous caller's flags go back to the agent's own even if this caller has none.
-  if (!isMemberIdentity(userId)) return applyFlags({}, env);
+  if (!cohorts || !isMemberIdentity(userId)) return apply({});
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const caller = await Promise.race([
@@ -343,17 +354,20 @@ export async function applyCallerFlags(
         { userId: userId.slice(0, 8) },
         'Cohort flags not read in time; agent defaults apply'
       );
-      return applyFlags({}, env);
+      return apply({});
     }
-    const { flags, cohorts, overridden } = caller;
-    const applied = applyFlags(flags, env);
+    const { flags, cohorts: ids, overridden } = caller;
+    const applied = apply(flags);
     // Cohort ids name the audience (seth, friends-and-family), never a member.
-    if (applied.length > 0)
-      log.info({ userId: userId.slice(0, 8), cohorts, overridden, flags }, 'Cohort flags applied');
+    if (Object.keys(flags).length > 0)
+      log.info(
+        { userId: userId.slice(0, 8), cohorts: ids, overridden, flags },
+        'Cohort flags applied'
+      );
     return applied;
   } catch (error) {
     log.warn({ error: String(error) }, 'Cohort flags not read; agent defaults apply');
-    return applyFlags({}, env);
+    return apply({});
   } finally {
     if (timer) clearTimeout(timer);
   }

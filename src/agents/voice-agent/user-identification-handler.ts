@@ -204,8 +204,9 @@ export async function identifyUser(
   userAccent = await detectUserAccent(jobMetadata);
   rememberDispatchIdentity(sessionId, identificationSource, jobMetadata);
 
-  // Friends-and-family flags for this caller, before anything reads a flag (cohort-flags.ts).
-  await applyCallerFlags(userId);
+  // Friends-and-family flags for this caller, and the call's latency A/B arm (latency-arm.ts),
+  // before anything reads a flag (cohort-flags.ts).
+  await applyCallerFlags(userId, { sessionId });
   // An unverified phone caller who called before (RETURNING_CALLER, returning-caller.ts).
   await startReturningCaller(room, sessionId, userId).catch((e: unknown) => {
     diag.warn('Returning caller lookup failed', { error: String(e) });
