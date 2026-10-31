@@ -85,6 +85,8 @@
         "src/tools/registry/loader.ts",
         "src/tools/semantic-router/tool-definitions/index.ts",
         "src/utils/safety-whole-word.ts",
+        "src/agents/personas/exits-held.ts",
+        "src/servers/api/routes/apple-health.ts",
         "src/agents/group-conversation/roundtable-turns.ts",
         "src/agents/multi-agent/agent-setup.ts",
         "src/agents/multi-agent/first-turn-defer.ts",
