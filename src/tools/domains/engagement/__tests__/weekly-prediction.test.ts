@@ -77,6 +77,7 @@ let firestore: FakeEngagementFirestore;
 
 beforeEach(() => {
   firestore = createFakeEngagementFirestore();
+  firestore.docs.set(`bogle_users/${USER}`, { name: 'live' }); // erased accounts take no writes
   fake.db = firestore.db;
   resetEngagementStore();
   published.length = 0;

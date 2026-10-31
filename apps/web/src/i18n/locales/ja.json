@@ -1868,9 +1868,9 @@
     "disconnected": "切断されました",
     "end": "終了",
     "endConversation": "お話を終了する",
-    "endConversationGoodbye": "お話を終了して、さようなら",
+    "goodbyeEndCall": "さようなら。通話を終了",
     "endSession": "セッションを終了する",
-    "ending": "終了しています...",
+    "ending": "通話終了",
     "goodbye": "さようなら",
     "holdToSpeak": "長押ししてお話しする",
     "listening": "聞いています...",
@@ -1880,7 +1880,7 @@
     "takeCare": "お元気で。",
     "tapToSpeak": "タップしてお話しする",
     "thinking": "考え中...",
-    "untilNextTime": "また次回お会いしましょう..."
+    "untilNextTime": "また次回お会いしましょう"
   },
   "stages": {
     "acquaintance": "知り合い",
@@ -10181,7 +10181,6 @@
     "startupError": "起動に問題が発生しています。再読み込みをお試しください。",
     "lastConversation": "これが今月最後のお話です。大切な時間にしましょうね。",
     "gettingReady": "準備をしています...",
-    "connecting": "接続中",
     "almostThere": "あと少しです...",
     "waitingQuietly": "静かにお待ちしていますね",
     "listening": "聴いていますよ",
@@ -10791,13 +10790,14 @@
   "entrance": {
     "helper": "あなた専属のガイド",
     "connectToTalk": "Ferniと話す",
-    "endTalk": "終了",
-    "connectingCancel": "接続中です。タップしてキャンセル",
-    "connectingNow": "接続中…",
+    "endTalk": "通話を終了",
+    "connectingCancel": "{name}を呼び出し中です。タップしてキャンセル",
+    "connectingNow": "{name}を呼び出し中…",
     "tapToCancel": "タップしてキャンセル",
-    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
-    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
-    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
+    "stillCalling": "引き続き{name}を呼び出し中…",
+    "stillCallingCancel": "引き続き{name}を呼び出し中です。タップしてキャンセル",
+    "reconnecting": "再接続中…",
+    "arrived": "{name}とつながりました"
   },
   "analyticsDashboard": {
     "title": "あなたの道のり",

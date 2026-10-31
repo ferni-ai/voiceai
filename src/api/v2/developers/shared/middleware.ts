@@ -15,6 +15,7 @@ import {
   getFirestore,
 } from '../../../v1/developers/shared/developer-auth.js';
 import { apiKeyLinkHolds, KEY_REVOKED_MESSAGE } from './api-key-link.js';
+import { tokenCheckStatus } from '../../../../services/identity/token-revocation.js';
 import { rateLimiter } from '../../../../services/rate-limiter.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
 
@@ -111,7 +112,6 @@ export async function requirePublisherAuth(
   }
 
   try {
-    // Verify Firebase token
     const decodedToken = await verifyFirebaseToken(idToken);
     if (!decodedToken) {
       sendError(res, 'Invalid or expired token', 401);
@@ -138,7 +138,7 @@ export async function requirePublisherAuth(
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     log.warn({ error: err.message }, 'Authentication failed');
-    sendError(res, 'Authentication failed', 401);
+    sendError(res, 'Authentication failed', tokenCheckStatus(error, 401));
     return null;
   }
 }

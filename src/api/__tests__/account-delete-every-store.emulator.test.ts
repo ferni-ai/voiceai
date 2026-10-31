@@ -36,6 +36,7 @@ const lookupFails = vi.hoisted(() => new Set<string>());
 vi.mock('firebase-admin/app', async () => vi.importActual('firebase-admin/app'));
 vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
 vi.mock('../../services/identity/firebase-auth.js', () => ({
+  setFirebaseUserDisabled: vi.fn(async () => 'done' as const),
   ensureFirebaseAdmin: () => true,
   deleteFirebaseUser: vi.fn(async () => true),
   getFirebaseUserOrThrow: vi.fn(async (uid: string) => {

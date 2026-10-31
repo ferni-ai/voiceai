@@ -18,6 +18,12 @@ import { getAuth } from 'firebase-admin/auth';
 import { createLogger } from '../../utils/safe-logger.js';
 import { nonAccountPrefixOf } from '../../utils/synthetic-user.js';
 import { erasureErrorCode } from '../platform/erasure-step.js';
+import {
+  invalidateAccount,
+  isAuthCheckUnavailable,
+  verifyIdTokenChecked,
+  type TokenCheckOptions,
+} from './token-revocation.js';
 
 const log = createLogger({ module: 'FirebaseAuth' });
 
@@ -148,19 +154,25 @@ function ensureInitialized(): boolean {
 // ============================================================================
 
 /**
- * Verify a Firebase ID token.
+ * Verify a Firebase ID token, and check it against its account: a token whose account
+ * was deleted or disabled, or that was revoked, is refused. It used to skip that check,
+ * so an ID token from before account deletion kept working for up to an hour and
+ * GET /api/user/profile recreated the erased person's record (#2966). The account is
+ * looked up at most once a minute (token-revocation.ts). When it can't be checked (Auth
+ * down, no recent state), this throws, as it does when Firebase isn't initialized: the
+ * caller answers 503, never 401 and never a pass.
  *
  * SECURITY: In production, this will throw if Firebase is not initialized.
  * This prevents silent auth bypass due to misconfiguration.
  *
  * @param idToken - The Firebase ID token from the frontend
- * @param checkRevoked - Whether to check if the token has been revoked (default: false for performance)
+ * @param options - `{ strict: true }` for approval, consent, payment and step-up checks
  * @returns Verified token info, `{ expired: true }` if token is expired, or null if invalid
- * @throws Error in production if Firebase is not initialized
+ * @throws Error in production if Firebase is not initialized, or the account can't be checked
  */
 export async function verifyFirebaseToken(
   idToken: string,
-  checkRevoked = false
+  options: TokenCheckOptions = {}
 ): Promise<VerifiedToken | { expired: true } | null> {
   if (!ensureInitialized()) {
     if (isProduction()) {
@@ -174,7 +186,7 @@ export async function verifyFirebaseToken(
   }
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken, checkRevoked);
+    const decodedToken = await verifyIdTokenChecked(admin.auth(), idToken, options);
 
     // Determine if user is anonymous
     // Anonymous users have the 'anonymous' provider and no email
@@ -201,6 +213,7 @@ export async function verifyFirebaseToken(
 
     return result;
   } catch (error) {
+    if (isAuthCheckUnavailable(error)) throw error; // its account couldn't be checked: a 503
     // Handle specific Firebase errors
     if (error instanceof Error) {
       const { code } = error as { code?: string };
@@ -210,7 +223,9 @@ export async function verifyFirebaseToken(
           log.debug('Firebase token expired');
           return { expired: true as const };
         case 'auth/id-token-revoked':
-          log.warn('Firebase token revoked');
+        case 'auth/user-not-found': // the account was deleted after the token was issued
+        case 'auth/user-disabled':
+          log.warn({ code }, 'Firebase token refused: revoked, or its account is gone');
           break;
         case 'auth/argument-error':
           log.debug('Invalid Firebase token format');
@@ -331,6 +346,7 @@ export async function revokeRefreshTokens(uid: string): Promise<boolean> {
 
   try {
     await admin.auth().revokeRefreshTokens(uid);
+    invalidateAccount(uid, 'revoked'); // this process refuses its tokens now, not in a minute
     log.info({ uid: `${uid.substring(0, 8)}...` }, 'Revoked refresh tokens');
     return true;
   } catch (error) {
@@ -350,6 +366,7 @@ export async function deleteFirebaseUser(uid: string): Promise<boolean> {
 
   try {
     await admin.auth().deleteUser(uid);
+    invalidateAccount(uid, 'gone');
     log.info({ uid: `${uid.substring(0, 8)}...` }, 'Deleted Firebase user');
     return true;
   } catch (error) {
@@ -358,6 +375,24 @@ export async function deleteFirebaseUser(uid: string): Promise<boolean> {
       'Failed to delete Firebase user'
     );
     return false;
+  }
+}
+
+/**
+ * Switch a Firebase user's sign-in off or on. no_user: Firebase has no such user, or the id is
+ * one it could never have issued. Never throws: any other failure answers 'failed'.
+ */
+export async function setFirebaseUserDisabled(
+  uid: string,
+  disabled: boolean
+): Promise<'done' | 'no_user' | 'failed'> {
+  if (!ensureInitialized()) return 'failed';
+  try {
+    await admin.auth().updateUser(uid, { disabled });
+    return 'done';
+  } catch (error) {
+    const code = (error as { code?: unknown } | null)?.code;
+    return typeof code === 'string' && NO_SUCH_USER.has(code) ? 'no_user' : 'failed';
   }
 }
 

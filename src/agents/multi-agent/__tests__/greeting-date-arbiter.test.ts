@@ -1,7 +1,7 @@
 /**
  * The hello's one-thread arbiter with a date due (DATES_IN_HELLO): why they
  * called, call news and a letter come first; the date then beats a win, a
- * check-in, a pondered ask and welcome-back; a sensitive date keeps the
+ * check-in and a pondered ask; a sensitive date keeps the
  * anniversary party out. Crisis risk, an unknown caller and a same-day return
  * get no date. Only the winner commits: a date that loses is never marked
  * raised and never claims the opener. Runs the real directedGreeting and
@@ -23,7 +23,6 @@ const on = vi.hoisted(() => ({
   win: false,
   checkIn: false,
   ponder: false,
-  back: false,
   party: false,
   letter: false,
   news: false,
@@ -56,12 +55,6 @@ vi.mock('../../../intelligence/pondering/pondering-opener.js', async (importOrig
 vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getFirestoreDb: () => ({}),
-}));
-vi.mock('../welcome-back.js', async (importOriginal) => ({
-  ...(await importOriginal<object>()),
-  loadWelcomeBack: async () => (on.back ? {} : undefined),
-  planWelcomeBack: () => ({ direction: ' WELCOME BACK.', heldBack: false }),
-  welcomeBackFacts: (facts: Record<string, string>) => facts,
 }));
 const party = vi.hoisted(() => ({ key: '1y', words: 'a year', mark: () => {} }));
 vi.mock('../friendship-anniversary.js', async (importOriginal) => ({
@@ -226,13 +219,6 @@ describe('the date wins over what comes after it, which waits for a later call',
     const cue = await greet();
     expectDateWon(cue);
     expect(cue.direction).not.toContain(PONDER_DIRECTION);
-  });
-
-  it('welcome-back', async () => {
-    on.back = true;
-    const cue = await greet();
-    expectDateWon(cue);
-    expect(cue.direction).not.toContain('WELCOME BACK');
   });
 
   it('an ordinary date keeps the anniversary alongside', async () => {

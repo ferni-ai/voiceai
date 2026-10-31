@@ -56,7 +56,7 @@ export class CartesiaReplyStream implements ReplyStream {
     onDone: () => this.finish(),
     onError: (error) => this.finish(error),
     onTimestamps: (words) => {
-      this.timings.push(...words);
+      for (const word of words) this.timings.push(word); // a spread overflows the stack on a huge payload
     },
   };
 
