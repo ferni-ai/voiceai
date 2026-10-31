@@ -18,8 +18,10 @@ const SITE_DIR = 'apps/website/ferni-website/_site';
 const PORT = 8771;
 const SITE = `http://127.0.0.1:${PORT}`;
 const TTS = 'https://app.ferni.ai/api/landing/tts';
-// 09:00 in the browser's zone: the hour the homepage's time greeting is the old slogan.
+// In the browser's zone: at 09:00 the time greeting is the old slogan; at 23:30 it is
+// a late-night line.
 const MORNING = '2026-10-17T09:00:00';
+const LATE = '2026-10-17T23:30:00';
 
 const html = (path: string): string => readFileSync(join(SITE_DIR, path), 'utf8');
 const sections = (page: string): number => (page.match(/<section\b/g) ?? []).length;
@@ -45,7 +47,7 @@ test.describe('homepage preview', () => {
     });
     test.afterAll(() => site?.stop());
 
-    test('keeps "Meet Ferni" where the time greeting would bring back the slogan', async ({
+    test('keeps "Meet Ferni" at every hour, where the live page shows its time greeting', async ({
       browser,
     }) => {
       const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -56,6 +58,12 @@ test.describe('homepage preview', () => {
       await expect(page.locator('.hero__tagline')).toHaveText('Meet Ferni');
       await page.goto(`${SITE}/`, { waitUntil: 'load' });
       await expect(page.locator('.hero__tagline')).toHaveText('Better than human.');
+      const late = await context.newPage();
+      await late.clock.setFixedTime(new Date(LATE));
+      await late.goto(`${SITE}/home-next/`, { waitUntil: 'load' });
+      await expect(late.locator('.hero__tagline')).toHaveText('Meet Ferni');
+      await late.goto(`${SITE}/`, { waitUntil: 'load' });
+      await expect(late.locator('.hero__tagline')).not.toHaveText('Better than human.');
       await context.close();
     });
 
