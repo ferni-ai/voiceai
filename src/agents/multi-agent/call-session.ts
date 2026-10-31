@@ -15,6 +15,7 @@ import {
   createProviderSTT,
   getModelProvider,
 } from '../model-provider/index.js';
+import { watchSessionSttAudio } from '../model-provider/stt-audio-diagnostics.js';
 import { watchAgentState } from '../shared/loop-watch.js';
 import { routeSayThroughModel } from '../shared/native-speech.js';
 import { limitSessionListeners } from '../shared/session-listener-limit.js';
@@ -144,6 +145,8 @@ export async function createCallSession(
   limitSessionListeners(session); // ~16 features watch agent_state_changed
 
   logBargeInDecisions(session, sessionId);
+  // STT_AUDIO_DIAGNOSTICS: VAD bursts with no transcript, SDK audio discards (stt-audio-diagnostics.ts)
+  watchSessionSttAudio(session, externalStt);
   // LOOP_STALL lines say whether Ferni was speaking (loop-watch.ts).
   watchAgentState(session);
   installPersonaSpeakingAttribute(session, parts.room, userData); // the app's name chip
