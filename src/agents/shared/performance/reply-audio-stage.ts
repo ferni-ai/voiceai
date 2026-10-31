@@ -29,6 +29,11 @@
  * Lead (opening) frames are marked; `isReplyAudioLeadFrame` lets latency
  * checkpoints tell them from speech.
  *
+ * Word timings (TTS_ALIGNED_TRANSCRIPT, frame-timings.ts): speech after an
+ * opening has its timings moved later by the opening's length. The stretcher
+ * cannot keep them, so once it drops any, its frames are marked untimed and
+ * the caption backfill captions the rest of the reply from its text.
+ *
  * With both gates off, or without a real session id and reply id (no id at
  * all means no Director ran on this stream: a filler, `say()`, a pre-tool
  * phrase, or a cached clip — review H2), `applyReplyAudioStage` returns the
@@ -56,6 +61,7 @@ import {
   type Stage2Gates,
 } from '../../../speech/reply-audio-plan.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { frameTimings, markUntimed, shiftTimings, timingUserdata } from '../frame-timings.js';
 
 const log = createLogger({ module: 'ReplyAudioStage' });
 
@@ -225,7 +231,7 @@ function fadeFrom(from: number, frame: AudioFrame): AudioFrame {
     const w = (i + 1) / (n + 1);
     y[i] = Math.round(from * (1 - w) + x[i] * w);
   }
-  return new AudioFrame(y, frame.sampleRate, 1, y.length);
+  return new AudioFrame(y, frame.sampleRate, 1, y.length, timingUserdata(frame));
 }
 
 type Emit = (f: AudioFrame) => void;
@@ -341,6 +347,14 @@ export function createReplyAudioStage(
   let leadRate = 0;
   let started = false;
   let tempo: TempoPath | null = null;
+  /** Seconds of opening in front of the speech: its word timings play that much later. */
+  let leadS = 0;
+  /** Stretched frames stand for speech whose word timings the stretcher dropped (TTS_ALIGNED_TRANSCRIPT). */
+  let droppedTimings = false;
+  const stretched =
+    (controller: Controller): Emit =>
+    (f) =>
+      controller.enqueue(droppedTimings ? markUntimed(f) : f);
 
   const begin = (first: AudioFrame): void => {
     started = true;
@@ -368,7 +382,10 @@ export function createReplyAudioStage(
   const playOpening = (controller: Controller): void => {
     if (!plan?.opening || !gates.nonverbal) return;
     try {
-      for (const f of renderLead(native, plan.opening, outRate)) controller.enqueue(f);
+      for (const f of renderLead(native, plan.opening, outRate)) {
+        controller.enqueue(f);
+        leadS += f.samplesPerChannel / f.sampleRate;
+      }
       leadRate = outRate;
       log.debug({ sessionId, replyId, kind: plan.opening.kind, sr: outRate }, 'Stage 2 opening');
     } catch (error) {
@@ -419,12 +436,13 @@ export function createReplyAudioStage(
           tempo = null;
         }
       }
-      const pass = tempo?.active ? tempo.process(frame, (f) => controller.enqueue(f)) : frame;
-      if (pass) controller.enqueue(pass);
+      if (tempo?.active && frameTimings(frame)) droppedTimings = true;
+      const pass = tempo?.active ? tempo.process(frame, stretched(controller)) : frame;
+      if (pass) controller.enqueue(shiftTimings(pass, leadS));
     },
     flush(controller) {
       stopListening();
-      tempo?.flush((f) => controller.enqueue(f));
+      tempo?.flush(stretched(controller));
       tempo = null;
     },
     cancel: stopListening,

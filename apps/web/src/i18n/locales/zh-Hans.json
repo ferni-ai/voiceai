@@ -1868,9 +1868,9 @@
     "disconnected": "已断开",
     "end": "结束",
     "endConversation": "结束对话",
-    "endConversationGoodbye": "结束对话 - 再见",
+    "goodbyeEndCall": "再见。挂断",
     "endSession": "结束对话",
-    "ending": "正在结束...",
+    "ending": "通话已结束",
     "goodbye": "再见",
     "holdToSpeak": "按住说话",
     "listening": "正在倾听...",
@@ -1880,7 +1880,7 @@
     "takeCare": "照顾好自己。",
     "tapToSpeak": "轻触开始说话",
     "thinking": "正在思考...",
-    "untilNextTime": "下次见..."
+    "untilNextTime": "下次见"
   },
   "stages": {
     "acquaintance": "点头之交",
@@ -10181,7 +10181,6 @@
     "startupError": "启动时遇到了一点问题。要刷新一下试试吗？",
     "lastConversation": "这是你本月的最后一次对话了。让我们聊点有意义的吧。",
     "gettingReady": "准备中...",
-    "connecting": "正在连接",
     "almostThere": "马上就准备好啦...",
     "waitingQuietly": "我会安静地等待",
     "listening": "我在听呢",
@@ -10792,12 +10791,13 @@
     "helper": "你的专属向导",
     "connectToTalk": "和 Ferni 聊聊",
     "endTalk": "挂断",
-    "connectingCancel": "正在连接。点按即可取消",
-    "connectingNow": "正在连接…",
+    "connectingCancel": "正在呼叫 {name}。点按即可取消",
+    "connectingNow": "正在呼叫 {name}…",
     "tapToCancel": "点按即可取消",
-    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
-    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
-    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
+    "stillCalling": "仍在联系 {name}…",
+    "stillCallingCancel": "仍在联系 {name}。点按即可取消",
+    "reconnecting": "正在重新连接…",
+    "arrived": "{name} 来了"
   },
   "analyticsDashboard": {
     "title": "你的旅程",

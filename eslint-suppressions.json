@@ -294,11 +294,6 @@
       "count": 1
     }
   },
-  "src/services/session/session-continuity.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
   "src/services/world-awareness/session-integration.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1

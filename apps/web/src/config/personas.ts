@@ -342,6 +342,15 @@ export function getPersona(id: string): PersonaConfig {
 }
 
 /**
+ * What you call a persona in a sentence: the first name ("Calling Jordan…",
+ * not "Jordan Taylor…"). Display names are "First Last" or one word.
+ */
+export function personaFirstName(name: string): string {
+  const [first] = name.trim().split(/\s+/);
+  return first ? first : name;
+}
+
+/**
  * Get the coach persona.
  */
 export function getCoach(): PersonaConfig {

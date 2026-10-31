@@ -662,7 +662,6 @@ class VoiceAIApp {
 
     if (!outcome.ok) {
       log.error('Connection failed:', outcome.failure.kind);
-      thinkingUI.hideProgress();
       thinkingUI.hide();
       waveformUI.setThinking(false);
       messageUI.clear();

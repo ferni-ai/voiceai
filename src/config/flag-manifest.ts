@@ -86,8 +86,6 @@ const LEGACY_FLAG_MANIFEST = {
   COMMITMENT_INVITE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: the after-call judge is the only commitment writer; readers show only its rows
   COMMITMENT_SINGLE_WRITER: { default: 'off', owner: 'intelligence', kind: 'experiment' },
-  // adds what Ferni and the caller both know to the first recall note
-  COMMON_GROUND: { default: 'off', owner: 'memory', kind: 'experiment' },
   CONTEXT_PACKET: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CONVERSATION_RULES: { default: 'on', owner: 'voice', kind: 'config' },
   CRISIS_ADJUDICATOR: { default: 'off', owner: 'intelligence', kind: 'experiment' },
@@ -373,7 +371,6 @@ const LEGACY_FLAG_MANIFEST = {
   SEMANTIC_ROUTER_UNCERTAINTY_ENABLED: { default: 'on', owner: 'tools', kind: 'config' },
   SEMANTIC_ROUTER_WARMUP: { default: 'on', owner: 'tools', kind: 'config' },
   SEMANTIC_ROUTING_DEBUG: { default: 'off', owner: 'tools', kind: 'config' },
-  SESSION_CONTINUITY_WRITE: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: tell the caller's app when the agent session ends without them (session-ended-signal.ts)
   SESSION_ENDED_SIGNAL: { default: 'off', owner: 'voice', kind: 'experiment' },
   ...FLAGS_SHORT_GOODBYE_TO_SMS,
@@ -465,13 +462,11 @@ const LEGACY_FLAG_MANIFEST = {
   WEB_SEARCH: { default: 'off', owner: 'tools', kind: 'experiment' },
   // on: "predict my week" loads Peter's game; a week-old prediction is asked about once a call
   WEEKLY_PREDICTION: { default: 'off', owner: 'tools', kind: 'experiment' },
-  WELCOME_BACK_BOTH_SIDES: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: after a call, one wellbeing snapshot from what the caller said (wellbeing-tracking/after-call.ts)
   WELLBEING_AFTER_CALL: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   WORKER_DRAIN_TIMEOUT_MS: { default: '1800000', owner: 'platform', kind: 'config' },
   WORKER_PUBSUB: { default: 'off', owner: 'platform', kind: 'experiment' },
   WORLD_FACTS_IN_CALL: { default: 'off', owner: 'intelligence', kind: 'experiment' },
-  WORLD_MODEL_SNAPSHOT: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   WORLD_MODEL_TEMPORAL: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   WORLD_NOW: { default: 'off', owner: 'voice', kind: 'experiment' },
   // the goodbye closes the loop on what the call decided

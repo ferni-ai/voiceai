@@ -41,7 +41,7 @@ From #1422.
   - Do at least 4 recorded runs per config, with the sha and flag values.
   - Record a keep or discard verdict per flag.
 - **Pre-flip checklist for `CONTEXT_PACKET` (#1470)** — Default off, no harm today. Keep the six pre-flip checks from the verifier follow-up (#992) and run them when the flag is scheduled. `value: medium · effort: S`
-- **Pre-flip checks for four dormant flags (#1471)** — `REVIVED_INTELLIGENCE`, `WORLD_MODEL_SNAPSHOT`, `THEORY_OF_MIND` and `QUIRK_AWARENESS` have never been turned on. The memory v2 plan (C5) already owns the dead-builder part; run the remaining checks when it lands. `value: medium · effort: M`
+- **Pre-flip checks for three dormant flags (#1471)** — `REVIVED_INTELLIGENCE`, `THEORY_OF_MIND` and `QUIRK_AWARENESS` have never been turned on (`WORLD_MODEL_SNAPSHOT` was deleted 2026-10-31). The memory v2 plan (C5) already owns the dead-builder part; run the remaining checks when it lands. `value: medium · effort: M`
 
 ## 5. Template personas and cognitive quirks: reachable or dead?
 

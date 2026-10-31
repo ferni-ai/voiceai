@@ -46,6 +46,8 @@ vi.mock('../../services/data-export.js', () => ({
   getDataExportService: () => ({ deleteAllData: vi.fn(async () => undefined) }),
 }));
 vi.mock('../../services/identity/firebase-auth.js', () => ({
+  setFirebaseUserDisabled: vi.fn(async () => 'done' as const),
+  getFirebaseUserOrThrow: vi.fn(async () => null),
   deleteFirebaseUser: vi.fn(async (uid: string) => {
     firebase.deleted.push(uid);
     return true;
