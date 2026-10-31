@@ -78,6 +78,7 @@ import {
   type OpenCommitment,
 } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { flagOn } from '../../config/env-flag.js';
 import { createWorldRecall, type WorldRecallDeps } from './world-recall.js';
 import { callLoopsRecallFor, type CallLoopsRecall } from './open-loops-recall.js';
 import { predictionCheckInFor, type PredictionCheckIn } from './prediction-check-in.js';
@@ -395,9 +396,9 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       // What the two of them both know (COMMON_GROUND), once, with the first note.
       const groundNow = followUpsOffered ? null : groundNote;
       const checkIn = checkInOffered ? null : checkInNote;
-      const dateNow = followUpsOffered || checkIn ? null : dates.note();
-      // One follow-up per call opener (opener-claim.ts): a check-in or a date
-      // in this note, or one the greeting already asked, leaves the thread line out.
+      const dateNow = followUpsOffered || checkIn || flagOn('DATES_IN_HELLO') ? null : dates.note();
+      // One follow-up per call opener (opener-claim.ts): a check-in or a date in this note (with
+      // DATES_IN_HELLO only the hello's), or one the greeting already asked, leaves the thread out.
       const greetingAsked = followUpsOffered ? undefined : takeOpenerClaim(deps.userId);
       // The week's predictions come alone: never beside a check-in, a date or the greeting's ask.
       const weekNow = checkIn || dateNow || greetingAsked ? null : week.note(opts.final);

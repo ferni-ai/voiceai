@@ -50,6 +50,7 @@ import * as stranger from './first-call-stranger.js';
 import { greetsAsFriend, isUnplacedCaller } from './unknown-caller-honest.js';
 import { launchDirection, takeCallLaunch } from '../shared/call-launch-hint.js';
 import { callNewsFor } from './call-news-opener.js';
+import { dateFor } from './greeting-date.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
 // to hear your voice!" every call, and the exclamations made the voice
@@ -345,7 +346,7 @@ export async function directedGreeting(
     return calmGreeting(directed.text);
   }
   // Not gated on history: the profile behind it can still be loading.
-  const [openCheckIn, openWin, pondered, welcome, anniversary, isNew, introName, letter, news] =
+  const [openCheckIn, openWin, pondered, welcome, anniversary, isNew, intro, letter, news, date] =
     await Promise.all([
       checkInFor(userData?.userId, userData?.callerTimezone),
       winFor(userData?.userId),
@@ -365,6 +366,7 @@ export async function directedGreeting(
           )
         : undefined,
       inTime(callNewsFor({ userId: userData?.userId, sessionId, zone: userData?.callerTimezone })),
+      inTime(dateFor({ userId: userData?.userId, sessionId, zone: userData?.callerTimezone })),
     ]);
   // An unrecognised phone caller: a name given on that number before (RETURNING_CALLER), or ask.
   const unknown =
@@ -375,7 +377,7 @@ export async function directedGreeting(
   const unplaced = isUnplacedCaller(userData?.userId, history !== undefined);
   const stage = firstCall || unplaced ? ('stranger' as const) : ('friend' as const);
   const scripted = generateWarmGreeting(personaId, { ...ctx, relationshipStage: stage });
-  const introAs = unknown ? undefined : introName;
+  const introAs = unknown ? undefined : intro;
   if (introAs) log.info({ sessionId, personaId }, 'First call: the hello says who is calling');
   // Nothing still ahead, and nothing from before on a same-day return (greeting-not-yet.ts).
   const hold = notYet.openingRestraint(history, userData?.callerTimezone);
@@ -385,9 +387,11 @@ export async function directedGreeting(
   // thread: a win, a check-in or a pondered ask waits for a later call; it never waits for them.
   // It still yields to an unknown caller (never someone else's letter) and to their own reason.
   // A call Ferni made for them (CALL_NEWS_OPENER) comes before all of those, the letter too.
+  // A date they told about (DATES_IN_HELLO) comes after the letter, never on a same-day return.
   const newsNow = news && !unknown && !launched ? news : undefined;
   const letterNow = letter && !unknown && !launched && !newsNow ? letter : undefined;
-  const first = launched || letterNow || newsNow;
+  const dateNow = launched || letterNow || newsNow || unknown || hold.sameDay ? undefined : date;
+  const first = launched || letterNow || newsNow || dateNow;
   const { win, checkIn } =
     unknown || hold.sameDay || first ? {} : openingThread(openWin, dueCheckIn);
   // One thread per call: why they called, a win or what they said they'd do, then a pondered ask.
@@ -398,14 +402,15 @@ export async function directedGreeting(
       ? planWelcomeBack(welcome, { checkIn: checkIn ?? win?.text, pondered: ask?.text })
       : undefined;
   if (win && userData?.userId) void markWinSurfaced(userData.userId, win.id);
-  const party = anniversary && !unknown && !newsNow?.careful ? anniversary : undefined;
+  const careful = newsNow?.careful || dateNow?.careful; // no playful hello, no party alongside
+  const party = anniversary && !unknown && !careful ? anniversary : undefined;
   const direction =
     greetingDirection(
       personaId,
       process.env,
       {
         topic: history?.lastTopic,
-        tender: back?.heldBack || newsNow?.careful,
+        tender: back?.heldBack || careful,
         firstCall,
         unplaced,
       },
@@ -418,6 +423,7 @@ export async function directedGreeting(
     (party ? anniversaryDirection(party) : '') +
     (letterNow ? letterOfferDirection(letterNow) : '') +
     (newsNow?.direction ?? '') +
+    (dateNow?.direction ?? '') +
     (hold.sameDay && !newsNow ? notYet.SAME_DAY_DIRECTION : '') +
     (unknown ? ` ${unknown}` : '') +
     launched;
@@ -439,6 +445,7 @@ export async function directedGreeting(
       ...(unknown ? {} : takeRecentTextFacts(sessionId)), // not for a caller not recognised
       ...(firstCall ? stranger.FIRST_CALL_FACTS : {}),
       ...newsNow?.facts,
+      ...dateNow?.facts,
     },
     fallback: introAs ? firstCallFallback(userData?.userName, introAs) : scripted,
     urgency: 'now',
@@ -454,6 +461,7 @@ export async function directedGreeting(
     const threads = { checkIn, pondered: ask?.text, lastTopic: history?.lastTopic };
     claimIfAsked(userData.userId, spoken, { ...threads, userName: userData.userName });
   }
+  if (dateNow && directed.source === 'actor') dateNow.commit(); // only the winner, once spoken
   return calmGreeting(spoken);
 }
 
