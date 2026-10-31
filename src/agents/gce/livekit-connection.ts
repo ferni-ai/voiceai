@@ -55,6 +55,12 @@ let lastPongTime = Date.now();
 /** Flag to prevent reconnect during shutdown */
 let isShuttingDown = false;
 
+/** WORKER_RECYCLE: take no new jobs, but keep the connection (and reconnects) for the running ones. */
+let isDraining = false;
+
+/** Shutting down or draining: report full and reject every availability request. */
+const takesNoJobs = (): boolean => isShuttingDown || isDraining;
+
 /** Guard against double-reconnect (keepalive + onClose both call scheduleReconnect) */
 let reconnectScheduled = false;
 
@@ -114,7 +120,7 @@ function sendWorkerStatus(
   label: string
 ): { activeJobs: number; load: number; full: boolean } {
   const activeJobs = jobRunner.activeJobCount();
-  const full = isShuttingDown || workerIsFull(activeJobs, load); // draining takes no new jobs
+  const full = takesNoJobs() || workerIsFull(activeJobs, load); // draining takes no new jobs
   const status = full ? WorkerStatus.WS_FULL : WorkerStatus.WS_AVAILABLE;
   safeSend(
     new WorkerMessage({
@@ -249,7 +255,7 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
           case: 'updateWorker',
           value: {
             load: 0,
-            status: WorkerStatus.WS_AVAILABLE,
+            status: takesNoJobs() ? WorkerStatus.WS_FULL : WorkerStatus.WS_AVAILABLE, // a reconnect mid-drain
             jobCount: jobRunner.activeJobCount(),
           },
         },
@@ -330,7 +336,7 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
       });
 
       // Load-aware: reject if at max capacity to prevent wasted dispatch cycles
-      if (isShuttingDown || workerIsFull(jobRunner.activeJobCount(), getCpuLoad())) {
+      if (takesNoJobs() || workerIsFull(jobRunner.activeJobCount(), getCpuLoad())) {
         const rejectResponse = new WorkerMessage({
           message: {
             case: 'availability',
@@ -655,6 +661,21 @@ export async function connectToLiveKit(): Promise<void> {
 export function prepareForShutdown(): void {
   isShuttingDown = true;
   _log('LiveKit connection prepared for shutdown - reconnect disabled');
+}
+
+/**
+ * WORKER_RECYCLE (worker-recycle.ts): take no new jobs from now on. Unlike
+ * prepareForShutdown, reconnects stay on, so a long call's worker keeps its
+ * registration while the call runs.
+ */
+export function drainForRecycle(): void {
+  isDraining = true;
+  if (ws?.readyState === WebSocket.OPEN) sendWorkerStatus(lastCpuLoad, 'worker-status-draining');
+}
+
+/** Jobs accepted (availability) whose assignment hasn't arrived yet. */
+export function pendingJobCount(): number {
+  return pendingJobs.size;
 }
 
 /**

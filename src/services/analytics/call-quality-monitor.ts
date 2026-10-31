@@ -274,6 +274,9 @@ export function recordCallEvent(event: CallEvent): void {
             ? 'disconnect'
             : 'error';
 
+      // A completed call is kept (up to MAX_COMPLETED_SESSIONS) for its counts and timings;
+      // nothing reads its event list, which grew with every turn of every call.
+      session.events = [];
       completedSessions.push(session);
       sessions.delete(event.callId);
 

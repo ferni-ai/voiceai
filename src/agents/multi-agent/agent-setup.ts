@@ -2004,6 +2004,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
           room,
         });
         // Note: silenceContext is created by setupSessionStateHandlers
+        // Its timers, listeners and per-session state end with this persona (once per call).
+        cleanupFunctions.push(stateResult.clearTimers);
         handlersStatus.sessionState = true;
         diag.entry(`🎭 [${persona.id}] Session state handlers wired`);
 
