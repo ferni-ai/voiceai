@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { run, staleMocks } from '../mock-paths.js';
+import { generatedPaths, run, staleMocks } from '../mock-paths.js';
 
 let root: string;
 
@@ -65,6 +65,13 @@ describe('staleMocks', () => {
     const read = (f: string): string => readFileSync(join(root, f), 'utf8');
     expect(staleMocks(files, read, () => false)).toEqual({});
   });
+
+  it('counts only the vi.mock string when a test also has a stale plain import', () => {
+    const both = 'src/x/__tests__/both.test.ts';
+    repo({ [both]: "import { y } from '../nowhere.js';\nvi.mock('../gone.js');\n" });
+    const read = (f: string): string => readFileSync(join(root, f), 'utf8');
+    expect(staleMocks([both], read, () => false)).toEqual({ [both]: ['../gone.js'] });
+  });
 });
 
 describe('run (the pnpm quality:mock-paths ratchet)', () => {
@@ -96,14 +103,71 @@ describe('run (the pnpm quality:mock-paths ratchet)', () => {
     );
     expect(check(baseline).code).toBe(1);
 
-    // Fix both: the check passes and says the baseline can shrink; --update shrinks it.
+    // Fix both: the check FAILS until --update drops the fixed entry, so the baseline only
+    // ever shrinks and a fixed string cannot go stale again unnoticed.
     put('src/services/gone.ts', 'export {};\n');
     put(DEEP_TEST, "vi.mock('../../../../services/gone.js');\n");
     execFileSync('git', ['add', '-A'], { cwd: root });
     const fixed = check(baseline);
-    expect(fixed.code).toBe(0);
-    expect(fixed.out).toContain('1 baseline entry fixed');
+    expect(fixed.code).toBe(1);
+    expect(fixed.out).toContain('1 baseline entry no longer stale');
+    expect(fixed.out).toContain('--update');
     expect(check(baseline, ['--update']).code).toBe(0);
     expect(JSON.parse(readFileSync(baseline, 'utf8'))).toEqual({});
+    expect(check(baseline).code).toBe(0);
+  });
+
+  it('--update with a new stale string fails and leaves the baseline as it was', () => {
+    repo({ ...GOOD, [DEEP_TEST]: "vi.mock('../../../../services/gone.js');\n" });
+    const baseline = join(root, 'baseline.json');
+    expect(check(baseline, ['--init']).code).toBe(0);
+    const before = readFileSync(baseline, 'utf8');
+    put(
+      DEEP_TEST,
+      "vi.mock('../../../../services/gone.js');\nvi.mock('../../../../services/new-gone.js');\n"
+    );
+    const r = check(baseline, ['--update']);
+    expect(r.code).toBe(1);
+    expect(r.out).toContain(`${DEEP_TEST}: ../../../../services/new-gone.js`);
+    expect(readFileSync(baseline, 'utf8')).toBe(before);
+  });
+
+  it('treats a gitignored *.generated.* file as present before install writes it', () => {
+    // src/config/flags/index.generated.ts is made by `pnpm gen:lists` at install: not in git,
+    // and not on disk on a CI node_modules cache hit or a fresh clone.
+    const gen = 'src/config/__tests__/generated-guard.test.ts';
+    repo({
+      '.gitignore': '# generated\nsrc/config/flags/index.generated.ts\n*.generated.json\n',
+      [gen]: "vi.mock('../flags/index.generated.js');\n",
+    });
+    const baseline = join(root, 'baseline.json');
+    writeFileSync(baseline, '{}\n');
+    expect(check(baseline).code).toBe(0);
+
+    // Only the literal entry counts: an unlisted *.generated.* name is still stale.
+    put(gen, "vi.mock('../flags/index.generated.js');\nvi.mock('../flags/other.generated.js');\n");
+    const r = check(baseline);
+    expect(r.code).toBe(1);
+    expect(r.out).toContain(`${gen}: ../flags/other.generated.js`);
+    expect(r.out).not.toContain('index.generated');
+  });
+});
+
+describe('generatedPaths', () => {
+  it('keeps literal *.generated.* code paths and skips globs, negations and bare names', () => {
+    const text = [
+      '# Generated at install',
+      'src/config/flags/index.generated.ts',
+      '/src/config/env-read-names.generated.ts',
+      '*.generated.ts',
+      '!src/keep.generated.ts',
+      'loose.generated.ts',
+      'src/data.generated.json',
+      '',
+    ].join('\n');
+    expect([...generatedPaths(text)].sort()).toEqual([
+      'src/config/env-read-names.generated.ts',
+      'src/config/flags/index.generated.ts',
+    ]);
   });
 });
