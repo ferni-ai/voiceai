@@ -345,7 +345,7 @@ export async function handleDeveloperAuthRoutes(
       let decodedToken: FirebaseDecodedToken;
 
       try {
-        decodedToken = (await auth.verifyIdToken(body.idToken)) as FirebaseDecodedToken;
+        decodedToken = (await auth.verifyIdToken(body.idToken, true)) as FirebaseDecodedToken;
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         // SECURITY: Log only metadata, never any part of the token
@@ -427,7 +427,7 @@ export async function handleDeveloperAuthRoutes(
       let decodedToken: FirebaseDecodedToken;
 
       try {
-        decodedToken = (await auth.verifyIdToken(idToken)) as FirebaseDecodedToken;
+        decodedToken = (await auth.verifyIdToken(idToken, true)) as FirebaseDecodedToken;
       } catch (error) {
         sendError(res, 'Invalid or expired token', 401);
         return true;

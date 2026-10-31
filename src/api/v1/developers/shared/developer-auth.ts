@@ -210,7 +210,7 @@ export async function resolvePublisherFromRequest(
   }
   try {
     const auth = await getFirebaseAuth();
-    const decodedToken = (await auth.verifyIdToken(idToken)) as FirebaseDecodedToken;
+    const decodedToken = (await auth.verifyIdToken(idToken, true)) as FirebaseDecodedToken;
     return await resolvePublisherForToken(decodedToken);
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to get publisher from token');
@@ -248,7 +248,7 @@ export async function requirePublisherFromToken(
 export async function verifyFirebaseToken(idToken: string): Promise<FirebaseDecodedToken | null> {
   try {
     const auth = await getFirebaseAuth();
-    return (await auth.verifyIdToken(idToken)) as FirebaseDecodedToken;
+    return (await auth.verifyIdToken(idToken, true)) as FirebaseDecodedToken; // refuses a deleted account's token
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     // SECURITY: Log only metadata, never any part of the token

@@ -31,7 +31,7 @@ export async function signedInRecently(
 ): Promise<boolean> {
   const header = req.headers.authorization;
   if (typeof header !== 'string' || !header.startsWith('Bearer ')) return false;
-  const verified = await verifyFirebaseToken(header.slice(7), true);
+  const verified = await verifyFirebaseToken(header.slice(7));
   if (!verified || 'expired' in verified || verified.isAnonymous || verified.uid !== uid) {
     return false;
   }

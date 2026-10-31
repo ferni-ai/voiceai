@@ -59,9 +59,7 @@ export interface VerifiedToken {
 export type TokenVerificationResult = VerifiedToken | { expired: true } | null;
 
 /** Type guard: true if the result is a successfully verified token (not expired, not null) */
-export function isVerifiedToken(
-  result: TokenVerificationResult
-): result is VerifiedToken {
+export function isVerifiedToken(result: TokenVerificationResult): result is VerifiedToken {
   return result !== null && !('expired' in result);
 }
 
@@ -83,10 +81,14 @@ let isInitialized = false;
  */
 export function claimsFirebaseIssuer(token: string): boolean {
   try {
-    const payload = JSON.parse(Buffer.from(token.split('.')[1] ?? '', 'base64url').toString('utf8')) as {
+    const payload = JSON.parse(
+      Buffer.from(token.split('.')[1] ?? '', 'base64url').toString('utf8')
+    ) as {
       iss?: unknown;
     };
-    return typeof payload.iss !== 'string' || payload.iss.startsWith('https://securetoken.google.com/');
+    return (
+      typeof payload.iss !== 'string' || payload.iss.startsWith('https://securetoken.google.com/')
+    );
   } catch {
     return true;
   }
@@ -148,19 +150,21 @@ function ensureInitialized(): boolean {
 // ============================================================================
 
 /**
- * Verify a Firebase ID token.
+ * Verify a Firebase ID token, always checking it against the account (checkRevoked): a
+ * token issued before its account was deleted, disabled or signed out everywhere is
+ * refused. It used to skip that check by default, so an ID token from before account
+ * deletion kept working for up to an hour and GET /api/user/profile recreated the
+ * erased person's record (#2966). The check is one Auth lookup per request.
  *
  * SECURITY: In production, this will throw if Firebase is not initialized.
  * This prevents silent auth bypass due to misconfiguration.
  *
  * @param idToken - The Firebase ID token from the frontend
- * @param checkRevoked - Whether to check if the token has been revoked (default: false for performance)
  * @returns Verified token info, `{ expired: true }` if token is expired, or null if invalid
  * @throws Error in production if Firebase is not initialized
  */
 export async function verifyFirebaseToken(
-  idToken: string,
-  checkRevoked = false
+  idToken: string
 ): Promise<VerifiedToken | { expired: true } | null> {
   if (!ensureInitialized()) {
     if (isProduction()) {
@@ -174,7 +178,7 @@ export async function verifyFirebaseToken(
   }
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken, checkRevoked);
+    const decodedToken = await admin.auth().verifyIdToken(idToken, true);
 
     // Determine if user is anonymous
     // Anonymous users have the 'anonymous' provider and no email
@@ -210,7 +214,9 @@ export async function verifyFirebaseToken(
           log.debug('Firebase token expired');
           return { expired: true as const };
         case 'auth/id-token-revoked':
-          log.warn('Firebase token revoked');
+        case 'auth/user-not-found': // the account was deleted after the token was issued
+        case 'auth/user-disabled':
+          log.warn({ code }, 'Firebase token refused: revoked, or its account is gone');
           break;
         case 'auth/argument-error':
           log.debug('Invalid Firebase token format');

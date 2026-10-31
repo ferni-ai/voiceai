@@ -23,6 +23,7 @@ export function createFakeEngagementFirestore(): FakeEngagementFirestore {
   const failWrites: FakeEngagementFirestore['failWrites'] = { match: null };
   const failReads: FakeEngagementFirestore['failReads'] = { match: null };
   const hangReads: FakeEngagementFirestore['hangReads'] = { match: null };
+  let autoIds = 0; // doc() with no id: a new document, as Firestore's auto id
 
   const docRef = (path: string) => ({
     path,
@@ -50,7 +51,7 @@ export function createFakeEngagementFirestore(): FakeEngagementFirestore {
     order?: [string, 'asc' | 'desc'],
     limit?: number
   ) => ({
-    doc: (id: string) => docRef(`${path}/${id}`),
+    doc: (id: string = `auto-${(autoIds += 1)}`) => docRef(`${path}/${id}`),
     where: (field: string, op: string, value: unknown) =>
       query(path, [...filters, [field, op, value]], order, limit),
     orderBy: (field: string, dir: 'asc' | 'desc' = 'asc') =>

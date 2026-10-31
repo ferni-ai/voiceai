@@ -51,7 +51,7 @@ const OUTCOME: Record<DecisionOutcome, { status: number; message: string; code?:
 async function signInTime(req: IncomingMessage, userId: string): Promise<number | null> {
   const header = req.headers.authorization;
   if (typeof header !== 'string' || !header.startsWith('Bearer ')) return null;
-  const verified = await verifyFirebaseToken(header.slice(7), true);
+  const verified = await verifyFirebaseToken(header.slice(7));
   if (!verified || 'expired' in verified || verified.isAnonymous) return null;
   const authTime = verified.claims.auth_time;
   return verified.uid === userId && typeof authTime === 'number' ? authTime * 1000 : null;

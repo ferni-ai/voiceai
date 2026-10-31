@@ -463,7 +463,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
     // Verify Firebase token
-    const decodedToken = await auth.verifyIdToken(idToken);
+    const decodedToken = await auth.verifyIdToken(idToken, true); // a deleted account's token is refused
     const email = decodedToken.email?.toLowerCase().trim();
 
     if (!email) {

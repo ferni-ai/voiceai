@@ -65,10 +65,25 @@ vi.mock('../api/auth-middleware.js', () => ({
   }),
 }));
 
+type FakeRef = {
+  get: () => Promise<unknown>;
+  set: (d: Doc, o?: { merge?: boolean }) => Promise<void>;
+};
 vi.mock('@google-cloud/firestore', () => ({
   Firestore: class {
     collection(name: string): unknown {
       return collectionRef(name);
+    }
+    // The store's writes check the account in a transaction; they apply once it resolves
+    async runTransaction<T>(fn: (tx: unknown) => Promise<T>): Promise<T> {
+      const writes: Array<() => Promise<void>> = [];
+      const tx = {
+        get: (ref: FakeRef) => ref.get(),
+        set: (ref: FakeRef, d: Doc, o?: { merge?: boolean }) => writes.push(() => ref.set(d, o)),
+      };
+      const result = await fn(tx);
+      for (const write of writes) await write();
+      return result;
     }
   },
 }));
@@ -132,6 +147,7 @@ const MOOD = 'Mood average (1-10)';
 const createdAt = new Date().toISOString();
 
 function seed(uid: string, id: string, predictions: Record<string, number>): void {
+  docs.set(`bogle_users/${uid}`, { name: 'live' }); // a live account (erased ones take no writes)
   docs.set(`engagement_profiles/${uid}/predictions/${id}`, {
     id,
     weekOf: '2026-09-28',
