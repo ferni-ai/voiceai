@@ -18,8 +18,6 @@ packages:
 # `pnpm audit --audit-level=high` shows a patched version for it.
 auditConfig:
   ignoreGhsas:
-    # node-forge <=1.4.0 via firebase-admin: RSA PKCS#1 v1.5 signature verification
-    - GHSA-86w9-cpqp-85rv
     # braces <=3.0.3 via typescript-eslint's globby (lint only): stack-exhaustion DoS
     - GHSA-vfj7-8cjw-p6xm
 
@@ -61,7 +59,8 @@ overrides:
   'minimatch@>=9 <10': '^9.0.7'
   'minimatch@>=10 <11': '^10.2.3'
   'nanoid@>=3 <4': '^3.3.18'
-  'node-forge@>=1 <2': '^1.4.0'
+  'node-forge@>=1 <2': '^1.4.2'
+  'follow-redirects@>=1 <2': '^1.16.2'
   'path-to-regexp@>=8 <9': '^8.4.0'
   'picomatch@>=2 <3': '^2.3.2'
   'picomatch@>=4 <5': '^4.0.4'

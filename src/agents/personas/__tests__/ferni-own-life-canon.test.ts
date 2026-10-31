@@ -2,7 +2,7 @@
  * Ferni's own-life sheet (character-own-life.md, added to the character prompt
  * when FERNI_PERSONA_SLIP_GUARD is on) must not contradict his character sheet.
  *
- * The persona audit (2026-10-17) found it calling Jack a friend "from your early
+ * The persona audit (2026-10-17) found it calling a friend "from your early
  * days in finance", a career character.md never gives him: he grew up in
  * Wyoming, spent a decade in Japan, was fired once, and works as a life coach.
  * The life ledger checks what Ferni says about himself against this sheet, so a
@@ -38,7 +38,7 @@ const TEAMMATES_AND_MENTOR = /\b(Peter|Maya|Alex|Jordan|Nayan|Tanaka)\b/;
 const matches = (text: string, re: RegExp): string[] =>
   [...text.matchAll(re)].map((m) => m[1]!.toLowerCase());
 
-/** "Your closest friends are ...: Jack, ...; Ken, ...; and Jim, ..." -> the names. */
+/** "Your closest friends are ...: Lyle, ...; Owen, ...; and Hollis, ..." -> the names. */
 function friendNames(text: string): string[] {
   const line = text.split('\n').find((l) => l.startsWith('Your closest friends')) ?? '';
   const list = line.slice(line.indexOf(':') + 1).split('. ')[0]!;
@@ -62,7 +62,7 @@ describe("Ferni's own-life sheet agrees with his character sheet", () => {
 
   it('names friends who are not his teammates or his late mentor', () => {
     const friends = friendNames(ownLife);
-    expect(friends).toEqual(['Jack', 'Ken', 'Dermot', 'Scott', 'Jim']);
+    expect(friends).toEqual(['Lyle', 'Owen', 'Boyd', 'Marty', 'Hollis']);
     for (const name of friends) expect(name).not.toMatch(TEAMMATES_AND_MENTOR);
   });
 
