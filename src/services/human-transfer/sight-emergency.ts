@@ -125,7 +125,7 @@ function sightEmergency(text: string): boolean {
 export const SENSE_LOSS_MEDICAL = {
   source: MAIN_SENSES.source,
   test: (text: string): boolean =>
-    flagOn('CRISIS_SIGHT_NEEDS_CUE')
+    flagOn('CRISIS_SIGHT_NEEDS_CUE') || flagOn('CRISIS_LEXICAL_V2') // CRISIS_LEXICAL_V2 implies it
       ? OTHER_SENSES.test(text) || sightEmergency(text)
       : MAIN_SENSES.test(text),
 };

@@ -28,6 +28,7 @@ export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
 export { crisisRiskThisCall } from './crisis-call-risk.js';
 export { offersCrisisLine } from './crisis-line-speech.js';
+export { resolveCrisisGuardMode, type CrisisGuardMode } from './crisis-guard-mode.js';
 
 export type {
   CrisisDetectionResult,
@@ -187,6 +188,7 @@ export function performSafetyCheck(
   // 1. Detect crisis signals
   const detection = detectCrisis(text, {
     previousSignals: sessionSignals,
+    deferToGate: true, // CRISIS_LEXICAL_V2: the gate decides what it reads (legacy-word-checks.ts)
   });
 
   // 2. Update session signals if crisis detected
