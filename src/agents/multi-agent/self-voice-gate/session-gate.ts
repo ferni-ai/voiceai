@@ -102,7 +102,8 @@ export function installSelfVoiceGate(input: LiveCallBehaviorsInput, env: Env = p
     const onClear = (): void => logSelfVoiceShadow(session, 'output-cleared');
     const tapRoom = (): void => {
       try {
-        const output = session.output.audio as unknown as Queued | undefined;
+        const audio: unknown = session.output.audio; // Queued's fields are all optional
+        const output = typeof audio === 'object' && audio ? (audio as Queued) : undefined;
         tapAudioSource(chainAudioSource(output), state.room, { now, onClear });
       } catch (error) {
         log.warn({ sessionId, error: String(error) }, 'self-voice room tap failed');
