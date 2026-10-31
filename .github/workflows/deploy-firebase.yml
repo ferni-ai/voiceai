@@ -94,6 +94,22 @@ jobs:
           VITE_APPLE_WEB_SIGNIN: ${{ vars.VITE_APPLE_WEB_SIGNIN }}
           # Goodbye ceremony and reconnect prompt (apps/web/src/config/call-wrap-up-flag.ts); off unless exactly "true".
           VITE_CALL_WRAP_UP: ${{ vars.VITE_CALL_WRAP_UP }}
+          # Calm idle home screen (apps/web/src/config/calm-idle.ts); off unless exactly "true".
+          VITE_CALM_IDLE: ${{ vars.VITE_CALM_IDLE }}
+          # Avatar motion switches (apps/web/src/config/motion-flags.ts); each off unless "on" or "true".
+          VITE_NATURAL_BLINK: ${{ vars.VITE_NATURAL_BLINK }}
+          VITE_LID_BLEND: ${{ vars.VITE_LID_BLEND }}
+          VITE_GAZE: ${{ vars.VITE_GAZE }}
+          VITE_LISTEN_NODS: ${{ vars.VITE_LISTEN_NODS }}
+          VITE_SPRING_BODY: ${{ vars.VITE_SPRING_BODY }}
+          VITE_WEIGHTED_EASING: ${{ vars.VITE_WEIGHTED_EASING }}
+          VITE_SPEECH_BEATS: ${{ vars.VITE_SPEECH_BEATS }}
+          VITE_THINKING_GLANCE: ${{ vars.VITE_THINKING_GLANCE }}
+          VITE_TURN_GESTURES: ${{ vars.VITE_TURN_GESTURES }}
+          VITE_FACE_ENGINE: ${{ vars.VITE_FACE_ENGINE }}
+          VITE_EXPRESSION_ARBITER: ${{ vars.VITE_EXPRESSION_ARBITER }}
+          VITE_REPLY_TONE: ${{ vars.VITE_REPLY_TONE }}
+          VITE_SOUND_DIRECTOR: ${{ vars.VITE_SOUND_DIRECTOR }}
           # Android app links (apps/web/scripts/asset-links.ts): the signing
           # SHA-256 fingerprint(s), comma separated. Unset serves [] as before.
           ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}

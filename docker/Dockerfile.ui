@@ -152,6 +152,10 @@ ENV VITE_CALL_WRAP_UP=$VITE_CALL_WRAP_UP
 # Toast region (apps/web/src/ui/overlay/toast-flag.ts): on unless set to "off".
 ARG VITE_TOAST_REGION=""
 ENV VITE_TOAST_REGION=$VITE_TOAST_REGION
+
+# Calm idle home screen (config/calm-idle.ts), off unless the repo variable is "true".
+ARG VITE_CALM_IDLE=""
+ENV VITE_CALM_IDLE=$VITE_CALM_IDLE
 # Avatar motion switches (apps/web/src/config/motion-flags.ts); each off unless "on" or "true".
 ARG VITE_NATURAL_BLINK=""
 ARG VITE_LID_BLEND=""
