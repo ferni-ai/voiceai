@@ -28,11 +28,14 @@
 
 import { flagOn } from '../../../../config/env-flag.js';
 import { isMemberIdentity } from '../../../../services/identity/member-identity.js';
-import { verifiedCallerId } from '../../../../services/identity/verified-caller.js';
+import {
+  verifiedCallerId,
+  verifiedCallerOfSession,
+} from '../../../../services/identity/verified-caller.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { callSessionData } from '../../../utils/call-session-data.js';
-import { blockedContent, type ContentBlock } from './owner-message-content.js';
+import { CONTENT_BLOCKS, blockedContent, type ContentBlock } from './owner-message-content.js';
 
 /** UNVERIFIED_OWNER_MESSAGE_FILTER=on: unverified calls message the owner under this policy (default off). */
 function unverifiedOwnerMessageFilterOn(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -48,8 +51,8 @@ export const UNVERIFIED_CONTENT_REFUSAL =
 export const UNVERIFIED_CAP_REFUSAL =
   "That's all I can send from this call. I can send more once you're in the app.";
 /** What Ferni says when this call can send nothing at all (no account, no call session). */
-export const UNVERIFIED_SEND_REFUSAL =
-  "I can't send anything else from this call, but I can once you're in the app.";
+export const UNVERIFIED_NOTHING_SENT_REFUSAL =
+  "I can't send that from this call, but I can once you're in the app.";
 
 type OwnerMessageRefusal = ContentBlock | 'session_limit' | 'no_account' | 'no_session';
 /** An allowed send the tool then did not deliver: the slot stays spent (fail closed). */
@@ -74,25 +77,47 @@ export interface OwnerMessage {
 }
 
 const log = getLogger();
-/** Sends allowed to each unverified call, keyed by its session's userData. */
-const sentThisCall = new WeakMap<object, number>();
+/**
+ * Sends allowed to each unverified call, by its voice session id: tool paths
+ * that build their own options (the semantic-router executor) share the count.
+ * By the session's userData only when it carries no id.
+ */
+const sentBySessionId = new Map<string, number>();
+const sentBySessionData = new WeakMap<object, number>();
+const MAX_COUNTED_SESSIONS = 5000;
 
-const CONTENT_REFUSALS: ReadonlySet<OwnerMessageRefusal> = new Set<ContentBlock>([
-  'email',
-  'url',
-  'phone_number',
-  'credential_ask',
-]);
+/** The call's voice session id: from session-manager's services, or set by a routed tool path. */
+function sessionIdOf(call: object | undefined): string | undefined {
+  const data = call as { services?: { sessionId?: unknown }; sessionId?: unknown } | undefined;
+  const id = data?.services?.sessionId ?? data?.sessionId;
+  return typeof id === 'string' && id ? id : undefined;
+}
+
+const sendsSoFar = (call: object): number => {
+  const id = sessionIdOf(call);
+  return (id ? sentBySessionId.get(id) : sentBySessionData.get(call)) ?? 0;
+};
+
+function countSend(call: object): void {
+  const id = sessionIdOf(call);
+  if (!id) return void sentBySessionData.set(call, sendsSoFar(call) + 1);
+  if (!sentBySessionId.has(id) && sentBySessionId.size >= MAX_COUNTED_SESSIONS) {
+    sentBySessionId.delete(sentBySessionId.keys().next().value as string); // the oldest call
+  }
+  sentBySessionId.set(id, sendsSoFar(call) + 1);
+}
+
+const CONTENT_REFUSALS: ReadonlySet<string> = new Set(CONTENT_BLOCKS);
 const refuse = (reason: OwnerMessageRefusal): OwnerMessageDecision => {
   if (CONTENT_REFUSALS.has(reason)) return { outcome: 'refused', reason, line: UNVERIFIED_CONTENT_REFUSAL }; // prettier-ignore
-  const line = reason === 'session_limit' ? UNVERIFIED_CAP_REFUSAL : UNVERIFIED_SEND_REFUSAL;
+  const line =
+    reason === 'session_limit' ? UNVERIFIED_CAP_REFUSAL : UNVERIFIED_NOTHING_SENT_REFUSAL;
   return { outcome: 'refused', reason, line };
 };
 
 /** One log line per refusal or undelivered send: ids and a reason code, never the text. */
 function logOutcome(message: OwnerMessage, reason: OwnerMessageLogReason): void {
-  const call = callSessionData(message.opts) as { services?: { sessionId?: unknown } } | undefined;
-  const sessionId = call?.services?.sessionId;
+  const sessionId = sessionIdOf(callSessionData(message.opts));
   const what = reason === 'delivery_failed' ? 'allowed but not delivered' : 'refused';
   log.info(
     { tool: message.tool, userId: message.ownerId, sessionId, reason },
@@ -107,9 +132,8 @@ function unverifiedDecision(message: OwnerMessage, call: object | undefined): Ow
     const blocked = typeof text === 'string' ? blockedContent(text) : null;
     if (blocked) return refuse(blocked);
   }
-  const sent = sentThisCall.get(call) ?? 0;
-  if (sent >= UNVERIFIED_SESSION_LIMIT) return refuse('session_limit');
-  sentThisCall.set(call, sent + 1);
+  if (sendsSoFar(call) >= UNVERIFIED_SESSION_LIMIT) return refuse('session_limit');
+  countSend(call);
   return { outcome: 'unverified_allowed', footer: message.spoken ? null : UNVERIFIED_FOOTER };
 }
 
@@ -118,7 +142,8 @@ export function ownerMessagePolicy(message: OwnerMessage): OwnerMessageDecision 
   if (!unverifiedOwnerMessageFilterOn()) return { outcome: 'unchanged' };
   const call = callSessionData(message.opts);
   const member = isMemberIdentity(message.ownerId);
-  if (member && call && verifiedCallerId(call) === message.ownerId) return { outcome: 'unchanged' };
+  const verified = verifiedCallerId(call) ?? verifiedCallerOfSession(sessionIdOf(call));
+  if (member && verified === message.ownerId) return { outcome: 'unchanged' };
   const decision = member ? unverifiedDecision(message, call) : refuse('no_account');
   if (decision.outcome === 'refused') logOutcome(message, decision.reason);
   return decision;

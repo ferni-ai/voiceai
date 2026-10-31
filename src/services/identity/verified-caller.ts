@@ -67,6 +67,29 @@ export function verifiedCallerId(userData: unknown): string | null {
   return isUnverifiedUserId(id) ? null : id;
 }
 
+/** Callers the server verified, by voice session id (user-identification-handler records them). */
+const verifiedBySession = new Map<string, string>();
+const MAX_VERIFIED_SESSIONS = 5000;
+
+/**
+ * Record the caller the server verified on this voice session, for tool paths
+ * that carry only the session id (the semantic-router executor builds its own
+ * userData). Never an id anybody can mint or spoof (isUnverifiedUserId).
+ */
+export function rememberVerifiedCaller(sessionId: string, userId: string): void {
+  const id = userId.trim();
+  if (!sessionId || isUnverifiedUserId(id)) return;
+  if (!verifiedBySession.has(sessionId) && verifiedBySession.size >= MAX_VERIFIED_SESSIONS) {
+    verifiedBySession.delete(verifiedBySession.keys().next().value as string); // the oldest call
+  }
+  verifiedBySession.set(sessionId, id);
+}
+
+/** The caller the server verified on the voice session with this id, or null. */
+export function verifiedCallerOfSession(sessionId: unknown): string | null {
+  return typeof sessionId === 'string' ? (verifiedBySession.get(sessionId) ?? null) : null;
+}
+
 /**
  * The key a per-person allowance is charged to: `user:<id>` for a verified
  * caller, or null to share the strangers' bucket. Only when a session never set

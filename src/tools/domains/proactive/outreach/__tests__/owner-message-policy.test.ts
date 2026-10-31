@@ -59,7 +59,7 @@ import {
   UNVERIFIED_CAP_REFUSAL,
   UNVERIFIED_CONTENT_REFUSAL,
   UNVERIFIED_FOOTER,
-  UNVERIFIED_SEND_REFUSAL,
+  UNVERIFIED_NOTHING_SENT_REFUSAL,
   ownerMessagePolicy,
   ownerMessageTool,
   type OwnerMessage,
@@ -250,14 +250,14 @@ describe('flag on', () => {
       const as = { ...ctx, userId: id };
       const opts = call({ userId: id, verifiedCaller: true });
       const reply = await tool('sendMessageNow', as).execute({ message: 'hi' }, opts as never);
-      expect(reply).toBe(UNVERIFIED_SEND_REFUSAL);
+      expect(reply).toBe(UNVERIFIED_NOTHING_SENT_REFUSAL);
       expect(sends() + storeReads()).toBe(0);
     }
   );
 
   it('no call session to count against: nothing is sent or read', async () => {
     await expect(run('sendMessageNow', { message: 'hi' }, {})).resolves.toBe(
-      UNVERIFIED_SEND_REFUSAL
+      UNVERIFIED_NOTHING_SENT_REFUSAL
     );
     expect(sends() + storeReads()).toBe(0);
   });
@@ -302,7 +302,7 @@ describe('flag on', () => {
       tool: 'sendMessageNow',
       userId: OWNER.id,
       sessionId: 'sess-1',
-      reason: 'url',
+      reason: 'address_token',
     });
     expect(JSON.stringify([fields, msg])).not.toContain('example');
   });
@@ -326,7 +326,7 @@ describe('flag on', () => {
         decide({ ownerId: 'anon:fixture' }),
         decide({ opts: {} }),
       ].map((d) => (d.outcome === 'refused' ? d.reason : d.outcome));
-      expect(reasons).toEqual(['email', 'url', 'phone_number', 'credential_ask', 'no_account', 'no_session']); // prettier-ignore
+      expect(reasons).toEqual(['charset', 'address_token', 'digits', 'credential_ask', 'no_account', 'no_session']); // prettier-ignore
     });
   });
 });

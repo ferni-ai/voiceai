@@ -1,106 +1,209 @@
 /**
- * What a call the server did not verify may not have Ferni send the account
- * owner (owner-message-policy.ts): anything a phishing text needs. A link, a
- * number to call, an address to write to, or an ask for a login, a code or
- * bank details. It fails closed: a message that only looks like one of these
- * ("polka dot", "11.12.2025") is refused too, and the caller can still send it
- * from the app.
+ * What a call the server did not verify may have Ferni send the account owner
+ * (owner-message-policy.ts). A shape allowlist, not a denylist: a message passes
+ * only when it has none of the shapes a phishing text needs (a link, a number to
+ * call, an address to write to, an ask for a login, code or bank details), so a
+ * new disguise is refused by default instead of slipping past a missing case.
  *
- * Every check reads one normal form (`normalForm`), so a disguise is undone
- * once for all of them rather than patched per check: compatibility forms
- * (full-width, ligatures), format characters (zero-width, bidi marks),
- * accents, Cyrillic and Greek look-alikes, "dot" and "at" spelled out,
- * bracketed or spaced. On top of it the number check also reads digits
- * written as words or as look-alike letters (o for 0, l or i for 1), with
- * every separator between them dropped, and the word check reads
- * leetspeak and letters spaced apart.
+ * After NFKC, a message passes only if every rule holds:
+ * 1. charset: Latin letters (accents OK), 0-9, spaces, newlines and . , ! ? ' - : ( )
+ * 2. digits: fewer than 7 digits or number words in any 30 characters (separators
+ *    ignored); no 3-6 digit run within 3 words of call/dial/text/reply/send/ring
+ *    (a clock time is not one); no toll-free prefix or digits broken by capitals
+ * 3. no address-forming tokens: dot/period/point/dash/hyphen/underscore/slash,
+ *    "." or ":" between two letters, www/http(s), com/net/org/io/info/biz/xyz/ru/uk,
+ *    a dotted quad, or "at" before a mail provider
+ * 4. no run of 3+ single letters or digits separated by spaces
+ * 5. no credential ask (fe's ruling, 2026-10-31)
+ *
+ * The crisis lines in services/safety/crisis-response.ts (988, 741741, ...) are
+ * never refused by the digit rules when they stand alone: a number joined to
+ * them by nothing but spaces or punctuation makes one longer number, which counts.
  *
  * @module tools/domains/proactive/outreach/owner-message-content
  */
 
+import { CRISIS_RESOURCES } from '../../../../services/safety/crisis-response.js';
+
 /** Why a message was refused; logged as the reason code, never with the text. */
-export type ContentBlock = 'email' | 'url' | 'phone_number' | 'credential_ask';
+export const CONTENT_BLOCKS = [
+  'charset',
+  'digits',
+  'short_code',
+  'vanity_number',
+  'address_token',
+  'mail_provider',
+  'spaced_chars',
+  'credential_ask',
+] as const;
+export type ContentBlock = (typeof CONTENT_BLOCKS)[number];
 
-/** Cyrillic and Greek letters that pass for Latin ones (lower case). */
-const LOOK_ALIKES: Readonly<Record<string, string>> = {
-  а: 'a', в: 'b', е: 'e', к: 'k', м: 'm', н: 'h', о: 'o', р: 'p', с: 'c', т: 't', у: 'y',
-  х: 'x', і: 'i', ј: 'j', ѕ: 's', ԁ: 'd', ɡ: 'g', ӏ: 'l', α: 'a', ε: 'e', ι: 'i', κ: 'k',
-  ν: 'v', ο: 'o', ρ: 'p', τ: 't', υ: 'u', χ: 'x',
+/** fe picked (b), 2026-10-31: refuse 7+ digits or number words within any 30 characters. */
+const DIGIT_RULE = { digits: 7, windowChars: 30 } as const;
+
+const CHARSET = /^[\p{Script=Latin}0-9 \n.,!?'\-:()]*$/u;
+const NUMBER_WORDS: Readonly<Record<string, string>> = {
+  zero: '0', oh: '0', o: '0', one: '1', two: '2', three: '3', four: '4', five: '5', six: '6',
+  seven: '7', eight: '8', nine: '9', ten: '10', eleven: '11', twelve: '12', thirteen: '13',
+  fourteen: '14', fifteen: '15', sixteen: '16', seventeen: '17', eighteen: '18',
+  nineteen: '19', twenty: '20', thirty: '30', forty: '40', fifty: '50', sixty: '60',
+  seventy: '70', eighty: '80', ninety: '90',
 }; // prettier-ignore
-const DIGIT_WORDS = [
-  'zero',
-  'one',
-  'two',
-  'three',
-  'four',
-  'five',
-  'six',
-  'seven',
-  'eight',
-  'nine',
-];
-const DIGIT_WORD = new RegExp(`\\b(?:${DIGIT_WORDS.join('|')})\\b`, 'g');
-/** Letters that stand in for digits in a number someone wants read past a filter. */
-const DIGIT_LOOK_ALIKES: Readonly<Record<string, string>> = { o: '0', l: '1', i: '1', '|': '1' };
-const LEET: Readonly<Record<string, string>> = { 0: 'o', 3: 'e', 4: 'a', 5: 's', 7: 't', '@': 'a', $: 's' }; // prettier-ignore
+const REPEATS: Readonly<Record<string, number>> = { double: 2, triple: 3 };
+const DIALS = /^(?:call(?:s|ed|ing)?|dial(?:s|ed|ing|led|ling)?|texts?|texted|texting|repl(?:y|ies|ied|ying)|sends?|sending|sent|rings?|ringing|rang)$/; // prettier-ignore
+const ADDRESS_WORDS = /\b(?:dot|period|point|dash|hyphen|underscore|slash|www|https?|com|net|org|io|info|biz|xyz|ru|uk)\b/; // prettier-ignore
+/** a.m., p.m., e.g., i.e.: letter-dot-letter, but no address. */
+const ABBREVIATIONS = /(?<!\p{L})(?:a\.m|p\.m|e\.g|i\.e)\.?/gu;
+const own = <T>(table: Readonly<Record<string, T>>, key: string | undefined): T | undefined =>
+  key !== undefined && Object.hasOwn(table, key) ? table[key] : undefined;
+const MAIL_PROVIDERS = /^(?:gmail|yahoo|outlook|hotmail|icloud|aol|proton|protonmail|live|msn)$/;
+const CREDENTIAL_PHRASE = /\b(?:card\s*numbers?|bank\s*accounts?|account\s*numbers?|routing\s*numbers?|(?:verification|one[\s-]*time|security|login|log[\s-]*in)\s*codes?|gift\s*cards?)\b/; // prettier-ignore
+const CREDENTIAL_WORD = /\b(?:verif(?:y|ies|ied|ying|ications?)|pass[\s-]*words?|pins?|ssns?|social\s*security(?:\s*numbers?)?|(?:re[\s-]*)?log(?:s|ged|ging)?[\s-]*(?:back[\s-]*)?in|logins?|wires?|wired|wiring)\b/; // prettier-ignore
+const CODE_ASK = /^(?:send|sends|sent|reply|replies|enter|share|read|type|text|texts|texted)$/;
 
-/**
- * The one form every check reads: NFKD with accents and format characters
- * gone, look-alikes mapped to Latin, lower case, every full stop a ".", and
- * "x dot y", "x-dot y", "x (dot) y", "x [.] y", "x . y", "xdotcom" written "x.y", with
- * "at" likewise as "@" in front of a domain.
- */
-export function normalForm(text: string): string {
-  return text
-    .normalize('NFKD')
-    .replace(/[\p{M}\p{Cf}]/gu, '')
-    .toLowerCase()
-    .replace(/./gu, (c) => LOOK_ALIKES[c] ?? c)
-    .replace(/[。｡︒․]/g, '.')
-    .replace(/\s*[[({<]\s*(?:dot|\.)\s*[\])}>]\s*/g, '.')
-    .replace(/(?<=[\p{L}\p{N}])\s+\.\s*(?=[\p{L}\p{N}])/gu, '.')
-    .replace(/(?<=[\p{L}\p{N}])[\s_-]*dot[\s_-]*(?=\p{L}{2,}\b)/gu, '.')
-    .replace(/\s*[[({<]\s*(?:at|@)\s*[\])}>]\s*/g, '@')
-    .replace(/(?<=[\p{L}\p{N}._-])\s+at\s+(?=[\p{L}\p{N}-]+\.\p{L}{2,})/gu, '@');
+interface Token {
+  text: string;
+  start: number;
+  /** The digits it stands for, or null when it is a word */
+  digits: string | null;
 }
 
-/**
- * The normal form as digits: number words and look-alike letters read as
- * digits, then everything that is not a letter or a digit dropped, so no
- * separator (a dash, a minus sign, a colon, an emoji) can split a number.
- */
-const asDigits = (form: string): string =>
-  form
-    .replace(DIGIT_WORD, (w) => String(DIGIT_WORDS.indexOf(w)))
-    .replace(/[oli|]/g, (c) => DIGIT_LOOK_ALIKES[c])
-    .replace(/[^\p{L}\p{N}]/gu, '');
+/** Every crisis line's number as digits, read from the crisis module (one source of truth). */
+function crisisNumbers(): ReadonlySet<string> {
+  const numbers = new Set<string>();
+  for (const resource of Object.values(CRISIS_RESOURCES).flat()) {
+    const phone = resource.phone?.replace(/\D/g, '');
+    if (phone && phone.length >= 3) numbers.add(phone);
+    for (const run of resource.text?.match(/\d{3,}/g) ?? []) numbers.add(run);
+  }
+  return numbers;
+}
 
-/** The normal form as words: leetspeak read as letters, "p a s s" read as "pass". */
-const asWords = (form: string, one: 'i' | 'l'): string =>
-  form
-    .replace(/[0134578@$]/g, (c) => (c === '1' ? one : (LEET[c] ?? c)))
-    .replace(/\b(?:\p{L}[\s.\-_*·]+){2,}\p{L}\b/gu, (run) => run.replace(/[^\p{L}]/gu, ''));
+/** Number words run together ("fivefive"), longest first; "o"/"oh" only on their own. */
+const GLUABLE = Object.keys(NUMBER_WORDS).filter((w) => w.length > 2).sort((a, b) => b.length - a.length).join('|'); // prettier-ignore
+const GLUED_NUMBER_WORDS = new RegExp(`^(?:${GLUABLE})+$`);
+const ONE_NUMBER_WORD = new RegExp(GLUABLE, 'g');
 
-const EMAIL = /[\p{L}\p{N}._%+-]@[\p{L}\p{N}-]/u;
-const URL_MARK = /(?:[a-z][a-z0-9+.-]*:\/\/|www\.|\bhttps?:)/;
-/** Any domain-shaped token: labels joined by dots, the last one 2+ letters, whatever the TLD. */
-const DOMAIN = /[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)*\.\p{L}{2,}(?![\p{L}\p{N}])/u;
-/** "dot" still spelled before a word after the rewrite ("dot com" at the start): a link. */
-const SPELLED_DOT = /dot[\s_-]*\p{L}{2,}\b/u;
-/** Seven or more digits in a row, any script, once separators are gone (asDigits). */
-const DIGIT_RUN = /\p{Nd}{7,}/u;
-const CREDENTIAL_ASK = new RegExp(
-  '\\b(?:verif(?:y|ies|ied|ying|ications?)|log(?:ging|ged)?\\s*-?\\s*ins?|logins?|' +
-    'sign\\s*-?\\s*ins?|accounts?|banks?|banking|passwords?|pass\\s*codes?|codes?|pins?|' +
-    'ssns?|cards?|wires?|wired|wiring|gift\\s*cards?|otps?)\\b'
-);
+/** What a word stands for in digits, or null when it is not a number. */
+function wordDigits(word: string): string | null {
+  if (/^[0-9]/.test(word)) return word;
+  const single = own(NUMBER_WORDS, word) ?? (own(REPEATS, word) ? '' : undefined);
+  if (single !== undefined) return single;
+  return GLUED_NUMBER_WORDS.test(word) ? word.replace(ONE_NUMBER_WORD, (w) => NUMBER_WORDS[w]) : null; // prettier-ignore
+}
 
-/** The first reason `text` may not be sent from an unverified call, or null when it may. */
+/** Words and digit runs, with what each number word stands for ("o"/"oh" only next to a number). */
+function tokensOf(text: string): Token[] {
+  const tokens = [...text.matchAll(/\p{L}+|[0-9]+/gu)].map((m) => ({
+    text: m[0],
+    start: m.index,
+    digits: wordDigits(m[0]),
+  }));
+  const numeric = (t: Token | undefined) => t?.digits != null && t.text !== 'o' && t.text !== 'oh';
+  tokens.forEach((t, i) => {
+    if ((t.text === 'o' || t.text === 'oh') && !numeric(tokens[i - 1]) && !numeric(tokens[i + 1])) t.digits = null; // prettier-ignore
+  });
+  return tokens;
+}
+
+/** Runs of number tokens with nothing but spaces or punctuation between them: one number each. */
+function numberGroups(tokens: Token[]): Token[][] {
+  const groups: Token[][] = [];
+  let run: Token[] = [];
+  for (const t of [...tokens, { text: '', start: -1, digits: null }]) {
+    if (t.digits != null) run.push(t);
+    else if (run.length) {
+      groups.push(run);
+      run = [];
+    }
+  }
+  return groups;
+}
+
+const groupDigits = (group: Token[]): string =>
+  group.reduce(
+    (out, t, i) => out + (own(REPEATS, t.text) ? '' : (t.digits ?? '').repeat(own(REPEATS, group[i - 1]?.text) ?? 1)), // prettier-ignore
+    ''
+  );
+
+/** Whether a group is a clock time ("5:30", "10:45"), never a short code. */
+const isClockTime = (group: Token[], text: string): boolean =>
+  group.length === 2 &&
+  /^[0-9]{1,2}$/.test(group[0].text) &&
+  /^[0-9]{2}$/.test(group[1].text) &&
+  text.slice(group[0].start + group[0].text.length, group[1].start) === ':';
+
+/** Rule 2 on the lower-case text: the 7-in-30 window and short codes, crisis lines aside. */
+function digitBlock(text: string): ContentBlock | null {
+  const tokens = tokensOf(text);
+  const crisis = crisisNumbers();
+  const counted = numberGroups(tokens).filter((g) => !crisis.has(groupDigits(g)));
+  const startsGroup = new Map(counted.map((g) => [g[0], groupDigits(g)]));
+  // Words as written, each counted number as its digits, crisis lines and separators gone
+  const compact = tokens.map((t) => startsGroup.get(t) ?? (t.digits == null ? t.text : '')).join(''); // prettier-ignore
+  for (let i = 0; i < compact.length; i++) {
+    const window = compact.slice(i, i + DIGIT_RULE.windowChars);
+    if ((window.match(/[0-9]/g)?.length ?? 0) >= DIGIT_RULE.digits) return 'digits';
+  }
+  for (const group of counted) {
+    const length = groupDigits(group).length;
+    if (length < 3 || length > 6 || isClockTime(group, text)) continue;
+    const [first, last] = [tokens.indexOf(group[0]), tokens.indexOf(group[group.length - 1])];
+    const near = tokens.slice(Math.max(0, first - 3), last + 4);
+    if (near.some((t) => DIALS.test(t.text))) return 'short_code';
+  }
+  return null;
+}
+
+/** Toll-free prefixes and digits broken by capitals, read before lower-casing. */
+function vanityBlock(text: string): boolean {
+  const crisis = crisisNumbers();
+  const tollFree = /(?<![0-9A-Za-z])(?:1[\s.\-()]*)?\(?8(?:00|88|77|66|55|44|33)\)?[\s.\-]*(?=[0-9]|[A-Z]{2})[0-9A-Z\s.\-()]*/g; // prettier-ignore
+  for (const [run] of text.matchAll(tollFree)) {
+    if (/[A-Z]{2}/.test(run) || !crisis.has(run.replace(/\D/g, ''))) return true;
+  }
+  return /[0-9][\s.\-()]*(?:[A-Z][\s.-]?){3,}[\s.\-()]*[0-9]/.test(text);
+}
+
+/** Single letters spaced apart read as one word: "g m a i l" is "gmail". */
+const collapseSpacedLetters = (text: string): string =>
+  text.replace(/(?<![\p{L}0-9])\p{L}(?: \p{L}(?![\p{L}0-9]))+/gu, (run) => run.replace(/ /g, ''));
+
+/** Credential asks, also with digits standing in for letters inside a word ("passw0rd"). */
+function credentialAsk(text: string): boolean {
+  const spellings = ['i', 'l'].map((one) =>
+    text.replace(/\p{L}*[0-9]\p{L}[\p{L}0-9]*|\p{L}+[0-9][\p{L}0-9]*/gu, (word) =>
+      word.replace(/[013457]/g, (d) => ({ 0: 'o', 1: one, 3: 'e', 4: 'a', 5: 's', 7: 't' })[d] ?? d)
+    )
+  );
+  if (spellings.some((s) => CREDENTIAL_PHRASE.test(s) || CREDENTIAL_WORD.test(s))) return true;
+  const words = [...text.matchAll(/\p{L}+/gu)].map((m) => m[0]);
+  return words.some(
+    (w, i) => /^(?:codes?|pins?)$/.test(w) && words.slice(Math.max(0, i - 4), i + 5).some((n) => CODE_ASK.test(n)) // prettier-ignore
+  );
+}
+
+/** The first rule `text` breaks for an unverified call, or null when it may be sent. */
 export function blockedContent(text: string): ContentBlock | null {
-  const form = normalForm(text);
-  if (EMAIL.test(form)) return 'email';
-  if (URL_MARK.test(form) || DOMAIN.test(form) || SPELLED_DOT.test(form)) return 'url';
-  if (DIGIT_RUN.test(asDigits(form))) return 'phone_number';
-  const asks = [asWords(form, 'i'), asWords(form, 'l')];
-  return asks.some((words) => CREDENTIAL_ASK.test(words)) ? 'credential_ask' : null;
+  const form = text.normalize('NFKC').replace(/[\u2018\u2019]/g, "'");
+  if (!CHARSET.test(form)) return 'charset';
+  if (vanityBlock(form)) return 'vanity_number';
+  const lower = form.toLowerCase();
+  if (/(?<![\p{L}0-9])(?:[\p{L}0-9] +){2,}[\p{L}0-9](?![\p{L}0-9])/u.test(lower)) return 'spaced_chars'; // prettier-ignore
+  const plain = collapseSpacedLetters(lower);
+  const digits = digitBlock(plain);
+  if (digits) return digits;
+  const unabbreviated = plain.replace(ABBREVIATIONS, (abbreviation) =>
+    abbreviation.replace(/\./g, '')
+  );
+  if (ADDRESS_WORDS.test(unabbreviated) || /\p{L}[.:]\p{L}/u.test(unabbreviated)) return 'address_token'; // prettier-ignore
+  if (/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/.test(plain)) return 'address_token';
+  const words = [...plain.matchAll(/\p{L}+/gu)].map((m) => m[0]);
+  // "at" then a provider within 2 words, also split across two ("g mail", "proton mail")
+  const near = (i: number) => [1, 2].flatMap((k) => [words[i + k], `${words[i + k] ?? ''}${words[i + k + 1] ?? ''}`]); // prettier-ignore
+  const mail = words.some(
+    (w, i) => w === 'at' && near(i).some((n) => MAIL_PROVIDERS.test(n ?? ''))
+  );
+  if (mail) return 'mail_provider';
+  return credentialAsk(plain) ? 'credential_ask' : null;
 }
