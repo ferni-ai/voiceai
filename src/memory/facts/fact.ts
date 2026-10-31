@@ -26,7 +26,7 @@ export type FactSource = (typeof FACT_SOURCES)[number];
  */
 export type FactProvenance = 'user_said' | 'inferred' | 'persona_canon';
 const STORED_PROVENANCE = ['user_said', 'inferred'] as const;
-export type StoredProvenance = (typeof STORED_PROVENANCE)[number];
+type StoredProvenance = (typeof STORED_PROVENANCE)[number];
 
 /** One value at a time: a new value replaces the old. The rest (pets, goals...) can hold several. */
 const SINGLE = new Set('phone email_present city employer role relation birthday'.split(' '));
