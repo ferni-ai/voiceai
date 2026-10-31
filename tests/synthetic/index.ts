@@ -46,7 +46,6 @@
  *      - voice_command: "Set the vibe to focus", "I need to relax"
  *
  *    Covers:
- *      - HomeKit integration (iOS native)
  *      - Philips Hue, LIFX backends
  *      - Ecobee thermostat control
  *      - Vibe service (music + lights + temperature)

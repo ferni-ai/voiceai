@@ -1101,7 +1101,6 @@
   "src/services/session/session-summary.ts": 647,
   "src/services/session/session-variety-tracker.ts": 543,
   "src/services/sharing/card-generator.ts": 551,
-  "src/services/smart-home/homekit-bridge.ts": 572,
   "src/services/smart-home/sonos-music.ts": 943,
   "src/services/smart-home/sonos.ts": 828,
   "src/services/social-graph/index.ts": 1149,

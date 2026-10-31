@@ -68,7 +68,6 @@ describe('user-credentials', () => {
         hue: null,
         lifx: null,
         sonos: null,
-        homeKit: null,
       });
     });
 
@@ -79,7 +78,6 @@ describe('user-credentials', () => {
       mockGet
         .mockResolvedValueOnce({ exists: true, data: () => hueData })
         .mockResolvedValueOnce({ exists: true, data: () => lifxData })
-        .mockResolvedValueOnce({ exists: false })
         .mockResolvedValueOnce({ exists: false });
 
       const result = await getUserSmartHomeCredentials('test-user');
@@ -87,7 +85,6 @@ describe('user-credentials', () => {
       expect(result.hue).toEqual(hueData);
       expect(result.lifx).toEqual(lifxData);
       expect(result.sonos).toBeNull();
-      expect(result.homeKit).toBeNull();
     });
 
     it('should handle errors gracefully', async () => {
@@ -99,7 +96,6 @@ describe('user-credentials', () => {
         hue: null,
         lifx: null,
         sonos: null,
-        homeKit: null,
       });
     });
   });
@@ -177,7 +173,6 @@ describe('user-credentials', () => {
           exists: true,
           data: () => ({ bridgeIp: '192.168.1.100', username: 'test' }),
         })
-        .mockResolvedValueOnce({ exists: false })
         .mockResolvedValueOnce({ exists: false })
         .mockResolvedValueOnce({ exists: false });
 
