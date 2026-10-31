@@ -11,9 +11,9 @@
  *           current fact is left as it is.
  * A fact about a topic the person asked Ferni to forget is refused ('forgotten'), and
  * nothing is written while those topics can't be read. Ferni's own life is never a
- * person's fact: persona_canon is refused ('persona'), and so is a subject that is Ferni or
- * a teammate (isPersonaSubject) unless a relationship to the person is stated, by the
- * proposal or a current relation fact: "my friend Maya" is theirs, a bare "Maya" is not.
+ * person's fact: persona_canon is refused ('persona'), Ferni always, and a teammate's name
+ * (isPersonaSubject) unless a relation to the person is stated, by the proposal or a current
+ * relation fact (UNSTATED_RELATIONS do not count): "my friend Maya" is theirs, "Maya" isn't.
  * Idempotent per (source, sourceKey). Member facts only, nothing while MEMORY_FACTS is
  * off, ids and ops in logs, never a value.
  *
@@ -35,7 +35,7 @@ import {
   type FactProvenance,
   type FactSource,
 } from '../facts/fact.js';
-import { isPersonaSubject } from '../entity-hygiene.js';
+import { isPersonaSubject, junkReason } from '../entity-hygiene.js';
 import { recordPersonaFactRefused } from '../operations/memory-extraction-telemetry.js';
 // prettier-ignore
 import { factDoc, factsQuery, getCurrentFacts, isCurrent, memberFacts, parseFacts } from '../facts/facts-store.js';
@@ -165,12 +165,15 @@ async function reconcile(
   return commit(db, tx, uid, [...retired, fact], { ok: true, op, fact, duplicate: false });
 }
 
-/** Ferni or a teammate with no relationship to the person stated, here or on file. */
+/** Ferni: junkReason keeps a teammate the person relates to, never him. */
+const isFerni = (name: string): boolean =>
+  junkReason({ name, type: 'person', relationship: 'friend' }, {}) === 'persona';
+/** Ferni, or a teammate with no relation to the person stated, here or on file. */
 async function personaSubject(db: Firestore, uid: string, p: FactProposal, value: string) {
   const name = subjectName(p.subjectId);
+  if (isFerni(name)) return true;
   const stated = p.relationship ?? (p.attribute === 'relation' ? value : null);
   if (!isPersonaSubject(name, stated)) return false;
-  if (stated) return true; // a stated relation that is Ferni's role ("assistant")
   const [onFile] = await getCurrentFacts(db, uid, p.subjectId, 'relation', { MEMORY_FACTS: 'on' });
   return isPersonaSubject(name, onFile?.value);
 }

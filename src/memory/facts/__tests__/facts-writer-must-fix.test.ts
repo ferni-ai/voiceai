@@ -229,7 +229,7 @@ describe("Ferni's own life", () => {
       value: 'loves hiking',
     });
     expect(await proposeFact(db, 'u1', hiking, ON)).toEqual({ ok: false, reason: 'persona' });
-    for (const relationship of ['assistant', null])
+    for (const relationship of ['acquaintance', 'Unknown', 'other', null])
       expect(await proposeFact(db, 'u1', { ...hiking, relationship }, ON)).toMatchObject({
         reason: 'persona',
       });
@@ -237,6 +237,9 @@ describe("Ferni's own life", () => {
       await proposeFact(db, 'u1', said({ subjectId: 'entity:ferni', relationship: 'friend' }), ON)
     ).toMatchObject({ reason: 'persona' });
     expect(factDocs(docs)).toEqual([]);
-    expect(getPersonaFactRefusedCount()).toBe(4);
+    expect(getPersonaFactRefusedCount()).toBe(6);
+    // any stated relation keeps a teammate's name, even a coach
+    const coach = { ...hiking, relationship: 'coach', sourceKey: 'k9' };
+    expect(await propose(db, coach)).toMatchObject({ op: 'add' });
   });
 });

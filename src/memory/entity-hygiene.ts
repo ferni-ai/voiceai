@@ -137,14 +137,15 @@ export function junkReason(
   return entity.type === 'person' && onlyGreeted(name, said) ? 'greeted' : null;
 }
 
-/**
- * A name that is Ferni or one of his teammates, not a person in the caller's life: their
- * canon lives in the life ledger, never in the caller's memory. "Maya" alone is a persona;
- * "Maya", relationship "sister", is the caller's sister. Pure; ENTITY_ROLE_LABELS is not read.
- */
+/** Types a store files by itself ("I talked to Maya" is acquaintance): not a stated relation. */
+export const UNSTATED_RELATIONS = new Set(['acquaintance', 'unknown', 'other']);
+
+/** Ferni or a teammate ("Maya") with no relation they stated: persona canon, never their
+ *  memory. A stated relation, even coach, makes a real person (right-moment ruling 6). Pure. */
 export function isPersonaSubject(name: string, relationship?: string | null): boolean {
-  const entity = { name, type: 'person', relationship: relationship ?? undefined };
-  return name.trim() !== '' && junkReason(entity, {}) === 'persona';
+  const relation = relationship?.trim().toLowerCase() ?? '';
+  if (relation && !UNSTATED_RELATIONS.has(relation)) return false;
+  return name.trim() !== '' && junkReason({ name, type: 'person' }, {}) === 'persona';
 }
 
 /** Ferni, a role label for him (ENTITY_ROLE_LABELS), or a teammate who isn't theirs. */
