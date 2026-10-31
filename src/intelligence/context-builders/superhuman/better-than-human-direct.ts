@@ -314,7 +314,7 @@ Don't announce this - let it emerge organically. The magic is that you *already 
             { category: 'superhuman' as BuilderCategory }
           )
         );
-        log.debug({ timeContext, phrase: phrase.slice(0, 50) }, 'Injected anticipatory presence');
+        log.debug({ timeContext, phraseLen: phrase.length }, 'Injected anticipatory presence');
       }
     }
   }

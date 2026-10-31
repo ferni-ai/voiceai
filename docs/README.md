@@ -13,6 +13,7 @@ before acting on them, and when you fix or retire one, update this list.
 | [ONBOARDING.md](../ONBOARDING.md) | First-day setup, local processes, checks, first PR |
 | [CONTRIBUTING.md](../CONTRIBUTING.md) | Code rules and the PR process |
 | [AGENTS.md](../AGENTS.md) | The stack today, how work ships, hard rules |
+| [ARCHITECTURE.md](../ARCHITECTURE.md) | Where code lives: layers, contexts, entry points, where to add things |
 | [CORE-PRINCIPLES.md](../CORE-PRINCIPLES.md) | The mission behind product decisions |
 
 ## How work runs

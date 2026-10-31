@@ -77,6 +77,8 @@ export interface ListeningCues {
   /** Ferni's previous reply asked a question: this one doesn't (one at most every other turn). */
   askedLastTime: boolean;
   lateNight: boolean;
+  /** No line may bar a question on this turn (exits-held.ts). */
+  exitsHeld?: boolean;
   /** Ferni's replies so far on the call, to offer sleep only once. */
   ferniLines: readonly string[];
   /** The caller asked about Ferni himself. */
@@ -147,6 +149,7 @@ export function listeningLines(cues: ListeningCues): string[] {
     lines.push(LATE);
     if (!cues.ferniLines.some((l) => OFFERED_SLEEP.test(l))) lines.push(OFFER_SLEEP);
   }
-  lines.push(cues.askedLastTime ? NO_QUESTION : ASK_ALLOWED);
+  if (!cues.askedLastTime) lines.push(ASK_ALLOWED);
+  else if (!cues.exitsHeld) lines.push(NO_QUESTION);
   return lines;
 }

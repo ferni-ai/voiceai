@@ -20,6 +20,7 @@ import { trackCapabilityUsage } from './shortcuts-tools.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { createReminder, userTimeZone } from '../../../services/scheduling/reminder-scheduler.js';
 import { formatStoredLocalTime, WallClock } from '../../../utils/time-zone.js';
+import { trustedUserId } from '../../registry/user-id-guard.js';
 
 const log = getLogger();
 
@@ -214,14 +215,14 @@ const locationReminderDef: ToolDefinition = {
           .default('arrive')
           .describe('Trigger when arriving or leaving'),
       }),
-      execute: async ({ message, locationName, address, triggerOn }) => {
-        log.info({ userId: ctx.userId, locationName, triggerOn }, 'Creating location reminder');
-        trackCapabilityUsage(ctx.userId || 'anon', 'locationReminder');
+      execute: async ({ message, locationName, address, triggerOn }, opts) => {
+        const userId = trustedUserId(ctx, opts); // never a shared placeholder bucket (#2651)
+        log.info({ userId, locationName, triggerOn }, 'Creating location reminder');
+        trackCapabilityUsage(userId, 'locationReminder');
 
-        // Create the reminder
         const reminder: LocationReminder = {
           id: `loc_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-          userId: ctx.userId || 'anon',
+          userId,
           message,
           location: {
             name: locationName,
@@ -233,7 +234,7 @@ const locationReminderDef: ToolDefinition = {
           createdAt: Date.now(),
         };
 
-        await saveLocationReminder(ctx.userId || 'anon', reminder);
+        await saveLocationReminder(userId, reminder);
 
         const triggerPhrase = triggerOn === 'arrive' ? 'get to' : 'leave';
         // Nothing reads location_reminders to deliver them, so promise nothing.
@@ -259,11 +260,11 @@ const listLocationRemindersDef: ToolDefinition = {
       description:
         getToolDescription('listLocationReminders') || 'Show all location-based reminders.',
       parameters: z.object({}),
-      execute: async () => {
-        log.info({ userId: ctx.userId }, 'Listing location reminders');
-        trackCapabilityUsage(ctx.userId || 'anon', 'listLocationReminders');
-
-        const reminders = await loadLocationReminders(ctx.userId || 'anon');
+      execute: async (_args, opts) => {
+        const userId = trustedUserId(ctx, opts);
+        log.info({ userId }, 'Listing location reminders');
+        trackCapabilityUsage(userId, 'listLocationReminders');
+        const reminders = await loadLocationReminders(userId);
         const active = reminders.filter((r) => r.active);
 
         if (active.length === 0) {
@@ -313,17 +314,16 @@ const recurringReminderDef: ToolDefinition = {
         dayOfMonth: z.number().min(1).max(31).optional().describe('Day of month for monthly'),
         time: z.string().describe('Time for the reminder (e.g., "9am", "14:30")'),
       }),
-      execute: async ({ message, pattern, dayOfWeek, dayOfMonth, time }) => {
-        log.info({ userId: ctx.userId, pattern, time }, 'Creating recurring reminder');
-        trackCapabilityUsage(ctx.userId || 'anon', 'recurringReminder');
+      execute: async ({ message, pattern, dayOfWeek, dayOfMonth, time }, opts) => {
+        const userId = trustedUserId(ctx, opts);
+        log.info({ userId, pattern, time }, 'Creating recurring reminder');
+        trackCapabilityUsage(userId, 'recurringReminder');
 
-        // Parse the time
         const parsedTime = parseTime(time);
         if (!parsedTime) {
           return `I didn't understand that time. Try something like "9am", "2:30 PM", or "14:00".`;
         }
 
-        // Build the recurrence pattern
         let recurrencePattern: RecurrencePattern;
         switch (pattern) {
           case 'daily':
@@ -363,7 +363,7 @@ const recurringReminderDef: ToolDefinition = {
 
         const reminder: RecurringReminder = {
           id: `rec_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-          userId: ctx.userId || 'anon',
+          userId,
           message,
           pattern: recurrencePattern,
           time: parsedTime,
@@ -373,17 +373,17 @@ const recurringReminderDef: ToolDefinition = {
           createdAt: Date.now(),
         };
 
-        await saveRecurringReminder(ctx.userId || 'anon', reminder);
+        await saveRecurringReminder(userId, reminder);
 
         // Nothing delivers from recurring_reminders, so only the first occurrence is a
         // real reminder (the store the delivery job fires); say exactly that.
         await createReminder({
-          userId: ctx.userId || 'anon',
+          userId,
           message,
           scheduledFor: new Date(nextOccurrence),
           timezone: userTimezone,
           deliveryMethod: 'voice_message',
-          deliveryAddress: `voice:${ctx.userId || 'anon'}`,
+          deliveryAddress: `voice:${userId}`,
           createdBy: ctx.agentId || 'ferni',
         });
         const when = formatStoredLocalTime(new Date(nextOccurrence), userTimezone);
@@ -408,11 +408,11 @@ const listRecurringRemindersDef: ToolDefinition = {
     return llm.tool({
       description: getToolDescription('listRecurringReminders') || 'Show all recurring reminders.',
       parameters: z.object({}),
-      execute: async () => {
-        log.info({ userId: ctx.userId }, 'Listing recurring reminders');
-        trackCapabilityUsage(ctx.userId || 'anon', 'listRecurringReminders');
-
-        const reminders = await loadRecurringReminders(ctx.userId || 'anon');
+      execute: async (_args, opts) => {
+        const userId = trustedUserId(ctx, opts);
+        log.info({ userId }, 'Listing recurring reminders');
+        trackCapabilityUsage(userId, 'listRecurringReminders');
+        const reminders = await loadRecurringReminders(userId);
         const active = reminders.filter((r) => r.active);
 
         if (active.length === 0) {
@@ -451,11 +451,11 @@ const cancelReminderDef: ToolDefinition = {
         type: z.enum(['location', 'recurring']).describe('Type of reminder to cancel'),
         searchTerm: z.string().describe('Part of the reminder message to find it'),
       }),
-      execute: async ({ type, searchTerm }) => {
-        log.info({ userId: ctx.userId, type, searchTerm }, 'Cancelling reminder');
-        trackCapabilityUsage(ctx.userId || 'anon', 'cancelRecurringReminder');
+      execute: async ({ type, searchTerm }, opts) => {
+        const userId = trustedUserId(ctx, opts);
+        log.info({ userId, type, searchTerm }, 'Cancelling reminder');
+        trackCapabilityUsage(userId, 'cancelRecurringReminder');
 
-        const userId = ctx.userId || 'anon';
         const searchLower = searchTerm.toLowerCase();
 
         if (type === 'location') {

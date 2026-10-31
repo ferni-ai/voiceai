@@ -1244,7 +1244,7 @@ async function getDynamicThoughtfulQuestion(
         intent: coachingQuestion.intent.seekingToUnderstand,
         groundedIn: (
           coachingQuestion as { groundedIn?: { memory?: string } }
-        ).groundedIn?.memory?.slice(0, 50),
+        ).groundedIn?.memory?.length,
       },
       '🧠 COACHING: Generated thoughtful question'
     );

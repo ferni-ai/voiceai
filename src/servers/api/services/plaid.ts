@@ -5,12 +5,24 @@
  *
  * STORAGE: Uses Firestore for persistence (Cloud Run compatible).
  * Falls back to in-memory storage if Firestore is unavailable.
+ * PLAID_UNIFIED_STORE on: the sealed per-user store the agent tools read too
+ * (services/identity/plaid-item-store.ts); a save that is refused or fails says so.
  */
 
-import { createPersistenceStore } from '../../../services/persistence/index.js';
+import {
+  createPersistenceStore,
+  type PersistenceStore,
+} from '../../../services/persistence/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { openTokens, sealTokensForMerge } from '../../../utils/token-at-rest.js';
+import {
+  getPlaidItems,
+  plaidUnifiedStore,
+  removePlaidItems,
+  savePlaidItem,
+  type PlaidSaveResult,
+} from '../../../services/identity/plaid-item-store.js';
 
 const log = createLogger({ module: 'Plaid' });
 
@@ -41,13 +53,18 @@ const PLAID_BASE_URL =
 // Firestore-backed persistence store for Plaid tokens
 // Stores under bogle_users/{userId}/plaid_tokens/data, sealed (utils/token-at-rest);
 // reads accept legacy plaintext until the encrypt-integration-tokens migration runs.
-const tokenStore = createPersistenceStore<Record<string, unknown>>({
-  collection: 'plaid_tokens',
-  holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
-  documentId: 'data',
-  useRootCollection: false, // Per-user storage
-  syncIntervalMs: 2000,
-});
+// Built on first flag-off use only: a store's retry interval is named after its collection, and
+// built at import this one replaced the sealed store's (same collection), so with
+// PLAID_UNIFIED_STORE on a failed write was never retried.
+let legacyStore: PersistenceStore<Record<string, unknown>> | undefined;
+const tokenStore = (): PersistenceStore<Record<string, unknown>> =>
+  (legacyStore ??= createPersistenceStore<Record<string, unknown>>({
+    collection: 'plaid_tokens',
+    holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
+    documentId: 'data',
+    useRootCollection: false, // Per-user storage
+    syncIntervalMs: 2000,
+  }));
 
 // In-memory cache for fast access
 const plaidAccessTokens = new Map<string, PlaidTokenData>();
@@ -82,7 +99,7 @@ export async function loadTokensForUser(userId: string): Promise<PlaidTokenData 
   }
 
   try {
-    const data = openTokens<PlaidTokenData>(await tokenStore.get(userId), 'plaid_tokens');
+    const data = openTokens<PlaidTokenData>(await tokenStore().get(userId), 'plaid_tokens');
     if (data) {
       plaidAccessTokens.set(userId, data);
       log.info({ userId: userId.substring(0, 8) }, 'Loaded Plaid token from Firestore');
@@ -105,7 +122,10 @@ export async function storeToken(
   accessToken: string,
   itemId: string,
   institution?: { name?: string; institution_id?: string }
-): Promise<void> {
+): Promise<PlaidSaveResult> {
+  if (plaidUnifiedStore()) {
+    return savePlaidItem(userId, { access_token: accessToken, item_id: itemId, institution });
+  }
   const data: PlaidTokenData = {
     access_token: accessToken,
     item_id: itemId,
@@ -118,7 +138,7 @@ export async function storeToken(
 
   // Persist to Firestore
   try {
-    await tokenStore.setImmediate(userId, sealTokensForMerge(data), { safeWithoutRead: true });
+    await tokenStore().setImmediate(userId, sealTokensForMerge(data), { safeWithoutRead: true });
     log.info(
       { userId: userId.substring(0, 8), institution: institution?.name || 'Unknown' },
       'Stored Plaid token'
@@ -129,12 +149,14 @@ export async function storeToken(
       'Failed to store Plaid token'
     );
   }
+  return { ok: true };
 }
 
 /**
  * Get Plaid access token for a user
  */
 export async function getToken(userId: string): Promise<PlaidTokenData | null> {
+  if (plaidUnifiedStore()) return (await getPlaidItems(userId))[0] ?? null;
   // Check in-memory cache first
   const cached = plaidAccessTokens.get(userId);
   if (cached) {
@@ -149,12 +171,16 @@ export async function getToken(userId: string): Promise<PlaidTokenData | null> {
  * Remove Plaid token for a user
  */
 export async function removeToken(userId: string): Promise<void> {
+  if (plaidUnifiedStore()) {
+    await removePlaidItems(userId).catch(() => false);
+    return;
+  }
   // Remove from in-memory cache
   plaidAccessTokens.delete(userId);
 
   // Remove from Firestore
   try {
-    await tokenStore.delete(userId);
+    await tokenStore().delete(userId);
     log.info({ userId: userId.substring(0, 8) }, 'Removed Plaid token');
   } catch (err) {
     log.error(
@@ -206,7 +232,7 @@ export async function exchangePublicToken(
  * Shutdown Plaid service (flush tokens and cleanup)
  */
 export async function shutdown(): Promise<void> {
-  await tokenStore.shutdown();
+  await legacyStore?.shutdown();
   plaidAccessTokens.clear();
   log.info('Plaid service shutdown complete');
 }

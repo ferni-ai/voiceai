@@ -426,14 +426,14 @@ async function getLegacyTools(options: GetToolsForAgentOptions): Promise<GetTool
 
   log.debug({ personaId: options.persona.id }, 'Using legacy tool building');
 
-  // Build tools the old way
+  const userId = callerIdFor(options.userId, options.sessionId); // as getEssentialTools (#2651)
   const [personaTools, essentialTools] = await Promise.all([
     buildAgentTools(options.persona.id, {
-      userId: options.userId,
+      userId,
       userProfile: options.userProfile,
       subscriptionTier: options.subscriptionTier,
     }),
-    buildEssentialTools({ userId: options.userId }),
+    buildEssentialTools({ userId }),
   ]);
 
   const merged = { ...essentialTools, ...personaTools };

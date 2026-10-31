@@ -84,9 +84,13 @@ const MUST_ERASE = [
   'bogle_users/{uid}/summaries',
   'bogle_users/{uid}/conversations',
   'bogle_users/{uid}/conversations/conv_1/timeline', // CALL_TIMELINE (call-timeline.ts)
+  'bogle_users/{uid}/activity', // the activity ledger (activity-store.ts)
+  'bogle_users/{uid}/activity/a_1/events', // each record's event log
   'bogle_users/{uid}/facts', // bi-temporal facts (facts-store.ts)
+  'bogle_users/{uid}/person_model', // the call sheet and its prev (person-model-store.ts)
   'bogle_users/{uid}/user_contacts',
   'bogle_users/{uid}/outreach_attempts',
+  'bogle_users/{uid}/booking_prefs', // booking preferences (booking-prefs-store.ts)
   'bogle_users/{uid}/wellbeing_snapshots',
   'bogle_users/{uid}/trust_profiles',
   'bogle_users/{uid}/relationship_arc',
@@ -123,6 +127,7 @@ const MUST_ERASE = [
   'bogle_users/{uid}/gmail_send_tokens',
   'bogle_users/{uid}/plaid_tokens',
   'bogle_users/{uid}/social_tokens',
+  'bogle_users/{uid}/outlook_tokens', // OUTLOOK_CONNECT's sealed grant
   'users/{uid}/oauth_tokens',
   'users/{uid}/calendar_providers', // Apple and Outlook calendar links
   'users/{uid}/outlook_subscriptions',

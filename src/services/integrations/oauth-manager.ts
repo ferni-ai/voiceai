@@ -91,18 +91,17 @@ const OAUTH_CONFIGS: Record<string, Partial<OAuthConfig>> = {
 // ============================================================================
 
 export class OAuthManager {
-  private pendingStates: Map<string, OAuthState> = new Map();
+  private pendingStates = new Map<string, OAuthState>();
   private readonly stateExpiryMs = 10 * 60 * 1000; // 10 minutes
   private readonly tokenRefreshBufferMs = 5 * 60 * 1000; // 5 minutes before expiry
   private cleanupInterval: ManagedInterval;
 
   constructor() {
     // Clean up expired states periodically
-    this.cleanupInterval = createManagedInterval(
-      () => this.cleanupExpiredStates(),
-      60000,
-      { unref: true, label: 'oauth-state-cleanup' }
-    );
+    this.cleanupInterval = createManagedInterval(() => this.cleanupExpiredStates(), 60000, {
+      unref: true,
+      label: 'oauth-state-cleanup',
+    });
   }
 
   /**
@@ -202,11 +201,12 @@ export class OAuthManager {
     try {
       const tokens = await this.exchangeCodeForTokens(config, code);
 
-      // Persist tokens to Firestore
+      // Persist tokens; unsealable (no key) means not stored, so not connected.
       const saveResult = await saveOAuthTokens(userId, integrationId, tokens);
-      if (!saveResult.success) {
-        log.warn({ userId, integrationId }, 'Tokens obtained but failed to persist');
+      if (saveResult.code === 'sealing_unavailable') {
+        return { userId, integrationId, success: false, error: saveResult.error };
       }
+      if (!saveResult.success) log.warn({ userId, integrationId }, 'Tokens not persisted');
 
       log.info({ userId, integrationId }, 'OAuth tokens obtained and saved');
 

@@ -47,7 +47,14 @@ import { sendSMS } from '../../../../../services/outreach/delivery/sms-delivery.
 import { telephonyExecutor } from '../../../../../agents/shared/tool-executors/telephony-executor.js';
 import type { ToolContext } from '../../../../registry/types.js';
 import { getOutreachToolDefinitions } from '../index.js';
-import { CONFIRM_WINDOW_MS, isClearYes, outreachConfirmListeners } from '../outreach-confirm.js';
+import {
+  CONFIRM_WINDOW_MS,
+  confirmationState,
+  isClearYes,
+  outreachConfirmListeners,
+  type ConfirmEvent,
+  type PendingAction,
+} from '../outreach-confirm.js';
 
 const ctx: ToolContext = { userId: 'user-1', agentId: 'ferni', agentDisplayName: 'Ferni' };
 const contacts: Record<string, { id: string; name: string; phone: string }> = {
@@ -233,7 +240,7 @@ describe('outreach waits for the caller', () => {
     const call = liveCall();
     await call.call('reachOut', TO_MOM, 'c1');
     call.caller('Uh, yeah, go ahead.');
-    call.caller('Go ahead and give her a call');
+    call.caller('Go ahead, please');
 
     await call.call('reachOut', TO_MOM, 'c2');
     await call.call('reachOut', TO_MOM, 'c3');
@@ -440,22 +447,128 @@ describe('isClearYes', () => {
   });
 
   it("takes a yes with a name, a filler or an echo of the question (the owner's real replies)", () => {
-    for (const yes of ['Go ahead, Ferni.', 'Yes, she should.', 'Um, yeah, go ahead buddy.']) {
+    for (const yes of ['Go ahead, Ferni.', 'Um, yeah, go ahead.', 'Oh yes, of course.']) {
       expect(isClearYes(yes), yes).toBe(true);
     }
-    for (const yes of ['Oh yes, of course.', 'Yeah, that works.', 'Sure, Maya, you can.']) {
-      expect(isClearYes(yes), yes).toBe(true);
+    // Off the allow-list: these ask once instead.
+    for (const ask of ['Yes, she should.', 'Yeah, go ahead buddy.', 'Yeah, that works.']) {
+      expect(isClearYes(ask), ask).toBe(false);
     }
   });
 
-  it('takes a yes that restates the same action (owner call 2026-10-17)', () => {
+  it("takes the owner's 10-26 yeses that placed nothing (11 attempts, no call)", () => {
+    // The owner's words, as speech-to-text gave them; the second one arrived as two finals.
+    // With a phone call waiting, "call" restates it.
+    expect(isClearYes('Yeah, go ahead and call.', [], [], true)).toBe(true);
+    // With a text waiting, it would change what is sent.
+    expect(isClearYes('Yeah, go ahead and call.')).toBe(false);
+    expect(isClearYes('Yes, you should.', [], [], true)).toBe(true);
     for (const yes of [
-      'Uh, yeah, go ahead. Go ahead and give her a call.',
-      'Yes, you, you need to call her.',
-      'Yeah, call her now.',
-      'Go ahead and call him.',
+      "Yes, it's okay with me. Give him a call.",
+      "Yes, it's okay with me. Give him a call. and check in.",
     ]) {
-      expect(isClearYes(yes), yes).toBe(true);
+      expect(isClearYes(yes, ['doug'], [], true), yes).toBe(true);
+    }
+    // To "Should I call your dad?", "That's okay." is often "no thanks": never a yes alone.
+    for (const decline of [
+      "That's okay.",
+      "That's okay, thanks.",
+      "It's okay.",
+      "That's fine, thanks Ferni.",
+      'Fine.',
+    ]) {
+      expect(isClearYes(decline, [], [], true), decline).toBe(false);
+    }
+    // The fillers added for them never make a yes alone, and never let anything new through.
+    expect(isClearYes('call', [], [], true)).toBe(false);
+    expect(isClearYes('Yes, call Bob instead.', [], [], true)).toBe(false);
+    for (const notYes of [
+      'call',
+      'Check in.',
+      'With me.',
+      'Fine?',
+      'Yes, call Bob instead.',
+      'Yes, call him tomorrow morning.',
+      'Yes, call him and tell him I quit.',
+      'Yeah, call everyone.',
+      "It's okay, don't.",
+      'Yes, email him.',
+    ]) {
+      expect(isClearYes(notYes), notYes).toBe(false);
+    }
+  });
+
+  it('"go ahead and call" confirms a waiting phone call, and never a waiting text', () => {
+    const pending = (toolId: string): PendingAction =>
+      ({
+        toolId,
+        userId: 'u',
+        readBack: 'Doug',
+        args: { contactName: 'Doug' },
+        callId: 'c1',
+        createdSeq: 0,
+        expiresAt: Date.now() + 60_000,
+        owner: ['seth'],
+      }) as unknown as PendingAction;
+    const events: ConfirmEvent[] = [
+      { kind: 'tool', callIds: ['c1'], seq: 1 },
+      { kind: 'caller', text: 'Yeah, go ahead and call.', agentSpeaking: false, seq: 2 },
+    ];
+    expect(confirmationState(pending('callOnBehalf'), events, Date.now())).toBe('confirmed');
+    expect(confirmationState(pending('reachOut'), events, Date.now())).toBe('unclear');
+  });
+
+  /** Security review of #2939: "call" beside a persona's name reads as a call to someone else. */
+  it('"call" never confirms beside a name, with or without a comma', () => {
+    for (const redirect of [
+      'Yeah, call Peter.',
+      'Okay, call Alex.',
+      'Yes, call Maya please.',
+      'Yeah, call, Peter.',
+      'Go ahead, call Jordan.',
+      'Yeah, call buddy.',
+    ]) {
+      expect(isClearYes(redirect, ['doug'], ['seth'], true), redirect).toBe(false);
+    }
+    expect(isClearYes('Yeah, go ahead, Ferni.', ['doug'], ['seth'], true)).toBe(true);
+  });
+
+  it('a long reply that splits many ways is judged at once', () => {
+    const long = `${'you need to '.repeat(60)}bob`;
+    const start = performance.now();
+    expect(isClearYes(long, [], [], true)).toBe(false);
+    expect(isClearYes(`yes ${'thank you '.repeat(60)}`, [], [], true)).toBe(true);
+    expect(performance.now() - start).toBeLessThan(50);
+  });
+
+  /** "you" (a filler) used to win over "you should" because the first phrase in the lists was taken. */
+  it('tries every phrase that fits, not only the first in the lists', () => {
+    expect(isClearYes('Yes, you should.')).toBe(true);
+    expect(isClearYes('Yes, you can.')).toBe(true);
+    expect(isClearYes('Yes, you should, Ferni.')).toBe(true);
+  });
+
+  it('takes a yes that restates the same action (owner call 2026-10-17)', () => {
+    for (const yes of ['Yeah, go ahead. Go ahead and call.', 'Yes, go ahead and make the call.']) {
+      expect(isClearYes(yes, [], [], true), yes).toBe(true);
+      // With a text waiting, a call is a different action.
+      expect(isClearYes(yes), yes).toBe(false);
+    }
+    // "Call him" restates a call to Dad; "call her" names someone else.
+    const DAD = ['my', 'dad'];
+    for (const yes of [
+      'Go ahead and call him.',
+      'Yeah, call him now.',
+      'Yes, give my dad a call.',
+    ]) {
+      expect(isClearYes(yes, DAD, [], true), yes).toBe(true);
+    }
+    for (const not of [
+      'Yeah, call her now.',
+      'Go ahead and give her a call.',
+      'Yes, you, you need to call him.',
+    ]) {
+      expect(isClearYes(not, DAD, [], true), not).toBe(false);
     }
     // A restatement that adds anything (someone else, a time, a different action) is not plain.
     for (const notYes of [
@@ -476,7 +589,7 @@ describe('isClearYes', () => {
     for (const yes of [
       'Uh, go ahead, Fred.',
       'Yes, Ferni',
-      'Okay Maya, go ahead',
+      'Go ahead Fred',
       'Okay Fernie, go ahead',
       'Fred, go ahead.',
       'Yes, go ahead, Freddie!',
@@ -489,7 +602,7 @@ describe('isClearYes', () => {
       'Fred Bob, go ahead',
       'Yes, Fred?',
       'No, Fred.',
-      'Go ahead Fred',
+      'Okay Maya, go ahead',
       'Fred.',
       'Yes, Tuesday.',
       'Yes, Later.',
