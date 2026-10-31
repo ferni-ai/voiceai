@@ -4,7 +4,7 @@
  * redirect to one, is refused before (or instead of) reaching it. DNS and fetch are spies.
  */
 import dns from 'node:dns';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { executeHttpTool } from '../http-executor.js';
 import type { ToolManifest } from '../../schema/types.js';
 import type { ExecutionContext, ExecutionOptions } from '../sandbox.js';
@@ -34,9 +34,14 @@ function manifest(endpoint: string): ToolManifest {
 const context = { userId: 'user-1', agentId: 'ferni' } as unknown as ExecutionContext;
 const options = {} as ExecutionOptions;
 
+beforeEach(() => {
+  vi.stubEnv('MARKETPLACE_HMAC_SECRET', 'fixture-marketplace-secret');
+});
+
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe('executeHttpTool: outbound guard', () => {

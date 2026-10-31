@@ -93,6 +93,19 @@ service cloud.firestore {
         allow write: if isServiceAccount();
       }
 
+      // Activity ledger (activity-store.ts): what Ferni did or promised for the
+      // owner, and each record's event log. Written only by the server's
+      // recordActivity (compare-and-set on revision), never by a client.
+      match /activity/{activityId} {
+        allow read: if isOwner(userId) || isServiceAccount();
+        allow write: if isServiceAccount();
+
+        match /events/{seq} {
+          allow read: if isOwner(userId) || isServiceAccount();
+          allow write: if isServiceAccount();
+        }
+      }
+
       // Facts (memory/facts/facts-store.ts): what Ferni knows about people, some of it
       // sensitive. Read and written only by the server's memory writer, never a client.
       match /facts/{factId} {

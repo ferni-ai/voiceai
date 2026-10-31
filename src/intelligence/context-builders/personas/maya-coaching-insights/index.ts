@@ -10,6 +10,7 @@
  * @module intelligence/context-builders/personas/maya-coaching-insights
  */
 
+import { loadBriefingStores } from '../briefing-stores.js';
 import { getHabitCalendarContextForBuilder } from '../../../../services/habits/habit-calendar-integration.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import { takeHandoffArrival } from '../../../../tools/handoff/index.js';
@@ -62,6 +63,7 @@ export { clearMayaCoachingSession };
 // ============================================================================
 
 async function buildMayaBriefing(userId: string): Promise<MayaInsightBriefing> {
+  await loadBriefingStores(userId);
   // Default fallback values for graceful degradation
   const defaultHabitHealth: HabitHealthSummary = {
     activeHabits: 0,
@@ -80,7 +82,6 @@ async function buildMayaBriefing(userId: string): Promise<MayaInsightBriefing> {
   const defaultMoodIntelligence: MoodIntelligence = {
     recentMoodTrend: 'unknown',
     averageEnergy: 5,
-    optimalCoachingTime: null,
     moodHabitCorrelations: [],
     currentState: null,
     energyPatterns: [],
@@ -146,17 +147,11 @@ async function buildMayaBriefing(userId: string): Promise<MayaInsightBriefing> {
       `${Math.round(habitHealth.averageSuccessRate * 100)}% overall success rate - excellent!`
     );
   }
-  if (coachingMetrics.momentumScore > 70) {
-    winsToCelebrate.push('Momentum is strong - energy is building');
-  }
 
   // Identify struggles
   const strugglesToAddress = habitHealth.recentSetbacks.map(
     (name) => `"${name}" streak broke - needs gentle restart`
   );
-  if (coachingMetrics.consistencyIndex < 40) {
-    strugglesToAddress.push('Overall consistency needs support');
-  }
 
   return {
     habitHealth,
@@ -212,6 +207,7 @@ async function buildMayaCoachingInsightsContext(
   try {
     const briefing = await buildMayaBriefing(userId);
     const briefingLines = formatMayaBriefing(briefing, handoffBriefing, turnCount);
+    if (briefingLines.length === 0) return injections; // nothing true to say
 
     // Get superhuman context (commitments, capacity, predictions)
     // V3 Semantic Intelligence needs current conversation context

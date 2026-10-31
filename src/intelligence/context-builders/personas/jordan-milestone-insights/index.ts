@@ -68,6 +68,8 @@
 
 import { createLogger } from '../../../../utils/safe-logger.js';
 import { takeHandoffArrival } from '../../../../tools/handoff/index.js';
+import { hasAnyProviderConnected } from '../../../../services/calendar/index.js';
+import { loadBriefingStores } from '../briefing-stores.js';
 import {
   BuilderCategory,
   createHighInjection,
@@ -96,11 +98,7 @@ import {
 } from './data-fetchers.js';
 import { formatJordanBriefing } from './formatting.js';
 import { analyzeHandoffForJordan } from './handoff-analysis.js';
-import {
-  analyzeLifeStageContext,
-  analyzeSeasonalContext,
-  computePlanningMetrics,
-} from './metrics.js';
+import { analyzeLifeStageContext, computePlanningMetrics } from './metrics.js';
 import {
   detectCelebrationOpportunities,
   generateProactiveDiscoveries,
@@ -136,6 +134,11 @@ export { clearAllJordanMilestoneSessions, clearJordanMilestoneSession };
 // ============================================================================
 
 async function buildJordanBriefing(userId: string): Promise<JordanInsightBriefing> {
+  // The member's stores, and whether a calendar is connected: an empty one is not a free week (#3044)
+  const [, calendarConnected] = await Promise.all([
+    loadBriefingStores(userId),
+    hasAnyProviderConnected(userId).catch(() => false),
+  ]);
   // Parallel fetch from all data sources with defensive catch handlers
   // Each promise has its own catch to prevent one failure from crashing all
   const [
@@ -145,7 +148,6 @@ async function buildJordanBriefing(userId: string): Promise<JordanInsightBriefin
     moodPatterns,
     memoryInsights,
     milestoneCalendarSync,
-    alexCoordinationContext,
     ceoWins,
   ] = await Promise.all([
     analyzeGoalsOverview(userId).catch((e) => {
@@ -169,9 +171,7 @@ async function buildJordanBriefing(userId: string): Promise<JordanInsightBriefin
       return DEFAULT_MEMORY_INSIGHTS;
     }),
     // Better Than Human: Milestone calendar sync
-    buildMilestoneCalendarContext(userId).catch(() => null),
-    // Cross-Persona: Jordan ↔ Alex coordination
-    getCoordinationContext(userId, []).catch(() => null),
+    calendarConnected ? buildMilestoneCalendarContext(userId).catch(() => null) : null,
     // Cross-Domain: CEO Coaching wins for celebration
     getRecentWins(userId, 7).catch(() => []),
   ]);
@@ -186,7 +186,17 @@ async function buildJordanBriefing(userId: string): Promise<JordanInsightBriefin
 
   // Analyze contexts
   const lifeStageContext = analyzeLifeStageContext(goalsOverview, memoryInsights);
-  const seasonalContext = analyzeSeasonalContext();
+  // Cross-Persona: Jordan ↔ Alex coordination, over the member's own dated goals (was always [])
+  const milestones = goalsOverview.milestoneDates.map((m) => ({
+    id: m.name,
+    name: m.name,
+    targetDate: m.date,
+    importance: m.daysAway <= 7 ? ('high' as const) : ('medium' as const),
+  }));
+  const alexCoordinationContext =
+    calendarConnected && milestones.length > 0
+      ? await getCoordinationContext(userId, milestones).catch(() => null)
+      : null;
 
   // Generate alerts and opportunities
   const timelineAlerts = generateTimelineAlerts(goalsOverview, peterInsights);
@@ -208,7 +218,6 @@ async function buildJordanBriefing(userId: string): Promise<JordanInsightBriefin
     celebrationOpportunities,
     timelineAlerts,
     lifeStageContext,
-    seasonalContext,
     milestoneCalendarSync,
     alexCoordinationContext,
   };
@@ -269,6 +278,7 @@ async function buildJordanMilestoneInsightsContext(
   try {
     const briefing = await buildJordanBriefing(userId);
     const briefingLines = formatJordanBriefing(briefing, handoffBriefing, turnCount);
+    if (briefingLines.length === 0) return injections; // nothing true to say
 
     // Get superhuman context (commitments, relationships, patterns)
     const personMatch = input.userText?.match(

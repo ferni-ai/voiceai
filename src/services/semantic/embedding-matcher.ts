@@ -14,7 +14,7 @@
  * @module EmbeddingMatcher
  */
 
-import { errorFields } from '../../utils/error-class.js';
+import { embedTexts } from '../../config/gemini-embeddings.js';
 import { createLogger } from '../../utils/safe-logger.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
 import { cosineSimilarity } from '../../memory/rust-accelerator.js';
@@ -51,65 +51,20 @@ export interface MatchResult {
 // ============================================================================
 
 const embeddingCache = new Map<string, EmbeddingVector>();
-let googleApiKey: string | null = null;
 
 /**
- * Get embedding for text using Google's text-embedding model
+ * gemini-embedding-001 on Vertex, through the shared client. Throws
+ * EmbeddingUnavailableError when there is no client and EmbeddingApiError
+ * (status only) when Vertex refuses: an outage is not a "no match".
  */
-// Type for Google embedding API response
-interface EmbeddingResponse {
-  embedding?: {
-    values?: number[];
-  };
-}
-
-async function getEmbedding(text: string): Promise<EmbeddingVector | null> {
-  // Check cache
+async function getEmbedding(text: string): Promise<EmbeddingVector> {
   const cacheKey = text.toLowerCase().trim();
   const cached = embeddingCache.get(cacheKey);
-  if (cached !== undefined) {
-    return cached;
-  }
+  if (cached !== undefined) return cached;
 
-  // Get API key
-  if (!googleApiKey) {
-    googleApiKey = process.env.GOOGLE_API_KEY ?? null;
-    if (!googleApiKey) {
-      log.warn('GOOGLE_API_KEY not set - embedding matching disabled');
-      return null;
-    }
-  }
-
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${googleApiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'models/gemini-embedding-001',
-          content: { parts: [{ text }] },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      log.error({ status: response.status }, 'Embedding API error');
-      return null;
-    }
-
-    const data = (await response.json()) as EmbeddingResponse;
-    const embedding = data.embedding?.values ?? null;
-
-    if (embedding !== null) {
-      embeddingCache.set(cacheKey, embedding);
-    }
-
-    return embedding;
-  } catch (error) {
-    log.error(errorFields(error), 'Failed to get embedding');
-    return null;
-  }
+  const [embedding] = await embedTexts('gemini-embedding-001', [text]);
+  embeddingCache.set(cacheKey, embedding);
+  return embedding;
 }
 
 // Note: cosineSimilarity is imported from rust-accelerator.js (SIMD-accelerated)
@@ -344,16 +299,12 @@ export async function initializeCategoryEmbeddings(categories: SemanticCategory[
   // Process categories sequentially to avoid rate limiting (intentional await in loop)
   for (const category of categories) {
     // Get description embedding (sequential to avoid rate limits)
-    const descEmbed = await getEmbedding(category.description); // eslint-disable-line no-await-in-loop
-    category.descriptionEmbedding = descEmbed ?? undefined;
+    category.descriptionEmbedding = await getEmbedding(category.description); // eslint-disable-line no-await-in-loop
 
     // Get example embeddings sequentially to avoid API rate limits
     category.exampleEmbeddings = [];
     for (const example of category.examples) {
-      const embedding = await getEmbedding(example); // eslint-disable-line no-await-in-loop
-      if (embedding !== null) {
-        category.exampleEmbeddings.push(embedding);
-      }
+      category.exampleEmbeddings.push(await getEmbedding(example)); // eslint-disable-line no-await-in-loop
     }
 
     log.debug(
@@ -372,12 +323,7 @@ export async function matchCategories(
 ): Promise<MatchResult[]> {
   const results: MatchResult[] = [];
 
-  // Get embedding for user input
   const inputEmbedding = await getEmbedding(userInput);
-  if (!inputEmbedding) {
-    log.debug('No embedding available, using pattern fallback');
-    return [];
-  }
 
   for (const category of categories) {
     let bestScore = 0;
@@ -428,19 +374,27 @@ export async function matchCategories(
 // CONVENIENCE FUNCTIONS
 // ============================================================================
 
-// Use promise-based initialization to prevent race conditions
-let habitCategoriesPromise: Promise<void> | null = null;
-let trustCategoriesPromise: Promise<void> | null = null;
-let calendarCategoriesPromise: Promise<void> | null = null;
+// One initialization per category set, shared by concurrent callers. A failed
+// one is dropped so the next call retries instead of matching against nothing.
+const categoryInit = new Map<SemanticCategory[], Promise<void>>();
+
+function ensureCategoryEmbeddings(categories: SemanticCategory[]): Promise<void> {
+  let init = categoryInit.get(categories);
+  if (!init) {
+    init = initializeCategoryEmbeddings(categories).catch((error: unknown) => {
+      categoryInit.delete(categories);
+      throw error;
+    });
+    categoryInit.set(categories, init);
+  }
+  return init;
+}
 
 /**
  * Detect habit-related intent using embeddings
  */
 export async function detectHabitIntent(userInput: string): Promise<MatchResult | null> {
-  if (!habitCategoriesPromise) {
-    habitCategoriesPromise = initializeCategoryEmbeddings(HABIT_CATEGORIES);
-  }
-  await habitCategoriesPromise;
+  await ensureCategoryEmbeddings(HABIT_CATEGORIES);
 
   const results = await matchCategories(userInput, HABIT_CATEGORIES);
   return results.length > 0 ? results[0] : null;
@@ -450,10 +404,7 @@ export async function detectHabitIntent(userInput: string): Promise<MatchResult 
  * Detect trust signals using embeddings
  */
 export async function detectTrustSignal(userInput: string): Promise<MatchResult | null> {
-  if (!trustCategoriesPromise) {
-    trustCategoriesPromise = initializeCategoryEmbeddings(TRUST_CATEGORIES);
-  }
-  await trustCategoriesPromise;
+  await ensureCategoryEmbeddings(TRUST_CATEGORIES);
 
   const results = await matchCategories(userInput, TRUST_CATEGORIES);
   return results.length > 0 ? results[0] : null;
@@ -463,10 +414,7 @@ export async function detectTrustSignal(userInput: string): Promise<MatchResult 
  * Detect calendar intent using embeddings
  */
 export async function detectCalendarIntent(userInput: string): Promise<MatchResult | null> {
-  if (!calendarCategoriesPromise) {
-    calendarCategoriesPromise = initializeCategoryEmbeddings(CALENDAR_CATEGORIES);
-  }
-  await calendarCategoriesPromise;
+  await ensureCategoryEmbeddings(CALENDAR_CATEGORIES);
 
   const results = await matchCategories(userInput, CALENDAR_CATEGORIES);
   return results.length > 0 ? results[0] : null;
@@ -573,16 +521,11 @@ export const CONTACT_CATEGORIES: SemanticCategory[] = [
   },
 ];
 
-let contactCategoriesPromise: Promise<void> | null = null;
-
 /**
  * Detect relationship/contact type using embeddings
  */
 export async function detectContactRelationship(userInput: string): Promise<MatchResult | null> {
-  if (!contactCategoriesPromise) {
-    contactCategoriesPromise = initializeCategoryEmbeddings(CONTACT_CATEGORIES);
-  }
-  await contactCategoriesPromise;
+  await ensureCategoryEmbeddings(CONTACT_CATEGORIES);
 
   const results = await matchCategories(userInput, CONTACT_CATEGORIES);
   return results.length > 0 ? results[0] : null;
@@ -683,16 +626,11 @@ export const HANDOFF_CATEGORIES: SemanticCategory[] = [
   },
 ];
 
-let handoffCategoriesPromise: Promise<void> | null = null;
-
 /**
  * Detect handoff intent using embeddings
  */
 export async function detectHandoffIntent(userInput: string): Promise<MatchResult | null> {
-  if (!handoffCategoriesPromise) {
-    handoffCategoriesPromise = initializeCategoryEmbeddings(HANDOFF_CATEGORIES);
-  }
-  await handoffCategoriesPromise;
+  await ensureCategoryEmbeddings(HANDOFF_CATEGORIES);
 
   const results = await matchCategories(userInput, HANDOFF_CATEGORIES);
   return results.length > 0 ? results[0] : null;
@@ -793,11 +731,7 @@ export function getConfidenceStats(): {
  */
 export function clearEmbeddingCache(): void {
   embeddingCache.clear();
-  habitCategoriesPromise = null;
-  trustCategoriesPromise = null;
-  calendarCategoriesPromise = null;
-  contactCategoriesPromise = null;
-  handoffCategoriesPromise = null;
+  categoryInit.clear();
 }
 
 export default {

@@ -263,15 +263,12 @@ export async function createLinkToken(userId: string): Promise<string> {
  * Exchange public token for access token after user links account
  * The public token comes from Plaid Link UI callback
  */
-export async function exchangePublicToken(publicToken: string): Promise<string | null> {
-  const result = await plaidRequest<{ access_token: string; item_id: string }>(
-    '/item/public_token/exchange',
-    {
-      public_token: publicToken,
-    }
-  );
-
-  return result?.access_token || null;
+export async function exchangePublicToken(
+  publicToken: string
+): Promise<{ access_token: string; item_id: string } | null> {
+  return plaidRequest<{ access_token: string; item_id: string }>('/item/public_token/exchange', {
+    public_token: publicToken,
+  });
 }
 
 /**
@@ -489,7 +486,7 @@ export function formatSpendingForSpeech(
 
 // ============================================================================
 // SHARED TOKEN STORAGE
-// Uses file-based storage shared between server and agent
+// plaid-items.ts: the sealed per-user store with PLAID_UNIFIED_STORE on, the file before
 // ============================================================================
 
 import {
@@ -498,7 +495,7 @@ import {
   hasLinkedAccounts,
   getTokenData,
   removeAccessToken,
-} from './plaid-store.js';
+} from './plaid-items.js';
 
 // Re-export for external use
 export {
@@ -521,8 +518,8 @@ export function createPlaidTools() {
         userId: z.string().describe('Unique identifier for the user'),
       }),
       execute: async ({ userId }) => {
-        const hasAccounts = hasLinkedAccounts(userId);
-        const tokenData = getTokenData(userId);
+        const hasAccounts = await hasLinkedAccounts(userId);
+        const tokenData = await getTokenData(userId);
         getLogger().info(
           { userId, hasAccounts, institution: tokenData?.institution?.name },
           'Checking bank link status'
@@ -548,13 +545,13 @@ export function createPlaidTools() {
           return 'Just to confirm - you want me to disconnect your bank account? This will remove my access to your balances and transactions. Say yes to confirm.';
         }
 
-        const tokenData = getTokenData(userId);
+        const tokenData = await getTokenData(userId);
         if (!tokenData) {
           return "You don't have a bank account linked, so there's nothing to disconnect.";
         }
 
         const institutionName = tokenData.institution?.name || 'your bank';
-        const removed = removeAccessToken(userId);
+        const removed = await removeAccessToken(userId);
 
         if (removed) {
           getLogger().info({ userId, institution: institutionName }, '🔓 Bank account unlinked');
@@ -689,7 +686,7 @@ export function createPlaidTools() {
         const startTime = Date.now();
         getLogger().info({ userId }, '>>> TOOL: getAccountBalances STARTED');
 
-        const accessToken = getStoredAccessToken(userId);
+        const accessToken = await getStoredAccessToken(userId);
         if (!accessToken) {
           return "You haven't linked a bank account yet. Would you like to connect one? It only takes a minute, and it'll let me give you much more personalized advice based on your actual financial picture.";
         }
@@ -725,7 +722,7 @@ export function createPlaidTools() {
         const startTime = Date.now();
         getLogger().info({ userId, period }, '>>> TOOL: getSpendingAnalysis STARTED');
 
-        const accessToken = getStoredAccessToken(userId);
+        const accessToken = await getStoredAccessToken(userId);
         if (!accessToken) {
           return "You haven't linked a bank account yet. Once you do, I can show you exactly where your money is going and help you find ways to save. Want to link an account?";
         }
@@ -798,7 +795,7 @@ export function createPlaidTools() {
           '>>> TOOL: getRecentTransactions STARTED'
         );
 
-        const accessToken = getStoredAccessToken(userId);
+        const accessToken = await getStoredAccessToken(userId);
         if (!accessToken) {
           return "You'll need to link a bank account first to see your transactions. Want to set that up?";
         }
@@ -875,7 +872,7 @@ export function createPlaidTools() {
         const startTime = Date.now();
         getLogger().info({ userId }, '>>> TOOL: checkFinancialHealth STARTED');
 
-        const accessToken = getStoredAccessToken(userId);
+        const accessToken = await getStoredAccessToken(userId);
         if (!accessToken) {
           return "To give you a real financial health checkup, I'd need to see your accounts. Want to link your bank? It's secure and takes just a minute.";
         }

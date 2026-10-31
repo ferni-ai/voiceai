@@ -12,6 +12,8 @@
 
 import { getFinancialStore } from '../../../../services/stores/financial-store.js';
 import { takeHandoffArrival } from '../../../../tools/handoff/index.js';
+import { hasAnyProviderConnected } from '../../../../services/calendar/index.js';
+import { loadBriefingStores } from '../briefing-stores.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import {
   BuilderCategory,
@@ -103,6 +105,7 @@ async function buildCommunicationBriefing(
   userId: string,
   handoffContext?: HandoffContextType
 ): Promise<CommunicationBriefing> {
+  await loadBriefingStores(userId);
   // Default fallback values for graceful degradation
   const defaultUserState: UserStateSnapshot = {
     stressLevel: 'unknown',
@@ -110,7 +113,6 @@ async function buildCommunicationBriefing(
     energyLevel: 'unknown',
     productivityMomentum: 'unknown',
     timeOfDayContext: 'unknown',
-    optimalCommunicationWindow: null,
   };
   const defaultMemoryContext: MemoryContext = {
     previousCommunicationTopics: [],
@@ -167,12 +169,14 @@ async function buildCommunicationBriefing(
       // Detect conflicts between milestones and calendar
       milestoneConflicts = await detectMilestoneConflicts(userId, activeMilestones);
 
-      // Find optimal focus windows for milestone work
-      protectedTimeWindows = await findOptimalMilestoneWindows(userId, {
-        daysAhead: 7,
-        minDurationHours: 2,
-        preferMornings: true,
-      });
+      // Free windows only from a connected calendar: an empty one is not a free week (#3044)
+      if (await hasAnyProviderConnected(userId)) {
+        protectedTimeWindows = await findOptimalMilestoneWindows(userId, {
+          daysAhead: 7,
+          minDurationHours: 2,
+          preferMornings: true,
+        });
+      }
 
       log.debug(
         {
@@ -286,6 +290,7 @@ async function buildAlexCommunicationInsightsContext(
   try {
     const briefing = await buildCommunicationBriefing(userId, handoffContext);
     const formattedSections = formatBriefingForInjection(briefing, handoffContext, turnCount);
+    if (formattedSections.length === 0) return injections; // nothing true to say
 
     // Get superhuman context (network, commitments, capacity)
     // V3 Semantic Intelligence needs current conversation context

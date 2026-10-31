@@ -113,7 +113,7 @@ export const API_ERRORS = {
   VISUAL_FETCH_FAILED: "Couldn't load that visual memory. Try again?",
   VISUAL_DELETE_FAILED: "Couldn't delete that visual memory. Try again?",
 
-  // Smart Home Integrations (Oura, Eight Sleep, Ecobee)
+  // Smart Home Integrations (Oura, Ecobee)
   INTEGRATION_NOT_CONFIGURED: (name: string) => `${name} integration isn't set up yet.`,
   OAUTH_MISSING_PARAMS: 'Something went wrong with the connection. Mind trying again?',
   OAUTH_INVALID_STATE: 'That link expired. Mind starting over?',
@@ -121,13 +121,6 @@ export const API_ERRORS = {
   INTEGRATION_NO_SLEEP_DATA: 'No sleep data found for that date.',
   INTEGRATION_NO_READINESS_DATA: 'No readiness data found for that date.',
   INTEGRATION_NO_ACTIVITY_DATA: 'No activity data found for that date.',
-
-  // Eight Sleep
-  EIGHT_SLEEP_TEMP_FAILED: "Couldn't read the temperature. Try again?",
-  EIGHT_SLEEP_SET_TEMP_FAILED: "Couldn't set the temperature. Mind trying again?",
-  EIGHT_SLEEP_MISSING_LEVEL: 'Need a temperature level to set.',
-  EIGHT_SLEEP_TURN_ON_FAILED: "Couldn't turn on. Try again?",
-  EIGHT_SLEEP_TURN_OFF_FAILED: "Couldn't turn off. Try again?",
 
   // Ecobee
   ECOBEE_LINK_FAILED: "Couldn't start the Ecobee link. Try again?",

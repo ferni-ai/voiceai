@@ -23,3 +23,22 @@ export const NOT_CONNECTED_CHANGE =
   "Nothing changed on a calendar, because none is connected. I changed Ferni's own list instead, not your calendar. Want me to help you connect one?";
 export const NOT_CONNECTED_CHANGE_FAILED =
   "I couldn't change that, and nothing changed on a calendar, since none is connected.";
+
+/** OUTLOOK_CONNECT, the Outlook link doc couldn't be read: name no provider, claim no connection. */
+export const CALENDAR_UNCHECKED =
+  "I couldn't check your calendar just now. Want me to try again in a minute?";
+export const CALENDAR_MAYBE_INCOMPLETE =
+  "(I couldn't check all of your calendars just now, so something may be missing.)";
+export const calendarUncheckedWrite = (failed: boolean): string =>
+  failed
+    ? "I couldn't save that, and I couldn't check your calendar just now."
+    : "I saved that to Ferni's own list only. I couldn't check your calendar just now, so it isn't on it.";
+
+/** OUTLOOK_CONNECT: a linked Outlook that could not answer is never read out as an empty day. */
+export function outlookUnavailableLine(state: string, write: boolean): string {
+  if (state === 'not_connected') return write ? NOT_CONNECTED_CREATE_FAILED : NOT_CONNECTED_READ;
+  const nothing = write ? ', so nothing was added or changed' : ", so I can't say what's on it";
+  return state === 'needs_reauth'
+    ? `Your Outlook calendar needs reconnecting${nothing}. You can reconnect it in Ferni's settings.`
+    : `I couldn't reach your Outlook calendar just now${nothing}. Want me to try again in a minute?`;
+}
