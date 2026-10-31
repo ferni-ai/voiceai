@@ -56,6 +56,8 @@ import {
   screenReply,
 } from '../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
+import { checkUnanswered } from '../../services/safety/crisis-classifier-check.js'; // CRISIS_CLASSIFIER_CHECK
+import { watchCheck } from '../../services/safety/crisis-classifier-check-turn.js';
 import { startWhoRead } from '../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
 import {
   callRiskBeforeTurn,
@@ -81,7 +83,9 @@ import { noteCrisisHold } from '../safety/crisis-hold-timing.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
-import { callerWords, callTranscript, sessionScope } from './crisis-gate-words.js';
+import { gateCheck } from './crisis-gate-check.js';
+import { callerWords, callTranscript, sessionScope, textReply } from './crisis-gate-words.js';
+export { textReply } from './crisis-gate-words.js';
 import { getDeliberator } from './deliberation.js';
 import { brightOpenerInvited } from './ferni-playful.js';
 import { noteTurn } from './move-log.js';
@@ -155,7 +159,9 @@ export function startCrisisGate(
   const gentle = screen === 'positive' && !screenIdeation(found, latest);
   const detection = screen === 'positive' && !gentle ? withScreenPositive(found) : found;
   const reask = screen === 'reask';
-  const decision = gentle ? guide(SCREEN_GENTLE_OFFER) : decisionFor(detection);
+  const patterns = gentle ? guide(SCREEN_GENTLE_OFFER) : decisionFor(detection);
+  // CRISIS_CLASSIFIER_CHECK: the answer to a classifier-only alarm's check, or a turn after a clear.
+  const { decision, ...check } = gateCheck(chatCtx, userData, detection, patterns, options);
   if (decision.action !== 'pass') {
     noteCrisisRisk(sessionScope(userData)); // risk on this call (crisis-call-risk.ts)
     noteConfirmedRisk(sessionScope(userData), env); // CRISIS_CONFIRMED_CALL_RISK
@@ -186,11 +192,13 @@ export function startCrisisGate(
   const secondRead = secondReadOf('gate', userData, detection.subject);
   const run = startCrisisClassifier(said, { pattern, env, generate, scope, call, secondRead });
   if (run?.mode !== 'live' || decision.action === 'replace') {
-    return { decision, escalation: null, reask };
+    return { decision: check.unread(decision), escalation: null, reask }; // CRISIS_CLASSIFIER_CHECK
   }
   const who = startWhoRead({ latest, earlier, companion }, detection, { env, generate });
 
   const escalation = run.verdict.then(async (verdict): Promise<CrisisGateDecision | null> => {
+    const kept = await check.verdict(verdict, scope); // CRISIS_CLASSIFIER_CHECK
+    if (kept) return kept;
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
     if (loneImminentGoodbye({ detection, verdict, latest, earlier, companion, priorRisk })) {
       log.info({ action: 'guide', source: 'lone_imminent_goodbye' }, 'CRISIS_GATE');
@@ -275,19 +283,9 @@ export function startCrisisGate(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },
       'CRISIS_GATE'
     );
-    return stronger;
+    return check.alarm(stronger, priorRisk); // CRISIS_CLASSIFIER_CHECK: the words spoken only
   });
   return { decision, escalation, reask };
-}
-
-/** A reply stream that speaks one fixed text. */
-export function textReply(text: string): ReadableStream<Chunk> {
-  return new ReadableStream<Chunk>({
-    start(controller) {
-      controller.enqueue(text);
-      controller.close();
-    },
-  });
 }
 
 /**
@@ -387,7 +385,13 @@ export async function gatedReply(
   const askedAt = Date.now();
   // A turn-opening clip played after this request began: the reply follows it.
   const openedBySound = (): boolean => replyOpenedBySound(session, askedAt);
-  const gate = startCrisisGate(chatCtx, session.userData, options);
+  const call = sessionScope(session.userData);
+  // CRISIS_CLASSIFIER_CHECK: no answer to the check (Ferni about to speak, or silence): the script.
+  const unanswered = checkUnanswered(call, callerWords(chatCtx));
+  const gate: CrisisGateTurn | null = unanswered
+    ? { decision: unanswered, escalation: null }
+    : startCrisisGate(chatCtx, session.userData, options);
+  if (gate) watchCheck(session, call, gate, callerWords);
   signalCrisisDecision(session, gate?.decision.action, 'pattern', replaceKind(gate?.decision));
   gate?.escalation
     ?.then((d) => signalCrisisDecision(session, d?.action, 'classifier', replaceKind(d)))
@@ -432,7 +436,6 @@ export async function gatedReply(
     const led = withToolLeadIn(withInviteReplyCheck(trimmed, session), chatCtx, session, env);
     // LOOKUP_BRIDGE: no dead air before the answer to a look-up (lookup-bridge.ts); never on
     // a call with crisis risk noted, as THINK_ALOUD stays out of those (#2265).
-    const call = sessionScope(session.userData);
     return call && crisisRiskThisCall(call) ? led : withLookupBridge(led, chatCtx, session, env);
   };
   // A grounded release, or a re-ask after it: code says the direct question, last (crisis-grounded-screen.ts).

@@ -31,6 +31,7 @@ import {
 } from './crisis-everyday.js';
 import { agreementCacheScope, notePatternBlock, readTurn } from './crisis-imminent-agreement.js';
 import { trackCrisisRead } from './crisis-call-risk.js';
+import { reviewedWindow } from './crisis-classifier-check.js'; // CRISIS_CLASSIFIER_CHECK
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
 import { stripSSML } from '../../utils/text-utils.js';
@@ -167,8 +168,7 @@ export function parseClassifierReply(reply: string): CrisisVerdict | null {
   }
 }
 
-/** The companion's line is context, not the subject: its end is what LATEST answers. */
-const MAX_COMPANION_CHARS = 400;
+const MAX_COMPANION_CHARS = 400; // Ferni's line is context, not the subject: its end is answered
 
 /** What the classifier actually sees: trimmed, latest not repeated in earlier, last 5 earlier. */
 export function normalizeInput(input: CrisisClassifierInput): {
@@ -310,7 +310,7 @@ function rememberRun(key: string, now: number, run: CrisisClassifierRun): void {
 const turnReads = new Map<string, { at: number; verdicts: Set<Promise<CrisisVerdict | null>> }>();
 
 function turnKey(scope: string, input: CrisisClassifierInput): string {
-  const { latest, earlier, companion } = normalizeInput(input);
+  const { latest, earlier, companion } = normalizeInput(reviewedWindow(scope, input));
   return JSON.stringify([scope, latest.toLowerCase(), companion ?? '', earlier.at(-1) ?? '']);
 }
 
@@ -418,9 +418,10 @@ export function verdictOutcome(verdict: CrisisVerdict): PatternOutcome {
  * verdict and the pattern outcome so agreement can be measured from logs.
  */
 export function startCrisisClassifier(
-  input: CrisisClassifierInput,
+  given: CrisisClassifierInput,
   options: StartCrisisClassifierOptions
 ): CrisisClassifierRun | null {
+  const input = reviewedWindow(options.call, given); // CRISIS_CLASSIFIER_CHECK
   const env = options.env ?? process.env;
   const mode = resolveCrisisClassifierMode(env);
   if (mode === 'off') return null;

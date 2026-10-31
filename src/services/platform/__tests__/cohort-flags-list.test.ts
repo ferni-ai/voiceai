@@ -46,6 +46,7 @@ describe('COHORT_FLAGS', () => {
         'ACTION_CLAIM_STREAM', 'PREEMPT_STABLE_CONTEXT', 'CACHE_WARM_PRIMARY',
         'HANDOFF_CACHE_WARM', 'FORGET_DELETES', 'CRISIS_IMMINENT_NEEDS_AGREEMENT',
         'QUIET_AFTER_QUESTION',
+        'CRISIS_CLASSIFIER_CHECK',
       ].sort() // prettier-ignore
     );
   });

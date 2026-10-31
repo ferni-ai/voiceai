@@ -6,6 +6,7 @@
  */
 
 import type { llm } from '@livekit/agents';
+import { ReadableStream } from 'node:stream/web';
 import type { AdjudicatorLine } from '../../services/safety/crisis-adjudicator.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { isAcknowledgementOnly } from '../voice-agent/agent-reply-recorder.js';
@@ -69,4 +70,18 @@ export function sessionScope(userData: unknown): string | undefined {
     (userData as { services?: { sessionId?: string } } | undefined)?.services?.sessionId ||
     undefined
   );
+}
+
+/** The caller's userId, when the session knows it (MINOR_CARE's userHeld follows it). */
+export const callerUserId = (userData: unknown): string | undefined =>
+  (userData as { userId?: string } | undefined)?.userId || undefined;
+
+/** A reply stream that speaks one fixed text. */
+export function textReply(text: string): ReadableStream<llm.ChatChunk | string | object> {
+  return new ReadableStream<llm.ChatChunk | string | object>({
+    start(controller) {
+      controller.enqueue(text);
+      controller.close();
+    },
+  });
 }
