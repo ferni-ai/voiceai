@@ -221,3 +221,66 @@ describe('token revocation check', () => {
     });
   });
 });
+
+describe('invalidations (#3228)', () => {
+  const signedInAt = (uid: string, ms: number) => ({ ...token(uid), auth_time: ms / 1000 });
+  const stillThere = vi.fn(async () => live); // during an erasure the Firebase user still exists
+
+  it("'gone' is never downgraded: a revoke after it, then a new sign-in, is still refused", async () => {
+    const { check, invalidate } = revocationCheck();
+    invalidate('u-erased', 'gone', T0);
+    invalidate('u-erased', 'revoked', T0 + MINUTE); // a revoke that finished after the erasure began
+    const newSignIn = signedInAt('u-erased', T0 + 2 * MINUTE);
+
+    expect(await check(newSignIn, stillThere, T0 + 3 * MINUTE)).toBe('gone');
+    expect(await check(newSignIn, stillThere, T0 + 3 * MINUTE, true)).toBe('gone');
+  });
+
+  it("'gone' refuses a token signed in after the invalidation, normal and strict", async () => {
+    const { check, invalidate } = revocationCheck();
+    invalidate('u-deleted', 'gone', T0);
+    const after = signedInAt('u-deleted', T0 + 5 * MINUTE);
+
+    expect(await check(after, stillThere, T0 + 6 * MINUTE)).toBe('gone');
+    expect(await check(after, stillThere, T0 + 6 * MINUTE, true)).toBe('gone');
+    expect(stillThere).not.toHaveBeenCalled();
+  });
+
+  it('10,001 cache entries after an invalidation do not un-stick it', async () => {
+    const { check, invalidate } = revocationCheck();
+    invalidate('u-gone', 'gone', T0);
+    invalidate('u-revoked', 'revoked', T0);
+    for (let i = 0; i <= 10_000; i++) await check(token(`u-${i}`), stillThere, T0 + 1);
+
+    expect(await check(signedInAt('u-gone', T0 + 1), stillThere, T0 + 2)).toBe('gone');
+    expect(await check(token('u-revoked'), stillThere, T0 + 2)).toBe('revoked');
+  });
+
+  it('10,001 later invalidations of other accounts do not evict one', async () => {
+    const { check, invalidate } = revocationCheck();
+    invalidate('u-gone', 'gone', T0);
+    invalidate('u-revoked', 'revoked', T0);
+    for (let i = 0; i <= 10_000; i++) {
+      invalidate(`g-${i}`, 'gone', T0 + 1);
+      invalidate(`r-${i}`, 'revoked', T0 + 1);
+    }
+
+    expect(await check(signedInAt('u-gone', T0 + 2), stillThere, T0 + 3)).toBe('gone');
+    expect(await check(token('u-revoked'), stillThere, T0 + 3)).toBe('revoked');
+  });
+
+  it("a revoke is let go only once Firebase's own record refuses the same tokens", async () => {
+    const { check, invalidate } = revocationCheck();
+    invalidate('u-rev', 'revoked', T0);
+    const before = token('u-rev'); // signed in before the revoke
+    const keep = 61 * MINUTE; // STALE_MS + FRESH_MS
+    invalidate('u-other', 'revoked', T0 + keep); // prunes what has aged out
+
+    expect(await check(before, async () => revokedSince(T0), T0 + keep + 1)).toBe('revoked');
+    // Kept until then, even with no Firebase record of the revoke
+    const { check: check2, invalidate: invalidate2 } = revocationCheck();
+    invalidate2('u-rev', 'revoked', T0);
+    invalidate2('u-other', 'revoked', T0 + keep - 1);
+    expect(await check2(before, stillThere, T0 + keep - 1)).toBe('revoked');
+  });
+});

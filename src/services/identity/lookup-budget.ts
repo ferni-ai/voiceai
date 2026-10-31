@@ -14,7 +14,10 @@ export interface Rate {
   perSecond: number;
 }
 
-/** A map that drops its oldest entry past MAX_ACCOUNTS */
+/**
+ * A map that drops its oldest entry past MAX_ACCOUNTS. Never for invalidations
+ * (token-revocation.ts keeps those apart): evicting one would un-stick it.
+ */
 export function boundedMap<V>() {
   const map = new Map<string, V>();
   return {
