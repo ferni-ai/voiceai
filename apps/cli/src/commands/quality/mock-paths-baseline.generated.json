@@ -1,0 +1,42 @@
+{
+  "apps/web/tests/ui/support-ferni.test.ts": [
+    "./subscription.ui.js"
+  ],
+  "src/agents/__tests__/mocks/index.ts": [
+    "../../../intelligence/context-builders/conversation-humanizing.js",
+    "../../../intelligence/context-builders/humanizing-debug.js",
+    "../../../intelligence/context-builders/humanizing.js",
+    "../../../speech/text-voice-mismatch.js"
+  ],
+  "src/agents/__tests__/mocks/services-mock.ts": [
+    "../../../services/health-awareness/voice-biometrics.js",
+    "../../../services/identity/human-first-2fa.js"
+  ],
+  "src/agents/__tests__/mocks/tts-mock.ts": [
+    "../../speech/cartesia-tts.js",
+    "../shared/lightweight-tts.js"
+  ],
+  "src/agents/processors/__tests__/test-utils.ts": [
+    "../../../intelligence/context-builders/conversation-humanizing.js",
+    "../../../intelligence/context-builders/humanizing-debug.js",
+    "../../../intelligence/context-builders/humanizing.js",
+    "../../../services/health-awareness/voice-biometrics.js",
+    "../../../services/identity/human-first-2fa.js",
+    "../../../speech/text-voice-mismatch.js"
+  ],
+  "src/services/outreach/proactive-channels/__tests__/more-triggers-path.test.ts": [
+    "../../../llm/llm-utils.js"
+  ],
+  "src/services/outreach/proactive-channels/__tests__/self-call-path.test.ts": [
+    "../../../llm/llm-utils.js"
+  ],
+  "src/tests/memory-wiring-smoke.test.ts": [
+    "../memory/retrieval/hybrid-index.js"
+  ],
+  "src/tools/__tests__/tool-test-template.ts": [
+    "../../services/productivity-store.js"
+  ],
+  "src/tools/domains/research/__tests__/financial-research-no-invented-filings.test.ts": [
+    "../../superhuman-tools/firestore-persistence.js"
+  ]
+}
