@@ -345,6 +345,20 @@ Run each scenario at least twice; one call is an anecdote. Read the transcripts 
 | `TURN_MEMORY` reachability | `candidates=0 injected=0` lines per owner session; paired bench `scripts/memory-eval/turn-memory-bench.ts` | `candidates>0` on turns that name a stored entity; recall@4 up at least 10 points; p95 turn latency up by no more than 150 ms |
 | Hello feels natural | the call reviewer's notes on owner calls, plus one listen by the owner per week | no "it sounded like a report" notes |
 
+**Baselines (measured 2026-10-31)** on `main` at `33eddf41b`, by the A5-1 PR. No calls were placed. A row that says "not measured" gives the reason; no number in it is a guess.
+
+| Measure | Baseline | How |
+|---|---|---|
+| `TURN_MEMORY` bench, flag off (as prod today) | 0 memories sent on 72 labelled turns: recall 0%, hit 0% | `scripts/memory-eval/turn-memory-bench.ts`, fictional `recall-cases.json` (3 callers, 72 turns, 27 about nothing), `text-embedding-005` |
+| `TURN_MEMORY` bench, `TURN_MEMORY_RRF_SCALE` on | 44 sent: precision 95%, recall 72%, hit 76%, false recall 4% | same run, the cap the flag applies (3 per turn) |
+| `TURN_MEMORY` recall@4 | not measured: the bench scores recall at the production cap (above), not at 4 | |
+| `TURN_MEMORY` p95 turn latency | not measured: the bench runs retrieval over precomputed vectors, so it times nothing | |
+| `candidates=0` rate per owner-cohort session | not measured: needs dev Cloud Logging, and this run's gcloud config was not on the dev project | |
+| Persona rows per owner call | not measured: same reason | |
+| First-token latency p50 (`TURN_RECEIPT`) | not measured: same reason, and no dev calls were placed | |
+| Card recall on the held-out set (three personas) | not measured: needs dev calls through the `#2969` harness | |
+| Hello-date behaviour | not measured: needs dev calls | |
+
 ### 9.4 Prod measurement
 Owner cohort only at first. For each owner call: `Cohort flags applied` shows the flags; `CALLER_CARD built`, `GREETING_DATE` and `PERSONA_FACT_DROPPED` lines appear; the always-on call reviewer reads the call. A weekly query counts: cards built, `budgetHit`, dates raised, dates lost to another thread, persona rows dropped. The owner listens to the first few calls and the lead records what they heard in the PR that widens the audience.
 

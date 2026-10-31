@@ -8,7 +8,7 @@
  * fake Firestore holding fictional call results.
  */
 import { ReadableStream } from 'node:stream/web';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Row = Record<string, unknown> & { id: string };
 type Update = { col: string; id: string; data: Record<string, unknown> };
@@ -97,7 +97,7 @@ const { deduplicateInjections, detectConversationMode, filterInjections } =
 const { callReportInjection, confirmCallReportReached, withoutCallReport } =
   await import('../call-report.js');
 const { buildAllPendingResultsContext } = await import('../pending-call-results.js');
-const { captureBackgroundResult, getPendingResults } =
+const { buildPendingResultsContext, captureBackgroundResult, getPendingResults } =
   await import('../../../../services/background-agents/unified-result-capture.js');
 const { llm } = await import('@livekit/agents');
 const { withTurnReminder } = await import('../../../../agents/personas/turn-request.js');
@@ -106,6 +106,7 @@ const { TURN_CONTEXT_HEADER } =
 const { gatedReply } = await import('../../../../agents/personas/crisis-gate.js');
 const { pushedNotesText } = await import('../../../../agents/multi-agent/pushed-notes.js');
 const { noteCrisisRisk } = await import('../../../../services/safety/crisis-call-risk.js');
+const { usePersonFlagLookup } = await import('../../../../config/person-flag.js');
 
 const USER = 'uid-owner-fixture';
 const pause = (ms: number) =>
@@ -687,4 +688,46 @@ describe('CALL_REPORT_REACHES_YOU off: as on main', () => {
       deliveryMethod: 'voice',
     });
   }, 30_000);
+});
+
+// The capture runs where the call's result lands (the web server's status hook, or the
+// outbound call's own process), and the web API builds the legacy block: neither holds
+// the owner's cohort flags in process.env. Each asks for the owner's own value.
+describe('CALL_REPORT_REACHES_YOU on for one person, on a server whose own flag is off', () => {
+  beforeEach(() => {
+    usePersonFlagLookup(async (userId, flag) =>
+      userId === USER && flag === 'CALL_REPORT_REACHES_YOU' ? 'on' : undefined
+    );
+  });
+  afterEach(() => usePersonFlagLookup(async () => undefined));
+
+  it('a web-UI packet is noted as ui for that person, so the voice path still offers it', async () => {
+    vi.stubEnv('LIVEKIT_URL', 'wss://example.invalid');
+    vi.stubEnv('LIVEKIT_API_KEY', 'key');
+    vi.stubEnv('LIVEKIT_API_SECRET', 'secret');
+    const result = await captureBackgroundResult({
+      userId: USER,
+      type: 'on_behalf_call',
+      status: 'success',
+      summary: 'Called Aunt Rosa - she says hi',
+      initiatedBy: 'ferni',
+      sessionId: 'room-live',
+    });
+    expect(fake.state.updates.find((u) => u.id === result.id)?.data).toEqual({
+      uiNoticeAt: expect.any(String),
+    });
+  });
+
+  it('the block the web API builds (background-results-routes.ts) is not marked for that person', async () => {
+    seedCall('call-api-own', 'Aunt Rosa', 'she says hi', 15);
+    expect(await buildPendingResultsContext(USER)).toContain('she says hi');
+    await pause(20);
+    expect(delivered()).toEqual([]);
+  });
+
+  it('for anyone else it is marked as it is built, as on main', async () => {
+    seedCall('call-api-other', 'Aunt Rosa', 'she says hi', 15);
+    expect(await buildPendingResultsContext('uid-other-fixture')).toContain('she says hi');
+    await vi.waitFor(() => expect(delivered()).toEqual(['background_results/r-call-api-other']));
+  });
 });

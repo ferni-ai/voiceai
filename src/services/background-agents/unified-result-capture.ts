@@ -13,7 +13,7 @@
  * - Marks results as delivered to avoid repetition
  */
 
-import { flagOn } from '../../config/env-flag.js';
+import { personFlagOn } from '../../config/person-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   BackgroundResult,
@@ -501,9 +501,9 @@ export async function captureBackgroundResult(params: {
     const urgent = !params.skipEmail && ['urgent', 'high'].includes(result.priority); // 4. email
     const email = urgent ? await sendEmailNotification(result) : 'skipped';
 
-    // A web-UI packet isn't speech: CALL_REPORT_REACHES_YOU=on notes it 'ui', voice still tells.
-    const shown = flagOn('CALL_REPORT_REACHES_YOU') ? 'ui' : 'voice';
-    if (sentToActive) await markResultsDelivered(result.userId, [result.id], shown);
+    // A web-UI packet isn't speech: CALL_REPORT_REACHES_YOU on for them notes it 'ui' (#3080).
+    const on = sentToActive && (await personFlagOn(result.userId, 'CALL_REPORT_REACHES_YOU'));
+    if (sentToActive) await markResultsDelivered(result.userId, [result.id], on ? 'ui' : 'voice');
 
     log.info({ resultId: result.id, sentToActive, email }, 'Background result captured');
 
@@ -576,9 +576,9 @@ export async function buildPendingResultsContext(userId: string): Promise<string
   lines.push('- Be conversational: "Oh! While you were away, I..."');
   lines.push('');
 
-  // Delivered as built only with CALL_REPORT_REACHES_YOU off; on, once a reply carries it.
-  const resultIds = results.map((r) => r.id);
-  if (!flagOn('CALL_REPORT_REACHES_YOU')) void markResultsDelivered(userId, resultIds, 'voice');
+  // Marked as built only with CALL_REPORT_REACHES_YOU off for them; on, once a reply carries it.
+  const ids = results.map((r) => r.id);
+  void personFlagOn(userId, 'CALL_REPORT_REACHES_YOU').then(async (on) => { if (!on) await markResultsDelivered(userId, ids, 'voice'); }); // prettier-ignore
 
   return lines.join('\n');
 }
