@@ -5,8 +5,8 @@
  * loaded. Every module here is imported before any flag is set; the flag then
  * arrives the way a call start puts it there (applyCallerFlags with a cohort),
  * and the next caller, in no cohort, gets the agent's own (off) again.
- * CALL_REPORT_REACHES_YOU's in-call reads are pinned the same way in
- * call-report.test.ts, and its reads on other servers by personFlagOn there.
+ * CALL_REPORT_REACHES_YOU is not cohort-capable yet: its result-capture reads
+ * (unified-result-capture.ts) run outside the call.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

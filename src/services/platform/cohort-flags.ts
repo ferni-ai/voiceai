@@ -153,10 +153,9 @@ export const COHORT_FLAGS = [
   // needs the agent's LISTEN_FIRST=on.
   'QUIET_AFTER_QUESTION',
   // Memory at the right moment (docs/plans/2026-10-31-right-moment-memory.md §5.6). The hello's
-  // call news is read at the greeting build (callNewsFor); the call report on each turn's
-  // context and filter, and by personFlagOn where a result lands or the web API builds it.
+  // call news is read at the greeting build (callNewsFor). Not CALL_REPORT_REACHES_YOU: its
+  // result-capture reads (unified-result-capture.ts) run outside the call.
   'CALL_NEWS_OPENER',
-  'CALL_REPORT_REACHES_YOU',
   // Read on each turn's retrieval, never at boot (turn-memory-scale.ts, turn-memory-rerank.ts).
   'TURN_MEMORY_RRF_SCALE',
   'TURN_MEMORY_RERANK',
