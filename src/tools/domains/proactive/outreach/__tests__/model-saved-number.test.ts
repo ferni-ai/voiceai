@@ -4,7 +4,7 @@
  * number with no read-back and no yes. They now reach only the verified phone on
  * the account (the call-user port, as callUser does), and refuse without one.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const STRANGER = '+12125550199';
 const OWNER = '+18015550100';
@@ -54,7 +54,7 @@ const run = async (id: string, args: Record<string, unknown>) =>
     await getAgentToUserOutreachDefinitions()
       .find((d) => d.id === id)!
       .create(ctx)
-      .execute(args, {})
+      .execute(args, verifiedCall)
   );
 const portCall = vi.fn(async (..._a: unknown[]) => ({ success: true, status: 'initiated' }));
 const guarded = vi.fn(async (..._a: unknown[]) => ({ sent: true }));
@@ -66,7 +66,11 @@ const withVerified = (phone: string | undefined, email?: string) =>
     call: portCall,
   });
 
+/** With UNVERIFIED_OWNER_MESSAGE_FILTER on, a caller verified on this call is unchanged. */
+const verifiedCall = { ctx: { userData: { userId: ctx.userId, verifiedCaller: true } } };
+beforeEach(() => vi.stubEnv('UNVERIFIED_OWNER_MESSAGE_FILTER', 'on'));
 afterEach(() => {
+  vi.unstubAllEnvs();
   setCallUserPort(undefined);
   vi.clearAllMocks();
 });
