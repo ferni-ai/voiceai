@@ -124,8 +124,22 @@ export function builtInNames(): Set<string> {
     Math,
     Reflect,
   ];
-  return new Set(owners.flatMap((o) => Object.getOwnPropertyNames(o)));
+  return new Set([...owners.flatMap((o) => Object.getOwnPropertyNames(o)), ...NEWER_BUILT_INS]);
 }
+
+/**
+ * Built-in names newer Node versions add (Node 26 over CI's Node 22: RegExp.escape,
+ * Math.f16round, Map#getOrInsert*, Date#toTemporalInstant, Promise.try). Listed so the
+ * derived symbols are the same whichever Node writes or checks them.
+ */
+const NEWER_BUILT_INS = [
+  'escape',
+  'f16round',
+  'getOrInsert',
+  'getOrInsertComputed',
+  'toTemporalInstant',
+  'try',
+];
 
 /**
  * The names a non-crisis module really declares and exports: not re-exports, and not a
