@@ -42,11 +42,12 @@ export function factDocId(entityName: string, key: string, value: string): strin
 export function buildExtractionFirestoreWritePayloads(
   userId: string,
   result: Pick<ExtractionResult, 'entities' | 'facts' | 'relationships'>,
-  job: Pick<DeepExtractionJob, 'sessionId' | 'turnNumber'>,
+  /** `writer` names who writes, for the spoken-credential drop count (default extraction). */
+  job: Pick<DeepExtractionJob, 'sessionId' | 'turnNumber'> & { writer?: string },
   extractedAt: string,
   log: DebugLogger
 ): ExtractionFirestoreWritePayloads {
-  const sanitized = sanitizeExtractionResult(result, userId, log);
+  const sanitized = sanitizeExtractionResult(result, userId, log, job.writer ?? 'extraction');
   const base = {
     extractedAt,
     sessionId: job.sessionId,

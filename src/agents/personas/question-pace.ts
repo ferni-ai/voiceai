@@ -11,11 +11,16 @@
  * world", first-call rapport), so asking runs on. This note goes late in the
  * turn notes, so it wins over those. It steps aside for the once-a-call
  * commitment invite and the journal ask, which are questions by design, and
- * for crisis replies.
+ * for crisis replies. It also never bars a safety check: no note on a call with
+ * crisis risk noted (a later turn the gate passes carries no guidance, so
+ * `crisis` alone missed it), nor after a reply with a sentence on safety
+ * (isSafetyTopic: safety, harm or help words, or a script sentence word for word).
  *
  * @module agents/personas/question-pace
  */
 import { flagOn } from '../../config/env-flag.js';
+import { crisisRiskNoted } from '../../services/safety/crisis-call-risk.js';
+import { isSafetyLine, isSafetyTopic } from './phrase-loops.js';
 
 export function questionPaceOn(env: Record<string, string | undefined> = process.env): boolean {
   return flagOn('QUESTION_PACE', env);
@@ -36,10 +41,16 @@ export function endsOnQuestion(text: string): boolean {
  */
 export function questionPaceNote(
   ferniLines: readonly string[],
-  opts: { crisis: boolean },
+  opts: { crisis: boolean; sessionId?: string },
   env: Record<string, string | undefined> = process.env
 ): string {
   if (!questionPaceOn(env) || opts.crisis) return '';
+  if (opts.sessionId && crisisRiskNoted(opts.sessionId)) return '';
   const last = ferniLines[ferniLines.length - 1];
-  return last !== undefined && endsOnQuestion(last) ? QUESTION_PACE_LINE : '';
+  if (last === undefined || !endsOnQuestion(last)) return '';
+  // Held after a safety word or script sentence anywhere, or after a question main's
+  // looser check (isSafetyLine) flags; a reaction like "That sounds so heavy." no
+  // longer holds it (it did on 26% of real question-ending replies).
+  const asks = last.split(/(?<=[.!?])\s+/).filter((s) => endsOnQuestion(s));
+  return isSafetyTopic(last) || asks.some(isSafetyLine) ? '' : QUESTION_PACE_LINE;
 }

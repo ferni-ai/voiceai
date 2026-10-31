@@ -3,7 +3,7 @@
  *
  * Manage "Better than Human" external service connections.
  * Gives Ferni superhuman awareness capabilities through:
- * - Biometrics (Apple Health; Oura, WHOOP, Fitbit, Garmin when the server has OAuth for them)
+ * - Biometrics (Apple Health; Oura, WHOOP, Garmin when the server has OAuth for them)
  * - Calendar (Google Calendar)
  * - Banking (Plaid)
  * - Social Graph (from conversation mentions)

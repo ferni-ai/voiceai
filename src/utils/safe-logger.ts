@@ -32,6 +32,7 @@ import type { log } from '@livekit/agents';
 import pino from 'pino';
 
 import { redactLogDestination, redactPinoLogger } from './log-redaction.js';
+import { redactErrorValue } from './error-text.js';
 
 /**
  * Console-based fallback logger that matches LiveKit's Logger interface
@@ -95,7 +96,7 @@ function sanitizeForLog(value: unknown, depth = 0, seen = new WeakSet<object>())
   }
 
   if (value instanceof Error) {
-    return serializeError(value);
+    return redactErrorValue(value); // any field: never the text an error quotes (error-text.ts)
   }
 
   if (depth >= MAX_LOG_DEPTH) {
@@ -136,15 +137,10 @@ function processBindings(bindings: Record<string, unknown>): Record<string, unkn
 
   const withErrors: Record<string, unknown> = { ...bindings };
 
-  // Check if there's an 'error' key that needs serialization
-  if ('error' in withErrors && withErrors.error instanceof Error) {
-    withErrors.error = serializeError(withErrors.error);
-  }
-
-  // Also check for 'err' key (pino convention)
-  if ('err' in withErrors && withErrors.err instanceof Error) {
-    withErrors.err = serializeError(withErrors.err);
-  }
+  // err / error: name, message cut at its first quote, code, frames and cause only
+  // (error-text.ts). A parse error quotes the caller text it choked on.
+  if ('error' in withErrors) withErrors.error = redactErrorValue(withErrors.error);
+  if ('err' in withErrors) withErrors.err = redactErrorValue(withErrors.err);
 
   return sanitizeForLog(withErrors) as Record<string, unknown>;
 }
@@ -202,7 +198,7 @@ function appLogger(): pino.Logger {
     pino(
       {
         level: process.env.LOG_LEVEL || 'info',
-        serializers: { error: pino.stdSerializers.err },
+        serializers: { error: redactErrorValue, err: redactErrorValue },
       },
       appStream()
     )
@@ -220,15 +216,34 @@ function lazyLogger(bindings?: Record<string, unknown>): FallbackLogger {
     bound = wrapLoggerWithErrorSerialization(target as unknown as ReturnType<typeof log>);
     return bound;
   };
+  // A log line must never throw into its caller: a getter that throws while the
+  // fields are sanitised, or a failed write, would otherwise turn a request's
+  // reply into a 500 (an SMS's 988 or STOP confirmation among them).
+  const call =
+    (method: 'debug' | 'info' | 'warn' | 'error') =>
+    (...args: unknown[]): void => {
+      try {
+        current()[method](...(args as Parameters<FallbackLogger['info']>));
+      } catch (error) {
+        // Dropped: losing one line beats breaking the caller. Counted and
+        // announced on another channel, so a dark logger is never silent.
+        noteDroppedLine(error);
+      }
+    };
   return {
-    debug: (...args: unknown[]) =>
-      current().debug(...(args as Parameters<FallbackLogger['debug']>)),
-    info: (...args: unknown[]) => current().info(...(args as Parameters<FallbackLogger['info']>)),
-    warn: (...args: unknown[]) => current().warn(...(args as Parameters<FallbackLogger['warn']>)),
-    error: (...args: unknown[]) =>
-      current().error(...(args as Parameters<FallbackLogger['error']>)),
-    child: (childBindings: Record<string, unknown>) =>
-      lazyLogger({ ...bindings, ...childBindings }),
+    debug: call('debug'),
+    info: call('info'),
+    warn: call('warn'),
+    error: call('error'),
+    // Bindings whose getter throws (read by the spread) keep the parent's.
+    child: (childBindings: Record<string, unknown>) => {
+      try {
+        return lazyLogger({ ...bindings, ...childBindings });
+      } catch (error) {
+        noteDroppedLine(error);
+        return lazyLogger(bindings);
+      }
+    },
   };
 }
 
@@ -244,6 +259,51 @@ function lazyLogger(bindings?: Record<string, unknown>): FallbackLogger {
  *
  * @returns A logger instance
  */
+let droppedLines = 0;
+
+/** How many log lines were dropped because writing them failed (see lazyLogger). */
+export function droppedLogLines(): number {
+  return droppedLines;
+}
+
+/** Test helper: start the dropped-line count again. */
+export function resetDroppedLogLinesForTests(): void {
+  droppedLines = 0;
+}
+
+/** 1, 100, 10 000, …: an outage keeps announcing itself without a flood. */
+function isPowerOf100(n: number): boolean {
+  if (n < 1) return false;
+  let x = n;
+  while (x % 100 === 0) x /= 100;
+  return x === 1;
+}
+
+/**
+ * Counts a dropped line and, on the 1st, 100th, 10 000th…, says so through the
+ * error sink (error-reporting sends it to Sentry, over the network), since the
+ * write that failed may be stderr itself. The notice carries the count and the
+ * failure's type only, never the line's fields.
+ */
+function noteDroppedLine(error: unknown): void {
+  droppedLines += 1;
+  if (!isPowerOf100(droppedLines)) return;
+  try {
+    const kind = error instanceof Error ? error.name : typeof error;
+    const notice = new Error(
+      `safe-logger dropped ${droppedLines} log line(s); last failure: ${kind}`
+    );
+    try {
+      errorLogSink?.([{ error: notice }, 'Log lines are being dropped']);
+    } catch {
+      // The sink failing too leaves the count.
+    }
+    if (droppedLines === 1) process.stderr.write(`[safe-logger] ${notice.message}\n`);
+  } catch {
+    // Nothing left to tell; droppedLogLines() still has the count.
+  }
+}
+
 export const getLogger = safeLog;
 
 /** Receives the raw arguments of every error-level call (error reporting registers here). */

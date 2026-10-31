@@ -46,7 +46,6 @@ import {
   openYourYear,
   showAppleHealthSettings,
   showConversationMemory,
-  showEightSleepSettings,
   showFamilyIdentities,
   showFerniFundThankYou,
   showGroupCoaching,
@@ -93,7 +92,6 @@ import {
   handoffService,
   moodService,
   relationshipStageService,
-  spotifyService,
 } from './services/index.js';
 import { detectAndSyncTimezone } from './services/timezone.service.js';
 import { showSignInGate } from './ui/sign-in-gate.ui.js';
@@ -107,12 +105,6 @@ import { coachUI, initCoachUI } from './ui/coach.ui.js';
 import { controlsUI, initControlsUI } from './ui/controls.ui.js';
 import { expressiveEyes, initExpressiveEyes } from './ui/expressive-eyes.ui.js';
 import { initMessageUI, messageUI } from './ui/message.ui.js';
-import {
-  getSpotifyLinkStatus,
-  initSpotifyUI,
-  onSpotifyLinkStateChange,
-  triggerSpotifyLinkToggle,
-} from './ui/spotify.ui.js';
 import { openEverythingConnected } from './ui/everything-connected.js';
 import { initTeamUI, teamUI } from './ui/team.ui.js';
 import { initRosterPreferences } from './services/roster-preferences.service.js';
@@ -211,8 +203,9 @@ import {
 // I18n - Internationalization and localization
 import { initI18n, t } from './i18n/index.js';
 import { createConversationStarter, START_CONVERSATION_EVENTS } from './app/conversation-starter.js';
+import { bindPanelOpeners } from './app/panel-openers.js';
 import { openPanelFromUrl } from './services/notification-navigation.js';
-import { isPanelEventVisible } from './config/menu-visibility.js';
+import { isPanelEventVisible, isPanelVisible } from './config/menu-visibility.js';
 import { bindStaticDom } from './i18n/static-dom.js';
 import { bindLocaleRefresh } from './app/locale-refresh.js';
 import { installDialogFocus } from './utils/dialog-focus.js';
@@ -289,6 +282,7 @@ import { clearCallNotice, showCallNotice } from './ui/call-status.ui.js';
 import { cancelConnectAttempt, connectWithTimeout } from './app/call-connect.js';
 import { onCallEnded, onCallStarted } from './app/call-end.js';
 import { wrapUpOwnsAgentLeaving, afterConversationEnd, playEndSound } from './app/call-end-paths.js';
+import { watchGoodbyeCeremony } from './app/conversation-continue.js';
 import { connectFailure } from './services/connect-failure.js';
 import { showAgentLostPrompt } from './app/agent-lost-prompt.js';
 import { buildConversationUsageBody } from './services/call-payloads.js';
@@ -305,14 +299,10 @@ import {
 } from './ui/subscription.ui.js';
 // Cosmetics Service - personalization system
 import { initCosmeticsService } from './services/cosmetics.service.js';
-// Seeds Economy - earn seeds through engagement
-import { initSeedsEconomy } from './services/seeds-economy.service.js';
-import { watchServerSeeds } from './services/seeds-ledger.service.js';
+// Seeds: off unless VITE_SEEDS=true
+import { initSeeds } from './app/seeds-boot.js';
 // Referral Service - network effect seeds system
 import { checkReferralFromUrl, initReferralService, processPendingReferral } from './services/referral.service.js';
-// Seeds UI - display balance and toast notifications
-import { initSeedsDisplay } from './ui/seeds-display.ui.js';
-import { initSeedsToast } from './ui/seeds-toast.ui.js';
 // Subscription Badge - subtle status indicator in header
 import { initSubscriptionBadge, subscriptionBadgeUI } from './ui/subscription-badge.ui.js';
 // Structured logger
@@ -787,7 +777,7 @@ class VoiceAIApp {
   private async performGoodbyeCeremony(): Promise<void> {
     log.info('🌅 Beginning goodbye ceremony');
 
-    // Step 1: Update button to show ceremony is happening
+    const ceremony = watchGoodbyeCeremony(); // Step 1: closing button (a continue stops it)
     controlsUI.showClosingState();
 
     // Step 2: Warm goodbye sound (~2s resolving chord), unless the agent's goodbye already played it
@@ -802,8 +792,7 @@ class VoiceAIApp {
     // Step 5: Wait for the ~1.5s settling (the ~2s sound overlaps), then add a pause
     await settlingPromise;
 
-    // Step 6: Brief pause to appreciate the moment (the goodbye "hangs")
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    if (await ceremony.pause(400)) return; // Step 6: the goodbye "hangs"; Ferni may take it back
 
     // Step 7: Phone "click" at the moment of disconnect, like placing down a receiver (one end sound)
     playEndSound('hangup');
@@ -865,12 +854,11 @@ class VoiceAIApp {
     // This gates popups/celebrations until user has had 2+ conversations
     modalCoordinator.incrementConversationCount();
 
-    // 📝 Persist history, 💰 record usage, pause Spotify: network work, never awaited by hang-up
+    // 📝 Persist history, 💰 record usage: network work, never awaited by hang-up
     void conversationTracker
       .endSession()
       .catch((e) => log.warn('Conversation history not saved', e));
     void this.recordConversationUsage(sessionStart);
-    void spotifyService.pause().catch((e) => log.warn('Spotify pause failed', e));
 
     // FIX BUG: Reset handoff service to clear stuck transition states
     handoffService.resetSession();
@@ -1077,17 +1065,6 @@ class VoiceAIApp {
         log.debug('Location init skipped:', err);
       });
 
-    // Initialize Spotify silently in the background
-    // iTunes is the default for everyone, so no need to show Spotify status
-    void spotifyService
-      .initialize()
-      .then((_success) => {
-        // Spotify integration ready (or fell back to iTunes)
-      })
-      .catch((_err) => {
-        // No error shown - iTunes is the default anyway
-      });
-
     // 🎯 "Better than human" - Check for demo session to claim
     // If user came from landing page demo, claim their conversation
     if (hasPendingClaim()) {
@@ -1221,7 +1198,6 @@ class VoiceAIApp {
     this.safeInit('ExpressiveEyes', () => initExpressiveEyes()); // 👀 Pixar-style eye expressions
     this.safeInit('RosterPreferences', () => initRosterPreferences()); // saved teammates, before the bar renders
     this.safeInit('TeamUI', () => initTeamUI());
-    this.safeInit('SpotifyUI', () => initSpotifyUI());
     this.safeInit('ControlsUI', () =>
       initControlsUI({
         onConnect: () => {
@@ -1646,7 +1622,7 @@ class VoiceAIApp {
       initEngagementTriggerUI({
         // Show InsightsView ("What I'm Noticing") - the relationship-focused daily check-in
         onEngagementClick: () => getInsightsView().toggle(),
-        onPredictionsClick: () => getPredictionsUI().toggle(),
+        onPredictionsClick: () => isPanelEventVisible('ferni:open-predictions') && getPredictionsUI().toggle(),
         onInsightsClick: () => teamInsightsUI.toggle(),
       })
     );
@@ -1771,17 +1747,10 @@ class VoiceAIApp {
     // 🎨 Cosmetics Service - Personalization system (themes, skins, sounds)
     this.safeInit('CosmeticsService', () => initCosmeticsService());
 
-    // 🌱 Seeds Economy - Earn seeds through natural engagement
-    this.safeInit('SeedsEconomy', () => initSeedsEconomy());
-
-    // 🌱 Server seed ledger - one balance from the server once it keeps seeds
-    this.safeInit('SeedsLedger', () => watchServerSeeds());
+    // 🌱 Seeds: cut, so nothing starts unless VITE_SEEDS=true (app/seeds-boot.ts)
+    initSeeds((name, init) => this.safeInit(name, init));
 
     this.safeInit('ReferralService', () => initReferralService());
-
-    // 🌱 Seeds UI - Display balance and toast notifications
-    this.safeInit('SeedsDisplay', () => initSeedsDisplay());
-    this.safeInit('SeedsToast', () => initSeedsToast());
 
     // 🎯 Moments System - Unified feedback (whisper, notice, celebration, milestone)
     this.deferredInit('MomentsSystem', 500, async () => {
@@ -1858,7 +1827,6 @@ class VoiceAIApp {
         onThemeToggle: () => showThemeLanguageSettings(),
         onNotificationSettingsClick: () => void openNotificationSettings(),
         onSleepSettingsClick: () => void import('./ui/sleep-settings.ui.js').then((m) => m.show()),
-        onSpotifyClick: () => void triggerSpotifyLinkToggle(),
         // Trust Journey is now integrated into the unified Journey modal
         onTrustJourneyClick: () => journeyUI.open(),
         onTrustDashboardClick: () =>
@@ -1905,7 +1873,6 @@ class VoiceAIApp {
         onLinkedInClick: LINKEDIN_ENABLED ? () => void showLinkedInSettings() : undefined,
         onVibeControllerClick: () => void showVibeController(),
         onSmartHomeClick: () => void showSmartHomeSettings(),
-        onEightSleepClick: () => void showEightSleepSettings(),
         onOuraClick: () => void showOuraSettings(),
         onAppleHealthClick: () => void showAppleHealthSettings(),
         onVideoSettingsClick: () => void showVideoSettings(),
@@ -1958,15 +1925,6 @@ class VoiceAIApp {
         onKnowledgeQuizClick: () => void openKnowledgeQuiz(),
         onGrowthJournalClick: () => void openGrowthJournal(),
       });
-
-      // Wire up Spotify state changes to menu
-      onSpotifyLinkStateChange((linked, configured) => {
-        getSettingsMenuUI().updateSpotifyState(linked, configured);
-      });
-
-      // Initialize menu with current Spotify state
-      const spotifyStatus = getSpotifyLinkStatus();
-      getSettingsMenuUI().updateSpotifyState(spotifyStatus.linked, spotifyStatus.configured);
     });
 
     // 🔔 Push Notifications
@@ -1987,8 +1945,16 @@ class VoiceAIApp {
       // Open InsightsView ("What I'm Noticing") - the relationship-focused view
       void getInsightsView().show();
     });
-    this.addTrackedListener(window, 'ferni:open-predictions', () => {
-      void getPredictionsUI().show();
+    // Panels menu-visibility can hide: each listener asks it first, so a hidden panel opens from no path
+    bindPanelOpeners((name, listener) => this.addTrackedListener(window, name, listener), {
+      'ferni:open-patterns': () =>
+        void showPatternInsights(document.getElementById('main-content') ?? document.body),
+      'ferni:open-quiz': () => void openKnowledgeQuiz(),
+      'ferni:open-music': () => void openMusicDashboard(),
+      'ferni:open-household': () => void showHouseholdManager(),
+      'ferni:open-voice-id': () => void showVoiceEnrollmentModal(),
+      'ferni:open-predictions': () => void getPredictionsUI().show(),
+      'ferni:open-marketplace': () => void openMarketplace(),
     });
 
     // 🎤 Voice-Activated Navigation - Handle panel open events from voice commands
@@ -2002,13 +1968,6 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:open-history', () => {
       void showConversationHistory();
     });
-    this.addTrackedListener(window, 'ferni:open-patterns', () => {
-      void showPatternInsights(document.getElementById('main-content') ?? document.body);
-    });
-    this.addTrackedListener(window, 'ferni:open-quiz', () => {
-      void openKnowledgeQuiz();
-    });
-    this.addTrackedListener(window, 'ferni:open-music', () => void openMusicDashboard());
     this.addTrackedListener(window, 'ferni:open-calendar', () => void openCalendarView());
     this.addTrackedListener(window, 'ferni:open-contacts', () => {
       void openYourPeople();
@@ -2028,12 +1987,6 @@ class VoiceAIApp {
     });
     this.addTrackedListener(window, 'ferni:open-practices', () => {
       void getSanctuaryUI().open();
-    });
-    this.addTrackedListener(window, 'ferni:open-household', () => {
-      void showHouseholdManager();
-    });
-    this.addTrackedListener(window, 'ferni:open-voice-id', () => {
-      void showVoiceEnrollmentModal();
     });
     this.addTrackedListener(window, 'ferni:open-notifications', () => {
       void openNotificationSettings();
@@ -2182,9 +2135,6 @@ class VoiceAIApp {
         log.error('Failed to start practice from Sanctuary', err);
         messageUI.show(t('app.practiceStartFailed'), 'error', 4000);
       }
-    });
-    this.addTrackedListener(window, 'ferni:open-marketplace', () => {
-      void openMarketplace();
     });
 
     // 📱 Mobile Bottom Sheet - Quick action event handlers (settings and history
@@ -2522,6 +2472,8 @@ class VoiceAIApp {
    * one; otherwise a low-quality print gets a toast. Both wait 5 s after load.
    */
   private async checkVoiceReEnrollment(): Promise<void> {
+    // Recognizing You is hidden (config/menu-visibility.ts): a card or toast about it would lead nowhere
+    if (!isPanelVisible('voice-id')) return;
     try {
       const voiceAuth = getVoiceAuthService();
       const profile = await voiceAuth.getProfile();
@@ -2724,7 +2676,7 @@ class VoiceAIApp {
 
       onAgentConnected: () => {
         const persona = appState.get('activePersona');
-        messageUI.show(t('app.agentJoined', { name: persona.name }), 'success', 2000);
+        // No "{name} joined" toast: the face and the End call button announce him.
 
         // Avatar reaction
         presenceUI.bounce();
@@ -3061,13 +3013,6 @@ class VoiceAIApp {
       }
     });
 
-    // Spotify state changes
-    spotifyService.onStateChange((state, trackInfo) => {
-      if (state === 'playing' && trackInfo) {
-        messageUI.show(t('app.nowPlaying', { name: trackInfo.name }), 'info', 3000);
-      }
-    });
-
     // Engagement service callbacks
     engagementService.setCallbacks({
       onEngagementUpdate: (data) => {
@@ -3197,7 +3142,6 @@ class VoiceAIApp {
 
     // Dispose services
     audioService.dispose();
-    spotifyService.dispose();
 
     // 🎚️ Clean up music audio controller
     resetMusicAudioController();

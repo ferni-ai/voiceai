@@ -55,9 +55,6 @@ const FALLBACK_VOICE_IDS: Record<string, string> = {
   'generic-advisor': getVoiceIdForPersona('generic-advisor'),
 };
 
-// Default fallback voice (Ferni)
-const DEFAULT_VOICE_ID = VOICE_IDS.FERNI;
-
 // ============================================================================
 // VOICE REGISTRY STATE
 // ============================================================================
@@ -152,7 +149,7 @@ async function loadBundleVoices(): Promise<void> {
 function initializeFallbacks(): void {
   // Register fallback voices for all canonical personas
   for (const canonicalId of ALL_CANONICAL_IDS) {
-    const voiceId = FALLBACK_VOICE_IDS[canonicalId] || VOICE_IDS.FERNI;
+    const voiceId = FALLBACK_VOICE_IDS[canonicalId] || getVoiceIdForPersona('ferni');
     const displayName = DISPLAY_NAMES[canonicalId] || canonicalId;
 
     voiceRegistry.set(canonicalId, {
@@ -218,7 +215,7 @@ export function getVoiceId(personaId: string): string {
   }
 
   logger.warn({ personaId, canonicalId }, 'No voice ID found, using default');
-  return DEFAULT_VOICE_ID;
+  return getVoiceIdForPersona('ferni');
 }
 
 /**

@@ -20,6 +20,7 @@ export const ENV_CLASSIFICATION: Readonly<Record<string, EnvClass>> = {
   ALPHA_VANTAGE_API_KEY: 'secret',
   ALPHA_VANTAGE_KEY: 'unread',
   ARRIVAL_GROUNDED: 'unread',
+  CALL_TIMELINE_UIDS: 'secret',
   CARTESIA_API_KEY: 'secret',
   CARTESIA_MODEL: 'config',
   CASCADE_TURN_DETECTION: 'behavior',
@@ -48,7 +49,6 @@ export const ENV_CLASSIFICATION: Readonly<Record<string, EnvClass>> = {
   POST_TTS_ENHANCEMENT_ENABLED: 'unread',
   PROMPT_MODE: 'behavior',
   REACTION_SIDETRACK: 'behavior',
-  SENDGRID_API_KEY: 'secret',
   SIP_DOMAIN: 'config',
   SIP_TRUNK_ID: 'secret',
   SKIP_PREWARM_GENERATEREPLY: 'behavior',
@@ -68,4 +68,6 @@ export const ENV_CLASSIFICATION: Readonly<Record<string, EnvClass>> = {
   USE_KYUTAI_STT: 'unread',
   USE_OPENAI_REALTIME: 'unread',
   VOICE_PIPELINE: 'behavior',
+  WAITLIST_ADMIN_NOTICE_DAILY_LIMIT: 'config',
+  WAITLIST_EMAIL_DAILY_LIMIT: 'config',
 };

@@ -18,7 +18,7 @@
  */
 
 import { initializeApp, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 import { createLogger } from '../src/utils/safe-logger.js';
 import { getFirestoreVectorStore } from '../src/memory/firestore-vector-store.js';
 import type { StoreType } from '../src/services/data-layer/types.js';
@@ -61,7 +61,7 @@ function initFirebase(): void {
 // ============================================================================
 
 async function getIndexStats(options: VerifyOptions): Promise<IndexStats> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
   const stats: IndexStats = {
     totalDocuments: 0,
     byStoreType: {},

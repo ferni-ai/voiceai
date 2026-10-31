@@ -8,11 +8,13 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { errorFields } from '../../../utils/error-class.js';
 import { getTool as getDomainTool } from '../../registry/index.js';
 import type { ServiceRegistry } from '../../registry/types.js';
 import type { ToolExecutionContext, ToolExecutionResult } from '../types.js';
 import type { ToolMapping } from './types.js';
 import { generateFallbackResponse } from './fallbacks.js';
+import { callerIdFor } from '../../../services/identity/call-caller-id.js';
 
 const log = createLogger({ module: 'domain-bridge' });
 
@@ -77,8 +79,8 @@ export async function executeDomainTool(
     {
       semanticToolId,
       domainToolId: mapping.domainToolId,
-      originalArgs: args,
-      transformedArgs,
+      argKeys: Object.keys(args),
+      transformedArgKeys: Object.keys(transformedArgs),
     },
     '🔗 Bridging semantic tool to domain tool'
   );
@@ -105,9 +107,9 @@ export async function executeDomainTool(
       getOptional: () => undefined,
     };
 
-    // Create tool instance with context
+    const userId = callerIdFor(context.userId, context.sessionId);
     const toolInstance = domainTool.create({
-      userId: context.userId,
+      userId,
       agentId: context.personaId || 'ferni',
       agentDisplayName: context.personaId || 'Ferni',
       services: (context.services as ServiceRegistry | undefined) ?? emptyServices,
@@ -117,9 +119,14 @@ export async function executeDomainTool(
     // The tool instance is a Vercel AI SDK tool with an execute function
     if (toolInstance && typeof toolInstance.execute === 'function') {
       const startTime = performance.now();
-      const result = await toolInstance.execute(transformedArgs, {
-        // AbortSignal (optional)
-      });
+      // PRIVACY: LiveKit's tool options carry the caller in ctx.userData.userId. Called with `{}`,
+      // tools that read it there fell back to 'default', one bucket for every routed caller
+      // (same shape as calendar/index.ts routedContext).
+      const opts = {
+        ctx: { userData: { userId } },
+        toolCallId: `semantic:${mapping.domainToolId}`,
+      };
+      const result: unknown = await toolInstance.execute(transformedArgs, opts);
       const durationMs = Math.round(performance.now() - startTime);
 
       // Telemetry: Track which layer handled this tool call
@@ -166,7 +173,7 @@ export async function executeDomainTool(
       {
         semanticToolId,
         domainToolId: mapping.domainToolId,
-        error: String(error),
+        ...errorFields(error),
       },
       'Domain tool execution failed'
     );

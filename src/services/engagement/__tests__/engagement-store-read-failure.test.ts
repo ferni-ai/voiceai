@@ -86,6 +86,7 @@ describe('engagement profile reads', () => {
   });
 
   it('a missing document still creates the default profile', async () => {
+    firestore.docs.set(`bogle_users/${USER}`, { name: 'live user' }); // a live user has a record
     const store = await getEngagementStore();
 
     const profile = await store.getProfile(USER);

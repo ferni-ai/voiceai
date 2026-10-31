@@ -10,7 +10,7 @@
  * @module HumanSignalPersistence
  */
 
-import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp, type DocumentReference } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import type {
@@ -26,6 +26,12 @@ import type {
   InsideJoke,
 } from '../../types/human-memory.js';
 import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
+import {
+  clampMomentWords,
+  isMomentExpired,
+  momentExpireAt,
+  unexpiredMoments,
+} from '../../utils/shared-moment-retention.js';
 
 const log = getLogger().child({ module: 'HumanSignalPersistence' });
 
@@ -67,6 +73,32 @@ export interface PersistenceResult {
 // PERSISTENCE
 // ============================================================================
 
+/** A stored joke: an expireAt from 2026-10-26 on, none before */
+type StoredJoke = InsideJoke & { expireAt?: unknown };
+
+/**
+ * An inside joke as kept (Seth, 2026-10-26): at most 80 characters of the caller's words in its
+ * reference and origin, and a year to live (utils/shared-moment-retention.ts)
+ */
+function retainedJoke(joke: InsideJoke, now: Timestamp): InsideJoke & { expireAt: Date } {
+  return {
+    ...joke,
+    reference: clampMomentWords(joke.reference),
+    origin: clampMomentWords(joke.origin),
+    expireAt: momentExpireAt(now.toMillis()),
+  };
+}
+
+/**
+ * The jokes in this doc past their expireAt. The jokes live in one doc, so no TTL reaches them:
+ * each save removes the expired ones (readers skip them until then). Jokes from before the
+ * policy have no expireAt and stay.
+ */
+async function expiredJokesIn(jokesDoc: DocumentReference, now: number): Promise<StoredJoke[]> {
+  const stored = ((await jokesDoc.get()).get('items') as StoredJoke[] | undefined) ?? [];
+  return stored.filter((joke) => isMomentExpired(joke, now));
+}
+
 /**
  * Persist human signals to Firestore
  *
@@ -104,6 +136,8 @@ export async function persistHumanSignals(
     const userRef = db.collection('bogle_users').doc(userId);
     const signalsRef = userRef.collection('human_signals');
     const now = Timestamp.now();
+    const jokesDoc = signalsRef.doc('inside_jokes');
+    const expired = await expiredJokesIn(jokesDoc, now.toMillis());
 
     // Persist each signal type
     if (signals.importantDates?.length) {
@@ -233,11 +267,10 @@ export async function persistHumanSignals(
     }
 
     if (signals.insideJokes?.length) {
-      const jokesDoc = signalsRef.doc('inside_jokes');
       batch.set(
         jokesDoc,
         {
-          items: FieldValue.arrayUnion(...signals.insideJokes),
+          items: FieldValue.arrayUnion(...signals.insideJokes.map((j) => retainedJoke(j, now))),
           lastUpdated: now,
           sessionId: options?.sessionId,
         },
@@ -248,6 +281,7 @@ export async function persistHumanSignals(
 
     // Commit batch
     await batch.commit();
+    if (expired.length) await jokesDoc.update({ items: FieldValue.arrayRemove(...expired) });
 
     result.success = true;
 
@@ -344,7 +378,8 @@ export async function getPersistedHumanSignals(userId: string): Promise<Partial<
       comfortPatterns: (comfortDoc.data()?.items as ComfortPattern[]) ?? [],
       stressTriggers: (stressDoc.data()?.items as StressTrigger[]) ?? [],
       avoidances: (avoidancesDoc.data()?.items as RecurringAvoidance[]) ?? [],
-      insideJokes: (jokesDoc.data()?.items as InsideJoke[]) ?? [],
+      // Expired jokes wait for the next save to drop them; nobody reads them meanwhile
+      insideJokes: unexpiredMoments((jokesDoc.data()?.items as StoredJoke[]) ?? []),
     };
   } catch (error) {
     log.error({ userId, error: String(error) }, 'Failed to retrieve human signals');

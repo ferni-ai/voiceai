@@ -19,11 +19,24 @@ import {
   correctRemembered,
   forgetRemembered,
   listRemembered,
+  type CorrectResult,
 } from '../../memory/recall/memory-control.js';
 import { firestoreMemoryControlStore as store } from '../../memory/storage/memory-control-store.js';
 
 const log = createLogger({ module: 'RememberedAPI' });
 const FACT_ID = /^[A-Za-z0-9_-]{1,200}$/;
+
+/**
+ * 200 for a fix kept, and for a code or password not kept: the wrong fact is gone either
+ * way, and a 4xx would read as a failure to try again.
+ */
+function sendCorrection(res: ServerResponse, result: CorrectResult): void {
+  if (result.kind === 'corrected') sendJSON(res, { success: true, fact: result.fact });
+  else if (result.kind === 'not-kept')
+    sendJSON(res, { success: true, status: 'not-kept', reason: result.reason });
+  else if (result.kind === 'not-found') sendError(res, API_ERRORS.MEMORY_NOT_FOUND, 404);
+  else sendError(res, result.reason, 400);
+}
 
 export async function handleRememberedRoutes(
   req: IncomingMessage,
@@ -63,9 +76,7 @@ export async function handleRememberedRoutes(
     }
     const body = await parseBody<{ value?: unknown }>(req);
     const result = await correctRemembered(userId, id, body?.value, store);
-    if (result.kind === 'corrected') sendJSON(res, { success: true, fact: result.fact });
-    else if (result.kind === 'not-found') sendError(res, API_ERRORS.MEMORY_NOT_FOUND, 404);
-    else sendError(res, result.reason, 400);
+    sendCorrection(res, result);
   } catch (err) {
     log.error({ error: String(err) }, 'Failed to change a remembered fact');
     sendError(res, API_ERRORS.OPERATION_FAILED, 500);

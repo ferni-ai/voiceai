@@ -21,15 +21,11 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirebaseUser } from '../identity/firebase-auth.js';
 import {
-  ALREADY_EXISTS,
-  CHECKINS,
-  checkinDb,
-  firestoreReplyStore,
+  heldSender,
   last4,
   phoneHash,
   phoneHashKey,
   toE164,
-  toStoredCheckin,
   type CheckinRecord,
   type Env,
   type ReplyStore,
@@ -37,6 +33,7 @@ import {
   type TextKind,
 } from './checkin-replies.js';
 import type { SMSDeliveryResult, SMSMessage } from './delivery/sms-delivery.js';
+import { firestoreTextStore, sendSms } from './guarded-text-store.js';
 import { resolveVerifiedPhone } from './user-reach.js';
 import { userTimeZone } from '../../utils/caller-time-zone.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
@@ -52,11 +49,19 @@ import {
 } from './quiet-hours.js';
 import { timezoneFromPhone } from './area-code-timezones.js';
 import { reportText } from './outreach-bq.js';
-import { readConsentDoc, smsConsentRefusal, type TextConsentReaders } from './text-consent.js';
+import { attestedIntro, isOwnerAttested, ownerFirstName } from '../messaging/consent-grants.js';
+import { grantedOrAsked } from '../messaging/consent-reach.js';
+import {
+  consentBlocks,
+  defaultConsentDeps,
+  messagingPipelineOn,
+  type ConsentBlock,
+  type ConsentDeps,
+} from '../messaging/consent.js';
+import { smsConsentRefusal, type TextConsentReaders } from './text-consent.js';
+import { holdTextForFocus, type FocusTextDeps } from './focus-send-hold.js';
 
 const log = createLogger({ module: 'guarded-text' });
-/** Send locks (lockedSend), kept apart from the records so no query reads them. */
-const TEXT_LOCKS = 'feature_checkin_locks';
 
 export interface TextStore extends Pick<ReplyStore, 'forPhoneHash'>, TextConsentReaders {
   forUser: (userId: string) => Promise<StoredCheckin[]>;
@@ -79,7 +84,14 @@ export interface TextDeps {
   authPhone: (uid: string) => Promise<string | undefined>;
   send: (message: SMSMessage) => Promise<SMSDeliveryResult>;
   now: () => Date;
+  /** consent/{phoneHash} (MESSAGING_PIPELINE); by default Firestore, under `env`. */
+  consent?: ConsentDeps;
+  /** A Focus hold (focus-send-hold.ts): where held texts go, and FOCUS_HOLD; by default Firestore. */
+  focus?: FocusTextDeps;
 }
+
+const consentOf = (deps: TextDeps): ConsentDeps =>
+  deps.consent ?? { ...defaultConsentDeps(), env: deps.env };
 
 export interface GuardedText {
   readonly userId: string;
@@ -91,6 +103,7 @@ export interface GuardedText {
   readonly minGapMs: number;
   /** The owner asked for it in the call just now: an unreadable consent record doesn't hold it (text-consent.ts). */
   readonly askedNow?: boolean;
+  readonly personSet?: boolean; // a reminder they set: a pause doesn't hold it (outreach-pause.ts)
 }
 
 export type TextSkip =
@@ -101,6 +114,8 @@ export type TextSkip =
   | 'opted-out'
   | 'consent-unknown'
   | 'paused'
+  | 'focus-held'
+  | 'held' // MINOR_CARE_SHARED_HOLD: no text they didn't ask for right now
   | 'send-failed';
 export type TextOutcome = { sent: true } | { sent: false; reason: TextSkip };
 
@@ -149,14 +164,16 @@ export async function isOwnVerifiedPhone(
   return own !== undefined && own === toE164(phone);
 }
 
-/** The member explicitly turned texts off, in outreach settings or by a STOP to the webhook. */
+/** Texts turned off (settings, a STOP), or outreach paused unless `pauseExempt` (outreach-pause.ts). */
 export function smsTurnedOff(
   userDoc: Record<string, unknown> | undefined,
-  legacyChannels: unknown
+  legacyChannels: unknown,
+  opts: { pauseExempt?: boolean } = {}
 ): boolean {
   const prefs = (userDoc?.outreachPreferences ?? {}) as { enabled?: unknown; channels?: unknown };
   const withoutSms = (c: unknown): boolean => Array.isArray(c) && !c.includes('sms');
-  return prefs.enabled === false || withoutSms(prefs.channels) || withoutSms(legacyChannels);
+  const paused = prefs.enabled === false && !opts.pauseExempt;
+  return paused || withoutSms(prefs.channels) || withoutSms(legacyChannels);
 }
 
 /** Twilio errors can quote the number (21211: "The 'To' number +1555... is not valid"). */
@@ -228,7 +245,6 @@ export async function sendGuardedText(
   if (!phoneHashKey(deps.env)) return skip('no-hash-secret');
   const storedId = recordUserId(t.userId, deps.env);
   if (!storedId) return skip('no-verified-phone');
-
   const sponsored = t.userId.startsWith('sponsored_');
   const [records, userDoc, legacyChannels] = await Promise.all([
     deps.store.forUser(storedId),
@@ -239,18 +255,24 @@ export async function sendGuardedText(
   if (sentWithin(lastSentAt(records, t.kind), now, t.minGapMs)) return skip('recently-sent');
   const phone = await resolveCheckinPhone(t.userId, userDoc, deps);
   if (!phone) return skip('no-verified-phone');
-  if (smsTurnedOff(userDoc, legacyChannels)) return skip('sms-off');
-
+  const pauseExempt = t.askedNow === true || t.personSet === true;
+  if (smsTurnedOff(userDoc, legacyChannels, { pauseExempt })) return skip('sms-off');
   const hash = phoneHash(phone, deps.env);
   if (!hash) return skip('no-verified-phone');
+  // MINOR_CARE_SHARED_HOLD: the account or the number held by a call, unless asked for just now
+  if (!t.askedNow && (await heldSender(t.userId, phone, deps.env))) return skip('held');
   const [refusal, toPhone] = await Promise.all([
     smsConsentRefusal(hash, deps.store, t.askedNow === true, now),
     deps.store.forPhoneHash(hash),
   ]);
   if (refusal) return skip(refusal);
+  // The member's own verified number: unknown consent is fine, an opt-out is not.
+  const consent = await consentBlocks(phone, 'sms', true, consentOf(deps));
+  if (consent) return skip(consent === 'opted-out' ? 'opted-out' : 'send-failed');
   // Per phone too: two accounts can share a number.
   if (sentWithin(lastSentAt(toPhone, t.kind), now, t.minGapMs)) return skip('recently-sent');
-
+  // Their Focus holds what Ferni starts: held until it ends (focus-send-hold.ts), never dropped.
+  if (await holdTextForFocus(t, userDoc, now, deps.focus)) return skip('focus-held');
   const phoneLast4 = last4(phone);
   const record: CheckinRecord = {
     userId: storedId,
@@ -269,6 +291,7 @@ export async function sendGuardedText(
     personaId: 'ferni',
     userId: storedId,
     outreachId: `${t.kind}_${t.refId}`,
+    ...(t.askedNow && { askedNow: true }),
   });
   if (result === 'locked') return skip('recently-sent');
   if (!result.success) {
@@ -282,7 +305,6 @@ export async function sendGuardedText(
 // ---------------------------------------------------------------------------
 // Texts a member asks Ferni to send to someone else
 // ---------------------------------------------------------------------------
-
 /** The guards are safety, not a feature: ON_BEHALF_TEXT_GUARD=off restores the unguarded send (rollback only). */
 export function onBehalfGuardOn(env: Env = process.env): boolean {
   return flagOn('ON_BEHALF_TEXT_GUARD', env);
@@ -302,10 +324,17 @@ export interface OnBehalfText {
   readonly zone?: string;
   /** The persona it is sent as (SMS signature); Ferni when unset. */
   readonly personaId?: string;
+  /** The owner's name for a first-contact intro; else their account's. */
+  readonly ownerName?: string;
+  /** Only sendConsentAsk sets this: its claim, which lets the one consent ask reach unknown consent. */
+  readonly consentAskClaim?: string;
 }
 
 export type OnBehalfSkip =
-  Exclude<TextSkip, 'no-verified-phone' | 'sms-off'> | 'bad-number' | 'quiet-hours';
+  | Exclude<TextSkip, 'no-verified-phone' | 'sms-off' | 'focus-held' | 'held'>
+  | 'bad-number'
+  | 'needs-consent'
+  | 'quiet-hours';
 export type OnBehalfOutcome =
   | { sent: true }
   | { sent: false; reason: Exclude<OnBehalfSkip, 'quiet-hours'> }
@@ -355,15 +384,19 @@ export async function sendOnBehalfText(
     deps.store.forPhoneHash(hash),
   ]);
   if (refusal) return skip(refusal);
+  const consent = await onBehalfConsent(t, deps);
+  if (consent) return skip(consent);
   if (sentWithin(lastSentAt(toPhone, 'on-behalf'), now, ON_BEHALF_GAP_MS))
     return skip('recently-sent');
-
   const storedId = recordUserId(t.senderUserId, deps.env) ?? 'unknown';
+  // First from THIS owner to that number: each owner's first text carries their intro.
+  const fromOwner = toPhone.filter((r) => r.userId === storedId);
+  const body = await firstContactBody(t, hash, lastSentAt(fromOwner, 'on-behalf') === null, deps);
   const record: CheckinRecord = {
     userId: storedId,
     sessionId: t.refId,
     sentAt: now.toISOString(),
-    question: t.body,
+    question: body,
     status: 'sent',
     phoneLast4: last4(to),
     phoneHash: hash,
@@ -372,7 +405,7 @@ export async function sendOnBehalfText(
   };
   const result = await lockedSend(deps, ON_BEHALF_GAP_MS, record, {
     to,
-    body: t.body,
+    body,
     personaId: t.personaId ?? 'ferni',
     userId: storedId,
     outreachId: t.refId,
@@ -389,6 +422,38 @@ export async function sendOnBehalfText(
 }
 
 /**
+ * MESSAGING_PIPELINE: someone else must have opted in themselves (texted START);
+ * the member's own number needs only no opt-out.
+ */
+async function onBehalfConsent(
+  t: OnBehalfText,
+  deps: TextDeps
+): Promise<'opted-out' | 'needs-consent' | 'send-failed' | null> {
+  const hash = phoneHash(t.toPhone, deps.env);
+  const c = consentOf(deps);
+  // The sender's own grant (or their consent ask) or their own number; never someone else's grant.
+  const allow = async (): Promise<boolean> =>
+    (hash !== null && (await grantedOrAsked(hash, t.senderUserId, t.consentAskClaim, c))) ||
+    isOwnVerifiedPhone(t.senderUserId, t.toPhone, deps);
+  const block: ConsentBlock | null = await consentBlocks(t.toPhone, 'sms', allow, c);
+  return block === 'unverifiable' ? 'send-failed' : block;
+}
+
+/** MESSAGING_PIPELINE: the first text after an owner's attestation says who is writing, and for whom. */
+async function firstContactBody(
+  t: OnBehalfText,
+  hash: string,
+  firstText: boolean,
+  deps: TextDeps
+): Promise<string> {
+  if (!firstText || !messagingPipelineOn(deps.env)) return t.body;
+  const c = consentOf(deps);
+  if (!(await isOwnerAttested(hash, 'sms', t.senderUserId, c).catch(() => false))) return t.body;
+  const owner = t.ownerName ?? ownerFirstName(await deps.store.userDoc(t.senderUserId));
+  return attestedIntro(owner, t.body);
+}
+
+/**
  * Every text to someone other than the member goes through here: the guards
  * above, or with ON_BEHALF_TEXT_GUARD=off the plain send it replaced.
  */
@@ -397,6 +462,8 @@ export async function textOnBehalf(
   deps: TextDeps = defaultTextDeps()
 ): Promise<OnBehalfOutcome> {
   if (onBehalfGuardOn(deps.env)) return sendOnBehalfText(t, deps);
+  const consent = await onBehalfConsent(t, deps);
+  if (consent) return { sent: false, reason: consent };
   const result = await deps.send({
     to: t.toPhone,
     body: t.body,
@@ -411,6 +478,7 @@ export async function textOnBehalf(
 export function onBehalfNotSent(name: string, reason: OnBehalfSkip): string {
   const why: Record<OnBehalfSkip, string> = {
     'opted-out': "that number replied STOP to our texts, so I can't text it",
+    'needs-consent': "they haven't said yes to texts from me yet",
     'consent-unknown': "I couldn't check whether that number asked us to stop texting, so I didn't",
     paused: 'they recently sounded like they might want fewer texts, so texts to them are on hold',
     'quiet-hours': "it's late where they are (9pm to 8am their time). Nothing is queued",
@@ -422,72 +490,7 @@ export function onBehalfNotSent(name: string, reason: OnBehalfSkip): string {
   return `The text to ${name} was NOT sent: ${why[reason]}.`;
 }
 
-export const firestoreTextStore: TextStore = {
-  ...firestoreReplyStore,
-  consentDoc: readConsentDoc,
-  async forUser(userId) {
-    // userId equality only; the gap window is filtered in memory to avoid a composite index.
-    const snap = await checkinDb().collection(CHECKINS).where('userId', '==', userId).get();
-    return snap.docs.map((d) => toStoredCheckin(d.id, d.data()));
-  },
-  async add(record) {
-    return (await checkinDb().collection(CHECKINS).add(record)).id;
-  },
-  async lock(id, at) {
-    try {
-      await checkinDb().collection(TEXT_LOCKS).doc(id).create({ at });
-      return true;
-    } catch (error) {
-      if ((error as { code?: unknown }).code === ALREADY_EXISTS) return false;
-      throw error;
-    }
-  },
-  async lockedAt(id) {
-    const doc = await checkinDb().collection(TEXT_LOCKS).doc(id).get();
-    const at: unknown = doc.exists ? doc.data()?.at : undefined;
-    return typeof at === 'string' ? at : undefined;
-  },
-  async unlock(id) {
-    await checkinDb().collection(TEXT_LOCKS).doc(id).delete();
-  },
-  async userDoc(userId) {
-    const doc = await checkinDb().collection('bogle_users').doc(userId).get();
-    return doc.exists ? (doc.data() as Record<string, unknown>) : undefined;
-  },
-  async legacySmsChannels(userId) {
-    const doc = await checkinDb().collection('outreach_profiles').doc(userId).get();
-    const state = (doc.exists ? doc.data()?.state : undefined) as
-      { allowedChannels?: unknown } | undefined;
-    return state?.allowedChannels;
-  },
-  async sponsoredPhone(userId) {
-    const doc = await checkinDb().collection('sponsored_identities').doc(userId).get();
-    const phone: unknown = doc.exists ? doc.data()?.phoneNumber : undefined;
-    return typeof phone === 'string' ? phone : undefined;
-  },
-};
-
-/** sendSMS reports "not initialized" until delivery is set up, which the voice agent never does itself. */
-async function sendSms(message: SMSMessage): Promise<SMSDeliveryResult> {
-  const sms = await import('./delivery/sms-delivery.js');
-  const {
-    TWILIO_ACCOUNT_SID: sid,
-    TWILIO_AUTH_TOKEN: token,
-    TWILIO_PHONE_NUMBER: from,
-  } = process.env;
-  if (!sms.isSMSDeliveryAvailable() && sid && token && from) {
-    try {
-      sms.initializeSMSDelivery({
-        twilioAccountSid: sid,
-        twilioAuthToken: token,
-        twilioPhoneNumber: from,
-      });
-    } catch (error) {
-      log.warn({ error: String(error) }, 'SMS delivery could not be set up');
-    }
-  }
-  return sms.sendSMS(message);
-}
+export { firestoreTextStore };
 
 export function defaultTextDeps(): TextDeps {
   return {

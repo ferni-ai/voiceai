@@ -8,7 +8,7 @@
 //   code    regexes: did he ask a short clarifying question (garbled/ambiguous),
 //           did he ask one he didn't need (clear), did he take the corrected
 //           fact without the wrong one or a grovel (repair)
-//   gemini  JUDGE_MODEL (default gemini-3.1-pro-preview) on every reply
+//   gemini  JUDGE_MODEL (default flash; pro for Pro) on every reply
 //   qwen    local qwen3:30b-a3b (ollama) on sample 0 of each case, a
 //           cross-family check on the Gemini judge (the GPU is shared:
 //           --qwen-every N judges only every Nth case; 0 turns it off)
@@ -22,6 +22,7 @@ import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { judgeModel } from '../../lib/judge-model.mjs';
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -90,7 +91,7 @@ function judgePrompt(c, reply) {
 }
 
 const project = process.env.GOOGLE_CLOUD_PROJECT;
-const JUDGE_MODEL = process.env.JUDGE_MODEL ?? 'gemini-3.1-pro-preview';
+const JUDGE_MODEL = judgeModel();
 let token = '';
 const parse = (text) => {
   const m = String(text ?? '').match(/\{[\s\S]*\}/);

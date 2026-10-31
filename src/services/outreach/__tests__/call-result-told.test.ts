@@ -19,6 +19,12 @@ const sendGuardedText = vi.hoisted(() =>
   vi.fn(async (_t: { userId: string; body: string; kind: string }) => ({ sent: true }))
 );
 vi.mock('../guarded-text.js', () => ({ sendGuardedText }));
+// The menu's quiet hours (QUIET_HOURS_FROM_PREFS); the reader is tested in quiet-hours-from-prefs.
+const savedQuiet = vi.hoisted(() => vi.fn(async (_userId: string, _at?: Date) => false));
+vi.mock('../quiet-hours.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  isSavedQuietNow: savedQuiet,
+}));
 
 const { buildCallOutcome, toOnBehalfCallRequest } =
   await import('../../../agents/outbound-call/on-behalf-call-lifecycle.js');
@@ -99,6 +105,16 @@ describe('telling the owner how the call went', () => {
     expect(sendGuardedText).not.toHaveBeenCalled();
     expect(sendPushNotification).not.toHaveBeenCalled();
     expect(await buildAllPendingResultsContext('u-quiet')).toContain('church');
+  });
+
+  it('on, inside the quiet hours saved in the menu: no text, and the next opener brings it up', async () => {
+    vi.stubEnv('CALL_RESULT_TEXT', 'on');
+    savedQuiet.mockResolvedValueOnce(true);
+    await report('u-saved');
+
+    expect(savedQuiet).toHaveBeenCalledWith('u-saved', new Date('2026-10-18T15:02:00Z'));
+    expect(sendGuardedText).not.toHaveBeenCalled();
+    expect(await buildAllPendingResultsContext('u-saved')).toContain('church');
   });
 
   it('off: the push as before, no text', async () => {

@@ -73,6 +73,31 @@ function clearCacheForUser(userId: string): void {
 // ============================================================================
 
 /**
+ * The semantic-index check-in for a snapshot (scores 0-1 become 0-10), or null.
+ * Its text always reads "Mood m/10, Energy e/10", so a snapshot missing either
+ * score is not indexed: a missing score used to become a made-up 0/10.
+ */
+export function wellnessCheckinFor(
+  snapshot: WellbeingSnapshot
+): {
+  mood: number;
+  energy: number;
+  stressLevel?: number;
+  notes?: string;
+  timestamp: string;
+} | null {
+  const { mood, energy, worry } = snapshot.dimensions;
+  if (typeof mood !== 'number' || typeof energy !== 'number') return null;
+  return {
+    mood: mood * 10,
+    energy: energy * 10,
+    stressLevel: typeof worry === 'number' ? worry * 10 : undefined,
+    notes: snapshot.notes,
+    timestamp: snapshot.timestamp.toISOString(),
+  };
+}
+
+/**
  * Save a wellbeing snapshot to Firestore.
  */
 export async function persistSnapshot(
@@ -110,20 +135,9 @@ export async function persistSnapshot(
 
     log.debug({ userId, snapshotId: snapshot.id }, 'Wellbeing snapshot persisted');
 
-    // Index to semantic memory
-    void onWellnessCheckinChange(
-      userId,
-      snapshot.id,
-      {
-        mood: (snapshot.dimensions.mood ?? 0) * 10, // Convert -1 to 1 to 0-10 scale
-        energy: (snapshot.dimensions.energy ?? 0) * 10, // Convert 0-1 to 0-10 scale
-        stressLevel:
-          snapshot.dimensions.worry !== undefined ? snapshot.dimensions.worry * 10 : undefined,
-        notes: snapshot.notes,
-        timestamp: snapshot.timestamp.toISOString(),
-      },
-      'update'
-    );
+    // Index to semantic memory, only with real scores (see wellnessCheckinFor)
+    const checkin = wellnessCheckinFor(snapshot);
+    if (checkin) void onWellnessCheckinChange(userId, snapshot.id, checkin, 'update');
 
     return true;
   } catch (error) {
@@ -133,9 +147,21 @@ export async function persistSnapshot(
 }
 
 /**
+ * How a read treats a Firestore error. By default it is logged and read as "no data";
+ * a panel passes rethrow so a failed read shows as an error, not as an empty history.
+ */
+export interface ReadOptions {
+  rethrow?: boolean;
+}
+
+/**
  * Load recent snapshots from Firestore.
  */
-export async function loadSnapshots(userId: string, days = 30): Promise<WellbeingSnapshot[]> {
+export async function loadSnapshots(
+  userId: string,
+  days = 30,
+  opts: ReadOptions = {}
+): Promise<WellbeingSnapshot[]> {
   // Check cache first
   const cached = snapshotCache.get(userId);
   if (cached && cached.expiresAt > Date.now()) {
@@ -188,6 +214,7 @@ export async function loadSnapshots(userId: string, days = 30): Promise<Wellbein
     return snapshots;
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to load wellbeing snapshots');
+    if (opts.rethrow) throw error;
     return [];
   }
 }
@@ -248,7 +275,10 @@ export async function persistProfile(userId: string, profile: WellbeingProfile):
 /**
  * Load a wellbeing profile from Firestore.
  */
-export async function loadProfile(userId: string): Promise<WellbeingProfile | null> {
+export async function loadProfile(
+  userId: string,
+  opts: ReadOptions = {}
+): Promise<WellbeingProfile | null> {
   // Check cache first
   const cached = profileCache.get(userId);
   if (cached && cached.expiresAt > Date.now()) {
@@ -326,6 +356,7 @@ export async function loadProfile(userId: string): Promise<WellbeingProfile | nu
     return profile;
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to load wellbeing profile');
+    if (opts.rethrow) throw error;
     return null;
   }
 }

@@ -1611,7 +1611,7 @@
       "file": "src/tools/domains/calendar/index.ts"
     },
     "forgetMemory": {
-      "description": "To delete memories. Execute. Use when user says.",
+      "description": "To stop bringing something up when the user asks you to forget it. It is kept out of what you recall, not erased, unless the result says it was deleted. Use when user says forget that.",
       "file": "src/tools/domains/memory/tools.ts",
       "_original": "CALL immediately to delete memories. Execute without announcing. Use when user says"
     },
@@ -1632,7 +1632,7 @@
       "file": "src/tools/domains/dreams/index.ts"
     },
     "futureSelfLetter": {
-      "description": "Write a letter to your future self. Jordan seals it and delivers it at the specified time. Creates anticipation and a powerful moment when delivered.",
+      "description": "Write a letter to your future self. seal keeps it until its date; from then on, deliver reads it back (check-pending lists the dates). Only promise what the reply says.",
       "file": "src/tools/domains/engagement/life-planning-games.ts"
     },
     "gatherConstraints": {
@@ -3708,7 +3708,7 @@
       "file": "src/tools/domains/trauma-support/index.ts"
     },
     "sendApprovedEmail": {
-      "description": "Send an email that has been drafted and approved by the user. IMPORTANT: Only use after showing the draft to the user and getting their confirmation. This actually sends the email via SendGrid.",
+      "description": "Send an email that has been drafted and approved by the user. IMPORTANT: Only use after showing the draft to the user and getting their confirmation. This actually sends the email from Ferni's mailbox.",
       "file": "src/tools/communication-tools.ts"
     },
     "sendEmail": {
@@ -4378,7 +4378,7 @@
       "file": "src/tools/proactive.ts"
     },
     "updateMemory": {
-      "description": "To update existing memories. Execute. Use when user says.",
+      "description": "Change something you remember about the user when they correct it or it has changed (a new job, a move). Copy the old memory exactly as it appears in what you know about them; nothing changes unless exactly one saved memory reads that way.",
       "file": "src/tools/domains/memory/tools.ts",
       "_original": "CALL silently to update existing memories. Execute without announcing. Use when user says"
     },

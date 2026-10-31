@@ -1,0 +1,340 @@
+{
+  "version": 1,
+  "groups": {
+    "session": [
+      {
+        "marker": "[worker]",
+        "emitter": "src/agents/gce-voice-worker.ts",
+        "count": 1
+      },
+      {
+        "marker": "[job-child",
+        "emitter": "src/agents/gce/job-child.ts",
+        "count": 1
+      },
+      {
+        "marker": "Starting job",
+        "emitter": "src/agents/gce/job-executor.ts",
+        "count": 1
+      },
+      {
+        "marker": "Job completed",
+        "emitter": "src/agents/gce/job-executor.ts",
+        "count": 1
+      },
+      {
+        "marker": "Raw job.metadata",
+        "emitter": "src/agents/voice-agent-entry/startup-log.ts",
+        "count": 2,
+        "via": {
+          "file": "src/agents/voice-agent-entry/metadata-parser.ts",
+          "helper": "jobMetadataLine"
+        }
+      },
+      {
+        "marker": "Ending session wait",
+        "emitter": "src/agents/voice-agent-entry/run-until-call-ends.ts",
+        "count": 1
+      },
+      {
+        "marker": "Participant left",
+        "emitter": "src/agents/gce/job-executor.ts",
+        "count": 1
+      },
+      {
+        "marker": "- userId:",
+        "emitter": "src/agents/voice-agent-entry/startup-log.ts",
+        "count": 1,
+        "via": {
+          "file": "src/agents/voice-agent-entry/startup-log.ts",
+          "helper": "identityDiagnosticsText"
+        }
+      },
+      {
+        "marker": "- hasProfile:",
+        "emitter": "src/agents/voice-agent-entry/startup-log.ts",
+        "count": 1,
+        "via": {
+          "file": "src/agents/voice-agent-entry/startup-log.ts",
+          "helper": "identityDiagnosticsText"
+        }
+      },
+      {
+        "marker": "- hasName:",
+        "emitter": "src/agents/voice-agent-entry/startup-log.ts",
+        "count": 1,
+        "via": {
+          "file": "src/agents/voice-agent-entry/startup-log.ts",
+          "helper": "identityDiagnosticsText"
+        }
+      },
+      {
+        "marker": "- isReturningUser:",
+        "emitter": "src/agents/voice-agent-entry/startup-log.ts",
+        "count": 1,
+        "via": {
+          "file": "src/agents/voice-agent-entry/startup-log.ts",
+          "helper": "identityDiagnosticsText"
+        }
+      },
+      {
+        "marker": "- totalConversations:",
+        "emitter": "src/agents/voice-agent-entry/startup-log.ts",
+        "count": 1,
+        "via": {
+          "file": "src/agents/voice-agent-entry/startup-log.ts",
+          "helper": "identityDiagnosticsText"
+        }
+      },
+      {
+        "marker": "- lastConversationSummary:",
+        "emitter": "src/agents/voice-agent-entry/startup-log.ts",
+        "count": 1,
+        "via": {
+          "file": "src/agents/voice-agent-entry/startup-log.ts",
+          "helper": "identityDiagnosticsText"
+        }
+      },
+      {
+        "marker": "- lastContact:",
+        "emitter": "src/agents/voice-agent-entry/startup-log.ts",
+        "count": 1,
+        "via": {
+          "file": "src/agents/voice-agent-entry/startup-log.ts",
+          "helper": "identityDiagnosticsText"
+        }
+      },
+      {
+        "marker": "- issues:",
+        "emitter": "src/agents/voice-agent-entry/startup-log.ts",
+        "count": 1,
+        "via": {
+          "file": "src/agents/voice-agent-entry/startup-log.ts",
+          "helper": "identityDiagnosticsText"
+        }
+      },
+      {
+        "marker": "[voice-agent-entry]   ",
+        "emitter": "src/agents/voice-agent-entry/user-awareness-injection.ts",
+        "count": 1
+      }
+    ],
+    "turn": [
+      {
+        "marker": "E2E_TTS_OUTPUT",
+        "emitter": "src/agents/shared/tts-wrapper.ts",
+        "count": 1
+      },
+      {
+        "marker": "E2E_USER_INPUT",
+        "emitter": "src/agents/voice-agent/transcript-handler.ts",
+        "count": 1
+      },
+      {
+        "marker": "trace:",
+        "emitter": "src/agents/voice-agent/transcript-handler.ts",
+        "count": 1
+      },
+      {
+        "marker": "transcript:",
+        "emitter": "src/agents/voice-agent/transcript-handler.ts",
+        "count": 1
+      },
+      {
+        "marker": "E2E TRACE [STT] User said",
+        "emitter": "src/agents/voice-agent/transcript-handler.ts",
+        "count": 1
+      },
+      {
+        "marker": "TURN_RECEIPT",
+        "emitter": "src/agents/shared/turn-receipt.ts",
+        "count": 1
+      },
+      {
+        "marker": "REPLY_GAP",
+        "emitter": "src/agents/multi-agent/turn-observers.ts",
+        "count": 1
+      },
+      {
+        "marker": "SESSION_INTERRUPT",
+        "emitter": "src/agents/multi-agent/live-call-behaviors.ts",
+        "count": 1
+      },
+      {
+        "marker": "UNFINISHED_TURN_HELD",
+        "emitter": "patches/@livekit__agents@1.9.3.patch",
+        "count": 2
+      },
+      {
+        "marker": "👤 [USER STATE]",
+        "emitter": "src/agents/multi-agent/session-event-log.ts",
+        "count": 1,
+        "via": {
+          "file": "src/agents/multi-agent/session-event-log.ts",
+          "helper": "userStateLine"
+        }
+      },
+      {
+        "marker": "->",
+        "emitter": "src/agents/multi-agent/session-event-log.ts",
+        "count": 1,
+        "via": {
+          "file": "src/agents/multi-agent/session-event-log.ts",
+          "helper": "userStateLine"
+        }
+      },
+      {
+        "marker": "Director: actor line",
+        "emitter": "src/speech/direction/director.ts",
+        "count": 1
+      },
+      {
+        "marker": "DIRECTOR_NOTES",
+        "emitter": "src/agents/personas/director-notes.ts",
+        "count": 1
+      },
+      {
+        "marker": "Recall added",
+        "emitter": "src/agents/multi-agent/memory-recall-hook.ts",
+        "count": 1
+      },
+      {
+        "marker": "Context builders missed their budget",
+        "emitter": "src/agents/processors/turn-processor/context-injections.ts",
+        "count": 1
+      },
+      {
+        "marker": "Tool execution tracked",
+        "emitter": "src/agents/voice-agent/tool-tracking-handler.ts",
+        "count": 1
+      },
+      {
+        "marker": "playMusic TOOL INVOKED",
+        "emitter": "src/tools/domains/entertainment/music.ts",
+        "count": 1
+      },
+      {
+        "marker": "getCurrentWeather START",
+        "emitter": "src/tools/domains/information/weather.ts",
+        "count": 1
+      },
+      {
+        "marker": "Scheduled fade timer",
+        "emitter": "src/audio/music-player.ts",
+        "count": 2
+      },
+      {
+        "marker": "Handoff requested",
+        "emitter": "src/agents/multi-agent/orchestrator.ts",
+        "count": 1
+      },
+      {
+        "marker": "Handoff brief ready",
+        "emitter": "src/agents/multi-agent/handoff-brief.ts",
+        "count": 1
+      },
+      {
+        "marker": "[spawnAgent] Starting agent creation",
+        "emitter": "src/agents/multi-agent/orchestrator.ts",
+        "count": 1
+      },
+      {
+        "marker": "New agent spawned",
+        "emitter": "src/agents/multi-agent/orchestrator.ts",
+        "count": 1
+      },
+      {
+        "marker": "🎭 Handoff complete",
+        "emitter": "src/agents/multi-agent/multi-agent-entry.ts",
+        "count": 1
+      },
+      {
+        "marker": "Proactive insight injected",
+        "emitter": "src/agents/voice-agent/turn-handler.ts",
+        "count": 1
+      },
+      {
+        "marker": "Conversation summarized",
+        "emitter": "src/services/memory/realtime-memory.ts",
+        "count": 1
+      },
+      {
+        "marker": "Saved profile for user",
+        "emitter": "src/services/session/session-manager.ts",
+        "count": 1
+      },
+      {
+        "marker": "✨ Created entity",
+        "emitter": "src/memory/entity-store/storage.ts",
+        "count": 1
+      }
+    ],
+    "minor": [
+      {
+        "marker": "MINOR_CARE likely minor",
+        "emitter": "src/utils/minor-care.ts",
+        "count": 2,
+        "wrappers": ["hold"]
+      },
+      {
+        "marker": "MINOR_CARE shadow: likely minor",
+        "emitter": "src/utils/minor-care.ts",
+        "count": 1
+      },
+      {
+        "marker": "MINOR_CARE cues: likely minor",
+        "emitter": "src/agents/personas/sexual-boundary.ts",
+        "count": 1
+      }
+    ],
+    "crisis": [
+      {
+        "marker": "Crisis event (shadow)",
+        "emitter": "src/agents/safety/crisis-event-record.ts",
+        "count": 1
+      },
+      {
+        "marker": "Crisis event recorded",
+        "emitter": "src/services/safety/index.ts",
+        "count": 1
+      },
+      {
+        "marker": "🚨 Crisis signal detected",
+        "emitter": "src/services/safety/crisis-detection.ts",
+        "count": 1
+      },
+      {
+        "marker": "🚨 CRISIS DETECTED - Overriding response",
+        "emitter": "src/services/safety/crisis-guard.ts",
+        "count": 1
+      },
+      {
+        "marker": "💙 Generated crisis response",
+        "emitter": "src/services/safety/crisis-response.ts",
+        "count": 1
+      }
+    ],
+    "external": [
+      {
+        "marker": "playout completed",
+        "emitter": "livekit-sdk"
+      },
+      {
+        "marker": "WARN (1):",
+        "emitter": "livekit-sdk"
+      },
+      {
+        "marker": "ERROR (1):",
+        "emitter": "livekit-sdk"
+      },
+      {
+        "marker": "with interrupt",
+        "emitter": "livekit-sdk"
+      },
+      {
+        "marker": "message:",
+        "emitter": "livekit-sdk"
+      }
+    ]
+  }
+}

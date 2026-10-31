@@ -1,8 +1,7 @@
 /**
  * Voice Call Service
  *
- * Makes outbound calls using Cartesia TTS voices for any persona.
- * Also handles incoming call routing to LiveKit agents.
+ * Makes outbound calls using Cartesia TTS voices for any persona; routes incoming calls to LiveKit.
  *
  * Now with SSML support for natural-sounding outbound calls!
  */
@@ -43,8 +42,7 @@ const TWILIO_FALLBACK_VOICES: Record<string, string> = {
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const SIP_INBOUND_TRUNK_ID = process.env.SIP_INBOUND_TRUNK_ID || ''; // SIP_TRUNK_ID is outbound
 
-// GCS configuration for audio hosting
-// Priority: explicit GCS_VOICE_BUCKET > derived from GOOGLE_CLOUD_PROJECT > empty
+// GCS audio hosting: explicit GCS_VOICE_BUCKET > derived from GOOGLE_CLOUD_PROJECT > empty
 const GCS_BUCKET =
   process.env.GCS_VOICE_BUCKET ||
   (process.env.GOOGLE_CLOUD_PROJECT ? `${process.env.GOOGLE_CLOUD_PROJECT}-voice-audio` : '');
@@ -232,17 +230,14 @@ async function getHostedAudioUrl(
   // Create a cache key from the message + persona
   const cacheKey = Buffer.from(`${personaId}:${message}`).toString('base64').slice(0, 32);
 
-  // Check cache
   const cached = audioUrlCache.get(cacheKey);
   if (cached && cached.expires > Date.now()) {
     getLogger().debug({ cacheKey, personaId }, 'Using cached audio URL');
     return cached.url;
   }
-
   // Generate unique filename with persona prefix
   const timestamp = Date.now();
   const filename = `${personaId}-${timestamp}-${cacheKey}.mp3`;
-
   const url = await uploadAudioToGCS(audioBuffer, filename);
 
   if (url) {
@@ -267,12 +262,16 @@ export interface PersonaCallOptions {
   customGreeting?: string;
   /** SSML options for natural speech. Set to false to disable SSML enhancement. */
   ssml?: OutboundSsmlOptions | false;
+  /** Who the call is for. MESSAGING_PIPELINE: without it, or to someone else without their grant, no call. */
+  ownerUid?: string;
+  /** The member it is for: a MINOR_CARE_SHARED_HOLD on their account stops the call too. */
+  userId?: string;
+  askedFor?: boolean; // they asked for or set it; without it a paused owner isn't rung (outreach-pause.ts)
 }
+export const PAUSED_CALL = 'Not calling: outreach paused';
 
 /**
- * Make an outbound call using any persona's Cartesia voice
- *
- * This works by:
+ * Make an outbound call using any persona's Cartesia voice. This works by:
  * 1. Looking up the persona's voice ID from the registry
  * 2. Generating audio with Cartesia TTS
  * 3. Uploading to GCS for public access (if configured)
@@ -291,27 +290,28 @@ export async function callWithPersonaVoice(
     return { success: false, message: 'Twilio not configured' };
   }
 
-  // Clean phone number
   const cleanPhone = toPhone.replace(/\D/g, '');
   const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
+  const { ownerRefusal } = await import('../messaging/consent-reach.js'); // MESSAGING_PIPELINE
+  const refused = await ownerRefusal(options?.ownerUid, e164Phone, 'call'); // fails closed
+  if (refused) return { success: false, message: `Not calling: ${refused}` };
+  const { heldSender } = await import('../outreach/checkin-replies.js'); // MINOR_CARE_SHARED_HOLD
+  if (await heldSender(options?.userId, e164Phone))
+    return { success: false, message: 'Not calling: held' };
+  const { outreachPausedFor } = await import('../outreach/outreach-pause.js');
+  if (!options?.askedFor && (await outreachPausedFor(options?.ownerUid, e164Phone)))
+    return { success: false, message: PAUSED_CALL };
 
-  // Get persona display name for fallback greeting
   const displayName = getPersonaDisplayName(personaId);
   const firstName = displayName.split(' ')[0]; // "Maya Santos" -> "Maya"
-
   logger.info({ to: e164Phone, personaId }, `📞 Initiating call with ${firstName}'s voice...`);
-
-  // Try to generate persona's voice
   let twiml: string;
   let usedCartesiaVoice = false;
-
-  // Get fallback Twilio voice for this persona
   const twilioVoice = TWILIO_FALLBACK_VOICES[personaId] || 'Polly.Matthew';
   const greeting = options?.customGreeting || `Hey, this is ${firstName} calling.`;
 
   if (CARTESIA_API_KEY) {
-    // Cartesia uses plain text with punctuation for pacing
-    // For outbound calls, use upbeat/positivity emotion to sound warm and engaged
+    // Plain text with punctuation for pacing; upbeat for outbound calls, warm and engaged
     const audioBuffer = await generatePersonaVoice(message, personaId, {
       emotion: 'positivity', // More upbeat for outbound calls
       speed: 1.05, // Slightly faster, more energetic

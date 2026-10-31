@@ -3,14 +3,13 @@
  * 
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: npm run build:tailwind-config
- * Generated: 2026-10-04T19:43:37.108Z
+ * Generated: 2026-10-23T10:50:54.614Z
  * 
  * IMPORTANT: This file uses CSS variable references (not hardcoded hex values)
  * so colors automatically update when design-tokens.css is regenerated.
  * 
- * Import this in your tailwind.config.js:
- *   const generated = require('./tailwind.config.generated.js');
- *   module.exports = { theme: { extend: generated } };
+ * tailwind.config.js imports the colour keys (colors, backgroundColor,
+ * textColor, borderColor) into theme.extend. The other keys are not wired in.
  */
 
 module.exports = {
@@ -19,7 +18,7 @@ module.exports = {
       "DEFAULT": "var(--color-bg-primary)",
       "cream": "var(--color-bg-elevated)",
       "sand": "var(--color-bg-secondary)",
-      "warm": "var(--color-bg-glass)"
+      "warm": "var(--color-bg-tertiary)"
     },
     "ink": {
       "DEFAULT": "var(--color-text-primary)",
@@ -33,11 +32,6 @@ module.exports = {
       "pressed": "var(--color-accent-pressed)",
       "glow": "var(--color-accent-glow)",
       "subtle": "var(--color-accent-subtle)"
-    },
-    "border": {
-      "subtle": "var(--color-border-subtle)",
-      "medium": "var(--color-border-medium)",
-      "strong": "var(--color-border-strong)"
     },
     "success": {
       "DEFAULT": "var(--color-success)",
@@ -136,6 +130,21 @@ module.exports = {
       "dark": "var(--color-ray-secondary)",
       "glow": "var(--color-ray-glow)"
     }
+  },
+  "backgroundColor": {
+    "surface-base": "var(--color-surface-base)",
+    "surface-sunken": "var(--color-surface-sunken)",
+    "surface-raised": "var(--color-surface-raised)",
+    "surface-overlay": "var(--color-surface-overlay)"
+  },
+  "textColor": {
+    "primary": "var(--color-text-primary)",
+    "secondary": "var(--color-text-secondary)",
+    "muted": "var(--color-text-muted)"
+  },
+  "borderColor": {
+    "subtle": "var(--color-border-subtle)",
+    "strong": "var(--color-border-strong)"
   },
   "spacing": {
     "0": "var(--space-0)",

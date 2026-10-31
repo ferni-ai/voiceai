@@ -168,6 +168,46 @@ describe('encrypt-integration-tokens migration', () => {
     expect(state.docs.get('oura_tokens/u1')).toEqual(refreshed);
   });
 
+  it('seals smart_home secrets and the nested Outlook tokens map, leaving the rest', async () => {
+    const sh = 'bogle_users/u20/smart_home';
+    state.docs.set(`${sh}/lifx`, { token: 'fixture-lifx', connectedAt: 'x' });
+    state.docs.set(`${sh}/hue`, { bridgeIp: '10.0.0.2', username: 'fixture-hue-user' });
+    state.docs.set(`${sh}/sonos`, { accessToken: 'enc_already', refreshToken: 'enc_already' });
+    state.docs.set(`${sh}/homekit`, { enabled: true });
+    state.docs.set('users/u21/calendar_providers/outlook', {
+      provider: 'outlook',
+      selectedCalendars: ['c1'],
+      tokens: { accessToken: ACCESS, refreshToken: REFRESH, expiresAt: 1 },
+    });
+    state.docs.set('users/u21/calendar_providers/apple', { provider: 'apple' });
+
+    const counts = await apply();
+    expect(counts.smart_home).toMatchObject({ plaintext: 2, written: 2 });
+    expect(counts['calendar_providers.tokens']).toMatchObject({ plaintext: 1, written: 1 });
+    expect(openTokens(state.docs.get(`${sh}/lifx`), 't')).toEqual({ token: 'fixture-lifx' });
+    expect(state.docs.get(`${sh}/lifx`)!.connectedAt).toBe('x');
+    expect(openTokens(state.docs.get(`${sh}/hue`), 't')).toEqual({
+      bridgeIp: '10.0.0.2',
+      username: 'fixture-hue-user',
+    });
+    // Already encrypted by privacy-crypto (enc_), and not token-shaped: untouched.
+    expect(state.docs.get(`${sh}/sonos`)).toEqual({
+      accessToken: 'enc_already',
+      refreshToken: 'enc_already',
+    });
+    expect(state.docs.get(`${sh}/homekit`)).toEqual({ enabled: true });
+    const outlook = state.docs.get('users/u21/calendar_providers/outlook')!;
+    expect(Object.keys(outlook.tokens as object)).toEqual(['encrypted']);
+    expect(outlook.selectedCalendars).toEqual(['c1']);
+    expect(openTokens(outlook.tokens, 't')).toEqual({
+      accessToken: ACCESS,
+      refreshToken: REFRESH,
+      expiresAt: 1,
+    });
+    expect(all()).not.toContain('fixture-lifx');
+    expect(all()).not.toContain('fixture-hue-user');
+  });
+
   describe('re-sealing legacy-key envelopes once OAUTH_ENCRYPTION_KEY is set', () => {
     const LEGACY = 'fixture-log-hash-secret';
     const sealWithLegacy = (tokens: Record<string, unknown>) => {

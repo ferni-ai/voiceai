@@ -192,7 +192,7 @@ jobs:
             --concurrency 20 \
             --min-instances 0 \
             --max-instances 2 \
-            --set-env-vars "NODE_ENV=staging,BUILD_SHA=${{ github.sha }},LIVEKIT_URL=wss://dev-8sm1ba0z.livekit.cloud,AGENT_NAME=voice-agent-dev" \
+            --set-env-vars "NODE_ENV=staging,BUILD_SHA=${{ github.sha }},LIVEKIT_URL=wss://dev-8sm1ba0z.livekit.cloud,AGENT_NAME=voice-agent-dev,FIRESTORE_DATABASE=ferni-dev" \
             --set-secrets "LIVEKIT_API_KEY=livekit-dev-api-key:latest,LIVEKIT_API_SECRET=livekit-dev-api-secret:latest"
           # 1Gi, as in production: the neural speaker model adds ~200-270 MB RSS.
           # Previews are public, so they run as staging-preview, a service account
@@ -203,6 +203,9 @@ jobs:
           # environment variables"), so every preview deploy failed.
           # AGENT_NAME matches the dev worker; the token server otherwise dispatches
           # calls to 'voice-agent', which nothing serves on the dev project.
+          # FIRESTORE_DATABASE=ferni-dev matches the dev agent too: without it the
+          # preview's web/API used the prod '(default)' database while the agent it
+          # dispatches to wrote ferni-dev (preview-dev-database.test.ts).
           
           URL=$(gcloud run services describe $SERVICE_NAME \
             --region=${{ env.GCP_REGION }} \

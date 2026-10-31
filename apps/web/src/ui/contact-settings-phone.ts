@@ -67,13 +67,15 @@ export function planPhoneSave(s: State): {
   };
 }
 
-/** The account's verified number (GET /api/user/contact) and the check-in channels the user chose. */
+/** The account's verified number (GET /api/user/contact), the check-in channels the user chose, and outreach on/off. */
 export async function loadPhoneAndChannels(s: State): Promise<void> {
   const [contact, consent] = await Promise.all([
     apiGet<{ contactInfo?: { verifiedPhone?: string | null } | null }>('/api/user/contact').catch(
       () => null
     ),
-    apiGet<{ allowedChannels?: string[] }>('/api/outreach/preferences').catch(() => null),
+    apiGet<{ allowedChannels?: string[]; outreachEnabled?: unknown }>(
+      '/api/outreach/preferences'
+    ).catch(() => null),
   ]);
   const verifiedPhone = contact?.ok ? contact.data?.contactInfo?.verifiedPhone : undefined;
   if (verifiedPhone) {
@@ -82,6 +84,8 @@ export async function loadPhoneAndChannels(s: State): Promise<void> {
   }
   const allowed = consent?.ok ? consent.data?.allowedChannels : undefined;
   s.channels = Array.isArray(allowed) ? allowed : [];
+  const reach = consent?.ok ? consent.data?.outreachEnabled : undefined;
+  s.reachOn = typeof reach === 'boolean' ? reach : undefined; // the "Ferni can reach out" switch
 }
 
 const PHONE_CHANNELS = ['sms', 'call'];
