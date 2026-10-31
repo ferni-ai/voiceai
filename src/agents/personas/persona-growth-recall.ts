@@ -50,8 +50,8 @@ const time = (d: Date | string | undefined): number => (d ? new Date(d).getTime(
 
 /**
  * The growth to offer on a call that started at `callStart`, or null. Only one
- * kept before this call, with the caller's words, never shared, its topic not
- * already shared; none when one was offered within the spacing.
+ * kept before this call, with the caller's words, not yet offered, its topic not
+ * already offered; none when one was offered within the spacing.
  */
 export function growthToOffer(
   records: readonly PersonaGrowthRecord[],
