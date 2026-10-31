@@ -93,7 +93,7 @@ async function generateVoiceDemoResponse(
 ): Promise<VoiceDemoResponse> {
   const lowerTranscript = transcript.toLowerCase().trim();
 
-  log.info({ transcript: transcript.slice(0, 100), sessionId }, 'Voice demo request');
+  log.info({ transcriptLen: transcript.length, sessionId }, 'Voice demo request');
 
   // Pattern-based responses for common topics
   // These are designed to showcase Ferni's empathetic coaching style

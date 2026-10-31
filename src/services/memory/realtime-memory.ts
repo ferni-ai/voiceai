@@ -230,7 +230,7 @@ export async function persistTurn(
     }
 
     log.debug(
-      { userId, conversationId, role: turn.role, preview: turn.content.slice(0, 40) },
+      { userId, conversationId, role: turn.role, contentLen: turn.content.length },
       '💾 Turn persisted to Firestore'
     );
   } catch (error) {
@@ -453,7 +453,7 @@ export async function markSummarized(
     }
 
     log.info(
-      { userId, conversationId, profile, summaryPreview: summary.slice(0, 50) },
+      { userId, conversationId, profile, summaryLen: summary.length },
       '✅ Conversation summarized'
     );
   } catch (error) {

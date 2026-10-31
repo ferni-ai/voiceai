@@ -111,7 +111,7 @@ export function checkTTSText(
         turnNumber: context?.turnNumber,
         personaId: context?.personaId,
         issues,
-        textPreview: text.substring(0, 200),
+        textLen: text.length,
       },
       'TTS text contains suspicious patterns that may be spoken literally'
     );

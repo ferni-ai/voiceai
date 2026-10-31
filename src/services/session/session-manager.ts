@@ -546,7 +546,7 @@ export async function createSessionServices(
         {
           openThreads: sessionPriming.openThreads.length,
           pendingFollowUps: sessionPriming.pendingFollowUps.length,
-          suggestedOpenerPreview: sessionPriming.suggestedOpener.slice(0, 50),
+          suggestedOpenerLen: sessionPriming.suggestedOpener.length,
         },
         '🎯 Session priming generated for returning user'
       );
@@ -579,7 +579,7 @@ export async function createSessionServices(
           {
             totalInsights: insightResult.insights.length,
             highPriority: insightResult.highPriorityCount,
-            suggestedStarter: insightResult.suggestedConversationStarter?.slice(0, 50),
+            suggestedStarterLen: insightResult.suggestedConversationStarter?.length,
           },
           'Generated proactive insights for returning user'
         );
@@ -920,7 +920,7 @@ export async function createSessionServices(
       const turnCount = historyTracker.getTurnCount();
       if (turnCount <= 5 || turnCount % 10 === 0) {
         getLogger().debug(
-          { sessionId, role, turnCount, contentPreview: content.slice(0, 50) },
+          { sessionId, role, turnCount, contentLen: content.length },
           `📝 Turn added (total: ${turnCount})`
         );
       }
@@ -1545,7 +1545,7 @@ export async function createSessionServices(
           services.userProfile = updated;
 
           getLogger().info(
-            { userId: validatedUserId, lastSummary: updated.lastConversationSummary?.slice(0, 50) },
+            { userId: validatedUserId, lastSummaryLen: updated.lastConversationSummary?.length },
             '✅ Saved profile for user'
           );
         } catch (error) {
@@ -1782,7 +1782,7 @@ export async function createSessionServices(
               getLogger().info(
                 {
                   userId: validatedUserId,
-                  fallbackSummary: updatedProfile.lastConversationSummary.slice(0, 60),
+                  fallbackSummaryLen: updatedProfile.lastConversationSummary.length,
                 },
                 '📝 Used fallback summary (LLM summarization unavailable)'
               );
@@ -2019,7 +2019,7 @@ export async function createSessionServices(
               userId: validatedUserId,
               totalConversations: updatedProfile.totalConversations,
               hasLastSummary: !!updatedProfile.lastConversationSummary,
-              lastSummaryPreview: updatedProfile.lastConversationSummary?.slice(0, 60),
+              lastSummaryLen: updatedProfile.lastConversationSummary?.length,
             },
             '✅ Profile saved with conversation data'
           );

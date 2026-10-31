@@ -416,7 +416,7 @@ export function initializeLiveBackchanneling<T>(
 
         log.debug(
           {
-            phrase: result.phrase.slice(0, 30),
+            phraseLen: result.phrase.length,
             speechDurationMs: context.userSpeakingDurationMs,
             pauseDurationMs: breathDetector.getCurrentPauseDuration(),
           },

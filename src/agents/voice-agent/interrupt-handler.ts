@@ -82,7 +82,7 @@ export function processInterruptSignals(ctx: InterruptContext): InterruptResult 
   if (microInterrupt.shouldStopAgent) {
     diag.state('Micro-interrupt triggered', {
       trigger: microInterrupt.trigger,
-      transcript: transcript.slice(0, 30),
+      transcriptLen: transcript.length,
     });
 
     // Set hard interrupt type for more deliberate recovery

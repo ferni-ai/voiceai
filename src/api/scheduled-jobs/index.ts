@@ -61,6 +61,7 @@ export const JOB_PATHS: ReadonlySet<string> = new Set([
   '/api/jobs/held-scrub-sweep',
   '/api/jobs/deep-analysis',
   '/api/jobs/pondering',
+  '/api/jobs/person-model',
   '/api/jobs/knowledge-graph-insights',
   '/api/jobs/knowledge-graph-consolidation',
   '/api/jobs/knowledge-graph-thread-maintenance',
@@ -125,6 +126,7 @@ import {
 } from './maintenance-jobs.js';
 
 import { handleDeliverReminders } from './reminder-jobs.js';
+import { handlePersonModel } from './person-model-job.js';
 import { handleReplyReportSummaryJob } from '../reply-reports/reply-report-summary.js';
 import {
   handleCalendarTriggers,
@@ -360,6 +362,10 @@ async function dispatchJob(
 
     case '/api/jobs/pondering':
       await handlePondering(res);
+      return true;
+
+    case '/api/jobs/person-model':
+      await handlePersonModel(req, res);
       return true;
 
     case '/api/jobs/knowledge-graph-insights':

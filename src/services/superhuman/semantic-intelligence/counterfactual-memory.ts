@@ -94,7 +94,7 @@ export async function recordDecisionPoint(
   decisionCache.set(userId, decisions);
   await saveDecisionPoint(userId, decisionPoint);
 
-  log.debug({ userId, advice: advice.slice(0, 50) }, '📍 Decision point recorded');
+  log.debug({ userId, adviceLen: advice.length }, '📍 Decision point recorded');
   return decisionPoint;
 }
 
