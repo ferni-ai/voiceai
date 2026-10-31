@@ -14,7 +14,7 @@ import {
   updateCustomAgent,
 } from '../../services/custom-agent/custom-agent-persistence-service.js';
 import type { CreateCustomAgentRequest } from '../../types/custom-agent-api.js';
-import { eraseCustomAgent } from '../../services/custom-agent/custom-agent-erase.js';
+import { eraseCustomAgent } from '../../services/custom-agent/index.js';
 import { sendJson } from './helpers.js';
 import { withoutJournalEcho, withStoreJournal } from './journal-view.js';
 import { activationErrors, readAgentUpdate } from './agent-update-policy.js';
