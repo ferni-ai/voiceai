@@ -529,8 +529,6 @@ function createPanel(): HTMLElement {
   return panel;
 }
 
-// Trigger button removed - now integrated into engagement-trigger.ui.ts
-
 // ============================================================================
 // RENDER FUNCTIONS
 // ============================================================================
@@ -625,9 +623,9 @@ function openPanel(): void {
   panelElement.classList.add('is-open');
 
   const isStale = !state.lastUpdated || Date.now() - state.lastUpdated > 60000;
-  if (isStale) {
-    void loadInsights();
-  }
+  // Fresh data (from the background check) is drawn; skipping it left the loading markup up.
+  if (isStale) void loadInsights();
+  else renderInsightsList();
 
   const closeBtn = panelElement.querySelector('.team-insights-close') as HTMLElement;
   closeBtn?.focus();
@@ -1568,6 +1566,8 @@ export function disposeTeamInsightsUI(): void {
   panelElement?.remove();
   panelElement = null;
   isInitialized = false;
+  state.isOpen = false;
+  state.isLoading = false;
   log.debug('TeamInsightsUI disposed');
 }
 

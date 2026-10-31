@@ -43,6 +43,7 @@ import {
   setUserContactInfo,
   SAVED_NOT_VERIFIED,
 } from '../proactive/outreach/index.js';
+import { ownerMessageTool } from '../proactive/outreach/owner-message-policy.js';
 import { userTimeZone } from '../../../utils/caller-time-zone.js';
 import {
   getPendingReminders,
@@ -732,16 +733,15 @@ import { getUnifiedScheduleDef, checkScheduleConflictsDef } from './unified-sche
 // ============================================================================
 
 const schedulingTools: ToolDefinition[] = [
-  scheduleMessageTool,
-  scheduleCallTool,
-  scheduleEmailTool,
-  sendMessageNowTool,
+  ...[scheduleMessageTool, scheduleCallTool, scheduleEmailTool, sendMessageNowTool].map(
+    ownerMessageTool
+  ),
   listScheduledTool,
   cancelScheduledTool,
   saveContactInfoTool,
   // Intelligent scheduling tools
   getOptimalSendTimeTool,
-  scheduleAtBestTimeTool,
+  ownerMessageTool(scheduleAtBestTimeTool),
   // Unified schedule view - "Better than Human" capability
   getUnifiedScheduleDef,
   checkScheduleConflictsDef,
