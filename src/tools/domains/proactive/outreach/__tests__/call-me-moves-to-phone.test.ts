@@ -48,7 +48,6 @@ function appSession() {
 /** The call's userData: session-manager's services, with the conversation it persists to. */
 const userDataFor = (conversationId = CONVERSATION) => ({
   userId: USER,
-  verifiedCaller: true, // an app caller the server verified (verified-owner-only.ts)
   services: { realtimeConversationId: conversationId },
 });
 
@@ -196,9 +195,7 @@ describe('CALL_ME_MOVES_TO_PHONE=on', () => {
   it('memory held for this call (no conversation persisted): the call still moves, with no reference', async () => {
     const { session } = appCall();
     portReturning({ success: true, status: 'initiated', live: true, dial: pendingDial().dial });
-    const reply = await replyAtOnce(
-      ask(session, { userId: USER, verifiedCaller: true, services: {} })
-    );
+    const reply = await replyAtOnce(ask(session, { userId: USER, services: {} }));
     expect(reply).toBe(RINGING_HAND_OVER);
     expect(requests[0].handover).toEqual({ conversationId: undefined });
   });
@@ -237,8 +234,8 @@ describe('one "call me" in flight per call (CALL_ME_MOVES_TO_PHONE=on)', () => {
     const { dial } = pendingDial();
     portReturning({ success: true, status: 'initiated', live: true, dial });
     const services = { sessionId: 'call-1', realtimeConversationId: CONVERSATION };
-    const first = ask(appSession(), { userId: USER, verifiedCaller: true, services });
-    const second = ask(appSession(), { userId: USER, verifiedCaller: true, services });
+    const first = ask(appSession(), { userId: USER, services });
+    const second = ask(appSession(), { userId: USER, services });
     expect(await Promise.all([first, second])).toEqual([TRYING_PHONE, ALREADY_RINGING]);
     expect(requests).toHaveLength(1);
   });

@@ -50,14 +50,12 @@ import { setCallUserPort, type CallUserPort } from '../call-user-port.js';
 import { getTelephonyToolDefinitions } from '../../../telephony/index.js';
 
 const ctx: ToolContext = { userId: 'owner-uid', agentId: 'ferni', agentDisplayName: 'Ferni' };
-/** The owner, verified on this call (verified-owner-only.ts). */
-const verifiedOwner = { ctx: { userData: { userId: 'owner-uid', verifiedCaller: true } } };
 const all: ToolDefinition[] = [...schedulingDefs, ...getAgentToUserOutreachDefinitions()];
 const run = (id: string, args: Record<string, unknown>) =>
   all
     .find((d) => d.id === id)!
     .create(ctx)
-    .execute({ ...args, ...STRANGER }, verifiedOwner);
+    .execute({ ...args, ...STRANGER }, {});
 
 /** The call-user port with the owner's verified phone and email; texts go through its guarded textOwner. */
 const guarded = vi.fn(async (..._a: unknown[]) => ({ sent: true }));
@@ -107,7 +105,7 @@ describe('owner-only tools ignore a destination in their arguments', () => {
     setCallUserPort({ verifiedPhone: async () => OWNER.phone, call: placed });
     try {
       const callUser = getTelephonyToolDefinitions().find((d) => d.id === 'callUser')!;
-      await callUser.create(ctx).execute({ message: 'hi', ...STRANGER }, verifiedOwner);
+      await callUser.create(ctx).execute({ message: 'hi', ...STRANGER }, {});
     } finally {
       setCallUserPort(undefined);
       vi.unstubAllEnvs();

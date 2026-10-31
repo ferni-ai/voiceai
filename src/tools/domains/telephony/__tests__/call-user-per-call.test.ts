@@ -127,7 +127,7 @@ describe('TOOLS_REAL_CALL_USER per person', () => {
     expect(await applyCallerFlags('seth', { store: seth })).toEqual(['TOOLS_REAL_CALL_USER']);
     const reply = await callUser.execute(
       { reason: 'check in', message: 'hey, checking in', ...SUPPLIED },
-      inCall({ userId: 'seth', verifiedCaller: true })
+      inCall({ userId: 'seth' })
     );
     expect(reply).toBe('Calling you now.');
     expect(outreach.verifiedPhone).toHaveBeenCalledWith('seth');
@@ -155,10 +155,7 @@ describe('TOOLS_REAL_CALL_USER per person', () => {
   it('a number the model supplies is never dialed', async () => {
     await applyCallerFlags('seth', { store: seth });
     const callUser = tool('callUser', { userId: 'seth' });
-    await callUser.execute(
-      { reason: 'call me', ...SUPPLIED },
-      inCall({ userId: 'seth', verifiedCaller: true })
-    );
+    await callUser.execute({ reason: 'call me', ...SUPPLIED }, inCall({ userId: 'seth' }));
     const dialed = outreach.call.mock.calls.map(
       (c) => (c[0] as { phoneNumber: string }).phoneNumber
     );
@@ -169,7 +166,7 @@ describe('TOOLS_REAL_CALL_USER per person', () => {
     outreach.verifiedPhone.mockResolvedValue(undefined);
     const reply = await callUser.execute(
       { reason: 'call me', ...SUPPLIED },
-      inCall({ userId: 'seth', verifiedCaller: true })
+      inCall({ userId: 'seth' })
     );
     expect(outreach.call).not.toHaveBeenCalled();
     expect(reply).toMatch(/no verified phone/);

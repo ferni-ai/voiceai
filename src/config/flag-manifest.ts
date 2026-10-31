@@ -446,6 +446,8 @@ const LEGACY_FLAG_MANIFEST = {
   TURN_TOKEN_RECEIPT: { default: 'off', owner: 'voice', kind: 'config' },
   UI_EVENTS_OVER_CALL: { default: 'off', owner: 'platform', kind: 'experiment' },
   UNFINISHED_TURN_HOLD: { default: 'on', owner: 'voice', kind: 'config' },
+  // an unverified call may message the owner only filtered, footed and twice (owner-message-policy.ts)
+  UNVERIFIED_OWNER_MESSAGE_FILTER: { default: 'off', owner: 'tools', kind: 'experiment' },
   USE_GENERATED_TOOL_DOCS: { default: 'off', owner: 'voice', kind: 'config' },
   ...FLAGS_USE_TO_VOICE,
   VOICE_PATTERN_ENGINE: { default: 'on', owner: 'voice', kind: 'kill-switch' },

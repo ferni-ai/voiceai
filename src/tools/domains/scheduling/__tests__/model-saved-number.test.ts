@@ -55,7 +55,7 @@ const run = async (id: string, args: Record<string, unknown>): Promise<string> =
     await definitions
       .find((d) => d.id === id)!
       .create(ctx)
-      .execute(args, { ctx: { userData: { userId: ctx.userId, verifiedCaller: true } } })
+      .execute(args, {})
   );
 const guarded = vi.fn(async (..._a: unknown[]) => ({ sent: true }));
 const port = (phone?: string, email?: string) => ({

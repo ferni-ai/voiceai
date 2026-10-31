@@ -95,12 +95,9 @@ const ctx = { userId: UID, agentId: 'ferni' } as never;
 type Exec = { execute: (params: Record<string, unknown>, opts?: unknown) => Promise<unknown> };
 const promises = () => fs.docsIn(`bogle_users/${UID}/ferni_commitments`);
 
-/** A scheduling tool, run for the owner the server verified on this call (verified-owner-only.ts). */
 async function domainTool(id: string): Promise<Exec> {
   const defs = await scheduling.getToolDefinitions();
-  const tool = defs.find((d) => d.id === id)?.create(ctx) as unknown as Exec;
-  const verified = { ctx: { userData: { userId: UID, verifiedCaller: true } } };
-  return { execute: (params) => tool.execute(params, verified) };
+  return defs.find((d) => d.id === id)?.create(ctx) as unknown as Exec;
 }
 
 interface Path {

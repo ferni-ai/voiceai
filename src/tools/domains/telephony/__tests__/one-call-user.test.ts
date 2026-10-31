@@ -8,18 +8,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { getToolDefinitions as getProactiveDefinitions } from '../../proactive/index.js';
 import { setCallUserPort } from '../../proactive/outreach/call-user-port.js';
-import { OWNER_NEEDS_VERIFICATION } from '../../proactive/outreach/verified-owner-only.js';
 import { getTelephonyToolDefinitions } from '../index.js';
 import { CANT_CALL_NOW } from '../telephony.js';
 import type { ToolContext, ToolDefinition } from '../../../registry/types.js';
 
 const ctx = { agentId: 'ferni', agentDisplayName: 'Ferni' } as ToolContext;
 const opts = { toolCallId: 'test-call-id', ctx: {} as never };
-/** A run whose caller the server verified on this call (verified-owner-only.ts). */
-const verifiedAs = (userId: string): typeof opts => ({
-  toolCallId: 'test-call-id',
-  ctx: { userData: { userId, verifiedCaller: true } } as never,
-});
 
 type Executable = { execute: (args: Record<string, string>, o: typeof opts) => Promise<string> };
 
@@ -29,7 +23,7 @@ function callUserFrom(definitions: ToolDefinition[]): ToolDefinition[] {
 
 async function runCallUser(definition: ToolDefinition, as: ToolContext = ctx): Promise<string> {
   const tool = definition.create(as) as unknown as Executable;
-  return tool.execute({ reason: 'check in', message: 'hi' }, verifiedAs(as.userId));
+  return tool.execute({ reason: 'check in', message: 'hi' }, opts);
 }
 
 /** The outreach side of callUser (services/outreach/call-user-adapter.ts), faked */
@@ -64,10 +58,10 @@ describe('callUser has one definition', () => {
     process.env.TOOLS_REAL_CALL_USER = 'on';
     const [def] = callUserFrom(getTelephonyToolDefinitions());
     expect(def.domain).toBe('telephony');
-    // The real tool needs a verified caller before it can look up a number; the stub never asks.
+    // The real tool needs a user before it can look up a number; the stub never asks.
     const result = await runCallUser(def);
     expect(result).not.toBe(CANT_CALL_NOW);
-    expect(result).toBe(OWNER_NEEDS_VERIFICATION);
+    expect(result).toBe("I'd need to know who you are to call you.");
   });
 
   describe('flag on: who gets called', () => {
@@ -97,10 +91,7 @@ describe('callUser has one definition', () => {
       outreach.call.mockResolvedValue({ success: true, status: 'scheduled' });
       const [def] = callUserFrom(getTelephonyToolDefinitions());
       const tool = def.create(user) as unknown as Executable;
-      const reply = await tool.execute(
-        { message: 'hi', phoneNumber: '+19005550100' },
-        verifiedAs('u1')
-      );
+      const reply = await tool.execute({ message: 'hi', phoneNumber: '+19005550100' }, opts);
       expect(outreach.call).toHaveBeenCalledTimes(1);
       expect(outreach.call).toHaveBeenCalledWith(
         expect.objectContaining({ userId: 'u1', phoneNumber: '+15551230000', message: 'hi' })

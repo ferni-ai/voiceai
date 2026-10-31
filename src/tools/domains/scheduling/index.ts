@@ -42,7 +42,7 @@ import {
   textUser,
   setUserContactInfo,
   SAVED_NOT_VERIFIED,
-  verifiedOwnerOnly,
+  ownerMessageTool,
 } from '../proactive/outreach/index.js';
 import { userTimeZone } from '../../../utils/caller-time-zone.js';
 import {
@@ -734,14 +734,14 @@ import { getUnifiedScheduleDef, checkScheduleConflictsDef } from './unified-sche
 
 const schedulingTools: ToolDefinition[] = [
   ...[scheduleMessageTool, scheduleCallTool, scheduleEmailTool, sendMessageNowTool].map(
-    verifiedOwnerOnly
+    ownerMessageTool
   ),
   listScheduledTool,
   cancelScheduledTool,
   saveContactInfoTool,
   // Intelligent scheduling tools
   getOptimalSendTimeTool,
-  verifiedOwnerOnly(scheduleAtBestTimeTool),
+  ownerMessageTool(scheduleAtBestTimeTool),
   // Unified schedule view - "Better than Human" capability
   getUnifiedScheduleDef,
   checkScheduleConflictsDef,

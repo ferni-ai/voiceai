@@ -48,8 +48,8 @@ export {
   getAgentToUserOutreachDefinitions,
 } from './agent-to-user.js';
 
-// Owner-only tools run only for a caller verified on this call
-export { verifiedOwnerOnly, OWNER_NEEDS_VERIFICATION } from './verified-owner-only.js';
+// Every message the model writes to the owner goes through one policy
+export { ownerMessagePolicy, ownerMessageTool } from './owner-message-policy.js';
 
 // Default export for domain loading
 import { getAgentToUserOutreachDefinitions } from './agent-to-user.js';

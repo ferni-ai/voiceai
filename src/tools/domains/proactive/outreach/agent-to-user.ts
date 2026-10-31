@@ -32,7 +32,7 @@ import { callPlacedReply } from './call-placed-reply.js';
 import { callMeMovesToPhone, callMovingToPhone } from './call-me-moves-to-phone.js';
 import { getCallUserPort } from './call-user-port.js';
 import { SAVED_NOT_VERIFIED } from './service.js';
-import { verifiedOwnerOnly } from './verified-owner-only.js';
+import { ownerMessageTool } from './owner-message-policy.js';
 import {
   getPersonaDisplayName,
   getCanonicalPersonaId,
@@ -202,7 +202,7 @@ follow-ups, and celebrations. Only ask for this when they want to receive messag
 /**
  * Schedule a proactive reminder
  */
-export const scheduleReminderDef: ToolDefinition = verifiedOwnerOnly({
+export const scheduleReminderDef: ToolDefinition = ownerMessageTool({
   id: 'scheduleProactiveReminder',
   name: 'Schedule Proactive Reminder',
   description: 'Schedule a reminder to reach out to the user',
@@ -319,7 +319,7 @@ Use for: follow-ups, accountability check-ins, celebrations, and scheduled remin
 /**
  * Send immediate outreach
  */
-export const sendImmediateOutreachDef: ToolDefinition = verifiedOwnerOnly({
+export const sendImmediateOutreachDef: ToolDefinition = ownerMessageTool({
   id: 'sendImmediateOutreach',
   name: 'Send Immediate Outreach',
   description: 'Send an immediate message to the user via their preferred method',
@@ -402,7 +402,7 @@ Use when you need to reach them right now outside of the conversation.`,
  * contactInfo.phone, and calling hours and quiet hours decide when it rings
  * (call-user-port.ts; the call session installs the outreach adapter).
  */
-export const callUserDef: ToolDefinition = verifiedOwnerOnly({
+export const callUserDef: ToolDefinition = ownerMessageTool({
   id: 'callUser',
   name: 'Call User',
   description: 'Place a phone call to the user with a voice message',
