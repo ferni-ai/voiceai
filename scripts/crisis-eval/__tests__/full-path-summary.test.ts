@@ -13,6 +13,7 @@ const rec = (
 ): TurnRecord => ({
   set: 'test',
   shape: 'shape',
+  split: 'shared',
   turnId: `${over.callId}#${over.index}`,
   rep: 0,
   activated: false,

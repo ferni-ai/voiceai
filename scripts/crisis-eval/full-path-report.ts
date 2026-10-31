@@ -81,6 +81,14 @@ export function renderReport(
   );
   out.push(`| recall regressions vs baseline | ${extra.regressions.length} |`);
   out.push('');
+  out.push('## Tuned on vs held out (multi-turn corpora)');
+  out.push('');
+  out.push(
+    '| split | must-catch reads caught | must-not-alarm reads alarmed | false-alarm call reads |\n|---|---|---|---|'
+  );
+  for (const [k, g] of Object.entries(s.bySplit).sort())
+    out.push(`| ${k} | ${pct(g.caught)} | ${pct(g.alarmed)} | ${pct(g.falseAlarmCalls)} |`);
+  out.push('');
   out.push('## Paths that fired');
   out.push('');
   out.push('All reads, then false alarms only.');

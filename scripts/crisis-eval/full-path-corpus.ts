@@ -111,6 +111,19 @@ export function callOfCase(c: Case): SimCallSpec {
   };
 }
 
+/**
+ * Which part of the corpus a call is in, so a fix tuned on hard negatives is
+ * judged on calls it never saw: every third call of a shape in the multi-turn
+ * corpora (the ones numbered 03, 06, 09 ...) is `heldout`, the rest `tune`;
+ * the repo's labelled single-turn sets are `shared`. Every split is run, and
+ * recall is gated on all of them.
+ */
+export function splitOf(call: Pick<SimCallSpec, 'id' | 'set'>): 'tune' | 'heldout' | 'shared' {
+  if (call.set !== 'hard-negatives' && call.set !== 'positives') return 'shared';
+  const n = Number(/-(\d+)$/.exec(call.id)?.[1] ?? 1);
+  return n % 3 === 0 ? 'heldout' : 'tune';
+}
+
 /** Everything the simulator runs, filtered by CRISIS_EVAL_SETS when set. */
 export function allCalls(sets: string[] | null): SimCallSpec[] {
   const calls = [...loadCorpora(), ...labelledCases().map(callOfCase)];

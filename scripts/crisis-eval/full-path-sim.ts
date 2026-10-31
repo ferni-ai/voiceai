@@ -34,7 +34,7 @@ import {
 import { hasRiskContent } from '../../src/services/safety/crisis-agreement.js';
 import { resetCrisisCallRisk } from '../../src/services/safety/crisis-call-risk.js';
 import { resetCallRiskSnapshots } from '../../src/services/safety/crisis-lone-imminent.js';
-import { allCalls, NEUTRAL_REPLIES, type SimCallSpec } from './full-path-corpus.js';
+import { allCalls, NEUTRAL_REPLIES, splitOf, type SimCallSpec } from './full-path-corpus.js';
 import { resolveProfile } from './full-path-profiles.js';
 import { costOf, renderReport } from './full-path-report.js';
 import {
@@ -125,6 +125,7 @@ async function runCall(
       callId: spec.id,
       set: spec.set,
       shape: spec.shape,
+      split: splitOf(spec),
       index,
       turnId: `${spec.id}#${index}`,
       label: turn.label,

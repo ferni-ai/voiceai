@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { callOfCase, corpusProblems, loadCorpora } from '../full-path-corpus.js';
+import { callOfCase, corpusProblems, loadCorpora, splitOf } from '../full-path-corpus.js';
 import { labelledCases } from '../labelled-cases.js';
 
 const calls = loadCorpora();
@@ -16,22 +16,20 @@ const shapes = (set: string) => [...new Set(bySet(set).map((c) => c.shape))];
 describe('corpora', () => {
   it('has both sets with at least 8 calls in every shape', () => {
     expect(shapes('hard-negatives').length).toBeGreaterThanOrEqual(11);
-    expect(shapes('positives').length).toBeGreaterThanOrEqual(6);
+    expect(shapes('positives').length).toBeGreaterThanOrEqual(7);
     for (const set of ['hard-negatives', 'positives'])
       for (const shape of shapes(set))
         expect(bySet(set).filter((c) => c.shape === shape).length, shape).toBeGreaterThanOrEqual(8);
   });
 
-  it('labels hard negatives must-not-alarm after their first turn, positives must-catch somewhere', () => {
+  it('never labels a hard-negative turn must-catch, and keeps most of them must-not-alarm', () => {
     for (const c of bySet('hard-negatives')) {
-      expect(
-        c.turns.slice(1).every((t) => t.label === 'must-not-alarm'),
-        c.id
-      ).toBe(true);
       expect(
         c.turns.some((t) => t.label === 'must-catch'),
         c.id
       ).toBe(false);
+      const quiet = c.turns.filter((t) => t.label === 'must-not-alarm').length;
+      expect(quiet * 2, c.id).toBeGreaterThan(c.turns.length);
     }
     for (const c of bySet('positives'))
       expect(
@@ -40,13 +38,37 @@ describe('corpora', () => {
       ).toBe(true);
   });
 
+  it('holds a same-topic vent for 4 to 6 turns', () => {
+    for (const c of bySet('hard-negatives').filter((x) => x.shape === 'same-topic-heavy'))
+      expect(c.turns.length, c.id).toBeGreaterThanOrEqual(4);
+  });
+
+  it('holds back a third of every multi-turn shape, and never a labelled repo case', () => {
+    for (const set of ['hard-negatives', 'positives'])
+      for (const shape of shapes(set)) {
+        const inShape = bySet(set).filter((c) => c.shape === shape);
+        const held = inShape.filter((c) => splitOf(c) === 'heldout').length;
+        expect(held, shape).toBe(Math.floor(inShape.length / 3));
+      }
+    expect(splitOf({ id: 'dev-3', set: 'dev' })).toBe('shared');
+  });
+
+  it('carries strong risk inside a topic change, a goodbye, a denial and after a 988 line', () => {
+    const strong = bySet('positives').filter((c) => c.shape === 'strong-risk-in-narrowing');
+    expect(strong.length).toBeGreaterThanOrEqual(8);
+    expect(strong.filter((c) => c.turns[0].ferni?.includes('988')).length).toBeGreaterThanOrEqual(
+      3
+    );
+    expect(strong.filter((c) => splitOf(c) === 'heldout').length).toBeGreaterThanOrEqual(3);
+  });
+
   it('keeps 4 or more mundane follow-ups after a stressful line', () => {
     for (const c of bySet('hard-negatives').filter((x) => x.shape === 'stress-then-mundane'))
       expect(c.turns.length - 1, c.id).toBeGreaterThanOrEqual(4);
   });
 
-  it('puts a 988 line before every denial', () => {
-    for (const c of bySet('hard-negatives').filter((x) => x.shape === 'denial-after-988'))
+  it('puts a 988 line before every denial and every suggestive-after-988 call', () => {
+    for (const c of bySet('hard-negatives').filter((x) => x.shape.endsWith('after-988')))
       expect(c.turns[0].ferni, c.id).toMatch(/988/);
   });
 });

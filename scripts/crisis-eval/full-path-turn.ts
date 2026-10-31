@@ -18,9 +18,10 @@
  * from that memory with the production crisisFromSignal and followUpCrisis.
  * The reply model is a stub. Ferni's line back into the call is the script when
  * the reply was replaced; on a guided turn (crisis guidance added by the gate or
- * the pipeline), the guard's own guided-level 988 text, which is what a guided
- * prod reply says and what then reaches the classifier's COMPANION field and the
- * agreement scan; otherwise a short neutral line. `guidedReply: 'neutral'` gives
+ * the pipeline), a production variant of the guard's guided-level 988 text,
+ * some ending in a direct safety check-in (guided-reply.ts), which is what a
+ * guided prod reply says and what then reaches the classifier's COMPANION field
+ * and the agreement scan; otherwise a short neutral line. `guidedReply: 'neutral'` gives
  * guided turns the neutral line instead, for comparison.
  */
 
@@ -48,6 +49,7 @@ import {
 } from '../../src/services/human-transfer/crisis-signals.js';
 import type { CrisisGenerateFn } from '../../src/services/safety/crisis-classifier.js';
 import { NEUTRAL_REPLIES } from './full-path-corpus.js';
+import { guidedReplyFor } from './guided-reply.js';
 import type { FiredPath, LineState } from './full-path-summary.js';
 
 type Line = { role: 'user' | 'assistant'; text: string };
@@ -239,12 +241,15 @@ export async function simulateTurn(
   // A guided turn: the guard's guided-level text for this turn (crisis-guard.ts getCrisisResponse,
   // through applyClassifierVerdict), the pipeline's own when it read the turn as crisis.
   const guided = !replaced && (gateGuided || summary.isCrisis);
-  const guidedLine =
+  const guidedText =
     guided && options.guidedReply !== 'neutral'
       ? summary.isCrisis && resolved.suggestedResponse
         ? resolved.suggestedResponse
         : applyClassifierVerdict(patterns, { risk: 'crisis', subject: 'self' }).suggestedResponse
       : undefined;
+  // One production variant per turn, some ending in a direct safety check-in (guided-reply.ts).
+  const guidedLine =
+    guidedText && guidedReplyFor(guidedText, `${call.sessionId}#${call.callerTurn}`);
   // A corpus `ferni` line is the shape under test (a 988 line before a denial), so it wins.
   const ferni = options.ferni ?? (replaced ? script : (guidedLine ?? spoken));
   call.history.push({ role: 'user', text }, { role: 'assistant', text: ferni });

@@ -25,6 +25,8 @@ export interface TurnRecord {
   callId: string;
   set: string;
   shape: string;
+  /** tune, heldout or shared (full-path-corpus.ts splitOf). */
+  split: string;
   /** Position of the turn in its call, from 0. */
   index: number;
   /** `<callId>#<index>`: stable across runs, never the words. */
@@ -95,6 +97,8 @@ export interface SimSummary {
   /** Per set and per shape: must-catch reads caught, must-not-alarm reads alarmed. */
   bySet: Record<string, { caught: Ratio; alarmed: Ratio }>;
   byShape: Record<string, { caught: Ratio; alarmed: Ratio }>;
+  /** Tuned on vs held out: must-catch reads caught, must-not-alarm reads alarmed, false-alarm call reads. */
+  bySplit: Record<string, { caught: Ratio; alarmed: Ratio; falseAlarmCalls: Ratio }>;
   /** Per must-catch turn: [reps caught, reps run]. Ids only. */
   perTurn: Record<string, [number, number]>;
 }
@@ -170,6 +174,9 @@ export function summarise(
     calls.set(key, [...(calls.get(key) ?? []), r]);
   }
   const faCalls = ratio(0, 0);
+  const bySplit: SimSummary['bySplit'] = {};
+  for (const [k, g] of Object.entries(group(records, (r) => r.split)))
+    bySplit[k] = { ...g, falseAlarmCalls: ratio(0, 0) };
   const loops = ratio(0, 0);
   const negLoops = ratio(0, 0);
   const afterActivated = ratio(0, 0);
@@ -179,8 +186,14 @@ export function summarise(
   for (const turns of calls.values()) {
     turns.sort((a, b) => a.index - b.index);
     if (turns.some((t) => t.label === 'must-not-alarm')) {
+      const alarmed = turns.some((t) => t.label === 'must-not-alarm' && t.activated);
       faCalls.of++;
-      if (turns.some((t) => t.label === 'must-not-alarm' && t.activated)) faCalls.n++;
+      if (alarmed) faCalls.n++;
+      const split = bySplit[turns[0].split];
+      if (split) {
+        split.falseAlarmCalls.of++;
+        if (alarmed) split.falseAlarmCalls.n++;
+      }
     }
     const looped = turns.filter((t) => t.replaced).length >= 2;
     loops.of++;
@@ -243,6 +256,7 @@ export function summarise(
     softChecks,
     bySet: group(records, (r) => r.set),
     byShape: group(records, (r) => r.shape),
+    bySplit,
     perTurn,
   };
 }
