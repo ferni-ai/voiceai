@@ -1,8 +1,9 @@
 /**
  * The semantic-router executor builds its own tool options for each routed run
  * (domain-bridge/executor.ts). The owner-message cap must still count per call,
- * keyed by the voice session id, and a caller the server verified on that call
- * (rememberVerifiedCaller, recorded at identification) must stay unchanged.
+ * keyed by the voice session id. A routed run carries no verified bit, so it is
+ * always treated as unverified (fail closed), even when the voice session's
+ * caller was verified: a known limitation until the router passes userData.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -10,7 +11,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const registered = vi.hoisted(() => new Map<string, unknown>());
 vi.mock('../../../../registry/index.js', () => ({ getTool: (id: string) => registered.get(id) }));
 
-import { rememberVerifiedCaller } from '../../../../../services/identity/verified-caller.js';
 import { executeDomainTool } from '../../../../semantic-router/domain-bridge/index.js';
 import { setCallUserPort, type CallUserPort } from '../call-user-port.js';
 import { definitions as schedulingDefinitions } from '../../../scheduling/index.js';
@@ -59,11 +59,12 @@ describe('routed owner messages', () => {
     expect(said().every((s) => s.includes(`hi\n\n${UNVERIFIED_FOOTER}`))).toBe(true);
   });
 
-  it('a caller verified on this call is unchanged: no footer, no cap', async () => {
-    const id = session('AJ_verified');
-    rememberVerifiedCaller(id, OWNER);
-    for (let i = 0; i < 3; i++) await routedText(id);
+  it('each call has its own count, and a routed run is never treated as verified', async () => {
+    const first = session('AJ_first');
+    await routedText(first);
+    await routedText(first);
+    await routedText(session('AJ_second'));
     expect(said()).toHaveLength(3);
-    expect(said().some((s) => s.includes(UNVERIFIED_FOOTER))).toBe(false);
+    expect(said().every((s) => s.includes(UNVERIFIED_FOOTER))).toBe(true);
   });
 });

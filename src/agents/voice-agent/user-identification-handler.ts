@@ -36,10 +36,7 @@ import {
 } from '../voice-agent-entry/caller-recognition.js';
 import { flagOn } from '../../config/env-flag.js';
 import { newAnonymousId } from '../../services/identity/anonymous-session-id.js';
-import {
-  isVerifiedIdentification,
-  rememberVerifiedCaller,
-} from '../../services/identity/verified-caller.js';
+import { isVerifiedIdentification } from '../../services/identity/verified-caller.js';
 import { deviceNameGuardEnabled, isDeviceOrHandleName } from './device-name-guard.js';
 
 // ============================================================================
@@ -128,7 +125,6 @@ export async function identifyUser(
       userId = identification.userId;
       identificationSource = identification.source.type;
       verified = isVerifiedIdentification(identification.source, metadata);
-      if (verified && userId) rememberVerifiedCaller(sessionId, userId); // routed tool paths (verified-caller.ts)
 
       // CRITICAL: Only use REAL names, never placeholders!
       // Priority: 1. Profile name (persistent), 2. Metadata name (if real)

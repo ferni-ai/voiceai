@@ -28,10 +28,7 @@
 
 import { flagOn } from '../../../../config/env-flag.js';
 import { isMemberIdentity } from '../../../../services/identity/member-identity.js';
-import {
-  verifiedCallerId,
-  verifiedCallerOfSession,
-} from '../../../../services/identity/verified-caller.js';
+import { verifiedCallerId } from '../../../../services/identity/verified-caller.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { callSessionData } from '../../../utils/call-session-data.js';
@@ -142,8 +139,8 @@ export function ownerMessagePolicy(message: OwnerMessage): OwnerMessageDecision 
   if (!unverifiedOwnerMessageFilterOn()) return { outcome: 'unchanged' };
   const call = callSessionData(message.opts);
   const member = isMemberIdentity(message.ownerId);
-  const verified = verifiedCallerId(call) ?? verifiedCallerOfSession(sessionIdOf(call));
-  if (member && verified === message.ownerId) return { outcome: 'unchanged' };
+  // A routed run (semantic-router executor) carries no verified bit: unverified, fail closed
+  if (member && verifiedCallerId(call) === message.ownerId) return { outcome: 'unchanged' };
   const decision = member ? unverifiedDecision(message, call) : refuse('no_account');
   if (decision.outcome === 'refused') logOutcome(message, decision.reason);
   return decision;
