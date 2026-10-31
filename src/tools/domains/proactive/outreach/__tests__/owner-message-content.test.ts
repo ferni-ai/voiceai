@@ -153,6 +153,8 @@ describe('property: disguises the one ASCII fold undoes (security review, 2026-1
     ['ᴠᴇʀɪꜰʏ your account', 'credential_ask'],
     ['pat at ıcloud', 'mail_provider'],
     ['55S-O1l2 now', 'digits'],
+    ['call 2ooo ooo l', 'digits'],
+    ['555 l23 IS 4o', 'digits'],
     ['1a2b3c4', 'digits'],
     ['e.g.com', 'address_token'],
   ])('%s -> %s', (text, reason) => {
