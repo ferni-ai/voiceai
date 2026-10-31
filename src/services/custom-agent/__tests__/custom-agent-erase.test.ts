@@ -42,6 +42,7 @@ describe('eraseCustomAgent', () => {
   it.each([
     ['a stock voice', { type: 'selected', voiceId: STOCK }],
     ['a stock id marked cloned', { type: 'cloned', voiceId: STOCK }],
+    ['an uppercase stock id marked cloned', { type: 'cloned', voiceId: ` ${STOCK.toUpperCase()}` }],
     ['a persona voice marked cloned', { type: 'cloned', voiceId: PERSONA }],
     ['a retired clone marked cloned', { type: 'cloned', voiceId: RETIRED }],
     ['an uppercase persona voice', { type: 'cloned', voiceId: PERSONA.toUpperCase() }],

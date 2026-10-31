@@ -21,8 +21,8 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { deleteCartesiaVoice, type CartesiaVoiceDeleteResult } from './cartesia-voice-delete.js';
 import { deleteCustomAgent, getCustomAgent } from './custom-agent-persistence-service.js';
 import {
+  CUSTOM_AGENT_STOCK_VOICE_IDS,
   isForbiddenCustomAgentVoiceId,
-  isStockCustomAgentVoiceId,
 } from './custom-agent-voice-policy.js';
 import { deleteAgentAudioFiles } from './gcs-storage-service.js';
 
@@ -46,7 +46,10 @@ const productionDeps: CustomAgentEraseDeps = {
 export function ownCloneVoiceId(voice: Partial<CustomAgentVoice> | undefined): string | null {
   const voiceId = voice?.voiceId;
   if (voice?.type !== 'cloned' || typeof voiceId !== 'string' || !voiceId) return null;
-  if (isStockCustomAgentVoiceId(voiceId) || isForbiddenCustomAgentVoiceId(voiceId)) return null;
+  const stock = [...CUSTOM_AGENT_STOCK_VOICE_IDS].some(
+    (id) => id.toLowerCase() === voiceId.trim().toLowerCase()
+  );
+  if (stock || isForbiddenCustomAgentVoiceId(voiceId)) return null;
   return voiceId;
 }
 
