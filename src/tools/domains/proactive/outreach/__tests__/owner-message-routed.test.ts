@@ -14,7 +14,11 @@ vi.mock('../../../../registry/index.js', () => ({ getTool: (id: string) => regis
 import { executeDomainTool } from '../../../../semantic-router/domain-bridge/index.js';
 import { setCallUserPort, type CallUserPort } from '../call-user-port.js';
 import { definitions as schedulingDefinitions } from '../../../scheduling/index.js';
-import { UNVERIFIED_CAP_REFUSAL, UNVERIFIED_FOOTER } from '../owner-message-policy.js';
+import {
+  UNVERIFIED_CAP_REFUSAL,
+  UNVERIFIED_FOOTER,
+  UNVERIFIED_NOTHING_SENT_REFUSAL,
+} from '../owner-message-policy.js';
 
 for (const def of schedulingDefinitions) registered.set(def.id, def);
 
@@ -24,13 +28,13 @@ const port = { verifiedPhone: async () => '+15555550100', textOwner, call: vi.fn
 /** A session id the way voice-agent-entry mints it. */
 const session = (job: string) => `session-${job}-${Date.now()}`;
 
-const routedText = (sessionId: string) =>
+const routedText = (sessionId: string | undefined) =>
   executeDomainTool(
     'message_send',
     { message: 'hi', to: '+15555550199' },
     {
       userId: OWNER,
-      sessionId,
+      sessionId: sessionId as string, // undefined when the voice context has none
       personaId: 'ferni',
       conversationHistory: [],
       services: null,
@@ -66,5 +70,14 @@ describe('routed owner messages', () => {
     await routedText(session('AJ_second'));
     expect(said()).toHaveLength(3);
     expect(said().every((s) => s.includes(UNVERIFIED_FOOTER))).toBe(true);
+  });
+
+  it('a routed run with no session id is refused (no_session), never counted afresh', async () => {
+    for (let i = 0; i < 3; i++) {
+      expect(JSON.stringify(await routedText(undefined))).toContain(
+        UNVERIFIED_NOTHING_SENT_REFUSAL
+      );
+    }
+    expect(said()).toHaveLength(0);
   });
 });

@@ -63,12 +63,14 @@ const NUMBER_WORDS: Readonly<Record<string, string>> = {
 const REPEATS: Readonly<Record<string, number>> = { double: 2, triple: 3 };
 const DIALS = /^(?:call(?:s|ed|ing)?|dial(?:s|ed|ing|led|ling)?|texts?|texted|texting|repl(?:y|ies|ied|ying)|sends?|sending|sent|rings?|ringing|rang)$/; // prettier-ignore
 const ADDRESS_WORDS = /\b(?:dot|period|point|dash|hyphen|underscore|slash|www|https?|com|net|org|io|info|biz|xyz|ru|uk)\b/; // prettier-ignore
+/** A dot word glued to a TLD, inside any word: "evildotcom", "evil-dotnet". */
+const GLUED_ADDRESS = /(?:dot|period|point)(?:com|net|org|io|info|biz|xyz|ru|uk)\b/;
 const own = <T>(table: Readonly<Record<string, T>>, key: string | undefined): T | undefined =>
   key !== undefined && Object.hasOwn(table, key) ? table[key] : undefined;
 /** fe dropped "live" (2026-10-31): "meet at Live Oak Park". */
 const MAIL_PROVIDERS = /^(?:gmail|yahoo|outlook|hotmail|icloud|aol|proton|protonmail|msn)$/;
-const CREDENTIAL_PHRASE = /\b(?:card\s*numbers?|bank\s*accounts?|account\s*numbers?|routing\s*numbers?|(?:verification|one[\s-]*time|security|login|log[\s-]*in)\s*codes?|gift\s*cards?)\b/; // prettier-ignore
-const CREDENTIAL_WORD = /\b(?:verif(?:y|ies|ied|ying|ications?)|pass[\s-]*words?|pins?|ssns?|social\s*security(?:\s*numbers?)?|(?:re[\s-]*)?log(?:s|ged|ging)?[\s-]*(?:back[\s-]*)?in|logins?|wires?|wired|wiring)\b/; // prettier-ignore
+const CREDENTIAL_PHRASE = /\b(?:card\s*numbers?|bank\s*accounts?|account\s*numbers?|routing\s*numbers?|(?:verification|one[\s-]*time|security|login|log[\s-]*in|authentication)\s*(?:pass\s*)?codes?|gift\s*cards?)\b/; // prettier-ignore
+const CREDENTIAL_WORD = /\b(?:verif(?:y|ies|ied|ying|ications?)|pass[\s-]*words?|pass[\s-]*codes?|otps?|pins?|ssns?|social\s*security(?:\s*numbers?)?|(?:re[\s-]*)?log(?:s|ged|ging)?[\s-]*(?:back[\s-]*)?in|logins?|wires?|wired|wiring)\b/; // prettier-ignore
 const CODE_ASK = /^(?:send|sends|sent|reply|replies|enter|share|read|type|text|texts|texted)$/;
 
 interface Token {
@@ -282,7 +284,7 @@ export function blockedContent(text: string): ContentBlock | null {
   const digits = digitBlock(plain);
   if (digits) return digits;
   const dotted = withoutAbbreviationDots(form);
-  if (ADDRESS_WORDS.test(plain) || ADDRESS_DOTS.some((dot) => dot.test(dotted))) return 'address_token'; // prettier-ignore
+  if (ADDRESS_WORDS.test(plain) || GLUED_ADDRESS.test(plain) || ADDRESS_DOTS.some((dot) => dot.test(dotted))) return 'address_token'; // prettier-ignore
   if (/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/.test(plain)) return 'address_token';
   const words = [...plain.matchAll(/\p{L}+/gu)].map((m) => m[0]);
   // "at" then a provider within 2 words, also split across two ("g mail", "proton mail")

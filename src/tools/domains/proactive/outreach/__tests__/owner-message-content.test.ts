@@ -53,31 +53,62 @@ describe('property: shapes a phishing text needs never pass', () => {
   it('letters, a separator, then any TLD', () => {
     const label = fc.stringMatching(/^[a-z]{2,10}$/);
     const tld = fc.stringMatching(/^[a-z]{2,6}$/);
-    const sep = pick([
-      '.',
-      ':',
-      ' dot ',
-      ' DOT ',
-      '-dot-',
-      ' (dot) ',
-      ' period ',
-      ' point ',
-      '[.]',
-      '. ',
-    ]);
+    const sep = pick(['.', ':', ' dot ', ' DOT ', '-dot-', ' (dot) ', ' period ', ' point ', '. ']);
     const domain = fc
       .tuple(label, sep, tld)
       .map(([l, s, t]) => (s === '. ' ? `${l}.${t}` : l + s + t));
-    fc.assert(fc.property(around(domain), (text) => blockedContent(text) !== null), { seed: 3227, numRuns: 500 }); // prettier-ignore
+    fc.assert(fc.property(around(domain), (text) => blockedContent(text) === 'address_token'), { seed: 3227, numRuns: 500 }); // prettier-ignore
+  });
+
+  it('a dot word glued to a TLD: "evildotcom", "evil-dotnet", "evil dotcom"', () => {
+    const label = fc.stringMatching(/^[a-z]{2,10}$/);
+    const glue = pick(['dot', '-dot', 'dot-', ' dot', 'period', 'point', '-point', ' DOT']);
+    const tld = pick(['com', 'net', 'org', 'io', 'info', 'biz', 'xyz', 'ru', 'uk']);
+    const glued = fc.tuple(label, glue, tld).map((p) => p.join(''));
+    fc.assert(fc.property(around(glued), (text) => blockedContent(text) === 'address_token'), { seed: 3227, numRuns: 500 }); // prettier-ignore
+    for (const text of [
+      'evil dotcom',
+      'evil-dotcom',
+      'evildotcom',
+      'evil dotnet',
+      'go to evil dotcom now',
+    ]) {
+      expect(blockedContent(text)).toBe('address_token');
+    }
+  });
+
+  it('seven digits a word apart, inside 30 characters (only the character window sees it)', () => {
+    const letters = fc.stringMatching(/^[abcdefghjkmnpqrtuvwxyz]{2}$/);
+    const spread = fc
+      .array(fc.tuple(fc.integer({ min: 2, max: 7 }), letters), { minLength: 7, maxLength: 7 })
+      .map((parts) => parts.map(([d, l], i) => (i ? `-${l[0]}-${l[1]}-` : '') + d).join(''));
+    fc.assert(fc.property(spread, (text) => blockedContent(text) === 'digits'), { seed: 3227, numRuns: 500 }); // prettier-ignore
+    expect(blockedContent('5-a-b-5-a-b-5-a-b-5-a-b-5-a-b-5-a-b-5')).toBe('digits');
+  });
+
+  it('characters outside the allowlist', () => {
+    const outside = ['@', '&', '%', '#', '$', '*', '+', '=', '"', ';', ...[0x2212, 0x00b7, 0x2022, 0x1f642].map((c) => String.fromCodePoint(c))]; // prettier-ignore
+    const text = fc.tuple(pick(['see you', 'call mom', 'dinner at 7']), pick(outside), pick(['soon', 'ok', 'now'])).map((p) => p.join(' ')); // prettier-ignore
+    fc.assert(fc.property(text, (t) => blockedContent(t) === 'charset'), { seed: 3227, numRuns: 300 }); // prettier-ignore
+  });
+
+  it('three or more single letters spaced apart', () => {
+    const letters = fc.array(pick([...'abcdefghjkmnpqrtuvwxyz']), { minLength: 3, maxLength: 6 });
+    const text = letters.map((ls) => `type ${ls.join(' ')} now`);
+    fc.assert(fc.property(text, (t) => blockedContent(t) === 'spaced_chars'), { seed: 3227, numRuns: 300 }); // prettier-ignore
   });
 
   it('a short code near call, dial, text, reply, send or ring', () => {
-    const code = fc.integer({ min: 100, max: 999999 }).filter((n) => ![988, 741741].includes(n));
+    const code = fc
+      .integer({ min: 100, max: 999999 })
+      .filter(
+        (n) => ![988, 741741, 911].includes(n) && !/^1?8(00|88|77|66|55|44|33)/.test(String(n))
+      ); // toll-free is vanity
     const verb = pick(['call', 'Dial', 'text', 'reply', 'send', 'ring', 'texting']);
     const text = fc
       .tuple(verb, pick(['', 'us at', 'STOP to', 'back']), code)
       .map((p) => p.join(' '));
-    fc.assert(fc.property(text, (t) => ['short_code', 'vanity_number'].includes(String(blockedContent(t)))), { seed: 3227, numRuns: 300 }); // prettier-ignore
+    fc.assert(fc.property(text, (t) => blockedContent(t) === 'short_code'), { seed: 3227, numRuns: 300 }); // prettier-ignore
   });
 
   it('toll-free vanity numbers and digits broken up by capitals', () => {
@@ -91,7 +122,7 @@ describe('property: shapes a phishing text needs never pass', () => {
   it('"at" before a mail provider, however it is spaced', () => {
     const provider = pick(['gmail', 'g mail', 'G MAIL', 'yahoo', 'icloud', 'proton mail', 'msn']);
     const text = fc.tuple(pick(['pat', 'reach me', 'sam']), pick(['at', 'AT', 'at my']), provider).map((p) => p.join(' ')); // prettier-ignore
-    fc.assert(fc.property(text, (t) => blockedContent(t) !== null), { seed: 3227, numRuns: 200 }); // prettier-ignore
+    fc.assert(fc.property(text, (t) => blockedContent(t) === 'mail_provider'), { seed: 3227, numRuns: 200 }); // prettier-ignore
     expect(blockedContent('pat at g m a i l')).not.toBeNull();
   });
 });
@@ -107,7 +138,7 @@ describe('property: disguises the one ASCII fold undoes (security review, 2026-1
     const dressed = fc
       .tuple(word, fc.array(fc.integer({ min: 0, max: 3 }), { minLength: 8, maxLength: 8 }))
       .map(([w, hows]) => [...w].map((c, i) => dress(c, hows[i])).join(''));
-    fc.assert(fc.property(around(dressed), (t) => blockedContent(t) !== null), { seed: 3227, numRuns: 500 }); // prettier-ignore
+    fc.assert(fc.property(around(dressed), (t) => blockedContent(t) === 'credential_ask'), { seed: 3227, numRuns: 500 }); // prettier-ignore
   });
 
   it('defanged dots: "x(.)y", "x . y", "x. y" with y in lower case', () => {
@@ -267,6 +298,10 @@ describe('each rule', () => {
     'reply with the code we sent you',
     'type the code here',
     'passw0rd',
+    'read me your passcode',
+    'the OTP we sent',
+    'a one time passcode',
+    'your authentication code',
   ])('credential ask: %s', (text) => {
     expect(blockedContent(text)).toBe('credential_ask');
   });
@@ -275,6 +310,7 @@ describe('each rule', () => {
     'thank Grandma for the card',
     'the code word for the party',
     'leave early to account for traffic',
+    'sign in at the front desk',
   ])('not a credential ask: %s', (text) => {
     expect(blockedContent(text)).toBeNull();
   });

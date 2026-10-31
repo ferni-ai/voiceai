@@ -77,7 +77,8 @@ const log = getLogger();
 /**
  * Sends allowed to each unverified call, by its voice session id: tool paths
  * that build their own options (the semantic-router executor) share the count.
- * By the session's userData only when it carries no id.
+ * By a live session's own userData (it has services) only when it carries no
+ * id; a routed run with no id has nothing stable to count against (no_session).
  */
 const sentBySessionId = new Map<string, number>();
 const sentBySessionData = new WeakMap<object, number>();
@@ -90,18 +91,21 @@ function sessionIdOf(call: object | undefined): string | undefined {
   return typeof id === 'string' && id ? id : undefined;
 }
 
-const sendsSoFar = (call: object): number => {
-  const id = sessionIdOf(call);
-  return (id ? sentBySessionId.get(id) : sentBySessionData.get(call)) ?? 0;
-};
+/** What this call's sends are counted by, or undefined when nothing stable identifies it. */
+function countKey(call: object | undefined): string | object | undefined {
+  const live = (call as { services?: unknown } | undefined)?.services;
+  return sessionIdOf(call) ?? (live && typeof live === 'object' ? call : undefined);
+}
 
-function countSend(call: object): void {
-  const id = sessionIdOf(call);
-  if (!id) return void sentBySessionData.set(call, sendsSoFar(call) + 1);
-  if (!sentBySessionId.has(id) && sentBySessionId.size >= MAX_COUNTED_SESSIONS) {
+const sendsSoFar = (key: string | object): number =>
+  (typeof key === 'string' ? sentBySessionId.get(key) : sentBySessionData.get(key)) ?? 0;
+
+function countSend(key: string | object): void {
+  if (typeof key !== 'string') return void sentBySessionData.set(key, sendsSoFar(key) + 1);
+  if (!sentBySessionId.has(key) && sentBySessionId.size >= MAX_COUNTED_SESSIONS) {
     sentBySessionId.delete(sentBySessionId.keys().next().value as string); // the oldest call
   }
-  sentBySessionId.set(id, sendsSoFar(call) + 1);
+  sentBySessionId.set(key, sendsSoFar(key) + 1);
 }
 
 const CONTENT_REFUSALS: ReadonlySet<string> = new Set(CONTENT_BLOCKS);
@@ -124,13 +128,14 @@ function logOutcome(message: OwnerMessage, reason: OwnerMessageLogReason): void 
 
 /** An unverified call's message: allowed with the footer, or why not. Counts it when allowed. */
 function unverifiedDecision(message: OwnerMessage, call: object | undefined): OwnerMessageDecision {
-  if (!call) return refuse('no_session'); // nothing to count against: fail closed
   for (const text of message.texts) {
     const blocked = typeof text === 'string' ? blockedContent(text) : null;
     if (blocked) return refuse(blocked);
   }
-  if (sendsSoFar(call) >= UNVERIFIED_SESSION_LIMIT) return refuse('session_limit');
-  countSend(call);
+  const key = countKey(call);
+  if (!key) return refuse('no_session'); // nothing to count against: fail closed
+  if (sendsSoFar(key) >= UNVERIFIED_SESSION_LIMIT) return refuse('session_limit');
+  countSend(key);
   return { outcome: 'unverified_allowed', footer: message.spoken ? null : UNVERIFIED_FOOTER };
 }
 

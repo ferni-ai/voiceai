@@ -70,7 +70,10 @@ const ctx: ToolContext = { userId: OWNER.id, agentId: 'ferni', agentDisplayName:
 /** A LiveKit run's options: the call session's userData. A fresh object is a fresh call. */
 const call = (userData: Record<string, unknown>) => ({ ctx: { userData } });
 const verified = () => call({ userId: OWNER.id, verifiedCaller: true });
-const unverified = () => call({ userId: OWNER.id, verifiedCaller: false });
+/** A live call's session data: session-manager's services carry its id. A fresh one is a fresh call. */
+let calls = 0;
+const unverified = () =>
+  call({ userId: OWNER.id, verifiedCaller: false, services: { sessionId: `session-AJ_t${++calls}-1700000000000` } }); // prettier-ignore
 
 const port = {
   verifiedPhone: vi.fn(async (..._a: unknown[]) => OWNER.phone),
@@ -313,6 +316,14 @@ describe('flag on', () => {
     const reply = await run('sendMessageNow', { message: "If you're in crisis, call or text 988 right now" }, unverified()); // prettier-ignore
     expect(reply).not.toMatch(/once you're in the app/);
     expect(delivered().said[0]).toContain('call or text 988 right now');
+  });
+
+  it('a call with no session id and no live session behind it: no_session, nothing sent', async () => {
+    const routed = call({ userId: OWNER.id, sessionId: undefined }); // what the executor builds without an id
+    await expect(run('sendMessageNow', { message: 'hi' }, routed)).resolves.toBe(UNVERIFIED_NOTHING_SENT_REFUSAL); // prettier-ignore
+    const liveWithoutId = call({ userId: OWNER.id, services: {} });
+    await expect(run('sendMessageNow', { message: 'hi' }, liveWithoutId)).resolves.not.toMatch(/in the app/); // prettier-ignore
+    expect(sends()).toBe(1);
   });
 
   it('logs each refusal with ids and a reason code, never the text', async () => {
