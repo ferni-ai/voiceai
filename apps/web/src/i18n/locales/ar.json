@@ -1919,9 +1919,9 @@
     "disconnected": "قطع الاتصال",
     "end": "إنهاء",
     "endConversation": "إنهاء المحادثة",
-    "endConversationGoodbye": "إنهاء المحادثة - وداعًا",
+    "goodbyeEndCall": "إلى اللقاء. إنهاء المكالمة.",
     "endSession": "إنهاء الجلسة",
-    "ending": "جاري الإنهاء...",
+    "ending": "انتهت المكالمة",
     "goodbye": "إلى اللقاء",
     "holdToSpeak": "استمر في الضغط للتحدث",
     "listening": "أستمع إليك...",
@@ -1931,7 +1931,7 @@
     "takeCare": "رافقتكم السلامة.",
     "tapToSpeak": "اضغط للتحدث",
     "thinking": "أفكر...",
-    "untilNextTime": "إلى لقاء قريب..."
+    "untilNextTime": "إلى لقاء قريب"
   },
   "stages": {
     "acquaintance": "معرفة عابرة",
@@ -10552,7 +10552,6 @@
     "startupError": "نواجه صعوبة في البدء. هل تودون تحديث الصفحة؟",
     "lastConversation": "هذه آخر محادثة لكم هذا الشهر. فلنجعلها مميزة.",
     "gettingReady": "أستعد الآن...",
-    "connecting": "جاري الاتصال",
     "almostThere": "اقتربنا...",
     "waitingQuietly": "سأنتظر بهدوء",
     "listening": "أصغي إليكم",
@@ -11261,13 +11260,14 @@
   "entrance": {
     "helper": "المرشد الشخصي",
     "connectToTalk": "تحدّث مع Ferni",
-    "endTalk": "إنهاء",
-    "connectingCancel": "جارٍ الاتصال. اضغط للإلغاء",
-    "connectingNow": "جارٍ الاتصال…",
+    "endTalk": "إنهاء المكالمة",
+    "connectingCancel": "جارٍ الاتصال بـ {name}. اضغط للإلغاء.",
+    "connectingNow": "جارٍ الاتصال بـ {name}…",
     "tapToCancel": "اضغط للإلغاء",
-    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
-    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
-    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
+    "stillCalling": "لا نزال نتصل بـ {name}…",
+    "stillCallingCancel": "لا نزال نتصل بـ {name}. اضغط للإلغاء.",
+    "reconnecting": "جارٍ إعادة الاتصال…",
+    "arrived": "{name} هنا"
   },
   "analyticsDashboard": {
     "title": "رحلتك",

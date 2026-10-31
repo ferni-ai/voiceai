@@ -273,6 +273,20 @@ export function sessionIsVerifiedOwner(sessionId: string): boolean {
 // MINOR_CARE (minor-care.ts, a lower layer) asks this before holding a session's memory.
 setVerifiedOwnerCheck(sessionIsVerifiedOwner);
 
+/**
+ * The person on the line is proven to be the account owner, for anything that
+ * brings the account's private history into the call (CALL_KNOWS_RECENT_TEXTS).
+ * A phone session counts only when recognition says 'known': a call Ferni
+ * placed to their number can be answered by anyone, and a dispatch that names
+ * the account says nothing about who picked up. Any other session counts only
+ * with an authenticated dispatch (a signed-in app user).
+ */
+export function ownerProvenOnLine(sessionId: string, phoneCall: boolean): boolean {
+  const recognition = callerRecognitionFor(sessionId);
+  if (phoneCall || recognition) return recognition?.status === 'known';
+  return namedByDispatch.has(sessionId);
+}
+
 /** A session known only by its phone number: only conversational tools are open. */
 export function phoneOnlyIdentity(sessionId: string | undefined): boolean {
   return callerRecognitionFor(sessionId)?.status === 'known';

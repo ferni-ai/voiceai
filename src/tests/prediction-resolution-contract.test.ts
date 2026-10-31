@@ -70,6 +70,10 @@ vi.mock('@google-cloud/firestore', () => ({
     collection(name: string): unknown {
       return collectionRef(name);
     }
+    // The store's writes check the account in a transaction
+    async runTransaction(fn: never): Promise<unknown> {
+      return (await import('./helpers/fake-transaction.js')).fakeRunTransaction(fn);
+    }
   },
 }));
 
@@ -132,6 +136,7 @@ const MOOD = 'Mood average (1-10)';
 const createdAt = new Date().toISOString();
 
 function seed(uid: string, id: string, predictions: Record<string, number>): void {
+  docs.set(`bogle_users/${uid}`, { name: 'live' }); // a live account (erased ones take no writes)
   docs.set(`engagement_profiles/${uid}/predictions/${id}`, {
     id,
     weekOf: '2026-09-28',

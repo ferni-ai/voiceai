@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2026-10-18T17:06:51.126Z
+ * Build: 2026-10-29T14:25:11.702Z
  */
 
 /* ========================================
@@ -1293,6 +1293,8 @@
   --duration-moderate: 400ms;
   --duration-slowest: 500ms;
   --duration-deliberate: 700ms;
+  --duration-expression-light: 350ms;
+  --duration-expression-heavy: 900ms;
   --duration-celebration: 800ms;
   --duration-dramatic: 1000ms;
   --duration-entrance: 1000ms;

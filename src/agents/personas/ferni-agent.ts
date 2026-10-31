@@ -44,6 +44,7 @@ import { logToolMarkup, withToolMarkupStrip } from '../shared/tool-markup-strip.
 import { fillEmptyToolOutputs } from './tool-output-guard.js';
 import { isScreeningCall } from '../shared/line-screen.js';
 import { spokenCaptions, toolsForTurn, withTeammateTool } from './turn-request.js';
+import { CaptionBackfill, captionsFromFrameTimings } from '../shared/aligned-caption-backfill.js';
 import { noteRequest } from '../shared/turn-receipt-session.js';
 
 const log = createLogger({ module: 'FerniAgent' });
@@ -137,7 +138,7 @@ import { definitions as humanTransferToolDefs } from '../../tools/domains/human-
 import { definitions as habitsToolDefs } from '../../tools/domains/habits/index.js';
 
 // Wellness tools - self-care, health
-import { definitions as wellnessToolDefs } from '../../tools/domains/wellness/index.js';
+import { availableDefinitions as wellnessToolDefs } from '../../tools/domains/wellness/index.js';
 
 // Connection tools - relationship building
 import { definitions as connectionToolDefs } from '../../tools/domains/connection/index.js';
@@ -325,7 +326,7 @@ function buildWellnessTools(agentId: string): ToolSet {
   const ctx = createToolContext(agentId);
   const tools: Record<string, unknown> = {};
 
-  for (const def of wellnessToolDefs) {
+  for (const def of wellnessToolDefs()) {
     tools[def.id] = def.create(ctx);
   }
 
@@ -704,17 +705,10 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
   private readonly openerGate = new OpenerGate().forSession(() => this.session);
 
   /**
-   * Override ttsNode to filter out JSON function calls BEFORE they reach TTS.
-   * WORKAROUND (Dec 2024, retired Gemini Live setup): narrated JSON tool calls stop here.
-   *
-   * The key insight: transcriptionNode filters a DIFFERENT stream than TTS reads from!
-   * The LiveKit SDK does baseStream.tee() and sends one to transcription, one to TTS.
-   * So we MUST filter in ttsNode to prevent TTS from speaking the JSON.
-   *
-   * This uses the shared wrappedTtsNode (../shared/tts-wrapper.ts), which handles:
-   * - JSON function call sanitization
-   * - Interrupt-aware SSML softening
-   * - FinOps cost tracking
+   * Replies go through the shared wrappedTtsNode (../shared/tts-wrapper.ts): leaked JSON tool
+   * calls are never spoken, SSML is softened after an interrupt, and cost is tracked. The SDK
+   * tees the reply text, so captions are filtered separately (transcriptionNode). With
+   * TTS_ALIGNED_TRANSCRIPT on, CaptionBackfill keeps the caption when audio has no timings.
    */
   async ttsNode(
     text: NodeReadableStream<string>,
@@ -724,14 +718,19 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     const personaId = (userData?.personaId as string) || 'ferni';
     const turnCount = (userData?.turnCount as number) || 0;
 
+    // TTS_ALIGNED_TRANSCRIPT: captions come from frame timings; keep the words if none arrive.
+    const backfill = captionsFromFrameTimings(this) ? new CaptionBackfill() : null;
+    const spoken = backfill ? backfill.tapText(text) : text;
     // The session lets tool results be spoken via safeGenerateReply.
-    return wrappedTtsNode(this, text, modelSettings, {
+    const audio = await wrappedTtsNode(this, spoken, modelSettings, {
       tools: this.toolCtx as unknown as Record<string, unknown> | undefined,
       sessionContext: extractTtsSessionContext(this, personaId),
       onInterruptRecoveryApplied: () => clearInterruptFlags(this),
       session: this.session as unknown as voice.AgentSession<unknown>,
       isFirstTurn: turnCount <= 1, // First turn gets aggressive streaming optimization
+      alignedTranscript: backfill !== null,
     });
+    return backfill ? backfill.wrapAudio(audio) : audio;
   }
 }
 

@@ -30,6 +30,7 @@ import {
 
 import { getLogger } from '../../../utils/safe-logger.js';
 import { PhoneVoiceChain } from './phone-voice-dsp.js';
+import { timingUserdata } from '../frame-timings.js';
 
 type Env = Record<string, string | undefined>;
 
@@ -104,7 +105,8 @@ export function createPhoneVoiceTransform(
       // Int16Array wraps out-of-range values; the chain's ceiling keeps |x| < 1, this makes sure.
       for (let i = 0; i < n; i++) out[i] = Math.round(Math.max(-1, Math.min(1, x[i])) * 32767);
       if (listener) listener.levellerGainDb = chain.levellerGainDb;
-      controller.enqueue(new AudioFrame(out, frame.sampleRate, 1, n));
+      // Word timings ride along (TTS_ALIGNED_TRANSCRIPT; same frame lengths, so same times).
+      controller.enqueue(new AudioFrame(out, frame.sampleRate, 1, n, timingUserdata(frame)));
     },
   });
 }

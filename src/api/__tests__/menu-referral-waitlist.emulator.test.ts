@@ -15,9 +15,10 @@
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { getAuth, type DecodedIdToken } from 'firebase-admin/auth';
+import { getAuth } from 'firebase-admin/auth';
 import type { Firestore } from 'firebase-admin/firestore';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { signInWithFakeTokens } from '../../tests/helpers/fake-firebase-auth.js';
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 process.env.GCLOUD_PROJECT ??= 'demo-menu-referral';
@@ -96,11 +97,12 @@ beforeAll(async () => {
   server.base = `http://127.0.0.1:${(http.address() as AddressInfo).port}`;
   const { getAdminApp, getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
   db = getAdminFirestore();
-  // The bearer token is the uid; everyone has a verified email
-  vi.spyOn(getAuth(getAdminApp()), 'verifyIdToken').mockImplementation(
-    async (token: string) =>
-      ({ uid: token, email: emailOf(token), email_verified: true }) as unknown as DecodedIdToken
-  );
+  // The bearer token is the uid; everyone has a verified email and a live account
+  signInWithFakeTokens(getAuth(getAdminApp()), (token) => ({
+    uid: token,
+    email: emailOf(token),
+    email_verified: true,
+  }));
 });
 
 afterAll(() => {
