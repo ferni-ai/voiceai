@@ -11,7 +11,8 @@
  */
 
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
-import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { type Firestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../../../../src/utils/firebase-admin-app.js';
 
 // Initialize Firebase if not already done
 function initFirebase(): Firestore {
@@ -30,7 +31,7 @@ function initFirebase(): Firestore {
     }
   }
 
-  return getFirestore();
+  return getAdminFirestore();
 }
 
 async function cleanupTestTokens(dryRun: boolean): Promise<void> {

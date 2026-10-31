@@ -12,6 +12,7 @@
  * @module services/memory-lane/highlight-scorer
  */
 
+import { writeHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   MemoryHighlight,
@@ -391,7 +392,7 @@ export async function markMemorySurfaced(
 ): Promise<boolean> {
   const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
   const db = getFirestoreDb();
-  if (!db) return false;
+  if (!db || writeHeld(userId)) return false; // MINOR_CARE: a held caller's surfacing isn't kept
 
   try {
     const now = new Date();

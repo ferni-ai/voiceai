@@ -1,7 +1,7 @@
 /**
  * The turn handler's crisis branch under CRISIS_AGREEMENT_GATE. The turn's
  * crisis field is built as process-turn.ts builds it (startTurnCrisis, then
- * crisisSummary with softCheck), with a second read of the same turn standing
+ * summary(), with softCheck and the soft guidance), with a second read of the same turn standing
  * in for the reply gate's; the handler itself is real. Disagreeing reads with
  * no pattern get the soft check-in; a pattern match, an imminent read or
  * agreeing reads get the crisis handling unchanged.
@@ -14,7 +14,14 @@ import {
   startCrisisClassifier,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
-import { crisisSummary, startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
+import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
+import {
+  GROUNDED_LIGHT_TOUCH,
+  GROUNDED_RELEASE_CSSRS_PROMPT,
+  resetGroundedRelease,
+} from '../../../services/safety/crisis-grounded-release.js';
+import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
+import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 
 type Risk = 'none' | 'crisis' | 'imminent';
 interface Scenario {
@@ -24,6 +31,9 @@ interface Scenario {
   pipeline: Risk;
   /** Ferni's line reaches the pipeline (turn-intelligence forwards it with the flag on). */
   unforwarded?: boolean;
+  /** The caller's earlier lines, and the grounded release's two reads (CRISIS_GROUNDED_RELEASE). */
+  earlier?: string[];
+  groundedReads?: CrisisGenerateFn[];
 }
 
 type Injection = { category: string; content: string };
@@ -47,7 +57,7 @@ const state = vi.hoisted(() => ({
 vi.mock('../../processors/index.js', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   processTurn: vi.fn(async (ctx: { userText: string }) => {
-    const { env, gate, pipeline, unforwarded } = state.scenario as Scenario;
+    const { env, gate, pipeline, unforwarded, earlier, groundedReads } = state.scenario as Scenario;
     // The reply gate's read of the same words, with Ferni's line as context.
     startCrisisClassifier(
       {
@@ -61,21 +71,25 @@ vi.mock('../../processors/index.js', async (importOriginal) => ({
       ctx.userText,
       unforwarded
         ? {}
-        : { recentTranscripts: ['Long drive.'], lastAgentResponse: 'How was the drive back?' },
+        : {
+            recentTranscripts: earlier ?? ['Long drive.'],
+            lastAgentResponse: 'How was the drive back?',
+          },
       {
         sessionId: SESSION,
         env,
         generate: reads(pipeline),
+        groundedReads,
       }
     );
-    const finalCrisis = await turnCrisis.resolve();
+    const finalCrisis = await turnCrisis.summary();
     state.result = {
       analysis: { analysis: { emotion: 'neutral', intent: 'unknown' } },
       context: { injections: [], elapsedMs: 0 },
       emotional: { primary: 'neutral', intensity: 0.2 },
       response: {},
       identity: {},
-      crisis: crisisSummary(finalCrisis, await turnCrisis.softCheck()),
+      crisis: finalCrisis,
     } as never;
     return state.result;
   }),
@@ -107,7 +121,12 @@ async function runTurn(userText: string, scenario: Scenario) {
   };
 }
 
-beforeEach(() => resetCrisisClassifierCache());
+beforeEach(() => {
+  resetCrisisClassifierCache();
+  resetCrisisCallRisk();
+  resetCallRiskSnapshots();
+  resetGroundedRelease();
+});
 
 describe('turn handler: crisis agreement gate', () => {
   it('keeps crisis guidance when reads disagree on words with distress in them', async () => {
@@ -184,5 +203,35 @@ describe('turn handler: crisis agreement gate', () => {
     expect(turn.soft).toEqual([]);
     expect(turn.crisis).toHaveLength(1);
     expect(turn.crisis[0].content).toContain('988');
+  });
+});
+
+describe('turn handler: grounded release (CRISIS_GROUNDED_RELEASE)', () => {
+  const everyday: CrisisGenerateFn = async (prompt) =>
+    prompt === GROUNDED_RELEASE_CSSRS_PROMPT
+      ? '{"wish_dead":"none","ideation":"none","method":"none","intent":"none","plan_time":"none","everyday":true}'
+      : '{"danger":"","about":"dinner is tonight","decision":"everyday"}';
+  const dinner = (env: Record<string, string>) => ({
+    env,
+    gate: 'imminent' as const,
+    pipeline: 'imminent' as const,
+    earlier: ['Dinner is at my place tonight.'],
+    groundedReads: [everyday, everyday],
+  });
+
+  it('a released imminent read injects the light touch, not the generic soft check', async () => {
+    const turn = await runTurn(
+      'Dinner is tonight.',
+      dinner({ ...LIVE, CRISIS_GROUNDED_RELEASE: 'live' })
+    );
+    expect(turn.soft.map((i) => i.content)).toEqual([GROUNDED_LIGHT_TOUCH]);
+    expect(turn.crisis).toEqual([]);
+    expect(turn.override).toBe(false);
+  });
+
+  it('with the release off the same turn keeps the crisis handling', async () => {
+    const turn = await runTurn('Dinner is tonight.', dinner(LIVE));
+    expect(turn.soft).toEqual([]);
+    expect(turn.crisis.length + (turn.override ? 1 : 0)).toBeGreaterThan(0);
   });
 });

@@ -65,3 +65,5 @@ export {
   resetAllLiveBackchanneling,
   resetLiveBackchanneling,
 } from './session-management.js';
+
+export { noteUsesClips, usesClips } from './clip-mode.js';

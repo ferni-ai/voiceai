@@ -743,12 +743,12 @@ export function importSubconsciousProfile(profile: SubconsciousProfile): void {
 }
 
 // ============================================================================
-// RESET (for testing)
+// RESET: one user (MINOR_CARE purge), or everyone (tests)
 // ============================================================================
 
-/**
- * Reset all subconscious goals state (for testing)
- */
+export const forgetSubconsciousUser = (userId: string): boolean => profiles.delete(userId);
+
+/** Reset all subconscious goals state (for testing) */
 export function resetSubconsciousGoals(): void {
   profiles.clear();
 }

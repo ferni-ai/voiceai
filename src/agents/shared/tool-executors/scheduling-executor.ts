@@ -15,6 +15,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { userTimeZone } from '../../../utils/caller-time-zone.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
+import { saveContact } from './save-contact.js';
 import { WHERE_TO_ADD_NUMBER } from '../../../tools/shared/where-to-add-number.js';
 
 const log = createLogger({ module: 'SchedulingExecutor' });
@@ -332,16 +333,13 @@ async function execute(
 
     log.info({ phoneNumber: phoneNumber ? '***' : undefined, userId }, '📞 Making phone call');
 
-    if (!phoneNumber) {
-      return 'What phone number would you like me to call?';
-    }
+    if (!phoneNumber) return 'What phone number would you like me to call?';
 
     if (!message) {
       return `What message should I deliver when I call ${phoneNumber}?`;
     }
 
     try {
-      // Check if Twilio is configured
       const accountSid = process.env.TWILIO_ACCOUNT_SID;
       const authToken = process.env.TWILIO_AUTH_TOKEN;
       const fromNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -351,14 +349,17 @@ async function execute(
         return `I'd love to make that call, but my phone service isn't fully set up yet. Would you like me to send a text instead?`;
       }
 
-      // Validate and clean phone number
       const cleanNumber = phoneNumber.replace(/\D/g, '');
       if (cleanNumber.length < 10) {
         return `I need a valid phone number. Can you double-check "${phoneNumber}"?`;
       }
       const e164Number = cleanNumber.startsWith('1') ? `+${cleanNumber}` : `+1${cleanNumber}`;
+      const grants = await import('../../../services/messaging/consent-reach.js');
+      const refused = await grants.ownerRefusal(ctx.userId, e164Number, 'call');
+      if (refused) return grants.notCalling(refused);
+      const { directSendHeld } = await import('../../../services/communication-service.js');
+      if (await directSendHeld(e164Number, 'call', { userId })) return 'Not calling: held.';
 
-      // Build TwiML for the voice message - use Ferni's persona voice
       const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Matthew">Hi! This is a message from Ferni. ${message.replace(/"/g, '&quot;')}. Take care!</Say>
@@ -505,40 +506,7 @@ async function execute(
   // SAVE CONTACT INFO
   // ========================================
   if (fnLower === 'savecontact' || fnLower === 'savecontactinfo' || fnLower === 'addcontact') {
-    const name = args.name as string;
-    const phone = args.phone as string;
-    const email = args.email as string;
-    const relationship = args.relationship as string;
-
-    log.info({ name, hasPhone: !!phone, hasEmail: !!email, userId }, '👤 Saving contact');
-
-    if (!phone && !email) {
-      return name
-        ? `What's the best way to reach ${name}? Phone number or email?`
-        : 'I need at least a phone number or email to save.';
-    }
-
-    try {
-      const { setUserContactInfo } = await loadOutreach();
-
-      await setUserContactInfo(userId, {
-        phone,
-        email,
-        timezone: (args.timezone as string) || undefined,
-      });
-
-      const saved: string[] = [];
-      if (phone) saved.push('phone number');
-      if (email) saved.push('email');
-
-      const whom = name ? `${name}'s` : 'your';
-      const extra = relationship ? ` (${relationship})` : '';
-
-      return `Got it! I saved ${whom} ${saved.join(' and ')}${extra}. Now I can text, email, or call for reminders.`;
-    } catch (err) {
-      log.error({ error: String(err) }, '👤 Failed to save contact');
-      return 'I had trouble saving that contact info. Try again?';
-    }
+    return saveContact(args, userId);
   }
 
   // ========================================

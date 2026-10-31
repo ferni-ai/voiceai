@@ -10,7 +10,7 @@
  * @module intelligence/pondering/pondering-opener
  */
 import type { Firestore } from 'firebase-admin/firestore';
-import { isForgotten } from '../../memory/index.js';
+import { forgottenTopicsOrNull, isForgotten } from '../../memory/index.js';
 import { isPonderingOn, type PonderFollowUp, type PonderNote } from './pondering.js';
 import { readPonderingForGreeting } from './pondering-reader.js';
 import {
@@ -32,17 +32,6 @@ export async function hadRecentCrisis(
   return hadCrisisWithin(db, userId, CRISIS_QUIET_DAYS, now);
 }
 
-async function forgottenTopics(db: Firestore, userId: string): Promise<string[]> {
-  const doc = await db
-    .collection('bogle_users')
-    .doc(userId)
-    .collection('memory_state')
-    .doc('forgotten')
-    .get();
-  const topics: unknown = doc.exists ? doc.data()?.topics : undefined;
-  return Array.isArray(topics) ? topics.filter((t): t is string => typeof t === 'string') : [];
-}
-
 export interface OpenerAsk {
   text: string;
   item: PonderFollowUp | PonderNote;
@@ -58,9 +47,12 @@ export async function ponderingForOpener(
   const [picked, crisis, forgotten] = await Promise.all([
     readPonderingForGreeting(db, userId, opts),
     hadRecentCrisis(db, userId, opts.now),
-    forgottenTopics(db, userId),
+    forgottenTopicsOrNull(userId), // memory_state/forgotten, shared at call start
   ]);
   const item = picked.followUp ?? picked.note;
-  if (!item || crisis || isForgotten(item.text, forgotten)) return undefined;
+  // Topics that can't be read hold the opener back, as a forgotten one would.
+  if (!item || crisis || !forgotten || isForgotten(item.text, forgotten)) {
+    return undefined;
+  }
   return { text: item.text, item };
 }

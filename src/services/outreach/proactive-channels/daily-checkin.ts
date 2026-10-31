@@ -14,6 +14,7 @@
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
 import type { GeneratedContent } from '../llm-content-generator.js';
 import { lastTalkedAt } from '../outreach-cadence.js';
+import { savedQuietHours } from '../quiet-hours.js';
 import { chooseChannel, type ChannelChoice } from './channel-policy.js';
 import {
   alreadySent,
@@ -84,11 +85,13 @@ export async function dailyCheckIn(userId: string, now: Date): Promise<DailyChec
   if (await alreadySent(userId, dailyId(now))) return held('already checked in today');
   const user = (await db.collection('bogle_users').doc(userId).get()).data() ?? {};
   const recent = await recentOutreach(userId, new Date(now.getTime() - HISTORY_MS));
+  const savedQuiet = savedQuietHours(user);
   const choice = chooseChannel({
     trigger: { weight: 'light', timely: false },
     now,
     prefs: user.outreachPreferences,
     timezone: timezoneOf(user),
+    ...(savedQuiet && { savedQuiet }),
     lastTalkedAt: lastTalkedAt(user),
     recent,
     canCall: false,

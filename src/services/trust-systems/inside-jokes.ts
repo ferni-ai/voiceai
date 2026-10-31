@@ -19,6 +19,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import * as retain from '../../utils/shared-moment-retention.js';
 import { indexInsideJoke } from '../data-layer/integrations/trust-integration.js';
 
 const log = createLogger({ module: 'InsideJokes' });
@@ -67,6 +68,7 @@ export interface SharedMoment {
 
   /** Optional response we can use */
   suggestedCallbacks?: string[];
+  expireAt?: Date; // a year after it was made (shared-moment-retention.ts); none on older ones
 }
 
 export interface InsideJokesProfile {
@@ -226,11 +228,11 @@ const RUNNING_GAG_INDICATORS = [
   'just my luck',
 ];
 
-// ============================================================================
-// IN-MEMORY STORE
-// ============================================================================
+// In-memory store
 
 const profiles = new Map<string, InsideJokesProfile>();
+/** MINOR_CARE (purgeHeldUser): forget one user. */
+export const forgetInsideJokesUser = (userId: string): boolean => profiles.delete(userId);
 
 function getOrCreateProfile(userId: string): InsideJokesProfile {
   let profile = profiles.get(userId);
@@ -318,16 +320,14 @@ export function detectCallbackMoment(
   return null;
 }
 
-/**
- * Create and store a new shared moment
- */
+/** Create and store a shared moment: 80 characters of their words (triggers too), kept a year */
 function createMoment(
   profile: InsideJokesProfile,
   type: SharedMoment['type'],
-  message: string,
+  said: string,
   context?: { topic?: string; emotion?: string }
 ): SharedMoment {
-  // Extract key triggers from the message
+  const message = retain.clampMomentWords(said);
   const triggers = extractTriggers(message);
 
   // Generate suggested callbacks based on type
@@ -336,7 +336,7 @@ function createMoment(
   const moment: SharedMoment = {
     id: `moment_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     type,
-    content: message.slice(0, 200),
+    content: message,
     triggers,
     origin: {
       timestamp: new Date(),
@@ -347,9 +347,10 @@ function createMoment(
     callbackReception: 'unknown',
     safety: type === 'quirk' ? 'be_careful' : 'context_dependent',
     suggestedCallbacks,
+    expireAt: retain.momentExpireAt(),
   };
 
-  profile.moments.push(moment);
+  profile.moments = [...retain.unexpiredMoments(profile.moments), moment]; // one doc: no TTL
 
   // Index to semantic memory for contextual retrieval
   indexInsideJoke(profile.userId, {
@@ -365,7 +366,7 @@ function createMoment(
   }
 
   log.debug(
-    { userId: profile.userId, type, content: message.slice(0, 50) },
+    { userId: profile.userId, type, contentLen: message.length },
     '📝 Callback moment stored'
   );
 
@@ -439,7 +440,7 @@ export function findCallbackOpportunity(
   // Find moments that match current context
   const matches: Array<{ moment: SharedMoment; relevance: number }> = [];
 
-  for (const moment of profile.moments) {
+  for (const moment of retain.unexpiredMoments(profile.moments)) {
     let relevance = 0;
 
     // Check trigger match
@@ -595,6 +596,7 @@ export function detectRunningGag(userId: string, topic: string): SharedMoment | 
           `The ${topic} chronicles continue!`,
           `At this point ${topic} is basically a character in your story.`,
         ],
+        expireAt: retain.momentExpireAt(),
       };
 
       profile.moments.push(gag);
@@ -667,12 +669,10 @@ export function getCallbackTraits(userId: string): string[] {
 // PROFILE ACCESS
 // ============================================================================
 
-/**
- * Get all shared moments for a user
- */
+/** All of a user's shared moments that haven't expired */
 export function getSharedMoments(userId: string): SharedMoment[] {
   const profile = profiles.get(userId);
-  return profile?.moments || [];
+  return retain.unexpiredMoments(profile?.moments || []);
 }
 
 /**
@@ -682,11 +682,10 @@ export function exportInsideJokesProfile(userId: string): InsideJokesProfile | n
   return profiles.get(userId) || null;
 }
 
-/**
- * Import profile from persistence
- */
+/** Import profile from persistence, without its expired moments */
 export function importInsideJokesProfile(profile: InsideJokesProfile): void {
-  profiles.set(profile.userId, profile);
+  const moments = retain.unexpiredMoments(profile.moments ?? []);
+  profiles.set(profile.userId, { ...profile, moments });
   log.debug(
     { userId: profile.userId, momentCount: profile.moments.length },
     'Imported inside jokes profile'

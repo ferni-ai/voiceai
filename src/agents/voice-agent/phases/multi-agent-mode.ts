@@ -23,6 +23,7 @@ import type { CallerChecks } from '../data-sender.js';
 import { startResumeLookup } from '../../multi-agent/resume-after-drop.js';
 import { waitForSessionEnd, type WatchedRoom } from './session-end-watch.js';
 import { demoCallCap, startDemoCallCap } from './demo-call-cap.js';
+import { isLiveCustomAgent } from '../../shared/custom-agent-live.js';
 
 // ============================================================================
 // TYPES
@@ -66,16 +67,18 @@ export interface MultiAgentModeResult {
 // HANDOFF LOCK (Promise-based mutex pattern)
 // ============================================================================
 
-interface HandoffLock {
+export interface HandoffLock {
   acquire: () => Promise<boolean>;
   release: () => void;
+  /** A handoff holds the lock now (HANDOFF_EARLY_GOODBYE: no goodbye then) */
+  held: () => boolean;
 }
 
 /**
  * Creates a promise-based mutex for handoff synchronization.
  * Prevents concurrent handoff requests from racing.
  */
-function createHandoffLock(): HandoffLock {
+export function createHandoffLock(): HandoffLock {
   let handoffInProgress = false;
   let handoffPromise: Promise<void> = Promise.resolve();
   let releaseHandoffLock: (() => void) | null = null;
@@ -110,6 +113,8 @@ function createHandoffLock(): HandoffLock {
         releaseHandoffLock = null;
       }
     },
+
+    held: (): boolean => handoffInProgress,
   };
 }
 
@@ -165,7 +170,9 @@ export async function runMultiAgentMode(
 
   // Check if multi-agent mode is enabled (default: true, set MULTI_AGENT_MODE=false to disable)
   const MULTI_AGENT_MODE = process.env.MULTI_AGENT_MODE !== 'false';
-  if (!MULTI_AGENT_MODE) {
+  // CUSTOM_AGENT_LIVE: the orchestrator builds bundled personas only, so a loaded custom
+  // agent runs as the single-agent session (custom-agent-live.ts)
+  if (!MULTI_AGENT_MODE || isLiveCustomAgent(sessionPersona)) {
     return { activated: false };
   }
 
@@ -182,6 +189,7 @@ export async function runMultiAgentMode(
     const { handoffEvents } = await import('../../../handoff/index.js');
     const handoffMsgs = await import('../../multi-agent/handoff-messages.js');
     const { llmHandoffHandler } = await import('../../multi-agent/llm-handoff.js');
+    const { startEarlyGoodbye } = await import('../../multi-agent/early-goodbye-call.js');
 
     // RESUME_AFTER_DROP: look for a call that dropped moments ago while the agent builds
     startResumeLookup(sessionId, userId, services.realtimeConversationId);
@@ -254,7 +262,7 @@ export async function runMultiAgentMode(
           const decoder = new TextDecoder();
           const rawMessage = decoder.decode(data);
           process.stderr.write(
-            `[multi-agent-mode] 📨 Data received: ${rawMessage.slice(0, 200)}\n`
+            `[multi-agent-mode] 📨 Data received (${rawMessage.length} chars)\n`
           );
           const message = JSON.parse(rawMessage) as {
             type?: string;
@@ -344,6 +352,8 @@ export async function runMultiAgentMode(
     });
 
     handoffEvents.on('voiceSwitch', voiceSwitchHandler);
+    // HANDOFF_EARLY_GOODBYE: the handoff tool says the goodbye once its checks pass
+    const stopEarlyGoodbye = startEarlyGoodbye(multiAgentResult.orchestrator, config, handoffLock);
     // In-call controls and Ferni's teammate introductions, for the agent speaking now
     const callParts = { room: ctx.room, ctx, services, userId, sessionId, sessionPersona, callerChecks };
     const stopInCallChannels = startInCallChannels(callParts, multiAgentResult.orchestrator);
@@ -370,6 +380,7 @@ export async function runMultiAgentMode(
 
     // Cleanup
     handoffEvents.off('voiceSwitch', voiceSwitchHandler);
+    stopEarlyGoodbye();
     stopInCallChannels();
     ctx.room?.off('dataReceived', dataHandler);
     if (groupConversationIntegration) {

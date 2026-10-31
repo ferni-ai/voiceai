@@ -10,6 +10,7 @@
 import type { ToolDomain } from '../registry/types.js';
 import { LOCAL_PLACE_TOPICS } from './local-place-topics.js';
 import { SCREEN_TOPICS } from './screen-topics.js';
+import { TRAVEL_TOPICS } from './travel-topics.js';
 
 // ============================================================================
 // TOPIC TO DOMAIN MAPPING
@@ -100,8 +101,8 @@ export const TOPIC_TO_DOMAINS: Record<string, ToolDomain[]> = {
   organized: ['productivity'],
   planning: ['productivity', 'life-planning'],
   plan: ['productivity', 'life-planning'],
-  routine: ['habits', 'productivity'],
-  routines: ['habits', 'productivity'],
+  routine: ['habits', 'routines'], // createRoutine: the store What I Do For You reads
+  routines: ['habits', 'routines'],
   morning: ['habits', 'awareness'],
   evening: ['habits', 'awareness'],
   work: ['productivity'],
@@ -322,6 +323,7 @@ export const TOPIC_TO_DOMAINS: Record<string, ToolDomain[]> = {
 
   ...LOCAL_PLACE_TOPICS,
   ...SCREEN_TOPICS,
+  ...TRAVEL_TOPICS, // drive time (travel-topics.ts)
 
   // =========================================================================
   // EMOTIONAL & SPIRITUAL TOPICS

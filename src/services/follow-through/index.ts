@@ -29,7 +29,7 @@ export {
   type SurfacedVia,
 } from './follow-up.js';
 export type { FollowUpAsker } from './ports.js';
-export { isQuietHour, rightMoment, type Moment } from './right-moment.js';
+export { isCallerTimed, isQuietHour, rightMoment, type Moment } from './right-moment.js';
 export { closeFromReply, type ReplyVerdict } from './close-from-reply.js';
 export type { FollowUpSources, FollowUpStore, NewFollowUp, SourceItem } from './ports.js';
 export { importFollowUps, type ImportResult } from './import-follow-ups.js';
@@ -50,6 +50,7 @@ export { closeFromSource } from './close-from-source.js';
 export {
   toHeldItem,
   whatFerniHolds,
+  withoutContactDetails,
   MAX_HELD,
   type HeldItem,
   type HeldKind,

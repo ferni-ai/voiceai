@@ -22,8 +22,14 @@ import {
 } from '../../config/voice-ids.js';
 import { ARRIVING_OPENERS } from '../../services/team-engagement/banter.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { toolAckClipTexts } from '../personas/tool-ack-clip-lines.js';
 import { backchannelsFor, bootBackchannels } from './reaction-clips.js';
-import { renderVoicedTake, voicedTakeTexts } from './voiced-take-render.js';
+import {
+  backchannelTakeTexts,
+  renderBackchannelTake,
+  renderVoicedTake,
+  voicedTakeTexts,
+} from './voiced-take-render.js';
 
 const log = createLogger({ module: 'ConversationalAudioCache' });
 
@@ -305,9 +311,14 @@ export async function warmPersonaReactions(personaId: string): Promise<number> {
   const voiceId = getVoiceIdForPersona(personaId);
   const reactions = backchannelsFor(personaId);
   const voiced = voicedTakeTexts(reactions);
+  // BACKCHANNEL_TIMING: the bag's takes in this persona's voice (none with it off).
+  const takes = backchannelTakeTexts([...reactions, ...voiced]);
   const done = Promise.all([
     ...reactions.map(async (text) => cachePhrase(text, voiceId, 'backchannel')),
+    // TOOL_ACK_CLIP: "Let me look." / "On it." in this persona's voice (none with it off).
+    ...toolAckClipTexts().map(async (text) => cachePhrase(text, voiceId, 'backchannel')),
     ...voiced.map(async (text) => cachePhrase(text, voiceId, 'backchannel', renderVoicedTake)),
+    ...takes.map(async (text) => cachePhrase(text, voiceId, 'backchannel', renderBackchannelTake)),
   ]).then((results) => results.filter((r) => r === 'generated').length);
   reactionWarms.set(personaId, { at: Date.now(), done });
   return done;
@@ -415,7 +426,7 @@ export function getCachedAudio(text: string, voiceId: string): ArrayBuffer | nul
     metrics.cacheHits++;
     touchLRU(key);
     log.debug(
-      { text: text.slice(0, 20), category: cached.category, durationMs: cached.durationMs },
+      { textLen: text.length, category: cached.category, durationMs: cached.durationMs },
       '🎯 Audio CACHE HIT'
     );
     return cached.audio;

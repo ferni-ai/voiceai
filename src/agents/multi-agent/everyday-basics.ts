@@ -14,9 +14,12 @@
  */
 import type { ToolContext, ToolDomain } from '../../tools/registry/types.js';
 import { withAlwaysOnInfoTools } from './always-on-info-tools.js';
+import { personaToolsetsEnabled } from '../../config/persona-toolsets-flag.js';
 import { sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
 import { withChiefOfStaffTools } from './chief-of-staff-tools.js';
 import { withLeanAlwaysOnTools } from './lean-always-on.js';
+import { withMenuPinnedTools } from './menu-pinned-tools.js';
+import { withPersonaToolset } from './persona-toolsets.js';
 import { withRegistryTools } from './registry-tools.js';
 import { withSpecialistTools } from './specialist-tools.js';
 
@@ -41,18 +44,22 @@ export async function withEverydayBasics<T>(
  * TOOLS_SAME_TURN, the lean always-on set instead (lean-always-on.ts). Either way,
  * Alex also gets his planning tools while ALEX_CHIEF_OF_STAFF is on
  * (chief-of-staff-tools.ts). Last, with SPECIALIST_TOOLS on, a specialist's set
- * becomes its core and specialty tools (specialist-tools.ts).
+ * becomes its core and specialty tools (specialist-tools.ts). Then, with
+ * MENU_TOOLS_PINNED on, the menu's voice tools (menu-pinned-tools.ts).
+ * PERSONA_TOOLSETS replaces all of that with the persona's set (persona-toolsets.ts).
  */
 export async function withAlwaysOnTools<T>(
   tools: Record<string, T>,
   ctx: ToolContext,
   handedTo: boolean
 ): Promise<Record<string, T>> {
+  if (personaToolsetsEnabled()) return withPersonaToolset(tools, ctx);
   if (sameTurnToolsEnabled()) {
     const lean = await withChiefOfStaffTools(await withLeanAlwaysOnTools(tools, ctx), ctx);
-    return withSpecialistTools(lean, ctx);
+    return withMenuPinnedTools(await withSpecialistTools(lean, ctx), ctx);
   }
   const withInfo = await withAlwaysOnInfoTools(tools, ctx);
   const withBasics = handedTo ? await withEverydayBasics(withInfo, ctx) : withInfo;
-  return withSpecialistTools(await withChiefOfStaffTools(withBasics, ctx), ctx);
+  const specialist = await withSpecialistTools(await withChiefOfStaffTools(withBasics, ctx), ctx);
+  return withMenuPinnedTools(specialist, ctx);
 }

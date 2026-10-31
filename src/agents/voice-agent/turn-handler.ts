@@ -167,6 +167,7 @@ import {
 // Redis cache for real-time state (emotional state, voice biomarkers)
 import { getRedisCache } from '../../memory/redis-cache.js';
 import { buildProactiveOutreachPayload } from './proactive-outreach-message.js';
+import { joinRetrieved } from './retrieval-join.js';
 import * as followUpGate from './commitment-follow-up-gate.js';
 
 // Phase 11: Voice-Memory Integration - record prosody signals with memories
@@ -570,7 +571,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
 
   try {
     // Import the turn processor (cached after first load)
-    const { processTurn, injectTurnContext, getCelebrationEvents } =
+    const { processTurn, injectTurnContext, getCelebrationEvents, addSafetyNote } =
       await import('../processors/index.js');
 
     // Build turn context - cast userData to UserData for processor compatibility
@@ -888,13 +889,9 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     // Memory injections are added with high priority so LLM can use them
     // ================================================================
     if (memoryRetrievalResult && memoryRetrievalResult.injections.length > 0) {
-      for (const memoryInjection of memoryRetrievalResult.injections) {
-        result.context.injections.push({
-          category: memoryInjection.category || 'memory',
-          content: memoryInjection.content,
-          priority: 80, // High priority - memory is important context
-        });
-      }
+      // RETRIEVAL_FILTERED=on: memories join after processTurn's kept list, leftover budget only
+      const turn = { userText, emotionalIntensity: result.emotional?.intensity };
+      joinRetrieved(result.context, memoryRetrievalResult.injections, turn, result.crisis);
 
       diag.state('🧠 Memory retrieval injected', {
         memoriesRetrieved: memoryRetrievalResult.memoryContext?.memories.length || 0,
@@ -941,7 +938,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
           });
           await dispatchMicroExpression('insider', sendDataMessage, 0.75);
           diag.state('😄 BTH: Inside joke callback triggered', {
-            memoryHint: humorContent.slice(0, 40),
+            memoryHintLen: humorContent.length,
           });
         }, 'bth-inside-joke');
       }
@@ -1016,7 +1013,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
             intensity: Math.min(delightResult.confidence, result.emotional.intensity ?? 0.8),
           });
           diag.state('🎉 BTH: Spontaneous delight triggered', {
-            userText: userText.slice(0, 50),
+            userTextLen: userText.length,
             emotionIntensity: result.emotional.intensity,
             confidence: delightResult.confidence,
           });
@@ -1024,7 +1021,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       } else if (delightResult.rejectionReason && delightResult.rejectionReason !== 'no_match') {
         // Log filtered false positives for debugging (helps tune patterns)
         diag.debug('🎉 BTH: Delight detection filtered', {
-          userText: userText.slice(0, 50),
+          userTextLen: userText.length,
           rejectionReason: delightResult.rejectionReason,
         });
       }
@@ -1062,7 +1059,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
           });
           await dispatchMicroExpression('warmth_pulse', sendDataMessage, 0.8);
           diag.state('🤝 BTH: Meta-relationship moment triggered', {
-            userText: userText.slice(0, 50),
+            userTextLen: userText.length,
           });
         }, 'bth-meta-relationship');
       }
@@ -1087,7 +1084,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
           });
           diag.state('🤔 BTH: Visible vulnerability triggered', {
             type: isPhilosophical ? 'philosophical_question' : 'advice_seeking',
-            userText: userText.slice(0, 50),
+            userTextLen: userText.length,
           });
         }, 'bth-visible-vulnerability');
       }
@@ -1117,7 +1114,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
             trajectory: intervention.trajectory,
             guidance:
               typeof intervention.guidance === 'string'
-                ? intervention.guidance.slice(0, 100)
+                ? intervention.guidance.length
                 : undefined,
           });
           // Dispatch to frontend for avatar adjustment
@@ -1348,15 +1345,15 @@ Voice signals detected: ${allSignals.join(', ') || 'subtle vocal cues'}`,
         indicators: result.crisis.indicators,
       });
 
-      turnCtx.addMessage({
-        role: 'system',
-        content: `[CRITICAL SAFETY OVERRIDE]
+      addSafetyNote(
+        turnCtx,
+        `[CRITICAL SAFETY OVERRIDE]
 The user appears to be in crisis. You MUST respond with the following crisis response.
 Do NOT deviate from this response. User safety is the absolute priority.
 
 REQUIRED RESPONSE:
-${result.crisis.suggestedResponse}`,
-      });
+${result.crisis.suggestedResponse}`
+      );
 
       try {
         await sendDataMessage('crisis_detected', {
@@ -1380,7 +1377,7 @@ ${result.crisis.suggestedResponse}`,
     } else if (result.crisis?.softCheck) {
       result.context.injections.unshift({
         category: 'safety_soft_check',
-        content: SOFT_CRISIS_CHECK,
+        content: result.crisis.softGuidance ?? SOFT_CRISIS_CHECK,
         priority: 100,
       });
     }
@@ -2082,7 +2079,7 @@ ${result.crisis.suggestedResponse}`,
           .trim();
 
         logger.info(
-          { greetingPreview: cleanGreeting.slice(0, 50) },
+          { greetingLen: cleanGreeting.length },
           '🎤 Greeting context injected - LLM now knows what it said'
         );
 

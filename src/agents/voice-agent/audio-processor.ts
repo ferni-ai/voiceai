@@ -64,6 +64,7 @@ import { dispatchSpeechPause } from '../realtime/speech-state-dispatcher.js';
 import { clearListenTurnSignals, getListenTurnSignals } from '../realtime/listen-turn-signals.js';
 // GC pressure baseline metrics (for Rust migration validation)
 import { GC_METRICS, gcTrackEnd, gcTrackStart } from '../../utils/performance-metrics.js';
+import { writeHeld as held } from '../../utils/minor-care.js'; // MINOR_CARE: never a held caller's
 
 // ============================================================================
 // TYPES
@@ -491,8 +492,7 @@ async function processVoiceEmotion(
     userData.emotionModulation = modulation;
   }
 
-  // Record voice sample for baseline building
-  if (userId && voiceEmotion.prosody && voiceEmotion.confidence > 0.3) {
+  if (userId && voiceEmotion.prosody && voiceEmotion.confidence > 0.3 && !held(userId, sessionId)) {
     await recordVoiceBaseline(voiceEmotion, userId, userData, logger);
   }
 

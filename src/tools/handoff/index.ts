@@ -53,6 +53,7 @@ export {
   type ExecuteHandoffOptions,
   type HandoffResult,
 } from './executor.js';
+export { takeHandoffArrival, type HandoffArrivalContext } from './handoff-arrival.js';
 
 // Factory - Dynamic tool generation
 export {

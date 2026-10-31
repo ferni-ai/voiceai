@@ -14,7 +14,9 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { isSharedPlaceholderId } from '../../utils/synthetic-user.js';
 import { forgetCallStartReads, readUserDocOnce } from '../../utils/call-start-reads.js';
+import { canSpeakLanguageLive, languageNotLiveMessage } from './live-capability.js';
 
 const log = createLogger({ module: 'LanguageService' });
 
@@ -402,7 +404,7 @@ export function initializeSessionLanguage(
 ): SessionLanguageState {
   // Check user preference cache first
   let language = preferredLanguage;
-  if (!language && userId) {
+  if (!language && userId && !isSharedPlaceholderId(userId)) {
     language = userLanguagePreferences.get(userId);
   }
   language = language ?? 'en';
@@ -442,8 +444,8 @@ export function setSessionLanguage(
 
   sessionLanguageStates.set(sessionId, state);
 
-  // Cache user preference
-  if (userId) {
+  // Cache user preference, never under a shared placeholder id (#2651)
+  if (userId && !isSharedPlaceholderId(userId)) {
     userLanguagePreferences.set(userId, language);
   }
 
@@ -795,9 +797,9 @@ export async function persistUserLanguagePreference(
 ): Promise<void> {
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
-    const db = getFirestoreDb();
+    const db = isSharedPlaceholderId(userId) ? null : getFirestoreDb(); // never one shared doc (#2651)
     if (!db) {
-      log.warn({ userId }, 'Firestore not available for language persistence');
+      log.warn({ userId }, 'Language not persisted: no Firestore, or a shared placeholder id');
       return;
     }
 
@@ -829,13 +831,13 @@ export async function persistUserLanguagePreference(
 export async function loadUserLanguagePreference(
   userId: string
 ): Promise<SupportedLanguage | null> {
-  if (userLanguagePreferences.has(userId)) {
+  if (!isSharedPlaceholderId(userId) && userLanguagePreferences.has(userId)) {
     return userLanguagePreferences.get(userId)!;
   }
 
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
-    const db = getFirestoreDb();
+    const db = isSharedPlaceholderId(userId) ? null : getFirestoreDb();
     if (!db) return null;
 
     const ref = db.collection('bogle_users').doc(userId);
@@ -852,10 +854,6 @@ export async function loadUserLanguagePreference(
 
   return null;
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
 
 // ============================================================================
 // TTS LANGUAGE HELPERS
@@ -911,12 +909,9 @@ export function languageService() {
         // Try to parse the language name/code
         const parsed = parseLanguageName(languageCode);
         if (!parsed) {
-          const supported = getSupportedLanguagesList()
-            .map((l) => l.name)
-            .join(', ');
           return {
             success: false,
-            error: `I don't support "${languageCode}" yet. I can speak: ${supported}.`,
+            error: `I'm not sure which language ${languageCode} is. Could you say it another way?`,
           };
         }
 
@@ -930,13 +925,14 @@ export function languageService() {
           '🌍 Language set via service API'
         );
 
-        // Persist to Firestore
         await persistUserLanguagePreference(userId, parsed);
 
         const config = getLanguageConfig(parsed);
         return {
           success: true,
-          confirmationMessage: `Perfect! I'll speak ${config.displayName} now.`,
+          confirmationMessage: canSpeakLanguageLive(parsed)
+            ? `Perfect! I'll speak ${config.displayName} now.`
+            : languageNotLiveMessage(config.displayName),
         };
       } catch (error) {
         log.error({ error: String(error), userId, languageCode }, 'Failed to set language');
@@ -968,7 +964,7 @@ export function languageService() {
      */
     async getCurrentLanguage(userId: string): Promise<{ code: string; displayName: string }> {
       // Try session first
-      const sessionLang = getSessionLanguage(userId);
+      const sessionLang = isSharedPlaceholderId(userId) ? 'en-US' : getSessionLanguage(userId);
       if (sessionLang !== 'en-US') {
         const config = getLanguageConfig(sessionLang);
         return { code: sessionLang, displayName: config.displayName };

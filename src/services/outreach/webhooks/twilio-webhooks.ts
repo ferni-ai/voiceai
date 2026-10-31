@@ -8,9 +8,7 @@
  * - Voicemail detection
  */
 
-import { getProfileStore } from '../../../memory/profile-store.js';
-import { createHmac } from 'crypto';
-import type { UserProfile } from '../../../types/user-profile.js';
+import twilio from 'twilio';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { recordResponseEvent } from '../analytics.js';
 import { getOutreachDecisionEngine } from '../decision-engine.js';
@@ -23,78 +21,31 @@ import { handleInboundSMS as routeInboundSMS } from '../../conversation-thread/i
 import { handleProactiveSmsReply } from '../proactive-channels/sms-replies.js';
 import { isMemberIdentity } from '../../identity/member-identity.js';
 import { inboundKeyword, keywordReply } from '../../messaging/sms-keywords.js';
+import { heldSender, last4 } from '../checkin-replies.js';
+import { answerCallMe, NO_CALL } from '../sms-call-me.js';
+import { findAccountByVerifiedPhone } from './sms-sender-account.js';
 
 const log = getLogger().child({ module: 'twilio-webhooks' });
 
 // ============================================================================
-// USER LOOKUP BY PHONE
+// SMS OPT-OUT / OPT-IN (by the sender's verified phone)
 // ============================================================================
-
-/**
- * Find a user by their phone number
- * Searches all profiles for a matching phone in contactInfo
- */
-async function findUserByPhone(phone: string): Promise<UserProfile | null> {
-  try {
-    const store = await getProfileStore();
-    if (!store.isInitialized) {
-      await store.initialize();
-    }
-
-    // Normalize phone number (E.164 format)
-    const normalizedPhone = normalizePhoneNumber(phone);
-
-    // List profiles and find matching phone
-    // Note: In production, this should use a database index/query
-    const profiles = await store.listProfiles({ limit: 1000 });
-
-    for (const profile of profiles) {
-      if (profile.contactInfo?.phone === normalizedPhone) {
-        return profile;
-      }
-    }
-
-    return null;
-  } catch (error) {
-    log.error({ error, phone }, 'Error looking up user by phone');
-    return null;
-  }
-}
-
-/**
- * Normalize phone number to E.164 format
- */
-function normalizePhoneNumber(phone: string): string {
-  // Remove all non-digit characters except leading +
-  let normalized = phone.replace(/[^\d+]/g, '');
-
-  // Ensure it starts with + for international format
-  if (!normalized.startsWith('+')) {
-    // Assume US number if 10 digits
-    if (normalized.length === 10) {
-      normalized = `+1${normalized}`;
-    } else if (normalized.length === 11 && normalized.startsWith('1')) {
-      normalized = `+${normalized}`;
-    }
-  }
-
-  return normalized;
-}
 
 /**
  * Update user's SMS opt-out status in outreach preferences
  */
 async function updateSmsOptStatus(phone: string, optedIn: boolean): Promise<boolean> {
   try {
-    const profile = await findUserByPhone(phone);
+    // Only the account whose verified phone this is (sms-sender-account.ts).
+    const userId = await findAccountByVerifiedPhone(phone);
 
-    if (!profile) {
-      log.warn({ phone }, 'Cannot update SMS opt status - user not found by phone');
+    if (!userId) {
+      log.warn({ phoneLast4: last4(phone) }, 'Cannot update SMS opt status - no verified owner');
       return false;
     }
 
     const engine = getOutreachDecisionEngine();
-    const state = engine.getUserState(profile.id);
+    const state = engine.getUserState(userId);
 
     // Update allowedChannels
     let allowedChannels = state.allowedChannels || ['email', 'sms'];
@@ -109,12 +60,12 @@ async function updateSmsOptStatus(phone: string, optedIn: boolean): Promise<bool
       allowedChannels = allowedChannels.filter((c) => c !== 'sms');
     }
 
-    engine.updateUserState(profile.id, { allowedChannels });
+    engine.updateUserState(userId, { allowedChannels });
 
     log.info(
       {
-        userId: profile.id,
-        phone,
+        userId,
+        phoneLast4: last4(phone),
         optedIn,
         allowedChannels,
       },
@@ -123,7 +74,7 @@ async function updateSmsOptStatus(phone: string, optedIn: boolean): Promise<bool
 
     return true;
   } catch (error) {
-    log.error({ error, phone, optedIn }, 'Error updating SMS opt status');
+    log.error({ error, phoneLast4: last4(phone), optedIn }, 'Error updating SMS opt status');
     return false;
   }
 }
@@ -208,7 +159,9 @@ export function onInboundMessage(handler: InboundMessageHandler): void {
 // ============================================================================
 
 /**
- * Validate Twilio webhook signature (HMAC-SHA1 as per Twilio's specification).
+ * Validate a Twilio webhook signature over `url` plus the posted form fields, with the
+ * Twilio SDK's validateRequest (constant-time compare, port spellings). `url` must be the
+ * URL Twilio was given (api/twilio-callback-signature.ts builds it).
  * The token comes from initializeTwilioWebhooks, else TWILIO_AUTH_TOKEN: nothing deployed
  * calls initializeTwilioWebhooks, so without the env fallback every signature was refused.
  */
@@ -224,15 +177,7 @@ export function validateTwilioSignature(
   }
 
   try {
-    // Build the data string: URL + sorted params concatenated
-    const sortedKeys = Object.keys(params).sort();
-    let data = url;
-    for (const key of sortedKeys) {
-      data += key + params[key];
-    }
-    const expectedSignature = createHmac('sha1', authToken).update(data).digest('base64');
-
-    return signature === expectedSignature;
+    return Boolean(signature) && twilio.validateRequest(authToken, signature, url, params);
   } catch (error) {
     log.error({ error }, 'Signature validation error');
     return false;
@@ -317,7 +262,7 @@ export async function handleInboundSMSWebhook(
     process.env.SKIP_TWILIO_VALIDATION === 'true' && process.env.NODE_ENV === 'test';
   if (!skipValidation) {
     if (!signature || !url) {
-      log.warn({ messageSid: payload.MessageSid }, 'Missing Twilio signature or URL');
+      log.error({ messageSid: payload.MessageSid }, 'Inbound SMS: missing Twilio signature or URL');
       return { success: false };
     }
     const isValid = validateTwilioSignature(
@@ -326,14 +271,17 @@ export async function handleInboundSMSWebhook(
       payload as unknown as Record<string, string>
     );
     if (!isValid) {
-      log.warn({ messageSid: payload.MessageSid }, 'Invalid Twilio signature');
+      log.error({ messageSid: payload.MessageSid }, 'Inbound SMS: invalid Twilio signature');
       return { success: false };
     }
   }
 
   const { MessageSid, Body, From, NumMedia } = payload;
 
-  log.info({ MessageSid, From, bodyLength: Body.length }, '📥 Inbound SMS received');
+  log.info(
+    { MessageSid, phoneLast4: last4(From), bodyLength: Body.length },
+    '📥 Inbound SMS received'
+  );
 
   // Replies to proactive check-ins: "less", "not now", "stop" (sms-replies.ts).
   const proactiveReply = await handleProactiveSmsReply(From, Body);
@@ -377,9 +325,8 @@ export async function handleInboundSMSWebhook(
     }
   }
 
-  // Look up userId from phone number for proper attribution
-  const userProfile = await findUserByPhone(From);
-  const userId = userProfile?.id || 'unknown';
+  // The account whose verified phone sent this, never a profile's unverified phone (#3169)
+  const userId = (await findAccountByVerifiedPhone(From)) ?? 'unknown';
 
   // Mark as responded in delivery tracker
   markResponded(userId, 'sms');
@@ -407,13 +354,9 @@ export async function handleInboundSMSWebhook(
       calculateEngagement(Body) === 'high' ? 9 : calculateEngagement(Body) === 'medium' ? 6 : 3,
   });
 
-  if (isMemberIdentity(userId)) log.info({ userId, from: From }, 'SMS response attributed to user');
+  if (isMemberIdentity(userId)) log.info({ userId }, 'SMS response attributed to user');
 
-  // =========================================================================
-  // ML TIMING LEARNING - Check if this is a response from a known contact
-  // =========================================================================
-  // If the inbound message is from a phone number we've sent TO (a contact),
-  // update the ML timing model to record that they responded.
+  // ML TIMING LEARNING: a reply from a number we texted (a contact) updates the timing model.
   try {
     const contactLookup = await findContactByPhone(From);
     if (contactLookup) {
@@ -437,17 +380,17 @@ export async function handleInboundSMSWebhook(
   } catch (mlError) {
     // Don't fail the webhook if ML tracking fails
     log.warn(
-      { error: String(mlError), from: From },
+      { error: mlError, phoneLast4: last4(From) },
       'Failed to update ML timing for contact response'
     );
   }
 
-  // =========================================================================
-  // BIDIRECTIONAL ROUTING - Route to appropriate agent
-  // =========================================================================
+  // BIDIRECTIONAL ROUTING: to the right agent
   if (isMemberIdentity(userId)) {
     try {
-      const routeResult = await routeInboundSMS(userId, From, Body, said?.kind === 'maybe-opt-out');
+      const stop = said?.kind === 'maybe-opt-out';
+      const held = await heldSender(userId, From); // MINOR_CARE_SHARED_HOLD: answered, not kept
+      const routeResult = await routeInboundSMS(userId, From, Body, stop, held);
 
       log.info(
         {
@@ -459,14 +402,16 @@ export async function handleInboundSMSWebhook(
         '🔀 SMS routed to agent'
       );
 
-      if (routeResult.shouldInitiateCall && routeResult.responseMessage) {
-        return {
-          success: true,
-          twiml: generateTwiML(routeResult.responseMessage),
-        };
+      if (routeResult.shouldInitiateCall) {
+        const persona = routeResult.routeDecision.agentId;
+        const reply = routeResult.callNow ? await answerCallMe(userId, From, persona) : NO_CALL;
+        return { success: true, twiml: generateTwiML(reply) }; // says only what was done
       }
     } catch (routeError) {
-      log.warn({ error: String(routeError), userId }, 'Failed to route inbound SMS');
+      // The raw value, not String(): that throws on a value with no string form,
+      // outside the logger's guard, and the reply became a 500. The logger
+      // redacts errors (redactErrorValue).
+      log.warn({ error: routeError, userId }, 'Failed to route inbound SMS');
       // Continue with default handling
     }
   }
@@ -610,7 +555,7 @@ export async function handleCallStatusWebhook(
     } catch (mlError) {
       // Don't fail the webhook if ML tracking fails
       log.warn(
-        { error: String(mlError), to: payload.To },
+        { error: mlError, phoneLast4: last4(payload.To) },
         'Failed to update ML timing for call response'
       );
     }

@@ -27,6 +27,8 @@ export default defineConfig({
     exclude: ['node_modules/**', '**/node_modules/**', 'dist/**'],
     testTimeout: 60000,
     hookTimeout: 60000,
+    // Writes the gitignored flag barrel and env-name list (src/config/generated-lists.ts).
+    globalSetup: ['./src/config/__tests__/generate-lists-setup.ts'],
     setupFiles: ['./src/tests/setup.ts'],
     // The only suite where ALLOW_PRODUCTION_DATA=1 unguards real Google Cloud
     // (src/tests/gcp-test-guard.ts). Every other config ignores it.

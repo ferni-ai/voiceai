@@ -20,11 +20,9 @@
  * - Comprehensive metrics
  */
 
-// Store interfaces and implementations
+// Store interfaces and implementations, in-memory and production
 export { getDefaultStore, InMemoryStore, resetDefaultStore } from './in-memory-store.js';
 export { MemoryStore, type QueryOptions, type SearchResult } from './store.js';
-
-// Production stores
 export { FirestoreStore, getFirestoreStore, resetFirestoreStore } from './firestore-store.js';
 export { getPostgresStore, PostgresStore, resetPostgresStore } from './postgres-store.js';
 export { getRedisCache, RedisCache, resetRedisCache } from './redis-cache.js';
@@ -209,8 +207,6 @@ export {
   type SummarizationOptions,
 } from './summarizer.js';
 
-// History tracking is handled by session state in services layer
-
 // Key Moment Retrieval
 export {
   clearCurrentSessionMomentsGetter,
@@ -235,8 +231,6 @@ export {
   type RetrievalContext,
   type RetrievedMemory,
 } from './advanced-retrieval.js';
-
-// --- NEW v2 MODULES ---
 
 // Result Type Pattern (error handling)
 export {
@@ -674,14 +668,12 @@ export type {
 // The unified entity store replaces fragmented collections:
 // - user_contacts, contact_relationships, relationship_network
 // - relationship_nodes, guest_profiles, network/relationships
-//
 // All people, places, events, and concepts are now stored as unified entities
 // with deduplication, alias resolution, and cross-domain queries.
 
 export {
   captureMultiplePeople,
   capturePersonEntity,
-  // Storage
   createEntity,
   createMention,
   deleteEntity,
@@ -698,8 +690,8 @@ export {
   getRelationshipsForEntity,
   hasEntityStore,
   initializeEntityStore,
-  // Integration
   isEntityStoreReady,
+  listPersonEntities,
   mergeEntities,
   migrateAllUsers,
   // Migration
@@ -708,6 +700,7 @@ export {
   // Resolver
   resolvePerson,
   searchEntities,
+  setPersonPhone,
   updateEntity,
   upsertRelationship,
   whatDoWeKnowAbout,
@@ -1284,8 +1277,12 @@ export default {
   initializeRedisCache,
   rehydrateConversationEmbeddings,
 };
-export { forgottenInProcess, forgottenTopicsOrNull } from './recall/forget.js';
+export { forgottenInProcess, forgottenTopicsOrNull, worldFactText } from './recall/forget.js';
+export { aboutForgotten, forgottenWithin, keepRemembered, profileForCaller } from './recall/forget-every-reader.js'; // prettier-ignore
+export { isPersonaSubject } from './entity-hygiene.js';
 export { CALLER_PROVENANCE, contentWords, forgetTokens } from './recall/session-recall.js';
 export { isForgotten, undisputed, type RecallFact } from './recall/session-recall.js';
+export { containsContactData, contactNumberRuns, foldContactText } from './domain/contact-data.js';
 export { peopleOf } from './recall/people.js';
 export { isSensitiveThread } from './recall/sensitive.js';
+export { keepLetters, nameTokens, OWNER_LEAD, relationWords } from './domain/person-key.js';

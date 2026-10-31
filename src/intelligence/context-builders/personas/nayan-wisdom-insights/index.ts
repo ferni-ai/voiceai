@@ -45,6 +45,9 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { takeHandoffArrival } from '../../../../tools/handoff/index.js';
+import { hasAnyProviderConnected } from '../../../../services/calendar/index.js';
+import { loadBriefingStores } from '../briefing-stores.js';
 import {
   BuilderCategory,
   createHighInjection,
@@ -77,7 +80,12 @@ import { analyzeValuesAlignment } from './values-alignment.js';
 import { computeWisdomMetrics } from './wisdom-metrics.js';
 import { detectWisdomOpportunities } from './wisdom-opportunities.js';
 
-import type { LifeSynthesis, NayanInsightBriefing, TeamSynthesis } from './types.js';
+import type {
+  HandoffBriefing,
+  LifeSynthesis,
+  NayanInsightBriefing,
+  TeamSynthesis,
+} from './types.js';
 import { isMemberIdentity } from '../../../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'context:nayan-wisdom-insights' });
@@ -90,9 +98,10 @@ export { clearAllNayanWisdomSessions, clearNayanWisdomSession };
 // BUILD BRIEFING
 // ============================================================================
 
-async function buildNayanBriefing(userId: string): Promise<NayanInsightBriefing> {
-  const handoffBriefing = analyzeHandoffForNayan();
-
+async function buildNayanBriefing(
+  userId: string,
+  handoffBriefing: HandoffBriefing | null
+): Promise<NayanInsightBriefing> {
   // Default fallback values for graceful degradation
   const defaultLifeSynthesis: LifeSynthesis = {
     lifeChapter: 'unknown',
@@ -101,7 +110,6 @@ async function buildNayanBriefing(userId: string): Promise<NayanInsightBriefing>
     compoundingAreas: [],
     valuesRevealed: [],
     timeHorizon: 'unknown',
-    seasonOfLife: 'unknown',
   };
   const defaultTeamSynthesis: TeamSynthesis = {
     peterPattern: null,
@@ -113,6 +121,7 @@ async function buildNayanBriefing(userId: string): Promise<NayanInsightBriefing>
   };
 
   // Each promise has its own catch to prevent one failure from crashing all
+  await loadBriefingStores(userId);
   const [lifeSynthesis, teamSynthesis, calendarContext] = await Promise.all([
     synthesizeLifeContext(userId).catch((e) => {
       log.warn({ error: String(e) }, 'Failed to synthesize life context');
@@ -122,7 +131,10 @@ async function buildNayanBriefing(userId: string): Promise<NayanInsightBriefing>
       log.warn({ error: String(e) }, 'Failed to synthesize team insights');
       return defaultTeamSynthesis;
     }),
-    buildCalendarWisdomContext(userId).catch(() => null),
+    // An unconnected calendar is not a light week (#3044)
+    hasAnyProviderConnected(userId)
+      .then((connected) => (connected ? buildCalendarWisdomContext(userId) : null))
+      .catch(() => null),
   ]);
 
   const valuesAlignment = analyzeValuesAlignment(lifeSynthesis, userId);
@@ -188,7 +200,9 @@ async function buildNayanWisdomInsightsContext(
   const sessionId = services?.sessionId || userId;
   const session = getSession(sessionId);
 
-  const handoffBriefing = analyzeHandoffForNayan();
+  const handoffBriefing = analyzeHandoffForNayan(
+    takeHandoffArrival(services?.sessionId, 'nayan-patel')
+  );
   const isHandoff = handoffBriefing !== null;
 
   // Inject on first turn, handoff, or every 15 turns (Nayan is more patient)
@@ -200,8 +214,9 @@ async function buildNayanWisdomInsightsContext(
   if (!shouldInject) return injections;
 
   try {
-    const briefing = await buildNayanBriefing(userId);
+    const briefing = await buildNayanBriefing(userId, handoffBriefing);
     const briefingLines = formatNayanBriefing(briefing, handoffBriefing, turnCount);
+    if (briefingLines.length === 0) return injections; // nothing true to say
 
     // Get superhuman context (narrative, values, dreams, seasonal)
     // V3 Semantic Intelligence needs current conversation context
@@ -247,66 +262,6 @@ async function buildNayanWisdomInsightsContext(
     }
     if (developmentalContext) {
       briefingLines.push('\n' + developmentalContext);
-    }
-
-    // 🤝 TEAM HUDDLE: Record Nayan's observations for cross-persona intelligence
-    try {
-      const { nayan: nayanObserver, recordConcern } =
-        await import('../../../../services/cross-persona/observation-recorder.js');
-
-      // Record life synthesis insights
-      if (briefing.lifeSynthesis.lifeChapter) {
-        nayanObserver.insight(
-          userId,
-          `Current life chapter: ${briefing.lifeSynthesis.lifeChapter}`,
-          0.75,
-          ['life-stage', 'wisdom', 'narrative']
-        );
-      }
-
-      // Record values alignment patterns (check for conflict areas)
-      if (briefing.valuesAlignment && briefing.valuesAlignment.conflictAreas.length > 0) {
-        recordConcern(
-          userId,
-          'nayan',
-          `Values conflict detected: ${briefing.valuesAlignment.conflictAreas.slice(0, 2).join(', ')}`,
-          0.7,
-          ['values', 'alignment', 'purpose', 'conflict']
-        );
-      }
-
-      // Record inner peace patterns
-      if (briefing.wisdomMetrics.innerPeaceIndex < 0.4) {
-        recordConcern(
-          userId,
-          'nayan',
-          `Inner peace index low (${Math.round(briefing.wisdomMetrics.innerPeaceIndex * 100)}%)`,
-          0.65,
-          ['peace', 'wellbeing', 'stress', 'wisdom']
-        );
-      }
-
-      // Record existential theme if present
-      if (briefing.existentialContext?.currentExistentialTheme) {
-        nayanObserver.pattern(
-          userId,
-          `Existential theme: ${briefing.existentialContext.currentExistentialTheme}`,
-          0.7,
-          ['existential', 'meaning', 'purpose']
-        );
-      }
-
-      // Record meaning-seeking patterns
-      if (briefing.existentialContext?.meaningSeekingIntensity === 'high') {
-        nayanObserver.insight(userId, 'High meaning-seeking intensity detected', 0.7, [
-          'meaning',
-          'purpose',
-          'search',
-        ]);
-      }
-    } catch (err) {
-      // Non-critical - don't block if observation recording fails
-      log.debug({ error: String(err) }, 'Failed to record Nayan observations (non-blocking)');
     }
 
     const content = briefingLines.join('\n');

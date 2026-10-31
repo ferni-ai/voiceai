@@ -24,6 +24,8 @@ public protocol VoiceRoom: AnyObject, Sendable {
     var events: AsyncStream<RoomEvent> { get }
     func connect(url: String, token: String) async throws
     func setMicrophone(enabled: Bool) async throws
+    /// A reliable data message to the agent (e.g. user_interrupt).
+    func send(_ data: Data) async throws
     func disconnect() async
 }
 
@@ -52,6 +54,20 @@ public struct Caption: Identifiable, Sendable, Equatable {
     public let speaker: CaptionChunk.Speaker
     public var text: String
     public var isFinal: Bool
+    /// When it was first heard (a report finds the reply by time).
+    public var at: Date = .now
+    /// The room it was heard in. A rejoin gets a new room, so a report about
+    /// an earlier line uses this, not the call's room at send time (critic L2).
+    public var room: String?
+
+    public init(id: String, speaker: CaptionChunk.Speaker, text: String, isFinal: Bool, at: Date = .now, room: String? = nil) {
+        self.id = id
+        self.speaker = speaker
+        self.text = text
+        self.isFinal = isFinal
+        self.at = at
+        self.room = room
+    }
 }
 
 /// Assembles caption chunks the way the web does: chunks of the same stream
@@ -64,7 +80,7 @@ public struct CaptionBook: Sendable, Equatable {
 
     public init(keep: Int = 6) { self.keep = keep }
 
-    public mutating func apply(_ chunk: CaptionChunk) {
+    public mutating func apply(_ chunk: CaptionChunk, room: String? = nil) {
         guard !chunk.text.isEmpty || chunk.isFinal else { return }
         let id = "\(chunk.speaker)-\(chunk.segmentID)"
         if let index = lines.firstIndex(where: { $0.id == id }) {
@@ -73,7 +89,7 @@ public struct CaptionBook: Sendable, Equatable {
             lines[index].isFinal = chunk.isFinal
         } else if !chunk.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             // A bare end-of-segment marker with nothing said isn't a line.
-            lines.append(Caption(id: id, speaker: chunk.speaker, text: chunk.text, isFinal: chunk.isFinal))
+            lines.append(Caption(id: id, speaker: chunk.speaker, text: chunk.text, isFinal: chunk.isFinal, room: room))
             if lines.count > keep { lines.removeFirst(lines.count - keep) }
         }
         streamForSegment[id] = chunk.streamID

@@ -29,7 +29,7 @@ source "$(dirname "$0")/reviewable.sh"
 failures=()
 warnings=()
 
-pr_json=$(gh pr view "$PR" -R "$REPO" --json baseRefName,labels,closingIssuesReferences,isDraft)
+pr_json=$(gh pr view "$PR" -R "$REPO" --json baseRefName,labels,closingIssuesReferences,isDraft,body)
 base=$(jq -r .baseRefName <<<"$pr_json")
 labels=$(jq -r '[.labels[].name] | join(",")' <<<"$pr_json")
 linked=$(jq '.closingIssuesReferences | length' <<<"$pr_json")
@@ -64,6 +64,14 @@ fi
 # --- Issue link ---------------------------------------------------------------
 if (( linked == 0 )); then
   warnings+=("**Issue:** no linked issue. Add \`Closes #N\` to the description.")
+fi
+
+# --- Every gate can fail -------------------------------------------------------
+# A test that passes whatever the code does proves nothing (2026-10-22: a p99 timing gate,
+# a CSS rule nobody rendered). New or changed tests need a note on how they were seen to fail.
+if grep -qE '(__tests__/|\.test\.|\.spec\.|/Tests/)' <<<"$(cut -f1 <<<"$files")" \
+  && ! jq -r '.body // ""' <<<"$pr_json" | grep -qiE 'mutat|mutant|seen to fail|main.{0,60}fail|fail.{0,30}on main'; then
+  warnings+=("**Proof:** tests changed, but the description doesn't say how they were seen to fail. Break the code they cover (or run them on main) and note the result.")
 fi
 
 # --- Report ---------------------------------------------------------------------

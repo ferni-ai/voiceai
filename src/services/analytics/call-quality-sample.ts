@@ -15,22 +15,31 @@ interface SampledMetrics {
   errorCount: number;
   disconnectRate: number;
   qualityScore: number;
+  firstResponseSamples: number;
+  avgFirstResponseTimeMs: number;
 }
 
 /**
- * The rates and score to alert on: the measured values once the window holds
- * `minCalls` calls, healthy values below that so no rate or score alert fires.
- * Connection rate and score count attempts; disconnect rate counts ended calls.
+ * The rates, score and response time to alert on: the measured values once the
+ * window holds `minCalls` calls, healthy values below that so no alert fires.
+ * Connection rate and score count attempts; disconnect rate counts ended calls;
+ * response time counts calls with a first response (one slow call opened
+ * "Response Time Critical" on its own, 2026-10-24).
  */
 export function gateSmallSamples(
   metrics: SampledMetrics,
   minCalls: number
-): Pick<SampledMetrics, 'connectionSuccessRate' | 'disconnectRate' | 'qualityScore'> {
+): Pick<
+  SampledMetrics,
+  'connectionSuccessRate' | 'disconnectRate' | 'qualityScore' | 'avgFirstResponseTimeMs'
+> {
   const enoughAttempts = metrics.connectionAttempts >= minCalls;
   const ended = metrics.naturalEndCount + metrics.disconnectCount + metrics.errorCount;
   return {
     connectionSuccessRate: enoughAttempts ? metrics.connectionSuccessRate : 1,
     disconnectRate: ended >= minCalls ? metrics.disconnectRate : 0,
     qualityScore: enoughAttempts ? metrics.qualityScore : 100,
+    avgFirstResponseTimeMs:
+      metrics.firstResponseSamples >= minCalls ? metrics.avgFirstResponseTimeMs : 0,
   };
 }

@@ -293,7 +293,7 @@ export function getCachedGreetingAudio(text: string, voiceId: string): ArrayBuff
     metrics.cacheHits++;
     touchLRU(key);
     log.debug(
-      { text: text.slice(0, 30), voiceId: voiceId.slice(0, 8), durationMs: cached.durationMs },
+      { textLen: text.length, voiceId: voiceId.slice(0, 8), durationMs: cached.durationMs },
       '🎯 Greeting audio CACHE HIT'
     );
     return cached.audio;

@@ -43,6 +43,7 @@ await i18n.initI18n();
 await i18n.setLocale('es');
 const { t } = i18n;
 const { showGamePicker, hideGamePicker } = await import('../../src/ui/game-picker.ui.js');
+const { handleAgentAckMessage } = await import('../../src/app/agent-ack-handlers.js');
 const practice = await import('../../src/ui/practice-experience.ui.js');
 const sheet = await import('../../src/ui/mobile-bottom-sheet.ui.js');
 
@@ -88,18 +89,22 @@ describe("Let's Play", () => {
     }
   });
 
-  it('starts a game with a localized toast and no library fields', async () => {
+  it('says "starting" in your language only once the agent confirms, with no library fields', async () => {
     mocks.room.isConnected = true;
     showGamePicker();
     document.querySelector<HTMLElement>('[data-game="name-that-tune"]')?.click();
 
-    await vi.waitFor(() => expect(mocks.toast.success).toHaveBeenCalled());
+    await vi.waitFor(() => expect(mocks.publishData).toHaveBeenCalled());
     const sent = JSON.parse(
       new TextDecoder().decode(mocks.publishData.mock.calls[0]?.[0] as unknown as Uint8Array)
     ) as Record<string, unknown>;
     expect(sent).toMatchObject({ type: 'game_start_request', gameType: 'name-that-tune' });
     expect(sent).not.toHaveProperty('isLibraryMode');
     expect(sent).not.toHaveProperty('libraryMode');
+    expect(mocks.toast.success).not.toHaveBeenCalled(); // the agent hasn't answered yet
+
+    handleAgentAckMessage({ type: 'game_start_ack', gameType: 'name-that-tune', success: true });
+    expect(mocks.toast.success).toHaveBeenCalledTimes(1);
     const toast = mocks.toast.success.mock.calls[0]?.[0] as string;
     expect(toast).toBe(t('gamePicker.starting', { game: t('gamePicker.nameThatTune') }));
     expect(toast).not.toContain('Starting'); // the es string, not the en-US fallback

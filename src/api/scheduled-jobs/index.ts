@@ -58,8 +58,10 @@ export const JOB_PATHS: ReadonlySet<string> = new Set([
   '/api/jobs/calendar-briefing',
   '/api/jobs/follow-through',
   '/api/jobs/retry-pending-revocations',
+  '/api/jobs/held-scrub-sweep',
   '/api/jobs/deep-analysis',
   '/api/jobs/pondering',
+  '/api/jobs/person-model',
   '/api/jobs/knowledge-graph-insights',
   '/api/jobs/knowledge-graph-consolidation',
   '/api/jobs/knowledge-graph-thread-maintenance',
@@ -124,6 +126,7 @@ import {
 } from './maintenance-jobs.js';
 
 import { handleDeliverReminders } from './reminder-jobs.js';
+import { handlePersonModel } from './person-model-job.js';
 import { handleReplyReportSummaryJob } from '../reply-reports/reply-report-summary.js';
 import {
   handleCalendarTriggers,
@@ -132,6 +135,7 @@ import {
   handleExecuteScheduledOutreach,
   handleFollowThrough,
   handleRetryPendingRevocations,
+  handleHeldScrubSweep,
 } from './background-delivery-jobs.js';
 
 // Memory maintenance handlers
@@ -348,12 +352,20 @@ async function dispatchJob(
       await handleRetryPendingRevocations(res);
       return true;
 
+    case '/api/jobs/held-scrub-sweep':
+      await handleHeldScrubSweep(req, res);
+      return true;
+
     case '/api/jobs/deep-analysis':
       await handleDeepAnalysis(res);
       return true;
 
     case '/api/jobs/pondering':
       await handlePondering(res);
+      return true;
+
+    case '/api/jobs/person-model':
+      await handlePersonModel(req, res);
       return true;
 
     case '/api/jobs/knowledge-graph-insights':

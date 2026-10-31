@@ -153,11 +153,11 @@ const INTENTION_PATTERNS = [
   /i really (need|should|have) to (.+)/i,
 ];
 
-// ============================================================================
-// IN-MEMORY STORE
-// ============================================================================
+// In-memory store
 
 const profiles = new Map<string, SmallWinsProfile>();
+/** MINOR_CARE (purgeHeldUser): forget one user. */
+export const forgetSmallWinsUser = (userId: string): boolean => profiles.delete(userId);
 
 function getOrCreateProfile(userId: string): SmallWinsProfile {
   let profile = profiles.get(userId);
@@ -298,7 +298,7 @@ function createWin(
   }
 
   log.debug(
-    { userId: profile.userId, type, description: message.slice(0, 50) },
+    { userId: profile.userId, type, descriptionLen: message.length },
     '🏆 Small win detected'
   );
 

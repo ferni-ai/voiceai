@@ -22,6 +22,7 @@
  * @module agents/personas/action-claims
  */
 
+import { flagOn, type Env } from '../../config/env-flag.js';
 import {
   ANECDOTE,
   CLAUSE_CONDITION,
@@ -243,6 +244,20 @@ export function emergencyRemainder(sentence: string): string {
 }
 
 /**
+ * "I'll call now." with no one named (ACTION_CLAIM_BARE_WILL). Prod call 2026-10-24
+ * (#2735): after the call tool held the call until 9:00 AM their time, Ferni said
+ * "Ah, got it, early riser, I'll call now." and the held line never went out,
+ * because the pattern above needs a person or number before "now".
+ */
+const BARE_WILL_CALL = new RegExp(
+  `\\b(?:let me|i'm going to|i'm gonna|i'll) (?:call|ring|dial|phone) ${NOW}`
+);
+
+export function actionClaimBareWillEnabled(env: Env = process.env): boolean {
+  return flagOn('ACTION_CLAIM_BARE_WILL', env);
+}
+
+/**
  * The kind of action one sentence claims was done or is under way, or null.
  *
  * Dev sweep 2026-10-21 (overlap-handoff): asked "What should I do first?",
@@ -253,8 +268,9 @@ export function emergencyRemainder(sentence: string): string {
  * Words after a supposition ("if", "let's say"), a hedge ("maybe") or a cue to
  * say them ("tell them") are not a report either.
  */
-export function claimedAction(sentence: string): ActionKind | null {
+export function claimedAction(sentence: string, env: Env = process.env): ActionKind | null {
   const text = normalize(sentence);
+  const bareWill = actionClaimBareWillEnabled(env);
   if (FIGURATIVE.test(text)) return null;
   if (emergencyClaim(sentence) === 'called') return 'call';
   const whole = text.replace(/[—–]/g, ',');
@@ -279,6 +295,7 @@ export function claimedAction(sentence: string): ActionKind | null {
     };
     const kind = ACTION_KINDS.find((k) => CLAIMS[k].some(reports));
     if (kind) return kind;
+    if (bareWill && reports(BARE_WILL_CALL)) return 'call';
   }
   return null;
 }
@@ -408,8 +425,8 @@ const ELSEWHERE = /\bisn't on your calendar\b/i;
 const HELD = /^\W*nothing was dialed yet\b/i;
 /** The held call's time as its result words it: "later today at 9:00 AM". */
 const HELD_WHEN = /\b((?:later today|tomorrow|\w+day) at \d{1,2}:\d{2}\s?[AP]M)\b/i;
-/** A result that says the action did not happen. */
-const REFUSAL =
+/** A result that says the action did not happen (also the handoff desk's, multi-agent/handoff-desk.ts). */
+export const TOOL_REFUSAL =
   /^\W*(?:no calendar is connected|nothing (?:was|has been)|i couldn't|i could not|i can't|i cannot|i wasn't able|couldn't|could not|unable to|failed|error\b|sorry,? (?:i|but|that|it|something|there))|\bbut i don't have\b|\bi don't have (?:a|the|their|any) (?:phone )?number\b|\bi couldn't find\b|\bdon't see \w+(?: \w+)? in your contacts\b|\bdoesn't look (?:valid|right)\b|\b(?:calls?|calling|texts?|texting|outbound \w+) (?:are|is) (?:disabled|turned off|off|not available|unavailable)\b|\bcould you (?:tell me|provide|give me) (?:their|the|a) (?:phone )?number\b|"success"\s*:\s*false|"error"\s*:/i;
 
 function outputText(output: unknown): string {
@@ -457,7 +474,7 @@ export function callActions(chatCtx: { items: readonly unknown[] }): CallActions
       ? 'failed'
       : HELD.test(text)
         ? 'held'
-        : REFUSAL.test(text)
+        : TOOL_REFUSAL.test(text)
           ? 'failed'
           : PREVIEW.test(text)
             ? 'awaiting'

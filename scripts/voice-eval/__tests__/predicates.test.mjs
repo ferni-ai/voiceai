@@ -43,7 +43,9 @@ function run(
   };
 }
 const call = (lines, opts = {}) => {
-  const c = callOf(run(lines, opts));
+  const r = run(lines, opts);
+  opts.edit?.(r);
+  const c = callOf(r);
   c.priorCalls = opts.priorCalls ?? 0;
   c.risk = opts.risk ?? false;
   return c;
@@ -90,6 +92,51 @@ describe('self-answer', () => {
       'u: Hey, are you my friend?',
       'a: I am, yeah.',
     ]);
+    expect(hits('self-answer', c)).toEqual([]);
+  });
+});
+
+describe('self-answer: "Well," opens Ferni\'s own reply, not an answer for the caller (#3164)', () => {
+  const lateNight = (reply) =>
+    call(["a: Hey Sam, what's keeping you up so late?", "u: Hey Ferni, it's me.", `a: ${reply}`]);
+  it.each([
+    'Well, hey, Jazz… good to hear you.',
+    'Well, week one, huh.',
+    "Well, four in the morning is a rough time… What's got you awake?",
+  ])('passes %j', (reply) => {
+    expect(hits('self-answer', lateNight(reply))).toEqual([]);
+  });
+  it('still flags a real answer after the same opener', () => {
+    expect(hits('self-answer', lateNight("Yeah, I just can't sleep tonight."))).toHaveLength(1);
+  });
+});
+
+describe("self-answer: a state report to its own how's-your-evening ask (dev 1cf4bd64b facts-recall)", () => {
+  const evening = (reply, said = "Hey Ferni, it's me again.") =>
+    call(["a: Hey Sam, how's your evening going?", `u: ${said}`, `a: ${reply}`], { priorCalls: 1 });
+  it.each([
+    'Pretty good, just winding down.', // m1: the old ANSWER list had no "pretty good"
+    "My evening's been quiet, just winding down.", // m3
+    'Not bad, just winding down. Long day?',
+    "Just winding down, honestly. It's been a slow one.",
+  ])('flags %j', (reply) => {
+    expect(hits('self-answer', evening(reply))).toHaveLength(1);
+  });
+  it('passes "Pretty good! How about you?" when the CALLER asked first', () => {
+    expect(hits('self-answer', evening('Pretty good! How about you?', "Hey Ferni! How's yours?"))).toEqual([]); // prettier-ignore
+  });
+  it('passes a reply that turns to the caller', () => {
+    expect(hits('self-answer', evening('Good to hear your voice. So, how was it?'))).toEqual([]);
+  });
+  it('passes "not bad" when the ask was not about their day', () => {
+    const c = call(
+      [
+        'a: Hey Sam, did you end up mailing that application?',
+        "u: Hey Ferni, it's me again.",
+        'a: Not bad timing, I was just thinking about that.',
+      ],
+      { priorCalls: 1 }
+    );
     expect(hits('self-answer', c)).toEqual([]);
   });
 });
@@ -346,6 +393,127 @@ describe('dead-air', () => {
       { gaps: { 2: 3000 } }
     );
     expect(hits('dead-air', c)).toEqual([]);
+  });
+
+  // 2026-10-26 release: all 5 dead-air hits were the harness, not the agent.
+  // Caller line 1 (2 s on the clock) then 15 s with no agent voice before the caller tries again.
+  const unanswered = ['a: Hi.', 'u: Any news today?', 'a: One sec.', 'u: Hello?'];
+  /** Gives caller line k (in userSpeech order) its recorded audio length, as converse.mjs does. */
+  const audioMs = (k, ms) => (r) => r.userSpeech[k].push(ms);
+  it('skips a caller line the harness stretched (0.5 s of audio took 2 s on the clock)', () => {
+    const c = call(unanswered, { drop: [2], gaps: { 1: 9000 }, edit: audioMs(0, 500) });
+    expect(c.callerSpeech[0][2]).toBe(500);
+    expect(hits('dead-air', c)).toEqual([]);
+  });
+  it('still flags the same unanswered line when its audio filled the clock (1.9 s of 2 s)', () => {
+    const c = call(unanswered, { drop: [2], gaps: { 1: 9000 }, edit: audioMs(0, 1900) });
+    expect(hits('dead-air', c)).toEqual([
+      expect.objectContaining({ why: 'caller turn unanswered for 15.0 s' }),
+    ]);
+  });
+  it('skips caller lines that end before the agent first speaks (a cold server)', () => {
+    const c = call(['u: Hello?', 'u: Hello, anyone there?', 'a: Hey Sam, sorry, I am here.'], {
+      gaps: { 0: 9000 },
+      edit: (r) => r.userSpeech.forEach((l) => l.push(2000)),
+    });
+    expect(c.agentVoice[0][0]).toBeGreaterThan(c.callerSpeech[1][1]);
+    expect(hits('dead-air', c)).toEqual([]);
+    expect(hits('slow-start', c)).toEqual([
+      expect.objectContaining({ why: 'first agent audio at 18.0 s, after 2 caller line(s)' }),
+    ]);
+  });
+  it('still flags a real unanswered turn after the agent has spoken, in a slow-start call', () => {
+    const c = call(['u: Hello?', 'a: Hey Sam.', 'u: Any news today?', 'a: One sec.', 'u: Hello?'], {
+      gaps: { 0: 9000, 2: 9000 },
+      drop: [3],
+      edit: (r) => r.userSpeech.forEach((l) => l.push(2000)),
+    });
+    expect(hits('dead-air', c)).toEqual([
+      expect.objectContaining({
+        quote: 'Any news today?',
+        why: 'caller turn unanswered for 15.0 s',
+      }),
+    ]);
+  });
+  it('skips a 905 s line in an older run file without audio lengths (timer-n1026s1)', () => {
+    const stretch = (r) => (r.userSpeech[0][1] = r.userSpeech[0][0] + 905000);
+    const c = call(unanswered, { drop: [2], gaps: { 1: 920000 }, edit: stretch });
+    expect(c.callerSpeech[0]).toHaveLength(2);
+    expect(hits('dead-air', c)).toEqual([]);
+  });
+});
+
+describe('dead-air: a silence-only caller line is no caller turn (#3164, crisis-relay t4)', () => {
+  // Ferni asks back, the caller's next line is [[slnc 1500]] (a cut-off), then the caller speaks
+  // 15 s later: the silence owed no reply, and the turn before it was answered.
+  const cutOff = ['a: Hi.', 'u: Can you call my dad for me?', 'a: Want me to call him now?', 'u: [[slnc 1500]]', 'u: Sorry. Yes please.']; // prettier-ignore
+  /** converse.mjs records [start, end, audioMs, peak]; line 1 is the silence. */
+  const peaks =
+    (...p) =>
+    (r) =>
+      r.userSpeech.forEach((l, k) => l.push(2000, p[k]));
+  it('passes when the silent line (peak 18) is followed by 15 s of quiet', () => {
+    const c = call(cutOff, { gaps: { 3: 13000 }, edit: peaks(25649, 18, 25649) });
+    expect(c.callerSpeech[1][3]).toBe(18);
+    expect(hits('dead-air', c)).toEqual([]);
+  });
+  it('flags the same 15 s when that line was speech (peak 9000)', () => {
+    const c = call(cutOff, { gaps: { 3: 13000 }, edit: peaks(25649, 9000, 25649) });
+    expect(hits('dead-air', c)).toEqual([
+      expect.objectContaining({ why: 'caller turn unanswered for 15.0 s' }),
+    ]);
+  });
+  it('flags a spoken turn left unanswered across a silent line', () => {
+    const ignored = ['a: Hi.', 'u: Can you call my dad?', 'u: [[slnc 1500]]', 'u: Hello?'];
+    const c = call(ignored, { gaps: { 1: 6000, 2: 6000 }, edit: peaks(25649, 18, 25649) });
+    expect(hits('dead-air', c)).toEqual([
+      expect.objectContaining({ why: 'caller turn unanswered for 18.0 s' }),
+    ]);
+  });
+  it('counts a line from an older run file with no peak', () => {
+    const c = call(cutOff, { gaps: { 3: 13000 }, edit: (r) => r.userSpeech.forEach((l) => l.push(2000)) }); // prettier-ignore
+    expect(hits('dead-air', c)).toHaveLength(1);
+  });
+});
+
+describe('dead-air boundaries', () => {
+  /** Caller lines and agent voice on the run clock; captions don't matter here. */
+  const at = (callerSpeech, agentVoice) => ({ events: [], callerSpeech, agentVoice, turns: [] });
+  const quiet = (line, voice) => hits('dead-air', at([line, [50000, 52000, 2000]], voice));
+  it('a line exactly 1000 ms over its audio still counts; 1001 ms over is a stall', () => {
+    const greeted = [[0, 500]];
+    expect(quiet([1000, 3000, 1000], greeted)).toHaveLength(1);
+    expect(quiet([1000, 3000, 999], greeted)).toEqual([]);
+  });
+  it('an old line of exactly 30 s still counts; 30.001 s is a stall', () => {
+    expect(quiet([1000, 31000], [[0, 500]])).toHaveLength(1);
+    expect(quiet([1000, 31001], [[0, 500]])).toEqual([]);
+  });
+  it('a line ending exactly at, or 100 ms after, the first agent audio still counts', () => {
+    expect(quiet([1000, 3000, 2000], [[3000, 3000]])).toHaveLength(1);
+    expect(quiet([1000, 3000, 2000], [[2900, 2950]])).toHaveLength(1);
+    // control: the same line before any agent audio is skipped
+    expect(quiet([1000, 3000, 2000], [[55000, 56000]])).toEqual([]);
+  });
+});
+
+describe('slow-start (reported only)', () => {
+  it('reports first agent audio over 15 s, not at 15 s', () => {
+    const c = (first) => ({ callerSpeech: [[20000, 21000, 1000]], agentVoice: [[first, 19000]] });
+    expect(hits('slow-start', c(15000))).toEqual([]);
+    expect(hits('slow-start', c(15001))).toEqual([
+      expect.objectContaining({ why: 'first agent audio at 15.0 s' }),
+    ]);
+  });
+  it('passes a greeting before the caller speaks, and reports a late one', () => {
+    expect(hits('slow-start', call(['a: Hi.', 'u: Hey.', 'a: How are you?']))).toEqual([]);
+    const late = call(['a: Hi.', 'u: Hey.'], {
+      edit: (r) => (r.tracks[0].voice[0] = [16000, 17000]),
+    });
+    expect(hits('slow-start', late)).toEqual([
+      expect.objectContaining({ why: expect.stringMatching(/^first agent audio at 16\.0 s/) }),
+    ]);
+    expect(PREDICATES.find((p) => p.id === 'slow-start').gating).toBe(false);
   });
 });
 

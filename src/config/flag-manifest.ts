@@ -33,6 +33,7 @@ import {
 } from './flag-manifest-blocks.js';
 import { assembleManifest } from './flag-assembly.js';
 import * as FLAG_FILES from './flags/index.generated.js';
+import { assertGeneratedList } from './generated-guard.js';
 export { FLAG_KINDS, FLAG_OWNERS, type FlagSpec };
 
 const LEGACY_FLAG_MANIFEST = {
@@ -44,6 +45,8 @@ const LEGACY_FLAG_MANIFEST = {
   CALLER_ASSERTED_MEMORY: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALLER_CITY_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALLER_RECOGNITION: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // the caller decides how deep heavy news goes: a depth note, no deflection-labelling director notes
+  CALLER_SETS_DEPTH: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: a reply the caller didn't prompt ends on a caller turn, not the SDK's "." (caller-turn.ts)
   CALLER_TURN_NOTE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // shadow: log where a reply answers its own question for the caller, cut nothing; on: cut there (caller-voice-guard.ts)
@@ -57,6 +60,8 @@ const LEGACY_FLAG_MANIFEST = {
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
   CALL_JOURNAL: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALL_RESULT_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // on: one channel per call result: live if the owner is on, else one text or one push (call-result-once.ts)
+  CALL_RESULT_ONE_CHANNEL: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_JOURNAL_ASK: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALL_WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
   CANDOR: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -79,6 +84,8 @@ const LEGACY_FLAG_MANIFEST = {
   COHORT_FLAGS: { default: 'off', owner: 'platform', kind: 'experiment' },
   // on: once a call, invite one small caller-owned next step (agents/personas/commitment-invite.ts)
   COMMITMENT_INVITE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: the after-call judge is the only commitment writer; readers show only its rows
+  COMMITMENT_SINGLE_WRITER: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // adds what Ferni and the caller both know to the first recall note
   COMMON_GROUND: { default: 'off', owner: 'memory', kind: 'experiment' },
   // The user's own "in memory" mark on a contact (services/contacts/in-memory.ts)
@@ -176,6 +183,8 @@ const LEGACY_FLAG_MANIFEST = {
   FIRST_TURN_FAST: { default: 'off', owner: 'voice', kind: 'experiment' },
   // which flight search backs searchFlights and getFlightPrice: amadeus (default) or ignav (travel/flight-provider.ts)
   FLIGHT_PROVIDER: { default: 'amadeus', owner: 'tools', kind: 'config' },
+  // on: "forget that" deletes the facts (and their copies) instead of hiding them (memory/recall/forget-delete.ts)
+  FORGET_DELETES: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: after a call, the verified owner's reminders, commitments and threads become follow-ups (agents/follow-through-import.ts)
   FOLLOW_THROUGH_IMPORT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   FOLLOW_THROUGH_JOB: { default: 'off', owner: 'outreach', kind: 'kill-switch' },
@@ -192,9 +201,13 @@ const LEGACY_FLAG_MANIFEST = {
   // on: a fact the caller corrects is kept with its words and the old fact retired; next call recalls it (friend-repair.ts)
   FRIEND_REPAIR: { default: 'off', owner: 'memory', kind: 'experiment' },
   FTIS_ENABLED: { default: 'off', owner: 'platform', kind: 'config' },
+  // on: Jordan's hello may offer a letter to future you once its day has come (future-letters.ts)
+  FUTURE_LETTER_OPENER: { default: 'off', owner: 'tools', kind: 'experiment' },
   GAME_STATE: { default: 'off', owner: 'platform', kind: 'experiment' },
   // read by the @google/genai SDK itself (getEnv), not by src/
   GOOGLE_GENAI_USE_VERTEXAI: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: a Google link without the calendar scope is stored as insufficient_scope, and Gmail reads say "not permitted" instead of an empty inbox (config/google-link-honest.ts)
+  GOOGLE_LINK_HONEST: { default: 'off', owner: 'tools', kind: 'experiment' },
   // on: a goodbye (or "hang up") ends the call after Ferni's goodbye plays, app and phone; never on crisis risk (call-farewell.ts)
   GOODBYE_ENDS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // on: good news gets a react, name it, ask about the moment note (agents/personas/good-news-bigger.ts)
@@ -219,6 +232,8 @@ const LEGACY_FLAG_MANIFEST = {
   HANDOFF_TALK_THROUGH: { default: 'off', owner: 'voice', kind: 'experiment' },
   HAPPY_EXITS: { default: 'off', owner: 'voice', kind: 'experiment' },
   HEADS_UP_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // on (web server): the hourly held-scrub-sweep job retries MINOR_CARE scrubs that failed (held-scrub-sweep.ts)
+  HELD_SCRUB_SWEEP: { default: 'off', owner: 'memory', kind: 'kill-switch' },
   ...FLAGS_HONEST_TO_IDENTITY,
   INSIDE_JOKES: { default: 'off', owner: 'memory', kind: 'experiment' },
   INTELLIGENCE_PUBSUB_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
@@ -269,6 +284,8 @@ const LEGACY_FLAG_MANIFEST = {
   MEMORY_VIEW: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on (with MEMORY_VIEW): the memory view also shows what Ferni has been pondering.
   MEMORY_VIEW_PONDERING: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on: the voice side of the app menu is on every agent from turn 1, outside the tool cap (menu-tools-pinned.ts)
+  MENU_TOOLS_PINNED: { default: 'off', owner: 'tools', kind: 'experiment' },
   // on: one consent record per phone, consent/{phoneHash} (services/messaging/consent.ts):
   // inbound STOP/START writes it, texts and calls read it, third parties need their own opt-in
   MESSAGING_PIPELINE: { default: 'off', owner: 'outreach', kind: 'experiment' },
@@ -278,13 +295,23 @@ const LEGACY_FLAG_MANIFEST = {
   // Alex's 8am text brief, with MORNING_BRIEF_USERS (services/outreach/morning-brief/brief-job.ts)
   // on: mirroring keeps English: "nah" only for a standalone no, no clause-final contractions (conversation/superhuman/mirroring-grammar.ts)
   MIRROR_GRAMMAR_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: mirroring contracts by the shared rule (utils/spoken-contractions.ts, #2347); off, by its legacy map, as on main
+  MIRROR_SHARED_CONTRACTIONS: { default: 'off', owner: 'voice', kind: 'experiment' },
   MORNING_BRIEF: { default: 'off', owner: 'outreach', kind: 'experiment' },
   MORNING_BRIEF_COMMITMENTS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: the caller can name the tune Ferni whistles, or ask him to stop (personas/named-tune-note.ts)
   NAMED_TUNE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: the caller's yes sends the read-back from the server, and sibling call or text tools
+  // share one read-back (tools/domains/communication/outreach/outreach-confirm-family.ts)
+  OUTREACH_SERVER_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
   ...FLAGS_MOVE_TO_PHONE_AUDIO,
   // on: a caller who says they're under 18 (and isn't a verified owner): nothing personal stored, a care note (minor-care.ts)
   MINOR_CARE: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on (with MINOR_CARE): a signed-in account owner who says they're under 18 is held too (minor-care.ts)
+  MINOR_CARE_OWNERS: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on (with MINOR_CARE): a held caller's hold is shared (minor_care_holds/{uid}, no words), so the
+  // API server and workers keep no inbound text from them and send them no outreach (minor-care-shared-hold.ts)
+  MINOR_CARE_SHARED_HOLD: { default: 'off', owner: 'memory', kind: 'experiment' },
   PHONE_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_PARITY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VERIFY: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -364,6 +391,10 @@ const LEGACY_FLAG_MANIFEST = {
   SPEECH_DIRECTOR: { default: 'shadow', owner: 'voice', kind: 'experiment' },
   // opt-in lever, read as SPEECH_DIRECTOR_<LEVER> from gate.ts (not a literal read)
   SPEECH_DIRECTOR_LAUGHTER: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: the speech director contracts "that is" / "it is" / "I am not" where its subject opens
+  // the clause (utils/spoken-contractions.ts, #2334). Audible only with
+  // SPEECH_DIRECTOR=live and the normalize lever up.
+  SPOKEN_CONTRACTIONS: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: a fact holding a code, password or PIN the caller said aloud is not stored (memory/spoken-credential.ts)
   SPOKEN_CREDENTIAL_FILTER: { default: 'off', owner: 'memory', kind: 'experiment' },
   // streaks count days from the summaries subcollection (up to 400 reads per profile load)
@@ -380,6 +411,8 @@ const LEGACY_FLAG_MANIFEST = {
   // on: the nightly job deletes transcripts past TRANSCRIPT_RETENTION_DAYS. Off: kept for the
   // life of the account, as the privacy policy says (tasks/scheduled/transcript-cleanup-job.ts)
   TRANSCRIPT_CLEANUP: { default: 'off', owner: 'memory', kind: 'config' },
+  // "pass me to 9" may be Nayan: transfer-only speech-to-text aliases (transfer-aliases.ts)
+  TRANSFER_NAME_ALIASES: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: the anonymous device fallback trusts an unsigned device_id (the one /token copies from its query)
   TRUST_UNSIGNED_DEVICE_ID: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   // on: inner TTS failures reach the agent session (which closes after 4 in a row)
@@ -401,6 +434,10 @@ const LEGACY_FLAG_MANIFEST = {
   TURN_OPENING_SOUND: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_LENGTH: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: per-turn memory search gates on the vector leg's cosine (0.55), not the RRF score no memory reaches, and sends at most TURN_MEMORY_MAX_INJECT (default 3) memories a turn (turn-memory-scale.ts)
+  // on (with TURN_MEMORY_RRF_SCALE): per-turn memories pass a runner-up margin, and a model judge when TURN_MEMORY_RERANK_TIMEOUT_MS > 0 (turn-memory-rerank.ts)
+  TURN_MEMORY_RERANK: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on (with TURN_MEMORY_RERANK): the judge runs in the background and its picks join the next caller turn's memories (turn-memory-pending.ts)
+  TURN_MEMORY_JUDGE_ASYNC: { default: 'off', owner: 'memory', kind: 'experiment' },
   TURN_MEMORY_RRF_SCALE: { default: 'off', owner: 'memory', kind: 'experiment' },
   TURN_SHAPE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_STYLE_REMINDER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
@@ -435,6 +472,8 @@ const LEGACY_FLAG_MANIFEST = {
   // on: "predict my week" loads Peter's game; a week-old prediction is asked about once a call
   WEEKLY_PREDICTION: { default: 'off', owner: 'tools', kind: 'experiment' },
   WELCOME_BACK_BOTH_SIDES: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: after a call, one wellbeing snapshot from what the caller said (wellbeing-tracking/after-call.ts)
+  WELLBEING_AFTER_CALL: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   WORKER_DRAIN_TIMEOUT_MS: { default: '1800000', owner: 'platform', kind: 'config' },
   WORKER_PUBSUB: { default: 'off', owner: 'platform', kind: 'experiment' },
   WORLD_FACTS_IN_CALL: { default: 'off', owner: 'intelligence', kind: 'experiment' },
@@ -445,5 +484,7 @@ const LEGACY_FLAG_MANIFEST = {
   WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
 } as const satisfies Record<string, FlagSpec>;
 // New flags go in src/config/flags/<NAME>.ts: pnpm flags:new (flag-assembly.ts sorts the keys).
+// An empty barrel would drop every flags/<NAME>.ts flag to unknown without a sound.
+assertGeneratedList('flags/index.generated.ts', Object.keys(FLAG_FILES).length, 1);
 export const FLAG_MANIFEST = assembleManifest(LEGACY_FLAG_MANIFEST, FLAG_FILES);
 export type FlagName = keyof typeof FLAG_MANIFEST;

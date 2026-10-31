@@ -88,6 +88,9 @@ export interface ProactiveSessionContext {
 
   /** Persona initiating (usually Ferni) */
   initiatingPersona: string;
+
+  /** The app call a "call me" moved from (CALL_ME_MOVES_TO_PHONE): read from this user's store */
+  movedFrom?: { userId: string; conversationId?: string };
 }
 
 // In-memory store for proactive session contexts (set by outreach engine)
@@ -110,7 +113,7 @@ export function setProactiveSessionContext(
     {
       sessionId,
       triggerType: context.triggerType,
-      triggerReason: context.triggerReason,
+      triggerReasonChars: context.triggerReason.length, // never the reason: it is the caller's
       daysSince: context.daysSinceLastSession,
     },
     'Stored proactive session context'
@@ -307,7 +310,7 @@ export const proactiveSessionContextBuilder: ContextBuilder = {
       {
         sessionId,
         triggerType: context.triggerType,
-        triggerReason: context.triggerReason,
+        triggerReasonChars: context.triggerReason.length,
       },
       'Building proactive session context'
     );

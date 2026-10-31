@@ -14,6 +14,7 @@
  * - GET    /api/sponsored-identities/pending      - List pending self-registrations
  * - POST   /api/sponsored-identities/:id/approve  - Approve pending identity
  * - GET|POST|DELETE /api/sponsored-identities/:id/call-consent - see family-call-consent-routes
+ * - POST   /api/sponsored-identities/:id/verify-phone - text the holder a code (holder-verification)
  *
  * @module api/sponsored-identity-routes
  */
@@ -21,9 +22,14 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../utils/safe-logger.js';
 import { PhoneInUseError } from '../services/identity/phone-in-use-error.js';
+import {
+  InvalidSponsoredIdentityUpdateError,
+  RELATIONSHIP_TYPES,
+} from '../services/identity/sponsored-identity-update.js';
 import { requireAuth } from './auth-middleware.js';
 import { handleCallConsentRoute } from './family-call-consent-routes.js';
 import { handleCheckinScheduleRoute } from './family-checkin-schedule-routes.js';
+import { handleHolderVerifyRoute } from '../services/messaging/holder-verification.js';
 import {
   createSponsoredIdentity,
   getSponsoredIdentity,
@@ -34,7 +40,6 @@ import {
   getPendingIdentities,
   approveSelfRegisteredIdentity,
   type CreateSponsoredIdentityData,
-  type UpdateSponsoredIdentityData,
   type RelationshipType,
 } from '../services/identity/sponsored-identity.js';
 
@@ -131,22 +136,8 @@ export async function handleSponsoredIdentityRoutes(
       }
 
       // Validate relationship type
-      const validRelationships: RelationshipType[] = [
-        'mother',
-        'father',
-        'parent',
-        'grandmother',
-        'grandfather',
-        'grandparent',
-        'sibling',
-        'child',
-        'spouse',
-        'partner',
-        'friend',
-        'other',
-      ];
-      if (!validRelationships.includes(body.relationship)) {
-        sendError(res, `Invalid relationship. Must be one of: ${validRelationships.join(', ')}`);
+      if (!RELATIONSHIP_TYPES.includes(body.relationship)) {
+        sendError(res, `Invalid relationship. Must be one of: ${RELATIONSHIP_TYPES.join(', ')}`);
         return true;
       }
 
@@ -182,6 +173,7 @@ export async function handleSponsoredIdentityRoutes(
 
     if (await handleCallConsentRoute(req, res, route, userId, sendJSON)) return true;
     if (await handleCheckinScheduleRoute(req, res, route, userId, sendJSON)) return true;
+    if (await handleHolderVerifyRoute(req, res, route, userId, sendJSON)) return true;
 
     // Routes with :id parameter
     const idMatch = route.match(/^\/([^/]+)$/);
@@ -256,7 +248,8 @@ export async function handleSponsoredIdentityRoutes(
     // PUT /api/sponsored-identities/:id - Update identity
     if (idMatch && req.method === 'PUT') {
       const identityId = idMatch[1];
-      const body = await parseBody<UpdateSponsoredIdentityData>(req);
+      // Untrusted: the service applies only the editable fields (400 for anything else)
+      const body = await parseBody<unknown>(req);
 
       const identity = await updateSponsoredIdentity(identityId, userId, body);
       if (!identity) {
@@ -291,6 +284,10 @@ export async function handleSponsoredIdentityRoutes(
     // ours, and its message stays in the log rather than going back to the client
     if (error instanceof PhoneInUseError) {
       sendError(res, 'phone_in_use', 409);
+      return true;
+    }
+    if (error instanceof InvalidSponsoredIdentityUpdateError) {
+      sendJSON(res, 400, { error: 'invalid_update', detail: error.message });
       return true;
     }
     log.error({ error: String(error), route }, 'Sponsored identity route error');

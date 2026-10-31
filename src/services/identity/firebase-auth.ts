@@ -17,6 +17,7 @@ import admin from 'firebase-admin';
 import { getAuth } from 'firebase-admin/auth';
 import { createLogger } from '../../utils/safe-logger.js';
 import { nonAccountPrefixOf } from '../../utils/synthetic-user.js';
+import { erasureErrorCode } from '../platform/erasure-step.js';
 
 const log = createLogger({ module: 'FirebaseAuth' });
 
@@ -281,6 +282,23 @@ export async function getFirebaseUserByPhone(e164: string): Promise<admin.auth.U
 }
 
 /**
+ * getFirebaseUserByPhone for callers that must not take a failed lookup for "nobody holds
+ * this number" (inbound SMS attribution, sms-sender-account.ts): null only when Firebase
+ * says no user has it. An Admin SDK that isn't initialized, or any other error, throws.
+ */
+export async function getFirebaseUserByPhoneOrThrow(
+  e164: string
+): Promise<admin.auth.UserRecord | null> {
+  if (!ensureInitialized()) throw new Error('Firebase Admin is not initialized');
+  try {
+    return await admin.auth().getUserByPhoneNumber(e164);
+  } catch (error) {
+    if ((error as { code?: unknown } | null)?.code === 'auth/user-not-found') return null;
+    throw error;
+  }
+}
+
+/**
  * Set custom claims on a Firebase user.
  * Used for setting admin flag, subscription tier, etc.
  */
@@ -335,7 +353,10 @@ export async function deleteFirebaseUser(uid: string): Promise<boolean> {
     log.info({ uid: `${uid.substring(0, 8)}...` }, 'Deleted Firebase user');
     return true;
   } catch (error) {
-    log.error({ error: String(error), uid }, 'Failed to delete Firebase user');
+    log.error(
+      { error: erasureErrorCode(error), uid: `${uid.substring(0, 8)}...` },
+      'Failed to delete Firebase user'
+    );
     return false;
   }
 }

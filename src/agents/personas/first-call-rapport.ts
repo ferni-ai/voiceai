@@ -22,10 +22,12 @@
 
 import type { llm } from '@livekit/agents';
 
+import { accountName, nameSaidOnCall } from './caller-name-known.js';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { leavingNow } from '../shared/call-farewell.js';
+import { NAME_PLACEMENT_RULE } from './name-gate.js';
 
 /** The base note on every reply of a first call. */
 export const FIRST_CALL_NOTE =
@@ -73,18 +75,12 @@ export function isFirstCall(userData: unknown): boolean {
   return u?.isReturningUser === false && isMemberIdentity(u.userId as string | undefined);
 }
 
-/** The account already has a name for them: no need to ask for one. */
-function nameKnown(userData: unknown): boolean {
-  const u = userData as
-    | {
-        userName?: unknown;
-        services?: { userProfile?: { name?: unknown; preferredName?: unknown } | null };
-      }
-    | undefined;
-  const profile = u?.services?.userProfile;
-  return [u?.userName, profile?.preferredName, profile?.name].some(
-    (n) => typeof n === 'string' && n.trim() !== ''
-  );
+/**
+ * The call already has their name: the account's (no placeholder such as "the
+ * user" or "Visitor"), or one they said on this call (caller-name-known.ts).
+ */
+function nameKnown(chatCtx: llm.ChatContext, userData: unknown, callerWords: string): boolean {
+  return accountName(userData) !== undefined || nameSaidOnCall(chatCtx, callerWords);
 }
 
 /** What Ferni has said so far on this call. */
@@ -97,30 +93,40 @@ function agentLines(chatCtx: llm.ChatContext): string[] {
 /**
  * The first-call note for this reply, or '' (flags off, not a first call, no caller words).
  * `scriptFree` (SCRIPT_FREE_REMINDER, script-free.ts): nothing quoted, and the name
- * swap in the speaking persona's own name.
+ * swap in the speaking persona's own name. Held turns (exits-held.ts): none beside crisis
+ * guidance (`crisis`), and none when they're leaving on a call with crisis risk noted
+ * (`exitsHeld`), since the goodbye note says "no question".
  */
 export function firstCallNote(
   chatCtx: llm.ChatContext,
   session: object,
   callerWords: string,
   env: Env = process.env,
-  scriptFree = false
+  scriptFree = false,
+  held: { crisis?: boolean; exitsHeld?: boolean } = {}
 ): string {
+  if (held.crisis) return '';
   const rapport = firstCallRapportEnabled(env);
   const who = firstCallIntroEnabled(env) ? WHO_NOTE : '';
   if (!callerWords || (!rapport && !who)) return '';
   const { userData } = session as { userData?: { personaId?: unknown } };
   if (!isFirstCall(userData)) return '';
   if (!rapport) return who;
-  if (leavingNow(callerWords)) return scriptFree ? FIRST_GOODBYE_PLAIN : FIRST_GOODBYE_NOTE;
+  // NAME_GATE_V2: where the note asks for their name, ask for the shape the gate keeps (name-gate.ts).
+  const rule = flagOn('NAME_GATE_V2', env) ? NAME_PLACEMENT_RULE : '';
+  if (leavingNow(callerWords)) {
+    // A held turn gets no goodbye note ("no question"); the name rule bars no question, so it stays.
+    const goodbye = held.exitsHeld ? '' : scriptFree ? FIRST_GOODBYE_PLAIN : FIRST_GOODBYE_NOTE;
+    return [goodbye, rule].filter(Boolean).join(' ');
+  }
   const said = agentLines(chatCtx);
   const nameAsked = said.some((line) => NAME_ASKED.test(line));
   const early = said.length <= NAME_SWAP_REPLIES;
   let swap = '';
-  if (!nameAsked && early && !nameKnown(userData)) {
+  if (!nameAsked && early && !nameKnown(chatCtx, userData, callerWords)) {
     const speaker = typeof userData?.personaId === 'string' ? userData.personaId : 'ferni';
     const name = getPersonaDisplayName(speaker).split(/\s+/)[0];
     swap = scriptFree ? nameSwapPlain(name) : NAME_SWAP_NOTE;
   }
-  return [FIRST_CALL_NOTE, who, swap].filter(Boolean).join(' ');
+  return [FIRST_CALL_NOTE, rule, who, swap].filter(Boolean).join(' ');
 }

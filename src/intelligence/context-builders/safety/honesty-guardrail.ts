@@ -19,6 +19,7 @@ import {
   getHumanReadableSummary,
   wasHighImpactActionExecuted,
 } from '../../../services/action-history-service.js';
+import { flagOn } from '../../../config/env-flag.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { BuilderCategory } from '../core/categories.js';
 import {
@@ -45,6 +46,8 @@ export interface HonestyContext {
   contact?: string;
   /** Confidence in the detection (0-1) */
   confidence: number;
+  /** Whether this conversation's own history shows the action. */
+  executed?: boolean;
 }
 
 // ============================================================================
@@ -138,7 +141,7 @@ function detectCapabilityQuestion(transcript: string): {
         const confidence = 0.7 + (hasQuestionMark ? 0.15 : 0) + (hasDoubtWord ? 0.15 : 0);
 
         log.debug(
-          { actionType, contact, confidence, transcript: transcript.slice(0, 50) },
+          { actionType, contact, confidence, transcriptLen: transcript.length },
           '🔍 Capability question detected'
         );
 
@@ -192,6 +195,7 @@ export function buildHonestyContext(sessionId: string, userTranscript: string): 
   return {
     shouldInject: true,
     context: result.explanation,
+    executed: result.executed,
     actionType: detection.actionType,
     contact: detection.contact,
     confidence: detection.confidence,
@@ -207,6 +211,12 @@ export function getHonestyInjection(sessionId: string, userTranscript: string): 
   if (!context.shouldInject || !context.context) {
     return null;
   }
+
+  // This history is this conversation only: a call from an earlier one (placed, answered, or
+  // set for later) isn't in it. Owner calls 2026-10-25 15:54 and 10-26 18:46: told "no, I
+  // haven't called your mom" here, Ferni denied a call she had answered (CALL_STATUS_RECALL).
+  if (context.actionType === 'call' && !context.executed && flagOn('CALL_STATUS_RECALL'))
+    return unseenCallInjection(context.contact);
 
   // Build the injection block
   const injection = `[HONESTY CHECK - CRITICAL]
@@ -227,6 +237,15 @@ Example good response: "No, I haven't called your mom yet. Would you like me to?
 Example bad response: "What's making you doubt that I made the call?"`;
 
   return injection;
+}
+
+/** A question about a call this conversation didn't make: check callStatus, never deny from here. */
+function unseenCallInjection(contact: string | undefined): string {
+  const who = contact ? contact.replace(/[^A-Za-z' -]/g, '').slice(0, 30) : 'them';
+  return `[HONESTY CHECK - CRITICAL]
+The user is asking whether you made a call. Nothing in THIS conversation called ${who}, but calls from earlier conversations (placed, answered, or set for later) are not in it.
+Call callStatus for ${who} before you answer (without it, callOnBehalf for them says first if a call already went out), and answer from what it returns.
+DO NOT say you haven't called from this note alone, and DO NOT read a new call back instead of answering.`;
 }
 
 /**

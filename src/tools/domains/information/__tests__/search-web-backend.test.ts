@@ -72,6 +72,22 @@ describe('searchWeb backend', () => {
     expect(generateContent).not.toHaveBeenCalled();
   }, 30_000);
 
+  it('with no web search provider says it can\'t search, never "No results" (WEB_SEARCH_HONEST_FALLBACK)', async () => {
+    vi.stubEnv('WEB_SEARCH_HONEST_FALLBACK', 'on');
+    const fetchMock = vi.fn(async (_url: string) => ({
+      ok: true,
+      json: async () => ({ AbstractText: '', RelatedTopics: [] }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const out = await dispatch(createSearchTools().searchWeb, {
+      query: 'drive time from Denver airport to downtown Boulder',
+    });
+    expect(out).toMatch(/\[status: unconfigured\] I can't search the web right now/);
+    expect(out).not.toMatch(/no results/i);
+    expect(String(fetchMock.mock.calls[0][0])).toContain('api.duckduckgo.com');
+    expect(generateContent).not.toHaveBeenCalled();
+  }, 30_000);
+
   it('answers from Google Search grounding with WEB_SEARCH=on', async () => {
     vi.stubEnv('WEB_SEARCH', 'on');
     const fetchMock = vi.fn(async (_url: string) => ({

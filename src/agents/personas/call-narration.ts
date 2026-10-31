@@ -24,6 +24,16 @@
  * you he's fine". The call had been requested on an earlier call and no result
  * existed. The honest line now says where that call stands instead.
  *
+ * With GROUNDED_CLAIMS=on (#3005, prod 2026-10-28): asked "did you call my
+ * mom?", Ferni said "I did, yeah. I called her earlier and let her know..." of
+ * a call that never happened. A completed call to her three days before made
+ * the records lookup say 'completed', which let the story stand, though the
+ * model never saw that result. Now only a result in the conversation lets a
+ * story (or a plain "yes, I did") stand; the lookup only picks the honest line,
+ * and what the reply then says she said or how she sounded goes with the story.
+ * A call result already in the conversation, or a question about what Ferni did
+ * before this call, backs a claim of it (claimsFromBefore): never deny a real call.
+ *
  * @module agents/personas/call-narration
  */
 
@@ -35,9 +45,15 @@ import {
 } from '../../services/outreach/call-status.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
+import type { ActionKind } from './action-claims.js';
 
 /** What Ferni says in place of a story about a call no result has come back from. */
 export const UNHEARD_LINE = "I don't actually know how that call went yet, I haven't heard back.";
+/** GROUNDED_CLAIMS: in place of a story of a call no tool ran for and no record shows. */
+export const NO_RECORD_LINE = "I don't have a record of that call in front of me.";
+/** In place of a story with no asked-about status: with `grounded` and no call run, no record either. */
+export const unheardLine = (grounded: boolean, callRan: boolean): string =>
+  grounded && !callRan ? NO_RECORD_LINE : UNHEARD_LINE;
 
 /** Where an asked-about call stands: from call-status.ts, or 'none' when no call to them is on record. */
 export type AskedCallStatus = FerniCall | 'none';
@@ -66,6 +82,12 @@ const TOLD = [
 /** "It went great": a story only when the caller just asked how the call went. */
 const WENT =
   /^(?:\W*(?:oh|so|yeah|well|honestly)\W+)*(?:it|the call|that call) went (?:really |so )?(?:great|well|fine|good|amazing|wonderfully|lovely)\b/i;
+/** "I did, yeah." or "Yes." to "did you call my mom?": the call happened (GROUNDED_CLAIMS). */
+const SAID_YES =
+  /^(?:\W*(?:oh|so|well|yes|yeah|yep|yup|of course)\W+)*(?:i (?:sure |already |actually )?did\b(?!n't| not)|i (?:already )?have\W*$|i(?:'ve| have) (?:already |just )?(?:called|rung|phoned|reached)\b|(?:yes|yeah|yep|yup)\W*$)/i;
+/** After a dropped story: the other person's words or how they were ("She sounded great."). */
+const CALLEE_TALK =
+  /^\W*(?:and |so |but )?(?:she|he|they|(?!It\b|That\b|This\b|There\b|The\b|What\b)[A-Z][a-z]+)(?:'s| is| was| were| sounded| seemed| says| said| sends?| told| asked| misses| missed| loved| wants| wanted| mentioned| thanked| laughed)\b/i;
 const ASKED_HOW =
   /\bhow(?:'d| did) (?:it|the|that)\b[^.?!]{0,40}\bgo\b|\bdid you (?:call|reach|talk to)\b/i;
 
@@ -76,6 +98,15 @@ const CALL_TALK =
 const OWN_CALL =
   /\b(?:i|we) (?:called|rang|phoned|talked|spoke|chatted|caught up|facetimed)\b|\b(?:she|he|they) (?:said|told me|picked up|answered|didn't (?:pick up|answer))\b|\bwent (?:great|well|fine|good)\b/i;
 const REPORTED = /\bReported from Ferni's call\b/;
+/**
+ * callStatus (telephony/call-status-tool.ts, also told by callOnBehalf) found the call's result: Ferni
+ * called (or tried), so telling how it went stands. Owner call 2026-10-26 18:46: asked about an
+ * answered call, Ferni said it didn't "know how that call went yet".
+ */
+const toldByStatus = (item: Item & { output?: unknown }): boolean =>
+  item.type === 'function_call_output' &&
+  (item.name === 'callStatus' || item.name === 'callOnBehalf') &&
+  /(?:^|\. )Ferni (?:called|tried to call) /.test(String(item.output ?? ''));
 /** The caller asks Ferni about a call he was asked to make; the group names the person, if any. */
 const ASKED_ABOUT = [
   /\bhow(?:'d| did| was) (?:it|things|that|the call|your call) go(?:ing)? with (?:my |the |your )?([a-z]+)/i,
@@ -132,6 +163,9 @@ export function askedCallLine(status: AskedCallStatus): string {
   }
   if (status.state === 'failed')
     return "That call didn't get through, so I haven't heard anything.";
+  // Only with GROUNDED_CLAIMS: a completed result the conversation never showed.
+  if (status.state === 'completed')
+    return "I did get through, but I don't have the details of that call in front of me.";
   return UNHEARD_LINE;
 }
 
@@ -160,16 +194,19 @@ const spoken = (item: Item): string => {
 /**
  * Whether a story of how a call went must be dropped in this reply: a call is in
  * play, no result reached the conversation, and the caller isn't telling their own.
- * `asked` is where the call the caller just asked about stands, when it was looked up.
+ * `asked` is where the call the caller just asked about stands, when it was looked up;
+ * a completed one lets the story stand only when `grounded` is off (GROUNDED_CLAIMS).
  */
 export function callOutcomeUnheard(
   chatCtx: { items: readonly unknown[] },
   callToolRan: boolean,
-  asked?: AskedCallStatus
-): { askedHow: boolean; asked?: AskedCallStatus } | null {
+  asked?: AskedCallStatus,
+  grounded = false
+): Unheard | null {
   const items = chatCtx.items as readonly Item[];
-  if (items.some((item) => REPORTED.test(textOf(item)))) return null;
-  if (asked !== undefined && asked !== 'none' && asked.state === 'completed') return null;
+  if (callResultIn(items)) return null;
+  const completed = asked !== undefined && asked !== 'none' && asked.state === 'completed';
+  if (completed && !grounded) return null;
   const lines = items.filter((item) => item.type === 'message' && item.role !== 'system');
   const recent = lines.slice(-4).map(spoken);
   const caller = lines
@@ -179,14 +216,55 @@ export function callOutcomeUnheard(
   const askedAbout = callAskedAbout(caller.at(-1) ?? '') !== null;
   if (!callToolRan && !askedAbout && !recent.some((line) => CALL_TALK.test(line))) return null;
   if (caller.some((line) => OWN_CALL.test(line))) return null;
-  const askedHow =
-    askedAbout || ASKED_HOW.test(caller.at(-1) ?? '') || ASKED_HOW.test(recent.join(' '));
-  return { askedHow, asked };
+  const callerAsked = askedAbout || ASKED_HOW.test(caller.at(-1) ?? '');
+  const askedHow = callerAsked || ASKED_HOW.test(recent.join(' '));
+  // A bare "Yeah." answers the caller's own "did you call her?", not Ferni's question to them.
+  const yesTold = grounded && callerAsked;
+  let dropped = false; // a story was dropped in this reply
+  const tells = (sentence: string): boolean => {
+    const story = narratesCallOutcome(sentence, askedHow, yesTold);
+    dropped ||= story;
+    return story || (grounded && dropped && CALLEE_TALK.test(sentence.trim()));
+  };
+  return { askedHow, asked, yesTold, tells };
 }
 
-/** One sentence that tells how a call went, as if Ferni knew. */
-export function narratesCallOutcome(sentence: string, askedHow: boolean): boolean {
+/** Where a story of an unheard call stands in one reply (callOutcomeUnheard). */
+export interface Unheard {
+  askedHow: boolean;
+  asked?: AskedCallStatus;
+  yesTold: boolean;
+  /** This sentence tells the unheard call (with GROUNDED_CLAIMS, so does what follows a dropped one). */
+  tells: (sentence: string) => boolean;
+}
+
+/** A call result in the conversation: a report from Ferni's call, or callStatus saying he called. */
+const callResultIn = (items: readonly Item[]): boolean =>
+  items.some((item) => REPORTED.test(textOf(item)) || toldByStatus(item));
+/** The caller asks what Ferni did before: "did you text my sister yesterday?", "have you called her?". */
+const ASKS_BEFORE =
+  /\b(?:did|have) you (?:ever |already |actually )?(?:call|called|ring|rung|phone|phoned|reach|reached|text|texted|message|messaged|email|emailed|send|sent|talk(?:ed)? to)\b/i;
+
+/**
+ * GROUNDED_CLAIMS: the kinds a claim may report from before this reply's tools could show it. A
+ * call result in the conversation backs a call (#3037 verify: "Yes, I've already called your mom"
+ * after callStatus said so was denied). Asked what he did before, the earlier session's ledger
+ * isn't readable here, so a call or text claim is not denied: a call is judged by its story
+ * instead (callOutcomeUnheard, from the records), and a text stands as before.
+ */
+export function claimsFromBefore(chatCtx: { items: readonly unknown[] }): Set<ActionKind> {
+  const items = chatCtx.items as readonly Item[];
+  const kinds = new Set<ActionKind>(callResultIn(items) ? ['call'] : []);
+  const asks = items.filter((item) => item.type === 'message' && item.role === 'user');
+  const last = asks.length ? spoken(asks[asks.length - 1]) : '';
+  if (ASKS_BEFORE.test(last)) for (const kind of ['call', 'send'] as const) kinds.add(kind);
+  return kinds;
+}
+
+/** One sentence that tells how a call went, as if Ferni knew; with `yesTold`, a "yes, I did" too. */
+export function narratesCallOutcome(sentence: string, askedHow: boolean, yesTold = false): boolean {
   const text = sentence.replace(/[‘’]/g, "'").trim();
   if (text.includes('?')) return false;
-  return TOLD.some((re) => re.test(text)) || (askedHow && WENT.test(text));
+  const answered = WENT.test(text) || (yesTold && SAID_YES.test(text));
+  return TOLD.some((re) => re.test(text)) || (askedHow && answered);
 }

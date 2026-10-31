@@ -37,6 +37,12 @@ vi.mock('firebase-admin', () => {
   return { default: admin };
 });
 
+// The scripts reach Firestore through getAdminFirestore(); it serves the same fake.
+vi.mock('../../src/utils/firebase-admin-app.js', async () => {
+  const admin = (await import('firebase-admin')).default;
+  return { getAdminFirestore: () => admin.firestore() };
+});
+
 const { destructiveMode } = await import('../destructive-gate.js');
 const staleProfiles = await import('../delete-stale-profiles.js');
 const anonUsers = await import('../cleanup-anonymous-users.js');

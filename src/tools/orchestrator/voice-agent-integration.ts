@@ -24,10 +24,12 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { toolOrchestrator, type ToolSelectionContext } from './tool-orchestrator.js';
+import { withoutForbiddenTools, withPersonaToolPolicy } from './persona-tool-policy.js';
 import { buildAgentTools, buildEssentialTools } from '../builder.js';
 import { buildHandoffTools } from '../handoff/handoff-factory.js';
 import { autoRegisterAllDomains } from '../registry/loader.js';
 import type { Tool } from '../registry/types.js';
+import { callerIdFor } from '../../services/identity/call-caller-id.js';
 import type { UserProfile } from '../../types/user-profile.js';
 
 const log = getLogger();
@@ -242,12 +244,13 @@ export function isOrchestratorInitialized(): boolean {
 // MAIN API
 // ============================================================================
 
-/**
- * Get tools for a voice agent session
- *
- * This is the main integration point - replaces buildAgentTools + buildEssentialTools
- */
+/** Get tools for a voice agent session, with the persona's tool policy (persona-tool-policy.ts) */
 export async function getToolsForAgent(options: GetToolsForAgentOptions): Promise<GetToolsResult> {
+  return selectToolsForAgent({ ...options, persona: await withPersonaToolPolicy(options.persona) });
+}
+
+/** This is the main integration point - replaces buildAgentTools + buildEssentialTools */
+async function selectToolsForAgent(options: GetToolsForAgentOptions): Promise<GetToolsResult> {
   const startTime = Date.now();
 
   // =========================================================================
@@ -280,13 +283,8 @@ export async function getToolsForAgent(options: GetToolsForAgentOptions): Promis
 
     // Add handoff tools (handled separately due to unlock logic)
     const handoffTools = await getHandoffToolsForAgent(options);
-    const allTools = { ...result.tools, ...handoffTools };
-
-    // Apply forbidden filter
-    const forbiddenTools = options.persona.tools?.forbidden || [];
-    for (const forbidden of forbiddenTools) {
-      delete allTools[forbidden];
-    }
+    const merged = { ...result.tools, ...handoffTools };
+    const allTools = withoutForbiddenTools(merged, options.persona.tools?.forbidden);
 
     const elapsed = Date.now() - startTime;
 
@@ -428,23 +426,18 @@ async function getLegacyTools(options: GetToolsForAgentOptions): Promise<GetTool
 
   log.debug({ personaId: options.persona.id }, 'Using legacy tool building');
 
-  // Build tools the old way
+  const userId = callerIdFor(options.userId, options.sessionId); // as getEssentialTools (#2651)
   const [personaTools, essentialTools] = await Promise.all([
     buildAgentTools(options.persona.id, {
-      userId: options.userId,
+      userId,
       userProfile: options.userProfile,
       subscriptionTier: options.subscriptionTier,
     }),
-    buildEssentialTools({ userId: options.userId }),
+    buildEssentialTools({ userId }),
   ]);
 
-  const allTools = { ...essentialTools, ...personaTools };
-
-  // Filter forbidden
-  const forbiddenTools = options.persona.tools?.forbidden || [];
-  for (const forbidden of forbiddenTools) {
-    delete allTools[forbidden];
-  }
+  const merged = { ...essentialTools, ...personaTools };
+  const allTools = withoutForbiddenTools(merged, options.persona.tools?.forbidden);
 
   const elapsed = Date.now() - startTime;
 
@@ -484,46 +477,30 @@ async function getHandoffToolsForAgent(
 // ⚡ FAST PATH - Skip semantic router for handoffs (10-40x faster)
 // ============================================================================
 
-/**
- * Pre-loaded essential tools cache (loaded once, reused)
- * These are tools that should ALWAYS be available regardless of context
- */
-let essentialToolsCache: Record<string, Tool> | null = null;
+/** The essential domains (memory, entertainment, information), loaded into the registry once. */
+let essentialDomainsLoaded: Promise<void> | null = null;
 
 /**
- * Get essential tools from cache (loads once on first call)
+ * Essential tools (music, weather, memory) for this caller. Domains load once; buildEssentialTools()
+ * needs them in the registry first or playMusic is missing (Jan 2026).
  *
- * CRITICAL FIX (Jan 2026): Must ensure essential domains are LOADED into the
- * registry before calling buildEssentialTools(). The orchestrator init only
- * registers domain LOADERS, not the actual tools. Without this, entertainment
- * tools like playMusic won't be available because toolRegistry.getByDomain()
- * returns empty for domains that haven't been loaded yet.
+ * PRIVACY: built per caller. One process-wide set built with `userId: 'shared'` put every caller in
+ * one bucket for tools keyed by their factory ctx (Spotify rooms, favourite teams, watchlist).
  */
-async function getEssentialToolsCached(): Promise<Record<string, Tool>> {
-  if (essentialToolsCache) {
-    return essentialToolsCache;
-  }
-
+async function getEssentialTools(
+  userId: string | undefined,
+  sessionId: string | undefined
+): Promise<Record<string, Tool>> {
   try {
-    // CRITICAL: Load essential domains into registry BEFORE building tools!
-    // buildEssentialTools() calls toolRegistry.buildSimple(['memory', 'entertainment', 'information'])
-    // which requires these domains to be loaded into the registry first.
-    const { loadToolDomainsLazy } = await import('../registry/loader.js');
-    const essentialDomains = ['memory', 'entertainment', 'information'] as const;
-    const loadedCount = await loadToolDomainsLazy([...essentialDomains]);
-    log.info(
-      { domains: essentialDomains, loadedCount },
-      '📦 Essential domains loaded for fast path (playMusic, etc.)'
-    );
-
-    essentialToolsCache = await buildEssentialTools({ userId: 'shared' });
-    log.info(
-      { toolCount: Object.keys(essentialToolsCache).length },
-      '⚡ Essential tools cached for fast path'
-    );
-    return essentialToolsCache;
+    essentialDomainsLoaded ??= (async () => {
+      const { loadToolDomainsLazy } = await import('../registry/loader.js');
+      await loadToolDomainsLazy(['memory', 'entertainment', 'information']);
+    })();
+    await essentialDomainsLoaded;
+    return await buildEssentialTools({ userId: callerIdFor(userId, sessionId) });
   } catch (error) {
-    log.warn({ error }, 'Failed to cache essential tools');
+    essentialDomainsLoaded = null;
+    log.warn({ error }, 'Failed to build essential tools');
     return {};
   }
 }
@@ -542,7 +519,7 @@ async function getEssentialToolsCached(): Promise<Record<string, Tool>> {
  */
 async function getToolsFastPath(options: GetToolsForAgentOptions): Promise<GetToolsResult> {
   const startTime = Date.now();
-  const allTools: Record<string, Tool> = {};
+  const found: Record<string, Tool> = {};
 
   log.info(
     { personaId: options.persona.id, sessionId: options.sessionId },
@@ -558,7 +535,7 @@ async function getToolsFastPath(options: GetToolsForAgentOptions): Promise<GetTo
       if (hasHandoffToolsCache(options.sessionId)) {
         const cachedHandoffTools = getCachedHandoffTools(options.sessionId, options.persona.id);
         if (cachedHandoffTools && Object.keys(cachedHandoffTools).length > 0) {
-          Object.assign(allTools, cachedHandoffTools);
+          Object.assign(found, cachedHandoffTools);
           log.debug(
             { toolCount: Object.keys(cachedHandoffTools).length },
             '⚡ Loaded handoff tools from session cache'
@@ -568,15 +545,16 @@ async function getToolsFastPath(options: GetToolsForAgentOptions): Promise<GetTo
     }
 
     // 2. BUILD HANDOFF TOOLS IF NOT CACHED
-    if (Object.keys(allTools).length === 0) {
+    if (Object.keys(found).length === 0) {
       const handoffTools = await getHandoffToolsForAgent(options);
-      Object.assign(allTools, handoffTools);
+      Object.assign(found, handoffTools);
       log.debug({ toolCount: Object.keys(handoffTools).length }, '🔄 Built handoff tools fresh');
     }
 
     // 3. ADD ESSENTIAL TOOLS (music, weather, etc.)
-    const essentialTools = await getEssentialToolsCached();
-    Object.assign(allTools, essentialTools);
+    const essentialTools = await getEssentialTools(options.userId, options.sessionId);
+    Object.assign(found, essentialTools);
+    const allTools = withoutForbiddenTools(found, options.persona.tools?.forbidden);
 
     const elapsed = Date.now() - startTime;
 

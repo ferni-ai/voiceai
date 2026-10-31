@@ -2,7 +2,11 @@
 # Run one scripted conversation against a LiveKit Cloud agent and score it.
 #
 # usage: scripts/voice-eval/run.sh [--persona <id>] [--echo] [--echo-gain-db N] [--echo-delay-ms N]
-#          [--echo-noise-db N] <dev|prod|local|phone> <scenario> [label] [user_id]
+#          [--echo-noise-db N] [--realistic] <dev|prod|local|phone> <scenario> [label] [user_id]
+#   --realistic: a caller that talks like a person (README "Realistic callers"), Cartesia voice
+#             unless CALLER_VOICE is set; also CALLER_REALISM=<persona> or "#@caller <persona>".
+#             Writes <scenario>-<label>.realism.json. VOICE_EVAL_HUMAN_CLIPS=<dir>: recorded takes
+#             from <dir>/manifest.json (caller-realism.mjs). EVAL_RENDER_ONLY=1: render, no call.
 #   --echo*:  speakerphone echo: the agent's own audio mixed into the caller's mic
 #             (defaults -18 dB, 120 ms, no noise; any --echo-* turns it on; env
 #             EVAL_ECHO=1 / EVAL_ECHO_*). See docs/testing/VOICE-EVAL-ECHO.md.
@@ -33,8 +37,8 @@
 # callers keys on it (src/services/outreach/automated-scheduler.ts).
 # Both agents write to Firestore in johnb-2025, which refuses every harness
 # user's writes (src/utils/synthetic-write-guard.ts). Prod uses the '(default)'
-# database; dev moves to 'ferni-dev' at cutover. eval-database.mjs decides which
-# one this run's env uses (EVAL_DEV_DATABASE switches dev until cutover); EVAL_TIER
+# database; dev uses 'ferni-dev' (cut over 2026-10-23). eval-database.mjs decides which
+# one this run's env uses (EVAL_DEV_DATABASE overrides dev for one run); EVAL_TIER
 # writes there, and the dry-run plan prints it as "database". An agent started
 # with PROD_EVAL_WRITES=voice-eval lets voice-eval- users through; without it
 # the call still runs but nothing is remembered, so EVAL_SEED proves nothing.
@@ -44,7 +48,11 @@
 #   whole team is unlocked, as for a real Partner subscriber.
 # EVAL_DRY_RUN=1 prints the plan as JSON (user id, rooms, scenarios) and exits:
 #   no audio, no token, no call.
-# EVAL_TZ sets the caller's timezone (default America/New_York).
+# The caller's local time is pinned, not left to when the run happens (#3164): the agent reads
+#   the caller's hour from the wall clock in the zone the job metadata names, so run.sh picks the
+#   zone where it is 14:00 now (caller-clock.mjs). A scenario that wants an hour on purpose says
+#   "#@time-of-day HH:MM" (quiet-late-night: 02:30); EVAL_CALLER_TIME=HH:MM overrides that.
+# EVAL_TZ=<zone> overrides both: that zone at its wall-clock hour ("none": an unknown zone).
 # EVAL_LOCAL_TIME=HH:MM: Ferni's own clock for his state (FERNI_STATE), e.g. 01:47
 #   (job metadata eval_local_time). Only a worker started with VOICE_EVAL_CLOCK=on
 #   honours it, for voice-eval- users only (eval-local-time.ts). Dev and prod ignore it.
@@ -71,9 +79,9 @@
 set -euo pipefail
 HERE=${0:A:h}
 ROOT=${HERE:h:h}
-persona_opt=(); echo_on=(); echo_gain=(); echo_delay=(); echo_noise=()
+persona_opt=(); echo_on=(); echo_gain=(); echo_delay=(); echo_noise=(); realistic_on=(); real_voice=
 zparseopts -D -E -- -persona:=persona_opt -echo=echo_on -echo-gain-db:=echo_gain \
-  -echo-delay-ms:=echo_delay -echo-noise-db:=echo_noise
+  -echo-delay-ms:=echo_delay -echo-noise-db:=echo_noise -realistic=realistic_on
 persona=${persona_opt[2]:-${EVAL_PERSONA:-}}
 (( ${#echo_on} )) && export EVAL_ECHO=1
 (( ${#echo_gain} )) && export EVAL_ECHO_GAIN_DB=${echo_gain[-1]}
@@ -82,6 +90,9 @@ persona=${persona_opt[2]:-${EVAL_PERSONA:-}}
 # Checked before any call: a bad value exits 2 here. "null" when echo is off.
 echo_cfg=$(node $HERE/echo-mixer.mjs --config) || exit 2
 env=$1; scenario=$2; label=${3:-$(date +%H%M%S)}
+# EVAL_SCENARIO_DIR / EVAL_OUT_DIR: scenarios read from, and output written to, a directory outside
+# the repo (the held-out recall eval, nightly/recall-eval.mjs, keeps its questions there).
+SCEN=${EVAL_SCENARIO_DIR:-$HERE/scenarios}
 seed=${EVAL_SEED:-}
 uid=${4:-${EVAL_UID:-voice-eval-$scenario-$(date +%Y%m%d%H%M%S)-$(od -An -N2 -tx1 /dev/urandom | tr -d ' \n')}}
 if [[ $uid != voice-eval-?* ]]; then
@@ -89,14 +100,27 @@ if [[ $uid != voice-eval-?* ]]; then
   exit 2
 fi
 for s in $scenario $seed; do
-  [[ -f $HERE/scenarios/$s.txt ]] || { print -u2 "run.sh: no scenario $HERE/scenarios/$s.txt"; exit 2; }
+  [[ -f $SCEN/$s.txt ]] || { print -u2 "run.sh: no scenario $SCEN/$s.txt"; exit 2; }
 done
+# One zone for the whole run, so a seed call and its return call share the caller's day.
+clock=$(node $HERE/caller-clock.mjs $SCEN/$scenario.txt) || exit 2
+IFS=$'\t' read -r caller_tz caller_time caller_clock <<< $clock
+print -u2 "voice-eval: caller in $caller_tz at $caller_time ($caller_clock)"
 # A scenario written for one teammate names them: "#@persona maya-santos".
-[[ -n $persona ]] || persona=$(sed -n 's/^#@persona[[:space:]]*//p' $HERE/scenarios/$scenario.txt | head -1)
+[[ -n $persona ]] || persona=$(sed -n 's/^#@persona[[:space:]]*//p' $SCEN/$scenario.txt | head -1)
 if [[ -n $persona && ! -f $ROOT/src/personas/bundles/$persona/persona.manifest.json ]]; then
   print -u2 "run.sh: no persona bundle $ROOT/src/personas/bundles/$persona"
   exit 2
 fi
+# CALLER_REALISM=<persona> wins; then the scenario's "#@caller"; then everyday if asked for.
+realism=${CALLER_REALISM:-}; real_default=
+[[ $realism == 1 ]] && realism= && real_default=everyday
+(( ${#realistic_on} )) && real_default=everyday
+realism_of() { local own=$(sed -n 's/^#@caller[[:space:]]*//p' $SCEN/$1.txt | head -1); print -r -- ${realism:-${own:-$real_default}}; }
+for s in $scenario $seed; do
+  [[ -z $(realism_of $s) ]] || real_voice=$(node $HERE/caller-realism.mjs check $(realism_of $s)) || exit 2
+done
+[[ -z ${VOICE_EVAL_HUMAN_CLIPS:-} || -f $VOICE_EVAL_HUMAN_CLIPS/manifest.json ]] || { print -u2 "run.sh: no $VOICE_EVAL_HUMAN_CLIPS/manifest.json"; exit 2; }
 if [[ $env == phone && -n $persona ]]; then
   print -u2 "run.sh: --persona needs job metadata; phone calls always reach Ferni"
   exit 2
@@ -113,8 +137,8 @@ else
   project=ferni-dev; agent=voice-agent-lkcloud; url=wss://dev-8sm1ba0z.livekit.cloud
 fi
 firestore_db=$(node $HERE/eval-database.mjs $env)
-out=$HERE/out
-caller=${CALLER_VOICE:-say}
+out=${EVAL_OUT_DIR:-$HERE/out}
+caller=${CALLER_VOICE:-${${real_voice:+cartesia:$real_voice}:-say}}
 if [[ $caller == cartesia:* && -z ${CARTESIA_API_KEY:-} && -z ${EVAL_DRY_RUN:-} ]]; then
   export CARTESIA_API_KEY=$(gcloud secrets versions access latest --secret=cartesia-api-key --project=johnb-2025 2>/dev/null)
 fi
@@ -124,7 +148,7 @@ fi
 # outbound call (eval-dispatch.ts).
 # Unsigned, every call is a new anonymous caller and EVAL_SEED proves nothing.
 # EVAL_DISPATCH_SECRET skips the lookup. The secret is never printed.
-if [[ $env != phone && -z ${EVAL_DRY_RUN:-} && -z ${EVAL_DISPATCH_SECRET:-} ]]; then
+if [[ $env != phone && -z ${EVAL_DRY_RUN:-}${EVAL_RENDER_ONLY:-} && -z ${EVAL_DISPATCH_SECRET:-} ]]; then
   dsecret=eval-dispatch-secret
   export EVAL_DISPATCH_SECRET=$(gcloud secrets versions access latest --secret=$dsecret --project=johnb-2025 2>/dev/null || true)
   if [[ -z $EVAL_DISPATCH_SECRET ]]; then
@@ -152,7 +176,7 @@ job_meta() {
     if (city) Object.assign(m, { city, regionCode: region });
     if (persona) m.persona_id = persona;
     process.stdout.write(JSON.stringify(m));
-  ' "$uid" "${EVAL_TZ:-America/New_York}" "${EVAL_CITY:-}" "${EVAL_REGION:-}" "$persona")
+  ' "$uid" "$caller_tz" "${EVAL_CITY:-}" "${EVAL_REGION:-}" "$persona")
   if [[ -n ${EVAL_DISPATCH_SECRET:-} ]]; then
     (cd $ROOT && npx tsx $HERE/sign-meta.ts "$m")
   else
@@ -161,16 +185,16 @@ job_meta() {
 }
 
 if [[ -n ${EVAL_DRY_RUN:-} ]]; then
-  print -r -- "{\"env\":\"$env\",\"scenario\":\"$scenario\",\"label\":\"$label\",\"uid\":\"$uid\",\"database\":\"$firestore_db\",\"seed\":\"$seed\",\"persona\":\"$persona\",\"echo\":$echo_cfg,\"metadata\":$(job_meta),\"room\":\"eval-$scenario-$label-$stamp\",\"json\":\"$json\"}"
+  print -r -- "{\"env\":\"$env\",\"scenario\":\"$scenario\",\"label\":\"$label\",\"uid\":\"$uid\",\"database\":\"$firestore_db\",\"seed\":\"$seed\",\"persona\":\"$persona\",\"realism\":\"$(realism_of $scenario)\",\"caller\":\"$caller\",\"echo\":$echo_cfg,\"caller_time\":\"$caller_time\",\"caller_clock\":\"$caller_clock\",\"metadata\":$(job_meta),\"room\":\"eval-$scenario-$label-$stamp\",\"json\":\"$json\"}"
   exit 0
 fi
 
 # Writes $out/audio/<scenario>/turns.list: one PCM per scripted line.
 prepare_turns() {
-  local sc=$1 i=0 line mode at rest pcm
-  local adir=$out/audio/$sc${${caller:#say}:+/${caller//:/-}}
+  local sc=$1 i=0 line mode at rest pcm clip rp=$(realism_of $1) engine=${${caller%%:*}:#say}
+  local adir=$out/audio/$sc${${caller:#say}:+/${caller//:/-}}${rp:+/real-$rp}${VOICE_EVAL_HUMAN_CLIPS:+/human}
   mkdir -p $adir
-  grep -v '^#' $HERE/scenarios/$sc.txt | grep -v '^[[:space:]]*$' | while IFS= read -r line; do
+  grep -v '^#' $SCEN/$sc.txt | grep -v '^[[:space:]]*$' | while IFS= read -r line; do
     i=$((i+1))
     # "@backchannel 1800 Mm-hmm." / "@interrupt 1500 Wait...": spoken that many ms
     # after the agent starts its current reply, over it (see converse.mjs).
@@ -191,7 +215,12 @@ prepare_turns() {
       print -r -- "$adir/t$i.json::data::$at"
       continue
     fi
-    if [[ ! -s $pcm || $HERE/scenarios/$sc.txt -nt $pcm ]]; then
+    clip=
+    [[ -z ${VOICE_EVAL_HUMAN_CLIPS:-} ]] || clip=$(node $HERE/caller-realism.mjs clip $sc $i) || exit 2
+    if [[ -n $clip ]]; then
+      ffmpeg -loglevel error -y -i $clip -ac 1 -ar 48000 -f s16le $pcm
+    elif [[ ! -s $pcm || $SCEN/$sc.txt -nt $pcm || ( -n $rp && ( $HERE/caller-personas.json -nt $pcm || $HERE/caller-realism.mjs -nt $pcm ) ) ]]; then
+      [[ -z $rp || $mode != turn ]] || line=$(node $HERE/caller-realism.mjs line $rp "$sc:$i:$rp" ${engine:-say} "$line")
       if [[ $caller == cartesia:* ]]; then
         node $HERE/caller-tts.mjs ${caller#cartesia:} $pcm "$line"
       else
@@ -204,9 +233,12 @@ prepare_turns() {
   print -r -- $adir
 }
 
+# EVAL_RENDER_ONLY=1: render the caller's lines, print the audio dir, and stop: no call.
+[[ -z ${EVAL_RENDER_ONLY:-} ]] || { prepare_turns $scenario; exit 0; }
+
 # One call as $uid: converse_call <scenario> <out.json> <role>
 converse_call() {
-  local sc=$1 file=$2 role=$3 room tok turns meta
+  local sc=$1 file=$2 role=$3 room tok turns meta vmeta
   local adir
   adir=$(prepare_turns $sc)
   turns=(${(f)"$(<$adir/turns.list)"})
@@ -216,8 +248,11 @@ converse_call() {
     --agent $agent --job-metadata "$meta" --valid-for 20m 2>/dev/null \
     | grep -Eo 'eyJ[A-Za-z0-9._-]+' | head -1)
   print -u2 "voice-eval: $role $sc as $uid in $room"
-  (cd $ROOT && VOICE_EVAL_META="{\"uid\":\"$uid\",\"env\":\"$env\",\"scenario\":\"$sc\",\"label\":\"$label\",\"room\":\"$room\",\"role\":\"$role\",\"seed\":\"$seed\",\"persona\":\"$persona\"}" \
-    node $HERE/converse.mjs $url "$tok" $file $turns)
+  # converse.mjs's meta, via JSON.stringify: a path or label may need escaping.
+  vmeta=$(node -e 'const k = ["uid", "env", "scenario", "label", "room", "role", "seed", "persona", "realism", "audio", "caller_tz", "caller_time", "caller_clock"];
+    process.stdout.write(JSON.stringify(Object.fromEntries(k.map((x, i) => [x, process.argv[i + 1]]))))' \
+    "$uid" "$env" "$sc" "$label" "$room" "$role" "$seed" "$persona" "$(realism_of $sc)" "$adir" "$caller_tz" "$caller_time" "$caller_clock")
+  (cd $ROOT && VOICE_EVAL_META=$vmeta node $HERE/converse.mjs $url "$tok" $file $turns)
 }
 
 # The dev phone number (a LiveKit number on ferni-dev, dispatch rule dev-phone) and
@@ -308,4 +343,7 @@ if [[ -n $seed ]]; then
 fi
 converse_call $scenario $json test
 node $HERE/score.mjs $json | tee ${json:r}.score.json
+# Written whole or not at all: a half-written sidecar would break a paired read of the dir.
+[[ -z $(realism_of $scenario)${VOICE_EVAL_HUMAN_CLIPS:-} ]] ||
+  { node $HERE/realism-metrics.mjs $json > ${json:r}.realism.tmp || exit 1; mv ${json:r}.realism.tmp ${json:r}.realism.json; }
 node $HERE/mix.mjs $json >&2

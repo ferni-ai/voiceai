@@ -13,6 +13,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
+import { callerIdFor } from '../../../services/identity/call-caller-id.js';
 
 const log = createLogger({ module: 'SettingsExecutor' });
 
@@ -65,34 +66,35 @@ async function execute(
     );
 
     if (!targetLanguage) {
-      return `Which language would you like me to speak? I support English, Spanish, Japanese, German, French, and more.`;
+      return `Which language would you like? I only speak English on calls for now, but I'll remember it.`;
     }
 
     const { languageService } = await import('../../../services/language/index.js');
     const result = await languageService().setLanguage(
-      ctx.userId || 'anonymous',
+      callerIdFor(ctx.userId, ctx.sessionId), // this session's own id, never a shared one (#2651)
       targetLanguage,
       ctx.sessionId
     );
 
     if (result.success) {
-      return result.confirmationMessage || `I'll speak ${targetLanguage} now.`;
+      return result.confirmationMessage || `I'll remember you'd like ${targetLanguage}.`;
     }
-    return result.error || `I couldn't switch to that language.`;
+    return result.error || `I couldn't save that language.`;
   }
 
   if (fnLower === 'listsupportedlanguages' || fnLower === 'getsupportedlanguages') {
     log.info('🗣️ List supported languages');
-    const { languageService } = await import('../../../services/language/index.js');
-    const languages = await languageService().getSupportedLanguages();
-    return `I can speak: ${languages.map((l) => l.displayName).join(', ')}. Which would you like?`;
+    const { getSupportedLanguagesList, languageHelpListMessage } =
+      await import('../../../services/language/index.js');
+    return languageHelpListMessage(getSupportedLanguagesList());
   }
 
   if (fnLower === 'getcurrentlanguage' || fnLower === 'getspokenlanguage') {
     log.info({ userId: ctx.userId }, '🗣️ Get current language');
-    const { languageService } = await import('../../../services/language/index.js');
-    const current = await languageService().getCurrentLanguage(ctx.userId || 'anonymous');
-    return `I'm currently speaking ${current.displayName || 'English'}.`;
+    const { languageService, currentCallLanguageMessage } =
+      await import('../../../services/language/index.js');
+    const current = await languageService().getCurrentLanguage(callerIdFor(ctx.userId, ctx.sessionId));
+    return currentCallLanguageMessage(current.code, current.displayName || 'English');
   }
 
   // ========================================

@@ -21,6 +21,7 @@ import {
 } from '../index.js';
 import { BuilderCategory } from '../core/categories.js';
 import { recordFollowUpAnswer } from '../../../services/coach-media/feedback.js';
+import { reportFollowThrough } from '../../../services/analytics/bq-followthrough.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   processCommitments,
@@ -31,6 +32,7 @@ import {
   noteFollowUpOffered,
   type FollowUpAnswer,
 } from '../../../services/trust-systems/commitment-follow-through.js';
+import { isCommitmentSingleWriterOn } from '../../../services/superhuman/commitment-single-writer.js';
 
 const log = createLogger({ module: 'CommitmentFollowUp' });
 
@@ -61,14 +63,18 @@ async function buildCommitmentFollowUpContext(
 
   if (!userId) return [];
 
-  // Process user's message for new commitments and progress
+  // Process user's message for new commitments and progress. With COMMITMENT_SINGLE_WRITER
+  // on (mid-call, process.env holds this caller's flags) the after-call judge is the only
+  // writer, so no new one is stored here; progress, answers and follow-ups run as before.
   const { newCommitments, progressUpdates, followUpsDue, answers } = await processCommitments(
     userId,
     userText,
     {
       recentTopics: userData?.recentTopics,
       emotion: analysis?.emotion?.primary,
-    }
+      judgedOnly: isCommitmentSingleWriterOn(),
+    },
+    services?.sessionId // MINOR_CARE: a held call stores nothing here
   );
 
   const injections: ContextInjection[] = answers.flatMap(answerGuidance);
@@ -77,6 +83,7 @@ async function buildCommitmentFollowUpContext(
     recordFollowUpAnswer(userId, answer, userText).catch((error: unknown) =>
       log.warn({ error: String(error) }, 'coach-media answer not stored')
     );
+    reportFollowThrough(userId, answer); // FOLLOWTHROUGH_BQ: its followthrough_outcomes row
   }
 
   // 1. If user made a new commitment, acknowledge it internally
@@ -91,7 +98,7 @@ async function buildCommitmentFollowUpContext(
     );
 
     log.info(
-      { userId, commitment: commitment.content.slice(0, 50) },
+      { userId, commitmentLen: commitment.content.length },
       '💫 BETTER-THAN-HUMAN: New commitment tracked'
     );
   }
@@ -141,7 +148,7 @@ async function buildCommitmentFollowUpContext(
       log.info(
         {
           userId,
-          commitment: followUp.content.slice(0, 50),
+          commitmentLen: followUp.content.length,
           daysOld: getAgeInDays(followUp.createdAt),
         },
         '🔔 BETTER-THAN-HUMAN: Surfacing commitment follow-up'

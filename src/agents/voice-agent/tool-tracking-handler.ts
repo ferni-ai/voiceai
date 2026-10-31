@@ -26,6 +26,7 @@ import type { UserData } from '../shared/types.js';
 import { onToolExecuted } from '../../intelligence/capability-learning.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+import { linkOutcome, toolOutcome } from './tool-outcome.js';
 // Semantic tool presence - "Better than Human" tool feedback
 import { startToolPresence, stopToolPresence } from '../../tools/execution/index.js';
 // Tool timing context for natural LLM framing
@@ -161,10 +162,6 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
       if (userData?.conversationState && event) {
         const convState = userData.conversationState;
 
-        // Get tool information from event
-        // The event structure varies by LLM backend:
-        // - OpenAI Realtime: { functionCallOutputs: [...] }
-        // - Gemini/Other: { tools: [...] } or direct tool object
         const toolInfo = event as ToolInfo;
 
         // Handle different event structures:
@@ -172,6 +169,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
         // 2. Legacy/Gemini: tools array or single tool object
         let toolCalls: Array<{
           name?: string;
+          callId?: string;
           result?: unknown;
           output?: unknown;
           error?: unknown;
@@ -183,6 +181,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
           // OpenAI Realtime API structure - map output to result for consistency
           toolCalls = toolInfo.functionCallOutputs.map((fco) => ({
             name: fco.name,
+            callId: fco.callId,
             result: fco.output,
             error: fco.isError ? fco.output : undefined,
             isError: fco.isError,
@@ -254,7 +253,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
                 timestamp: diagTimestamp,
                 toolName,
                 status: hasError ? 'error' : 'success',
-                resultPreview: resultSummary.slice(0, 100),
+                resultLen: resultSummary.length,
                 sessionId,
               },
               '🔍 [DIAG] Music tool executed - check if previous news/weather errors affected this'
@@ -434,10 +433,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
 
           // "Better than Human" - Record tool timing for natural LLM framing
           // This helps the LLM acknowledge wait times naturally
-          const toolWithStartTime = tool as { startTime?: number };
-          const actualLatencyMs = toolWithStartTime.startTime
-            ? Date.now() - toolWithStartTime.startTime
-            : Date.now() - toolStartTime;
+          const actualLatencyMs = Date.now() - (tool.startTime || toolStartTime);
 
           // Stop semantic tool presence tracking (if it was started)
           const timingContext = stopToolPresence(sessionId, toolName);
@@ -454,6 +450,8 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
             tool: toolName,
             hasResult: !!tool.result,
             hasError,
+            outcome: toolOutcome(isMusic, toolResult, hasError),
+            ...linkOutcome(tool.callId),
           });
         }
       }

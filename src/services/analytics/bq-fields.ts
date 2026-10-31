@@ -31,12 +31,21 @@ export const BQ_ENUMS = {
   outcome: [
     ...['pending', 'sent', 'replied', 'ignored', 'failed'],
     ...['answered', 'no_answer', 'busy', 'declined'],
+    // followthrough_outcomes (bq-followthrough.ts)
+    ...['done', 'not_done', 'deflected', 'unanswered'],
   ],
+  item_kind: ['commitment'],
   reason: [
     ...['no-hash-secret', 'no-verified-phone', 'recently-sent', 'sms-off', 'opted-out'],
-    ...['send-failed', 'bad-number', 'quiet-hours', 'consent-unknown', 'paused'],
+    ...['send-failed', 'bad-number', 'quiet-hours', 'needs-consent'],
+    ...['consent-unknown', 'paused', 'focus-held', 'held'],
     ...['fallback_from_in_app', 'fallback_from_sms', 'fallback_from_voice_call'],
   ],
+  // turn_metrics (agents/shared/turn-receipt.ts)
+  user_kind: ['owner', 'eval', 'other'],
+  lane: ['fast', 'main'],
+  preemptive: ['reused', 'dropped', 'none'],
+  barge_in_source: ['fastpath', 'adaptive', 'vad', 'other'],
   // eval_results: what scripts/lib/eval-results-bq.ts maps each eval's results to
   metric: [
     ...['distinctness', 'insight_natural', 'copy_rate', 'humanness_win', 'humanness_matched_win'],
@@ -48,7 +57,7 @@ export const BQ_ENUMS = {
 } as const;
 export type BqEnum<F extends keyof typeof BQ_ENUMS> = (typeof BQ_ENUMS)[F][number];
 
-/** Tool names a producer has registered (the runtime tool registry); none until turn_metrics ships. */
+/** Tool names a producer has registered: the tools offered to the model (turn-receipt-bq.ts). */
 const toolNames = new Set<string>();
 export function registerBqToolNames(names: Iterable<string>): void {
   for (const n of names) toolNames.add(n);
@@ -78,8 +87,7 @@ export const FIELD_VALUE: Record<string, (v: string) => string> = {
   agent_version: (v) => (/^(?=.*[a-f])[0-9a-f]{7,12}$/.test(v) ? v : OTHER),
   flags: (v) => (Object.hasOwn(FLAG_MANIFEST, v) ? v : OTHER),
   tools_called: (v) => (toolNames.has(v) ? v : OTHER),
-  // no producer yet: nothing allowed until one adds its list
-  item_kind: () => OTHER,
+  // no producer writes it yet: nothing allowed until one adds its list
   surfaced_via: () => OTHER,
   // the bench, the run's day and 6 random hex: no room for a phone number or an email
   run_id: (v) => (/^(bar|recall|longmem|live)-\d{8}-[a-f0-9]{6}$/.test(v) ? v : OTHER),

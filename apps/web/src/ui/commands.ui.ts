@@ -115,7 +115,7 @@ class CommandsPanelUI {
 
   /**
    * HMR Protection: Remove orphaned elements from previous instances
-   * Required per .cursorrules to prevent duplicate elements during hot reload
+   * Required by apps/web/src/ui/CLAUDE.md to prevent duplicate elements during hot reload
    */
   private cleanupOrphanedElements(): void {
     document.querySelectorAll('.ferni-commands').forEach((el) => el.remove());

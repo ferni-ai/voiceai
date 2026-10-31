@@ -96,8 +96,9 @@ describe('on-behalf call', () => {
     const reply = await callDad();
 
     expect(createSipParticipant).not.toHaveBeenCalled();
+    // The requester is in New York, where it's 2 AM Wednesday: both clocks, from held-call-clocks.ts.
     expect(reply).toBe(
-      "Nothing was dialed yet: it's not a good hour to call Dad, so I'll call tomorrow at 9:00 AM their time to wish him happy birthday."
+      "Nothing was dialed yet: it's not a good hour to call Dad, so I'll call tomorrow at 9:00 AM Dad's time, later today at 12:00 PM yours, to wish him happy birthday. Both times are already worked out: say them as written."
     );
     expect(deferred()).toHaveLength(1);
     expect(deferred()[0].data).toMatchObject({
@@ -185,6 +186,40 @@ describe('proactive call to the user', () => {
     expect(deferred()).toHaveLength(0);
     expect(placed()).toHaveLength(1);
   });
+  describe('QUIET_HOURS_FROM_PREFS: quiet hours saved in the menu, 19:00 to 09:30', () => {
+    const SEVEN_THIRTY_PM_LA = new Date('2026-10-14T02:30:00Z'); // Tue 19:30 LA, in call hours
+    beforeEach(() => {
+      process.env.QUIET_HOURS_FROM_PREFS = 'on';
+      contactInfo.mockResolvedValue({ timezone: 'America/Los_Angeles' });
+      docs['bogle_users/u1'] = {
+        messagingPrefs: { quietStart: '19:00', quietEnd: '09:30', zone: 'America/Los_Angeles' },
+      };
+      vi.setSystemTime(SEVEN_THIRTY_PM_LA);
+    });
+    afterEach(() => {
+      delete process.env.QUIET_HOURS_FROM_PREFS;
+    });
+
+    it('a call Ferni starts at 19:30 waits for 09:30 their time', async () => {
+      expect(await scheduleProactiveCall(request)).toMatchObject({ status: 'scheduled' });
+      expect(placed()).toHaveLength(0);
+      expect(deferred()[0].data).toMatchObject({ scheduledFor: '2026-10-14T16:30:00.000Z' });
+    });
+
+    it('a call they asked for ("call me") is not held by them', async () => {
+      await scheduleProactiveCall({ ...request, reason: 'user_requested_call' });
+      expect(deferred()).toHaveLength(0);
+      expect(placed()).toHaveLength(1);
+    });
+
+    it('flag off: the 19:30 call goes, as before', async () => {
+      delete process.env.QUIET_HOURS_FROM_PREFS;
+      await scheduleProactiveCall(request);
+      expect(deferred()).toHaveLength(0);
+      expect(placed()).toHaveLength(1);
+    });
+  });
+
   it('QUIET_HOURS_UNIFIED, guard off: at 11pm their time it waits for 8:00 there, once', async () => {
     delete process.env.CALL_HOURS_GUARD;
     process.env.QUIET_HOURS_UNIFIED = 'on';

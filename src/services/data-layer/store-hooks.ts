@@ -1,18 +1,15 @@
 /**
- * Store Hooks for Auto-Indexing
- *
- * When domain stores change data, they call these hooks to trigger
- * automatic re-indexing to semantic memory.
- *
- * This ensures semantic search always has up-to-date data without
- * manual sync calls.
+ * Store hooks: domain stores call these when data changes, and the change is indexed to
+ * semantic memory after a debounce, so search stays current without manual sync calls.
  *
  * @module services/data-layer/store-hooks
  */
 
 import { embed } from '../../memory/embeddings.js';
 import { getFirestoreVectorStore } from '../../memory/firestore-vector-store/index.js';
+import { writeHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { indexExpireAt } from './index-expiry.js';
 import { getIndexingPolicy, shouldIndex } from './indexing-policy.js';
 import { enforceMaxPerUser, forgetIndexedDoc } from './max-per-user.js';
 import { trackIndexingError, trackIndexingOperation } from './observability.js';
@@ -20,7 +17,6 @@ import type { ChangeType, EntityType, StoreChangeEvent } from './types.js';
 
 const log = createLogger({ module: 'store-hooks' });
 
-// Re-export types for convenience
 export type { ChangeType, EntityType, StoreChangeEvent, StoreType } from './types.js';
 
 // ============================================================================
@@ -92,26 +88,17 @@ export function getQueueMetrics(): QueueMetrics {
   const totalOps = indexedCount + skippedCount + errorCount;
   const successRate = totalOps > 0 ? ((indexedCount + skippedCount) / totalOps) * 100 : 100;
 
-  // Calculate oldest pending item age
   let oldestPendingAge: number | null = null;
   const pendingByStore: Record<string, number> = {};
   const pendingByEntity: Record<string, number> = {};
 
-  for (const [_key, event] of pendingIndexes.entries()) {
-    if (event.timestamp) {
-      const age = Date.now() - event.timestamp.getTime();
-      if (oldestPendingAge === null || age > oldestPendingAge) {
-        oldestPendingAge = age;
-      }
+  for (const event of pendingIndexes.values()) {
+    const age = event.timestamp ? Date.now() - event.timestamp.getTime() : null;
+    if (age !== null && (oldestPendingAge === null || age > oldestPendingAge)) {
+      oldestPendingAge = age;
     }
-
-    // Count by store
-    const storeKey = event.storeType;
-    pendingByStore[storeKey] = (pendingByStore[storeKey] || 0) + 1;
-
-    // Count by entity
-    const entityKey = event.entityType;
-    pendingByEntity[entityKey] = (pendingByEntity[entityKey] || 0) + 1;
+    pendingByStore[event.storeType] = (pendingByStore[event.storeType] || 0) + 1;
+    pendingByEntity[event.entityType] = (pendingByEntity[event.entityType] || 0) + 1;
   }
 
   return {
@@ -141,11 +128,7 @@ export function onStoreChange(event: StoreChangeEvent): void {
   // Store the latest event (overwrites previous if rapid updates)
   pendingIndexes.set(key, { ...event, timestamp: new Date() });
 
-  // Clear existing timer
-  const existingTimer = debounceTimers.get(key);
-  if (existingTimer) {
-    clearTimeout(existingTimer);
-  }
+  clearTimeout(debounceTimers.get(key));
 
   // Set new timer using policy debounce time
   const timer = setTimeout(() => {
@@ -192,11 +175,10 @@ async function processChange(key: string): Promise<void> {
       return;
     }
 
-    // Check indexing policy
-    const { shouldIndex: doIndex, reason } = shouldIndex(
-      event.entityType as EntityType,
-      event.metadata || {}
-    );
+    // Check indexing policy. MINOR_CARE: nothing for a held caller (held-index-purge.ts: before it)
+    const { shouldIndex: doIndex, reason } = writeHeld(event.userId)
+      ? { shouldIndex: false, reason: 'MINOR_CARE hold' }
+      : shouldIndex(event.entityType as EntityType, event.metadata || {});
 
     if (!doIndex) {
       log.debug({ key, reason }, 'Skipping index - policy check failed');
@@ -204,18 +186,21 @@ async function processChange(key: string): Promise<void> {
       return;
     }
 
-    // Enforce maxPerUser limits
     await enforceMaxPerUser(vectorStore, event.userId, event.entityType as EntityType, docId);
 
-    // Generate embedding
     const embedding = await embed(event.content);
+    // MINOR_CARE: the hold may have begun while it embedded; checked again right before the write
+    if (writeHeld(event.userId)) return void skippedCount++;
+    if (event.stillWanted && !(await event.stillWanted())) return void skippedCount++;
 
-    // Index to semantic memory via Firestore vector store
+    // Index to semantic memory; the store's fields last, so a caller's metadata can't replace them
     await vectorStore.addDocument({
       id: docId,
       text: event.content,
       embedding,
+      expireAt: indexExpireAt(event.entityType as EntityType),
       metadata: {
+        ...event.metadata,
         userId: event.userId,
         storeType: event.storeType,
         entityType: event.entityType,
@@ -223,7 +208,6 @@ async function processChange(key: string): Promise<void> {
         source: 'store_auto_sync',
         indexedAt: new Date().toISOString(),
         changeType: event.changeType,
-        ...event.metadata,
       },
     });
 
@@ -508,9 +492,21 @@ export async function flushPendingChanges(): Promise<{ flushed: number; errors: 
   return { flushed: keys.length, errors: errorsInFlush };
 }
 
-/**
- * Clear all pending changes without processing (for cleanup/testing)
- */
+/** Drop a user's queued (not yet written) changes of one entity type whose id starts so */
+export function dropPendingChanges(userId: string, entityType: string, idPrefix: string): number {
+  let dropped = 0;
+  for (const [key, e] of pendingIndexes) {
+    if (e.userId !== userId || e.entityType !== entityType || !e.entityId.startsWith(idPrefix))
+      continue;
+    clearTimeout(debounceTimers.get(key));
+    debounceTimers.delete(key);
+    pendingIndexes.delete(key);
+    dropped++;
+  }
+  return dropped;
+}
+
+/** Clear all pending changes without processing (for cleanup/testing) */
 export function clearPendingChanges(): void {
   for (const timer of debounceTimers.values()) {
     clearTimeout(timer);

@@ -83,7 +83,6 @@ export { RelationalMemoryToken } from './knowledge-graph/index.js';
 
 // Stubs for backward compatibility (removed in Jan 2026 cleanup)
 export * from './cognitive-memory.js';
-export * from './cognitive-persistence.js';
 export * from './learned-memories.js';
 
 export * from './human-listening-memory.js';
@@ -116,3 +115,16 @@ export {
 } from './realtime-memory.js';
 export * from './voice-conversation-memory.js';
 export * from './voice-memory.js';
+// What a caller asks Ferni to remember, written where recall reads it (REMEMBER_TO_RECALL).
+export {
+  keepForRecall,
+  memoryToolsHonestOn,
+  rememberToRecall,
+  type KeepOutcome,
+} from '../../memory/dynamic/remembered-facts.js';
+// updateMemory under MEMORY_TOOLS_HONEST: a correction replaces the remembered fact it names
+export {
+  replaceRemembered,
+  useRememberedFactControl,
+  type ReplaceOutcome,
+} from '../../memory/dynamic/replace-remembered.js';

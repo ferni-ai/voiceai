@@ -79,7 +79,7 @@ export function recordPersonaObservation(userId: string, observation: SimpleObse
       type: observation.observationType,
       domain: observation.domain,
     },
-    `👁️ ${observation.personaId.toUpperCase()} observed: ${observation.content.slice(0, 50)}...`
+    `👁️ ${observation.personaId.toUpperCase()} observed (${observation.content.length} chars)`
   );
 }
 
@@ -193,23 +193,6 @@ export function recordInsight(
 // PERSONA-SPECIFIC CONVENIENCE FUNCTIONS
 // ============================================================================
 
-/** Maya's habit observations */
-export const maya = {
-  concern: (userId: string, content: string, confidence: number, topics?: string[]) =>
-    recordConcern(userId, 'maya', content, confidence, topics),
-  pattern: (userId: string, content: string, confidence: number, topics?: string[]) =>
-    recordPattern(userId, 'maya', content, confidence, topics),
-  opportunity: (
-    userId: string,
-    content: string,
-    confidence: number,
-    action?: string,
-    topics?: string[]
-  ) => recordOpportunity(userId, 'maya', content, confidence, action, topics),
-  milestone: (userId: string, content: string, confidence: number, topics?: string[]) =>
-    recordMilestone(userId, 'maya', content, confidence, topics),
-};
-
 /** Peter's research observations */
 export const peter = {
   concern: (userId: string, content: string, confidence: number, topics?: string[]) =>
@@ -218,44 +201,6 @@ export const peter = {
     recordPattern(userId, 'peter', content, confidence, topics),
   insight: (userId: string, content: string, confidence: number, topics?: string[]) =>
     recordInsight(userId, 'peter', content, confidence, topics),
-};
-
-/** Alex's communication observations */
-export const alex = {
-  concern: (userId: string, content: string, confidence: number, topics?: string[]) =>
-    recordConcern(userId, 'alex', content, confidence, topics),
-  pattern: (userId: string, content: string, confidence: number, topics?: string[]) =>
-    recordPattern(userId, 'alex', content, confidence, topics),
-  opportunity: (
-    userId: string,
-    content: string,
-    confidence: number,
-    action?: string,
-    topics?: string[]
-  ) => recordOpportunity(userId, 'alex', content, confidence, action, topics),
-};
-
-/** Jordan's milestone observations */
-export const jordan = {
-  milestone: (userId: string, content: string, confidence: number, topics?: string[]) =>
-    recordMilestone(userId, 'jordan', content, confidence, topics),
-  pattern: (userId: string, content: string, confidence: number, topics?: string[]) =>
-    recordPattern(userId, 'jordan', content, confidence, topics),
-  opportunity: (
-    userId: string,
-    content: string,
-    confidence: number,
-    action?: string,
-    topics?: string[]
-  ) => recordOpportunity(userId, 'jordan', content, confidence, action, topics),
-};
-
-/** Nayan's wisdom observations */
-export const nayan = {
-  insight: (userId: string, content: string, confidence: number, topics?: string[]) =>
-    recordInsight(userId, 'nayan', content, confidence, topics),
-  pattern: (userId: string, content: string, confidence: number, topics?: string[]) =>
-    recordPattern(userId, 'nayan', content, confidence, topics),
 };
 
 /** Ferni's coaching observations */
