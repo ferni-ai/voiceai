@@ -101,11 +101,11 @@ describe('a token whose account is gone', () => {
     expect(store.getOrCreateProfile).not.toHaveBeenCalled();
   });
 
-  it('an anonymous token opens the profile without an account lookup', async () => {
+  it('an anonymous token opens the profile; this strict route still looks its account up', async () => {
     const res = await openProfile('anon');
 
     expect(res.status).toBe(200);
-    expect(auth.getUser).not.toHaveBeenCalled();
+    expect(auth.getUser).toHaveBeenCalledWith('uid-anon-1');
   });
 
   it("a live account's token still opens (and creates) the profile", async () => {

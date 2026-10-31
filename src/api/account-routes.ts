@@ -66,7 +66,7 @@ export async function handleAccountRoutes(
   }
 
   // All account routes require authentication
-  const auth = await requireAuth(req, res);
+  const auth = await requireAuth(req, res, { strict: true }); // deletion and consent
   if (!auth) return true;
 
   const { userId } = auth;

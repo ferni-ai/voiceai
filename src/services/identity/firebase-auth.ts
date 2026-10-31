@@ -19,6 +19,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { nonAccountPrefixOf } from '../../utils/synthetic-user.js';
 import { erasureErrorCode } from '../platform/erasure-step.js';
 import {
+  invalidateAccount,
   isAuthCheckUnavailable,
   verifyIdTokenChecked,
   type TokenCheckOptions,
@@ -345,6 +346,7 @@ export async function revokeRefreshTokens(uid: string): Promise<boolean> {
 
   try {
     await admin.auth().revokeRefreshTokens(uid);
+    invalidateAccount(uid, 'revoked'); // this process refuses its tokens now, not in a minute
     log.info({ uid: `${uid.substring(0, 8)}...` }, 'Revoked refresh tokens');
     return true;
   } catch (error) {
@@ -364,6 +366,7 @@ export async function deleteFirebaseUser(uid: string): Promise<boolean> {
 
   try {
     await admin.auth().deleteUser(uid);
+    invalidateAccount(uid, 'gone');
     log.info({ uid: `${uid.substring(0, 8)}...` }, 'Deleted Firebase user');
     return true;
   } catch (error) {

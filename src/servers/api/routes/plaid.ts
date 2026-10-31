@@ -138,6 +138,7 @@ export async function handlePlaidRoutes(
 
   // Check if user has Plaid linked
   if (pathname === '/plaid/status') {
+    if (rateLimit(req, res, { maxRequests: 30, windowMs: 60_000, keyPrefix: 'plaid-status' })) return true;
     const auth = await requireAuth(req, res, { strict: true }); // bank linking
     if (!auth) return true;
 

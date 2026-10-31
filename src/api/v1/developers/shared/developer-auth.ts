@@ -17,6 +17,9 @@ import {
   verifyIdTokenChecked,
 } from '../../../../services/identity/token-revocation.js';
 
+/** Publisher creation, linking and API keys: the account is checked now (token-revocation.ts) */
+const STRICT = { strict: true };
+
 const log = getLogger().child({ module: 'developer-auth' });
 
 // ============================================================================
@@ -214,7 +217,7 @@ export async function resolvePublisherFromRequest(
   }
   try {
     const auth = await getFirebaseAuth();
-    const decodedToken = (await verifyIdTokenChecked(auth, idToken)) as FirebaseDecodedToken;
+    const decodedToken = (await verifyIdTokenChecked(auth, idToken, STRICT)) as FirebaseDecodedToken;
     return await resolvePublisherForToken(decodedToken);
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to get publisher from token');
@@ -252,7 +255,7 @@ export async function requirePublisherFromToken(
 export async function verifyFirebaseToken(idToken: string): Promise<FirebaseDecodedToken | null> {
   try {
     const auth = await getFirebaseAuth();
-    return (await verifyIdTokenChecked(auth, idToken)) as FirebaseDecodedToken;
+    return (await verifyIdTokenChecked(auth, idToken, STRICT)) as FirebaseDecodedToken;
   } catch (error) {
     if (isAuthCheckUnavailable(error)) throw error; // a 503 for the caller, not a bad token
     const err = error instanceof Error ? error : new Error(String(error));
