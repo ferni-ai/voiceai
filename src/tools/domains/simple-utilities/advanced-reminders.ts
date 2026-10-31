@@ -4,7 +4,6 @@
  * Extended reminder capabilities beyond basic time-based reminders:
  * - Location-based reminders (geofencing)
  * - Recurring reminders with patterns
- * - Smart reminders that learn optimal timing
  *
  * These fill gaps identified in synthetic LLM testing.
  *
@@ -21,6 +20,7 @@ import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { createReminder, userTimeZone } from '../../../services/scheduling/reminder-scheduler.js';
 import { formatStoredLocalTime, WallClock } from '../../../utils/time-zone.js';
 import { trustedUserId } from '../../registry/user-id-guard.js';
+import { ownerMessageTool } from '../proactive/outreach/owner-message-policy.js';
 
 const log = getLogger();
 
@@ -288,7 +288,7 @@ const listLocationRemindersDef: ToolDefinition = {
 // RECURRING REMINDER
 // ============================================================================
 
-const recurringReminderDef: ToolDefinition = {
+const recurringReminderDef: ToolDefinition = ownerMessageTool({
   id: 'recurringReminder',
   name: 'Recurring Reminder',
   description: 'Set a reminder that repeats on a schedule',
@@ -391,7 +391,7 @@ const recurringReminderDef: ToolDefinition = {
       },
     });
   },
-};
+});
 
 // ============================================================================
 // LIST RECURRING REMINDERS
