@@ -1,8 +1,8 @@
 /**
  * Where a source file names another module, from the AST, and how a relative name resolves.
  *
- * Used by the mock-path guard (mock-paths.ts), and kept separate so a move codemod can share
- * it: both then agree on what a specifier is and where it points.
+ * Shared by the mock-path guard (mock-paths.ts) and the move codemod
+ * (scripts/codemods/move-module.ts), so both agree on what a specifier is and where it points.
  *
  * @module quality/module-specifiers
  */
