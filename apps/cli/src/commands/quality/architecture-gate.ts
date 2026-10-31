@@ -97,7 +97,7 @@ export function gitTree(base: string, root: string): SourceTree {
   return { files, read: (f) => texts.get(f) ?? '', isFile: (f) => present.has(f) };
 }
 
-function resolveSpec(root: string, from: string, spec: string, isFile: (file: string) => boolean): string | null {
+export function resolveSpec(root: string, from: string, spec: string, isFile: (file: string) => boolean): string | null {
   if (!spec.startsWith('.')) return null;
   const base = relative(root, resolve(root, dirname(from), spec)).replace(/\.(js|ts|mjs|cjs)$/, '');
   return [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`, base].find(isFile) ?? null;

@@ -1097,6 +1097,12 @@ jobs:
       - name: Architecture gate
         run: pnpm quality:arch
 
+      # Blocking ratchet: a relative vi.mock-family string naming no module fails (vitest
+      # mocks a path nobody imports and the real module loads). Fix: point the string at
+      # the module the test means. The baseline only shrinks. ~2 s.
+      - name: Mock paths resolve
+        run: pnpm quality:mock-paths
+
       # Blocking: ARCHITECTURE.md's layer table is generated from architecture-layers.ts and
       # must match it (and the index.ts / CLAUDE.md files it links). Fix: `pnpm docs:map`. ~1 s.
       - name: Architecture map is current
