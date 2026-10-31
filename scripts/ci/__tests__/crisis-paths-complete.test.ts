@@ -2,32 +2,139 @@
  * The crisis lane has to cover every crisis file, not only the ones someone remembered to
  * list. On 2026-10-31 the policy missed 18, among them the crisis gate itself
  * (src/agents/personas/crisis-gate.ts), the CRISIS_* flag files, the SMS crisis screen and
- * minor-care modules,
- * so a change to any of them could have taken the autonomous path. This derives the
- * expected set from the tree (crisis-named sources and flag files) and fails on any file
- * the policy's crisis paths leave out.
+ * minor-care modules. The fix matched files by name, and the next verify found 9 more
+ * whose names didn't match (THIRD_PARTY_SELF_HARM, farewell-risk, emergency-claim, the
+ * referral resources...). A name is not enough, so the expected set is derived three ways:
+ *
+ *   1. crisis-named files under src and apps;
+ *   2. the crisis modules: src/services/safety/**, the crisis agreement and gate, and the
+ *      988 / crisis-line helpers (a module exporting a crisis-line, crisis-resource,
+ *      lifeline or 988 name, plus the reviewed list below);
+ *   3. every src module that imports one of those crisis modules (static, type-only,
+ *      re-export, dynamic import() or require()), by the path the specifier resolves to.
+ *
+ * Every file in that set must be in the policy's crisis paths AND owned by the owner in
+ * CODEOWNERS, so a loop PR that edits one can't take the autonomous lane and any author's
+ * PR requests the owner's review.
  */
 import { execFileSync } from 'child_process';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
-import { inPaths, loadPolicy } from '../autonomy-lanes.js';
+import { importTargets, inPaths, loadPolicy } from '../autonomy-lanes.js';
+import { OWNER, ownersOf, ROOT } from './codeowners-rules.js';
 
 // Crisis, 988 and referral, and minor protections (minor-care holds, the sexual-content boundary).
-const CRISIS_NAME = /crisis|988|suicid|self-harm|minor-care|sexual/i;
+const CRISIS_NAME = /crisis|988|suicid|self[-_ ]?harm|minor-care|sexual/i;
+const SOURCE = /\.(?:[cm]?[jt]sx?)$/;
+const TEST = /(?:^|\/)__tests__\/|\.(?:test|spec)\.[cm]?[jt]sx?$/;
+
+/** Crisis modules by place and name: the safety service, the crisis agreement and gate. */
+const CRISIS_MODULE_PATHS = ['src/services/safety/**'];
+const CRISIS_MODULE_NAME = /crisis-(?:agreement|gate)/i;
+/** A 988 / crisis-line helper by what it exports: getCrisisResources, offersCrisisLine... */
+const CRISIS_LINE_EXPORT =
+  /^export\s+(?:declare\s+)?(?:async\s+)?(?:const|let|var|function\*?|class)\s+\w*(?:crisis[-_]?line|crisis[-_]?resource|988|lifeline|nine[-_]?eight[-_]?eight)/im;
+/** 988 / crisis-line helpers whose exports don't say so (EMERGENCY_LINE, referralResources). */
+const CRISIS_LINE_HELPERS = [
+  'src/agents/personas/emergency-claim.ts', // the "call 911 or 988 now" line (#1553)
+  'src/agents/personas/emergency-correction.ts', // swaps a false "I called 911" for that line
+  'src/services/principal-alignment/human-referral.ts', // picks the referral, 988 for a crisis
+  'src/services/principal-alignment/referral-resources.ts', // the 988 crisis-line resources
+];
+/**
+ * Crisis files neither their name nor their imports mark (2026-10-31 verify): the
+ * crisis-who reroute flag, and the risk-phrase reader behind crisis-agreement's
+ * hasRiskContent and its flag.
+ */
+const PINNED = [
+  'src/config/flags/THIRD_PARTY_SELF_HARM.ts',
+  'src/utils/safety-whole-word.ts',
+  'src/config/flags/SAFETY_WHOLE_WORD_SITES.ts',
+];
+/**
+ * Importers of a crisis module that aren't crisis logic, each with a one-line reason. Every
+ * entry must still be in the derived set, so a stale exclusion fails. Exclude only a file
+ * that clearly isn't crisis logic (a logger, a type re-export); never to shrink the lane.
+ */
+const EXCLUDED: Record<string, string> = {};
+
+const lsFiles = (...dirs: string[]) =>
+  execFileSync('git', ['ls-files', '-z', ...dirs], { cwd: ROOT, encoding: 'utf8' })
+    .split('\0')
+    .filter(Boolean);
+const text = (f: string) => readFileSync(join(ROOT, f), 'utf8');
+
+function derive() {
+  const sources = lsFiles('src').filter((f) => SOURCE.test(f) && !TEST.test(f));
+  const known = new Set(sources);
+  const helpers = new Set([
+    ...sources.filter((f) => CRISIS_LINE_EXPORT.test(text(f))),
+    ...CRISIS_LINE_HELPERS,
+  ]);
+  const isCrisisModule = (f: string) =>
+    inPaths(f, CRISIS_MODULE_PATHS) ||
+    CRISIS_MODULE_NAME.test(f.split('/').pop() ?? '') ||
+    helpers.has(f);
+  const modules = sources.filter(isCrisisModule);
+  // preProcessFile lists import, import type, export-from, import() and require() specifiers.
+  const importsCrisis = (f: string) =>
+    ts
+      .preProcessFile(text(f), true, true)
+      .importedFiles.some((i) =>
+        (importTargets({ file: f, specifier: i.fileName }) ?? []).some(
+          (t) => known.has(t) && isCrisisModule(t)
+        )
+      );
+  const importers = sources.filter((f) => !isCrisisModule(f) && importsCrisis(f));
+  const named = lsFiles('src', 'apps').filter((f) => CRISIS_NAME.test(f.split('/').pop() ?? ''));
+  const all = [...new Set([...named, ...modules, ...importers, ...PINNED])].sort();
+  return { helpers, modules, importers, named, all };
+}
+
+const derived = derive();
+const expected = derived.all.filter((f) => !(f in EXCLUDED));
 
 describe('crisis lane covers every crisis file', () => {
-  it('every crisis-named file under src and apps is in the crisis lane', () => {
+  it('every crisis-named file, crisis module and crisis importer is in the crisis lane', () => {
     const crisis = loadPolicy().lanes.crisis.paths;
-    const files = execFileSync('git', ['ls-files', 'src', 'apps'], { encoding: 'utf8' })
-      .split('\n')
-      .filter((f) => f && CRISIS_NAME.test(f.split('/').pop() ?? ''));
-    expect(files.length).toBeGreaterThan(20);
-    expect(files.filter((f) => !inPaths(f, crisis))).toEqual([]);
+    expect(expected.filter((f) => !inPaths(f, crisis))).toEqual([]);
   });
 
-  it('the check is not vacuous: a crisis file outside the lane is caught', () => {
+  it('CODEOWNERS gives every one of them to the owner', () => {
+    expect(expected.filter((f) => !ownersOf(f).includes(OWNER))).toEqual([]);
+  });
+
+  it('every exclusion is still derived and has a reason', () => {
+    for (const [file, reason] of Object.entries(EXCLUDED)) {
+      expect(derived.all, file).toContain(file);
+      expect(reason.trim().length, file).toBeGreaterThan(10);
+    }
+  });
+
+  it('the derivation is not vacuous: each source finds the files it should', () => {
+    expect(derived.named.length).toBeGreaterThan(20);
+    expect(derived.importers.length).toBeGreaterThan(40);
+    // By name, including the SELF_HARM spelling.
+    expect(derived.named).toContain('src/config/flags/THIRD_PARTY_SELF_HARM.ts');
+    // 988 helpers by export, and the reviewed ones.
+    expect(derived.helpers).toContain('src/tools/domains/life-coaching-shared/safety-guards.ts');
+    expect(derived.helpers).toContain('src/services/safety/crisis-line-speech.ts');
+    expect(derived.modules).toContain('src/services/principal-alignment/referral-resources.ts');
+    // Importers: of crisis-agreement, of a 988 helper, and by dynamic import().
+    expect(derived.importers).toContain('src/agents/shared/farewell-risk.ts');
+    expect(derived.importers).toContain('src/agents/personas/action-claim-guard.ts');
+    expect(derived.importers).toContain('src/api/wellbeing.routes.ts');
+    for (const f of [...CRISIS_LINE_HELPERS, ...PINNED]) expect(derived.all, f).toContain(f);
+  });
+
+  it('a crisis file outside the lane is caught', () => {
     const crisis = loadPolicy().lanes.crisis.paths;
     expect(inPaths('src/agents/personas/crisis-gate.ts', crisis)).toBe(true);
     expect(inPaths('src/config/flags/CRISIS_NEW_FLAG.ts', crisis)).toBe(true);
     expect(inPaths('src/agents/personas/crisis-gate.ts', ['src/services/safety/**'])).toBe(false);
+    expect(CRISIS_NAME.test('SELF_HARM_REROUTE.ts')).toBe(true);
+    expect(CRISIS_NAME.test('selfharm.ts')).toBe(true);
   });
 });

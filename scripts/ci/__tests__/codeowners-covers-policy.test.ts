@@ -3,34 +3,12 @@
  * requests the owner's review on them for every author, not only the loop.
  */
 import { execFileSync } from 'child_process';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { describe, expect, it } from 'vitest';
-import { inPaths, loadPolicy, matchesGlob } from '../autonomy-lanes.js';
+import { inPaths, loadPolicy } from '../autonomy-lanes.js';
+import { OWNER, ownersOf, ROOT, rules } from './codeowners-rules.js';
 
-const ROOT = join(__dirname, '../../..');
-const OWNER = '@sethdford';
 const policy = loadPolicy();
 const globs = [...policy.lanes.crisis.paths, ...policy.lanes.evaluator.paths];
-
-type Rule = { pattern: string; owners: string[] };
-const rules: Rule[] = readFileSync(join(ROOT, '.github/CODEOWNERS'), 'utf8')
-  .split('\n')
-  .map((l) => l.trim())
-  .filter((l) => l && !l.startsWith('#'))
-  .map((l) => {
-    const [pattern, ...owners] = l.split(/\s+/);
-    return { pattern, owners };
-  });
-
-/** The owners GitHub picks: the last rule matching the path (this file anchors every rule). */
-function ownersOf(path: string): string[] {
-  const match = (p: string) => {
-    const glob = p.replace(/^\//, '');
-    return glob.endsWith('/') ? path.startsWith(glob) : matchesGlob(path, glob);
-  };
-  return rules.filter((r) => match(r.pattern)).at(-1)?.owners ?? [];
-}
 
 describe('CODEOWNERS', () => {
   it('CODEOWNERS covers every crisis and evaluator path in autonomy-policy.json', () => {
