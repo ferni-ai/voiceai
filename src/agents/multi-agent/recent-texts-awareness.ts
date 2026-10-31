@@ -108,6 +108,8 @@ let ownerOnLine: OwnerCheck = () => false;
 export function registerRecentTextsOwnerCheck(check: OwnerCheck): void {
   ownerOnLine = check;
 }
+/** The registered check, for the other reader of the account's private history (caller card). */
+export const ownerProvenHere: OwnerCheck = (session, phone) => ownerOnLine(session, phone);
 
 /** What each session's setup found, for its greeting. */
 const found = new Map<string, { facts: string[]; at: number }>();

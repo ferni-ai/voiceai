@@ -154,6 +154,7 @@ import { lastTalkedAwareness } from './welcome-back.js';
 import { calendarDaysSince } from '../../utils/calendar-days.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
 import { recentTextsBlock } from './recent-texts-awareness.js';
+import { callerCardText, whoYoureTalkingTo } from './caller-card/index.js';
 
 const log = getLogger();
 
@@ -342,6 +343,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     mark('load_prompts_start');
     // Both levels in parallel; ALEX_CHIEF_OF_STAFF=on adds Alex's role (chief-of-staff-role.ts)
     forgotten.prefetchForgotten(services.userId); // FORGET_EVERY_READER: read it alongside
+    const callerCard = callerCardText(sessionId, services, config.phoneCaller); // CALLER_CARD
     const [baseInstructions, loadedSystemPrompt, texts] = await Promise.all([
       loadModelBaseInstructions(),
       loadSystemPrompt(persona.id).then((prompt) => withChiefOfStaffRole(persona.id, prompt)),
@@ -488,17 +490,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
         userAwareness.push(`On their mind: ${topConcern}`);
       }
 
+      modelBaseInstructions += whoYoureTalkingTo(userAwareness, await callerCard); // caller-card/
       if (userAwareness.length > 0) {
-        modelBaseInstructions += `
----
-
-## Who You're Talking To
-
-${userAwareness.join('\n')}
-
-Use this awareness naturally. Don't announce what you know - just BE a friend who remembers.
-Reference past context when relevant, but don't force it. Let the conversation flow.
-`;
         log.info(
           { personaId: persona.id, userAwarenessCount: userAwareness.length },
           `👤 BETTER THAN HUMAN - User awareness injected (${userAwareness.length} facts)`
