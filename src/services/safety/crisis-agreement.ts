@@ -179,18 +179,13 @@ export function hasRiskContent(text: string | undefined | null): boolean {
   }
 }
 
-/**
- * CRISIS_BRAKE_V2 (crisis-brake.ts): everyday words that are risk only inside a risk phrase.
- * Prod, 10-17 to 10-31: "bye", "done" or "tonight" in any caller line, and Ferni's own crisis
- * reply, kept the gate from easing a single turn. "done with it / life" stays a phrase of the list.
- */
+/** CRISIS_BRAKE_V2: everyday words that are risk only in a risk phrase ("done with life" stays one). */
 const EVERYDAY_ALONE =
   /\b(?:good ?bye|bye|point|live|sleep|alone|tonight)(?:s|ed)?\b|\bdone\b(?! with (?:it|everything|life|this)\b)/g;
 
 /**
- * The caller's words hold risk (CRISIS_BRAKE_V2): any of the guard's patterns, which carry the
- * risk phrases ("don't want to live", "sleep forever", "what's the point of living"), or the list
- * above without the everyday words alone. True for anything it cannot read.
+ * The caller's words hold risk (CRISIS_BRAKE_V2): a guard pattern (the risk phrases: "sleep
+ * forever"), or the list above without the everyday words alone. True for what it can't read.
  */
 export function hasCallerRiskContent(text: string | undefined | null): boolean {
   if (typeof text !== 'string') return true;

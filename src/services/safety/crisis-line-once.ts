@@ -1,15 +1,9 @@
 /**
- * The crisis line in full once per call (#1464, CRISIS_BRAKE_V2=on, off by default). Seth,
- * 2026-10-15: "At most one full 988 mention per call. Later turns refer back to it warmly instead
- * of repeating the script. Any NEW risk signal still gets the full response."
- *
- * Once Ferni's own words on this call gave a crisis line (offersCrisisLine, read from what Ferni
- * said, never from what it was told to say), a later crisis turn about the caller keeps crisis
- * mode but its guidance leaves out the number and the script. The full line comes back when the
- * caller asks for it, says yes to the 911 script's question (crisis-script-answer.ts), or says new
- * risk: explicit words, a plan or means in hand, read by the guard's patterns and every means form
- * whatever the classifier said.
- *
+ * The crisis line in full once per call (#1464, CRISIS_BRAKE_V2). Seth, 2026-10-15: "At most one
+ * full 988 mention per call ... Any NEW risk signal still gets the full response." Once Ferni's own
+ * words gave a line (offersCrisisLine), a later crisis turn about the caller keeps crisis mode
+ * without the number or script, unless the caller asks for it, says yes to the 911 script, or says
+ * new risk (explicit words, a plan, means in hand: patterns and every means form).
  * @module CrisisLineOnce
  */
 

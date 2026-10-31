@@ -128,10 +128,7 @@ export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   return { action: 'pass' };
 }
 
-/**
- * CRISIS_BRAKE_V2 (crisis-line-once.ts): the decision with the crisis line held back once the call
- * heard it. Runs every turn, a kept decision included: it notes the line from Ferni's words.
- */
+/** CRISIS_BRAKE_V2: the line held back once heard; runs every turn to note it (crisis-line-once.ts). */
 function briefed(
   decision: CrisisGateDecision,
   crisis: CrisisDetectionResult,

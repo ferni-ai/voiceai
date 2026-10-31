@@ -1,12 +1,8 @@
 /**
- * CRISIS_BRAKE_V2 (off by default): crisis mode can ease once it has started. Prod, 10-17 to
- * 10-31: after one activated turn the next activated 59% of the time (3.4% otherwise), and the
- * agreement gate eased no turn in 14 days. With the flag on: the gate reads only the caller's
- * words (crisis-agreement.ts), a split imminent read needs agreement (crisis-imminent-agreement.ts),
- * an answer to the 911 script's question is an answer (crisis-script-answer.ts), and the crisis line
- * is given in full once per call (crisis-line-once.ts). Never without a call, nor for a caller who
- * may be under 18 (MINOR_CARE's signals or an age said): those calls read as with the flag off.
- *
+ * CRISIS_BRAKE_V2 (off by default): crisis mode can ease once it started (prod 10-17 to 10-31: the
+ * gate eased 0 turns in 14 days). Used by crisis-agreement.ts, crisis-imminent-agreement.ts,
+ * crisis-script-answer.ts and crisis-line-once.ts. Never without a call, nor for a caller who may
+ * be under 18 (MINOR_CARE's signals or an age said): those calls read as with the flag off.
  * @module CrisisBrake
  */
 
