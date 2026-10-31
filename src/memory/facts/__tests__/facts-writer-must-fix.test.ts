@@ -10,6 +10,7 @@ import {
 } from '../../operations/memory-extraction-telemetry.js';
 import { fakeFirestore } from '../../../services/stores/__tests__/fake-firestore.js';
 import { proposeFact, type FactProposal } from '../../writer/memory-writer.js';
+import { isPersonaSubject } from '../../entity-hygiene.js';
 import { getCurrentFacts, getFactsAsOf, listFactHistory } from '../facts-store.js';
 
 const ON = { MEMORY_FACTS: 'on' };
@@ -289,4 +290,44 @@ describe('a relation stated by the other extractor', () => {
     expect(await propose(db, jazz)).toMatchObject({ op: 'add' });
     expect(factDocs(docs)).toHaveLength(2);
   });
+});
+
+describe('Ferni is matched as a whole word', () => {
+  // A substring match would refuse real people whose names start with "Fern".
+  // "Fernisha" holds "ferni" itself, so it also catches a plain includes('ferni').
+  it.each(['Fern', 'Fernanda', 'Maria Fernandez', 'Fernando', 'Fernisha'])(
+    '%j is a person: kept',
+    async (name) => {
+      expect(isPersonaSubject(name)).toBe(false);
+      const { db, docs } = liveDb();
+      const subjectId = `person:${name.toLowerCase().replace(/ /g, '-')}`;
+      const fact = {
+        ...city('loves hiking', 'k1', null),
+        subjectId,
+        attribute: 'preference' as const,
+      };
+      expect(await propose(db, fact)).toMatchObject({ op: 'add' });
+      expect(factDocs(docs)).toHaveLength(1);
+    }
+  );
+
+  it.each(['Ferni', 'Ferny', 'ferni'])(
+    '%j is Ferni: dropped, whatever the relation',
+    async (name) => {
+      expect(isPersonaSubject(name, 'friend')).toBe(true);
+      const { db, docs } = liveDb();
+      const fact = {
+        ...city('loves hiking', 'k1', null),
+        subjectId: `person:${name.toLowerCase()}`,
+      };
+      const r = await proposeFact(
+        db,
+        'u1',
+        { ...fact, attribute: 'preference', relationship: 'friend' },
+        ON
+      );
+      expect(r).toEqual({ ok: false, reason: 'persona' });
+      expect(factDocs(docs)).toEqual([]);
+    }
+  );
 });
