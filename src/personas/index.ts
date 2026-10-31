@@ -461,7 +461,7 @@ export {
 // RELATIONSHIP MEMORY ENGINE
 // DEPRECATED (Jan 2026): Entire relationship-memory module deleted.
 // These exports have been moved to src/intelligence/relationship/
-// Import from there instead. See _archived/README.md for migration guide.
+// Import from there instead.
 // ============================================================================
 //
 // export {

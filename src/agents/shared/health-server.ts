@@ -778,7 +778,7 @@ async function handleMetricsAPI(url: string, res: ServerResponse): Promise<void>
  * Start a simple HTTP health check server for Cloud Run
  * This starts immediately so Cloud Run health checks pass while LiveKit agent initializes
  *
- * @param serviceName - Name of the service (e.g., 'voice-agent', 'jack-bogle-agent')
+ * @param serviceName - Name of the service (e.g., 'voice-agent')
  * @returns the listening server (tests use it to find the bound port)
  */
 export function startHealthCheckServer(serviceName = 'voice-agent'): Server {

@@ -7,8 +7,6 @@
  * - Add task-generated context
  *
  * The task manager orchestrates background tasks based on conversation.
- *
- * Extracted from jack-bogle.ts lines 538-558
  */
 import { getLogger } from '../../../utils/safe-logger.js';
 import {

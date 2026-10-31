@@ -8,8 +8,6 @@
  * - Running jokes with returning users
  *
  * These deepen the human connection.
- *
- * Extracted from jack-bogle.ts lines 919-937, 1272-1283, 1332-1356
  */
 import {
   registerContextBuilder,

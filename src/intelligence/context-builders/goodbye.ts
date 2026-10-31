@@ -10,8 +10,6 @@
  * - Interruption and silence recovery
  *
  * Don't rush the ending - it matters. Make it memorable.
- *
- * Extracted from jack-bogle.ts lines 669-687, 939-957, 1205-1211
  */
 import { getLogger } from '../../utils/safe-logger.js';
 import {

@@ -8,8 +8,6 @@
  * - Small detail extraction and memory
  *
  * These create intimate, personal conversations.
- *
- * Extracted from jack-bogle.ts lines 709-720, 1261-1270, 1413-1439
  */
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
