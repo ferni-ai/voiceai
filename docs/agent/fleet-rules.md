@@ -23,9 +23,11 @@ These limits come from 2026-10-14 and 2026-10-15, when the Mac's disk filled
 and a session crashed.
 
 - At most about 5 worktrees at once. Each is about 1.2 GB.
-- In a worktree, symlink the main checkout's `node_modules` (and
-  `apps/web/node_modules` for web tests). Never `pnpm install` in a worktree:
-  a real install adds about 4 GB.
+- In a worktree, run `pnpm install` (through `scripts/agents/heavy.sh`). Never
+  symlink another checkout's `node_modules`: your checks then run against its
+  dependencies, and pnpm can write through the link into that checkout. With the
+  pnpm store on the same disk as the worktree, an install hardlinks from the
+  store and adds little; check with `pnpm store path`.
 - Run every heavy check through `scripts/agents/heavy.sh <label> <cmd…>`.
   That covers tsc or typecheck, vitest beyond 1–2 files, `sh .husky/pre-commit`
   and `pnpm quality:arch`. It allows two at a time, machine-wide, and only
