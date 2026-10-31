@@ -553,7 +553,7 @@ function logAllActiveSessions(trigger: string): void {
         uptimeMs: Date.now() - new Date(session.timestamp).getTime(),
         lastActivity: session.lastActivity,
         pendingOperations: session.pendingOperations,
-        lastUserMessage: messages?.lastUserMessage?.slice(0, 100),
+        lastUserMessageLen: messages?.lastUserMessage?.length,
         memoryMb: session.memoryMb,
       },
       `📊 [CRASH-ANALYTICS] Active session state at ${trigger}`

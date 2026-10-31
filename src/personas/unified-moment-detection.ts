@@ -419,7 +419,7 @@ export function detectMomentsUnified(context: MomentDetectionContext): MomentDet
 
   log.debug(
     {
-      messagePreview: userMessage.slice(0, 50),
+      messageLen: userMessage.length,
       momentsDetected: moments.length,
       primaryType: primaryMoment?.type,
       memorableDetails: memorableDetails.length,

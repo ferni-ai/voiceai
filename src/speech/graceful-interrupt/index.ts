@@ -343,7 +343,7 @@ export function senseInterrupt(
       log.debug(
         {
           trigger: state.sensingTrigger,
-          text: normalized.slice(0, 30),
+          textLen: normalized.length,
         },
         '🎯 Interrupt sensed - recommending trail'
       );

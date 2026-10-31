@@ -14,13 +14,13 @@ import type { IncomingMessage, ServerResponse } from 'http';
 // MOCK SETUP
 // ============================================================================
 
-const { mockEngagementStore, mockConversationHistory, mockLogger } = vi.hoisted(() => ({
+const { mockEngagementStore, mockSessions, mockLogger } = vi.hoisted(() => ({
   mockEngagementStore: {
     getProfile: vi.fn(),
     getRecentPredictions: vi.fn(),
   },
-  mockConversationHistory: {
-    getHistory: vi.fn(),
+  mockSessions: {
+    getSessionsTogether: vi.fn(),
   },
   mockLogger: {
     debug: vi.fn(),
@@ -35,8 +35,10 @@ vi.mock('../services/engagement/engagement-store.js', () => ({
   getEngagementStore: vi.fn(() => Promise.resolve(mockEngagementStore)),
 }));
 
-vi.mock('../services/stores/conversation-history.js', () => ({
-  getConversationHistoryService: vi.fn(() => mockConversationHistory),
+// Counts come from sessions-together (the stored calls); only the read is faked
+vi.mock('../services/stores/sessions-together.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  getSessionsTogether: mockSessions.getSessionsTogether,
 }));
 
 vi.mock('../utils/safe-logger.js', () => ({
@@ -59,6 +61,26 @@ vi.mock('../api/helpers.js', () => ({
 }));
 
 import { handleGetRelationshipProgress } from '../api/routes/relationship.js';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const dayKey = (daysAgo: number) =>
+  new Date(Date.now() - daysAgo * DAY_MS).toISOString().slice(0, 10);
+
+/**
+ * What sessions-together reads for a user: `count` sessions, the first `daysSinceFirst`
+ * days ago, a current run of `streak` days ending today and (when longer) an older run of
+ * `longest` days before a gap.
+ */
+function together(count: number, daysSinceFirst = 0, streak = 0, longest = streak) {
+  const current = Array.from({ length: streak }, (_, i) => dayKey(i));
+  const older =
+    longest > streak ? Array.from({ length: longest }, (_, i) => dayKey(streak + 1 + i)) : [];
+  return {
+    count,
+    days: [...older, ...current].sort(),
+    firstAt: count > 0 ? new Date(Date.now() - daysSinceFirst * DAY_MS) : undefined,
+  };
+}
 
 // ============================================================================
 // TEST HELPERS
@@ -92,7 +114,7 @@ describe('Relationship Progress Integration', () => {
 
   describe('Stage Calculation from Multiple Stores', () => {
     it('should calculate first-meeting stage for new user (< 10 conversations)', async () => {
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 2 });
+      mockSessions.getSessionsTogether.mockResolvedValue(together(2, 0, 0, 0));
       mockEngagementStore.getProfile.mockResolvedValue({
         currentStreak: 0,
         longestStreak: 0,
@@ -115,7 +137,7 @@ describe('Relationship Progress Integration', () => {
     });
 
     it('should calculate getting-started stage (10+ conversations)', async () => {
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 10 });
+      mockSessions.getSessionsTogether.mockResolvedValue(together(10, 0, 0, 0));
       mockEngagementStore.getProfile.mockResolvedValue({
         currentStreak: 0,
         longestStreak: 0,
@@ -137,7 +159,7 @@ describe('Relationship Progress Integration', () => {
 
     it('should calculate building-trust stage (15+ conversations, 5+ days, 3+ streak)', async () => {
       const firstMeetingDate = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(); // 10 days ago
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 15 });
+      mockSessions.getSessionsTogether.mockResolvedValue(together(15, 10, 3, 3));
       mockEngagementStore.getProfile.mockResolvedValue({
         currentStreak: 3,
         longestStreak: 3,
@@ -159,7 +181,7 @@ describe('Relationship Progress Integration', () => {
 
     it('should calculate established stage (30+ conversations, 21+ days, 7+ streak)', async () => {
       const firstMeetingDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days ago
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 30 });
+      mockSessions.getSessionsTogether.mockResolvedValue(together(30, 30, 7, 7));
       mockEngagementStore.getProfile.mockResolvedValue({
         currentStreak: 7,
         longestStreak: 7,
@@ -181,7 +203,7 @@ describe('Relationship Progress Integration', () => {
 
     it('should calculate deep-partnership stage (60+ conversations, 45+ days, 14+ streak)', async () => {
       const firstMeetingDate = new Date(Date.now() - 50 * 24 * 60 * 60 * 1000).toISOString(); // 50 days ago
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 60 });
+      mockSessions.getSessionsTogether.mockResolvedValue(together(60, 50, 14, 14));
       mockEngagementStore.getProfile.mockResolvedValue({
         currentStreak: 14,
         longestStreak: 14,
@@ -209,7 +231,7 @@ describe('Relationship Progress Integration', () => {
       // Streak requirement: 0 (meets requirement, 100%)
       // Progress = average of (50%, 100%, 100%) = 83.33% ≈ 83%
       const firstMeetingDate = new Date().toISOString();
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 5 });
+      mockSessions.getSessionsTogether.mockResolvedValue(together(5, 0, 0, 0));
       mockEngagementStore.getProfile.mockResolvedValue({
         currentStreak: 0,
         longestStreak: 0,
@@ -234,7 +256,7 @@ describe('Relationship Progress Integration', () => {
     it('should cap progress at 100% for max stage', async () => {
       // deep-partnership stage has no next stage
       const firstMeetingDate = new Date(Date.now() - 50 * 24 * 60 * 60 * 1000).toISOString();
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 100 });
+      mockSessions.getSessionsTogether.mockResolvedValue(together(100, 50, 20, 20));
       mockEngagementStore.getProfile.mockResolvedValue({
         currentStreak: 20,
         longestStreak: 20,
@@ -259,7 +281,7 @@ describe('Relationship Progress Integration', () => {
     it('should include metrics from both stores', async () => {
       const lastEngagement = new Date().toISOString();
       const firstMeetingDate = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 20 });
+      mockSessions.getSessionsTogether.mockResolvedValue(together(20, 10, 5, 7));
       mockEngagementStore.getProfile.mockResolvedValue({
         currentStreak: 5,
         longestStreak: 7,
@@ -290,7 +312,7 @@ describe('Relationship Progress Integration', () => {
 
   describe('Edge Cases', () => {
     it('should handle missing streak data gracefully', async () => {
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 5 });
+      mockSessions.getSessionsTogether.mockResolvedValue(together(5, 0, 0, 0));
       mockEngagementStore.getProfile.mockResolvedValue({}); // No streak data
 
       const req = createMockRequest();
@@ -309,7 +331,7 @@ describe('Relationship Progress Integration', () => {
     });
 
     it('should handle zero data gracefully', async () => {
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 0 });
+      mockSessions.getSessionsTogether.mockResolvedValue(together(0, 0, 0, 0));
       mockEngagementStore.getProfile.mockResolvedValue({
         currentStreak: 0,
         longestStreak: 0,
@@ -334,7 +356,7 @@ describe('Relationship Progress Integration', () => {
 
   describe('Error Handling', () => {
     it('should return error response when conversation history fails', async () => {
-      mockConversationHistory.getHistory.mockRejectedValue(new Error('DB error'));
+      mockSessions.getSessionsTogether.mockRejectedValue(new Error('DB error'));
       mockEngagementStore.getProfile.mockResolvedValue({
         currentStreak: 5,
         longestStreak: 5,
@@ -354,7 +376,7 @@ describe('Relationship Progress Integration', () => {
     });
 
     it('should return error response when engagement store fails', async () => {
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 10 });
+      mockSessions.getSessionsTogether.mockResolvedValue(together(10, 0, 0, 0));
       mockEngagementStore.getProfile.mockRejectedValue(new Error('Store error'));
 
       const req = createMockRequest();
@@ -367,7 +389,7 @@ describe('Relationship Progress Integration', () => {
     });
 
     it('should log errors when fetching data fails', async () => {
-      mockConversationHistory.getHistory.mockRejectedValue(new Error('Test error'));
+      mockSessions.getSessionsTogether.mockRejectedValue(new Error('Test error'));
       mockEngagementStore.getProfile.mockResolvedValue({ totalRitualDays: 0 });
 
       const req = createMockRequest();
@@ -418,7 +440,9 @@ describe('Relationship Stage Thresholds', () => {
     async ({ conversations, days, streak, expectedStage, stageNumber }) => {
       const firstMeetingDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: conversations });
+      mockSessions.getSessionsTogether.mockResolvedValue(
+        together(conversations, days, streak, streak)
+      );
       mockEngagementStore.getProfile.mockResolvedValue({
         currentStreak: streak,
         longestStreak: streak,
@@ -438,6 +462,40 @@ describe('Relationship Stage Thresholds', () => {
           totalConversations: conversations,
         },
       });
+    }
+  );
+});
+
+describe('one count of sessions together', () => {
+  it.each([
+    { n: 0, sessions: together(0), first: null, conversations: 0 },
+    { n: 1, sessions: together(1, 0, 1), first: 'set', conversations: 1 },
+    { n: 3, sessions: together(3, 2, 2), first: 'set', conversations: 3 },
+  ])(
+    'n=$n: counts come from the stored calls, never the numbers a browser synced',
+    async ({ sessions, first, conversations }) => {
+      mockSessions.getSessionsTogether.mockResolvedValue(sessions);
+      // What the web app synced up from localStorage: ignored
+      mockEngagementStore.getProfile.mockResolvedValue({
+        currentStreak: 99,
+        longestStreak: 99,
+        firstMeetingDate: '2020-01-01T00:00:00.000Z',
+      });
+      const res = createMockResponse();
+      await handleGetRelationshipProgress(
+        createMockRequest(),
+        res,
+        new URL('http://localhost/api/relationship/progress?userId=test-user')
+      );
+      const body = res._data as {
+        metrics: { totalConversations: number; currentStreak: number };
+        firstMeetingDate: string | null;
+      };
+      expect(body.metrics.totalConversations).toBe(conversations);
+      expect(body.metrics.currentStreak).toBe(sessions.days.length);
+      expect(body.metrics.currentStreak).not.toBe(99);
+      if (first === null) expect(body.firstMeetingDate).toBeNull();
+      else expect(body.firstMeetingDate).toBe(sessions.firstAt?.toISOString());
     }
   );
 });
