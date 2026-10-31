@@ -157,7 +157,7 @@ const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
 const ON_OFF: readonly string[] = ['on', 'off'];
 /** The flags that are not on/off switches, and the values they may take. */
 const MODES: Partial<Record<CohortFlag, readonly string[]>> = {
-  TURN_LENGTH: ['learned', 'off'],
+  TURN_LENGTH: ['learned', 'adaptive', 'off'],
   TURN_TEXTURE: ['learned', 'off'],
   PREEMPT_STABLE_CONTEXT: ['on', 'defer', 'off'],
 };

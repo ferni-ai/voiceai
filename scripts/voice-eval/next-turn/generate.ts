@@ -31,6 +31,8 @@ const ARMS: Record<string, string> = {
   length: 'TURN_LENGTH=learned',
   texture: 'TURN_TEXTURE=learned',
   lt: 'TURN_LENGTH=learned TURN_TEXTURE=learned',
+  // Learned, plus room to answer when the turn needs substance (turn-substance.ts).
+  adaptive: 'TURN_LENGTH=adaptive TURN_TEXTURE=learned',
 };
 const opts = parseArgs({ options: { out: { type: 'string' }, arm: { type: 'string' } } }).values;
 const arm = (opts.arm as string | undefined) ?? 'base';
@@ -45,7 +47,8 @@ for (const [k, v] of ARMS[name]
 const loader = await import('../../../src/agents/personas/prompt-loader.js');
 const { turnShapeFor, rngFor } = await import('../../../src/agents/personas/turn-shape.js');
 const { laneReason } = await import('../../../src/agents/model-provider/fast-lane.js');
-const { recentTurns } = await import('../../../src/agents/personas/turn-length.js');
+const { lengthAdaptive, recentTurns } = await import('../../../src/agents/personas/turn-length.js');
+const { substanceOf } = await import('../../../src/agents/personas/turn-substance.js');
 const { regexSignals } = await import('../../../src/agents/personas/turn-extras.js');
 const { callerMove } = await import('../../../src/agents/personas/turn-shape.js');
 
@@ -81,7 +84,10 @@ await pool(
     const said = neutralise(m.context[m.context.length - 1].text, m.names) as string;
     // The turns before this reply, which the learned length reads (turn-length.ts).
     const recent = recentTurns(m.context.map((t) => ({ ferni: t.who === 'friend', text: t.text })));
-    const sig = { ...regexSignals(said, callerMove(said)), recent };
+    const move = callerMove(said);
+    // No tools are replayed, so only a question (to Ferni, who has no beat) can need substance.
+    const substance = lengthAdaptive() ? substanceOf(said, move) : undefined;
+    const sig = { ...regexSignals(said, move), recent, substance };
     const shape = turnShapeFor(said, rngFor(`${salt}${m.id}:${said}`), undefined, sig);
     const lane = laneReason(said);
     const lite = process.env.CASCADE_FAST_LANE === 'on' && lane === 'chat';

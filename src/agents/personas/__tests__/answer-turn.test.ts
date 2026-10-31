@@ -42,7 +42,10 @@ const theMissedAnswer = () =>
   );
 
 /** The request text for this call, with the director's stale note pending. */
-function request(c: llm.ChatContext, session: object = {}): string {
+function request(
+  c: llm.ChatContext,
+  session: object = { userData: { services: { sessionId: 'answer-turn' } } }
+): string {
   setDirector(session, {
     current: () => [STALE_NOTE],
     told: () => '',
