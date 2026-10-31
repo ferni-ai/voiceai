@@ -71,10 +71,17 @@ test.describe('homepage preview', () => {
         return route.fulfill({ status, contentType: 'audio/mpeg', body: Buffer.alloc(0) });
       });
       const page = await context.newPage();
-      // A headless browser can't decode an empty clip; stand in for playback.
+      // A headless browser can't decode an empty clip; stand in for playback the way a
+      // browser behaves mid-clip: play() stays pending, and pause() rejects it with AbortError.
       await page.addInitScript(() => {
-        HTMLMediaElement.prototype.play = function play() {
-          return Promise.resolve();
+        const aborts = new WeakMap<HTMLMediaElement, () => void>();
+        HTMLMediaElement.prototype.play = function play(this: HTMLMediaElement) {
+          return new Promise<void>((_resolve, reject) => {
+            aborts.set(this, () => reject(new DOMException('interrupted by pause()', 'AbortError')));
+          });
+        };
+        HTMLMediaElement.prototype.pause = function pause(this: HTMLMediaElement) {
+          aborts.get(this)?.();
         };
       });
       await page.goto(`${SITE}/home-next/`, { waitUntil: 'load' });
@@ -86,6 +93,7 @@ test.describe('homepage preview', () => {
       expect(JSON.parse(asked[0] ?? '{}')).toMatchObject({ personaId: 'ferni' });
       await button.click();
       await expect(button).toHaveText('Hear Ferni');
+      await expect(button).toHaveAttribute('aria-pressed', 'false');
 
       status = 503;
       const fresh = await context.newPage();

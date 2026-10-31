@@ -9,6 +9,7 @@
   'use strict';
 
   const TTS = 'https://app.ferni.ai/api/landing/tts';
+  const FETCH_TIMEOUT_MS = 10000;
   const LINE =
     "Hi, I'm Ferni. You can tell me about your day, the big stuff or the small stuff, and I'll remember it. Whenever you're ready, I'm here.";
 
@@ -33,21 +34,26 @@
 
   async function play() {
     setState('Getting Ferni…', true, true);
+    let current = null;
     try {
       if (!url) {
         const res = await fetch(TTS, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: LINE, personaId: 'ferni' }),
+          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         });
         if (!res.ok) throw new Error(`TTS ${res.status}`);
         url = URL.createObjectURL(await res.blob());
       }
-      audio = new Audio(url);
-      audio.addEventListener('ended', stop);
+      current = new Audio(url);
+      audio = current;
+      current.addEventListener('ended', stop);
       setState('Stop', true, false);
-      await audio.play();
+      await current.play();
     } catch (err) {
+      // Stop pressed before playback began rejects play() with AbortError: not a failure.
+      if (current && audio !== current) return;
       // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('Hear Ferni failed:', err instanceof Error ? err.message : err);
       audio = null;
