@@ -69,8 +69,10 @@ export async function simulateCall(
   generate: CrisisGenerateFn,
   env: Record<string, string>,
   sessionId: string,
-  opening = 'Hey, it is Ferni. What is on your mind?'
+  /** Ferni's opening line, and the line it says when guidance asks for 988. */
+  say: { opening?: string; line988?: string } = {}
 ): Promise<SimTurn[]> {
+  const { opening = 'Hey, it is Ferni. What is on your mind?', line988 = SAYS_988 } = say;
   const ctx = llm.ChatContext.empty();
   ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
   ctx.addMessage({ role: 'assistant', content: opening });
@@ -99,7 +101,7 @@ export async function simulateCall(
         ? decision.script
         : (override ??
           (asks988(decision.action === 'guide' ? decision.guidance : null) || asks988(injected)
-            ? SAYS_988
+            ? line988
             : PLAIN));
     out.push({ caller, gate: decision, pipeline, injected, ferni });
     ctx.addMessage({ role: 'assistant', content: ferni });

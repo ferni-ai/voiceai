@@ -29,7 +29,9 @@
  */
 
 import { wholeWordSite } from '../../utils/safety-whole-word.js';
+import { crisisBrakeOn } from './crisis-brake.js';
 import type { CrisisVerdict, PatternOutcome } from './crisis-classifier.js';
+import { detectCrisis } from './crisis-guard.js';
 
 export function resolveCrisisAgreementGate(
   env: Record<string, string | undefined> = process.env
@@ -96,6 +98,9 @@ export function isVocative(latest: string): boolean {
   return bare(latest) && VOCATIVE.test(words(latest));
 }
 
+/** The means words: risk content below, and read alone by crisis-script-answer.ts. */
+const MEANS_WORDS =
+  'pills?|overdos\\w*|bleach|poison\\w*|insulin|antifreeze|swallow\\w*|drank|tylenol|meds|medication|dose|bottle|sleeping|gun|pistol|rifle|bullet|loaded|rope|noose|hang\\w*|knot';
 /**
  * Anything about dying, self-harm, means, goodbyes, hopelessness or distress,
  * in English or a few other languages. Broad on purpose: a match only keeps
@@ -106,7 +111,7 @@ const RISK_WORDS = [
   'di(?:e|es|ed|ing)|dead|death|deadly|lethal|fatal|kill\\w*|suicid\\w*|murder\\w*|kms|ctb|unaliv\\w*|sewer ?slide',
   'end(?:s|ed|ing)? (?:it|things|my|me|this|everything)|over (?:for good|with)|be over',
   '(?:hurt|harm|cut|burn|hit|starv)\\w* (?:my|me|your)|self ?harm|cutting|razor|blade|knife|bleed\\w*|blood|scars?',
-  'pills?|overdos\\w*|bleach|poison\\w*|insulin|antifreeze|swallow\\w*|drank|tylenol|meds|medication|dose|bottle|sleeping|gun|pistol|rifle|bullet|loaded|rope|noose|hang\\w*|knot',
+  MEANS_WORDS,
   'bridge|ledge|edge|roof|jump\\w*|fall\\w*|tracks|train|drown\\w*|river|garage|engine|exhaust|carbon',
   'wak(?:e|ing) up|(?:be|being|stay|staying) (?:here|around|alive)|alive|living|live|exist\\w*|disappear\\w*|vanish\\w*|gone|forever|sleep',
   'good ?bye|bye|farewell|last|final|note|letters?|passwords?|my will|give (?:away|up)|giving (?:away|up)|gave (?:away|up)|after i',
@@ -126,6 +131,10 @@ const RISK_CONTENT = riskPattern(RISK_WORDS);
  * to crash this plane", "boarding a plane, never coming back").
  */
 const RISK_CONTENT_SITES = riskPattern([...RISK_WORDS, 'dying|dyin']);
+const MEANS = riskPattern([MEANS_WORDS]);
+
+/** A means word ("pills", "rope", "the bottle"), whole words only. */
+export const mentionsMeans = (text: string): boolean => MEANS.test(words(text));
 
 /**
  * The caller agreeing with, or echoing, what Ferni said ("yeah, same", "me
@@ -165,6 +174,30 @@ export function hasRiskContent(text: string | undefined | null): boolean {
       () => has(RISK_CONTENT),
       () => has(RISK_CONTENT_SITES)
     );
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * CRISIS_BRAKE_V2 (crisis-brake.ts): everyday words that are risk only inside a risk phrase.
+ * Prod, 10-17 to 10-31: "bye", "done" or "tonight" in any caller line, and Ferni's own crisis
+ * reply, kept the gate from easing a single turn. "done with it / life" stays a phrase of the list.
+ */
+const EVERYDAY_ALONE =
+  /\b(?:good ?bye|bye|point|live|sleep|alone|tonight)(?:s|ed)?\b|\bdone\b(?! with (?:it|everything|life|this)\b)/g;
+
+/**
+ * The caller's words hold risk (CRISIS_BRAKE_V2): any of the guard's patterns, which carry the
+ * risk phrases ("don't want to live", "sleep forever", "what's the point of living"), or the list
+ * above without the everyday words alone. True for anything it cannot read.
+ */
+export function hasCallerRiskContent(text: string | undefined | null): boolean {
+  if (typeof text !== 'string') return true;
+  try {
+    const found = detectCrisis(text);
+    if (found.severity > 0 || found.indicators.length > 0) return true;
+    return hasRiskContent(normalized(text).replace(EVERYDAY_ALONE, ' '));
   } catch {
     return true;
   }
@@ -223,6 +256,9 @@ export function agreementOutcome(args: {
   latest: string;
   earlier?: readonly string[];
   companion?: string;
+  /** CRISIS_BRAKE_V2 reads both (crisis-brake.ts). */
+  env?: Record<string, string | undefined>;
+  call?: string;
 }): AgreementOutcome {
   try {
     return outcomeOf(args);
@@ -245,16 +281,20 @@ function outcomeOf(args: Parameters<typeof agreementOutcome>[0]): AgreementOutco
   // Softening needs Ferni's line to judge against, and the caller's own words.
   if (typeof latest !== 'string' || !latest.trim()) return 'escalate';
   if (typeof companion !== 'string' || !companion.trim()) return 'escalate';
-  // Ferni's line is checked too: it may have asked about the caller's safety.
-  const quiet = !endorses(latest) && ![latest, ...earlier, companion].some(hasRiskContent);
+  // Ferni's line is checked too: it may have asked about the caller's safety. CRISIS_BRAKE_V2:
+  // the caller's words only, since Ferni's own crisis reply made the gate unable to ease.
+  const brake = crisisBrakeOn(args.env, args.call, [latest, ...earlier]);
+  const scanned = brake ? [latest, ...earlier] : [latest, ...earlier, companion];
+  const quiet = !endorses(latest) && !scanned.some(brake ? hasCallerRiskContent : hasRiskContent);
   if (quiet && (isPresenceReply(latest, companion) || isVocative(latest))) return 'presence';
   // Soft only for a short question back about Ferni's own words, with no risk
   // or agreement anywhere: whether the reads disagree or one read stands alone.
   // Disagreement alone never softens (a word list cannot vouch for a long
   // statement, or one in another language).
-  // Two reads that found crisis, under any key for this turn, are never softened.
-  if (reads.filter((v) => v.risk === 'crisis').length >= 2) return 'escalate';
-  const contested = reads.length === 1 || reads.some((v) => v.risk === 'none');
+  // Two reads that found crisis, under any key for this turn, are never softened; with
+  // CRISIS_BRAKE_V2 two reads of the same words are one read, not agreement.
+  if (!brake && reads.filter((v) => v.risk === 'crisis').length >= 2) return 'escalate';
+  const contested = brake || reads.length === 1 || reads.some((v) => v.risk === 'none');
   return quiet && contested && addsNothing(latest, companion) ? 'soft' : 'escalate';
 }
 

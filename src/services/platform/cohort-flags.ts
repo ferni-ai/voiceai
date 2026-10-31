@@ -145,6 +145,8 @@ export const COHORT_FLAGS = [
   // Crisis lane, owner first (Seth signed off 2026-10-30): read per turn by the crisis classifier
   // after applyCallerFlags, so one person can try it before the agent's own flag goes on.
   'CRISIS_IMMINENT_NEEDS_AGREEMENT',
+  // Read per turn by the reply gate and the turn pipeline (crisis-brake.ts); implies the flag above.
+  'CRISIS_BRAKE_V2',
   // "Send email as me" for one person before Google verifies gmail.send: the web server's
   // connect routes ask flagForUser (servers/api/routes/gmail-send.ts, oauth-start.ts); the
   // agent's send reads it at tool time, after applyCallerFlags (gmail-send-as-user.ts).

@@ -30,6 +30,12 @@ import {
   noteConfirmedRisk,
   type LoneRead,
 } from '../../../services/safety/crisis-confirmed-risk.js'; // CRISIS_CONFIRMED_CALL_RISK
+import { withLineOnce } from '../../../services/safety/crisis-line-once.js';
+import {
+  answeredYes,
+  SCRIPT_ANSWER_CHECKIN,
+  scriptAnswer,
+} from '../../../services/safety/crisis-script-answer.js';
 import { secondReadOf } from '../../../services/safety/crisis-second-read-turn.js';
 import {
   GROUNDED_LIGHT_TOUCH,
@@ -213,6 +219,11 @@ export function startTurnCrisis(
     (settled ??=
       classifier?.mode === 'live'
         ? classifier.verdict.then(async (verdict) => {
+            // CRISIS_BRAKE_V2: the answer to the 911 script's question (crisis-script-answer.ts).
+            const answer = scriptAnswer({ ...input, call, env });
+            if (answer === 'no')
+              return { crisis: patterns, soft: true, guidance: SCRIPT_ANSWER_CHECKIN };
+            if (answer === 'yes') return { crisis: answeredYes(patterns), soft: false };
             // A gentle 988 offer (crisis-grounded-screen.ts), unless the classifier also reads risk.
             if (gentle && verdict?.risk !== 'imminent' && verdict?.risk !== 'crisis') {
               return { crisis: patterns, soft: true, guidance: SCREEN_GENTLE_OFFER };
@@ -270,7 +281,7 @@ export function startTurnCrisis(
             // Fail closed: a failed lookup counts as a missing read, which escalates.
             const verdicts = await turnVerdicts(scope, input).catch(() => [null]);
             const outcome = agreementGate
-              ? agreementOutcome({ pattern, verdicts, ...input })
+              ? agreementOutcome({ pattern, verdicts, ...input, env, call })
               : 'escalate';
             if (outcome !== 'escalate') {
               log.info({ outcome, reads: verdicts.length }, 'CRISIS_AGREEMENT');
@@ -322,12 +333,15 @@ export function startTurnCrisis(
     }
     return easingOn ? (eased ??= easeTurn(turn)) : turn;
   };
+  // CRISIS_BRAKE_V2: the crisis line in full once per call (crisis-line-once.ts).
+  const once = { ...input, ferni: [input.companion], patterns, call, env };
   return {
     patterns,
     shouldBlock,
     resolve: () => settle().then((s) => s.crisis),
     softCheck: () => settle().then((s) => s.soft),
-    summary: () => settle().then((s) => crisisSummary(s.crisis, s.soft, s.guidance)),
+    summary: () =>
+      settle().then((s) => crisisSummary(withLineOnce(s.crisis, once), s.soft, s.guidance)),
     bypassAllowed: () => settle().then((s) => !s.soft && !hasCrisisSignal(s.crisis)),
   };
 }

@@ -80,7 +80,7 @@ const EVENT = `(?:the |my |our )?(?:${[...EVENTS].join('|')})`;
 const NO_TAIL = `(?:no|nope|not at all|i'?m (?:good|fine|okay|ok)|all good|totally fine|i promise|promise|(?:but )?thank(?:s| you) for asking|just ${EVENT}|(?:i )?(?:just )?(?:meant|talking about|excited about) ${EVENT})`;
 const CLEAR_NO = new RegExp(`^(?:${NO_FILLER})*${NO_CORE}(?: ${NO_TAIL})*$`);
 
-function clearNo(answer: string): boolean {
+export function clearNo(answer: string): boolean {
   if (/^\W*oh,? no\W*$/i.test(answer)) return false; // dismay, not an answer
   if (/[?¿]|\.\.|…/.test(answer)) return false;
   const words = wordsOf(answer);

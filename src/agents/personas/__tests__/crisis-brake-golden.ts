@@ -74,12 +74,7 @@ export const SCENARIOS: Record<string, Scenario> = {
     },
   },
   'A caller who says they are fifteen': {
-    lines: [
-      "I'm 15 and my mom says I can't go to the concert.",
-      'Ferni?',
-      'No.',
-      'Whatever, bye.',
-    ],
+    lines: ["I'm 15 and my mom says I can't go to the concert.", 'Ferni?', 'No.', 'Whatever, bye.'],
     reads: {
       "I'm 15 and my mom says I can't go to the concert.": 'crisis',
       'Ferni?': 'imminent',
