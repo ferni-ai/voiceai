@@ -284,6 +284,7 @@ describe('a member the server did not verify on this call reads, links and unlin
       { ctx: { userData: { userId: BOB } }, toolCallId: 'call-1' },
     ],
     ['a bit that is not the boolean true', callOf(BOB, 'true')],
+    ['a truthy number, not the boolean true', callOf(BOB, 1)],
     ['a phone: id, even marked verified', callOf(`phone:${BOB_PHONE}`, true)],
   ];
   const EVERY_TOOL: Array<[string, Record<string, unknown>]> = [
