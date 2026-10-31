@@ -217,7 +217,6 @@ function getAppointmentToolDefinitions(): ToolDefinition[] {
                   {
                     restaurantName: params.restaurantName || params.query || '',
                     restaurantPhone: params.restaurantPhone,
-                    location: params.location,
                     dateTime: params.dateTime || '',
                     partySize: params.partySize || 2,
                     specialRequests: params.specialRequests,

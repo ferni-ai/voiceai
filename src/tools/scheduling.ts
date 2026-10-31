@@ -3,7 +3,7 @@
  *
  * Tools for scheduling, reservations, and contact management:
  * - Make calls to businesses to schedule appointments
- * - Book reservations (restaurants, services) - via OpenTable/Resy or phone
+ * - Book reservations (restaurants, services) - by calling on the user's behalf
  * - Check availability with third parties
  * - Follow up on scheduled appointments
  * - Coordinate with life event scheduling

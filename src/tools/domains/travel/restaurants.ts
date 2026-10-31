@@ -5,7 +5,8 @@
  *
  * APIs:
  * - Google Places API (New) text search, via services/google-places
- * - OpenTable/Resy (reservations) - future integration
+ * - Booking: call-on-behalf (scheduling/appointments-tools makeReservation);
+ *   OpenTable, Resy and Yelp have no booking API we can use (removed 2026-10-30)
  *
  * @module tools/restaurants
  */
