@@ -26,6 +26,7 @@ vi.mock('../../services/identity/sponsored-identity.js', () => ({
 }));
 
 vi.mock('../auth-middleware.js', () => ({
+  rateLimit: () => false, // never limited here
   requireAuth: vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
     const header = req.headers.authorization;
     const match = typeof header === 'string' ? header.match(/^Bearer verified-(.+)$/) : null;
