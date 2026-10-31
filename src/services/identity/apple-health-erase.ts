@@ -1,20 +1,15 @@
 /**
  * Apple Health disconnect: erase everything the sync kept about a person, then read it back.
  *
- * Every place HealthKit-derived data is kept, and how each is covered:
- * - apple_health_tokens/{uid}: the sync token's hash and the device id. Erased first, so no
- *   new sync is accepted while the rest goes.
- * - vectors/health_wellness_checkin_activity_{date}: each activity day indexed to semantic
- *   memory (store-hooks.ts names it storeType_entityType_entityId). The id is not per person,
- *   so only a doc whose metadata.userId is theirs is deleted. The stored days are the only
- *   way to find these, so the days are kept until the indexed ones are confirmed gone.
- * - apple_health_status/{uid}: connection status.
- * - apple_health_data/{uid}: daily/{date} totals, plus legacy workouts/{id} (one raw workout
- *   each) and anything else under it: recursiveDelete takes every subcollection.
- * - the status cache in apple-health-sync.ts, on this instance (another's expires in a minute).
- *
- * Account deletion erases the same stores (ERASED_STORES, CREDENTIAL_STORES in user-stores.ts).
- * No agent tool or prompt reads Apple Health data, so there is no derived summary elsewhere.
+ * Every place HealthKit-derived data is kept, in the order it is erased:
+ * - apple_health_tokens/{uid} (token hash, device id): first, so no new sync gets in.
+ * - vectors/health_wellness_checkin_activity_{date}: activity days indexed to semantic memory
+ *   (store-hooks.ts). The id is not per person, so only the person's own (metadata.userId)
+ *   goes, and the stored days that find these are kept until they are confirmed gone.
+ * - apple_health_status/{uid}, and apple_health_data/{uid} with every subcollection
+ *   (daily/{date}, legacy workouts/{id}).
+ * - the status cache in apple-health-sync.ts (this instance; another's expires in a minute).
+ * Account deletion erases the same stores (user-stores.ts). No tool or prompt reads this data.
  *
  * @module services/identity/apple-health-erase
  */
