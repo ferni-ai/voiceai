@@ -8,7 +8,9 @@
  *   polls /api/user-events/pending every 2 seconds. Deleting, revoking or erasing an
  *   account here refuses its tokens at once (invalidateAccount). That is sticky: no
  *   later lookup, strict or not, overwrites it, because during an erasure the Firebase
- *   user still exists. Another server instance learns within the minute.
+ *   user still exists. 'gone' is never downgraded (a revoke after it changes nothing)
+ *   and, like 'revoked', is kept apart from the bounded cache, so no amount of other
+ *   traffic evicts it (#3228). Another server instance learns within the minute.
  * - Stale state: only when Auth itself fails (a transport error, a timeout, a 5xx) is an
  *   account state under an hour old used (logged auth_revocation_stale). With none, or
  *   for any other failure, the answer is 'unavailable': a 503, try again. Never a 401,
@@ -77,6 +79,12 @@ const LIMITS: Limits = {
 
 const FRESH_MS = 60_000;
 const STALE_MS = 60 * 60_000;
+/**
+ * How long a revoke is kept. Every revoke is also Firebase's own (revokeRefreshTokens sets
+ * tokensValidAfterTime), so once no account state from before it can be used (a cached one
+ * past FRESH_MS, a stale one past STALE_MS) a lookup refuses the same tokens.
+ */
+const REVOKED_KEEP_MS = STALE_MS + FRESH_MS;
 const LOG_EVERY_MS = 60_000;
 const AUTH_FAILURES = [
   'app/network-error',
@@ -112,8 +120,11 @@ function countedLog(event: string, message: string) {
 /** A check with its own cache and budgets (one per process; tests make their own) */
 export function revocationCheck(limits: Limits = LIMITS) {
   const accounts = boundedMap<{ state: AccountState; at: number }>();
-  // Invalidations, kept apart so no lookup (lax or strict) can overwrite them
-  const invalidated = boundedMap<{ gone: boolean; at: number }>();
+  // Invalidations, kept apart from the cache so no lookup (lax or strict) overwrites them
+  // and no cache bound evicts them: erased or deleted accounts for the life of the process,
+  // revokes (oldest first) for REVOKED_KEEP_MS
+  const gone = new Set<string>();
+  const revokedAt = new Map<string, number>();
   const budgets = {
     normal: budget(limits.normal, limits.normalPerAccount),
     strict: budget(limits.strict, limits.strictPerAccount),
@@ -189,9 +200,10 @@ export function revocationCheck(limits: Limits = LIMITS) {
     now = Date.now(),
     strict = false
   ): Promise<Revocation> => {
-    const invalid = invalidated.get(token.uid);
-    if (invalid?.gone) return 'gone'; // erased or deleted here: sticky, strict included
-    if (invalid && token.auth_time * 1000 < invalid.at) return 'revoked';
+    // Erased or deleted here: sticky, strict included, whenever the token was signed in
+    if (gone.has(token.uid)) return 'gone';
+    const revoked = revokedAt.get(token.uid);
+    if (revoked !== undefined && token.auth_time * 1000 < revoked) return 'revoked';
     const known = await stateOf(token, lookup, now, strict);
     if (known === 'unavailable') return 'unavailable';
     const { state } = known;
@@ -208,7 +220,17 @@ export function revocationCheck(limits: Limits = LIMITS) {
    * revoked ('revoked': tokens signed in before now are refused)
    */
   const invalidate = (uid: string, change: 'gone' | 'revoked', now = Date.now()) => {
-    invalidated.set(uid, { gone: change === 'gone', at: now });
+    for (const [old, at] of revokedAt) {
+      if (now - at < REVOKED_KEEP_MS) break; // oldest first: the rest are newer
+      revokedAt.delete(old);
+    }
+    if (change === 'gone') {
+      gone.add(uid);
+      return;
+    }
+    if (gone.has(uid)) return; // never downgraded: a revoke after an erasure changes nothing
+    revokedAt.delete(uid); // re-inserted last, so the map stays oldest first
+    revokedAt.set(uid, now);
   };
 
   return { check, invalidate };
