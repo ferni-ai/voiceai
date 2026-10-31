@@ -126,6 +126,7 @@ export const COHORT_FLAGS = [
   'FORGET_DELETES',
   'COACH_WINS', // greeting (winFor); wins.ts records a win via personFlagOn on any server
   'FRIEND_CELEBRATIONS', // greeting: anniversaryFor (friendship-anniversary.ts)
+  'PERSONA_GROWTH', // after the call via envForCaller; recall hook per call (persona-growth-recall.ts)
   'REVIVED_INTELLIGENCE', // turn hook built at setup, then each turn (revived-intelligence.ts)
   'CALL_JOURNAL', // tool build + per turn (call-journal.ts); needs the agent's JOURNAL_ONE_STORE=on
   'FOLLOW_THROUGH_IMPORT', // after the call, through envForCaller (follow-through-import.ts)
