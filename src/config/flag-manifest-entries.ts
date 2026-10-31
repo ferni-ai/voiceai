@@ -127,6 +127,8 @@ export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   OPENER_GATE_EARLY: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: open loops and Ferni's own promises join a call's recall note, once a call (agents/multi-agent/open-loops-recall.ts)
   OPEN_LOOPS_IN_CONTEXT: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on: getSleepSummary reads how the caller slept from their connected Oura ring (tools/domains/wellness/sleep-summary.ts)
+  OURA_SLEEP_TOOL: { default: 'off', owner: 'tools', kind: 'experiment' },
   OUTBOUND_CONFIRM: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
   // ms, 10-1000: the room audio output queue; unset keeps the SDK default (1000 ms in 1.5.1)
   OUTPUT_QUEUE_MS: { default: 'sdk', owner: 'voice', kind: 'config' },
