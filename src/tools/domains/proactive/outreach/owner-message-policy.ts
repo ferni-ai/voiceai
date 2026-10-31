@@ -14,7 +14,9 @@
  * - nothing a phishing text needs (owner-message-content.ts): no link, number,
  *   address, or ask for a login, code or bank details;
  * - a text or email carries the footer "From your call with Ferni.";
- * - at most UNVERIFIED_SESSION_LIMIT sends per call, on top of the daily caps;
+ * - at most UNVERIFIED_SESSION_LIMIT sends per call, on top of the daily caps
+ *   (a slot is spent when a send is allowed; one the tool then does not
+ *   deliver is logged as delivery_failed);
  * - no account (anon:, onbehalf:, a placeholder) or no call session: nothing.
  * A refusal sends nothing, reads no store, and is logged with ids and a reason
  * code, never the text. A verified caller, and everyone with the flag off, is
@@ -42,11 +44,16 @@ export const UNVERIFIED_FOOTER = 'From your call with Ferni.';
 /** What Ferni says when the content was refused (fe's words, 2026-10-31). */
 export const UNVERIFIED_CONTENT_REFUSAL =
   "I can't text that from this call, but I can once you're in the app.";
-/** What Ferni says when this call may send nothing more. */
+/** What Ferni says when this call has used its sends (fe's words, 2026-10-31). */
+export const UNVERIFIED_CAP_REFUSAL =
+  "That's all I can send from this call. I can send more once you're in the app.";
+/** What Ferni says when this call can send nothing at all (no account, no call session). */
 export const UNVERIFIED_SEND_REFUSAL =
   "I can't send anything else from this call, but I can once you're in the app.";
 
 type OwnerMessageRefusal = ContentBlock | 'session_limit' | 'no_account' | 'no_session';
+/** An allowed send the tool then did not deliver: the slot stays spent (fail closed). */
+type OwnerMessageLogReason = OwnerMessageRefusal | 'delivery_failed';
 
 export type OwnerMessageDecision =
   | { outcome: 'unchanged' } // a verified caller, or the flag off: exactly as before
@@ -77,9 +84,21 @@ const CONTENT_REFUSALS: ReadonlySet<OwnerMessageRefusal> = new Set<ContentBlock>
   'credential_ask',
 ]);
 const refuse = (reason: OwnerMessageRefusal): OwnerMessageDecision => {
-  const line = CONTENT_REFUSALS.has(reason) ? UNVERIFIED_CONTENT_REFUSAL : UNVERIFIED_SEND_REFUSAL;
+  if (CONTENT_REFUSALS.has(reason)) return { outcome: 'refused', reason, line: UNVERIFIED_CONTENT_REFUSAL }; // prettier-ignore
+  const line = reason === 'session_limit' ? UNVERIFIED_CAP_REFUSAL : UNVERIFIED_SEND_REFUSAL;
   return { outcome: 'refused', reason, line };
 };
+
+/** One log line per refusal or undelivered send: ids and a reason code, never the text. */
+function logOutcome(message: OwnerMessage, reason: OwnerMessageLogReason): void {
+  const call = callSessionData(message.opts) as { services?: { sessionId?: unknown } } | undefined;
+  const sessionId = call?.services?.sessionId;
+  const what = reason === 'delivery_failed' ? 'allowed but not delivered' : 'refused';
+  log.info(
+    { tool: message.tool, userId: message.ownerId, sessionId, reason },
+    `Owner message ${what} for an unverified call`
+  );
+}
 
 /** An unverified call's message: allowed with the footer, or why not. Counts it when allowed. */
 function unverifiedDecision(message: OwnerMessage, call: object | undefined): OwnerMessageDecision {
@@ -101,17 +120,13 @@ export function ownerMessagePolicy(message: OwnerMessage): OwnerMessageDecision 
   const member = isMemberIdentity(message.ownerId);
   if (member && call && verifiedCallerId(call) === message.ownerId) return { outcome: 'unchanged' };
   const decision = member ? unverifiedDecision(message, call) : refuse('no_account');
-  if (decision.outcome === 'refused') {
-    const sessionId = (call as { services?: { sessionId?: unknown } } | undefined)?.services?.sessionId; // prettier-ignore
-    log.info(
-      { tool: message.tool, userId: message.ownerId, sessionId, reason: decision.reason },
-      'Owner message refused for an unverified call'
-    );
-  }
+  if (decision.outcome === 'refused') logOutcome(message, decision.reason);
   return decision;
 }
 
 type Args = Record<string, unknown>;
+/** How these tools' replies begin when nothing went out (no verified phone, quiet hours, a failure). */
+const NOT_SENT_REPLY = /^(?:I can't|I couldn't|I didn't|Couldn't|Something went wrong|I need)/;
 /** Which runs speak their message on a call (no footer); every other run sends text. */
 const SPOKEN: Readonly<Record<string, (args: Args) => boolean>> = {
   callUser: () => true,
@@ -133,11 +148,22 @@ export function ownerMessageTool(def: ToolDefinition): ToolDefinition {
         const given = (args ?? {}) as Args;
         const spoken = SPOKEN[def.id]?.(given) ?? false;
         const texts = [given.message, given.subject, given.contactName]; // every model-written field
-        const decision = ownerMessagePolicy({ tool: def.id, ownerId: ctx.userId, opts, texts, spoken }); // prettier-ignore
+        const message: OwnerMessage = { tool: def.id, ownerId: ctx.userId, opts, texts, spoken };
+        const decision = ownerMessagePolicy(message);
         if (decision.outcome === 'refused') return decision.line;
-        if (decision.outcome === 'unchanged' || !decision.footer) return execute(args, opts);
-        const message = typeof given.message === 'string' ? given.message : '';
-        return execute({ ...given, message: `${message}\n\n${decision.footer}` }, opts);
+        if (decision.outcome === 'unchanged') return execute(args, opts);
+        const body = typeof given.message === 'string' ? given.message : '';
+        const sent = decision.footer
+          ? { ...given, message: `${body}\n\n${decision.footer}` }
+          : args;
+        try {
+          const reply = await execute(sent, opts);
+          if (typeof reply === 'string' && NOT_SENT_REPLY.test(reply)) logOutcome(message, 'delivery_failed'); // prettier-ignore
+          return reply;
+        } catch (error) {
+          logOutcome(message, 'delivery_failed');
+          throw error;
+        }
       };
       return { ...tool, execute: run } as Tool;
     },

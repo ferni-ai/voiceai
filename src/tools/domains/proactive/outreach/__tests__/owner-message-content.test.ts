@@ -165,3 +165,35 @@ describe('addresses read through the same normal form', () => {
     expect(blockedContent(text)).toBe('email');
   });
 });
+
+describe('security review bypasses (2026-10-31)', () => {
+  const MINUS = String.fromCodePoint(0x2212);
+  const EMOJI = String.fromCodePoint(0x1f642);
+
+  it.each(['evil dotcom', 'evil-dotcom', 'exampledot com', 'dot com'])(
+    'spelled "dot" whatever the separators: %s',
+    (text) => {
+      expect(blockedContent(`go to ${text}`)).toBe('url');
+    }
+  );
+
+  it('an address with a spelled dot', () => {
+    expect(blockedContent('write to pat at evil dotcom')).toBe('email');
+  });
+
+  it.each([
+    `555${MINUS}123${MINUS}4567`,
+    '555×123×4567',
+    '555·123·4567',
+    `555${EMOJI}123${EMOJI}4567`,
+    '555/123/4567',
+    '555~123~4567',
+    '555:123:4567',
+  ])('any separator between digits: %s', (number) => {
+    expect(blockedContent(`call ${number}`)).toBe('phone_number');
+  });
+
+  it.each(['call mom at 5', 'meeting at 3:30', 'aisle 12, 2 lbs'])('still benign: %s', (text) => {
+    expect(blockedContent(text)).toBeNull();
+  });
+});

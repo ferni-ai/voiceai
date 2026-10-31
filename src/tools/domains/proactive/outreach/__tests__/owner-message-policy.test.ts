@@ -56,6 +56,7 @@ import { getTelephonyToolDefinitions } from '../../../telephony/index.js';
 import { getAgentToUserOutreachDefinitions } from '../agent-to-user.js';
 import { setCallUserPort, type CallUserPort } from '../call-user-port.js';
 import {
+  UNVERIFIED_CAP_REFUSAL,
   UNVERIFIED_CONTENT_REFUSAL,
   UNVERIFIED_FOOTER,
   UNVERIFIED_SEND_REFUSAL,
@@ -222,7 +223,10 @@ describe('flag on', () => {
     await run('sendMessageNow', { message: 'hi' }, opts);
     await run('callUser', { reason: 'check in' }, opts);
     const third = await run('scheduleMessage', { message: 'hi', when: 'in 2 hours' }, opts);
-    expect(third).toBe(UNVERIFIED_SEND_REFUSAL);
+    expect(third).toBe(UNVERIFIED_CAP_REFUSAL);
+    expect(UNVERIFIED_CAP_REFUSAL).toBe(
+      "That's all I can send from this call. I can send more once you're in the app."
+    );
     expect(sends()).toBe(2);
     await run('sendMessageNow', { message: 'hi' }, unverified());
     expect(sends()).toBe(3);
@@ -256,6 +260,37 @@ describe('flag on', () => {
       UNVERIFIED_SEND_REFUSAL
     );
     expect(sends() + storeReads()).toBe(0);
+  });
+
+  it('an allowed send the tool does not deliver: logged as delivery_failed, slot still spent', async () => {
+    port.textOwner.mockResolvedValueOnce({
+      sent: false,
+      reason: 'quiet hours at example.com',
+    } as never);
+    const opts = call({ userId: OWNER.id, services: { sessionId: 'sess-2' } });
+    const reply = await run('sendImmediateOutreach', { message: 'hi', method: 'sms' }, opts);
+    expect(reply).toMatch(/^I didn't text you/);
+    const undelivered = edges.logged.mock.calls.filter((c) =>
+      String(c[1]).includes('not delivered')
+    );
+    expect(undelivered).toHaveLength(1);
+    const [fields, msg] = undelivered[0] as [Record<string, unknown>, string];
+    expect(fields).toEqual({
+      tool: 'sendImmediateOutreach',
+      userId: OWNER.id,
+      sessionId: 'sess-2',
+      reason: 'delivery_failed',
+    });
+    expect(JSON.stringify([fields, msg])).not.toMatch(/hi|quiet|example/);
+    await run('sendMessageNow', { message: 'hi' }, opts);
+    await expect(run('sendMessageNow', { message: 'hi' }, opts)).resolves.toBe(
+      UNVERIFIED_CAP_REFUSAL
+    );
+  });
+
+  it('a delivered send logs nothing', async () => {
+    await run('sendMessageNow', { message: 'hi' }, unverified());
+    expect(edges.logged.mock.calls.filter((c) => String(c[1]).includes('not delivered'))).toHaveLength(0); // prettier-ignore
   });
 
   it('logs each refusal with ids and a reason code, never the text', async () => {

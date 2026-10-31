@@ -11,8 +11,9 @@
  * (full-width, ligatures), format characters (zero-width, bidi marks),
  * accents, Cyrillic and Greek look-alikes, "dot" and "at" spelled out,
  * bracketed or spaced. On top of it the number check also reads digits
- * written as words or as look-alike letters (o for 0, l or i for 1), and the
- * word check reads leetspeak and letters spaced apart.
+ * written as words or as look-alike letters (o for 0, l or i for 1), with
+ * every separator between them dropped, and the word check reads
+ * leetspeak and letters spaced apart.
  *
  * @module tools/domains/proactive/outreach/owner-message-content
  */
@@ -46,7 +47,7 @@ const LEET: Readonly<Record<string, string>> = { 0: 'o', 3: 'e', 4: 'a', 5: 's',
 /**
  * The one form every check reads: NFKD with accents and format characters
  * gone, look-alikes mapped to Latin, lower case, every full stop a ".", and
- * "x dot y", "x (dot) y", "x [.] y", "x . y", "xdotcom" written "x.y", with
+ * "x dot y", "x-dot y", "x (dot) y", "x [.] y", "x . y", "xdotcom" written "x.y", with
  * "at" likewise as "@" in front of a domain.
  */
 export function normalForm(text: string): string {
@@ -57,16 +58,22 @@ export function normalForm(text: string): string {
     .replace(/./gu, (c) => LOOK_ALIKES[c] ?? c)
     .replace(/[。｡︒․]/g, '.')
     .replace(/\s*[[({<]\s*(?:dot|\.)\s*[\])}>]\s*/g, '.')
-    .replace(/(?<=[\p{L}\p{N}])(?:\s+dot\s+|\s+\.\s*|dot(?=\p{L}{2,}\b))(?=[\p{L}\p{N}])/gu, '.')
+    .replace(/(?<=[\p{L}\p{N}])\s+\.\s*(?=[\p{L}\p{N}])/gu, '.')
+    .replace(/(?<=[\p{L}\p{N}])[\s_-]*dot[\s_-]*(?=\p{L}{2,}\b)/gu, '.')
     .replace(/\s*[[({<]\s*(?:at|@)\s*[\])}>]\s*/g, '@')
     .replace(/(?<=[\p{L}\p{N}._-])\s+at\s+(?=[\p{L}\p{N}-]+\.\p{L}{2,})/gu, '@');
 }
 
-/** The normal form as digits: number words and look-alike letters read as digits. */
+/**
+ * The normal form as digits: number words and look-alike letters read as
+ * digits, then everything that is not a letter or a digit dropped, so no
+ * separator (a dash, a minus sign, a colon, an emoji) can split a number.
+ */
 const asDigits = (form: string): string =>
   form
     .replace(DIGIT_WORD, (w) => String(DIGIT_WORDS.indexOf(w)))
-    .replace(/[oli|]/g, (c) => DIGIT_LOOK_ALIKES[c]);
+    .replace(/[oli|]/g, (c) => DIGIT_LOOK_ALIKES[c])
+    .replace(/[^\p{L}\p{N}]/gu, '');
 
 /** The normal form as words: leetspeak read as letters, "p a s s" read as "pass". */
 const asWords = (form: string, one: 'i' | 'l'): string =>
@@ -78,8 +85,10 @@ const EMAIL = /[\p{L}\p{N}._%+-]@[\p{L}\p{N}-]/u;
 const URL_MARK = /(?:[a-z][a-z0-9+.-]*:\/\/|www\.|\bhttps?:)/;
 /** Any domain-shaped token: labels joined by dots, the last one 2+ letters, whatever the TLD. */
 const DOMAIN = /[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)*\.\p{L}{2,}(?![\p{L}\p{N}])/u;
-/** Seven or more digits, any script, with spaces, dashes, dots or brackets between them. */
-const DIGIT_RUN = /\p{Nd}(?:[\s.,()/+_*\p{Pd}]*\p{Nd}){6,}/u;
+/** "dot" still spelled before a word after the rewrite ("dot com" at the start): a link. */
+const SPELLED_DOT = /dot[\s_-]*\p{L}{2,}\b/u;
+/** Seven or more digits in a row, any script, once separators are gone (asDigits). */
+const DIGIT_RUN = /\p{Nd}{7,}/u;
 const CREDENTIAL_ASK = new RegExp(
   '\\b(?:verif(?:y|ies|ied|ying|ications?)|log(?:ging|ged)?\\s*-?\\s*ins?|logins?|' +
     'sign\\s*-?\\s*ins?|accounts?|banks?|banking|passwords?|pass\\s*codes?|codes?|pins?|' +
@@ -90,7 +99,7 @@ const CREDENTIAL_ASK = new RegExp(
 export function blockedContent(text: string): ContentBlock | null {
   const form = normalForm(text);
   if (EMAIL.test(form)) return 'email';
-  if (URL_MARK.test(form) || DOMAIN.test(form)) return 'url';
+  if (URL_MARK.test(form) || DOMAIN.test(form) || SPELLED_DOT.test(form)) return 'url';
   if (DIGIT_RUN.test(asDigits(form))) return 'phone_number';
   const asks = [asWords(form, 'i'), asWords(form, 'l')];
   return asks.some((words) => CREDENTIAL_ASK.test(words)) ? 'credential_ask' : null;
