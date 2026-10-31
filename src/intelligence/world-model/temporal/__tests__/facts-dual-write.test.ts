@@ -36,6 +36,7 @@ const call2 = [
 
 function setup(env: Record<string, string>, facts: IngestDeps['facts'] = {}) {
   const fake = fakeFirestore();
+  fake.docs.set('bogle_users/u1', { displayName: 'Jo Rivera' });
   const store = createMemoryWorldFactStore();
   let n = 0;
   const deps: IngestDeps = {

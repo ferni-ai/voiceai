@@ -5,7 +5,7 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  getPersonaFactRefusedCount,
+  getFactRefusedCount,
   resetMemoryExtractionTelemetry,
 } from '../../operations/memory-extraction-telemetry.js';
 import { fakeFirestore } from '../../../services/stores/__tests__/fake-firestore.js';
@@ -24,6 +24,12 @@ const city = (value: string, key: string, validFrom: string | null): FactProposa
   validFrom: validFrom && at(validFrom),
   at: new Date(at('2026-10-30')),
 });
+/** The fake database with a live record for u1: nothing is written for an erased person. */
+const liveDb = () => {
+  const fake = fakeFirestore();
+  fake.docs.set('bogle_users/u1', { displayName: 'Jo Rivera' });
+  return fake;
+};
 const factDocs = (docs: Map<string, Record<string, unknown>>) =>
   [...docs.entries()].filter(([p]) => p.includes('/facts/'));
 const propose = async (db: ReturnType<typeof fakeFirestore>['db'], p: FactProposal) => {
@@ -34,7 +40,7 @@ const propose = async (db: ReturnType<typeof fakeFirestore>['db'], p: FactPropos
 
 describe('a late-arriving fact', () => {
   it('is stored as history when a newer validFrom is current; the current fact is unchanged', async () => {
-    const { db, docs } = fakeFirestore();
+    const { db, docs } = liveDb();
     const now = await propose(db, city('Austin', 'k1', '2026-03-01'));
     const before = structuredClone(docs.get(`bogle_users/u1/facts/${now.fact.id}`));
 
@@ -58,7 +64,7 @@ describe('a late-arriving fact', () => {
   });
 
   it('trims the retired fact whose window held it, so asOf answers one value', async () => {
-    const { db } = fakeFirestore();
+    const { db } = liveDb();
     const first = await propose(db, city('Tampa', 'k1', '2020-01-01'));
     await propose(db, city('Austin', 'k2', '2026-01-01')); // Tampa retired at 2026-01-01
     const late = await propose(db, city('Denver', 'k3', '2023-01-01'));
@@ -81,7 +87,7 @@ describe('a late-arriving fact', () => {
   });
 
   it('a newer validFrom still supersedes as before (UPDATE)', async () => {
-    const { db } = fakeFirestore();
+    const { db } = liveDb();
     await propose(db, city('Austin', 'k1', '2025-01-01'));
     expect((await propose(db, city('Denver', 'k2', '2026-01-01'))).op).toBe('update');
   });
@@ -104,7 +110,7 @@ describe('the value guard', () => {
     'five five five and zero one four two',
     'call 727-555-0142',
   ])('refuses %j and writes nothing', async (value) => {
-    const { db, docs } = fakeFirestore();
+    const { db, docs } = liveDb();
     expect(await proposeFact(db, 'u1', other(value, 'k1'), ON)).toEqual({
       ok: false,
       reason: 'invalid',
@@ -120,7 +126,7 @@ describe('the value guard', () => {
     'paid $1,250 for the trip',
     'bought the house in 2019 for $450,000',
   ])('keeps the date, year or price %j', async (value) => {
-    const { db, docs } = fakeFirestore();
+    const { db, docs } = liveDb();
     expect(await propose(db, other(value, 'k1'))).toMatchObject({ op: 'add' });
     expect(factDocs(docs)).toHaveLength(1);
   });
@@ -136,7 +142,7 @@ describe('a forgotten topic', () => {
   });
 
   it('is refused on write, by value, attribute or subject, and nothing is stored', async () => {
-    const { db, docs } = fakeFirestore();
+    const { db, docs } = liveDb();
     forget(docs, ['Biscuit']);
     expect(await proposeFact(db, 'u1', pet('a beagle named Biscuit'), ON)).toEqual({
       ok: false,
@@ -157,7 +163,7 @@ describe('a forgotten topic', () => {
   });
 
   it('nothing is written while the forgotten topics cannot be read', async () => {
-    const { db, docs } = fakeFirestore();
+    const { db, docs } = liveDb();
     forget(docs, 'not a list');
     expect(await proposeFact(db, 'u1', pet('a beagle named Biscuit'), ON)).toEqual({
       ok: false,
@@ -177,7 +183,7 @@ describe("Ferni's own life", () => {
   });
 
   it('persona canon is refused, whoever it is about, and nothing is stored', async () => {
-    const { db, docs } = fakeFirestore();
+    const { db, docs } = liveDb();
     for (const subjectId of ['self', 'person:jo-rivera'])
       expect(
         await proposeFact(db, 'u1', said({ provenance: 'persona_canon', subjectId }), ON)
@@ -186,14 +192,14 @@ describe("Ferni's own life", () => {
   });
 
   it('a fact about Ferni or a teammate is refused even when labelled user_said', async () => {
-    const { db, docs } = fakeFirestore();
+    const { db, docs } = liveDb();
     for (const subjectId of ['entity:ferni', 'person:ferni', 'person:maya', 'entity:peter-john'])
       expect(await proposeFact(db, 'u1', said({ subjectId }), ON), subjectId).toEqual({
         ok: false,
         reason: 'persona',
       });
     expect(factDocs(docs)).toEqual([]);
-    expect(getPersonaFactRefusedCount()).toBe(4); // each refusal counted
+    expect(getFactRefusedCount('persona')).toBe(4); // each refusal counted
     // a real person who only shares a word with a teammate is kept
     expect(await propose(db, said({ subjectId: 'person:maya-angelou' }))).toMatchObject({
       op: 'add',
@@ -202,7 +208,7 @@ describe("Ferni's own life", () => {
   });
 
   it("a teammate name with a stated relationship is the person's own: stored", async () => {
-    const { db, docs } = fakeFirestore();
+    const { db, docs } = liveDb();
     // "my friend Maya is moving to Denver"
     const denver = said({ subjectId: 'person:maya', relationship: 'friend', attribute: 'city' });
     expect(await propose(db, { ...denver, value: 'Denver' })).toMatchObject({ op: 'add' });
@@ -217,11 +223,11 @@ describe("Ferni's own life", () => {
       await propose(db, said({ ...peter, attribute: 'pet', value: 'a cat', sourceKey: 'k3' }))
     ).toMatchObject({ op: 'add' });
     expect(factDocs(docs)).toHaveLength(3);
-    expect(getPersonaFactRefusedCount()).toBe(0);
+    expect(getFactRefusedCount('persona')).toBe(0);
   });
 
   it('a teammate name with no relationship, or Ferni with any, is refused and counted', async () => {
-    const { db, docs } = fakeFirestore();
+    const { db, docs } = liveDb();
     // "Maya loves hiking"
     const hiking = said({
       subjectId: 'person:maya',
@@ -237,9 +243,50 @@ describe("Ferni's own life", () => {
       await proposeFact(db, 'u1', said({ subjectId: 'entity:ferni', relationship: 'friend' }), ON)
     ).toMatchObject({ reason: 'persona' });
     expect(factDocs(docs)).toEqual([]);
-    expect(getPersonaFactRefusedCount()).toBe(6);
+    expect(getFactRefusedCount('persona')).toBe(6);
     // any stated relation keeps a teammate's name, even a coach
     const coach = { ...hiking, relationship: 'coach', sourceKey: 'k9' };
     expect(await propose(db, coach)).toMatchObject({ op: 'add' });
+  });
+});
+
+describe('an erased person', () => {
+  beforeEach(() => resetMemoryExtractionTelemetry());
+  const pet = (): FactProposal => ({ ...city('a cat', 'k1', null), attribute: 'pet' });
+
+  it('erasing or deleted: refused in the transaction, nothing written, counted', async () => {
+    for (const record of [{ displayName: 'Jo Rivera', erasing: true }, null]) {
+      const fake = fakeFirestore();
+      if (record) fake.docs.set('bogle_users/u1', record);
+      expect(await proposeFact(fake.db, 'u1', pet(), ON)).toEqual({ ok: false, reason: 'erased' });
+      expect(factDocs(fake.docs)).toEqual([]);
+    }
+    expect(getFactRefusedCount('erased')).toBe(2);
+  });
+
+  it('a live person still writes', async () => {
+    const { db, docs } = liveDb();
+    expect(await propose(db, pet())).toMatchObject({ op: 'add' });
+    expect(factDocs(docs)).toHaveLength(1);
+    expect(getFactRefusedCount('erased')).toBe(0);
+  });
+});
+
+describe('a relation stated by the other extractor', () => {
+  it('person:alex on file keeps entity:alex: one person, two subject ids', async () => {
+    const { db, docs } = liveDb();
+    const alex = {
+      ...city('friend', 'k1', null),
+      subjectId: 'person:alex',
+      attribute: 'relation' as const,
+    };
+    expect(await propose(db, alex)).toMatchObject({ op: 'add' });
+    const jazz = {
+      ...city('likes jazz', 'k2', null),
+      subjectId: 'entity:alex',
+      attribute: 'preference' as const,
+    };
+    expect(await propose(db, jazz)).toMatchObject({ op: 'add' });
+    expect(factDocs(docs)).toHaveLength(2);
   });
 });

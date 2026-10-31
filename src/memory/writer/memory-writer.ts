@@ -35,8 +35,9 @@ import {
   type FactProvenance,
   type FactSource,
 } from '../facts/fact.js';
-import { isPersonaSubject, junkReason } from '../entity-hygiene.js';
-import { recordPersonaFactRefused } from '../operations/memory-extraction-telemetry.js';
+import { isPersonaSubject } from '../entity-hygiene.js';
+import { recordFactRefused } from '../operations/memory-extraction-telemetry.js';
+import { isErasedOrErasing } from '../../utils/erasing-mark.js';
 // prettier-ignore
 import { factDoc, factsQuery, getCurrentFacts, isCurrent, memberFacts, parseFacts } from '../facts/facts-store.js';
 import { factText, isForgotten } from '../domain/forgotten.js';
@@ -62,7 +63,8 @@ export interface FactProposal {
   readonly at?: Date;
 }
 
-type Refusal = 'disabled' | 'not_member' | 'invalid' | 'unreadable' | 'forgotten' | 'persona';
+// prettier-ignore
+type Refusal = 'disabled' | 'not_member' | 'invalid' | 'unreadable' | 'forgotten' | 'persona' | 'erased';
 export type ProposeResult =
   | { ok: true; op: 'add' | 'update' | 'noop' | 'history'; fact: Fact; duplicate: boolean }
   | { ok: false; reason: Refusal };
@@ -122,6 +124,10 @@ async function reconcile(
     .update(`${p.source}\u0000${p.sourceKey}`)
     .digest('hex')
     .slice(0, 20);
+  // In the write's own transaction, as erase-user-record.ts expects: an erased or erasing
+  // person (record gone, or marked) gets nothing written back.
+  const user = await tx.get(db.collection('bogle_users').doc(uid));
+  if (isErasedOrErasing(user)) return { ok: false, reason: 'erased' };
   const own = await tx.get(factDoc(db, uid, id));
   const peers = await tx.get(factsQuery(db, uid, p.subjectId, p.attribute));
   if (own.exists) {
@@ -165,17 +171,18 @@ async function reconcile(
   return commit(db, tx, uid, [...retired, fact], { ok: true, op, fact, duplicate: false });
 }
 
-/** Ferni: junkReason keeps a teammate the person relates to, never him. */
-const isFerni = (name: string): boolean =>
-  junkReason({ name, type: 'person', relationship: 'friend' }, {}) === 'persona';
-/** Ferni, or a teammate with no relation to the person stated, here or on file. */
+/** Ferni (isPersonaSubject drops him whatever the relation), or a teammate with no relation
+ * to the person stated, here or on file. */
 async function personaSubject(db: Firestore, uid: string, p: FactProposal, value: string) {
   const name = subjectName(p.subjectId);
-  if (isFerni(name)) return true;
   const stated = p.relationship ?? (p.attribute === 'relation' ? value : null);
   if (!isPersonaSubject(name, stated)) return false;
-  const [onFile] = await getCurrentFacts(db, uid, p.subjectId, 'relation', { MEMORY_FACTS: 'on' });
-  return isPersonaSubject(name, onFile?.value);
+  // The two extractors name one person differently (person:alex, entity:alex): read both.
+  const slug = p.subjectId.replace(/^\w+:/, '');
+  const ids = [...new Set([p.subjectId, `person:${slug}`, `entity:${slug}`])];
+  const reads = ids.map((id) => getCurrentFacts(db, uid, id, 'relation', { MEMORY_FACTS: 'on' }));
+  const onFile = (await Promise.all(reads)).flat();
+  return onFile.every((f) => isPersonaSubject(name, f.value));
 }
 
 /** ADD, UPDATE or NOOP, whichever the stored facts call for. */
@@ -196,7 +203,7 @@ export async function proposeFact(
     return { ok: false, reason: 'invalid' };
   }
   if (p.provenance === 'persona_canon' || (await personaSubject(db, uid, p, value))) {
-    recordPersonaFactRefused(p.source);
+    recordFactRefused('persona', p.source);
     log.info({ uid, source: p.source, outcome: 'persona' }, 'Proposed');
     return { ok: false, reason: 'persona' };
   }
@@ -213,6 +220,7 @@ export async function proposeFact(
     return { ok: false, reason: 'forgotten' };
   }
   const result = await db.runTransaction((tx) => reconcile(db, tx, uid, p, value));
+  if (!result.ok && result.reason === 'erased') recordFactRefused('erased', p.source);
   log.info({ uid, source: p.source, outcome: result.ok ? result.op : result.reason }, 'Proposed');
   return result;
 }

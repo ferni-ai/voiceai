@@ -9,10 +9,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const h = vi.hoisted(() => ({
   fake: null as null | { db: unknown; docs: Map<string, Record<string, unknown>> },
   throwOnPropose: false,
+  errors: [] as unknown[][],
 }));
 
 vi.mock('../../../utils/safe-logger.js', () => {
-  const logger = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} };
+  const error = (...a: unknown[]) => void h.errors.push(a);
+  const logger = { debug: () => {}, info: () => {}, warn: () => {}, error };
   return { createLogger: () => logger, getLogger: () => logger };
 });
 vi.mock('../async-events-config.js', () => ({ safeOnEvent: () => () => undefined }));
@@ -53,7 +55,7 @@ vi.mock('../../writer/memory-writer.js', async (importActual) => {
 import { fakeFirestore } from '../../../services/stores/__tests__/fake-firestore.js';
 import { usePersonFlagLookup } from '../../../config/person-flag.js';
 import { DeepExtractionWorker, type ExtractedFact } from '../deep-extraction-worker.js';
-import { mapDynamicFact } from '../../writer/facts-dual-write.js';
+import { dualWriteFacts, mapDynamicFact } from '../../writer/facts-dual-write.js';
 
 const fact = (entityName: string, key: string, value: string, factType = 'attribute') =>
   ({ entityName, factType, key, value, confidence: 0.9 }) as ExtractedFact;
@@ -84,12 +86,15 @@ const docsIn = (userId: string, coll: string) =>
     .map(([, d]) => d);
 const fresh = () => {
   h.fake = fakeFirestore() as typeof h.fake;
+  for (const uid of ['u1', 'u2', 'owner-1'])
+    h.fake?.docs.set(`bogle_users/${uid}`, { displayName: 'Jo Rivera' });
 };
 
 afterEach(() => {
   vi.unstubAllEnvs();
   usePersonFlagLookup(async () => undefined);
   h.throwOnPropose = false;
+  h.errors = [];
 });
 
 describe('deep extraction dual-write', () => {
@@ -160,6 +165,31 @@ describe('deep extraction dual-write', () => {
       [{ source: 'User', target: 'Maya', type: 'friend' }]);
     const facts = docsIn('u1', 'facts');
     expect(facts.map((d) => `${d.subjectId}|${d.value}`)).toEqual(['entity:maya|Denver']); // Peter: no relation
+  });
+
+  it('a relationship with no source never fails the legacy write, flag on or off', async () => {
+    for (const on of [false, true]) {
+      fresh();
+      if (on) vi.stubEnv('FACTS_DUAL_WRITE', 'on');
+      if (on) vi.stubEnv('MEMORY_FACTS', 'on');
+      const bad = { target: 'Maya', type: 'friend' } as unknown as Rel;
+      await extract('u1', [fact('User', 'city', 'Tampa')], 'call-1', [bad]);
+      expect(docsIn('u1', 'dynamic_facts')).toHaveLength(1);
+      expect(h.errors, `on=${on}`).toEqual([]); // no "Failed to persist extraction"
+      expect(docsIn('u1', 'facts')).toHaveLength(on ? 1 : 0);
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('a mapping that throws is caught inside the dual-write', async () => {
+    vi.stubEnv('FACTS_DUAL_WRITE', 'on');
+    vi.stubEnv('MEMORY_FACTS', 'on');
+    const boom = () => {
+      throw new TypeError('bad extractor item');
+    };
+    await expect(
+      dualWriteFacts('u1', 'dynamic_facts', boom, { getDb: () => null })
+    ).resolves.toBeNull();
   });
 
   it('a writer that throws never stops the dynamic_facts write', async () => {

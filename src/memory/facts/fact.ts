@@ -43,7 +43,9 @@ export interface Fact {
   readonly validFrom: string | null; readonly validTo: string | null;
   readonly learnedAt: string; readonly retiredAt: string | null;
   readonly supersededBy: string | null; readonly sourceEpisodeId: string | null;
-  readonly source: FactSource; readonly provenance: StoredProvenance;
+  readonly source: FactSource;
+  /** The source's claim, not proof: user_said comes from the extracting model (by: 'caller'). */
+  readonly provenance: StoredProvenance;
   readonly confidence: number; readonly sensitive: boolean;
   readonly forgottenAt: string | null; readonly lastConfirmedAt: string;
 }

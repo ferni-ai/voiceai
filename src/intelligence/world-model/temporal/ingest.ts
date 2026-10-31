@@ -104,7 +104,7 @@ export async function recordWorldObservations(
     });
     await store.apply(userId, plan);
     // FACTS_DUAL_WRITE: after the legacy write landed; never throws.
-    await dualWriteFacts(userId, 'world_facts', plan.create.flatMap(mapWorldFact), {
+    await dualWriteFacts(userId, 'world_facts', () => plan.create.flatMap(mapWorldFact), {
       getDb: worldFactsDb,
       ...deps.facts,
       env: deps.env,

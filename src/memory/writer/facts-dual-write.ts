@@ -122,8 +122,9 @@ export function mapDynamicFacts(
 ): MappedFact[] {
   const stated = new Map<string, string>();
   for (const r of relationships) {
-    if (SELF.has(nameKey(r.source))) stated.set(nameKey(r.target), r.type);
-    else if (SELF.has(nameKey(r.target))) stated.set(nameKey(r.source), r.type);
+    const [source, target] = [String(r.source ?? ''), String(r.target ?? '')]; // model output
+    if (SELF.has(nameKey(source))) stated.set(nameKey(target), r.type);
+    else if (SELF.has(nameKey(target))) stated.set(nameKey(source), r.type);
   }
   return written.map(([doc, id]) =>
     mapDynamicFact(doc, sessionId, id, stated.get(nameKey(String(doc.entityName ?? ''))))
@@ -202,12 +203,14 @@ type Counts = Record<string, number>;
 export async function dualWriteFacts(
   userId: string,
   extractor: Extractor,
-  mapped: readonly MappedFact[],
+  /** Run inside the guard: a malformed extractor item can't fail the caller's legacy write. */
+  map: () => readonly MappedFact[],
   deps: DualWriteDeps
 ): Promise<Counts | null> {
   try {
     const on = (flag: FlagName): Promise<boolean> =>
       deps.env ? Promise.resolve(flagOn(flag, deps.env)) : personFlagOn(userId, flag);
+    const mapped = map();
     if (!userId || mapped.length === 0 || !(await on('FACTS_DUAL_WRITE'))) return null;
     if (!(await on('MEMORY_FACTS'))) {
       log.info({ userId, extractor, mapped: mapped.length }, 'FACTS_DUAL_WRITE_MEMORY_FACTS_OFF');

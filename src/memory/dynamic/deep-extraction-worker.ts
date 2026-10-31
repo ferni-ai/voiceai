@@ -641,7 +641,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
 
       // This is the critical missing piece - without this, context builders return empty
       await this.persistToVectorStore(userId, result, job, timestamp);
-      const toFacts = mapDynamicFacts(written, job.sessionId, result.relationships);
+      const toFacts = () => mapDynamicFacts(written, job.sessionId, result.relationships);
       await dualWriteFacts(userId, 'dynamic_facts', toFacts, { getDb: () => db }); // never throws
     } catch (error) {
       this.log.error({ error: String(error), userId }, 'Failed to persist extraction');
