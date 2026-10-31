@@ -60,7 +60,7 @@ export interface OwnerMessage {
   ownerId: string;
   /** The run's options, carrying the call session (opts.ctx.userData) */
   opts: unknown;
-  /** The model-written parts: message, subject */
+  /** Every model-written field that is sent or stored: message, subject, contact name */
   texts: readonly unknown[];
   /** Spoken on a call rather than sent as text: no footer */
   spoken: boolean;
@@ -132,7 +132,7 @@ export function ownerMessageTool(def: ToolDefinition): ToolDefinition {
       const run = async (args: unknown, opts?: unknown): Promise<unknown> => {
         const given = (args ?? {}) as Args;
         const spoken = SPOKEN[def.id]?.(given) ?? false;
-        const texts = [given.message, given.subject];
+        const texts = [given.message, given.subject, given.contactName]; // every model-written field
         const decision = ownerMessagePolicy({ tool: def.id, ownerId: ctx.userId, opts, texts, spoken }); // prettier-ignore
         if (decision.outcome === 'refused') return decision.line;
         if (decision.outcome === 'unchanged' || !decision.footer) return execute(args, opts);

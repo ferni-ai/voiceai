@@ -204,6 +204,19 @@ describe('flag on', () => {
     expect(sends()).toBe(0);
   });
 
+  it('checks every model-written field: subject, body and contact name', async () => {
+    const when = 'in 2 hours';
+    const runs: Array<[string, Record<string, unknown>]> = [
+      ['scheduleEmail', { subject: 'see example dot shop', message: 'hi', when }],
+      ['scheduleEmail', { subject: 'hi', message: 'see example[.]top', when }],
+      ['scheduleAtBestTime', { message: 'hi', contactName: 'example . xyz', channel: 'text' }],
+    ];
+    for (const [id, args] of runs) {
+      await expect(run(id, args, unverified())).resolves.toBe(UNVERIFIED_CONTENT_REFUSAL);
+    }
+    expect(sends() + storeReads()).toBe(0);
+  });
+
   it('two sends per unverified call, across tools; a new call starts again', async () => {
     const opts = unverified();
     await run('sendMessageNow', { message: 'hi' }, opts);
