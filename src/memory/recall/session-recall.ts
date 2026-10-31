@@ -25,6 +25,9 @@ import { MIN_WEIGHTED_OVERLAP, rareWordsEnabled, weighWords } from './rare-words
 export { rareWordsEnabled } from './rare-words.js';
 
 import { flagOn } from '../../config/env-flag.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { entityHygieneOn, isPersonaSubject } from '../entity-hygiene.js';
+import { peopleOf } from './people.js';
 
 export interface RecallFact {
   entity: string;
@@ -345,6 +348,32 @@ export function undisputed(s: Record<string, unknown>): Record<string, unknown> 
   return out;
 }
 
+const personaLog = createLogger({ module: 'recall-persona-filter' });
+
+/**
+ * With ENTITY_HYGIENE on, the facts without persona canon already on file (right-moment
+ * memory §5.3, ruling 6): Ferni, or a teammate name that no fact ties to the caller. A
+ * stored row has no relationship field; the relation is a fact ("Priya | relation to
+ * user = sister", "User | coworker = Maya"), read with peopleOf as the write side does.
+ * Only names that could be a persona are read, so the people cap never hides a friend.
+ */
+function withoutPersonaSubjects(facts: RecallFact[]): RecallFact[] {
+  if (!entityHygieneOn()) return facts;
+  const candidate = (f: RecallFact) => isPersonaSubject(f.entity) || isPersonaSubject(f.value);
+  const stated = new Map(
+    peopleOf(facts.filter(candidate)).map((p) => [p.name.toLowerCase(), p.relation])
+  );
+  const kept = facts.filter(
+    (f) => !isPersonaSubject(f.entity, stated.get(f.entity.trim().toLowerCase()))
+  );
+  const count = facts.length - kept.length;
+  if (count > 0) {
+    const fields = { event: 'PERSONA_FACT_HIDDEN', reason: 'persona', count };
+    personaLog.info(fields, "Persona facts on file not recalled as the caller's");
+  }
+  return kept;
+}
+
 /** Load a user's recall snapshot. Never throws; an unreachable store yields an empty snapshot. */
 export async function loadRecallSnapshot(
   store: RecallStore,
@@ -364,23 +393,25 @@ export async function loadRecallSnapshot(
   // Topics that can't be read: nothing that might be about one is recalled
   // (fails closed, like episode quotes). Facts, threads and jokes alike.
   if (forgotten === null) return { facts: [], followUps: [], insideJokes: [] };
-  const facts = dedupeFacts(
-    rawFacts
-      // Marked by forget.ts, or a miss the caller corrected (friend-repair.ts): kept, never recalled.
-      .filter((d) => typeof d.forgottenAt !== 'string' && typeof d.correctedAt !== 'string')
-      .slice(0, MAX_FACTS)
-      .map((d): RecallFact => ({
-        entity: String(d.entityName ?? ''),
-        key: String(d.key ?? ''),
-        value: String(d.value ?? ''),
-        confidence: confidenceOf(d.confidence),
-        ...(typeof d.extractedAt === 'string' ? { extractedAt: d.extractedAt } : {}),
-        ...(typeof d.factType === 'string' ? { factType: d.factType } : {}),
-        ...(typeof d.temporalContext === 'string' ? { temporalContext: d.temporalContext } : {}),
-        ...(typeof d.supersededAt === 'string' ? { supersededAt: d.supersededAt } : {}),
-      }))
-      .filter((f) => f.confidence >= MIN_RECALL_CONFIDENCE)
-      .filter((f) => !isForgotten(`${f.entity} ${f.key} ${f.value}`, forgotten))
+  const facts = withoutPersonaSubjects(
+    dedupeFacts(
+      rawFacts
+        // Marked by forget.ts, or a miss the caller corrected (friend-repair.ts): kept, never recalled.
+        .filter((d) => typeof d.forgottenAt !== 'string' && typeof d.correctedAt !== 'string')
+        .slice(0, MAX_FACTS)
+        .map((d): RecallFact => ({
+          entity: String(d.entityName ?? ''),
+          key: String(d.key ?? ''),
+          value: String(d.value ?? ''),
+          confidence: confidenceOf(d.confidence),
+          ...(typeof d.extractedAt === 'string' ? { extractedAt: d.extractedAt } : {}),
+          ...(typeof d.factType === 'string' ? { factType: d.factType } : {}),
+          ...(typeof d.temporalContext === 'string' ? { temporalContext: d.temporalContext } : {}),
+          ...(typeof d.supersededAt === 'string' ? { supersededAt: d.supersededAt } : {}),
+        }))
+        .filter((f) => f.confidence >= MIN_RECALL_CONFIDENCE)
+        .filter((f) => !isForgotten(`${f.entity} ${f.key} ${f.value}`, forgotten))
+    )
   );
   const followUps: string[] = [];
   for (const s of rawSummaries) {
