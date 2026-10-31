@@ -938,7 +938,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
           });
           await dispatchMicroExpression('insider', sendDataMessage, 0.75);
           diag.state('😄 BTH: Inside joke callback triggered', {
-            memoryHint: humorContent.slice(0, 40),
+            memoryHintLen: humorContent.length,
           });
         }, 'bth-inside-joke');
       }
@@ -1013,7 +1013,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
             intensity: Math.min(delightResult.confidence, result.emotional.intensity ?? 0.8),
           });
           diag.state('🎉 BTH: Spontaneous delight triggered', {
-            userText: userText.slice(0, 50),
+            userTextLen: userText.length,
             emotionIntensity: result.emotional.intensity,
             confidence: delightResult.confidence,
           });
@@ -1021,7 +1021,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       } else if (delightResult.rejectionReason && delightResult.rejectionReason !== 'no_match') {
         // Log filtered false positives for debugging (helps tune patterns)
         diag.debug('🎉 BTH: Delight detection filtered', {
-          userText: userText.slice(0, 50),
+          userTextLen: userText.length,
           rejectionReason: delightResult.rejectionReason,
         });
       }
@@ -1059,7 +1059,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
           });
           await dispatchMicroExpression('warmth_pulse', sendDataMessage, 0.8);
           diag.state('🤝 BTH: Meta-relationship moment triggered', {
-            userText: userText.slice(0, 50),
+            userTextLen: userText.length,
           });
         }, 'bth-meta-relationship');
       }
@@ -1084,7 +1084,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
           });
           diag.state('🤔 BTH: Visible vulnerability triggered', {
             type: isPhilosophical ? 'philosophical_question' : 'advice_seeking',
-            userText: userText.slice(0, 50),
+            userTextLen: userText.length,
           });
         }, 'bth-visible-vulnerability');
       }
@@ -2079,7 +2079,7 @@ ${result.crisis.suggestedResponse}`
           .trim();
 
         logger.info(
-          { greetingPreview: cleanGreeting.slice(0, 50) },
+          { greetingLen: cleanGreeting.length },
           '🎤 Greeting context injected - LLM now knows what it said'
         );
 

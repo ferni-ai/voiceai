@@ -530,7 +530,7 @@ const quickTextDef: ToolDefinition = {
       }),
       execute: async ({ contact, message }, opts) => {
         log.info(
-          { userId: ctx.userId, contact, message: message.substring(0, 20) },
+          { userId: ctx.userId, contact, messageLen: message.length },
           'Quick text shortcut'
         );
 

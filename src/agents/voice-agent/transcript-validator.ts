@@ -194,7 +194,7 @@ export function validateTranscript(
   // =========================================================================
   for (const pattern of NOISE_PATTERNS) {
     if (pattern.test(trimmed)) {
-      log.debug('Transcript rejected: noise marker', { transcript: trimmed.slice(0, 30) });
+      log.debug('Transcript rejected: noise marker', { transcriptLen: trimmed.length });
       return {
         isValid: false,
         reason: 'noise_marker',
@@ -240,7 +240,7 @@ export function validateTranscript(
   // For short transcripts (< 15 chars), foreign characters are suspicious
   if (trimmed.length < 15 && foreignCharCount > 0) {
     log.debug('Transcript rejected: foreign characters in short transcript', {
-      transcript: trimmed.slice(0, 30),
+      transcriptLen: trimmed.length,
       foreignCount: foreignCharCount,
       length: trimmed.length,
       expectedLang,
@@ -256,7 +256,7 @@ export function validateTranscript(
   // For longer transcripts, if more than 15% foreign characters, likely noise
   if (foreignRatio > 0.15) {
     log.debug('Transcript rejected: too many foreign characters', {
-      transcript: trimmed.slice(0, 30),
+      transcriptLen: trimmed.length,
       foreignRatio: foreignRatio.toFixed(2),
       expectedLang,
     });
@@ -358,7 +358,7 @@ export function validateTranscript(
     for (const pattern of LIKELY_ECHO_PATTERNS) {
       if (pattern.test(trimmed)) {
         log.debug('Transcript rejected: likely garbled echo pattern', {
-          transcript: trimmed.slice(0, 50),
+          transcriptLen: trimmed.length,
           pattern: pattern.source,
           timeSinceAgentSpoke: context.timeSinceAgentSpoke,
         });

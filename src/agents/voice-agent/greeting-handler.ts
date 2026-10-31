@@ -154,7 +154,7 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
     greeting = getTrialWelcomePrompt();
     diag.session('Using trial welcome prompt for first-time user', {
       userId,
-      greeting: `${greeting.slice(0, 50)}...`,
+      greetingLen: greeting.length,
     });
   }
 
@@ -191,7 +191,7 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
   if (!greeting && warmGreeting && elapsedSoFar > 100) {
     diag.session('Using warm greeting (personalized taking too long)', {
       elapsedMs: elapsedSoFar,
-      warmGreeting: warmGreeting.slice(0, 30),
+      warmGreetingLen: warmGreeting.length,
     });
     greeting = warmGreeting;
     usedWarmGreeting = true;
@@ -280,7 +280,7 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
   if (utilitiesProactiveOpener) {
     greeting = weaveProactiveIntoGreeting(greeting, utilitiesProactiveOpener, 0.3);
     diag.session('Wove in utilities proactive opener', {
-      opener: utilitiesProactiveOpener.slice(0, 50),
+      openerLen: utilitiesProactiveOpener.length,
     });
   }
 
@@ -290,7 +290,7 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
   greeting = await appendMusicCallback(greeting, isReturningUser, services, sessionPersona);
 
   diag.tts('Generated greeting', {
-    greeting: greeting.substring(0, 100) + (greeting.length > 100 ? '...' : ''),
+    greetingLen: greeting.length,
     length: greeting.length,
   });
 
@@ -328,7 +328,7 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
   // Ferni's natural voice is his best voice. Only use speed for specific effect.
 
   diag.tts('Enhanced greeting', {
-    enhanced: enhancedGreeting.substring(0, 100) + (enhancedGreeting.length > 100 ? '...' : ''),
+    enhancedLen: enhancedGreeting.length,
   });
 
   // Speak the greeting via coordinated speech system

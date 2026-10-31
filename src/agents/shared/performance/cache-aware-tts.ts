@@ -222,7 +222,7 @@ export async function processTTSWithCache(
   // Skip cache for very short text
   if (text.length < minCacheCheckLength) {
     metrics.cacheBypassedSmallText++;
-    log.debug({ text: text.slice(0, 30), sessionId }, 'Text too short for cache check');
+    log.debug({ textLen: text.length, sessionId }, 'Text too short for cache check');
     return defaultTTSFn(text);
   }
 
@@ -245,7 +245,7 @@ export async function processTTSWithCache(
 
           log.info(
             {
-              text: text.slice(0, 30),
+              textLen: text.length,
               sessionId,
               hitLatencyMs: hitLatency,
               audioBytes: cached.audio.byteLength,
@@ -291,7 +291,7 @@ export async function processTTSWithCache(
 
         log.info(
           {
-            text: text.slice(0, 30),
+            textLen: text.length,
             sessionId,
             hitLatencyMs: hitLatency,
             audioBytes: conversationalAudio.byteLength,
@@ -337,7 +337,7 @@ export async function processTTSWithCache(
 
         log.info(
           {
-            text: text.slice(0, 30),
+            textLen: text.length,
             sessionId,
             hitLatencyMs: hitLatency,
             audioBytes: greetingAudio.byteLength,
@@ -385,7 +385,7 @@ export async function processTTSWithCache(
 
         log.info(
           {
-            text: text.slice(0, 30),
+            textLen: text.length,
             emotion,
             sessionId,
             hitLatencyMs: hitLatency,
@@ -419,7 +419,7 @@ export async function processTTSWithCache(
       }
     } catch (error) {
       log.debug(
-        { error: String(error), text: text.slice(0, 30), sessionId },
+        { error: String(error), textLen: text.length, sessionId },
         'Cache lookup failed, falling back to default TTS'
       );
     }
@@ -434,7 +434,7 @@ export async function processTTSWithCache(
   metrics.avgCacheMissLatencyMs = missLatencies.reduce((a, b) => a + b, 0) / missLatencies.length;
 
   log.debug(
-    { text: text.slice(0, 30), emotion, sessionId, missLatencyMs: missLatency },
+    { textLen: text.length, emotion, sessionId, missLatencyMs: missLatency },
     'TTS cache miss - used default TTS'
   );
 
@@ -653,7 +653,7 @@ export function createCacheAwareTTSNode(
               metrics.totalSavedLatencyMs += Math.max(0, 300 - hitLatency);
 
               log.info(
-                { phrase: phrase.slice(0, 50), emotion, sessionId, hitLatencyMs: hitLatency },
+                { phraseLen: phrase.length, emotion, sessionId, hitLatencyMs: hitLatency },
                 '🎯 STREAMING TTS CACHE HIT - first phrase cached!'
               );
 
@@ -685,7 +685,7 @@ export function createCacheAwareTTSNode(
                   hitLatencies.reduce((a, b) => a + b, 0) / hitLatencies.length;
 
                 log.info(
-                  { text: textToCheck.slice(0, 50), emotion, sessionId },
+                  { textLen: textToCheck.length, emotion, sessionId },
                   '🎯 STREAMING TTS CACHE HIT - early phrase cached!'
                 );
                 buffer = '';

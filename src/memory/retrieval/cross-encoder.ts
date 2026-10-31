@@ -483,7 +483,7 @@ export class Reranker {
 
     log.debug(
       {
-        query: query.slice(0, 50),
+        queryLen: query.length,
         docsReranked: docsToRerank.length,
         resultsReturned: filteredResults.length,
         avgPositionChange: metrics.avgPositionChange.toFixed(2),

@@ -125,7 +125,7 @@ export async function generateSessionPriming(
       {
         openThreads: sessionPriming.openThreads.length,
         pendingFollowUps: sessionPriming.pendingFollowUps.length,
-        suggestedOpenerPreview: sessionPriming.suggestedOpener.slice(0, 50),
+        suggestedOpenerLen: sessionPriming.suggestedOpener.length,
       },
       '🎯 Session priming generated for returning user'
     );

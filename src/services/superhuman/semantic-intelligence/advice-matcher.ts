@@ -139,7 +139,7 @@ export async function findMatchingAdvice(
 
   log.debug(
     {
-      matchedAdvice: bestMatch.advice.adviceText.slice(0, 50),
+      matchedAdviceLen: bestMatch.advice.adviceText.length,
       confidence: bestMatch.confidence,
       matchType: bestMatch.matchType,
     },

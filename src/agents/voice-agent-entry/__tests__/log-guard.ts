@@ -105,7 +105,7 @@ function skipComment(src: string, i: number): number {
 }
 
 /** The index of the bracket closing the one at `at`, skipping strings and comments. */
-function closing(src: string, at: number): number {
+export function closing(src: string, at: number): number {
   let depth = 0;
   for (let i = at; i < src.length; i++) {
     const past = skipComment(src, i);

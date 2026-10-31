@@ -228,7 +228,7 @@ export function generateSocraticQuestion(context: SocraticContext): SocraticQues
     .replace(/\?/g, "? <break time='500ms'/>")
     .replace(/\.\.\./g, "<break time='400ms'/>");
 
-  log.debug({ type, topic: context.topic?.slice(0, 30) }, '❓ Socratic question generated');
+  log.debug({ type, topicLen: context.topic?.length }, '❓ Socratic question generated');
 
   return {
     question,
