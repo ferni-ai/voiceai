@@ -14,6 +14,7 @@ import {
   type PullRequest,
   type Status,
 } from '../lead-verified.js';
+import { FAKE_GH } from './fake-gh.js';
 
 const VERIFIER = 'ferni-verifier[bot]';
 const HEAD = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
@@ -115,24 +116,6 @@ describe('merge-group membership', () => {
 });
 
 // ---- main() against a stubbed gh and a real bare origin with a squash queue ------
-
-/** Serves JSON fixtures; --paginate --slurp returns every page, like gh does. */
-const FAKE_GH = [
-  '#!/usr/bin/env node',
-  "const fs = require('fs');",
-  'const args = process.argv.slice(2);',
-  "const fx = JSON.parse(fs.readFileSync(process.env.FAKE_GH_FIXTURES, 'utf8'));",
-  "const path = (args.find((a) => a.startsWith('repos/')) || '').split('?')[0];",
-  'const entry = fx[path];',
-  "if (args[0] !== 'api' || !entry) { process.stderr.write('HTTP 404: ' + path + '\\n'); process.exit(1); }",
-  "if (entry.error) { process.stderr.write('HTTP ' + entry.error + ': ' + path + '\\n'); process.exit(1); }",
-  'if (entry.raw !== undefined) { process.stdout.write(entry.raw); process.exit(0); }',
-  'const pages = entry.pages;',
-  "if (!args.includes('--paginate')) process.stdout.write(JSON.stringify(pages[0]));",
-  "else if (args.includes('--slurp')) process.stdout.write(JSON.stringify(pages));",
-  "else process.stdout.write(pages.map((p) => JSON.stringify(p)).join(''));",
-  '',
-].join('\n');
 
 describe('main() against a stubbed gh and a squash queue', () => {
   const R = 'ferni-ai/voiceai';
