@@ -27,9 +27,10 @@ import { buildCrisisGuidance, detectCrisis } from '../../safety/crisis-guard.js'
 import { gatedReply } from '../crisis-gate.js';
 import { setDirector } from '../director-notes.js';
 import { exitsHeld } from '../exits-held.js';
-import { FIRST_GOODBYE_NOTE } from '../first-call-rapport.js';
+import { FIRST_CALL_NOTE, FIRST_GOODBYE_NOTE } from '../first-call-rapport.js';
 import { SHORT_GOODBYE_NOTE } from '../happy-exits.js';
 import { withTurnReminder } from '../turn-request.js';
+import { QUESTION_LINE } from '../turn-shape.js';
 import { setWrapUp } from '../wrap-up.js';
 
 const CRISIS_GOODBYE = "I should go, I can't do this anymore";
@@ -44,9 +45,16 @@ const ATTUNE_MARK = '[Meet them where they are:';
 const WRAP_MARK = '[Wrapping up: synthetic loop]';
 const HARD_RULE = '[The director has had to say this twice: no question: a short reaction only.]';
 
-const FLAGS = ['FIRST_CALL_RAPPORT', 'HAPPY_EXITS', 'SHORT_GOODBYE', 'ATTUNE'] as const;
+const FLAGS = [
+  'FIRST_CALL_RAPPORT',
+  'HAPPY_EXITS',
+  'SHORT_GOODBYE',
+  'ATTUNE',
+  'LISTEN_FIRST',
+] as const;
 afterEach(() => {
   for (const flag of FLAGS) delete process.env[flag];
+  vi.restoreAllMocks();
   riskCheck.throws = false;
   resetCrisisCallRisk();
   resetCrisisClassifierCache();
@@ -216,5 +224,92 @@ describe('exitsHeld', () => {
     expect(exitsHeld('risky', false)).toBe(true);
     riskCheck.throws = true;
     expect(exitsHeld('calm', false)).toBe(true);
+  });
+});
+
+describe('director notes on a held turn: crisis guidance comes only from the crisis path', () => {
+  const NOTE = 'Too many questions: stop asking and let them go.';
+  const TOLD = '[Already said this call: synthetic told line]';
+  const directed = (id: string) => {
+    const session = firstCall(id);
+    setDirector(session, { current: () => [NOTE], told: () => TOLD, hardRule: () => '' } as never);
+    return session;
+  };
+
+  it('a crisis-guided request carries no director note; a calm turn keeps them', async () => {
+    const calm = reminder(PLAIN_GOODBYE, directed('director-calm'));
+    expect(calm).toContain(NOTE);
+    expect(calm).toContain(TOLD);
+    const sent = await gatedRequests(CRISIS_GOODBYE, directed('director-crisis'), {
+      env: LIVE,
+      generate: crisisRead,
+    });
+    const guided = sent[1]!;
+    expect(guided).toContain(GUIDANCE_MARK);
+    expect(guided).not.toContain(NOTE);
+    expect(guided).not.toContain(TOLD);
+  });
+
+  it('a turn on a call with crisis risk noted carries no director note', () => {
+    const session = directed('director-risky');
+    expect(reminder('Fine I guess.', session)).toContain(NOTE);
+    noteCrisisRisk('director-risky');
+    const held = reminder('Fine I guess.', session);
+    expect(held).not.toContain(NOTE);
+    expect(held).not.toContain(TOLD);
+  });
+});
+
+describe('question-barring style lines on a call with crisis risk noted', () => {
+  /** One session, its seed fixed, so the same words draw the same turn shape. */
+  const seeded = (id: string) => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    return { userData: { services: { sessionId: id } } };
+  };
+
+  it('turn shape: "No question this time" on a calm call, none once risk is noted', () => {
+    const session = seeded('shape-risky');
+    const said = 'Work was fine, I watched a movie after.';
+    expect(reminder(said, session)).toContain(QUESTION_LINE.none);
+    noteCrisisRisk('shape-risky');
+    expect(reminder(said, session)).not.toMatch(/No question this time/);
+  });
+
+  it('look-up reply: "No question this time" on a calm call, none once risk is noted', () => {
+    const session = seeded('lookup-risky');
+    const asked = 'Can you check the weather for tomorrow?';
+    const calm = reminder(asked, session);
+    expect(calm).toContain('call the tool for it now');
+    expect(calm).toContain(QUESTION_LINE.none);
+    noteCrisisRisk('lookup-risky');
+    expect(reminder(asked, session)).not.toMatch(/No question this time/);
+  });
+
+  it('LISTEN_FIRST: its no-question line on a calm call, none once risk is noted', () => {
+    process.env.LISTEN_FIRST = 'on';
+    const session = seeded('listen-risky');
+    const lowEnergy = (): llm.ChatContext => {
+      const ctx = llm.ChatContext.empty();
+      ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
+      ctx.addMessage({ role: 'user', content: 'Hey.' });
+      ctx.addMessage({ role: 'assistant', content: 'Hey you. How are you doing?' });
+      ctx.addMessage({ role: 'user', content: 'Tired.' });
+      ctx.addMessage({ role: 'assistant', content: 'Long day?' });
+      ctx.addMessage({ role: 'user', content: 'Yeah.' });
+      return ctx;
+    };
+    const LISTEN_NO_QUESTION = 'No question this time: a short, warm reaction';
+    expect(lastText(withTurnReminder(lowEnergy(), session))).toContain(LISTEN_NO_QUESTION);
+    noteCrisisRisk('listen-risky');
+    expect(lastText(withTurnReminder(lowEnergy(), session))).not.toMatch(/No question this time/);
+  });
+});
+
+describe('the first-call note on a crisis turn', () => {
+  it('a crisis turn drops the whole first-call note; a calm first-call turn keeps it', () => {
+    process.env.FIRST_CALL_RAPPORT = 'on';
+    const said = 'Hi. Long day, had a work thing.';
+    expect(reminder(said, firstCall('first-calm'))).toContain(FIRST_CALL_NOTE);
+    expect(reminder(said, firstCall('first-guided'), true)).not.toContain(FIRST_CALL_NOTE);
   });
 });

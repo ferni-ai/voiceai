@@ -191,9 +191,8 @@ function buildTurnReminder(
   // DIRECTOR_ANSWER_TURN_GUARD=on: notes written before they answered Ferni's question are stale.
   const answering = isAnswerTurn(chatCtx.items, words);
   // LISTEN_FIRST=on: a caller low on energy gets no note pushing Ferni to share.
-  const notes = answering
-    ? ''
-    : formatNotes(listeningNotes(offered.filter(keep), chatCtx, session));
+  const notes =
+    answering || held ? '' : formatNotes(listeningNotes(offered.filter(keep), chatCtx, session));
   // REPAIR_MODE=on: own a correction, and keep earlier ones; none with crisis guidance.
   const corrected = crisis ? '' : correctionNotesFor(chatCtx, session, process.env, plain);
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
@@ -201,7 +200,7 @@ function buildTurnReminder(
   // How Ferni is doing (FERNI_STATE=on), and if his own story may ride; none in a crisis.
   const state = ferniStateTurn(chatCtx, session, { careful: options.shape === false });
   const style = turnStyleReminderEnabled()
-    ? styleFor(chatCtx, session, options.shape !== false, state, { answering, plain })
+    ? styleFor(chatCtx, session, !crisis, state, { answering, plain, exitsHeld: held })
     : undefined;
   noteTurn(session, words, style?.turn); // MOVE_OUTCOMES=on (move-log.ts)
   // The style goes last, nearest the reply, where the turn shape is followed best (turn-shape.ts).
@@ -210,7 +209,7 @@ function buildTurnReminder(
     // Who is speaking (teammate-identity.ts); WORLD_NOW=on: the caller's time now (world-now.ts).
     teammateIdentityNote(view.currentAgentId, process.env, plain),
     worldNowNote(session, new Date(), { items: chatCtx.items, words }), // HOUR_ONCE: hour-once.ts
-    director?.told(keep) ?? '',
+    held ? '' : (director?.told(keep) ?? ''), // no director note on a held turn (exits-held.ts)
     teamStatusNote(view, words),
     // "Naya" is Nayan; "9" may be (never near a crisis, or for a locked teammate): teammate-names.ts
     heardTeammateNote(words, aliasNoteFor(view, session, chatCtx, options.shape === false)),
@@ -309,7 +308,7 @@ function buildTurnReminder(
     reminder,
     directorNotes: notes,
     offered: offered.length,
-    droppedIdx: offered.flatMap((note, i) => (!answering && keep(note) ? [] : [i])),
+    droppedIdx: offered.flatMap((note, i) => (!held && !answering && keep(note) ? [] : [i])),
   });
   return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
 }

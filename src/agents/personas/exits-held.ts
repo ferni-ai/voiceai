@@ -10,6 +10,11 @@
  * be the moment a safety check matters most, so the later turns the gate passes
  * (no guidance) are held too, as QUESTION_PACE already does (question-pace.ts).
  *
+ * What a held turn drops: the goodbye notes (first-call, HAPPY_EXITS, WRAP_UP),
+ * every director note and the escalated hard rule (crisis guidance comes only
+ * from the crisis path), and the turn shape's and LISTEN_FIRST's "No question
+ * this time" lines (turn-request-style.ts). ATTUNE runs careful.
+ *
  * Fails closed: when the call's risk can't be read (no call id to read it by,
  * or a risk check that throws), the notes are held.
  *

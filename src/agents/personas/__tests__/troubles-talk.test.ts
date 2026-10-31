@@ -134,7 +134,7 @@ describe('TROUBLES_TALK: no shift to his own life during a trouble', () => {
       for (let i = 0; i < 40; i++) {
         // withTurnReminder seeds each call with Math.random: one value per call.
         vi.spyOn(Math, 'random').mockReturnValue((i + 0.5) / 40);
-        const session = {};
+        const session = { userData: { services: { sessionId: 'troubles' } } };
         const first = llm.ChatContext.empty();
         first.addMessage({ role: 'user', content: 'My mom has cancer.' });
         withTurnReminder(first, session);
@@ -246,7 +246,7 @@ describe('TROUBLES_TALK with LISTEN_FIRST', () => {
       ['user', 'My dad is in the hospital again tonight.'],
     ] as const)
       c.addMessage({ role, content });
-    const out = withTurnReminder(c, {});
+    const out = withTurnReminder(c, { userData: { services: { sessionId: 'troubles' } } });
     const text = (out.items[out.items.length - 1] as { textContent?: string }).textContent ?? '';
     expect(text).toMatch(/Listen more than you talk: a few words or one short sentence/);
     expect(text).not.toMatch(/\d+ words at most/);
