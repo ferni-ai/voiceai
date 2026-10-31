@@ -6,7 +6,7 @@
 import dns from 'node:dns';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { Agent } from 'undici7';
+import { Agent } from 'undici';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   assertSafeOutboundUrl,
@@ -203,6 +203,36 @@ describe('guardedStreamFetch', () => {
     expect(init.signal).toBeUndefined();
     expect(init.dispatcher).toBe(getGuardedAgent());
   });
+
+  // Pre-flight sees a public answer; the socket's own lookup sees a private one (a name that
+  // re-resolves between the two). The refusal must happen at connect, on the real fetch path.
+  it.each([
+    ['private', '10.0.0.7'],
+    ['loopback', '127.0.0.1'],
+    ['metadata service', '169.254.169.254'],
+    ['IPv6 loopback', '::1'],
+    ['mapped metadata service', '::ffff:a9fe:a9fe'],
+  ])('refuses at connect time when the socket lookup answers %s (%s)', async (_label, address) => {
+    vi.spyOn(dns.promises, 'lookup').mockImplementation((async () => [
+      { address: PUBLIC_V4, family: 4 },
+    ]) as unknown as typeof dns.promises.lookup);
+    const socketLookup = vi
+      .spyOn(dns, 'lookup')
+      .mockImplementation(((
+        _host: string,
+        _opts: unknown,
+        cb: (err: unknown, list?: unknown) => void
+      ) =>
+        cb(null, [
+          { address, family: address.includes(':') ? 6 : 4 },
+        ])) as unknown as typeof dns.lookup);
+
+    const failure = await guardedStreamFetch('https://mcp.example.test/sse').catch(
+      (e: unknown) => e
+    );
+    expect(failure).toBeInstanceOf(OutboundUrlBlockedError);
+    expect(socketLookup).toHaveBeenCalled();
+  });
 });
 
 describe('connect-time lookup (DNS rebinding)', () => {
@@ -376,6 +406,39 @@ describe('connect-time lookup: no socket reaches a private listener', () => {
     } finally {
       await agent.close();
       await srv.close();
+    }
+  });
+
+  it('guardedStreamFetch never follows a redirect to a private listener', async () => {
+    // The first hop stands in for a public MCP server (a local listener reached through an
+    // unguarded agent, since every local address is private). It redirects to a name that
+    // resolves to loopback, where a second listener counts connections.
+    const target = await listener('127.0.0.1');
+    let firstHop = 0;
+    const origin = http.createServer((_req, res) => {
+      res.writeHead(302, { location: `http://rebind.example.test:${target.port}/sse` }).end();
+    });
+    origin.on('connection', () => firstHop++);
+    await new Promise<void>((resolve) => {
+      origin.listen(0, '127.0.0.1', () => resolve());
+    });
+    const originPort = (origin.address() as AddressInfo).port;
+    const agent = unguardedAgent();
+    const realFetch = globalThis.fetch;
+    vi.stubGlobal('fetch', (_url: unknown, init: RequestInit) =>
+      realFetch(`http://127.0.0.1:${originPort}/sse`, { ...init, dispatcher: agent } as RequestInit)
+    );
+    try {
+      resolveTo({ 'mcp.example.test': PUBLIC_V4, 'rebind.example.test': '127.0.0.1' });
+      await expect(guardedStreamFetch('https://mcp.example.test/sse')).rejects.toThrow();
+      expect(firstHop).toBe(1); // the request did go out
+      expect(target.connections()).toBe(0); // and the redirect was not followed
+    } finally {
+      await agent.close();
+      await target.close();
+      await new Promise<void>((resolve) => {
+        origin.close(() => resolve());
+      });
     }
   });
 });

@@ -32,6 +32,7 @@ import { callPlacedReply } from './call-placed-reply.js';
 import { callMeMovesToPhone, callMovingToPhone } from './call-me-moves-to-phone.js';
 import { getCallUserPort } from './call-user-port.js';
 import { SAVED_NOT_VERIFIED } from './service.js';
+import { ownerMessageTool } from './owner-message-policy.js';
 import {
   getPersonaDisplayName,
   getCanonicalPersonaId,
@@ -201,7 +202,7 @@ follow-ups, and celebrations. Only ask for this when they want to receive messag
 /**
  * Schedule a proactive reminder
  */
-export const scheduleReminderDef: ToolDefinition = {
+export const scheduleReminderDef: ToolDefinition = ownerMessageTool({
   id: 'scheduleProactiveReminder',
   name: 'Schedule Proactive Reminder',
   description: 'Schedule a reminder to reach out to the user',
@@ -313,12 +314,12 @@ Use for: follow-ups, accountability check-ins, celebrations, and scheduled remin
       },
     });
   },
-};
+});
 
 /**
  * Send immediate outreach
  */
-export const sendImmediateOutreachDef: ToolDefinition = {
+export const sendImmediateOutreachDef: ToolDefinition = ownerMessageTool({
   id: 'sendImmediateOutreach',
   name: 'Send Immediate Outreach',
   description: 'Send an immediate message to the user via their preferred method',
@@ -391,7 +392,7 @@ Use when you need to reach them right now outside of the conversation.`,
       },
     });
   },
-};
+});
 
 /**
  * Call the user. Registered by the telephony domain (behind
@@ -401,7 +402,7 @@ Use when you need to reach them right now outside of the conversation.`,
  * contactInfo.phone, and calling hours and quiet hours decide when it rings
  * (call-user-port.ts; the call session installs the outreach adapter).
  */
-export const callUserDef: ToolDefinition = {
+export const callUserDef: ToolDefinition = ownerMessageTool({
   id: 'callUser',
   name: 'Call User',
   description: 'Place a phone call to the user with a voice message',
@@ -446,7 +447,7 @@ Use for important check-ins or when a phone call is more personal than text.`,
       },
     });
   },
-};
+});
 
 // ============================================================================
 // EXPORTS
