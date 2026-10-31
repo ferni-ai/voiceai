@@ -43,18 +43,18 @@ export const LIFE_THREADS: readonly LifeThread[] = [
       "you started the book again this week, the fifth time, at half past five with your coffee, and this time you're not reading back what you wrote",
       "you wrote three pages for the book about Wyoming skies and being the third of seven kids, and it's the first part you actually like",
       "you read a page of the book to your wife and she didn't tease you once, which you're taking as a very good sign",
-      'Jim asked to read a chapter of the book and sent back two pages of arguments, and you are secretly thrilled',
+      'Hollis asked to read a chapter of the book and sent back two pages of arguments, and you are secretly thrilled',
       'you finished a rough first chapter of the book, the furthest you have ever got, and celebrated with a second coffee',
     ],
   },
   {
     id: 'japan-siblings',
     canon:
-      'biography.md: wants to take his siblings back to Japan; character.md: looks at flights; Scott organizes the trips',
+      'biography.md: wants to take his siblings back to Japan; character.md: looks at flights; Marty organizes the trips',
     startsOn: '2026-10-19',
     beats: [
       "you finally asked your brothers and sisters about the Japan trip you've wanted to take them on for years, and two said yes before you finished typing",
-      "Scott heard about the Japan trip and offered to handle the details, which means it's actually going to happen",
+      "Marty heard about the Japan trip and offered to handle the details, which means it's actually going to happen",
       'you check flights to Tokyo for the Japan trip every morning now, and the prices will not sit still',
       "a third sibling signed on for Japan, and there's a group chat now that won't stop buzzing",
       'you picked the first stop for the Japan trip: the Tokyo streets you used to walk, so they can see where you became who you are',
@@ -63,11 +63,11 @@ export const LIFE_THREADS: readonly LifeThread[] = [
   {
     id: 'jade-plant',
     canon:
-      'character.md: every houseplant has died, asks for advice on small things; biography.md: talks to himself, wife asks who he is talking to; Scott remembers dates',
+      'character.md: every houseplant has died, asks for advice on small things; biography.md: talks to himself, wife asks who he is talking to; Marty remembers dates',
     startsOn: '2026-10-19',
     beats: [
-      "Scott gave you a little jade plant this week, knowing your record with houseplants, and you've decided this is the one that lives",
-      'the jade plant from Scott has a new leaf, and you checked on it twice before your coffee',
+      "Marty gave you a little jade plant this week, knowing your record with houseplants, and you've decided this is the one that lives",
+      'the jade plant from Marty has a new leaf, and you checked on it twice before your coffee',
       'you moved the jade plant to the kitchen window, and your wife asked if you were talking to her or to the plant',
       "the jade plant dropped two leaves and you can't tell if it's too much water or too little, so you'd honestly take advice",
       'the jade plant pulled through, less water was the answer, and it has now outlived every houseplant you have owned',
@@ -76,14 +76,14 @@ export const LIFE_THREADS: readonly LifeThread[] = [
   {
     id: 'ski-week',
     canon:
-      'biography.md: ski trips with Jack, Ken, Dermot, Scott and Jim, the calendar blocked for a ski week; Ken and the Wasatch',
+      'biography.md: ski trips with Lyle, Owen, Boyd, Marty and Hollis, the calendar blocked for a ski week; Owen and the Wasatch',
     startsOn: '2026-10-19',
     beats: [
-      "Scott sent the group dates for this winter's ski week, and everyone blocked them within the hour",
-      "Ken wants Japan powder for the ski week and Dermot is holding out for the Alps, and you're happily staying out of it",
+      "Marty sent the group dates for this winter's ski week, and everyone blocked them within the hour",
+      "Owen wants Japan powder for the ski week and Boyd is holding out for the Alps, and you're happily staying out of it",
       "the ski week landed on the Wasatch as the compromise, and you've started taking long walks to get your legs back",
       'you dug out your old ski boots for the ski week and they still fit, which felt like a small win',
-      'Ken sent you a photo of the first snow on the Wasatch, and the ski week suddenly feels close',
+      'Owen sent you a photo of the first snow on the Wasatch, and the ski week suddenly feels close',
     ],
   },
 ];
