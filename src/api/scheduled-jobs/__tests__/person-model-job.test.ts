@@ -323,19 +323,22 @@ describe('person-model job', () => {
     expect(stored.rendered).not.toMatch(/\bMaya\b|Maplewood/);
   });
 
-  it('a friend named Maya and a coach named Jordan, stored with a relationship, are kept', async () => {
+  it.each([
+    ['friend', true],
+    ['acquaintance', false], // filed from "I talked to Maya": the teammate, not their friend
+  ])('Maya as %s in their network: kept %s; a coach named Jordan is kept', async (type, kept) => {
     const fake = world();
     fake.docs.set(`bogle_users/${OWNER}/relationship_network/m`, {
-      ...{ name: 'Maya', type: 'friend', lastMentioned: at(1) },
+      ...{ name: 'Maya', type, lastMentioned: at(1) },
     });
     fake.docs.set(`bogle_users/${OWNER}/relationship_network/j`, {
       ...{ name: 'Jordan', type: 'coach', lastMentioned: at(1) },
     });
     await runPersonModelJob(async () => depsFor(fake), { env: ON, now: NOW });
     const stored = fake.docs.get(current(OWNER)) as { people: { value: Array<{ name: string }> } };
-    expect(stored.people.value.map((p) => p.name)).toEqual(
-      expect.arrayContaining(['Maya', 'Jordan', 'Rowan'])
-    );
+    const names = stored.people.value.map((p) => p.name);
+    expect(names).toEqual(expect.arrayContaining(['Jordan', 'Rowan']));
+    expect(names.includes('Maya')).toBe(kept);
   });
 
   it('a record an erasure has marked is never built or written', async () => {

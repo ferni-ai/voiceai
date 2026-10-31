@@ -15,6 +15,7 @@ import { extractEntities } from '../knowledge-graph/extractors/llm-entity-extrac
 import {
   isPersonaSubject,
   junkReason,
+  UNSTATED_RELATIONS,
   keepRealEntities,
   type NamedEntity,
 } from '../entity-hygiene.js';
@@ -239,11 +240,15 @@ describe('ENTITY_ROLE_LABELS', () => {
 });
 
 describe('isPersonaSubject', () => {
-  it('is Ferni or a teammate name only when no relationship is stored for it', () => {
+  it('is Ferni or a teammate name only when no relation they stated is stored', () => {
     expect(isPersonaSubject('Ferni')).toBe(true);
     expect(isPersonaSubject('Maya')).toBe(true);
     expect(isPersonaSubject('Peter John', null)).toBe(true);
     expect(isPersonaSubject('Maya', '  ')).toBe(true);
+    // What a store files on its own from "I talked to Maya" is not a relation they stated.
+    expect(isPersonaSubject('Maya', 'acquaintance')).toBe(true);
+    expect(isPersonaSubject('Maya', 'Acquaintance ')).toBe(true);
+    for (const r of UNSTATED_RELATIONS) expect(isPersonaSubject('Maya', r)).toBe(true);
     // Any stored relationship is a real person in their life, a human coach included.
     expect(isPersonaSubject('Maya', 'friend')).toBe(false);
     expect(isPersonaSubject('Jordan', 'coach')).toBe(false);

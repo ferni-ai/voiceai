@@ -137,13 +137,14 @@ export function junkReason(
   return entity.type === 'person' && onlyGreeted(name, said) ? 'greeted' : null;
 }
 
-/**
- * True when `name` is Ferni or a teammate ("Maya") AND no relationship to the caller is
- * stored for it: persona canon, never the caller's memory. Any stored relationship (friend,
- * even coach) is a real person, kept (right-moment ruling 6). Pure; one definition for all.
- */
+/** Types a store files by itself ("I talked to Maya" is acquaintance): not a stated relation. */
+export const UNSTATED_RELATIONS = new Set(['acquaintance', 'unknown', 'other']);
+
+/** Ferni or a teammate ("Maya") with no relation they stated: persona canon, never their
+ *  memory. A stated relation, even coach, makes a real person (right-moment ruling 6). Pure. */
 export function isPersonaSubject(name: string, relationship?: string | null): boolean {
-  if (relationship?.trim()) return false;
+  const relation = relationship?.trim().toLowerCase() ?? '';
+  if (relation && !UNSTATED_RELATIONS.has(relation)) return false;
   return name.trim() !== '' && junkReason({ name, type: 'person' }, {}) === 'persona';
 }
 
