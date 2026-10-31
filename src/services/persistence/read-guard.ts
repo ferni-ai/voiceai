@@ -9,7 +9,9 @@
  *
  * - Only the most recently started load sets or clears the mark, so a slow failing load can't
  *   mark a key after a newer one succeeded, and a slow success can't clear a newer failure.
- * - While marked, a cached copy isn't authoritative: get()/load() reload it, with backoff.
+ * - While marked, a cached copy isn't authoritative: get()/load() reload it, with backoff. If
+ *   that reload fails, a non-strict load still answers the cached copy (writes stay refused).
+ * - Concurrent loads that take any current copy share one read (sharedReads below).
  * - A write that doesn't depend on a read (a new OAuth grant replacing tokens, keys merged into
  *   a map) passes `{ safeWithoutRead: true }` and is never refused.
  *
@@ -73,6 +75,26 @@ export function readGuard(collection: string, now: () => number = () => Date.now
       log.warn({ collection, key }, 'Write refused: the last read failed');
       return true;
     },
+  };
+}
+
+/**
+ * One read per key at a time for loads that take any current copy (not `fresh`), so concurrent
+ * first-touch loads all succeed or all fail together. Two separate reads could split: the newer
+ * one's failure marked the key while the older one's caller counted the user loaded and never
+ * read again, so every later write was refused until restart. A `fresh` load always reads anew
+ * (a read already in flight may predate a write it must see); later joinable loads share it.
+ */
+export function sharedReads<T>() {
+  const inFlight = new Map<string, Promise<T>>();
+  return (key: string, joinable: boolean, read: () => Promise<T>): Promise<T> => {
+    const current = joinable ? inFlight.get(key) : undefined;
+    if (current) return current;
+    const reading = read();
+    inFlight.set(key, reading);
+    const done = () => void (inFlight.get(key) === reading && inFlight.delete(key));
+    reading.then(done, done);
+    return reading;
   };
 }
 

@@ -16,7 +16,7 @@ import { heldFields } from './held-fields.js';
 import { updateIfUnchangedFor, type UpdateIfUnchanged } from './update-if-unchanged.js';
 import { timestampsToDates } from './timestamps.js';
 export { timestampsToDates };
-import { readGuard, ReadFailedWriteError, type WriteOptions } from './read-guard.js';
+import { readGuard, ReadFailedWriteError, sharedReads, type WriteOptions } from './read-guard.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
@@ -169,6 +169,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
       ? firestore.collection(collection).doc(userId)
       : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
   const guard = readGuard(collection); // a failed load: no write may replace what wasn't read
+  const readOnce = sharedReads<T | null>(); // concurrent loads of a key share one read
 
   // Start sync interval using managed interval
   const startSyncInterval = () => {
@@ -301,35 +302,39 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     }
   };
 
-  // Load from Firestore
-  const load = async (userId: string, options?: LoadOptions): Promise<T | null> => {
-    if (shared(userId)) return null;
-    // Check cache first
-    const cached = cache.has(userId) && (!options?.fresh || dirty.has(userId));
-    if (cached && !guard.reloadDue(userId)) {
-      return cache.get(userId)!;
-    }
-
-    const firestore = await getFirestore();
-    if (!firestore && options?.strict === true) throw new Error(`No Firestore (${collection})`);
-    if (!firestore) return cache.get(userId) ?? null;
-
+  // One read from Firestore; throws on failure
+  const readDoc = async (firestore: FirestoreType, userId: string): Promise<T | null> => {
     const gen = guard.begin(userId);
     try {
       const doc = await refFor(firestore, userId).get();
       const data = doc.exists ? (timestampsToDates(doc.data()) as T) : undefined;
       guard.settle(userId, gen, true); // a read counts as good only once its data converted
-      if (data === undefined) {
-        cache.delete(userId);
-        return null;
-      }
-      cache.set(userId, data);
-      return data;
+      if (data === undefined) cache.delete(userId);
+      else cache.set(userId, data);
+      return data ?? null;
     } catch (error) {
       log.error({ error, collection, userId }, 'Failed to load user data');
       guard.settle(userId, gen, false);
+      throw error;
+    }
+  };
+
+  // Load from Firestore
+  const load = async (userId: string, options?: LoadOptions): Promise<T | null> => {
+    if (shared(userId)) return null;
+    const cached = cache.has(userId) && (!options?.fresh || dirty.has(userId));
+    if (cached && !guard.reloadDue(userId)) return cache.get(userId)!; // the cache first
+
+    const firestore = await getFirestore();
+    if (!firestore && options?.strict === true) throw new Error(`No Firestore (${collection})`);
+    if (!firestore) return cache.get(userId) ?? null;
+
+    try {
+      return await readOnce(userId, !options?.fresh, () => readDoc(firestore, userId));
+    } catch (error) {
       if (options?.strict) throw error;
-      return null;
+      // A reload of a cached copy failed: serve that copy (writes stay refused), not null
+      return cached ? (cache.get(userId) ?? null) : null;
     }
   };
 
