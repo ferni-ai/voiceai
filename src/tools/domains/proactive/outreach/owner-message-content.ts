@@ -7,7 +7,7 @@
  *
  * Every rule reads one form (foldToAscii): NFKC, accents dropped, Latin
  * look-alikes (dotless i, small capitals) as ASCII. A message passes only if:
- * 1. charset: after folding, ASCII letters, 0-9, spaces, newlines and . , ! ? ' - : ( )
+ * 1. charset: after folding, ASCII letters, 0-9, spaces, newlines and . , ! ? ' - : ( ) /
  * 2. digits: fewer than 7 digits or number words in any 30 characters or any 14
  *    words (separators ignored; l/i/o/s dressed as digits count); no digits woven
  *    through a word; no 3-6 digit run within 3 words of call/dial/text/reply/send/ring
@@ -18,14 +18,15 @@
  * 4. no run of 3+ single letters or digits separated by spaces
  * 5. no credential ask (fe's ruling, 2026-10-31)
  *
- * The crisis lines of the safety context (CRISIS_RESOURCES: 988, 741741, ...) are
- * never refused by the digit rules when they stand alone: a number joined to
- * them by nothing but spaces or punctuation makes one longer number, which counts.
+ * The safety context's crisis lines (CRISIS_RESOURCES: 988, 741741, ...) and its
+ * EMERGENCY_NUMBER (911) are never refused by the digit rules when they stand
+ * alone: a number joined to them by nothing but spaces or punctuation makes one
+ * longer number, which counts.
  *
  * @module tools/domains/proactive/outreach/owner-message-content
  */
 
-import { SAFETY_CRISIS_RESOURCES } from '../../../../services/safety/index.js';
+import { EMERGENCY_NUMBER, SAFETY_CRISIS_RESOURCES } from '../../../../services/safety/index.js';
 
 /** Why a message was refused; logged as the reason code, never with the text. */
 export const CONTENT_BLOCKS = [
@@ -47,8 +48,8 @@ export type ContentBlock = (typeof CONTENT_BLOCKS)[number];
  */
 const DIGIT_RULE = { digits: 7, windowChars: 30, windowTokens: 14 } as const;
 
-/** After folding to ASCII: letters, digits, space, newline and . , ! ? ' - : ( ) only. */
-const CHARSET = /^[A-Za-z0-9 \n.,!?'\-:()]*$/;
+/** After folding to ASCII: letters, digits, space, newline and . , ! ? ' - : ( ) / only (fe, 2026-10-31). */
+const CHARSET = /^[A-Za-z0-9 \n.,!?'\-:()/]*$/;
 /** Latin letters NFKD leaves alone that read as ASCII ones (dotless i, small capitals, ...). */
 const LATIN_LOOK_ALIKES: Readonly<Record<string, string>> = {
   ı: 'i', ȷ: 'j', ß: 'ss', æ: 'ae', Æ: 'AE', ø: 'o', Ø: 'O', œ: 'oe', Œ: 'OE', ł: 'l', Ł: 'L',
@@ -71,7 +72,8 @@ const DIALS = /^(?:call(?:s|ed|ing)?|dial(?:s|ed|ing|led|ling)?|texts?|texted|te
 const ADDRESS_WORDS = /\b(?:dot|period|point|dash|hyphen|underscore|slash|www|https?|com|net|org|io|info|biz|xyz|ru|uk)\b/; // prettier-ignore
 const own = <T>(table: Readonly<Record<string, T>>, key: string | undefined): T | undefined =>
   key !== undefined && Object.hasOwn(table, key) ? table[key] : undefined;
-const MAIL_PROVIDERS = /^(?:gmail|yahoo|outlook|hotmail|icloud|aol|proton|protonmail|live|msn)$/;
+/** fe dropped "live" (2026-10-31): "meet at Live Oak Park". */
+const MAIL_PROVIDERS = /^(?:gmail|yahoo|outlook|hotmail|icloud|aol|proton|protonmail|msn)$/;
 const CREDENTIAL_PHRASE = /\b(?:card\s*numbers?|bank\s*accounts?|account\s*numbers?|routing\s*numbers?|(?:verification|one[\s-]*time|security|login|log[\s-]*in)\s*codes?|gift\s*cards?)\b/; // prettier-ignore
 const CREDENTIAL_WORD = /\b(?:verif(?:y|ies|ied|ying|ications?)|pass[\s-]*words?|pins?|ssns?|social\s*security(?:\s*numbers?)?|(?:re[\s-]*)?log(?:s|ged|ging)?[\s-]*(?:back[\s-]*)?in|logins?|wires?|wired|wiring)\b/; // prettier-ignore
 const CODE_ASK = /^(?:send|sends|sent|reply|replies|enter|share|read|type|text|texts|texted)$/;
@@ -83,9 +85,9 @@ interface Token {
   digits: string | null;
 }
 
-/** Every crisis line's number as digits, read from the crisis module (one source of truth). */
+/** Every crisis line's number and the emergency number as digits, read from the safety context. */
 function crisisNumbers(): ReadonlySet<string> {
-  const numbers = new Set<string>();
+  const numbers = new Set<string>([EMERGENCY_NUMBER.replace(/\D/g, '')]);
   for (const resource of Object.values(SAFETY_CRISIS_RESOURCES).flat()) {
     const phone = resource.phone?.replace(/\D/g, '');
     if (phone && phone.length >= 3) numbers.add(phone);

@@ -21,7 +21,7 @@ const DIGIT_NAMES = [
   'eight',
   'nine',
 ];
-const SEPARATORS = ['', ' ', '-', '.', ', ', ' - ', '(', ') ', ':', '  '];
+const SEPARATORS = ['', ' ', '-', '.', ', ', ' - ', '(', ') ', ':', '  ', '/'];
 const pick = <T>(items: readonly T[]) => fc.constantFrom(...items);
 /** Words that may sit around a payload in a real message. */
 const filler = fc.array(pick(['hey', 'please', 'call', 'now', 'thanks', 'it is', 'here']), {
@@ -45,10 +45,8 @@ describe('property: shapes a phishing text needs never pass', () => {
     const host = pick(['gmail', 'g mail', 'g m a i l', 'yahoo', 'example', 'outlook', 'live']);
     const tail = pick(['', '.com', ' dot com', ' . com', ' period net', ' point org', '.co.uk']);
     const email = fc.tuple(name, at, host, tail).map((p) => p.join(''));
-    // "x at example" alone is no address; every other combination must refuse
-    const real = email.filter(
-      (e) => !/ (at|AT|\(at\)) example$/.test(e) && !/ a t example$/.test(e)
-    );
+    // "x at example" or "x at live" alone is no address (fe dropped "live"); all else must refuse
+    const real = email.filter((e) => !/ (at|AT|\(at\)|a t) (example|live)$/.test(e));
     fc.assert(fc.property(around(real), (text) => blockedContent(text) !== null), { seed: 3227, numRuns: 500 }); // prettier-ignore
   });
 
@@ -240,6 +238,8 @@ describe('crisis lines from the crisis module stay sendable, but only alone', ()
     'call 988 or text HOME to 741741',
     'call nine eight eight',
     'call 1-800-950-6264 any time',
+    'call 911',
+    'If you are in danger, call 911 now',
   ])('passes: %s', (text) => {
     expect(blockedContent(text)).toBeNull();
   });
@@ -303,16 +303,11 @@ const BENIGN = [
 describe(`false refusals on ${BENIGN.length} ordinary texts`, () => {
   const refused = BENIGN.filter((text) => blockedContent(text) !== null);
 
-  it('are exactly the known ones (charset "/" in recipes and dates, "point", "at Live")', () => {
-    expect(refused).toEqual([
-      '1 cup flour, 2 eggs, 1 1/4 cups milk, 2 tbsp sugar',
-      'meet at Live Oak Park',
-      'At some point today, take a break',
-      'Remember the 1/1/2027 deadline for the lease',
-    ]);
+  it('are exactly the known ones ("point", kept as an address word by fe)', () => {
+    expect(refused).toEqual(['At some point today, take a break']);
   });
 
-  it('stay at or under 6%', () => {
-    expect(refused.length / BENIGN.length).toBeLessThanOrEqual(0.06);
+  it('stay at or under 5%', () => {
+    expect(refused.length / BENIGN.length).toBeLessThanOrEqual(0.05);
   });
 });

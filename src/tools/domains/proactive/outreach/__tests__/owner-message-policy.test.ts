@@ -303,6 +303,12 @@ describe('flag on', () => {
     expect(sends()).toBe(2);
   });
 
+  it('the emergency number goes out to an unverified caller', async () => {
+    const reply = await run('sendMessageNow', { message: 'If you are in danger, call 911' }, unverified()); // prettier-ignore
+    expect(reply).not.toMatch(/once you're in the app/);
+    expect(delivered().said[0]).toContain('call 911');
+  });
+
   it('a crisis line goes out to an unverified caller', async () => {
     const reply = await run('sendMessageNow', { message: "If you're in crisis, call or text 988 right now" }, unverified()); // prettier-ignore
     expect(reply).not.toMatch(/once you're in the app/);
