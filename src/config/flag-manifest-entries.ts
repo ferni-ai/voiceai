@@ -144,6 +144,8 @@ export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   PERSONA_BEATS: { default: 'off', owner: 'voice', kind: 'experiment' },
   // character-spark.md after the character sheet, one "!" on bright turns (agents/personas/prompt-loader.ts, turn-shape.ts)
   PERSONA_SPARK: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // one fixed set of 40 tools or fewer per persona, changed only at a handoff (multi-agent/persona-toolsets.ts)
+  PERSONA_TOOLSETS: { default: 'off', owner: 'tools', kind: 'experiment' },
   PERSONA_VOICE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PERSIST_AGENT_PROFILES: { default: 'off', owner: 'memory', kind: 'experiment' },
   PERSONA_MOOD_NOT_CALLERS: { default: 'on', owner: 'memory', kind: 'kill-switch' },

@@ -11,6 +11,7 @@ import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utiliti
 import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
 import { installQuietHoursWriter } from '../../services/messaging/voice-quiet-hours.js';
 import { installConfirmThreadPort } from '../../services/outreach/confirm-thread-adapter.js';
+import { installCallRecallPort } from '../../services/outreach/call-recall.js';
 import { installForgetFollowUpsPort } from '../../services/outreach/forget-follow-ups-adapter.js';
 import { flagOn } from '../../config/env-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -142,6 +143,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   installQuietHoursWriter();
   // THREADS_PENDING_CONFIRM: a read-back waiting on a yes is kept as a follow-up (confirm-thread.ts).
   installConfirmThreadPort();
+  // "Did you call my dad?": callStatus reads the owner's call records (call-status-tool.ts).
+  installCallRecallPort();
   // "Forget that" also closes open follow-ups about it (forget-follow-ups.ts).
   installForgetFollowUpsPort();
 
@@ -262,6 +265,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     const handlers = [
       { event: 'user_input_transcribed', handler: confirm.onTranscript },
       { event: 'function_tools_executed', handler: confirm.onToolsExecuted },
+      { event: 'conversation_item_added', handler: confirm.onItemAdded },
     ];
     for (const { event, handler } of handlers) sessionWithEvents.on(event, handler);
     sessionEventHandlers.push(...handlers);

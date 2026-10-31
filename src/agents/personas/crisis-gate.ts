@@ -38,6 +38,10 @@ import {
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
 import { crisisRiskThisCall, noteCrisisRisk } from '../../services/safety/crisis-call-risk.js';
+import {
+  afterCheckLoneRead,
+  noteConfirmedRisk,
+} from '../../services/safety/crisis-confirmed-risk.js';
 import { secondReadOf } from '../../services/safety/crisis-second-read-turn.js';
 import {
   GROUNDED_LIGHT_TOUCH,
@@ -66,9 +70,6 @@ import {
   loneImminentGoodbye,
 } from '../../services/safety/crisis-lone-imminent.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
-import { callTranscript, callerUserId, sessionScope, textReply } from './crisis-gate-words.js';
-export { textReply } from './crisis-gate-words.js';
 import {
   applyClassifierVerdict,
   buildCrisisGuidance,
@@ -88,6 +89,14 @@ import { noteCrisisHold } from '../safety/crisis-hold-timing.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
+import {
+  callerUserId,
+  callerWords,
+  callTranscript,
+  sessionScope,
+  textReply,
+} from './crisis-gate-words.js';
+export { textReply } from './crisis-gate-words.js';
 import { getDeliberator } from './deliberation.js';
 import { brightOpenerInvited } from './ferni-playful.js';
 import { noteTurn } from './move-log.js';
@@ -97,7 +106,6 @@ import { withLookupBridge } from './lookup-bridge.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
 import { burstAllowed } from './vocal-bursts.js';
-import { isAcknowledgementOnly } from '../voice-agent/agent-reply-recorder.js';
 
 const log = createLogger({ module: 'CrisisGate' });
 
@@ -118,45 +126,6 @@ export interface CrisisGateTurn {
 type Chunk = llm.ChatChunk | string | object;
 
 const RANK = { pass: 0, guide: 1, replace: 2 } as const;
-
-interface MessageView {
-  type?: string;
-  role?: string;
-  textContent?: string;
-}
-
-/**
- * The caller's words this reply answers, their earlier messages (oldest
- * first), and what Ferni said just before: the line those words answer.
- */
-export function callerWords(chatCtx: llm.ChatContext): {
-  latest: string;
-  earlier: string[];
-  companion?: string;
-  /** All of Ferni's lines since the caller's earlier words (a tool follow-up comes last). */
-  ferni: string[];
-} {
-  const said: string[] = [];
-  const latest: string[] = [];
-  const ferni: string[] = [];
-  let companion: string | undefined;
-  let answering = true;
-  for (let i = chatCtx.items.length - 1; i >= 0; i--) {
-    const item = chatCtx.items[i] as MessageView;
-    if (item.type !== 'message') continue;
-    if (item.role === 'assistant') {
-      const line = item.textContent?.trim() || undefined;
-      if (answering) companion = line;
-      if (line && said.length === 0 && !isAcknowledgementOnly(line)) ferni.unshift(line);
-      answering = false;
-      continue;
-    }
-    const text = item.textContent?.trim();
-    if (item.role !== 'user' || !text || text.startsWith(TURN_CONTEXT_HEADER)) continue;
-    (answering ? latest : said).unshift(text);
-  }
-  return { latest: latest.join(' '), earlier: said, companion, ferni };
-}
 
 const guide = (guidance: string): CrisisGateDecision => ({ action: 'guide', guidance });
 
@@ -212,6 +181,7 @@ export function startCrisisGate(
   );
   if (decision.action !== 'pass') {
     noteCrisisRisk(call); // risk on this call (crisis-call-risk.ts)
+    noteConfirmedRisk(call, env); // CRISIS_CONFIRMED_CALL_RISK
     log.info(
       { action: decision.action, source: 'patterns', indicators: detection.indicators },
       'CRISIS_GATE'
@@ -295,6 +265,7 @@ export function startCrisisGate(
       // Reads of this turn that agree on risk are never eased.
       if (verdicts.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent').length >= 2) {
         softTransfer = false;
+        noteConfirmedRisk(call, env); // CRISIS_CONFIRMED_CALL_RISK: before any after-check
       }
       // Every read of the turn is in: a classifier-only crisis gets a fuller second read.
       const adjudicator = startCrisisAdjudicator(callTranscript(chatCtx), {
@@ -315,6 +286,18 @@ export function startCrisisGate(
       log.info({ action: 'guide', source: 'transfer-request' }, 'CRISIS_GATE');
       return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
     }
+    const lone = {
+      call,
+      input,
+      verdict,
+      detection,
+      pattern,
+      env,
+      generate,
+      source: 'gate',
+    } as const;
+    const eased = await afterCheckLoneRead(lone); // CRISIS_CONFIRMED_CALL_RISK
+    if (eased) return guide(eased.guidance);
     log.info(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },
       'CRISIS_GATE'
@@ -450,7 +433,7 @@ export async function gatedReply(
   const ctx =
     gate?.decision.action === 'guide'
       ? withTurnStyleReminder(plain(), gate.decision.guidance)
-      : withTurnReminder(chatCtx, session);
+      : withTurnReminder(chatCtx, session, { held: gate?.escalation });
   // A vocal burst only where this request invited one, never with crisis guidance.
   const burst = burstAllowed(session, gate?.decision.action === 'guide', env);
   const ask = async (

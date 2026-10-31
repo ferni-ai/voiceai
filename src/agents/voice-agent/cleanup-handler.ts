@@ -15,7 +15,8 @@ import {
 } from '../../intelligence/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { recordSessionEnd as recordUserSessionEnd } from '../../services/analytics/user-analytics.js';
-import { memoryHeld } from '../../utils/minor-care.js';
+import { memoryHeld, minorHeld, sexualReadsSettled } from '../../utils/minor-care.js';
+import { ownerWritesBlocked } from '../../services/identity/owner-write-gate.js';
 import { purgeHeldUser } from './minor-care-purge.js';
 import { emitConversationEnd } from '../../services/async-events/index.js';
 import { onCognitiveSessionEnd } from '../../services/cognitive-session-hooks.js';
@@ -391,11 +392,11 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     });
   }
 
-  // MINOR_CARE=on: for a caller under 18 who isn't a verified owner, every writer that PERSISTS
-  // gets memoryUserId (undefined). The raw userId stays only for in-memory clears, presence and
-  // outreach suppression, billing (trial time), seeds and the in-memory A/B and cognitive tallies.
-  const held = memoryHeld(sessionId);
-  const memoryUserId = held ? undefined : userId;
+  // memoryUserId: undefined when held (MINOR_CARE, or a sexual topic once its read settles) or an
+  // on-behalf call's id. Raw userId: in-memory clears, trial time, A/B, tallies; seeds held.
+  await sexualReadsSettled(sessionId);
+  const [held, unowned] = [memoryHeld(sessionId), ownerWritesBlocked(userId)];
+  const memoryUserId = held || unowned ? undefined : userId;
   // Async event for background processing (the trust and predictions workers persist on it)
   emitConversationEnd({
     sessionId,
@@ -491,7 +492,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       : Promise.resolve(),
 
     // Capability learning - track which capabilities resonated for collective learning
-    userId ? cleanupCapabilityLearning(userId, sessionId, held) : Promise.resolve(),
+    userId ? cleanupCapabilityLearning(userId, sessionId, held || unowned) : Promise.resolve(),
 
     // WIRED (Jan 2026): Personality A/B Testing engagement recording
     userId
@@ -499,7 +500,6 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
           try {
             const PERSONALITY_EXPERIMENT_ID = 'personality_v2';
             const turnCount = finalConvState?.flow.turnCount || userData?.turnCount || 0;
-            
             // Record session engagement metrics for A/B testing analysis
             recordSessionEngagement(userId, PERSONALITY_EXPERIMENT_ID, {
               turnCount,
@@ -542,7 +542,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
 
     // Humanization state persistence
     (async () => {
-      if (held) return; // MINOR_CARE: comfort state and humanization data are about the caller
+      if (held || unowned) return; // comfort state and humanization data are about the caller
       const saveResult = await saveHumanizationState(userId || 'anonymous', sessionId);
       if (saveResult.saved) {
         diag.session('🎭 Humanization state persisted', { items: saveResult.items });
@@ -552,7 +552,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     // Naturalness Engine - persist learned voice patterns for next session
     (async () => {
       try {
-        if (!held) await persistNaturalnessData(sessionId); // their voice patterns: MINOR_CARE
+        if (!held && !unowned) await persistNaturalnessData(sessionId); // their voice patterns
         diag.session('🌊 Voice patterns persisted');
       } catch (naturalnessErr) {
         diag.warn('Voice pattern persistence failed (non-fatal)', {
@@ -640,7 +640,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     cleanupGames(sessionId),
 
     // Seed economy - the day's first conversation and streak milestones (caller's own day)
-    userId
+    userId && !unowned
       ? (async () => {
           const result = await awardSeedsForConversation(userId, userData?.callerTimezone);
           if (result.success) {
@@ -802,7 +802,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       : Promise.resolve(),
 
     // Session Lifecycle - clear presence, suppress outreach, persona affinity (held: onSessionEnd skips it)
-    userId
+    userId && !unowned
       ? (async () => {
           const turnCount = finalConvState?.flow.turnCount || userData?.turnCount || 0;
           const durationMinutes = finalConvState?.flow.durationMinutes || sessionDurationMs / 60000;
@@ -1367,7 +1367,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     try {
       const { getSessionDataManager } = await import('../../services/session-data-manager.js');
       // MINOR_CARE: held, caches are dropped unsaved (persona memories save before clearing)
-      const cleanupResult = await getSessionDataManager().sessionEnded(userId, { save: !held });
+      const cleanupResult = await getSessionDataManager().sessionEnded(userId, { save: !!memoryUserId });
       diag.session('🧹 SessionDataManager cleanup', {
         cleaned: cleanupResult.cleaned.length,
         errors: cleanupResult.errors.length,
@@ -1452,7 +1452,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     }
   }
 
-  if (held && userId) purgeHeldUser(userId, sessionId, services?.sessionStartTime); // MINOR_CARE
+  if (userId && minorHeld(sessionId)) purgeHeldUser(userId, sessionId, services?.sessionStartTime);
   const totalDuration = Date.now() - cleanupStart;
   diag.session('✅ Session cleanup complete', { totalDurationMs: totalDuration });
 }

@@ -102,7 +102,7 @@ describe('shared moments and MINOR_CARE', () => {
     expect(momentsOf(u)).toEqual([]);
   });
 
-  it('a non-held adult: one moment, with the same fields as before', async () => {
+  it('a non-held adult: one moment, with the same fields as before plus expireAt', async () => {
     const u = uid('A');
     const s = `adult-${u}`;
     expect(heldAfter(s, "I'm 34 and my week was long.", { userId: u })).toBe(false);
@@ -124,6 +124,7 @@ describe('shared moments and MINOR_CARE', () => {
         'callbackReception',
         'content',
         'createdAt',
+        'expireAt', // a year out (shared-moment-retention.ts)
         'id',
         'origin',
         'significance',

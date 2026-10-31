@@ -12,6 +12,7 @@ import { contextPacketEnabled } from '../../config/context-packet-flag.js';
 import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
+import { ownerWritesBlocked } from '../../services/identity/owner-write-gate.js';
 import { withoutQuickShortcuts } from '../shared/quick-shortcuts-real-only.js';
 import { heldAfter, lastFerniLine, minorCareNote } from '../../utils/minor-care.js';
 import {
@@ -28,6 +29,7 @@ import { TURN_CONTEXT_HEADER, withoutStaleTurnContext } from '../multi-agent/tur
 import { confirmedActionNote } from '../../tools/domains/communication/outreach/outreach-confirm.js';
 import { withoutLockedHandoffs } from '../../tools/handoff/locked-handoffs.js';
 import {
+  aliasNoteFor,
   teamStatusNote,
   unlockViewFor,
   withoutLockedTeammateNotes,
@@ -52,11 +54,17 @@ import {
   inReturningCallerFlow,
   returningCallerTurnNote,
 } from '../../services/identity/returning-caller.js';
-import { lastAgentLine, nameCorrectionNote, statedName } from './name-correction.js';
+import {
+  accountMayKeepName,
+  lastAgentLine,
+  nameCorrectionNote,
+  statedName,
+} from './name-correction.js';
 import { callMeNote } from './call-me-note.js';
 import { beatNote, priorCallsOf } from './personal-beats.js';
 import { porchLightNote } from './porch-light.js';
 import { roomGuestsNote } from './room-guests.js';
+import { noteCallReportReached, turnRequestFor } from './turn-call-report.js';
 import {
   worldFactLinesFor,
   worldFactsNoteFor,
@@ -89,6 +97,21 @@ import { turnStyleReminderEnabled, withTurnStyleReminder } from './turn-style.js
 import { clearBurstOffer } from './vocal-bursts.js';
 import { callSeed, signalsFor, styleFor } from './turn-request-style.js';
 import { scriptFreeOn } from './script-free.js';
+import { sexualBoundaryNote } from './sexual-boundary.js';
+
+/**
+ * The verified owner is on the line: rememberName may rename the account (remember-name.ts).
+ * Never on a crisis turn, and a check that throws is "not the owner": it must never cost the
+ * turn its reply (crisis-event-record.test.ts, every dependency throwing).
+ */
+const nameOwner = (session: object, crisis: boolean): boolean => {
+  if (crisis) return false;
+  try {
+    return accountMayKeepName(session, sessionIsVerifiedOwner);
+  } catch {
+    return false;
+  }
+};
 
 // Moved to turn-request-tools.ts; re-exported for existing importers.
 export { spokenCaptions, tapSpokenText, tapToolCalls } from './turn-request-tools.js';
@@ -113,26 +136,48 @@ const userIdOf = (userData: unknown): string | undefined =>
   (userData as { userId?: string } | undefined)?.userId;
 
 /**
+ * The request with this turn's notes. Never throws: when a note builder does, the turn gets
+ * the request as sent rather than no reply at all. gatedReply adds crisis guidance after this,
+ * so a guided turn keeps it (2026-10-29: an owner check threw on a crisis turn, #2996).
+ */
+export function withTurnReminder(
+  request: llm.ChatContext,
+  session: object,
+  options: TurnReminderOptions = {}
+): llm.ChatContext {
+  try {
+    return buildTurnReminder(request, session, options);
+  } catch (error) {
+    log.warn({ error: String(error) }, "TURN_REMINDER_FAILED: replying without this turn's notes");
+    const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
+    return turnRequestFor(request, sessionId, options.shape === false)[0]; // never throws
+  }
+}
+
+type TurnReminderOptions = { shape?: boolean; closeLoop?: boolean; held?: Promise<unknown> | null };
+
+/**
  * A copy of the context with the turn reminder, plus what Ferni has already
  * told on this call, the team line (locked-teammates.ts), and the director's
  * notes for this reply, if any, and without per-turn context built for an
  * earlier turn (turn-intelligence.ts).
  */
-export function withTurnReminder(
+function buildTurnReminder(
   request: llm.ChatContext,
   session: object,
-  options: { shape?: boolean; closeLoop?: boolean } = {}
+  options: TurnReminderOptions
 ): llm.ChatContext {
-  const chatCtx = withoutStaleTurnContext(request);
+  const crisis = options.shape === false;
+  const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
+  const [chatCtx, waits] = turnRequestFor(withoutStaleTurnContext(request), sessionId, crisis);
   // An invitation to open with a sound is for one request only (vocal-bursts.ts).
   clearBurstOffer(session);
   const director = getDirector(session);
   const view = unlockViewFor((session as { userData?: unknown }).userData);
   const words = callerWords(chatCtx);
   // SCRIPT_FREE_REMINDER=on: no shared style or quoted lines; never on a crisis turn (script-free.ts).
-  const crisis = options.shape === false;
   const plain = !crisis && scriptFreeOn();
-  const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
+  noteCallReportReached(sessionId, chatCtx, { latest: words, held: options.held, crisis: waits });
   // NO_INVENTED_INTERNALS=on: asked how he's built after a tool failed, or he just made it up.
   const internals = crisis
     ? ''
@@ -165,8 +210,8 @@ export function withTurnReminder(
     worldNowNote(session, new Date(), { items: chatCtx.items, words }), // HOUR_ONCE: hour-once.ts
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
-    // "Naya" in the transcript is Nayan (teammate-names.ts)
-    heardTeammateNote(words),
+    // "Naya" is Nayan; "9" may be (never near a crisis, or for a locked teammate): teammate-names.ts
+    heardTeammateNote(words, aliasNoteFor(view, session, chatCtx, options.shape === false)),
     notes,
     corrected,
     // The caller said yes to a read-back: the call or text goes only when the tool is called now.
@@ -186,10 +231,9 @@ export function withTurnReminder(
     // PORCH_LIGHT=on: softer and simpler on a call started in the caller's small hours.
     porchLightNote(chatCtx, session, { careful: options.shape === false }),
     // MINOR_CARE=on: a caller who sounds under 18 (minor-care.ts), never with crisis guidance; shadow only logs.
-    minorCareNote(sessionIdOf((session as { userData?: unknown }).userData), words, {
-      careful: options.shape === false,
-      asked: lastFerniLine(chatCtx.items),
-    }),
+    minorCareNote(sessionId, words, { careful: crisis, asked: lastFerniLine(chatCtx.items) }),
+    // SEXUAL_TOPIC_BOUNDARY=on: not a verified owner, or under-18 signs: no sexual detail, ever.
+    sexualBoundaryNote(sessionId, words, lastFerniLine(chatCtx.items)),
     // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
     beatNote({
       said: words,
@@ -212,7 +256,11 @@ export function withTurnReminder(
       plain,
     }),
     // CALL_ME_VOCATIVE=on: "call me, Ferni" rings; "call me Fern" is asked about (call-me-note.ts)
-    callMeNote(chatCtx, session, words, { plain, careful: crisis }),
+    callMeNote(chatCtx, session, words, {
+      plain,
+      careful: crisis,
+      owner: nameOwner(session, crisis),
+    }),
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     // ALEX_CHIEF_OF_STAFF=on: todos, goals, calendar and agenda go to Alex (chief-of-staff-note.ts)
@@ -376,13 +424,14 @@ export async function toolsForTurn(
   // Not a verified owner (an anon: caller included): nothing that reaches other people.
   // MINOR_CARE=on: a caller under 18 who isn't a verified owner gets no tool that stores
   // anything. The phone-safe set holds no tool that reaches others, so it covers both.
+  // ONBEHALF_WRITE_GATE: a call placed for a member (onbehalf:) acts on nobody's account either.
   const others = mayReachOthers(userIdOf(session.userData), sessionId, sessionIsVerifiedOwner);
   const held = heldAfter(sessionId, callerWords(chatCtx), {
     asked: lastFerniLine(chatCtx.items),
     userId: userIdOf(session.userData), // userHeld follows
   });
   const allowed =
-    phoneOnlyIdentity(sessionId) || held
+    phoneOnlyIdentity(sessionId) || held || ownerWritesBlocked(userIdOf(session.userData))
       ? await withoutAccountTools(toolCtx, state)
       : others
         ? toolCtx
@@ -426,9 +475,10 @@ async function withoutReachingOthers(
 }
 
 /**
- * A caller known only by their phone number: every tool not on the phone-safe
+ * A caller known only by their phone number, or a session on no account (the
+ * person on a call placed for a member): every tool not on the phone-safe
  * allowlist leaves the request and the agent itself, so a call to one can't
- * run (phone-safe-tools.ts).
+ * run (phone-safe-tools.ts). endCall, support and handoffs stay.
  */
 interface ToolHolder {
   readonly toolCtx: llm.ToolContext;

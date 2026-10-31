@@ -124,6 +124,12 @@ jobs:
       # forceRerunTriggers, so `vitest --changed` runs just the affected unit tests
       # (see test-unit-shard). Empty on other events.
       unit-full-suite: ${{ steps.unit-full.outputs.needed }}
+      # How many unit test files `--changed` selects, and whether that is too many for
+      # one shard ('true': run the affected set on four shards, as the whole suite is).
+      # Counted only on a PR that runs the affected tests; empty otherwise, which the
+      # shard matrix reads as 'not sharded' (a full run is four shards anyway).
+      unit-affected-count: ${{ steps.unit-affected.outputs.count }}
+      unit-affected-sharded: ${{ steps.unit-affected.outputs.sharded }}
       # 'true' when a PR touches crisis-safety or memory code, which then gets the
       # whole unit suite on four shards, as the ci:full-tests label does. Only
       # 'false' on a PR that touches none of those paths.
@@ -208,6 +214,21 @@ jobs:
         if: github.event_name == 'pull_request' && (steps.code.outputs.matched != 'false' || steps.voice-eval.outputs.matched == 'true')
         run: node scripts/ci/unit-full-suite-needed.mjs HEAD^1 || echo "needed=true" >> "$GITHUB_OUTPUT"
 
+      # `--changed` is not always small either: a file under src/config/flags/ reaches
+      # ~1,500 test files through the generated barrel, and one shard timed out on
+      # those at 25 min (7 of 22 attempts in four hours, 2026-10-29) while a full run
+      # on four shards never passed 14. Count the affected files here; above the
+      # script's threshold the shards below split them four ways. Skipped when the
+      # PR already runs the whole suite on four shards.
+      - name: How many unit tests are affected?
+        id: unit-affected
+        if: >-
+          github.event_name == 'pull_request'
+          && steps.unit-full.outputs.needed == 'false'
+          && steps.risky.outputs.matched != 'true'
+          && !contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
+        run: node scripts/ci/unit-affected-count.mjs HEAD^1 || echo "sharded=true" >> "$GITHUB_OUTPUT"
+
       - name: Save node_modules cache
         if: steps.code.outputs.matched != 'false' || steps.voice-eval.outputs.matched == 'true'
         uses: actions/cache/save@v6
@@ -287,7 +308,9 @@ jobs:
   # exactly one shard. A pull request runs only the affected tests, so the matrix
   # is just shard 1 there: shards 2-4 are never created and take no runner. When
   # the affected tests are the whole suite (setup's unit-full-suite), a PR gets
-  # all four, as a full run does.
+  # all four, as a full run does. So does a PR whose affected set is too big for
+  # one shard (setup's unit-affected-sharded, a flag file for one): each shard then
+  # runs its quarter of the affected files, `--changed HEAD^1 --shard=N/4`.
   test-unit-shard:
     name: Unit Tests (${{ matrix.shard }}/4)
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
@@ -298,19 +321,26 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # [1, 2, 3, 4] on a full run, [1] on a pull request that runs only the
-        # affected tests. The condition is FULL_SUITE's below and must stay the same
+        # [1, 2, 3, 4] on a full run or when the affected tests are too many for one
+        # shard, [1] on a pull request with a small affected set. The condition is
+        # FULL_SUITE's below plus AFFECTED_SHARDED's, and must stay the same
         # (merge-queue-jobs.test.ts pins it, and the Unit Tests gate checks the count).
-        shard: ${{ fromJSON((github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests') || needs.setup.outputs.unit-full-suite != 'false' || needs.setup.outputs.full-tests == 'true') && '[1, 2, 3, 4]' || '[1]') }}
+        shard: ${{ fromJSON((github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests') || needs.setup.outputs.unit-full-suite != 'false' || needs.setup.outputs.full-tests == 'true' || needs.setup.outputs.unit-affected-sharded == 'true') && '[1, 2, 3, 4]' || '[1]') }}
     env:
       # 'true' when this run tests the whole suite: every event but a pull request,
       # a pull request labelled ci:full-tests, one whose diff makes `--changed`
       # run everything anyway (`!= 'false'`: a missing answer runs all four), and
       # one that touches crisis-safety or memory code (setup's full-tests).
       FULL_SUITE: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests') || needs.setup.outputs.unit-full-suite != 'false' || needs.setup.outputs.full-tests == 'true' }}
-    # Every leg reports the same two values, so it doesn't matter which one wins.
+      # 'true' when a pull request that runs only the affected tests has so many that
+      # setup split them over the four shards (setup's unit-affected-sharded). Only an
+      # explicit 'true' does; an empty answer means one shard, which is safe because
+      # setup skips the count only when the PR runs the whole suite on four anyway.
+      AFFECTED_SHARDED: ${{ needs.setup.outputs.unit-affected-sharded == 'true' }}
+    # Every leg reports the same three values, so it doesn't matter which one wins.
     outputs:
       full-suite: ${{ env.FULL_SUITE }}
+      affected-sharded: ${{ env.AFFECTED_SHARDED }}
       shards: ${{ strategy.job-total }}
     steps:
       # Two commits on a pull request: GitHub's merge commit and its first parent, the
@@ -367,7 +397,7 @@ jobs:
       # always runs it, before the Rust build. (The env-name list and flag barrel that
       # used to share this step are generated now, never committed, so they can't drift.)
       - name: Check the decision register
-        if: env.FULL_SUITE != 'true'
+        if: env.FULL_SUITE != 'true' && matrix.shard == 1
         run: pnpm exec vitest run --config vitest.config.unit.ts src/__tests__/decisions/
         env:
           NODE_ENV: test
@@ -442,10 +472,16 @@ jobs:
       # crisis-safety or memory code (setup's full-tests).
       - name: Run unit tests affected by this pull request
         if: env.FULL_SUITE != 'true'
-        run: pnpm exec vitest run --config vitest.config.unit.ts --changed HEAD^1 --passWithNoTests
+        run: |
+          args=(--config vitest.config.unit.ts --changed HEAD^1 --passWithNoTests)
+          # vitest shards the files --changed selected, so the four shards of a big
+          # affected set are disjoint and together run all of it.
+          if [ "$AFFECTED_SHARDED" = true ]; then args+=("--shard=$SHARD/4"); fi
+          pnpm exec vitest run "${args[@]}"
         env:
           NODE_ENV: test
           NODE_OPTIONS: '--max-old-space-size=8192'
+          SHARD: ${{ matrix.shard }}
 
       # No `--`: pnpm passes it through and vitest ignores every flag after it, so the
       # old `-- --reporter=verbose` here never took effect (the default reporter ran).
@@ -469,7 +505,7 @@ jobs:
           fail_ci_if_error: false
 
   # The "Unit Tests" check: green only when setup and every shard of the matrix
-  # (four on a full run, one on an affected-only PR run) passed. A matrix job's
+  # (four on a full run or a big affected set, one on a small one) passed. A matrix job's
   # result is success only when every leg succeeded; failure, cancelled and
   # skipped all fail this check, so shards skipped on a full run can't pass it.
   # It runs whenever the shards should have (always(), so a failed, cancelled or
@@ -488,23 +524,24 @@ jobs:
           SETUP: ${{ needs.setup.result }}
           SHARDS: ${{ needs.test-unit-shard.result }}
           FULL: ${{ needs.test-unit-shard.outputs.full-suite }}
+          AFFECTED: ${{ needs.test-unit-shard.outputs.affected-sharded }}
           TOTAL: ${{ needs.test-unit-shard.outputs.shards }}
         run: |
-          echo "setup: $SETUP, unit test shards: $SHARDS ($TOTAL created, full suite: $FULL)"
+          echo "setup: $SETUP, unit test shards: $SHARDS ($TOTAL created, full suite: $FULL, affected tests sharded: $AFFECTED)"
           if [ "$SETUP" != success ] || [ "$SHARDS" != success ]; then
             echo "::error::Unit Tests failed: setup $SETUP, shards $SHARDS (see the Unit Tests (n/4) jobs)"
             exit 1
           fi
-          # The shard matrix and FULL_SUITE are two copies of one condition. If they
-          # drifted, a full run could create one shard that runs --shard=1/4 and
-          # passes having run a quarter of the suite. Fail closed instead.
-          case "$FULL" in
-            true) want=4 ;;
-            false) want=1 ;;
-            *) echo "::error::Unit Tests: the shards did not report whether this was a full run"; exit 1 ;;
+          # The shard matrix, FULL_SUITE and AFFECTED_SHARDED are copies of one
+          # condition. If they drifted, a run could create one shard that runs
+          # --shard=1/4 and passes having run a quarter of the suite. Fail closed.
+          case "$FULL/$AFFECTED" in
+            true/* | false/true) want=4 ;;
+            false/false) want=1 ;;
+            *) echo "::error::Unit Tests: the shards did not report how the tests were split"; exit 1 ;;
           esac
           if [ "$TOTAL" != "$want" ]; then
-            echo "::error::Unit Tests: $TOTAL shard(s) ran, expected $want (full suite: $FULL)"
+            echo "::error::Unit Tests: $TOTAL shard(s) ran, expected $want (full suite: $FULL, affected tests sharded: $AFFECTED)"
             exit 1
           fi
 
@@ -940,7 +977,7 @@ jobs:
 
       - name: Check for secrets
         if: steps.scan-range.outcome == 'success' && steps.scan-range.outputs.commits != '0'
-        uses: trufflesecurity/trufflehog@e76dff8a7e57d6df0c60ad8cbf5d5cba505a8fc9 # v3.99.2
+        uses: trufflesecurity/trufflehog@31ce31ee1abbcc7dc8eee5764c17121c3044c8b2 # v3.99.7
         with:
           path: ./
           base: ${{ steps.scan-range.outputs.base }}
@@ -1059,6 +1096,11 @@ jobs:
       # checked-in gcloud listings in scripts/ci/fixtures/firestore-indexes/. ~2 s.
       - name: Firestore index drift
         run: pnpm tsx scripts/ci/firestore-indexes-drift.ts
+
+      # Blocking: a file this PR leaves unimported, or more unused exports in a file than at
+      # the merge base, fails (knip.json; knip runs here and on the base). ~10 s.
+      - name: Dead code (knip ratchet)
+        run: pnpm quality:knip
 
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates

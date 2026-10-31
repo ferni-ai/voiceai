@@ -3,14 +3,7 @@
  *
  * Read-only access to user's Gmail inbox for Alex (Communication Specialist).
  *
- * Features:
- * - Read inbox messages
- * - Search emails
- * - Get thread details
- * - Email triage and summarization
- *
- * NOTE: This requires the user to have completed Google OAuth with Gmail scope.
- * We reuse the existing Google OAuth infrastructure from google-calendar-oauth.ts.
+ * NOTE: the Google link carries calendar scopes only, so Gmail answers 403 (see gmail-honesty.ts).
  *
  * @module services/gmail
  */
@@ -18,6 +11,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { getValidAccessToken, isCalendarConfigured } from '../identity/google-calendar-oauth.js';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
+import { GmailNotPermittedError, assertGmailPermitted, gmailFallback } from './gmail-honesty.js';
 
 const log = getLogger();
 
@@ -132,6 +126,7 @@ async function gmailRequest<T>(
 
     if (!response.ok) {
       const errorText = await response.text();
+      assertGmailPermitted(response.status, errorText);
       throw new Error(`Gmail API error: ${response.status} - ${errorText}`);
     }
 
@@ -223,7 +218,7 @@ export async function getInboxMessages(
   const accessToken = await getValidAccessToken(userId);
   if (!accessToken) {
     log.debug({ userId }, 'No Gmail access token');
-    return [];
+    return gmailFallback([], 'no_token');
   }
 
   const { maxResults = 20, labelIds = ['INBOX'], query, includeSpamTrash = false } = options;
@@ -263,8 +258,9 @@ export async function getInboxMessages(
     log.debug({ userId, count: messages.length }, 'Fetched Gmail messages');
     return messages;
   } catch (error) {
+    if (error instanceof GmailNotPermittedError) throw error;
     log.error({ error: String(error), userId }, 'Failed to get Gmail messages');
-    return [];
+    return gmailFallback([], 'failed');
   }
 }
 
@@ -310,7 +306,7 @@ export async function searchEmails(
 export async function getInboxStats(userId: string): Promise<InboxStats | null> {
   const accessToken = await getValidAccessToken(userId);
   if (!accessToken) {
-    return null;
+    return gmailFallback(null, 'no_token');
   }
 
   try {
@@ -347,8 +343,9 @@ export async function getInboxStats(userId: string): Promise<InboxStats | null> 
       },
     };
   } catch (error) {
+    if (error instanceof GmailNotPermittedError) throw error;
     log.error({ error: String(error), userId }, 'Failed to get inbox stats');
-    return null;
+    return gmailFallback(null, 'failed');
   }
 }
 
@@ -361,7 +358,7 @@ export async function getEmailThread(
 ): Promise<EmailThread | null> {
   const accessToken = await getValidAccessToken(userId);
   if (!accessToken) {
-    return null;
+    return gmailFallback(null, 'no_token');
   }
 
   try {
@@ -393,8 +390,9 @@ export async function getEmailThread(
       isUnread: messages.some((m) => !m.isRead),
     };
   } catch (error) {
+    if (error instanceof GmailNotPermittedError) throw error;
     log.error({ error: String(error), userId, threadId }, 'Failed to get email thread');
-    return null;
+    return gmailFallback(null, 'failed', error);
   }
 }
 

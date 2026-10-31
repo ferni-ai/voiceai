@@ -308,8 +308,6 @@
       "notifications": "When I'll Check In",
       "toggleTheme": "Light / Dark",
       "themeLanguage": "Look & Feel",
-      "linkSpotify": "Connect Spotify",
-      "spotifyConnected": "Spotify Connected",
       "vibeController": "Set the Mood",
       "spotifyRooms": "Music Rooms",
       "thermostat": "Home Comfort",
@@ -375,12 +373,12 @@
     "languageCurrent": "{language} (current)"
   },
   "session": {
-    "connecting": "Connecting...",
+    "connecting": "Connecting…",
     "connected": "Connected",
     "disconnected": "Disconnected",
-    "listening": "Listening...",
-    "thinking": "Thinking...",
-    "speaking": "Speaking...",
+    "listening": "Listening…",
+    "thinking": "Thinking…",
+    "speaking": "Speaking…",
     "tapToSpeak": "Tap to speak",
     "holdToSpeak": "Hold to speak",
     "releaseToSend": "Release to send",
@@ -388,11 +386,11 @@
     "sessionEnded": "Session ended",
     "goodbye": "Goodbye",
     "end": "End",
-    "untilNextTime": "Until next time...",
+    "untilNextTime": "Until next time",
     "endConversation": "End conversation",
     "endConversationGoodbye": "End conversation - Goodbye",
     "takeCare": "Take care.",
-    "ending": "Ending..."
+    "ending": "Call ended"
   },
   "memoryBrowser": {
     "eyebrow": "Your Journey",
@@ -1361,10 +1359,6 @@
       "apple_health": {
         "name": "Apple Health",
         "description": "Sync with Apple Watch and iPhone health data"
-      },
-      "fitbit": {
-        "name": "Fitbit",
-        "description": "Connect your Fitbit device"
       },
       "garmin": {
         "name": "Garmin",
@@ -2858,8 +2852,7 @@
       "askFerni": "Or ask Ferni to play something",
       "play": "Play",
       "pause": "Pause",
-      "skip": "Skip",
-      "linkSpotify": "Link Spotify in Settings for full songs"
+      "skip": "Skip"
     },
     "volume": "Volume",
     "skipped": "Skipped",
@@ -3079,9 +3072,9 @@
   },
   "tryFirst": {
     "subtitle": "Say hello first. Sign in whenever you want to keep the conversation.",
-    "talkNow": "Talk to Ferni now",
+    "talkNow": "Talk to Ferni",
     "noAccount": "No account needed. Just say hello.",
-    "connecting": "Connecting",
+    "connecting": "Calling {name}…",
     "inCall": "You're talking with Ferni. Say whatever's on your mind.",
     "endCall": "End call",
     "keepTitle": "Want to keep this conversation?",
@@ -8433,10 +8426,9 @@
     "appleHealthDesc": "Sleep, activity, and heart rate data",
     "ouraDesc": "Sleep quality and readiness scores",
     "eightSleepDesc": "Sleep tracking and temperature",
-    "wearablesDesc": "Fitbit, Garmin, Whoop, and more",
+    "wearablesDesc": "Garmin, Whoop, and more",
     "calendarDesc": "Events, meetings, and availability",
     "linkedInDesc": "Professional context and network",
-    "spotifyDesc": "Music, mood playlists, listening history",
     "ecobeeDesc": "Home temperature and comfort",
     "vibeControllerDesc": "Control music, lights, and more",
     "connected": "Connected",
@@ -9074,9 +9066,6 @@
     "trustJourneyExplore": "Explore",
     "customizeTitle": "Customize your experience",
     "customizeMessage": "Adjust themes, sounds, and more.",
-    "spotifyTitle": "Connect Spotify",
-    "spotifyMessage": "Link your Spotify to set the mood during our conversations.",
-    "spotifyConnect": "Connect",
     "maybeLater": "Maybe later"
   },
   "mentorTeachings": {
@@ -10334,7 +10323,6 @@
     },
     "monthlyLimitReached": "We've reached our monthly limit. I'd love to keep talking...",
     "enableMicPrompt": "I'd love to hear your voice - enable mic access?",
-    "agentJoined": "{name} joined",
     "seeYouNextTime": "See you next time!",
     "handoffFailed": "Couldn't reach them right now. I'm still here though!",
     "personaBack": "{name} is back!",
@@ -10622,7 +10610,6 @@
     "names": {
       "stockData": "Stock Data",
       "marketData": "Market Data",
-      "weatherMaps": "Weather & Maps",
       "historicalFacts": "Historical Facts",
       "smartHome": "Smart Home",
       "lighting": "Lighting",
@@ -10914,18 +10901,21 @@
     "micHelpIos": "Open your iPhone Settings, find this browser, and turn on Microphone. Then come back and try again.",
     "micHelpAndroid": "Tap the icon left of the address bar, then Permissions, then set Microphone to Allow. Then try again.",
     "micHelpDesktop": "Open your browser’s site settings (the icon left of the address bar), set Microphone to Allow, then try again.",
-    "endTalk": "Disconnect",
-    "connectingCancel": "Connecting. Tap to cancel",
-    "connectingNow": "Connecting…",
-    "tapToCancel": "Tap to cancel"
+    "endTalk": "End call",
+    "connectingCancel": "Calling {name}. Tap to cancel.",
+    "connectingNow": "Calling {name}…",
+    "tapToCancel": "Tap to cancel",
+    "stillCalling": "Still reaching {name}…",
+    "stillCallingCancel": "Still reaching {name}. Tap to cancel.",
+    "reconnecting": "Reconnecting…"
   },
   "callRoom": {
-    "connecting": "Connecting",
+    "connecting": "Calling {name}…",
     "listening": "{name}'s listening",
     "talking": "{name}'s talking",
     "muted": "You're muted",
-    "end": "End",
-    "backHint": "Tap End to hang up"
+    "end": "End call",
+    "backHint": "Tap End call to hang up"
   },
   "analyticsDashboard": {
     "title": "Your Journey",

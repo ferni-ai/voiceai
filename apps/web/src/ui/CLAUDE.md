@@ -123,7 +123,6 @@ export class MyFeatureUI {
 ### Settings
 | Component | Purpose |
 |-----------|---------|
-| `spotify.ui.ts` | Spotify controls |
 | `calendar-view.ui.ts` | Calendar integration |
 | `manage-subscription.ui.ts` | Subscription management |
 | `video-settings.ui.ts` | Video settings |

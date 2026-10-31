@@ -30,10 +30,10 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
 import { toGuardVoiceEmotion, type ProsodyEmotionLike } from '../safety/crisis-shadow.js';
 import { LATE_WORDS_MERGED, type LateWordsMergedEvent } from '../shared/late-words-event.js';
-import { callerWords, startCrisisGate } from './crisis-gate.js';
+import { startCrisisGate } from './crisis-gate.js';
 import { recordCrisisOnCall, replaceKind } from '../safety/crisis-event-record.js';
 import { watchCheck } from '../../services/safety/crisis-classifier-check-turn.js';
-import { sessionScope } from './crisis-gate-words.js';
+import { callerWords, sessionScope } from './crisis-gate-words.js';
 
 const log = createLogger({ module: 'LateWords' });
 

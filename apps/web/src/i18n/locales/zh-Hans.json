@@ -1270,8 +1270,6 @@
       "notifications": "我何时来记录",
       "toggleTheme": "浅色 / 深色",
       "themeLanguage": "外观与感觉",
-      "linkSpotify": "连接 Spotify",
-      "spotifyConnected": "Spotify 已连接",
       "vibeController": "调节氛围",
       "spotifyRooms": "音乐空间",
       "thermostat": "居家舒适度",
@@ -2419,10 +2417,6 @@
         "description": "同步 Apple Watch 和 iPhone 的健康数据",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "连接你的 Fitbit 设备",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "同步你的 Garmin 智能穿戴设备",
         "name": "Garmin"
@@ -2776,8 +2770,7 @@
       "askFerni": "或者让 Ferni 播放点什么",
       "play": "播放",
       "pause": "暂停",
-      "skip": "跳过",
-      "linkSpotify": "在设置中关联 Spotify 以收听完整歌曲"
+      "skip": "跳过"
     },
     "volume": "音量",
     "skipped": "已跳过",
@@ -8349,10 +8342,9 @@
     "appleHealthDesc": "睡眠、活动和心率数据",
     "ouraDesc": "睡眠质量与准备度评分",
     "eightSleepDesc": "睡眠追踪与温度调节",
-    "wearablesDesc": "Fitbit、Garmin、WHOOP 等更多设备",
+    "wearablesDesc": "Garmin、WHOOP 等更多设备",
     "calendarDesc": "日程、会议与空闲时间",
     "linkedInDesc": "职业背景与人脉网络",
-    "spotifyDesc": "音乐、心情歌单与收听历史",
     "ecobeeDesc": "室内温度与舒适度",
     "vibeControllerDesc": "控制音乐、灯光等更多内容",
     "connected": "已连接"
@@ -8982,9 +8974,6 @@
     "trustJourneyExplore": "去探索",
     "customizeTitle": "定制你的体验",
     "customizeMessage": "调整主题、声音等设置。",
-    "spotifyTitle": "连接 Spotify",
-    "spotifyMessage": "连接你的 Spotify，在我们的对话中烘托氛围。",
-    "spotifyConnect": "连接",
     "maybeLater": "以后再说吧"
   },
   "mentorTeachings": {
@@ -10213,7 +10202,6 @@
     "connectFirstToManage": "先连接，然后我们就可以管理它了。",
     "monthlyLimitReached": "我们已经达到了本月的上限。其实我还想继续和你聊聊的...",
     "enableMicPrompt": "我很想听听你的声音——可以开启麦克风权限吗？",
-    "agentJoined": "{name} 已加入",
     "seeYouNextTime": "下次见啦！",
     "handoffFailed": "现在联系不上他们。不过我还在呢！",
     "personaBack": "{name} 回来啦！",
@@ -10510,7 +10498,6 @@
     "names": {
       "stockData": "股票数据",
       "marketData": "市场数据",
-      "weatherMaps": "天气与地图",
       "historicalFacts": "历史事实",
       "smartHome": "智能家居",
       "lighting": "照明",
@@ -10807,7 +10794,10 @@
     "endTalk": "挂断",
     "connectingCancel": "正在连接。点按即可取消",
     "connectingNow": "正在连接…",
-    "tapToCancel": "点按即可取消"
+    "tapToCancel": "点按即可取消",
+    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
+    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
+    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
   },
   "analyticsDashboard": {
     "title": "你的旅程",

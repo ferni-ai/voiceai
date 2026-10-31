@@ -15,7 +15,10 @@ import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
 import { verifyFirebaseToken, isVerifiedToken } from '../../../services/identity/firebase-auth.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { sealTokens } from '../../../utils/token-at-rest.js';
-import { openSmartHomeCredentials } from '../../../services/smart-home/user-credentials.js';
+import {
+  openSmartHomeCredentials,
+  readSmartHomeCredentials,
+} from '../../../services/smart-home/user-credentials.js';
 import { assertNoEncryptedValues, hueSaveInput, lifxSaveInput } from './smart-home-guards.js';
 import { HUE_NEEDS_REMOTE_ACCESS } from '../../../services/smart-home/hue-remote-access.js';
 import { createManagedInterval, type ManagedInterval } from '../../../utils/managed-interval.js';
@@ -26,14 +29,10 @@ const log = createLogger({ module: 'smart-home-routes' });
 // Log configuration status on module load
 const SMART_HOME_CONFIG = {
   sonos: !!process.env.SONOS_CLIENT_ID && !!process.env.SONOS_CLIENT_SECRET,
-  homeAssistant: !!process.env.HOME_ASSISTANT_URL && !!process.env.HOME_ASSISTANT_TOKEN,
 };
 
 if (!SMART_HOME_CONFIG.sonos) {
   log.info('Sonos integration not configured (set SONOS_CLIENT_ID and SONOS_CLIENT_SECRET)');
-}
-if (!SMART_HOME_CONFIG.homeAssistant) {
-  log.debug('Home Assistant integration not configured (optional)');
 }
 
 // ============================================================================
@@ -110,14 +109,7 @@ function getSmartHomeCollection() {
 
 export async function getCredentials<T>(userId: string, integration: string): Promise<T | null> {
   try {
-    const doc = await getSmartHomeCollection()
-      .doc(userId)
-      .collection('smart_home')
-      .doc(integration)
-      .get();
-
-    if (!doc.exists) return null;
-    return await openSmartHomeCredentials<T>(userId, integration, doc.data());
+    return await readSmartHomeCredentials<T>(userId, integration);
   } catch (error) {
     log.error({ error, userId, integration }, 'Failed to get credentials');
     return null;
@@ -131,7 +123,9 @@ export async function saveCredentials<T extends object>(
 ): Promise<void> {
   try {
     assertNoEncryptedValues(credentials); // never seal (or later decrypt) a submitted enc_ value
-    const existing = (await getCredentials<Record<string, unknown>>(userId, integration)) ?? {};
+    // Fail closed: a read error throws here, so the set below never replaces a record we could not read.
+    const existing =
+      (await readSmartHomeCredentials<Record<string, unknown>>(userId, integration)) ?? {};
     const ref = getSmartHomeCollection().doc(userId).collection('smart_home').doc(integration);
     await ref.set(sealTokens({ ...existing, ...credentials })); // replaced whole: no plaintext left
   } catch (error) {

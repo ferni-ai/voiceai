@@ -142,10 +142,14 @@ describe("Let's Play: every picker game starts on the agent", () => {
     async (gameId) => {
       const sessionId = `call-${gameId}`;
       const agent = call(sessionId);
-      agent.deliver(await tap(gameId));
+      const request = await tap(gameId);
+      const { requestId } = JSON.parse(new TextDecoder().decode(request)) as { requestId: unknown };
+      expect(typeof requestId).toBe('string');
+      agent.deliver(request);
 
       await vi.waitFor(() => expect(agent.acks).toHaveLength(1), WAIT);
-      expect(agent.acks[0]).toMatchObject({ gameType: gameId, success: true });
+      // The ack names the tap it answers
+      expect(agent.acks[0]).toMatchObject({ gameType: gameId, success: true, requestId });
       expect(engineGame(sessionId)).toBe(gameId);
       expect(mocks.say).toHaveBeenCalledWith(sessionId, expect.any(String), expect.anything());
 

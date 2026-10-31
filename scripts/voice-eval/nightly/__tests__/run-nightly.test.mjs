@@ -31,12 +31,16 @@ function sandbox(lanes, { claimErr = '', runSh = '', cleanupCount = 0 } = {}) {
   mkdirSync(join(n, 'lanes'), { recursive: true });
   for (const f of [
     'run-nightly.sh',
+    'deploy-retry.sh',
     'scorecard.mjs',
     'capabilities.json',
     'analyze.py',
     'superhuman.mjs',
     'superhuman-bar.json',
     'false-done.mjs',
+    'recall-score.mjs',
+    'recall-world.mjs',
+    'tool-grounding.mjs',
   ])
     cpSync(join(NIGHTLY, f), join(n, f));
   for (const f of ['recall-facts.mjs', 'eval-database.mjs'])

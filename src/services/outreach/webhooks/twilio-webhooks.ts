@@ -9,7 +9,7 @@
  */
 
 import { getProfileStore } from '../../../memory/profile-store.js';
-import { createHmac } from 'crypto';
+import twilio from 'twilio';
 import type { UserProfile } from '../../../types/user-profile.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { recordResponseEvent } from '../analytics.js';
@@ -210,7 +210,9 @@ export function onInboundMessage(handler: InboundMessageHandler): void {
 // ============================================================================
 
 /**
- * Validate Twilio webhook signature (HMAC-SHA1 as per Twilio's specification).
+ * Validate a Twilio webhook signature over `url` plus the posted form fields, with the
+ * Twilio SDK's validateRequest (constant-time compare, port spellings). `url` must be the
+ * URL Twilio was given (api/twilio-callback-signature.ts builds it).
  * The token comes from initializeTwilioWebhooks, else TWILIO_AUTH_TOKEN: nothing deployed
  * calls initializeTwilioWebhooks, so without the env fallback every signature was refused.
  */
@@ -226,15 +228,7 @@ export function validateTwilioSignature(
   }
 
   try {
-    // Build the data string: URL + sorted params concatenated
-    const sortedKeys = Object.keys(params).sort();
-    let data = url;
-    for (const key of sortedKeys) {
-      data += key + params[key];
-    }
-    const expectedSignature = createHmac('sha1', authToken).update(data).digest('base64');
-
-    return signature === expectedSignature;
+    return Boolean(signature) && twilio.validateRequest(authToken, signature, url, params);
   } catch (error) {
     log.error({ error }, 'Signature validation error');
     return false;
@@ -319,7 +313,7 @@ export async function handleInboundSMSWebhook(
     process.env.SKIP_TWILIO_VALIDATION === 'true' && process.env.NODE_ENV === 'test';
   if (!skipValidation) {
     if (!signature || !url) {
-      log.warn({ messageSid: payload.MessageSid }, 'Missing Twilio signature or URL');
+      log.error({ messageSid: payload.MessageSid }, 'Inbound SMS: missing Twilio signature or URL');
       return { success: false };
     }
     const isValid = validateTwilioSignature(
@@ -328,7 +322,7 @@ export async function handleInboundSMSWebhook(
       payload as unknown as Record<string, string>
     );
     if (!isValid) {
-      log.warn({ messageSid: payload.MessageSid }, 'Invalid Twilio signature');
+      log.error({ messageSid: payload.MessageSid }, 'Inbound SMS: invalid Twilio signature');
       return { success: false };
     }
   }

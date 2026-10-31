@@ -76,7 +76,7 @@ function withinOneSecond<T>(p: Promise<T>): Promise<T> {
 describe('calendar POST bodies are read once', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.storeCredentials.mockResolvedValue(true);
+    mocks.storeCredentials.mockResolvedValue({ ok: true });
     mocks.setNotificationPreference.mockResolvedValue(undefined);
   });
 
@@ -103,6 +103,30 @@ describe('calendar POST bodies are read once', () => {
       'abcd-efgh-ijkl-mnop'
     );
     expect(res.json().success).toBe(true);
+  });
+
+  it('Apple connect with no sealing key says nothing was saved, never connected', async () => {
+    mocks.storeCredentials.mockResolvedValue({ ok: false, reason: 'sealing_unavailable' });
+    const res = response();
+    const req = post('/api/calendar/apple/connect', {
+      userId: 'u1',
+      apple_id: 'me@icloud.com',
+      app_password: 'abcd-efgh-ijkl-mnop',
+    });
+
+    await withinOneSecond(
+      handleCalendarRoutes(
+        req,
+        res,
+        '/api/calendar/apple/connect',
+        new URL('http://x/api/calendar/apple/connect')
+      )
+    );
+
+    expect(res.status()).toBe(503);
+    expect(res.json()).toMatchObject({ success: false, code: 'sealing_unavailable' });
+    expect(String(res.json().error)).toMatch(/couldn't save your apple calendar connection/i);
+    expect(mocks.registerUser).not.toHaveBeenCalled();
   });
 
   it('notification preference saves complete', async () => {

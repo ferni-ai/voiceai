@@ -15,6 +15,7 @@
  * @module agents/multi-agent/turn-intelligence
  */
 
+import { randomUUID } from 'node:crypto';
 import type { llm } from '@livekit/agents';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { SessionServices } from '../../services/index.js';
@@ -33,8 +34,9 @@ import { firestoreRevivedStore } from '../../memory/storage/revived-store.js';
 import { forgottenInProcess, forgottenTopicsOrNull } from '../../memory/recall/forget.js';
 import { isForgottenPassage } from '../../memory/recall/episodes.js';
 import { CRISIS_GATE_SIGNAL } from '../safety/crisis-gate-signal.js';
+import { CALLER_TURN_KEY, callerTurnFor, type WithCallerTurn } from '../shared/caller-turn-count.js';
 import { deferralForSession, noteUserTurn } from './first-turn-defer.js';
-import { yieldIfFirstTurnWarm } from './first-turn-warm.js';
+import { firstTurnWarmOn, yieldIfFirstTurnWarm } from './first-turn-warm.js';
 import { TURN_CONTEXT_FOR, TURN_CONTEXT_HEADER } from './turn-context-header.js';
 import { carriesSafety } from '../processors/turn-processor/safety-note.js';
 import { heldForPreemptive } from './preempt-stable-context.js';
@@ -98,6 +100,8 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
   return async (turnCtx, newMessage) => {
     const userText = newMessage.textContent?.trim();
     if (!userText) return;
+    // Counted before any await; the pusher names each caller turn, so a turn's segments count once.
+    const callerTurn = callerTurnFor(sessionId, newMessage.extra?.[CALLER_TURN_KEY] as string | undefined);
 
     const start = Date.now();
     try {
@@ -106,11 +110,11 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
       const { startVoicePatterns } =
         await import('../../conversation/humanization/voice-pattern-session.js');
       await startVoicePatterns(deps.services.sessionId, deps.services.userId);
-      await yieldIfFirstTurnWarm(); // between cold steps: back to back they starve the audio pump
+      if (firstTurnWarmOn()) await yieldIfFirstTurnWarm(); // between cold steps: back to back they starve the audio pump
       const handle = deps.handle ?? (await import('../voice-agent/turn-handler.js')).handleUserTurn;
       const { getStateManager } = await import('../session/user-data-proxy.js');
       const { getAverageSpeechRate } = await import('../voice-agent/human-turn-intelligence.js');
-      await yieldIfFirstTurnWarm();
+      if (firstTurnWarmOn()) await yieldIfFirstTurnWarm();
       const userData = deps.userData as UserData & {
         turnCount?: number;
         userSpeakingStartTime?: number;
@@ -135,6 +139,7 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
         services: deps.services,
         userData: {
           turnCount: userData.turnCount,
+          ...({ callerTurn } satisfies WithCallerTurn), // read by callerTurnOf (shared/caller-turn-count.ts)
           extensibilitySessionPrompt: state?.extensibility?.sessionPrompt,
           pauseBeforeMs,
           speechRateWPM: getAverageSpeechRate(deps.services.sessionId),
@@ -337,6 +342,7 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
   let pending: string | null = null;
   let pushedId: string | null = null;
   let turnText = '';
+  let turnKey = ''; // names the caller turn turnText is building (caller-turn-count.ts)
   let run = 0;
   let agentListening = true;
   let userSpeaking = false;
@@ -387,12 +393,17 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
     /** A final transcript segment; segments of one turn accumulate. */
     async onFinalTranscript(transcript: string): Promise<void> {
       if (!transcript.trim()) return;
+      if (turnText === '') turnKey = randomUUID(); // the first final of a new caller turn
       turnText = `${turnText} ${transcript.trim()}`.trim();
       const forText = turnText;
+      const forKey = turnKey;
       const mine = ++run;
       const { llm } = await import('@livekit/agents');
       const scratch = llm.ChatContext.empty();
-      await hook(scratch, llm.ChatMessage.create({ role: 'user', content: forText }));
+      await hook(
+        scratch,
+        llm.ChatMessage.create({ role: 'user', content: forText, extra: { [CALLER_TURN_KEY]: forKey } })
+      );
       if (mine !== run) return; // a later segment of this turn superseded it
       const notes = scratch.items
         .map((item) => ({

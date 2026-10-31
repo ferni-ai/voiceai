@@ -86,6 +86,9 @@ persona=${persona_opt[2]:-${EVAL_PERSONA:-}}
 # Checked before any call: a bad value exits 2 here. "null" when echo is off.
 echo_cfg=$(node $HERE/echo-mixer.mjs --config) || exit 2
 env=$1; scenario=$2; label=${3:-$(date +%H%M%S)}
+# EVAL_SCENARIO_DIR / EVAL_OUT_DIR: scenarios read from, and output written to, a directory outside
+# the repo (the held-out recall eval, nightly/recall-eval.mjs, keeps its questions there).
+SCEN=${EVAL_SCENARIO_DIR:-$HERE/scenarios}
 seed=${EVAL_SEED:-}
 uid=${4:-${EVAL_UID:-voice-eval-$scenario-$(date +%Y%m%d%H%M%S)-$(od -An -N2 -tx1 /dev/urandom | tr -d ' \n')}}
 if [[ $uid != voice-eval-?* ]]; then
@@ -93,10 +96,10 @@ if [[ $uid != voice-eval-?* ]]; then
   exit 2
 fi
 for s in $scenario $seed; do
-  [[ -f $HERE/scenarios/$s.txt ]] || { print -u2 "run.sh: no scenario $HERE/scenarios/$s.txt"; exit 2; }
+  [[ -f $SCEN/$s.txt ]] || { print -u2 "run.sh: no scenario $SCEN/$s.txt"; exit 2; }
 done
 # A scenario written for one teammate names them: "#@persona maya-santos".
-[[ -n $persona ]] || persona=$(sed -n 's/^#@persona[[:space:]]*//p' $HERE/scenarios/$scenario.txt | head -1)
+[[ -n $persona ]] || persona=$(sed -n 's/^#@persona[[:space:]]*//p' $SCEN/$scenario.txt | head -1)
 if [[ -n $persona && ! -f $ROOT/src/personas/bundles/$persona/persona.manifest.json ]]; then
   print -u2 "run.sh: no persona bundle $ROOT/src/personas/bundles/$persona"
   exit 2
@@ -105,7 +108,7 @@ fi
 realism=${CALLER_REALISM:-}; real_default=
 [[ $realism == 1 ]] && realism= && real_default=everyday
 (( ${#realistic_on} )) && real_default=everyday
-realism_of() { local own=$(sed -n 's/^#@caller[[:space:]]*//p' $HERE/scenarios/$1.txt | head -1); print -r -- ${realism:-${own:-$real_default}}; }
+realism_of() { local own=$(sed -n 's/^#@caller[[:space:]]*//p' $SCEN/$1.txt | head -1); print -r -- ${realism:-${own:-$real_default}}; }
 for s in $scenario $seed; do
   [[ -z $(realism_of $s) ]] || real_voice=$(node $HERE/caller-realism.mjs check $(realism_of $s)) || exit 2
 done
@@ -126,7 +129,7 @@ else
   project=ferni-dev; agent=voice-agent-lkcloud; url=wss://dev-8sm1ba0z.livekit.cloud
 fi
 firestore_db=$(node $HERE/eval-database.mjs $env)
-out=$HERE/out
+out=${EVAL_OUT_DIR:-$HERE/out}
 caller=${CALLER_VOICE:-${${real_voice:+cartesia:$real_voice}:-say}}
 if [[ $caller == cartesia:* && -z ${CARTESIA_API_KEY:-} && -z ${EVAL_DRY_RUN:-} ]]; then
   export CARTESIA_API_KEY=$(gcloud secrets versions access latest --secret=cartesia-api-key --project=johnb-2025 2>/dev/null)
@@ -183,7 +186,7 @@ prepare_turns() {
   local sc=$1 i=0 line mode at rest pcm clip rp=$(realism_of $1) engine=${${caller%%:*}:#say}
   local adir=$out/audio/$sc${${caller:#say}:+/${caller//:/-}}${rp:+/real-$rp}${VOICE_EVAL_HUMAN_CLIPS:+/human}
   mkdir -p $adir
-  grep -v '^#' $HERE/scenarios/$sc.txt | grep -v '^[[:space:]]*$' | while IFS= read -r line; do
+  grep -v '^#' $SCEN/$sc.txt | grep -v '^[[:space:]]*$' | while IFS= read -r line; do
     i=$((i+1))
     # "@backchannel 1800 Mm-hmm." / "@interrupt 1500 Wait...": spoken that many ms
     # after the agent starts its current reply, over it (see converse.mjs).
@@ -208,7 +211,7 @@ prepare_turns() {
     [[ -z ${VOICE_EVAL_HUMAN_CLIPS:-} ]] || clip=$(node $HERE/caller-realism.mjs clip $sc $i) || exit 2
     if [[ -n $clip ]]; then
       ffmpeg -loglevel error -y -i $clip -ac 1 -ar 48000 -f s16le $pcm
-    elif [[ ! -s $pcm || $HERE/scenarios/$sc.txt -nt $pcm || ( -n $rp && ( $HERE/caller-personas.json -nt $pcm || $HERE/caller-realism.mjs -nt $pcm ) ) ]]; then
+    elif [[ ! -s $pcm || $SCEN/$sc.txt -nt $pcm || ( -n $rp && ( $HERE/caller-personas.json -nt $pcm || $HERE/caller-realism.mjs -nt $pcm ) ) ]]; then
       [[ -z $rp || $mode != turn ]] || line=$(node $HERE/caller-realism.mjs line $rp "$sc:$i:$rp" ${engine:-say} "$line")
       if [[ $caller == cartesia:* ]]; then
         node $HERE/caller-tts.mjs ${caller#cartesia:} $pcm "$line"

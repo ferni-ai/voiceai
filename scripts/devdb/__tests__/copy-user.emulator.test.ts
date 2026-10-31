@@ -7,10 +7,14 @@
  *   firebase emulators:exec --only firestore:ferni-dev --project demo-devdb \
  *     "pnpm vitest run -c vitest.config.unit.ts scripts/devdb/__tests__/copy-user.emulator.test.ts"
  */
-import { Firestore, Timestamp } from '@google-cloud/firestore';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { FieldValue, Firestore, Timestamp, type VectorValue } from '@google-cloud/firestore';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { copyUser } from '../copy-user.js';
+
+// The secret filter (export-redaction.ts) checks values against the real Firestore classes;
+// the shared unit setup fakes that module
+vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
 
 const ME = 'Ab3dEf6hIj9kLm2nOp5qRs8tUv1w';
 const OTHER = 'Zy9xWv8uTs7rQp6oNm5lKj4iHg3f';
@@ -41,8 +45,12 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('copy-user on the emulator
     source = new Firestore({ projectId, databaseId: '(default)' });
     dest = new Firestore({ projectId, databaseId: 'ferni-dev' });
     const seed: Array<[string, Record<string, unknown>]> = [
-      [`bogle_users/${ME}`, { name: 'me', createdAt: AT }],
-      [`bogle_users/${ME}/memories/m1`, { text: 'mine', at: AT }],
+      [`bogle_users/${ME}`, { name: 'me', createdAt: AT, linkedInTokens: { access_token: 'x' } }],
+      // secrets inside a copied document: dropped, the Timestamps beside them kept
+      [
+        `bogle_users/${ME}/memories/m1`,
+        { text: 'mine', at: AT, fcmTokens: ['f'], device: { pushToken: 'p', seenAt: AT } },
+      ],
       [`bogle_users/${ME}/memories/m1/notes/n1`, { deep: true }],
       // excluded names below depth 1, and under an owner-field doc: must stay behind
       [`bogle_users/${ME}/memories/m1/contacts/c`, { phone: '+15550000004' }],
@@ -53,11 +61,17 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('copy-user on the emulator
       ['context_injection_outcomes/mine', { injection: { userId: ME }, at: AT }],
       ['context_injection_outcomes/theirs', { injection: { userId: OTHER } }],
       [`bogle_users/${ME}/contacts/c1`, { phone: '+15550000001' }],
+      [`bogle_users/${ME}/meeting_interactions/i1`, { personEmail: 'someone@example.invalid' }],
       [`bogle_users/${ME}/deferred_calls/d1`, { to: '+15550000002' }],
       [`bogle_users/${ME}/reminders/r1`, { dueAt: AT }],
       [`bogle_users/${ME}/outreach_attempts/o1`, { at: AT }],
       [`bogle_users/${ME}/ferni_commitments/f1`, { dueBy: 'tomorrow' }],
       [`outreach_profiles/${ME}`, { cadence: 'weekly' }],
+      // credentials and an unreviewed store under the user records: never copied
+      [`bogle_users/${ME}/smart_home/hue`, { bridgeKey: 'k' }],
+      [`bogle_users/${ME}/plaid_tokens/data`, { encrypted: 'e' }],
+      [`bogle_users/${ME}/a_store_nobody_reviewed/x`, { v: 1 }],
+      [`users/${ME}/calendar_providers/outlook`, { refreshToken: 'r' }],
       [`users/${ME}/journal/j1`, { entry: 'mine' }],
       [`entity_store/${ME}/entities/e1`, { name: 'mine' }],
       ['entities/mine1', { userId: ME, at: AT }],
@@ -90,11 +104,49 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('copy-user on the emulator
         `users/${ME}/journal/j1`,
       ].sort()
     );
-    const copied = (await dest.doc(`bogle_users/${ME}/memories/m1`).get()).get('at');
+    const profile = (await dest.doc(`bogle_users/${ME}`).get()).data();
+    expect(profile).toHaveProperty('name', 'me');
+    expect(profile).not.toHaveProperty('linkedInTokens');
+    const memory = await dest.doc(`bogle_users/${ME}/memories/m1`).get();
+    const copied = memory.get('at');
     expect(copied).toBeInstanceOf(Timestamp);
     expect((copied as Timestamp).isEqual(AT)).toBe(true);
+    expect(memory.get('fcmTokens')).toBeUndefined();
+    expect(memory.get('device.pushToken')).toBeUndefined();
+    expect((memory.get('device.seenAt') as Timestamp).isEqual(AT)).toBe(true);
     // the source is untouched
-    expect(await paths(source)).toHaveLength(23);
+    expect(await paths(source)).toHaveLength(28);
+  });
+
+  it("copies the person's semantic index by the exact owner match, embeddings included", async () => {
+    const embedding = FieldValue.vector([0.1, 0.2, 0.3]);
+    const index: Array<[string, Record<string, unknown>]> = [
+      ['vectors/trust_inside_joke_mine', { text: 'mine', embedding, metadata: { userId: ME } }],
+      ['vectors/theirs', { text: 'theirs', embedding, metadata: { userId: OTHER } }],
+      ['vectors/spaced', { text: 'decoy', metadata: { userId: ` ${ME}` } }],
+      ['vectors/top-level', { text: 'decoy', userId: ME, metadata: {} }],
+      ['vectors/persona_chunk_0', { text: 'persona knowledge', metadata: { source: 'persona' } }],
+      // a meeting's index entry carries the attendees' emails: it stays in prod
+      [
+        'vectors/meeting',
+        {
+          text: 'mine',
+          metadata: { userId: ME, entityType: 'meeting_memory', attendees: ['a@x.invalid'] },
+        },
+      ],
+      [`memory_vectors/${ME}:m1`, { text: 'mine', embedding, metadata: { userId: ME } }],
+      [`memory_vectors/${OTHER}:m1`, { text: 'theirs', metadata: { userId: OTHER } }],
+    ];
+    for (const [path, data] of index) await source.doc(path).set(data);
+
+    const counts = await copyUser({ source, dest, uids: [ME], apply: true });
+
+    expect(counts['vectors[metadata.userId]']?.copied).toBe(1);
+    expect(counts['memory_vectors[metadata.userId]']?.copied).toBe(1);
+    const copied = (await paths(dest)).filter((p) => /^(memory_)?vectors\//.test(p));
+    expect(copied).toEqual([`memory_vectors/${ME}:m1`, 'vectors/trust_inside_joke_mine']);
+    const joke = await dest.doc('vectors/trust_inside_joke_mine').get();
+    expect((joke.get('embedding') as VectorValue).toArray()).toEqual([0.1, 0.2, 0.3]);
   });
 
   it('skips what dev already has unless --overwrite', async () => {

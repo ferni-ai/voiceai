@@ -1216,7 +1216,6 @@
       "journaling": "La crónica",
       "language": "Idioma",
       "lifeContext": "Tu mundo",
-      "linkSpotify": "Conectar Spotify",
       "memoryBrowser": "Lo que recuerdo",
       "musicalYou": "Música compartida",
       "notifications": "Cuándo haré el registro",
@@ -1227,7 +1226,6 @@
       "predictionAccuracy": "Cómo lo estoy haciendo",
       "progressAnalytics": "Cómo te va",
       "shareFerni": "Invita a alguien",
-      "spotifyConnected": "Spotify conectado",
       "supportFerni": "Apoya a Ferni",
       "supportFerniExpanded": "Apoya a Ferni",
       "takeTour": "Dame un recorrido",
@@ -2438,10 +2436,6 @@
         "description": "Sincroniza con los datos de salud de Apple Watch y iPhone",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Conecta tu dispositivo Fitbit",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Sincroniza con tus dispositivos corporales Garmin",
         "name": "Garmin"
@@ -2795,8 +2789,7 @@
       "askFerni": "O pídele a Ferni que reproduzca algo",
       "play": "Reproducir",
       "pause": "Pausar",
-      "skip": "Siguiente",
-      "linkSpotify": "Conecta Spotify en la configuración para escuchar canciones completas"
+      "skip": "Siguiente"
     },
     "volume": "Volumen",
     "skipped": "Omitido",
@@ -8398,10 +8391,9 @@
     "appleHealthDesc": "Datos de sueño, actividad y frecuencia cardíaca",
     "ouraDesc": "Calidad del sueño y puntuaciones de preparación",
     "eightSleepDesc": "Seguimiento del sueño y temperatura",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP y más",
+    "wearablesDesc": "Garmin, WHOOP y más",
     "calendarDesc": "Eventos, reuniones y disponibilidad",
     "linkedInDesc": "Contexto profesional y red de contactos",
-    "spotifyDesc": "Música, listas de reproducción según tu estado de ánimo e historial de reproducción",
     "ecobeeDesc": "Temperatura y comodidad del hogar",
     "vibeControllerDesc": "Controla la música, las luces y más",
     "connected": "Conectado"
@@ -9052,9 +9044,6 @@
     "trustJourneyExplore": "Explorar",
     "customizeTitle": "Personaliza tu experiencia",
     "customizeMessage": "Ajusta los temas, sonidos y más.",
-    "spotifyTitle": "Conectar Spotify",
-    "spotifyMessage": "Vincula tu Spotify para ambientar nuestras conversaciones.",
-    "spotifyConnect": "Conectar",
     "maybeLater": "Tal vez más tarde"
   },
   "mentorTeachings": {
@@ -10309,7 +10298,6 @@
     "connectFirstToManage": "Conéctate primero y luego nos encargamos de eso.",
     "monthlyLimitReached": "Alcanzamos nuestro límite mensual. Me encantaría seguir hablando...",
     "enableMicPrompt": "Me encantaría escuchar tu voz, ¿activas el acceso al micrófono?",
-    "agentJoined": "{name} se unió",
     "seeYouNextTime": "¡Hasta la próxima!",
     "handoffFailed": "No logré contactarles en este momento. ¡Pero sigo aquí!",
     "personaBack": "¡{name} está de vuelta!",
@@ -10616,7 +10604,6 @@
     "names": {
       "stockData": "Datos de bolsa",
       "marketData": "Datos de mercado",
-      "weatherMaps": "Clima y mapas",
       "historicalFacts": "Datos históricos",
       "smartHome": "Hogar inteligente",
       "lighting": "Iluminación",
@@ -10927,7 +10914,10 @@
     "endTalk": "Desconectar",
     "connectingCancel": "Conectando. Toca para cancelar",
     "connectingNow": "Conectando…",
-    "tapToCancel": "Toca para cancelar"
+    "tapToCancel": "Toca para cancelar",
+    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
+    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
+    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
   },
   "analyticsDashboard": {
     "title": "Tu camino",

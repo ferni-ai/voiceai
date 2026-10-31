@@ -618,7 +618,7 @@ const ADMIN_NOTIFICATION_EMAILS: string[] = (
   .map((e) => e.trim())
   .filter(Boolean);
 
-/** True when the app transport (EMAIL_PROVIDER: SendGrid or the Workspace) can send. */
+/** True when the app transport (the ferni.ai Workspace mailbox) can send. */
 function waitlistMailReady(what: string): boolean {
   const ready = getEmailSender().isConfigured();
   if (!ready) log.debug({ what }, 'Email not configured, skipping');

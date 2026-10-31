@@ -193,16 +193,18 @@ describe('filterInjectionsByPressure', () => {
     expect(result.length).toBeLessThanOrEqual(PRESSURE_CONFIG.CRITICAL.maxInjections);
   });
 
-  it('sorts by priority (lower = more important)', () => {
+  // ContextInjection.priority: higher = more important. This test used to pin the reverse,
+  // which let timing hints crowd out safety under pressure (crisis-under-pressure.test.ts).
+  it('puts safety first, then sorts by priority (higher = more important)', () => {
     const injections = [
-      createMockInjection({ category: 'safety', content: 'Low priority', priority: 90 }),
-      createMockInjection({ category: 'identity', content: 'High priority', priority: 10 }),
+      createMockInjection({ category: 'identity', content: 'Low priority', priority: 10 }),
+      createMockInjection({ category: 'boundaries', content: 'High priority', priority: 60 }),
+      createMockInjection({ category: 'safety', content: 'Safety', priority: 90 }),
     ];
 
     const result = filterInjectionsByPressure(injections, 'moderate');
 
-    // Higher priority (lower number) should come first
-    expect(result[0].priority).toBeLessThan(result[result.length - 1].priority || 100);
+    expect(result.map((i) => i.category)).toEqual(['safety', 'boundaries', 'identity']);
   });
 });
 

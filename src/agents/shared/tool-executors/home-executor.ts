@@ -346,7 +346,7 @@ async function execute(
       return getSetupMessage();
     }
 
-    // Security systems would integrate through Home Assistant, which the app can't connect yet:
+    // No security-system integration exists:
     // say so, rather than send people to a settings page that doesn't exist
     return `Security systems aren't something I can control yet.`;
   }

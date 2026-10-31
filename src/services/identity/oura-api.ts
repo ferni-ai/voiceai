@@ -10,7 +10,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { createResilientClient } from '../self-healing/resilient-http.js';
-import { getValidAccessToken } from './oura-auth.js';
+import { getOuraAccessToken } from './oura-auth.js';
 import type {
   OuraResult,
   OuraApiResponse,
@@ -49,10 +49,11 @@ async function ouraRequest<T>(
   endpoint: string,
   params?: Record<string, string>
 ): Promise<OuraResult<T>> {
-  const token = await getValidAccessToken(userId);
-  if (!token) {
-    return { success: false, error: 'No valid Oura token' };
+  const access = await getOuraAccessToken(userId);
+  if (access.status !== 'ok') {
+    return { success: false, error: `Oura ${access.status}` };
   }
+  const token = access.token;
 
   const url = new URL(`${OURA_API_BASE}${endpoint}`);
   if (params) {
@@ -158,7 +159,7 @@ export async function getSleepSummary(
 
   const summary: OuraSleepSummary = {
     date: latestSleep.day,
-    score: Math.round(latestSleep.efficiency * 100) || 0,
+    score: Math.round(latestSleep.efficiency) || 0, // Oura's efficiency is already a percentage
     totalSleep: Math.round(latestSleep.total_sleep_duration / 60),
     efficiency: latestSleep.efficiency,
     latency: Math.round(latestSleep.latency / 60),

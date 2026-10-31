@@ -125,8 +125,22 @@ describe('POST /api/chat/tool runs only offered tools', () => {
       expect(offered).not.toContain(fn);
       expect(await runTool('alice', fn)).toBe(403);
     }
-    expect(offered).toContain('getUnreadEmails');
     expect(executeTool).not.toHaveBeenCalled();
+  });
+
+  // Gmail reads meet a 403 (no gmail.readonly): offered only under GMAIL_READ_TOOLS.
+  it('getUnreadEmails is offered and runs only when GMAIL_READ_TOOLS is on', async () => {
+    try {
+      expect(await offeredTo('alice')).not.toContain('getUnreadEmails');
+      expect(await runTool('alice', 'getUnreadEmails')).toBe(403);
+      expect(executeTool).not.toHaveBeenCalled();
+      process.env.GMAIL_READ_TOOLS = 'on';
+      expect(await offeredTo('alice')).toContain('getUnreadEmails');
+      expect(await runTool('alice', 'getUnreadEmails')).toBe(200);
+      expect(ranTools()).toEqual(['getUnreadEmails']);
+    } finally {
+      delete process.env.GMAIL_READ_TOOLS;
+    }
   });
 
   it('a case variant of an offered tool (PlayMusic) is refused', async () => {

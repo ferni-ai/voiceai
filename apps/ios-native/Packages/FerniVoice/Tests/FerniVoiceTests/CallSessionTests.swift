@@ -97,7 +97,9 @@ final class CallSessionTests: XCTestCase {
     /// testAFailedRejoinEndsTheCallAfterOneFreshRoom flaked on main). A test
     /// where Ferni is missing makes him missing without the clock (the token
     /// says not dispatched) or passes a short timeout and never sends him.
-    private func makeSession(timeout: Duration = .seconds(5)) -> CallSession {
+    private func makeSession(
+        timeout: Duration = .seconds(5), defaults: UserDefaults = UserDefaults(suiteName: "call-tests-\(UUID().uuidString)")!
+    ) -> CallSession {
         let rooms = rooms, tokens = tokens
         return CallSession(
             fetchToken: { persona in
@@ -113,7 +115,7 @@ final class CallSessionTests: XCTestCase {
             },
             audio: audio,
             agentTimeout: timeout,
-            defaults: UserDefaults(suiteName: "call-tests-\(UUID().uuidString)")!
+            defaults: defaults
         )
     }
 
@@ -138,6 +140,20 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(audio.activations, 1)
         XCTAssertEqual(session.agentActivity, .listening)
         XCTAssertTrue(session.hasTalked)
+    }
+
+    /// Critic L1: after sign-out or account deletion the next person is new to
+    /// Ferni, in memory as well as on disk ("Hi, I'm Ferni", not "Good evening").
+    func testANewPersonHasNotTalkedYet() async {
+        let defaults = UserDefaults(suiteName: "l1-\(UUID().uuidString)")!
+        let session = makeSession(defaults: defaults)
+        session.start(personaID: "ferni")
+        await until(session.phase == .live)
+        await session.end()
+        XCTAssertTrue(session.hasTalked)
+        session.forgetPerson()
+        XCTAssertFalse(session.hasTalked)
+        XCTAssertFalse(makeSession(defaults: defaults).hasTalked, "and not on disk either")
     }
 
     /// Haptics-while-recording is set up (in activate) before the mic goes on.
