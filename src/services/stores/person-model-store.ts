@@ -1,15 +1,8 @@
 /**
- * The call sheet's store: bogle_users/{uid}/person_model/current, plus person_model/prev,
- * the copy it replaced, for the "what changed" diff (call-sheet plan, lane M2).
- *
- * - loadPersonModelInputs reads what the pure build takes, bounded (30 summaries, 300
- *   temporal snapshots, 300 facts, 200 of each other store). Facts go through the recall
- *   loader (forget marks, corrections, low confidence); forgotten topics via the port.
- * - savePersonModel is the only writer: one transaction that writes nothing when the
- *   stored inputHash is the new one, else moves current to prev and stores the new one.
- *
- * Erased with the person's record (user-stores.ts), exported (user-records-export.ts),
- * copied to dev (copy-user.ts). Nothing reads it in a call until lane M6 (PERSON_MODEL_READ).
+ * The call sheet's store (call-sheet plan, M2): bogle_users/{uid}/person_model/current, and
+ * prev, the copy it replaced. savePersonModel is its only writer. The loader reads one
+ * person's own stores, bounded; facts go through the recall loader (forget marks, low
+ * confidence). Erased with the record, exported, copied to dev. Read in a call from M6 on.
  *
  * @module services/stores/person-model-store
  */
@@ -21,8 +14,8 @@ import {
 } from '../../intelligence/person-model/index.js';
 import { firestoreForgottenStore } from '../../memory/adapters/firestore/forgotten-store.js';
 import { loadRecallSnapshot } from '../../memory/recall/session-recall.js';
+import { isErasedOrErasing } from '../../utils/erasing-mark.js';
 
-const PERSON_MODEL_COLLECTION = 'person_model';
 /** The model as stored: the build, rendered, and the hash of the inputs it was built from. */
 export type StoredPersonModel = PersonModel & { inputHash: string };
 
@@ -32,7 +25,7 @@ const userDoc = (db: Firestore, uid: string) => {
   return db.collection('bogle_users').doc(uid);
 };
 const sheet = (db: Firestore, uid: string, id: 'current' | 'prev') =>
-  userDoc(db, uid).collection(PERSON_MODEL_COLLECTION).doc(id);
+  userDoc(db, uid).collection('person_model').doc(id);
 
 /** The stored current model, or null when there is none or it isn't this build's shape. */
 export async function readPersonModel(
@@ -50,18 +43,21 @@ export async function readPersonModel(
 /**
  * Stores `model` as current, moving the old current to prev, in one
  * transaction. Writes nothing ('unchanged') when the stored current was built
- * from the same inputs, so a rerun costs one read.
+ * from the same inputs, so a rerun costs one read, and nothing ('erased') when
+ * the record is gone or an erasure has marked it, read in the same transaction.
  */
 export async function savePersonModel(
   db: Firestore,
   uid: string,
   model: PersonModel,
   inputHash: string
-): Promise<'written' | 'unchanged'> {
+): Promise<'written' | 'unchanged' | 'erased'> {
   const current = sheet(db, uid, 'current');
   const prev = sheet(db, uid, 'prev');
   return db.runTransaction(async (tx) => {
-    const old = (await tx.get(current)).data();
+    const [record, stored] = await Promise.all([tx.get(userDoc(db, uid)), tx.get(current)]);
+    if (isErasedOrErasing(record)) return 'erased';
+    const old = stored.data();
     if (old?.inputHash === inputHash) return 'unchanged';
     if (old) tx.set(prev, old);
     tx.set(current, { ...model, inputHash } satisfies StoredPersonModel);
@@ -75,7 +71,7 @@ const text = (v: unknown): string | null => (typeof v === 'string' && v.trim() ?
 
 /**
  * Everything the build reads for one person, or null when their record is
- * gone (erased). Throws when a store can't be read, so a half-read person is
+ * gone or being erased. Throws when a store can't be read, so a half-read person is
  * never built.
  */
 export async function loadPersonModelInputs(
@@ -84,7 +80,7 @@ export async function loadPersonModelInputs(
 ): Promise<PersonModelInputs | null> {
   const user = userDoc(db, uid);
   const profile = await user.get();
-  if (!profile.exists) return null;
+  if (isErasedOrErasing(profile)) return null;
   const root = profile.data() ?? {};
   const prefs = (root.preferences ?? {}) as Record<string, unknown>;
   const sub = (name: string) => user.collection(name);

@@ -138,13 +138,13 @@ export function junkReason(
 }
 
 /**
- * A name that is Ferni or one of his teammates, not a person in the caller's life: their
- * canon lives in the life ledger, never in the caller's memory. "Maya" alone is a persona;
- * "Maya", relationship "sister", is the caller's sister. Pure; ENTITY_ROLE_LABELS is not read.
+ * True when `name` is Ferni or a teammate ("Maya") AND no relationship to the caller is
+ * stored for it: persona canon, never the caller's memory. Any stored relationship (friend,
+ * even coach) is a real person, kept (right-moment ruling 6). Pure; one definition for all.
  */
 export function isPersonaSubject(name: string, relationship?: string | null): boolean {
-  const entity = { name, type: 'person', relationship: relationship ?? undefined };
-  return name.trim() !== '' && junkReason(entity, {}) === 'persona';
+  if (relationship?.trim()) return false;
+  return name.trim() !== '' && junkReason({ name, type: 'person' }, {}) === 'persona';
 }
 
 /** Ferni, a role label for him (ENTITY_ROLE_LABELS), or a teammate who isn't theirs. */

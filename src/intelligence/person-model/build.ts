@@ -79,7 +79,7 @@ function buildTopics(i: PersonModelInputs, forgotten: string[]): T.Topics {
   };
 }
 
-type Draft = T.Person & { notes: string[] };
+type Draft = T.Person & { notes: string[]; stored: string };
 
 function buildPeople(i: PersonModelInputs, now: Date, forgotten: string[]): T.Person[] {
   const since = now.getTime() - 90 * DAY;
@@ -88,7 +88,7 @@ function buildPeople(i: PersonModelInputs, now: Date, forgotten: string[]): T.Pe
     const k = name.toLowerCase();
     const p = byName.get(k) ?? {
       ...{ name, relation, mentions90d: 0, lastMentioned: null, openThread: null },
-      ...{ sentiment: 'unknown' as const, sensitive: false, notes: [] },
+      ...{ sentiment: 'unknown' as const, sensitive: false, notes: [], stored: '' },
     };
     p.relation ??= relation;
     byName.set(k, p);
@@ -111,6 +111,7 @@ function buildPeople(i: PersonModelInputs, now: Date, forgotten: string[]): T.Pe
     const known = names.map((x) => byName.get(x.toLowerCase())).find(Boolean);
     const p = known ?? (names[0] ? person(names[0], null) : null);
     if (!p) continue;
+    p.stored ||= str(n.type) || str(n.relationship); // for isPersonaSubject; not shown: a guess
     if (!p.lastMentioned || (ms(n.lastMentioned) ?? 0) > Date.parse(p.lastMentioned))
       p.lastMentioned = iso(ms(n.lastMentioned));
     for (const m of arr(n.recentMentions) as Doc[]) {
@@ -125,10 +126,10 @@ function buildPeople(i: PersonModelInputs, now: Date, forgotten: string[]): T.Pe
     p.notes.push(`${f.key} ${f.value}`);
   }
   const theirs = (p: Draft) =>
-    keep(p.name, forgotten, 60) === p.name && !isPersonaSubject(p.name, p.relation);
+    keep(p.name, forgotten, 60) === p.name && !isPersonaSubject(p.name, p.relation || p.stored);
   return [...byName.values()]
     .filter(theirs)
-    .map(({ notes, ...p }) => ({ ...p, sensitive: notes.some(isSensitiveThread) }))
+    .map(({ notes, stored: _, ...p }) => ({ ...p, sensitive: notes.some(isSensitiveThread) }))
     .sort(
       (a, b) =>
         b.mentions90d - a.mentions90d ||

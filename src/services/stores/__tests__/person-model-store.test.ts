@@ -97,4 +97,15 @@ describe('savePersonModel', () => {
     docs.set(`bogle_users/${U}/person_model/current`, { v: 1, userId: 'u-other', inputHash: 'x' });
     expect(await readPersonModel(db, U)).toBeNull();
   });
+
+  it('writes nothing for a record that is gone or marked by an erasure', async () => {
+    const { db, docs, stats } = seeded();
+    const m = await model(db);
+    docs.set(`bogle_users/${U}`, { erasing: true });
+    expect(await savePersonModel(db, U, m, 'hash-a')).toBe('erased');
+    docs.delete(`bogle_users/${U}`);
+    expect(await savePersonModel(db, U, m, 'hash-a')).toBe('erased');
+    expect(stats.writes).toBe(0);
+    expect(docs.has(`bogle_users/${U}/person_model/current`)).toBe(false);
+  });
 });

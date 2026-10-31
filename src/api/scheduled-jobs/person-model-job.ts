@@ -2,13 +2,10 @@
  * POST /api/jobs/person-model (?dryRun=true; nightly once scheduled): builds each call sheet
  * from that person's own stores and stores it (person-model-store.ts). Call-sheet plan, M2.
  *
- * Who: nobody unless this server has PERSON_MODEL=on, then only people whose own cohort
- * flag turns it on (usersWithFlag), each re-checked with flagForUser ('off' wins).
- * Bounded: MAX_PER_RUN people, PER_USER_TIMEOUT_MS each, none started after
- * RUN_BUDGET_MS; the oldest sheets go first, so 'deferred' people lead the next run.
- * Idempotent: inputs are hashed with the build's version and the UTC day, so a same-day
- * rerun writes nothing ('unchanged') and the next day rebuilds ("in 2 days" stays true).
- * No LLM yet (M4). The answer and the log carry 8-character id prefixes and counts only.
+ * Nobody unless this server has PERSON_MODEL=on, then only people whose own cohort flag is
+ * on, re-checked per person. Bounded per run and per person, stalest sheet first. The hash
+ * of inputs, version and UTC day makes a same-day rerun write nothing. No LLM yet (M4).
+ * The answer and the log carry 8-character id prefixes and counts only.
  *
  * @module api/scheduled-jobs/person-model-job
  */
@@ -36,15 +33,13 @@ const PER_USER_TIMEOUT_MS = 20_000;
 const RUN_BUDGET_MS = 120_000;
 
 type Gate = 'flag-off' | 'not-member' | 'no-record' | 'no-calls' | 'forgotten-unreadable';
-type SkipReason = Gate | 'unchanged' | 'deferred' | 'timeout' | 'error';
+type SkipReason = Gate | 'unchanged' | 'erased' | 'deferred' | 'timeout' | 'error';
 
 interface UserOutcome {
   user: string;
   outcome: 'built' | 'skipped';
   reason: SkipReason | 'written' | 'dry-run';
-  chars?: number;
-  people?: number;
-  openItems?: number;
+  counts?: { chars: number; people: number; openItems: number };
 }
 
 interface PersonModelJobResult {
@@ -57,6 +52,8 @@ interface PersonModelJobResult {
   users: UserOutcome[];
 }
 
+type Saved = 'written' | 'unchanged' | 'erased';
+
 export interface PersonModelJobDeps {
   /** Who has PERSON_MODEL on through their own cohort flags (usersWithFlag). */
   holders: () => Promise<string[]>;
@@ -64,7 +61,7 @@ export interface PersonModelJobDeps {
   ownFlag: (uid: string) => Promise<'on' | 'off' | undefined>;
   read: (uid: string) => Promise<StoredPersonModel | null>;
   load: (uid: string) => Promise<PersonModelInputs | null>;
-  save: (uid: string, model: PersonModel, inputHash: string) => Promise<'written' | 'unchanged'>;
+  save: (uid: string, model: PersonModel, inputHash: string) => Promise<Saved>;
 }
 
 interface PersonModelJobOptions {
@@ -121,10 +118,10 @@ async function buildOne(
   model.rendered = renderPersonModel(model, { now, forgottenTopics: inputs.forgotten });
   const { people, unfinished, rendered } = model;
   const counts = { chars: rendered.length, people: people.value.length, openItems: unfinished.value.openLoops.length }; // prettier-ignore
-  if (dryRun) return { outcome: 'built', reason: 'dry-run', ...counts };
+  if (dryRun) return { outcome: 'built', reason: 'dry-run', counts };
   if (late()) return skip('timeout');
-  const saved = await deps.save(uid, model, inputHash);
-  return saved === 'written' ? { outcome: 'built', reason: 'written', ...counts } : skip('unchanged'); // prettier-ignore
+  const saved = await deps.save(uid, model, inputHash); // 'erased': erasure began after the load
+  return saved === 'written' ? { outcome: 'built', reason: 'written', counts } : skip(saved);
 }
 
 /** `getDeps` is called only when the flag is on: off, the run reads nothing. */

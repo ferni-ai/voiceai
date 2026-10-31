@@ -239,13 +239,15 @@ describe('ENTITY_ROLE_LABELS', () => {
 });
 
 describe('isPersonaSubject', () => {
-  it('is Ferni or a bare teammate name, never a person they relate to', () => {
+  it('is Ferni or a teammate name only when no relationship is stored for it', () => {
     expect(isPersonaSubject('Ferni')).toBe(true);
-    expect(isPersonaSubject('Ferni', 'friend')).toBe(true);
     expect(isPersonaSubject('Maya')).toBe(true);
-    expect(isPersonaSubject('Maya', null)).toBe(true);
-    expect(isPersonaSubject('Maya', 'assistant')).toBe(true);
-    expect(isPersonaSubject('Maya', 'sister')).toBe(false);
+    expect(isPersonaSubject('Peter John', null)).toBe(true);
+    expect(isPersonaSubject('Maya', '  ')).toBe(true);
+    // Any stored relationship is a real person in their life, a human coach included.
+    expect(isPersonaSubject('Maya', 'friend')).toBe(false);
+    expect(isPersonaSubject('Jordan', 'coach')).toBe(false);
+    expect(isPersonaSubject('Alex', 'companion')).toBe(false);
     expect(isPersonaSubject('Maya Angelou')).toBe(false);
     expect(isPersonaSubject('Rowan')).toBe(false);
     expect(isPersonaSubject('  ')).toBe(false);

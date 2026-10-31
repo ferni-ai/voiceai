@@ -201,7 +201,7 @@ describe('person-model job', () => {
     const result = await runPersonModelJob(async () => deps, { env: ON, now: NOW, dryRun: true });
     expect(result).toMatchObject({ dryRun: true, built: 1, written: 0 });
     expect(result.users[0]).toMatchObject({ outcome: 'built', reason: 'dry-run' });
-    expect(result.users[0]?.chars).toBeGreaterThan(0);
+    expect(result.users[0]?.counts?.chars).toBeGreaterThan(0);
     expect(fake.stats.writes).toBe(0);
     expect(deps.save).not.toHaveBeenCalled();
   });
@@ -321,5 +321,78 @@ describe('person-model job', () => {
     expect(names).not.toContain('Ferni');
     expect(names).not.toContain('Maya');
     expect(stored.rendered).not.toMatch(/\bMaya\b|Maplewood/);
+  });
+
+  it('a friend named Maya and a coach named Jordan, stored with a relationship, are kept', async () => {
+    const fake = world();
+    fake.docs.set(`bogle_users/${OWNER}/relationship_network/m`, {
+      ...{ name: 'Maya', type: 'friend', lastMentioned: at(1) },
+    });
+    fake.docs.set(`bogle_users/${OWNER}/relationship_network/j`, {
+      ...{ name: 'Jordan', type: 'coach', lastMentioned: at(1) },
+    });
+    await runPersonModelJob(async () => depsFor(fake), { env: ON, now: NOW });
+    const stored = fake.docs.get(current(OWNER)) as { people: { value: Array<{ name: string }> } };
+    expect(stored.people.value.map((p) => p.name)).toEqual(
+      expect.arrayContaining(['Maya', 'Jordan', 'Rowan'])
+    );
+  });
+
+  it('a record an erasure has marked is never built or written', async () => {
+    const fake = world();
+    const root = fake.docs.get(`bogle_users/${OWNER}`) as Record<string, unknown>;
+    root.erasing = true;
+    const deps = depsFor(fake);
+    const result = await runPersonModelJob(async () => deps, { env: ON, now: NOW });
+    expect(result).toMatchObject({ written: 0, skipped: { 'no-record': 1 } });
+    expect(fake.docs.has(current(OWNER))).toBe(false);
+    expect(fake.stats.writes).toBe(0);
+  });
+
+  it.each([
+    ['deleted', (fake: ReturnType<typeof world>) => fake.docs.delete(`bogle_users/${OWNER}`)],
+    [
+      'marked erasing',
+      (fake: ReturnType<typeof world>) => {
+        Object.assign(fake.docs.get(`bogle_users/${OWNER}`) ?? {}, { erasing: true });
+      },
+    ],
+  ])('a record %s between the load and the save gets no sheet', async (_, erase) => {
+    const fake = world();
+    const load = async (uid: string) => {
+      const inputs = await loadPersonModelInputs(fake.db, uid);
+      erase(fake);
+      return inputs;
+    };
+    const deps = depsFor(fake, { load });
+    const result = await runPersonModelJob(async () => deps, { env: ON, now: NOW });
+    expect(deps.save).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ written: 0, skipped: { erased: 1 } });
+    expect([...fake.docs.keys()].filter((p) => p.includes('/person_model/'))).toEqual([]);
+  });
+
+  it('an empty sheet never replaces a good one: no calls left, or forgotten topics unreadable', async () => {
+    for (const breakIt of [
+      (fake: ReturnType<typeof world>) => {
+        for (const p of [...fake.docs.keys()])
+          if (p.startsWith(`bogle_users/${OWNER}/summaries/`)) fake.docs.delete(p);
+      },
+      (fake: ReturnType<typeof world>) =>
+        fake.docs.set(`bogle_users/${OWNER}/memory_state/forgotten`, { topics: 42 }),
+    ]) {
+      const fake = world();
+      const deps = depsFor(fake);
+      await runPersonModelJob(async () => deps, { env: ON, now: NOW });
+      const good = fake.docs.get(current(OWNER));
+      expect((good as { people: { value: unknown[] } }).people.value.length).toBeGreaterThan(0);
+      breakIt(fake);
+      const next = await runPersonModelJob(async () => deps, { env: ON, now: NEXT_DAY });
+      expect(next.written).toBe(0);
+      expect(Object.keys(next.skipped)).toEqual([
+        expect.stringMatching(/^(no-calls|forgotten-unreadable)$/),
+      ]);
+      expect(fake.docs.get(current(OWNER))).toBe(good);
+      expect(fake.docs.has(prev(OWNER))).toBe(false);
+    }
   });
 });
