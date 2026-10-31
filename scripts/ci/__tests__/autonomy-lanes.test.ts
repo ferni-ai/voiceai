@@ -19,12 +19,19 @@ import {
   matchesGlob,
   normalizeLogin,
   readCommits,
+  loopOutsideAllowed,
   type CommitIdentity,
+  type Policy,
   type PullInput,
 } from '../autonomy-lanes.js';
 import { FAKE_GH } from './fake-gh.js';
 
 const policy = loadPolicy();
+/**
+ * The loop's content screens alone: every path allowed, so default-deny never fires and a
+ * test of a line or import screen can't pass because of the path instead.
+ */
+const screens: Policy = { ...policy, loopAllowed: { paths: ['**'], screenContent: [] } };
 const HEAD = 'bbb';
 const PERSONA = 'src/personas/bundles/x/content.ts';
 const SAFETY = 'src/services/safety/x.ts';
@@ -65,19 +72,19 @@ const pr = (over: Partial<PullInput> = {}): PullInput => ({
 describe('classify', () => {
   it('crisis via changed line in a persona file fails for the loop', () => {
     const p = pr({ author: 'ferni-loop[bot]', changedLines: ['+  "call or text 988"'] });
-    expect(classify(p.files, p.changedLines, p.author, policy)).toEqual(['crisis']);
-    const r = evaluate(p, policy);
+    expect(classify(p.files, p.changedLines, p.author, screens)).toEqual(['crisis']);
+    const r = evaluate(p, screens);
     expect(r.ok).toBe(false);
     expect(r.reasons).toContain('crisis lane: needs sethdford approval on bbb');
   });
 
   it('same content edit by ferni-agent has no crisis lane', () => {
-    expect(classify([PERSONA], ['+  "call or text 988"'], 'app/ferni-agent', policy)).toEqual([]);
+    expect(classify([PERSONA], ['+  "call or text 988"'], 'app/ferni-agent', screens)).toEqual([]);
   });
 
   it('the loop is recognised in both login forms', () => {
     for (const author of ['ferni-loop[bot]', 'app/ferni-loop', 'FERNI-LOOP[bot]']) {
-      expect(classify([PERSONA], ['+ MINOR_CARE'], author, policy)).toEqual(['crisis']);
+      expect(classify([PERSONA], ['+ MINOR_CARE'], author, screens)).toEqual(['crisis']);
     }
   });
 
@@ -91,7 +98,7 @@ describe('classify', () => {
     ].join('\n');
     const lines = changedLinesOf(diff);
     expect(lines).toEqual(['-  "or call 988 any time"']);
-    expect(classify([PERSONA], lines, 'ferni-loop[bot]', policy)).toEqual(['crisis']);
+    expect(classify([PERSONA], lines, 'ferni-loop[bot]', screens)).toEqual(['crisis']);
   });
 
   it('diff headers are not changed lines', () => {
@@ -124,32 +131,32 @@ describe('classify', () => {
     ].join('\n');
     const lines = changedLinesOf(diff);
     expect(lines).toEqual(['+++ call 988', '--- 988 removed']);
-    expect(classify([PERSONA], lines, 'ferni-loop[bot]', policy)).toEqual(['crisis']);
+    expect(classify([PERSONA], lines, 'ferni-loop[bot]', screens)).toEqual(['crisis']);
   });
 
   it('plain persona change has no lane', () => {
     const p = pr({ author: 'ferni-loop[bot]' });
-    expect(classify(p.files, p.changedLines, p.author, policy)).toEqual([]);
-    expect(evaluate(p, policy)).toEqual({ ok: true, reasons: ['no autonomy lane'] });
+    expect(classify(p.files, p.changedLines, p.author, screens)).toEqual([]);
+    expect(evaluate(p, screens)).toEqual({ ok: true, reasons: ['no autonomy lane'] });
   });
 
   it('privacy follows the arm gate: src or apps paths, markdown excluded', () => {
-    expect(classify(['src/memory/forget-user.ts'], [], 'app/ferni-agent', policy)).toEqual([
+    expect(classify(['src/memory/forget-user.ts'], [], 'app/ferni-agent', screens)).toEqual([
       'privacy',
     ]);
-    expect(classify(['src/memory/forget-user.md'], [], 'app/ferni-agent', policy)).toEqual([]);
-    expect(classify(['docs/forget-user.ts'], [], 'app/ferni-agent', policy)).toEqual([]);
-    const r = evaluate(pr({ files: ['src/memory/forget-user.ts'] }), policy);
+    expect(classify(['src/memory/forget-user.md'], [], 'app/ferni-agent', screens)).toEqual([]);
+    expect(classify(['docs/forget-user.ts'], [], 'app/ferni-agent', screens)).toEqual([]);
+    const r = evaluate(pr({ files: ['src/memory/forget-user.ts'] }), screens);
     expect(r.ok).toBe(true);
     expect(r.reasons.join()).toMatch(/^privacy lane:/);
   });
 
   it('voice-eval scenarios are not evaluator code, but crisis scenarios are crisis', () => {
-    expect(classify(['scripts/voice-eval/scenarios/x.txt'], [], 'a', policy)).toEqual([]);
-    expect(classify(['scripts/voice-eval/scenarios/crisis-relay.txt'], [], 'a', policy)).toEqual([
+    expect(classify(['scripts/voice-eval/scenarios/x.txt'], [], 'a', screens)).toEqual([]);
+    expect(classify(['scripts/voice-eval/scenarios/crisis-relay.txt'], [], 'a', screens)).toEqual([
       'crisis',
     ]);
-    expect(classify(['scripts/voice-eval/release-check.mjs'], [], 'a', policy)).toEqual([
+    expect(classify(['scripts/voice-eval/release-check.mjs'], [], 'a', screens)).toEqual([
       'crisis',
       'evaluator',
     ]);
@@ -317,32 +324,32 @@ describe('who pushed, not only who opened', () => {
   it('PR from a loop/ branch is screened even with sethdford commits', () => {
     // Commit logins come from emails; only the loop's app can push to loop/ (ruleset).
     const p = pr({ ...content988, author: 'sethdford', commits: [SETH, SETH] });
-    expect(evaluate({ ...p, headRef: 'loop/tune-greeting' }, policy)).toEqual({
+    expect(evaluate({ ...p, headRef: 'loop/tune-greeting' }, screens)).toEqual({
       ok: false,
       reasons: ['crisis lane: needs sethdford approval on bbb'],
     });
-    expect(evaluate({ ...p, headRef: 'feat/tune-greeting' }, policy).ok).toBe(true);
-    expect(evaluate({ ...p, headRef: 'feat/loop/x' }, policy).ok).toBe(true);
+    expect(evaluate({ ...p, headRef: 'feat/tune-greeting' }, screens).ok).toBe(true);
+    expect(evaluate({ ...p, headRef: 'feat/loop/x' }, screens).ok).toBe(true);
   });
 
   it('loop commit pushed onto a ferni-agent PR is screened', () => {
     for (const loop of [LOOP, by('ferni-agent[bot]', 'ferni-loop[bot]')]) {
-      const r = evaluate(pr({ ...content988, commits: [AGENT, loop] }), policy);
+      const r = evaluate(pr({ ...content988, commits: [AGENT, loop] }), screens);
       expect(r).toEqual({ ok: false, reasons: ['crisis lane: needs sethdford approval on bbb'] });
     }
-    expect(evaluate(pr({ ...content988, commits: [AGENT] }), policy).ok).toBe(true);
+    expect(evaluate(pr({ ...content988, commits: [AGENT] }), screens).ok).toBe(true);
   });
 
   it('seth-authored PR with a ferni-agent commit needs approval', () => {
     for (const other of [AGENT, by('sethdford', 'web-flow'), by('', 'sethdford')]) {
       const p = pr({ author: 'sethdford', files: [SAFETY], commits: [SETH, other] });
-      expect(evaluate(p, policy).ok).toBe(false);
+      expect(evaluate(p, screens).ok).toBe(false);
     }
   });
 
   it('commit with no linked login is screened as loop', () => {
     for (const unlinked of [by('', 'ferni-agent[bot]'), by('ferni-agent[bot]', '')]) {
-      const r = evaluate(pr({ ...content988, commits: [AGENT, unlinked] }), policy);
+      const r = evaluate(pr({ ...content988, commits: [AGENT, unlinked] }), screens);
       expect(r).toEqual({ ok: false, reasons: ['crisis lane: needs sethdford approval on bbb'] });
     }
   });
@@ -364,8 +371,8 @@ describe('who pushed, not only who opened', () => {
     // The REST list stops at 250 commits: a short read is not the whole PR.
     expect(readCommits(() => ok, 251)).toBeNull();
     // Unreadable commits: screened as the loop's.
-    expect(evaluate(pr({ ...content988, commits: null }), policy).ok).toBe(false);
-    const seth = evaluate(pr({ author: 'sethdford', files: [SAFETY], commits: null }), policy);
+    expect(evaluate(pr({ ...content988, commits: null }), screens).ok).toBe(false);
+    const seth = evaluate(pr({ author: 'sethdford', files: [SAFETY], commits: null }), screens);
     expect(seth.ok).toBe(false);
     expect(seth.reasons).toContain('commits unreadable: screened as the loop');
   });
@@ -373,14 +380,14 @@ describe('who pushed, not only who opened', () => {
 
 describe('crisis wiring outside crisis paths', () => {
   const loopOnly = (lines: string[]) => {
-    expect(classify([PERSONA], lines, 'ferni-loop[bot]', policy)).toEqual(['crisis']);
-    expect(classify([PERSONA], lines, 'app/ferni-agent', policy)).toEqual([]);
+    expect(classify([PERSONA], lines, 'ferni-loop[bot]', screens)).toEqual(['crisis']);
+    expect(classify([PERSONA], lines, 'app/ferni-agent', screens)).toEqual([]);
   };
 
   it('turn-processor crisis wiring files are crisis paths', () => {
     for (const f of ['turn-crisis.ts', 'safety-note.ts']) {
       const path = `src/agents/processors/turn-processor/${f}`;
-      expect(classify([path], [], 'app/ferni-agent', policy)).toEqual(['crisis']);
+      expect(classify([path], [], 'app/ferni-agent', screens)).toEqual(['crisis']);
     }
   });
 
@@ -405,8 +412,8 @@ describe('crisis wiring outside crisis paths', () => {
     const imports = importsOf(diff);
     const lines = changedLinesOf(diff);
     return [
-      classify([file], lines, 'ferni-loop[bot]', policy, { imports }),
-      classify([file], lines, 'app/ferni-agent', policy, { imports }),
+      classify([file], lines, 'ferni-loop[bot]', screens, { imports }),
+      classify([file], lines, 'app/ferni-agent', screens, { imports }),
     ];
   };
 
@@ -460,7 +467,7 @@ describe('crisis wiring outside crisis paths', () => {
     expect(joinLine("+  `9${'8'}8`")).toBe('988');
     loopOnly(['+  const line = `call ${9}${8}${8} now`;']);
     // A year or a longer number that contains 988 is not the hotline.
-    expect(classify([PERSONA], ['+  born: 1988, id: 49881'], 'ferni-loop[bot]', policy)).toEqual(
+    expect(classify([PERSONA], ['+  born: 1988, id: 49881'], 'ferni-loop[bot]', screens)).toEqual(
       []
     );
   });
@@ -484,8 +491,122 @@ describe('crisis wiring outside crisis paths', () => {
     ]);
     // Whole words only: a longer identifier that contains one is not a mention.
     expect(
-      classify([PERSONA], ['+ const myscoreCrisisLanguageX = 1;'], 'ferni-loop[bot]', policy)
+      classify([PERSONA], ['+ const myscoreCrisisLanguageX = 1;'], 'ferni-loop[bot]', screens)
     ).toEqual([]);
+  });
+});
+
+describe('default-deny for the loop', () => {
+  const PROCESS_TURN = 'src/agents/processors/turn-processor/process-turn.ts';
+  const DOC = 'docs/ci/notes.md';
+  const TEST_FILE = 'src/agents/personas/__tests__/greeting.test.ts';
+  /** The policy as if a crisis file had been left out of crisis.paths (the gap it closes). */
+  const missing: Policy = {
+    ...policy,
+    lanes: {
+      ...policy.lanes,
+      crisis: {
+        ...policy.lanes.crisis,
+        paths: policy.lanes.crisis.paths.filter((g) => g !== PROCESS_TURN),
+      },
+    },
+  };
+  const plain = ['+  const greeting = "hi";'];
+  const outside = (file: string) => `outside the loop's allowed paths: ${file}`;
+
+  it('a loop PR touching a file missing from crisis.paths is blocked', () => {
+    expect(missing.lanes.crisis.paths).not.toContain(PROCESS_TURN);
+    expect(classify([PROCESS_TURN], plain, 'ferni-loop[bot]', missing)).toEqual(['crisis']);
+    const p = pr({ author: 'ferni-loop[bot]', files: [PROCESS_TURN], changedLines: plain });
+    expect(evaluate(p, missing)).toEqual({
+      ok: false,
+      reasons: ['crisis lane: needs sethdford approval on bbb', outside(PROCESS_TURN)],
+    });
+    // Any non-allowed file, crisis or not: the persona file too.
+    expect(classify([PERSONA], plain, 'ferni-loop[bot]', policy)).toEqual(['crisis']);
+    // The crisis approval on the head passes it.
+    const approved = { ...p, reviews: [approval(HEAD)] };
+    expect(evaluate(approved, missing).ok).toBe(true);
+  });
+
+  it('a loop PR touching only docs passes', () => {
+    const p = pr({ author: 'ferni-loop[bot]', files: [DOC], changedLines: plain });
+    expect(evaluate(p, policy)).toEqual({ ok: true, reasons: ['no autonomy lane'] });
+    expect(loopOutsideAllowed([DOC, 'docs/a/b/c.md'], policy)).toEqual([]);
+    // Docs changes still get the line screen.
+    const r = evaluate({ ...p, changedLines: ['+ call or text 988'] }, policy);
+    expect(r.ok).toBe(false);
+  });
+
+  it('a loop PR touching a test file that imports services/safety is blocked', () => {
+    const text = [
+      "import { describe, it } from 'vitest';",
+      "import { screenTurn } from '../../../services/safety/index.js';",
+      "describe('greeting', () => it('says hi', () => {}));",
+    ].join('\n');
+    const p = pr({
+      author: 'ferni-loop[bot]',
+      files: [TEST_FILE],
+      changedLines: ["+describe('greeting', () => it('says hi', () => {}));"],
+      fileTexts: { [TEST_FILE]: text },
+    });
+    expect(evaluate(p, policy)).toEqual({
+      ok: false,
+      reasons: ['crisis lane: needs sethdford approval on bbb', outside(TEST_FILE)],
+    });
+    // The import sits on an unchanged line: the changed lines alone don't screen it.
+    expect(classify(p.files, p.changedLines, p.author, screens, p)).toEqual([]);
+    // An import only the resolver catches: no crisis word or name on the line, but
+    // ../process-turn.js resolves to a crisis path.
+    const resolved = 'src/agents/processors/turn-processor/__tests__/turn.test.ts';
+    const viaPath = {
+      [resolved]: "import * as turn from '../process-turn.js';\nit('x', () => {});",
+    };
+    expect(loopOutsideAllowed([resolved], policy, viaPath)).toEqual([resolved]);
+    // A test that names a crisis symbol anywhere is blocked too.
+    const named = { [TEST_FILE]: 'expect(scoreCrisisLanguage("x")).toBe(1);' };
+    expect(loopOutsideAllowed([TEST_FILE], policy, named)).toEqual([TEST_FILE]);
+    // A test with no crisis content passes; one whose content wasn't read fails closed.
+    const clean = { [TEST_FILE]: "import { greet } from '../greet.js';\nit('hi', () => {});" };
+    expect(evaluate({ ...p, fileTexts: clean }, policy)).toEqual({
+      ok: true,
+      reasons: ['no autonomy lane'],
+    });
+    expect(evaluate({ ...p, fileTexts: {} }, policy).reasons).toContain(outside(TEST_FILE));
+    expect(loopOutsideAllowed(['src/a.test.ts'], policy, {})).toEqual(['src/a.test.ts']);
+  });
+
+  it('a human PR touching process-turn.ts is unchanged', () => {
+    for (const author of ['sethdford', 'app/ferni-agent']) {
+      expect(classify([PROCESS_TURN], plain, author, missing)).toEqual([]);
+      const p = pr({ author, files: [PROCESS_TURN], changedLines: plain, commits: [SETH] });
+      expect(evaluate(p, missing)).toEqual({ ok: true, reasons: ['no autonomy lane'] });
+    }
+    // With the real policy it is a crisis path for every author, as before.
+    expect(classify([PROCESS_TURN], plain, 'sethdford', policy)).toEqual(['crisis']);
+  });
+
+  it('an unattributed or loop-branch PR is treated as the loop', () => {
+    const human = pr({ author: 'sethdford', files: [PERSONA], changedLines: plain });
+    expect(evaluate({ ...human, commits: [SETH] }, policy).ok).toBe(true);
+    for (const p of [
+      { ...human, commits: [SETH], headRef: 'loop/tune-greeting' },
+      { ...human, commits: [SETH, by('', 'sethdford')] },
+      { ...human, commits: [SETH, by('sethdford', '')] },
+      { ...human, commits: null },
+    ]) {
+      const r = evaluate(p, policy);
+      expect(r.ok).toBe(false);
+      expect(r.reasons).toContain(outside(PERSONA));
+    }
+  });
+
+  it('lists five outside files, then a count', () => {
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((x) => `src/${x}.ts`);
+    const r = evaluate(pr({ author: 'ferni-loop[bot]', files, changedLines: plain }), policy);
+    expect(r.reasons).toContain(
+      "outside the loop's allowed paths: src/a.ts, src/b.ts, src/c.ts, src/d.ts, src/e.ts (+2 more)"
+    );
   });
 });
 
@@ -585,13 +706,24 @@ describe('diffInputs against a real repository', () => {
   write('src/services/safety/model.bin', Buffer.from('\u0000\u0001\u0000MINOR_CARE\n'));
   write(PERSONA, '++ call 988\n');
   write('src/services/memory/with space.ts', "import { screen } from '../safety';\n");
+  write(
+    'src/x/__tests__/a.test.ts',
+    "import { screen } from '../../services/safety';\nit('a', () => {});\n"
+  );
   // A textconv driver that blanks the content must not hide it from the diff.
   write('.gitattributes', '*.ts diff=blank\n');
   git('config', 'diff.blank.textconv', 'true');
   git('add', '-A');
   git('commit', '-q', '-m', 'change');
-  const inputs = diffInputs('main~1...main', root);
+  const inputs = diffInputs('main~1...main', root, policy.loopAllowed.screenContent);
   afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+  it('reads the head content of changed test files, for the loop screen', () => {
+    const file = 'src/x/__tests__/a.test.ts';
+    expect(Object.keys(inputs.fileTexts ?? {})).toEqual([file]);
+    expect(inputs.fileTexts?.[file]).toContain('services/safety');
+    expect(loopOutsideAllowed([file], policy, inputs.fileTexts)).toEqual([file]);
+  });
 
   it('non-ASCII path under src/services/safety/ classifies crisis', () => {
     expect(inputs.files).toContain('src/services/safety/caf\u00e9-gate.ts');

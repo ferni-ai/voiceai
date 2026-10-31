@@ -172,7 +172,16 @@ protections) needs an approving review from `sethdford` on its exact head commit
 no exception: commit author and committer logins come from the commit email, so anyone
 who can push can claim his, and authorship never signs. His own crisis PRs, which GitHub
 won't let him approve, merge with his ruleset admin bypass. A crisis path counts for
-every author. In a **loop PR**, a changed line (added or removed) also counts when it
+every author. A **loop PR** is default-deny: it may change only files under the
+policy's `loopAllowed.paths` (docs and tests) without the crisis approval, and any other
+changed file puts it in the crisis lane ("outside the loop's allowed paths"), so a crisis
+file missing from crisis.paths still can't merge autonomously. An allowed test file must
+also pass the crisis screen below on its whole head content, not just its changed lines
+(a test that imports or names crisis code is crisis); one whose content can't be read
+fails closed. The crisis paths themselves are the best-effort, human-side net that
+CODEOWNERS follows: `crisis-paths-complete.test.ts` checks that every file its derivation
+finds (crisis-named files, the crisis modules, their importers and pinned dependencies)
+is covered, which is narrower than "complete". In a loop PR, a changed line (added or removed) also counts when it
 matches a crisis pattern (988 in any written form, also once quotes, `+`, `${`, `}` and
 spaces are removed, so `'9' + '88'` and `` `9${'8'}8` `` count) or names a screened export
 of a crisis module in `src/`: one no non-crisis module in `src/` really declares (re-exports and

@@ -41,11 +41,13 @@ describe('crisis symbols', () => {
 
   it('generic export shared with non-crisis modules is not screened', () => {
     const policy = loadPolicy();
+    // The screens alone: every path allowed, so default-deny doesn't decide it.
+    const screens = { ...policy, loopAllowed: { paths: ['**'], screenContent: [] } };
     for (const name of ['domain', 'definitions', 'getToolDefinitions', 'plain']) {
       expect(derived.exported).toContain(name);
       expect(derived.screened).not.toContain(name);
       const line = `+  const x = ${name}(y);`;
-      expect(classify([PERSONA], [line], 'ferni-loop[bot]', policy)).toEqual([]);
+      expect(classify([PERSONA], [line], 'ferni-loop[bot]', screens)).toEqual([]);
     }
   });
 
@@ -55,7 +57,9 @@ describe('crisis symbols', () => {
     expect(derived.exported).toContain('normalize');
     expect(derived.screened).not.toContain('normalize');
     const line = "+  const key = name.normalize('NFKC');";
-    expect(classify([PERSONA], [line], 'ferni-loop[bot]', loadPolicy())).toEqual([]);
+    const policy = loadPolicy();
+    const screens = { ...policy, loopAllowed: { paths: ['**'], screenContent: [] } };
+    expect(classify([PERSONA], [line], 'ferni-loop[bot]', screens)).toEqual([]);
   });
 
   it('a crisis symbol cannot drop out of the screen without a policy entry', () => {

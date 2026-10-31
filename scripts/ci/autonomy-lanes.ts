@@ -4,9 +4,10 @@
  * lane needs before it may merge. The lanes and who may pass them live in
  * autonomy-policy.json next to this file (main's copy in CI, never the PR's).
  *
- * - crisis: a file under a crisis path (any author), or, in a loop PR, a changed line
- *   matching a crisis pattern or naming a screened crisis-module export (`symbolsFile`),
- *   a binary file, or an import of a crisis module. A loop PR is one whose head branch
+ * - crisis: a file under a crisis path (any author), or, in a loop PR, any changed file
+ *   outside `loopAllowed` (default-deny, below), a changed line matching a crisis pattern
+ *   or naming a screened crisis-module export (`symbolsFile`), a binary file, or an import
+ *   of a crisis module. A loop PR is one whose head branch
  *   starts with `loopBranchPrefix`: that's the anchor GitHub enforces, through a ruleset
  *   that lets the loop's app push only there (SETUP.md). Commit logins (`loopAuthors` as
  *   opener, author or committer, or no linked account) also count, but they come from
@@ -18,6 +19,15 @@
  * - privacy: a file under its paths whose path matches `pathPattern` (the LANE rule of
  *   ~/.claude/hooks/pdlc/verify_arm_gate.py minus the crisis terms). Reported only: the arm
  *   gate already requires an independent verifier PASS there.
+ *
+ * Default-deny for the loop: a loop PR may change only files under `loopAllowed.paths`
+ * (docs and tests) without the crisis approval. Any other changed file puts it in the
+ * crisis lane ("outside the loop's allowed paths"), so a crisis file missing from
+ * crisis.paths can't merge autonomously. An allowed file under
+ * `loopAllowed.screenContent` (a test) must also pass the crisis screen on its whole
+ * content at the head: a crisis pattern or screened name on any line, or an import of a
+ * crisis module (a test of the crisis code is crisis). Its content not read (deleted,
+ * unreadable) fails closed. Other authors keep the crisis paths only.
  *
  * The loop's content screen is lexical: a cheap first filter, not a proof. The behavioural
  * backstop is Phase 3's frozen crisis suites, which run on every loop PR and reroute it to
@@ -61,6 +71,11 @@ export type Policy = {
     privacy: { paths: string[]; pathPattern: string };
     evaluator: { paths: string[] };
   };
+  /**
+   * The only files a loop PR may change without the crisis approval (default-deny). Files
+   * also under `screenContent` must pass the crisis screen on their whole content.
+   */
+  loopAllowed: { paths: string[]; screenContent: string[] };
   approvers: { crisis: string[] };
   evaluatorAuthors: string[];
   loopAuthors: string[];
@@ -88,6 +103,11 @@ export type PullInput = {
   imports?: ImportRef[];
   /** Every commit's identities; null when they couldn't be read (fails closed). */
   commits?: CommitIdentity[] | null;
+  /**
+   * Head content of changed files under `loopAllowed.screenContent`, for the loop's
+   * whole-file screen. A file missing here (deleted, unreadable) fails closed.
+   */
+  fileTexts?: Record<string, string>;
 };
 /** A module specifier imported, required or re-exported on a changed line of `file`. */
 export type ImportRef = { file: string; specifier: string };
@@ -197,41 +217,83 @@ export function importTargets({ file, specifier }: ImportRef): string[] | null {
 const isOddPath = (path: string) => path.startsWith('"') || /[\u0000-\u001f\u007f]/.test(path);
 const ALL_LANES: Lane[] = ['crisis', 'privacy', 'evaluator'];
 
+/** Whether any contributor is the loop, in either login form. */
+function isLoopOf(contributors: string | string[], policy: Policy): boolean {
+  const loop = new Set(policy.loopAuthors.map(normalizeLogin));
+  return [contributors].flat().some((login) => loop.has(normalizeLogin(login)));
+}
+
+/** The loop's crisis screens: a changed line, and an import of a crisis module. */
+function crisisScreen(policy: Policy) {
+  const { crisis } = policy.lanes;
+  const crisisLine = crisis.changedLinePatterns.map((p) => new RegExp(p, 'i'));
+  const joined = crisis.joinedLinePatterns.map((p) => new RegExp(p));
+  const symbols = crisis.symbols ?? [];
+  if (symbols.length) crisisLine.push(wholeWords(symbols));
+  const fallback = new RegExp(crisis.importFallbackPattern, 'i');
+  return {
+    line: (l: string) =>
+      crisisLine.some((re) => re.test(l)) || joined.some((re) => re.test(joinLine(l))),
+    import: (ref: ImportRef) => {
+      const targets = importTargets(ref);
+      return targets ? targets.some((t) => inPaths(t, crisis.paths)) : fallback.test(ref.specifier);
+    },
+  };
+}
+
+/**
+ * Default-deny: the changed files a loop PR may not change without the crisis approval.
+ * A file outside `loopAllowed.paths`, or one under `screenContent` whose head content
+ * (`fileTexts`) is missing or has a crisis line or crisis import anywhere in it.
+ */
+export function loopOutsideAllowed(
+  files: string[],
+  policy: Policy,
+  fileTexts: Record<string, string> = {}
+): string[] {
+  const { paths, screenContent } = policy.loopAllowed;
+  const screen = crisisScreen(policy);
+  return files.filter((file) => {
+    if (!inPaths(file, paths)) return true;
+    if (!inPaths(file, screenContent)) return false;
+    const text = Object.hasOwn(fileTexts, file) ? fileTexts[file] : undefined;
+    if (text === undefined) return true;
+    if (text.split('\n').some((l) => screen.line(`+${l}`))) return true;
+    return [...text.matchAll(SPECIFIER)].some((m) => screen.import({ file, specifier: m[1] }));
+  });
+}
+
 /**
  * Fails closed: an odd path is in every lane, and a binary file in a loop PR is crisis
  * (its content can't be screened). Binary files count by path like any other file. A loop
  * PR's import of a crisis module is crisis: a relative specifier by the path it resolves
- * to, any other by `importFallbackPattern`.
+ * to, any other by `importFallbackPattern`. A loop PR changing a file outside
+ * `loopAllowed` is crisis (see loopOutsideAllowed).
  */
 export function classify(
   changedFiles: string[],
   changedLines: string[],
   contributors: string | string[],
   policy: Policy,
-  { binaryFiles = [], imports = [] }: Pick<PullInput, 'binaryFiles' | 'imports'> = {}
+  {
+    binaryFiles = [],
+    imports = [],
+    fileTexts = {},
+  }: Pick<PullInput, 'binaryFiles' | 'imports' | 'fileTexts'> = {}
 ): Lane[] {
   const files = [...changedFiles, ...binaryFiles];
   if (files.some(isOddPath)) return [...ALL_LANES];
   const { crisis, privacy, evaluator } = policy.lanes;
-  const loop = new Set(policy.loopAuthors.map(normalizeLogin));
-  const isLoop = [contributors].flat().some((login) => loop.has(normalizeLogin(login)));
-  const crisisLine = crisis.changedLinePatterns.map((p) => new RegExp(p, 'i'));
-  const joined = crisis.joinedLinePatterns.map((p) => new RegExp(p));
-  const symbols = crisis.symbols ?? [];
-  if (symbols.length) crisisLine.push(wholeWords(symbols));
-  const fallback = new RegExp(crisis.importFallbackPattern, 'i');
-  const crisisImport = (ref: ImportRef) => {
-    const targets = importTargets(ref);
-    return targets ? targets.some((t) => inPaths(t, crisis.paths)) : fallback.test(ref.specifier);
-  };
+  const isLoop = isLoopOf(contributors, policy);
+  const screen = crisisScreen(policy);
   const privacyPath = new RegExp(privacy.pathPattern, 'i');
   const lanes: Lane[] = [];
   if (
     files.some((f) => inPaths(f, crisis.paths)) ||
     (isLoop && binaryFiles.length > 0) ||
-    (isLoop && changedLines.some((l) => crisisLine.some((re) => re.test(l)))) ||
-    (isLoop && changedLines.some((l) => joined.some((re) => re.test(joinLine(l))))) ||
-    (isLoop && imports.some(crisisImport))
+    (isLoop && loopOutsideAllowed(changedFiles, policy, fileTexts).length > 0) ||
+    (isLoop && changedLines.some(screen.line)) ||
+    (isLoop && imports.some(screen.import))
   ) {
     lanes.push('crisis');
   }
@@ -255,6 +317,9 @@ function wholeWords(names: string[]): RegExp {
 }
 
 const short = (sha: string) => sha.slice(0, 9);
+/** Up to five files, then a count of the rest. */
+const listOf = (files: string[]) =>
+  files.slice(0, 5).join(', ') + (files.length > 5 ? ` (+${files.length - 5} more)` : '');
 
 /**
  * An approver's review decides on the exact head: their latest APPROVED or
@@ -322,6 +387,10 @@ export function evaluate(pr: PullInput, policy: Policy): Verdict {
     if (lane === 'crisis') {
       ok &&= approved !== null;
       reasons.push(`crisis lane: ${approved ?? needApproval}`);
+      const outside = isLoopOf(contributors, policy)
+        ? loopOutsideAllowed(pr.files, policy, pr.fileTexts)
+        : [];
+      if (outside.length) reasons.push(`outside the loop's allowed paths: ${listOf(outside)}`);
     } else if (lane === 'evaluator') {
       const evaluator = verifiedBy(pr, policy.evaluatorAuthors);
       ok &&= evaluator !== null || approved !== null;
@@ -363,8 +432,9 @@ export function readCommits(read: () => any[], expected: number): CommitIdentity
  */
 export function diffInputs(
   range: string,
-  cwd = process.cwd()
-): Pick<PullInput, 'files' | 'binaryFiles' | 'changedLines' | 'imports'> {
+  cwd = process.cwd(),
+  screenContent: string[] = []
+): Pick<PullInput, 'files' | 'binaryFiles' | 'changedLines' | 'imports' | 'fileTexts'> {
   const diff = (...args: string[]) =>
     execFileSync(
       'git',
@@ -385,12 +455,41 @@ export function diffInputs(
     .filter((entry) => entry.startsWith('-\t-\t'))
     .map((entry) => entry.slice(4));
   const content = diff('--text', '--no-textconv', '-U0');
+  const files = diff('--name-only', '-z').split('\0').filter(Boolean);
   return {
-    files: diff('--name-only', '-z').split('\0').filter(Boolean),
+    files,
     binaryFiles,
     changedLines: changedLinesOf(content),
     imports: importsOf(content),
+    fileTexts: headTexts(range, files, screenContent, cwd),
   };
+}
+
+/**
+ * Head content of the files under `screenContent`, read as blobs (never checked out). A
+ * file the head doesn't have (deleted) is left out, so the screen fails closed on it.
+ */
+function headTexts(
+  range: string,
+  files: string[],
+  screenContent: string[],
+  cwd: string
+): Record<string, string> {
+  const head = range.includes('...') ? range.slice(range.lastIndexOf('...') + 3) : range;
+  const texts: Record<string, string> = {};
+  for (const file of files.filter((f) => inPaths(f, screenContent))) {
+    try {
+      texts[file] = execFileSync('git', ['cat-file', 'blob', `${head}:${file}`], {
+        cwd,
+        encoding: 'utf8',
+        maxBuffer: 64 * 1024 * 1024,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      });
+    } catch {
+      // Not in the head: left out, so it fails closed.
+    }
+  }
+  return texts;
 }
 
 type Context = { repo: string; policy: Policy; mainRef: string };
@@ -401,7 +500,7 @@ const fetchRef = (refspec: string) =>
   execFileSync('git', ['fetch', '-q', '--no-tags', 'origin', refspec, FETCH_MAIN]);
 
 /** A PR's lane inputs: author and reviews from GitHub, files and lines from git. */
-function loadPull({ repo, mainRef }: Context, n: number): PullInput {
+function loadPull({ repo, mainRef, policy }: Context, n: number): PullInput {
   fetchRef(`+refs/pull/${n}/head:refs/autonomy-lanes/pr-${n}`);
   const api = `repos/${repo}/pulls/${n}`;
   const pull = gh(['api', api]);
@@ -410,7 +509,7 @@ function loadPull({ repo, mainRef }: Context, n: number): PullInput {
     head,
     author: String(pull.user?.login ?? ''),
     headRef: String(pull.head.ref ?? ''),
-    ...diffInputs(`${mainRef}...${head}`),
+    ...diffInputs(`${mainRef}...${head}`, process.cwd(), policy.loopAllowed.screenContent),
     commits: readCommits(() => pages(`${api}/commits?per_page=100`), Number(pull.commits)),
     reviews: pages(`${api}/reviews?per_page=100`).map((r) => ({
       login: String(r.user?.login ?? ''),
