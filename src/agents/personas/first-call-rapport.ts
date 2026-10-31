@@ -27,6 +27,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { leavingNow } from '../shared/call-farewell.js';
+import { NAME_PLACEMENT_RULE } from './name-gate.js';
 
 /** The base note on every reply of a first call. */
 export const FIRST_CALL_NOTE =
@@ -107,7 +108,10 @@ export function firstCallNote(
   const { userData } = session as { userData?: { personaId?: unknown } };
   if (!isFirstCall(userData)) return '';
   if (!rapport) return who;
-  if (leavingNow(callerWords)) return scriptFree ? FIRST_GOODBYE_PLAIN : FIRST_GOODBYE_NOTE;
+  // NAME_GATE_V2: where the note asks for their name, ask for the shape the gate keeps (name-gate.ts).
+  const rule = flagOn('NAME_GATE_V2', env) ? NAME_PLACEMENT_RULE : '';
+  if (leavingNow(callerWords))
+    return [scriptFree ? FIRST_GOODBYE_PLAIN : FIRST_GOODBYE_NOTE, rule].filter(Boolean).join(' ');
   const said = agentLines(chatCtx);
   const nameAsked = said.some((line) => NAME_ASKED.test(line));
   const early = said.length <= NAME_SWAP_REPLIES;
@@ -117,5 +121,5 @@ export function firstCallNote(
     const name = getPersonaDisplayName(speaker).split(/\s+/)[0];
     swap = scriptFree ? nameSwapPlain(name) : NAME_SWAP_NOTE;
   }
-  return [FIRST_CALL_NOTE, who, swap].filter(Boolean).join(' ');
+  return [FIRST_CALL_NOTE, rule, who, swap].filter(Boolean).join(' ');
 }
