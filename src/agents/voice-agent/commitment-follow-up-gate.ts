@@ -201,7 +201,7 @@ export function arcInsightOnceEnabled(env: NodeJS.ProcessEnv = process.env): boo
  * is then stored as shared. Nothing called markPatternSurfaced, so the same
  * self-sabotage pattern came back every third turn of every call (22 times in one, #3167).
  */
-export function patternMirrorOnceEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+function patternMirrorOnceEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.PATTERN_MIRROR_ONCE === 'on';
 }
 
