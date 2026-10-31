@@ -317,13 +317,13 @@ export function callerAsksToHangUp(text: string): boolean {
 }
 
 /**
- * Leaving, which the goodbye words miss: "I should probably head out", "I should get to
- * bed". Only at the end of a clause or before "now"/"soon": "I need to go back to the
+ * Leaving, which the goodbye words miss: "I should probably head out". Only at
+ * the end of a clause or before "now"/"soon": "I need to go back to the
  * hospital after work tonight" and "I have to run errands all weekend" are
  * plans mid-story, not a goodbye (first calls, dev 2026-10-18).
  */
 export const LEAVING =
-  /\bi (?:should|need to|have to|gotta|better) (?:probably |really |just )?(?:go|get going|head (?:out|off)|let you go|get back|run|hop off|(?:go|get) to (?:bed|sleep))(?=\s*(?:$|[.,!?;:]|(?:now|soon|right now|for now|in a (?:bit|minute|sec|second|few))\b))/i;
+  /\bi (?:should|need to|have to|gotta|better) (?:probably |really |just )?(?:go|get going|head (?:out|off)|let you go|get back|run|hop off)(?=\s*(?:$|[.,!?;:]|(?:now|soon|right now|for now|in a (?:bit|minute|sec|second|few))\b))/i;
 
 /** They are ending the call: a goodbye on its own (callerSaysGoodbye), or leaving. */
 export function leavingNow(said: string): boolean {

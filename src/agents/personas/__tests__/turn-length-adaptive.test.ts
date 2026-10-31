@@ -7,6 +7,7 @@ import { withTurnReminder } from '../turn-request.js';
 import { styleFor } from '../turn-request-style.js';
 import { rngFor } from '../turn-shape.js';
 import { substanceOf } from '../turn-substance.js';
+import { onOwnBeat } from '../../../tools/handoff/team-by-need-note.js';
 
 const KEYS = ['TURN_LENGTH', 'TURN_TEXTURE', 'TURN_SHAPE', 'SCRIPT_FREE_REMINDER'];
 let saved: Record<string, string | undefined> = {};
@@ -159,6 +160,7 @@ describe('TURN_LENGTH=adaptive', () => {
       'alright, talk tomorrow?',
       'gotta run, talk soon?',
       'okay I should get to bed, can we pick this up tomorrow?',
+      'I should go to bed, can we talk tomorrow?',
     ]) {
       expect(substanceOf(said, 'share')).toBeUndefined();
       expect(reminder('adaptive', call(said))).toBe(reminder('learned', call(said)));
@@ -175,5 +177,67 @@ describe('TURN_LENGTH=adaptive', () => {
       expect(substanceOf(said, move)).toBeUndefined();
     }
     expect(substanceOf('how was your day?', 'share')).toBeUndefined();
+  });
+
+  it('gives a quick reaction or "say that again" no lift, and a real question one', () => {
+    const reactions = [
+      'really?',
+      'huh?',
+      'what?',
+      'wait what?',
+      'seriously?',
+      'no way?',
+      "isn't it?",
+      'lol?',
+      'oh really?',
+      'for real?',
+      'sorry?',
+      'come again?',
+      'isn’t it?',
+      '?',
+      'WHAT?',
+      '¿en serio?',
+      '¿qué?',
+      '¿cómo?',
+      '¿de verdad?',
+      'quoi ?',
+      'hein ?',
+      'vraiment ?',
+      "c'est vrai ?",
+      'pardon ?',
+    ];
+    for (const said of reactions) {
+      expect(substanceOf(said, 'share'), said).toBeUndefined();
+      expect(reminder('adaptive', call(said)), said).toBe(reminder('learned', call(said)));
+    }
+    const questions = [
+      'why?',
+      'how?',
+      'pourquoi ?',
+      '¿por qué?',
+      'whatever, should I just quit?',
+      'wait, should I call her back tonight?',
+      'what should I even do with the money?',
+      '¿debería llamarla esta noche?',
+      'tu crois que je devrais lui dire ?',
+      'is the loan worth it?',
+      QUESTION,
+    ];
+    for (const said of questions) expect(substanceOf(said, 'share'), said).toBe('question');
+    expect(reminder('adaptive', call('why?'))).toMatch(SUBSTANCE_LINE);
+  });
+
+  it('gives a persona id that is not a string no beat, and never throws', () => {
+    const said = 'I keep failing at my morning routine';
+    for (const bad of [42, {}, ['maya-santos'], true]) {
+      expect(onOwnBeat(bad, said)).toBe(false);
+      expect(substanceOf(said, 'share', { speaker: bad as unknown as string })).toBeUndefined();
+      process.env.TURN_LENGTH = 'adaptive';
+      const style = styleFor(call(said), { userData: { personaId: bad } }, true);
+      expect(style.text).not.toMatch(SUBSTANCE_LINE);
+      expect(() =>
+        reminder('adaptive', call(said), { userData: { personaId: bad } })
+      ).not.toThrow();
+    }
   });
 });
