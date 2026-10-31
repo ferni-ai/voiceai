@@ -16,6 +16,7 @@ import {
   getModelProvider,
 } from '../model-provider/index.js';
 import { watchSessionSttAudio } from '../model-provider/stt-audio-diagnostics.js';
+import { gateScriptedSay } from '../personas/scripted-name-gate.js';
 import { watchAgentState } from '../shared/loop-watch.js';
 import { routeSayThroughModel } from '../shared/native-speech.js';
 import { limitSessionListeners } from '../shared/session-listener-limit.js';
@@ -156,6 +157,9 @@ export async function createCallSession(
   if (modelProvider.speaksNatively?.()) {
     routeSayThroughModel(session as unknown as Parameters<typeof routeSayThroughModel>[0]);
   }
+  // NAME_GATE_V2: scripted say() lines get the name gate (personas/scripted-name-gate.ts),
+  // after the native-audio route, so a line is gated before the model is asked to say it.
+  gateScriptedSay(session);
 
   return session;
 }
