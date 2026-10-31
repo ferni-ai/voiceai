@@ -11,7 +11,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // shows the defaults whatever the test runner's env holds.
 const NAMES = [
   'NODE_ENV',
-  'BACKCHANNELS',
   'VOICE_HUMANIZATION_DISABLED',
   'VOICE_HUMANIZATION_ROLLOUT_PERCENTAGE',
   'USE_NATIVE_AUDIO',
@@ -58,15 +57,12 @@ describe('feature-flags.ts resolved values', () => {
 
 describe('voice-humanization-flags.ts resolved values', () => {
   for (const nodeEnv of ['production', 'staging', 'development']) {
-    for (const backchannels of [undefined, 'on']) {
-      it(`match the recorded values for NODE_ENV=${nodeEnv}, BACKCHANNELS=${backchannels}`, async () => {
-        process.env.NODE_ENV = nodeEnv;
-        if (backchannels) process.env.BACKCHANNELS = backchannels;
-        const { getFlags, resetFlags } = await import('../voice-humanization-flags.js');
-        resetFlags();
-        expect(getFlags()).toMatchSnapshot();
-      });
-    }
+    it(`match the recorded values for NODE_ENV=${nodeEnv}`, async () => {
+      process.env.NODE_ENV = nodeEnv;
+      const { getFlags, resetFlags } = await import('../voice-humanization-flags.js');
+      resetFlags();
+      expect(getFlags()).toMatchSnapshot();
+    });
   }
 
   it('no longer change when an old per-feature override is set', async () => {

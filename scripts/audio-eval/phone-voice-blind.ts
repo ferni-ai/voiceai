@@ -53,7 +53,6 @@ interface Line {
 /** The prod levers (SpeechDirector log, 2026-10-10): every key is set for every arm. */
 const LEVER_ENV: Record<string, string | undefined> = {
   SPEECH_DIRECTOR: 'live',
-  SPEECH_DIRECTOR_LAUGHTER: 'live',
   SPEECH_DIRECTOR_NONVERBAL: undefined,
   SPEECH_DIRECTOR_PROSODY: undefined,
   SPEECH_STAGE2_NONVERBAL: undefined,

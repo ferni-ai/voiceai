@@ -50,36 +50,20 @@ describe('live backchannels that fit what the caller says', () => {
     vi.mocked(pickContextualBackchannel).mockClear();
   });
 
-  it('with BACKCHANNEL_CONTEXT unset, plays the neutral pick and never consults the context', () => {
-    vi.stubEnv('BACKCHANNELS', 'on');
-    const played = oneClip(BAD_NEWS);
-    // pickBackchannel(false, null, () => 0) is the first neutral clip.
-    expect(played).toEqual(['Mm-hmm']);
-    expect(pickContextualBackchannel).not.toHaveBeenCalled();
-  });
-
-  it('with BACKCHANNEL_CONTEXT=on, reacts to bad news with "Oh no"', () => {
-    vi.stubEnv('BACKCHANNELS', 'on');
-    vi.stubEnv('BACKCHANNEL_CONTEXT', 'on');
+  it('reacts to bad news with "Oh no"', () => {
     expect(oneClip(BAD_NEWS)).toEqual(['Oh no']);
   });
 
   it('on hard news, only a soft "mm", never "Oh no" or a neutral "Yeah"', () => {
-    vi.stubEnv('BACKCHANNELS', 'on');
-    vi.stubEnv('BACKCHANNEL_CONTEXT', 'on');
     expect(oneClip(GRAVE)).toEqual(['Mm']);
     expect(pickContextualBackchannel).not.toHaveBeenCalled();
   });
 
   it('falls back to the neutral pick when the fitting clip is not cached', () => {
-    vi.stubEnv('BACKCHANNELS', 'on');
-    vi.stubEnv('BACKCHANNEL_CONTEXT', 'on');
     expect(oneClip(BAD_NEWS, (text) => text !== 'Oh no')).toEqual(['Mm-hmm']);
   });
 
   it('falls back to the neutral pick when nothing fits', () => {
-    vi.stubEnv('BACKCHANNELS', 'on');
-    vi.stubEnv('BACKCHANNEL_CONTEXT', 'on');
     expect(oneClip('we went to the store for milk and')).toEqual(['Mm-hmm']);
     expect(pickContextualBackchannel).toHaveBeenCalledTimes(1);
   });

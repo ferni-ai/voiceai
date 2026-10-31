@@ -34,7 +34,6 @@ import {
   startReturningCaller,
   watchCallerPhone,
 } from '../voice-agent-entry/caller-recognition.js';
-import { flagOn } from '../../config/env-flag.js';
 import { newAnonymousId } from '../../services/identity/anonymous-session-id.js';
 import { isVerifiedIdentification } from '../../services/identity/verified-caller.js';
 import { deviceNameGuardEnabled, isDeviceOrHandleName } from './device-name-guard.js';
@@ -183,8 +182,6 @@ export async function identifyUser(
       userId = userName = undefined;
     if (phone) identificationSource = 'phone';
     if (phone) verified = false; // a number names the caller now, not the verified account
-    // The prefetch above ran before recognition named the account (PHONE_PARITY).
-    if (phone?.userId && flagOn('PHONE_PARITY')) void prefetchUserCommitments(phone.userId);
   }
 
   // Configure music playback mode for phone calls

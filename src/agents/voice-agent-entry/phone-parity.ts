@@ -9,21 +9,19 @@
  * so it never ran for a phone caller.
  *
  * A profile's zone belongs to the account's owner, so it reaches a call only
- * when the caller is that verified owner, with or without the flag: a phone
+ * when the caller is that verified owner: a phone
  * caller recognised by a signed attestation, or an account named by an
  * authenticated dispatch (sessionIsVerifiedOwner). A caller matched only by
  * their number never gets the account's zone (with CALLER_RECOGNITION off,
  * such a caller still keeps the account's id and memory; that is #877's
  * call), and a call Ferni placed for someone else keeps the sponsor's out.
  *
- * Without the flag, a verified owner's zone dates their memories and sets the
- * local clock (both read the zone recorded for the call). PHONE_PARITY=on
- * (default off) also puts it on userData, where the prompt, greeting and
- * presence sounds read it.
+ * A verified owner's zone dates their memories and sets the local clock (both
+ * read the zone recorded for the call). It is never put on userData: only the
+ * browser's zone is, which the prompt, greeting and presence sounds read.
  *
  * @module agents/voice-agent-entry/phone-parity
  */
-import { flagOn, type Env } from '../../config/env-flag.js';
 import { rememberCallerTimeZone } from '../../memory/operations/call-moment.js';
 import { profileOnceLoaded } from '../../services/session/deferred-profile.js';
 import { markZonelessCall } from '../../utils/caller-time-zone.js';
@@ -31,10 +29,6 @@ import { registerCleanup } from '../session/event-cleanup-registry.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { isValidTimeZone } from '../shared/time-context.js';
 import { sessionIsVerifiedOwner } from './caller-recognition.js';
-
-export function phoneParityEnabled(env: Env = process.env): boolean {
-  return flagOn('PHONE_PARITY', env);
-}
 
 /**
  * The profile's zone when this call's caller is its verified owner. Undefined
@@ -65,8 +59,7 @@ export async function settleCallerZone(
   call: { sessionId: string; userId?: string | null; onBehalf: boolean },
   browserZone: unknown,
   services: ZoneServices | undefined,
-  userData: { callerTimezone?: string } | undefined,
-  env: Env = process.env
+  userData: { callerTimezone?: string } | undefined
 ): Promise<string | undefined> {
   const { sessionId, userId } = call;
   const conversationId = services?.realtimeConversationId;
@@ -83,6 +76,5 @@ export async function settleCallerZone(
   if (!zone) return undefined;
   release();
   rememberCallerTimeZone(zone, sessionId, conversationId, userId);
-  if (userData && phoneParityEnabled(env)) userData.callerTimezone ??= zone;
   return zone;
 }

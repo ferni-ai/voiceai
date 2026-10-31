@@ -19,7 +19,7 @@ import type { GTMConfig, ContentCategory, ContentPillar } from './types.js';
 export function getGTMConfig(): GTMConfig {
   return {
     enabled: process.env.GTM_ENABLED !== 'false',
-    autoPublish: process.env.GTM_AUTO_PUBLISH === 'true',
+    autoPublish: false, // Unapproved content is never published
     reviewRequired: process.env.GTM_REQUIRE_APPROVAL !== 'false', // Default true
     defaultTimezone: process.env.GTM_TIMEZONE || 'America/Los_Angeles',
     publishTimes: {
@@ -31,7 +31,7 @@ export function getGTMConfig(): GTMConfig {
       twitter: process.env.GTM_PLATFORM_TWITTER !== 'false',
       linkedin: process.env.GTM_PLATFORM_LINKEDIN !== 'false',
       discord: process.env.GTM_PLATFORM_DISCORD !== 'false',
-      blog: process.env.GTM_PLATFORM_BLOG === 'true', // Blog disabled by default
+      blog: false, // Blog disabled
     },
     contentRatio: {
       tutorial: 20,
