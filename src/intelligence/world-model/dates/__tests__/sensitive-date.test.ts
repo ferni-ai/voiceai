@@ -72,6 +72,7 @@ describe('sensitiveDate: only a label of light words is ordinary', () => {
     "Marcus's wake",
     'the divorce party', // isSensitiveThread
     'meeting with IRS', // capitals are an acronym, never a name
+    "Hospital's holiday party", // a heavy word in a name's shape: isSensitiveThread still holds
   ])('%j is sensitive', (label) => {
     expect(sensitiveDate(label)).toBe(true);
   });

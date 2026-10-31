@@ -5,7 +5,7 @@
  * would raise (an ordinary one and a sensitive one), so any leak changes it.
  * Fictional caller only.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RaisableDate } from '../../../intelligence/world-model/dates/recall.js';
 
 const directedText = vi.fn(async (_sessionId: string, req: { fallback: string }) => ({
@@ -64,6 +64,23 @@ vi.mock('../../../intelligence/world-model/temporal/store.js', async (importOrig
   markFactRaised: vi.fn(async () => undefined),
 }));
 
+/** A database whose every read is empty, so no gate (no database, a crisis) masks a leak. */
+const emptyDb = vi.hoisted(() => {
+  const chain = (): Record<string, unknown> => ({
+    collection: () => chain(),
+    doc: () => chain(),
+    where: () => chain(),
+    orderBy: () => chain(),
+    limit: () => chain(),
+    get: async () => ({ exists: false, data: () => undefined, empty: true, docs: [], size: 0 }),
+  });
+  return chain();
+});
+vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getFirestoreDb: () => emptyDb,
+}));
+
 const { directedGreeting } = await import('../greeting-direction.js');
 const { createMemoryRecall } = await import('../memory-recall-hook.js');
 const { createDatesRecall, dueDate, formatDueDate } =
@@ -80,6 +97,11 @@ async function cue(): Promise<{ direction: string; facts: Record<string, string>
   const { ['time of day']: _hour, ...rest } = req.facts; // the hour of the test run
   return { direction: req.direction, facts: rest };
 }
+
+// Loaded before any hello, as in the agent: a cold import must not hide a leak behind the race.
+beforeAll(async () => {
+  await import('../../../intelligence/index.js');
+}, 60_000);
 
 beforeEach(() => {
   vi.stubEnv('DATES_IN_HELLO', 'off');
