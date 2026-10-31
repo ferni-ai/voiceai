@@ -95,6 +95,7 @@ describe('summarise', () => {
     expect(s.carryOver.afterActivated).toEqual({ n: 2, of: 3 });
     expect(s.carryOver.afterQuiet).toEqual({ n: 1, of: 1 });
     expect(s.carryOver.intoMustNotAlarm).toEqual({ n: 2, of: 3 });
+    expect(s.carryOver.negativeCalls).toEqual({ n: 2, of: 3 });
   });
 
   it('counts a crisis line again on a call that already had one', () => {

@@ -8,7 +8,10 @@
  *   CRISIS_SIM_PROFILE=prod-2026-10-31 \
  *     npx tsx scripts/crisis-eval/full-path-sim.ts \
  *       --baseline scripts/crisis-eval/baselines/full-path-prod-2026-10-31.json \
- *       --out report.md [--json summary.json] [--write-baseline <file>]
+ *       --out report.md [--json summary.json] [--write-baseline <file>] [--neutral-guided]
+ *
+ * --neutral-guided: a guided turn's reply goes back into the call as the neutral
+ * stub line instead of the guard's 988 text (full-path-turn.ts), for comparison.
  *
  * Env: CRISIS_SIM_PROFILE (full-path-profiles.ts), CRISIS_SIM_SET overrides,
  * CRISIS_EVAL_REPS (default 3), CRISIS_EVAL_SETS (filter by set),
@@ -106,7 +109,12 @@ async function pool<T>(items: readonly T[], width: number, work: (t: T) => Promi
 async function runCall(
   spec: SimCallSpec,
   rep: number,
-  run: { env: Record<string, string>; generate: CrisisGenerateFn; anon: boolean }
+  run: {
+    env: Record<string, string>;
+    generate: CrisisGenerateFn;
+    anon: boolean;
+    guidedReply: 'crisis-line' | 'neutral';
+  }
 ): Promise<TurnRecord[]> {
   const call = newCall(`sim-${rep}-${spec.id}`, run.anon);
   for (const line of spec.opening) addContext(call, line.who, line.text);
@@ -135,6 +143,7 @@ async function main(): Promise<number> {
   const reps = Number(process.env.CRISIS_EVAL_REPS) || 3;
   const width = Number(process.env.CRISIS_SIM_CONCURRENCY) || 8;
   const anon = process.env.CRISIS_SIM_CALLER === 'anon';
+  const guidedReply = process.argv.includes('--neutral-guided') ? 'neutral' : 'crisis-line';
   const { generate: retried, tally } = retriedGenerate();
   const { generate, flags } = mutate(mutation, retried, { ...profile.flags });
   // A 10 s bound, as replay-turns.ts: a slow read must not count as the model's answer.
@@ -150,14 +159,14 @@ async function main(): Promise<number> {
     resetCrisisCallRisk();
     resetCallRiskSnapshots();
     await pool(calls, width, async (spec) => {
-      records.push(...(await runCall(spec, rep, { env, generate, anon })));
+      records.push(...(await runCall(spec, rep, { env, generate, anon, guidedReply })));
     });
     process.stderr.write(`rep ${rep + 1}/${reps} done, ${records.length} reads\n`);
   }
   const minutes = (Date.now() - started) / 60000;
 
   const summary = summarise(records, {
-    profile: anon ? `${profile.name} anon` : profile.name,
+    profile: `${profile.name}${anon ? ' anon' : ''}${guidedReply === 'neutral' ? ' neutral-guided' : ''}`,
     mutation,
     reps,
   });

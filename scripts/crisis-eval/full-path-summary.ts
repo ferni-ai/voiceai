@@ -75,7 +75,13 @@ export interface SimSummary {
   /** Call reads with 2 or more scripted replies. On negative calls: calls with no must-catch turn. */
   scriptLoops: { all: Ratio; negativeCalls: Ratio };
   /** Next-turn activation after an activated turn, and after a quiet one, within a call. */
-  carryOver: { afterActivated: Ratio; afterQuiet: Ratio; intoMustNotAlarm: Ratio };
+  carryOver: {
+    afterActivated: Ratio;
+    afterQuiet: Ratio;
+    intoMustNotAlarm: Ratio;
+    /** After an activation, on calls with no must-catch turn: the false-alarm stickiness. */
+    negativeCalls: Ratio;
+  };
   /** Reads where a crisis line came again on a call that already had one. */
   repeatedCrisisLine: number;
   /** Reads per fired path, all labels. */
@@ -169,6 +175,7 @@ export function summarise(
   const afterActivated = ratio(0, 0);
   const afterQuiet = ratio(0, 0);
   const intoNeg = ratio(0, 0);
+  const negCarry = ratio(0, 0);
   for (const turns of calls.values()) {
     turns.sort((a, b) => a.index - b.index);
     if (turns.some((t) => t.label === 'must-not-alarm')) {
@@ -178,7 +185,8 @@ export function summarise(
     const looped = turns.filter((t) => t.replaced).length >= 2;
     loops.of++;
     if (looped) loops.n++;
-    if (!turns.some((t) => t.label === 'must-catch')) {
+    const negativeCall = !turns.some((t) => t.label === 'must-catch');
+    if (negativeCall) {
       negLoops.of++;
       if (looped) negLoops.n++;
     }
@@ -192,6 +200,10 @@ export function summarise(
       const bucket = prev.activated ? afterActivated : afterQuiet;
       bucket.of++;
       if (t.activated) bucket.n++;
+      if (prev.activated && negativeCall) {
+        negCarry.of++;
+        if (t.activated) negCarry.n++;
+      }
       if (prev.activated && t.label === 'must-not-alarm') {
         intoNeg.of++;
         if (t.activated) intoNeg.n++;
@@ -223,7 +235,7 @@ export function summarise(
     },
     falseAlarmCalls: faCalls,
     scriptLoops: { all: loops, negativeCalls: negLoops },
-    carryOver: { afterActivated, afterQuiet, intoMustNotAlarm: intoNeg },
+    carryOver: { afterActivated, afterQuiet, intoMustNotAlarm: intoNeg, negativeCalls: negCarry },
     repeatedCrisisLine,
     paths,
     falseAlarmPaths,

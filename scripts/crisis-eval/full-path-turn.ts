@@ -16,8 +16,12 @@
  * are made here and the signal is kept in memory on the call; and
  * buildCrisisHistoryInjection reads them back, so the note is decided here
  * from that memory with the production crisisFromSignal and followUpCrisis.
- * The reply model is a stub: a short neutral line, or the script when the
- * gate replaces the reply.
+ * The reply model is a stub. Ferni's line back into the call is the script when
+ * the reply was replaced; on a guided turn (crisis guidance added by the gate or
+ * the pipeline), the guard's own guided-level 988 text, which is what a guided
+ * prod reply says and what then reaches the classifier's COMPANION field and the
+ * agreement scan; otherwise a short neutral line. `guidedReply: 'neutral'` gives
+ * guided turns the neutral line instead, for comparison.
  */
 
 import { EventEmitter } from 'node:events';
@@ -28,7 +32,10 @@ import { buildSafetyInjections } from '../../src/agents/processors/injection-bui
 import type { InjectionBuilderContext } from '../../src/agents/processors/injection-builders/types.js';
 import { startTurnCrisis } from '../../src/agents/processors/turn-processor/turn-crisis.js';
 import { isAcknowledgementOnly } from '../../src/agents/voice-agent/agent-reply-recorder.js';
-import { buildCrisisGuidance } from '../../src/agents/safety/crisis-guard.js';
+import {
+  applyClassifierVerdict,
+  buildCrisisGuidance,
+} from '../../src/agents/safety/crisis-guard.js';
 import { flagOn } from '../../src/config/env-flag.js';
 import {
   buildTransferAwarenessContext,
@@ -117,7 +124,12 @@ export interface TurnOutcome {
 export async function simulateTurn(
   call: SimCall,
   text: string,
-  options: { env: Record<string, string | undefined>; generate: CrisisGenerateFn; ferni?: string }
+  options: {
+    env: Record<string, string | undefined>;
+    generate: CrisisGenerateFn;
+    ferni?: string;
+    guidedReply?: 'crisis-line' | 'neutral';
+  }
 ): Promise<TurnOutcome> {
   const { env, generate } = options;
   call.callerTurn++;
@@ -224,8 +236,17 @@ export async function simulateTurn(
   if (activated) call.activations++;
 
   // Ferni's reply goes back into the call as prod records it.
+  // A guided turn: the guard's guided-level text for this turn (crisis-guard.ts getCrisisResponse,
+  // through applyClassifierVerdict), the pipeline's own when it read the turn as crisis.
+  const guided = !replaced && (gateGuided || summary.isCrisis);
+  const guidedLine =
+    guided && options.guidedReply !== 'neutral'
+      ? summary.isCrisis && resolved.suggestedResponse
+        ? resolved.suggestedResponse
+        : applyClassifierVerdict(patterns, { risk: 'crisis', subject: 'self' }).suggestedResponse
+      : undefined;
   // A corpus `ferni` line is the shape under test (a 988 line before a denial), so it wins.
-  const ferni = options.ferni ?? (replaced ? script : spoken);
+  const ferni = options.ferni ?? (replaced ? script : (guidedLine ?? spoken));
   call.history.push({ role: 'user', text }, { role: 'assistant', text: ferni });
   if (ferni.trim() && !isAcknowledgementOnly(ferni.trim())) call.lastAgentResponse = ferni.trim();
 

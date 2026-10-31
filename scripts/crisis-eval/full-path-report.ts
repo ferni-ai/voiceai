@@ -73,6 +73,7 @@ export function renderReport(
   out.push(
     `| activation after an activation, on must-not-alarm turns | ${pct(s.carryOver.intoMustNotAlarm)} |`
   );
+  out.push(`| carry-over on calls with no must-catch turn | ${pct(s.carryOver.negativeCalls)} |`);
   out.push(`| crisis line repeated on a call that had one | ${s.repeatedCrisisLine} |`);
   out.push(`| must-not-alarm reads with the follow-up note | ${s.noteOnNegatives} |`);
   out.push(
