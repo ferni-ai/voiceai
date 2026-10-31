@@ -143,6 +143,59 @@ describe('pr-changes in the merge queue', () => {
   });
 });
 
+// ci.yml's setup step `risky` (output full-tests) gives a PR that touches crisis-safety
+// or memory code the whole unit suite on four shards. #2717 (crisis safety) went green
+// on shard 1 alone, the affected tests only.
+describe('pr-changes picks out PRs that touch crisis-safety or memory code', () => {
+  const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8');
+  const include = /^ {8}id: risky\n(?: {8}.*\n)*? {10}include: '([^']+)'$/m.exec(ci)?.[1] ?? '';
+  const pr = (...names: string[]) =>
+    runAction(
+      'pr-changes',
+      {
+        'github.token': 't',
+        'github.event_name': 'pull_request',
+        'github.repository': 'o/r',
+        'github.event.pull_request.number': '7',
+        'github.event.merge_group.base_ref': '',
+        'github.event.merge_group.head_sha': '',
+        'inputs.merge-group': 'false',
+        'inputs.include': include,
+        'inputs.exclude': '^$',
+      },
+      { 'repos/o/r/pulls/7/files': names.map((filename) => ({ filename })) }
+    ).outputs.matched;
+
+  it('reads the include from ci.yml', () => {
+    expect(include).toMatch(/^\^src\//);
+  });
+
+  it.each([
+    'src/services/safety/crisis-detector.ts',
+    'src/agents/personas/crisis-gate.ts',
+    'src/agents/processors/turn-processor/turn-crisis.ts',
+    'src/tools/domains/life-coaching-shared/safety-guards.ts',
+    'src/memory/recall/forget.ts',
+    'src/services/memory/recent-context.ts',
+    'src/utils/safety-whole-word.ts',
+    'src/utils/phrase-match.ts',
+  ])('%s is risky', (file) => {
+    expect(pr('docs/readme.md', file)).toBe('true');
+  });
+
+  it.each([
+    'src/services/safety-net.ts',
+    'src/agents/personas/ferni.json',
+    'src/tools/domains/life-coaching-shared/safety-guards.test.ts.snap',
+    'src/memoryless.ts',
+    'src/ui/memory/card.tsx',
+    'docs/memory/design.md',
+    'apps/web/src/memory/view.tsx',
+  ])('%s is not', (file) => {
+    expect(pr('src/ui/text-token.ts', file)).toBe('false');
+  });
+});
+
 describe('queue-tested on the push to main', () => {
   const push = {
     'github.token': 't',

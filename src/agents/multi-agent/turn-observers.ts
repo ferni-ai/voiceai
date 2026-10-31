@@ -10,7 +10,9 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { TurnToolRetrieval } from '../../tools/retrieval/turn-tool-retrieval.js';
 import type { PersonaId } from '../../personas/types.js';
 import type { SpeakerLog } from '../personas/director-persona.js';
+import { installTurnReading } from '../personas/turn-reading-shadow.js';
 import { assistantTranscriptHandler } from './assistant-transcript.js';
+import { callChannelOf, rememberCallChannel } from '../personas/director-channel.js';
 import { TURN_CONTEXT_HEADER } from './turn-context-header.js';
 
 const log = getLogger();
@@ -153,10 +155,7 @@ export async function installToolRetrieval(
 }
 
 /**
- * Turn understanding (TURN_UNDERSTANDING=shadow): a small model reads the
- * caller's turn while they talk; when Ferni starts replying, one
- * TURN_UNDERSTANDING record logs its answer next to what the regexes decided.
- * No transcript text is logged. Null when off.
+ * Turn understanding (TURN_UNDERSTANDING=shadow): a model reads caller turns; no transcript logged.
  */
 export async function installTurnUnderstanding(
   session: Session,
@@ -183,6 +182,7 @@ export async function installTurnUnderstanding(
     await promptOnCall(session)
   );
   setTurnUnderstander(session, understander);
+  const reading = installTurnReading(session, cleanupFunctions); // schema v0.1 in the record
   const finals: string[] = [];
   const onState = (ev: unknown): void => {
     if ((ev as { newState?: string }).newState !== 'speaking') return;
@@ -198,7 +198,7 @@ export async function installTurnUnderstanding(
       laughed: callerLaughed(turn),
       context: classifyBackchannelContext(turn),
     };
-    log.info(
+    reading.emit(
       {
         ready: Boolean(u),
         covered: seen ? Math.round(seen.covered * 100) / 100 : null,
@@ -218,7 +218,7 @@ export async function installTurnUnderstanding(
             }
           : null,
       },
-      'TURN_UNDERSTANDING'
+      (record) => log.info(record, 'TURN_UNDERSTANDING')
     );
     understander.newTurn(turn);
   };
@@ -233,6 +233,7 @@ export async function installTurnUnderstanding(
       const turn = [...finals, transcript].join(' ');
       if (isFinal) {
         finals.push(transcript);
+        reading.onFinal(turn);
         void understander.settle(turn);
       } else understander.onTurnText(turn);
     },
@@ -243,6 +244,7 @@ export async function installTurnUnderstanding(
 export async function installTurnListeners(
   input: ToolRetrievalInput
 ): Promise<{ onTranscript(transcript: string, isFinal: boolean): void } | null> {
+  rememberCallChannel(input.session, input.phone); // DIRECTOR_KNOWS_CHANNEL reads it
   // One REPLY_GAP line per caller turn (reply-gap.ts): the wait the caller hears.
   const { attachReplyGap, createLoopDelayProbe } = await import('../shared/reply-gap.js');
   const loop = createLoopDelayProbe();
@@ -301,6 +303,7 @@ export interface DirectorNotesInput {
 export async function installDirectorNotes(input: DirectorNotesInput): Promise<void> {
   const { session, sessionId, userName, agent, cleanupFunctions } = input;
   await installWrapUp(input);
+  (await import('./ai-notice-wiring.js')).installAiNotice(input); // AI_NOTICE_SPOKEN repeat
   // DIRECTOR_SEES_SCENE: both are framed for the persona speaking, each line labelled.
   const { directorSeesScene } = await import('../personas/director-cast.js');
   const seesScene = directorSeesScene();
@@ -321,6 +324,7 @@ export async function installDirectorNotes(input: DirectorNotesInput): Promise<v
     writeNotes,
     speaking: speakers?.now,
     personaId: () => personaIdOf(session), // DIRECTOR_DIRECTS: directs from the persona's sheet
+    channel: () => callChannelOf(session), // DIRECTOR_KNOWS_CHANNEL: app or phone
   });
   setDirector(session, director);
   // The director sees Ferni's tool calls as they start and finish (director-tool-state.ts).

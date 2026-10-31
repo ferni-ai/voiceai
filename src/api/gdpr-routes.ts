@@ -21,6 +21,8 @@ import { registerInterval } from '../utils/interval-manager.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { sendUserFacingError } from './user-facing-error.js';
+import { assertErased, erasureErrorCode } from '../services/platform/erasure-step.js';
 
 const log = createLogger({ module: 'GDPR-API' });
 
@@ -627,14 +629,12 @@ async function handleAccountDeletion(
   });
 
   try {
-    // The same sweep as DELETE /api/account: erases the user record (bogle_users/{uid} with every
-    // subcollection) and the other stores, and throws if the record survives, so the sign-in
-    // below is only closed once the data is gone. This used to delete an in-memory profile only.
+    // The same sweep as DELETE /api/account; the sign-in below is closed only once every step succeeded
     const { getDataExportService } = await import('../services/data-export.js');
     const results = await getDataExportService().deleteAllData(userId);
+    assertErased(results);
 
-    // Also delete Firebase user if this is a Firebase UID
-    // Firebase UIDs are 28 characters and don't start with 'device:'
+    // Also delete the Firebase user if this is a Firebase UID (28 characters, not 'device:')
     let firebaseDeleted = false;
     if (!userId.startsWith('device:') && userId.length >= 20) {
       try {
@@ -646,7 +646,7 @@ async function handleAccountDeletion(
       } catch (firebaseErr) {
         // Firebase deletion is best-effort - don't fail the whole request
         log.warn(
-          { error: String(firebaseErr), userId: `${userId.substring(0, 8)}...` },
+          { error: erasureErrorCode(firebaseErr), userId: `${userId.substring(0, 8)}...` },
           'Firebase user deletion failed (non-fatal)'
         );
       }
@@ -662,8 +662,8 @@ async function handleAccountDeletion(
 
     return true;
   } catch (error) {
-    log.error({ error, userId }, 'Account deletion failed');
-    sendError(res, 'Failed to delete account. Please contact support.', 500);
+    log.error({ error: erasureErrorCode(error), userId }, 'Account deletion failed');
+    sendUserFacingError(res, 'Failed to delete account. Your sign-in is still open, so try again.');
     return true;
   }
 }

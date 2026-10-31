@@ -119,6 +119,8 @@ const TEST_WEBHOOK_PATH = '/api/twilio/call-status';
 // their requests exactly as Twilio does, so the security path stays under test
 // instead of being bypassed with SKIP_TWILIO_VALIDATION.
 initializeTwilioWebhooks(TEST_TWILIO_AUTH_TOKEN);
+// Twilio signs the public URL it was given (WEBHOOK_BASE_URL), not the Host header (#2679).
+process.env.WEBHOOK_BASE_URL = `https://${TEST_WEBHOOK_HOST}`;
 
 function signTwilioPayload(url: string, params: Record<string, string>): string {
   const data = Object.keys(params)
@@ -315,7 +317,6 @@ describe('Twilio Call Status Webhook', () => {
       expect(res.statusCode).toBe(200);
     });
   });
-
 
   describe('Status Mapping', () => {
     const testCases = [

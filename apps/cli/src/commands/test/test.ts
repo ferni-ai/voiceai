@@ -91,7 +91,7 @@ const TEST_SUITES: Record<string, TestSuite> = {
   },
   comms: {
     name: 'Communication Tests',
-    description: 'Test SendGrid, Twilio email/SMS/calls',
+    description: 'Test Twilio SMS/calls',
     command: 'npx',
     args: ['tsx', 'scripts/test-alex-comms.ts'],
     category: 'feature',

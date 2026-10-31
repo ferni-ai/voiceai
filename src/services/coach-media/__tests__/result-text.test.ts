@@ -74,8 +74,14 @@ describe('groundedResultText', () => {
       '５５５-１２３-４５６７',
       '555. 123 4567',
       '555\u200b123\u200b4567',
+      // Dashes split fragments after the scrub, so these must go before it.
+      '555–123–4567',
+      '555—123—4567',
+      '555/123/4567',
+      '555_123_4567',
+      '٥٥٥١٢٣٤٥٦٧',
     ]) {
-      expect(webData(`Clinic line ${phone} for appointments`, 200).text).not.toMatch(/\d{3}/);
+      expect(webData(`Clinic line ${phone} for appointments`, 200).text).not.toMatch(/\p{Nd}{3}/u);
     }
   });
 

@@ -80,8 +80,9 @@ export async function buildSafetyInjections(
     const safetyRelationship =
       relationshipMap[userData.relationshipStage || 'building'] || 'building';
 
+    // Detection reads the live text; the id only labels the log. Never a shared 'unknown'.
     const safetyResult = performSafetyCheck(userText, {
-      userId: services.userId || 'unknown',
+      userId: callerIdFor(services.userId, services.sessionId),
       personaId: persona.id,
       relationshipStage: safetyRelationship,
       userName: services.userProfile?.name,
@@ -174,6 +175,7 @@ export async function buildScientificCoachingInjections(
     // PRIVACY: never 'unknown': that pooled every id-less caller's distortions (ant_patterns/unknown).
     const result = await buildScientificCoachingContext({
       userId: callerIdFor(services.userId, services.sessionId),
+      sessionId: services.sessionId,
       userMessage: userText,
       personaId: persona.id,
       topic: currentTopic,

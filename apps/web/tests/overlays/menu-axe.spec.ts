@@ -13,7 +13,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 const THEMES = ['zen', 'midnight'] as const;
 /** Rows that leave the page or start something rather than opening a panel */
-const NOT_PANELS = new Set(['sign-out', 'spotify', 'support-ferni']);
+const NOT_PANELS = new Set(['sign-out', 'support-ferni']);
 const BLOCKING = new Set(['serious', 'critical']);
 
 async function openApp(page: Page, theme: string): Promise<void> {
@@ -58,6 +58,37 @@ async function markOpenPanel(page: Page): Promise<boolean> {
   });
 }
 
+/**
+ * Wait until the marked panel has loaded and nothing in it is mid-fade. With no API
+ * here a panel's fetch fails, then it renders its fallback rows and staggers them in
+ * (history: ~1.5 s to the demo rows, then 200 ms + 50 ms per row, then 300 ms). The
+ * old fixed sleep let a slow runner scan those rows at ~70% opacity and report
+ * contrast failures on colours nobody sees once the panel settles (#2391).
+ * Looping animations (spinners) don't count. A panel that never finishes loading is
+ * scanned as it is after the timeout, as before.
+ */
+async function waitForPanelToSettle(page: Page): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const panel = document.querySelector('[data-axe-panel]');
+          if (!panel) return true;
+          const visible = (el: Element): boolean => el.getClientRects().length > 0;
+          const loading = [...panel.querySelectorAll('[aria-busy="true"], [class*="__loading"]')].some(visible);
+          const moving = panel
+            .getAnimations({ subtree: true })
+            .some((a) => a.playState === 'running' && a.effect?.getComputedTiming().iterations !== Infinity);
+          // a staggered row parked at opacity 0 whose fade hasn't started yet
+          const waiting = [...panel.querySelectorAll<HTMLElement>('[style*="opacity"]')].some((el) => el.style.opacity === '0');
+          return !loading && !moving && !waiting;
+        }),
+      { timeout: 6_000, intervals: [100, 150, 250] }
+    )
+    .toBe(true)
+    .catch(() => undefined);
+}
+
 for (const theme of THEMES) {
   test(`menu panels have no serious or critical axe violations (${theme})`, async ({ page }) => {
     test.setTimeout(300_000);
@@ -80,6 +111,7 @@ for (const theme of THEMES) {
       await expect.poll(() => markOpenPanel(page), { timeout: 15_000 }).toBe(true).catch(() => undefined);
       await page.waitForTimeout(800);
       if (!(await page.locator('[data-axe-panel]').count())) continue; // menu-dialogs.spec.ts owns "no dialog"
+      await waitForPanelToSettle(page);
       const { violations } = await new AxeBuilder({ page }).include('[data-axe-panel]').analyze();
       for (const v of violations.filter((x) => BLOCKING.has(x.impact ?? ''))) {
         for (const node of v.nodes) {

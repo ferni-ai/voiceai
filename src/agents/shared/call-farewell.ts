@@ -34,6 +34,7 @@ import { voice } from '@livekit/agents';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
+import { goodbyeReadGate } from './goodbye-read.js';
 import { isSessionClosing } from './session-closing-tracker.js';
 import { farewellRisk, stripWarmSymbols } from './farewell-risk.js';
 
@@ -46,8 +47,8 @@ const log = createLogger({ module: 'call-farewell' });
 export const IDLE_AFTER_GOODBYE_MS = 4_000;
 
 const farewells = new Set<string>();
-/** Calls reopened after both goodbyes (call-wrap-up.ts): Ferni's next goodbye ends them again. */
-const reopened = new Set<string>();
+/** Each watched call's reset, run when it reopens (reopenFarewell). */
+const resets = new Map<string, (lines: readonly string[]) => void>();
 const sessionIds = new WeakMap<object, string>();
 
 export function markFarewell(
@@ -68,15 +69,29 @@ export function clearFarewell(sessionId: string): void {
 }
 
 /**
- * The call reopened after both goodbyes (wrap-up-window.ts). The farewell is
- * cleared, but the caller's goodbye stands: if Ferni's next reply is a goodbye
- * the watcher arms again and the call ends on its own (the line that reopened
- * it, "you're the best", may be answered with one); if Ferni's next reply
- * carries on, a fresh pair of goodbyes is needed.
+ * The call reopened after both goodbyes (wrap-up-window.ts): the farewell is
+ * cleared and both earlier goodbyes no longer count. Only a FRESH caller
+ * goodbye and a NEW one from Ferni end the call again (#2523: a risky line the
+ * word check missed, read as none, was then ended by Ferni's "Okay. Bye, take
+ * care."). `lines` are the caller's STT finals whose turns' conversation items
+ * hadn't arrived: those items follow, and are never that fresh goodbye.
  */
-export function reopenFarewell(sessionId: string): void {
+export function reopenFarewell(sessionId: string, lines: readonly string[] = []): void {
   farewells.delete(sessionId);
-  reopened.add(sessionId);
+  resets.get(sessionId)?.(lines);
+}
+
+/** Words only, for telling one transcript of a line from another. */
+const plainWords = (text: string): string =>
+  text
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+
+/** `text` contains `line`, as whole words: a turn's item contains each of its STT finals. */
+export function containsLine(text: string, line: string): boolean {
+  return ` ${plainWords(text)} `.includes(` ${plainWords(line)} `);
 }
 
 /** With CALL_WRAP_UP on, both sides have said goodbye on this call. */
@@ -354,6 +369,8 @@ export function watchFarewell(
     clearTimer?: (handle: unknown) => void;
     /** Crisis risk on this call: never end it then (default crisis-call-risk.ts). */
     crisis?: () => boolean;
+    /** The classifier reads each caller turn (default: its mode isn't off; goodbye-read.ts). */
+    readsExpected?: () => boolean;
   }
 ): () => void {
   const { sessionId } = opts;
@@ -363,9 +380,19 @@ export function watchFarewell(
   const clearT = opts.clearTimer ?? ((h) => clearTimeout(h as ReturnType<typeof setTimeout>));
   sessionIds.set(session, sessionId);
   const crisis = opts.crisis ?? (() => crisisRiskThisCall(sessionId));
+  const gate = goodbyeReadGate(sessionId, containsLine, opts.readsExpected);
   let callerSaidBye = false;
   let ferniSaidBye = false;
   let hangUpAsked = false;
+  /**
+   * STT finals carried over a reopen whose turns' conversation items haven't
+   * arrived. An item containing one is that turn's own, however late LiveKit
+   * adds it (after the turn's processing and the reply's scheduling, seconds
+   * later; one turn's item may even follow the next turn's finals): it is
+   * skipped. An item containing none is the caller's next turn and ends the
+   * carry. No clock: a timer let a late item through (#2532 verify).
+   */
+  let carried: readonly string[] = [];
   let agent = 'initializing';
   let user = 'listening';
   let timer: unknown = null;
@@ -385,6 +412,10 @@ export function watchFarewell(
         log.info({ sessionId }, 'GOODBYE_END_HELD crisis risk on this call; it stays open');
         return;
       }
+      if (gate.unread()) {
+        log.info({ sessionId }, 'GOODBYE_END_HELD no read of the goodbye after a reopen');
+        return;
+      }
       log.info(
         { sessionId, hangUpAsked },
         'GOODBYE_ENDS_CALL quiet after goodbye; ending the call'
@@ -394,12 +425,19 @@ export function watchFarewell(
   };
 
   const onCaller = (text: string): void => {
+    // A carried turn's own item is not a fresh goodbye
+    if (carried.length > 0) {
+      const left = carried.filter((line) => !containsLine(text, line));
+      const own = left.length < carried.length;
+      carried = own ? left : [];
+      if (own) return;
+    }
     // A goodbye carrying risk ("I won't be here tomorrow. Bye.") is never one: it carries on
     const risky = farewellRisk(text);
     callerSaidBye = !risky && callerSaysGoodbye(text);
-    if (risky) reopened.delete(sessionId); // nor does an earlier reopen's goodbye stand
     if (isSessionClosing(sessionId)) return;
     if (callerSaidBye) {
+      gate.goodbye(text);
       hangUpAsked = hangUpAsked || callerAsksToHangUp(text);
       if (hangUpAsked) markFarewell(sessionId, 'hang_up_asked');
       else if (ferniSaidBye) markFarewell(sessionId, 'goodbyes'); // his came first
@@ -413,9 +451,7 @@ export function watchFarewell(
   };
   const onFerni = (text: string): void => {
     ferniSaidBye = ferniSaysGoodbye(text);
-    // After a reopen the caller's goodbye stands until Ferni's next reply
-    const callerBye = callerSaidBye || reopened.delete(sessionId);
-    if (callerBye && ferniSaidBye) {
+    if (callerSaidBye && ferniSaidBye) {
       markFarewell(sessionId, 'goodbyes');
       arm();
     } else if (!ferniSaidBye && !hangUpAsked && farewellSaid(sessionId)) {
@@ -441,13 +477,19 @@ export function watchFarewell(
   const stop = (): void => {
     cancel();
     clearFarewell(sessionId);
-    reopened.delete(sessionId);
+    resets.delete(sessionId);
+    gate.stop();
     sessionIds.delete(agentSession);
     session.off(EV.ConversationItemAdded, onItem);
     session.off(EV.AgentStateChanged, onAgent);
     session.off(EV.UserStateChanged, onUser);
     session.off(EV.Close, stop);
   };
+  resets.set(sessionId, (lines) => {
+    callerSaidBye = ferniSaidBye = hangUpAsked = false;
+    carried = lines;
+    gate.reopened();
+  });
   session.on(EV.ConversationItemAdded, onItem);
   session.on(EV.AgentStateChanged, onAgent);
   session.on(EV.UserStateChanged, onUser);

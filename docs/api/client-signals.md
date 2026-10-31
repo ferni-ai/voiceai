@@ -24,7 +24,10 @@ failed publish is logged and dropped, and never breaks the call.
   `rememberAboutUser` and `rememberImportantFact` tools
   (`src/tools/domains/memory/tools-unified.ts`) and the text-path memory executor
   (`src/agents/shared/tool-executors/memory-executor.ts`). Never before the write
-  finishes, never when it fails, and at most once per write.
+  finishes, never when it fails, and at most once per write. With
+  MEMORY_TOOLS_HONEST on, the two tools write `dynamic_facts` only (no `memories`
+  copy), and the signal follows that write: sent when the fact is newly created,
+  not when it was already on file or was refused.
 - **`id`:** an opaque handle for this memory, for a later "how did you know that?".
   It is the store's own id when that is a plain id (letters, digits, `_`, `-`, 6 to
   64 long), otherwise a random UUID. Treat it as opaque; never parse it.
@@ -47,7 +50,7 @@ The older `ferni_moment { kind: 'remembered', summary }` (REMEMBER_MOMENT,
 ## `sound_played`
 
 ```json
-{ "type": "sound_played", "kind": "laugh", "wireDelayMs": 57 }
+{ "type": "sound_played", "kind": "laugh", "wireDelayMs": 57, "label": "Ha, laughter" }
 ```
 
 - **When:** the moment a non-speech clip starts, that is when its player accepts it
@@ -70,14 +73,24 @@ The older `ferni_moment { kind: 'remembered', summary }` (REMEMBER_MOMENT,
 
 Clients must ignore a `kind` they don't know.
 
+- **`label`** (added 2026-10-24, additive): the clip's own short text, for telling one
+  take from another: the backchannel or laugh take that actually played ("Mm-hmm.",
+  "Yeahh.", "Ha, laughter"), the opener ("Mm"), the quiet-window take or tune
+  (`recorded-whistle:<file>` / `recorded-snore:<file>` for a recording, on either track), `whistle` / `hum` / `snore` for a
+  synthesized one, `tool hum` for the tool hum. TTS tags are dropped, `[laughter]`
+  reads as `laughter`, at most 64 characters (`soundLabel` in `sound-signal.ts`). It is
+  a fixed catalog line, never anything the caller said. Omitted when empty; clients
+  must not depend on its wording. The voice eval reads it to judge sounds and count
+  repeats (`scripts/voice-eval/sounds.mjs`).
+
 - **Not yet covered:** the slow-turn sound (#2500, unmerged when this shipped). It
   should report through the same `SoundPlayed` sender (`sound-signal.ts`) when it lands.
 - **Captions:** `[laughter]` is stripped from caption text
   (`src/agents/personas/caption-filter.ts`) and that is not changed here. The app
   renders "[laughs]" itself from `sound_played { kind: 'laugh' }`.
 - **`backchannel_played` is unchanged** (`{ kind: 'laugh' | 'backchannel', wireDelayMs }`,
-  live backchannels only, AVATAR_LISTEN_SIGNALS=on) for existing clients. With both
-  flags on, a live backchannel sends both messages.
+  live backchannels only, AVATAR_LISTEN_SIGNALS=on) for existing clients, except for
+  the same additive `label`. With both flags on, a live backchannel sends both messages.
 
 ## Where it lives
 

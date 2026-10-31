@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { keepRemembered } from '../recall/forget-every-reader.js';
 import { resolvePerson } from './entity-resolver.js';
 import { createMention, recordMention, hasEntityStore } from './storage.js';
 import { extractFacts, extractTopics } from './capture-extraction.js';
@@ -43,8 +44,8 @@ export async function initializeEntityStore(): Promise<void> {
 
   try {
     // Verify Firestore connectivity
-    const { Firestore } = await import('@google-cloud/firestore');
-    const db = new Firestore({
+    const { sharedFirestore } = await import('../../utils/shared-firestore.js');
+    const db = sharedFirestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
       databaseId: getFirestoreDatabase(),
     });
@@ -937,8 +938,7 @@ export async function checkProactiveSurfacing(
       { userId, turnNumber: options.turnNumber, opportunitiesFound: opportunities.length },
       'Proactive surfacing check complete'
     );
-
-    return opportunities;
+    return await keepRemembered(userId, opportunities); // FORGET_EVERY_READER
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Proactive surfacing check failed');
     return [];

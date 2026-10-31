@@ -23,9 +23,6 @@ vi.mock('../../../src/state/app.state.js', () => ({
 vi.mock('../../../src/utils/logger.js', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
-vi.mock('../../../src/services/spotify.service.js', () => ({
-  spotifyService: { initialize: vi.fn(async () => false) },
-}));
 
 type Handler = (...args: unknown[]) => void;
 
@@ -330,5 +327,24 @@ describe('mic restore reads the real mute state', () => {
     await vi.waitFor(() =>
       expect(room.localParticipant.setMicrophoneEnabled).toHaveBeenCalledWith(true)
     );
+  });
+});
+
+describe("LiveKit's room states, as the app sees them", () => {
+  it.each([
+    // A signal resume: the call and its data channel stay up, so it's a reconnect, not an end.
+    ['signalReconnecting', 'reconnecting'],
+    ['reconnecting', 'reconnecting'],
+    ['connected', 'connected'],
+    ['disconnected', 'disconnected'],
+  ])('%s is reported as %s', async (livekit, app) => {
+    await load(true);
+    fetchMock.mockResolvedValue(tokenResponse());
+    await service.connect();
+    setConnectionState.mockClear();
+
+    room.emit('connectionStateChanged', livekit);
+
+    expect(setConnectionState).toHaveBeenCalledWith(app);
   });
 });

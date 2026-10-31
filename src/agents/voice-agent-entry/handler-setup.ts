@@ -13,18 +13,16 @@ import type { VoiceHumanizationCleanup } from './types.js';
 import { TOOL_HEALTH_CHECK_INTERVAL, MULTI_AGENT_MODE } from './constants.js';
 import { coordinatedSay } from '../../speech/coordination/index.js';
 import { outboundOpener, outboundPartiesFor } from '../shared/outbound-opener.js';
-import { computeDynamicVADDuration } from '../shared/performance/adaptive-timing.js';
-import { finops } from '../../services/observability/finops.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
-import { observeFinalTranscript } from '../shared/final-transcript-observer.js';
+import { createUserInputTranscribedHandler } from './user-input-transcribed.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
 import { noteCallerJoined } from './sip-caller.js';
 import { callerChecks } from './caller-recognition.js';
 import { setupFrontendPublisher } from './handler-frontend-publisher.js';
 import { sessionRecording } from '../shared/session-recording.js';
-import { participantKind, toolCallText } from './startup-log.js';
+import { errorText, participantKind, toolCallText } from './startup-log.js';
 
 /** Inputs for handler setup */
 export interface HandlerSetupInput {
@@ -159,7 +157,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
         `[voice-agent-entry] 📋 Pre-session briefing generated (${briefing.temporal.timeOfDay}, ${briefing.cultural.season})\n`
       );
     } catch (briefingErr) {
-      process.stderr.write(`[voice-agent-entry] Pre-session briefing failed, using fallback datetime: ${String(briefingErr)}\n`);
+      process.stderr.write(`[voice-agent-entry] Pre-session briefing failed, using fallback datetime: ${errorText(briefingErr)}\n`);
     }
   })();
 
@@ -241,7 +239,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   // TTS cache warming (fire-and-forget)
   const { warmSessionCache } = await import('../shared/performance/cache-aware-tts.js');
   warmSessionCache(sessionPersona.id, userData.emotionalState as string | undefined).catch(
-    (err: unknown) => process.stderr.write(`[voice-agent-entry] ⚠️ TTS cache warming failed (non-critical): ${err}\n`)
+    (err: unknown) => process.stderr.write(`[voice-agent-entry] ⚠️ TTS cache warming failed (non-critical): ${errorText(err)}\n`)
   );
 
   // Register initial tools with session
@@ -323,7 +321,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
         sendDataMessage,
       }).catch((err) => {
         process.stderr.write(
-          `[voice-agent-entry] ⚠️ Audio processor ended: ${err}\n`
+          `[voice-agent-entry] ⚠️ Audio processor ended: ${errorText(err)}\n`
         );
       });
     };
@@ -455,23 +453,9 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   // never touches the reply. Promotion to live is gated on reviewing this log.
   const crisisGuardMode = resolveCrisisGuardMode();
 
-  const userInputTranscribedHandler = (event: unknown) => {
-    const evt = event as { transcript?: string; isFinal?: boolean };
-    if (evt.isFinal) {
-      userData.turnCount = ((userData.turnCount as number) || 0) + 1;
-      const transcript = evt.transcript || '';
-      process.stderr.write(`\n📝 [TURN ${userData.turnCount}] FINAL: ${transcript.length} chars\n`); // never the words
-      observeFinalTranscript({ transcript, userData, sessionId, crisisMode: crisisGuardMode });
-      if (transcript) {
-        const wordCount = transcript.split(/\s+/).filter((w: string) => w.length > 0).length;
-        const estimatedDurationSeconds = (wordCount / 150) * 60;
-        finops.recordSTTCost({ durationSeconds: Math.max(1, estimatedDurationSeconds), userId: userId ?? undefined, sessionId });
-        const dynamicVAD = computeDynamicVADDuration(sessionId, transcript, undefined, userData.emotionalState as string | undefined);
-        process.stderr.write(`[VAD] semantic=${dynamicVAD}ms for turn ${userData.turnCount}\n`);
-      }
-    }
-    transcriptHandler.handler(event as import('../voice-agent/transcript-handler.js').TranscriptEvent);
-  };
+  const userInputTranscribedHandler = createUserInputTranscribedHandler({
+    userData, userId, sessionId, crisisGuardMode, transcriptHandler,
+  });
 
   if (cachedDeps?.voice) {
     session.on(cachedDeps.voice.AgentSessionEventTypes.UserInputTranscribed, userInputTranscribedHandler);

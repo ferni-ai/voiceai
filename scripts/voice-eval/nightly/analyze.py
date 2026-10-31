@@ -3,7 +3,8 @@
 
 Per call, from the dev agent's Cloud Logging lines (the 2026-10-21 sweep's analyzer, trimmed
 to what the nightly scorecard reads): build (worker boot hash), REPLY_GAP, TURN_RECEIPT tool
-errors, L>=50 and top L40 lines, crisis lines, handoff lines. Prints a short pooled summary.
+errors and tool-turn answer audio, L>=50 and top L40 lines, crisis lines, handoff lines. Prints a
+short pooled summary.
 """
 import collections, glob, json, os, re, sys
 
@@ -32,6 +33,10 @@ for h, p, tm, j, w in recs:
         a[2] = min(a[2], tm); a[3] = max(a[3], tm)
 runs = sorted(f for f in glob.glob(os.path.join(outdir, '*.json')) if not re.search(r'\.(score|judge[\w.]*|agent-room)\.json$', f))
 summary = []
+def tool_gap(j):
+    a = j.get('audio') or {}
+    return a.get('answerAudioMs') if 'answerAudioMs' in a else (j.get('timing') or {}).get('firstAudioMs')
+
 for f in runs:
     try: r = json.load(open(f))
     except Exception: continue
@@ -50,12 +55,23 @@ for f in runs:
         if j.get('msg') == 'TURN_RECEIPT' and k not in seen: seen.add(k); rc.append(j)
     row['receipts'] = len(rc)
     row['tool_errors'] = sum((j.get('tools') or {}).get('errors') or 0 for j in rc)
+    # Caller stop to the answer's first audio on turns that called a tool (superhuman-bar.json
+    # tool-turn-p50): audio.answerAudioMs since #2850 (after any "let me look" lead-in; null on a
+    # handoff), timing.firstAudioMs on receipts that predate it.
+    row['tool_reply_gaps'] = [g for g in (tool_gap(j) for j in rc if (j.get('tools') or {}).get('called')) if isinstance(g, (int, float))]
     row['l50'] = [f"{j.get('module')}: {str(j.get('msg'))[:90]} | {str(j.get('err') or j.get('error') or '')[:120]}" for j in lines if isinstance(j.get('level'), int) and j['level'] >= 50]
     row['l40'] = collections.Counter(f"{j.get('module')}: {str(j.get('msg'))[:70]}" for j in lines if j.get('level') == 40).most_common(8)
     row['crisis'] = [f"{j.get('module')}:{str(j.get('msg'))[:40]} risk={j.get('risk')} action={j.get('action')} source={j.get('source')}"
                      for j in lines if (str(j.get('module', '')).startswith('Crisis') or re.match(r'CRISIS|.*crisis signal', str(j.get('msg', '')), re.I))
                      and j.get('msg') != 'CRISIS_HOLD' and not (j.get('module') == 'CrisisClassifier' and j.get('risk') == 'none')]
     row['handoff_lines'] = [str(j.get('msg'))[:80] for j in lines if re.search(r'HANDOFF COMPLETE|handoff_failed|Handoff brief ready|HANDOFF FAILED', str(j.get('msg')))][:12]
+    # What each tool returned and when, on the run's clock (tool-grounding.mjs grades replies by it).
+    # Synthetic eval calls only; summary.json stays local (COMMENT.md has verdicts and numbers only).
+    t0 = r.get('wallT0')
+    row['tool_outputs'] = [{'name': o.get('name'), 'isError': o.get('isError') is True, 'output': o.get('output'),
+                            'atMs': j['time'] - t0 if isinstance(t0, (int, float)) else None}
+                           for j in lines if isinstance(j.get('event'), dict) and j['event'].get('type') == 'function_tools_executed'
+                           for o in j['event'].get('functionCallOutputs') or [] if isinstance(o, dict)]
     summary.append(row)
 json.dump(summary, open(sys.argv[4], 'w'), indent=1, default=str)
 gaps = sorted(g for r in summary for g in r.get('reply_gaps', []))

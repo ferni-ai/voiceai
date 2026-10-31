@@ -24,6 +24,7 @@ import {
   timingSafeEqual,
 } from 'crypto';
 import { promisify } from 'util';
+import { containsContactData } from '../../memory/domain/contact-data.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   findExistingToken,
@@ -192,68 +193,60 @@ async function deriveKey(salt: Buffer): Promise<Buffer> {
  * Output format: base64(salt + iv + authTag + ciphertext)
  *
  * @param plaintext - Data to encrypt (string or JSON-serializable object)
+ * @param aad - Optional context the ciphertext is bound to (GCM additional
+ *   authenticated data): decrypting it needs the same value.
  * @returns Encrypted data as base64 string
  */
 export async function encryptSensitive(
-  plaintext: string | Record<string, unknown>
+  plaintext: string | Record<string, unknown>,
+  aad?: string
 ): Promise<string> {
   const data = typeof plaintext === 'string' ? plaintext : JSON.stringify(plaintext);
-
-  // Generate random salt and IV
   const salt = randomBytes(SALT_LENGTH);
   const iv = randomBytes(IV_LENGTH);
-
-  // Derive key
   const key = await deriveKey(salt);
-
-  // Encrypt
-  const cipher = createCipheriv(ALGORITHM, key, iv, {
-    authTagLength: AUTH_TAG_LENGTH,
-  });
-
+  const cipher = createCipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
+  if (aad !== undefined) cipher.setAAD(Buffer.from(aad, 'utf8'));
   const encrypted = Buffer.concat([cipher.update(data, 'utf8'), cipher.final()]);
-
   const authTag = cipher.getAuthTag();
 
   // Combine: salt + iv + authTag + ciphertext
   const combined = Buffer.concat([salt, iv, authTag, encrypted]);
-
   return `enc_${combined.toString('base64')}`;
+}
+
+/** Decrypt the salt + iv + authTag + ciphertext layout, with or without AAD. */
+async function decryptCombined(combined: Buffer, aad: string | undefined): Promise<string> {
+  const salt = combined.subarray(0, SALT_LENGTH);
+  const iv = combined.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
+  const tagEnd = SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH;
+  const decipher = createDecipheriv(ALGORITHM, await deriveKey(salt), iv, {
+    authTagLength: AUTH_TAG_LENGTH,
+  });
+  decipher.setAuthTag(combined.subarray(SALT_LENGTH + IV_LENGTH, tagEnd));
+  if (aad !== undefined) decipher.setAAD(Buffer.from(aad, 'utf8'));
+  return Buffer.concat([decipher.update(combined.subarray(tagEnd)), decipher.final()]).toString(
+    'utf8'
+  );
 }
 
 /**
  * Decrypt sensitive data
  *
  * @param encryptedData - Data encrypted with encryptSensitive()
+ * @param aad - The context it was bound to. When given it is required: a
+ *   ciphertext without it (or bound elsewhere) does not open.
  * @returns Decrypted string (or parsed JSON if it was an object)
  */
-export async function decryptSensitive<T = string>(encryptedData: string): Promise<T> {
-  // Remove prefix
+export async function decryptSensitive<T = string>(
+  encryptedData: string,
+  aad?: string
+): Promise<T> {
   if (!encryptedData.startsWith('enc_')) {
     throw new Error('Invalid encrypted data format');
   }
-
   const combined = Buffer.from(encryptedData.slice(4), 'base64');
-
-  // Extract components
-  const salt = combined.subarray(0, SALT_LENGTH);
-  const iv = combined.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
-  const authTag = combined.subarray(
-    SALT_LENGTH + IV_LENGTH,
-    SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH
-  );
-  const ciphertext = combined.subarray(SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH);
-
-  // Derive key
-  const key = await deriveKey(salt);
-
-  // Decrypt
-  const decipher = createDecipheriv(ALGORITHM, key, iv, {
-    authTagLength: AUTH_TAG_LENGTH,
-  });
-  decipher.setAuthTag(authTag);
-
-  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
+  const decrypted = await decryptCombined(combined, aad);
 
   // Try to parse as JSON
   try {
@@ -430,21 +423,15 @@ export async function detokenizeAsync(token: string): Promise<string | null> {
 // DATA MINIMIZATION HELPERS
 // ============================================================================
 
+const PII_FIELDS = 'phone email name address ssn password token voiceSketch'.split(' ');
+
 /**
- * Strip PII from an object for logging
+ * Strip PII from an object for logging: named PII fields are redacted, and so is any
+ * other string value holding a phone number or email (the shared contact-data rule).
  */
 export function stripPII<T extends Record<string, unknown>>(
   obj: T,
-  fieldsToStrip: string[] = [
-    'phone',
-    'email',
-    'name',
-    'address',
-    'ssn',
-    'password',
-    'token',
-    'voiceSketch',
-  ]
+  fieldsToStrip: string[] = PII_FIELDS
 ): Partial<T> {
   const result: Partial<T> = {};
 
@@ -456,6 +443,8 @@ export function stripPII<T extends Record<string, unknown>>(
         value as Record<string, unknown>,
         fieldsToStrip
       );
+    } else if (typeof value === 'string' && containsContactData(value)) {
+      (result as Record<string, unknown>)[key] = '[REDACTED]';
     } else {
       (result as Record<string, unknown>)[key] = value;
     }

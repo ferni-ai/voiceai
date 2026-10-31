@@ -117,6 +117,13 @@ describe('reminder call path (the STOP gap)', () => {
   it("rings the owner's own number with no consent record", async () => {
     expect(await deliverReminder(reminder('call'))).toBe(true);
     expect(callWithPersonaVoice).toHaveBeenCalledOnce();
+    // The shared sender is told whose call it is (it re-checks: own number or a grant).
+    expect(callWithPersonaVoice).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ ownerUid: 'u1' })
+    );
   });
 
   it('flag off: rings as today', async () => {

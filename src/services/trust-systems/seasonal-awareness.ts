@@ -143,11 +143,11 @@ const UNIVERSAL_HOLIDAYS: Array<{
   { name: "New Year's Eve", month: 12, day: 31, type: 'universal' },
 ];
 
-// ============================================================================
-// IN-MEMORY STORAGE
-// ============================================================================
+// In-memory storage
 
 const seasonalProfiles = new Map<string, SeasonalProfile>();
+/** MINOR_CARE (purgeHeldUser): forget one user. */
+export const forgetSeasonalUser = (userId: string): boolean => seasonalProfiles.delete(userId);
 
 // ============================================================================
 // SEASON DETECTION

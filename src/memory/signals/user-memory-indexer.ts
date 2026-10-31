@@ -13,7 +13,8 @@ import { getFirestoreDb, toSafeDate } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { indexConversationSummary } from '../semantic-rag.js';
 import { removeConversationDocument } from '../retrieval/conversation-index.js';
-import { isForgotten } from '../recall/session-recall.js';
+import { isForgotten } from '../domain/forgotten.js';
+import { firestoreForgottenStore } from '../adapters/firestore/forgotten-store.js';
 import { getFirestore } from '../firestore-factory.js';
 import { readCallSummaries } from '../storage/call-summaries.js';
 
@@ -55,17 +56,11 @@ export async function readForgottenTopics(
   }
 }
 
-/** memory_state/forgotten.topics; throws with no database, so readers fail closed. */
+/** memory_state/forgotten.topics; throws when unreadable (no database too), so readers fail closed. */
 async function readTopicsField(userId: string): Promise<unknown> {
-  const db = getFirestoreDb();
-  if (!db) throw new Error('Firestore not available');
-  const doc = await db
-    .collection('bogle_users')
-    .doc(userId)
-    .collection('memory_state')
-    .doc('forgotten')
-    .get();
-  return doc.exists ? doc.data()?.topics : undefined;
+  const { topics } = await firestoreForgottenStore(getFirestoreDb()).readForgotten(userId);
+  if (topics === null) throw new Error('Forgotten topics unreadable');
+  return topics;
 }
 
 const FACT_COPY = /^conversation_fact_(.+)$/;

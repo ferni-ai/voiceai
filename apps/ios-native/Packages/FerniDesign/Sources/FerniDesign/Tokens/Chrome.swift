@@ -17,15 +17,3 @@ public extension View {
         buttonStyle(.glass)
     }
 }
-
-public extension FerniType {
-    /// Ferni's voice on screen (the greeting, names): Plus Jakarta Sans, the
-    /// brand display face, when bundled; SF Rounded otherwise. Either way it
-    /// scales with Dynamic Type relative to `.largeTitle`.
-    static var greeting: Font {
-        if UIFont(name: "PlusJakartaSans-Bold", size: 34) != nil {
-            return .custom("PlusJakartaSans-Bold", size: 34, relativeTo: .largeTitle)
-        }
-        return display
-    }
-}

@@ -11,7 +11,6 @@
  * - Sonos and HomeKit support
  *
  * Supported Platforms:
- * - Home Assistant (most flexible, self-hosted) - Optional
  * - Philips Hue (direct API for lights)
  * - LIFX (direct API for lights)
  * - Sonos (speakers)
@@ -25,11 +24,8 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-import {
-  getHomeAssistantClient,
-  getHueClient,
-  getLifxClient,
-} from '../../../services/self-healing/index.js';
+import { getLifxClient } from '../../../services/self-healing/index.js';
+import { HUE_NEEDS_REMOTE_ACCESS } from '../../../services/smart-home/hue-remote-access.js';
 import {
   getUserSmartHomeCredentials,
   type SmartHomeCredentials,
@@ -41,14 +37,6 @@ import {
   setTemperature as setEcobeeTemperature,
 } from '../../../services/identity/ecobee-api.js';
 import { isEcobeeConfigured } from '../../../services/identity/ecobee-auth.js';
-
-// ============================================================================
-// CONFIGURATION (Fallback to env vars for backward compatibility)
-// ============================================================================
-
-// Home Assistant (optional - recommended for advanced users)
-const HOME_ASSISTANT_URL = process.env.HOME_ASSISTANT_URL || '';
-const HOME_ASSISTANT_TOKEN = process.env.HOME_ASSISTANT_TOKEN || '';
 
 // ============================================================================
 // TYPES
@@ -71,14 +59,7 @@ export interface SmartDevice {
   state: string;
   attributes?: Record<string, unknown>;
   platform:
-    | 'home_assistant'
-    | 'hue'
-    | 'smartthings'
-    | 'lifx'
-    | 'nest'
-    | 'sonos'
-    | 'homekit'
-    | 'ecobee';
+    'hue' | 'lifx' | 'nest' | 'sonos' | 'homekit' | 'ecobee';
   room?: string;
 }
 
@@ -113,201 +94,23 @@ async function getCredentials(userId: string): Promise<SmartHomeCredentials> {
 }
 
 // ============================================================================
-// HOME ASSISTANT API (with self-healing)
+// PHILIPS HUE
 // ============================================================================
 
-async function homeAssistantRequest<T = unknown>(
-  endpoint: string,
-  method: 'GET' | 'POST' = 'GET',
-  body?: unknown
-): Promise<T | null> {
-  if (!HOME_ASSISTANT_URL || !HOME_ASSISTANT_TOKEN) {
-    return null;
-  }
-
-  const haClient = getHomeAssistantClient();
-
-  // Check circuit health - fail fast if Home Assistant is down
-  if (!haClient.isHealthy()) {
-    getLogger().debug('Home Assistant circuit is open, skipping request');
-    return null;
-  }
-
-  const url = `${HOME_ASSISTANT_URL}/api/${endpoint}`;
-
-  if (method === 'POST') {
-    const { data, error } = await haClient.post<T>(url, body, {
-      headers: { Authorization: `Bearer ${HOME_ASSISTANT_TOKEN}` },
-    });
-
-    if (error) {
-      getLogger().warn({ endpoint, error: error.message }, 'Home Assistant request failed');
-      return null;
-    }
-    return data;
-  } else {
-    const { data, error } = await haClient.get<T>(url, {
-      headers: { Authorization: `Bearer ${HOME_ASSISTANT_TOKEN}` },
-    });
-
-    if (error) {
-      getLogger().warn({ endpoint, error: error.message }, 'Home Assistant request failed');
-      return null;
-    }
-    return data;
-  }
-}
-
-// Type for Home Assistant states response
-interface HomeAssistantState {
-  entity_id?: string;
-  attributes?: { friendly_name?: string; [key: string]: unknown };
-  state?: string;
-}
-
-async function getHomeAssistantDevices(): Promise<SmartDevice[]> {
-  const states = await homeAssistantRequest<HomeAssistantState[]>('states');
-
-  if (!states) {
-    return [];
-  }
-
-  return states
-    .filter((s) => {
-      const domain = s.entity_id?.split('.')[0];
-      return ['light', 'switch', 'climate', 'lock', 'fan', 'cover', 'media_player'].includes(
-        domain || ''
-      );
-    })
-    .map((s) => {
-      const domain = s.entity_id?.split('.')[0] || 'other';
-      const typeMap: Record<string, SmartDevice['type']> = {
-        light: 'light',
-        switch: 'switch',
-        climate: 'thermostat',
-        lock: 'lock',
-        fan: 'fan',
-        cover: 'cover',
-        media_player: 'media',
-      };
-
-      return {
-        id: s.entity_id || '',
-        name: s.attributes?.friendly_name || s.entity_id || 'Unknown',
-        type: typeMap[domain] || 'other',
-        state: s.state || 'unknown',
-        attributes: s.attributes,
-        platform: 'home_assistant' as const,
-      };
-    });
-}
-
-async function callHomeAssistantService(
-  domain: string,
-  service: string,
-  entityId: string,
-  data?: Record<string, unknown>
-): Promise<boolean> {
-  const result = await homeAssistantRequest(`services/${domain}/${service}`, 'POST', {
-    entity_id: entityId,
-    ...data,
-  });
-
-  return result !== null;
-}
-
-// ============================================================================
-// PHILIPS HUE API (with self-healing + user credentials)
-// ============================================================================
-
-// Type for Hue lights response
-type HueLightsResponse = Record<
-  string,
-  {
-    name?: string;
-    state?: { on?: boolean; bri?: number };
-  }
->;
-
-async function getHueLights(credentials: SmartHomeCredentials): Promise<SmartDevice[]> {
-  const hueConfig = credentials.hue;
-  if (!hueConfig) {
-    return [];
-  }
-
-  const hueClient = getHueClient();
-
-  // Check circuit health
-  if (!hueClient.isHealthy()) {
-    getLogger().debug('Hue circuit is open, skipping request');
-    return [];
-  }
-
-  const url = `http://${hueConfig.bridgeIp}/api/${hueConfig.username}/lights`;
-  const { data: lights, error } = await hueClient.get<HueLightsResponse>(url);
-
-  if (error || !lights) {
-    if (error) {
-      getLogger().warn({ error: error.message }, 'Hue API error');
-    }
-    return [];
-  }
-
-  return Object.entries(lights).map(([id, light]) => ({
-    id: `hue_${id}`,
-    name: light.name || `Hue Light ${id}`,
-    type: 'light' as const,
-    state: light.state?.on ? 'on' : 'off',
-    attributes: { brightness: light.state?.bri },
-    platform: 'hue' as const,
-  }));
-}
-
-async function setHueLight(
-  credentials: SmartHomeCredentials,
-  lightId: string,
-  on: boolean,
-  brightness?: number,
-  colorTemp?: number
-): Promise<boolean> {
-  const hueConfig = credentials.hue;
-  if (!hueConfig) {
-    return false;
-  }
-
-  const hueClient = getHueClient();
-
-  if (!hueClient.isHealthy()) {
-    getLogger().debug('Hue circuit is open, cannot control light');
-    return false;
-  }
-
-  const id = lightId.replace('hue_', '');
-  const body: { on: boolean; bri?: number; ct?: number } = { on };
-  if (brightness !== undefined) {
-    body.bri = Math.round(brightness * 2.54); // Convert 0-100 to 0-254
-  }
-  if (colorTemp !== undefined) {
-    // Convert Kelvin to mireds (Hue uses mireds: 153-500 for 6500K-2000K)
-    body.ct = Math.round(1000000 / colorTemp);
-  }
-
-  const url = `http://${hueConfig.bridgeIp}/api/${hueConfig.username}/lights/${id}/state`;
-  const { error } = await hueClient.put(url, body);
-
-  if (error) {
-    getLogger().warn({ error: error.message, lightId }, 'Hue light control failed');
-    return false;
-  }
-
-  return true;
+/**
+ * Hue lights: none, by design. A Hue bridge is on the user's home network,
+ * which LiveKit Cloud cannot reach, and fetching a user-supplied host from
+ * here is SSRF, so the agent never contacts a bridge (see hue-remote-access).
+ */
+function getHueLights(_credentials: SmartHomeCredentials): Promise<SmartDevice[]> {
+  return Promise.resolve([]);
 }
 
 // ============================================================================
 // LIFX API (with self-healing + user credentials)
 // ============================================================================
 
-// Type for LIFX lights response
+type LifxCredentialsOnly = Pick<SmartHomeCredentials, 'lifx'> & { breakerKey?: string };
 interface LifxLight {
   id?: string;
   label?: string;
@@ -317,13 +120,13 @@ interface LifxLight {
   group?: { name: string };
 }
 
-async function getLifxLights(credentials: SmartHomeCredentials): Promise<SmartDevice[]> {
+export async function getLifxLights(credentials: LifxCredentialsOnly): Promise<SmartDevice[]> {
   const lifxConfig = credentials.lifx;
   if (!lifxConfig) {
     return [];
   }
 
-  const lifxClient = getLifxClient();
+  const lifxClient = getLifxClient(credentials.breakerKey);
 
   // Check circuit health
   if (!lifxClient.isHealthy()) {
@@ -354,8 +157,8 @@ async function getLifxLights(credentials: SmartHomeCredentials): Promise<SmartDe
   }));
 }
 
-async function setLifxLight(
-  credentials: SmartHomeCredentials,
+export async function setLifxLight(
+  credentials: LifxCredentialsOnly,
   lightId: string,
   power?: 'on' | 'off',
   brightness?: number,
@@ -366,7 +169,7 @@ async function setLifxLight(
     return false;
   }
 
-  const lifxClient = getLifxClient();
+  const lifxClient = getLifxClient(credentials.breakerKey);
 
   if (!lifxClient.isHealthy()) {
     getLogger().debug('LIFX circuit is open, cannot control light');
@@ -580,9 +383,8 @@ export async function getAllDevices(userId?: string): Promise<SmartDevice[]> {
       };
 
   // Gather from all configured platforms in parallel
-  const [haDevices, hueDevices, lifxDevices, sonosDevices, homekitDevices, ecobeeDevices] =
+  const [hueDevices, lifxDevices, sonosDevices, homekitDevices, ecobeeDevices] =
     await Promise.all([
-      HOME_ASSISTANT_TOKEN ? getHomeAssistantDevices() : Promise.resolve([]),
       credentials.hue ? getHueLights(credentials) : Promise.resolve([]),
       credentials.lifx ? getLifxLights(credentials) : Promise.resolve([]),
       credentials.sonos ? getSonosDevices(credentials) : Promise.resolve([]),
@@ -591,7 +393,6 @@ export async function getAllDevices(userId?: string): Promise<SmartDevice[]> {
     ]);
 
   devices.push(
-    ...haDevices,
     ...hueDevices,
     ...lifxDevices,
     ...sonosDevices,
@@ -624,10 +425,12 @@ export async function controlDevice(
   );
 
   if (!device) {
+    // A saved Hue bridge lists no lights: say why, calmly, rather than "not found".
+    const hueNote = credentials.hue ? `\n\n${HUE_NEEDS_REMOTE_ACCESS}` : '';
     if (devices.length === 0) {
-      return getConfigurationHelp();
+      return credentials.hue ? HUE_NEEDS_REMOTE_ACCESS : getConfigurationHelp();
     }
-    return `I couldn't find a device called "${deviceNameOrId}". Here are your devices:\n\n${devices.map((d) => `• ${d.name} (${d.type})`).join('\n')}`;
+    return `I couldn't find a device called "${deviceNameOrId}". Here are your devices:\n\n${devices.map((d) => `• ${d.name} (${d.type})`).join('\n')}${hueNote}`;
   }
 
   getLogger().info({ device: device.name, action, value }, '🏠 Controlling smart device');
@@ -636,44 +439,6 @@ export async function controlDevice(
   let newState: string = action;
 
   switch (device.platform) {
-    case 'home_assistant':
-      if (device.type === 'light' || device.type === 'switch') {
-        const service =
-          action === 'toggle'
-            ? 'toggle'
-            : action === 'on' || action === 'set'
-              ? 'turn_on'
-              : 'turn_off';
-        const data = typeof value === 'number' ? { brightness_pct: value } : undefined;
-        success = await callHomeAssistantService('light', service, device.id, data);
-      } else if (device.type === 'thermostat' && typeof value === 'number') {
-        success = await callHomeAssistantService('climate', 'set_temperature', device.id, {
-          temperature: value,
-        });
-        newState = `${value}°`;
-      } else if (device.type === 'lock') {
-        success = await callHomeAssistantService(
-          'lock',
-          action === 'on' ? 'lock' : 'unlock',
-          device.id
-        );
-        newState = action === 'on' ? 'locked' : 'unlocked';
-      }
-      break;
-
-    case 'hue':
-      if (device.type === 'light') {
-        const turnOn =
-          action === 'on' || action === 'set' || (action === 'toggle' && device.state === 'off');
-        success = await setHueLight(
-          credentials,
-          device.id,
-          turnOn,
-          typeof value === 'number' ? value : undefined
-        );
-      }
-      break;
-
     case 'lifx':
       if (device.type === 'light') {
         const lifxPower =
@@ -849,15 +614,6 @@ export async function setLightsForVibe(
     let success = false;
 
     switch (light.platform) {
-      case 'hue':
-        success = await setHueLight(
-          credentials,
-          light.id,
-          brightness > 0,
-          brightness,
-          colorTemperature
-        );
-        break;
       case 'lifx':
         success = await setLifxLight(
           credentials,
@@ -873,31 +629,6 @@ export async function setLightsForVibe(
           brightness,
           colorTemperature,
         });
-        break;
-      case 'home_assistant':
-        // Home Assistant lights support brightness via service call
-        if (HOME_ASSISTANT_TOKEN && HOME_ASSISTANT_URL) {
-          try {
-            const service = brightness > 0 ? 'turn_on' : 'turn_off';
-            const serviceData: Record<string, unknown> = { entity_id: light.id };
-            if (brightness > 0) {
-              // Convert 0-100 to 0-255 for HA
-              serviceData.brightness = Math.round((brightness / 100) * 255);
-            }
-            if (colorTemperature && brightness > 0) {
-              // HA uses mireds (1,000,000 / kelvin)
-              serviceData.color_temp = Math.round(1000000 / colorTemperature);
-            }
-            await homeAssistantRequest<unknown>(
-              `/api/services/light/${service}`,
-              'POST',
-              serviceData
-            );
-            success = true;
-          } catch {
-            success = false;
-          }
-        }
         break;
     }
 

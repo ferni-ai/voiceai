@@ -103,12 +103,19 @@ export async function saveCallJournalEntry(
   }
 }
 
-/** The person's latest entries, for "what did I write in my journal". */
-async function journalHistory(opts: { ctx?: unknown }): Promise<string> {
+/**
+ * The person's latest entries, for "what did I write in my journal". Read from
+ * the store, not the cache: an edit or delete in the Chronicle clears only the
+ * web server's cache, and this runs in the call's process.
+ */
+export async function journalHistory(opts: { ctx?: unknown }): Promise<string> {
   const uid = callerUid(opts);
   if (!uid) return NO_CALLER;
   try {
-    const entries = await getJournalService().getAllEntries(uid, { limit: HISTORY_COUNT });
+    const entries = await getJournalService().getAllEntries(uid, {
+      limit: HISTORY_COUNT,
+      fresh: true,
+    });
     if (entries.length === 0) return 'No journal entries found for them.';
     const lines = entries.map((entry) => {
       const day = entry.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });

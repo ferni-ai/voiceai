@@ -12,10 +12,15 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { onCallResultChange, onFollowUpActionChange } from '../data-layer/hooks/misc-hooks.js';
-import { callResultDetails, callResultTextOn, tellOwnerIfOn } from './call-result-text.js';
+import { callResultDetails, callResultTextOn, tellOwnerAboutCall } from './call-result-text.js';
+import { ownerEmailWords, tellOwnerOnce } from './call-result-once.js';
+import { callResultLiveReportOn, reportCallResultLive } from './call-result-live.js';
+import { notePushOutcome } from './delivery/push-outcome.js';
 import { logCallResultOutcome } from '../follow-through/index.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
+import { voicemailWords } from './voicemail-outcome.js';
+import { completedAtFor, contactForOwner, type StepOutcome } from './call-result-words.js';
 
 const log = getLogger().child({ service: 'call-result-capture' });
 
@@ -38,7 +43,7 @@ export interface StoredCallResult {
   capturedAt: string;
 }
 
-export interface FollowUpAction {
+interface FollowUpAction {
   id: string;
   callId: string;
   userId: string;
@@ -54,7 +59,6 @@ export interface FollowUpAction {
 
 // In-memory store for development/testing
 const callResultStore = new Map<string, StoredCallResult>();
-const followUpActionsStore = new Map<string, FollowUpAction[]>();
 
 /** Store a call result in Firestore (with in-memory fallback) */
 async function storeCallResult(result: StoredCallResult): Promise<void> {
@@ -67,12 +71,14 @@ async function storeCallResult(result: StoredCallResult): Promise<void> {
     const db = getFirestoreDb ? getFirestoreDb() : null;
 
     if (db) {
+      const clean = cleanForFirestore(result);
       await db
         .collection('bogle_users')
         .doc(result.userId)
         .collection('on_behalf_calls')
         .doc(result.callId)
-        .set(cleanForFirestore(result));
+        // Only the result's own fields: told.* (call-result-once.ts) and delivered survive a second capture.
+        .set(clean, { mergeFields: Object.keys(clean) });
 
       void onCallResultChange(
         result.userId,
@@ -143,73 +149,6 @@ export async function getCallResult(
 }
 
 // ============================================================================
-// SESSION NOTIFICATION
-// ============================================================================
-
-/**
- * Notify the original session of the call result
- *
- * Currently stores the notification for the user to see when they next connect.
- * Real-time notification via WebSocket can be added later when the data message
- * infrastructure is in place.
- */
-async function notifyOriginalSession(
-  originalSessionId: string,
-  callId: string,
-  outcome: CallOutcome
-): Promise<void> {
-  try {
-    log.info(
-      { originalSessionId, callId, status: outcome.status },
-      'Storing call result notification for session'
-    );
-
-    // Store a notification for the user to see when they next connect
-    await storeNotification(originalSessionId, callId, outcome);
-  } catch (error) {
-    log.error({ error: String(error), originalSessionId }, 'Failed to notify original session');
-  }
-}
-
-/** Store a notification for later delivery */
-async function storeNotification(
-  sessionId: string,
-  callId: string,
-  outcome: CallOutcome
-): Promise<void> {
-  try {
-    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({
-      getFirestoreDb: null,
-    }));
-
-    const db = getFirestoreDb ? getFirestoreDb() : null;
-    const notification = {
-      type: 'on_behalf_call_complete',
-      callId,
-      outcome: outcome.outcome,
-      status: outcome.status,
-      objectiveAchieved: outcome.objectiveAchieved,
-      callbackRequired: outcome.callbackRequired,
-      createdAt: new Date().toISOString(),
-      read: false,
-    };
-
-    if (db) {
-      // Store in user's pending notifications
-      await db
-        .collection('pending_notifications')
-        .doc(sessionId)
-        .collection('items')
-        .add(cleanForFirestore(notification));
-    }
-
-    log.debug({ sessionId, callId }, 'Notification stored for later delivery');
-  } catch (error) {
-    log.debug({ error: String(error), sessionId }, 'Could not store notification');
-  }
-}
-
-// ============================================================================
 // ACTIVE SESSION INJECTION
 // ============================================================================
 
@@ -224,6 +163,7 @@ async function injectToActiveSession(
   outcome: CallOutcome,
   request: OnBehalfCallRequest
 ): Promise<boolean> {
+  if (!sessionId) return false; // no requesting call (an empty name is no room)
   try {
     // Dynamic import to avoid circular deps and allow graceful degradation
     const livekitSdk = await import('livekit-server-sdk').catch(() => null);
@@ -296,12 +236,12 @@ async function injectToActiveSession(
 // ============================================================================
 
 /** Create follow-up actions based on call outcome */
-async function createFollowUpActions(
+function createFollowUpActions(
   userId: string,
   callId: string,
   outcome: CallOutcome,
   request: OnBehalfCallRequest
-): Promise<void> {
+): void {
   const actions: FollowUpAction[] = [];
 
   // If callback is required, schedule it
@@ -331,49 +271,30 @@ async function createFollowUpActions(
     }
   }
 
-  // Store follow-up actions
-  if (actions.length > 0) {
-    try {
-      const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({
-        getFirestoreDb: null,
-      }));
-
-      const db = getFirestoreDb ? getFirestoreDb() : null;
-
-      if (db) {
-        for (const action of actions) {
-          await db
-            .collection('bogle_users')
-            .doc(userId)
-            .collection('follow_up_actions')
-            .doc(action.id)
-            .set(cleanForFirestore(action));
-
-          void onFollowUpActionChange(
-            userId,
-            action.id,
-            {
-              actionType: action.type,
-              description: action.description,
-              relatedCallId: action.callId,
-              scheduledFor: action.scheduledFor,
-              priority: 'medium',
-              status: 'pending',
-              createdAt: action.createdAt,
-            },
-            'create'
-          );
-        }
-      } else {
-        // In-memory fallback
-        const existing = followUpActionsStore.get(userId) || [];
-        followUpActionsStore.set(userId, [...existing, ...actions]);
-      }
-
-      log.info({ userId, callId, actionCount: actions.length }, 'Follow-up actions created');
-    } catch (error) {
-      log.error({ error: String(error), userId }, 'Failed to create follow-up actions');
+  // Index each action to semantic memory. They used to be stored in
+  // bogle_users/{uid}/follow_up_actions too, but nothing read those docs, so that
+  // write is gone (memory v2 C5a).
+  if (actions.length === 0) return;
+  try {
+    for (const action of actions) {
+      onFollowUpActionChange(
+        userId,
+        action.id,
+        {
+          actionType: action.type,
+          description: action.description,
+          relatedCallId: action.callId,
+          scheduledFor: action.scheduledFor,
+          priority: 'medium',
+          status: 'pending',
+          createdAt: action.createdAt,
+        },
+        'create'
+      );
     }
+    log.info({ userId, callId, actionCount: actions.length }, 'Follow-up actions created');
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to create follow-up actions');
   }
 }
 
@@ -428,41 +349,30 @@ export async function captureCallResult(
       capturedAt: new Date().toISOString(),
     };
 
-    // 2. Store the result
+    // 2. Store the result, 3. follow-up actions (keyed by callId, so a second capture rewrites them)
     await storeCallResult(result);
+    createFollowUpActions(request.userId, callId, outcome, request);
 
-    // 3. Try to inject directly into active session (instant feedback)
-    const injectedToActive = await injectToActiveSession(
-      request.originalSessionId,
-      outcome,
-      request
+    // 4. Tell the owner, each channel once per call (call-result-once.ts): live (CALL_RESULT_LIVE_REPORT),
+    // push, the email record, a callback event, While You Were Away, and the text (CALL_RESULT_TEXT).
+    const contactName = request.resolvedContact?.name || request.contactQuery;
+    const { push, email: mailSent } = await tellOwnerOnce(
+      { userId: request.userId, callId, outcome, contactName },
+      {
+        live: async () => callResultLiveReportOn() ? reportCallResultLive(request, outcome) : injectToActiveSession(request.originalSessionId, outcome, request), // prettier-ignore
+        push: async (lead) => sendCallResultPushNotification(request, outcome, callId, lead),
+        email: async () => sendCallResultEmail(request, outcome, callId),
+        calendar: async () => createCallbackCalendarEvent(request, outcome, callId),
+        record: async () => storeInUnifiedResults(request, outcome, callId),
+        text: async (live) => tellOwnerAboutCall({ request, outcome, callId, live }),
+        textOn: () => callResultTextOn(),
+      }
     );
-
-    // 4. Store notification for later if session wasn't active
-    if (!injectedToActive) {
-      await notifyOriginalSession(request.originalSessionId, callId, outcome);
-    }
-
-    // 5. Push (reaches them even if disconnected), unless CALL_RESULT_TEXT texts them below
-    if (!callResultTextOn()) await sendCallResultPushNotification(request, outcome, callId);
-
-    // 6. Send email notification (tangible record of the call)
-    await sendCallResultEmail(request, outcome, callId);
-
-    // 7. Create calendar event for callback if needed
-    await createCallbackCalendarEvent(request, outcome, callId);
-
-    // 8. Create follow-up actions
-    await createFollowUpActions(request.userId, callId, outcome, request);
-
-    // 9. Store in unified background results (for "While You Were Away")
-    await storeInUnifiedResults(request, outcome, callId);
-    await tellOwnerIfOn({ request, outcome, callId, live: injectedToActive });
 
     log.info(
-      { callId, userId: request.userId },
-      'Call result captured successfully (push + email + calendar + unified)'
-    );
+      { callId, userId: request.userId, pushStatus: push, mailStatus: mailSent },
+      'Call result captured'
+    ); // sent, failed or skipped
   } catch (error) {
     log.error({ error: String(error), callId }, 'Failed to capture call result');
     throw error;
@@ -476,18 +386,19 @@ export async function captureCallResult(
 async function sendCallResultPushNotification(
   request: OnBehalfCallRequest,
   outcome: CallOutcome,
-  callId: string
-): Promise<void> {
+  callId: string,
+  lead?: string // Ferni's crisis line, put first
+): Promise<StepOutcome> {
   try {
     const { sendPushNotification, isPushNotificationsAvailable } =
       await import('./delivery/push-notifications.js');
 
     if (!isPushNotificationsAvailable()) {
       log.debug({ callId }, 'Push notifications not available, skipping');
-      return;
+      return 'skipped';
     }
 
-    const contactName = request.resolvedContact?.name || request.contactQuery;
+    const contactName = request.resolvedContact?.name || contactForOwner(request.contactQuery);
 
     // Build notification content based on outcome
     let title: string;
@@ -497,8 +408,8 @@ async function sendCallResultPushNotification(
       title = `✓ Call with ${contactName} complete`;
       body = outcome.outcome;
     } else if (outcome.status === 'voicemail') {
-      title = `📞 Left voicemail for ${contactName}`;
-      body = 'They should call back soon.';
+      title = voicemailWords(outcome.voicemailLeft, contactName).pushTitle;
+      body = voicemailWords(outcome.voicemailLeft, contactName).pushBody;
     } else if (outcome.status === 'no_answer' || outcome.status === 'busy') {
       title = `📞 Couldn't reach ${contactName}`;
       body = outcome.callbackRequired ? 'Want me to try again later?' : outcome.outcome;
@@ -507,12 +418,12 @@ async function sendCallResultPushNotification(
       body = outcome.outcome;
     }
 
-    await sendPushNotification({
+    const results = await sendPushNotification({
       userId: request.userId,
       outreachId: callId,
       personaId: 'ferni',
       title,
-      body,
+      body: lead ? `${lead} ${body}` : body,
       data: {
         type: 'on_behalf_call_complete',
         callId,
@@ -523,11 +434,12 @@ async function sendCallResultPushNotification(
       priority: 'high',
       clickAction: '/calls', // Navigate to call history
     });
-
-    log.info({ callId, userId: request.userId }, 'Push notification sent for call result');
+    const fields = { callId, userId: request.userId, for: 'call result' };
+    return notePushOutcome(log, results, fields) ? 'sent' : 'failed';
   } catch (error) {
     // Don't fail the whole capture if push fails
     log.warn({ error: String(error), callId }, 'Failed to send push notification');
+    return 'failed';
   }
 }
 
@@ -539,43 +451,32 @@ async function sendCallResultEmail(
   request: OnBehalfCallRequest,
   outcome: CallOutcome,
   callId: string
-): Promise<void> {
+): Promise<StepOutcome> {
   try {
-    // Get user's email
     const email = await getUserEmail(request.userId);
     if (!email) {
       log.debug(
         { callId, userId: request.userId },
         'No email configured, skipping email notification'
       );
-      return;
+      return 'skipped';
     }
 
     const { sendEmail, isEmailDeliveryAvailable } = await import('./delivery/email-delivery.js');
 
     if (!isEmailDeliveryAvailable()) {
       log.debug({ callId }, 'Email delivery not available, skipping');
-      return;
+      return 'skipped';
     }
 
-    const contactName = request.resolvedContact?.name || request.contactQuery;
-    const completedAt = new Date().toLocaleString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
+    const contactName = request.resolvedContact?.name || contactForOwner(request.contactQuery);
+    const completedAt = completedAtFor(request.userTimezone);
 
-    // Build warm, human email content
-    const { subject, body } = buildCallResultEmailContent(
-      contactName,
-      outcome,
-      request.purpose,
-      completedAt
-    );
+    // Warm, human, and what they said: Ferni's crisis line first when the call carried one
+    const words = ownerEmailWords(contactName, outcome);
+    const { subject, body } = buildCallResultEmailContent(contactName, outcome, request.purpose, completedAt, words); // prettier-ignore
 
-    await sendEmail({
+    const sent = await sendEmail({
       to: email,
       subject,
       body,
@@ -584,11 +485,14 @@ async function sendCallResultEmail(
       outreachId: callId,
       tags: ['on-behalf-call', outcome.status],
     });
-
-    log.info({ callId, userId: request.userId }, 'Email notification sent for call result');
+    // A failure logs a code only: never the address or the body.
+    if (sent.success) log.info({ callId, userId: request.userId }, 'Email notification sent for call result');
+    else log.warn({ callId, userId: request.userId, code: sent.status ?? 'send_failed' }, 'Email notification NOT sent'); // prettier-ignore
+    return sent.success ? 'sent' : 'failed';
   } catch (error) {
     // Don't fail the whole capture if email fails
-    log.warn({ error: String(error), callId }, 'Failed to send email notification');
+    log.warn({ callId, code: (error as Error)?.name ?? 'error' }, 'Failed to send email notification'); // prettier-ignore
+    return 'failed';
   }
 }
 
@@ -597,14 +501,15 @@ function buildCallResultEmailContent(
   contactName: string,
   outcome: CallOutcome,
   purpose: string,
-  completedAt: string
+  completedAt: string,
+  words: { lead?: string; details?: string } = {}
 ): { subject: string; body: string } {
   // Build subject based on outcome
   let subject: string;
   if (outcome.objectiveAchieved) {
     subject = `✓ Talked to ${contactName} for you`;
   } else if (outcome.status === 'voicemail') {
-    subject = `📞 Left a message for ${contactName}`;
+    subject = voicemailWords(outcome.voicemailLeft, contactName).emailSubject;
   } else if (outcome.status === 'no_answer' || outcome.status === 'busy') {
     subject = `📞 Couldn't reach ${contactName}`;
   } else {
@@ -613,6 +518,7 @@ function buildCallResultEmailContent(
 
   // Build warm body
   const lines: string[] = [];
+  if (words.lead) lines.push(`**${words.lead}**`, '');
   lines.push(`Hey! Just wanted to let you know about the call to ${contactName}.`);
   lines.push('');
 
@@ -622,9 +528,7 @@ function buildCallResultEmailContent(
       `Great news - I was able to ${purpose.toLowerCase().replace(/^(say|tell|wish|let them know)/i, 'pass along your message to')}`
     );
   } else if (outcome.status === 'voicemail') {
-    lines.push(
-      `I left a voicemail for ${contactName}. I made sure to keep it warm and natural - just like you would.`
-    );
+    lines.push(voicemailWords(outcome.voicemailLeft, contactName).emailLine);
   } else if (outcome.status === 'no_answer') {
     lines.push(`I tried calling ${contactName} but couldn't get through. No answer.`);
   } else if (outcome.status === 'busy') {
@@ -632,8 +536,8 @@ function buildCallResultEmailContent(
   }
 
   lines.push('');
-  lines.push(`**What happened:** ${outcome.outcome}`);
-  lines.push('');
+  lines.push(`**What happened:** ${outcome.outcome}`, '');
+  if (words.details) lines.push(`**What they said:** ${words.details}`, '');
 
   // Action items
   if (outcome.actionItems && outcome.actionItems.length > 0) {
@@ -653,7 +557,7 @@ function buildCallResultEmailContent(
     lines.push('');
   }
 
-  lines.push(`*Completed: ${completedAt}*`);
+  if (completedAt) lines.push(`*Completed: ${completedAt}*`);
 
   return { subject, body: lines.join('\n') };
 }
@@ -842,7 +746,7 @@ async function storeInUnifiedResults(
     if (outcome.objectiveAchieved) {
       summary = `Called ${contactName} - ${outcome.outcome}`;
     } else if (outcome.status === 'voicemail') {
-      summary = `Left voicemail for ${contactName}`;
+      summary = voicemailWords(outcome.voicemailLeft, contactName).summary;
     } else if (outcome.status === 'no_answer') {
       summary = `Tried calling ${contactName} - no answer`;
     } else if (outcome.status === 'busy') {
@@ -850,13 +754,6 @@ async function storeInUnifiedResults(
     } else {
       summary = `Call to ${contactName}: ${outcome.outcome}`;
     }
-
-    // Determine priority
-    const priority = outcome.callbackRequired
-      ? 'high'
-      : outcome.objectiveAchieved
-        ? 'normal'
-        : 'normal';
 
     // Map outcome status to unified status
     const status = outcome.objectiveAchieved
@@ -872,7 +769,7 @@ async function storeInUnifiedResults(
       type: 'on_behalf_call',
       status,
       summary,
-      priority,
+      priority: outcome.callbackRequired ? 'high' : 'normal',
       initiatedBy: 'ferni', // Calls are typically initiated by Ferni
       sessionId: request.originalSessionId,
       contactName,
@@ -887,7 +784,10 @@ async function storeInUnifiedResults(
         phoneNumber: request.resolvedContact?.phone,
         status: outcome.status,
       },
-      skipPush: callResultTextOn(),
+      // captureCallResult sends this call's push and email itself, once: here they went again,
+      // a second push on every call and a second email for a callback (audit 2026-10-29, C).
+      skipPush: true,
+      skipEmail: true,
     });
 
     log.debug({ callId }, 'Call result stored in unified background results');
@@ -936,34 +836,6 @@ export async function getRecentCallResults(
       .slice(0, limit);
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to get recent call results');
-    return [];
-  }
-}
-
-/** Get pending follow-up actions for a user */
-export async function getPendingFollowUps(userId: string): Promise<FollowUpAction[]> {
-  if (!isMemberIdentity(userId.trim())) return [];
-  try {
-    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({
-      getFirestoreDb: null,
-    }));
-
-    const db = getFirestoreDb ? getFirestoreDb() : null;
-
-    if (db) {
-      const snapshot = await db
-        .collection('bogle_users')
-        .doc(userId)
-        .collection('follow_up_actions')
-        .orderBy('createdAt', 'desc')
-        .get();
-
-      return snapshot.docs.map((doc: { data: () => unknown }) => doc.data() as FollowUpAction);
-    }
-
-    return followUpActionsStore.get(userId) || [];
-  } catch (error) {
-    log.debug({ error: String(error), userId }, 'Failed to get pending follow-ups');
     return [];
   }
 }

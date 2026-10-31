@@ -11,6 +11,8 @@
  */
 
 import { getFinancialStore } from '../../../../services/stores/financial-store.js';
+import { hasAnyProviderConnected } from '../../../../services/calendar/index.js';
+import { loadBriefingStores } from '../briefing-stores.js';
 import { getHandoffContext } from '../../../../tools/handoff/executor.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import {
@@ -42,10 +44,7 @@ import { identifyCoachingOpportunities } from './coaching.js';
 import { buildCommunicationContext } from './communication-context.js';
 import { formatBriefingForInjection } from './formatting.js';
 import { computeCommunicationMetrics } from './metrics.js';
-import {
-  buildAlexSuperhumanContext,
-  processTranscriptForSuperhuman,
-} from './superhuman-context.js';
+import { buildAlexSuperhumanContext } from './superhuman-context.js';
 import { gatherTeamInsights } from './team-insights.js';
 import { detectProactiveTriggers } from './triggers.js';
 import type {
@@ -106,6 +105,7 @@ async function buildCommunicationBriefing(
   userId: string,
   handoffContext?: HandoffContextType
 ): Promise<CommunicationBriefing> {
+  await loadBriefingStores(userId);
   // Default fallback values for graceful degradation
   const defaultUserState: UserStateSnapshot = {
     stressLevel: 'unknown',
@@ -113,7 +113,6 @@ async function buildCommunicationBriefing(
     energyLevel: 'unknown',
     productivityMomentum: 'unknown',
     timeOfDayContext: 'unknown',
-    optimalCommunicationWindow: null,
   };
   const defaultMemoryContext: MemoryContext = {
     previousCommunicationTopics: [],
@@ -170,12 +169,14 @@ async function buildCommunicationBriefing(
       // Detect conflicts between milestones and calendar
       milestoneConflicts = await detectMilestoneConflicts(userId, activeMilestones);
 
-      // Find optimal focus windows for milestone work
-      protectedTimeWindows = await findOptimalMilestoneWindows(userId, {
-        daysAhead: 7,
-        minDurationHours: 2,
-        preferMornings: true,
-      });
+      // Free windows only from a connected calendar: an empty one is not a free week (#3044)
+      if (await hasAnyProviderConnected(userId)) {
+        protectedTimeWindows = await findOptimalMilestoneWindows(userId, {
+          daysAhead: 7,
+          minDurationHours: 2,
+          preferMornings: true,
+        });
+      }
 
       log.debug(
         {
@@ -287,6 +288,7 @@ async function buildAlexCommunicationInsightsContext(
   try {
     const briefing = await buildCommunicationBriefing(userId, handoffContext);
     const formattedSections = formatBriefingForInjection(briefing, handoffContext, turnCount);
+    if (formattedSections.length === 0) return injections; // nothing true to say
 
     // Get superhuman context (network, commitments, capacity)
     // V3 Semantic Intelligence needs current conversation context
@@ -315,13 +317,6 @@ async function buildAlexCommunicationInsightsContext(
       formattedSections.push('\n' + superhumanCommContext.contextString);
     }
 
-    // Process transcript for real-time pattern detection
-    if (input.userText) {
-      void processTranscriptForSuperhuman(userId, input.userText, {
-        currentTopic: input.analysis?.topics?.detected?.[0],
-      });
-    }
-
     // V5 Superhuman Persona Intelligence - Computational Linguistics
     // Politeness Theory, Warmth-Competence Model, Gottman patterns, NVC
     const commIntelligenceContext = await buildCommunicationIntelligenceContext(userId).catch(
@@ -332,52 +327,6 @@ async function buildAlexCommunicationInsightsContext(
     );
     if (commIntelligenceContext) {
       formattedSections.push('\n' + commIntelligenceContext);
-    }
-
-    // 🤝 TEAM HUDDLE: Record Alex's observations for cross-persona intelligence
-    try {
-      const { alex: alexObserver } =
-        await import('../../../../services/cross-persona/observation-recorder.js');
-
-      // Record stress-related concerns from user state
-      if (briefing.userState.stressLevel === 'high') {
-        alexObserver.concern(
-          userId,
-          `High stress level detected: ${briefing.userState.stressSignals.join(', ')}`,
-          0.85,
-          ['stress', 'communication', 'boundaries']
-        );
-      }
-
-      // Record upcoming priority concerns (overloaded schedule)
-      if (briefing.upcomingPriorities.length > 5) {
-        alexObserver.concern(
-          userId,
-          `${briefing.upcomingPriorities.length} upcoming priorities - may be overloaded`,
-          0.7,
-          ['schedule', 'priorities', 'overload']
-        );
-      }
-
-      // Record coaching opportunities
-      if (briefing.coachingOpportunities.length > 0) {
-        alexObserver.opportunity(userId, briefing.coachingOpportunities[0], 0.7, undefined, [
-          'communication',
-          'coaching',
-        ]);
-      }
-
-      // Record proactive triggers
-      if (briefing.proactiveTriggers?.length > 0) {
-        const topTrigger = briefing.proactiveTriggers[0];
-        alexObserver.pattern(userId, topTrigger.message || 'Communication pattern detected', 0.65, [
-          'communication',
-          'patterns',
-        ]);
-      }
-    } catch (err) {
-      // Non-critical - don't block if observation recording fails
-      log.debug({ error: String(err) }, 'Failed to record Alex observations (non-blocking)');
     }
 
     const content = formattedSections.join('\n');

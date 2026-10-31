@@ -24,18 +24,14 @@ export {
 // Email Delivery
 export {
   emailDelivery,
-  initializeEmailDelivery,
   isEmailDeliveryAvailable,
   sendEmail,
   sendEmailWithRetry,
-  handleEmailEvent,
   generatePersonaEmailHTML,
   generatePlainText,
-  type EmailDeliveryConfig,
   type EmailMessage,
   type EmailDeliveryResult,
   type EmailDeliveryRecord,
-  type EmailProvider,
   type EmailAttachment,
 } from './email-delivery.js';
 
@@ -64,7 +60,6 @@ export {
   updateDeliveryStatus,
   markResponded,
   getDeliveryRecord,
-  getDeliveryByExternalId,
   getUserDeliveries,
   getOutreachDeliveries,
   getQueueItems,
@@ -83,7 +78,6 @@ export {
 // ============================================================================
 
 import { initializeSMSDelivery, type SMSDeliveryConfig } from './sms-delivery.js';
-import { initializeEmailDelivery, type EmailDeliveryConfig } from './email-delivery.js';
 import { initializePushNotifications, type PushNotificationConfig } from './push-notifications.js';
 import { startQueueProcessor, stopQueueProcessor } from './delivery-tracker.js';
 import { getLogger } from '../../../utils/safe-logger.js';
@@ -92,7 +86,6 @@ const log = getLogger().child({ module: 'delivery' });
 
 export interface DeliveryConfig {
   sms?: SMSDeliveryConfig;
-  email?: EmailDeliveryConfig;
   push?: PushNotificationConfig;
   queueProcessorIntervalMs?: number;
 }
@@ -119,14 +112,7 @@ export function initializeDeliveryServices(config: DeliveryConfig): void {
     }
   }
 
-  // Initialize email if configured
-  if (config.email) {
-    try {
-      initializeEmailDelivery(config.email);
-    } catch (error) {
-      log.warn({ error }, 'Email delivery initialization failed');
-    }
-  }
+  // Email needs no init: it goes through the Workspace transport (email-transport).
 
   // Initialize push notifications if configured
   if (config.push) {
@@ -151,7 +137,13 @@ export function initializeDeliveryServices(config: DeliveryConfig): void {
 import { sendSMS, isSMSDeliveryAvailable, type SMSMessage } from './sms-delivery.js';
 import { sendEmail, isEmailDeliveryAvailable } from './email-delivery.js';
 import { sendPushNotification, isPushNotificationsAvailable } from './push-notifications.js';
+import { hasPushDevice } from './push-reach.js';
 import { getFirestoreClient } from '../firestore-persistence.js';
+import { sharedHeld } from '../minor-care-shared-hold.js';
+import { heldSender } from '../checkin-replies.js';
+
+/** MINOR_CARE_SHARED_HOLD: the account, or the number, is held by a call (in any process). */
+const HELD = 'held (MINOR_CARE)';
 
 export interface DeliverOutreachOptions {
   userId: string;
@@ -167,6 +159,8 @@ export interface DeliverOutreachResult {
   channel: string;
   messageId?: string;
   error?: string;
+  /** No push device registered: nothing was tried, so there's no attempt to record. */
+  unreachable?: true;
 }
 
 /**
@@ -178,6 +172,7 @@ export async function deliverOutreach(
   const { userId, channel, message, personaId, subject, outreachId } = options;
   const persona = personaId || 'ferni';
   const outreach = outreachId || `outreach-${Date.now()}`;
+  if (await sharedHeld(userId)) return { success: false, channel, error: HELD };
 
   try {
     switch (channel) {
@@ -190,6 +185,8 @@ export async function deliverOutreach(
         if (!phoneResult) {
           return { success: false, channel, error: 'User phone number not found' };
         }
+        if (await heldSender(undefined, phoneResult))
+          return { success: false, channel, error: HELD };
         const smsMessage: SMSMessage = {
           to: phoneResult,
           body: message,
@@ -229,6 +226,9 @@ export async function deliverOutreach(
         };
 
       case 'push':
+        if (!(await hasPushDevice(userId))) {
+          return { success: false, channel, error: 'No push device registered', unreachable: true };
+        }
         if (!isPushNotificationsAvailable()) {
           return { success: false, channel, error: 'Push notifications not available' };
         }
@@ -272,6 +272,8 @@ export async function deliverOutreach(
           if (!userPhone) {
             return { success: false, channel, error: 'User phone number not found' };
           }
+          if (await heldSender(undefined, userPhone))
+            return { success: false, channel, error: HELD };
 
           const callResult = await makeConversationalCall({
             phone: userPhone,

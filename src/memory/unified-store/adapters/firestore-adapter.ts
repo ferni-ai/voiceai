@@ -128,9 +128,9 @@ export class FirestoreAdapter implements MemoryStoreAdapter {
 
   private async doInitialize(): Promise<void> {
     try {
-      const { Firestore } = await import('@google-cloud/firestore');
+      const { sharedFirestore } = await import('../../../utils/shared-firestore.js');
 
-      this.db = new Firestore({
+      this.db = sharedFirestore({
         projectId: this.config.projectId,
         databaseId: this.config.databaseId,
       }) as unknown as FirestoreInstance;
@@ -306,7 +306,7 @@ export class FirestoreAdapter implements MemoryStoreAdapter {
 
   async shutdown(): Promise<void> {
     if (this.db) {
-      await this.db.terminate();
+      // Not terminated: the client is the process's shared one (sharedFirestore), still in use.
       this.db = null;
       this.initialized = false;
       log.info('Firestore adapter shut down');

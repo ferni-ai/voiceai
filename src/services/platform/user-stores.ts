@@ -8,14 +8,32 @@
  * and contact_relationships all survived it. The stores outside the two records were
  * found by reading every top-level collection production code writes with a uid.
  *
+ * Stores split into partitions (ab_tests/{test}/assignments, the router's
+ * semantic_router_events/{day}/events) are listed in erase-other-keys.ts, which lists
+ * the partitions first; the export reads the router's in user-records-export.ts.
+ *
  * @module services/platform/user-stores
  */
 
-/** A document keyed by the uid (and everything under it), or documents naming the uid */
-export type OwnedStore = { collection: string; doc: 'uid' } | { collection: string; field: string };
+/**
+ * A document keyed by the uid (and everything under it), documents naming the uid, or
+ * an entry keyed by the uid (`{mapKey}.{uid}`) inside a document that isn't the person's:
+ * only that entry is theirs, so only it is erased.
+ */
+export type OwnedStore =
+  | { collection: string; doc: 'uid' }
+  | { collection: string; field: string }
+  | { collection: string; mapKey: string };
 
-/** Collections whose {uid} document, and everything under it, belongs to that person */
-export const USER_RECORD_ROOTS = ['bogle_users', 'users'] as const;
+/** The person's own record; account deletion erases it last, and a retry starts from it */
+export const USER_RECORDS_COLLECTION = 'bogle_users';
+
+/**
+ * Collections whose {uid} document, and everything under it, belongs to that person.
+ * Erased recursively, so every store under bogle_users/{uid} goes with it: the activity
+ * ledger (activity/{id} and its events) included, pinned by account-delete-every-store.
+ */
+export const USER_RECORD_ROOTS = [USER_RECORDS_COLLECTION, 'users'] as const;
 
 const byId = (...collections: string[]): OwnedStore[] =>
   collections.map((collection) => ({ collection, doc: 'uid' as const }));
@@ -59,11 +77,14 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
     'user_contacts',
     'profiles', // conversation and insight feedback, subcollections only
     'feature_flag_overrides', // flags turned on for this person alone (cohort-flags.ts)
+    'minor_care_holds', // {heldUntil, v, windows}: a call held them under 18 (minor-care-shared-hold.ts)
     'team_awareness', // what each persona noticed about them (cross-agent-awareness.ts)
     'team_notes', // the personas' notes about them, one doc each (cross-agent-awareness.ts)
     'ritual_onboarding', // their ritual onboarding state (ritual-onboarding.ts)
-    'semantic_routing_vocabulary', // their own words for tools (semantic-router feedback-store.ts)
-    'outreach_user_analytics' // per-person outreach response stats (outreach-analytics.ts)
+    'outreach_user_analytics', // per-person outreach response stats (outreach-analytics.ts)
+    // The router's learning stores: tool picks, lengths and phrase hashes, never the words
+    'semantic_routing_vocabulary',
+    'semantic_routing_corrections' // {uid}/corrections, the {uid} document never written
   ),
   // The app's per-person documents
   ...byId(
@@ -122,25 +143,45 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
     'marketplace_installations',
     'trust_analytics',
     'routing_events',
+    'semantic_router_corrections',
+    'semantic_routing_feedback',
     'game_analytics_events',
     'bth_production_events',
     'phone_mappings',
     'feature_checkins', // texts sent to the person, with their replies
+    'local_calendar_events', // the calendar kept when no provider is linked (local-calendar-store.ts)
+    'intelligence_queue', // queued turn events holding the person's words (INTELLIGENCE_QUEUE)
     'relationship_memories' // {uid}_{persona}: shared moments and inside jokes, older agent
   ),
+  ...byField('userId', 'answer_cards'), // answer cards (/a/:id), deleted by deleteAnswerCardsForUser
   ...byField('ownerId', 'share_links', 'share_invites', 'voice_households'),
   ...byField('toUserId', 'family_messages', 'family_shared_context'),
   ...byField('referrerId', 'voice_referrals'),
   ...byField('odId', 'analytics_sessions'),
   ...byField('firebaseUid', 'user_profiles'), // access grants; the email-keyed ones too (erase-other-keys)
   ...byField('injection.userId', 'context_injection_outcomes'),
+  // The semantic index: the person's words (facts, memories, inside jokes, summaries) with
+  // their embeddings. vectors is FirestoreVectorStore's, memory_vectors the unified store's;
+  // ownerless documents (persona knowledge) and placeholder owners are nobody's and stay.
+  ...byField('metadata.userId', 'vectors', 'memory_vectors'),
+  ...byField('text.userId', 'feature_held_texts'), // texts held for them (a Focus, quiet hours), with the text
   { collection: 'reply_reports', field: 'uid' }, // replies they reported, with their own words
   { collection: 'reply_report_quota', doc: 'uid' },
+  { collection: 'call_felt_off', field: 'uid' }, // "That felt off" reports, with their note
+  { collection: 'call_felt_off_quota', doc: 'uid' },
+  // the sponsor's daily holder-verification text count; the same collection's phone_{hash}
+  // docs are each number's own send record, uid-free, kept like a STOP (holder-send-ledger.ts)
+  { collection: 'holder_verification_sends', doc: 'uid' },
 ];
 
 /**
  * Sign-in credentials kept for the person: never exported (a live token in a file
- * people share), always erased. Credentials inside the two records go with them.
+ * people share), always erased. Credentials inside the two records go with them:
+ * Google Calendar, Gmail send, Spotify, Plaid, wearables (wearable_{provider}_tokens),
+ * smart home (LIFX, Sonos, HomeKit), webhooks and Siri tokens, social tokens all live
+ * under bogle_users/{uid}, and OAuth links and calendar providers under users/{uid}.
+ * apple_signin_tokens/{uid} is left out on purpose: revokeAppleSignIn reads it after
+ * this sweep to revoke the grant at Apple, then deletes it (account-routes.ts).
  */
 export const CREDENTIAL_STORES: readonly OwnedStore[] = [
   ...byId(
@@ -149,6 +190,9 @@ export const CREDENTIAL_STORES: readonly OwnedStore[] = [
     'ecobee_tokens',
     'ecobee_pending_auth',
     'eight_sleep_tokens',
+    // the old v1 callback's plaintext root copy; nothing reads or writes it now
+    // (google-calendar-token-store.ts), but documents of it are still in Firestore
+    'google_calendar_tokens',
     'oura_tokens',
     'verification_codes'
   ),
@@ -172,13 +216,28 @@ export const UID_KEYED_ELSEWHERE: readonly string[] = [
   'user_profiles',
 ];
 
+/**
+ * The person's entries in other people's documents: erased, never exported or copied.
+ * consent/{phoneHash} is a contact's own record, and their STOP stays after any erasure
+ * so nobody texts them again; grants.{uid} is the consent they gave for this member
+ * (messaging/consent-grants.ts), and asks.{uid} the member's open consent ask: both go
+ * with the member, so a later YES can't grant a deleted account.
+ */
+export const ENTRIES_IN_OTHERS_DOCS: readonly OwnedStore[] = [
+  { collection: 'consent', mapKey: 'grants' },
+  { collection: 'consent', mapKey: 'asks' },
+];
+
 /** Every store account deletion must leave empty for the person */
 export const ERASED_STORES: readonly OwnedStore[] = [
   ...USER_RECORD_ROOTS.flatMap((root) => byId(root)),
   ...OWNED_ELSEWHERE,
   ...CREDENTIAL_STORES,
+  ...ENTRIES_IN_OTHERS_DOCS,
 ];
 
-/** A store's label, with the uid written as {uid} ("users/{uid}", "entities[userId]") */
-export const storeLabel = (store: OwnedStore): string =>
-  'doc' in store ? `${store.collection}/{uid}` : `${store.collection}[${store.field}]`;
+/** A store's label, with the uid written as {uid} ("users/{uid}", "entities[userId]", "consent[grants.{uid}]") */
+export function storeLabel(store: OwnedStore): string {
+  if ('doc' in store) return `${store.collection}/{uid}`;
+  return `${store.collection}[${'field' in store ? store.field : `${store.mapKey}.{uid}`}]`;
+}

@@ -29,8 +29,23 @@ export type FirstAudioObserver = (() => void) & {
   trimmed(ms: number): void;
 };
 
-/** First audio of a gateway reply: ms from the start of the TTS node, and when its first text was sent. */
-export type FirstAudioListener = (sessionId: string, ttfbMs: number, pushMs?: number) => void;
+/**
+ * What held a reply's first audio back once it existed (hold()): an opening clip
+ * finishing (reply-activity.ts) and the pause hold (pause-hold.ts), in ms waited.
+ * Both are inside its ttfbMs.
+ */
+export interface GatewayHolds {
+  openerClipMs: number;
+  pauseHoldMs: number;
+}
+
+/** A gateway reply's first audio: ms from the start of the TTS node, its first text sent, its holds. */
+export type FirstAudioListener = (
+  sessionId: string,
+  ttfbMs: number,
+  pushMs?: number,
+  holds?: GatewayHolds
+) => void;
 const firstAudioListeners = new Set<FirstAudioListener>();
 
 /** Hear each gateway reply's first audio (turn-receipt.ts records it). Returns an unsubscribe. */
@@ -50,6 +65,7 @@ export function createFirstAudioObserver({
 }: FirstAudioObserverOptions): FirstAudioObserver {
   let hasMarkedFirstAudio = false;
   const stages: { textMs?: number; pushMs?: number; leadTrimMs?: number } = {};
+  const holds: GatewayHolds = { openerClipMs: 0, pauseHoldMs: 0 };
 
   const observe = (): void => {
     if (hasMarkedFirstAudio) return;
@@ -59,7 +75,8 @@ export function createFirstAudioObserver({
     log.info({ ttfbMs, ...stages, sessionId }, `🔊 Gateway TTS TTFB: ${ttfbMs}ms`);
     if (sessionId) {
       noteReplyAudio(sessionId);
-      for (const listener of firstAudioListeners) listener(sessionId, ttfbMs, stages.pushMs);
+      for (const listener of firstAudioListeners)
+        listener(sessionId, ttfbMs, stages.pushMs, { ...holds });
       try {
         const firstAudioAtMs = Date.now();
         markCallStage(sessionId, 'tts_first_frame', firstAudioAtMs);
@@ -84,12 +101,16 @@ export function createFirstAudioObserver({
     },
     async hold(): Promise<void> {
       const ms = sessionId ? replyAudioHoldMs(sessionId) : 0;
+      let at = Date.now();
       if (ms > 0) {
         await new Promise<void>((resolve) => {
           setTimeout(resolve, ms);
         });
       }
+      holds.openerClipMs = Date.now() - at;
+      at = Date.now();
       await waitForPauseHold(sessionId);
+      holds.pauseHoldMs = Date.now() - at;
     },
   });
 }

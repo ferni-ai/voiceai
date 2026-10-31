@@ -68,6 +68,22 @@ vi.mock('../utils/safe-logger.js', async (orig) => ({
 const eraseUserRecord = vi.hoisted(() => vi.fn());
 vi.mock('../services/platform/erase-user-record.js', () => ({ eraseUserRecord }));
 
+// The other erasure steps, each healthy, so a full run can be checked for a step left behind
+vi.mock('../services/identity/gmail-send-as-user.js', () => ({ forgetGmailSendGrant: vi.fn() }));
+vi.mock('../services/identity/google-calendar-disconnect.js', () => ({
+  disconnectGoogleCalendar: vi.fn(),
+}));
+vi.mock('../memory/index.js', () => ({
+  getDefaultStore: () => ({ deleteProfile: vi.fn() }),
+}));
+vi.mock('../services/wellbeing-tracking/persistence.js', () => ({ deleteWellbeingData: vi.fn() }));
+vi.mock('../services/trust-systems/index.js', () => ({ deleteTrustProfiles: vi.fn() }));
+vi.mock('../services/contacts.js', () => ({ deleteAllContacts: vi.fn() }));
+vi.mock('../services/stores/productivity-store.js', () => ({
+  getProductivityStore: () => ({ clearUserData: vi.fn() }),
+}));
+vi.mock('../services/approvals/answer-cards.js', () => ({ deleteAnswerCardsForUser: vi.fn() }));
+
 import { getDataExportService, type ExportCategory } from '../services/data-export.js';
 
 // ============================================================================
@@ -380,6 +396,21 @@ describe('GDPR Data Deletion Integration', () => {
       await service.deleteAllData(testUserId);
 
       expect(mockEngagementStore.deleteUserData).toHaveBeenCalledWith(testUserId);
+    });
+
+    it('reports every step healthy on a full run, so a dead probe that reports false fails here', async () => {
+      const results = await getDataExportService().deleteAllData(testUserId);
+      expect(results).toEqual({
+        gmail_send_grant: true,
+        google_calendar_grant: true,
+        engagement: true,
+        profile: true,
+        wellbeing: true,
+        trust: true,
+        contacts: true,
+        productivity: true,
+        answer_cards: true,
+      });
     });
 
     it('should log warning on individual deletion failure and continue', async () => {

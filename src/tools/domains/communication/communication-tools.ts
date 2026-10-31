@@ -15,7 +15,7 @@
  * Communication Specialist Tools (PARTIALLY DEPRECATED)
  *
  * Full communication integration:
- * - Real email sending via SendGrid
+ * - Real email sending via the ferni.ai Workspace mailbox
  * - Real SMS/text via Twilio
  * - Phone calls via Twilio Programmable Voice
  * - Voice messages via Cartesia TTS + Twilio MMS
@@ -24,9 +24,11 @@
  */
 
 import { llm } from '@livekit/agents';
-import { consentBlocks } from '../../../utils/consent-port.js';
+import { callerUserId } from '../local-search/caller-city.js';
+import { notCalling, ownerRefusal } from '../../../utils/consent-port.js';
 import { z } from 'zod';
 import {
+  directSendHeld,
   guardedThirdPartySend,
   sendEmail,
   sendSMS,
@@ -118,7 +120,7 @@ function own<T>(store: Map<string, Map<string, T>>, ctx: unknown, write = false)
   return items;
 }
 
-// ===== EMAIL FUNCTIONS (Real SendGrid Integration) =====
+// ===== EMAIL FUNCTIONS (the ferni.ai Workspace mailbox) =====
 
 /** Draft an email with a specific tone - creates a draft for user review */
 function draftEmail(
@@ -168,7 +170,7 @@ function draftEmail(
   return draft;
 }
 
-/** Send an email via SendGrid (called after user approves) */
+/** Send an email through the Workspace mailbox (called after user approves) */
 async function sendApprovedEmailReal(
   to: string,
   subject: string,
@@ -201,23 +203,28 @@ async function sendTextReal(to: string, message: string, userId: string): Promis
     return `I need a valid phone number to send a text. "${to}" doesn't look right. Can you provide a number like 555-123-4567?`;
   }
   const phone = validation.sanitized as string;
-  return guardedThirdPartySend(phone, message, userId, () => sendSMS(phone, message));
+  return guardedThirdPartySend(phone, message, userId, () => sendSMS(phone, message, { userId }));
 }
 
 // ===== PHONE CALL FUNCTIONS (Twilio Programmable Voice) =====
 
-/** Initiate an outbound phone call via Twilio */
-async function makePhoneCall(to: string, purpose: string, twimlUrl?: string): Promise<string> {
+/** Outbound Twilio call. Both ids are the session's, never a model arg: consent, then the hold. */
+async function makePhoneCall(
+  to: string,
+  purpose: string,
+  ownerUid: string | undefined,
+  holdUid?: string
+): Promise<string> {
   const validation = validatePhone(to);
   if (!validation.valid) {
     return `I need a valid phone number to make a call. Can you double-check "${to}"?`;
   }
 
   const validPhone = validation.sanitized as string;
-  // MESSAGING_PIPELINE: stops at an opt-out (consent/{phoneHash}).
-  if (await consentBlocks(validPhone, 'call', true)) {
-    return `I can't call that number: it asked not to be called.`;
-  }
+  // MESSAGING_PIPELINE: the owner's own number, or someone who gave this owner a call grant.
+  const refused = await ownerRefusal(ownerUid, validPhone, 'call');
+  if (refused) return notCalling(refused);
+  if (await directSendHeld(validPhone, 'call', { userId: holdUid })) return 'Not calling: held.';
 
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
     getLogger().warn('Twilio not configured for calls');
@@ -241,7 +248,7 @@ async function makePhoneCall(to: string, purpose: string, twimlUrl?: string): Pr
         body: new URLSearchParams({
           To: validPhone,
           From: TWILIO_PHONE_NUMBER,
-          ...(twimlUrl ? { Url: twimlUrl } : { Twiml: defaultTwiml }),
+          Twiml: defaultTwiml,
         }),
         signal: AbortSignal.timeout(15000),
       }
@@ -269,7 +276,6 @@ async function makePhoneCall(to: string, purpose: string, twimlUrl?: string): Pr
 
 /** Generate and send a voice message using Alex's voice */
 async function sendVoiceMessageReal(to: string, message: string): Promise<string> {
-  // Backward compatible overload will pass 'unknown'
   return sendVoiceMessageRealWithUserId(to, message, 'unknown');
 }
 
@@ -291,7 +297,6 @@ async function sendVoiceMessageRealWithUserId(
 
   if (!CARTESIA_API_KEY) {
     getLogger().warn('Cartesia not configured for voice messages');
-    // Fallback to text with voice message indicator
     return sendTextReal(to, `🎤 Voice message from Alex: "${message}"`, userId);
   }
 
@@ -308,7 +313,6 @@ async function sendVoiceMessageRealWithUserId(
     );
   } catch (error) {
     getLogger().error({ error }, 'Voice message error');
-    // Fallback to text
     return sendTextReal(to, `🎤 (Voice message) ${message}`, userId);
   }
 }
@@ -332,7 +336,6 @@ async function scheduleReminderReal(params: {
     return `I couldn't understand "${params.when}". Could you be more specific? Like "tomorrow at 9am" or "in 2 hours"?`;
   }
 
-  // Validate contact if delivery method requires it
   if (
     params.deliveryMethod &&
     params.deliveryMethod !== 'call' &&
@@ -432,7 +435,6 @@ export function parseScheduleTime(naturalTime: string): Date | null {
   const now = new Date();
   const lower = naturalTime.toLowerCase();
 
-  // Handle relative times
   if (lower.includes('tomorrow')) {
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -454,7 +456,6 @@ export function parseScheduleTime(naturalTime: string): Date | null {
     return nextMonth;
   }
 
-  // Handle day names
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   for (let i = 0; i < days.length; i++) {
     if (lower.includes(days[i])) {
@@ -467,7 +468,6 @@ export function parseScheduleTime(naturalTime: string): Date | null {
     }
   }
 
-  // Try to parse as date
   const parsed = new Date(naturalTime);
   if (!isNaN(parsed.getTime())) {
     return parsed;
@@ -534,8 +534,8 @@ export function createCommunicationTools() {
         phoneNumber: z.string().describe('Phone number to call'),
         message: z.string().describe('Message to deliver in the call'),
       }),
-      execute: async ({ phoneNumber, message }) => {
-        return makePhoneCall(phoneNumber, message);
+      execute: async ({ phoneNumber, message }, opts) => {
+        return makePhoneCall(phoneNumber, message, callerUserId(opts), reminderOwner(opts.ctx));
       },
     }),
 

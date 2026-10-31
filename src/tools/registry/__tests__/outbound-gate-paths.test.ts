@@ -214,7 +214,7 @@ describe('the executor path refuses every outbound executor name', () => {
   // must be classified here or refused, or this test fails.
   const NOT_OUTBOUND = new Set(
     [
-      'schedulecallback checkvoicemail requestcallback call_voicemail call_history',
+      'schedulecallback checkvoicemail requestcallback call_voicemail call_history callstatus',
       'schedulemessage scheduletext schedulecall scheduleemail sendmessagenow sendtextnow',
       'listscheduled getscheduled cancelscheduled cancelreminder savecontact savecontactinfo',
       'addcontact reminder_set reminder_create productivity_commitments reminder_list',

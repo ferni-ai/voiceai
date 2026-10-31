@@ -598,7 +598,7 @@ export async function processTranscriptForBetterThanHuman(
 
       diag.state('🪞 Pattern insight available', {
         type: patternInsight.type,
-        insight: patternInsight.insight.slice(0, 50),
+        insightChars: patternInsight.insight.length,
       });
     }
 
@@ -1071,7 +1071,7 @@ export async function processCommitmentDetection(
 
       diag.state('📝 Commitment detected', {
         type: result.commitment.type,
-        summary: result.commitment.summary?.slice(0, 50),
+        summaryChars: result.commitment.summary?.length ?? 0,
         confidence: result.confidence,
       });
     }
@@ -1326,7 +1326,7 @@ export async function processRelationshipMention(
       await recordPersonMention(userId, personResult);
 
       diag.state('👥 Person mentioned', {
-        name: personResult.name,
+        hasName: Boolean(personResult.name),
         relationship: personResult.type,
       });
     }
