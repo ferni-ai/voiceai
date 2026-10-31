@@ -199,8 +199,7 @@ describe('recentContext with RECENT_CONTEXT_TIMEFRAME', () => {
       { sessionId: id, userId, onBehalf: false },
       undefined,
       { userProfile: { contactInfo: { timezone: NY } } },
-      undefined,
-      {}
+      undefined
     );
     process.env.RECENT_CONTEXT_TIMEFRAME = 'on';
     vi.useFakeTimers({ now: new Date('2026-10-29T01:00:00Z'), toFake: ['Date'] });

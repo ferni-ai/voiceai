@@ -76,7 +76,7 @@ All of these shipped behind off-by-default flags. Arming is a flag-lane decision
 
 Depends on the scheduler work in #1493 unless noted.
 
-- **Scheduled callbacks and heads-up texts (#1449)** — The callback tool honestly says nothing is booked, and `HEADS_UP_TEXT` and `CALL_FOLLOWTHROUGH` default off. The public site no longer promises callbacks. Build once a scheduler exists. `value: high · effort: L`
+- **Scheduled callbacks and heads-up texts (#1449)** — The callback tool honestly says nothing is booked, `CALL_FOLLOWTHROUGH` defaults off, and the unwired `HEADS_UP_TEXT` sender was removed on 2026-10-31. The public site no longer promises callbacks. Build once a scheduler exists. `value: high · effort: L`
 - **Rituals (#1514)** — Only a per-call wind-down exists today. Recurring rituals (a regular check-in at a regular time) need the scheduler. `value: medium · effort: M`
 - **Due-routine runner (#2778)** — The scheduler's callback registration has no callers and nothing runs routines that come due; user-facing copy was made honest in #2780 and production holds no workflow documents. Build as an idempotent async job behind a flag, off by default. `value: medium · effort: M`
 

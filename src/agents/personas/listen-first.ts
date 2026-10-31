@@ -42,9 +42,8 @@ export function lowEnergyCaller(callerTurns: readonly string[]): boolean {
 
 /**
  * The caller's time zone as settled for this call: the device's (the app sends
- * it) or, for a verified owner with PHONE_PARITY=on, their profile's
- * (phone-parity.ts). The profile is never read here: on a phone call the
- * account's zone may belong to someone other than the caller.
+ * it). The profile is never read here: on a phone call the account's zone may
+ * belong to someone other than the caller (phone-parity.ts).
  */
 export function callerTimeZoneOf(userData: unknown): string | undefined {
   const zone = (userData as { callerTimezone?: string } | undefined)?.callerTimezone;

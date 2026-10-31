@@ -239,11 +239,6 @@
       "count": 1
     }
   },
-  "src/services/context-awareness/context-inspection.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
   "src/services/context-inspection.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
@@ -282,11 +277,6 @@
   "src/services/outreach/engagement/personalization-engine.ts": {
     "ferni/no-env-flag-compare": {
       "count": 2
-    }
-  },
-  "src/services/outreach/pre-call-heads-up.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
     }
   },
   "src/services/outreach/proactive-channels/proactive-tick.ts": {
