@@ -86,6 +86,7 @@ describe('neural embeddings', () => {
     await talk(detector, VOICE_A_HZ);
     await talk(detector, VOICE_B_HZ);
     await talk(detector, VOICE_B_HZ);
+    await talk(detector, VOICE_B_HZ); // 3 windows confirm a change (SPEAKER_CHECK_STRICT)
 
     expect(changes).toHaveLength(1);
     expect(changes[0].confidence).toBeGreaterThan(detector.getChangeConfidenceThreshold());
@@ -107,6 +108,7 @@ it('stops naming the previous speaker when the method changes mid-call', async (
   await talk(detector, VOICE_A_HZ); // labelled user-1 (from start)
   mode.method = 'neural'; // e.g. the worker died, or the model loaded late
   await talk(detector, VOICE_A_HZ); // new reference; who it is is no longer known
+  await talk(detector, VOICE_B_HZ);
   await talk(detector, VOICE_B_HZ);
   await talk(detector, VOICE_B_HZ);
 

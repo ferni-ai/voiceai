@@ -18,6 +18,11 @@ import { EventEmitter } from 'events';
 import { extractSpeakerEmbedding, type SpeakerEmbedding } from '../voice-memory-enhanced.js';
 import { updateSessionSpeaker } from './voice-household.js';
 import { VoicedAudioAccumulator } from './speaker-voiced-audio.js';
+import {
+  averageEmbeddings,
+  ChangeEvidence,
+  speakerCheckStrict,
+} from './speaker-change-evidence.js';
 // Centralized cosine similarity - uses optimized implementation from rust-accelerator
 import { cosineSimilarity } from '../../memory/rust-accelerator.js';
 import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
@@ -60,6 +65,8 @@ export interface SpeakerChangeConfig {
   minVoicedMs: number;
   // Enable household identification
   enableHouseholdIdentification: boolean;
+  // SPEAKER_CHECK_STRICT (default: the flag): speaker-change-evidence.ts
+  strict: boolean;
 }
 
 interface SpeakerState {
@@ -71,7 +78,6 @@ interface SpeakerState {
     embedding: number[];
     timestamp: Date;
   }>;
-  consecutiveDifferentCount: number;
   lastCheckTime: Date;
 }
 
@@ -79,7 +85,7 @@ interface SpeakerState {
 // DEFAULT CONFIG
 // ============================================================================
 
-const DEFAULT_CONFIG: SpeakerChangeConfig = {
+const DEFAULT_CONFIG: Omit<SpeakerChangeConfig, 'strict'> = {
   sameSpeakerThreshold: 0.75,
   // ECAPA-TDNN on 2 s windows (6 TTS voices, 2026-10-04): same speaker p5 0.535,
   // different speakers p95 0.306; equal-error point 0.45 (0.3% / 0.1%).
@@ -111,6 +117,7 @@ export class SpeakerChangeDetector extends EventEmitter {
   private isMonitoring = false;
   private isComparing = false;
   private voiced: VoicedAudioAccumulator;
+  private evidence: ChangeEvidence;
 
   private getIntervalName(): string {
     return `speaker-change-detector-${this.deviceId}`;
@@ -120,14 +127,14 @@ export class SpeakerChangeDetector extends EventEmitter {
     super();
 
     this.deviceId = deviceId;
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.config = { ...DEFAULT_CONFIG, strict: speakerCheckStrict(), ...config };
     this.voiced = new VoicedAudioAccumulator(this.config);
+    this.evidence = new ChangeEvidence(this.config.strict, this.config.changeDebounceCount);
     this.state = {
       currentSpeakerId: null,
       currentEmbedding: null,
       currentMethod: null,
       recentEmbeddings: [],
-      consecutiveDifferentCount: 0,
       lastCheckTime: new Date(),
     };
   }
@@ -256,7 +263,7 @@ export class SpeakerChangeDetector extends EventEmitter {
       this.state.currentMethod = method;
       this.state.currentEmbedding = null;
       this.state.recentEmbeddings = [];
-      this.state.consecutiveDifferentCount = 0;
+      this.evidence.reset();
     }
 
     // Add to recent embeddings
@@ -285,13 +292,13 @@ export class SpeakerChangeDetector extends EventEmitter {
 
     if (similarity >= threshold) {
       // Same speaker - reset debounce counter
-      this.state.consecutiveDifferentCount = 0;
+      this.evidence.reset();
 
       // Track the voice by averaging, but only on a clear match: averaging in
       // a borderline one walks the reference over to a new speaker's voice
       if (method === 'dsp' || similarity >= this.config.neuralReferenceUpdateThreshold) {
         const reference = this.state.currentEmbedding;
-        this.state.currentEmbedding = this.averageEmbeddings([reference, newEmbedding]);
+        this.state.currentEmbedding = averageEmbeddings([reference, newEmbedding]);
       }
 
       // Emit confirmation event occasionally
@@ -299,23 +306,16 @@ export class SpeakerChangeDetector extends EventEmitter {
         this.emitEvent('speaker_confirmed', similarity);
       }
     } else {
-      // Different speaker detected
-      this.state.consecutiveDifferentCount++;
+      // Different speaker detected; the change is confirmed only after enough
+      // windows (speaker-change-evidence.ts), which then give the new reference
+      const reference = this.evidence.addDifferent(newEmbedding, threshold);
 
       log.debug(
-        {
-          similarity,
-          consecutiveCount: this.state.consecutiveDifferentCount,
-          threshold,
-          method,
-        },
+        { similarity, consecutiveCount: this.evidence.count, threshold, method },
         'Different speaker detected'
       );
 
-      // Check if we should trigger a change
-      if (this.state.consecutiveDifferentCount >= this.config.changeDebounceCount) {
-        await this.handleSpeakerChange(newEmbedding, similarity);
-      }
+      if (reference) await this.handleSpeakerChange(reference, similarity);
     }
 
     this.state.lastCheckTime = now;
@@ -338,16 +338,15 @@ export class SpeakerChangeDetector extends EventEmitter {
   /**
    * Handle confirmed speaker change.
    */
-  private async handleSpeakerChange(newEmbedding: number[], confidence: number): Promise<void> {
+  private async handleSpeakerChange(reference: number[], confidence: number): Promise<void> {
     const previousSpeakerId = this.state.currentSpeakerId;
 
     const newSpeakerId: string | null = null;
     const isNewSpeaker = true;
 
     // Update state
-    this.state.currentEmbedding = newEmbedding;
+    this.state.currentEmbedding = reference;
     this.state.currentSpeakerId = newSpeakerId;
-    this.state.consecutiveDifferentCount = 0;
 
     // Update household session
     await updateSessionSpeaker(this.deviceId, newSpeakerId, confidence);
@@ -389,26 +388,6 @@ export class SpeakerChangeDetector extends EventEmitter {
     this.emit(type, event);
   }
 
-  /** Average multiple embeddings. */
-  private averageEmbeddings(embeddings: number[][]): number[] {
-    if (embeddings.length === 0) return [];
-    if (embeddings.length === 1) return embeddings[0];
-
-    const result = new Array(embeddings[0].length).fill(0);
-
-    for (const emb of embeddings) {
-      for (let i = 0; i < emb.length; i++) {
-        result[i] += emb[i];
-      }
-    }
-
-    for (let i = 0; i < result.length; i++) {
-      result[i] /= embeddings.length;
-    }
-
-    return result;
-  }
-
   /**
    * Get current state.
    */
@@ -437,9 +416,20 @@ export class SpeakerChangeDetector extends EventEmitter {
     if (embedding) {
       this.state.currentEmbedding = embedding;
     }
-    this.state.consecutiveDifferentCount = 0;
+    this.evidence.reset();
 
     log.info({ deviceId: this.deviceId, speakerId }, 'Current speaker manually set');
+  }
+
+  /**
+   * "Yes, it's me" (SPEAKER_CHECK_STRICT): the caller's recent windows become
+   * the reference, or, with none yet, the next one does. Off: only clears the count.
+   */
+  reanchorToRecentVoice(): void {
+    this.evidence.reset();
+    if (!this.config.strict) return;
+    const recent = this.state.recentEmbeddings.map((r) => r.embedding);
+    this.state.currentEmbedding = recent.length > 0 ? averageEmbeddings(recent) : null;
   }
 }
 

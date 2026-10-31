@@ -5,7 +5,7 @@
  * Verifies integration with persona bundle content.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ============================================================================
 // MOCK SETUP
@@ -169,6 +169,25 @@ function createMockInput(overrides: Partial<ContextBuilderInput> = {}): ContextB
   };
 }
 
+/**
+ * Pin every Math.random() roll to `value`. Call it AFTER createMockInput: the mock session id
+ * uses Math.random(), and a pinned value would give every test the same session state.
+ */
+function rollAlways(value: number) {
+  return vi.spyOn(Math, 'random').mockReturnValue(value);
+}
+
+/** A seeded PRNG (mulberry32): varied rolls, but the same sequence on every run. */
+function seededRolls(seed: number) {
+  let a = seed;
+  return vi.spyOn(Math, 'random').mockImplementation(() => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  });
+}
+
 // ============================================================================
 // TESTS
 // ============================================================================
@@ -178,6 +197,10 @@ describe('Lovable Presence Context Builder', () => {
     vi.clearAllMocks();
     clearLovableContentCache();
     clearLovableSessionStates();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('Bundle Integration', () => {
@@ -280,35 +303,33 @@ describe('Lovable Presence Context Builder', () => {
       const input = createMockInput({
         userData: { turnCount: 0 },
       });
+      rollAlways(0.1); // the opening roll succeeds
 
-      let foundOpeningEnergy = false;
-      for (let i = 0; i < 20; i++) {
-        clearLovableSessionStates(); // Reset state each time
-        const injections = await buildLovablePresenceContext(input);
-        if (injections.some((i) => i.content.includes('[OPENING ENERGY]'))) {
-          foundOpeningEnergy = true;
-          break;
-        }
-      }
+      const injections = await buildLovablePresenceContext(input);
 
-      expect(foundOpeningEnergy).toBe(true);
+      expect(injections.some((i) => i.content.includes('[OPENING ENERGY]'))).toBe(true);
+    });
+
+    it('opens caught-mid-thought only when its roll succeeds', async () => {
+      const input = createMockInput({
+        userData: { turnCount: 0 },
+      });
+      rollAlways(0.95); // the opening roll fails
+
+      const injections = await buildLovablePresenceContext(input);
+
+      expect(injections.some((i) => i.content.includes('[OPENING ENERGY]'))).toBe(false);
     });
 
     it('should use bundle content for opening energy guidance', async () => {
       const input = createMockInput({
         userData: { turnCount: 0 },
       });
+      rollAlways(0.1);
 
-      let openingContent = '';
-      for (let i = 0; i < 30; i++) {
-        clearLovableSessionStates();
-        const injections = await buildLovablePresenceContext(input);
-        const opening = injections.find((i) => i.content.includes('[OPENING ENERGY]'));
-        if (opening) {
-          openingContent = opening.content;
-          break;
-        }
-      }
+      const injections = await buildLovablePresenceContext(input);
+      const openingContent =
+        injections.find((i) => i.content.includes('[OPENING ENERGY]'))?.content ?? '';
 
       // Should contain content from bundle
       expect(
@@ -348,23 +369,17 @@ describe('Lovable Presence Context Builder', () => {
         userData: { turnCount: 8 },
       });
 
-      let foundReaction = false;
-      for (let i = 0; i < 10; i++) {
-        clearLovableSessionStates();
-        const injections = await buildLovablePresenceContext(input);
-        const reactions = injections.filter(
-          (i) =>
-            i.content.includes('React') ||
-            i.content.toLowerCase().includes('genuine') ||
-            i.content.includes('amazing')
-        );
-        if (reactions.length > 0) {
-          foundReaction = true;
-          break;
-        }
-      }
+      rollAlways(0.95); // no random moments: the reaction must come from the text alone
 
-      expect(foundReaction).toBe(true);
+      const injections = await buildLovablePresenceContext(input);
+      const reactions = injections.filter(
+        (i) =>
+          i.content.includes('React') ||
+          i.content.toLowerCase().includes('genuine') ||
+          i.content.includes('amazing')
+      );
+
+      expect(reactions.length).toBeGreaterThan(0);
     });
 
     it('should react to vulnerable shares', async () => {
@@ -404,27 +419,19 @@ describe('Lovable Presence Context Builder', () => {
         voiceEmotion: { speechRate: 0.5 }, // Slowed down
       });
 
-      let foundNoticing = false;
-      // Increase iterations for more reliable probabilistic test
-      for (let i = 0; i < 50; i++) {
-        clearLovableSessionStates();
-        const injections = await buildLovablePresenceContext(input);
-        if (
-          injections.some(
-            (inj) =>
-              inj.content.toLowerCase().includes('voice') ||
-              inj.content.toLowerCase().includes('quieter') ||
-              inj.content.toLowerCase().includes('shifted') ||
-              inj.content.toLowerCase().includes('notice') ||
-              inj.content.toLowerCase().includes('slower') ||
-              inj.content.toLowerCase().includes('pace') ||
-              inj.content.toLowerCase().includes('tone')
-          )
-        ) {
-          foundNoticing = true;
-          break;
-        }
-      }
+      rollAlways(0.1); // the noticing roll succeeds
+
+      const injections = await buildLovablePresenceContext(input);
+      const foundNoticing = injections.some(
+        (inj) =>
+          inj.content.toLowerCase().includes('voice') ||
+          inj.content.toLowerCase().includes('quieter') ||
+          inj.content.toLowerCase().includes('shifted') ||
+          inj.content.toLowerCase().includes('notice') ||
+          inj.content.toLowerCase().includes('slower') ||
+          inj.content.toLowerCase().includes('pace') ||
+          inj.content.toLowerCase().includes('tone')
+      );
 
       expect(foundNoticing).toBe(true);
     });
@@ -436,14 +443,13 @@ describe('Lovable Presence Context Builder', () => {
         userData: { turnCount: 3 },
       });
 
-      for (let i = 0; i < 10; i++) {
-        clearLovableSessionStates();
-        const injections = await buildLovablePresenceContext(input);
-        const playful = injections.filter(
-          (i) => i.content.includes('playful') || i.content.includes('teasing')
-        );
-        expect(playful).toHaveLength(0);
-      }
+      rollAlways(0); // every roll succeeds, so only the rapport rule can keep teasing out
+
+      const injections = await buildLovablePresenceContext(input);
+      const playful = injections.filter(
+        (i) => i.content.includes('playful') || i.content.includes('teasing')
+      );
+      expect(playful).toHaveLength(0);
     });
 
     it('should allow playful moments after rapport is established', async () => {
@@ -496,23 +502,22 @@ describe('Lovable Presence Context Builder', () => {
 
   describe('Session Caps', () => {
     it('should cap surprises per session to avoid being manic', async () => {
-      const sessionId = 'cap-test-session';
-      const input = createMockInput({
-        userData: { turnCount: 50 },
-        services: {
-          sessionId,
-          sessionStartTime: Date.now(),
-          userProfile: null,
-        },
-      });
+      const sessionId = `cap-test-session-${Math.random()}`;
+      rollAlways(0); // every roll succeeds: without the cap, every turn would add a moment
 
       let totalInjections = 0;
       for (let i = 0; i < 20; i++) {
+        // Turns 10 apart, so no moment is ever on cooldown and only the cap can stop them.
+        const input = createMockInput({
+          userData: { turnCount: 50 + i * 10 },
+          services: { sessionId, sessionStartTime: Date.now(), userProfile: null },
+        });
         const injections = await buildLovablePresenceContext(input);
         totalInjections += injections.filter((i) => i.content.includes('[LOVABLE MOMENT]')).length;
       }
 
-      expect(totalInjections).toBeLessThan(30);
+      // The cap stops new moments once more than 12 have happened this session.
+      expect(totalInjections).toBe(13);
     });
   });
 
@@ -521,6 +526,8 @@ describe('Lovable Presence Context Builder', () => {
       const input = createMockInput({
         userData: { turnCount: 12 },
       });
+
+      seededRolls(3194); // varied rolls, same sequence every run
 
       const allContent: string[] = [];
 
