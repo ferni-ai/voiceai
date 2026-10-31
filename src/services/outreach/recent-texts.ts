@@ -8,10 +8,23 @@
  * them. This reads them the way the sender's own gap check does: by the
  * stored userId (recordUserId), filtered in memory, so no composite index.
  *
+ * A text about a topic the caller asked Ferni to forget never reaches a call
+ * ("forget the biopsy", then the next call asks whether they saw the biopsy
+ * text). The check is the one recentContext uses (forgottenWithin: the shared
+ * read within 300 ms, read beside the texts), and it fails closed: when the
+ * topics can't be read in time, no text is told.
+ *
  * @module services/outreach/recent-texts
  */
+import {
+  forgottenWithin,
+  type ForgottenCheck,
+} from '../../memory/recall/forget-every-reader.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { CHECKINS, checkinDb, type StoredCheckin, type TextKind } from './checkin-replies.js';
 import { firestoreTextStore, recordUserId, redactNumbers, type TextStore } from './guarded-text.js';
+
+const log = createLogger({ module: 'recent-texts' });
 
 /** At most this many texts reach a call. */
 export const MAX_RECENT_TEXTS = 3;
@@ -31,6 +44,8 @@ export interface RecentText {
 export interface RecentTextsStore extends Pick<TextStore, 'forUser'> {
   /** True when the text has at least one reply on record. */
   hasReply: (checkinId: string) => Promise<boolean>;
+  /** The caller's forgotten topics as a check, or null when they can't be read in time. */
+  forgottenFor: (userId: string) => Promise<ForgottenCheck | null>;
 }
 
 /**
@@ -58,12 +73,27 @@ export const firestoreRecentTextsStore: RecentTextsStore = {
     const replies = checkinDb().collection(CHECKINS).doc(checkinId).collection('replies');
     return !(await replies.limit(1).get()).empty;
   },
+  forgottenFor: async (userId) => forgottenWithin(userId, 'recent-texts'),
 };
+
+/** The check, or null (fail closed) when it can't be had; never throws. */
+async function forgottenOrNull(
+  userId: string,
+  store: RecentTextsStore
+): Promise<ForgottenCheck | null> {
+  try {
+    return await store.forgottenFor(userId);
+  } catch (error: unknown) {
+    log.warn({ error: String(error) }, 'Forgotten topics not read; no text is told');
+    return null;
+  }
+}
 
 /**
  * Texts sent to this member at or after `sinceMs` (epoch ms), newest first,
  * at most MAX_RECENT_TEXTS, each with whether it has a reply. Never a text
- * sent for them to someone else ('on-behalf'), and never a failed send.
+ * sent for them to someone else ('on-behalf'), never a failed send, never one
+ * about a forgotten topic, and none when the forgotten topics can't be read.
  */
 export async function recentTextsFor(
   userId: string,
@@ -73,9 +103,16 @@ export async function recentTextsFor(
 ): Promise<RecentText[]> {
   const storedId = recordUserId(userId, env);
   if (!storedId) return [];
-  const sent = (await store.forUser(storedId))
+  // Beside the texts' read, so both fit the caller's one bound.
+  const forgottenRead = forgottenOrNull(userId, store);
+  const candidates = (await store.forUser(storedId))
     .map((r): [StoredCheckin, number] => [r, Date.parse(r.sentAt)])
-    .filter(([r, t]) => r.status === 'sent' && r.kind !== 'on-behalf' && t >= sinceMs)
+    .filter(([r, t]) => r.status === 'sent' && r.kind !== 'on-behalf' && t >= sinceMs);
+  if (candidates.length === 0) return [];
+  const forgotten = await forgottenRead;
+  if (!forgotten) return []; // fail closed
+  const sent = candidates
+    .filter(([r]) => !forgotten(r.question))
     .sort((a, b) => b[1] - a[1])
     .slice(0, MAX_RECENT_TEXTS)
     .map(([r]) => r);

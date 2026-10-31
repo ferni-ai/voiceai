@@ -19,6 +19,9 @@ vi.mock('../../../services/superhuman/wins.js', () => ({
 
 const { recentTextsBlock, sentWhen, takeRecentTextFacts } =
   await import('../recent-texts-awareness.js');
+const { aboutForgotten } = await import('../../../memory/recall/forget-every-reader.js');
+const { setOutboundCallContext } =
+  await import('../../../intelligence/context-builders/external/outbound-call-context.js');
 const { textSnippet } = await import('../../../services/outreach/recent-texts.js');
 const { directedGreeting } = await import('../greeting-direction.js');
 const { rememberCallerRecognition, rememberDispatchIdentity } =
@@ -47,10 +50,16 @@ function record(over: Partial<StoredCheckin> = {}): StoredCheckin {
   };
 }
 
-function store(records: StoredCheckin[], replied: string[] = []): RecentTextsStore {
+/** Nothing forgotten unless `topics` names something. */
+function store(
+  records: StoredCheckin[],
+  replied: string[] = [],
+  topics: string[] = []
+): RecentTextsStore {
   return {
     forUser: vi.fn(async () => records),
     hasReply: vi.fn(async (id: string) => replied.includes(id)),
+    forgottenFor: vi.fn(async () => (t: string) => aboutForgotten(t, topics)),
   };
 }
 
@@ -117,6 +126,7 @@ describe('recent texts at call start', () => {
           })
       ),
       hasReply: vi.fn(async () => false),
+      forgottenFor: vi.fn(async () => () => false),
     };
     const started = Date.now();
     expect(await webBlock('rt-6', deps(slow))).toBe('');
@@ -130,6 +140,7 @@ describe('recent texts at call start', () => {
         throw new Error('firestore down');
       }),
       hasReply: vi.fn(async () => false),
+      forgottenFor: vi.fn(async () => () => false),
     };
     expect(await webBlock('rt-7', deps(failing))).toBe('');
   });
@@ -172,6 +183,97 @@ describe('only a proven owner on the line hears about their texts', () => {
     rememberCallerRecognition('ph-known', { status: 'known', attestation: 'A', userId: 'u1' });
     expect(await phoneBlock('ph-known', store([record()]))).toContain('a reminder');
     expect(await webBlock('web-auth', deps(store([record()])))).toContain('a reminder');
+  });
+});
+
+describe('a text about a topic the caller asked Ferni to forget', () => {
+  const BIOPSY = 'Call Dr. Lee about the biopsy results';
+  const both = (): StoredCheckin[] => [
+    record({ id: 'bx', question: BIOPSY, sentAt: ago(1) }),
+    record({ id: 'r1', sentAt: ago(2) }),
+  ];
+
+  it('reaches neither the call-start block nor the greeting; the other text still does', async () => {
+    const block = await webBlock('fg-1', deps(store(both(), [], ['biopsy'])));
+    expect(block).toContain('Hey Sam, just a nudge');
+    expect(block).not.toMatch(/biopsy|Dr\. Lee/i);
+    await directedGreeting('fg-1', 'ferni', { userId: 'voice-eval-fg1', userName: 'Sam' });
+    const facts = Object.values(lastFacts()).join('\n');
+    expect(facts).toContain('Hey Sam, just a nudge');
+    expect(facts).not.toMatch(/biopsy|Dr\. Lee/i);
+  });
+
+  it('fails closed: a forget check that throws drops every text', async () => {
+    const s = {
+      ...store(both()),
+      forgottenFor: vi.fn(async () => {
+        throw new Error('firestore down');
+      }),
+    };
+    expect(await webBlock('fg-2', deps(s))).toBe('');
+    expect(takeRecentTextFacts('fg-2')).toEqual({});
+  });
+
+  it('fails closed: a forget check that is late drops every text, within the bound', async () => {
+    const s = {
+      ...store(both()),
+      forgottenFor: vi.fn(
+        async () =>
+          new Promise<(t: string) => boolean>((resolve) => {
+            setTimeout(() => resolve(() => false), 5000);
+          })
+      ),
+    };
+    const started = Date.now();
+    expect(await webBlock('fg-3', deps(s))).toBe('');
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(takeRecentTextFacts('fg-3')).toEqual({});
+  });
+
+  it('fails closed: unreadable topics (null) drop every text', async () => {
+    const s = { ...store(both()), forgottenFor: vi.fn(async () => null) };
+    expect(await webBlock('fg-4', deps(s))).toBe('');
+  });
+});
+
+describe('the guards before any read', () => {
+  it('a non-member id (anon:, onbehalf:) on a signed-in session: nothing read', async () => {
+    for (const id of ['anon:7f3c-fixture', 'onbehalf:fixture']) {
+      const s = store([record()]);
+      rememberDispatchIdentity(`nm-${id}`, 'web_auth', '{}');
+      expect(await recentTextsBlock(`nm-${id}`, id, 'UTC', false, deps(s))).toBe('');
+      expect(s.forUser).not.toHaveBeenCalled();
+    }
+  });
+
+  it("a call Ferni placed to someone else on the member's behalf: nothing read", async () => {
+    const s = store([record()]);
+    setOutboundCallContext('ob-1', {
+      callId: 'c1',
+      recipientName: 'Doug',
+      recipientPhone: '+15550000000',
+      purpose: 'check in',
+      callType: 'personal',
+      objective: '',
+      script: '',
+      complianceScript: '',
+      mustConfirm: [],
+      mustNotDo: [],
+      informationToGather: [],
+      userName: 'Sam',
+      originalSessionId: 's0',
+      kind: 'on_behalf',
+    });
+    expect(await webBlock('ob-1', deps(s))).toBe('');
+    expect(s.forUser).not.toHaveBeenCalled();
+    expect(takeRecentTextFacts('ob-1')).toEqual({});
+  });
+
+  it('the greeting leaves the text out for a caller it does not recognise', async () => {
+    expect(await webBlock('gu-1', deps(store([record()])))).toContain('a reminder');
+    rememberCallerRecognition('gu-1', { status: 'stranger', attestation: 'none' });
+    await directedGreeting('gu-1', 'ferni', { userId: 'voice-eval-gu1', userName: 'Sam' });
+    expect(Object.values(lastFacts()).join('\n')).not.toContain('a reminder');
   });
 });
 

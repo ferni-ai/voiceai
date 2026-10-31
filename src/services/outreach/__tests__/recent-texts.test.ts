@@ -1,6 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
-import { phoneHash, type StoredCheckin } from '../checkin-replies.js';
-import { recentTextsFor, type RecentTextsStore } from '../recent-texts.js';
+
+const forgottenWithin = vi.fn(async (_userId: string, _reader?: string) => null);
+vi.mock('../../../memory/recall/forget-every-reader.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../memory/recall/forget-every-reader.js')>()),
+  forgottenWithin,
+}));
+
+const { aboutForgotten } = await import('../../../memory/recall/forget-every-reader.js');
+const { phoneHash } = await import('../checkin-replies.js');
+const { firestoreRecentTextsStore, recentTextsFor } = await import('../recent-texts.js');
+type StoredCheckin = import('../checkin-replies.js').StoredCheckin;
+type RecentTextsStore = import('../recent-texts.js').RecentTextsStore;
 
 const NOW = Date.parse('2026-10-19T16:00:00Z');
 const HOUR = 3_600_000;
@@ -23,10 +33,16 @@ function text(id: string, over: Partial<StoredCheckin> = {}): StoredCheckin {
   };
 }
 
-function store(records: StoredCheckin[], replied: string[] = []): RecentTextsStore {
+/** Nothing forgotten unless `topics` names something. */
+function store(
+  records: StoredCheckin[],
+  replied: string[] = [],
+  topics: string[] = []
+): RecentTextsStore {
   return {
     forUser: vi.fn(async (u: string) => records.filter((r) => r.userId === u)),
     hasReply: vi.fn(async (id: string) => replied.includes(id)),
+    forgottenFor: vi.fn(async () => (t: string) => aboutForgotten(t, topics)),
   };
 }
 
@@ -71,5 +87,43 @@ describe('recentTextsFor', () => {
     const s = store([text('a', { userId: id })]);
     expect(await recentTextsFor('phone:+15551234567', SINCE, s, ENV)).toHaveLength(1);
     expect(s.forUser).toHaveBeenCalledWith(id);
+  });
+});
+
+describe('recentTextsFor leaves out what the caller asked Ferni to forget', () => {
+  const biopsy = (id: string, over: Partial<StoredCheckin> = {}): StoredCheckin =>
+    text(id, { question: 'Call Dr. Lee about the biopsy results', ...over });
+
+  it('a text about a forgotten topic is left out, and does not take a slot', async () => {
+    const s = store(
+      [
+        biopsy('x', { sentAt: ago(1) }),
+        text('a', { sentAt: ago(2) }),
+        text('b', { sentAt: ago(3) }),
+        text('c', { sentAt: ago(4) }),
+      ],
+      [],
+      ['biopsy']
+    );
+    const got = await recentTextsFor('u1', SINCE, s, ENV);
+    expect(got.map((t) => t.body)).toEqual(['body a', 'body b', 'body c']);
+    expect(s.forgottenFor).toHaveBeenCalledWith('u1');
+  });
+
+  it('fails closed: no text when the topics are unreadable (null) or the check throws', async () => {
+    const unreadable = { ...store([text('a')]), forgottenFor: vi.fn(async () => null) };
+    expect(await recentTextsFor('u1', SINCE, unreadable, ENV)).toEqual([]);
+    const throwing = {
+      ...store([text('a')]),
+      forgottenFor: vi.fn(async () => {
+        throw new Error('firestore down');
+      }),
+    };
+    expect(await recentTextsFor('u1', SINCE, throwing, ENV)).toEqual([]);
+  });
+
+  it("the production store asks recentContext's bounded, fail-closed check", async () => {
+    expect(await firestoreRecentTextsStore.forgottenFor('u1')).toBeNull();
+    expect(forgottenWithin).toHaveBeenCalledWith('u1', 'recent-texts');
   });
 });
