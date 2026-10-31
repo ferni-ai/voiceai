@@ -144,11 +144,6 @@
       "count": 2
     }
   },
-  "src/api/seeds-import.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
   "src/api/twilio-routes.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
