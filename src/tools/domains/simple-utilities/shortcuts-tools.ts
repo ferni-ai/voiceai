@@ -15,6 +15,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { refusedPlaceholder } from '../../../utils/placeholder-refusal.js';
 import { handOff } from './shortcut-handoff.js';
 
 const log = getLogger();
@@ -30,7 +31,6 @@ interface CapabilityUsage {
   successRate: number;
 }
 
-// In-memory analytics (could be backed by Firestore for persistence)
 const usageAnalytics = new Map<string, Map<string, CapabilityUsage>>();
 
 export function trackCapabilityUsage(userId: string, toolId: string, success = true): void {
@@ -81,7 +81,7 @@ async function persistAnalytics(userId: string): Promise<void> {
     const db = await store.getDatabase();
 
     const userUsage = usageAnalytics.get(userId);
-    if (!userUsage) return;
+    if (!userUsage || refusedPlaceholder(userId, 'capability-analytics')) return; // #2651
 
     const data = Object.fromEntries(userUsage);
     await db
