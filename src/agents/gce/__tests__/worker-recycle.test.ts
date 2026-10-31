@@ -34,6 +34,7 @@ import * as conn from '../livekit-connection.js';
 import {
   createWorkerRecycle,
   DEFAULT_RECYCLE_RSS_MB,
+  recycleMaxCalls,
   recycleRssMb,
   startWorkerRecycle,
   type WorkerRecycleDeps,
@@ -70,7 +71,37 @@ describe('recycleRssMb', () => {
   });
 });
 
+describe('recycleMaxCalls', () => {
+  it('is off (0) unless WORKER_RECYCLE_MAX_CALLS is a positive whole number', () => {
+    expect(recycleMaxCalls({})).toBe(0);
+    expect(recycleMaxCalls({ WORKER_RECYCLE_MAX_CALLS: '50' })).toBe(50);
+    expect(recycleMaxCalls({ WORKER_RECYCLE_MAX_CALLS: '-3' })).toBe(0);
+    expect(recycleMaxCalls({ WORKER_RECYCLE_MAX_CALLS: '2.5' })).toBe(0);
+  });
+});
+
 describe('createWorkerRecycle', () => {
+  it('with maxCalls, recycles a small worker after that many calls, between calls only', () => {
+    const w = world({ maxCalls: 5 });
+    w.state.rssMb = 400;
+    w.state.jobsRun = 4;
+    expect(w.recycle.check()).toBeNull();
+    w.state.jobsRun = 5;
+    w.state.active = 1; // the fifth call is still running
+    expect(w.recycle.check()).toBe('drain');
+    expect(w.recycle.check()).toBeNull();
+    expect(w.exit).not.toHaveBeenCalled();
+    w.state.active = 0;
+    expect(w.recycle.check()).toBe('exit');
+  });
+
+  it('without maxCalls, call count alone never recycles', () => {
+    const w = world();
+    w.state.rssMb = 400;
+    w.state.jobsRun = 10_000;
+    expect(w.recycle.check()).toBeNull();
+  });
+
   it('does nothing under the threshold', () => {
     const w = world();
     w.state.rssMb = 900;

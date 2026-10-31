@@ -12,6 +12,7 @@
  * and rejects availability, while keeping its LiveKit connection) and exits once
  * no call is running or waiting for its assignment. A worker that has not run a
  * call yet is never recycled, so a threshold below the boot size can't loop.
+ * WORKER_RECYCLE_MAX_CALLS (off by default) also recycles after that many calls.
  * With AGENT_JOB_EXECUTOR=process the calls run (and grow) in child processes
  * and this process counts none, so it never recycles there.
  *
@@ -32,6 +33,12 @@ export function recycleRssMb(env: Env = process.env): number {
   return Number.isFinite(mb) && mb > 0 ? mb : DEFAULT_RECYCLE_RSS_MB;
 }
 
+/** WORKER_RECYCLE_MAX_CALLS: also recycle after this many calls; 0 (the default) never. */
+export function recycleMaxCalls(env: Env = process.env): number {
+  const n = Number(env.WORKER_RECYCLE_MAX_CALLS);
+  return Number.isInteger(n) && n > 0 ? n : 0;
+}
+
 export interface WorkerRecycleDeps {
   rssBytes: () => number;
   /** Calls running now. */
@@ -46,6 +53,8 @@ export interface WorkerRecycleDeps {
   exit: () => void;
   log: (msg: string, data: Record<string, unknown>) => void;
   thresholdMb: number;
+  /** Recycle after this many calls too; 0 never. */
+  maxCalls?: number;
 }
 
 export type RecycleAction = 'drain' | 'exit';
@@ -66,7 +75,9 @@ export function createWorkerRecycle(deps: WorkerRecycleDeps): {
       const rssMb = Math.round(deps.rssBytes() / 1024 / 1024);
       const activeJobs = deps.activeJobs() + deps.pendingJobs();
       if (!draining) {
-        if (rssMb < deps.thresholdMb || deps.jobsRun() === 0) return null;
+        const jobsRun = deps.jobsRun();
+        const tooManyCalls = !!deps.maxCalls && jobsRun >= deps.maxCalls;
+        if ((rssMb < deps.thresholdMb && !tooManyCalls) || jobsRun === 0) return null;
         draining = true;
         deps.drain();
         deps.log('WORKER_RECYCLE', {
@@ -98,7 +109,11 @@ export function startWorkerRecycle(
   intervalMs = CHECK_INTERVAL_MS
 ): (() => void) | null {
   if (!flagOn('WORKER_RECYCLE', env)) return null;
-  const recycle = createWorkerRecycle({ ...deps, thresholdMb: recycleRssMb(env) });
+  const recycle = createWorkerRecycle({
+    ...deps,
+    thresholdMb: recycleRssMb(env),
+    maxCalls: recycleMaxCalls(env),
+  });
   const timer = setInterval(() => recycle.check(), intervalMs);
   timer.unref();
   return () => clearInterval(timer);
