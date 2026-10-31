@@ -236,7 +236,7 @@ export const KNOWN_USER_STORES: readonly string[] = [
  * Session references (sessionId, sessionIds, firstSessionId, ...) need no entry: the
  * secret filter no longer drops them anywhere (#2366).
  */
-const KEPT_FIELDS: Readonly<Record<string, readonly string[]>> = {
+export const KEPT_FIELDS: Readonly<Record<string, readonly string[]>> = {
   'bogle_users/{uid}/dynamic_facts': ['key'],
 };
 
@@ -252,7 +252,7 @@ const KEPT_FIELDS: Readonly<Record<string, readonly string[]>> = {
  * - attributes, in dynamic_entities: whatever the model heard about the person or thing
  *   ({role: 'manager', pin: 'the blue one'}), written by deep-extraction-worker.ts.
  */
-const DATA_MAPS: Readonly<Record<string, readonly string[]>> = {
+export const DATA_MAPS: Readonly<Record<string, readonly string[]>> = {
   'bogle_users/{uid}/dynamic_entities': ['attributes'],
 };
 

@@ -23,12 +23,22 @@ const { buildCrisisGuidance, detectCrisis } = await import('../../safety/crisis-
 const { resetCrisisClassifierCache } =
   await import('../../../services/safety/crisis-classifier.js');
 
-function request(said: string): llm.ChatContext {
+function request(said: string, report = false): llm.ChatContext {
   const c = llm.ChatContext.empty();
   c.addMessage({ role: 'assistant', content: 'Hey, good to hear you.' });
+  if (report) c.addMessage({ role: 'system', content: [REPORT] });
   c.addMessage({ role: 'user', content: said });
   return c;
 }
+
+/** A call report as call-report.ts writes it (CALL_REPORT_REACHES_YOU, #3080). */
+const REPORT = [
+  '## While they were away (tell them on this call)',
+  'ZEBRA-SECRET from the call',
+  'Bring it up early, in your own words; ask before acting on anything in it.',
+].join('\n');
+const text = (ctx: llm.ChatContext): string =>
+  ctx.items.map((i) => (i as { textContent?: string }).textContent ?? '').join('\n');
 
 const PATTERNS_ONLY = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'off' };
 const said = (stream: unknown) => async (): Promise<string> => {
@@ -81,6 +91,39 @@ describe('withTurnReminder never throws', () => {
     for await (const chunk of out as unknown as AsyncIterable<unknown>) said += String(chunk);
     expect(said).toContain('I hear you.');
   });
+  it('a crisis request loses the call report even when a builder throws (#3080)', () => {
+    const guided = withTurnReminder(request('long day, honestly', true), {}, { shape: false });
+    expect(text(guided)).not.toContain('ZEBRA-SECRET');
+    expect(text(guided)).not.toContain('While they were away');
+    const sent = request('long day, honestly', true);
+    expect(withTurnReminder(sent, {})).toBe(sent); // not crisis: the request as sent
+  });
+
+  it('gatedReply: a guided crisis turn never carries the call report when a builder throws', async () => {
+    resetCrisisClassifierCache();
+    const SAID = "I hope I don't wake up tomorrow";
+    const model = vi.fn(
+      async (_ctx: llm.ChatContext) =>
+        new ReadableStream<string>({
+          start(c) {
+            c.enqueue('I am here with you.');
+            c.close();
+          },
+        })
+    );
+    await said(
+      await gatedReply(
+        request(SAID, true),
+        { userData: undefined } as never,
+        model as never,
+        { wrap: (s: unknown) => s } as never,
+        { env: PATTERNS_ONLY }
+      )
+    )();
+    expect(model).toHaveBeenCalled();
+    for (const [ctx] of model.mock.calls) expect(text(ctx)).not.toContain('ZEBRA-SECRET');
+  });
+
   it('a guided crisis turn keeps its guidance when a builder throws', async () => {
     resetCrisisClassifierCache();
     notes.calls = 0;
