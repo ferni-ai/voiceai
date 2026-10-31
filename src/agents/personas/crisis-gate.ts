@@ -57,13 +57,7 @@ import {
 } from '../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
 import { checkUnanswered } from '../../services/safety/crisis-classifier-check.js'; // CRISIS_CLASSIFIER_CHECK
-import {
-  checkOrScript,
-  checkTurn,
-  checkVerdict,
-  watchCheck,
-} from '../../services/safety/crisis-classifier-check-turn.js';
-import { readCheckSituation } from '../../services/safety/crisis-classifier-check-situation.js';
+import { watchCheck } from '../../services/safety/crisis-classifier-check-turn.js';
 import { startWhoRead } from '../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
 import {
   callRiskBeforeTurn,
@@ -89,13 +83,8 @@ import { noteCrisisHold } from '../safety/crisis-hold-timing.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
-import {
-  callerUserId,
-  callerWords,
-  callTranscript,
-  sessionScope,
-  textReply,
-} from './crisis-gate-words.js';
+import { gateCheck } from './crisis-gate-check.js';
+import { callerWords, callTranscript, sessionScope, textReply } from './crisis-gate-words.js';
 export { textReply } from './crisis-gate-words.js';
 import { getDeliberator } from './deliberation.js';
 import { brightOpenerInvited } from './ferni-playful.js';
@@ -164,24 +153,18 @@ export function startCrisisGate(
   const found = detectCrisis(latest, toGuardVoiceEmotion(voiceEmotion), {
     recentMessages: earlier,
   });
-  const call = sessionScope(userData);
   // The answer to a grounded release's direct question: not a clear no is a gentle 988 offer,
   // or crisis guidance when the answer carries risk content (crisis-grounded-screen.ts).
-  const screen = screenAnswer(call, { latest, companion, ferni });
+  const screen = screenAnswer(sessionScope(userData), { latest, companion, ferni });
   const gentle = screen === 'positive' && !screenIdeation(found, latest);
   const detection = screen === 'positive' && !gentle ? withScreenPositive(found) : found;
   const reask = screen === 'reask';
-  // CRISIS_CLASSIFIER_CHECK: the answer to a classifier-only alarm's check, or a turn after a clear.
-  const caller = { call, userId: callerUserId(userData), lines: callTranscript(chatCtx), env };
   const patterns = gentle ? guide(SCREEN_GENTLE_OFFER) : decisionFor(detection);
-  const { check, decision } = checkTurn(
-    { latest, companion, ferni, ...caller },
-    detection,
-    patterns
-  );
+  // CRISIS_CLASSIFIER_CHECK: the answer to a classifier-only alarm's check, or a turn after a clear.
+  const { decision, ...check } = gateCheck(chatCtx, userData, detection, patterns, options);
   if (decision.action !== 'pass') {
-    noteCrisisRisk(call); // risk on this call (crisis-call-risk.ts)
-    noteConfirmedRisk(call, env); // CRISIS_CONFIRMED_CALL_RISK
+    noteCrisisRisk(sessionScope(userData)); // risk on this call (crisis-call-risk.ts)
+    noteConfirmedRisk(sessionScope(userData), env); // CRISIS_CONFIRMED_CALL_RISK
     log.info(
       { action: decision.action, source: 'patterns', indicators: detection.indicators },
       'CRISIS_GATE'
@@ -195,8 +178,9 @@ export function startCrisisGate(
   // reads; a shadow adjudicator runs beside it and never delays the 988 line.
   const agreementGate = resolveCrisisAgreementGate(env);
   const adjudicatorMode = resolveCrisisAdjudicatorMode(env);
-  const scope = agreementGate || adjudicatorMode !== 'off' ? call : undefined;
+  const scope = agreementGate || adjudicatorMode !== 'off' ? sessionScope(userData) : undefined;
   const holdForReads = agreementGate || adjudicatorMode === 'live';
+  const call = sessionScope(userData);
   const said = { latest, earlier, companion };
   // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
   const transfer =
@@ -208,15 +192,12 @@ export function startCrisisGate(
   const secondRead = secondReadOf('gate', userData, detection.subject);
   const run = startCrisisClassifier(said, { pattern, env, generate, scope, call, secondRead });
   if (run?.mode !== 'live' || decision.action === 'replace') {
-    // An answer to the check with no live read to screen it gets the script.
-    return { decision: check?.unread(decision) ?? decision, escalation: null, reask };
+    return { decision: check.unread(decision), escalation: null, reask }; // CRISIS_CLASSIFIER_CHECK
   }
   const who = startWhoRead({ latest, earlier, companion }, detection, { env, generate });
 
   const escalation = run.verdict.then(async (verdict): Promise<CrisisGateDecision | null> => {
-    // CRISIS_CLASSIFIER_CHECK: only a clear answer every read lets stand keeps this turn's reply.
-    const reads = scope ? async () => turnVerdicts(scope, said) : undefined;
-    const kept = await checkVerdict(check, call, verdict, reads); // or after a clear: the script
+    const kept = await check.verdict(verdict, scope); // CRISIS_CLASSIFIER_CHECK
     if (kept) return kept;
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
     if (loneImminentGoodbye({ detection, verdict, latest, earlier, companion, priorRisk })) {
@@ -302,10 +283,7 @@ export function startCrisisGate(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },
       'CRISIS_GATE'
     );
-    // CRISIS_CLASSIFIER_CHECK: only the words spoken change; everything above saw the read.
-    const alarm = { ...said, ...caller, patterns: decision.action, detection, priorRisk };
-    const situation = async () => readCheckSituation(said, { generate, env, lines: caller.lines });
-    return check ? stronger : checkOrScript(stronger, alarm, situation);
+    return check.alarm(stronger, priorRisk); // CRISIS_CLASSIFIER_CHECK: the words spoken only
   });
   return { decision, escalation, reask };
 }
