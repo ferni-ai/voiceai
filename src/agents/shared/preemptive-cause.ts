@@ -44,6 +44,25 @@ interface ActivityView {
   };
 }
 
+/** LiveKit's decision, made just before the commit it belongs to; the commit claims it. */
+export class PendingPreemptive {
+  private decided: { used: boolean; cause?: PreemptiveCause } | null = null;
+  note(used: boolean, cause?: PreemptiveCause): void {
+    this.decided = { used, cause };
+  }
+  /** Onto the committed turn's receipt fields (turn-receipt.ts); a turn with none keeps 'none'. */
+  claim(turn: {
+    preemptive: 'reused' | 'dropped' | 'none';
+    preemptiveCause?: PreemptiveCause;
+  }): void {
+    if (this.decided) {
+      turn.preemptive = this.decided.used ? 'reused' : 'dropped';
+      turn.preemptiveCause = this.decided.cause;
+    }
+    this.decided = null;
+  }
+}
+
 const commits = new WeakMap<object, TurnCommit>();
 
 /** The agent's onUserTurnCompleted: the commit's chat context and the caller's message. */

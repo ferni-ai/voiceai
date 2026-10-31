@@ -116,11 +116,6 @@ import { createConversationTools } from '../../tools/domains/conversation/index.
 // Information tools - weather, news, sports, search
 import { definitions as informationToolDefs } from '../../tools/domains/information/index.js';
 
-// ============================================================================
-// BETTER-THAN-HUMAN DOMAIN IMPORTS (Phase 2)
-// These give Ferni the ability to ACT, not just talk
-// ============================================================================
-
 // Presence tools - grounding, breathing, mindfulness
 import { definitions as presenceToolDefs } from '../../tools/domains/presence/index.js';
 

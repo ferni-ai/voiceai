@@ -41,7 +41,7 @@ import type { EouMetric, LlmMetric } from './turn-metrics.js';
 import { eotReceiptField, PendingEot, type EotCall } from './turn-receipt-eot.js';
 import { keepLlm, replyRequest, tokensField, type RequestView } from './turn-receipt-llm.js';
 import { receiptBuild } from './turn-receipt-flags.js';
-import type { PreemptiveCause } from './preemptive-cause.js';
+import { PendingPreemptive, type PreemptiveCause } from './preemptive-cause.js';
 import { latencyArmFor } from '../../services/platform/latency-arm.js';
 import * as timed from './turn-receipt-timing.js';
 import * as steps from './turn-receipt-tool-timing.js';
@@ -114,8 +114,7 @@ interface OpenTurn {
   pausedAt?: number;
   eot: EotCall | null;
   preemptive: Preemptive;
-  /** Why LiveKit kept or dropped it (preemptive-cause.ts); null when nothing was decided. */
-  preemptiveCause: PreemptiveCause | null;
+  preemptiveCause?: PreemptiveCause;
   pauseHoldMs: number;
   bargeInSource: BargeInSource | null;
   handling: TurnHandling | null;
@@ -159,8 +158,7 @@ export class TurnReceiptRecorder {
   private readonly pendingEot = new PendingEot(() => this.now());
   private readonly pendingHold = new timed.PendingUnfinished(() => this.now());
   /** LiveKit's preemptive decision, made just before the commit it belongs to. */
-  private preemptive: Preemptive | null = null;
-  private preemptiveCause: PreemptiveCause | null = null;
+  private readonly pendingPreemptive = new PendingPreemptive();
   private readonly userKind: UserKind;
   private readonly now: () => number;
   /** A handoff turn whose swap hadn't landed when it ended: emitted once the outcome is known. */
@@ -191,7 +189,6 @@ export class TurnReceiptRecorder {
       reply: { messages: 0, chars: 0, sentences: 0, interrupted: false, repeatsPrevious: false },
       eot: null,
       preemptive: 'none',
-      preemptiveCause: null,
       pauseHoldMs: 0,
       bargeInSource: null,
       handling: null,
@@ -212,22 +209,15 @@ export class TurnReceiptRecorder {
     turn.handling ??= this.opts.handling?.() ?? null;
     this.pendingEot.claim(turn);
     this.pendingHold.claim(turn);
-    if (this.preemptive) {
-      turn.preemptive = this.preemptive;
-      turn.preemptiveCause = this.preemptiveCause;
-    }
-    this.preemptive = null;
-    this.preemptiveCause = null;
+    this.pendingPreemptive.claim(turn);
   }
 
   /** LiveKit's end-of-turn model judged the caller's pause (turn-receipt-eot.ts). */
   readonly onEot = (call: EotCall | null): void => this.pendingEot.note(call);
 
   /** LiveKit decided whether to keep its preemptive reply (PREEMPTIVE_DECISION); the commit follows. */
-  onPreemptive(used: boolean, cause?: PreemptiveCause): void {
-    this.preemptive = used ? 'reused' : 'dropped';
-    this.preemptiveCause = cause ?? null;
-  }
+  readonly onPreemptive = (used: boolean, cause?: PreemptiveCause): void =>
+    this.pendingPreemptive.note(used, cause);
 
   /** The reply's first audio waited this long for the caller's pause (pause-hold.ts). */
   onPauseHold(heldMs: number): void {
@@ -494,9 +484,8 @@ export class TurnReceiptRecorder {
         unrecorded: this.unrecorded(turn, endedBy),
       },
       preemptive: turn.preemptive,
-      preemptiveCause: turn.preemptiveCause,
-      // The call's arm of the LATENCY_ARM_PERCENT A/B (latency-arm.ts); null outside it.
-      latencyArm: latencyArmFor(this.opts.sessionId),
+      preemptiveCause: turn.preemptiveCause ?? null, // why (preemptive-cause.ts)
+      latencyArm: latencyArmFor(this.opts.sessionId), // LATENCY_ARM_PERCENT (latency-arm.ts)
       pauseHoldMs: turn.pauseHoldMs,
       callerPath:
         this.opts.phoneCaller === undefined ? 'unknown' : this.opts.phoneCaller ? 'phone' : 'web',
