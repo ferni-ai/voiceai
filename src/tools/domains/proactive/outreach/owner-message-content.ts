@@ -5,14 +5,16 @@
  * call, an address to write to, an ask for a login, code or bank details), so a
  * new disguise is refused by default instead of slipping past a missing case.
  *
- * After NFKC, a message passes only if every rule holds:
- * 1. charset: Latin letters (accents OK), 0-9, spaces, newlines and . , ! ? ' - : ( )
- * 2. digits: fewer than 7 digits or number words in any 30 characters (separators
- *    ignored); no 3-6 digit run within 3 words of call/dial/text/reply/send/ring
+ * Every rule reads one form (foldToAscii): NFKC, accents dropped, Latin
+ * look-alikes (dotless i, small capitals) as ASCII. A message passes only if:
+ * 1. charset: after folding, ASCII letters, 0-9, spaces, newlines and . , ! ? ' - : ( )
+ * 2. digits: fewer than 7 digits or number words in any 30 characters or any 14
+ *    words (separators ignored; l/i/o/s dressed as digits count); no digits woven
+ *    through a word; no 3-6 digit run within 3 words of call/dial/text/reply/send/ring
  *    (a clock time is not one); no toll-free prefix or digits broken by capitals
  * 3. no address-forming tokens: dot/period/point/dash/hyphen/underscore/slash,
- *    "." or ":" between two letters, www/http(s), com/net/org/io/info/biz/xyz/ru/uk,
- *    a dotted quad, or "at" before a mail provider
+ *    "x.y", "x:y", "x(.)y", "x . y", "x. y" (y not a sentence start), www/http(s),
+ *    com/net/org/io/info/biz/xyz/ru/uk, a dotted quad, or "at" before a mail provider
  * 4. no run of 3+ single letters or digits separated by spaces
  * 5. no credential ask (fe's ruling, 2026-10-31)
  *
@@ -38,10 +40,25 @@ export const CONTENT_BLOCKS = [
 ] as const;
 export type ContentBlock = (typeof CONTENT_BLOCKS)[number];
 
-/** fe picked (b), 2026-10-31: refuse 7+ digits or number words within any 30 characters. */
-const DIGIT_RULE = { digits: 7, windowChars: 30 } as const;
+/**
+ * fe picked (b), 2026-10-31: refuse 7+ digits or number words within any 30
+ * characters (separators ignored), or within any 14 words, so words padded
+ * between the digits can't stretch a number past the character window.
+ */
+const DIGIT_RULE = { digits: 7, windowChars: 30, windowTokens: 14 } as const;
 
-const CHARSET = /^[\p{Script=Latin}0-9 \n.,!?'\-:()]*$/u;
+/** After folding to ASCII: letters, digits, space, newline and . , ! ? ' - : ( ) only. */
+const CHARSET = /^[A-Za-z0-9 \n.,!?'\-:()]*$/;
+/** Latin letters NFKD leaves alone that read as ASCII ones (dotless i, small capitals, ...). */
+const LATIN_LOOK_ALIKES: Readonly<Record<string, string>> = {
+  ı: 'i', ȷ: 'j', ß: 'ss', æ: 'ae', Æ: 'AE', ø: 'o', Ø: 'O', œ: 'oe', Œ: 'OE', ł: 'l', Ł: 'L',
+  đ: 'd', Đ: 'D', ð: 'd', Ð: 'D', þ: 'th', Þ: 'Th', ɑ: 'a', ɡ: 'g', ɩ: 'i', ʋ: 'v',
+  ᴀ: 'a', ʙ: 'b', ᴄ: 'c', ᴅ: 'd', ᴇ: 'e', ꜰ: 'f', ɢ: 'g', ʜ: 'h', ɪ: 'i', ᴊ: 'j', ᴋ: 'k',
+  ʟ: 'l', ᴍ: 'm', ɴ: 'n', ᴏ: 'o', ᴘ: 'p', ʀ: 'r', ꜱ: 's', ᴛ: 't', ᴜ: 'u', ᴠ: 'v', ᴡ: 'w',
+  ʏ: 'y', ᴢ: 'z',
+}; // prettier-ignore
+/** Letters next to a digit that stand in for one ("55S-O1l2" is 555-0112). */
+const DIGIT_LOOK_ALIKES: Readonly<Record<string, string>> = { l: '1', i: '1', o: '0', s: '5' };
 const NUMBER_WORDS: Readonly<Record<string, string>> = {
   zero: '0', oh: '0', o: '0', one: '1', two: '2', three: '3', four: '4', five: '5', six: '6',
   seven: '7', eight: '8', nine: '9', ten: '10', eleven: '11', twelve: '12', thirteen: '13',
@@ -52,8 +69,6 @@ const NUMBER_WORDS: Readonly<Record<string, string>> = {
 const REPEATS: Readonly<Record<string, number>> = { double: 2, triple: 3 };
 const DIALS = /^(?:call(?:s|ed|ing)?|dial(?:s|ed|ing|led|ling)?|texts?|texted|texting|repl(?:y|ies|ied|ying)|sends?|sending|sent|rings?|ringing|rang)$/; // prettier-ignore
 const ADDRESS_WORDS = /\b(?:dot|period|point|dash|hyphen|underscore|slash|www|https?|com|net|org|io|info|biz|xyz|ru|uk)\b/; // prettier-ignore
-/** a.m., p.m., e.g., i.e.: letter-dot-letter, but no address. */
-const ABBREVIATIONS = /(?<!\p{L})(?:a\.m|p\.m|e\.g|i\.e)\.?/gu;
 const own = <T>(table: Readonly<Record<string, T>>, key: string | undefined): T | undefined =>
   key !== undefined && Object.hasOwn(table, key) ? table[key] : undefined;
 const MAIL_PROVIDERS = /^(?:gmail|yahoo|outlook|hotmail|icloud|aol|proton|protonmail|live|msn)$/;
@@ -133,8 +148,49 @@ const isClockTime = (group: Token[], text: string): boolean =>
   /^[0-9]{2}$/.test(group[1].text) &&
   text.slice(group[0].start + group[0].text.length, group[1].start) === ':';
 
-/** Rule 2 on the lower-case text: the 7-in-30 window and short codes, crisis lines aside. */
-function digitBlock(text: string): ContentBlock | null {
+/** Words spelled only with l, i, o, s: read as words even beside a number ("Buy 2 oil"). */
+const LOOK_ALIKE_WORDS: ReadonlySet<string> = new Set(['i', 'is', 'so', 'lo', 'oil', 'oils', 'soil', 'soils', 'silo', 'silos', 'solo', 'solos', 'sis', 'loo', 'loos', 'lol', 'sol', 'loss', 'ill', 'ills', 'sill', 'sills', 'oslo']); // prettier-ignore
+const asLookAlikeDigits = (letters: string): string => letters.replace(/[lios]/g, (c) => DIGIT_LOOK_ALIKES[c]); // prettier-ignore
+
+/** One mapping pass, repeated until nothing changes; `acrossSpace` also maps a whole look-alike word beside a number. */
+function mapLookAlikes(text: string, acrossSpace: boolean, keepWords: boolean): string {
+  let out = text;
+  for (let before = ''; before !== out;) {
+    before = out;
+    out = out.replace(/[a-z]+/g, (piece: string, offset: number, whole: string) => {
+      if (piece !== 'o' && wordDigits(piece) !== null) return piece; // a lone o is a look-alike too
+      const pure = /^[lios]+$/.test(piece) && !(keepWords && LOOK_ALIKE_WORDS.has(piece));
+      const gap = pure && acrossSpace ? '[-.()\\s]*' : '[-.()]*';
+      const left = new RegExp(`[0-9]${gap}$`).test(whole.slice(0, offset));
+      const right = new RegExp(`^${gap}[0-9]`).test(whole.slice(offset + piece.length));
+      if (pure) return left || right ? asLookAlikeDigits(piece) : piece;
+      let mapped = left ? piece.replace(/^[lios]+/, asLookAlikeDigits) : piece;
+      if (right) mapped = mapped.replace(/[lios]+$/, asLookAlikeDigits);
+      return mapped;
+    });
+  }
+  return out;
+}
+
+/**
+ * Letters that stand in for digits read as those digits ("55S-O1l2" is 555-0112).
+ * First inside words: an l/i/o/s run at a word's end touching a digit, directly
+ * or through - . ( ). Then whole words made only of those letters beside a
+ * number, across spaces too ("2ooo ooo"). Real words like "oil" or "I" stay
+ * words, unless the message already dressed digits as letters.
+ */
+function withLookAlikeDigits(text: string): string {
+  const inWords = mapLookAlikes(text, false, true);
+  return mapLookAlikes(inWords, true, inWords === text);
+}
+
+/** Rule 2 on the lower-case text: digit windows, mixed tokens and short codes, crisis lines aside. */
+function digitBlock(lower: string): ContentBlock | null {
+  const text = withLookAlikeDigits(lower);
+  // Digits woven through letters in one word ("1a2b3c4"): a number dressed as a word
+  for (const [word] of text.matchAll(/[a-z0-9]+/g)) {
+    if (/[0-9][a-z]+[0-9]/.test(word) && (word.match(/[0-9]/g)?.length ?? 0) >= 4) return 'digits';
+  }
   const tokens = tokensOf(text);
   const crisis = crisisNumbers();
   const counted = numberGroups(tokens).filter((g) => !crisis.has(groupDigits(g)));
@@ -144,6 +200,12 @@ function digitBlock(text: string): ContentBlock | null {
   for (let i = 0; i < compact.length; i++) {
     const window = compact.slice(i, i + DIGIT_RULE.windowChars);
     if ((window.match(/[0-9]/g)?.length ?? 0) >= DIGIT_RULE.digits) return 'digits';
+  }
+  const inCounted = new Set(counted.flat());
+  const perToken = tokens.map((t) => (inCounted.has(t) ? (t.digits ?? '').length : 0));
+  for (let i = 0; i < perToken.length; i++) {
+    const inWindow = perToken.slice(i, i + DIGIT_RULE.windowTokens).reduce((a, b) => a + b, 0);
+    if (inWindow >= DIGIT_RULE.digits) return 'digits';
   }
   for (const group of counted) {
     const length = groupDigits(group).length;
@@ -183,9 +245,38 @@ function credentialAsk(text: string): boolean {
   );
 }
 
+/**
+ * The one form every rule reads: NFKC, curly apostrophes as ', then accents
+ * dropped (NFKD without marks) and Latin look-alikes as ASCII, so a word check
+ * sees "verify" however it was dressed. Case is kept for the vanity and
+ * sentence-start rules.
+ */
+const foldToAscii = (text: string): string =>
+  text
+    .normalize('NFKC')
+    .replace(/[\u2018\u2019]/g, "'")
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[^\p{ASCII}]/gu, (c) => LATIN_LOOK_ALIKES[c] ?? c);
+
+/** a.m., p.m., e.g., i.e. as whole words: letter-dot-letter, but no address. */
+const withoutAbbreviationDots = (text: string): string =>
+  text.replace(/(?<![A-Za-z])(?:[ap]\.m|e\.g|i\.e)\.?(?![A-Za-z])/gi, (a) => a.replace(/\./g, ''));
+
+/**
+ * Rule 3's dots on the case-kept text: "x.y" and "x:y", a defanged "x(.)y",
+ * "x . y", and "x. y" unless y starts a sentence (a capital in the text as written).
+ */
+const ADDRESS_DOTS = [
+  /[A-Za-z][.:][A-Za-z]/,
+  /[A-Za-z0-9]\s*\(\s*[.:]\s*\)\s*[A-Za-z0-9]/,
+  /[A-Za-z0-9]\s+[.:]\s*[A-Za-z]{2}/,
+  /[A-Za-z0-9]\.(?!\.)\s+[a-z]{2}/,
+];
+
 /** The first rule `text` breaks for an unverified call, or null when it may be sent. */
 export function blockedContent(text: string): ContentBlock | null {
-  const form = text.normalize('NFKC').replace(/[\u2018\u2019]/g, "'");
+  const form = foldToAscii(text);
   if (!CHARSET.test(form)) return 'charset';
   if (vanityBlock(form)) return 'vanity_number';
   const lower = form.toLowerCase();
@@ -193,10 +284,8 @@ export function blockedContent(text: string): ContentBlock | null {
   const plain = collapseSpacedLetters(lower);
   const digits = digitBlock(plain);
   if (digits) return digits;
-  const unabbreviated = plain.replace(ABBREVIATIONS, (abbreviation) =>
-    abbreviation.replace(/\./g, '')
-  );
-  if (ADDRESS_WORDS.test(unabbreviated) || /\p{L}[.:]\p{L}/u.test(unabbreviated)) return 'address_token'; // prettier-ignore
+  const dotted = withoutAbbreviationDots(form);
+  if (ADDRESS_WORDS.test(plain) || ADDRESS_DOTS.some((dot) => dot.test(dotted))) return 'address_token'; // prettier-ignore
   if (/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/.test(plain)) return 'address_token';
   const words = [...plain.matchAll(/\p{L}+/gu)].map((m) => m[0]);
   // "at" then a provider within 2 words, also split across two ("g mail", "proton mail")

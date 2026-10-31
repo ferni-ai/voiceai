@@ -98,6 +98,82 @@ describe('property: shapes a phishing text needs never pass', () => {
   });
 });
 
+describe('property: disguises the one ASCII fold undoes (security review, 2026-10-31)', () => {
+  const ACUTE = String.fromCodePoint(0x0301);
+  const SMALL_CAPS: Record<string, string> = { a: 'ᴀ', c: 'ᴄ', d: 'ᴅ', e: 'ᴇ', f: 'ꜰ', i: 'ɪ', n: 'ɴ', o: 'ᴏ', p: 'ᴘ', r: 'ʀ', s: 'ꜱ', v: 'ᴠ', w: 'ᴡ', y: 'ʏ' }; // prettier-ignore
+  const dress = (c: string, how: number) =>
+    how === 1 ? c + ACUTE : how === 2 ? (SMALL_CAPS[c] ?? c) : how === 3 && c === 'i' ? 'ı' : c;
+
+  it('credential words with accents, small capitals or a dotless i', () => {
+    const word = pick(['verify', 'password', 'login', 'ssn', 'pin', 'wire']);
+    const dressed = fc
+      .tuple(word, fc.array(fc.integer({ min: 0, max: 3 }), { minLength: 8, maxLength: 8 }))
+      .map(([w, hows]) => [...w].map((c, i) => dress(c, hows[i])).join(''));
+    fc.assert(fc.property(around(dressed), (t) => blockedContent(t) !== null), { seed: 3227, numRuns: 500 }); // prettier-ignore
+  });
+
+  it('defanged dots: "x(.)y", "x . y", "x. y" with y in lower case', () => {
+    const label = fc.stringMatching(/^[a-z]{2,10}$/);
+    const tld = fc.stringMatching(/^[a-z]{2,6}$/);
+    const sep = pick(['(.)', ' (.) ', '( . )', ' . ', ' .', '. ', '.  ']);
+    const domain = fc.tuple(label, sep, tld).map((p) => p.join(''));
+    fc.assert(fc.property(around(domain), (t) => blockedContent(t) === 'address_token'), { seed: 3227, numRuns: 500 }); // prettier-ignore
+  });
+
+  // Joined to the digits by nothing, "-" or ".". Across a space, a real word made of
+  // those letters ("I", "is", "so", "oil") stays a word: "Order 48213 is ready" passes.
+  it('digits written as look-alike letters (l, I, i, o, O, s, S) next to digits', () => {
+    const LOOKS: Record<string, string[]> = {
+      '0': ['o', 'O'],
+      '1': ['l', 'I', 'i'],
+      '5': ['s', 'S'],
+    };
+    const digit = fc
+      .tuple(fc.integer({ min: 0, max: 9 }), fc.integer({ min: 0, max: 2 }))
+      .map(([d, k]) => LOOKS[String(d)]?.[k % LOOKS[String(d)].length] ?? String(d));
+    const phone = fc
+      .tuple(
+        fc.integer({ min: 2, max: 9 }),
+        fc.array(fc.tuple(digit, pick(['', '-', '.'])), { minLength: 6, maxLength: 10 })
+      ) // prettier-ignore
+      .map(([first, rest]) => String(first) + rest.map(([d, sep]) => sep + d).join(''));
+    fc.assert(fc.property(around(phone), (t) => blockedContent(t) !== null), { seed: 3227, numRuns: 500 }); // prettier-ignore
+  });
+
+  it('seven digits padded apart by one word each', () => {
+    const word = pick(['apples', 'then', 'and', 'please', 'okay', 'call', 'now', 'mom']);
+    const padded = fc
+      .array(fc.tuple(fc.integer({ min: 0, max: 9 }), word), { minLength: 7, maxLength: 9 })
+      .map((parts) => parts.map(([d, w]) => `${d} ${w}`).join(' '));
+    fc.assert(fc.property(padded, (t) => blockedContent(t) !== null), { seed: 3227, numRuns: 500 }); // prettier-ignore
+  });
+
+  it.each([
+    ['please vérify it', 'credential_ask'],
+    ['ᴠᴇʀɪꜰʏ your account', 'credential_ask'],
+    ['pat at ıcloud', 'mail_provider'],
+    ['55S-O1l2 now', 'digits'],
+    ['1a2b3c4', 'digits'],
+    ['e.g.com', 'address_token'],
+  ])('%s -> %s', (text, reason) => {
+    expect(blockedContent(text)).toBe(reason);
+  });
+
+  it.each([
+    'Call mom. She misses you.',
+    'Ask Dr. Patel about it',
+    'Café at 8',
+    'Note: buy milk',
+    'Room 214 then 5s',
+  ])(
+    // prettier-ignore
+    'still benign: %s',
+    (text) => {
+      expect(blockedContent(text)).toBeNull();
+    }
+  );
+});
+
 describe('each rule', () => {
   it.each([
     ['visit example.com', 'address_token'],
