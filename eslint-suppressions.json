@@ -244,11 +244,6 @@
       "count": 1
     }
   },
-  "src/services/engagement/engagement-notification-service.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
   "src/services/evalops/evaluation-persistence.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
