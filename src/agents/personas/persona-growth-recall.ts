@@ -8,14 +8,19 @@
  * (session-init-handler.ts, unified profile), and cleanup saves it back, so
  * this reads what is loaded and adds no store read or model call to the turn.
  *
- * It joins the first recall note of a call (memory-recall-hook.ts), and only:
+ * Recall hears every transcript (withGrowth), and the note goes into the chat
+ * on its own (persona-growth-note.ts, GROWTH_NOTE_ID), and only:
  * - for a growth kept on an earlier call, with the caller's exact words;
  * - when nothing was offered in the last GROWTH_SPACING_MS, so at most one
  *   per call and rarely across calls;
- * - worded as something to mention lightly if it fits, never a celebration;
- * - never on a call with a crisis signal (a crisis read noted or settling, or
- *   crisis words in the turn).
- * Offering marks it shared (markGrowthShared), so it never comes back.
+ * - on a final transcript, after GROWTH_AFTER_TURNS whole caller turns, never
+ *   on an interim fragment ("honestly I") of a line not yet said;
+ * - never on a call with a crisis signal: crisis words in any line so far, or
+ *   a crisis read noted or settling on the call; and none after a handoff;
+ * - worded as something to mention lightly if it fits, never a celebration.
+ * A crisis signal later in the call takes it back out of the chat, and a
+ * crisis-guided reply never sees it (crisis-gate.ts). Any failed check means
+ * no note. Offering marks it shared (markGrowthShared), so it never comes back.
  *
  * @module agents/personas/persona-growth-recall
  */
@@ -103,17 +108,58 @@ export function onlyPersonaOnCall(sessionId: string | undefined): string | undef
   return seen?.size === 1 ? [...seen][0] : undefined;
 }
 
-/** A crisis read noted or still settling on this call, or crisis words in this turn. */
-function crisisOnCall(sessionId: string | undefined, text: string): boolean {
-  return (!!sessionId && crisisRiskThisCall(sessionId, text)) || scoreCrisisLanguage(text).isCrisis;
+/** A crisis read noted or still settling on this call, or crisis words in these caller words. */
+function crisisIn(sessionId: string, text: string): boolean {
+  return crisisRiskThisCall(sessionId, text) || scoreCrisisLanguage(text).isCrisis;
 }
+
+/** Caller turns heard whole, and calm, before the note may come. */
+export const GROWTH_AFTER_TURNS = 2;
 
 export interface GrowthRecall {
   /**
-   * The growth note for the turn that said `text`, or null; never on a call
-   * with a crisis signal. The first non-null answer marks the growth shared and is kept.
+   * Every transcript of the call, interim or final, as recall hears it. Each
+   * is checked for crisis words, and the call for crisis risk, so a signal on
+   * any line so far keeps the note away for the rest of the call. The note is
+   * decided only here, on a final transcript after GROWTH_AFTER_TURNS calm
+   * caller turns, and waits for take().
    */
-  note(text: string): string | null;
+  heard(text: string, final?: boolean): void;
+  /** The agent started replying: a caller turn with a final transcript is complete. */
+  newTurn(): void;
+  /** The note decided on the last transcript, once; null on a call with a crisis signal. */
+  take(): string | null;
+  /** A crisis signal on this call so far, or in `said`: the note comes back out. Fails closed. */
+  crisisNow(said?: string): boolean;
+}
+
+/** Recall hands its words to its growth (withGrowth); sendGrowth finds it by the recall. */
+const growthByRecall = new WeakMap<object, GrowthRecall>();
+
+export function growthOf(recall: object): GrowthRecall | undefined {
+  return growthByRecall.get(recall);
+}
+
+interface HearsTurns {
+  noteFor(transcript: string, opts?: { final?: boolean }): string | null;
+  newTurn(): void;
+}
+
+/** `recall`, also telling `growth` every transcript and every new turn (memory-recall-hook.ts). */
+export function withGrowth<R extends HearsTurns>(growth: GrowthRecall, recall: R): R {
+  const heard: R = {
+    ...recall,
+    noteFor: (transcript, opts) => {
+      growth.heard(transcript, opts?.final);
+      return recall.noteFor(transcript, opts);
+    },
+    newTurn: () => {
+      growth.newTurn();
+      recall.newTurn();
+    },
+  };
+  growthByRecall.set(heard, growth);
+  return heard;
 }
 
 /** For one persona agent on one call; `now` is when the call's recall started. */
@@ -125,24 +171,64 @@ export function growthRecallFor(
   now: number = Date.now()
 ): GrowthRecall {
   if (sessionId) notePersonaOnCall(sessionId, personaId);
-  let offered: string | null = null;
+  let decided = false; // one note a call: decided once, whatever came of it
+  let pending: string | null = null;
   let crisis = false; // once a crisis signal shows on this call, nothing is offered on it
+  let finalThisTurn = false;
+  let calmTurns = 0;
+
+  const check = (text: string): boolean => {
+    try {
+      // No call id: the call's risk can't be read, so none is offered.
+      crisis ||= !sessionId || crisisIn(sessionId, text);
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Persona growth crisis check failed');
+      crisis = true; // fail closed
+    }
+    if (crisis) pending = null;
+    return crisis;
+  };
+
+  const decide = (): void => {
+    decided = true;
+    // A handoff on the call: this persona didn't hear all of it, so nothing.
+    if (onlyPersonaOnCall(sessionId) !== personaId) return;
+    // Loaded at session start; not there yet (or never kept) means nothing this call.
+    const profile = getPersonaGrowthForPersistence(userId, personaId);
+    const record = profile && growthToOffer(profile.growthRecords, profile.sharedTopics, now);
+    if (!record) return;
+    pending = formatGrowthNote(record);
+    markGrowthShared(record.id);
+    log.info(
+      { growthType: record.growthType, significance: record.significance },
+      'PERSONA_GROWTH_OFFERED'
+    );
+  };
+
   return {
-    note(text) {
-      if (offered || !personaGrowthEnabled(env)) return offered;
-      crisis ||= crisisOnCall(sessionId, text);
-      if (crisis) return null;
-      // Loaded at session start; not there yet (or never kept) means nothing this call.
-      const profile = getPersonaGrowthForPersistence(userId, personaId);
-      const record = profile && growthToOffer(profile.growthRecords, profile.sharedTopics, now);
-      if (!record) return null;
-      offered = formatGrowthNote(record);
-      markGrowthShared(record.id);
-      log.info(
-        { growthType: record.growthType, significance: record.significance },
-        'PERSONA_GROWTH_OFFERED'
-      );
-      return offered;
+    heard(text, final) {
+      const said = text.trim();
+      if (!said || !personaGrowthEnabled(env) || check(said) || final !== true) return;
+      finalThisTurn = true;
+      if (decided || calmTurns < GROWTH_AFTER_TURNS) return;
+      try {
+        decide();
+      } catch (error) {
+        log.warn({ error: String(error) }, 'Persona growth note not decided');
+        pending = null; // fail closed
+      }
+    },
+    newTurn() {
+      if (finalThisTurn && !crisis) calmTurns++;
+      finalThisTurn = false;
+    },
+    take() {
+      const note = crisis ? null : pending;
+      pending = null;
+      return note;
+    },
+    crisisNow(said) {
+      return check(said?.trim() ?? '');
     },
   };
 }

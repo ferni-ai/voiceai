@@ -84,6 +84,7 @@ const defaultReader: GrowthReader = async (transcript) => {
 const norm = (t: string): string =>
   t
     .toLowerCase()
+    .replace(/[\u2018\u2019]/g, "'") // a curly "don’t" is still a negation
     .replace(/[^a-z0-9' ]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -128,16 +129,24 @@ export function guardGrowthReading(
   return fits ? reading : null;
 }
 
+/** A negation in the words before a quote: "I don't think" + the quote is their view's opposite. */
+const NEGATED =
+  /\b(?:not|no|never|nor|neither|nobody|nothing|none|hardly|barely|cannot|cant|dont|doesnt|didnt|isnt|wasnt|wont|wouldnt|shouldnt)\b|n't\b/;
+
 /**
  * The quote is a whole sentence or clause of the caller's line, or its end: a
  * piece cut off before "but not when..." or "..., not after" can mean the
- * opposite of what they said.
+ * opposite of what they said. So can one cut after a negation ("I don't
+ * think you should always rest"), so a sentence with one before the quote
+ * never counts.
  */
 function endsASentence(line: string, quote: string): boolean {
   return line
     .split(/[.!?;]+/)
     .map(norm)
-    .some((s) => s === quote || s.endsWith(` ${quote}`));
+    .some(
+      (s) => s === quote || (s.endsWith(` ${quote}`) && !NEGATED.test(s.slice(0, -quote.length)))
+    );
 }
 
 const unifiedGrowthStore: GrowthStore = {

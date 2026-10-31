@@ -1,11 +1,18 @@
 /**
  * Persona growth across two calls (PERSONA_GROWTH): call 1 goes through the
  * real after-call writer into a store; call 2 loads that store the way session
- * start does, and its first recall note (the real createMemoryRecall) offers
- * the growth once. Only the database and the model are fakes.
+ * start does, and the real createMemoryRecall + sendRecall, driven the way
+ * agent-setup's transcript listener drives them (interims, then the final,
+ * then the agent speaks), put the growth note into a chat once. Only the
+ * database, the model and the agent's chat are fakes.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createMemoryRecall } from '../memory-recall-hook.js';
+import { llm } from '@livekit/agents';
+import { ReadableStream } from 'node:stream/web';
+import { createMemoryRecall, type MemoryRecall } from '../memory-recall-hook.js';
+import { GROWTH_NOTE_ID } from '../recall-note.js';
+import { sendRecall } from '../../personas/context-packet/turn-packet.js';
+import { gatedReply } from '../../personas/crisis-gate.js';
 import {
   guardGrowthReading,
   parseGrowthReading,
@@ -13,11 +20,12 @@ import {
   type GrowthStore,
 } from '../../personas/persona-growth-after-call.js';
 import {
+  GROWTH_AFTER_TURNS,
   GROWTH_SPACING_MS,
   growthRecallFor,
   growthToOffer,
 } from '../../personas/persona-growth-recall.js';
-import { noteCrisisRisk } from '../../../services/safety/crisis-call-risk.js';
+import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import { bindSessionUser, noteCallerWords, resetMinorCare } from '../../../utils/minor-care.js';
 import {
   clearAllUserGrowth,
@@ -67,10 +75,10 @@ function call1(personas: string[] = ['ferni'], turns = CALL_1, userId = 'u1') {
 }
 
 /** A new call in a new process: memory is empty until session start loads the store. */
-async function callTwo(store: GrowthStore) {
+async function callTwo(store: GrowthStore, sessionId = `s-call2-${++calls}`) {
   clearAllUserGrowth('u1');
   await kept(store);
-  return startRecall();
+  return startRecall(sessionId);
 }
 
 /** Session start: load what call 1 kept into memory. */
@@ -83,22 +91,73 @@ async function kept(store: GrowthStore) {
   });
 }
 
-async function startRecall() {
+async function startRecall(sessionId = `s-call2-${++calls}`) {
   const recall = createMemoryRecall({
     userId: 'u1',
     userName: 'Sam',
     store: emptyRecall,
     ledgerStore: emptyLedger,
+    sessionId,
   });
   await recall.ready;
   return recall;
 }
 
-beforeEach(() => clearAllUserGrowth('u1'));
+/** The agent's chat as LiveKit's ChatContext holds it: copy, add, then updateChatCtx. */
+function chat() {
+  let items: Array<{ id: string; textContent: string }> = [];
+  const agent = {
+    chatCtx: {
+      copy: () => {
+        const ctx = {
+          items: [...items],
+          addMessage: (m: { content: string; id?: string }) => {
+            ctx.items.push({ id: m.id ?? '', textContent: m.content });
+          },
+        };
+        return ctx;
+      },
+    },
+    updateChatCtx: async (ctx: unknown) => {
+      items = (ctx as { items: typeof items }).items;
+    },
+  };
+  const growth = () => items.filter((i) => i.id === GROWTH_NOTE_ID).map((i) => i.textContent);
+  return { agent, growth, all: () => items.map((i) => i.textContent).join('\n') };
+}
+
+/**
+ * One transcript event as agent-setup's listener handles it: recall's note,
+ * then sendRecall with the same words. `seen` gets the growth notes in the
+ * chat after it, so a test can check every point of the call.
+ */
+function hear(recall: MemoryRecall, c: ReturnType<typeof chat>, text: string, final: boolean) {
+  const note = recall.noteFor(text, { final });
+  sendRecall(c.agent as never, {}, recall, note, text);
+  return c.growth();
+}
+
+/** A caller line: its interims word by word, the final, then the agent speaks. */
+function line(recall: MemoryRecall, c: ReturnType<typeof chat>, said: string): string[][] {
+  const words = said.split(' ');
+  const seen = words
+    .slice(1)
+    .map((_, i) => hear(recall, c, words.slice(0, i + 1).join(' '), false));
+  seen.push(hear(recall, c, said, true));
+  recall.newTurn();
+  return seen;
+}
+
+const CALM = ['hey ferni, it is me again', 'work was a lot this week', 'I took Friday off finally'];
+
+beforeEach(() => {
+  clearAllUserGrowth('u1');
+  resetCrisisCallRisk();
+});
 afterEach(() => vi.unstubAllEnvs());
 
-describe("persona growth in call 2's first recall note", () => {
-  it('offers the growth from call 1 once, in their words, and never again', async () => {
+describe('persona growth on call 2', () => {
+  it('offers the growth from call 1 once, on a final line after two calm turns, and never again', async () => {
     vi.stubEnv('PERSONA_GROWTH', 'on');
     const store = memoryStore();
     const kept = await recordGrowthAfterCall(call1(), { store, read: async () => READING });
@@ -106,22 +165,25 @@ describe("persona growth in call 2's first recall note", () => {
     expect(store.saved()?.growthRecords).toHaveLength(1);
 
     const recall = await callTwo(store);
-    const first = recall.noteFor('hey ferni, it is me again') ?? '';
-    expect(first).toContain(HEADER);
-    expect(first).toContain(`"${QUOTE}"`);
-    expect(first.split(HEADER)).toHaveLength(2); // once in the note
-    expect(first).not.toMatch(/celebrat|congrat|!/i); // a friend noticing, not a banner
-    recall.newTurn();
-    expect(recall.noteFor('anyway, work was a lot again') ?? '').not.toContain(HEADER);
+    const c = chat();
+    expect(GROWTH_AFTER_TURNS).toBe(2);
+    expect(line(recall, c, CALM[0]!).flat()).toEqual([]);
+    expect(line(recall, c, CALM[1]!).flat()).toEqual([]);
+    line(recall, c, CALM[2]!);
+    const [note, ...more] = c.growth();
+    expect(more).toEqual([]); // once in the chat, as its own note
+    expect(note).toContain(HEADER);
+    expect(note).toContain(`"${QUOTE}"`);
+    expect(note).not.toMatch(/celebrat|congrat|!/i); // a friend noticing, not a banner
+    expect(c.all().split(HEADER)).toHaveLength(2); // and in no recall note
+    line(recall, c, 'anyway, how was your week');
+    expect(c.growth()).toHaveLength(1);
 
     // Shared means shared: the next recall (a handoff back, or the next call) has none.
-    const again = createMemoryRecall({
-      userId: 'u1',
-      store: emptyRecall,
-      ledgerStore: emptyLedger,
-    });
-    await again.ready;
-    expect(again.noteFor('hey again') ?? '').not.toContain(HEADER);
+    const again = await startRecall();
+    const c2 = chat();
+    for (const said of [...CALM, 'one more thing']) line(again, c2, said);
+    expect(c2.growth()).toEqual([]);
   });
 
   it('is absent with the flag off, even when a growth is stored and loaded', async () => {
@@ -133,13 +195,121 @@ describe("persona growth in call 2's first recall note", () => {
     });
     expect(store.saved()?.growthRecords).toHaveLength(1);
     const recall = await callTwo(store);
-    expect(recall.noteFor('hey ferni, it is me again') ?? '').not.toContain(HEADER);
+    const c = chat();
+    for (const said of [...CALM, 'one more thing']) line(recall, c, said);
+    expect(c.all()).not.toContain(HEADER);
   });
 
   it('says nothing with the flag on and no growth kept', async () => {
     vi.stubEnv('PERSONA_GROWTH', 'on');
     const recall = await callTwo(memoryStore());
-    expect(recall.noteFor('hey ferni, it is me again') ?? '').not.toContain(HEADER);
+    const c = chat();
+    for (const said of [...CALM, 'one more thing']) line(recall, c, said);
+    expect(c.all()).not.toContain(HEADER);
+  });
+});
+
+describe('the growth note and crisis on the live path', () => {
+  async function stored() {
+    vi.stubEnv('PERSONA_GROWTH', 'on');
+    const store = memoryStore();
+    await recordGrowthAfterCall(call1(), { store, read: async () => READING });
+    return store;
+  }
+
+  it('(a) never offers it after an interim "honestly I" whose final carries crisis words', async () => {
+    const recall = await callTwo(await stored());
+    const c = chat();
+    // The verifier's probe: the first interim of the first line, then its final.
+    expect(hear(recall, c, 'honestly I', false)).toEqual([]);
+    expect(hear(recall, c, 'honestly I want to kill myself', true)).toEqual([]);
+    recall.newTurn();
+    // Calm turns after it: the earlier line still counts, all call long.
+    for (const said of [...CALM, 'thanks for listening', 'talk soon']) {
+      expect(line(recall, c, said).flat()).toEqual([]);
+    }
+    expect(c.all()).not.toContain(HEADER);
+  });
+
+  it('(b) takes it back out of the chat on a later crisis line, before the reply to it', async () => {
+    const recall = await callTwo(await stored());
+    const c = chat();
+    for (const said of CALM) line(recall, c, said);
+    expect(c.growth()).toHaveLength(1);
+    // The crisis line's interims carry no crisis words yet; the final does.
+    expect(hear(recall, c, 'I keep thinking', false)).toHaveLength(1);
+    expect(hear(recall, c, 'I keep thinking I want to kill myself', true)).toEqual([]);
+    // Out before the reply (the agent speaks after the final), and never back.
+    recall.newTurn();
+    for (const said of ['sorry', 'it has been a hard month', 'okay']) line(recall, c, said);
+    expect(c.all()).not.toContain(HEADER);
+  });
+
+  it('(b) also when only the crisis read found risk (no crisis words): out on the next words', async () => {
+    const sessionId = `s-call2-read-${++calls}`;
+    const recall = await callTwo(await stored(), sessionId);
+    const c = chat();
+    for (const said of CALM) line(recall, c, said);
+    expect(c.growth()).toHaveLength(1);
+    noteCrisisRisk(sessionId); // the classifier read of a turn noted risk
+    expect(hear(recall, c, 'yeah', false)).toEqual([]);
+  });
+
+  it('(c) never offers it on an interim transcript, only on the final', async () => {
+    const recall = await callTwo(await stored());
+    const c = chat();
+    line(recall, c, CALM[0]!);
+    line(recall, c, CALM[1]!);
+    const seen = line(recall, c, CALM[2]!);
+    expect(seen.slice(0, -1).flat()).toEqual([]); // every interim of the third line
+    expect(seen.at(-1)).toHaveLength(1); // its final
+  });
+
+  it('a crisis-guided reply never sees it, and no reply does once risk is noted', async () => {
+    const sessionId = `s-call2-gate-${++calls}`;
+    const env = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'off' };
+    const session = { userData: { services: { sessionId } } };
+    const request = (said: string) => {
+      const ctx = llm.ChatContext.empty();
+      ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
+      ctx.addMessage({ role: 'system', content: `${HEADER} note`, id: GROWTH_NOTE_ID });
+      ctx.addMessage({ role: 'user', content: said });
+      return ctx;
+    };
+    const sent: string[] = [];
+    const model = vi.fn(async (ctx: llm.ChatContext) => {
+      sent.push(ctx.items.map((i) => (i as llm.ChatMessage).textContent ?? '').join('\n'));
+      return new ReadableStream<unknown>({ start: (ctl) => ctl.close() });
+    });
+    const opener = { wrap: (s: unknown) => s };
+    const ask = (said: string) =>
+      gatedReply(request(said), session, model as never, opener as never, { env });
+    await ask('what should I cook tonight?');
+    expect(sent.at(-1)).toContain(HEADER); // a calm call: the note is there to use
+    await ask("I hope I don't wake up tomorrow"); // the patterns guide this reply
+    expect(sent.at(-1)).not.toContain(HEADER);
+    await ask('anyway, what should I cook?'); // risk noted on the call now
+    expect(sent.at(-1)).not.toContain(HEADER);
+  });
+
+  it('never offers it on a call with crisis risk noted, or after a handoff', async () => {
+    const store = await stored();
+    noteCrisisRisk('s-call2-risk');
+    const risky = await callTwo(store, 's-call2-risk');
+    const c = chat();
+    for (const said of [...CALM, 'one more']) line(risky, c, said);
+    expect(c.growth()).toEqual([]);
+    // The same call shape with no risk does get it: the risk stopped it.
+    const calm = await callTwo(store, 's-call2-calm');
+    const c2 = chat();
+    for (const said of CALM) line(calm, c2, said);
+    expect(c2.growth()).toHaveLength(1);
+    // A handoff on the call: the persona didn't hear all of it.
+    const handed = await callTwo(store, 's-call2-handoff');
+    growthRecallFor('u1', 'maya-santos', 's-call2-handoff');
+    const c3 = chat();
+    for (const said of [...CALM, 'one more']) line(handed, c3, said);
+    expect(c3.growth()).toEqual([]);
   });
 });
 
@@ -201,21 +371,6 @@ describe('crisis, identity, persona and quote gates', () => {
     ).not.toBeNull();
   });
 
-  it('never offers the note on a call with a crisis signal', async () => {
-    vi.stubEnv('PERSONA_GROWTH', 'on');
-    const store = memoryStore();
-    await recordGrowthAfterCall(call1(), { store, read: async () => READING });
-    // Crisis words in the turn: nothing, and nothing later on the same call either.
-    const recall = await callTwo(store);
-    expect(recall.noteFor('honestly I want to kill myself') ?? '').not.toContain(HEADER);
-    recall.newTurn();
-    expect(recall.noteFor('anyway, work was a lot') ?? '').not.toContain(HEADER);
-    // Risk the crisis read noted on this call (the hook passes the call's session id).
-    noteCrisisRisk('s-call2-risk');
-    expect(growthRecallFor('u1', 'ferni', 's-call2-risk').note('hey ferni')).toBeNull();
-    expect(growthRecallFor('u1', 'ferni', 's-call2-calm').note('hey ferni')).toContain(HEADER);
-  });
-
   it('never stores a quote under a placeholder or shared id', async () => {
     vi.stubEnv('PERSONA_GROWTH', 'on');
     const read = vi.fn(async () => READING);
@@ -260,6 +415,21 @@ describe('crisis, identity, persona and quote gates', () => {
     // Cut before ", not after": the words are theirs, the meaning isn't.
     const cut = { ...reading, quote: 'the way I see it you rest before you are tired' };
     expect(guardGrowthReading(cut, [line])).toBeNull();
+  });
+
+  it('(d) never keeps a quote cut after a negation in its sentence', () => {
+    const quote = 'you should always rest before you are tired out';
+    const reading = {
+      type: 'reconsidered' as const,
+      topic: 'rest',
+      quote,
+      after: 'rest comes early now',
+    };
+    expect(guardGrowthReading(reading, [`I don't think ${quote}.`])).toBeNull();
+    expect(guardGrowthReading(reading, [`I don\u2019t think ${quote}.`])).toBeNull(); // curly
+    expect(guardGrowthReading(reading, [`Never thought ${quote}.`])).toBeNull();
+    // The same words with no negation before them are kept: the negation stopped it.
+    expect(guardGrowthReading(reading, [`Honestly I think ${quote}.`])).not.toBeNull();
   });
 });
 

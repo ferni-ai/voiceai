@@ -71,7 +71,7 @@ import {
 import { commonGroundEnabled, formatCommonGround } from '../personas/common-ground.js';
 import { firestoreGroundStore, type GroundStore } from '../personas/common-ground-after-call.js';
 import { loadRepairRecall, type RepairStore } from '../personas/friend-repair.js';
-import { growthRecallFor } from '../personas/persona-growth-recall.js';
+import { growthRecallFor, withGrowth } from '../personas/persona-growth-recall.js';
 import { checkInsWithCalls } from '../../services/outreach/call-status.js';
 import {
   coachFollowThroughMode,
@@ -330,7 +330,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const growth = growthRecallFor(deps.userId, personaId, deps.sessionId); // PERSONA_GROWTH
   const ready = Promise.all([...loading, repairs.ready, loops?.ready]).then(() => undefined);
 
-  return {
+  return withGrowth(growth, {
     ready,
     noteFor(transcript, opts = {}) {
       const text = transcript.trim();
@@ -436,7 +436,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
             people,
             told,
             groundNow,
-            ...(followUpsOffered ? [] : [repairs.note(), growth.note(text)]),
+            followUpsOffered ? null : repairs.note(),
             extraTold.length > 0
               ? quietLedger(formatLedger(extraTold, deps.userName, Date.now(), { bridge }), text)
               : null,
@@ -493,7 +493,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       summaryRecall?.newTurn();
     },
     snapshot: () => snapshot,
-  };
+  });
 }
 
 export { addRecallNote, type RecallAgent } from './recall-note.js';
