@@ -36,15 +36,9 @@ vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getFirestoreDb: () => pathFirestore(docs),
 }));
+// The webhook finds the account by its verified phone (sms-sender-account.ts): here the Firebase one.
 vi.mock('../../identity/firebase-auth.js', () => ({
   getFirebaseUserByPhone: vi.fn(async (e164: string) => (e164 === PHONE ? { uid: SETH } : null)),
-}));
-// The webhook finds the account by the profile's phone (findUserByPhone).
-vi.mock('../../../memory/profile-store.js', () => ({
-  getProfileStore: async () => ({
-    isInitialized: true,
-    listProfiles: async () => [{ id: 'seth-uid', contactInfo: { phone: '+15555550123' } }],
-  }),
 }));
 const routed = vi.hoisted(() =>
   vi.fn(async () => ({
