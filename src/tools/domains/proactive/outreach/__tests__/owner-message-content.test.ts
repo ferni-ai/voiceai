@@ -284,6 +284,29 @@ describe('emoji are allowed, and act as separators in every later rule', () => {
     fc.assert(fc.property(asks, (t) => blockedContent(t) === 'credential_ask'), { seed: 3227, numRuns: 200 }); // prettier-ignore
   });
 
+  it('letter-shaped symbols read as their letters: enclosed letters, © and ®', () => {
+    const BASES = [0x1f130, 0x1f150, 0x1f170]; // squared, negative circled, negative squared
+    const enclose = (c: string, k: number) =>
+      c === 'c' && k === 3 ? '\u00a9' : c === 'r' && k === 3 ? '\u00ae' : k === 3 ? c : String.fromCodePoint(BASES[k] + c.charCodeAt(0) - 97); // prettier-ignore
+    const tld = fc
+      .tuple(fc.stringMatching(/^[a-z]{2,5}$/), fc.array(fc.integer({ min: 0, max: 3 }), { minLength: 5, maxLength: 5 }))
+      .map(([t, ks]) => [...t].map((c, i) => enclose(c, ks[i])).join('')); // prettier-ignore
+    const domain = fc.tuple(fc.stringMatching(/^[a-z]{2,8}$/), tld).map(([l, t]) => `${l}.${t}`);
+    fc.assert(fc.property(around(domain), (t) => blockedContent(t) === 'address_token'), { seed: 3227, numRuns: 300 }); // prettier-ignore
+    const [A, P, O] = [0x1f170, 0x1f17f, 0x1f17e].map((c) => String.fromCodePoint(c));
+    expect(blockedContent(`go to evil.${A}${P}${P}`)).toBe('address_token');
+    expect(blockedContent(`go to evil.\u00a9${O}m`)).toBe('address_token');
+  });
+
+  it('keycap digits are digits; other symbols of that block (flags, squared words) refuse', () => {
+    const KEYCAP = String.fromCodePoint(0xfe0f, 0x20e3);
+    const keycaps = fc.array(fc.integer({ min: 2, max: 7 }), { minLength: 7, maxLength: 10 }).map((ds) => ds.map((d) => `${d}${KEYCAP}`).join('')); // prettier-ignore
+    fc.assert(fc.property(around(keycaps), (t) => blockedContent(t) === 'digits'), { seed: 3227, numRuns: 300 }); // prettier-ignore
+    expect(blockedContent(`call ${'5'.concat(KEYCAP).repeat(7)}`)).toBe('digits');
+    expect(blockedContent(`go ${String.fromCodePoint(0x1f1fa, 0x1f1f8)}`)).toBe('charset'); // a flag
+    expect(blockedContent(`free ${String.fromCodePoint(0x1f193)}`)).toBe('charset'); // squared FREE
+  });
+
   it('a zero-width joiner (compound emoji) is refused', () => {
     expect(blockedContent(`family ${EMOJI[0]}${ZWJ}${EMOJI[1]}`)).toBe('charset');
   });

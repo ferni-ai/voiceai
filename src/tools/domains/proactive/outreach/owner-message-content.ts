@@ -1,12 +1,9 @@
 /**
  * What a call the server did not verify may have Ferni send the account owner
- * (owner-message-policy.ts). A shape allowlist, not a denylist: a message passes
- * only when it has none of the shapes a phishing text needs (a link, a number to
- * call, an address to write to, an ask for a login, code or bank details), so a
- * new disguise is refused by default instead of slipping past a missing case.
- *
- * Every rule reads one form (foldToAscii): NFKC, accents dropped, Latin
- * look-alikes (dotless i, small capitals) as ASCII. A message passes only if:
+ * (owner-message-policy.ts): a shape allowlist, so a message passes only with none
+ * of the shapes a phishing text needs (a link, a number, an address, a credential
+ * ask), and a new disguise is refused by default. Every rule reads one form
+ * (foldToAscii): NFKC, accents dropped, look-alikes as ASCII. It passes only if:
  * 1. charset: after folding, ASCII letters, 0-9, spaces, newlines, . , ! ? ' - : ( ) / & "
  *    and emoji (no zero-width joiner); later rules read / & " as "-" and emoji as a space
  * 2. digits: fewer than 7 digits or number words in any 30 characters or any 14
@@ -51,7 +48,7 @@ const LATIN_LOOK_ALIKES: Readonly<Record<string, string>> = {
   đ: 'd', Đ: 'D', ð: 'd', Ð: 'D', þ: 'th', Þ: 'Th', ɑ: 'a', ɡ: 'g', ɩ: 'i', ʋ: 'v',
   ᴀ: 'a', ʙ: 'b', ᴄ: 'c', ᴅ: 'd', ᴇ: 'e', ꜰ: 'f', ɢ: 'g', ʜ: 'h', ɪ: 'i', ᴊ: 'j', ᴋ: 'k',
   ʟ: 'l', ᴍ: 'm', ɴ: 'n', ᴏ: 'o', ᴘ: 'p', ʀ: 'r', ꜱ: 's', ᴛ: 't', ᴜ: 'u', ᴠ: 'v', ᴡ: 'w',
-  ʏ: 'y', ᴢ: 'z',
+  ʏ: 'y', ᴢ: 'z', '©': 'c', '®': 'r',
 }; // prettier-ignore
 /** Letters next to a digit that stand in for one ("55S-O1l2" is 555-0112). */
 const DIGIT_LOOK_ALIKES: Readonly<Record<string, string>> = { l: '1', i: '1', o: '0', s: '5' };
@@ -141,11 +138,8 @@ const groupDigits = (group: Token[]): string =>
   );
 
 /** Whether a group is a clock time ("5:30", "10:45"), never a short code. */
-const isClockTime = (group: Token[], text: string): boolean =>
-  group.length === 2 &&
-  /^[0-9]{1,2}$/.test(group[0].text) &&
-  /^[0-9]{2}$/.test(group[1].text) &&
-  text.slice(group[0].start + group[0].text.length, group[1].start) === ':';
+const isClockTime = ([hours, minutes, ...rest]: Token[], text: string): boolean =>
+  !rest.length && /^[0-9]{1,2}$/.test(hours?.text ?? '') && /^[0-9]{2}$/.test(minutes?.text ?? '') && text.slice(hours.start + hours.text.length, minutes.start) === ':'; // prettier-ignore
 
 /** Words spelled only with l, i, o, s: read as words even beside a number ("Buy 2 oil"). */
 const LOOK_ALIKE_WORDS: ReadonlySet<string> = new Set(['i', 'is', 'so', 'lo', 'oil', 'oils', 'soil', 'soils', 'silo', 'silos', 'solo', 'solos', 'sis', 'loo', 'loos', 'lol', 'sol', 'loss', 'ill', 'ills', 'sill', 'sills', 'oslo']); // prettier-ignore
@@ -171,13 +165,9 @@ function mapLookAlikes(text: string, acrossSpace: boolean, keepWords: boolean): 
   return out;
 }
 
-/**
- * Letters that stand in for digits read as those digits ("55S-O1l2" is 555-0112).
- * First inside words: an l/i/o/s run at a word's end touching a digit, directly
- * or through - . ( ). Then whole words made only of those letters beside a
- * number, across spaces too ("2ooo ooo"). Real words like "oil" or "I" stay
- * words, unless the message already dressed digits as letters.
- */
+/** Letters dressed as digits read as digits ("55S-O1l2"): first at word ends touching a digit
+ * (or through - . ( )), then whole l/i/o/s words beside a number across a space ("2ooo ooo"),
+ * real words ("oil", "I") only once the message already dressed digits as letters. */
 function withLookAlikeDigits(text: string): string {
   const inWords = mapLookAlikes(text, false, true);
   return mapLookAlikes(inWords, true, inWords === text);
@@ -257,7 +247,15 @@ const foldToAscii = (text: string): string =>
     .replace(/[\u201C\u201D]/g, '"')
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
-    .replace(/[^\p{ASCII}]/gu, (c) => LATIN_LOOK_ALIKES[c] ?? c);
+    .replace(/[^\p{ASCII}]/gu, (c) => LATIN_LOOK_ALIKES[c] ?? c)
+    .replace(/[\u{1F100}-\u{1F1FF}]/gu, enclosedLetter);
+
+/** Enclosed letters (🅰 🅿, squared or circled) read as the letter; the rest of the block (regional
+ * indicators, squared words) as U+FFFD, which the charset refuses. Keycaps: NFKD keeps the digit. */
+function enclosedLetter(c: string): string {
+  const offset = [0x1f130, 0x1f150, 0x1f170].map((base) => (c.codePointAt(0) ?? 0) - base).find((o) => o >= 0 && o < 26); // prettier-ignore
+  return offset === undefined ? '\uFFFD' : String.fromCharCode(65 + offset);
+}
 
 /** a.m., p.m., e.g., i.e. as whole words: letter-dot-letter, but no address. */
 const withoutAbbreviationDots = (text: string): string =>
