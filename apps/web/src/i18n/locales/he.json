@@ -1880,9 +1880,9 @@
     "disconnected": "החיבור נותק",
     "end": "סיום",
     "endConversation": "לסיים את השיחה",
-    "endConversationGoodbye": "לסיים את השיחה - להתראות",
+    "goodbyeEndCall": "להתראות. סיום שיחה.",
     "endSession": "סיום השיחה",
-    "ending": "מסיימים...",
+    "ending": "השיחה הסתיימה",
     "goodbye": "להתראות",
     "holdToSpeak": "ללחוץ ולהחזיק כדי לדבר",
     "listening": "בהקשבה...",
@@ -1892,7 +1892,7 @@
     "takeCare": "שמרו על עצמכם.",
     "tapToSpeak": "ללחוץ כדי לדבר",
     "thinking": "רגע של מחשבה...",
-    "untilNextTime": "עד הפעם הבאה..."
+    "untilNextTime": "עד הפעם הבאה"
   },
   "stages": {
     "acquaintance": "מכר",
@@ -10273,7 +10273,6 @@
     "startupError": "יש קושי בעליית האפליקציה. לנסות לרענן?",
     "lastConversation": "זו השיחה האחרונה שלכם החודש. בואו ננצל אותה הכי טוב שאפשר.",
     "gettingReady": "מתכונן...",
-    "connecting": "מתחבר...",
     "almostThere": "כמעט שם...",
     "waitingQuietly": "אחכה בשקט",
     "listening": "אני מקשיב",
@@ -10906,13 +10905,14 @@
   "entrance": {
     "helper": "ליווי אישי צמוד",
     "connectToTalk": "לדבר עם Ferni",
-    "endTalk": "ניתוק",
-    "connectingCancel": "מתחבר. הקש לביטול",
-    "connectingNow": "מתחבר…",
+    "endTalk": "סיום שיחה",
+    "connectingCancel": "מתקשרים אל {name}. הקש לביטול.",
+    "connectingNow": "מתקשרים אל {name}…",
     "tapToCancel": "הקש לביטול",
-    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
-    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
-    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
+    "stillCalling": "עדיין מתקשרים אל {name}…",
+    "stillCallingCancel": "עדיין מתקשרים אל {name}. הקש לביטול.",
+    "reconnecting": "מתחברים מחדש…",
+    "arrived": "{name} כאן"
   },
   "analyticsDashboard": {
     "title": "המסע האישי",

@@ -130,6 +130,7 @@ export const COHORT_FLAGS = [
   'CALL_JOURNAL', // tool build + per turn (call-journal.ts); needs the agent's JOURNAL_ONE_STORE=on
   'FOLLOW_THROUGH_IMPORT', // after the call, through envForCaller (follow-through-import.ts)
   'PONDERING', // greeting (ponderFor); the hourly ponder-job.ts ponders usersWithFlag too
+  'PERSON_MODEL', // UI server's nightly call-sheet job only: usersWithFlag + flagForUser (person-model-job.ts)
   'MORNING_BRIEF', // UI server's briefing job only, never a call: usersWithFlag (brief-job.ts)
   // Read per call, never at boot: as applied mid-call, envForCaller after it, flagForUser on the UI server.
   'COMMITMENT_SINGLE_WRITER',
@@ -144,16 +145,30 @@ export const COHORT_FLAGS = [
   // Crisis lane, owner first (Seth signed off 2026-10-30): read per turn by the crisis classifier
   // after applyCallerFlags, so one person can try it before the agent's own flag goes on.
   'CRISIS_IMMINENT_NEEDS_AGREEMENT',
+  // "Send email as me" for one person before Google verifies gmail.send: the web server's
+  // connect routes ask flagForUser (servers/api/routes/gmail-send.ts, oauth-start.ts); the
+  // agent's send reads it at tool time, after applyCallerFlags (gmail-send-as-user.ts).
+  'GMAIL_SEND_AS_USER',
   // Read each time a quiet stretch is decided mid-call, never at boot (quiet-presence.ts);
   // needs the agent's LISTEN_FIRST=on.
   'QUIET_AFTER_QUESTION',
+  // Memory at the right moment (docs/plans/2026-10-31-right-moment-memory.md §5.6). The hello's
+  // call news is read at the greeting build (callNewsFor). Not CALL_REPORT_REACHES_YOU: its
+  // result-capture reads (unified-result-capture.ts) run outside the call.
+  'CALL_NEWS_OPENER',
+  // Read on each turn's retrieval, never at boot (turn-memory-scale.ts, turn-memory-rerank.ts).
+  'TURN_MEMORY_RRF_SCALE',
+  'TURN_MEMORY_RERANK',
+  // No reader yet: the caller card at call start, dates in the hello at the greeting build.
+  'CALLER_CARD',
+  'DATES_IN_HELLO',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
 const ON_OFF: readonly string[] = ['on', 'off'];
 /** The flags that are not on/off switches, and the values they may take. */
 const MODES: Partial<Record<CohortFlag, readonly string[]>> = {
-  TURN_LENGTH: ['learned', 'off'],
+  TURN_LENGTH: ['learned', 'adaptive', 'off'],
   TURN_TEXTURE: ['learned', 'off'],
   PREEMPT_STABLE_CONTEXT: ['on', 'defer', 'off'],
 };
@@ -174,6 +189,8 @@ export const COHORT_FLAG_NEEDS: Partial<Record<CohortFlag, CohortFlag[]>> = {
   WORLD_FACTS_IN_CALL: ['WORLD_MODEL_TEMPORAL'],
   FOLLOW_THROUGH_TEXTS: ['FOLLOW_THROUGH_IMPORT'], // texts send follow-ups the import wrote
   OUTREACH_PONDERED_NOTES: ['PONDERING'], // notes send what pondering wrote
+  TURN_MEMORY_RERANK: ['TURN_MEMORY_RRF_SCALE'], // the judge reads the rescaled cosines
+  DATES_IN_HELLO: ['DATES_THAT_MATTER', 'WORLD_MODEL_TEMPORAL'], // the hello raises dates they store
 };
 
 /** Flags set on whose prerequisites are not: "RECALL_EPISODES needs SEMANTIC_RECALL". */

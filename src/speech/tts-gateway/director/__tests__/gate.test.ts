@@ -31,9 +31,9 @@ describe('leverModes', () => {
       normalize: 'live',
       emotion: 'live',
       pacing: 'live',
-      // Opt-in levers stay off until set (stream D).
+      laughter: 'live',
+      // The opt-in lever stays off until set (stream D).
       nonverbal: 'off',
-      laughter: 'off',
       // Answering the caller's voice is logged, not applied, until a listening test.
       prosody: 'shadow',
     });
@@ -48,6 +48,9 @@ describe('leverModes', () => {
     expect(modes.pacing).toBe('shadow');
     expect(modes.emotion).toBe('off');
     expect(modes.phrasing).toBe('live');
+    expect(leverModes({ SPEECH_DIRECTOR: 'live', SPEECH_DIRECTOR_LAUGHTER: 'off' }).laughter).toBe(
+      'off'
+    );
   });
 
   it('never lets a lever exceed the global mode', () => {

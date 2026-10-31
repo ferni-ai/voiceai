@@ -23,7 +23,6 @@ import {
   hasEnoughHistory,
   isGroundedInsight,
   isSubstantiveSummary,
-  isSurfaceableInsight,
   keepGroundedInsights,
   keepUnlabelledHypotheses,
 } from '../deep-analysis-guards.js';
@@ -46,7 +45,6 @@ const testCall = { topics: [], keyMoments: ['User asked: Hey, how are you doing?
 
 afterEach(() => {
   stored.doc = null;
-  delete process.env.DEEP_ANALYSIS_IN_CALL;
 });
 
 describe('history', () => {
@@ -95,12 +93,6 @@ describe('insights', () => {
     expect(keepGroundedInsights([insight(), insight({ evidence: [] })])).toHaveLength(1);
   });
 
-  it('surfaces only confident, non-crisis insights', () => {
-    expect(isSurfaceableInsight(insight())).toBe(true);
-    expect(isSurfaceableInsight(insight({ confidence: 0.7 }))).toBe(false);
-    expect(isSurfaceableInsight(insight({ surfacingContext: 'crisis_only' }))).toBe(false);
-  });
-
   it('drops hypotheses that carry a label', () => {
     const out = keepUnlabelledHypotheses([
       { prediction: 'Will mention the belt test', reasoning: 'It is coming up' },
@@ -128,18 +120,10 @@ describe('getPredictiveIntelligenceContext with a stored deep analysis', () => {
     tokenUsage: { input: 1, output: 1 },
   };
 
-  it('says nothing about deep insights in a call unless DEEP_ANALYSIS_IN_CALL=on', async () => {
+  it('says nothing about deep insights in a call', async () => {
     stored.doc = analysis;
     const text = await getPredictiveIntelligenceContext('u1');
     expect(text).not.toContain('martial arts');
     expect(text).not.toContain('DEEP INTELLIGENCE');
-  });
-
-  it('with the flag on, carries the grounded insight and never the labelled one', async () => {
-    stored.doc = analysis;
-    process.env.DEEP_ANALYSIS_IN_CALL = 'on';
-    const text = await getPredictiveIntelligenceContext('u1');
-    expect(text).toContain('Talks about martial arts training most weeks');
-    expect(text).not.toContain('protective buffer');
   });
 });

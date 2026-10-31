@@ -104,11 +104,6 @@ let messageIndex = 0;
 let messageInterval: ReturnType<typeof setTimeout> | null = null;
 let currentPersonaId: string = 'ferni';
 
-// Connection progress state
-let progressElement: HTMLElement | null = null;
-let currentStep = 0;
-const CONNECTION_STEPS = ['Auth', 'Joining', 'Audio', 'Ready'];
-
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
@@ -427,70 +422,6 @@ function getCuriousTiltIntensity(): { angle: number; duration: number } {
 }
 
 // ============================================================================
-// CONNECTION PROGRESS - Apple-style step indicator
-// ============================================================================
-
-/**
- * Show connection progress with step indicator
- */
-export function showProgress(step: number = 0): void {
-  if (!floatElement) return;
-
-  currentStep = step;
-
-  // Create progress element if not exists
-  if (!progressElement) {
-    progressElement = document.createElement('div');
-    progressElement.className = 'connection-progress';
-    progressElement.innerHTML = CONNECTION_STEPS.map((_, i) =>
-      `<div class="connection-step" data-step="${i}"></div>`
-    ).join('');
-    progressElement.style.cssText = `
-      display: flex;
-      gap: 8px;
-      justify-content: center;
-      margin-top: 8px;
-    `;
-    floatElement.appendChild(progressElement);
-  }
-
-  // Update step states
-  const steps = progressElement.querySelectorAll('.connection-step');
-  steps.forEach((el, i) => {
-    el.classList.remove('active', 'completed');
-    if (i < step) {
-      el.classList.add('completed');
-    } else if (i === step) {
-      el.classList.add('active');
-    }
-  });
-
-  // Update message to match step
-  if (textElement && step < CONNECTION_STEPS.length) {
-    const stepMessages = ['Authenticating...', 'Joining room...', 'Connecting audio...', 'Almost ready...'];
-    textElement.textContent = stepMessages[step] ?? 'Connecting...';
-  }
-}
-
-/**
- * Advance to next connection step
- */
-export function nextStep(): void {
-  showProgress(currentStep + 1);
-}
-
-/**
- * Hide connection progress
- */
-export function hideProgress(): void {
-  if (progressElement) {
-    progressElement.remove();
-    progressElement = null;
-  }
-  currentStep = 0;
-}
-
-// ============================================================================
 // CLEANUP
 // ============================================================================
 
@@ -501,7 +432,6 @@ export function dispose(): void {
 
   stopMessageCycle();
   stopCuriousTilt();
-  hideProgress();
 
   coachElement = null;
   floatElement = null;
@@ -519,8 +449,5 @@ export const thinkingUI = {
   hide,
   setMessage,
   setPersona,
-  showProgress,
-  nextStep,
-  hideProgress,
   dispose,
 };

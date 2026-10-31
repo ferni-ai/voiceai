@@ -9,6 +9,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { errorClass } from '../../utils/error-class.js';
 import { createResilientClient } from '../self-healing/resilient-http.js';
 import { getOuraAccessToken } from './oura-auth.js';
 import type {
@@ -72,7 +73,7 @@ async function ouraRequest<T>(
 
     if (response.error || !response.data) {
       log.error(
-        { status: response.status, endpoint, error: response.error?.message },
+        { status: response.status, endpoint, code: response.error?.code },
         'Oura API error'
       );
       return { success: false, error: `API error: ${response.status || 'unknown'}` };
@@ -80,7 +81,7 @@ async function ouraRequest<T>(
 
     return { success: true, data: response.data };
   } catch (error) {
-    log.error({ error: String(error), endpoint }, 'Oura API request failed');
+    log.error({ error: errorClass(error), endpoint }, 'Oura API request failed');
     return { success: false, error: 'Request failed' };
   }
 }

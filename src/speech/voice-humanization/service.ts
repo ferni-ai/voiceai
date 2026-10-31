@@ -92,7 +92,7 @@ export class VoiceHumanizationService {
     if (voiceSuggestion.suggests && voiceSuggestion.confidence > 0.7) {
       log.debug(
         {
-          transcript: transcript.slice(0, 40),
+          transcriptLen: transcript.length,
           voiceConfidence: voiceSuggestion.confidence,
           reason: voiceSuggestion.reason,
         },
@@ -141,7 +141,7 @@ export class VoiceHumanizationService {
     for (const word of IMMEDIATE_STOP_WORDS) {
       if (normalized === word || normalized.startsWith(`${word} `)) {
         log.info(
-          { trigger: word, text: normalized.slice(0, 30) },
+          { trigger: word, textLen: normalized.length },
           '🛑 Micro-interruption detected'
         );
 
@@ -163,7 +163,7 @@ export class VoiceHumanizationService {
     // Check pre-interruption patterns
     for (const pattern of PRE_INTERRUPTION_PATTERNS) {
       if (pattern.test(normalized)) {
-        log.info({ text: normalized.slice(0, 30) }, '🛑 Pre-interruption pattern detected');
+        log.info({ textLen: normalized.length }, '🛑 Pre-interruption pattern detected');
         return {
           detected: true,
           trigger: normalized.split(/\s+/)[0],

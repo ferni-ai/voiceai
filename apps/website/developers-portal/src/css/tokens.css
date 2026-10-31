@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: pnpm tokens:sync
- * Generated: 2026-10-17T14:06:58.632Z
+ * Generated: 2026-10-29T14:25:13.856Z
  */
 
 :root {
@@ -231,6 +231,8 @@
   --duration-moderate: 400ms;
   --duration-slowest: 500ms;
   --duration-deliberate: 700ms;
+  --duration-expression-light: 350ms;
+  --duration-expression-heavy: 900ms;
   --duration-celebration: 800ms;
   --duration-dramatic: 1000ms;
   --duration-entrance: 1000ms;

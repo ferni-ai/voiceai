@@ -11,9 +11,9 @@
  */
 
 import { getFinancialStore } from '../../../../services/stores/financial-store.js';
+import { takeHandoffArrival } from '../../../../tools/handoff/index.js';
 import { hasAnyProviderConnected } from '../../../../services/calendar/index.js';
 import { loadBriefingStores } from '../briefing-stores.js';
-import { getHandoffContext } from '../../../../tools/handoff/executor.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import {
   BuilderCategory,
@@ -274,7 +274,9 @@ async function buildAlexCommunicationInsightsContext(
   const sessionId = input.services?.sessionId || userId;
   const session = getSession(sessionId);
 
-  const handoffContext = getHandoffContext() as HandoffContextType | undefined;
+  // Only the first turn after a handoff to Alex in this call (it once compared null with undefined).
+  const handoffContext: HandoffContextType | undefined =
+    takeHandoffArrival(input.services?.sessionId, 'alex-chen') ?? undefined;
   const isHandoff = handoffContext !== undefined;
 
   // Inject on first turn, handoff, or every 10 turns
@@ -377,13 +379,8 @@ async function buildAlexCommunicationInsightsContext(
       );
     }
   } catch (err) {
+    // Nothing rather than a placeholder (its arguments were swapped, injecting "alex_briefing").
     log.warn({ error: String(err) }, 'Failed to build Alex communication briefing');
-    injections.push(
-      createStandardInjection(
-        '[Alex: Communication briefing unavailable. Proceeding with standard context.]',
-        'alex_briefing'
-      )
-    );
   }
 
   return injections;

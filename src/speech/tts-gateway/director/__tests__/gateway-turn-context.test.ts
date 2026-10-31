@@ -109,7 +109,6 @@ describe('gateway → Director turn wiring', () => {
 
   it('hands a laugh the Director added to the onNonverbal the session layer passed in', async () => {
     process.env.SPEECH_DIRECTOR = 'live';
-    process.env.SPEECH_DIRECTOR_LAUGHTER = 'live';
     vi.spyOn(Math, 'random').mockReturnValue(0); // every roll passes
     try {
       const { createGatewayTTSNode } = await import('../../gateway-tts-node.js');
@@ -138,7 +137,6 @@ describe('gateway → Director turn wiring', () => {
         expect.objectContaining({ kind: 'laugh', source: 'director', personaId: 'jordan-taylor' })
       );
     } finally {
-      delete process.env.SPEECH_DIRECTOR_LAUGHTER;
       vi.restoreAllMocks();
     }
   });

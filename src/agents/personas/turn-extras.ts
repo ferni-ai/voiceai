@@ -1,13 +1,17 @@
 /**
- * Small, optional behaviours a friend has on the phone, added to one reply's
- * shape (turn-shape.ts). Each is off unless its env var is "on", so prod is
- * unchanged until one has been heard on dev:
+ * Small behaviours a friend has on the phone, added to one reply's shape
+ * (turn-shape.ts):
  *
- *   CURIOUS_DETAIL  questions go after one concrete detail they mentioned
+ *   curious detail  questions go after one concrete detail they mentioned
  *                   ("wait, Biscuit's the dog?"), not how they feel.
- *   THINK_ALOUD     on a real question, work it out aloud partway through
+ *   thinking aloud  on a real question, work it out aloud partway through
  *                   ("hm, let me think") instead of a finished answer. Live
  *                   fillers were 0.4 per 100 words; people use 1-4.
+ *   human texture   fillers, a laugh at something funny, a small opinion.
+ *
+ * Two are still off unless their env var is "on", so prod is unchanged until
+ * one has been heard on dev:
+ *
  *   LAUGH_ALONG     when they laugh, laugh with them. Ferni laughed in 0 of 37
  *                   live replies; most laughter in conversation is shared, not
  *                   a response to a joke (Provine).
@@ -25,6 +29,7 @@ import { classifyBackchannelContext } from '../integrations/backchannel-context.
 import { mayNeedTool } from '../model-provider/fast-lane.js';
 import { NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
 import type { RecentTurns } from './turn-length.js';
+import type { Substance } from './turn-substance.js';
 import type { CallerMove, Shape } from './turn-shape.js';
 import type { Understanding } from './turn-understanding.js';
 
@@ -107,6 +112,8 @@ export interface TurnSignals {
   selfBrief?: boolean;
   /** TURN_LENGTH / TURN_TEXTURE=learned: the turns before this reply (turn-length.ts). */
   recent?: RecentTurns;
+  /** TURN_LENGTH=adaptive: this turn needs a real answer, and why (turn-substance.ts). */
+  substance?: Substance;
   /** DIRECTOR_ANSWER_TURN_GUARD=on: they just answered his question (answer-turn.ts). */
   answered?: boolean;
   /** QUIET_CALLER=on: their last turns were a few words each (quiet-caller.ts). */
@@ -119,6 +126,8 @@ export interface TurnSignals {
   trouble?: boolean;
   /** Crisis risk noted on this call (crisis-call-risk.ts, turn-holds.ts): no thinking aloud. */
   crisisRisk?: boolean;
+  /** No line may bar a question on this turn (exits-held.ts). */
+  exitsHeld?: boolean;
 }
 
 /** The model's understanding as signals. */
@@ -192,7 +201,7 @@ export function extrasFor(
   // aloud on chit-chat, where friends rarely do either.
   const learnedTexture = env.TURN_TEXTURE === 'learned';
   const chat = move === 'share' || move === 'ack';
-  if (on(env, 'THINK_ALOUD') && shape !== 'react' && !(learnedTexture && chat) && !signals.quiet) {
+  if (shape !== 'react' && !(learnedTexture && chat) && !signals.quiet) {
     // Live, request turns are rare: also think aloud on some longer answers.
     const p =
       move === 'request' || move === 'about_ferni'
@@ -209,15 +218,13 @@ export function extrasFor(
       out.fired.push('think_aloud');
     }
   }
-  if (on(env, 'CURIOUS_DETAIL')) {
-    if (questionAllowed) {
-      out.questionLine = CURIOUS_QUESTION;
-      out.fired.push('curious_question');
-    } else if (move === 'share' && shape === 'one' && rng() < 0.1) {
-      out.shapeLine = CURIOUS_ONE;
-      out.questionLine = '';
-      out.fired.push('curious_one');
-    }
+  if (questionAllowed) {
+    out.questionLine = CURIOUS_QUESTION;
+    out.fired.push('curious_question');
+  } else if (move === 'share' && shape === 'one' && rng() < 0.1) {
+    out.shapeLine = CURIOUS_ONE;
+    out.questionLine = '';
+    out.fired.push('curious_one');
   }
   // Fired 0 times live when limited to a quick "yeah": also on light shares.
   if (
@@ -237,41 +244,39 @@ export function extrasFor(
       out.fired.push('ask_advice');
     }
   }
-  if (on(env, 'HUMAN_TEXTURE')) {
-    // Live: 0 fillers per 100 words (people: 1-4), 0% laughter, ~5% opinions.
-    if (
-      !learnedTexture &&
-      (shape === 'answer' || shape === 'full') &&
-      rng() < scaled(0.35, style.filler)
-    ) {
-      out.lines.push(FILLER);
-      out.fired.push('filler');
-    }
-    // Live at 25% on any share, he laughed at "a slow week" and at tender news
-    // (7 of 20 replies). Only when their words read as funny or a happy surprise.
-    if (
-      move === 'share' &&
-      signals.laughFits &&
-      !venting &&
-      !heavy &&
-      !signals.trouble &&
-      !signals.laughed &&
-      shape !== 'full' &&
-      rng() < scaled(0.5, style.laugh)
-    ) {
-      out.lines.push(LAUGH_SPONTANEOUS);
-      out.fired.push('laugh_spontaneous');
-    }
-    if (
-      move !== 'ack' &&
-      !venting &&
-      !signals.quiet &&
-      shape !== 'react' &&
-      rng() < scaled(0.25, style.opinion)
-    ) {
-      out.lines.push(OPINION);
-      out.fired.push('opinion');
-    }
+  // Live: 0 fillers per 100 words (people: 1-4), 0% laughter, ~5% opinions.
+  if (
+    !learnedTexture &&
+    (shape === 'answer' || shape === 'full') &&
+    rng() < scaled(0.35, style.filler)
+  ) {
+    out.lines.push(FILLER);
+    out.fired.push('filler');
+  }
+  // Live at 25% on any share, he laughed at "a slow week" and at tender news
+  // (7 of 20 replies). Only when their words read as funny or a happy surprise.
+  if (
+    move === 'share' &&
+    signals.laughFits &&
+    !venting &&
+    !heavy &&
+    !signals.trouble &&
+    !signals.laughed &&
+    shape !== 'full' &&
+    rng() < scaled(0.5, style.laugh)
+  ) {
+    out.lines.push(LAUGH_SPONTANEOUS);
+    out.fired.push('laugh_spontaneous');
+  }
+  if (
+    move !== 'ack' &&
+    !venting &&
+    !signals.quiet &&
+    shape !== 'react' &&
+    rng() < scaled(0.25, style.opinion)
+  ) {
+    out.lines.push(OPINION);
+    out.fired.push('opinion');
   }
   return out;
 }

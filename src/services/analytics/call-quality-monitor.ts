@@ -17,7 +17,7 @@ import { registerInterval, clearNamedInterval } from '../../utils/interval-manag
 import { SlackNotificationService } from '../slack-notifications.js';
 import { recordMetricValue } from '../predictive-alerting.js';
 import { logCallStartStages } from './call-start-stages.js';
-import { emitCallEnd, type CallSummary } from './bq-call-events.js';
+import { adoptCallerId, emitCallEnd, type CallSummary } from './bq-call-events.js';
 import { gateSmallSamples } from './call-quality-sample.js';
 import * as firstResponse from './call-first-response.js';
 import { AlertIncidents, deliverAlert } from './call-quality-incidents.js';
@@ -214,7 +214,7 @@ export function recordCallEvent(event: CallEvent): void {
       events: [],
     };
     sessions.set(event.callId, session);
-  }
+  } else adoptCallerId(session, event.userId); // BQ_CALL_USER_HASH
 
   session.events.push(event);
 
@@ -274,10 +274,10 @@ export function recordCallEvent(event: CallEvent): void {
             ? 'disconnect'
             : 'error';
 
+      session.events = []; // kept for its counts and timings; nothing reads a done call's events
       completedSessions.push(session);
       sessions.delete(event.callId);
 
-      // Trim old sessions
       if (completedSessions.length > MAX_COMPLETED_SESSIONS) {
         completedSessions.splice(0, completedSessions.length - MAX_COMPLETED_SESSIONS);
       }

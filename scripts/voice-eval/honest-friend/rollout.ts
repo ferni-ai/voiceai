@@ -40,9 +40,6 @@ const { values } = parseArgs({
 /** Reply-shaping flags on dev for Seth's 2026-10-11 call (TURN_SHAPE extras, FERNI_STATE, director logs). */
 const DEV_FLAGS = {
   CANDOR: 'on',
-  THINK_ALOUD: 'on',
-  CURIOUS_DETAIL: 'on',
-  HUMAN_TEXTURE: 'on',
   ASK_ADVICE: 'on',
   LAUGH_ALONG: 'on',
   DIRECTOR_NOTES: 'on',

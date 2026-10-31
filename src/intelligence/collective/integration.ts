@@ -215,7 +215,7 @@ class SignalCollector {
       {
         personaId,
         topic,
-        question: breakthrough.questionPattern.slice(0, 50),
+        questionLen: breakthrough.questionPattern.length,
       },
       'Breakthrough signal recorded'
     );

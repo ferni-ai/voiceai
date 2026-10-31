@@ -520,7 +520,7 @@ function detectInstructionLeakage(text: string): LeakageDetection {
   for (const pattern of INSTRUCTION_LEAKAGE_PATTERNS_START) {
     if (pattern.test(text)) {
       log.warn(
-        { text: text.slice(0, 80), pattern: String(pattern) },
+        { textLen: text.length, pattern: String(pattern) },
         '🚨 Instruction leakage (start pattern)'
       );
       return {
@@ -534,7 +534,7 @@ function detectInstructionLeakage(text: string): LeakageDetection {
   for (const pattern of INSTRUCTION_LEAKAGE_PATTERNS_ANYWHERE) {
     if (pattern.test(text)) {
       log.warn(
-        { text: text.slice(0, 80), pattern: String(pattern) },
+        { textLen: text.length, pattern: String(pattern) },
         '🚨 Instruction leakage (mid-text pattern)'
       );
       return {

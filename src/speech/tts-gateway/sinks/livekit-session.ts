@@ -69,7 +69,7 @@ export class LiveKitSessionSink implements IAudioSink {
       });
 
       log.debug(
-        { text: text.slice(0, 50), allowInterruptions: this.allowInterruptions },
+        { textLen: text.length, allowInterruptions: this.allowInterruptions },
         '🎤 Sent text to LiveKit session'
       );
     } catch (error) {

@@ -29,6 +29,7 @@ import {
   refreshWithRevocation,
 } from './oauth-revocation.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { errorClass } from '../../utils/error-class.js';
 import { noteLinkedTokenUse } from '../../utils/linked-token-use.js';
 import { GOOGLE_CALENDAR_SCOPES } from '../../config/google-calendar-scopes.js';
 import { isInsufficientLink } from './google-link-scope.js';
@@ -196,9 +197,8 @@ export async function exchangeCodeForTokens(code: string): Promise<GoogleTokens>
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    getLogger().error({ status: response.status, error }, 'Failed to exchange code for tokens');
-    throw new Error(`Token exchange failed: ${error}`);
+    getLogger().error({ status: response.status }, 'Failed to exchange code for tokens');
+    throw new Error(`Token exchange failed: HTTP ${response.status}`);
   }
 
   const tokens = (await response.json()) as GoogleTokens;
@@ -231,17 +231,17 @@ export async function refreshAccessToken(refreshToken: string): Promise<GoogleTo
   });
 
   if (!response.ok) {
-    const error = await response.text();
+    // The body is read for the OAuth error code only; it is never logged or thrown.
+    const grant = permanentGrantErrorClass(await response.text());
     // Use warn level instead of error - expired tokens are expected
-    getLogger().warn({ status: response.status, error }, 'Failed to refresh access token');
+    getLogger().warn({ status: response.status, grant }, 'Failed to refresh access token');
 
     // Permanent failures aren't retried; the shared handler records needs_reauth
-    const errorClass = permanentGrantErrorClass(error);
-    if (errorClass) {
-      throw new TokenPermanentlyInvalidError(`Token permanently invalid: ${error}`, errorClass);
+    if (grant) {
+      throw new TokenPermanentlyInvalidError(`Token permanently invalid: ${grant}`, grant);
     }
 
-    throw new Error(`Token refresh failed: ${error}`);
+    throw new Error(`Token refresh failed: HTTP ${response.status}`);
   }
 
   const tokens = (await response.json()) as GoogleTokens;
@@ -660,15 +660,14 @@ export async function getServiceAccountToken(credentials: {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      getLogger().error({ error }, 'Service account token exchange failed');
+      getLogger().error({ status: response.status }, 'Service account token exchange failed');
       return null;
     }
 
     const tokens = (await response.json()) as { access_token: string };
     return tokens.access_token;
   } catch (error) {
-    getLogger().error({ error }, 'Failed to get service account token');
+    getLogger().error({ error: errorClass(error) }, 'Failed to get service account token');
     return null;
   }
 }

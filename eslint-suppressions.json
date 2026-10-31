@@ -9,11 +9,6 @@
       "count": 1
     }
   },
-  "src/agents/integrations/predictive-intelligence-integration.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
   "src/agents/model-provider/gemini-live.ts": {
     "ferni/no-env-flag-compare": {
       "count": 2
@@ -204,11 +199,6 @@
       "count": 1
     }
   },
-  "src/intelligence/scripted-hint-lines.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
   "src/intelligence/utils/injection-filter.ts": {
     "ferni/no-env-flag-compare": {
       "count": 2
@@ -229,17 +219,7 @@
       "count": 1
     }
   },
-  "src/servers/token/demo-rate-limit-shared.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
   "src/services/communication/intelligence-publisher.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
-  "src/services/context-awareness/context-inspection.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
     }
@@ -250,21 +230,6 @@
     }
   },
   "src/services/engagement/engagement-notification-service.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
-  "src/services/evalops/evaluation-persistence.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
-  "src/services/gtm/gtm-config.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 2
-    }
-  },
-  "src/services/llm-utils.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
     }
@@ -309,11 +274,6 @@
       "count": 1
     }
   },
-  "src/services/session/session-continuity.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
   "src/services/world-awareness/session-integration.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
@@ -329,11 +289,6 @@
       "count": 2
     }
   },
-  "src/speech/tts-gateway/gateway-tts-node.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
   "src/speech/tts-gateway/index.ts": {
     "ferni/no-env-flag-compare": {
       "count": 2
@@ -342,11 +297,6 @@
   "src/startup.ts": {
     "ferni/no-env-flag-compare": {
       "count": 3
-    }
-  },
-  "src/tasks/task-entry-transition.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
     }
   },
   "src/tasks/task-manager.ts": {

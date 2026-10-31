@@ -1881,9 +1881,9 @@
     "disconnected": "Hors ligne",
     "end": "Fin",
     "endConversation": "Terminer la conversation",
-    "endConversationGoodbye": "Terminer la conversation - Au revoir",
+    "goodbyeEndCall": "Au revoir. Raccrocher.",
     "endSession": "Terminer la session",
-    "ending": "Fermeture...",
+    "ending": "Appel terminé",
     "goodbye": "Au revoir",
     "holdToSpeak": "Maintenir pour parler",
     "listening": "À l'écoute...",
@@ -1893,7 +1893,7 @@
     "takeCare": "Prends soin de toi.",
     "tapToSpeak": "Appuyer pour parler",
     "thinking": "Réflexion...",
-    "untilNextTime": "À la prochaine..."
+    "untilNextTime": "À la prochaine"
   },
   "stages": {
     "acquaintance": "Connaissance",
@@ -10276,7 +10276,6 @@
     "startupError": "Un petit souci au démarrage. Tu veux rafraîchir la page ?",
     "lastConversation": "C'est ta dernière conversation ce mois-ci. Faisons en sorte qu'elle compte.",
     "gettingReady": "Préparation en cours...",
-    "connecting": "Connexion...",
     "almostThere": "Presque là...",
     "waitingQuietly": "Je t'attends sagement",
     "listening": "Je t'écoute",
@@ -10912,12 +10911,13 @@
     "helper": "Ton guide personnel",
     "connectToTalk": "Parler à Ferni",
     "endTalk": "Raccrocher",
-    "connectingCancel": "Connexion en cours. Touchez pour annuler",
-    "connectingNow": "Connexion…",
+    "connectingCancel": "On appelle {name}. Touchez pour annuler.",
+    "connectingNow": "On appelle {name}…",
     "tapToCancel": "Touchez pour annuler",
-    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
-    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
-    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
+    "stillCalling": "Ça sonne chez {name}…",
+    "stillCallingCancel": "Ça sonne chez {name}. Touchez pour annuler.",
+    "reconnecting": "Reconnexion…",
+    "arrived": "{name} est là"
   },
   "analyticsDashboard": {
     "title": "Ton parcours",

@@ -34,7 +34,6 @@ let calls = 0;
 
 /** A call's live backchanneling on the audio clock, as prod runs it. */
 function call(timing: 'on' | 'off', random: () => number = () => 0) {
-  vi.stubEnv('BACKCHANNELS', 'on');
   vi.stubEnv('BACKCHANNEL_AUDIO_CLOCK', 'on');
   vi.stubEnv('BACKCHANNEL_TIMING', timing);
   vi.useFakeTimers({ now: 1_000_000 });
@@ -244,7 +243,6 @@ describe('laughs through the bag still count (LAUGH_CAP, #2433)', () => {
   const JOKE = 'haha and then the dog ate the whole cake, it was hilarious.';
 
   it('a caller laugh plays "Ha" once, the ledger counts it, and a second is denied', () => {
-    vi.stubEnv('BACKCHANNEL_CONTEXT', 'on');
     vi.stubEnv('LAUGH_CAP', 'on');
     const c = call('on');
     expect(nextReplyMayLaugh(c.sessionId, JOKE, false)).toBe(true);

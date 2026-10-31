@@ -1,10 +1,11 @@
 # A tired caller in the middle of the night, answering in a few words with long
-# quiet stretches (modelled on a prod call, 2026-10-11, paraphrased). Run with
-# EVAL_TZ set to a zone where it's 1-4 am, and LISTEN_FIRST=on vs off on dev.
+# quiet stretches (modelled on a prod call, 2026-10-11, paraphrased). The caller is at 02:30 local
+# (#@time-of-day below; run.sh picks the zone), with LISTEN_FIRST=on vs off on dev.
 # A friend listens: short replies, an easy question now and then, company, maybe
 # an offer to let them sleep. No stories of his own day, no calling out the
 # quiet, and at most one presence check through the long silences.
 # Scored by recall-facts.mjs (#682): avoids count every time Ferni says them.
+#@time-of-day 02:30
 #@avoid presence-check still there|you there\?|lose you|lost you
 #@avoid self-monologue \bmy (mail|coffee|kettle|stove|kitchen|counter|table|morning|day|garden)\b|\bI (keep|usually|used to|remember|spent)\b|back home|growing up
 #@avoid names-the-quiet (you'?ve been|you'?re|you seem|pretty|awfully|so) quiet|quiet (tonight|huh)

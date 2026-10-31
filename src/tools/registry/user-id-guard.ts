@@ -56,7 +56,7 @@ export function isRealUserId(userId: unknown): userId is string {
  * else the call's own session user (opts.ctx.userData.userId), else one anon: id per
  * session (callerIdFor). A placeholder build ctx is common: the shared tool gateway.
  */
-function trustedUserId(ctx: ToolContext, opts: unknown): string {
+export function trustedUserId(ctx: ToolContext, opts: unknown): string {
   const run = (opts as { ctx?: { userData?: { userId?: unknown }; session?: unknown } } | undefined)
     ?.ctx;
   const session = [run?.session, run?.userData].find((v) => v && typeof v === 'object') ?? null;

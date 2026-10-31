@@ -16,6 +16,15 @@
  * back frames from a second rtc-node copy; BVC returns plain options and
  * stays in the native path.)
  *
+ * PHONE_NOISE_CANCEL=on gives a phone caller LiveKit's telephony BVC instead of
+ * AGC + high-pass. A session takes one noiseCancellation, native or a frame
+ * processor, so the two can't be stacked: the A/B decides which one a phone
+ * line needs. Phone calls had no noise cancellation at all, and LiveKit paused
+ * Ferni for caller audio 27 times per 100 phone replies against 9.5 on the web
+ * (prod 2026-10-23..30). Noise suppression of our own raised Ink-2's phone word
+ * errors from 2.2% to 51.1% (pre-stt-audio-integration.ts); telephony BVC is a
+ * different model, but its word errors are the thing to watch.
+ *
  * @module agents/multi-agent/room-input-options
  */
 import type { voice } from '@livekit/agents';
@@ -27,6 +36,7 @@ import {
   isPhoneParticipant,
   wantsPhonePreStt,
 } from '../integrations/pre-stt-frame-processor.js';
+import { notePhoneNoiseCancel } from './phone-audio-summary.js';
 
 const log = getLogger();
 
@@ -35,14 +45,18 @@ interface InputOptions {
   inputOptions?: Partial<voice.RoomInputOptions>;
 }
 
-async function backgroundVoiceCancellation(
+type Model = 'BackgroundVoiceCancellation' | 'TelephonyBackgroundVoiceCancellation';
+
+async function voiceCancellation(
+  model: Model,
+  flag: 'WEB_NOISE_CANCEL' | 'PHONE_NOISE_CANCEL',
   sessionId: string
 ): Promise<voice.RoomInputOptions['noiseCancellation'] | null> {
   try {
     const nc = await import('@livekit/noise-cancellation-node');
-    return nc.BackgroundVoiceCancellation();
+    return nc[model]();
   } catch (err) {
-    log.warn({ error: String(err), sessionId }, 'WEB_NOISE_CANCEL: BVC not available');
+    log.warn({ error: String(err), sessionId }, `${flag}: ${model} not available`);
     return null;
   }
 }
@@ -54,6 +68,18 @@ export async function roomInputOptions(
   env: Env = process.env
 ): Promise<InputOptions> {
   if (isPhoneParticipant(participant)) {
+    if (flagOn('PHONE_NOISE_CANCEL', env)) {
+      const nc = await voiceCancellation(
+        'TelephonyBackgroundVoiceCancellation',
+        'PHONE_NOISE_CANCEL',
+        sessionId
+      );
+      if (nc) {
+        notePhoneNoiseCancel(sessionId);
+        log.info({ sessionId }, 'PHONE_NOISE_CANCEL: telephony BVC on phone caller audio');
+        return { inputOptions: { noiseCancellation: nc } };
+      }
+    }
     const phone = wantsPhonePreStt(participant, env)
       ? await createPreSTTFrameProcessor(sessionId)
       : null;
@@ -61,7 +87,7 @@ export async function roomInputOptions(
   }
   // An unknown caller might be on the phone: leave their audio alone.
   if (!participant || !flagOn('WEB_NOISE_CANCEL', env)) return {};
-  const bvc = await backgroundVoiceCancellation(sessionId);
+  const bvc = await voiceCancellation('BackgroundVoiceCancellation', 'WEB_NOISE_CANCEL', sessionId);
   if (!bvc) return {};
   log.info({ sessionId }, 'WEB_NOISE_CANCEL: BVC on web caller audio');
   return { inputOptions: { noiseCancellation: bvc } };

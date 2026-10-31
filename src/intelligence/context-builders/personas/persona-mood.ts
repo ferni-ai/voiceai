@@ -16,7 +16,6 @@
 
 import type { PersonaConfig } from '../../../personas/types.js';
 import type { MoodState } from '../../../types/humanizing-types.js';
-import { scriptedHintLinesEnabled } from '../../scripted-hint-lines.js';
 
 // ============================================================================
 // TYPES
@@ -577,12 +576,6 @@ export function formatMoodForPrompt(mood: PersonaMood): string {
 
   if (behaviors.length > 0) {
     sections.push(`Behaviors: ${behaviors.join('; ')}`);
-  }
-
-  // Mood phrase hint (a scripted aside; off unless FERNI_SCRIPTED_HINT_LINES=on)
-  if (mood.moodPhrases.length > 0 && scriptedHintLinesEnabled()) {
-    const phrase = mood.moodPhrases[Math.floor(Math.random() * mood.moodPhrases.length)];
-    sections.push(`If natural, you might say something like: "${phrase}"`);
   }
 
   return sections.join('\n');

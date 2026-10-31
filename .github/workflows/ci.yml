@@ -106,6 +106,9 @@ jobs:
       # 'false' only when a PR touches nothing but docs/, scripts/voice-eval/ and
       # markdown outside the code trees (persona bundles load src/**/*.md at runtime)
       code: ${{ steps.code.outputs.matched }}
+      # ARCHITECTURE.md is root markdown, so `code` ignores it; this output still runs
+      # `pnpm docs:map --check` (Quality Gates) when only it or its generator changes.
+      arch-map: ${{ steps.arch-map.outputs.matched }}
       # 'false' also when a PR touches only apps that aren't the Node app (website,
       # ios-native, android-twa, macos-menubar): none is in the UI image, ESLint
       # ignores apps/**, and none has .ts, so the test, lint and build jobs can't
@@ -147,6 +150,13 @@ jobs:
         uses: ./.github/actions/pr-changes
         with:
           exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$'
+          merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
+
+      - name: Did the architecture map or its generator change?
+        id: arch-map
+        uses: ./.github/actions/pr-changes
+        with:
+          include: '^(ARCHITECTURE\.md|apps/cli/src/commands/quality/(docs-map|architecture-layers)\.ts)$'
           merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
 
       - name: Did the Node app change?
@@ -1048,7 +1058,8 @@ jobs:
     # Runs on pull_request too. Skipped there, it first ran in the merge queue, so
     # one PR that grew a 713-line file to 723 failed 15 of 15 merge groups and
     # knocked out every PR queued with it (2026-10-18). Its three steps are cheap.
-    if: needs.setup.outputs.code != 'false'
+    # arch-map: a PR that edits only ARCHITECTURE.md (root markdown) still runs docs:map --check.
+    if: needs.setup.outputs.code != 'false' || needs.setup.outputs.arch-map == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -1100,6 +1111,11 @@ jobs:
       # Blocking ratchet: a new import edge breaking architecture-layers.ts fails. ~5 s; scoreboard in job summary.
       - name: Architecture gate
         run: pnpm quality:arch
+
+      # Blocking: ARCHITECTURE.md's layer table is generated from architecture-layers.ts and
+      # must match it (and the index.ts / CLAUDE.md files it links). Fix: `pnpm docs:map`. ~1 s.
+      - name: Architecture map is current
+        run: pnpm docs:map --check
 
       # Blocking ratchet: a new Firestore client that ignores FIRESTORE_DATABASE (dev runs on
       # ferni-dev, prod on '(default)') fails, and the allowlist may only shrink. ~10 s.

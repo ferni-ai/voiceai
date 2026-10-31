@@ -28,7 +28,6 @@ import { getLogger } from '../../utils/safe-logger.js';
 import {
   buildCognitiveHandoffContext,
   formatCognitiveHandoffForPrompt,
-  type CognitiveHandoffContext,
 } from './cognitive-handoff.js';
 import {
   buildInsightBriefingForHandoff,
@@ -36,12 +35,17 @@ import {
 } from '../../services/cross-persona-insights.js';
 import { getHandoffGreeting as getInsightBriefingGreeting } from '../../services/persona-content-loader.js';
 import { createHandoffEvent } from './types.js';
+import {
+  captureHandoffContext,
+  clearHandoffArrivals,
+  getHandoffContext,
+  type HandoffArrivalContext as HandoffContext,
+} from './handoff-arrival.js';
 // WIRED: Team Chemistry for handoffs - warm dynamics between personas
 import {
   buildHandoffContext as buildTeamChemistryContext,
   generateHandoffNote,
   getTeamDynamics,
-  type TeamPairDynamic,
 } from '../../personas/shared/team-chemistry.js';
 import type { RelationshipStage } from '../../intelligence/relationship/types.js';
 import { HANDOFF_TIMING } from '../../config/handoff-timing.js';
@@ -89,51 +93,10 @@ import type { HandoffRecord } from './types.js';
 // The recordHandoffToState function handles history tracking and rate limiting updates
 
 // ============================================================================
-// HANDOFF CONTEXT
+// HANDOFF CONTEXT (held per call in handoff-arrival.ts)
 // ============================================================================
 
-interface HandoffContext {
-  topics: string[];
-  emotionalState: string;
-  summary: string;
-  pendingItems: string[];
-  recentMessages: Array<{ role: 'user' | 'assistant'; content: string }>;
-  /** Cognitive insights for the target persona */
-  cognitiveContext?: CognitiveHandoffContext;
-  /** Voice emotion for better-than-human entrance adaptation */
-  voiceEmotion?: {
-    voiceEmotion?: string;
-    voiceConfidence?: number;
-    arousal?: number;
-    valence?: number;
-    hasVoiceStrain?: boolean;
-    hasVoiceTremor?: boolean;
-  };
-  /** Team chemistry context for warm handoffs */
-  teamChemistry?: {
-    dynamic?: TeamPairDynamic;
-    handoffNote?: string;
-    fromPersona: string;
-    toPersona: string;
-  };
-}
-
-let conversationContext: HandoffContext | null = null;
-
-/**
- * Capture context before a handoff
- */
-export function captureHandoffContext(context: Partial<HandoffContext>): void {
-  conversationContext = {
-    topics: context.topics || [],
-    emotionalState: context.emotionalState || 'neutral',
-    summary: context.summary || '',
-    pendingItems: context.pendingItems || [],
-    recentMessages: context.recentMessages || [],
-    voiceEmotion: context.voiceEmotion,
-    cognitiveContext: context.cognitiveContext,
-  };
-}
+export { captureHandoffContext, getHandoffContext } from './handoff-arrival.js';
 
 /**
  * Capture handoff context with cognitive intelligence and team chemistry
@@ -184,11 +147,11 @@ export function captureHandoffContextWithCognition(
     relationshipStage || 'acquaintance'
   );
 
-  captureHandoffContext({
-    ...context,
-    cognitiveContext,
-    teamChemistry,
-  });
+  captureHandoffContext(
+    { ...context, cognitiveContext, teamChemistry },
+    sessionId,
+    targetPersonaId
+  );
 
   getLogger().info(
     {
@@ -250,13 +213,6 @@ function buildTeamChemistryForHandoff(
   };
 }
 
-/**
- * Get the captured handoff context
- */
-export function getHandoffContext(): HandoffContext | null {
-  return conversationContext;
-}
-
 // ============================================================================
 // AGENT STATE - Re-exported from state.ts for consistency
 // ============================================================================
@@ -272,8 +228,8 @@ export function resetHandoffState(): void {
   // FIX BUG #2: Delegate all state to state.ts for single source of truth
   // state.ts handles: rate limiting, current agent, met personas, handoff history
   resetStateHandoffState();
-  // Reset executor-specific state (conversation context only)
-  conversationContext = null;
+  // Reset executor-specific state (pending arrivals)
+  clearHandoffArrivals();
   getLogger().info('Handoff state reset');
 }
 
@@ -433,23 +389,14 @@ export async function executeHandoff(
   if (agent) await options.onCleared?.(canonicalTargetId); // HANDOFF_EARLY_GOODBYE, before setup
   const targetAgentName = agent?.name || getPersonaDisplayName(canonicalTargetId);
 
-  // FIX BUG #6: Capture conversation context, so the new persona knows what was just discussed
-  if (options.topics || options.emotionalState || options.voiceEmotion) {
-    captureHandoffContext({
-      topics: options.topics || [],
-      emotionalState: options.emotionalState || 'neutral',
-      summary: reason,
-      pendingItems: [],
-      voiceEmotion: options.voiceEmotion,
-    });
-    getLogger().debug(
-      {
-        topics: options.topics,
-        emotionalState: options.emotionalState,
-      },
-      '📝 Captured conversation context for handoff'
-    );
-  }
+  // FIX BUG #6: what was just discussed, for this call's arriving persona (always, even with no topics)
+  const { topics, emotionalState, voiceEmotion } = options;
+  captureHandoffContext(
+    { topics, emotionalState, summary: reason, voiceEmotion },
+    sessionId,
+    canonicalTargetId
+  );
+  const arrival = getHandoffContext(sessionId);
 
   // Update current agent: both session-scoped and global state, for compatibility
   if (sessionState) {
@@ -458,7 +405,7 @@ export async function executeHandoff(
   setCurrentAgent(canonicalTargetId as AgentId);
 
   // Generate greeting
-  const greeting = await generateHandoffGreeting(canonicalTargetId, reason, previousAgent);
+  const greeting = await generateHandoffGreeting(canonicalTargetId, reason, previousAgent, arrival);
 
   let contextContinuation = buildContextContinuation(reason);
 
@@ -492,7 +439,12 @@ export async function executeHandoff(
   }
 
   // Build instructions for the new agent
-  const instructions = buildHandoffInstructions(canonicalTargetId, reason, contextContinuation);
+  const instructions = buildHandoffInstructions(
+    canonicalTargetId,
+    reason,
+    contextContinuation,
+    arrival
+  );
 
   getLogger().info(
     { from: previousAgent, to: canonicalTargetId, reason },
@@ -717,7 +669,8 @@ export async function executeHandoff(
 async function generateHandoffGreeting(
   targetAgentId: string,
   reason: string,
-  previousAgent: string
+  previousAgent: string,
+  conversationContext: HandoffContext | null
 ): Promise<string> {
   const targetName = getPersonaDisplayName(targetAgentId);
 
@@ -733,7 +686,11 @@ async function generateHandoffGreeting(
 
     if (aliveEntrance) {
       // Enhance with cognitive collaboration if context available
-      const cognitiveEnhancement = getCognitiveCollaborationGreeting(targetAgentId, previousAgent);
+      const cognitiveEnhancement = getCognitiveCollaborationGreeting(
+        targetAgentId,
+        previousAgent,
+        conversationContext
+      );
 
       if (cognitiveEnhancement) {
         return `${aliveEntrance} ${cognitiveEnhancement}`;
@@ -761,7 +718,11 @@ async function generateHandoffGreeting(
   }
 
   // Fall back to a generic greeting with cognitive enhancement
-  const cognitiveEnhancement = getCognitiveCollaborationGreeting(targetAgentId, previousAgent);
+  const cognitiveEnhancement = getCognitiveCollaborationGreeting(
+    targetAgentId,
+    previousAgent,
+    conversationContext
+  );
 
   const baseGreeting = `Hi there! ${targetName} here. ${getReasonAcknowledgment(reason)}`;
 
@@ -777,7 +738,8 @@ async function generateHandoffGreeting(
  */
 function getCognitiveCollaborationGreeting(
   targetAgentId: string,
-  previousAgentId: string
+  previousAgentId: string,
+  conversationContext: HandoffContext | null
 ): string | null {
   // Only generate if we have cognitive context from handoff
   if (!conversationContext?.cognitiveContext) {
@@ -911,7 +873,8 @@ function buildContextContinuation(reason: string): string {
 function buildHandoffInstructions(
   targetAgentId: string,
   reason: string,
-  contextContinuation: string
+  contextContinuation: string,
+  conversationContext: HandoffContext | null
 ): string {
   const targetName = getPersonaDisplayName(targetAgentId);
 
