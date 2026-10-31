@@ -168,7 +168,7 @@ export async function handleGDPRRoutes(
   }
 
   // All GDPR routes require authentication
-  const auth = await requireAuth(req, res);
+  const auth = await requireAuth(req, res, { strict: true }); // export and erasure
   if (!auth) return true;
 
   const { userId } = auth;

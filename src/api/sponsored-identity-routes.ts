@@ -26,7 +26,7 @@ import {
   InvalidSponsoredIdentityUpdateError,
   RELATIONSHIP_TYPES,
 } from '../services/identity/sponsored-identity-update.js';
-import { requireAuth } from './auth-middleware.js';
+import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCallConsentRoute } from './family-call-consent-routes.js';
 import { handleCheckinScheduleRoute } from './family-checkin-schedule-routes.js';
 import { handleHolderVerifyRoute } from '../services/messaging/holder-verification.js';
@@ -110,7 +110,8 @@ export async function handleSponsoredIdentityRoutes(
   }
 
   // Identity comes from the verified token, never a header the client can set.
-  const auth = await requireAuth(req, res);
+  if (rateLimit(req, res, { maxRequests: 30, windowMs: 60_000, keyPrefix: 'sponsored' })) return true;
+  const auth = await requireAuth(req, res, { strict: true }); // consent
   if (!auth) return true;
   const userId = auth.userId;
 
