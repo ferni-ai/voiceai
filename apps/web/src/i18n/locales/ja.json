@@ -1270,8 +1270,6 @@
       "notifications": "チェックインのタイミング",
       "toggleTheme": "ライト/ダーク",
       "themeLanguage": "見た目とデザイン",
-      "linkSpotify": "Spotifyを連携する",
-      "spotifyConnected": "Spotify連携済み",
       "vibeController": "雰囲気を変える",
       "spotifyRooms": "ミュージックルーム",
       "thermostat": "お部屋の快適さ",
@@ -2419,10 +2417,6 @@
         "description": "Apple WatchとiPhoneのヘルスケアデータと同期します",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Fitbitデバイスを接続します",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Garminのウェアラブルと同期します",
         "name": "Garmin"
@@ -2776,8 +2770,7 @@
       "askFerni": "または、Ferniに何かかけてと頼んでみてくださいね",
       "play": "再生",
       "pause": "一時停止",
-      "skip": "スキップ",
-      "linkSpotify": "曲をフルで再生するには、設定からSpotifyを連携してください"
+      "skip": "スキップ"
     },
     "volume": "音量",
     "skipped": "スキップしました",
@@ -8349,10 +8342,9 @@
     "appleHealthDesc": "睡眠、アクティビティ、心拍数のデータ",
     "ouraDesc": "睡眠の質とレディネス（コンディション）のスコア",
     "eightSleepDesc": "睡眠トラッキングと温度調整",
-    "wearablesDesc": "Fitbit、Garmin、WHOOPなど",
+    "wearablesDesc": "Garmin、WHOOPなど",
     "calendarDesc": "予定、会議、空き時間",
     "linkedInDesc": "仕事の状況やネットワーク",
-    "spotifyDesc": "音楽、気分に合わせたプレイリスト、再生履歴",
     "ecobeeDesc": "自宅の温度と快適さ",
     "vibeControllerDesc": "音楽や照明などのコントロール",
     "connected": "連携済み"
@@ -8982,10 +8974,7 @@
     "trustJourneyExplore": "見てみる",
     "customizeTitle": "体験をカスタマイズする",
     "customizeMessage": "テーマやサウンドなどを調整できます。",
-    "spotifyMessage": "Spotifyを連携して、お話中の気分を盛り上げましょう。",
-    "spotifyConnect": "連携する",
-    "maybeLater": "また今度",
-    "spotifyTitle": "Spotifyと連携する"
+    "maybeLater": "また今度"
   },
   "mentorTeachings": {
     "learningFrom": "学びの源",
@@ -10509,7 +10498,6 @@
     "names": {
       "stockData": "株価データ",
       "marketData": "市場データ",
-      "weatherMaps": "天気と地図",
       "historicalFacts": "歴史的事実",
       "smartHome": "スマートホーム",
       "lighting": "照明",

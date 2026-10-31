@@ -1,7 +1,7 @@
 /**
  * Wearables OAuth Management
  *
- * Web OAuth 2.0 for Fitbit, Oura, Garmin and Whoop. Apple HealthKit is native iOS
+ * Web OAuth 2.0 for Oura, Garmin and Whoop. Apple HealthKit is native iOS
  * (deep links), handled in the iOS app.
  *
  * STORAGE: Uses Firestore for persistence (Cloud Run compatible).
@@ -56,24 +56,6 @@ interface ProviderConfig {
 }
 
 const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, ProviderConfig> = {
-  fitbit: {
-    clientId: process.env.FITBIT_CLIENT_ID,
-    clientSecret: process.env.FITBIT_CLIENT_SECRET,
-    authorizeUrl: 'https://www.fitbit.com/oauth2/authorize',
-    tokenUrl: 'https://api.fitbit.com/oauth2/token',
-    scopes: [
-      'activity',
-      'heartrate',
-      'sleep',
-      'profile',
-      'oxygen_saturation',
-      'respiratory_rate',
-      'temperature',
-    ],
-    redirectUri:
-      process.env.FITBIT_REDIRECT_URI ||
-      `http://localhost:${process.env.PORT || 3002}/wearables/fitbit/callback`,
-  },
   oura: {
     clientId: process.env.OURA_CLIENT_ID,
     clientSecret: process.env.OURA_CLIENT_SECRET,
@@ -554,7 +536,6 @@ export async function getAllConnectionStatuses(
 
   // Web OAuth providers
   const providers: Array<Exclude<WearableProvider, 'apple_health'>> = [
-    'fitbit',
     'oura',
     'garmin',
     'whoop',

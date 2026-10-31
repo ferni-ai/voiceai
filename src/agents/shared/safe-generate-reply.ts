@@ -389,7 +389,7 @@ function speakFallback(
     } else {
       session.say(fallbackMessage, { allowInterruptions: true });
     }
-    logger.debug({ context, fallback: fallbackMessage.substring(0, 50) }, '🔄 Used fallback');
+    logger.debug({ context, fallbackLen: fallbackMessage.length }, '🔄 Used fallback');
     return { success: false, usedFallback: true, error: errorMessage };
   } catch (fallbackError) {
     logger.error({ error: String(fallbackError), context }, 'Fallback failed');

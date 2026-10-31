@@ -461,7 +461,7 @@ class SpeculativeTTSEngine {
       // Return partial match while generating full
       this.generateAndCache(text, voiceId, 'high', emotion).catch((err) => {
         log.debug(
-          { error: String(err), text: text.slice(0, 50), emotion },
+          { error: String(err), textLen: text.length, emotion },
           'Background TTS generation failed'
         );
       });
@@ -514,7 +514,7 @@ class SpeculativeTTSEngine {
             yield result.audio;
             isFirstChunk = false;
             log.debug(
-              { chars: firstChunkText.length, text: firstChunkText.slice(0, 30) },
+              { chars: firstChunkText.length },
               '🚀 First TTS chunk sent (punctuation)'
             );
           }
@@ -531,7 +531,7 @@ class SpeculativeTTSEngine {
             yield result.audio;
             isFirstChunk = false;
             log.debug(
-              { chars: firstChunkText.length, text: firstChunkText.slice(0, 30) },
+              { chars: firstChunkText.length },
               '🚀 First TTS chunk sent (max wait)'
             );
           }
@@ -635,7 +635,7 @@ class SpeculativeTTSEngine {
       return result;
     } catch (error) {
       log.warn(
-        { text: text.slice(0, 50), voiceId, emotion, error: String(error) },
+        { textLen: text.length, voiceId, emotion, error: String(error) },
         'TTS generation failed'
       );
       throw error;
@@ -654,7 +654,7 @@ class SpeculativeTTSEngine {
 
     if (!apiKey) {
       log.debug(
-        { text: text.slice(0, 50), voiceId },
+        { textLen: text.length, voiceId },
         'CARTESIA_API_KEY not set, using empty buffer'
       );
       return new ArrayBuffer(0);
@@ -694,7 +694,7 @@ class SpeculativeTTSEngine {
       if (!response.ok) {
         const errorText = await response.text();
         log.warn(
-          { status: response.status, error: errorText, text: text.slice(0, 30) },
+          { status: response.status, error: errorText, textLen: text.length },
           'Cartesia API error'
         );
         return new ArrayBuffer(0);
@@ -702,13 +702,13 @@ class SpeculativeTTSEngine {
 
       const audioBuffer = await response.arrayBuffer();
       log.debug(
-        { text: text.slice(0, 30), bytes: audioBuffer.byteLength, voiceId: resolvedVoiceId },
+        { textLen: text.length, bytes: audioBuffer.byteLength, voiceId: resolvedVoiceId },
         'Cartesia TTS generated'
       );
 
       return audioBuffer;
     } catch (error) {
-      log.warn({ error: String(error), text: text.slice(0, 30) }, 'Cartesia TTS call failed');
+      log.warn({ error: String(error), textLen: text.length }, 'Cartesia TTS call failed');
       return new ArrayBuffer(0);
     }
   }

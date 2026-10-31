@@ -141,7 +141,7 @@ export function predictTurnWithVoice(
   if (voiceEmotion && voiceEmotion.confidence > 0.5) {
     log.debug(
       {
-        transcript: transcript.slice(0, 50),
+        transcriptLen: transcript.length,
         intonation: voiceSignals.intonation,
         pitchContour: voiceEmotion.prosody.pitchContour,
         isComplete: basePrediction.isComplete,

@@ -53,14 +53,17 @@ vi.mock('../../superhuman/firestore-utils.js', async (orig) => ({
   ...(await orig<object>()),
   getFirestoreDb: () => faultyDb(),
 }));
+const byPhone = vi.hoisted(() =>
+  vi.fn(async (e164: string) => (e164 === OWNER ? { uid: OWNER_UID } : null))
+);
 vi.mock('../../identity/firebase-auth.js', async (orig) => ({
   ...(await orig<object>()),
   getFirebaseUser: vi.fn(async (uid: string) =>
     uid === OWNER_UID ? { phoneNumber: OWNER } : null
   ),
-  getFirebaseUserByPhone: vi.fn(async (e164: string) =>
-    e164 === OWNER ? { uid: OWNER_UID } : null
-  ),
+  getFirebaseUserByPhone: byPhone,
+  // The webhook's sender lookup (sms-sender-account.ts) reads the strict variant.
+  getFirebaseUserByPhoneOrThrow: byPhone,
 }));
 vi.mock('../../outreach/delivery/sms-delivery.js', async (orig) => ({
   ...(await orig<object>()),

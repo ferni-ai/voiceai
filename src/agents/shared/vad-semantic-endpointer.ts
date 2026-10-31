@@ -148,7 +148,7 @@ export function analyzeEndpoint(
       confidence: confidence.toFixed(2),
       recommendedVADMs,
       signals,
-      transcript: trimmed.slice(0, 50),
+      transcriptLen: trimmed.length,
     },
     'Semantic endpoint analysis'
   );

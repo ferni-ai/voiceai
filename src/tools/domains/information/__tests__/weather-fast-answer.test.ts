@@ -48,6 +48,8 @@ describe('current weather', () => {
   beforeEach(() => {
     vi.resetModules(); // an empty cache per test
     vi.stubEnv('GOOGLE_API_KEY', '');
+    vi.stubEnv('GOOGLE_MAPS_API_KEY', '');
+    vi.stubEnv('GOOGLE_MAPS_SERVER_KEY', '');
     geocodeDelayMs.value = 0;
     fetchMock = vi.fn(async () => openMeteo());
     vi.stubGlobal('fetch', fetchMock);

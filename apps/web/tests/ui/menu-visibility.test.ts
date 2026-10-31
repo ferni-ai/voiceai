@@ -41,7 +41,6 @@ const HIDDEN_ROWS = [
   'ritual',
   'whats-growing',
   'predictions',
-  'spotify',
   'oura-settings',
   'apple-health-settings',
   'wearable-settings',

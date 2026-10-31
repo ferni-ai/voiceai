@@ -8,9 +8,7 @@
  */
 
 import type { ToolDomain } from '../registry/types.js';
-import { LOCAL_PLACE_TOPICS } from './local-place-topics.js';
-import { SCREEN_TOPICS } from './screen-topics.js';
-import { SLEEP_TOPICS } from './sleep-topics.js';
+import { SPLIT_TOPICS } from './split-topics.js';
 
 // ============================================================================
 // TOPIC TO DOMAIN MAPPING
@@ -321,9 +319,7 @@ export const TOPIC_TO_DOMAINS: Record<string, ToolDomain[]> = {
   wonder: ['curiosity'],
   wondering: ['curiosity'],
 
-  ...LOCAL_PLACE_TOPICS,
-  ...SCREEN_TOPICS,
-  ...SLEEP_TOPICS,
+  ...SPLIT_TOPICS, // local places, screen, sleep, drive time (split-topics.ts)
 
   // =========================================================================
   // EMOTIONAL & SPIRITUAL TOPICS

@@ -16,6 +16,7 @@ import { z } from 'zod';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { parseBody, sendJSON } from '../../helpers.js';
 import { requireAuth, type AuthContext } from '../../auth-middleware.js';
+import { isCalendarLinked } from '../../../services/identity/link-state.js';
 import {
   consumeOAuthLinkState,
   createOAuthLinkState,
@@ -191,13 +192,12 @@ export async function handleIntegrationsRoutes(
       // auth is guaranteed non-null here since this is not an OAuth route
       const userId = getTargetUserId(auth!, parsedUrl);
 
-      const calendar = await getCalendarServices();
       const banking = await getBankingServices();
       const social = await getSocialGraphServices();
 
       const biometricsConnected = await hasBiometricsConnectedAsync(userId);
-      const calendarConnected = await calendar.hasCalendarConnected(userId);
-      const bankConnected = banking.hasLinkedAccounts(userId);
+      const calendarConnected = await isCalendarLinked(userId);
+      const bankConnected = await banking.hasLinkedAccounts(userId);
       const socialPeople = social.getImportantPeople(userId);
 
       sendJson(res, 200, {
@@ -248,13 +248,7 @@ export async function handleIntegrationsRoutes(
       // For OAuth start, use the authenticated user's ID
       const userId = getTargetUserId(auth!, parsedUrl);
 
-      const validPlatforms: BiometricPlatform[] = [
-        'healthkit',
-        'googlefit',
-        'whoop',
-        'fitbit',
-        'terra',
-      ];
+      const validPlatforms: BiometricPlatform[] = ['healthkit', 'googlefit', 'whoop', 'terra'];
       if (!validPlatforms.includes(platform)) {
         sendJson(res, 400, {
           error: `Invalid platform. Must be one of: ${validPlatforms.join(', ')}`,
@@ -370,8 +364,8 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
-      const connected = banking.hasLinkedAccounts(userId);
-      const tokenData = connected ? banking.getTokenData(userId) : null;
+      const connected = await banking.hasLinkedAccounts(userId);
+      const tokenData = connected ? await banking.getTokenData(userId) : null;
 
       sendJson(res, 200, {
         connected,
@@ -401,7 +395,6 @@ export async function handleIntegrationsRoutes(
     if (subPath === '/banking/exchange-token' && method === 'POST') {
       // SECURITY: Use authenticated userId, ignore body.userId to prevent IDOR
       const userId = getTargetUserId(auth!, parsedUrl);
-
       const body = await parseBody<Record<string, unknown>>(req);
       const validation = ExchangeTokenSchema.safeParse(body);
       if (!validation.success) {
@@ -413,14 +406,15 @@ export async function handleIntegrationsRoutes(
       const { publicToken, institution } = validation.data;
 
       const banking = await getBankingServices();
-      const accessToken = await banking.exchangePublicToken(publicToken);
-
-      if (!accessToken) {
-        sendJson(res, 400, { error: 'Failed to exchange token' });
+      const item = await banking.exchangePublicToken(publicToken);
+      const saved = item?.access_token
+        ? await banking.storeAccessToken(userId, item.access_token, item.item_id, institution)
+        : null;
+      if (!saved?.ok) {
+        if (saved) sendJson(res, 503, { error: 'Bank account not saved', code: saved.code });
+        else sendJson(res, 400, { error: 'Failed to exchange token' });
         return true;
       }
-
-      banking.storeAccessToken(userId, accessToken, undefined, institution);
 
       // Background analysis
       void (async () => {
@@ -444,7 +438,7 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
-      const removed = banking.removeAccessToken(userId);
+      const removed = await banking.removeAccessToken(userId);
 
       if (removed) {
         log.info({ userId }, 'Bank account disconnected');
@@ -459,7 +453,7 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
-      const tokenData = banking.getTokenData(userId);
+      const tokenData = await banking.getTokenData(userId);
       if (!tokenData) {
         sendJson(res, 400, { error: 'No linked bank account' });
         return true;
@@ -486,7 +480,7 @@ export async function handleIntegrationsRoutes(
       const limit = parseInt(parsedUrl.searchParams.get('limit') || '100');
 
       const banking = await getBankingServices();
-      const tokenData = banking.getTokenData(userId);
+      const tokenData = await banking.getTokenData(userId);
       if (!tokenData) {
         sendJson(res, 400, { error: 'No linked bank account' });
         return true;
@@ -524,7 +518,7 @@ export async function handleIntegrationsRoutes(
       const period = parsedUrl.searchParams.get('period') || 'month';
 
       const banking = await getBankingServices();
-      const tokenData = banking.getTokenData(userId);
+      const tokenData = await banking.getTokenData(userId);
       if (!tokenData) {
         sendJson(res, 400, { error: 'No linked bank account' });
         return true;
@@ -554,7 +548,7 @@ export async function handleIntegrationsRoutes(
       const daysOut = parseInt(parsedUrl.searchParams.get('daysOut') || '14');
 
       const banking = await getBankingServices();
-      if (!banking.hasLinkedAccounts(userId)) {
+      if (!(await banking.hasLinkedAccounts(userId))) {
         sendJson(res, 400, { error: 'No linked bank account' });
         return true;
       }
@@ -573,7 +567,7 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
-      if (!banking.hasLinkedAccounts(userId)) {
+      if (!(await banking.hasLinkedAccounts(userId))) {
         sendJson(res, 400, { error: 'No linked bank account' });
         return true;
       }
@@ -587,7 +581,7 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
-      if (!banking.hasLinkedAccounts(userId)) {
+      if (!(await banking.hasLinkedAccounts(userId))) {
         sendJson(res, 400, { error: 'No linked bank account' });
         return true;
       }
@@ -601,7 +595,7 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
-      if (!banking.hasLinkedAccounts(userId)) {
+      if (!(await banking.hasLinkedAccounts(userId))) {
         sendJson(res, 400, { error: 'No linked bank account' });
         return true;
       }
@@ -615,7 +609,7 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
-      if (!banking.hasLinkedAccounts(userId)) {
+      if (!(await banking.hasLinkedAccounts(userId))) {
         sendJson(res, 400, { error: 'No linked bank account' });
         return true;
       }
@@ -687,7 +681,7 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
-      if (!banking.hasLinkedAccounts(userId)) {
+      if (!(await banking.hasLinkedAccounts(userId))) {
         sendJson(res, 400, { error: 'No linked bank account' });
         return true;
       }
@@ -705,7 +699,7 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const cal = await getCalendarServices();
-      const connected = await cal.hasCalendarConnected(userId);
+      const connected = await isCalendarLinked(userId);
       const events = connected ? cal.getUpcomingEvents(userId) : [];
       const location = connected ? cal.getCurrentLocation(userId) : null;
 

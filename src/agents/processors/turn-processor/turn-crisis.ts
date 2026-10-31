@@ -25,6 +25,11 @@ import {
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { noteCrisisRisk } from '../../../services/safety/crisis-call-risk.js';
+import {
+  afterCheckLoneRead,
+  noteConfirmedRisk,
+  type LoneRead,
+} from '../../../services/safety/crisis-confirmed-risk.js'; // CRISIS_CONFIRMED_CALL_RISK
 import { secondReadOf } from '../../../services/safety/crisis-second-read-turn.js';
 import {
   GROUNDED_LIGHT_TOUCH,
@@ -101,6 +106,21 @@ export interface TurnCrisisUserData {
 type Settled = { crisis: CrisisDetectionResult; soft: boolean; guidance?: string };
 
 /**
+ * CRISIS_CONFIRMED_CALL_RISK: a classifier-escalated turn, after the after-check read for a
+ * later lone read on a call nothing confirmed (crisis-confirmed-risk.ts).
+ */
+async function afterCheckSettled(
+  crisis: CrisisDetectionResult,
+  lone: Omit<LoneRead, 'source'>
+): Promise<Settled> {
+  const read = { ...lone, source: 'pipeline' as const };
+  const eased = crisis === lone.detection ? null : await afterCheckLoneRead(read);
+  if (!eased) return { crisis, soft: false };
+  if (eased.crisis) return { crisis: eased.crisis, soft: false };
+  return { crisis: lone.detection, soft: true, guidance: eased.guidance };
+}
+
+/**
  * CRISIS_CLASSIFIER_ONLY_CHECKIN=live: eases a settled turn's classifier-only crisis guide
  * with the turn's shared easing read (crisis-classifier-only-live.ts).
  */
@@ -161,6 +181,7 @@ export function startTurnCrisis(
   // A gentle 988 offer counts as a match: risk on this call, and both paths agree.
   const pattern = shouldBlock ? 'block' : patterns.isCrisis || gentle ? 'crisis' : 'none';
   if (pattern !== 'none') noteCrisisRisk(options.sessionId); // risk on this call (crisis-call-risk.ts)
+  if (pattern !== 'none') noteConfirmedRisk(options.sessionId || undefined, options.env);
   const { env = process.env, generate } = options;
   // Only the agreement gate and a live adjudicator hold the turn for the turn's
   // other reads; a shadow adjudicator runs beside it and never delays it.
@@ -175,6 +196,7 @@ export function startTurnCrisis(
     companion: userData?.lastAgentResponse,
   };
   const call = options.sessionId || undefined;
+  const lone = { call, input, detection: patterns, pattern, env, generate } as const;
   // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
   const transfer =
     adjudicatorMode !== 'live' && transferRequestIsEveryday(input, pattern, call, env);
@@ -233,7 +255,7 @@ export function startTurnCrisis(
               return { crisis: patterns, soft: true };
             };
             if (!scope || crisis === patterns) {
-              return softTransfer ? eased() : { crisis, soft: false };
+              return softTransfer ? eased() : afterCheckSettled(crisis, { ...lone, verdict });
             }
             if (!holdForReads) {
               shadowAdjudication(turnVerdicts(scope, input), transcriptFrom(input), {
@@ -243,7 +265,7 @@ export function startTurnCrisis(
                 source: 'pipeline',
                 generate: options.adjudicate,
               });
-              return softTransfer ? eased() : { crisis, soft: false };
+              return softTransfer ? eased() : afterCheckSettled(crisis, { ...lone, verdict });
             }
             // Fail closed: a failed lookup counts as a missing read, which escalates.
             const verdicts = await turnVerdicts(scope, input).catch(() => [null]);
@@ -259,6 +281,7 @@ export function startTurnCrisis(
               verdicts.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent').length >= 2
             ) {
               softTransfer = false;
+              noteConfirmedRisk(call, env); // CRISIS_CONFIRMED_CALL_RISK: before any after-check
             }
             // A classifier-only crisis gets a fuller second read (crisis-adjudicator.ts).
             const adjudicator = startCrisisAdjudicator(transcriptFrom(input), {
@@ -270,7 +293,7 @@ export function startTurnCrisis(
               scope,
             });
             if (!(await adjudicatedCheckin(adjudicator))) {
-              return softTransfer ? eased() : { crisis, soft: false };
+              return softTransfer ? eased() : afterCheckSettled(crisis, { ...lone, verdict });
             }
             log.info({ outcome: 'soft', source: 'adjudicator' }, 'CRISIS_AGREEMENT');
             return { crisis: patterns, soft: true };

@@ -1,11 +1,13 @@
 /**
- * The matcher embeds the user's words. A refused request logs the status, and a
- * failed one the error's class and status: neither the response body nor the
- * error's message, either of which can quote the user.
+ * The matcher embeds the user's words, on Vertex through the shared client. A
+ * refused or failed request rejects with EmbeddingApiError carrying the status
+ * only: neither the SDK's message nor anything logged may quote the user, and
+ * an outage is no longer reported as "no match".
  */
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const logged = vi.hoisted(() => [] as unknown[][]);
+const embedContent = vi.hoisted(() => vi.fn());
 const SENTINEL = 'my sister Dolores has stage-three lupus';
 
 vi.mock('../../../utils/safe-logger.js', () => {
@@ -14,42 +16,45 @@ vi.mock('../../../utils/safe-logger.js', () => {
   return { createLogger: () => logger, getLogger: () => logger };
 });
 
-import { matchCategories } from '../embedding-matcher.js';
+vi.mock('../../../config/gemini-config.js', () => ({
+  getGeminiClient: async () => ({ models: { embedContent } }),
+}));
+
+import { clearEmbeddingCache, matchCategories } from '../embedding-matcher.js';
+
+async function rejection(input: string): Promise<Error & { status?: number }> {
+  return (await matchCategories(input, []).then(
+    () => {
+      throw new Error('matchCategories resolved during an outage');
+    },
+    (e: unknown) => e
+  )) as Error & { status?: number };
+}
 
 describe('embedding-matcher error logs', () => {
-  beforeAll(() => {
-    vi.stubEnv('GOOGLE_API_KEY', 'k');
-  });
-
   afterEach(() => {
-    vi.unstubAllGlobals();
+    embedContent.mockReset();
+    clearEmbeddingCache();
     logged.length = 0;
   });
 
-  it('a refused request logs the status, not the body that echoed the input', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({ ok: false, status: 429, text: async () => `quota: ${SENTINEL}` }))
-    );
-    await matchCategories(`${SENTINEL} refused`, []);
+  it('a refused request rejects with the status, not the message that echoed the input', async () => {
+    embedContent.mockRejectedValue(Object.assign(new Error(`quota: ${SENTINEL}`), { status: 429 }));
+    const thrown = await rejection(`${SENTINEL} refused`);
+    expect(thrown.name).toBe('EmbeddingApiError');
+    expect(thrown.status).toBe(429);
+    expect(thrown.message).not.toContain(SENTINEL);
     expect(JSON.stringify(logged)).not.toContain(SENTINEL);
-    expect(logged).toContainEqual([{ status: 429 }, 'Embedding API error']);
   });
 
-  it('a failed request logs the error class and status, not its message', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => {
-        const error = new Error(`could not embed ${SENTINEL}`);
-        error.name = 'FetchEchoError';
-        throw Object.assign(error, { status: 502 });
-      })
-    );
-    await matchCategories(`${SENTINEL} failed`, []);
+  it('a failed request with no status rejects with status 0, not its message', async () => {
+    const error = new Error(`could not embed ${SENTINEL}`);
+    error.name = 'FetchEchoError';
+    embedContent.mockRejectedValue(error);
+    const thrown = await rejection(`${SENTINEL} failed`);
+    expect(thrown.name).toBe('EmbeddingApiError');
+    expect(thrown.status).toBe(0);
+    expect(thrown.message).not.toContain(SENTINEL);
     expect(JSON.stringify(logged)).not.toContain(SENTINEL);
-    expect(logged).toContainEqual([
-      { error: 'FetchEchoError', status: 502 },
-      'Failed to get embedding',
-    ]);
   });
 });

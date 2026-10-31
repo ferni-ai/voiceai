@@ -13,6 +13,8 @@
  *
  * Extracted from jack-bogle.ts lines 669-687, 939-957, 1205-1211
  */
+import { NAME_PLACEMENT_RULE } from '../../agents/personas/name-gate.js';
+import { flagOn } from '../../config/env-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
@@ -417,6 +419,8 @@ Acknowledge the weight of what was shared: "That was a meaningful conversation. 
       superhumanGuidance += `\n\n✨ PERSONALIZED: Consider referencing what you discussed: "${personalizedSignoff}"`;
     }
 
+    // NAME_GATE_V2: a name next to "?" is dropped by the gate (name-gate.ts).
+    const nameRule = flagOn('NAME_GATE_V2') ? `. ${NAME_PLACEMENT_RULE}` : '';
     injections.push(
       createStandardInjection(
         'goodbye',
@@ -428,7 +432,7 @@ DO:
   2. One key takeaway (if appropriate): "If you remember one thing..."
   3. Express warmth genuinely in YOUR style
   4. Leave the door open like a friend ("talk soon"), never with an offer to listen
-  5. Say goodbye by name if you know it
+  5. Say goodbye by name if you know it${nameRule}
   6. Reference the time of day naturally
 DO NOT:
   - Add new information

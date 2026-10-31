@@ -378,7 +378,7 @@ export function recordCallOutcome(
   callEmitter.emit('outcome', session);
 
   log.info(
-    { callId, success: outcome.success, summary: outcome.summary?.slice(0, 100) },
+    { callId, success: outcome.success, summaryLen: outcome.summary?.length },
     '📝 Call outcome recorded'
   );
 }

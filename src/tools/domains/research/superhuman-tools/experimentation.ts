@@ -499,7 +499,7 @@ export const updateBelief = llm.tool({
     const changeEmoji = change > 0.1 ? '📈' : change < -0.1 ? '📉' : '➡️';
 
     log.info(
-      { userId, belief: belief.statement.slice(0, 30), newProb: boundedProbability },
+      { userId, beliefLen: belief.statement.length, newProb: boundedProbability },
       '🧠 Belief updated'
     );
 

@@ -83,7 +83,7 @@ async function handleCrashReport(req: IncomingMessage, res: ServerResponse): Pro
         personaId: report.personaId,
         connectionState: report.connectionState,
         turnCount: report.turnCount,
-        lastUserMessage: report.lastUserMessage?.slice(0, 100),
+        lastUserMessageLen: report.lastUserMessage?.length,
         userAgent: report.userAgent?.slice(0, 100),
         connectionType: report.connectionType,
         effectiveType: report.effectiveType,

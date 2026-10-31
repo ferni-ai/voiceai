@@ -192,7 +192,7 @@ Add to `public/design-system/tokens.css`:
 
 ---
 
-## Code Rules (Add to .cursorrules)
+## Code Rules (Add to AGENTS.md)
 
 ### Ferni EQ Requirements
 

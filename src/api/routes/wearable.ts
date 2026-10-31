@@ -27,9 +27,10 @@ import type {
   WearableConfig,
   WearableProvider,
 } from '../../services/wearable-integration/types.js';
+import { disconnectAppleHealth } from '../../services/identity/apple-health-erase.js';
 import { parseBody, requireUserId, sendError, sendJSON, sendJSONCached } from '../helpers.js';
 
-const VALID_PROVIDERS: WearableProvider[] = ['apple_health', 'fitbit', 'garmin', 'oura', 'whoop'];
+const VALID_PROVIDERS: WearableProvider[] = ['apple_health', 'garmin', 'oura', 'whoop'];
 
 /**
  * Handle wearable integration routes
@@ -129,6 +130,11 @@ export async function handleWearableRoutes(
         return true;
       }
 
+      // Apple Health: the synced days are deleted and read back, or the caller hears it failed
+      if (body.provider === 'apple_health' && !(await disconnectAppleHealth(userId)).ok) {
+        sendError(res, 'Apple Health data was not deleted', 500);
+        return true;
+      }
       const service = getWearableIntegration(userId);
       await service.disconnectProvider(body.provider);
 

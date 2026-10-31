@@ -279,7 +279,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     diag.state(
       `🚨 [EMPTY_RESPONSE_WATCHDOG] No agent response after ${Date.now() - userFinishedSpeakingAt}ms - triggering recovery`,
       {
-        lastUserMessage: lastUserMessageForRecovery?.slice(0, 50),
+        lastUserMessageLen: lastUserMessageForRecovery?.length,
         userFinishedAt: userFinishedSpeakingAt,
       }
     );
@@ -401,9 +401,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
   // 5D: Start continuous prosody stream for rolling window updates
   const prosodyStream = getContinuousProsodyStream();
-  prosodyStream.start((_snapshot) => {
-    // Prosody snapshots are collected; context injection happens in turn-handler
-  });
+  const onProsody = (): void => undefined; // snapshots are collected; turn-handler injects context
+  prosodyStream.start(onProsody);
 
   // Silence context for meaningful silence responses
   const silenceContext: SilenceContext = {
@@ -759,6 +758,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     }
 
     if (event.oldState === 'speaking' && event.newState !== 'speaking') {
+      quiet?.onAgentDone(); // QUIET_AFTER_QUESTION (quiet-presence.ts)
       const speechEndTime = Date.now();
 
       // Calculate and track utterance duration (for adaptive echo prevention)
@@ -784,7 +784,6 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       feedbackTriggerEngine.onAgentFinishedSpeaking(sessionId, lastAgentMessage);
 
       // 📊 Contextual Feedback: Schedule feedback check after natural pause
-      // Clear any existing timer
       if (feedbackPromptTimer) {
         clearTimeout(feedbackPromptTimer);
         feedbackPromptTimer = null;
@@ -1597,8 +1596,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     stopToolCallWatch();
     lastUserMessageForRecovery = null;
 
-    // 5D: Stop continuous prosody stream
-    prosodyStream.stop();
+    // 5D: Stop continuous prosody stream (if no later call has taken it over)
+    prosodyStream.stop(onProsody);
 
     // 🔧 BTH FIX: Remove early-ack agent state handler to prevent listener leak
     if (earlyAckAgentStateHandler) {

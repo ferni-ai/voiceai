@@ -50,6 +50,7 @@ import { repairNoteFor } from './repair-check.js';
 import { ferniStateTurn } from './ferni-state.js';
 import { listeningNotes } from './listen-first-turn.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
+import { exitsHeld } from './exits-held.js';
 import {
   inReturningCallerFlow,
   returningCallerTurnNote,
@@ -64,6 +65,7 @@ import { callMeNote } from './call-me-note.js';
 import { beatNote, priorCallsOf } from './personal-beats.js';
 import { porchLightNote } from './porch-light.js';
 import { roomGuestsNote } from './room-guests.js';
+import { noteCallReportReached, turnRequestFor } from './turn-call-report.js';
 import {
   worldFactLinesFor,
   worldFactsNoteFor,
@@ -96,6 +98,7 @@ import { turnStyleReminderEnabled, withTurnStyleReminder } from './turn-style.js
 import { clearBurstOffer } from './vocal-bursts.js';
 import { callSeed, signalsFor, styleFor } from './turn-request-style.js';
 import { scriptFreeOn } from './script-free.js';
+import { sexualBoundaryNote } from './sexual-boundary.js';
 
 /**
  * The verified owner is on the line: rememberName may rename the account (remember-name.ts).
@@ -147,11 +150,12 @@ export function withTurnReminder(
     return buildTurnReminder(request, session, options);
   } catch (error) {
     log.warn({ error: String(error) }, "TURN_REMINDER_FAILED: replying without this turn's notes");
-    return request;
+    const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
+    return turnRequestFor(request, sessionId, options.shape === false)[0]; // never throws
   }
 }
 
-type TurnReminderOptions = { shape?: boolean; closeLoop?: boolean };
+type TurnReminderOptions = { shape?: boolean; closeLoop?: boolean; held?: Promise<unknown> | null };
 
 /**
  * A copy of the context with the turn reminder, plus what Ferni has already
@@ -164,16 +168,18 @@ function buildTurnReminder(
   session: object,
   options: TurnReminderOptions
 ): llm.ChatContext {
-  const chatCtx = withoutStaleTurnContext(request);
+  const crisis = options.shape === false;
+  const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
+  const [chatCtx, waits] = turnRequestFor(withoutStaleTurnContext(request), sessionId, crisis);
   // An invitation to open with a sound is for one request only (vocal-bursts.ts).
   clearBurstOffer(session);
   const director = getDirector(session);
   const view = unlockViewFor((session as { userData?: unknown }).userData);
   const words = callerWords(chatCtx);
   // SCRIPT_FREE_REMINDER=on: no shared style or quoted lines; never on a crisis turn (script-free.ts).
-  const crisis = options.shape === false;
   const plain = !crisis && scriptFreeOn();
-  const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
+  const held = exitsHeld(sessionId, crisis); // no goodbye or no-question note (exits-held.ts)
+  noteCallReportReached(sessionId, chatCtx, { latest: words, held: options.held, crisis: waits });
   // NO_INVENTED_INTERNALS=on: asked how he's built after a tool failed, or he just made it up.
   const internals = crisis
     ? ''
@@ -185,9 +191,8 @@ function buildTurnReminder(
   // DIRECTOR_ANSWER_TURN_GUARD=on: notes written before they answered Ferni's question are stale.
   const answering = isAnswerTurn(chatCtx.items, words);
   // LISTEN_FIRST=on: a caller low on energy gets no note pushing Ferni to share.
-  const notes = answering
-    ? ''
-    : formatNotes(listeningNotes(offered.filter(keep), chatCtx, session));
+  const notes =
+    answering || held ? '' : formatNotes(listeningNotes(offered.filter(keep), chatCtx, session));
   // REPAIR_MODE=on: own a correction, and keep earlier ones; none with crisis guidance.
   const corrected = crisis ? '' : correctionNotesFor(chatCtx, session, process.env, plain);
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
@@ -195,7 +200,7 @@ function buildTurnReminder(
   // How Ferni is doing (FERNI_STATE=on), and if his own story may ride; none in a crisis.
   const state = ferniStateTurn(chatCtx, session, { careful: options.shape === false });
   const style = turnStyleReminderEnabled()
-    ? styleFor(chatCtx, session, options.shape !== false, state, { answering, plain })
+    ? styleFor(chatCtx, session, !crisis, state, { answering, plain, exitsHeld: held })
     : undefined;
   noteTurn(session, words, style?.turn); // MOVE_OUTCOMES=on (move-log.ts)
   // The style goes last, nearest the reply, where the turn shape is followed best (turn-shape.ts).
@@ -204,7 +209,7 @@ function buildTurnReminder(
     // Who is speaking (teammate-identity.ts); WORLD_NOW=on: the caller's time now (world-now.ts).
     teammateIdentityNote(view.currentAgentId, process.env, plain),
     worldNowNote(session, new Date(), { items: chatCtx.items, words }), // HOUR_ONCE: hour-once.ts
-    director?.told(keep) ?? '',
+    held ? '' : (director?.told(keep) ?? ''), // no director note on a held turn (exits-held.ts)
     teamStatusNote(view, words),
     // "Naya" is Nayan; "9" may be (never near a crisis, or for a locked teammate): teammate-names.ts
     heardTeammateNote(words, aliasNoteFor(view, session, chatCtx, options.shape === false)),
@@ -212,7 +217,7 @@ function buildTurnReminder(
     corrected,
     // The caller said yes to a read-back: the call or text goes only when the tool is called now.
     confirmedActionNote(session),
-    options.closeLoop === false ? '' : closeLoopNote(session, words),
+    options.closeLoop === false || held ? '' : closeLoopNote(session, words),
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session, process.env, words),
@@ -227,10 +232,9 @@ function buildTurnReminder(
     // PORCH_LIGHT=on: softer and simpler on a call started in the caller's small hours.
     porchLightNote(chatCtx, session, { careful: options.shape === false }),
     // MINOR_CARE=on: a caller who sounds under 18 (minor-care.ts), never with crisis guidance; shadow only logs.
-    minorCareNote(sessionIdOf((session as { userData?: unknown }).userData), words, {
-      careful: options.shape === false,
-      asked: lastFerniLine(chatCtx.items),
-    }),
+    minorCareNote(sessionId, words, { careful: crisis, asked: lastFerniLine(chatCtx.items) }),
+    // SEXUAL_TOPIC_BOUNDARY=on: not a verified owner, or under-18 signs: no sexual detail, ever.
+    sexualBoundaryNote(sessionId, words, lastFerniLine(chatCtx.items)),
     // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
     beatNote({
       said: words,
@@ -241,7 +245,7 @@ function buildTurnReminder(
     // have called before; "forget me", or the topic hint once they confirm (returning-caller.ts)
     inReturningCallerFlow(sessionId)
       ? ''
-      : firstCallNote(chatCtx, session, words, process.env, plain),
+      : firstCallNote(chatCtx, session, words, process.env, plain, { crisis, exitsHeld: held }),
     returningCallerTurnNote(sessionId, words, lastAgentLine(chatCtx), (w, a) =>
       statedName(w, undefined, a)
     ),
@@ -271,20 +275,19 @@ function buildTurnReminder(
     // PERSONA_VOICE=on: how this persona sounds, after the shared style so it wins (persona-voice.ts).
     personaVoiceNote(view.currentAgentId, { careful: options.shape === false }),
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
-    options.shape !== false ? exitFor(chatCtx, session, words, plain) : '',
+    held ? '' : exitFor(chatCtx, session, words, plain),
     // His self-share line after the shape, nearest the reply (ferni-state.ts).
     state.last,
-    // ATTUNE=on: how to meet the caller's state (questions, advice, own stories), after the
-    // self-share so "no stories of your own" wins for a tired caller. No length (TURN_LENGTH's).
-    attunementNote(chatCtx, session, { careful: options.shape === false }),
+    // ATTUNE=on: meet the caller's state, after the self-share so its "no stories" wins; no length.
+    attunementNote(chatCtx, session, { careful: held }),
     // COMMITMENT_INVITE=on: one small step, once a call; after the self-share, so it wins.
     inviteFor(chatCtx, session, words, options.shape === false),
     // GOOD_NEWS_BIGGER=on: own words, no echo, one question about the moment; after the pace note.
     goodNewsNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false, session }),
     // CALLER_SETS_DEPTH=on: they played heavy news down; take their lead (caller-sets-depth.ts).
     callerSetsDepthNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false }),
-    // DIRECTOR_ESCALATE=on: a note given twice becomes a rule, last but repair; never in crisis.
-    options.shape !== false ? hardRuleFor(director?.hardRule?.() ?? '', internals) : '',
+    // DIRECTOR_ESCALATE=on: a note given twice becomes a rule, last but repair; never if held.
+    held ? '' : hardRuleFor(director?.hardRule?.() ?? '', internals),
     // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"
     // note above cancels it; none with crisis guidance or when they answered Ferni's question.
     !crisis && !answering ? repairNoteFor(chatCtx, session, process.env, plain) : '',
@@ -305,7 +308,7 @@ function buildTurnReminder(
     reminder,
     directorNotes: notes,
     offered: offered.length,
-    droppedIdx: offered.flatMap((note, i) => (!answering && keep(note) ? [] : [i])),
+    droppedIdx: offered.flatMap((note, i) => (!held && !answering && keep(note) ? [] : [i])),
   });
   return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
 }
@@ -314,10 +317,7 @@ function buildTurnReminder(
 const hardRuleFor = (rule: string, internals: InternalsTurn): string =>
   pushesInternals(internals, rule) ? '' : rule;
 
-/**
- * WRAP_UP=on: the caller is signing off after something was settled, so the
- * goodbye closes the loop (wrap-up.ts). Read in code, nothing awaited.
- */
+/** WRAP_UP=on: signing off after something was settled, the goodbye closes the loop (wrap-up.ts). */
 function closeLoopNote(session: object, words: string): string {
   const wrapUp = getWrapUp(session);
   if (!wrapUp || !words) return '';
