@@ -279,8 +279,7 @@ function buildTurnReminder(
     held ? '' : exitFor(chatCtx, session, words, plain),
     // His self-share line after the shape, nearest the reply (ferni-state.ts).
     state.last,
-    // ATTUNE=on: how to meet the caller's state (questions, advice, own stories), after the
-    // self-share so "no stories of your own" wins for a tired caller. No length (TURN_LENGTH's).
+    // ATTUNE=on: meet the caller's state, after the self-share so its "no stories" wins; no length.
     attunementNote(chatCtx, session, { careful: held }),
     // COMMITMENT_INVITE=on: one small step, once a call; after the self-share, so it wins.
     inviteFor(chatCtx, session, words, options.shape === false),
