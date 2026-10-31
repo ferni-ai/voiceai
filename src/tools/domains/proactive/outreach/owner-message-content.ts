@@ -39,16 +39,18 @@ export type ContentBlock = (typeof CONTENT_BLOCKS)[number];
  */
 const DIGIT_RULE = { digits: 7, windowChars: 30, windowTokens: 14 } as const;
 
-/** After folding, the characters in rule 1 only (fe, 2026-10-31); no zero-width joiner, so a
- * compound emoji is refused rather than glued together. */
-const CHARSET = /^[A-Za-z0-9 \n.,!?'\-:()/&"\p{Extended_Pictographic}\uFE0F]*$/u;
+/** Enclosed alphanumerics (🅰 🅿 🆗, flags), © and ®: refused outright, never read as letters. */
+const LETTER_SHAPED_SYMBOLS = /[\u{1F100}-\u{1F1FF}\u00A9\u00AE]/u;
+/** After folding, the characters in rule 1 only (fe, 2026-10-31), skin tones included; no
+ * zero-width joiner, so a compound emoji is refused rather than glued together. */
+const CHARSET = /^[A-Za-z0-9 \n.,!?'\-:()/&"\p{Extended_Pictographic}\p{Emoji_Modifier}\uFE0F]*$/u;
 /** Latin letters NFKD leaves alone that read as ASCII ones (dotless i, small capitals, ...). */
 const LATIN_LOOK_ALIKES: Readonly<Record<string, string>> = {
   ı: 'i', ȷ: 'j', ß: 'ss', æ: 'ae', Æ: 'AE', ø: 'o', Ø: 'O', œ: 'oe', Œ: 'OE', ł: 'l', Ł: 'L',
   đ: 'd', Đ: 'D', ð: 'd', Ð: 'D', þ: 'th', Þ: 'Th', ɑ: 'a', ɡ: 'g', ɩ: 'i', ʋ: 'v',
   ᴀ: 'a', ʙ: 'b', ᴄ: 'c', ᴅ: 'd', ᴇ: 'e', ꜰ: 'f', ɢ: 'g', ʜ: 'h', ɪ: 'i', ᴊ: 'j', ᴋ: 'k',
   ʟ: 'l', ᴍ: 'm', ɴ: 'n', ᴏ: 'o', ᴘ: 'p', ʀ: 'r', ꜱ: 's', ᴛ: 't', ᴜ: 'u', ᴠ: 'v', ᴡ: 'w',
-  ʏ: 'y', ᴢ: 'z', '©': 'c', '®': 'r',
+  ʏ: 'y', ᴢ: 'z',
 }; // prettier-ignore
 /** Letters next to a digit that stand in for one ("55S-O1l2" is 555-0112). */
 const DIGIT_LOOK_ALIKES: Readonly<Record<string, string>> = { l: '1', i: '1', o: '0', s: '5' };
@@ -247,15 +249,7 @@ const foldToAscii = (text: string): string =>
     .replace(/[\u201C\u201D]/g, '"')
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
-    .replace(/[^\p{ASCII}]/gu, (c) => LATIN_LOOK_ALIKES[c] ?? c)
-    .replace(/[\u{1F100}-\u{1F1FF}]/gu, enclosedLetter);
-
-/** Enclosed letters (🅰 🅿, squared or circled) read as the letter; the rest of the block (regional
- * indicators, squared words) as U+FFFD, which the charset refuses. Keycaps: NFKD keeps the digit. */
-function enclosedLetter(c: string): string {
-  const offset = [0x1f130, 0x1f150, 0x1f170].map((base) => (c.codePointAt(0) ?? 0) - base).find((o) => o >= 0 && o < 26); // prettier-ignore
-  return offset === undefined ? '\uFFFD' : String.fromCharCode(65 + offset);
-}
+    .replace(/[^\p{ASCII}]/gu, (c) => LATIN_LOOK_ALIKES[c] ?? c);
 
 /** a.m., p.m., e.g., i.e. as whole words: letter-dot-letter, but no address. */
 const withoutAbbreviationDots = (text: string): string =>
@@ -274,10 +268,13 @@ const ADDRESS_DOTS = [
 
 /** The first rule `text` breaks for an unverified call, or null when it may be sent. */
 export function blockedContent(text: string): ContentBlock | null {
+  if (LETTER_SHAPED_SYMBOLS.test(text)) return 'charset'; // 🅰 🅿 © ®: pictographs that read as letters
   const folded = foldToAscii(text);
   if (!CHARSET.test(folded)) return 'charset';
   // Every later rule reads / & " as "-" and an emoji as a space: separators that can't glue or break a shape
-  const form = folded.replace(/[/&"]/g, '-').replace(/\p{Extended_Pictographic}/gu, ' ');
+  const form = folded
+    .replace(/[/&"]/g, '-')
+    .replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}]/gu, ' ');
   if (vanityBlock(form)) return 'vanity_number';
   const lower = form.toLowerCase();
   if (/(?<![\p{L}0-9])(?:[\p{L}0-9] +){2,}[\p{L}0-9](?![\p{L}0-9])/u.test(lower)) return 'spaced_chars'; // prettier-ignore

@@ -284,27 +284,30 @@ describe('emoji are allowed, and act as separators in every later rule', () => {
     fc.assert(fc.property(asks, (t) => blockedContent(t) === 'credential_ask'), { seed: 3227, numRuns: 200 }); // prettier-ignore
   });
 
-  it('letter-shaped symbols read as their letters: enclosed letters, © and ®', () => {
-    const BASES = [0x1f130, 0x1f150, 0x1f170]; // squared, negative circled, negative squared
-    const enclose = (c: string, k: number) =>
-      c === 'c' && k === 3 ? '\u00a9' : c === 'r' && k === 3 ? '\u00ae' : k === 3 ? c : String.fromCodePoint(BASES[k] + c.charCodeAt(0) - 97); // prettier-ignore
-    const tld = fc
-      .tuple(fc.stringMatching(/^[a-z]{2,5}$/), fc.array(fc.integer({ min: 0, max: 3 }), { minLength: 5, maxLength: 5 }))
-      .map(([t, ks]) => [...t].map((c, i) => enclose(c, ks[i])).join('')); // prettier-ignore
-    const domain = fc.tuple(fc.stringMatching(/^[a-z]{2,8}$/), tld).map(([l, t]) => `${l}.${t}`);
-    fc.assert(fc.property(around(domain), (t) => blockedContent(t) === 'address_token'), { seed: 3227, numRuns: 300 }); // prettier-ignore
+  it('letter-shaped symbols (enclosed alphanumerics, © ®) are refused outright', () => {
+    const symbol = fc.oneof(fc.integer({ min: 0x1f100, max: 0x1f1ff }), fc.constantFrom(0xa9, 0xae)).map((c) => String.fromCodePoint(c)); // prettier-ignore
+    const text = fc.tuple(fc.stringMatching(/^[a-z]{2,8}$/), pick(['.', ' ', '']), symbol).map((p) => p.join('')); // prettier-ignore
+    fc.assert(fc.property(around(text), (t) => blockedContent(t) === 'charset'), { seed: 3227, numRuns: 300 }); // prettier-ignore
     const [A, P, O] = [0x1f170, 0x1f17f, 0x1f17e].map((c) => String.fromCodePoint(c));
-    expect(blockedContent(`go to evil.${A}${P}${P}`)).toBe('address_token');
-    expect(blockedContent(`go to evil.\u00a9${O}m`)).toBe('address_token');
+    expect(blockedContent(`go to evil.${A}${P}${P}`)).toBe('charset');
+    expect(blockedContent(`go to evil.\u00a9${O}m`)).toBe('charset');
+    expect(blockedContent('what is your PIN\u00ae')).toBe('charset');
   });
 
   it('keycap digits are digits; other symbols of that block (flags, squared words) refuse', () => {
     const KEYCAP = String.fromCodePoint(0xfe0f, 0x20e3);
     const keycaps = fc.array(fc.integer({ min: 2, max: 7 }), { minLength: 7, maxLength: 10 }).map((ds) => ds.map((d) => `${d}${KEYCAP}`).join('')); // prettier-ignore
     fc.assert(fc.property(around(keycaps), (t) => blockedContent(t) === 'digits'), { seed: 3227, numRuns: 300 }); // prettier-ignore
-    expect(blockedContent(`call ${'5'.concat(KEYCAP).repeat(7)}`)).toBe('digits');
+    expect(blockedContent(`call ${[...'5552014'].map((d) => d + KEYCAP).join('')}`)).toBe('digits');
     expect(blockedContent(`go ${String.fromCodePoint(0x1f1fa, 0x1f1f8)}`)).toBe('charset'); // a flag
     expect(blockedContent(`free ${String.fromCodePoint(0x1f193)}`)).toBe('charset'); // squared FREE
+  });
+
+  it('skin tones are separators like any emoji, so they cannot glue a spelled-out address', () => {
+    const tone = String.fromCodePoint(0x1f3fd);
+    expect(blockedContent([...'evil.com'].join(tone))).toBe('spaced_chars');
+    expect(blockedContent([...'PIN'].join(tone))).toBe('spaced_chars');
+    expect(blockedContent([...'5552014'].join(tone))).toBe('spaced_chars');
   });
 
   it('a zero-width joiner (compound emoji) is refused', () => {
@@ -453,6 +456,7 @@ const BENIGN = [
   'Remember the 1/1/2027 deadline for the lease', 'Anecdotes make the toast, keep it short',
   'Oh no, the oven! Check it at 5 p.m.', 'Call Abuela, the café opens at 8',
   'Tom & Jerry tonight \u{1F389}', 'R&B playlist for the drive', 'Mom said \u201Ccall me\u201D',
+  'Great job \u{1F44D}\u{1F3FD}',
 ]; // prettier-ignore
 
 describe(`false refusals on ${BENIGN.length} ordinary texts`, () => {
