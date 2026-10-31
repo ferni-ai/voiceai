@@ -4,12 +4,15 @@
  * or "it's not a crisis" was read imminent again, up to 6 scripts in a row. With the flag on, a
  * short answer right after it is an answer: a yes or a means word ("the pills") is imminent, the
  * full script; a clear no from closed sets ("no", "I'm fine", "it's not a crisis") with no pattern,
- * risk or held word is a check-in, never a second script; anything else, the reads decide.
+ * risk or held word is a check-in, never a second script, but only when the caller's own earlier
+ * lines carry no risk either (hasCallerRiskContent, as the agreement gate reads them). After "I
+ * have the pills right here", a "no" is 'no_after_risk': the turn reads exactly as on main, line
+ * and all. Anything else, the reads decide.
  *
  * @module CrisisScriptAnswer
  */
 
-import { hasRiskContent, mentionsMeans } from './crisis-agreement.js';
+import { hasCallerRiskContent, hasRiskContent, mentionsMeans } from './crisis-agreement.js';
 import { crisisBrakeOn } from './crisis-brake.js';
 import { clearNo } from './crisis-grounded-screen.js';
 import {
@@ -54,8 +57,11 @@ function carriesRisk(latest: string): boolean {
 const askedScript = (companion: string | undefined): boolean =>
   typeof companion === 'string' && ASKED.test(companion.toLowerCase().replace(/[‘’]/g, "'"));
 
-/** 'yes', 'no', or null when this is not a short answer to the script's question. */
-export function scriptAnswer(turn: ScriptAnswerTurn): 'yes' | 'no' | null {
+/** A no: a check-in on a call with no risk said, main's read when the caller said some. */
+export type ScriptAnswer = 'yes' | 'no' | 'no_after_risk';
+
+/** The answer, or null when this is not a short answer to the script's question. */
+export function scriptAnswer(turn: ScriptAnswerTurn): ScriptAnswer | null {
   try {
     const { latest, call, env } = turn;
     if (!crisisBrakeOn(env, call, [latest, ...turn.earlier]) || !askedScript(turn.companion)) {
@@ -66,7 +72,8 @@ export function scriptAnswer(turn: ScriptAnswerTurn): 'yes' | 'no' | null {
     const text = words.join(' ');
     if (YES.test(text) || mentionsMeans(latest)) return 'yes';
     if (carriesRisk(latest)) return null;
-    return clearNo(latest) || SAID_NO.test(text) ? 'no' : null;
+    if (!clearNo(latest) && !SAID_NO.test(text)) return null;
+    return turn.earlier.some(hasCallerRiskContent) ? 'no_after_risk' : 'no';
   } catch {
     return null; // the reads decide
   }

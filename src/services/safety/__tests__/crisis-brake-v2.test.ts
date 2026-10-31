@@ -11,6 +11,7 @@ import {
   buildCrisisGuidance,
   detectCrisis,
   guardFromDetection,
+  IN_DANGER_NOW,
 } from '../crisis-guard.js';
 import { combineReads, resetImminentAgreement } from '../crisis-imminent-agreement.js';
 import { asksForNumber, LINE_GIVEN, withLineOnce } from '../crisis-line-once.js';
@@ -83,7 +84,7 @@ describe('the agreement gate scans only the caller, and everyday words only in r
     ['bye', 'Okay, bye.'],
     ['done', "I'm done for today."],
     ['point', 'Good point.'],
-    ['live', 'I live in Tampa.'],
+    ['live', 'I live in Maplewood.'],
     ['sleep', 'I need some sleep.'],
     ['alone', 'I went alone.'],
     ['tonight', "We're getting pizza tonight."],
@@ -197,6 +198,26 @@ describe("the script's own question: the next short answer is an answer", () => 
     expect(answer(line)).toBeNull();
   });
 
+  it.each([
+    ['explicit words', 'I want to kill myself.'],
+    ['means in hand', 'I have the pills right here.'],
+    ['a razor', "I'm holding a razor blade over my wrist."],
+    ['a decision', "I'm going to kill myself, I've decided."],
+  ])('a no after the caller said risk (%s) reads as main', (_name, said) => {
+    for (const latest of ['No.', "I'm fine.", "It's not a crisis."]) {
+      const turn = { latest, companion: SCRIPT, earlier: [said], call: `risk-${n}`, env: ON };
+      expect(scriptAnswer(turn)).toBe('no_after_risk');
+      expect(scriptAnswer({ ...turn, earlier: [said, 'Yes.', 'Yeah.'] })).toBe('no_after_risk');
+    }
+  });
+
+  it('a no on a call whose caller said no risk is a no', () => {
+    const earlier = ['Can you text my cousin that the bake sale moved?', 'Yes.'];
+    expect(
+      scriptAnswer({ latest: 'No.', companion: SCRIPT, earlier, call: `quiet-${n}`, env: ON })
+    ).toBe('no');
+  });
+
   it('only after the script asked it, only with the flag on', () => {
     expect(answer('No.', ON, 'Okay, tell me more.')).toBeNull();
     expect(answer('No.', OFF)).toBeNull();
@@ -244,6 +265,35 @@ describe('#1464: the crisis line once per call', () => {
     expect(withLineOnce(crisisRead, t).indicators).not.toContain(LINE_GIVEN);
   });
 
+  it.each([
+    ['the classifier', applyClassifierVerdict(plain, IMMINENT)],
+    ['the patterns', detectCrisis("I'm on the roof and I'm going to jump, I might kill myself")],
+  ])('an imminent read from %s is never held: the 911 script, as on main', (_name, read) => {
+    withLineOnce(plain, turn());
+    const t = turn({ latest: "I'm on the roof.", ferni: ['Okay.'] });
+    expect(read.indicators).toContain('imminent_danger');
+    const after = withLineOnce(read, t);
+    expect(after).toBe(read);
+    expect(guardFromDetection(after).shouldBlock).toBe(true);
+    expect(after.suggestedResponse).toContain(IN_DANGER_NOW);
+  });
+
+  it('a no to the script after the caller said risk (fullLine) is never held', () => {
+    withLineOnce(plain, turn());
+    const t = turn({ latest: 'No.', ferni: ['Okay.'], fullLine: true });
+    expect(withLineOnce(crisisRead, t)).toBe(crisisRead);
+    expect(withLineOnce(crisisRead, { ...t, fullLine: false }).indicators).toContain(LINE_GIVEN);
+  });
+
+  it.each(["Tonight's the night.", 'Tonight is the night.', 'tonight s the night'])(
+    'a crisis-level plan read is new risk: %s',
+    (latest) => {
+      withLineOnce(plain, turn());
+      const t = turn({ latest, ferni: ['Okay.'], patterns: plain });
+      expect(withLineOnce(crisisRead, t)).toBe(crisisRead);
+    }
+  );
+
   it('asking for the number again gets it', () => {
     const t = turn({ latest: "What's the number again?" });
     expect(withLineOnce(crisisRead, t).indicators).not.toContain(LINE_GIVEN);
@@ -255,6 +305,24 @@ describe('#1464: the crisis line once per call', () => {
     'Can you say the hotline number again?',
     "What's the crisis line?",
     '988 again?',
+    // the 12 a caller asked it on the PR head, 7 of them missed then
+    'Can I have the number?',
+    "What's the suicide hotline?",
+    "What's the number again?",
+    'Can you give me that number again?',
+    'What number do I call?',
+    'Who do I call?',
+    'What was that hotline?',
+    'Remind me the number.',
+    'Say the number one more time.',
+    'How do I reach them?',
+    'Can you text me the crisis line?',
+    'What was it, 988?',
+    // and a few more
+    "what's the number again",
+    'can you give me the hotline',
+    'Who should I call?',
+    'How can I reach someone?',
   ])('asks for the number: %s', (line) => {
     expect(asksForNumber(line)).toBe(true);
   });
@@ -263,6 +331,10 @@ describe('#1464: the crisis line once per call', () => {
     "What's the number for the pizza place?",
     'Send me the number for the plumber again.',
     'What line are we in?',
+    'I lost my phone number.',
+    'Who called me?',
+    'Tell me the number of times you have heard that.',
+    'the number of times',
   ])('does not ask for the crisis line: %s', (line) => {
     expect(asksForNumber(line)).toBe(false);
   });

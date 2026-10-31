@@ -30,12 +30,14 @@ import {
   noteConfirmedRisk,
   type LoneRead,
 } from '../../../services/safety/crisis-confirmed-risk.js'; // CRISIS_CONFIRMED_CALL_RISK
-import { withLineOnce, type LineTurn } from '../../../services/safety/crisis-line-once.js';
 import {
   answeredYes,
   SCRIPT_ANSWER_CHECKIN,
   scriptAnswer,
-} from '../../../services/safety/crisis-script-answer.js';
+  withLineOnce,
+  type LineTurn,
+  type ScriptAnswer,
+} from '../../../services/safety/index.js';
 import { secondReadOf } from '../../../services/safety/crisis-second-read-turn.js';
 import {
   GROUNDED_LIGHT_TOUCH,
@@ -154,12 +156,12 @@ function turnEaser(
     });
 }
 
-/** CRISIS_BRAKE_V2: the answer to the 911 script's question (crisis-script-answer.ts), or null. */
+/** CRISIS_BRAKE_V2: the answer to the 911 script's question (crisis-script-answer.ts), or null
+ * for the reads to decide (a no after the caller said risk reads as on main). */
 function scriptAnswered(
   patterns: CrisisDetectionResult,
-  turn: Parameters<typeof scriptAnswer>[0]
+  answer: ScriptAnswer | null
 ): Settled | null {
-  const answer = scriptAnswer(turn);
   if (answer === 'no') return { crisis: patterns, soft: true, guidance: SCRIPT_ANSWER_CHECKIN };
   return answer === 'yes' ? { crisis: answeredYes(patterns), soft: false } : null;
 }
@@ -217,6 +219,7 @@ export function startTurnCrisis(
   };
   const call = options.sessionId || undefined;
   const lone = { call, input, detection: patterns, pattern, env, generate } as const;
+  const answer = scriptAnswer({ ...input, call, env }); // CRISIS_BRAKE_V2
   // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
   const transfer =
     adjudicatorMode !== 'live' && transferRequestIsEveryday(input, pattern, call, env);
@@ -233,7 +236,7 @@ export function startTurnCrisis(
     (settled ??=
       classifier?.mode === 'live'
         ? classifier.verdict.then(async (verdict) => {
-            const answered = scriptAnswered(patterns, { ...input, call, env });
+            const answered = scriptAnswered(patterns, answer);
             if (answered) return answered;
             // A gentle 988 offer (crisis-grounded-screen.ts), unless the classifier also reads risk.
             if (gentle && verdict?.risk !== 'imminent' && verdict?.risk !== 'crisis') {
@@ -345,7 +348,8 @@ export function startTurnCrisis(
     return easingOn ? (eased ??= easeTurn(turn)) : turn;
   };
   // CRISIS_BRAKE_V2: the crisis line in full once per call (crisis-line-once.ts).
-  const once = { ...input, ferni: [input.companion], patterns, call, env };
+  const fullLine = answer === 'no_after_risk';
+  const once = { ...input, ferni: [input.companion], patterns, call, env, fullLine };
   return {
     patterns,
     shouldBlock,

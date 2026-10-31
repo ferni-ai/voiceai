@@ -28,6 +28,14 @@ export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
 export { crisisRiskThisCall } from './crisis-call-risk.js';
 export { offersCrisisLine } from './crisis-line-speech.js';
+// CRISIS_BRAKE_V2: the line once per call, and the answer to the 911 script (crisis-gate.ts, turn-crisis.ts).
+export { withLineOnce, type LineTurn } from './crisis-line-once.js';
+export {
+  answeredYes,
+  SCRIPT_ANSWER_CHECKIN,
+  scriptAnswer,
+  type ScriptAnswer,
+} from './crisis-script-answer.js';
 
 export type {
   CrisisDetectionResult,

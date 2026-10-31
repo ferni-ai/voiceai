@@ -3,7 +3,9 @@
  * full 988 mention per call ... Any NEW risk signal still gets the full response." Once Ferni's own
  * words gave a line (offersCrisisLine), a later crisis turn about the caller keeps crisis mode
  * without the number or script, unless the caller asks for it, says yes to the 911 script, or says
- * new risk (explicit words, a plan, means in hand: patterns and every means form).
+ * new risk (explicit words, a plan, means in hand: patterns and every means form). Only a
+ * crisis-level read is held: an imminent read, from the patterns or the classifier, always gets
+ * the 911 script as on main, since "I'm on the roof" can carry no pattern word at all.
  * @module CrisisLineOnce
  */
 
@@ -20,6 +22,8 @@ const log = createLogger({ module: 'CrisisLineOnce' });
 export const LINE_GIVEN = 'crisis_line_given';
 /** A yes to the script's own question (crisis-script-answer.ts): always the full line. */
 export const SCRIPT_YES = 'script_answer_yes';
+/** An imminent read, the patterns' or the classifier's (crisis-guard.ts): never held. */
+const IMMINENT = 'imminent_danger';
 
 export interface LineTurn {
   call?: string;
@@ -29,6 +33,8 @@ export interface LineTurn {
   ferni: ReadonlyArray<string | undefined>;
   /** The patterns' read of this turn, before any classifier verdict. */
   patterns: { indicators: readonly string[] };
+  /** The turn reads as on main: a no to the 911 script from a caller who said risk earlier. */
+  fullLine?: boolean;
   env?: Record<string, string | undefined>;
   now?: number;
 }
@@ -53,25 +59,43 @@ function lineHeard(turn: LineTurn): boolean {
 }
 
 const LINE = '(?:(?:crisis|suicide|help|hotline) )?(?:number|line|hotline|lifeline)';
+/** A crisis line by name; never "the number of times" or "the number for the plumber". */
+const NAMED =
+  '(?:number|hotline|lifeline|helpline|(?:crisis|suicide|help) (?:line|number|hotline))(?! (?:of|for)\\b)';
 const ASKS_NUMBER = [
   new RegExp(`\\b(?:the|that|your) ${LINE} again\\b|\\bwhat(?: was| is|'s) that ${LINE}\\b`),
-  /\b(?:what(?:'s| is| was)|give me|tell me|repeat|send me|text me)\b[a-z' ]{0,12}\b(?:crisis|suicide|help) ?(?:line|hotline|number)\b/,
+  new RegExp(
+    `\\b(?:what(?:'s| is| was)|give me|tell me|repeat|send me|text me|remind me|say)\\b[a-z' ]{0,20}\\b${NAMED}`
+  ),
+  new RegExp(
+    `\\b(?:can|could|may) (?:i|you) (?:have|get|give me|send me|text me)\\b[a-z' ]{0,20}\\b${NAMED}`
+  ),
   /\b(?:988|nine eight eight) again\b|\bwas it (?:988|nine eight eight)\b/,
+  /\bwhat (?:number|line|hotline) (?:do|should|can|would) i (?:call|text|dial|use|ring)\b/,
+  /\bwho (?:do|should|can|would) i (?:call|text|ring|contact|reach|talk to|reach out to)\b/,
+  /\bhow (?:do|can|should|would) i (?:reach|call|contact|text|get hold of|get a hold of|get in touch with) (?:them|someone|somebody|anyone|anybody|the line|the hotline|988|nine eight eight)\b/,
 ];
 
 /** The caller asks for the crisis line again. */
 export function asksForNumber(latest: string): boolean {
-  const text = normalize(String(latest ?? '')).replace(/[^a-z0-9' ]+/g, ' ');
+  const text = normalize(String(latest ?? ''))
+    .replace(/[^a-z0-9' ]+/g, ' ')
+    .replace(/ {2,}/g, ' ')
+    .trim();
   return ASKS_NUMBER.some((re) => re.test(text));
 }
 
 const NEW_RISK = new Set(['explicit_crisis_language', 'imminent_danger', 'plan_or_means']);
+/** A plan the shared patterns spell one way only ("tonight's the night"); here, not there, so the
+ * flag off reads exactly as main. */
+const PLAN_SAID = /\btonight (?:is|'?s) the night\b/;
 
 /** New risk in the caller's own words this turn, whatever the classifier read. */
 function newRisk(turn: LineTurn): boolean {
   if (turn.patterns.indicators.some((i) => NEW_RISK.has(i))) return true;
   const text = normalize(turn.latest);
   return (
+    PLAN_SAID.test(text) ||
     PLAN_OR_MEANS_PATTERNS.some((p) => p.test(text)) ||
     meansInHandRead(text, [], [], 'all') !== null
   );
@@ -86,6 +110,7 @@ export function withLineOnce<
 >(crisis: T, turn: LineTurn): T {
   try {
     if (!lineHeard(turn) || !crisis.isCrisis || crisis.subject !== 'self') return crisis;
+    if (crisis.indicators.includes(IMMINENT) || turn.fullLine) return crisis; // as on main
     if (crisis.indicators.includes(SCRIPT_YES) || asksForNumber(turn.latest) || newRisk(turn)) {
       return crisis;
     }

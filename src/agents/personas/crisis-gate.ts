@@ -42,12 +42,14 @@ import {
   afterCheckLoneRead,
   noteConfirmedRisk,
 } from '../../services/safety/crisis-confirmed-risk.js';
-import { withLineOnce, type LineTurn } from '../../services/safety/crisis-line-once.js';
 import {
   answeredYes,
   SCRIPT_ANSWER_CHECKIN,
   scriptAnswer,
-} from '../../services/safety/crisis-script-answer.js';
+  withLineOnce,
+  type LineTurn,
+  type ScriptAnswer,
+} from '../../services/safety/index.js';
 import { secondReadOf } from '../../services/safety/crisis-second-read-turn.js';
 import {
   GROUNDED_LIGHT_TOUCH,
@@ -139,16 +141,18 @@ function briefed(
   return keep || held === crisis ? decision : decisionFor(held);
 }
 
-/** CRISIS_BRAKE_V2: the caller answering the 911 script's question (crisis-script-answer.ts). */
+/** CRISIS_BRAKE_V2: the caller answering the 911 script's question (crisis-script-answer.ts);
+ * null lets the reads decide, as on main for a no after the caller said risk. */
 function answerDecision(
-  turn: Parameters<typeof scriptAnswer>[0],
+  answer: ScriptAnswer | null,
+  call: string | undefined,
   detection: CrisisDetectionResult
 ): CrisisGateDecision | null {
-  const answer = scriptAnswer(turn);
   if (!answer) return null;
   log.info({ action: answer, source: 'script_answer' }, 'CRISIS_GATE');
+  if (answer === 'no_after_risk') return null;
   if (answer === 'no') return guide(SCRIPT_ANSWER_CHECKIN);
-  noteCrisisRisk(turn.call);
+  noteCrisisRisk(call);
   return decisionFor(answeredYes(detection));
 }
 
@@ -206,7 +210,9 @@ export function startCrisisGate(
   const holdForReads = agreementGate || adjudicatorMode === 'live';
   const call = sessionScope(userData);
   const said = { latest, earlier, companion };
-  const once = { call, latest, earlier, ferni, patterns: detection, env };
+  const answer = scriptAnswer({ latest, companion, earlier, call, env });
+  const fullLine = answer === 'no_after_risk';
+  const once = { call, latest, earlier, ferni, patterns: detection, env, fullLine };
   const heard = briefed(decision, detection, once, gentle);
   // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
   const transfer =
@@ -223,7 +229,7 @@ export function startCrisisGate(
   const who = startWhoRead({ latest, earlier, companion }, detection, { env, generate });
 
   const escalation = run.verdict.then(async (verdict): Promise<CrisisGateDecision | null> => {
-    const answered = answerDecision({ latest, companion, earlier, call, env }, detection);
+    const answered = answerDecision(answer, call, detection);
     if (answered) return answered;
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
     if (loneImminentGoodbye({ detection, verdict, latest, earlier, companion, priorRisk })) {
