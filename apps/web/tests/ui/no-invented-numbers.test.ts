@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../src/utils/api-helpers.js', () => ({
   getApiHeadersAsync: vi.fn().mockResolvedValue({ Authorization: 'Bearer t' }),
+  apiFetch: vi.fn((url: string) => fetch(url)),
 }));
 
 const { getRitualBuilderUI } = await import('../../src/ui/ritual-builder.ui.js');

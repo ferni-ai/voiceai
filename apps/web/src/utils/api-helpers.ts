@@ -15,6 +15,12 @@
 
 import { getLocale } from '../i18n/index.js';
 import { getAuthToken, getFirebaseUid, initAuth } from '../services/firebase-auth.service.js';
+import {
+  API_REQUEST_TIMEOUT_MS,
+  AUTH_READY_TIMEOUT_MS,
+  fetchWithDeadline,
+  valueWithin,
+} from './request-deadline.js';
 
 // Track if we've ensured auth is ready
 let authReadyPromise: Promise<void> | null = null;
@@ -22,19 +28,20 @@ let authReadyPromise: Promise<void> | null = null;
 /**
  * Ensure Firebase Auth is initialized before making API calls.
  * This prevents race conditions where API calls happen before auth is ready.
- * 
+ *
  * - First call initializes auth (if not already)
  * - Subsequent calls return immediately
  * - Safe to call multiple times
+ * - Waits at most AUTH_READY_TIMEOUT_MS: auth that fails or never starts leaves
+ *   API calls on the X-User-Id fallback instead of holding them up
  */
 async function ensureAuthReady(): Promise<void> {
   if (!authReadyPromise) {
-    authReadyPromise = initAuth().then(() => {
-      // Auth is now ready
-    }).catch(() => {
-      // Auth failed to initialize - continue without it
-      // API calls will use X-User-Id fallback
-    });
+    const started = initAuth().then(
+      () => undefined,
+      () => undefined
+    );
+    authReadyPromise = valueWithin(started, AUTH_READY_TIMEOUT_MS, undefined);
   }
   return authReadyPromise;
 }
@@ -97,7 +104,7 @@ export function getApiHeaders(additionalHeaders?: Record<string, string>): Recor
 /**
  * Get headers for API calls with Firebase auth token (async version).
  * This is the preferred method for authenticated API calls.
- * 
+ *
  * IMPORTANT: This ensures Firebase Auth is initialized before getting the token.
  * This prevents 401 errors from race conditions during app startup.
  */
@@ -107,12 +114,13 @@ export async function getApiHeadersAsync(
   // Ensure auth is ready before trying to get the token
   // This prevents race conditions where API calls happen before auth initializes
   await ensureAuthReady();
-  
+
   const headers = getApiHeaders(additionalHeaders);
 
   // Get Firebase auth token
   try {
-    const token = await getAuthToken();
+    // A token refresh that never answers is treated as no token
+    const token = await valueWithin(getAuthToken(), AUTH_READY_TIMEOUT_MS, null);
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -141,17 +149,27 @@ export function getApiFetchOptions(options?: RequestInit): RequestInit {
 /**
  * Make an authenticated API call.
  * Automatically adds Firebase auth token and dev headers.
+ * Rejects with RequestTimeoutError when the server hasn't answered within
+ * `timeoutMs`, so a caller's loading state always ends.
  */
-export async function apiFetch(url: string, options?: RequestInit): Promise<Response> {
+export async function apiFetch(
+  url: string,
+  options?: RequestInit,
+  timeoutMs = API_REQUEST_TIMEOUT_MS
+): Promise<Response> {
   const headers = await getApiHeadersAsync();
 
-  return fetch(url, {
-    ...options,
-    headers: {
-      ...headers,
-      ...((options?.headers as Record<string, string>) || {}),
+  return fetchWithDeadline(
+    url,
+    {
+      ...options,
+      headers: {
+        ...headers,
+        ...((options?.headers as Record<string, string>) || {}),
+      },
     },
-  });
+    timeoutMs
+  );
 }
 
 /**

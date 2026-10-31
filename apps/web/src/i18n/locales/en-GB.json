@@ -9302,6 +9302,7 @@
   },
   "dataExport": {
     "title": "Privacy & your data",
+    "loadFailed": "I couldn't load what I've saved for you just now. Nothing has changed.",
     "exportFormat": "Export format",
     "deleteAll": "Delete All Data",
     "footer": "I save our conversations and the things you tell me so I can remember them next time, and if you ever want them gone, deleting your account erases them.",

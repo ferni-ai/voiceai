@@ -9402,6 +9402,7 @@
   },
   "dataExport": {
     "title": "Tes données",
+    "loadFailed": "Je n'ai pas pu charger ce que je garde pour toi pour l'instant. Rien n'a changé.",
     "exportFormat": "Format d'export",
     "deleteAll": "Supprimer toutes les données",
     "footer": "Je garde nos conversations et ce que tu me racontes pour m'en souvenir la prochaine fois, et si un jour tu veux que tout disparaisse, supprimer ton compte efface tout.",

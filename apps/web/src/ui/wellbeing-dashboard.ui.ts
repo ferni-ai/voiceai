@@ -10,7 +10,7 @@
 // Design system animation constants available via CSS variables:
 // --duration-normal, --duration-slow, --duration-entrance, --ease-spring, etc.
 import { formatDate, t } from '../i18n/index.js';
-import { getApiHeadersAsync } from '../utils/api-helpers.js';
+import { apiFetch } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 import {
   hasWellbeingData,
@@ -1459,13 +1459,10 @@ function transformApiResponse(
 async function fetchDashboardData(): Promise<DashboardData | null> {
   try {
     const userId = localStorage.getItem('ferni_user_id');
-    // Use getApiHeadersAsync for proper Firebase auth (includes X-User-Id automatically)
-    const authHeaders = await getApiHeadersAsync();
-
-    // Fetch dashboard and trends in parallel
+    // apiFetch adds the Firebase auth headers and rejects on timeout, so the spinner always ends
     const [dashboardResponse, trendsResponse] = await Promise.all([
-      fetch(`/api/wellbeing/dashboard${userId ? `?userId=${userId}` : ''}`, { headers: authHeaders }),
-      fetch(`/api/wellbeing/trends?period=month${userId ? `&userId=${userId}` : ''}`, { headers: authHeaders }),
+      apiFetch(`/api/wellbeing/dashboard${userId ? `?userId=${userId}` : ''}`),
+      apiFetch(`/api/wellbeing/trends?period=month${userId ? `&userId=${userId}` : ''}`),
     ]);
 
     if (!dashboardResponse.ok) {

@@ -62,11 +62,19 @@ class DataExportUI {
   }
 
   show(data: ExportableData[]): void {
+    this.selectedCategories = new Set(data.filter(d => d.exportable).map(d => d.category));
+    this.reveal(() => this.renderContent(data));
+  }
+
+  /** Open with a status in place of the categories: loading, or why they're missing. */
+  showStatus(status: HTMLElement): void {
+    this.reveal(() => this.wrapper?.replaceChildren(status));
+  }
+
+  private reveal(render: () => void): void {
     this.initialize();
     if (!this.panel || !this.wrapper) return;
-
-    this.selectedCategories = new Set(data.filter(d => d.exportable).map(d => d.category));
-    this.renderContent(data);
+    render();
     this.panel.classList.add('data-export--visible');
     this.isVisible = true;
   }
@@ -485,10 +493,6 @@ export function getDataExportUI(): DataExportUI {
 
 export function initDataExportUI(): void {
   getDataExportUI().initialize();
-}
-
-export function showDataExport(data: ExportableData[]): void {
-  getDataExportUI().show(data);
 }
 
 export default DataExportUI;

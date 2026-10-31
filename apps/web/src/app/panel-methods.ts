@@ -19,6 +19,7 @@ import {
   getConversationHistoryUI,
 } from '../ui/conversation-history.ui.js';
 import { getDataExportUI } from '../ui/data-export.ui.js';
+import { openDataExport } from '../ui/data-export-status.js';
 import { getPredictionTrackerUI } from '../ui/prediction-tracker.ui.js';
 import {
   toPredictionTrackerData,
@@ -480,8 +481,7 @@ export async function showPredictionTracker(): Promise<void> {
 // ============================================================================
 
 /**
- * Show data export panel.
- * Fetches categories from backend, sets up callbacks for export/delete.
+ * Show data export panel: opens at once, then the backend's categories (or why they're missing).
  */
 export async function showDataExport(): Promise<void> {
   void trackScreen('settings');
@@ -531,7 +531,7 @@ export async function showDataExport(): Promise<void> {
     },
   });
 
-  getDataExportUI().show(await dataExportService.getExportableCategories());
+  await openDataExport(getDataExportUI(), () => dataExportService.getExportableCategories());
 }
 
 // ============================================================================
