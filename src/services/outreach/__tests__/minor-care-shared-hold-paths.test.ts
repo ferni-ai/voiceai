@@ -26,7 +26,7 @@ vi.mock('../conversation-context-bridge.js', () => ({
 // The webhook names the account by its verified phone (sms-sender-account.ts): here the Firebase one.
 vi.mock('../../identity/firebase-auth.js', async (orig) => ({
   ...(await orig<object>()),
-  getFirebaseUserByPhone: async (e164: string) =>
+  getFirebaseUserByPhoneOrThrow: async (e164: string) =>
     ({ '+15551234567': { uid: 'profile-uid' }, '+15559876543': { uid: 'adult-uid' } })[e164] ??
     null,
 }));

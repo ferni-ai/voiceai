@@ -28,7 +28,7 @@ vi.mock('../../../../utils/firestore-utils.js', async (orig) => ({
   getFirestoreDb: () => pathFirestore(docs),
 }));
 vi.mock('../../../identity/firebase-auth.js', () => ({
-  getFirebaseUserByPhone: vi.fn(async (e164: string) => {
+  getFirebaseUserByPhoneOrThrow: vi.fn(async (e164: string) => {
     const uid = authOwners.get(e164);
     return uid ? { uid } : null;
   }),
@@ -103,12 +103,22 @@ describe('findAccountByVerifiedPhone', () => {
     expect(await findAccountByVerifiedPhone(PHONE)).toBe('web-uid');
   });
 
+  it('the Firebase owner wins over an unmerged phone: record, as for calls', async () => {
+    user(`phone:${PHONE}`, { name: 'called first' });
+    expect(await findAccountByVerifiedPhone(PHONE)).toBe(`phone:${PHONE}`);
+    authOwners.set(PHONE, 'firebase-uid'); // then verified the number in Settings
+    expect(await findAccountByVerifiedPhone(PHONE)).toBe('firebase-uid');
+    expect(logged.error).not.toHaveBeenCalled();
+  });
+
+  it('the Firebase owner wins over a different linked owner', async () => {
+    linked('linked-uid');
+    authOwners.set(PHONE, 'firebase-uid');
+    expect(await findAccountByVerifiedPhone(PHONE)).toBe('firebase-uid');
+  });
+
   it.each([
     ['two linked accounts', () => (linked('a-uid'), linked('b-uid'))],
-    [
-      'a linked account and another Firebase account',
-      () => (linked('a-uid'), authOwners.set(PHONE, 'b-uid')),
-    ],
     ['a phone: account and a linked one', () => (user(`phone:${PHONE}`, {}), linked('b-uid'))],
     [
       `${MAX_LINKED} linked records`,
@@ -125,14 +135,18 @@ describe('findAccountByVerifiedPhone', () => {
     }
   );
 
-  it('a failed read is unknown, never a guess', async () => {
-    linked('verified-uid');
+  it.each([
+    ['Auth', 'authAccount'],
+    ['Firestore', 'linkedAccounts'],
+  ] as const)('a failed %s read is unknown, never a guess', async (_n, failing) => {
+    const fail = async (): Promise<never> => {
+      throw new Error('unavailable');
+    };
     const index = {
-      phoneAccount: async () => null,
-      linkedAccounts: async () => {
-        throw new Error('unavailable');
-      },
-      authAccount: async () => 'verified-uid',
+      phoneAccount: async () => ({ id: `phone:${PHONE}`, data: {} }),
+      linkedAccounts: async () => [],
+      authAccount: async () => null,
+      [failing]: fail,
     };
     expect(await findAccountByVerifiedPhone(PHONE, index)).toBeNull();
     expect(logged.error).toHaveBeenCalledTimes(1);

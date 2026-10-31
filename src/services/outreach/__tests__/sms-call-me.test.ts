@@ -37,9 +37,10 @@ vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
   getFirestoreDb: () => pathFirestore(docs),
 }));
 // The webhook finds the account by its verified phone (sms-sender-account.ts): here the Firebase one.
-vi.mock('../../identity/firebase-auth.js', () => ({
-  getFirebaseUserByPhone: vi.fn(async (e164: string) => (e164 === PHONE ? { uid: SETH } : null)),
-}));
+vi.mock('../../identity/firebase-auth.js', () => {
+  const byPhone = vi.fn(async (e164: string) => (e164 === PHONE ? { uid: SETH } : null));
+  return { getFirebaseUserByPhone: byPhone, getFirebaseUserByPhoneOrThrow: byPhone };
+});
 const routed = vi.hoisted(() =>
   vi.fn(async () => ({
     routeDecision: { agentId: 'ferni' },
