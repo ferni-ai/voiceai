@@ -8,7 +8,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createUserProfile, type UserProfile } from '../../../types/user-profile.js';
-import { erasingMark } from '../../../utils/erasing-mark.js';
+import { erasingMark, noteErasedHere } from '../../../utils/erasing-mark.js';
 import {
   createMergeFakeFirestore,
   newMergeFakeState,
@@ -86,5 +86,13 @@ describe('saveProfile and account erasure', () => {
     await store.saveProfile(afterACall());
 
     expect(state.docs.get(RECORD)).toMatchObject({ totalConversations: 4 });
+  });
+  it('getOrCreateProfile never recreates the record of an account this process erased', async () => {
+    const gone = 'Wt6Hn3Kq8Zr1Lc5Xm9Vp2Bd7Fs4G';
+    noteErasedHere(gone); // markErasing; the sweep then deleted the record
+
+    await store.getOrCreateProfile(gone);
+
+    expect(state.docs.has(`bogle_users/${gone}`)).toBe(false);
   });
 });

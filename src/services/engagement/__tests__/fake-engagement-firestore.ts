@@ -43,6 +43,12 @@ export function createFakeEngagementFirestore(): FakeEngagementFirestore {
       const next = structuredClone(data);
       docs.set(path, opts?.merge ? { ...(docs.get(path) ?? {}), ...next } : next);
     },
+    /** As Firestore's: merges top-level fields, and the document must exist */
+    update: async (data: Json) => {
+      const current = docs.get(path);
+      if (!current) throw Object.assign(new Error('5 NOT_FOUND'), { code: 5 });
+      docs.set(path, { ...current, ...structuredClone(data) });
+    },
   });
 
   const query = (

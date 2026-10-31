@@ -1,29 +1,28 @@
 /**
  * Writes one engagement document (engagement_profiles/{uid}, or a ritual streak, weather
- * entry, prediction, team huddle or conversation session under it), but never brings back
- * an erased person's data. Every engagement writer that can create a document goes
- * through here, so the rule lives in one place.
+ * entry, prediction, team huddle or conversation session under it), but never for an
+ * account being erased or erased by this process. Every engagement writer that can create
+ * a document goes through here, so the rule lives in one place.
  *
  * getProfile creates a default profile for a uid it can't find, and saveProfile writes
- * whatever the process cached, so anything that ran for a uid after account deletion
- * recreated the doc: a menu route on the ID token the app still held, a live call's
- * cached profile, a background ritual or nudge. The prod orphan audit (#2902) found 13
- * such profiles, and the subcollection writers were not guarded at all (#2966). The same
- * shape as team insights (#2833).
+ * whatever the process cached, so anything that ran for a uid during or after account
+ * deletion recreated the doc: a menu route on the ID token the app still held, a live
+ * call's cached profile, a background ritual or nudge. The prod orphan audit (#2902)
+ * found 13 such profiles, and the subcollection writers were not guarded at all (#2966).
  *
- * The write reads the user record (bogle_users/{uid}) and the profile in its own
- * transaction, and is dropped (and logged) when the record is marked `erasing` (an
- * erasure is running, utils/erasing-mark.ts), or when both are gone (what an erasure
- * leaves). Account erasure marks the record before it deletes anything, so a write that
- * read the record first conflicts with the mark and its retry finds it. A profile that
- * exists still takes writes when the record is missing: that is no recreation, and keys
- * without a record keep working. A new caller's first save lands once the first app or
- * call request has created their record (#2982, menu-engagement-first-save.emulator.test.ts).
+ * The write reads the user record (bogle_users/{uid}) in its own transaction and is
+ * dropped (and logged) only on an explicit erasure (writeBlockedFor, utils/erasing-mark.ts):
+ * the record's `erasing` mark, or this process having erased the account. Account erasure
+ * marks the record before it deletes anything, so a write that read the record first
+ * conflicts with the mark and its retry finds it. A missing record is a new caller, so
+ * their first saves land (#2982, menu-engagement-first-save.emulator.test.ts). After the
+ * record is gone, another process's late write is caught only by an erasure tombstone
+ * (a follow-up).
  *
  * @module services/engagement/engagement-write-unless-erased
  */
 
-import { isErasedOrErasing } from '../../utils/erasing-mark.js';
+import { writeBlockedFor } from '../../utils/erasing-mark.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'engagement-write-unless-erased' });
@@ -48,8 +47,6 @@ export interface GuardedWriteDb<Ref> {
 }
 
 export interface GuardedWrite<Ref> {
-  /** The profiles collection: {profiles}/{userId} is the profile the target belongs to */
-  profiles: string;
   userId: string;
   /** The document written: the profile itself, or one under it */
   target: Ref;
@@ -66,11 +63,8 @@ export async function writeUnlessErased<Ref>(
 ): Promise<boolean> {
   const { userId, target, data, merge } = write;
   const record = db.collection(USER_RECORDS).doc(userId);
-  const profile = db.collection(write.profiles).doc(userId);
   const written = await db.runTransaction(async (tx) => {
-    const [user, existing] = await Promise.all([tx.get(record), tx.get(profile)]);
-    // A missing record is erasure only when the profile is gone too (see the module doc)
-    if (isErasedOrErasing(user) && (user.exists || !existing.exists)) return false;
+    if (writeBlockedFor(userId, await tx.get(record))) return false;
     tx.set(target, data, { merge });
     return true;
   });

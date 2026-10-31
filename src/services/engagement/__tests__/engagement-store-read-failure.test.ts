@@ -78,9 +78,7 @@ describe('engagement profile reads', () => {
       occurredAt: '2026-10-19T00:00:00.000Z',
     });
     expect(firestore.docs.get(PROFILE_PATH)).toEqual(stored);
-    // The huddle's own write reads the profile too (the erased-account guard), so with
-    // that read failing it fails closed instead of writing under an unknown account
-    expect(firestore.docs.has(`${PROFILE_PATH}/team_huddles/h1`)).toBe(false);
+    expect(firestore.docs.has(`${PROFILE_PATH}/team_huddles/h1`)).toBe(true);
 
     // The default was not cached: once the read recovers, the real profile loads.
     firestore.failReads.match = null;

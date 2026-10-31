@@ -4,9 +4,10 @@
  * writes the profile loaded at call start, so an account erased during the call came
  * back, and with a record again the engagement guard took the person for live.
  *
- * The write reads the record in its own transaction and decides with the shared
- * predicate (isErasedOrErasing, utils/erasing-mark.ts):
- * - the record is marked `erasing` (an erasure is running): dropped;
+ * The write reads the record in its own transaction and decides with the shared rule
+ * (writeBlockedFor, utils/erasing-mark.ts), plus one case only a user record has:
+ * - the record is marked `erasing`, or this process erased the account: dropped. So
+ *   getOrCreateProfile never recreates the record of an account being erased;
  * - the record is gone and the profile has had a conversation (totalConversations > 0):
  *   dropped. Erasure leaves no record and no tombstone, and only a profile loaded before
  *   it can carry a conversation; the end-of-call save counts the call first;
@@ -19,7 +20,7 @@
  * @module memory/storage/profile-write-unless-erased
  */
 
-import { isErasedOrErasing } from '../../utils/erasing-mark.js';
+import { writeBlockedFor } from '../../utils/erasing-mark.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'profile-write-unless-erased' });
@@ -49,8 +50,8 @@ export async function writeProfileUnlessErased<Ref>(
   const hadConversation = (profile.totalConversations ?? 0) > 0;
   const written = await db.runTransaction(async (tx) => {
     const record = await tx.get(ref);
-    // A missing record is erasure only for a profile that has already had a conversation
-    if (isErasedOrErasing(record) && (record.exists || hadConversation)) return false;
+    // A missing record is a new user, unless the profile has already had a conversation
+    if (writeBlockedFor(profile.id, record) || (!record.exists && hadConversation)) return false;
     tx.set(ref, data, { merge: true });
     return true;
   });

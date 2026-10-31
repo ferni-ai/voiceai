@@ -6,8 +6,9 @@
  *
  * - Cache: each account is looked up at most once a minute (bounded, per uid); the app
  *   polls /api/user-events/pending every 2 seconds. Deleting, revoking or erasing an
- *   account here invalidates its entry at once (invalidateAccount); another server
- *   instance learns within the minute.
+ *   account here refuses its tokens at once (invalidateAccount). That is sticky: no
+ *   later lookup, strict or not, overwrites it, because during an erasure the Firebase
+ *   user still exists. Another server instance learns within the minute.
  * - Stale state: only when Auth itself fails (a transport error, a timeout, a 5xx) is an
  *   account state under an hour old used (logged auth_revocation_stale). With none, or
  *   for any other failure, the answer is 'unavailable': a 503, try again. Never a 401,
@@ -32,14 +33,14 @@
  * @module services/identity/token-revocation
  */
 
+import { noteErasedHere } from '../../utils/erasing-mark.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { boundedMap, budget, type Rate } from './lookup-budget.js';
 
 const log = createLogger({ module: 'token-revocation' });
 
 /** 'ok', 'stale' and 'anonymous' accept the token; 'unavailable' is a 503; the rest a 401 */
-export type Revocation =
-  'ok' | 'stale' | 'anonymous' | 'unavailable' | 'gone' | 'disabled' | 'revoked';
+type Revocation = 'ok' | 'stale' | 'anonymous' | 'unavailable' | 'gone' | 'disabled' | 'revoked';
 
 /** The part of a Firebase Auth user record the check reads */
 export interface AccountRecord {
@@ -112,6 +113,8 @@ function countedLog(event: string, message: string) {
 /** A check with its own cache and budgets (one per process; tests make their own) */
 export function revocationCheck(limits: Limits = LIMITS) {
   const accounts = boundedMap<{ state: AccountState; at: number }>();
+  // Invalidations, kept apart so no lookup (lax or strict) can overwrite them
+  const invalidated = boundedMap<{ gone: boolean; at: number }>();
   const budgets = {
     normal: budget(limits.normal, limits.normalPerAccount),
     strict: budget(limits.strict, limits.strictPerAccount),
@@ -187,6 +190,9 @@ export function revocationCheck(limits: Limits = LIMITS) {
     now = Date.now(),
     strict = false
   ): Promise<Revocation> => {
+    const invalid = invalidated.get(token.uid);
+    if (invalid?.gone) return 'gone'; // erased or deleted here: sticky, strict included
+    if (invalid && token.auth_time * 1000 < invalid.at) return 'revoked';
     const known = await stateOf(token, lookup, now, strict);
     if (known === 'unavailable') return 'unavailable';
     const { state } = known;
@@ -197,13 +203,13 @@ export function revocationCheck(limits: Limits = LIMITS) {
     return known.stale ? 'stale' : 'ok';
   };
 
-  /** The account was deleted or erased ('gone'), or its tokens revoked, just now */
+  /**
+   * The account was deleted or erased ('gone': its tokens are refused for good, even
+   * while its Firebase user still exists during the erasure sweep), or its tokens were
+   * revoked ('revoked': tokens signed in before now are refused)
+   */
   const invalidate = (uid: string, change: 'gone' | 'revoked', now = Date.now()) => {
-    const state: AccountState =
-      change === 'gone'
-        ? { gone: true }
-        : { gone: false, disabled: false, validAfterMs: now, noProvider: false };
-    accounts.set(uid, { state, at: now });
+    invalidated.set(uid, { gone: change === 'gone', at: now });
   };
 
   return { check, invalidate };
@@ -217,6 +223,7 @@ const revocation = revocationCheck();
  */
 export function invalidateAccount(uid: string, change: 'gone' | 'revoked'): void {
   revocation.invalidate(uid, change);
+  if (change === 'gone') noteErasedHere(uid); // and its writes stop (utils/erasing-mark.ts)
 }
 
 const REFUSED: Record<'gone' | 'disabled' | 'revoked', string> = {
@@ -226,7 +233,7 @@ const REFUSED: Record<'gone' | 'disabled' | 'revoked', string> = {
 };
 
 /** The code a token rejects with when its account couldn't be checked: answer 503, not 401 */
-export const AUTH_CHECK_UNAVAILABLE = 'auth/revocation-check-unavailable';
+const AUTH_CHECK_UNAVAILABLE = 'auth/revocation-check-unavailable';
 
 /** True for the rejection that means "try again" (503), not "bad token" (401) */
 export function isAuthCheckUnavailable(error: unknown): boolean {

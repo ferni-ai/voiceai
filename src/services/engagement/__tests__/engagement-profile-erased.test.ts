@@ -6,9 +6,11 @@
  * still-valid ID token, a live call's cached profile or a background job brought
  * engagement_profiles/{uid} back after account deletion. The prod orphan audit found 13.
  * Each case runs the real store (getProfile / saveProfile) on an in-memory Firestore.
+ * Only an explicit erasure blocks a write (the record's `erasing` mark, or this process
+ * having erased the account, utils/erasing-mark.ts); a uid with no record is a new user.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { erasingMark } from '../../../utils/erasing-mark.js';
+import { erasingMark, noteErasedHere } from '../../../utils/erasing-mark.js';
 import {
   createFakeEngagementFirestore,
   type FakeEngagementFirestore,
@@ -39,31 +41,44 @@ beforeEach(() => {
 });
 
 describe('engagement profile after account erasure', () => {
-  it('getProfile for an erased uid (no record, no profile) writes nothing', async () => {
+  it('getProfile for an account this process erased (no record, no profile) writes nothing', async () => {
+    const gone = 'Gq2Wd7Lp4Xn9Rb6Ts1Vk8Hm3Jc5F';
+    noteErasedHere(gone); // what markErasing does in this process
+    const store = await getEngagementStore();
+
+    const profile = await store.getProfile(gone);
+    await store.saveProfile({ ...profile, totalRitualDays: 3 });
+
+    expect(firestore.docs.has(`engagement_profiles/${gone}`)).toBe(false);
+  });
+
+  it('a brand-new uid with no record and no profile gets its default profile', async () => {
     expect(firestore.docs.has(RECORD)).toBe(false);
     const store = await getEngagementStore();
 
-    const profile = await store.getProfile(USER);
-    await store.saveProfile({ ...profile, totalRitualDays: 3 });
+    await store.getProfile(USER);
 
-    expect(firestore.docs.has(PROFILE)).toBe(false);
+    expect(firestore.docs.get(PROFILE)).toMatchObject({ userId: USER, totalRitualDays: 0 });
   });
 
   it("a live call's cached profile is not written back once the account is erased", async () => {
-    firestore.docs.set(RECORD, { name: 'live' });
+    const leaving = 'Nm5Kc8Rt1Qw4Zp7Lx2Vb9Hd6Js3G';
+    const [record, saved] = [`bogle_users/${leaving}`, `engagement_profiles/${leaving}`];
+    firestore.docs.set(record, { name: 'live' });
     const store = await getEngagementStore();
-    const profile = await store.getProfile(USER); // created and cached while the user was live
-    expect(firestore.docs.has(PROFILE)).toBe(true);
+    const profile = await store.getProfile(leaving); // created and cached while the user was live
+    expect(firestore.docs.has(saved)).toBe(true);
 
-    firestore.docs.delete(PROFILE); // account erasure: the profile, then the record
-    firestore.docs.delete(RECORD);
+    noteErasedHere(leaving); // account erasure: marked, the profile goes, then the record
+    firestore.docs.delete(saved);
+    firestore.docs.delete(record);
     profile.totalRitualDays = 9;
     await store.saveProfile(profile);
-    expect(firestore.docs.has(PROFILE)).toBe(false);
+    expect(firestore.docs.has(saved)).toBe(false);
 
     // The cached copy went with the dropped write, so a later read doesn't bring it back
-    expect((await store.getProfile(USER)).totalRitualDays).toBe(0);
-    expect(firestore.docs.has(PROFILE)).toBe(false);
+    expect((await store.getProfile(leaving)).totalRitualDays).toBe(0);
+    expect(firestore.docs.has(saved)).toBe(false);
   });
 
   it('nothing is written while an erasure is running (the record is marked erasing)', async () => {

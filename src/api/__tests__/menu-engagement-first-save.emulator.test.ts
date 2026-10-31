@@ -1,12 +1,12 @@
 /**
  * A new caller's first engagement save lands; an erased caller's is dropped (#2982, #2966).
  *
- * Every engagement write (the profile, ritual streaks, weather, predictions, huddles,
- * sessions) is dropped when neither the user record (bogle_users/{uid}) nor the
- * engagement profile exists, because that is what an account erasure leaves
- * (engagement-write-unless-erased.ts). The worry in #2982: a brand-new caller looks the
- * same. This runs the real path: the app's first call (GET /api/user/profile) creates the
- * record, then the real engagement store saves the profile and a ritual streak.
+ * Engagement writes (the profile, ritual streaks, weather, predictions, huddles,
+ * sessions) and the user record are dropped only on an explicit erasure: the record's
+ * `erasing` mark, or this process having erased the account (utils/erasing-mark.ts). A
+ * brand-new caller has no record and must not look erased (#2982). This runs the real
+ * path: the app's first call (GET /api/user/profile) creates the record, then the real
+ * engagement store saves the profile and a ritual streak; and the real account erasure.
  */
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -94,7 +94,7 @@ describe.skipIf(!emulator)('engagement first save (Firestore emulator)', () => {
     expect(await exists(`engagement_profiles/${uid}/ritual_streaks/morning-sky`)).toBe(true);
   });
 
-  it("an erased caller's save writes nothing", async () => {
+  it("after the real account erasure, a live call's save and the app's first call write nothing", async () => {
     const uid = newUser();
     await fetch(`${base}/api/user/profile`, { headers: { 'x-test-uid': uid } });
     const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
@@ -102,15 +102,16 @@ describe.skipIf(!emulator)('engagement first save (Firestore emulator)', () => {
     await store.saveRitualStreak(uid, streak('morning-sky'));
     expect(await exists(`engagement_profiles/${uid}/ritual_streaks/morning-sky`)).toBe(true);
 
-    // What account erasure leaves: no record, no profile, nothing under it
+    // The real erasure: marks the record (and notes the uid here), then sweeps every store
+    const { eraseUserRecord } = await import('../../services/platform/erase-user-record.js');
     const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
-    await getAdminFirestore().recursiveDelete(
-      getAdminFirestore().doc(`engagement_profiles/${uid}`)
-    );
-    await getAdminFirestore().recursiveDelete(getAdminFirestore().doc(`bogle_users/${uid}`));
+    await eraseUserRecord(uid, getAdminFirestore(), undefined, []);
+    expect(await exists(`bogle_users/${uid}`)).toBe(false);
 
     await store.saveRitualStreak(uid, streak('evening-wind-down')); // a live call, still running
+    await fetch(`${base}/api/user/profile`, { headers: { 'x-test-uid': uid } }); // getOrCreateProfile
     expect(await exists(`engagement_profiles/${uid}/ritual_streaks/evening-wind-down`)).toBe(false);
     expect(await exists(`engagement_profiles/${uid}`)).toBe(false);
+    expect(await exists(`bogle_users/${uid}`)).toBe(false);
   });
 });

@@ -235,9 +235,8 @@ export class EngagementStore {
     merge = true
   ) {
     if (!this.db) return false;
-    const profiles = this.COLLECTION;
     const doc = cleanForFirestore(data);
-    return writeUnlessErased(this.db, { profiles, userId, target, data: doc, merge, kind });
+    return writeUnlessErased(this.db, { userId, target, data: doc, merge, kind });
   }
 
   /**

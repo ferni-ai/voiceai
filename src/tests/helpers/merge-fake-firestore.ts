@@ -79,6 +79,7 @@ export interface FakeDocRef {
   update: (data: Json, pre?: { lastUpdateTime?: FakeTime }) => Promise<void>;
   delete: () => Promise<void>;
   collection: (name: string) => FakeCollection;
+  listCollections: () => Promise<Array<{ id: string }>>;
 }
 
 export function createMergeFakeFirestore(state: MergeFakeState) {
@@ -144,8 +145,14 @@ export function createMergeFakeFirestore(state: MergeFakeState) {
         bump(path);
       },
       collection: (name: string) => collection(`${path}/${name}`),
+      listCollections: async () =>
+        [...new Set(under(path).map((p) => p.slice(path.length + 1).split('/')[0]))].map((id) => ({
+          id,
+        })),
     };
   }
+  /** Every stored path below `path` */
+  const under = (path: string) => [...state.docs.keys()].filter((p) => p.startsWith(`${path}/`));
   const depth = (p: string) => p.split('/').length;
   const query = (
     paths: () => string[],
@@ -199,6 +206,10 @@ export function createMergeFakeFirestore(state: MergeFakeState) {
     doc,
     batch,
     runTransaction: fakeRunTransaction,
+    /** The document and everything under it, each through its own delete */
+    recursiveDelete: async (ref: FakeDocRef) => {
+      for (const p of [ref.path, ...under(ref.path)]) await doc(p).delete();
+    },
     collectionGroup: (name: string) =>
       query(() => [...state.docs.keys()].filter((p) => p.split('/').at(-2) === name)),
   };
