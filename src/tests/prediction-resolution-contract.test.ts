@@ -65,25 +65,14 @@ vi.mock('../api/auth-middleware.js', () => ({
   }),
 }));
 
-type FakeRef = {
-  get: () => Promise<unknown>;
-  set: (d: Doc, o?: { merge?: boolean }) => Promise<void>;
-};
 vi.mock('@google-cloud/firestore', () => ({
   Firestore: class {
     collection(name: string): unknown {
       return collectionRef(name);
     }
-    // The store's writes check the account in a transaction; they apply once it resolves
-    async runTransaction<T>(fn: (tx: unknown) => Promise<T>): Promise<T> {
-      const writes: Array<() => Promise<void>> = [];
-      const tx = {
-        get: (ref: FakeRef) => ref.get(),
-        set: (ref: FakeRef, d: Doc, o?: { merge?: boolean }) => writes.push(() => ref.set(d, o)),
-      };
-      const result = await fn(tx);
-      for (const write of writes) await write();
-      return result;
+    // The store's writes check the account in a transaction
+    async runTransaction(fn: never): Promise<unknown> {
+      return (await import('./helpers/fake-transaction.js')).fakeRunTransaction(fn);
     }
   },
 }));

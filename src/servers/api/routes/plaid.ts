@@ -29,7 +29,7 @@ export async function handlePlaidRoutes(
     }
 
     // SECURITY: Require auth; user_id in body must match authenticated user
-    const auth = await requireAuth(req, res);
+    const auth = await requireAuth(req, res, { strict: true }); // bank linking
     if (!auth) return true;
 
     let body = '';
@@ -138,7 +138,7 @@ export async function handlePlaidRoutes(
 
   // Check if user has Plaid linked
   if (pathname === '/plaid/status') {
-    const auth = await requireAuth(req, res);
+    const auth = await requireAuth(req, res, { strict: true }); // bank linking
     if (!auth) return true;
 
     const params = new URL(req.url || '', 'http://localhost').searchParams;

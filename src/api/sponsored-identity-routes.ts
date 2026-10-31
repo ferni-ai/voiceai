@@ -110,7 +110,7 @@ export async function handleSponsoredIdentityRoutes(
   }
 
   // Identity comes from the verified token, never a header the client can set.
-  const auth = await requireAuth(req, res);
+  const auth = await requireAuth(req, res, { strict: true }); // consent
   if (!auth) return true;
   const userId = auth.userId;
 

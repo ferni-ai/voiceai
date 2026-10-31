@@ -18,6 +18,11 @@ import { getAuth } from 'firebase-admin/auth';
 import { createLogger } from '../../utils/safe-logger.js';
 import { nonAccountPrefixOf } from '../../utils/synthetic-user.js';
 import { erasureErrorCode } from '../platform/erasure-step.js';
+import {
+  isAuthCheckUnavailable,
+  verifyIdTokenChecked,
+  type TokenCheckOptions,
+} from './token-revocation.js';
 
 const log = createLogger({ module: 'FirebaseAuth' });
 
@@ -59,7 +64,9 @@ export interface VerifiedToken {
 export type TokenVerificationResult = VerifiedToken | { expired: true } | null;
 
 /** Type guard: true if the result is a successfully verified token (not expired, not null) */
-export function isVerifiedToken(result: TokenVerificationResult): result is VerifiedToken {
+export function isVerifiedToken(
+  result: TokenVerificationResult
+): result is VerifiedToken {
   return result !== null && !('expired' in result);
 }
 
@@ -81,14 +88,10 @@ let isInitialized = false;
  */
 export function claimsFirebaseIssuer(token: string): boolean {
   try {
-    const payload = JSON.parse(
-      Buffer.from(token.split('.')[1] ?? '', 'base64url').toString('utf8')
-    ) as {
+    const payload = JSON.parse(Buffer.from(token.split('.')[1] ?? '', 'base64url').toString('utf8')) as {
       iss?: unknown;
     };
-    return (
-      typeof payload.iss !== 'string' || payload.iss.startsWith('https://securetoken.google.com/')
-    );
+    return typeof payload.iss !== 'string' || payload.iss.startsWith('https://securetoken.google.com/');
   } catch {
     return true;
   }
@@ -150,21 +153,25 @@ function ensureInitialized(): boolean {
 // ============================================================================
 
 /**
- * Verify a Firebase ID token, always checking it against the account (checkRevoked): a
- * token issued before its account was deleted, disabled or signed out everywhere is
- * refused. It used to skip that check by default, so an ID token from before account
- * deletion kept working for up to an hour and GET /api/user/profile recreated the
- * erased person's record (#2966). The check is one Auth lookup per request.
+ * Verify a Firebase ID token, and check it against its account: a token whose account
+ * was deleted or disabled, or that was revoked, is refused. It used to skip that check,
+ * so an ID token from before account deletion kept working for up to an hour and
+ * GET /api/user/profile recreated the erased person's record (#2966). The account is
+ * looked up at most once a minute (token-revocation.ts). When it can't be checked (Auth
+ * down, no recent state), this throws, as it does when Firebase isn't initialized: the
+ * caller answers 503, never 401 and never a pass.
  *
  * SECURITY: In production, this will throw if Firebase is not initialized.
  * This prevents silent auth bypass due to misconfiguration.
  *
  * @param idToken - The Firebase ID token from the frontend
+ * @param options - `{ strict: true }` for approval, consent, payment and step-up checks
  * @returns Verified token info, `{ expired: true }` if token is expired, or null if invalid
- * @throws Error in production if Firebase is not initialized
+ * @throws Error in production if Firebase is not initialized, or the account can't be checked
  */
 export async function verifyFirebaseToken(
-  idToken: string
+  idToken: string,
+  options: TokenCheckOptions = {}
 ): Promise<VerifiedToken | { expired: true } | null> {
   if (!ensureInitialized()) {
     if (isProduction()) {
@@ -178,7 +185,7 @@ export async function verifyFirebaseToken(
   }
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken, true);
+    const decodedToken = await verifyIdTokenChecked(admin.auth(), idToken, options);
 
     // Determine if user is anonymous
     // Anonymous users have the 'anonymous' provider and no email
@@ -205,6 +212,7 @@ export async function verifyFirebaseToken(
 
     return result;
   } catch (error) {
+    if (isAuthCheckUnavailable(error)) throw error; // its account couldn't be checked: a 503
     // Handle specific Firebase errors
     if (error instanceof Error) {
       const { code } = error as { code?: string };

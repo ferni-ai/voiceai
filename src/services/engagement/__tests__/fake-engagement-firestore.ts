@@ -51,7 +51,7 @@ export function createFakeEngagementFirestore(): FakeEngagementFirestore {
     order?: [string, 'asc' | 'desc'],
     limit?: number
   ) => ({
-    doc: (id: string = `auto-${(autoIds += 1)}`) => docRef(`${path}/${id}`),
+    doc: (id = `auto-${(autoIds += 1)}`) => docRef(`${path}/${id}`),
     where: (field: string, op: string, value: unknown) =>
       query(path, [...filters, [field, op, value]], order, limit),
     orderBy: (field: string, dir: 'asc' | 'desc' = 'asc') =>

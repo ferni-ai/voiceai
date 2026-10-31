@@ -19,6 +19,10 @@ import {
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { RELINK_MESSAGE } from './shared/developer-auth.js';
 import { getFirestoreDatabase } from '../../../config/environment.js';
+import {
+  tokenCheckStatus,
+  verifyIdTokenChecked,
+} from '../../../services/identity/token-revocation.js';
 
 const log = getLogger().child({ module: 'developers-auth' });
 
@@ -345,12 +349,12 @@ export async function handleDeveloperAuthRoutes(
       let decodedToken: FirebaseDecodedToken;
 
       try {
-        decodedToken = (await auth.verifyIdToken(body.idToken, true)) as FirebaseDecodedToken;
+        decodedToken = (await verifyIdTokenChecked(auth, body.idToken)) as FirebaseDecodedToken;
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         // SECURITY: Log only metadata, never any part of the token
         log.warn({ error: err.message, tokenLength, tokenParts }, 'Invalid Firebase ID token');
-        sendError(res, 'Invalid or expired token', 401);
+        sendError(res, 'Invalid or expired token', tokenCheckStatus(error, 401));
         return true;
       }
 
@@ -427,9 +431,9 @@ export async function handleDeveloperAuthRoutes(
       let decodedToken: FirebaseDecodedToken;
 
       try {
-        decodedToken = (await auth.verifyIdToken(idToken, true)) as FirebaseDecodedToken;
+        decodedToken = (await verifyIdTokenChecked(auth, idToken)) as FirebaseDecodedToken;
       } catch (error) {
-        sendError(res, 'Invalid or expired token', 401);
+        sendError(res, 'Invalid or expired token', tokenCheckStatus(error, 401));
         return true;
       }
 

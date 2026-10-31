@@ -12,6 +12,10 @@ import { getLogger } from '../../../../utils/safe-logger.js';
 import { sendError } from '../../../helpers.js';
 import { accountProblem, linkProblem } from './publisher-link-rules.js';
 import { getFirestoreDatabase } from '../../../../config/environment.js';
+import {
+  isAuthCheckUnavailable,
+  verifyIdTokenChecked,
+} from '../../../../services/identity/token-revocation.js';
 
 const log = getLogger().child({ module: 'developer-auth' });
 
@@ -160,7 +164,7 @@ export interface PublisherCaller {
 
 export type PublisherResolution =
   | { ok: true; publisher: { id: string; email: string; name: string; verified: boolean } }
-  | { ok: false; status: 401 | 403; error: string };
+  | { ok: false; status: 401 | 403 | 503; error: string };
 
 export const RELINK_MESSAGE =
   'Re-link your developer account: sign in with an account whose email is verified';
@@ -210,11 +214,11 @@ export async function resolvePublisherFromRequest(
   }
   try {
     const auth = await getFirebaseAuth();
-    const decodedToken = (await auth.verifyIdToken(idToken, true)) as FirebaseDecodedToken;
+    const decodedToken = (await verifyIdTokenChecked(auth, idToken)) as FirebaseDecodedToken;
     return await resolvePublisherForToken(decodedToken);
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to get publisher from token');
-    return { ok: false, status: 401, error: 'Authentication required' };
+    return { ok: false, status: isAuthCheckUnavailable(error) ? 503 : 401, error: 'Authentication required' };
   }
 }
 
@@ -248,8 +252,9 @@ export async function requirePublisherFromToken(
 export async function verifyFirebaseToken(idToken: string): Promise<FirebaseDecodedToken | null> {
   try {
     const auth = await getFirebaseAuth();
-    return (await auth.verifyIdToken(idToken, true)) as FirebaseDecodedToken; // refuses a deleted account's token
+    return (await verifyIdTokenChecked(auth, idToken)) as FirebaseDecodedToken;
   } catch (error) {
+    if (isAuthCheckUnavailable(error)) throw error; // a 503 for the caller, not a bad token
     const err = error instanceof Error ? error : new Error(String(error));
     // SECURITY: Log only metadata, never any part of the token
     const tokenLength = idToken?.length ?? 0;
