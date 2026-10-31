@@ -586,6 +586,8 @@ function bankLinkEmailHtml(secureLink: string): string {
 /**
  * Send the secure link to the caller's own verified phone (the guarded owner
  * text) or verified email (the call-user port): never an address from the model.
+ * The text is not marked asked-for-now, so every hold applies to it: STOP,
+ * texts off, quiet hours and MINOR_CARE_SHARED_HOLD on the account or number.
  */
 async function sendLinkToOwnContact(
   userId: string,
@@ -594,7 +596,7 @@ async function sendLinkToOwnContact(
 ): Promise<{ sent: true } | { sent: false; reason: string }> {
   const port = getCallUserPort();
   if (deliveryMethod === 'sms') {
-    const text = await port?.textOwner?.(userId, `Jack here! Tap this secure link to connect your bank account: ${secureLink}\n\nThis uses Plaid - the same security used by major financial apps. Your bank login is never shared with me.`, { askedNow: true }); // prettier-ignore
+    const text = await port?.textOwner?.(userId, `Jack here! Tap this secure link to connect your bank account: ${secureLink}\n\nThis uses Plaid - the same security used by major financial apps. Your bank login is never shared with me.`, { askedNow: false }); // prettier-ignore
     return text?.sent ? { sent: true } : { sent: false, reason: text?.reason ?? "texting isn't set up here" }; // prettier-ignore
   }
   const email = await port?.verifiedEmail?.(userId);
