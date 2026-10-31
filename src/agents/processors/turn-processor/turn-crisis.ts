@@ -30,7 +30,7 @@ import {
   noteConfirmedRisk,
   type LoneRead,
 } from '../../../services/safety/crisis-confirmed-risk.js'; // CRISIS_CONFIRMED_CALL_RISK
-import { withLineOnce } from '../../../services/safety/crisis-line-once.js';
+import { withLineOnce, type LineTurn } from '../../../services/safety/crisis-line-once.js';
 import {
   answeredYes,
   SCRIPT_ANSWER_CHECKIN,
@@ -154,6 +154,20 @@ function turnEaser(
     });
 }
 
+/** CRISIS_BRAKE_V2: the answer to the 911 script's question (crisis-script-answer.ts), or null. */
+function scriptAnswered(
+  patterns: CrisisDetectionResult,
+  turn: Parameters<typeof scriptAnswer>[0]
+): Settled | null {
+  const answer = scriptAnswer(turn);
+  if (answer === 'no') return { crisis: patterns, soft: true, guidance: SCRIPT_ANSWER_CHECKIN };
+  return answer === 'yes' ? { crisis: answeredYes(patterns), soft: false } : null;
+}
+
+/** The turn result's crisis field, the crisis line held back once the call heard it (CRISIS_BRAKE_V2). */
+const briefedSummary = (s: Settled, once: LineTurn): CrisisDetection =>
+  crisisSummary(withLineOnce(s.crisis, once), s.soft, s.guidance);
+
 export function startTurnCrisis(
   userText: string,
   userData: TurnCrisisUserData | undefined,
@@ -219,11 +233,8 @@ export function startTurnCrisis(
     (settled ??=
       classifier?.mode === 'live'
         ? classifier.verdict.then(async (verdict) => {
-            // CRISIS_BRAKE_V2: the answer to the 911 script's question (crisis-script-answer.ts).
-            const answer = scriptAnswer({ ...input, call, env });
-            if (answer === 'no')
-              return { crisis: patterns, soft: true, guidance: SCRIPT_ANSWER_CHECKIN };
-            if (answer === 'yes') return { crisis: answeredYes(patterns), soft: false };
+            const answered = scriptAnswered(patterns, { ...input, call, env });
+            if (answered) return answered;
             // A gentle 988 offer (crisis-grounded-screen.ts), unless the classifier also reads risk.
             if (gentle && verdict?.risk !== 'imminent' && verdict?.risk !== 'crisis') {
               return { crisis: patterns, soft: true, guidance: SCREEN_GENTLE_OFFER };
@@ -340,8 +351,7 @@ export function startTurnCrisis(
     shouldBlock,
     resolve: () => settle().then((s) => s.crisis),
     softCheck: () => settle().then((s) => s.soft),
-    summary: () =>
-      settle().then((s) => crisisSummary(withLineOnce(s.crisis, once), s.soft, s.guidance)),
+    summary: () => settle().then((s) => briefedSummary(s, once)),
     bypassAllowed: () => settle().then((s) => !s.soft && !hasCrisisSignal(s.crisis)),
   };
 }

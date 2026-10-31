@@ -142,6 +142,19 @@ function briefed(
   return keep || held === crisis ? decision : decisionFor(held);
 }
 
+/** CRISIS_BRAKE_V2: the caller answering the 911 script's question (crisis-script-answer.ts). */
+function answerDecision(
+  turn: Parameters<typeof scriptAnswer>[0],
+  detection: CrisisDetectionResult
+): CrisisGateDecision | null {
+  const answer = scriptAnswer(turn);
+  if (!answer) return null;
+  log.info({ action: answer, source: 'script_answer' }, 'CRISIS_GATE');
+  if (answer === 'no') return guide(SCRIPT_ANSWER_CHECKIN);
+  noteCrisisRisk(turn.call);
+  return decisionFor(answeredYes(detection));
+}
+
 export interface CrisisGateOptions {
   env?: Record<string, string | undefined>;
   /** The classifier's model call. */
@@ -213,14 +226,8 @@ export function startCrisisGate(
   const who = startWhoRead({ latest, earlier, companion }, detection, { env, generate });
 
   const escalation = run.verdict.then(async (verdict): Promise<CrisisGateDecision | null> => {
-    // CRISIS_BRAKE_V2: the caller answering the 911 script's own question (crisis-script-answer.ts).
-    const answer = scriptAnswer({ latest, companion, earlier, call, env });
-    if (answer) {
-      log.info({ action: answer, source: 'script_answer' }, 'CRISIS_GATE');
-      if (answer === 'no') return guide(SCRIPT_ANSWER_CHECKIN);
-      noteCrisisRisk(call);
-      return decisionFor(answeredYes(detection));
-    }
+    const answered = answerDecision({ latest, companion, earlier, call, env }, detection);
+    if (answered) return answered;
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
     if (loneImminentGoodbye({ detection, verdict, latest, earlier, companion, priorRisk })) {
       log.info({ action: 'guide', source: 'lone_imminent_goodbye' }, 'CRISIS_GATE');
