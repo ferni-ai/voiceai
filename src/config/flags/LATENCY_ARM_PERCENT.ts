@@ -4,5 +4,5 @@ import type { FlagSpec } from '../flag-spec.js';
 export const LATENCY_ARM_PERCENT = {
   default: '0',
   owner: 'voice',
-  kind: 'experiment',
+  kind: 'config',
 } as const satisfies FlagSpec;
