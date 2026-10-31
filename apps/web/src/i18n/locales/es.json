@@ -1881,9 +1881,9 @@
     "disconnected": "Sin conexión",
     "end": "Terminar",
     "endConversation": "Terminar conversación",
-    "endConversationGoodbye": "Terminar conversación - Adiós",
+    "goodbyeEndCall": "Adiós. Colgar.",
     "endSession": "Terminar sesión",
-    "ending": "Terminando...",
+    "ending": "Llamada terminada",
     "goodbye": "Adiós",
     "holdToSpeak": "Mantén presionado para hablar",
     "listening": "Escuchando...",
@@ -1893,7 +1893,7 @@
     "takeCare": "Cuídate.",
     "tapToSpeak": "Toca para hablar",
     "thinking": "Pensando...",
-    "untilNextTime": "Hasta la próxima..."
+    "untilNextTime": "Hasta la próxima"
   },
   "stages": {
     "acquaintance": "Conocidos",
@@ -10276,7 +10276,6 @@
     "startupError": "Hay problemas para iniciar. ¿Quieres probar a actualizar?",
     "lastConversation": "Esta es tu última conversación de este mes. Hagamos que valga la pena.",
     "gettingReady": "Preparando todo...",
-    "connecting": "Conectando",
     "almostThere": "Ya casi está...",
     "waitingQuietly": "Esperaré en silencio",
     "listening": "Te escucho",
@@ -10911,13 +10910,14 @@
   "entrance": {
     "helper": "Tu guía personal",
     "connectToTalk": "Habla con Ferni",
-    "endTalk": "Desconectar",
-    "connectingCancel": "Conectando. Toca para cancelar",
-    "connectingNow": "Conectando…",
+    "endTalk": "Colgar",
+    "connectingCancel": "Llamando a {name}. Toca para cancelar.",
+    "connectingNow": "Llamando a {name}…",
     "tapToCancel": "Toca para cancelar",
-    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
-    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
-    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
+    "stillCalling": "Sigo llamando a {name}…",
+    "stillCallingCancel": "Sigo llamando a {name}. Toca para cancelar.",
+    "reconnecting": "Reconectando…",
+    "arrived": "{name} está aquí"
   },
   "analyticsDashboard": {
     "title": "Tu camino",

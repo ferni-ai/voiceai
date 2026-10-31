@@ -287,10 +287,14 @@ const REFUSED = [
 ];
 
 // Kept in a prompt, refused as a stored fact: a stored free-text value may hold at most
-// 6 digits in total, however letters split them. Dates belong in typed fields
-// (validFrom, a birthday attribute), not in free text.
+// 6 digits in total outside whole dates and plausible years, however words split them.
 const STORED_REFUSED = [
   '2 or 3 or 4 apartments at 1200 a month',
+  'lives at 1245 Oak St, 33701',
+  'flight UA 1234 on 11/03',
+];
+// Stored since M8b: dates, years and prices (the old 7-digits-in-total rule refused them).
+const STORED_KEPT = [
   'on 2026-10-20 at 3pm',
   'born in 1987, moved 2015',
   "mom's 70th birthday is June 5th, 2026",
@@ -298,14 +302,13 @@ const STORED_REFUSED = [
   'run the 2027-04-19 marathon',
   'appointment with Dr. Patel on 2026-11-03',
   'graduated 2008, started at Acme 2015',
-  'lives at 1245 Oak St, 33701',
+  'worked there 2019 to 2023',
   'wedding anniversary 06/12/2010',
   '03/14/1987',
   '1987-03-14',
   '1987-3-14',
   '1987-03-14T00:00:00Z',
   'bought the house in 2019 for $450,000',
-  'flight UA 1234 on 11/03',
   'lived there 2015-2019',
   'lived there 1998–2004',
   'paid € 2,400.50 on 2026-10-20',
@@ -354,9 +357,6 @@ const MAIN_CAUGHT_STORED = [
   'her number is 2015-1987',
   'call 72755 or, 50142',
   'call 72755 then CA 50142',
-  'born 1987 then 2015 then 2019',
-  'moved 2015, left 1987, back 55',
-  'on 2026-10-20 call 555',
   'jane@example.com',
   '555-0142',
   '5 5 5 0 1 4 2',
@@ -395,6 +395,11 @@ describe('parity: never worse than main', () => {
   it.each(MAIN_CAUGHT_STORED)('a stored value still refuses %j', (text) => {
     expect(isContactValueAllowed('other', text)).toBe(false);
   });
+  it('years and dates main refused in a stored value are kept since M8b', () => {
+    for (const t of ['born 1987 then 2015 then 2019', 'moved 2015, left 1987, back 55'])
+      expect(isContactValueAllowed('other', t), t).toBe(true);
+    expect(isContactValueAllowed('other', 'on 2026-10-20 call 555')).toBe(true);
+  });
   it('a two-year range is kept only ascending, plausible and exactly YYYY-YYYY', () => {
     for (const t of ['lived there 1987-2015', 'lived there 1998\u20132004', 'from 2099-2100'])
       expect(containsContactData(t), t).toBe(false);
@@ -413,14 +418,13 @@ describe('isContactValueAllowed and toE164: the facts store exceptions', () => {
     expect(isContactValueAllowed('phone', '(727) 555-0142')).toBe(true);
     expect(isContactValueAllowed('phone', 'jo@example.com')).toBe(false);
   });
-  it('a stored value refuses 7+ digits in total, however letters split them', () => {
+  it('a stored value refuses 7+ digits outside dates and years, however words split them', () => {
     const split = [
       'call 555 then 0142',
       'five five five and zero one four two',
       'ask 727, 555, or 0142',
       'born 1987, zip 33701 and $0142',
       'on 10/20 pay $555 at 01:42',
-      'born 1987 and 1988 and 0142', // years are not discounted next to other digits
     ];
     for (const v of split) {
       expect(containsContactData(v), v).toBe(false); // the prompt guard reads runs only
@@ -431,18 +435,22 @@ describe('isContactValueAllowed and toE164: the facts store exceptions', () => {
     for (const v of ORDINARY.filter((t) => !STORED_REFUSED.includes(t)))
       expect(isContactValueAllowed('other', v), v).toBe(true);
     for (const v of STORED_REFUSED) expect(isContactValueAllowed('other', v), v).toBe(false);
+    for (const v of STORED_KEPT) expect(isContactValueAllowed('other', v), v).toBe(true);
+    // the declared cost: a word-split number whose other groups are year-shaped
+    expect(isContactValueAllowed('other', 'call 555 then 1987')).toBe(true);
+    expect(isContactValueAllowed('other', 'born 1987 and 1988 and 0142')).toBe(true);
   });
-  it('a birthday may be exactly one ISO date; nothing else with 7+ digits is stored', () => {
+  it('a birthday may be an ISO date or any value the general rule keeps', () => {
     expect(isContactValueAllowed('birthday', '1960-04-12')).toBe(true);
-    expect(isContactValueAllowed('birthday', '1987-03-14')).toBe(true);
     expect(isContactValueAllowed('birthday', '04-12')).toBe(true); // 4 digits
-    for (const v of ['03/14/1987', '1987-3-14', '1987-03-14T00:00:00Z', '1987-13-01', '5550-14-21'])
+    for (const v of ['03/14/1987', '1987-3-14', '1987-03-14T00:00:00Z'])
+      expect(isContactValueAllowed('birthday', v), v).toBe(true);
+    for (const v of ['1987-13-01', '5550-14-21'])
       expect(isContactValueAllowed('birthday', v), v).toBe(false);
-    expect(isContactValueAllowed('other', '1987-03-14')).toBe(false); // only a birthday
     for (const attr of ['other', 'city', 'employer', 'pet', 'goal', 'birthday']) {
       expect(isContactValueAllowed(attr, '727-555-0142'), attr).toBe(false);
       expect(isContactValueAllowed(attr, 'jane at example dot com'), attr).toBe(false);
-      expect(isContactValueAllowed(attr, 'born in 1987, moved 2015'), attr).toBe(false);
+      expect(isContactValueAllowed(attr, 'born in 1987, moved 2015'), attr).toBe(true);
     }
   });
 });
