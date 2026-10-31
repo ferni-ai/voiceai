@@ -5,8 +5,8 @@
  *
  * A stale mock string fails silently: vitest mocks a path nobody imports, the real module
  * loads, and the test still passes (or passes for the wrong reason). Moving a folder makes
- * hundreds of them stale at once, and no type check sees them; this is the net under every
- * move. Strings already stale on 2026-10-31 sit in the baseline, which may only
+ * hundreds of them stale at once, and no type check sees them (scripts/codemods/move-module.ts
+ * rewrites them; this is the net under it). Strings already stale on 2026-10-31 sit in the baseline, which may only
  * shrink: a new stale string fails, a fixed one is dropped by --update.
  *
  * usage:
