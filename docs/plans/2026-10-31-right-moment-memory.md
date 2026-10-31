@@ -241,10 +241,11 @@ New module `src/agents/multi-agent/greeting-date.ts`, a sibling of `call-news-op
 - For each flag, check every read site reads `process.env` at call time and not once at module load (`docs/runbooks/cohort-rollout.md`). Known sites: `turn-memory-retrieval.ts:302,320`, `turn-memory-rerank.ts:92`, `hybrid-search-timeout-stats.ts:74`. A flag read into a module constant would silently not apply for a cohort. Each site gets a test that sets the env after import and sees the effect.
 - `TURN_MEMORY_RERANK` does nothing unless `TURN_MEMORY_RERANK_TIMEOUT_MS > 0` (`turn-memory-rerank.ts:78`). That is an env value, not a flag, so it cannot be cohort-set: it is set agent-wide, inert while the flag is off. Default to turn RERANK on only after the latency receipts (section 10) show headroom.
 - `CALL_NEWS_OPENER` is owner-only by design (the owner, alone on their own line). `CALL_REPORT_REACHES_YOU` (`#3080`, merged `c1023e93bb`) took five or more verify rounds on its crisis interaction: before arming it for anyone, re-read the independent verifier's PASS comment on the head that merged and confirm the crisis behaviour it names, in the PR that flips it.
+- **A5-1 note (2026-10-31):** `CALL_REPORT_REACHES_YOU` is NOT made cohort-capable in A5-1. Its result-capture reads (`unified-result-capture.ts:505,581`) run outside the call; a separate crisis-lane PR reads the person's flag with a timeout and, on failure or timeout, notes it ui-only and never marks it delivered.
 
 ## 6. Flags
 
-All off by default. All cohort-capable after the 5.6 PR. Resolution order, per the runbook: the owner's cohort, then `friends-and-family`, then `beta-waitlist-2026-10`, then the agent default last.
+All off by default. All cohort-capable after the 5.6 PR, except `CALL_REPORT_REACHES_YOU` (row below). Resolution order, per the runbook: the owner's cohort, then `friends-and-family`, then `beta-waitlist-2026-10`, then the agent default last.
 
 | Flag | New? | Controls | Needs | Read where |
 |---|---|---|---|---|
@@ -253,7 +254,7 @@ All off by default. All cohort-capable after the 5.6 PR. Resolution order, per t
 | `DATES_THAT_MATTER` | existing, cohort-capable | the world-fact dates writer (`dates/after-call.ts`) | none | after-call (`envForCaller`) |
 | `DIRECTOR_PERSONA_AWARE` | existing, cohort-capable | stops a handoff persona being told the team's history as its own | none | `teammate-relationship.ts:59` |
 | `CALL_NEWS_OPENER` | existing, made cohort-capable | call news leads the hello | none | greeting build |
-| `CALL_REPORT_REACHES_YOU` | existing, made cohort-capable | "While they were away" block on the first 3 caller turns | none | turn context (`call-report.ts:75`) |
+| `CALL_REPORT_REACHES_YOU` | existing, NOT cohort-capable yet (its result-capture reads run outside the call; separate crisis-lane PR) | "While they were away" block on the first 3 caller turns | none | turn context (`call-report.ts:75`) |
 | `TURN_MEMORY_RRF_SCALE` | existing, made cohort-capable | RRF score rescale so the gate is reachable | none | per turn (`turn-memory-retrieval.ts`) |
 | `TURN_MEMORY_RERANK` | existing, made cohort-capable | model rerank of candidates | `TURN_MEMORY_RRF_SCALE`, `TURN_MEMORY_RERANK_TIMEOUT_MS > 0` | per turn |
 | `ENTITY_HYGIENE` | existing (on in prod) | the persona-subject filter on write and read | none | extraction; recall snapshot |
@@ -369,7 +370,7 @@ Dev first, then the owner's account, then wider. Each step needs the previous st
 1. **Land code flag-off** (PR order in section 11). Deploy `main` to dev with `COHORT_FLAGS=on`. Nothing changes for anyone.
 2. **Dev.** Create an owner cohort on `ferni-dev`; set `CALLER_CARD`, `DATES_THAT_MATTER`, `DATES_IN_HELLO`, `DIRECTOR_PERSONA_AWARE`, `CALL_NEWS_OPENER`, `TURN_MEMORY_RRF_SCALE` on for the eval users. Run section 9.2. Fix until the bars hold. No one in a room while updating secrets.
 3. **Seed the owner's home once** (open question O2: default is a one-off admin write of `preferences.homeLocation` using an existing one-off admin script, after the owner confirms the text, because the card must not wait for them to say it in a call).
-4. **The owner's account in prod.** Prod claim, deploy a commit already on `main` and already run on dev, then the owner's cohort: `CALLER_CARD`, `DATES_THAT_MATTER`, `DIRECTOR_PERSONA_AWARE`, `CALL_NEWS_OPENER`, `TURN_MEMORY_RRF_SCALE`. Then, as separate steps a day apart: `DATES_IN_HELLO`; `CALL_REPORT_REACHES_YOU` (after re-reading the `#3080` PASS); `TURN_MEMORY_RERANK` last (latency receipts first, set `TURN_MEMORY_RERANK_TIMEOUT_MS` agent-wide before). Watch 3 days of owner calls each.
+4. **The owner's account in prod.** Prod claim, deploy a commit already on `main` and already run on dev, then the owner's cohort: `CALLER_CARD`, `DATES_THAT_MATTER`, `DIRECTOR_PERSONA_AWARE`, `CALL_NEWS_OPENER`, `TURN_MEMORY_RRF_SCALE`. Then, as separate steps a day apart: `DATES_IN_HELLO`; `CALL_REPORT_REACHES_YOU` (after re-reading the `#3080` PASS, and only once the crisis-lane PR has made it cohort-capable; A5-1 did not); `TURN_MEMORY_RERANK` last (latency receipts first, set `TURN_MEMORY_RERANK_TIMEOUT_MS` agent-wide before). Watch 3 days of owner calls each.
 5. **Friends and family.** Same flags, one at a time, with a week of the call reviewer's notes between. Ask the members how it felt.
 6. **Beta, then default.** Per the runbook ladder; compare with and without the flag (hang-ups, call length, complaints); then set the agent default and `unset-flag` in the cohorts, then delete the flag.
 
