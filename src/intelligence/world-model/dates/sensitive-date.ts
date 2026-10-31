@@ -2,10 +2,10 @@
  * Which dates the hello may ask about, and who a date is about (spec §5.5, ruling 1: when
  * unsure, sensitive). An allowlist, so an unknown heavy word is never outvoted: the label's
  * whole words (hyphens and possessives split, "re-hab" is "re" + "hab"), less stopwords, day
- * and time words, relations and names, must all be in LIGHT_WORDS. Names count only in safe
- * shapes: before a possessive ("Priya's"), after a relation ("sister Priya") or after "with"
- * ("dinner with Marcus"); any other capitalised word ("Hospice visit") is content. No content
- * word left, or any word off the list, is sensitive.
+ * and time words, relations and names, must all be in LIGHT_WORDS. A name counts only right
+ * before a possessive ("Priya's", "sister Priya's"); any other capitalised word ("Hospice
+ * visit", "dinner with Marcus", "meeting with Hospice") is content. No content word left, or
+ * any word off the list, is sensitive.
  *
  * @module intelligence/world-model/dates/sensitive-date
  */
@@ -38,13 +38,9 @@ function wordsOf(label: string): Word[] {
   });
 }
 
-/** A name in one of the safe shapes; `prev` is the word before it in the label. */
-function isName(w: Word, prev: Word | undefined): boolean {
-  if (!NAME_SHAPE.test(w.word) || RELATIONS.has(w.lower) || LIGHT_WORDS.has(w.lower)) return false;
-  return (
-    w.possessive || (prev !== undefined && (RELATIONS.has(prev.lower) || prev.lower === 'with'))
-  );
-}
+/** A name in the one safe shape: Capitalised, right before a possessive ("Priya's"). */
+const isName = (w: Word): boolean =>
+  w.possessive && NAME_SHAPE.test(w.word) && !RELATIONS.has(w.lower) && !LIGHT_WORDS.has(w.lower);
 
 /** The word, or its singular ("games", "classes", "parties"), when that is on the list. */
 const lightForm = (w: string): boolean =>
@@ -64,20 +60,18 @@ function isLight(w: string, prev: string | undefined, next: string | undefined):
 export function sensitiveDate(label: string): boolean {
   if (isSensitiveThread(label)) return true;
   const words = wordsOf(label);
-  const set = (w: Word, i: number): boolean =>
-    STOPWORDS.has(w.lower) ||
-    TIME_WORD.test(w.lower) ||
-    RELATIONS.has(w.lower) ||
-    isName(w, words[i - 1]);
-  const content = words.filter((w, i) => !set(w, i)).map((w) => w.lower);
+  const setAside = (w: Word): boolean =>
+    STOPWORDS.has(w.lower) || TIME_WORD.test(w.lower) || RELATIONS.has(w.lower) || isName(w);
+  const content = words.filter((w) => !setAside(w)).map((w) => w.lower);
   if (content.length === 0) return true;
   return !content.every((w, i) => isLight(w, content[i - 1], content[i + 1]));
 }
 
-/** The names in the label, in the safe shapes only ("Priya", "Rose"). */
+/** The names in the label, in the safe shape only ("Priya", "Rose"). */
 export function namesIn(label: string): string[] {
-  const words = wordsOf(label);
-  return words.filter((w, i) => isName(w, words[i - 1])).map((w) => w.word);
+  return wordsOf(label)
+    .filter(isName)
+    .map((w) => w.word);
 }
 
 /** "grandma", "grandma Rose": who the date is about, from the relation lexicon, or null. */
@@ -88,6 +82,6 @@ export function personFromLabel(label: string): string | null {
   if (!relation) return null;
   const next = words[at + 1];
   // A name only in the surest shape, "grandma Rose's": never "mom Oncology follow-up".
-  const named = !relation.possessive && next?.possessive === true && isName(next, relation);
+  const named = !relation.possessive && next !== undefined && isName(next);
   return named ? `${relation.lower} ${next.word}` : relation.lower;
 }

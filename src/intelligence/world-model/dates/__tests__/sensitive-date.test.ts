@@ -73,13 +73,19 @@ describe('sensitiveDate: only a label of light words is ordinary', () => {
     'the divorce party', // isSensitiveThread
     'meeting with IRS', // capitals are an acronym, never a name
     "Hospital's holiday party", // a heavy word in a name's shape: isSensitiveThread still holds
+    // Only a possessive makes a name: after "with" or a relation, a capitalised word is content.
+    'dinner with Marcus',
+    'meeting with Hospice',
+    'lunch with Oncology',
+    'dinner with Probation',
+    'mom Hospice visit',
   ])('%j is sensitive', (label) => {
     expect(sensitiveDate(label)).toBe(true);
   });
 
   it.each([
     "Priya's visit",
-    'dinner with Marcus',
+    "Marcus's dinner",
     "Maya's birthday",
     'family reunion',
     'job interview',
@@ -134,7 +140,12 @@ describe('sensitiveDate properties (500 labels each)', () => {
       const name = pick(r, NAMES);
       const who = pick(r, [`${name}'s`, `my sister ${name}'s`, '', 'our']);
       const light = Array.from({ length: 1 + Math.floor(r() * 2) }, () => pick(r, LIGHT));
-      const tail = pick(r, ['', ` with ${name}`, ` ${pick(r, DAYS)}`, ` on ${pick(r, DAYS)}`]);
+      const tail = pick(r, [
+        '',
+        ` with ${name}'s family`,
+        ` ${pick(r, DAYS)}`,
+        ` on ${pick(r, DAYS)}`,
+      ]);
       const label = `${who} ${light.join(' ')}${tail}`.trim();
       expect(sensitiveDate(label), label).toBe(false);
     }
@@ -144,7 +155,8 @@ describe('sensitiveDate properties (500 labels each)', () => {
 describe('namesIn and personFromLabel', () => {
   it.each([
     ["Priya's visit", ['Priya']],
-    ['dinner with Marcus', ['Marcus']],
+    ['dinner with Marcus', []],
+    ['sister Priya visit', []],
     ["their sister Priya's visit", ['Priya']],
     ['Hospice visit', []],
     ['meeting with HR', []],
