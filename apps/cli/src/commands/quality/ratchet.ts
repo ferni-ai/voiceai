@@ -29,6 +29,7 @@ import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from '
 import { dirname, join, relative } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { changedSources, sizeRegressions } from './size-diff.js';
+import { checkAppDesignDebt } from './app-design-debt.js';
 import { checkWebsiteThemeDebt } from './website-theme-debt.js';
 
 export const MAX_LINES = 500;
@@ -324,7 +325,7 @@ async function main(): Promise<void> {
   const started = Date.now();
   const size = changedSources(SIZE_ROOTS, isSource);
   console.log(`Size, against base ${size.base.slice(0, 9)}: ${size.changes.length} touched source files (${Date.now() - started} ms).`);
-  const worse = [...regressions(base, now), ...sizeRegressions(size.changes, size.removed), ...checkWebsiteThemeDebt()];
+  const worse = [...regressions(base, now), ...sizeRegressions(size.changes, size.removed), ...checkWebsiteThemeDebt(), ...checkAppDesignDebt()];
   console.log(`Quality ratchet. Baseline: ${summary(base)}\n                 Now:      ${summary(now)}`);
   if (worse.length > 0) {
     console.log(`\n❌ ${worse.length} regression(s):\n${worse.map((w) => `  - ${w}`).join('\n')}`);
