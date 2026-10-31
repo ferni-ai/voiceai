@@ -42,7 +42,7 @@ import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { claimedUserFor } from './acting-user.js';
 import { rateLimit, requireAuth, type AuthContext } from './auth-middleware.js';
-import { verifySchedulerRequest } from './scheduled-jobs/scheduler-auth.js';
+import { isSchedulerCall, liftSocketTimeoutForSchedulerRun } from './outreach-scheduler-runs.js';
 import { handleCorsPreflightIfNeeded, parseRequestBody, sendJsonResponse } from './helpers.js';
 import { handleOutreachWebhookRoutes } from './outreach-webhook-routes.js';
 
@@ -111,17 +111,8 @@ export async function handleOutreachRoutes(
       return true;
     }
 
-    // Scheduler runs (/daily-job, /scheduler/daily) are allowed for Cloud
-    // Scheduler's signed OIDC token or an admin. The token isn't a user
-    // login, so check it before requireAuth. These routes used to trust
-    // headers any logged-in user could set (X-CloudScheduler, or anything
-    // containing "Cloud-Scheduler") and would run a real send for everyone.
-    let fromScheduler = false;
-    if (method === 'POST' && (route === '/daily-job' || route === '/scheduler/daily')) {
-      const caller = await verifySchedulerRequest(req, pathname);
-      fromScheduler = caller.ok;
-      if (!caller.ok) log.info({ route, reason: caller.reason }, 'not a scheduler token');
-    }
+    // Scheduler runs: Cloud Scheduler's OIDC token or an admin (outreach-scheduler-runs.ts).
+    const fromScheduler = await isSchedulerCall(req, method, route, pathname);
 
     // Require authentication for all non-webhook routes
     const auth: AuthContext | null = fromScheduler
@@ -130,6 +121,7 @@ export async function handleOutreachRoutes(
     if (!auth) {
       return true; // 401 already sent
     }
+    liftSocketTimeoutForSchedulerRun(req, route, fromScheduler || auth.isAdmin);
 
     // Use authenticated userId (ignore query param to prevent user enumeration)
     const authenticatedUserId = auth.userId;
