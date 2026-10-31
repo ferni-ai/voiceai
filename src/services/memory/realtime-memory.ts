@@ -215,11 +215,11 @@ export async function persistTurn(
     // Record successful Firestore operation
     recordSuccess('realtime-memory');
 
-    // Increment turn counts (fire and forget). userTurnCount is what makes a call count as a
-    // session together (services/stores/sessions-together): the user said something.
+    // Awaited (logged, never thrown): once this resolves the turn counts. userTurnCount makes a
+    // call a session together (services/stores/sessions-together): the user said something.
     if (FieldValue) {
       const user = turn.role === 'user' ? { userTurnCount: FieldValue.increment(1) } : {};
-      conversationRef
+      await conversationRef
         .update(cleanForFirestore({ turnCount: FieldValue.increment(1), ...user }))
         .catch((err) => {
           // Non-critical - log for production monitoring
