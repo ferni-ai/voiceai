@@ -29,7 +29,6 @@ import {
   lineSaysAnniversary,
 } from './friendship-anniversary.js';
 import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
-import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
 import { takeRecentTextFacts } from './recent-texts-awareness.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { calendarDaysSince, daysAgoInWords } from '../../utils/calendar-days.js';
@@ -73,7 +72,7 @@ export const PLAYFUL_GREETING_DIRECTION = GREETING_DIRECTION.replace(
 /**
  * The hello's direction for this persona. Never the playful one after a heavy
  * last call (what they talked about reads as heavy-moment.ts does) or when
- * welcome-back held back a tender thread: a tease is no way to pick that up.
+ * the opening is tender (`last.tender`): a tease is no way to pick that up.
  * A first call (`last.firstCall`) gets the stranger's hello (first-call-stranger.ts), a
  * caller Ferni can't place (`last.unplaced`) its no-claim twin; `introAs` (FIRST_CALL_INTRO).
  */
@@ -151,7 +150,7 @@ async function winFor(userId: string | undefined): Promise<Win | undefined> {
 /**
  * One opening thread per call: a win first (it is news since last time and is
  * named only once), else what they said they'd do. A future one-thread arbiter
- * replaces this choice; welcome-back and pondering then defer to the thread.
+ * replaces this choice; pondering then defers to the thread.
  */
 export function openingThread(
   win: Win | undefined,
@@ -345,12 +344,11 @@ export async function directedGreeting(
     return calmGreeting(directed.text);
   }
   // Not gated on history: the profile behind it can still be loading.
-  const [openCheckIn, openWin, pondered, welcome, anniversary, isNew, introName, letter, news] =
+  const [openCheckIn, openWin, pondered, anniversary, isNew, introName, letter, news] =
     await Promise.all([
       checkInFor(userData?.userId, userData?.callerTimezone),
       winFor(userData?.userId),
       ponderFor(userData?.userId, history),
-      loadWelcomeBack(userData?.userId, personaId, history),
       anniversaryFor(userData?.userId, history, userData?.callerTimezone), // FRIEND_CELEBRATIONS
       stranger.isStrangerCall(userData, history),
       firstMeeting(personaId, userData, history), // FIRST_CALL_INTRO: the name to give
@@ -392,11 +390,6 @@ export async function directedGreeting(
     unknown || hold.sameDay || first ? {} : openingThread(openWin, dueCheckIn);
   // One thread per call: why they called, a win or what they said they'd do, then a pondered ask.
   const ask = win || checkIn || first || !hold.allows(pondered?.text) ? undefined : pondered;
-  // Back after a gap (WELCOME_BACK_BOTH_SIDES): one thread, one thing from his life, never the gap.
-  const back =
-    welcome && !unknown && !first
-      ? planWelcomeBack(welcome, { checkIn: checkIn ?? win?.text, pondered: ask?.text })
-      : undefined;
   if (win && userData?.userId) void markWinSurfaced(userData.userId, win.id);
   const party = anniversary && !unknown && !newsNow?.careful ? anniversary : undefined;
   const direction =
@@ -405,7 +398,7 @@ export async function directedGreeting(
       process.env,
       {
         topic: history?.lastTopic,
-        tender: back?.heldBack || newsNow?.careful,
+        tender: newsNow?.careful,
         firstCall,
         unplaced,
       },
@@ -414,7 +407,6 @@ export async function directedGreeting(
     (win ? WIN_DIRECTION : '') +
     (checkIn ? CHECK_IN_DIRECTION : '') +
     (ask && !unknown ? PONDER_DIRECTION : '') +
-    (back?.direction ?? '') +
     (party ? anniversaryDirection(party) : '') +
     (letterNow ? letterOfferDirection(letterNow) : '') +
     (newsNow?.direction ?? '') +
@@ -425,16 +417,13 @@ export async function directedGreeting(
     moment: 'greeting',
     direction,
     facts: {
-      ...welcomeBackFacts(
-        greetingFacts(
-          partOfDay,
-          userData?.userName,
-          hold.history,
-          checkIn,
-          unknown ? undefined : ask?.text,
-          win?.text
-        ),
-        back
+      ...greetingFacts(
+        partOfDay,
+        userData?.userName,
+        hold.history,
+        checkIn,
+        unknown ? undefined : ask?.text,
+        win?.text
       ),
       ...(unknown ? {} : takeRecentTextFacts(sessionId)), // not for a caller not recognised
       ...(firstCall ? stranger.FIRST_CALL_FACTS : {}),
