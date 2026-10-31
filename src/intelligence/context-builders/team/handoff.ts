@@ -469,7 +469,7 @@ Acknowledge the transition naturally and continue the conversation.]`;
     }
 
     // Include cognitive handoff context if available (user's thinking style, what worked, etc.)
-    const handoffContext = getHandoffContext();
+    const handoffContext = getHandoffContext(input.services?.sessionId);
     if (handoffContext?.cognitiveContext) {
       const cognitiveContext = formatCognitiveHandoffForPrompt(handoffContext.cognitiveContext);
       if (cognitiveContext) {

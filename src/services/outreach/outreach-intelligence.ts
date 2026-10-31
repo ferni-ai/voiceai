@@ -137,10 +137,9 @@ interface OutreachUserData {
 
 let persistenceStore: PersistenceStore<OutreachUserData> | null = null;
 let isInitialized = false;
+const loadedUsers = new Set<string>(); // stored data read (a failed read doesn't count)
 
-/**
- * Initialize persistence for outreach intelligence
- */
+/** Initialize persistence for outreach intelligence */
 export async function initializeOutreachPersistence(): Promise<void> {
   if (isInitialized) return;
 
@@ -183,7 +182,8 @@ async function loadUserData(userId: string): Promise<void> {
   if (!persistenceStore) return;
 
   try {
-    const data = await persistenceStore.load(userId);
+    const data = await persistenceStore.load(userId, { strict: 'read' });
+    loadedUsers.add(userId);
     if (!data) return;
 
     // Rehydrate commitments
@@ -331,6 +331,7 @@ function dropFromMemory(userId: string): void {
   for (const map of [commitmentStore, opportunityStore, preferencesStore, engagementStore])
     map.delete(userId);
   sentOutreachLog.delete(userId);
+  loadedUsers.delete(userId); // the next use reads the stored doc before its first save
   getLogger().debug({ userId }, 'Cleared in-memory outreach data for user');
 }
 
@@ -345,7 +346,7 @@ export function clearAllOutreachData(): void {
   engagementStore.clear();
   sentOutreachLog.clear();
 
-  // Also clear persistence caches
+  loadedUsers.clear(); // read again after a reset, like the persistence caches
   persistenceStore?.clearAllCaches();
 
   getLogger().info('Cleared all outreach data');
@@ -556,8 +557,7 @@ export async function detectOutreachOpportunities(
   userId: string,
   agentId: string = AgentRole.COACH
 ): Promise<OutreachOpportunity[]> {
-  // Load from persistence if not in memory
-  if (!commitmentStore.has(userId) && persistenceStore) {
+  if (!loadedUsers.has(userId) && persistenceStore) {
     await loadUserData(userId);
   }
 

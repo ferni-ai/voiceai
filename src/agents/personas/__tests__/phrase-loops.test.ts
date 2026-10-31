@@ -184,6 +184,7 @@ describe('phrase loops (PHRASE_LOOP_GUARD)', () => {
     process.env.PHRASE_LOOP_GUARD = 'on';
     const handlers: Array<(ev: unknown) => void> = [];
     const session = {
+      userData: { services: { sessionId: 's' } },
       on: (_e: string, h: (ev: unknown) => void) => handlers.push(h),
       off: () => {},
     };

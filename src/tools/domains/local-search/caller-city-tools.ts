@@ -5,6 +5,8 @@
  * in index.ts). Saving needs the caller's yes in this call: execute refuses
  * without callerSaidYes, so a model that skips the question writes nothing.
  *
+ * Also builds openRideLink's SDK tool for the ride-links domain (RIDE_LINKS).
+ *
  * @module tools/domains/local-search/caller-city-tools
  */
 
@@ -24,7 +26,7 @@ const rememberCallerCityDef: ToolDefinition = {
     return llm.tool({
       description:
         'Remember the caller\'s city for "near me" searches, until they ask you to forget it. Offer first ("Want me to remember you\'re in Philly for next time?"). ' +
-        'Call this only after they say yes. City or region only, never a street, postcode or coordinates. The name is checked with Places, and the caller\'s own words are what is kept.',
+        "Call this only after they say yes. City or region only, never a street, postcode or coordinates. The name is checked with Places, and the caller's own words are what is kept.",
       parameters: z.object({
         city: z.string().describe('The city or town, e.g. "Philadelphia"'),
         region: z.string().optional().describe('The state or region, e.g. "PA"'),
@@ -46,7 +48,8 @@ const rememberCallerCityDef: ToolDefinition = {
         if (result.status === 'lookup-failed') {
           return "I couldn't check that place just now. Let's try again in a moment.";
         }
-        if (result.status === 'failed') return "I couldn't save that just now. Let's try again later.";
+        if (result.status === 'failed')
+          return "I couldn't save that just now. Let's try again later.";
         return `Saved ${result.name}. Say it back to the caller so they can correct it. I'll use that city for 'near me' searches until they ask me to forget it.`;
       },
     });
@@ -80,3 +83,23 @@ const forgetCallerCityDef: ToolDefinition = {
 
 /** Offered only while PLACES_LOCATION and REQUIRE_FIX_MEMORY are on (callerCityMemoryOn). */
 export const callerCityTools: ToolDefinition[] = [rememberCallerCityDef, forgetCallerCityDef];
+
+const rideLinkParams = z.object({
+  destination: z.string().describe("Where they're going, in their words"),
+  pickup: z.string().optional().describe('Pickup address or place they named; leave out if unsaid'),
+  sendText: z.boolean().optional().describe('True only after they said yes to a text of the link'),
+});
+
+/** openRideLink's SDK tool (RIDE_LINKS): built beside the other caller-location tools; ride-links has the rest. */
+export function rideLinkTool(
+  run: (args: z.infer<typeof rideLinkParams>, opts: unknown) => Promise<unknown>
+): ReturnType<typeof llm.tool> {
+  return llm.tool({
+    description:
+      'The caller wants a ride (Uber, taxi, cab, a car somewhere). Makes a link that opens Uber with pickup ' +
+      "and drop-off filled in. It books nothing: never say a ride is booked or on its way. Say the result's " +
+      '`say`, never the link. On a phone call set sendText only after they say yes to a text.',
+    parameters: rideLinkParams,
+    execute: async (args, opts: unknown) => run(args, opts),
+  });
+}

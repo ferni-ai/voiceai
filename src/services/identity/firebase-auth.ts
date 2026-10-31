@@ -282,6 +282,23 @@ export async function getFirebaseUserByPhone(e164: string): Promise<admin.auth.U
 }
 
 /**
+ * getFirebaseUserByPhone for callers that must not take a failed lookup for "nobody holds
+ * this number" (inbound SMS attribution, sms-sender-account.ts): null only when Firebase
+ * says no user has it. An Admin SDK that isn't initialized, or any other error, throws.
+ */
+export async function getFirebaseUserByPhoneOrThrow(
+  e164: string
+): Promise<admin.auth.UserRecord | null> {
+  if (!ensureInitialized()) throw new Error('Firebase Admin is not initialized');
+  try {
+    return await admin.auth().getUserByPhoneNumber(e164);
+  } catch (error) {
+    if ((error as { code?: unknown } | null)?.code === 'auth/user-not-found') return null;
+    throw error;
+  }
+}
+
+/**
  * Set custom claims on a Firebase user.
  * Used for setting admin flag, subscription tier, etc.
  */
