@@ -34,6 +34,7 @@ import { FastLaneLLM, fastLaneEnabled } from './fast-lane.js';
 import { HedgedLLM } from './hedged-llm.js';
 import { afterToolHedgeMs } from './after-tool-hedge.js';
 import { installVertexKeepAlive } from './vertex-keepalive.js';
+import { watchSttStream } from './stt-audio-diagnostics.js';
 import type {
   AgentSessionTurnDetection,
   LLMModelConfig,
@@ -304,7 +305,9 @@ export function logStreamOpens<T extends { stream: (...args: never[]) => unknown
   stt.stream = ((...args: never[]) => {
     opened += 1;
     log.info({ stream: opened, sinceCreatedMs: Date.now() - createdAt }, 'STT_STREAM_OPEN');
-    return open(...args);
+    const stream = open(...args);
+    watchSttStream(stt, stream, opened); // STT_AUDIO_DIAGNOSTICS (stt-audio-diagnostics.ts)
+    return stream;
   }) as T['stream'];
   return stt;
 }
