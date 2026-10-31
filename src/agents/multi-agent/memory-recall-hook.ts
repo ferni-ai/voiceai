@@ -76,6 +76,7 @@ import {
   type OpenCommitment,
 } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { flagOn } from '../../config/env-flag.js';
 import { formatPeople, peopleOf, recallPeopleEnabled } from '../../memory/recall/people.js';
 import { formatPets, petsOf } from '../../memory/recall/pets.js';
 import { callLoopsRecallFor, type CallLoopsRecall } from './open-loops-recall.js';
@@ -386,9 +387,9 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         );
       }
       const checkIn = checkInOffered ? null : checkInNote;
-      const dateNow = followUpsOffered || checkIn ? null : dates.note();
-      // One follow-up per call opener (opener-claim.ts): a check-in or a date
-      // in this note, or one the greeting already asked, leaves the thread line out.
+      const dateNow = followUpsOffered || checkIn || flagOn('DATES_IN_HELLO') ? null : dates.note();
+      // One follow-up per call opener (opener-claim.ts): a check-in or a date in this note (with
+      // DATES_IN_HELLO only the hello's), or one the greeting already asked, leaves the thread out.
       const greetingAsked = followUpsOffered ? undefined : takeOpenerClaim(deps.userId);
       // The week's predictions come alone: never beside a check-in, a date or the greeting's ask.
       const weekNow = checkIn || dateNow || greetingAsked ? null : week.note(opts.final);
