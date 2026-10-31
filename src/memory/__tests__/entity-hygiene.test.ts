@@ -12,7 +12,12 @@ vi.mock('../../config/generative-model.js', () => ({
 }));
 
 import { extractEntities } from '../knowledge-graph/extractors/llm-entity-extractor.js';
-import { junkReason, keepRealEntities, type NamedEntity } from '../entity-hygiene.js';
+import {
+  isPersonaSubject,
+  junkReason,
+  keepRealEntities,
+  type NamedEntity,
+} from '../entity-hygiene.js';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -230,5 +235,19 @@ describe('ENTITY_ROLE_LABELS', () => {
     vi.stubEnv('ENTITY_ROLE_LABELS', 'on');
     const both = await extractEntities('my sister Sarah says hi', context);
     expect(both.entities.map((e) => e.name)).toEqual(['Sarah']);
+  });
+});
+
+describe('isPersonaSubject', () => {
+  it('is Ferni or a bare teammate name, never a person they relate to', () => {
+    expect(isPersonaSubject('Ferni')).toBe(true);
+    expect(isPersonaSubject('Ferni', 'friend')).toBe(true);
+    expect(isPersonaSubject('Maya')).toBe(true);
+    expect(isPersonaSubject('Maya', null)).toBe(true);
+    expect(isPersonaSubject('Maya', 'assistant')).toBe(true);
+    expect(isPersonaSubject('Maya', 'sister')).toBe(false);
+    expect(isPersonaSubject('Maya Angelou')).toBe(false);
+    expect(isPersonaSubject('Rowan')).toBe(false);
+    expect(isPersonaSubject('  ')).toBe(false);
   });
 });

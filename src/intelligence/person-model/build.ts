@@ -9,11 +9,17 @@
  *   summaries are read undisputed() and threads only with CALLER_PROVENANCE;
  * - forgotten topics that could not be read (null) fail closed: no text at all;
  * - nothing that looks like a phone number or an email enters the doc.
+ * - Ferni and his teammates are never one of their people (isPersonaSubject).
  * Mood, sentiment and "what changed" are LLM work (PR 4): left dirty for now.
  *
  * @module intelligence/person-model/build
  */
-import { isSensitiveThread, peopleOf, type RecallFact } from '../../memory/index.js';
+import {
+  isPersonaSubject,
+  isSensitiveThread,
+  peopleOf,
+  type RecallFact,
+} from '../../memory/index.js';
 import { buildFollowThrough, buildRhythms } from './stats.js';
 import * as T from './types.js';
 import { buildUnfinished } from './unfinished.js';
@@ -95,8 +101,10 @@ function buildPeople(i: PersonModelInputs, now: Date, forgotten: string[]): T.Pe
   };
   // Who is who comes from RECALL_PEOPLE's roster (never guessed), then relations from their profile.
   for (const r of peopleOf(i.facts)) person(r.name, r.relation);
+  // The relation is stored now (person-model-store.ts): the same contact and forget rule as names.
   for (const m of i.familyMembers)
-    if (str(m.name)) person(str(m.name), str(m.relationship).toLowerCase() || null);
+    if (str(m.name))
+      person(str(m.name), keep(m.relationship, forgotten, 40)?.toLowerCase() ?? null);
   // relationship_network: mentions and aliases; a name only it knows has no relation.
   for (const n of i.relationshipNetwork) {
     const names = [str(n.name), ...arr(n.aliases).map(str)].filter(Boolean);
@@ -116,8 +124,11 @@ function buildPeople(i: PersonModelInputs, now: Date, forgotten: string[]): T.Pe
     seen(p, ms(f.extractedAt));
     p.notes.push(`${f.key} ${f.value}`);
   }
+  // Forgotten names drop, and so do Ferni and teammates with no relation of theirs (persona canon).
+  const theirs = (p: Draft) =>
+    keep(p.name, forgotten, 60) === p.name && !isPersonaSubject(p.name, p.relation);
   return [...byName.values()]
-    .filter((p) => keep(p.name, forgotten, 60) === p.name)
+    .filter(theirs)
     .map(({ notes, ...p }) => ({ ...p, sensitive: notes.some(isSensitiveThread) }))
     .sort(
       (a, b) =>

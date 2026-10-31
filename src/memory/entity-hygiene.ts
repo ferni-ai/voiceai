@@ -137,6 +137,16 @@ export function junkReason(
   return entity.type === 'person' && onlyGreeted(name, said) ? 'greeted' : null;
 }
 
+/**
+ * A name that is Ferni or one of his teammates, not a person in the caller's life: their
+ * canon lives in the life ledger, never in the caller's memory. "Maya" alone is a persona;
+ * "Maya", relationship "sister", is the caller's sister. Pure; ENTITY_ROLE_LABELS is not read.
+ */
+export function isPersonaSubject(name: string, relationship?: string | null): boolean {
+  const entity = { name, type: 'person', relationship: relationship ?? undefined };
+  return name.trim() !== '' && junkReason(entity, {}) === 'persona';
+}
+
 /** Ferni, a role label for him (ENTITY_ROLE_LABELS), or a teammate who isn't theirs. */
 function isPersona(entity: NamedEntity, name: string, words: string[], env: Env): boolean {
   if (words.some((w) => FERNI.has(w))) return true;

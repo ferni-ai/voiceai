@@ -1278,8 +1278,8 @@ export default {
   rehydrateConversationEmbeddings,
 };
 export { forgottenInProcess, forgottenTopicsOrNull, worldFactText } from './recall/forget.js';
-export { aboutForgotten, forgottenWithin } from './recall/forget-every-reader.js';
-export { keepRemembered, profileForCaller } from './recall/forget-every-reader.js';
+export { aboutForgotten, forgottenWithin, keepRemembered, profileForCaller } from './recall/forget-every-reader.js'; // prettier-ignore
+export { isPersonaSubject } from './entity-hygiene.js';
 export { CALLER_PROVENANCE, contentWords, forgetTokens } from './recall/session-recall.js';
 export { isForgotten, undisputed, type RecallFact } from './recall/session-recall.js';
 export { containsContactData, contactNumberRuns, foldContactText } from './domain/contact-data.js';
