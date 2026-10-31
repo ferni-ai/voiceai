@@ -106,8 +106,7 @@ export {
   type UserLearnings,
 } from './learning-engine.js';
 
-// History Tracker Stubs (legacy - history tracking is now handled by session state)
-// These are no-op stubs for backward compatibility
+// History tracker no-op stubs, kept for backward compatibility (session state tracks history)
 // Uses ConversationTurn from summarizer.ts (re-exported below)
 import { type ConversationTurn as SummarizerTurn } from './summarizer.js';
 
@@ -1280,6 +1279,7 @@ export default {
 export { forgottenInProcess, forgottenTopicsOrNull, worldFactText } from './recall/forget.js';
 export { aboutForgotten, forgottenWithin, keepRemembered, profileForCaller } from './recall/forget-every-reader.js'; // prettier-ignore
 export { isPersonaSubject } from './entity-hygiene.js';
+export { dualWriteFacts, mapWorldFact, type DualWriteDeps } from './writer/facts-dual-write.js';
 export { CALLER_PROVENANCE, contentWords, forgetTokens } from './recall/session-recall.js';
 export { isForgotten, undisputed, type RecallFact } from './recall/session-recall.js';
 export { containsContactData, contactNumberRuns, foldContactText } from './domain/contact-data.js';
