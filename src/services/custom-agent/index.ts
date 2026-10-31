@@ -5,4 +5,4 @@
  * @module services/custom-agent
  */
 
-export { eraseCustomAgent, type CustomAgentEraseResult } from './custom-agent-erase.js';
+export { eraseCustomAgent } from './custom-agent-erase.js';
