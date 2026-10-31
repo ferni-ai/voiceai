@@ -245,3 +245,21 @@ export function createUserOAuthStore<T extends { refresh_token?: string }>(confi
     blockRefresh: (userId) => blocked.add(userId),
   };
 }
+
+/**
+ * remove, then confirm no grant is left: ok false when the delete failed or can't be confirmed,
+ * no database included. Checked with linkStatus({ fromDoc }), a fresh strict read of the raw doc
+ * that never decrypts, so an undecryptable grant still counts as present (every stored grant has
+ * `encrypted`). remove() itself only logs a failed delete; its other callers keep that.
+ */
+export async function removeStrict<T extends { refresh_token?: string }>(
+  store: UserOAuthStore<T>,
+  userId: string
+): Promise<{ ok: boolean }> {
+  await store.remove(userId);
+  try {
+    return { ok: (await store.linkStatus(userId, { fromDoc: true })).state === 'not_connected' };
+  } catch {
+    return { ok: false };
+  }
+}
