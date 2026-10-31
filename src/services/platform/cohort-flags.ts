@@ -148,6 +148,9 @@ export const COHORT_FLAGS = [
   // connect routes ask flagForUser (servers/api/routes/gmail-send.ts, oauth-start.ts); the
   // agent's send reads it at tool time, after applyCallerFlags (gmail-send-as-user.ts).
   'GMAIL_SEND_AS_USER',
+  // Read each time a quiet stretch is decided mid-call, never at boot (quiet-presence.ts);
+  // needs the agent's LISTEN_FIRST=on.
+  'QUIET_AFTER_QUESTION',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
