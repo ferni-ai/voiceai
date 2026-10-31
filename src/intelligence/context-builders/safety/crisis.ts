@@ -9,8 +9,6 @@
  * These are HIGH PRIORITY injections that override normal conversation flow.
  *
  * Uses centralized DISTRESS constants for consistent thresholds.
- *
- * Extracted from jack-bogle.ts lines 722-845
  */
 import { createLogger } from '../../../utils/safe-logger.js';
 import { DISTRESS } from '../../distress-levels.js';

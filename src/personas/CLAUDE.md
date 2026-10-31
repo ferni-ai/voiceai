@@ -168,8 +168,7 @@ personas/
 ├── team/                         # Team coordination
 ├── generic-advisor/              # Generic advisor persona
 ├── wellness-coach/               # Wellness coach persona
-├── base-identity.ts              # Base identity template
-└── _archived/                    # Archived files
+└── base-identity.ts              # Base identity template
 ```
 
 ## Adding a New Persona

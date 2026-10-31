@@ -8,8 +8,6 @@
  * - Historical conversation retrieval
  *
  * This gives the LLM access to relevant knowledge at the right time.
- *
- * Extracted from jack-bogle.ts lines 1494-1508
  */
 import { semanticSearch } from '../../../memory/semantic-rag.js';
 import { getLogger } from '../../../utils/safe-logger.js';
