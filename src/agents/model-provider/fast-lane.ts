@@ -17,7 +17,7 @@
 
 import { llm, type APIConnectOptions } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
-import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
+import { NO_NEW_WORDS_NOTE, TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { forwardPrewarm } from './forward-prewarm.js';
 
 const log = createLogger({ module: 'FastLane' });
@@ -53,6 +53,13 @@ interface ItemView {
 /**
  * The caller's words this reply answers, or null when the reply follows a tool
  * call (that one stays on the main model). Pure, so it is tested directly.
+ *
+ * The note on a reply nobody prompted (NO_NEW_WORDS_NOTE, caller-turn.ts) is not
+ * words: such a reply is driven by its instructions (a finished timer, a
+ * greeting, a silence remark), which the fast model ignores. Dev, 2026-10-22
+ * (#2507): the timer alert went fast on the note alone and the fast model
+ * answered the note ("Oh, sorry, I didn't mean to ramble on there"), never
+ * mentioning the timer. Without words it stays on the main model ('no_words').
  */
 export function callerTurn(items: readonly ItemView[]): string | null {
   const said: string[] = [];
@@ -65,7 +72,8 @@ export function callerTurn(items: readonly ItemView[]): string | null {
     // (withTurnStyleReminder); spoken words never hold a newline. Live, the
     // reminder's "a friend on a call" sent every turn to the main model.
     const text = (item.textContent ?? '').split('\n')[0];
-    if (item.role === 'user' && !text.startsWith(TURN_CONTEXT_HEADER)) said.unshift(text);
+    if (item.role === 'user' && !text.startsWith(TURN_CONTEXT_HEADER) && text !== NO_NEW_WORDS_NOTE)
+      said.unshift(text);
   }
   return said.join(' ').trim();
 }

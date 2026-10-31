@@ -122,6 +122,11 @@ async function initializeVertexAIClient(): Promise<VertexAIClient | null> {
   }
 }
 
+/** Startup warm-up (call-path-warmup.ts): build the client before a call's first turn does. */
+export async function warmVertexClient(): Promise<boolean> {
+  return (await getVertexAIClient()) !== null;
+}
+
 /**
  * Call Vertex AI (Gemini) for supplementary analysis
  * Uses enterprise tier with much higher quotas than consumer API

@@ -50,15 +50,9 @@ const ENV_VARS: EnvVar[] = [
 
   // Communication - optional
   {
-    name: 'SENDGRID_API_KEY',
+    name: 'EMAIL_FROM',
     required: false,
-    description: 'SendGrid API key for email',
-    category: 'communication',
-  },
-  {
-    name: 'SENDGRID_FROM_EMAIL',
-    required: false,
-    description: 'From email address',
+    description: 'From address for the ferni.ai Workspace mailbox (default hello@ferni.ai)',
     category: 'communication',
   },
   {
@@ -200,7 +194,7 @@ export function getFeatureAvailability(): Record<string, boolean> {
     postgresMemory: !!process.env.DATABASE_URL,
     firestoreMemory: !!process.env.GOOGLE_CLOUD_PROJECT,
     redisCache: !!process.env.REDIS_URL,
-    emailNotifications: !!process.env.SENDGRID_API_KEY,
+    emailNotifications: true, // the Workspace mailbox needs no key
     smsNotifications: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
     plaidBanking: !!(process.env.PLAID_CLIENT_ID && process.env.PLAID_SECRET),
     // Music master flag - controls whether music tools are available
@@ -261,8 +255,6 @@ export function getMissingFeatures(): string[] {
   const features = getFeatureAvailability();
   const missing: string[] = [];
 
-  if (!features.emailNotifications)
-    missing.push('Email notifications (configure SENDGRID_API_KEY)');
   if (!features.smsNotifications) missing.push('SMS notifications (configure TWILIO_*)');
   if (!features.plaidBanking) missing.push('Bank account linking (configure PLAID_*)');
   // Music is disabled by default - only note if they have Spotify configured but music disabled

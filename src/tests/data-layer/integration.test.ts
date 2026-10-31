@@ -192,10 +192,12 @@ describe('Semantic Data Layer Integration', () => {
 
     it('should have reasonable TTL values by data category', () => {
       // Permanent data: TTL = 0
-      const permanentTypes: EntityType[] = ['boundary', 'life_lesson', 'inside_joke', 'habit'];
+      const permanentTypes: EntityType[] = ['boundary', 'life_lesson', 'habit'];
       for (const type of permanentTypes) {
         expect(getEntityPolicy(type)?.ttlDays).toBe(0);
       }
+      // An inside joke keeps the caller's words: one year, the shared-moment rule (#2971)
+      expect(getEntityPolicy('inside_joke')?.ttlDays).toBe(365);
 
       // Time-sensitive: TTL < 90
       expect(getEntityPolicy('calendar_event')?.ttlDays).toBeLessThanOrEqual(90);

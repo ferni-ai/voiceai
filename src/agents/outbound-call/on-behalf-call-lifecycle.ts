@@ -27,6 +27,11 @@ import { screenedCallerText } from '../../services/outreach/caller-text.js';
 import { relayedMessage } from '../../services/outreach/relayed-message.js';
 import { isCallFollowthroughEnabled } from '../../services/outreach/call-retry.js';
 import { noteCallRefinement } from '../../services/follow-through/index.js';
+import {
+  isRecordedGreeting,
+  takeVoicemailSpoken,
+  voicemailWords,
+} from '../../services/outreach/voicemail-outcome.js';
 import type { CallDisposition } from './call-control.js';
 
 const log = createLogger({ module: 'on-behalf-call-lifecycle' });
@@ -34,6 +39,8 @@ const log = createLogger({ module: 'on-behalf-call-lifecycle' });
 export interface CallLifecyclePorts {
   /** How Ferni said the call ended when it hung up itself (see call-control). */
   readDisposition: (sessionId: string) => CallDisposition | undefined;
+  /** True only when the leave-a-voicemail path played its message (voicemail-outcome noteVoicemailSpoken). */
+  readVoicemailSpoken?: (sessionId: string) => boolean;
   /** The turns captured so far, or null when capture never started. */
   readTranscript: (callId: string) => CallTranscriptTurn[] | null;
   analyze: (
@@ -51,13 +58,6 @@ export interface CallLifecyclePorts {
 
 export const toOnBehalfCallRequest = onBehalfRequestFromDispatch;
 
-/**
- * Phrases only a recorded greeting says. "Not available right now" and "can't
- * come to the phone" are left out on purpose: a person can say them too, often
- * just before "don't call me again", and voicemail is the outcome that gets a retry.
- */
-const VOICEMAIL_CUES =
-  /\b(leave (me |us )?a message|after the (tone|beep)|voice ?mail|mailbox|record your message)\b/i;
 /** The person asked not to be called again: never retried, and the number is put on the do-not-call list. */
 const OPT_OUT_CUES =
   /\b((don'?t|do not|never) (ever )?call (me|us|here|this number)( again)?|(don'?t|do not|never) (ever )?call (again|back|anymore)|(stop|quit) calling|do not call|lose (this|my) number|(remove|take) (me|us|this number) off)\b/i;
@@ -86,7 +86,7 @@ export function classifyAnsweredCall(
   // A person saying no outranks anything that looks like a voicemail greeting.
   if (heard.some(isOptOutPhrase)) return 'opted_out';
   if (heard.some((h) => DECLINE_CUES.test(h))) return 'declined';
-  if (heard.length <= 2 && heard.some((h) => VOICEMAIL_CUES.test(h))) return 'voicemail';
+  if (heard.length <= 2 && heard.some(isRecordedGreeting)) return 'voicemail';
   if (heard.length < MIN_REPLIES || durationSeconds < MIN_TALK_SECONDS) return 'hung_up_early';
   return 'answered';
 }
@@ -103,18 +103,22 @@ export function buildCallOutcome(
   turns: CallTranscriptTurn[] | null,
   analysis: SuperhumanCallResult | null,
   disposition?: CallDisposition,
-  durationSeconds = Infinity
+  durationSeconds = Infinity,
+  voicemailSpoken = false
 ): CallOutcome {
   const name = call.contact.name;
   // What Ferni knew when it hung up beats what the transcript suggests: a
-  // voicemail greeting is transcribed as the other side talking.
+  // voicemail greeting is transcribed as the other side talking. But "left a
+  // message" needs the voicemail path's own record that it spoke one, never the
+  // model's say-so (prod 10-24: voicemail_left with no message spoken).
   if (disposition === 'voicemail_left') {
     return {
       callId: call.callId,
       status: 'voicemail',
       objectiveAchieved: false,
-      outcome: `I got ${name}'s voicemail and left a message letting them know you were thinking of them.`,
-      callbackRequired: false,
+      outcome: voicemailWords(voicemailSpoken, name).outcome,
+      callbackRequired: !voicemailSpoken,
+      voicemailLeft: voicemailSpoken,
     };
   }
   if (disposition === 'unreachable') {
@@ -177,6 +181,7 @@ export function buildCallOutcome(
         objectiveAchieved: false,
         outcome: `I got ${name}'s voicemail. Want me to try again later?`,
         callbackRequired: true,
+        voicemailLeft: voicemailSpoken,
       };
     }
     if (how === 'opted_out' || how === 'declined') {
@@ -260,6 +265,7 @@ async function defaultPorts(): Promise<CallLifecyclePorts> {
     await import('../../services/outreach/call-retry.js');
   return {
     readDisposition: control.takeCallDisposition,
+    readVoicemailSpoken: takeVoicemailSpoken,
     readTranscript: (callId) => transcripts.getActiveTranscript(callId)?.turns.slice() ?? null,
     analyze: transcripts.analyzeCompletedCall,
     report: captureCallResult,
@@ -325,9 +331,11 @@ async function reportCall(
   ports?: CallLifecyclePorts
 ): Promise<CallOutcome | null> {
   try {
-    const { readDisposition, readTranscript, analyze, report, scheduleRetry, recordOptOut } =
-      ports ?? (await defaultPorts());
+    const p = ports ?? (await defaultPorts());
+    const { readDisposition, readVoicemailSpoken, readTranscript, analyze, report } = p;
+    const { scheduleRetry, recordOptOut } = p;
     const disposition = readDisposition(sessionId);
+    const voicemailSpoken = readVoicemailSpoken?.(sessionId) === true;
     const turns = readTranscript(call.callId);
     const heard = turns?.filter((t) => t.role === 'recipient').map((t) => t.content) ?? [];
     // Ferni's own read of how the call ended comes first; then, with follow-through,
@@ -354,7 +362,14 @@ async function reportCall(
     }
 
     const request = toOnBehalfCallRequest(call);
-    let outcome = buildCallOutcome(call, turns, analysis, disposition, durationSeconds);
+    let outcome = buildCallOutcome(
+      call,
+      turns,
+      analysis,
+      disposition,
+      durationSeconds,
+      voicemailSpoken
+    );
     const followthrough = isCallFollowthroughEnabled();
     const heardAs = followthrough ? classifyAnsweredCall(heard, durationSeconds) : 'answered';
     if (heardAs === 'opted_out') {

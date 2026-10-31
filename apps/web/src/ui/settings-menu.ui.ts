@@ -24,6 +24,7 @@ import { canOpenSupport } from './support/open-support.js';
 import { isVenmoChipInEnabled } from '../config/venmo-chip-in.js';
 import { isPaywallOn } from '../services/paywall.service.js';
 import { soundUI } from './sound.ui.js';
+import { renderMenuSwitch, setMenuSwitch } from './components/menu-switch.js';
 import { getLocale, setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { ANALYTICS_ICONS } from './icons/shared-icons.js';
@@ -55,10 +56,8 @@ export interface SettingsMenuUICallbacks {
   onThemeToggle?: () => void;
   onNotificationSettingsClick?: () => void;
   onSleepSettingsClick?: () => void;
-  onSpotifyClick?: () => void;
   onVibeControllerClick?: () => void;
   onSmartHomeClick?: () => void;
-  onEightSleepClick?: () => void;
   onOuraClick?: () => void;
   onAppleHealthClick?: () => void;
   onTrustJourneyClick?: () => void;
@@ -332,8 +331,6 @@ class SettingsMenuUI {
   private callbacks: SettingsMenuUICallbacks = {};
   private styleElement: HTMLStyleElement | null = null;
   private isVisible = false;
-  private spotifyLinked = false;
-  private spotifyConfigured = false;
   // Load saved preferences or use defaults (all expanded)
   private expandedSections: Set<string> = getExpandedSections();
   private pinnedItems: Set<string> = getPinnedItems();
@@ -363,39 +360,6 @@ class SettingsMenuUI {
 
   setCallbacks(callbacks: SettingsMenuUICallbacks): void {
     this.callbacks = callbacks;
-  }
-
-  /**
-   * Update Spotify link state (called by spotify.ui.ts)
-   */
-  updateSpotifyState(linked: boolean, configured: boolean): void {
-    this.spotifyLinked = linked;
-    this.spotifyConfigured = configured;
-    this.updateSpotifyMenuItem();
-  }
-
-  private updateSpotifyMenuItem(): void {
-    if (!this.panel) return;
-
-    const spotifyItem = this.panel.querySelector('[data-action="spotify"]') as HTMLElement;
-    if (!spotifyItem) return;
-
-    // Hide if not configured
-    if (!this.spotifyConfigured) {
-      spotifyItem.style.display = 'none';
-      return;
-    }
-
-    spotifyItem.style.display = 'flex';
-    const label = spotifyItem.querySelector('.settings-menu__label');
-    if (label) {
-      label.textContent = this.spotifyLinked
-        ? t('menu.items.spotifyConnected')
-        : t('menu.items.linkSpotify');
-    }
-
-    // Add/remove linked class for styling
-    spotifyItem.classList.toggle('settings-menu__item--active', this.spotifyLinked);
   }
 
   show(): void {
@@ -572,21 +536,9 @@ class SettingsMenuUI {
     `;
   }
 
-  /**
-   * Render a toggle menu item (for on/off settings)
-   */
+  /** An on/off row: a real switch (components/menu-switch.ts) */
   private renderToggleItem(action: string, icon: string, label: string, isOn: boolean): string {
-    return `
-      <button aria-label="${label}" class="settings-menu__item settings-menu__item--toggle ${isOn ? 'settings-menu__item--toggle-on' : ''}" data-action="${action}" data-toggle="true">
-        <span class="settings-menu__icon">${icon}</span>
-        <span class="settings-menu__label">${label}</span>
-        <span class="settings-menu__toggle-indicator">
-          <span class="settings-menu__toggle-track">
-            <span class="settings-menu__toggle-thumb"></span>
-          </span>
-        </span>
-      </button>
-    `;
+    return renderMenuSwitch(action, icon, label, isOn);
   }
 
   private renderContent(): void {
@@ -1115,17 +1067,11 @@ class SettingsMenuUI {
       case 'sleep-settings':
         this.callbacks.onSleepSettingsClick?.();
         break;
-      case 'spotify':
-        this.callbacks.onSpotifyClick?.();
-        break;
       case 'vibe-controller':
         this.callbacks.onVibeControllerClick?.();
         break;
       case 'smart-home':
         this.callbacks.onSmartHomeClick?.();
-        break;
-      case 'eight-sleep-settings':
-        this.callbacks.onEightSleepClick?.();
         break;
       case 'oura-settings':
         this.callbacks.onOuraClick?.();
@@ -1293,15 +1239,13 @@ class SettingsMenuUI {
         const newState = !transcriptUI.isEnabled();
         transcriptUI.setEnabled(newState);
 
-        // Update button UI
-        btnElement.classList.toggle('settings-menu__item--toggle-on', newState);
+        setMenuSwitch(btnElement, newState);
         break;
       }
       case 'toggle-sounds': {
         // Toggle sound effects (mute/unmute)
         const newState = soundUI.toggleMute();
-        // newState = true means muted, so toggle-on should be !newState
-        btnElement.classList.toggle('settings-menu__item--toggle-on', !newState);
+        setMenuSwitch(btnElement, !newState); // newState = true means muted
         break;
       }
     }

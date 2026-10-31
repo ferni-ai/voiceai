@@ -1,6 +1,5 @@
 /**
  * Unified Outreach Tool - "Better than Human" Communication
- *
  * THE ONE tool for reaching out to contacts (replaced sendMessage, sendEmail, sendSMS,
  * sendPersonalizedMessage, makePhoneCall, callAndConverse, sendVoiceMessage).
  *
@@ -20,7 +19,6 @@ import { z } from 'zod';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import type { ToolContext, ToolDefinition, Tool } from '../../../registry/types.js';
 
-// Contact & relationship services
 import {
   searchContacts,
   getContact,
@@ -31,21 +29,25 @@ import {
   type ContactRelationship,
 } from '../../../../services/contacts/contact-relationship-service.js';
 
-// Outreach services
 import { calculateOptimalTime } from '../../../../services/outreach/timing-intelligence.js';
 import { makeConversationalCall } from '../../../../services/outreach/conversational-calls.js';
 import type { OutboundCallContext } from '../../../../services/outreach/conversational-calls.js';
 
-// Delivery services
-import { onBehalfNotSent, textOnBehalf } from '../../../../services/outreach/guarded-text.js';
-import { sendEmail } from '../../../../services/outreach/delivery/email-delivery.js';
+import {
+  isOwnVerifiedPhone,
+  onBehalfNotSent,
+  textOnBehalf,
+} from '../../../../services/outreach/guarded-text.js';
+import { thirdPartyRefusal } from '../../../../utils/consent-port.js';
 import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
 
-// Message crafting
 import { craftPersonalizedMessage } from './message-crafting.js';
+import { emailSender, sendOutreachEmail, type EmailFrom } from './outreach-email.js';
 import { PLAN_ONLY, PLANNED, type Planned } from './outreach-confirm.js';
 
 const log = createLogger({ module: 'unified-outreach' });
+const notAgreed = (why: string): string =>
+  why === 'opted-out' ? 'They asked not to be called.' : "They haven't said yes to my calls yet.";
 
 // ============================================================================
 // TYPES
@@ -99,6 +101,8 @@ export interface OutreachResult {
   error?: string;
   to?: string; // where it would go, and who: set only on a PLAN_ONLY preview (sends nothing)
   contactId?: string;
+  from?: EmailFrom; // an email's mailbox (outreach-email.ts); fromAddress only on a preview
+  fromAddress?: string;
 }
 
 // ============================================================================
@@ -143,7 +147,6 @@ function detectIntent(purpose: string): OutreachIntent {
 // ============================================================================
 
 function needsConversation(intent: OutreachIntent, purpose: string): boolean {
-  // Intents that need real dialogue
   const conversationalIntents: OutreachIntent[] = [
     'check_in',
     'ask_question',
@@ -154,7 +157,6 @@ function needsConversation(intent: OutreachIntent, purpose: string): boolean {
 
   if (conversationalIntents.includes(intent)) return true;
 
-  // Phrases suggesting conversation
   const conversationPhrases = [
     'chat',
     'talk',
@@ -187,12 +189,10 @@ function selectOptimalChannel(ctx: OutreachContext): OutreachDecision {
 
   let channelList = priorities[intent] || ['text', 'conversation', 'email', 'call'];
 
-  // Boost contact's preferred channel
   if (ctx.preferredChannel) {
     channelList = [ctx.preferredChannel, ...channelList.filter((c) => c !== ctx.preferredChannel)];
   }
 
-  // Filter by available contact info
   const hasPhone = !!contact.phone;
   const hasEmail = !!contact.email;
 
@@ -215,7 +215,6 @@ function selectOptimalChannel(ctx: OutreachContext): OutreachDecision {
   const selected = available[0];
   const reasoning: string[] = [];
 
-  // Generate human-readable reasoning
   if (needsConversation(intent, purpose) && selected === 'conversation') {
     reasoning.push('This seems like something worth having a real conversation about');
   } else if (intent === 'wish_well' && selected === 'text') {
@@ -257,10 +256,8 @@ async function gatherOutreachContext(
   const last = contact.lastInteraction;
   const daysSinceLastContact = last ? Math.floor((Date.now() - last.getTime()) / 86_400_000) : 0;
 
-  // Get recent topics for personalization
   const recentTopics = contact.topics?.slice(0, 5).map((t) => t.topic) || [];
 
-  // Check for pending follow-ups
   const pendingFollowUp =
     contact.pendingFollowUp?.completed === false ? contact.pendingFollowUp.reason : undefined;
 
@@ -287,13 +284,13 @@ async function executeOutreach(
   ctx: OutreachContext,
   decision: OutreachDecision,
   customMessage?: string,
-  planOnly = false
+  planOnly = false,
+  emailFrom?: EmailFrom
 ): Promise<OutreachResult> {
   const { contact, userId, personaId, purpose, intent } = ctx;
   const { channel } = decision;
   const outreachId = `outreach_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-  // Craft the message (LLM-powered if no custom message)
   const message =
     customMessage ||
     (await craftPersonalizedMessage({
@@ -307,8 +304,16 @@ async function executeOutreach(
       personaId,
     }));
   const to = channel === 'email' ? contact.email : contact.phone;
-  const plan = { contactName: contact.name, contactId: contact.id, to };
+  const sender = channel === 'email' ? await emailSender(userId, emailFrom) : {};
+  if ('error' in sender)
+    return { success: false, channel, message, contactName: contact.name, ...sender };
+  const plan = { contactName: contact.name, contactId: contact.id, to, ...sender };
   if (planOnly) return { success: true, channel, message, ...plan };
+  // MESSAGING_PIPELINE: a call to anyone but the owner needs their consent (consent-grants.ts).
+  const isCall = ['call', 'voicemail', 'conversation'].includes(channel);
+  const refused =
+    isCall && to ? await thirdPartyRefusal(userId, to, 'call', isOwnVerifiedPhone) : null;
+  if (refused) return { success: false, channel, message, ...plan, error: notAgreed(refused) };
 
   log.info(
     {
@@ -373,7 +378,6 @@ async function executeOutreach(
       const result = await makeConversationalCall(callContext);
 
       if (result.status === 'initiating' || result.status === 'ringing') {
-        // Record interaction
         await recordInteraction(userId, {
           contactId: contact.id,
           userId,
@@ -418,7 +422,9 @@ async function executeOutreach(
       }
 
       const result = await callWithPersonaVoice(contact.phone, message, personaId, {
-        fallbackToTwilioVoice: true,
+        askedFor: true, // a call they confirmed (outreach-pause.ts)
+        ownerUid: userId,
+        userId,
       });
 
       if (result.success) {
@@ -505,29 +511,10 @@ async function executeOutreach(
       };
     }
 
-    // EMAIL
     if (channel === 'email') {
-      if (!contact.email) {
-        return {
-          success: false,
-          channel,
-          message,
-          contactName: contact.name,
-          error: `I don't have ${contact.name}'s email. Should I try calling?`,
-        };
-      }
-
       const subject = generateSubject(intent, purpose, contact.name);
-
-      const result = await sendEmail({
-        to: contact.email,
-        subject,
-        body: message,
-        personaId,
-        userId,
-        outreachId,
-      });
-
+      const { from } = sender;
+      const result = await sendOutreachEmail({ ...ctx, subject, message, outreachId, from });
       if (result.success) {
         await recordInteraction(userId, {
           contactId: contact.id,
@@ -542,22 +529,8 @@ async function executeOutreach(
             'Failed to record email interaction (non-fatal)'
           )
         );
-
-        return {
-          success: true,
-          channel,
-          message: `📧 Emailed ${contact.name}: "${message}"`,
-          contactName: contact.name,
-        };
       }
-
-      return {
-        success: false,
-        channel,
-        message,
-        contactName: contact.name,
-        error: result.error || 'Email failed.',
-      };
+      return result;
     }
 
     return {
@@ -630,6 +603,12 @@ Just tell me WHO and WHY. I'll handle the rest.`,
         .describe(
           "Optional: Your own message. Otherwise I'll craft one based on your relationship."
         ),
+      fromFerni: z
+        .boolean()
+        .optional()
+        .describe(
+          "Email only: send from Ferni's address, not the caller's Gmail. Only if they chose it."
+        ),
     }),
 
     execute: async (params) => {
@@ -695,6 +674,12 @@ Just tell me WHO and WHY. I'll handle the rest.`,
       if (planned && !same) return `Nothing was sent: ${contact} isn't the contact you confirmed.`;
       const at = planned?.channel === 'email' ? 'email' : 'phone';
       if (planned) contactInfo = { ...contactInfo, [at]: planned.to };
+      // The mailbox read back, or Ferni's if the caller picked it (outreach-email.ts)
+      const emailFrom = planned
+        ? (planned.from ?? 'ferni')
+        : params.fromFerni
+          ? 'ferni'
+          : undefined;
 
       // Step 2: Gather rich context
       const outreachCtx = await gatherOutreachContext(userId, contactInfo, purpose, personaId);
@@ -715,7 +700,13 @@ Just tell me WHO and WHY. I'll handle the rest.`,
 
       // Step 4: Execute outreach, or with PLAN_ONLY only decide it (outreach-confirm.ts)
       const planOnly = PLAN_ONLY in params;
-      const result = await executeOutreach(outreachCtx, decision, customMessage, planOnly);
+      const result = await executeOutreach(
+        outreachCtx,
+        decision,
+        customMessage,
+        planOnly,
+        emailFrom
+      );
       if (planOnly) return result;
 
       if (result.success) return result.message;
@@ -736,7 +727,7 @@ export function getUnifiedOutreachDefinition(): ToolDefinition {
       "Reach out to someone - I'll choose the best channel, craft a personalized message, and handle the delivery.",
     domain: 'communication',
     tags: ['outreach', 'call', 'text', 'email', 'conversation', 'contact', 'message'],
-    requiredServices: ['twilio', 'sendgrid'],
+    requiredServices: ['twilio', 'email'],
     create: createUnifiedOutreachTool,
   };
 }

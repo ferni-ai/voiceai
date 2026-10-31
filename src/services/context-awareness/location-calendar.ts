@@ -13,16 +13,20 @@
  * @module services/context-awareness/location-calendar
  */
 
+import { googleMapsKey, MAPS_KEY_LEGACY } from '../../config/google-maps-key.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   getUserTokens,
-  refreshAccessToken,
+  refreshAccessTokenForUser,
   isCalendarConfigured,
   getEvents,
   generateAuthUrl,
   exchangeCodeForTokens,
   type CalendarEvent as GoogleCalendarEvent,
 } from '../identity/google-calendar-oauth.js';
+
+/** The key chain this caller read before GOOGLE_MAPS_SERVER_KEY (config/google-maps-key.ts). */
+const MAPS_KEY = { legacy: MAPS_KEY_LEGACY.mapsOnly };
 
 const log = createLogger({ module: 'LocationCalendar' });
 
@@ -101,16 +105,6 @@ export interface AnticipationInsight {
 }
 
 // ============================================================================
-// CONFIGURATION
-// ============================================================================
-
-const config = {
-  maps: {
-    apiKey: process.env.GOOGLE_MAPS_API_KEY || '',
-  },
-};
-
-// ============================================================================
 // STATE - Location and context only (OAuth handled by google-calendar-oauth.ts)
 // ============================================================================
 
@@ -178,13 +172,8 @@ async function getValidAccessToken(userId: string): Promise<string | null> {
   // Check if token needs refresh
   if (tokens.expiry_date && tokens.expiry_date < Date.now() + 60000) {
     if (!tokens.refresh_token) return null;
-    try {
-      const refreshed = await refreshAccessToken(tokens.refresh_token);
-      return refreshed?.access_token || null;
-    } catch (error) {
-      log.debug({ error, userId }, 'Failed to refresh calendar token');
-      return null;
-    }
+    const refreshed = await refreshAccessTokenForUser(userId, tokens.refresh_token);
+    return refreshed?.access_token || null;
   }
 
   return tokens.access_token;
@@ -379,7 +368,8 @@ export async function getTravelTime(
   destinationAddress: string
 ): Promise<TravelEvent | null> {
   const state = userStates.get(userId);
-  if (!state?.currentLocation || !config.maps.apiKey) return null;
+  const mapsKey = googleMapsKey(MAPS_KEY);
+  if (!state?.currentLocation || !mapsKey) return null;
 
   try {
     const origin = `${state.currentLocation.latitude},${state.currentLocation.longitude}`;
@@ -388,7 +378,8 @@ export async function getTravelTime(
         `origin=${encodeURIComponent(origin)}&` +
         `destination=${encodeURIComponent(destinationAddress)}&` +
         `departure_time=now&` +
-        `key=${config.maps.apiKey}`
+        `key=${mapsKey}`,
+      { signal: AbortSignal.timeout(10000) } // runs inside the anticipation context build
     );
 
     if (!response.ok) return null;

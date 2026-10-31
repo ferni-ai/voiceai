@@ -22,9 +22,6 @@ vi.mock('../../../src/state/app.state.js', () => ({
 vi.mock('../../../src/utils/logger.js', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
-vi.mock('../../../src/services/spotify.service.js', () => ({
-  spotifyService: { initialize: vi.fn(async () => false) },
-}));
 
 import { agentAudioTrackKind } from '../../../src/services/agent-audio-track.js';
 

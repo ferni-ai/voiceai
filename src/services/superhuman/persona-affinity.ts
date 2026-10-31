@@ -7,6 +7,7 @@
  * @module services/superhuman/persona-affinity
  */
 
+import { randomUUID } from 'node:crypto';
 import { Timestamp } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getRedisCache } from '../../memory/redis-cache.js';
@@ -28,10 +29,6 @@ const log = getLogger().child({ module: 'persona-affinity' });
 // ============================================================================
 
 export interface PersonaAffinity extends PersonaAffinityEntity {
-  id: string;
-}
-
-export interface PersonaInteraction extends PersonaInteractionHistoryEntity {
   id: string;
 }
 
@@ -309,57 +306,25 @@ export async function getHandoffPreferences(
 // ============================================================================
 
 /**
- * Record a persona interaction
+ * Record a persona interaction: meaningful ones are indexed to semantic memory.
+ *
+ * They used to be stored in bogle_users/{uid}/persona_interactions too, but nothing
+ * read those docs (only the TTL sweep pruned them), so that write and its reader
+ * are gone (memory v2 C5a).
  */
 export async function recordInteraction(
   userId: string,
   interaction: Omit<PersonaInteractionHistoryEntity, 'date'>
 ): Promise<void> {
+  if (interaction.interactionType === 'brief_mention') return;
   try {
-    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const interactionData: PersonaInteractionHistoryEntity = {
       ...interaction,
       date: new Date().toISOString(),
     };
-
-    const ref = await db.collection(`bogle_users/${userId}/persona_interactions`).add({
-      ...interactionData,
-      createdAt: Timestamp.now(),
-    });
-
-    // Index meaningful interactions to semantic memory
-    if (interaction.interactionType !== 'brief_mention') {
-      await onPersonaInteractionHistoryChange(userId, ref.id, interactionData, 'create');
-    }
+    await onPersonaInteractionHistoryChange(userId, randomUUID(), interactionData, 'create');
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to record interaction');
-  }
-}
-
-/**
- * Get recent interactions with a persona
- */
-export async function getRecentInteractions(
-  userId: string,
-  personaId: string,
-  limit = 10
-): Promise<PersonaInteraction[]> {
-  try {
-    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
-    const snapshot = await db
-      .collection(`bogle_users/${userId}/persona_interactions`)
-      .where('personaId', '==', personaId)
-      .orderBy('date', 'desc')
-      .limit(limit)
-      .get();
-
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as PersonaInteraction[];
-  } catch (error) {
-    log.error({ error: String(error), userId, personaId }, 'Failed to get recent interactions');
-    return [];
   }
 }
 
@@ -528,7 +493,6 @@ export const personaAffinity = {
   recordHandoff,
   getHandoffPreferences,
   recordInteraction,
-  getRecentInteractions,
   recommendPersona,
   shouldSuggestHandoff,
 };

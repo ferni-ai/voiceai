@@ -1,5 +1,5 @@
 /**
- * "Talk to Ferni now" on the sign-in gate, behind the try-first flag.
+ * "Talk to Ferni" on the sign-in gate, behind the try-first flag.
  *
  * A signed-out visitor can start a short demo call (services/demo-call.service.ts)
  * instead of signing in first. While the call is on, the gate shows only the
@@ -23,6 +23,11 @@ import { createLogger } from '../utils/logger.js';
 const log = createLogger('TryFirst');
 
 type Phase = 'idle' | 'connecting' | 'in-call' | 'ended' | 'used-up';
+
+/** The demo call is always with Ferni (demo-call.service asks for persona_id=ferni). */
+const CALLEE = 'Ferni';
+/** A connect still going after this long says so ("Still reaching Ferni…"). */
+const CONNECT_SLOW_MS = 4000;
 
 export interface TryFirstDeps {
   startCall?: () => Promise<DemoCall>;
@@ -119,13 +124,21 @@ export function tryFirstButtons(deps: TryFirstDeps = {}): HTMLElement[] {
   let call: DemoCall | null = null;
   let signedIn = false;
   let unsubscribeAuth: (() => void) | null = null;
+  let slowTimer: ReturnType<typeof setTimeout> | null = null;
   const setPhase = (phase: Phase): void => {
+    if (slowTimer !== null) clearTimeout(slowTimer);
+    slowTimer = null;
     const gate = block.closest<HTMLElement>(GATE);
     if (gate) gate.dataset.tryFirst = phase;
     button.disabled = phase === 'connecting';
     button.classList.toggle('try-first-btn--end', phase === 'in-call');
-    if (phase === 'connecting') button.textContent = t('tryFirst.connecting');
-    else if (phase === 'in-call') button.textContent = t('tryFirst.endCall');
+    if (phase === 'connecting') {
+      button.textContent = t('tryFirst.connecting', { name: CALLEE });
+      slowTimer = setTimeout(() => {
+        slowTimer = null;
+        button.textContent = t('entrance.stillCalling', { name: CALLEE });
+      }, CONNECT_SLOW_MS);
+    } else if (phase === 'in-call') button.textContent = t('tryFirst.endCall');
     else button.textContent = t('tryFirst.talkNow');
     if (phase !== 'in-call') hear.hidden = true;
     if (phase === 'ended') keepTitle.focus();

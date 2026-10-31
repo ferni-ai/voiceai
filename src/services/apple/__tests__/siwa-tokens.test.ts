@@ -22,6 +22,12 @@ import {
   type SiwaDeps,
 } from '../siwa-tokens.js';
 
+const logged = vi.hoisted(() => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() }));
+vi.mock('../../../utils/safe-logger.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../utils/safe-logger.js')>()),
+  createLogger: () => ({ ...logged, child: () => logged }),
+}));
+
 const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
 const ENV = {
   SIWA_KEY_P8: privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),
@@ -173,6 +179,21 @@ describe('revokeAppleSignIn', () => {
     };
     expect(await revokeAppleSignIn('alice', deps())).toBe('failed');
     expect(stored()).toBeUndefined();
+  });
+
+  it("logs the failure's code, never the message, when Apple can't be reached", async () => {
+    logged.error.mockClear();
+    answer = async () => {
+      throw Object.assign(new Error('connect failed for someone@example.com'), {
+        code: 'ECONNREFUSED',
+      });
+    };
+    expect(await revokeAppleSignIn('alice', deps())).toBe('failed');
+    expect(logged.error).toHaveBeenCalledWith(
+      { error: 'Error:ECONNREFUSED' },
+      'Sign in with Apple revocation failed'
+    );
+    expect(JSON.stringify(logged.error.mock.calls)).not.toContain('someone@example.com');
   });
 
   it('forgets the grant without calling Apple when the key is not set', async () => {

@@ -16,6 +16,10 @@
  *   password or answer.
  * Both are required, so an age, a house number, a zip or area code, a phone number, a
  * flight or room number and a score are kept, and so is "door code: changed last week".
+ * A credential named in the value and followed, past fillers, by 3+ digits or a word of
+ * letters and digits is dropped however many other words the fact has ("User's PIN is
+ * 4321", "remember the wifi password is sunshine42"; #2514), as are ID numbers (SSN,
+ * account, card or routing number).
  * Words are matched whole, never as substrings.
  *
  * A drop is logged as a count per category, never the key or the value.
@@ -27,7 +31,14 @@ import { flagOn, type Env } from '../config/env-flag.js';
 import { createLogger, type FallbackLogger } from '../utils/safe-logger.js';
 
 export type CredentialCategory =
-  'access-code' | 'password' | 'pin' | 'security-answer' | 'one-time-code' | 'combination';
+  | 'access-code'
+  | 'password'
+  | 'pin'
+  | 'security-answer'
+  | 'one-time-code'
+  | 'combination'
+  | 'id-number'
+  | 'api-key';
 
 export function spokenCredentialFilterOn(env: Env = process.env): boolean {
   return flagOn('SPOKEN_CREDENTIAL_FILTER', env);
@@ -86,6 +97,12 @@ const CONTEXT: ReadonlyArray<readonly [CredentialCategory, RegExp]> = [
     ),
   ],
   ['security-answer', term('(?:security|secret|challenge)(?: question)? answers?')],
+  [
+    'id-number',
+    term(
+      'ssn|social security(?: number)?|(?:bank |checking |savings )?account number|(?:credit |debit )?card number|routing number'
+    ),
+  ],
 ];
 
 /** "password manager", "pin reset", "2fa app": a thing about the secret, never the secret. */
@@ -107,6 +124,7 @@ const CREDENTIAL_WORDS = new Set(
     'code codes passcode passcodes password passwords passphrase pwd pw pin cvv cvc combination combo lock locker ' +
     'safe padlock bike bicycle wifi wlan key pass time otp 2fa mfa factor verification authentication auth login sign ' +
     'question answer secret challenge card phone bank email account atm debit credit unlock screen ' +
+    'ssn social routing checking savings ' +
     'contrasena clave mot passe passwort kennwort senha codigo turcode torcode puerta porta porte'
   ).split(' ')
 );
@@ -184,6 +202,43 @@ function withoutContext(
   return null;
 }
 
+/** What may come before a credential named in a value: "remember my PIN", "User's PIN". */
+const LEAD_IN = new Set(
+  'remember remembers remembered note noted save saved keep that so'.split(' ')
+);
+const NUMBERISH = (w: string): boolean =>
+  DIGIT_WORDS.has(w) || TEENS.has(w) || TENS.has(w) || /\d/.test(w);
+
+/**
+ * A credential named in the value and followed, past fillers, by what could be the
+ * secret: 3+ digits, written or spoken, or a word of letters and digits ("sunshine42").
+ * How many other words the value has doesn't matter. The name must lead its phrase:
+ * only credential words, fillers, a lead-in or an owner ("Seth's") before it, so
+ * "unit pin 1204" stays an apartment and "my PIN pad is broken" a broken pad.
+ */
+function secretAfterName(valueWords: readonly string[], value: string): CredentialCategory | null {
+  const phrase = valueWords.join(' ');
+  const owners = new Set(
+    (value.match(/[\p{L}\p{N}]+['’]s?(?=[^\p{L}\p{N}]|$)/gu) ?? []).flatMap((t) => words(t))
+  );
+  for (const [category, re] of CONTEXT) {
+    for (const m of phrase.matchAll(new RegExp(re.source, 'g'))) {
+      const before = phrase.slice(0, m.index).trim();
+      const start = before ? before.split(' ').length : 0;
+      const prev = valueWords[start - 1] ?? '';
+      if (start > 0 && !stripped(prev) && !LEAD_IN.has(prev) && !owners.has(prev)) continue;
+      let at = start + m[0].trim().split(' ').length;
+      while (at < valueWords.length && FILLER.has(valueWords[at])) at++;
+      let end = at;
+      while (end < valueWords.length && end - at < 8 && NUMBERISH(valueWords[end])) end++;
+      const next = valueWords[at] ?? '';
+      const mixed = next.length >= 4 && /\p{L}/u.test(next) && /\d/.test(next);
+      if (codeDigits(valueWords.slice(at, end)) >= 3 || mixed) return category;
+    }
+  }
+  return null;
+}
+
 /**
  * The credential this fact holds, or null when it holds none. Needs both a credential
  * word in the key or value and a value that could be the secret.
@@ -194,6 +249,8 @@ export function credentialCategory(key: string, value: string): CredentialCatego
   const phrase = `${keyPhrase} ${valueWords.join(' ')}`;
   if (ABOUT_SECRET.test(phrase) || (POSTAL_PIN.test(phrase) && !PIN_OWNER.test(phrase)))
     return null;
+  const named = secretAfterName(valueWords, value);
+  if (named) return named;
   const rest = secretPart(valueWords);
   const match = CONTEXT.find(([, re]) => re.test(phrase));
   if (!match) return withoutContext(keyPhrase, value, rest);

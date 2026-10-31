@@ -30,8 +30,8 @@ vi.mock('../../../config/generative-model.js', async (importOriginal) => ({
 
 const { setupCallTypeContexts } = await import('../../voice-agent-entry/metadata-parser.js');
 const { AgentOrchestrator } = await import('../orchestrator.js');
-const { GREETING_DIRECTION, PROACTIVE_GREETING_DIRECTION, proactiveFallback } =
-  await import('../greeting-direction.js');
+const { GREETING_DIRECTION } = await import('../greeting-direction.js');
+const { PROACTIVE_GREETING_DIRECTION, proactiveFallback } = await import('../proactive-opener.js');
 const { signDispatch } = await import('../../../services/outreach/on-behalf-dispatch.js');
 
 /** Only a dispatch our server signed sets the proactive context (metadata-parser.ts). */
@@ -156,6 +156,14 @@ describe('the opener of a call Ferni places to its own user', () => {
     expect(opener).toBe(proactiveFallback('Seth'));
     expect(opener).toBe("Hey Seth, it's Ferni, just calling to check in.");
     expect(opener).not.toMatch(/phone|sound/i);
+  });
+
+  it('names whoever placed the call in the fallback: "call me" can ring with Alex', () => {
+    expect(proactiveFallback('Seth', 'alex')).toBe(
+      "Hey Seth, it's Alex, just calling to check in."
+    );
+    expect(proactiveFallback(undefined, 'maya')).toBe("Hey, it's Maya, just calling to check in.");
+    expect(proactiveFallback('Seth', 'not-a-persona')).toBe(proactiveFallback('Seth'));
   });
 
   it('is unchanged with PROACTIVE_REASON_OPENER off', async () => {

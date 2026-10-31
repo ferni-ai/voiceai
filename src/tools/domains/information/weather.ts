@@ -6,18 +6,18 @@
  * Single responsibility: Fetching and presenting weather information.
  *
  * APIs used (in priority order):
- * 1. Google Weather API (primary - fast, uses existing GOOGLE_API_KEY)
- * 2. Open-Meteo (fallback - free, no key required)
+ * 1. Google Weather API (primary - fast; key from googleMapsKey(MAPS_KEY), config/google-maps-key.ts)
+ * 2. Open-Meteo (fallback - free, no key required, ~500ms slower)
  *
- * SETUP: To use Google Weather API (faster), enable it in GCP Console:
- * 1. Go to https://console.cloud.google.com/apis/library/weather.googleapis.com
- * 2. Enable "Weather API"
- * 3. The existing GOOGLE_API_KEY will work automatically
- *
- * Without Google Weather enabled, falls back to Open-Meteo (~500ms slower)
+ * The key must allow the Weather API, or every lookup falls back to Open-Meteo.
  */
 
 import { flagOn } from '../../../config/env-flag.js';
+import {
+  googleMapsKey,
+  MAPS_KEY_LEGACY,
+  mapsHttpOutcome,
+} from '../../../config/google-maps-key.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 
 import {
@@ -27,9 +27,12 @@ import {
   type GeocodingResult,
 } from './utils/geocoding.js';
 
+/** The key chain this caller read before GOOGLE_MAPS_SERVER_KEY (config/google-maps-key.ts). */
+const MAPS_KEY = { legacy: MAPS_KEY_LEGACY.generalOnly };
+
 // ============================================================================
 // GOOGLE WEATHER API
-// Uses the Google Maps Weather API - requires GOOGLE_API_KEY
+// The Google Maps Platform Weather API
 // Docs: https://developers.google.com/maps/documentation/weather
 // ============================================================================
 
@@ -62,10 +65,10 @@ interface GoogleWeatherResult {
  */
 async function tryGoogleWeather(location: string): Promise<GoogleWeatherResult> {
   const log = getLogger();
-  const apiKey = process.env.GOOGLE_API_KEY;
+  const apiKey = googleMapsKey(MAPS_KEY);
 
   if (!apiKey) {
-    log.debug({ location }, '🌤️ Google Weather skipped - no API key');
+    log.debug({ outcome: 'unconfigured' }, '🌤️ Google Weather skipped - no Maps key');
     return { weather: null, geo: null };
   }
 
@@ -73,19 +76,18 @@ async function tryGoogleWeather(location: string): Promise<GoogleWeatherResult> 
     // First geocode the location (we'll reuse this for fallback)
     const geo = await geocodeWithGoogle(location);
     if (!geo) {
-      log.info({ location }, '🌤️ [DIAG] Google geocoding FAILED for location');
+      log.info(
+        { locationChars: location.length },
+        '🌤️ [DIAG] Google geocoding FAILED for location'
+      );
       return { weather: null, geo: null };
     }
 
     // 🔍 DIAGNOSTIC: Log geocoded coordinates to verify location
     log.info(
       {
-        location,
-        geocodedName: geo.name,
-        geocodedState: geo.admin1,
-        geocodedCountry: geo.country,
-        latitude: geo.latitude,
-        longitude: geo.longitude,
+        locationChars: location.length,
+        geocoded: Boolean(geo.name),
       },
       '🌤️ [DIAG] Geocoded location - verify these coordinates are correct!'
     );
@@ -100,26 +102,16 @@ async function tryGoogleWeather(location: string): Promise<GoogleWeatherResult> 
     if (!response.ok) {
       // Google Weather API might not be enabled - fall back silently
       // BUT return the geo data so fallback doesn't need to re-geocode!
-      log.info({ location, status: response.status }, '🌤️ [DIAG] Google Weather API HTTP error');
+      const outcome = mapsHttpOutcome(response.status);
+      log.info({ status: response.status, outcome }, '🌤️ [DIAG] Google Weather API HTTP error');
       return { weather: null, geo }; // Pass geo for Open-Meteo fallback
     }
 
     const data = (await response.json()) as GoogleWeatherResponse;
 
-    // 🔍 DIAGNOSTIC: Log the RAW API response to see what we actually got
-    log.info(
-      {
-        location,
-        rawApiResponse: JSON.stringify(data).slice(0, 500),
-        hasTemperature: !!data.temperature,
-        hasError: !!data.error,
-      },
-      '🌤️ [DIAG] RAW Google Weather API response'
-    );
-
     if (data.error || !data.temperature) {
       log.info(
-        { location, error: data.error?.message },
+        { locationChars: location.length, error: data.error?.message },
         '🌤️ [DIAG] Google Weather returned no data'
       );
       return { weather: null, geo }; // Pass geo for fallback
@@ -143,8 +135,8 @@ async function tryGoogleWeather(location: string): Promise<GoogleWeatherResult> 
     // 🔍 DIAGNOSTIC: Log EXACTLY what we're returning to user
     log.info(
       {
-        location,
-        locationName,
+        locationChars: location.length,
+        hasLocationName: Boolean(locationName),
         source: 'GoogleWeather',
         temperature: temp,
         feelsLike,
@@ -162,7 +154,10 @@ async function tryGoogleWeather(location: string): Promise<GoogleWeatherResult> 
 
     return { weather: weatherStr, geo };
   } catch (error) {
-    log.info({ location, error: String(error) }, '🌤️ [DIAG] Google Weather EXCEPTION');
+    log.info(
+      { locationChars: location.length, error: String(error) },
+      '🌤️ [DIAG] Google Weather EXCEPTION'
+    );
     return { weather: null, geo: null };
   }
 }
@@ -257,7 +252,10 @@ export async function getCurrentWeather(location: string): Promise<string> {
   const key = location.trim().toLowerCase();
   const hit = reuse ? currentWeatherCache.get(key) : undefined;
   if (hit && Date.now() - hit.at < CURRENT_WEATHER_TTL_MS) {
-    getLogger().info({ location, ageMs: Date.now() - hit.at }, '🌤️ Weather from cache');
+    getLogger().info(
+      { locationChars: location.length, ageMs: Date.now() - hit.at },
+      '🌤️ Weather from cache'
+    );
     return hit.text;
   }
   const text = await fetchCurrentWeather(location);
@@ -308,13 +306,16 @@ async function fetchCurrentWeather(location: string): Promise<string> {
   const startTime = Date.now();
   const log = getLogger();
 
-  log.info({ timestamp: new Date().toISOString(), location }, '🌤️ [DIAG] getCurrentWeather START');
+  log.info(
+    { timestamp: new Date().toISOString(), locationChars: location.length },
+    '🌤️ [DIAG] getCurrentWeather START'
+  );
 
   // Try Google Weather API first (fast, uses existing API key)
   const { weather: googleWeather, geo: googleGeo } = await tryGoogleWeather(location);
   if (googleWeather) {
     log.info(
-      { location, elapsed: Date.now() - startTime, source: 'GoogleWeather' },
+      { locationChars: location.length, elapsed: Date.now() - startTime, source: 'GoogleWeather' },
       '🌤️ Weather from Google'
     );
     return googleWeather;
@@ -322,12 +323,15 @@ async function fetchCurrentWeather(location: string): Promise<string> {
 
   // Fallback to Open-Meteo (free, no API key needed)
   // OPTIMIZATION: Reuse Google's geocoding if available (saves ~300ms!)
-  log.info({ location, hasGoogleGeo: !!googleGeo }, '🌤️ [DIAG] Falling back to Open-Meteo');
+  log.info(
+    { locationChars: location.length, hasGoogleGeo: !!googleGeo },
+    '🌤️ [DIAG] Falling back to Open-Meteo'
+  );
   const geo = googleGeo ?? (await geocodeLocation(location));
 
   if (!geo) {
     log.warn(
-      { location, elapsed: Date.now() - startTime },
+      { locationChars: location.length, elapsed: Date.now() - startTime },
       '🌤️ [DIAG] getCurrentWeather: Geocoding FAILED for Open-Meteo'
     );
     return `I couldn't find weather data for "${location}". Try a major city name?`;
@@ -337,12 +341,8 @@ async function fetchCurrentWeather(location: string): Promise<string> {
   const geoSource = googleGeo ? 'GoogleGeo (reused)' : 'OpenMeteo';
   log.info(
     {
-      location,
-      geocodedName: geo.name,
-      geocodedState: geo.admin1,
-      geocodedCountry: geo.country,
-      latitude: geo.latitude,
-      longitude: geo.longitude,
+      locationChars: location.length,
+      geocoded: Boolean(geo.name),
       source: geoSource,
     },
     '🌤️ [DIAG] Open-Meteo using coordinates'
@@ -356,14 +356,18 @@ async function fetchCurrentWeather(location: string): Promise<string> {
       `&temperature_unit=fahrenheit&wind_speed_unit=mph`;
 
     log.info(
-      { location, geo: geo.name, url: url.slice(0, 150) },
+      { locationChars: location.length, geocoded: Boolean(geo.name) },
       '🌤️ [DIAG] Fetching Open-Meteo data...'
     );
     const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
 
     if (!response.ok) {
       log.warn(
-        { location, status: response.status, elapsed: Date.now() - startTime },
+        {
+          locationChars: location.length,
+          status: response.status,
+          elapsed: Date.now() - startTime,
+        },
         '🌤️ [DIAG] Open-Meteo API returned non-OK'
       );
       return `Couldn't get current weather for ${geo.name}.`;
@@ -372,19 +376,9 @@ async function fetchCurrentWeather(location: string): Promise<string> {
     const data = (await response.json()) as { current?: CurrentWeather };
     const { current } = data;
 
-    // 🔍 DIAGNOSTIC: Log the RAW Open-Meteo response
-    log.info(
-      {
-        location,
-        rawApiResponse: JSON.stringify(data).slice(0, 500),
-        hasCurrent: !!current,
-      },
-      '🌤️ [DIAG] RAW Open-Meteo API response'
-    );
-
     if (!current) {
       log.warn(
-        { location, elapsed: Date.now() - startTime },
+        { locationChars: location.length, elapsed: Date.now() - startTime },
         '🌤️ [DIAG] Open-Meteo returned no current data'
       );
       return `No weather data available for ${geo.name}.`;
@@ -400,8 +394,8 @@ async function fetchCurrentWeather(location: string): Promise<string> {
     // 🔍 DIAGNOSTIC: Log EXACTLY what we're returning from Open-Meteo
     log.info(
       {
-        location,
-        locationName,
+        locationChars: location.length,
+        hasLocationName: Boolean(locationName),
         source: 'OpenMeteo',
         temperature: current.temperature_2m,
         feelsLike: current.apparent_temperature,
@@ -424,7 +418,7 @@ async function fetchCurrentWeather(location: string): Promise<string> {
     const isTimeout = String(error).includes('timeout') || String(error).includes('AbortError');
     log.warn(
       {
-        location,
+        locationChars: location.length,
         error: String(error),
         elapsed,
         isTimeout,
@@ -494,13 +488,18 @@ export async function getSunriseSunset(location: string): Promise<string> {
     const locationName = formatLocationName(geo);
 
     log.info(
-      { location, locationName, sunrise: sunriseTime, sunset: sunsetTime },
+      {
+        locationChars: location.length,
+        hasLocationName: Boolean(locationName),
+        sunrise: sunriseTime,
+        sunset: sunsetTime,
+      },
       '🌅 Sunrise/sunset'
     );
 
     return `In ${locationName} today: Sunrise at ${sunriseTime}, sunset at ${sunsetTime}. That's ${daylightHours} hours and ${daylightMinutes} minutes of daylight.`;
   } catch (error) {
-    log.warn(`Sunrise/sunset API error: ${error}`);
+    log.warn({ error }, 'Sunrise/sunset API error');
     return `I had trouble getting sunrise/sunset times.`;
   }
 }
@@ -557,7 +556,7 @@ export async function getWeatherForecast(location: string, days = 5): Promise<st
 
     return `${days}-day forecast for ${locationName}: ${forecasts.join(' | ')}`;
   } catch (error) {
-    getLogger().warn(`Forecast API error: ${error}`);
+    getLogger().warn({ error }, 'Forecast API error');
     return `I had trouble getting the forecast.`;
   }
 }

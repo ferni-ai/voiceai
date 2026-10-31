@@ -55,6 +55,40 @@ describe('resolveWhen: relative to the call', () => {
   });
 });
 
+describe('resolveWhen: an hour said with the day is not a day', () => {
+  it.each([
+    // Main read the "3" as the 3rd (Nov 3) and "9 in the morning" as nothing.
+    ['Tuesday at 3', '2026-10-13'],
+    ['tomorrow at 9 in the morning', '2026-10-12'],
+    ['Friday at 11', '2026-10-16'],
+    ['at 3 on the 3rd', '2026-11-03'],
+    ['the 14th at 10', '2026-10-14'],
+    ['tomorrow afternoon', '2026-10-12'],
+    ['tonight at 8', SUN],
+    // am/pm and o'clock were already read as a time; still the same day.
+    ['Tuesday at 3pm', '2026-10-13'],
+    ["Tuesday at 3 o'clock", '2026-10-13'],
+  ])('%s said on Sun Oct 11 is %s', (when, day) => {
+    expect(resolveWhen(when, SUN)).toEqual({ date: day, ambiguous: false });
+  });
+
+  it('an hour alone, or "at" a part of the day, is no day', () => {
+    expect(resolveWhen('at 3', SUN)).toBeNull();
+    expect(resolveWhen('at 12', SUN)).toBeNull();
+    expect(resolveWhen('at 7 in the evening', SUN)).toBeNull();
+    expect(resolveWhen('next week at 3', SUN)).toBeNull();
+  });
+
+  it('leaves alone a number that goes on after the hour', () => {
+    // "at 5 30" must not leave "30" behind as the 30th.
+    expect(resolveWhen('at 5 30', SUN)).toBeNull();
+    expect(resolveWhen('at 5, 30', SUN)).toBeNull();
+    expect(resolveWhen('at 5.30', SUN)).toBeNull();
+    expect(resolveWhen('at 3/14', SUN)).toEqual({ date: '2027-03-14', ambiguous: false });
+    expect(resolveWhen('at 10.30.2026', SUN)).toBeNull();
+  });
+});
+
 describe('resolveWhen: the hard cases', () => {
   it('"the 3rd" near a month end is next month, not this one', () => {
     expect(resolveWhen('the 3rd', '2026-10-30')).toEqual({ date: '2026-11-03', ambiguous: false });

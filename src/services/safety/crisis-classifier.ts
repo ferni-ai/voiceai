@@ -26,11 +26,13 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { resolveCrisisAgreementGate } from './crisis-agreement.js';
 import {
   CRISIS_EVERYDAY_RULES,
-  moreSevereRead,
   needsPlainRead,
   resolveCrisisEverydayRules,
 } from './crisis-everyday.js';
+import { agreementCacheScope, notePatternBlock, readTurn } from './crisis-imminent-agreement.js';
 import { trackCrisisRead } from './crisis-call-risk.js';
+import { secondReadRun } from './crisis-classifier-v3.js';
+import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
 import { stripSSML } from '../../utils/text-utils.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
@@ -169,7 +171,7 @@ export function parseClassifierReply(reply: string): CrisisVerdict | null {
 const MAX_COMPANION_CHARS = 400;
 
 /** What the classifier actually sees: trimmed, latest not repeated in earlier, last 5 earlier. */
-function normalizeInput(input: CrisisClassifierInput): {
+export function normalizeInput(input: CrisisClassifierInput): {
   latest: string;
   earlier: string[];
   companion?: string;
@@ -270,6 +272,8 @@ export interface StartCrisisClassifierOptions {
   scope?: string;
   /** The call's session id, always when known: its reads are tracked (crisis-call-risk.ts). */
   call?: string;
+  /** Which path reads, the call's turn count, and whether its patterns read someone else. */
+  secondRead?: { path: SecondReadPath; count?: unknown; thirdParty: boolean };
 }
 
 let defaultGenerate: CrisisGenerateFn | null = null;
@@ -399,6 +403,7 @@ export function resetCrisisClassifierCache(): void {
   recentRuns.clear();
   turnReads.clear();
   looseReads.clear();
+  resetSecondReadTurns();
 }
 
 export function verdictOutcome(verdict: CrisisVerdict): PatternOutcome {
@@ -419,23 +424,31 @@ export function startCrisisClassifier(
   const env = options.env ?? process.env;
   const mode = resolveCrisisClassifierMode(env);
   if (mode === 'off') return null;
-  if (mode === 'live' && options.pattern === 'block') return null;
+  if (mode === 'live' && options.pattern === 'block') return notePatternBlock(options.call, env);
 
   const startedAt = Date.now();
   // Key on what the model sees: the turn pipeline's history ends with the
   // latest message and the chat context's does not, which made them miss.
   const normalized = normalizeInput(input);
   const prompt = crisisClassifierPrompt(env);
+  // CRISIS_CLASSIFIER_SECOND_READ: v3 may fill a read that found nothing (crisis-classifier-v3.ts).
+  const waitMs = resolveCrisisClassifierTimeoutMs(env);
+  const { call, pattern, secondRead } = options;
+  const lines = [normalized.latest, ...normalized.earlier];
+  const second = secondReadRun({ call, pattern, ...secondRead, lines, waitMs }, env);
   const key = JSON.stringify([
     normalized.latest,
     normalized.earlier,
     normalized.companion ?? '',
     prompt.length,
+    second.key,
+    ...agreementCacheScope(env, options.call),
   ]);
   // What each call's reads found, and which are in flight (crisis-call-risk.ts).
   const own = (v: Promise<CrisisVerdict | null>) => trackCrisisRead(options.call, input.latest, v);
   const shared = cachedRun(key, startedAt);
   if (shared) {
+    second.note();
     const verdict = own(shared.verdict);
     if (options.scope) rememberRead(options.scope, input, startedAt, verdict);
     return { mode, verdict };
@@ -445,13 +458,11 @@ export function startCrisisClassifier(
   const read = (p: string): Promise<CrisisVerdict | null> =>
     classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env), p);
   // Everyday rules on and risk words in the caller's words: the rules may not lower the read.
-  const plain = needsPlainRead(normalized.latest, env);
-  const reads = plain
-    ? Promise.all([
-        read(prompt),
-        read(crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })),
-      ]).then(([ruled, unruled]) => moreSevereRead(ruled, unruled))
-    : read(prompt);
+  const plain = needsPlainRead(normalized.latest, env)
+    ? crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })
+    : null;
+  const base = readTurn(read, [prompt, plain], { ...options, ...normalized, env });
+  const reads = second.apply(base, read, prompt);
   const verdict = reads.then((v) => {
     const classifier = v ? verdictOutcome(v) : null;
     log.info(

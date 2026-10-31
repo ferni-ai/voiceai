@@ -57,6 +57,20 @@ function hinted(obs: WorldObservation, old: TemporalFact): boolean {
   return value.includes(prior) || prior.includes(value);
 }
 
+/**
+ * The latest ask on file about the same subject's same day, from a fact the new
+ * one closes or one still open. The caller's answer to "how did Kate's interview
+ * go?" comes back as a new fact for that day; without this it was never
+ * asked, so the next call asked again (memory audit 2026-10-25: 5 of 10 subjects).
+ */
+function askedAbout(fact: TemporalFact, mine: readonly TemporalFact[]): Partial<TemporalFact> {
+  if (!fact.eventDate) return {};
+  const asked = mine
+    .filter((f) => f.eventDate === fact.eventDate && f.raisedOn)
+    .sort((a, b) => (b.raisedOn ?? '').localeCompare(a.raisedOn ?? ''))[0];
+  return asked ? { raisedOn: asked.raisedOn, raisedAs: asked.raisedAs } : {};
+}
+
 export async function planResolution(
   existing: readonly TemporalFact[],
   observations: readonly WorldObservation[],
@@ -95,6 +109,7 @@ export async function planResolution(
       validFrom: obs.since ? dayToIso(obs.since) : obs.observedAt,
       validTo: null,
     };
+    Object.assign(fact, askedAbout(fact, mine));
 
     const replaced = [
       ...(REPLACEABLE_ATTRIBUTES.has(attribute) ? slot : []),

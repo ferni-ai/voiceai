@@ -661,12 +661,12 @@ export function importEnergyPattern(pattern: EnergyPattern): void {
 }
 
 // ============================================================================
-// RESET (for testing)
+// RESET: one user (MINOR_CARE purge), or everyone (tests)
 // ============================================================================
 
-/**
- * Reset all energy state inference state (for testing)
- */
+export const forgetEnergyUser = (userId: string): boolean => userPatterns.delete(userId);
+
+/** Reset all energy state inference state (for testing) */
 export function resetEnergyStateInference(): void {
   userPatterns.clear();
 }

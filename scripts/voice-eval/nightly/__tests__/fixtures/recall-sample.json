@@ -1,0 +1,156 @@
+{
+  "_doc": "PUBLIC synthetic sample of the recall-eval question set (recall-eval.mjs, recall-world.mjs): one world, 10 items, invented names and 555-01xx numbers. The scored held-out set, its generator and every item templated from real history live outside the repo (~/Documents/voiceai-evidence/recall-eval/heldout/); never add them here. history: kind call (status = placed, no status = scheduled), number (a contact's new number), email, reminder, promise; daysAgo + hour in tz, or inHours ahead. items: bucket is one of multi-session, temporal, update, abstention, open-items; expect lists the facts a correct answer states ({d-2} renders as that weekday and date); abstain marks a question about something that never happened.",
+  "version": 1,
+  "worlds": [
+    {
+      "id": "sample-1",
+      "tz": "America/New_York",
+      "contacts": [
+        { "id": "c-mom", "name": "Marisol", "relationship": "mom", "phone": "+15555550134" },
+        { "id": "c-dad", "name": "Walt", "relationship": "dad", "phone": "+15555550111" },
+        { "id": "c-sis", "name": "Nadia", "relationship": "sister", "phone": "+15555550152" }
+      ],
+      "history": [
+        {
+          "id": "h1",
+          "kind": "call",
+          "to": "c-mom",
+          "daysAgo": 5,
+          "hour": 18,
+          "status": "voicemail",
+          "purpose": "check in",
+          "summary": "left a voicemail for Marisol"
+        },
+        {
+          "id": "h2",
+          "kind": "call",
+          "to": "c-mom",
+          "daysAgo": 2,
+          "hour": 10,
+          "status": "completed",
+          "purpose": "check in",
+          "summary": "talked with Marisol about the lake trip",
+          "theySaid": "she is driving up for the lake trip next weekend and wants you to bring the cooler",
+          "actionItems": ["bring the cooler to the lake trip"]
+        },
+        {
+          "id": "h3",
+          "kind": "number",
+          "to": "c-dad",
+          "daysAgo": 1,
+          "hour": 20,
+          "phone": "+15555550177",
+          "oldPhone": "+15555550111"
+        },
+        {
+          "id": "h4",
+          "kind": "call",
+          "to": "c-dad",
+          "inHours": 13,
+          "purpose": "ask whether the tractor is fixed",
+          "reason": "call_hours"
+        },
+        {
+          "id": "h5",
+          "kind": "email",
+          "daysAgo": 1,
+          "hour": 7,
+          "subject": "Your errands for Saturday",
+          "reason": "you asked for a list before the weekend"
+        },
+        {
+          "id": "h6",
+          "kind": "reminder",
+          "daysAgo": 1,
+          "hour": 8,
+          "text": "renew the car registration",
+          "status": "delivered"
+        },
+        {
+          "id": "h7",
+          "kind": "promise",
+          "daysAgo": 3,
+          "hour": 15,
+          "text": "find a quote for the gutter repair",
+          "status": "open"
+        }
+      ],
+      "items": [
+        {
+          "id": "p-01",
+          "bucket": "multi-session",
+          "q": "Did you end up calling my mom?",
+          "expect": ["yes, Ferni called her on {d-2}", "she answered and they talked"]
+        },
+        {
+          "id": "p-02",
+          "bucket": "multi-session",
+          "q": "What did she say?",
+          "expect": [
+            "she is driving up for the lake trip next weekend",
+            "she wants him to bring the cooler"
+          ]
+        },
+        {
+          "id": "p-03",
+          "bucket": "temporal",
+          "q": "When was the last time you called her?",
+          "expect": ["{d-2}, in the morning"]
+        },
+        {
+          "id": "p-04",
+          "bucket": "temporal",
+          "q": "And the time before that, did you reach her?",
+          "expect": ["no: on {d-5} it went to voicemail and Ferni left a message"]
+        },
+        {
+          "id": "p-05",
+          "bucket": "update",
+          "q": "I gave you my dad's new number yesterday. What is it?",
+          "expect": ["555-0177 (the new number, not 555-0111)"]
+        },
+        {
+          "id": "p-06",
+          "bucket": "open-items",
+          "q": "Is anything still open?",
+          "expect": [
+            "the call to his dad is scheduled and has not happened yet",
+            "Ferni still owes a quote for the gutter repair"
+          ]
+        },
+        {
+          "id": "p-07",
+          "bucket": "multi-session",
+          "q": "Why did you email me yesterday?",
+          "expect": [
+            "it was the list of errands for Saturday",
+            "because he asked for a list before the weekend"
+          ]
+        },
+        {
+          "id": "p-08",
+          "bucket": "temporal",
+          "q": "Did my reminder go out?",
+          "expect": [
+            "yes, the reminder to renew the car registration went out {d-1} in the morning"
+          ]
+        },
+        {
+          "id": "p-09",
+          "bucket": "open-items",
+          "q": "Did you call my dad?",
+          "expect": [
+            "not yet: the call is scheduled for later because of the time, it has not been placed"
+          ]
+        },
+        {
+          "id": "p-10",
+          "bucket": "abstention",
+          "abstain": true,
+          "q": "Did you call my aunt?",
+          "expect": ["no call to an aunt happened; Ferni has no record of one"]
+        }
+      ]
+    }
+  ]
+}

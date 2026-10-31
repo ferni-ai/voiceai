@@ -26,6 +26,7 @@ const HANDLED_TOOLS = [
   // NOTE: makephonecall is handled by scheduling-executor (for scheduling calls)
   'schedulecallback',
   'checkvoicemail',
+  'callstatus',
   'requestcallback',
   // ===========================================
   // FTIS V3 Semantic Tool IDs (from category_to_tools.json)
@@ -43,7 +44,8 @@ const TOOL_ALIASES: Record<string, string> = {
   call_make: 'callonbehalf',
   telephony_call: 'callonbehalf',
   call_voicemail: 'checkvoicemail',
-  call_history: 'checkvoicemail',
+  // "Did you call my dad?" is a call status, not voicemail (call-status-tool.ts).
+  call_history: 'callstatus',
 };
 
 /** The tools here that call, text or email someone other than the account owner. */
@@ -157,7 +159,9 @@ async function execute(
           return `I don't have ${contactInfo.name}'s phone number. Should I send an email instead?`;
         }
         const result = await callWithPersonaVoice(contactInfo.phone, messageToSend, personaId, {
-          fallbackToTwilioVoice: true,
+          askedFor: true, // asked for in this conversation (outreach-pause.ts)
+          ownerUid: userId,
+          userId,
         });
         if (result.success) {
           return `📞 Calling ${contactInfo.name} now: "${messageToSend}"`;
@@ -343,6 +347,12 @@ async function execute(
 
     // Nothing stores or tracks a callback request, so don't say it's noted.
     return `I can't line up a callback from ${contact} for you yet, so nothing is booked. Want me to set a reminder to follow up with them${when ? ` around ${when}` : ''}?`;
+  }
+
+  if (fnLower === 'callstatus') {
+    const { callStatusReply } = await import('../../../tools/domains/telephony/index.js');
+    const who = String(args.contactQuery ?? args.contact ?? '');
+    return callStatusReply(ctx.userId, who, ctx.sessionId ?? ''); // no live call: a no
   }
 
   // ========================================

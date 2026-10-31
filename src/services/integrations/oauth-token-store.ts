@@ -15,7 +15,11 @@ import {
   cleanForFirestore,
   recordDegradation,
 } from '../../utils/firestore-utils.js';
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
+import { openTokens, resealStale, sealTokensForMerge } from '../../utils/token-at-rest.js';
+import {
+  assertTokenSealingAvailable,
+  TokenSealingUnavailableError,
+} from '../../utils/token-encryption.js';
 import type { OAuthTokens, ConnectionStatus } from './types.js';
 
 const log = createLogger({ module: 'oauth-token-store' });
@@ -26,8 +30,8 @@ const log = createLogger({ module: 'oauth-token-store' });
 
 export interface StoredOAuthToken {
   provider: string;
-  accessToken: string; // encrypted
-  refreshToken?: string; // encrypted
+  /** Sealed envelope of { accessToken, refreshToken } (utils/token-at-rest). */
+  encrypted: string;
   expiresAt: string; // ISO date
   tokenType: string;
   scope?: string;
@@ -43,69 +47,65 @@ export interface StoredOAuthToken {
 export interface TokenStoreResult {
   success: boolean;
   error?: string;
+  /** Set when the write was refused because tokens could not be sealed. */
+  code?: 'sealing_unavailable';
 }
 
 // ============================================================================
-// ENCRYPTION
+// SEALING
 // ============================================================================
 
-const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
-const IV_LENGTH = 16;
-const AUTH_TAG_LENGTH = 16;
-const SALT_LENGTH = 32;
-
 /**
- * Get encryption key from environment or generate one
- * In production, this should be a proper secret management solution
+ * The two secrets, sealed together as one `encrypted` envelope through the
+ * repo's token sealing (utils/token-at-rest: TOKEN_SEALING_KEY, then
+ * OAUTH_ENCRYPTION_KEY, then LOG_HASH_SECRET). With no key, in any
+ * environment, a save is refused (TokenSealingUnavailableError) and nothing
+ * is written: never plaintext, never a key from the repo.
+ *
+ * Records in the old per-field format (accessToken/refreshToken as
+ * iv:tag:hex, under a store-local key that is gone) are not opened: prod held
+ * no docs in this store when the format changed (2026-10-30 audit), so there
+ * is nothing to migrate and no old key is kept. Such a record reads as not
+ * connected, and the person reconnects.
  */
-function getEncryptionKey(): Buffer {
-  const secret =
-    process.env.OAUTH_TOKEN_ENCRYPTION_KEY || 'default-development-key-do-not-use-in-production';
-  const salt = process.env.OAUTH_TOKEN_ENCRYPTION_SALT || 'ferni-oauth-salt';
-  return scryptSync(secret, salt, 32);
+interface SealedSecrets {
+  accessToken: string;
+  refreshToken?: string;
 }
 
-/**
- * Encrypt a string value
- */
-function encrypt(text: string): string {
-  const key = getEncryptionKey();
-  const iv = randomBytes(IV_LENGTH);
-  const cipher = createCipheriv(ENCRYPTION_ALGORITHM, key, iv);
-
-  let encrypted = cipher.update(text, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-
-  const authTag = cipher.getAuthTag();
-
-  // Format: iv:authTag:encrypted
-  return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
+/** True when the failure is "no key to seal with" rather than a Firestore error. */
+function isSealingUnavailable(error: unknown): error is TokenSealingUnavailableError {
+  return error instanceof TokenSealingUnavailableError;
 }
 
-/**
- * Decrypt a string value
- */
-function decrypt(encryptedText: string): string {
-  try {
-    const [ivHex, authTagHex, encrypted] = encryptedText.split(':');
-    if (!ivHex || !authTagHex || !encrypted) {
-      throw new Error('Invalid encrypted format');
-    }
+const SEALING_REFUSED = 'Token sealing is not configured; tokens were not stored';
 
-    const key = getEncryptionKey();
-    const iv = Buffer.from(ivHex, 'hex');
-    const authTag = Buffer.from(authTagHex, 'hex');
-    const decipher = createDecipheriv(ENCRYPTION_ALGORITHM, key, iv);
-    decipher.setAuthTag(authTag);
+const FAILED_PRECONDITION = 9;
+const NOT_FOUND = 5;
 
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-
-    return decrypted;
-  } catch (error) {
-    log.error({ error: String(error) }, 'Failed to decrypt token');
-    throw new Error('Token decryption failed');
-  }
+/** With TOKEN_SEALING_KEY set, move an envelope sealed under an older key to it (best effort). */
+function resealOnRead(
+  docRef: FirebaseFirestore.DocumentReference,
+  doc: FirebaseFirestore.DocumentSnapshot,
+  stored: string,
+  secrets: SealedSecrets
+): void {
+  void resealStale({
+    store: COLLECTION_PATH,
+    stored,
+    value: secrets,
+    swap: async (encrypted) => {
+      try {
+        await docRef.update({ encrypted }, { lastUpdateTime: doc.updateTime });
+        return 'updated';
+      } catch (err) {
+        const code = (err as { code?: unknown }).code;
+        if (code === FAILED_PRECONDITION) return 'changed';
+        if (code === NOT_FOUND) return 'missing';
+        throw err;
+      }
+    },
+  });
 }
 
 // ============================================================================
@@ -130,6 +130,19 @@ export async function saveOAuthTokens(
   tokens: OAuthTokens,
   metadata?: Record<string, unknown>
 ): Promise<TokenStoreResult> {
+  let sealed: Record<string, unknown>;
+  try {
+    assertTokenSealingAvailable();
+    sealed = sealTokensForMerge<SealedSecrets>({
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    });
+  } catch (error) {
+    if (!isSealingUnavailable(error)) throw error;
+    log.error({ userId, provider }, 'OAuth tokens not saved: token sealing unavailable');
+    return { success: false, error: SEALING_REFUSED, code: 'sealing_unavailable' };
+  }
+
   const db = getFirestoreDb();
   if (!db) {
     recordDegradation('oauth-token-store', 'saveOAuthTokens');
@@ -139,23 +152,21 @@ export async function saveOAuthTokens(
 
   try {
     const docRef = getDocRef(db, userId, provider);
-
-    // Encrypt sensitive tokens
-    const storedToken: StoredOAuthToken = {
+    const now = new Date().toISOString();
+    const record = {
       provider,
-      accessToken: encrypt(tokens.accessToken),
-      refreshToken: tokens.refreshToken ? encrypt(tokens.refreshToken) : undefined,
       expiresAt: tokens.expiresAt.toISOString(),
       tokenType: tokens.tokenType,
       scope: tokens.scope,
       scopes: tokens.scope ? tokens.scope.split(' ') : [],
-      status: 'connected',
-      connectedAt: new Date().toISOString(),
-      lastRefreshedAt: new Date().toISOString(),
+      status: 'connected' as ConnectionStatus,
+      connectedAt: now,
+      lastRefreshedAt: now,
       metadata,
     };
 
-    await docRef.set(cleanForFirestore(storedToken), { merge: true });
+    // The sealed fields go on after cleaning: they carry FieldValue deletes.
+    await docRef.set({ ...cleanForFirestore(record), ...sealed }, { merge: true });
     log.info({ userId, provider }, 'OAuth tokens saved');
 
     return { success: true };
@@ -192,10 +203,19 @@ export async function getOAuthTokens(
       return null;
     }
 
-    // Decrypt tokens
+    const secrets = openTokens<SealedSecrets>({ encrypted: data.encrypted }, COLLECTION_PATH);
+    if (!secrets?.accessToken) {
+      log.warn(
+        { userId, provider },
+        'OAuth record has no sealed tokens that open; reconnect needed'
+      );
+      return null;
+    }
+    resealOnRead(docRef, doc, data.encrypted, secrets);
+
     const tokens: OAuthTokens = {
-      accessToken: decrypt(data.accessToken),
-      refreshToken: data.refreshToken ? decrypt(data.refreshToken) : undefined,
+      accessToken: secrets.accessToken,
+      refreshToken: secrets.refreshToken,
       expiresAt: new Date(data.expiresAt),
       tokenType: data.tokenType,
       scope: data.scope,
@@ -232,24 +252,43 @@ export async function updateOAuthTokens(
 
   try {
     const docRef = getDocRef(db, userId, provider);
+    const doc = await docRef.get();
+    if (!doc.exists) return { success: false, error: 'No stored tokens to update' };
 
-    const updates: Partial<StoredOAuthToken> = {
-      accessToken: encrypt(tokens.accessToken),
-      expiresAt: tokens.expiresAt.toISOString(),
-      lastRefreshedAt: new Date().toISOString(),
-      status: 'connected',
-    };
+    // A refresh often omits the refresh token: keep the stored one.
+    const stored = doc.data() as Partial<StoredOAuthToken>;
+    const previous = stored.encrypted
+      ? openTokens<SealedSecrets>({ encrypted: stored.encrypted }, COLLECTION_PATH)
+      : null;
+    assertTokenSealingAvailable();
+    const sealed = sealTokensForMerge<SealedSecrets>({
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken ?? previous?.refreshToken,
+    });
 
-    // Only update refresh token if a new one was provided
-    if (tokens.refreshToken) {
-      updates.refreshToken = encrypt(tokens.refreshToken);
-    }
-
-    await docRef.update(cleanForFirestore(updates));
+    // Precondition: a disconnect or another refresh since the read wins.
+    await docRef.update(
+      {
+        ...cleanForFirestore({
+          expiresAt: tokens.expiresAt.toISOString(),
+          lastRefreshedAt: new Date().toISOString(),
+          status: 'connected' as ConnectionStatus,
+        }),
+        ...sealed,
+      },
+      { lastUpdateTime: doc.updateTime }
+    );
     log.debug({ userId, provider }, 'OAuth tokens updated after refresh');
 
     return { success: true };
   } catch (error) {
+    if (isSealingUnavailable(error)) {
+      log.error(
+        { userId, provider },
+        'Refreshed OAuth tokens not saved: token sealing unavailable'
+      );
+      return { success: false, error: SEALING_REFUSED, code: 'sealing_unavailable' };
+    }
     const errorMsg = String(error);
     log.error({ error: errorMsg, userId, provider }, 'Failed to update OAuth tokens');
     return { success: false, error: errorMsg };
@@ -410,7 +449,7 @@ export async function markConnectionError(
 export async function needsRefresh(
   userId: string,
   provider: string,
-  bufferMinutes: number = 5
+  bufferMinutes = 5
 ): Promise<boolean> {
   const db = getFirestoreDb();
   if (!db) return false;

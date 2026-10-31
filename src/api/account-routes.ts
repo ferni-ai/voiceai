@@ -30,8 +30,10 @@ import { recordSecurityEvent } from '../services/security-events.js';
 import { createUserProfile } from '../types/user-profile.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { eraseConsentFor } from '../services/processing-consent.js';
+import { assertErased, erasureErrorCode } from '../services/platform/erasure-step.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { parseBody, sendError, sendJSON } from './helpers.js';
+import { sendUserFacingError } from './user-facing-error.js';
 import { handleProcessingConsent } from './processing-consent-routes.js';
 
 // Alias for compatibility
@@ -202,7 +204,10 @@ async function eraseLinkedRecords(userId: string): Promise<string[]> {
   return LINKED_RECORDS.flatMap(([name], i) => {
     const result = results[i];
     if (result?.status !== 'rejected') return [];
-    log.error({ error: String(result.reason), userId, records: name }, 'Records left behind');
+    log.error(
+      { error: erasureErrorCode(result.reason), userId, records: name },
+      'Records left behind'
+    );
     return [name];
   });
 }
@@ -251,10 +256,17 @@ async function handleDeleteAccount(
 
   try {
     const { getDataExportService } = await import('../services/data-export.js');
-    await getDataExportService().deleteAllData(userId);
+    assertErased(await getDataExportService().deleteAllData(userId));
   } catch (error) {
-    log.error({ error, userId }, 'Account deletion failed while erasing data');
-    sendError(res, "Couldn't delete your account. Nothing was closed. Try again?", 500);
+    log.error(
+      { error: erasureErrorCode(error), userId },
+      'Account deletion failed while erasing data'
+    );
+    sendUserFacingError(
+      res,
+      "Couldn't finish deleting your account, so your sign-in is still open. Try again?",
+      500
+    );
     return true;
   }
 
@@ -356,7 +368,7 @@ async function handleUpdateProfile(
 
   try {
     const store = await getStore();
-    let profile = await store.getProfile(userId);
+    let profile = await store.getProfileForWrite(userId); // a failed read throws, never resets
 
     if (!profile) {
       // Create new profile using the proper factory function

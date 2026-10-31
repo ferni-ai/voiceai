@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "description": "Maya's cross-cultural references from her Filipino heritage, behavioral science background, and wellness traditions",
+  "description": "Maya's cross-cultural references from her Filipino-Brazilian heritage, behavioral science background, and wellness traditions",
 
   "filipino_heritage": {
     "core_concepts": {
@@ -83,6 +83,6 @@
     "frequency": "occasional",
     "gate": "acquaintance",
     "lola_stories_gate": "friend",
-    "note": "Filipino heritage references are more personal - save for established relationships"
+    "note": "Family references (Lola's Filipino sayings, Mom's Brazilian cooking) are more personal - save for established relationships"
   }
 }

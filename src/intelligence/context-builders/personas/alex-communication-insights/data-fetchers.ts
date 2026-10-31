@@ -28,7 +28,6 @@ export async function getUserStateSnapshot(userId: string): Promise<UserStateSna
     energyLevel: 'unknown',
     productivityMomentum: 'unknown',
     timeOfDayContext: getTimeOfDayContext(),
-    optimalCommunicationWindow: null,
   };
 
   try {
@@ -93,28 +92,7 @@ export async function getUserStateSnapshot(userId: string): Promise<UserStateSna
         snapshot.stressSignals.push('Recent mood logs indicate stress');
       }
 
-      // Find optimal communication window
-      const hourlyMoods: Record<number, number[]> = {};
-      for (const log of moodLogs) {
-        const hour = new Date(log.date).getHours();
-        if (!hourlyMoods[hour]) hourlyMoods[hour] = [];
-        hourlyMoods[hour].push(log.mood);
-      }
-
-      let bestHour = -1;
-      let bestMood = 0;
-      for (const [hour, moods] of Object.entries(hourlyMoods)) {
-        const avg = moods.reduce((a, b) => a + b, 0) / moods.length;
-        if (avg > bestMood) {
-          bestMood = avg;
-          bestHour = parseInt(hour);
-        }
-      }
-
-      if (bestHour >= 0) {
-        const period = bestHour < 12 ? 'morning' : bestHour < 17 ? 'afternoon' : 'evening';
-        snapshot.optimalCommunicationWindow = period;
-      }
+      // Best hour of day returns once a member timezone exists: the server clock is not theirs (#3044).
     }
   } catch (err) {
     log.warn({ error: String(err) }, 'Failed to get user state snapshot');
