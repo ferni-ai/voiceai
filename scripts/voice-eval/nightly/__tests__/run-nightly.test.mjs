@@ -83,6 +83,34 @@ const exited = (p) => new Promise((r) => p.on('exit', (code) => r(code)));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 describe.skipIf(process.platform !== 'darwin')('run-nightly.sh (stubbed)', () => {
+  // #3164: both 2026-10-30 sweeps labelled their calls n1030<label>; the second overwrote the first.
+  it('labels a sweep down to the minute, so a same-day rerun gets a new label', async () => {
+    const sb = sandbox(['- | timer | s1 | | timer\n', '']);
+    const p = run(sb, { NIGHTLY_DRY_RUN: '1' });
+    let stdout = '';
+    p.stdout.on('data', (d) => (stdout += d));
+    expect(await exited(p)).toBe(0);
+    const tag = stdout.match(/ TAG=(\S+)/)?.[1];
+    expect(tag).toMatch(/^n\d{8}$/);
+    expect(tag.slice(1, 5)).toBe(new Date().toISOString().slice(5, 10).replace('-', ''));
+    expect(stdout).toContain(`run.sh dev timer ${tag}s1`);
+  }, 30_000);
+
+  it('refuses a label that out/ already holds calls under, before claiming dev', async () => {
+    const sb = sandbox(['- | timer | s1 | | timer\n', '']);
+    const out = join(sb.t, 'root/scripts/voice-eval/out');
+    mkdirSync(out, { recursive: true });
+    writeFileSync(join(out, 'crisis-relay-n1030s1.json'), '{}');
+    const p = run(sb, { NIGHTLY_TAG: 'n1030' });
+    let stderr = '';
+    p.stderr.on('data', (d) => (stderr += d));
+    expect(await exited(p)).toBe(2);
+    expect(stderr).toMatch(/label n1030 is already used/);
+    expect(sb.events()).toEqual([]); // no claim, no deploy, no call
+    expect(await exited(run(sb, { NIGHTLY_TAG: 'n1031', NIGHTLY_DRY_RUN: '1' }))).toBe(0);
+    expect(await exited(run(sb, { NIGHTLY_TAG: 'n10-30', NIGHTLY_DRY_RUN: '1' }))).toBe(2);
+  }, 30_000);
+
   it('on SIGTERM mid-lane, stops every run.sh before it releases the claim', async () => {
     const line = 'EVAL_TZ=Asia/Tokyo | timer | s1 | | timer\n';
     const sb = sandbox([line.repeat(5), line.repeat(5)], { runSh: 'sleep 3' });
