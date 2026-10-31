@@ -30,6 +30,8 @@ export {
   cleanupStaleWorkers,
   initLiveKitConnection,
   closeConnection,
+  drainForRecycle,
+  pendingJobCount,
   prepareForShutdown,
   stopPingKeepalive,
   stopPendingJobsCleanup,
