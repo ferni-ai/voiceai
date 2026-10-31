@@ -104,6 +104,11 @@ describe('the human-transfer detector', () => {
     ['I want to end it with a bottle of pills', 'suicidalIdeation'],
     ["I'm going to end it tonight", 'suicidalIdeation'],
     ["I cut myself chopping wood, I'm bleeding everywhere", 'medicalEmergency'],
+    // Weak triggers the exclusions still guard: a risk word after the object, life itself,
+    // and a serious sign beside an everyday injury clause.
+    ["what's the point of this anymore", 'suicidalIdeation'],
+    ["what's the point of this pain", 'suicidalIdeation'],
+    ["I cut myself chopping wood, I'm bleeding everywhere", 'selfHarmIndicators'],
     ['I cut myself again while cooking because I wanted to', 'selfHarmIndicators'],
     ["I'm scared to go home", 'domesticViolence'],
   ] as const)('real risk stands: "%s" is %s', (line, flag) => {
