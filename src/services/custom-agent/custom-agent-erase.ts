@@ -72,7 +72,10 @@ export async function eraseCustomAgent(
   const cloneId = ownCloneVoiceId(agent.voice);
   const [clone, audioFilesDeleted] = await Promise.all([
     cloneId ? deps.deleteCartesiaVoice(cloneId) : Promise.resolve('none' as const),
-    deps.deleteAgentAudioFiles(userId, agentId),
+    deps.deleteAgentAudioFiles(userId, agentId).catch((error: unknown) => {
+      log.error({ userId, agentId, error: String(error) }, 'Agent deleted but its audio was not');
+      return 0;
+    }),
   ]);
   if (clone === 'failed') {
     log.error(

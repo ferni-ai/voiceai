@@ -76,6 +76,16 @@ describe('eraseCustomAgent', () => {
   });
 });
 
+it('still reports the agent deleted when the audio cleanup throws', async () => {
+  const d = deps({ type: 'cloned', voiceId: OWN_CLONE });
+  d.deleteAgentAudioFiles.mockRejectedValueOnce(new Error('storage down'));
+  expect(await eraseCustomAgent('uid_1', 'agent_1', d)).toEqual({
+    found: true,
+    clone: 'deleted',
+    audioFilesDeleted: 0,
+  });
+});
+
 describe('ownCloneVoiceId', () => {
   it('is the id only for the agent’s own clone', () => {
     expect(ownCloneVoiceId({ type: 'cloned', voiceId: OWN_CLONE })).toBe(OWN_CLONE);
