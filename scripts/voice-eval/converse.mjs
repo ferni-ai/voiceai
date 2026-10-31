@@ -50,7 +50,7 @@ const events = []; // { t, who, from, text }
 // (handoff_progress, handoff_complete, ...), sent to the whole room.
 const data = []; // { t, from, topic, payload }
 const tracks = new Map(); // sid -> { name, bufs, voice: [[startT, endT], ...] }
-const userSpeech = []; // [startT, endT, audioMs] of each scripted utterance
+const userSpeech = []; // [startT, endT, audioMs, peak] of each scripted utterance
 let mainVoiceLastAt = 0;
 let mainVoiceStartedAt = 0;
 const phone = process.env.VOICE_EVAL_PHONE === '1';

@@ -132,6 +132,18 @@ export interface QuietPresenceDeps {
   afterQuestion?: () => boolean;
   setTimer?: (fn: () => void, ms: number) => unknown;
   clearTimer?: (handle: unknown) => void;
+  /** Each time this holds the silence (waits, or stays quiet). Without it a held 45 s left no
+   *  trace, and a release sweep's dead air took code reading to explain (#3164). */
+  onHold?: (hold: QuietHold) => void;
+}
+
+interface QuietHold {
+  action: 'wait' | 'none';
+  waitMs: number;
+  quietMs: number;
+  checks: number;
+  lowEnergy: boolean;
+  lateNight: boolean;
 }
 
 export class QuietPresence {
@@ -180,10 +192,15 @@ export class QuietPresence {
   }
 
   private decide(quietSince: number, spokeAt: number): boolean {
+    const quietMs = Date.now() - quietSince;
     const cues = this.deps.cues();
     const afterQuestion = this.afterQuestion();
-    const d = quietDecision(Date.now() - quietSince, cues, this.checks, afterQuestion);
+    const d = quietDecision(quietMs, cues, this.checks, afterQuestion);
     if (d.action === 'usual') return false;
+    if (d.action === 'wait' || d.action === 'none') {
+      const waitMs = d.action === 'wait' ? d.ms : 0;
+      this.deps.onHold?.({ action: d.action, waitMs, quietMs, checks: this.checks, ...cues });
+    }
     if (d.action === 'wait') {
       if (!afterQuestion || cues.askedQuestion !== true) {
         log.info({ reason: 'late_night', waitMs: d.ms }, 'Quiet presence holding');
@@ -261,6 +278,7 @@ export function quietPresenceFor(
     },
     afterQuestion: () => quietAfterQuestionOn(),
     lastSpokeAt: callerLastSpokeAt,
+    onHold: (hold) => log.info({ sessionId, ...hold }, 'QUIET_HOLD'),
     canSpeak: () =>
       !conversationManager.isAgentSpeaking() &&
       isRealSilence(session as unknown as SessionStates) &&

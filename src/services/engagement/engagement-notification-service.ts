@@ -18,13 +18,11 @@
 import { getProfileStore } from '../../memory/profile-store.js';
 import { isTeamByNeedEnabled } from '../../config/team-by-need-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 
 import { EventEmitter } from 'events';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 import { createReminder, type ScheduledReminder } from '../scheduling/reminder-scheduler.js';
 import { getProductivityStore } from '../stores/productivity-store.js';
-import { getGamificationStore } from './gamification-store.js';
 import { isUserBusy, getNextOutreachWindow } from '../scheduling/calendar-busy-detection.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { verifiedAddressFor } from './engagement-reach-port.js';
@@ -115,8 +113,6 @@ interface MayaNotificationData {
 // MAYA NOTIFICATION SERVICE
 // ============================================================================
 
-const MAYA_PROACTIVE_CHECK_INTERVAL = 'maya-notification-proactive-check';
-
 class MayaNotificationService extends EventEmitter {
   private scheduledNotifications = new Map<string, ScheduledReminder>();
   private userPreferences = new Map<string, MayaNotificationPreferences>();
@@ -141,15 +137,10 @@ class MayaNotificationService extends EventEmitter {
       maxPendingChanges: 30,
     });
 
-    // Off unless MAYA_PROACTIVE_CHECKS=on: every call process would scan 100 users and could text them.
-    if (process.env.MAYA_PROACTIVE_CHECKS === 'on') this.startProactiveCheckLoop();
-
     getLogger().info({}, '🌱 Maya Notification Service ready with persistence');
   }
 
   async shutdown(): Promise<void> {
-    clearNamedInterval(MAYA_PROACTIVE_CHECK_INTERVAL);
-
     // Flush all pending persistence
     if (this.persistenceStore) {
       await this.persistenceStore.flush();
@@ -507,21 +498,6 @@ class MayaNotificationService extends EventEmitter {
   }
 
   /**
-   * Send proactive check-in after silence
-   */
-  async sendSilenceCheckin(userId: string, daysSinceActive: number): Promise<void> {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() + 5); // Small delay
-
-    await this.scheduleNotification({
-      userId,
-      type: 'proactive_checkin',
-      scheduledFor: now,
-      customMessage: MESSAGE_TEMPLATES.comeback_welcome({ daysSinceActive }),
-    });
-  }
-
-  /**
    * Send milestone celebration
    */
   async sendMilestoneCelebration(userId: string, milestone: string): Promise<void> {
@@ -534,80 +510,6 @@ class MayaNotificationService extends EventEmitter {
       customMessage: MESSAGE_TEMPLATES.milestone_celebration({ milestone }),
       priority: 'high',
     });
-  }
-
-  // ============================================================================
-  // PROACTIVE CHECK LOOP
-  // ============================================================================
-
-  private startProactiveCheckLoop(): void {
-    // Check every hour for proactive opportunities using managed interval
-    registerInterval(
-      MAYA_PROACTIVE_CHECK_INTERVAL,
-      () => {
-        void this.runProactiveChecks();
-      },
-      60 * 60 * 1000 // 1 hour
-    );
-
-    // Also run immediately
-    void this.runProactiveChecks();
-  }
-
-  private async runProactiveChecks(): Promise<void> {
-    try {
-      const store = await getProfileStore();
-      const profiles = await store.listProfiles({ limit: 100 });
-
-      for (const profile of profiles) {
-        await this.checkUserForProactiveOpportunities(profile.id);
-      }
-    } catch (error) {
-      getLogger().warn({ error }, 'Error in proactive check loop');
-    }
-  }
-
-  private async checkUserForProactiveOpportunities(userId: string): Promise<void> {
-    const prefs = await this.getPreferences(userId);
-    if (!prefs.enabled) return;
-
-    const store = getProductivityStore();
-    const gamificationStore = getGamificationStore();
-
-    try {
-      // Check for silence (no activity in 3+ days)
-      const profile = await gamificationStore.getProfile(userId);
-      const lastActive = new Date(profile.lastActiveAt);
-      const daysSinceActive = Math.floor(
-        (Date.now() - lastActive.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      if (daysSinceActive >= 3 && daysSinceActive <= 7) {
-        await this.sendSilenceCheckin(userId, daysSinceActive);
-      }
-
-      // Check for streaks at risk
-      const habits = store.getUserEnhancedHabits(userId);
-      const now = new Date();
-
-      for (const habit of habits) {
-        // Check habits with active streaks
-        if (habit.currentStreak > 0 && habit.totalCompletions > 0) {
-          // Use reminderTime or bestPerformanceTime as a proxy for when they usually complete
-          // If neither exists, assume evening completion
-          const usualTime = habit.reminderTime || habit.bestPerformanceTime || '18:00';
-          const [usualHour] = usualTime.split(':').map(Number);
-
-          // If it's past their usual time + 2 hours and they have an active streak, alert
-          const currentHour = now.getHours();
-          if (currentHour >= usualHour + 2 && currentHour < 22) {
-            await this.scheduleStreakAlert(userId, habit.id, habit.name, habit.currentStreak);
-          }
-        }
-      }
-    } catch (error) {
-      getLogger().debug({ error, userId }, 'Error checking proactive opportunities');
-    }
   }
 
   // ============================================================================

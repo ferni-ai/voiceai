@@ -17,7 +17,13 @@
 
 import dns, { type LookupAddress } from 'node:dns';
 import net, { type LookupFunction } from 'node:net';
-import { Agent } from 'undici';
+// The guarded Agent is handed to the runtime's global fetch, which is the undici bundled with
+// Node, not this package. undici 6 Agents only understand the legacy handler API, so under a
+// runtime whose fetch speaks the newer one (Node 26+, undici 8) every guarded request failed in dispatch
+// with InvalidArgumentError (before any lookup or connect). undici 7 Agents accept both handler
+// APIs, so they work with the fetch of every supported Node. Kept as an alias so the rest of the
+// app's undici (the turn path's keep-alive dispatcher) is not changed by this file.
+import { Agent } from 'undici7';
 
 const MAX_REDIRECTS = 3;
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -165,6 +171,21 @@ export const guardedLookup: LookupFunction = (hostname, options, callback) => {
   });
 };
 
+/**
+ * fetch() rejects with TypeError('fetch failed') and the real reason in `cause`. Surface a
+ * connect-time refusal as the OutboundUrlBlockedError it is, so callers that branch on it (the
+ * marketplace HTTP executor) treat a rebound name the same as one refused before the request.
+ */
+async function fetchSurfacingBlock(url: URL, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (err) {
+    const cause = (err as { cause?: unknown } | null)?.cause;
+    if (cause instanceof OutboundUrlBlockedError) throw cause;
+    throw err;
+  }
+}
+
 let guardedAgent: Agent | undefined;
 /** Undici dispatcher whose sockets resolve through guardedLookup. */
 export function getGuardedAgent(): Agent {
@@ -193,7 +214,7 @@ export async function safeOutboundFetch(
   const headers = new globalThis.Headers(init.headers);
 
   for (let hop = 0; ; hop++) {
-    const response = await fetch(url, {
+    const response = await fetchSurfacingBlock(url, {
       ...init,
       method,
       body,
@@ -237,7 +258,11 @@ export async function guardedStreamFetch(
   options: OutboundUrlOptions = {}
 ): Promise<Response> {
   const url = await assertSafeOutboundUrl(String(rawUrl), options);
-  return fetch(url, { ...init, redirect: 'error', dispatcher: getGuardedAgent() } as RequestInit);
+  return fetchSurfacingBlock(url, {
+    ...init,
+    redirect: 'error',
+    dispatcher: getGuardedAgent(),
+  } as RequestInit);
 }
 
 /** Read at most maxBytes of a response body as text, then stop reading. */

@@ -6,6 +6,11 @@
  *
  * Before: "Connecting…" for a first connect and a reconnect alike,
  * "Disconnect", "Until next time...", "Ending..." and a joined toast.
+ *
+ * C1b: the persona is called by first name ("Calling Jordan…"), a screen
+ * reader hears "Jordan is here" on arrival (the toast it used to read is gone),
+ * the end button's spoken name follows its label after a hang-up, and
+ * dispose() stops the slow-label timer.
  */
 
 import { readFileSync } from 'node:fs';
@@ -90,6 +95,17 @@ describe('home connect button, per connection state', () => {
     expect(spoken(connect)).toBe('Calling Maya. Tap to cancel.');
   });
 
+  it('calls a persona by first name, seen and spoken: "Calling Jordan…", not "Jordan Taylor…"', () => {
+    appState.set('activePersona', { ...originalPersona, name: 'Jordan Taylor' });
+    const { connect } = mount();
+    setConnectionState('connecting');
+    expect(shown(connect)).toBe('Calling Jordan…');
+    expect(spoken(connect)).toBe('Calling Jordan. Tap to cancel.');
+    vi.advanceTimersByTime(4000);
+    expect(shown(connect)).toBe('Still reaching Jordan…');
+    expect(spoken(connect)).toBe('Still reaching Jordan. Tap to cancel.');
+  });
+
   it('reconnecting: "Reconnecting…", not a new call, and not cancellable', () => {
     const { connect } = mount();
     setConnectionState('connected');
@@ -126,18 +142,90 @@ describe('home end button', () => {
     expect(end.getAttribute('aria-label')).toBe('End call');
   });
 
-  it('you hung up: "Until next time", no dots', () => {
+  it('you hung up: "Until next time", no dots, and read the same', () => {
     const { end } = mount();
     setConnectionState('connected');
+    expect(spoken(end)).toBe('End call');
     showClosingState();
     expect(shown(end)).toBe('Until next time');
+    expect(end.getAttribute('aria-label')).toBe('Until next time');
   });
 
-  it('Ferni hung up: "Call ended"', () => {
+  it('Ferni hung up: "Call ended", and read the same', () => {
+    const { end } = mount();
+    setConnectionState('connected');
+    expect(spoken(end)).toBe('End call');
+    showAgentHangupState();
+    expect(shown(end)).toBe('Call ended');
+    expect(end.getAttribute('aria-label')).toBe('Call ended');
+  });
+
+  it('wrapping up: "Goodbye", read as "Goodbye. End call." (the visible word first)', () => {
+    const { end } = mount();
+    setConnectionState('connected');
+    appState.set('isWrappingUp', true);
+    expect(shown(end)).toBe('Goodbye');
+    expect(end.getAttribute('aria-label')).toBe('Goodbye. End call.');
+  });
+
+  it('the next call starts back on "End call" after either hang-up', () => {
     const { end } = mount();
     setConnectionState('connected');
     showAgentHangupState();
-    expect(shown(end)).toBe('Call ended');
+    setConnectionState('disconnected');
+    setConnectionState('connecting');
+    setConnectionState('connected');
+    expect(shown(end)).toBe('End call');
+    expect(end.getAttribute('aria-label')).toBe('End call');
+  });
+});
+
+describe('arrival, for screen readers', () => {
+  /** The app's one polite live region (utils/accessibility announce()) */
+  const heard = (): string | null | undefined =>
+    document.getElementById('aria-live-polite')?.textContent;
+
+  it('says "Ferni is here" once the call connects', () => {
+    mount();
+    setConnectionState('connecting');
+    setConnectionState('connected');
+    vi.advanceTimersByTime(100);
+    const region = document.getElementById('aria-live-polite');
+    expect(region?.getAttribute('aria-live')).toBe('polite');
+    expect(region?.classList.contains('sr-only')).toBe(true);
+    expect(heard()).toBe('Ferni is here');
+  });
+
+  it('uses the first name: "Maya is here"', () => {
+    appState.set('activePersona', { ...originalPersona, name: 'Maya Santos' });
+    mount();
+    setConnectionState('connecting');
+    setConnectionState('connected');
+    vi.advanceTimersByTime(100);
+    expect(heard()).toBe('Maya is here');
+  });
+
+  it('a reconnect is the same call, not a new arrival', () => {
+    mount();
+    setConnectionState('connecting');
+    setConnectionState('connected');
+    vi.advanceTimersByTime(100);
+    document.getElementById('aria-live-polite')!.textContent = '';
+    setConnectionState('reconnecting');
+    setConnectionState('connected');
+    vi.advanceTimersByTime(1000);
+    expect(heard()).toBe('');
+  });
+
+  it('shows nothing: no toast, no visible text', () => {
+    mount();
+    const before = document.body.querySelectorAll('*:not(.sr-only)').length;
+    setConnectionState('connecting');
+    setConnectionState('connected');
+    vi.advanceTimersByTime(3000);
+    expect(document.querySelector('.toast, [role="alert"], .message-toast')).toBeNull();
+    // Only the screen-reader region was added
+    expect(document.body.querySelectorAll('*:not(.sr-only)').length).toBe(before);
   });
 });
 
@@ -176,6 +264,18 @@ describe('home slow connect (4 s)', () => {
     expect(shown(connect)).toBe('Calling Ferni…');
     vi.advanceTimersByTime(1000);
     expect(shown(connect)).toBe('Still reaching Ferni…');
+  });
+
+  it('is cleared by dispose(), so a torn-down button never changes', () => {
+    const { connect } = mount();
+    setConnectionState('connecting');
+    vi.advanceTimersByTime(2000);
+    const pending = vi.getTimerCount();
+    expect(pending).toBe(1);
+    dispose();
+    expect(vi.getTimerCount()).toBe(0);
+    vi.advanceTimersByTime(10_000);
+    expect(shown(connect)).toBe('Calling Ferni…');
   });
 
   it('never fires during a reconnect', () => {

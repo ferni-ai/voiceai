@@ -126,7 +126,7 @@ export async function handleOutreachRoutes(
     // Require authentication for all non-webhook routes
     const auth: AuthContext | null = fromScheduler
       ? { userId: 'cloud-scheduler', isAdmin: false, isDevMode: false, authMethod: 'api_key' }
-      : await requireAuth(req, res, { allowDevMode: true });
+      : await requireAuth(req, res, { allowDevMode: true, strict: method === 'POST' && (route === '/consent/calls/undo' || route === '/preferences') });
     if (!auth) {
       return true; // 401 already sent
     }

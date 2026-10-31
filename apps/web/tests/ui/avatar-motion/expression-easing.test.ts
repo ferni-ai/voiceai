@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { DURATION } from '../../../src/config/animation-constants.js';
 import { MOTION_FLAG_KEYS } from '../../../src/config/motion-flags.js';
 
 interface RecordedTween {
@@ -18,6 +19,9 @@ vi.mock('../../../src/utils/gsap-setup.js', () => {
         tweens.push({ target, vars, position });
         return tl;
       },
+      add() {
+        return tl;
+      },
       call(fn: () => void) {
         calls.push(fn);
         return tl;
@@ -26,7 +30,11 @@ vi.mock('../../../src/utils/gsap-setup.js', () => {
     };
     return tl;
   };
-  return { gsap: { timeline, to: vi.fn(), set: vi.fn(), killTweensOf: vi.fn() } };
+  const to = (target: unknown, vars: RecordedTween['vars']) => {
+    tweens.push({ target, vars, position: undefined });
+    return { kill() {} };
+  };
+  return { gsap: { timeline, to, set: vi.fn(), killTweensOf: vi.fn() } };
 });
 
 import {
@@ -56,58 +64,85 @@ function lidTweens(): RecordedTween[] {
 }
 
 describe('expression-easing (pure)', () => {
-  beforeEach(() => setMoodBaseline('neutral'));
+  beforeEach(() => {
+    setMoodBaseline('neutral');
+    setReducedMotion(false);
+  });
 
-  it('classifies heavy, light and neutral expressions', () => {
-    expect(expressionWeight('sad')).toBe('heavy');
-    expect(expressionWeight('holdingSpace')).toBe('heavy');
-    expect(expressionWeight('celebrating')).toBe('light');
-    expect(expressionWeight('curious')).toBe('neutral');
+  it('classifies heavy, light and neutral feelings', () => {
+    for (const heavy of ['sad', 'worried', 'empathetic', 'holdingSpace']) {
+      expect(expressionWeight(heavy), heavy).toBe('heavy');
+    }
+    for (const light of ['happy', 'delighted', 'pleased', 'warm', 'curious', 'celebrating']) {
+      expect(expressionWeight(light), light).toBe('light');
+    }
+    expect(expressionWeight('attentive')).toBe('neutral');
+    expect(expressionWeight('neutral')).toBe('neutral');
   });
 
   it('flag off keeps the legacy elastic motion for every expression', () => {
     for (const expr of ['sad', 'happy', 'curious']) {
-      expect(expressionMotion(expr, 300, false, true)).toEqual({
+      expect(expressionMotion(expr, 300, false, false)).toEqual({
         ease: 'elastic.out(1, 0.7)',
         durationMs: 300,
         delayMs: 50,
         anticipate: true,
+        liftPx: 0,
       });
     }
   });
 
-  it('heavy expressions glide with sine.inOut, 600-900 ms, no anticipation', () => {
-    expect(expressionMotion('sad', 300, true, false)).toEqual({
-      ease: 'sine.inOut',
-      durationMs: 600,
-      delayMs: 0,
-      anticipate: false,
-    });
-    expect(expressionMotion('worried', 2000, true, false).durationMs).toBe(900);
-  });
-
-  it('light expressions keep the spring, neutral ones ease out without overshoot', () => {
-    expect(expressionMotion('happy', 300, true, false)).toMatchObject({
-      ease: 'elastic.out(1, 0.7)',
-      anticipate: true,
-    });
-    expect(expressionMotion('curious', 300, true, false)).toEqual({
-      ease: 'power2.out',
-      durationMs: 300,
-      delayMs: 0,
-      anticipate: false,
-    });
-  });
-
-  it('reduced motion turns every expression into a 150 ms crossfade', () => {
-    for (const expr of ['sad', 'celebrating', 'curious']) {
-      expect(expressionMotion(expr, 800, true, true)).toEqual({
-        ease: 'power1.out',
-        durationMs: 150,
+  it('flag on: heavy feelings settle over 900 ms with sine.inOut and sink, whatever was asked', () => {
+    for (const requested of [300, 2000]) {
+      expect(expressionMotion('sad', requested, true, false)).toEqual({
+        ease: 'sine.inOut',
+        durationMs: DURATION.EXPRESSION_HEAVY,
         delayMs: 0,
         anticipate: false,
+        liftPx: 1.5,
       });
     }
+    expect(DURATION.EXPRESSION_HEAVY).toBe(900);
+  });
+
+  it('flag on: light feelings land in 350 ms with power2.out and lift; others take 500 ms', () => {
+    expect(expressionMotion('happy', 300, true, false)).toEqual({
+      ease: 'power2.out',
+      durationMs: DURATION.EXPRESSION_LIGHT,
+      delayMs: 0,
+      anticipate: false,
+      liftPx: -1.5,
+    });
+    expect(DURATION.EXPRESSION_LIGHT).toBe(350);
+    expect(expressionMotion('attentive', 300, true, false)).toEqual({
+      ease: 'power2.out',
+      durationMs: 500,
+      delayMs: 0,
+      anticipate: false,
+      liftPx: 0,
+    });
+  });
+
+  it('reduced motion is a 150 ms ease with no squeeze or lift, with the flag on or off', () => {
+    for (const enabled of [true, false]) {
+      for (const expr of ['sad', 'celebrating', 'curious']) {
+        expect(expressionMotion(expr, 800, enabled, true)).toEqual({
+          ease: 'power1.out',
+          durationMs: 150,
+          delayMs: 0,
+          anticipate: false,
+          liftPx: 0,
+        });
+      }
+    }
+  });
+
+  it('reads reduced motion from the system only with the flag on', () => {
+    setReducedMotion(true);
+    expect(expressionMotion('sad', 800, true).durationMs).toBe(150);
+    expect(expressionMotion('sad', 800, false).durationMs).toBe(800); // off: unchanged
+    setReducedMotion(false);
+    expect(expressionMotion('sad', 800, true).durationMs).toBe(DURATION.EXPRESSION_HEAVY);
   });
 
   it('only resting moods set without a hold become the baseline', () => {
@@ -149,14 +184,24 @@ describe('ferni-expressions setExpression with ferni:weighted-easing', () => {
     expect(tweens.some((t) => t.vars.scaleY === 0.95)).toBe(true);
   });
 
-  it('flag on: sad glides with sine.inOut and no squeeze', async () => {
+  it('flag on: sad settles with sine.inOut over 900 ms and no squeeze', async () => {
     localStorage.setItem(MOTION_FLAG_KEYS.weightedEasing, 'true');
     const fx = await freshExpressions();
     fx.setExpression('sad', 300);
     const lids = lidTweens();
     expect(lids.every((t) => t.vars.ease === 'sine.inOut')).toBe(true);
-    expect(lids[0]?.vars.duration).toBeCloseTo(0.6);
+    expect(lids[0]?.vars.duration).toBeCloseTo(0.9);
     expect(tweens.some((t) => t.vars.scaleY === 0.95)).toBe(false);
+  });
+
+  it('flag off + reduced motion: unchanged, the legacy squeeze and elastic', async () => {
+    setReducedMotion(true);
+    const fx = await freshExpressions();
+    fx.setExpression('sad', 300);
+    const lids = lidTweens();
+    expect(lids.every((t) => t.vars.ease === 'elastic.out(1, 0.7)')).toBe(true);
+    expect(lids[0]?.vars.duration).toBeCloseTo(0.3);
+    expect(tweens.some((t) => t.vars.scaleY === 0.95)).toBe(true);
   });
 
   it('flag on + reduced motion: a 150 ms crossfade', async () => {

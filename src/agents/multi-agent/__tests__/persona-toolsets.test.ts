@@ -135,6 +135,10 @@ describe('the pick lists', () => {
   it.each(Object.keys(PERSONA_TOOL_PICKS))(
     '%s: every tool is registered, in the domain the lists give',
     async (persona) => {
+      // getSleepSummary is picked by Ferni and Maya but registered only with its flag and the Oura app credentials
+      vi.stubEnv('OURA_SLEEP_TOOL', 'on');
+      vi.stubEnv('OURA_CLIENT_ID', 'test-oura-id');
+      vi.stubEnv('OURA_CLIENT_SECRET', 'test-oura-secret');
       const { beat, head } = toolPicksFor(persona);
       const names = [...PERSONA_CORE_TOOLS, ...beat, ...head];
       const domains = toolDomains(names, persona);

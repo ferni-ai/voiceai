@@ -334,7 +334,7 @@ async function buildHandoffContext(input: ContextBuilderInput): Promise<ContextI
   const wakeWord = detectWakeWord(userText);
   if (DEBUG_HANDOFF)
     log.debug('Wake word check', {
-      userText: userText.slice(0, 50),
+      userTextLen: userText.length,
       isWakeWord: wakeWord.isWakeWord,
       target: wakeWord.targetAgent,
       currentAgent,

@@ -14,6 +14,7 @@
  */
 
 import { erasingMark } from '../../utils/erasing-mark.js';
+import { invalidateAccount } from '../identity/token-revocation.js';
 import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { ensureFirebaseAdmin } from '../identity/firebase-auth.js';
 import { flagOn } from '../../config/env-flag.js';
@@ -185,6 +186,7 @@ export async function eraseUserRecord(
  * the erasure before anything is deleted.
  */
 async function markErasing(db: Db, userIds: readonly string[]): Promise<void> {
+  for (const uid of userIds) invalidateAccount(uid, 'gone'); // their tokens stop working here now
   const mark = erasingMark();
   await Promise.all(
     userIds.map(async (uid) =>

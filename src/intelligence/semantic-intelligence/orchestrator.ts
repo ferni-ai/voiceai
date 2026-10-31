@@ -236,7 +236,7 @@ export async function getSemanticIntelligence(
   log.debug(
     {
       userId: context.userId,
-      inputText: context.inputText.substring(0, 50),
+      inputTextLen: context.inputText.length,
       topHint: toolHintsResult.hints[0]?.toolId,
       intentType: intentClassification.type,
       learnedTool: learnedPrediction?.toolId,

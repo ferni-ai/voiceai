@@ -469,6 +469,9 @@ export async function checkAndTriggerFeedback(
 export const feedbackTriggerEngine = {
   // State management
   clearState: clearFeedbackState,
+  /** Sessions holding feedback state (each until its call's clearState). */
+  sessionCount: (): number =>
+    new Set([...sessionStates.keys(), ...sessionTopicHistory.keys()]).size,
   onAgentStartSpeaking,
   onAgentFinishedSpeaking,
   onUserMessage,

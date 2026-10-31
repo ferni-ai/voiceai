@@ -11,9 +11,10 @@ vi.mock('../../engagement/engagement-store.js', () => ({
   getEngagementStore: async () => ({ getConversationSessions }),
 }));
 
-const query = { orderBy: vi.fn(), limit: vi.fn(), get: vi.fn() };
+const query = { orderBy: vi.fn(), limit: vi.fn(), select: vi.fn(), get: vi.fn() };
 query.orderBy.mockReturnValue(query);
 query.limit.mockReturnValue(query);
+query.select.mockReturnValue(query); // sessions-together reads the same calls for the total
 const db = {
   collection: () => ({ doc: () => ({ collection: () => query }) }),
 };

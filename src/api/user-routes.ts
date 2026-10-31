@@ -167,7 +167,7 @@ export async function handleUserRoutes(
   // Creates profile immediately so we can start tracking identity
   // ============================================================================
   if (route === '/profile' && method === 'GET') {
-    const auth = await requireAuth(req, res, { allowDevMode: true });
+    const auth = await requireAuth(req, res, { allowDevMode: true, strict: true }); // creates the record
     if (!auth) return true;
 
     const { userId } = auth;
@@ -208,7 +208,7 @@ export async function handleUserRoutes(
   // Called during onboarding to set name, link device, update onboarding state
   // ============================================================================
   if (route === '/profile' && method === 'POST') {
-    const auth = await requireAuth(req, res, { allowDevMode: true });
+    const auth = await requireAuth(req, res, { allowDevMode: true, strict: true }); // creates the record
     if (!auth) return true;
 
     const body = await parseBody<ProfileInitRequest>(req);

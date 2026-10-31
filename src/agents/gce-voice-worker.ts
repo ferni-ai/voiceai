@@ -181,6 +181,8 @@ import {
   connectToLiveKit,
   cleanupStaleWorkers,
   closeConnection,
+  drainForRecycle,
+  pendingJobCount,
   prepareForShutdown,
   stopPingKeepalive,
   stopPendingJobsCleanup,
@@ -199,6 +201,7 @@ import {
   startJobRunner,
 } from './gce/job-runner.js';
 import { drainTimeoutMs } from './gce/drain.js';
+import { startWorkerRecycle } from './gce/worker-recycle.js';
 import { sdkLoggerOptions } from './gce/sdk-logger-options.js';
 log('Phase 2.5: Starting async background workers');
 const processRuntime = startProcessRuntime(log);
@@ -249,6 +252,17 @@ async function main(): Promise<void> {
   // Signal that prewarm is complete and worker is ready
   signalPrewarmComplete();
   log('✅ Startup complete - worker ready for jobs');
+
+  // WORKER_RECYCLE: past WORKER_RECYCLE_RSS_MB, take no new calls and exit once they end.
+  startWorkerRecycle({
+    rssBytes: () => process.memoryUsage.rss(),
+    activeJobs: activeJobCount,
+    pendingJobs: pendingJobCount,
+    jobsRun: () => getJobMetrics().totalJobs,
+    drain: drainForRecycle,
+    exit: () => void shutdown('WORKER_RECYCLE'),
+    log,
+  });
 
   // Diagnostic summary with crash analytics
   registerInterval(

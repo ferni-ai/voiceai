@@ -28,7 +28,6 @@ function wrapLegacyTool(
   id: string,
   name: string,
   description: string,
-  /** The tool, or (Plaid) a builder given each call's ctx so it runs as that call's caller. */
   legacyTool: unknown,
   options?: {
     tags?: string[];
@@ -42,7 +41,7 @@ function wrapLegacyTool(
     domain: 'finance',
     tags: ['finance', ...(options?.tags || [])],
     requiredServices: options?.requiredServices,
-    create: (ctx: ToolContext) => (typeof legacyTool === 'function' ? legacyTool(ctx) : legacyTool),
+    create: (_ctx: ToolContext) => legacyTool,
   };
 }
 
@@ -51,8 +50,7 @@ function wrapLegacyTool(
 // ============================================================================
 
 function getBankingToolDefinitions(): ToolDefinition[] {
-  // Built per ctx: perCallerTool and the finance executor set ctx.userId to the session's caller.
-  const legacyTools = (ctx: ToolContext) => createPlaidTools(ctx);
+  const legacyTools = createPlaidTools();
 
   // Consolidated: bankAccount handles link/unlink/status, bankData handles balances/transactions/analysis
   return [
@@ -60,7 +58,7 @@ function getBankingToolDefinitions(): ToolDefinition[] {
       'bankAccount',
       'Bank Account',
       'Manage bank account connection: check link status, link a new bank account via Plaid, or unlink an existing account. Actions: "status", "link", or "unlink". Required for spending analysis and balance checking.',
-      (ctx: ToolContext) => legacyTools(ctx).linkBankAccount,
+      legacyTools.linkBankAccount,
       {
         tags: ['banking', 'plaid', 'setup', 'status', 'link', 'unlink'],
         requiredServices: ['plaid'],
@@ -70,7 +68,7 @@ function getBankingToolDefinitions(): ToolDefinition[] {
       'bankData',
       'Bank Data',
       'Get financial data from linked accounts: account balances, recent transactions, or spending analysis by category. Actions: "balances", "transactions", or "spending". Requires linked bank account.',
-      (ctx: ToolContext) => legacyTools(ctx).getAccountBalances,
+      legacyTools.getAccountBalances,
       {
         tags: ['banking', 'balances', 'transactions', 'spending', 'analysis'],
         requiredServices: ['plaid'],
@@ -80,7 +78,7 @@ function getBankingToolDefinitions(): ToolDefinition[] {
       'financialHealth',
       'Financial Health',
       'Get a comprehensive financial health assessment based on linked account data. Shows savings rate, spending patterns, debt-to-income, and personalized recommendations.',
-      (ctx: ToolContext) => legacyTools(ctx).checkFinancialHealth,
+      legacyTools.checkFinancialHealth,
       { tags: ['banking', 'health', 'assessment', 'recommendations'], requiredServices: ['plaid'] }
     ),
   ];

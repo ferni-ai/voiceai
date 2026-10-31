@@ -253,7 +253,7 @@ export function classifyIntent(inputText: string): IntentClassification {
 
   log.debug(
     {
-      inputText: normalizedInput.substring(0, 50),
+      inputTextLen: normalizedInput.length,
       type: primaryType,
       confidence: primaryConfidence,
       mood,

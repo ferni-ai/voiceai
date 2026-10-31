@@ -13,6 +13,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
 import { verifyFirebaseToken, isVerifiedToken } from '../../../services/identity/firebase-auth.js';
+import { authCheckUnavailable, nullIfUnavailable } from '../../../api/verify-token-once.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { sealTokens } from '../../../utils/token-at-rest.js';
 import {
@@ -642,8 +643,7 @@ async function handleHomeKitStatus(req: IncomingMessage, res: ServerResponse): P
 }
 
 async function handleHomeKitSync(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  // This endpoint is called by iOS app to sync HomeKit data
-  // Requires authentication header from iOS app
+  // The iOS app syncs HomeKit data here, signed in (Authorization header or body authToken)
   try {
     // The user is the uid of the verified token (header or body authToken); body.userId is ignored.
     const { homeData, authToken } = (await parseBody(req)) as {
@@ -662,12 +662,12 @@ async function handleHomeKitSync(req: IncomingMessage, res: ServerResponse): Pro
     }
     let userId: string;
     try {
-      const verifiedToken = await verifyFirebaseToken(token);
-      if (!isVerifiedToken(verifiedToken)) {
-        sendError(res, 401, 'Invalid authentication token');
+      const verified = await verifyFirebaseToken(token).catch((e) => nullIfUnavailable(req, e));
+      if (!isVerifiedToken(verified)) {
+        if (!authCheckUnavailable(req, res)) sendError(res, 401, 'Invalid authentication token');
         return;
       }
-      userId = verifiedToken.uid;
+      userId = verified.uid;
     } catch (err) {
       log.error({ error: String(err) }, 'Firebase token verification failed');
       sendError(res, 401, 'Authentication failed');

@@ -98,7 +98,7 @@ async function buildCommitmentFollowUpContext(
     );
 
     log.info(
-      { userId, commitment: commitment.content.slice(0, 50) },
+      { userId, commitmentLen: commitment.content.length },
       '💫 BETTER-THAN-HUMAN: New commitment tracked'
     );
   }
@@ -148,7 +148,7 @@ async function buildCommitmentFollowUpContext(
       log.info(
         {
           userId,
-          commitment: followUp.content.slice(0, 50),
+          commitmentLen: followUp.content.length,
           daysOld: getAgeInDays(followUp.createdAt),
         },
         '🔔 BETTER-THAN-HUMAN: Surfacing commitment follow-up'

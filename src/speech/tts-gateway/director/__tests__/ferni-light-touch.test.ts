@@ -193,7 +193,7 @@ describe('on the live gateway path', () => {
       return pushes.join('');
     };
     roll.mockReturnValue(0);
-    const live = { SPEECH_DIRECTOR: 'live', SPEECH_DIRECTOR_LAUGHTER: 'live' };
+    const live = { SPEECH_DIRECTOR: 'live' };
     expect(await run({ ...live, FERNI_LIGHT_TOUCH: 'on' })).toMatch(
       /^(?:<[^>]+>)*\[laughter\] Okay/
     );

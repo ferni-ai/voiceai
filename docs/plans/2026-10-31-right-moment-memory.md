@@ -89,7 +89,7 @@ From `AGENTS.md`, applied here:
 - Health dates are said as presence, not a question: let them lead.
 - At most one proactive thing per call.
 
-**A4. Owner-cohort flag flips (no code, except making two flags cohort-capable, see 6.4):** `DATES_THAT_MATTER`, `DIRECTOR_PERSONA_AWARE`, `CALL_NEWS_OPENER`, and `CALL_REPORT_REACHES_YOU` after re-checking `#3080`.
+**A4. Owner-cohort flag flips (no code, except making two flags cohort-capable, see 6.4):** `DATES_THAT_MATTER`, `DIRECTOR_PERSONA_AWARE`, `CALL_NEWS_OPENER`, and `CALL_REPORT_REACHES_YOU` after re-checking `#3080`. **`CALL_REPORT_REACHES_YOU` waits:** it is not cohort-capable until the crisis-lane PR fixes its result-capture reads (`unified-result-capture.ts:505,581`, see the A5-1 note in 5.6), so its owner flip waits on that PR.
 
 **A5. Per-turn retrieval.** Add `TURN_MEMORY_RRF_SCALE` and `TURN_MEMORY_RERANK` to `COHORT_FLAGS` with the pinned test list. Root cause it fixes: without RRF scaling the gate is unreachable. Enable for the owner first. The 10-30 prod no-response incident was investigated and ruled out as caused by RRF (the STT returned no words).
 
@@ -232,19 +232,21 @@ New module `src/agents/multi-agent/greeting-date.ts`, a sibling of `call-news-op
 - **At most one proactive thing per call**: with `DATES_IN_HELLO` on, the recall note's own date line is suppressed always, not only after a claim, so the hello is the only channel that raises a date. If another thread won the hello, the date waits for a later call (it can still be in the window; a passed one-time event is dropped after 10 days). This costs an occasional missed date and buys the rule "one thing". The card's Coming up lines carry the private-notes rule from 5.4.3, so the model does not raise them either.
 - `memory-recall-hook.ts` is 498 lines: the suppression is a couple of lines; if the file would reach 500, move `noteWith`'s date and thread blocks into the existing recall module first, in the same PR.
 - **Call news window**: `MAX_AGE_HOURS` in `call-news-opener.ts:55` goes from 48 to 168 so a call from last week can lead the hello. Only affects callers with `CALL_NEWS_OPENER` on.
+- **A3-1 note (2026-10-31), as built:** an allowlist decides "ordinary": the label's whole words (hyphens and possessives split), less stopwords, day and time words, relation words and names, must all be in `LIGHT_WORDS` (`dates/sensitive-date.ts`), with at least one left; anything else, unclassifiable included, is sensitive. A name counts only right before a possessive ("Priya's"), so "dinner with Marcus" and "meeting with Hospice" are sensitive, the cheap direction. The candidate also covers today and a date just passed (the recall note no longer raises dates with the flag on); a sensitive one is "thinking of <who> today" or "this week", and its hello uses a base direction with no question in it. The date waits on a same-day return, never meets a stranger, needs a verified member (no `phone:`, `device:` or `anon:` id), and yields to crisis risk on the call and to a crisis-level signal in the pondered ask's 14-day window (`hadRecentCrisis`). The winner commits only when the director's own spoken line names the date's day word or the person's name, as a letter and an anniversary are marked; a line using that day word in another sense still commits (accepted, low). `formatDueDate`'s sensitive wording is gated on `DATES_IN_HELLO` so flag off stays byte-identical; with the flag on the recall note carries no date line, so that wording is a backstop only.
 - **Flag**: `DATES_IN_HELLO` (new, off by default, cohort-capable, owner `memory`, needs `DATES_THAT_MATTER` and `WORLD_MODEL_TEMPORAL` on; add to `COHORT_FLAG_NEEDS`). It controls the candidate, the 3-day lookahead and the recall-note suppression. `DATES_THAT_MATTER` stays the writer flag from A4.
 
 ### 5.6 A4 and A5: flags (about 120 lines, one PR)
 
 `CALL_NEWS_OPENER` and `CALL_REPORT_REACHES_YOU` are not in `COHORT_FLAGS` today (the design inputs listed A4 as "no code"; this is the one code step it needs). `DATES_THAT_MATTER` and `DIRECTOR_PERSONA_AWARE` already are. *(Accepted by lead: the change is folded into the A5 PR.)* One PR, "make the memory flags cohort-capable":
-- Add `CALL_NEWS_OPENER`, `CALL_REPORT_REACHES_YOU`, `TURN_MEMORY_RRF_SCALE`, `TURN_MEMORY_RERANK`, `CALLER_CARD` and `DATES_IN_HELLO` to `COHORT_FLAGS` in `src/services/platform/cohort-flags.ts`, and to the pinned list in `src/services/platform/__tests__/cohort-flags-list.test.ts`. Add the needs in `COHORT_FLAG_NEEDS` (`TURN_MEMORY_RERANK` needs `TURN_MEMORY_RRF_SCALE`; `DATES_IN_HELLO` needs `DATES_THAT_MATTER`).
+- Add `CALL_NEWS_OPENER`, `CALL_REPORT_REACHES_YOU`, `TURN_MEMORY_RRF_SCALE`, `TURN_MEMORY_RERANK`, `CALLER_CARD` and `DATES_IN_HELLO` to `COHORT_FLAGS` in `src/services/platform/cohort-flags.ts`, and to the pinned list in `src/services/platform/__tests__/cohort-flags-list.test.ts`. Add the needs in `COHORT_FLAG_NEEDS` (`TURN_MEMORY_RERANK` needs `TURN_MEMORY_RRF_SCALE`; `DATES_IN_HELLO` needs `DATES_THAT_MATTER` and `WORLD_MODEL_TEMPORAL`, as in section 6).
 - For each flag, check every read site reads `process.env` at call time and not once at module load (`docs/runbooks/cohort-rollout.md`). Known sites: `turn-memory-retrieval.ts:302,320`, `turn-memory-rerank.ts:92`, `hybrid-search-timeout-stats.ts:74`. A flag read into a module constant would silently not apply for a cohort. Each site gets a test that sets the env after import and sees the effect.
 - `TURN_MEMORY_RERANK` does nothing unless `TURN_MEMORY_RERANK_TIMEOUT_MS > 0` (`turn-memory-rerank.ts:78`). That is an env value, not a flag, so it cannot be cohort-set: it is set agent-wide, inert while the flag is off. Default to turn RERANK on only after the latency receipts (section 10) show headroom.
 - `CALL_NEWS_OPENER` is owner-only by design (the owner, alone on their own line). `CALL_REPORT_REACHES_YOU` (`#3080`, merged `c1023e93bb`) took five or more verify rounds on its crisis interaction: before arming it for anyone, re-read the independent verifier's PASS comment on the head that merged and confirm the crisis behaviour it names, in the PR that flips it.
+- **A5-1 note (2026-10-31):** `CALL_REPORT_REACHES_YOU` is NOT made cohort-capable in A5-1. Its result-capture reads (`unified-result-capture.ts:505,581`) run outside the call; a separate crisis-lane PR reads the person's flag with a timeout and, on failure or timeout, notes it ui-only and never marks it delivered.
 
 ## 6. Flags
 
-All off by default. All cohort-capable after the 5.6 PR. Resolution order, per the runbook: the owner's cohort, then `friends-and-family`, then `beta-waitlist-2026-10`, then the agent default last.
+All off by default. All cohort-capable after the 5.6 PR, except `CALL_REPORT_REACHES_YOU` (row below). Resolution order, per the runbook: the owner's cohort, then `friends-and-family`, then `beta-waitlist-2026-10`, then the agent default last.
 
 | Flag | New? | Controls | Needs | Read where |
 |---|---|---|---|---|
@@ -253,7 +255,7 @@ All off by default. All cohort-capable after the 5.6 PR. Resolution order, per t
 | `DATES_THAT_MATTER` | existing, cohort-capable | the world-fact dates writer (`dates/after-call.ts`) | none | after-call (`envForCaller`) |
 | `DIRECTOR_PERSONA_AWARE` | existing, cohort-capable | stops a handoff persona being told the team's history as its own | none | `teammate-relationship.ts:59` |
 | `CALL_NEWS_OPENER` | existing, made cohort-capable | call news leads the hello | none | greeting build |
-| `CALL_REPORT_REACHES_YOU` | existing, made cohort-capable | "While they were away" block on the first 3 caller turns | none | turn context (`call-report.ts:75`) |
+| `CALL_REPORT_REACHES_YOU` | existing, NOT cohort-capable yet (its result-capture reads run outside the call; separate crisis-lane PR) | "While they were away" block on the first 3 caller turns | none | turn context (`call-report.ts:75`) |
 | `TURN_MEMORY_RRF_SCALE` | existing, made cohort-capable | RRF score rescale so the gate is reachable | none | per turn (`turn-memory-retrieval.ts`) |
 | `TURN_MEMORY_RERANK` | existing, made cohort-capable | model rerank of candidates | `TURN_MEMORY_RRF_SCALE`, `TURN_MEMORY_RERANK_TIMEOUT_MS > 0` | per turn |
 | `ENTITY_HYGIENE` | existing (on in prod) | the persona-subject filter on write and read | none | extraction; recall snapshot |
@@ -345,6 +347,20 @@ Run each scenario at least twice; one call is an anecdote. Read the transcripts 
 | `TURN_MEMORY` reachability | `candidates=0 injected=0` lines per owner session; paired bench `scripts/memory-eval/turn-memory-bench.ts` | `candidates>0` on turns that name a stored entity; recall@4 up at least 10 points; p95 turn latency up by no more than 150 ms |
 | Hello feels natural | the call reviewer's notes on owner calls, plus one listen by the owner per week | no "it sounded like a report" notes |
 
+**Baselines (measured 2026-10-31)** on `main` at `33eddf41b`, by the A5-1 PR. No calls were placed. A row that says "not measured" gives the reason; no number in it is a guess.
+
+| Measure | Baseline | How |
+|---|---|---|
+| `TURN_MEMORY` bench, flag off (as prod today) | 0 memories sent on 72 labelled turns: recall 0%, hit 0% | `scripts/memory-eval/turn-memory-bench.ts`, fictional `recall-cases.json` (3 callers, 72 turns, 27 about nothing), `text-embedding-005` |
+| `TURN_MEMORY` bench, `TURN_MEMORY_RRF_SCALE` on | 44 sent: precision 95%, recall 72%, hit 76%, false recall 4% | same run, the cap the flag applies (3 per turn) |
+| `TURN_MEMORY` recall@4 | not measured: the bench scores recall at the production cap (above), not at 4 | |
+| `TURN_MEMORY` p95 turn latency | not measured: the bench runs retrieval over precomputed vectors, so it times nothing | |
+| `candidates=0` rate per owner-cohort session | not measured: needs dev Cloud Logging, and this run's gcloud config was not on the dev project | |
+| Persona rows per owner call | not measured: same reason | |
+| First-token latency p50 (`TURN_RECEIPT`) | not measured: same reason, and no dev calls were placed | |
+| Card recall on the held-out set (three personas) | not measured: needs dev calls through the `#2969` harness | |
+| Hello-date behaviour | not measured: needs dev calls | |
+
 ### 9.4 Prod measurement
 Owner cohort only at first. For each owner call: `Cohort flags applied` shows the flags; `CALLER_CARD built`, `GREETING_DATE` and `PERSONA_FACT_DROPPED` lines appear; the always-on call reviewer reads the call. A weekly query counts: cards built, `budgetHit`, dates raised, dates lost to another thread, persona rows dropped. The owner listens to the first few calls and the lead records what they heard in the PR that widens the audience.
 
@@ -355,7 +371,7 @@ Dev first, then the owner's account, then wider. Each step needs the previous st
 1. **Land code flag-off** (PR order in section 11). Deploy `main` to dev with `COHORT_FLAGS=on`. Nothing changes for anyone.
 2. **Dev.** Create an owner cohort on `ferni-dev`; set `CALLER_CARD`, `DATES_THAT_MATTER`, `DATES_IN_HELLO`, `DIRECTOR_PERSONA_AWARE`, `CALL_NEWS_OPENER`, `TURN_MEMORY_RRF_SCALE` on for the eval users. Run section 9.2. Fix until the bars hold. No one in a room while updating secrets.
 3. **Seed the owner's home once** (open question O2: default is a one-off admin write of `preferences.homeLocation` using an existing one-off admin script, after the owner confirms the text, because the card must not wait for them to say it in a call).
-4. **The owner's account in prod.** Prod claim, deploy a commit already on `main` and already run on dev, then the owner's cohort: `CALLER_CARD`, `DATES_THAT_MATTER`, `DIRECTOR_PERSONA_AWARE`, `CALL_NEWS_OPENER`, `TURN_MEMORY_RRF_SCALE`. Then, as separate steps a day apart: `DATES_IN_HELLO`; `CALL_REPORT_REACHES_YOU` (after re-reading the `#3080` PASS); `TURN_MEMORY_RERANK` last (latency receipts first, set `TURN_MEMORY_RERANK_TIMEOUT_MS` agent-wide before). Watch 3 days of owner calls each.
+4. **The owner's account in prod.** Prod claim, deploy a commit already on `main` and already run on dev, then the owner's cohort: `CALLER_CARD`, `DATES_THAT_MATTER`, `DIRECTOR_PERSONA_AWARE`, `CALL_NEWS_OPENER`, `TURN_MEMORY_RRF_SCALE`. Then, as separate steps a day apart: `DATES_IN_HELLO`; `CALL_REPORT_REACHES_YOU` (after re-reading the `#3080` PASS, and only once the crisis-lane PR has made it cohort-capable; A5-1 did not); `TURN_MEMORY_RERANK` last (latency receipts first, set `TURN_MEMORY_RERANK_TIMEOUT_MS` agent-wide before). Watch 3 days of owner calls each.
 5. **Friends and family.** Same flags, one at a time, with a week of the call reviewer's notes between. Ask the members how it felt.
 6. **Beta, then default.** Per the runbook ladder; compare with and without the flag (hang-ups, call length, complaints); then set the agent default and `unset-flag` in the cohorts, then delete the flag.
 

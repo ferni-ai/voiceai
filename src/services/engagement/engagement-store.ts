@@ -12,9 +12,9 @@
  * - engagement_profiles/{userId}/team_huddles/{huddleId} - Team huddle history
  */
 
-import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import { writeProfileUnlessErased, type ProfileWriteDb } from './engagement-profile-write.js';
+import { writeUnlessErased, type GuardedWriteDb } from './engagement-write-unless-erased.js';
 import type { EmotionalWeather, RitualStreak, UserRitualProfile } from '../daily-rituals.js';
 import {
   averageRealAccuracy,
@@ -101,14 +101,14 @@ interface WriteBatch {
   commit: () => Promise<unknown>;
 }
 
-interface Firestore extends ProfileWriteDb<DocumentReference> {
+interface Firestore extends GuardedWriteDb<DocumentReference> {
   collection: (path: string) => CollectionReference;
   batch: () => WriteBatch;
 }
 
 interface CollectionReference {
-  doc: (id: string) => DocumentReference;
-  add: (data: unknown) => Promise<DocumentReference>;
+  /** No id: a new document with an id Firestore picks */
+  doc: (id?: string) => DocumentReference;
   orderBy: (field: string, direction?: 'asc' | 'desc') => Query;
   limit: (n: number) => Query;
   where: (field: string, op: string, value: unknown) => Query;
@@ -211,13 +211,33 @@ export class EngagementStore {
 
     if (this.db) {
       try {
-        const doc = cleanForFirestore(profile);
-        if (!(await writeProfileUnlessErased(this.db, this.COLLECTION, profile.userId, doc)))
+        const ref = this.db.collection(this.COLLECTION).doc(profile.userId);
+        if (!(await this.write(profile.userId, ref, profile, 'profile')))
           this.memoryCache.delete(profile.userId);
       } catch (error) {
         getLogger().warn({ error, userId: profile.userId }, 'Failed to save engagement profile');
       }
     }
+  }
+
+  /** engagement_profiles/{userId}/{subcollection}/{id}; no id: a new document */
+  private under(db: Firestore, userId: string, subcollection: string, id?: string) {
+    const collection = db.collection(this.COLLECTION).doc(userId).collection(subcollection);
+    return id === undefined ? collection.doc() : collection.doc(id); // doc(undefined) throws
+  }
+
+  /** Writes one engagement document; false when the account is erased (writeUnlessErased) */
+  private async write(
+    userId: string,
+    target: DocumentReference,
+    data: object,
+    kind: string,
+    merge = true
+  ) {
+    if (!this.db) return false;
+    const profiles = this.COLLECTION;
+    const doc = cleanForFirestore(data);
+    return writeUnlessErased(this.db, { profiles, userId, target, data: doc, merge, kind });
   }
 
   /**
@@ -251,12 +271,8 @@ export class EngagementStore {
   async saveRitualStreak(userId: string, streak: StoredRitualStreak): Promise<void> {
     if (this.db) {
       try {
-        await this.db
-          .collection(this.COLLECTION)
-          .doc(userId)
-          .collection('ritual_streaks')
-          .doc(streak.ritualId)
-          .set(cleanForFirestore(streak), { merge: true });
+        const ref = this.under(this.db, userId, 'ritual_streaks', streak.ritualId);
+        await this.write(userId, ref, streak, 'ritual_streaks');
       } catch (error) {
         getLogger().warn(
           { error, userId, ritualId: streak.ritualId },
@@ -273,12 +289,8 @@ export class EngagementStore {
     if (this.db) {
       try {
         const docId = entry.date.split('T')[0]; // Use date as ID for easy lookup
-        await this.db
-          .collection(this.COLLECTION)
-          .doc(userId)
-          .collection('weather_history')
-          .doc(docId)
-          .set(cleanForFirestore(entry), { merge: true });
+        const ref = this.under(this.db, userId, 'weather_history', docId);
+        if (!(await this.write(userId, ref, entry, 'weather_history'))) return;
 
         // Update profile stats
         const profile = await this.getProfile(userId);
@@ -320,16 +332,12 @@ export class EngagementStore {
     }
   }
 
-  /** Saves a prediction. False when it wasn't written: no Firestore, or the write failed. */
+  /** Saves a prediction. False when it wasn't written: no Firestore, an erased account, or a failed write. */
   async savePrediction(userId: string, prediction: StoredPrediction): Promise<boolean> {
     if (!this.db) return false;
     try {
-      await this.db
-        .collection(this.COLLECTION)
-        .doc(userId)
-        .collection('predictions')
-        .doc(prediction.id)
-        .set(cleanForFirestore(prediction), { merge: true });
+      const ref = this.under(this.db, userId, 'predictions', prediction.id);
+      if (!(await this.write(userId, ref, prediction, 'predictions'))) return false;
     } catch (error) {
       getLogger().warn({ error, userId }, 'Failed to save prediction');
       return false;
@@ -373,12 +381,8 @@ export class EngagementStore {
   async recordTeamHuddle(userId: string, huddle: StoredTeamHuddle): Promise<void> {
     if (this.db) {
       try {
-        await this.db
-          .collection(this.COLLECTION)
-          .doc(userId)
-          .collection('team_huddles')
-          .doc(huddle.id)
-          .set(cleanForFirestore(huddle));
+        const ref = this.under(this.db, userId, 'team_huddles', huddle.id);
+        if (!(await this.write(userId, ref, huddle, 'team_huddles', false))) return;
 
         const profile = await this.getProfile(userId);
         profile.stats.teamHuddlesAttended++;
@@ -443,14 +447,8 @@ export class EngagementStore {
       const score = scorePrediction(prediction.predictions ?? {}, actuals);
       if (!score) return 'no-matching-metric';
 
-      await ref.set(
-        cleanForFirestore({
-          actuals,
-          accuracy: score.accuracy,
-          completedAt: new Date().toISOString(),
-        }),
-        { merge: true }
-      );
+      const result = { actuals, accuracy: score.accuracy, completedAt: new Date().toISOString() };
+      if (!(await this.write(userId, ref, result, 'predictions'))) return null;
 
       // Running accuracy counts only real scores (not the old unmatched 0s).
       const profile = await this.getProfile(userId);
@@ -541,14 +539,9 @@ export class EngagementStore {
   async addConversationSession(userId: string, session: Record<string, unknown>): Promise<void> {
     if (!this.db) return;
     try {
-      const docRef = this.db.collection(this.COLLECTION).doc(userId);
-      const sessionsRef = docRef.collection('conversation_sessions');
-      await sessionsRef.add(
-        removeUndefined({
-          ...session,
-          createdAt: new Date().toISOString(),
-        })
-      );
+      const ref = this.under(this.db, userId, 'conversation_sessions');
+      const doc = { ...session, createdAt: new Date().toISOString() };
+      await this.write(userId, ref, doc, 'conversation_sessions', false);
     } catch (error) {
       getLogger().warn({ error, userId }, 'Failed to add conversation session');
     }

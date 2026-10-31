@@ -21,6 +21,7 @@
  * @module memory/dynamic/fact-supersession
  */
 import { createLogger } from '../../utils/safe-logger.js';
+import { isCallerName } from '../domain/person-key.js';
 import { contentWords } from '../recall/session-recall.js';
 
 const log = createLogger({ module: 'fact-supersession' });
@@ -58,11 +59,10 @@ export type SupersessionLLM = (prompt: string) => Promise<string | null>;
 const MAX_OLDER = 60;
 const MAX_NEWER = 40;
 
-const SELF = /^(?:the )?(?:speaker|user|me|caller)$/i;
 /** "The book club" and "book club" are one subject; so are "User" and "Speaker". */
 function subject(entity: string): string {
   const e = entity.trim().toLowerCase();
-  return SELF.test(e) ? 'self' : e.replace(/^(?:the|a|an|my|their) /, '');
+  return isCallerName(e) ? 'self' : e.replace(/^(?:the|a|an|my|their) /, '');
 }
 
 const line = (f: StoredFact) => `${f.entityName} | ${f.key.replace(/_/g, ' ')} = ${f.value}`;
