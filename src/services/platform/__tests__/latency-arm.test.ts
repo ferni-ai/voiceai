@@ -5,8 +5,9 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+const info = vi.hoisted(() => vi.fn());
 vi.mock('../../../utils/safe-logger.js', () => ({
-  createLogger: () => ({ info: vi.fn(), warn: vi.fn(), debug: vi.fn(), error: vi.fn() }),
+  createLogger: () => ({ info, warn: vi.fn(), debug: vi.fn(), error: vi.fn() }),
 }));
 
 import { applyCallerFlags, forgetAgentValues, type CohortStore } from '../cohort-flags.js';
@@ -34,6 +35,7 @@ function sessionIn(percent: number, below: boolean): string {
 }
 
 afterEach(() => {
+  info.mockClear();
   forgetAgentValues();
   forgetLatencyArms();
 });
@@ -111,6 +113,18 @@ describe('LATENCY_ARM_PERCENT', () => {
     await applyCallerFlags('uid-member-1', { env, store, sessionId: 'session-RM_m-1' });
     expect(env).toMatchObject({ PREEMPT_STABLE_CONTEXT: 'on', CANDOR: 'on' });
     expect(latencyArmFor('session-RM_m-1')).toBe('treatment');
+  });
+
+  it('logs "Cohort flags applied" for the caller’s own flags only, never for the arm alone', async () => {
+    const applied = () => info.mock.calls.filter(([, msg]) => msg === 'Cohort flags applied');
+    const env: NodeJS.ProcessEnv = { COHORT_FLAGS: 'on', LATENCY_ARM_PERCENT: '100' };
+    await applyCallerFlags('uid-member-2', { env, store: noCohorts, sessionId: 'session-RM_l-1' });
+    expect(env.PREEMPT_STABLE_CONTEXT).toBe('on');
+    expect(applied()).toHaveLength(0);
+    const store: CohortStore = { ...noCohorts, overridesFor: async () => ({ CANDOR: 'on' }) };
+    await applyCallerFlags('uid-member-2', { env, store, sessionId: 'session-RM_l-2' });
+    expect(applied()).toHaveLength(1);
+    expect(applied()[0][0]).toMatchObject({ flags: { CANDOR: 'on' } });
   });
 
   it('applies nothing when a worker can run several calls at once', async () => {

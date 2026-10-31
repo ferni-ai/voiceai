@@ -366,7 +366,8 @@ export async function applyCallerFlags(
     const { flags, cohorts: ids, overridden } = caller;
     const applied = apply(flags);
     // Cohort ids name the audience (seth, friends-and-family), never a member.
-    if (Object.keys(flags).length > 0)
+    // The caller's own flags only: an arm-only call logs nothing here, as on main.
+    if (applied.some((flag) => flag in flags))
       log.info(
         { userId: userId.slice(0, 8), cohorts: ids, overridden, flags },
         'Cohort flags applied'
