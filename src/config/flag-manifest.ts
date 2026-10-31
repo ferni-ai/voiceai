@@ -86,8 +86,6 @@ const LEGACY_FLAG_MANIFEST = {
   COMMITMENT_INVITE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: the after-call judge is the only commitment writer; readers show only its rows
   COMMITMENT_SINGLE_WRITER: { default: 'off', owner: 'intelligence', kind: 'experiment' },
-  // The user's own "in memory" mark on a contact (services/contacts/in-memory.ts)
-  CONTACT_IN_MEMORY: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CONTEXT_PACKET: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CONVERSATION_RULES: { default: 'on', owner: 'voice', kind: 'config' },
   CRISIS_ADJUDICATOR: { default: 'off', owner: 'intelligence', kind: 'experiment' },
@@ -221,7 +219,6 @@ const LEGACY_FLAG_MANIFEST = {
   // the caller can talk through a handoff goodbye (handoff-talk-through.ts)
   HANDOFF_TALK_THROUGH: { default: 'off', owner: 'voice', kind: 'experiment' },
   HAPPY_EXITS: { default: 'off', owner: 'voice', kind: 'experiment' },
-  HEADS_UP_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on (web server): the hourly held-scrub-sweep job retries MINOR_CARE scrubs that failed (held-scrub-sweep.ts)
   HELD_SCRUB_SWEEP: { default: 'off', owner: 'memory', kind: 'kill-switch' },
   ...FLAGS_HONEST_TO_IDENTITY,
@@ -261,7 +258,6 @@ const LEGACY_FLAG_MANIFEST = {
   LOG_PHONE_REDACTION: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   // the answer after a look-up hedges sooner and gets a short bridge line instead of dead air (lookup-bridge.ts)
   LOOKUP_BRIDGE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  MAYA_PROACTIVE_CHECKS: { default: 'off', owner: 'platform', kind: 'experiment' },
   MEMORY_DIAGNOSTICS: { default: 'off', owner: 'platform', kind: 'config' },
   MEMORY_RECALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // which store holds caller memory: memory, firestore or postgres; unset auto-detects (memory/index.ts)
@@ -270,8 +266,6 @@ const LEGACY_FLAG_MANIFEST = {
   // Turn on with the web app's switch for the view that calls it: VITE_MEMORY_CONTROL, or the
   // memory view (VITE_MEMORY_VIEW / localStorage ferni:flag:memory-view, web known.ts).
   MEMORY_VIEW: { default: 'off', owner: 'memory', kind: 'experiment' },
-  // on (with MEMORY_VIEW): the memory view also shows what Ferni has been pondering.
-  MEMORY_VIEW_PONDERING: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: the voice side of the app menu is on every agent from turn 1, outside the tool cap (menu-tools-pinned.ts)
   MENU_TOOLS_PINNED: { default: 'off', owner: 'tools', kind: 'experiment' },
   // on: one consent record per phone, consent/{phoneHash} (services/messaging/consent.ts):
@@ -301,8 +295,6 @@ const LEGACY_FLAG_MANIFEST = {
   // API server and workers keep no inbound text from them and send them no outreach (minor-care-shared-hold.ts)
   MINOR_CARE_SHARED_HOLD: { default: 'off', owner: 'memory', kind: 'experiment' },
   PHONE_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  PHONE_PARITY: { default: 'off', owner: 'voice', kind: 'experiment' },
-  PHONE_VERIFY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VOICE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a placeholder last summary is told as unknown, not as a topic (services/session/placeholder-summary.ts)
   PLACEHOLDER_SUMMARY_UNKNOWN: { default: 'off', owner: 'memory', kind: 'experiment' },

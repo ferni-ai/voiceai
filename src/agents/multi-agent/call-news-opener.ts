@@ -11,7 +11,7 @@
  *   the call. greeting-direction.ts adds the rest of the order: it yields to an
  *   unknown caller and to their own reason for calling, and outranks a letter,
  *   a win, a check-in, a pondered ask and welcome-back.
- * - One result, the newest undelivered one from the last 48 h. More waiting
+ * - One result, the newest undelivered one from the last week. More waiting
  *   only adds "and a couple other things"; the turn context carries them.
  * - NEVER the callee's words, in the facts or the direction: lexical crisis
  *   screens miss most third-person crisis wording (#3084 verify: 17 of 18), so
@@ -51,8 +51,8 @@ import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'call-news-opener' });
 
-/** The window and the one read: newest first from a few, never a scan. */
-const MAX_AGE_HOURS = 48;
+/** The window and the one read: newest first from a few, never a scan. A week: last week's call can lead. */
+const MAX_AGE_HOURS = 168;
 const READ_LIMIT = 5;
 
 /** Worry the heavy-moment check doesn't list: illness, upset, an accident. */
@@ -255,7 +255,7 @@ function callNewsOf(
 }
 
 /**
- * The newest undelivered call Ferni made for the owner in the last 48 h, for
+ * The newest undelivered call Ferni made for the owner in the last week, for
  * the hello, or undefined: flag off, not the owner alone on their own line,
  * crisis risk on this call, none waiting, or a read failed. Never rejects.
  */

@@ -591,8 +591,7 @@ export { routeSignalsToSuperhuman } from './superhuman-signal-router.js';
 //   await store.initialize();
 //   const memory = await store.store({ userId, type: 'entity', content: '...' });
 //   const result = await store.recall({ userId, query: '...' });
-// This is part of the Superhuman Memory implementation (Phase 1).
-// See docs/plans/SUPERHUMAN-MEMORY-IMPLEMENTATION-PLAN.md
+// Superhuman Memory, Phase 1: docs/plans/SUPERHUMAN-MEMORY-IMPLEMENTATION-PLAN.md
 
 export {
   // Main entry point
@@ -1285,4 +1284,5 @@ export { isForgotten, undisputed, type RecallFact } from './recall/session-recal
 export { containsContactData, contactNumberRuns, foldContactText } from './domain/contact-data.js';
 export { peopleOf } from './recall/people.js';
 export { isSensitiveThread } from './recall/sensitive.js';
+export { claimOpenerFollowUp } from './recall/opener-claim.js';
 export { keepLetters, nameTokens, OWNER_LEAD, relationWords } from './domain/person-key.js';
