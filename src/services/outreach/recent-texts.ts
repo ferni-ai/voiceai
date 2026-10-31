@@ -17,10 +17,7 @@
  *
  * @module services/outreach/recent-texts
  */
-import {
-  forgottenWithin,
-  type ForgottenCheck,
-} from '../../memory/recall/forget-every-reader.js';
+import { forgottenWithin, type ForgottenCheck } from '../../memory/recall/forget-every-reader.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { CHECKINS, checkinDb, type StoredCheckin, type TextKind } from './checkin-replies.js';
 import { firestoreTextStore, recordUserId, redactNumbers, type TextStore } from './guarded-text.js';
@@ -32,8 +29,7 @@ const log = createLogger({ module: 'recent-texts' });
  * threw), which drops every text. There is deliberately no third case.
  */
 export type ForgetRead =
-  | { kind: 'check'; isForgotten: ForgottenCheck }
-  | { kind: 'unreadable'; why: 'unread' | 'threw' };
+  { kind: 'check'; isForgotten: ForgottenCheck } | { kind: 'unreadable'; why: 'unread' | 'threw' };
 
 /** forgottenWithin's answer as a ForgetRead: its null (late or failed) is unreadable. */
 export function forgetReadOf(check: ForgottenCheck | null): ForgetRead {
