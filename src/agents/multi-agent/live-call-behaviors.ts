@@ -265,6 +265,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     const handlers = [
       { event: 'user_input_transcribed', handler: confirm.onTranscript },
       { event: 'function_tools_executed', handler: confirm.onToolsExecuted },
+      { event: 'conversation_item_added', handler: confirm.onItemAdded },
     ];
     for (const { event, handler } of handlers) sessionWithEvents.on(event, handler);
     sessionEventHandlers.push(...handlers);
