@@ -10,7 +10,7 @@
 import { flagOn } from '../../../config/env-flag.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition } from '../../registry/types.js';
-import { rideLinkTool } from '../information/traffic.js';
+import { rideLinkTool } from '../local-search/caller-city-tools.js';
 import { openRideLink } from './ride-link.js';
 
 const openRideLinkDef: ToolDefinition = {
