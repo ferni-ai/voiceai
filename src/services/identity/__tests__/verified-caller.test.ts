@@ -8,8 +8,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   isVerifiedIdentification,
+  rememberVerifiedCaller,
   verifiedAllowanceKey,
   verifiedCallerId,
+  verifiedCallerOfSession,
 } from '../verified-caller.js';
 
 /** The fallback: a denylist like isUnverifiedUserId */
@@ -76,4 +78,18 @@ describe('verifiedCallerId: only the boolean true the server set counts', () => 
       expect(verifiedCallerId({ userId, verifiedCaller: true })).toBeNull();
     }
   );
+});
+
+describe('verifiedCallerOfSession: the caller verified on a voice session, by its id', () => {
+  it('returns the remembered caller for that session only', () => {
+    rememberVerifiedCaller('session-AJ_v1-1700000000000', ' uid-1 ');
+    expect(verifiedCallerOfSession('session-AJ_v1-1700000000000')).toBe('uid-1');
+    expect(verifiedCallerOfSession('session-AJ_other-1700000000000')).toBeNull();
+    expect(verifiedCallerOfSession(undefined)).toBeNull();
+  });
+
+  it.each(['phone:+15550100', 'anon:fixture', 'unknown', ''])('never remembers %s', (userId) => {
+    rememberVerifiedCaller('session-AJ_v2-1700000000000', userId);
+    expect(verifiedCallerOfSession('session-AJ_v2-1700000000000')).toBeNull();
+  });
 });

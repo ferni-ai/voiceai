@@ -293,6 +293,22 @@ describe('flag on', () => {
     expect(edges.logged.mock.calls.filter((c) => String(c[1]).includes('not delivered'))).toHaveLength(0); // prettier-ignore
   });
 
+  it('counts per voice session id, whatever userData object a tool path builds', async () => {
+    const callA = () => call({ userId: OWNER.id, services: { sessionId: 'session-AJ_cap-1' } });
+    await run('sendMessageNow', { message: 'hi' }, callA());
+    await run('sendMessageNow', { message: 'hi' }, callA());
+    await expect(run('sendMessageNow', { message: 'hi' }, callA())).resolves.toBe(
+      UNVERIFIED_CAP_REFUSAL
+    );
+    expect(sends()).toBe(2);
+  });
+
+  it('a crisis line goes out to an unverified caller', async () => {
+    const reply = await run('sendMessageNow', { message: "If you're in crisis, call or text 988 right now" }, unverified()); // prettier-ignore
+    expect(reply).not.toMatch(/once you're in the app/);
+    expect(delivered().said[0]).toContain('call or text 988 right now');
+  });
+
   it('logs each refusal with ids and a reason code, never the text', async () => {
     const opts = call({ userId: OWNER.id, services: { sessionId: 'sess-1' } });
     await run('sendMessageNow', { message: 'go to example.com' }, opts);
