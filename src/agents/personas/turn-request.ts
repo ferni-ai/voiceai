@@ -7,14 +7,13 @@
  */
 
 import type { llm } from '@livekit/agents';
-
 import { contextPacketEnabled } from '../../config/context-packet-flag.js';
 import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
 import { ownerWritesBlocked } from '../../services/identity/owner-write-gate.js';
 import { withoutQuickShortcuts } from '../shared/quick-shortcuts-real-only.js';
-import { heldAfter, lastFerniLine, minorCareNote } from '../../utils/minor-care.js';
+import { heldAfter, lastFerniLine } from '../../utils/minor-care.js';
 import {
   hasThirdPartyTools,
   mayReachOthers,
@@ -24,80 +23,43 @@ import {
   phoneOnlyIdentity,
   sessionIsVerifiedOwner,
 } from '../voice-agent-entry/caller-recognition.js';
-import { worldNowNote } from '../shared/world-now.js';
 import { TURN_CONTEXT_HEADER, withoutStaleTurnContext } from '../multi-agent/turn-intelligence.js';
-import { confirmedActionNote } from '../../tools/domains/communication/outreach/outreach-confirm.js';
 import { withoutLockedHandoffs } from '../../tools/handoff/locked-handoffs.js';
 import {
-  aliasNoteFor,
-  teamStatusNote,
   unlockViewFor,
   withoutLockedTeammateNotes,
   withTeammateAsk,
 } from '../../tools/handoff/locked-teammates.js';
-import { heardTeammateNote } from '../../tools/handoff/teammate-names.js';
-import { teammateIdentityNote } from './teammate-identity.js';
-import { personaVoiceNote } from './persona-voice.js';
-import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-note.js';
-import { chiefOfStaffNote, lastAgentWordsIn } from '../../tools/handoff/chief-of-staff-note.js';
+import { agentWordsIn } from '../../tools/handoff/team-by-need-note.js';
+import { lastAgentWordsIn } from '../../tools/handoff/chief-of-staff-note.js';
 import { isAnswerTurn } from './answer-turn.js';
 import { packetReminder } from './context-packet/turn-packet.js';
 import { retrievedTools, withPinnedTools, withSameTurnTools } from './turn-request-tools.js';
-import { correctionNotesFor } from './correction-repair.js';
-import { formatNotes, getDirector } from './director-notes.js';
-import { noteReminder } from '../shared/turn-receipt-session.js';
-import { repairNoteFor } from './repair-check.js';
-import { ferniStateTurn } from './ferni-state.js';
-import { listeningNotes } from './listen-first-turn.js';
-import { firstCallNote, isFirstCall } from './first-call-rapport.js';
-import {
-  inReturningCallerFlow,
-  returningCallerTurnNote,
-} from '../../services/identity/returning-caller.js';
-import {
-  accountMayKeepName,
-  lastAgentLine,
-  nameCorrectionNote,
-  statedName,
-} from './name-correction.js';
-import { callMeNote } from './call-me-note.js';
-import { beatNote, priorCallsOf } from './personal-beats.js';
-import { porchLightNote } from './porch-light.js';
-import { roomGuestsNote } from './room-guests.js';
+import { getDirector } from './director-notes.js';
+import { isFirstCall } from './first-call-rapport.js';
+import { accountMayKeepName, lastAgentLine, statedName } from './name-correction.js';
+import { priorCallsOf } from './personal-beats.js';
 import { noteCallReportReached, turnRequestFor } from './turn-call-report.js';
 import {
   worldFactLinesFor,
   worldFactsNoteFor,
 } from '../../intelligence/world-model/temporal/in-call-load.js';
-import { gameTurnNote } from '../../services/games/call-game-state.js';
-import { quirkTurnNote } from './quirk-note.js';
-import { friendNotes } from './friend-tease.js';
-import { tuneTurnNote } from './named-tune-note.js';
 import { internalsIntentFor } from './internals-intent.js';
-import {
-  internalsNote,
-  internalsTurn,
-  pushesInternals,
-  type InternalsTurn,
-} from './no-invented-internals.js';
-import { attunementNote } from './turn-attunement.js';
+import { pushesInternals, type InternalsTurn } from './no-invented-internals.js';
 import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
 import { journalAskFor } from './journal-ask.js';
 import { callerTurnsOf, goodbyeNoteOn, happyExitNote, questionPaceNote } from './happy-exits.js';
-import { noteTurn } from './move-log.js';
-import { callerSetsDepthNote } from './caller-sets-depth.js';
-import { goodNewsNote } from './good-news-bigger.js';
 import { supportHeld } from './turn-candor.js';
 import { regexSignals } from './turn-extras.js';
-import { callerMove, rngFor, withLiveData } from './turn-shape.js';
+import { callerMove, rngFor } from './turn-shape.js';
 import { understandingFor } from './turn-understanding.js';
 import { getWrapUp } from './wrap-up.js';
 import { turnStyleReminderEnabled, withTurnStyleReminder } from './turn-style.js';
-import { clearBurstOffer } from './vocal-bursts.js';
-import { callSeed, signalsFor, styleFor } from './turn-request-style.js';
+import { callSeed, signalsFor } from './turn-request-style.js';
 import { scriptFreeOn } from './script-free.js';
-import { sexualBoundaryNote } from './sexual-boundary.js';
+import * as safe from './turn-notes-guarded.js';
+import { attempt, fallbackNote, guardedTurn } from './turn-note-guard.js';
 
 /**
  * The verified owner is on the line: rememberName may rename the account (remember-name.ts).
@@ -137,21 +99,22 @@ const userIdOf = (userData: unknown): string | undefined =>
 
 /**
  * The request with this turn's notes. Never throws: when a note builder does, the turn gets
- * the request as sent rather than no reply at all. gatedReply adds crisis guidance after this,
- * so a guided turn keeps it (2026-10-29: an owner check threw on a crisis turn, #2996).
+ * the request without that note (turn-notes-guarded.ts) rather than no reply at all. gatedReply
+ * adds crisis guidance after this, so a guided turn keeps it (2026-10-29: an owner check threw
+ * on a crisis turn, #2996). A dropped identity, owner or privacy note puts the unverified-speaker
+ * default in its place, so a failure never reads as a verified caller (#3077).
  */
 export function withTurnReminder(
   request: llm.ChatContext,
   session: object,
   options: TurnReminderOptions = {}
 ): llm.ChatContext {
-  try {
-    return buildTurnReminder(request, session, options);
-  } catch (error) {
-    log.warn({ error: String(error) }, "TURN_REMINDER_FAILED: replying without this turn's notes");
-    const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
-    return turnRequestFor(request, sessionId, options.shape === false)[0]; // never throws
-  }
+  const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
+  // Any fallback request still passes the call report gate (turn-call-report.ts, #3080).
+  const gate = (ctx: llm.ChatContext) => turnRequestFor(ctx, sessionId, options.shape === false)[0];
+  return guardedTurn(log, sessionId, request, gate, () =>
+    buildTurnReminder(request, session, options)
+  );
 }
 
 type TurnReminderOptions = { shape?: boolean; closeLoop?: boolean; held?: Promise<unknown> | null };
@@ -171,7 +134,7 @@ function buildTurnReminder(
   const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
   const [chatCtx, waits] = turnRequestFor(withoutStaleTurnContext(request), sessionId, crisis);
   // An invitation to open with a sound is for one request only (vocal-bursts.ts).
-  clearBurstOffer(session);
+  safe.clearBurstOffer(session);
   const director = getDirector(session);
   const view = unlockViewFor((session as { userData?: unknown }).userData);
   const words = callerWords(chatCtx);
@@ -181,7 +144,7 @@ function buildTurnReminder(
   // NO_INVENTED_INTERNALS=on: asked how he's built after a tool failed, or he just made it up.
   const internals = crisis
     ? ''
-    : internalsTurn(chatCtx.items, words, process.env, internalsIntentFor(session, words));
+    : safe.internalsTurn(chatCtx.items, words, process.env, internalsIntentFor(session, words));
   // Nothing steers back to a locked teammate the caller didn't just name, or into his internals.
   const keep = (text: string): boolean =>
     withoutLockedTeammateNotes([text], view, words).length > 0 && !pushesInternals(internals, text);
@@ -191,108 +154,134 @@ function buildTurnReminder(
   // LISTEN_FIRST=on: a caller low on energy gets no note pushing Ferni to share.
   const notes = answering
     ? ''
-    : formatNotes(listeningNotes(offered.filter(keep), chatCtx, session));
+    : safe.formatNotes(safe.listeningNotes(offered.filter(keep), chatCtx, session));
   // REPAIR_MODE=on: own a correction, and keep earlier ones; none with crisis guidance.
-  const corrected = crisis ? '' : correctionNotesFor(chatCtx, session, process.env, plain);
+  const corrected = crisis ? '' : safe.correctionNotesFor(chatCtx, session, process.env, plain);
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
-  const thought = options.shape !== false ? thoughtFor(session, words) : '';
+  const thought = crisis ? '' : attempt('thought', () => thoughtFor(session, words), '');
   // How Ferni is doing (FERNI_STATE=on), and if his own story may ride; none in a crisis.
-  const state = ferniStateTurn(chatCtx, session, { careful: options.shape === false });
+  const state = safe.ferniStateTurn(chatCtx, session, { careful: options.shape === false });
   const style = turnStyleReminderEnabled()
-    ? styleFor(chatCtx, session, options.shape !== false, state, { answering, plain })
+    ? safe.styleFor(chatCtx, session, options.shape !== false, state, { answering, plain })
     : undefined;
-  noteTurn(session, words, style?.turn); // MOVE_OUTCOMES=on (move-log.ts)
+  safe.noteTurn(session, words, style?.turn); // MOVE_OUTCOMES=on (move-log.ts)
   // The style goes last, nearest the reply, where the turn shape is followed best (turn-shape.ts).
   // CONTEXT_PACKET=on carries these same notes, in this order (turn-packet.ts).
   const turnNotes = [
     // Who is speaking (teammate-identity.ts); WORLD_NOW=on: the caller's time now (world-now.ts).
-    teammateIdentityNote(view.currentAgentId, process.env, plain),
-    worldNowNote(session, new Date(), { items: chatCtx.items, words }), // HOUR_ONCE: hour-once.ts
-    director?.told(keep) ?? '',
-    teamStatusNote(view, words),
+    safe.teammateIdentityNote(view.currentAgentId, process.env, plain),
+    safe.worldNowNote(session, new Date(), { items: chatCtx.items, words }), // HOUR_ONCE: hour-once.ts
+    attempt('director', () => director?.told(keep) ?? '', ''),
+    safe.teamStatusNote(view, words),
     // "Naya" is Nayan; "9" may be (never near a crisis, or for a locked teammate): teammate-names.ts
-    heardTeammateNote(words, aliasNoteFor(view, session, chatCtx, options.shape === false)),
+    safe.heardTeammateNote(words, safe.aliasNoteFor(view, session, chatCtx, crisis)),
     notes,
     corrected,
     // The caller said yes to a read-back: the call or text goes only when the tool is called now.
-    confirmedActionNote(session),
-    options.closeLoop === false ? '' : closeLoopNote(session, words),
+    safe.confirmedActionNote(session),
+    options.closeLoop === false
+      ? ''
+      : attempt('closeLoop', () => closeLoopNote(session, words), ''),
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
-    gameTurnNote(session, process.env, words),
+    safe.gameTurnNote(session, process.env, words),
     // A snore, whistle or laugh he did that isn't in his words (QUIRK_AWARENESS=on).
-    quirkTurnNote(sessionId, chatCtx, words, {
+    safe.quirkTurnNote(sessionId, chatCtx, words, {
       mood: callerOf(session)?.voiceEmotion?.primary,
       careful: crisis,
     }),
     // NAMED_TUNE=on: they noticed the whistle (name it?), or asked him to stop (named-tune-note.ts).
-    tuneTurnNote(session, words, options.shape === false, sessionIsVerifiedOwner),
+    safe.tuneTurnNote(session, words, options.shape === false, sessionIsVerifiedOwner),
     state.note,
     // PORCH_LIGHT=on: softer and simpler on a call started in the caller's small hours.
-    porchLightNote(chatCtx, session, { careful: options.shape === false }),
+    safe.porchLightNote(chatCtx, session, { careful: options.shape === false }),
     // MINOR_CARE=on: a caller who sounds under 18 (minor-care.ts), never with crisis guidance; shadow only logs.
-    minorCareNote(sessionId, words, { careful: crisis, asked: lastFerniLine(chatCtx.items) }),
+    safe.minorCareNote(sessionId, words, { careful: crisis, asked: lastFerniLine(chatCtx.items) }),
     // SEXUAL_TOPIC_BOUNDARY=on: not a verified owner, or under-18 signs: no sexual detail, ever.
-    sexualBoundaryNote(sessionId, words, lastFerniLine(chatCtx.items)),
+    safe.sexualBoundaryNote(sessionId, words, lastFerniLine(chatCtx.items)),
     // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
-    beatNote({
+    safe.beatNote({
       said: words,
       priorCalls: priorCallsOf((session as { userData?: unknown }).userData),
       careful: options.shape === false,
     }),
     // FIRST_CALL_RAPPORT=on: a new caller's first call; RETURNING_CALLER=on: not for one who may
     // have called before; "forget me", or the topic hint once they confirm (returning-caller.ts)
-    inReturningCallerFlow(sessionId)
+    safe.inReturningCallerFlow(sessionId)
       ? ''
-      : firstCallNote(chatCtx, session, words, process.env, plain),
-    returningCallerTurnNote(sessionId, words, lastAgentLine(chatCtx), (w, a) =>
+      : safe.firstCallNote(chatCtx, session, words, process.env, plain),
+    safe.returningCallerTurnNote(sessionId, words, lastAgentLine(chatCtx), (w, a) =>
       statedName(w, undefined, a)
     ),
     // ROOM_GUESTS=on: someone else is in the room on the same mic (room-guests.ts)
-    roomGuestsNote(session, words, process.env, plain),
+    safe.roomGuestsNote(session, words, process.env, plain),
     // NAME_CORRECTION=on: the name they gave for themselves wins over the account's
-    nameCorrectionNote(chatCtx, session, words, process.env, {
+    safe.nameCorrectionNote(chatCtx, session, words, process.env, {
       verifiedOwner: sessionIsVerifiedOwner,
       plain,
     }),
     // CALL_ME_VOCATIVE=on: "call me, Ferni" rings; "call me Fern" is asked about (call-me-note.ts)
-    callMeNote(chatCtx, session, words, {
+    safe.callMeNote(chatCtx, session, words, {
       plain,
       careful: crisis,
       owner: nameOwner(session, crisis),
     }),
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
-    teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
+    safe.teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     // ALEX_CHIEF_OF_STAFF=on: todos, goals, calendar and agenda go to Alex (chief-of-staff-note.ts)
-    chiefOfStaffNote(view.currentAgentId ?? 'ferni', words, lastAgentWordsIn(chatCtx.items), plain),
+    safe.chiefOfStaffNote(
+      view.currentAgentId ?? 'ferni',
+      words,
+      lastAgentWordsIn(chatCtx.items),
+      plain
+    ),
     // HONEST_FRIEND=on (no caving or flattery), FRIEND_TEASE=on (teasing earned); not in crisis.
-    ...friendNotes(chatCtx, session, words, options.shape === false),
+    ...safe.friendNotes(chatCtx, session, words, options.shape === false),
     // NO_INVENTED_INTERNALS=on: "I don't know how that part works" is the whole answer.
-    internalsNote(internals),
+    safe.internalsNote(internals),
     // With it, if they asked for live data a turn ago ("which city?"): still no made-up answer.
-    ...withLiveData(style?.text ?? '', callerTurnsOf(chatCtx)),
+    ...safe.withLiveData(style?.text ?? '', callerTurnsOf(chatCtx)),
     // PERSONA_VOICE=on: how this persona sounds, after the shared style so it wins (persona-voice.ts).
-    personaVoiceNote(view.currentAgentId, { careful: options.shape === false }),
+    safe.personaVoiceNote(view.currentAgentId, { careful: options.shape === false }),
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
-    options.shape !== false ? exitFor(chatCtx, session, words, plain) : '',
+    crisis ? '' : attempt('exit', () => exitFor(chatCtx, session, words, plain), ''),
     // His self-share line after the shape, nearest the reply (ferni-state.ts).
     state.last,
     // ATTUNE=on: how to meet the caller's state (questions, advice, own stories), after the
     // self-share so "no stories of your own" wins for a tired caller. No length (TURN_LENGTH's).
-    attunementNote(chatCtx, session, { careful: options.shape === false }),
+    safe.attunementNote(chatCtx, session, { careful: options.shape === false }),
     // COMMITMENT_INVITE=on: one small step, once a call; after the self-share, so it wins.
-    inviteFor(chatCtx, session, words, options.shape === false),
+    attempt('invite', () => inviteFor(chatCtx, session, words, options.shape === false), ''),
     // GOOD_NEWS_BIGGER=on: own words, no echo, one question about the moment; after the pace note.
-    goodNewsNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false, session }),
+    safe.goodNewsNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false, session }),
     // CALLER_SETS_DEPTH=on: they played heavy news down; take their lead (caller-sets-depth.ts).
-    callerSetsDepthNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false }),
+    safe.callerSetsDepthNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false }),
     // DIRECTOR_ESCALATE=on: a note given twice becomes a rule, last but repair; never in crisis.
-    options.shape !== false ? hardRuleFor(director?.hardRule?.() ?? '', internals) : '',
+    options.shape !== false
+      ? attempt('hardRule', () => hardRuleFor(director?.hardRule?.() ?? '', internals), '')
+      : '',
     // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"
     // note above cancels it; none with crisis guidance or when they answered Ferni's question.
-    !crisis && !answering ? repairNoteFor(chatCtx, session, process.env, plain) : '',
+    !crisis && !answering ? safe.repairNoteFor(chatCtx, session, process.env, plain) : '',
   ].filter(Boolean);
-  // WORLD_FACTS_IN_CALL=on: where their life stands (in-call-load.ts); nothing when off.
+  const reminder = reminderText(session, words, turnNotes);
+  // What this request carries, for its TURN_RECEIPT (turn-receipt.ts): sizes and counts only.
+  safe.noteReminder(session, {
+    reminder,
+    directorNotes: notes,
+    offered: offered.length,
+    droppedIdx: offered.flatMap((note, i) => (!answering && keep(note) ? [] : [i])),
+  });
+  return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
+}
+
+/**
+ * The notes as one reminder, after the world facts (WORLD_FACTS_IN_CALL=on); with CONTEXT_PACKET=on
+ * the packet carries the same notes. A dropped identity note puts the unverified default first.
+ */
+function reminderText(session: object, words: string, turnNotes: string[]): string {
+  // Where their life stands (in-call-load.ts); nothing when off. About the caller, so a failure
+  // counts as a dropped identity note.
   const caller = callerOf(session);
   const lifeAt = {
     now: Date.now(),
@@ -300,17 +289,20 @@ function buildTurnReminder(
     userName: caller?.userName,
     words,
   };
-  const reminder = contextPacketEnabled()
-    ? packetReminder(session, words, turnNotes, worldFactLinesFor(caller, lifeAt))
-    : [worldFactsNoteFor(caller, lifeAt), ...turnNotes].filter(Boolean).join(' ');
-  // What this request carries, for its TURN_RECEIPT (turn-receipt.ts): sizes and counts only.
-  noteReminder(session, {
-    reminder,
-    directorNotes: notes,
-    offered: offered.length,
-    droppedIdx: offered.flatMap((note, i) => (!answering && keep(note) ? [] : [i])),
-  });
-  return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
+  const packet = contextPacketEnabled();
+  const facts = attempt(
+    'worldFacts',
+    () => (packet ? worldFactLinesFor(caller, lifeAt) : [worldFactsNoteFor(caller, lifeAt)]),
+    [] as string[],
+    true
+  );
+  // A dropped identity, owner or privacy note: until it can be built, the speaker is unverified.
+  const unverified = fallbackNote();
+  if (unverified) turnNotes.unshift(unverified);
+  const joined = [...facts, ...turnNotes].filter(Boolean).join(' ');
+  return packet
+    ? attempt('packet', () => packetReminder(session, words, turnNotes, facts), joined)
+    : joined;
 }
 
 /** A note given twice, unless it pushes him into his internals (no-invented-internals.ts). */
