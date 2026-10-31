@@ -546,7 +546,6 @@ export function getUnhealthyClients(): string[] {
 
 let _yahooFinanceClient: ResilientClient | null = null;
 let _alphaVantageClient: ResilientClient | null = null;
-let _googleApisClient: ResilientClient | null = null;
 let _wikipediaClient: ResilientClient | null = null;
 
 export function getYahooFinanceClient(): ResilientClient {
@@ -568,16 +567,6 @@ export function getAlphaVantageClient(): ResilientClient {
     });
   }
   return _alphaVantageClient;
-}
-
-export function getGoogleApisClient(): ResilientClient {
-  if (!_googleApisClient) {
-    _googleApisClient = createResilientClient('google-apis', {
-      timeout: HTTP_TIMEOUT_MS,
-      maxRetries: MAX_RETRIES_LIGHT,
-    });
-  }
-  return _googleApisClient;
 }
 
 export function getWikipediaClient(): ResilientClient {

@@ -88,9 +88,9 @@ describe('on the reply path (DIRECTOR_NOTES=on)', () => {
   async function replyAfter(notes: string[], escalate: boolean): Promise<string> {
     vi.stubEnv('DIRECTOR_ESCALATE', escalate ? 'on' : 'off');
     const director = scripted(notes);
-    const session = { userData: { personaId: 'ferni' } };
+    const session = { userData: { personaId: 'ferni', services: { sessionId: 'escalate' } } };
     setDirector(session, director);
-    for (let i = 0; i < notes.length; i++) await director.observe(CALL);
+    for (const _ of notes) await director.observe(CALL);
     return lastText(withTurnReminder(request('Yeah.'), session));
   }
 

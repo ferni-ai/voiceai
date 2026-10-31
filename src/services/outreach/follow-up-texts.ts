@@ -33,6 +33,7 @@ import {
   type PromiseJobCounts,
 } from '../follow-through/index.js';
 import { isForgotten } from '../../memory/recall/session-recall.js';
+import { countReason, logJobRun } from '../../utils/job-run.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isSavedQuietNow } from './quiet-hours.js';
 
@@ -87,6 +88,8 @@ export interface FollowUpTextReport {
   forgottenUnreadable: number;
   /** People whose turn failed (a flag or store read threw); the run went on. */
   errors: number;
+  /** Due follow-ups not texted this run, by their right moment ('next-call', 'wait'). */
+  notTextNow: Record<string, number>;
 }
 
 /** The run in PROMISE_JOB_RUN terms: a skip the sender will retry is held, the rest failed. */
@@ -202,16 +205,16 @@ async function forPerson(
   userId: string,
   opts: { now: Date; dryRun: boolean },
   report: FollowUpTextReport
-): Promise<void> {
+): Promise<boolean> {
   const flags = await deps.resolveFlags(userId);
   if (flags.FOLLOW_THROUGH_TEXTS !== 'on') {
     report.notInCohort++;
-    return;
+    return false;
   }
   const topics = await forgottenOf(deps, userId);
   if (!topics) {
     report.forgottenUnreadable++;
-    return;
+    return false;
   }
   const { now, dryRun } = opts;
   const allDue = await dueFor(deps.store, userId, now);
@@ -227,19 +230,23 @@ async function forPerson(
       });
     } else report.lostSaves++;
   }
+  for (const { moment } of moments) {
+    if (moment !== 'text-now' && moment !== 'expire') countReason(report.notTextNow, moment);
+  }
   const pick = moments.find((m) => m.moment === 'text-now')?.f;
-  if (!pick) return;
+  if (!pick) return false;
   // One Ferni starts, inside the quiet hours they saved in the menu, waits for a later run.
   if (!isCallerTimed(pick) && (await isSavedQuietNow(userId, now))) {
     report.held['quiet-hours'] = (report.held['quiet-hours'] ?? 0) + 1;
-    return;
+    return true;
   }
   if (dryRun) {
     report.wouldSend++;
     report.wouldSendIds.push(pick.id);
-    return;
+    return true;
   }
   await textOne(deps, pick, now, report);
+  return true;
 }
 
 export async function sendDueFollowUpTexts(
@@ -261,10 +268,13 @@ export async function sendDueFollowUpTexts(
     forgotten: 0,
     forgottenUnreadable: 0,
     errors: 0,
+    notTextNow: {},
   };
+  /** People with a follow-up to text now, sent or held. */
+  let eligible = 0;
   for (const userId of people) {
     try {
-      await forPerson(deps, userId, run, report);
+      if (await forPerson(deps, userId, run, report)) eligible++;
     } catch (error) {
       report.errors++;
       log.warn({ error: String(error) }, 'Follow-up texts: one person failed, run continues');
@@ -272,5 +282,15 @@ export async function sendDueFollowUpTexts(
   }
   log.info({ ...report, dryRun: run.dryRun }, 'Follow-up texts run');
   if (!run.dryRun) logPromiseJobRun('follow-through', followUpJobCounts(report));
+  const skippedBy: Record<string, number> = { ...report.held, ...report.notTextNow };
+  if (report.notInCohort) skippedBy['not-in-cohort'] = report.notInCohort;
+  if (report.forgottenUnreadable) skippedBy['forgotten-unreadable'] = report.forgottenUnreadable;
+  if (report.errors) skippedBy.error = report.errors;
+  logJobRun(
+    log,
+    'FOLLOW_THROUGH',
+    { considered: report.people, eligible, sent: report.sent, skippedBy },
+    { dryRun: run.dryRun, due: report.scanned, expired: report.expired }
+  );
   return report;
 }

@@ -141,6 +141,16 @@ export const COHORT_FLAGS = [
   'REMINDER_IN_APP_PUSH',
   'WEB_PUSH_DELIVERY', // web server, per person (flagForUser): pushes, after-call ask
   'FOCUS_HOLD', // web server, per person (personFlagOn): POST /api/me/focus (api/routes/focus.ts)
+  // Crisis lane, owner first (Seth signed off 2026-10-30): read per turn by the crisis classifier
+  // after applyCallerFlags, so one person can try it before the agent's own flag goes on.
+  'CRISIS_IMMINENT_NEEDS_AGREEMENT',
+  // "Send email as me" for one person before Google verifies gmail.send: the web server's
+  // connect routes ask flagForUser (servers/api/routes/gmail-send.ts, oauth-start.ts); the
+  // agent's send reads it at tool time, after applyCallerFlags (gmail-send-as-user.ts).
+  'GMAIL_SEND_AS_USER',
+  // Read each time a quiet stretch is decided mid-call, never at boot (quiet-presence.ts);
+  // needs the agent's LISTEN_FIRST=on.
+  'QUIET_AFTER_QUESTION',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);

@@ -23,7 +23,7 @@ const NORMAL = 'The lemon cake came out great for once; let them enjoy it.';
 
 /** The text of the request the model would get for the caller's next turn. */
 async function nextRequest(directorReply: string): Promise<{ text: string; system: string }> {
-  const session = {};
+  const session = { userData: { services: { sessionId: 'director-guard' } } };
   let system = '';
   const director = new Director({
     sessionId: 's',

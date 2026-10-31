@@ -28,7 +28,11 @@ export type OwnedStore =
 /** The person's own record; account deletion erases it last, and a retry starts from it */
 export const USER_RECORDS_COLLECTION = 'bogle_users';
 
-/** Collections whose {uid} document, and everything under it, belongs to that person */
+/**
+ * Collections whose {uid} document, and everything under it, belongs to that person.
+ * Erased recursively, so every store under bogle_users/{uid} goes with it: the activity
+ * ledger (activity/{id} and its events) included, pinned by account-delete-every-store.
+ */
 export const USER_RECORD_ROOTS = [USER_RECORDS_COLLECTION, 'users'] as const;
 
 const byId = (...collections: string[]): OwnedStore[] =>

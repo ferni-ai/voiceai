@@ -18,6 +18,7 @@
 
 import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-metrics.js';
 import { attachTurnReceipts } from '../shared/turn-receipt-session.js';
+import { closeAgentSession } from '../shared/close-agent-session.js';
 import { voice, type JobContext, llm } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig, PersonaId } from '../../personas/types.js';
@@ -77,6 +78,7 @@ import {
   type EssentialToolSetInput,
 } from './essential-tool-set.js';
 import { attachSessionEventLog } from './session-event-log.js';
+import { micFrameTap } from './self-voice-gate/session-gate.js';
 import { buildEmergencyToolset } from './emergency-toolset.js';
 import { warmupHandoffToolsForSession } from '../../tools/handoff/session-cache.js';
 import {
@@ -1064,7 +1066,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
     finalTools = capToolsToLimit(orchestratorTools, effectiveLimit);
     const cappedCount = Object.keys(finalTools).length;
     const droppedCount = toolCount - cappedCount;
-
     log.info(
       {
         personaId: persona.id,
@@ -1072,6 +1073,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         cappedCount,
         effectiveLimit,
         droppedCount,
+        droppedTools: toolNames.filter((name) => !(name in finalTools)), // names, for sweeps
       },
       `🎯 TOOL CAP: ${toolCount} → ${cappedCount} tools (limit: ${effectiveLimit}, dropped: ${droppedCount})`
     );
@@ -1864,9 +1866,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
             audioProcessorStarted = true;
 
             const audioStream = new AudioStream(track, { sampleRate: 16000, numChannels: 1 });
-            // processAudioStream runs once per session and cancels a second
-            // stream (FerniAgent.sttNode may already be feeding it); the
-            // backchannel detector must keep getting frames either way.
+            // processAudioStream runs once per session and cancels a second stream (FerniAgent's
+            // sttNode may feed it); the backchannel and self-voice taps must keep getting frames.
             let processorOpen = true;
             const processorStream = new ReadableStream<import('@livekit/rtc-node').AudioFrame>({
               async start(controller) {
@@ -1875,7 +1876,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
                     import('@livekit/rtc-node').AudioFrame
                   >) {
                     if (audioProcessingCancelled) break;
-                    liveBackchannel?.processAudioFrame(frame);
+                    micFrameTap(session, frame, liveBackchannel);
                     if (processorOpen) controller.enqueue(frame);
                   }
                   if (processorOpen) controller.close();
@@ -2205,25 +2206,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
         }
       }
 
-      // FIX: Add timeout to session.close() to prevent indefinite hangs during handoff
-      // session.close() can block if the session is in a draining state
-      log.info({ sessionId, personaId: persona.id }, '🧹 [CLEANUP] Calling session.close()...');
-      const closeStart = Date.now();
-      try {
-        const closeTimeout = new Promise<void>((_, reject) => {
-          setTimeout(() => reject(new Error('session.close() timeout')), 3000);
-        });
-        await Promise.race([session.close(), closeTimeout]);
-        log.info(
-          { sessionId, personaId: persona.id, closeDurationMs: Date.now() - closeStart },
-          '🧹 [CLEANUP] ✅ session.close() completed'
-        );
-      } catch (err) {
-        log.warn(
-          { error: String(err), sessionId, closeDurationMs: Date.now() - closeStart },
-          '🧹 [CLEANUP] ⚠️ session.close() error or timeout'
-        );
-      }
+      // Bounded: session.close() can block while the session drains during handoff.
+      await closeAgentSession(session, { sessionId, personaId: persona.id });
 
       log.info(
         { personaId: persona.id, sessionId, totalCleanupDurationMs: Date.now() - cleanupStart },

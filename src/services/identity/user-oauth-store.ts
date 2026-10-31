@@ -23,7 +23,7 @@ import { encryptData, decryptData } from '../../utils/token-encryption.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { noteLinkedTokenUse } from '../../utils/linked-token-use.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { resealStale } from '../../utils/token-at-rest.js';
+import { resealStale, sealTokensForMerge } from '../../utils/token-at-rest.js';
 import { createPersistenceStore } from '../persistence/index.js';
 import {
   createExpiringSet,
@@ -95,12 +95,24 @@ function resealToSealingKey(
   });
 }
 
-export function createUserOAuthStore<T extends { refresh_token?: string }>(config: {
+interface UserOAuthStoreConfig {
   provider: string;
   /** Firestore subcollection under bogle_users/{uid} */
   collection: string;
-}): UserOAuthStore<T> {
-  const { provider, collection } = config;
+  /** The doc may predate sealing: every save also deletes the plaintext token fields (merge write). */
+  dropLegacyPlaintext?: boolean;
+}
+
+/** A save's envelope; with dropLegacyPlaintext, plus a delete for each plaintext token key. */
+const sealGrant = (tokens: object, dropLegacyPlaintext?: boolean): { encrypted: string } =>
+  dropLegacyPlaintext
+    ? (sealTokensForMerge(tokens) as { encrypted: string })
+    : { encrypted: encryptData(tokens) };
+
+export function createUserOAuthStore<T extends { refresh_token?: string }>(
+  config: UserOAuthStoreConfig
+): UserOAuthStore<T> {
+  const { provider, collection, dropLegacyPlaintext } = config;
 
   const docStore = createPersistenceStore<LinkDoc>({
     collection,
@@ -174,7 +186,7 @@ export function createUserOAuthStore<T extends { refresh_token?: string }>(confi
       blocked.delete(userId);
       try {
         const grant: LinkDoc = {
-          encrypted: encryptData(withTimestamp),
+          ...sealGrant(withTimestamp, dropLegacyPlaintext),
           updated_at: Date.now(),
           needs_reauth: null,
         };
@@ -244,4 +256,22 @@ export function createUserOAuthStore<T extends { refresh_token?: string }>(confi
     },
     blockRefresh: (userId) => blocked.add(userId),
   };
+}
+
+/**
+ * remove, then confirm no grant is left: ok false when the delete failed or can't be confirmed,
+ * no database included. Checked with linkStatus({ fromDoc }), a fresh strict read of the raw doc
+ * that never decrypts, so an undecryptable grant still counts as present (every stored grant has
+ * `encrypted`). remove() itself only logs a failed delete; its other callers keep that.
+ */
+export async function removeStrict<T extends { refresh_token?: string }>(
+  store: UserOAuthStore<T>,
+  userId: string
+): Promise<{ ok: boolean }> {
+  await store.remove(userId);
+  try {
+    return { ok: (await store.linkStatus(userId, { fromDoc: true })).state === 'not_connected' };
+  } catch {
+    return { ok: false };
+  }
 }
