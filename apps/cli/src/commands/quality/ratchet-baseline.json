@@ -966,7 +966,6 @@
   "src/services/identity/user-identification.ts": 914,
   "src/services/index.ts": 701,
   "src/services/integrations/developer-webhook-dispatcher.ts": 605,
-  "src/services/integrations/google-maps/maps-client.ts": 676,
   "src/services/integrations/integration-hub.ts": 559,
   "src/services/integrations/oauth-manager.ts": 613,
   "src/services/integrations/rideshare-booking.ts": 540,
