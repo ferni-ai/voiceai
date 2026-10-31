@@ -23,7 +23,7 @@ export interface HeapSampleProfile {
   head: HeapSampleNode;
 }
 
-export interface LiveBytes {
+interface LiveBytes {
   name: string;
   mb: number;
 }

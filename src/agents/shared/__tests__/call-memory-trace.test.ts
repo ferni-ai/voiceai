@@ -13,15 +13,19 @@ import { type HeapProfilerSession, traceCallMemory } from '../call-memory-trace.
 const MB = 1048576;
 
 /** A fake inspector session whose live profile holds `liveMb` in one frame of ours. */
-function world() {
+function world(opts: { hang?: string; disconnectThrows?: boolean } = {}) {
   const calls: string[] = [];
   let clock = 0;
   let rssMb = 500;
   const session: HeapProfilerSession = {
     connect: () => calls.push('connect'),
-    disconnect: () => calls.push('disconnect'),
+    disconnect: () => {
+      calls.push('disconnect');
+      if (opts.disconnectThrows) throw new Error('session already closed');
+    },
     post: (method, _params, cb) => {
       calls.push(method);
+      if (method === opts.hang) return; // never calls back
       const profile = {
         head: {
           callFrame: { functionName: '(root)', url: '', lineNumber: 0 },
@@ -113,5 +117,34 @@ describe('traceCallMemory', () => {
     const next = traceCallMemory('J3', { CALL_MEMORY_TRACE: 'on' }, w.deps);
     await next();
     expect(logged.some((l) => l.data.jobId === 'J3' && l.msg === 'HEAP_SAMPLE')).toBe(true);
+  });
+
+  it('a heap profiler call that never answers times out, so finish still resolves', async () => {
+    const w = world({ hang: 'HeapProfiler.getSamplingProfile' });
+    const finish = traceCallMemory('J4', { CALL_MEMORY_TRACE: 'on' }, w.deps);
+    let done = false;
+    const finished = finish().then(() => {
+      done = true;
+    });
+    await vi.advanceTimersByTimeAsync(4_000);
+    expect(done).toBe(false);
+    await vi.advanceTimersByTimeAsync(1_500);
+    await finished;
+    expect(logged.some((l) => l.msg === 'CALL_MEMORY_TRACE: heap sample failed')).toBe(true);
+    expect(w.calls.slice(-2)).toEqual(['HeapProfiler.stopSampling', 'disconnect']);
+    // The per-process lock is released: the next call traces again.
+    const next = traceCallMemory('J5', { CALL_MEMORY_TRACE: 'on' }, world().deps);
+    await next();
+    expect(logged.some((l) => l.data.jobId === 'J5' && l.msg === 'HEAP_SAMPLE')).toBe(true);
+  });
+
+  it('a disconnect that throws still resolves finish and frees the profiler', async () => {
+    const w = world({ disconnectThrows: true });
+    await expect(traceCallMemory('J6', { CALL_MEMORY_TRACE: 'on' }, w.deps)()).resolves.toBe(
+      undefined
+    );
+    const next = traceCallMemory('J7', { CALL_MEMORY_TRACE: 'on' }, world().deps);
+    await next();
+    expect(logged.some((l) => l.data.jobId === 'J7' && l.msg === 'HEAP_SAMPLE')).toBe(true);
   });
 });

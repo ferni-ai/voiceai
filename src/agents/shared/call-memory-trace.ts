@@ -23,6 +23,8 @@ const MEMORY_EVERY_MS = 60_000;
 const SAMPLE_EVERY_MS = 5 * 60_000;
 /** Bytes between samples: coarse enough to stay cheap through a long call. */
 const SAMPLING_INTERVAL_BYTES = 128 * 1024;
+/** An inspector call that never answers must not hold up the call's end (or a child's exit). */
+const POST_TIMEOUT_MS = 5_000;
 
 /** The slice of node:inspector's Session the trace uses. */
 export interface HeapProfilerSession {
@@ -58,7 +60,16 @@ const mb = (bytes: number): number => Math.round(bytes / 1048576);
 
 function post(s: HeapProfilerSession, method: string, params: object = {}): Promise<unknown> {
   return new Promise((resolve, reject) => {
-    s.post(method, params, (err, res) => (err ? reject(err) : resolve(res)));
+    const timer = setTimeout(
+      () => reject(new Error(`${method} timed out after ${POST_TIMEOUT_MS} ms`)),
+      POST_TIMEOUT_MS
+    );
+    timer.unref?.();
+    s.post(method, params, (err, res) => {
+      clearTimeout(timer);
+      if (err) reject(err);
+      else resolve(res);
+    });
   });
 }
 
@@ -139,7 +150,11 @@ export function traceCallMemory(
     } catch {
       // The profile is already logged; stopping is best effort.
     } finally {
-      s?.disconnect();
+      try {
+        s?.disconnect();
+      } catch {
+        // Already gone; the profiler is free either way.
+      }
       tracing = false;
     }
   };
