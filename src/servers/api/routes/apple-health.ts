@@ -15,25 +15,31 @@
  * - GET /api/apple-health/summary → Get daily summary
  *
  * Management:
- * - DELETE /api/apple-health/disconnect → Revoke sync token
+ * - DELETE /api/apple-health/disconnect → Erase every store, confirmed (apple-health-erase.ts)
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import {
   generateSyncToken,
   validateSyncToken,
-  revokeSyncToken,
   processSyncPayload,
   getConnectionStatus,
   getDailySummary,
   getRecentSummaries,
 } from '../../../services/identity/apple-health-sync.js';
+import { disconnectAppleHealth } from '../../../services/identity/apple-health-erase.js';
 import type { AppleHealthSyncPayload } from '../../../services/identity/apple-health-types.js';
+import { sharedHeldStrict } from '../../../services/outreach/minor-care-shared-hold.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { userHeld } from '../../../utils/minor-care.js';
 import { API_ERRORS } from '../../../api/error-messages.js';
+import { BodyTooLargeError, readCappedJsonBody } from '../../../api/bounded-body.js';
 import { getVerifiedUserId as getUserId } from '../request-identity.js';
 
 const log = createLogger({ module: 'apple-health-routes' });
+
+/** A sync body over this is refused with 413 (it was unbounded); no client sends samples today */
+const APPLE_HEALTH_SYNC_MAX_BYTES = 256 * 1024;
 
 // ============================================================================
 // HELPERS
@@ -62,21 +68,36 @@ function sendError(res: ServerResponse, statusCode: number, message: string): vo
   sendJson(res, statusCode, { error: message });
 }
 
-async function parseBody<T>(req: IncomingMessage): Promise<T | null> {
-  return new Promise((resolve) => {
-    let body = '';
-    req.on('data', (chunk: Buffer) => {
-      body += chunk.toString();
-    });
-    req.on('end', () => {
-      try {
-        resolve(JSON.parse(body) as T);
-      } catch {
-        resolve(null);
-      }
-    });
-    req.on('error', () => resolve(null));
-  });
+/** The JSON body, null if unreadable, or 'too_large' over the sync cap (answered 413 here) */
+async function parseBody<T>(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<T | null | 'too_large'> {
+  try {
+    return await readCappedJsonBody<T>(req, { maxBytes: APPLE_HEALTH_SYNC_MAX_BYTES });
+  } catch (error) {
+    if (!(error instanceof BodyTooLargeError)) return null;
+    if (!res.headersSent) sendError(res, 413, API_ERRORS.INVALID_SYNC_PAYLOAD);
+    return 'too_large';
+  }
+}
+
+/** MINOR_CARE: a held account (or one whose hold can't be read) gets no health sync */
+const syncHeld = async (userId: string): Promise<boolean> =>
+  userHeld(userId) || sharedHeldStrict(userId);
+
+/** Sets the CORS headers; true when this was an OPTIONS preflight, answered 204 here */
+function answeredPreflight(req: IncomingMessage, res: ServerResponse): boolean {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization, X-User-ID, X-Sync-Token'
+  );
+  if (req.method !== 'OPTIONS') return false;
+  res.writeHead(204);
+  res.end();
+  return true;
 }
 
 // ============================================================================
@@ -89,19 +110,7 @@ export async function handleAppleHealthRoutes(
   pathname: string,
   _parsedUrl: URL
 ): Promise<boolean> {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, X-User-ID, X-Sync-Token'
-  );
-
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204);
-    res.end();
-    return true;
-  }
+  if (answeredPreflight(req, res)) return true;
 
   // ============================================================================
   // POST /api/apple-health/sync - Receive sync data from iOS app
@@ -116,6 +125,11 @@ export async function handleAppleHealthRoutes(
       return true;
     }
 
+    if (await syncHeld(userId)) {
+      sendError(res, 403, API_ERRORS.HEALTH_SYNC_HELD);
+      return true;
+    }
+
     // Validate sync token
     const validation = await validateSyncToken(userId, syncToken);
     if (!validation.valid) {
@@ -123,8 +137,9 @@ export async function handleAppleHealthRoutes(
       return true;
     }
 
-    const payload = await parseBody<AppleHealthSyncPayload>(req);
-    if (!payload) {
+    const payload = await parseBody<AppleHealthSyncPayload>(req, res);
+    if (payload === 'too_large') return true;
+    if (!payload?.data) {
       sendError(res, 400, API_ERRORS.INVALID_SYNC_PAYLOAD);
       return true;
     }
@@ -155,13 +170,19 @@ export async function handleAppleHealthRoutes(
   if (pathname === '/api/apple-health/setup' && req.method === 'POST') {
     log.info({ userId }, 'Setting up Apple Health sync');
 
-    const body = await parseBody<{ deviceId: string; deviceName: string }>(req);
-    if (!body?.deviceId || !body?.deviceName) {
+    if (await syncHeld(userId)) {
+      sendError(res, 403, API_ERRORS.HEALTH_SYNC_HELD);
+      return true;
+    }
+
+    const body = await parseBody<{ deviceId: string }>(req, res);
+    if (body === 'too_large') return true;
+    if (!body?.deviceId) {
       sendError(res, 400, API_ERRORS.HEALTH_DEVICE_INFO_REQUIRED);
       return true;
     }
 
-    const result = await generateSyncToken(userId, body.deviceId, body.deviceName);
+    const result = await generateSyncToken(userId, body.deviceId);
 
     if (!result.success || !result.data) {
       sendError(res, 500, result.error || API_ERRORS.HEALTH_TOKEN_GENERATE_FAILED);
@@ -224,9 +245,9 @@ export async function handleAppleHealthRoutes(
   if (pathname === '/api/apple-health/disconnect' && req.method === 'DELETE') {
     log.info({ userId }, 'Disconnecting Apple Health');
 
-    await revokeSyncToken(userId);
-
-    sendJson(res, 200, { success: true });
+    const { ok } = await disconnectAppleHealth(userId);
+    const failed = { success: false, error: API_ERRORS.HEALTH_DISCONNECT_FAILED };
+    sendJson(res, ok ? 200 : 500, ok ? { success: true } : failed);
     return true;
   }
 

@@ -93,15 +93,19 @@ function agentLines(chatCtx: llm.ChatContext): string[] {
 /**
  * The first-call note for this reply, or '' (flags off, not a first call, no caller words).
  * `scriptFree` (SCRIPT_FREE_REMINDER, script-free.ts): nothing quoted, and the name
- * swap in the speaking persona's own name.
+ * swap in the speaking persona's own name. Held turns (exits-held.ts): none beside crisis
+ * guidance (`crisis`), and none when they're leaving on a call with crisis risk noted
+ * (`exitsHeld`), since the goodbye note says "no question".
  */
 export function firstCallNote(
   chatCtx: llm.ChatContext,
   session: object,
   callerWords: string,
   env: Env = process.env,
-  scriptFree = false
+  scriptFree = false,
+  held: { crisis?: boolean; exitsHeld?: boolean } = {}
 ): string {
+  if (held.crisis) return '';
   const rapport = firstCallRapportEnabled(env);
   const who = firstCallIntroEnabled(env) ? WHO_NOTE : '';
   if (!callerWords || (!rapport && !who)) return '';
@@ -110,8 +114,11 @@ export function firstCallNote(
   if (!rapport) return who;
   // NAME_GATE_V2: where the note asks for their name, ask for the shape the gate keeps (name-gate.ts).
   const rule = flagOn('NAME_GATE_V2', env) ? NAME_PLACEMENT_RULE : '';
-  if (leavingNow(callerWords))
-    return [scriptFree ? FIRST_GOODBYE_PLAIN : FIRST_GOODBYE_NOTE, rule].filter(Boolean).join(' ');
+  if (leavingNow(callerWords)) {
+    // A held turn gets no goodbye note ("no question"); the name rule bars no question, so it stays.
+    const goodbye = held.exitsHeld ? '' : scriptFree ? FIRST_GOODBYE_PLAIN : FIRST_GOODBYE_NOTE;
+    return [goodbye, rule].filter(Boolean).join(' ');
+  }
   const said = agentLines(chatCtx);
   const nameAsked = said.some((line) => NAME_ASKED.test(line));
   const early = said.length <= NAME_SWAP_REPLIES;
