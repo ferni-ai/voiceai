@@ -42,6 +42,12 @@ import {
   afterCheckLoneRead,
   noteConfirmedRisk,
 } from '../../services/safety/crisis-confirmed-risk.js';
+import { withLineOnce, type LineTurn } from '../../services/safety/crisis-line-once.js';
+import {
+  answeredYes,
+  SCRIPT_ANSWER_CHECKIN,
+  scriptAnswer,
+} from '../../services/safety/crisis-script-answer.js';
 import { secondReadOf } from '../../services/safety/crisis-second-read-turn.js';
 import {
   GROUNDED_LIGHT_TOUCH,
@@ -122,6 +128,30 @@ export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   return { action: 'pass' };
 }
 
+/** CRISIS_BRAKE_V2: the line held back once heard; runs every turn to note it (crisis-line-once.ts). */
+function briefed(
+  decision: CrisisGateDecision,
+  crisis: CrisisDetectionResult,
+  once: LineTurn,
+  keep: boolean
+): CrisisGateDecision {
+  const held = withLineOnce(crisis, once);
+  return keep || held === crisis ? decision : decisionFor(held);
+}
+
+/** CRISIS_BRAKE_V2: the caller answering the 911 script's question (crisis-script-answer.ts). */
+function answerDecision(
+  turn: Parameters<typeof scriptAnswer>[0],
+  detection: CrisisDetectionResult
+): CrisisGateDecision | null {
+  const answer = scriptAnswer(turn);
+  if (!answer) return null;
+  log.info({ action: answer, source: 'script_answer' }, 'CRISIS_GATE');
+  if (answer === 'no') return guide(SCRIPT_ANSWER_CHECKIN);
+  noteCrisisRisk(turn.call);
+  return decisionFor(answeredYes(detection));
+}
+
 export interface CrisisGateOptions {
   env?: Record<string, string | undefined>;
   /** The classifier's model call. */
@@ -176,6 +206,8 @@ export function startCrisisGate(
   const holdForReads = agreementGate || adjudicatorMode === 'live';
   const call = sessionScope(userData);
   const said = { latest, earlier, companion };
+  const once = { call, latest, earlier, ferni, patterns: detection, env };
+  const heard = briefed(decision, detection, once, gentle);
   // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
   const transfer =
     adjudicatorMode !== 'live' && transferRequestIsEveryday(said, pattern, call, env);
@@ -186,11 +218,13 @@ export function startCrisisGate(
   const secondRead = secondReadOf('gate', userData, detection.subject);
   const run = startCrisisClassifier(said, { pattern, env, generate, scope, call, secondRead });
   if (run?.mode !== 'live' || decision.action === 'replace') {
-    return { decision, escalation: null, reask };
+    return { decision: heard, escalation: null, reask };
   }
   const who = startWhoRead({ latest, earlier, companion }, detection, { env, generate });
 
   const escalation = run.verdict.then(async (verdict): Promise<CrisisGateDecision | null> => {
+    const answered = answerDecision({ latest, companion, earlier, call, env }, detection);
+    if (answered) return answered;
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
     if (loneImminentGoodbye({ detection, verdict, latest, earlier, companion, priorRisk })) {
       log.info({ action: 'guide', source: 'lone_imminent_goodbye' }, 'CRISIS_GATE');
@@ -208,9 +242,9 @@ export function startCrisisGate(
     const base = applyClassifierVerdict(detection, verdict);
     const merged = who?.live ? await who.resolve(base, verdict) : base;
     if (merged === detection) return null;
-    const stronger = decisionFor(merged);
+    const stronger = decisionFor(withLineOnce(merged, once));
     const rerouted = !!who?.live && merged.subject !== detection.subject; // whom it is for changed
-    if (RANK[stronger.action] <= RANK[decision.action] && !gentle && !rerouted) return null;
+    if (RANK[stronger.action] <= RANK[heard.action] && !gentle && !rerouted) return null;
     // A bare "pass me to Nayan" (CRISIS_TRANSFER_EVERYDAY): a crisis read, never an imminent
     // one whoever it is about, gets the soft check-in once every other check below has run.
     let softTransfer = transfer && verdict?.risk === 'crisis' && stronger.action === 'guide';
@@ -229,7 +263,7 @@ export function startCrisisGate(
         null,
       ]);
       const outcome = agreementGate
-        ? agreementOutcome({ pattern, verdicts, latest, earlier, companion })
+        ? agreementOutcome({ pattern, verdicts, latest, earlier, companion, env, call })
         : 'escalate';
       if (outcome !== 'escalate') {
         log.info({ action: outcome, source: 'agreement' }, 'CRISIS_GATE');
@@ -277,7 +311,7 @@ export function startCrisisGate(
     );
     return stronger;
   });
-  return { decision, escalation, reask };
+  return { decision: heard, escalation, reask };
 }
 
 /** A reply stream that speaks one fixed text. */

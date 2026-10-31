@@ -33,10 +33,13 @@
  *     by the patterns (a split turn does not count), and the call is known.
  * Everything else, and any error, is the more severe read as before.
  *
+ * CRISIS_BRAKE_V2 (crisis-brake.ts) implies this flag for its calls: one code path, no copy.
+ *
  * @module CrisisImminentAgreement
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { crisisBrakeOn, resolveCrisisBrakeV2 } from './crisis-brake.js';
 import type { CrisisVerdict, PatternOutcome } from './crisis-classifier.js';
 import { moreSevereRead } from './crisis-everyday.js';
 import { detectCrisis } from './crisis-guard.js';
@@ -44,11 +47,19 @@ import { isPlainSignOff } from './crisis-lone-imminent.js';
 
 const log = createLogger({ module: 'CrisisImminentAgreement' });
 
+const flagOn = (env: Record<string, string | undefined>): boolean =>
+  env.CRISIS_IMMINENT_NEEDS_AGREEMENT?.trim().toLowerCase() === 'on';
+
+/** The flag, or CRISIS_BRAKE_V2: for the cache scope and the pattern-block note. */
 function resolveImminentNeedsAgreement(
   env: Record<string, string | undefined> = process.env
 ): boolean {
-  return env.CRISIS_IMMINENT_NEEDS_AGREEMENT?.trim().toLowerCase() === 'on';
+  return flagOn(env) || resolveCrisisBrakeV2(env);
 }
+
+/** This turn's split may ease: the flag, or CRISIS_BRAKE_V2 on a call it applies to (no minors). */
+const readsNeedAgreement = ({ env = process.env, call, latest, earlier }: TurnReads): boolean =>
+  flagOn(env) || crisisBrakeOn(env, call, [latest, ...earlier]);
 
 /**
  * Calls where reads that agreed, or the patterns, found risk: never eased
@@ -119,7 +130,7 @@ export function agreementCacheScope(
 /** The read for a turn read with and without the everyday rules. */
 export function combineReads(reads: TurnReads): CrisisVerdict | null {
   const read = moreSevereRead(reads.ruled, reads.plain);
-  if (!resolveImminentNeedsAgreement(reads.env)) return read;
+  if (!readsNeedAgreement(reads)) return read;
   try {
     if (!eases(reads, read)) return read;
     const imminentRead = reads.ruled?.risk === 'imminent' ? 'ruled' : 'plain';
