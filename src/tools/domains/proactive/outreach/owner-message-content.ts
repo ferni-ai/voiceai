@@ -278,8 +278,10 @@ const ADDRESS_DOTS = [
 
 /** The first rule `text` breaks for an unverified call, or null when it may be sent. */
 export function blockedContent(text: string): ContentBlock | null {
-  const form = foldToAscii(text);
-  if (!CHARSET.test(form)) return 'charset';
+  const folded = foldToAscii(text);
+  if (!CHARSET.test(folded)) return 'charset';
+  // "/" is allowed for "1 1/4" and "1/1/2027", so every later rule reads it as "-": a separator
+  const form = folded.replace(/\//g, '-');
   if (vanityBlock(form)) return 'vanity_number';
   const lower = form.toLowerCase();
   if (/(?<![\p{L}0-9])(?:[\p{L}0-9] +){2,}[\p{L}0-9](?![\p{L}0-9])/u.test(lower)) return 'spaced_chars'; // prettier-ignore

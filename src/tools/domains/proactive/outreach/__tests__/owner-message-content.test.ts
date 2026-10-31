@@ -174,6 +174,55 @@ describe('property: disguises the one ASCII fold undoes (security review, 2026-1
   );
 });
 
+describe('property: "/" separates like "-" in every number rule', () => {
+  const digits = fc.array(fc.integer({ min: 0, max: 9 }), { minLength: 7, maxLength: 11 });
+
+  it('phone shapes split by "/"', () => {
+    const phone = fc
+      .tuple(digits, fc.array(fc.boolean(), { minLength: 11, maxLength: 11 }))
+      .map(([ds, cuts]) => ds.map((d, i) => (i && cuts[i] ? '/' : '') + d).join(''));
+    fc.assert(fc.property(around(phone), (t) => blockedContent(t) !== null), { seed: 3227, numRuns: 500 }); // prettier-ignore
+  });
+
+  it('vanity numbers split by "/"', () => {
+    const vanity = fc
+      .tuple(pick(['1/800', '1/888', '877', '1/855']), pick(['FERNI', 'CALL/NOW', '555/0142']))
+      .map(([p, r]) => `${p}/${r}`);
+    fc.assert(fc.property(vanity, (t) => blockedContent(t) !== null), { seed: 3227, numRuns: 200 }); // prettier-ignore
+  });
+
+  it('look-alike digits joined by "/"', () => {
+    const LOOKS: Record<string, string[]> = { '0': ['o', 'O'], '1': ['l', 'I'], '5': ['s', 'S'] };
+    const char = fc
+      .tuple(fc.integer({ min: 0, max: 9 }), fc.integer({ min: 0, max: 1 }))
+      .map(([d, k]) => LOOKS[String(d)]?.[k] ?? String(d));
+    const payload = fc
+      .tuple(
+        fc.integer({ min: 2, max: 9 }),
+        fc.array(fc.tuple(char, fc.boolean()), { minLength: 6, maxLength: 10 })
+      ) // prettier-ignore
+      .map(
+        ([first, rest]) => String(first) + rest.map(([c, cut]) => (cut ? '/' : '') + c).join('')
+      );
+    fc.assert(fc.property(around(payload), (t) => blockedContent(t) !== null), { seed: 3227, numRuns: 500 }); // prettier-ignore
+  });
+
+  it.each([
+    ['1/800/FERNI', 'vanity_number'],
+    ['55S/O1l2/34', 'digits'],
+    ['555/123/4567', 'digits'],
+  ])('%s -> %s', (text, reason) => {
+    expect(blockedContent(text)).toBe(reason);
+  });
+
+  it.each(['1 cup flour, 2 eggs, 1 1/4 cups milk, 2 tbsp sugar', 'Remember the 1/1/2027 deadline'])(
+    'still benign: %s',
+    (text) => {
+      expect(blockedContent(text)).toBeNull();
+    }
+  );
+});
+
 describe('each rule', () => {
   it.each([
     ['visit example.com', 'address_token'],
