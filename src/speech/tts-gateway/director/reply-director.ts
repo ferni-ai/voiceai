@@ -179,6 +179,8 @@ class DirectedReply implements ReplyStream {
   private plannedRevision = 0;
   private updated = false;
   private readonly stripProsody: boolean;
+  readonly takeWordTimings: ReplyStream['takeWordTimings'] = () =>
+    this.inner.takeWordTimings?.() ?? [];
 
   constructor(
     private readonly inner: ReplyStream,

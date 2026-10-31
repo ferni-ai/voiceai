@@ -47,6 +47,8 @@ describe('COHORT_FLAGS', () => {
         'HANDOFF_CACHE_WARM', 'FORGET_DELETES', 'CRISIS_IMMINENT_NEEDS_AGREEMENT',
         'GMAIL_SEND_AS_USER',
         'QUIET_AFTER_QUESTION',
+        'CALL_NEWS_OPENER', 'TURN_MEMORY_RRF_SCALE', 'TURN_MEMORY_RERANK', 'CALLER_CARD',
+        'DATES_IN_HELLO',
       ].sort() // prettier-ignore
     );
   });
@@ -58,6 +60,22 @@ describe('COHORT_FLAGS', () => {
     expect(missingPrerequisites({ OUTREACH_PONDERED_NOTES: 'on' })).toEqual([
       'OUTREACH_PONDERED_NOTES needs PONDERING',
     ]);
+  });
+
+  it('turn rerank needs the rescale; dates in the hello need the dates writer and temporal facts', () => {
+    expect(missingPrerequisites({ TURN_MEMORY_RERANK: 'on' })).toEqual([
+      'TURN_MEMORY_RERANK needs TURN_MEMORY_RRF_SCALE',
+    ]);
+    expect(missingPrerequisites({ DATES_IN_HELLO: 'on', DATES_THAT_MATTER: 'on' })).toEqual([
+      'DATES_IN_HELLO needs WORLD_MODEL_TEMPORAL',
+    ]);
+    expect(missingPrerequisites({ DATES_IN_HELLO: 'on' })).toEqual([
+      'DATES_IN_HELLO needs DATES_THAT_MATTER, WORLD_MODEL_TEMPORAL',
+    ]);
+    const all = { TURN_MEMORY_RRF_SCALE: 'on', TURN_MEMORY_RERANK: 'on', DATES_THAT_MATTER: 'on' };
+    expect(
+      missingPrerequisites({ ...all, WORLD_MODEL_TEMPORAL: 'on', DATES_IN_HELLO: 'on' })
+    ).toEqual([]);
   });
 });
 
