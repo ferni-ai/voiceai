@@ -30,15 +30,8 @@ import { EMERGENCY_NUMBER, SAFETY_CRISIS_RESOURCES } from '../../../../services/
 
 /** Why a message was refused; logged as the reason code, never with the text. */
 export const CONTENT_BLOCKS = [
-  'charset',
-  'digits',
-  'short_code',
-  'vanity_number',
-  'address_token',
-  'mail_provider',
-  'spaced_chars',
-  'credential_ask',
-] as const;
+  'charset', 'digits', 'short_code', 'vanity_number', 'address_token', 'mail_provider', 'spaced_chars', 'credential_ask',
+] as const; // prettier-ignore
 export type ContentBlock = (typeof CONTENT_BLOCKS)[number];
 
 /**
