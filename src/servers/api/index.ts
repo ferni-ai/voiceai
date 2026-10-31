@@ -1,15 +1,13 @@
-/**
- * UI/API Server
- *
- * Serves the frontend UI, provides API routes, and handles integrations.
- */
+/** UI/API Server: serves the frontend UI, provides API routes, and handles integrations. */
 
 import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
 import '../../instrument.js'; // error reporting; a no-op without SENTRY_DSN
 import '../../utils/token-key-fingerprint-boot.js'; // which token key (kid only)
+import '../../services/outreach/phone-hash-key-boot.js'; // which LOG_HASH_SECRET (fingerprint)
 import http from 'http';
 import type { UrlWithParsedQuery } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
+import { installProcessGuards } from './process-guards.js';
 
 const log = createLogger({ module: 'APIServer' });
 
@@ -54,7 +52,6 @@ import {
   handleEcobeeRoutes,
   handleSmartHomeRoutes,
   handleVibeRoutes,
-  handleEightSleepRoutes,
   handleOuraRoutes,
   handleAppleHealthRoutes,
   handleAppleNotification,
@@ -77,7 +74,7 @@ import { shutdown as shutdownPlaid } from './services/plaid.js';
 import { shutdown as shutdownDemoSessions } from './services/demo-sessions.js';
 import { shutdown as shutdownTokenRoutes } from './routes/token.js';
 import { shutdown as shutdownGoogleCalendar } from '../token/oauth/google-calendar.js';
-import { shutdown as shutdownSpotifyOAuth } from '../token/oauth/spotify.js';
+import { shutdown as shutdownSpotifyLinks } from '../token/oauth/spotify.js';
 import { shutdownPersistence } from '../../services/persistence/index.js';
 
 // Calendar real-time sync services
@@ -121,6 +118,7 @@ import { handleRelationshipArcRoutes } from '../../api/relationship-arc-routes.j
 import { handleFeatureFlagsRoutes } from '../../api/feature-flags-routes.js';
 import { handleFeedbackRoutes, isFeedbackRoute } from '../../api/feedback-routes.js';
 import { handleReplyReportRoutes } from '../../api/reply-reports/reply-report-routes.js';
+import { handleCallTelemetryRoutes } from '../../api/call-telemetry/call-telemetry-routes.js';
 import { handleBrandRoutes } from '../../api/brand-routes.js';
 import { handleCommandsRoutes } from '../../api/commands-routes.js';
 import { handleWidgetRoutes } from '../../api/widget-routes.js';
@@ -333,7 +331,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (await handlePlaidRoutes(req, res, pathname, parsedUrl)) return;
   }
 
-  // Spotify routes (Web Playback SDK + OAuth device flows)
+  // Spotify routes (house Web Playback SDK + delete-only unlink of old per-user links)
   if (pathname.startsWith('/spotify')) {
     if (await handleSpotifyRoutes(req, res, pathname, parsedUrl)) return;
   }
@@ -366,11 +364,6 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   // Push notification routes
   if (pathname.startsWith('/api/push')) {
     if (await handlePushRoutes(req, res, pathname)) return;
-  }
-
-  // Eight Sleep routes
-  if (pathname.startsWith('/api/eight-sleep')) {
-    if (await handleEightSleepRoutes(req, res, pathname, parsedUrl)) return;
   }
 
   // Oura Ring routes
@@ -871,8 +864,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     // Feedback routes (contextual feedback system), then reported replies (POST /api/reports)
     if (isFeedbackRoute(pathname) && (await handleFeedbackRoutes(req, res))) return;
     if (await handleReplyReportRoutes(req, res, pathname)) return;
+    if (await handleCallTelemetryRoutes(req, res, pathname)) return;
 
-    // Brand routes
     if (pathname.startsWith('/api/brand')) {
       const handled = await handleBrandRoutes(req, res, pathname);
       if (handled) return;
@@ -894,7 +887,6 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       if (handled) return;
     }
 
-    // Commands routes
     if (pathname.startsWith('/api/commands')) {
       const handled = await handleCommandsRoutes(req, res, pathname);
       if (handled) return;
@@ -1570,7 +1562,7 @@ async function gracefulShutdown(): Promise<void> {
       shutdownDemoSessions(),
       shutdownTokenRoutes(),
       shutdownGoogleCalendar(),
-      shutdownSpotifyOAuth(),
+      shutdownSpotifyLinks(),
       Promise.resolve(shutdownApplePolling()),
       Promise.resolve(shutdownWearablesRoutes()),
     ]);
@@ -1587,21 +1579,18 @@ async function gracefulShutdown(): Promise<void> {
 }
 
 // Handle shutdown signals
-process.on('SIGTERM', () => {
-  log.info('Received SIGTERM, shutting down gracefully...');
-  gracefulShutdown().catch((err) => {
-    log.error({ error: (err as Error).message }, 'Shutdown error');
-    process.exit(1);
+for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+  process.on(signal, () => {
+    log.info(`Received ${signal}, shutting down gracefully...`);
+    gracefulShutdown().catch((err) => {
+      log.error({ error: (err as Error).message }, 'Shutdown error');
+      process.exit(1);
+    });
   });
-});
+}
 
-process.on('SIGINT', () => {
-  log.info('Received SIGINT, shutting down gracefully...');
-  gracefulShutdown().catch((err) => {
-    log.error({ error: (err as Error).message }, 'Shutdown error');
-    process.exit(1);
-  });
-});
+// A stray rejection is reported and survived; a thrown error drains, then exits (#2914).
+installProcessGuards({ server });
 
 // Export for gateway
 export { server, gracefulShutdown };

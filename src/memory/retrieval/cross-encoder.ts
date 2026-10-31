@@ -33,7 +33,8 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getExtractionModel, isGeminiConfigured } from '../../config/gemini-config.js';
-import { getGenerativeModel } from '../../config/generative-model.js';
+import { generateText } from '../../config/generative-model.js';
+import { errorFields } from '../../utils/error-class.js';
 
 const log = createLogger({ module: 'CrossEncoder' });
 
@@ -153,6 +154,7 @@ export interface CrossEncoderProvider {
 export class GeminiCrossEncoder implements CrossEncoderProvider {
   private isInitialized = false;
   private geminiAvailable = false;
+  private readonly fallback = new HeuristicCrossEncoder();
 
   getName(): string {
     return getExtractionModel();
@@ -176,9 +178,6 @@ export class GeminiCrossEncoder implements CrossEncoderProvider {
     }
 
     try {
-      const model = await getGenerativeModel({ model: getExtractionModel() });
-      if (!model) throw new Error('Gemini client unavailable');
-
       const prompt = `Rate how relevant the following document is to the query on a scale from 0 to 100, where 0 means completely irrelevant and 100 means perfectly relevant. Only respond with a single number.
 
 Query: ${query}
@@ -187,8 +186,7 @@ Document: ${document.slice(0, 1000)}
 
 Relevance score (0-100):`;
 
-      const result = await model.generateContent(prompt);
-      const responseText = result.response.text().trim();
+      const responseText = (await generateText({ model: getExtractionModel(), prompt })).trim();
       const score = parseInt(responseText, 10);
 
       if (isNaN(score)) {
@@ -198,8 +196,9 @@ Relevance score (0-100):`;
 
       return Math.max(0, Math.min(1, score / 100));
     } catch (error) {
-      log.warn({ error: String(error) }, 'Gemini scoring failed');
-      return 0.5;
+      // A flat 0.5 would claim a relevance nobody measured; score it lexically instead
+      log.warn(errorFields(error), 'Gemini scoring failed, using heuristic score');
+      return this.fallback.score(query, document);
     }
   }
 
@@ -376,15 +375,13 @@ export class Reranker {
    * Select the best available provider
    */
   private selectBestProvider(): CrossEncoderProvider {
-    // Try providers in order of preference
-    const geminiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-    if (geminiKey) {
+    // Gemini (Vertex through the shared client) when configured, else heuristic
+    if (isGeminiConfigured()) {
       log.info('Using Gemini cross-encoder');
       return new GeminiCrossEncoder();
     }
 
-    // Fall back to heuristic
-    log.info('Using heuristic cross-encoder (no API key found)');
+    log.info('Using heuristic cross-encoder (Gemini not configured)');
     return new HeuristicCrossEncoder();
   }
 

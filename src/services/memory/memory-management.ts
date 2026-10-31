@@ -13,10 +13,11 @@
  */
 
 import { getProfileStore, type MemoryStore } from '../../memory/profile-store.js';
-import { getGCPProjectId } from '../../config/environment.js';
+import { getGCPProjectId, getFirestoreDatabase } from '../../config/environment.js';
 import { cosineSimilarity } from '../../memory/embeddings.js';
 import type { ConversationSummary, UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { sharedFirestore } from '../../utils/shared-firestore.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { lifeMoments } from '../../utils/teammate-talk.js';
 
@@ -29,6 +30,8 @@ import { lifeMoments } from '../../utils/teammate-talk.js';
  * Enables O(1) phone lookups instead of O(n) profile scans
  */
 const PHONE_MAPPINGS_COLLECTION = 'phone_mappings';
+const phoneMappingsDb = () =>
+  sharedFirestore({ projectId: getGCPProjectId(), databaseId: getFirestoreDatabase() });
 
 // In-memory cache (fast path)
 const phoneToUserCache = new Map<string, string>();
@@ -42,10 +45,7 @@ export async function loadPhoneCache(): Promise<number> {
   if (phoneCacheLoaded) return phoneToUserCache.size;
 
   try {
-    const { Firestore } = await import('@google-cloud/firestore');
-    const db = new Firestore({
-      projectId: getGCPProjectId(),
-    });
+    const db = phoneMappingsDb();
 
     const snapshot = await db.collection(PHONE_MAPPINGS_COLLECTION).get();
 
@@ -74,10 +74,7 @@ export async function savePhoneMapping(phone: string, userId: string): Promise<v
   phoneToUserCache.set(phone, userId);
 
   try {
-    const { Firestore } = await import('@google-cloud/firestore');
-    const db = new Firestore({
-      projectId: getGCPProjectId(),
-    });
+    const db = phoneMappingsDb();
 
     await db
       .collection(PHONE_MAPPINGS_COLLECTION)
@@ -111,10 +108,7 @@ export async function deletePhoneMapping(phone: string): Promise<void> {
   phoneToUserCache.delete(phone);
 
   try {
-    const { Firestore } = await import('@google-cloud/firestore');
-    const db = new Firestore({
-      projectId: getGCPProjectId(),
-    });
+    const db = phoneMappingsDb();
 
     await db.collection(PHONE_MAPPINGS_COLLECTION).doc(phone).delete();
   } catch (error) {

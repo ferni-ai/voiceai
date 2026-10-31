@@ -35,6 +35,10 @@
  * action that really happened are never changed. Text and tool calls keep
  * their order. ACTION_CLAIM_GUARD=off turns the guard off. Logs carry the kind
  * and the reason, never words.
+ * With ACTION_CLAIM_PAST=on (off by default), a plain past report ("I booked it.",
+ * "I sent it.") is held too, but only when a tool of its kind was open and none ran.
+ * With GROUNDED_CLAIMS=on (off by default), a held call or message claim, "I checked" and "let
+ * me look" stand only on a tool's run (flags/GROUNDED_CLAIMS.ts; #3003, #3005, #3006).
  *
  * Holding a sentence delays the first audio (dev A/B, increment 3: about
  * 0.2-0.5 s, a whole model chunk). With ACTION_CLAIM_STREAM=on (off by default,
@@ -51,17 +55,14 @@ import { ReadableStream } from 'node:stream/web';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { isClearYes } from '../../tools/domains/communication/outreach/outreach-confirm.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import {
-  bareOnIt,
-  callActions,
-  claimedAction,
-  kindsOfTool,
-  type ActionKind,
-} from './action-claims.js';
-import { withAnnouncedCheckLog } from './announced-check.js';
+import { bareOnIt, callActions, claimedAction, pastClaim, kindsOfTool } from './action-claims.js';
+import { isLookupTool, lookupKind, withAnnouncedCheckLog } from './announced-check.js';
 import { withCallerVoiceGuard } from './caller-voice-guard.js';
+import type { HouseFactsWho } from './grounded-addresses.js';
+import { withHouseFactsGuard } from './house-facts.js';
 import { CRISIS_TALK } from './emergency-claim.js';
-import { honestLine, inPlace, type MissReason } from './honest-line.js';
+import { honestLine, inPlace, type ClaimKind, type MissReason } from './honest-line.js';
+import type { Kinds, SeenActions } from './honest-line.js';
 import { emergencyCheck, emergencyCorrection } from './emergency-correction.js';
 import { clauseSafeFor, FirstClauseFlush, firstClauseFlushEnabled } from './first-clause-flush.js';
 import { plain, spokenOf, type Item } from './spoken-words.js';
@@ -69,12 +70,14 @@ import {
   askedCallLine,
   askedCallLookup,
   callOutcomeUnheard,
-  narratesCallOutcome,
-  UNHEARD_LINE,
+  claimsFromBefore,
+  unheardLine,
   type AskedCallStatus,
 } from './call-narration.js';
-import { kindsRunThisTurn, offerFor, promisedAction } from './action-promises.js';
+import { kindsRunThisTurn, offerFor, promisedAction, reportsBack } from './action-promises.js';
 import { firestoreCallRecords, type CallRecords } from '../../services/outreach/call-status.js';
+import { sessionIdIn, turnHoldTimer } from '../../speech/output-control/turn-timing.js';
+import { contentOf, type ReplyChunk as Chunk } from './reply-chunks.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
@@ -82,22 +85,18 @@ const log = createLogger({ module: 'ActionClaimGuard' });
 const isCalendarCreate = (name: string): boolean =>
   /calendar/i.test(name) && kindsOfTool(name).includes('schedule');
 
-type Chunk = llm.ChatChunk | string | object;
-
 export function actionClaimGuardEnabled(env: Env = process.env): boolean {
   return flagOn('ACTION_CLAIM_GUARD', env);
+}
+
+/** Also check plain past reports ("I booked it.") against the tools (action-claims.ts pastClaim). */
+export function actionClaimPastEnabled(env: Env = process.env): boolean {
+  return flagOn('ACTION_CLAIM_PAST', env);
 }
 
 /** Stream turns with no action in play (off: every turn holds, as before). */
 export function actionClaimStreamEnabled(env: Env = process.env): boolean {
   return flagOn('ACTION_CLAIM_STREAM', env);
-}
-
-function contentOf(chunk: Chunk): string | undefined {
-  if (typeof chunk === 'string') return chunk;
-  const delta = (chunk as Partial<llm.ChatChunk> | null)?.delta;
-  if (delta === undefined || (delta.toolCalls?.length ?? 0) > 0) return undefined;
-  return delta.content ?? '';
 }
 
 function toolNamesOf(chunk: Chunk): string[] {
@@ -197,47 +196,54 @@ export async function withActionClaimCheck<T>(
   reply: Promise<T> | T,
   chatCtx: { items: readonly unknown[] },
   tools: { functionTools?: Record<string, unknown> },
-  caller: string | { personaId?: string; userId?: string; calls?: CallRecords } = 'ferni',
+  caller: string | ({ userId?: string; calls?: CallRecords } & HouseFactsWho) = 'ferni',
   env: Env = process.env
 ): Promise<T> {
   const who = typeof caller === 'string' ? { personaId: caller } : caller;
+  // How long the first words wait here, for the TURN_RECEIPT (turn-timing.ts).
+  const firstWords = turnHoldTimer(sessionIdIn(caller), 'actionClaim');
   // Asked "how did it go with my dad?": where that requested call stands, read alongside the reply.
   const words = lastCallerWords(chatCtx);
   const calls = who.calls ?? firestoreCallRecords;
   const asked = actionClaimGuardEnabled(env)
     ? askedCallLookup(words, who.userId, calls)
     : undefined;
-  const checked = await checkActionClaims(reply, chatCtx, tools, env, asked);
+  // House facts read the model's own words, before the claim check re-splits "SITE.AI" at the capital.
+  const facts = withHouseFactsGuard(reply, chatCtx, env, who);
+  const checked = await checkActionClaims(facts, chatCtx, tools, env, asked, firstWords);
   return withCallerVoiceGuard(checked, env, who.personaId ?? 'ferni');
 }
 
-/** The claim check alone; withActionClaimCheck also runs the caller voice guard after it. */
+/** The claim check alone; withActionClaimCheck runs the house facts guard before it, the caller voice guard after. */
 async function checkActionClaims<T>(
   reply: Promise<T> | T,
   chatCtx: { items: readonly unknown[] },
   tools: { functionTools?: Record<string, unknown> },
   env: Env,
-  askedLookup?: Promise<AskedCallStatus>
+  askedLookup?: Promise<AskedCallStatus>,
+  firstWords?: ReturnType<typeof turnHoldTimer>
 ): Promise<T> {
   const stream = await reply;
   // Either way the reply is also tapped for "I'll check" with no tool call (announced-check.ts).
   if (stream === null || stream === undefined) return stream;
   if (!actionClaimGuardEnabled(env)) return withAnnouncedCheckLog(stream, tools, env);
   const reader = (stream as unknown as ReadableStream<Chunk>).getReader();
-  const { done, failed, awaiting, elsewhere, held, heldWhen } = callActions(chatCtx);
+  const { done, failed, awaiting, elsewhere, held, heldWhen }: SeenActions = callActions(chatCtx);
+  const grounded = flagOn('GROUNDED_CLAIMS', env); // claims stand only on a tool's run
   // A plain yes to the read-back: the tool sends on its next call, so the claim may stand.
   const yesTurn = isClearYes(lastCallerWords(chatCtx));
   const toolNames = Object.keys(tools.functionTools ?? {});
-  const open = new Set(toolNames.flatMap(kindsOfTool));
+  const open = new Set<ClaimKind>(toolNames.flatMap(kindsOfTool));
+  if (toolNames.some(isLookupTool)) open.add('lookup');
   // Only a calendar create can make "on your calendar" false here; other bookings are not held (#1547).
   const calendarCreateOpen = toolNames.some(isCalendarCreate);
   const hold = !actionClaimStreamEnabled(env) || actionInPlay(chatCtx);
   const isEmergency = emergencyCheck(chatCtx);
   // A story of how a call went that no result came back from (call-narration.ts).
   const callRan = [done, awaiting, failed, held].some((kinds) => kinds.has('call'));
-  const unheard = callOutcomeUnheard(chatCtx, callRan, await askedLookup);
+  const unheard = callOutcomeUnheard(chatCtx, callRan, await askedLookup, grounded);
   /** Why a claim of this kind is false, or null when it may stand. */
-  const missing = (kind: ActionKind, calling: ReadonlySet<ActionKind>): MissReason | null =>
+  const missing = (kind: ClaimKind, calling: Kinds): MissReason | null =>
     !open.has(kind)
       ? 'no_tool'
       : failed.has(kind)
@@ -253,43 +259,60 @@ async function checkActionClaims<T>(
                 : null;
   // A tool that ran since the caller last spoke already answers a promise of its kind.
   const ranThisTurn = kindsRunThisTurn(chatCtx);
+  const before: Kinds = claimsFromBefore(chatCtx); // a call result in the conversation, or asked
   /** Why a promise ("I'll text him") is not kept yet, or null when it may stand (action-promises.ts). */
-  const unkept = (kind: ActionKind, calling: ReadonlySet<ActionKind>): MissReason | null =>
+  const unkept = (kind: ClaimKind, calling: Kinds): MissReason | null =>
     calling.has(kind) || ranThisTurn.has(kind) || (awaiting.has(kind) && !yesTurn)
       ? null // its tool runs in this reply, ran this turn, or this is the read-back
       : (missing(kind, calling) ?? 'promised');
+  /** Why a plain past report ("I sent it.") is false, or null: no tool open, or its latest run went out. */
+  const unrun = (kind: ClaimKind, calling: Kinds): MissReason | null =>
+    !open.has(kind) || calling.has(kind) || done.has(kind)
+      ? null
+      : (missing(kind, calling) ?? 'uncalled');
+  /** GROUNDED_CLAIMS: a held call or message claim with no run of its tool behind it. */
+  const unbacked = (kind: ClaimKind, calling: Kinds): MissReason | null => {
+    const ran = [calling, ranThisTurn, done, awaiting, before].some((kinds) => kinds.has(kind));
+    return grounded && hold && (kind === 'call' || kind === 'send') && !ran ? 'uncalled' : null;
+  };
   /**
    * What one sentence claims or promises, and why that is false (reason null: it may stand).
    * An emergency claim is judged first, so "I'll call 911 for you" never becomes an offer.
    */
-  const judge = (
-    text: string,
-    calling: ReadonlySet<ActionKind>
-  ): {
-    kind: ActionKind | null;
-    reason: MissReason | null;
-    claimed: ActionKind | null;
-    promised: ActionKind | null;
-  } => {
+  const judge = (text: string, calling: Kinds) => {
     if (isEmergency(text))
-      return { kind: 'call', reason: 'emergency', claimed: 'call', promised: null };
+      return { kind: 'call', reason: 'emergency', claimed: 'call', promised: null } as const;
     // On the yes to a call, "I'm on it" says the call is under way too.
-    const claimed = claimedAction(text) ?? (ahead('call') && bareOnIt(text) ? 'call' : null);
+    const onIt = ahead('call') && bareOnIt(text) ? 'call' : null;
+    const claimed = claimedAction(text) ?? reportsBack(text, env) ?? onIt;
     // "I'll text him then": a promise only a tool call in this reply keeps (action-promises.ts).
-    const promised = hold ? promisedAction(text) : null;
-    const kind = claimed ?? promised;
-    const reason = !kind ? null : claimed ? missing(kind, calling) : unkept(kind, calling);
+    const promised = hold ? promisedAction(text, env) : null;
+    // "I booked it.": only with its tool open and none run, in this reply or earlier on the call.
+    const past = !claimed && actionClaimPastEnabled(env) ? pastClaim(text) : null;
+    const lookup = grounded && !claimed && !past && !promised ? lookupKind(text, hold) : null;
+    const kind = claimed ?? past ?? promised ?? lookup;
+    const reason = !kind
+      ? null
+      : claimed
+        ? (missing(kind, calling) ?? unbacked(kind, calling))
+        : past
+          ? unrun(past, calling)
+          : unkept(kind, calling);
     return { kind, reason, claimed, promised };
   };
   /** A call claimed on the yes, before the call tool has said whether anything rang. */
-  const ahead = (kind: ActionKind): boolean => kind === 'call' && yesTurn && awaiting.has(kind);
+  const ahead = (kind: ClaimKind): boolean => kind === 'call' && yesTurn && awaiting.has(kind);
   // FIRST_CLAUSE_FLUSH: a held reply's first clause goes early when it names no action (first-clause-flush.ts).
   const firstClause = new FirstClauseFlush(hold && firstClauseFlushEnabled(env));
-  const clauseSafe = clauseSafeFor(ahead('call'), unheard, (c) => ACTION_TALK.test(plain(c)));
+  const talk = (c: string): boolean =>
+    ACTION_TALK.test(plain(c)) || (grounded && !!lookupKind(c, true));
+  const clauseSafe = clauseSafeFor(ahead('call'), unheard, talk);
   let id = '';
   let stringChunks = true;
-  const out = (text: string): Chunk =>
-    stringChunks ? text : { id, delta: { role: 'assistant', content: text } };
+  const out = (text: string): Chunk => {
+    firstWords?.stop(); // the first words out of the guard
+    return stringChunks ? text : { id, delta: { role: 'assistant', content: text } };
+  };
   const guarded = new ReadableStream<Chunk>({
     async start(controller) {
       let pending = '';
@@ -302,7 +325,7 @@ async function checkActionClaims<T>(
       // `afterWords`: something was already said before the claim this reply.
       let deferred:
         | {
-            kind: ActionKind;
+            kind: ClaimKind;
             reason: MissReason;
             text?: string;
             offer?: string;
@@ -311,8 +334,8 @@ async function checkActionClaims<T>(
         | undefined;
       // Held sentences that follow an uncalled claim, released in order once the claim resolves.
       const queued: string[] = [];
-      let early: ActionKind | undefined; // a call claimed ahead of its tool's result
-      const calling = new Set<ActionKind>();
+      let early: ClaimKind | undefined; // a call claimed ahead of its tool's result
+      const calling = new Set<ClaimKind>();
       let calendarCalled = false; // a calendar create ran in this reply
       const emit = (raw: string): void => {
         const text = !last || /\s$/.test(last) ? raw.trimStart() : raw;
@@ -364,7 +387,7 @@ async function checkActionClaims<T>(
         const waits = reason === 'uncalled' || reason === 'promised';
         if (reason === 'failed' || reason === 'elsewhere' || (waits && hold)) {
           // An unkept promise is asked as an offer instead ("Want me to text him?").
-          const offer = reason === 'promised' ? offerFor(whole) : undefined;
+          const offer = reason === 'promised' ? offerFor(whole, grounded) : undefined;
           deferred = {
             kind,
             reason,
@@ -381,7 +404,7 @@ async function checkActionClaims<T>(
       };
       /** A story of how an unheard call went: dropped, and said honestly once. */
       const told = (text: string): boolean => {
-        if (!unheard || !narratesCallOutcome(text, unheard.askedHow)) return false;
+        if (!unheard?.tells(text)) return false;
         log.warn({ kind: 'call', reason: 'unheard', held: hold }, 'ACTION_CLAIM_DROPPED');
         if (said) return true;
         said = true;
@@ -390,7 +413,7 @@ async function checkActionClaims<T>(
             ? askedCallLine(unheard.asked) // the call they asked about: where it stands
             : held.has('call')
               ? honestLine('call', 'held', false, heldWhen)
-              : UNHEARD_LINE;
+              : unheardLine(grounded, callRan);
         emit(hold ? line : `Scratch that, ${line}`);
         lineLast = true;
         return true;
@@ -411,6 +434,7 @@ async function checkActionClaims<T>(
               firstClause.close();
             }
             for (const name of names) kindsOfTool(name).forEach((k) => calling.add(k));
+            if (names.some(isLookupTool)) calling.add('lookup'); // a look-up keeps "let me look"
             if (names.some(isCalendarCreate)) calendarCalled = true;
             // A create came after the claim. A create only saves to Ferni's own list (#1547), so the
             // claim is still false: the honest line replaces it, and what followed goes out after.
@@ -430,6 +454,7 @@ async function checkActionClaims<T>(
             stringChunks = false;
             id = (chunk as llm.ChatChunk).id ?? id;
           }
+          if (content) firstWords?.start(); // the model's first words in
           pending += content;
           for (let end = sentenceEnd(pending); end > 0; end = sentenceEnd(pending)) {
             if (!hold) pass(pending.slice(passed, end)); // the rest of this sentence, then any correction
@@ -449,6 +474,7 @@ async function checkActionClaims<T>(
             deferred.offer ?? honestLine(deferred.kind, deferred.reason, open.has('reminder'));
           // The held words after the claim go with its line, unless a call claimed early speaks next.
           const after = early ? [] : queued.splice(0);
+          if (deferred.kind === 'lookup' && !deferred.offer) after.length = 0; // what "I checked" found
           for (const text of inPlace(line, deferred.afterWords, after)) emit(text);
         }
         // A yes the reply never acted on: nothing rang, so ask again.

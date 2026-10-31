@@ -10,6 +10,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { v4 as uuidv4 } from 'uuid';
 import type { MemoryLink, MemoryLinkType, MemoryLinkInput } from '../types.js';
 import { LINK_TYPE_CONFIGS } from './link-types.js';
+import { getFirestoreDatabase } from '../../../config/environment.js';
 
 const log = createLogger({ module: 'FirestoreLinks' });
 
@@ -81,7 +82,7 @@ export class FirestoreLinkStore {
   constructor(config?: FirestoreLinkConfig) {
     this.config = {
       projectId: config?.projectId || process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: config?.databaseId || process.env.FIRESTORE_DATABASE || '(default)',
+      databaseId: config?.databaseId || getFirestoreDatabase(),
     };
   }
 

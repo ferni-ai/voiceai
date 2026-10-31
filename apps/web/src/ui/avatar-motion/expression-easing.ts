@@ -12,15 +12,14 @@
  * - a held expression returns to the mood baseline (the last resting mood)
  *   instead of neutral.
  *
- * Off by default. Turn on: localStorage.setItem('ferni:weighted-easing', 'true')
+ * Off by default: the weightedEasing switch in config/motion-flags.ts.
  */
 
 import { DURATION } from '../../config/animation-constants.js';
+import { isMotionFlagOn } from '../../config/motion-flags.js';
 import { createLogger } from '../../utils/logger.js';
 
 const log = createLogger('ExpressionEasing');
-
-export const WEIGHTED_EASING_FLAG_KEY = 'ferni:weighted-easing';
 
 export type ExpressionWeight = 'heavy' | 'neutral' | 'light';
 
@@ -86,12 +85,7 @@ const MOODS = new Set<string>([
 let moodBaseline = 'neutral';
 
 export function isWeightedEasingEnabled(): boolean {
-  try {
-    return localStorage.getItem(WEIGHTED_EASING_FLAG_KEY) === 'true';
-  } catch (error) {
-    log.debug('Weighted easing flag unreadable, treating as off', { error });
-    return false;
-  }
+  return isMotionFlagOn('weightedEasing');
 }
 
 export function prefersReducedMotion(): boolean {

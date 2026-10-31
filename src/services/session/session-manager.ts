@@ -44,6 +44,7 @@ import { MAX_HUMANIZING_UPDATES, SUMMARIZE_TIMEOUT_MS } from './constants.js';
 import { trackDeferredProfileLoad, trackJsonReply, withTimeout } from './utils.js';
 import { shouldSkipProfileForSilentCall } from './silent-call.js';
 import { validateUserId } from './validation.js';
+import { loadSessionProfile, savable } from './load-session-profile.js';
 
 // Real-time memory - persist turns as they happen, never lose data
 import * as realtimeMemory from '../memory/realtime-memory.js';
@@ -136,11 +137,6 @@ import { getContextManager, removeContextManager } from '../../context/index.js'
 import {
   buildSpeechContext,
   getSessionWPMTracker,
-  tagAdvice,
-  tagStory,
-  tagSupportResponse,
-  tagTextWithSsmlAdaptive,
-  tagWrapUp,
 } from '../../speech/index.js';
 
 // Local imports
@@ -151,6 +147,7 @@ import type { CreateSessionOptions, SessionServices } from '../types.js';
 
 // Handoff state (per-session, not global)
 import { createHandoffState, initializeFromPersistedData } from '../handoff/handoff-state.js';
+import { personasVisitedOf, startPersonaOf } from './active-persona.js';
 
 // Intelligence persistence - unified save/load for all learning engines
 import {
@@ -259,38 +256,7 @@ export async function createSessionServices(
   const validatedUserId = validateUserId(userId);
 
   const loadProfileForSession = async (profileUserId: string): Promise<UserProfile | null> => {
-    // ⚡ PERFORMANCE: Use Redis-backed profile cache for faster session start
-    // Cache hit: ~5-20ms vs Firestore: ~100-500ms
-    const { getProfileWithCache, cacheProfile, invalidateProfile } =
-      await import('../data-layer/profile-cache.js');
-
-    // BLOCKING: Load profile with cache-through pattern (Redis → Firestore)
-    userProfile = await getProfileWithCache(profileUserId, async (uid) => {
-      return global.store.getProfile(uid);
-    });
-
-    const warnUnsaved = (e: unknown) => getLogger().warn({ error: String(e) }, 'Profile not saved');
-    if (!userProfile) {
-      const { createUserProfile } = await import('../../types/user-profile.js');
-      // CRITICAL: Pass userName from onboarding so Ferni remembers their name!
-      userProfile = createUserProfile(profileUserId, userName);
-      // Never fatal: a refused write (synthetic-write-guard) must not end the call
-      await global.store.saveProfile(userProfile).catch(warnUnsaved);
-      void cacheProfile(profileUserId, userProfile);
-      getLogger().info(
-        { userId: profileUserId, name: userName || '(none)' },
-        '🆕 Created new user profile with name from onboarding'
-      );
-    } else if (!userProfile.name && userName) {
-      // Existing profile without a name, but we now have one - update it!
-      userProfile.name = userName;
-      await global.store.saveProfile(userProfile).catch(warnUnsaved);
-      void invalidateProfile(profileUserId);
-      getLogger().info(
-        { userId: profileUserId, name: userName },
-        '✨ Updated existing profile with name from onboarding'
-      );
-    }
+    userProfile = await loadSessionProfile(global.store, profileUserId, userName);
     markCallStageSoon(sessionId, 'profile_ready');
     return withSessionsTogether(profileUserId, userProfile); // one count of sessions together
   };
@@ -354,13 +320,6 @@ export async function createSessionServices(
       onSessionStartUnified(validatedUserId, sessionId).catch(() => {
         /* Non-critical */
       });
-
-      // Pre-warm embeddings (background)
-      import('../../agents/shared/performance/session-optimizations.js')
-        .then(async ({ optimizeSessionStart }) => optimizeSessionStart(sessionId, validatedUserId))
-        .catch(() => {
-          /* Non-critical */
-        });
     }
   } else if (validatedUserId && deferProfileLoad) {
     isReturningUser = false;
@@ -698,13 +657,12 @@ export async function createSessionServices(
     const autoSaveCallback = async (uid: string) => {
       const startTime = Date.now();
       try {
-        if (services.userProfile && !memoryHeld(sessionId)) {
-          // Export current intelligence state
-          const updatedProfile = applyIntelligenceToProfile(services.userProfile, uid);
+        const current = savable(services.userProfile); // a stand-in (failed read) never saves
+        if (current && !memoryHeld(sessionId)) {
+          const updatedProfile = applyIntelligenceToProfile(current, uid); // + intelligence state
           services.userProfile = updatedProfile;
 
-          // Save to store
-          await global.store.saveProfile(updatedProfile);
+          await (await import('./last-summary.js')).saveKept(global.store, updatedProfile, uid);
 
           const durationMs = Date.now() - startTime;
           persistenceMetrics.recordAutoSave(sessionId, durationMs);
@@ -1076,31 +1034,6 @@ export async function createSessionServices(
       });
     },
 
-    tagWithSsml: (text: string) => {
-      const speechContext = services.getSpeechContext(text);
-      const state = stateMachine.getState();
-      const textLower = text.toLowerCase();
-
-      const storyPatterns =
-        /\b(i remember|back in|when i was|years ago|one time|there was|let me tell you|i'll never forget|i once|my father|back at the firm|in 1987|in 2008)\b/i;
-      const isStory = storyPatterns.test(textLower);
-
-      if (isStory) {
-        return tagStory(text, speechContext, personaId);
-      }
-
-      switch (state.phase) {
-        case 'supporting':
-          return tagSupportResponse(text, speechContext, personaId);
-        case 'advising':
-          return tagAdvice(text, speechContext, personaId);
-        case 'wrapping_up':
-          return tagWrapUp(text, speechContext, personaId);
-        default:
-          return tagTextWithSsmlAdaptive(text, speechContext, personaId);
-      }
-    },
-
     // ========================================================================
     // MEMORY METHODS
     // ========================================================================
@@ -1276,7 +1209,6 @@ export async function createSessionServices(
               // 📊 OBSERVABILITY: Track breakthrough questions
               getLogger().info(
                 {
-                  questionPattern: questionAsked.slice(0, 80),
                   personaId,
                   topic,
                   engagement: signal.engagementScore.toFixed(2),
@@ -1555,7 +1487,7 @@ export async function createSessionServices(
      */
     saveProfile: async () => {
       // CRITICAL FIX: services.userProfile, not the stale closure (it misses endSession updates)
-      const profileToSave = services.userProfile;
+      const profileToSave = savable(services.userProfile); // never a stand-in (failed read)
       if (profileToSave && validatedUserId && !memoryHeld(sessionId)) {
         try {
           const history = historyTracker.getSessionHistory();
@@ -1609,7 +1541,7 @@ export async function createSessionServices(
             );
           }
 
-          await global.store.saveProfile(updated);
+          await (await import('./last-summary.js')).saveKept(global.store, updated, validatedUserId);
           services.userProfile = updated;
 
           getLogger().info(
@@ -1840,8 +1772,8 @@ export async function createSessionServices(
           }
 
           if (summary?.callerProvenance || summary?.keyPoints?.length) {
-            updatedProfile.lastConversationSummary = summary.keyPoints.slice(0, 2).join('; ');
-            if (summary.callerProvenance) updatedProfile.lastCallerSummary = updatedProfile.lastConversationSummary;
+            const { applyCheckedSummary } = await import('./last-summary.js'); // #2744 #2767
+            await applyCheckedSummary(updatedProfile, summary, validatedUserId);
           } else if (turns.length > 0) {
             // Always save a basic summary, so a returning user is recognized without the LLM
             const fallback = realtimeMemory.buildQuickSummary(turns, 50); // '' when only filler
@@ -2008,8 +1940,7 @@ export async function createSessionServices(
           }
 
           // ================================================================
-          // 🧠 HUMAN MEMORY: Extract relationship signals from conversation
-          // Dates, values, dreams, fears, growth markers, comfort patterns...
+          // 🧠 HUMAN MEMORY: relationship signals (dates, values, dreams, fears, growth, comfort)
           // ================================================================
           try {
             const { extractHumanSignals, mergeSignalsIntoMemory } =
@@ -2018,7 +1949,7 @@ export async function createSessionServices(
             if (turns.length > 0) {
               const signals = extractHumanSignals(turns, {
                 userId: validatedUserId,
-                personaId: services.personaId || 'ferni',
+                personaId: startPersonaOf(services), // unread by the extractor
                 userName: userProfile.preferredName || userProfile.name,
                 existingMemory: updatedProfile.humanMemory,
                 sessionEmotion: summary?.emotionalArc,
@@ -2141,14 +2072,14 @@ export async function createSessionServices(
             getLogger().debug({ error: String(indexErr) }, 'User memory indexer not available');
           }
 
-          // 📤 Analyze session for proactive outreach opportunities
-          // This extracts commitments, detects emotional state, and creates outreach triggers
+          // 📤 Outreach: commitments, emotional state and follow-up triggers from the call
           try {
             const { analyzeSessionForOutreach } = await import('../outreach/session-integration.js');
             const outreachResult = await analyzeSessionForOutreach({
               userId: validatedUserId,
               sessionId,
-              personaId: services.personaId || 'ferni',
+              personaId: startPersonaOf(services), // follow-ups stay with it (S2 decides owners)
+              personasVisited: personasVisitedOf(services), // the Maya habit check reads it
               turns: turns.map((t) => ({
                 role: t.role as 'user' | 'assistant',
                 content: t.content,
@@ -2369,13 +2300,6 @@ export async function createSessionServices(
           void onSessionStartUnified(validatedUserId, sessionId).catch(() => {
             /* Non-critical */
           });
-          void import('../../agents/shared/performance/session-optimizations.js')
-            .then(async ({ optimizeSessionStart }) =>
-              optimizeSessionStart(sessionId, validatedUserId)
-            )
-            .catch(() => {
-              /* Non-critical */
-            });
         }
 
         getLogger().info(

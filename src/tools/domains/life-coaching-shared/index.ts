@@ -31,6 +31,7 @@ export * from './content-databases.js';
 
 // Safety guards
 export * from './safety-guards.js';
+export * from './helplines.js';
 
 // Analytics
 export * from './analytics.js';

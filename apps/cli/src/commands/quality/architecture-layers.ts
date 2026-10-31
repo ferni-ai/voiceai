@@ -4,7 +4,8 @@
  *
  * Target (approved 2026-10-11), dependencies pointing inward:
  *   L5 Experiences    web/API routes, phone, job and worker entrypoints     → may import anything
- *   L4 Orchestration  call session, turn pipeline, after-call use cases, flags → L4..L1
+ *   L4 Orchestration  call session, turn pipeline, after-call use cases, flags → L4..L1;
+ *                     a context only via its index.ts (L5 too: `orchestration-internal`)
  *   L3 Capabilities   the 10 CONTEXTS below; another context only via its index.ts → L3, L2
  *   L2 Shared kernel  Persona, User, Relationship, Turn, Moment, Time, domain events → L2
  *   L1 Platform       LiveKit, STT, TTS, LLM, Firestore, Redis, telemetry adapters → L1, L2, L3 ports
@@ -60,6 +61,7 @@ export const LAYER_MAP: Record<string, string> = {
   ...under('src', 'L3:memory', ['intelligence/memory-intelligence', 'intelligence/superhuman-memory', 'conversation/conversational-memory']),
   ...under('src', 'L3:memory', ['conversation/proactive-memory', 'services/memory', 'services/memory-lane', 'services/visual-memory', 'services/voice-memory']),
   ...under('src', 'L3:understanding', ['intelligence', 'conversation']),
+  'src/understanding': 'L3:understanding', // the turn reading (schema, readers, teacher)
   ...under('src/services', 'L3:understanding', ['context-awareness', 'semantic', 'cognitive-intelligence', 'intelligence', 'conversation-thread']),
   ...under('src/services', 'L3:understanding', ['world-awareness', 'language']),
   ...under('src/conversation', 'L3:affect', ['emotional-arc', 'concern-detection']),

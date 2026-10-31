@@ -25,6 +25,11 @@ describe('isMemberIdentity', () => {
     ['third party on a call placed for a member', 'onbehalf:call-123'],
     ['third party, upper case', 'ONBEHALF:call-123'],
     ['placeholder in upper case', 'SHARED'],
+    // Shared buckets that `ctx.userId || 'anon'` (43 sites) and the tool gateway wrote under.
+    ['bare anon fallback', 'anon'],
+    ['session fallback', 'session'],
+    ['tool gateway placeholder', 'gateway'],
+    ['tool gateway recovery placeholder', 'gateway-recovery'],
   ])('refuses %s', (_label, id) => {
     expect(isMemberIdentity(id)).toBe(false);
   });

@@ -9,9 +9,10 @@
  * @module services/experiments/variant-library
  */
 
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = createLogger({ module: 'VariantLibrary' });
 
@@ -323,7 +324,7 @@ export function getVariantIds(experimentId: string): string[] {
  * (Could be updated by auto-optimizer when a winner ships)
  */
 export async function getCurrentDefault(experimentId: string): Promise<string> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
 
   try {
     const doc = await db.collection('variant_library').doc(experimentId).get();
@@ -342,7 +343,7 @@ export async function getCurrentDefault(experimentId: string): Promise<string> {
  * Set the current default variant (called when a winner ships)
  */
 export async function setCurrentDefault(experimentId: string, variantId: string): Promise<void> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
 
   await db
     .collection('variant_library')
@@ -370,7 +371,7 @@ export async function addCustomVariant(
   variantId: string,
   content: unknown
 ): Promise<void> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
 
   await db
     .collection('variant_library')
@@ -392,7 +393,7 @@ export async function addCustomVariant(
  * Get all custom variants for an experiment
  */
 export async function getCustomVariants(experimentId: string): Promise<Record<string, unknown>> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
 
   const snapshot = await db
     .collection('variant_library')

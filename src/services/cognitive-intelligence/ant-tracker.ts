@@ -9,11 +9,12 @@
  * @module ANTTracker
  */
 
-import admin from 'firebase-admin';
-import { getGCPProjectId } from '../../config/environment.js';
+import type admin from 'firebase-admin';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { CognitiveDistortion, DistortionDetection } from './distortion-detector.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
+import { writeHeld } from '../../utils/minor-care.js';
 
 const log = getLogger().child({ module: 'ant-tracker' });
 
@@ -39,17 +40,7 @@ function getFirestore(): admin.firestore.Firestore | null {
   initAttempted = true;
 
   try {
-    if (admin.apps.length === 0) {
-      const projectId = getGCPProjectId();
-
-      if (projectId) {
-        admin.initializeApp({ projectId });
-      } else {
-        admin.initializeApp();
-      }
-    }
-
-    firestoreInstance = admin.firestore();
+    firestoreInstance = getAdminFirestore();
     log.info('✅ Firestore initialized for ANT tracker');
     return firestoreInstance;
   } catch (error) {
@@ -330,17 +321,11 @@ export async function loadUserANTData(
 // CORE FUNCTIONS
 // ============================================================================
 
-/**
- * Record a new ANT entry.
- */
+/** Record a new ANT entry (MINOR_CARE: for a caller under 18, kept nowhere). */
 export function recordANT(
   userId: string,
   detection: DistortionDetection,
-  options?: {
-    topic?: string;
-    emotionalContext?: string;
-    intensity?: number;
-  }
+  options?: { topic?: string; emotionalContext?: string; intensity?: number; sessionId?: string }
 ): ANTEntry {
   const entry: ANTEntry = {
     id: `ant_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -355,6 +340,7 @@ export function recordANT(
     reframeAccepted: undefined,
   };
 
+  if (writeHeld(userId, options?.sessionId)) return entry; // their thinking patterns, trigger words
   // Store entry in cache
   if (!antEntries.has(userId)) {
     antEntries.set(userId, []);

@@ -10,6 +10,7 @@
  * @module intelligence/context-builders/personas/maya-coaching-insights
  */
 
+import { loadBriefingStores } from '../briefing-stores.js';
 import { getHabitCalendarContextForBuilder } from '../../../../services/habits/habit-calendar-integration.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import {
@@ -49,6 +50,7 @@ import type {
   MemoryInsights,
   MoodIntelligence,
 } from './types.js';
+import { isMemberIdentity } from '../../../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'context:maya-coaching-insights' });
 
@@ -60,6 +62,7 @@ export { clearMayaCoachingSession };
 // ============================================================================
 
 async function buildMayaBriefing(userId: string): Promise<MayaInsightBriefing> {
+  await loadBriefingStores(userId);
   // Default fallback values for graceful degradation
   const defaultHabitHealth: HabitHealthSummary = {
     activeHabits: 0,
@@ -78,7 +81,6 @@ async function buildMayaBriefing(userId: string): Promise<MayaInsightBriefing> {
   const defaultMoodIntelligence: MoodIntelligence = {
     recentMoodTrend: 'unknown',
     averageEnergy: 5,
-    optimalCoachingTime: null,
     moodHabitCorrelations: [],
     currentState: null,
     energyPatterns: [],
@@ -144,17 +146,11 @@ async function buildMayaBriefing(userId: string): Promise<MayaInsightBriefing> {
       `${Math.round(habitHealth.averageSuccessRate * 100)}% overall success rate - excellent!`
     );
   }
-  if (coachingMetrics.momentumScore > 70) {
-    winsToCelebrate.push('Momentum is strong - energy is building');
-  }
 
   // Identify struggles
   const strugglesToAddress = habitHealth.recentSetbacks.map(
     (name) => `"${name}" streak broke - needs gentle restart`
   );
-  if (coachingMetrics.consistencyIndex < 40) {
-    strugglesToAddress.push('Overall consistency needs support');
-  }
 
   return {
     habitHealth,
@@ -183,14 +179,12 @@ async function buildMayaCoachingInsightsContext(
 
   // Only for Maya
   const currentPersona = (services as { personaId?: string })?.personaId || '';
-  const isMaya = ['maya', 'maya-santos', 'habits-coach'].includes(
-    currentPersona.toLowerCase()
-  );
+  const isMaya = ['maya', 'maya-santos', 'habits-coach'].includes(currentPersona.toLowerCase());
 
   if (!isMaya) return injections;
 
   const userId = services?.userId || 'anonymous';
-  if (userId === 'anonymous') return injections;
+  if (!isMemberIdentity(userId)) return injections;
 
   const turnCount = userData?.turnCount ?? 0;
   const sessionId = services?.sessionId || userId;
@@ -210,6 +204,7 @@ async function buildMayaCoachingInsightsContext(
   try {
     const briefing = await buildMayaBriefing(userId);
     const briefingLines = formatMayaBriefing(briefing, handoffBriefing, turnCount);
+    if (briefingLines.length === 0) return injections; // nothing true to say
 
     // Get superhuman context (commitments, capacity, predictions)
     // V3 Semantic Intelligence needs current conversation context
@@ -261,69 +256,6 @@ async function buildMayaCoachingInsightsContext(
     }
 
     const content = briefingLines.join('\n');
-
-    // 🤝 TEAM HUDDLE: Record Maya's observations for cross-persona intelligence
-    // This enables Ferni and other personas to know what Maya has noticed
-    try {
-      const { maya: mayaObserver } =
-        await import('../../../../services/cross-persona/observation-recorder.js');
-
-      // Record concerning patterns
-      if (briefing.habitHealth.atRiskCount > 0) {
-        mayaObserver.concern(
-          userId,
-          `${briefing.habitHealth.atRiskCount} habits at risk of breaking streak`,
-          0.8,
-          ['habits', 'streak', 'motivation']
-        );
-      }
-
-      // Record mood-related concerns
-      if (briefing.moodIntelligence.recentMoodTrend === 'declining') {
-        mayaObserver.concern(userId, 'Mood trend has been declining recently', 0.7, [
-          'mood',
-          'energy',
-          'wellbeing',
-        ]);
-      }
-
-      // Record positive patterns
-      if (briefing.coachingMetrics.momentumScore > 70) {
-        mayaObserver.pattern(
-          userId,
-          `Strong momentum score (${briefing.coachingMetrics.momentumScore}/100)`,
-          0.8,
-          ['habits', 'momentum', 'progress']
-        );
-      }
-
-      // Record milestones
-      if (briefing.habitHealth.longestStreak && briefing.habitHealth.longestStreak.days >= 7) {
-        mayaObserver.milestone(
-          userId,
-          `${briefing.habitHealth.longestStreak.days}-day streak on ${briefing.habitHealth.longestStreak.name}`,
-          0.9,
-          ['habits', 'streak', 'achievement']
-        );
-      }
-
-      // Record opportunities
-      if (briefing.proactiveTriggers.length > 0) {
-        const topTrigger = briefing.proactiveTriggers[0];
-        // Map priority to confidence: high=0.9, medium=0.7, low=0.5
-        const confidenceMap: Record<string, number> = { high: 0.9, medium: 0.7, low: 0.5 };
-        mayaObserver.opportunity(
-          userId,
-          topTrigger.message || 'Coaching opportunity detected',
-          confidenceMap[topTrigger.priority] || 0.7,
-          undefined, // suggestedAction not available on this ProactiveTrigger type
-          ['habits', 'coaching']
-        );
-      }
-    } catch (err) {
-      // Non-critical - don't block if observation recording fails
-      log.debug({ error: String(err) }, 'Failed to record Maya observations (non-blocking)');
-    }
 
     if (isHandoff) {
       injections.push(

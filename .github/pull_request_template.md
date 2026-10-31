@@ -18,6 +18,7 @@
 - [ ] Ran `npm run quality` (typecheck + lint + test)
 - [ ] Tested locally in browser
 - [ ] Added/updated tests
+- [ ] Saw each new test fail: broke the code it covers, or ran it on main (say how)
 - [ ] Tested with voice agent
 
 ## Checklist

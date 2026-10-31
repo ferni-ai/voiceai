@@ -12,6 +12,7 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
+import { flagOn } from '../../../config/env-flag.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
@@ -29,6 +30,33 @@ const NO_GUESS =
   "If they asked about something live (a score, a price, opening hours, a travel time, a place nearby), say you couldn't find it rather than guess.";
 
 /**
+ * NO_INVENTED_INTERNALS=on: a failed search says so in a shape the model can't
+ * read as an answer, with what to say next. On #2223's call a "No results"
+ * was followed by two minutes of made-up backend (no-invented-internals.ts).
+ */
+const NO_FILL_IN =
+  "Tell them in your own words that it didn't work and offer another way; don't guess at why, or describe how your search works.";
+function searchFailed(status: 'no_results' | 'error' | 'unconfigured', text: string): string {
+  const internals = flagOn('NO_INVENTED_INTERNALS');
+  // unconfigured is always typed: it is the one the model read as "nothing exists".
+  if (!internals && status !== 'unconfigured') return text;
+  return `[status: ${status}] ${text}${internals ? ` ${NO_FILL_IN}` : ''}`;
+}
+
+/**
+ * WEB_SEARCH_HONEST_FALLBACK=on. With WEB_SEARCH off there is no web search, only
+ * DuckDuckGo's Instant Answers (encyclopedia abstracts). On the 2026-10-30 dev
+ * sweep it said "No results" 6 of 6 times (a drive time, a Thai place, a fare, a
+ * movie, Mars weather), and after one the model gave "usually forty-five
+ * minutes to an hour" anyway. An empty instant answer proves nothing doesn't
+ * exist, so it says the search isn't available and that it doesn't know.
+ */
+export const NO_ESTIMATE =
+  "Don't guess or estimate: no time, distance, price, score or 'usually about' figure from memory.";
+export const CANT_SEARCH = `I can't search the web right now, so I couldn't find that and I don't know. Say so plainly. ${NO_ESTIMATE}`;
+const honestFallback = (): boolean => flagOn('WEB_SEARCH_HONEST_FALLBACK');
+
+/**
  * Search the web using DuckDuckGo Instant Answer API
  */
 export async function searchWeb(query: string): Promise<string> {
@@ -39,7 +67,8 @@ export async function searchWeb(query: string): Promise<string> {
     );
 
     if (!response.ok) {
-      return `I couldn't search for that right now.`;
+      if (honestFallback()) return searchFailed('unconfigured', CANT_SEARCH);
+      return searchFailed('error', `I couldn't search for that right now.`);
     }
 
     const data = (await response.json()) as {
@@ -49,19 +78,23 @@ export async function searchWeb(query: string): Promise<string> {
       Heading?: string;
     };
 
-    if (data.AbstractText) {
+    const abstract = data.AbstractText?.trim();
+    if (abstract) {
       const source = data.AbstractSource ? ` (via ${data.AbstractSource})` : '';
-      return data.AbstractText.slice(0, 600) + source;
+      return abstract.slice(0, 600) + source;
     }
 
-    if (data.RelatedTopics?.[0]?.Text) {
-      return data.RelatedTopics[0].Text.slice(0, 600);
+    const related = data.RelatedTopics?.[0]?.Text?.trim();
+    if (related) {
+      return related.slice(0, 600);
     }
 
-    return `No results for "${query}". ${NO_GUESS}`;
+    if (honestFallback()) return searchFailed('unconfigured', CANT_SEARCH);
+    return searchFailed('no_results', `No results for "${query}". ${NO_GUESS}`);
   } catch (error) {
     getLogger().warn(`Web search error: ${error}`);
-    return `The search didn't work just now. ${NO_GUESS}`;
+    if (honestFallback()) return searchFailed('unconfigured', CANT_SEARCH);
+    return searchFailed('error', `The search didn't work just now. ${NO_GUESS}`);
   }
 }
 

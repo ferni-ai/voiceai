@@ -10,10 +10,11 @@
  */
 
 import { randomInt, timingSafeEqual } from 'node:crypto';
-import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { type Firestore } from 'firebase-admin/firestore';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { registerInterval } from '../../utils/interval-manager.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = getLogger().child({ module: 'VerificationStore' });
 
@@ -60,7 +61,7 @@ let firestoreInstance: Firestore | null = null;
 function getFirestoreInstance(): Firestore | null {
   if (!firestoreInstance) {
     try {
-      firestoreInstance = getFirestore();
+      firestoreInstance = getAdminFirestore();
     } catch {
       log.warn('Firestore not available - using in-memory fallback');
       return null;

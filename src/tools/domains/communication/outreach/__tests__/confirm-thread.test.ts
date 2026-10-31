@@ -86,9 +86,9 @@ function liveCall(speakerIsOwner: (() => boolean) | null = () => true) {
   const tool = withOutreachConfirmation(callDef, callSpec).create(ctx);
   return {
     /** The model calls the tool; its output then reaches the model. */
-    call: async (callId: string) => {
+    call: async (callId: string, purpose = 'check in') => {
       const out = await (tool as { execute: (a: unknown, o: unknown) => Promise<unknown> }).execute(
-        { contactQuery: 'Mom', purpose: 'check in' },
+        { contactQuery: 'Mom', purpose },
         { ctx: { session }, toolCallId: callId }
       );
       listeners.onToolsExecuted({ functionCalls: [{ callId }] });
@@ -171,7 +171,8 @@ describe('THREADS_PENDING_CONFIRM: no promise without a thread', () => {
     const call = liveCall();
     await call.call('c1');
     await vi.waitFor(() => expect(threads()).toHaveLength(1));
-    await call.call('c2'); // asked again before any answer: a new read-back
+    await call.call('c2'); // asked again before any answer: the same read-back, kept
+    await call.call('c3', 'say hi'); // a changed request: a new read-back
     await vi.waitFor(() => expect(threads().map((f) => f.status)).toEqual(['released', 'open']));
     expect(waitingOnYou(threads()[1])).toBe(true);
   });

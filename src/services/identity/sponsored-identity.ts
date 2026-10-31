@@ -17,10 +17,28 @@
 
 import admin from 'firebase-admin';
 import { PhoneInUseError } from './phone-in-use-error.js';
+import type { HolderProof } from './holder-proof.js';
+import { holderProofOf, keptHolderProof, withoutHolderProof } from './holder-proof.js';
 import { getGCPProjectId } from '../../config/environment.js';
 import { removeUndefined, cleanForFirestore, toSafeDate, toSafeDateOptional } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { normalizePhoneNumber, isValidPhoneNumber } from './user-identification.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
+import {
+  InvalidSponsoredIdentityUpdateError,
+  assertSponsorStatusMove,
+  parseSponsoredIdentityUpdate,
+  type AccessLevel,
+  type RelationshipType,
+  type SponsoredIdentityStatus,
+} from './sponsored-identity-update.js';
+
+export type {
+  AccessLevel,
+  RelationshipType,
+  SponsoredIdentityStatus,
+  UpdateSponsoredIdentityData,
+} from './sponsored-identity-update.js';
 
 const log = getLogger().child({ module: 'SponsoredIdentity' });
 
@@ -29,43 +47,9 @@ const log = getLogger().child({ module: 'SponsoredIdentity' });
 // ============================================================================
 
 /**
- * Relationship types for sponsored identities
- */
-export type RelationshipType =
-  | 'mother'
-  | 'father'
-  | 'parent'
-  | 'grandmother'
-  | 'grandfather'
-  | 'grandparent'
-  | 'sibling'
-  | 'child'
-  | 'spouse'
-  | 'partner'
-  | 'friend'
-  | 'other';
-
-/**
- * Access level for sponsored identities
- */
-export type AccessLevel =
-  | 'full' // Full access to all personas and features
-  | 'limited' // Limited to specific personas
-  | 'supervised'; // Sponsor gets notifications
-
-/**
- * Status of a sponsored identity
- */
-export type SponsoredIdentityStatus =
-  | 'active' // Normal active state
-  | 'pending' // Awaiting sponsor approval (self-registered)
-  | 'suspended' // Temporarily disabled
-  | 'revoked'; // Permanently revoked
-
-/**
  * Sponsored identity - represents a family member or friend who calls via phone
  */
-export interface SponsoredIdentity {
+export interface SponsoredIdentity extends HolderProof {
   /** Unique identifier */
   id: string;
 
@@ -139,20 +123,6 @@ export interface CreateSponsoredIdentityData {
 }
 
 /**
- * Data for updating a sponsored identity
- */
-export interface UpdateSponsoredIdentityData {
-  displayName?: string;
-  preferredName?: string;
-  relationship?: RelationshipType;
-  phoneNumber?: string;
-  accessLevel?: AccessLevel;
-  allowedPersonas?: string[];
-  notes?: string;
-  status?: SponsoredIdentityStatus;
-}
-
-/**
  * Result of a phone lookup
  */
 export interface PhoneLookupResult {
@@ -181,16 +151,7 @@ function getFirestore(): admin.firestore.Firestore | null {
   initAttempted = true;
 
   try {
-    if (admin.apps.length === 0) {
-      const projectId = getGCPProjectId();
-      if (projectId) {
-        admin.initializeApp({ projectId });
-      } else {
-        admin.initializeApp();
-      }
-    }
-
-    firestoreInstance = admin.firestore();
+    firestoreInstance = getAdminFirestore();
     return firestoreInstance;
   } catch (error) {
     log.warn({ error }, 'Firebase not available for sponsored identities');
@@ -250,16 +211,7 @@ export async function createSponsoredIdentity(
   await saveIdentity(identity);
   await savePhoneIndex(normalizedPhone, id);
 
-  log.info(
-    {
-      id,
-      sponsorUserId,
-      displayName: data.displayName,
-      relationship: data.relationship,
-      phone: normalizedPhone,
-    },
-    '✅ Created sponsored identity'
-  );
+  log.info({ id, sponsorUserId, relationship: data.relationship }, '✅ Created sponsored identity');
 
   return identity;
 }
@@ -319,12 +271,15 @@ export async function getSponsoredIdentities(sponsorUserId: string): Promise<Spo
 }
 
 /**
- * Update a sponsored identity.
+ * Update a sponsored identity. `edit` is untrusted (a request body): only the
+ * editable fields are applied, each checked, and only an allowed status move
+ * (see sponsored-identity-update.ts); anything else throws
+ * InvalidSponsoredIdentityUpdateError.
  */
 export async function updateSponsoredIdentity(
   id: string,
   sponsorUserId: string,
-  updates: UpdateSponsoredIdentityData
+  edit: unknown
 ): Promise<SponsoredIdentity | null> {
   const identity = await getSponsoredIdentity(id);
   if (!identity) {
@@ -336,10 +291,13 @@ export async function updateSponsoredIdentity(
     throw new Error('Not authorized to update this identity');
   }
 
+  const updates = parseSponsoredIdentityUpdate(edit);
+  if (updates.status) assertSponsorStatusMove(identity.status, updates.status);
+
   // If phone number is changing, validate and update index
   if (updates.phoneNumber && updates.phoneNumber !== identity.phoneNumber) {
     if (!isValidPhoneNumber(updates.phoneNumber)) {
-      throw new Error(`Invalid phone number: ${updates.phoneNumber}`);
+      throw new InvalidSponsoredIdentityUpdateError('phoneNumber is not a valid phone number');
     }
 
     const normalizedPhone = normalizePhoneNumber(updates.phoneNumber);
@@ -721,8 +679,11 @@ async function saveIdentity(identity: SponsoredIdentity): Promise<void> {
   if (!db) return;
 
   try {
+    // A full rewrite: the holder's proof comes from the stored doc only (holder-proof.ts)
+    const ref = db.collection(COLLECTION_NAME).doc(identity.id);
     const data = cleanForFirestore({
-      ...identity,
+      ...withoutHolderProof(identity),
+      ...(await keptHolderProof(ref, identity.phoneNumber)),
       createdAt: admin.firestore.Timestamp.fromDate(identity.createdAt),
       updatedAt: admin.firestore.Timestamp.fromDate(identity.updatedAt),
       lastCallAt: identity.lastCallAt
@@ -733,7 +694,7 @@ async function saveIdentity(identity: SponsoredIdentity): Promise<void> {
         : null,
     });
 
-    await db.collection(COLLECTION_NAME).doc(identity.id).set(data);
+    await ref.set(data);
   } catch (error) {
     log.error({ error, id: identity.id }, 'Failed to save sponsored identity');
   }
@@ -803,6 +764,7 @@ function docToIdentity(doc: admin.firestore.DocumentSnapshot): SponsoredIdentity
     selfRegistered: data.selfRegistered,
     selfRegisteredName: data.selfRegisteredName,
     selfRegisteredAt: toSafeDateOptional(data.selfRegisteredAt),
+    ...holderProofOf(data),
   };
 }
 

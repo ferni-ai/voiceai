@@ -1,9 +1,9 @@
 /**
  * The email port: what the app hands a mail transport, and what comes back.
  *
- * Adapters (SendGrid, Gmail via the ferni.ai Workspace) live in
- * src/services/email-transport/. Callers build an OutgoingEmail and never see
- * which provider sent it.
+ * The one adapter, Gmail via the ferni.ai Workspace, lives in
+ * src/services/email-transport/. Callers build an OutgoingEmail and check the
+ * result; the app has no other email provider (Seth, 2026-10-27).
  *
  * @module types/email-sender
  */
@@ -25,7 +25,7 @@ export interface OutgoingEmail {
   html?: string;
   /** Display name on the From line. The address comes from the transport's config. */
   fromName?: string;
-  /** From address for providers that allow any address (SendGrid). Gmail always sends as its configured mailbox. */
+  /** Ignored: Gmail always sends as its configured mailbox (EMAIL_FROM). */
   from?: string;
   replyTo?: string;
   /**
@@ -36,15 +36,13 @@ export interface OutgoingEmail {
   /** Becomes List-Unsubscribe (and List-Unsubscribe-Post when `url` is https). */
   unsubscribe?: { url?: string; mailto?: string };
   attachments?: EmailAttachment[];
-  /** SendGrid categories; ignored by Gmail. */
+  /** Labels for logs; not sent in the message. */
   tags?: string[];
-  /** SendGrid custom_args; ignored by Gmail. */
+  /** Who and what the email is for (userId, trigger, sourceId); not sent in the message. */
   metadata?: Record<string, string>;
-  /** SendGrid open/click tracking; ignored by Gmail. */
-  tracking?: { opens?: boolean; clicks?: boolean };
 }
 
-export type EmailProviderName = 'sendgrid' | 'gmail';
+type EmailProviderName = 'gmail';
 
 export interface EmailSendResult {
   ok: boolean;
@@ -59,7 +57,7 @@ export interface EmailSendResult {
 
 export interface EmailSender {
   readonly provider: EmailProviderName;
-  /** False when the transport is missing what it needs to send (e.g. no API key). */
+  /** False when the transport is missing what it needs to send (mailbox, mailer account). */
   isConfigured: () => boolean;
   /** Never throws: a failure comes back as `{ ok: false, error }`. */
   send: (email: OutgoingEmail) => Promise<EmailSendResult>;

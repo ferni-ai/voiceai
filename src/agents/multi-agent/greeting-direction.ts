@@ -8,12 +8,12 @@
 import { coachFollowThroughMode } from '../../services/superhuman/commitment-follow-up.js';
 import { markWinSurfaced, winForOpener, type Win } from '../../services/superhuman/wins.js';
 import { checkInsWithCalls } from '../../services/outreach/call-status.js';
-import { contentWords } from '../../memory/recall/session-recall.js';
-import { claimOpenerFollowUp } from '../../memory/recall/opener-claim.js';
+import { claimIfAsked, lineAsks } from './greeting-claim.js';
 import { isPonderingOn } from '../../intelligence/pondering/pondering.js';
 import { markSurfaced } from '../../intelligence/pondering/pondering-reader.js';
 import { ponderingForOpener } from '../../intelligence/pondering/pondering-opener.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { returningCallerGreeting } from '../../services/identity/returning-caller.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import type { UserProfile } from '../../types/user-profile.js';
@@ -30,7 +30,25 @@ import {
 } from './friendship-anniversary.js';
 import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
-import { calendarDaysSince } from '../../utils/calendar-days.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
+import { calendarDaysSince, daysAgoInWords } from '../../utils/calendar-days.js';
+import * as notYet from './greeting-not-yet.js';
+import {
+  MAX_TOPIC_CHARS,
+  PROACTIVE_GREETING_DIRECTION,
+  proactiveFallback,
+  proactiveReasonFacts,
+  proactiveReasonOpenerEnabled,
+} from './proactive-opener.js';
+import {
+  letterOfferDirection,
+  letterToOffer,
+  lineOffersLetter,
+} from '../../tools/domains/engagement/future-letters.js';
+import * as stranger from './first-call-stranger.js';
+import { greetsAsFriend, isUnplacedCaller } from './unknown-caller-honest.js';
+import { launchDirection, takeCallLaunch } from '../shared/call-launch-hint.js';
+import { callNewsFor } from './call-news-opener.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
 // to hear your voice!" every call, and the exclamations made the voice
@@ -55,17 +73,24 @@ export const PLAYFUL_GREETING_DIRECTION = GREETING_DIRECTION.replace(
  * The hello's direction for this persona. Never the playful one after a heavy
  * last call (what they talked about reads as heavy-moment.ts does) or when
  * welcome-back held back a tender thread: a tease is no way to pick that up.
- * `introAs` is set on a first call (FIRST_CALL_INTRO).
+ * A first call (`last.firstCall`) gets the stranger's hello (first-call-stranger.ts), a
+ * caller Ferni can't place (`last.unplaced`) its no-claim twin; `introAs` (FIRST_CALL_INTRO).
  */
 export function greetingDirection(
   personaId: string,
   env: Env = process.env,
-  last: { topic?: string; tender?: boolean } = {},
+  last: { topic?: string; tender?: boolean; firstCall?: boolean; unplaced?: boolean } = {},
   introAs?: string
 ): string {
   const playful = personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env);
   const careful = last.tender === true || isHeavyMoment([last.topic]);
-  const base = playful && !careful ? PLAYFUL_GREETING_DIRECTION : GREETING_DIRECTION;
+  const base = last.firstCall
+    ? stranger.STRANGER_GREETING_DIRECTION
+    : last.unplaced
+      ? stranger.UNPLACED_GREETING_DIRECTION
+      : playful && !careful
+        ? PLAYFUL_GREETING_DIRECTION
+        : GREETING_DIRECTION;
   return introAs ? withFirstCallIntro(base, introAs) : base;
 }
 
@@ -109,15 +134,16 @@ async function inTime<T>(work: Promise<T>): Promise<T | undefined> {
 }
 
 /** The commitment to open on, or undefined (flag off, none open, or too slow). */
-async function checkInFor(userId: string | undefined): Promise<string | undefined> {
-  if (!userId || userId === 'anonymous' || !coachFollowThroughMode()) return undefined;
-  // Never one about a call Ferni hasn't completed: it is held, failed or unheard.
-  return (await inTime(checkInsWithCalls(userId)))?.find((c) => !c.callNote)?.statement;
+async function checkInFor(userId: string | undefined, zone?: string): Promise<string | undefined> {
+  if (!isMemberIdentity(userId) || !coachFollowThroughMode()) return undefined;
+  // Never one about a call Ferni hasn't completed (held, failed or unheard) or one not yet due.
+  const open = await inTime(checkInsWithCalls(userId));
+  return open?.find((c) => !c.callNote && !notYet.commitmentAhead(c, Date.now(), zone))?.statement;
 }
 
 /** A win not yet named, or undefined (COACH_WINS off, none, or too slow). */
 async function winFor(userId: string | undefined): Promise<Win | undefined> {
-  if (!userId || userId === 'anonymous') return undefined;
+  if (!isMemberIdentity(userId)) return undefined;
   return inTime(winForOpener(userId));
 }
 
@@ -150,7 +176,7 @@ async function ponderFor(
   userId: string | undefined,
   history: CallerHistory | undefined
 ): Promise<PonderAsk | undefined> {
-  if (!userId || userId === 'anonymous' || !isPonderingOn()) return undefined;
+  if (!isMemberIdentity(userId) || !isPonderingOn()) return undefined;
   if (history && history.calls < 2) return undefined;
   const db = getFirestoreDb();
   if (!db) return undefined;
@@ -167,11 +193,7 @@ async function ponderFor(
   return found && { text: found.text, mark: async () => markSurfaced(db, userId, found.item) };
 }
 
-/** True when the spoken line is about the item: they share a real word. */
-export function lineAsks(line: string, item: string): boolean {
-  const said = contentWords(line);
-  return [...contentWords(item)].some((w) => said.has(w));
-}
+export { lineAsks } from './greeting-claim.js';
 
 /** The "time of day" fact for an hour of the day (0-23). */
 export function partOfDayFor(hour: number): string {
@@ -198,8 +220,6 @@ export interface CallerHistory {
   /** Their first call (ISO), for the friendship anniversary. */
   firstContact?: string;
 }
-
-const MAX_TOPIC_CHARS = 160;
 
 /** The caller's history from their profile, or undefined for a first call. */
 export function callerHistory(
@@ -238,14 +258,6 @@ export function callerHistory(
   return history;
 }
 
-function lastTalked(days: number): string {
-  if (days === 0) return 'earlier today';
-  if (days === 1) return 'yesterday';
-  if (days < 7) return `${days} days ago`;
-  if (days < 30) return `about ${Math.round(days / 7)} weeks ago`;
-  return 'a while ago';
-}
-
 /**
  * The director's facts for a greeting. A returning caller's greeting may pick
  * up from last time, the way a friend does; a first call stays plain.
@@ -268,10 +280,12 @@ export function greetingFacts(
   if (!history) return facts;
   facts['how well you know each other'] = `${history.calls} calls so far`;
   if (history.daysSince !== undefined)
-    facts['last time you talked'] = lastTalked(history.daysSince);
+    facts['last time you talked'] = daysAgoInWords(history.daysSince);
   if (history.lastTopic) facts['what you talked about last time'] = history.lastTopic;
   return facts;
 }
+
+export { firstTalkNote } from '../../services/identity/returning-caller.js';
 
 /** Agent setup knows the profile, the greeting needs it: handed over per session. */
 const pendingHistory = new Map<string, CallerHistory>();
@@ -284,57 +298,6 @@ export function takeCallerHistory(sessionId: string): CallerHistory | undefined 
   const history = pendingHistory.get(sessionId);
   pendingHistory.delete(sessionId);
   return history;
-}
-
-// A call Ferni placed to its own user opened "Hey Seth, how's your week been
-// treating you?" (prod 2026-10-10): GREETING_DIRECTION says "they just called
-// you", and why Ferni called ("Seth asked Ferni to give him a call...") reached
-// only the main model's prompt, never the greeting.
-export const PROACTIVE_GREETING_DIRECTION =
-  'You phoned them and they just picked up. Open the way a friend who called does: hi and their name, then in a few words why you called, in your own words, using only the reason you are given. If the reason is something hard, say it gently and never name how they feel. If no reason is given, just say you were calling to check in; never make one up. Relaxed and low-key, one or two short sentences, no exclamation marks, do not list what you can do.';
-
-/** Why Ferni placed a proactive call, from the outreach job's metadata. */
-export interface ProactiveReason {
-  triggerReason?: string;
-  relatedCommitment?: { summary?: string };
-  lastSessionSummary?: string;
-}
-
-/** The default the metadata parser fills in when the job gave no reason. */
-const PLACEHOLDER_REASONS = new Set(['proactive check-in']);
-
-/** PROACTIVE_REASON_OPENER=on: a proactive call's opener says why Ferni called. */
-export function proactiveReasonOpenerEnabled(env: Env = process.env): boolean {
-  return flagOn('PROACTIVE_REASON_OPENER', env);
-}
-
-/** The reasons the opener may give, as director facts. Empty when the job gave none. */
-export function proactiveReasonFacts(reason: ProactiveReason): Record<string, string> {
-  const facts: Record<string, string> = {};
-  const why = reason.triggerReason?.trim();
-  if (why && !PLACEHOLDER_REASONS.has(why.toLowerCase()))
-    facts['why you called them'] = why.slice(0, MAX_TOPIC_CHARS);
-  const commitment = reason.relatedCommitment?.summary?.trim();
-  if (commitment) facts['something they said they would do'] = commitment.slice(0, MAX_TOPIC_CHARS);
-  const last = reason.lastSessionSummary?.trim();
-  if (last) facts['what you talked about last time'] = last.slice(0, MAX_TOPIC_CHARS);
-  return facts;
-}
-
-/**
- * A call Ferni placed to its own user (PROACTIVE_REASON_OPENER on): its opener
- * waits for the phone to be picked up, like an on-behalf call's.
- */
-export async function isProactiveCall(sessionId: string): Promise<boolean> {
-  if (!proactiveReasonOpenerEnabled()) return false;
-  const { isProactiveSession } =
-    await import('../../intelligence/context-builders/external/proactive-session-context.js');
-  return isProactiveSession(sessionId);
-}
-
-/** The understudy for a proactive call: says Ferni called, never guesses why. */
-export function proactiveFallback(userName: string | undefined): string {
-  return `Hey${userName ? ` ${userName}` : ''}, it's Ferni, just calling to check in.`;
 }
 
 export interface GreetingUserData {
@@ -356,11 +319,7 @@ export async function directedGreeting(
   // A returning caller's greeting can pick up from last time (agent-setup hands it over).
   const history = takeCallerHistory(sessionId);
   const hour = callerHour(new Date(), userData?.callerTimezone);
-  const ctx = {
-    hour: hour ?? 12,
-    isReturningUser: history !== undefined,
-    relationshipStage: 'friend' as const, // Default for multi-agent
-  };
+  const ctx = { hour: hour ?? 12, isReturningUser: history !== undefined };
   const { directedText } = await import('../../speech/direction/index.js');
   const partOfDay = hour === null ? '' : partOfDayFor(hour);
   // A call Ferni placed to its own user (callType proactive_outreach).
@@ -377,86 +336,120 @@ export async function directedGreeting(
         ...greetingFacts(partOfDay, userData?.userName, history),
         ...proactiveReasonFacts(proactive),
       },
-      fallback: proactiveFallback(userData?.userName),
+      fallback: proactiveFallback(userData?.userName, personaId),
       urgency: 'now',
       maxChars: 180,
     });
     return calmGreeting(directed.text);
   }
-  const scripted = generateWarmGreeting(personaId, ctx);
   // Not gated on history: the profile behind it can still be loading.
-  const [openCheckIn, openWin, pondered, welcome, anniversary, firstCall] = await Promise.all([
-    checkInFor(userData?.userId),
-    winFor(userData?.userId),
-    ponderFor(userData?.userId, history),
-    loadWelcomeBack(userData?.userId, personaId, history),
-    anniversaryFor(userData?.userId, history, userData?.callerTimezone), // FRIEND_CELEBRATIONS
-    firstMeeting(personaId, userData, history), // FIRST_CALL_INTRO: the name to give
-  ]);
-  // A phone caller Ferni hasn't recognised: ask who it is (caller-recognition.ts).
-  const unknown = unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
-  const introAs = unknown ? undefined : firstCall;
+  const [openCheckIn, openWin, pondered, welcome, anniversary, isNew, introName, letter, news] =
+    await Promise.all([
+      checkInFor(userData?.userId, userData?.callerTimezone),
+      winFor(userData?.userId),
+      ponderFor(userData?.userId, history),
+      loadWelcomeBack(userData?.userId, personaId, history),
+      anniversaryFor(userData?.userId, history, userData?.callerTimezone), // FRIEND_CELEBRATIONS
+      stranger.isStrangerCall(userData, history),
+      firstMeeting(personaId, userData, history), // FIRST_CALL_INTRO: the name to give
+      userData?.userId // FUTURE_LETTER_OPENER: Jordan only, owner only
+        ? inTime(
+            letterToOffer({
+              userId: userData.userId,
+              sessionId,
+              personaId,
+              zone: userData.callerTimezone,
+            })
+          )
+        : undefined,
+      inTime(callNewsFor({ userId: userData?.userId, sessionId, zone: userData?.callerTimezone })),
+    ]);
+  // An unrecognised phone caller: a name given on that number before (RETURNING_CALLER), or ask.
+  const unknown =
+    returningCallerGreeting(sessionId) ??
+    unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
+  const firstCall = isNew && !unknown; // never greeted as an old friend
+  // No account, no past calls (UNKNOWN_CALLER_HONEST): met, never greeted as a friend.
+  const unplaced = isUnplacedCaller(userData?.userId, history !== undefined);
+  const stage = firstCall || unplaced ? ('stranger' as const) : ('friend' as const);
+  const scripted = generateWarmGreeting(personaId, { ...ctx, relationshipStage: stage });
+  const introAs = unknown ? undefined : introName;
   if (introAs) log.info({ sessionId, personaId }, 'First call: the hello says who is calling');
-  const { win, checkIn } = unknown ? {} : openingThread(openWin, openCheckIn);
-  // One thread per call: a win or what they said they'd do comes before a pondered ask.
-  const ask = win || checkIn ? undefined : pondered;
+  // Nothing still ahead, and nothing from before on a same-day return (greeting-not-yet.ts).
+  const hold = notYet.openingRestraint(history, userData?.callerTimezone);
+  const dueCheckIn = hold.allows(openCheckIn) ? openCheckIn : undefined;
+  const launched = launchDirection(takeCallLaunch(sessionId)); // CALL_LAUNCH_CONTEXT: their reason
+  // A letter to future them on the day it was promised (future-letters.ts) is the opening's one
+  // thread: a win, a check-in or a pondered ask waits for a later call; it never waits for them.
+  // It still yields to an unknown caller (never someone else's letter) and to their own reason.
+  // A call Ferni made for them (CALL_NEWS_OPENER) comes before all of those, the letter too.
+  const newsNow = news && !unknown && !launched ? news : undefined;
+  const letterNow = letter && !unknown && !launched && !newsNow ? letter : undefined;
+  const first = launched || letterNow || newsNow;
+  const { win, checkIn } =
+    unknown || hold.sameDay || first ? {} : openingThread(openWin, dueCheckIn);
+  // One thread per call: why they called, a win or what they said they'd do, then a pondered ask.
+  const ask = win || checkIn || first || !hold.allows(pondered?.text) ? undefined : pondered;
   // Back after a gap (WELCOME_BACK_BOTH_SIDES): one thread, one thing from his life, never the gap.
   const back =
-    welcome && !unknown
+    welcome && !unknown && !first
       ? planWelcomeBack(welcome, { checkIn: checkIn ?? win?.text, pondered: ask?.text })
       : undefined;
   if (win && userData?.userId) void markWinSurfaced(userData.userId, win.id);
+  const party = anniversary && !unknown && !newsNow?.careful ? anniversary : undefined;
   const direction =
     greetingDirection(
       personaId,
       process.env,
-      { topic: history?.lastTopic, tender: back?.heldBack },
+      {
+        topic: history?.lastTopic,
+        tender: back?.heldBack || newsNow?.careful,
+        firstCall,
+        unplaced,
+      },
       introAs
     ) +
     (win ? WIN_DIRECTION : '') +
     (checkIn ? CHECK_IN_DIRECTION : '') +
     (ask && !unknown ? PONDER_DIRECTION : '') +
     (back?.direction ?? '') +
-    (anniversary && !unknown ? anniversaryDirection(anniversary) : '') +
-    (unknown ? ` ${unknown}` : '');
+    (party ? anniversaryDirection(party) : '') +
+    (letterNow ? letterOfferDirection(letterNow) : '') +
+    (newsNow?.direction ?? '') +
+    (hold.sameDay && !newsNow ? notYet.SAME_DAY_DIRECTION : '') +
+    (unknown ? ` ${unknown}` : '') +
+    launched;
   const directed = await directedText(sessionId, {
     moment: 'greeting',
     direction,
-    facts: welcomeBackFacts(
-      greetingFacts(
-        partOfDay,
-        userData?.userName,
-        history,
-        checkIn,
-        unknown ? undefined : ask?.text,
-        win?.text
+    facts: {
+      ...welcomeBackFacts(
+        greetingFacts(
+          partOfDay,
+          userData?.userName,
+          hold.history,
+          checkIn,
+          unknown ? undefined : ask?.text,
+          win?.text
+        ),
+        back
       ),
-      back
-    ),
+      ...(firstCall ? stranger.FIRST_CALL_FACTS : {}),
+      ...newsNow?.facts,
+    },
     fallback: introAs ? firstCallFallback(userData?.userName, introAs) : scripted,
     urgency: 'now',
     maxChars: 140,
+    rejectIf: unplaced ? greetsAsFriend : firstCall ? stranger.impliesSharedPast : undefined,
   });
   const spoken = unknown ? directed.text : afterAsking(directed, scripted, ask);
-  if (
-    anniversary &&
-    !unknown &&
-    directed.source === 'actor' &&
-    lineSaysAnniversary(spoken, anniversary)
-  )
-    anniversary.mark();
-  // One follow-up per call opener (opener-claim.ts): having asked, the greeting
-  // keeps the first recall note from asking about a thread too.
-  const topic = checkIn ?? ask?.text;
-  if (
-    !unknown &&
-    userData?.userId &&
-    directed.source === 'actor' &&
-    topic &&
-    spoken === directed.text &&
-    lineAsks(spoken, topic)
-  ) {
-    claimOpenerFollowUp(userData.userId, 'greeting');
+  if (party && directed.source === 'actor' && lineSaysAnniversary(spoken, party)) party.mark();
+  if (letterNow && directed.source === 'actor' && lineOffersLetter(spoken)) letterNow.mark();
+  // One follow-up per call opener: having asked, the greeting keeps the first
+  // recall note from asking about a thread too (greeting-claim.ts).
+  if (!unknown && userData?.userId && directed.source === 'actor' && spoken === directed.text) {
+    const threads = { checkIn, pondered: ask?.text, lastTopic: history?.lastTopic };
+    claimIfAsked(userData.userId, spoken, { ...threads, userName: userData.userName });
   }
   return calmGreeting(spoken);
 }

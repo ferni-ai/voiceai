@@ -1,50 +1,27 @@
 /**
  * Email Delivery Service
  *
- * Beautiful, persona-styled email delivery using SendGrid/Resend with:
+ * Beautiful, persona-styled email delivery with:
  * - Gorgeous HTML templates for each persona
  * - Plain text fallbacks
- * - Open/click tracking
  * - Delivery status handling
  * - Retry logic
+ *
+ * Every send goes through the app's one transport, the ferni.ai Workspace mailbox
+ * (workspace-email.ts → email-transport). There is no other provider (Seth, 2026-10-27).
  */
 
-import { getCircuitBreaker } from '../../../utils/circuit-breaker.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { validateEmailContent } from '../../brand/index.js';
 import { MAX_RETRIES as RESILIENCE_MAX_RETRIES } from '../../../config/resilience-config.js';
+import { getEmailSender } from '../../email-transport/index.js';
+import { sendViaWorkspace } from './workspace-email.js';
 
 const log = getLogger().child({ module: 'email-delivery' });
-
-// Circuit breakers for email providers - prevent hammering failing services
-const sendGridCircuitBreaker = getCircuitBreaker('sendgrid-email', {
-  failureThreshold: 5, // Open after 5 failures
-  resetTimeout: 120_000, // Try again after 2 minutes
-  successThreshold: 2, // Need 2 successes to close
-});
-
-const resendCircuitBreaker = getCircuitBreaker('resend-email', {
-  failureThreshold: 5,
-  resetTimeout: 120_000,
-  successThreshold: 2,
-});
 
 // ============================================================================
 // TYPES
 // ============================================================================
-
-export type EmailProvider = 'sendgrid' | 'resend';
-
-export interface EmailDeliveryConfig {
-  provider: EmailProvider;
-  apiKey: string;
-  fromEmail: string;
-  fromName: string;
-  replyToEmail?: string;
-  trackingDomain?: string;
-  trackOpens?: boolean;
-  trackClicks?: boolean;
-}
 
 export interface EmailMessage {
   to: string;
@@ -95,7 +72,6 @@ export interface EmailDeliveryRecord {
 // STATE
 // ============================================================================
 
-let config: EmailDeliveryConfig | null = null;
 const deliveryRecords = new Map<string, EmailDeliveryRecord>();
 const pendingRetries = new Map<string, NodeJS.Timeout>();
 
@@ -107,15 +83,9 @@ const RETRY_DELAYS = [60_000, 300_000, 900_000]; // 1m, 5m, 15m
 // INITIALIZATION
 // ============================================================================
 
-/** Initialize email delivery */
-export function initializeEmailDelivery(deliveryConfig: EmailDeliveryConfig): void {
-  config = deliveryConfig;
-  log.info({ provider: config.provider }, '✅ Email Delivery initialized');
-}
-
-/** Check if email delivery is available */
+/** True when the Workspace transport has what it needs to send. */
 export function isEmailDeliveryAvailable(): boolean {
-  return config !== null;
+  return getEmailSender().isConfigured();
 }
 
 // ============================================================================
@@ -423,9 +393,7 @@ export function formatEmailBody(body: string): string {
     .join('');
 }
 
-/**
- * Get persona display name
- */
+/** Get persona display name */
 function getPersonaDisplayName(personaId: string): string {
   const names: Record<string, string> = {
     ferni: 'Ferni',
@@ -438,9 +406,7 @@ function getPersonaDisplayName(personaId: string): string {
   return names[personaId] || 'Ferni';
 }
 
-/**
- * Generate plain text version
- */
+/** Generate plain text version */
 export function generatePlainText(personaId: string, body: string, userName?: string): string {
   const personaName = getPersonaDisplayName(personaId);
   const style = PERSONA_STYLES[personaId] || PERSONA_STYLES.ferni;
@@ -463,12 +429,10 @@ export function generatePlainText(personaId: string, body: string, userName?: st
 // SENDING
 // ============================================================================
 
-/**
- * Send email via configured provider
- */
+/** Send email through the Workspace transport. `success` is the transport's answer. */
 export async function sendEmail(message: EmailMessage): Promise<EmailDeliveryResult> {
   if (!isEmailDeliveryAvailable()) {
-    return { success: false, error: 'Email delivery not initialized' };
+    return { success: false, error: 'Email transport not configured' };
   }
 
   try {
@@ -487,8 +451,6 @@ export async function sendEmail(message: EmailMessage): Promise<EmailDeliveryRes
     }
 
     // Use validated/fixed content
-    // TODO: validatedSubject should be used instead of message.subject below
-    const _validatedSubject = brandCheck.subject;
     const validatedBody = brandCheck.body;
 
     // Generate HTML if not provided
@@ -503,12 +465,16 @@ export async function sendEmail(message: EmailMessage): Promise<EmailDeliveryRes
     // Generate plain text fallback
     const text = generatePlainText(message.personaId, validatedBody, message.toName);
 
-    let result: EmailDeliveryResult;
+    const result = await sendViaWorkspace(message, html, text, {
+      personaName: getPersonaDisplayName(message.personaId),
+    });
 
-    if (config!.provider === 'sendgrid') {
-      result = await sendViaSendGrid(message, html, text);
-    } else {
-      result = await sendViaResend(message, html, text);
+    if (!result.success) {
+      // A code only: never the address or the body.
+      log.warn(
+        { userId: message.userId, code: result.status ?? 'send_failed' },
+        '⚠️ Email not sent'
+      );
     }
 
     if (result.success && result.messageId) {
@@ -538,115 +504,15 @@ export async function sendEmail(message: EmailMessage): Promise<EmailDeliveryRes
 
     return result;
   } catch (error) {
-    log.error({ error, userId: message.userId }, '❌ Failed to send email');
+    log.error(
+      { userId: message.userId, code: (error as Error)?.name ?? 'error' },
+      '❌ Failed to send email'
+    );
     return { success: false, error: String(error) };
   }
 }
 
-/**
- * Send via SendGrid
- */
-async function sendViaSendGrid(
-  message: EmailMessage,
-  html: string,
-  text: string
-): Promise<EmailDeliveryResult> {
-  const personaName = getPersonaDisplayName(message.personaId);
-
-  const response = await sendGridCircuitBreaker.execute(() =>
-    fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${config!.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [
-          {
-            to: [{ email: message.to, name: message.toName }],
-            subject: message.subject,
-          },
-        ],
-        from: {
-          email: config!.fromEmail,
-          name: `${personaName} from ${config!.fromName}`,
-        },
-        reply_to: config!.replyToEmail ? { email: config!.replyToEmail } : undefined,
-        content: [
-          { type: 'text/plain', value: text },
-          { type: 'text/html', value: html },
-        ],
-        tracking_settings: {
-          click_tracking: { enable: config!.trackClicks ?? true },
-          open_tracking: { enable: config!.trackOpens ?? true },
-        },
-        categories: message.tags,
-        custom_args: {
-          userId: message.userId,
-          outreachId: message.outreachId,
-          personaId: message.personaId,
-        },
-      }),
-    })
-  );
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`SendGrid error: ${response.status} - ${errorBody}`);
-  }
-
-  // SendGrid returns message ID in header
-  const messageId = response.headers.get('x-message-id') || `sg-${Date.now()}`;
-
-  return { success: true, messageId, status: 'sent' };
-}
-
-/**
- * Send via Resend
- */
-async function sendViaResend(
-  message: EmailMessage,
-  html: string,
-  text: string
-): Promise<EmailDeliveryResult> {
-  const personaName = getPersonaDisplayName(message.personaId);
-
-  const response = await resendCircuitBreaker.execute(() =>
-    fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${config!.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: `${personaName} <${config!.fromEmail}>`,
-        to: [message.to],
-        subject: message.subject,
-        html,
-        text,
-        reply_to: config!.replyToEmail,
-        tags: message.tags?.map((t) => ({ name: 'category', value: t })),
-        headers: {
-          'X-User-Id': message.userId,
-          'X-Outreach-Id': message.outreachId,
-        },
-      }),
-    })
-  );
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`Resend error: ${response.status} - ${errorBody}`);
-  }
-
-  const data = (await response.json()) as { id: string };
-
-  return { success: true, messageId: data.id, status: 'sent' };
-}
-
-/**
- * Send email with retry logic
- */
+/** Send email with retry logic */
 export async function sendEmailWithRetry(
   message: EmailMessage,
   retryCount = 0
@@ -689,10 +555,8 @@ export async function sendEmailWithRetry(
 // STATUS HANDLING
 // ============================================================================
 
-/**
- * Handle email webhook (open, click, bounce, etc.)
- */
-export function handleEmailEvent(
+/** Handle email webhook (open, click, bounce, etc.) */
+function handleEmailEvent(
   messageId: string,
   event: 'delivered' | 'opened' | 'clicked' | 'bounced' | 'failed',
   details?: {
@@ -747,16 +611,12 @@ export function handleEmailEvent(
   deliveryRecords.set(messageId, record);
 }
 
-/**
- * Get delivery record
- */
+/** Get delivery record */
 export function getDeliveryRecord(messageId: string): EmailDeliveryRecord | undefined {
   return deliveryRecords.get(messageId);
 }
 
-/**
- * Get all delivery records for a user
- */
+/** Get all delivery records for a user */
 export function getUserDeliveryRecords(userId: string): EmailDeliveryRecord[] {
   return Array.from(deliveryRecords.values()).filter((r) => r.userId === userId);
 }
@@ -765,9 +625,7 @@ export function getUserDeliveryRecords(userId: string): EmailDeliveryRecord[] {
 // CLEANUP
 // ============================================================================
 
-/**
- * Cancel pending retry
- */
+/** Cancel pending retry */
 export function cancelPendingRetry(outreachId: string): boolean {
   const timeout = pendingRetries.get(outreachId);
   if (timeout) {
@@ -778,9 +636,7 @@ export function cancelPendingRetry(outreachId: string): boolean {
   return false;
 }
 
-/**
- * Clear old delivery records
- */
+/** Clear old delivery records */
 export function clearOldRecords(maxAgeDays = 90): number {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - maxAgeDays);
@@ -800,9 +656,7 @@ export function clearOldRecords(maxAgeDays = 90): number {
   return cleared;
 }
 
-/**
- * Shutdown email delivery
- */
+/** Shutdown email delivery */
 export function shutdownEmailDelivery(): void {
   for (const timeout of pendingRetries.values()) {
     clearTimeout(timeout);
@@ -816,7 +670,6 @@ export function shutdownEmailDelivery(): void {
 // ============================================================================
 
 export const emailDelivery = {
-  initialize: initializeEmailDelivery,
   isAvailable: isEmailDeliveryAvailable,
   send: sendEmail,
   sendWithRetry: sendEmailWithRetry,

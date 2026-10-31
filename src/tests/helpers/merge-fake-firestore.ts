@@ -3,7 +3,8 @@
  * set() replaces, set(..., { merge: true }) deep-merges maps, update()
  * replaces each named field (and fails NOT_FOUND on a missing doc), and
  * FieldValue.delete() removes a field. Subcollections, collectionGroup and
- * where(field, '!=', null) are enough for the token migration.
+ * where(field, '!=', null) are enough for the token migration; batch() runs
+ * its queued set/delete writes in order on commit().
  */
 import { FieldValue } from '@google-cloud/firestore';
 
@@ -15,8 +16,12 @@ export interface MergeFakeState {
   writes: Array<{ path: string; op: 'set' | 'update' | 'delete'; data?: Json }>;
   /** Paths whose writes throw UNAVAILABLE (code 14), to test per-doc failure handling. */
   failWrites: Set<string>;
+  /** Paths whose doc reads throw UNAVAILABLE (code 14), to test read-failure handling. */
+  failReads?: Set<string>;
   /** Write count per path, served as the snapshot's updateTime. */
   versions: Map<string, number>;
+  /** Runs at the start of every doc read, before the snapshot is taken (a write racing a read). */
+  beforeRead?: (path: string) => void;
   /** Runs before every write (e.g. to simulate a token refresh racing the migration). */
   beforeWrite?: (path: string) => void;
 }
@@ -103,7 +108,13 @@ export function createMergeFakeFirestore(state: MergeFakeState) {
     return {
       path,
       id: path.split('/').pop() ?? '',
-      get: async () => snapshot(path),
+      get: async () => {
+        state.beforeRead?.(path);
+        if (state.failReads?.has(path)) {
+          throw Object.assign(new Error('simulated read failure'), { code: 14 });
+        }
+        return snapshot(path);
+      },
       set: async (data, opts) => {
         guard(path);
         const base = opts?.merge ? (state.docs.get(path) ?? {}) : {};
@@ -115,11 +126,13 @@ export function createMergeFakeFirestore(state: MergeFakeState) {
         const cur = state.docs.get(path);
         if (!cur) throw Object.assign(new Error('NOT_FOUND'), { code: 5 });
         guard(path);
-        // Firestore checks the precondition against the doc as it is now.
+        // Firestore checks the doc as it is now, after anything the hook did to it.
+        const now = state.docs.get(path);
+        if (!now) throw Object.assign(new Error('NOT_FOUND'), { code: 5 });
         if (pre?.lastUpdateTime && !pre.lastUpdateTime.isEqual(time(path))) {
           throw Object.assign(new Error('FAILED_PRECONDITION'), { code: 9 });
         }
-        state.docs.set(path, apply(cur, data, false));
+        state.docs.set(path, apply(now, data, false));
         state.writes.push({ path, op: 'update', data });
         bump(path);
       },
@@ -168,9 +181,22 @@ export function createMergeFakeFirestore(state: MergeFakeState) {
       ),
     };
   }
+  /** A write batch: the queued writes apply in order on commit(). */
+  const batch = () => {
+    const ops: Array<() => Promise<void>> = [];
+    return {
+      set: (ref: FakeDocRef, data: Json, opts?: { merge?: boolean }) =>
+        void ops.push(() => ref.set(data, opts)),
+      delete: (ref: FakeDocRef) => void ops.push(() => ref.delete()),
+      commit: async () => {
+        for (const op of ops) await op();
+      },
+    };
+  };
   return {
     collection,
     doc,
+    batch,
     collectionGroup: (name: string) =>
       query(() => [...state.docs.keys()].filter((p) => p.split('/').at(-2) === name)),
   };

@@ -8,8 +8,6 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // Import trust system modules
 import { trackEvent } from './analytics.js';
@@ -27,75 +25,16 @@ import { indexTrustMoment } from '../data-layer/integrations/trust-integration.j
 const log = createLogger({ module: 'UnifiedRecorder' });
 
 // ============================================================================
-// REAL-TIME FIRESTORE WRITE-THROUGH
+// TRUST MOMENTS
 // ============================================================================
 
-let db: FirebaseFirestore.Firestore | null = null;
-
-function getDb(): FirebaseFirestore.Firestore | null {
-  if (!db) {
-    try {
-      db = getFirestore();
-    } catch {
-      // Firestore not available
-      return null;
-    }
-  }
-  return db;
-}
-
 /**
- * 🔥 REAL-TIME WRITE-THROUGH: Immediately persist high-value trust moments
+ * Record a high-value trust moment: indexed to semantic memory for retrieval.
  *
- * This is "Better Than Human" - we NEVER forget important moments.
- * Instead of waiting for session end, critical trust moments are
- * persisted immediately so they survive any disconnection.
- *
- * Write-through criteria:
- * - Small wins (celebrations)
- * - Boundaries (never cross them again)
- * - Intentions (commitment tracking)
- * - Breakthrough moments
- * - First-time vulnerabilities
+ * Moments used to be written through to bogle_users/{uid}/trust_moments too, but
+ * nothing read those docs, so that write is gone (memory v2 C5a).
  */
-async function writeThroughTrustMoment(
-  userId: string,
-  momentType:
-    | 'small_win'
-    | 'boundary'
-    | 'intention'
-    | 'breakthrough'
-    | 'vulnerability'
-    | 'callback',
-  data: Record<string, unknown>
-): Promise<void> {
-  const firestore = getDb();
-  if (!firestore) return;
-
-  try {
-    const docRef = firestore
-      .collection('bogle_users')
-      .doc(cleanForFirestore(userId))
-      .collection('trust_moments')
-      .doc(); // Auto-generate ID
-
-    await docRef.set({
-      type: momentType,
-      data: cleanForFirestore(data),
-      createdAt: FieldValue.serverTimestamp(),
-      synced: false, // Will be marked true when full sync happens
-    });
-
-    log.debug({ userId, momentType }, '🔥 Real-time trust moment persisted');
-  } catch (error) {
-    log.debug({ error: String(error) }, 'Trust moment write-through failed (non-fatal)');
-  }
-}
-
-/**
- * Record a high-value trust moment with immediate persistence
- */
-export async function recordTrustMoment(
+export function recordTrustMoment(
   userId: string,
   moment: {
     type: 'small_win' | 'boundary' | 'intention' | 'breakthrough' | 'vulnerability' | 'callback';
@@ -105,19 +44,8 @@ export async function recordTrustMoment(
     intensity?: number;
     personaId?: string;
   }
-): Promise<void> {
+): void {
   const momentId = `${moment.type}_${Date.now()}`;
-
-  // Write to memory (existing systems)
-  // Also write-through to Firestore immediately
-  await writeThroughTrustMoment(userId, moment.type, {
-    content: moment.content,
-    context: moment.context,
-    emotion: moment.emotion,
-    intensity: moment.intensity,
-    personaId: moment.personaId,
-    timestamp: Date.now(),
-  });
 
   // Index to semantic memory for contextual retrieval
   indexTrustMoment(userId, {
@@ -262,7 +190,6 @@ export async function recordConversationTurn(data: ConversationTurnData): Promis
     }
 
     // 4. Detect small wins (returns SmallWin | null)
-    // 🔥 WRITE-THROUGH: Immediately persist wins so they survive disconnects
     try {
       const win = detectSmallWin(userId, text, {
         topic: analysis?.topic,
@@ -270,30 +197,16 @@ export async function recordConversationTurn(data: ConversationTurnData): Promis
       });
       if (win) {
         log.debug({ userId, winType: win.type }, '🎉 Small win detected');
-        // Write-through to Firestore immediately
-        void writeThroughTrustMoment(userId, 'small_win', {
-          type: win.type,
-          description: win.description,
-          context: analysis?.topic,
-          emotion: analysis?.emotion?.primary,
-        });
       }
     } catch (e) {
       log.debug({ error: e }, 'Small win detection failed (non-blocking)');
     }
 
     // 5. Detect intentions (things user says they'll do)
-    // 🔥 WRITE-THROUGH: Intentions are commitments - NEVER forget them
     try {
       const intention = detectIntention(userId, text);
       if (intention) {
         log.debug({ userId, intention: intention.intention }, '📌 Intention detected');
-        // Write-through to Firestore immediately
-        void writeThroughTrustMoment(userId, 'intention', {
-          intention: intention.intention,
-          context: analysis?.topic,
-          emotion: analysis?.emotion?.primary,
-        });
       }
     } catch (e) {
       log.debug({ error: e }, 'Intention detection failed (non-blocking)');

@@ -1213,7 +1213,6 @@
       "journaling": "Die Chronik",
       "language": "Sprache",
       "lifeContext": "Deine Welt",
-      "linkSpotify": "Spotify verbinden",
       "memoryBrowser": "Woran ich mich erinnere",
       "musicalYou": "Gemeinsam Musik hören",
       "notifications": "Wann ich mich melde",
@@ -1224,7 +1223,6 @@
       "predictionAccuracy": "Wie ich mich schlage",
       "progressAnalytics": "Wie es dir geht",
       "shareFerni": "Bring jemanden mit",
-      "spotifyConnected": "Spotify verbunden",
       "supportFerni": "Ferni unterstützen",
       "supportFerniExpanded": "Ferni unterstützen",
       "takeTour": "Zeig mir alles",
@@ -2419,10 +2417,6 @@
         "description": "Synchronisiere mit den Gesundheitsdaten deiner Apple Watch und deines iPhones",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Verbinde dein Fitbit-Gerät",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Synchronisiere mit Garmin-Wearables",
         "name": "Garmin"
@@ -2776,8 +2770,7 @@
       "askFerni": "Oder bitte Ferni, etwas abzuspielen",
       "play": "Abspielen",
       "pause": "Pause",
-      "skip": "Überspringen",
-      "linkSpotify": "Verknüpfe Spotify in den Einstellungen für ganze Songs"
+      "skip": "Überspringen"
     },
     "volume": "Lautstärke",
     "skipped": "Übersprungen",
@@ -3508,8 +3501,6 @@
     "accessLevelFullDesc": "Kann mit allen Teammitgliedern sprechen",
     "accessLevelLimited": "Eingeschränkt",
     "accessLevelLimitedDesc": "Nur Ferni",
-    "accessLevelSupervised": "Beaufsichtigt",
-    "accessLevelSupervisedDesc": "Du wirst über Anrufe benachrichtigt",
     "eyebrow": "Familie",
     "addMember": "Familienmitglied hinzufügen",
     "emptyText": "Füge Familienmitglieder hinzu, die Ferni anrufen. Sie werden automatisch erkannt und können ihre eigenen Gespräche mit Ferni führen.",
@@ -3611,7 +3602,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "Kommunikation & Beziehungen",
+        "role": "Kommunikationscoach & Chief of Staff",
         "description": "Ich helfe dir, Gespräche zu meistern, Beziehungen zu stärken und dich besser auszudrücken.",
         "unlockHint": "Teile eine Beziehungsgeschichte mit Ferni",
         "unlockedMessage": "Mir sind ein paar Muster aufgefallen, die wir uns genauer ansehen sollten.",
@@ -5339,8 +5330,6 @@
     "from": "Von",
     "beyondTheApp": "Über die App hinaus",
     "beyondTheAppDesc": "Wenn es darauf ankommt, hole ich dich genau dort ab, wo du bist.",
-    "emailUpdates": "E-Mail-Updates",
-    "emailUpdatesDesc": "Meilenstein-Feiern und wöchentliche Rückblicke",
     "smsMessages": "SMS-Nachrichten",
     "smsDesc": "Kurze Check-ins, wenn mir etwas auffällt",
     "milestoneCelebrations": "Meilenstein-Feiern",
@@ -7971,6 +7960,9 @@
     "improving": "Geht aufwärts",
     "declining": "Zuletzt etwas niedriger",
     "trendUnavailable": "Dieser Verlauf hat nicht geladen. Versuch es gleich noch einmal.",
+    "notTalkedLately": "Darüber haben wir in letzter Zeit nicht gesprochen:",
+    "asOfOnce": "Stand {date} · einmal angesprochen",
+    "asOfCount": "Stand {date} · {count}-mal angesprochen",
     "trendUp": "steigend",
     "trendDown": "sinkend",
     "trendStable": "stabil",
@@ -8350,10 +8342,9 @@
     "appleHealthDesc": "Schlaf-, Aktivitäts- und Herzfrequenzdaten",
     "ouraDesc": "Schlafqualität und Tagesform-Werte",
     "eightSleepDesc": "Schlaftracking und Temperatur",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP und mehr",
+    "wearablesDesc": "Garmin, WHOOP und mehr",
     "calendarDesc": "Termine, Meetings und Verfügbarkeit",
     "linkedInDesc": "Beruflicher Kontext und Netzwerk",
-    "spotifyDesc": "Musik, Stimmungs-Playlists, Hörverlauf",
     "ecobeeDesc": "Zuhause-Temperatur und Komfort",
     "vibeControllerDesc": "Steuere Musik, Licht und mehr",
     "connected": "Verbunden"
@@ -8983,9 +8974,6 @@
     "trustJourneyExplore": "Erkunden",
     "customizeTitle": "Passe dein Erlebnis an",
     "customizeMessage": "Passe Designs, Töne und mehr an.",
-    "spotifyTitle": "Spotify verbinden",
-    "spotifyMessage": "Verknüpfe dein Spotify, um die Stimmung bei unseren Gesprächen zu untermalen.",
-    "spotifyConnect": "Verbinden",
     "maybeLater": "Vielleicht später"
   },
   "mentorTeachings": {
@@ -10125,9 +10113,10 @@
     "title": "Kleine Dinge, an die ich mich erinnere",
     "subtitle": "Damit du es nicht tun musst",
     "emptyTitle": "Noch nichts eingerichtet",
-    "emptySubtitle": "Soll ich dich jeden Morgen begrüßen? Dich ans Dehnen erinnern? Das kann ich gerne machen.",
+    "emptySubtitle": "Erzähl mir, was du regelmäßig machen möchtest, und ich speichere es hier.",
     "emptyButton": "Zeig mir ein paar Ideen",
     "addNew": "Etwas Neues hinzufügen",
+    "notRunningYet": "Ich bewahre sie hier für dich auf. Sie laufen noch nicht von selbst.",
     "triggers": {
       "dailyAt": "Jeden Tag um {time}",
       "dailyUnset": "Jeden Tag zu einer bestimmten Zeit",
@@ -10214,7 +10203,6 @@
     "connectFirstToManage": "Verbinde dich zuerst, dann können wir uns darum kümmern.",
     "monthlyLimitReached": "Wir haben unser monatliches Limit erreicht. Ich würde so gerne weiterreden...",
     "enableMicPrompt": "Ich würde so gerne deine Stimme hören – gibst du mir Zugriff auf das Mikrofon?",
-    "agentJoined": "{name} ist jetzt dabei",
     "seeYouNextTime": "Bis zum nächsten Mal!",
     "handoffFailed": "Ich kann gerade niemanden erreichen. Aber ich bin ja noch hier!",
     "personaBack": "{name} ist wieder da!",
@@ -10243,6 +10231,7 @@
       "other": "Du hast {count} Samen gesammelt!"
     },
     "couldNotLoadMemories": "Ich konnte nicht laden, woran ich mich erinnere. Noch mal versuchen?",
+    "credentialNotKept": "Ferni speichert keine Codes oder Passwörter, deshalb ist dieser jetzt weg.",
     "memoryCorrected": "Verstanden. Ich merke es mir so."
   },
   "trustSignals": {
@@ -10509,7 +10498,6 @@
     "names": {
       "stockData": "Börsendaten",
       "marketData": "Marktdaten",
-      "weatherMaps": "Wetter & Karten",
       "historicalFacts": "Historische Fakten",
       "lighting": "Beleuchtung",
       "aiContext": "Gedächtnis & Kontext",
@@ -10806,7 +10794,10 @@
     "endTalk": "Auflegen",
     "connectingCancel": "Verbindung wird hergestellt. Zum Abbrechen tippen",
     "connectingNow": "Verbindung wird hergestellt…",
-    "tapToCancel": "Zum Abbrechen tippen"
+    "tapToCancel": "Zum Abbrechen tippen",
+    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
+    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
+    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
   },
   "analyticsDashboard": {
     "title": "Deine Reise",

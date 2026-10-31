@@ -11,7 +11,7 @@
  * @module UserTriggerProfileService
  */
 
-import { Firestore } from '@google-cloud/firestore';
+import { sharedFirestore, type Firestore } from '../../utils/shared-firestore.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type {
@@ -92,7 +92,7 @@ export class UserTriggerProfileService {
 
     try {
       if (this.config.enablePersistence) {
-        this.db = new Firestore();
+        this.db = sharedFirestore({ databaseId: process.env.FIRESTORE_DATABASE || '(default)' });
         log.debug('Trigger profile Firestore initialized');
       }
     } catch (error) {

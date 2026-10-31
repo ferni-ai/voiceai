@@ -34,11 +34,22 @@ import { createLogger } from '../../utils/safe-logger.js';
 import {
   acceptsSpokenName,
   extractCallerName,
+  isFerniSpelling,
+  isCommonWord,
   nameCaptureStrict,
 } from '../../utils/caller-name.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { guestsPresent } from './room-guests.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
+import {
+  callMeVocativeEnabled,
+  readCallMe,
+  withoutVocatives,
+} from '../../utils/call-me-vocative.js';
+import { isCallbackTime } from '../../utils/callback-time.js';
+import { agreeTo } from '../../tools/domains/conversation/index.js';
+import { callerTurns } from './call-me-note.js';
+import { confirmNameNote, pendingOf, personaFirstNameOf, propose, settle } from './name-confirm.js';
 
 const log = createLogger({ module: 'NameCorrection' });
 
@@ -86,12 +97,19 @@ const mentions = (text: string, name: string, suffix = ''): boolean =>
 
 /** NAME_CAPTURE_STRICT=on: the shared check (utils/caller-name.ts: its stopwords and the team roster). */
 const notAName = (name: string): boolean =>
-  nameCaptureStrict() ? !acceptsSpokenName(name) : NOT_NAMES.has(name.toLowerCase());
+  nameCaptureStrict()
+    ? !acceptsSpokenName(name)
+    : NOT_NAMES.has(name.toLowerCase()) || isFerniSpelling(name);
 
-function firstName(words: string, cue: RegExp, current: string | undefined): string | null {
+function firstName(
+  words: string,
+  cue: RegExp,
+  current: string | undefined,
+  rejects: (name: string) => boolean = notAName
+): string | null {
   for (const m of words.matchAll(cue)) {
     const name = m[1];
-    if (!CAPITALISED.test(name) || notAName(name)) continue;
+    if (!CAPITALISED.test(name) || rejects(name)) continue;
     if (possessiveAfter(words, (m.index ?? 0) + m[0].length)) continue;
     if (current && mentions(words, current, "['’]s")) return null;
     if (FOR_SOMEONE_ELSE.test(words)) return null;
@@ -143,6 +161,8 @@ export interface NameCorrectionDeps {
   /** Whether this session is the proven account owner; none means no profile write. */
   verifiedOwner?: (sessionId: string) => boolean;
   outbound?: (sessionId: string) => boolean;
+  /** No quoted example in the line (SCRIPT_FREE_REMINDER, script-free.ts). */
+  plain?: boolean;
 }
 
 async function persistPreferredName(userId: string, name: string): Promise<void> {
@@ -150,7 +170,7 @@ async function persistPreferredName(userId: string, name: string): Promise<void>
   await getFirestoreStore().atomicProfileUpdate(userId, (p) => ({ ...p, preferredName: name }));
 }
 
-function lastAgentLine(chatCtx: llm.ChatContext): string {
+export function lastAgentLine(chatCtx: llm.ChatContext): string {
   for (let i = chatCtx.items.length - 1; i >= 0; i--) {
     const item = chatCtx.items[i];
     if (item.type === 'message' && item.role === 'assistant') return item.textContent ?? '';
@@ -172,6 +192,15 @@ function ownerMayKeep(user: SessionUser, deps: NameCorrectionDeps): boolean {
   const sessionId = services?.sessionId;
   if (!isMemberIdentity(userId) || !sessionId) return false;
   return deps.verifiedOwner?.(sessionId) === true && !outboundOf(deps)(sessionId);
+}
+
+/** Whether this session's caller may rename the account (the owner rule), for rememberName. */
+export function accountMayKeepName(
+  session: object,
+  verifiedOwner: (id: string) => boolean
+): boolean {
+  const user = (session as { userData?: SessionUser }).userData;
+  return !!user && ownerMayKeep(user, { verifiedOwner });
 }
 
 /**
@@ -205,9 +234,98 @@ const sameName = (name: string, current: string | undefined): boolean =>
   name.toLowerCase() === current?.split(/\s+/)[0].toLowerCase();
 
 /**
+ * CALL_ME_VOCATIVE=on: a self-introduction cue, where a word like a team name
+ * ("I'm Pete", "my friends call me Mya") may still be theirs. Only ever a name
+ * to confirm (name-confirm.ts), so the team-name stoplists don't apply.
+ */
+const ANY_SELF_CUE = new RegExp(
+  String.raw`\b(?:i['’]?m|i am|my name['’]?s|my name is|i go by|(?:everyone|everybody|people|they|friends|folks|family)\s+calls?\s+me|call me)\s+(?:actually\s+|just\s+)?${NAME}`,
+  'giu'
+);
+
+/** The name in these words, with each "call me, Ferni" skipped (only that span). */
+function heardName(
+  words: string,
+  current: string | undefined,
+  session: object,
+  agentLast: string
+): string | null {
+  const persona = personaFirstNameOf(session).toLowerCase();
+  const reading = readCallMe(words, persona);
+  if (reading.rename) return reading.rename;
+  const rest = withoutVocatives(words, reading.spans);
+  const name =
+    statedName(rest, current, agentLast) ??
+    firstName(rest, ANY_SELF_CUE, current, (n) => isCommonWord(n) || n.toLowerCase() === persona);
+  // "Call me Later" / "Call me Tomorrow" is a callback request, not a name (callback-time.ts).
+  return name && !isCallbackTime(name) ? name : null;
+}
+
+const currentName = (session: object, user: SessionUser): string | undefined =>
+  corrected.get(session)?.name ?? user.userName;
+
+/**
+ * A yes to "Sam from now on?", or "the name" to "ring or call you Fern?". The
+ * rename itself is rememberName's (remember-name.ts), the one writer of the
+ * caller's name with CALL_ME_VOCATIVE on: this records the yes for this turn
+ * (agreeTo) and returns the names the model should now save.
+ */
+function agreedNames(
+  session: object,
+  user: SessionUser,
+  turn: { words: string; heard: string | null; count: number }
+): string[] {
+  const names: string[] = [];
+  for (const kind of ['rename', 'either'] as const) {
+    const done = settle(session, kind, turn, turn.heard);
+    const name = done?.pending.name;
+    const agreed = done?.outcome === 'yes' || done?.outcome === 'name';
+    if (!name || !agreed || sameName(name, currentName(session, user))) continue;
+    if (!agreeTo(session, name, turn.count)) continue;
+    names.push(name);
+    log.info({ sessionId: user.services?.sessionId }, 'NAME_CORRECTION agreed');
+  }
+  return names;
+}
+
+const saveNote = (name: string, current: string | undefined): string =>
+  `They said yes to ${name}. Call rememberName with "${name}" now to save it` +
+  `${current ? `; until it's saved, keep calling them ${current}` : ''}.`;
+
+/**
+ * CALL_ME_VOCATIVE=on: a new name waits for their yes (name-confirm.ts). This
+ * turn may answer the last question, and may raise a new one. `words` is ''
+ * with a guest in the room.
+ */
+function confirmingNote(
+  chatCtx: llm.ChatContext,
+  session: object,
+  user: SessionUser,
+  words: string,
+  deps: NameCorrectionDeps
+): string {
+  const heard = words
+    ? heardName(words, currentName(session, user), session, lastAgentLine(chatCtx))
+    : null;
+  const count = callerTurns(chatCtx.items);
+  const yes = agreedNames(session, user, { words, heard, count });
+  const current = currentName(session, user);
+  if (heard && !sameName(heard, current) && pendingOf(session, 'rename')?.name !== heard)
+    propose(session, { kind: 'rename', name: heard, askedOn: count });
+  const ask = pendingOf(session, 'rename');
+  return [
+    ...yes.map((name) => saveNote(name, current)),
+    ask ? confirmNameNote(ask.name, current, deps.plain) : '',
+  ]
+    .filter((line) => line !== '')
+    .join(' ');
+}
+
+/**
  * The name note for this reply, or ''. On the turn the caller gives a new
  * name it also renames them (rename above). Idempotent: the preemptive and
- * final requests of one turn rename once.
+ * final requests of one turn rename once. CALL_ME_VOCATIVE=on: the name is
+ * confirmed first (confirmingNote).
  */
 export function nameCorrectionNote(
   chatCtx: llm.ChatContext,
@@ -218,11 +336,24 @@ export function nameCorrectionNote(
 ): string {
   const user = nameCorrectionEnabled(env) ? callerOn(session, deps) : null;
   if (!user) return '';
+  // With a guest in the room, "I'm David" may be the guest (room-guests.ts).
+  const words = callerWords !== '' && !guestsPresent(session, env) ? callerWords : '';
+  return callMeVocativeEnabled(env)
+    ? confirmingNote(chatCtx, session, user, words, deps)
+    : renameAtOnce(chatCtx, session, user, words, deps);
+}
+
+/** CALL_ME_VOCATIVE off: a name they state renames them on this turn. `words`: '' with a guest in the room. */
+function renameAtOnce(
+  chatCtx: llm.ChatContext,
+  session: object,
+  user: SessionUser,
+  words: string,
+  deps: NameCorrectionDeps
+): string {
   const known = corrected.get(session);
   const current = known?.name ?? user.userName;
-  // With a guest in the room, "I'm David" may be the guest (room-guests.ts).
-  const listen = callerWords && !guestsPresent(session, env);
-  const name = listen ? statedName(callerWords, current, lastAgentLine(chatCtx)) : null;
+  const name = words ? statedName(words, current, lastAgentLine(chatCtx)) : null;
   if (name && !sameName(name, current)) {
     corrected.set(session, { name, was: known?.was ?? current });
     rename(user, name, deps);

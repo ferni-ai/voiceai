@@ -23,6 +23,8 @@ export interface VectorDocument {
     timestamp?: Date;
     [key: string]: unknown;
   };
+  /** When the document expires: Firestore stores it as expireAt and search drops it after */
+  expireAt?: Date;
 }
 
 /**
@@ -59,8 +61,9 @@ export interface VectorSearchOptions {
  */
 export interface VectorStoreStats {
   documentCount: number;
-  bySource: Record<string, number>;
-  byCategory: Record<string, number>;
+  /** null when the store can't break its count down cheaply (firestore-vector-store getStats). */
+  bySource: Record<string, number> | null;
+  byCategory: Record<string, number> | null;
   usingFallback?: boolean;
 }
 

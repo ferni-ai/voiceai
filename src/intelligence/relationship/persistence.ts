@@ -9,9 +9,11 @@
  * @module intelligence/relationship
  */
 
-import { Firestore, Timestamp } from '@google-cloud/firestore';
+import { Timestamp } from '@google-cloud/firestore';
+import { sharedFirestore, type Firestore } from '../../utils/shared-firestore.js';
 import { toSafeDate, toSafeDateOptional } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { unexpiredMoments } from '../../utils/shared-moment-retention.js';
 import type {
   CallbackAttempt,
   EmotionalTrajectory,
@@ -22,6 +24,7 @@ import type {
   RelationshipStage,
   SharedMoment,
 } from './types.js';
+import { getFirestoreDatabase } from '../../config/environment.js';
 
 const log = createLogger({ module: 'RelationshipPersistence' });
 
@@ -41,7 +44,7 @@ function getFirestoreDb(): Firestore | null {
   }
 
   try {
-    db = new Firestore();
+    db = sharedFirestore({ databaseId: getFirestoreDatabase() });
     initialized = true;
     log.debug('Relationship persistence Firestore initialized');
     return db;
@@ -97,6 +100,7 @@ interface FirestoreMoment {
   topic?: string;
   callbackCount: number;
   lastCallback?: Timestamp;
+  expireAt?: Timestamp;
 }
 
 interface FirestoreJoke {
@@ -163,7 +167,8 @@ function toFirestoreDoc(memory: RelationshipMemory): FirestoreRelationship {
     totalSessions: memory.totalSessions,
     firstSessionAt: Timestamp.fromDate(memory.firstSessionAt),
     lastSessionAt: Timestamp.fromDate(memory.lastSessionAt),
-    sharedMoments: memory.sharedMoments.map((m) => ({
+    // An expired moment isn't saved again (one array in one doc: no TTL policy can reach it)
+    sharedMoments: unexpiredMoments(memory.sharedMoments).map((m) => ({
       id: m.id,
       type: m.type,
       summary: m.summary,
@@ -174,6 +179,7 @@ function toFirestoreDoc(memory: RelationshipMemory): FirestoreRelationship {
       topic: m.topic,
       callbackCount: m.callbackCount,
       lastCallback: m.lastCallback ? Timestamp.fromDate(m.lastCallback) : undefined,
+      expireAt: m.expireAt ? Timestamp.fromDate(m.expireAt) : undefined,
     })),
     insideJokes: memory.insideJokes.map((j) => ({
       id: j.id,
@@ -235,7 +241,7 @@ function fromFirestoreDoc(doc: FirestoreRelationship): RelationshipMemory {
     totalSessions: doc.totalSessions,
     firstSessionAt: toSafeDate(doc.firstSessionAt),
     lastSessionAt: toSafeDate(doc.lastSessionAt),
-    sharedMoments: (doc.sharedMoments ?? []).map((m) => ({
+    sharedMoments: unexpiredMoments(doc.sharedMoments ?? []).map((m) => ({
       id: m.id,
       type: m.type as SharedMoment['type'],
       summary: m.summary,
@@ -246,6 +252,7 @@ function fromFirestoreDoc(doc: FirestoreRelationship): RelationshipMemory {
       topic: m.topic,
       callbackCount: m.callbackCount,
       lastCallback: toSafeDateOptional(m.lastCallback),
+      expireAt: toSafeDateOptional(m.expireAt),
     })),
     insideJokes: (doc.insideJokes ?? []).map((j) => ({
       id: j.id,

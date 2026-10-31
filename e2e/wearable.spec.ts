@@ -41,7 +41,7 @@ test.describe('Wearable Integration API', () => {
   });
 
   test('POST /api/wearable/connect - initiates provider connection', async ({ request }) => {
-    const providers = ['fitbit', 'garmin', 'oura', 'whoop'];
+    const providers = ['garmin', 'oura', 'whoop'];
 
     for (const provider of providers) {
       const response = await request.post(`${BASE_URL}/api/wearable/connect`, {

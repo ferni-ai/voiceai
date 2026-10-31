@@ -80,7 +80,7 @@ export function normalize(message: string): string {
   return text;
 }
 
-type ExplicitModifier =
+export type ExplicitModifier =
   | 'negated'
   | 'hyperbole'
   | 'recovered'

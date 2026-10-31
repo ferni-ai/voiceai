@@ -60,7 +60,6 @@ export { createNotificationTools } from '../domains/communication/notifications.
 
 export { createCulturalCelebrationTools } from '../domains/life-planning/cultural-celebrations.js';
 export { createFirstTimePlanningTools } from '../domains/life-planning/first-time-planning.js';
-export { createGiftRegistryTools } from '../domains/life-planning/gift-registry.js';
 export { createGoalManagementTools } from '../domains/life-planning/goal-management.js';
 export { createLifeFirstsTools } from '../domains/life-planning/life-firsts-tracker.js';
 export { createMilestoneProactiveTools } from '../domains/life-planning/milestone-proactive.js';
@@ -116,7 +115,7 @@ export {
   hasLinkedAccounts,
   removeAccessToken,
   storeAccessToken,
-} from '../domains/finance/plaid-store.js';
+} from '../domains/finance/plaid-items.js';
 export { createPlaidTools } from '../domains/finance/plaid.js';
 
 // ============================================================================

@@ -32,14 +32,7 @@ const SCORE_DEFAULTS_TO_ZERO =
   /\w*(mood|energy|stress|sleep|wellbeing|worry|loneliness|hope|sentiment|satisfaction|streak|rating|score|closeness)\w*(\??\.\w+)*\s*(\?\?|\|\|)\s*0(?![.\d])(?!\s*\)?\s*([<>=!]|\+\s*1\b))/i;
 
 /** "file: trimmed line" → why it may stay. */
-const ALLOWED: Record<string, string> = {
-  'services/wellbeing-tracking/persistence.ts: mood: (snapshot.dimensions.mood ?? 0) * 10, // Convert -1 to 1 to 0-10 scale':
-    'fix/wellbeing-after-call-guards owns this file and is fixing these two lines; remove after it merges',
-  'services/wellbeing-tracking/persistence.ts: energy: (snapshot.dimensions.energy ?? 0) * 10, // Convert 0-1 to 0-10 scale':
-    'same: owned by fix/wellbeing-after-call-guards',
-  'services/identity/eight-sleep-api.ts: score: interval.score || 0,':
-    'SleepSummary.score is a required number in the /eight-sleep API the app reads; making it optional changes that contract and the client, so it is a separate PR',
-};
+const ALLOWED: Record<string, string> = {};
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {

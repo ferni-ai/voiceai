@@ -20,8 +20,23 @@ vi.mock('firebase-admin', () => {
   };
   return { default: { apps: [], initializeApp: unavailable, firestore: unavailable } };
 });
+// The voice stores reach Firestore through getAdminFirestore(); it is unavailable too.
+vi.mock('../../../../src/utils/firebase-admin-app.js', () => ({
+  getAdminFirestore: (): never => {
+    throw new Error('no Firebase in this test');
+  },
+}));
 // No Redis either: enrollment sessions use the handlers' in-memory fallback.
 vi.mock('../../../../src/memory/redis-cache.js', () => ({ getRedisCache: () => null }));
+// The card shows only while Recognizing You is visible, which the prod menu hides
+// (tests/ui/hidden-panel-gates.test.ts); this contract is the flow once it is shown.
+vi.mock('../../src/config/menu-visibility.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/config/menu-visibility.js')>();
+  return {
+    ...actual,
+    isPanelVisible: (panel: string) => panel === 'voice-id' || actual.isPanelVisible(panel),
+  };
+});
 
 import { verifyUser } from '../../../../src/services/voice/voice-enrollment.js';
 import {

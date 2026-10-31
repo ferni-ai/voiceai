@@ -13,7 +13,8 @@
  * @module services/platform/erase-user-record
  */
 
-import { getFirestore } from 'firebase-admin/firestore';
+import { erasingMark } from '../../utils/erasing-mark.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { ensureFirebaseAdmin } from '../identity/firebase-auth.js';
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -24,15 +25,21 @@ import {
   keepStripeCustomersForCleanup,
   type ErasureKeys,
 } from './erasure-keys.js';
-import { ERASED_STORES, storeLabel, type OwnedStore } from './user-stores.js';
+import { erasureErrorCode } from './erasure-step.js';
+import { eraseStore, holdsUser } from './erase-store.js';
+import {
+  ERASED_STORES,
+  storeLabel,
+  USER_RECORDS_COLLECTION,
+  type OwnedStore,
+} from './user-stores.js';
 
 const log = createLogger({ module: 'erase-user-record' });
 
-export const USER_RECORDS_COLLECTION = 'bogle_users';
+export { USER_RECORDS_COLLECTION };
 
-const PAGE = 300;
-/** A query that keeps returning documents after they were deleted must not loop forever */
-const MAX_PAGES = 1_000;
+/** gRPC NOT_FOUND: an update of a document that doesn't exist */
+const NOT_FOUND = 5;
 
 type Db = FirebaseFirestore.Firestore;
 
@@ -59,31 +66,6 @@ export async function findUserRecordRemnants(
   return stores.filter((_, i) => left[i]).map(storeLabel);
 }
 
-async function holdsUser(db: Db, store: OwnedStore, userId: string): Promise<boolean> {
-  const collection = db.collection(store.collection);
-  if ('doc' in store) {
-    const ref = collection.doc(userId);
-    const [snap, subs] = await Promise.all([ref.get(), ref.listCollections()]);
-    return snap.exists || subs.length > 0;
-  }
-  return !(await collection.where(store.field, '==', userId).limit(1).get()).empty;
-}
-
-/** Delete one store's documents for the user, and everything under them (Firestore doesn't cascade) */
-async function eraseStore(db: Db, store: OwnedStore, userId: string): Promise<void> {
-  const collection = db.collection(store.collection);
-  if ('doc' in store) {
-    await db.recursiveDelete(collection.doc(userId));
-    return;
-  }
-  const query = collection.where(store.field, '==', userId).limit(PAGE);
-  for (let page = 0; page < MAX_PAGES; page++) {
-    const snap = await query.get();
-    if (snap.empty) return;
-    await Promise.all(snap.docs.map((doc) => db.recursiveDelete(doc.ref)));
-  }
-}
-
 interface Job {
   label: string;
   erase: () => Promise<void>;
@@ -103,18 +85,27 @@ const KEY_TIER = new Map([
   [`${USER_RECORDS_COLLECTION}/{uid}`, 2],
 ]);
 
-/** Erase every job, then check them all; throws naming whatever is left */
+/**
+ * Erase every job, then check them all; throws naming whatever is left. Logs store
+ * labels and error codes only: a Firestore error's message can carry the document
+ * path it failed on, which for a phone profile or an email-keyed store is the phone
+ * number or the (base64) email.
+ */
 async function runPhase(jobs: readonly Job[], userId: string): Promise<void> {
   const results = await Promise.allSettled(jobs.map(async (job) => job.erase()));
   const errors = jobs.filter((job, i) => {
     const result = results[i];
     if (result?.status !== 'rejected') return false;
-    log.warn({ error: String(result.reason), userId, store: job.label }, 'Store not erased');
+    log.warn(
+      { error: erasureErrorCode(result.reason), userId, store: job.label },
+      'Store not erased'
+    );
     return true;
   });
   const left = await Promise.all(jobs.map(async (job) => job.remains()));
   const stuck = new Set([...errors, ...jobs.filter((_, i) => left[i])].map((job) => job.label));
   if (stuck.size > 0) {
+    log.warn({ userId, stores: [...stuck] }, 'User record not fully erased');
     throw new Error(`User record not fully erased: ${[...stuck].join(',')}`);
   }
 }
@@ -135,6 +126,9 @@ export async function eraseUserRecord(
   keyed: readonly KeyedStore[] = KEYED_STORES
 ): Promise<void> {
   assertErasableUserId(userId);
+  // Outreach held in memory goes before and after the sweep, refused from then on (a live session)
+  const { eraseUserOutreachData } = await import('../outreach/outreach-intelligence.js');
+  await eraseUserOutreachData(userId);
   const db = firestore ?? defaultDb();
   // Gathered first: the sweep erases the records the keys are read from
   const keys = keyed.length > 0 ? await gatherKeys(db, userId, keyed) : null;
@@ -142,6 +136,9 @@ export async function eraseUserRecord(
   linked.forEach(assertErasableUserId);
   // BQ_ERASURE: their BigQuery rows go in a later batch, after the streaming buffer (bq-erasure.ts)
   if (flagOn('BQ_ERASURE')) await queueBqErasure(db, [userId, ...linked]);
+  // The records this erasure deletes are marked before anything goes
+  if (stores.some((store) => storeLabel(store) === `${USER_RECORDS_COLLECTION}/{uid}`))
+    await markErasing(db, [userId, ...linked]);
   const uidJobs = (uid: string, tier: number): Job[] =>
     stores
       .filter((store) => (KEY_TIER.get(storeLabel(store)) ?? 0) === tier)
@@ -174,6 +171,32 @@ export async function eraseUserRecord(
   for (const tier of [1, 2]) {
     await runPhase([...keyedJobs(tier), ...uidJobs(userId, tier)], userId);
   }
+  await eraseUserOutreachData(userId);
+}
+
+/**
+ * Marks each record `erasing` (utils/erasing-mark.ts) before anything is deleted. A write still running for the
+ * person (a live call's team insight, insight-store.ts) reads the record in its own
+ * transaction and stops on the mark, so it can't recreate a document under a record that
+ * is about to go: the record itself is deleted last, since a retry reads the keys from it
+ * (erasure-keys.ts). One update, which needs the record to exist: a write that read the
+ * record before the mark either lands first (and is erased with the rest) or is retried
+ * and finds the mark. A record that doesn't exist isn't created. Any other failure fails
+ * the erasure before anything is deleted.
+ */
+async function markErasing(db: Db, userIds: readonly string[]): Promise<void> {
+  const mark = erasingMark();
+  await Promise.all(
+    userIds.map(async (uid) =>
+      db
+        .collection(USER_RECORDS_COLLECTION)
+        .doc(uid)
+        .update(mark)
+        .catch((error: unknown) => {
+          if ((error as { code?: unknown } | null)?.code !== NOT_FOUND) throw error;
+        })
+    )
+  );
 }
 
 /**
@@ -192,7 +215,7 @@ async function gatherKeys(
     return keys;
   } catch (error) {
     log.error(
-      { error: String(error), userId },
+      { error: erasureErrorCode(error), userId },
       "Couldn't read the keys to erase by; nothing erased"
     );
     const labels = keyed.map((k) => k.label).join(',');
@@ -202,5 +225,5 @@ async function gatherKeys(
 
 function defaultDb(): Db {
   if (!ensureFirebaseAdmin()) throw new Error('Firebase Admin is not initialized');
-  return getFirestore();
+  return getAdminFirestore();
 }

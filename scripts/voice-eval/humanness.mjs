@@ -8,6 +8,7 @@
 //
 // Text patterns are deliberately plain-word and word-bounded (see
 // substring-classifier-pitfalls): "now" must not match "know".
+import { weaveSounds } from './sounds.mjs';
 
 const DONT_KNOW =
   /\b(i don'?t know|i do not know|i'?m not (really )?sure|no idea|beats me|i dunno|i couldn'?t tell you)\b/i;
@@ -42,13 +43,49 @@ const words = (t) =>
     .match(/[a-z']+/g) ?? [];
 const contentWords = (t) => new Set(words(t).filter((w) => w.length >= 5 && !STOP.has(w)));
 
-/** A growing or corrected caption of one utterance shares at least half its start. */
+const captionKey = (t) =>
+  t
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/**
+ * Whether the next caption is the previous utterance growing ("I'm" → "I'm
+ * 34.") or having its tail revised by STT, rather than a new utterance. A new
+ * utterance restarts short ("I'm 34." → "I"), so a shared first letter is not
+ * enough: the next caption must extend the previous one, or share at least
+ * half of the longer of the two (prod 2026-10-23: "I teach 9th grade" erased
+ * "I'm 34." and the judge never saw the caller's age).
+ */
 function sameUtterance(prev, next) {
-  const a = prev.toLowerCase();
-  const b = next.toLowerCase();
+  const a = captionKey(prev);
+  const b = captionKey(next);
+  if (!a || !b) return false;
+  if (b.startsWith(a)) return true;
   let i = 0;
   while (i < a.length && i < b.length && a[i] === b[i]) i++;
-  return i > 0 && i >= Math.min(a.length, b.length) / 2;
+  return i >= Math.max(a.length, b.length) / 2;
+}
+
+// A caption this soon after a longer one it is the start of is an interim
+// delivered out of order, not a new line: "That's all." then "That" 1 ms later.
+// A real new line comes a second or more after the last caption (2026-10-23 runs).
+const STALE_MS = 300;
+
+function withoutStaleCaptions(events) {
+  let prev = null;
+  return events.filter((e) => {
+    if (e.who !== 'user') {
+      prev = null;
+      return true;
+    }
+    const a = prev ? captionKey(prev.text) : '';
+    const b = captionKey(e.text);
+    const stale = prev && e.t - prev.t < STALE_MS && b.length < a.length && a.startsWith(b);
+    if (!stale) prev = e;
+    return !stale;
+  });
 }
 
 /**
@@ -56,12 +93,15 @@ function sameUtterance(prev, next) {
  * What Ferni says before the caller speaks is dropped, since it would skew the
  * per-turn numbers; pass { greeting: true } to keep it as a turn marked
  * greeting (the judge needs it: COACH_FOLLOW_THROUGH asks its question there).
+ * With { sounds: true } (or { sounds: { name, readWav, speech } }) Ferni's
+ * non-speech sounds are woven in where they played (sounds.mjs weaveSounds):
+ * inline as "[Ferni: mm-hm]", or as { who: 'sound' } lines.
  */
-export function turnsOf(run, { greeting = false } = {}) {
+export function turnsOf(run, { greeting = false, sounds = false } = {}) {
   const firstUserAt = run.userSpeech?.[0]?.[0] ?? 0;
   const turns = [];
   let segs = []; // the current caller turn's separate utterances
-  for (const e of run.events ?? []) {
+  for (const e of withoutStaleCaptions(run.events ?? [])) {
     const isGreeting = e.who === 'agent' && e.t <= firstUserAt;
     if (isGreeting && !greeting) continue;
     const last = turns[turns.length - 1];
@@ -75,6 +115,7 @@ export function turnsOf(run, { greeting = false } = {}) {
         else segs.push(e.text);
         last.text = segs.join(' ');
       }
+      last.snaps?.push({ t: e.t, text: last.text });
     } else {
       turns.push(
         isGreeting
@@ -82,9 +123,10 @@ export function turnsOf(run, { greeting = false } = {}) {
           : { who: e.who, text: e.text, t: e.t }
       );
       segs = [e.text];
+      if (sounds) turns[turns.length - 1].snaps = [{ t: e.t, text: e.text }];
     }
   }
-  return turns;
+  return sounds ? weaveSounds(turns, run, sounds === true ? {} : sounds) : turns;
 }
 
 const rate = (xs, f) =>

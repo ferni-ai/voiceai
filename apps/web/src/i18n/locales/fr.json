@@ -1273,8 +1273,6 @@
       "notifications": "Quand je fais mes check-ins",
       "toggleTheme": "Clair / Sombre",
       "themeLanguage": "Apparence",
-      "linkSpotify": "Connecter Spotify",
-      "spotifyConnected": "Spotify connecté",
       "vibeController": "Installe la vibe",
       "spotifyRooms": "Salons de musique",
       "thermostat": "Confort de la maison",
@@ -2438,10 +2436,6 @@
         "description": "Synchronise tes données de santé avec ton Apple Watch et ton iPhone",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Connecte ton appareil Fitbit",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Synchronise tes objets connectés Garmin",
         "name": "Garmin"
@@ -2795,8 +2789,7 @@
       "askFerni": "Ou demande à Ferni de jouer quelque chose",
       "play": "Lecture",
       "pause": "Pause",
-      "skip": "Passer",
-      "linkSpotify": "Associe Spotify dans les paramètres pour écouter les morceaux en entier"
+      "skip": "Passer"
     },
     "volume": "Volume",
     "skipped": "Passé",
@@ -3530,8 +3523,6 @@
     "accessLevelFullDesc": "Peut parler à tous les membres de l'équipe",
     "accessLevelLimited": "Limité",
     "accessLevelLimitedDesc": "Uniquement Ferni",
-    "accessLevelSupervised": "Supervisé",
-    "accessLevelSupervisedDesc": "Tu reçois une notification lors des appels",
     "eyebrow": "Famille",
     "addMember": "Ajouter un membre de la famille",
     "emptyText": "Ajoute des membres de ta famille qui appellent Ferni par téléphone. Ils seront reconnus automatiquement et pourront avoir leurs propres conversations avec Ferni.",
@@ -3634,7 +3625,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "Communication & relations",
+        "role": "Coach en communication & bras droit",
         "description": "Je t'aide à mener tes conversations, à renforcer tes relations et à mieux t'exprimer.",
         "unlockHint": "Partage une histoire de relation avec Ferni",
         "unlockedMessage": "J'ai remarqué des schémas qui méritent d'être explorés.",
@@ -5372,8 +5363,6 @@
     "from": "De",
     "beyondTheApp": "Au-delà de l'application",
     "beyondTheAppDesc": "Quand chaque instant compte, je te rejoins là où tu es.",
-    "emailUpdates": "Actualités par e-mail",
-    "emailUpdatesDesc": "Célébrations d'étapes et récapitulatifs hebdomadaires",
     "smsMessages": "Messages SMS",
     "smsDesc": "Des petits check-ins rapides quand je remarque quelque chose",
     "milestoneCelebrations": "Célébrations d'étapes",
@@ -8019,6 +8008,9 @@
     "improving": "En hausse",
     "declining": "Un peu plus bas ces derniers temps",
     "trendUnavailable": "Cette tendance ne s'est pas chargée. Réessaie dans un moment.",
+    "notTalkedLately": "On n'en a pas parlé ces derniers temps :",
+    "asOfOnce": "Au {date} · évoqué une fois",
+    "asOfCount": "Au {date} · évoqué {count} fois",
     "trendUp": "en hausse",
     "trendDown": "en baisse",
     "trendStable": "stable",
@@ -8399,10 +8391,9 @@
     "appleHealthDesc": "Données de sommeil, d'activité et de fréquence cardiaque",
     "ouraDesc": "Qualité du sommeil et score de préparation",
     "eightSleepDesc": "Suivi du sommeil et température",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP et plus encore",
+    "wearablesDesc": "Garmin, WHOOP et plus encore",
     "calendarDesc": "Événements, réunions et disponibilités",
     "linkedInDesc": "Contexte professionnel et réseau",
-    "spotifyDesc": "Musique, playlists selon ton humeur et historique d'écoute",
     "ecobeeDesc": "Température et confort de la maison",
     "vibeControllerDesc": "Contrôle ta musique, tes lumières et plus encore",
     "connected": "Connecté"
@@ -9053,9 +9044,6 @@
     "trustJourneyExplore": "Explorer",
     "customizeTitle": "Personnalise ton expérience",
     "customizeMessage": "Ajuste les thèmes, les sons et bien plus encore.",
-    "spotifyTitle": "Connecter Spotify",
-    "spotifyMessage": "Associe ton compte Spotify pour définir la vibe pendant nos conversations.",
-    "spotifyConnect": "Connecter",
     "maybeLater": "Peut-être plus tard"
   },
   "mentorTeachings": {
@@ -10220,9 +10208,10 @@
     "title": "Ces petits détails dont je me souviens",
     "subtitle": "Pour te libérer l'esprit",
     "emptyTitle": "Rien n'est encore configuré",
-    "emptySubtitle": "Tu veux que je te salue chaque matin ? Que je te rappelle de t'étirer ? Je peux faire ça.",
+    "emptySubtitle": "Dis-moi ce que tu aimerais faire régulièrement et je le garderai ici.",
     "emptyButton": "Montre-moi des idées",
     "addNew": "Ajouter quelque chose de nouveau",
+    "notRunningYet": "Je les garde ici pour toi. Elles ne se lancent pas encore toutes seules.",
     "triggers": {
       "dailyAt": "Chaque jour à {time}",
       "dailyUnset": "Chaque jour à une heure précise",
@@ -10308,7 +10297,6 @@
     "connectFirstToManage": "Connecte-toi d'abord, on s'en occupera ensuite.",
     "monthlyLimitReached": "Nous avons atteint notre limite mensuelle. J'adorerais continuer à discuter...",
     "enableMicPrompt": "J'aimerais beaucoup entendre ta voix — activer l'accès au micro ?",
-    "agentJoined": "{name} a rejoint la conversation",
     "seeYouNextTime": "À la prochaine !",
     "handoffFailed": "Impossible de les joindre pour le moment. Mais je suis toujours là !",
     "personaBack": "{name} est de retour !",
@@ -10341,6 +10329,7 @@
       "other": "Tu as gagné {count} graines !"
     },
     "couldNotLoadMemories": "Je n'ai pas pu charger ce dont je me souviens. On réessaie ?",
+    "credentialNotKept": "Ferni ne garde ni codes ni mots de passe, alors celui-ci a été effacé.",
     "memoryCorrected": "Compris. Je m'en souviendrai comme ça."
   },
   "trustSignals": {
@@ -10615,7 +10604,6 @@
     "names": {
       "stockData": "Données boursières",
       "marketData": "Données du marché",
-      "weatherMaps": "Météo & Cartes",
       "historicalFacts": "Faits historiques",
       "smartHome": "Maison connectée",
       "lighting": "Éclairage",
@@ -10926,7 +10914,10 @@
     "endTalk": "Raccrocher",
     "connectingCancel": "Connexion en cours. Touchez pour annuler",
     "connectingNow": "Connexion…",
-    "tapToCancel": "Touchez pour annuler"
+    "tapToCancel": "Touchez pour annuler",
+    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
+    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
+    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
   },
   "analyticsDashboard": {
     "title": "Ton parcours",

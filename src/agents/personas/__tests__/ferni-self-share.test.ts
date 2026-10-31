@@ -1,4 +1,6 @@
 import { llm } from '@livekit/agents';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { ReadableStream } from 'node:stream/web';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -6,6 +8,7 @@ import { gatedReply } from '../crisis-gate.js';
 import {
   DAY_DETAILS,
   dayDetailFor,
+  GROUNDED_DAY_DETAILS,
   isSelfShare,
   LOW_MOOD_SELF,
   selfQuotes,
@@ -128,6 +131,27 @@ describe('the low-mood guard', () => {
           lines.push(selfShareFor({ replies: replies.slice(0, k), said, detail }).line);
     for (const line of lines) expect(line, line).not.toMatch(LOW_MOOD_SELF);
     for (const detail of DAY_DETAILS) expect(soundsLow(detail), detail).toBe(false);
+  });
+});
+
+describe('his day details come from his canon (#1511)', () => {
+  const IDENTITY = join(process.cwd(), 'src', 'personas', 'bundles', 'ferni', 'identity');
+
+  it('every day detail rests on words its canon file actually says', () => {
+    expect(DAY_DETAILS.length).toBeGreaterThanOrEqual(5);
+    for (const detail of DAY_DETAILS) {
+      const grounded = GROUNDED_DAY_DETAILS.find((d) => d.text === detail);
+      expect(grounded, detail).toBeDefined();
+      const sheet = readFileSync(join(IDENTITY, grounded!.canon.file), 'utf8');
+      expect(sheet, `${grounded!.canon.file}: ${grounded!.canon.says}`).toContain(
+        grounded!.canon.says
+      );
+    }
+  });
+
+  it('none of the invented details is back', () => {
+    for (const detail of DAY_DETAILS)
+      expect(detail).not.toMatch(/sapporo|grinder|\bfox\b|bakery|porch|named it/i);
   });
 });
 

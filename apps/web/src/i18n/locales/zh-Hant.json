@@ -1206,7 +1206,6 @@
       "journaling": "生活日誌",
       "language": "語言",
       "lifeContext": "你的生活點滴",
-      "linkSpotify": "連結 Spotify",
       "memoryBrowser": "我記下的回憶",
       "musicalYou": "音樂時光",
       "notifications": "我什麼時候來找你",
@@ -1216,7 +1215,6 @@
       "predictionAccuracy": "我的表現",
       "progressAnalytics": "你的近況",
       "shareFerni": "分享 Ferni",
-      "spotifyConnected": "已連結 Spotify",
       "supportFerni": "支持 Ferni",
       "supportFerniExpanded": "支持 Ferni",
       "takeTour": "帶我到處看看",
@@ -2419,10 +2417,6 @@
         "description": "同步 Apple Watch 和 iPhone 的健康數據",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "連結你的 Fitbit 裝置",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "同步你的 Garmin 穿戴式裝置",
         "name": "Garmin"
@@ -2776,8 +2770,7 @@
       "askFerni": "或者請 Ferni 播放點音樂",
       "play": "播放",
       "pause": "暫停",
-      "skip": "跳過",
-      "linkSpotify": "在設定中連結 Spotify 以收聽完整歌曲"
+      "skip": "跳過"
     },
     "volume": "音量",
     "skipped": "已跳過",
@@ -3508,8 +3501,6 @@
     "accessLevelFullDesc": "可以和所有團隊成員對話",
     "accessLevelLimited": "受限存取權",
     "accessLevelLimitedDesc": "僅限 Ferni",
-    "accessLevelSupervised": "受監督存取權",
-    "accessLevelSupervisedDesc": "通話時你會收到通知",
     "eyebrow": "家人",
     "addMember": "新增家人",
     "emptyText": "新增會用電話撥給 Ferni 的家人。系統會自動辨識他們，讓他們也能和 Ferni 進行專屬的對話。",
@@ -3611,7 +3602,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "溝通與人際關係",
+        "role": "溝通教練兼幕僚長",
         "description": "我會協助你引導對話、鞏固人際關係，並更好地表達自己。",
         "unlockHint": "與 Ferni 分享一段關於人際關係的故事",
         "unlockedMessage": "我注意到一些值得我們一起探索的模式。",
@@ -5340,8 +5331,6 @@
     "from": "從",
     "beyondTheApp": "應用程式之外",
     "beyondTheAppDesc": "在關鍵時刻，無論你在哪裡，我都會陪伴著你。",
-    "emailUpdates": "電子郵件更新",
-    "emailUpdatesDesc": "里程碑慶祝與每週回顧",
     "smsMessages": "簡訊",
     "smsDesc": "當我注意到狀況時，發送簡短的自我檢視訊息",
     "milestoneCelebrations": "里程碑慶祝",
@@ -7971,6 +7960,9 @@
     "improving": "在上升",
     "declining": "最近稍低一些",
     "trendUnavailable": "這個趨勢沒有載入。稍後再試一次。",
+    "notTalkedLately": "最近我們沒聊到這些：",
+    "asOfOnce": "截至{date} · 聊到過 1 次",
+    "asOfCount": "截至{date} · 聊到過 {count} 次",
     "trendUp": "上升",
     "trendDown": "下降",
     "trendStable": "持平",
@@ -8350,10 +8342,9 @@
     "appleHealthDesc": "睡眠、活動與心率資料",
     "ouraDesc": "睡眠品質與準備度分數",
     "eightSleepDesc": "睡眠追蹤與溫度調節",
-    "wearablesDesc": "Fitbit、Garmin、WHOOP 等裝置",
+    "wearablesDesc": "Garmin、WHOOP 等裝置",
     "calendarDesc": "行事曆行程、會議與空檔時間",
     "linkedInDesc": "職涯背景與人脈網路",
-    "spotifyDesc": "音樂、心情歌單與播放紀錄",
     "ecobeeDesc": "居家溫度與舒適度",
     "vibeControllerDesc": "控制音樂、燈光等設備",
     "connected": "已連線"
@@ -8983,9 +8974,6 @@
     "trustJourneyExplore": "探索",
     "customizeTitle": "個人化你的體驗",
     "customizeMessage": "調整主題、聲音與更多設定。",
-    "spotifyTitle": "連結 Spotify",
-    "spotifyMessage": "連結你的 Spotify，在我們對話時營造最適合的心情氛圍。",
-    "spotifyConnect": "連結",
     "maybeLater": "稍後再說"
   },
   "mentorTeachings": {
@@ -10125,9 +10113,10 @@
     "title": "我幫你記住的小事",
     "subtitle": "讓你不用操心",
     "emptyTitle": "目前還沒有任何設定",
-    "emptySubtitle": "想要我每天早上向你問好？還是提醒你伸展身體？我都可以幫忙喔。",
+    "emptySubtitle": "告訴我你想定期做的事，我會把它存在這裡。",
     "emptyButton": "看看有哪些靈感",
     "addNew": "新增項目",
+    "notRunningYet": "我把它們存在這裡。它們還不會自動執行。",
     "triggers": {
       "dailyAt": "每天 {time}",
       "dailyUnset": "每天的固定時間",
@@ -10214,7 +10203,6 @@
     "connectFirstToManage": "先連線，我們再來處理這個吧。",
     "monthlyLimitReached": "我們已經達到本月的上限了。我好想繼續跟你聊聊...",
     "enableMicPrompt": "我很想聽聽你的聲音——要開啟麥克風權限嗎？",
-    "agentJoined": "{name} 已加入",
     "seeYouNextTime": "下次見囉！",
     "handoffFailed": "現在聯絡不上他們。不過我還在這裡陪你！",
     "personaBack": "{name} 回來了！",
@@ -10243,6 +10231,7 @@
       "one": "你獲得了 {count} 顆種子！"
     },
     "couldNotLoadMemories": "沒能載入我記得的內容。再試一次？",
+    "credentialNotKept": "Ferni 不會保存密碼或各種代碼，所以這條已刪除。",
     "memoryCorrected": "明白了，我會這樣記住。"
   },
   "trustSignals": {
@@ -10509,7 +10498,6 @@
     "names": {
       "stockData": "股市數據",
       "marketData": "市場數據",
-      "weatherMaps": "天氣與地圖",
       "historicalFacts": "歷史事件",
       "smartHome": "智慧家庭",
       "lighting": "照明",
@@ -10806,7 +10794,10 @@
     "endTalk": "掛斷",
     "connectingCancel": "正在連線。輕點即可取消",
     "connectingNow": "正在連線…",
-    "tapToCancel": "輕點即可取消"
+    "tapToCancel": "輕點即可取消",
+    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
+    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
+    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
   },
   "analyticsDashboard": {
     "title": "你的旅程",

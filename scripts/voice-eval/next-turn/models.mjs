@@ -2,6 +2,7 @@
 import { execFileSync } from 'node:child_process';
 
 import { parseJudgeJson } from '../judge.mjs';
+import { judgeModel } from '../../lib/judge-model.mjs';
 
 const gcloud = (args) => execFileSync('gcloud', args, { encoding: 'utf8' }).trim();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -36,10 +37,7 @@ export async function gemini(model, body, tries = 5) {
 }
 
 /** Gemini as a judge: temperature 0.2, JSON out. */
-export async function geminiJson(
-  prompt,
-  model = process.env.JUDGE_MODEL ?? 'gemini-3.1-pro-preview'
-) {
+export async function geminiJson(prompt, model = judgeModel()) {
   const generationConfig = { temperature: 0.2, responseMimeType: 'application/json' };
   return parseJudgeJson(
     await gemini(model, {

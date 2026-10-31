@@ -22,6 +22,7 @@
  * @module agents/personas/action-claims
  */
 
+import { flagOn, type Env } from '../../config/env-flag.js';
 import {
   ANECDOTE,
   CLAUSE_CONDITION,
@@ -243,6 +244,20 @@ export function emergencyRemainder(sentence: string): string {
 }
 
 /**
+ * "I'll call now." with no one named (ACTION_CLAIM_BARE_WILL). Prod call 2026-10-24
+ * (#2735): after the call tool held the call until 9:00 AM their time, Ferni said
+ * "Ah, got it, early riser, I'll call now." and the held line never went out,
+ * because the pattern above needs a person or number before "now".
+ */
+const BARE_WILL_CALL = new RegExp(
+  `\\b(?:let me|i'm going to|i'm gonna|i'll) (?:call|ring|dial|phone) ${NOW}`
+);
+
+export function actionClaimBareWillEnabled(env: Env = process.env): boolean {
+  return flagOn('ACTION_CLAIM_BARE_WILL', env);
+}
+
+/**
  * The kind of action one sentence claims was done or is under way, or null.
  *
  * Dev sweep 2026-10-21 (overlap-handoff): asked "What should I do first?",
@@ -253,8 +268,9 @@ export function emergencyRemainder(sentence: string): string {
  * Words after a supposition ("if", "let's say"), a hedge ("maybe") or a cue to
  * say them ("tell them") are not a report either.
  */
-export function claimedAction(sentence: string): ActionKind | null {
+export function claimedAction(sentence: string, env: Env = process.env): ActionKind | null {
   const text = normalize(sentence);
+  const bareWill = actionClaimBareWillEnabled(env);
   if (FIGURATIVE.test(text)) return null;
   if (emergencyClaim(sentence) === 'called') return 'call';
   const whole = text.replace(/[—–]/g, ',');
@@ -278,6 +294,85 @@ export function claimedAction(sentence: string): ActionKind | null {
       return !/^we/.test(m[0]) || /\byour?\b/.test(m[0]);
     };
     const kind = ACTION_KINDS.find((k) => CLAIMS[k].some(reports));
+    if (kind) return kind;
+    if (bareWill && reports(BARE_WILL_CALL)) return 'call';
+  }
+  return null;
+}
+
+/**
+ * A plain past report by Ferni of an action in the caller's world: "I booked it.", "I sent it.",
+ * "I called her.", "I set the reminder.", "I added it to your calendar." (ACTION_CLAIM_PAST).
+ * Plain past is also how Ferni tells his own life, so the guard asks this only when a tool of
+ * the kind was open and none ran (action-claim-guard.ts).
+ */
+const I_DID = '\\bi (?:already |also |just )?';
+const PAST: Record<ActionKind, RegExp[]> = {
+  // Not "called her out", "called him off", "called him a genius".
+  call: [
+    new RegExp(`${I_DID}(?:called|rang|phoned|dialed|dialled) ${DIALED}(?! (?:out|off|an?)\\b)`),
+  ],
+  send: [
+    new RegExp(
+      `${I_DID}(?:sent|texted|messaged|emailed) (?:it|that|this|the (?:text|message|email|note|invite|link)|${WHO})(?! back\\b)`
+    ),
+  ],
+  ride: [new RegExp(`${I_DID}(?:ordered|booked|called|got) you (?:an?|the) ${VEHICLE}`)],
+  schedule: [
+    new RegExp(
+      `${I_DID}(?:booked|scheduled|reserved) (?:it|that|this|you|your \\w+|the (?:\\w+ )?(?:table|appointment|reservation|meeting|room|slot|session))\\b(?! out\\b| to\\b)`
+    ),
+    new RegExp(
+      `${I_DID}(?:added|put) (?:it|that|this|the \\w+) (?:on|to|in|into) your (?:calendar|schedule|diary)\\b`
+    ),
+  ],
+  reminder: [
+    new RegExp(
+      `${I_DID}(?:set|added|created) (?:a|the|your|that|an) (?:\\w+ ){0,2}(?:reminder|timer|alarm)\\b`
+    ),
+  ],
+  save: [new RegExp(`${I_DID}(?:saved|stored|logged|noted) (?:it|that|this|those)\\b`)],
+};
+/** Ferni's own life anywhere in the sentence: "for my sister", "a friend of mine", "once". */
+const OWN_LIFE = /\b(?:my|myself|mine|once|usually|always|sometimes|whenever)\b/;
+/** A dated past: "in 2019", "back in June", "when we went to Paris". */
+const DATED =
+  /\b(?:in|since) (?:19|20)\d\d\b|\bback in\b|\bwhen (?:we|i) (?:went|were|was|lived|moved|visited)\b/;
+/** Taken back at the end: "I called her, but I did not." */
+const DENIED = /\bbut i (?:did not|didn't|have not|haven't|never did)\W*$/;
+/** Someone else's words just before the verb: "you said I called her", "they think I sent it". */
+const THEY_SAY =
+  /\b(?:you|they|she|he|we|people|someone|somebody) (?:said|say|says|think|thinks|thought|told me|claim|claims|claimed|mentioned|heard)(?: that)?\s*$/;
+/** Supposing it happened: "Say I booked it, then what?". */
+const SUPPOSE_PAST = /^(?:(?:so|okay|well) )?say\b|\bwhat if\b/;
+/** A habit in the claim's clause: "I set an alarm every night". */
+const HABIT = /\bevery (?:night|morning|day|week|year|time)\b/;
+
+/** The kind of action a plain past sentence reports Ferni did, or null (ACTION_CLAIM_PAST). */
+export function pastClaim(sentence: string): ActionKind | null {
+  const text = normalize(sentence);
+  if (FIGURATIVE.test(text) || OWN_LIFE.test(text) || NOT_AN_ACTION.test(text)) return null;
+  if (DATED.test(text) || DENIED.test(text)) return null;
+  let from = 0;
+  for (const raw of text.split(CLAUSES)) {
+    const start = text.indexOf(raw, from);
+    from = start + raw.length;
+    const clause = raw.trim();
+    if (!clause || NOT_A_CLAIM.test(clause) || HABIT.test(clause)) continue;
+    const before = text.slice(0, start + raw.indexOf(clause));
+    /** Unlike the claims above, a hedge anywhere before the verb counts: "if I booked it, ...". */
+    const reports = (re: RegExp): boolean => {
+      const m = re.exec(clause);
+      if (!m) return false;
+      const lead = before + clause.slice(0, m.index);
+      return (
+        !HEDGED.test(lead) &&
+        !REPORTED.test(lead) &&
+        !THEY_SAY.test(lead) &&
+        !SUPPOSE_PAST.test(lead)
+      );
+    };
+    const kind = ACTION_KINDS.find((k) => PAST[k].some(reports));
     if (kind) return kind;
   }
   return null;
@@ -330,8 +425,8 @@ const ELSEWHERE = /\bisn't on your calendar\b/i;
 const HELD = /^\W*nothing was dialed yet\b/i;
 /** The held call's time as its result words it: "later today at 9:00 AM". */
 const HELD_WHEN = /\b((?:later today|tomorrow|\w+day) at \d{1,2}:\d{2}\s?[AP]M)\b/i;
-/** A result that says the action did not happen. */
-const REFUSAL =
+/** A result that says the action did not happen (also the handoff desk's, multi-agent/handoff-desk.ts). */
+export const TOOL_REFUSAL =
   /^\W*(?:no calendar is connected|nothing (?:was|has been)|i couldn't|i could not|i can't|i cannot|i wasn't able|couldn't|could not|unable to|failed|error\b|sorry,? (?:i|but|that|it|something|there))|\bbut i don't have\b|\bi don't have (?:a|the|their|any) (?:phone )?number\b|\bi couldn't find\b|\bdon't see \w+(?: \w+)? in your contacts\b|\bdoesn't look (?:valid|right)\b|\b(?:calls?|calling|texts?|texting|outbound \w+) (?:are|is) (?:disabled|turned off|off|not available|unavailable)\b|\bcould you (?:tell me|provide|give me) (?:their|the|a) (?:phone )?number\b|"success"\s*:\s*false|"error"\s*:/i;
 
 function outputText(output: unknown): string {
@@ -379,7 +474,7 @@ export function callActions(chatCtx: { items: readonly unknown[] }): CallActions
       ? 'failed'
       : HELD.test(text)
         ? 'held'
-        : REFUSAL.test(text)
+        : TOOL_REFUSAL.test(text)
           ? 'failed'
           : PREVIEW.test(text)
             ? 'awaiting'

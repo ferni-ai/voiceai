@@ -32,6 +32,27 @@ export type TextGameType =
   | 'tiny-win-tracker' // Celebrate small daily victories
   | 'fortune-cookie'; // Receive and reflect on wisdom
 
+/** Every text game id, once each: a Record so a new TextGameType must be added here. */
+const TEXT_GAME_IDS: Readonly<Record<TextGameType, true>> = {
+  'tic-tac-toe': true,
+  '20-questions': true,
+  'word-association': true,
+  'would-you-rather': true,
+  'story-builder': true,
+  'three-word-day': true,
+  'values-card-sort': true,
+  'headline-writer': true,
+  'emoji-story': true,
+  'one-word-checkin': true,
+  'tiny-win-tracker': true,
+  'fortune-cookie': true,
+};
+
+/** True for an id the text game engine can start (own keys only, so "constructor" is not one). */
+export function isTextGameType(value: unknown): value is TextGameType {
+  return typeof value === 'string' && Object.hasOwn(TEXT_GAME_IDS, value);
+}
+
 export type TextGameStatus = 'idle' | 'active' | 'completed' | 'draw';
 
 // ============================================================================

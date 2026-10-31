@@ -43,7 +43,7 @@ describe('withSessionsTogether', () => {
 
     vi.useFakeTimers();
     try {
-      const slow = vi.fn(() => new Promise<never>(() => undefined));
+      const slow = vi.fn(() => new Promise<never>(() => {}));
       const pending = withSessionsTogether('u1', { totalConversations: 7 }, slow);
       await vi.advanceTimersByTimeAsync(1000);
       expect((await pending)?.totalConversations).toBe(7);

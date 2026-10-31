@@ -59,6 +59,13 @@ export interface SpeechSegment {
   rustEvents: RustEvent[];
 }
 
+/** LAUGH_CAP's per-call ledger (agents/personas/laugh-ledger.ts); absent, laughs keep their rules. */
+export interface LaughGate {
+  beginReply(said: string | undefined, key: string): boolean; // counts the reply; may it laugh?
+  mayLaugh(): boolean; // as beginReply decided
+  laughed(): void; // a laugh reached the reply now spoken
+}
+
 /**
  * What the Director reads about the turn being answered. The shape of
  * tts-wrapper's session context, so the wrapper can pass it as it is:
@@ -73,6 +80,9 @@ export interface TurnContext {
   userEmotion?: { primary?: string };
   /** Rapport 0-1, for the laughter rules; their default when absent. */
   comfortLevel?: number;
+  laughGate?: LaughGate; // on a reply to the caller (reply-caller-turn.ts)
+  /** The caller's name as the session has it (NAME_FALLING_SPLIT, name-intonation.ts). */
+  userName?: string;
 }
 
 /** The Director's only output: one per LLM reply. */

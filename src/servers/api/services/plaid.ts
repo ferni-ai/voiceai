@@ -5,12 +5,21 @@
  *
  * STORAGE: Uses Firestore for persistence (Cloud Run compatible).
  * Falls back to in-memory storage if Firestore is unavailable.
+ * PLAID_UNIFIED_STORE on: the sealed per-user store the agent tools read too
+ * (services/identity/plaid-item-store.ts); a save that is refused or fails says so.
  */
 
 import { createPersistenceStore } from '../../../services/persistence/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { openTokens, sealTokensForMerge } from '../../../utils/token-at-rest.js';
+import {
+  getPlaidItems,
+  plaidUnifiedStore,
+  removePlaidItems,
+  savePlaidItem,
+  type PlaidSaveResult,
+} from '../../../services/identity/plaid-item-store.js';
 
 const log = createLogger({ module: 'Plaid' });
 
@@ -105,7 +114,10 @@ export async function storeToken(
   accessToken: string,
   itemId: string,
   institution?: { name?: string; institution_id?: string }
-): Promise<void> {
+): Promise<PlaidSaveResult> {
+  if (plaidUnifiedStore()) {
+    return savePlaidItem(userId, { access_token: accessToken, item_id: itemId, institution });
+  }
   const data: PlaidTokenData = {
     access_token: accessToken,
     item_id: itemId,
@@ -118,7 +130,7 @@ export async function storeToken(
 
   // Persist to Firestore
   try {
-    await tokenStore.setImmediate(userId, sealTokensForMerge(data));
+    await tokenStore.setImmediate(userId, sealTokensForMerge(data), { safeWithoutRead: true });
     log.info(
       { userId: userId.substring(0, 8), institution: institution?.name || 'Unknown' },
       'Stored Plaid token'
@@ -129,12 +141,14 @@ export async function storeToken(
       'Failed to store Plaid token'
     );
   }
+  return { ok: true };
 }
 
 /**
  * Get Plaid access token for a user
  */
 export async function getToken(userId: string): Promise<PlaidTokenData | null> {
+  if (plaidUnifiedStore()) return (await getPlaidItems(userId))[0] ?? null;
   // Check in-memory cache first
   const cached = plaidAccessTokens.get(userId);
   if (cached) {
@@ -149,6 +163,10 @@ export async function getToken(userId: string): Promise<PlaidTokenData | null> {
  * Remove Plaid token for a user
  */
 export async function removeToken(userId: string): Promise<void> {
+  if (plaidUnifiedStore()) {
+    await removePlaidItems(userId).catch(() => false);
+    return;
+  }
   // Remove from in-memory cache
   plaidAccessTokens.delete(userId);
 
