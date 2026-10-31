@@ -65,6 +65,15 @@ it, and while it is off no cohort applies. One call per process must also hold (
 
 At any rung, `who <uid|email>` shows the flags a person's next call gets.
 
+## Latency A/B for callers who are not members
+
+Cohorts reach member accounts only, and most phone callers are not members. For a latency
+A/B on everyone, set the agent's `LATENCY_ARM_PERCENT` (0 to 100, default 0). Each call is
+put in an arm by a hash of its session id: `treatment` calls get `PREEMPT_STABLE_CONTEXT=on`,
+`control` calls get the agent's own value. A caller whose cohort or override sets the flag keeps
+it, and the call is marked `own`. Every TURN_RECEIPT carries `latencyArm`. Set 0 to stop
+(`src/services/platform/latency-arm.ts`).
+
 ## Turning something off fast
 
 - **A whole audience:** `disable <cohort> --project <id> --apply`. Every member's next call

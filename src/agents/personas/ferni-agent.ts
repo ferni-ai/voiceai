@@ -116,11 +116,6 @@ import { createConversationTools } from '../../tools/domains/conversation/index.
 // Information tools - weather, news, sports, search
 import { definitions as informationToolDefs } from '../../tools/domains/information/index.js';
 
-// ============================================================================
-// BETTER-THAN-HUMAN DOMAIN IMPORTS (Phase 2)
-// These give Ferni the ability to ACT, not just talk
-// ============================================================================
-
 // Presence tools - grounding, breathing, mindfulness
 import { definitions as presenceToolDefs } from '../../tools/domains/presence/index.js';
 
@@ -144,6 +139,7 @@ import { definitions as connectionToolDefs } from '../../tools/domains/connectio
 
 import { getToolDescription } from '../../tools/utils/tool-descriptions.js';
 import { stopIfRoundtableTurn } from '../group-conversation/roundtable-turns.js';
+import { noteTurnCommit } from '../shared/preemptive-cause.js';
 // ============================================================================
 // TOOL BUILDING HELPERS
 // ============================================================================
@@ -560,6 +556,7 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
 
   /** Before the SDK replies to a user turn; never while a call is screened (line-screen.ts). */
   async onUserTurnCompleted(turnCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
+    noteTurnCommit(this, turnCtx, newMessage); // for the receipt's preemptiveCause
     if (isScreeningCall(this.session)) throw new voice.StopResponse();
     await stopIfRoundtableTurn(this.session.userData, newMessage.textContent); // roundtable answers
     await this.onUserTurn?.(turnCtx, newMessage);
