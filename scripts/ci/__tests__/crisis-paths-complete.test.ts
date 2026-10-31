@@ -153,7 +153,7 @@ describe('every file the crisis derivation finds is covered', () => {
     expect(derived.importers).toContain('src/agents/processors/turn-processor/process-turn.ts');
     expect(derived.importers).toContain('src/services/outreach/proactive-channels/triggers.ts');
     expect(derived.importers).toContain('src/api/outreach-webhook-routes.ts');
-    expect(derived.importers).toContain('src/intelligence/world-model/snapshot.ts');
+    expect(derived.importers).toContain('src/agents/multi-agent/prediction-check-in.ts');
     expect(derived.importers).toContain('src/agents/voice-agent/transcript-handler.ts');
     for (const f of [...CRISIS_LINE_HELPERS, ...PINNED]) expect(derived.all, f).toContain(f);
   });
