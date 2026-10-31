@@ -262,7 +262,7 @@ export async function runMultiAgentMode(
           const decoder = new TextDecoder();
           const rawMessage = decoder.decode(data);
           process.stderr.write(
-            `[multi-agent-mode] 📨 Data received: ${rawMessage.slice(0, 200)}\n`
+            `[multi-agent-mode] 📨 Data received (${rawMessage.length} chars)\n`
           );
           const message = JSON.parse(rawMessage) as {
             type?: string;

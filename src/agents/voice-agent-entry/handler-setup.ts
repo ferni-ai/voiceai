@@ -382,8 +382,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   );
   cleanupTracker.register('timer', 'tool-health-check', () => { clearInterval(toolHealthCheckInterval); });
 
-  // Session state handlers
-  const { silenceContext } = setupSessionStateHandlers({
+  const { silenceContext, clearTimers } = setupSessionStateHandlers({
     session, sessionPersona, conversationManager, userData, sessionId, services,
     room: ctx.room,
     onIdleTimeout: () => {
@@ -407,6 +406,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
       })();
     },
   });
+  cleanupTracker.register('timer', 'session-state timers', clearTimers);
 
   // Transcript handler. The tool loader is per session: a shared one mixed callers' tools.
   const { autoOptimizer } = await import('../../tools/optimization/auto-optimizer.js');

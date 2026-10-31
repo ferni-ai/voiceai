@@ -48,7 +48,7 @@ export class InterruptionHandler {
       this.interruptionHistory.push(event);
       getLogger().info('User interrupted agent', {
         count: this.interruptionCount,
-        utterance: `${this.currentAgentUtterance.substring(0, 50)}...`,
+        utteranceLen: this.currentAgentUtterance.length,
       });
 
       return event;

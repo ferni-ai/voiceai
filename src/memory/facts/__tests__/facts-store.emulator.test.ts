@@ -49,6 +49,12 @@ beforeAll(async () => {
 });
 
 const uidOf = (tag: string): string => `fact-${tag}-${Date.now().toString(36)}`;
+/** A person with a live record: the writer writes nothing for an erased one. */
+const liveUid = async (tag: string): Promise<string> => {
+  const uid = await liveUid(tag);
+  await db.collection('bogle_users').doc(uid).set({ displayName: 'Jo Rivera' });
+  return uid;
+};
 const T0 = new Date('2026-10-01T12:00:00.000Z');
 const T1 = new Date('2026-10-20T12:00:00.000Z');
 const city = (value: string, key: string, extra: Partial<FactProposal> = {}): FactProposal => ({
@@ -56,6 +62,7 @@ const city = (value: string, key: string, extra: Partial<FactProposal> = {}): Fa
   attribute: 'city',
   value,
   source: 'manual',
+  provenance: 'user_said',
   sourceKey: key,
   at: T0,
   ...extra,
@@ -65,7 +72,7 @@ const count = async (uid: string): Promise<number> =>
 
 describe.skipIf(!emulator)('facts store (Firestore emulator)', () => {
   it('ADD, UPDATE, NOOP and a retry, read back by now, by history and as of a date', async () => {
-    const uid = uidOf('life');
+    const uid = await liveUid('life');
     await proposeFact(db, uid, city('Tampa', 'k1'), ON);
     expect(await proposeFact(db, uid, city('Tampa', 'k1'), ON)).toMatchObject({ duplicate: true });
     expect(await proposeFact(db, uid, city('tampa', 'k2', { at: T1 }), ON)).toMatchObject({
@@ -94,7 +101,7 @@ describe.skipIf(!emulator)('facts store (Firestore emulator)', () => {
   }, 30_000);
 
   it('three writers racing on one attribute end with exactly one current fact', async () => {
-    const uid = uidOf('race');
+    const uid = await liveUid('race');
     await proposeFact(db, uid, city('Tampa', 'k0'), ON);
     const results = await Promise.all(
       ['Austin', 'Denver', 'Boston'].map((v, i) =>
@@ -107,7 +114,7 @@ describe.skipIf(!emulator)('facts store (Firestore emulator)', () => {
   }, 60_000);
 
   it('writes nothing while off, or for a non-member', async () => {
-    const uid = uidOf('off');
+    const uid = await liveUid('off');
     expect(await proposeFact(db, uid, city('Tampa', 'k1'), {})).toMatchObject({
       reason: 'disabled',
     });
@@ -120,7 +127,7 @@ describe.skipIf(!emulator)('facts store (Firestore emulator)', () => {
 
   it('"forget that" reaches the facts store: marked, or deleted with FORGET_DELETES', async () => {
     for (const deletes of [false, true]) {
-      const uid = uidOf(deletes ? 'del' : 'mark');
+      const uid = await liveUid(deletes ? 'del' : 'mark');
       const pet = { ...city('a beagle named Biscuit', 'k1'), attribute: 'pet' as const };
       await proposeFact(db, uid, pet, ON);
       await proposeFact(db, uid, city('Tampa', 'k2'), ON);
@@ -141,8 +148,8 @@ describe.skipIf(!emulator)('facts store (Firestore emulator)', () => {
   }, 60_000);
 
   it('the export carries every fact; erasure removes them all and only theirs', async () => {
-    const uid = uidOf('erase');
-    const other = uidOf('keep');
+    const uid = await liveUid('erase');
+    const other = await liveUid('keep');
     for (const u of [uid, other]) {
       await proposeFact(db, u, city('Tampa', 'k1'), ON);
       await proposeFact(db, u, city('Austin', 'k2', { at: T1 }), ON);

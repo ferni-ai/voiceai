@@ -185,7 +185,7 @@ export async function prewarmGreetingAudio(fullWarmup = false): Promise<PrewarmR
             durationMs: estimateDuration(audio.byteLength),
           });
           cachedCount++;
-          log.debug({ personaId, greeting: greeting.slice(0, 30) }, '✅ Greeting audio cached');
+          log.debug({ personaId, greetingLen: greeting.length }, '✅ Greeting audio cached');
         }
       })
     );
@@ -222,7 +222,7 @@ export function getPrewarmedGreetingAudio(
 
   if (cached) {
     log.debug(
-      { voiceId: voiceId.slice(0, 8), text: text.slice(0, 30), durationMs: cached.durationMs },
+      { voiceId: voiceId.slice(0, 8), textLen: text.length, durationMs: cached.durationMs },
       '🎯 Greeting audio CACHE HIT'
     );
     return cached.audio;
