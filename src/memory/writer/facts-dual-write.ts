@@ -88,10 +88,7 @@ export function mapDynamicFact(
   if (factType === 'event') return noop('event');
   const subjectId = subjectOf(entityName, 'entity');
   if (!subjectId) return noop('subject');
-  const slot = rawKey
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_');
+  const slot = rawKey.toLowerCase().replace(/[^a-z0-9]+/g, '_');
   let attribute: FactAttribute | 'contact' =
     DYNAMIC_KEYS.find(([re]) => re.test(slot))?.[1] ??
     (factType === 'preference' ? 'preference' : 'other');
@@ -178,10 +175,8 @@ export interface DualWriteDeps {
   env?: Env;
   propose?: typeof proposeFact;
 }
-type Counts = Record<
-  'add' | 'update' | 'noop' | 'history' | 'refused' | 'skipped' | 'failed',
-  number
->;
+const OUTCOMES = 'add update noop history refused skipped failed'.split(' ');
+type Counts = Record<string, number>;
 
 /** Proposes the mapped facts when FACTS_DUAL_WRITE and MEMORY_FACTS are on for this person. */
 export async function dualWriteFacts(
@@ -201,26 +196,14 @@ export async function dualWriteFacts(
     const db = deps.getDb();
     if (!db) return null;
     const propose = deps.propose ?? proposeFact;
-    const counts: Counts = {
-      add: 0,
-      update: 0,
-      noop: 0,
-      history: 0,
-      refused: 0,
-      skipped: 0,
-      failed: 0,
-    };
+    const counts: Counts = Object.fromEntries(OUTCOMES.map((o) => [o, 0]));
     for (const m of mapped.slice(0, MAX_PER_RUN)) {
-      if (m.op === 'noop') {
-        counts.skipped++;
-        continue;
-      }
-      const r: ProposeResult | null = await propose(db, userId, m.proposal, {
-        MEMORY_FACTS: 'on',
-      }).catch(() => null);
-      if (!r) counts.failed++;
-      else if (!r.ok) counts.refused++;
-      else counts[r.op]++;
+      // One rejected fact never stops the rest.
+      const r: ProposeResult | null | 'skipped' =
+        m.op === 'noop'
+          ? 'skipped'
+          : await propose(db, userId, m.proposal, { MEMORY_FACTS: 'on' }).catch(() => null);
+      counts[r === 'skipped' ? r : !r ? 'failed' : r.ok ? r.op : 'refused']++;
     }
     log.info({ userId, extractor, ...counts }, 'FACTS_DUAL_WRITE');
     return counts;

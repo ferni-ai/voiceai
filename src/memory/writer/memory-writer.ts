@@ -147,13 +147,8 @@ async function reconcile(
   };
   if (isSingleValued(p.attribute) && validFrom !== null) {
     const late = lateInsert(facts, current, fact, validFrom, now);
-    if (late)
-      return commit(db, tx, uid, late, {
-        ok: true,
-        op: 'history',
-        fact: late[0],
-        duplicate: false,
-      });
+    const history = { ok: true, op: 'history', duplicate: false } as const;
+    if (late) return commit(db, tx, uid, late, { ...history, fact: late[0] });
   }
   const replaced = isSingleValued(p.attribute) ? current : [];
   const retired = replaced.map((old) => ({
