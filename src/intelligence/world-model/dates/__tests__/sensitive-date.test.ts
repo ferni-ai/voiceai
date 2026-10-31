@@ -72,6 +72,7 @@ describe('sensitiveDate: only a label of light words is ordinary', () => {
     "Marcus's wake",
     'the divorce party', // isSensitiveThread
     'meeting with IRS', // capitals are an acronym, never a name
+    "AA's birthday party", // nor before a possessive: a sobriety birthday stays sensitive
     "Hospital's holiday party", // a heavy word in a name's shape: isSensitiveThread still holds
     // Only a possessive makes a name: after "with" or a relation, a capitalised word is content.
     'dinner with Marcus',
