@@ -124,11 +124,12 @@ describe('renderPersonModel: shape', () => {
   });
 
   it('uses the rule the memory injection already uses, not a fork of it', () => {
-    const setup = readFileSync(
-      new URL('../../../agents/multi-agent/agent-setup.ts', import.meta.url),
+    // agent-setup's "Who You're Talking To" block, moved to caller-card/who-block.ts
+    const block = readFileSync(
+      new URL('../../../agents/multi-agent/caller-card/who-block.ts', import.meta.url),
       'utf8'
     );
-    expect(setup).toContain(RULE);
+    expect(block).toContain(RULE);
   });
 
   it('renders an empty model as the empty string, with no orphan rule line', () => {
