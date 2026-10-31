@@ -28,6 +28,7 @@ import {
 } from '../../../services/platform/cohort-flags.js';
 import { factExtractionPrompt } from '../deep-extraction-prompts.js';
 import { DeepExtractionWorker, type DeepExtractionJob } from '../deep-extraction-worker.js';
+import { mapDynamicFact } from '../../writer/facts-dual-write.js';
 
 // FACT_EXTRACTION_PROMPT on origin/main f6f48e476, sha256 ab16f1c2...aecd5 (538 chars).
 const GOLDEN = [
@@ -130,5 +131,31 @@ describe('deep extraction reads CALLER_CARD as the caller had it (envForCaller)'
     const prompt = await factPromptFor(RILEY);
     expect(prompt.startsWith(`${GOLDEN}\n`)).toBe(true);
     expect(prompt).not.toContain('key "home"');
+  });
+});
+
+// FACTS_DUAL_WRITE: what each place key becomes in the facts store.
+describe('facts store mapping of the place keys', () => {
+  const map = (key: string, value: string) =>
+    mapDynamicFact({ entityName: 'User', factType: 'attribute', key, value }, 'call-1', 'f1');
+
+  it('home is the single-valued city, so a move updates it in place', () => {
+    expect(map('home', 'Maplewood')).toMatchObject({
+      op: 'update',
+      proposal: { subjectId: 'self', attribute: 'city', value: 'Maplewood' },
+    });
+  });
+
+  it('current location is never the city and takes no slot: skipped as transient', () => {
+    expect(map('current location', 'the airport')).toEqual({ op: 'noop', reason: 'now' });
+    expect(map('Current_Location', 'the airport')).toEqual({ op: 'noop', reason: 'now' });
+  });
+
+  it('the keys already mapped are unchanged', () => {
+    expect(map('location', 'Maplewood')).toMatchObject({
+      op: 'update',
+      proposal: { attribute: 'city' },
+    });
+    expect(map('home address', '12 Elm St')).toEqual({ op: 'noop', reason: 'contact' });
   });
 });
