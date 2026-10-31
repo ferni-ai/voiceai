@@ -65,10 +65,11 @@ const confidence = (x: unknown): number | undefined =>
   typeof x === 'number' && x >= 0 && x <= 1 ? x : undefined;
 
 // prettier-ignore
-const DYNAMIC_KEYS: ReadonlyArray<[RegExp, FactAttribute | 'contact']> = [
+const DYNAMIC_KEYS: ReadonlyArray<[RegExp, FactAttribute | 'contact' | 'now']> = [
   [/^(phone|phone_number|mobile|cell|email|email_address|address|home_address)$/, 'contact'],
   [/^(birthday|birth_date|birthdate|date_of_birth|dob)$/, 'birthday'],
-  [/^(city|location|lives_in|hometown|home_town|residence|current_city)$/, 'city'],
+  [/^(city|home|location|lives_in|hometown|home_town|residence|current_city)$/, 'city'],
+  [/^current_location$/, 'now'], // where they are right now: never their city (right-moment §5.3)
   [/^(employer|company|works_at|workplace)$/, 'employer'],
   [/^(job|role|occupation|profession|job_title|title|position)$/, 'role'],
   [/^(relation|relationship|relationship_to_user)$/, 'relation'],
@@ -91,10 +92,10 @@ export function mapDynamicFact(
   const subjectId = subjectOf(entityName, 'entity');
   if (!subjectId) return noop('subject');
   const slot = rawKey.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-  let attribute: FactAttribute | 'contact' =
+  let attribute: FactAttribute | 'contact' | 'now' =
     DYNAMIC_KEYS.find(([re]) => re.test(slot))?.[1] ??
     (factType === 'preference' ? 'preference' : 'other');
-  if (attribute === 'contact') return noop('contact');
+  if (attribute === 'contact' || attribute === 'now') return noop(attribute);
   if (attribute === 'relation' && subjectId === 'self') attribute = 'other';
   return {
     op: opFor(attribute),

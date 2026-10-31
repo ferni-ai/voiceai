@@ -26,7 +26,14 @@ import { createDeepExtractionBatcher } from './deep-extraction-batch.js';
 import { extractionMoment } from './extraction-moment.js';
 import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { dualWriteFacts, mapDynamicFacts } from '../writer/facts-dual-write.js';
+import { personFlagOn } from '../../config/person-flag.js';
 import type { DeepExtractionBatchOptions } from './deep-extraction-batch.js';
+import {
+  ENTITY_EXTRACTION_PROMPT,
+  factExtractionPrompt,
+  RELATIONSHIP_EXTRACTION_PROMPT,
+  SELF_QUESTIONING_PROMPT,
+} from './deep-extraction-prompts.js';
 
 // ============================================================================
 // TYPES
@@ -94,82 +101,6 @@ export interface ExtractionStats {
   totalEntitiesExtracted: number;
   totalFactsExtracted: number;
 }
-
-// ============================================================================
-// LLM EXTRACTION PROMPTS
-// ============================================================================
-
-const ENTITY_EXTRACTION_PROMPT = `You are an expert at identifying entities (people, places, events, concepts) in conversation.
-
-Given this transcript from a personal conversation, extract all meaningful entities.
-
-For each entity, determine:
-1. name: The entity's name or description
-2. type: person, place, organization, event, concept, or thing
-3. attributes: Any properties mentioned (e.g., role, location, date)
-4. confidence: 0-1 how confident you are
-
-Focus on entities that matter for personal memory - people in the user's life, places they go, events happening.
-
-Return JSON array of entities.`;
-
-const FACT_EXTRACTION_PROMPT = `You are extracting factual information that should be remembered about entities.
-
-Given entities and transcript, extract NEW FACTS learned about each entity.
-
-Fact types:
-- attribute: A property (birthday, job, location)
-- event: Something that happened or will happen
-- relationship: How entities relate
-- state: Current situation
-- preference: Likes, dislikes, preferences
-
-Only extract facts explicitly stated or strongly implied. Be conservative.
-
-Return JSON array with: entityName, factType, key, value, confidence, temporalContext.`;
-
-const RELATIONSHIP_EXTRACTION_PROMPT = `You are mapping relationships between entities mentioned in conversation.
-
-Types of relationships:
-- family (parent, sibling, spouse, child)
-- social (friend, neighbor, acquaintance)  
-- professional (colleague, boss, client)
-- romantic (partner, ex, dating)
-- other
-
-For each relationship, determine:
-- source: First entity name
-- target: Second entity name
-- type: Relationship category
-- strength: 0-1 (how close/important)
-- bidirectional: Is it mutual?
-
-Return JSON array of relationships.`;
-
-const SELF_QUESTIONING_PROMPT = `You are refining memory extraction through self-questioning.
-
-Given the current extraction results, answer these questions:
-
-1. MISSING ENTITIES: What entities might have been missed? Look for:
-   - Pronouns that refer to specific people ("he", "she", "they")
-   - Implicit references ("the doctor", "my neighbor")
-   - Places or events mentioned in passing
-
-2. IMPLICIT FACTS: What facts are implied but not extracted?
-   - Emotional states from context
-   - Time relationships
-   - Cause-effect relationships
-
-3. RELATIONSHIP GAPS: What relationships are implied?
-   - If A knows B and B knows C, might A know C?
-   - Professional relationships from context
-   - Social connections
-
-4. CONTRADICTIONS: Does anything contradict what we already know?
-
-5. IMPORTANCE: What here is most worth remembering long-term?
-
-Return refined extraction with any additions.`;
 
 // ============================================================================
 // WORKER IMPLEMENTATION
@@ -325,7 +256,7 @@ export class DeepExtractionWorker {
 
     // 2. LLM Fact Extraction, dated and with the call so far (extraction-moment.ts)
     const moment = extractionMoment(job);
-    const facts = await this.extractFacts(job.transcript, entities, moment);
+    const facts = await this.extractFacts(job.userId, job.transcript, entities, moment);
 
     // 3. LLM Relationship Extraction
     const relationships = await this.extractRelationships(job.transcript, entities);
@@ -425,6 +356,7 @@ Extract entities as JSON array:`;
   }
 
   private async extractFacts(
+    userId: string,
     transcript: string,
     entities: ExtractedEntity[],
     moment: string
@@ -441,7 +373,9 @@ Extract entities as JSON array:`;
 
       const entityList = entities.map((e) => `${e.name} (${e.type})`).join('\n');
 
-      const prompt = `${FACT_EXTRACTION_PROMPT}
+      // After-call work: CALLER_CARD as this caller's call had it (envForCaller), not process.env.
+      const cardOn = await personFlagOn(userId, 'CALLER_CARD');
+      const prompt = `${factExtractionPrompt(cardOn)}
 ${moment}
 
 Entities found:

@@ -10,7 +10,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const info = vi.hoisted(() => vi.fn());
 vi.mock('../../../utils/safe-logger.js', () => {
   const logger = { debug: vi.fn(), info, warn: vi.fn(), error: vi.fn() };
-  return { getLogger: () => ({ ...logger, child: () => logger }) };
+  // createLogger: the module-level loggers summarizer's imports create (session-recall.ts).
+  const quiet = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+  return { getLogger: () => ({ ...logger, child: () => logger }), createLogger: () => quiet };
 });
 
 import { trackJsonReply, withTimeout } from '../utils.js';
