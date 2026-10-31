@@ -113,6 +113,29 @@ describe('recallFrom', () => {
     );
   });
 
+  it.each([
+    ["did you tell 'em", 'em'],
+    ["we've talked", 've'],
+    ["they're fine", 're'],
+    ["you'll see", 'll'],
+    ['ma’am', 'am'],
+  ])('a contraction leaves no two-letter piece: %j has no %j', (said, piece) =>
+    expect(queryWords(said)).not.toContain(piece)
+  );
+
+  it("a possessive in the question never matches a contact with one (Dr. Lee's office)", () => {
+    const lee = {
+      callId: 'call_lee',
+      capturedAt: iso(NOW - 4 * 24 * HOUR),
+      request: { contactQuery: "Dr. Lee's office", contactName: "Dr. Lee's office" },
+      outcome: { status: 'voicemail' },
+    };
+    const input = records([], [lee]);
+    for (const said of ["how's the dentist thing?", "Jessica's referral", "mom's appointment"])
+      expect(recallFrom({ words: queryWords(said) }, input, NOW)).toBeUndefined();
+    expect(recallFrom({ words: queryWords('Dr. Lee') }, input, NOW)?.name).toBe("Dr. Lee's office");
+  });
+
   it('a call older than 30 days is not on record', () => {
     const old = dadResult(NOW - 31 * 24 * HOUR);
     expect(recallFrom({ words: ['sam'] }, records([], [old]), NOW)).toBeUndefined();
@@ -166,6 +189,18 @@ describe('guards and helpers', () => {
   it('a verified uid may', () => expect(mayRecall('vdSfkCCXaiXpnVCvgKxHMYrNFr72')).toBe(true));
   it('names the person, not the possessive', () =>
     expect(queryWords('my Father Sam')).toEqual(['dad', 'sam']));
+  it.each([
+    ["how's the dentist thing?", ['dentist', 'thing']],
+    ["Jessica's referral", ['jessica', 'referral']],
+    ["Dr. Lee's office", ['dr', 'lee', 'office']],
+    ["don't worry", ['don', 'worry']],
+    ["O'Brien", ['brien']],
+  ])('a possessive or contraction leaves no one-letter word: %j', (said, want) => {
+    const words = queryWords(said);
+    expect(words.some((w) => w.length < 2)).toBe(false);
+    for (const w of want.filter((x) => !['thing', 'dr', 'worry'].includes(x)))
+      expect(words).toContain(w);
+  });
   it('blocks a new read-back only for a recent call that went out, was answered or awaits a yes', () => {
     const at = NOW - HOUR;
     expect(blocksNewCall({ state: 'done', name: 'Sam', at }, NOW)).toBe(true);
