@@ -39,7 +39,6 @@ const BASELINE: Record<string, number> = {
   'src/agents/shared/tool-executors/reflection-games-executor.ts': 1,
   'src/agents/shared/tool-executors/research-executor.ts': 1,
   'src/agents/shared/tool-executors/scheduling-executor.ts': 1,
-  'src/agents/shared/tool-executors/settings-executor.ts': 2,
   'src/agents/shared/tool-executors/telephony-executor.ts': 1,
   'src/agents/voice-agent-entry/handler-setup.ts': 6,
   'src/agents/voice-agent-entry/index.ts': 3,

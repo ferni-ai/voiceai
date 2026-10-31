@@ -404,7 +404,7 @@ export function initializeSessionLanguage(
 ): SessionLanguageState {
   // Check user preference cache first
   let language = preferredLanguage;
-  if (!language && userId) {
+  if (!language && userId && !isSharedPlaceholderId(userId)) {
     language = userLanguagePreferences.get(userId);
   }
   language = language ?? 'en';
@@ -444,8 +444,8 @@ export function setSessionLanguage(
 
   sessionLanguageStates.set(sessionId, state);
 
-  // Cache user preference
-  if (userId) {
+  // Cache user preference, never under a shared placeholder id (#2651)
+  if (userId && !isSharedPlaceholderId(userId)) {
     userLanguagePreferences.set(userId, language);
   }
 
@@ -831,7 +831,7 @@ export async function persistUserLanguagePreference(
 export async function loadUserLanguagePreference(
   userId: string
 ): Promise<SupportedLanguage | null> {
-  if (userLanguagePreferences.has(userId)) {
+  if (!isSharedPlaceholderId(userId) && userLanguagePreferences.has(userId)) {
     return userLanguagePreferences.get(userId)!;
   }
 
@@ -964,7 +964,7 @@ export function languageService() {
      */
     async getCurrentLanguage(userId: string): Promise<{ code: string; displayName: string }> {
       // Try session first
-      const sessionLang = getSessionLanguage(userId);
+      const sessionLang = isSharedPlaceholderId(userId) ? 'en-US' : getSessionLanguage(userId);
       if (sessionLang !== 'en-US') {
         const config = getLanguageConfig(sessionLang);
         return { code: sessionLang, displayName: config.displayName };

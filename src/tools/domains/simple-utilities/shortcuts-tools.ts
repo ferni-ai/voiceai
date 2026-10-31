@@ -15,7 +15,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
-import { isSharedPlaceholderId } from '../../../utils/synthetic-user.js';
+import { refusedPlaceholder } from '../../../utils/placeholder-refusal.js';
 import { handOff } from './shortcut-handoff.js';
 
 const log = getLogger();
@@ -81,7 +81,7 @@ async function persistAnalytics(userId: string): Promise<void> {
     const db = await store.getDatabase();
 
     const userUsage = usageAnalytics.get(userId);
-    if (!userUsage || isSharedPlaceholderId(userId)) return; // never one shared doc (#2651)
+    if (!userUsage || refusedPlaceholder(userId, 'capability-analytics')) return; // #2651
 
     const data = Object.fromEntries(userUsage);
     await db

@@ -43,6 +43,17 @@ vi.mock('../../../../services/scheduling/reminder-scheduler.js', async (importOr
   }),
 }));
 const built = vi.hoisted(() => [] as Array<{ set: string; userId: unknown }>);
+const refusedAt = vi.hoisted(() => [] as string[]);
+vi.mock('../../../../utils/placeholder-refusal.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../../../utils/placeholder-refusal.js')>();
+  return {
+    refusedPlaceholder: (userId: string | undefined | null, site: string) => {
+      const refused = real.refusedPlaceholder(userId, site);
+      if (refused) refusedAt.push(site);
+      return refused;
+    },
+  };
+});
 vi.mock('../../../builder.js', () => ({
   buildAgentTools: vi.fn(async (_persona: string, o: { userId: unknown }) => {
     built.push({ set: 'persona', userId: o.userId });
@@ -103,6 +114,7 @@ describe.each(PLACEHOLDERS.map((id) => [JSON.stringify(id) ?? 'undefined', id] a
       docIds.length = 0;
       scheduled.length = 0;
       built.length = 0;
+      refusedAt.length = 0;
     });
 
     it('location reminders: saved under this session only, never read back by another', async () => {
@@ -145,6 +157,8 @@ describe.each(PLACEHOLDERS.map((id) => [JSON.stringify(id) ?? 'undefined', id] a
       await languageService().setLanguage(String(id), 'spanish');
       await languageService().getCurrentLanguage(String(id));
       expect(sharedIds()).toEqual([]);
+      // Both skips go through the counted refusal log, not a silent return.
+      expect(refusedAt).toEqual(expect.arrayContaining(['device-lookup', 'capability-analytics']));
     });
 
     it('legacy tool path: both tool sets are built for one non-placeholder caller', async () => {

@@ -18,7 +18,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { trackCapabilityUsage } from './shortcuts-tools.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
-import { isSharedPlaceholderId } from '../../../utils/synthetic-user.js';
+import { refusedPlaceholder } from '../../../utils/placeholder-refusal.js';
 
 const log = getLogger();
 
@@ -44,10 +44,7 @@ export interface DeviceInfo {
 const devices = new Map<string, DeviceInfo[]>();
 
 async function loadDevices(userId: string): Promise<DeviceInfo[]> {
-  if (isSharedPlaceholderId(userId)) {
-    log.warn('Refused a device lookup under a shared placeholder id (#2651)');
-    return [];
-  }
+  if (refusedPlaceholder(userId, 'device-lookup')) return []; // never one shared doc (#2651)
   if (devices.has(userId)) {
     return devices.get(userId)!;
   }
