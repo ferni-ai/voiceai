@@ -83,6 +83,7 @@ export const EXCLUDED_STORES: Readonly<Record<string, string>> = {
   'outreach_context/{uid}': SCHEDULING,
   'outreach_history/{uid}': SCHEDULING,
   'outreach_history[userId]': SCHEDULING,
+  'outreach_user_analytics/{uid}': SCHEDULING,
   'sponsored_identities[sponsorUserId]': `${OTHERS}: family members' names and phones`,
   'user_contacts/{uid}': `${OTHERS}: contacts`,
   'user_contacts[userId]': `${OTHERS}: contacts`,
