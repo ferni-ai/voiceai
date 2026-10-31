@@ -28,7 +28,7 @@ export const GMAIL_SEND_AS_USER_ENV = 'GMAIL_SEND_AS_USER';
 export const GMAIL_SEND_OAUTH_PROVIDER = 'gmail_send';
 
 /** True only when the feature is on for everyone and the Google OAuth client is configured. */
-export function isGmailSendAsUserEnabled(): boolean {
+function isGmailSendAsUserEnabled(): boolean {
   return (
     process.env[GMAIL_SEND_AS_USER_ENV] === 'on' && isGoogleCalendarOAuthConfigured()
   );
