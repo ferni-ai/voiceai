@@ -159,7 +159,7 @@ import {
 } from '../intelligence-persistence.js';
 
 import { persistenceMetrics } from '../analytics/persistence-metrics.js'; // observability
-import { neverLowerSessionCount, withSessionsTogether } from './sessions-together-profile.js';
+import { sessionCounter } from './sessions-together-profile.js';
 import { markCallStageSoon } from '../analytics/call-start-stages.js';
 
 // ============================================================================
@@ -255,11 +255,15 @@ export async function createSessionServices(
   let userProfile: UserProfile | null = null;
   const validatedUserId = validateUserId(userId);
 
+  const sessionCount = sessionCounter(); // the prompt reads the counted sessions; saves never lower
   const loadProfileForSession = async (profileUserId: string): Promise<UserProfile | null> => {
     userProfile = await loadSessionProfile(global.store, profileUserId, userName);
     markCallStageSoon(sessionId, 'profile_ready');
-    return withSessionsTogether(profileUserId, userProfile); // one count of sessions together
+    return sessionCount.load(profileUserId, userProfile); // one count of sessions together
   };
+  /** Every write of the call's profile: forgotten summaries dropped, the counter never lowered. */
+  const saveSessionProfile = async (profile: UserProfile, uid: string) =>
+    (await import('./last-summary.js')).saveKept(global.store, sessionCount.forSave(profile), uid);
 
   if (validatedUserId && !deferProfileLoad) {
     userProfile = await loadProfileForSession(validatedUserId);
@@ -661,8 +665,7 @@ export async function createSessionServices(
         if (current && !memoryHeld(sessionId)) {
           const updatedProfile = applyIntelligenceToProfile(current, uid); // + intelligence state
           services.userProfile = updatedProfile;
-
-          await (await import('./last-summary.js')).saveKept(global.store, updatedProfile, uid);
+          await saveSessionProfile(updatedProfile, uid);
 
           const durationMs = Date.now() - startTime;
           persistenceMetrics.recordAutoSave(sessionId, durationMs);
@@ -1479,11 +1482,8 @@ export async function createSessionServices(
     // ========================================================================
 
     /**
-     * Save user profile with error handling
-     * FIX BUG #session-7: Don't fail silently on save errors
-     * FIX BUG #memory-audit-2: Use services.userProfile NOT the closure variable!
-     * The closure variable userProfile was stale - any updates made to services.userProfile
-     * (like totalConversations increment, lastConversationSummary, etc.) were being ignored.
+     * Save user profile; errors are logged and rethrown (BUG #session-7). Reads services.userProfile,
+     * not the stale closure variable, which missed endSession's updates (BUG #memory-audit-2).
      */
     saveProfile: async () => {
       // CRITICAL FIX: services.userProfile, not the stale closure (it misses endSession updates)
@@ -1507,7 +1507,6 @@ export async function createSessionServices(
             })),
             sessionDurationMinutes: Math.floor(historyTracker.getDurationSeconds() / 60),
           });
-          neverLowerSessionCount(validatedUserId, updated); // the stored counter never shrinks
 
           const sessionWPM = getSessionWPMTracker(sessionId).getAverageWPM();
           if (sessionWPM > 0) {
@@ -1541,7 +1540,7 @@ export async function createSessionServices(
             );
           }
 
-          await (await import('./last-summary.js')).saveKept(global.store, updated, validatedUserId);
+          await saveSessionProfile(updated, validatedUserId);
           services.userProfile = updated;
 
           getLogger().info(

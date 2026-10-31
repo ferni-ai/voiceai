@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { neverLowerSessionCount, withSessionsTogether } from '../sessions-together-profile.js';
+import { sessionCounter, withSessionsTogether } from '../sessions-together-profile.js';
 import { summarizeSessions } from '../../stores/sessions-together.js';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -57,22 +57,39 @@ describe('withSessionsTogether', () => {
   });
 });
 
-describe('neverLowerSessionCount (the end-of-session save)', () => {
+describe('sessionCounter: the stored counter never goes down, and advances', () => {
+  const counted = (n: number) => vi.fn(async () => ({ ...summarizeSessions([]), count: n }));
+
   it.each([
-    { name: 'counted 3 then +1, stored 21', stored: 21, counted: 3, saved: 21 },
-    { name: 'counted 30 then +1, stored 21', stored: 21, counted: 30, saved: 31 },
-  ])('$name: saves $saved', async ({ stored, counted, saved }) => {
-    const userId = `save-${stored}-${counted}`;
-    const read = vi.fn(async () => ({ ...summarizeSessions([]), count: counted }));
-    const profile = await withSessionsTogether(userId, { totalConversations: stored }, read);
-    const afterSession = { totalConversations: profile!.totalConversations + 1 };
-    neverLowerSessionCount(userId, afterSession);
-    expect(afterSession.totalConversations).toBe(saved);
+    // Counted below stored: mid-call saves keep 41, the end save moves it to 42 (was [3, 41])
+    { name: 'stored 41, counted 3', stored: 41, count: 3, prompt: 3, mid: 41, end: 42 },
+    // Counted above stored: the stored counter catches up to the count, then +1
+    { name: 'stored 21, counted 30', stored: 21, count: 30, prompt: 30, mid: 30, end: 31 },
+    // Nothing counted: the stored counter as before
+    { name: 'stored 21, counted 0', stored: 21, count: 0, prompt: 21, mid: 21, end: 22 },
+  ])('$name: prompt $prompt, auto-save $mid, end save $end', async (c) => {
+    const counter = sessionCounter(counted(c.count));
+    const loaded = { totalConversations: c.stored };
+    const prompt = await counter.load('u1', loaded);
+    expect(prompt?.totalConversations).toBe(c.prompt);
+    expect(loaded.totalConversations).toBe(c.stored); // the loaded (cached) object is not changed
+
+    expect(counter.forSave(prompt!).totalConversations).toBe(c.mid);
+    const ended = { totalConversations: prompt!.totalConversations + 1 }; // updateProfileFromSession
+    expect(counter.forSave(ended).totalConversations).toBe(c.end);
+    // A second save (remember-name mid-call, then the end) keeps advancing, never resets
+    const again = { totalConversations: ended.totalConversations + 1 };
+    expect(counter.forSave(again).totalConversations).toBe(c.end + 1);
   });
 
-  it('leaves a profile alone when nothing was replaced', () => {
-    const profile = { totalConversations: 4 };
-    neverLowerSessionCount('untouched-user', profile);
-    expect(profile.totalConversations).toBe(4);
+  it('a failed read: saves never write below the stored counter', async () => {
+    const counter = sessionCounter(
+      vi.fn(async () => {
+        throw new Error('Firestore unavailable');
+      })
+    );
+    const prompt = await counter.load('u1', { totalConversations: 41 });
+    expect(prompt?.totalConversations).toBe(41);
+    expect(counter.forSave({ totalConversations: 2 }).totalConversations).toBe(41);
   });
 });
