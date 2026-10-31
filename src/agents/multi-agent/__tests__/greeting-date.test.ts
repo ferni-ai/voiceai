@@ -1,8 +1,9 @@
 /**
  * dateFor (DATES_IN_HELLO): a date the caller told Ferni about, within three
  * days, as a candidate for the hello's one thread. Picking it writes nothing;
- * only commit(line), when the line names it, marks it raised and claims the opener. A sensitive date is
- * presence, never a question or its topic word. Fictional caller, fake store.
+ * only commit(line), when the line names its day or person, marks it raised and
+ * claims the opener. A sensitive date is presence, never a question or its topic
+ * word. Fictional caller, fake store, and no database (it counts as a crisis).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RaisableDate } from '../../../intelligence/world-model/dates/recall.js';
@@ -10,6 +11,11 @@ import { dueDate } from '../../../intelligence/world-model/dates/recall.js';
 import { clearOpenerClaims, takeOpenerClaim } from '../../../memory/recall/opener-claim.js';
 import { noteCrisisRisk } from '../../../services/safety/crisis-call-risk.js';
 import { dateFor } from '../greeting-date.js';
+
+vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getFirestoreDb: () => null,
+}));
 
 const USER = 'voice-eval-riley';
 const NOW = new Date('2026-10-14T15:00:00Z'); // a Wednesday
@@ -103,10 +109,32 @@ describe('dateFor picks without side effects', () => {
     }
   );
 
-  it('commit with a line that names only its day still counts', async () => {
+  it.each([
+    ['its day', 'Hey Riley. Big Friday coming.'],
+    ['its person', 'Hey Riley. How is Priya doing?'],
+  ])('commit with a line that names only %s still counts', async (_l, line) => {
     const c = await pick();
-    c!.commit('Hey Riley. Big Friday coming.');
+    c!.commit(line);
     expect(mark).toHaveBeenCalledTimes(1);
+  });
+
+  // The #3238 verify's six false commits, and two more: a shared word is not the date.
+  it.each([
+    ['soon', 2, 'visit', 'Did your sister ever call back?', false],
+    ['soon', 2, 'visit', 'Thanks for the visit to the site yesterday.', false],
+    ['soon', 2, 'visit', 'Looking forward to the visit?', false],
+    ['soon', 2, 'visit', "How's your day going?", false],
+    ['sensitive, passed', -2, 'hospice visit', 'Long week.', false],
+    ['passed', -2, 'visit', 'Busy one today.', false],
+    // These name the date's own day, which is the rule: they commit.
+    ['passed Monday', -2, 'visit', 'Rough Monday ahead at work?', true],
+    ['today', 0, 'visit', "How's your day going today?", true],
+    ['today', 0, 'visit', 'Busy one today.', true],
+  ])('%s %s: %j commits=%s', async (_m, at, value, line, commits) => {
+    stored = [date({ value: String(value), eventDate: day(Number(at)) })];
+    const c = await pick();
+    c!.commit(String(line));
+    expect(mark).toHaveBeenCalledTimes(commits ? 1 : 0);
   });
 });
 
@@ -136,11 +164,11 @@ describe('a sensitive date is presence, not a question', () => {
     expect(c?.direction).not.toMatch(/\bscan\b|\?/);
   });
 
-  it('a sensitive date just passed: "this week", and the base direction asks nothing', async () => {
+  it('a sensitive date just passed: "after <day>", and the base direction asks nothing', async () => {
     stored = [date({ value: 'hospice visit', eventDate: day(-2) })];
     const c = await pick();
     expect(c?.careful).toBe(true);
-    expect(c?.direction).toContain('Thinking of your sister Priya this week.');
+    expect(c?.direction).toContain('Thinking of your sister Priya, after Monday.');
     expect(`${c?.base}${c?.direction}`).not.toMatch(/\?|quick easy question|hospice/i);
   });
 
@@ -177,6 +205,14 @@ describe('dateFor gives nothing, and reads nothing, when it must not', () => {
     crisisLately = true;
     await expect(pick()).resolves.toBeUndefined();
     expect(mark).not.toHaveBeenCalled();
+  });
+
+  it('no database to read the crisis signals counts as a crisis', async () => {
+    const noCrisisReader = dateFor(
+      { userId: USER, sessionId: 'gd-nodb', zone: 'UTC' },
+      { now: () => NOW, store, mark, forgotten: async () => [] }
+    );
+    await expect(noCrisisReader).resolves.toBeUndefined();
   });
 
   it('a store that throws: no date, no throw', async () => {

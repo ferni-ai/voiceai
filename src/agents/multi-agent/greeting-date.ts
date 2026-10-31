@@ -6,8 +6,8 @@
  *   date from 10 days ago to 3 days ahead, or a yearly one within the week.
  * - Picking writes nothing. Only the arbiter's winner calls commit(line), and it
  *   claims the call's opener and marks the date raised only when the spoken line
- *   names the date (its day or a word of it), as a letter and an anniversary are
- *   marked. A date that loses, or that the line passed over, comes back later.
+ *   names the date's day or person ("Saturday", "Priya"), as a letter and an
+ *   anniversary are marked. A date that loses, or that the line passed over, comes back later.
  * - A sensitive date (sensitive-date.ts, where unsure counts) is presence, never a
  *   question and never its topic word: "Thinking of your grandma, with Thursday
  *   coming up." The person comes from the label, else "you". Its hello has its own
@@ -29,7 +29,6 @@ import { crisisRiskThisCall } from '../../services/safety/index.js';
 import { userTimeZone } from '../../utils/caller-time-zone.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { lineAsks } from './greeting-claim.js';
 
 const log = createLogger({ module: 'greeting-date' });
 
@@ -52,10 +51,14 @@ function presenceDirection(due: DueDate, person: string | null, day: string): st
   const line = {
     soon: `Thinking of ${who}, with ${day} coming up.`,
     today: `Thinking of ${who} today.`,
-    passed: `Thinking of ${who} ${day}.`, // "this week"
+    passed: `Thinking of ${who}, after ${day}.`,
   }[due.moment];
   return ` Something on their calendar may weigh on them: say hello, then only that you are thinking of them, with no question and nothing about what it is, and let them lead ("Hey Riley. ${line}").`;
 }
+
+/** `text` has `word` as a whole word, any case ("Friday", "last week", "José"). */
+const hasWord = (text: string, word: string): boolean =>
+  new RegExp(`(?<![\\p{L}\\p{N}])${word}(?![\\p{L}\\p{N}])`, 'iu').test(text);
 
 /** "tomorrow", "Friday", "next Tuesday": the date's day in the caller's zone. */
 function dayWord(days: number, now: Date, zone: string): string {
@@ -76,7 +79,7 @@ export interface DateCandidate {
   facts: Record<string, string>;
   /** Sensitive only: the hello's base direction in place of greetingDirection(). */
   base?: string;
-  /** The arbiter's winner only: when `spoken` names the date, claims the opener and marks it raised. */
+  /** The winner only: when `spoken` names its day or person, claims the opener and marks it. */
   commit: (spoken: string) => void;
 }
 
@@ -98,7 +101,7 @@ export async function dateFor(
   try {
     if (crisisRiskThisCall(sessionId)) return undefined;
     const zone = caller.zone ?? userTimeZone({ sessionId, userId }) ?? 'UTC';
-    const { createDatesRecall, personFromLabel, sensitiveDate } =
+    const { createDatesRecall, namesIn, personFromLabel, sensitiveDate } =
       await import('../../intelligence/index.js');
     const dates = createDatesRecall({ ...load, userId, sessionId, timezone: zone });
     const [crisis] = await Promise.all([recentCrisis(userId), dates.ready]);
@@ -108,7 +111,7 @@ export async function dateFor(
       userId,
       due,
       dates.raised,
-      { sensitiveDate, personFromLabel },
+      { namesIn, sensitiveDate, personFromLabel },
       {
         now: load.now?.() ?? new Date(),
         zone,
@@ -125,13 +128,18 @@ function candidate(
   userId: string,
   due: DueDate,
   raised: () => void,
-  rules: Pick<typeof import('../../intelligence/index.js'), 'sensitiveDate' | 'personFromLabel'>,
+  rules: Pick<
+    typeof import('../../intelligence/index.js'),
+    'namesIn' | 'sensitiveDate' | 'personFromLabel'
+  >,
   at: { now: Date; zone: string }
 ): DateCandidate {
   const careful = rules.sensitiveDate(due.what);
-  const day = careful && due.moment === 'passed' ? 'this week' : dayWord(due.days, at.now, at.zone);
+  const day = dayWord(due.days, at.now, at.zone);
+  // Said only when the line names its day or person: a shared "visit" or "week" is not enough.
+  const marks = [day.replace(/^next /, ''), ...rules.namesIn(due.what)];
   const commit = (spoken: string): void => {
-    if (!lineAsks(spoken, `${due.what} ${day}`))
+    if (!marks.some((w) => hasWord(spoken, w)))
       return log.info({ id: due.id }, 'Date not said in the hello: left for a later call');
     claimOpenerFollowUp(userId, 'greeting-date');
     raised();
