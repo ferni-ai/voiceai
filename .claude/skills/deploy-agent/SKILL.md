@@ -97,9 +97,7 @@ pnpm ops:secrets-parity --dev-project ferni-dev --dev-config $R/livekit.toml \
   `scripts/ops/secrets-parity-allowlist.json`, a voice id or flag it couldn't
   compare, or a boot older than the latest secret change). Voice ids can't be
   compared until both agents run a build with #2590 (voice ids in the boot log). A key that belongs
-  on one agent only goes under `onlyOn` in the allowlist, with a reason. A flag
-  being tried on dev first goes under `onlyOn.dev` with an `until` date (at most
-  30 days out); past that date the check fails until it ships or is removed.
+  on one agent only goes under `onlyOn` in the allowlist, with a reason.
 - Paste its summary into the release PR and explain every listed key. A
   differing `*_VOICE_ID` is a wrong voice in prod: fix it before promoting.
   Voice ids and flags can't be allowlisted.
@@ -113,3 +111,18 @@ lk agent rollback --project $P --config $C --version <id>
 ## After deploying
 Run `scripts/voice-eval/run.sh <dev|prod> long-day <label>` once (skill
 `voice-eval`) and look at the transcript before calling it done.
+
+## Before promoting dev to prod
+Sweep dev (skill `voice-eval`, serially) with every scenario of the last
+release's sweep, including `sweep-crisis-real`. Then run the release check on dev:
+```bash
+node scripts/voice-eval/release-check.mjs dev <candidate-sha> <prod-sha> \
+  --candidate <this sweep's dir> --baseline <last release's sweep dir> --out release-check.txt
+```
+Promote only on `RESULT_release_check=PASS` (exit 0) or `PASS_WITH_WAIVER`
+(exit 5), and attach `release-check.txt` to the release PR. A waiver
+(`--accept-known crisis-line-non-crisis:#<open issue>`) needs its WAIVED line
+and the issue in the PR; a missed crisis can never be waived. Don't pipe it through `tee`; that hides
+the exit code. FAIL (1) or INCONCLUSIVE (3) blocks the release: fix the cause,
+or add the missing scenarios or repeats and re-run. Don't swap in a hand-written
+canary. Details: `scripts/voice-eval/README.md`, "Checking a release".

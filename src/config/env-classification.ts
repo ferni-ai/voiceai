@@ -1,8 +1,6 @@
 /**
  * How each env name that prod sets, and that the flag manifest did not list when it was written, is
  * classified. Behaviour names are also in FLAG_MANIFEST; the others are not.
- * Every persona voice id the code reads is here as config too, set on prod or not, so the boot
- * line can print it and the secrets parity check can compare it (env-classification.test.ts).
  *
  * - secret: credentials, tokens, account, client and trunk ids, phone numbers and user ids. Shown as `<set>` only.
  * - config: an identifier, project, or model name that does not switch behaviour.
@@ -22,6 +20,7 @@ export const ENV_CLASSIFICATION: Readonly<Record<string, EnvClass>> = {
   ALPHA_VANTAGE_API_KEY: 'secret',
   ALPHA_VANTAGE_KEY: 'unread',
   ARRIVAL_GROUNDED: 'unread',
+  CALL_TIMELINE_UIDS: 'secret',
   CARTESIA_API_KEY: 'secret',
   CARTESIA_MODEL: 'config',
   CASCADE_TURN_DETECTION: 'behavior',
@@ -35,28 +34,21 @@ export const ENV_CLASSIFICATION: Readonly<Record<string, EnvClass>> = {
   GOOGLE_APPLICATION_CREDENTIALS: 'secret',
   GOOGLE_CLOUD_LOCATION: 'config',
   GOOGLE_CLOUD_PROJECT: 'config',
-  JACK_BOGLE_VOICE_ID: 'config',
-  JACK_B_VOICE_ID: 'config',
-  JOEL_DICKSON_VOICE_ID: 'config',
-  JOHN_BOGLE_VOICE_ID: 'config',
   JORDAN_TAYLOR_VOICE_ID: 'config',
   LOGS_ENABLE_GCP: 'unread',
   MAYA_SANTOS_VOICE_ID: 'config',
   MEMORY_STORE_TYPE: 'behavior',
   NATIVE_AUDIO_PROJECT: 'config',
   NAYAN_PATEL_VOICE_ID: 'config',
-  NAYAN_VOICE_ID: 'config',
   NEWSDATA_API_KEY: 'secret',
   NODE_ENV: 'config',
   OPENAI_API_KEY: 'secret',
   PERSONA_ID: 'config',
   PETER_JOHN_VOICE_ID: 'config',
-  PETER_LYNCH_VOICE_ID: 'config',
   PORT: 'config',
   POST_TTS_ENHANCEMENT_ENABLED: 'unread',
   PROMPT_MODE: 'behavior',
   REACTION_SIDETRACK: 'behavior',
-  SENDGRID_API_KEY: 'secret',
   SIP_DOMAIN: 'config',
   SIP_TRUNK_ID: 'secret',
   SKIP_PREWARM_GENERATEREPLY: 'behavior',
@@ -76,5 +68,6 @@ export const ENV_CLASSIFICATION: Readonly<Record<string, EnvClass>> = {
   USE_KYUTAI_STT: 'unread',
   USE_OPENAI_REALTIME: 'unread',
   VOICE_PIPELINE: 'behavior',
-  WELLNESS_COACH_VOICE_ID: 'config',
+  WAITLIST_ADMIN_NOTICE_DAILY_LIMIT: 'config',
+  WAITLIST_EMAIL_DAILY_LIMIT: 'config',
 };

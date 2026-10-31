@@ -20,14 +20,18 @@ import type {
 } from './types.js';
 import type { PersonaId } from '../../personas/types.js';
 import {
-  saveThread as persistThread,
+  saveThread,
   loadThread as loadPersistedThread,
   loadActiveThread as loadPersistedActiveThread,
   saveMessage as persistMessage,
   loadMessages as loadPersistedMessages,
 } from './thread-persistence.js';
+import { writeHeld } from '../../utils/minor-care.js';
 
 const log = createLogger({ module: 'ThreadManager' });
+/** MINOR_CARE: every writer's thread doc passes here; nothing is stored for a caller under 18. */
+const persistThread = (t: ConversationThread): Promise<boolean> | undefined =>
+  writeHeld(t.userId) ? undefined : saveThread(t);
 
 // ============================================================================
 // IN-MEMORY CACHE (Firestore is the store of record: thread-persistence.ts)
@@ -192,16 +196,11 @@ export async function addMessage(
   message: Omit<ThreadMessage, 'id' | 'threadId'>
 ): Promise<ThreadMessage> {
   const thread = threadIndex.get(threadId);
-  if (!thread) {
-    throw new Error(`Thread not found: ${threadId}`);
-  }
+  if (!thread) throw new Error(`Thread not found: ${threadId}`);
 
-  const fullMessage: ThreadMessage = {
-    ...message,
-    id: uuidv4(),
-    threadId,
-  };
-
+  const fullMessage: ThreadMessage = { ...message, id: uuidv4(), threadId };
+  // MINOR_CARE: every writer (voice, inbound SMS, outreach) passes here; held = kept nowhere
+  if (writeHeld(thread.userId)) return fullMessage;
   // Store message in memory
   const messages = threadMessages.get(threadId) || [];
   messages.push(fullMessage);

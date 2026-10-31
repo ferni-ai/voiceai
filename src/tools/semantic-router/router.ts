@@ -19,16 +19,13 @@
  * @module tools/semantic-router/router
  */
 
+import { errorFields } from '../../utils/error-class.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getRequestCoalescer, hashContent } from '../../utils/request-coalescer.js';
 import { getToolRegistry, type SemanticToolRegistry } from './registry.js';
 import { runCombinedMatching, normalizeText } from './matcher.js';
 import { extractToolArguments } from './argument-extractor.js';
-import {
-  getGeminiConfidenceBoost,
-  isGeminiProblemPhrase,
-  isUsingGemini,
-} from './integration/config.js';
+import { getGeminiConfidenceBoost, isUsingGemini } from './integration/config.js';
 import type {
   SemanticRouterConfig,
   SemanticRouterResult,
@@ -395,7 +392,7 @@ export class SemanticRouter {
       try {
         queryEmbedding = await this.embeddingProvider.embed(inputText);
       } catch (error) {
-        log.warn({ error }, 'Failed to get query embedding, proceeding without');
+        log.warn(errorFields(error), 'Failed to get query embedding, proceeding without');
       }
     }
 
@@ -424,7 +421,7 @@ export class SemanticRouter {
                 toolId: match.toolId,
                 originalConfidence: match.confidence.toFixed(3),
                 boostedConfidence: boostedConfidence.toFixed(3),
-                input: inputText.slice(0, 50),
+                inputLength: inputText.length,
               },
               '🚀 Gemini problem phrase - boosting confidence'
             );
@@ -485,7 +482,7 @@ export class SemanticRouter {
     if (this.config.debug) {
       log.debug(
         {
-          input: inputText,
+          inputLength: inputText.length,
           intent: matchResult.intent,
           topMatch: matchResult.matches[0]?.toolId,
           topConfidence: matchResult.matches[0]?.confidence,
@@ -649,7 +646,10 @@ export class SemanticRouter {
       };
       return executionResult;
     } catch (error) {
-      log.error({ error, toolId, args }, 'Tool execution failed');
+      log.error(
+        { ...errorFields(error), toolId, argKeys: Object.keys(args ?? {}) },
+        'Tool execution failed'
+      );
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

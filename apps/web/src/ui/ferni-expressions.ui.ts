@@ -49,6 +49,7 @@ import { gsap } from '../utils/gsap-setup.js';
 import { DURATION } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { expressionMotion, holdReturnTarget, noteExpressionSet } from './avatar-motion/expression-easing.js';
+import { DOME_POSES, NEUTRAL_DOME_PATHS, domePaths, type DomePose } from './face/dome-poses.js';
 import { handOffToFaceEngine } from './face/face-engine.js';
 
 const log = createLogger('FerniExpressions');
@@ -127,6 +128,9 @@ export type CharacterReaction =
 // STATE
 // ============================================================================
 
+/** Every expression's domes (face/dome-poses.ts); typed here so a missing pose fails typecheck. */
+const EXPRESSION_DOMES: Readonly<Record<EmotionalExpression, DomePose>> = DOME_POSES;
+
 let isInitialized = false;
 let currentExpression: EmotionalExpression = 'neutral';
 /** Target lid paths of the current expression (null until one is set); read by ferni:lid-blend. */
@@ -199,9 +203,11 @@ function createLidOverlay(): void {
   lidOverlay.innerHTML = `
     <svg viewBox="0 0 100 100" class="lid-svg" preserveAspectRatio="none">
       <!-- Top lid -->
-      <path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z" fill="var(--color-background-primary, #1a1612)"/>
+      <path class="lid-top" d="${NEUTRAL_DOME_PATHS.top}" fill="#ffffff"/>
       <!-- Bottom lid (for squinting) -->
-      <path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z" fill="var(--color-background-primary, #1a1612)"/>
+      <path class="lid-bottom" d="${NEUTRAL_DOME_PATHS.bottom}" fill="#ffffff"/>
+      <!-- Rim: a soft persona-colour edge so the white caps never fringe against the head -->
+      <circle class="lid-rim" cx="50" cy="50" r="49.5" fill="none" vector-effect="non-scaling-stroke"/>
       <!-- Dimples - subtle shadows that appear during warm expressions -->
       <!-- Positioned below eyes (cy=47) in cheek area, styled as soft shadows -->
       <ellipse class="dimple dimple-left" cx="28" cy="68" rx="4" ry="3" opacity="0"/>
@@ -265,300 +271,10 @@ export function setExpression(
   
   if (!lidTop || !lidBottom) return;
   
-  // Expression configurations - Brand-aligned emotional range. dimpleOpacity: 0-1, for warm/happy expressions
-  const expressions: Record<EmotionalExpression, {
-    topPath: string;
-    bottomPath: string;
-    dimpleOpacity: number;
-    sparkle?: boolean;
-  }> = {
-    neutral: {
-      topPath: 'M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    happy: {
-      // Squinted eyes + dimples (warm, genuine smile)
-      topPath: 'M 0,0 Q 50,25 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,85 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0.8,
-    },
-    delighted: {
-      // Happy + full dimples + warmth sparkle (genuine joy)
-      topPath: 'M 0,0 Q 50,28 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,82 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 1,
-      sparkle: true,
-    },
-    surprised: {
-      // Wide open - present and attentive
-      topPath: 'M 0,0 Q 50,-18 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,118 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    curious: {
-      // Tilted - genuinely interested, not performative
-      topPath: 'M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,100 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    skeptical: {
-      // Asymmetric lid - direct but caring
-      topPath: 'M 0,0 Q 30,20 60,5 Q 80,-5 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,100 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    worried: {
-      // Angled lids - genuine concern
-      topPath: 'M 0,0 Q 25,25 50,15 Q 75,25 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    sad: {
-      // Droopy - empathetic presence
-      topPath: 'M 0,0 Q 50,35 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,100 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    sleepy: {
-      // Heavy lids - winding down
-      topPath: 'M 0,0 Q 50,55 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,70 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    thinking: {
-      // Slight squint, looking up/away
-      topPath: 'M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    empathetic: {
-      // Soft, warm - "I hear you" with subtle dimples
-      topPath: 'M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0.4,
-    },
-    excited: {
-      // Wide but GROUNDED + dimples (brand-aligned)
-      topPath: 'M 0,0 Q 50,-12 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,112 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0.7,
-      sparkle: true,
-    },
-    // NEW: Brand-aligned states
-    contemplative: {
-      // Deep thought - wise, measured (like a wise elder)
-      topPath: 'M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,92 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    noticing: {
-      // Picking up on something subtle - perceptive
-      topPath: 'M 0,0 Q 50,8 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,100 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    holdingSpace: {
-      // Emotional containment - present, grounded
-      topPath: 'M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,88 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    
-    // =====================================================================
-    // PHASE 1: LISTENING STATES - Ferni's superpower
-    // =====================================================================
-    
-    attentive: {
-      // Active, engaged listening - user is speaking
-      topPath: 'M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,105 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    absorbing: {
-      // Taking in heavy content - deep, slow breathing
-      topPath: 'M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,92 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    receiving: {
-      // Open, accepting vulnerability - soft and safe
-      topPath: 'M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    curiousLean: {
-      // Leaning in with interest
-      topPath: 'M 0,0 Q 50,10 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,102 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    
-    // =====================================================================
-    // PHASE 2: WARMTH GRADIENT - Nuanced positive emotions (DIMPLES!)
-    // =====================================================================
-    
-    warm: {
-      // Baseline positive regard - soft, open, subtle dimples
-      topPath: 'M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0.5,
-    },
-    pleased: {
-      // Mild satisfaction - subtle smile shape with dimples
-      topPath: 'M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0.6,
-    },
-    proud: {
-      // Pride in user - warm, beaming with proud dimples
-      topPath: 'M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,88 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0.8,
-      sparkle: true,
-    },
-    celebrating: {
-      // Full celebration - joyful, bright, full dimples!
-      topPath: 'M 0,0 Q 50,26 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,84 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 1,
-      sparkle: true,
-    },
-    
-    // =====================================================================
-    // PHASE 3: PRESENCE STATES - Quality of "being with"
-    // =====================================================================
-    
-    present: {
-      // Fully here, grounded - open and steady
-      topPath: 'M 0,0 Q 50,10 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,98 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    holding: {
-      // Containing emotion - steady, supportive
-      topPath: 'M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    accompanying: {
-      // Walking alongside - empathetic presence
-      topPath: 'M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,92 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    waiting: {
-      // Patient anticipation - soft, open
-      topPath: 'M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    
-    // =====================================================================
-    // PHASE 4: COACHING EMOTIONS - Active guidance
-    // =====================================================================
-    
-    encouraging: {
-      // Gentle support - warm, uplifting with hint of dimples
-      topPath: 'M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,92 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0.4,
-    },
-    challenging: {
-      // Loving push - direct but caring (no dimples)
-      topPath: 'M 0,0 Q 50,10 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,98 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    reflecting: {
-      // Mirroring back - thoughtful, measured
-      topPath: 'M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    recognizing: {
-      // "I see you" moment - warm, knowing with dimples
-      topPath: 'M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0.6,
-      sparkle: true,
-    },
-    
-    // =====================================================================
-    // PHASE 5: RELATIONAL MOMENTS - Connection depth (DIMPLES!)
-    // =====================================================================
-    
-    remembering: {
-      // Callback moment - nostalgic, warm smile
-      topPath: 'M 0,0 Q 50,16 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,94 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0.5,
-    },
-    reconnecting: {
-      // "Welcome back" energy - warm, genuine dimples
-      topPath: 'M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,88 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0.7,
-      sparkle: true,
-    },
-    insider: {
-      // Shared history moment - playful, knowing dimples
-      topPath: 'M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,86 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0.6,
-    },
-    growing: {
-      // Noticing evolution - proud, warm with proud dimples
-      topPath: 'M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,88 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0.8,
-      sparkle: true,
-    },
-    
-    // =====================================================================
-    // PHASE 6: TRANSITION STATES - Smooth emotional flow
-    // =====================================================================
-    
-    processing: {
-      // Taking it in - slightly closed, contemplative
-      topPath: 'M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,94 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    realizing: {
-      // Connecting dots - widening with understanding
-      topPath: 'M 0,0 Q 50,-8 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,108 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    shifting: {
-      // Changing gears - neutral transition
-      topPath: 'M 0,0 Q 50,8 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,100 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    settling: {
-      // Coming to rest - soft, peaceful
-      topPath: 'M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,96 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0,
-    },
-    // ========================================
-    // FAREWELL STATE - Superhuman goodbye
-    // ========================================
-    farewell: {
-      // Warm goodbye - gentle smile with slight melancholy + dimples
-      // Soft squint (happy but tender), slight sparkle for warmth
-      topPath: 'M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z',
-      bottomPath: 'M 0,100 Q 50,88 100,100 L 100,100 L 0,100 Z',
-      dimpleOpacity: 0.6,
-      sparkle: true, // Warm farewell sparkle
-    },
-  };
-  
-  const config = expressions[expression];
+  const config = EXPRESSION_DOMES[expression];
   if (!config) return;
-  currentLidBase = { top: config.topPath, bottom: config.bottomPath };
+  const paths = domePaths(config);
+  currentLidBase = paths;
   // Create timeline; weight-aware easing + reduced motion when ferni:weighted-easing is on
   const tl = gsap.timeline();
   expressionTimeline = tl;
@@ -574,14 +290,14 @@ export function setExpression(
   
   // Main expression transition
   tl.to(lidTop, {
-    attr: { d: config.topPath },
+    attr: { d: paths.top },
     scaleY: 1,
     duration: toSeconds(motion.durationMs),
     ease: motion.ease,
   }, toSeconds(motion.delayMs));
   
   tl.to(lidBottom, {
-    attr: { d: config.bottomPath },
+    attr: { d: paths.bottom },
     scaleY: 1,
     duration: toSeconds(motion.durationMs),
     ease: motion.ease,
@@ -605,7 +321,7 @@ export function setExpression(
   noteExpressionSet(expression, hold); // resting moods become the hold-return baseline
   if (hold > 0) {
     tl.call(() => {
-      setExpression(holdReturnTarget('neutral', expressions), DURATION.SLOW);
+      setExpression(holdReturnTarget('neutral', EXPRESSION_DOMES), DURATION.SLOW);
     }, [], `+=${toSeconds(hold)}`);
   }
   
@@ -1247,16 +963,7 @@ function injectStyles(): void {
   styleElement = document.createElement('style');
   styleElement.id = 'ferni-expressions-styles';
   styleElement.textContent = `
-    /* Avatar Lid Overlay - Creates "eyelid" effect */
-    .avatar-lid-overlay {
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      overflow: hidden;
-      pointer-events: none;
-      z-index: var(--z-docked);
-    }
-    
+    /* The lid overlay box, caps and rim live in inline-styles.css only; a copy here won the cascade. */
     .lid-svg {
       width: 100%;
       height: 100%;

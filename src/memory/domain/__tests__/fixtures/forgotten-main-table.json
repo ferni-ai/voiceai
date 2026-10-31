@@ -1,0 +1,886 @@
+{
+ "capturedFrom": "origin/main 0129d29692",
+ "texts": [
+  "Lunch with Zoe on Friday",
+  "Lunch with Zoë on Friday",
+  "Called José about the loan",
+  "She is divorcing him",
+  "The divorce papers came",
+  "Divorce papers came",
+  "They want a baby",
+  "Talked about having babies",
+  "His exwife called",
+  "His ex wife called",
+  "His ex-wife called",
+  "my sister's wedding plans",
+  "my sister’s wedding plans",
+  "he running every day and ran a race",
+  "She baked a cookie",
+  "A tin of cookies",
+  "He studies law",
+  "She studied abroad",
+  "Got a new job",
+  "Watching the news",
+  "Making strawberry jam",
+  "James called",
+  "Planning a party on Saturday",
+  "A jobless week",
+  "Moving to Austin",
+  "Planning his wedding",
+  "it's uh 435 555 0188 call him",
+  "his number is 435-555-0188",
+  "Brother Marcus moved to Denver",
+  "Biscuit breed golden retriever",
+  "User  divorce Finalised the divorce papers in March  ",
+  "Worried about the biopsy results",
+  "the BIOPSY came back clear",
+  "Mom has a hospital stay next week",
+  "Thinking about quitting Larkspur Analytics",
+  "Тимур приезжает в субботу",
+  "مريم تزور الأسبوع القادم",
+  "",
+  "   ",
+  "forget what I said about that",
+  "Ex-boyfriend Dmitri texted again",
+  "The wedding is at Willow Creek",
+  "Weddings make her anxious",
+  "Paid off the car loan, finally",
+  "Her therapist, Dr. Okafor, suggested journaling",
+  "Kids: Ada and Felix",
+  "felix broke his arm",
+  "Piano recital on Sunday",
+  "Filed the 2024 return late",
+  "Back from Ogden on Monday"
+ ],
+ "topics": [
+  "Zoë",
+  "Zoe",
+  "José",
+  "divorce",
+  "divorcing",
+  "babies",
+  "baby",
+  "ex-wife",
+  "ex wife",
+  "exwife",
+  "sister wedding",
+  "my sister’s wedding",
+  "RUNNING",
+  "cookies",
+  "studied",
+  "news",
+  "James",
+  "art",
+  "parties",
+  "job",
+  "exhausting",
+  "4355550188",
+  "435 555 0188",
+  "brother number",
+  "Marcus",
+  "biopsy",
+  "hospital",
+  "Larkspur Analytics",
+  "Тимур",
+  "مريم",
+  "zo",
+  "babie",
+  "wedding",
+  "car loan",
+  "therapist",
+  "Felix",
+  "ex boyfriend",
+  "the",
+  "",
+  "forget that thing",
+  "Felix party",
+  "piano lessons",
+  "2024 taxes",
+  "Ogden trip",
+  "Ada play"
+ ],
+ "topicSets": [
+  [],
+  [
+   "Zoë"
+  ],
+  [
+   "Zoe"
+  ],
+  [
+   "José"
+  ],
+  [
+   "divorce"
+  ],
+  [
+   "divorcing"
+  ],
+  [
+   "babies"
+  ],
+  [
+   "baby"
+  ],
+  [
+   "ex-wife"
+  ],
+  [
+   "ex wife"
+  ],
+  [
+   "exwife"
+  ],
+  [
+   "sister wedding"
+  ],
+  [
+   "my sister’s wedding"
+  ],
+  [
+   "RUNNING"
+  ],
+  [
+   "cookies"
+  ],
+  [
+   "studied"
+  ],
+  [
+   "news"
+  ],
+  [
+   "James"
+  ],
+  [
+   "art"
+  ],
+  [
+   "parties"
+  ],
+  [
+   "job"
+  ],
+  [
+   "exhausting"
+  ],
+  [
+   "4355550188"
+  ],
+  [
+   "435 555 0188"
+  ],
+  [
+   "brother number"
+  ],
+  [
+   "Marcus"
+  ],
+  [
+   "biopsy"
+  ],
+  [
+   "hospital"
+  ],
+  [
+   "Larkspur Analytics"
+  ],
+  [
+   "Тимур"
+  ],
+  [
+   "مريم"
+  ],
+  [
+   "zo"
+  ],
+  [
+   "babie"
+  ],
+  [
+   "wedding"
+  ],
+  [
+   "car loan"
+  ],
+  [
+   "therapist"
+  ],
+  [
+   "Felix"
+  ],
+  [
+   "ex boyfriend"
+  ],
+  [
+   "the"
+  ],
+  [
+   ""
+  ],
+  [
+   "forget that thing"
+  ],
+  [
+   "Felix party"
+  ],
+  [
+   "piano lessons"
+  ],
+  [
+   "2024 taxes"
+  ],
+  [
+   "Ogden trip"
+  ],
+  [
+   "Ada play"
+  ],
+  [
+   "news",
+   "Felix"
+  ],
+  [
+   "art",
+   "biopsy"
+  ],
+  [
+   "",
+   "job"
+  ]
+ ],
+ "isForgotten": [
+  "0110000000000000000000000000000000000000000000000",
+  "0110000000000000000000000000000100000000000000000",
+  "0001000000000000000000000000000000000000000000000",
+  "0000110000000000000000000000000000000000000000000",
+  "0000110000000000000000000000000000000000000000000",
+  "0000110000000000000000000000000000000000000000000",
+  "0000001100000000000000000000000010000000000000000",
+  "0000001100000000000000000000000010000000000000000",
+  "0000000011100000000000000000000000000000000000000",
+  "0000000011100000000000000000000000000000000000000",
+  "0000000011100000000000000000000000000000000000000",
+  "0000000000011000000000000000000001000000000000000",
+  "0000000000011000000000000000000001000000000000000",
+  "0000000000000100000000000000000000000000000000000",
+  "0000000000000010000000000000000000000000000000000",
+  "0000000000000010000000000000000000000000000000000",
+  "0000000000000001000000000000000000000000000000000",
+  "0000000000000001000000000000000000000000000000000",
+  "0000000000000000000010000000000000000000000000001",
+  "0000000000000000100000000000000000000000000000100",
+  "0000000000000000000000000000000000000000000000000",
+  "0000000000000000010000000000000000000000000000000",
+  "0000000000000000000100000000000000000000000000000",
+  "0000000000000000000000000000000000000000000000000",
+  "0000000000000000000000000000000000000000000000000",
+  "0000000000000000000000000000000001000000000000000",
+  "0000000000000000000000110000000000000000000000000",
+  "0000000000000000000000110000000000000000000000000",
+  "0000000000000000000000000100000000000000000000000",
+  "0000000000000000000000000000000000000000000000000",
+  "0000110000000000000000000000000000000000000000000",
+  "0000000000000000000000000010000000000000000000010",
+  "0000000000000000000000000010000000000000000000010",
+  "0000000000000000000000000001000000000000000000000",
+  "0000000000000000000000000000100000000000000000000",
+  "0000000000000000000000000000000000000000000000000",
+  "0000000000000000000000000000000000000000000000000",
+  "0000000000000000000000000000000000000000000000000",
+  "0000000000000000000000000000000000000000000000000",
+  "0000000000000000000000000000000000000000000000000",
+  "0000000000000000000000000000000000000100000000000",
+  "0000000000000000000000000000000001000000000000000",
+  "0000000000000000000000000000000001000000000000000",
+  "0000000000000000000000000000000000100000000000000",
+  "0000000000000000000000000000000000010000000000000",
+  "0000000000000000000000000000000000001000000000100",
+  "0000000000000000000000000000000000001000000000100",
+  "0000000000000000000000000000000000000000000000000",
+  "0000000000000000000000000000000000000000000000000",
+  "0000000000000000000000000000000000000000000000000"
+ ],
+ "isForgottenPassage": [
+  "0110000000000000000000000000000000000000000000000",
+  "0110000000000000000000000000000100000000000000000",
+  "0001000000000000000000000000000000000000000000000",
+  "0000110000000000000000000000000000000000000000000",
+  "0000110000000000000000000000000000000000000000000",
+  "0000110000000000000000000000000000000000000000000",
+  "0000001100000000000000000000000010000000000000000",
+  "0000001100000000000000000000000010000000000000000",
+  "0000000011100000000000000000000000000000000000000",
+  "0000000011100000000000000000000000000000000000000",
+  "0000000011100000000000000000000000000000000000000",
+  "0000000000011000000000000000000001000000000000000",
+  "0000000000011000000000000000000001000000000000000",
+  "0000000000000100000000000000000000000000000000000",
+  "0000000000000010000000000000000000000000000000000",
+  "0000000000000010000000000000000000000000000000000",
+  "0000000000000001000000000000000000000000000000000",
+  "0000000000000001000000000000000000000000000000000",
+  "0000000000000000000010000000000000000000000000001",
+  "0000000000000000100000000000000000000000000000100",
+  "0000000000000000000000000000000000000000000000000",
+  "0000000000000000010000000000000000000000000000000",
+  "0000000000000000000100000000000000000000010000000",
+  "0000000000000000000000000000000000000000000000000",
+  "0000000000000000000000000000000000000000000000000",
+  "0000000000011000000000000000000001000000000000000",
+  "0000000000000000000000110000000000000000000000000",
+  "0000000000000000000000111000000000000000000000000",
+  "0000000000000000000000001100000000000000000000000",
+  "0000000000000000000000000000000000000000000000000",
+  "0000110000000000000000000000000000000000000000000",
+  "0000000000000000000000000010000000000000000000010",
+  "0000000000000000000000000010000000000000000000010",
+  "0000000000000000000000000001000000000000000000000",
+  "0000000000000000000000000000100000000000000000000",
+  "0000000000000000000000000000000000000000000000000",
+  "0000000000000000000000000000000000000000000000000",
+  "0000000000000000000000000000000000000000000000000",
+  "0000000000000000000000000000000000000000000000000",
+  "0000000000000000000000000000000000000000000000000",
+  "0000000000000000000000000000000000000100000000000",
+  "0000000000011000000000000000000001000000000000000",
+  "0000000000000000000000000000000001000000000000000",
+  "0000000000000000000000000000000000100000000000000",
+  "0000000000000000000000000000000000010000000000000",
+  "0000000000000000000000000000000000001000010000100",
+  "0000000000000000000000000000000000001000010000100",
+  "0000000000000000000000000000000000000000001000000",
+  "0000000000000000000000000000000000000000000100000",
+  "0000000000000000000000000000000000000000000010000"
+ ],
+ "forgetTokens": [
+  [
+   "lunch",
+   "zoe",
+   "on",
+   "friday"
+  ],
+  [
+   "lunch",
+   "zoe",
+   "on",
+   "friday"
+  ],
+  [
+   "called",
+   "jose",
+   "loan"
+  ],
+  [
+   "she",
+   "is",
+   "divorc",
+   "him"
+  ],
+  [
+   "divorc",
+   "paper",
+   "came"
+  ],
+  [
+   "divorce",
+   "paper",
+   "came"
+  ],
+  [
+   "want",
+   "baby"
+  ],
+  [
+   "hav",
+   "baby"
+  ],
+  [
+   "his",
+   "exwif",
+   "call"
+  ],
+  [
+   "his",
+   "ex",
+   "wife",
+   "call"
+  ],
+  [
+   "his",
+   "exwif",
+   "call"
+  ],
+  [
+   "sister",
+   "wed",
+   "plan"
+  ],
+  [
+   "sister",
+   "wed",
+   "plan"
+  ],
+  [
+   "he",
+   "run",
+   "every",
+   "day",
+   "ran",
+   "race"
+  ],
+  [
+   "she",
+   "bak",
+   "cooky"
+  ],
+  [
+   "tin",
+   "of",
+   "cooky"
+  ],
+  [
+   "he",
+   "study",
+   "law"
+  ],
+  [
+   "she",
+   "study",
+   "abroad"
+  ],
+  [
+   "new",
+   "job"
+  ],
+  [
+   "watching",
+   "news"
+  ],
+  [
+   "making",
+   "strawberry",
+   "jam"
+  ],
+  [
+   "james",
+   "call"
+  ],
+  [
+   "planning",
+   "party",
+   "on",
+   "saturday"
+  ],
+  [
+   "jobless",
+   "week"
+  ],
+  [
+   "moving",
+   "to",
+   "austin"
+  ],
+  [
+   "planning",
+   "his",
+   "wed"
+  ],
+  [
+   "it",
+   "uh",
+   "4355550188",
+   "call",
+   "him"
+  ],
+  [
+   "his",
+   "number",
+   "is",
+   "4355550188"
+  ],
+  [
+   "brother",
+   "marcus",
+   "mov",
+   "to",
+   "denver"
+  ],
+  [
+   "biscuit",
+   "bre",
+   "golden",
+   "retriever"
+  ],
+  [
+   "divorc",
+   "finalised",
+   "paper",
+   "in",
+   "march"
+  ],
+  [
+   "worried",
+   "biopsy",
+   "result"
+  ],
+  [
+   "biopsy",
+   "came",
+   "back",
+   "clear"
+  ],
+  [
+   "mom",
+   "hospital",
+   "stay",
+   "next",
+   "week"
+  ],
+  [
+   "thinking",
+   "quit",
+   "larkspur",
+   "analytics"
+  ],
+  [],
+  [],
+  [],
+  [],
+  [],
+  [
+   "exboyfriend",
+   "dmitri",
+   "text",
+   "again"
+  ],
+  [
+   "wed",
+   "is",
+   "at",
+   "willow",
+   "creek"
+  ],
+  [
+   "weddings",
+   "make",
+   "her",
+   "anxious"
+  ],
+  [
+   "paid",
+   "off",
+   "car",
+   "loan",
+   "finally"
+  ],
+  [
+   "her",
+   "therapist",
+   "dr",
+   "okafor",
+   "suggest",
+   "journal"
+  ],
+  [
+   "kids",
+   "ada",
+   "felix"
+  ],
+  [
+   "felix",
+   "brok",
+   "his",
+   "arm"
+  ],
+  [
+   "piano",
+   "recital",
+   "on",
+   "sunday"
+  ],
+  [
+   "filed",
+   "2024",
+   "return",
+   "late"
+  ],
+  [
+   "back",
+   "ogden",
+   "on",
+   "monday"
+  ],
+  [
+   "zoe"
+  ],
+  [
+   "zoe"
+  ],
+  [
+   "jose"
+  ],
+  [
+   "divorc"
+  ],
+  [
+   "divorc"
+  ],
+  [
+   "baby"
+  ],
+  [
+   "baby"
+  ],
+  [
+   "exwif"
+  ],
+  [
+   "ex",
+   "wife"
+  ],
+  [
+   "exwif"
+  ],
+  [
+   "sister",
+   "wed"
+  ],
+  [
+   "sister",
+   "wed"
+  ],
+  [
+   "running"
+  ],
+  [
+   "cooky"
+  ],
+  [
+   "study"
+  ],
+  [
+   "news"
+  ],
+  [
+   "james"
+  ],
+  [
+   "art"
+  ],
+  [
+   "party"
+  ],
+  [
+   "job"
+  ],
+  [
+   "exhaust"
+  ],
+  [
+   "4355550188"
+  ],
+  [
+   "4355550188"
+  ],
+  [
+   "brother",
+   "number"
+  ],
+  [
+   "marcus"
+  ],
+  [
+   "biopsy"
+  ],
+  [
+   "hospital"
+  ],
+  [
+   "larkspur",
+   "analytics"
+  ],
+  [],
+  [],
+  [
+   "zo"
+  ],
+  [
+   "baby"
+  ],
+  [
+   "wed"
+  ],
+  [
+   "car",
+   "loan"
+  ],
+  [
+   "therapist"
+  ],
+  [
+   "felix"
+  ],
+  [
+   "ex",
+   "boyfriend"
+  ],
+  [],
+  [],
+  [],
+  [
+   "felix",
+   "party"
+  ],
+  [
+   "piano",
+   "lesson"
+  ],
+  [
+   "2024",
+   "taxe"
+  ],
+  [
+   "ogden",
+   "trip"
+  ],
+  [
+   "ada",
+   "play"
+  ]
+ ],
+ "storedTopic": [
+  "Lunch Zoe on Friday",
+  "Lunch Zoë on Friday",
+  "Called José loan",
+  "She is divorcing him",
+  "divorce papers came",
+  "Divorce papers came",
+  "want baby",
+  "having babies",
+  "His exwife called",
+  "His ex wife called",
+  "His ex-wife called",
+  "sister's wedding plans",
+  "sister’s wedding plans",
+  "he running every day ran race",
+  "She baked cookie",
+  "tin of cookies",
+  "He studies law",
+  "She studied abroad",
+  "new job",
+  "Watching news",
+  "Making strawberry jam",
+  "James called",
+  "Planning party on Saturday",
+  "jobless week",
+  "Moving to Austin",
+  "Planning his wedding",
+  "it's uh 435 555 0188 call him",
+  "his number is 435-555-0188",
+  "Brother Marcus moved to Denver",
+  "Biscuit breed golden retriever",
+  "divorce Finalised divorce papers in March",
+  "Worried biopsy results",
+  "BIOPSY came back clear",
+  "Mom hospital stay next week",
+  "Thinking quitting Larkspur Analytics",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "Ex-boyfriend Dmitri texted again",
+  "wedding is at Willow Creek",
+  "Weddings make her anxious",
+  "Paid off car loan finally",
+  "Her therapist Dr Okafor suggested journaling",
+  "Kids Ada Felix",
+  "felix broke his arm",
+  "Piano recital on Sunday",
+  "Filed 2024 return late",
+  "Back Ogden on Monday",
+  "Zoë",
+  "Zoe",
+  "José",
+  "divorce",
+  "divorcing",
+  "babies",
+  "baby",
+  "ex-wife",
+  "ex wife",
+  "exwife",
+  "sister wedding",
+  "sister’s wedding",
+  "RUNNING",
+  "cookies",
+  "studied",
+  "news",
+  "James",
+  "art",
+  "parties",
+  "job",
+  "exhausting",
+  "4355550188",
+  "435 555 0188",
+  "brother number",
+  "Marcus",
+  "biopsy",
+  "hospital",
+  "Larkspur Analytics",
+  "",
+  "",
+  "zo",
+  "babie",
+  "wedding",
+  "car loan",
+  "therapist",
+  "Felix",
+  "ex boyfriend",
+  "",
+  "",
+  "",
+  "Felix party",
+  "piano lessons",
+  "2024 taxes",
+  "Ogden trip",
+  "Ada play"
+ ],
+ "factTextDocs": [
+  {
+   "entityName": "Biscuit",
+   "key": "breed",
+   "value": "golden retriever"
+  },
+  {
+   "fact": "Going through a divorce"
+  },
+  {
+   "content": "Mom visits",
+   "key": 3,
+   "value": null
+  },
+  {
+   "attribute": "employer",
+   "value": "Larkspur Analytics"
+  },
+  {},
+  {
+   "entityName": "User",
+   "key": "divorce",
+   "value": "Finalised",
+   "attribute": "a",
+   "fact": "b",
+   "content": "c",
+   "extra": "x"
+  }
+ ],
+ "factText": [
+  "Biscuit breed  golden retriever  ",
+  "    Going through a divorce ",
+  "     Mom visits",
+  "  employer Larkspur Analytics  ",
+  "     ",
+  "User divorce a Finalised b c"
+ ]
+}

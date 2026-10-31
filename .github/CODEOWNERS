@@ -1,0 +1,22 @@
+# Changes to the CI that judges PRs need the owner's review, so a PR can't
+# rewrite its own checks (lead-verified gate, 2026-10-23). This takes effect
+# only once "Require review from Code Owners" is on in the main ruleset.
+/.github/CODEOWNERS   @sethdford
+/.github/workflows/   @sethdford
+/scripts/ci/          @sethdford
+
+# Quality gates. They fail only on what a PR adds, measured against its merge base
+# (merge-base.ts below); these files decide what counts as a violation, so a change to
+# one changes the rule for every PR.
+/apps/cli/src/commands/quality/architecture-layers.ts @sethdford
+/apps/cli/src/commands/quality/merge-base.ts @sethdford
+/apps/cli/src/commands/quality/decisions.ts @sethdford
+/apps/cli/src/commands/quality/architecture-baseline.generated.json @sethdford
+/apps/cli/src/commands/quality/kernel-duplicates-baseline.json @sethdford
+/apps/cli/src/commands/quality/ratchet-baseline.json @sethdford
+/knip.json @sethdford
+# The gate code itself, the flag tooling and the flag lifecycle rules. These only request a
+# review; nothing is enforced until "Require review from Code Owners" is on.
+/apps/cli/src/commands/quality/ @sethdford
+/scripts/flags/ @sethdford
+/src/config/flag-lifecycle* @sethdford

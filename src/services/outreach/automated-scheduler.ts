@@ -28,7 +28,7 @@ import { getOptimalOutreachTime, getPreferredChannel } from './engagement-tracki
 import { allowedDeliveryChannels } from './outreach-consent.js';
 import { verifiedPhoneOf } from './user-reach.js';
 import { isValidTimezone } from './call-hours-guard.js';
-import { hoursWindow, isQuietAt, isQuietHoursUnified, isUserQuiet } from './quiet-hours.js';
+import { hoursWindow, isQuietHoursUnified, isUserQuiet, quietWithSaved } from './quiet-hours.js';
 import {
   cadenceHold,
   conversationCountOf,
@@ -84,6 +84,7 @@ interface UserOutreachCandidate {
     timezone?: string;
   };
   contactInfo?: { timezone?: string };
+  messagingPrefs?: unknown;
 }
 
 // ============================================================================
@@ -318,6 +319,7 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
           unanswered: unansweredCount(data),
           outreachPreferences: data.outreachPreferences,
           contactInfo: data.contactInfo,
+          messagingPrefs: data.messagingPrefs,
         });
       }
       if (page.size < CANDIDATE_PAGE_SIZE) break;
@@ -438,18 +440,16 @@ async function determineBestChannel(
 // ============================================================================
 
 /**
- * Is it quiet hours for this user now? QUIET_HOURS_UNIFIED=on uses the shared
- * predicate (quiet-hours.ts): 22:00-08:00 and both US coasts when the zone is
- * unknown. Off, this scheduler keeps its own window: 21:00-08:00 Eastern unless
- * the user set one. A zone that cannot be read fails closed.
+ * Quiet now? QUIET_HOURS_UNIFIED=on: the shared predicate (quiet-hours.ts). Off: 21:00-08:00
+ * Eastern unless the user set one; a bad zone fails closed. Either way, plus the menu's window.
  */
-function isInQuietHours(candidate: UserOutreachCandidate): boolean {
+export function isInQuietHours(candidate: UserOutreachCandidate): boolean {
   if (isQuietHoursUnified()) return isUserQuiet(candidate);
   const prefs = candidate.outreachPreferences;
   const zone = prefs?.timezone || 'America/New_York';
   if (!isValidTimezone(zone)) return true;
   const window = hoursWindow(prefs?.quietHoursStart ?? 21, prefs?.quietHoursEnd ?? 8);
-  return isQuietAt(new Date(), window, [zone]);
+  return quietWithSaved(new Date(), window, [zone], candidate);
 }
 
 // ============================================================================

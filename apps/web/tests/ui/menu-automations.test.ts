@@ -17,12 +17,13 @@ const json =
   async () =>
     new Response(JSON.stringify(body), { status });
 
+// As the voice createRoutine saves it: paused, at 7:30 in the caller's zone
 const routine = {
   id: 'wf_1',
   userId: 'uid-1',
   name: 'Morning stretch',
-  status: 'active',
-  trigger: { type: 'time', schedule: '30 7 * * *', timezone: 'Etc/UTC' },
+  status: 'paused',
+  trigger: { type: 'time', schedule: '30 7 * * *', timezone: 'America/Chicago' },
   actions: [],
   conditions: [],
   tags: ['voice-created'],
@@ -61,6 +62,23 @@ describe('What I Do For You states', () => {
 
     expect(root().dataset.state).toBe('ready');
     expect(root().textContent).toContain('Morning stretch');
+    expect(root().textContent).toContain('Every day at 7:30');
+    expect(root().textContent).toContain('On hold');
+    // Saved, and it says so: it never runs on its own yet
+    expect(root().querySelector('[data-routines-note]')?.textContent).toBe(
+      "I keep these here for you. They don't run on their own yet."
+    );
+  });
+
+  it('asks the exact route the server serves (menu-automations.emulator.test.ts)', async () => {
+    showFerniCareDashboard();
+    await settled();
+
+    const asked = vi.mocked(globalThis.fetch).mock.calls.map(([url]) => {
+      const { pathname, search } = new URL(String(url), 'http://x');
+      return pathname + search;
+    });
+    expect(asked).toEqual(['/api/life-automation/workflows?userId=uid-1']);
   });
 
   it('no routines: the empty state, with its one action', async () => {
@@ -69,6 +87,8 @@ describe('What I Do For You states', () => {
 
     expect(root().dataset.state).toBe('empty');
     expect(root().textContent).toContain('Nothing set up yet');
+    expect(root().textContent).toContain("Tell me something you'd like to do regularly");
+    expect(root().textContent).not.toMatch(/I can do that|remind you/i); // nothing runs them yet
     expect(root().querySelector('[data-notice]')).toBeNull();
   });
 

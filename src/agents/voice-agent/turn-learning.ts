@@ -22,6 +22,7 @@ import {
 } from '../../intelligence/index.js';
 import { learnTemporalPattern } from '../../intelligence/context-builders/intelligence/temporal-intelligence.js';
 import { recordSharedMoment } from '../../intelligence/context-builders/relationship/deep-relationship.js';
+import { questionShapeOf, safeTopic } from '../../intelligence/collective/community-labels.js';
 import { recordTrustSystemsData } from './index.js';
 
 // Capability learning - track engagement with surfaced capabilities
@@ -344,8 +345,7 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
       });
     }
 
-    // Check for shared moments (phrases, jokes, meaningful exchanges)
-    // Only on high-emotional turns AND rate-limited to every 3rd qualifying turn
+    // Shared moments (phrases, jokes, meaningful exchanges): high-emotion turns, every 3rd turn
     const isHighEmotionTurn =
       ctx.emotionalResult.intensity > 0.6 ||
       ctx.injections.some(
@@ -362,6 +362,7 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
         whatTheySaid: ctx.userText.slice(0, 200),
         triggers: [ctx.emotionalResult.primary || 'emotional_moment'],
         significance: ctx.emotionalResult.intensity > 0.8 ? 'meaningful' : 'warm',
+        sessionId: ctx.sessionId, // MINOR_CARE: a held caller gets none
       }).catch((err) => {
         logger.debug({ error: String(err) }, 'Shared moment recording (non-critical)');
       });
@@ -375,21 +376,19 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
         );
 
       if (isBreakthroughMoment) {
-        // Extract the question pattern from the last few injections that might have triggered this
-        const questionPattern =
-          ctx.injections.find((i) => i.content.includes('?'))?.content.slice(0, 100) ||
-          'open_question';
-        const topic =
-          ctx.injections.find((i) => i.category === 'topics')?.content?.split(' ')[0] || 'general';
+        const asked = ctx.injections.find((i) => i.content.includes('?'))?.content;
+        const topicLine = ctx.injections.find((i) => i.category === 'topics')?.content;
+        const questionPattern = questionShapeOf(asked); // shared by all callers: labels only
+        const topic = safeTopic(topicLine?.split(' ')[0]);
 
         recordBreakthroughForLearning(
           ctx.personaId,
           topic,
           questionPattern,
-          ctx.userText.slice(0, 200),
+          'breakthrough',
           ctx.emotionalResult.intensity // engagement lift
         );
-        logger.debug({ topic, intensity: ctx.emotionalResult.intensity }, '💡 Breakthrough recorded');
+        logger.debug({ topic, intensity: ctx.emotionalResult.intensity }, '💡 Breakthrough');
       }
 
       // 📚 CAPABILITY LEARNING: Track user engagement with surfaced capabilities
@@ -632,15 +631,15 @@ async function recordOurSongMoment(ctx: LearningContext): Promise<void> {
   // 3. Record this as "our song" for later callback
   const track = musicState.currentTrack;
 
+  // Ids and labels only: never the caller's words (nor the track, which says what they listen to)
   logger.info('🎵 Recording "Our Song" moment', {
-    song: track.name,
-    artist: track.artist,
+    sessionId: ctx.sessionId,
     momentType: significantMoment.type,
-    userText: ctx.userText.slice(0, 50),
   });
 
-  // Record the song memory
+  // Record the song memory: labels only, never the caller's words. A held caller gets none.
   recordOurSong({
+    sessionId: ctx.sessionId,
     userId: ctx.userId,
     song: {
       name: track.name,
@@ -650,6 +649,5 @@ async function recordOurSongMoment(ctx: LearningContext): Promise<void> {
     momentType: significantMoment.type,
     emotion: significantMoment.emotion || 'grateful', // Default to 'grateful' if no emotion detected
     context: ctx.emotionalResult.primary || 'meaningful moment',
-    memorableQuote: ctx.userText.slice(0, 200),
   });
 }

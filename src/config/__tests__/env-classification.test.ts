@@ -4,20 +4,10 @@
  */
 import { describe, expect, it } from 'vitest';
 import { ENV_CLASSIFICATION } from '../env-classification.js';
-import { ENV_READ_NAMES } from '../env-read-names.generated.js';
 import { FLAG_KINDS, FLAG_MANIFEST, FLAG_OWNERS } from '../flag-manifest.js';
 
 describe('env classification', () => {
   const entries = Object.entries(ENV_CLASSIFICATION);
-
-  it('classes every persona voice id the code reads as config', () => {
-    // The boot line prints a voice id only when it is classed config; an unclassed one shows as
-    // <set>, and the secrets parity check can never compare it.
-    const unclassed = [...new Set(ENV_READ_NAMES)].filter(
-      (name) => name.endsWith('_VOICE_ID') && ENV_CLASSIFICATION[name] !== 'config'
-    );
-    expect(unclassed).toEqual([]);
-  });
 
   it('lists every behaviour name in the flag manifest', () => {
     const missing = entries

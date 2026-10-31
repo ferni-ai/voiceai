@@ -141,6 +141,36 @@ describe('session trajectory', () => {
       outcome('none of it is going to matter', ['my friend tried to kill himself last week'])
     ).toBe('none');
   });
+
+  it("the caller's own softened words beside a worry about someone else still count (#2528)", () => {
+    // The earlier turn reads as third party since #2528, but the caller's own negated words in it
+    // were a distress turn before, and still are for the session.
+    const recent = [
+      'nobody would miss me',
+      "my dad says he wants to end his life. I'm not going to kill myself, don't worry",
+    ];
+    expect(outcome('soon none of this will matter', recent)).toBe('crisis');
+    expect(
+      detectCrisis('soon none of this will matter', undefined, { recentMessages: recent })
+        .indicators
+    ).toContain('session_escalation');
+    // At their own level (0.6), never the worry's: one such turn alone does not escalate.
+    expect(outcome('soon none of this will matter', recent.slice(1))).toBe('none');
+    // Only words a tier softened, as before #2528: words only the ending floor finds add nothing.
+    expect(
+      outcome('soon none of this will matter', [
+        'nobody would miss me',
+        'my brother keeps talking about killing himself. I would never kill myself',
+      ])
+    ).toBe('none');
+    // The worry alone still never counts.
+    expect(
+      outcome('soon none of this will matter', [
+        'nobody would miss me',
+        'my dad says he wants to end his life',
+      ])
+    ).toBe('none');
+  });
 });
 
 describe('voice', () => {

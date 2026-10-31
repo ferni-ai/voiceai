@@ -265,7 +265,7 @@ export const PARTIAL_FAILURE_SCENARIOS: VibeTestScenario[] = [
     mockHome: {
       ...createConnectedHome(),
       behaviors: {
-        home_assistant: 'success',
+        lifx: 'success',
         hue: 'success',
         ecobee: 'timeout',
       },
@@ -297,7 +297,7 @@ export const PARTIAL_FAILURE_SCENARIOS: VibeTestScenario[] = [
     mockHome: {
       ...createConnectedHome(),
       behaviors: {
-        home_assistant: 'circuit_open',
+        lifx: 'circuit_open',
         hue: 'circuit_open',
         ecobee: 'success',
       },

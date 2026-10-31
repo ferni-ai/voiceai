@@ -28,6 +28,7 @@
 
 import { flagOn, type Env } from '../config/env-flag.js';
 import { FERNI_HEARD_AS, HEARD_AS, TEAM_FIRST_NAMES } from './teammate-talk.js';
+import { callMeVocativeEnabled, personaLike } from './call-me-vocative.js';
 
 export function nameCaptureStrict(env: Env = process.env): boolean {
   return flagOn('NAME_CAPTURE_STRICT', env);
@@ -64,10 +65,28 @@ const TEAM_NAMES = new Set<string>([
 /** Capitalised as transcribed: "Seth", "Mary-Jane"; not "seth" or "SETH". */
 const CAPITALISED = /^\p{Lu}\p{Ll}+(?:-\p{Lu}\p{Ll}+)?$/u;
 
+/** A common word ("tired", "here", "not"), too short or too long: never a name, in any case. */
+export function isCommonWord(word: string): boolean {
+  const w = word.trim().toLowerCase();
+  return w.length < 2 || w.length > 20 || NOT_NAMES.has(w);
+}
+
+/**
+ * "Ferni" however it was typed or transcribed: "Ferni!", "FERNI", " ferni ", fullwidth
+ * "Ｆｅｒｎｉ", "Férni" (NFKD, marks and punctuation stripped, lower case). Prod saved
+ * Ferni's own name as a caller's; only this exact spelling is refused ("Fern" is a name).
+ */
+export function isFerniSpelling(name: string): boolean {
+  const bare = name
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[\p{P}\p{S}]/gu, '');
+  return bare.trim().toLowerCase() === 'ferni';
+}
+
 /** A common word or a team name: never the caller's name, in any case. */
 export function rejectsAsName(word: string): boolean {
-  const w = word.trim().toLowerCase();
-  return w.length < 2 || w.length > 20 || NOT_NAMES.has(w) || TEAM_NAMES.has(w);
+  return isCommonWord(word) || TEAM_NAMES.has(word.trim().toLowerCase()) || isFerniSpelling(word);
 }
 
 /** A word as transcribed that can be the caller's name. */
@@ -85,6 +104,12 @@ const CUES: readonly RegExp[] = [
   String.raw`\bi go by\s+`,
   String.raw`\bthis is\s+`,
 ].map((cue) => new RegExp(cue + WORD, 'giu'));
+/**
+ * The "call me <Name>" cue. With CALL_ME_VOCATIVE=on a word like a team name after it ("call me
+ * Ferney") is never taken here: it may be Ferni's name said to him, and only the confirmed path
+ * (agents/personas/name-confirm.ts) may make it theirs.
+ */
+const CALL_ME_CUE = CUES[2];
 /** "Seth here", "Seth speaking" opening the line (after any greeting). */
 const HERE = new RegExp(String.raw`^\s*${WORD}\s+(?:here|speaking)\b`, 'gu');
 /** "[Ff]erni|...": a team name in either first-letter case, for a case-sensitive pattern. */
@@ -118,11 +143,13 @@ function possessive(text: string, end: number): boolean {
 }
 
 function firstMatch(text: string, re: RegExp, anchored: boolean): CallerNameMatch | null {
+  const vocative = re === CALL_ME_CUE && callMeVocativeEnabled();
   for (const m of text.matchAll(re)) {
     const start = m.index ?? 0;
     if (anchored && text.slice(0, start).trim() !== '') return null;
     const name = m[1];
     if (!acceptsSpokenName(name) || possessive(text, start + m[0].length)) continue;
+    if (vocative && personaLike(name)) continue;
     return { name, phrase: m[0].replace(/^[\s.!?,]+/, '').trim() };
   }
   return null;
@@ -154,4 +181,46 @@ export function findCallerName(
 
 export function extractCallerName(text: string, opts?: { anchored?: boolean }): string | null {
   return findCallerName(text, opts)?.name ?? null;
+}
+
+/** The caller's first name as said ("Seth" from "seth ford"); null if there isn't a usable one. */
+export function firstNameOf(userName: unknown): string | null {
+  if (typeof userName !== 'string') return null;
+  const first = userName.trim().split(/\s+/)[0] ?? '';
+  if (first.length < 2 || !/^\p{L}[\p{L}'’-]*$/u.test(first)) return null;
+  // "O'Neil", "McKenzie" as written; "SETH" and "seth" become "Seth".
+  if (first !== first.toLowerCase() && first !== first.toUpperCase()) return first;
+  return first
+    .toLowerCase()
+    .replace(/(^|['’-])(\p{L})/gu, (_, p: string, c: string) => p + c.toUpperCase());
+}
+
+/**
+ * Names that are also ordinary words ("Rich, isn't it?", "Hope. That's what
+ * keeps you going."): the name gate matches them only as written and, at a
+ * sentence start, only before a clause that addresses the caller
+ * (agents/personas/name-vocatives.ts).
+ */
+export const WORD_NAMES: ReadonlySet<string> = new Set(
+  (
+    'will hope grace joy mark rich faith rose dawn bill pat sue art amber ruby jack sky hunter ' +
+    'chance chase grant june may april summer autumn winter august rob drew guy sunny ' +
+    'honey holly ivy lily iris daisy jade pearl ray rusty sandy stormy taylor victor'
+  ).split(' ')
+);
+/** More word-names, for the TTS gateway's name-first rewrite only (NAME_FALLING_SPLIT). */
+const MORE_WORD_NAMES = new Set(
+  (
+    'frank eve bob gene reed wade dale glen cliff carol melody harmony destiny precious ' +
+    'ginger heather hazel olive poppy robin wren skye river storm rain brook ' +
+    'clay forest rocky buck chip duke king prince earl major sterling noble justice ' +
+    'patience prudence charity mercy honor trinity unity liberty serenity bliss happy ' +
+    'lucky dusty misty penny goldie cash sonny colt hardy page piper'
+  ).split(' ')
+);
+
+/** Whether a first name is also an everyday English word ("Will", "Hope", "Grace"); any case. */
+export function isWordName(name: string): boolean {
+  const n = name.toLowerCase();
+  return WORD_NAMES.has(n) || MORE_WORD_NAMES.has(n);
 }

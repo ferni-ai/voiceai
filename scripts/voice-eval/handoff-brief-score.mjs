@@ -14,10 +14,11 @@
 // usage: node scripts/voice-eval/handoff-brief-score.mjs <label> [<label>...]
 //   reads out/bh-*-<label>.json, writes out/handoff-brief-<label>.json and prints
 //   a per-arm summary. Env: JUDGES (default "gemini"), JUDGE_MODEL
-//   (default gemini-3.1-pro-preview), GCP_PROJECT, QWEN_MODEL (qwen3:30b-a3b).
+//   (default flash; pro for Pro), GCP_PROJECT, QWEN_MODEL (qwen3:30b-a3b).
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { judgeModel } from '../lib/judge-model.mjs';
 
 const HERE = new URL('.', import.meta.url).pathname;
 const OUT = join(HERE, 'out');
@@ -125,7 +126,7 @@ function gcloud(args) {
 
 async function askGemini(prompt) {
   const project = process.env.GCP_PROJECT || gcloud(['config', 'get-value', 'project']);
-  const model = process.env.JUDGE_MODEL || 'gemini-3.1-pro-preview';
+  const model = judgeModel();
   const url = `https://aiplatform.googleapis.com/v1/projects/${project}/locations/global/publishers/google/models/${model}:generateContent`;
   const res = await fetch(url, {
     method: 'POST',

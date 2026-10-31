@@ -17,6 +17,7 @@
  */
 import { writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { getFirestoreDatabase } from '../src/config/environment.js';
 
 export interface WaitlistEntry {
   id: string;
@@ -164,7 +165,7 @@ async function firestoreStore(project: string): Promise<WaitlistStore> {
   const { applicationDefault, initializeApp } = await import('firebase-admin/app');
   const { getFirestore, Timestamp } = await import('firebase-admin/firestore');
   const app = initializeApp({ projectId: project, credential: applicationDefault() }, `waitlist-${project}`); // prettier-ignore
-  const col = getFirestore(app).collection('waitlist');
+  const col = getFirestore(app, getFirestoreDatabase()).collection('waitlist');
   const toEntry = (id: string, d: Record<string, unknown> | undefined): WaitlistEntry => {
     const t = d?.timestamp ?? d?.createdAt;
     return {

@@ -1,0 +1,159 @@
+{
+  "kind": "feltOff",
+  "schema": 1,
+  "rooms": [
+    "ios-0f8e2a4c-1b3d-4e5f-8a9b-0c1d2e3f4a5b",
+    "ios-7c6d5e4f-3a2b-4c1d-9e8f-a0b1c2d3e4f5"
+  ],
+  "tapAt": 1761100000000,
+  "sinceLiveMs": 81234,
+  "tapAgainMs": 6400,
+  "summarySoFar": {
+    "build": {
+      "appVersion": "1.4.2",
+      "appBuild": 57,
+      "os": "26.1",
+      "deviceModel": "iPhone17,1",
+      "livekit": "2.17.0"
+    },
+    "call": {
+      "tokenMs": 310,
+      "roomMs": 820,
+      "ferniMs": 1450,
+      "attempts": 1,
+      "liveMs": 182000,
+      "mutedMs": 4000,
+      "systemInterruptions": 1,
+      "onHoldMs": 9000,
+      "outcome": "endedByYou"
+    },
+    "net": {
+      "rttMsP50": 48,
+      "rttMsP95": 120,
+      "jitterMsP95": 22,
+      "lossPctDown": 0.8,
+      "lossPctUp": 0.3,
+      "jitterBufferMsMean": 64,
+      "availableInKbpsP5": 900,
+      "reconnectsQuick": 1,
+      "reconnectsFull": 0,
+      "rejoins": 1,
+      "qualityPoorSec": 6,
+      "qualityLostSec": 2
+    },
+    "audio": {
+      "concealedRatio": 0.012,
+      "silentConcealedRatio": 0.004,
+      "concealmentEvents": 9,
+      "accelRatio": 0.002,
+      "decelRatio": 0.003,
+      "synthesizedMs": 140,
+      "synthesizedEvents": 3,
+      "playoutDelayMsMean": 85,
+      "renderGaps": 1,
+      "engineStarts": 2,
+      "engineStops": 1,
+      "engineConfigChanges": 1,
+      "sessionReapplies": 2,
+      "mediaResets": 0,
+      "ioBufferMs": 21.3,
+      "sampleRateHz": 48000
+    },
+    "route": {
+      "routeStart": "speaker",
+      "routeEnd": "bluetoothHFP",
+      "routeChanges": 1,
+      "routeChangesByReason": {
+        "newDevice": 1,
+        "oldDeviceUnavailable": 0,
+        "override": 0,
+        "other": 0
+      }
+    },
+    "turns": {
+      "eosToAudioMs": {
+        "p50": 900,
+        "p95": 1600,
+        "max": 2100,
+        "n": 24
+      },
+      "stateToAudioMs": {
+        "p50": 180,
+        "p95": 340,
+        "max": 410,
+        "n": 24
+      },
+      "tapInterrupts": 1,
+      "bargeIns": 2,
+      "stopsWithoutSpeech": 1
+    },
+    "avatar": {
+      "frames": 10800,
+      "frameMsP50": 16.7,
+      "frameMsP95": 18.2,
+      "frameMsP99": 33.4,
+      "frameDrops": 40,
+      "dropPct": 0.37,
+      "gpuMsP95": 4.1,
+      "throttledSec": 0
+    },
+    "device": {
+      "thermalStart": "nominal",
+      "thermalMax": "fair",
+      "thermalSeriousSec": 0,
+      "lowPowerStart": false,
+      "lowPowerSec": 0
+    }
+  },
+  "ring": {
+    "samples": [
+      {
+        "t": 1,
+        "roomIndex": 0,
+        "phase": "live",
+        "agentState": "speaking",
+        "userSpeaking": false,
+        "muted": false,
+        "onHold": false,
+        "rttMs": 52,
+        "jitterMs": 18,
+        "lossPctDown": 2.5,
+        "concealedMs": 120,
+        "renderGap": true,
+        "frameMsP95": 18.1,
+        "frameDrops": 2,
+        "route": "bluetoothHFP",
+        "thermal": "fair"
+      },
+      {
+        "t": 0,
+        "roomIndex": 1,
+        "phase": "reconnecting",
+        "agentState": "listening",
+        "userSpeaking": true,
+        "muted": true,
+        "onHold": true,
+        "rttMs": 300,
+        "jitterMs": 40,
+        "lossPctDown": 12.5,
+        "concealedMs": 600,
+        "renderGap": false,
+        "frameMsP95": 33.0,
+        "frameDrops": 5,
+        "route": "speaker",
+        "thermal": "serious"
+      }
+    ],
+    "events": [
+      {
+        "tMs": 4200,
+        "kind": "reconnectStartQuick"
+      },
+      {
+        "tMs": 900,
+        "kind": "handoff"
+      }
+    ]
+  },
+  "note": "cut out twice, then an echo"
+}

@@ -54,7 +54,7 @@ services/
 ├── persona/              # Content loading, behavior, modes (6 files)
 ├── intelligence/         # Emotion detection, awareness, memory (7-9 files)
 ├── social/               # Conversations, teams, relationships (5-7 files)
-├── external-apis/        # Google Places, Yelp, Twilio, food delivery (8 files)
+├── external-apis/        # Google Places, Twilio, food delivery (7 files)
 ├── platform/             # Feature flags, security, data export (9-10 files)
 ├── data/                 # Persistence, WAL, caching (7 files)
 ├── session-ext/          # Session warmup, variety tracking (1-5 files)

@@ -33,6 +33,15 @@
  * " Sam, ..." -> "Hey, ...". A sentence-final name after a comma that already
  * went out leaves the comma: "Did I miss something,?" (#1413 latency).
  *
+ * NAME_FALLING_SPLIT (with NAME_FALLING_INTONATION):
+ * - a kept name ends its sentence even when the comma before it already went
+ *   out ("Yes, Sam, I'm" streamed -> "Yes, Sam. I'm");
+ * - mid-call, a hello that opens the reply waits for the word after it, so a
+ *   dropped name takes its hello too, as it does when the reply comes whole
+ *   ("Hey" + " Sam, morning." -> "Morning.", not "Hey, morning."). The TTS
+ *   gateway holds an opening hello until that word anyway
+ *   (speech/tts-gateway/name-intonation.ts), so first audio is no later.
+ *
  * NAME_GATE=off turns it off.
  *
  * @module agents/personas/name-gate
@@ -45,8 +54,11 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { applyVocatives, findVocatives, LETTER, type Vocative } from './name-vocatives.js';
+import { contentOf, type ReplyChunk as Chunk } from './reply-chunks.js';
 
 export { applyVocatives, findVocatives, type Vocative } from './name-vocatives.js';
+// The TTS gateway needs the same first name (speech/tts-gateway/name-intonation.ts).
+export { firstNameOf } from '../../utils/caller-name.js';
 
 const log = createLogger({ module: 'NameGate' });
 
@@ -78,13 +90,25 @@ const GIVES_NAME = /\b(?:[Yy]ou can|[Jj]ust|[Pp]lease) call me \p{Lu}/u;
 /** Held text that only might come before the name: punctuation, spaces, a hello word or its start. */
 const RELEASABLE = /^[\s,—–;:]*(?:(?:hey|hi|hiya|hello|oh)\b\s*)?([a-z]*)$/i;
 const GREETING_WORDS = ['hey', 'hi', 'hiya', 'hello', 'oh'];
+const HELLO_WORDS = GREETING_WORDS.filter((g) => g !== 'oh');
+
+/**
+ * NAME_FALLING_SPLIT, mid-call: whether held text at the reply's opening is a
+ * hello ("Hey", "Hi ") or one on its way ("He"), which then waits for the word
+ * after it so a dropped name takes it too ("Morning.", not "Hey, morning.").
+ * The TTS gateway holds an opening hello until that word anyway
+ * (speech/tts-gateway/name-intonation.ts), so first audio is no later.
+ */
+function holdsHello(held: string, letters: string): boolean {
+  if (/^\s*(?:hey|hi|hiya|hello)\b/i.test(held)) return true;
+  if (/^\s*(?:hey|hi|hiya|hello|oh)\b/i.test(held.replace(/^[\s,—–;:]*/, ''))) return false;
+  return letters !== '' && HELLO_WORDS.some((g) => g.startsWith(letters));
+}
 /** continuation-tts cuts its first piece on a clause once this many characters will be spoken. */
 const FIRST_PIECE_CHARS = 12;
 const SPOKEN = /\p{L}/u;
 /** Letters outside markup: what counts as words for timing. */
 const spoken = (t: string): boolean => SPOKEN.test(t.replace(/<[^>]*>|\[[^\]]*\]/g, ''));
-
-type Chunk = llm.ChatChunk | string | object;
 
 /** How long the gate held text back in one reply. */
 export interface NameGateTiming {
@@ -97,27 +121,6 @@ export interface HistoryItem {
   type?: string;
   role?: string;
   textContent?: string;
-}
-
-function contentOf(chunk: Chunk): string | undefined {
-  if (typeof chunk === 'string') return chunk;
-  const c = chunk as llm.ChatChunk;
-  if (c && typeof c === 'object' && 'delta' in c && c.delta && !c.delta.toolCalls?.length) {
-    return c.delta.content ?? '';
-  }
-  return undefined; // tool calls, usage, flush sentinels: not reply text
-}
-
-/** The caller's first name as said ("Seth" from "seth ford"); null if there isn't a usable one. */
-export function firstNameOf(userName: unknown): string | null {
-  if (typeof userName !== 'string') return null;
-  const first = userName.trim().split(/\s+/)[0] ?? '';
-  if (first.length < 2 || !/^\p{L}[\p{L}'’-]*$/u.test(first)) return null;
-  // "O'Neil", "McKenzie" as written; "SETH" and "seth" become "Seth".
-  if (first !== first.toLowerCase() && first !== first.toUpperCase()) return first;
-  return first
-    .toLowerCase()
-    .replace(/(^|['’-])(\p{L})/gu, (_, p: string, c: string) => p + c.toUpperCase());
 }
 
 const messagesOf = (items: readonly HistoryItem[]): HistoryItem[] =>
@@ -144,6 +147,28 @@ export function mayUseName(items: readonly HistoryItem[], name: string): boolean
   return since >= NAME_EVERY;
 }
 
+/** A vocative that starts in text already sent (raw[0, sentRaw)): drop only what is still to come. */
+function clipVocative(v: Vocative, raw: string, sentRaw: number, split: boolean): Vocative | null {
+  if (v.nameAt < sentRaw) return null; // the name went out: it stays
+  // Only the name and the spaces right before it can still go; letters before it went out as said.
+  const spaces = raw.slice(0, v.nameAt).match(/\s*$/)?.[0].length ?? 0;
+  const start = Math.max(sentRaw, v.nameAt - spaces);
+  const spaceSent = start === v.nameAt && spaces > 0;
+  const after = (i: number): number => i + (raw.slice(i).match(/^\s*/)?.[0].length ?? 0);
+  const plain = { ...v, start, with: '', capNext: false, fallAt: undefined };
+  // ", Sam, I'm" -> ", I'm" (or "Sam, " goes when the space before it went out); kept, with
+  // NAME_FALLING_SPLIT it still ends its sentence ("Yes, Sam. I'm") though the comma went out.
+  const fallAt = split ? v.fallAt : undefined;
+  if (v.with === ',') return { ...plain, fallAt, end: spaceSent ? after(v.end) : v.end };
+  // "Hey"/"Oh" went out: "Hey, how" (space still to come) or "Hey how" (it went too).
+  if (v.capNext || /\b(?:hey|hi|hiya|hello|oh)\s+$/i.test(raw.slice(0, v.nameAt))) {
+    const tail = raw.slice(v.nameEnd).match(/^(?:\s*[,—–;:])?\s*/)?.[0].length ?? 0;
+    return { ...plain, end: spaceSent ? v.nameEnd + tail : v.nameEnd };
+  }
+  // ", Sam." after the comma went out: the name goes, the comma stays ("something,?").
+  return { ...plain, end: v.nameEnd };
+}
+
 /**
  * One reply's LLM stream with the caller's vocative name limited. Text passes
  * straight through; only the name, while its next character is still to come,
@@ -167,11 +192,15 @@ export function withNameGate(
   if (ASKS_OWN_NAME.test(caller) || GIVES_NAME.test(caller)) return input;
   const allowed = mayUseName(history, name);
   const falling = flagOn('NAME_FALLING_INTONATION', env);
+  const split = flagOn('NAME_FALLING_SPLIT', env);
+  const holdHello = split && falling && !allowed; // NAME_FALLING_SPLIT: see holdsHello()
   const now = opts.now ?? Date.now;
   let raw = '';
   let sent = '';
   /** raw[0, sentRaw) has gone out, as decided then. */
   let sentRaw = 0;
+  /** NAME_FALLING_SPLIT: where sentRaw would be without the hello hold ("Hey" goes at once). */
+  let helloSentRaw = 0;
   /** Vocatives settled so far, by where the name starts: what is dropped, and whether it stays. */
   /** undefined: as found; null: the name went out, nothing to drop; else the clipped stretch. */
   const decided = new Map<number, { keep: boolean; clipped: Vocative | null | undefined }>();
@@ -188,14 +217,16 @@ export function withNameGate(
    * Whether held text may go out undecided: a hello word always (the name is
    * dropped after it), a comma when first audio may be waiting on it (the
    * reply's first clause break with 12+ letters before it) or at hello before
-   * any name (the first one is kept anyway).
+   * any name (the first one is kept anyway). `asMain`: as if NAME_FALLING_SPLIT
+   * held no hello.
    */
-  const releasable = (from: number, decidedAny: boolean): boolean => {
+  const releasable = (from: number, decidedAny: boolean, asMain = false): boolean => {
     const m = raw.slice(from).match(RELEASABLE);
     if (!m) return false; // the name itself is arriving
     const letters = m[1].toLowerCase();
     if (letters && !GREETING_WORDS.some((g) => g.startsWith(letters))) return false;
     if (letters && name.toLowerCase().startsWith(letters)) return false;
+    if (!asMain && holdHello && !spoken(sent) && holdsHello(raw.slice(from), letters)) return false;
     if (/^\s*(?:hey|hi|hiya|hello|oh)\b/i.test(raw.slice(from).replace(/^[\s,—–;:]*/, '')))
       return true;
     if (letters) return true; // "He", "Hel": a hello word on its way
@@ -213,26 +244,6 @@ export function withNameGate(
       if (spokenTo(m.index + 1) >= FIRST_PIECE_CHARS) return false;
     }
     return true;
-  };
-
-  /** A vocative that starts in text already sent: drop only what is still to come. */
-  const clip = (v: Vocative): Vocative | null => {
-    if (v.nameAt < sentRaw) return null; // the name went out: it stays
-    // Only the name and the spaces right before it can still go; letters before it went out as said.
-    const spaces = raw.slice(0, v.nameAt).match(/\s*$/)?.[0].length ?? 0;
-    const start = Math.max(sentRaw, v.nameAt - spaces);
-    const spaceSent = start === v.nameAt && spaces > 0;
-    const after = (i: number): number => i + (raw.slice(i).match(/^\s*/)?.[0].length ?? 0);
-    const plain = { ...v, start, with: '', capNext: false, fallAt: undefined };
-    // ", Sam, I'm" -> ", I'm" (or "Sam, " goes when the space before it went out).
-    if (v.with === ',') return { ...plain, end: spaceSent ? after(v.end) : v.end };
-    // "Hey"/"Oh" went out: "Hey, how" (space still to come) or "Hey how" (it went too).
-    if (v.capNext || /\b(?:hey|hi|hiya|hello|oh)\s+$/i.test(raw.slice(0, v.nameAt))) {
-      const tail = raw.slice(v.nameEnd).match(/^(?:\s*[,—–;:])?\s*/)?.[0].length ?? 0;
-      return { ...plain, end: spaceSent ? v.nameEnd + tail : v.nameEnd };
-    }
-    // ", Sam." after the comma went out: the name goes, the comma stays ("something,?").
-    return { ...plain, end: v.nameEnd };
   };
 
   /** Whether this vocative is the one that stays (decided once, from the text before it). */
@@ -256,17 +267,29 @@ export function withNameGate(
         else if (d.clipped) found.push(d.clipped);
         continue;
       }
+      // NAME_FALLING_SPLIT: a held hello waits only for a name with a comma or dash after it.
+      // "Hey Sam! Good" goes as without the hold ("Hey! Good"), and as soon.
+      if (v.start >= sentRaw && v.start < helloSentRaw && !/^\s*[,—–]/.test(raw.slice(v.nameEnd))) {
+        sentRaw = helloSentRaw;
+      }
       if (v.start >= sentRaw) {
         found.push(v);
         continue;
       }
       // It starts in text that went out undecided: drop only what is still to come.
-      const clipped = clip(v);
+      const clipped = clipVocative(v, raw, sentRaw, split);
       if (clipped === null) keptOne = true; // the name went out
       decided.set(v.nameAt, { keep: clipped === null || decideKeep(v), clipped });
       if (clipped) found.push(clipped);
     }
     let upTo = final ? raw.length : Math.max(sentRaw, result.undecidedAt ?? raw.length);
+    // NAME_FALLING_SPLIT: how far the text would have gone without the hello hold.
+    if (holdHello && !final && !spoken(sent)) {
+      const from = Math.max(helloSentRaw, upTo);
+      if (from < raw.length && releasable(from, keptOne || decided.size > 0, true)) {
+        helloSentRaw = raw.length;
+      }
+    }
     if (!final && upTo < raw.length && releasable(upTo, keptOne || decided.size > 0)) {
       upTo = raw.length;
     }

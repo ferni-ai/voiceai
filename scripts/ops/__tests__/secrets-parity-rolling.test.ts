@@ -1,22 +1,12 @@
 /**
- * Review of #2593: each half of the rolling-restart check on its own, a crashed half-logged
- * boot that must not block a healthy one for good, strict `until` dates, an expired entry as
- * the only drift, and dev-first flags listed with their dates in the report.
+ * Review of #2593: each half of the rolling-restart check on its own, and a crashed half-logged
+ * boot that must not block a healthy one for good.
  */
 import { describe, expect, it } from 'vitest';
-import {
-  BootCollector,
-  compare,
-  exitCode,
-  newSealer,
-  parseAllowlist,
-  render,
-  snapshotOf,
-} from '../secrets-parity-lib.js';
+import { BootCollector, newSealer, snapshotOf } from '../secrets-parity-lib.js';
 
 const isFlag = (n: string) => n === 'X_FLAG';
 const T0 = Date.parse('2026-10-23T09:00:00.000Z');
-const NOW = Date.parse('2026-10-23T12:00:00Z');
 const MIN = 60_000;
 
 function line(at: number, hash: string, part = 1, parts = 1, flags: Record<string, string> = {}) {
@@ -58,52 +48,5 @@ describe('rolling restart', () => {
     expect(crashed.problems).toEqual([]);
     const midBoot = snap([], [line(T0, 'hX', 2, 2), line(T0 + 60 * MIN, 'hB')]); // backlog began mid-boot
     expect(midBoot.problems).toEqual([]);
-  });
-});
-
-describe('until dates', () => {
-  const file = (until: string) =>
-    JSON.stringify({ keys: {}, onlyOn: { dev: { X_FLAG: { reason: 'r', until } } } });
-
-  it.each(['soon', '2026-02-30', '2026-11', '2026', '2026-11-1'])('refuses until %s', (until) => {
-    expect(() => parseAllowlist(file(until), ['X_FLAG'], isFlag, NOW)).toThrow(/YYYY-MM-DD/);
-  });
-
-  it('exits 1 when an expired entry is the only drift', () => {
-    const allow = parseAllowlist(
-      JSON.stringify({ keys: { OLD_KEY: { reason: 'r', until: '2026-10-01' } } }),
-      [],
-      isFlag,
-      NOW
-    );
-    const s = snap([], [line(T0, 'h')]);
-    const rows = compare(s, s, allow, isFlag);
-    expect(rows).toEqual([
-      { name: 'OLD_KEY', status: 'expired', allowlisted: false, guarded: false },
-    ]);
-    expect(exitCode(rows, s, s)).toBe(1);
-  });
-});
-
-describe('render', () => {
-  it('lists dev-first flags with their until dates', () => {
-    const allow = parseAllowlist(
-      JSON.stringify({
-        keys: {},
-        onlyOn: { dev: { X_FLAG: { reason: 'trying it', until: '2026-11-10' } } },
-      }),
-      ['X_FLAG'],
-      isFlag,
-      NOW
-    );
-    const seal = newSealer();
-    const dev = {
-      ...snap(['X_FLAG'], [line(T0, 'h', 1, 1, { X_FLAG: 'on' })], seal),
-      label: 'dev',
-    };
-    const prod = snap([], [line(T0, 'h', 1, 1, { X_FLAG: 'off' })], seal);
-    expect(render(compare(dev, prod, allow, isFlag), dev, prod)).toContain(
-      'Dev-first flags (1): X_FLAG until 2026-11-10'
-    );
   });
 });

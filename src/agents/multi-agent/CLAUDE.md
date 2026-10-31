@@ -99,7 +99,55 @@ await orchestrator.handoff({
 | `persona-agent-factory.ts` | Creates agents with full capabilities |
 | `agent-setup.ts` | Reusable agent setup (Gemini, TTS, handlers) |
 | `multi-agent-entry.ts` | Entry point for multi-agent sessions |
+| `handoff-desk.ts` | What the teammate is handed: the caller's asks and unfinished actions, and a first line that names them (`HANDOFF_DESK`) |
+| `greeting-direction.ts` | The hello: what the director is told, and the lines it turns away |
+| `call-news-opener.ts` | The hello leads with news from a call Ferni made for the owner; gentle for hard news, none of their words for crisis or risky ones (`CALL_NEWS_OPENER`) |
+| `first-call-stranger.ts` | A first meeting's hello: no tease, no shared past |
+| `unknown-caller-honest.ts` | A caller Ferni can't place: met, never promised memory (`UNKNOWN_CALLER_HONEST`) |
+| `unfinished-turn.ts` | Don't answer half a sentence; stop commands commit at once, pause requests wait (`PAUSE_REQUEST_COMMITS_TURN`) |
 | `index.ts` | Exports |
+
+## Callers Ferni Can't Place
+
+A caller with no account (`isMemberIdentity` false: an `anon:` id, minted fresh for
+every unrecognised call) and no past calls. Nothing is stored for them, and the next
+call has a new id, so Ferni starts from nothing every time (#3002).
+
+With `UNKNOWN_CALLER_HONEST=on` (default off):
+
+- **The hello** is a first meeting's (`UNPLACED_GREETING_DIRECTION`): warm, no tease,
+  no shared past, and no claim that it is their first call, since it may be their
+  fifth. Lines like "speak of the devil" or "I was just thinking about you" are
+  turned away for the scripted stranger's hello (#3007).
+- **The model's instructions** say nothing from the call is kept and never to promise
+  to remember them or follow up. No pitch to sign in: the note is built before anyone
+  says their age, and Ferni is 18+, so a caller who sounds under 18 must never be
+  steered toward an account (`MINOR_CARE_NOTE` answers for them). A `RETURNING_CALLER`
+  lookup keeps a first name and one line for 30 days, and the note says so instead.
+- **Call-start awareness** says "you don't know who this is yet", not "first
+  conversation" (`firstTalkNote`).
+
+Members (accounts, `phone:`, `device:`, test accounts) and calls Ferni places are
+unchanged.
+
+## Stop Commands Commit, Pause Requests Wait
+
+`unfinished-turn.ts` holds a turn that ink-2 left unpunctuated, so Ferni doesn't answer half a sentence.
+Two kinds of whole-turn command are special (#2657):
+
+- **Stop commands** ("stop", "can you stop", "stop it/that/talking/the music", "that's enough",
+  "be quiet", "pause the music", "turn it off", "shh") commit at once, no flag: something is playing over the caller (prod AJ_JbTguxw4hwRw, the stop came 4.4 s late).
+- **Pause requests** ("hold on", "hang on", "wait", and "no wait", "please wait", "can you wait",
+  "will you hold on"; and a bare "enough", "quiet", "pause", "pause it") are held like any unpunctuated turn. A caller who says "hold on" usually
+  keeps talking ("...let me think about what I want to say"), and the first final arrives alone, so
+  committing it made Ferni answer "hold on" in all 14 split-final pairs the #3047 verifier tried
+  (Seth, 2026-10-29). Seth's second call, same day: a bare "enough", "quiet" or "pause" waits too,
+  because callers go on ("enough about me, how are you", "quiet down, the kids are sleeping",
+  "pause for a second while I think"); their clear forms ("that's enough", "be quiet", "pause the
+  music") stay stop commands. `PAUSE_REQUEST_COMMITS_TURN=on` (default off) restores #3047's immediate commit.
+
+Keep a new "stop" phrase in `STOP_COMMANDS` only if the caller genuinely wants Ferni silent now; a
+phrase the caller tends to follow with more words belongs in `PAUSE_REQUESTS`.
 
 ## Integration Status
 
@@ -195,6 +243,13 @@ const { orchestrator } = await initializeMultiAgentSession({
 1. **Startup Time**: Each new agent takes ~2-3 seconds to initialize (Gemini session + TTS + handlers)
 2. **Cost**: Two agents briefly overlap during handoff (both running momentarily)
 3. **Tools**: Uses existing JSON function calling workaround (all tools available)
+
+## Tool sets per agent
+
+Every agent build (first agent, handoff, fallback) runs `withAlwaysOnTools` (`everyday-basics.ts`), then the 64 cap in `agent-setup.ts`; mid-call offers go through `updateAgentTools` (`shared/tool-updater.ts`).
+
+- `SPECIALIST_TOOLS`: a specialist gets its own list (`specialist-tool-sets.ts`).
+- `PERSONA_TOOLSETS`: every persona gets one fixed set of 40 tools or fewer (`persona-toolsets.ts`, picks in `persona-toolset-picks.ts`): the shared core with the safety set first, the session's team tools, then its beat and head tools. Mid-call offers add nothing; a handoff builds the next persona's set. The invariant test holds the safety set identical on every persona.
 
 ## Production Deployment
 

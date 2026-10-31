@@ -197,11 +197,6 @@ export async function showAppleHealthSettings(): Promise<void> {
   await m?.showAppleHealthSettings();
 }
 
-export async function showEightSleepSettings(): Promise<void> {
-  const m = await loadScreen('lazyScreens.screens.eightSleepSettings', () => import('./eight-sleep-settings.ui.js'));
-  await m?.showEightSleepSettings();
-}
-
 export async function showOuraSettings(): Promise<void> {
   const m = await loadScreen('lazyScreens.screens.ouraSettings', () => import('./oura-settings.ui.js'));
   await m?.showOuraSettings();

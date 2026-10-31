@@ -9,7 +9,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { ConversationSummary } from '../../types/user-profile.js';
 import { embed } from '../embeddings.js';
 import { callMomentLine, callerTimeZoneFor } from './call-moment.js';
-import { INSIDE_JOKES_PROMPT_TAIL, parseInsideJokes } from './inside-jokes.js';
+import { INSIDE_JOKES_PROMPT_TAIL, parseInsideJokes, summaryInsideJokes } from './inside-jokes.js';
 import * as caller from '../caller-assertions.js';
 
 // ============================================================================
@@ -395,8 +395,8 @@ ${INSIDE_JOKES_PROMPT_TAIL}`;
       },
       turns
     );
-    const insideJokes = parseInsideJokes(llmResult.insideJokes, turns);
-    if (insideJokes.length > 0) summary.insideJokes = insideJokes; // none: summary as before
+    // No bits: the summary is as before, with no insideJokes field
+    Object.assign(summary, summaryInsideJokes(parseInsideJokes(llmResult.insideJokes, turns)));
 
     // Generate embedding
     if (opts.generateEmbedding) {

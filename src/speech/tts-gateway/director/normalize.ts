@@ -27,6 +27,10 @@
  *   Sonic reads all-caps letter by letter. Fail safe: only words on an explicit
  *   emphasis list; every other caps token (FDIC, AAPL, HIIT, VIII) is kept.
  *
+ * - SPOKEN_CONTRACTIONS=on: "It is a lot" → "It's a lot" (utils/spoken-contractions.ts).
+ * - SPEAK_PHONE_DIGITS=on: a phone number in a shape Sonic reads as an amount
+ *   ("call 415, 555, 0147", "+14155550147") → "(415) 555-0147" (spoken-phone-numbers.ts).
+ *
  * Nothing inside [...] or <...> markup, or a <spell> element, is touched.
  *
  * @module speech/tts-gateway/director/normalize
@@ -34,6 +38,9 @@
 
 import { rewriteAsteriskSpans } from '../stage-directions.js';
 import { writeBareDates } from './bare-dates.js';
+import { writePhoneNumbersAsDigits } from './spoken-phone-numbers.js';
+import { flagOn } from '../../../config/env-flag.js';
+import { contractForSpeech } from '../../../utils/spoken-contractions.js';
 
 export interface NormalizeResult {
   text: string;
@@ -41,7 +48,8 @@ export interface NormalizeResult {
   count: number;
 }
 
-type Rule = (text: string, count: () => void) => string;
+/** `said`: what came before `text` in the reply, or undefined if not known. */
+type Rule = (text: string, count: () => void, said: string | undefined) => string;
 
 /**
  * Words lowercased when shouted. Fail safe: ONLY these. Every other all-caps
@@ -97,6 +105,8 @@ function tidy(text: string, original: string): string {
 }
 
 const RULES: readonly Rule[] = [
+  // SPEAK_PHONE_DIGITS=on: "call 415, 555, 0147" → "call (415) 555-0147" (read as amounts otherwise).
+  (t, hit, said) => (flagOn('SPEAK_PHONE_DIGITS') ? writePhoneNumbersAsDigits(t, hit, said) : t),
   // Time ranges: "7-9pm" → "7 to 9 PM" (a bare dash can read as "minus").
   (t, hit) =>
     t.replace(
@@ -157,6 +167,10 @@ const RULES: readonly Rule[] = [
       const tail = /\s$/.test(rest) ? ' ' : '';
       return `${lead}${lead ? ' ' : ''}${items.filter(Boolean).join(', ')}${tail}`;
     }),
+  // SPOKEN_CONTRACTIONS=on: "That is a massive shift" → "That's a massive shift" (#2334).
+  // Before the markdown unwrap and the caps rule, so a stressed "I am *not*" or
+  // "I am NOT" keeps the full form (Sonic has no emphasis tag; the full form is the stress).
+  (t, hit, said) => (flagOn('SPOKEN_CONTRACTIONS') ? contractForSpeech(t, said, () => hit()) : t),
   // Stage directions and markdown.
   (t, hit) => {
     // Stage directions are dropped and emphasis unwrapped (shared with the
@@ -191,7 +205,12 @@ const RULES: readonly Rule[] = [
 /** Split off <spell>...</spell>, [...] and <...> markup so rules only see speakable text. */
 const MARKUP = /(<spell>[\s\S]*?<\/spell>|\[[^\]]*\]|<[^>]*>)/i;
 
-export function normalizeForSpeech(text: string): NormalizeResult {
+/**
+ * `before` is what this reply already said ('' for its first words). A streamed push
+ * can start mid-sentence (the first is cut at a word after 150 ms), so a rule that
+ * needs a sentence start (spoken contractions) holds back when `before` is undefined.
+ */
+export function normalizeForSpeech(text: string, before?: string): NormalizeResult {
   let count = 0;
   const hit = (): void => {
     count++;
@@ -201,9 +220,24 @@ export function normalizeForSpeech(text: string): NormalizeResult {
     hit();
     return label;
   });
-  const out = unlinked
-    .split(MARKUP)
-    .map((part, i) => (i % 2 === 1 ? part : RULES.reduce((acc, rule) => rule(acc, hit), part)))
+  // Each part sees the text before it, markup included: "how worried [sigh] you are" is one sentence.
+  const parts = unlinked.split(MARKUP);
+  const out = parts
+    .map((part, i) => {
+      if (i % 2 === 1) return part;
+      const said = before === undefined ? undefined : before + parts.slice(0, i).join('');
+      return RULES.reduce((acc, rule) => rule(acc, hit, said), part);
+    })
     .join('');
   return { text: out, count };
+}
+
+/** normalizeForSpeech for one reply's pushes, in order: each push knows what came before it. */
+export function replyNormalizer(): (push: string) => NormalizeResult {
+  let said = '';
+  return (push) => {
+    const out = normalizeForSpeech(push, said);
+    said += push;
+    return out;
+  };
 }

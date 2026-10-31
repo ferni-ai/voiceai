@@ -23,7 +23,6 @@ export const FLAGS_DISABLE_TO_EOT = {
   DISABLE_VAD: { default: 'off', owner: 'voice', kind: 'config' },
   DISPUTE_DENIED_FACTS: { default: 'off', owner: 'memory', kind: 'experiment' },
   // Ferni rests calm and lifts on bright words (director/emotion-lift.ts)
-  EMAIL_PROVIDER: { default: 'sendgrid', owner: 'platform', kind: 'config' },
   EMOTION_LIFT: { default: 'off', owner: 'voice', kind: 'experiment' },
   ENABLE_EMBEDDING_WORKER: { default: 'off', owner: 'platform', kind: 'experiment' },
   ENABLE_INTELLIGENT_ROUTING: { default: 'on', owner: 'tools', kind: 'kill-switch' },
@@ -99,6 +98,12 @@ export const FLAGS_STYLE_TO_TOOL = {
   TOOLS_REAL_CALL_USER: { default: 'off', owner: 'tools', kind: 'experiment' },
   // that call rings with the persona's live agent (LiveKit SIP), not Twilio <Say>
   CALL_USER_LIVE_AGENT: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // every other call to the user's own verified phone rings live too (live-agent-call.ts)
+  CALL_PROACTIVE_LIVE_AGENT: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // callUser's reply says whether the persona or a recorded message rang (call-placed-reply.ts)
+  CALL_PLACED_HONEST_REPLY: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // an answered "call me" from the app ends the app call; the phone agent carries on (call-me-moves-to-phone.ts)
+  CALL_ME_MOVES_TO_PHONE: { default: 'off', owner: 'tools', kind: 'experiment' },
   TOOL_ACK: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TOOL_CORE_STATIC: { default: 'off', owner: 'tools', kind: 'experiment' },
   TOOL_EMPTY_RESULT_GUARD: { default: 'on', owner: 'tools', kind: 'kill-switch' },

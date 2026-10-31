@@ -12,7 +12,9 @@ import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js'
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 import { memoryHeld } from '../../../utils/minor-care.js';
-import { forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
+import { forgetDoneNote, forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
+import { keepRemembered, profileForCaller } from '../../../memory/index.js';
+import { memoryToolsHonestOn, updateRemembered } from './honest-memory.js';
 // ============================================================================
 // SERVICE TYPES
 // ============================================================================
@@ -84,10 +86,7 @@ export const rememberAboutUserDef: ToolDefinition = {
         importance: z.enum(['low', 'medium', 'high']).describe('How important is this to remember'),
       }),
       execute: async ({ fact, category, importance }, { ctx: toolCtx }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, fact, category, importance },
-          'Remembering about user'
-        );
+        getLogger().info({ agentId: ctx.agentId, factChars: fact.length }, 'Remember about user');
 
         const userData = toolCtx.userData as UserData;
 
@@ -143,15 +142,14 @@ export const recallFromMemoryDef: ToolDefinition = {
           ),
       }),
       execute: async ({ topic }, { ctx: toolCtx }) => {
-        getLogger().info({ agentId: ctx.agentId, topic }, 'Trying to recall');
+        getLogger().info({ agentId: ctx.agentId, topicChars: topic.length }, 'Trying to recall');
 
         const userData = toolCtx.userData as UserData;
         const { services } = userData;
 
         if (services?.userProfile) {
-          const profile = services.userProfile;
+          const profile = await profileForCaller(userData.userId, services.userProfile);
 
-          // Check various memory stores
           if (profile.lastConversationSummary) {
             return `From our last conversation, I remember: ${profile.lastConversationSummary}`;
           }
@@ -168,9 +166,9 @@ export const recallFromMemoryDef: ToolDefinition = {
           }
         }
 
-        // Check session memory
-        if (userData.keyMoments && userData.keyMoments.length > 0) {
-          return `From our conversation today: ${userData.keyMoments.join('; ')}`;
+        const moments = await keepRemembered(userData.userId, userData.keyMoments ?? []);
+        if (moments.length > 0) {
+          return `From our conversation today: ${moments.join('; ')}`;
         }
 
         return `I don't have specific memories about that yet. What's on your mind?`;
@@ -201,7 +199,7 @@ export const recallPreviousConversationDef: ToolDefinition = {
           ),
       }),
       execute: async ({ query }, { ctx: toolCtx }) => {
-        getLogger().info({ agentId: ctx.agentId, query }, 'Semantic recall');
+        getLogger().info({ agentId: ctx.agentId, queryChars: query.length }, 'Semantic recall');
 
         const userData = toolCtx.userData as UserData;
         const { services } = userData;
@@ -214,7 +212,7 @@ export const recallPreviousConversationDef: ToolDefinition = {
               return `I found something relevant in my memory: ${result}`;
             }
           } catch (error) {
-            getLogger().warn({ error, query }, 'Semantic recall error');
+            getLogger().warn({ error, queryChars: query.length }, 'Semantic recall error');
           }
         }
 
@@ -246,10 +244,7 @@ export const rememberImportantFactDef: ToolDefinition = {
         emotionalWeight: z.enum(['light', 'medium', 'heavy']).describe('Emotional significance'),
       }),
       execute: async ({ fact, type, emotionalWeight }, { ctx: toolCtx }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, fact, type, emotionalWeight },
-          'Saving important fact'
-        );
+        getLogger().info({ agentId: ctx.agentId, type, emotionalWeight }, 'Saving important fact');
 
         const userData = toolCtx.userData as UserData;
         const { services } = userData;
@@ -356,7 +351,7 @@ export const getRelationshipSummaryDef: ToolDefinition = {
         const { services } = userData;
 
         if (services?.userProfile) {
-          const profile = services.userProfile;
+          const profile = await profileForCaller(userData.userId, services.userProfile);
           const sections: string[] = [];
 
           if (profile.name) {
@@ -418,18 +413,19 @@ export const updateMemoryDef: ToolDefinition = {
     return llm.tool({
       description: getToolDescription('updateMemory'),
       parameters: z.object({
-        originalFact: z.string().describe('What you currently remember that needs updating'),
-        updatedFact: z.string().describe('The corrected or updated information'),
+        originalFact: z
+          .string()
+          .describe('The memory copied exactly as shown to you, e.g. "Dana: lives in = Denver"'),
+        updatedFact: z
+          .string()
+          .describe('The corrected fact, whose it is first: "the user\'s sister lives in Boston"'),
         reason: z
           .string()
           .optional()
           .describe('Why the update was needed (correction, change, addition)'),
       }),
       execute: async ({ originalFact, updatedFact, reason }, { ctx: toolCtx }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, originalFact, updatedFact, reason },
-          'Updating memory'
-        );
+        getLogger().info({ agentId: ctx.agentId }, 'Updating memory'); // never the facts
 
         const userData = toolCtx.userData as UserData;
         const { services } = userData;
@@ -456,8 +452,9 @@ export const updateMemoryDef: ToolDefinition = {
           );
         }
 
-        // Return empty string - agent should continue naturally without reading any acknowledgment
-        return '';
+        // MEMORY_TOOLS_HONEST: replace the one fact quoted exactly, or say none was (honest-memory.ts)
+        if (!memoryToolsHonestOn()) return ''; // flag off: the in-call list only, as before
+        return updateRemembered(toolCtx, userData.userId, originalFact, updatedFact);
       },
     });
   },
@@ -470,7 +467,7 @@ export const updateMemoryDef: ToolDefinition = {
 export const forgetMemoryDef: ToolDefinition = {
   id: 'forgetMemory',
   name: 'Forget Memory',
-  description: 'Remove something from memory when the user asks you to forget it',
+  description: 'Stop bringing something up when the user asks you to forget it',
   domain: 'memory',
   tags: ['memory', 'delete', 'forget', 'privacy'],
 
@@ -490,7 +487,7 @@ export const forgetMemoryDef: ToolDefinition = {
         );
 
         if (!confirmDeletion) {
-          return `Just to confirm - you'd like me to forget about "${whatToForget}"? Let me know and I'll remove it.`;
+          return `Just to confirm - you'd like me to forget about "${whatToForget}"?`;
         }
 
         const userData = toolCtx.userData as UserData;
@@ -511,158 +508,7 @@ export const forgetMemoryDef: ToolDefinition = {
           );
         }
 
-        // Return empty string - agent should continue naturally without reading any acknowledgment
-        return '';
-      },
-    });
-  },
-};
-
-// ============================================================================
-// SURFACE RELEVANT MEMORY (Better-Than-Human)
-// ============================================================================
-
-export const surfaceRelevantMemoryDef: ToolDefinition = {
-  id: 'surfaceRelevantMemory',
-  name: 'Surface Relevant Memory',
-  description:
-    'Proactively surface a relevant memory when context connects to something from past conversations. Use this to show continuity and deep understanding.',
-  domain: 'memory',
-  tags: ['memory', 'proactive', 'better-than-human', 'anticipatory'],
-
-  create: (ctx: ToolContext): Tool => {
-    return llm.tool({
-      description: getToolDescription('surfaceRelevantMemory'),
-      parameters: z.object({
-        context: z
-          .string()
-          .describe(
-            'Current conversation context that triggered this memory (e.g., "user mentioned Sarah")'
-          ),
-        memoryToSurface: z
-          .string()
-          .describe(
-            'The relevant memory to bring up (e.g., "Sarah was going through a tough time")'
-          ),
-        connectionReason: z
-          .string()
-          .describe('Why this memory is relevant now (e.g., "user asking about Sarah")'),
-      }),
-      execute: async ({ context, memoryToSurface, connectionReason }, { ctx: toolCtx }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, context, memoryToSurface, connectionReason },
-          '🧠 [BETTER-THAN-HUMAN] Surfacing relevant memory'
-        );
-
-        const userData = toolCtx.userData as UserData;
-        const { services } = userData;
-
-        // Search for the actual memory in our stores
-        if (services?.searchKnowledge) {
-          try {
-            const result = await services.searchKnowledge(memoryToSurface);
-            if (result) {
-              return result;
-            }
-          } catch (error) {
-            getLogger().warn({ error }, 'Memory search failed');
-          }
-        }
-
-        // Check session memory
-        if (userData.keyMoments && userData.keyMoments.length > 0) {
-          const relevant = userData.keyMoments.find((m) =>
-            m.toLowerCase().includes(memoryToSurface.toLowerCase().split(' ')[0])
-          );
-          if (relevant) {
-            return relevant;
-          }
-        }
-
-        // Return the memory as context for natural integration
-        return memoryToSurface;
-      },
-    });
-  },
-};
-
-// ============================================================================
-// PREDICT USER NEED (Better-Than-Human)
-// ============================================================================
-
-export const predictUserNeedDef: ToolDefinition = {
-  id: 'predictUserNeed',
-  name: 'Predict User Need',
-  description:
-    'Anticipate what the user might need based on context, time, patterns, or upcoming events. Use this proactively to offer help before they ask.',
-  domain: 'memory',
-  tags: ['memory', 'proactive', 'better-than-human', 'anticipatory', 'prediction'],
-
-  create: (ctx: ToolContext): Tool => {
-    return llm.tool({
-      description: getToolDescription('predictUserNeed'),
-      parameters: z.object({
-        context: z
-          .string()
-          .describe('What triggered this prediction (e.g., "user just woke up", "Monday morning")'),
-        prediction: z
-          .string()
-          .describe('What you predict they might need (e.g., "weather check", "calendar review")'),
-        confidence: z
-          .enum(['high', 'medium', 'low'])
-          .describe('How confident you are in this prediction'),
-        suggestedAction: z
-          .string()
-          .optional()
-          .describe('Optional suggested action to take (e.g., "offer to check weather")'),
-      }),
-      execute: async ({ context, prediction, confidence, suggestedAction }, { ctx: toolCtx }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, context, prediction, confidence, suggestedAction },
-          '🔮 [BETTER-THAN-HUMAN] Predicting user need'
-        );
-
-        const userData = toolCtx.userData as UserData;
-        const { services } = userData;
-
-        // Log the prediction for learning
-        if (services?.captureInsight) {
-          services.captureInsight(
-            'anticipatory_prediction',
-            `predict_${confidence}`,
-            `Context: ${context} | Prediction: ${prediction}`,
-            confidence === 'high' ? 0.9 : confidence === 'medium' ? 0.7 : 0.5
-          );
-        }
-
-        // Check if we have relevant context from their profile
-        if (services?.userProfile) {
-          const profile = services.userProfile;
-
-          // Enhance prediction with known preferences
-          if (profile.preferredTopics && profile.preferredTopics.length > 0) {
-            const relevantTopic = profile.preferredTopics.find((t) =>
-              prediction.toLowerCase().includes(t.toLowerCase())
-            );
-            if (relevantTopic) {
-              return `Based on your interest in ${relevantTopic}: ${prediction}`;
-            }
-          }
-
-          // Check goals for relevant predictions
-          if (profile.goals && profile.goals.length > 0) {
-            const activeGoal = profile.goals.find(
-              (g) =>
-                g.status === 'active' && prediction.toLowerCase().includes(g.name.toLowerCase())
-            );
-            if (activeGoal) {
-              return `Remembering your goal to ${activeGoal.name}: ${prediction}`;
-            }
-          }
-        }
-
-        // Return the prediction for natural integration
-        return suggestedAction || prediction;
+        return forgetDoneNote(forgot); // only what happened, never "forgotten" for hidden (forget.ts)
       },
     });
   },

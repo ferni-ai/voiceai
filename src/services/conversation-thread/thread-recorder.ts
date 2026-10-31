@@ -9,6 +9,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { memoryHeld, writeHeld } from '../../utils/minor-care.js';
+import { ownerWritesBlocked } from '../identity/owner-write-gate.js';
 import type { PersonaId } from '../../personas/types.js';
 import type { ThreadMessage, EngagementChannel } from './types.js';
 import {
@@ -124,6 +126,8 @@ export async function recordUserMessage(options: RecordMessageOptions): Promise<
   if (!content || content.trim().length === 0) {
     return; // Skip empty messages
   }
+  if (writeHeld(userId, sessionId)) return; // MINOR_CARE: a caller under 18 by their words
+  if (ownerWritesBlocked(userId)) return; // ONBEHALF_WRITE_GATE: the person on an on-behalf call
 
   try {
     // Get thread ID for this session
@@ -177,6 +181,8 @@ export async function recordAgentMessage(options: RecordMessageOptions): Promise
   if (!content || content.trim().length === 0) {
     return; // Skip empty messages
   }
+  // MINOR_CARE: Ferni's replies echo the held caller (their age, school, a fight), so none are kept
+  if (writeHeld(userId, sessionId) || ownerWritesBlocked(userId)) return; // nor an on-behalf call
 
   try {
     // Get thread ID for this session
@@ -226,6 +232,7 @@ export async function recordEmotionalContext(
   emotion: string,
   trajectory: 'improving' | 'stable' | 'declining'
 ): Promise<void> {
+  if (memoryHeld(sessionId)) return; // MINOR_CARE
   try {
     const threadId = sessionThreads.get(sessionId);
     if (!threadId) return;

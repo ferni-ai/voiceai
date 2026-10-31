@@ -37,16 +37,19 @@ const h = vi.hoisted(() => {
   return { created, logger };
 });
 
-vi.mock('twilio', () => ({
-  default: vi.fn(() => ({
-    calls: {
-      create: vi.fn(async (params: Record<string, unknown>) => {
-        h.created.push(params);
-        return { sid: 'CA0123456789abcdef0123456789abcdef' };
-      }),
-    },
-  })),
-}));
+vi.mock('twilio', async (importOriginal) => {
+  const actual = await importOriginal<{ default: typeof import('twilio') }>();
+  const create = vi.fn(async (params: Record<string, unknown>) => {
+    h.created.push(params);
+    return { sid: 'CA0123456789abcdef0123456789abcdef' };
+  });
+  // The real validateRequest checks webhook signatures; only the client is faked.
+  const client = Object.assign(
+    vi.fn(() => ({ calls: { create } })),
+    { validateRequest: actual.default.validateRequest }
+  );
+  return { default: client };
+});
 
 vi.mock('../../../../utils/safe-logger.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../../utils/safe-logger.js')>();

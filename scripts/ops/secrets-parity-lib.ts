@@ -222,18 +222,15 @@ export function snapshotOf(label: string, secrets: Secrets, boot: BootResult): S
   };
 }
 
-type Entry = { readonly pattern: string; readonly reason: string; readonly until?: number };
+type Entry = { readonly pattern: string; readonly reason: string };
 
 /**
  * `keys`: not compared by value (expected to differ, or hidden from the boot log).
- * `onlyOn`: may be set on that agent alone. A voice id is never allowed. A flag is allowed only
- * under `onlyOn.dev` (a dev-first experiment) with an `until` date at most 30 days away.
- * `expired`: entries past their `until` date; they allow nothing and fail the check.
+ * `onlyOn`: may be set on that agent alone. Neither can cover a voice id or a flag.
  */
 export interface Allowlist {
   readonly keys: readonly Entry[];
   readonly onlyOn: { readonly dev: readonly Entry[]; readonly prod: readonly Entry[] };
-  readonly expired: readonly string[];
 }
 
 function matches(pattern: string, name: string): boolean {
@@ -242,28 +239,13 @@ function matches(pattern: string, name: string): boolean {
   return name === pattern;
 }
 
-const DAY = 86_400_000;
-
-/** Midnight UTC of a strict `YYYY-MM-DD` that names a real day, else null (`2026-02-30` too). */
-function dayOf(text: string): number | null {
-  if (!/^\d{4}-\d\d-\d\d$/.test(text)) return null;
-  const ms = Date.parse(`${text}T00:00:00Z`);
-  return !Number.isNaN(ms) && new Date(ms).toISOString().slice(0, 10) === text ? ms : null;
-}
-const MAX_UNTIL_DAYS = 30;
-
 /**
- * Reads `{"keys": {PATTERN: reason}, "onlyOn": {"dev": {...}, "prod": {...}}}`. A value is a
- * reason, or `{"reason": "...", "until": "YYYY-MM-DD"}` (required for a flag under onlyOn.dev).
- * Patterns: `NAME`, `PREFIX_*`, `*_SUFFIX`. `names` = the flag manifest plus every key seen.
+ * Reads `{"keys": {PATTERN: reason}, "onlyOn": {"dev": {...}, "prod": {...}}}` (patterns `NAME`,
+ * `PREFIX_*`, `*_SUFFIX`). Refuses an entry without a reason or one that covers a voice id or a
+ * flag among `names` (pass the flag manifest plus every key seen).
  */
-export function parseAllowlist(
-  json: string,
-  names: Iterable<string>,
-  isFlag: IsFlag,
-  now = Date.now()
-): Allowlist {
-  type File = { keys?: Record<string, unknown>; onlyOn?: Record<string, Record<string, unknown>> };
+export function parseAllowlist(json: string, names: Iterable<string>, isFlag: IsFlag): Allowlist {
+  type File = { keys?: Record<string, string>; onlyOn?: Record<string, Record<string, string>> };
   let file: File;
   try {
     file = JSON.parse(json) as File;
@@ -271,50 +253,24 @@ export function parseAllowlist(
     throw new Error('allowlist is not valid JSON');
   }
   const probes = [...names, 'ANY_PERSONA_VOICE_ID'];
-  const expired: string[] = [];
-  const entries = (section: 'keys' | 'dev' | 'prod', map: Record<string, unknown> = {}): Entry[] =>
-    Object.entries(map).flatMap(([pattern, value]) => {
-      const raw = (typeof value === 'string' ? { reason: value } : (value ?? {})) as Record<
-        string,
-        unknown
-      >;
-      const reason = typeof raw.reason === 'string' ? raw.reason.trim() : '';
-      if (!reason) throw new Error(`allowlist: ${pattern} has no reason`);
-      const until = raw.until === undefined ? undefined : dayOf(String(raw.until));
-      if (until === null) throw new Error(`allowlist: ${pattern} until must be YYYY-MM-DD`);
-      const hit = (test: (n: string) => boolean) =>
-        probes.find((n) => matches(pattern, n) && test(n));
-      const voice = hit((n) => VOICE_ID.test(n));
-      const flag = hit(isFlag);
-      if (voice || (flag && section !== 'dev')) {
+  const entries = (map: Record<string, string> = {}): Entry[] =>
+    Object.entries(map).map(([pattern, reason]) => {
+      if (!reason?.trim()) throw new Error(`allowlist: ${pattern} has no reason`);
+      const hit = probes.find((n) => matches(pattern, n) && (VOICE_ID.test(n) || isFlag(n)));
+      if (hit)
         throw new Error(
-          `allowlist: ${pattern} covers ${voice ?? flag}; voice ids and flags must be compared`
+          `allowlist: ${pattern} covers ${hit}; voice ids and flags must be compared`
         );
-      }
-      if (flag && until === undefined) {
-        throw new Error(
-          `allowlist: ${pattern} covers the flag ${flag}; give it an until date (YYYY-MM-DD)`
-        );
-      }
-      if (until !== undefined && until > now + MAX_UNTIL_DAYS * DAY) {
-        throw new Error(`allowlist: ${pattern} until is more than ${MAX_UNTIL_DAYS} days away`);
-      }
-      if (until !== undefined && until + DAY <= now) {
-        expired.push(pattern);
-        return [];
-      }
-      return [{ pattern, reason, ...(until !== undefined ? { until } : {}) }];
+      return { pattern, reason };
     });
-  const keys = entries('keys', file.keys);
-  const onlyOn = {
-    dev: entries('dev', file.onlyOn?.dev),
-    prod: entries('prod', file.onlyOn?.prod),
+  return {
+    keys: entries(file.keys),
+    onlyOn: { dev: entries(file.onlyOn?.dev), prod: entries(file.onlyOn?.prod) },
   };
-  return { keys, onlyOn, expired };
 }
 
 export type Status =
-  'only-dev' | 'only-prod' | 'presence' | 'differs' | 'not-comparable' | 'unread' | 'expired';
+  'only-dev' | 'only-prod' | 'presence' | 'differs' | 'not-comparable' | 'unread';
 
 export interface Row {
   readonly name: string;
@@ -324,8 +280,6 @@ export interface Row {
   readonly guarded: boolean;
   /** Both flag words, only for a flag whose two values are on/off/shadow/live. */
   readonly states?: { readonly dev: string; readonly prod: string };
-  /** A dev-first flag's `until` (ms, midnight UTC). */
-  readonly until?: number;
 }
 
 function statusOf(name: string, dev: Snapshot, prod: Snapshot): Status | undefined {
@@ -359,31 +313,19 @@ export function compare(dev: Snapshot, prod: Snapshot, allow: Allowlist, isFlag:
           : status === 'differs' || status === 'not-comparable'
             ? allow.keys
             : [];
-    // A flag passes only as a dated onlyOn.dev entry; a voice id never does.
-    const dated = status === 'only-dev' && isFlag(name) && !VOICE_ID.test(name);
-    const datedEntry = pool.find((e) => matches(e.pattern, name) && e.until !== undefined);
-    const allowlisted = dated ? datedEntry !== undefined : !guarded && listed(pool, name);
-    const until = dated && datedEntry?.until !== undefined ? { until: datedEntry.until } : {};
+    const allowlisted = !guarded && listed(pool, name);
     const d = dev.values.get(name);
     const p = prod.values.get(name);
     const states =
       isFlag(name) && typeof d === 'object' && typeof p === 'object' && d.state && p.state
         ? { dev: d.state, prod: p.state }
         : null;
-    rows.push({ name, status, allowlisted, guarded, ...until, ...(states ? { states } : {}) });
+    rows.push({ name, status, allowlisted, guarded, ...(states ? { states } : {}) });
   }
-  for (const name of allow.expired)
-    rows.push({ name, status: 'expired', allowlisted: false, guarded: false });
   return rows;
 }
 
-const DRIFT: ReadonlySet<Status> = new Set([
-  'only-dev',
-  'only-prod',
-  'presence',
-  'differs',
-  'expired',
-]);
+const DRIFT: ReadonlySet<Status> = new Set(['only-dev', 'only-prod', 'presence', 'differs']);
 
 /** 0 clean, 1 drift, 2 something couldn't be compared or a boot can't be trusted. */
 export function exitCode(rows: readonly Row[], dev: Snapshot, prod: Snapshot): 0 | 1 | 2 {
@@ -399,7 +341,6 @@ const TITLE: Record<Status, string> = {
   differs: 'Values differ',
   'not-comparable': 'Cannot compare (value hidden in the boot log), not allowlisted',
   unread: 'Set on both, read by neither build (voice ids and flags here fail the check)',
-  expired: 'Allowlist entries past their until date (remove them, or extend with a reason)',
 };
 
 /** The report: names, counts and flag words only. Safe to paste into a PR. */
@@ -416,12 +357,6 @@ export function render(rows: readonly Row[], dev: Snapshot, prod: Snapshot): str
     out.push(`${TITLE[status]} (${names.length})${names.length ? `: ${names.join(', ')}` : ''}`);
   }
   const code = exitCode(rows, dev, prod);
-  const devFirst = rows
-    .filter((r) => r.until !== undefined)
-    .map((r) => `${r.name} until ${new Date(r.until ?? 0).toISOString().slice(0, 10)}`);
-  out.push(
-    `Dev-first flags (${devFirst.length})${devFirst.length ? `: ${devFirst.join(', ')}` : ''}`
-  );
   out.push(`Allowlisted: ${rows.filter((r) => r.allowlisted).length} keys`, '');
   out.push(`Result: ${['CLEAN', 'DRIFT', 'CANNOT VERIFY'][code]} (exit ${code})`);
   return out.join('\n');

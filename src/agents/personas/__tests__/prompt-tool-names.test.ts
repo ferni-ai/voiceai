@@ -66,6 +66,7 @@ const realDomains = new Set<string>();
 beforeAll(async () => {
   // Switchable tools count as real (domain-bridge-real-tools.test.ts does the same).
   vi.stubEnv('FERNI_DEVELOPER_TOOLS', 'on');
+  vi.stubEnv('GMAIL_READ_TOOLS', 'on');
   vi.stubEnv('LINKEDIN_ENABLED', 'true');
   vi.stubEnv('LINKEDIN_CLIENT_ID', 'li-id');
   vi.stubEnv('LINKEDIN_CLIENT_SECRET', 'li-secret');

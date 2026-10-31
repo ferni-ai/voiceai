@@ -1,6 +1,5 @@
 /**
  * Multi-Target Outreach Tool - "Better than Human" Batch Communication
- *
  * Enables compound requests like:
  * - "Call Mom, text Dad, email my boss"
  * - "Reach out to my whole family"
@@ -40,7 +39,6 @@ import type { OutboundCallContext } from '../../../../services/outreach/conversa
 import { craftPersonalizedMessage, type MessageCraftingContext } from './message-crafting.js';
 import type { OutreachIntent, Channel } from './unified-outreach.js';
 
-// Date parsing
 import { parseNaturalDate } from '../../../../services/calendar/natural-date-parser.js';
 
 // Scheduled storage
@@ -326,7 +324,9 @@ async function executeOutreach(
         };
       } else {
         const result = await callWithPersonaVoice(contact.phone, message, personaId, {
-          fallbackToTwilioVoice: true,
+          askedFor: true, // a call they confirmed (outreach-pause.ts)
+          ownerUid: userId,
+          userId,
         });
 
         return {
@@ -696,7 +696,7 @@ export function getMultiOutreachDefinition(): ToolDefinition {
     description: 'Reach out to multiple people with mixed channels and optional scheduling',
     domain: 'communication',
     tags: ['outreach', 'batch', 'call', 'text', 'email', 'multi', 'group'],
-    requiredServices: ['twilio', 'sendgrid'],
+    requiredServices: ['twilio', 'email'],
     create: createMultiOutreachTool,
   };
 }

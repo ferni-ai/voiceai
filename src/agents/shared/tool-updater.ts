@@ -33,7 +33,14 @@ import {
   isStaticCoreTool,
   staticCoreToolsEnabled,
 } from '../../config/tool-config.js';
+import { countMenuPinned } from '../../config/menu-tools-pinned.js';
 import { withoutSharedHandoffs } from '../../tools/handoff/handoff-availability.js';
+import {
+  forbiddenToolsFor,
+  withoutForbiddenTools,
+} from '../../tools/orchestrator/persona-tool-policy.js';
+import { flagOn } from '../../config/env-flag.js';
+import { personaToolsetsEnabled } from '../../config/persona-toolsets-flag.js';
 import { sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
@@ -89,6 +96,7 @@ let warnedMetaTool = false;
  * TOOL_CORE_STATIC: the call's tools only gain the core tools it lacks, or
  * the tools findTools found (`pin`), appended uncapped below
  * APPEND_ONLY_TOOL_CAP; other offers (topic domains, the catalog) are ignored.
+ * PERSONA_TOOLSETS (without TOOL_CORE_STATIC): every offer is ignored.
  *
  * @param agent - The voice agent instance
  * @param offeredTools - New tools to add (merged with existing)
@@ -113,7 +121,13 @@ export async function updateAgentTools(
   const { domains = [], silentMerge = false, forceSync = false, pin = false } = options;
   const target = asToolCapable(agent);
   const staticCore = staticCoreToolsEnabled();
-  const offered = withoutSharedHandoffs(offeredTools);
+  // PERSONA_TOOLSETS: the agent's set is fixed when it is built (persona-toolsets.ts).
+  if (personaToolsetsEnabled() && !staticCore) return true;
+  // PERSONA_TOOL_POLICY: no mid-call update gives the persona on the call a tool it forbids
+  // (the agent's own persona, from agent setup). Off: no await, so the tools still
+  // reach the agent synchronously, as before the policy.
+  const forbidden = flagOn('PERSONA_TOOL_POLICY') ? await forbiddenToolsFor(agent) : [];
+  const offered = withoutForbiddenTools(withoutSharedHandoffs(offeredTools), forbidden);
   const newTools =
     staticCore && !pin
       ? Object.fromEntries(Object.entries(offered).filter(([name]) => isStaticCoreTool(name)))
@@ -123,7 +137,8 @@ export async function updateAgentTools(
     const existing = currentToolRecord(target);
     const actuallyNew = Object.keys(newTools).filter((name) => !(name in existing));
 
-    if (!forceSync && actuallyNew.length === 0) {
+    const holdsForbidden = forbidden.some((name) => name in existing); // e.g. a persona swap
+    if (!forceSync && actuallyNew.length === 0 && !holdsForbidden) {
       log.debug({ attemptedTools: Object.keys(newTools) }, 'All tools already registered');
       return true;
     }
@@ -157,7 +172,7 @@ export async function updateAgentTools(
         ? appendOnly(existing, capped, appendCap)
         : capped;
 
-    await target.updateTools(merged);
+    await target.updateTools(withoutForbiddenTools(merged, forbidden));
 
     log.info(
       {
@@ -186,6 +201,7 @@ export async function updateAgentTools(
  * the cap picked that are new, at the end. Nothing is evicted until the call
  * holds APPEND_ONLY_TOOL_CAP tools; then the oldest non-essential ones go as
  * one block, so the declarations change at the front rarely, not every load.
+ * MENU_TOOLS_PINNED's tools are never evicted and count outside the cap.
  */
 function appendOnly(
   existing: Record<string, unknown>,
@@ -195,7 +211,7 @@ function appendOnly(
   const added = Object.keys(picked).filter((name) => !(name in existing));
   const merged: Record<string, unknown> = { ...existing };
   for (const name of added) merged[name] = picked[name];
-  let excess = Object.keys(merged).length - cap;
+  let excess = Object.keys(merged).length - countMenuPinned(Object.keys(merged)) - cap;
   if (excess <= 0) return merged;
   excess += APPEND_ONLY_EVICT_BLOCK;
   for (const name of Object.keys(existing)) {

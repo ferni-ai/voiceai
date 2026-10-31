@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { applyBillingLabels, geminiBillingLabels } from './gemini-billing-labels.js';
 import { realtimeModelOrFail } from './realtime-model.js';
 import { applyThinkingDefaults } from './thinking-defaults.js';
 import { useVertexAI } from './vertex-flag.js';
@@ -333,6 +334,7 @@ async function initializeGeminiClient(): Promise<unknown | null> {
         project: GOOGLE_CLOUD_PROJECT,
         location: GEMINI_LOCATION,
       });
+      applyBillingLabels(cachedClient, geminiBillingLabels()); // API keys reject labels
       log.info(
         { project: GOOGLE_CLOUD_PROJECT, location: GEMINI_LOCATION },
         '🔷 Gemini client initialized with Vertex AI'
@@ -351,9 +353,7 @@ async function initializeGeminiClient(): Promise<unknown | null> {
   }
 }
 
-/**
- * Reset the cached client (useful for testing or config changes)
- */
+/** Reset the cached client (useful for testing or config changes) */
 export function resetGeminiClient(): void {
   cachedClient = null;
   clientInitPromise = null;

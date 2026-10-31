@@ -1,0 +1,66 @@
+name: Lead Verified
+
+# Was the exact code this PR merges independently verified? Rules:
+# scripts/ci/lead-verified.ts; docs: docs/ci/ci-inventory.md. Fails on a PR, and on
+# merge_group, when the head isn't verified, so an armed PR waits outside the queue
+# instead of ejecting the groups behind it. The queue acts on it only while
+# "Lead Verified" is a required check.
+# issue_comment runs report in the Actions log; they don't update the PR's check, so
+# post-lead-verify.sh re-runs the PR's check after it posts a verdict.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  issue_comment:
+    types: [created, edited, deleted]
+  merge_group:
+
+concurrency:
+  # Per event, so a comment-triggered run never cancels a pending pull_request run (whose
+  # result is the PR's check).
+  group: lead-verified-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: read
+
+jobs:
+  lead-verified:
+    name: Lead Verified
+    if: github.event_name != 'issue_comment' || github.event.issue.pull_request
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # The evaluator script is checked out from main (also for stacked PRs), not the PR.
+      # This workflow file itself still runs from the PR's merge or queue commit, so a PR
+      # can edit it until branch rules require code-owner review (#2547) or it moves to a
+      # main-pinned trigger. The head is fetched as data only; full history for merge-tree.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Evaluate verification evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          QUEUE_REF: ${{ github.event.merge_group.head_ref }} # gh-readonly-queue/main/pr-<N>-<sha>
+          # Enforced on PRs and in the merge queue. Queue only (2026-10-25) let any session
+          # arm unverified PRs: 2026-10-29 one sweep armed 13, and each would have entered
+          # the queue, failed there, and ejected every group behind it. A NOT_VERIFIED or
+          # ERROR now fails the PR's check too; comment runs still only report.
+          LEAD_VERIFIED_ENFORCE: ${{ github.event_name != 'issue_comment' && '1' || '' }}
+          # Only the ferni-verifier app counts (2026-10-25: sessions now post as it via
+          # ~/.claude/bin/post-lead-verify). A personal account would let any tool that
+          # falls back to the owner's own gh login post a trusted PASS.
+          LEAD_VERIFIED_AUTHORS: ferni-verifier[bot]
+        run: |
+          [ -f scripts/ci/lead-verified.ts ] || { echo "::notice::evaluator not on main yet"; exit 0; }
+          node --experimental-strip-types scripts/ci/lead-verified.ts

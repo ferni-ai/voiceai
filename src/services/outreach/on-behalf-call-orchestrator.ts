@@ -10,8 +10,11 @@
 
 import { EventEmitter } from 'events';
 import { getLogger } from '../../utils/safe-logger.js';
-import type { ResolvedContact } from '../../tools/domains/telephony/types.js';
-import type { OnBehalfCallRequest, CallOutcome } from '../../tools/domains/telephony/types.js';
+import type {
+  CallOutcome,
+  OnBehalfCallRequest,
+  ResolvedContact,
+} from '../../tools/domains/telephony/types.js';
 import { registerOnBehalfCallInitiator } from '../../tools/domains/telephony/call-on-behalf.js';
 import { selectScript, buildCallScript } from '../../tools/domains/telephony/scripts/index.js';
 import {
@@ -20,6 +23,7 @@ import {
 } from '../../tools/domains/telephony/compliance.js';
 import { callOpeningDialOptions } from '../../config/call-opening-flag.js';
 import { trackOutboundCall } from './outbound-call-tracker.js';
+import { noteDialled } from './dial-marker.js';
 import { onBehalfDispatchFor, signOnBehalfDispatch } from './on-behalf-dispatch.js';
 import { holdForCallHours } from './deferred-calls.js';
 import { assertNotOptedOut } from './first-dial-opt-out.js';
@@ -146,8 +150,8 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       {
         callId,
         userId: request.userId,
-        contactName: request.resolvedContact?.name,
-        purpose: request.purpose,
+        hasContactName: Boolean(request.resolvedContact?.name), // never the name or purpose
+        purposeChars: request.purpose?.length ?? 0,
         callType: request.callType,
       },
       'Initiating on-behalf call'
@@ -170,7 +174,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
 
     // Only enrich for personal calls with brief purposes
     if (request.callType === 'personal' && this.shouldEnrichMessage(request.purpose)) {
-      log.info({ purpose: request.purpose }, 'Enriching message for better-than-human delivery');
+      log.info({ chars: request.purpose.length }, 'Enriching the message for delivery');
 
       const enrichmentContext: EnrichmentContext = {
         originalMessage: request.purpose,
@@ -190,8 +194,8 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       enrichedMessage = await enrichMessage(enrichmentContext);
       log.info(
         {
-          original: request.purpose,
-          enriched: enrichedMessage.message.slice(0, 100) + '...',
+          originalChars: request.purpose.length,
+          enrichedChars: enrichedMessage.message.length,
           type: enrichedMessage.metadata.enrichmentType,
         },
         'Message enriched successfully'
@@ -333,7 +337,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
     script: string
   ): Promise<void> {
     log.info(
-      { roomName, callId, contactName: request.resolvedContact?.name },
+      { roomName, callId, hasContactName: Boolean(request.resolvedContact?.name) },
       '🤖 Dispatching on-behalf agent to room'
     );
 
@@ -361,26 +365,10 @@ class OnBehalfCallOrchestrator extends EventEmitter {
 
       log.info({ roomName, callId, agentName }, '✅ On-behalf agent dispatched successfully');
     } catch (error) {
-      // Fall back to event emission for backwards compatibility
-      log.warn(
-        { error: String(error), callId },
-        '⚠️ AgentDispatchClient failed, falling back to event emission'
-      );
-
-      // Emit event for any external listeners (backwards compat)
-      this.emit('agent-join-requested', {
-        roomName,
-        callId,
-        agentType: 'on-behalf-caller',
-        userId: request.userId,
-        metadata: {
-          callId,
-          purpose: request.purpose,
-          callType: request.callType,
-          contactName: request.resolvedContact?.name,
-          script,
-        },
-      });
+      // No agent in the room: dialling now would ring the contact into silence.
+      // initiateCall marks the call failed and its callers tell the user it wasn't placed.
+      log.error({ error: String(error), callId }, 'On-behalf agent dispatch failed');
+      throw error;
     }
   }
 
@@ -411,7 +399,6 @@ class OnBehalfCallOrchestrator extends EventEmitter {
 
     try {
       const { SipClient } = await import('livekit-server-sdk');
-
       const sipClient = new SipClient(
         this.config.livekitUrl,
         this.config.livekitApiKey,
@@ -431,7 +418,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
           ...callOpeningDialOptions(), // CALL_OPENING_AMD: ring until voicemail picks up
         }
       );
-
+      noteDialled(request); // it rings now: a later throw never re-arms a held call (dial-marker.ts)
       log.info(
         { callId, sipParticipantId: sipParticipant.participantId, roomName },
         '✅ LiveKit SIP call initiated'
@@ -506,7 +493,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       const error = await response.text();
       throw new Error(`Twilio error: ${response.status} - ${error}`);
     }
-
+    noteDialled(request); // Twilio accepted the call: it rings now (dial-marker.ts)
     const data = (await response.json()) as { sid: string };
 
     // Track the call so the webhook handler can link Twilio CallSid to our context
@@ -730,7 +717,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       {
         callId: call.id,
         status: call.status,
-        contactName: call.request.resolvedContact?.name,
+        hasContactName: Boolean(call.request.resolvedContact?.name),
       },
       'On-behalf call completed'
     );

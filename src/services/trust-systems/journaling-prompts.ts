@@ -284,21 +284,21 @@ const CONTEXTUAL_TEMPLATES: Record<string, (ctx: PromptContext) => JournalingPro
   },
 };
 
-// ============================================================================
-// IN-MEMORY STORAGE
-// ============================================================================
+// In-memory storage
 
 const userResponses = new Map<string, PromptResponse[]>();
 const userPatterns = new Map<string, JournalingPattern>();
 const deliveredPrompts = new Map<string, Set<string>>(); // userId -> promptIds
+/** MINOR_CARE (purgeHeldUser): forget one user. */
+export function forgetJournalingUser(userId: string): void {
+  for (const m of [userResponses, userPatterns, deliveredPrompts]) m.delete(userId);
+}
 
 // ============================================================================
 // PROMPT GENERATION
 // ============================================================================
 
-/**
- * Generate personalized prompts for user
- */
+/** Generate personalized prompts for user */
 export function generatePrompts(context: PromptContext, count = 3): JournalingPrompt[] {
   const prompts: JournalingPrompt[] = [];
 

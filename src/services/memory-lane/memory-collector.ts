@@ -14,8 +14,16 @@
  * @module services/memory-lane/memory-collector
  */
 
+import { withoutHeldStored } from '../../utils/held-window-check.js';
+import { writeHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
+import { loadHeldWindows } from '../trust-systems/index.js';
+import {
+  collectKeptCommitments,
+  keptMemoryId,
+  withKeptCommitmentsOnly,
+} from './kept-commitments.js';
 import type {
   MemoryHighlight,
   MemoryType,
@@ -65,34 +73,9 @@ const SOURCE_TO_DEFAULT_TONE: Record<MemorySourceType, EmotionalTone> = {
 // COLLECTION FROM SOURCES
 // ============================================================================
 
-/**
- * Collect memories from completed commitments
- */
-export async function collectFromCommitments(userId: string): Promise<MemoryHighlight[]> {
-  const memories: MemoryHighlight[] = [];
-
-  try {
-    const { loadUserCommitments } = await import('../superhuman/commitment-keeper.js');
-    const commitments = await loadUserCommitments(userId);
-
-    // Filter to completed commitments only
-    const completed = commitments.filter((c) => c.status === 'completed');
-
-    for (const commitment of completed) {
-      // Check if we already have this memory
-      const existing = await findExistingMemory(userId, 'commitment_kept', commitment.id);
-      if (existing) continue;
-
-      const memory = createMemoryFromCommitment(userId, commitment);
-      memories.push(memory);
-    }
-
-    log.debug({ userId, count: memories.length }, 'Collected memories from commitments');
-  } catch (error) {
-    log.warn({ error: String(error), userId }, 'Failed to collect from commitments');
-  }
-
-  return memories;
+/** Collect memories from completed commitments (kept-commitments.ts). */
+export function collectFromCommitments(userId: string): Promise<MemoryHighlight[]> {
+  return collectKeptCommitments(userId, (id) => hasKeptMemory(userId, id));
 }
 
 /**
@@ -249,44 +232,6 @@ export async function collectFromCelebrations(userId: string): Promise<MemoryHig
 // ============================================================================
 // MEMORY CREATION HELPERS
 // ============================================================================
-
-function createMemoryFromCommitment(
-  userId: string,
-  commitment: {
-    id: string;
-    summary: string;
-    statement: string;
-    type: string;
-    emotionalWeight: number;
-    createdAt: number;
-    personInvolved?: string;
-    topic?: string;
-  }
-): MemoryHighlight {
-  const now = new Date();
-
-  return {
-    id: generateMemoryId(),
-    userId,
-    content: `You kept your promise: "${commitment.summary}"`,
-    originalContext: commitment.statement,
-    type: 'commitment',
-    emotionalTone: 'proud',
-    occurredAt: new Date(commitment.createdAt),
-    personaId: undefined,
-    topicTags: commitment.topic ? [commitment.topic] : [],
-    peopleReferenced: commitment.personInvolved ? [commitment.personInvolved] : [],
-    sourceType: 'commitment_kept',
-    sourceId: commitment.id,
-    emotionalWeight: commitment.emotionalWeight || 0.7,
-    uniqueness: 0.6,
-    growthIndicator: 0.8,
-    timesSurfaced: 0,
-    reactions: [],
-    createdAt: now,
-    updatedAt: now,
-  };
-}
 
 function createMemoryFromDream(
   userId: string,
@@ -449,30 +394,34 @@ function createMemoryFromWin(
 // PERSISTENCE
 // ============================================================================
 
-/**
- * Save a memory highlight to Firestore
- */
+/** Save a memory highlight to Firestore */
 export async function saveMemory(memory: MemoryHighlight): Promise<boolean> {
   const db = getFirestoreDb();
-  if (!db) {
-    log.debug('Firestore not available, skipping memory save');
-    return false;
-  }
+  if (!db || writeHeld(memory.userId)) return false; // MINOR_CARE: nothing kept for a held caller
 
   try {
-    await db
+    const ref = db
       .collection('bogle_users')
       .doc(memory.userId)
       .collection(COLLECTION_PATH)
-      .doc(memory.id)
-      .set(cleanForFirestore(memory));
+      .doc(memory.id);
+    // createdAt: MINOR_CARE keys on it. A kept commitment's one fixed id: create(), never replaced
+    const data = cleanForFirestore({ ...memory, createdAt: memory.createdAt ?? new Date() });
+    await (memory.sourceType === 'commitment_kept' ? ref.create(data) : ref.set(data));
 
     log.debug({ userId: memory.userId, memoryId: memory.id }, 'Saved memory highlight');
     return true;
   } catch (error) {
+    if (alreadyExists(error)) return false; // another visit wrote it first
     log.warn({ error: String(error), memoryId: memory.id }, 'Failed to save memory');
     return false;
   }
+}
+
+/** Firestore's ALREADY_EXISTS (gRPC code 6), from create() on an existing document. */
+function alreadyExists(error: unknown): boolean {
+  const { code } = (error ?? {}) as { code?: unknown };
+  return code === 6 || code === 'already-exists' || code === 'ALREADY_EXISTS';
 }
 
 /**
@@ -507,6 +456,19 @@ async function findExistingMemory(
     );
     return null;
   }
+}
+
+/** Whether collectKeptCommitments already wrote this commitment's kept memory. Throws on a failed read. */
+async function hasKeptMemory(userId: string, commitmentId: string): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+  const doc = await db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection(COLLECTION_PATH)
+    .doc(keptMemoryId(commitmentId))
+    .get();
+  return doc.exists;
 }
 
 /**
@@ -545,12 +507,14 @@ export async function loadMemories(
       } as MemoryHighlight;
     });
 
-    // Filter by types if specified
     if (options.types && options.types.length > 0) {
       memories = memories.filter((m) => options.types!.includes(m.type));
     }
 
-    return memories;
+    // MINOR_CARE: none written during a purged held call (when written, not when it happened)
+    const written = (m: MemoryHighlight) => (isNaN(+m.createdAt) ? m.updatedAt : m.createdAt);
+    memories = await withoutHeldStored(userId, memories, written, loadHeldWindows);
+    return await withKeptCommitmentsOnly(userId, memories);
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load memories');
     return [];
