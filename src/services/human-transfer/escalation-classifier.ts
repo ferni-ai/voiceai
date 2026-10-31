@@ -4,12 +4,12 @@
  * > "Better than human means knowing when a human is needed."
  *
  * Determines when and where to transfer to human help.
- * Integrates with existing crisis detection from emotional-first-aid.ts
  *
  * @module services/human-transfer/escalation-classifier
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { wordsMatch } from '../safety/legacy-word-checks.js'; // CRISIS_LEXICAL_V2
 import { SENSE_LOSS_MEDICAL } from './sight-emergency.js';
 import type {
   EscalationType,
@@ -152,84 +152,84 @@ export function detectCrisisSignals(transcript: string): CrisisSignals {
 
   // Check each pattern category
   for (const pattern of SUICIDAL_PATTERNS) {
-    if (pattern.test(text)) {
+    if (wordsMatch(pattern, text, 'suicidal', 'human_transfer')) {
       signals.suicidalIdeation = true;
       signals.rawSignals.push(`suicidal: ${pattern.source}`);
     }
   }
 
   for (const pattern of SELF_HARM_PATTERNS) {
-    if (pattern.test(text)) {
+    if (wordsMatch(pattern, text, 'self-harm', 'human_transfer')) {
       signals.selfHarmIndicators = true;
       signals.rawSignals.push(`self-harm: ${pattern.source}`);
     }
   }
 
   for (const pattern of TRAUMA_PATTERNS) {
-    if (pattern.test(text)) {
+    if (wordsMatch(pattern, text, 'trauma', 'human_transfer')) {
       signals.traumaIndicators = true;
       signals.rawSignals.push(`trauma: ${pattern.source}`);
     }
   }
 
   for (const pattern of PERSISTENT_DEPRESSION_PATTERNS) {
-    if (pattern.test(text)) {
+    if (wordsMatch(pattern, text, 'depression', 'human_transfer')) {
       signals.persistentDepression = true;
       signals.rawSignals.push(`depression: ${pattern.source}`);
     }
   }
 
   for (const pattern of ANXIETY_DISORDER_PATTERNS) {
-    if (pattern.test(text)) {
+    if (wordsMatch(pattern, text, 'anxiety', 'human_transfer')) {
       signals.anxietyDisorder = true;
       signals.rawSignals.push(`anxiety: ${pattern.source}`);
     }
   }
 
   for (const pattern of PSYCHOTIC_PATTERNS) {
-    if (pattern.test(text)) {
+    if (wordsMatch(pattern, text, 'psychotic', 'human_transfer')) {
       signals.psychoticSymptoms = true;
       signals.rawSignals.push(`psychotic: ${pattern.source}`);
     }
   }
 
   for (const pattern of DOMESTIC_VIOLENCE_PATTERNS) {
-    if (pattern.test(text)) {
+    if (wordsMatch(pattern, text, 'dv', 'human_transfer')) {
       signals.domesticViolence = true;
       signals.rawSignals.push(`dv: ${pattern.source}`);
     }
   }
 
   for (const pattern of SUBSTANCE_CRISIS_PATTERNS) {
-    if (pattern.test(text)) {
+    if (wordsMatch(pattern, text, 'substance', 'human_transfer')) {
       signals.substanceCrisis = true;
       signals.rawSignals.push(`substance: ${pattern.source}`);
     }
   }
 
   for (const pattern of MEDICAL_EMERGENCY_PATTERNS) {
-    if (pattern.test(text)) {
+    if (wordsMatch(pattern, text, 'medical', 'human_transfer')) {
       signals.medicalEmergency = true;
       signals.rawSignals.push(`medical: ${pattern.source}`);
     }
   }
 
   for (const pattern of LEGAL_PATTERNS) {
-    if (pattern.test(text)) {
+    if (wordsMatch(pattern, text, 'legal', 'human_transfer')) {
       signals.legalEmergency = true;
       signals.rawSignals.push(`legal: ${pattern.source}`);
     }
   }
 
   for (const pattern of FINANCIAL_CRISIS_PATTERNS) {
-    if (pattern.test(text)) {
+    if (wordsMatch(pattern, text, 'financial', 'human_transfer')) {
       signals.financialCrisis = true;
       signals.rawSignals.push(`financial: ${pattern.source}`);
     }
   }
 
   for (const pattern of PROFESSIONAL_HELP_PATTERNS) {
-    if (pattern.test(text)) {
+    if (wordsMatch(pattern, text, 'professional-help', 'human_transfer')) {
       signals.professionalHelpRequest = true;
       signals.rawSignals.push(`professional-help: ${pattern.source}`);
     }

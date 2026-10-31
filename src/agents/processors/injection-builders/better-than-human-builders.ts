@@ -391,7 +391,8 @@ export async function buildHumanTransferInjections(
       });
     }
 
-    const decision = humanTransfer.evaluateTransferNeed(userText);
+    const { transferNeed } = await import('../../../services/human-transfer/transfer-need.js');
+    const decision = transferNeed(signals, userText); // CRISIS_LEXICAL_V2: the gate decides suicide
 
     if (decision.type === 'none') {
       return null;

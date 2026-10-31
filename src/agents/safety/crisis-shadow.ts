@@ -23,14 +23,12 @@ import {
   type VoiceEmotionContext,
 } from './crisis-guard.js';
 
-export type CrisisGuardMode = 'off' | 'shadow' | 'live';
+import type { CrisisGuardMode } from '../../services/safety/index.js';
 
-export function resolveCrisisGuardMode(
-  env: Record<string, string | undefined> = process.env
-): CrisisGuardMode {
-  const raw = env.CRISIS_GUARD_MODE?.trim().toLowerCase();
-  return raw === 'off' || raw === 'shadow' ? raw : 'live';
-}
+export {
+  resolveCrisisGuardMode,
+  type CrisisGuardMode,
+} from '../../services/safety/index.js';
 
 /** The subset of the prosody analyzer's result the guard can use. */
 export interface ProsodyEmotionLike {

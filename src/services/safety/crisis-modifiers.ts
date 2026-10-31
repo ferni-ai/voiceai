@@ -11,7 +11,7 @@ const JOKE_MARKERS =
   /\b(lol+|lmao+|lmfao|rofl|haha+|hehe|jk|just kidding)\b|[\u{1F602}\u{1F923}\u{1F480}\u{1F605}]/u;
 
 /** A negator governing the matched phrase: "I don't want to die", "I'm not going to...". */
-const NEGATION_PREFIX =
+export const NEGATION_PREFIX =
   /\b(don'?t|do not|didn'?t|never|not|wouldn'?t|won'?t|no longer|isn'?t|ain'?t)\s+((really|actually|even|ever|honestly|necessarily|going|gonna|planning|plan|to|on|saying|say|that|i|would|want|wanna)\s+)*$/;
 
 /**
@@ -52,7 +52,7 @@ const THIRD_PERSON_SOURCE =
 
 const FIRST_PERSON = /\b(i|i'm|i've|i'd|i'll|me|my|myself)\b/;
 
-const CLAUSE_BREAK = /[.!?;,]|\bbut\b|\band\b/;
+export const CLAUSE_BREAK = /[.!?;,]|\bbut\b|\band\b/;
 
 /** Spoken and texted shorthand, so patterns can be written once in full form. */
 const SHORTHAND: [RegExp, string][] = [
