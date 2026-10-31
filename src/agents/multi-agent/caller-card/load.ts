@@ -70,10 +70,8 @@ async function build(userId: string, ports: CallerCardPorts): Promise<CallerCard
   };
   const sections = { home: place !== null, people: false, recentCalls: false, comingUp: false };
   const facts = { ms: Date.now() - started, budgetHit: card.budgetHit, sections };
-  log.info(
-    { event: 'CALLER_CARD built', ...facts, source: place?.source ?? null },
-    'CALLER_CARD built'
-  );
+  const source = place?.source ?? null;
+  log.info({ event: 'CALLER_CARD built', ...facts, source }, 'CALLER_CARD built');
   return card;
 }
 

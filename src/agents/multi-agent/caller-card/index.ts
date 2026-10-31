@@ -18,11 +18,9 @@ export { whoYoureTalkingTo } from './who-block.js';
 const log = createLogger({ module: 'caller-card' });
 
 /**
- * This persona's card text, or null (flag off, no card for this caller, nothing to say).
- * Only when the account owner is proven on the line (ownerProvenOnLine, as recent texts).
- * Called at every persona setup: the card is built once per session, and the forgotten
- * topics are read again each time, in parallel, so a forget mid-call holds for the next
- * persona (ruling 4). Done within CARD_BUDGET_MS; never rejects.
+ * This persona's card text, or null (flag off, owner not proven on the line, not a member,
+ * held under MINOR_CARE, nothing to say). The card is built once per call; the forgotten topics
+ * and the hold are re-read at every persona setup (ruling 4). Within CARD_BUDGET_MS; never rejects.
  */
 export async function callerCardText(
   sessionId: string,
@@ -34,12 +32,13 @@ export async function callerCardText(
   if (!flagOn('CALLER_CARD') || !mayHaveCard(userId)) return null;
   // Before any read or the shared build: caller ID can be spoofed; Ferni's own calls reach others.
   if (!ownerProvenHere(sessionId, phoneCall) || outboundPartiesFor(sessionId)) return null;
-  const [card, topics] = await Promise.all([
+  const [card, topics, held] = await Promise.all([
     getCallerCard(sessionId, userId, ports),
     within(ports.forgotten(userId), CARD_BUDGET_MS, 'caller card forgotten'),
+    within(ports.minorCare(userId), CARD_BUDGET_MS, 'caller card minor care'),
   ]);
-  // A call that sounded under 18 since the card was built gets no card from here on.
-  if (!card || minorHeld(sessionId)) return null;
+  // A hold set since the card was built (this call, or another of the account's) ends it.
+  if (!card || minorHeld(sessionId) || typeof held !== 'object' || held.value) return null;
   const forgottenTopics = typeof topics === 'object' ? topics.value : null;
   if (forgottenTopics === null) log.info({ why: topics }, 'CALLER_CARD forgotten_timeout');
   return renderCallerCard(card, { forgottenTopics }) || null;

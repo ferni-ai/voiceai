@@ -1,8 +1,7 @@
 /**
- * Home: one place, from stated or precise sources only (spec §5.4.2, §8 rule 7). Pure. Order:
- * saved home, then a profile city from browser GPS or typed in, then the newest home fact. An
- * IP, time-zone or language city is never Home (the device city never reaches here). A value
- * with a digit (street, flat, ZIP), markup or contact data is refused and the next is tried.
+ * Home (spec §5.4.2, §8 rule 7), pure: saved home, then a GPS or typed profile city, then the
+ * home fact; never an IP, zone or device city. A value that isn't a plain place name of at most
+ * 4 words (digits, line breaks, markup, contact data) is refused and the next source is tried.
  *
  * @module agents/multi-agent/caller-card/place
  */
@@ -11,12 +10,17 @@ import type { HomePlace } from './types.js';
 
 const PRECISE = new Set(['browser-gps', 'manual']);
 const MAX_PLACE_CHARS = 60;
-const PLACE_CHARS = /^[\p{L}\p{M}' .,-]+$/u; // letters and name punctuation: no digit or markup
+const MAX_WORDS = 4; // a town and its region, e.g. "Maple d'Lake", "Lakeview, M.W."
+const BREAK = /[\p{Cc}\p{Zl}\p{Zp}]/u; // a newline, tab or line separator: text, not a place
+const WORD = /^[\p{L}\p{M}][\p{L}\p{M}'\u2019.-]*,?$/u; // starts with a letter; ' - . inside, , at the end
 
 function placeName(raw: string | null | undefined): string | null {
-  const s = oneLine(raw ?? '').replace(/[\s.,;:]+$/, '');
-  if (!s || s.length > MAX_PLACE_CHARS || !PLACE_CHARS.test(s.normalize('NFKC'))) return null;
-  return hasContactData(s) ? null : s;
+  const trimmed = raw?.trim() ?? '';
+  if (!trimmed || BREAK.test(trimmed)) return null;
+  const s = oneLine(trimmed).replace(/[\s.,;:]+$/, '');
+  const words = s.normalize('NFKC').split(' ');
+  if (!s || s.length > MAX_PLACE_CHARS || words.length > MAX_WORDS) return null;
+  return words.every((w) => WORD.test(w)) && !hasContactData(s) ? s : null;
 }
 
 export function choosePlace(c: {

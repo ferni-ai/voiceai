@@ -32,7 +32,9 @@ export function renderCallerCard(card: CallerCard, opts: CardRenderOptions): str
     const s = oneLine(text);
     return s && lineIsSafe(s, { forgottenTopics }) ? s : null;
   };
-  const home = card.home && fit(card.home.value.place);
+  const place = card.home && fit(card.home.value.place);
+  // Forgotten as recall matches a fact (subject, key, value), the key also in words ("where I live").
+  const home = place && fit(`User home where they live ${place}`) ? place : null;
   // In priority order: the last line is dropped first when the card is too long.
   const lines = [home ? `- Home: ${home}.` : null].filter((l): l is string => l !== null);
   while (lines.length > 0 && assemble(lines).length > MAX_CARD_CHARS) lines.pop();

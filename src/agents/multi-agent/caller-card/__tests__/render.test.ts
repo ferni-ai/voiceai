@@ -43,6 +43,16 @@ describe('renderCallerCard', () => {
     expect(renderCallerCard(card(null), { forgottenTopics: [] })).toBe('');
   });
 
+  it.each([['where I live'], ['my home'], ['home']])(
+    'a forget worded as %s drops the Home line, as recall matches a fact',
+    (topic) => {
+      expect(renderCallerCard(card('Maplewood'), { forgottenTopics: [topic] })).toBe('');
+      expect(renderCallerCard(card('Maplewood'), { forgottenTopics: ['Lakeview'] })).toContain(
+        '- Home: Maplewood.'
+      );
+    }
+  );
+
   it('guards the line in code: contact data, a sensitive word, markup', () => {
     expect(renderCallerCard(card('Maplewood 555\u20130142'), { forgottenTopics: [] })).toBe('');
     expect(renderCallerCard(card('Maplewood Hospital'), { forgottenTopics: [] })).toBe('');

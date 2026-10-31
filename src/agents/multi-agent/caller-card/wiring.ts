@@ -5,14 +5,14 @@
  * @module agents/multi-agent/caller-card/wiring
  */
 import { forgottenInProcess } from '../../../memory/index.js';
-import { sharedHeld } from '../../../services/outreach/minor-care-shared-hold.js';
+import { sharedHeldStrict } from '../../../services/outreach/minor-care-shared-hold.js';
 import { profileOnceLoaded } from '../../../services/session/deferred-profile.js';
 import type { SessionServices } from '../../../services/types.js';
 import { getUserPreferences } from '../../../tools/domains/information/preferences/index.js';
 import { getFirestoreDb } from '../../../utils/firestore-utils.js';
 import { userHeld } from '../../../utils/minor-care.js';
 import { firestoreRecallStore } from '../recall-firestore-store.js';
-import { within } from './load.js';
+import { CARD_BUDGET_MS, within } from './load.js';
 import { choosePlace } from './place.js';
 import type { CallerCardPorts } from './ports.js';
 
@@ -25,9 +25,7 @@ async function homeFactValue(userId: string): Promise<string | null> {
   const db = getFirestoreDb();
   if (!db) return null;
   const snap = await db
-    .collection('bogle_users')
-    .doc(userId)
-    .collection('dynamic_facts')
+    .collection(`bogle_users/${userId}/dynamic_facts`)
     .where('entityName', '==', 'User')
     .where('key', '==', 'home')
     .limit(20)
@@ -64,7 +62,8 @@ export function callerCardPorts(services: CardServices): CallerCardPorts {
       const stored = (await firestoreRecallStore.forgotten?.(userId)) ?? null;
       return stored && [...stored, ...forgottenInProcess(userId)];
     },
-    // The account-level MINOR_CARE hold: any held session here, or the shared hold record.
-    minorCare: async (userId) => userHeld(userId) || sharedHeld(userId),
+    // The account-level MINOR_CARE hold, failing closed: unreadable or late means held.
+    minorCare: async (userId) =>
+      userHeld(userId) || sharedHeldStrict(userId, process.env, CARD_BUDGET_MS),
   };
 }
