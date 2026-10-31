@@ -28,6 +28,11 @@ vi.mock('../../../../utils/safe-logger.js', async (importOriginal) => ({
   createLogger: () => h.logger,
   getLogger: () => h.logger,
 }));
+// The sealed store reads the raw doc back (getFirestoreDb, the same Firestore); setup.ts stubs it.
+vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getFirestoreDb: () => h.db,
+}));
 vi.mock('@google-cloud/firestore', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   Firestore: class {
@@ -284,5 +289,113 @@ describe('flag off: the old path, unchanged', () => {
     expect(await agent.storeAccessToken(B, ACCESS_B, 'item-b-1')).toEqual({ ok: true });
     expect(h.file.get(B)).toEqual({ access_token: ACCESS_B, item_id: '' }); // as main: no Item id
     expect(state.docs.has(docPath(B))).toBe(false);
+  });
+
+  it('a failed write answers as main does and is still retried by the old store', async () => {
+    process.env.PLAID_UNIFIED_STORE = 'off';
+    state.failWrites.add(docPath(A));
+
+    const { status } = await exchange(A);
+
+    expect(status).toBe(200); // as main: the old path does not confirm the write
+    expect(state.docs.has(docPath(A))).toBe(false);
+    state.failWrites.clear();
+    await vi.waitFor(() => expect(state.docs.has(docPath(A))).toBe(true), { timeout: 6000 });
+    expect((await opened(A)) as unknown).toMatchObject({ access_token: ACCESS_A });
+  }, 15_000);
+});
+
+/** An envelope sealed under a key this process does not hold. */
+async function sealedUnderOtherKey(value: unknown): Promise<string> {
+  process.env.OAUTH_ENCRYPTION_KEY = 'fixture-other-key';
+  vi.resetModules();
+  const { encryptData } = await import('../../../../utils/token-encryption.js');
+  const sealed = encryptData(value);
+  process.env.OAUTH_ENCRYPTION_KEY = 'fixture-encryption-key';
+  vi.resetModules();
+  return sealed;
+}
+
+describe('flag on: a stored record that will not open is never overwritten', () => {
+  const cases: Array<[string, () => Promise<Record<string, unknown>>]> = [
+    [
+      'sealed under another key',
+      async () => ({
+        encrypted: await sealedUnderOtherKey({
+          items: [
+            { access_token: ACCESS_A2, item_id: 'item-a-2', institution: {}, linked_at: 'x' },
+          ],
+        }),
+      }),
+    ],
+    ['garbage in place of the envelope', async () => ({ encrypted: '{not json' })],
+  ];
+  for (const [name, doc] of cases) {
+    it(`${name}: route fails with record_unreadable, doc unchanged`, async () => {
+      state.docs.set(docPath(A), await doc());
+      const before = structuredClone(state.docs.get(docPath(A)));
+
+      const { status, body } = await exchange(A);
+
+      expect(status).toBe(503);
+      expect(body).toEqual({ error: 'Bank account could not be saved', code: 'record_unreadable' });
+      expect(state.writes).toEqual([]);
+      expect(state.docs.get(docPath(A))).toEqual(before);
+    });
+  }
+});
+
+describe('flag on: a write that does not land is not "connected", and is retried', () => {
+  it('first link: route fails; the sealed store retries it on its own interval', async () => {
+    state.failWrites.add(docPath(A));
+
+    const { status, body } = await exchange(A);
+
+    expect(status).toBe(503);
+    expect(body.code).toBe('store_failed');
+    expect(body.success).toBeUndefined();
+    expect(state.docs.has(docPath(A))).toBe(false);
+    const { getIntervalStats } = await import('../../../../utils/interval-manager.js');
+    expect(getIntervalStats().map((s) => s.name)).toContain('persistence-sync-plaid_tokens');
+    state.failWrites.clear();
+    await vi.waitFor(() => expect(state.docs.has(docPath(A))).toBe(true), { timeout: 6000 });
+    expect((await opened(A))?.items.map((i) => i.item_id)).toEqual(['item-a-1']);
+  }, 15_000);
+
+  it('second bank over an existing record: route fails, record unchanged until the retry', async () => {
+    await exchange(A);
+    const before = structuredClone(state.docs.get(docPath(A)));
+    state.failWrites.add(docPath(A));
+    plaidAnswer = { access_token: ACCESS_A2, item_id: 'item-a-2' };
+
+    const { status, body } = await exchange(A);
+
+    expect(status).toBe(503);
+    expect(body.code).toBe('store_failed');
+    expect(state.docs.get(docPath(A))).toEqual(before);
+    state.failWrites.clear();
+    await vi.waitFor(async () => expect((await opened(A))?.items).toHaveLength(2), {
+      timeout: 6000,
+    });
+  }, 15_000);
+});
+
+describe('flag on: a legacy plaintext doc keeps no plaintext token', () => {
+  it('the save deletes the plaintext fields and keeps the old Item, sealed', async () => {
+    state.docs.set(docPath(A), { access_token: ACCESS_A2, item_id: 'item-legacy', linked_at: 'x' });
+    expect(JSON.stringify(state.docs.get(docPath(A)))).toContain(ACCESS_A2);
+
+    const { status } = await exchange(A);
+
+    expect(status).toBe(200);
+    const raw = state.docs.get(docPath(A)) as Record<string, unknown>;
+    expect(raw.access_token).toBeUndefined();
+    // As flag off (sealTokensForMerge): the token keys go; item_id and linked_at are not secrets.
+    expect(JSON.stringify(raw)).not.toContain(ACCESS_A2);
+    expect(JSON.stringify(raw)).not.toContain(ACCESS_A);
+    expect((await opened(A))?.items.map((i) => [i.item_id, i.access_token])).toEqual([
+      ['item-legacy', ACCESS_A2],
+      ['item-a-1', ACCESS_A],
+    ]);
   });
 });
