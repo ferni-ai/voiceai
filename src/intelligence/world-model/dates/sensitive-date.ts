@@ -35,8 +35,8 @@ export function sensitiveDate(label: string): boolean {
 /** "grandma", "sister Priya": who the date is about, from the label, or null. */
 export function personFromLabel(label: string): string | null {
   const m = RELATION.exec(label);
-  if (!m) return null;
-  const relation = m[1]!.toLowerCase();
+  const relation = m?.[1]?.toLowerCase();
+  if (!m || !relation) return null;
   if (m[2]) return relation; // "mom's surgery": no name follows a possessive
   const name = NAME.exec(label.slice(m.index + m[0].length))?.[1]; // "Rose's" stops at the '
   return name && !sensitiveWords(name) ? `${relation} ${name}` : relation;

@@ -133,7 +133,9 @@ async function greet(setup: (sessionId: string) => void = () => {}): Promise<Cue
   const sessionId = `gda-${++n}`;
   setup(sessionId);
   await directedGreeting(sessionId, 'jordan-taylor', { userId: USER, userName: 'Riley' });
-  await new Promise((r) => setTimeout(r, 0)); // the winner's commit is not awaited
+  await new Promise((r) => {
+    setTimeout(r, 0); // the winner's commit is not awaited
+  });
   return directedText.mock.calls.at(-1)![1];
 }
 

@@ -76,7 +76,7 @@ const PASSED_DAYS = 10;
 const YEARLY_AHEAD_DAYS = 7;
 
 /** How far ahead a one-time date is raised: 3 days when the hello raises it (DATES_IN_HELLO), else 1. */
-export function onceAheadDays(env: Record<string, string | undefined> = process.env): number {
+function onceAheadDays(env: Record<string, string | undefined> = process.env): number {
   return flagOn('DATES_IN_HELLO', env) ? 3 : 1;
 }
 
