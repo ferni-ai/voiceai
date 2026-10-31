@@ -1917,7 +1917,7 @@
     "disconnected": "Disconnected",
     "end": "End",
     "endConversation": "End conversation",
-    "endConversationGoodbye": "End conversation - Goodbye",
+    "goodbyeEndCall": "Goodbye. End call.",
     "endSession": "End Session",
     "ending": "Call ended",
     "goodbye": "Goodbye",
@@ -10165,7 +10165,6 @@
     "startupError": "Having trouble starting up. Try refreshing?",
     "lastConversation": "This is your last conversation this month. Let's make it count.",
     "gettingReady": "Getting ready...",
-    "connecting": "Connecting",
     "almostThere": "Almost there...",
     "waitingQuietly": "I'll wait quietly",
     "listening": "I'm listening",
@@ -10775,7 +10774,8 @@
     "tapToCancel": "Tap to cancel",
     "stillCalling": "Still reaching {name}…",
     "stillCallingCancel": "Still reaching {name}. Tap to cancel.",
-    "reconnecting": "Reconnecting…"
+    "reconnecting": "Reconnecting…",
+    "arrived": "{name} is here"
   },
   "callRoom": {
     "connecting": "Calling {name}…",
