@@ -8,6 +8,7 @@ const log = getLogger();
 
 let extractionItemsDropped = 0;
 let vectorPersistWarnings = 0;
+let personaFactsRefused = 0;
 
 /** Malformed deep-extraction items dropped before Firestore write. */
 export function recordExtractionDrop(count: number): void {
@@ -25,6 +26,14 @@ export function recordVectorPersistWarn(): void {
   log.debug({ total: vectorPersistWarnings }, '🧠 [MEMORY-AUDIT] vector_persist_warn');
 }
 
+/** A fact about Ferni or a teammate the memory writer refused (memory-writer.ts). */
+export function recordPersonaFactRefused(source: string): void {
+  personaFactsRefused++;
+  log.info({ source, total: personaFactsRefused }, '🧠 [MEMORY-AUDIT] persona_fact_refused');
+}
+
+export const getPersonaFactRefusedCount = (): number => personaFactsRefused;
+
 export function getExtractionDropCount(): number {
   return extractionItemsDropped;
 }
@@ -37,4 +46,5 @@ export function getVectorPersistWarnCount(): number {
 export function resetMemoryExtractionTelemetry(): void {
   extractionItemsDropped = 0;
   vectorPersistWarnings = 0;
+  personaFactsRefused = 0;
 }

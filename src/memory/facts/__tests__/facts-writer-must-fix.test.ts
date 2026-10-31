@@ -3,7 +3,11 @@
  * as history, contact data in any written form is refused while dates, years and prices
  * are kept, and a fact about a forgotten topic is refused. Fixtures are fictional.
  */
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import {
+  getPersonaFactRefusedCount,
+  resetMemoryExtractionTelemetry,
+} from '../../operations/memory-extraction-telemetry.js';
 import { fakeFirestore } from '../../../services/stores/__tests__/fake-firestore.js';
 import { proposeFact, type FactProposal } from '../../writer/memory-writer.js';
 import { getCurrentFacts, getFactsAsOf, listFactHistory } from '../facts-store.js';
@@ -164,6 +168,7 @@ describe('a forgotten topic', () => {
 });
 
 describe("Ferni's own life", () => {
+  beforeEach(() => resetMemoryExtractionTelemetry());
   const said = (o: Partial<FactProposal>): FactProposal => ({
     ...city('Portland', 'k1', null),
     attribute: 'other',
@@ -188,10 +193,50 @@ describe("Ferni's own life", () => {
         reason: 'persona',
       });
     expect(factDocs(docs)).toEqual([]);
+    expect(getPersonaFactRefusedCount()).toBe(4); // each refusal counted
     // a real person who only shares a word with a teammate is kept
     expect(await propose(db, said({ subjectId: 'person:maya-angelou' }))).toMatchObject({
       op: 'add',
       fact: { provenance: 'user_said' },
     });
+  });
+
+  it("a teammate name with a stated relationship is the person's own: stored", async () => {
+    const { db, docs } = fakeFirestore();
+    // "my friend Maya is moving to Denver"
+    const denver = said({ subjectId: 'person:maya', relationship: 'friend', attribute: 'city' });
+    expect(await propose(db, { ...denver, value: 'Denver' })).toMatchObject({ op: 'add' });
+    // "my cousin Peter": the relation fact on file counts for later facts about him
+    const peter = { subjectId: 'person:peter', sourceKey: 'k2' };
+    expect(
+      await propose(db, said({ ...peter, attribute: 'relation', value: 'cousin' }))
+    ).toMatchObject({
+      op: 'add',
+    });
+    expect(
+      await propose(db, said({ ...peter, attribute: 'pet', value: 'a cat', sourceKey: 'k3' }))
+    ).toMatchObject({ op: 'add' });
+    expect(factDocs(docs)).toHaveLength(3);
+    expect(getPersonaFactRefusedCount()).toBe(0);
+  });
+
+  it('a teammate name with no relationship, or Ferni with any, is refused and counted', async () => {
+    const { db, docs } = fakeFirestore();
+    // "Maya loves hiking"
+    const hiking = said({
+      subjectId: 'person:maya',
+      attribute: 'preference',
+      value: 'loves hiking',
+    });
+    expect(await proposeFact(db, 'u1', hiking, ON)).toEqual({ ok: false, reason: 'persona' });
+    for (const relationship of ['assistant', null])
+      expect(await proposeFact(db, 'u1', { ...hiking, relationship }, ON)).toMatchObject({
+        reason: 'persona',
+      });
+    expect(
+      await proposeFact(db, 'u1', said({ subjectId: 'entity:ferni', relationship: 'friend' }), ON)
+    ).toMatchObject({ reason: 'persona' });
+    expect(factDocs(docs)).toEqual([]);
+    expect(getPersonaFactRefusedCount()).toBe(4);
   });
 });

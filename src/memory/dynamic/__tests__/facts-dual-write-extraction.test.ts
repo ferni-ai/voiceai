@@ -66,11 +66,13 @@ const RUN_1 = [
 ];
 const RUN_2 = [fact('User', 'city', 'St. Petersburg')];
 
-async function extract(userId: string, facts: ExtractedFact[], sessionId: string) {
+type Rel = { source: string; target: string; type: string };
+// prettier-ignore
+async function extract(userId: string, facts: ExtractedFact[], sessionId: string, rels: Rel[] = []) {
   const worker = new DeepExtractionWorker({ batchTurns: 1 });
   // prettier-ignore
   await worker['persistExtraction'](userId,
-    { entities: [], facts, relationships: [], categories: [], importanceScore: 0.9, shouldPersist: true },
+    { entities: [], facts, relationships: rels.map((r) => ({ ...r, strength: 1, bidirectional: false })), categories: [], importanceScore: 0.9, shouldPersist: true },
     { jobId: `job-${sessionId}`, userId, sessionId, turnNumber: 1, transcript: 'x',
       timestamp: new Date('2026-10-30T12:00:00Z'), priority: 'normal' as const,
       fastCaptureHints: { mentionedEntities: [], emotionSignals: [], topicHints: [],
@@ -147,6 +149,17 @@ describe('deep extraction dual-write', () => {
     const facts = docsIn('u1', 'facts');
     expect(facts.map((d) => `${d.subjectId}|${d.value}`)).toEqual(['self|Tampa']);
     expect(facts.map((d) => d.provenance)).toEqual(['inferred']);
+  });
+
+  it('a teammate name the caller relates to is stored: "my friend Maya is moving to Denver"', async () => {
+    fresh();
+    vi.stubEnv('FACTS_DUAL_WRITE', 'on');
+    vi.stubEnv('MEMORY_FACTS', 'on');
+    // prettier-ignore
+    await extract('u1', [fact('Maya', 'city', 'Denver'), fact('Peter', 'goal', 'run a marathon')], 'call-1',
+      [{ source: 'User', target: 'Maya', type: 'friend' }]);
+    const facts = docsIn('u1', 'facts');
+    expect(facts.map((d) => `${d.subjectId}|${d.value}`)).toEqual(['entity:maya|Denver']); // Peter: no relation
   });
 
   it('a writer that throws never stops the dynamic_facts write', async () => {

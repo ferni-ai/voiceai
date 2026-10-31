@@ -11,9 +11,9 @@
  *           current fact is left as it is.
  * A fact about a topic the person asked Ferni to forget is refused ('forgotten'), and
  * nothing is written while those topics can't be read. Ferni's own life is never a
- * person's fact: persona_canon, or a subject that is Ferni or a teammate (entity-hygiene's
- * junkReason 'persona'), is refused ('persona'). A friend who shares a teammate's first
- * name ("person:maya") is refused too; that cost keeps a teammate's line out.
+ * person's fact: persona_canon is refused ('persona'), and so is a subject that is Ferni or
+ * a teammate (isPersonaSubject) unless a relationship to the person is stated, by the
+ * proposal or a current relation fact: "my friend Maya" is theirs, a bare "Maya" is not.
  * Idempotent per (source, sourceKey). Member facts only, nothing while MEMORY_FACTS is
  * off, ids and ops in logs, never a value.
  *
@@ -35,8 +35,10 @@ import {
   type FactProvenance,
   type FactSource,
 } from '../facts/fact.js';
-import { junkReason } from '../entity-hygiene.js';
-import { factDoc, factsQuery, isCurrent, memberFacts, parseFacts } from '../facts/facts-store.js';
+import { isPersonaSubject } from '../entity-hygiene.js';
+import { recordPersonaFactRefused } from '../operations/memory-extraction-telemetry.js';
+// prettier-ignore
+import { factDoc, factsQuery, getCurrentFacts, isCurrent, memberFacts, parseFacts } from '../facts/facts-store.js';
 import { factText, isForgotten } from '../domain/forgotten.js';
 import { firestoreForgottenStore } from '../adapters/firestore/forgotten-store.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -49,6 +51,8 @@ export interface FactProposal {
   readonly source: FactSource;
   /** Who it comes from; persona_canon is always refused. */
   readonly provenance: FactProvenance;
+  /** The subject's relationship to the person, when the source stated one ("friend"). */
+  readonly relationship?: string | null;
   /** Unique per proposed fact within the source, e.g. `${sessionId}:${n}`. */
   readonly sourceKey: string;
   readonly validFrom?: string | null;
@@ -161,6 +165,16 @@ async function reconcile(
   return commit(db, tx, uid, [...retired, fact], { ok: true, op, fact, duplicate: false });
 }
 
+/** Ferni or a teammate with no relationship to the person stated, here or on file. */
+async function personaSubject(db: Firestore, uid: string, p: FactProposal, value: string) {
+  const name = subjectName(p.subjectId);
+  const stated = p.relationship ?? (p.attribute === 'relation' ? value : null);
+  if (!isPersonaSubject(name, stated)) return false;
+  if (stated) return true; // a stated relation that is Ferni's role ("assistant")
+  const [onFile] = await getCurrentFacts(db, uid, p.subjectId, 'relation', { MEMORY_FACTS: 'on' });
+  return isPersonaSubject(name, onFile?.value);
+}
+
 /** ADD, UPDATE or NOOP, whichever the stored facts call for. */
 export async function proposeFact(
   db: Firestore,
@@ -170,13 +184,6 @@ export async function proposeFact(
 ): Promise<ProposeResult> {
   if (!memoryFactsEnabled(env)) return { ok: false, reason: 'disabled' };
   if (!memberFacts(uid)) return { ok: false, reason: 'not_member' };
-  if (
-    p.provenance === 'persona_canon' ||
-    junkReason({ name: subjectName(p.subjectId), type: 'person' }, env) === 'persona'
-  ) {
-    log.info({ uid, source: p.source, outcome: 'persona' }, 'Proposed');
-    return { ok: false, reason: 'persona' };
-  }
   const value = normalizeValue(p.attribute, p.value);
   if (
     !value ||
@@ -184,6 +191,11 @@ export async function proposeFact(
     !(p.at === undefined || (p.at instanceof Date && !Number.isNaN(p.at.getTime())))
   ) {
     return { ok: false, reason: 'invalid' };
+  }
+  if (p.provenance === 'persona_canon' || (await personaSubject(db, uid, p, value))) {
+    recordPersonaFactRefused(p.source);
+    log.info({ uid, source: p.source, outcome: 'persona' }, 'Proposed');
+    return { ok: false, reason: 'persona' };
   }
   // Fail closed: unreadable forgotten topics write nothing, as the readers return nothing.
   const { topics } = await firestoreForgottenStore(db).readForgotten(uid);

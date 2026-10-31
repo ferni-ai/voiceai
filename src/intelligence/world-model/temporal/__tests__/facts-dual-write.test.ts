@@ -113,6 +113,20 @@ describe('world_facts ingest dual-write', () => {
       expect(facts()).toEqual([]);
     }
   });
+  it('a teammate name with a stated relation is stored; without one it is refused', async () => {
+    const { deps, facts } = setup(ALL_ON);
+    // prettier-ignore
+    await recordWorldObservations('u1', 'call-1', [
+      obs({ subject: 'Maya', subjectKind: 'person', relation: 'friend', attribute: 'location', value: 'Denver' }, '2026-10-01', 'call-1'),
+      obs({ subject: 'Jordan', subjectKind: 'person', attribute: 'goal', value: 'loves hiking' }, '2026-10-01', 'call-1'),
+    ], deps);
+    expect(
+      facts()
+        .map(([, d]) => `${d.subjectId}|${d.attribute}|${d.value}`)
+        .sort()
+    ).toEqual(['person:maya|city|Denver', 'person:maya|relation|friend']);
+  });
+
   it('one fact the writer rejects does not stop the others', async () => {
     const propose: typeof proposeFact = (db, uid, p, env) =>
       p.value === 'Tampa' ? Promise.reject(new Error('contention')) : proposeFact(db, uid, p, env);

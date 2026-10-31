@@ -25,7 +25,7 @@ import {
 import { createDeepExtractionBatcher } from './deep-extraction-batch.js';
 import { extractionMoment } from './extraction-moment.js';
 import { memoryHeld, userHeld } from '../../utils/minor-care.js';
-import { dualWriteFacts, mapDynamicFact, type MappedFact } from '../writer/facts-dual-write.js';
+import { dualWriteFacts, mapDynamicFacts } from '../writer/facts-dual-write.js';
 import type { DeepExtractionBatchOptions } from './deep-extraction-batch.js';
 
 // ============================================================================
@@ -595,7 +595,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
         batch.set(entityRef, entityDoc);
       }
 
-      const toFacts: MappedFact[] = [];
+      const written: Array<[Record<string, unknown>, string]> = [];
       for (const factDoc of await withFactEmbeddings(payloads.facts)) {
         // Same fact, same document: re-extraction refreshes it (newest date, latest confidence).
         const id = factDocId(
@@ -604,7 +604,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
           String(factDoc.value ?? '')
         );
         batch.set(userRoot.collection('dynamic_facts').doc(id), factDoc, { merge: true });
-        toFacts.push(mapDynamicFact(factDoc, job.sessionId, id));
+        written.push([factDoc, id]);
       }
 
       for (const relDoc of payloads.relationships) {
@@ -635,16 +635,13 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
       await batch.commit();
 
       this.log.debug(
-        {
-          userId,
-          entityCount: payloads.entities.length,
-          factCount: payloads.facts.length,
-        },
+        { userId, entityCount: payloads.entities.length, factCount: payloads.facts.length },
         'Persisted extraction results to Firestore'
       );
 
       // This is the critical missing piece - without this, context builders return empty
       await this.persistToVectorStore(userId, result, job, timestamp);
+      const toFacts = mapDynamicFacts(written, job.sessionId, result.relationships);
       await dualWriteFacts(userId, 'dynamic_facts', toFacts, { getDb: () => db }); // never throws
     } catch (error) {
       this.log.error({ error: String(error), userId }, 'Failed to persist extraction');

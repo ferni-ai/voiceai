@@ -47,9 +47,10 @@ const ascii = (s: string): string =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 80);
 const SELF = new Set(['user', 'self', 'me', 'caller', 'i']);
+const nameKey = (name: string): string => name.trim().toLowerCase();
 /** 'self', or `${kind}:${ascii name}`; null when nothing usable is left. */
 function subjectOf(name: string, kind: string): string | null {
-  if (SELF.has(name.trim().toLowerCase())) return 'self';
+  if (SELF.has(nameKey(name))) return 'self';
   const slug = ascii(name);
   return slug ? `${kind}:${slug}` : null;
 }
@@ -80,7 +81,8 @@ const DYNAMIC_KEYS: ReadonlyArray<[RegExp, FactAttribute | 'contact']> = [
 export function mapDynamicFact(
   doc: Record<string, unknown>,
   sessionId: string,
-  factId: string
+  factId: string,
+  relationship?: string
 ): MappedFact {
   const { entityName, factType, value } = doc;
   const rawKey = typeof doc.key === 'string' ? doc.key : '';
@@ -102,6 +104,7 @@ export function mapDynamicFact(
       value: attribute === 'other' ? `${rawKey.replace(/_/g, ' ')}: ${value}` : value,
       source: 'dynamic_facts',
       provenance: 'inferred',
+      relationship: relationship ?? null,
       sourceKey: key(`${sessionId}:${factId}`),
       sourceEpisodeId: key(sessionId) || null,
       confidence: confidence(doc.confidence),
@@ -109,6 +112,22 @@ export function mapDynamicFact(
       at: isoOrUndefined(doc.extractedAt),
     },
   };
+}
+
+/** Each dynamic_facts document written (with its id), with the relationship the call stated. */
+export function mapDynamicFacts(
+  written: ReadonlyArray<[Record<string, unknown>, string]>,
+  sessionId: string,
+  relationships: ReadonlyArray<{ source: string; target: string; type: string }>
+): MappedFact[] {
+  const stated = new Map<string, string>();
+  for (const r of relationships) {
+    if (SELF.has(nameKey(r.source))) stated.set(nameKey(r.target), r.type);
+    else if (SELF.has(nameKey(r.target))) stated.set(nameKey(r.source), r.type);
+  }
+  return written.map(([doc, id]) =>
+    mapDynamicFact(doc, sessionId, id, stated.get(nameKey(String(doc.entityName ?? ''))))
+  );
 }
 
 /** The fields of a world_facts TemporalFact this reads (intelligence/world-model/temporal). */
@@ -145,6 +164,7 @@ export function mapWorldFact(f: WorldFactShape): MappedFact[] {
     subjectId,
     source: 'world_facts' as const,
     provenance: f.by === 'caller' ? ('user_said' as const) : ('inferred' as const),
+    relationship: f.relation ?? null,
     sourceEpisodeId: key(f.source.sessionId) || null,
     confidence: confidence(f.confidence),
     at: isoOrUndefined(f.observedAt),
