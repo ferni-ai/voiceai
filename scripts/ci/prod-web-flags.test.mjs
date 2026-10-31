@@ -92,6 +92,36 @@ describe('prod web flags', () => {
     expect(() => stepEnv(workflow, 'No such step')).toThrow(/no "No such step" step/);
   });
 
+  it('passes every avatar motion switch to each web build, from its repo variable, off when unset', () => {
+    // The switches motion-flags.ts reads; a new one must reach deploy and the walks too.
+    const source = readFileSync('apps/web/src/config/motion-flags.ts', 'utf8');
+    const motion = [
+      ...new Set([...source.matchAll(/import\.meta\.env\.(VITE_[A-Z0-9_]+)/g)].map((m) => m[1])),
+    ];
+    expect(motion.length).toBeGreaterThanOrEqual(13);
+
+    const build = stepEnv(workflow, 'Build frontend');
+    const image = readFileSync('.github/workflows/deploy-production.yml', 'utf8');
+    const dockerfile = readFileSync('docker/Dockerfile.ui', 'utf8');
+    const walks = ['.github/workflows/menu-e2e.yml', '.github/workflows/signed-in-e2e.yml'].map(
+      (file) => [file, readFileSync(file, 'utf8')]
+    );
+    for (const name of motion) {
+      expect(build[name], `${WEB_BUILD} Build frontend: ${name}`).toBe(`\${{ vars.${name} }}`);
+      expect(resolve(name, build[name], {}), `${name} default`).toBe('');
+      expect(image, `deploy-production.yml build-arg ${name}`).toContain(
+        `--build-arg ${name}="\${{ vars.${name} }}"`
+      );
+      expect(dockerfile, `Dockerfile.ui ARG ${name}`).toMatch(new RegExp(`^ARG ${name}=""$`, 'm'));
+      expect(dockerfile, `Dockerfile.ui ENV ${name}`).toContain(`${name}=$${name}`);
+      for (const [file, text] of walks) {
+        expect(text, `${file}: PROD_VAR_${name}`).toContain(
+          `PROD_VAR_${name}: \${{ vars.${name} }}`
+        );
+      }
+    }
+  });
+
   it("takes the API server's on/off flags from its prod env file", () => {
     const flags = serverFlags(readFileSync(SERVER_ENV, 'utf8'));
     expect(flags.MEMORY_VIEW).toBe('on');
