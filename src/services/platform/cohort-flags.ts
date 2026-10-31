@@ -130,6 +130,7 @@ export const COHORT_FLAGS = [
   'CALL_JOURNAL', // tool build + per turn (call-journal.ts); needs the agent's JOURNAL_ONE_STORE=on
   'FOLLOW_THROUGH_IMPORT', // after the call, through envForCaller (follow-through-import.ts)
   'PONDERING', // greeting (ponderFor); the hourly ponder-job.ts ponders usersWithFlag too
+  'PERSON_MODEL', // UI server's nightly call-sheet job only: usersWithFlag + flagForUser (person-model-job.ts)
   'MORNING_BRIEF', // UI server's briefing job only, never a call: usersWithFlag (brief-job.ts)
   // Read per call, never at boot: as applied mid-call, envForCaller after it, flagForUser on the UI server.
   'COMMITMENT_SINGLE_WRITER',
@@ -157,7 +158,7 @@ const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
 const ON_OFF: readonly string[] = ['on', 'off'];
 /** The flags that are not on/off switches, and the values they may take. */
 const MODES: Partial<Record<CohortFlag, readonly string[]>> = {
-  TURN_LENGTH: ['learned', 'off'],
+  TURN_LENGTH: ['learned', 'adaptive', 'off'],
   TURN_TEXTURE: ['learned', 'off'],
   PREEMPT_STABLE_CONTEXT: ['on', 'defer', 'off'],
 };

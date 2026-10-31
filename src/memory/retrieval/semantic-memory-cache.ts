@@ -193,8 +193,8 @@ export async function findSimilarCached<T>(
       log.debug(
         {
           userId,
-          query: query.slice(0, 50),
-          matchedQuery: bestMatch.entry.query.slice(0, 50),
+          queryLen: query.length,
+          matchedQueryLen: bestMatch.entry.query.length,
           similarity: bestMatch.similarity.toFixed(3),
         },
         '✅ Semantic cache HIT'
@@ -214,7 +214,7 @@ export async function findSimilarCached<T>(
   stats.misses++;
 
   if (config.debug) {
-    log.debug({ userId, query: query.slice(0, 50) }, '❌ Semantic cache MISS');
+    log.debug({ userId, queryLen: query.length }, '❌ Semantic cache MISS');
   }
 
   return { hit: false };
@@ -289,7 +289,7 @@ export async function storeInSemanticCache<T>(
 
   if (config.debug) {
     log.debug(
-      { userId, query: query.slice(0, 50), cacheSize: userCache.length },
+      { userId, queryLen: query.length, cacheSize: userCache.length },
       '💾 Stored in semantic cache'
     );
   }

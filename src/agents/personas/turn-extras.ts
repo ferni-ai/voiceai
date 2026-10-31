@@ -25,6 +25,7 @@ import { classifyBackchannelContext } from '../integrations/backchannel-context.
 import { mayNeedTool } from '../model-provider/fast-lane.js';
 import { NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
 import type { RecentTurns } from './turn-length.js';
+import type { Substance } from './turn-substance.js';
 import type { CallerMove, Shape } from './turn-shape.js';
 import type { Understanding } from './turn-understanding.js';
 
@@ -107,6 +108,8 @@ export interface TurnSignals {
   selfBrief?: boolean;
   /** TURN_LENGTH / TURN_TEXTURE=learned: the turns before this reply (turn-length.ts). */
   recent?: RecentTurns;
+  /** TURN_LENGTH=adaptive: this turn needs a real answer, and why (turn-substance.ts). */
+  substance?: Substance;
   /** DIRECTOR_ANSWER_TURN_GUARD=on: they just answered his question (answer-turn.ts). */
   answered?: boolean;
   /** QUIET_CALLER=on: their last turns were a few words each (quiet-caller.ts). */

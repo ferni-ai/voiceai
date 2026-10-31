@@ -79,7 +79,7 @@ export function recordPersonaObservation(userId: string, observation: SimpleObse
       type: observation.observationType,
       domain: observation.domain,
     },
-    `👁️ ${observation.personaId.toUpperCase()} observed: ${observation.content.slice(0, 50)}...`
+    `👁️ ${observation.personaId.toUpperCase()} observed (${observation.content.length} chars)`
   );
 }
 

@@ -87,6 +87,7 @@ const MUST_ERASE = [
   'bogle_users/{uid}/activity', // the activity ledger (activity-store.ts)
   'bogle_users/{uid}/activity/a_1/events', // each record's event log
   'bogle_users/{uid}/facts', // bi-temporal facts (facts-store.ts)
+  'bogle_users/{uid}/person_model', // the call sheet and its prev (person-model-store.ts)
   'bogle_users/{uid}/user_contacts',
   'bogle_users/{uid}/outreach_attempts',
   'bogle_users/{uid}/booking_prefs', // booking preferences (booking-prefs-store.ts)

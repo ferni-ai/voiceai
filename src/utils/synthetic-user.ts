@@ -82,6 +82,9 @@ export const PLACEHOLDER_IDS: ReadonlySet<string> = new Set([
   'session',
   'gateway', // the Tier-0 tool gateway's build ctx
   'gateway-recovery',
+  'undefined', // `${userId}` or String(userId) of a missing id
+  'null',
+  'guest', // a sign-in-less web or app caller (#2651)
 ]);
 
 /**
