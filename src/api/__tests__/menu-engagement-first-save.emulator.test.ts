@@ -11,6 +11,7 @@
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import type { AccountNow } from '../../services/identity/account-live-now.js';
 
 // src/tests/setup.ts fakes firebase-admin and getFirestoreDb for every test; the route
 // and the stores read through them, so this file swaps the real ones back in.
@@ -25,6 +26,10 @@ vi.mock('../../memory/storage/store-factory.js', async () => {
   const { getFirestoreStore } = await import('../../memory/storage/firestore-store.js');
   return { getStore: async () => getFirestoreStore() };
 });
+// Firebase Auth has every caller here unless a test says otherwise (no Auth emulator;
+// account-live-now.test.ts covers the lookup itself).
+const account = vi.hoisted(() => ({ now: vi.fn(async (): Promise<AccountNow> => 'live') }));
+vi.mock('../../services/identity/account-live-now.js', () => ({ accountLiveNow: account.now }));
 // A request carrying x-test-uid is signed in as that user (a verified token's uid).
 vi.mock('../auth-middleware.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../auth-middleware.js')>();
@@ -113,6 +118,27 @@ describe.skipIf(!emulator)('engagement first save (Firestore emulator)', () => {
     const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const [session] = await (await getEngagementStore()).getConversationSessions(uid, 1);
     expect(session).toMatchObject({ personaId: 'ferni', insights: ['Likes walking by the water'] });
+  });
+
+  it('a hang-up for an account Firebase no longer has makes no record and no session', async () => {
+    const uid = newUser(); // what a finished erasure leaves: no record, no profile, no account
+    account.now.mockResolvedValueOnce('gone');
+    const { getConversationHistoryService } =
+      await import('../../services/stores/conversation-history.js');
+
+    await getConversationHistoryService().recordSession(uid, {
+      personaId: 'ferni',
+      personaName: 'Ferni',
+      duration: 4,
+      messageCount: 5,
+      insights: ['Likes walking by the water'],
+      highlights: [],
+      topicsDiscussed: [],
+    });
+
+    expect(account.now).toHaveBeenCalledWith(uid);
+    expect(await exists(`bogle_users/${uid}`)).toBe(false);
+    expect(await exists(`engagement_profiles/${uid}`)).toBe(false);
   });
 
   it("an erased caller's save writes nothing", async () => {

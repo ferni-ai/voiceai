@@ -11,6 +11,24 @@ import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { getEngagementStore } from '../engagement/engagement-store.js';
 import { getStore } from '../../memory/store-factory.js';
 import { getSessionsTogether, isCountedSession } from './sessions-together.js';
+import { accountLiveNow, type AccountNow } from '../identity/account-live-now.js';
+
+/** First saves refused for want of a live account: counted by reason, one line a minute at most. */
+const refusedFirstSaves = new Map<AccountNow, number>();
+let refusedLoggedAt = 0;
+const REFUSED_LOG_MS = 60_000;
+
+function countRefusedFirstSave(reason: AccountNow): void {
+  refusedFirstSaves.set(reason, (refusedFirstSaves.get(reason) ?? 0) + 1);
+  const now = Date.now();
+  if (now - refusedLoggedAt < REFUSED_LOG_MS) return;
+  refusedLoggedAt = now;
+  getLogger().warn(
+    { event: 'CONVERSATION_FIRST_SAVE_REFUSED', counts: Object.fromEntries(refusedFirstSaves) },
+    'Conversation not saved: no record and no live account'
+  );
+  refusedFirstSaves.clear();
+}
 
 // ============================================================================
 // TYPES
@@ -67,6 +85,11 @@ class ConversationHistoryService {
    * neither a record nor an engagement profile are dropped as an erased account's
    * (engagement-write-unless-erased.ts). So the record is made first, as user-migration
    * does: the caller is then a real new user and the session lands.
+   *
+   * Only for an account Firebase says is live right now: a token keeps verifying for a while
+   * after its account is erased, and making the record would bring the erased user back. A
+   * gone or disabled account gets nothing written (as when its writes were dropped); a failed
+   * check throws, so the caller reports the save failed. A caller with a record isn't checked.
    */
   async recordSession(
     userId: string,
@@ -81,7 +104,16 @@ class ConversationHistoryService {
 
     if (this.firestoreEnabled) {
       try {
-        await (await getStore()).getOrCreateProfile(userId);
+        const users = await getStore();
+        if (!(await users.getProfileForWrite(userId))) {
+          const account = await accountLiveNow(userId);
+          if (account !== 'live') {
+            countRefusedFirstSave(account);
+            if (account === 'unavailable') throw new Error('Account check unavailable');
+            return id;
+          }
+          await users.getOrCreateProfile(userId);
+        }
         const store = await getEngagementStore();
         await store.addConversationSession(
           userId,

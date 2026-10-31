@@ -23,6 +23,7 @@ Identity services handle:
 | `google-calendar-token-store.ts` | The ONE Google Calendar token store (encrypted, `bogle_users/{uid}/google_calendar_tokens/data`). The old root collection `google_calendar_tokens/{uid}` is no longer read or written. |
 | `link-state.ts` | The ONE connection-status reader: `getLinkState(uid, provider)` → `connected` / `needs_reauth` / `not_connected` / `unconfigured` (+ `scopesOk` for Google Calendar), read from the stored doc (Google's shared store, `oura_tokens`, `wearable_{whoop,garmin}_tokens`), never a per-process memory. Behind `LINK_STATUS_V2` (off) the model's service-availability note (`agents/processors/injection-builders/service-availability.ts`, Calendar line) and the link `/status` routes (`/auth/google/status`, `/calendar/status`, `/calendar/providers/status`, `/calendar/sync-status`, `/wearables/status`, v1 `/integrations/status` and `/calendar/status`) use it per caller; off, they read IntegrationHub / the legacy checks as before. |
 | `firebase-auth.ts` | Firebase authentication |
+| `account-live-now.ts` | `accountLiveNow(uid)` → `live` / `gone` / `disabled` / `unavailable`, from an uncached Firebase lookup: for a caller about to create a record a cached token check would let through (an erased account's token keeps verifying for a while). `unavailable` is never live. |
 | `natural-auth.ts` | Natural/conversational auth |
 | `identity-linking.ts` | Link multiple accounts |
 | `identity-error-handler.ts` | Auth error handling |

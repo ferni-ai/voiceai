@@ -27,6 +27,12 @@ vi.mock('../../memory/storage/store-factory.js', async () => {
   return { getStore: async () => getFirestoreStore() };
 });
 
+// Firebase Auth has the caller whose hang-up makes their record (no Auth emulator here;
+// account-live-now.test.ts covers the lookup itself).
+vi.mock('../../services/identity/account-live-now.js', () => ({
+  accountLiveNow: async () => 'live',
+}));
+
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 process.env.GCLOUD_PROJECT ??= 'demo-menu-history';
 
