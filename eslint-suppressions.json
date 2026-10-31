@@ -239,11 +239,6 @@
       "count": 1
     }
   },
-  "src/services/context-awareness/context-inspection.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
   "src/services/context-inspection.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
@@ -305,11 +300,6 @@
     }
   },
   "src/services/pubsub/pubsub-client.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
-  "src/services/session/session-continuity.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
     }
