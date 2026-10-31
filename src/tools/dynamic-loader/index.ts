@@ -347,7 +347,7 @@ export class DynamicToolLoader {
     if (loadedDomains.length > 0) {
       getLogger().info(
         {
-          message: message.slice(0, 50),
+          messageLen: message.length,
           topics: detection.detectedTopics,
           loadedDomains,
         },

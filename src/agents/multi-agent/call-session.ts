@@ -22,8 +22,9 @@ import { routeSayThroughModel } from '../shared/native-speech.js';
 import { limitSessionListeners } from '../shared/session-listener-limit.js';
 import { endpointingDelays, sessionTurnDetection } from '../shared/turn-patience.js';
 import type { UserData } from '../shared/types.js';
-import { interruptionOverrides } from './interruption-config.js';
+import { interruptionOverrides, phoneInterruptTuningOn } from './interruption-config.js';
 import { logBargeInDecisions } from './live-call-behaviors.js';
+import { watchPhoneAudio } from './phone-audio-summary.js';
 import { preemptiveGenerationOverrides } from './preemptive-tts.js';
 import {
   installPersonaSpeakingAttribute,
@@ -132,7 +133,11 @@ export async function createCallSession(
     userData,
     // Barge-in vs "mm-hmm": see interruption-config.ts. Overrides voiceOptions.
     // PREEMPTIVE_TTS=on also synthesizes the preemptive reply (preemptive-tts.ts).
-    turnHandling: { interruption: interruptionOverrides(), ...preemptiveGenerationOverrides() },
+    // PHONE_INTERRUPT_TUNING=on: phone callers need more audio to pause Ferni.
+    turnHandling: {
+      interruption: interruptionOverrides(process.env, { phone }),
+      ...preemptiveGenerationOverrides(),
+    },
     // Not dead: the SDK still takes the endpointing delays and the interruption
     // duration (and minWords under INTERRUPTION_MODE=vad) from here.
     voiceOptions: {
@@ -146,6 +151,8 @@ export async function createCallSession(
   limitSessionListeners(session); // ~16 features watch agent_state_changed
 
   logBargeInDecisions(session, sessionId);
+  // PHONE_AUDIO_SUMMARY at call end: the phone audio A/B reads it.
+  if (phone === true) watchPhoneAudio(session, sessionId, phoneInterruptTuningOn(phone));
   // STT_AUDIO_DIAGNOSTICS: VAD bursts with no transcript, SDK audio discards (stt-audio-diagnostics.ts)
   watchSessionSttAudio(session, externalStt);
   // LOOP_STALL lines say whether Ferni was speaking (loop-watch.ts).

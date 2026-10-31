@@ -253,7 +253,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
                 timestamp: diagTimestamp,
                 toolName,
                 status: hasError ? 'error' : 'success',
-                resultPreview: resultSummary.slice(0, 100),
+                resultLen: resultSummary.length,
                 sessionId,
               },
               '🔍 [DIAG] Music tool executed - check if previous news/weather errors affected this'
