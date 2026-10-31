@@ -21,7 +21,7 @@ import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { cleanForFirestore, toSafeDate } from '../../utils/firestore-utils.js';
 import { onContactChange, onContactInteractionChange } from '../data-layer/hooks/contacts-hooks.js';
 import { createExpiringMarks } from '../../utils/expiring-marks.js';
-import { isRememberedContact, type InMemory } from './remembered-contacts.js';
+import { isRememberedContact } from './remembered-contacts.js';
 import { RELATIONSHIP_ALIASES } from './relationship-aliases.js';
 import { daysSinceLastInteraction, formatDaysAgo, interactionFields } from './last-interaction.js';
 export { daysSinceLastInteraction, formatDaysAgo } from './last-interaction.js';
@@ -60,7 +60,6 @@ export interface ContactRelationship {
   topics: ContactTopic[];
   recentContext: string[]; // Last 5 interaction summaries
 
-  inMemory?: InMemory; // Someone the user has lost, as they marked it (CONTACT_IN_MEMORY)
   importantDates?: Array<{
     date: string; // MM-DD or YYYY-MM-DD
     type: 'birthday' | 'anniversary' | 'memorial' | 'custom';

@@ -19,7 +19,7 @@ the token's `from`.
 
 Code: `src/services/identity/phone-attestation.ts` (mint/verify),
 `src/api/voice-auth/inbound-call-routes.ts` (webhook),
-`src/agents/voice-agent-entry/sip-caller.ts` (agent, shadow log only).
+`src/agents/voice-agent-entry/sip-caller.ts` (agent, read by caller recognition).
 
 ## Blocker found while building this (fixed, #2679)
 
@@ -49,8 +49,9 @@ configured URL is still unverified: it must be on one of those origins.
    shown in LiveKit Cloud → Telephony → SIP; it is not the `LIVEKIT_URL` host.
    `LIVEKIT_SIP_HOST` must be a bare `host[:port]`; anything else disables
    attestation (logged).
-3. **Agent secret**: add `PHONE_ATTEST_SECRET` (same value) and
-   `PHONE_VERIFY=shadow` to the agent's LiveKit Cloud secrets. Without
+3. **Agent secret**: add `PHONE_ATTEST_SECRET` (same value) to the agent's
+   LiveKit Cloud secrets. (The `PHONE_VERIFY=shadow` log was removed on
+   2026-10-31.) Without
    `--overwrite` `lk agent update-secrets` only adds keys; pass one `--secrets`
    per key (a comma-joined value sets ONE key). Do dev (`CA_siTDMHEba4Fg`)
    first, then prod (`CA_GeFvEpsNXLSF`).
@@ -73,13 +74,10 @@ configured URL is still unverified: it must be on one of those origins.
    US carrier mobile).
 2. Twilio debugger: the webhook returned 200 and TwiML with
    `X-Ferni-Attest=` in the `<Sip>` URI.
-3. Agent logs for that call have one `SIP_CALLER` line with
-   `attestationSource: "signed"`, `signedStatus: "signed"`, `attestation: "A"`,
-   and only a masked number (`**67`). It must not contain the token or the full
-   number.
+3. Agent logs for that call have a `CALLER_ATTESTATION` line with
+   `signedStatus: "signed"`. It must not contain the token or the full number.
 4. Negative check: dial the trunk directly (bypassing the webhook) with a
-   forged `X-Twilio-VerStat` — the line shows `attestationSource: "header"` and
-   `signedStatus: "unsigned"`.
+   forged `X-Twilio-VerStat` — the line shows `signedStatus: "unsigned"`.
 
 ## Rollback
 
