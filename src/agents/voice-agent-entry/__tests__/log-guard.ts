@@ -186,14 +186,14 @@ function stripComments(text: string): string {
   return out;
 }
 
-interface Logged {
+export interface Logged {
   key?: string;
   value: string;
   kind: 'field' | 'spread' | 'bare' | 'interpolation';
 }
 
 /** Every value a logger call's arguments carry. */
-function logged(args: string): Logged[] {
+export function logged(args: string): Logged[] {
   const out: Logged[] = [];
   const visit = (expr: string, kind: Logged['kind'], key?: string): void => {
     const e = stripComments(expr).trim();

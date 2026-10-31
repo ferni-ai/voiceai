@@ -485,7 +485,7 @@ export function createCacheAwareTransform(config: CacheAwareTTSConfig): {
 
             log.debug(
               {
-                sentence: sentence.slice(0, 30),
+                sentenceLen: sentence.length,
                 sessionId,
                 audioBytes: cacheResult.audio.byteLength,
               },

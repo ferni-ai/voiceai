@@ -219,7 +219,7 @@ export function validateTranscript(
     for (const pattern of LIKELY_NOISE_WORDS) {
       if (pattern.test(trimmed)) {
         log.debug('Transcript rejected: likely noise word', {
-          transcript: trimmed,
+          transcriptLen: trimmed.length,
           pattern: pattern.source,
           expectedLang,
         });
@@ -286,7 +286,7 @@ export function validateTranscript(
   // Catches: ".", "..", "...", "!", "?", "...", etc.
   // =========================================================================
   if (PUNCTUATION_ONLY_PATTERN.test(trimmed)) {
-    log.debug('Transcript rejected: punctuation only', { transcript: trimmed });
+    log.debug('Transcript rejected: punctuation only', { transcriptLen: trimmed.length });
     return {
       isValid: false,
       reason: 'single_char', // Reuse reason - semantically similar
@@ -302,7 +302,7 @@ export function validateTranscript(
   // =========================================================================
   const isWhitelistedPhrase = VALID_SHORT_PHRASES.some((pattern) => pattern.test(trimmed));
   if (isWhitelistedPhrase) {
-    log.debug('Transcript whitelisted: common greeting/phrase', { transcript: trimmed });
+    log.debug('Transcript whitelisted: common greeting/phrase', { transcriptLen: trimmed.length });
     return {
       isValid: true,
       confidence: 1.0,
@@ -317,7 +317,7 @@ export function validateTranscript(
   const inEchoWindow = context.timeSinceAgentSpoke < ECHO_VIGILANCE_WINDOW_MS;
   if (inEchoWindow && trimmed.length < MIN_ECHO_WINDOW_LENGTH) {
     log.debug('Transcript rejected: too short during echo window', {
-      transcript: trimmed,
+      transcriptLen: trimmed.length,
       length: trimmed.length,
       timeSinceAgentSpoke: context.timeSinceAgentSpoke,
     });
@@ -381,7 +381,7 @@ export function validateTranscript(
     const wordCount = trimmed.split(/\s+/).filter((w) => w.length > 0).length;
     if (wordCount < 2) {
       log.debug('Transcript rejected: too few words during agent speech', {
-        transcript: trimmed,
+        transcriptLen: trimmed.length,
         wordCount,
       });
       return {

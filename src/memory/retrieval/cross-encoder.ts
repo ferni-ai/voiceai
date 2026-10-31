@@ -190,7 +190,7 @@ Relevance score (0-100):`;
       const score = parseInt(responseText, 10);
 
       if (isNaN(score)) {
-        log.debug({ responseText }, 'Invalid score response, defaulting to 50');
+        log.debug({ responseTextLen: responseText.length }, 'Invalid score response, defaulting to 50');
         return 0.5;
       }
 

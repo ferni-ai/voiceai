@@ -1114,7 +1114,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
             trajectory: intervention.trajectory,
             guidance:
               typeof intervention.guidance === 'string'
-                ? intervention.guidance.slice(0, 100)
+                ? intervention.guidance.length
                 : undefined,
           });
           // Dispatch to frontend for avatar adjustment

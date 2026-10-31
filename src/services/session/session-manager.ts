@@ -579,7 +579,7 @@ export async function createSessionServices(
           {
             totalInsights: insightResult.insights.length,
             highPriority: insightResult.highPriorityCount,
-            suggestedStarter: insightResult.suggestedConversationStarter?.slice(0, 50),
+            suggestedStarterLen: insightResult.suggestedConversationStarter?.length,
           },
           'Generated proactive insights for returning user'
         );

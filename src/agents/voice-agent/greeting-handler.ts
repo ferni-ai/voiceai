@@ -683,7 +683,7 @@ async function generateGreetingWithContext(
     if (threadStarter) {
       diag.session('Found cross-session thread to surface', {
         threadCount: openThreads.length,
-        starter: threadStarter.slice(0, 50),
+        starterLen: threadStarter.length,
       });
     }
   }
@@ -875,7 +875,7 @@ async function appendMusicCallback(
     // 20% chance to mention music preferences in greeting (not too pushy)
     if (musicCallback && Math.random() < 0.2) {
       diag.session('Added cross-session music callback', {
-        callback: musicCallback.slice(0, 50),
+        callbackLen: musicCallback.length,
       });
       return `${greeting} <break time="500ms"/> ${musicCallback}`;
     }
