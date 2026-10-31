@@ -1,7 +1,7 @@
 /**
  * A caller with no account (an anon: phone session) can't make Ferni call,
  * text or email anyone, and nobody is reached for a name from a persona's own
- * life (Ferni's friend Jim). The account owner's calls are unchanged.
+ * life (Ferni's friend Hollis). The account owner's calls are unchanged.
  *
  * Drives callOnBehalf as the live agent gets it: the telephony definitions
  * registered into a ToolRegistry (register() applies the gates), the real tool
@@ -129,24 +129,24 @@ describe('outbound tools check who is asking', () => {
 
   it("a name from Ferni's own life is refused when the owner has no number for it", async () => {
     const call = liveCall('user-1');
-    const out = await call.call({ contactQuery: 'Jim', purpose: 'get him on the line' }, 'c1');
-    expect(out).toContain('Jim is someone from my own life');
+    const out = await call.call({ contactQuery: 'Hollis', purpose: 'get him on the line' }, 'c1');
+    expect(out).toContain('Hollis is someone from my own life');
     expect(out).not.toContain('NOT SENT YET');
     call.caller('Yes.');
-    await call.call({ contactQuery: 'Jim', purpose: 'get him on the line' }, 'c2');
+    await call.call({ contactQuery: 'Hollis', purpose: 'get him on the line' }, 'c2');
     expect(dials()).toBe(0);
   });
 
-  it("the owner's own Jim (saved, or given with a number) is reached as before", async () => {
+  it("the owner's own Hollis (saved, or given with a number) is reached as before", async () => {
     contacts.saved = [
-      { id: 'c-jim', name: 'Jim', phone: '(801) 555-0163', relationship: 'friend' },
+      { id: 'c-hollis', name: 'Hollis', phone: '(801) 555-0163', relationship: 'friend' },
     ];
-    const saved = await liveCall('user-1').call({ contactQuery: 'Jim', purpose: 'hi' }, 'c1');
+    const saved = await liveCall('user-1').call({ contactQuery: 'Hollis', purpose: 'hi' }, 'c1');
     expect(saved).toContain('NOT SENT YET');
     expect(saved).toContain('801-555-0163');
     contacts.saved = [];
     const withNumber = await liveCall('user-1').call(
-      { contactQuery: 'Jim', phoneNumber: '8015550199', purpose: 'hi' },
+      { contactQuery: 'Hollis', phoneNumber: '8015550199', purpose: 'hi' },
       'c1'
     );
     expect(withNumber).toContain('NOT SENT YET');

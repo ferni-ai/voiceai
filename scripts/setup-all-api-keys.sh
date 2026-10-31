@@ -61,19 +61,6 @@ setup_secret() {
 }
 
 # ============================================================================
-# FREE APIs (Quick wins)
-# ============================================================================
-
-echo ""
-echo "🆓 FREE APIs (Quick Wins)"
-echo ""
-
-setup_secret "yelp-api-key" \
-  "Yelp Fusion API (Jordan - Restaurants)" \
-  "https://www.yelp.com/developers/v3/manage_app" \
-  "FREE - Click 'Create App', copy the API Key"
-
-# ============================================================================
 # BIOMETRICS APIs (Maya)
 # ============================================================================
 
@@ -185,10 +172,6 @@ echo "Biometrics (Maya):"
 check_secret "terra-api-key" "Terra (300+ wearables)"
 check_secret "oura-client-id" "Oura Ring"
 check_secret "whoop-client-id" "Whoop"
-
-echo ""
-echo "Restaurants (Jordan):"
-check_secret "yelp-api-key" "Yelp Fusion"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

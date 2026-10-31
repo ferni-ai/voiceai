@@ -42,6 +42,18 @@
  *   gateway holds an opening hello until that word anyway
  *   (speech/tts-gateway/name-intonation.ts), so first audio is no later.
  *
+ * NAME_GATE_V2 (off by default) also drops a name from a question, in every
+ * slot: on Ferni's voice (fdeb5d75) "What about you, | Seth?" rose 14.8 st, 9.1
+ * in one push, name-first "Seth, how's it going?" 7.2 (voiceai-evidence/
+ * name-intonation-2026-10-24). A reply's one name then goes to a statement later
+ * in it, if there is one: "What about you? ... your voice, Seth." ended the name
+ * 4.6 st below the speaker where keeping it in the question ended 10 st above
+ * (name-gate-v2-2026-10-24). A hello ("Hey Sam, how are you?") and a name
+ * between clauses stay with NAME_FALLING_INTONATION on, which makes them
+ * statements ("Hey Sam."). "Oh hey Sam" never stays (7.7 st). V2 also widens
+ * the vocatives found (", Sam, and that sounds hard") and gates scripted lines
+ * spoken with session.say() (scripted-name-gate.ts). It never adds a name.
+ *
  * NAME_GATE=off turns it off.
  *
  * @module agents/personas/name-gate
@@ -110,6 +122,57 @@ const SPOKEN = /\p{L}/u;
 /** Letters outside markup: what counts as words for timing. */
 const spoken = (t: string): boolean => SPOKEN.test(t.replace(/<[^>]*>|\[[^\]]*\]/g, ''));
 
+/** Whether this reply may say the name, and how NAME_GATE_V2 and the falling delivery shape it. */
+type GateSettings = { allowed: boolean; falling: boolean; v2: boolean };
+
+/**
+ * NAME_GATE_V2: whether this name sits in a question the voice would end on a
+ * rise. With the falling delivery, a hello ("Hey Sam,") and a name between
+ * clauses end their own statement, so only a name before "?" or opening the
+ * question ("Sam, really?") counts; null while the sentence's end is to come.
+ */
+function inQuestion(v: Vocative, falling: boolean): boolean | null {
+  if (falling && (v.shape === 'greeting' || v.shape === 'pivot')) return false;
+  return v.asks === undefined ? false : v.asks;
+}
+
+/**
+ * Whether a vocative may be the reply's one name: the first at hello, a
+ * caller's goodbye or the interval, else the first that closes a goodbye
+ * ("Talk soon, Sam."); with NAME_GATE_V2 never one in a question.
+ */
+function mayKeep(v: Vocative, before: string, gate: GateSettings): boolean {
+  if (!gate.allowed && !GOODBYE_BEFORE_NAME.test(before)) return false;
+  if (!gate.v2) return true;
+  // "Oh hey Sam" rises whatever follows it (7.7 st; 8.2 with a full stop after the name).
+  return v.shape !== 'ohhey' && inQuestion(v, gate.falling) !== true;
+}
+
+/** NAME_GATE_V2: a name that may stay waits until its sentence shows whether it asks. */
+function waitsToAsk(v: Vocative, before: string, keptOne: boolean, gate: GateSettings): boolean {
+  if (!gate.v2 || keptOne || inQuestion(v, gate.falling) !== null) return false;
+  return gate.allowed || GOODBYE_BEFORE_NAME.test(before);
+}
+
+/** The gate's settings for one reply. */
+function gateFor(history: readonly HistoryItem[], name: string, env: Env): GateSettings {
+  const v2 = flagOn('NAME_GATE_V2', env);
+  return {
+    allowed: mayUseName(history, name, v2),
+    falling: flagOn('NAME_FALLING_INTONATION', env),
+    v2,
+  };
+}
+
+/**
+ * NAME_GATE_V2's prompt line where name use is asked for (goodbye.ts,
+ * first-call-rapport.ts): the gate drops a name in a question, so ask for the
+ * shape that keeps it. A name after a falling statement stayed low on the
+ * voice ("That's rough, Sam." 0.1 st); one before "?" rose.
+ */
+export const NAME_PLACEMENT_RULE =
+  'Never put their name next to a question mark or a request; when you use it, end a warm statement with it.';
+
 /** How long the gate held text back in one reply. */
 export interface NameGateTiming {
   /** From the reply's first spoken letters arriving to the first going out. */
@@ -137,8 +200,8 @@ const lastCallerWords = (items: readonly HistoryItem[]): string =>
  * goodbye from the caller, or NAME_EVERY replies since Ferni last said it
  * (or since the call began, when it hasn't).
  */
-export function mayUseName(items: readonly HistoryItem[], name: string): boolean {
-  const said = { test: (t: string): boolean => findVocatives(t, name, true).found.length > 0 };
+export function mayUseName(items: readonly HistoryItem[], name: string, v2 = false): boolean {
+  const said = { test: (t: string): boolean => findVocatives(t, name, true, v2).found.length > 0 };
   const replies = messagesOf(items).filter((i) => i.role === 'assistant');
   if (replies.length === 0) return true;
   if (GOODBYE.test(lastCallerWords(items))) return true;
@@ -190,8 +253,8 @@ export function withNameGate(
   if (!name || !flagOn('NAME_GATE', env)) return input;
   const caller = lastCallerWords(history);
   if (ASKS_OWN_NAME.test(caller) || GIVES_NAME.test(caller)) return input;
-  const allowed = mayUseName(history, name);
-  const falling = flagOn('NAME_FALLING_INTONATION', env);
+  const gate = gateFor(history, name, env);
+  const { allowed, falling, v2 } = gate;
   const split = flagOn('NAME_FALLING_SPLIT', env);
   const holdHello = split && falling && !allowed; // NAME_FALLING_SPLIT: see holdsHello()
   const now = opts.now ?? Date.now;
@@ -248,15 +311,14 @@ export function withNameGate(
 
   /** Whether this vocative is the one that stays (decided once, from the text before it). */
   const decideKeep = (v: Vocative): boolean => {
-    // At hello, a caller's goodbye or the interval, the first; otherwise the
-    // first that closes a goodbye ("Talk soon, Sam.").
-    const keep = !keptOne && (allowed || GOODBYE_BEFORE_NAME.test(raw.slice(0, v.nameAt)));
+    const keep = !keptOne && mayKeep(v, raw.slice(0, v.nameAt), gate);
     if (keep) keptOne = true;
     return keep;
   };
+  const waits = (v: Vocative): boolean => waitsToAsk(v, raw.slice(0, v.nameAt), keptOne, gate);
 
   const render = (final: boolean): string => {
-    const result = findVocatives(raw, name, final);
+    const result = findVocatives(raw, name, final, v2);
     const found: Vocative[] = [];
     for (const v of result.found) {
       const d = decided.get(v.nameAt);
@@ -278,6 +340,10 @@ export function withNameGate(
       }
       // It starts in text that went out undecided: drop only what is still to come.
       const clipped = clipVocative(v, raw, sentRaw, split);
+      if (clipped && waits(v)) {
+        found.push(clipped);
+        continue;
+      }
       if (clipped === null) keptOne = true; // the name went out
       decided.set(v.nameAt, { keep: clipped === null || decideKeep(v), clipped });
       if (clipped) found.push(clipped);
@@ -297,6 +363,7 @@ export function withNameGate(
       if (v.start < upTo && v.end > upTo) {
         upTo = Math.max(sentRaw, v.start); // waits whole
       }
+      if (!decided.has(v.nameAt) && waits(v)) upTo = Math.min(upTo, Math.max(sentRaw, v.start));
     }
     const done = found.filter((v) => v.end <= upTo);
     for (const v of done) {
@@ -379,4 +446,29 @@ export function withNameGate(
       }
     },
   });
+}
+
+/**
+ * NAME_GATE_V2: the name gate on a whole scripted line (session.say(): the
+ * greeting, the proactive "calling to check in" opener, a first-call
+ * fallback), decided as one reply with `history` before it.
+ */
+export function nameGateText(
+  text: string,
+  opts: { name: string | null; history: readonly HistoryItem[]; env?: Env }
+): string {
+  const env = opts.env ?? process.env;
+  const { name, history } = opts;
+  if (!name || !flagOn('NAME_GATE', env) || !flagOn('NAME_GATE_V2', env)) return text;
+  const caller = lastCallerWords(history);
+  if (ASKS_OWN_NAME.test(caller) || GIVES_NAME.test(caller)) return text;
+  const gate = gateFor(history, name, env);
+  const { found } = findVocatives(text, name, true, true);
+  const out = applyVocatives(
+    text,
+    found,
+    (v) => mayKeep(v, text.slice(0, v.nameAt), gate),
+    gate.falling
+  );
+  return LETTER.test(out) ? out : text;
 }
