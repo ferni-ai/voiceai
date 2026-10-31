@@ -327,7 +327,7 @@ describe('the bank link goes only to the contact on the caller’s account', () 
     const reply = await tools().linkBankAccount.execute({ deliveryMethod: 'sms', contact: STRANGER_PHONE }, callOf(BOB)); // prettier-ignore
 
     expect(textOwner).toHaveBeenCalledTimes(1);
-    expect(textOwner).toHaveBeenCalledWith(BOB, expect.stringContaining('token=link-sandbox-fixture'), { askedNow: true }); // prettier-ignore
+    expect(textOwner).toHaveBeenCalledWith(BOB, expect.stringContaining('token=link-sandbox-fixture'), { askedNow: false }); // prettier-ignore
     expect(JSON.stringify(textOwner.mock.calls)).not.toContain(STRANGER_PHONE);
     expect(reply).toContain('the phone on your account');
     expect(reply).not.toContain(STRANGER_PHONE);

@@ -249,7 +249,7 @@ export async function getSemanticToolHints(context: ToolHintContext): Promise<To
 
     log.debug(
       {
-        inputText: context.inputText.substring(0, 50),
+        inputTextLen: context.inputText.length,
         hintCount: hints.length,
         topHint: hints[0]?.toolId,
         topConfidence: hints[0]?.confidence,
@@ -268,7 +268,7 @@ export async function getSemanticToolHints(context: ToolHintContext): Promise<To
     };
   } catch (error) {
     log.warn(
-      { error: String(error), inputText: context.inputText },
+      { error: String(error), inputTextLen: context.inputText.length },
       'Failed to get tool hints, returning empty'
     );
 

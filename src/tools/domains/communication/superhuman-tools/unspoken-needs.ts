@@ -266,7 +266,7 @@ export async function saveUnspokenNeed(
         {
           userId,
           needCategory: need.needCategory,
-          surfaceComplaint: need.surfaceComplaint.slice(0, 50),
+          surfaceComplaintLen: need.surfaceComplaint.length,
         },
         '💭 Unspoken need saved'
       );

@@ -71,12 +71,16 @@ describe('argument checks', () => {
     expect(() => planWrites(parseArgs(['override', 'CANDOR', 'on']), undefined, NOW)).toThrow(/--uid/); // prettier-ignore
   });
 
-  it('TURN_LENGTH and TURN_TEXTURE take learned or off; the switches never take learned', () => {
+  it('TURN_LENGTH and TURN_TEXTURE take learned or off (TURN_LENGTH adaptive too); switches never', () => {
     const plan = (...a: string[]) =>
       planWrites(parseArgs(['set-flag', 'seth', ...a]), undefined, NOW);
     expect(plan('TURN_LENGTH', 'learned')[0]?.fields).toEqual({ 'flags.TURN_LENGTH': 'learned', updatedAt: NOW }); // prettier-ignore
     expect(plan('TURN_TEXTURE', 'off')[0]?.fields).toEqual({ 'flags.TURN_TEXTURE': 'off', updatedAt: NOW }); // prettier-ignore
-    expect(() => plan('TURN_LENGTH', 'on')).toThrow(/TURN_LENGTH must be learned or off/);
+    expect(plan('TURN_LENGTH', 'adaptive')[0]?.fields).toEqual({ 'flags.TURN_LENGTH': 'adaptive', updatedAt: NOW }); // prettier-ignore
+    expect(() => plan('TURN_LENGTH', 'on')).toThrow(
+      /TURN_LENGTH must be learned or adaptive or off/
+    );
+    expect(() => plan('TURN_TEXTURE', 'adaptive')).toThrow(/TURN_TEXTURE must be learned or off/);
     expect(() => plan('PERSONA_VOICE', 'learned')).toThrow(/PERSONA_VOICE must be on or off/);
     const o = planWrites(parseArgs(['override', 'TURN_TEXTURE', 'learned']), 'voice-eval-x', NOW); // prettier-ignore
     expect(o[0]?.fields).toEqual({ flags: { TURN_TEXTURE: 'learned' }, updatedAt: NOW });
@@ -89,13 +93,25 @@ describe('override names the person, then the flag and its value', () => {
   it('override <uid> FLAG on', async () => {
     const r = await cli(['override', 'uid-1', 'PROACTIVE_CHANNELS', 'on', '--project', 'p1']);
     expect(r.code).toBe(0);
-    expect(r.lines.join('\n')).toContain('feature_flag_overrides/uid-1 {"flags":{"PROACTIVE_CHANNELS":"on"}');
+    expect(r.lines.join('\n')).toContain(
+      'feature_flag_overrides/uid-1 {"flags":{"PROACTIVE_CHANNELS":"on"}'
+    );
   });
 
   it('override FLAG on --uid <uid>', async () => {
-    const r = await cli(['override', 'PROACTIVE_CHANNELS', 'off', '--uid', 'uid-1', '--project', 'p1']);
+    const r = await cli([
+      'override',
+      'PROACTIVE_CHANNELS',
+      'off',
+      '--uid',
+      'uid-1',
+      '--project',
+      'p1',
+    ]);
     expect(r.code).toBe(0);
-    expect(r.lines.join('\n')).toContain('feature_flag_overrides/uid-1 {"flags":{"PROACTIVE_CHANNELS":"off"}');
+    expect(r.lines.join('\n')).toContain(
+      'feature_flag_overrides/uid-1 {"flags":{"PROACTIVE_CHANNELS":"off"}'
+    );
   });
 
   it('clear-override <uid> FLAG', async () => {

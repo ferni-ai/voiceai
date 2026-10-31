@@ -39,7 +39,7 @@ export type PlaidCaller =
 /** What each failure honestly means; not_connected is the tool's own offer to link. */
 export const PLAID_LINES = {
   needs_verification:
-    "I can go over your bank details once you've verified it's you in the Ferni app. Want me to text the app link to the number on your account?",
+    "I can go over your bank details once you're signed in to the Ferni app, so I know it's you.",
   needs_reauth:
     "Your bank wants you to sign in again before I can see anything, so I don't have your numbers right now. Want me to send you a link to reconnect?",
   unreachable:

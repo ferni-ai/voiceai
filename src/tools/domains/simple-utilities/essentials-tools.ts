@@ -472,7 +472,7 @@ const quickCaptureDef: ToolDefinition = {
         }
 
         log.info(
-          { userId: ctx.userId, routing, persisted, thought: thought.slice(0, 50) },
+          { userId: ctx.userId, routing, persisted, thoughtLen: thought.length },
           'Thought routed'
         );
 

@@ -276,7 +276,7 @@ export async function runDeepAnalysis(input: DeepAnalysisInput): Promise<DeepAna
     try {
       parsed = JSON.parse(text);
     } catch {
-      log.warn({ userId, response: text.slice(0, 500) }, 'Failed to parse deep analysis JSON');
+      log.warn({ userId, responseLen: text.length }, 'Failed to parse deep analysis JSON');
       return createEmptyResult();
     }
 

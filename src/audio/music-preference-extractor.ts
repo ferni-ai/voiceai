@@ -296,7 +296,7 @@ export function extractMusicPreferences(text: string): ExtractedMusicPreference[
 
   if (unique.length > 0) {
     log.debug('🎵 Extracted music preferences from conversation', {
-      text: text.slice(0, 100),
+      textLen: text.length,
       preferences: unique,
     });
   }

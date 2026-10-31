@@ -256,7 +256,7 @@ export function withoutStaleTurnContext<T extends { items: ChatItemView[]; copy(
   );
   if (stale.size === 0) return chatCtx;
   log.info(
-    { answering: answering.slice(0, 60), dropped: stale.size },
+    { answeringLen: answering.length, dropped: stale.size },
     'STALE_TURN_CONTEXT_DROPPED'
   );
   const ctx = chatCtx.copy();

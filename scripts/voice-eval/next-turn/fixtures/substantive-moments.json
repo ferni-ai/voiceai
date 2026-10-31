@@ -1,0 +1,521 @@
+[
+  {
+    "id": "syn-question-00",
+    "file": "syn-00",
+    "type": "question",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "ugh my car's making this grinding noise when I brake" },
+      { "who": "friend", "text": "oh no, since when?" },
+      {
+        "who": "caller",
+        "text": "since like monday. is that something I can keep driving on for a couple weeks?"
+      }
+    ]
+  },
+  {
+    "id": "syn-question-01",
+    "file": "syn-01",
+    "type": "question",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "so my neighbor's tree is hanging way over our fence" },
+      { "who": "friend", "text": "the big oak one?" },
+      {
+        "who": "caller",
+        "text": "yeah. am I allowed to just cut the branches that are on our side?"
+      }
+    ]
+  },
+  {
+    "id": "syn-question-02",
+    "file": "syn-02",
+    "type": "question",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "I finally started running again" },
+      { "who": "friend", "text": "nice, how's it going?" },
+      {
+        "who": "caller",
+        "text": "my knees kind of ache after. is that normal when you start back up?"
+      }
+    ]
+  },
+  {
+    "id": "syn-question-03",
+    "file": "syn-03",
+    "type": "question",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "my sourdough came out flat again" },
+      { "who": "friend", "text": "again? that's the third one" },
+      {
+        "who": "caller",
+        "text": "right? is it the starter or am I doing something wrong with the folding?"
+      }
+    ]
+  },
+  {
+    "id": "syn-question-04",
+    "file": "syn-04",
+    "type": "question",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "my landlord just texted that rent's going up two hundred" },
+      { "who": "friend", "text": "two hundred? oof" },
+      { "who": "caller", "text": "yeah. is that even allowed in the middle of a lease?" }
+    ]
+  },
+  {
+    "id": "syn-question-05",
+    "file": "syn-05",
+    "type": "question",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "the kid's teacher wants a meeting next week" },
+      { "who": "friend", "text": "uh oh, what about?" },
+      {
+        "who": "caller",
+        "text": "she says he's not focusing. is that something I should be worried about at seven?"
+      }
+    ]
+  },
+  {
+    "id": "syn-question-06",
+    "file": "syn-06",
+    "type": "question",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "I got this job offer, it pays more but it's fully in office" },
+      { "who": "friend", "text": "oh interesting" },
+      { "who": "caller", "text": "is the extra money worth an hour of commuting every day?" }
+    ]
+  },
+  {
+    "id": "syn-question-07",
+    "file": "syn-07",
+    "type": "question",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "my sister keeps asking to borrow money" },
+      { "who": "friend", "text": "again?" },
+      { "who": "caller", "text": "yeah. is it bad to just say no this time?" }
+    ]
+  },
+  {
+    "id": "syn-advice-08",
+    "file": "syn-08",
+    "type": "advice",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "so I think I messed up at work today" },
+      { "who": "friend", "text": "what happened?" },
+      {
+        "who": "caller",
+        "text": "I snapped at my coworker in a meeting in front of everyone. should I apologize or just let it go?"
+      }
+    ]
+  },
+  {
+    "id": "syn-advice-09",
+    "file": "syn-09",
+    "type": "advice",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "I've been sleeping like four hours a night" },
+      { "who": "friend", "text": "that's rough, work stuff?" },
+      { "who": "caller", "text": "just can't turn my brain off. any ideas what actually helps?" }
+    ]
+  },
+  {
+    "id": "syn-advice-10",
+    "file": "syn-10",
+    "type": "advice",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "my best friend didn't invite me to her birthday" },
+      { "who": "friend", "text": "wait, really?" },
+      {
+        "who": "caller",
+        "text": "yeah and I saw the photos. do I bring it up or pretend I didn't see?"
+      }
+    ]
+  },
+  {
+    "id": "syn-advice-11",
+    "file": "syn-11",
+    "type": "advice",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "I have like nine thousand on a credit card" },
+      { "who": "friend", "text": "okay" },
+      {
+        "who": "caller",
+        "text": "I don't know whether to pay that off first or keep putting money in savings"
+      }
+    ]
+  },
+  {
+    "id": "syn-advice-12",
+    "file": "syn-12",
+    "type": "advice",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "my dad keeps forgetting things lately" },
+      { "who": "friend", "text": "like what kind of things?" },
+      {
+        "who": "caller",
+        "text": "names, where he parked. I don't know how to bring it up with him without upsetting him"
+      }
+    ]
+  },
+  {
+    "id": "syn-advice-13",
+    "file": "syn-13",
+    "type": "advice",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "I want to ask for a raise" },
+      { "who": "friend", "text": "good, you've earned it" },
+      {
+        "who": "caller",
+        "text": "but I have no idea how to even start that conversation with my boss"
+      }
+    ]
+  },
+  {
+    "id": "syn-advice-14",
+    "file": "syn-14",
+    "type": "advice",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "my roommate never does the dishes" },
+      { "who": "friend", "text": "classic" },
+      { "who": "caller", "text": "how do I say something without it turning into a whole fight?" }
+    ]
+  },
+  {
+    "id": "syn-advice-15",
+    "file": "syn-15",
+    "type": "advice",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "I keep saying yes to everything at work" },
+      { "who": "friend", "text": "and you're drowning" },
+      { "who": "caller", "text": "totally. how do people actually say no without looking lazy?" }
+    ]
+  },
+  {
+    "id": "syn-explain-16",
+    "file": "syn-16",
+    "type": "explain",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "I've been reading about index funds" },
+      { "who": "friend", "text": "oh yeah?" },
+      { "who": "caller", "text": "how is that different from just buying a few stocks I like?" }
+    ]
+  },
+  {
+    "id": "syn-explain-17",
+    "file": "syn-17",
+    "type": "explain",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "my doctor said my vitamin d is low" },
+      { "who": "friend", "text": "huh, that's common" },
+      { "who": "caller", "text": "why does that even matter though? like what does it do?" }
+    ]
+  },
+  {
+    "id": "syn-explain-18",
+    "file": "syn-18",
+    "type": "explain",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "everyone at work is talking about the interest rate thing" },
+      { "who": "friend", "text": "the fed stuff?" },
+      { "who": "caller", "text": "yeah. why would that make my car loan more expensive?" }
+    ]
+  },
+  {
+    "id": "syn-explain-19",
+    "file": "syn-19",
+    "type": "explain",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "my daughter asked me why the sky is blue and I totally blanked" },
+      { "who": "friend", "text": "ha, the classic" },
+      { "who": "caller", "text": "so why is it actually blue?" }
+    ]
+  },
+  {
+    "id": "syn-explain-20",
+    "file": "syn-20",
+    "type": "explain",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "I keep hearing people say compound interest is magic" },
+      { "who": "friend", "text": "it kind of is" },
+      { "who": "caller", "text": "explain it to me like I'm five, how does it actually work?" }
+    ]
+  },
+  {
+    "id": "syn-explain-21",
+    "file": "syn-21",
+    "type": "explain",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "my phone battery dies so fast now" },
+      { "who": "friend", "text": "how old is it?" },
+      { "who": "caller", "text": "like three years. why do batteries get worse over time?" }
+    ]
+  },
+  {
+    "id": "syn-explain-22",
+    "file": "syn-22",
+    "type": "explain",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "we're thinking about solar panels" },
+      { "who": "friend", "text": "oh nice" },
+      {
+        "who": "caller",
+        "text": "how do they even save you money if you still pay the power company?"
+      }
+    ]
+  },
+  {
+    "id": "syn-explain-23",
+    "file": "syn-23",
+    "type": "explain",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "my therapist mentioned attachment styles" },
+      { "who": "friend", "text": "oh that's a big one" },
+      { "who": "caller", "text": "what does that even mean, like what's mine supposed to tell me?" }
+    ]
+  },
+  {
+    "id": "syn-planning-24",
+    "file": "syn-24",
+    "type": "planning",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "okay we're finally doing the anniversary trip" },
+      { "who": "friend", "text": "yes! where to?" },
+      {
+        "who": "caller",
+        "text": "that's the thing, we have four days and like two grand, mountains or beach?"
+      }
+    ]
+  },
+  {
+    "id": "syn-planning-25",
+    "file": "syn-25",
+    "type": "planning",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "I'm moving in six weeks" },
+      { "who": "friend", "text": "six weeks, that's soon" },
+      { "who": "caller", "text": "yeah and I haven't packed anything. where do I even start?" }
+    ]
+  },
+  {
+    "id": "syn-planning-26",
+    "file": "syn-26",
+    "type": "planning",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "I'm hosting thanksgiving this year for the first time" },
+      { "who": "friend", "text": "brave" },
+      { "who": "caller", "text": "twelve people. how far ahead should I start cooking stuff?" }
+    ]
+  },
+  {
+    "id": "syn-planning-27",
+    "file": "syn-27",
+    "type": "planning",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "I want to run a half marathon in the spring" },
+      { "who": "friend", "text": "oh love that" },
+      { "who": "caller", "text": "I can barely do three miles now. is that enough time to train?" }
+    ]
+  },
+  {
+    "id": "syn-planning-28",
+    "file": "syn-28",
+    "type": "planning",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "my mom's seventieth is in march" },
+      { "who": "friend", "text": "oh fun" },
+      {
+        "who": "caller",
+        "text": "I want to do something special but she hates big parties. what would you do?"
+      }
+    ]
+  },
+  {
+    "id": "syn-planning-29",
+    "file": "syn-29",
+    "type": "planning",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "we're trying to figure out daycare" },
+      { "who": "friend", "text": "ugh, it's so expensive" },
+      { "who": "caller", "text": "do we go with the one close to home or the one near my work?" }
+    ]
+  },
+  {
+    "id": "syn-planning-30",
+    "file": "syn-30",
+    "type": "planning",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "I want to start saving for a house" },
+      { "who": "friend", "text": "nice" },
+      { "who": "caller", "text": "how much should I actually be putting away each month?" }
+    ]
+  },
+  {
+    "id": "syn-planning-31",
+    "file": "syn-31",
+    "type": "planning",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "I'm thinking about going back to school at night" },
+      { "who": "friend", "text": "for what?" },
+      { "who": "caller", "text": "nursing. is it crazy to do that with a full time job?" }
+    ]
+  },
+  {
+    "id": "syn-followup-32",
+    "file": "syn-32",
+    "type": "followup",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "I'm thinking of quitting my job" },
+      { "who": "friend", "text": "honestly I'd wait until you have the next thing lined up" },
+      { "who": "caller", "text": "why though?" }
+    ]
+  },
+  {
+    "id": "syn-followup-33",
+    "file": "syn-33",
+    "type": "followup",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "should I get a dog?" },
+      { "who": "friend", "text": "I'd hold off until you're done traveling so much" },
+      { "who": "caller", "text": "how come?" }
+    ]
+  },
+  {
+    "id": "syn-followup-34",
+    "file": "syn-34",
+    "type": "followup",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "I'm going to repaint the kitchen myself" },
+      { "who": "friend", "text": "do the ceiling first, always" },
+      { "who": "caller", "text": "wait why the ceiling first?" }
+    ]
+  },
+  {
+    "id": "syn-followup-35",
+    "file": "syn-35",
+    "type": "followup",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "my brother says I should lease the car instead of buy" },
+      { "who": "friend", "text": "I'd probably buy if you keep cars a long time" },
+      { "who": "caller", "text": "how does that work out cheaper?" }
+    ]
+  },
+  {
+    "id": "syn-followup-36",
+    "file": "syn-36",
+    "type": "followup",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "I'm going to ask her to move in" },
+      { "who": "friend", "text": "I'd talk about money stuff first though" },
+      { "who": "caller", "text": "what do you mean, like what money stuff?" }
+    ]
+  },
+  {
+    "id": "syn-followup-37",
+    "file": "syn-37",
+    "type": "followup",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "I'm planting tomatoes this weekend" },
+      { "who": "friend", "text": "wait until it's warmer at night" },
+      { "who": "caller", "text": "why does night matter?" }
+    ]
+  },
+  {
+    "id": "syn-followup-38",
+    "file": "syn-38",
+    "type": "followup",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "thinking of switching to a standing desk" },
+      { "who": "friend", "text": "mix it up, don't stand all day" },
+      { "who": "caller", "text": "really? why not?" }
+    ]
+  },
+  {
+    "id": "syn-followup-39",
+    "file": "syn-39",
+    "type": "followup",
+    "split": "main",
+    "names": { "friend": "ferni", "caller": "Sam" },
+    "context": [
+      { "who": "caller", "text": "I put my savings in a regular bank account" },
+      { "who": "friend", "text": "I'd move some to a high yield one" },
+      { "who": "caller", "text": "how is that different?" }
+    ]
+  }
+]
