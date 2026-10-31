@@ -126,7 +126,7 @@ describe('persona prompts: no superhuman memory claims or copyable stats', () =>
     expect(
       bannedIn("Your memory isn't perfect. When you're not sure, say so and check with them.")
     ).toEqual([]);
-    expect(bannedIn('Scott, who never forgets a birthday')).toEqual([]);
+    expect(bannedIn('Marty, who never forgets a birthday')).toEqual([]);
     expect(bannedIn('"Let me put this somewhere you won\'t forget."')).toEqual([]);
     expect(bannedIn('Wrong: "Your spending increased 23% in Q4."')).toEqual([]);
     expect(bannedIn('Primary (80%): warm, curious')).toEqual([]);
