@@ -11,7 +11,7 @@
  *   create <cohort> --description "<text>"    a new cohort, enabled, no flags
  *   add-member <cohort> --uid <uid> | --email <email>
  *   remove-member <cohort> --uid <uid> | --email <email>
- *   set-flag <cohort> FLAG on|off             FLAG from COHORT_FLAGS (TURN_LENGTH/TEXTURE: learned|off)
+ *   set-flag <cohort> FLAG on|off             FLAG from COHORT_FLAGS (TURN_LENGTH: learned|adaptive|off, TURN_TEXTURE: learned|off)
  *   unset-flag <cohort> FLAG
  *   enable|disable <cohort>                   a whole cohort on or off (off is the fast kill)
  *   percent <cohort> <0-100>                  also a stable sample of every caller (0: members only)

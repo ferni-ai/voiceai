@@ -62,4 +62,40 @@ describe('filterCaptionStream', () => {
     expect(timed.text).toBe(' there');
     expect(timed.startTime).toBe(1.2);
   });
+
+  it('keeps word timings around a [laughter] cue it drops mid-stream', async () => {
+    // Cartesia word timestamps arrive one word per chunk (agents-plugin-cartesia tts.js).
+    const words: Array<[string, number, number]> = [
+      ['Oh ', 0.1, 0.3],
+      ['[laughter] ', 0.3, 0.9],
+      ['that ', 0.9, 1.1],
+      ['is ', 1.1, 1.2],
+      ['great ', 1.2, 1.6],
+    ];
+    const input = (async function* () {
+      for (const [text, startTime, endTime] of words) {
+        yield voice.createTimedString({ text, startTime, endTime });
+      }
+    })();
+    const out: Array<string | voice.TimedString> = [];
+    for await (const c of filterCaptionStream(input) as unknown as AsyncIterable<
+      string | voice.TimedString
+    >) {
+      out.push(c);
+    }
+    expect(out.map((c) => (typeof c === 'string' ? c : c.text)).join('')).not.toContain('laughter');
+    const spoken = out.filter((c) => (typeof c === 'string' ? c : c.text).trim() !== '');
+    expect(spoken.every((c) => voice.isTimedString(c))).toBe(true);
+    expect(
+      spoken.map((c) => {
+        const t = c as voice.TimedString;
+        return [t.text.trim(), t.startTime, t.endTime];
+      })
+    ).toEqual([
+      ['Oh', 0.1, 0.3],
+      ['that', 0.9, 1.1],
+      ['is', 1.1, 1.2],
+      ['great', 1.2, 1.6],
+    ]);
+  });
 });

@@ -11,14 +11,13 @@
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { getVerifiedUserId } from '../request-identity.js';
-import { isSpotifyConnectConfigured } from '../../../config/spotify-connect.js';
 import { createOAuthLinkState } from '../../token/oauth-link-state.js';
 import { sanitizeReturnUrl } from '../../token/validation.js';
 import { parseBodySafe } from '../../../utils/ddos-protection.js';
 import { isLinkedInEnabled, LINKEDIN_OAUTH_PROVIDER } from '../../../config/linkedin-flag.js';
 import {
   GMAIL_SEND_OAUTH_PROVIDER,
-  isGmailSendAsUserEnabled,
+  isGmailSendAsUserEnabledFor,
 } from '../../../config/gmail-send-flag.js';
 import {
   LINKEDIN_CONNECT_PATH,
@@ -38,31 +37,36 @@ function isOuraConfigured(): boolean {
   return process.env.NODE_ENV !== 'production' || !!process.env.OURA_REDIRECT_URI;
 }
 
-/** Provider → the login route that redirects on to the provider. */
+/**
+ * Provider → the login route that redirects on to the provider. No Spotify: Ferni
+ * doesn't link a person's Spotify account (Developer Policy III.3), so it is an
+ * unknown provider here (token/oauth/spotify.ts).
+ */
 const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
   ['google_calendar', '/auth/google/login'],
   [GMAIL_SEND_OAUTH_PROVIDER, '/auth/google/gmail-send/login'],
   ['microsoft_calendar', '/auth/microsoft/login'],
   ['apple_calendar', '/auth/apple/login'],
-  ['fitbit', '/wearables/fitbit/login'],
   ['oura', '/wearables/oura/login'],
   ['garmin', '/wearables/garmin/login'],
   ['whoop', '/wearables/whoop/login'],
   [LINKEDIN_PROVIDER, LINKEDIN_CONNECT_PATH],
-  ['spotify', '/spotify/login'],
 ]);
 
 /**
  * Providers that can be switched off by missing app credentials. Refusing here
- * lets the web say so instead of navigating to a page that can't go on.
+ * lets the web say so instead of navigating to a page that can't go on. Gmail
+ * send is asked for the verified caller: it can be on for one person only.
  */
-const AVAILABILITY: ReadonlyMap<string, { name: string; isConfigured: () => boolean }> = new Map([
+const AVAILABILITY: ReadonlyMap<
+  string,
+  { name: string; isConfigured: (uid: string) => boolean | Promise<boolean> }
+> = new Map([
   [LINKEDIN_PROVIDER, { name: 'LinkedIn', isConfigured: isLinkedInConfigured }],
-  ['spotify', { name: 'Spotify', isConfigured: () => isSpotifyConnectConfigured() }],
   ['oura', { name: 'Oura', isConfigured: isOuraConfigured }],
   [
     GMAIL_SEND_OAUTH_PROVIDER,
-    { name: 'Sending from Gmail', isConfigured: isGmailSendAsUserEnabled },
+    { name: 'Sending from Gmail', isConfigured: isGmailSendAsUserEnabledFor },
   ],
 ]);
 
@@ -111,7 +115,7 @@ export async function handleOAuthStartRoute(
     return true;
   }
   const availability = AVAILABILITY.get(provider);
-  if (availability && !availability.isConfigured()) {
+  if (availability && !(await availability.isConfigured(uid))) {
     sendJson(res, 503, {
       error: `${availability.name} isn't available right now`,
       unavailable: true,

@@ -37,14 +37,18 @@ describe('COHORT_FLAGS', () => {
         'PROACTIVE_CHANNELS', 'WEEKLY_PREDICTION', 'WELLBEING_AFTER_CALL', 'TOOLS_REAL_CALL_USER',
         'COACH_WINS',
         'FRIEND_CELEBRATIONS', 'REVIVED_INTELLIGENCE', 'CALL_JOURNAL', 'FOLLOW_THROUGH_IMPORT',
-        'PONDERING', 'HANDOFF_FIRST_FIX', 'MORNING_BRIEF', 'TOOLS_SAME_TURN',
+        'PONDERING', 'HANDOFF_FIRST_FIX', 'MORNING_BRIEF', 'TOOLS_SAME_TURN', 'PERSON_MODEL',
         'FOLLOW_THROUGH_OPENER', 'NAMED_TUNE', 'GOOD_NEWS_BIGGER', 'ALEX_CHIEF_OF_STAFF',
         'WEB_PUSH_DELIVERY', 'PERSONA_VOICE', 'TURN_LENGTH', 'TURN_TEXTURE',
         'REMINDER_SMS_DEFAULT', 'REMINDER_IN_APP_PUSH', 'FAMILY_TABLE', 'OPEN_LOOPS_IN_CONTEXT',
         'IOS_PUSH', 'FIRST_CALL_INTRO', 'RECALL_VECTOR_INDEX', 'SPECIALIST_TOOLS', 'CUSTOM_AGENT_LIVE',
         'FOCUS_HOLD', 'OUTREACH_SERVER_CONFIRM', 'COMMITMENT_SINGLE_WRITER',
         'ACTION_CLAIM_STREAM', 'PREEMPT_STABLE_CONTEXT', 'CACHE_WARM_PRIMARY',
-        'HANDOFF_CACHE_WARM', 'FORGET_DELETES',
+        'HANDOFF_CACHE_WARM', 'FORGET_DELETES', 'CRISIS_IMMINENT_NEEDS_AGREEMENT',
+        'GMAIL_SEND_AS_USER',
+        'QUIET_AFTER_QUESTION',
+        'CALL_NEWS_OPENER', 'TURN_MEMORY_RRF_SCALE', 'TURN_MEMORY_RERANK', 'CALLER_CARD',
+        'DATES_IN_HELLO',
       ].sort() // prettier-ignore
     );
   });
@@ -56,6 +60,22 @@ describe('COHORT_FLAGS', () => {
     expect(missingPrerequisites({ OUTREACH_PONDERED_NOTES: 'on' })).toEqual([
       'OUTREACH_PONDERED_NOTES needs PONDERING',
     ]);
+  });
+
+  it('turn rerank needs the rescale; dates in the hello need the dates writer and temporal facts', () => {
+    expect(missingPrerequisites({ TURN_MEMORY_RERANK: 'on' })).toEqual([
+      'TURN_MEMORY_RERANK needs TURN_MEMORY_RRF_SCALE',
+    ]);
+    expect(missingPrerequisites({ DATES_IN_HELLO: 'on', DATES_THAT_MATTER: 'on' })).toEqual([
+      'DATES_IN_HELLO needs WORLD_MODEL_TEMPORAL',
+    ]);
+    expect(missingPrerequisites({ DATES_IN_HELLO: 'on' })).toEqual([
+      'DATES_IN_HELLO needs DATES_THAT_MATTER, WORLD_MODEL_TEMPORAL',
+    ]);
+    const all = { TURN_MEMORY_RRF_SCALE: 'on', TURN_MEMORY_RERANK: 'on', DATES_THAT_MATTER: 'on' };
+    expect(
+      missingPrerequisites({ ...all, WORLD_MODEL_TEMPORAL: 'on', DATES_IN_HELLO: 'on' })
+    ).toEqual([]);
   });
 });
 

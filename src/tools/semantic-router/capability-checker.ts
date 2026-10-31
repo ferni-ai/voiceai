@@ -8,8 +8,13 @@
  * @module tools/semantic-router/capability-checker
  */
 
+import { flagOn } from '../../config/env-flag.js';
+import { googleMapsKey, MAPS_KEY_LEGACY } from '../../config/google-maps-key.js';
 import { isLinkedInEnabled } from '../../config/linkedin-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+
+/** The key chain this caller read before GOOGLE_MAPS_SERVER_KEY (config/google-maps-key.ts). */
+const MAPS_KEY = { legacy: MAPS_KEY_LEGACY.mapsThenGeneral };
 
 const log = createLogger({ module: 'capability-checker' });
 
@@ -113,10 +118,12 @@ function isCalendarConfigured(): boolean {
 }
 
 /**
- * Check if smart home is configured
+ * Check if smart home is configured. With SMART_HOME_LIFX on, no process env
+ * decides: each light tool checks its own caller's saved LIFX token
+ * (getCredential, domains/smart-home/caller-lifx-tools.ts).
  */
 function isSmartHomeConfigured(): boolean {
-  // Check for any server-wide smart home integration (LIFX is per-user, no app secret)
+  if (flagOn('SMART_HOME_LIFX')) return true;
   return Boolean(process.env.SONOS_CLIENT_ID || process.env.ECOBEE_API_KEY);
 }
 
@@ -139,7 +146,7 @@ function isEmailConfigured(): boolean {
  * Check if Maps API is configured
  */
 function isMapsConfigured(): boolean {
-  return Boolean(process.env.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_API_KEY);
+  return Boolean(googleMapsKey(MAPS_KEY));
 }
 
 /**

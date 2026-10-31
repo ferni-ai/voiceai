@@ -84,7 +84,7 @@ describe('canon judge', () => {
       claims: [
         {
           reply: 1,
-          quote: 'my brother Scott',
+          quote: 'my brother Marty',
           kind: 'contradiction',
           heavy: false,
           invited: 'unprompted',

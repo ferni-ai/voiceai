@@ -1209,7 +1209,6 @@
       "journaling": "היומן",
       "language": "שפה",
       "lifeContext": "העולם שלך",
-      "linkSpotify": "חיבור Spotify",
       "memoryBrowser": "מה שזכור לי",
       "musicalYou": "מוזיקה ביחד",
       "notifications": "מתי אעשה צ'ק-אין",
@@ -1219,7 +1218,6 @@
       "predictionAccuracy": "איך הולך לי",
       "progressAnalytics": "מה שלומך",
       "shareFerni": "להזמין חברים",
-      "spotifyConnected": "Spotify מחובר",
       "supportFerni": "לתמוך ב-Ferni",
       "supportFerniExpanded": "לתמוך ב-Ferni",
       "takeTour": "להכיר את המקום",
@@ -1882,9 +1880,9 @@
     "disconnected": "החיבור נותק",
     "end": "סיום",
     "endConversation": "לסיים את השיחה",
-    "endConversationGoodbye": "לסיים את השיחה - להתראות",
+    "goodbyeEndCall": "להתראות. סיום שיחה.",
     "endSession": "סיום השיחה",
-    "ending": "מסיימים...",
+    "ending": "השיחה הסתיימה",
     "goodbye": "להתראות",
     "holdToSpeak": "ללחוץ ולהחזיק כדי לדבר",
     "listening": "בהקשבה...",
@@ -1894,7 +1892,7 @@
     "takeCare": "שמרו על עצמכם.",
     "tapToSpeak": "ללחוץ כדי לדבר",
     "thinking": "רגע של מחשבה...",
-    "untilNextTime": "עד הפעם הבאה..."
+    "untilNextTime": "עד הפעם הבאה"
   },
   "stages": {
     "acquaintance": "מכר",
@@ -2435,10 +2433,6 @@
         "description": "סנכרון עם נתוני הבריאות של Apple Watch ו-iPhone",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "חיבור מכשיר ה-Fitbit שלך",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "סנכרון עם מכשירים לבישים של Garmin",
         "name": "Garmin"
@@ -2792,8 +2786,7 @@
       "askFerni": "או לבקש מ-Ferni לנגן משהו",
       "play": "הפעלה",
       "pause": "השהיה",
-      "skip": "דילוג",
-      "linkSpotify": "כדאי לחבר את Spotify בהגדרות כדי לשמוע שירים מלאים"
+      "skip": "דילוג"
     },
     "volume": "עוצמת קול",
     "skipped": "דולג",
@@ -8378,10 +8371,9 @@
     "appleHealthDesc": "נתוני שינה, פעילות ודופק",
     "ouraDesc": "איכות שינה ומדדי מוכנות",
     "eightSleepDesc": "מעקב שינה וטמפרטורה",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP ועוד",
+    "wearablesDesc": "Garmin, WHOOP ועוד",
     "calendarDesc": "אירועים, פגישות וזמינות",
     "linkedInDesc": "הקשר מקצועי ורשת קשרים",
-    "spotifyDesc": "מוזיקה, פלייליסטים לפי מצב רוח והיסטוריית האזנה",
     "ecobeeDesc": "טמפרטורה ונוחות בבית",
     "vibeControllerDesc": "שליטה במוזיקה, בתאורה ועוד",
     "connected": "מחובר"
@@ -9032,9 +9024,6 @@
     "trustJourneyExplore": "לחקור",
     "customizeTitle": "להתאים אישית את החוויה",
     "customizeMessage": "אפשר להתאים עיצובים, צלילים ועוד.",
-    "spotifyTitle": "חיבור Spotify",
-    "spotifyMessage": "אפשר לקשר את ה-Spotify כדי לקבוע את מצב הרוח במהלך השיחות שלנו.",
-    "spotifyConnect": "להתחבר",
     "maybeLater": "אולי מאוחר יותר"
   },
   "mentorTeachings": {
@@ -10267,7 +10256,6 @@
     "startupError": "יש קושי בעליית האפליקציה. לנסות לרענן?",
     "lastConversation": "זו השיחה האחרונה שלכם החודש. בואו ננצל אותה הכי טוב שאפשר.",
     "gettingReady": "מתכונן...",
-    "connecting": "מתחבר...",
     "almostThere": "כמעט שם...",
     "waitingQuietly": "אחכה בשקט",
     "listening": "אני מקשיב",
@@ -10595,7 +10583,6 @@
       "lighting": "תאורה",
       "stockData": "נתוני מניות",
       "marketData": "נתוני שוק",
-      "weatherMaps": "מזג אוויר ומפות",
       "historicalFacts": "עובדות היסטוריות",
       "smartHome": "בית חכם",
       "sleepHealth": "נתוני שינה ובריאות",
@@ -10901,13 +10888,14 @@
   "entrance": {
     "helper": "ליווי אישי צמוד",
     "connectToTalk": "לדבר עם Ferni",
-    "endTalk": "ניתוק",
-    "connectingCancel": "מתחבר. הקש לביטול",
-    "connectingNow": "מתחבר…",
+    "endTalk": "סיום שיחה",
+    "connectingCancel": "מתקשרים אל {name}. הקש לביטול.",
+    "connectingNow": "מתקשרים אל {name}…",
     "tapToCancel": "הקש לביטול",
-    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
-    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
-    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
+    "stillCalling": "עדיין מתקשרים אל {name}…",
+    "stillCallingCancel": "עדיין מתקשרים אל {name}. הקש לביטול.",
+    "reconnecting": "מתחברים מחדש…",
+    "arrived": "{name} כאן"
   },
   "analyticsDashboard": {
     "title": "המסע האישי",

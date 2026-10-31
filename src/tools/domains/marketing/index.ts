@@ -201,7 +201,8 @@ const postToTwitterDef: ToolDefinition = {
           const client = new TwitterClient();
 
           if (!client.isConfigured()) {
-            return "Twitter isn't connected yet. Would you like me to help you connect your Twitter account?";
+            // Per-user X posting isn't built, so there is no account to connect.
+            return "I can't post to X right now: posting isn't set up, and I can't connect your own X account.";
           }
 
           const thread = Array.isArray(content) ? content : [content];

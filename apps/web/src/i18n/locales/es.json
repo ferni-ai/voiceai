@@ -1216,7 +1216,6 @@
       "journaling": "La crónica",
       "language": "Idioma",
       "lifeContext": "Tu mundo",
-      "linkSpotify": "Conectar Spotify",
       "memoryBrowser": "Lo que recuerdo",
       "musicalYou": "Música compartida",
       "notifications": "Cuándo haré el registro",
@@ -1227,7 +1226,6 @@
       "predictionAccuracy": "Cómo lo estoy haciendo",
       "progressAnalytics": "Cómo te va",
       "shareFerni": "Invita a alguien",
-      "spotifyConnected": "Spotify conectado",
       "supportFerni": "Apoya a Ferni",
       "supportFerniExpanded": "Apoya a Ferni",
       "takeTour": "Dame un recorrido",
@@ -1883,9 +1881,9 @@
     "disconnected": "Sin conexión",
     "end": "Terminar",
     "endConversation": "Terminar conversación",
-    "endConversationGoodbye": "Terminar conversación - Adiós",
+    "goodbyeEndCall": "Adiós. Colgar.",
     "endSession": "Terminar sesión",
-    "ending": "Terminando...",
+    "ending": "Llamada terminada",
     "goodbye": "Adiós",
     "holdToSpeak": "Mantén presionado para hablar",
     "listening": "Escuchando...",
@@ -1895,7 +1893,7 @@
     "takeCare": "Cuídate.",
     "tapToSpeak": "Toca para hablar",
     "thinking": "Pensando...",
-    "untilNextTime": "Hasta la próxima..."
+    "untilNextTime": "Hasta la próxima"
   },
   "stages": {
     "acquaintance": "Conocidos",
@@ -2436,10 +2434,6 @@
         "description": "Sincroniza con los datos de salud de Apple Watch y iPhone",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Conecta tu dispositivo Fitbit",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Sincroniza con tus dispositivos corporales Garmin",
         "name": "Garmin"
@@ -2793,8 +2787,7 @@
       "askFerni": "O pídele a Ferni que reproduzca algo",
       "play": "Reproducir",
       "pause": "Pausar",
-      "skip": "Siguiente",
-      "linkSpotify": "Conecta Spotify en la configuración para escuchar canciones completas"
+      "skip": "Siguiente"
     },
     "volume": "Volumen",
     "skipped": "Omitido",
@@ -8381,10 +8374,9 @@
     "appleHealthDesc": "Datos de sueño, actividad y frecuencia cardíaca",
     "ouraDesc": "Calidad del sueño y puntuaciones de preparación",
     "eightSleepDesc": "Seguimiento del sueño y temperatura",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP y más",
+    "wearablesDesc": "Garmin, WHOOP y más",
     "calendarDesc": "Eventos, reuniones y disponibilidad",
     "linkedInDesc": "Contexto profesional y red de contactos",
-    "spotifyDesc": "Música, listas de reproducción según tu estado de ánimo e historial de reproducción",
     "ecobeeDesc": "Temperatura y comodidad del hogar",
     "vibeControllerDesc": "Controla la música, las luces y más",
     "connected": "Conectado"
@@ -9035,9 +9027,6 @@
     "trustJourneyExplore": "Explorar",
     "customizeTitle": "Personaliza tu experiencia",
     "customizeMessage": "Ajusta los temas, sonidos y más.",
-    "spotifyTitle": "Conectar Spotify",
-    "spotifyMessage": "Vincula tu Spotify para ambientar nuestras conversaciones.",
-    "spotifyConnect": "Conectar",
     "maybeLater": "Tal vez más tarde"
   },
   "mentorTeachings": {
@@ -10270,7 +10259,6 @@
     "startupError": "Hay problemas para iniciar. ¿Quieres probar a actualizar?",
     "lastConversation": "Esta es tu última conversación de este mes. Hagamos que valga la pena.",
     "gettingReady": "Preparando todo...",
-    "connecting": "Conectando",
     "almostThere": "Ya casi está...",
     "waitingQuietly": "Esperaré en silencio",
     "listening": "Te escucho",
@@ -10598,7 +10586,6 @@
     "names": {
       "stockData": "Datos de bolsa",
       "marketData": "Datos de mercado",
-      "weatherMaps": "Clima y mapas",
       "historicalFacts": "Datos históricos",
       "smartHome": "Hogar inteligente",
       "lighting": "Iluminación",
@@ -10906,13 +10893,14 @@
   "entrance": {
     "helper": "Tu guía personal",
     "connectToTalk": "Habla con Ferni",
-    "endTalk": "Desconectar",
-    "connectingCancel": "Conectando. Toca para cancelar",
-    "connectingNow": "Conectando…",
+    "endTalk": "Colgar",
+    "connectingCancel": "Llamando a {name}. Toca para cancelar.",
+    "connectingNow": "Llamando a {name}…",
     "tapToCancel": "Toca para cancelar",
-    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
-    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
-    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
+    "stillCalling": "Sigo llamando a {name}…",
+    "stillCallingCancel": "Sigo llamando a {name}. Toca para cancelar.",
+    "reconnecting": "Reconectando…",
+    "arrived": "{name} está aquí"
   },
   "analyticsDashboard": {
     "title": "Tu camino",

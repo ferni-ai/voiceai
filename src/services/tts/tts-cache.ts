@@ -136,7 +136,7 @@ export class TTSCache implements ITTSCache {
       const key = this.buildCacheKey(text, voiceId, prosody);
       if (this.cache.has(key)) {
         log.warn(
-          { text: text.slice(0, 50) },
+          { textLen: text.length },
           '🚫 TTS Cache: Deleting cached JSON function call (legacy entry)'
         );
         this.cache.delete(key);
@@ -154,7 +154,7 @@ export class TTSCache implements ITTSCache {
 
       log.debug(
         {
-          text: text.slice(0, 50),
+          textLen: text.length,
           voiceId: voiceId.slice(0, 8),
           hitCount: entry.hitCount,
         },
@@ -167,7 +167,7 @@ export class TTSCache implements ITTSCache {
     this.misses++;
     log.debug(
       {
-        text: text.slice(0, 50),
+        textLen: text.length,
         voiceId: voiceId.slice(0, 8),
       },
       '❌ TTS Cache MISS'
@@ -189,7 +189,7 @@ export class TTSCache implements ITTSCache {
     // FIX (Jan 2026): Don't cache JSON function calls
     // These are tool call leakage and should NEVER be spoken or cached
     if (isJsonFunctionCall(text)) {
-      log.warn({ text: text.slice(0, 50) }, '🚫 TTS Cache: Refusing to cache JSON function call');
+      log.warn({ textLen: text.length }, '🚫 TTS Cache: Refusing to cache JSON function call');
       return;
     }
 
@@ -199,7 +199,7 @@ export class TTSCache implements ITTSCache {
         {
           audioBytes: audio.byteLength,
           maxBytes: this.maxAudioSizeBytes,
-          text: text.slice(0, 50),
+          textLen: text.length,
         },
         'Audio too large to cache'
       );
@@ -225,7 +225,7 @@ export class TTSCache implements ITTSCache {
 
     log.debug(
       {
-        text: text.slice(0, 50),
+        textLen: text.length,
         voiceId: voiceId.slice(0, 8),
         audioBytes: audio.byteLength,
         durationMs,

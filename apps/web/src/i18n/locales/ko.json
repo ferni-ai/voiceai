@@ -1270,8 +1270,6 @@
       "notifications": "체크인 알림 시간",
       "toggleTheme": "라이트 / 다크 모드",
       "themeLanguage": "화면 스타일",
-      "linkSpotify": "Spotify 연결하기",
-      "spotifyConnected": "Spotify 연결됨",
       "vibeController": "분위기 설정하기",
       "spotifyRooms": "뮤직 룸",
       "thermostat": "스마트 홈 온도",
@@ -1870,9 +1868,9 @@
     "disconnected": "연결 끊김",
     "end": "종료",
     "endConversation": "대화 종료하기",
-    "endConversationGoodbye": "대화 종료하고 인사하기",
+    "goodbyeEndCall": "다음에 또 만나요. 통화 종료",
     "endSession": "대화 종료하기",
-    "ending": "종료하는 중...",
+    "ending": "통화가 끝났어요",
     "goodbye": "다음에 또 만나요",
     "holdToSpeak": "누른 채로 말하기",
     "listening": "듣고 있어요...",
@@ -1882,7 +1880,7 @@
     "takeCare": "잘 지내요.",
     "tapToSpeak": "눌러서 말하기",
     "thinking": "생각하는 중...",
-    "untilNextTime": "다음에 또 만나요..."
+    "untilNextTime": "다음에 또 만나요"
   },
   "stages": {
     "acquaintance": "아는 사이",
@@ -2417,10 +2415,6 @@
         "description": "Apple Watch 및 iPhone 건강 데이터와 동기화해요",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Fitbit 기기를 연결해요",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Garmin 웨어러블과 동기화해요",
         "name": "Garmin"
@@ -2774,8 +2768,7 @@
       "askFerni": "아니면 Ferni에게 음악을 틀어달라고 부탁해 보세요",
       "play": "재생",
       "pause": "일시 정지",
-      "skip": "건너뛰기",
-      "linkSpotify": "전체 곡을 들으려면 설정에서 Spotify를 연결해 주세요"
+      "skip": "건너뛰기"
     },
     "volume": "볼륨",
     "skipped": "건너뛰었어요",
@@ -8332,10 +8325,9 @@
     "appleHealthDesc": "수면, 활동 및 심박수 데이터",
     "ouraDesc": "수면의 질과 준비도 점수",
     "eightSleepDesc": "수면 분석과 온도 조절",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP 등",
+    "wearablesDesc": "Garmin, WHOOP 등",
     "calendarDesc": "일정, 회의, 비는 시간",
     "linkedInDesc": "커리어 맥락과 네트워크",
-    "spotifyDesc": "음악, 기분별 플레이리스트, 감상 기록",
     "ecobeeDesc": "집안 온도와 쾌적함",
     "vibeControllerDesc": "음악, 조명 등 제어하기",
     "connected": "연결됨"
@@ -8965,10 +8957,7 @@
     "trustJourneyExplore": "둘러보기",
     "customizeTitle": "나에게 맞게 설정하기",
     "customizeMessage": "테마, 소리 등을 조절해 보세요.",
-    "spotifyMessage": "Spotify를 연결해서 대화하는 동안의 기분을 설정해 보세요.",
-    "spotifyConnect": "연결하기",
-    "maybeLater": "나중에 할게요",
-    "spotifyTitle": "Spotify 연결하기"
+    "maybeLater": "나중에 할게요"
   },
   "mentorTeachings": {
     "learningFrom": "배우는 중",
@@ -10175,7 +10164,6 @@
     "startupError": "시작하는 데 문제가 생겼어요. 새로고침해 볼까요?",
     "lastConversation": "이번 달의 마지막 대화예요. 소중한 시간으로 만들어 봐요.",
     "gettingReady": "준비하는 중...",
-    "connecting": "연결하는 중",
     "almostThere": "거의 다 되었어요...",
     "waitingQuietly": "조용히 기다릴게요",
     "listening": "듣고 있어요",
@@ -10492,7 +10480,6 @@
     "names": {
       "stockData": "주식 데이터",
       "marketData": "시장 데이터",
-      "weatherMaps": "날씨 및 지도",
       "historicalFacts": "역사적 사실",
       "smartHome": "스마트 홈",
       "lighting": "조명",
@@ -10786,13 +10773,14 @@
   "entrance": {
     "helper": "나만을 위한 다정한 가이드",
     "connectToTalk": "Ferni와 대화하기",
-    "endTalk": "대화 종료",
-    "connectingCancel": "연결 중입니다. 탭하여 취소",
-    "connectingNow": "연결 중…",
+    "endTalk": "통화 종료",
+    "connectingCancel": "{name}님에게 전화하는 중입니다. 탭하여 취소",
+    "connectingNow": "{name}님에게 전화하는 중…",
     "tapToCancel": "탭하여 취소",
-    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
-    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
-    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
+    "stillCalling": "{name}님에게 계속 연결하는 중…",
+    "stillCallingCancel": "{name}님에게 계속 연결하는 중입니다. 탭하여 취소",
+    "reconnecting": "다시 연결하는 중…",
+    "arrived": "{name}님이 왔어요"
   },
   "analyticsDashboard": {
     "title": "나의 여정",

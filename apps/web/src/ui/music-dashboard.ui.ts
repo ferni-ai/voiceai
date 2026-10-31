@@ -272,10 +272,6 @@ class MusicDashboardUI {
     const sources = this.profileData?.musicSources;
     const gamesPlayed = sources?.games?.gamesPlayed || 0;
 
-    const spotifyStatus = sources?.spotify?.connected
-      ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${t('common.connected')}</span>`
-      : `<button class="music-sources__connect-btn" data-action="connect-spotify">${ICONS.link} ${t('common.connect')}</button>`;
-
     const appleMusicStatus = sources?.appleMusic?.connected
       ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${t('common.connected')}</span>`
       : `<button class="music-sources__connect-btn" data-action="connect-apple-music">${ICONS.link} ${t('common.connect')}</button>`;
@@ -300,15 +296,6 @@ class MusicDashboardUI {
             <span class="music-sources__status">${ICONS.check}</span>
           </div>
 
-          <div class="music-sources__item music-sources__item--spotify ${sources?.spotify?.connected ? 'music-sources__item--connected' : ''}">
-            <span class="music-sources__icon music-sources__icon--spotify">${ICONS.spotify}</span>
-            <div class="music-sources__info">
-              <span class="music-sources__name">Spotify</span>
-              <span class="music-sources__detail">${sources?.spotify?.connected ? t('musicDashboard.sources.librarySynced') : t('musicDashboard.sources.useYourLibrary')}</span>
-            </div>
-            ${spotifyStatus}
-          </div>
-
           <div class="music-sources__item music-sources__item--apple ${sources?.appleMusic?.connected ? 'music-sources__item--connected' : ''}">
             <span class="music-sources__icon music-sources__icon--apple">${ICONS.apple}</span>
             <div class="music-sources__info">
@@ -324,13 +311,6 @@ class MusicDashboardUI {
 
   /** Bind events for music source connect buttons (used in both states) */
   private bindMusicSourceEvents(): void {
-    this.wrapper
-      ?.querySelector('[data-action="connect-spotify"]')
-      ?.addEventListener('click', () => {
-        void import('./spotify.ui.js').then((m) => m.connectSpotify()); // no one heard the old event
-        this.hide();
-      });
-
     this.wrapper
       ?.querySelector('[data-action="connect-apple-music"]')
       ?.addEventListener('click', () => {
@@ -385,10 +365,6 @@ class MusicDashboardUI {
 
     const gamesPlayed = sources?.games?.gamesPlayed || 0;
 
-    const spotifyStatus = sources?.spotify?.connected
-      ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${tp('musicDashboard.sources.tracks', sources.spotify.trackCount || 0)}</span>`
-      : `<button class="music-sources__connect-btn" data-action="connect-spotify">${ICONS.link} ${t('common.connect')}</button>`;
-
     const appleMusicStatus = sources?.appleMusic?.connected
       ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${tp('musicDashboard.sources.tracks', sources.appleMusic.trackCount || 0)}</span>`
       : `<button class="music-sources__connect-btn" data-action="connect-apple-music">${ICONS.link} ${t('common.connect')}</button>`;
@@ -408,15 +384,6 @@ class MusicDashboardUI {
               <span class="music-sources__detail">${tp('musicDashboard.sources.plays', gamesPlayed)}</span>
             </div>
             <span class="music-sources__status music-sources__status--connected">${ICONS.check}</span>
-          </div>
-          
-          <div class="music-sources__item music-sources__item--spotify ${sources?.spotify?.connected ? 'music-sources__item--connected' : ''}">
-            <span class="music-sources__icon music-sources__icon--spotify">${ICONS.spotify}</span>
-            <div class="music-sources__info">
-              <span class="music-sources__name">Spotify</span>
-              <span class="music-sources__detail">${sources?.spotify?.connected ? t('musicDashboard.sources.librarySynced') : t('connections.status.notConnected')}</span>
-            </div>
-            ${spotifyStatus}
           </div>
           
           <div class="music-sources__item music-sources__item--apple ${sources?.appleMusic?.connected ? 'music-sources__item--connected' : ''}">
@@ -1881,10 +1848,6 @@ class MusicDashboardUI {
         height: 24px;
         color: var(--color-text-secondary);
         flex-shrink: 0;
-      }
-
-      .music-sources__icon--spotify {
-        color: var(--external-gpt-primary);
       }
 
       .music-sources__icon--apple {

@@ -12,16 +12,16 @@
  * - a request for a Spotify song (listening intent) gets a structured
  *   `spotify: unavailable` result with the reason class and a short true line,
  *   and asks before playing a preview;
- * - the notices that used to say "link Spotify" say what is true, and offer a
- *   link only when the connect route is configured (config/spotify-connect.ts)
- *   and the reason is not a revoked house token, which a caller's own link
- *   does not repair.
- * With it off every string below is the one main shipped.
+ * - the notices say Spotify isn't connected right now.
+ * No string offers to link Spotify, flag on or off: per-user Spotify will not
+ * be built (Spotify Developer Policy III.3 bans voice-assistant control), so
+ * Ferni can't play from a caller's own account. What works is the in-house
+ * player: full songs while the house Spotify works, 30-second previews when
+ * it doesn't (honest-promises sweep, 2026-10-30).
  *
  * @module tools/domains/entertainment/music-honesty
  */
 import { flagOn, type Env } from '../../../config/env-flag.js';
-import { isSpotifyConnectConfigured } from '../../../config/spotify-connect.js';
 import {
   getSpotifyAccessToken,
   isSpotifyConfigured,
@@ -31,10 +31,12 @@ import {
 /** Why Spotify can't be used: no client or token set, token revoked, or the refresh failed. */
 type SpotifyUnavailableReason = 'not_configured' | 'revoked' | 'auth_failed';
 
-const LEGACY_HINT = '\n\nPS: Link your Spotify for full songs instead of previews!';
-const LEGACY_NOT_LINKED =
-  "Spotify isn't linked yet. Link your account in settings to enjoy full songs!";
 const PREVIEWS_ONLY = "Spotify isn't connected right now, so I can only play short previews.";
+/** Said instead of offering to link Spotify, which can't be done. */
+export const NOT_YOUR_SPOTIFY = "I can't play from your own Spotify account.";
+/** Told to the model with preview notices: there is no link path to offer. */
+export const NO_LINK_OFFER =
+  "Don't offer to link their Spotify: Ferni can't play from a caller's own account.";
 
 export function musicHonestOn(env: Env = process.env): boolean {
   return flagOn('MUSIC_HONEST_WHEN_UNLINKED', env);
@@ -45,33 +47,14 @@ function spotifyUnavailableReason(): SpotifyUnavailableReason {
   return isSpotifyRefreshRevoked() ? 'revoked' : 'auth_failed';
 }
 
-/** A link only helps when the connect route works and the house token isn't what's broken. */
-function mayOfferLink(reason: SpotifyUnavailableReason, env: Env): boolean {
-  return reason !== 'revoked' && isSpotifyConnectConfigured(env);
-}
-
-/** The PS after an iTunes preview when Spotify isn't linked. */
-export function previewLinkHint(spotifyLinked: boolean, env: Env = process.env): string {
-  if (spotifyLinked) return '';
-  if (!musicHonestOn(env)) return LEGACY_HINT;
-  return mayOfferLink(spotifyUnavailableReason(), env) ? LEGACY_HINT : '';
-}
-
-/** What useSpotify says when Spotify isn't linked. */
-export function notLinkedReply(env: Env = process.env): string {
-  if (!musicHonestOn(env)) return LEGACY_NOT_LINKED;
-  const offer = mayOfferLink(spotifyUnavailableReason(), env)
-    ? ' You can link it in settings.'
-    : '';
-  return PREVIEWS_ONLY + offer;
+/** What useSpotify says when Spotify isn't linked, flag on or off. */
+export function notLinkedReply(): string {
+  return `${PREVIEWS_ONLY} ${NOT_YOUR_SPOTIFY}`;
 }
 
 /** Told to the model with the first ambient preview of a call (flag on). */
-export function honestPreviewNotice(env: Env = process.env): string {
-  const offer = mayOfferLink(spotifyUnavailableReason(), env)
-    ? ' Offer to link Spotify for full songs.'
-    : '';
-  return ` These are 30-second previews because Spotify isn't connected right now. Say so once, briefly.${offer}`;
+export function honestPreviewNotice(): string {
+  return ` These are 30-second previews because Spotify isn't connected right now. Say so once, briefly. ${NO_LINK_OFFER}`;
 }
 
 /**
@@ -81,11 +64,9 @@ export function honestPreviewNotice(env: Env = process.env): string {
 export async function listeningUnavailable(env: Env = process.env): Promise<string | null> {
   if (!musicHonestOn(env)) return null;
   if (await getSpotifyAccessToken()) return null;
-  const reason = spotifyUnavailableReason();
-  const offer = mayOfferLink(reason, env) ? ' You can link it in settings.' : '';
   return JSON.stringify({
     spotify: 'unavailable',
-    reason,
-    say: `${PREVIEWS_ONLY}${offer} Want a preview?`,
+    reason: spotifyUnavailableReason(),
+    say: `${PREVIEWS_ONLY} Want a preview?`,
   });
 }

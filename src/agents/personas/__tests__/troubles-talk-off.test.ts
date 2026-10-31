@@ -68,7 +68,7 @@ async function prompts(): Promise<Record<string, string>> {
   for (const [name, text] of Object.entries(TURNS)) {
     const c = llm.ChatContext.empty();
     c.addMessage({ role: 'user', content: text });
-    out[`request:${name}`] = last(withTurnReminder(c, {}));
+    out[`request:${name}`] = last(withTurnReminder(c, { userData: { services: { sessionId: 'troubles-off' } } }));
   }
   out['ledger'] = formatLedger(
     [{ personaId: 'ferni', fact: "Ferni's goat got out", saidAt: '2026-10-10T00:00:00Z' }],

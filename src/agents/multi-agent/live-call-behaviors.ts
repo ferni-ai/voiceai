@@ -41,6 +41,7 @@ import {
 } from './follow-through-opener.js';
 import { hasGuests, roomGuestsEnabled } from '../personas/room-guests.js';
 import { installNeverSilent } from './never-silent-install.js';
+import { installSelfVoiceGate, logSelfVoiceShadow } from './self-voice-gate/session-gate.js';
 import {
   installFinishedTurnEndpointing,
   installUnfinishedTurnHold,
@@ -119,7 +120,10 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
           return false;
         }
       },
-      log: (fields) => log.info({ sessionId, ...fields }, 'BARGE_IN_FASTPATH'),
+      log: (fields) => {
+        log.info({ sessionId, ...fields }, 'BARGE_IN_FASTPATH');
+        logSelfVoiceShadow(session, 'fastpath'); // SELF_VOICE_GATE=shadow: was it Ferni's echo?
+      },
       softPause,
     });
     if (softPause) onBargeInVerdict(input, bargeIn.onOverlapDecision);
@@ -200,6 +204,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
   // Say something human when a reply fails instead of going silent (never-silent.ts).
   installNeverSilent(input);
+  // SELF_VOICE_GATE=shadow logs how much of each barge-in was Ferni's own voice (session-gate.ts).
+  installSelfVoiceGate(input);
 
   // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off). When
   // LiveKit's end-of-turn model decides alone (TURN_DETECTOR_SOLE=on), it stands down:
@@ -265,6 +271,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     const handlers = [
       { event: 'user_input_transcribed', handler: confirm.onTranscript },
       { event: 'function_tools_executed', handler: confirm.onToolsExecuted },
+      { event: 'conversation_item_added', handler: confirm.onItemAdded },
     ];
     for (const { event, handler } of handlers) sessionWithEvents.on(event, handler);
     sessionEventHandlers.push(...handlers);

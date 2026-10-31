@@ -9,8 +9,9 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { errorClass } from '../../utils/error-class.js';
 import { createResilientClient } from '../self-healing/resilient-http.js';
-import { getValidAccessToken } from './oura-auth.js';
+import { getOuraAccessToken } from './oura-auth.js';
 import type {
   OuraResult,
   OuraApiResponse,
@@ -49,10 +50,11 @@ async function ouraRequest<T>(
   endpoint: string,
   params?: Record<string, string>
 ): Promise<OuraResult<T>> {
-  const token = await getValidAccessToken(userId);
-  if (!token) {
-    return { success: false, error: 'No valid Oura token' };
+  const access = await getOuraAccessToken(userId);
+  if (access.status !== 'ok') {
+    return { success: false, error: `Oura ${access.status}` };
   }
+  const token = access.token;
 
   const url = new URL(`${OURA_API_BASE}${endpoint}`);
   if (params) {
@@ -71,7 +73,7 @@ async function ouraRequest<T>(
 
     if (response.error || !response.data) {
       log.error(
-        { status: response.status, endpoint, error: response.error?.message },
+        { status: response.status, endpoint, code: response.error?.code },
         'Oura API error'
       );
       return { success: false, error: `API error: ${response.status || 'unknown'}` };
@@ -79,7 +81,7 @@ async function ouraRequest<T>(
 
     return { success: true, data: response.data };
   } catch (error) {
-    log.error({ error: String(error), endpoint }, 'Oura API request failed');
+    log.error({ error: errorClass(error), endpoint }, 'Oura API request failed');
     return { success: false, error: 'Request failed' };
   }
 }

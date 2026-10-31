@@ -333,7 +333,7 @@ function detectBreakthroughQuestions(
 
           getLogger().info(
             {
-              question: q.question.slice(0, 100),
+              questionLen: q.question.length,
               engagementLift: `+${(engagementLift * 100).toFixed(1)}%`,
               userId: state.userId,
             },

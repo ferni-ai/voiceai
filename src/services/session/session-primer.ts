@@ -125,7 +125,7 @@ export async function generateSessionPriming(
       {
         openThreads: sessionPriming.openThreads.length,
         pendingFollowUps: sessionPriming.pendingFollowUps.length,
-        suggestedOpenerPreview: sessionPriming.suggestedOpener.slice(0, 50),
+        suggestedOpenerLen: sessionPriming.suggestedOpener.length,
       },
       '🎯 Session priming generated for returning user'
     );
@@ -205,7 +205,7 @@ export function generateProactiveInsights(options: ProactiveInsightsOptions): vo
         {
           totalInsights: insightResult.insights.length,
           highPriority: insightResult.highPriorityCount,
-          suggestedStarter: insightResult.suggestedConversationStarter?.slice(0, 50),
+          suggestedStarterLen: insightResult.suggestedConversationStarter?.length,
         },
         'Generated proactive insights for returning user'
       );

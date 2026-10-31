@@ -805,13 +805,11 @@
     },
     {
       "domain": "local-search",
-      "toolCount": 6,
+      "toolCount": 4,
       "tools": [
         "checkLocalSearchStatus",
         "findRestaurants",
         "getBusinessInfo",
-        "getBusinessReviews",
-        "lookupBusinessByPhone",
         "searchLocalBusinesses"
       ]
     },
@@ -3310,7 +3308,6 @@
     "getBookDetails",
     "getBookRecommendations",
     "getBusinessInfo",
-    "getBusinessReviews",
     "getCommuteSuggestions",
     "getContactReminders",
     "getConversationAwareness",
@@ -3735,9 +3732,6 @@
     "loging exercise",
     "loging symptom",
     "logsymptom",
-    "lookup business by phone",
-    "lookupBusinessByPhone",
-    "lookupbusinessbyphone",
     "maintain boundary",
     "maintain friendships",
     "maintainBoundary",

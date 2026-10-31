@@ -48,7 +48,11 @@
 #   whole team is unlocked, as for a real Partner subscriber.
 # EVAL_DRY_RUN=1 prints the plan as JSON (user id, rooms, scenarios) and exits:
 #   no audio, no token, no call.
-# EVAL_TZ sets the caller's timezone (default America/New_York).
+# The caller's local time is pinned, not left to when the run happens (#3164): the agent reads
+#   the caller's hour from the wall clock in the zone the job metadata names, so run.sh picks the
+#   zone where it is 14:00 now (caller-clock.mjs). A scenario that wants an hour on purpose says
+#   "#@time-of-day HH:MM" (quiet-late-night: 02:30); EVAL_CALLER_TIME=HH:MM overrides that.
+# EVAL_TZ=<zone> overrides both: that zone at its wall-clock hour ("none": an unknown zone).
 # EVAL_LOCAL_TIME=HH:MM: Ferni's own clock for his state (FERNI_STATE), e.g. 01:47
 #   (job metadata eval_local_time). Only a worker started with VOICE_EVAL_CLOCK=on
 #   honours it, for voice-eval- users only (eval-local-time.ts). Dev and prod ignore it.
@@ -98,6 +102,10 @@ fi
 for s in $scenario $seed; do
   [[ -f $SCEN/$s.txt ]] || { print -u2 "run.sh: no scenario $SCEN/$s.txt"; exit 2; }
 done
+# One zone for the whole run, so a seed call and its return call share the caller's day.
+clock=$(node $HERE/caller-clock.mjs $SCEN/$scenario.txt) || exit 2
+IFS=$'\t' read -r caller_tz caller_time caller_clock <<< $clock
+print -u2 "voice-eval: caller in $caller_tz at $caller_time ($caller_clock)"
 # A scenario written for one teammate names them: "#@persona maya-santos".
 [[ -n $persona ]] || persona=$(sed -n 's/^#@persona[[:space:]]*//p' $SCEN/$scenario.txt | head -1)
 if [[ -n $persona && ! -f $ROOT/src/personas/bundles/$persona/persona.manifest.json ]]; then
@@ -168,7 +176,7 @@ job_meta() {
     if (city) Object.assign(m, { city, regionCode: region });
     if (persona) m.persona_id = persona;
     process.stdout.write(JSON.stringify(m));
-  ' "$uid" "${EVAL_TZ:-America/New_York}" "${EVAL_CITY:-}" "${EVAL_REGION:-}" "$persona")
+  ' "$uid" "$caller_tz" "${EVAL_CITY:-}" "${EVAL_REGION:-}" "$persona")
   if [[ -n ${EVAL_DISPATCH_SECRET:-} ]]; then
     (cd $ROOT && npx tsx $HERE/sign-meta.ts "$m")
   else
@@ -177,7 +185,7 @@ job_meta() {
 }
 
 if [[ -n ${EVAL_DRY_RUN:-} ]]; then
-  print -r -- "{\"env\":\"$env\",\"scenario\":\"$scenario\",\"label\":\"$label\",\"uid\":\"$uid\",\"database\":\"$firestore_db\",\"seed\":\"$seed\",\"persona\":\"$persona\",\"realism\":\"$(realism_of $scenario)\",\"caller\":\"$caller\",\"echo\":$echo_cfg,\"metadata\":$(job_meta),\"room\":\"eval-$scenario-$label-$stamp\",\"json\":\"$json\"}"
+  print -r -- "{\"env\":\"$env\",\"scenario\":\"$scenario\",\"label\":\"$label\",\"uid\":\"$uid\",\"database\":\"$firestore_db\",\"seed\":\"$seed\",\"persona\":\"$persona\",\"realism\":\"$(realism_of $scenario)\",\"caller\":\"$caller\",\"echo\":$echo_cfg,\"caller_time\":\"$caller_time\",\"caller_clock\":\"$caller_clock\",\"metadata\":$(job_meta),\"room\":\"eval-$scenario-$label-$stamp\",\"json\":\"$json\"}"
   exit 0
 fi
 
@@ -241,9 +249,9 @@ converse_call() {
     | grep -Eo 'eyJ[A-Za-z0-9._-]+' | head -1)
   print -u2 "voice-eval: $role $sc as $uid in $room"
   # converse.mjs's meta, via JSON.stringify: a path or label may need escaping.
-  vmeta=$(node -e 'const k = ["uid", "env", "scenario", "label", "room", "role", "seed", "persona", "realism", "audio"];
+  vmeta=$(node -e 'const k = ["uid", "env", "scenario", "label", "room", "role", "seed", "persona", "realism", "audio", "caller_tz", "caller_time", "caller_clock"];
     process.stdout.write(JSON.stringify(Object.fromEntries(k.map((x, i) => [x, process.argv[i + 1]]))))' \
-    "$uid" "$env" "$sc" "$label" "$room" "$role" "$seed" "$persona" "$(realism_of $sc)" "$adir")
+    "$uid" "$env" "$sc" "$label" "$room" "$role" "$seed" "$persona" "$(realism_of $sc)" "$adir" "$caller_tz" "$caller_time" "$caller_clock")
   (cd $ROOT && VOICE_EVAL_META=$vmeta node $HERE/converse.mjs $url "$tok" $file $turns)
 }
 

@@ -18,6 +18,7 @@
 
 import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-metrics.js';
 import { attachTurnReceipts } from '../shared/turn-receipt-session.js';
+import { closeAgentSession } from '../shared/close-agent-session.js';
 import { voice, type JobContext, llm } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig, PersonaId } from '../../personas/types.js';
@@ -77,6 +78,7 @@ import {
   type EssentialToolSetInput,
 } from './essential-tool-set.js';
 import { attachSessionEventLog } from './session-event-log.js';
+import { micFrameTap } from './self-voice-gate/session-gate.js';
 import { buildEmergencyToolset } from './emergency-toolset.js';
 import { warmupHandoffToolsForSession } from '../../tools/handoff/session-cache.js';
 import {
@@ -151,6 +153,7 @@ import { lastMoodNote } from '../../services/session/last-mood-note.js';
 import { lastTalkedAwareness } from './welcome-back.js';
 import { calendarDaysSince } from '../../utils/calendar-days.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
+import { recentTextsBlock } from './recent-texts-awareness.js';
 
 const log = getLogger();
 
@@ -339,20 +342,18 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     mark('load_prompts_start');
     // Both levels in parallel; ALEX_CHIEF_OF_STAFF=on adds Alex's role (chief-of-staff-role.ts)
     forgotten.prefetchForgotten(services.userId); // FORGET_EVERY_READER: read it alongside
-    const [baseInstructions, loadedSystemPrompt] = await Promise.all([
+    const [baseInstructions, loadedSystemPrompt, texts] = await Promise.all([
       loadModelBaseInstructions(),
       loadSystemPrompt(persona.id).then((prompt) => withChiefOfStaffRole(persona.id, prompt)),
+      recentTextsBlock(sessionId, userId, userData?.callerTimezone, config.phoneCaller === true),
     ]);
     mark('load_prompts_done');
 
     systemPrompt = loadedSystemPrompt;
     stableBase = baseInstructions;
 
-    // =========================================================================
-    // DATE/TIME AWARENESS - Critical for grounding agent in reality
-    // This is injected into model-level instructions so the agent knows
-    // the date/time from the VERY FIRST MOMENT (including greeting)
-    // =========================================================================
+    // DATE/TIME AWARENESS: in the model-level instructions so the agent knows the date and
+    // time from the VERY FIRST MOMENT (including greeting)
     // The caller's local time and part of day (time-context.ts); never the server's UTC clock.
     const outboundAwareness = outboundCallerAwareness(outboundPartiesFor(sessionId));
     // FERNI_LOCAL_CLOCK=on: Ferni's own mountain-time clock, plus the caller's: the zone the
@@ -366,7 +367,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // CALLER_CITY_CONTEXT=on: the city their device reported (caller-city.ts)
     const cityContext = callerCityContext(userData?.userLocation, Boolean(outboundAwareness));
     const who = outboundAwareness || unsavedCallerNote(userId, sessionId); // UNKNOWN_CALLER_HONEST
-    modelBaseInstructions = baseInstructions + dateTimeContext + worldNowRule + cityContext + who;
+    modelBaseInstructions =
+      baseInstructions + dateTimeContext + worldNowRule + cityContext + who + texts;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
     const userProfile = outboundAwareness ? undefined : await forgotten.profileForPrompt(services);
@@ -1064,7 +1066,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
     finalTools = capToolsToLimit(orchestratorTools, effectiveLimit);
     const cappedCount = Object.keys(finalTools).length;
     const droppedCount = toolCount - cappedCount;
-
     log.info(
       {
         personaId: persona.id,
@@ -1072,6 +1073,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         cappedCount,
         effectiveLimit,
         droppedCount,
+        droppedTools: toolNames.filter((name) => !(name in finalTools)), // names, for sweeps
       },
       `🎯 TOOL CAP: ${toolCount} → ${cappedCount} tools (limit: ${effectiveLimit}, dropped: ${droppedCount})`
     );
@@ -1864,9 +1866,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
             audioProcessorStarted = true;
 
             const audioStream = new AudioStream(track, { sampleRate: 16000, numChannels: 1 });
-            // processAudioStream runs once per session and cancels a second
-            // stream (FerniAgent.sttNode may already be feeding it); the
-            // backchannel detector must keep getting frames either way.
+            // processAudioStream runs once per session and cancels a second stream (FerniAgent's
+            // sttNode may feed it); the backchannel and self-voice taps must keep getting frames.
             let processorOpen = true;
             const processorStream = new ReadableStream<import('@livekit/rtc-node').AudioFrame>({
               async start(controller) {
@@ -1875,7 +1876,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
                     import('@livekit/rtc-node').AudioFrame
                   >) {
                     if (audioProcessingCancelled) break;
-                    liveBackchannel?.processAudioFrame(frame);
+                    micFrameTap(session, frame, liveBackchannel);
                     if (processorOpen) controller.enqueue(frame);
                   }
                   if (processorOpen) controller.close();
@@ -2002,7 +2003,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           // This prevents speaking to empty rooms when participant hasn't joined yet
           room,
         });
-        // Note: silenceContext is created by setupSessionStateHandlers
+        cleanupFunctions.push(stateResult.clearTimers); // its timers and per-call state end with it
         handlersStatus.sessionState = true;
         diag.entry(`🎭 [${persona.id}] Session state handlers wired`);
 
@@ -2205,25 +2206,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
         }
       }
 
-      // FIX: Add timeout to session.close() to prevent indefinite hangs during handoff
-      // session.close() can block if the session is in a draining state
-      log.info({ sessionId, personaId: persona.id }, '🧹 [CLEANUP] Calling session.close()...');
-      const closeStart = Date.now();
-      try {
-        const closeTimeout = new Promise<void>((_, reject) => {
-          setTimeout(() => reject(new Error('session.close() timeout')), 3000);
-        });
-        await Promise.race([session.close(), closeTimeout]);
-        log.info(
-          { sessionId, personaId: persona.id, closeDurationMs: Date.now() - closeStart },
-          '🧹 [CLEANUP] ✅ session.close() completed'
-        );
-      } catch (err) {
-        log.warn(
-          { error: String(err), sessionId, closeDurationMs: Date.now() - closeStart },
-          '🧹 [CLEANUP] ⚠️ session.close() error or timeout'
-        );
-      }
+      // Bounded: session.close() can block while the session drains during handoff.
+      await closeAgentSession(session, { sessionId, personaId: persona.id });
 
       log.info(
         { personaId: persona.id, sessionId, totalCleanupDurationMs: Date.now() - cleanupStart },

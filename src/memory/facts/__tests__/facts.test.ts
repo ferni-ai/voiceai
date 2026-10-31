@@ -14,12 +14,14 @@ const city = (value: string, key: string, extra: Partial<FactProposal> = {}): Fa
   attribute: 'city',
   value,
   source: 'manual',
+  provenance: 'user_said',
   sourceKey: key,
   at: T0,
   ...extra,
 });
 const setup = () => {
   const fake = fakeFirestore();
+  for (const uid of ['u1', 'u2']) fake.docs.set(`bogle_users/${uid}`, { displayName: 'Jo Rivera' });
   return {
     ...fake,
     paths: (): string[] => [...fake.docs.keys()].filter((p) => p.includes('/facts/')),
@@ -120,14 +122,14 @@ describe('proposeFact', () => {
   });
 
   it('UPDATE retires the old fact, keeps it, and points it at the new one', async () => {
-    const { db, docs } = setup();
+    const { db, docs, paths } = setup();
     const old = await added(db, city('Tampa', 'k1'));
     const next = await added(
       db,
       city('St. Petersburg', 'k2', { at: T1, validFrom: T1.toISOString() })
     );
     expect(next.op).toBe('update');
-    expect(docs.size).toBe(2); // kept, not overwritten
+    expect(paths().length).toBe(2); // kept, not overwritten
     expect(toFact(old.fact.id, docs.get(factPath(old.fact.id)))).toMatchObject({
       value: 'Tampa',
       validTo: T1.toISOString(),
@@ -155,11 +157,11 @@ describe('proposeFact', () => {
   });
 
   it('NOOP on the same value (any case, spacing, phone format) only moves lastConfirmedAt', async () => {
-    const { db, docs } = setup();
+    const { db, docs, paths } = setup();
     const first = await added(db, city('Tampa', 'k1'));
     const again = await added(db, city('  tampa ', 'k2', { at: T1 }));
     expect(again).toMatchObject({ op: 'noop', duplicate: false });
-    expect(docs.size).toBe(1);
+    expect(paths().length).toBe(1);
     expect(docs.get(factPath(first.fact.id))).toMatchObject({
       value: 'Tampa',
       learnedAt: T0.toISOString(),
@@ -172,7 +174,7 @@ describe('proposeFact', () => {
     });
     await added(db, phone('(727) 555-0142', 'p1'));
     expect((await added(db, phone('+1 727 555 0142', 'p2'))).op).toBe('noop');
-    expect(docs.size).toBe(2);
+    expect(paths().length).toBe(2);
   });
 
   it('a retry with the same source and key writes nothing, even after the fact was replaced', async () => {
@@ -197,14 +199,14 @@ describe('proposeFact', () => {
   });
 
   it('two concurrent UPDATEs end with exactly one current fact', async () => {
-    const { db, docs } = setup();
+    const { db, docs, paths } = setup();
     await added(db, city('Tampa', 'k0'));
     const results = await Promise.all([
       proposeFact(db, 'u1', city('Austin', 'k1', { at: T1 }), ON),
       proposeFact(db, 'u1', city('Denver', 'k2', { at: new Date(T1.getTime() + 1000) }), ON),
     ]);
     expect(results.every((r) => r.ok && r.op === 'update')).toBe(true);
-    expect(docs.size).toBe(3);
+    expect(paths().length).toBe(3);
     const current = await getCurrentFacts(db, 'u1', 'self', 'city', ON);
     expect(current).toHaveLength(1);
     const retired = [...docs.values()].filter((d) => d.supersededBy);

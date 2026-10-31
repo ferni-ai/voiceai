@@ -198,7 +198,7 @@ export class VectorSearchCache {
       this.stats.hits++;
       cached.accessedAt = Date.now();
       cached.accessCount++;
-      log.debug({ key: key.slice(0, 8), query: query.slice(0, 30) }, 'Search cache hit (exact)');
+      log.debug({ key: key.slice(0, 8), queryLen: query.length }, 'Search cache hit (exact)');
       return cached.results;
     }
 
@@ -212,8 +212,8 @@ export class VectorSearchCache {
       log.debug(
         {
           key: fuzzyMatch.key.slice(0, 8),
-          originalQuery: query.slice(0, 30),
-          matchedQuery: fuzzyMatch.query.slice(0, 30),
+          originalQueryLen: query.length,
+          matchedQueryLen: fuzzyMatch.query.length,
         },
         'Search cache hit (fuzzy)'
       );
@@ -262,7 +262,7 @@ export class VectorSearchCache {
     this.embeddingIndex.push({ key, embedding: queryEmbedding });
 
     log.debug(
-      { key: key.slice(0, 8), query: query.slice(0, 30), resultCount: results.length },
+      { key: key.slice(0, 8), queryLen: query.length, resultCount: results.length },
       'Search cached'
     );
   }

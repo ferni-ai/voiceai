@@ -1270,8 +1270,6 @@
       "notifications": "我何时来记录",
       "toggleTheme": "浅色 / 深色",
       "themeLanguage": "外观与感觉",
-      "linkSpotify": "连接 Spotify",
-      "spotifyConnected": "Spotify 已连接",
       "vibeController": "调节氛围",
       "spotifyRooms": "音乐空间",
       "thermostat": "居家舒适度",
@@ -1870,9 +1868,9 @@
     "disconnected": "已断开",
     "end": "结束",
     "endConversation": "结束对话",
-    "endConversationGoodbye": "结束对话 - 再见",
+    "goodbyeEndCall": "再见。挂断",
     "endSession": "结束对话",
-    "ending": "正在结束...",
+    "ending": "通话已结束",
     "goodbye": "再见",
     "holdToSpeak": "按住说话",
     "listening": "正在倾听...",
@@ -1882,7 +1880,7 @@
     "takeCare": "照顾好自己。",
     "tapToSpeak": "轻触开始说话",
     "thinking": "正在思考...",
-    "untilNextTime": "下次见..."
+    "untilNextTime": "下次见"
   },
   "stages": {
     "acquaintance": "点头之交",
@@ -2417,10 +2415,6 @@
         "description": "同步 Apple Watch 和 iPhone 的健康数据",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "连接你的 Fitbit 设备",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "同步你的 Garmin 智能穿戴设备",
         "name": "Garmin"
@@ -2774,8 +2768,7 @@
       "askFerni": "或者让 Ferni 播放点什么",
       "play": "播放",
       "pause": "暂停",
-      "skip": "跳过",
-      "linkSpotify": "在设置中关联 Spotify 以收听完整歌曲"
+      "skip": "跳过"
     },
     "volume": "音量",
     "skipped": "已跳过",
@@ -8332,10 +8325,9 @@
     "appleHealthDesc": "睡眠、活动和心率数据",
     "ouraDesc": "睡眠质量与准备度评分",
     "eightSleepDesc": "睡眠追踪与温度调节",
-    "wearablesDesc": "Fitbit、Garmin、WHOOP 等更多设备",
+    "wearablesDesc": "Garmin、WHOOP 等更多设备",
     "calendarDesc": "日程、会议与空闲时间",
     "linkedInDesc": "职业背景与人脉网络",
-    "spotifyDesc": "音乐、心情歌单与收听历史",
     "ecobeeDesc": "室内温度与舒适度",
     "vibeControllerDesc": "控制音乐、灯光等更多内容",
     "connected": "已连接"
@@ -8965,9 +8957,6 @@
     "trustJourneyExplore": "去探索",
     "customizeTitle": "定制你的体验",
     "customizeMessage": "调整主题、声音等设置。",
-    "spotifyTitle": "连接 Spotify",
-    "spotifyMessage": "连接你的 Spotify，在我们的对话中烘托氛围。",
-    "spotifyConnect": "连接",
     "maybeLater": "以后再说吧"
   },
   "mentorTeachings": {
@@ -10175,7 +10164,6 @@
     "startupError": "启动时遇到了一点问题。要刷新一下试试吗？",
     "lastConversation": "这是你本月的最后一次对话了。让我们聊点有意义的吧。",
     "gettingReady": "准备中...",
-    "connecting": "正在连接",
     "almostThere": "马上就准备好啦...",
     "waitingQuietly": "我会安静地等待",
     "listening": "我在听呢",
@@ -10492,7 +10480,6 @@
     "names": {
       "stockData": "股票数据",
       "marketData": "市场数据",
-      "weatherMaps": "天气与地图",
       "historicalFacts": "历史事实",
       "smartHome": "智能家居",
       "lighting": "照明",
@@ -10787,12 +10774,13 @@
     "helper": "你的专属向导",
     "connectToTalk": "和 Ferni 聊聊",
     "endTalk": "挂断",
-    "connectingCancel": "正在连接。点按即可取消",
-    "connectingNow": "正在连接…",
+    "connectingCancel": "正在呼叫 {name}。点按即可取消",
+    "connectingNow": "正在呼叫 {name}…",
     "tapToCancel": "点按即可取消",
-    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
-    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
-    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
+    "stillCalling": "仍在联系 {name}…",
+    "stillCallingCancel": "仍在联系 {name}。点按即可取消",
+    "reconnecting": "正在重新连接…",
+    "arrived": "{name} 来了"
   },
   "analyticsDashboard": {
     "title": "你的旅程",

@@ -19,7 +19,7 @@ import {
 const h = vi.hoisted(() => ({ db: null as unknown }));
 vi.mock('../../../../services/identity/firebase-auth.js', () => ({
   verifyFirebaseToken: vi.fn(async (token: string) =>
-    token === 'tok-A' ? { uid: 'uid-A', claims: {}, isAnonymous: false } : null
+    token === 'tok-A' ? { uid: 'uid-A', claims: {}, isAnonymous: false } : null,
   ),
   isVerifiedToken: (t: unknown) => t !== null,
 }));

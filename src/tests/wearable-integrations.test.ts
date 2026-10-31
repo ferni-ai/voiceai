@@ -49,13 +49,12 @@ describe('WearableProvider Types', () => {
   it('should include all supported providers', () => {
     const providers: WearableProvider[] = [
       'apple_health',
-      'fitbit',
       'garmin',
       'oura',
       'whoop',
     ];
 
-    expect(providers).toHaveLength(5);
+    expect(providers).toHaveLength(4);
     expect(providers).toContain('apple_health');
     expect(providers).toContain('oura');
   });

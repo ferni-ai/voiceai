@@ -55,7 +55,7 @@ const afterFailedSearch = (...more: Line[]) =>
 /** The request text for this call, with the director's push pending. */
 function request(c: llm.ChatContext, flag: 'on' | 'off'): string {
   process.env[FLAG] = flag;
-  const session = {};
+  const session = { userData: { services: { sessionId: 'internals' } } };
   setDirector(session, { current: () => [PUSH_NOTE], told: () => '' } as unknown as Director);
   const random = vi.spyOn(Math, 'random').mockReturnValue(0.5); // turn styles pick at random
   try {

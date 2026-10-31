@@ -281,7 +281,7 @@ Extract all entities as JSON array:`;
         }));
     } catch (parseError) {
       log.warn(
-        { parseError: String(parseError), text },
+        { parseError: String(parseError), textLen: text.length },
         'Failed to parse entity extraction response'
       );
       entities = extractEntitiesRuleBased(transcript);

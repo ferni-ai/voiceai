@@ -11,7 +11,6 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
-import { verifyFirebaseToken, isVerifiedToken } from '../../../services/identity/firebase-auth.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { sealTokens } from '../../../utils/token-at-rest.js';
 import {

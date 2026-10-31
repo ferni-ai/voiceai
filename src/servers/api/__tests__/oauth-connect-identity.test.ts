@@ -186,7 +186,7 @@ const FLOWS: Flow[] = [
       }),
     savedFor: () => [...saved.apple],
   },
-  ...['fitbit', 'oura', 'garmin', 'whoop'].map((p) => ({
+  ...['oura', 'garmin', 'whoop'].map((p) => ({
     provider: p,
     loginPath: `/wearables/${p}/login`,
     callback: getCallback(`/wearables/${p}/callback`),
