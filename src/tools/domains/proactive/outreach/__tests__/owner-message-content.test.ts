@@ -177,6 +177,13 @@ describe('security review bypasses (2026-10-31)', () => {
     }
   );
 
+  it.each(['dot shop slash deals', 'dotcom', '- dot xyz'])(
+    'a spelled "dot" with nothing before it fails closed: %s',
+    (text) => {
+      expect(blockedContent(text)).toBe('url');
+    }
+  );
+
   it('an address with a spelled dot', () => {
     expect(blockedContent('write to pat at evil dotcom')).toBe('email');
   });
