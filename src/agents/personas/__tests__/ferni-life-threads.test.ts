@@ -86,11 +86,11 @@ describe('the written threads', () => {
 
   it('names only his own people and places', () => {
     const canon = [
-      'Jack',
-      'Ken',
-      'Dermot',
-      'Scott',
-      'Jim',
+      'Lyle',
+      'Owen',
+      'Boyd',
+      'Marty',
+      'Hollis',
       'Wyoming',
       'Japan',
       'Tokyo',
