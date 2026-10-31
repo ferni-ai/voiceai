@@ -26,6 +26,15 @@ import {
   quietDecision,
 } from '../quiet-presence.js';
 import { setupSessionStateHandlers, type SessionStateContext } from '../session-state-handler.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+
+/** quiet-presence.ts's own logger (safe-logger is mocked for every test, src/tests/setup.ts),
+ *  taken before any beforeEach clears the mock's results. */
+const quietLog = (() => {
+  const m = vi.mocked(createLogger).mock;
+  const i = m.calls.findIndex(([b]) => (b as { module?: string })?.module === 'QuietPresence');
+  return m.results[i]?.value as { info: ReturnType<typeof vi.fn> } | undefined;
+})();
 
 /** The call's turns so far, paraphrased: tired, two or three words each. */
 const TIRED = ['Just hanging out.', 'You did?', "That's cute.", 'Yep, still here.'];
@@ -157,6 +166,54 @@ describe('quietDecision', () => {
   });
 });
 
+describe('QuietPresence reports each silence it holds (QUIET_HOLD, #3164)', () => {
+  it('the late-night wait, then nothing once the caller spoke; not the usual response', async () => {
+    const onHold = vi.fn();
+    let spokeAt = Date.now();
+    const quiet = new QuietPresence({
+      cues: () => ({ lowEnergy: false, lateNight: true }),
+      lastSpokeAt: () => spokeAt,
+      canSpeak: () => true,
+      speak: vi.fn(),
+      onHold,
+    });
+    expect(quiet.onQuiet()).toBe(true);
+    expect(onHold).toHaveBeenCalledTimes(1);
+    expect(onHold).toHaveBeenCalledWith({
+      action: 'wait',
+      waitMs: QUIET_WAIT_MS - AWAY_MS,
+      quietMs: AWAY_MS,
+      checks: 0,
+      lowEnergy: false,
+      lateNight: true,
+    });
+    spokeAt = Date.now() + 1;
+    await vi.advanceTimersByTimeAsync(QUIET_WAIT_MS);
+    expect(onHold).toHaveBeenCalledTimes(1);
+    const usual = new QuietPresence({
+      cues: () => ({ lowEnergy: false, lateNight: false }),
+      lastSpokeAt: () => spokeAt,
+      canSpeak: () => true,
+      speak: vi.fn(),
+      onHold,
+    });
+    expect(usual.onQuiet()).toBe(false);
+    expect(onHold).toHaveBeenCalledTimes(1);
+  });
+  it('a tired caller in the daytime: held with no wait', () => {
+    const onHold = vi.fn();
+    const quiet = new QuietPresence({
+      cues: () => ({ lowEnergy: true, lateNight: false }),
+      lastSpokeAt: () => Date.now(),
+      canSpeak: () => true,
+      speak: vi.fn(),
+      onHold,
+    });
+    expect(quiet.onQuiet()).toBe(true);
+    expect(onHold).toHaveBeenCalledWith(expect.objectContaining({ action: 'none', waitMs: 0 }));
+  });
+});
+
 describe('the silence path, through the real handler', () => {
   it('off: every gap gets its own check-in (the prod call)', async () => {
     delete process.env.LISTEN_FIRST;
@@ -180,6 +237,17 @@ describe('the silence path, through the real handler', () => {
     for (const ms of [...GAPS, 60_000]) await gap(emit, ms); // eslint-disable-line no-await-in-loop
     result.clearTimers();
     expect(safeGenerateReply).toHaveBeenCalledTimes(1);
+  });
+
+  it('on, late at night: the held silence is logged as QUIET_HOLD for this session', async () => {
+    process.env.LISTEN_FIRST = 'on';
+    const { result, emit } = setup(TIRED, 'America/New_York');
+    await gap(emit, GAPS[0]);
+    result.clearTimers();
+    expect(quietLog?.info).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'wait', lateNight: true, sessionId: expect.any(String) }),
+      'QUIET_HOLD'
+    );
   });
 
   it('on, a phone call with only an account zone in the profile: never read as night', async () => {

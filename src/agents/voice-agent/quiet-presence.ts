@@ -30,6 +30,7 @@ import {
 } from '../personas/listen-first.js';
 import { safeGenerateReply } from '../shared/safe-generate-reply.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { isRealSilence, type SessionStates } from './dead-air.js';
 import { silenceResponseBlocked } from './silence-response-blockers.js';
 
@@ -37,6 +38,8 @@ import { silenceResponseBlocked } from './silence-response-blockers.js';
 export const QUIET_WAIT_MS = 45_000;
 /** The quiet before LiveKit marks the caller "away" (AgentSession userAwayTimeout, default 15 s). */
 export const AWAY_MS = 15_000;
+
+const log = createLogger({ module: 'QuietPresence' });
 
 export const NIGHT_NOTE =
   "[It's late for them and they've been quiet a while. In one short, soft sentence, let them know you're here if they want to talk, or you can both call it a night. Don't ask if they're still there.]";
@@ -72,6 +75,18 @@ export interface QuietPresenceDeps {
   speak: (instructions: string) => void;
   setTimer?: (fn: () => void, ms: number) => unknown;
   clearTimer?: (handle: unknown) => void;
+  /** Each time this holds the silence (waits, or stays quiet). Without it a held 45 s left no
+   *  trace, and a release sweep's dead air took code reading to explain (#3164). */
+  onHold?: (hold: QuietHold) => void;
+}
+
+interface QuietHold {
+  action: 'wait' | 'none';
+  waitMs: number;
+  quietMs: number;
+  checks: number;
+  lowEnergy: boolean;
+  lateNight: boolean;
 }
 
 export class QuietPresence {
@@ -91,8 +106,14 @@ export class QuietPresence {
   }
 
   private decide(quietSince: number, spokeAt: number): boolean {
-    const d = quietDecision(Date.now() - quietSince, this.deps.cues(), this.checks);
+    const quietMs = Date.now() - quietSince;
+    const cues = this.deps.cues();
+    const d = quietDecision(quietMs, cues, this.checks);
     if (d.action === 'usual') return false;
+    if (d.action === 'wait' || d.action === 'none') {
+      const waitMs = d.action === 'wait' ? d.ms : 0;
+      this.deps.onHold?.({ action: d.action, waitMs, quietMs, checks: this.checks, ...cues });
+    }
     if (d.action === 'wait') {
       const set = this.deps.setTimer ?? ((fn, ms) => setTimeout(fn, ms));
       this.timer = set(() => {
@@ -145,6 +166,7 @@ export function quietPresenceFor(
       lateNight: lateNightFor(new Date(), callerTimeZoneOf(userData)),
     }),
     lastSpokeAt: callerLastSpokeAt,
+    onHold: (hold) => log.info({ sessionId, ...hold }, 'QUIET_HOLD'),
     canSpeak: () =>
       !conversationManager.isAgentSpeaking() &&
       isRealSilence(session as unknown as SessionStates) &&
