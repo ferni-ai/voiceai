@@ -18,3 +18,4 @@ import './fact-supersession-register.js';
 import './personas/move-outcomes-register.js';
 import './wellbeing-register.js';
 import './summary-joke-retention-register.js';
+import './personas/persona-growth-register.js';
