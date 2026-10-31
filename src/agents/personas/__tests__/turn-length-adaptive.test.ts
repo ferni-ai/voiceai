@@ -154,6 +154,17 @@ describe('TURN_LENGTH=adaptive', () => {
     ).toBeUndefined();
   });
 
+  it('never lengthens a caller on their way out, even one ending on a question', () => {
+    for (const said of [
+      'alright, talk tomorrow?',
+      'gotta run, talk soon?',
+      'okay I should get to bed, can we pick this up tomorrow?',
+    ]) {
+      expect(substanceOf(said, 'share')).toBeUndefined();
+      expect(reminder('adaptive', call(said))).toBe(reminder('learned', call(said)));
+    }
+  });
+
   it('keeps requests, look-ups and questions about him on their own rules', () => {
     for (const [said, move] of [
       ['can you help me plan the trip?', 'request'],

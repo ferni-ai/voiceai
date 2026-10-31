@@ -13,7 +13,8 @@
  *   beat      a specialist asked about their own beat (team-by-need-note.ts): Maya on a habit
  *
  * Requests and look-ups keep their own rules (no learned length); a quick yes, or a question about
- * him, keeps learned. A call with crisis risk keeps learned too: its length rules are not changed.
+ * him, keeps learned, and so does a caller on their way out ("talk tomorrow?", "I should get to bed,
+ * can we pick this up tomorrow?"). A call with crisis risk keeps learned: its length rules stay.
  *
  * @module agents/personas/turn-substance
  */
@@ -21,6 +22,8 @@
 import { onOwnBeat } from '../../tools/handoff/team-by-need-note.js';
 import { asksAQuestion, callerTurn } from '../model-provider/fast-lane.js';
 import type { CallerMove } from './caller-move.js';
+import { LEAVING } from '../shared/call-farewell.js';
+import { sayingGoodbye } from './happy-exits.js';
 import { ACTION_TOOLS, WIDE_ACTION_TOOLS } from './tool-lead-in.js';
 
 export type Substance = 'question' | 'tool' | 'beat';
@@ -54,7 +57,7 @@ export function substanceOf(
   move: CallerMove,
   { items = [], speaker = 'ferni' }: { items?: readonly ItemView[]; speaker?: string } = {}
 ): Substance | undefined {
-  if (move !== 'share') return undefined;
+  if (move !== 'share' || sayingGoodbye(said) || LEAVING.test(said)) return undefined;
   if (toolsAnswered(items).some((tool) => !isAction(tool))) return 'tool';
   if (onOwnBeat(speaker, said)) return 'beat';
   return endsOnQuestion(said) ? 'question' : undefined;

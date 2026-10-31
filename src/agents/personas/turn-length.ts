@@ -105,7 +105,7 @@ export function lengthLine(target: number): string {
 }
 
 /** The length line for a reply that needs substance (substanceWords). */
-export function substanceLine(target: number): string {
+function substanceLine(target: number): string {
   return `THIS REPLY: they need a real answer here, so give it: what they asked for, said plainly in two to four spoken sentences, about ${target} words. No list, no lecture.`;
 }
 
