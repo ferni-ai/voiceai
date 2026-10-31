@@ -12,6 +12,7 @@
  * before they tell us.
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import { SlackNotificationService } from '../slack-notifications.js';
@@ -214,6 +215,11 @@ export function recordCallEvent(event: CallEvent): void {
       events: [],
     };
     sessions.set(event.callId, session);
+  } else if (!session.userId && event.userId && flagOn('BQ_CALL_USER_HASH')) {
+    // The entry starts the call's clock before the caller is identified (no userId yet);
+    // session init's connection_success carries it. Without this the call_events row has no
+    // user_hash (bq-call-events.ts).
+    session.userId = event.userId;
   }
 
   session.events.push(event);
