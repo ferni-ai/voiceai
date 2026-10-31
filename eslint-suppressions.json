@@ -229,11 +229,6 @@
       "count": 1
     }
   },
-  "src/services/engagement/engagement-notification-service.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
   "src/services/outreach/call-hours-guard.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
@@ -247,11 +242,6 @@
   "src/services/outreach/engagement/personalization-engine.ts": {
     "ferni/no-env-flag-compare": {
       "count": 2
-    }
-  },
-  "src/services/outreach/pre-call-heads-up.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
     }
   },
   "src/services/outreach/proactive-channels/proactive-tick.ts": {
