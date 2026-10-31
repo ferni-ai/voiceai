@@ -22,6 +22,7 @@
  * @module intelligence/utils/injection-filter
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import type { ContextInjection } from '../../types/context-injection-types.js';
 
 // ============================================================================
@@ -43,6 +44,25 @@ export const ESSENTIAL_CATEGORIES = new Set([
   'identity',
   'boundaries', // Trust: Topics to avoid - critical for user safety/comfort
   'unsaid', // Trust: Emotional mismatches, permission seeking - "Better than Human" listening
+  // The crisis guidance that rides beside safety on later turns: the casual budget (600 chars)
+  // dropped crisis_follow_up by one character after a crisis turn ("okay sure" reads casual).
+  'safety_soft_check',
+  'crisis_transfer',
+  'crisis_follow_up',
+  'scientific_early_warning', // "provide crisis resources" (safety-coaching-builders.ts)
+]);
+
+/**
+ * Injections that carry crisis or safety guidance for their reply, told apart by
+ * category (agents/processors/turn-processor/safety-note.ts reads this set).
+ */
+export const SAFETY_CATEGORIES: ReadonlySet<string> = new Set([
+  'safety', // escalation awareness (safety-coaching-builders.ts)
+  'crisis_response', // [CRISIS SUPPORT], crisis guidance (turn-handler.ts)
+  'safety_soft_check', // SOFT_CRISIS_CHECK (crisis-agreement.ts)
+  'scientific_early_warning', // early-warning.ts through scientific coaching
+  'crisis_transfer', // transfer awareness with crisis indicators (better-than-human-builders.ts)
+  'crisis_follow_up', // a caller with a recent crisis (better-than-human-builders.ts)
 ]);
 
 /**
@@ -54,12 +74,18 @@ export const ESSENTIAL_CATEGORIES = new Set([
  */
 export const DEDUP_PROTECTED_CATEGORIES: ReadonlySet<string> = new Set([
   ...ESSENTIAL_CATEGORIES,
-  'safety_soft_check',
-  'crisis_transfer',
-  'crisis_follow_up',
-  'scientific_early_warning',
+  ...SAFETY_CATEGORIES,
   'emotional_guidance',
 ]);
+
+/**
+ * CALL_REPORT_REACHES_YOU=on: the While You Were Away block, which carries the
+ * report of a call Ferni made for the owner, is never dropped for the budget
+ * (but in crisis mode) nor as a near-duplicate (call-report.ts). Beside any
+ * safety guidance it is dropped: it waits for the next call.
+ */
+const keptCallReport = (category: string): boolean =>
+  category === 'pending_background_results' && flagOn('CALL_REPORT_REACHES_YOU');
 
 /**
  * Categories that are NICE-TO-HAVE but can be dropped
@@ -288,8 +314,10 @@ export function filterInjections(
   let totalChars = 0;
 
   const sorted = [...injections].sort((a, b) => b.priority - a.priority);
+  const safetyTurn = injections.some((i) => SAFETY_CATEGORIES.has(i.category));
 
   for (const injection of sorted) {
+    if (safetyTurn && keptCallReport(injection.category)) continue;
     if (ESSENTIAL_CATEGORIES.has(injection.category)) {
       filtered.push(injection);
       totalChars += injection.content.length;
@@ -303,7 +331,9 @@ export function filterInjections(
       continue;
     }
 
-    const isPriority = priorityCategories.has(injection.category);
+    const isPriority =
+      priorityCategories.has(injection.category) ||
+      (mode !== 'crisis' && keptCallReport(injection.category));
 
     if (filtered.length >= maxInjections && !isPriority) {
       continue;
@@ -390,9 +420,10 @@ export function deduplicateInjections(injections: ContextInjection[]): ContextIn
     for (let j = i + 1; j < sorted.length; j++) {
       if (skipped.has(j)) continue;
       const other = sorted[j];
-      const duplicate = DEDUP_PROTECTED_CATEGORIES.has(other.category)
-        ? other.content === current.content
-        : areSemanticallySimilar(current, other);
+      const duplicate =
+        DEDUP_PROTECTED_CATEGORIES.has(other.category) || keptCallReport(other.category)
+          ? other.content === current.content
+          : areSemanticallySimilar(current, other);
       if (duplicate) skipped.add(j);
     }
   }

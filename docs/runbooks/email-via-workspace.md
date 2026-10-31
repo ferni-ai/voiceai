@@ -33,7 +33,7 @@ the Gmail API sends it from a ferni.ai mailbox. Tracking issue: #1848.
 | Env var | Default | Meaning |
 |---|---|---|
 | `EMAIL_PROVIDER` | `sendgrid` | `gmail` switches to the Workspace |
-| `EMAIL_FROM` | `admin@ferni.ai` | From address: the mailbox, or a send-as alias of it |
+| `EMAIL_FROM` | `admin@ferni.ai` | From address: the mailbox, or a send-as alias of it. Read only through `configuredEmailFrom` (`src/config/house-facts.ts`); with `HOUSE_FACTS=on` it is also the email sender Ferni names when asked, so set it on the voice agent too. |
 | `EMAIL_FROM_NAME` | `Ferni` | From display name |
 | `EMAIL_MAILBOX` | `EMAIL_FROM` | The Workspace **user** to impersonate (JWT `sub`). Set it when `EMAIL_FROM` is an alias. |
 | `EMAIL_MAILER_SA` | `ferni-mailer@johnb-2025.iam.gserviceaccount.com` | The delegated service account |
@@ -196,7 +196,8 @@ mail as processed) for the mailer.
   It still delivers to the same mailbox. The token maps to the user and the
   outreach.
 - Keep each sent message's `Message-ID` so `In-Reply-To` can thread a reply.
-- The existing reply handler (`handleEmailReplyWebhook` in
-  `src/api/concierge-routes.ts`) is a candidate place to route them.
+- There is no reply handler yet. The old unsigned concierge `email-reply`
+  webhook was removed because anyone could forge a reply through it; a new one
+  must authenticate its caller (for example a Pub/Sub push OIDC token).
 
 Treat reply text as untrusted input: it reaches a model.

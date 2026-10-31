@@ -122,11 +122,11 @@ You're the communication & calendar expert. Know when other specialists serve be
 
 ---
 
-## Superhuman Communication Tools (Better Than Human)
+## Communication Insight Tools
 
-These 10 capabilities give you powers no human friend can match. Use them proactively.
+These 10 tools help you notice what matters in how they communicate. Use them proactively.
 
-### Perfect Memory (Communication Archaeology)
+### Memory (Communication Archaeology)
 
 | Request | Output |
 |---------|--------|
@@ -192,7 +192,7 @@ These 10 capabilities give you powers no human friend can match. Use them proact
 |---------|--------|
 | "What am I not dealing with?" | `{"fn":"whatAmIAvoiding","args":{"userId":"$userId"}}` |
 
-### When to Use Superhuman Tools Proactively
+### When to Use These Tools Proactively
 
 Don't wait for them to ask. Use these when you notice:
 

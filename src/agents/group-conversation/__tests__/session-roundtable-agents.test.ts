@@ -12,13 +12,15 @@ import {
   type SpeakingSession,
 } from '../session-roundtable-agents.js';
 import type { AgentCreationContext, ResponseContext } from '../team-roundtable.js';
+import { createUserDataProxy } from '../../session/user-data-proxy.js';
+import { createSessionStateManager } from '../../session/session-state.js';
 
-function fakeSession() {
+function fakeSession(userData: SpeakingSession['userData'] = { personaId: 'ferni' }) {
   const spoken: Array<{ text: string; voice: unknown }> = [];
   let finish: (() => void) | null = null;
   let fail: ((e: Error) => void) | null = null;
   const session: SpeakingSession = {
-    userData: { personaId: 'ferni' },
+    userData,
     say: (text) => {
       spoken.push({ text, voice: session.userData.speakingAs });
       const playout = new Promise<void>((resolve, reject) => {
@@ -60,6 +62,23 @@ describe('session roundtable agents', () => {
     await playing;
     expect(session.userData.speakingAs).toBeUndefined();
     expect(session.userData.personaId).toBe('ferni'); // who is on the call never changes
+  });
+
+  it("hands the voice back on the call's real userData proxy", async () => {
+    const userData = createUserDataProxy(createSessionStateManager('rt-proxy', 'ferni', {}));
+    userData.personaId = 'ferni';
+    const { session, spoken, finish } = fakeSession(userData);
+    const maya = await createSessionRoundtableAgents({ session, write: async () => 'x' })(
+      'maya-habits',
+      creation
+    );
+
+    const playing = maya.say('Pay the card first.');
+    finish();
+    await playing;
+    expect(spoken).toEqual([{ text: 'Pay the card first.', voice: 'maya-santos' }]);
+    expect(userData.speakingAs).toBeUndefined();
+    expect(userData.speakingAs ?? userData.personaId).toBe('ferni');
   });
 
   it('clears the voice when a line fails, and says nothing when muted or empty', async () => {

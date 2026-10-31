@@ -10,8 +10,11 @@
 
 import { EventEmitter } from 'events';
 import { getLogger } from '../../utils/safe-logger.js';
-import type { ResolvedContact } from '../../tools/domains/telephony/types.js';
-import type { OnBehalfCallRequest, CallOutcome } from '../../tools/domains/telephony/types.js';
+import type {
+  CallOutcome,
+  OnBehalfCallRequest,
+  ResolvedContact,
+} from '../../tools/domains/telephony/types.js';
 import { registerOnBehalfCallInitiator } from '../../tools/domains/telephony/call-on-behalf.js';
 import { selectScript, buildCallScript } from '../../tools/domains/telephony/scripts/index.js';
 import {
@@ -362,26 +365,10 @@ class OnBehalfCallOrchestrator extends EventEmitter {
 
       log.info({ roomName, callId, agentName }, '✅ On-behalf agent dispatched successfully');
     } catch (error) {
-      // Fall back to event emission for backwards compatibility
-      log.warn(
-        { error: String(error), callId },
-        '⚠️ AgentDispatchClient failed, falling back to event emission'
-      );
-
-      // Emit event for any external listeners (backwards compat)
-      this.emit('agent-join-requested', {
-        roomName,
-        callId,
-        agentType: 'on-behalf-caller',
-        userId: request.userId,
-        metadata: {
-          callId,
-          purpose: request.purpose,
-          callType: request.callType,
-          contactName: request.resolvedContact?.name,
-          script,
-        },
-      });
+      // No agent in the room: dialling now would ring the contact into silence.
+      // initiateCall marks the call failed and its callers tell the user it wasn't placed.
+      log.error({ error: String(error), callId }, 'On-behalf agent dispatch failed');
+      throw error;
     }
   }
 

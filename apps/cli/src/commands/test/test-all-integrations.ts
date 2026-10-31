@@ -10,12 +10,13 @@
  * 5. Research: Finnhub, Alpha Vantage
  * 6. Proactive: Full trigger → outreach flow
  *
- * Usage:
- *   npx env-cmd -f .env npx tsx scripts/test-all-integrations.ts
- *   npx env-cmd -f .env npx tsx scripts/test-all-integrations.ts --live  # Send real messages
+ * Usage (pnpm test:integrations, :live, :nightly):
+ *   npx env-cmd -f .env npx tsx apps/cli/src/commands/test/test-all-integrations.ts
+ *   ... --live      # Send real messages
+ *   ... --nightly   # read-only probes vs scripts/ops/integration-expected.json (integration-nightly.ts)
  */
+import { runNightly } from './integration-nightly.js';
 
-// Colors
 const GREEN = '\x1b[32m';
 const RED = '\x1b[31m';
 const YELLOW = '\x1b[33m';
@@ -239,7 +240,6 @@ async function testPlaid(): Promise<void> {
     return `Env: ${process.env.PLAID_ENV || 'sandbox'}`;
   });
 
-  // Note: Can't test Plaid without going through OAuth flow
 }
 
 // ============================================================================
@@ -463,6 +463,7 @@ function printSummary(): void {
 // ============================================================================
 
 async function main(): Promise<void> {
+  if (process.argv.includes('--nightly')) process.exit(await runNightly(process.argv));
   console.log(`\n${CYAN}╔════════════════════════════════════════════════════════════╗${NC}`);
   console.log(`${CYAN}║        FERNI COMPREHENSIVE INTEGRATION TEST                ║${NC}`);
   console.log(`${CYAN}╚════════════════════════════════════════════════════════════╝${NC}`);
@@ -473,7 +474,6 @@ async function main(): Promise<void> {
     if (!process.env.TEST_PHONE_NUMBER) console.log(`${RED}   TEST_PHONE_NUMBER not set${NC}`);
   }
 
-  // Run all tests
   await testEmail();
   await testTwilio();
   await testGooglePlaces();

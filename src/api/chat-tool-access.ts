@@ -23,6 +23,7 @@
  *
  * @module api/chat-tool-access
  */
+import { isGmailReadToolsOn } from '../config/gmail-read-tools.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ChatToolAccess' });
@@ -47,9 +48,16 @@ export interface ChatCaller {
   actingUserId?: string;
 }
 
+/** Gmail reads meet a 403 (no gmail.readonly), so they are offered only under GMAIL_READ_TOOLS. */
+const GMAIL_READ_TOOLS: ReadonlySet<string> = new Set(['getUnreadEmails']);
+
 /** The tools the model may be offered for this caller: the grant. */
 export function offeredChatTools<T extends { name: string }>(tools: T[], isAdmin: boolean): T[] {
-  return tools.filter((t) => isAdmin || SELF_SERVICE_TOOLS.has(t.name));
+  return tools.filter(
+    (t) =>
+      (isAdmin || SELF_SERVICE_TOOLS.has(t.name)) &&
+      (isGmailReadToolsOn() || !GMAIL_READ_TOOLS.has(t.name))
+  );
 }
 
 /**

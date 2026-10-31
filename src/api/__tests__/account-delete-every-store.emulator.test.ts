@@ -19,7 +19,10 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { CollectionReference, DocumentReference, Firestore } from 'firebase-admin/firestore';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { emailDocId, KEYED_STORES } from '../../services/platform/erase-other-keys.js';
-import { eraseUserRecord } from '../../services/platform/erase-user-record.js';
+import {
+  eraseUserRecord,
+  findUserRecordRemnants,
+} from '../../services/platform/erase-user-record.js';
 import { ERASED_STORES, storeLabel } from '../../services/platform/user-stores.js';
 
 /** The Firebase record each test uid signs in with: its email, whether Firebase verified it, its phone */
@@ -81,9 +84,12 @@ const MUST_ERASE = [
   'bogle_users/{uid}/summaries',
   'bogle_users/{uid}/conversations',
   'bogle_users/{uid}/conversations/conv_1/timeline', // CALL_TIMELINE (call-timeline.ts)
+  'bogle_users/{uid}/activity', // the activity ledger (activity-store.ts)
+  'bogle_users/{uid}/activity/a_1/events', // each record's event log
   'bogle_users/{uid}/facts', // bi-temporal facts (facts-store.ts)
   'bogle_users/{uid}/user_contacts',
   'bogle_users/{uid}/outreach_attempts',
+  'bogle_users/{uid}/booking_prefs', // booking preferences (booking-prefs-store.ts)
   'bogle_users/{uid}/wellbeing_snapshots',
   'bogle_users/{uid}/trust_profiles',
   'bogle_users/{uid}/relationship_arc',
@@ -104,6 +110,36 @@ const MUST_ERASE = [
   'semantic_routing_feedback[userId]',
   'semantic_routing_vocabulary/{uid}',
   'semantic_routing_corrections/{uid}/corrections',
+  // Integration credentials and data (S8). Outside the records, listed in user-stores.ts:
+  'google_calendar_tokens/{uid}', // the old v1 callback's plaintext root copy
+  'local_calendar_events[userId]',
+  'apple_health_tokens/{uid}',
+  'apple_health_status/{uid}',
+  'apple_health_data/{uid}',
+  // ...and inside them, gone with the record
+  'bogle_users/{uid}/smart_home', // LIFX, Sonos, SmartThings credentials
+  'bogle_users/{uid}/homekit',
+  'bogle_users/{uid}/webhooks',
+  'bogle_users/{uid}/siri_tokens',
+  'bogle_users/{uid}/wearable_whoop_tokens',
+  'bogle_users/{uid}/spotify_links',
+  'bogle_users/{uid}/gmail_send_tokens',
+  'bogle_users/{uid}/plaid_tokens',
+  'bogle_users/{uid}/social_tokens',
+  'bogle_users/{uid}/outlook_tokens', // OUTLOOK_CONNECT's sealed grant
+  'users/{uid}/oauth_tokens',
+  'users/{uid}/calendar_providers', // Apple and Outlook calendar links
+  'users/{uid}/outlook_subscriptions',
+  'users/{uid}/google_watch_channels',
+];
+
+/** Stores outside the records the "anything left?" check must report while they hold something */
+const CHECKED_INTEGRATION_STORES = [
+  'google_calendar_tokens/{uid}',
+  'local_calendar_events[userId]',
+  'oura_tokens/{uid}',
+  'apple_calendar_tokens/{uid}',
+  'apple_health_tokens/{uid}',
 ];
 
 let db: Firestore;
@@ -237,12 +273,19 @@ describe.skipIf(!emulator)('DELETE /api/account erases every store kept for the 
     await db.doc('feature_checkin_optouts/hash-of-a-phone').set({ at: 'now', via: 'reply' });
     expect((await docsNaming(a, ...aKeys)).length).toBeGreaterThanOrEqual(MUST_ERASE.length + 6);
     const bBefore = (await docsNaming(b, ...bKeys)).sort();
+    expect(await findUserRecordRemnants(db, a)).toEqual(
+      expect.arrayContaining(CHECKED_INTEGRATION_STORES)
+    );
 
     const res = await deleteAccount(a);
 
     expect(res.status, res.body).toBe(200);
     expect(await docsNaming(a, ...aKeys)).toEqual([]);
+    expect(await findUserRecordRemnants(db, a)).toEqual([]);
     expect((await docsNaming(b, ...bKeys)).sort()).toEqual(bBefore);
+    expect(await findUserRecordRemnants(db, b)).toEqual(
+      expect.arrayContaining(CHECKED_INTEGRATION_STORES)
+    );
     expect((await db.doc('tool_usage_calls/batch_1700000000001').get()).get('calls')).toEqual([
       { toolId: 'weather', sessionId: 's-a' },
       { toolId: 'music', userId: b, sessionId: 's-b' },

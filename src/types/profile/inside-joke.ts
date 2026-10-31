@@ -6,4 +6,6 @@ export interface InsideJokeRef {
   bit: string;
   quote: string;
   speaker: 'user' | 'assistant';
+  /** ISO time the bit expires, a year after the call (utils/shared-moment-retention.ts); none before */
+  expireAt?: string;
 }

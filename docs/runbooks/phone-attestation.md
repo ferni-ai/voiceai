@@ -21,19 +21,19 @@ Code: `src/services/identity/phone-attestation.ts` (mint/verify),
 `src/api/voice-auth/inbound-call-routes.ts` (webhook),
 `src/agents/voice-agent-entry/sip-caller.ts` (agent, shadow log only).
 
-## Blocker found while building this (fix first)
+## Blocker found while building this (fixed, #2679)
 
-Twilio already posts to the webhook, and **every request since 2026-10-07 got
-403** (Cloud Run logs, `john-bogle-ui`, UA `TwilioProxy/1.1`: 16 calls + 16
-status callbacks, 0 accepted). Likely cause (UNCONFIRMED): the number's voice
-URL is `https://app.ferni.ai/api/voice/inbound` (as `PHONE-IDENTITY-SETUP.md`
-says), Firebase Hosting rewrites it to Cloud Run with Host
-`john-bogle-ui-…run.app` (confirmed: a POST to `app.ferni.ai/api/voice/inbound/status`
-is logged by Cloud Run as `john-bogle-ui-bmopaivmsq-uc.a.run.app/...`), and
-`isSignedByTwilio` rebuilds the signed URL from the Host header, so the
-signature never matches. The number's configured URL itself is unverified. Either point the number at the
-run.app URL directly or make the signature check use the public host. Until
-then this webhook can't mint anything.
+Every Twilio request since 2026-10-07 got **403** (Cloud Run logs,
+`john-bogle-ui`, UA `TwilioProxy/1.1`: 16 calls + 16 status callbacks, 0
+accepted). Cause: Firebase Hosting rewrites `https://app.ferni.ai/...` to Cloud
+Run with Host `john-bogle-ui-…run.app`, and `isSignedByTwilio` rebuilt the
+signed URL from that Host header, so the signature never matched. It now checks
+the signature against our configured public origins (`APP_URL`, default
+`https://app.ferni.ai`, and `WEBHOOK_BASE_URL`, default `https://api.ferni.ai`)
+plus the path and query, never a request header. Until the steps below land, a signed
+inbound call gets the "not set up to receive calls" TwiML (no
+`SIP_INBOUND_TRUNK_ID` or attestation config on the UI service). The number's
+configured URL is still unverified: it must be on one of those origins.
 
 ## Steps (each needs-owner-approval)
 

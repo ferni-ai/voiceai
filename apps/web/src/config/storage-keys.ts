@@ -87,8 +87,6 @@ export const PROGRESS_KEYS = {
 export const FEATURE_KEYS = {
   /** User rituals data */
   USER_RITUALS: 'ferni_user_rituals',
-  /** Spotify linked status */
-  SPOTIFY_LINKED: 'ferni_spotify_linked',
   /** Earn seeds modal seen */
   EARN_SEEDS_SEEN: 'ferni_earn_seeds_seen',
   /** Custom agent draft */

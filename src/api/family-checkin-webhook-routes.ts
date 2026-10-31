@@ -15,7 +15,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import { validateTwilioSignature } from '../services/outreach/webhooks/twilio-webhooks.js';
+import { isSignedByTwilio } from './twilio-callback-signature.js';
 
 const log = createLogger({ module: 'FamilyCheckinWebhooks' });
 
@@ -324,27 +324,12 @@ function validateTwilioRequest(
   res: ServerResponse,
   body: Record<string, string>
 ): boolean {
-  const signature = req.headers['x-twilio-signature'] as string | undefined;
-  if (!signature) {
-    log.warn({ url: req.url }, 'Missing Twilio signature header');
-    res.writeHead(403, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Missing signature' }));
-    return false;
-  }
-
-  const forwardedProto = req.headers['x-forwarded-proto'];
-  const protocol = typeof forwardedProto === 'string' ? forwardedProto : 'https';
-  const host = req.headers.host ?? '';
-  const fullUrl = `${protocol}://${host}${req.url}`;
-
-  const isValid = validateTwilioSignature(signature, fullUrl, body);
-  if (!isValid) {
-    log.warn({ url: req.url }, 'Invalid Twilio signature');
+  if (!isSignedByTwilio(req, req.url ?? '', body)) {
+    log.warn({ url: req.url }, 'Missing or invalid Twilio signature');
     res.writeHead(403, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Invalid signature' }));
     return false;
   }
-
   return true;
 }
 

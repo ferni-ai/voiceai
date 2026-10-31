@@ -5,6 +5,7 @@
 
 import type { StressTrigger, GrowthMarker, ChallengeProgress, ComfortPattern, InsideJoke } from '../../../types/human-memory.js';
 import type { ConversationTurn, ExtractionContext } from './types.js';
+import { clampMomentWords } from '../../../utils/shared-moment-retention.js';
 
 // STRESS TRIGGER EXTRACTION
 // ============================================================================
@@ -237,8 +238,9 @@ export function detectInsideJokePotential(turns: ConversationTurn[]): InsideJoke
         if (refMatch) {
           jokes.push({
             id: `joke_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-            reference: refMatch[1].slice(0, 100),
-            origin: turn.content.slice(0, 200),
+            // 80 characters of their words at most, in every store this lands in (Seth, 2026-10-26)
+            reference: clampMomentWords(refMatch[1]),
+            origin: clampMomentWords(turn.content),
             originatedAt: now,
             usageCount: 1,
             status: 'fresh',

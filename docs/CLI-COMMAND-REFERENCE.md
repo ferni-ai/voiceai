@@ -622,7 +622,7 @@ DELETE /api/experiments/:id        - Delete experiment
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| Token Server | 3001 | LiveKit tokens, Spotify OAuth |
+| Token Server | 3001 | LiveKit tokens |
 | UI Server | 3002 | API routes, experiments, engagement |
 | Vite Frontend | 3004 | Frontend dev server |
 | Voice Agent | LiveKit | Voice agent (LiveKit Cloud) |

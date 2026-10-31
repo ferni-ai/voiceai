@@ -1270,8 +1270,6 @@
       "notifications": "체크인 알림 시간",
       "toggleTheme": "라이트 / 다크 모드",
       "themeLanguage": "화면 스타일",
-      "linkSpotify": "Spotify 연결하기",
-      "spotifyConnected": "Spotify 연결됨",
       "vibeController": "분위기 설정하기",
       "spotifyRooms": "뮤직 룸",
       "thermostat": "스마트 홈 온도",
@@ -2419,10 +2417,6 @@
         "description": "Apple Watch 및 iPhone 건강 데이터와 동기화해요",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Fitbit 기기를 연결해요",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Garmin 웨어러블과 동기화해요",
         "name": "Garmin"
@@ -2776,8 +2770,7 @@
       "askFerni": "아니면 Ferni에게 음악을 틀어달라고 부탁해 보세요",
       "play": "재생",
       "pause": "일시 정지",
-      "skip": "건너뛰기",
-      "linkSpotify": "전체 곡을 들으려면 설정에서 Spotify를 연결해 주세요"
+      "skip": "건너뛰기"
     },
     "volume": "볼륨",
     "skipped": "건너뛰었어요",
@@ -8349,10 +8342,9 @@
     "appleHealthDesc": "수면, 활동 및 심박수 데이터",
     "ouraDesc": "수면의 질과 준비도 점수",
     "eightSleepDesc": "수면 분석과 온도 조절",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP 등",
+    "wearablesDesc": "Garmin, WHOOP 등",
     "calendarDesc": "일정, 회의, 비는 시간",
     "linkedInDesc": "커리어 맥락과 네트워크",
-    "spotifyDesc": "음악, 기분별 플레이리스트, 감상 기록",
     "ecobeeDesc": "집안 온도와 쾌적함",
     "vibeControllerDesc": "음악, 조명 등 제어하기",
     "connected": "연결됨"
@@ -8982,10 +8974,7 @@
     "trustJourneyExplore": "둘러보기",
     "customizeTitle": "나에게 맞게 설정하기",
     "customizeMessage": "테마, 소리 등을 조절해 보세요.",
-    "spotifyMessage": "Spotify를 연결해서 대화하는 동안의 기분을 설정해 보세요.",
-    "spotifyConnect": "연결하기",
-    "maybeLater": "나중에 할게요",
-    "spotifyTitle": "Spotify 연결하기"
+    "maybeLater": "나중에 할게요"
   },
   "mentorTeachings": {
     "learningFrom": "배우는 중",
@@ -10213,7 +10202,6 @@
     "connectFirstToManage": "먼저 연결해 주시면 관리해 드릴게요.",
     "monthlyLimitReached": "이번 달 제한에 도달했어요. 계속 대화하고 싶지만...",
     "enableMicPrompt": "목소리를 듣고 싶어요. 마이크 권한을 허용해 주시겠어요?",
-    "agentJoined": "{name}이(가) 참여했어요",
     "seeYouNextTime": "다음에 또 만나요!",
     "handoffFailed": "지금은 연결이 되지 않네요. 그래도 제가 곁에 있을게요!",
     "personaBack": "{name} 페르소나가 돌아왔어요!",
@@ -10510,7 +10498,6 @@
     "names": {
       "stockData": "주식 데이터",
       "marketData": "시장 데이터",
-      "weatherMaps": "날씨 및 지도",
       "historicalFacts": "역사적 사실",
       "smartHome": "스마트 홈",
       "lighting": "조명",
@@ -10807,7 +10794,10 @@
     "endTalk": "대화 종료",
     "connectingCancel": "연결 중입니다. 탭하여 취소",
     "connectingNow": "연결 중…",
-    "tapToCancel": "탭하여 취소"
+    "tapToCancel": "탭하여 취소",
+    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
+    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
+    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
   },
   "analyticsDashboard": {
     "title": "나의 여정",
