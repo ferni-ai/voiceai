@@ -6,7 +6,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../../utils/safe-logger.js', () => {
-  const l = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+  const l = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), child: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }) };
   return { getLogger: () => l, createLogger: () => l, safeLog: () => l };
 });
 vi.mock('@livekit/agents', () => ({

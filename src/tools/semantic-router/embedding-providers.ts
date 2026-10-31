@@ -8,6 +8,10 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { EmbeddingApiError, EmbeddingUnavailableError } from '../../utils/embedding-api-error.js';
+import { flagOn } from '../../config/env-flag.js';
+import { isGeminiConfigured } from '../../config/gemini-config.js';
+import { embedTexts } from '../../config/gemini-embeddings.js';
 import { getCachedEmbedding, cacheEmbedding } from './registry.js';
 import type { EmbeddingProvider, EmbeddingVector } from './types.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
@@ -73,8 +77,7 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`OpenAI embedding failed: ${error}`);
+      throw new EmbeddingApiError('OpenAI', response.status);
     }
 
     const data = (await response.json()) as {
@@ -133,8 +136,7 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
         });
 
         if (!response.ok) {
-          const error = await response.text();
-          throw new Error(`OpenAI batch embedding failed: ${error}`);
+          throw new EmbeddingApiError('OpenAI', response.status);
         }
 
         const data = (await response.json()) as {
@@ -162,8 +164,13 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
 // GOOGLE EMBEDDING PROVIDER
 // ============================================================================
 
+/** A live query embedding may not hold a turn for a cold Vertex call (~12 s measured). */
+const QUERY_EMBED_TIMEOUT_MS = 1500;
+
 /**
- * Google gemini-embedding-001 provider
+ * Google gemini-embedding-001 provider, on Vertex through the shared client.
+ * Behind ROUTER_EMBEDDINGS_VERTEX (off): off, every call fails at once, as the
+ * dead GOOGLE_API_KEY did, and callers keep their non-embedding path.
  *
  * Same model memory/vectors uses. text-embedding-004 is retired.
  * Dimensions: 3072
@@ -172,123 +179,40 @@ export class GoogleEmbeddingProvider implements EmbeddingProvider {
   readonly modelName = 'gemini-embedding-001';
   readonly dimensions = 3072;
 
-  private apiKey: string;
   private useCache: boolean;
 
-  constructor(options?: { apiKey?: string; useCache?: boolean }) {
-    this.apiKey = options?.apiKey || process.env.GOOGLE_API_KEY || '';
+  constructor(options?: { useCache?: boolean }) {
     this.useCache = options?.useCache ?? true;
-
-    if (!this.apiKey) {
-      log.warn('No Google API key provided - embeddings will fail');
-    }
   }
 
   async embed(text: string): Promise<EmbeddingVector> {
-    // Check cache
-    if (this.useCache) {
-      const cached = getCachedEmbedding(text, this.modelName);
-      if (cached) return cached;
-    }
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${this.modelName}:embedContent?key=${this.apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: `models/${this.modelName}`,
-          content: { parts: [{ text }] },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Google embedding failed: ${error}`);
-    }
-
-    const data = (await response.json()) as {
-      embedding: { values: number[] };
-    };
-    const embedding = data.embedding.values;
-
-    // Cache result
-    if (this.useCache) {
-      cacheEmbedding(text, this.modelName, embedding);
-    }
-
+    const [embedding] = await this.embedBatch([text], QUERY_EMBED_TIMEOUT_MS);
     return embedding;
   }
 
-  async embedBatch(texts: string[]): Promise<EmbeddingVector[]> {
-    // Check cache for all
+  async embedBatch(texts: string[], timeoutMs?: number): Promise<EmbeddingVector[]> {
+    if (!flagOn('ROUTER_EMBEDDINGS_VERTEX')) {
+      throw new EmbeddingUnavailableError('ROUTER_EMBEDDINGS_VERTEX is off');
+    }
     const results: EmbeddingVector[] = new Array(texts.length);
     const uncachedIndices: number[] = [];
-    const uncachedTexts: string[] = [];
 
-    if (this.useCache) {
-      for (let i = 0; i < texts.length; i++) {
-        const cached = getCachedEmbedding(texts[i], this.modelName);
-        if (cached) {
-          results[i] = cached;
-        } else {
-          uncachedIndices.push(i);
-          uncachedTexts.push(texts[i]);
-        }
-      }
-    } else {
-      for (let i = 0; i < texts.length; i++) {
-        uncachedIndices.push(i);
-        uncachedTexts.push(texts[i]);
-      }
+    for (let i = 0; i < texts.length; i++) {
+      const cached = this.useCache ? getCachedEmbedding(texts[i], this.modelName) : undefined;
+      if (cached) results[i] = cached;
+      else uncachedIndices.push(i);
     }
 
-    // Fetch uncached embeddings using Google's batchEmbedContents API
-    if (uncachedTexts.length > 0) {
-      // Google batch API supports up to 100 requests per call
-      const BATCH_SIZE = 100;
-
-      for (let i = 0; i < uncachedTexts.length; i += BATCH_SIZE) {
-        const batch = uncachedTexts.slice(i, i + BATCH_SIZE);
-        const batchIndices = uncachedIndices.slice(i, i + BATCH_SIZE);
-
-        // Build batch request
-        const requests = batch.map((text) => ({
-          model: `models/${this.modelName}`,
-          content: { parts: [{ text }] },
-        }));
-
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${this.modelName}:batchEmbedContents?key=${this.apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ requests }),
-          }
-        );
-
-        if (!response.ok) {
-          const error = await response.text();
-          throw new Error(`Google batch embedding failed: ${error}`);
-        }
-
-        const data = (await response.json()) as {
-          embeddings: Array<{ values: number[] }>;
-        };
-
-        // Map back to original indices
-        for (let j = 0; j < data.embeddings.length; j++) {
-          const globalIndex = batchIndices[j];
-          const embedding = data.embeddings[j].values;
-          results[globalIndex] = embedding;
-
-          // Cache
-          if (this.useCache) {
-            cacheEmbedding(texts[globalIndex], this.modelName, embedding);
-          }
-        }
-      }
+    if (uncachedIndices.length > 0) {
+      const vectors = await embedTexts(
+        this.modelName,
+        uncachedIndices.map((i) => texts[i]),
+        timeoutMs
+      );
+      uncachedIndices.forEach((globalIndex, j) => {
+        results[globalIndex] = vectors[j];
+        if (this.useCache) cacheEmbedding(texts[globalIndex], this.modelName, vectors[j]);
+      });
     }
 
     return results;
@@ -375,16 +299,15 @@ let defaultProvider: EmbeddingProvider | null = null;
  */
 function getDefaultProvider(): EmbeddingProvider {
   if (!defaultProvider) {
-    // Prefer Google (free tier), fallback to local
-    const hasGoogleKey = !!process.env.GOOGLE_API_KEY;
+    // Prefer Google (Vertex through the shared client), then OpenAI, then local
     const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
 
-    if (hasGoogleKey) {
+    if (isGeminiConfigured()) {
       defaultProvider = new GoogleEmbeddingProvider();
     } else if (hasOpenAIKey) {
       defaultProvider = new OpenAIEmbeddingProvider();
     } else {
-      log.warn('No API key found, using local hash embeddings (testing only)');
+      log.warn('No embedding provider configured, using local hash embeddings (testing only)');
       defaultProvider = new LocalHashEmbeddingProvider();
     }
   }

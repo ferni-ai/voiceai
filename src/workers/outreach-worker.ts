@@ -92,7 +92,7 @@ interface WorkerDecision {
  * Evaluate whether a trigger should result in outreach
  * This is a simplified version using the decision engine
  */
-async function evaluateTrigger(trigger: OutreachTriggerPayload): Promise<WorkerDecision> {
+export async function evaluateTrigger(trigger: OutreachTriggerPayload): Promise<WorkerDecision> {
   try {
     const { getOutreachDecisionEngine } = await import('../services/outreach/decision-engine.js');
     const engine = getOutreachDecisionEngine();
@@ -118,12 +118,14 @@ async function evaluateTrigger(trigger: OutreachTriggerPayload): Promise<WorkerD
     }
 
     // Quiet hours. Off: 22:00-08:00 on the server clock, which is UTC on Cloud Run.
-    const { isQuietHoursUnified, userQuietHours } =
+    // Plus the window saved in the menu (QUIET_HOURS_FROM_PREFS), in its own zone.
+    const { isQuietHoursUnified, isSavedQuietNow, userQuietHours } =
       await import('../services/outreach/quiet-hours.js');
     const hour = now.getHours();
-    const isQuietHours = isQuietHoursUnified()
+    const ownQuiet = isQuietHoursUnified()
       ? (await userQuietHours(trigger.userId, now)).quiet
       : hour < 8 || hour >= 22;
+    const isQuietHours = ownQuiet || (await isSavedQuietNow(trigger.userId, now));
     if (isQuietHours) {
       return {
         shouldSend: false,

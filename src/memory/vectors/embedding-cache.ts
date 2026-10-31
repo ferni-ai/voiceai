@@ -9,6 +9,7 @@
  */
 
 import { createHash } from 'crypto';
+import { errorSummary } from '../../utils/error-class.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { embed, embedBatch, getEmbeddingProvider } from './embeddings.js';
 import { err, memoryError, ok, type MemoryError, type Result } from '../result.js';
@@ -20,6 +21,14 @@ import {
 
 const log = getLogger();
 const CACHE_NAME = 'embeddings';
+
+/** A failed embedding as a Result: the error's class and status, never its message (it can echo the text). */
+function embeddingFailed(what: string, error: unknown): Result<never, MemoryError> {
+  const cause = error instanceof Error ? error : undefined;
+  return err(
+    memoryError('embedding_failed', `${what}: ${errorSummary(error)}`, { retryable: true, cause })
+  );
+}
 
 // Performance metrics callbacks - injected at runtime to avoid architecture violation
 let metrics: PerformanceMetricsCallbacks = noopMetrics;
@@ -236,12 +245,7 @@ export class EmbeddingCache {
 
       return ok(embedding);
     } catch (error) {
-      return err(
-        memoryError('embedding_failed', `Failed to generate embedding: ${error}`, {
-          retryable: true,
-          cause: error instanceof Error ? error : undefined,
-        })
-      );
+      return embeddingFailed('Failed to generate embedding', error);
     }
   }
 
@@ -287,12 +291,7 @@ export class EmbeddingCache {
           }
         }
       } catch (error) {
-        return err(
-          memoryError('embedding_failed', `Batch embedding failed: ${error}`, {
-            retryable: true,
-            cause: error instanceof Error ? error : undefined,
-          })
-        );
+        return embeddingFailed('Batch embedding failed', error);
       }
     }
 

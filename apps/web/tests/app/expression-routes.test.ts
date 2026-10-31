@@ -6,6 +6,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { MOTION_FLAG_KEYS } from '../../src/config/motion-flags.js';
+
 vi.mock('../../src/utils/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
@@ -24,12 +26,9 @@ vi.mock('../../src/ui/presence.ui.js', () => ({
 }));
 vi.mock('../../src/ui/waveform.ui.js', () => ({ waveformUI: { setEmotion: vi.fn() } }));
 
-import {
-  EXPRESSION_ARBITER_FLAG_KEY,
-  expressionArbiter,
-} from '../../src/app/expression-arbiter.js';
+import { expressionArbiter } from '../../src/app/expression-arbiter.js';
 import { faceForUserEmotion, routeExpressionMessage } from '../../src/app/expression-routes.js';
-import { REPLY_TONE_FLAG_KEY, resetReplyTone } from '../../src/app/reply-tone.js';
+import { resetReplyTone } from '../../src/app/reply-tone.js';
 import { ferni } from '../../src/ui/better-than-human.ui.js';
 import { ferniExpressions } from '../../src/ui/ferni-expressions.ui.js';
 import { presenceUI } from '../../src/ui/presence.ui.js';
@@ -75,14 +74,14 @@ describe('expression routing, flag off', () => {
   });
 
   it('still consumes reply_tone through the reply-tone handler', () => {
-    localStorage.setItem(REPLY_TONE_FLAG_KEY, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.replyTone, 'true');
     expect(routeExpressionMessage({ type: 'reply_tone', emotion: 'calm', speed: 1 })).toBe(true);
     expect(setExpression).toHaveBeenCalledWith('present');
   });
 });
 
 describe('expression routing, flag on', () => {
-  beforeEach(() => localStorage.setItem(EXPRESSION_ARBITER_FLAG_KEY, 'true'));
+  beforeEach(() => localStorage.setItem(MOTION_FLAG_KEYS.expressionArbiter, 'true'));
 
   it('consumes the routed types and passes others on', () => {
     expect(routeExpressionMessage(emotion('happy'))).toBe(true);
@@ -132,7 +131,7 @@ describe('expression routing, flag on', () => {
   });
 
   it('routes reply tone through the arbiter at reply-tone priority', () => {
-    localStorage.setItem(REPLY_TONE_FLAG_KEY, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.replyTone, 'true');
     routeExpressionMessage(laugh('laugh'));
     routeExpressionMessage({ type: 'reply_tone', emotion: 'sympathetic', speed: 1 });
     routeExpressionMessage(emotion('happy'));
@@ -140,7 +139,7 @@ describe('expression routing, flag on', () => {
   });
 
   it('drops reply tone while a safety face holds', () => {
-    localStorage.setItem(REPLY_TONE_FLAG_KEY, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.replyTone, 'true');
     routeExpressionMessage({ type: 'crisis_detected' });
     routeExpressionMessage({ type: 'reply_tone', emotion: 'content', speed: 1 });
     expect(faces()).toEqual(['empathetic']);

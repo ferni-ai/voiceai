@@ -47,7 +47,7 @@
  *
  *    Covers:
  *      - HomeKit integration (iOS native)
- *      - Home Assistant, Philips Hue, LIFX backends
+ *      - Philips Hue, LIFX backends
  *      - Ecobee thermostat control
  *      - Vibe service (music + lights + temperature)
  *      - Voice command routing via semantic router

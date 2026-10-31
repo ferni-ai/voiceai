@@ -71,6 +71,8 @@ export interface MilestoneOutreachDeps {
   >;
   emailUser: (userId: string, subject: string, body: string) => Promise<{ success: boolean }>;
   textUser: (userId: string, body: string) => Promise<{ success: boolean }>;
+  /** Outreach on/off and the channels they turned on (default: the stored consent). */
+  consent?: (userId: string) => Promise<{ enabled: boolean; channels: string[] }>;
 }
 
 async function defaultDeps(): Promise<MilestoneOutreachDeps> {
@@ -160,8 +162,20 @@ export async function sendMilestoneOutreach(
   }
 
   try {
-    const { getContactInfo, emailUser, textUser } = deps ?? (await defaultDeps());
-    const contactInfo = await getContactInfo(userId);
+    const { getContactInfo, emailUser, textUser, consent } = deps ?? (await defaultDeps());
+    // "Ferni can reach out" off: Ferni starts nothing, a celebration included. Email only with
+    // its consent on (texts have their own guard, in textUser).
+    const { readOutreachConsent } = await import('../services/outreach/outreach-consent.js');
+    const reach = await (consent ?? readOutreachConsent)(userId);
+    if (!reach.enabled) {
+      sendJsonResponse(res, 200, { success: true, sent: false, reason: 'outreach-paused' });
+      return;
+    }
+    const found = await getContactInfo(userId);
+    const contactInfo = found && {
+      ...found,
+      email: reach.channels.includes('email') ? found.email : undefined,
+    };
     if (!contactInfo?.email && !contactInfo?.phone) {
       sendJsonResponse(res, 200, { success: true, sent: false, reason: 'no-contact-info' });
       return;

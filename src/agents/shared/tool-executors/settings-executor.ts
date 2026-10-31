@@ -65,7 +65,7 @@ async function execute(
     );
 
     if (!targetLanguage) {
-      return `Which language would you like me to speak? I support English, Spanish, Japanese, German, French, and more.`;
+      return `Which language would you like? I only speak English on calls for now, but I'll remember it.`;
     }
 
     const { languageService } = await import('../../../services/language/index.js');
@@ -76,23 +76,24 @@ async function execute(
     );
 
     if (result.success) {
-      return result.confirmationMessage || `I'll speak ${targetLanguage} now.`;
+      return result.confirmationMessage || `I'll remember you'd like ${targetLanguage}.`;
     }
-    return result.error || `I couldn't switch to that language.`;
+    return result.error || `I couldn't save that language.`;
   }
 
   if (fnLower === 'listsupportedlanguages' || fnLower === 'getsupportedlanguages') {
     log.info('🗣️ List supported languages');
-    const { languageService } = await import('../../../services/language/index.js');
-    const languages = await languageService().getSupportedLanguages();
-    return `I can speak: ${languages.map((l) => l.displayName).join(', ')}. Which would you like?`;
+    const { getSupportedLanguagesList, languageHelpListMessage } =
+      await import('../../../services/language/index.js');
+    return languageHelpListMessage(getSupportedLanguagesList());
   }
 
   if (fnLower === 'getcurrentlanguage' || fnLower === 'getspokenlanguage') {
     log.info({ userId: ctx.userId }, '🗣️ Get current language');
-    const { languageService } = await import('../../../services/language/index.js');
+    const { languageService, currentCallLanguageMessage } =
+      await import('../../../services/language/index.js');
     const current = await languageService().getCurrentLanguage(ctx.userId || 'anonymous');
-    return `I'm currently speaking ${current.displayName || 'English'}.`;
+    return currentCallLanguageMessage(current.code, current.displayName || 'English');
   }
 
   // ========================================

@@ -20,6 +20,8 @@ import {
 
 // The shared setup fakes firestore; the value cleaner checks its real Timestamp class
 vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
+// No proven phone profiles: the linked lookup (erasure-keys.ts) has its own tests
+vi.mock('../erasure-keys.js', () => ({ gatherErasureKeys: async () => ({ linkedUserIds: [] }) }));
 
 describe('secret fields', () => {
   it.each([
@@ -264,7 +266,7 @@ describe('the value written to the file', () => {
 
 /**
  * Just what BoundedReader calls: doc(path).get(), and collection(path) with where, orderBy,
- * startAfter, limit and get. Documents are keyed by full path; each store is one page.
+ * startAfter, limit and get (and listDocuments, of no partitions). Documents are keyed by full path; each store is one page.
  */
 function storedDb(docs: Record<string, Record<string, unknown>>): FirebaseFirestore.Firestore {
   const snap = (path: string) => ({
@@ -277,6 +279,7 @@ function storedDb(docs: Record<string, Record<string, unknown>>): FirebaseFirest
     orderBy: () => query(path),
     startAfter: () => query(path),
     limit: () => query(path),
+    listDocuments: async () => [],
     get: async () => ({
       docs: Object.keys(docs)
         .filter((p) => p.startsWith(`${path}/`) && !p.slice(path.length + 1).includes('/'))
@@ -593,5 +596,24 @@ describe('store allowlist', () => {
         /token|secret|credential|oauth|push_sub|passkey|webauthn|plaid/i.test(s)
       )
     ).toEqual([]);
+  });
+});
+
+describe('booking preferences (BOOKING_PREFS)', () => {
+  it('exports bogle_users/{uid}/booking_prefs with every field and who said it', async () => {
+    const stored = {
+      kind: 'restaurant',
+      partySize: 2,
+      seating: 'window',
+      days: ['fri', 'sat'],
+      updatedAt: '2026-10-30T14:00:00.000Z',
+      provenance: { partySize: { by: 'said_by_owner', at: '2026-10-30T14:00:00.000Z' } },
+    };
+    const out = await exportUserRecords(
+      'u-1',
+      undefined,
+      storedDb({ 'bogle_users/u-1/booking_prefs/restaurant': stored })
+    );
+    expect(out['bogle_users/{uid}/booking_prefs']).toEqual([{ id: 'restaurant', ...stored }]);
   });
 });

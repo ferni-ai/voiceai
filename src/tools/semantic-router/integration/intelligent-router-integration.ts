@@ -13,6 +13,8 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { isGeminiConfigured } from '../../../config/gemini-config.js';
+import { errorFields } from '../../../utils/error-class.js';
 import type { IntelligentRouterOrchestrator } from '../advanced/intelligent/index.js';
 import {
   getIntelligentOrchestrator,
@@ -100,15 +102,14 @@ export async function initializeIntelligentRouter(
       }>,
     }));
 
-    // Set up LLM provider - prefer GEMINI_API_KEY for LLM, fallback to GOOGLE_API_KEY
-    let llmProvider;
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-    if (config.useGemini && geminiKey) {
-      llmProvider = createGeminiProvider(geminiKey);
+    let llmProvider; // Gemini on Vertex through the shared client, else OpenAI
+    const gemini = isGeminiConfigured();
+    if (config.useGemini && gemini) {
+      llmProvider = createGeminiProvider();
     } else if (config.useOpenAI && process.env.OPENAI_API_KEY) {
       llmProvider = createOpenAIProvider(process.env.OPENAI_API_KEY);
-    } else if (geminiKey) {
-      llmProvider = createGeminiProvider(geminiKey);
+    } else if (gemini) {
+      llmProvider = createGeminiProvider();
     }
 
     // Set up bandit persistence
@@ -267,7 +268,7 @@ export async function startIntelligentRouting(
 
     log.info(
       {
-        userText: userText.slice(0, 50),
+        textLength: userText.length,
         decidedBy: decision.decidedBy,
         toolId: decision.toolId,
         action: decision.action,
@@ -277,10 +278,9 @@ export async function startIntelligentRouting(
       '🧠 Intelligent routing complete'
     );
 
-    // Convert to TurnRouterResult format
     return convertToTurnRouterResult(decision, userText, context, latencyMs);
   } catch (error) {
-    log.error({ error, userText: userText.slice(0, 50) }, 'Intelligent routing failed');
+    log.error({ ...errorFields(error), textLength: userText.length }, 'Intelligent routing failed');
 
     // Fallback to standard semantic routing
     const { startSemanticRouting } = await import('./turn-processor-integration.js');

@@ -55,16 +55,31 @@ const mockPersistUserLanguagePreference = vi.fn();
 const mockGetSupportedLanguagesList = vi.fn();
 const mockGetSessionLanguageState = vi.fn();
 
-vi.mock('../../../../services/language/index.js', () => ({
-  parseLanguageName: (lang: string) => mockParseLanguageName(lang),
-  setSessionLanguage: (sessionId: string, lang: string, userId?: string) =>
-    mockSetSessionLanguage(sessionId, lang, userId),
-  getLanguageConfig: (lang: string) => mockGetLanguageConfig(lang),
-  persistUserLanguagePreference: (userId: string, lang: string) =>
-    mockPersistUserLanguagePreference(userId, lang),
-  getSupportedLanguagesList: () => mockGetSupportedLanguagesList(),
-  getSessionLanguageState: (sessionId: string) => mockGetSessionLanguageState(sessionId),
-}));
+vi.mock('../../../../services/language/index.js', async () => {
+  // The truthfulness helpers are the production ones, not stand-ins.
+  const actual = await vi.importActual<
+    typeof import('../../../../services/language/live-capability.js')
+  >('../../../../services/language/live-capability.js');
+  return {
+    canSpeakLanguageLive: actual.canSpeakLanguageLive,
+    languageNotLiveMessage: actual.languageNotLiveMessage,
+    currentCallLanguageMessage: actual.currentCallLanguageMessage,
+    languageHelpListMessage: actual.languageHelpListMessage,
+    parseLanguageName: (lang: string) => mockParseLanguageName(lang),
+    setSessionLanguage: (sessionId: string, lang: string, userId?: string) =>
+      mockSetSessionLanguage(sessionId, lang, userId),
+    getLanguageConfig: (lang: string) => mockGetLanguageConfig(lang),
+    persistUserLanguagePreference: (userId: string, lang: string) =>
+      mockPersistUserLanguagePreference(userId, lang),
+    getSupportedLanguagesList: () => mockGetSupportedLanguagesList(),
+    getSessionLanguageState: (sessionId: string) => mockGetSessionLanguageState(sessionId),
+  };
+});
+
+/** Spoken by Ferni: no semicolons, colons or parentheses. */
+function expectSpeakable(text: unknown) {
+  expect(String(text)).not.toMatch(/[;:()]/);
+}
 
 // Import after mocks
 import type { ToolContext, ToolDefinition, Tool } from '../../../registry/types.js';
@@ -137,6 +152,18 @@ describe('Language Tools', () => {
       expect(toolIds).toContain('getCurrentLanguage');
     });
 
+    it('no description the model reads claims Ferni can speak another language', () => {
+      for (const def of languageToolDefinitions) {
+        const tool = def.create(mockContext) as unknown as { description: string };
+        for (const text of [def.description, tool.description]) {
+          expect(text).toMatch(/English only for now/);
+          expect(text).not.toMatch(
+            /Ferni can speak|you can speak|languages supported by|spoken language for|respond in the new language|current spoken language/i
+          );
+        }
+      }
+    });
+
     it('should have settings domain', async () => {
       toolDefinitions.forEach((t) => {
         expect(t.domain).toBe('settings');
@@ -152,15 +179,35 @@ describe('Language Tools', () => {
       setLanguageTool = def!.create(mockContext);
     });
 
-    it('should switch language when given valid language name', async () => {
+    it('Spanish: remembers the preference but never claims a switch calls cannot do', async () => {
       mockParseLanguageName.mockReturnValue('es');
 
       const result = await setLanguageTool.execute({ language: 'Spanish' });
 
       expect(mockParseLanguageName).toHaveBeenCalledWith('Spanish');
       expect(mockSetSessionLanguage).toHaveBeenCalledWith('test-user-123', 'es', 'test-user-123');
-      expect(result).toContain('Spanish');
-      expect(result).toContain('Español');
+      expect(mockPersistUserLanguagePreference).toHaveBeenCalledWith('test-user-123', 'es');
+      expect(result).not.toMatch(/now speak|switched to Spanish|language switched/i);
+      expect(result).toMatch(/can't do Spanish out loud yet/);
+      expect(result).toMatch(/English only for now/);
+      expect(result).toMatch(/remember you'd like it/);
+      expect(result).toMatch(/Spanish words to practise/);
+      expectSpeakable(result);
+    });
+
+    it('English: confirmation unchanged', async () => {
+      mockParseLanguageName.mockReturnValue('en');
+      mockSetSessionLanguage.mockReturnValue({
+        spokenLanguage: 'en',
+        displayName: 'English',
+        nativeName: 'English',
+        fullySupported: true,
+      });
+
+      const result = await setLanguageTool.execute({ language: 'English' });
+
+      expect(result).toBe("Language switched to English. I'll now speak to you in English.");
+      expect(mockPersistUserLanguagePreference).toHaveBeenCalledWith('test-user-123', 'en');
     });
 
     it('should handle unrecognized language gracefully', async () => {
@@ -182,7 +229,7 @@ describe('Language Tools', () => {
       expect(mockPersistUserLanguagePreference).toHaveBeenCalledWith('test-user-123', 'fr');
     });
 
-    it('should indicate limited support for non-fully-supported languages', async () => {
+    it('limited-support languages get the same honest answer, not a switch', async () => {
       mockParseLanguageName.mockReturnValue('zh');
       mockSetSessionLanguage.mockReturnValue({
         spokenLanguage: 'zh',
@@ -199,7 +246,8 @@ describe('Language Tools', () => {
 
       const result = await setLanguageTool.execute({ language: 'Chinese' });
 
-      expect(result).toContain('limited support');
+      expect(result).not.toMatch(/switched/i);
+      expect(result).toMatch(/can't do Chinese out loud yet/);
     });
   });
 
@@ -220,10 +268,13 @@ describe('Language Tools', () => {
       expect(result).toContain('Japanese');
     });
 
-    it('should include instructions on how to switch', async () => {
+    it('says calls are English-only instead of offering to switch', async () => {
       const result = await listLanguagesTool.execute({});
 
-      expect(result).toContain('speak to me in');
+      expect(result).toBe(
+        "I only speak English on calls for now. I can help with words and phrases in Spanish, French, and Japanese. Tell me which one you'd like and I'll remember it."
+      );
+      expectSpeakable(result);
     });
   });
 
@@ -245,6 +296,11 @@ describe('Language Tools', () => {
       const result = await getCurrentLanguageTool.execute({});
 
       expect(result).toContain('Spanish');
+      expect(result).not.toMatch(/speaking (in )?Spanish/i);
+      expect(result).toBe(
+        "We're speaking English. Calls are English only for now. I remember you'd like Spanish, though."
+      );
+      expectSpeakable(result);
     });
 
     it('should indicate auto-detection when applicable', async () => {
@@ -262,7 +318,9 @@ describe('Language Tools', () => {
       const result = await getCurrentLanguageTool.execute({});
 
       expect(result).toContain('Japanese');
-      expect(result).toContain('detected');
+      expect(result).toMatch(/hear some Japanese in how you were talking/);
+      expect(result).not.toMatch(/remember you'd like/);
+      expectSpeakable(result);
     });
 
     it('should default to English when no session state', async () => {
@@ -285,7 +343,7 @@ describe('Language Tools', () => {
 
       const result = await tool.execute({ language: 'Spanish' });
 
-      expect(result).toContain('trouble switching');
+      expect(result).toContain('trouble saving');
       expect(result).toContain('English');
     });
 

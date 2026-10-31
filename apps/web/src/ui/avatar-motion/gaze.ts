@@ -21,16 +21,16 @@
  * prefers-reduced-motion there are no saccades or glances: the eyes hold on
  * you (or up and right while thinking) and move without a transition.
  *
- * Off by default. Turn on: localStorage.setItem('ferni:gaze', 'true')
+ * Off by default: the gaze switch in config/motion-flags.ts.
  *
  * Avatar audit item 10 (W12).
  */
 
+import { isMotionFlagOn } from '../../config/motion-flags.js';
 import { createLogger } from '../../utils/logger.js';
 
 const log = createLogger('AvatarGaze');
 
-export const GAZE_FLAG_KEY = 'ferni:gaze';
 /** Dispatched on window by the turn driver, once per settled turn change. */
 export const AVATAR_TURN_EVENT = 'ferni:avatar-turn';
 /** Set on `.avatar-eyes` while gaze owns its offset. */
@@ -217,12 +217,7 @@ export function createGaze(deps: GazeDeps): GazeController {
 // ============================================================================
 
 export function isGazeEnabled(): boolean {
-  try {
-    return localStorage.getItem(GAZE_FLAG_KEY) === 'true';
-  } catch (error) {
-    log.debug('Could not read the gaze flag, treating it as off', error);
-    return false;
-  }
+  return isMotionFlagOn('gaze');
 }
 
 function prefersReducedMotion(): boolean {

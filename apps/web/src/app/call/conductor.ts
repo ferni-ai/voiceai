@@ -24,8 +24,8 @@ import { createTrace, type ChannelId, type TraceEntry } from './conductor-trace.
 
 export type Priority = 'critical' | 'high' | 'normal' | 'low';
 export type Layer = 'state' | 'moment';
-export type DelightReason =
-  'achievement' | 'streak' | 'breakthrough' | 'laughter' | 'first_meeting';
+/** What the user DID. Never a streak: Ferni doesn't celebrate how often you showed up. */
+export type DelightReason = 'achievement' | 'breakthrough' | 'laughter' | 'first_meeting';
 
 export interface ChannelCommand {
   readonly channel: ChannelId;
@@ -90,6 +90,8 @@ export interface CallPolicy {
   moment(beat: MomentBeat, mood: Mood, now: number): { readonly play: string } | string;
   /** A face to pin when the mood changes (crisis), or null. */
   onMood(mood: Mood): ChannelCommand | null;
+  /** True when a moment playing or queued must yield to this mood (a celebration while upset). */
+  yieldsTo?(mood: Mood, sequenceId: string): boolean;
   soundStarted(track: string): void;
   soundEnded(track: string): void;
 }
@@ -165,6 +167,29 @@ const cmd = (
   params?: Readonly<Record<string, unknown>>
 ): ChannelCommand => ({ channel, action, origin, params, durationMs: 0 });
 
+/** A fresh run: nothing scheduled, nothing pending, not finished. */
+function makeRun(
+  id: number,
+  seq: string,
+  layer: Layer,
+  priority: Priority,
+  interruptible: boolean
+): Run {
+  return {
+    id,
+    seq,
+    layer,
+    priority,
+    interruptible,
+    controller: new AbortController(),
+    timers: new Map(),
+    pending: new Set(),
+    channels: new Set(),
+    timeUp: true,
+    finished: false,
+  };
+}
+
 export function createConductor(deps: ConductorDeps): Conductor {
   const { clock, adapters, policy } = deps;
   const log = createTrace();
@@ -187,19 +212,8 @@ export function createConductor(deps: ConductorDeps): Conductor {
   const mounted = new Set<ChannelId>();
   const failures = new Map<ChannelId, number>();
 
-  const newRun = (seq: string, layer: Layer, priority: Priority, interruptible = true): Run => ({
-    id: ++runIds,
-    seq,
-    layer,
-    priority,
-    interruptible,
-    controller: new AbortController(),
-    timers: new Map(),
-    pending: new Set(),
-    channels: new Set(),
-    timeUp: true,
-    finished: false,
-  });
+  const newRun = (seq: string, layer: Layer, priority: Priority, interruptible = true): Run =>
+    makeRun(++runIds, seq, layer, priority, interruptible);
 
   function cancel(run: Run | null, settle: boolean): void {
     if (!run || run.finished) return;
@@ -363,10 +377,7 @@ export function createConductor(deps: ConductorDeps): Conductor {
   /** The user started speaking: cut what may be cut, hush what may not. */
   function bargeIn(): void {
     if (moment?.interruptible) {
-      trace('policy', 'interrupt', moment.seq);
-      cancel(moment, true);
-      moment = null;
-      lastMomentEnd = clock.now();
+      cutMoment('interrupt');
     } else if (moment) {
       const run = moment;
       run.timers.forEach((c, h) => {
@@ -384,6 +395,23 @@ export function createConductor(deps: ConductorDeps): Conductor {
     safely('sound', () => adapters.sound?.settle());
   }
 
+  /** Cut the moment short: it settles to its end pose, never snaps back. */
+  function cutMoment(why: 'interrupt' | 'yield'): void {
+    if (!moment) return;
+    trace('policy', why, moment.seq);
+    cancel(moment, true);
+    moment = null;
+    lastMomentEnd = clock.now();
+  }
+
+  /** A mood the policy says a celebration must yield to: cut it, and forget it in the queue. */
+  function yieldTo(mood: Mood): void {
+    const yields = (seq: string): boolean => call.yieldsTo?.(mood, seq) === true;
+    if (moment && yields(moment.seq)) cutMoment('yield');
+    queue.filter((q) => yields(q.seq)).forEach((q) => drop(`moment:${q.seq}:mood=${mood}`));
+    queue = queue.filter((q) => !yields(q.seq));
+  }
+
   function onContext(next: ConductorCallContext): void {
     if (disposed) return;
     if (next.attempt !== ctx.attempt) {
@@ -395,8 +423,9 @@ export function createConductor(deps: ConductorDeps): Conductor {
     }
     const moodChanged = next.mood !== ctx.mood;
     ctx = next;
+    if (moodChanged && !disabled) yieldTo(next.mood);
     const pin = moodChanged && !disabled ? call.onMood(next.mood) : null;
-    if (!pin) return;
+    if (!pin) return pump(); // a yielded moment may free the queue
     cancel(moment, true);
     moment = null;
     queue = [];

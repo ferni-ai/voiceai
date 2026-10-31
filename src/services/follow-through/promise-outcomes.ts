@@ -104,6 +104,8 @@ const DEFERRED = {
   rescheduled: held('call-hours'),
   failed: failed('provider-error'),
   missed: failed('missed-window'),
+  // Their saved quiet hours still cover all their call hours at the re-check: their own stop.
+  'quiet-all-day': { outcome: 'cancelled', reason: 'quiet-hours' },
 } satisfies Record<string, PromiseOutcome>;
 export const deferredCallOutcome = (s: keyof typeof DEFERRED): PromiseOutcome => DEFERRED[s];
 
@@ -145,6 +147,7 @@ const FOLLOW_UP_TEXT: Record<string, PromiseOutcome> = {
   expired: failed('missed-window'),
   forgotten: { outcome: 'cancelled', reason: 'forgotten' },
   'recently-sent': held('rate-gap'),
+  'quiet-hours': held('quiet-hours'), // the menu's quiet hours (QUIET_HOURS_FROM_PREFS)
   'opted-out': failed('opted-out'),
   // Unreadable consent or a possible opt-out: the sender retries on its next run.
   'consent-unknown': held('store-error'),

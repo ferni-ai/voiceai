@@ -8,7 +8,9 @@ import { turnsOf } from '../humanness.mjs';
 export function callOf(run, file = '') {
   const meta = run.meta ?? {};
   // Background tracks carry backchannels and earcons: a 0.4 s "mm" doesn't fill 16 s.
-  const voiced = (run.tracks ?? []).filter((t) => Array.isArray(t?.voice) && !/background/.test(t.name));
+  const voiced = (run.tracks ?? []).filter(
+    (t) => Array.isArray(t?.voice) && !/background/.test(t.name)
+  );
   return {
     file,
     scenario: meta.scenario ?? '',
@@ -35,20 +37,23 @@ const readRun = (f) => {
 };
 
 /** Every call under dir, one per room (a seed copied under two names is one call). priorCalls
- *  counts the same caller's earlier calls, so a return call after its seed has 1. */
+ *  counts the same caller's earlier calls, so a return call after its seed has 1. The array's
+ *  `skipped` lists the .json files that aren't run files (unparseable, or no meta/events). */
 export function loadSweep(dir) {
   const files = readdirSync(dir, { recursive: true })
     .map((p) => join(dir, p))
     .filter((p) => /(?<!\.judge|\.score)\.json$/.test(p) && statSync(p).isFile())
     .sort();
   const byRoom = new Map();
+  const skipped = [];
   for (const f of files) {
     const run = readRun(f);
     const call = run && callOf(run, f);
-    if (call && !byRoom.has(call.room)) byRoom.set(call.room, call);
+    if (!call) skipped.push(f);
+    else if (!byRoom.has(call.room)) byRoom.set(call.room, call);
   }
   const calls = [...byRoom.values()].sort((a, b) => a.wallT0 - b.wallT0);
   for (const c of calls)
     c.priorCalls = calls.filter((o) => o.uid && o.uid === c.uid && o.wallT0 < c.wallT0).length;
-  return calls;
+  return Object.assign(calls, { skipped });
 }

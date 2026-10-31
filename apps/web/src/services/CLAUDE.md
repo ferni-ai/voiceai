@@ -13,7 +13,6 @@ This directory contains frontend services that power the Ferni web app. Services
 | Service Index | `index.ts` |
 | Connection | `connection.service.ts` |
 | Auth | `firebase-auth.service.ts` |
-| Spotify | `spotify.service.ts` |
 | Monetization | `monetization.service.ts` |
 | Tests | `__tests__/` |
 
@@ -51,7 +50,6 @@ This directory contains frontend services that power the Ferni web app. Services
 ### Music & Entertainment
 | Service | Purpose |
 |---------|---------|
-| `spotify.service.ts` | Spotify integration |
 | `spotify-mood.service.ts` | Mood-based music |
 | `music-state-manager.ts` | Music state |
 | `music-audio.controller.ts` | Music playback |
@@ -146,17 +144,6 @@ import { monetizationService } from './monetization.service.js';
 
 const tier = monetizationService.getCurrentTier();
 const canAccess = monetizationService.hasFeatureAccess('team-roundtable');
-```
-
-### Spotify Service
-
-Manages Spotify playback:
-
-```typescript
-import { spotifyService } from './spotify.service.js';
-
-await spotifyService.connect();
-await spotifyService.playPlaylist(playlistId);
 ```
 
 ---

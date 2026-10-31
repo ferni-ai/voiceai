@@ -31,6 +31,7 @@ import {
 } from '@livekit/rtc-node';
 import { createLogger } from '../../utils/safe-logger.js';
 import { logVoicedTake } from './voiced-presence.js';
+import { noteClipCut } from '../shared/call-timeline.js';
 
 const log = createLogger({ module: 'DirectClipTrack' });
 
@@ -67,15 +68,20 @@ export interface ClipWire {
 /** 24 kHz mono s16le clip PCM → 10 ms frames at 48 kHz, scaled by `volume`. */
 export function clipFrames(pcm: ArrayBuffer, volume = 1): Int16Array[] {
   const samples = new Int16Array(pcm, 0, Math.floor(pcm.byteLength / 2));
+  // A native (Rust FFI) handle: freed here, not left to the GC.
   const resampler = new AudioResampler(CLIP_RATE, RATE, 1);
   const parts: Int16Array[] = [];
   const step = CLIP_RATE / 100;
-  for (let i = 0; i < samples.length; i += step) {
-    const chunk = samples.slice(i, i + step);
-    for (const f of resampler.push(new AudioFrame(chunk, CLIP_RATE, 1, chunk.length)))
-      parts.push(f.data);
+  try {
+    for (let i = 0; i < samples.length; i += step) {
+      const chunk = samples.slice(i, i + step);
+      for (const f of resampler.push(new AudioFrame(chunk, CLIP_RATE, 1, chunk.length)))
+        parts.push(f.data);
+    }
+    for (const f of resampler.flush()) parts.push(f.data);
+  } finally {
+    resampler.close();
   }
-  for (const f of resampler.flush()) parts.push(f.data);
   const total = parts.reduce((n, p) => n + p.length, 0);
   const frames: Int16Array[] = [];
   const all = new Int16Array(Math.ceil(total / FRAME) * FRAME);
@@ -286,8 +292,10 @@ export async function startDirectClips(
     return null;
   }
   const onUser = (ev: { newState?: string }): void => {
-    if (ev.newState === 'speaking' && track.cancelIfFresh())
+    if (ev.newState === 'speaking' && track.cancelIfFresh()) {
       log.info({ by: 'vad' }, 'CLIP_CANCELLED');
+      noteClipCut(session, 'vad');
+    }
   };
   session.on(voice.AgentSessionEventTypes.UserStateChanged, onUser);
   track.onClose(() => session.off(voice.AgentSessionEventTypes.UserStateChanged, onUser));

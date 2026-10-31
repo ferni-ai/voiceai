@@ -26,11 +26,7 @@ vi.mock('../../../services/identity/firebase-auth.js', () => ({
   ),
 }));
 
-vi.mock('../../token/oauth/spotify.js', () => ({
-  isConfigured: () => true,
-  getTokens: async () => null,
-  getValidToken: async () => null,
-}));
+vi.mock('../../token/oauth/spotify.js', () => ({ removeTokens: async () => undefined }));
 
 // The server's own Spotify account; the device slot behaves like the real one.
 const server_ = vi.hoisted(() => ({ deviceId: null as string | null }));

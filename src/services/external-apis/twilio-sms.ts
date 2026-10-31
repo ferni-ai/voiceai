@@ -62,9 +62,15 @@ export function isTwilioConfigured(): boolean {
  *
  * @param to - Phone number to send to (E.164 format)
  * @param body - Message body
+ * @param opts - The account it is for, and askedNow for a code asked for just now
+ *   (MINOR_CARE_SHARED_HOLD: never to an account or number a call held under 18, unless askedNow)
  * @returns Message SID if successful, null if failed
  */
-export async function sendSMS(to: string, body: string): Promise<string | null> {
+export async function sendSMS(
+  to: string,
+  body: string,
+  opts: { userId?: string; askedNow?: boolean } = {}
+): Promise<string | null> {
   const client = await getTwilioClient();
   const from = process.env.TWILIO_PHONE_NUMBER;
 
@@ -78,6 +84,8 @@ export async function sendSMS(to: string, body: string): Promise<string | null> 
     log.info({ to: to.slice(-4), refused }, 'SMS not sent - consent');
     return null;
   }
+  const { directSendHeld } = await import('../communication-service.js');
+  if (await directSendHeld(to, 'text', opts)) return null;
 
   // Check if circuit breaker allows the request
   if (!twilioCircuitBreaker.canRequest()) {
@@ -118,7 +126,7 @@ export async function sendSMS(to: string, body: string): Promise<string | null> 
  */
 export async function sendVerificationCode(to: string, code: string): Promise<string | null> {
   const message = `Your Ferni code is ${code}. Just making sure it's really you! 💚`;
-  return sendSMS(to, message);
+  return sendSMS(to, message, { askedNow: true }); // the code they asked for goes
 }
 
 /**

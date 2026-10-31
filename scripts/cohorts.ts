@@ -23,6 +23,7 @@
  * emails other than the one given, and nothing from the environment.
  */
 import { pathToFileURL } from 'node:url';
+import { getFirestoreDatabase } from '../src/config/environment.js';
 import {
   COHORT_FLAGS,
   cohortFlagValues,
@@ -257,7 +258,7 @@ async function firebaseStore(project: string): Promise<AdminStore> {
   const { FieldValue, getFirestore } = await import('firebase-admin/firestore');
   const { getAuth } = await import('firebase-admin/auth');
   const app = initializeApp({ projectId: project, credential: applicationDefault() }, `cohorts-${project}`); // prettier-ignore
-  const db = getFirestore(app);
+  const db = getFirestore(app, getFirestoreDatabase());
   const cohorts = db.collection('feature_cohorts');
   const withId = (d: { id: string; data: () => unknown }) => ({ id: d.id, ...(d.data() as CohortDoc) }); // prettier-ignore
   return {

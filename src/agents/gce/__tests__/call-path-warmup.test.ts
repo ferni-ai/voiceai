@@ -136,6 +136,26 @@ describe('warmCallPath', () => {
     expect(registry.getVoiceId('jordan-taylor')).toBe(BUNDLE_VOICE);
   });
 
+  it('builds the Vertex client only with FIRST_TURN_WARM on', async () => {
+    vi.resetModules();
+    const warmVertexClient = vi.fn(async () => true);
+    vi.doMock('../../../services/llm-utils.js', () => ({ warmVertexClient }));
+    try {
+      const { warmCallPath } = await import('../call-path-warmup.js');
+      vi.stubEnv('FIRST_TURN_WARM', '');
+      await warmCallPath(() => undefined, []);
+      expect(warmVertexClient).not.toHaveBeenCalled(); // flag off: as on main
+
+      vi.stubEnv('FIRST_TURN_WARM', 'on');
+      await warmCallPath(() => undefined, []);
+      expect(warmVertexClient).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllEnvs();
+      vi.doUnmock('../../../services/llm-utils.js');
+      vi.resetModules();
+    }
+  });
+
   it('never throws when the voice registry fails to load', async () => {
     vi.resetModules();
     vi.doMock('../../../personas/voice-registry.js', () => ({
@@ -151,5 +171,63 @@ describe('warmCallPath', () => {
       vi.doUnmock('../../../personas/voice-registry.js');
       vi.resetModules();
     }
+  });
+});
+
+describe('warmRtcNative (LiveKit native audio, before a call)', () => {
+  const recorder = () => {
+    const did: string[] = [];
+    const rtc = {
+      AudioSource: class {
+        constructor(rate: number, channels: number) {
+          did.push(`source ${rate}/${channels}`);
+        }
+        close = async () => {
+          did.push('source closed');
+        };
+      },
+      LocalAudioTrack: {
+        createAudioTrack: (name: string) => {
+          did.push(`track ${name}`);
+          return {
+            close: async () => {
+              did.push('track closed');
+            },
+          };
+        },
+      },
+    };
+    return { did, load: async () => rtc };
+  };
+
+  it('makes one track on a source, then closes both', async () => {
+    const { warmRtcNative } = await import('../call-path-warmup.js');
+    const { did, load } = recorder();
+    expect(await warmRtcNative(load)).toBe(true);
+    expect(did).toEqual(['source 48000/1', 'track warmup', 'track closed', 'source closed']);
+  });
+
+  it('a module that fails to load is reported, never thrown', async () => {
+    const { warmRtcNative } = await import('../call-path-warmup.js');
+    expect(await warmRtcNative(() => Promise.reject(new Error('no binding')))).toBe(false);
+  });
+
+  it('warmCallPath warms it, before any call', async () => {
+    vi.resetModules();
+    const { did, load } = recorder();
+    vi.doMock('@livekit/rtc-node', load);
+    try {
+      const { warmCallPath } = await import('../call-path-warmup.js');
+      await warmCallPath(() => undefined, []);
+      expect(did).toContain('track warmup');
+    } finally {
+      vi.doUnmock('@livekit/rtc-node');
+      vi.resetModules();
+    }
+  });
+
+  it('warms the real module in this process', async () => {
+    const { warmRtcNative } = await import('../call-path-warmup.js');
+    expect(await warmRtcNative()).toBe(true);
   });
 });

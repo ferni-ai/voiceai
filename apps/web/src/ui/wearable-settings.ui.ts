@@ -2,7 +2,7 @@
  * Wearable Settings UI
  *
  * Settings panel for managing wearable device integrations.
- * Supports Apple Watch, Fitbit, Garmin, Oura, and Whoop.
+ * Supports Apple Watch, Garmin, Oura, and Whoop.
  *
  * DESIGN PRINCIPLES:
  *   - Centered floating modal (brand-compliant)
@@ -28,7 +28,7 @@ const log = createLogger('WearableSettings');
 // TYPES
 // ============================================================================
 
-type WearableProvider = 'apple_health' | 'fitbit' | 'garmin' | 'oura' | 'whoop';
+type WearableProvider = 'apple_health' | 'garmin' | 'oura' | 'whoop';
 
 interface WearableStatus {
   status: Record<string, 'connected' | 'disconnected' | 'pending'>;
@@ -60,12 +60,6 @@ const ICONS = {
   heartPulse: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
     <path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>
-  </svg>`,
-  watch: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="6"/>
-    <polyline points="12 10 12 12 13 13"/>
-    <path d="m16.13 7.66-.81-4.05a2 2 0 0 0-2-1.61h-2.68a2 2 0 0 0-2 1.61l-.78 4.05"/>
-    <path d="m7.88 16.36.8 4a2 2 0 0 0 2 1.61h2.72a2 2 0 0 0 2-1.61l.81-4.05"/>
   </svg>`,
   run: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="17" cy="5" r="2"/>
@@ -108,7 +102,6 @@ const ICONS = {
 // `configured`, the same answer the Integrations screen uses), not a flag here.
 const PROVIDERS: Array<{ id: WearableProvider; icon: string }> = [
   { id: 'apple_health', icon: ICONS.heartPulse },
-  { id: 'fitbit', icon: ICONS.watch },
   { id: 'garmin', icon: ICONS.run },
   { id: 'oura', icon: ICONS.ring },
   { id: 'whoop', icon: ICONS.chartLine },

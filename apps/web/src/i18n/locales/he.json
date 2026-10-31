@@ -1209,7 +1209,6 @@
       "journaling": "היומן",
       "language": "שפה",
       "lifeContext": "העולם שלך",
-      "linkSpotify": "חיבור Spotify",
       "memoryBrowser": "מה שזכור לי",
       "musicalYou": "מוזיקה ביחד",
       "notifications": "מתי אעשה צ'ק-אין",
@@ -1219,7 +1218,6 @@
       "predictionAccuracy": "איך הולך לי",
       "progressAnalytics": "מה שלומך",
       "shareFerni": "להזמין חברים",
-      "spotifyConnected": "Spotify מחובר",
       "supportFerni": "לתמוך ב-Ferni",
       "supportFerniExpanded": "לתמוך ב-Ferni",
       "takeTour": "להכיר את המקום",
@@ -2437,10 +2435,6 @@
         "description": "סנכרון עם נתוני הבריאות של Apple Watch ו-iPhone",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "חיבור מכשיר ה-Fitbit שלך",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "סנכרון עם מכשירים לבישים של Garmin",
         "name": "Garmin"
@@ -2794,8 +2788,7 @@
       "askFerni": "או לבקש מ-Ferni לנגן משהו",
       "play": "הפעלה",
       "pause": "השהיה",
-      "skip": "דילוג",
-      "linkSpotify": "כדאי לחבר את Spotify בהגדרות כדי לשמוע שירים מלאים"
+      "skip": "דילוג"
     },
     "volume": "עוצמת קול",
     "skipped": "דולג",
@@ -3529,8 +3522,6 @@
     "accessLevelFullDesc": "אפשרות לדבר עם כל חברי הצוות",
     "accessLevelLimited": "מוגבלת",
     "accessLevelLimitedDesc": "רק עם Ferni",
-    "accessLevelSupervised": "בפיקוח",
-    "accessLevelSupervisedDesc": "קבלת עדכונים על שיחות",
     "eyebrow": "משפחה",
     "addMember": "הוספת בן משפחה",
     "emptyText": "אפשר להוסיף בני משפחה שמתקשרים ל-Ferni בטלפון. הם יזוהו באופן אוטומטי ויוכלו לנהל שיחות משלהם עם Ferni.",
@@ -3633,7 +3624,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "תקשורת ומערכות יחסים",
+        "role": "מאמן תקשורת וראש מטה",
         "description": "אני עוזר לנווט בשיחות, לחזק מערכות יחסים ולהתבטא טוב יותר.",
         "unlockHint": "לשתף את Ferni בסיפור על מערכת יחסים",
         "unlockedMessage": "שמתי לב לכמה דפוסים שכדאי לחקור.",
@@ -5369,8 +5360,6 @@
     "from": "מ-",
     "beyondTheApp": "מעבר לאפליקציה",
     "beyondTheAppDesc": "ברגעים החשובים, אפגוש אותך איפה שנוח לך.",
-    "emailUpdates": "עדכונים באימייל",
-    "emailUpdatesDesc": "חגיגות אבני דרך וסיכומים שבועיים",
     "smsMessages": "הודעות SMS",
     "smsDesc": "צ'ק-אין מהיר כשעולה משהו ששווה לשים לב אליו",
     "milestoneCelebrations": "חגיגות אבני דרך",
@@ -8016,6 +8005,9 @@
     "improving": "במגמת עלייה",
     "declining": "קצת נמוך יותר לאחרונה",
     "trendUnavailable": "המגמה הזו לא נטענה. נסה שוב עוד מעט.",
+    "notTalkedLately": "לא דיברנו על אלה לאחרונה:",
+    "asOfOnce": "נכון ל-{date} · עלה פעם אחת",
+    "asOfCount": "נכון ל-{date} · עלה {count} פעמים",
     "trendUp": "בעלייה",
     "trendDown": "בירידה",
     "trendStable": "יציב",
@@ -8396,10 +8388,9 @@
     "appleHealthDesc": "נתוני שינה, פעילות ודופק",
     "ouraDesc": "איכות שינה ומדדי מוכנות",
     "eightSleepDesc": "מעקב שינה וטמפרטורה",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP ועוד",
+    "wearablesDesc": "Garmin, WHOOP ועוד",
     "calendarDesc": "אירועים, פגישות וזמינות",
     "linkedInDesc": "הקשר מקצועי ורשת קשרים",
-    "spotifyDesc": "מוזיקה, פלייליסטים לפי מצב רוח והיסטוריית האזנה",
     "ecobeeDesc": "טמפרטורה ונוחות בבית",
     "vibeControllerDesc": "שליטה במוזיקה, בתאורה ועוד",
     "connected": "מחובר"
@@ -9050,9 +9041,6 @@
     "trustJourneyExplore": "לחקור",
     "customizeTitle": "להתאים אישית את החוויה",
     "customizeMessage": "אפשר להתאים עיצובים, צלילים ועוד.",
-    "spotifyTitle": "חיבור Spotify",
-    "spotifyMessage": "אפשר לקשר את ה-Spotify כדי לקבוע את מצב הרוח במהלך השיחות שלנו.",
-    "spotifyConnect": "להתחבר",
     "maybeLater": "אולי מאוחר יותר"
   },
   "mentorTeachings": {
@@ -10217,9 +10205,10 @@
     "title": "דברים קטנים שאני זוכר",
     "subtitle": "כדי שלא תצטרכו",
     "emptyTitle": "שום דבר לא מוגדר עדיין",
-    "emptySubtitle": "רוצים שאברך אתכם בכל בוקר? שאזכיר לכם לעשות מתיחות? אני לגמרי יכול לעשות את זה.",
+    "emptySubtitle": "ספרו לי על משהו שתרצו לעשות באופן קבוע ואשמור אותו כאן.",
     "emptyButton": "להראות לי כמה רעיונות",
     "addNew": "להוסיף משהו חדש",
+    "notRunningYet": "אני שומר אותם כאן בשבילכם. הם עדיין לא פועלים מעצמם.",
     "triggers": {
       "dailyAt": "בכל יום בשעה {time}",
       "dailyUnset": "בכל יום בשעה קבועה",
@@ -10306,7 +10295,6 @@
     "connectFirstToManage": "קודם כדאי להתחבר, ואז נוכל לנהל את זה.",
     "monthlyLimitReached": "הגענו למגבלה החודשית שלנו. אשמח מאוד להמשיך לדבר...",
     "enableMicPrompt": "אשמח לשמוע את קולך - לאפשר גישה למיקרופון?",
-    "agentJoined": "{name} איתנו עכשיו",
     "seeYouNextTime": "להתראות בפעם הבאה!",
     "handoffFailed": "לא הצלחנו להשיג אותם כרגע. אבל אני עדיין כאן!",
     "personaBack": "{name} שוב כאן!",
@@ -10613,7 +10601,6 @@
       "lighting": "תאורה",
       "stockData": "נתוני מניות",
       "marketData": "נתוני שוק",
-      "weatherMaps": "מזג אוויר ומפות",
       "historicalFacts": "עובדות היסטוריות",
       "smartHome": "בית חכם",
       "sleepHealth": "נתוני שינה ובריאות",
@@ -10922,7 +10909,10 @@
     "endTalk": "ניתוק",
     "connectingCancel": "מתחבר. הקש לביטול",
     "connectingNow": "מתחבר…",
-    "tapToCancel": "הקש לביטול"
+    "tapToCancel": "הקש לביטול",
+    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
+    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
+    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
   },
   "analyticsDashboard": {
     "title": "המסע האישי",

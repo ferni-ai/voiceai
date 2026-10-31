@@ -17,6 +17,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 import { deepRemoveUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { writeHeld } from '../../utils/minor-care.js';
 
 import type {
   ConversationFeedback,
@@ -52,6 +53,8 @@ export async function createFeedbackPrompt(
 
   if (!userId) return { ok: false, reason: 'userId required' };
   if (!sessionId) return { ok: false, reason: 'sessionId required' };
+  // MINOR_CARE: the context holds their last words; a caller under 18 gets no stored prompt
+  if (writeHeld(userId, sessionId)) return { ok: false, reason: 'held' };
 
   try {
     const db = getAdminFirestore();

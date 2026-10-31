@@ -16,6 +16,12 @@ import type {
   WellbeingProfile,
   WellbeingSnapshot,
 } from '../services/wellbeing-tracking/index.js';
+import {
+  estimateWellbeing,
+  type Direction,
+  type FieldEstimate,
+  type WellbeingEstimates,
+} from '../services/wellbeing-tracking/state-model.js';
 
 /** Longest window any wellbeing route reads (the "quarter" trend). */
 export const MAX_WELLBEING_DAYS = 90;
@@ -24,8 +30,28 @@ export interface WellbeingData {
   profile: WellbeingProfile | null;
   /** Newest first, covering the last {@link MAX_WELLBEING_DAYS} days. */
   snapshots: WellbeingSnapshot[];
-  /** The latest snapshot, or null when the user has no wellbeing data. */
+  /** The newest snapshot (a saved profile.current only when it is the newest), or null. */
   current: WellbeingSnapshot | null;
+  /** Per field, the recency-weighted estimate (state-model.ts); absent fields never came up. */
+  estimates: WellbeingEstimates;
+}
+
+/** The panel's fields, and the stored dimension each one reads. */
+const PANEL_FIELDS = {
+  mood: 'mood',
+  energy: 'energy',
+  anxiety: 'worry',
+  connection: 'loneliness',
+  purpose: 'meaningfulness',
+  sleep: 'sleepQuality',
+} as const satisfies Record<string, keyof WellbeingDimensions>;
+type PanelField = keyof typeof PANEL_FIELDS;
+
+/** When a field last came up, how often, and which way it is going (null: not enough history). */
+export interface PanelFieldInfo {
+  asOf: string;
+  observations: number;
+  direction: Direction | null;
 }
 
 export interface DashboardCurrentState {
@@ -36,6 +62,8 @@ export interface DashboardCurrentState {
   purpose: number | null;
   sleep: number | null;
   lastUpdated: string;
+  /** null for a field nobody has talked about: the panel says so instead of showing a number. */
+  fields: Record<PanelField, PanelFieldInfo | null>;
 }
 
 export interface DashboardResponse {
@@ -72,7 +100,11 @@ export function snapshotsWithin(snapshots: WellbeingSnapshot[], days: number): W
   return snapshots.filter((s) => s.timestamp.getTime() >= cutoff);
 }
 
-/** Load a user's persisted wellbeing profile and recent snapshots. */
+/**
+ * Load a user's persisted wellbeing profile and recent snapshots. A failed read
+ * throws (the routes answer 500 and the panel shows its error state) rather
+ * than reading as "no data yet".
+ */
 export async function loadWellbeingData(userId: string): Promise<WellbeingData> {
   const { loadProfile, loadSnapshots } =
     await import('../services/wellbeing-tracking/persistence.js');
@@ -80,8 +112,8 @@ export async function loadWellbeingData(userId: string): Promise<WellbeingData> 
     await import('../services/wellbeing-tracking/index.js');
 
   let [profile, snapshots] = await Promise.all([
-    loadProfile(userId),
-    loadSnapshots(userId, MAX_WELLBEING_DAYS),
+    loadProfile(userId, { rethrow: true }),
+    loadSnapshots(userId, MAX_WELLBEING_DAYS, { rethrow: true }),
   ]);
 
   if (!profile && snapshots.length === 0) {
@@ -92,16 +124,32 @@ export async function loadWellbeingData(userId: string): Promise<WellbeingData> 
   }
 
   const sorted = [...snapshots].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  const current = profile?.current ?? sorted[0] ?? null;
-  return { profile, snapshots: sorted, current };
+  // The profile's pointer lags behind snapshots written after it (the after-call task writes
+  // a snapshot without moving the pointer), so the newer of the two is the current state.
+  const latest = sorted[0] ?? null;
+  const pointed = profile?.current ?? null;
+  const current = pointed && (!latest || pointed.timestamp >= latest.timestamp) ? pointed : latest;
+  // A profile.current from the old detector can be months older than the latest calls:
+  // it joins the estimate as one more (decayed) observation, never as the answer.
+  // Only within the same 90 days as the snapshots: an older pointer is no estimate at all.
+  const all = pointed ? [...sorted, ...snapshotsWithin([pointed], MAX_WELLBEING_DAYS)] : sorted;
+  return { profile, snapshots: sorted, current, estimates: estimateWellbeing(all, new Date()) };
 }
 
-function dim(
-  dimensions: Partial<WellbeingDimensions>,
-  key: keyof WellbeingDimensions
-): number | null {
-  const value = dimensions[key];
-  return typeof value === 'number' ? value : null;
+const FLIPPED: Record<Direction, Direction> = {
+  rising: 'falling',
+  falling: 'rising',
+  steady: 'steady',
+};
+
+/** A panel field from its estimate; connection is shown as 1 - loneliness. */
+function panelField(e: FieldEstimate | undefined, invert: boolean) {
+  if (!e) return { value: null, info: null };
+  const direction = invert && e.direction ? FLIPPED[e.direction] : e.direction;
+  return {
+    value: invert ? 1 - e.value : e.value,
+    info: { asOf: e.asOf, observations: e.observations, direction },
+  };
 }
 
 function trendDirection(
@@ -171,7 +219,17 @@ export function buildDashboardResponse(
       .map((t) => t.dimension),
   };
 
-  if (!data.current) {
+  const values = {} as Record<PanelField, number | null>;
+  const fields = {} as Record<PanelField, PanelFieldInfo | null>;
+  for (const [field, key] of Object.entries(PANEL_FIELDS) as Array<
+    [PanelField, keyof WellbeingDimensions]
+  >) {
+    const { value, info } = panelField(data.estimates[key], field === 'connection');
+    values[field] = value;
+    fields[field] = info;
+  }
+  const dated = Object.values(fields).flatMap((f) => (f ? [f.asOf] : []));
+  if (dated.length === 0) {
     return {
       userId,
       hasData: false,
@@ -183,16 +241,10 @@ export function buildDashboardResponse(
     };
   }
 
-  const d = data.current.dimensions;
-  const loneliness = dim(d, 'loneliness');
   const currentState: DashboardCurrentState = {
-    mood: dim(d, 'mood'),
-    energy: dim(d, 'energy'),
-    anxiety: dim(d, 'worry'),
-    connection: loneliness === null ? null : 1 - loneliness,
-    purpose: dim(d, 'meaningfulness'),
-    sleep: dim(d, 'sleepQuality'),
-    lastUpdated: data.current.timestamp.toISOString(),
+    ...values,
+    lastUpdated: dated.sort().at(-1)!,
+    fields,
   };
 
   return {

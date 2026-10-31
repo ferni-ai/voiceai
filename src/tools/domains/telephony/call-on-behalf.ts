@@ -16,10 +16,12 @@
  * @module tools/domains/telephony/call-on-behalf
  */
 
-import { z } from 'zod';
 import { llm } from '@livekit/agents';
+import { flagOn } from '../../../config/env-flag.js';
+import { callOnBehalfSchema } from './call-on-behalf-schema.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolContext, Tool } from '../../registry/types.js';
+import { pickFromTie, type PickRow } from './contact-pick.js';
 import type {
   CallType,
   CallObjective,
@@ -56,11 +58,17 @@ const log = getLogger().child({ module: 'call-on-behalf' });
  * - "Mike" → finds entity with canonicalName/alias="Mike"
  * - Deduplication across all legacy collections
  */
-async function resolveContact(
+async function findContact(
   contactQuery: string,
   userId: string
-): Promise<ResolvedContact | null> {
+): Promise<ResolvedContact | { choices: ResolvedContact[]; ask: string } | null> {
   try {
+    // CONTACT_SAVE_ON_YES: the person as both stores hold them, "my dad" too (owner-contact.ts)
+    if (flagOn('CONTACT_SAVE_ON_YES')) {
+      const { oneNumber, resolveOwnerContact } = await import('./owner-contact.js');
+      const one = oneNumber(await resolveOwnerContact(userId, contactQuery).catch(() => null));
+      if (one) return one;
+    }
     // =========================================================================
     // PRIMARY: Try unified entity store first
     // =========================================================================
@@ -94,41 +102,34 @@ async function resolveContact(
     // =========================================================================
     // FALLBACK: Legacy contact_relationships collection
     // =========================================================================
-    const { searchContacts } =
-      await import('../../../services/contacts/contact-relationship-service.js');
-
-    const results = await searchContacts(userId, contactQuery);
-
-    if (results.length === 0) {
-      log.debug({ contactQuery, userId }, 'No contact found in any store');
-      return null;
-    }
-
-    // Take the first (best) match
-    const contact = results[0];
-
-    // ContactRelationship has phone as optional string
-    if (!contact.phone) {
-      log.debug({ contactQuery, contactName: contact.name }, 'Contact has no phone number');
-      return null;
-    }
-
-    log.info(
-      { contactQuery, name: contact.name, source: 'legacy_contact_relationships' },
-      '📇 Contact resolved from legacy collection'
+    const store = await import('../../../services/contacts/contact-relationship-service.js');
+    // A phoneless first row yields to its same-named duplicate; CONTACT_PICK_V2 scores (contact-pick.ts)
+    const { findContactToCall } = await import('./contact-pick.js');
+    const list = async (id: string) => store.getContacts(id);
+    const pick = await findContactToCall(
+      { search: store.searchContacts, list },
+      userId,
+      contactQuery
     );
-
-    return {
-      id: contact.id,
-      name: contact.name || contactQuery,
-      phone: contact.phone,
-      relationship: contact.relationship,
-      notes: contact.notes,
+    const resolved = (c: PickRow): ResolvedContact => {
+      const { id, notes, relationship } = c;
+      return { id, name: c.name || contactQuery, phone: c.phone ?? '', relationship, notes };
     };
+    log.info({ found: pick ? ('ask' in pick ? 'ask' : 'one') : 'none' }, '📇 Legacy lookup');
+    if (!pick) return null;
+    return 'ask' in pick
+      ? { ...pick, choices: pick.choices.map(resolved) }
+      : resolved(pick.contact);
   } catch (error) {
     log.error({ error: String(error), contactQuery }, 'Contact resolution failed');
     return null;
   }
+}
+
+/** The one contact to call, or null (none, or a question to ask first). */
+async function resolveContact(contactQuery: string, userId: string) {
+  const found = await findContact(contactQuery, userId);
+  return found && 'ask' in found ? null : found;
 }
 
 /**
@@ -303,27 +304,16 @@ async function saveContactForFuture(
   contactQuery: string,
   phone: string
 ): Promise<void> {
+  if (flagOn('CONTACT_SAVE_ON_YES')) return; // saved on the yes instead (call-confirm.ts onYes), or refused
   try {
     const { upsertContact } =
       await import('../../../services/contacts/contact-relationship-service.js');
 
-    // Extract a clean name from the query
-    const cleanName = contactQuery
-      .replace(/^(my\s+)/i, '') // Remove "my " prefix
-      .replace(/\s+at\s+.*$/i, '') // Remove "at [phone]" suffix
-      .trim();
-
-    const relationship = inferRelationshipFromQuery(contactQuery);
-
-    await upsertContact(userId, {
-      name: cleanName.charAt(0).toUpperCase() + cleanName.slice(1), // Capitalize
-      contactId: `phone_${phone}`,
-      phone,
-      relationship: relationship ? 'family' : 'other',
-      notes: relationship ? `User's ${relationship}` : undefined,
-    });
-
-    log.info({ userId, name: cleanName, relationship }, '📇 Contact saved for future calls');
+    const { saveFieldsFor } = await import('./contact-pick.js');
+    const fields = saveFieldsFor(contactQuery, inferRelationshipFromQuery(contactQuery));
+    if (!fields) return; // CONTACT_PICK_V2: "them" / "contact" names no one to save
+    await upsertContact(userId, { ...fields, contactId: `phone_${phone}`, phone });
+    log.info({ name: fields.name }, '📇 Contact saved for future calls');
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to save contact');
     // Non-critical - don't throw
@@ -333,35 +323,6 @@ async function saveContactForFuture(
 // ============================================================================
 // TOOL DEFINITION
 // ============================================================================
-
-/**
- * Parameter schema for the call on behalf tool
- */
-const callOnBehalfSchema = z.object({
-  contactQuery: z.string().describe('Who to call (e.g., "my doctor", "mom", "Olive Garden")'),
-  phoneNumber: z
-    .string()
-    .optional()
-    .describe(
-      'Phone number if provided by user (e.g., "8015550142", "+1-801-555-0142"). Use this if the user explicitly provides a number.'
-    ),
-  purpose: z
-    .string()
-    .describe('Why you are calling (e.g., "reschedule my appointment to next week")'),
-  additionalContext: z
-    .string()
-    .optional()
-    .describe('Any additional context or preferences for the call'),
-  preferredTimes: z
-    .array(z.string())
-    .optional()
-    .describe('Preferred times if scheduling (e.g., ["morning", "after 2pm"])'),
-  recordingConsent: z
-    .boolean()
-    .optional()
-    .default(true)
-    .describe('Whether the user consents to call recording'),
-});
 
 /**
  * Create the call on behalf tool
@@ -385,6 +346,8 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
         additionalContext,
         preferredTimes,
         recordingConsent,
+        callNow,
+        lateConfirmed,
       } = params;
 
       log.info(
@@ -393,8 +356,10 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
       );
 
       try {
-        // Step 1: Resolve the contact (or create from provided phone number)
-        let contact = await resolveContact(contactQuery, ctx.userId);
+        // Step 1: Resolve the contact (or create from provided phone number); a question
+        // (CONTACT_PICK_V2: several match, or only a name like "Father Tom") dials nothing
+        let contact = pickFromTie(await findContact(contactQuery, ctx.userId), phoneNumber);
+        if (typeof contact === 'string') return contact;
 
         // If user provided a phone number, use it (and optionally save the contact)
         if (phoneNumber) {
@@ -466,7 +431,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
           purpose,
           objective,
           callType,
-          originalSessionId: ctx.sessionId || ctx.agentId, // report back into the requesting session
+          originalSessionId: ctx.sessionId ?? '', // the requesting call; never an agent id
           userId: ctx.userId,
           userTimezone,
           userName,
@@ -475,6 +440,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
             additionalContext,
           },
           recordingConsent: recordingConsent ?? true,
+          ...(callNow && { callNow, ...(lateConfirmed && { lateConfirmed }) }),
           requiresHIPAA:
             callType === 'business' &&
             ['doctor', 'dentist', 'therapist', 'pharmacy', 'clinic', 'hospital'].some((kw) =>
@@ -516,5 +482,16 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 // EXPORTS
 // ============================================================================
 
-export { resolveContact, inferCallType, inferObjective, initiateOnBehalfCall, callOnBehalfSchema };
-export { alreadySetReply, pendingCallTo } from '../../../services/outreach/deferred-calls.js';
+export {
+  findContact,
+  resolveContact,
+  inferCallType,
+  inferObjective,
+  initiateOnBehalfCall,
+  callOnBehalfSchema,
+};
+export {
+  alreadySetReply,
+  pendingCallTo,
+  wantsCallNow,
+} from '../../../services/outreach/deferred-calls.js';

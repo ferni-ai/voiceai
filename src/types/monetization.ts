@@ -401,6 +401,8 @@ export interface UserMonetizationData {
   /** Ferni Fund contributions */
   totalFundContributionsCents: number;
   fundContributionCount: number;
+  /** Stripe payment intents already counted, newest last (capped): a webhook retry counts once */
+  recordedPaymentIds?: string[];
   /** Has user ever been sponsored? */
   wasSponsored: boolean;
   /** Partner referrals clicked */

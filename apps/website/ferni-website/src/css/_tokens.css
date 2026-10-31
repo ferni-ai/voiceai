@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: pnpm tokens:sync
- * Generated: 2026-10-23T07:28:45.240Z
+ * Generated: 2026-10-23T09:35:13.075Z
  */
 
 :root {
@@ -571,6 +571,32 @@
   /* Shadows */
   --shadow-raised: 0 4px 8px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
   --shadow-overlay: 0 16px 32px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.05);
+
+  /* Cinematic shadows (dark sections) */
+  --shadow-cinematic-sm: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-cinematic-md: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-cinematic-lg: 0 16px 64px rgba(0, 0, 0, 0.6);
+  --shadow-cinematic-xl: 0 32px 128px rgba(0, 0, 0, 0.7);
+  --shadow-glow-white: 0 0 40px rgba(255, 255, 255, 0.15);
+  --shadow-glow-accent: 0 0 60px rgba(74, 103, 65, 0.3);
+
+  /* Glass buttons */
+  --glass-btn-bg: rgba(255, 255, 255, 0.08);
+  --glass-btn-bg-hover: rgba(255, 255, 255, 0.14);
+  --glass-btn-border: 1px solid rgba(255, 255, 255, 0.12);
+  --glass-btn-border-hover: 1px solid rgba(255, 255, 255, 0.2);
+  --glass-btn-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 24px rgba(0, 0, 0, 0.15);
+  --glass-light-btn-bg: rgba(0, 0, 0, 0.04);
+  --glass-light-btn-border: 1px solid rgba(0, 0, 0, 0.08);
+
+  /* Ferni glass - warm cream tint on dark backgrounds */
+  --ferni-glass-btn-bg: rgba(245, 241, 232, 0.06);
+  --ferni-glass-btn-bg-hover: rgba(245, 241, 232, 0.12);
+  --ferni-glass-btn-border: 1px solid rgba(245, 241, 232, 0.1);
+  --ferni-glass-btn-border-hover: 1px solid rgba(245, 241, 232, 0.2);
+  --ferni-glass-primary-bg: rgba(61, 90, 69, 0.15);
+  --ferni-glass-primary-bg-hover: rgba(61, 90, 69, 0.25);
+  --ferni-glass-primary-glow: 0 0 40px rgba(61, 90, 69, 0.25);
 }
 
 /* ============================================================================

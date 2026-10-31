@@ -12,8 +12,8 @@
  * life is the same for everyone and never contradicts his bible. When no
  * thread is running, the day detail falls back to DAY_DETAILS.
  *
- * Issue #1511: replaces model-written developments (LIFE_MOVES_ON) and the
- * fixed day details, four of which are in no canon file.
+ * Issue #1511: replaces model-written developments (LIFE_MOVES_ON) and gives
+ * his day more than the fixed day details (which are canon-only too).
  *
  * @module agents/personas/ferni-life-threads
  */

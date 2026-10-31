@@ -44,7 +44,6 @@ entity-store/
 ├── entity-cache.ts         # In-memory entity cache for fast lookups
 ├── integration.ts          # Hooks for data capture, telephony, etc.
 ├── migration.ts            # Migrates legacy collections to unified store
-├── dual-write.ts           # Write to both entity store and legacy collections during migration
 ├── legacy-adapter.ts       # Adapter for legacy collection reads during transition
 ├── consolidation.ts        # Merge duplicate entities, consolidate mentions
 ├── correlation-engine.ts   # Cross-entity correlation and relationship inference

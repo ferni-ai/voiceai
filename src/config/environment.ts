@@ -142,8 +142,6 @@ export interface AppConfig {
   // Optional integrations
   integrations: {
     alphaVantage?: string;
-    sendgrid?: string;
-    resend?: string;
     hume?: string;
     openai?: string;
     slackAlertsWebhook?: string;
@@ -157,7 +155,6 @@ export interface AppConfig {
       clientSecret: string;
       refreshToken: string;
     };
-    yelp?: string;
     delivery?: {
       doordashApiKey?: string;
       doordashDeveloperId?: string;
@@ -259,8 +256,6 @@ export function loadConfig(): AppConfig {
 
     integrations: {
       alphaVantage: process.env.ALPHA_VANTAGE_API_KEY,
-      sendgrid: process.env.SENDGRID_API_KEY,
-      resend: process.env.RESEND_API_KEY,
       hume: process.env.HUME_API_KEY,
       openai: process.env.OPENAI_API_KEY,
       slackAlertsWebhook: process.env.SLACK_ALERTS_WEBHOOK_URL,
@@ -278,7 +273,6 @@ export function loadConfig(): AppConfig {
             refreshToken: process.env.SPOTIFY_REFRESH_TOKEN || '',
           }
         : undefined,
-      yelp: process.env.YELP_API_KEY,
       delivery:
         process.env.DOORDASH_API_KEY || process.env.UBER_CLIENT_ID
           ? {
@@ -378,9 +372,6 @@ export function printConfigSummary(config: AppConfig): void {
   );
   logger.info(
     `│ Spotify:      ${(config.integrations.spotify ? '✓ Configured' : '○ Optional').padEnd(33)}│`
-  );
-  logger.info(
-    `│ Yelp:         ${(config.integrations.yelp ? '✓ Configured' : '○ Optional').padEnd(33)}│`
   );
   logger.info(
     `│ Twilio:       ${(config.integrations.twilio ? '✓ Configured' : '○ Optional').padEnd(33)}│`

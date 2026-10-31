@@ -1270,8 +1270,6 @@
       "notifications": "チェックインのタイミング",
       "toggleTheme": "ライト/ダーク",
       "themeLanguage": "見た目とデザイン",
-      "linkSpotify": "Spotifyを連携する",
-      "spotifyConnected": "Spotify連携済み",
       "vibeController": "雰囲気を変える",
       "spotifyRooms": "ミュージックルーム",
       "thermostat": "お部屋の快適さ",
@@ -2419,10 +2417,6 @@
         "description": "Apple WatchとiPhoneのヘルスケアデータと同期します",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Fitbitデバイスを接続します",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Garminのウェアラブルと同期します",
         "name": "Garmin"
@@ -2776,8 +2770,7 @@
       "askFerni": "または、Ferniに何かかけてと頼んでみてくださいね",
       "play": "再生",
       "pause": "一時停止",
-      "skip": "スキップ",
-      "linkSpotify": "曲をフルで再生するには、設定からSpotifyを連携してください"
+      "skip": "スキップ"
     },
     "volume": "音量",
     "skipped": "スキップしました",
@@ -3508,8 +3501,6 @@
     "accessLevelFullDesc": "すべてのチームメンバーとお話できます",
     "accessLevelLimited": "制限あり",
     "accessLevelLimitedDesc": "Ferni のみ",
-    "accessLevelSupervised": "見守り",
-    "accessLevelSupervisedDesc": "お話があった際に通知を受け取ります",
     "eyebrow": "ファミリー",
     "addMember": "ファミリーメンバーを追加",
     "emptyText": "電話で Ferni にかけるファミリーメンバーを追加しましょう。自動的に認識され、それぞれ Ferni とのお話を楽しめるようになります。",
@@ -3611,7 +3602,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "コミュニケーション＆人間関係",
+        "role": "コミュニケーションコーチ＆チーフ・オブ・スタッフ",
         "description": "お話をスムーズに進め、人間関係を深め、自分をもっと上手に表現できるようお手伝いします。",
         "unlockHint": "人間関係についてのお話をFerniにシェアする",
         "unlockedMessage": "一緒に掘り下げる価値のある、いくつかのパターンに気づきました。",
@@ -5340,8 +5331,6 @@
     "from": "開始",
     "beyondTheApp": "アプリを超えて",
     "beyondTheAppDesc": "大切な瞬間には、あなたがどこにいても寄り添います。",
-    "emailUpdates": "メールアップデート",
-    "emailUpdatesDesc": "マイルストーンのお祝いや週に一度の振り返り",
     "smsMessages": "SMSメッセージ",
     "smsDesc": "何か気づいたときの、ちょっとしたチェックイン",
     "milestoneCelebrations": "マイルストーンのお祝い",
@@ -7971,6 +7960,9 @@
     "improving": "上向き",
     "declining": "最近は少し低め",
     "trendUnavailable": "この推移は読み込めませんでした。少ししてからもう一度お試しください。",
+    "notTalkedLately": "最近これについては話していませんね：",
+    "asOfOnce": "{date}時点 · 1回話題に",
+    "asOfCount": "{date}時点 · {count}回話題に",
     "trendUp": "上昇",
     "trendDown": "低下",
     "trendStable": "安定",
@@ -8350,10 +8342,9 @@
     "appleHealthDesc": "睡眠、アクティビティ、心拍数のデータ",
     "ouraDesc": "睡眠の質とレディネス（コンディション）のスコア",
     "eightSleepDesc": "睡眠トラッキングと温度調整",
-    "wearablesDesc": "Fitbit、Garmin、WHOOPなど",
+    "wearablesDesc": "Garmin、WHOOPなど",
     "calendarDesc": "予定、会議、空き時間",
     "linkedInDesc": "仕事の状況やネットワーク",
-    "spotifyDesc": "音楽、気分に合わせたプレイリスト、再生履歴",
     "ecobeeDesc": "自宅の温度と快適さ",
     "vibeControllerDesc": "音楽や照明などのコントロール",
     "connected": "連携済み"
@@ -8983,10 +8974,7 @@
     "trustJourneyExplore": "見てみる",
     "customizeTitle": "体験をカスタマイズする",
     "customizeMessage": "テーマやサウンドなどを調整できます。",
-    "spotifyMessage": "Spotifyを連携して、お話中の気分を盛り上げましょう。",
-    "spotifyConnect": "連携する",
-    "maybeLater": "また今度",
-    "spotifyTitle": "Spotifyと連携する"
+    "maybeLater": "また今度"
   },
   "mentorTeachings": {
     "learningFrom": "学びの源",
@@ -10125,9 +10113,10 @@
     "title": "私が覚えている、ささやかなこと",
     "subtitle": "あなたが覚えておかなくてもいいように",
     "emptyTitle": "まだ何も設定されていません",
-    "emptySubtitle": "毎朝の挨拶や、ストレッチのリマインダーなど、何でもお手伝いしますよ。",
+    "emptySubtitle": "定期的にしたいことを教えてください。ここに保存しておきます。",
     "emptyButton": "アイデアを見る",
     "addNew": "新しく追加する",
+    "notRunningYet": "ここに保存しています。まだ自動では動きません。",
     "triggers": {
       "dailyAt": "毎日{time}に",
       "dailyUnset": "毎日決まった時間に",
@@ -10214,7 +10203,6 @@
     "connectFirstToManage": "まずは接続してください。それから管理しましょう。",
     "monthlyLimitReached": "今月の制限に達してしまいました。もっとお話ししたいのですが...",
     "enableMicPrompt": "あなたの声が聴きたいです。マイクへのアクセスを許可していただけますか？",
-    "agentJoined": "{name}が参加しました",
     "seeYouNextTime": "また次回お会いしましょう！",
     "handoffFailed": "今は連絡がつきませんでした。でも、私はここにいますよ！",
     "personaBack": "{name}が戻ってきました！",
@@ -10510,7 +10498,6 @@
     "names": {
       "stockData": "株価データ",
       "marketData": "市場データ",
-      "weatherMaps": "天気と地図",
       "historicalFacts": "歴史的事実",
       "smartHome": "スマートホーム",
       "lighting": "照明",
@@ -10807,7 +10794,10 @@
     "endTalk": "終了",
     "connectingCancel": "接続中です。タップしてキャンセル",
     "connectingNow": "接続中…",
-    "tapToCancel": "タップしてキャンセル"
+    "tapToCancel": "タップしてキャンセル",
+    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
+    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
+    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
   },
   "analyticsDashboard": {
     "title": "あなたの道のり",
