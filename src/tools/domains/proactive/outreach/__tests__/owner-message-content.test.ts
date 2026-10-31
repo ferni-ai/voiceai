@@ -292,6 +292,7 @@ describe('emoji are allowed, and act as separators in every later rule', () => {
     expect(blockedContent(`go to evil.${A}${P}${P}`)).toBe('charset');
     expect(blockedContent(`go to evil.\u00a9${O}m`)).toBe('charset');
     expect(blockedContent('what is your PIN\u00ae')).toBe('charset');
+    expect(blockedContent('send me the OTP\u00a9')).toBe('charset');
   });
 
   it('keycap digits are digits; other symbols of that block (flags, squared words) refuse', () => {
