@@ -18,7 +18,6 @@ import { synthHum, synthSnore, synthWhistle } from './presence-sounds.js';
 import {
   createPresenceWatcher,
   LONG_QUIET,
-  presenceHumEnabled,
   presenceSnoreEnabled,
   presenceSoundsEnabled,
 } from './presence-watcher.js';
@@ -339,7 +338,7 @@ const WHISTLE_VOLUME = 0.5;
 
 /**
  * Sounds of him being there in a silence (presence-watcher.ts), on the same
- * track as the backchannels: a whistle (or, with PRESENCE_HUM, a hum) in an
+ * track as the backchannels: a whistle or a hum (as often as each other) in an
  * easy pause, and with PRESENCE_SNORE a mock snore in a long quiet. Returns
  * the cleanup; a no-op unless PRESENCE_SOUNDS=on.
  */
@@ -393,7 +392,7 @@ function startPresenceSounds(
   const watchers = [
     createPresenceWatcher({
       play: (quietMs) =>
-        presenceHumEnabled() && Math.random() < 0.5
+        Math.random() < 0.5
           ? playing('hum', synthHum(), quietMs)
           : playing('whistle', recorded?.whistle.next() ?? synthWhistle(), quietMs),
       stop,

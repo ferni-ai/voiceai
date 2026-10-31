@@ -63,13 +63,14 @@ One `Speech director plan` line per reply, counts and decisions only:
 `cancelled`, `failed`. Errors also log `Speech director failed` (warn); the
 reply then goes out verbatim.
 
-**Dev runs the Director live on purpose, laughter included**
-(`SPEECH_DIRECTOR=live`, `SPEECH_DIRECTOR_LAUGHTER=live`). Dev is its live
-trial: dev lines are live data, not shadow, and the shadow criteria below
-apply to prod. Don't reset dev to shadow to "match" prod. Check with
-`lk agent secrets --config livekit.toml`: on 2026-10-04 the LiveKit Cloud dev
-agent had neither secret, so it ran the Director in shadow with laughter off;
-set both as in "Going live per environment" below.
+**Dev runs the Director live on purpose** (`SPEECH_DIRECTOR=live`; the
+laughter lever follows it since the 2026-10-31 promotion, with
+`SPEECH_DIRECTOR_LAUGHTER` left only as a lowering override like the other
+levers). Dev is its live trial: dev lines are live data, not shadow, and the
+shadow criteria below apply to prod. Don't reset dev to shadow to "match"
+prod. Check with `lk agent secrets --config livekit.toml`: on 2026-10-04 the
+LiveKit Cloud dev agent had no secret, so it ran the Director in shadow; set
+it as in "Going live per environment" below.
 
 ---
 
@@ -181,7 +182,7 @@ with no code change. Setting secrets restarts the agent.
 ```bash
 # dev live, prod untouched
 lk agent update-secrets --config livekit.toml --secrets TOOL_RETRIEVAL=live
-lk agent update-secrets --config livekit.toml --secrets SPEECH_DIRECTOR=live --secrets SPEECH_DIRECTOR_LAUGHTER=live
+lk agent update-secrets --config livekit.toml --secrets SPEECH_DIRECTOR=live
 
 # rollback: back to shadow (or off)
 lk agent update-secrets --config livekit.toml --secrets TOOL_RETRIEVAL=shadow
