@@ -37,6 +37,7 @@ vi.mock('firebase-admin', () => ({
         email: email.value,
         email_verified: email.verified,
       }),
+      getUser: async () => ({ disabled: false }), // a live account (token-revocation.ts)
     }),
   },
 }));
