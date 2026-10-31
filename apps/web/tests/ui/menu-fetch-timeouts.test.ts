@@ -142,6 +142,19 @@ describe('screens leave their loading state when the server never answers', () =
     getDataExportUI().destroy();
   });
 
+  it('Privacy & your data: a server error says it couldn\'t load, not "0 items"', async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response('{}', { status: 500 }));
+
+    await showDataExport();
+
+    const panel = document.querySelector('.data-export');
+    expect(panel?.querySelector('[role="alert"]')?.textContent).toContain(
+      t('dataExport.loadFailed')
+    );
+    expect(panel?.querySelector('.data-export__category-count')).toBeNull();
+    getDataExportUI().destroy();
+  });
+
   it('Our Story So Far: the care block stops loading and offers a retry', async () => {
     const care = () => document.querySelector('#viz-actions-taken');
 
