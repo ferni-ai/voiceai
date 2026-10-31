@@ -425,57 +425,7 @@ describe('SchedulingExecutor', () => {
     });
   });
 
-  describe('saveContact / addContact', () => {
-    it('should save a contact', async () => {
-      const ctx = createContext();
-      const result = await schedulingExecutor.execute(
-        'saveContact',
-        {
-          name: 'John Doe',
-          phone: '555-1234',
-        },
-        ctx
-      );
-
-      expect(result).toBeDefined();
-    });
-
-    it('should resolve saveContactInfo alias', async () => {
-      const ctx = createContext();
-      const result = await schedulingExecutor.execute(
-        'saveContactInfo',
-        {
-          name: 'Jane Doe',
-          email: 'jane@example.com',
-        },
-        ctx
-      );
-
-      expect(result).toBeDefined();
-    });
-
-    it('should resolve addContact alias', async () => {
-      const ctx = createContext();
-      const result = await schedulingExecutor.execute(
-        'addContact',
-        {
-          name: 'Bob Smith',
-          phone: '555-5678',
-        },
-        ctx
-      );
-
-      expect(result).toBeDefined();
-    });
-
-    it('should handle missing name gracefully', async () => {
-      const ctx = createContext();
-      const result = await schedulingExecutor.execute('saveContact', { phone: '555-1234' }, ctx);
-
-      // Executor handles missing name
-      expect(result).toBeDefined();
-    });
-  });
+  // saveContact / addContact: scheduling-save-contact.test.ts (contacts store, never the owner).
 
   describe('unhandled tools', () => {
     it('should return null for unhandled tools', async () => {
