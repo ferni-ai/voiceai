@@ -1,6 +1,5 @@
 /**
- * The prompts the deep extraction worker sends the model (moved out of
- * deep-extraction-worker.ts unchanged).
+ * The prompts the deep extraction worker sends the model.
  *
  * @module memory/dynamic/deep-extraction-prompts
  */
@@ -19,7 +18,7 @@ Focus on entities that matter for personal memory - people in the user's life, p
 
 Return JSON array of entities.`;
 
-export const FACT_EXTRACTION_PROMPT = `You are extracting factual information that should be remembered about entities.
+const FACT_EXTRACTION_PROMPT = `You are extracting factual information that should be remembered about entities.
 
 Given entities and transcript, extract NEW FACTS learned about each entity.
 
@@ -33,6 +32,20 @@ Fact types:
 Only extract facts explicitly stated or strongly implied. Be conservative.
 
 Return JSON array with: entityName, factType, key, value, confidence, temporalContext.`;
+
+/**
+ * Where they live and where they are right now, as two keys on the caller (right-moment
+ * memory §5.3): FACT_SUPERSESSION replaces by key, so a newer home replaces home and
+ * "at the airport" no longer displaces it. CALLER_CARD, as the caller's call had it.
+ */
+const HOME_KEYS = `
+- Where the speaker lives: entityName "User", key "home", value a city or neighbourhood, never a street address.
+- Where the speaker is right now: entityName "User", key "current location".`;
+
+/** The fact prompt; with `cardOn` false, exactly as before. */
+export function factExtractionPrompt(cardOn: boolean): string {
+  return cardOn ? FACT_EXTRACTION_PROMPT + HOME_KEYS : FACT_EXTRACTION_PROMPT;
+}
 
 export const RELATIONSHIP_EXTRACTION_PROMPT = `You are mapping relationships between entities mentioned in conversation.
 

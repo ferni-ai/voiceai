@@ -26,10 +26,11 @@ import { createDeepExtractionBatcher } from './deep-extraction-batch.js';
 import { extractionMoment } from './extraction-moment.js';
 import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { dualWriteFacts, mapDynamicFacts } from '../writer/facts-dual-write.js';
+import { personFlagOn } from '../../config/person-flag.js';
 import type { DeepExtractionBatchOptions } from './deep-extraction-batch.js';
 import {
   ENTITY_EXTRACTION_PROMPT,
-  FACT_EXTRACTION_PROMPT,
+  factExtractionPrompt,
   RELATIONSHIP_EXTRACTION_PROMPT,
   SELF_QUESTIONING_PROMPT,
 } from './deep-extraction-prompts.js';
@@ -255,7 +256,7 @@ export class DeepExtractionWorker {
 
     // 2. LLM Fact Extraction, dated and with the call so far (extraction-moment.ts)
     const moment = extractionMoment(job);
-    const facts = await this.extractFacts(job.transcript, entities, moment);
+    const facts = await this.extractFacts(job.userId, job.transcript, entities, moment);
 
     // 3. LLM Relationship Extraction
     const relationships = await this.extractRelationships(job.transcript, entities);
@@ -355,6 +356,7 @@ Extract entities as JSON array:`;
   }
 
   private async extractFacts(
+    userId: string,
     transcript: string,
     entities: ExtractedEntity[],
     moment: string
@@ -371,7 +373,9 @@ Extract entities as JSON array:`;
 
       const entityList = entities.map((e) => `${e.name} (${e.type})`).join('\n');
 
-      const prompt = `${FACT_EXTRACTION_PROMPT}
+      // After-call work: CALLER_CARD as this caller's call had it (envForCaller), not process.env.
+      const cardOn = await personFlagOn(userId, 'CALLER_CARD');
+      const prompt = `${factExtractionPrompt(cardOn)}
 ${moment}
 
 Entities found:
