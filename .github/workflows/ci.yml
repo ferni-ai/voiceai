@@ -1410,6 +1410,11 @@ jobs:
             apps/web/tests/overlays/__screenshots__/linux/
           retention-days: 7
 
+      # Motion audit 2026-10-29 P8: signed out, the first seconds show one screen and one avatar
+      - name: First-paint check
+        working-directory: apps/web
+        run: pnpm exec playwright test -c playwright.first-paint.config.ts
+
   # ============================================================================
   # DEPENDENCY CHECK
   # ============================================================================
