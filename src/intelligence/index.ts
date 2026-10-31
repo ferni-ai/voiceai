@@ -1181,9 +1181,5 @@ export type {
   DataCaptureResult,
 } from './data-capture/types.js';
 // Dates that matter, for the hello (DATES_IN_HELLO, agents/multi-agent/greeting-date.ts)
-export {
-  createDatesRecall,
-  type DatesRecallDeps,
-  type DueDate,
-} from './world-model/dates/recall.js';
+export { createDatesRecall, type DatesRecallDeps, type DueDate } from './world-model/dates/recall.js'; // prettier-ignore
 export { personFromLabel, sensitiveDate } from './world-model/dates/sensitive-date.js';

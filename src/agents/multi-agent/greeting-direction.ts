@@ -385,9 +385,8 @@ export async function directedGreeting(
   const launched = launchDirection(takeCallLaunch(sessionId)); // CALL_LAUNCH_CONTEXT: their reason
   // A letter to future them on the day it was promised (future-letters.ts) is the opening's one
   // thread: a win, a check-in or a pondered ask waits for a later call; it never waits for them.
-  // It still yields to an unknown caller (never someone else's letter) and to their own reason.
-  // A call Ferni made for them (CALL_NEWS_OPENER) comes before all of those, the letter too.
-  // A date they told about (DATES_IN_HELLO) comes after the letter, never on a same-day return.
+  // It yields to an unknown caller (never someone else's letter), their own reason and call news
+  // (CALL_NEWS_OPENER). Then a date they told about (DATES_IN_HELLO), never on a same-day return.
   const newsNow = news && !unknown && !launched ? news : undefined;
   const letterNow = letter && !unknown && !launched && !newsNow ? letter : undefined;
   const dateNow = launched || letterNow || newsNow || unknown || hold.sameDay ? undefined : date;
@@ -455,8 +454,7 @@ export async function directedGreeting(
   const spoken = unknown ? directed.text : afterAsking(directed, scripted, ask);
   if (party && directed.source === 'actor' && lineSaysAnniversary(spoken, party)) party.mark();
   if (letterNow && directed.source === 'actor' && lineOffersLetter(spoken)) letterNow.mark();
-  // One follow-up per call opener: having asked, the greeting keeps the first
-  // recall note from asking about a thread too (greeting-claim.ts).
+  // One follow-up per call opener (greeting-claim.ts): the first recall note won't ask it again.
   if (!unknown && userData?.userId && directed.source === 'actor' && spoken === directed.text) {
     const threads = { checkIn, pondered: ask?.text, lastTopic: history?.lastTopic };
     claimIfAsked(userData.userId, spoken, { ...threads, userName: userData.userName });
