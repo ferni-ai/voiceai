@@ -95,13 +95,23 @@ function resealToSealingKey(
   });
 }
 
-export function createUserOAuthStore<T extends { refresh_token?: string }>(config: {
+interface UserOAuthStoreConfig {
   provider: string;
   /** Firestore subcollection under bogle_users/{uid} */
   collection: string;
   /** The doc may predate sealing: every save also deletes the plaintext token fields (merge write). */
   dropLegacyPlaintext?: boolean;
-}): UserOAuthStore<T> {
+}
+
+/** A save's envelope; with dropLegacyPlaintext, plus a delete for each plaintext token key. */
+const sealGrant = (tokens: object, dropLegacyPlaintext?: boolean): { encrypted: string } =>
+  dropLegacyPlaintext
+    ? (sealTokensForMerge(tokens) as { encrypted: string })
+    : { encrypted: encryptData(tokens) };
+
+export function createUserOAuthStore<T extends { refresh_token?: string }>(
+  config: UserOAuthStoreConfig
+): UserOAuthStore<T> {
   const { provider, collection, dropLegacyPlaintext } = config;
 
   const docStore = createPersistenceStore<LinkDoc>({
@@ -176,9 +186,7 @@ export function createUserOAuthStore<T extends { refresh_token?: string }>(confi
       blocked.delete(userId);
       try {
         const grant: LinkDoc = {
-          ...(dropLegacyPlaintext
-            ? (sealTokensForMerge(withTimestamp) as { encrypted: string })
-            : { encrypted: encryptData(withTimestamp) }),
+          ...sealGrant(withTimestamp, dropLegacyPlaintext),
           updated_at: Date.now(),
           needs_reauth: null,
         };
