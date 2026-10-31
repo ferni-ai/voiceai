@@ -55,8 +55,6 @@ import {
   type PatternType as CoachingPatternType,
 } from '../../intelligence/coaching-patterns.js';
 
-// Async events for scaled processing
-
 const log = createLogger({ module: 'predictive-intelligence' });
 
 // ============================================================================
