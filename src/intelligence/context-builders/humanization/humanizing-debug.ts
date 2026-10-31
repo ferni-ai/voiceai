@@ -25,7 +25,7 @@ export function logHumanizingResult(result: HumanizingResult, userMessage: strin
 
   log.debug(
     {
-      userMessage: userMessage.slice(0, 80) + (userMessage.length > 80 ? '...' : ''),
+      userMessageLen: userMessage.length,
       relationship: {
         stage: result.relationship.stage,
         allowed: result.relationship.allowed.slice(0, 3),
@@ -66,7 +66,7 @@ export function logHumanizingResult(result: HumanizingResult, userMessage: strin
           type: c.type,
           depth: c.depth,
           probability: c.probability,
-          content: c.content.slice(0, 60) + (c.content.length > 60 ? '...' : ''),
+          contentLen: c.content.length,
         })),
       },
       '🧠 Inner World Shares'
@@ -80,7 +80,7 @@ export function logHumanizingResult(result: HumanizingResult, userMessage: strin
         spontaneousShare: {
           type: result.spontaneousShare.type,
           transition: result.spontaneousShare.transition,
-          content: result.spontaneousShare.content.slice(0, 60) + '...',
+          contentLen: result.spontaneousShare.content.length,
           tags: result.spontaneousShare.tags,
         },
       },

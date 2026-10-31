@@ -170,7 +170,7 @@ export async function searchMemories(
 
     log.debug(
       {
-        query: query.slice(0, 50),
+        queryLen: query.length,
         userId,
         results: results.length,
         embeddingMs: metrics.embeddingLatencyMs,
