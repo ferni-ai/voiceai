@@ -2,18 +2,50 @@
  * Apple Health (lane W7): disconnect erases every store the sync writes and reads it back,
  * is idempotent, and retries (and logs) a pass that fails; the sync never keeps samples,
  * source names or device names; oversize and held syncs are refused; old days with names
- * are stripped on read; account erasure covers every store.
+ * are stripped on read; account erasure covers every store. Indexing runs the real
+ * store-hooks debounce, so a sync just before a disconnect is covered too.
  *
  * All ids and values here are fictional. The Firestore below is an in-memory fake keyed by
- * document path, so each assertion inspects the raw stored documents.
+ * document path, so each assertion inspects the raw stored documents; the vector store is a
+ * fake over the same documents, plus a fallback cache.
  */
 import crypto from 'node:crypto';
 import { FieldValue } from '@google-cloud/firestore';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { Readable } from 'node:stream';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../data-layer/hooks/health-hooks.js', () => ({ onWellnessCheckinChange: vi.fn() }));
+type Data = Record<string, unknown>;
+const docs = vi.hoisted(() => new Map<string, Record<string, unknown>>());
+/** The vector store's fallback cache: id -> metadata */
+const fallback = vi.hoisted(() => new Map<string, Record<string, unknown>>());
+/** throw: the delete errors (throwOnce: only the first); noop: it succeeds and deletes nothing */
+const faults = vi.hoisted(() => ({
+  recursiveDelete: null as 'throw' | 'throwOnce' | 'noop' | null,
+  docDelete: null as 'noop' | null,
+}));
+const vstore = vi.hoisted(() => ({
+  addDocument: vi.fn(async (d: { id: string; text: string; metadata: Record<string, unknown> }) => {
+    docs.set(`vectors/${d.id}`, { text: d.text, metadata: d.metadata });
+  }),
+  removeDocument: vi.fn(async (id: string) => {
+    fallback.delete(id);
+    if (faults.docDelete !== 'noop') docs.delete(`vectors/${id}`);
+    return true;
+  }),
+  cached: vi.fn(async ({ userId }: { userId: string }) => ({
+    docs: [...fallback]
+      .filter(([, m]) => m.userId === userId)
+      .map(([id, metadata]) => ({ id, metadata })),
+    fallback: false,
+  })),
+  list: vi.fn(async () => []),
+  invalidateSearchCacheForUser: vi.fn(() => 0),
+}));
+vi.mock('../../../memory/firestore-vector-store/index.js', () => ({
+  getFirestoreVectorStore: () => vstore,
+}));
+vi.mock('../../../memory/embeddings.js', () => ({ embed: async () => [0.1, 0.2] }));
 const held = vi.hoisted(() => ({ value: false }));
 /** Each module's logger, by module name (the global safe-logger mock keeps no handle on them) */
 const loggers = vi.hoisted(() => new Map<string, Record<string, ReturnType<typeof vi.fn>>>());
@@ -48,16 +80,10 @@ import {
 } from '../apple-health-erase.js';
 import { forgetCachedStatus, toDailySummary } from '../apple-health-sync.js';
 import { eraseStore } from '../../platform/erase-store.js';
+import { resetMaxPerUserCache } from '../../data-layer/max-per-user.js';
+import { clearPendingChanges, getQueueMetrics } from '../../data-layer/store-hooks.js';
 import { ERASED_STORES } from '../../platform/user-stores.js';
 import { EXPORTED_STORES } from '../../platform/user-records-export.js';
-
-type Data = Record<string, unknown>;
-const docs = new Map<string, Data>();
-/** throw: the delete errors (throwOnce: only the first); noop: it succeeds and deletes nothing */
-const faults = {
-  recursiveDelete: null as 'throw' | 'throwOnce' | 'noop' | null,
-  docDelete: null as 'noop' | null,
-};
 
 const isMap = (v: unknown): v is Data => !!v && typeof v === 'object' && !Array.isArray(v);
 const isDelete = (v: unknown): boolean => v instanceof FieldValue && v.isEqual(FieldValue.delete());
@@ -106,12 +132,12 @@ function doc(path: string): Data {
         .map((id) => collection(`${path}/${id}`)),
   };
 }
-function collection(path: string, where?: [string, string, unknown]): Data {
-  const matches = (d: Data | undefined): boolean => {
-    if (!where) return true;
-    const value = field(d, where[0]);
-    return where[1] === '!=' ? value !== undefined && value !== where[2] : value === where[2];
-  };
+function collection(path: string, where: [string, string, unknown][] = []): Data {
+  const matches = (d: Data | undefined): boolean =>
+    where.every(([f, op, v]) => {
+      const value = field(d, f);
+      return op === '!=' ? value !== undefined && value !== v : value === v;
+    });
   const rows = () =>
     children(path)
       .map((id) => `${path}/${id}`)
@@ -119,7 +145,7 @@ function collection(path: string, where?: [string, string, unknown]): Data {
       .map(snap);
   const query: Data = {
     doc: (id: string) => doc(`${path}/${id}`),
-    where: (f: string, op: string, v: unknown) => collection(path, [f, op, v]),
+    where: (f: string, op: string, v: unknown) => collection(path, [...where, [f, op, v]]),
     limit: () => query,
     select: () => query,
     get: async () => ({ docs: rows(), empty: rows().length === 0 }),
@@ -166,11 +192,15 @@ function seedPerson(uid: string, date: string): void {
     sleep: { totalSleep: 400, sources: ['Oura', 'Test Watch'] },
   });
   docs.set(`apple_health_data/${uid}/workouts/w-${uid}`, { duration: 1800, sourceName: 'Whoop' });
-  docs.set(`vectors/health_wellness_checkin_activity_${date}`, {
-    text: 'Wellness check.',
-    metadata: { userId: uid, entityType: 'wellness_checkin' },
-  });
+  docs.set(`vectors/${indexedId(date)}`, { text: 'Wellness check.', metadata: indexed(uid, date) });
 }
+const indexedId = (date: string) => `health_wellness_checkin_activity_${date}`;
+const indexed = (userId: string, date: string) => ({
+  userId,
+  storeType: 'health',
+  entityType: 'wellness_checkin',
+  entityId: `activity_${date}`,
+});
 
 interface Reply {
   status: number;
@@ -219,6 +249,10 @@ const sync = (body: unknown, raw?: string) =>
 
 beforeEach(() => {
   docs.clear();
+  fallback.clear();
+  clearPendingChanges();
+  resetMaxPerUserCache();
+  vi.clearAllMocks();
   faults.recursiveDelete = null;
   faults.docDelete = null;
   held.value = false;
@@ -228,6 +262,10 @@ beforeEach(() => {
   vi.mocked(getFirestoreDb).mockReturnValue(db as never);
   seedPerson(A, '2026-10-01');
   seedPerson(B, '2026-10-02');
+});
+afterEach(() => {
+  clearPendingChanges();
+  vi.useRealTimers();
 });
 
 describe('disconnect erases every Apple Health store', () => {
@@ -310,17 +348,71 @@ describe('disconnect erases every Apple Health store', () => {
     );
   });
 
-  it('an indexed day that survives keeps the days that find it, so a later retry erases it', async () => {
+  it('an indexed day that survives fails the read-back, and a later disconnect erases it', async () => {
     faults.docDelete = 'noop';
     expect(await disconnectAppleHealth(A, 0)).toEqual({ ok: false });
-    const left = nameRaw(A).map(([p]) => p);
-    expect(left).toContain('vectors/health_wellness_checkin_activity_2026-10-01');
-    expect(left).toContain(`apple_health_data/${A}/daily/2026-10-01`);
-    expect(left).not.toContain(`apple_health_tokens/${A}`); // no new sync meanwhile
+    expect(eraseLog().warn).toHaveBeenLastCalledWith(
+      { userId: A, attempt: ERASE_ATTEMPTS, left: ['vectors'] },
+      'Apple Health disconnect: a pass left data'
+    );
+    expect(nameRaw(A).map(([p]) => p)).toEqual([`vectors/${indexedId('2026-10-01')}`]);
 
     faults.docDelete = null;
     expect(await disconnectAppleHealth(A, 0)).toEqual({ ok: true });
     expect(nameRaw(A)).toEqual([]);
+  });
+
+  it('indexed days go by owner and type, not by stored date', async () => {
+    // A day indexed for A whose stored day is already gone, and one in the fallback cache
+    docs.set(`vectors/${indexedId('2026-09-15')}`, { metadata: indexed(A, '2026-09-15') });
+    fallback.set(indexedId('2026-09-16'), indexed(A, '2026-09-16'));
+    // Same date as A's: the shared id now holds B's day, which must stay
+    docs.set(`vectors/${indexedId('2026-10-01')}`, { metadata: indexed(B, '2026-10-01') });
+    // A's own check-in from a call, not from Apple Health, stays too
+    const spoken = { ...indexed(A, 'x'), entityId: 'call_77' };
+    docs.set('vectors/health_wellness_checkin_call_77', { metadata: spoken });
+
+    expect(await disconnectAppleHealth(A, 0)).toEqual({ ok: true });
+    expect(nameRaw(A).map(([p]) => p)).toEqual(['vectors/health_wellness_checkin_call_77']);
+    expect(fallback.size).toBe(0);
+    expect(docs.get(`vectors/${indexedId('2026-10-01')}`)).toMatchObject({
+      metadata: { userId: B },
+    });
+    expect(vstore.invalidateSearchCacheForUser).toHaveBeenCalledWith(A);
+  });
+
+  const activityDay = {
+    deviceId: 'd1',
+    syncedAt: '2026-10-05T08:00:00Z',
+    data: { activity: [{ date: '2026-10-05', activeEnergyBurned: 410, appleExerciseTime: 30 }] },
+  };
+
+  it('a sync then a disconnect within the 2 s index debounce: the queued day is dropped', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    expect((await sync(activityDay)).status).toBe(200);
+    expect(getQueueMetrics().pendingByEntity.wellness_checkin).toBe(1);
+
+    expect(await disconnectAppleHealth(A, 0)).toEqual({ ok: true });
+    expect(getQueueMetrics().pendingByEntity.wellness_checkin).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(vstore.addDocument).not.toHaveBeenCalled();
+    expect(nameRaw(A)).toEqual([]);
+  });
+
+  it('a disconnect on another instance: the queued write sees the token gone and skips', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    expect((await sync(activityDay)).status).toBe(200);
+    docs.delete(`apple_health_tokens/${A}`); // that instance's erase, with this queue untouched
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(vstore.addDocument).not.toHaveBeenCalled();
+
+    // Still connected: the same sync is indexed (the debounce really writes)
+    docs.set(`apple_health_tokens/${A}`, { hashedToken: hash(TOKEN), deviceId: 'd1' });
+    expect((await sync(activityDay)).status).toBe(200);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(docs.get(`vectors/${indexedId('2026-10-05')}`)).toMatchObject({
+      metadata: indexed(A, '2026-10-05'),
+    });
   });
 
   it('the unlink routes report a failed erase as a failure', async () => {

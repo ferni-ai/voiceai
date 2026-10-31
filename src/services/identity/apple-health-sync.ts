@@ -39,6 +39,10 @@ const log = createLogger({ module: 'apple-health-sync' });
 export const STATUS_COLLECTION = 'apple_health_status';
 export const DATA_COLLECTION = 'apple_health_data';
 export const SYNC_TOKEN_COLLECTION = 'apple_health_tokens';
+/** An activity day's entity id in the semantic index (wellness_checkin) starts with this */
+export const INDEXED_DAY_PREFIX = 'activity_';
+const tokenRef = (db: FirebaseFirestore.Firestore, userId: string) =>
+  db.collection(SYNC_TOKEN_COLLECTION).doc(userId);
 
 // In-memory cache for status (avoids frequent Firestore reads)
 const statusCache = new Map<string, { status: AppleHealthAuthStatus; expiresAt: number }>();
@@ -312,11 +316,15 @@ async function storeDailyActivity(
     .set(cleanForFirestore({ activity: kept }), { merge: true });
 
   // Index to semantic memory for wellness tracking, with no made-up scores
+  // Written ~2 s later: skipped if the person disconnected meanwhile (token gone, any instance)
+  const stillConnected = async () => (await tokenRef(db, userId).get()).exists;
+  const entityId = `${INDEXED_DAY_PREFIX}${activity.date}`;
   void onWellnessCheckinChange(
     userId,
-    `activity_${activity.date}`,
+    entityId,
     activityCheckin(activity),
-    'update'
+    'update',
+    stillConnected
   );
 }
 
