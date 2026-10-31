@@ -14,6 +14,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { isSharedPlaceholderId } from '../../utils/synthetic-user.js';
 import { forgetCallStartReads, readUserDocOnce } from '../../utils/call-start-reads.js';
 import { canSpeakLanguageLive, languageNotLiveMessage } from './live-capability.js';
 
@@ -796,9 +797,9 @@ export async function persistUserLanguagePreference(
 ): Promise<void> {
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
-    const db = getFirestoreDb();
+    const db = isSharedPlaceholderId(userId) ? null : getFirestoreDb(); // never one shared doc (#2651)
     if (!db) {
-      log.warn({ userId }, 'Firestore not available for language persistence');
+      log.warn({ userId }, 'Language not persisted: no Firestore, or a shared placeholder id');
       return;
     }
 
@@ -836,7 +837,7 @@ export async function loadUserLanguagePreference(
 
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
-    const db = getFirestoreDb();
+    const db = isSharedPlaceholderId(userId) ? null : getFirestoreDb();
     if (!db) return null;
 
     const ref = db.collection('bogle_users').doc(userId);
@@ -924,7 +925,6 @@ export function languageService() {
           '🌍 Language set via service API'
         );
 
-        // Persist to Firestore
         await persistUserLanguagePreference(userId, parsed);
 
         const config = getLanguageConfig(parsed);
