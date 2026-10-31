@@ -198,21 +198,31 @@ describe('unified outreach email', () => {
 });
 
 describe('Plaid bank-link email', () => {
-  it('sends the secure link through the port as a transactional email', async () => {
+  const linkByEmail = async (verifiedCaller: boolean) => {
     vi.stubEnv('PLAID_CLIENT_ID', 'client');
     vi.stubEnv('PLAID_SECRET', 'secret');
     vi.stubEnv('PLAID_LINK_BASE_URL', 'https://app.ferni.ai/link');
     vi.resetModules(); // plaid.ts reads its credentials at import
+    const { setCallUserPort } = await import('../../tools/domains/proactive/outreach/call-user-port.js'); // prettier-ignore
+    // The account's verified address (the call-user port), never one from the model.
+    setCallUserPort({
+      verifiedPhone: async () => undefined,
+      verifiedEmail: async (uid) => (uid === 'u-1' ? 'sam@example.com' : undefined),
+      call: async () => ({ success: false }),
+    });
     const { createPlaidTools } = await import('../../tools/domains/finance/plaid.js');
     const tool = createPlaidTools().linkBankAccount as unknown as {
       execute: (args: Record<string, string>, opts: unknown) => Promise<string>;
     };
-    // The caller comes from the session (#2073), never from the model's arguments.
-    const session = { ctx: { userData: { userId: 'u-1' } } };
+    // The caller comes from the session (#2073), verified by the server, never from the arguments.
+    const session = { ctx: { userData: { userId: 'u-1', verifiedCaller } } };
+    return tool.execute({ deliveryMethod: 'email', contact: 'stranger@example.com' }, session);
+  };
 
-    const reply = await tool.execute({ deliveryMethod: 'email', contact: 'sam@example.com' }, session); // prettier-ignore
+  it('sends the secure link through the port as a transactional email, to the verified address', async () => {
+    const reply = await linkByEmail(true);
 
-    expect(reply).toContain("I've sent a secure link to sam@example.com");
+    expect(reply).toContain("I've sent a secure link to the email on your account");
     expect(port.sent).toHaveLength(1);
     expect(port.sent[0]).toMatchObject({
       to: 'sam@example.com',
@@ -220,6 +230,15 @@ describe('Plaid bank-link email', () => {
       subject: '🔐 Securely Link Your Bank Account',
     });
     expect(port.sent[0]!.html).toContain('https://app.ferni.ai/link?token=link-sandbox-1&user=u-1');
+    expect(JSON.stringify(port.sent)).not.toContain('stranger@example.com');
+    expect(directMailCalls()).toHaveLength(0);
+  });
+
+  it('a caller the server did not verify: no email at all', async () => {
+    const reply = await linkByEmail(false);
+
+    expect(reply).toContain('signed in to the Ferni app');
+    expect(port.sent).toHaveLength(0);
     expect(directMailCalls()).toHaveLength(0);
   });
 });
