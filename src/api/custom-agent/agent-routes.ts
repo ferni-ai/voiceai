@@ -12,9 +12,9 @@ import {
   getCustomAgent,
   listCustomAgents,
   updateCustomAgent,
-  deleteCustomAgent,
 } from '../../services/custom-agent/custom-agent-persistence-service.js';
 import type { CreateCustomAgentRequest } from '../../types/custom-agent-api.js';
+import { eraseCustomAgent } from '../../services/custom-agent/custom-agent-erase.js';
 import { sendJson } from './helpers.js';
 import { withoutJournalEcho, withStoreJournal } from './journal-view.js';
 import { activationErrors, readAgentUpdate } from './agent-update-policy.js';
@@ -119,7 +119,7 @@ export async function handleUpdateAgent(
 }
 
 /**
- * DELETE /api/custom-agents/:agentId - Delete agent
+ * DELETE /api/custom-agents/:agentId - Delete agent, its own voice clone and its audio
  */
 export async function handleDeleteAgent(
   _req: IncomingMessage,
@@ -127,9 +127,9 @@ export async function handleDeleteAgent(
   userId: string,
   agentId: string
 ): Promise<boolean> {
-  const success = await deleteCustomAgent(userId, agentId);
+  const { found } = await eraseCustomAgent(userId, agentId);
 
-  if (!success) {
+  if (!found) {
     sendJson(res, 404, { error: 'Agent not found' });
     return true;
   }

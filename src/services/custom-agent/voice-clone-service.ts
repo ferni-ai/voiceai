@@ -21,11 +21,7 @@ import {
 } from './voice-clone-stubs.js';
 import { getRateLimiter } from '../../tools/rate-limiter.js';
 import { CARTESIA_API_VERSION, CARTESIA_MODEL } from '../../config/voice-ids.js';
-import type {
-  ClonedVoice,
-  VoiceUploadResponse,
-  CreateVoiceCloneResponse,
-} from '../../types/custom-agent.js';
+import type { VoiceUploadResponse, CreateVoiceCloneResponse } from '../../types/custom-agent.js';
 import {
   uploadAudioToGcs,
   downloadAudioFromGcs,
@@ -597,55 +593,6 @@ export async function generateVoicePreview(
 
     throw error;
   }
-}
-
-// ============================================================================
-// VOICE MANAGEMENT
-// ============================================================================
-
-/**
- * Get voice clone details
- */
-export async function getVoiceClone(voiceId: string): Promise<ClonedVoice | null> {
-  log.debug({ voiceId }, 'Getting voice clone details');
-
-  if (!CARTESIA_API_KEY) {
-    return null;
-  }
-
-  // In production, fetch from Cartesia API
-  // const response = await fetch(`${CARTESIA_BASE_URL}/voices/${voiceId}`, {
-  //   headers: { 'X-API-Key': CARTESIA_API_KEY },
-  // });
-
-  // Simulated response
-  return {
-    cartesiaVoiceId: voiceId,
-    createdAt: new Date(),
-    sourceAudioDuration: 60,
-    sourceAudioCount: 3,
-    qualityScore: 0.85,
-    status: 'ready',
-  };
-}
-
-/**
- * Delete a voice clone
- */
-export async function deleteVoiceClone(voiceId: string): Promise<boolean> {
-  log.info({ voiceId }, 'Deleting voice clone');
-
-  if (!CARTESIA_API_KEY) {
-    return false;
-  }
-
-  // In production, call Cartesia API:
-  // await fetch(`${CARTESIA_BASE_URL}/voices/${voiceId}`, {
-  //   method: 'DELETE',
-  //   headers: { 'X-API-Key': CARTESIA_API_KEY },
-  // });
-
-  return true;
 }
 
 // ============================================================================
