@@ -252,6 +252,13 @@ describe('real risk still reaches the gate and is caught end to end', () => {
     expect(JSON.stringify(events)).not.toMatch(/kill|myself/i);
   });
 
+  it('on a realtime model the gate never runs, so the transfer note stays', async () => {
+    v2(true);
+    vi.stubEnv('VOICE_PIPELINE', 'gemini-live');
+    const out = await turn('I want to kill myself');
+    expect(out.transfer?.category).toBe('crisis_transfer');
+  });
+
   it("with the gate not live, the word checks keep main's crisis guidance (fail safe)", async () => {
     v2(true, 'shadow');
     const out = await turn('I want to kill myself');
