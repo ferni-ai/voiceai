@@ -584,10 +584,8 @@ function bankLinkEmailHtml(secureLink: string): string {
 }
 
 /**
- * Send the secure link to the caller's own verified phone (the guarded owner
- * text) or verified email (the call-user port): never an address from the model.
- * The text is not marked asked-for-now, so every hold applies to it: STOP,
- * texts off, quiet hours and MINOR_CARE_SHARED_HOLD on the account or number.
+ * The secure link to the caller's own verified phone or email, never the model's: the text is
+ * an owner text not asked for now, so STOP, quiet hours and MINOR_CARE_SHARED_HOLD all hold it.
  */
 async function sendLinkToOwnContact(
   userId: string,
