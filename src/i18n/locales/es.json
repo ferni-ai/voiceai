@@ -356,10 +356,6 @@
           "name": "Apple Health",
           "description": "Conecta a través de la app de Ferni para iOS"
         },
-        "fitbit": {
-          "name": "Fitbit",
-          "description": "Pasos, sueño y ritmo cardíaco"
-        },
         "garmin": {
           "name": "Garmin",
           "description": "Datos de actividad y entrenamiento"

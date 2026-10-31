@@ -28,6 +28,7 @@ import {
   type OutreachTone,
   type OutreachContext,
 } from '../outreach/persona-voice-generator.js';
+import { userHeld } from '../../utils/minor-care.js';
 
 const log = createLogger({ module: 'GroupOutreach' });
 
@@ -259,13 +260,12 @@ export async function initiateGroupOutreach(
   options: GroupOutreachOptions
 ): Promise<GroupOutreachResult> {
   const outreachId = uuidv4();
-
-  // Validate - need at least 2 personas for group
-  if (options.personas.length < 2) {
-    log.warn(
-      { userId: options.userId, personas: options.personas },
-      'Group outreach requires at least 2 personas'
-    );
+  // MINOR_CARE: never reach out to a caller under 18 off the back of a held call (no SMS, no thread)
+  const refused = userHeld(options.userId)
+    ? 'MINOR_CARE: caller held'
+    : options.personas.length < 2 && 'Group outreach requires at least 2 personas';
+  if (refused !== false) {
+    log.warn({ userId: options.userId, personas: options.personas }, refused);
     return {
       success: false,
       outreachId,
@@ -273,7 +273,7 @@ export async function initiateGroupOutreach(
       channel: options.preferredChannel,
       message: '',
       personas: options.personas,
-      error: 'Group outreach requires at least 2 personas',
+      error: refused,
     };
   }
 

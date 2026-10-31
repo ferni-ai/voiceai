@@ -128,6 +128,7 @@ describe('voice prosody baseline and samples', () => {
     const samples = Array.from({ length: 3 }, () => ({ timestamp: ISO, characteristics }));
     state.docs.set(PATH, { baseline, samples });
 
+    await voice.loadVoiceProsodyUser('u-voice'); // session start (reload-before-save.ts)
     voice.recordVoiceSample('u-voice', characteristics as never);
     await settle(voice.flushVoiceProsodyPersistence);
 
@@ -139,11 +140,13 @@ describe('voice prosody baseline and samples', () => {
     const path = 'bogle_users/u-voice-2/voice_prosody/data';
     state.docs.set(path, { samples: [{ timestamp: ISO, characteristics }] });
     failed.add(path);
+    await expect(voice.loadVoiceProsodyUser('u-voice-2')).rejects.toThrow();
     voice.recordVoiceSample('u-voice-2', characteristics as never);
     await settle(voice.flushVoiceProsodyPersistence);
     expect(writesTo(path)).toEqual([]);
 
     failed.clear();
+    await voice.loadVoiceProsodyUser('u-voice-2');
     voice.recordVoiceSample('u-voice-2', characteristics as never);
     await settle(voice.flushVoiceProsodyPersistence);
     expect(field<unknown[]>(path, 'samples')).toHaveLength(3);
@@ -223,6 +226,7 @@ describe('celebration momentum profile', () => {
   it('the first save keeps the stored wins and adds the new one', async () => {
     const path = 'bogle_users/u-win/celebration_momentum/profile';
     state.docs.set(path, profile('u-win'));
+    await momentum.loadMomentumUser('u-win'); // session start (reload-before-save.ts)
     momentum.recordWin('u-win', win as never);
     await settle(momentum.flushCelebrationMomentumPersistence);
     expect(winIds(path)[0]).toBe('old-win');
@@ -233,11 +237,13 @@ describe('celebration momentum profile', () => {
     const path = 'bogle_users/u-win-2/celebration_momentum/profile';
     state.docs.set(path, profile('u-win-2'));
     failed.add(path);
+    await expect(momentum.loadMomentumUser('u-win-2')).rejects.toThrow();
     momentum.recordWin('u-win-2', win as never);
     await settle(momentum.flushCelebrationMomentumPersistence);
     expect(writesTo(path)).toEqual([]);
 
     failed.clear();
+    await momentum.loadMomentumUser('u-win-2');
     momentum.recordWin('u-win-2', win as never);
     await settle(momentum.flushCelebrationMomentumPersistence);
     expect(winIds(path)[0]).toBe('old-win');

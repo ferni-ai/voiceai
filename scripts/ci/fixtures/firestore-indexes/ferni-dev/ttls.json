@@ -1,0 +1,514 @@
+[
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/ferni-dev/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "expiresAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "expiresAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "expiresAt"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/_rate_limits/fields/expiresAt",
+    "ttlConfig": {
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/ferni-dev/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "timestamp",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "timestamp",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "timestamp"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/ai_email_log/fields/timestamp",
+    "ttlConfig": {
+      "expirationOffset": "31536000s",
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/ferni-dev/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "detected_at",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "detected_at",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "detected_at"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/anomaly_alerts/fields/detected_at",
+    "ttlConfig": {
+      "expirationOffset": "7776000s",
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/ferni-dev/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "created_at",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "created_at",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "created_at"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/automation_queue/fields/created_at",
+    "ttlConfig": {
+      "expirationOffset": "7776000s",
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/ferni-dev/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "timestamp",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "timestamp",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "timestamp"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/bq_cost_log/fields/timestamp",
+    "ttlConfig": {
+      "expirationOffset": "7776000s",
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/ferni-dev/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "timestamp",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "timestamp",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "timestamp"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/health_checks/fields/timestamp",
+    "ttlConfig": {
+      "expirationOffset": "2592000s",
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/ferni-dev/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "expireAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "expireAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "expireAt"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/intelligence_queue/fields/expireAt",
+    "ttlConfig": {
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/ferni-dev/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "expireAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "expireAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "expireAt"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/minor_care_holds/fields/expireAt",
+    "ttlConfig": {
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/ferni-dev/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "startTime",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "startTime",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "startTime"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/optimization_cycles/fields/startTime",
+    "ttlConfig": {
+      "expirationOffset": "7776000s",
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/ferni-dev/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "expireAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "expireAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "expireAt"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/security_events/fields/expireAt",
+    "ttlConfig": {
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/ferni-dev/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "createdAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "createdAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "createdAt"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/team_notifications/fields/createdAt",
+    "ttlConfig": {
+      "expirationOffset": "7776000s",
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/ferni-dev/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "createdAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "createdAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "createdAt"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/ttl_offset_probe/fields/createdAt",
+    "ttlConfig": {
+      "expirationOffset": "86400s",
+      "state": "ACTIVE"
+    }
+  }
+]

@@ -41,12 +41,8 @@ export {
   // Pre-configured clients
   getYahooFinanceClient,
   getAlphaVantageClient,
-  getGoogleApisClient,
   getWikipediaClient,
-  getHomeAssistantClient,
-  getHueClient,
   getLifxClient,
-  getSmartThingsClient,
 } from './resilient-http.js';
 export type {
   ResilientClient,

@@ -126,6 +126,27 @@ Processes each conversation turn:
 User Speech → Transcription → Context Building → LLM → SSML → TTS → Audio
 ```
 
+### Reply honesty guard
+
+Every reply the model writes passes through `personas/action-claim-guard.ts`
+(from `ferni-agent.ts` llmNode) before speech. A sentence that claims a call,
+text, booking, reminder or save no tool carried out is dropped, and one honest
+line (`honest-line.ts`) or an offer goes in its place. Fail toward honesty,
+never toward silence: a dropped claim always leaves words behind.
+
+- What counts as a claim: `action-claims.ts` (done or under way),
+  `action-promises.ts` ("I'll text him"), `call-narration.ts` (how a call went),
+  `announced-check.ts` ("I checked", "let me look").
+- `GROUNDED_CLAIMS` (off by default) ties claims to real state: a call or
+  message claim stands only on its tool's run or on evidence in the
+  conversation (a call result, or the caller asking about an earlier session),
+  "I checked" only on a look-up tool run, "let me look" only on a look-up call
+  in the reply, and a "yes, I did" about a call only on its result in the
+  conversation (#3003, #3005, #3006). Never deny a real action: a denial that
+  offers a duplicate call is worse than the claim. Off, behaviour is exactly
+  main's; new claim shapes go behind the flag until verified.
+- Extend these modules for a new claim shape; don't add a second guard.
+
 ---
 
 ## Deployment
@@ -238,6 +259,35 @@ pnpm vitest run src/agents/__tests__/e2e/
 ### Test Utilities
 
 See `__tests__/README.md` for test helpers and mock factories.
+
+### Reply guards
+
+Every model reply passes through `personas/ferni-agent.ts` `llmNode`, then
+`withActionClaimCheck` (`personas/action-claim-guard.ts`), which runs, in order:
+the house facts guard (`house-facts.ts`, `HOUSE_FACTS`, off by default; first, on the
+model's own words), the action-claim check and the caller voice guard
+(`caller-voice-guard.ts`). Guards read
+the stream through `personas/reply-chunks.ts` (`contentOf`, `hasToolCall`); don't
+add another copy.
+
+**House facts (#3001).** Ferni's own website, the number texts come from and the
+email From address come only from `src/config/house-facts.ts` (LANDING_URL/APP_URL,
+TWILIO_PHONE_NUMBER, EMAIL_FROM). With `HOUSE_FACTS=on` the honesty prompt
+(`ai-honesty.ts` `withHonesty`) states them, and the guard checks provenance from trusted
+sources only, failing closed: every web address, email or phone number Ferni speaks must
+be a house fact or appear in the caller's turns or profile, the injected context, or the
+output of a first-party tool on `FIRST_PARTY_TOOLS` (stored data and fixed crisis lines; never a tool
+whose output echoes the model's arguments). Every helpline in the app's helpline tables (the crisis
+tool's, `services/safety/crisis-response`, `life-coaching-shared`) is a house fact: a crisis
+resource is never blocked.
+Web search, fetched pages, inbound email and texts, invites and any unlisted tool are
+untrusted and never ground an address; compared whole, a website by its last label (the
+complete IANA root-zone list in `personas/iana-tlds.ts`, punycode, or non-ASCII; refresh
+the list when IANA adds endings), after normalising spoken forms
+(`personas/spoken-addresses.ts`). A
+sentence with an address found only in untrusted output becomes `CANT_VOUCH`; one found
+nowhere becomes "I don't have that in front of me." There is no "whose address is it"
+parsing. An unset fact is named as unknown, never guessed.
 
 ---
 

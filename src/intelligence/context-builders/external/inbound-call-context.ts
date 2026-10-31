@@ -95,7 +95,7 @@ export function setInboundCallContext(sessionId: string, context: InboundCallCon
     {
       sessionId,
       callSid: context.callSid,
-      callerName: context.callerName,
+      hasCallerName: Boolean(context.callerName), // never the name itself
       isKnown: context.isKnownCaller,
       isSponsored: !!context.sponsoredIdentityId,
     },
@@ -148,7 +148,6 @@ export const inboundCallContextBuilder: ContextBuilder = {
       {
         sessionId,
         callSid: callContext.callSid,
-        callerName: callContext.callerName,
         isKnown: callContext.isKnownCaller,
       },
       'Building inbound call context'
@@ -222,8 +221,8 @@ export const inboundCallContextBuilder: ContextBuilder = {
     // ---------------------------------------------------------
     // 6. ACCESS RESTRICTIONS (if limited)
     // ---------------------------------------------------------
-    if (callContext.accessLevel && callContext.accessLevel !== 'full') {
-      const restrictionContent = buildAccessRestrictions(callContext);
+    const restrictionContent = buildAccessRestrictions(callContext);
+    if (restrictionContent) {
       injections.push(
         createStandardInjection('inbound_call_restrictions', restrictionContent, {
           category: 'constraints',
@@ -368,7 +367,11 @@ DON'T:
 `.trim();
 }
 
-function buildAccessRestrictions(context: InboundCallContext): string {
+/**
+ * Only 'limited' restricts anything. A legacy 'supervised' identity gets no restriction
+ * and no claim: nothing tells a sponsor when they call, so Ferni must not say it does.
+ */
+function buildAccessRestrictions(context: InboundCallContext): string | null {
   const restrictions: string[] = [];
 
   if (context.accessLevel === 'limited') {
@@ -383,12 +386,7 @@ function buildAccessRestrictions(context: InboundCallContext): string {
     }
   }
 
-  if (context.accessLevel === 'supervised') {
-    restrictions.push(
-      'This caller is on SUPERVISED access - their sponsor receives notifications about calls.'
-    );
-    restrictions.push('Keep interactions positive and age-appropriate.');
-  }
+  if (restrictions.length === 0) return null;
 
   return `
 ACCESS RESTRICTIONS

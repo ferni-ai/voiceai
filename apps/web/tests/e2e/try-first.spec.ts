@@ -23,6 +23,9 @@ async function openGate(page: Page, flag: 'true' | 'false'): Promise<void> {
   await expect(page.locator('.sign-in-gate-overlay')).toBeVisible({ timeout: 20_000 });
 }
 
+/** The gate's own button; Home's "Talk to Ferni" sits under the gate with the same name. */
+const talkButton = (page: Page) => page.locator('[data-provider="try-first"]');
+
 // The app's service worker would answer /demo-token before page.route sees it.
 test.use({ viewport: PHONE, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
 
@@ -31,13 +34,14 @@ test('flag off: the gate is the sign-in wall it was', async ({ page }) => {
   await expect(page.locator('[data-provider="google"]')).toBeVisible();
   // Apple sign-in is hidden on the web until VITE_APPLE_WEB_SIGNIN is on.
   await expect(page.locator('[data-provider="apple"]')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Talk to Ferni now' })).toHaveCount(0);
+  await expect(talkButton(page)).toHaveCount(0);
 });
 
-test('flag on: "Talk to Ferni now" leads, above sign-in, and fits a phone', async ({ page }) => {
+test('flag on: "Talk to Ferni" leads, above sign-in, and fits a phone', async ({ page }) => {
   await openGate(page, 'true');
-  const talk = page.getByRole('button', { name: 'Talk to Ferni now' });
+  const talk = talkButton(page);
   await expect(talk).toBeVisible();
+  await expect(talk).toHaveText('Talk to Ferni');
   await expect(page.getByText('No account needed. Just say hello.')).toBeVisible();
   await expect(
     page.getByText('Say hello first. Sign in whenever you want to keep the conversation.')
@@ -72,12 +76,12 @@ test('flag on: the button asks /demo-token for a room, and a used-up day says so
     });
   });
   await openGate(page, 'true');
-  await page.getByRole('button', { name: 'Talk to Ferni now' }).click();
+  await talkButton(page).click();
 
   await expect(
     page.getByText("That's all the free calls for today. Sign in to keep talking.")
   ).toBeVisible();
   expect(asked).toEqual(['?persona_id=ferni']);
-  await expect(page.getByRole('button', { name: 'Talk to Ferni now' })).toBeHidden();
+  await expect(talkButton(page)).toBeHidden();
   await expect(page.locator('[data-provider="google"]')).toBeVisible();
 });

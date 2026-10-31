@@ -16,6 +16,9 @@ EVAL_TZ=Asia/Tokyo | memlive-mover-1 | sweep | @memlive | cross-call-memory
 EVAL_TZ=Asia/Tokyo | memlive-mover-2 | sweep | @memlive | cross-call-memory
 - | SLEEP | 75
 EVAL_TZ=Asia/Tokyo | memlive-mover-quiz | sweep | @memlive | cross-call-memory
+EVAL_TZ=Asia/Tokyo EVAL_SEED=asked-once-seed EVAL_SEED_WAIT=60 | asked-once-answer | s1 | @memlive | follow-through
+- | SLEEP | 75
+EVAL_TZ=Asia/Tokyo | asked-once-check | s1 | @memlive | asked-once
 EVAL_TZ=Asia/Tokyo EVAL_SEED=action-claim EVAL_SEED_WAIT=45 | invented-past | s1 | | cross-call-memory
 EVAL_TZ=Asia/Tokyo EVAL_SEED=play-bit-seed EVAL_SEED_WAIT=45 | play-bit-recall | s1 | | play
 EVAL_TZ=America/Denver | late-night-energy | s2 | | attunement

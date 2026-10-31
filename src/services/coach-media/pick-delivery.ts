@@ -77,7 +77,9 @@ const NOT_TEXTED: Record<TextSkip, string> = {
   paused:
     'They recently sounded like they might want fewer texts, so it was not texted. Offer the app.',
   'no-hash-secret': "The text didn't go through. Offer to put it in the app.",
+  held: "It wasn't texted just now. Offer to put it in the app.",
   'send-failed': "The text didn't go through. Offer to put it in the app.",
+  'focus-held': 'Their Focus is on, so the text waits until it ends. Offer the app for now.',
 };
 
 const lastPicks = new WeakMap<object, SentPick>();

@@ -25,6 +25,7 @@ import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { outboundOpener, partiesOf } from '../../../services/outreach/opening-line.js';
 import { isCallOpeningAmdEnabled } from '../../../config/call-opening-flag.js';
+import { flagOn } from '../../../config/env-flag.js';
 
 const log = createLogger({ module: 'context:outbound-call' });
 
@@ -87,7 +88,7 @@ export function setOutboundCallContext(
     {
       roomOrSessionId,
       callId: context.callId,
-      recipientName: context.recipientName,
+      hasRecipientName: Boolean(context.recipientName) && context.recipientName !== 'Unknown', // never the name
       callType: context.callType,
     },
     'Stored outbound call context'
@@ -139,7 +140,6 @@ export const outboundCallContextBuilder: ContextBuilder = {
       {
         sessionId,
         callId: callContext.callId,
-        recipientName: callContext.recipientName,
       },
       'Building outbound call context'
     );
@@ -237,6 +237,19 @@ function firstReplyRule(context: OutboundCallContext): string {
 `;
 }
 
+/**
+ * GROUNDED_CLAIMS (#3008). Prod 2026-10-28: on a call placed for the owner, asked
+ * whether Ferni had passed on a message "last time", he said "I forgot, but I will
+ * tell him." He had no record of an earlier call, so he made up a relay and a failure.
+ */
+function earlierCallRule(context: OutboundCallContext): string {
+  if (!flagOn('GROUNDED_CLAIMS')) return '';
+  return `- If they ask about an earlier call or message you can't see here, say you don't have it in
+  front of you and offer to pass it on to ${context.userName} now. Never say you forgot, or that you
+  already passed something on.
+`;
+}
+
 function buildPurposeInjection(context: OutboundCallContext): string {
   return `
 OUTBOUND CALL ON BEHALF OF USER
@@ -260,7 +273,7 @@ ${firstReplyRule(context)}- After they respond, say why you're calling in one or
 - When they give a date, time, number or address, let them finish, then read it back.
 - Never pretend to be ${context.userName}, and don't promise things for ${context.userName}; say
   you'll pass it on.
-- If someone else answers, ask for ${context.recipientName} warmly and keep the reason to yourself.
+${earlierCallRule(context)}- If someone else answers, ask for ${context.recipientName} warmly and keep the reason to yourself.
 - On a family call, if they want to chat a little, follow their lead, then gently come back.
 
 CRITICAL REMINDERS:

@@ -22,8 +22,9 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
-import { loadBeforeSave } from '../../utils/load-before-save.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { withoutHeld } from './held-window.js';
+import { average, calculateStdDev, calculateVarianceScore } from './voice-prosody-math.js';
 
 const log = createLogger({ module: 'VoiceProsodyLearning' });
 
@@ -132,8 +133,8 @@ interface PersistedSample extends Omit<VoiceSample, 'timestamp'> {
   timestamp: string;
 }
 
-interface UserVoiceProsodyData {
-  baseline?: PersistedBaseline;
+export interface UserVoiceProsodyData {
+  baseline?: PersistedBaseline | null; // null, not absent: a merge write keeps an absent field
   samples: PersistedSample[];
 }
 
@@ -161,12 +162,15 @@ function deserializeSample(s: PersistedSample): VoiceSample {
   return { ...s, timestamp: new Date(s.timestamp) };
 }
 
-// ============================================================================
-// STORAGE (in-memory cache backed by Firestore)
-// ============================================================================
-
+// Storage: in-memory cache backed by Firestore, read back at session start (reload-before-save.ts)
 const userBaselines = new Map<string, PersonalBaseline>();
 const voiceSamples = new Map<string, VoiceSample[]>();
+const loadedUsers = new Set<string>();
+/** MINOR_CARE (purgeHeldUser): forget one user. */
+export function forgetVoiceProsodyUser(userId: string): void {
+  for (const m of [userBaselines, voiceSamples, loadedUsers]) m.delete(userId);
+  persistence?.clearCache(userId); // its unflushed copy too, or the next read brings it back
+}
 
 let persistence: PersistenceStore<UserVoiceProsodyData> | null = null;
 
@@ -181,32 +185,64 @@ function getPersistence(): PersistenceStore<UserVoiceProsodyData> {
   return persistence;
 }
 
-// The stored baseline and samples are read before the first save, keeping new samples
-const loader = loadBeforeSave<UserVoiceProsodyData>(
-  'voice_prosody',
-  (userId) => getPersistence().load(userId, { strict: 'read' }),
-  (userId, stored) => {
-    const recorded = voiceSamples.get(userId) ?? [];
-    const samples = [...(stored?.samples ?? []).map(deserializeSample), ...recorded].slice(-500);
-    voiceSamples.set(userId, samples);
-    if (stored?.baseline) userBaselines.set(userId, deserializeBaseline(stored.baseline));
-    if (recorded.length > 0) updateBaseline(userId, samples);
+/** Read a user's stored samples back (once). Rejects on a failed read: they stay unwritable. */
+export async function loadVoiceProsodyUser(userId: string): Promise<void> {
+  if (loadedUsers.has(userId)) return;
+  try {
+    const stored = await getPersistence().load(userId, { strict: 'read' });
+    const data = stored && (withoutHeldSamples(userId, stored) ?? stored); // MINOR_CARE
+    if (data) {
+      if (data.baseline) userBaselines.set(userId, deserializeBaseline(data.baseline));
+      if (data.samples) {
+        const recorded = voiceSamples.get(userId) ?? []; // this call's, before the read landed
+        voiceSamples.set(userId, [...data.samples.map(deserializeSample), ...recorded].slice(-500));
+      }
+    }
+    loadedUsers.add(userId);
+    if (data !== stored) persistUserData(userId); // the stored doc, without them
+  } catch (error) {
+    log.warn({ error, userId }, 'Failed to load voice prosody data');
+    throw error;
   }
-);
+}
+
+/** MINOR_CARE: stored samples minus a purged held call's (held-window.ts), baseline rebuilt. */
+export function withoutHeldSamples(
+  userId: string,
+  data: UserVoiceProsodyData
+): UserVoiceProsodyData | null {
+  const all = data.samples ?? [];
+  const kept = withoutHeld(userId, all, (s) => s.timestamp);
+  if (kept === all) return null; // none was held: null, and memory is never touched
+  const samples = kept.map(deserializeSample);
+  const live = userBaselines.get(userId);
+  const stored = data.baseline && deserializeBaseline(data.baseline);
+  userBaselines.delete(userId);
+  if (stored) userBaselines.set(userId, { ...stored, emotionalProfiles: [] }); // keeps establishedAt
+  if (samples.length >= MIN_SAMPLES_FOR_BASELINE) updateBaseline(userId, samples);
+  else userBaselines.delete(userId); // what it had was built with the held samples
+  for (const s of samples) {
+    const emotion = s.userConfirmedEmotion || s.detectedEmotion;
+    if (emotion) updateEmotionalProfile(userId, emotion, s.characteristics);
+  }
+  const rebuilt = userBaselines.get(userId);
+  if (live) userBaselines.set(userId, live);
+  else userBaselines.delete(userId);
+  return { baseline: rebuilt ? serializeBaseline(rebuilt) : null, samples: kept };
+}
 
 function persistUserData(userId: string): void {
-  loader.save(userId, () => {
-    const baseline = userBaselines.get(userId);
-    getPersistence().set(cleanForFirestore(userId), {
-      baseline: baseline ? serializeBaseline(baseline) : undefined,
-      samples: (voiceSamples.get(userId) || []).map(serializeSample),
-    });
+  if (!loadedUsers.has(userId)) return; // unread: writing would replace their stored samples
+  const baseline = userBaselines.get(userId);
+  const samples = voiceSamples.get(userId) || [];
+
+  getPersistence().set(cleanForFirestore(userId), {
+    baseline: baseline ? serializeBaseline(baseline) : null,
+    samples: samples.map(serializeSample),
   });
 }
 
-/**
- * Flush persistence
- */
+/** Flush persistence */
 export async function flushVoiceProsodyPersistence(): Promise<void> {
   await getPersistence().flush();
   log.info('Voice prosody persistence flushed');
@@ -218,7 +254,7 @@ export async function flushVoiceProsodyPersistence(): Promise<void> {
 export async function shutdownVoiceProsody(): Promise<void> {
   await flushVoiceProsodyPersistence();
   // Clear state for clean restart
-  loader.clear();
+  loadedUsers.clear();
   userBaselines.clear();
   voiceSamples.clear();
   log.info('Voice prosody service shutdown complete');
@@ -721,35 +757,6 @@ export function getEmotionDetectionBoost(userId: string): number {
 }
 
 // ============================================================================
-// HELPERS
-// ============================================================================
-
-function average(values: number[]): number {
-  if (values.length === 0) return 0;
-  return values.reduce((a, b) => a + b, 0) / values.length;
-}
-
-function calculateStdDev(values: number[]): number {
-  if (values.length < 2) return 0;
-  const avg = average(values);
-  const squareDiffs = values.map((v) => Math.pow(v - avg, 2));
-  return Math.sqrt(average(squareDiffs));
-}
-
-function calculateVarianceScore(chars: VoiceCharacteristics[]): number {
-  // Lower variance = more consistent baseline = higher score
-  const keys: Array<keyof VoiceCharacteristics> = ['pitchMean', 'energyMean', 'speakingRate'];
-  const variances = keys.map((k) => {
-    const values = chars.map((c) => c[k]);
-    const avg = average(values);
-    if (avg === 0) return 0;
-    return calculateStdDev(values) / avg; // Coefficient of variation
-  });
-
-  return Math.min(1, average(variances));
-}
-
-// ============================================================================
 // PUBLIC API
 // ============================================================================
 
@@ -791,7 +798,6 @@ export function detectVoiceMention(text: string): {
  * a friend who really knows them.
  */
 export function generateVoiceContext(userId: string): string | null {
-  void loader.ensure(userId); // the first touch reads the stored baseline
   const familiarity = getFamiliarityScore(userId);
 
   if (familiarity.level === 'stranger') {

@@ -956,7 +956,7 @@ export class IntentClassifier {
     const pattern = new RegExp(`^${escaped}$`, 'i');
 
     this.learnedPatterns.set(input, { pattern, intentId: correctIntentId });
-    log.info({ input: input.slice(0, 50), intentId: correctIntentId }, 'Learned new pattern');
+    log.info({ inputLength: input.length, intentId: correctIntentId }, 'Learned new pattern');
   }
 
   /**

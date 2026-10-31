@@ -10,7 +10,7 @@
  * Data is buffered in memory and flushed periodically to reduce writes.
  */
 
-import { getGCPProjectId } from '../../config/environment.js';
+import { getGCPProjectId, getFirestoreDatabase } from '../../config/environment.js';
 import type {
   FeedbackRecord,
   FeedbackSummary,
@@ -25,63 +25,12 @@ import type {
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
+import type { FirestoreDB } from './optimization-persistence-types.js';
 
 const log = getLogger();
 
 /** Interval name for optimization persistence flush */
 const OPTIMIZATION_PERSISTENCE_INTERVAL = 'optimization-persistence-flush';
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface FirestoreDB {
-  collection: (path: string) => CollectionRef;
-  runTransaction: <T>(fn: (transaction: Transaction) => Promise<T>) => Promise<T>;
-  batch: () => WriteBatch;
-}
-
-interface CollectionRef {
-  doc: (id?: string) => DocumentRef;
-  get: () => Promise<QuerySnapshot>;
-  orderBy: (field: string, direction?: 'asc' | 'desc') => CollectionRef;
-  limit: (count: number) => CollectionRef;
-  where: (field: string, op: string, value: unknown) => CollectionRef;
-  add: (data: unknown) => Promise<DocumentRef>;
-}
-
-interface DocumentRef {
-  get: () => Promise<DocumentSnapshot>;
-  set: (data: unknown, options?: { merge?: boolean }) => Promise<void>;
-  update: (data: unknown) => Promise<void>;
-  delete: () => Promise<void>;
-  id: string;
-}
-
-interface DocumentSnapshot {
-  exists: boolean;
-  data: () => Record<string, unknown> | undefined;
-  id: string;
-}
-
-interface QuerySnapshot {
-  docs: DocumentSnapshot[];
-  empty: boolean;
-  size: number;
-}
-
-interface Transaction {
-  get: (ref: DocumentRef) => Promise<DocumentSnapshot>;
-  set: (ref: DocumentRef, data: unknown, options?: { merge?: boolean }) => void;
-  update: (ref: DocumentRef, data: unknown) => void;
-}
-
-interface WriteBatch {
-  set: (ref: DocumentRef, data: unknown, options?: { merge?: boolean }) => WriteBatch;
-  update: (ref: DocumentRef, data: unknown) => WriteBatch;
-  delete: (ref: DocumentRef) => WriteBatch;
-  commit: () => Promise<void>;
-}
 
 // ============================================================================
 // PERSISTENCE SERVICE
@@ -124,9 +73,10 @@ class OptimizationPersistenceService {
       this.db = db;
     } else {
       try {
-        const { Firestore } = await import('@google-cloud/firestore');
-        this.db = new Firestore({
+        const { sharedFirestore } = await import('../../utils/shared-firestore.js');
+        this.db = sharedFirestore({
           projectId: getGCPProjectId(),
+          databaseId: getFirestoreDatabase(),
         }) as unknown as FirestoreDB;
       } catch (error) {
         getLogger().warn(

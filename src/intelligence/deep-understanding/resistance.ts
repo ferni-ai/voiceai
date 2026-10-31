@@ -814,12 +814,12 @@ export function importResistanceProfile(profile: ResistanceProfile): void {
 }
 
 // ============================================================================
-// RESET (for testing)
+// RESET: one user (MINOR_CARE purge), or everyone (tests)
 // ============================================================================
 
-/**
- * Reset all resistance detection state (for testing)
- */
+export const forgetResistanceUser = (userId: string): boolean => profiles.delete(userId);
+
+/** Reset all resistance detection state (for testing) */
 export function resetResistanceDetection(): void {
   profiles.clear();
 }

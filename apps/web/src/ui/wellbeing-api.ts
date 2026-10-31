@@ -17,6 +17,21 @@ export interface ApiCurrentState {
   purpose: number | null;
   sleep: number | null;
   lastUpdated: string;
+  /**
+   * Per field: when it last came up, how often, and which way it is going
+   * (direction null until 3 mentions over 5 days). null: never talked about.
+   * Absent on servers older than the recency-weighted estimate.
+   */
+  fields?: Partial<
+    Record<
+      'mood' | 'energy' | 'anxiety' | 'connection' | 'purpose' | 'sleep',
+      {
+        asOf: string;
+        observations: number;
+        direction: 'rising' | 'steady' | 'falling' | null;
+      } | null
+    >
+  >;
 }
 
 /** API response format from /api/wellbeing/dashboard */

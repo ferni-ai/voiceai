@@ -12,9 +12,17 @@
  * @module services/superhuman/inside-joke-memory
  */
 
+import { withoutHeldStored } from '../../utils/held-window-check.js';
+import { writeHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  clampMomentWords,
+  momentExpireAt,
+  unexpiredMoments,
+} from '../../utils/shared-moment-retention.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 import { onInsideJokeChange } from '../data-layer/hooks/trust-hooks.js';
+import { loadHeldWindows } from '../trust-systems/index.js';
 
 const log = createLogger({ module: 'InsideJokeMemory' });
 
@@ -53,6 +61,8 @@ export interface SharedMoment {
   lastReferencedAt?: number;
   /** Emotional resonance (how much joy it brings) 0-1 */
   resonance: number;
+  /** A year after createdAt (shared-moment-retention.ts); none on moments written before */
+  expireAt?: unknown;
 }
 
 export interface CallbackOpportunity {
@@ -67,7 +77,8 @@ export interface CallbackOpportunity {
 // ============================================================================
 
 /**
- * Record a shared moment worth remembering.
+ * Record a shared moment worth remembering. MINOR_CARE: a held caller (writeHeld) gets none.
+ * Each text keeps 80 characters and the moment expires in a year (shared-moment-retention.ts).
  */
 export async function recordSharedMoment(
   userId: string,
@@ -76,8 +87,10 @@ export async function recordSharedMoment(
   context: string,
   triggerKeywords: string[],
   callbackPhrase: string,
-  resonance = 0.7
+  resonance = 0.7,
+  sessionId?: string
 ): Promise<string | null> {
+  if (writeHeld(userId, sessionId)) return null;
   const db = getFirestoreDb();
   if (!db) {
     log.debug({ userId }, 'Firestore not available, skipping shared moment');
@@ -87,10 +100,10 @@ export async function recordSharedMoment(
   const moment: SharedMoment = {
     userId,
     type,
-    essence,
-    context,
-    triggerKeywords: triggerKeywords.map((k) => k.toLowerCase()),
-    callbackPhrase,
+    essence: clampMomentWords(essence),
+    context: clampMomentWords(context),
+    triggerKeywords: triggerKeywords.map((k) => clampMomentWords(k).toLowerCase()),
+    callbackPhrase: clampMomentWords(callbackPhrase),
     timesReferenced: 0,
     createdAt: Date.now(),
     resonance,
@@ -101,22 +114,22 @@ export async function recordSharedMoment(
       .collection('bogle_users')
       .doc(userId)
       .collection('shared_moments')
-      .add(cleanForFirestore(moment));
+      .add({ ...cleanForFirestore(moment), expireAt: momentExpireAt(moment.createdAt) });
 
     // Index to semantic memory for callback and connection building
     void onInsideJokeChange(
       userId,
       docRef.id,
       {
-        joke: callbackPhrase || essence,
-        context: context,
-        sharedMoment: essence,
+        joke: moment.callbackPhrase || moment.essence,
+        context: moment.context,
+        sharedMoment: moment.essence,
         personaId: undefined,
       },
       'create'
     );
 
-    log.info({ userId, type, essence }, 'Recorded shared moment');
+    log.info({ userId, type, momentId: docRef.id }, 'Recorded shared moment');
 
     // Memory Lane: Capture inside joke as potential memory
     if (type === 'inside_joke' || type === 'running_gag' || type === 'silly_moment') {
@@ -125,8 +138,8 @@ export async function recordSharedMoment(
         void captureInsideJoke({
           userId,
           jokeId: docRef.id,
-          joke: essence,
-          context,
+          joke: moment.essence,
+          context: moment.context,
         });
       } catch {
         // Memory capture is optional
@@ -156,7 +169,9 @@ export async function loadSharedMoments(userId: string): Promise<SharedMoment[]>
       .limit(100)
       .get();
 
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as SharedMoment);
+    const stored = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as SharedMoment);
+    const moments = unexpiredMoments(stored); // a TTL policy deletes them, a day or more late
+    return await withoutHeldStored(userId, moments, (m) => m.createdAt, loadHeldWindows); // MINOR_CARE
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load shared moments');
     return [];

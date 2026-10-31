@@ -1,8 +1,9 @@
 /**
  * Where temporal facts live: bogle_users/{uid}/world_facts/{factId}.
  *
- * Call start reads only current facts (validTo == null), one query. Closed
- * facts stay on file as history; nothing reads them on a call.
+ * Call start reads current facts (validTo == null), one query. Closed facts
+ * stay on file as history; the only closed ones read on a call are those raised
+ * lately (listRaisedSince), so dates/recall.ts knows who was just asked about.
  *
  * @module intelligence/world-model/temporal/store
  */
@@ -14,9 +15,13 @@ import type { TemporalFact } from './types.js';
 
 /** Plenty for one person's world; a call reads them all at once. */
 export const MAX_OPEN_FACTS = 200;
+/** Facts raised on a call within one quiet window: a few a week at most. */
+export const MAX_RAISED_FACTS = 50;
 
 export interface WorldFactStore {
   listOpen(userId: string): Promise<TemporalFact[]>;
+  /** Facts raised on a call on or after a day (YYYY-MM-DD), open or closed, newest first. */
+  listRaisedSince?: (userId: string, sinceDay: string) => Promise<TemporalFact[]>;
   apply(userId: string, plan: ResolutionPlan): Promise<void>;
 }
 
@@ -39,6 +44,17 @@ export function createFirestoreWorldFactStore(
       return snap.docs.map((doc) => ({ ...(doc.data() as TemporalFact), id: doc.id }));
     },
 
+    async listRaisedSince(userId, sinceDay) {
+      const db = getDb();
+      if (!db) return [];
+      const snap = await facts(db, userId)
+        .where('raisedOn', '>=', sinceDay)
+        .orderBy('raisedOn', 'desc')
+        .limit(MAX_RAISED_FACTS)
+        .get();
+      return snap.docs.map((doc) => ({ ...(doc.data() as TemporalFact), id: doc.id }));
+    },
+
     async apply(userId, plan) {
       const db = getDb();
       if (!db) return;
@@ -57,12 +73,16 @@ export function createFirestoreWorldFactStore(
   };
 }
 
-/** Notes the day and moment a fact was raised on a call (dates/recall.ts), so it isn't raised again soon. */
+/**
+ * Notes the day, moment and call a fact was raised on (dates/recall.ts), so it isn't
+ * raised again soon and the answer told in that call is known as its answer.
+ */
 export async function markFactRaised(
   userId: string,
   factId: string,
   day: string,
   moment: string,
+  sessionId?: string,
   getDb: () => Firestore | null = getFirestoreDb
 ): Promise<void> {
   const db = getDb();
@@ -72,5 +92,5 @@ export async function markFactRaised(
     .doc(userId)
     .collection('world_facts')
     .doc(factId)
-    .update({ raisedOn: day, raisedAs: moment });
+    .update({ raisedOn: day, raisedAs: moment, ...(sessionId ? { raisedIn: sessionId } : {}) });
 }
