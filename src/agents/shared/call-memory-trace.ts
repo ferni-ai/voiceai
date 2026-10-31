@@ -41,7 +41,12 @@ const realDeps: CallMemoryTraceDeps = {
   memoryUsage: () => process.memoryUsage(),
   openSession: async () => {
     const { Session } = await import('node:inspector');
-    return new Session() as unknown as HeapProfilerSession;
+    const s = new Session();
+    return {
+      connect: () => s.connect(),
+      disconnect: () => s.disconnect(),
+      post: (method, params, cb) => s.post(method, params, cb),
+    };
   },
   now: () => Date.now(),
 };
