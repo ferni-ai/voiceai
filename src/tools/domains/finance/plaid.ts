@@ -23,18 +23,12 @@ import { getRateLimiter } from '../../rate-limiter.js';
 import {
   callerTokenData,
   plaidCaller,
+  bothReads,
+  isoDay as day,
   readCallerBank,
   type PlaidRead,
   type PlaidToolCtx,
 } from './plaid-caller.js';
-import type { PlaidAccount, PlaidTransaction } from './plaid-speech.js';
-import {
-  analyzeSpending,
-  formatBalancesForSpeech,
-  formatSpendingForSpeech,
-} from './plaid-speech.js';
-
-export { analyzeSpending, formatBalancesForSpeech, formatSpendingForSpeech };
 // Plaid API configuration
 const PLAID_CLIENT_ID = process.env.PLAID_CLIENT_ID || '';
 const PLAID_SECRET = process.env.PLAID_SECRET || '';
@@ -50,6 +44,37 @@ const PLAID_BASE_URL =
 // ============================================================================
 // PLAID API TYPES
 // ============================================================================
+
+interface PlaidAccount {
+  account_id: string;
+  name: string;
+  official_name?: string;
+  type: 'depository' | 'credit' | 'loan' | 'investment' | 'other';
+  subtype?: string;
+  balances: {
+    available?: number;
+    current?: number;
+    limit?: number;
+    iso_currency_code?: string;
+  };
+  mask?: string; // Last 4 digits
+}
+
+interface PlaidTransaction {
+  transaction_id: string;
+  account_id: string;
+  amount: number;
+  date: string;
+  name: string;
+  merchant_name?: string;
+  category?: string[];
+  pending: boolean;
+  payment_channel: 'online' | 'in store' | 'other';
+  location?: {
+    city?: string;
+    region?: string;
+  };
+}
 
 interface PlaidInstitution {
   institution_id: string;
@@ -300,26 +325,6 @@ export async function fetchTransactions(
     : result;
 }
 
-/** Both reads a health check needs; half a picture is no checkup, so either failing fails it. */
-async function balancesAndTransactions(
-  accessToken: string,
-  startDate: string,
-  endDate: string
-): Promise<PlaidRead<{ accounts: PlaidAccount[]; transactions: PlaidTransaction[] }>> {
-  const [balances, txns] = await Promise.all([
-    fetchAccountBalances(accessToken),
-    fetchTransactions(accessToken, startDate, endDate, 250),
-  ]);
-  if (balances.outcome === 'data' && txns.outcome === 'data') {
-    return { outcome: 'data', data: { accounts: balances.data, transactions: txns.data } };
-  }
-  const reauth = balances.outcome === 'needs_reauth' || txns.outcome === 'needs_reauth';
-  return { outcome: reauth ? 'needs_reauth' : 'unreachable' };
-}
-
-/** YYYY-MM-DD, the form Plaid's date ranges take. */
-const day = (date: Date): string => date.toISOString().split('T')[0];
-
 /** Transactions; [] on failure too (context builders). Tools use fetchTransactions. */
 export async function getTransactions(
   accessToken: string,
@@ -329,6 +334,186 @@ export async function getTransactions(
 ): Promise<PlaidTransaction[]> {
   const result = await fetchTransactions(accessToken, startDate, endDate, count);
   return result.outcome === 'data' ? result.data : [];
+}
+
+/**
+ * Analyze spending by category
+ */
+export function analyzeSpending(transactions: PlaidTransaction[]): {
+  byCategory: Record<string, { total: number; count: number; transactions: string[] }>;
+  totalSpending: number;
+  largestExpenses: Array<{ name: string; amount: number; date: string }>;
+  averageTransactionSize: number;
+  recurringExpenses: Array<{ name: string; amount: number; frequency: string }>;
+} {
+  const byCategory: Record<string, { total: number; count: number; transactions: string[] }> = {};
+  let totalSpending = 0;
+
+  // Filter to spending only (positive amounts = money out in Plaid)
+  const spendingTxns = transactions.filter((t) => t.amount > 0 && !t.pending);
+
+  for (const txn of spendingTxns) {
+    const category = txn.category?.[0] || 'Uncategorized';
+    totalSpending += txn.amount;
+
+    if (!byCategory[category]) {
+      byCategory[category] = { total: 0, count: 0, transactions: [] };
+    }
+    byCategory[category].total += txn.amount;
+    byCategory[category].count++;
+    if (byCategory[category].transactions.length < 3) {
+      byCategory[category].transactions.push(txn.merchant_name || txn.name);
+    }
+  }
+
+  // Find largest expenses
+  const largestExpenses = [...spendingTxns]
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 5)
+    .map((t) => ({
+      name: t.merchant_name || t.name,
+      amount: t.amount,
+      date: t.date,
+    }));
+
+  // Detect recurring expenses (same merchant, similar amounts)
+  const merchantCounts: Record<string, { amounts: number[]; dates: string[] }> = {};
+  for (const txn of spendingTxns) {
+    const key = (txn.merchant_name || txn.name).toLowerCase();
+    if (!merchantCounts[key]) {
+      merchantCounts[key] = { amounts: [], dates: [] };
+    }
+    merchantCounts[key].amounts.push(txn.amount);
+    merchantCounts[key].dates.push(txn.date);
+  }
+
+  const recurringExpenses = Object.entries(merchantCounts)
+    .filter(([_, data]) => data.amounts.length >= 2)
+    .map(([name, data]) => {
+      const avgAmount = data.amounts.reduce((a, b) => a + b, 0) / data.amounts.length;
+      const frequency =
+        data.amounts.length >= 4 ? 'weekly' : data.amounts.length >= 2 ? 'monthly' : 'occasional';
+      return { name, amount: Math.round(avgAmount * 100) / 100, frequency };
+    })
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 10);
+
+  return {
+    byCategory,
+    totalSpending: Math.round(totalSpending * 100) / 100,
+    largestExpenses,
+    averageTransactionSize:
+      spendingTxns.length > 0 ? Math.round((totalSpending / spendingTxns.length) * 100) / 100 : 0,
+    recurringExpenses,
+  };
+}
+
+/**
+ * Format account balances for natural speech
+ */
+export function formatBalancesForSpeech(accounts: PlaidAccount[]): string {
+  if (accounts.length === 0) {
+    return "I don't see any linked accounts yet.";
+  }
+
+  const lines: string[] = [];
+  let totalChecking = 0;
+  let totalSavings = 0;
+  let totalCredit = 0;
+  let totalCreditLimit = 0;
+
+  for (const account of accounts) {
+    const balance = account.balances.current || account.balances.available || 0;
+    const { name } = account;
+    const lastFour = account.mask ? ` (***${account.mask})` : '';
+
+    if (account.type === 'depository') {
+      if (account.subtype === 'checking') {
+        totalChecking += balance;
+        lines.push(`• ${name}${lastFour}: $${balance.toLocaleString()} checking`);
+      } else if (account.subtype === 'savings') {
+        totalSavings += balance;
+        lines.push(`• ${name}${lastFour}: $${balance.toLocaleString()} savings`);
+      } else {
+        lines.push(`• ${name}${lastFour}: $${balance.toLocaleString()}`);
+      }
+    } else if (account.type === 'credit') {
+      totalCredit += balance;
+      if (account.balances.limit) {
+        totalCreditLimit += account.balances.limit;
+        const utilization = Math.round((balance / account.balances.limit) * 100);
+        lines.push(
+          `• ${name}${lastFour}: $${balance.toLocaleString()} balance (${utilization}% of $${account.balances.limit.toLocaleString()} limit)`
+        );
+      } else {
+        lines.push(`• ${name}${lastFour}: $${balance.toLocaleString()} balance`);
+      }
+    }
+  }
+
+  const summary: string[] = [];
+  if (totalChecking > 0 || totalSavings > 0) {
+    const totalCash = totalChecking + totalSavings;
+    summary.push(`Total cash: $${totalCash.toLocaleString()}`);
+  }
+  if (totalCredit > 0) {
+    const overallUtilization =
+      totalCreditLimit > 0
+        ? ` (${Math.round((totalCredit / totalCreditLimit) * 100)}% utilization)`
+        : '';
+    summary.push(`Credit card debt: $${totalCredit.toLocaleString()}${overallUtilization}`);
+  }
+
+  return `${lines.join('\n')}\n\n${summary.join(' | ')}`;
+}
+
+/**
+ * Format spending analysis for natural speech
+ */
+export function formatSpendingForSpeech(
+  analysis: ReturnType<typeof analyzeSpending>,
+  period: string
+): string {
+  const { byCategory, totalSpending, largestExpenses, recurringExpenses } = analysis;
+
+  const lines: string[] = [];
+  lines.push(`📊 Your spending for ${period}: $${totalSpending.toLocaleString()}`);
+  lines.push('');
+
+  // Top categories
+  const sortedCategories = Object.entries(byCategory)
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, 5);
+
+  if (sortedCategories.length > 0) {
+    lines.push('**By Category:**');
+    for (const [category, data] of sortedCategories) {
+      const pct = Math.round((data.total / totalSpending) * 100);
+      lines.push(
+        `• ${category}: $${data.total.toLocaleString()} (${pct}%) - ${data.count} transactions`
+      );
+    }
+    lines.push('');
+  }
+
+  // Largest expenses
+  if (largestExpenses.length > 0) {
+    lines.push('**Biggest Expenses:**');
+    for (const expense of largestExpenses.slice(0, 3)) {
+      lines.push(`• ${expense.name}: $${expense.amount.toLocaleString()} on ${expense.date}`);
+    }
+    lines.push('');
+  }
+
+  // Recurring
+  if (recurringExpenses.length > 0) {
+    lines.push('**Recurring Expenses I Noticed:**');
+    for (const recurring of recurringExpenses.slice(0, 5)) {
+      lines.push(`• ${recurring.name}: ~$${recurring.amount} ${recurring.frequency}`);
+    }
+  }
+
+  return lines.join('\n');
 }
 
 // ============================================================================
@@ -701,9 +886,9 @@ export function createPlaidTools(ctx?: PlaidToolCtx) {
         const startDate = new Date();
         startDate.setMonth(startDate.getMonth() - 1);
 
-        const got = await readCallerBank(ctx, opts, "To give you a real financial health checkup, I'd need to see your accounts. Want to link your bank? It's secure and takes just a minute.", (token) => balancesAndTransactions(token, day(startDate), day(endDate))); // prettier-ignore
+        const got = await readCallerBank(ctx, opts, "To give you a real financial health checkup, I'd need to see your accounts. Want to link your bank? It's secure and takes just a minute.", (token) => bothReads(fetchAccountBalances(token), fetchTransactions(token, day(startDate), day(endDate), 250))); // prettier-ignore
         if ('line' in got) return got.line;
-        const { caller: userId, data: { accounts, transactions } } = got; // prettier-ignore
+        const { caller: userId, data: [accounts, transactions] } = got; // prettier-ignore
 
         // Calculate metrics
         let totalCash = 0;

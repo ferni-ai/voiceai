@@ -100,3 +100,22 @@ export async function readCallerBank<T>(
   if (result.outcome === 'needs_reauth') noteLinkedTokenUse('plaid', caller, 'needs_reauth');
   return { line: PLAID_LINES[result.outcome] };
 }
+
+/**
+ * Two reads that only mean something together (a health check needs balances
+ * and spending): either failing fails both, needs_reauth first. Never half a
+ * picture with the missing half counted as $0.
+ */
+export async function bothReads<A, B>(
+  a: Promise<PlaidRead<A>>,
+  b: Promise<PlaidRead<B>>
+): Promise<PlaidRead<[A, B]>> {
+  const [x, y] = await Promise.all([a, b]);
+  if (x.outcome === 'data' && y.outcome === 'data')
+    return { outcome: 'data', data: [x.data, y.data] };
+  const reauth = x.outcome === 'needs_reauth' || y.outcome === 'needs_reauth';
+  return { outcome: reauth ? 'needs_reauth' : 'unreachable' };
+}
+
+/** YYYY-MM-DD, the form Plaid's date ranges take. */
+export const isoDay = (date: Date): string => date.toISOString().split('T')[0];

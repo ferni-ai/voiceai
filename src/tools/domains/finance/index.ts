@@ -28,6 +28,7 @@ function wrapLegacyTool(
   id: string,
   name: string,
   description: string,
+  /** The tool, or (Plaid) a builder given each call's ctx so it runs as that call's caller. */
   legacyTool: unknown,
   options?: {
     tags?: string[];
@@ -41,7 +42,7 @@ function wrapLegacyTool(
     domain: 'finance',
     tags: ['finance', ...(options?.tags || [])],
     requiredServices: options?.requiredServices,
-    create: (_ctx: ToolContext) => legacyTool,
+    create: (ctx: ToolContext) => (typeof legacyTool === 'function' ? legacyTool(ctx) : legacyTool),
   };
 }
 
@@ -49,47 +50,38 @@ function wrapLegacyTool(
 // PLAID / BANKING TOOLS (Consolidated: 7 → 3 essential tools)
 // ============================================================================
 
-/**
- * A Plaid tool built for each call's caller: `create` hands the factory ctx to
- * createPlaidTools (perCallerTool and the finance executor set ctx.userId to the
- * session's caller), so no tool reads a model-supplied user.
- */
-function plaidTool(
-  id: string,
-  name: string,
-  description: string,
-  pick: (tools: ReturnType<typeof createPlaidTools>) => unknown,
-  tags: string[]
-): ToolDefinition {
-  return {
-    ...wrapLegacyTool(id, name, description, undefined, { tags, requiredServices: ['plaid'] }),
-    create: (ctx: ToolContext) => pick(createPlaidTools(ctx)),
-  };
-}
-
 function getBankingToolDefinitions(): ToolDefinition[] {
+  // Built per ctx: perCallerTool and the finance executor set ctx.userId to the session's caller.
+  const legacyTools = (ctx: ToolContext) => createPlaidTools(ctx);
+
   // Consolidated: bankAccount handles link/unlink/status, bankData handles balances/transactions/analysis
   return [
-    plaidTool(
+    wrapLegacyTool(
       'bankAccount',
       'Bank Account',
       'Manage bank account connection: check link status, link a new bank account via Plaid, or unlink an existing account. Actions: "status", "link", or "unlink". Required for spending analysis and balance checking.',
-      (tools) => tools.linkBankAccount,
-      ['banking', 'plaid', 'setup', 'status', 'link', 'unlink']
+      (ctx: ToolContext) => legacyTools(ctx).linkBankAccount,
+      {
+        tags: ['banking', 'plaid', 'setup', 'status', 'link', 'unlink'],
+        requiredServices: ['plaid'],
+      }
     ),
-    plaidTool(
+    wrapLegacyTool(
       'bankData',
       'Bank Data',
       'Get financial data from linked accounts: account balances, recent transactions, or spending analysis by category. Actions: "balances", "transactions", or "spending". Requires linked bank account.',
-      (tools) => tools.getAccountBalances,
-      ['banking', 'balances', 'transactions', 'spending', 'analysis']
+      (ctx: ToolContext) => legacyTools(ctx).getAccountBalances,
+      {
+        tags: ['banking', 'balances', 'transactions', 'spending', 'analysis'],
+        requiredServices: ['plaid'],
+      }
     ),
-    plaidTool(
+    wrapLegacyTool(
       'financialHealth',
       'Financial Health',
       'Get a comprehensive financial health assessment based on linked account data. Shows savings rate, spending patterns, debt-to-income, and personalized recommendations.',
-      (tools) => tools.checkFinancialHealth,
-      ['banking', 'health', 'assessment', 'recommendations']
+      (ctx: ToolContext) => legacyTools(ctx).checkFinancialHealth,
+      { tags: ['banking', 'health', 'assessment', 'recommendations'], requiredServices: ['plaid'] }
     ),
   ];
 }

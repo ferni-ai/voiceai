@@ -31,7 +31,7 @@ import {
   analyzeSpending as analyzeRealSpending,
   formatSpendingForSpeech,
 } from './plaid.js';
-import { readCallerBank } from './plaid-caller.js';
+import { isoDay as day, readCallerBank } from './plaid-caller.js';
 
 // Import Firestore-backed financial store and types
 import {
@@ -443,7 +443,6 @@ export function createFinancialHabitsTools() {
         else if (period === 'month') startDate.setMonth(startDate.getMonth() - 1);
         else startDate.setMonth(startDate.getMonth() - 3);
 
-        const day = (date: Date): string => date.toISOString().split('T')[0];
         const got = await readCallerBank(undefined, opts, `I don't have access to your actual bank data yet. Want to link your accounts? It takes about 30 seconds and lets me give you real insights instead of guesses!\n\nFor now, I can help you track spending manually or set up a budget based on what you tell me.`, (token) => fetchTransactions(token, day(startDate), day(endDate), 250)); // prettier-ignore
         if ('line' in got) return got.line;
         const transactions = got.data;
