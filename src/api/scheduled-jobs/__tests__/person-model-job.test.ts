@@ -398,4 +398,56 @@ describe('person-model job', () => {
       expect(fake.docs.has(prev(OWNER))).toBe(false);
     }
   });
+
+  it.each([
+    [
+      'familyMembers, as a friend',
+      (put: Put, root: Root) => {
+        root.familyMembers.push({ name: 'Ferni', relationship: 'friend' });
+      },
+    ],
+    [
+      'relationship_network, as family',
+      (put: Put) =>
+        put('/relationship_network/f', { name: 'Fernie', type: 'family', lastMentioned: at(1) }),
+    ],
+    [
+      'a fact "User | best friend = Ferni"',
+      (put: Put) => put('/dynamic_facts/f', { ...fact('User', 'best friend', 'Ferni') }),
+    ],
+    [
+      'a fact "Ferny | relationship = friend"',
+      (put: Put) => put('/dynamic_facts/f', { ...fact('Ferny', 'relationship', 'friend') }),
+    ],
+  ])('Ferni with a stored relation is never one of their people: %s', async (_, seed) => {
+    const fake = world();
+    const put: Put = (p, d) => fake.docs.set(`bogle_users/${OWNER}${p}`, d);
+    seed(put, fake.docs.get(`bogle_users/${OWNER}`) as Root);
+    await runPersonModelJob(async () => depsFor(fake), { env: ON, now: NOW });
+    const stored = fake.docs.get(current(OWNER)) as {
+      people: { value: Array<{ name: string }> };
+      rendered: string;
+    };
+    const names = stored.people.value.map((p) => p.name);
+    expect(names).toContain('Rowan'); // non-vacuous: the sheet has people
+    expect(names.filter((n) => /fern/i.test(n))).toEqual([]);
+    expect(stored.rendered).not.toMatch(/\bfern(?:i|ie|y)\b/i);
+  });
+
+  it('stores each person without the build-only `stored` relation', async () => {
+    const fake = world();
+    fake.docs.set(`bogle_users/${OWNER}/relationship_network/m`, {
+      ...{ name: 'Maya', type: 'friend', lastMentioned: at(1) },
+    });
+    await runPersonModelJob(async () => depsFor(fake), { env: ON, now: NOW });
+    const people = (fake.docs.get(current(OWNER)) as { people: { value: object[] } }).people.value;
+    expect(people.length).toBeGreaterThan(1);
+    expect(people.filter((p) => 'stored' in p)).toEqual([]);
+  });
+});
+
+type Put = (path: string, data: Record<string, unknown>) => void;
+type Root = { familyMembers: unknown[] };
+const fact = (entityName: string, key: string, value: string) => ({
+  ...{ entityName, key, value, confidence: 0.9, extractedAt: at(1) },
 });

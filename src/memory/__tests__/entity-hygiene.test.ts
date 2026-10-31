@@ -254,6 +254,17 @@ describe('isPersonaSubject', () => {
     expect(isPersonaSubject('Jordan', 'coach')).toBe(false);
     expect(isPersonaSubject('Alex', 'companion')).toBe(false);
     expect(isPersonaSubject('Maya Angelou')).toBe(false);
+  });
+
+  it('is Ferni, in any case or spelling STT gives him, whatever relation is stored', () => {
+    for (const [name, relation] of [
+      ['Ferni', 'friend'],
+      ['FERNI', 'family'],
+      ['Fernie', 'best friend'],
+      ['ferny', 'brother'],
+      ['Ferni', null],
+    ])
+      expect(isPersonaSubject(name as string, relation)).toBe(true);
     expect(isPersonaSubject('Rowan')).toBe(false);
     expect(isPersonaSubject('  ')).toBe(false);
   });

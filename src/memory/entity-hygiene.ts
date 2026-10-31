@@ -139,13 +139,13 @@ export function junkReason(
 
 /** Types a store files by itself ("I talked to Maya" is acquaintance): not a stated relation. */
 export const UNSTATED_RELATIONS = new Set(['acquaintance', 'unknown', 'other']);
-
-/** Ferni or a teammate ("Maya") with no relation they stated: persona canon, never their
- *  memory. A stated relation, even coach, makes a real person (right-moment ruling 6). Pure. */
+/** Ferni, whatever relation is stored, or a teammate ("Maya") with no relation they stated:
+ *  persona canon, never their memory. "Maya", friend or coach, is real (right-moment ruling 6). */
 export function isPersonaSubject(name: string, relationship?: string | null): boolean {
+  if (wordsOf(name).some((w) => FERNI.has(w))) return true;
   const relation = relationship?.trim().toLowerCase() ?? '';
   if (relation && !UNSTATED_RELATIONS.has(relation)) return false;
-  return name.trim() !== '' && junkReason({ name, type: 'person' }, {}) === 'persona';
+  return junkReason({ name, type: 'person' }, {}) === 'persona';
 }
 
 /** Ferni, a role label for him (ENTITY_ROLE_LABELS), or a teammate who isn't theirs. */
