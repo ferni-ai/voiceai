@@ -17,6 +17,25 @@ they land: small PRs from `origin/main`, new behaviour off by default.
 | 6 | Menu down to six groups | after a menu map; the menu file is 2,600 lines and can't grow | a new web flag |
 | 4, 9 | One drawn Ferni and a sound motif | [brief](https://claude.ai/artifact/Dup3sPnm2NBEXAEG4DpibQ); art lands behind `faceEngine` and `soundDirector` | existing motion switches |
 
+## Menu map (move 6, waiting for Seth's OK on the names)
+
+Today: 24 rows in six groups, named so a row doesn't say what opens ("Let's
+Practice" holds the calendar and notification settings, "The Sanctuary" is the
+command list, and four story rows overlap). Proposed, behind a new web flag, with
+every row still reachable and no panel removed:
+
+| Group | Rows (today's name → proposed) |
+|---|---|
+| (top) | How I reach you |
+| Check-ins | When I'll Check In, When I'll Reach Out, What's Ahead → Your calendar |
+| What I remember | Our Story So Far (Memory Lane and This Year Together open inside it), People You've Told Me About |
+| Your day | Your Day with Ferni, The Chronicle → Journal, Let's Play → Games, The Sanctuary → Things you can ask, What I Do For You |
+| Your journey | How You're Feeling, Trust & Growth, When We've Talked → Past calls |
+| Settings | Make It Yours, Look & Feel, See Our Words → Captions, Sound Effects, Family Phone Access, What We're Connected To → Connected apps, Your Contribution, Privacy & your data |
+
+The rename touches every locale file, so it ships as: the regroup behind the flag
+first (English labels from the existing keys), then new label keys per locale.
+
 ## Rollout
 
 1. Each motion switch is turned on in dev (a repo variable for the build, or
