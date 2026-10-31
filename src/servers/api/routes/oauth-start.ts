@@ -17,7 +17,7 @@ import { parseBodySafe } from '../../../utils/ddos-protection.js';
 import { isLinkedInEnabled, LINKEDIN_OAUTH_PROVIDER } from '../../../config/linkedin-flag.js';
 import {
   GMAIL_SEND_OAUTH_PROVIDER,
-  isGmailSendAsUserEnabled,
+  isGmailSendAsUserEnabledFor,
 } from '../../../config/gmail-send-flag.js';
 import {
   LINKEDIN_CONNECT_PATH,
@@ -55,14 +55,18 @@ const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
 
 /**
  * Providers that can be switched off by missing app credentials. Refusing here
- * lets the web say so instead of navigating to a page that can't go on.
+ * lets the web say so instead of navigating to a page that can't go on. Gmail
+ * send is asked for the verified caller: it can be on for one person only.
  */
-const AVAILABILITY: ReadonlyMap<string, { name: string; isConfigured: () => boolean }> = new Map([
+const AVAILABILITY: ReadonlyMap<
+  string,
+  { name: string; isConfigured: (uid: string) => boolean | Promise<boolean> }
+> = new Map([
   [LINKEDIN_PROVIDER, { name: 'LinkedIn', isConfigured: isLinkedInConfigured }],
   ['oura', { name: 'Oura', isConfigured: isOuraConfigured }],
   [
     GMAIL_SEND_OAUTH_PROVIDER,
-    { name: 'Sending from Gmail', isConfigured: isGmailSendAsUserEnabled },
+    { name: 'Sending from Gmail', isConfigured: isGmailSendAsUserEnabledFor },
   ],
 ]);
 
@@ -111,7 +115,7 @@ export async function handleOAuthStartRoute(
     return true;
   }
   const availability = AVAILABILITY.get(provider);
-  if (availability && !availability.isConfigured()) {
+  if (availability && !(await availability.isConfigured(uid))) {
     sendJson(res, 503, {
       error: `${availability.name} isn't available right now`,
       unavailable: true,
