@@ -11,8 +11,9 @@
  * A text about a topic the caller asked Ferni to forget never reaches a call
  * ("forget the biopsy", then the next call asks whether they saw the biopsy
  * text). The check is the one recentContext uses (forgottenWithin: the shared
- * read within 300 ms, read beside the texts), and it fails closed: when the
- * topics can't be read in time, no text is told.
+ * read within 300 ms, read beside the texts). It always applies (not gated on
+ * FORGET_EVERY_READER, like recentContext), so there is no "nothing to check"
+ * case: the read is a check, or it is unreadable and no text is told.
  *
  * @module services/outreach/recent-texts
  */
@@ -25,6 +26,19 @@ import { CHECKINS, checkinDb, type StoredCheckin, type TextKind } from './checki
 import { firestoreTextStore, recordUserId, redactNumbers, type TextStore } from './guarded-text.js';
 
 const log = createLogger({ module: 'recent-texts' });
+
+/**
+ * The forgotten-topics read: a check to apply, or unreadable (failed, late or
+ * threw), which drops every text. There is deliberately no third case.
+ */
+export type ForgetRead =
+  | { kind: 'check'; isForgotten: ForgottenCheck }
+  | { kind: 'unreadable'; why: 'unread' | 'threw' };
+
+/** forgottenWithin's answer as a ForgetRead: its null (late or failed) is unreadable. */
+export function forgetReadOf(check: ForgottenCheck | null): ForgetRead {
+  return check ? { kind: 'check', isForgotten: check } : { kind: 'unreadable', why: 'unread' };
+}
 
 /** At most this many texts reach a call. */
 export const MAX_RECENT_TEXTS = 3;
@@ -44,8 +58,8 @@ export interface RecentText {
 export interface RecentTextsStore extends Pick<TextStore, 'forUser'> {
   /** True when the text has at least one reply on record. */
   hasReply: (checkinId: string) => Promise<boolean>;
-  /** The caller's forgotten topics as a check, or null when they can't be read in time. */
-  forgottenFor: (userId: string) => Promise<ForgottenCheck | null>;
+  /** The caller's forgotten topics: a check, or unreadable when they can't be read in time. */
+  forgottenFor: (userId: string) => Promise<ForgetRead>;
 }
 
 /**
@@ -73,19 +87,16 @@ export const firestoreRecentTextsStore: RecentTextsStore = {
     const replies = checkinDb().collection(CHECKINS).doc(checkinId).collection('replies');
     return !(await replies.limit(1).get()).empty;
   },
-  forgottenFor: async (userId) => forgottenWithin(userId, 'recent-texts'),
+  forgottenFor: async (userId) => forgetReadOf(await forgottenWithin(userId, 'recent-texts')),
 };
 
-/** The check, or null (fail closed) when it can't be had; never throws. */
-async function forgottenOrNull(
-  userId: string,
-  store: RecentTextsStore
-): Promise<ForgottenCheck | null> {
+/** The store's read, with a throw as unreadable; never throws. */
+async function readForgotten(userId: string, store: RecentTextsStore): Promise<ForgetRead> {
   try {
     return await store.forgottenFor(userId);
   } catch (error: unknown) {
     log.warn({ error: String(error) }, 'Forgotten topics not read; no text is told');
-    return null;
+    return { kind: 'unreadable', why: 'threw' };
   }
 }
 
@@ -104,15 +115,15 @@ export async function recentTextsFor(
   const storedId = recordUserId(userId, env);
   if (!storedId) return [];
   // Beside the texts' read, so both fit the caller's one bound.
-  const forgottenRead = forgottenOrNull(userId, store);
+  const forgottenRead = readForgotten(userId, store);
   const candidates = (await store.forUser(storedId))
     .map((r): [StoredCheckin, number] => [r, Date.parse(r.sentAt)])
     .filter(([r, t]) => r.status === 'sent' && r.kind !== 'on-behalf' && t >= sinceMs);
   if (candidates.length === 0) return [];
-  const forgotten = await forgottenRead;
-  if (!forgotten) return []; // fail closed
+  const forget = await forgottenRead;
+  if (forget.kind === 'unreadable') return []; // fail closed
   const sent = candidates
-    .filter(([r]) => !forgotten(r.question))
+    .filter(([r]) => !forget.isForgotten(r.question))
     .sort((a, b) => b[1] - a[1])
     .slice(0, MAX_RECENT_TEXTS)
     .map(([r]) => r);

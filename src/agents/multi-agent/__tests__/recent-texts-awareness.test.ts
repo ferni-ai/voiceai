@@ -5,7 +5,7 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 import type { StoredCheckin } from '../../../services/outreach/checkin-replies.js';
-import type { RecentTextsStore } from '../../../services/outreach/recent-texts.js';
+import type { ForgetRead, RecentTextsStore } from '../../../services/outreach/recent-texts.js';
 
 const directedText = vi.fn(async (_sessionId: string, req: { fallback: string }) => ({
   text: req.fallback,
@@ -22,7 +22,9 @@ const { recentTextsBlock, sentWhen, takeRecentTextFacts } =
 const { aboutForgotten } = await import('../../../memory/recall/forget-every-reader.js');
 const { setOutboundCallContext } =
   await import('../../../intelligence/context-builders/external/outbound-call-context.js');
-const { textSnippet } = await import('../../../services/outreach/recent-texts.js');
+const { forgetReadOf, textSnippet } = await import('../../../services/outreach/recent-texts.js');
+const check = (f: (t: string) => boolean): ForgetRead => forgetReadOf(f);
+const UNREADABLE: ForgetRead = { kind: 'unreadable', why: 'unread' };
 const { directedGreeting } = await import('../greeting-direction.js');
 const { rememberCallerRecognition, rememberDispatchIdentity } =
   await import('../../voice-agent-entry/caller-recognition.js');
@@ -59,7 +61,7 @@ function store(
   return {
     forUser: vi.fn(async () => records),
     hasReply: vi.fn(async (id: string) => replied.includes(id)),
-    forgottenFor: vi.fn(async () => (t: string) => aboutForgotten(t, topics)),
+    forgottenFor: vi.fn(async () => check((t: string) => aboutForgotten(t, topics))),
   };
 }
 
@@ -126,7 +128,7 @@ describe('recent texts at call start', () => {
           })
       ),
       hasReply: vi.fn(async () => false),
-      forgottenFor: vi.fn(async () => () => false),
+      forgottenFor: vi.fn(async () => check(() => false)),
     };
     const started = Date.now();
     expect(await webBlock('rt-6', deps(slow))).toBe('');
@@ -140,7 +142,7 @@ describe('recent texts at call start', () => {
         throw new Error('firestore down');
       }),
       hasReply: vi.fn(async () => false),
-      forgottenFor: vi.fn(async () => () => false),
+      forgottenFor: vi.fn(async () => check(() => false)),
     };
     expect(await webBlock('rt-7', deps(failing))).toBe('');
   });
@@ -219,8 +221,8 @@ describe('a text about a topic the caller asked Ferni to forget', () => {
       ...store(both()),
       forgottenFor: vi.fn(
         async () =>
-          new Promise<(t: string) => boolean>((resolve) => {
-            setTimeout(() => resolve(() => false), 5000);
+          new Promise<ForgetRead>((resolve) => {
+            setTimeout(() => resolve(check(() => false)), 5000);
           })
       ),
     };
@@ -231,7 +233,7 @@ describe('a text about a topic the caller asked Ferni to forget', () => {
   });
 
   it('fails closed: unreadable topics (null) drop every text', async () => {
-    const s = { ...store(both()), forgottenFor: vi.fn(async () => null) };
+    const s = { ...store(both()), forgottenFor: vi.fn(async () => UNREADABLE) };
     expect(await webBlock('fg-4', deps(s))).toBe('');
   });
 });

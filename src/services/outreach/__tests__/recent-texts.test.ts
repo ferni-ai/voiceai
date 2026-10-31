@@ -8,7 +8,9 @@ vi.mock('../../../memory/recall/forget-every-reader.js', async (importOriginal) 
 
 const { aboutForgotten } = await import('../../../memory/recall/forget-every-reader.js');
 const { phoneHash } = await import('../checkin-replies.js');
-const { firestoreRecentTextsStore, recentTextsFor } = await import('../recent-texts.js');
+const { firestoreRecentTextsStore, forgetReadOf, recentTextsFor } =
+  await import('../recent-texts.js');
+const check = forgetReadOf;
 type StoredCheckin = import('../checkin-replies.js').StoredCheckin;
 type RecentTextsStore = import('../recent-texts.js').RecentTextsStore;
 
@@ -42,7 +44,7 @@ function store(
   return {
     forUser: vi.fn(async (u: string) => records.filter((r) => r.userId === u)),
     hasReply: vi.fn(async (id: string) => replied.includes(id)),
-    forgottenFor: vi.fn(async () => (t: string) => aboutForgotten(t, topics)),
+    forgottenFor: vi.fn(async () => check((t: string) => aboutForgotten(t, topics))),
   };
 }
 
@@ -110,8 +112,11 @@ describe('recentTextsFor leaves out what the caller asked Ferni to forget', () =
     expect(s.forgottenFor).toHaveBeenCalledWith('u1');
   });
 
-  it('fails closed: no text when the topics are unreadable (null) or the check throws', async () => {
-    const unreadable = { ...store([text('a')]), forgottenFor: vi.fn(async () => null) };
+  it('fails closed: no text when the topics are unreadable or the check throws', async () => {
+    const unreadable = {
+      ...store([text('a')]),
+      forgottenFor: vi.fn(async () => forgetReadOf(null)),
+    };
     expect(await recentTextsFor('u1', SINCE, unreadable, ENV)).toEqual([]);
     const throwing = {
       ...store([text('a')]),
@@ -123,7 +128,10 @@ describe('recentTextsFor leaves out what the caller asked Ferni to forget', () =
   });
 
   it("the production store asks recentContext's bounded, fail-closed check", async () => {
-    expect(await firestoreRecentTextsStore.forgottenFor('u1')).toBeNull();
+    expect(await firestoreRecentTextsStore.forgottenFor('u1')).toEqual({
+      kind: 'unreadable',
+      why: 'unread',
+    });
     expect(forgottenWithin).toHaveBeenCalledWith('u1', 'recent-texts');
   });
 });
