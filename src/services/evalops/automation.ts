@@ -387,7 +387,7 @@ interface TurnContext {
  * Hook to evaluate a conversation turn
  * Call this after each AI response is generated
  */
-export async function afterTurn(
+async function afterTurn(
   sessionId: string,
   personaId: string,
   userMessage: string,
