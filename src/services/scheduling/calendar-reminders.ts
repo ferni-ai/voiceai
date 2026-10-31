@@ -124,7 +124,7 @@ async function ensureUserLoaded(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
 
   try {
-    const data = await getPersistence().load(userId);
+    const data = await getPersistence().load(userId, { strict: 'read' });
     if (data) {
       if (data.events) {
         const flags = data.eventFlags ?? {};
@@ -141,7 +141,7 @@ async function ensureUserLoaded(userId: string): Promise<void> {
     getLogger().debug({ userId }, 'Loaded calendar data from persistence');
   } catch (error) {
     getLogger().warn({ error, userId }, 'Failed to load calendar data');
-    loadedUsers.add(userId);
+    // not marked loaded: the next call reads again; nothing is saved over unread data
   }
 }
 

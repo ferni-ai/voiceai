@@ -819,6 +819,7 @@ export class TeamEngagementService {
 
   // Persistence store
   private persistenceStore: PersistenceStore<TeamEngagementData> | null = null;
+  private loadedUsers = new Set<string>(); // stored data read (a failed read doesn't count)
   private initialized = false;
 
   /**
@@ -844,7 +845,8 @@ export class TeamEngagementService {
     if (!this.persistenceStore) return;
 
     try {
-      const data = await this.persistenceStore.load(userId);
+      const data = await this.persistenceStore.load(userId, { strict: 'read' });
+      this.loadedUsers.add(userId);
       if (!data) return;
 
       // Rehydrate huddles
@@ -918,8 +920,7 @@ export class TeamEngagementService {
     comments: Array<{ personaId: string; comment: string }>;
     outro: string;
   }> {
-    // Load from persistence if not in memory
-    if (!this.huddles.has(userId)) {
+    if (!this.loadedUsers.has(userId)) {
       await this.loadUserData(userId);
     }
 
@@ -1011,8 +1012,7 @@ export class TeamEngagementService {
     profile: UserProfile | null,
     personaId?: string
   ): Promise<PersonaEvolutionEvent[]> {
-    // Load from persistence if not in memory
-    if (!this.sharedEvolutions.has(userId)) {
+    if (!this.loadedUsers.has(userId)) {
       await this.loadUserData(userId);
     }
 

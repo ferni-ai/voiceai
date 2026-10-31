@@ -11,6 +11,8 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { takeHandoffArrival } from '../../../../tools/handoff/index.js';
+import { flagOn } from '../../../../config/env-flag.js';
 import {
   BuilderCategory,
   createHighInjection,
@@ -265,8 +267,10 @@ async function buildPeterResearchInsightsContext(
   const sessionId = services?.sessionId || userId;
   const session = getSession(sessionId);
 
-  // Check if this is a handoff situation
-  const handoffBriefing = analyzeHandoffContext();
+  // His handoff briefing waits behind its flag: it never ran in prod before #3066 (#3044)
+  const handoffBriefing = flagOn('PERSONA_BRIEFING_PETER_HANDOFF')
+    ? analyzeHandoffContext(takeHandoffArrival(services?.sessionId, 'peter-john'))
+    : null;
   const isHandoff = handoffBriefing !== null;
 
   // Determine when to inject briefing
