@@ -21,7 +21,11 @@
  */
 import { llm } from '@livekit/agents';
 import { SAME_TURN_MAX_TOOLS, sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
-import { TOPIC_TO_DOMAINS } from '../../tools/dynamic-loader/topic-mappings.js';
+import {
+  forbiddenToolsNow,
+  withoutForbiddenTools,
+} from '../../tools/orchestrator/persona-tool-policy.js';
+import { smartHomeTopicPatterns, TOPIC_PATTERNS } from '../../tools/dynamic-loader/index.js';
 import { SAME_TURN_TOPIC_PATTERNS } from '../../tools/dynamic-loader/same-turn-topics.js';
 import { loadToolDomainsLazy } from '../../tools/registry/loader.js';
 import type { ToolDomain } from '../../tools/registry/types.js';
@@ -32,8 +36,12 @@ const log = createLogger({ module: 'SameTurnTools' });
 
 /** The slice of the session's DynamicToolLoader this uses. */
 export interface SameTurnLoader {
-  detectTopics: (message: string) => { detectedTopics: string[]; suggestedDomains: ToolDomain[] };
-  getToolsForDomains: (domains: readonly string[]) => Record<string, unknown>;
+  detectTopics: (message: string) => {
+    detectedTopics: string[];
+    suggestedDomains: ToolDomain[];
+    leadTools?: string[];
+  };
+  getToolsForDomains: (domains: readonly string[], leadTools?: string[]) => Record<string, unknown>;
 }
 
 interface TurnPick {
@@ -52,8 +60,9 @@ export function registerSameTurnLoader(session: object, loader: SameTurnLoader):
 /** Every domain a topic can load, so the same-turn lookup finds them registered. */
 export async function preloadTopicDomains(): Promise<number> {
   const domains = new Set<ToolDomain>();
-  for (const list of Object.values(TOPIC_TO_DOMAINS)) list.forEach((d) => domains.add(d));
+  for (const [, list] of TOPIC_PATTERNS) list.forEach((d) => domains.add(d));
   for (const [, list] of SAME_TURN_TOPIC_PATTERNS) list.forEach((d) => domains.add(d));
+  for (const [, list] of smartHomeTopicPatterns()) list.forEach((d) => domains.add(d));
   return loadToolDomainsLazy([...domains]);
 }
 
@@ -62,11 +71,11 @@ function pickFor(session: object, loader: SameTurnLoader, text: string): Record<
   const cached = picks.get(session);
   if (cached?.text === text) return cached.tools;
   const started = Date.now();
-  const { detectedTopics, suggestedDomains } = loader.detectTopics(text);
+  const { detectedTopics, suggestedDomains, leadTools = [] } = loader.detectTopics(text);
   let tools: Record<string, unknown> = {};
   if (suggestedDomains.length > 0) {
     // Handoffs come from the session's own build (handoff-availability.ts).
-    const built = Object.entries(loader.getToolsForDomains(suggestedDomains)).filter(
+    const built = Object.entries(loader.getToolsForDomains(suggestedDomains, leadTools)).filter(
       ([name]) => !name.startsWith('handoffTo')
     );
     tools = Object.fromEntries(built);
@@ -92,7 +101,9 @@ function pickFor(session: object, loader: SameTurnLoader, text: string): Record<
 export function withSameTurnTools(
   session: object,
   chatCtx: llm.ChatContext,
-  toolCtx: llm.ToolContext
+  toolCtx: llm.ToolContext,
+  /** The agent whose reply this is: its persona's policy applies (else the session's userData) */
+  agent?: object
 ): string[] {
   if (!sameTurnToolsEnabled()) return [];
   const loader = loaders.get(session);
@@ -100,7 +111,9 @@ export function withSameTurnTools(
   if (!loader || !text) return [];
   try {
     const have = toolCtx.functionTools;
-    const missing = Object.entries(pickFor(session, loader, text.toLowerCase()))
+    const forbidden = forbiddenToolsNow(agent ?? session); // PERSONA_TOOL_POLICY
+    const picked = withoutForbiddenTools(pickFor(session, loader, text.toLowerCase()), forbidden);
+    const missing = Object.entries(picked)
       .filter(([name]) => !(name in have))
       .slice(0, SAME_TURN_MAX_TOOLS);
     if (missing.length === 0) return [];

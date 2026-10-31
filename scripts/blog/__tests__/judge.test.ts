@@ -119,7 +119,7 @@ describe('judgePrompt and truthPack', () => {
     const truth = truthPack(root);
     expect(truth).toContain('"lastReviewed"');
     expect(truth).toMatch(/^PAYWALL$/m); // flag-manifest-entries.ts
-    expect(truth).toMatch(/^EMOTION_LIFT$/m); // flag-manifest-blocks.ts
+    expect(truth).toMatch(/^EMOTION_LIFT: Ferni rests calm/m); // flag-manifest-blocks.ts
     expect(offFlags(root).has('EMOTION_LIFT')).toBe(true);
     expect(truth).toMatch(/^ALEX_CHIEF_OF_STAFF: Alex keeps/m);
   });
@@ -141,11 +141,14 @@ describe('scorecard', () => {
 });
 
 describe('the drafter prompt', () => {
-  it('tells the model a judge reviews the post, and never "Nobody reviews it"', () => {
-    for (const id of ['how-ferni-works', 'whats-new']) {
-      const prompt = buildPrompt(POST_TYPES[id], [], [], []);
+  it('tells the model a judge and the owner review consumer posts, and never "Nobody reviews it"', () => {
+    const consumer = buildPrompt(POST_TYPES['how-ferni-works'], [], [], []);
+    const developer = buildPrompt(POST_TYPES['whats-new'], [], [], []);
+    for (const prompt of [consumer, developer]) {
       expect(prompt).not.toMatch(/nobody reviews/i);
       expect(prompt).toMatch(/A judge scores it/);
     }
+    expect(consumer).toMatch(/Ferni's owner reads it/);
+    expect(developer).not.toMatch(/owner/);
   });
 });

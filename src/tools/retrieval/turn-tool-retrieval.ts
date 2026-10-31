@@ -8,19 +8,20 @@
  * computed while they are still talking, from interim transcripts, so the
  * ~200 ms embedding call is off the reply's critical path.
  *
- * Modes (TOOL_RETRIEVAL): off (default); shadow = pick and log, but send the
- * tools as before, then log whether each tool the model called was in the
- * pick; live = send only the pick. Live lost its A/B (2026-09-30: reply p50
- * 2.47 -> 2.90 s, p90 3.3 -> 4.5 s, 2x worker memory), so shadow, which still
- * embedded every prod turn, is opt-in now too. Selection happens inside llmNode on a copy:
- * the agent's own tool list never changes, so the SDK's preemptive reply is
- * kept and any tool the model calls can still be executed.
+ * Modes (TOOL_RETRIEVAL): off (default); shadow = pick and log, but send the tools as
+ * before, then log whether each tool the model called was in the pick; live = send only
+ * the pick. Live lost its A/B (2026-09-30: reply p50 2.47 -> 2.90 s, p90 3.3 -> 4.5 s, 2x
+ * worker memory), so shadow, which still embedded every prod turn, is opt-in now too.
+ * Selection happens inside llmNode on a copy: the agent's own tool list never changes, so
+ * the SDK's preemptive reply is kept and any tool the model calls can still be executed.
  *
  * @module tools/retrieval/turn-tool-retrieval
  */
 
 import { llm } from '@livekit/agents';
+import { isPrivacyTool } from '../../config/privacy-tools.js';
 import { isFindableTool } from '../dynamic-loader/findable-domains.js';
+import { errorFields } from '../../utils/error-class.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { DenseToolIndex, Embedder } from './dense-index.js';
 import { RetrievalStats, isLiveCovered } from './retrieval-stats.js';
@@ -50,8 +51,7 @@ export function toolRetrievalMode(
 /** Never left to retrieval: handoffs and every safety tool. */
 export const CORE_DOMAINS = ['handoff', 'crisis', 'trauma-support', 'human-transfer'] as const;
 export const CORE_TOOLS = [
-  // Date, time and location: the model reaches for it before many requests
-  // (e.g. "weather tomorrow?"), whatever the topic (dev shadow run, 2026-09-29).
+  // Date, time, location: reached for before many requests, any topic (dev shadow 2026-09-29).
   'getCurrentContext',
   'recallFromMemory',
   'rememberAboutUser',
@@ -67,8 +67,7 @@ export const CORE_TOOLS = [
   'gameState',
   'findCoachingResources', // Coaching resources (COACH_MEDIA=on): not in the intent index.
   'coachingPick',
-  // Hanging up an on-behalf phone call (agents/outbound-call/call-control.ts); a
-  // goodbye's words never point retrieval at it.
+  // Hangs up an on-behalf call (outbound-call/call-control.ts); goodbyes never point at it.
   'endCall',
 ] as const;
 
@@ -246,9 +245,9 @@ export class TurnToolRetrieval {
         this.lastPick = pick;
         this.stats.pick(pick.embedMs);
         return pick;
-      } catch (error) {
+      } catch (err) {
         this.stats.pick(null);
-        log.warn({ sessionId: this.opts.sessionId, error: String(error) }, 'tool retrieval failed');
+        log.warn({ sessionId: this.opts.sessionId, ...errorFields(err) }, 'tool retrieval failed');
         return null;
       }
     })();
@@ -324,6 +323,7 @@ export class TurnToolRetrieval {
 
   isCore(tool: string): boolean {
     return (
+      isPrivacyTool(tool) || // forget and correct a memory: never left to retrieval
       (CORE_TOOLS as readonly string[]).includes(tool) ||
       (CORE_DOMAINS as readonly string[]).includes(this.opts.domainOf(tool) ?? '')
     );

@@ -67,6 +67,7 @@ import {
   type CallResult,
   type CallTranscript,
 } from './arc-lib.js';
+import { judgeModel } from '../lib/judge-model.mjs';
 
 // ---- frozen clock: each call happens at 18:00 UTC on its own day ----------
 const RealDate = Date;
@@ -91,16 +92,25 @@ const quiet = { debug: () => undefined };
 const project = process.env.GOOGLE_CLOUD_PROJECT ?? 'johnb-2025';
 const ai = new GoogleGenAI({ vertexai: true, project, location: 'global' });
 const MODEL = process.env.ARC_MODEL ?? 'gemini-3.5-flash';
-const JUDGE = process.env.JUDGE_MODEL ?? 'gemini-3.1-pro-preview';
+const JUDGE = judgeModel();
 
 type Content = { role: 'user' | 'model'; parts: Array<{ text: string }> };
+
+class TruncatedReply extends Error {
+  constructor(role: string, model: string, maxOutputTokens: number) {
+    super(
+      `${role} reply hit MAX_TOKENS (${model}, ${maxOutputTokens} tokens): fix the budget or thinking`
+    );
+  }
+}
 
 async function generate(
   model: string,
   system: string | undefined,
   contents: Content[],
   maxOutputTokens: number,
-  temperature: number
+  temperature: number,
+  judging = false
 ): Promise<string> {
   for (let attempt = 0; ; attempt++) {
     try {
@@ -111,12 +121,19 @@ async function generate(
           ...(system ? { systemInstruction: system } : {}),
           maxOutputTokens,
           temperature,
-          ...(model.includes('pro') ? {} : { thinkingConfig: minimalThinkingFor(model) }),
+          // The judge thinks at its model's default, the setting the Flash/Pro check measured.
+          // Chosen by role: the judge and the simulated Ferni can share a model id.
+          ...(judging || model.includes('pro')
+            ? {}
+            : { thinkingConfig: minimalThinkingFor(model) }),
         },
       });
+      // A reply cut off by the token budget is not a call to score: stop the run, don't retry.
+      if (String(res.candidates?.[0]?.finishReason) === 'MAX_TOKENS')
+        throw new TruncatedReply(judging ? 'judge' : 'ferni', model, maxOutputTokens);
       return (res.text ?? '').trim();
     } catch (error) {
-      if (attempt >= 3) throw error;
+      if (error instanceof TruncatedReply || attempt >= 3) throw error;
       await new Promise((r) => setTimeout(r, 2000 * 2 ** attempt));
     }
   }
@@ -202,7 +219,7 @@ async function afterCall(sessionId: string, t: CallTranscript, at: Date): Promis
 }
 
 const ask = (model: string, prompt: string) =>
-  generate(model, undefined, [{ role: 'user', parts: [{ text: prompt }] }], 4000, 0);
+  generate(model, undefined, [{ role: 'user', parts: [{ text: prompt }] }], 4000, 0, true);
 
 /** Code markers, the marker judge (with what a friend knows) and the blind judge. */
 async function judgeCall(t: CallTranscript): Promise<CallResult> {

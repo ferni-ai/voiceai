@@ -204,6 +204,15 @@ export async function initErrorReporting(
   return starting;
 }
 
+/** Sends whatever is queued, for a process about to exit. No-op without SENTRY_DSN; never rejects. */
+export async function flushErrorReporting(ms: number = FLUSH_BEFORE_EXIT_MS): Promise<void> {
+  try {
+    await sentry?.flush(ms);
+  } catch {
+    // Exiting matters more than the last report.
+  }
+}
+
 /** Test helper: forget the client and handlers. */
 export async function resetErrorReportingForTests(): Promise<void> {
   process.off('uncaughtException', onUncaughtException);

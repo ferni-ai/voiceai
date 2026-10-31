@@ -24,6 +24,8 @@ import { flagOn } from './env-flag.js';
 import { isChiefOfStaffTool } from './alex-chief-of-staff-flag.js';
 import { COACH_LOCAL_TOOLS, isCoachLocalEnabled } from './coach-local-flag.js';
 import { llmContextCacheEnabled } from './llm-context-cache-flag.js';
+import { countMenuPinned, isMenuPinnedTool } from './menu-tools-pinned.js';
+import { isPrivacyTool, PRIVACY_TOOLS } from './privacy-tools.js';
 import {
   isLeanAlwaysOnTool,
   LEAN_ALWAYS_ON_TOOLS,
@@ -32,10 +34,6 @@ import {
 import { isVoiceTicTacToeTool } from './voice-tictactoe.js';
 
 const log = createLogger({ module: 'ToolConfig' });
-
-// ============================================================================
-// TYPES
-// ============================================================================
 
 export interface ToolConfiguration {
   /**
@@ -347,6 +345,7 @@ export const STATIC_CORE_TOOLS: readonly string[] = [
   'recallFromMemory',
   'rememberImportantFact',
   'recallPreviousConversation',
+  ...PRIVACY_TOOLS, // forget and correct a memory (privacy-tools.ts)
   'playMusic',
   'musicControl',
   'quickTimer',
@@ -396,9 +395,11 @@ export function isEssentialTool(toolName: string): boolean {
     : config.essentialTools.includes(toolName);
   return (
     listed ||
+    isPrivacyTool(toolName) || // forgetMemory, updateMemory: never capped out
     (CALL_JOURNAL_TOOLS.includes(toolName) && callJournalToolsOn()) ||
     isVoiceTicTacToeTool(toolName) ||
     isChiefOfStaffTool(toolName) || // ALEX_CHIEF_OF_STAFF=on (multi-agent/chief-of-staff-tools.ts)
+    isMenuPinnedTool(toolName) || // MENU_TOOLS_PINNED=on, and they take no slot (below)
     toolName.startsWith('handoffTo') ||
     toolName === 'endCall' ||
     toolName === 'askForTeammate' // stands in for locked handoffs (locked-teammates.ts)
@@ -414,11 +415,9 @@ export function getEssentialTools(): readonly string[] {
 }
 
 /**
- * Cap tools to maxTools, prioritizing essential tools.
- *
- * @param tools - Record of tool name to tool definition
+ * Cap tools to maxTools, prioritizing essential tools. MENU_TOOLS_PINNED's
+ * tools are kept and count outside the limit (menu-tools-pinned.ts).
  * @param overrideLimit - Optional override for maxTools (useful for testing)
- * @returns Capped tools record
  */
 export function capToolsToLimit<T>(
   tools: Record<string, T>,
@@ -433,9 +432,8 @@ export function capToolsToLimit<T>(
   }
 
   const toolCount = Object.keys(tools).length;
-  if (toolCount <= limit) {
-    return tools;
-  }
+  const pinned = countMenuPinned(Object.keys(tools));
+  if (toolCount - pinned <= limit) return tools;
 
   // Partition tools: essential first, then rest
   const essentialEntries: Array<[string, T]> = [];
@@ -450,7 +448,7 @@ export function capToolsToLimit<T>(
   }
 
   // Fill remaining slots with other tools
-  const remainingSlots = limit - essentialEntries.length;
+  const remainingSlots = limit - (essentialEntries.length - pinned);
   const selectedOther = otherEntries.slice(0, Math.max(0, remainingSlots));
 
   const cappedTools: Record<string, T> = {};

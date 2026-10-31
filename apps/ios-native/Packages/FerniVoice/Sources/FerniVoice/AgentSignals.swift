@@ -48,6 +48,29 @@ public enum AgentSignals {
         }
     }
 
+    /// A handoff between teammates, with the server's persona id. Shapes from
+    /// src/agents/voice-agent/phases/multi-agent-mode.ts (`handoff_complete`
+    /// with `target`) and src/agents/multi-agent/handoff-messages.ts
+    /// (`handoff_started` with `newAgent`/`target`, `handoff_failed`).
+    public enum Handoff: Equatable, Sendable {
+        case started(to: String)
+        case completed(to: String)
+        case failed
+    }
+
+    public static func handoff(from json: [String: Any]) -> Handoff? {
+        switch json["type"] as? String {
+        case "handoff_started":
+            return ((json["newAgent"] ?? json["target"]) as? String).map { .started(to: $0) }
+        case "handoff_complete", "handoff_completed":
+            return ((json["target"] ?? json["newAgent"]) as? String).map { .completed(to: $0) }
+        case "handoff_failed":
+            return .failed
+        default:
+            return nil
+        }
+    }
+
     /// Reads Ferni's turn state from a participant's attributes (or an
     /// attribute diff). Nil when the attribute is absent or unknown.
     public static func agentActivity(from attributes: [String: String]) -> AgentActivity? {

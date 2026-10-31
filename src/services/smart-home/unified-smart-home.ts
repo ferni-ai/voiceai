@@ -3,7 +3,6 @@
  *
  * Provides a unified interface for smart home control across multiple backends:
  * - HomeKit (via homekit-bridge.ts)
- * - Home Assistant (via home-assistant.ts)
  * - Sonos (via sonos.ts)
  *
  * Used by workflow actions to control lights, thermostats, and other devices.
@@ -44,7 +43,7 @@ export interface ThermostatOptions {
 /**
  * Control lights in a zone
  *
- * Attempts to use Home Assistant first, then falls back to HomeKit.
+ * Controls lights through HomeKit.
  */
 export async function controlLights(
   userId: string,
@@ -55,25 +54,6 @@ export async function controlLights(
   log.debug({ userId, zone, state, brightness }, '💡 Controlling lights');
 
   try {
-    // Try Home Assistant first
-    const ha = await import('./home-assistant.js');
-    if (ha.isHomeAssistantConfigured()) {
-      // Find light entity by zone/room name
-      const entities = await ha.findEntitiesByName(zone, 'light');
-      if (entities.length > 0) {
-        const entityId = entities[0]?.entity_id;
-        if (entityId) {
-          if (state === 'off') {
-            await ha.turnOffLight(entityId);
-          } else {
-            await ha.turnOnLight(entityId, brightness || (state === 'dim' ? 50 : undefined));
-          }
-          log.info({ userId, zone, state, via: 'home_assistant' }, '💡 Lights controlled');
-          return { success: true, data: { entityId } };
-        }
-      }
-    }
-
     // Try HomeKit
     const hk = await import('./homekit-bridge.js');
     if (await hk.isHomeKitConnected(userId)) {
@@ -116,23 +96,6 @@ export async function setThermostat(
   log.debug({ userId, temperature, mode }, '🌡️ Setting thermostat');
 
   try {
-    // Try Home Assistant first
-    const ha = await import('./home-assistant.js');
-    if (ha.isHomeAssistantConfigured()) {
-      // Find thermostat entities
-      const entities = await ha.findEntitiesByName('thermostat', 'climate');
-      if (entities.length > 0) {
-        const entityId = entities[0]?.entity_id;
-        if (entityId) {
-          // Map 'auto' to 'heat_cool' for Home Assistant
-          const haMode = mode === 'auto' ? 'heat_cool' : mode;
-          await ha.setThermostat(entityId, temperature, haMode || 'heat_cool');
-          log.info({ userId, temperature, mode, via: 'home_assistant' }, '🌡️ Thermostat set');
-          return { success: true, data: { entityId, temperature } };
-        }
-      }
-    }
-
     // Try HomeKit
     const hk = await import('./homekit-bridge.js');
     if (await hk.isHomeKitConnected(userId)) {
@@ -169,21 +132,6 @@ export async function activateScene(userId: string, sceneName: string): Promise<
   log.debug({ userId, sceneName }, '🎬 Activating scene');
 
   try {
-    // Try Home Assistant first
-    const ha = await import('./home-assistant.js');
-    if (ha.isHomeAssistantConfigured()) {
-      // Find scene by name
-      const entities = await ha.findEntitiesByName(sceneName, 'scene');
-      if (entities.length > 0) {
-        const entityId = entities[0]?.entity_id;
-        if (entityId) {
-          await ha.activateScene(entityId);
-          log.info({ userId, sceneName, via: 'home_assistant' }, '🎬 Scene activated');
-          return { success: true, data: { entityId } };
-        }
-      }
-    }
-
     // Try HomeKit
     const hk = await import('./homekit-bridge.js');
     if (await hk.isHomeKitConnected(userId)) {

@@ -69,7 +69,6 @@ import {
 import { classifyConnectError, ConnectStepError, type ConnectFailure } from './connect-failure.js';
 import { reportDisconnect } from './disconnect-report.js';
 import { registerMicRestoreHandlers, type MicRoom } from './mic-restore.js';
-import { spotifyService } from './spotify.service.js';
 import { fetchConnectionToken } from './token-fetch.service.js';
 import { attachLiveTranscription } from './live-transcription.service.js';
 import { reportPlayRejected } from './audio-play-blocked.js';
@@ -521,21 +520,6 @@ class ConnectionService {
       } catch (err) {
         log.debug({ error: String(err) }, 'Disconnect diagnostics not available');
       }
-
-      // Initialize Spotify Web Playback SDK now that user has interacted
-      // This must happen after user interaction (browser autoplay policy)
-      spotifyService
-        .initialize()
-        .then((success) => {
-          if (success) {
-            log.info('🎵 Spotify Web Playback initialized');
-          } else {
-            log.debug('Spotify not available (not linked or not Premium)');
-          }
-        })
-        .catch((err) => {
-          log.warn('Spotify init failed:', err);
-        });
 
       return true;
     } catch (error) {
@@ -1017,9 +1001,8 @@ class ConnectionService {
       case 'connecting':
         return 'connecting';
       case 'reconnecting':
+      case 'signalReconnecting': // a signal blip: the call and its data channel stay up
         return 'reconnecting';
-      case 'disconnected':
-        return 'disconnected';
       default:
         return 'disconnected';
     }

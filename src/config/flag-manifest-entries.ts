@@ -64,6 +64,9 @@ export const FLAGS_ACTION_TO_BYPASS = {
   BACKCHANNEL_AUDIO_CLOCK: { default: 'off', owner: 'voice', kind: 'experiment' },
   BACKCHANNEL_CLIPS: { default: 'on', owner: 'voice', kind: 'config' },
   BACKCHANNEL_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: live backchannels wait 260 ms after a sentence end / 390 ms otherwise and vary
+  // their takes (backchannel-timing.ts)
+  BACKCHANNEL_TIMING: { default: 'off', owner: 'voice', kind: 'experiment' },
   BARGE_IN_ACK_WORDS: { default: 'off', owner: 'voice', kind: 'experiment' },
   BARGE_IN_FASTPATH: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   BARGE_IN_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -141,6 +144,8 @@ export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   PERSONA_BEATS: { default: 'off', owner: 'voice', kind: 'experiment' },
   // character-spark.md after the character sheet, one "!" on bright turns (agents/personas/prompt-loader.ts, turn-shape.ts)
   PERSONA_SPARK: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // one fixed set of 40 tools or fewer per persona, changed only at a handoff (multi-agent/persona-toolsets.ts)
+  PERSONA_TOOLSETS: { default: 'off', owner: 'tools', kind: 'experiment' },
   PERSONA_VOICE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PERSIST_AGENT_PROFILES: { default: 'off', owner: 'memory', kind: 'experiment' },
   PERSONA_MOOD_NOT_CALLERS: { default: 'on', owner: 'memory', kind: 'kill-switch' },

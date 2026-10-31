@@ -32,20 +32,13 @@ Files here:
 The consent screen, branding and verification belong to the **project**, so one submission covers sign-in,
 calendar and gmail.send together.
 
-### Gmail scopes elsewhere in the repo (none of them is requested live)
+### Gmail scopes elsewhere in the repo
 
-- `src/services/identity/google-calendar-oauth.ts:44` lists `gmail.readonly` in `generateAuthUrl()`. Its only callers
-  are tests (`src/tests/e2e/run-e2e.ts:199`, `src/tests/integration/appointment-e2e.test.ts:257`). The live connect
-  uses `routes/google-calendar.ts`, which asks for calendar scopes only.
-- `src/services/integrations/oauth-manager.ts:41-43` and `integration-hub.ts:40-42` list `gmail.readonly`, `gmail.send`
-  and `gmail.modify`. `getAuthorizationUrl` is reached only from the uber/lyft/instacart clients, never for `gmail`.
-  UNCONFIRMED: this is a grep of callers, not a runtime trace.
-- Consequence: `src/services/gmail/gmail-service.ts` (inbox triage, drafts, send) reuses the **calendar** token, which
-  has no Gmail scope, so those tools should fail with 403 today. UNCONFIRMED in prod; inferred from the scopes.
-  Its `sendEmail` also calls `users.getProfile`, which `gmail.send` alone can't do
-  ([getProfile scopes](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users/getProfile)).
-
-Before submitting, delete those three dead scope lists so the code matches the justification we give Google.
+None. The dead `gmail.readonly`/`gmail.modify` lists in `google-calendar-oauth.ts` (#3094),
+`oauth-manager.ts` and `integration-hub.ts` (lane G2) are deleted, and
+`src/services/gmail/__tests__/gmail-read-tools.test.ts` fails if a restricted Gmail scope URL comes back in `src/`.
+The Gmail read tools (`services/gmail/gmail-service.ts` reuses the calendar token, which has no Gmail scope) are not
+offered unless `GMAIL_READ_TOOLS` is on, and with it on a 401/403 says "I can't read your inbox", never an empty inbox.
 
 ## Phase A: sensitive-scope verification (`gmail.send`)
 

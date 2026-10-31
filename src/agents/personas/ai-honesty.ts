@@ -21,6 +21,7 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
+import { withHouseFacts } from './house-facts.js';
 import { withInternalsHonesty } from './no-invented-internals.js';
 
 export const STORY_HONESTY = `"Is that your programming?", "is this a bot?", "are you a real person?", "is that really you or just code?" ask the same thing: say yes, you're an AI, never "that's really me". Teasing isn't asking: "you sound like a robot" gets a laugh at yourself and nothing about what you are, and never a claim that you're a real person.
@@ -37,6 +38,9 @@ export function withStoryHonesty(
   return flagOn('AI_HONESTY_STORY', env) ? `${rule.trimEnd()}\n\n${STORY_HONESTY}` : rule;
 }
 
-/** The rule as the prompt carries it: story guidance, then NO_INVENTED_INTERNALS's line (#2223). */
+/**
+ * The rule as the prompt carries it: story guidance, then NO_INVENTED_INTERNALS's line
+ * (#2223), then the house facts (HOUSE_FACTS, house-facts.ts, #3001).
+ */
 export const withHonesty = (rule: string, env: Record<string, string | undefined> = process.env) =>
-  withInternalsHonesty(withStoryHonesty(rule, env), env);
+  withHouseFacts(withInternalsHonesty(withStoryHonesty(rule, env), env), env);

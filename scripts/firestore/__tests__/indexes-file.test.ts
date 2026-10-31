@@ -10,7 +10,7 @@
  * It lived in src/tests, which neither CI config runs, and stayed red there unnoticed.
  */
 import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 interface FieldIndex {
@@ -21,6 +21,7 @@ interface FieldIndex {
 interface FieldOverride {
   collectionGroup: string;
   fieldPath: string;
+  ttl?: boolean;
   indexes: FieldIndex[];
 }
 
@@ -78,6 +79,7 @@ const NOT_FERNI_COLLECTIONS = [
   'review_responses',
   'roi_reports',
   'sequences',
+  'report_summaries',
   'sms_queue',
   'subscribers',
   'support_requests',
@@ -88,28 +90,101 @@ const NOT_FERNI_COLLECTIONS = [
   'mcp_servers',
 ];
 
+/**
+ * Ferni collections whose name appears in source only inside a path template, never as a bare
+ * quoted string, so the mention check can't see them. Each entry names the file that builds the
+ * path; the test fails if that file stops containing `/<name>`.
+ */
+const NAMED_ONLY_IN_PATH_TEMPLATES: Record<string, string> = {
+  // musical_leaderboards/<key>/musical_board_entries; prod TTL policy on ttlAt.
+  musical_board_entries: 'services/musical-you/leaderboard-store.ts',
+};
+
+/**
+ * Not-Ferni names that one src file quotes as something other than a collection. Each entry
+ * names that file; the name's quotes there are not a use, its quotes anywhere else still are,
+ * and the test fails if that file stops quoting it or starts using it as a collection.
+ */
+const QUOTED_AS_NON_COLLECTION: Record<string, string> = {
+  // CALL_TELEMETRY=reports, a flag mode (felt-off reports only); Ferni has no `reports` store.
+  reports: 'api/call-telemetry/call-telemetry-store.ts',
+};
+
+/**
+ * Prod field overrides that the rules below would reject, declared because prod has them: a
+ * deploy of the file deletes any override the file lacks (#2477). Every entry must be in the
+ * checked-in prod listing (scripts/ci/fixtures/firestore-indexes/default, from `gcloud
+ * firestore indexes fields list` / `fields ttls list`), so this can't excuse a made-up one.
+ */
+/** Collection-group-only overrides on another app's collection; Ferni never queries it. */
+const PROD_GROUP_ONLY_OVERRIDES = ['support_requests.created_at', 'support_requests.status'];
+/** Legacy TTL fields prod keeps exempt from indexing (`indexes: []`); not large text. */
+const PROD_EXEMPT_TTL_FIELDS = [
+  'forecast_archive.expires_at',
+  'function_executions.expires_at',
+  'insights.ttl_date',
+  'system_cache.expires_at',
+];
+
 const repoRoot = join(__dirname, '..', '..', '..');
+const prodListingDir = join(repoRoot, 'scripts', 'ci', 'fixtures', 'firestore-indexes', 'default');
+interface ListedField {
+  name: string;
+  ttlConfig?: unknown;
+  indexConfig?: { indexes?: Array<{ queryScope: string; fields: FieldIndex[] }> };
+}
+const listed = (n: 'fields' | 'ttls'): ListedField[] =>
+  JSON.parse(readFileSync(join(prodListingDir, `${n}.json`), 'utf8')) as ListedField[];
+const keyOf = (name: string): string =>
+  name.split('/collectionGroups/')[1].replace('/fields/', '.');
+/** Prod's overrides and TTL fields, `<collection>.<field>` → its listing entry. */
+const prodFields = new Map([...listed('fields'), ...listed('ttls')].map((f) => [keyOf(f.name), f]));
+const prodTtls = new Set(listed('ttls').map((f) => keyOf(f.name)));
 const srcDir = join(repoRoot, 'src');
 const file = JSON.parse(readFileSync(join(repoRoot, 'firestore.indexes.json'), 'utf8')) as {
   indexes: CompositeIndex[];
   fieldOverrides: FieldOverride[];
 };
 
-/** Every non-test source file under src/, concatenated (about 5k files; read once). */
-function productionSource(): string {
-  const parts: string[] = [];
+/**
+ * Every quoted token in non-test source under src/ ('name', "name" or `name`), read once.
+ * Same answer as testing `['"\`]name['"\`]` against the joined source, but one pass: that
+ * regex per declared name took 10-18 s over 55 MB, near the 30 s timeout under disk load.
+ */
+let tokenCache: Map<string, Set<string>> | undefined;
+/** Each quoted token → the src-relative files that quote it. */
+function quotedTokenFiles(): Map<string, Set<string>> {
+  if (!tokenCache) {
+    tokenCache = new Map<string, Set<string>>();
+    for (const [rel, text] of productionSources())
+      for (const m of text.matchAll(/['"`]([^'"`\s]+)(?=['"`])/g)) {
+        const files = tokenCache.get(m[1]) ?? new Set<string>();
+        files.add(rel);
+        tokenCache.set(m[1], files);
+      }
+  }
+  return tokenCache;
+}
+function quotedTokens(): Set<string> {
+  return new Set(quotedTokenFiles().keys());
+}
+
+/** Every non-test source file under src/ (about 5k files), src-relative path → text. */
+function productionSources(): Map<string, string> {
+  const files = new Map<string, string>();
   const walk = (dir: string): void => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       if (entry.isDirectory()) {
         if (!['node_modules', '__tests__', 'tests'].includes(entry.name))
           walk(join(dir, entry.name));
       } else if (entry.name.endsWith('.ts') && !entry.name.includes('.test.')) {
-        parts.push(readFileSync(join(dir, entry.name), 'utf8'));
+        const path = join(dir, entry.name);
+        files.set(relative(srcDir, path), readFileSync(path, 'utf8'));
       }
     }
   };
   walk(srcDir);
-  return parts.join('\n');
+  return files;
 }
 
 describe('firestore.indexes.json field overrides', () => {
@@ -126,8 +201,30 @@ describe('firestore.indexes.json field overrides', () => {
           !o.indexes.some((i) => i.queryScope === 'COLLECTION' && i.order === 'ASCENDING') ||
           !o.indexes.some((i) => i.queryScope === 'COLLECTION' && i.order === 'DESCENDING')
       )
-      .map((o) => `${o.collectionGroup}.${o.fieldPath}`);
+      .map((o) => `${o.collectionGroup}.${o.fieldPath}`)
+      .filter((k) => !PROD_GROUP_ONLY_OVERRIDES.includes(k));
     expect(dropsDefaults).toEqual([]);
+  });
+
+  it('allows a group-only override only where prod has exactly that override', () => {
+    for (const key of PROD_GROUP_ONLY_OVERRIDES) {
+      const live = prodFields.get(key)?.indexConfig?.indexes ?? [];
+      expect(live.length, `${key} is not a prod override`).toBeGreaterThan(0);
+      expect(live.every((i) => i.queryScope === 'COLLECTION_GROUP')).toBe(true);
+      const declared = file.fieldOverrides.find(
+        (o) => `${o.collectionGroup}.${o.fieldPath}` === key
+      );
+      expect(declared?.indexes).toHaveLength(live.length);
+    }
+  });
+
+  it('declares only TTL policies prod already has', () => {
+    // A ttl:true entry prod lacks would switch on a new TTL policy (document deletion) in prod
+    // at the next index deploy. Add the policy in prod first (with Seth's OK), then here.
+    const ttls = file.fieldOverrides
+      .filter((o) => o.ttl)
+      .map((o) => `${o.collectionGroup}.${o.fieldPath}`);
+    expect(ttls.filter((k) => !prodTtls.has(k))).toEqual([]);
   });
 });
 
@@ -156,28 +253,45 @@ describe('firestore.indexes.json composite indexes', () => {
   it('declares no collection that no source file mentions', () => {
     // Catches name drift: proactive_checkin_calls / mcp_servers were declared while the code
     // queried family_checkin_calls / developer_mcp_servers, so the real queries had no index.
-    const source = productionSource();
+    const tokens = quotedTokens();
     const names = new Set([
       ...file.indexes.map((i) => i.collectionGroup),
       ...file.fieldOverrides.map((o) => o.collectionGroup),
     ]);
-    const mentioned = (n: string): boolean => new RegExp(`['"\`]${n}['"\`]`).test(source);
+    const mentioned = (n: string): boolean => tokens.has(n);
     const unreferenced = [...names].filter(
-      (n) => !mentioned(n) && !NOT_FERNI_COLLECTIONS.includes(n)
+      (n) => !mentioned(n) && !NOT_FERNI_COLLECTIONS.includes(n) && !NAMED_ONLY_IN_PATH_TEMPLATES[n]
     );
     expect(unreferenced).toEqual([]);
   });
 
+  it('finds each path-template collection in the file that builds its path', () => {
+    for (const [name, rel] of Object.entries(NAMED_ONLY_IN_PATH_TEMPLATES))
+      expect(readFileSync(join(srcDir, rel), 'utf8')).toContain(`/${name}`);
+  });
+
   it('lists only declared, unused names as not Ferni', () => {
-    const source = productionSource();
+    const quotedIn = quotedTokenFiles();
     const names = new Set([
       ...file.indexes.map((i) => i.collectionGroup),
       ...file.fieldOverrides.map((o) => o.collectionGroup),
     ]);
-    const stale = NOT_FERNI_COLLECTIONS.filter(
-      (n) => !names.has(n) || new RegExp(`['"\`]${n}['"\`]`).test(source)
-    );
+    const used = (n: string): boolean =>
+      [...(quotedIn.get(n) ?? [])].some((rel) => rel !== QUOTED_AS_NON_COLLECTION[n]);
+    const stale = NOT_FERNI_COLLECTIONS.filter((n) => !names.has(n) || used(n));
     expect(stale).toEqual([]);
+  });
+
+  it('excuses a quoted not-Ferni name only in its one file, and never as a collection', () => {
+    for (const [name, rel] of Object.entries(QUOTED_AS_NON_COLLECTION)) {
+      expect(NOT_FERNI_COLLECTIONS).toContain(name);
+      const text = readFileSync(join(srcDir, rel), 'utf8');
+      expect(text, `${rel} no longer quotes '${name}'; drop the entry`).toMatch(
+        new RegExp(`['"\`]${name}['"\`]`)
+      );
+      expect(text).not.toMatch(new RegExp(`collection(?:Group)?\\(\\s*['"\`]${name}\\b`));
+      expect(text).not.toMatch(new RegExp(`['"\`]${name}/`));
+    }
   });
 
   it('does not list a composite index twice', () => {
@@ -193,7 +307,20 @@ describe('firestore.indexes.json write-cost exemptions', () => {
     const exempt = file.fieldOverrides
       .filter((o) => o.indexes.length === 0)
       .map((o) => `${o.collectionGroup}.${o.fieldPath}`)
+      .filter((k) => !PROD_EXEMPT_TTL_FIELDS.includes(k))
       .sort();
     expect(exempt).toEqual(['memory_vectors.text', 'unified_memories.content', 'vectors.text']);
+  });
+
+  it('allows an exempt TTL field only where prod has it exempt, as a TTL policy', () => {
+    for (const key of PROD_EXEMPT_TTL_FIELDS) {
+      const live = prodFields.get(key);
+      expect(live?.ttlConfig, `${key} is not a prod TTL policy`).toBeTruthy();
+      expect(live?.indexConfig?.indexes ?? []).toEqual([]);
+      const declared = file.fieldOverrides.find(
+        (o) => `${o.collectionGroup}.${o.fieldPath}` === key
+      );
+      expect(declared).toMatchObject({ ttl: true, indexes: [] });
+    }
   });
 });

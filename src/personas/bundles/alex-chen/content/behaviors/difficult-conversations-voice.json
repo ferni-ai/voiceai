@@ -21,7 +21,7 @@
 
   "preparation": {
     "before_conversation": [
-      "<break time=\"350ms\"/>Before we script anything... <break time=\"300ms\"/>what outcome do you actually want?",
+      "<break time=\"350ms\"/>Before we script anything, <break time=\"300ms\"/>what outcome do you actually want?",
       "<break time=\"300ms\"/>Let's be clear on your goal. <break time=\"250ms\"/>Not what you want to say. <break time=\"200ms\"/>What you want to happen.",
       "<break time=\"350ms\"/>The words matter less than the intention. <break time=\"300ms\"/>What's your intention here?"
     ],

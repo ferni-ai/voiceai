@@ -74,9 +74,13 @@ public final class AccountStore {
         guard let backend, !isWorking else { return }
         isWorking = true
         defer { isWorking = false }
+        let before = user?.uid
         do {
-            state = .signedIn(try await backend.linkOrSignIn(apple: credential))
-            notice = nil
+            let signedIn = try await backend.linkOrSignIn(apple: credential)
+            state = .signedIn(signedIn)
+            // Landing on the Apple ID's existing account leaves this phone's earlier
+            // conversations with the account left behind: say so (critic M3).
+            notice = before != nil && before != signedIn.uid ? Self.switchedNotice : nil
         } catch {
             log.error("Apple sign-in failed: \(error.localizedDescription, privacy: .public)")
             notice = "That didn't go through. Your conversations are still here. Try again?"
@@ -108,6 +112,8 @@ public final class AccountStore {
     }
 
     public func clearNotice() { notice = nil }
+
+    static let switchedNotice = "This Apple ID already had a Ferni account, so you're on that one now. What you shared before signing in stays with the earlier account."
 
     /// The server API, asking this account for its ID token on every call.
     public func api(baseURL: URL) -> FerniAPI {

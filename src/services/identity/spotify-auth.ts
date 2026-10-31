@@ -37,9 +37,11 @@ interface TokenData {
 }
 
 let cachedTokens: TokenData | null = null;
-// Spotify answered invalid_grant for this refresh token: it is revoked, and
-// retrying cannot fix it. Only a different token (rotated secret) is tried.
+// invalid_grant: this refresh token is revoked and retrying cannot fix it; only a new one is tried.
 let revokedRefreshToken: string | null = null;
+/** True once Spotify has answered invalid_grant for the refresh token in use. */
+export const isSpotifyRefreshRevoked = (): boolean =>
+  revokedRefreshToken !== null && cachedTokens?.refresh_token === revokedRefreshToken;
 
 // ============================================================================
 // MUTEX FOR THREAD-SAFE TOKEN REFRESH
@@ -197,9 +199,7 @@ export async function getSpotifyAccessToken(forceRefresh = false): Promise<strin
   }
   const needsRefresh = forceRefresh || !cachedTokens.access_token || isTokenExpired(cachedTokens);
   if (needsRefresh && cachedTokens.refresh_token === revokedRefreshToken) return null;
-
-  // Check if we need to refresh (or forced)
-  if (forceRefresh || !cachedTokens.access_token || isTokenExpired(cachedTokens)) {
+  if (needsRefresh) {
     // Use mutex to prevent multiple simultaneous refreshes
     if (refreshInProgress) {
       getLogger().debug('🎵 Token refresh already in progress, waiting...');

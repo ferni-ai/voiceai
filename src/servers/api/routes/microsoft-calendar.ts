@@ -6,7 +6,12 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { consumeOAuthLinkState, peekOAuthLinkState } from '../../token/oauth-link-state.js';
+import {
+  consumeOAuthLinkState,
+  peekOAuthLinkState,
+  pkceVerifierFor,
+} from '../../token/oauth-link-state.js';
+import * as ol from '../../../services/calendar/index.js';
 import { outlookCalendarProvider } from '../../../services/calendar/providers/outlook-provider.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getVerifiedUserId } from '../request-identity.js';
@@ -29,6 +34,56 @@ const MICROSOFT_SCOPES = [
   'User.Read',
   'Calendars.ReadWrite',
 ].join(' ');
+
+/** OUTLOOK_CONNECT authorize params: PKCE S256 and the calendar scopes; null without our cookie. */
+function pkceParams(req: IncomingMessage, state: string): Record<string, string> | null {
+  const verifier = pkceVerifierFor(req, state);
+  if (!verifier) return null;
+  const challenge = ol.pkceChallenge(verifier);
+  return { scope: ol.OUTLOOK_SCOPES, code_challenge: challenge, code_challenge_method: 'S256' };
+}
+
+/** OUTLOOK_CONNECT callback: trade the code with its verifier, seal the grant; where to send the browser. */
+async function finishOutlookConnect(
+  req: IncomingMessage,
+  link: { uid: string; returnUrl: string },
+  code: string | null,
+  state: string | null
+): Promise<string> {
+  const verifier = state ? pkceVerifierFor(req, state) : null;
+  const saved =
+    code && verifier
+      ? await ol.outlookConnect(link.uid, code, MICROSOFT_REDIRECT_URI, verifier)
+      : 'failed';
+  log.info({ provider: PROVIDER, outcome: saved }, 'Microsoft OAuth callback');
+  if (saved === 'no_key') return '/?calendar_error=storage_unavailable';
+  if (saved !== 'saved') return '/?calendar_error=token_exchange_failed';
+  return `${link.returnUrl}${link.returnUrl.includes('?') ? '&' : '?'}calendar=outlook&status=connected`;
+}
+
+/** Status: an Outlook link doc that can't be read answers 503, never linked:true or false. */
+async function statusLinked(res: ServerResponse, userId: string): Promise<boolean | null> {
+  try {
+    return await ol.outlookStatusLinked(userId, () => outlookCalendarProvider.isConnected(userId));
+  } catch {
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: "Couldn't check the Microsoft Calendar link, try again" }));
+    return null;
+  }
+}
+
+/** Unlink: the sealed grant goes whatever OUTLOOK_CONNECT says; a failed delete answers 500. */
+async function deleteSealedGrant(res: ServerResponse, userId: string): Promise<boolean> {
+  try {
+    await ol.outlookDisconnect(userId);
+    return true;
+  } catch (err) {
+    log.error({ error: (err as Error).message }, 'Microsoft Calendar unlink failed');
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: "Couldn't disconnect Microsoft Calendar, try again" }));
+    return false;
+  }
+}
 
 /**
  * Handle Microsoft Calendar OAuth routes
@@ -55,7 +110,9 @@ export async function handleMicrosoftCalendarRoutes(
 
     const state = parsedUrl.searchParams.get('state');
     const record = await peekOAuthLinkState(state, PROVIDER);
-    if (!state || !record) {
+    // OUTLOOK_CONNECT: PKCE from the browser binding, and only the scopes the calendar needs.
+    const extra = state && ol.outlookConnectOn() ? pkceParams(req, state) : {};
+    if (!state || !record || !extra) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Sign in required', connect: CONNECT }));
       return true;
@@ -66,6 +123,7 @@ export async function handleMicrosoftCalendarRoutes(
     authUrl.searchParams.set('redirect_uri', MICROSOFT_REDIRECT_URI);
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('scope', MICROSOFT_SCOPES);
+    for (const [key, value] of Object.entries(extra)) authUrl.searchParams.set(key, value);
     authUrl.searchParams.set('prompt', 'consent');
     authUrl.searchParams.set('state', state);
 
@@ -100,6 +158,11 @@ export async function handleMicrosoftCalendarRoutes(
 
     try {
       const userId = stateData.uid;
+      if (ol.outlookConnectOn()) {
+        res.writeHead(302, { Location: await finishOutlookConnect(req, stateData, code, state) });
+        res.end();
+        return true;
+      }
 
       // Use the provider to handle the callback
       const success = await outlookCalendarProvider.handleAuthCallback(
@@ -138,7 +201,8 @@ export async function handleMicrosoftCalendarRoutes(
     }
 
     const configured = outlookCalendarProvider.isConfigured();
-    const connected = await outlookCalendarProvider.isConnected(userId);
+    const connected = await statusLinked(res, userId);
+    if (connected === null) return true;
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(
@@ -161,6 +225,7 @@ export async function handleMicrosoftCalendarRoutes(
       return true;
     }
 
+    if (!(await deleteSealedGrant(res, userId))) return true;
     await outlookCalendarProvider.disconnect(userId);
     log.info({ userId }, 'Microsoft Calendar unlinked');
 

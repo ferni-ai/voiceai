@@ -835,7 +835,6 @@ async function execute(
     try {
       const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
       const db = getAdminFirestore();
-
       const snapshot = await db
         .collection('bogle_users')
         .doc(ctx.userId)
@@ -852,7 +851,8 @@ async function execute(
         const data = doc.data();
         const date = data.createdAt?.toDate?.()?.toLocaleDateString() || 'recently';
         const mood = data.mood ? ` (${data.mood})` : '';
-        return `📔 ${date}${mood}: ${data.entry?.slice(0, 50)}...`;
+        const text: unknown = data.content ?? data.entry; // a Chronicle edit clears `entry`
+        return `📔 ${date}${mood}: ${typeof text === 'string' ? text.slice(0, 50) : ''}...`;
       });
 
       return `Recent journal entries:\n${entries.join('\n')}`;

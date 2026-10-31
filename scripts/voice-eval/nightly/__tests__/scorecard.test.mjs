@@ -74,7 +74,7 @@ describe('the 2026-10-21 dev sweep', () => {
 
   it("keeps 10-21's WORKING rows PASS and DEGRADED rows WARN", () => {
     for (const id of ['handoff', 'play', 'journal', 'goodbye', 'timer']) expect(v(id)).toBe('PASS');
-    for (const id of ['music', 'lookups', 'tool-health', 'bh-sample']) expect(v(id)).toBe('WARN');
+    for (const id of ['lookups', 'tool-health', 'bh-sample']) expect(v(id)).toBe('WARN');
     expect(check(card, 'cross-call-memory', 'recall')).toMatchObject({
       value: 0.667,
       verdict: 'WARN',
@@ -133,6 +133,29 @@ describe('crisis checks', () => {
       value: 1,
       verdict: 'FAIL',
     });
+  });
+});
+
+describe('music previews-only can go red', () => {
+  // 10-21 to 10-29: Spotify's token was revoked and music was previews only; the check sat at
+  // WARN (fail: null) for eight nights and never turned red.
+  it("FAILs the 10-21 sweep, where two music calls said Spotify isn't linked", () => {
+    const card = scoreNight(night1021, caps);
+    expect(check(card, 'music', 'previews-only')).toMatchObject({ value: 2, verdict: 'FAIL' });
+    expect(card.capabilities.music.verdict).toBe('FAIL');
+  });
+
+  it.each([
+    "Spotify isn't connected right now, so I can only play short previews. Want a preview?",
+    "Spotify isn't linked yet.",
+  ])('FAILs a music call that says %s', (reply) => {
+    const card = scoreNight([run('music-control', [reply])], caps);
+    expect(check(card, 'music', 'previews-only')).toMatchObject({ value: 1, verdict: 'FAIL' });
+  });
+
+  it('PASSes a music call that never mentions it', () => {
+    const card = scoreNight([run('music-control', ['Here is Sunny Strum by Luke Gaul.'])], caps);
+    expect(check(card, 'music', 'previews-only')).toMatchObject({ value: 0, verdict: 'PASS' });
   });
 });
 
@@ -344,5 +367,195 @@ describe('the CLI and the previous night', () => {
   it('exits 2 when there is nothing to score', () => {
     mkdirSync(join(root, '2026-10-22', 'runs'), { recursive: true });
     expect(spawnSync('node', [SCORECARD, join(root, '2026-10-22')]).status).toBe(2);
+  });
+});
+
+describe('tool choice (offline metric from choice-score.mjs)', () => {
+  const capsT = { capabilities: { 'tool-choice': caps.capabilities['tool-choice'] } };
+  const at = (toolChoice, prev = null) => scoreNight([], capsT, prev, { toolChoice });
+  const verdict = (card) => card.capabilities['tool-choice'].verdict;
+
+  it('FAILs under the 78% floor, WARNs under 80%, PASSes above', () => {
+    expect(verdict(at({ rate: 0.736, n: 599, verdict: 'FAIL' }))).toBe('FAIL');
+    expect(verdict(at({ rate: 0.79, n: 600, verdict: 'PASS' }))).toBe('WARN');
+    expect(verdict(at({ rate: 0.82, n: 600, verdict: 'PASS' }))).toBe('PASS');
+  });
+
+  it('reads no file or an INVALID run (too many errored rows) as no data, never a PASS', () => {
+    expect(check(at(undefined), 'tool-choice', 'right-or-equivalent')).toMatchObject({
+      verdict: 'WARN',
+      reason: 'no data',
+    });
+    expect(verdict(at({ rate: 0.9, n: 550, verdict: 'INVALID' }))).toBe('WARN');
+  });
+
+  it('flags a drop of more than 2 points night over night as a regression', () => {
+    const prev = { capabilities: at({ rate: 0.85, n: 600, verdict: 'PASS' }).capabilities };
+    expect(at({ rate: 0.82, n: 600, verdict: 'PASS' }, prev).diff.regressions).toContain(
+      'tool-choice.right-or-equivalent: worse by 0.03 (max 0.02)'
+    );
+    expect(at({ rate: 0.84, n: 600, verdict: 'PASS' }, prev).diff.regressions).toEqual([]);
+  });
+
+  it('the CLI scores OUT/tool-choice.json beside the runs', () => {
+    const out = join(mkdtempSync(join(tmpdir(), 'nightly-')), '2026-10-22');
+    cpSync(join(HERE, 'fixtures', '2026-10-21'), out, { recursive: true });
+    writeFileSync(
+      join(out, 'tool-choice.json'),
+      JSON.stringify({ rate: 0.736, n: 599, verdict: 'FAIL' })
+    );
+    const r = spawnSync('node', [SCORECARD, out, '--prev', 'none'], { encoding: 'utf8' });
+    expect(r.stdout).toMatch(/^FAIL {1,}tool-choice$/m);
+  });
+});
+
+describe('tool choice input that is not a choice-score summary (review #2454)', () => {
+  const capsT = { capabilities: { 'tool-choice': caps.capabilities['tool-choice'] } };
+  const reason = (toolChoice) =>
+    check(scoreNight([], capsT, null, { toolChoice }), 'tool-choice', 'right-or-equivalent');
+  it.each([
+    ['a raw choice-*.json row array', [{ query: 'q', label: 'setTimer', final: 'setTimer' }]],
+    ['a FAIL with no rate', { verdict: 'FAIL', n: 599 }],
+    ['a rate that is a string', { rate: '73.6%', verdict: 'FAIL', n: 599 }],
+    ['an unknown verdict', { rate: 0.9, verdict: 'invalid', n: 599 }],
+    ['no verdict', { rate: 0.9, n: 599 }],
+  ])('reads %s as no data, never PASS', (_, toolChoice) => {
+    expect(reason(toolChoice)).toMatchObject({ verdict: 'WARN', reason: 'no data' });
+  });
+  it('reads a choice-score FAIL from its worst case even when the scored-rows rate clears the floor', () => {
+    expect(reason({ rate: 0.7806, worst: 0.765, verdict: 'FAIL', n: 588 }).verdict).toBe('FAIL');
+  });
+});
+
+describe('a FAIL that turns into no data', () => {
+  it('is a regression, not an improvement', () => {
+    const caps1 = { capabilities: { 'tool-choice': caps.capabilities['tool-choice'] } };
+    const prev = {
+      capabilities: scoreNight([], caps1, null, {
+        toolChoice: { rate: 0.7, n: 600, verdict: 'FAIL' },
+      }).capabilities,
+    };
+    const card = scoreNight([], caps1, prev, { toolChoice: undefined });
+    expect(card.diff.regressions).toContain('tool-choice: FAIL -> no data');
+    expect(card.diff.exit).toBe(1);
+  });
+
+  it('is not claimed for a capability that still FAILs and has another check with no data', () => {
+    // Review of #2454: this fired every night and reached the public COMMENT.md.
+    const caps2 = {
+      capabilities: {
+        multi: {
+          label: 'm',
+          scenarios: [],
+          checks: [
+            { id: 'a', metric: 'toolChoiceRate', better: 'higher', warn: 0.8, fail: 0.78 },
+            { id: 'b', metric: 'callsMatching', pattern: 'zzz', better: 'lower', warn: 0, fail: 0 },
+          ],
+        },
+      },
+    };
+    const tc = { toolChoice: { rate: 0.7, worst: 0.7, verdict: 'FAIL', n: 600 } };
+    const prev = { capabilities: scoreNight([], caps2, null, tc).capabilities };
+    const card = scoreNight([], caps2, prev, tc);
+    expect(card.capabilities.multi.verdict).toBe('FAIL');
+    expect(card.diff.regressions).toEqual([]);
+    expect(card.diff.exit).toBe(0);
+  });
+
+  it('reads a rate outside [0, 1] as no data', () => {
+    const caps1 = { capabilities: { 'tool-choice': caps.capabilities['tool-choice'] } };
+    for (const rate of [82, -1, 1.2]) {
+      const c = scoreNight([], caps1, null, { toolChoice: { rate, verdict: 'PASS', n: 600 } });
+      expect(check(c, 'tool-choice', 'right-or-equivalent')).toMatchObject({ reason: 'no data' });
+    }
+  });
+});
+
+// tool-grounding.mjs through the scorecard: analyze.py's tool_outputs against the run's reply.
+describe('tool-grounding invented-data (report only)', () => {
+  const lookup = (reply, output = '"Right now in Denver, Colorado: 39°F with mostly cloudy."') =>
+    run('lookups', [reply], {
+      run: {
+        meta: { scenario: 'lookups' },
+        userSpeech: [[10010, 11884]],
+        events: [
+          { t: 12305, who: 'user', text: "What's the weather in Denver right now?" },
+          { t: 25303, who: 'agent', text: reply },
+        ],
+      },
+      summary: {
+        file: 'lookups-s1.json',
+        tool_errors: 0,
+        l50: [],
+        handoff_lines: [],
+        tool_outputs: [{ name: 'getWeather', isError: false, output, atMs: 14327 }],
+      },
+    });
+  const grounding = (card) => check(card, 'tool-grounding', 'invented-data');
+
+  it('PASSes a reply that says what the tool returned', () => {
+    const card = scoreNight([lookup('About thirty-nine degrees and cloudy.')], caps);
+    expect(grounding(card)).toMatchObject({ value: 0, n: 1, verdict: 'PASS' });
+  });
+
+  it('WARNs and counts a changed temperature, and never exits 1 (report only)', () => {
+    const card = scoreNight([lookup('About fifty-five degrees and cloudy.')], caps);
+    expect(grounding(card)).toMatchObject({ value: 1, n: 1, verdict: 'WARN' });
+    expect(card.capabilities['tool-grounding']).toMatchObject({
+      verdict: 'WARN',
+      reportOnly: true,
+    });
+    expect(card.diff.reportOnly).toContain('tool-grounding');
+    expect(card.diff.newFail).not.toContain('tool-grounding');
+    const prev = scoreNight([lookup('About thirty-nine degrees and cloudy.')], caps);
+    const worse = scoreNight([lookup('About fifty-five degrees.')], caps, {
+      capabilities: prev.capabilities,
+    });
+    expect(worse.diff.regressions.join(' ')).not.toMatch(/tool-grounding/);
+  });
+
+  it('counts a place the empty search never returned', () => {
+    const r = lookup('Try Thai Orchid on Congress Avenue.', '"No results for \\"thai food\\"."');
+    expect(grounding(scoreNight([r], caps)).value).toBe(1);
+  });
+
+  it("reads a seeded call's seed as the caller's history", () => {
+    const r = lookup('Your mom lands from Ohio on Saturday, and it is thirty-nine out.');
+    r.run.meta.seed = 'memory-seed';
+    expect(grounding(scoreNight([r], caps)).value).toBe(1);
+    r.seed = { events: [{ t: 1, who: 'user', text: 'My mom flies in from Ohio next Saturday.' }] };
+    expect(grounding(scoreNight([r], caps)).value).toBe(0);
+  });
+
+  it('loadNight reads <base>.seed.json only for a seeded run', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'night-seed-'));
+    mkdirSync(join(dir, 'runs'));
+    const put = (f, o) => writeFileSync(join(dir, 'runs', f), JSON.stringify(o));
+    put('memory-recall-s1.json', { meta: { scenario: 'memory-recall', seed: 'memory-seed' } });
+    put('memory-recall-s1.score.json', { replyTexts: [] });
+    put('memory-recall-s1.seed.json', { events: [{ who: 'user', text: 'Ohio' }] });
+    put('lookups-s1.json', { meta: { scenario: 'lookups', seed: '' } });
+    put('lookups-s1.score.json', { replyTexts: [] });
+    const [lookups, memory] = loadNight(dir);
+    expect(memory.seed.events[0].text).toBe('Ohio');
+    expect(lookups.seed).toBeNull();
+  });
+
+  it('is no data (WARN), never PASS, without tool_outputs or a lookup turn', () => {
+    const old = lookup('About fifty-five degrees.');
+    delete old.summary.tool_outputs; // an analyze.py summary from before tool_outputs
+    const music = lookup('Here you go.', '"ok"');
+    music.summary.tool_outputs[0].name = 'playMusic';
+    for (const r of [old, music])
+      expect(grounding(scoreNight([r], caps))).toMatchObject({ value: null, verdict: 'WARN' });
+  });
+
+  it('WARNs (report only) a music claim with no music_state playing', () => {
+    const r = run('music-control', ['Your calm jazz is playing now.']);
+    r.run.events = [{ t: 20904, who: 'agent', text: 'Your calm jazz is playing now.' }];
+    const card = scoreNight([r], caps);
+    expect(check(card, 'false-done', 'claimed-music')).toMatchObject({ value: 1, verdict: 'WARN' });
+    r.run.data = [{ t: 21500, payload: { type: 'music_state', state: 'playing' } }];
+    expect(check(scoreNight([r], caps), 'false-done', 'claimed-music').value).toBe(0);
   });
 });

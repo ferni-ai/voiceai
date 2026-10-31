@@ -9,9 +9,10 @@
  * the avatar (breathing, speaking pulse, GSAP reactions) and never touch
  * style.transform.
  *
- * Off by default. Turn on: localStorage.setItem('ferni:spring-body', 'true')
+ * Off by default: the springBody switch in config/motion-flags.ts.
  */
 
+import { isMotionFlagOn } from '../../config/motion-flags.js';
 import { createLogger } from '../../utils/logger.js';
 import { addTransformLayer, type TransformLayer } from './compositor.js';
 import {
@@ -25,7 +26,6 @@ import {
 
 const log = createLogger('SpringBody');
 
-export const SPRING_BODY_FLAG_KEY = 'ferni:spring-body';
 export const SPRING_BODY_TURN_EVENT = 'ferni:avatar-turn';
 
 /** Matches Speaker in speaker-cues.ui.ts (the turn driver's event names). */
@@ -218,11 +218,7 @@ export function createSpringBody(deps: SpringBodyDeps): SpringBody {
 }
 
 export function isSpringBodyEnabled(): boolean {
-  try {
-    return localStorage.getItem(SPRING_BODY_FLAG_KEY) === 'true';
-  } catch {
-    return false;
-  }
+  return isMotionFlagOn('springBody');
 }
 
 function prefersReducedMotion(): boolean {

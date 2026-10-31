@@ -113,6 +113,7 @@ export interface JournalQueryOptions {
   /** Sort order */
   sortBy?: 'createdAt' | 'mood';
   sortOrder?: 'asc' | 'desc';
+  fresh?: boolean; // read the stores even when this process has the list cached
 }
 
 /**
@@ -151,10 +152,9 @@ class JournalService {
     userId: string,
     options: JournalQueryOptions = {}
   ): Promise<UnifiedJournalEntry[]> {
-    const cacheKey = `${userId}:${JSON.stringify(options)}`;
-
-    // Check cache
-    if (this.isCacheValid(cacheKey)) {
+    const { fresh, ...query } = options; // fresh: another process may have changed the stores
+    const cacheKey = `${userId}:${JSON.stringify(query)}`;
+    if (!fresh && this.isCacheValid(cacheKey)) {
       return this.entryCache.get(cacheKey) || [];
     }
 

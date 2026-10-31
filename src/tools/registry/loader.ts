@@ -156,13 +156,12 @@ export async function loadToolDomain(
  * Internal domain loading implementation (separated for race condition handling)
  */
 // =========================================================================
-// DOMAIN ALIASES (Feb 2026)
-// Redirect deprecated/renamed domain names to their current equivalents.
-// This prevents "No loader registered" errors when stale references exist
-// in build artifacts, dynamic configs, or ONNX label maps.
+// DOMAIN ALIASES: a domain loaded through another domain's module, either a renamed
+// one (stale names in build artifacts, configs, ONNX label maps) or one a module serves.
 // =========================================================================
 const DOMAIN_ALIASES: Record<string, ToolDomain> = {
   'wisdom-intelligence': 'wisdom', // Merged into wisdom/ domain (Jan 2026)
+  'lifx-lights': 'smart-home', // SMART_HOME_LIFX: smart-home/index.ts serves the two light tools
 };
 
 async function doLoadDomain(domain: ToolDomain, options: { isLazy?: boolean }): Promise<number> {
@@ -639,7 +638,7 @@ export async function autoRegisterAllDomains(): Promise<void> {
         import('../domains/marketing/index.js').then(async (m) => m.getToolDefinitions()),
     },
 
-    // === SMART HOME DOMAIN (Home Assistant integration) ===
+    // === SMART HOME DOMAIN ===
     {
       name: 'smart-home' as ToolDomain,
       loader: async () =>
@@ -887,7 +886,7 @@ export async function autoRegisterAllDomains(): Promise<void> {
         ),
     },
 
-    // === LOCAL SEARCH DOMAIN (Google Places + Yelp) ===
+    // === LOCAL SEARCH DOMAIN (Google Places) ===
     {
       name: 'local-search' as ToolDomain,
       loader: async () =>
@@ -1014,7 +1013,7 @@ export async function autoRegisterAllDomains(): Promise<void> {
   // FIX: Sanity check - THROW if domains are missing (not just log)
   // Missing domains is a critical bug that prevents tools from being available
   const registeredDomainNames = new Set(domains.map((d) => d.name));
-  const missingDomains = ALL_TOOL_DOMAINS.filter((d) => !registeredDomainNames.has(d));
+  const missingDomains = ALL_TOOL_DOMAINS.filter((d) => !registeredDomainNames.has(DOMAIN_ALIASES[d] ?? d));
   if (missingDomains.length > 0) {
     const errorMsg = `CRITICAL: autoRegisterAllDomains is missing ${missingDomains.length} domains: ${missingDomains.join(', ')}. Tools will not be available!`;
     getLogger().error({ missingDomains }, `❌ ${errorMsg}`);

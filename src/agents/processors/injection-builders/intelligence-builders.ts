@@ -20,73 +20,94 @@ import type {
   PersonaContextBuilder,
 } from './types.js';
 import { isMemberIdentity } from '../../../services/identity/member-identity.js';
+import { flagOn } from '../../../config/env-flag.js';
+import type { FlagName } from '../../../config/flag-manifest.js';
+import { isKnownId, toCanonical, type CanonicalPersonaId } from '../../../personas/index.js';
 
 // ============================================================================
-// PERSONA BUILDER CACHE (lazy-loaded)
+// PERSONA BUILDERS (lazy-loaded, keyed by canonical persona id)
 // ============================================================================
 
-const personaBuilderCache = new Map<string, PersonaContextBuilder>();
+interface PersonaBuilderEntry {
+  /** Off-by-default flag a builder waits behind until it is fixed. */
+  flag?: FlagName;
+  load: () => Promise<PersonaContextBuilder>;
+}
 
+/**
+ * Each teammate's own briefing builder, keyed by the canonical ids in
+ * personas/persona-ids.ts. Keyed by bare names before #2836, so the live ids
+ * maya-santos, jordan-taylor, alex-chen and nayan-patel matched nothing and
+ * those four builders never ran on a call. Each now waits behind its own flag
+ * (src/config/flags/PERSONA_BRIEFING_*.ts says what is wrong with it).
+ */
+const PERSONA_BUILDERS: Partial<Record<CanonicalPersonaId, PersonaBuilderEntry>> = {
+  ferni: {
+    load: async () =>
+      (
+        await import('../../../intelligence/context-builders/personas/ferni-coordinator-insights.js')
+      ).buildFerniCoordinatorIntelligenceContext,
+  },
+  'peter-john': {
+    load: async () =>
+      (
+        await import('../../../intelligence/context-builders/personas/peter-research-insights/index.js')
+      ).buildPeterResearchInsightsContext,
+  },
+  'maya-santos': {
+    flag: 'PERSONA_BRIEFING_MAYA',
+    load: async () =>
+      (
+        await import('../../../intelligence/context-builders/personas/maya-coaching-insights/index.js')
+      ).buildMayaCoachingInsightsContext,
+  },
+  'jordan-taylor': {
+    flag: 'PERSONA_BRIEFING_JORDAN',
+    load: async () =>
+      (
+        await import('../../../intelligence/context-builders/personas/jordan-milestone-insights/index.js')
+      ).buildJordanMilestoneInsightsContext,
+  },
+  'alex-chen': {
+    flag: 'PERSONA_BRIEFING_ALEX',
+    load: async () =>
+      (
+        await import('../../../intelligence/context-builders/personas/alex-communication-insights/index.js')
+      ).buildAlexCommunicationInsightsContext,
+  },
+  'nayan-patel': {
+    flag: 'PERSONA_BRIEFING_NAYAN',
+    load: async () =>
+      (
+        await import('../../../intelligence/context-builders/personas/nayan-wisdom-insights/index.js')
+      ).buildNayanWisdomInsightsContext,
+  },
+  'joel-dickson': {
+    load: async () =>
+      (
+        await import('../../../intelligence/context-builders/personas/joel-dickson-insights/index.js')
+      ).buildLifeMentorInsightsContext,
+  },
+};
+
+const personaBuilderCache = new Map<CanonicalPersonaId, PersonaContextBuilder>();
+
+/**
+ * The briefing builder for a persona id or alias, or null when the persona has
+ * none, its flag is off, or the id is unknown (a custom agent is not Ferni).
+ */
 async function getPersonaBuilder(personaId: string): Promise<PersonaContextBuilder | null> {
-  const cached = personaBuilderCache.get(personaId);
+  // persona.id comes from runtime config; a missing id gets no builder rather than a throw.
+  if (typeof personaId !== 'string' || !isKnownId(personaId)) return null;
+  const canonical = toCanonical(personaId);
+  const entry = PERSONA_BUILDERS[canonical];
+  if (!entry || (entry.flag && !flagOn(entry.flag))) return null;
+
+  const cached = personaBuilderCache.get(canonical);
   if (cached) return cached;
-
   try {
-    let builder: PersonaContextBuilder | null = null;
-
-    switch (personaId.toLowerCase()) {
-      case 'peter':
-      case 'peter-john':
-      case 'the-quant': {
-        const mod =
-          await import('../../../intelligence/context-builders/personas/peter-research-insights/index.js');
-        builder = mod.buildPeterResearchInsightsContext;
-        break;
-      }
-      case 'maya': {
-        const mod =
-          await import('../../../intelligence/context-builders/personas/maya-coaching-insights/index.js');
-        builder = mod.buildMayaCoachingInsightsContext;
-        break;
-      }
-      case 'jordan': {
-        const mod =
-          await import('../../../intelligence/context-builders/personas/jordan-milestone-insights/index.js');
-        builder = mod.buildJordanMilestoneInsightsContext;
-        break;
-      }
-      case 'alex': {
-        const mod =
-          await import('../../../intelligence/context-builders/personas/alex-communication-insights/index.js');
-        builder = mod.buildAlexCommunicationInsightsContext;
-        break;
-      }
-      case 'nayan': {
-        const mod =
-          await import('../../../intelligence/context-builders/personas/nayan-wisdom-insights.js');
-        builder = mod.buildNayanWisdomInsightsContext;
-        break;
-      }
-      case 'ferni': {
-        const mod =
-          await import('../../../intelligence/context-builders/personas/ferni-coordinator-insights.js');
-        builder = mod.buildFerniCoordinatorIntelligenceContext;
-        break;
-      }
-      case 'joel':
-      case 'joel-dickson': {
-        const mod =
-          await import('../../../intelligence/context-builders/personas/joel-dickson-insights/index.js');
-        builder = mod.buildLifeMentorInsightsContext;
-        break;
-      }
-      default:
-        return null;
-    }
-
-    if (builder) {
-      personaBuilderCache.set(personaId.toLowerCase(), builder);
-    }
+    const builder = await entry.load();
+    personaBuilderCache.set(canonical, builder);
     return builder;
   } catch (error) {
     diag.debug(`Failed to load persona builder for ${personaId}`, { error: String(error) });

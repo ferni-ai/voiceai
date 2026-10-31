@@ -37,6 +37,9 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
 COPY tsconfig.json ./
 COPY src/ ./src/
 COPY design-system/ ./design-system/
+# The flag barrel and env-name list are gitignored, and --ignore-scripts above skips
+# postinstall, so generate them here. Without them every import of flag-manifest fails.
+RUN pnpm exec tsx src/config/generated-lists.ts
 
 ENV NODE_ENV=production
 ENV PORT=8080

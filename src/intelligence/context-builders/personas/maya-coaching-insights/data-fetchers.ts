@@ -99,7 +99,6 @@ export async function analyzeMoodIntelligence(userId: string): Promise<MoodIntel
   const intelligence: MoodIntelligence = {
     recentMoodTrend: 'unknown',
     averageEnergy: 0,
-    optimalCoachingTime: null,
     moodHabitCorrelations: [],
     currentState: null,
     energyPatterns: [],
@@ -142,28 +141,7 @@ export async function analyzeMoodIntelligence(userId: string): Promise<MoodIntel
       }
     }
 
-    // Optimal coaching time (based on when energy is highest)
-    const hourlyEnergy: Record<number, number[]> = {};
-    for (const moodLog of moodLogs) {
-      const hour = new Date(moodLog.date).getHours();
-      if (!hourlyEnergy[hour]) hourlyEnergy[hour] = [];
-      hourlyEnergy[hour].push(moodLog.energy);
-    }
-
-    let bestHour = -1;
-    let bestEnergy = 0;
-    for (const [hour, energies] of Object.entries(hourlyEnergy)) {
-      const avg = energies.reduce((a, b) => a + b, 0) / energies.length;
-      if (avg > bestEnergy) {
-        bestEnergy = avg;
-        bestHour = parseInt(hour);
-      }
-    }
-
-    if (bestHour >= 0) {
-      const period = bestHour < 12 ? 'morning' : bestHour < 17 ? 'afternoon' : 'evening';
-      intelligence.optimalCoachingTime = period;
-    }
+    // Best hour of day returns once a member timezone exists: the server clock is not theirs (#3044).
 
     // Energy patterns
     if (intelligence.averageEnergy < 2.5) {

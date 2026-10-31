@@ -56,7 +56,7 @@ export const financialPredictionBuilder: ContextBuilder = {
     if (!userId) return [];
 
     // Check if user has Plaid connected
-    if (!hasLinkedAccounts(userId)) {
+    if (!(await hasLinkedAccounts(userId))) {
       return [];
     }
 

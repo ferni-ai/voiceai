@@ -142,7 +142,7 @@ export interface ConciergeTarget {
   website?: string;
 
   // Source
-  source: 'google_places' | 'yelp' | 'user_contacts' | 'manual' | 'previous';
+  source: 'google_places' | 'user_contacts' | 'manual' | 'previous';
   sourceId?: string; // e.g., Google Place ID
   rating?: number;
   priceLevel?: number; // 1-4
@@ -220,10 +220,6 @@ export interface ConciergeResultData {
   // Additional notes
   notes?: string;
   caveats?: string[];
-
-  // Reply content (from SMS/email webhooks)
-  messageBody?: string;
-  emailBody?: string;
 }
 
 export interface ConciergeRecommendation {

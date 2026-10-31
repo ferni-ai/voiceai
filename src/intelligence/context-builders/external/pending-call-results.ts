@@ -22,8 +22,10 @@
  * - Uses unified-result-capture.ts for storage/retrieval
  */
 
+import { flagOn } from '../../../config/env-flag.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { CALLER_TEXT_GUARD, reportedFromCall } from '../../../services/outreach/caller-text.js';
+import { voicemailWords } from '../../../services/outreach/voicemail-outcome.js';
 
 const log = createLogger({ module: 'PendingBackgroundResults' });
 
@@ -41,6 +43,8 @@ interface PendingCallResult {
   actionItems?: string[];
   capturedAt: string;
   delivered?: boolean;
+  /** status 'voicemail' only: Ferni really spoke a message (voicemail-outcome.ts). */
+  voicemailLeft?: boolean;
 }
 
 // ============================================================================
@@ -95,6 +99,7 @@ export async function getPendingCallResults(userId: string): Promise<PendingCall
         objectiveAchieved: data.outcome?.objectiveAchieved ?? true,
         callbackRequired: data.outcome?.callbackRequired ?? false,
         actionItems: data.outcome?.actionItems,
+        voicemailLeft: data.outcome?.voicemailLeft === true,
         capturedAt: data.capturedAt,
         delivered: data.delivered,
       });
@@ -184,7 +189,8 @@ export async function buildPendingCallResultsContext(userId: string): Promise<st
     if (result.objectiveAchieved) {
       body.push(`✅ **SUCCESS**: ${result.outcome}`);
     } else if (result.status === 'voicemail') {
-      body.push(`📞 **Left voicemail**: ${result.outcome}`);
+      const { label } = voicemailWords(result.voicemailLeft, result.contactName);
+      body.push(`📞 **${label}**: ${result.outcome}`);
     } else if (result.status === 'no_answer') {
       body.push(`📞 **No answer**: ${result.outcome}`);
     } else if (result.status === 'busy') {
@@ -207,15 +213,16 @@ export async function buildPendingCallResultsContext(userId: string): Promise<st
   lines.push('**How to tell them:**');
   lines.push('- Weave it naturally into your greeting');
   lines.push("- If successful: 'Oh! While you were away, I called [name] - [outcome]!'");
-  lines.push("- If voicemail: 'I tried calling [name] for you - left a voicemail.'");
+  lines.push('- If voicemail: say only what the line above says (a message left, or none).');
   lines.push(
     "- If failed: 'I tried reaching [name] but couldn't get through. Want me to try again?'"
   );
   lines.push('');
 
-  // Mark as delivered (fire and forget - don't block on this)
+  // Delivered as built (fire and forget) only with CALL_REPORT_REACHES_YOU off; on, once a reply
+  // carries it (call-report.ts).
   const callIds = results.map((r) => r.callId);
-  void markCallResultsDelivered(userId, callIds);
+  if (!flagOn('CALL_REPORT_REACHES_YOU')) void markCallResultsDelivered(userId, callIds);
 
   return lines.join('\n');
 }

@@ -24,7 +24,7 @@
  * @module agents/multi-agent/resume-buffer
  */
 import { voice } from '@livekit/agents';
-import type { AudioFrame } from '@livekit/rtc-node';
+import { AudioFrame } from '@livekit/rtc-node';
 
 /** More than the room output can queue (rtc AudioSource, 1 s by default). */
 const KEEP_MS = 1500;
@@ -48,6 +48,14 @@ const queuedMs = (output: Queued | undefined): number | null =>
 
 const frameMs = (f: AudioFrame): number => (f.samplesPerChannel / f.sampleRate) * 1000;
 
+/** `f` without its first `ms` (already heard before a pause cleared the rest). */
+function dropStart(f: AudioFrame, ms: number): AudioFrame {
+  const drop = Math.round((ms * f.sampleRate) / 1000);
+  if (drop <= 0 || drop >= f.samplesPerChannel) return f;
+  const data = f.data.subarray(drop * f.channels);
+  return new AudioFrame(data, f.sampleRate, f.channels, f.samplesPerChannel - drop);
+}
+
 /** Sessions with a pause that may still resume (never-silent.ts waits for it). */
 const pausedSessions = new WeakSet<object>();
 export const replyPaused = (session: object): boolean => pausedSessions.has(session);
@@ -62,6 +70,8 @@ export class ResumeBufferOutput extends voice.AudioOutput {
   private replaying: Promise<void> = Promise.resolve();
   /** The caller's reply's room playout ended under a pause: hold that until it really plays. */
   private held = false;
+  /** That held playout event: on a cut it goes on as interrupted, with its position and words. */
+  private heldEv?: voice.PlaybackFinishedEvent;
   private flushedWhilePaused = false;
   /** Bumped by every cut, so a frame that waited out a pause the reply didn't survive is dropped. */
   private cuts = 0;
@@ -74,6 +84,12 @@ export class ResumeBufferOutput extends voice.AudioOutput {
     private readonly driftGuard = false
   ) {
     super(inner.sampleRate, inner, { pause: true });
+    // BARGE_IN_FAST_STOP clears the room queue at a pause only with this buffer in front to
+    // replay it (patches/@livekit__agents@1.9.3.patch, room_io/_output.js).
+    for (let o: unknown = inner; o; o = (o as { nextInChain?: unknown }).nextInChain) {
+      if ((o as Queued).audioSource)
+        (o as { __ferniResumeBuffered?: boolean }).__ferniResumeBuffered = true;
+    }
   }
 
   async captureFrame(frame: AudioFrame): Promise<void> {
@@ -137,6 +153,11 @@ export class ResumeBufferOutput extends voice.AudioOutput {
         tail.unshift(this.recent[i]);
         ms += frameMs(this.recent[i]);
       }
+      // The oldest frame was partly heard already: replay only its unheard end.
+      if (tail.length && ms > queued) {
+        tail[0] = dropStart(tail[0], ms - queued);
+        ms = queued;
+      }
       this.replay = tail;
       this.log({ event: 'paused', replayMs: Math.round(ms) });
     }
@@ -156,6 +177,7 @@ export class ResumeBufferOutput extends voice.AudioOutput {
     // The segment's end was already sent (and played early) or came while paused:
     // end the replayed audio the same way, or its playout is never reported.
     const endAfterReplay = this.flushedWhilePaused || this.held;
+    const heldEv = this.heldEv;
     this.flushedWhilePaused = false;
     this.replaying = (async () => {
       for (const f of frames) {
@@ -164,7 +186,7 @@ export class ResumeBufferOutput extends voice.AudioOutput {
       }
       if (!endAfterReplay) return;
       if (frames.length || !this.held) this.inner.flush();
-      else this.onPlaybackFinished({ playbackPosition: 0, interrupted: false });
+      else this.onPlaybackFinished(heldEv ?? { playbackPosition: 0, interrupted: false });
     })().catch((error: unknown) => this.log({ event: 'replay_failed', error: String(error) }));
     this.openGate();
     this.log({ event: 'resumed', replayMs: Math.round(replayMs) });
@@ -183,6 +205,8 @@ export class ResumeBufferOutput extends voice.AudioOutput {
   clearBuffer(): void {
     // A real interruption: the paused reply is cut, nothing to bring back.
     const wasHeld = this.held;
+    const heldEv = this.heldEv;
+    this.heldEv = undefined;
     this.cuts += 1;
     this.replay = [];
     this.flushedWhilePaused = false;
@@ -194,17 +218,21 @@ export class ResumeBufferOutput extends voice.AudioOutput {
     }
     this.inner.clearBuffer();
     if (wasHeld && this.inner.pendingPlayoutSegments === 0) {
-      super.onPlaybackFinished({ playbackPosition: 0, interrupted: true });
+      super.onPlaybackFinished({ ...(heldEv ?? { playbackPosition: 0 }), interrupted: true });
     }
   }
 
   onPlaybackFinished(ev: voice.PlaybackFinishedEvent): void {
     // The room output finishes a segment early when a pause clears its queue.
-    if (this.paused && !ev.interrupted) {
+    // With BARGE_IN_FAST_STOP that early finish says interrupted (what played was cut short),
+    // but the reply may still resume: hold it all the same.
+    if (this.paused) {
       this.held = true;
+      this.heldEv = ev;
       return;
     }
     this.held = false;
+    this.heldEv = undefined;
     super.onPlaybackFinished(ev);
   }
 }

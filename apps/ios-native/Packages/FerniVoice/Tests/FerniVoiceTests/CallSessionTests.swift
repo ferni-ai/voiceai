@@ -16,6 +16,8 @@ final class CallSessionTests: XCTestCase {
         private let continuation: AsyncStream<RoomEvent>.Continuation
         var agentOnConnect: [String: String]?
         var connectError: Error?
+        /// A slow connect that isn't cancelled by the call task (like a real one).
+        var connectDelay: Duration?
         private(set) var connectedTo: (url: String, token: String)?
         private(set) var micStates: [Bool] = []
         private(set) var disconnects = 0
@@ -25,11 +27,18 @@ final class CallSessionTests: XCTestCase {
             self.agentOnConnect = agentOnConnect
         }
         func connect(url: String, token: String) async throws {
+            if let connectDelay { await Task.detached { try? await Task.sleep(for: connectDelay) }.value }
             if let connectError { throw connectError }
             connectedTo = (url, token)
             if let agentOnConnect { continuation.yield(.agentJoined(attributes: agentOnConnect)) }
         }
-        func setMicrophone(enabled: Bool) async throws { micStates.append(enabled) }
+        var order: Order?
+        func setMicrophone(enabled: Bool) async throws {
+            micStates.append(enabled)
+            order?.steps.append("mic \(enabled)")
+        }
+        private(set) var sent: [Data] = []
+        func send(_ data: Data) async throws { sent.append(data) }
         func disconnect() async {
             disconnects += 1
             continuation.finish()
@@ -45,9 +54,26 @@ final class CallSessionTests: XCTestCase {
         private(set) var deactivations = 0
         init() { (interruptions, interrupt) = AsyncStream.makeStream(of: AudioInterruption.self) }
         func requestMicrophone() async -> Bool { micAllowed }
-        func activate() throws { activations += 1 }
-        func deactivate() { deactivations += 1 }
+        var order: Order?
+        /// The next activation throws (the system still has the audio).
+        var failNextActivation = false
+        /// For each activation: did the system own the session?
+        private(set) var ownership: [Bool] = []
+        private(set) var systemStates: [Bool] = []
+        func systemAudio(active: Bool) { systemStates.append(active) }
+        func activate(systemOwned: Bool) throws {
+            activations += 1
+            ownership.append(systemOwned)
+            if failNextActivation {
+                failNextActivation = false
+                throw NSError(domain: "AVAudioSession", code: 561_015_905) // '!pri': can't activate
+            }
+            order?.steps.append("activate")
+        }
+        func deactivate(systemOwned: Bool) { deactivations += 1 }
     }
+
+    final class Order: @unchecked Sendable { var steps: [String] = [] }
 
     final class Rooms: @unchecked Sendable {
         var made: [FakeRoom] = []
@@ -71,7 +97,9 @@ final class CallSessionTests: XCTestCase {
     /// testAFailedRejoinEndsTheCallAfterOneFreshRoom flaked on main). A test
     /// where Ferni is missing makes him missing without the clock (the token
     /// says not dispatched) or passes a short timeout and never sends him.
-    private func makeSession(timeout: Duration = .seconds(5)) -> CallSession {
+    private func makeSession(
+        timeout: Duration = .seconds(5), defaults: UserDefaults = UserDefaults(suiteName: "call-tests-\(UUID().uuidString)")!
+    ) -> CallSession {
         let rooms = rooms, tokens = tokens
         return CallSession(
             fetchToken: { persona in
@@ -86,7 +114,8 @@ final class CallSessionTests: XCTestCase {
                 return room
             },
             audio: audio,
-            agentTimeout: timeout
+            agentTimeout: timeout,
+            defaults: defaults
         )
     }
 
@@ -110,6 +139,36 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(rooms.made.first?.micStates, [true])
         XCTAssertEqual(audio.activations, 1)
         XCTAssertEqual(session.agentActivity, .listening)
+        XCTAssertTrue(session.hasTalked)
+    }
+
+    /// Critic L1: after sign-out or account deletion the next person is new to
+    /// Ferni, in memory as well as on disk ("Hi, I'm Ferni", not "Good evening").
+    func testANewPersonHasNotTalkedYet() async {
+        let defaults = UserDefaults(suiteName: "l1-\(UUID().uuidString)")!
+        let session = makeSession(defaults: defaults)
+        session.start(personaID: "ferni")
+        await until(session.phase == .live)
+        await session.end()
+        XCTAssertTrue(session.hasTalked)
+        session.forgetPerson()
+        XCTAssertFalse(session.hasTalked)
+        XCTAssertFalse(makeSession(defaults: defaults).hasTalked, "and not on disk either")
+    }
+
+    /// Haptics-while-recording is set up (in activate) before the mic goes on.
+    func testTheAudioSessionIsReadyBeforeTheMicOpens() async {
+        let order = Order()
+        audio.order = order
+        rooms.next = {
+            let room = FakeRoom()
+            room.order = order
+            return room
+        }
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        XCTAssertEqual(order.steps, ["activate", "mic true"])
     }
 
     func testWaitsForFerniWhoArrivesLate() async {
@@ -266,6 +325,25 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(session.captions.lines.map(\.speaker), [.ferni, .you])
     }
 
+    func testTappingFerniInterruptsOnlyWhileFerniIsTalking() async throws {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+
+        let quiet = await session.interrupt()
+        XCTAssertFalse(quiet, "nothing to interrupt while Ferni listens")
+        XCTAssertTrue(rooms.made[0].sent.isEmpty)
+
+        rooms.made[0].send(.agentAttributes(["lk.agent.state": "speaking"]))
+        await until(session.avatar.pose == .speaking)
+        let sent = await session.interrupt()
+        XCTAssertTrue(sent)
+        let message = try XCTUnwrap(rooms.made[0].sent.first)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: message) as? [String: Any])
+        XCTAssertEqual(json["type"] as? String, "user_interrupt")
+        XCTAssertNotNil(json["timestamp"] as? Int)
+    }
+
     func testMuteTurnsTheMicOffAndOn() async {
         let session = makeSession()
         session.start()
@@ -321,6 +399,23 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(tokens.requests.count, 2, "and one fresh token")
     }
 
+    /// A different person doesn't inherit the last call's card or captions.
+    func testForgettingTheLastCallClearsItsTraces() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        rooms.made[0].send(.caption(CaptionChunk(streamID: "s", segmentID: "a", speaker: .ferni, text: "Hi", isFinal: true)))
+        await until(!session.captions.lines.isEmpty)
+
+        session.forgetLastCall()
+        XCTAssertNotNil(session.startedAt, "a call in progress is left alone")
+        await session.end()
+        session.forgetLastCall()
+        XCTAssertNil(session.startedAt)
+        XCTAssertEqual(session.phase, .idle)
+        XCTAssertTrue(session.captions.lines.isEmpty)
+    }
+
     func testFerniHangingUpEndsTheCall() async {
         let session = makeSession()
         session.start()
@@ -358,6 +453,112 @@ final class CallSessionTests: XCTestCase {
 
         await until(rooms.made[0].micStates == [true, true])
         XCTAssertEqual(audio.activations, 2)
+    }
+
+    /// Critic H3: the agent's handoff messages (exact shapes from
+    /// src/agents/voice-agent/phases/multi-agent-mode.ts and
+    /// src/agents/multi-agent/handoff-messages.ts) move the call to the teammate.
+    func testAHandoffFromTheAgentBringsTheTeammateOnScreen() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        let room = rooms.made[0]
+        room.send(.data(Data(#"{"type":"handoff_started","target":"maya-santos","newAgent":"maya-santos","previousAgent":"ferni","timestamp":1}"#.utf8)))
+        room.send(.data(Data(#"{"type":"handoff_progress","target":"maya-santos","elapsedMs":0,"timeoutMs":8000,"timestamp":1}"#.utf8)))
+        room.send(.data(Data(#"{"type":"handoff_complete","from":"ferni","target":"maya-santos","timestamp":2}"#.utf8)))
+        await until(session.avatar.personaID == "maya")
+        XCTAssertEqual(session.avatar.personaID, "maya")
+    }
+
+    /// An id the app doesn't know (or a lookalike) never changes who's on screen.
+    func testAHandoffToAnUnknownTeammateChangesNothing() async {
+        let session = makeSession()
+        session.start(personaID: "ferni")
+        await until(session.phase == .live)
+        rooms.made[0].send(.data(Data(#"{"type":"handoff_complete","from":"ferni","target":"peter-lynch","timestamp":2}"#.utf8)))
+        rooms.made[0].send(.data(Data(#"{"type":"handoff_complete","from":"ferni","target":"<b>x</b>","timestamp":3}"#.utf8)))
+        try? await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(session.avatar.personaID, "ferni")
+    }
+
+    // MARK: - Critic M6: what counts as a good call
+
+    /// At least two minutes live, and the person hung up: that's a good call.
+    func testALongCallYouEndIsAGoodCall() async {
+        let session = makeSession()
+        let clock = TestClock()
+        session.now = { clock.now }
+        session.start()
+        await until(session.phase == .live)
+        clock.advance(by: .seconds(121))
+        await session.end()
+        XCTAssertTrue(session.lastCallWasGood)
+    }
+
+    func testAShortCallIsNot() async {
+        let session = makeSession()
+        let clock = TestClock()
+        session.now = { clock.now }
+        session.start()
+        await until(session.phase == .live)
+        clock.advance(by: .seconds(90))
+        await session.end()
+        XCTAssertFalse(session.lastCallWasGood)
+    }
+
+    /// Ferni hanging up isn't the person ending it, however long it was.
+    func testACallFerniEndsIsNot() async {
+        let session = makeSession()
+        let clock = TestClock()
+        session.now = { clock.now }
+        session.start()
+        await until(session.phase == .live)
+        clock.advance(by: .seconds(300))
+        rooms.made[0].send(.agentLeft)
+        await until(session.phase == .ended)
+        XCTAssertFalse(session.lastCallWasGood)
+    }
+
+    final class TestClock: @unchecked Sendable {
+        var now = ContinuousClock.now
+        func advance(by d: Duration) { now = now.advanced(by: d) }
+    }
+
+    /// Critic C2: iOS often ends an interruption without "should resume" (Siri,
+    /// an alarm, a declined call). A call the person is still in comes back anyway.
+    func testAnInterruptionThatEndsWithoutShouldResumeStillBringsTheMicBack() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+
+        audio.interrupt.yield(.began)
+        await until(session.isOnHold)
+        audio.interrupt.yield(.ended(shouldResume: false))
+
+        await until(rooms.made[0].micStates == [true, true])
+        XCTAssertEqual(audio.activations, 2)
+        XCTAssertFalse(session.isOnHold)
+    }
+
+    /// If the audio can't come back, the screen says "On hold" (never
+    /// "listening" over a dead mic) until the person taps Resume.
+    func testIfTheAudioCantComeBackTheCallStaysOnHoldUntilResumed() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+
+        audio.failNextActivation = true
+        audio.interrupt.yield(.began)
+        audio.interrupt.yield(.ended(shouldResume: true))
+        await until(audio.activations == 2)
+        try? await Task.sleep(for: .milliseconds(50))
+        XCTAssertTrue(session.isOnHold)
+        XCTAssertEqual(rooms.made[0].micStates, [true], "the mic isn't claimed while the audio is gone")
+
+        await session.resume()
+        XCTAssertEqual(audio.activations, 3)
+        XCTAssertFalse(session.isOnHold)
+        XCTAssertEqual(rooms.made[0].micStates, [true, true])
     }
 }
 
