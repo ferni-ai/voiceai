@@ -130,16 +130,26 @@ function startAfterCallTasks(ctx: AfterCallContext): void {
   }
 }
 
-/** Resolves when every started task has settled, or after maxMs; returns how many were left. */
+/**
+ * Resolves when every task has settled, or after maxMs; returns how many were left. Tasks
+ * that start while it waits count too: a call held for a sexual-topic read starts its tasks
+ * only when the read ends (runAfterCallTasks), so one wait on the tasks running at the start
+ * returned with those still to run.
+ */
 export async function drainAfterCallTasks(maxMs: number): Promise<number> {
   if (inFlight.size === 0) return 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  await Promise.race([
-    Promise.allSettled([...inFlight]),
-    new Promise<void>((resolve) => {
-      timer = setTimeout(resolve, maxMs);
-    }),
-  ]);
+  let timeUp = false;
+  const deadline = new Promise<void>((resolve) => {
+    timer = setTimeout(() => {
+      timeUp = true;
+      resolve();
+    }, maxMs);
+  });
+  while (inFlight.size > 0 && !timeUp) {
+    // eslint-disable-next-line no-await-in-loop -- each pass waits on the tasks running now
+    await Promise.race([Promise.allSettled([...inFlight]), deadline]);
+  }
   clearTimeout(timer);
   return inFlight.size;
 }
