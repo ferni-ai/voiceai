@@ -67,7 +67,7 @@ describe('recall-facts', () => {
     const good = checkRun(
       run([
         ['agent', 'About fifty, and my knees remind me every morning.'],
-        ['agent', 'A handful of old ones. Ken and I still ski, and Jim keeps me up arguing.'],
+        ['agent', 'A handful of old ones. Owen and I still ski, and Hollis keeps me up arguing.'],
         ['agent', "I said I'd help you figure it out, and I meant it."],
       ]),
       avoids
