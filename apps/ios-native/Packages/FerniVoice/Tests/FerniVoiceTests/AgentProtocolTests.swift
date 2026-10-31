@@ -1,3 +1,4 @@
+import FerniKit
 import XCTest
 @testable import FerniVoice
 
@@ -55,4 +56,30 @@ final class AgentProtocolTests: XCTestCase {
         XCTAssertNil(AgentSignals.agentActivity(from: ["lk.agent.state": "dancing"]))
     }
 
+}
+
+/// The agent's handoff messages, as the server sends them today.
+final class HandoffSignalTests: XCTestCase {
+    private func parse(_ json: String) -> AgentSignals.Handoff? {
+        AgentSignals.handoff(from: (try? JSONSerialization.jsonObject(with: Data(json.utf8))) as? [String: Any] ?? [:])
+    }
+
+    func testTheServersHandoffShapesParse() {
+        XCTAssertEqual(parse(#"{"type":"handoff_started","target":"maya-santos","newAgent":"maya-santos","previousAgent":"ferni"}"#),
+                       .started(to: "maya-santos"))
+        XCTAssertEqual(parse(#"{"type":"handoff_complete","from":"ferni","target":"alex-chen"}"#), .completed(to: "alex-chen"))
+        XCTAssertEqual(parse(#"{"type":"handoff_failed","target":"unknown","error":"Unknown persona","rollbackTo":"ferni"}"#), .failed)
+        XCTAssertNil(parse(#"{"type":"handoff_progress","target":"maya-santos"}"#))
+        XCTAssertNil(parse(#"{"type":"handoff_complete","from":"ferni"}"#), "no target, no handoff")
+    }
+
+    func testOnlyTheTeamReachesTheScreen() {
+        XCTAssertEqual(PersonaRegistry.known(serverID: "maya-santos")?.id, "maya")
+        XCTAssertEqual(PersonaRegistry.known(serverID: "Jordan-Taylor")?.id, "jordan")
+        XCTAssertEqual(PersonaRegistry.known(serverID: "nayan")?.id, "nayan")
+        XCTAssertEqual(PersonaRegistry.known(serverID: "ferni")?.id, "ferni")
+        XCTAssertNil(PersonaRegistry.known(serverID: "peter-lynch"), "a financial legend, not Peter")
+        XCTAssertNil(PersonaRegistry.known(serverID: "john-bogle"))
+        XCTAssertNil(PersonaRegistry.known(serverID: ""))
+    }
 }

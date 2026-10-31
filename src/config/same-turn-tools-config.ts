@@ -74,6 +74,7 @@ export const LEAN_ALWAYS_ON_TOOLS: Readonly<Record<string, string>> = {
   quickAlarm: 'simple-utilities',
   // Phone calls and texts
   callOnBehalf: 'telephony',
+  callStatus: 'telephony',
   callUser: 'telephony',
   scheduleCallback: 'telephony',
   callAndConverse: 'telephony',

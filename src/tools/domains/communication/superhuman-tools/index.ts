@@ -22,7 +22,6 @@
 import { createLogger } from '../../../../utils/safe-logger.js';
 
 // Re-export all tools
-export { communicationArchaeology } from './communication-archaeology.js';
 export { relationshipTemperature } from './relationship-temperature.js';
 export { unsaidWordsDetector } from './unsaid-words-detector.js';
 export { receptionPredictor } from './reception-predictor.js';
@@ -31,7 +30,6 @@ export { conflictReplay } from './conflict-replay.js';
 export { communicationDebt } from './communication-debt.js';
 export { thirdPartyPerspective } from './third-party-perspective.js';
 export { strategicSilence } from './strategic-silence.js';
-export { unspokenNeeds } from './unspoken-needs.js';
 
 // Re-export LLM tools for domain registration
 export {

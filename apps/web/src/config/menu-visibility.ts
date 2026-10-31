@@ -37,9 +37,7 @@ const HIDDEN_MENU_ACTIONS: ReadonlySet<string> = new Set([
   // Predictions: the tool behind it isn't in the prod tool set
   'predictions',
   // Integrations without prod credentials
-  'spotify',
   'oura-settings',
-  'eight-sleep-settings',
   'apple-health-settings',
   'wearable-settings',
 ]);
@@ -81,12 +79,16 @@ const HIDDEN_PANELS: ReadonlySet<string> = new Set([
 const HIDDEN_INTEGRATIONS: ReadonlySet<string> = new Set([
   'apple-health',
   'oura',
-  'eight-sleep',
   'wearables',
-  'spotify',
   'ecobee',
   'vibe-controller',
 ]);
+
+/** Every settings-menu row hidden right now, flagged-off rows included (for the hide tests). */
+export function hiddenMenuActions(): string[] {
+  const flaggedOff = Object.keys(FLAGGED).filter((id) => !flagAllows(id));
+  return [...HIDDEN_MENU_ACTIONS, ...flaggedOff];
+}
 
 /** True when a settings-menu row with this action may render. */
 export function isMenuActionVisible(action: string): boolean {

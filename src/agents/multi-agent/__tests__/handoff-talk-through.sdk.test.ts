@@ -46,6 +46,8 @@ type Item = { type: string; role?: string; textContent?: string };
 interface LlmCall {
   who: 'Jordan' | 'Ferni' | '?';
   lastUser?: string;
+  /** HANDOFF_FAILED_SAY_SO's note was in the chat (handoff-failed-say-so.ts) */
+  noted?: boolean;
 }
 
 class ScriptLLM extends llm.LLM {
@@ -67,7 +69,7 @@ class ScriptLLM extends llm.LLM {
     const users = items.filter((i) => i.type === 'message' && i.role === 'user');
     const lastUser = users[users.length - 1]?.textContent;
     const answered = items.some((i) => i.type === 'function_call_output');
-    this.calls.push({ who, lastUser });
+    this.calls.push({ who, lastUser, noted: system.includes("[HANDOFF DIDN'T GO THROUGH]") });
     const chunk: llm.ChatChunk =
       who === 'Jordan' && lastUser === REQUEST && !answered
         ? {
@@ -314,6 +316,20 @@ describe('talking through a handoff goodbye (real AgentSession)', () => {
     expect(r.session.currentAgent).toBe(r.agents['jordan-taylor']); // Jordan stays
     expect(r.heard).not.toBe(SENTENCE); // audio discarded under the uninterruptible goodbye
     expect(userLines(r.ferniTalk).join(' ')).not.toContain('dentist');
+    expect(r.calls.some((c) => c.noted)).toBe(false); // Jordan is never told (#2935)
+  }, 40_000);
+
+  it('off, with HANDOFF_FAILED_SAY_SO on: Jordan is told Ferni never joined, and says so (#2935)', async () => {
+    vi.stubEnv('HANDOFF_TALK_THROUGH', 'off');
+    vi.stubEnv('HANDOFF_FAILED_SAY_SO', 'on');
+    const r = await call();
+
+    expect(r.results).toEqual([
+      { success: false, error: "Error: The handoff tool didn't swap within 8000ms" },
+    ]);
+    expect(r.session.currentAgent).toBe(r.agents['jordan-taylor']);
+    // A reply after the failure, by Jordan, written with the note in the chat
+    expect(r.calls.filter((c) => c.noted).map((c) => c.who)).toEqual(['Jordan']);
   }, 40_000);
 
   it('on: the handoff completes, the caller is heard in full, and Ferni (not Jordan) answers', async () => {

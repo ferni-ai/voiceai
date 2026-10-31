@@ -8,6 +8,8 @@
  * @module agents/personas/name-vocatives
  */
 
+import { WORD_NAMES } from '../../utils/caller-name.js';
+
 const GREETINGS = ['hey', 'hi', 'hiya', 'hello', 'oh'];
 const GREETING_WORD = /^(?:hey|hi|hiya|hello|oh)\s+/i;
 /** NAME_GATE_V2: "Oh hey Sam," rose 7.7 st on Ferni's voice, a full stop after it 8.2 (2026-10-24). */
@@ -52,18 +54,6 @@ const DISCOURSE = new Set(
     'yes yeah yep no nope okay ok well oh hey hi right sure so but and really honestly ' +
     'seriously look listen alright aw ah wow man thanks sorry good great fair true wait ' +
     'hmm hm mm come fine totally exactly absolutely see'
-  ).split(' ')
-);
-/**
- * Names that are also ordinary words ("Rich, isn't it?", "Hope. That's what
- * keeps you going."): at a sentence start they go only when a clause that
- * addresses the caller follows ("Will, you did great").
- */
-const WORD_NAMES = new Set(
-  (
-    'will hope grace joy mark rich faith rose dawn bill pat sue art amber ruby jack sky hunter ' +
-    'chance chase grant june may april summer autumn winter august rob drew guy sunny ' +
-    'honey holly ivy lily iris daisy jade pearl ray rusty sandy stormy taylor victor'
   ).split(' ')
 );
 /** After a question, "Sam, you did great" still addresses them; "Sam, I think." answers. */

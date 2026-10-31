@@ -129,8 +129,8 @@ async function canonTargetRefusal(
   const { canonPeople, canonPersonIn } = await import('../../personas/index.js');
   const canon = canonPersonIn(target, await canonPeople());
   if (!canon) return null;
-  const { resolveContact } = await import('../domains/telephony/call-on-behalf.js');
-  if (await resolveContact(target, userId).catch(() => null)) return null;
+  const { findContact } = await import('../domains/telephony/call-on-behalf.js');
+  if (await findContact(target, userId).catch(() => null)) return null; // one, or a choice
   const name = canon[0].toUpperCase() + canon.slice(1);
   return (
     `Nothing was sent: ${name} is someone from my own life, and you have no saved number for ` +

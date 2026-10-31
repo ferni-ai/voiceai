@@ -4,6 +4,7 @@
  * then GET /api/life-automation/workflows through the real route handler, the path
  * life-automation.service.ts sends, on the Firestore emulator. Only requireAuth is
  * replaced: it answers with the uid the test names, as a verified token would.
+ * apps/web/tests/ui/menu-automations.test.ts pins the panel to this exact GET.
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -63,10 +64,14 @@ beforeAll(async () => {
 afterAll(() => server?.close());
 
 /** The createRoutine tool exactly as the voice agent gets it */
-async function createRoutineByVoice(uid: string, args: Record<string, string>): Promise<string> {
+async function createRoutineByVoice(
+  uid: string,
+  args: Record<string, string>,
+  sessionId?: string
+): Promise<string> {
   const { routineToolDefinitions } = await import('../../tools/domains/routines/index.js');
   const definition = routineToolDefinitions.find((d) => d.id === 'createRoutine');
-  const tool = definition!.create({ userId: uid } as ToolContext) as unknown as {
+  const tool = definition!.create({ userId: uid, sessionId } as ToolContext) as unknown as {
     execute: (a: unknown, o?: unknown) => Promise<string>;
   };
   return tool.execute(args, {});
@@ -107,6 +112,30 @@ describe.skipIf(!emulator)('routines: voice writer -> panel route (Firestore emu
         trigger: expect.objectContaining({ type: 'time' }),
       })
     );
+  });
+
+  it("a time said in a call reads back in the caller's zone, saved but not running", async () => {
+    const uid = id();
+    const { rememberCallerTimeZone, forgetCallerTimeZone } =
+      await import('../../utils/caller-time-zone.js');
+    rememberCallerTimeZone('America/Chicago', `s-${uid}`, uid); // as voice-agent-entry does
+    const said = await createRoutineByVoice(
+      uid,
+      { name: 'Evening walk', triggerType: 'time', triggerValue: '7 pm', action: 'Walk time' },
+      `s-${uid}`
+    );
+    forgetCallerTimeZone(`s-${uid}`, uid);
+
+    expect(said).toBe(`Saved "Evening walk" in What I Do For You. It won't run on its own yet.`);
+    const { body } = await listWorkflows(uid);
+    expect(body.workflows).toEqual([
+      expect.objectContaining({
+        name: 'Evening walk',
+        status: 'paused', // nothing runs saved routines yet
+        runCount: 0,
+        trigger: { type: 'time', schedule: '0 19 * * *', timezone: 'America/Chicago' },
+      }),
+    ]);
   });
 
   it("someone else's routine never shows", async () => {

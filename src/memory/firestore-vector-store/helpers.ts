@@ -7,6 +7,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { isMomentExpired } from '../../utils/shared-moment-retention.js';
 import { ownedBy, ownerId } from '../retrieval/vector-ownership.js';
 import type { CollectionReference, FieldVector, Query } from './types.js';
 
@@ -100,10 +101,11 @@ export function filteredQuery(
  * never come back.
  */
 export function keepCandidate(
-  data: { metadata?: unknown },
+  data: { metadata?: unknown; expireAt?: unknown },
   filter?: { source?: string | string[]; category?: string | string[]; userId?: string }
 ): boolean {
   const metadata = data.metadata as
     { source: string; category?: string; userId?: string } | undefined;
-  return !!metadata && matchesFilter({ metadata }, filter);
+  // Past its expireAt: Firestore's TTL deletes it late (a day or more), so it isn't returned
+  return !!metadata && !isMomentExpired(data) && matchesFilter({ metadata }, filter);
 }

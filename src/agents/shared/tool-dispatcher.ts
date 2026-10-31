@@ -24,6 +24,7 @@ import {
   registerToolInFlight,
 } from '../../intelligence/context-builders/awareness/system-state-awareness.js';
 import { getConversationState } from '../../services/conversation-state.js';
+import { heldWriter } from './held-tool-gate.js';
 import { isServiceHealthyFast } from '../../services/self-healing/index.js';
 import { isMetaToolCall, unwrapMetaToolCall } from './meta-tool.js';
 import { outboundDispatchRefusal } from '../../tools/registry/outbound-gate.js';
@@ -82,6 +83,8 @@ export interface ToolExecutionContext {
   sessionId?: string;
   personaId?: string;
   publisherId?: string;
+  /** MINOR_CARE: the caller is held, read in another process (tool-executors/types.ts). */
+  held?: boolean;
   onToolStart?: (fn: string, args: Record<string, unknown>) => void;
   onToolComplete?: (result: ToolExecutionResult) => void;
   onHandoff?: (target: string, reason: string) => Promise<void>;
@@ -216,6 +219,8 @@ export async function executeTool(
     fn = unwrapped.toolName;
     args = unwrapped.toolArgs;
   }
+  // MINOR_CARE: a held caller's writer runs nothing, not even side effects (held-tool-gate.ts)
+  if (heldWriter(fn, ctx.held)) return { success: true, fn, args, result: '', durationMs: 0 };
 
   log.info(
     { fn, args: truncateForLog(JSON.stringify(args), 200), sessionId, userId: ctx.userId },

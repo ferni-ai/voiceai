@@ -8,7 +8,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { consentBlocks } from '../../../utils/consent-port.js';
+import { ownerRefusal } from '../../../utils/consent-port.js';
 import type {
   ConciergeTarget,
   ConciergeResult,
@@ -118,8 +118,8 @@ export class PhoneCaller {
     script: OutreachScript | undefined,
     timeout: number
   ): Promise<CallResult> {
-    // MESSAGING_PIPELINE: stops at an opt-out (consent/{phoneHash}), before any dial.
-    const refused = await consentBlocks(target.phone ?? '', 'call', true);
+    // MESSAGING_PIPELINE: a business needs this member's call grant too, and an opt-out stops it.
+    const refused = await ownerRefusal(this.userId, target.phone ?? '', 'call');
     if (refused) return { success: false, error: `Not calling: ${refused}` };
     // This is where Twilio + LiveKit integration would happen
     // For now, we'll create the infrastructure and document the flow
@@ -138,7 +138,7 @@ export class PhoneCaller {
       to: target.phone,
       from: TWILIO_PHONE_NUMBER,
       url: `${process.env.API_BASE_URL}/api/concierge/call-handler`,
-      statusCallback: `${process.env.API_BASE_URL}/api/concierge/call-status`,
+      // No concierge status route exists yet; one must check Twilio's signature.
       timeout: timeout,
       machineDetection: 'DetectMessageEnd', // Handle voicemail
     });

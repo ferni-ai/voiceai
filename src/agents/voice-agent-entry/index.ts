@@ -16,11 +16,13 @@
 
 import type { JobContext } from '@livekit/agents';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
+import { runUntilCallEnds } from './run-until-call-ends.js';
+import { closeAgentSession } from '../shared/close-agent-session.js';
 import { noteCallerJoined } from './sip-caller.js';
 import { errorText, writeIdentityDiagnostics, writeParticipantReady } from './startup-log.js';
 import { callerChecks } from './caller-recognition.js';
 import { settleCallerZone } from './phone-parity.js';
-import { injectUserAwareness } from './user-awareness-injection.js';
+import { injectUserAwareness, rememberedProfile } from './user-awareness-injection.js';
 import { identifyWithCallStartStages } from './call-start-identify.js';
 
 // Event cleanup registry for proper memory management
@@ -36,9 +38,9 @@ import {
   loadVoiceDeps as loadVoiceDepsPhase,
   type VoiceDeps,
 } from '../voice-agent/phases/index.js';
-
+import { ownerWriteId } from '../../services/identity/owner-write-gate.js';
 import { finops } from '../../services/observability/finops.js';
-import { classifyCallEnd, roomDisconnectEndReason } from '../../services/analytics/call-end-reason.js';
+import { classifyCallEnd } from '../../services/analytics/call-end-reason.js';
 import {
   cleanupSpeechCoordination,
   coordinatedSay,
@@ -65,7 +67,7 @@ import { configureModelProvider } from '../../personas/bundles/model-provider-co
 // Submodule imports
 import { finishCallTypeContexts, finishOnce, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
 import { evalLocalTime } from '../personas/eval-local-time.js';
-import { buildSessionPersona, loadCallerPrompt } from './persona-builder.js';
+import { buildSessionPersona, callerSessionPersona, loadCallerPrompt } from './persona-builder.js';
 import { createAgentSession } from './session-creator.js';
 import { setupAllHandlers, type HandlerSetupResult } from './handler-setup.js';
 import { resolveSessionPath } from './session-path.js';
@@ -310,7 +312,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // Start call-quality clock as early as possible so stages reflect true latency.
     try {
       const { startCall } = await import('../../services/analytics/call-quality-monitor.js');
-      startCall(sessionId, undefined, sessionPersona.id);
+      startCall(sessionId, undefined, sessionPersona.id, callType);
       await markCallStageSafe(sessionId, 'session_start');
     } catch {
       /* non-fatal */
@@ -336,7 +338,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     );
     const { userId: identifiedUserId, userName, userAccent, verified } = identified;
     userId = identifiedUserId ?? null;
-
+    personaId = (sessionPersona = await callerSessionPersona(sessionPersona, userId, e2e)).id; // CUSTOM_AGENT_LIVE
     updateSessionState(sessionId, { state: 'active' });
     registerSession(sessionId, {
       sessionId,
@@ -428,7 +430,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       // Read the profile as it stands now: session init decided "returning" before the deferred load.
       const awareness = injectUserAwareness({
         sessionId,
-        userProfile: services.userProfile,
+        userProfile: await rememberedProfile(userId, services.userProfile),
         userData,
         isReturningUser,
         userName,
@@ -492,7 +494,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       }
 
       // Thread continuity (non-blocking)
-      if (userId) {
+      if (ownerWriteId(userId)) { // threads are an account's own (ONBEHALF_WRITE_GATE)
         void (async () => {
           try {
             const { buildThreadContext } =
@@ -649,7 +651,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         sessionId,
         sessionPersona,
         // After applyCallerFlags (STEP 4), so the prompt has this caller's flags.
-        systemPrompt: await loadCallerPrompt(sessionPersona.id),
+        systemPrompt: await loadCallerPrompt(sessionPersona),
         modelBaseInstructions,
         userId,
         userAccent,
@@ -729,6 +731,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       process.stderr.write(
         `[voice-agent-entry] 🎭 Multi-agent session returned — running shared cleanup\n`
       );
+      // Multi-agent closes its own session. A single-agent one created here never
+      // started (handlers returned before session.start), so this is a no-op today.
+      await closeAgentSession(session, { sessionId, endReason: sessionEndReason });
       e2e.sessionEnded(jobId, 'disconnected', Date.now() - startTime);
       await finishCallType();
 
@@ -838,113 +843,32 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       ctx.room.off('reconnected', reconnectedHandler);
     });
 
-    // Wait for disconnect — never hang forever if LiveKit terminates the job
-    // without emitting a clean room 'disconnected' event. Common failure modes:
-    // room stays isConnected after user leave / room delete, or job gets
-    // shutdownRequest while entrypoint is still awaiting.
-    await new Promise<void>((resolve) => {
-      let settled = false;
-      let emptySinceMs: number | null = null;
-      const EMPTY_ROOM_GRACE_MS = 5_000;
-      const timers: Array<ReturnType<typeof setInterval> | ReturnType<typeof setTimeout>> = [];
-
-      const finish = (reason: string): void => {
-        if (settled) return;
-        settled = true;
-        sessionEndReason = reason;
-        for (const t of timers) clearInterval(t as ReturnType<typeof setInterval>);
-        for (const t of timers) clearTimeout(t as ReturnType<typeof setTimeout>);
-        process.stderr.write(`[voice-agent-entry] 🔌 Ending session wait (${reason})\n`);
-        // Unblock LiveKit job_proc close wait (runs after entrypoint returns).
-        // Without this, empty-room exits hang forever on once(closeEvent).
+    // Logs why the call ended; runUntilCallEnds calls it once the reason is known.
+    const logDisconnectDiagnostics = (disconnectReason: string): void => {
+      const sessionDurationMs = Date.now() - startTime;
+      void (async () => {
         try {
-          if (!['room.disconnected', 'room.closed', 'job.shutdownCallback'].includes(reason)) {
-            ctx.shutdown(reason);
-          }
+          const { logDisconnect, analyzeDisconnect } = await import('../shared/disconnect-diagnostics.js');
+          const { recordConnectionDrop } = await import('../shared/crash-analytics.js');
+          const participantCount = ctx.room.remoteParticipants?.size ?? 0;
+          logDisconnect({
+            sessionId, roomName, reason: disconnectReason, durationMs: sessionDurationMs,
+            turnCount: session?.turnCount, participantCount: participantCount + 1,
+            wasActive: sessionDurationMs > 30000, userId: userId ?? undefined, personaId: sessionPersona?.id,
+          });
+          const analysis = analyzeDisconnect({ sessionId, roomName, reason: disconnectReason, durationMs: sessionDurationMs });
+          recordConnectionDrop(sessionId, disconnectReason, analysis.wasGraceful);
         } catch {
-          /* ignore */
+          process.stderr.write(`[voice-agent-entry] 🔌 Disconnected (reason: ${disconnectReason}, duration: ${sessionDurationMs}ms)\n`);
         }
-        resolve();
-      };
+      })();
+    };
 
-      const logDisconnectDiagnostics = (disconnectReason: string): void => {
-        const sessionDurationMs = Date.now() - startTime;
-        void (async () => {
-          try {
-            const { logDisconnect, analyzeDisconnect } = await import('../shared/disconnect-diagnostics.js');
-            const { recordConnectionDrop } = await import('../shared/crash-analytics.js');
-            const participantCount = ctx.room.remoteParticipants?.size ?? 0;
-            logDisconnect({
-              sessionId, roomName, reason: disconnectReason, durationMs: sessionDurationMs,
-              turnCount: session?.turnCount, participantCount: participantCount + 1,
-              wasActive: sessionDurationMs > 30000, userId: userId ?? undefined, personaId: sessionPersona?.id,
-            });
-            const analysis = analyzeDisconnect({ sessionId, roomName, reason: disconnectReason, durationMs: sessionDurationMs });
-            recordConnectionDrop(sessionId, disconnectReason, analysis.wasGraceful);
-          } catch {
-            process.stderr.write(`[voice-agent-entry] 🔌 Disconnected (reason: ${disconnectReason}, duration: ${sessionDurationMs}ms)\n`);
-          }
-        })();
-      };
-
-      ctx.room.on('disconnected', (reason?: unknown) => {
-        logDisconnectDiagnostics(String(reason || 'unknown'));
-        finish(roomDisconnectEndReason(reason));
-      });
-
-      // connectionStateChanged often fires even when isConnected lags
-      const onConnectionStateChanged = (state: unknown): void => {
-        const stateStr = String(state);
-        if (
-          stateStr === 'disconnected' ||
-          stateStr.includes('Disconnected') ||
-          stateStr === '3' // ConnectionState.DISCONNECTED in some builds
-        ) {
-          logDisconnectDiagnostics(`connectionStateChanged:${stateStr}`);
-          finish(`connectionStateChanged:${stateStr}`);
-        }
-      };
-      ctx.room.on('connectionStateChanged', onConnectionStateChanged);
-
-      // User left / room emptied — don't wait forever for a phantom connected agent
-      const onParticipantDisconnected = (): void => {
-        if ((ctx.room.remoteParticipants?.size ?? 0) === 0) {
-          emptySinceMs = emptySinceMs ?? Date.now();
-        }
-      };
-      ctx.room.on('participantDisconnected', onParticipantDisconnected);
-
-      // LiveKit worker shutdown (room delete, job kill, orphan) — unblock entrypoint
-      ctx.addShutdownCallback(async () => {
-        finish('job.shutdownCallback');
-      });
-
-      const poll = setInterval(() => {
-        if (!ctx.room.isConnected) {
-          finish('room.!isConnected');
-          return;
-        }
-
-        const remoteCount = ctx.room.remoteParticipants?.size ?? 0;
-        if (remoteCount === 0) {
-          emptySinceMs = emptySinceMs ?? Date.now();
-          if (Date.now() - emptySinceMs >= EMPTY_ROOM_GRACE_MS) {
-            logDisconnectDiagnostics('empty_room');
-            finish('empty_room');
-          }
-        } else {
-          emptySinceMs = null;
-        }
-      }, 1_000);
-      timers.push(poll);
-
-      // Absolute safety net (shorter than 30m — leaked activeCalls hurt ops)
-      timers.push(setTimeout(() => {
-        if (!settled) {
-          logDisconnectDiagnostics('disconnect_wait_timeout');
-          finish('timeout');
-        }
-      }, 10 * 60_000));
+    sessionEndReason = await runUntilCallEnds({
+      ctx,
+      session,
+      sessionId,
+      onDisconnect: logDisconnectDiagnostics,
     });
 
     e2e.sessionEnded(jobId, 'disconnected', Date.now() - startTime);
@@ -1056,6 +980,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         ]);
       }
     } catch { /* ignore */ }
+
+    // After the wait, so a spoken error message isn't cut off.
+    await closeAgentSession(session, { sessionId, endReason: 'error' });
 
     unregisterSession(sessionId, `crash_in_${currentPhase}`);
   }

@@ -9,7 +9,9 @@ import { voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utilities/voice-callbacks.js';
 import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
+import { installQuietHoursWriter } from '../../services/messaging/voice-quiet-hours.js';
 import { installConfirmThreadPort } from '../../services/outreach/confirm-thread-adapter.js';
+import { installCallRecallPort } from '../../services/outreach/call-recall.js';
 import { installForgetFollowUpsPort } from '../../services/outreach/forget-follow-ups-adapter.js';
 import { flagOn } from '../../config/env-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -18,6 +20,7 @@ import {
   registerBargeInJudge,
 } from '../../speech/graceful-interrupt/barge-in-judge.js';
 import { createCallAlertSpeaker } from '../shared/call-alerts.js';
+import { noteLiveSession } from '../../tools/registry/live-session.js';
 import { installMoveLog, noteMove } from '../personas/move-log.js';
 import {
   createBargeInFastPath,
@@ -51,6 +54,8 @@ import {
   SOLE_STANDS_DOWN,
 } from '../shared/turn-detector-sole.js';
 import { noteBargeIn } from '../shared/turn-receipt-session.js';
+import { attachCallTimeline } from '../shared/call-timeline-session.js';
+import { attachCutReplyHistory } from '../shared/cut-reply-history.js';
 import { addRecallNote, type RecallAgent } from './recall-note.js';
 
 const log = getLogger();
@@ -70,6 +75,10 @@ export interface LiveCallBehaviorsInput {
 
 export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   const { session, sessionEventHandlers, cleanupFunctions, sessionId, userId } = input;
+  // CALL_TIMELINE: the whole call in order, sounds and cut replies too (call-timeline.ts)
+  cleanupFunctions.push(attachCallTimeline(session as never, { sessionId, userId }));
+  // CUT_REPLY_IN_HISTORY: a cut reply stays in the chat, marked (cut-reply-history.ts, #2422)
+  cleanupFunctions.push(attachCutReplyHistory(session as never, { sessionId }));
   const sessionWithEvents = input.sessionWithEvents as {
     on: (event: string, handler: Handler) => void;
   };
@@ -130,8 +139,12 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
   // callUser rings the caller's verified phone through outreach (call-user-port.ts).
   installCallUserPort();
+  // setQuietHours saves to the prefs "When I'll Check In" shows (quiet-hours-port.ts).
+  installQuietHoursWriter();
   // THREADS_PENDING_CONFIRM: a read-back waiting on a yes is kept as a follow-up (confirm-thread.ts).
   installConfirmThreadPort();
+  // "Did you call my dad?": callStatus reads the owner's call records (call-status-tool.ts).
+  installCallRecallPort();
   // "Forget that" also closes open follow-ups about it (forget-follow-ups.ts).
   installForgetFollowUpsPort();
 
@@ -145,6 +158,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
       session
     )
   );
+  // A call placed from this one reports back here by its real id (tools/registry/live-session.ts).
+  cleanupFunctions.push(noteLiveSession(session, sessionId));
 
   // Answer a caller turn that was left hanging (turn-keeper.ts).
   if (process.env.TURN_KEEPER !== 'off') {
@@ -250,6 +265,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     const handlers = [
       { event: 'user_input_transcribed', handler: confirm.onTranscript },
       { event: 'function_tools_executed', handler: confirm.onToolsExecuted },
+      { event: 'conversation_item_added', handler: confirm.onItemAdded },
     ];
     for (const { event, handler } of handlers) sessionWithEvents.on(event, handler);
     sessionEventHandlers.push(...handlers);
@@ -388,6 +404,12 @@ export async function startTurnSounds(input: TurnSoundsInput) {
       cleanupFunctions.push(
         attachSlowTurnSoundToCall(session, sessionId, slowClips, input.personaId)
       );
+    }
+    // TOOL_ACK_CLIP: "Let me look." in the persona's voice as a tool starts (tool-ack-clip.ts).
+    if (flagOn('TOOL_ACK_CLIP')) {
+      const { attachToolAckClipToCall } = await import('../integrations/tool-ack-clip-wiring.js');
+      const ackClips = { ...clips, playClip: (text: string) => heard(clips.toolAckClip(text)) };
+      cleanupFunctions.push(attachToolAckClipToCall(session, sessionId, ackClips, input.personaId));
     }
     // A backchannel is a move too, on the reply whose answer it is heard in.
     const play = clips.playClip;

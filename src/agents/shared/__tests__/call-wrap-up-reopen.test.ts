@@ -5,13 +5,11 @@
  * reopened call that goes quiet gets one warm check-in, then the usual idle
  * end (reopen-idle.ts).
  *
- * The harness is call-wrap-up-continue.test.ts's: a simulated app and clock.
+ * The harness (reopened-call-harness.ts) is call-wrap-up-continue.test.ts's:
+ * a simulated app and clock.
  */
-import { llm } from '@livekit/agents';
-import { ParticipantKind } from '@livekit/rtc-node';
 import { EventEmitter } from 'node:events';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { z } from 'zod';
 
 /** What Ferni says at a check-in (coordinatedSay), and the director's line for it. */
 const checkIns = vi.hoisted(() => [] as string[]);
@@ -34,236 +32,29 @@ vi.mock('../../../speech/coordination/session-integration.js', async (importOrig
     void checkIns.push(text === director.line ? 'reopen_checkin' : text),
 }));
 
-import { PersonaVoiceAgent } from '../../personas/ferni-agent.js';
-import { attachCallWrapUp, DISCONNECT_DELAY_MS } from '../call-wrap-up.js';
-import { clearFarewell, containsLine, IDLE_AFTER_GOODBYE_MS } from '../call-farewell.js';
+import { DISCONNECT_DELAY_MS } from '../call-wrap-up.js';
+import { containsLine, IDLE_AFTER_GOODBYE_MS } from '../call-farewell.js';
 import { TURN_READ_WAIT_MS } from '../caller-activity.js';
 import { REOPEN_CHECK_IN_MS, REOPEN_IDLE_END_MS, watchReopenIdle } from '../reopen-idle.js';
-import { clearSessionClosing, isSessionClosing } from '../session-closing-tracker.js';
+import { isSessionClosing } from '../session-closing-tracker.js';
+import { crisisRiskThisCall } from '../../../services/safety/crisis-call-risk.js';
 import {
-  initFrontendSignal,
-  resetFrontendSignal,
-} from '../../../services/communication/frontend-signal.js';
-import {
-  crisisRiskThisCall,
-  resetCrisisCallRisk,
-  trackCrisisRead,
-} from '../../../services/safety/crisis-call-risk.js';
+  call,
+  cleanGoodbye,
+  ends,
+  ferniSays,
+  flush,
+  read,
+  resetReopenedCalls,
+  type Call,
+} from './reopened-call-harness.js';
 
-const used: string[] = [];
 afterEach(() => {
-  used.splice(0).forEach((id) => {
-    clearSessionClosing(id);
-    clearFarewell(id);
-  });
-  resetFrontendSignal();
-  resetCrisisCallRisk();
+  resetReopenedCalls();
   checkIns.splice(0);
   director.cues.splice(0);
   director.gate = Promise.resolve();
 });
-
-let n = 0;
-const APP_MAX_HOLD_MS = 8_000;
-
-function agent(): PersonaVoiceAgent {
-  const tool = llm.tool({
-    name: 'getWeather',
-    description: 'weather',
-    parameters: z.object({}),
-    execute: async () => 'ok',
-  });
-  return new PersonaVoiceAgent('You are Ferni.', {
-    tools: new llm.ToolContext([tool]) as unknown as llm.ToolContext,
-    skipGreeting: true,
-  });
-}
-
-const flush = async (): Promise<void> => {
-  for (let i = 0; i < 3; i++) {
-    await new Promise((r) => {
-      setTimeout(r, 0);
-    });
-  }
-};
-
-/**
- * A call as prod wires it (attachCallWrapUp with its AgentSession) on a
- * simulated clock. Events land in `events` as "<ms after the end> <what>".
- */
-async function call(
-  opts: {
-    phone?: boolean;
-    env?: Record<string, string>;
-    appStays?: boolean;
-    /** Wrap-ups attached to the one AgentSession (a persona swap attaches its own). */
-    wrapUps?: number;
-  } = {}
-) {
-  // A phone caller never leaves because of a data message; an old app may not either
-  const appStays = opts.appStays ?? !!opts.phone;
-  const id = `reopen-${++n}`;
-  used.push(id);
-  let now = 0;
-  let endAt = 0;
-  let appConnected = true;
-  let appLeavesAt: number | null = null;
-  let appDelay = 0;
-  let deleteGate: Promise<void> | null = null;
-  const events: string[] = [];
-  const timers: Array<{ fn: () => void; at: number; ms: number }> = [];
-  const stamp = (what: string) => events.push(`${now - endAt} ${what}`);
-  initFrontendSignal(id, async (type, data) => {
-    if (!appConnected) {
-      stamp(`${type} ${String(data?.reason)} (app gone)`);
-      return;
-    }
-    stamp(`${type} ${String(data?.reason)}`);
-    if (type === 'conversation_end') {
-      endAt = now;
-      events.splice(-1, 1, `0 ${type} ${String(data?.reason)}`);
-      appDelay = Number(data?.disconnectDelay);
-      appLeavesAt = appStays ? null : now + appDelay;
-    } else if (type === 'conversation_hold' && appLeavesAt !== null) {
-      appLeavesAt = Math.min(now + appDelay, endAt + APP_MAX_HOLD_MS);
-    } else if (type === 'conversation_continue') {
-      appLeavesAt = null;
-    }
-  });
-  const session = new EventEmitter();
-  const roomName = `room-${id}`;
-  const a = agent();
-  for (let i = 0; i < (opts.wrapUps ?? 1); i++) {
-    // eslint-disable-next-line no-await-in-loop -- attached in order, as a persona swap does
-    await attachCallWrapUp(i === 0 ? a : agent(), {
-      sessionId: id,
-      room: {
-        name: roomName,
-        get remoteParticipants() {
-          return { size: appConnected ? 1 : 0 };
-        },
-      },
-      participant: { kind: opts.phone ? ParticipantKind.SIP : ParticipantKind.STANDARD },
-      onBehalf: false,
-      env: opts.env ?? { CALL_WRAP_UP: 'on', PHONE_GOODBYE: 'on' },
-      session,
-      hangUp: async (room) => {
-        stamp('delete started');
-        await deleteGate;
-        stamp(`deleted ${room}`);
-        appConnected = false;
-      },
-      setTimer: (fn, ms) => {
-        const timer = { fn, at: now + ms, ms };
-        timers.push(timer);
-        return timer;
-      },
-      clearTimer: (timer) => {
-        const at = timers.indexOf(timer as (typeof timers)[number]);
-        if (at >= 0) timers.splice(at, 1);
-      },
-      now: () => now,
-    });
-  }
-  /** Run the clock to `t` ms after the end (or absolute, before it). */
-  const advance = async (by: number) => {
-    const to = now + by;
-    for (;;) {
-      timers.sort((x, y) => x.at - y.at);
-      const due = Math.min(timers[0]?.at ?? Infinity, appLeavesAt ?? Infinity);
-      if (due > to) break;
-      now = due;
-      if (appLeavesAt === due) {
-        appLeavesAt = null;
-        appConnected = false;
-        stamp('app left');
-        session.emit('close', {}); // the session closes when the caller leaves
-      } else {
-        timers.shift()?.fn();
-      }
-      await flush();
-    }
-    now = to;
-  };
-  const say = (role: 'user' | 'assistant', text: string) =>
-    session.emit('conversation_item_added', { item: { type: 'message', role, textContent: text } });
-  const interim = (text: string) =>
-    session.emit('user_input_transcribed', { transcript: text, isFinal: false });
-  const finalWords = (text: string) =>
-    session.emit('user_input_transcribed', { transcript: text, isFinal: true });
-  const userState = (s: string) => session.emit('user_state_changed', { newState: s });
-  const agentState = (s: string) => session.emit('agent_state_changed', { newState: s });
-  const goodbyes = (ferni = 'Bye, take care.') => {
-    say('user', 'okay, bye!');
-    agentState('speaking');
-    say('assistant', ferni);
-    agentState('listening');
-  };
-  /** Both goodbyes, the quiet window, then `conversation_end` at t = 0. */
-  const toEnd = async () => {
-    goodbyes();
-    await advance(IDLE_AFTER_GOODBYE_MS);
-    expect(events).toEqual(['0 conversation_end idle_after_goodbye']);
-    expect(isSessionClosing(id)).toBe(true);
-  };
-  const reopens = () => events.filter((e) => e.includes('conversation_continue'));
-  const holdDelete = () => {
-    let release: () => void = () => {};
-    deleteGate = new Promise<void>((r) => {
-      release = r;
-    });
-    return release;
-  };
-  return {
-    id,
-    a,
-    roomName,
-    events,
-    timers,
-    session,
-    say,
-    interim,
-    finalWords,
-    userState,
-    agentState,
-    goodbyes,
-    toEnd,
-    advance,
-    reopens,
-    holdDelete,
-    get appConnected() {
-      return appConnected;
-    },
-  };
-}
-
-type Call = Awaited<ReturnType<typeof call>>;
-const ends = (c: Call) => c.events.filter((e) => e.includes('conversation_end'));
-
-/** Ferni's reply, played out. */
-const ferniSays = async (c: Call, text: string) => {
-  c.agentState('speaking');
-  c.say('assistant', text);
-  c.agentState('listening');
-  await flush();
-};
-
-/** A crisis read of the caller's words, started now and settled by hand. */
-function read(id: string, words: string) {
-  let finish: (v: { risk: string }) => void = () => {};
-  const p = trackCrisisRead(
-    id,
-    words,
-    new Promise<{ risk: string }>((r) => {
-      finish = r;
-    })
-  );
-  return async (risk: string) => {
-    finish({ risk });
-    await p;
-    await flush();
-  };
-}
 
 /**
  * The lead's verify of #2532 round 1: each line's STT final reopened the call,
@@ -336,7 +127,7 @@ describe('the reopening line is never the fresh goodbye (#2532)', () => {
     await ferniSays(c, 'Hey, before you go, are you okay?');
     await c.advance(3_000);
     c.finalWords("yeah, I'm fine. okay, bye!");
-    c.say('user', "yeah, I'm fine. okay, bye!");
+    await cleanGoodbye(c, "yeah, I'm fine. okay, bye!");
     await ferniSays(c, 'Okay. Bye, take care.');
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(ends(c)).toHaveLength(2);
@@ -349,7 +140,7 @@ describe("Ferni's goodbye from before a reopen no longer counts (#2532)", () => 
     const c = await call();
     await lineAfterEnd(c, 'oh wait, one more thing', 'no read');
     c.finalWords('actually never mind. okay, bye!');
-    c.say('user', 'actually never mind. okay, bye!');
+    await cleanGoodbye(c, 'actually never mind. okay, bye!');
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(ends(c)).toHaveLength(1);
     expect(c.appConnected).toBe(true);
@@ -504,7 +295,7 @@ describe('a reopened call that goes quiet (#2532)', () => {
   it('a second reopen starts the quiet over, with one watcher', async () => {
     const c = await quietAfterReopen();
     await c.advance(20_000);
-    c.say('user', 'okay, bye');
+    await cleanGoodbye(c, 'okay, bye');
     await ferniSays(c, 'Bye, take care.');
     await c.advance(IDLE_AFTER_GOODBYE_MS);
     expect(ends(c)).toHaveLength(2);
@@ -607,7 +398,7 @@ describe("the reopening turn's own item, however late, is never the fresh goodby
     const c = await call();
     await lineAfterEnd(c, 'wait', 'no read');
     await ferniSays(c, 'Sure, what is it?');
-    c.say('user', 'wait, never mind. okay, bye'); // the next turn
+    await cleanGoodbye(c, 'wait, never mind. okay, bye'); // the next turn
     await ferniSays(c, 'Bye, take care.');
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(ends(c)).toHaveLength(2);
@@ -621,7 +412,7 @@ describe("the reopening turn's own item, however late, is never the fresh goodby
     c.finalWords('no'); // reopens; its item never comes
     expect(c.reopens()).toHaveLength(1);
     await ferniSays(c, 'No worries. Anything else?');
-    c.say('user', 'know what, okay, bye'); // "no" only inside a word: a fresh goodbye
+    await cleanGoodbye(c, 'know what, okay, bye'); // "no" only inside a word: a fresh goodbye
     await ferniSays(c, 'Bye, take care.');
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(ends(c)).toHaveLength(2);
@@ -636,7 +427,7 @@ describe("the reopening turn's own item, however late, is never the fresh goodby
     expect(c.reopens()).toHaveLength(1);
     c.say('user', 'sorry, my dog'); // the next turn: the carry ends
     await ferniSays(c, "Ha, no problem. What's up?");
-    c.say('user', 'wait, never mind. okay, bye');
+    await cleanGoodbye(c, 'wait, never mind. okay, bye');
     await ferniSays(c, 'Bye, take care.');
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(ends(c)).toHaveLength(2);
@@ -654,7 +445,7 @@ describe("the reopening turn's own item, however late, is never the fresh goodby
     await c.advance(3_000); // no read: the window reopens it
     expect(c.reopens()).toHaveLength(1);
     await ferniSays(c, 'Of course. Anything else on your mind?');
-    c.say('user', line); // said again, a new turn: a fresh goodbye
+    await cleanGoodbye(c, line); // said again, a new turn: a fresh goodbye
     await ferniSays(c, 'Bye, take care.');
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(ends(c)).toHaveLength(2);
@@ -669,7 +460,7 @@ describe("the reopening turn's own item, however late, is never the fresh goodby
     c.finalWords('hold on');
     expect(c.reopens()).toHaveLength(1);
     await ferniSays(c, 'Sure, take your time.');
-    c.say('user', 'hold on, never mind. okay, bye');
+    await cleanGoodbye(c, 'hold on, never mind. okay, bye');
     await ferniSays(c, 'Bye, take care.');
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(ends(c)).toHaveLength(2);
@@ -760,7 +551,7 @@ describe('items out of turn order, and reads of other turns (security review of 
     await c.advance(300);
     c.say('user', 'oh wait');
     await ferniSays(c, 'Sure, what is it?');
-    c.say('user', "sorry, Adi's calling me. okay, bye"); // the next turn: a fresh goodbye
+    await cleanGoodbye(c, "sorry, Adi's calling me. okay, bye"); // the next turn: a fresh goodbye
     await ferniSays(c, 'Bye, take care.');
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(ends(c)).toHaveLength(2);
@@ -883,5 +674,102 @@ describe('the check-in (#2532 security review)', () => {
     now = REOPEN_IDLE_END_MS;
     timers.filter((t) => t.at <= now).forEach((t) => t.fn());
     expect(said).toEqual(['check-in', 'end']);
+  });
+});
+
+/**
+ * The lead's ruling B on #2605 item 3: after a reopen, with the classifier on,
+ * a goodbye pair ends the call only on a clean read of the goodbye turn. With
+ * it off (no read ever comes), a fresh pair ends it as before.
+ */
+describe('after a reopen, a goodbye needs its clean read (#2605 ruling B)', () => {
+  /** "goodbye cruel world." reopens; "I gotta go" follows as its own turn; Ferni says goodbye. */
+  async function splitP1(
+    c: Call,
+    opts: { asks?: boolean; goodbye?: (c: Call) => Promise<void> } = {}
+  ) {
+    await c.toEnd();
+    await c.advance(1_000);
+    c.finalWords('goodbye cruel world.');
+    await c.advance(300);
+    c.say('user', 'goodbye cruel world.');
+    expect(c.reopens()).toHaveLength(1);
+    if (opts.asks) await ferniSays(c, 'Hey, are you okay?');
+    await c.advance(2_000);
+    c.finalWords('I gotta go');
+    await c.advance(300);
+    await (opts.goodbye ?? (async (cc: Call) => void cc.say('user', 'I gotta go')))(c);
+    await ferniSays(c, 'Okay, take care of yourself.');
+  }
+
+  it.each([false, true])(
+    'no read of either line: the call stays open (Ferni asks first: %s)',
+    async (asks) => {
+      const c = await call();
+      await splitP1(c, { asks });
+      await c.advance(30_000);
+      expect(ends(c)).toHaveLength(1);
+      expect(c.appConnected).toBe(true);
+    }
+  );
+
+  it('a clean read of the goodbye turn ends it', async () => {
+    const c = await call();
+    await splitP1(c, { goodbye: (cc) => cleanGoodbye(cc, 'I gotta go') });
+    await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
+    expect(ends(c)).toHaveLength(2);
+    expect(c.appConnected).toBe(false);
+  });
+
+  it('a read of another line does not count for the goodbye', async () => {
+    const c = await call();
+    await splitP1(c, {
+      goodbye: async (cc) => {
+        await read(cc.id, 'goodbye cruel world.')('none');
+        cc.say('user', 'I gotta go');
+      },
+    });
+    await c.advance(30_000);
+    expect(ends(c)).toHaveLength(1);
+    expect(c.appConnected).toBe(true);
+  });
+
+  it('classifier in shadow: it still reads every turn, so no read holds the call open', async () => {
+    const c = await call({
+      env: { CALL_WRAP_UP: 'on', PHONE_GOODBYE: 'on', CRISIS_CLASSIFIER_MODE: 'shadow' },
+    });
+    await splitP1(c);
+    await c.advance(30_000);
+    expect(ends(c)).toHaveLength(1);
+    expect(c.appConnected).toBe(true);
+  });
+
+  it('a clean read of the same words from before the reopen does not count', async () => {
+    const line = 'i took everything, goodbye';
+    const c = await call();
+    await read(c.id, line)('none'); // said and read clean earlier in the call
+    await c.toEnd();
+    await c.advance(1_000);
+    c.finalWords('oh wait');
+    await c.advance(300);
+    c.say('user', 'oh wait');
+    expect(c.reopens()).toHaveLength(1);
+    await ferniSays(c, 'Sure, what is it?');
+    c.finalWords(line);
+    c.say('user', line); // said again after the reopen: no read of this turn
+    await ferniSays(c, 'Okay, take care of yourself.');
+    await c.advance(30_000);
+    expect(ends(c)).toHaveLength(1);
+    expect(c.appConnected).toBe(true);
+  });
+
+  it('classifier off: no read ever comes, and a fresh pair still ends the call', async () => {
+    const c = await call({
+      env: { CALL_WRAP_UP: 'on', PHONE_GOODBYE: 'on', CRISIS_CLASSIFIER_MODE: 'off' },
+    });
+    await splitP1(c);
+    await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
+    expect(ends(c)).toHaveLength(2);
+    expect(c.appConnected).toBe(false);
   });
 });

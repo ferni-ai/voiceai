@@ -13,7 +13,7 @@
 import { voice } from '@livekit/agents';
 import { AudioFrame, AudioResampler, type Room } from '@livekit/rtc-node';
 import { createLogger } from '../../utils/safe-logger.js';
-import { stayQuietOn } from '../shared/call-farewell.js';
+import { presenceCallEnding } from './presence-closing.js';
 import { synthHum, synthSnore, synthWhistle } from './presence-sounds.js';
 import {
   createPresenceWatcher,
@@ -25,7 +25,7 @@ import {
 import { startToolHum } from './tool-hum.js';
 import { presenceSilenceIsHeavy } from './presence-heavy.js';
 import { startVoicedPresence, voicedPresenceEnabled } from './voiced-presence.js';
-import { presenceClipPickers } from './presence-clips.js';
+import { presenceClipName, presenceClipPickers } from './presence-clips.js';
 import { reactionSidetrackDirect, startDirectClips } from './direct-clip-track.js';
 import { LAUGH_CLIP } from './backchannel-policy.js';
 import { recordQuirk } from '../../services/session/quirk-log.js';
@@ -33,6 +33,7 @@ import { withBackchannelSignal } from './backchannel-signal.js';
 import { createSoundSignal, liveReactionKind, withSoundSignal } from './sound-signal.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import { avatarListenSignalsEnabled } from '../realtime/listen-turn-signals.js';
+import { noteClipCut, withTimelineSounds } from '../shared/call-timeline.js';
 import { backchannelTimingEnabled, timedLivePlay } from './backchannel-timing.js';
 import {
   createSoundGate,
@@ -50,16 +51,24 @@ const CLIP_RATE = 24000;
 const MIX_RATE = 48000;
 const FRAME_SAMPLES = CLIP_RATE / 100; // 10 ms
 
-/** 24 kHz mono s16le PCM → 48 kHz frames for the mixer. */
+/**
+ * 24 kHz mono s16le PCM → 48 kHz frames for the mixer. The resampler is a
+ * native (Rust FFI) handle: it is freed when the clip plays out or when the
+ * player ends the stream early (stop(), close()), not left to the GC.
+ */
 export async function* pcmToFrames(pcm: ArrayBuffer): AsyncGenerator<AudioFrame> {
   const samples = new Int16Array(pcm, 0, Math.floor(pcm.byteLength / 2));
   const resampler = new AudioResampler(CLIP_RATE, MIX_RATE, 1);
-  for (let i = 0; i < samples.length; i += FRAME_SAMPLES) {
-    const chunk = samples.slice(i, i + FRAME_SAMPLES);
-    const frame = new AudioFrame(chunk, CLIP_RATE, 1, chunk.length);
-    for (const out of resampler.push(frame)) yield out;
+  try {
+    for (let i = 0; i < samples.length; i += FRAME_SAMPLES) {
+      const chunk = samples.slice(i, i + FRAME_SAMPLES);
+      const frame = new AudioFrame(chunk, CLIP_RATE, 1, chunk.length);
+      for (const out of resampler.push(frame)) yield out;
+    }
+    for (const out of resampler.flush()) yield out;
+  } finally {
+    resampler.close();
   }
-  for (const out of resampler.flush()) yield out;
 }
 
 /** How far ahead of real time paced silence runs: a cushion against timer jitter. */
@@ -197,6 +206,8 @@ export async function startBackchannelClips(
   openerClip: (text: string) => boolean;
   /** playClip for the slow-turn "Mm" (slow-turn-sound.ts), conducted as its own kind. */
   slowTurnClip: (text: string) => boolean;
+  /** playClip for a TOOL_ACK_CLIP line (tool-ack-clip.ts), conducted as its own kind. */
+  toolAckClip: (text: string) => boolean;
   /** What live backchanneling needs (live-backchanneling-integration.ts). */
   live: {
     playClip: (text: string, opts?: { pauseStartedAt?: number }) => boolean;
@@ -210,22 +221,29 @@ export async function startBackchannelClips(
     await player.start(room, session);
   } catch (error) {
     log.warn({ error: String(error) }, 'clip player failed to start');
+    // The player built its native AudioSource before start(): release it.
+    await player.close();
     return null;
   }
   let lastPlayedAt = 0;
+  // The clip that last played: a take, when a variation picked one (its sound_played label).
+  let lastClip = '';
   const direct = reactionSidetrackDirect() ? await startDirectClips(room, session) : null;
   const mixerWireMs = (): number => (process.env.CLIP_TRACK_PACED === 'on' ? 220 : 650);
   const directWireMs = (): number => direct?.lastWireMs ?? 60;
   const wireDelayMs = (): number => (direct ? directWireMs() : mixerWireMs());
   // CLIENT_SIGNALS_V2: sound_played for every non-speech clip (sound-signal.ts); null when off.
   const sound = createSoundSignal(createDataMessageSender(room));
-  const gate = createSoundGate(soundConductorMode());
+  // CALL_TIMELINE: every clip that plays is recorded at the gate (call-timeline.ts).
+  const gate = withTimelineSounds(session, createSoundGate(soundConductorMode()), () =>
+    sessionIdOf(session)
+  );
   const stopPresence = startPresenceSounds(
     session,
     player,
     () => direct?.playing ?? false,
     personaId,
-    (kind) => sound?.(kind, mixerWireMs()),
+    (kind, label) => sound?.(kind, mixerWireMs(), label),
     gate
   );
   // The synthesized hum on the mixer; a voiced take is conducted in voiced-presence.ts.
@@ -235,7 +253,7 @@ export async function startBackchannelClips(
     stop: () => player.stop(),
   };
   const stopToolHum = startToolHum(session, humPlayer, undefined, undefined, (onDirect) =>
-    sound?.('hum', onDirect ? directWireMs() : mixerWireMs())
+    sound?.('hum', onDirect ? directWireMs() : mixerWireMs(), 'tool hum')
   );
   const voiced = startVoicedPresence({
     session,
@@ -243,7 +261,7 @@ export async function startBackchannelClips(
     mixerBusy: () => player.playing,
     getClip,
     personaId,
-    onSound: (kind) => sound?.(kind, directWireMs()),
+    onSound: (kind, label) => sound?.(kind, directWireMs(), label),
     gate,
   });
   // `kind` unset: a live reaction, a laugh or a backchannel by its clip.
@@ -257,6 +275,7 @@ export async function startBackchannelClips(
     );
     if (!played) return false;
     lastPlayedAt = Date.now();
+    lastClip = text;
     recordQuirk(sessionIdOf(session), {
       kind: text === LAUGH_CLIP ? 'laugh' : 'backchannel',
       source: 'clip',
@@ -265,7 +284,11 @@ export async function startBackchannelClips(
     return true;
   };
   const playClip = playAt(() => BACKCHANNEL_VOLUME);
-  const cancelFresh = (): boolean => direct?.cancelIfFresh() ?? false;
+  const cancelFresh = (): boolean => {
+    const cut = direct?.cancelIfFresh() ?? false;
+    if (cut) noteClipCut(session, 'pause_ended');
+    return cut;
+  };
   // Live backchannels and laughs (not the turn-opening "Mm") tell the avatar they played.
   // VOICED_PRESENCE varies the live picks; the signal wraps the variation so
   // its kind follows the requested clip (a laugh take still signals 'laugh').
@@ -275,10 +298,16 @@ export async function startBackchannelClips(
       : (voiced?.vary(playClip) ?? playClip),
     sound,
     liveReactionKind,
-    wireDelayMs
+    wireDelayMs,
+    () => lastClip
   );
   const livePlayClip = avatarListenSignalsEnabled()
-    ? withBackchannelSignal(variedPlayClip, createDataMessageSender(room), wireDelayMs)
+    ? withBackchannelSignal(
+        variedPlayClip,
+        createDataMessageSender(room),
+        wireDelayMs,
+        () => lastClip
+      )
     : variedPlayClip;
   return {
     playClip,
@@ -292,6 +321,8 @@ export async function startBackchannelClips(
       wireDelayMs
     ),
     slowTurnClip: playAt(() => BACKCHANNEL_VOLUME, 'slow_turn'),
+    // A spoken line in the reply's voice, rendered like it: full level, not a soft backchannel.
+    toolAckClip: playAt(() => 1, 'tool_ack'),
     live: { playClip: livePlayClip, cancelClip: cancelFresh },
     close: async () => {
       stopPresence();
@@ -317,10 +348,10 @@ function startPresenceSounds(
   player: ClipPlayer,
   otherTrackBusy: () => boolean = () => false,
   personaId: () => string = () => 'ferni',
-  onSound: (kind: 'hum' | 'breath') => void = () => {},
+  onSound: (kind: 'hum' | 'breath', label: string) => void = () => {},
   gate: SoundGate = (_kind, _clip, play) => play()
 ): () => void {
-  // VOICED_PRESENCE: no whistle or snore until researched; voiced-presence.ts fills the quiet.
+  // VOICED_PRESENCE: voiced-presence.ts fills the quiet (its snore is VOICED_QUIRKS's long-quiet slot).
   if (!presenceSoundsEnabled() || voicedPresenceEnabled()) return () => {};
   const mood = () =>
     (session.userData as { voiceEmotion?: { primary?: string } } | undefined)?.voiceEmotion
@@ -337,7 +368,9 @@ function startPresenceSounds(
     if (ok) {
       endsAt = Date.now() + pcm.byteLength / 48; // 24 kHz s16le
       log.info({ kind }, `PRESENCE_SOUND ${kind}`);
-      onSound(kind === 'snore' ? 'breath' : 'hum'); // a whistle reads as a hum (sound-signal.ts)
+      // A whistle reads as a hum (sound-signal.ts); the label names it, and its recording when it has one.
+      const file = presenceClipName(pcm);
+      onSound(kind === 'snore' ? 'breath' : 'hum', file ? `recorded-${kind}:${file}` : kind);
       const secs = Math.round(quietMs / 1000);
       const voice = mood() ? `, their voice sounding ${mood()}` : '';
       recordQuirk(sessionIdOf(session), {
@@ -356,7 +389,7 @@ function startPresenceSounds(
   };
   // PRESENCE_SOUND_ASSETS: a recorded whistle or snore when one loaded, else the synthesized one
   const recorded = presenceClipPickers();
-  const quiet = () => stayQuietOn(session);
+  const quiet = () => presenceCallEnding(session);
   const watchers = [
     createPresenceWatcher({
       play: (quietMs) =>
@@ -382,12 +415,15 @@ function startPresenceSounds(
     watchers.forEach((w) => w.onAgentState(ev.newState ?? ''));
   const onUser = (ev: { newState?: string }) =>
     watchers.forEach((w) => w.onUserState(ev.newState ?? ''));
+  const onClose = () => watchers.forEach((w) => w.close()); // nothing armed plays after close
   session.on(voice.AgentSessionEventTypes.AgentStateChanged, onAgent);
   session.on(voice.AgentSessionEventTypes.UserStateChanged, onUser);
+  session.on(voice.AgentSessionEventTypes.Close, onClose);
   return () => {
-    watchers.forEach((w) => w.close());
+    onClose();
     session.off(voice.AgentSessionEventTypes.AgentStateChanged, onAgent);
     session.off(voice.AgentSessionEventTypes.UserStateChanged, onUser);
+    session.off(voice.AgentSessionEventTypes.Close, onClose);
   };
 }
 

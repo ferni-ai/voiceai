@@ -27,8 +27,10 @@ import {
   type ToolView,
 } from './turn-input-tokens.js';
 import { eotCallFrom } from './turn-receipt-eot.js';
+import { watchToolRuns } from './turn-receipt-tool-timing.js';
 import { noteOfferedTools, withTurnMetricsBq } from './turn-receipt-bq.js';
 import { turnDetectionInUse } from './turn-patience.js';
+import { timelineFor } from './call-timeline.js';
 
 // One recorder per AgentSession, so llmNode and withTurnReminder can find it.
 const recorders = new WeakMap<object, TurnReceiptRecorder>();
@@ -43,6 +45,7 @@ export function noteReminder(session: object, note: ReminderNote): void {
 /** The barge-in fast path or LiveKit's barge-in model stopped Ferni (live-call-behaviors.ts). */
 export function noteBargeIn(session: object, source: BargeInSource): void {
   recorders.get(session)?.onBargeIn(source);
+  timelineFor(session)?.add({ kind: 'barge_in', speaker: 'caller', f: { by: source } });
 }
 
 /** llmNode: the request as it goes to the model, with the tools it carries. */
@@ -92,6 +95,11 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
     ],
     ['conversation_item_added', (ev) => rec.onItem((ev as { item?: never } | undefined)?.item)],
     ['function_tools_executed', (ev) => rec.onToolsExecuted((ev ?? {}) as never)],
+    // Each tool's start and result, from the speech that runs it (tool runs, answer audio).
+    [
+      'speech_created',
+      (ev) => watchToolRuns((ev as { speechHandle?: never })?.speechHandle, rec.onToolRun),
+    ],
     ['eot_prediction', (ev) => rec.onEot(eotCallFrom(ev, session))],
     [
       'agent_state_changed',
@@ -100,7 +108,7 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
         // LiveKit pauses a reply for the caller's voice and says "listening" (interruptByAudioActivity).
         const paused =
           oldState === 'speaking' && newState === 'listening' && speechPausedForCaller(session);
-        if (paused) rec.onBargeIn('vad');
+        if (paused) noteBargeIn(session, 'vad');
         rec.onAgentState(newState, paused);
       },
     ],

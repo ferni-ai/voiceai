@@ -46,7 +46,8 @@ import {
   initializeMultilingualEmbeddings,
 } from './i18n/index.js';
 import type { SemanticToolDefinition, EmbeddingProvider } from './types.js';
-
+import { errorFields } from '../../utils/error-class.js';
+import { pronounLogFields } from './pronoun-log-fields.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // Import embedding worker integration (background processing + Rust SIMD)
@@ -241,7 +242,7 @@ export async function warmStartSession(context: WarmStartContext): Promise<{
     };
   } catch (error) {
     log.warn(
-      { error: String(error), sessionId: context.sessionId },
+      { ...errorFields(error), sessionId: context.sessionId },
       'Warm-start failed (non-fatal, will use cold start)'
     );
     return {
@@ -354,13 +355,6 @@ export interface VoiceRouterResult {
     chainId: string;
     chainName: string;
     predictedSteps: string[];
-  };
-
-  /** User vocabulary match (per-user personalization) */
-  userVocabularyMatch?: {
-    toolId: string;
-    confidence: number;
-    phrase: string;
   };
 
   /** Deep context enhancements */
@@ -578,7 +572,7 @@ async function loadCachedEmbeddingsAsync(embeddingProvider: EmbeddingProvider): 
     }
   } catch (error) {
     log.warn(
-      { error: String(error) },
+      errorFields(error),
       'Failed to load cached embeddings - falling back to pattern/keyword routing'
     );
   }
@@ -614,10 +608,7 @@ export async function routeVoiceInput(
     try {
       detectedLocale = await autoDetectAndLoadLocale(inputText);
       if (detectedLocale !== 'en') {
-        log.debug(
-          { detectedLocale, inputText: inputText.substring(0, 50) },
-          'Language auto-detected'
-        );
+        log.debug({ detectedLocale, inputLength: inputText.length }, 'Language auto-detected');
       }
     } catch {
       // Fall back to English on error
@@ -724,8 +715,7 @@ export async function routeVoiceInput(
       context.detectedEmotion.emotion,
       context.detectedEmotion.intensity,
       context.detectedEmotion.valence,
-      context.detectedEmotion.source,
-      inputText.substring(0, 100) // Context snippet
+      context.detectedEmotion.source // no snippet of the words: this history goes to Firestore
     );
   }
 
@@ -870,9 +860,9 @@ export async function routeVoiceInput(
       entityCount: deepContext.entities.size,
     };
 
-    // If we resolved pronouns, log it
+    // If we resolved pronouns, log which ones (never the caller's words they resolved to)
     if (Object.keys(resolvedPronouns).length > 0) {
-      log.debug({ resolvedPronouns, toolId }, 'Pronouns resolved');
+      log.debug(pronounLogFields(resolvedPronouns, toolId), 'Pronouns resolved');
     }
   }
   const { action } = routingResult;
@@ -885,7 +875,7 @@ export async function routeVoiceInput(
         {
           toolId: action.toolId,
           confidence: action.confidence,
-          args: action.args,
+          argKeys: Object.keys(action.args ?? {}),
         },
         'Auto-executing tool'
       );
@@ -926,7 +916,7 @@ export async function routeVoiceInput(
           await import('../../agents/shared/sanitizer/index.js');
         markToolExecutedBySemanticRouter(context.sessionId, action.toolId);
       } catch (err) {
-        log.warn({ error: String(err) }, 'Failed to mark tool as executed for deduplication');
+        log.warn(errorFields(err), 'Failed to mark tool as executed for deduplication');
       }
 
       // Update deep context with tool result
@@ -945,7 +935,7 @@ export async function routeVoiceInput(
         actualToolUsed: action.toolId,
         wasCorrection: false,
         wasSuccess: toolResult.success,
-      }).catch((err) => log.warn({ error: String(err) }, 'Failed to record outcome'));
+      }).catch((err) => log.warn(errorFields(err), 'Failed to record outcome'));
 
       // Generate routing explanation (transparency)
       // Parse match reason string for explanation factors
@@ -969,7 +959,7 @@ export async function routeVoiceInput(
                 value: v,
               }))
             : undefined,
-          userVocabulary: !!enhancement.userVocabularyMatch,
+          userVocabulary: false, // learned phrases are no longer kept
           emotionBoost: prosodyBoost && prosodyBoost.boostedTools.includes(action.toolId),
         },
         routingResult.matches.slice(1).map((m) => ({ toolId: m.toolId, confidence: m.confidence }))
@@ -982,7 +972,6 @@ export async function routeVoiceInput(
         processingTimeMs: performance.now() - startTime,
         detectedLocale,
         toolChain,
-        userVocabularyMatch: enhancement.userVocabularyMatch,
         contextEnhancements,
         // Better Than Human results
         prosodyBoost,
@@ -1003,7 +992,6 @@ export async function routeVoiceInput(
         processingTimeMs: performance.now() - startTime,
         detectedLocale,
         toolChain,
-        userVocabularyMatch: enhancement.userVocabularyMatch,
         contextEnhancements,
         prosodyBoost,
         paceAnalysis,
@@ -1021,7 +1009,6 @@ export async function routeVoiceInput(
         processingTimeMs: performance.now() - startTime,
         detectedLocale,
         toolChain,
-        userVocabularyMatch: enhancement.userVocabularyMatch,
         contextEnhancements,
         prosodyBoost,
         paceAnalysis,
@@ -1039,7 +1026,6 @@ export async function routeVoiceInput(
         processingTimeMs: performance.now() - startTime,
         detectedLocale,
         toolChain,
-        userVocabularyMatch: enhancement.userVocabularyMatch,
         contextEnhancements,
         prosodyBoost,
         paceAnalysis,
@@ -1057,7 +1043,6 @@ export async function routeVoiceInput(
         processingTimeMs: performance.now() - startTime,
         detectedLocale,
         toolChain,
-        userVocabularyMatch: enhancement.userVocabularyMatch,
         contextEnhancements,
         prosodyBoost,
         paceAnalysis,
@@ -1300,7 +1285,7 @@ export async function recordUserCorrection(
 ): Promise<void> {
   await handleExplicitCorrection(userId, inputText, wrongTool, correctTool);
   log.info(
-    { userId, from: wrongTool, to: correctTool, input: inputText.substring(0, 30) },
+    { userId, from: wrongTool, to: correctTool, inputLength: inputText.length },
     'User correction recorded'
   );
 }
@@ -1565,7 +1550,7 @@ export async function recordToolExecutionOutcome(
       try {
         await handleExplicitCorrection('anonymous', '', toolId, intendedToolId);
       } catch (error) {
-        log.debug({ error: String(error) }, 'Failed to record correction for learning');
+        log.debug(errorFields(error), 'Failed to record correction for learning');
       }
     }
   } else if (!success) {
@@ -1573,7 +1558,7 @@ export async function recordToolExecutionOutcome(
       {
         sessionId,
         toolId,
-        errorMessage: outcome.errorMessage,
+        errorMessageLength: outcome.errorMessage?.length,
         failureRate: ((stats.failureCount / stats.totalExecutions) * 100).toFixed(1) + '%',
       },
       '❌ Tool execution failed'

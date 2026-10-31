@@ -96,7 +96,6 @@ import { valueCapture } from '../../services/monetization/value-capture.js';
 
 // Better Than Human Orchestrator
 import { getBetterThanHuman } from '../../conversation/superhuman/index.js';
-
 // Referral prompt
 import {
   buildReferralPromptInjection,
@@ -106,6 +105,7 @@ import {
 // WS3: Prompt compression (sub-300ms latency optimization)
 import { categorizeQuery, compressInjectionContent } from '../shared/prompt-compressor.js';
 import { isOptimizationEnabled } from '../shared/performance/latency-feature-flags.js';
+import { callerTurnOf } from '../shared/caller-turn-count.js';
 
 // ============================================================================
 // TYPES
@@ -211,10 +211,7 @@ export async function buildContextInjections(
   );
   if (functionCallingReinforcement) {
     injections.push(functionCallingReinforcement);
-    diag.debug('Function calling reinforcement added', {
-      turnCount: currentTurnCount,
-      userTextPreview: userText.slice(0, 50),
-    });
+    diag.debug('Function calling reinforcement added', { turnCount: currentTurnCount });
   }
 
   // A source that fails or misses its budget is dropped from this turn's
@@ -408,8 +405,8 @@ export async function buildContextInjections(
       behavioralFallback,
       'buildIntegratedContext'
     ),
-    buildHumanTransferInjections(userText, services.userId, services.sessionId),
-    buildCrisisHistoryInjection(services.userId),
+    buildHumanTransferInjections(userText, services.userId, services.sessionId, callerTurnOf(userData)),
+    buildCrisisHistoryInjection(services.userId, services.sessionId, callerTurnOf(userData)),
   ]);
 
   // ============================================================================
@@ -905,7 +902,6 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
       (userData as Record<string, unknown>).lastValueEvent = {
         type: valueEvent.type,
         eventId: valueEvent.id,
-        message: userText.slice(0, 100),
         timestamp: valueEvent.createdAt,
       };
 

@@ -15,15 +15,18 @@ import type { FlagName } from '../../config/flag-manifest.js';
 export const RECEIPT_FLAGS = [
   'ACTION_CLAIM_STREAM',
   'ACTION_CLAIM_GUARD',
+  'HOUSE_FACTS',
   'FIRST_CLAUSE_FLUSH',
   'PREEMPT_STABLE_CONTEXT',
   'PREEMPTIVE_TTS',
   'CACHE_WARM_PRIMARY',
   'HANDOFF_CACHE_WARM',
+  'HANDOFF_EARLY_GOODBYE',
   'CASCADE_CACHE_WARM',
   'TTS_SOCKET_WARM',
   'SLOW_TURN_SOUND',
   'TOOL_ACK_WIDE',
+  'TOOL_ACK_CLIP',
   'TOOL_CORE_STATIC',
   'TURN_DETECTOR',
   'ENDPOINT_FAST_FINISHED',
@@ -38,6 +41,7 @@ export const RECEIPT_FLAGS = [
   'BARGE_IN_FAST_STOP',
   'BARGE_IN_SOFT_PAUSE',
   'SOUND_CONDUCTOR',
+  'QUICK_SHORTCUTS_REAL_ONLY',
 ] as const satisfies readonly FlagName[];
 
 /** Numeric knobs read straight from env: shown only as a plain number. */

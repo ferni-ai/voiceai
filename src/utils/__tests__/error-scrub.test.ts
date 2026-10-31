@@ -168,6 +168,12 @@ describe('scrubString', () => {
     [`{"role":"user","text":"${SHORT_TRANSCRIPT}"}`, SHORT_TRANSCRIPT],
     [`transcript was: ${SHORT_TRANSCRIPT}`, SHORT_TRANSCRIPT],
     ['card 4111 1111 1111 1111 declined', '4111'],
+    ['dial 415–555–0132 failed', '0132'],
+    ['dial 415/555/0132 failed', '0132'],
+    ['dial 415_555_0132 failed', '0132'],
+    ['dial ٤١٥٥٥٥٠١٣٢ failed', '٠١٣٢'],
+    // Two numbers joined into one long run still go.
+    ['dial 415-555-0132/415-555-0199 failed', '0199'],
   ])('removes the sensitive part of %j', (input, secret) => {
     expect(scrubString(input)).not.toContain(secret);
   });

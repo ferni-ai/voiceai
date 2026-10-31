@@ -21,14 +21,15 @@ import {
   searchEarlierConversations,
   thisCallOf,
 } from '../../../services/memory/index.js';
-import { memoryHeld } from '../../../utils/minor-care.js';
+import { writeHeld } from '../../../utils/minor-care.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { getSessionId } from '../../utils/tool-helpers.js';
 import { announceRemembered } from './remember-moment.js';
 import { announceMemorySaved } from './memory-saved.js';
-import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
+import { importantReply, REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
+import * as honest from './honest-memory.js'; // MEMORY_TOOLS_HONEST
 
 const log = getLogger();
 
@@ -67,7 +68,10 @@ export const recallFromMemoryUnifiedDef: ToolDefinition = {
           ),
       }),
       execute: async ({ topic }, { ctx: toolCtx }) => {
-        log.info({ agentId: ctx.agentId, topic }, '🧠 [UNIFIED] Recall from memory');
+        log.info(
+          { agentId: ctx.agentId, topicChars: topic.length },
+          '🧠 [UNIFIED] Recall from memory'
+        );
 
         const userData = toolCtx.userData as UserData;
         const userId = userData.userId || ctx.userId;
@@ -131,7 +135,10 @@ export const recallPreviousConversationUnifiedDef: ToolDefinition = {
           ),
       }),
       execute: async ({ query }, { ctx: toolCtx }) => {
-        log.info({ agentId: ctx.agentId, query }, '🧠 [UNIFIED] Semantic recall');
+        log.info(
+          { agentId: ctx.agentId, queryChars: query.length },
+          '🧠 [UNIFIED] Semantic recall'
+        );
 
         const userData = toolCtx.userData as UserData;
         const userId = userData.userId || ctx.userId;
@@ -181,7 +188,9 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
       parameters: z.object({
         fact: z
           .string()
-          .describe('The important fact to remember (e.g., "has two kids", "retiring next year")'),
+          .describe(
+            'Whose fact, then the fact: "the user has two kids", "the user\'s sister Dana is moving to Denver"'
+          ),
         category: z
           .enum(['personal', 'financial', 'emotional', 'goal', 'preference'])
           .describe('Category of the fact'),
@@ -189,7 +198,7 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
       }),
       execute: async ({ fact, category, importance }, { ctx: toolCtx }) => {
         log.info(
-          { agentId: ctx.agentId, fact, category, importance },
+          { agentId: ctx.agentId, factChars: fact.length, category, importance },
           '🧠 [UNIFIED] Remember about user'
         );
 
@@ -198,9 +207,12 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
 
         // Store in session for awareness tools (backward compat)
         (userData.keyMoments ??= []).push(`[${category}] ${fact}`);
+        if (honest.memoryToolsHonestOn()) {
+          return honest.rememberHonestly(toolCtx, userId, fact, category);
+        }
 
         // MINOR_CARE=on: nothing kept past this call for a caller under 18 (minor-care.ts)
-        if (!userId || memoryHeld(getSessionId({ ctx: toolCtx }))) {
+        if (!userId || writeHeld(userId, getSessionId({ ctx: toolCtx }))) {
           log.warn('No memory write: no userId, or MINOR_CARE holds this call');
           return REMEMBERED_THIS_CALL;
         }
@@ -246,7 +258,11 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
     return llm.tool({
       description: getToolDescription('rememberImportantFact'),
       parameters: z.object({
-        fact: z.string().describe('The critically important fact'),
+        fact: z
+          .string()
+          .describe(
+            'Whose fact, then the fact: "the user retires next year", "the user\'s mom has cancer"'
+          ),
         type: z
           .enum(['life_event', 'decision', 'breakthrough', 'milestone', 'concern'])
           .describe('Type of fact'),
@@ -254,23 +270,26 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
       }),
       execute: async ({ fact, type, emotionalWeight }, { ctx: toolCtx }) => {
         log.info(
-          { agentId: ctx.agentId, fact, type, emotionalWeight },
+          { agentId: ctx.agentId, factChars: fact.length, type, emotionalWeight },
           '🧠 [UNIFIED] Remember important fact'
         );
 
         const userData = toolCtx.userData as UserData;
         const userId = userData.userId || ctx.userId;
 
-        if (!userId || memoryHeld(getSessionId({ ctx: toolCtx }))) {
+        if (!userId || writeHeld(userId, getSessionId({ ctx: toolCtx }))) {
           log.warn('No memory write: no userId, or MINOR_CARE holds this call');
-          return "I'll remember that.";
+          return honest.notWrittenReply();
         }
 
         // "Decided to talk to Jordan" is a teammate on this call, not their life (teammate-talk.ts)
-        if (flagOn('TEAMMATE_TALK_FILTER') && isTeammateTalk(fact)) return "I'll remember that.";
+        if (flagOn('TEAMMATE_TALK_FILTER') && isTeammateTalk(fact)) return honest.notWrittenReply();
 
         // Store in session
         (userData.keyMoments ??= []).push(`[${type}/${emotionalWeight}] ${fact}`);
+        if (honest.memoryToolsHonestOn()) {
+          return honest.rememberImportantHonestly(toolCtx, userId, fact, type);
+        }
 
         // Map type to memory type
         const memoryType =
@@ -309,36 +328,7 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
           });
         }
 
-        // Human responses
-        const responses: Record<string, string[]> = {
-          life_event: [
-            `That's a significant moment in your life. I'll remember this.`,
-            `Thank you for trusting me with that. It's important.`,
-          ],
-          decision: [
-            `That's a big decision. I'll keep this in mind.`,
-            `I understand the weight of that choice. I won't forget.`,
-          ],
-          breakthrough: [
-            `That's wonderful progress! I'm so glad you shared that.`,
-            `What a breakthrough. This is really important.`,
-          ],
-          milestone: [
-            `Congratulations on reaching that milestone. I'll remember this moment.`,
-            `That's worth celebrating. I'll keep this in mind.`,
-          ],
-          concern: [
-            `I hear that this is weighing on you. I'll remember.`,
-            `That concern is valid. I'll keep this in mind.`,
-          ],
-          default: [
-            `I'll hold onto that. It feels important.`,
-            `Thank you for trusting me with that.`,
-          ],
-        };
-
-        const options = responses[type] || responses.default;
-        return options[Math.floor(Math.random() * options.length)];
+        return importantReply(type);
       },
     });
   },
@@ -348,6 +338,7 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
 // SURFACE RELEVANT MEMORY (Better-Than-Human, Unified)
 // ============================================================================
 
+const NOTHING_TO_SURFACE = "No stored memory matched; don't present this as remembered.";
 export const surfaceRelevantMemoryUnifiedDef: ToolDefinition = {
   id: 'surfaceRelevantMemory',
   name: 'Surface Relevant Memory',
@@ -368,7 +359,7 @@ export const surfaceRelevantMemoryUnifiedDef: ToolDefinition = {
       }),
       execute: async ({ context, memoryToSurface, connectionReason }, { ctx: toolCtx }) => {
         log.info(
-          { agentId: ctx.agentId, context, connectionReason },
+          { agentId: ctx.agentId, contextChars: context.length },
           '🧠 [BETTER-THAN-HUMAN] Surface relevant memory'
         );
 
@@ -376,7 +367,7 @@ export const surfaceRelevantMemoryUnifiedDef: ToolDefinition = {
         const userId = userData.userId || ctx.userId;
 
         if (!userId) {
-          return memoryToSurface;
+          return NOTHING_TO_SURFACE;
         }
 
         // Search for the actual memory to verify it exists
@@ -409,7 +400,7 @@ export const surfaceRelevantMemoryUnifiedDef: ToolDefinition = {
           }
         }
 
-        return memoryToSurface;
+        return NOTHING_TO_SURFACE;
       },
     });
   },
@@ -442,12 +433,16 @@ export const predictUserNeedUnifiedDef: ToolDefinition = {
       }),
       execute: async ({ context, prediction, confidence, suggestedAction }, { ctx: toolCtx }) => {
         log.info(
-          { agentId: ctx.agentId, context, prediction, confidence },
+          { agentId: ctx.agentId, confidence, contextChars: context?.length ?? 0 },
           '🔮 [BETTER-THAN-HUMAN] Predict user need'
         );
 
         const userData = toolCtx.userData as UserData;
         const userId = userData.userId || ctx.userId;
+        // A guess is never stored as a memory
+        if (honest.memoryToolsHonestOn()) {
+          return honest.guessHonestly(userId, prediction, suggestedAction);
+        }
 
         if (userId) {
           // Record the prediction for learning

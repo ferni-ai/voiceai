@@ -188,8 +188,16 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
 
   it('retries when the call ended on a voicemail Ferni left, keeping what the report said', async () => {
     process.env.CALL_FOLLOWTHROUGH = 'on';
-    const p = ports(voicemail, new Date(), 'voicemail_left');
-    const outcome = await completeOnBehalfCall('s15', makeCall(), 30, true, p);
+    const message: CallTranscriptTurn = {
+      role: 'agent',
+      content: "Hi Mom, it's Ferni, Sam's AI friend, just checking in. Thanks, bye!",
+    };
+    // The voicemail path recorded its message as spoken (voicemail-outcome noteVoicemailSpoken).
+    const p = { ...ports([...voicemail, message], new Date(), 'voicemail_left') };
+    const outcome = await completeOnBehalfCall('s15', makeCall(), 30, true, {
+      ...p,
+      readVoicemailSpoken: () => true,
+    });
     expect(outcome?.status).toBe('voicemail');
     expect(outcome?.outcome).toMatch(
       /^I got Mom's voicemail and left a message.*I'll try again tomorrow\.$/
@@ -197,6 +205,17 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
     expect(outcome?.callbackRequired).toBe(false);
     expect(p.scheduleRetry).toHaveBeenCalledTimes(1);
     expect(p.analyze).not.toHaveBeenCalled();
+  });
+
+  it('retries a voicemail where Ferni said voicemail_left but spoke no message, saying so', async () => {
+    process.env.CALL_FOLLOWTHROUGH = 'on';
+    const p = ports(voicemail, new Date(), 'voicemail_left');
+    const outcome = await completeOnBehalfCall('s15b', makeCall(), 30, true, p);
+    expect(outcome).toMatchObject({ status: 'voicemail', voicemailLeft: false });
+    expect(outcome?.outcome).toBe(
+      "I got Mom's voicemail, but I didn't leave a message. I'll try again tomorrow."
+    );
+    expect(p.scheduleRetry).toHaveBeenCalledTimes(1);
   });
 
   it('never retries a call Ferni ended as refused or a wrong number', async () => {

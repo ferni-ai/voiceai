@@ -20,7 +20,7 @@ import {
   type CaptureContext,
 } from './after-call-commitments.js';
 import { judgedRowText, JUDGED_SOURCE } from './commitment-single-writer.js';
-import { isDirective, redactSecrets } from './commitment-guard.js';
+import { isDirective, NEEDS_PERSON, redactSecrets } from './commitment-guard.js';
 export { isDirective, redactSecrets, screenJudged, type DropCounts } from './commitment-guard.js';
 import { getFirestoreDb } from './firestore-utils.js';
 
@@ -32,8 +32,10 @@ const MAX_PER_CALL = 3;
 const DAY_MS = 86_400_000;
 const UNDATED_FOLLOW_UP_MS = 3 * DAY_MS;
 const FOLLOW_UP_HOUR = 17;
-/** A pronoun: "call her tomorrow" or "take it in" can be said back only with who or what it is. */
-const UNNAMED = /\b(him|her|them|'em|it)\b/i;
+/** A "person" that is itself a pronoun names no one. */
+const PRONOUN = /(?<![\p{L}'])(?:him|her|them|'?em|it)(?![\p{L}])/iu;
+/** "do it", "handle it": with nothing saying what "it" is, fewer words than this can't be said back. */
+const MIN_IT_WORDS = 5;
 
 /** One candidate as the judge returned it: statement is the caller's own words, due is YYYY-MM-DD. */
 export interface JudgedCommitment {
@@ -55,8 +57,13 @@ export function keepJudged(j: JudgedCommitment): boolean {
   // The statement keeps the caller's pronouns, so "call her tomorrow" is kept only with who
   // "her" is: a person the caller named (screenJudged checks it is their word). A "person"
   // that is itself a pronoun ("them", "it") names no one.
-  const named = Boolean(j.person?.trim()) && !UNNAMED.test(j.person ?? '');
-  return named || !UNNAMED.test(j.statement);
+  const named = Boolean(j.person?.trim()) && !PRONOUN.test(j.person ?? '');
+  if (named) return true;
+  const s = j.statement;
+  if (NEEDS_PERSON.test(s) || /\bthem\b/i.test(s)) return false;
+  // An "it" nobody named is kept when the rest says what the plan is ("taking it in for
+  // an oil change on Wednesday", after Ferni asked about the car), not "handle it".
+  return !/\bit\b/i.test(s) || s.trim().split(/\s+/).length >= MIN_IT_WORDS;
 }
 
 /** The evening of the day they named (the next day once it has passed), else in three days. */

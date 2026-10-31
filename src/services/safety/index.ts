@@ -23,7 +23,11 @@
 
 export { detectCrisis, getHighestSeverityCrisis, isCrisisActive } from './crisis-detection.js';
 /** The crisis guard's scoring of the caller's words alone: quiet, no logging (heavy-moment.ts). */
-export { detectCrisis as scoreCrisisLanguage } from './crisis-guard.js';
+export { detectCrisis as scoreCrisisLanguage, IN_DANGER_NOW } from './crisis-guard.js';
+export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.js';
+// Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
+export { crisisRiskThisCall } from './crisis-call-risk.js';
+export { offersCrisisLine } from './crisis-line-speech.js';
 
 export type {
   CrisisDetectionResult,
@@ -32,11 +36,15 @@ export type {
   CrisisType,
 } from './crisis-detection.js';
 
+// Whether crisis handling may touch a turn (handoff transfer aliases)
+export { crisisGuidedTurn, markCrisisTurn, unmarkCrisisTurn } from './crisis-turn-mark.js';
+
 // ============================================================================
 // CRISIS RESPONSE
 // ============================================================================
 
 export {
+  CRISIS_RESOURCES as SAFETY_CRISIS_RESOURCES,
   generateCrisisResponse,
   getCrisisResources,
   getGroundingExercise,
@@ -75,7 +83,13 @@ export type {
 import { type Firestore } from 'firebase-admin/firestore';
 import { removeUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { detectCrisis, type CrisisDetectionResult, type CrisisSignal } from './crisis-detection.js';
+import {
+  detectCrisis,
+  type CrisisDetectionResult,
+  type CrisisSeverity,
+  type CrisisSignal,
+  type CrisisType,
+} from './crisis-detection.js';
 import { generateCrisisResponse, type CrisisResponseContent } from './crisis-response.js';
 import {
   buildEscalationContext,
@@ -237,159 +251,64 @@ export function performSafetyCheck(
   };
 }
 
+/** Which reader made the gate's replace decision (crisis-gate.ts). */
+export type CrisisReader = 'pattern' | 'classifier';
+
+/** How long a crisis event is kept: a TTL policy on expireAt deletes it after this. */
+export const CRISIS_EVENT_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+
 /**
- * Crisis event data stored for tracking and follow-up
+ * One crisis_events document (CRISIS_EVENT_RECORD, agents/safety/crisis-event-record.ts):
+ * ids, fixed enums and times, never the caller's words. Erased and exported with the
+ * account (user-stores.ts, user-records-export.ts).
  */
 export interface StoredCrisisEvent {
   userId: string;
-  crisisType: string;
-  severity: string;
-  responded: boolean;
+  sessionId?: string;
+  personaId?: string;
+  crisisType: CrisisType;
+  severity: CrisisSeverity;
+  reader: CrisisReader;
+  /** The script spoken names 988 or 911 */
   resourcesProvided: boolean;
-  userAcceptedHelp?: boolean;
-  timestamp: string;
-  metadata?: {
-    sessionId?: string;
-    personaId?: string;
-    conversationTurnCount?: number;
-  };
+  createdAt: Date;
+  /** The TTL field, a Date (stored as a Timestamp): createdAt + CRISIS_EVENT_RETENTION_MS */
+  expireAt: Date;
 }
 
 /**
- * Record a crisis event for tracking and follow-up.
- *
- * This stores crisis events in Firestore for:
- * - Historical pattern analysis
- * - Admin notification for critical events
- * - User safety tracking and follow-up
+ * Record one crisis event. Each field is set here by name, so nothing else a caller
+ * passes is stored. No alert is sent (Seth, 2026-10-25). Never throws: a failure is
+ * logged with ids and an error code only.
  */
-export async function recordCrisisEvent(event: {
-  userId: string;
-  crisisType: string;
-  severity: string;
-  responded: boolean;
-  resourcesProvided: boolean;
-  userAcceptedHelp?: boolean;
-  metadata?: {
-    sessionId?: string;
-    personaId?: string;
-    conversationTurnCount?: number;
-  };
-}): Promise<void> {
-  const timestamp = new Date().toISOString();
-  const eventWithTimestamp: StoredCrisisEvent = {
-    ...event,
-    timestamp,
-  };
-
-  // Always log for audit trail
-  log.warn(eventWithTimestamp, '📋 Crisis event recorded');
-
-  // Store in Firestore if available
-  const db = getFirestoreInstance();
-  if (db) {
-    try {
-      // Store the crisis event
-      await db.collection(CRISIS_EVENTS_COLLECTION).add(
-        removeUndefined({
-          ...eventWithTimestamp,
-          createdAt: new Date(),
-        })
-      );
-
-      // Update user's historical signals
-      await updateUserCrisisSignals(db, event.userId, {
-        type: event.crisisType,
-        severity: event.severity,
-        timestamp,
-      });
-
-      // Send admin notification for critical/emergency severity
-      if (event.severity === 'critical' || event.severity === 'emergency') {
-        await notifyAdminOfCriticalCrisis(eventWithTimestamp);
-      }
-
-      log.info({ userId: event.userId }, '✅ Crisis event stored in Firestore');
-    } catch (error) {
-      log.error({ error, userId: event.userId }, 'Failed to store crisis event in Firestore');
-    }
-  }
-}
-
-/**
- * Update user's historical crisis signals for pattern analysis
- */
-async function updateUserCrisisSignals(
-  db: Firestore,
-  userId: string,
-  signal: { type: string; severity: string; timestamp: string }
+export async function recordCrisisEvent(
+  event: Omit<StoredCrisisEvent, 'createdAt' | 'expireAt'>,
+  firestore?: Firestore
 ): Promise<void> {
-  const userSignalsRef = db.collection(CRISIS_SIGNALS_COLLECTION).doc(userId);
-
+  const { userId, sessionId, personaId, crisisType, severity, reader, resourcesProvided } = event;
+  const createdAt = new Date();
+  const expireAt = new Date(createdAt.getTime() + CRISIS_EVENT_RETENTION_MS);
+  const stored: StoredCrisisEvent = {
+    userId,
+    sessionId,
+    personaId,
+    crisisType,
+    severity,
+    reader,
+    resourcesProvided,
+    createdAt,
+    expireAt,
+  };
+  const db = firestore ?? getFirestoreInstance();
   try {
-    await db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(userSignalsRef);
-
-      if (doc.exists) {
-        const data = doc.data();
-        const signals = data?.signals || [];
-
-        // Keep last 50 signals for pattern analysis
-        const updatedSignals = [...signals, signal].slice(-50);
-
-        transaction.update(userSignalsRef, {
-          signals: updatedSignals,
-          lastSignalAt: new Date(),
-          totalSignalCount: (data?.totalSignalCount || 0) + 1,
-        });
-      } else {
-        transaction.set(userSignalsRef, {
-          userId,
-          signals: [signal],
-          firstSignalAt: new Date(),
-          lastSignalAt: new Date(),
-          totalSignalCount: 1,
-        });
-      }
-    });
+    if (!db) throw Object.assign(new Error('no Firestore'), { code: 'no-firestore' });
+    await db.collection(CRISIS_EVENTS_COLLECTION).add(removeUndefined(stored));
+    log.info({ userId, sessionId, severity, reader }, 'Crisis event recorded');
   } catch (error) {
-    log.error({ error, userId }, 'Failed to update user crisis signals');
-  }
-}
-
-/**
- * Send admin notification for critical crisis events.
- * Integrates with Slack for immediate team alerting.
- */
-async function notifyAdminOfCriticalCrisis(event: StoredCrisisEvent): Promise<void> {
-  // Log for monitoring systems to pick up
-  log.warn(
-    {
-      level: 'CRITICAL_CRISIS_ALERT',
-      userId: event.userId,
-      crisisType: event.crisisType,
-      severity: event.severity,
-      timestamp: event.timestamp,
-      resourcesProvided: event.resourcesProvided,
-    },
-    '🚨 CRITICAL CRISIS EVENT - Admin notification required'
-  );
-
-  // Send Slack notification to safety channel
-  try {
-    const { notifyCrisisAlert } = await import('../slack-notifications.js');
-    await notifyCrisisAlert({
-      userId: event.userId,
-      crisisType: event.crisisType,
-      severity: event.severity as 'critical' | 'emergency',
-      timestamp: event.timestamp,
-      resourcesProvided: event.resourcesProvided,
-      userAcceptedHelp: event.userAcceptedHelp,
-      metadata: event.metadata,
-    });
-    log.info({ userId: event.userId }, '✅ Crisis alert sent to Slack');
-  } catch (error) {
-    log.error({ error, userId: event.userId }, 'Failed to send Slack crisis alert');
+    // The code only, and only when it looks like one: a message can quote the caller
+    const code = String((error as { code?: unknown } | null)?.code ?? '');
+    const safe = /^[\w.-]{1,40}$/.test(code) ? code : 'unknown';
+    log.error({ userId, sessionId, code: safe }, 'Crisis event not stored');
   }
 }
 

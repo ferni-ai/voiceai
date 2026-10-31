@@ -21,6 +21,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirebaseUser } from '../identity/firebase-auth.js';
 import {
+  heldSender,
   last4,
   phoneHash,
   phoneHashKey,
@@ -48,13 +49,17 @@ import {
 } from './quiet-hours.js';
 import { timezoneFromPhone } from './area-code-timezones.js';
 import { reportText } from './outreach-bq.js';
+import { attestedIntro, isOwnerAttested, ownerFirstName } from '../messaging/consent-grants.js';
+import { grantedOrAsked } from '../messaging/consent-reach.js';
 import {
   consentBlocks,
   defaultConsentDeps,
+  messagingPipelineOn,
   type ConsentBlock,
   type ConsentDeps,
 } from '../messaging/consent.js';
 import { smsConsentRefusal, type TextConsentReaders } from './text-consent.js';
+import { holdTextForFocus, type FocusTextDeps } from './focus-send-hold.js';
 
 const log = createLogger({ module: 'guarded-text' });
 
@@ -81,6 +86,8 @@ export interface TextDeps {
   now: () => Date;
   /** consent/{phoneHash} (MESSAGING_PIPELINE); by default Firestore, under `env`. */
   consent?: ConsentDeps;
+  /** A Focus hold (focus-send-hold.ts): where held texts go, and FOCUS_HOLD; by default Firestore. */
+  focus?: FocusTextDeps;
 }
 
 const consentOf = (deps: TextDeps): ConsentDeps =>
@@ -96,6 +103,7 @@ export interface GuardedText {
   readonly minGapMs: number;
   /** The owner asked for it in the call just now: an unreadable consent record doesn't hold it (text-consent.ts). */
   readonly askedNow?: boolean;
+  readonly personSet?: boolean; // a reminder they set: a pause doesn't hold it (outreach-pause.ts)
 }
 
 export type TextSkip =
@@ -106,6 +114,8 @@ export type TextSkip =
   | 'opted-out'
   | 'consent-unknown'
   | 'paused'
+  | 'focus-held'
+  | 'held' // MINOR_CARE_SHARED_HOLD: no text they didn't ask for right now
   | 'send-failed';
 export type TextOutcome = { sent: true } | { sent: false; reason: TextSkip };
 
@@ -154,14 +164,16 @@ export async function isOwnVerifiedPhone(
   return own !== undefined && own === toE164(phone);
 }
 
-/** The member explicitly turned texts off, in outreach settings or by a STOP to the webhook. */
+/** Texts turned off (settings, a STOP), or outreach paused unless `pauseExempt` (outreach-pause.ts). */
 export function smsTurnedOff(
   userDoc: Record<string, unknown> | undefined,
-  legacyChannels: unknown
+  legacyChannels: unknown,
+  opts: { pauseExempt?: boolean } = {}
 ): boolean {
   const prefs = (userDoc?.outreachPreferences ?? {}) as { enabled?: unknown; channels?: unknown };
   const withoutSms = (c: unknown): boolean => Array.isArray(c) && !c.includes('sms');
-  return prefs.enabled === false || withoutSms(prefs.channels) || withoutSms(legacyChannels);
+  const paused = prefs.enabled === false && !opts.pauseExempt;
+  return paused || withoutSms(prefs.channels) || withoutSms(legacyChannels);
 }
 
 /** Twilio errors can quote the number (21211: "The 'To' number +1555... is not valid"). */
@@ -233,7 +245,6 @@ export async function sendGuardedText(
   if (!phoneHashKey(deps.env)) return skip('no-hash-secret');
   const storedId = recordUserId(t.userId, deps.env);
   if (!storedId) return skip('no-verified-phone');
-
   const sponsored = t.userId.startsWith('sponsored_');
   const [records, userDoc, legacyChannels] = await Promise.all([
     deps.store.forUser(storedId),
@@ -244,10 +255,12 @@ export async function sendGuardedText(
   if (sentWithin(lastSentAt(records, t.kind), now, t.minGapMs)) return skip('recently-sent');
   const phone = await resolveCheckinPhone(t.userId, userDoc, deps);
   if (!phone) return skip('no-verified-phone');
-  if (smsTurnedOff(userDoc, legacyChannels)) return skip('sms-off');
-
+  const pauseExempt = t.askedNow === true || t.personSet === true;
+  if (smsTurnedOff(userDoc, legacyChannels, { pauseExempt })) return skip('sms-off');
   const hash = phoneHash(phone, deps.env);
   if (!hash) return skip('no-verified-phone');
+  // MINOR_CARE_SHARED_HOLD: the account or the number held by a call, unless asked for just now
+  if (!t.askedNow && (await heldSender(t.userId, phone, deps.env))) return skip('held');
   const [refusal, toPhone] = await Promise.all([
     smsConsentRefusal(hash, deps.store, t.askedNow === true, now),
     deps.store.forPhoneHash(hash),
@@ -258,7 +271,8 @@ export async function sendGuardedText(
   if (consent) return skip(consent === 'opted-out' ? 'opted-out' : 'send-failed');
   // Per phone too: two accounts can share a number.
   if (sentWithin(lastSentAt(toPhone, t.kind), now, t.minGapMs)) return skip('recently-sent');
-
+  // Their Focus holds what Ferni starts: held until it ends (focus-send-hold.ts), never dropped.
+  if (await holdTextForFocus(t, userDoc, now, deps.focus)) return skip('focus-held');
   const phoneLast4 = last4(phone);
   const record: CheckinRecord = {
     userId: storedId,
@@ -277,6 +291,7 @@ export async function sendGuardedText(
     personaId: 'ferni',
     userId: storedId,
     outreachId: `${t.kind}_${t.refId}`,
+    ...(t.askedNow && { askedNow: true }),
   });
   if (result === 'locked') return skip('recently-sent');
   if (!result.success) {
@@ -290,7 +305,6 @@ export async function sendGuardedText(
 // ---------------------------------------------------------------------------
 // Texts a member asks Ferni to send to someone else
 // ---------------------------------------------------------------------------
-
 /** The guards are safety, not a feature: ON_BEHALF_TEXT_GUARD=off restores the unguarded send (rollback only). */
 export function onBehalfGuardOn(env: Env = process.env): boolean {
   return flagOn('ON_BEHALF_TEXT_GUARD', env);
@@ -310,10 +324,14 @@ export interface OnBehalfText {
   readonly zone?: string;
   /** The persona it is sent as (SMS signature); Ferni when unset. */
   readonly personaId?: string;
+  /** The owner's name for a first-contact intro; else their account's. */
+  readonly ownerName?: string;
+  /** Only sendConsentAsk sets this: its claim, which lets the one consent ask reach unknown consent. */
+  readonly consentAskClaim?: string;
 }
 
 export type OnBehalfSkip =
-  | Exclude<TextSkip, 'no-verified-phone' | 'sms-off'>
+  | Exclude<TextSkip, 'no-verified-phone' | 'sms-off' | 'focus-held' | 'held'>
   | 'bad-number'
   | 'needs-consent'
   | 'quiet-hours';
@@ -370,13 +388,15 @@ export async function sendOnBehalfText(
   if (consent) return skip(consent);
   if (sentWithin(lastSentAt(toPhone, 'on-behalf'), now, ON_BEHALF_GAP_MS))
     return skip('recently-sent');
-
   const storedId = recordUserId(t.senderUserId, deps.env) ?? 'unknown';
+  // First from THIS owner to that number: each owner's first text carries their intro.
+  const fromOwner = toPhone.filter((r) => r.userId === storedId);
+  const body = await firstContactBody(t, hash, lastSentAt(fromOwner, 'on-behalf') === null, deps);
   const record: CheckinRecord = {
     userId: storedId,
     sessionId: t.refId,
     sentAt: now.toISOString(),
-    question: t.body,
+    question: body,
     status: 'sent',
     phoneLast4: last4(to),
     phoneHash: hash,
@@ -385,7 +405,7 @@ export async function sendOnBehalfText(
   };
   const result = await lockedSend(deps, ON_BEHALF_GAP_MS, record, {
     to,
-    body: t.body,
+    body,
     personaId: t.personaId ?? 'ferni',
     userId: storedId,
     outreachId: t.refId,
@@ -409,15 +429,28 @@ async function onBehalfConsent(
   t: OnBehalfText,
   deps: TextDeps
 ): Promise<'opted-out' | 'needs-consent' | 'send-failed' | null> {
-  const ownNumber = async (): Promise<boolean> =>
+  const hash = phoneHash(t.toPhone, deps.env);
+  const c = consentOf(deps);
+  // The sender's own grant (or their consent ask) or their own number; never someone else's grant.
+  const allow = async (): Promise<boolean> =>
+    (hash !== null && (await grantedOrAsked(hash, t.senderUserId, t.consentAskClaim, c))) ||
     isOwnVerifiedPhone(t.senderUserId, t.toPhone, deps);
-  const block: ConsentBlock | null = await consentBlocks(
-    t.toPhone,
-    'sms',
-    ownNumber,
-    consentOf(deps)
-  );
+  const block: ConsentBlock | null = await consentBlocks(t.toPhone, 'sms', allow, c);
   return block === 'unverifiable' ? 'send-failed' : block;
+}
+
+/** MESSAGING_PIPELINE: the first text after an owner's attestation says who is writing, and for whom. */
+async function firstContactBody(
+  t: OnBehalfText,
+  hash: string,
+  firstText: boolean,
+  deps: TextDeps
+): Promise<string> {
+  if (!firstText || !messagingPipelineOn(deps.env)) return t.body;
+  const c = consentOf(deps);
+  if (!(await isOwnerAttested(hash, 'sms', t.senderUserId, c).catch(() => false))) return t.body;
+  const owner = t.ownerName ?? ownerFirstName(await deps.store.userDoc(t.senderUserId));
+  return attestedIntro(owner, t.body);
 }
 
 /**

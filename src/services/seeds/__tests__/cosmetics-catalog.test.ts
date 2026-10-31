@@ -37,17 +37,33 @@ function webItems(): Array<{ id: string; type: string; price: number | null; tie
     });
 }
 
+/** Voice packs are off on the web (nothing applies one), so the server doesn't sell them. */
+const voicePacksOff = /const VOICE_PACKS_AVAILABLE = false;/.test(
+  readFileSync(WEB_CATALOG, 'utf8')
+);
+const pricedVoicePack = (item: { type: string; price: number | null }) =>
+  item.type === 'voice-pack' && item.price !== null;
+
 describe('server cosmetics catalog matches the web catalog', () => {
   const web = webItems();
 
   it('parses the whole web catalog', () => {
-    expect(web.length).toBe(COSMETICS_FOR_SALE.length + DEFAULT_COSMETICS.length);
+    expect(voicePacksOff, 'voice packs back on: price them in cosmetics-catalog.ts').toBe(true);
+    expect(web.filter(pricedVoicePack)).toHaveLength(3);
+    expect(web.length).toBe(COSMETICS_FOR_SALE.length + DEFAULT_COSMETICS.length + 3);
     expect(web.length).toBeGreaterThan(10);
   });
 
-  it('sells every priced web item at the same price, type and plan, and nothing else', () => {
+  it('sells no voice pack', () => {
+    expect(COSMETICS_FOR_SALE.filter((item) => item.type === 'voice-pack')).toEqual([]);
+    for (const id of web.filter(pricedVoicePack).map((item) => item.id)) {
+      expect(cosmeticForSale(id), id).toBeUndefined();
+    }
+  });
+
+  it('sells every other priced web item at the same price, type and plan, and nothing else', () => {
     const forSale = web
-      .filter((item) => item.price !== null)
+      .filter((item) => item.price !== null && !pricedVoicePack(item))
       .map(({ id, type, price, tier }) => ({ id, type, price, requiredTier: tier }));
     expect([...COSMETICS_FOR_SALE].sort((a, b) => a.id.localeCompare(b.id))).toEqual(
       forSale.sort((a, b) => a.id.localeCompare(b.id))

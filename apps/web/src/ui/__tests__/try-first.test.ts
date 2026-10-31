@@ -113,9 +113,9 @@ describe('sign-in gate with try-first on', () => {
     localStorage.setItem(TRY_FIRST_STORAGE_KEY, 'true');
   });
 
-  it('offers "Talk to Ferni now" alongside the sign-in buttons', async () => {
+  it('offers "Talk to Ferni" alongside the sign-in buttons', async () => {
     const gate = await openGate();
-    expect(talkButton(gate)?.textContent).toBe('Talk to Ferni now');
+    expect(talkButton(gate)?.textContent).toBe('Talk to Ferni');
     expect(providers(gate)).toEqual(['google', 'try-first', 'try-first-hear']);
     expect(gate.querySelector('.sign-in-gate-subtitle')?.textContent).toBe(
       'Say hello first. Sign in whenever you want to keep the conversation.'
@@ -224,12 +224,97 @@ describe('try-first edge cases', () => {
 });
 
 describe('try-first copy', () => {
-  it('follows the voice text rules: no em dashes or ellipses', async () => {
+  // "Calling Ferni…" keeps a real ellipsis (Seth, 2026-10-29); three dots stay banned.
+  it('follows the voice text rules: no em dashes, and no three-dot ellipses', async () => {
     const { readFileSync } = await import('node:fs');
     const path = await import('node:path');
     const raw = readFileSync(path.resolve(__dirname, '../../i18n/locales/en-US.json'), 'utf8');
     const copy = (JSON.parse(raw) as { tryFirst: Record<string, string> }).tryFirst;
     expect(Object.keys(copy).length).toBeGreaterThan(5);
-    for (const line of Object.values(copy)) expect(line).not.toMatch(/—|…|\.\.\./);
+    for (const line of Object.values(copy)) expect(line).not.toMatch(/—|\.\.\./);
+  });
+});
+
+describe('try-first button, per phase (connect copy, Seth 2026-10-29)', () => {
+  beforeEach(() => {
+    localStorage.setItem(TRY_FIRST_STORAGE_KEY, 'true');
+  });
+
+  /** A call that starts when the test says so */
+  function deferredCall(): { call: ControllableCall; pickUp: () => Promise<void> } {
+    const call = controllableCall();
+    let resolve: (c: DemoCall) => void = () => undefined;
+    startDemoCall.mockReturnValue(new Promise<DemoCall>((r) => (resolve = r)));
+    return {
+      call,
+      pickUp: async () => {
+        resolve(call);
+        await vi.advanceTimersByTimeAsync(0);
+      },
+    };
+  }
+  /** The gate button has no aria-label, so its text is what a screen reader says */
+  const spoken = (btn: HTMLButtonElement): string | null =>
+    btn.getAttribute('aria-label') ?? btn.textContent;
+
+  it('idle: "Talk to Ferni"', async () => {
+    const gate = await openGate();
+    const btn = talkButton(gate)!;
+    expect(btn.textContent).toBe('Talk to Ferni');
+    expect(spoken(btn)).toBe('Talk to Ferni');
+  });
+
+  it('connecting: "Calling Ferni…", then "Still reaching Ferni…" after 4 s', async () => {
+    deferredCall();
+    const gate = await openGate();
+    vi.useFakeTimers();
+    const btn = talkButton(gate)!;
+    btn.click();
+    expect(gate.dataset.tryFirst).toBe('connecting');
+    expect(btn.textContent).toBe('Calling Ferni…');
+    expect(spoken(btn)).toBe('Calling Ferni…');
+    vi.advanceTimersByTime(3999);
+    expect(btn.textContent).toBe('Calling Ferni…');
+    vi.advanceTimersByTime(1);
+    expect(btn.textContent).toBe('Still reaching Ferni…');
+  });
+
+  it('in-call: "End call", and a pick-up before 4 s clears the slow label', async () => {
+    const { pickUp } = deferredCall();
+    const gate = await openGate();
+    vi.useFakeTimers();
+    const btn = talkButton(gate)!;
+    btn.click();
+    vi.advanceTimersByTime(2000);
+    await pickUp();
+    expect(gate.dataset.tryFirst).toBe('in-call');
+    vi.advanceTimersByTime(10_000);
+    expect(btn.textContent).toBe('End call');
+    expect(spoken(btn)).toBe('End call');
+  });
+
+  it('a failed connect before 4 s goes back to "Talk to Ferni" and stays there', async () => {
+    startDemoCall.mockRejectedValue(new DemoCallError('unavailable'));
+    const gate = await openGate();
+    vi.useFakeTimers();
+    const btn = talkButton(gate)!;
+    btn.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(gate.dataset.tryFirst).toBe('idle');
+    vi.advanceTimersByTime(10_000);
+    expect(btn.textContent).toBe('Talk to Ferni');
+  });
+
+  it('ended: the button resets to "Talk to Ferni" behind the keep prompt', async () => {
+    const { call, pickUp } = deferredCall();
+    const gate = await openGate();
+    vi.useFakeTimers();
+    const btn = talkButton(gate)!;
+    btn.click();
+    await pickUp();
+    call.finish();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(gate.dataset.tryFirst).toBe('ended');
+    expect(btn.textContent).toBe('Talk to Ferni');
   });
 });

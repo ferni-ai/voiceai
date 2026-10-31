@@ -8,6 +8,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { MOTION_FLAG_KEYS } from '../../../src/config/motion-flags.js';
+
 vi.mock('../../../src/utils/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
@@ -17,7 +19,6 @@ import {
   BLINK_KEYFRAMES,
   INHALE_MS,
   THINKING_BREATH_RATE,
-  TURN_GESTURES_FLAG_KEY,
   anticipationKeyframes,
   createTurnGestures,
   disposeTurnGestures,
@@ -197,7 +198,7 @@ describe('gestures', () => {
 
 describe('flags', () => {
   it('follows ferni:avatar-turn events when both flags are on', () => {
-    localStorage.setItem(TURN_GESTURES_FLAG_KEY, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.turnGestures, 'true');
     expect(initTurnGestures(true, makeDeps())).toBe(true);
     turn('thinking');
     turn('speaking');
@@ -214,7 +215,7 @@ describe('flags', () => {
   });
 
   it('stays still when the turn driver (ferni:avatar-turns) is off', () => {
-    localStorage.setItem(TURN_GESTURES_FLAG_KEY, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.turnGestures, 'true');
     expect(initTurnGestures(false, makeDeps())).toBe(false);
     turn('thinking');
     turn('speaking');
@@ -222,7 +223,7 @@ describe('flags', () => {
   });
 
   it('drops the thinking pose when the call ends', () => {
-    localStorage.setItem(TURN_GESTURES_FLAG_KEY, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.turnGestures, 'true');
     initTurnGestures(true, makeDeps());
     turn('thinking');
     document.dispatchEvent(new Event('ferni:disconnected'));

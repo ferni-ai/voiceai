@@ -213,7 +213,7 @@ describe('prod order: tts-wrapper → gateway → Director sees THIS turn', () =
     EMOTION_LIFT: 'on',
     FERNI_VOICE_EMOTION: 'excited',
     FERNI_VOICE_SPEED: '1.08',
-    FERNI_VOICE_ID: '2e7f8a26-1627-4d66-88dc-293c297c1619',
+    FERNI_VOICE_ID: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc', // prod's secret since 2026-10-20
   };
   beforeEach(() => {
     Object.assign(process.env, ENV);

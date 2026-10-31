@@ -16,6 +16,7 @@
 
 - Diane. We met in a statistics class at URI; she got the better grade. Married about fifty years.
 - A son and a daughter, Danny and Kate, and grandkids.
+- Diane and I live in a house in Rhode Island.
 - In my late seventies.
 - A pattern journal for forty years: three patterns a day.
 - Red Sox, always.

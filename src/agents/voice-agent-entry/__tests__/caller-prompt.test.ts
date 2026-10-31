@@ -26,9 +26,9 @@ describe("the persona prompt and the caller's flags", () => {
   it("is loaded with this caller's flags, after the last caller's are put back", async () => {
     process.env['PROMPT_MODE'] = 'character';
     applyFlags({ FERNI_PERSONA_SLIP_GUARD: 'on' }); // the cohort's caller
-    expect(await loadCallerPrompt('ferni')).toContain(OWN_LIFE);
+    expect(await loadCallerPrompt({ id: 'ferni' })).toContain(OWN_LIFE);
     applyFlags({}); // the next caller, in no cohort (STEP 4)
-    expect(await loadCallerPrompt('ferni')).not.toContain(OWN_LIFE);
+    expect(await loadCallerPrompt({ id: 'ferni' })).not.toContain(OWN_LIFE);
   });
 
   it('is not loaded at STEP 2: buildSessionPersona never loads it', () => {
@@ -44,7 +44,7 @@ describe("the persona prompt and the caller's flags", () => {
   it('the single-agent session gets the prompt loaded after identifyUser (STEP 4)', () => {
     const entry = src('index.ts');
     const identified = entry.indexOf('identifyUser({ jobMetadata');
-    const loaded = entry.indexOf('systemPrompt: await loadCallerPrompt(sessionPersona.id)');
+    const loaded = entry.indexOf('systemPrompt: await loadCallerPrompt(sessionPersona)');
     expect(identified).toBeGreaterThan(0);
     expect(loaded).toBeGreaterThan(identified);
     // identifyUser is where the caller's flags are applied.

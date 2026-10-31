@@ -71,17 +71,15 @@ import { trackConversationTurn } from '../integrations/speech-metrics-integratio
 import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
 import type { UserData } from '../shared/types.js';
 import { heldAfter, memoryHeld } from '../../utils/minor-care.js';
+import { readCallerTurn } from '../personas/sexual-boundary.js';
+import { ownerWriteId } from '../../services/identity/owner-write-gate.js';
 import {
   analyzeTurnSignals,
   handleInterruption,
   updateSessionState,
   type TurnContext,
 } from './human-turn-intelligence.js';
-import {
-  isLikelyNoise,
-  validateTranscript,
-  type ValidationContext,
-} from './transcript-validator.js';
+import { isLikelyNoise, validateTranscript, type ValidationContext } from './transcript-validator.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 import {
@@ -112,8 +110,6 @@ import {
   recordAnticipatoryOutcome,
   type VoiceProsodyCue,
 } from '../../intelligence/triggers/index.js';
-// Semantic Router types - used for transcript routing results
-// Tool selection handled by UTO semantic selection + LLM native function calling
 // Unified Anticipation Pipeline - "Better Than Human" anticipation during speech
 import { getAnticipationPipeline } from '../../speech/anticipation/index.js';
 // Speech Orchestrator integration for micro-reactions
@@ -124,7 +120,6 @@ import {
   getAdaptiveEchoWindow,
   recordEchoDetected,
 } from '../../speech/coordination/index.js';
-// Session closing tracker to prevent errors during shutdown
 // Tool updater for mid-session tool updates (OpenAI Realtime)
 import { createLogger } from '../../utils/safe-logger.js';
 import { isMidSessionToolUpdateSafe, supportsToolUpdates } from '../shared/tool-updater.js';
@@ -1288,8 +1283,10 @@ async function processFinalTranscript(
   } = ctx;
   // MINOR_CARE=on: a caller under 18 (not a verified owner): nothing below stores their words.
   const asked = userData.lastAgentResponse; // userId binds userHeld; asked: the bare-number rule
+  // SEXUAL_TOPIC_BOUNDARY=on: this turn's read first (bounded; this isn't the reply path).
+  await readCallerTurn({ sessionId, userId, text: event.transcript, asked });
   const held = heldAfter(sessionId, event.transcript, { userId, asked });
-  const memoryUserId = held ? undefined : userId;
+  const memoryUserId = held ? undefined : ownerWriteId(userId); // nor an on-behalf call's id
 
   // ===============================================
   // 🧠 WS1: VALIDATE SPECULATIVE CONTEXT

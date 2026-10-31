@@ -37,37 +37,36 @@ export function formatNayanBriefing(
     }
   }
 
-  // Wisdom Metrics Dashboard
-  const { wisdomMetrics } = briefing;
-  sections.push('\n=== 🕉️ WISDOM METRICS ===');
-  sections.push(`• Life Integration: ${wisdomMetrics.lifeIntegration}/100`);
-  sections.push(`• Meaning Coherence: ${wisdomMetrics.meaningCoherence}/100`);
-  sections.push(`• Legacy Readiness: ${wisdomMetrics.legacyReadiness}/100`);
-  sections.push(`• Inner Peace Index: ${wisdomMetrics.innerPeaceIndex}/100`);
-  sections.push(`• Growth Trajectory: ${wisdomMetrics.growthTrajectory}/100`);
-  if (wisdomMetrics.patterns.length > 0) {
-    sections.push(`PATTERNS: ${wisdomMetrics.patterns.join('; ')}`);
+  // Only what rests on the member's data: their goals and habits (the life chapter), what the
+  // team's stores show, a connected calendar. No scores of the caller, no server clock (#3044).
+  const { lifeSynthesis, teamSynthesis } = briefing;
+  const teamLines = [
+    teamSynthesis.peterPattern && `• Peter (numbers): ${teamSynthesis.peterPattern}`,
+    teamSynthesis.mayaPattern && `• Maya (habits): ${teamSynthesis.mayaPattern}`,
+    teamSynthesis.jordanPattern && `• Jordan (goals): ${teamSynthesis.jordanPattern}`,
+    teamSynthesis.alexPattern && `• Alex (communication): ${teamSynthesis.alexPattern}`,
+  ].filter((line): line is string => Boolean(line));
+  const hasChapter = lifeSynthesis.lifeChapter !== 'unknown';
+  if (!hasChapter && teamLines.length === 0 && !briefing.calendarContext && !handoffBriefing) {
+    return [];
   }
 
   // Existential context
   if (briefing.existentialContext.currentExistentialTheme) {
     sections.push('\n=== 💫 EXISTENTIAL CONTEXT ===');
     sections.push(`Theme: ${briefing.existentialContext.currentExistentialTheme}`);
-    sections.push(`Meaning-seeking: ${briefing.existentialContext.meaningSeekingIntensity}`);
-    sections.push(`Mortality awareness: ${briefing.existentialContext.mortalityAwareness}`);
-    sections.push(`Spiritual openness: ${briefing.existentialContext.spiritualOpenness}`);
   }
 
   // Life synthesis
-  const { lifeSynthesis } = briefing;
-  sections.push('\n=== 📖 THE LIFE SYNTHESIS ===');
-  sections.push(`• Life chapter: ${lifeSynthesis.lifeChapter}`);
-  if (lifeSynthesis.dominantTheme) {
-    sections.push(`• Dominant theme: ${lifeSynthesis.dominantTheme}`);
+  if (hasChapter) {
+    sections.push('\n=== 📖 THE LIFE SYNTHESIS ===');
+    sections.push(`• Life chapter: ${lifeSynthesis.lifeChapter}`);
+    if (lifeSynthesis.dominantTheme)
+      sections.push(`• Dominant theme: ${lifeSynthesis.dominantTheme}`);
   }
-  sections.push(`• Growth pattern: ${lifeSynthesis.growthPattern}`);
-  sections.push(`• Time horizon: ${lifeSynthesis.timeHorizon}`);
-  sections.push(`• Season: ${lifeSynthesis.seasonOfLife}`);
+  if (lifeSynthesis.growthPattern !== 'unknown') {
+    sections.push(`• Growth pattern: ${lifeSynthesis.growthPattern}`);
+  }
   if (lifeSynthesis.compoundingAreas.length > 0) {
     sections.push(`• Compounding: ${lifeSynthesis.compoundingAreas.join(', ')}`);
   }
@@ -75,12 +74,8 @@ export function formatNayanBriefing(
     sections.push(`• Values revealed: ${lifeSynthesis.valuesRevealed.join(', ')}`);
   }
 
-  // Life Narrative
+  // Life Narrative (no guessed past or future chapter)
   const { lifeNarrative } = briefing;
-  sections.push('\n=== 📜 LIFE NARRATIVE ===');
-  sections.push(`• Past chapter: ${lifeNarrative.pastChapter}`);
-  sections.push(`• Current chapter: ${lifeNarrative.currentChapter}`);
-  sections.push(`• Emerging: ${lifeNarrative.emergingChapter}`);
   if (lifeNarrative.recurringThemes.length > 0) {
     sections.push(`• Recurring themes: ${lifeNarrative.recurringThemes.join(', ')}`);
   }
@@ -108,20 +103,7 @@ export function formatNayanBriefing(
   }
 
   // Team synthesis
-  const { teamSynthesis } = briefing;
-  sections.push('\n=== 🤝 WHAT THE TEAM SEES ===');
-  if (teamSynthesis.peterPattern) {
-    sections.push(`• Peter (numbers): ${teamSynthesis.peterPattern}`);
-  }
-  if (teamSynthesis.mayaPattern) {
-    sections.push(`• Maya (habits): ${teamSynthesis.mayaPattern}`);
-  }
-  if (teamSynthesis.jordanPattern) {
-    sections.push(`• Jordan (goals): ${teamSynthesis.jordanPattern}`);
-  }
-  if (teamSynthesis.alexPattern) {
-    sections.push(`• Alex (communication): ${teamSynthesis.alexPattern}`);
-  }
+  if (teamLines.length > 0) sections.push('\n=== 🤝 WHAT THE TEAM SEES ===', ...teamLines);
   if (teamSynthesis.crossDomainInsights.length > 0) {
     sections.push(`Cross-domain: ${teamSynthesis.crossDomainInsights.join('; ')}`);
   }
