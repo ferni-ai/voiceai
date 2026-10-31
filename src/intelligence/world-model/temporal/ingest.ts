@@ -7,11 +7,17 @@
  * @module intelligence/world-model/temporal/ingest
  */
 
-import { forgottenTopicsOrNull, isForgotten } from '../../../memory/index.js';
+import {
+  dualWriteFacts,
+  forgottenTopicsOrNull,
+  isForgotten,
+  mapWorldFact,
+  type DualWriteDeps,
+} from '../../../memory/index.js';
 import { callLLMForJSON } from '../../../services/llm-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { planResolution, type SupersedeJudge } from './resolve.js';
-import { createFirestoreWorldFactStore, type WorldFactStore } from './store.js';
+import { createFirestoreWorldFactStore, worldFactsDb, type WorldFactStore } from './store.js';
 import { isWorldModelTemporalOn, type TemporalFact, type WorldObservation } from './types.js';
 import { validObservation } from './validate.js';
 
@@ -27,6 +33,8 @@ export interface IngestDeps {
   newId?: () => string;
   /** Topics the caller asked Ferni to forget (memory/recall/forget.ts); null or a throw = unreadable. */
   forgotten?: (userId: string) => Promise<string[] | null>;
+  /** FACTS_DUAL_WRITE's database and writer, for tests; the flag is read from `env`. */
+  facts?: Partial<Omit<DualWriteDeps, 'env'>>;
 }
 
 export interface IngestResult {
@@ -74,12 +82,10 @@ export async function recordWorldObservations(
   if (!isWorldModelTemporalOn(deps.env) || !userId) return null;
   // Fail closed: if what they asked Ferni to forget can't be read, write nothing this time
   // rather than write a forgotten fact back.
-  const topics = await (deps.forgotten ?? forgottenTopicsOrNull)(userId).catch(
-    (error: unknown) => {
-      log.warn({ userId, sessionId, error: String(error) }, 'Forgotten topics unreadable');
-      return null;
-    }
-  );
+  const topics = await (deps.forgotten ?? forgottenTopicsOrNull)(userId).catch((error: unknown) => {
+    log.warn({ userId, sessionId, error: String(error) }, 'Forgotten topics unreadable');
+    return null;
+  });
   if (!Array.isArray(topics)) return null;
   const kept = observations
     .map((o) => validObservation(o, sessionId))
@@ -97,6 +103,12 @@ export async function recordWorldObservations(
       newId: deps.newId,
     });
     await store.apply(userId, plan);
+    // FACTS_DUAL_WRITE: after the legacy write landed; never throws.
+    await dualWriteFacts(userId, 'world_facts', plan.create.flatMap(mapWorldFact), {
+      getDb: worldFactsDb,
+      ...deps.facts,
+      env: deps.env,
+    });
     const result = {
       created: plan.create.length,
       closed: plan.close.length + plan.create.filter((f) => f.validTo !== null).length,

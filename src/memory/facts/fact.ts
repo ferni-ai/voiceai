@@ -19,6 +19,15 @@ const FACT_SOURCES = ['deep_extraction', 'after_call', 'live_tool', 'onboarding'
   'world_facts', 'manual'] as const;
 export type FactSource = (typeof FACT_SOURCES)[number];
 
+/**
+ * Who the fact comes from: the person said it, or an extractor inferred it. persona_canon
+ * (something Ferni or a teammate says about their own life) is never stored here: the
+ * writer refuses it, as Ferni's own life stays out of the person's memory.
+ */
+export type FactProvenance = 'user_said' | 'inferred' | 'persona_canon';
+const STORED_PROVENANCE = ['user_said', 'inferred'] as const;
+export type StoredProvenance = (typeof STORED_PROVENANCE)[number];
+
 /** One value at a time: a new value replaces the old. The rest (pets, goals...) can hold several. */
 const SINGLE = new Set('phone email_present city employer role relation birthday'.split(' '));
 export const isSingleValued = (a: FactAttribute): boolean => SINGLE.has(a);
@@ -34,7 +43,8 @@ export interface Fact {
   readonly validFrom: string | null; readonly validTo: string | null;
   readonly learnedAt: string; readonly retiredAt: string | null;
   readonly supersededBy: string | null; readonly sourceEpisodeId: string | null;
-  readonly source: FactSource; readonly confidence: number; readonly sensitive: boolean;
+  readonly source: FactSource; readonly provenance: StoredProvenance;
+  readonly confidence: number; readonly sensitive: boolean;
   readonly forgottenAt: string | null; readonly lastConfirmedAt: string;
 }
 
@@ -58,7 +68,7 @@ const time = (x: unknown): boolean =>
 const orNull = (x: unknown, ok: (v: unknown) => boolean): boolean => x === null || ok(x);
 const KEYS = (
   'v subjectId attribute value validFrom validTo learnedAt retiredAt supersededBy ' +
-  'sourceEpisodeId source confidence sensitive forgottenAt lastConfirmedAt'
+  'sourceEpisodeId source provenance confidence sensitive forgottenAt lastConfirmedAt'
 ).split(' ');
 
 /** A stored document as a fact, or null for any shape this build didn't write. */
@@ -81,11 +91,20 @@ export function toFact(id: string, data: unknown): Fact | null {
     orNull(o.supersededBy, isFactId) &&
     orNull(o.sourceEpisodeId, isFactId) &&
     (FACT_SOURCES as readonly unknown[]).includes(o.source) &&
+    // Written before M8b without one: 'inferred', the label that claims least.
+    (o.provenance === undefined ||
+      (STORED_PROVENANCE as readonly unknown[]).includes(o.provenance)) &&
     typeof o.confidence === 'number' &&
     o.confidence >= 0 &&
     o.confidence <= 1 &&
     typeof o.sensitive === 'boolean' &&
     orNull(o.forgottenAt, time) &&
     time(o.lastConfirmedAt);
-  return ok ? { ...(o as Omit<Fact, 'id'>), id } : null;
+  return ok
+    ? {
+        ...(o as Omit<Fact, 'id'>),
+        provenance: (o.provenance ?? 'inferred') as StoredProvenance,
+        id,
+      }
+    : null;
 }

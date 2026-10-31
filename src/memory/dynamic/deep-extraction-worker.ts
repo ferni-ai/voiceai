@@ -25,6 +25,7 @@ import {
 import { createDeepExtractionBatcher } from './deep-extraction-batch.js';
 import { extractionMoment } from './extraction-moment.js';
 import { memoryHeld, userHeld } from '../../utils/minor-care.js';
+import { dualWriteFacts, mapDynamicFact, type MappedFact } from '../writer/facts-dual-write.js';
 import type { DeepExtractionBatchOptions } from './deep-extraction-batch.js';
 
 // ============================================================================
@@ -594,6 +595,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
         batch.set(entityRef, entityDoc);
       }
 
+      const toFacts: MappedFact[] = [];
       for (const factDoc of await withFactEmbeddings(payloads.facts)) {
         // Same fact, same document: re-extraction refreshes it (newest date, latest confidence).
         const id = factDocId(
@@ -602,6 +604,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
           String(factDoc.value ?? '')
         );
         batch.set(userRoot.collection('dynamic_facts').doc(id), factDoc, { merge: true });
+        toFacts.push(mapDynamicFact(factDoc, job.sessionId, id));
       }
 
       for (const relDoc of payloads.relationships) {
@@ -610,11 +613,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
       }
 
       // Extraction metadata: the transcript's length, never its text (spoken codes, #2385)
-      const metaRef = db
-        .collection('bogle_users')
-        .doc(userId)
-        .collection('extraction_history')
-        .doc(job.jobId);
+      const metaRef = userRoot.collection('extraction_history').doc(job.jobId);
 
       batch.set(
         metaRef,
@@ -646,6 +645,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
 
       // This is the critical missing piece - without this, context builders return empty
       await this.persistToVectorStore(userId, result, job, timestamp);
+      await dualWriteFacts(userId, 'dynamic_facts', toFacts, { getDb: () => db }); // never throws
     } catch (error) {
       this.log.error({ error: String(error), userId }, 'Failed to persist extraction');
     }

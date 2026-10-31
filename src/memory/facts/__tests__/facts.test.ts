@@ -14,6 +14,7 @@ const city = (value: string, key: string, extra: Partial<FactProposal> = {}): Fa
   attribute: 'city',
   value,
   source: 'manual',
+  provenance: 'user_said',
   sourceKey: key,
   at: T0,
   ...extra,

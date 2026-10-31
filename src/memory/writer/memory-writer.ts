@@ -6,6 +6,14 @@
  *   UPDATE  a single-valued attribute has a new value: the old fact gets validTo,
  *           retiredAt and supersededBy and is kept. Multi-valued ones (pets) add.
  *   NOOP    already known: only lastConfirmedAt moves.
+ *   history a single-valued fact that arrives late (its validFrom is older than the
+ *           current fact's) is stored already ended, at the next known validFrom; the
+ *           current fact is left as it is.
+ * A fact about a topic the person asked Ferni to forget is refused ('forgotten'), and
+ * nothing is written while those topics can't be read. Ferni's own life is never a
+ * person's fact: persona_canon, or a subject that is Ferni or a teammate (entity-hygiene's
+ * junkReason 'persona'), is refused ('persona'). A friend who shares a teammate's first
+ * name ("person:maya") is refused too; that cost keeps a teammate's line out.
  * Idempotent per (source, sourceKey). Member facts only, nothing while MEMORY_FACTS is
  * off, ids and ops in logs, never a value.
  *
@@ -24,9 +32,13 @@ import {
   valueKey,
   type Fact,
   type FactAttribute,
+  type FactProvenance,
   type FactSource,
 } from '../facts/fact.js';
+import { junkReason } from '../entity-hygiene.js';
 import { factDoc, factsQuery, isCurrent, memberFacts, parseFacts } from '../facts/facts-store.js';
+import { factText, isForgotten } from '../domain/forgotten.js';
+import { firestoreForgottenStore } from '../adapters/firestore/forgotten-store.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'memory-writer' });
@@ -35,6 +47,8 @@ export interface FactProposal {
   readonly attribute: FactAttribute;
   readonly value: string;
   readonly source: FactSource;
+  /** Who it comes from; persona_canon is always refused. */
+  readonly provenance: FactProvenance;
   /** Unique per proposed fact within the source, e.g. `${sessionId}:${n}`. */
   readonly sourceKey: string;
   readonly validFrom?: string | null;
@@ -44,9 +58,9 @@ export interface FactProposal {
   readonly at?: Date;
 }
 
-type Refusal = 'disabled' | 'not_member' | 'invalid' | 'unreadable';
+type Refusal = 'disabled' | 'not_member' | 'invalid' | 'unreadable' | 'forgotten' | 'persona';
 export type ProposeResult =
-  | { ok: true; op: 'add' | 'update' | 'noop'; fact: Fact; duplicate: boolean }
+  | { ok: true; op: 'add' | 'update' | 'noop' | 'history'; fact: Fact; duplicate: boolean }
   | { ok: false; reason: Refusal };
 
 const stored = ({ id: _id, ...rest }: Fact): Omit<Fact, 'id'> => rest;
@@ -63,6 +77,35 @@ function commit(
   if (facts.some((f) => toFact(f.id, stored(f)) === null)) return { ok: false, reason: 'invalid' };
   for (const f of facts) tx.set(factDoc(db, uid, f.id), stored(f));
   return done;
+}
+/** "person:aunt-mary" → "aunt mary", so forgetting a person refuses facts about them. */
+const subjectName = (subjectId: string): string =>
+  subjectId.replace(/^\w+:/, '').replace(/[-_]/g, ' ');
+const startsAfter = (f: Fact, iso: string): boolean =>
+  f.validFrom !== null && ms(f.validFrom) > ms(iso);
+/**
+ * A late arrival: a current fact already says a newer validFrom. The new fact is stored
+ * as history, ended at the next validFrom on file (current or retired, not forgotten);
+ * a retired fact whose window held its validFrom now ends there. Null when not late.
+ */
+function lateInsert(
+  facts: readonly Fact[],
+  current: readonly Fact[],
+  fact: Fact,
+  validFrom: string,
+  now: string
+): Fact[] | null {
+  if (!current.some((f) => startsAfter(f, validFrom))) return null;
+  const known = facts.filter((f) => f.forgottenAt === null);
+  const next = known
+    .filter((f) => startsAfter(f, validFrom))
+    .sort((a, b) => ms(a.validFrom ?? '') - ms(b.validFrom ?? ''))[0];
+  const history = { ...fact, validTo: next.validFrom, retiredAt: now, supersededBy: next.id };
+  const trimmed = known
+    .filter((f) => !isCurrent(f) && f.validTo !== null && ms(f.validTo) > ms(validFrom))
+    .filter((f) => f.validFrom === null || ms(f.validFrom) < ms(validFrom))
+    .map((f) => ({ ...f, validTo: validFrom, supersededBy: fact.id }));
+  return [history, ...trimmed];
 }
 async function reconcile(
   db: Firestore,
@@ -93,13 +136,25 @@ async function reconcile(
     return commit(db, tx, uid, [fact], { ok: true, op: 'noop', fact, duplicate: false });
   }
   const validFrom = p.validFrom ?? null;
+  const provenance = p.provenance === 'user_said' ? 'user_said' : 'inferred';
   // prettier-ignore
   const fact: Fact = {
     v: FACT_VERSION, id, subjectId: p.subjectId, attribute: p.attribute, value, validFrom,
     validTo: null, learnedAt: now, retiredAt: null, supersededBy: null,
-    sourceEpisodeId: p.sourceEpisodeId ?? null, source: p.source, confidence: p.confidence ?? 0.8,
+    sourceEpisodeId: p.sourceEpisodeId ?? null, source: p.source, provenance,
+    confidence: p.confidence ?? 0.8,
     sensitive: p.sensitive ?? false, forgottenAt: null, lastConfirmedAt: now,
   };
+  if (isSingleValued(p.attribute) && validFrom !== null) {
+    const late = lateInsert(facts, current, fact, validFrom, now);
+    if (late)
+      return commit(db, tx, uid, late, {
+        ok: true,
+        op: 'history',
+        fact: late[0],
+        duplicate: false,
+      });
+  }
   const replaced = isSingleValued(p.attribute) ? current : [];
   const retired = replaced.map((old) => ({
     ...old,
@@ -120,6 +175,13 @@ export async function proposeFact(
 ): Promise<ProposeResult> {
   if (!memoryFactsEnabled(env)) return { ok: false, reason: 'disabled' };
   if (!memberFacts(uid)) return { ok: false, reason: 'not_member' };
+  if (
+    p.provenance === 'persona_canon' ||
+    junkReason({ name: subjectName(p.subjectId), type: 'person' }, env) === 'persona'
+  ) {
+    log.info({ uid, source: p.source, outcome: 'persona' }, 'Proposed');
+    return { ok: false, reason: 'persona' };
+  }
   const value = normalizeValue(p.attribute, p.value);
   if (
     !value ||
@@ -127,6 +189,18 @@ export async function proposeFact(
     !(p.at === undefined || (p.at instanceof Date && !Number.isNaN(p.at.getTime())))
   ) {
     return { ok: false, reason: 'invalid' };
+  }
+  // Fail closed: unreadable forgotten topics write nothing, as the readers return nothing.
+  const { topics } = await firestoreForgottenStore(db).readForgotten(uid);
+  if (!topics) return { ok: false, reason: 'unreadable' };
+  if (
+    isForgotten(
+      factText({ entityName: subjectName(p.subjectId), attribute: p.attribute, value }),
+      topics
+    )
+  ) {
+    log.info({ uid, source: p.source, outcome: 'forgotten' }, 'Proposed');
+    return { ok: false, reason: 'forgotten' };
   }
   const result = await db.runTransaction((tx) => reconcile(db, tx, uid, p, value));
   log.info({ uid, source: p.source, outcome: result.ok ? result.op : result.reason }, 'Proposed');
