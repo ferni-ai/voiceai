@@ -65,10 +65,17 @@ async function panelRead(uid: string): Promise<{ status: number; body: Record<st
   return { status: res.status, body: (await res.json()) as Record<string, unknown> };
 }
 
-/** What session-manager.ts does for every call, phone or web. */
-async function callLikeTheAgent(uid: string, summary: string): Promise<string> {
+/**
+ * What session-manager.ts does for every call, phone or web: open it, persist each turn,
+ * end it, summarize. Only a call where the user spoke is a session together.
+ */
+async function callLikeTheAgent(uid: string, summary: string, userSpeaks = true): Promise<string> {
   const realtime = await import('../../services/memory/realtime-memory.js');
   const id = await realtime.startConversation(uid, 'ferni');
+  const said = (role: 'user' | 'assistant', content: string) =>
+    realtime.persistTurn(uid, id, { role, content, timestamp: new Date() });
+  await said('assistant', 'Hey, good to hear you.');
+  if (userSpeaks) await said('user', 'Hi Ferni.');
   await realtime.endConversation(uid, id);
   await realtime.markSummarized(uid, id, summary);
   return id;
@@ -90,6 +97,16 @@ describe.skipIf(!emulator)("When We've Talked, call to panel (Firestore emulator
         highlights: ['Talked through the move to Denver'],
       }),
     ]);
+  });
+
+  it('a call where only the greeting played is not listed or counted', async () => {
+    const uid = newUser();
+    await callLikeTheAgent(uid, 'Greeting only', false);
+
+    const { status, body } = await panelRead(uid);
+    expect(status).toBe(200);
+    expect(body.totalSessions).toBe(0);
+    expect(body.sessions).toEqual([]);
   });
 
   it("a web call shows once, with the web app's hang-up insights", async () => {
