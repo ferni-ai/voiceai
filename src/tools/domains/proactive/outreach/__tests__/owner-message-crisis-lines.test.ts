@@ -1,13 +1,13 @@
 /**
  * The crisis lines an unverified message may carry come from the crisis module
- * (services/safety/crisis-response.ts CRISIS_RESOURCES), the one source of
+ * (CRISIS_RESOURCES, exported by services/safety/index.ts), the one source of
  * truth. Replaced here with a fictional list: if the filter kept its own copy,
  * the fictional line would be refused and the real ones would still pass.
  */
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../../services/safety/crisis-response.js', () => ({
-  CRISIS_RESOURCES: {
+vi.mock('../../../../../services/safety/index.js', () => ({
+  SAFETY_CRISIS_RESOURCES: {
     fictional: [{ name: 'Fictional Line', description: '', phone: '1-555-010-0199', text: 'Text HELP to 424242', available: '24/7' }], // prettier-ignore
   },
 }));

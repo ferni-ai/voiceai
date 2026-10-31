@@ -16,14 +16,14 @@
  * 4. no run of 3+ single letters or digits separated by spaces
  * 5. no credential ask (fe's ruling, 2026-10-31)
  *
- * The crisis lines in services/safety/crisis-response.ts (988, 741741, ...) are
+ * The crisis lines of the safety context (CRISIS_RESOURCES: 988, 741741, ...) are
  * never refused by the digit rules when they stand alone: a number joined to
  * them by nothing but spaces or punctuation makes one longer number, which counts.
  *
  * @module tools/domains/proactive/outreach/owner-message-content
  */
 
-import { CRISIS_RESOURCES } from '../../../../services/safety/crisis-response.js';
+import { SAFETY_CRISIS_RESOURCES } from '../../../../services/safety/index.js';
 
 /** Why a message was refused; logged as the reason code, never with the text. */
 export const CONTENT_BLOCKS = [
@@ -71,7 +71,7 @@ interface Token {
 /** Every crisis line's number as digits, read from the crisis module (one source of truth). */
 function crisisNumbers(): ReadonlySet<string> {
   const numbers = new Set<string>();
-  for (const resource of Object.values(CRISIS_RESOURCES).flat()) {
+  for (const resource of Object.values(SAFETY_CRISIS_RESOURCES).flat()) {
     const phone = resource.phone?.replace(/\D/g, '');
     if (phone && phone.length >= 3) numbers.add(phone);
     for (const run of resource.text?.match(/\d{3,}/g) ?? []) numbers.add(run);
