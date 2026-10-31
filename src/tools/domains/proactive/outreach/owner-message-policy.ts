@@ -33,11 +33,11 @@ import { callSessionData } from '../../../utils/call-session-data.js';
 import { blockedContent, type ContentBlock } from './owner-message-content.js';
 
 /** UNVERIFIED_OWNER_MESSAGE_FILTER=on: unverified calls message the owner under this policy (default off). */
-export function unverifiedOwnerMessageFilterOn(env: NodeJS.ProcessEnv = process.env): boolean {
+function unverifiedOwnerMessageFilterOn(env: NodeJS.ProcessEnv = process.env): boolean {
   return flagOn('UNVERIFIED_OWNER_MESSAGE_FILTER', env);
 }
 
-export const UNVERIFIED_SESSION_LIMIT = 2;
+const UNVERIFIED_SESSION_LIMIT = 2;
 export const UNVERIFIED_FOOTER = 'From your call with Ferni.';
 /** What Ferni says when the content was refused (fe's words, 2026-10-31). */
 export const UNVERIFIED_CONTENT_REFUSAL =
@@ -46,7 +46,7 @@ export const UNVERIFIED_CONTENT_REFUSAL =
 export const UNVERIFIED_SEND_REFUSAL =
   "I can't send anything else from this call, but I can once you're in the app.";
 
-export type OwnerMessageRefusal = ContentBlock | 'session_limit' | 'no_account' | 'no_session';
+type OwnerMessageRefusal = ContentBlock | 'session_limit' | 'no_account' | 'no_session';
 
 export type OwnerMessageDecision =
   | { outcome: 'unchanged' } // a verified caller, or the flag off: exactly as before
@@ -61,7 +61,7 @@ export interface OwnerMessage {
   /** The run's options, carrying the call session (opts.ctx.userData) */
   opts: unknown;
   /** The model-written parts: message, subject */
-  texts: ReadonlyArray<unknown>;
+  texts: readonly unknown[];
   /** Spoken on a call rather than sent as text: no footer */
   spoken: boolean;
 }

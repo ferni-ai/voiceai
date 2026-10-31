@@ -42,8 +42,8 @@ import {
   textUser,
   setUserContactInfo,
   SAVED_NOT_VERIFIED,
-  ownerMessageTool,
 } from '../proactive/outreach/index.js';
+import { ownerMessageTool } from '../proactive/outreach/owner-message-policy.js';
 import { userTimeZone } from '../../../utils/caller-time-zone.js';
 import {
   getPendingReminders,

@@ -30,7 +30,7 @@ describe('blockedContent', () => {
     ['visit example . com', 'url'],
     ['visit exampledotcom', 'url'],
     ['visit ｅｘａｍｐｌｅ．ｃｏｍ', 'url'],
-    ['visit exa​mple.com', 'url'],
+    ['visit exa\u200Bmple.com', 'url'],
     ['visit sub.example.co', 'url'],
   ])('refuses a link: %s', (text, reason) => {
     expect(blockedContent(text)).toBe(reason);
@@ -42,9 +42,9 @@ describe('blockedContent', () => {
     'call 555 555 0123',
     'call 555.555.0123',
     'call (555) 555-0123',
-    'call 555–555–0123',
+    'call 555\u2013555\u20130123',
     'call ５５５５５５０１２３',
-    'call ٥٥٥٥٥٥٠', // Arabic-Indic digits
+    'call \u0665\u0665\u0665\u0665\u0665\u0665\u0660', // Arabic-Indic digits
     'call five five five five five five zero one',
     'call +1 555 555 0123',
   ])('refuses a phone number: %s', (text) => {

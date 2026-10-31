@@ -48,9 +48,6 @@ export {
   getAgentToUserOutreachDefinitions,
 } from './agent-to-user.js';
 
-// Every message the model writes to the owner goes through one policy
-export { ownerMessagePolicy, ownerMessageTool } from './owner-message-policy.js';
-
 // Default export for domain loading
 import { getAgentToUserOutreachDefinitions } from './agent-to-user.js';
 export const getOutreachDefinitions = getAgentToUserOutreachDefinitions;

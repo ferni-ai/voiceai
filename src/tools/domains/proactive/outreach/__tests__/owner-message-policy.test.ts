@@ -59,7 +59,10 @@ import {
   UNVERIFIED_CONTENT_REFUSAL,
   UNVERIFIED_FOOTER,
   UNVERIFIED_SEND_REFUSAL,
+  ownerMessagePolicy,
   ownerMessageTool,
+  type OwnerMessage,
+  type OwnerMessageDecision,
 } from '../owner-message-policy.js';
 
 const ctx: ToolContext = { userId: OWNER.id, agentId: 'ferni', agentDisplayName: 'Ferni' };
@@ -254,5 +257,28 @@ describe('flag on', () => {
       reason: 'url',
     });
     expect(JSON.stringify([fields, msg])).not.toContain('example');
+  });
+
+  describe('ownerMessagePolicy: the one decision, typed', () => {
+    const decide = (over: Partial<OwnerMessage>): OwnerMessageDecision =>
+      ownerMessagePolicy({ tool: 't', ownerId: OWNER.id, opts: unverified(), texts: ['hi'], spoken: false, ...over }); // prettier-ignore
+
+    it('verified: unchanged; unverified: allowed with the footer, none when spoken', () => {
+      expect(decide({ opts: verified() })).toEqual({ outcome: 'unchanged' });
+      expect(decide({})).toEqual({ outcome: 'unverified_allowed', footer: UNVERIFIED_FOOTER });
+      expect(decide({ spoken: true })).toEqual({ outcome: 'unverified_allowed', footer: null });
+    });
+
+    it('names the reason for each refusal', () => {
+      const reasons = [
+        decide({ texts: ['pat@example.com'] }),
+        decide({ texts: ['example.com'] }),
+        decide({ texts: ['555 555 0123'] }),
+        decide({ texts: ['your password'] }),
+        decide({ ownerId: 'anon:fixture' }),
+        decide({ opts: {} }),
+      ].map((d) => (d.outcome === 'refused' ? d.reason : d.outcome));
+      expect(reasons).toEqual(['email', 'url', 'phone_number', 'credential_ask', 'no_account', 'no_session']); // prettier-ignore
+    });
   });
 });

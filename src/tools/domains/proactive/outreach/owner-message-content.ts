@@ -17,7 +17,7 @@
 /** Why a message was refused; logged as the reason code, never with the text. */
 export type ContentBlock = 'email' | 'url' | 'phone_number' | 'credential_ask';
 
-const INVISIBLE = /[­᠎​-‏‪-‮⁠-⁤﻿]/g;
+const INVISIBLE = /[\u00AD\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/g;
 const TLDS = 'com|net|org|io|co|app|ai|me|us|ly|link|xyz|info|biz|gov|edu|site|online|page';
 const DIGIT_WORDS = [
   'zero',
@@ -43,7 +43,7 @@ function plain(text: string): string {
   return text
     .normalize('NFKC')
     .replace(INVISIBLE, '')
-    .replace(/[。｡︒]/g, '.')
+    .replace(/[\u3002\uFF61\uFE12]/g, '.')
     .toLowerCase();
 }
 
@@ -64,7 +64,7 @@ function lettersOnly(text: string, one: 'i' | 'l'): string {
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
     .replace(/./gu, (c) => LOOK_ALIKES[c] ?? leet[c] ?? c)
-    .replace(/\b(?:\p{L}[\s.\-_*·]+){2,}\p{L}\b/gu, (run) => run.replace(/[^\p{L}]/gu, ''));
+    .replace(/\b(?:\p{L}[\s.\-_*\u00B7]+){2,}\p{L}\b/gu, (run) => run.replace(/[^\p{L}]/gu, ''));
 }
 
 const EMAIL = /[\p{L}\p{N}._%+-]@[\p{L}\p{N}-]/u;
@@ -73,7 +73,7 @@ const BARE_DOMAIN = /[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)*\.\p{L}{2,}(?![\p{L}\p{N
 const SPELLED_TLD = new RegExp(`dot\\s*(?:${TLDS})\\b`);
 const DIGIT_WORD = new RegExp(`\\b(?:${DIGIT_WORDS.join('|')})\\b`, 'g');
 /** Seven or more digits, any script, with spaces, dashes, dots or brackets between them. */
-const DIGIT_RUN = /\p{Nd}(?:[\s.,\-‐-―−()/+_*]*\p{Nd}){6,}/u;
+const DIGIT_RUN = /\p{Nd}(?:[\s.,\-\u2010-\u2015\u2212()/+_*]*\p{Nd}){6,}/u;
 const CREDENTIAL_ASK = new RegExp(
   '\\b(?:verif(?:y|ies|ied|ying|ications?)|log(?:ging|ged)?\\s*-?\\s*ins?|logins?|' +
     'sign\\s*-?\\s*ins?|accounts?|banks?|banking|passwords?|pass\\s*codes?|codes?|pins?|' +
