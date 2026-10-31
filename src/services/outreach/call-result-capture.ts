@@ -24,10 +24,7 @@ import { completedAtFor, contactForOwner, type StepOutcome } from './call-result
 
 const log = getLogger().child({ service: 'call-result-capture' });
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
+/** One call's result as stored: what was asked, and how it went. */
 export interface StoredCallResult {
   callId: string;
   userId: string;
@@ -36,6 +33,8 @@ export interface StoredCallResult {
     contactQuery: string;
     contactName?: string;
     contactPhone?: string;
+    /** "mother", "friend": who the contact is to the owner (GROUNDED_CLAIMS reads it, claim-evidence.ts). */
+    contactRelationship?: string;
     purpose: string;
     objective: string;
     callType: string;
@@ -342,6 +341,7 @@ export async function captureCallResult(
         contactQuery: request.contactQuery,
         contactName: request.resolvedContact?.name,
         contactPhone: request.resolvedContact?.phone,
+        contactRelationship: request.resolvedContact?.relationship,
         purpose: request.purpose,
         objective: request.objective,
         callType: request.callType,
