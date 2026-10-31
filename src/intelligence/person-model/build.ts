@@ -124,7 +124,6 @@ function buildPeople(i: PersonModelInputs, now: Date, forgotten: string[]): T.Pe
     seen(p, ms(f.extractedAt));
     p.notes.push(`${f.key} ${f.value}`);
   }
-  // Forgotten names drop, and so do Ferni and teammates with no relation of theirs (persona canon).
   const theirs = (p: Draft) =>
     keep(p.name, forgotten, 60) === p.name && !isPersonaSubject(p.name, p.relation);
   return [...byName.values()]

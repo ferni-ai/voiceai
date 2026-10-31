@@ -53,8 +53,7 @@ interface PersonModelJobResult {
   candidates: number;
   built: number;
   written: number;
-  /** By SkipReason. */
-  skipped: Record<string, number>;
+  skipped: Record<string, number>; // by SkipReason
   users: UserOutcome[];
 }
 
