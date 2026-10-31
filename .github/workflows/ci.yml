@@ -1043,11 +1043,37 @@ jobs:
     # one PR that grew a 713-line file to 723 failed 15 of 15 merge groups and
     # knocked out every PR queued with it (2026-10-18). Its three steps are cheap.
     if: needs.setup.outputs.code != 'false'
+    # The gate files guard reads the PR's label events and this run's start time.
+    # Nothing else here calls the API (cache restore uses the runner's own token).
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      actions: read
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+
+      # Blocking. A PR may not switch a gate off in .github/workflows/, .github/actions/
+      # or scripts/ci/ (continue-on-error, a swallowed test failure, `if: false`, a
+      # required job deleted or skipped; scripts/ci/gate-files-guard.sh). From July to
+      # September every test step carried continue-on-error and CI hid 214 failures.
+      # It runs main's copy of the guard, so a PR can't loosen the guard that judges it
+      # (the PR's copy only until main has one). PRs only: a PR whose Quality Gates
+      # failed can't join the merge queue, and a merge_group payload has no labels.
+      # The ci-gate-change-ok label, added by a person after this run started,
+      # approves the change: add it, then re-run this job.
+      - name: Gate files guard
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          git show HEAD^1:scripts/ci/gate-files-guard.sh >"$RUNNER_TEMP/gate-files-guard.sh" 2>/dev/null \
+            || cp scripts/ci/gate-files-guard.sh "$RUNNER_TEMP/gate-files-guard.sh"
+          bash "$RUNNER_TEMP/gate-files-guard.sh" HEAD^1 HEAD
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
