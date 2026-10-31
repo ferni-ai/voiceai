@@ -13,14 +13,11 @@
  */
 
 import crypto from 'node:crypto';
+import { FieldValue } from '@google-cloud/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { activityCheckin } from './apple-health-checkin.js';
-import {
-  onSleepPatternChange,
-  onWorkoutChange,
-  onWellnessCheckinChange,
-} from '../data-layer/hooks/health-hooks.js';
+import { onWellnessCheckinChange } from '../data-layer/hooks/health-hooks.js';
 import type {
   AppleHealthSyncPayload,
   AppleHealthSleepData,
@@ -39,13 +36,15 @@ const log = createLogger({ module: 'apple-health-sync' });
 // CONFIGURATION
 // ============================================================================
 
-const STATUS_COLLECTION = 'apple_health_status';
-const DATA_COLLECTION = 'apple_health_data';
-const SYNC_TOKEN_COLLECTION = 'apple_health_tokens';
+export const STATUS_COLLECTION = 'apple_health_status';
+export const DATA_COLLECTION = 'apple_health_data';
+export const SYNC_TOKEN_COLLECTION = 'apple_health_tokens';
 
 // In-memory cache for status (avoids frequent Firestore reads)
 const statusCache = new Map<string, { status: AppleHealthAuthStatus; expiresAt: number }>();
 const CACHE_TTL_MS = 60 * 1000; // 1 minute
+/** Disconnect and a sync drop the cached status; another instance's copy expires within the TTL */
+export const forgetCachedStatus = (userId: string): boolean => statusCache.delete(userId);
 
 // ============================================================================
 // SYNC TOKEN MANAGEMENT
@@ -57,8 +56,7 @@ const CACHE_TTL_MS = 60 * 1000; // 1 minute
  */
 export async function generateSyncToken(
   userId: string,
-  deviceId: string,
-  deviceName: string
+  deviceId: string
 ): Promise<AppleHealthResult<string>> {
   try {
     const db = getFirestoreDb();
@@ -75,8 +73,7 @@ export async function generateSyncToken(
       .set(
         cleanForFirestore({
           hashedToken,
-          deviceId,
-          deviceName,
+          deviceId, // never the device's name: it often carries the owner's
           createdAt: new Date().toISOString(),
           lastUsedAt: null,
         })
@@ -123,26 +120,6 @@ export async function validateSyncToken(
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to validate sync token');
     return { valid: false };
-  }
-}
-
-/**
- * Revoke sync token (disconnect device)
- */
-export async function revokeSyncToken(userId: string): Promise<void> {
-  try {
-    const db = getFirestoreDb();
-    if (!db) return;
-
-    await db.collection(SYNC_TOKEN_COLLECTION).doc(userId).delete();
-    await db.collection(STATUS_COLLECTION).doc(userId).delete();
-
-    // Clear cache
-    statusCache.delete(userId);
-
-    log.info({ userId }, 'Revoked Apple Health sync token');
-  } catch (error) {
-    log.error({ error: String(error), userId }, 'Failed to revoke sync token');
   }
 }
 
@@ -197,12 +174,10 @@ export async function processSyncPayload(
       processedCount += payload.data.steps.length;
     }
 
-    // Process workout data
+    // Process workout data: per-day count and minutes, never the workout itself
     if (payload.data.workouts && payload.data.workouts.length > 0) {
-      for (const workout of payload.data.workouts) {
-        await storeWorkout(db, userId, workout);
-        processedCount++;
-      }
+      await storeWorkoutTotals(db, userId, payload.data.workouts);
+      processedCount += payload.data.workouts.length;
     }
 
     // Process mindfulness data
@@ -216,8 +191,7 @@ export async function processSyncPayload(
     // Update connection status
     await updateConnectionStatus(db, userId, payload.deviceId, payload.syncedAt);
 
-    // Clear cache
-    statusCache.delete(userId);
+    forgetCachedStatus(userId);
 
     log.info({ userId, processedCount }, 'Processed Apple Health sync');
 
@@ -270,12 +244,11 @@ function computeSleepSummary(
   let core = 0;
   let deep = 0;
   let rem = 0;
-  const sources = new Set<string>();
 
+  // entry.sourceName (the app or device) is never kept
   for (const entry of entries) {
     const duration =
       (new Date(entry.endDate).getTime() - new Date(entry.startDate).getTime()) / 60000;
-    sources.add(entry.sourceName);
 
     switch (entry.value) {
       case 'inBed':
@@ -311,7 +284,6 @@ function computeSleepSummary(
     deep: Math.round(deep),
     rem: Math.round(rem),
     efficiency: Math.round(efficiency),
-    sources: Array.from(sources),
   };
 }
 
@@ -321,12 +293,23 @@ async function storeDailyActivity(
   activity: AppleHealthActivityData
 ): Promise<void> {
   if (!activity) return;
+  // The known totals only: anything else the phone sent (a source name) is dropped
+  const known: (keyof AppleHealthActivityData)[] = [
+    'activeEnergyBurned',
+    'basalEnergyBurned',
+    'appleExerciseTime',
+    'appleStandHours',
+    'appleMoveMinutes',
+  ];
+  const kept = Object.fromEntries(
+    known.filter((k) => typeof activity[k] === 'number').map((k) => [k, activity[k]])
+  );
   await db
     .collection(DATA_COLLECTION)
     .doc(userId)
     .collection('daily')
     .doc(activity.date)
-    .set(cleanForFirestore({ activity }), { merge: true });
+    .set(cleanForFirestore({ activity: kept }), { merge: true });
 
   // Index to semantic memory for wellness tracking, with no made-up scores
   void onWellnessCheckinChange(
@@ -424,26 +407,28 @@ async function storeStepsData(
   }
 }
 
-async function storeWorkout(
+async function storeWorkoutTotals(
   db: FirebaseFirestore.Firestore,
   userId: string,
-  workout: AppleHealthWorkoutData
+  workouts: AppleHealthWorkoutData[]
 ): Promise<void> {
-  if (!workout) return;
-  const day = workout.startDate.split('T')[0];
-
-  await db
-    .collection(DATA_COLLECTION)
-    .doc(userId)
-    .collection('workouts')
-    .doc(workout.id)
-    .set(
-      cleanForFirestore({
-        ...workout,
-        day,
-        syncedAt: new Date().toISOString(),
-      })
-    );
+  const byDay = new Map<string, { count: number; minutes: number }>();
+  for (const workout of workouts) {
+    if (!workout?.startDate) continue;
+    const day = workout.startDate.split('T')[0]!;
+    const totals = byDay.get(day) ?? { count: 0, minutes: 0 };
+    totals.count += 1;
+    totals.minutes += Math.round((Number(workout.duration) || 0) / 60);
+    byDay.set(day, totals);
+  }
+  for (const [day, totals] of byDay) {
+    await db
+      .collection(DATA_COLLECTION)
+      .doc(userId)
+      .collection('daily')
+      .doc(day)
+      .set(cleanForFirestore({ workouts: totals }), { merge: true });
+  }
 }
 
 async function storeMindfulnessSession(
@@ -476,10 +461,6 @@ async function updateConnectionStatus(
   deviceId: string,
   syncedAt: string
 ): Promise<void> {
-  // Get token doc to get device name
-  const tokenDoc = await db.collection(SYNC_TOKEN_COLLECTION).doc(userId).get();
-  const deviceName = tokenDoc.data()?.deviceName || null;
-
   await db
     .collection(STATUS_COLLECTION)
     .doc(userId)
@@ -488,7 +469,7 @@ async function updateConnectionStatus(
         connected: true,
         lastSyncAt: syncedAt,
         deviceId,
-        deviceName,
+        deviceName: FieldValue.delete(), // a status from before names were dropped held one
         authorizedTypes: [
           'sleep',
           'activity',
@@ -541,7 +522,7 @@ export async function getConnectionStatus(userId: string): Promise<AppleHealthAu
       connected: data.connected ?? false,
       lastSyncAt: data.lastSyncAt ?? null,
       authorizedTypes: data.authorizedTypes ?? [],
-      deviceName: data.deviceName ?? null,
+      deviceName: null, // never stored now; one in a status from before is not returned
     };
 
     statusCache.set(cleanForFirestore(userId), { status, expiresAt: Date.now() + CACHE_TTL_MS });
@@ -550,6 +531,27 @@ export async function getConnectionStatus(userId: string): Promise<AppleHealthAu
     log.error({ error: String(error), userId }, 'Failed to get connection status');
     return { connected: false, lastSyncAt: null, authorizedTypes: [], deviceName: null };
   }
+}
+
+/**
+ * A stored day as the API returns it. Days stored before names were dropped still hold
+ * sleep.sources (app and device names): it is never returned.
+ */
+export function toDailySummary(
+  date: string,
+  data: FirebaseFirestore.DocumentData
+): AppleHealthDailySummary {
+  type StoredSleep = AppleHealthSleepSummary & { sources?: unknown };
+  const stored = (data.sleep ?? null) as StoredSleep | null;
+  const { sources: _sources, ...sleep } = stored ?? ({} as StoredSleep);
+  return {
+    date,
+    sleep: stored ? sleep : null,
+    activity: data.activity || null,
+    heart: data.heart || null,
+    mindfulness: data.mindfulness || null,
+    workouts: data.workouts || null,
+  };
 }
 
 /**
@@ -577,16 +579,7 @@ export async function getDailySummary(
       return { success: false, error: 'No data for this date' };
     }
 
-    const data = doc.data()!;
-    const summary: AppleHealthDailySummary = {
-      date: targetDate,
-      sleep: data.sleep || null,
-      activity: data.activity || null,
-      heart: data.heart || null,
-      mindfulness: data.mindfulness || null,
-    };
-
-    return { success: true, data: summary };
+    return { success: true, data: toDailySummary(targetDate, doc.data()!) };
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get daily summary');
     return { success: false, error: 'Failed to get summary' };
@@ -634,16 +627,7 @@ export async function getRecentSummaries(
       .orderBy('__name__', 'desc')
       .get();
 
-    const summaries: AppleHealthDailySummary[] = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        date: doc.id,
-        sleep: data.sleep || null,
-        activity: data.activity || null,
-        heart: data.heart || null,
-        mindfulness: data.mindfulness || null,
-      };
-    });
+    const summaries = snapshot.docs.map((doc) => toDailySummary(doc.id, doc.data()));
 
     return { success: true, data: summaries };
   } catch (error) {
