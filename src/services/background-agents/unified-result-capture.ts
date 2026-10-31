@@ -13,6 +13,7 @@
  * - Marks results as delivered to avoid repetition
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   BackgroundResult,
@@ -159,13 +160,11 @@ function getMemoryResults(
   return sortResultsForDisplay(filtered).slice(0, limit);
 }
 
-/**
- * Mark results as delivered
- */
+/** Mark results delivered; a 'ui' notice (a web-UI packet) is only noted, so voice still tells. */
 export async function markResultsDelivered(
   userId: string,
   resultIds: string[],
-  deliveryMethod: 'voice' | 'push' | 'email' | 'sms' = 'voice'
+  deliveryMethod: 'voice' | 'push' | 'email' | 'sms' | 'ui' = 'voice'
 ): Promise<void> {
   if (resultIds.length === 0) return;
 
@@ -187,11 +186,8 @@ export async function markResultsDelivered(
           .collection('background_results')
           .doc(resultId);
 
-        batch.update(ref, {
-          delivered: true,
-          deliveredAt,
-          deliveryMethod,
-        });
+        const marked = { delivered: true, deliveredAt, deliveryMethod };
+        batch.update(ref, deliveryMethod === 'ui' ? { uiNoticeAt: deliveredAt } : marked);
       }
 
       await batch.commit();
@@ -199,7 +195,7 @@ export async function markResultsDelivered(
 
     // Also update in-memory store
     const memResults = resultStore.get(userId);
-    if (memResults) {
+    if (memResults && deliveryMethod !== 'ui') {
       for (const result of memResults) {
         if (resultIds.includes(result.id)) {
           result.delivered = true;
@@ -461,6 +457,7 @@ export async function captureBackgroundResult(params: {
   relatedTaskId?: string;
   specificData?: Record<string, unknown>;
   skipPush?: boolean; // the caller tells the user its own way (one text)
+  skipEmail?: boolean; // the caller sends its own; else urgent and high results are emailed
 }): Promise<BackgroundResult> {
   const result = createBackgroundResult({
     userId: params.userId,
@@ -501,13 +498,12 @@ export async function captureBackgroundResult(params: {
     // 3. Push (works even if connected), unless the caller tells them itself
     if (!params.skipPush) await sendPushNotification(result);
 
-    // 4. Send email for high priority results
-    const urgent = result.priority === 'urgent' || result.priority === 'high';
+    const urgent = !params.skipEmail && ['urgent', 'high'].includes(result.priority); // 4. email
     const email = urgent ? await sendEmailNotification(result) : 'skipped';
 
-    if (sentToActive) {
-      await markResultsDelivered(result.userId, [result.id], 'voice');
-    }
+    // A web-UI packet isn't speech: CALL_REPORT_REACHES_YOU=on notes it 'ui', voice still tells.
+    const shown = flagOn('CALL_REPORT_REACHES_YOU') ? 'ui' : 'voice';
+    if (sentToActive) await markResultsDelivered(result.userId, [result.id], shown);
 
     log.info({ resultId: result.id, sentToActive, email }, 'Background result captured');
 
@@ -580,9 +576,9 @@ export async function buildPendingResultsContext(userId: string): Promise<string
   lines.push('- Be conversational: "Oh! While you were away, I..."');
   lines.push('');
 
-  // Mark as delivered (fire and forget)
+  // Delivered as built only with CALL_REPORT_REACHES_YOU off; on, once a reply carries it.
   const resultIds = results.map((r) => r.id);
-  void markResultsDelivered(userId, resultIds, 'voice');
+  if (!flagOn('CALL_REPORT_REACHES_YOU')) void markResultsDelivered(userId, resultIds, 'voice');
 
   return lines.join('\n');
 }

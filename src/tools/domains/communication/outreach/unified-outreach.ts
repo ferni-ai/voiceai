@@ -39,10 +39,10 @@ import {
   textOnBehalf,
 } from '../../../../services/outreach/guarded-text.js';
 import { thirdPartyRefusal } from '../../../../utils/consent-port.js';
-import { sendEmail } from '../../../../services/outreach/delivery/email-delivery.js';
 import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
 
 import { craftPersonalizedMessage } from './message-crafting.js';
+import { emailSender, sendOutreachEmail, type EmailFrom } from './outreach-email.js';
 import { PLAN_ONLY, PLANNED, type Planned } from './outreach-confirm.js';
 
 const log = createLogger({ module: 'unified-outreach' });
@@ -101,6 +101,8 @@ export interface OutreachResult {
   error?: string;
   to?: string; // where it would go, and who: set only on a PLAN_ONLY preview (sends nothing)
   contactId?: string;
+  from?: EmailFrom; // an email's mailbox (outreach-email.ts); fromAddress only on a preview
+  fromAddress?: string;
 }
 
 // ============================================================================
@@ -282,7 +284,8 @@ async function executeOutreach(
   ctx: OutreachContext,
   decision: OutreachDecision,
   customMessage?: string,
-  planOnly = false
+  planOnly = false,
+  emailFrom?: EmailFrom
 ): Promise<OutreachResult> {
   const { contact, userId, personaId, purpose, intent } = ctx;
   const { channel } = decision;
@@ -301,7 +304,10 @@ async function executeOutreach(
       personaId,
     }));
   const to = channel === 'email' ? contact.email : contact.phone;
-  const plan = { contactName: contact.name, contactId: contact.id, to };
+  const sender = channel === 'email' ? await emailSender(userId, emailFrom) : {};
+  if ('error' in sender)
+    return { success: false, channel, message, contactName: contact.name, ...sender };
+  const plan = { contactName: contact.name, contactId: contact.id, to, ...sender };
   if (planOnly) return { success: true, channel, message, ...plan };
   // MESSAGING_PIPELINE: a call to anyone but the owner needs their consent (consent-grants.ts).
   const isCall = ['call', 'voicemail', 'conversation'].includes(channel);
@@ -505,29 +511,10 @@ async function executeOutreach(
       };
     }
 
-    // EMAIL
     if (channel === 'email') {
-      if (!contact.email) {
-        return {
-          success: false,
-          channel,
-          message,
-          contactName: contact.name,
-          error: `I don't have ${contact.name}'s email. Should I try calling?`,
-        };
-      }
-
       const subject = generateSubject(intent, purpose, contact.name);
-
-      const result = await sendEmail({
-        to: contact.email,
-        subject,
-        body: message,
-        personaId,
-        userId,
-        outreachId,
-      });
-
+      const { from } = sender;
+      const result = await sendOutreachEmail({ ...ctx, subject, message, outreachId, from });
       if (result.success) {
         await recordInteraction(userId, {
           contactId: contact.id,
@@ -542,22 +529,8 @@ async function executeOutreach(
             'Failed to record email interaction (non-fatal)'
           )
         );
-
-        return {
-          success: true,
-          channel,
-          message: `📧 Emailed ${contact.name}: "${message}"`,
-          contactName: contact.name,
-        };
       }
-
-      return {
-        success: false,
-        channel,
-        message,
-        contactName: contact.name,
-        error: result.error || 'Email failed.',
-      };
+      return result;
     }
 
     return {
@@ -630,6 +603,12 @@ Just tell me WHO and WHY. I'll handle the rest.`,
         .describe(
           "Optional: Your own message. Otherwise I'll craft one based on your relationship."
         ),
+      fromFerni: z
+        .boolean()
+        .optional()
+        .describe(
+          "Email only: send from Ferni's address, not the caller's Gmail. Only if they chose it."
+        ),
     }),
 
     execute: async (params) => {
@@ -695,6 +674,12 @@ Just tell me WHO and WHY. I'll handle the rest.`,
       if (planned && !same) return `Nothing was sent: ${contact} isn't the contact you confirmed.`;
       const at = planned?.channel === 'email' ? 'email' : 'phone';
       if (planned) contactInfo = { ...contactInfo, [at]: planned.to };
+      // The mailbox read back, or Ferni's if the caller picked it (outreach-email.ts)
+      const emailFrom = planned
+        ? (planned.from ?? 'ferni')
+        : params.fromFerni
+          ? 'ferni'
+          : undefined;
 
       // Step 2: Gather rich context
       const outreachCtx = await gatherOutreachContext(userId, contactInfo, purpose, personaId);
@@ -715,7 +700,13 @@ Just tell me WHO and WHY. I'll handle the rest.`,
 
       // Step 4: Execute outreach, or with PLAN_ONLY only decide it (outreach-confirm.ts)
       const planOnly = PLAN_ONLY in params;
-      const result = await executeOutreach(outreachCtx, decision, customMessage, planOnly);
+      const result = await executeOutreach(
+        outreachCtx,
+        decision,
+        customMessage,
+        planOnly,
+        emailFrom
+      );
       if (planOnly) return result;
 
       if (result.success) return result.message;

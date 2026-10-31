@@ -69,13 +69,18 @@ export function isRiskyCallerText(text: string): boolean {
  * negated, hyperbole or past ("I would never..."). Its async LLM second stage
  * can't run here: the screen is synchronous, as are its callers.
  */
-function crisisRead(text: string): boolean {
+export function crisisRead(text: string): boolean {
   if (!text.trim()) return false;
   const read = detectCrisis(text);
   const softened = read.indicators.some((i) =>
     /^(negated|hyperbole|recovered)_crisis_language$/.test(i)
   );
   return read.isCrisis || (read.severity >= CRISIS_SEVERITY.implicit && !softened);
+}
+
+/** Crisis words in the text, or Ferni's crisisCallerLine standing in for them (any name). */
+export function carriesCrisis(text: string): boolean {
+  return text.includes(crisisCallerLine('').trim()) || crisisRead(text);
 }
 
 /** Cut at a word boundary, so a cut never leaves half a word (or half a link) behind. */

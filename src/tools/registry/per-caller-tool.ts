@@ -13,6 +13,7 @@
  * @module tools/registry/per-caller-tool
  */
 import { callerIdFor } from '../../services/identity/call-caller-id.js';
+import { runWithLinkedTokenUse } from '../../utils/linked-token-use.js';
 import type { Tool, ToolContext, ToolDefinition } from './types.js';
 
 /**
@@ -38,7 +39,11 @@ export function perCallerTool(def: ToolDefinition, base: Omit<ToolContext, 'user
     ...shared,
     execute: (args: unknown, opts: unknown): unknown => {
       const own: Tool = def.create({ ...base, userId: toolCallerId(opts) });
-      return own.execute(args, opts);
+      // A linked account's token read inside the call lands on its outcome line (linked-token-use.ts).
+      const callId = (opts as { toolCallId?: unknown } | undefined)?.toolCallId;
+      return runWithLinkedTokenUse(typeof callId === 'string' ? callId : undefined, () =>
+        own.execute(args, opts)
+      );
     },
   };
 }
