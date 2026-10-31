@@ -112,7 +112,6 @@ export async function requirePublisherAuth(
   }
 
   try {
-    // Verify Firebase token
     const decodedToken = await verifyFirebaseToken(idToken);
     if (!decodedToken) {
       sendError(res, 'Invalid or expired token', 401);
