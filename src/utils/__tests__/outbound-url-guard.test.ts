@@ -4,6 +4,9 @@
  * address after the pre-flight check still cannot be reached). DNS is a spy; no network.
  */
 import dns from 'node:dns';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { Agent } from 'undici7';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   assertSafeOutboundUrl,
@@ -219,6 +222,161 @@ describe('connect-time lookup (DNS rebinding)', () => {
     } as RequestInit).catch((e: unknown) => e as Error & { cause?: unknown });
     expect(failure).toBeInstanceOf(Error);
     expect((failure as { cause?: unknown }).cause).toBeInstanceOf(OutboundUrlBlockedError);
+  });
+
+  it.each([
+    ['metadata service', '169.254.169.254'],
+    ['mapped metadata service', '::ffff:a9fe:a9fe'],
+    ['mapped loopback', '::ffff:127.0.0.1'],
+    ['IPv4-translated loopback', '::ffff:0:7f00:1'],
+    ['unique local', 'fd00::1'],
+    ['IPv6 loopback', '::1'],
+    ['link-local', 'fe80::1'],
+  ])('guardedLookup refuses a %s answer (%s)', async (_label, address) => {
+    resolveTo({ 'rebind.example.test': address });
+    const err = await new Promise<Error | null>((resolve) => {
+      guardedLookup('rebind.example.test', {}, (e) => resolve(e));
+    });
+    expect(err).toBeInstanceOf(OutboundUrlBlockedError);
+  });
+
+  it('guardedLookup refuses when one of several answers is private', async () => {
+    vi.spyOn(dns, 'lookup').mockImplementation(((
+      _host: string,
+      _opts: unknown,
+      cb: (err: unknown, list?: unknown) => void
+    ) =>
+      cb(null, [
+        { address: PUBLIC_V4, family: 4 },
+        { address: '10.0.0.7', family: 4 },
+      ])) as unknown as typeof dns.lookup);
+    const err = await new Promise<Error | null>((resolve) => {
+      guardedLookup('mixed.example.test', {}, (e) => resolve(e));
+    });
+    expect(err).toBeInstanceOf(OutboundUrlBlockedError);
+  });
+
+  it('safeOutboundFetch refuses a name that is public at pre-flight and private at connect', async () => {
+    // First answer (pre-flight) public, the socket's own lookup private: the rebinding case.
+    vi.spyOn(dns.promises, 'lookup').mockImplementation((async () => [
+      { address: PUBLIC_V4, family: 4 },
+    ]) as unknown as typeof dns.promises.lookup);
+    const socketLookup = vi
+      .spyOn(dns, 'lookup')
+      .mockImplementation(((
+        _host: string,
+        _opts: unknown,
+        cb: (err: unknown, list?: unknown) => void
+      ) => cb(null, [{ address: '127.0.0.1', family: 4 }])) as unknown as typeof dns.lookup);
+
+    const failure = await safeOutboundFetch('https://flip.example.test/hook').catch(
+      (e: unknown) => e
+    );
+    // The connect-time refusal reaches the caller as the guard's own error, not fetch's wrapper.
+    expect(failure).toBeInstanceOf(OutboundUrlBlockedError);
+    expect(socketLookup).toHaveBeenCalled();
+  });
+});
+
+/**
+ * Behaviour, not just the error class: a real local listener counts connections. The control
+ * proves the harness can see a connection (same Agent class, same resolver, no guard); the
+ * guarded dispatcher must deliver zero. Pre-flight is skipped on purpose (it would refuse the
+ * port), so this is the socket lookup alone. Plain http keeps the control's response simple.
+ */
+describe('connect-time lookup: no socket reaches a private listener', () => {
+  async function listener(host: string) {
+    let connections = 0;
+    const server = http.createServer((_req, res) => res.end('reached'));
+    server.on('connection', () => connections++);
+    await new Promise<void>((resolve, reject) => {
+      server.once('error', reject);
+      server.listen({ port: 0, host, ipv6Only: false }, () => resolve());
+    });
+    return {
+      port: (server.address() as AddressInfo).port,
+      connections: () => connections,
+      close: () =>
+        new Promise<void>((resolve) => {
+          server.close(() => resolve());
+        }),
+    };
+  }
+
+  /** Same resolver the guard uses (dns.lookup, spied), with no address check. */
+  const unguardedAgent = () =>
+    new Agent({
+      connect: {
+        lookup: (hostname, options, callback) =>
+          dns.lookup(hostname, { ...options, all: true }, (err, addresses) => {
+            if (err) return callback(err, '');
+            const [first] = addresses;
+            if (!first) return callback(new Error('no address'), '');
+            if (options.all) return callback(null, addresses);
+            return callback(null, first.address, first.family);
+          }),
+      },
+    });
+
+  async function hasDualStack(): Promise<boolean> {
+    try {
+      await (await listener('::')).close();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  it('control: an unguarded agent with the same resolver does reach the listener', async () => {
+    const srv = await listener('127.0.0.1');
+    const agent = unguardedAgent();
+    try {
+      resolveTo({ 'rebind.example.test': '127.0.0.1' });
+      const res = await fetch(`http://rebind.example.test:${srv.port}/`, {
+        dispatcher: agent,
+      } as RequestInit);
+      expect(await res.text()).toBe('reached');
+      expect(srv.connections()).toBe(1);
+    } finally {
+      await agent.close();
+      await srv.close();
+    }
+  });
+
+  it('the guarded agent opens zero connections to a name rebound to loopback', async () => {
+    const srv = await listener('127.0.0.1');
+    try {
+      resolveTo({ 'rebind.example.test': '127.0.0.1' });
+      const failure = await fetch(`http://rebind.example.test:${srv.port}/`, {
+        dispatcher: getGuardedAgent(),
+      } as RequestInit).catch((e: unknown) => e as Error & { cause?: unknown });
+      expect((failure as { cause?: unknown }).cause).toBeInstanceOf(OutboundUrlBlockedError);
+      expect(srv.connections()).toBe(0);
+    } finally {
+      await srv.close();
+    }
+  });
+
+  it('mapped IPv6 loopback: the control connects, the guarded agent does not', async (ctx) => {
+    if (!(await hasDualStack())) ctx.skip(); // no IPv6 on this host: nothing to listen on
+    const srv = await listener('::');
+    const agent = unguardedAgent();
+    try {
+      resolveTo({ 'rebind.example.test': '::ffff:127.0.0.1' });
+      const url = `http://rebind.example.test:${srv.port}/`;
+      const control = await fetch(url, { dispatcher: agent } as RequestInit);
+      expect(await control.text()).toBe('reached');
+      expect(srv.connections()).toBe(1);
+
+      const failure = await fetch(url, { dispatcher: getGuardedAgent() } as RequestInit).catch(
+        (e: unknown) => e as Error & { cause?: unknown }
+      );
+      expect((failure as { cause?: unknown }).cause).toBeInstanceOf(OutboundUrlBlockedError);
+      expect(srv.connections()).toBe(1); // still only the control's
+    } finally {
+      await agent.close();
+      await srv.close();
+    }
   });
 });
 
