@@ -57,6 +57,8 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { bareOnIt, callActions, claimedAction, pastClaim, kindsOfTool } from './action-claims.js';
 import { isLookupTool, lookupKind, withAnnouncedCheckLog } from './announced-check.js';
 import { withCallerVoiceGuard } from './caller-voice-guard.js';
+import type { HouseFactsWho } from './grounded-addresses.js';
+import { withHouseFactsGuard } from './house-facts.js';
 import { CRISIS_TALK } from './emergency-claim.js';
 import { honestLine, inPlace, type ClaimKind, type MissReason } from './honest-line.js';
 import type { Kinds, SeenActions } from './honest-line.js';
@@ -74,14 +76,13 @@ import { kindsRunThisTurn, offerFor, promisedAction, groundedClaim } from './act
 import { callRecordsFor, claimEvidence } from './claim-evidence.js';
 import { firestoreCallRecords, type CallRecords } from '../../services/outreach/call-status.js';
 import { sessionIdIn, turnHoldTimer } from '../../speech/output-control/turn-timing.js';
+import { contentOf, type ReplyChunk as Chunk } from './reply-chunks.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
 /** A calendar tool that books a schedule item, so it saves to Ferni's own list here (#1547). */
 const isCalendarCreate = (name: string): boolean =>
   /calendar/i.test(name) && kindsOfTool(name).includes('schedule');
-
-type Chunk = llm.ChatChunk | string | object;
 
 export function actionClaimGuardEnabled(env: Env = process.env): boolean {
   return flagOn('ACTION_CLAIM_GUARD', env);
@@ -95,13 +96,6 @@ export function actionClaimPastEnabled(env: Env = process.env): boolean {
 /** Stream turns with no action in play (off: every turn holds, as before). */
 export function actionClaimStreamEnabled(env: Env = process.env): boolean {
   return flagOn('ACTION_CLAIM_STREAM', env);
-}
-
-function contentOf(chunk: Chunk): string | undefined {
-  if (typeof chunk === 'string') return chunk;
-  const delta = (chunk as Partial<llm.ChatChunk> | null)?.delta;
-  if (delta === undefined || (delta.toolCalls?.length ?? 0) > 0) return undefined;
-  return delta.content ?? '';
 }
 
 function toolNamesOf(chunk: Chunk): string[] {
@@ -201,7 +195,7 @@ export async function withActionClaimCheck<T>(
   reply: Promise<T> | T,
   chatCtx: { items: readonly unknown[] },
   tools: { functionTools?: Record<string, unknown> },
-  caller: string | { personaId?: string; userId?: string; calls?: CallRecords } = 'ferni',
+  caller: string | ({ userId?: string; calls?: CallRecords } & HouseFactsWho) = 'ferni',
   env: Env = process.env
 ): Promise<T> {
   const who = typeof caller === 'string' ? { personaId: caller } : caller;
@@ -214,11 +208,13 @@ export async function withActionClaimCheck<T>(
     ? askedCallLookup(words, who.userId, calls, flagOn('GROUNDED_CLAIMS', env))
     : undefined;
   const records = flagOn('GROUNDED_CLAIMS', env) ? callRecordsFor(who.userId) : undefined;
-  const checked = await checkActionClaims(reply, chatCtx, tools, env, asked, firstWords, records);
+  // House facts read the model's own words, before the claim check re-splits "SITE.AI" at the capital.
+  const facts = withHouseFactsGuard(reply, chatCtx, env, who);
+  const checked = await checkActionClaims(facts, chatCtx, tools, env, asked, firstWords, records);
   return withCallerVoiceGuard(checked, env, who.personaId ?? 'ferni');
 }
 
-/** The claim check alone; withActionClaimCheck also runs the caller voice guard after it. */
+/** The claim check alone; withActionClaimCheck runs the house facts guard before it, the caller voice guard after. */
 async function checkActionClaims<T>(
   reply: Promise<T> | T,
   chatCtx: { items: readonly unknown[] },

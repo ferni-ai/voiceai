@@ -13,6 +13,7 @@ import { z } from 'zod';
 import type { SessionServices } from '../../../services/types.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { callMeVocativeEnabled, rememberNameConfirmed } from './remember-name.js';
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -58,10 +59,9 @@ export function createConversationTools() {
           ),
       }),
       execute: async ({ name }, { ctx }) => {
-        // CRITICAL: Prevent saving persona names as user names!
-        // This happens when user says "Hi Maya" after Maya introduces herself
+        // CALL_ME_VOCATIVE=on: ask before saving a name (remember-name.ts); else as below
+        if (callMeVocativeEnabled()) return rememberNameConfirmed(name, ctx.userData, ctx.session);
         const personaNames = new Set(
-          // First, last and full names
           'ferni|maya|peter|alex|jordan|nayan|santos|chen|taylor|john|patel|maya santos|alex chen|jordan taylor|peter john|nayan patel'.split(
             '|'
           )

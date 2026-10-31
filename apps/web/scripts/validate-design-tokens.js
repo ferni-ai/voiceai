@@ -225,7 +225,6 @@ const IGNORE_PATTERNS = [
   'mentor-teachings',           // Mentor content shadows
   'personalize.ui.ts',          // Personalization settings
   'video-settings',             // Video settings shadows
-  'eight-sleep',                // Eight Sleep settings
   'group-coaching',             // Group coaching shadows
   'wearable-settings',          // Wearable settings shadows
   'calendar-conflicts',         // Calendar conflicts shadows

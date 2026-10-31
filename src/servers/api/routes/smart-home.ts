@@ -29,14 +29,10 @@ const log = createLogger({ module: 'smart-home-routes' });
 // Log configuration status on module load
 const SMART_HOME_CONFIG = {
   sonos: !!process.env.SONOS_CLIENT_ID && !!process.env.SONOS_CLIENT_SECRET,
-  homeAssistant: !!process.env.HOME_ASSISTANT_URL && !!process.env.HOME_ASSISTANT_TOKEN,
 };
 
 if (!SMART_HOME_CONFIG.sonos) {
   log.info('Sonos integration not configured (set SONOS_CLIENT_ID and SONOS_CLIENT_SECRET)');
-}
-if (!SMART_HOME_CONFIG.homeAssistant) {
-  log.debug('Home Assistant integration not configured (optional)');
 }
 
 // ============================================================================

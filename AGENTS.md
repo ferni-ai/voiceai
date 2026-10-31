@@ -44,6 +44,21 @@ rules only when `--only` names one entry, so start it with
 `firebase emulators:start --only firestore:ferni-dev` (plain `--only firestore`
 starts with no rules: every read and write allowed).
 
+`scripts/devdb/copy-user.ts --uid <uid>` copies one person's records from prod into
+`ferni-dev` (dry run unless `--apply`). Under `bogle_users/{uid}` and `users/{uid}`
+it copies only the subcollections in its `COPIED_SUBCOLLECTIONS` allowlist, and every
+copied document goes through the export's secret filter (token fields, sealed token
+records and credential-looking values are dropped at any depth). Credentials and
+queues stay in prod, and so do the known stores of other people's data: contacts,
+calendar events and meetings with attendees (and their search-index entries), email
+correspondents, guest lists, people Ferni was asked to reach and what they said,
+check-in texts, tool-call arguments, OCR of uploaded images. Still copied, deferred
+to lane DC2: contacts' phones and emails in `entity_store`, phone numbers kept as free
+text in `dynamic_facts` / `dynamic_entities` / deep-extraction docs, `info_preferences`
+saved locations (behind `REQUIRE_FIX_MEMORY`, off), and legacy `follow_up_actions` and
+`knowledge_graph` docs with no writer. A new subcollection fails `copy-user.test.ts`
+until it is classified there.
+
 ## How work ships (one small chunk at a time)
 
 1. **Branch from `origin/main`**: `git fetch origin && git switch -c <type>/<slug> origin/main`.
@@ -140,6 +155,11 @@ against:
 
 - **Logging**: `createLogger` from `src/utils/logger.js`, never `console.*`.
   Never swallow an error (`.catch(() => {})`); log it with context.
+  A linked account's token read calls `noteLinkedTokenUse(provider, uid, state)`
+  (`src/utils/linked-token-use.ts`; the shared `user-oauth-store` already does),
+  so the tool's "Tool execution tracked" line carries `link_provider`,
+  `link_uid_tag` (`bqHash('user', uid)`, never the uid) and `link_state`
+  (`agents/voice-agent/tool-outcome.ts`).
 - **Types**: no `any`, no `as any`. Use `unknown` and narrow.
 - **Layers** point inward: L5 entrypoints → L4 orchestration → L3 (ten capability
   contexts, via each other's index.ts) → L2 shared kernel; L1 adapters implement L2/L3 ports.

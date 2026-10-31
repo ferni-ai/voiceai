@@ -546,11 +546,7 @@ export function getUnhealthyClients(): string[] {
 
 let _yahooFinanceClient: ResilientClient | null = null;
 let _alphaVantageClient: ResilientClient | null = null;
-let _googleApisClient: ResilientClient | null = null;
 let _wikipediaClient: ResilientClient | null = null;
-let _homeAssistantClient: ResilientClient | null = null;
-let _lifxClient: ResilientClient | null = null;
-let _smartThingsClient: ResilientClient | null = null;
 
 export function getYahooFinanceClient(): ResilientClient {
   if (!_yahooFinanceClient) {
@@ -573,16 +569,6 @@ export function getAlphaVantageClient(): ResilientClient {
   return _alphaVantageClient;
 }
 
-export function getGoogleApisClient(): ResilientClient {
-  if (!_googleApisClient) {
-    _googleApisClient = createResilientClient('google-apis', {
-      timeout: HTTP_TIMEOUT_MS,
-      maxRetries: MAX_RETRIES_LIGHT,
-    });
-  }
-  return _googleApisClient;
-}
-
 export function getWikipediaClient(): ResilientClient {
   if (!_wikipediaClient) {
     _wikipediaClient = createResilientClient('wikipedia', {
@@ -594,35 +580,11 @@ export function getWikipediaClient(): ResilientClient {
   return _wikipediaClient;
 }
 
-export function getHomeAssistantClient(): ResilientClient {
-  if (!_homeAssistantClient) {
-    _homeAssistantClient = createResilientClient('home-assistant', {
-      timeout: HTTP_TIMEOUT_MS,
-      maxRetries: MAX_RETRIES_LIGHT,
-      failureThreshold: 3, // Smart home should fail faster
-    });
-  }
-  return _homeAssistantClient;
-}
-
-export function getLifxClient(): ResilientClient {
-  if (!_lifxClient) {
-    _lifxClient = createResilientClient('lifx', {
-      timeout: HTTP_TIMEOUT_MS,
-      maxRetries: MAX_RETRIES_LIGHT,
-      failureThreshold: 3,
-    });
-  }
-  return _lifxClient;
-}
-
-export function getSmartThingsClient(): ResilientClient {
-  if (!_smartThingsClient) {
-    _smartThingsClient = createResilientClient('smartthings', {
-      timeout: HTTP_TIMEOUT_MS,
-      maxRetries: MAX_RETRIES_LIGHT,
-      failureThreshold: 3,
-    });
-  }
-  return _smartThingsClient;
+/** One breaker per credential key: one caller's revoked token must not open it for all. */
+export function getLifxClient(credentialKey?: string): ResilientClient {
+  return createResilientClient(credentialKey ? `lifx:${credentialKey}` : 'lifx', {
+    timeout: HTTP_TIMEOUT_MS,
+    maxRetries: MAX_RETRIES_LIGHT,
+    failureThreshold: 3,
+  });
 }

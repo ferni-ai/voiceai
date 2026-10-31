@@ -92,7 +92,7 @@ const WARM_ERRORS = {
   alreadyAnswered: 'That challenge was already answered.',
   tooManyOpen: 'You have lots of challenges waiting. Give friends a chance to answer first!',
   cardNotFound: "That card isn't available anymore.",
-  spotifyNotConnected: 'Connect Spotify to unlock this feature!',
+  spotifyNotConnected: "Your own Spotify library isn't available here.",
   internalError: 'Something went wrong on my end. Mind trying again?',
 } as const;
 

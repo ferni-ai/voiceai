@@ -60,6 +60,8 @@ const LEGACY_FLAG_MANIFEST = {
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
   CALL_JOURNAL: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALL_RESULT_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // on: one channel per call result: live if the owner is on, else one text or one push (call-result-once.ts)
+  CALL_RESULT_ONE_CHANNEL: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_JOURNAL_ASK: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALL_WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
   CANDOR: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -199,9 +201,13 @@ const LEGACY_FLAG_MANIFEST = {
   // on: a fact the caller corrects is kept with its words and the old fact retired; next call recalls it (friend-repair.ts)
   FRIEND_REPAIR: { default: 'off', owner: 'memory', kind: 'experiment' },
   FTIS_ENABLED: { default: 'off', owner: 'platform', kind: 'config' },
+  // on: Jordan's hello may offer a letter to future you once its day has come (future-letters.ts)
+  FUTURE_LETTER_OPENER: { default: 'off', owner: 'tools', kind: 'experiment' },
   GAME_STATE: { default: 'off', owner: 'platform', kind: 'experiment' },
   // read by the @google/genai SDK itself (getEnv), not by src/
   GOOGLE_GENAI_USE_VERTEXAI: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: a Google link without the calendar scope is stored as insufficient_scope, and Gmail reads say "not permitted" instead of an empty inbox (config/google-link-honest.ts)
+  GOOGLE_LINK_HONEST: { default: 'off', owner: 'tools', kind: 'experiment' },
   // on: a goodbye (or "hang up") ends the call after Ferni's goodbye plays, app and phone; never on crisis risk (call-farewell.ts)
   GOODBYE_ENDS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // on: good news gets a react, name it, ask about the moment note (agents/personas/good-news-bigger.ts)
@@ -405,6 +411,8 @@ const LEGACY_FLAG_MANIFEST = {
   // on: the nightly job deletes transcripts past TRANSCRIPT_RETENTION_DAYS. Off: kept for the
   // life of the account, as the privacy policy says (tasks/scheduled/transcript-cleanup-job.ts)
   TRANSCRIPT_CLEANUP: { default: 'off', owner: 'memory', kind: 'config' },
+  // "pass me to 9" may be Nayan: transfer-only speech-to-text aliases (transfer-aliases.ts)
+  TRANSFER_NAME_ALIASES: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: the anonymous device fallback trusts an unsigned device_id (the one /token copies from its query)
   TRUST_UNSIGNED_DEVICE_ID: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   // on: inner TTS failures reach the agent session (which closes after 4 in a row)

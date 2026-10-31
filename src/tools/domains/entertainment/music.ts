@@ -40,6 +40,7 @@ import {
 } from '../../../speech/music-reactions.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { startWithin } from './music-start.js';
+import { listeningUnavailable, NOT_YOUR_SPOTIFY, notLinkedReply } from './music-honesty.js';
 import { noteMusicRequest, playAmbientMusic, resetAmbientSession } from './ambient-play.js';
 import { getParameterDescription, getToolDescription } from '../../utils/tool-descriptions.js';
 
@@ -60,6 +61,9 @@ const DEFAULT_MUSIC_CONFIG: MusicConfig = {
 
 // Mutable config - reset at start of each session via initializeMusicConfig()
 let musicConfig: MusicConfig = { ...DEFAULT_MUSIC_CONFIG };
+
+/** What useSpotify says while the house Spotify works: it is never the caller's own account. */
+export const SPOTIFY_HOUSE_READY = `${NOT_YOUR_SPOTIFY} I can still play music for you here, so just tell me what you'd like to hear.`;
 
 // ============================================================================
 // MUSIC INTENT DETECTION
@@ -251,9 +255,9 @@ export async function playMusicUnified(query: string): Promise<string> {
     return result;
   }
 
-  // No Spotify: Use iTunes with "listening" framing
+  // No Spotify: say so (MUSIC_HONEST_WHEN_UNLINKED) or use iTunes with "listening" framing
   log.info({ query }, '🎵 LISTENING mode: No Spotify, using iTunes preview');
-  return playViaItunesWithListeningFallback(query);
+  return (await listeningUnavailable()) ?? playViaItunesWithListeningFallback(query);
 }
 
 /**
@@ -272,7 +276,7 @@ async function playViaItunesWithListeningFallback(query: string): Promise<string
 
     const fallbackResponses = [
       `Here's a taste of ${trackName}... open Spotify to hear the full thing!`,
-      `Playing a preview... want the full song? Open Spotify and I'll queue it up.`,
+      `Playing a preview... the full song is on Spotify if you open it yourself.`,
       `Here's 30 seconds of ${trackName}. The full track's on Spotify when you're ready!`,
     ];
     return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
@@ -581,14 +585,7 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
       outro = ` ${getExcitedMusicReaction()}`;
     }
 
-    const baseResponse = `${intro}Here's "${track.name}" by ${track.artist}!${outro}`;
-
-    // Add Spotify upsell if not linked (subtle, helpful)
-    const spotifyHint = !musicConfig.spotifyLinked
-      ? '\n\nPS: Link your Spotify for full songs instead of previews!'
-      : '';
-
-    return baseResponse + spotifyHint;
+    return `${intro}Here's "${track.name}" by ${track.artist}!${outro}`;
   } catch (error) {
     getLogger().error({ error, query }, '🎵 [iTunes] EXCEPTION in playViaItunes');
     return 'I had trouble finding that song. Try a different one?';
@@ -968,10 +965,10 @@ export function createMusicTools() {
       parameters: z.object({}),
       execute: async () => {
         if (!musicConfig.spotifyLinked) {
-          return "Spotify isn't linked yet. Link your account in settings to enjoy full songs!";
+          return notLinkedReply();
         }
-        // Auto-detection handles source selection - Spotify is already active
-        return "Spotify is linked and ready! I'll play full songs from your library.";
+        // The house Spotify plays for every caller: it is not the caller's library.
+        return SPOTIFY_HOUSE_READY;
       },
     }),
 

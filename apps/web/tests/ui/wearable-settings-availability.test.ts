@@ -71,10 +71,9 @@ describe('wearable settings: server-driven availability', () => {
 
   it('offers Connect for configured providers and says so for unconfigured ones', async () => {
     serve([
-      { provider: 'fitbit', configured: true, linked: false },
       { provider: 'oura', configured: true, linked: false },
       { provider: 'garmin', configured: false, linked: false },
-      { provider: 'whoop', configured: false, linked: false },
+      { provider: 'whoop', configured: true, linked: false },
     ]);
 
     await openPanel();
@@ -82,8 +81,8 @@ describe('wearable settings: server-driven availability', () => {
     const connectable = [...document.querySelectorAll<HTMLElement>('[data-provider]')].map(
       (b) => b.dataset.provider
     );
-    expect(connectable).toEqual(['apple_health', 'fitbit', 'oura']);
-    for (const unconfigured of ['Garmin', 'Whoop']) {
+    expect(connectable).toEqual(['apple_health', 'oura', 'whoop']);
+    for (const unconfigured of ['Garmin']) {
       const text = rowNamed(unconfigured).textContent ?? '';
       expect(text).toContain('Not set up yet');
       expect(text).not.toMatch(/coming soon/i);
@@ -101,19 +100,19 @@ describe('wearable settings: server-driven availability', () => {
   });
 
   it('connects through POST /auth/oauth/start with the signed-in OAuth helper', async () => {
-    serve([{ provider: 'fitbit', configured: true, linked: false }]);
+    serve([{ provider: 'oura', configured: true, linked: false }]);
     mockApiPost.mockResolvedValue({ ok: false, status: 503 }); // refuse, so nothing navigates
     await openPanel();
 
-    document.querySelector<HTMLElement>('[data-provider="fitbit"]')?.click();
+    document.querySelector<HTMLElement>('[data-provider="oura"]')?.click();
     await vi.waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1));
 
     expect(mockApiPost).toHaveBeenCalledWith(
       '/auth/oauth/start',
-      { provider: 'fitbit', returnUrl: '/' },
+      { provider: 'oura', returnUrl: '/' },
       { maxRetries: 0 }
     );
     expect(mockApiPost).not.toHaveBeenCalledWith('/api/wearable/connect', expect.anything());
-    expect(mockToastError).toHaveBeenCalledWith("Fitbit isn't available right now");
+    expect(mockToastError).toHaveBeenCalledWith("Oura isn't available right now");
   });
 });

@@ -25,7 +25,6 @@ export async function synthesizeLifeContext(userId: string): Promise<LifeSynthes
     compoundingAreas: [],
     valuesRevealed: [],
     timeHorizon: 'unknown',
-    seasonOfLife: 'unknown',
   };
 
   try {
@@ -79,15 +78,13 @@ export async function synthesizeLifeContext(userId: string): Promise<LifeSynthes
         synthesis.lifeChapter = 'expansion';
         synthesis.dominantTheme = 'Growing into new possibilities';
       } else {
-        synthesis.lifeChapter = 'active-growth';
-        synthesis.dominantTheme = 'Becoming who they are meant to be';
+        synthesis.lifeChapter = 'active-growth'; // no theme: the goal names matched none (#3044)
       }
     }
 
     // Infer growth pattern from habits
-    if (activeHabits.length === 0) {
-      synthesis.growthPattern = 'resting';
-    } else {
+    // No habits on record is not a resting phase: it stays unknown (#3044)
+    if (activeHabits.length > 0) {
       const totalStreaks = activeHabits.reduce((sum, h) => sum + h.currentStreak, 0);
       const avgSuccess =
         activeHabits.reduce((sum, h) => sum + h.successRate, 0) / activeHabits.length;
@@ -103,19 +100,7 @@ export async function synthesizeLifeContext(userId: string): Promise<LifeSynthes
       }
     }
 
-    // Season of life
-    const hour = new Date().getHours();
-    const month = new Date().getMonth();
-    const seasonName =
-      month >= 2 && month <= 4
-        ? 'spring'
-        : month >= 5 && month <= 7
-          ? 'summer'
-          : month >= 8 && month <= 10
-            ? 'autumn'
-            : 'winter';
-    const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
-    synthesis.seasonOfLife = `${seasonName} ${timeOfDay}`;
+    synthesis.hasValuesEvidence = Boolean(budget) || activeHabits.length > 0;
 
     // Infer values from where money and time go
     if (budget) {

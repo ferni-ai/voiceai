@@ -29,9 +29,7 @@ const client = getRealHomeClient();
 const config = client.getConfig();
 
 // Skip all tests if no platforms configured
-// Home Assistant is OPTIONAL - direct integrations work great!
 const hasAnyPlatform =
-  config.homeAssistant.configured ||
   config.ecobee.configured ||
   config.hue.configured ||
   config.lifx.configured;
@@ -56,16 +54,12 @@ describe('Real Home - Connection Check', () => {
       console.log('\n⚠️  No smart home platforms configured!');
       console.log('📖 See tests/integration/real-home/README.md for setup instructions.\n');
       console.log('📝 Create .env.local with your credentials:\n');
-      console.log('   DIRECT INTEGRATIONS (Recommended):');
+      console.log('   DIRECT INTEGRATIONS:');
       console.log('   ──────────────────────────────────');
       console.log('   ECOBEE_API_KEY=your_key        # Thermostat');
       console.log('   HUE_BRIDGE_IP=192.168.1.x      # Philips Hue lights');
       console.log('   HUE_USERNAME=your_username');
       console.log('   LIFX_TOKEN=your_token          # LIFX lights\n');
-      console.log('   OPTIONAL (for advanced users):');
-      console.log('   ──────────────────────────────────');
-      console.log('   HOME_ASSISTANT_URL=http://ha.local:8123');
-      console.log('   HOME_ASSISTANT_TOKEN=your_token\n');
       console.log('   Quick start: pnpm ecobee:auth\n');
       // Skip the test when no platforms are configured (this is expected in CI)
       skip();
@@ -81,25 +75,16 @@ describe('Real Home - Connection Check', () => {
     const connections = await client.checkConnections();
 
     console.log('\n🔌 Platform Connections:');
-    console.log('   DIRECT INTEGRATIONS (preferred):');
+    console.log('   DIRECT INTEGRATIONS:');
     console.log(`     Ecobee: ${connections.ecobee ? '✅ Connected' : '⏭️ Not configured'}`);
     console.log(`     Hue: ${connections.hue ? '✅ Connected' : '⏭️ Not configured'}`);
-    console.log(`     LIFX: ${connections.lifx ? '✅ Connected' : '⏭️ Not configured'}`);
-    console.log('   OPTIONAL:');
-    console.log(`     Home Assistant: ${connections.homeAssistant ? '✅ Connected' : '⏭️ Not configured'}\n`);
+    console.log(`     LIFX: ${connections.lifx ? '✅ Connected' : '⏭️ Not configured'}\n`);
 
     // At least one should be connected
-    const anyConnected =
-      connections.homeAssistant || connections.ecobee || connections.hue || connections.lifx;
+    const anyConnected = connections.ecobee || connections.hue || connections.lifx;
 
     if (!anyConnected) {
       console.log('⚠️  No platforms connected! Check credentials and network.\n');
-    }
-
-    // Show a helpful tip if using HA but not direct integrations
-    if (connections.homeAssistant && !connections.anyDirectIntegration) {
-      console.log('💡 Tip: Direct integrations (Ecobee, Hue, LIFX) are simpler to set up!');
-      console.log('   They work without Home Assistant and have fewer moving parts.\n');
     }
 
     expect(anyConnected).toBe(true);
@@ -109,13 +94,7 @@ describe('Real Home - Connection Check', () => {
     console.log('\n📊 Integration Strategy:');
     
     if (hasDirectIntegration) {
-      console.log('   ✅ Using direct integrations (recommended)');
-      if (config.homeAssistant.configured) {
-        console.log('   ℹ️  Home Assistant also configured (will use for other devices)');
-      }
-    } else if (config.homeAssistant.configured) {
-      console.log('   ⚠️ Using Home Assistant only');
-      console.log('   💡 Consider direct integrations for simpler setup!');
+      console.log('   ✅ Using direct integrations');
     }
     console.log('');
   });
@@ -497,7 +476,7 @@ describe('Real Home - Philips Hue', () => {
       console.log(`   Bridge IP: ${config.hue.bridgeIp}`);
       console.log(`   Username: ${config.hue.username.slice(0, 8)}...`);
     } else {
-      console.log('\n   To set up Hue (no Home Assistant needed!):');
+      console.log('\n   To set up Hue:');
       console.log('   1. Find your bridge IP (router or Hue app)');
       console.log('   2. Press the link button on your bridge');
       console.log('   3. Run: curl -X POST http://<bridge-ip>/api -d \'{"devicetype":"ferni#test"}\'');
@@ -561,41 +540,6 @@ describe('Real Home - LIFX', () => {
 
     if (lights.length > 0) {
       expect(lights[0].type).toBe('light');
-    }
-  });
-});
-
-// =============================================================================
-// HOME ASSISTANT TESTS (Optional - for power users)
-// =============================================================================
-
-describe('Real Home - Home Assistant (Optional)', () => {
-  const haConfigured = config.homeAssistant.configured;
-
-  it('should check Home Assistant configuration', () => {
-    console.log(`\n🏠 Home Assistant URL: ${haConfigured ? config.homeAssistant.url : '❌ Not configured'}`);
-    console.log(`   Token: ${haConfigured ? '✅ Set' : '❌ Not set'}`);
-
-    if (!haConfigured) {
-      console.log('\n   To enable Home Assistant:');
-      console.log('   1. Get your HA URL (e.g., http://homeassistant.local:8123)');
-      console.log('   2. Create a Long-Lived Access Token in HA Profile → Security');
-      console.log('   3. Add to .env.local:\n');
-      console.log('      HOME_ASSISTANT_URL=http://your-ha:8123');
-      console.log('      HOME_ASSISTANT_TOKEN=your_token\n');
-    }
-  });
-
-  it('should list Home Assistant areas/rooms', async () => {
-    if (!haConfigured) return;
-
-    const devices = discoveredDevices.filter((d) => d.platform === 'home_assistant');
-    const areas = new Set(devices.map((d) => d.room).filter(Boolean));
-
-    console.log(`\n🏠 Home Assistant Rooms: ${areas.size}`);
-    for (const area of areas) {
-      const areaDevices = devices.filter((d) => d.room === area);
-      console.log(`   • ${area}: ${areaDevices.length} devices`);
     }
   });
 });

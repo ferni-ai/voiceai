@@ -313,7 +313,7 @@ export async function handleInboundSMSWebhook(
     process.env.SKIP_TWILIO_VALIDATION === 'true' && process.env.NODE_ENV === 'test';
   if (!skipValidation) {
     if (!signature || !url) {
-      log.warn({ messageSid: payload.MessageSid }, 'Missing Twilio signature or URL');
+      log.error({ messageSid: payload.MessageSid }, 'Inbound SMS: missing Twilio signature or URL');
       return { success: false };
     }
     const isValid = validateTwilioSignature(
@@ -322,7 +322,7 @@ export async function handleInboundSMSWebhook(
       payload as unknown as Record<string, string>
     );
     if (!isValid) {
-      log.warn({ messageSid: payload.MessageSid }, 'Invalid Twilio signature');
+      log.error({ messageSid: payload.MessageSid }, 'Inbound SMS: invalid Twilio signature');
       return { success: false };
     }
   }

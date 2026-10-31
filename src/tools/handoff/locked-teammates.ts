@@ -51,7 +51,9 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { isHandoffTargetOpen } from './handoff-availability.js';
 import { createHandoffTools } from './handoff-factory.js';
 import type { UnlockView } from './locked-handoffs.js';
-import { teammateHeardAs } from './teammate-names.js';
+import { crisisGuidedTurn } from '../../services/safety/index.js';
+import { lastAgentWordsIn } from './chief-of-staff-note.js';
+import { teammateHeardAs, type AliasNoteContext } from './teammate-names.js';
 
 export const ASK_FOR_TEAMMATE = 'askForTeammate';
 
@@ -118,6 +120,23 @@ export function teammatesNamedIn(text: string, members: TeamMemberUnlock[]): Tea
     (text.toLowerCase().match(/[a-z]+/g) ?? []).map(teammateHeardAs).filter(Boolean)
   );
   return members.filter((m) => named.has(m.memberId));
+}
+
+/**
+ * How heardTeammateNote may read transfer-only aliases on this request
+ * (transfer-aliases.ts): never with crisis guidance (`careful`) or on a call
+ * with any crisis handling, and never for a teammate locked for this caller,
+ * whom teamStatusNote declines.
+ */
+export function aliasNoteFor(
+  view: UnlockView,
+  session: object,
+  chatCtx: llm.ChatContext,
+  careful: boolean
+): AliasNoteContext | false {
+  if (careful || crisisGuidedTurn((session as { userData?: unknown }).userData)) return false;
+  const locked = lockedTeammates(view).map((m) => m.memberId);
+  return { agentSaid: lastAgentWordsIn(chatCtx.items), locked };
 }
 
 /**

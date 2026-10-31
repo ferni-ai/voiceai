@@ -50,6 +50,8 @@ export interface LoadedDomainState {
 export interface TopicDetectionResult {
   detectedTopics: string[];
   suggestedDomains: ToolDomain[];
+  /** Tools the topics ask for by name, offered first (travel-topics.ts) */
+  leadTools: string[];
   confidence: number;
 }
 

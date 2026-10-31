@@ -16,6 +16,7 @@ const SURFACE = [
   'src/agents/voice-agent-entry/metadata-parser.ts',
   'src/agents/voice-agent-entry/startup-log.ts',
   'src/agents/voice-agent-entry/handler-setup.ts',
+  'src/agents/voice-agent-entry/user-input-transcribed.ts',
   'src/agents/voice-agent-entry/session-creator.ts',
   'src/agents/voice-agent-entry/call-start-identify.ts',
   'src/agents/voice-agent-entry/caller-recognition.ts',

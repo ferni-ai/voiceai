@@ -267,6 +267,35 @@ pnpm vitest run src/agents/__tests__/e2e/
 
 See `__tests__/README.md` for test helpers and mock factories.
 
+### Reply guards
+
+Every model reply passes through `personas/ferni-agent.ts` `llmNode`, then
+`withActionClaimCheck` (`personas/action-claim-guard.ts`), which runs, in order:
+the house facts guard (`house-facts.ts`, `HOUSE_FACTS`, off by default; first, on the
+model's own words), the action-claim check and the caller voice guard
+(`caller-voice-guard.ts`). Guards read
+the stream through `personas/reply-chunks.ts` (`contentOf`, `hasToolCall`); don't
+add another copy.
+
+**House facts (#3001).** Ferni's own website, the number texts come from and the
+email From address come only from `src/config/house-facts.ts` (LANDING_URL/APP_URL,
+TWILIO_PHONE_NUMBER, EMAIL_FROM). With `HOUSE_FACTS=on` the honesty prompt
+(`ai-honesty.ts` `withHonesty`) states them, and the guard checks provenance from trusted
+sources only, failing closed: every web address, email or phone number Ferni speaks must
+be a house fact or appear in the caller's turns or profile, the injected context, or the
+output of a first-party tool on `FIRST_PARTY_TOOLS` (stored data and fixed crisis lines; never a tool
+whose output echoes the model's arguments). Every helpline in the app's helpline tables (the crisis
+tool's, `services/safety/crisis-response`, `life-coaching-shared`) is a house fact: a crisis
+resource is never blocked.
+Web search, fetched pages, inbound email and texts, invites and any unlisted tool are
+untrusted and never ground an address; compared whole, a website by its last label (the
+complete IANA root-zone list in `personas/iana-tlds.ts`, punycode, or non-ASCII; refresh
+the list when IANA adds endings), after normalising spoken forms
+(`personas/spoken-addresses.ts`). A
+sentence with an address found only in untrusted output becomes `CANT_VOUCH`; one found
+nowhere becomes "I don't have that in front of me." There is no "whose address is it"
+parsing. An unset fact is named as unknown, never guessed.
+
 ---
 
 ## Rules

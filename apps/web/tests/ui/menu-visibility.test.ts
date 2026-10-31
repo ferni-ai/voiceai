@@ -41,9 +41,7 @@ const HIDDEN_ROWS = [
   'ritual',
   'whats-growing',
   'predictions',
-  'spotify',
   'oura-settings',
-  'eight-sleep-settings',
   'apple-health-settings',
   'wearable-settings',
   // flagged off by default (VITE_PATTERN_INSIGHTS)
