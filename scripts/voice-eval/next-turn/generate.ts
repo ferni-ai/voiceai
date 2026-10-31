@@ -21,9 +21,10 @@ import { neutralise, runDir } from './corpus.mjs';
 // @ts-expect-error plain .mjs script, no types
 import { gemini, pool } from './models.mjs';
 
-// What prod set for reply shaping at the 2026-10-09/10 deploys (agent CA_GeFvEpsNXLSF).
+// What prod set for reply shaping at the 2026-10-09/10 deploys (agent CA_GeFvEpsNXLSF), less
+// HUMAN_TEXTURE, THINK_ALOUD and CURIOUS_DETAIL, which are no longer flags.
 const PROD =
-  'PROMPT_MODE=character CASCADE_FAST_LANE=on HUMAN_TEXTURE=on LAUGH_ALONG=on THINK_ALOUD=on CURIOUS_DETAIL=on ASK_ADVICE=on LIFE_MOVES_ON=on';
+  'PROMPT_MODE=character CASCADE_FAST_LANE=on LAUGH_ALONG=on ASK_ADVICE=on LIFE_MOVES_ON=on';
 for (const [k, v] of PROD.split(' ').map((kv) => kv.split('='))) process.env[k] ??= v;
 const ARMS: Record<string, string> = {
   base: '',

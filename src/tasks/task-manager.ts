@@ -15,11 +15,6 @@
 import { getLogger } from '../utils/safe-logger.js';
 // Import directly from types to avoid circular dependency through services/index
 import type { ConversationAnalysis } from '../services/types.js';
-import {
-  pickEntryTransition,
-  pickExitTransition,
-  scriptedTaskTransitionsEnabled,
-} from './task-entry-transition.js';
 import { getTaskWisdom, type TaskWisdom } from './wisdom/index.js';
 
 // Re-export TaskWisdom type for consumers
@@ -183,12 +178,6 @@ export class TaskManager {
           },
           0.8
         );
-
-        // Canned exit line, off unless FERNI_TASK_SCRIPTED_TRANSITIONS=on.
-        const exitPhrase = scriptedTaskTransitionsEnabled()
-          ? pickExitTransition(activeTask.wisdom)
-          : undefined;
-        if (exitPhrase) contextParts.push(`[TRANSITION] Consider saying: "${exitPhrase}"`);
       }
     }
 
@@ -209,12 +198,6 @@ export class TaskManager {
       }
       if (context?.isReturningUser && wisdom.instructions.ifReturning) {
         instructions += `\n\n${wisdom.instructions.ifReturning}`;
-      }
-
-      // Canned entry line on first turn, off unless FERNI_TASK_SCRIPTED_TRANSITIONS=on.
-      if (activeTask.turnCount === 1 && scriptedTaskTransitionsEnabled()) {
-        const entryPhrase = pickEntryTransition(wisdom, analysis);
-        instructions = `[TRANSITION] Start with: "${entryPhrase}"\n\n${instructions}`;
       }
 
       contextParts.push(instructions);

@@ -19,6 +19,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { redactUrl } from '../../utils/url-redaction.js';
 import { createCircuitBreaker, CircuitBreakerError } from './circuit-breaker.js';
 import { withResilience } from './resilient-executor.js';
 import { humanizeError, type HumanizedError } from './error-humanizer.js';
@@ -386,7 +387,6 @@ export function createResilientClient(
         );
       });
 
-      // Parse JSON response
       const data = (await response.json()) as T;
       const durationMs = Date.now() - startTime;
 
@@ -397,7 +397,7 @@ export function createResilientClient(
       recordRequestResult(serviceName, true, durationMs);
 
       log.debug(
-        { serviceName, url, status: response.status, durationMs, retries },
+        { serviceName, url: redactUrl(url), status: response.status, durationMs, retries },
         'Request succeeded'
       );
 
@@ -420,7 +420,7 @@ export function createResilientClient(
       log.warn(
         {
           serviceName,
-          url,
+          url: redactUrl(url), // query-string API keys (Alpha Vantage's apikey=) must not reach logs
           error: err.message,
           code: resilientError.code,
           durationMs,

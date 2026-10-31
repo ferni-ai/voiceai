@@ -360,11 +360,47 @@ describe('loadKnownView', () => {
     }
   });
 
-  it('never reads pondering unless its own flag is on', async () => {
+  // MEMORY_VIEW_PONDERING: default on since 2026-10-31; `off` is the kill switch
+  it.each([undefined, 'on'])('reads pondering when its flag is %s (unset is on)', async (value) => {
     const s = store();
-    const view = await loadKnownView('u-1', s, { now: NOW, env: { MEMORY_VIEW: 'on' } });
-    expect(s.pondering).not.toHaveBeenCalled();
-    expect(view.thinkingAbout).toBeUndefined();
+    const env = { MEMORY_VIEW: 'on', MEMORY_VIEW_PONDERING: value };
+    const view = await loadKnownView('u-1', s, { now: NOW, env });
+    expect(s.pondering).toHaveBeenCalledWith('u-1');
+    expect(view.thinkingAbout).toHaveLength(2);
+  });
+
+  it.each(['off', 'false', '0', 'OFF'])(
+    'never reads pondering when its flag is %s',
+    async (value) => {
+      const s = store();
+      const env = { MEMORY_VIEW: 'on', MEMORY_VIEW_PONDERING: value };
+      const view = await loadKnownView('u-1', s, { now: NOW, env });
+      expect(s.pondering).not.toHaveBeenCalled();
+      expect(s.summaryDays).not.toHaveBeenCalled();
+      expect(view.thinkingAbout).toBeUndefined();
+    }
+  );
+
+  it('needs the memory view itself: pondering alone turns nothing on', () => {
+    expect(isMemoryViewPonderingOn({})).toBe(false);
     expect(isMemoryViewPonderingOn({ MEMORY_VIEW_PONDERING: 'on' })).toBe(false);
+    expect(isMemoryViewPonderingOn({ MEMORY_VIEW: 'on' })).toBe(true);
+  });
+
+  it('a caller the ponder job never pondered gets an empty section, and no extra read', async () => {
+    const s = store();
+    vi.mocked(s.pondering).mockResolvedValueOnce(null);
+    const view = await loadKnownView('u-1', s, { now: NOW, env: { MEMORY_VIEW: 'on' } });
+    expect(view.thinkingAbout).toEqual([]);
+    expect(s.summaryDays).not.toHaveBeenCalled();
+    expect(view.people).toHaveLength(1); // the rest of the view is unchanged
+  });
+
+  it('an unreadable pondering doc leaves only that section empty', async () => {
+    const s = store();
+    vi.mocked(s.pondering).mockRejectedValueOnce(new Error('firestore down'));
+    const view = await loadKnownView('u-1', s, { now: NOW, env: { MEMORY_VIEW: 'on' } });
+    expect(view.thinkingAbout).toEqual([]);
+    expect(view.people).toHaveLength(1);
   });
 });

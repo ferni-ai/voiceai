@@ -85,20 +85,20 @@ function getDemoRateLimit(ip: string): DemoRateLimitData {
   return data;
 }
 
-/** The counters a demo limit decision needs (in memory or in Firestore). */
-export interface DemoLimitCounters {
+/** The counters a demo limit decision needs. */
+interface DemoLimitCounters {
   dayStart: number;
   sessionCount: number;
   lastSession: number;
 }
 
 /** Local midnight today: the start of the window the daily limit counts in. */
-export function demoDayStart(now = Date.now()): number {
+function demoDayStart(now = Date.now()): number {
   return new Date(now).setHours(0, 0, 0, 0);
 }
 
 /** Decide whether one more demo is allowed, given an IP's counters for today. */
-export function evaluateDemoLimit(
+function evaluateDemoLimit(
   data: DemoLimitCounters,
   now: number,
   config = DEMO_CONFIG

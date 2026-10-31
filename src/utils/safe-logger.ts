@@ -33,6 +33,7 @@ import pino from 'pino';
 
 import { redactLogDestination, redactPinoLogger } from './log-redaction.js';
 import { redactErrorValue } from './error-text.js';
+import { redactUrlField } from './url-redaction.js';
 
 /**
  * Console-based fallback logger that matches LiveKit's Logger interface
@@ -118,7 +119,8 @@ function sanitizeForLog(value: unknown, depth = 0, seen = new WeakSet<object>())
 
   const result: Record<string, unknown> = {};
   for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
-    result[key] = sanitizeForLog(nested, depth + 1, seen);
+    // url / endpoint / *Url fields: an API key or token in the query string never reaches a log
+    result[key] = sanitizeForLog(redactUrlField(key, nested), depth + 1, seen);
   }
   return result;
 }

@@ -53,6 +53,25 @@ describe('sectionsOf', () => {
   it('is empty for an empty view (the empty state shows)', () => {
     expect(sectionsOf({})).toEqual([]);
   });
+
+  // MEMORY_VIEW_PONDERING is on for everyone, but only the ponder job's cohort has pondering
+  it('leaves the pondering section out for a caller with no pondering data', () => {
+    const people = [item({ about: 'Biscuit' })];
+    expect(sectionsOf({ people, thinkingAbout: [] }).map((s) => s.id)).toEqual(['people']);
+    expect(sectionsOf({ thinkingAbout: [] })).toEqual([]);
+  });
+
+  it('shows the pondering section, with its note, for a caller who has some', () => {
+    const thought = item({ kind: 'ponder', source: 'noticed', text: 'how did the dentist go?' });
+    expect(sectionsOf({ thinkingAbout: [thought] })).toEqual([
+      {
+        id: 'thinkingAbout',
+        title: 'memoryView.thinkingAbout',
+        note: 'memoryView.thinkingAboutNote',
+        items: [thought],
+      },
+    ]);
+  });
 });
 
 describe('provenance', () => {

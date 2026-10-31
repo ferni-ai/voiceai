@@ -6,7 +6,7 @@ import { rngFor, turnShapeFor } from '../turn-shape.js';
 import { regexSignals } from '../turn-extras.js';
 import { withTurnReminder } from '../turn-request.js';
 
-const KEYS = ['TURN_LENGTH', 'TURN_TEXTURE', 'TURN_SHAPE', 'HUMAN_TEXTURE', 'THINK_ALOUD'];
+const KEYS = ['TURN_LENGTH', 'TURN_TEXTURE', 'TURN_SHAPE'];
 let saved: Record<string, string | undefined> = {};
 beforeEach(() => {
   saved = Object.fromEntries(KEYS.map((k) => [k, process.env[k]]));
@@ -102,8 +102,6 @@ describe('turn shape with the learned levers', () => {
   });
 
   it('TURN_TEXTURE=learned drops the fixed filler and thinking-aloud lines on chit-chat', () => {
-    process.env.HUMAN_TEXTURE = 'on';
-    process.env.THINK_ALOUD = 'on';
     process.env.TURN_TEXTURE = 'learned';
     const extras = Array.from(
       { length: 200 },
