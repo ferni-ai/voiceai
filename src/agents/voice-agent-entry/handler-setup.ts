@@ -382,7 +382,6 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   );
   cleanupTracker.register('timer', 'tool-health-check', () => { clearInterval(toolHealthCheckInterval); });
 
-  // Session state handlers
   const { silenceContext, clearTimers } = setupSessionStateHandlers({
     session, sessionPersona, conversationManager, userData, sessionId, services,
     room: ctx.room,

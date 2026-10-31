@@ -401,9 +401,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
   // 5D: Start continuous prosody stream for rolling window updates
   const prosodyStream = getContinuousProsodyStream();
-  const onProsody = (_snapshot: unknown): void => {
-    // Prosody snapshots are collected; context injection happens in turn-handler
-  };
+  const onProsody = (): void => undefined; // snapshots are collected; turn-handler injects context
   prosodyStream.start(onProsody);
 
   // Silence context for meaningful silence responses
