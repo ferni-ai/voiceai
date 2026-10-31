@@ -37,7 +37,12 @@ import {
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
-import { crisisRiskThisCall, noteCrisisRisk } from '../../services/safety/crisis-call-risk.js';
+import {
+  crisisRiskNoted,
+  crisisRiskThisCall,
+  noteCrisisRisk,
+} from '../../services/safety/crisis-call-risk.js';
+import { withoutGrowthNote } from '../multi-agent/recall-note.js';
 import {
   afterCheckLoneRead,
   noteConfirmedRisk,
@@ -383,7 +388,12 @@ export async function gatedReply(
   options: CrisisGateOptions = {}
 ): Promise<ReadableStream<Chunk> | null> {
   const { env = process.env } = options;
-  const chatCtx = withoutPastLeadIns(request, env);
+  // PERSONA_GROWTH's note (recall-note.ts) never reaches a reply on a call with crisis risk noted.
+  const risk = sessionScope(session.userData);
+  const chatCtx = withoutGrowthNote(
+    withoutPastLeadIns(request, env),
+    !!risk && crisisRiskNoted(risk)
+  );
   const askedAt = Date.now();
   // A turn-opening clip played after this request began: the reply follows it.
   const openedBySound = (): boolean => replyOpenedBySound(session, askedAt);
@@ -402,8 +412,9 @@ export async function gatedReply(
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn shape ("six words at
   // most") must never hold it back, and no goodbye closes the loop on a plan (wrap-up.ts).
+  // A guided reply never carries PERSONA_GROWTH's note, whenever this turn found the risk.
   const plain = (): llm.ChatContext =>
-    withTurnReminder(chatCtx, session, { shape: false, closeLoop: false });
+    withTurnReminder(withoutGrowthNote(chatCtx), session, { shape: false, closeLoop: false });
   const ctx =
     gate?.decision.action === 'guide'
       ? withTurnStyleReminder(plain(), gate.decision.guidance)
