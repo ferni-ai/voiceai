@@ -12,7 +12,9 @@
  * - for a growth kept on an earlier call, with the caller's exact words;
  * - when nothing was offered in the last GROWTH_SPACING_MS, so at most one
  *   per call and rarely across calls;
- * - worded as something to mention lightly if it fits, never a celebration.
+ * - worded as something to mention lightly if it fits, never a celebration;
+ * - never on a call with a crisis signal (a crisis read noted or settling, or
+ *   crisis words in the turn).
  * Offering marks it shared (markGrowthShared), so it never comes back.
  *
  * @module agents/personas/persona-growth-recall
@@ -24,6 +26,7 @@ import {
   markGrowthShared,
   type PersonaGrowthRecord,
 } from '../../services/trust-systems/index.js';
+import { crisisRiskThisCall, scoreCrisisLanguage } from '../../services/safety/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'PersonaGrowthRecall' });
@@ -75,22 +78,60 @@ function formatGrowthNote(record: PersonaGrowthRecord): string {
   ].join('\n');
 }
 
+/**
+ * Which personas had an agent on each call: one growth is one persona's, and
+ * the after-call context doesn't say whose call it was (runAfterCall sets no
+ * personaId). Noted when a persona's recall is built (per agent, so a handoff
+ * adds one); bounded, oldest calls dropped first.
+ */
+const personasByCall = new Map<string, Set<string>>();
+const CALLS_KEPT = 500;
+
+function notePersonaOnCall(sessionId: string, personaId: string): void {
+  const seen = personasByCall.get(sessionId) ?? new Set<string>();
+  seen.add(personaId);
+  personasByCall.delete(sessionId); // re-insert: newest last
+  personasByCall.set(sessionId, seen);
+  if (personasByCall.size > CALLS_KEPT) {
+    personasByCall.delete(personasByCall.keys().next().value as string);
+  }
+}
+
+/** The one persona on this call, or undefined: unknown, or a handoff happened. */
+export function onlyPersonaOnCall(sessionId: string | undefined): string | undefined {
+  const seen = sessionId ? personasByCall.get(sessionId) : undefined;
+  return seen?.size === 1 ? [...seen][0] : undefined;
+}
+
+/** A crisis read noted or still settling on this call, or crisis words in this turn. */
+function crisisOnCall(sessionId: string | undefined, text: string): boolean {
+  return (!!sessionId && crisisRiskThisCall(sessionId, text)) || scoreCrisisLanguage(text).isCrisis;
+}
+
 export interface GrowthRecall {
-  /** The growth note, or null. The first non-null answer marks the growth shared and is kept. */
-  note(): string | null;
+  /**
+   * The growth note for the turn that said `text`, or null; never on a call
+   * with a crisis signal. The first non-null answer marks the growth shared and is kept.
+   */
+  note(text: string): string | null;
 }
 
 /** For one persona agent on one call; `now` is when the call's recall started. */
 export function growthRecallFor(
   userId: string,
   personaId: string,
+  sessionId?: string,
   env: Record<string, string | undefined> = process.env,
   now: number = Date.now()
 ): GrowthRecall {
+  if (sessionId) notePersonaOnCall(sessionId, personaId);
   let offered: string | null = null;
+  let crisis = false; // once a crisis signal shows on this call, nothing is offered on it
   return {
-    note() {
+    note(text) {
       if (offered || !personaGrowthEnabled(env)) return offered;
+      crisis ||= crisisOnCall(sessionId, text);
+      if (crisis) return null;
       // Loaded at session start; not there yet (or never kept) means nothing this call.
       const profile = getPersonaGrowthForPersistence(userId, personaId);
       const record = profile && growthToOffer(profile.growthRecords, profile.sharedTopics, now);

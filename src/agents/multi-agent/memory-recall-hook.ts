@@ -327,7 +327,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const week = deps.week ?? predictionCheckInFor(deps.userId, personaId);
   const loading = [loaded, since, checkedIn, ground, canonLoaded, dates.ready, world.ready];
   const repairs = loadRepairRecall(deps.userId, deps.repairStore); // FRIEND_REPAIR, first note
-  const growth = growthRecallFor(deps.userId, personaId); // PERSONA_GROWTH, first note only
+  const growth = growthRecallFor(deps.userId, personaId, deps.sessionId); // PERSONA_GROWTH
   const ready = Promise.all([...loading, repairs.ready, loops?.ready]).then(() => undefined);
 
   return {
@@ -436,7 +436,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
             people,
             told,
             groundNow,
-            ...(followUpsOffered ? [] : [repairs.note(), growth.note()]),
+            ...(followUpsOffered ? [] : [repairs.note(), growth.note(text)]),
             extraTold.length > 0
               ? quietLedger(formatLedger(extraTold, deps.userName, Date.now(), { bridge }), text)
               : null,

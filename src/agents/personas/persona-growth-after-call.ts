@@ -25,7 +25,10 @@ import {
   type PersonaGrowthRecord,
 } from '../../services/trust-systems/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { personaGrowthEnabled } from './persona-growth-recall.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
+import { isCrisisCall } from '../../services/wellbeing-tracking/after-call.js';
+import { writeHeld } from '../../utils/minor-care.js';
+import { onlyPersonaOnCall, personaGrowthEnabled } from './persona-growth-recall.js';
 
 const log = createLogger({ module: 'PersonaGrowth' });
 
@@ -107,7 +110,7 @@ export function parseGrowthReading(reply: string): GrowthReading | null {
   }
 }
 
-/** Kept only when the call shows it: the quote is in one of the caller's own lines. */
+/** Kept only when the call shows it: the quote ends a sentence of one of the caller's own lines. */
 export function guardGrowthReading(
   reading: GrowthReading | null,
   callerLines: readonly string[]
@@ -121,8 +124,20 @@ export function guardGrowthReading(
     words(reading.quote) <= 40 &&
     words(reading.after) >= 3 &&
     words(reading.after) <= 20 &&
-    callerLines.some((line) => ` ${norm(line)} `.includes(` ${q} `));
+    callerLines.some((line) => endsASentence(line, q));
   return fits ? reading : null;
+}
+
+/**
+ * The quote is a whole sentence or clause of the caller's line, or its end: a
+ * piece cut off before "but not when..." or "..., not after" can mean the
+ * opposite of what they said.
+ */
+function endsASentence(line: string, quote: string): boolean {
+  return line
+    .split(/[.!?;]+/)
+    .map(norm)
+    .some((s) => s === quote || s.endsWith(` ${quote}`));
 }
 
 const unifiedGrowthStore: GrowthStore = {
@@ -151,20 +166,39 @@ export interface GrowthDeps {
   read?: GrowthReader;
   env?: NodeJS.ProcessEnv;
   cohorts?: CohortStore;
+  /** Crisis risk noted on the call (crisis-call-risk.ts); injected for tests. */
+  crisisRisk?: (sessionId: string) => boolean;
+}
+
+/**
+ * A member's own account only (never a placeholder or shared id, never a held caller),
+ * and Ferni's call with only Ferni on it: after a handoff the lines aren't all his.
+ */
+function membersFerniOnlyCall(
+  ctx: Pick<AfterCallContext, 'userId' | 'sessionId' | 'personaId'>
+): boolean {
+  if (!isMemberIdentity(ctx.userId) || writeHeld(ctx.userId, ctx.sessionId)) return false;
+  if (ctx.personaId && ctx.personaId !== PERSONA) return false;
+  return onlyPersonaOnCall(ctx.sessionId) === PERSONA;
 }
 
 /** Read one finished call for growth. Returns the kept record, or null. */
 export async function recordGrowthAfterCall(
-  ctx: Pick<AfterCallContext, 'userId' | 'personaId' | 'turns'>,
+  ctx: Pick<AfterCallContext, 'userId' | 'sessionId' | 'personaId' | 'turns'>,
   deps: GrowthDeps = {}
 ): Promise<PersonaGrowthRecord | null> {
-  if (ctx.personaId && ctx.personaId !== PERSONA) return null;
+  if (!membersFerniOnlyCall(ctx)) return null;
   const turns = ctx.turns.filter((t) => t.content.trim());
   const callerLines = turns.filter((t) => t.role === 'user').map((t) => t.content);
   if (callerLines.length < 3 || !turns.some((t) => t.role === 'assistant')) return null;
   // After the call, process.env may already hold the next caller's flags.
   const env = await envForCaller(ctx.userId, { env: deps.env, store: deps.cohorts });
   if (!personaGrowthEnabled(env)) return null;
+  // Before any model read: nothing from a call with a crisis signal is kept as growth.
+  if (isCrisisCall(ctx, deps.crisisRisk)) {
+    log.info({ sessionId: ctx.sessionId }, 'PERSONA_GROWTH_SKIPPED_CRISIS');
+    return null;
+  }
   const store = deps.store ?? unifiedGrowthStore;
   try {
     const transcript = turns
