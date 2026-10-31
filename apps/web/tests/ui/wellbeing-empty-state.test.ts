@@ -10,6 +10,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 vi.mock('../../src/utils/api-helpers.js', () => ({
   getApiHeadersAsync: vi.fn().mockResolvedValue({ Authorization: 'Bearer t' }),
+  apiFetch: vi.fn((url: string) => fetch(url)),
 }));
 
 const { showWellbeingDashboard, cleanupWellbeingDashboard } =
