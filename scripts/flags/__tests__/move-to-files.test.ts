@@ -13,7 +13,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { FLAG_MANIFEST } from '../../../src/config/flag-manifest.js';
-import { commentsOf, parseCohortFlags, parseFlagFile, parseLegacy } from '../legacy-parse.js';
+import { commentsOf, hasInnerComment, parseCohortFlags, parseFlagFile, parseLegacy } from '../legacy-parse.js';
 import { moveToFiles } from '../move-to-files.js';
 
 const BLOCKS = `/**
@@ -106,6 +106,31 @@ describe('legacy-parse', () => {
     expect(() =>
       parseLegacy('x', "const L = { A: { default: 'off', owner: 'v', kind: 'k' },\n};\n")
     ).toThrow(/lines of its own/);
+  });
+
+  it('tells a comment from // or /* inside a string literal (hasInnerComment)', () => {
+    // string text, not comments
+    expect(hasInnerComment("{ issue: 'https://github.com/ferni-ai/voiceai/issues/101' }")).toBe(false);
+    expect(hasInnerComment("{ context: 'a // b' }")).toBe(false);
+    expect(hasInnerComment("{ context: 'it\\'s // fine' }")).toBe(false); // escaped quote, then //
+    expect(hasInnerComment('{ context: "say \\" // x" }')).toBe(false);
+    expect(hasInnerComment("{ context: 'a /* b */ c' }")).toBe(false);
+    expect(hasInnerComment('{ context: `x // y ${1 + 2} /* z */ w` }')).toBe(false);
+    // real comments, including one right after a string
+    expect(hasInnerComment("{ issue: 'https://x.y/issues/1', // real\n kind: 'k' }")).toBe(true);
+    expect(hasInnerComment("{ context: 'it\\'s' /* real */ }")).toBe(true);
+    expect(hasInnerComment('{ a: `t ${1}` // real\n }')).toBe(true);
+  });
+
+  it('reads an issue URL back from a flag file, and still refuses a trailing comment inside it', () => {
+    const file = (issue: string): string =>
+      `import type { FlagSpec } from '../flag-spec.js';\n\nexport const U = {\n  default: 'off',\n  owner: 'tools',\n  kind: 'experiment',\n  expires: '2027-03-01',\n  issue: ${issue}\n} as const satisfies FlagSpec;\n`;
+    expect(parseFlagFile('U.ts', file("'https://github.com/ferni-ai/voiceai/issues/101',")).spec.issue).toBe(
+      'https://github.com/ferni-ai/voiceai/issues/101'
+    );
+    expect(() => parseFlagFile('U.ts', file("'https://github.com/ferni-ai/voiceai/issues/101', // why"))).toThrow(
+      /U has a comment inside its entry/
+    );
   });
 
   it('refuses a comment inside an entry, naming the flag', () => {
