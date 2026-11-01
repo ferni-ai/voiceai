@@ -329,6 +329,24 @@ describe('a disclosure through the turn pipeline', () => {
     expect(g).not.toMatch(/\b988\b/);
   });
 
+  it('a named child line: Childhelp with the safe-adult nudge beside it, and nothing with the flag off', async () => {
+    for (const line of [
+      'My dad hits me.',
+      "My stepdad hits me when he's drunk.",
+      'My mom beats me with a belt.',
+    ]) {
+      const s = await summary(line, ON);
+      expect(s.indicators, line).toContain('abuse_disclosure_child');
+      const step4 = (abuseGuidance(s) ?? '').split('\n').find((l) => l.startsWith('4. ')) ?? '';
+      expect(step4, line).toContain('1-800-422-4453');
+      expect(step4, line).toMatch(
+        /If they are a child or teen, gently encourage them to tell a safe adult they trust$/
+      );
+      // Flag off: no abuse read, so the turn handler keeps main's guidance path.
+      expect(abuseGuidance(await summary(line, OFF)), line).toBeNull();
+    }
+  });
+
   it('the DV hotline for a partner', async () => {
     const g = abuseGuidance(await summary('My girlfriend threw me against the wall.', ON)) ?? '';
     expect(g).toContain('1-800-799-7233');
