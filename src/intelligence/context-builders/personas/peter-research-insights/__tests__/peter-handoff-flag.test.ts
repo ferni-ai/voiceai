@@ -1,9 +1,9 @@
 /**
  * Peter's handoff briefing stays off until PERSONA_BRIEFING_PETER_HANDOFF is on
  * (#3066 round 1). It never ran in prod before #3066 made the arrival signal per
- * call, and for a member with no data it is a "(Real Data)" dashboard of
- * defaults (Decision Quality Index: 50/100), so it must not start running
- * unflagged.
+ * call, and until #3044 PR C3 it showed a member with no data a "(Real Data)"
+ * dashboard of defaults (Decision Quality Index: 50/100), so it stays off
+ * until the flag is turned on deliberately.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
