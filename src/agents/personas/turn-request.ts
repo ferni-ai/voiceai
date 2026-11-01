@@ -188,7 +188,7 @@ function buildTurnReminder(
     safe.confirmedActionNote(session),
     options.closeLoop === false || held
       ? ''
-      : attempt('closeLoop', () => closeLoopNote(session, words), '', SAFE),
+      : attempt('closeLoop', () => closeLoopNote(session, words), ''),
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     safe.gameTurnNote(session, process.env, words),
@@ -251,7 +251,7 @@ function buildTurnReminder(
     // PERSONA_VOICE=on: how this persona sounds, after the shared style so it wins (persona-voice.ts).
     safe.personaVoiceNote(view.currentAgentId, { careful: options.shape === false }),
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
-    held ? '' : attempt('exit', () => exitFor(chatCtx, session, words, plain), '', SAFE),
+    held ? '' : attempt('exit', () => exitFor(chatCtx, session, words, plain), ''),
     // His self-share line after the shape, nearest the reply (ferni-state.ts).
     state.last,
     // ATTUNE=on: meet the caller's state, after the self-share so its "no stories" wins; no length.

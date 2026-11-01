@@ -1,8 +1,8 @@
 /**
  * On an unverified turn only notes marked SAFE ride (#3091, turn-note-guard.ts): an allowlist, so
  * a builder nobody marked (a director note, the journal steer, one added later) is dropped by
- * default. The safety notes and the style and state notes are SAFE and stay. Every name here is
- * made up.
+ * default. The safety notes and the style and state notes are SAFE and stay; Ferni's self-quotes
+ * (state's `last`) do not. Every name here is made up.
  */
 import { llm } from '@livekit/agents';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -31,7 +31,7 @@ vi.mock('../journal-ask.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   journalAskFor: () => JOURNAL,
 }));
-/** Builders that return objects: their text must be recorded as SAFE too. */
+/** Builders that return objects: their `text` / `note` is recorded as SAFE, never `last`. */
 vi.mock('../ferni-state.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   ferniStateTurn: () => ({ note: 'FERNI-STATE-NOTE', last: 'FERNI-SELF-SHARE' }),
@@ -112,13 +112,13 @@ describe('an unverified turn keeps only SAFE notes (#3091)', () => {
     expect(out).toContain('SEXUAL-BOUNDARY-NOTE');
   });
 
-  it('notes from builders that return objects (style, Ferni state) survive', () => {
+  it('notes from builders that return objects survive (style, Ferni state), not his self-quotes', () => {
     fail.identity = true;
     const out = text(withTurnReminder(request(), session()));
     expect(out).toContain(UNVERIFIED_SPEAKER_NOTE);
     expect(out).toContain('STYLE-NOTE');
     expect(out).toContain('FERNI-STATE-NOTE');
-    expect(out).toContain('FERNI-SELF-SHARE');
+    expect(out).not.toContain('FERNI-SELF-SHARE');
   });
 
   it('a verified turn still carries everything, director notes included', () => {

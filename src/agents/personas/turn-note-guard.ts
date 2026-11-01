@@ -46,12 +46,17 @@ let active: TurnState | undefined;
 
 const errorName = (error: unknown): string => (error instanceof Error ? error.name : typeof error);
 
-/** The note text a builder returned: a string, strings in a list, or an object's (style, state). */
+/**
+ * The note text a builder returned: a string, strings in a list, or an object's `text` or `note`
+ * (style, Ferni state). Never its other fields: Ferni state's `last` re-quotes his own earlier
+ * lines, so it is not SAFE.
+ */
 function textsOf(built: unknown): string[] {
+  const { text, note } = (built ?? {}) as { text?: unknown; note?: unknown };
   const parts = Array.isArray(built)
     ? (built as unknown[])
-    : built !== null && typeof built === 'object'
-      ? Object.values(built)
+    : typeof built === 'object'
+      ? [text, note]
       : [built];
   return parts.filter((part): part is string => typeof part === 'string' && part !== '');
 }
