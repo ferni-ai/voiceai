@@ -259,8 +259,15 @@ export function callerRecognitionFor(sessionId: string | undefined): CallerRecog
 
 /** Sessions whose account came from an authenticated dispatch (accountNamedByDispatch). */
 const namedByDispatch = new Set<string>();
+/** PLACED_CALL_NOT_OWNER_PROOF=on: sessions of calls Ferni placed (placedByFerni). */
+const placedSessions = new Set<string>();
 
 export function rememberDispatchIdentity(sessionId: string, source: string, meta?: string): void {
+  if (placedByFerni(meta)) {
+    placedSessions.add(sessionId);
+    if (placedSessions.size > MAX_SESSIONS)
+      placedSessions.delete(placedSessions.values().next().value as string);
+  }
   if (!accountNamedByDispatch(source, meta)) return;
   namedByDispatch.add(sessionId);
   if (namedByDispatch.size > MAX_SESSIONS)
@@ -288,9 +295,18 @@ export function ownerProvenOnLine(sessionId: string, phoneCall: boolean): boolea
   return namedByDispatch.has(sessionId);
 }
 
-/** A session known only by its phone number: only conversational tools are open. */
+/** PLACED_CALL_NOT_OWNER_PROOF=on and Ferni placed this session's call: anyone may have answered. */
+export function onPlacedCallSession(sessionId: string | undefined): boolean {
+  return sessionId !== undefined && placedSessions.has(sessionId);
+}
+
+/**
+ * A session known only by its phone number: only conversational tools are open.
+ * PLACED_CALL_NOT_OWNER_PROOF=on: so is a call Ferni placed, whatever
+ * recognition says (Seth, 2026-11-01: whoever answers is not the owner).
+ */
 export function phoneOnlyIdentity(sessionId: string | undefined): boolean {
-  return callerRecognitionFor(sessionId)?.status === 'known';
+  return callerRecognitionFor(sessionId)?.status === 'known' || onPlacedCallSession(sessionId);
 }
 
 /** Both checks, for lower layers that are handed them (data-channel-handler.ts). */
@@ -316,15 +332,23 @@ export function unrecognisedCallerGreeting(r: CallerRecognition | undefined): st
  * an inbound call from that number and is never a dispatch-proven owner.
  */
 export function accountNamedByDispatch(source: string, jobMetadata: string | undefined): boolean {
-  let inbound = false;
-  try {
-    const type = (JSON.parse(jobMetadata ?? '{}') as { type?: unknown }).type;
-    const placed = typeof type === 'string' && isPlacedCall(type) && placedCallNotOwnerProofOn();
-    inbound = type === 'inbound_call' || placed;
-  } catch {
-    // Unparseable metadata names nobody.
-  }
+  const inbound = jobTypeOf(jobMetadata) === 'inbound_call' || placedByFerni(jobMetadata);
   return !inbound && ['web_auth', 'firebase', 'sponsored'].includes(source);
+}
+
+/** The job's type, or undefined (unparseable metadata names nobody). */
+function jobTypeOf(jobMetadata: string | undefined): unknown {
+  try {
+    return (JSON.parse(jobMetadata ?? '{}') as { type?: unknown }).type;
+  } catch {
+    return undefined;
+  }
+}
+
+/** PLACED_CALL_NOT_OWNER_PROOF=on and this job is a call Ferni placed (isPlacedCall). */
+function placedByFerni(jobMetadata: string | undefined): boolean {
+  const type = jobTypeOf(jobMetadata);
+  return typeof type === 'string' && isPlacedCall(type) && placedCallNotOwnerProofOn();
 }
 
 type RoomLike = Parameters<typeof firstParticipant>[0] & AttributeUpdates;

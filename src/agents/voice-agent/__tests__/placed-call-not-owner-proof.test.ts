@@ -5,13 +5,17 @@
  * recognised like an inbound call from that number (accountNamedByDispatch),
  * so it is never a dispatch-proven owner: no tools that reach other people
  * (mayReachOthers), no reading the owner's texts (signedInOwnerSession), and a
- * caller under 18 is held by MINOR_CARE like anyone else. With the flag off,
+ * caller under 18 is held by MINOR_CARE like anyone else; and the call gets
+ * only the phone-safe tools (crisis tools and connectToHumanExpert kept),
+ * whatever caller recognition says. With the flag off,
  * all of it is exactly as before. Web/app and inbound sessions are unchanged
  * either way. Runs the real identifyUser; only caller recognition's SIP lookup
  * is faked. All data is fictional.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { llm } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
+import { z } from 'zod';
 
 import { InMemoryStore } from '../../../memory/storage/in-memory-store.js';
 import { signDispatch } from '../../../services/outreach/on-behalf-dispatch.js';
@@ -58,6 +62,8 @@ const recognition = await import('../../voice-agent-entry/caller-recognition.js'
 const { mayReachOthers } = await import('../../shared/third-party-tools.js');
 const { signedInOwnerSession } = await import('../../voice-agent-entry/sms-owner-register.js');
 const minorCare = await import('../../../utils/minor-care.js');
+const { toolsForTurn } = await import('../../personas/turn-request.js');
+const { PersonaVoiceAgent } = await import('../../personas/ferni-agent.js');
 
 const SECRET = 'livekit-test-secret';
 const room = {} as Room;
@@ -117,6 +123,7 @@ describe('flag on: whoever answers a call Ferni placed proves no owner', () => {
       verifiedOwner: false,
       mayReachOthers: false,
       readsOwnTexts: false,
+      phoneSafeTools: true, // a call Ferni placed, whatever recognition says
     });
   });
 
@@ -141,6 +148,7 @@ describe('flag on: whoever answers a call Ferni placed proves no owner', () => {
       verifiedOwner: false,
       mayReachOthers: false,
       readsOwnTexts: false,
+      phoneSafeTools: true,
     });
   });
 
@@ -163,7 +171,7 @@ describe('web/app and inbound calls: unchanged by the flag', () => {
     vi.stubEnv('PLACED_CALL_NOT_OWNER_PROOF', flag);
     vi.stubEnv('CALLER_RECOGNITION', 'on');
     for (const app of [appSession(), signedInWeb()]) {
-      expect(await call(app)).toMatchObject({ userId: OWNER, verified: true, verifiedOwner: true, mayReachOthers: true, readsOwnTexts: true }); // prettier-ignore
+      expect(await call(app)).toMatchObject({ userId: OWNER, verified: true, verifiedOwner: true, mayReachOthers: true, readsOwnTexts: true, phoneSafeTools: false }); // prettier-ignore
     }
     line.found = 'stranger';
     expect(await call(inbound())).toMatchObject({ userId: expect.stringMatching(/^anon:/), verified: false, verifiedOwner: false, mayReachOthers: false }); // prettier-ignore
@@ -179,4 +187,50 @@ describe('web/app and inbound calls: unchanged by the flag', () => {
     expect(off).toEqual([true, false, true, true, true, true]);
     expect(on).toEqual([true, false, true, true, true, false]);
   });
+});
+
+/** Tools a self-call's agent may hold: phone-safe ones, a human hand-off, and the owner's account tools. */
+const tool = () => llm.tool({ description: 't', parameters: z.object({}), execute: async () => 'ok' });
+const CALL_TOOLS = ['provideCrisisResources', 'quickCrisisResources', 'getWeather', 'connectToHumanExpert', 'getInboxSummary', 'getCalendarToday', 'recallFromMemory']; // prettier-ignore
+const PHONE_SAFE = ['provideCrisisResources', 'quickCrisisResources', 'getWeather'];
+
+/** The tools the real toolsForTurn offers this call's next turn. */
+async function offered(metadata: Record<string, unknown>): Promise<string[]> {
+  const { sessionId, userId } = await call(metadata);
+  const agent = new PersonaVoiceAgent('You are Ferni.', {
+    tools: new llm.ToolContext(Object.fromEntries(CALL_TOOLS.map((n) => [n, tool()])) as never) as unknown as llm.ToolContext, // prettier-ignore
+    skipGreeting: true,
+  });
+  const chat = llm.ChatContext.empty();
+  chat.addMessage({ role: 'user', content: 'what is on my calendar today' });
+  const ctx = await toolsForTurn({ userData: { userId, services: { sessionId } } }, chat, agent.toolCtx as unknown as llm.ToolContext, { loggedLockedHandoffs: false, agent }); // prettier-ignore
+  return Object.keys(ctx.functionTools).sort();
+}
+
+describe("the tools a call's next turn offers", () => {
+  it.each(['off', 'on'])(
+    'flag on, CALLER_RECOGNITION %s: a self-call gets the phone-safe set, crisis tools and a human hand-off kept',
+    async (recognitionFlag) => {
+      vi.stubEnv('PLACED_CALL_NOT_OWNER_PROOF', 'on');
+      vi.stubEnv('CALLER_RECOGNITION', recognitionFlag);
+      line.found = 'stranger';
+      const tools = await offered(selfCall());
+      expect(tools).toEqual([...PHONE_SAFE, 'connectToHumanExpert'].sort());
+      for (const account of ['getInboxSummary', 'getCalendarToday', 'recallFromMemory']) expect(tools).not.toContain(account); // prettier-ignore
+    },
+    30_000
+  );
+
+  it('flag off: a self-call keeps every tool, as today', async () => {
+    vi.stubEnv('CALLER_RECOGNITION', 'off');
+    expect(await offered(selfCall())).toEqual([...CALL_TOOLS].sort());
+  }, 30_000);
+
+  it.each(['off', 'on'])('flag %s: the app keeps every tool; a recognised inbound caller gets the phone-safe set only', async (flag) => {
+    vi.stubEnv('PLACED_CALL_NOT_OWNER_PROOF', flag);
+    vi.stubEnv('CALLER_RECOGNITION', 'on');
+    expect(await offered(appSession())).toEqual([...CALL_TOOLS].sort());
+    line.found = 'known';
+    expect(await offered(inbound())).toEqual([...PHONE_SAFE].sort()); // no hand-off added: not a call Ferni placed
+  }, 30_000);
 });

@@ -1,6 +1,6 @@
 /**
  * ownerProvenOnThisCall (verified-caller.ts): the owner-only tools (bank data,
- * lights, the per-person search allowance) take the verified caller, except
+ * sleep, lights, the per-person search allowance) take the verified caller, except
  * that with PLACED_CALL_NOT_OWNER_PROOF on, whoever answers a call Ferni placed
  * proves nobody. Flag off: exactly verifiedCallerId. Real plaidCaller and LIFX
  * tool code; only the credential store is faked. All data is fictional.
@@ -17,6 +17,7 @@ vi.mock('../../smart-home/user-credentials.js', () => ({
 
 import { plaidCaller } from '../../../tools/domains/finance/plaid-caller.js';
 import { listCallerLights } from '../../../tools/domains/smart-home/caller-lifx-tools.js';
+import { callerOf } from '../../../tools/domains/wellness/sleep-summary.js';
 import {
   callerVerification,
   ownerProvenOnThisCall,
@@ -46,8 +47,9 @@ describe('flag off (the default): exactly verifiedCallerId', () => {
     expect(ownerProvenOnThisCall(userData)).toBe(OWNER);
   });
 
-  it('a self-call still opens bank data, lights and the per-person allowance, as today', async () => {
+  it('a self-call still opens bank data, sleep, lights and the per-person allowance, as today', async () => {
     expect(plaidCaller(run(data(SELF_CALL)))).toEqual({ outcome: 'verified', id: OWNER });
+    expect(callerOf(run(data(SELF_CALL)))).toEqual({ userId: OWNER, verified: true });
     expect(verifiedAllowanceKey(data(SELF_CALL), isUnverified)).toBe(`user:${OWNER}`);
     await listCallerLights(run(data(SELF_CALL)));
     expect(h.credentialReads).toEqual([OWNER]);
@@ -77,6 +79,12 @@ describe('flag on: a self-call proves no owner', () => {
     expect(h.credentialReads).toEqual([]);
     await listCallerLights(run(data(undefined)));
     expect(h.credentialReads).toEqual([OWNER]);
+  });
+
+  it("sleep and readiness numbers are not the answerer's to hear", () => {
+    vi.stubEnv('PLACED_CALL_NOT_OWNER_PROOF', 'on');
+    expect(callerOf(run(data(SELF_CALL)))).toEqual({ userId: OWNER, verified: false });
+    expect(callerOf(run(data(undefined)))).toEqual({ userId: OWNER, verified: true });
   });
 
   it("the search allowance is the strangers' bucket, not the owner's", () => {

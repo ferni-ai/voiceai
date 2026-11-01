@@ -105,7 +105,10 @@ export function verifiedCallerId(userData: unknown): string | null {
 }
 
 /** The flag is on and Ferni placed this call: its answerer proves no owner. */
-function placedCallProvesNoOwner(userData: unknown, env: NodeJS.ProcessEnv): boolean {
+export function placedCallProvesNoOwner(
+  userData: unknown,
+  env: NodeJS.ProcessEnv = process.env
+): boolean {
   return placedCallNotOwnerProofOn(env) && onPlacedCall(userData);
 }
 
