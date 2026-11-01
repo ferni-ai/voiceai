@@ -52,6 +52,24 @@ export function showDeletionUnconfirmed(ui: DataExportUI, message: string, check
   );
 }
 
+/**
+ * "Check again" after a data delete that couldn't be confirmed: the categories and
+ * their counts if they load, else `stillUnknown`. Never loadFailed's "Nothing has
+ * changed": the re-read can fail because the erasure ran (it refuses the sign-in).
+ */
+export async function recheckAfterDelete(
+  ui: DataExportUI,
+  load: () => Promise<ExportableData[] | null>,
+  stillUnknown: string
+): Promise<void> {
+  const ticket = ++latestOpen;
+  ui.showStatus(statusElement(t('common.loading'), 'status', [closeButton(ui)]));
+  const data = await load().catch(() => null);
+  if (ticket !== latestOpen || !ui.getIsVisible()) return; // closed, or opened again
+  if (data) ui.show(data);
+  else showDeletionUnconfirmed(ui, stillUnknown, () => void recheckAfterDelete(ui, load, stillUnknown));
+}
+
 /** A line in place of the categories, with a close button. */
 export function showDataRightsNotice(ui: DataExportUI, message: string): void {
   ++latestOpen;

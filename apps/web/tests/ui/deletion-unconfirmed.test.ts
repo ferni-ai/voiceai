@@ -103,6 +103,32 @@ describe('delete all data', () => {
     expect(document.querySelector('.data-export__categories')).not.toBeNull();
   });
 
+  // The erasure refuses the sign-in on that server (markErasing), so the re-read can fail
+  // because the delete ran: it must not say "Nothing has changed" (dataExport.loadFailed).
+  it.each([
+    ['a 401', 401],
+    ['a 500', 500],
+    ['a network failure', 'network'],
+  ] as const)('Check again that gets %s says it still can\'t confirm', async (_, answer) => {
+    serve(
+      { method: 'DELETE', url: '/api/export/all', status: 504, body: {} },
+      ...(answer === 'network'
+        ? []
+        : [{ method: 'GET', url: '/api/export/categories', status: answer, body: {} }])
+    );
+    await dataRightsCallbacks().onDeleteData?.();
+
+    checkAgain()?.click();
+    await settle();
+
+    expect(sent).toEqual(['DELETE /api/export/all', 'GET /api/export/categories']);
+    expect(status()?.getAttribute('role')).toBe('alert');
+    expect(status()?.textContent).toContain(t('dataExportService.deleteDataStillUnknown'));
+    expect(shown()).not.toContain(t('dataExport.loadFailed'));
+    expect(shown()).not.toMatch(/nothing has changed|nothing was removed/i);
+    expect(checkAgain()).toBeDefined(); // and it can be checked again later
+  });
+
   it('a 401 is a refusal: says nothing was deleted and to sign in again', async () => {
     serve({ method: 'DELETE', url: '/api/export/all', status: 401, body: {} });
 
@@ -129,7 +155,7 @@ describe('delete account', () => {
     expect(auth.signOut).not.toHaveBeenCalled();
   });
 
-  it('Check again that finds the sign-in refused finishes on this device', async () => {
+  it('Check again that gets a 401 signs out and says only that the sign-in is refused', async () => {
     serve(
       { method: 'DELETE', url: '/api/account', status: 504, body: {} },
       { method: 'GET', url: '/api/account', status: 401, body: {} }
@@ -141,7 +167,13 @@ describe('delete account', () => {
     await settle();
 
     expect(sent).toEqual(['DELETE /api/account', 'GET /api/account']);
-    expect(toast.success).toHaveBeenCalledWith(t('dataExportService.accountClosing'));
+    const said = t('dataExportService.accountSignInRefused');
+    expect(toast.info).toHaveBeenCalledWith(said);
+    expect(toast.success).not.toHaveBeenCalled();
+    // A 401 is also an expired or revoked token: never claims the account is closed
+    expect(said).not.toMatch(/\bclosed\b|is deleted|was deleted/i);
+    expect(said).toMatch(/no longer accepted/i);
+    expect(said).toMatch(/sign in again/i);
     expect(auth.signOut).toHaveBeenCalledTimes(1);
     expect(localStorage.getItem('voiceai_userName')).toBeNull();
   });

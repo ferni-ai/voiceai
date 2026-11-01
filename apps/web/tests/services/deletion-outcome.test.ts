@@ -193,21 +193,21 @@ describe('deleteAccount: a 200 without its confirmation', () => {
   });
 });
 
-describe('checkAccountClosed: after an unknown outcome', () => {
+describe('checkAccountSignIn: after an unknown outcome', () => {
   it.each([
     [200, 'open'],
-    [401, 'closed'],
-    [403, 'closed'],
+    [401, 'refused'],
+    [403, 'refused'],
     [503, 'unknown'],
   ] as const)('GET /api/account %i means %s, and never sends another delete', async (status, state) => {
     server(status, { userId: 'uid-1' });
 
-    expect(await dataExportService.checkAccountClosed()).toBe(state);
+    expect(await dataExportService.checkAccountSignIn()).toBe(state);
 
     expect(calls).toHaveLength(1);
     expect(calls[0]!.method ?? 'GET').toBe('GET');
-    // Closed: this device forgets the account too; otherwise it keeps everything
-    expect(localStorage.getItem('voiceai_userName')).toBe(state === 'closed' ? null : 'Sam');
-    expect(auth.signOut).toHaveBeenCalledTimes(state === 'closed' ? 1 : 0);
+    // Refused: this device signs out and forgets the data; otherwise it keeps everything
+    expect(localStorage.getItem('voiceai_userName')).toBe(state === 'refused' ? null : 'Sam');
+    expect(auth.signOut).toHaveBeenCalledTimes(state === 'refused' ? 1 : 0);
   });
 });

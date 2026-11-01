@@ -18,7 +18,7 @@ import {
 import type { DataExportUICallbacks } from '../ui/data-export.ui.js';
 import { getDataExportUI } from '../ui/data-export.ui.js';
 import {
-  openDataExport,
+  recheckAfterDelete,
   showDataRightsNotice,
   showDeletionUnconfirmed,
 } from '../ui/data-export-status.js';
@@ -51,16 +51,21 @@ export const loadCategories = () => dataExportService.getExportableCategories();
 
 /** Re-load the categories and their counts, so the user sees what's still there. */
 function checkData(): void {
-  void openDataExport(getDataExportUI(), loadCategories);
+  void recheckAfterDelete(
+    getDataExportUI(),
+    loadCategories,
+    t('dataExportService.deleteDataStillUnknown')
+  );
 }
 
 async function checkAccount(): Promise<void> {
   const ui = getDataExportUI();
   showDataRightsNotice(ui, t('common.loading'));
-  const state = await dataExportService.checkAccountClosed();
-  if (state === 'closed') {
+  const state = await dataExportService.checkAccountSignIn();
+  if (state === 'refused') {
+    // Not proof the account is closed (a 401 also means expired or revoked): say only that
     ui.hide();
-    toast.success(t('dataExportService.accountClosing'));
+    toast.info(t('dataExportService.accountSignInRefused'));
     leaveSoon();
   } else if (state === 'open') {
     showDataRightsNotice(ui, t('dataExportService.accountStillOpen'));

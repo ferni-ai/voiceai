@@ -260,7 +260,7 @@ class DataExportService {
 
     if (!result?.success) throw deletionError(response, 'account');
 
-    await this.forgetClosedAccount();
+    await this.forgetAccountOnDevice();
     const failures = result.details?.failures;
     if (Array.isArray(failures) && failures.length > 0) {
       log.warn('Account deleted, but some records were left', { failures });
@@ -271,13 +271,14 @@ class DataExportService {
   }
 
   /**
-   * After an account delete whose answer never came: is the account still open?
-   * 'closed': the server no longer takes this sign-in (switched off when the erasure
-   * starts, deleted when it ends), so this device forgets it too. 'open': it took the
-   * sign-in, so the account wasn't closed. 'unknown': no clear answer yet.
-   * Never sends another delete.
+   * After an account delete whose answer never came: does the server still take this
+   * sign-in? 'open': yes, so the account wasn't closed. 'refused': no. That happens
+   * when an account is closing (the sign-in is switched off when erasure starts), but
+   * also for an expired or revoked token, so it isn't proof of closure; this device
+   * signs out and forgets the data, which signing in again undoes. 'unknown': no clear
+   * answer yet. Never sends another delete.
    */
-  async checkAccountClosed(): Promise<'open' | 'closed' | 'unknown'> {
+  async checkAccountSignIn(): Promise<'open' | 'refused' | 'unknown'> {
     const token = await valueWithin(getAuthToken(), DATA_RIGHTS_AUTH_WAIT_MS, null);
     if (!token) return 'unknown';
     const response = await apiFetch('/api/account', {
@@ -285,11 +286,11 @@ class DataExportService {
     }).catch(() => null);
     if (response?.ok) return 'open';
     if (response?.status !== 401 && response?.status !== 403) return 'unknown';
-    await this.forgetClosedAccount();
-    return 'closed';
+    await this.forgetAccountOnDevice();
+    return 'refused';
   }
 
-  private async forgetClosedAccount(): Promise<void> {
+  private async forgetAccountOnDevice(): Promise<void> {
     this.clearLocalData();
     // Also kills this browser's push endpoint, so nothing addressed to the deleted account lands here.
     await signOutReleasingPush().catch((err: unknown) =>
