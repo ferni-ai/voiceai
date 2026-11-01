@@ -43,6 +43,23 @@ describe('corpora', () => {
     for (const c of audit) expect(c.turns.at(-1)?.label, c.id).toBe('must-catch');
   });
 
+  it('carries 40+ everyday hard negatives for each recall fix, never must-catch', () => {
+    const hn = bySet('recall-hard-negatives');
+    for (const f of [
+      'abuse-words',
+      'minor-touch-words',
+      'death-od-words',
+      'means-intent-words',
+      'blocked-adjacent',
+    ])
+      expect(hn.filter((c) => c.shape === f).length, f).toBeGreaterThanOrEqual(40);
+    for (const c of hn)
+      expect(
+        c.turns.map((t) => t.label),
+        c.id
+      ).toEqual(['must-not-alarm']);
+  });
+
   it('never labels a hard-negative turn must-catch, and keeps most of them must-not-alarm', () => {
     for (const c of bySet('hard-negatives')) {
       expect(
