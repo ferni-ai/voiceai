@@ -6,6 +6,8 @@
  * That turn's request then carries no owner-only context either (#3091): only notes marked SAFE
  * (an allowlist: a builder not marked SAFE never rides), no world facts or context packet
  * (unverifiedReminder), and no call report (requestSent).
+ * With UNVERIFIED_TURN_TOOLS=on it is also offered only the tools unverified-turn-tools.ts allows,
+ * read off the request (requestIsUnverified) (#3305).
  *
  * The rule: an unverified turn carries only safety guidance and who is speaking. SAFE is these 7
  * builders and no others (turn-notes-guarded.ts): minorCare and sexualBoundary (the safety notes),
@@ -117,6 +119,20 @@ export function unverifiedReminder(notes: readonly string[]): string | undefined
   if (!turn?.identityDropped) return undefined;
   const kept = notes.filter((note) => turn.safeNotes.has(note));
   return [UNVERIFIED_SPEAKER_NOTE, ...kept].join(' ');
+}
+
+/**
+ * Whether this request is an unverified turn's: its caller message carries UNVERIFIED_SPEAKER_NOTE
+ * as the reminder withTurnStyleReminder appends ("\n\n(...)"), from unverifiedReminder or
+ * guardedTurn's fallback. Read off the request, not module state: a crisis-guided re-ask copies the
+ * request and builds its own reminder (crisis-gate.ts), so each request answers for itself.
+ */
+export function requestIsUnverified(request: llm.ChatContext): boolean {
+  const marker = `\n\n(${UNVERIFIED_SPEAKER_NOTE}`;
+  const callers = request.items.filter((i) => i.type === 'message' && i.role === 'user');
+  const caller = callers[callers.length - 1];
+  const parts: unknown[] = caller?.type === 'message' ? caller.content : [];
+  return parts.some((part) => typeof part === 'string' && part.startsWith(marker));
 }
 
 /**
