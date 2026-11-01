@@ -28,6 +28,7 @@ import { tryFirstButtons } from './try-first.ui.js';
 import { t } from '../i18n/index.js';
 import { createAiRoleLabelRow } from './ai-role-label.ui.js';
 import { celebrateAdmissionOnce, showWaitingInGate } from './waiting-screen.ui.js';
+import { showGateOverApp, uncoverApp } from './gate-first.ui.js';
 
 const log = createLogger('SignInGate');
 // app.ferni.ai serves the app for every path, so the legal pages are on the marketing site.
@@ -623,13 +624,11 @@ export async function showSignInGate(): Promise<void> {
   if (isShowing && pendingSignIn) return pendingSignIn;
 
   isShowing = true;
+  pendingSignIn = new Promise((resolve) => (resolveSignIn = resolve));
   injectStyles();
-  // Create and show overlay
   overlayEl = createOverlay();
-  document.body.appendChild(overlayEl);
+  await showGateOverApp(overlayEl); // in the gate-first copy's place, or a fade-in; Home hidden under it
   keepAppBehindGate();
-  void overlayEl.offsetHeight; // reflow, so the fade-in animates
-  overlayEl.classList.add('visible');
 
   // Subscribe to auth state changes
   const unsubscribe = onAuthStateChange((state: AuthState) => {
@@ -657,9 +656,6 @@ export async function showSignInGate(): Promise<void> {
     }
   });
 
-  pendingSignIn = new Promise((resolve) => {
-    resolveSignIn = resolve;
-  });
   return pendingSignIn;
 }
 
@@ -669,6 +665,7 @@ export async function showSignInGate(): Promise<void> {
 export function hideSignInGate(): void {
   if (!overlayEl) return;
   releaseAppBehindGate();
+  uncoverApp(overlayEl); // Home comes back as the gate fades out
   overlayEl.classList.add('hiding');
 
   setTimeout(() => {

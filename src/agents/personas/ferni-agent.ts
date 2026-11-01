@@ -46,6 +46,7 @@ import { isScreeningCall } from '../shared/line-screen.js';
 import { spokenCaptions, toolsForTurn, withTeammateTool } from './turn-request.js';
 import { CaptionBackfill, captionsFromFrameTimings } from '../shared/aligned-caption-backfill.js';
 import { noteRequest } from '../shared/turn-receipt-session.js';
+import { toolsForRequest } from './unverified-turn-tools.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -685,12 +686,11 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
       ?.sessionId;
     const model = withCutReplyCheck(this.session, async (request: llm.ChatContext) => {
       const ctx = withCallerTurn(request);
-      noteRequest(this.session, ctx, tools); // the request as sent, for its TURN_RECEIPT
-      const text = withToolMarkupStrip(
-        super.llmNode(ctx, tools, modelSettings),
-        logToolMarkup('llm', sessionId)
-      );
-      return withActionClaimCheck(text, ctx, tools, this.session.userData) as never;
+      const turn = toolsForRequest(request, tools); // UNVERIFIED_TURN_TOOLS (#3305)
+      noteRequest(this.session, ctx, turn.tools); // the request as sent, for its TURN_RECEIPT
+      const said = turn.reply(super.llmNode(ctx, turn.tools, modelSettings));
+      const text = withToolMarkupStrip(said, logToolMarkup('llm', sessionId));
+      return withActionClaimCheck(text, ctx, turn.tools, this.session.userData) as never;
     });
     const reply = await gatedReply(chatCtx, this.session, model, this.openerGate as never);
     return dropLeadingSaidBy(filterSilenceReply(this.session, reply)) as never;

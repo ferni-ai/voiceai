@@ -1,0 +1,81 @@
+name: Deploy UI Dev Host
+
+# Manual only. Deploys the tip of main to ferni-ui-dev, the dev copy of the web
+# server where per-user OAuth connects (Google, Spotify, Oura) finish against
+# the ferni-dev database. It never touches john-bogle-ui. One-time setup, the
+# redirect URIs to register and the checks: docs/deployment/DEV-UI-HOST.md.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-ui-dev
+  cancel-in-progress: false
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: us-central1
+  # <service>-<project number>.<region>.run.app is fixed before the first deploy,
+  # which the OAuth redirect URIs need.
+  DEV_HOST: https://ferni-ui-dev-1031920444452.us-central1.run.app
+
+jobs:
+  deploy-ui-dev:
+    name: Deploy ferni-ui-dev
+    # GitHub-hosted on purpose: this job holds GCP_SA_KEY (see staging.yml).
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build design-system (required for Docker)
+        run: node design-system/build.js
+
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Free runner disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          docker system prune -af || true
+
+      - name: Pull Docker Hub images through a mirror
+        uses: ./.github/actions/docker-hub-mirror
+
+      - name: Build and push image
+        run: |
+          IMAGE=gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-ui-dev:${{ github.sha }}
+          gcloud auth configure-docker gcr.io --quiet
+          docker build --file docker/Dockerfile.ui --build-arg NODE_VERSION=22 --tag "$IMAGE" .
+          docker push "$IMAGE"
+
+      # Runs as ferni-ui-dev@, whose Firestore grant is conditioned to the ferni-dev
+      # database; FIRESTORE_DB_PIN=refuse makes a client on any other database fail
+      # loudly. NODE_ENV must be staging (config/production-data-guard.ts).
+      # LOG_HASH_SECRET (the token sealing key) is a fresh dev-only value, never prod's, so
+      # dev logs hash differently from prod on purpose. DATA_ENCRYPTION_KEY and
+      # IDENTIFIER_HASH_SECRET are copies of prod's: ferni-dev holds prod-encrypted fields.
+      - name: Deploy
+        run: |
+          gcloud run deploy ferni-ui-dev \
+            --image gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-ui-dev:${{ github.sha }} \
+            --region ${{ env.GCP_REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --service-account ferni-ui-dev@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
+            --memory 1Gi --cpu 1 --timeout 300 --concurrency 40 \
+            --min-instances 0 --max-instances 2 --cpu-boost \
+            --set-env-vars "NODE_ENV=staging,DEPLOY_ENV=dev,BUILD_SHA=${{ github.sha }},GOOGLE_CLOUD_PROJECT=${{ env.GCP_PROJECT_ID }},GCLOUD_PROJECT=${{ env.GCP_PROJECT_ID }},LIVEKIT_URL=wss://dev-8sm1ba0z.livekit.cloud,AGENT_NAME=voice-agent-dev,FIRESTORE_DATABASE=ferni-dev,FIRESTORE_DB_PIN=refuse,ALLOWED_ORIGINS=${{ env.DEV_HOST }},GOOGLE_CALENDAR_REDIRECT_URI=${{ env.DEV_HOST }}/auth/google/callback,SPOTIFY_REDIRECT_URI=${{ env.DEV_HOST }}/spotify/callback,OURA_REDIRECT_URI=${{ env.DEV_HOST }}/wearables/oura/callback,CALL_HOURS_GUARD=on,COHORT_FLAGS=on,FAMILY_CHECKIN_STOP=on,JOURNAL_ONE_STORE=on,MEMORY_VIEW=on,MINOR_CARE=on,MINOR_CARE_OWNERS=on,MINOR_CARE_SHARED_HOLD=on,ON_BEHALF_DNC_CHECK=on,PROMISES_PANEL=off,SMS_CRISIS_SCREEN=shadow,TEAM_BY_NEED=on" \
+            --set-secrets "LIVEKIT_API_KEY=livekit-dev-api-key:latest,LIVEKIT_API_SECRET=livekit-dev-api-secret:latest,DATA_ENCRYPTION_KEY=ferni-ui-dev-data-encryption-key:latest,IDENTIFIER_HASH_SECRET=ferni-ui-dev-identifier-hash-secret:latest,LOG_HASH_SECRET=ferni-ui-dev-log-hash-secret:latest,GOOGLE_CALENDAR_CLIENT_ID=ferni-ui-dev-google-calendar-client-id:latest,GOOGLE_CALENDAR_CLIENT_SECRET=ferni-ui-dev-google-calendar-client-secret:latest,SPOTIFY_CLIENT_ID=ferni-ui-dev-spotify-client-id:latest,SPOTIFY_CLIENT_SECRET=ferni-ui-dev-spotify-client-secret:latest"
+
+      - name: Health check
+        run: |
+          curl -sf "${{ env.DEV_HOST }}/health" && echo
+          curl -sf "${{ env.DEV_HOST }}/health/firestore" | grep -q '"databaseId": "ferni-dev"'

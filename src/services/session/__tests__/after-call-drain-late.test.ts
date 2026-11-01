@@ -8,6 +8,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const read = vi.hoisted(() => ({ done: null as Promise<void> | null }));
+const logged = vi.hoisted(() => [] as Array<{ msg: string; data: Record<string, unknown> }>);
+vi.mock('../../../utils/safe-logger.js', () => {
+  const logger = {
+    info: (data: Record<string, unknown>, msg: string) => logged.push({ msg, data }),
+    warn: (data: Record<string, unknown>, msg: string) => logged.push({ msg, data }),
+    debug: () => undefined,
+    error: () => undefined,
+  };
+  return { createLogger: () => logger, getLogger: () => logger };
+});
 vi.mock('../../../utils/sexual-topic-hold.js', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   sexualReadsSettled: () => read.done,
@@ -50,6 +60,7 @@ describe('drainAfterCallTasks: tasks that start while it waits', () => {
   afterEach(() => {
     clearAfterCallTasks();
     read.done = null;
+    logged.length = 0;
     vi.useRealTimers();
   });
 
@@ -77,5 +88,19 @@ describe('drainAfterCallTasks: tasks that start while it waits', () => {
     expect(drain.done()).toBe(false);
     await vi.advanceTimersByTimeAsync(200);
     await expect(drain.result).resolves.toBe(1);
+  });
+
+  it('logs the start, and how long it waited for the read when it started late', async () => {
+    vi.useFakeTimers();
+    registerAfterCallTask('quick', async () => undefined);
+    runAfterCallTasks(ctx); // no read running: starts at once
+    read.done = after(500);
+    runAfterCallTasks({ ...ctx, sessionId: 's-late-2' }); // waits for the last turn's read
+    await vi.advanceTimersByTimeAsync(600);
+    const starts = logged.filter((l) => l.msg === 'After-call tasks started').map((l) => l.data);
+    expect(starts).toEqual([
+      { sessionId: 's-late', tasks: 1 },
+      { sessionId: 's-late-2', tasks: 1, afterReadMs: 500 },
+    ]);
   });
 });

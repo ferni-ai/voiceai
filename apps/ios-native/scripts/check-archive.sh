@@ -8,6 +8,9 @@
 #   anywhere, nested bundles included. A long-lived DerivedData can keep
 #   folders from before the catalog left the build, so this checks what was
 #   built, not what the project says.
+# - an archive has a dSYM for every embedded framework, so crashes in them
+#   symbolicate (Sentry is linked as Sentry-Dynamic for this; the static
+#   product ships none). LiveKitWebRTC ships no dSYMs at all: expected.
 #
 # Usage: scripts/check-archive.sh <path to Ferni.app or Ferni.xcarchive>
 set -euo pipefail
@@ -37,5 +40,16 @@ if [ -n "$stray" ]; then
   echo "$stray" | sed 's/^/  /'; problems=1
 fi
 
-[ $problems -eq 0 ] && echo "check-archive: $build everywhere, English only"
+if [[ $target == *.xcarchive* ]]; then
+  for framework in "$target"/Products/Applications/*.app/Frameworks/*.framework; do
+    [ -d "$framework" ] || continue
+    name=$(basename "$framework")
+    [ "$name" = LiveKitWebRTC.framework ] && continue   # its xcframework has none
+    if [ ! -d "$target/dSYMs/$name.dSYM" ]; then
+      echo "check-archive: no dSYM for $name, so its crashes won't symbolicate"; problems=1
+    fi
+  done
+fi
+
+[ $problems -eq 0 ] && echo "check-archive: $build everywhere, English only, dSYMs present"
 exit $problems

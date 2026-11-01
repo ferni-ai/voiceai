@@ -112,18 +112,25 @@ async function runOne(
 export function runAfterCallTasks(ctx: AfterCallContext): void {
   const reading = sexualReadsSettled(ctx.sessionId);
   if (!reading) return startAfterCallTasks(ctx);
-  const p = reading.then(() => startAfterCallTasks(ctx));
+  const askedAt = Date.now();
+  const p = reading.then(() => startAfterCallTasks(ctx, Date.now() - askedAt));
   inFlight.add(p);
   void p.finally(() => inFlight.delete(p));
 }
 
-function startAfterCallTasks(ctx: AfterCallContext): void {
+/**
+ * Logs "After-call tasks started" with `afterReadMs` when they waited for the last turn's read
+ * (the late start a worker's shutdown must still wait for; drainAfterCallTasks), so it shows.
+ */
+function startAfterCallTasks(ctx: AfterCallContext, afterReadMs?: number): void {
+  const late = afterReadMs !== undefined ? { afterReadMs } : {};
   // MINOR_CARE=on: nothing about a caller under 18 (not a verified owner) is extracted or kept;
   // SEXUAL_TOPIC_BOUNDARY=on: nor from a call held for a sexual topic.
   if (memoryHeld(ctx.sessionId)) {
-    log.info({ sessionId: ctx.sessionId, skipped: tasks.size }, 'After-call tasks held');
+    log.info({ sessionId: ctx.sessionId, skipped: tasks.size, ...late }, 'After-call tasks held');
     return;
   }
+  log.info({ sessionId: ctx.sessionId, tasks: tasks.size, ...late }, 'After-call tasks started');
   for (const [name, reg] of tasks) {
     const p = runOne(name, reg, ctx);
     inFlight.add(p);
