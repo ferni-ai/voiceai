@@ -31,6 +31,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { GoogleGenAI } from '@google/genai';
+import { vertexGenAIOptions } from '../../config/vertex-endpoint.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { IntentManual, RetrievedTool } from './tool-retriever.js';
 
@@ -64,7 +65,7 @@ export function createVertexEmbedder(
   project = process.env.GOOGLE_CLOUD_PROJECT,
   location = process.env.TOOL_RETRIEVAL_EMBED_LOCATION || 'us-central1'
 ): Embedder {
-  const ai = new GoogleGenAI({ vertexai: true, project, location });
+  const ai = new GoogleGenAI(vertexGenAIOptions(project, location));
   return {
     model: EMBEDDING_MODEL,
     async embed(texts) {

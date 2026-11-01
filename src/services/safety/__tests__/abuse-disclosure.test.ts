@@ -423,8 +423,12 @@ describe('a disclosure through the turn pipeline', () => {
       new URL('../../../agents/voice-agent/turn-handler.ts', import.meta.url),
       'utf8'
     );
-    const injection = /category: 'crisis_response',[^}]*?content: ([^,\n]+),/.exec(handler)?.[1];
-    expect(injection).toBe('abuseGuidance(result.crisis) ?? buildCrisisGuidance(result.crisis)');
+    const injection = /category: 'crisis_response',[^}]*?content:\s*([^,]+),/
+      .exec(handler)?.[1]
+      ?.replace(/\s+/g, ' ');
+    expect(injection).toBe(
+      'minorAbuseGuidance(result.crisis) ?? abuseGuidance(result.crisis) ?? buildCrisisGuidance(result.crisis)'
+    );
   });
 });
 

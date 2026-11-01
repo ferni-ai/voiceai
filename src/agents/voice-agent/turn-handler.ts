@@ -23,7 +23,11 @@ import { getGracefulErrorResponse } from '../../intelligence/conversation-qualit
 import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
-import { abuseGuidance, SOFT_CRISIS_CHECK } from '../../services/safety/index.js';
+import {
+  abuseGuidance,
+  minorAbuseGuidance,
+  SOFT_CRISIS_CHECK,
+} from '../../services/safety/index.js';
 import { buildCrisisGuidance } from '../safety/crisis-guard.js';
 import type { SessionServices } from '../../services/index.js';
 import { getContextAwareThinkingFiller } from '../../speech/persona-phrases.js';
@@ -1371,7 +1375,11 @@ ${result.crisis.suggestedResponse}`
 
       result.context.injections.unshift({
         category: 'crisis_response',
-        content: abuseGuidance(result.crisis) ?? buildCrisisGuidance(result.crisis), // ABUSE_DISCLOSURE
+        // MINOR_ABUSE (main's) first, then ABUSE_DISCLOSURE: null unless its flag read the turn.
+        content:
+          minorAbuseGuidance(result.crisis) ??
+          abuseGuidance(result.crisis) ??
+          buildCrisisGuidance(result.crisis),
         priority: 100,
       });
     } else if (result.crisis?.softCheck) {

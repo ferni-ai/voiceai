@@ -49,6 +49,7 @@ import {
   blockedReadGuidance,
   noteMeansInHandShadow,
   withAbuseRead,
+  withMinorAbuseDisclosure,
 } from '../../../services/safety/index.js';
 import {
   resolveClassifierOnlyCheckin,
@@ -333,8 +334,11 @@ export function startTurnCrisis(
       );
     }
     const read = easingOn ? (eased ??= easeTurn(turn)) : turn;
-    // ABUSE_DISCLOSURE_PATTERNS: someone hurting the caller is a safety turn, after every read.
-    return withAbuseRead(read, input, abuseRisk, classifier, env);
+    // MINOR_ABUSE_DISCLOSURE: a caller under 18 telling of sexual harm, after every read.
+    const minor = read.then((s) => withMinorAbuseDisclosure(s, call, input, priorRisk, env));
+    // ABUSE_DISCLOSURE_PATTERNS: someone hurting the caller is a safety turn, after every read,
+    // the minor's read included; its guidance yields to the minor's (turn-handler.ts).
+    return withAbuseRead(minor, input, abuseRisk, classifier, env);
   };
   return {
     patterns,
