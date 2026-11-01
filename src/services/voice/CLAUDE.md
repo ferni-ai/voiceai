@@ -21,6 +21,7 @@ Voice services handle Ferni's phone calling features:
 | `natural-call-service.ts` | Natural conversation flow |
 | `call-detection-service.ts` | Detect call state changes |
 | `voice-call.ts` | Voice call management |
+| `outbound-call-agent.ts` | Outbound call agent |
 | `outbound-call-templates.ts` | Outbound call templates |
 
 ### Phone Integration
