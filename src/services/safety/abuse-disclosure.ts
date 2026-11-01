@@ -41,11 +41,15 @@ const FAMILY =
 const PARTNER = 'boyfriend|girlfriend|husband|wife|partner|fianc[eé]e?|ex';
 /** "my older brother", "my new boyfriend". */
 const KIN = '(?:(?:older|younger|big|little|oldest|youngest|twin|new|current|real|own) )?';
-/** A word that says it does not happen: never in the gap between the person and the verb. */
-const NEGATOR =
-  "(?:never|not|no|nobody|hardly|rarely|ever|don'?t|doesn'?t|didn'?t|won'?t|wouldn'?t|hasn'?t|haven'?t|isn'?t|wasn'?t|can'?t|couldn'?t)";
-/** Who: "my <family>", "my <partner>", or he, she, they; up to three words before the verb. */
-const WHO = `(?<!\\b(?:not|never|no one|nobody) (?:that |like |saying )?)\\b(?:my ${KIN}(?<family>${FAMILY})|my ${KIN}(?<partner>${PARTNER})|(?<pronoun>he|she|they))\\b(?:'ll|'d)?(?: (?!${NEGATOR}\\b)[\\w']+){0,3}? `;
+/** Who: "my <family>", "my <partner>", or he, she, they; up to four words before the verb. */
+const WHO = `(?<!\\b(?:not|never|no one|nobody) (?:that |like |saying )?)\\b(?:my ${KIN}(?<family>${FAMILY})|my ${KIN}(?<partner>${PARTNER})|(?<pronoun>he|she|they))\\b(?:'ll|'d)?(?: [\\w']+){0,4}? `;
+/**
+ * Not when a negator governs the verb itself: "never hits me", "doesn't hit me", "has never once
+ * hit me", "would never hurt me". A negator elsewhere is no negation: "never stops hitting me",
+ * "won't stop hitting me", "doesn't stop yelling and hits me".
+ */
+const NOT_NEGATED =
+  "(?<!(?:\\bnever|\\bnot|n't|\\bno longer|\\bhardly(?: ever)?|\\brarely)(?: (?:ever|once|even|really|actually|truly|always))? )";
 /** Where a blow lands: "in the face", "across the face", "on the head". */
 const BODY =
   '(?:face|head|stomach|belly|chest|back|eye|eyes|mouth|jaw|ribs|nose|arm|arms|leg|legs|gut|neck|throat|ear|side)';
@@ -83,6 +87,10 @@ const ACTS = [
   'lock(?:s|ed)? me (?:in|inside|up)\\b(?! a headlock\\b)',
   // doesn't / won't / never feed me, at the end of the clause.
   "(?:doesn'?t|does not|won'?t|will not|never|don'?t|do not) (?:let me eat|feed me)(?=\\s*(?:[.,!?;]|$|and|for|anything|at all|when))",
+  // can't stop / won't stop / never stops hurting me.
+  "(?:never|won'?t|doesn'?t|don'?t|can'?t|couldn'?t|wouldn'?t|didn'?t) (?:stops?|quits?) hurting me\\b",
+  // never hit me before, but last night he did.
+  "(?:never|hadn'?t|had never|didn'?t) (?:ever )?(?:hit|hurt|beat|touched|laid a hand on) me (?:before|until)\\b[^.?!]*?\\b(?:but|and|then|until)\\b[^.?!]*?\\b(?:he|she|they) (?:did|does|has|have|started|hit|hits|hurt|hurts)\\b",
   // hurts me, only with a physical act: never "really hurt me when she left".
   "(?:hurts?|hurting|hurt) me (?:physically|on purpose|so bad (?:that )?i (?:bleed|bled|can'?t walk)|and (?:it )?leaves? (?:marks|bruises))\\b",
   // a threat: threatened to kill me; or says he'll kill me if I tell or leave, never "she'll
@@ -90,7 +98,7 @@ const ACTS = [
   'threat(?:en|ens|ened|ening) to (?:kill|hurt|beat|stab|shoot|choke|strangle) me\\b',
   `(?:says?|said|told me|tells me)(?: that)? (?:he|she|they)(?:'?ll| will| would|'?d|'s going to|'s gonna| is going to) (?:kill|hurt|beat) me if (?:i (?:${THREAT_IF})|(?:anyone|anybody|someone) (?:finds? out|knows?))\\b`,
 ];
-const DISCLOSURE = new RegExp(`${WHO}(?:${ACTS.join('|')})`, 'gi');
+const DISCLOSURE = new RegExp(`${WHO}${NOT_NEGATED}(?:${ACTS.join('|')})`, 'gi');
 /** The threat first, then who: "if I tell anyone, he'll hurt me". */
 const TOLD_THREAT = new RegExp(
   `\\bif i (?:tell|say anything to) (?:anyone|anybody|someone|somebody|my \\w+|the police|a teacher),? (?:my ${KIN}(?<family>${FAMILY})|my ${KIN}(?<partner>${PARTNER})|(?<pronoun>he|she|they))(?:'?ll| will| would|'?d) (?:kill|hurt|beat) me\\b`,

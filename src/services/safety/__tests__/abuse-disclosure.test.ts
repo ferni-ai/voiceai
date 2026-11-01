@@ -122,7 +122,7 @@ describe('abuseDisclosure', () => {
 
   it('reads every must-catch line in the corpus, first turn and mid-call', () => {
     const lines = corpusLines(/^abuse-(?:must-catch|self-harm)/);
-    expect(lines.length).toBe(56);
+    expect(lines.length).toBe(68);
     for (const line of lines) expect(abuseDisclosure(line), line).not.toBeNull();
   });
 
@@ -132,12 +132,28 @@ describe('abuseDisclosure', () => {
     for (const line of lines) expect(abuseDisclosure(line), line).toBeNull();
   });
 
-  it('skips a negator between the person and the verb', () => {
+  it('skips a negator only when it governs the verb', () => {
     expect(abuseDisclosure('My dad never hits me.')).toBeNull();
     expect(abuseDisclosure('My mom would never hit me.')).toBeNull();
+    expect(abuseDisclosure('My stepdad has never once hit me.')).toBeNull();
     expect(abuseDisclosure("My brother doesn't hit me anymore.")).toBeNull();
+    expect(abuseDisclosure('My uncle does not hit me.')).toBeNull();
+    expect(abuseDisclosure("He didn't hurt me on purpose.")).toBeNull();
     expect(abuseDisclosure('Nobody like my dad hits me.')).toBeNull();
     expect(abuseDisclosure('My dad really hits me.')).not.toBeNull();
+  });
+
+  it('still reads a disclosure when the negator is about stopping, not the act', () => {
+    for (const line of [
+      'My dad never stops hitting me.',
+      "He won't stop hitting me.",
+      "She doesn't stop yelling and hits me.",
+      "He can't stop hurting me.",
+      'My mom keeps hitting me and never lets up.',
+      'He hits me again and again.',
+      'He never hit me before but last night he did.',
+    ])
+      expect(abuseDisclosure(line), line).not.toBeNull();
   });
 
   it('a blow, not "hits me up", "hits me with a pun", "beats me at", or a game', () => {
