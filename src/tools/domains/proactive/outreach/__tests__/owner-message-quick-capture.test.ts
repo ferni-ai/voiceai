@@ -65,6 +65,12 @@ const quickCapture = (): Tool => {
   return def.create(ctx);
 };
 const capture = (thought: string, opts: unknown) => quickCapture().execute({ thought }, opts);
+/** Everything the reminder sender delivers to the owner: the message and, for email, the subject. */
+const delivered = (): string[] =>
+  edges.reminder.mock.calls.flatMap((c) => {
+    const r = c[0] as { message?: unknown; subject?: unknown };
+    return [r.message, r.subject].filter((t): t is string => typeof t === 'string');
+  });
 const stored = (): string[] =>
   edges.reminder.mock.calls.map((c) => String((c[0] as { message: string }).message));
 
@@ -77,6 +83,19 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe('quickCapture, reminder branch', () => {
+  it('every argument that reaches the delivered reminder is screened (derived from the sender)', async () => {
+    const tool = quickCapture() as unknown as { parameters?: { shape?: Record<string, unknown> } };
+    const names = Object.keys(tool.parameters?.shape ?? {});
+    expect(names).toContain('thought'); // the schema is readable, so a new argument is covered too
+    for (const urgency of [undefined, 'now', 'soon', 'someday', 'just-remember']) {
+      const ordinary = { thought: 'remind me to stretch tomorrow', urgency };
+      for (const name of names) {
+        await quickCapture().execute({ ...ordinary, [name]: PHISH_REMINDER }, unverified());
+        expect(delivered().filter((t) => t.includes('212 555 0198')), `${name}/${urgency}`).toEqual([]); // prettier-ignore
+      }
+    }
+  });
+
   it('an unverified call cannot save a phishing reminder', async () => {
     expect(await capture(PHISH_REMINDER, unverified())).toBe(UNVERIFIED_CONTENT_REFUSAL);
     expect(edges.reminder).not.toHaveBeenCalled();
