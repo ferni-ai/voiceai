@@ -39,6 +39,8 @@ import { deferralForSession, noteUserTurn } from './first-turn-defer.js';
 import { firstTurnWarmOn, yieldIfFirstTurnWarm } from './first-turn-warm.js';
 import { TURN_CONTEXT_FOR, TURN_CONTEXT_HEADER } from './turn-context-header.js';
 import { carriesSafety } from '../processors/turn-processor/safety-note.js';
+import { withCallerWords } from '../../services/human-transfer/sight-emergency.js';
+import { callerWordsSinceFerni } from './caller-words-since-ferni.js';
 import { heldForPreemptive } from './preempt-stable-context.js';
 import {
   pushedNotesText,
@@ -400,10 +402,14 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
       const mine = ++run;
       const { llm } = await import('@livekit/agents');
       const scratch = llm.ChatContext.empty();
-      await hook(
-        scratch,
-        llm.ChatMessage.create({ role: 'user', content: forText, extra: { [CALLER_TURN_KEY]: forKey } })
-      );
+      const message = llm.ChatMessage.create({
+        role: 'user',
+        content: forText,
+        extra: { [CALLER_TURN_KEY]: forKey },
+      });
+      // The sight cue reads the whole turn, however it arrived (CRISIS_SIGHT_NEEDS_CUE, #3267).
+      const said = callerWordsSinceFerni(agent.chatCtx.copy().items, forText);
+      await withCallerWords(said, async () => hook(scratch, message));
       if (mine !== run) return; // a later segment of this turn superseded it
       const notes = scratch.items
         .map((item) => ({

@@ -8,7 +8,8 @@
  * equal main's: every injection's text, every crisis_signals field, the transfer note,
  * every detector signal and the safety check. The only lines allowed to differ are SIGHT_CUE,
  * and each must equal exactly what CRISIS_SIGHT_NEEDS_CUE=on gives main (the flag implies
- * it). A listed line that stops differing fails too, so the list stays exact.
+ * it). A listed line that stops differing fails too, so the list stays exact. Each line is
+ * the caller's whole turn (withCallerWords, as the context pusher reads it).
  *
  * Lines: the round-2 and round-3 verifiers' 233 real-risk and 80 benign lines, plus this PR's own.
  * All fictional.
@@ -49,6 +50,7 @@ const { buildSafetyInjections } = await import('../safety-coaching-builders.js')
 const { buildHumanTransferInjections } = await import('../better-than-human-builders.js');
 const { performSafetyCheck } = await import('../../../../services/safety/index.js');
 const { humanTransfer } = await import('../../../../services/human-transfer/index.js');
+const { withCallerWords } = await import('../../../../services/human-transfer/sight-emergency.js');
 type SafetyContext = Parameters<typeof buildSafetyInjections>[0];
 
 const LINES = [
@@ -67,7 +69,9 @@ const MODES = ['live', 'shadow', 'off'].flatMap((gate) =>
 type Mode = (typeof MODES)[number];
 
 /** One caller turn through both word checks: everything they produce, in full. */
-async function turn(line: string, uid: string) {
+const turn = (line: string, uid: string) => withCallerWords(line, () => turnChecks(line, uid));
+
+async function turnChecks(line: string, uid: string) {
   fake.docs.delete(uid);
   const ctx: SafetyContext = {
     userText: line,

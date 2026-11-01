@@ -12,10 +12,13 @@
  *   the rule. Set 3 was not tuned on.
  *
  * Never-lower: on every set, line by line, the flag misses no emergency main catches.
+ * Each line is read as the caller's whole turn (withCallerWords, as the context pusher reads
+ * it); with no turn words the cue never drops main's alarm (sight-cue-split-turn.test.ts).
  */
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { classifyEscalation, detectCrisisSignals } from '../escalation-classifier.js';
+import { withCallerWords } from '../sight-emergency.js';
 
 type SightSet = { emergency: string[]; everyday: string[]; breathe_feel_move?: string[] };
 const load = (name: string): SightSet =>
@@ -42,12 +45,14 @@ const MAIN_MEDICAL = [
 
 const flag = (v: 'on' | 'off') => vi.stubEnv('CRISIS_SIGHT_NEEDS_CUE', v);
 const read = (words: string) => {
-  const signals = detectCrisisSignals(words);
+  const signals = withCallerWords(words, () => detectCrisisSignals(words));
   return { signals, decision: classifyEscalation(signals) };
 };
 const fired = (v: 'on' | 'off', lines: string[]) => {
   flag(v);
-  return lines.filter((line) => detectCrisisSignals(line).medicalEmergency);
+  return lines.filter((line) =>
+    withCallerWords(line, () => detectCrisisSignals(line).medicalEmergency)
+  );
 };
 
 // "Flag off" here is main. CRISIS_LEXICAL_V2 implies this cue (sight-emergency.ts), so it is

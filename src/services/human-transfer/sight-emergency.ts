@@ -16,12 +16,18 @@
  * It also adds alarms main missed: sight loss said outright ("i went blind", "my
  * vision went dark"), and anyone's "can't see" ("my dad can't see") with an acute cue.
  *
+ * A turn can arrive in pieces ("I can't see your text" / "and my face went numb", #3267): the
+ * cue is read on the caller's words since Ferni last spoke where the call site has them
+ * (withCallerWords; the context pusher does). Where it doesn't, the cue never drops main's
+ * alarm: main is the fail-safe.
+ *
  * The signal is never logged when suppressed, so no crisis follow-up note follows.
  * There is no medical classifier to confirm with: the crisis classifier reads suicide
  * and self-harm risk only.
  *
  * @module services/human-transfer/sight-emergency
  */
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { flagOn } from '../../config/env-flag.js';
 
 /** Main's medical sense check, kept exactly (and its source, which rawSignals carry). */
@@ -119,14 +125,29 @@ function sightEmergency(text: string): boolean {
   return SAYS_CANT_SEE.test(text) && acute;
 }
 
+/** The caller's words since Ferni last spoke, for the checks run while reading this turn. */
+const callerWordsNow = new AsyncLocalStorage<string>();
+
+/** Run `read` with the caller's words since Ferni last spoke (none: the cue never suppresses). */
+export function withCallerWords<T>(words: string | undefined, read: () => T): T {
+  return words?.trim() ? callerWordsNow.run(words.toLowerCase(), read) : read();
+}
+
+/** Sight on these words, read with the rest of the caller's turn; no turn words: main's check. */
+function sightInTurn(text: string): boolean {
+  if (sightEmergency(text)) return true;
+  const words = callerWordsNow.getStore();
+  return words?.includes(text.trim()) ? sightEmergency(words) : MAIN_SEE.test(text);
+}
+
 /**
  * The medical check's "i can't breathe/see/feel/move". Flag off: main's regex.
- * Flag on: breathe/feel/move as main, and sight by sightEmergency.
+ * Flag on: breathe/feel/move as main, and sight by sightInTurn.
  */
 export const SENSE_LOSS_MEDICAL = {
   source: MAIN_SENSES.source,
   test: (text: string): boolean =>
     flagOn('CRISIS_SIGHT_NEEDS_CUE') || flagOn('CRISIS_LEXICAL_V2') // CRISIS_LEXICAL_V2 implies it
-      ? OTHER_SENSES.test(text) || sightEmergency(text)
+      ? OTHER_SENSES.test(text) || sightInTurn(text)
       : MAIN_SENSES.test(text),
 };
