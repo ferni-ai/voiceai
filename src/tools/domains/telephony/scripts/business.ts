@@ -21,7 +21,8 @@ export const businessScript: CallScriptTemplate = {
     "I'm an AI assistant authorized by {userName} to make this call. " +
     'I hope you can help me today.',
 
-  recordingConsentScript: 'This call may be recorded for quality purposes. Is that acceptable?',
+  passAlongScript:
+    "Just so you know, I'll pass the details of this call along to {userName}. Is that okay?",
 
   // -------------------------------------------------------------------------
   // Objectives
@@ -35,8 +36,7 @@ export const businessScript: CallScriptTemplate = {
       'I need to reschedule an appointment for {userName}. {details}. ' +
       'What options do you have available?',
 
-    cancel:
-      'I need to cancel something for {userName}. {details}. ' + 'Could you process that for me?',
+    cancel: 'I need to cancel something for {userName}. {details}. Could you process that for me?',
 
     new_appointment:
       "I'd like to schedule an appointment for {userName}. {details}. " +

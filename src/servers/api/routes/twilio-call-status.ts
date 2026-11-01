@@ -270,7 +270,7 @@ export async function handleTwilioCallStatus(
         // The owner's saved zone, never a guess: with none, call-result-text holds the text (no-time-zone).
         userTimezone: (await userTimezone(pendingCall.userId).catch(() => undefined)) ?? '',
         userName: 'the user',
-        recordingConsent: true,
+        recordingConsent: false,
       });
 
       // Remove from pending tracking

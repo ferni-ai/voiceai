@@ -157,10 +157,14 @@ export function buildCallScript(
     template.identityDisclosure.replace('{agentName}', agentName).replace('{userName}', userName)
   );
 
-  // Recording consent if applicable
-  if (template.recordingConsentScript) {
-    parts.push('\n### Recording Consent');
-    parts.push(template.recordingConsentScript);
+  // Nothing is recorded: Ferni says what it passes on, and a no is honoured (passAlongDeclined).
+  if (template.passAlongScript) {
+    parts.push('\n### Passing it along');
+    parts.push(template.passAlongScript.replace('{userName}', userName));
+    parts.push(
+      `If they say no, that's fine: still give them ${userName}'s message, kindly, and don't ` +
+        `press. ${userName} will only hear that they asked you not to pass anything along.`
+    );
   }
 
   // HIPAA note if applicable
@@ -198,17 +202,17 @@ export function buildCallScript(
   // -------------------------------------------------------------------------
   parts.push('\n### Information to Gather');
   template.informationToGather.forEach((item) => {
-    parts.push(`- ${item}`);
+    parts.push(`- ${item.replaceAll('{userName}', userName)}`);
   });
 
   parts.push('\n### You MUST Confirm');
   template.mustConfirm.forEach((item) => {
-    parts.push(`- ${item}`);
+    parts.push(`- ${item.replaceAll('{userName}', userName)}`);
   });
 
   parts.push('\n### You MUST NOT');
   template.mustNotDo.forEach((item) => {
-    parts.push(`- ${item}`);
+    parts.push(`- ${item.replaceAll('{userName}', userName)}`);
   });
 
   // -------------------------------------------------------------------------

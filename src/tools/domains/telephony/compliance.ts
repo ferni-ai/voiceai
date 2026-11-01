@@ -112,13 +112,10 @@ export function checkCallCompliance(
   // Recording Consent
   // -------------------------------------------------------------------------
   if (config.requireRecordingConsent) {
-    if (!request.recordingConsent) {
-      // User hasn't consented - we can still make the call, but can't record
-      disclosures.push('Call will not be recorded as user has not consented.');
-    } else {
-      // Even with user consent, we may need recipient consent
-      disclosures.push('You must ask the recipient if they consent to the call being recorded.');
-    }
+    // Ferni records nothing, consent or not: it tells them what it passes on.
+    disclosures.push(
+      'Nothing on this call is recorded. Tell the recipient what you will pass along to the user, and ask if that is okay.'
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -185,10 +182,10 @@ export function generateComplianceScript(
   // Identity disclosure — Ferni calling on someone's behalf
   parts.push(`I'm Ferni, calling on behalf of ${request.userName}.`);
 
-  // Recording consent (if enabled)
-  if (request.recordingConsent) {
-    parts.push(`This call may be recorded for quality purposes. Is that okay with you?`);
-  }
+  // What Ferni does with the call: nothing is recorded, the details are passed on.
+  parts.push(
+    `Just so you know, I'll pass the details of this call along to ${request.userName}. Is that okay?`
+  );
 
   // HIPAA disclosure (if applicable)
   if (request.requiresHIPAA) {
@@ -232,7 +229,7 @@ export function getCallTypeRequirements(callType: CallType): {
         mustDo: [
           'Identify yourself as Ferni calling on their behalf',
           'State who you are calling on behalf of',
-          'Ask for recording consent if applicable',
+          'Say what you will pass along to the user, and ask if that is okay',
           'Confirm any appointments or actions taken',
         ],
         mustNotDo: [

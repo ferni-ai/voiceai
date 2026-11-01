@@ -51,8 +51,8 @@ export interface CallScriptTemplate {
   greeting: string;
   identityDisclosure: string;
 
-  // Recording consent (required in many jurisdictions)
-  recordingConsentScript?: string;
+  // What Ferni tells them it does with the call: nothing is recorded, what they share is passed on
+  passAlongScript?: string;
 
   // Domain-specific
   hipaaNote?: string;

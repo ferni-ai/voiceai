@@ -20,7 +20,8 @@ export const healthcareScript: CallScriptTemplate = {
   identityDisclosure:
     "I'm an AI assistant. {userName} has authorized me to call regarding their appointment.",
 
-  recordingConsentScript: 'This call may be recorded for quality purposes. Is that okay with you?',
+  passAlongScript:
+    "Just so you know, I'll pass the details of this call along to {userName}. Is that okay?",
 
   hipaaNote:
     'I understand you may have privacy requirements. {userName} has authorized me to ' +

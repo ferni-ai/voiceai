@@ -33,6 +33,10 @@ import {
   voicemailWords,
 } from '../../services/outreach/voicemail-outcome.js';
 import type { CallDisposition } from './call-control.js';
+import {
+  passAlongDeclined,
+  passAlongDeclinedOutcome,
+} from '../../services/outreach/pass-along-declined.js';
 
 const log = createLogger({ module: 'on-behalf-call-lifecycle' });
 
@@ -205,6 +209,9 @@ export function buildCallOutcome(
       };
     }
   }
+
+  // They said no to having what they share passed along: keep nothing they said.
+  if (passAlongDeclined(turns)) return passAlongDeclinedOutcome(call.callId, name, heard);
 
   if (!analysis) {
     return {
