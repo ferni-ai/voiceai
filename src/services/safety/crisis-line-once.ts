@@ -58,7 +58,7 @@ export function withLineOnce<
   T extends { isCrisis: boolean; indicators: string[]; subject?: string },
 >(crisis: T, turn: LineTurn): T {
   try {
-    if (crisis.indicators.includes(IMMINENT)) noteImminentRead(turn.call, turn.latest);
+    if (crisis.indicators.includes(IMMINENT)) noteImminentRead(turn.call);
     if (!lineHeard(turn) || !crisis.isCrisis || crisis.subject !== 'self') return crisis;
     if (crisis.indicators.includes(IMMINENT) || turn.fullLine) return crisis; // as on main
     return { ...crisis, indicators: [...crisis.indicators, LINE_GIVEN] };

@@ -164,7 +164,7 @@ export function trackCrisisRead<T extends { risk: string } | null>(
   };
   read.then(
     (v) => {
-      if (v?.risk === 'imminent') noteImminentRead(sessionId, latest);
+      if (v?.risk === 'imminent') noteImminentRead(sessionId);
       settle(v?.risk !== 'none');
     },
     () => settle(true)
@@ -230,34 +230,25 @@ export function unexplainedCrisisRisk(
 
 /**
  * CRISIS_BRAKE_V2: calls where anything read a turn imminent (the patterns, a classifier read,
- * either read of a split), when last noted. Nothing on such a call eases (crisis-script-answer.ts).
+ * either read of a split), when last noted. Nothing on such a call eases (crisis-script-answer.ts,
+ * the agreement gate, a later split). No turn is ever left out by its words: words repeat, and
+ * text with no Latin letters reduces to nothing, so a read of "the same turn" cannot be told from
+ * an earlier one. Any imminent read noted on the call counts, this turn's own included.
  */
-const imminentAt = new Map<string, { at: number; turns: Set<string> }>();
+const imminentAt = new Map<string, number>();
 
-/** Notes an imminent read of these caller words on the call. */
-export function noteImminentRead(sessionId: string | undefined, latest: string, now = Date.now()) {
+export function noteImminentRead(sessionId: string | undefined, now = Date.now()): void {
   if (!sessionId) return;
-  for (const [id, kept] of imminentAt) if (now - kept.at > TTL_MS) imminentAt.delete(id);
-  const turns = imminentAt.get(sessionId)?.turns ?? new Set<string>();
-  turns.add(turnOf(latest));
+  for (const [id, at] of imminentAt) if (now - at > TTL_MS) imminentAt.delete(id);
   imminentAt.delete(sessionId);
-  imminentAt.set(sessionId, { at: now, turns });
+  imminentAt.set(sessionId, now);
 }
 
-/**
- * Whether a turn on this call was read imminent, other than `except` (this turn's own words, for
- * a read of it still settling). True without a call: nothing is eased then.
- */
-export function imminentReadThisCall(
-  sessionId: string | undefined,
-  except?: string,
-  now = Date.now()
-) {
+/** Whether anything on this call was read imminent; true without a call, which never eases. */
+export function imminentReadThisCall(sessionId: string | undefined, now = Date.now()): boolean {
   if (!sessionId) return true;
-  const kept = imminentAt.get(sessionId);
-  if (!kept || now - kept.at > TTL_MS) return false;
-  const own = except === undefined ? undefined : turnOf(except);
-  return [...kept.turns].some((t) => t !== own);
+  const at = imminentAt.get(sessionId);
+  return at !== undefined && now - at <= TTL_MS;
 }
 
 /** For tests. */

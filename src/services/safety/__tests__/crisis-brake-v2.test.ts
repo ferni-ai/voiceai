@@ -20,7 +20,12 @@ import {
 } from '../crisis-call-risk.js';
 import { combineReads, resetImminentAgreement } from '../crisis-imminent-agreement.js';
 import { crisisGuidanceOnce, LINE_GIVEN, withLineOnce } from '../crisis-line-once.js';
-import { ANYONE_NEARBY, scriptAnswer, TAKEN_OR_IN_DANGER } from '../crisis-script-answer.js';
+import {
+  ANYONE_NEARBY,
+  briefTurn,
+  scriptAnswer,
+  TAKEN_OR_IN_DANGER,
+} from '../crisis-script-answer.js';
 
 const ON = { CRISIS_BRAKE_V2: 'on' };
 const OFF = { CRISIS_BRAKE_V2: 'off' };
@@ -98,7 +103,7 @@ describe("the agreement gate scans only the caller's words, with main's risk wor
 
   it('on: once a turn on the call was read imminent, nothing eases', () => {
     expect(turn(ON, { latest: 'Ferni?' })).toBe('presence');
-    noteImminentRead(`agree-${n}`, 'I am going to do it now.');
+    noteImminentRead(`agree-${n}`);
     expect(turn(ON, { latest: 'Ferni?' })).toBe('escalate');
     expect(turn(ON)).toBe('escalate');
     expect(
@@ -157,7 +162,7 @@ describe('an imminent read needs agreement: the flag implies CRISIS_IMMINENT_NEE
 
   it('on: a split never eases once an earlier turn on the call was read imminent', () => {
     const call = `split-after-${n}`;
-    noteImminentRead(call, 'Tonight is the night.');
+    noteImminentRead(call);
     const read = combineReads({
       ruled: IMMINENT,
       plain: NONE,
@@ -172,7 +177,7 @@ describe('an imminent read needs agreement: the flag implies CRISIS_IMMINENT_NEE
 
   it('off: the same split with CRISIS_IMMINENT_NEEDS_AGREEMENT alone eases as on main', () => {
     const call = `split-flag-${n}`;
-    noteImminentRead(call, 'Tonight is the night.');
+    noteImminentRead(call);
     const env = { CRISIS_IMMINENT_NEEDS_AGREEMENT: 'on' };
     const latest = "Okay, I'm done for tonight, bye.";
     const read = combineReads({
@@ -198,6 +203,70 @@ describe('an imminent read needs agreement: the flag implies CRISIS_IMMINENT_NEE
       env: ON,
     });
     expect(both?.risk).toBe('imminent');
+  });
+});
+
+describe('an imminent read on the call blocks every ease; no turn is told apart by its words', () => {
+  /** A split read of `latest` (ruled imminent, plain none) on this call, flag on. */
+  const split = (call: string, latest: string) =>
+    combineReads({
+      ruled: IMMINENT,
+      plain: NONE,
+      pattern: 'none',
+      latest,
+      earlier: [],
+      call,
+      env: ON,
+    });
+  const brakeOf = (call: string, latest: string) =>
+    briefTurn({ latest, earlier: [], call, env: ON, ferni: [] }).brake;
+
+  it('a caller repeating the exact imminent line: the repeat never eases', () => {
+    const call = `repeat-${n}`;
+    expect(split(call, "I'm going to do it now.")?.risk).toBe('crisis'); // nothing noted before
+    expect(split(call, "I'm going to do it now.")?.risk).toBe('imminent');
+    expect(brakeOf(call, "I'm going to do it now.")).toBe('hold');
+  });
+
+  it('a non-English imminent line, then a non-English safe answer: no easing', () => {
+    const call = `es-${n}`;
+    combineReads({
+      ruled: IMMINENT,
+      plain: IMMINENT,
+      pattern: 'none',
+      latest: 'Voy a hacerlo ahora.',
+      earlier: [],
+      call,
+      env: ON,
+    });
+    expect(split(call, 'Estoy bien.')?.risk).toBe('imminent');
+    expect(brakeOf(call, 'Estoy bien.')).toBe('hold');
+    const answer = {
+      latest: 'Estoy bien.',
+      companion: SCRIPT,
+      earlier: ['Voy a hacerlo ahora.'],
+      call,
+      env: ON,
+    };
+    expect(scriptAnswer(answer)).not.toBe('safe');
+  });
+
+  it('an emoji-only turn after an imminent read: no easing', () => {
+    const call = `emoji-${n}`;
+    noteImminentRead(call);
+    expect(split(call, '🙂')?.risk).toBe('imminent');
+    expect(split(call, '🙏🙏')?.risk).toBe('imminent');
+    expect(brakeOf(call, '🙂')).toBe('hold');
+  });
+
+  it('with no turn id, any imminent read noted blocks easing; with no call, nothing eases', () => {
+    const call = `noid-${n}`;
+    expect(imminentReadThisCall(call)).toBe(false);
+    noteImminentRead(call);
+    expect(imminentReadThisCall(call)).toBe(true);
+    expect(split(call, 'Okay, bye.')?.risk).toBe('imminent');
+    expect(imminentReadThisCall(undefined)).toBe(true);
+    expect(brakeOf('', "I'm fine.")).toBeUndefined(); // no call: the brake is off, main's reads
   });
 });
 
@@ -283,7 +352,7 @@ describe("the script's own question: the next short answer is an answer", () => 
   it('a safe answer on a call where anything read a turn imminent reads as main', () => {
     const turn = { latest: "I'm fine.", companion: SCRIPT, earlier: [], call: `imm-${n}`, env: ON };
     expect(scriptAnswer(turn)).toBe('safe');
-    noteImminentRead(turn.call, "I'm at the spot now.");
+    noteImminentRead(turn.call);
     for (const latest of ["I'm fine.", "It's not a crisis.", "I haven't taken anything."]) {
       expect(scriptAnswer({ ...turn, latest })).toBe('main');
     }

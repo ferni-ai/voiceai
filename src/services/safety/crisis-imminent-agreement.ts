@@ -130,14 +130,13 @@ export function agreementCacheScope(
 
 /** The read for a turn read with and without the everyday rules. */
 export function combineReads(reads: TurnReads): CrisisVerdict | null {
-  // CRISIS_BRAKE_V2: a split never eases on a call where an earlier turn was read imminent, and
-  // either read imminent is noted for the call, even one eased below.
+  // CRISIS_BRAKE_V2: a split never eases on a call with an imminent read noted, read before this
+  // one is noted (no turn is told apart by its words: crisis-call-risk.ts); either read imminent
+  // is noted for the call, even one eased below.
   const { env = process.env, call, latest, earlier } = reads;
   const earlierImminent =
-    crisisBrakeOn(env, call, [latest, ...earlier]) && imminentReadThisCall(call, latest);
-  if (reads.ruled?.risk === 'imminent' || reads.plain?.risk === 'imminent') {
-    noteImminentRead(call, latest);
-  }
+    crisisBrakeOn(env, call, [latest, ...earlier]) && imminentReadThisCall(call);
+  if (reads.ruled?.risk === 'imminent' || reads.plain?.risk === 'imminent') noteImminentRead(call);
   const read = moreSevereRead(reads.ruled, reads.plain);
   if (!readsNeedAgreement(reads)) return read;
   try {
