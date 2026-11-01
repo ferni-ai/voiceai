@@ -124,7 +124,8 @@ describe("the agreement gate scans only the caller's words, with main's risk wor
   });
 });
 
-describe('an imminent read needs agreement: the flag implies CRISIS_IMMINENT_NEEDS_AGREEMENT', () => {
+describe('the brake never touches a split read: CRISIS_IMMINENT_NEEDS_AGREEMENT is its own flag', () => {
+  const AGREE = { CRISIS_IMMINENT_NEEDS_AGREEMENT: 'on' };
   const split = (env: Record<string, string>, call = `split-${n}`) =>
     combineReads({
       ruled: IMMINENT,
@@ -136,63 +137,26 @@ describe('an imminent read needs agreement: the flag implies CRISIS_IMMINENT_NEE
       env,
     });
 
-  it('off: the split imminent / none keeps imminent (the 911 script)', () => {
+  it('a split imminent / none keeps imminent (the 911 script), brake off or on, as in prod', () => {
     expect(split(OFF)?.risk).toBe('imminent');
+    expect(split(ON, `split-on-${n}`)?.risk).toBe('imminent');
   });
 
-  it('on: the split gives crisis guidance, never the script', () => {
-    expect(split(ON)?.risk).toBe('crisis');
+  it('with CRISIS_IMMINENT_NEEDS_AGREEMENT on, the brake changes nothing either way', () => {
+    expect(split(AGREE, `agree-alone-${n}`)?.risk).toBe('crisis');
+    expect(split({ ...AGREE, ...ON }, `agree-brake-${n}`)?.risk).toBe('crisis');
+    noteImminentRead(`agree-noted-${n}`);
+    expect(split({ ...AGREE, ...ON }, `agree-noted-${n}`)?.risk).toBe('crisis');
   });
 
-  it('either read imminent, even a split eased to crisis, is noted for the call', () => {
+  it('either read imminent is noted for the call', () => {
     const call = `noted-${n}`;
     expect(imminentReadThisCall(call)).toBe(false);
-    const eased = combineReads({
-      ruled: IMMINENT,
-      plain: NONE,
-      pattern: 'none',
-      latest: "Okay, I'm done for tonight, bye.",
-      earlier: [],
-      call,
-      env: ON,
-    });
-    expect(eased?.risk).toBe('crisis');
+    expect(split(ON, call)?.risk).toBe('imminent');
     expect(imminentReadThisCall(call)).toBe(true);
   });
 
-  it('on: a split never eases once an earlier turn on the call was read imminent', () => {
-    const call = `split-after-${n}`;
-    noteImminentRead(call);
-    const read = combineReads({
-      ruled: IMMINENT,
-      plain: NONE,
-      pattern: 'none',
-      latest: "Okay, I'm done for tonight, bye.",
-      earlier: ['Tonight is the night.'],
-      call,
-      env: ON,
-    });
-    expect(read?.risk).toBe('imminent');
-  });
-
-  it('off: the same split with CRISIS_IMMINENT_NEEDS_AGREEMENT alone eases as on main', () => {
-    const call = `split-flag-${n}`;
-    noteImminentRead(call);
-    const env = { CRISIS_IMMINENT_NEEDS_AGREEMENT: 'on' };
-    const latest = "Okay, I'm done for tonight, bye.";
-    const read = combineReads({
-      ruled: IMMINENT,
-      plain: NONE,
-      pattern: 'none',
-      latest,
-      earlier: [],
-      call,
-      env,
-    });
-    expect(read?.risk).toBe('crisis');
-  });
-
-  it('on: both reads imminent keep imminent', () => {
+  it('both reads imminent keep imminent', () => {
     const both = combineReads({
       ruled: IMMINENT,
       plain: IMMINENT,
@@ -223,7 +187,7 @@ describe('an imminent read on the call blocks every ease; no turn is told apart 
 
   it('a caller repeating the exact imminent line: the repeat never eases', () => {
     const call = `repeat-${n}`;
-    expect(split(call, "I'm going to do it now.")?.risk).toBe('crisis'); // nothing noted before
+    noteImminentRead(call); // the first time the line was read imminent
     expect(split(call, "I'm going to do it now.")?.risk).toBe('imminent');
     expect(brakeOf(call, "I'm going to do it now.")).toBe('hold');
   });

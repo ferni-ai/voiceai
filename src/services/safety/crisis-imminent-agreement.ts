@@ -33,14 +33,11 @@
  *     by the patterns (a split turn does not count), and the call is known.
  * Everything else, and any error, is the more severe read as before.
  *
- * CRISIS_BRAKE_V2 (crisis-brake.ts) implies this flag for its calls: one code path, no copy.
- *
  * @module CrisisImminentAgreement
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { crisisBrakeOn, resolveCrisisBrakeV2 } from './crisis-brake.js';
-import { imminentReadThisCall, noteImminentRead } from './crisis-call-risk.js';
+import { noteImminentRead } from './crisis-call-risk.js';
 import type { CrisisVerdict, PatternOutcome } from './crisis-classifier.js';
 import { moreSevereRead } from './crisis-everyday.js';
 import { detectCrisis } from './crisis-guard.js';
@@ -48,19 +45,11 @@ import { isPlainSignOff } from './crisis-lone-imminent.js';
 
 const log = createLogger({ module: 'CrisisImminentAgreement' });
 
-const flagOn = (env: Record<string, string | undefined>): boolean =>
-  env.CRISIS_IMMINENT_NEEDS_AGREEMENT?.trim().toLowerCase() === 'on';
-
-/** The flag, or CRISIS_BRAKE_V2: for the cache scope and the pattern-block note. */
 function resolveImminentNeedsAgreement(
   env: Record<string, string | undefined> = process.env
 ): boolean {
-  return flagOn(env) || resolveCrisisBrakeV2(env);
+  return env.CRISIS_IMMINENT_NEEDS_AGREEMENT?.trim().toLowerCase() === 'on';
 }
-
-/** This turn's split may ease: the flag, or CRISIS_BRAKE_V2 on a call it applies to (no minors). */
-const readsNeedAgreement = ({ env = process.env, call, latest, earlier }: TurnReads): boolean =>
-  flagOn(env) || crisisBrakeOn(env, call, [latest, ...earlier]);
 
 /**
  * Calls where reads that agreed, or the patterns, found risk: never eased
@@ -130,17 +119,14 @@ export function agreementCacheScope(
 
 /** The read for a turn read with and without the everyday rules. */
 export function combineReads(reads: TurnReads): CrisisVerdict | null {
-  // CRISIS_BRAKE_V2: a split never eases on a call with an imminent read noted, read before this
-  // one is noted (no turn is told apart by its words: crisis-call-risk.ts); either read imminent
-  // is noted for the call, even one eased below.
-  const { env = process.env, call, latest, earlier } = reads;
-  const earlierImminent =
-    crisisBrakeOn(env, call, [latest, ...earlier]) && imminentReadThisCall(call);
-  if (reads.ruled?.risk === 'imminent' || reads.plain?.risk === 'imminent') noteImminentRead(call);
+  // CRISIS_BRAKE_V2 never eases after an imminent read: either read imminent is noted for the call.
+  if (reads.ruled?.risk === 'imminent' || reads.plain?.risk === 'imminent') {
+    noteImminentRead(reads.call);
+  }
   const read = moreSevereRead(reads.ruled, reads.plain);
-  if (!readsNeedAgreement(reads)) return read;
+  if (!resolveImminentNeedsAgreement(reads.env)) return read;
   try {
-    if (earlierImminent || !eases(reads, read)) return read;
+    if (!eases(reads, read)) return read;
     const imminentRead = reads.ruled?.risk === 'imminent' ? 'ruled' : 'plain';
     log.info({ imminentRead, risk: 'crisis' }, 'CRISIS_IMMINENT_SPLIT');
     return { risk: 'crisis', subject: read?.subject ?? 'self' };

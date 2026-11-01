@@ -1,7 +1,7 @@
 /**
  * CRISIS_BRAKE_V2 (off by default): crisis mode can ease once it started (prod 10-17 to 10-31: the
- * gate eased 0 turns in 14 days). Used by crisis-agreement.ts, crisis-imminent-agreement.ts,
- * crisis-script-answer.ts and crisis-line-once.ts. Never without a call, nor for a caller who may
+ * gate eased 0 turns in 14 days). Used by crisis-script-answer.ts (and through it the agreement
+ * gate) and crisis-line-once.ts. Never without a call, nor for a caller who may
  * be under 18 (MINOR_CARE's signals or an age said): those calls read as with the flag off.
  * @module CrisisBrake
  */

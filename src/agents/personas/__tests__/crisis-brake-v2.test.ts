@@ -111,6 +111,19 @@ const IMMINENT_PLAIN_WORDS = [
 ];
 
 describe('an imminent read always gets the 911 script, whatever the line before', () => {
+  it('a split first line (one read imminent, one none) gets the 911 script, as in prod', async () => {
+    for (const line of ['Tonight is the night.', "I'm done.", "Okay, I'm done for tonight, bye."]) {
+      const { off, on } = await bothArms(
+        [line, 'Ferni?'],
+        { [line]: ['imminent', 'none'], 'Ferni?': 'crisis' },
+        'split'
+      );
+      expect(on[0]?.gate, line).toEqual(off[0]?.gate);
+      expect(on[0]?.gate.action === 'replace' && on[0].gate.script, line).toContain(IN_DANGER_NOW);
+      resetCrisisSim();
+    }
+  });
+
   it.each(IMMINENT_PLAIN_WORDS)('after a 988 line: %s', async (line) => {
     const { off, on } = await bothArms(
       [DISCLOSE, 'yeah', line],
