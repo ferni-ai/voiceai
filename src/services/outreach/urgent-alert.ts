@@ -21,6 +21,9 @@ import { userReach } from './user-reach.js';
 
 const log = createLogger({ module: 'urgent-alert' });
 
+/** The family check-in alert text, screened (see ./checkin-urgent-alert.ts). */
+export { generateUrgentNotification } from './checkin-urgent-alert.js';
+
 /** Sends `message` to `userId` by push, else by text. Never throws; a total failure is an error log. */
 export async function sendUrgentAlert(
   userId: string,

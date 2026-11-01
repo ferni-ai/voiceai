@@ -5,7 +5,11 @@
  * unverified caller), so it goes through the caller-text screen before it is
  * pushed or texted to the sponsor.
  *
- * @module services/family/urgent-notification
+ * It lives here, next to the screen and the sender, because the family context
+ * (L3) may not import the outreach screen (L4). Family code reaches it through
+ * its lazy import of ./urgent-alert.js.
+ *
+ * @module services/outreach/checkin-urgent-alert
  */
 
 import {
@@ -16,8 +20,20 @@ import {
   riskyCallerLine,
   screenCallerParts,
   screenedCallerText,
-} from '../outreach/caller-text.js';
-import type { CheckinCallRecord } from './proactive-family-checkin.js';
+} from './caller-text.js';
+
+/**
+ * What the alert reads from a check-in call record. Typed here so this module
+ * needs nothing from the family context; a CheckinCallRecord fits it.
+ */
+export interface CheckinAlertInput {
+  familyMemberName: string;
+  concernsIdentified?: ReadonlyArray<{
+    urgency: string;
+    description: unknown;
+    recommendedAction?: unknown;
+  }>;
+}
 
 /** Said when the concern's own suggestion can't be passed on: Ferni's words. */
 const CHECK_IN_ACTION = 'You may want to check in with them.';
@@ -54,7 +70,7 @@ function clause(text: string): string {
  * Fields too long for the screen to read in full send the generic alert, and
  * a field that is not text gets Ferni's line for that field.
  */
-export function generateUrgentNotification(record: CheckinCallRecord): string | null {
+export function generateUrgentNotification(record: CheckinAlertInput): string | null {
   if (!record.concernsIdentified || record.concernsIdentified.length === 0) {
     return null;
   }

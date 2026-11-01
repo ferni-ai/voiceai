@@ -10,6 +10,7 @@
  * @module services/family/family-checkin-caller
  */
 
+import { setTimeout as sleep } from 'node:timers/promises';
 import { createLogger } from '../../utils/safe-logger.js';
 import { checkDialableNumber } from '../../utils/dialable-number.js';
 import { isSyntheticUserId } from '../../utils/synthetic-user.js';
@@ -24,7 +25,6 @@ import {
   type CheckinCallStatus,
 } from './proactive-family-checkin.js';
 import { analyzeCheckinCall } from './family-checkin-summary.js';
-import { generateUrgentNotification } from './urgent-notification.js';
 import { getSponsoredIdentity } from '../identity/sponsored-identity.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { deferredOutsideCallHours } from './checkin-call-hours.js';
@@ -512,6 +512,7 @@ export async function handleCheckinCallComplete(
         sponsorBriefed: false,
       };
 
+      const { generateUrgentNotification } = await import('../outreach/urgent-alert.js');
       const urgentNotification = generateUrgentNotification(record);
 
       if (urgentNotification) {
@@ -570,10 +571,6 @@ export async function sendUrgentNotificationToSponsor(
       'Failed to send urgent notification'
     );
   }
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // ============================================================================

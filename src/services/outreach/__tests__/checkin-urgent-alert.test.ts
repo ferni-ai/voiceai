@@ -14,7 +14,8 @@ vi.mock('../../superhuman/firestore-utils.js', () => ({
   cleanForFirestore: (v: unknown) => v,
 }));
 vi.mock('../../llm-utils.js', () => ({ callLLM: vi.fn() }));
-vi.mock('../../outreach/urgent-alert.js', () => ({
+vi.mock('../urgent-alert.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../urgent-alert.js')>()),
   sendUrgentAlert: vi.fn(async (_user: string, message: string) => {
     sent.messages.push(message);
   }),
@@ -26,10 +27,10 @@ import {
   crisisRead,
   isRiskyCallerText,
   riskyCallerLine,
-} from '../../outreach/caller-text.js';
-import { handleCheckinCallComplete } from '../family-checkin-caller.js';
-import { generateUrgentNotification } from '../urgent-notification.js';
-import type { CheckinCallRecord, FlaggedConcern } from '../proactive-family-checkin.js';
+} from '../caller-text.js';
+import { handleCheckinCallComplete } from '../../family/family-checkin-caller.js';
+import { generateUrgentNotification } from '../checkin-urgent-alert.js';
+import type { CheckinCallRecord, FlaggedConcern } from '../../family/proactive-family-checkin.js';
 
 const NAME = 'Rosa';
 const CHECK_IN = 'You may want to check in with them.';

@@ -193,8 +193,6 @@ async function handleSpeechResponse(
       ];
 
       const { analyzeCheckinCall } = await import('../services/family/family-checkin-summary.js');
-      const { generateUrgentNotification } =
-        await import('../services/family/urgent-notification.js');
 
       const analysis = await analyzeCheckinCall(
         transcript,
@@ -217,20 +215,16 @@ async function handleSpeechResponse(
         transcript: JSON.stringify(transcript),
       });
 
-      // Check for urgent concerns
-      if (analysis.concerns.some((c) => c.urgency === 'urgent' || c.urgency === 'high')) {
-        const notification = generateUrgentNotification({
-          ...record,
-          concernsIdentified: analysis.concerns,
-        });
-
-        if (notification) {
-          // Log urgent concerns - notification handling is done via push/SMS in handleCheckinCallComplete
-          log.info(
-            { callId, concerns: analysis.concerns.length, notification },
-            '🚨 Urgent concerns detected'
-          );
-        }
+      // Counts only: the concern text is the caller's words. The sponsor alert
+      // (screened) goes out from handleCheckinCallComplete.
+      const urgent = analysis.concerns.filter(
+        (c) => c.urgency === 'urgent' || c.urgency === 'high'
+      ).length;
+      if (urgent > 0) {
+        log.info(
+          { callId, concerns: analysis.concerns.length, urgent },
+          '🚨 Urgent concerns detected'
+        );
       }
     }
 
