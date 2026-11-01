@@ -22,6 +22,27 @@ describe('corpora', () => {
         expect(bySet(set).filter((c) => c.shape === shape).length, shape).toBeGreaterThanOrEqual(8);
   });
 
+  it('carries a recall audit: 60+ lines in five families, each as a first turn and mid-call', () => {
+    const audit = bySet('recall-audit');
+    const families = [
+      'death-bare',
+      'overdose',
+      'cant-go-on',
+      'abuse-child-dv',
+      'sexual-abuse-minor',
+    ];
+    for (const f of families) {
+      const first = audit.filter((c) => c.shape === `${f}-first`);
+      const mid = audit.filter((c) => c.shape === `${f}-mid`);
+      expect(first.length, f).toBeGreaterThanOrEqual(10);
+      expect(mid.map((c) => c.turns.at(-1)?.text)).toEqual(first.map((c) => c.turns[0].text));
+      for (const c of mid) expect(c.turns[0].label, c.id).toBe('either');
+    }
+    const lines = audit.filter((c) => c.id.endsWith('-first'));
+    expect(lines.length).toBeGreaterThanOrEqual(60);
+    for (const c of audit) expect(c.turns.at(-1)?.label, c.id).toBe('must-catch');
+  });
+
   it('never labels a hard-negative turn must-catch, and keeps most of them must-not-alarm', () => {
     for (const c of bySet('hard-negatives')) {
       expect(
