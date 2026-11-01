@@ -61,6 +61,12 @@ const SURFACE = [
   'src/agents/shared/tool-executors/information-executor.ts',
   'src/agents/processors/turn-processor/process-turn.ts',
   'src/agents/integrations/better-than-human-integration.ts',
+  // The placed call's own lines: the person called, their name and number (on-behalf privacy).
+  'src/services/outreach/outbound-call-tracker.ts',
+  'src/services/outreach/message-enrichment.ts',
+  'src/services/outreach/scheduled-outreach-executor.ts',
+  'src/services/outreach/scheduled-multi-outreach.ts',
+  'src/tools/domains/telephony/call-on-behalf.ts',
 ];
 
 /**
@@ -102,9 +108,10 @@ const REQUIRED = [
 const EXEMPT: Exemptions = {
   pending: [
     // E2E_USER_INPUT: the call reviewer reads what the caller said here (#2656): pending Seth's call.
+    // The person on a call placed for a member never reaches this branch (their words: never).
     [
       'transcript-handler.ts',
-      '(\n        {\n          trace: \'E2E_USER_INPUT\',\n          transcript: event.transcript.slice(0, 100),\n          fullLength: event.transcript.length,\n          sessionId,\n          userId,\n          turnNumber: userData.turnCount || 0,\n        },\n        `🔍 E2E TRACE [STT] User said: "${event.transcript.slice(0, 50)}..." (${event.transcript.length} chars)`\n      )',
+      '(\n          {\n            trace: \'E2E_USER_INPUT\',\n            transcript: event.transcript.slice(0, 100),\n            fullLength: event.transcript.length,\n            sessionId,\n            userId,\n            turnNumber,\n          },\n          `🔍 E2E TRACE [STT] User said: "${event.transcript.slice(0, 50)}..." (${event.transcript.length} chars)`\n        )',
     ],
     // voice-eval reads this preview (review-calls, turn-taking): pending Seth's call.
     ['process-turn.ts', "('Processing user turn', {\n    preview: userText.slice(0, 100),\n  })"],
@@ -169,6 +176,7 @@ const EXEMPT: Exemptions = {
     ['agent-setup.ts', 'record'], // TURN_METRICS: latencies and token counts
     ['tts-wrapper.ts', 'extractedInfo'], // tool name and argument key names (analyzeLeakedJson)
     ['e2e-latency-tracker.ts', 'summary'], // latencies, a bottleneck kind, the transcript's length
+    ['scheduled-outreach-executor.ts', 'result'], // ExecutionResult: counts
   ],
 };
 
@@ -181,8 +189,8 @@ describe('the call and turn logs', () => {
     const path = 'src/agents/voice-agent/transcript-handler.ts';
     const src = readFileSync(path, 'utf8');
     const changed = src.replace(
-      "trace: 'E2E_USER_INPUT',",
-      "trace: 'E2E_USER_INPUT',\n          userName,"
+      "trace: 'E2E_USER_INPUT',\n            transcript",
+      "trace: 'E2E_USER_INPUT',\n            userName,\n            transcript"
     );
     expect(changed).not.toBe(src);
     expect(offences(path, src, EXEMPT)).toEqual([]);

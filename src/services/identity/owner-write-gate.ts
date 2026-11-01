@@ -5,8 +5,10 @@
  * A call Ferni places for a member runs as `onbehalf:<callId>`
  * (outreach/on-behalf-dispatch.ts, then identifyFromMetadata's last-resort
  * session id). Fast capture, the short-term buffer and knowledge capture
- * already skipped that id (memory/third-party-call.ts), and memory recall, the
- * timeline and profile writes skip every non-member. The session summary,
+ * already skipped that id (memory/third-party-call.ts), and memory recall and the
+ * timeline skip every non-member. No profile is ever stored for it, gate or no gate:
+ * every MemoryStore.saveProfile refuses the id (the trial start and the contact info
+ * a callee spoke created bogle_users/onbehalf:<callId>). The session summary,
  * relationship arc, seeds, presence and persona affinity, the conversation-end
  * event, the plan and user model, the per-turn learners and the thread recorder
  * kept writing under it: documents no one reads back, about a person who never

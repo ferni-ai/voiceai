@@ -12,6 +12,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { MemoryStore, type QueryOptions, type SearchResult } from './store.js';
 import { refuseUnsaved } from './profile-read-failure.js';
+import { isThirdPartyCallUser } from '../third-party-call.js';
 import type {
   UserProfile,
   ConversationSummary,
@@ -148,6 +149,7 @@ export class PostgresStore extends MemoryStore {
 
   async saveProfile(profile: UserProfile): Promise<void> {
     refuseUnsaved(profile); // a stand-in built after a failed read never overwrites stored data
+    if (isThirdPartyCallUser(profile.id)) return; // the person on an on-behalf call has none
     if (!this.pool) throw new Error('PostgresStore not initialized');
 
     try {

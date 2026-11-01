@@ -48,8 +48,9 @@ const pendingCalls = new Map<string, PendingCall>();
  */
 export function trackOutboundCall(externalCallId: string, context: PendingCall): void {
   pendingCalls.set(externalCallId, context);
+  // Never the contact's name: the person called never signed up.
   log.info(
-    { externalCallId, callId: context.callId, contactName: context.contactName },
+    { externalCallId, callId: context.callId, hasContactName: Boolean(context.contactName) },
     'Tracking outbound on-behalf call'
   );
 }
