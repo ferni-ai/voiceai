@@ -1,8 +1,10 @@
 /**
  * The note builders turn-request.ts calls, each behind its own catch (turn-note-guard.ts): one that
- * throws gives '' (or []) and the turn goes on without that note. Those marked `true` are about
+ * throws gives '' (or []) and the turn goes on without that note. Those marked IDENTITY are about
  * who is speaking or what may be shared: when one fails the turn carries the unverified-speaker
- * default (#3077). Same names and signatures as the originals, so call sites read as before.
+ * default (#3077). Those marked OWNER carry the owner's data (their name, home weather, a past
+ * call's summary, a contact read back, an account action): an unverified turn leaves them out
+ * (#3091). Same names and signatures as the originals, so call sites read as before.
  */
 
 import { worldNowNote as raw_worldNowNote } from '../shared/world-now.js';
@@ -49,29 +51,39 @@ import { styleFor as raw_styleFor } from './turn-request-style.js';
 import { noteTurn as raw_noteTurn } from './move-log.js';
 import { clearBurstOffer as raw_clearBurstOffer } from './vocal-bursts.js';
 import { noteReminder as raw_noteReminder } from '../shared/turn-receipt-session.js';
-import { guarded } from './turn-note-guard.js';
+import { guarded, IDENTITY, IDENTITY_OWNER } from './turn-note-guard.js';
 
-export const worldNowNote = guarded('worldNow', raw_worldNowNote, '', true);
-export const confirmedActionNote = guarded('confirmedAction', raw_confirmedActionNote, '', true);
-export const tuneTurnNote = guarded('namedTune', raw_tuneTurnNote, '', true);
-export const minorCareNote = guarded('minorCare', raw_minorCareNote, '', true);
-export const sexualBoundaryNote = guarded('sexualBoundary', raw_sexualBoundaryNote, '', true);
+export const worldNowNote = guarded('worldNow', raw_worldNowNote, '', IDENTITY_OWNER);
+export const confirmedActionNote = guarded(
+  'confirmedAction',
+  raw_confirmedActionNote,
+  '',
+  IDENTITY_OWNER
+);
+export const tuneTurnNote = guarded('namedTune', raw_tuneTurnNote, '', IDENTITY_OWNER);
+export const minorCareNote = guarded('minorCare', raw_minorCareNote, '', IDENTITY);
+export const sexualBoundaryNote = guarded('sexualBoundary', raw_sexualBoundaryNote, '', IDENTITY);
 export const inReturningCallerFlow = guarded(
   'returningFlow',
   raw_inReturningCallerFlow,
   true,
-  true
+  IDENTITY
 );
 export const returningCallerTurnNote = guarded(
   'returningCaller',
   raw_returningCallerTurnNote,
   '',
-  true
+  IDENTITY_OWNER
 );
-export const firstCallNote = guarded('firstCall', raw_firstCallNote, '', true);
-export const roomGuestsNote = guarded('roomGuests', raw_roomGuestsNote, '', true);
-export const nameCorrectionNote = guarded('nameCorrection', raw_nameCorrectionNote, '', true);
-export const callMeNote = guarded('callMe', raw_callMeNote, '', true);
+export const firstCallNote = guarded('firstCall', raw_firstCallNote, '', IDENTITY);
+export const roomGuestsNote = guarded('roomGuests', raw_roomGuestsNote, '', IDENTITY_OWNER);
+export const nameCorrectionNote = guarded(
+  'nameCorrection',
+  raw_nameCorrectionNote,
+  '',
+  IDENTITY_OWNER
+);
+export const callMeNote = guarded('callMe', raw_callMeNote, '', IDENTITY_OWNER);
 export const teammateIdentityNote = guarded('teammateIdentity', raw_teammateIdentityNote, '');
 export const aliasNoteFor = guarded('aliasNote', raw_aliasNoteFor, false);
 export const teamStatusNote = guarded('teamStatus', raw_teamStatusNote, '');

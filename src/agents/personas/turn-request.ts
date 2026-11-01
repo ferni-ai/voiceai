@@ -40,7 +40,7 @@ import { exitsHeld } from './exits-held.js';
 import { isFirstCall } from './first-call-rapport.js';
 import { accountMayKeepName, lastAgentLine, statedName } from './name-correction.js';
 import { priorCallsOf } from './personal-beats.js';
-import { noteCallReportReached, turnRequestFor } from './turn-call-report.js';
+import { turnRequestFor } from './turn-call-report.js';
 import {
   worldFactLinesFor,
   worldFactsNoteFor,
@@ -60,7 +60,14 @@ import { turnStyleReminderEnabled, withTurnStyleReminder } from './turn-style.js
 import { callSeed, signalsFor } from './turn-request-style.js';
 import { scriptFreeOn } from './script-free.js';
 import * as safe from './turn-notes-guarded.js';
-import { attempt, fallbackNote, guardedTurn } from './turn-note-guard.js';
+import {
+  attempt,
+  guardedTurn,
+  IDENTITY,
+  OWNER,
+  requestSent,
+  unverifiedReminder,
+} from './turn-note-guard.js';
 
 /**
  * The verified owner is on the line: rememberName may rename the account (remember-name.ts).
@@ -103,7 +110,8 @@ const userIdOf = (userData: unknown): string | undefined =>
  * the request without that note (turn-notes-guarded.ts) rather than no reply at all. gatedReply
  * adds crisis guidance after this, so a guided turn keeps it (2026-10-29: an owner check threw
  * on a crisis turn, #2996). A dropped identity, owner or privacy note puts the unverified-speaker
- * default in its place, so a failure never reads as a verified caller (#3077).
+ * default in its place, so a failure never reads as a verified caller (#3077), and that turn's
+ * request carries no owner-only context: facts, memories, call report, owner notes (#3091).
  */
 export function withTurnReminder(
   request: llm.ChatContext,
@@ -111,11 +119,7 @@ export function withTurnReminder(
   options: TurnReminderOptions = {}
 ): llm.ChatContext {
   const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
-  // Any fallback request still passes the call report gate (turn-call-report.ts, #3080).
-  const gate = (ctx: llm.ChatContext) => turnRequestFor(ctx, sessionId, options.shape === false)[0];
-  return guardedTurn(log, sessionId, request, gate, () =>
-    buildTurnReminder(request, session, options)
-  );
+  return guardedTurn(log, sessionId, request, () => buildTurnReminder(request, session, options));
 }
 
 type TurnReminderOptions = { shape?: boolean; closeLoop?: boolean; held?: Promise<unknown> | null };
@@ -143,7 +147,6 @@ function buildTurnReminder(
   const plain = !crisis && scriptFreeOn();
   const held = exitsHeld(sessionId, crisis); // no goodbye or no-question note (exits-held.ts)
   const firstCallHeld = { crisis, exitsHeld: held };
-  noteCallReportReached(sessionId, chatCtx, { latest: words, held: options.held, crisis: waits });
   // NO_INVENTED_INTERNALS=on: asked how he's built after a tool failed, or he just made it up.
   const internals = crisis
     ? ''
@@ -162,7 +165,7 @@ function buildTurnReminder(
   // REPAIR_MODE=on: own a correction, and keep earlier ones; none with crisis guidance.
   const corrected = crisis ? '' : safe.correctionNotesFor(chatCtx, session, process.env, plain);
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
-  const thought = crisis ? '' : attempt('thought', () => thoughtFor(session, words), '');
+  const thought = crisis ? '' : attempt('thought', () => thoughtFor(session, words), '', OWNER);
   // How Ferni is doing (FERNI_STATE=on), and if his own story may ride; none in a crisis.
   const state = safe.ferniStateTurn(chatCtx, session, { careful: options.shape === false });
   const style = turnStyleReminderEnabled()
@@ -273,12 +276,13 @@ function buildTurnReminder(
     offered: offered.length,
     droppedIdx: offered.flatMap((note, i) => (!held && !answering && keep(note) ? [] : [i])),
   });
-  return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
+  const sent = reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
+  return requestSent(sent, sessionId, { latest: words, held: options.held, crisis: waits });
 }
 
 /**
  * The notes as one reminder, after the world facts (WORLD_FACTS_IN_CALL=on); with CONTEXT_PACKET=on
- * the packet carries the same notes. A dropped identity note puts the unverified default first.
+ * the packet carries the same notes. A dropped identity note: the unverified reminder instead.
  */
 function reminderText(session: object, words: string, turnNotes: string[]): string {
   // Where their life stands (in-call-load.ts); nothing when off. About the caller, so a failure
@@ -295,11 +299,12 @@ function reminderText(session: object, words: string, turnNotes: string[]): stri
     'worldFacts',
     () => (packet ? worldFactLinesFor(caller, lifeAt) : [worldFactsNoteFor(caller, lifeAt)]),
     [] as string[],
-    true
+    IDENTITY
   );
-  // A dropped identity, owner or privacy note: until it can be built, the speaker is unverified.
-  const unverified = fallbackNote();
-  if (unverified) turnNotes.unshift(unverified);
+  // A dropped identity, owner or privacy note: until it can be built, the speaker is unverified,
+  // and gets no owner notes, world facts or packet memories (turn-note-guard.ts, #3091).
+  const unverified = unverifiedReminder(turnNotes);
+  if (unverified !== undefined) return unverified;
   const joined = [...facts, ...turnNotes].filter(Boolean).join(' ');
   return packet
     ? attempt('packet', () => packetReminder(session, words, turnNotes, facts), joined)
