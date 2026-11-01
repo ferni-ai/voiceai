@@ -137,6 +137,9 @@ describe('scoreConsentTranscript', () => {
       `${forMaya.text} But I refuse.`,
       forMaya.text.replace('I agree', "I don't agree"),
       `${forMaya.text} I decline.`,
+      forMaya.text.replace('I agree', 'I don\u2019t agree'),
+      forMaya.text.replace('I agree', "I didn't agree"),
+      `${forMaya.text} Nope.`,
     ]) {
       const score = scoreConsentTranscript(forMaya, heard);
       expect(score.coverage).toBe(1);
@@ -148,6 +151,19 @@ describe('scoreConsentTranscript', () => {
 
   it('has no refusal word in the statement itself', () => {
     expect(scoreConsentTranscript(forMaya, forMaya.text)).toMatchObject({
+      verified: true,
+      refusals: [],
+    });
+  });
+
+  it('verifies a subject whose name is a refusal word', () => {
+    const forNo = buildConsentStatement({
+      subjectName: 'No Min-ji',
+      creatorName: 'No Min-ji',
+      spokenDate: 'November 1, 2026',
+      random: seq(0, 0, 0),
+    });
+    expect(scoreConsentTranscript(forNo, forNo.text)).toMatchObject({
       verified: true,
       refusals: [],
     });

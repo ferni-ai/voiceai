@@ -121,7 +121,9 @@ export function buildConsentStatement(input: ConsentStatementInput): ConsentStat
 
 /** Lowercase whole words, numbers dropped (dates come back from speech to text in many forms). */
 export function consentWords(text: string): string[] {
-  return (text.toLowerCase().match(/\p{L}+(?:'\p{L}+)?/gu) ?? []).map((w) => w.replace(/'s$/, ''));
+  // Speech to text often writes curly apostrophes ("don’t"); read them as plain ones
+  const plain = text.toLowerCase().replace(/[\u2018\u2019]/g, "'");
+  return (plain.match(/\p{L}+(?:'\p{L}+)?/gu) ?? []).map((w) => w.replace(/'s$/, ''));
 }
 
 /** Words that turn the statement into a refusal ("I do not agree"); none is in the statement. */
@@ -142,7 +144,12 @@ const REFUSAL_WORDS = new Set([
   'revoke',
   'withhold',
   'forbid',
+  'nope',
+  'nah',
 ]);
+
+/** A refusal word, or any "n't" contraction (didn't, wouldn't, haven't). */
+const isRefusal = (w: string) => REFUSAL_WORDS.has(w) || w.endsWith("n't");
 
 export interface ConsentScore {
   /** True when every check word was said, enough of the statement was, and nothing refused it. */
@@ -164,7 +171,9 @@ export function scoreConsentTranscript(
   const found = expected.filter((w) => heard.has(w)).length;
   const coverage = expected.length ? found / expected.length : 0;
   const missingCheckWords = statement.checkWords.filter((w) => !heard.has(w));
-  const refusals = [...heard].filter((w) => REFUSAL_WORDS.has(w));
+  // A word the statement itself contains (a subject named No or Never) isn't a refusal
+  const own = new Set(consentWords(statement.text));
+  const refusals = [...heard].filter((w) => isRefusal(w) && !own.has(w));
   return {
     verified: missingCheckWords.length === 0 && refusals.length === 0 && coverage >= MIN_COVERAGE,
     refusals,
