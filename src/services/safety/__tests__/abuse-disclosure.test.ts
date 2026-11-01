@@ -9,7 +9,7 @@ import { readFileSync } from 'fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { startTurnCrisis } from '../../../agents/processors/turn-processor/turn-crisis.js';
 import { abuseDisclosure, abuseGuidance } from '../abuse-disclosure.js';
-import { resetCrisisCallRisk } from '../crisis-call-risk.js';
+import { noteCrisisRisk, resetCrisisCallRisk } from '../crisis-call-risk.js';
 import { resetCrisisClassifierCache, type CrisisGenerateFn } from '../crisis-classifier.js';
 import { resetCallRiskSnapshots } from '../crisis-lone-imminent.js';
 
@@ -129,6 +129,32 @@ describe('a disclosure through the turn pipeline', () => {
   it('988 too when they also say something about hurting themselves', async () => {
     const g = abuseGuidance(await summary('My dad hits me and I just want to kill myself.', ON));
     expect(g).toMatch(/\b988\b/);
+  });
+
+  it('988 too when they said something about hurting themselves earlier in the call', async () => {
+    resetCrisisClassifierCache();
+    resetCallRiskSnapshots();
+    const line = 'My dad hits me.';
+    const earlier = ['Sometimes I want to die.', line];
+    const t = startTurnCrisis(
+      line,
+      { recentTranscripts: earlier, turnCount: 2 },
+      { sessionId: `abuse-${++n}`, env: ON, generate: none }
+    );
+    expect(abuseGuidance(await t.summary())).toMatch(/\b988\b/);
+  });
+
+  it('988 too when risk was noted earlier on the call', async () => {
+    resetCrisisClassifierCache();
+    resetCallRiskSnapshots();
+    const call = `abuse-${++n}`;
+    noteCrisisRisk(call);
+    const t = startTurnCrisis(
+      'My dad hits me.',
+      { recentTranscripts: ['My dad hits me.'], turnCount: 2 },
+      { sessionId: call, env: ON, generate: none }
+    );
+    expect(abuseGuidance(await t.summary())).toMatch(/\b988\b/);
   });
 
   it('a turn already read as a crisis keeps everything it had', async () => {

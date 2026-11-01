@@ -13,7 +13,8 @@
  * - ask whether they are safe right now, and 911 if they are in danger now;
  * - Childhelp for a family member, relative, coach or teacher (a child's line); the National
  *   Domestic Violence Hotline for a partner; either, by age, when only "he" or "she" is named;
- * - the 988 line only when they also say something about hurting themselves.
+ * - the 988 line too unless the whole call is abuse-only: self-harm words this turn or earlier,
+ *   the patterns' self-risk, or risk noted earlier on the call keep it.
  *
  * Only adds: a turn already read as a crisis keeps everything it had, and gains the indicators.
  * Anchored so everyday uses ("my dad hits golf balls", "my brother beat me at chess", "the
@@ -86,16 +87,20 @@ const INDICATOR = 'abuse_disclosure';
 /** The settled turn with the flag on: an abuse disclosure is a crisis-level safety turn. */
 export function withAbuseDisclosure<T extends { crisis: CrisisDetectionResult; soft: boolean }>(
   settled: T,
-  text: string,
+  turn: { latest: string; earlier?: readonly string[] },
+  priorRisk: boolean,
   env: Env = process.env
 ): T {
   if (!flagOn('ABUSE_DISCLOSURE_PATTERNS', env)) return settled;
-  const found = abuseDisclosure(text);
+  const found = abuseDisclosure(turn.latest);
   if (!found) return settled;
   const { crisis } = settled;
-  // Pattern indicators (not the classifier's or the voice's) mean the patterns read self-harm.
+  // 988 stays unless the whole call is abuse-only: self-harm words in any turn, the patterns'
+  // self-risk this turn (not the classifier's or the voice's), or risk noted earlier on the call.
   const selfRisk =
-    crisis.isCrisis && crisis.indicators.some((i) => !/^(classifier|voice|who)/.test(i));
+    priorRisk ||
+    (turn.earlier ?? []).some((line) => SELF_HARM.test(line)) ||
+    (crisis.isCrisis && crisis.indicators.some((i) => !/^(classifier|voice|who)/.test(i)));
   const indicators = [
     ...crisis.indicators,
     INDICATOR,

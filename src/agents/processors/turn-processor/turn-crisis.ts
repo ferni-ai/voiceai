@@ -322,7 +322,7 @@ export function startTurnCrisis(
     }
     const read = easingOn ? (eased ??= easeTurn(turn)) : turn;
     // ABUSE_DISCLOSURE_PATTERNS: someone hurting the caller is a safety turn, after every read.
-    return read.then((s) => withAbuseDisclosure(s, userText, env));
+    return read.then((s) => withAbuseDisclosure(s, input, priorRisk, env));
   };
   return {
     patterns,
