@@ -487,8 +487,7 @@ export async function captureBackgroundResult(params: {
   );
 
   try {
-    // 1. Store the result
-    await storeResult(result, params.expireAt);
+    await storeResult(result, params.expireAt); // 1. Store the result
 
     // 2. Try to send to active session
     let sentToActive = false;

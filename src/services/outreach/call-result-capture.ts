@@ -42,8 +42,6 @@ export interface StoredCallResult {
     callType: string;
   };
   capturedAt: string;
-  /** When Firestore's TTL deletes this result (call-result-expiry.ts). */
-  expireAt: Date;
 }
 
 interface FollowUpAction {
@@ -66,7 +64,6 @@ const callResultStore = new Map<string, StoredCallResult>();
 /** Store a call result in Firestore (with in-memory fallback) */
 async function storeCallResult(result: StoredCallResult): Promise<void> {
   try {
-    // Try Firestore first
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({
       getFirestoreDb: null,
     }));
@@ -74,8 +71,8 @@ async function storeCallResult(result: StoredCallResult): Promise<void> {
     const db = getFirestoreDb ? getFirestoreDb() : null;
 
     if (db) {
-      // A Date, not cleanForFirestore's ISO string: a TTL policy only reads a Timestamp.
-      const clean = { ...cleanForFirestore(result), expireAt: result.expireAt };
+      // A Date, not an ISO string: Firestore's TTL (call-result-expiry.ts) reads only a Timestamp.
+      const clean = { ...cleanForFirestore(result), expireAt: callResultExpireAt() };
       await db
         .collection('bogle_users')
         .doc(result.userId)
@@ -104,12 +101,10 @@ async function storeCallResult(result: StoredCallResult): Promise<void> {
 
       log.debug({ callId: result.callId }, 'Call result stored in Firestore');
     } else {
-      // Fallback to in-memory
       callResultStore.set(result.callId, result);
       log.debug({ callId: result.callId }, 'Call result stored in memory');
     }
   } catch (error) {
-    // Store in memory as fallback
     callResultStore.set(result.callId, result);
     log.warn(
       { error: String(error), callId: result.callId },
@@ -351,7 +346,6 @@ export async function captureCallResult(
         callType: request.callType,
       },
       capturedAt: new Date().toISOString(),
-      expireAt: callResultExpireAt(),
     };
 
     // 2. Store the result, 3. follow-up actions (keyed by callId, so a second capture rewrites them)
@@ -368,7 +362,7 @@ export async function captureCallResult(
         push: async (lead) => sendCallResultPushNotification(request, outcome, callId, lead),
         email: async () => sendCallResultEmail(request, outcome, callId),
         calendar: async () => createCallbackCalendarEvent(request, outcome, callId),
-        record: async () => storeInUnifiedResults(request, outcome, callId, result.expireAt),
+        record: async () => storeInUnifiedResults(request, outcome, callId),
         text: async (live) => tellOwnerAboutCall({ request, outcome, callId, live }),
         textOn: () => callResultTextOn(),
       }
@@ -738,8 +732,7 @@ async function getUserEmail(userId: string): Promise<string | null> {
 async function storeInUnifiedResults(
   request: OnBehalfCallRequest,
   outcome: CallOutcome,
-  callId: string,
-  expireAt: Date
+  callId: string
 ): Promise<void> {
   try {
     const { captureBackgroundResult } =
@@ -794,7 +787,7 @@ async function storeInUnifiedResults(
       // a second push on every call and a second email for a callback (audit 2026-10-29, C).
       skipPush: true,
       skipEmail: true,
-      expireAt, // the copy goes when the call result does
+      expireAt: callResultExpireAt(), // the copy goes when the call result does
     });
 
     log.debug({ callId }, 'Call result stored in unified background results');
