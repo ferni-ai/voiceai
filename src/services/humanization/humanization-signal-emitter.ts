@@ -178,7 +178,7 @@ export async function emitMemoryCallback(payload: MemoryCallbackPayload): Promis
       type: 'memory_callback',
     });
 
-    logger.debug({ phrase: payload.quotedPhrase.slice(0, 30) }, 'Memory callback emitted');
+    logger.debug({ phraseLen: payload.quotedPhrase.length }, 'Memory callback emitted');
   } catch (error) {
     logger.warn({ error }, 'Failed to emit memory callback');
   }

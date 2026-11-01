@@ -15,8 +15,8 @@
 
 import { isMotionFlagOn } from '../../config/motion-flags.js';
 import { audioService } from '../../services/audio.service.js';
-import { gsap } from '../../utils/gsap-setup.js';
 import { getLidBasePaths } from '../ferni-expressions.ui.js';
+import { handLidPathsToVoice, takeLidPathsBack } from './lid-path-owner.js';
 import { NEUTRAL_DOME_PATHS } from '../face/dome-poses.js';
 
 /** Neutral lids, used until ferni-expressions has set an expression. */
@@ -131,38 +131,35 @@ export interface LidElements {
 
 let shownTop: ParsedPath | null = null;
 let shownBottom: ParsedPath | null = null;
-let lastBaseKey = '';
 
-/**
- * While the voice owns the lids, an expression's GSAP path tween would fight
- * this frame writer, so stop it (its transform squeeze keeps running) and
- * ease to the new shape here instead.
- */
-function takeOverPathTweens(lids: LidElements, baseKey: string): void {
-  if (baseKey === lastBaseKey && shownTop) return;
-  lastBaseKey = baseKey;
-  const targets = [lids.top, lids.bottom].filter((el): el is SVGPathElement => el !== null);
-  // gsap is the CDN global and can be missing if the script failed to load
-  if (targets.length > 0) (gsap as typeof gsap | undefined)?.killTweensOf(targets, 'd');
+/** Where a lid is now, so taking over mid-expression continues from it instead of jumping. */
+function pathOnScreen(lid: SVGPathElement | null): ParsedPath | null {
+  const d = lid?.getAttribute('d');
+  return d ? parseLidPath(d) : null;
+}
+
+/** The voice is about to write the lids every frame: stop the expression's path tweens. */
+export function claimBlendedLids(): void {
+  handLidPathsToVoice();
 }
 
 /** One speaking frame: the expression's shape, opened by the voice. */
 export function writeBlendedLids(lids: LidElements, volume: number): void {
+  claimBlendedLids();
   const base = getLidBasePaths() ?? NEUTRAL_LID_PATHS;
-  takeOverPathTweens(lids, `${base.top}|${base.bottom}`);
   const target = { top: parseLidPath(base.top), bottom: parseLidPath(base.bottom) };
-  shownTop = easeLidPath(shownTop, target.top, LID_SHAPE_EASE);
-  shownBottom = easeLidPath(shownBottom, target.bottom, LID_SHAPE_EASE);
+  shownTop = easeLidPath(shownTop ?? pathOnScreen(lids.top), target.top, LID_SHAPE_EASE);
+  shownBottom = easeLidPath(shownBottom ?? pathOnScreen(lids.bottom), target.bottom, LID_SHAPE_EASE);
   lids.top?.setAttribute('d', formatLidPath(shownTop));
   lids.bottom?.setAttribute('d', formatLidPath(openBottomLid(shownBottom, volume)));
 }
 
-/** Speech ended: leave the lids on the current expression, not on neutral. */
+/** Speech ended: leave the lids on the current expression, not on neutral, and hand them back. */
 export function settleBlendedLids(lids: LidElements): void {
   const base = getLidBasePaths() ?? NEUTRAL_LID_PATHS;
   lids.top?.setAttribute('d', base.top);
   lids.bottom?.setAttribute('d', base.bottom);
   shownTop = null;
   shownBottom = null;
-  lastBaseKey = '';
+  takeLidPathsBack();
 }

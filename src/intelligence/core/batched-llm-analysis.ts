@@ -304,7 +304,7 @@ class BatchedLLMAnalyzer {
         {
           analyses: analyses.length,
           durationMs,
-          message: request.message.slice(0, 50),
+          messageLen: request.message.length,
         },
         'Batched analysis complete'
       );

@@ -388,7 +388,7 @@
     "end": "End",
     "untilNextTime": "Until next time",
     "endConversation": "End conversation",
-    "endConversationGoodbye": "End conversation - Goodbye",
+    "goodbyeEndCall": "Goodbye. End call.",
     "takeCare": "Take care.",
     "ending": "Call ended"
   },
@@ -9422,6 +9422,7 @@
   },
   "dataExport": {
     "title": "Privacy & your data",
+    "loadFailed": "I couldn't load what I've saved for you just now. Nothing has changed.",
     "intro": {
       "one": "You have {count} item across {categories}. Select what to export.",
       "other": "You have {count} items across {categories}. Select what to export."
@@ -10297,7 +10298,6 @@
       "other": "{count} conversations left. I'm here whenever you need me."
     },
     "gettingReady": "Getting ready...",
-    "connecting": "Connecting",
     "almostThere": "Almost there...",
     "waitingQuietly": "I'll wait quietly",
     "listening": "I'm listening",
@@ -10907,7 +10907,8 @@
     "tapToCancel": "Tap to cancel",
     "stillCalling": "Still reaching {name}…",
     "stillCallingCancel": "Still reaching {name}. Tap to cancel.",
-    "reconnecting": "Reconnecting…"
+    "reconnecting": "Reconnecting…",
+    "arrived": "{name} is here"
   },
   "callRoom": {
     "connecting": "Calling {name}…",

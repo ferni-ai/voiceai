@@ -2,6 +2,7 @@
  * Telephony audio profile: applies only to SIP listeners with
  * PHONE_VOICE_PROFILE=on, and its EQ/compression stay inside level limits.
  */
+import { USERDATA_TIMED_TRANSCRIPT, USERDATA_TTS_STARTED_TIME, voice } from '@livekit/agents';
 import { AudioFrame, ParticipantKind } from '@livekit/rtc-node';
 import { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -186,6 +187,22 @@ describe('level limits', () => {
     const flat = y.filter((v) => Math.abs(v) >= CEILING - 1e-6).length;
     expect(flat).toBeLessThan(20);
     expect(y.every(Number.isFinite)).toBe(true);
+  });
+
+  it('word timings ride through unchanged (TTS_ALIGNED_TRANSCRIPT, #3200); nothing else is added', async () => {
+    notePhoneListener('call-1', SIP);
+    const words = [voice.createTimedString({ text: 'hi ', startTime: 0.02, endTime: 0.1 })];
+    const [first, second] = framesOf(speechLike(-20, 0.04));
+    const input = [
+      new AudioFrame(first.data, SR, 1, first.samplesPerChannel, {
+        [USERDATA_TIMED_TRANSCRIPT]: words,
+        [USERDATA_TTS_STARTED_TIME]: 1,
+      }),
+      second,
+    ];
+    const out = await drain(applyPhoneVoiceProfile(streamOf(input), 'call-1', ON));
+    expect(out[0].userdata).toEqual({ [USERDATA_TIMED_TRANSCRIPT]: words });
+    expect(out[1].userdata).toEqual({});
   });
 
   it('the frame path holds the ceiling too (no int16 wrap)', async () => {

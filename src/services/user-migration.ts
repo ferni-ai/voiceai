@@ -243,6 +243,8 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
         linkedIdentifiers: [...(sourceProfile.linkedIdentifiers || []), legacyUserId],
         lastContact: new Date(),
       };
+      // The account's record first: a used profile never creates a missing record
+      await store.getOrCreateProfile(firebaseUid); // (profile-write-unless-erased.ts)
       await store.saveProfile(migratedProfile);
       log.info('Created migrated profile');
     }

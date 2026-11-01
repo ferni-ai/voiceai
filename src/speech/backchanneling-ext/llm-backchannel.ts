@@ -241,7 +241,7 @@ export function generateBackchannelInstructions(
       sessionId,
       type,
       turnNumber,
-      recentSpeech: context.recentUserSpeech.slice(-50),
+      recentSpeechLen: context.recentUserSpeech.length,
     },
     'Generated LLM backchannel instructions'
   );
@@ -403,7 +403,7 @@ export function generateResonanceCheck(
     {
       sessionId,
       capability: superhumanCapability,
-      insight: insightSurfaced?.slice(0, 50),
+      insightLen: insightSurfaced?.length,
     },
     'Generating resonance check'
   );

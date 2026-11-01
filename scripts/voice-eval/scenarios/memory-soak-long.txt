@@ -1,0 +1,137 @@
+# Soak call for worker memory: ~35 minutes of light, fictional small talk (one caller, no risk).
+# Each line is followed by a short quiet pause so the call runs long.
+Hey, how's it going? I've got some time to chat today.
+@pause 9000 -
+I've been thinking about starting a vegetable garden this spring.
+@pause 9000 -
+The backyard gets sun most of the afternoon, but the soil is pretty clay heavy.
+@pause 9000 -
+Do tomatoes mind clay, or should I build raised beds?
+@pause 9000 -
+Raised beds sound like a weekend project. How tall should they be?
+@pause 9000 -
+I was thinking cedar boards. Is that worth the extra cost?
+@pause 9000 -
+What would you plant first if it were your garden?
+@pause 9000 -
+I like basil a lot. Does it grow well next to tomatoes?
+@pause 9000 -
+My neighbor said marigolds keep bugs away. Is that true?
+@pause 9000 -
+Okay, switching topics. I'm trying to cook more at home.
+@pause 9000 -
+Last night I made a lentil soup and it came out kind of bland.
+@pause 9000 -
+I used onions, carrots, lentils and some vegetable stock.
+@pause 9000 -
+Lemon at the end? I never thought of that.
+@pause 9000 -
+What about cumin? I have a jar I never open.
+@pause 9000 -
+I also want to learn to make bread. Is sourdough too hard for a beginner?
+@pause 9000 -
+How long does a starter take before it's ready?
+@pause 9000 -
+Maybe I'll start with a simple loaf first. Any tips?
+@pause 9000 -
+My book club is reading a long mystery novel right now.
+@pause 9000 -
+It's set on a small island and everyone is a suspect.
+@pause 9000 -
+I'm about halfway and I already think the lighthouse keeper did it.
+@pause 9000 -
+Do you like mysteries, or are they too predictable?
+@pause 9000 -
+We meet every second Thursday. It's mostly an excuse for snacks.
+@pause 9000 -
+What snack would you bring to a book club?
+@pause 9000 -
+Okay, here's another one. I want to go hiking more this fall.
+@pause 9000 -
+There's a trail near me, about six miles round trip with some climbing.
+@pause 9000 -
+What should I pack for a half day hike?
+@pause 9000 -
+Do I really need hiking boots, or are running shoes fine?
+@pause 9000 -
+I always forget to drink enough water on the trail.
+@pause 9000 -
+Some people use poles. Do they actually help?
+@pause 9000 -
+I'm also thinking about a weekend camping trip with two friends.
+@pause 9000 -
+None of us has camped in years. What's the one thing people forget?
+@pause 9000 -
+Should we cook over a fire or bring a little stove?
+@pause 9000 -
+What's an easy camp dinner that isn't just hot dogs?
+@pause 9000 -
+Foil packets sound fun. What goes in them?
+@pause 9000 -
+Okay, let's talk about something totally different. I'm learning guitar.
+@pause 9000 -
+I can play three chords so far, G, C and D.
+@pause 9000 -
+My fingertips hurt a lot. Does that go away?
+@pause 9000 -
+How long should I practice each day?
+@pause 9000 -
+What song should I learn with just those chords?
+@pause 9000 -
+My cat sits on the guitar case when I try to practice.
+@pause 9000 -
+She's a gray tabby named Pickle. She is very opinionated.
+@pause 9000 -
+Why do cats always sit on whatever you need?
+@pause 9000 -
+She also wakes me up at five every morning for breakfast.
+@pause 9000 -
+Is there any way to change that, or is that just life now?
+@pause 9000 -
+Back to the garden for a second. When should I start seeds indoors?
+@pause 9000 -
+Do I need grow lights or is a sunny window enough?
+@pause 9000 -
+How do I know when the seedlings are ready to go outside?
+@pause 9000 -
+What's hardening off? I keep reading that.
+@pause 9000 -
+I think I'll try peppers too. Are they harder than tomatoes?
+@pause 9000 -
+Let me ask about the soup again. Could I freeze it?
+@pause 9000 -
+How long does it keep in the freezer?
+@pause 9000 -
+I want to make a big batch on Sundays and eat it all week.
+@pause 9000 -
+What else freezes well for lunches?
+@pause 9000 -
+Okay, another random one. I've been trying to read before bed instead of scrolling.
+@pause 9000 -
+It works for a few days and then I slip back into my phone.
+@pause 9000 -
+What's a trick that actually makes a habit stick?
+@pause 9000 -
+Putting the phone in another room sounds hard but I'll try it.
+@pause 9000 -
+I also want to walk more during the day. Maybe after lunch.
+@pause 9000 -
+Does a short walk after eating actually help with anything?
+@pause 9000 -
+Alright, tell me something interesting you've learned lately.
+@pause 9000 -
+That's pretty cool. I didn't know that.
+@pause 9000 -
+Let's plan my weekend. Saturday morning hike, afternoon build the garden bed.
+@pause 9000 -
+Sunday the soup batch and some guitar practice. Does that sound too packed?
+@pause 9000 -
+Maybe I'll move the guitar to weekday evenings.
+@pause 9000 -
+What would you add to make the weekend feel restful?
+@pause 9000 -
+That's a good idea. I'll keep Sunday evening free.
+@pause 9000 -
+This was a really nice chat. Thanks for helping me think it through.
+I should get going and make some dinner.
+Talk to you later. Bye!

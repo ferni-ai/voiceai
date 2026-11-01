@@ -34,7 +34,7 @@ export function getSessionAudioProsodyAnalyzer(sessionId: string): AudioProsodyA
 export function resetSessionAudioProsodyAnalyzer(sessionId: string): void {
   const analyzer = sessionAnalyzers.get(sessionId);
   if (analyzer) {
-    analyzer.reset();
+    analyzer.dispose();
     sessionAnalyzers.delete(sessionId);
   }
   // Also clear metrics for this session

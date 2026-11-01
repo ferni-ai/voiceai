@@ -13,6 +13,7 @@
  */
 
 import { isCallRoomEnabled } from '../../config/call-room-flag.js';
+import { personaFirstName } from '../../config/personas.js';
 import { t } from '../../i18n/index.js';
 import { appState } from '../../state/app.state.js';
 import type { AudioState, ConnectionState } from '../../types/events.js';
@@ -73,7 +74,8 @@ function render(): void {
   document.body.classList.toggle(CALL_ROOM_CLASS, key !== null);
   const line = stateLine();
   if (!line) return;
-  const name = appState.get('activePersona')?.name || 'Ferni';
+  const fullName = appState.get('activePersona')?.name;
+  const name = fullName ? personaFirstName(fullName) : 'Ferni';
   const text = key ? t(key, { name }) : '';
   if (line.textContent !== text) line.textContent = text;
   line.dataset.state = key?.split('.')[1] ?? '';

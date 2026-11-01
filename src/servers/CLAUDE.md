@@ -167,6 +167,9 @@ record and answered as `needs_reauth` (status shows `needs_reauth: true`, `linke
 
 Without the id and secret the connect row is refused as unavailable (`oauth-start.ts`).
 
+The agent's `getSleepSummary` tool (`tools/domains/wellness/sleep-summary.ts`) is off unless
+`OURA_SLEEP_TOOL=on` and the agent holds `OURA_CLIENT_ID` and `OURA_CLIENT_SECRET`.
+
 ---
 
 ## Demo Rate Limiting

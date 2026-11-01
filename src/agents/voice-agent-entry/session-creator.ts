@@ -8,6 +8,7 @@
  */
 
 import type { PersonaConfig } from '../../personas/types.js';
+import { gateScriptedSay } from '../personas/scripted-name-gate.js';
 import { routeSayThroughModel } from '../shared/native-speech.js';
 import type { VoiceDeps } from '../voice-agent/phases/index.js';
 import type { UserLocation } from './types.js';
@@ -453,6 +454,8 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
   if (session && modelProvider.speaksNatively?.()) {
     routeSayThroughModel(session as unknown as Parameters<typeof routeSayThroughModel>[0]);
   }
+  // NAME_GATE_V2: scripted say() lines get the name gate (agents/personas/scripted-name-gate.ts).
+  if (session) gateScriptedSay(session);
 
   // Add cleanup handler for retry counter WeakMap
   const { clearRetryCounter } = await import('../shared/sanitizer/index.js');

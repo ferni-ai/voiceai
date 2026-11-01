@@ -864,7 +864,7 @@ export async function generateGreeting(
       );
       if (intentionFollowUp) {
         getLogger().info(
-          { persona: persona.id, intention: relevantIntention.intention.slice(0, 50) },
+          { persona: persona.id, intentionLen: relevantIntention.intention.length },
           '📋 Including intention follow-up in greeting'
         );
         return intentionFollowUp;

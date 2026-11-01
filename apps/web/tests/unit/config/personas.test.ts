@@ -13,6 +13,7 @@ import {
   getTeamMembers,
   normalizeAgentId,
   normalizeSpeakerId,
+  personaFirstName,
 } from '../../../src/config/personas.js';
 import { getPersonaColors } from '../../../src/config/persona-colors.js';
 import type { PersonaId } from '../../../src/types/persona.js';
@@ -251,6 +252,15 @@ describe('Personas Config', () => {
       expect(tom.colors.primary).not.toBe(getPersona('peter-john').colors.primary);
       expect(getPersona('john-bogle').name).toBe('Henry Caldwell');
       expect(getPersona('joel-dickson').name).toBe('Nate Holloway');
+    });
+  });
+
+  describe('personaFirstName', () => {
+    it('is the first word of the display name', () => {
+      expect(personaFirstName(getPersona('jordan-taylor').name)).toBe('Jordan');
+      expect(personaFirstName(getPersona('maya-santos').name)).toBe('Maya');
+      expect(personaFirstName('Ferni')).toBe('Ferni');
+      expect(personaFirstName('  Nate   Holloway ')).toBe('Nate');
     });
   });
 });

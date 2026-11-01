@@ -6,9 +6,10 @@
  * message). The user's tap comes back as `speaker_check_reply` and is applied to
  * what the agent already tracks about who is speaking:
  *
- * - the SpeakerChangeDetector (`setCurrentSpeaker`): the voice now speaking
- *   becomes the reference voice, tagged as the primary user or as a guest, so the
- *   detector stops treating it as a change;
+ * - the SpeakerChangeDetector (`setCurrentSpeaker`): the voice now speaking is
+ *   tagged as the primary user or as a guest; on "still me" the caller's recent
+ *   voice also becomes the reference (`reanchorToRecentVoice`, SPEAKER_CHECK_STRICT),
+ *   so the detector stops treating it as a change;
  * - the household session (`updateSessionSpeaker`): `currentUserId` becomes the
  *   primary user's id or GUEST_SPEAKER_ID, and the change is recorded.
  *
@@ -115,7 +116,10 @@ export async function applySpeakerCheckReply(
 ): Promise<string> {
   const speakerId =
     answer === 'still_me' ? (primaryUserId ?? PRIMARY_SPEAKER_ID) : GUEST_SPEAKER_ID;
-  getSpeakerChangeDetector(sessionId).setCurrentSpeaker(speakerId);
+  const detector = getSpeakerChangeDetector(sessionId);
+  detector.setCurrentSpeaker(speakerId);
+  // The voice it heard as new is the caller's: re-anchor so one tap stops the repeats
+  if (answer === 'still_me') detector.reanchorToRecentVoice();
   await updateSessionSpeaker(sessionId, speakerId, 1);
   diag.session('👥 Speaker check answered', {
     answer,

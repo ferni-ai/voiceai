@@ -96,6 +96,21 @@ describe('self-answer', () => {
   });
 });
 
+describe('self-answer: "Well," opens Ferni\'s own reply, not an answer for the caller (#3164)', () => {
+  const lateNight = (reply) =>
+    call(["a: Hey Sam, what's keeping you up so late?", "u: Hey Ferni, it's me.", `a: ${reply}`]);
+  it.each([
+    'Well, hey, Jazz… good to hear you.',
+    'Well, week one, huh.',
+    "Well, four in the morning is a rough time… What's got you awake?",
+  ])('passes %j', (reply) => {
+    expect(hits('self-answer', lateNight(reply))).toEqual([]);
+  });
+  it('still flags a real answer after the same opener', () => {
+    expect(hits('self-answer', lateNight("Yeah, I just can't sleep tonight."))).toHaveLength(1);
+  });
+});
+
 describe("self-answer: a state report to its own how's-your-evening ask (dev 1cf4bd64b facts-recall)", () => {
   const evening = (reply, said = "Hey Ferni, it's me again.") =>
     call(["a: Hey Sam, how's your evening going?", `u: ${said}`, `a: ${reply}`], { priorCalls: 1 });
@@ -425,6 +440,39 @@ describe('dead-air', () => {
     const c = call(unanswered, { drop: [2], gaps: { 1: 920000 }, edit: stretch });
     expect(c.callerSpeech[0]).toHaveLength(2);
     expect(hits('dead-air', c)).toEqual([]);
+  });
+});
+
+describe('dead-air: a silence-only caller line is no caller turn (#3164, crisis-relay t4)', () => {
+  // Ferni asks back, the caller's next line is [[slnc 1500]] (a cut-off), then the caller speaks
+  // 15 s later: the silence owed no reply, and the turn before it was answered.
+  const cutOff = ['a: Hi.', 'u: Can you call my dad for me?', 'a: Want me to call him now?', 'u: [[slnc 1500]]', 'u: Sorry. Yes please.']; // prettier-ignore
+  /** converse.mjs records [start, end, audioMs, peak]; line 1 is the silence. */
+  const peaks =
+    (...p) =>
+    (r) =>
+      r.userSpeech.forEach((l, k) => l.push(2000, p[k]));
+  it('passes when the silent line (peak 18) is followed by 15 s of quiet', () => {
+    const c = call(cutOff, { gaps: { 3: 13000 }, edit: peaks(25649, 18, 25649) });
+    expect(c.callerSpeech[1][3]).toBe(18);
+    expect(hits('dead-air', c)).toEqual([]);
+  });
+  it('flags the same 15 s when that line was speech (peak 9000)', () => {
+    const c = call(cutOff, { gaps: { 3: 13000 }, edit: peaks(25649, 9000, 25649) });
+    expect(hits('dead-air', c)).toEqual([
+      expect.objectContaining({ why: 'caller turn unanswered for 15.0 s' }),
+    ]);
+  });
+  it('flags a spoken turn left unanswered across a silent line', () => {
+    const ignored = ['a: Hi.', 'u: Can you call my dad?', 'u: [[slnc 1500]]', 'u: Hello?'];
+    const c = call(ignored, { gaps: { 1: 6000, 2: 6000 }, edit: peaks(25649, 18, 25649) });
+    expect(hits('dead-air', c)).toEqual([
+      expect.objectContaining({ why: 'caller turn unanswered for 18.0 s' }),
+    ]);
+  });
+  it('counts a line from an older run file with no peak', () => {
+    const c = call(cutOff, { gaps: { 3: 13000 }, edit: (r) => r.userSpeech.forEach((l) => l.push(2000)) }); // prettier-ignore
+    expect(hits('dead-air', c)).toHaveLength(1);
   });
 });
 

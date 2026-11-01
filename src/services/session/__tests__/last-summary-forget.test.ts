@@ -265,11 +265,12 @@ describe('#2767: a forgotten topic stays out of the next call', () => {
   });
 
   // endSession and the call-end save run for real in last-summary-endsession.test.ts; the
-  // periodic autosave is a timer no test drives, so its wiring is pinned here.
+  // autosave (driven in sessions-together-save.test.ts) shares one save helper, pinned here.
   it('the autosave saves through the checked helper (wiring)', async () => {
     const { readFileSync } = await import('node:fs');
     const src = readFileSync(new URL('../session-manager.ts', import.meta.url), 'utf8');
-    expect(src).toContain('saveKept(global.store, updatedProfile, uid)');
+    expect(src).toContain('saveKept(global.store, sessionCount.forSave(profile), uid)');
+    expect(src).toContain('await saveSessionProfile(updatedProfile, uid);');
     expect(src).not.toMatch(/global\.store\.saveProfile\(/);
   });
 });

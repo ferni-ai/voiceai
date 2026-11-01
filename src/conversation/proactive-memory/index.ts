@@ -162,7 +162,7 @@ export class ProactiveMemoryEngine {
       sessionId: this.currentSessionId,
     });
 
-    logger.debug({ type: memory.type, content: memory.content.slice(0, 30) }, '💾 Memory captured');
+    logger.debug({ type: memory.type, contentLen: memory.content.length }, '💾 Memory captured');
 
     // Keep max memories
     this.trimMemories();
@@ -231,7 +231,7 @@ export class ProactiveMemoryEngine {
       memory.surfaced = true;
       memory.surfaceCount++;
       memory.lastSurfacedAt = new Date();
-      logger.debug({ memoryId, content: memory.content.slice(0, 30) }, 'Memory surfaced');
+      logger.debug({ memoryId, contentLen: memory.content.length }, 'Memory surfaced');
     }
   }
 

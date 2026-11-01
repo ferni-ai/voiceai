@@ -31,7 +31,10 @@ export const BQ_ENUMS = {
   outcome: [
     ...['pending', 'sent', 'replied', 'ignored', 'failed'],
     ...['answered', 'no_answer', 'busy', 'declined'],
+    // followthrough_outcomes (bq-followthrough.ts)
+    ...['done', 'not_done', 'deflected', 'unanswered'],
   ],
+  item_kind: ['commitment'],
   reason: [
     ...['no-hash-secret', 'no-verified-phone', 'recently-sent', 'sms-off', 'opted-out'],
     ...['send-failed', 'bad-number', 'quiet-hours', 'needs-consent'],
@@ -84,8 +87,7 @@ export const FIELD_VALUE: Record<string, (v: string) => string> = {
   agent_version: (v) => (/^(?=.*[a-f])[0-9a-f]{7,12}$/.test(v) ? v : OTHER),
   flags: (v) => (Object.hasOwn(FLAG_MANIFEST, v) ? v : OTHER),
   tools_called: (v) => (toolNames.has(v) ? v : OTHER),
-  // no producer yet: nothing allowed until one adds its list
-  item_kind: () => OTHER,
+  // no producer writes it yet: nothing allowed until one adds its list
   surfaced_via: () => OTHER,
   // the bench, the run's day and 6 random hex: no room for a phone number or an email
   run_id: (v) => (/^(bar|recall|longmem|live)-\d{8}-[a-f0-9]{6}$/.test(v) ? v : OTHER),

@@ -226,11 +226,14 @@ describe('on the live request path', () => {
   const last = (c: llm.ChatContext) =>
     (c.items[c.items.length - 1] as { textContent?: string }).textContent ?? '';
 
+  // A call with a session id: without one, call risk can't be read and exits are held (exits-held.ts).
+  const CALL = { userData: { services: { sessionId: 'happy-exits' } } };
+
   it('adds the goodbye note last, after the turn shape, only with the flag on', () => {
     delete process.env.HAPPY_EXITS;
-    expect(last(withTurnReminder(ctx(...PLAIN_CALL), {}))).not.toMatch(EXIT_LINE);
+    expect(last(withTurnReminder(ctx(...PLAIN_CALL), CALL))).not.toMatch(EXIT_LINE);
     process.env.HAPPY_EXITS = 'on';
-    const reminder = last(withTurnReminder(ctx(...PLAIN_CALL), {}));
+    const reminder = last(withTurnReminder(ctx(...PLAIN_CALL), CALL));
     expect(reminder).toMatch(EXIT_LINE);
     // After the shape's question line, so "No question" is what the model reads last.
     const question = Math.max(

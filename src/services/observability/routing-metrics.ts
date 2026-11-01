@@ -127,7 +127,7 @@ export class FTISMetricsCollector {
     if (outcome.wasCorrect === false) {
       log.warn(
         {
-          query: outcome.query.slice(0, 40),
+          queryLen: outcome.query.length,
           predicted: outcome.predictedCategory,
           executed: outcome.executedTool,
           confidence: outcome.effectiveConfidence.toFixed(3),

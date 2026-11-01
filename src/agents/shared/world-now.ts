@@ -153,9 +153,8 @@ interface SessionView {
 
 /**
  * The caller's zone for this call: the one the call already reads a time in.
- * That is the browser's, or a verified owner's profile zone that phone-parity.ts
- * hands the call (PHONE_PARITY=on); never an unverified caller's or a sponsor's.
- * A profile zone reaches a call only through phone-parity.ts.
+ * That is the browser's; never an unverified caller's or a sponsor's. A profile
+ * zone reaches a call only through phone-parity.ts.
  */
 export function callerZoneOf(session: object): string | undefined {
   return (session as SessionView).userData?.callerTimezone;

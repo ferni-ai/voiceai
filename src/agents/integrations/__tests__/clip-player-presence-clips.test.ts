@@ -34,14 +34,9 @@ vi.mock('../presence-watcher.js', async (importOriginal) => {
 
 const { ClipPlayer, startBackchannelClips } = await import('../clip-player.js');
 const { loadPresenceClips, presenceClipDirs } = await import('../presence-clips.js');
+const { synthHum } = await import('../presence-sounds.js');
 
-const FLAGS = [
-  'PRESENCE_SOUNDS',
-  'PRESENCE_SNORE',
-  'PRESENCE_HUM',
-  'VOICED_PRESENCE',
-  'PRESENCE_SOUND_ASSETS',
-];
+const FLAGS = ['PRESENCE_SOUNDS', 'PRESENCE_SNORE', 'VOICED_PRESENCE', 'PRESENCE_SOUND_ASSETS'];
 
 /** The PCM each presence watcher plays: [whistle, snore]. */
 async function played(): Promise<Buffer[]> {
@@ -72,7 +67,8 @@ describe('presence clips in the clip player', () => {
     watchers.length = 0;
     process.env.PRESENCE_SOUNDS = 'on';
     process.env.PRESENCE_SNORE = 'on';
-    process.env.PRESENCE_HUM = 'off';
+    // At or over 0.5 the easy-silence watcher whistles; under it, it hums.
+    vi.spyOn(Math, 'random').mockReturnValue(0.99);
     process.env.VOICED_PRESENCE = 'off';
   });
   afterEach(() => {
@@ -91,6 +87,13 @@ describe('presence clips in the clip player', () => {
     const [whistle, snore] = await played();
     expect(isOneOf(whistle!, whistles)).toBe(true);
     expect(isOneOf(snore!, snores)).toBe(true);
+  });
+
+  it('hums instead of whistling on a draw under 0.5', async () => {
+    delete process.env.PRESENCE_SOUND_ASSETS;
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const [hum] = await played();
+    expect(hum!.equals(Buffer.from(synthHum()))).toBe(true);
   });
 
   it('plays the synthesized whistle and snore with it off', async () => {

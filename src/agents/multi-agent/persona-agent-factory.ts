@@ -40,7 +40,6 @@ import { attachCallWrapUp } from '../shared/call-wrap-up.js';
 import { isOnBehalfCall } from '../shared/outbound-opener.js';
 import { roomOutputOptions } from './room-output-options.js';
 import { markCallStageSoon } from '../../services/analytics/call-start-stages.js';
-import { registerSessionEndedSignal } from './session-ended-signal.js';
 import { sessionRecording } from '../shared/session-recording.js';
 
 const log = getLogger();
@@ -253,8 +252,6 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
 
       // Register session for gateway access (enables generateReplyBySessionId)
       registerSessionForReconnection(sessionId, agentSetup.session);
-      // Session closes on an error: tell the caller's app before we leave (SESSION_ENDED_SIGNAL)
-      registerSessionEndedSignal(agentSetup.session, context.room, sessionId);
 
       // Speech coordination BEFORE prewarm — greeting (TTS) needs it and must
       // not wait for Gemini. Overlap: user hears greeting while prewarm runs.

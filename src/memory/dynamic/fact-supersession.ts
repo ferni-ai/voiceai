@@ -21,6 +21,7 @@
  * @module memory/dynamic/fact-supersession
  */
 import { createLogger } from '../../utils/safe-logger.js';
+import { isCallerName } from '../domain/person-key.js';
 import { contentWords } from '../recall/session-recall.js';
 
 const log = createLogger({ module: 'fact-supersession' });
@@ -58,30 +59,48 @@ export type SupersessionLLM = (prompt: string) => Promise<string | null>;
 const MAX_OLDER = 60;
 const MAX_NEWER = 40;
 
-const SELF = /^(?:the )?(?:speaker|user|me|caller)$/i;
 /** "The book club" and "book club" are one subject; so are "User" and "Speaker". */
 function subject(entity: string): string {
   const e = entity.trim().toLowerCase();
-  return SELF.test(e) ? 'self' : e.replace(/^(?:the|a|an|my|their) /, '');
+  return isCallerName(e) ? 'self' : e.replace(/^(?:the|a|an|my|their) /, '');
 }
 
 const line = (f: StoredFact) => `${f.entityName} | ${f.key.replace(/_/g, ' ')} = ${f.value}`;
 
+/** Where they live and where they are right now (right-moment memory §5.3): one never
+ * replaces the other, whatever the model replies. Whole keys, any case, space or underscore. */
+const PLACE_KEYS = new Set(['home', 'current location']);
+const keyOf = (f: StoredFact) =>
+  f.key
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, ' ');
+const otherPlace = (a: StoredFact, b: StoredFact): boolean =>
+  keyOf(a) !== keyOf(b) && PLACE_KEYS.has(keyOf(a)) && PLACE_KEYS.has(keyOf(b));
+
 /**
  * Older facts that could be about the same thing as a newer one: the same
- * subject, or a content word in common. The rest can't be replaced by them.
+ * subject, or a content word in common, and not the other place key (home and
+ * current location). The rest can't be replaced by them.
  */
 export function candidates(
   newer: readonly StoredFact[],
   older: readonly StoredFact[]
 ): StoredFact[] {
-  const subjects = new Set(newer.map((f) => subject(f.entityName)));
-  const words = new Set(newer.flatMap((f) => [...contentWords(line(f))]));
+  const keyed = newer.map((n) => ({
+    n,
+    subject: subject(n.entityName),
+    words: contentWords(line(n)),
+  }));
   return older
-    .filter(
-      (f) =>
-        subjects.has(subject(f.entityName)) || [...contentWords(line(f))].some((w) => words.has(w))
-    )
+    .filter((f) => {
+      const words = [...contentWords(line(f))];
+      return keyed.some(
+        (k) =>
+          !otherPlace(k.n, f) &&
+          (k.subject === subject(f.entityName) || words.some((w) => k.words.has(w)))
+      );
+    })
     .slice(0, MAX_OLDER);
 }
 
@@ -129,7 +148,7 @@ export function parseSupersession(
   for (const p of parsed as Array<{ older?: unknown; newer?: unknown }>) {
     const o = index(p.older, 'O', older);
     const n = index(p.newer, 'N', newer);
-    if (o && n) marks.set(o.id, n.id);
+    if (o && n && !otherPlace(o, n)) marks.set(o.id, n.id);
   }
   return [...marks].map(([id, by]) => ({ id, by }));
 }

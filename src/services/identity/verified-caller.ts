@@ -20,6 +20,7 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
+import { isUnverifiedUserId } from './unverified-user-id.js';
 
 /** VERIFIED_CALLER_ALLOWANCE=on: per-person allowances follow verifiedAllowanceKey (default off). */
 export function verifiedCallerAllowanceOn(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -51,6 +52,19 @@ export function isVerifiedIdentification(
 interface CallerView {
   userId?: unknown;
   verifiedCaller?: unknown;
+}
+
+/**
+ * The call's caller when the server verified them on this call: `verifiedCaller`
+ * is true (only voice-agent-entry sets it, from identification) and the id is
+ * not one anybody can mint or spoof (isUnverifiedUserId: anon:, device:, phone:,
+ * placeholders). Null for anyone else, and for a session that never set it.
+ */
+export function verifiedCallerId(userData: unknown): string | null {
+  const view = (userData ?? {}) as CallerView;
+  if (view.verifiedCaller !== true || typeof view.userId !== 'string') return null;
+  const id = view.userId.trim();
+  return isUnverifiedUserId(id) ? null : id;
 }
 
 /**

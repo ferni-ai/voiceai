@@ -22,6 +22,7 @@ import { conversationDaysFor } from './conversation-days.js';
 import { forgetCallStartReads, readUserRootOnce } from '../../utils/call-start-reads.js';
 import { queryProfileByLinkedIdentifier } from './firestore-linked-identifier.js';
 import { invalidStoredProfile, refuseUnsaved } from './profile-read-failure.js';
+import { writeProfileUnlessErased, type ProfileWriteDb } from './profile-write-unless-erased.js';
 import {
   isValidUserProfile,
   isValidConversationSummary,
@@ -52,7 +53,7 @@ interface FirestoreConfig {
   };
 }
 
-interface Firestore {
+interface Firestore extends ProfileWriteDb<DocumentReference> {
   collection: (path: string) => CollectionReference;
   terminate: () => Promise<void>;
 }
@@ -155,7 +156,6 @@ export class FirestoreStore extends MemoryStore {
         projectId: this.config.projectId,
         databaseId: this.config.databaseId,
         ...(this.config.credentials && { credentials: this.config.credentials }),
-        // Apply connection pooling settings
         ...poolingDefaults,
         ...this.config.pooling,
       }) as unknown as Firestore;
@@ -224,9 +224,9 @@ export class FirestoreStore extends MemoryStore {
       const { conversationDays: _days, ...stored } = withoutProfileTokenFields(profile);
       const serialized = this.serializeForFirestore(stored);
 
-      await docRef.set(cleanForFirestore(serialized), { merge: true });
+      const data = cleanForFirestore(serialized);
+      if (!(await writeProfileUnlessErased(db, docRef, data, profile))) return;
       forgetCallStartReads(profile.id); // later call-start readers see this write
-      getLogger().debug(`Saved profile: ${profile.id}`);
     } catch (error) {
       getLogger().error(`saveProfile error: ${error}`);
       throw error;

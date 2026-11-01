@@ -26,14 +26,14 @@ between-call thinking are not. Measured causes:
 |---|---|---|---|
 | W0 | Seed→recall measurement: per-fact recall counter (`#@fact`/`#@avoid` lines), batch runner | queued | #682 |
 | W1 | After-call extraction: transcript → dated world observations (people, events, outcomes, goals, commitments, threads, `replaces`) into the temporal store | extractor up; hook waits on #690/#694/#685 | #693, registry #694 |
-| W2 | Between-call thinking: background jobs read real summaries; deep analysis guarded (5 real calls, 2-call evidence, no clinical labels, in-call injection behind `DEEP_ANALYSIS_IN_CALL`); then outreach suggestions into existing outreach; nightly pondering → dated follow-ups for the opener | readers #691; guards next; pondering after W1 | #691 |
+| W2 | Between-call thinking: background jobs read real summaries; deep analysis guarded (5 real calls, 2-call evidence, no clinical labels, in-call injection removed 2026-10-31 with `DEEP_ANALYSIS_IN_CALL`); then outreach suggestions into existing outreach; nightly pondering → dated follow-ups for the opener | readers #691; guards next; pondering after W1 | #691 |
 | W3 | Per-person style: learned multipliers (reply length, laugh/opinion/filler odds, pushback) in `style_profile/current`, applied at the draw sites in turn-shape/extras/candor; never overrides a global flag that is off | building | — |
 | W4 | Research ahead: `followTopic` tool (flag-gated, no default tool-count cost), nightly sourced findings with 3-day expiry, surfaced once in the next call's opener | designed | — |
 
 ## Flags (all off by default)
 
 `LIVE_SUMMARIES`, `AFTER_CALL_EXTRACTION` (+ the lead's `WORLD_MODEL_TEMPORAL`),
-`DEEP_ANALYSIS_IN_CALL`, `STYLE_PROFILE`, `RESEARCH_AHEAD`.
+`DEEP_ANALYSIS_IN_CALL` (removed 2026-10-31), `STYLE_PROFILE`, `RESEARCH_AHEAD`.
 
 ## Proof bar
 

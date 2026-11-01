@@ -4,7 +4,7 @@
  * scheduleCall used to text or ring that number with no read-back and no yes.
  * They now reach only the verified phone on the account (the call-user port).
  */
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const STRANGER = '+12125550199';
 const OWNER = '+18015550100';
@@ -55,7 +55,7 @@ const run = async (id: string, args: Record<string, unknown>): Promise<string> =
     await definitions
       .find((d) => d.id === id)!
       .create(ctx)
-      .execute(args, {})
+      .execute(args, verifiedCall)
   );
 const guarded = vi.fn(async (..._a: unknown[]) => ({ sent: true }));
 const port = (phone?: string, email?: string) => ({
@@ -67,7 +67,11 @@ const port = (phone?: string, email?: string) => ({
 const addresses = (): string[] =>
   sent.reminder.mock.calls.map((c) => (c[0] as { deliveryAddress: string }).deliveryAddress);
 
+/** With UNVERIFIED_OWNER_MESSAGE_FILTER on, a caller verified on this call is unchanged. */
+const verifiedCall = { ctx: { userData: { userId: ctx.userId, verifiedCaller: true } } };
+beforeEach(() => vi.stubEnv('UNVERIFIED_OWNER_MESSAGE_FILTER', 'on'));
 afterEach(() => {
+  vi.unstubAllEnvs();
   setCallUserPort(undefined);
   vi.clearAllMocks();
 });

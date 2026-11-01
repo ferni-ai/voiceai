@@ -209,7 +209,7 @@ const USER_RECORDS: ReadonlySet<string> = new Set(['bogle_users', 'users']);
  * The subcollections copied from under bogle_users/{uid} and users/{uid}, at any depth: an
  * ALLOWLIST, so a store nobody has classified is never copied. copy-user.test.ts reads the
  * code's writers and fails on a name that is in neither this list nor the exclusions.
- * Credentials and authenticators are never listed here.
+ * Credentials and authenticators are never listed here; person_model is built from copied stores.
  */
 export const COPIED_SUBCOLLECTIONS: ReadonlySet<string> = new Set(
   `
@@ -253,7 +253,7 @@ export const COPIED_SUBCOLLECTIONS: ReadonlySet<string> = new Set(
   monetization_value_capture mood_calendar moods motivational_interviewing move_outcomes
   music_learning narrative network notes notifications nudge_engine onboarding_arc open_loops
   paradoxes pattern_mirror pattern_occurrences pattern_predictions patterns persona_affinities
-  persona_bonds persona_interactions persona_life_updates persona_told personal_dates
+  persona_bonds persona_interactions persona_life_updates persona_told person_model personal_dates
   personality_profiles personality_resonance pets planning_coordination portfolio
   post_event_learning practice_sessions practices pre_briefings predicted_handoffs predictions
   predictive predictive_insights predictive_intelligence predictive_ml predictive_signals

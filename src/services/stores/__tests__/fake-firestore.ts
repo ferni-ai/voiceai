@@ -5,7 +5,9 @@ import type { Firestore } from '@google-cloud/firestore';
 // transactions. Transactions are optimistic like Firestore's: writes are buffered,
 // a read after a write throws, and a transaction whose reads (documents or queries)
 // changed before it commits runs again. Every write bumps a document's version, so
-// a rewrite with identical data still counts as a change.
+// a rewrite with identical data still counts as a change. `writes` counts committed
+// document writes and deletes. With `directions`, orderBy(f, 'desc') sorts descending
+// (off by default: older tests were written against an ascending-only fake).
 type Cond = [string, string, unknown];
 interface Snap {
   id: string;
@@ -13,9 +15,10 @@ interface Snap {
   exists: boolean;
   data: () => Record<string, unknown> | undefined;
 }
-export function fakeFirestore() {
+export function fakeFirestore(opts: { directions?: boolean } = {}) {
   const docs = new Map<string, Record<string, unknown>>();
   const versions = new Map<string, number>();
+  const stats = { writes: 0 };
   const version = (path: string): number => versions.get(path) ?? 0;
   const snapOf = (path: string): Snap => ({
     id: path.split('/').pop() ?? '',
@@ -30,6 +33,7 @@ export function fakeFirestore() {
     get: async () => snapOf(path),
     delete: async () => {
       if (docs.delete(path)) versions.set(path, version(path) + 1);
+      stats.writes++;
     },
   });
   const matches = (data: Record<string, unknown>, [f, op, v]: Cond): boolean => {
@@ -46,20 +50,24 @@ export function fakeFirestore() {
     pick: (path: string) => boolean,
     conds: Cond[] = [],
     order?: string,
-    max?: number
+    max?: number,
+    desc = false
   ): Record<string, unknown> => {
     const run = (): { docs: Snap[] } => {
       let hits = [...docs.entries()].filter(
         ([p, d]) => pick(p) && conds.every((c) => matches(d, c))
       );
       if (order) hits = hits.sort((a, b) => String(a[1][order]).localeCompare(String(b[1][order])));
+      if (order && desc) hits.reverse();
       if (max !== undefined) hits = hits.slice(0, max);
       return { docs: hits.map(([p]) => snapOf(p)) };
     };
     return {
-      where: (f: string, op: string, v: unknown) => query(pick, [...conds, [f, op, v]], order, max),
-      orderBy: (f: string) => query(pick, conds, f, max),
-      limit: (n: number) => query(pick, conds, order, n),
+      where: (f: string, op: string, v: unknown) =>
+        query(pick, [...conds, [f, op, v]], order, max, desc),
+      orderBy: (f: string, dir?: string) =>
+        query(pick, conds, f, max, !!opts.directions && dir === 'desc'),
+      limit: (n: number) => query(pick, conds, order, n, desc),
       run,
       get: async () => run(),
     };
@@ -73,6 +81,13 @@ export function fakeFirestore() {
   const db = {
     collection: (name: string) => coll(name),
     collectionGroup: (name: string) => query((p) => p.split('/').slice(-2, -1)[0] === name),
+    recursiveDelete: async (ref: { path: string }) => {
+      for (const p of [...docs.keys()])
+        if (p === ref.path || p.startsWith(`${ref.path}/`)) {
+          docs.delete(p);
+          stats.writes++;
+        }
+    },
     runTransaction: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> => {
       for (let attempt = 0; attempt < 5; attempt++) {
         const unchanged: Array<() => boolean> = [];
@@ -96,6 +111,7 @@ export function fakeFirestore() {
           for (const [p, d] of writes) {
             docs.set(p, d);
             versions.set(p, version(p) + 1);
+            stats.writes++;
           }
           return result;
         }
@@ -103,5 +119,5 @@ export function fakeFirestore() {
       throw new Error('fake transaction: too much contention');
     },
   };
-  return { db: db as unknown as Firestore, docs };
+  return { db: db as unknown as Firestore, docs, stats };
 }

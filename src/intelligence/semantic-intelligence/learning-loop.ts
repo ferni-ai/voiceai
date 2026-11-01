@@ -204,7 +204,7 @@ export async function recordToolExecution(params: {
     {
       recordId: record.id,
       userId: params.userId,
-      inputText: params.inputText.substring(0, 50),
+      inputTextLen: params.inputText.length,
       predictedTool: params.semanticPrediction?.toolId,
       actualTool: params.jsonExecution.toolId,
       wasCorrection,
@@ -273,7 +273,7 @@ export async function recordImplicitCorrection(params: {
   log.info(
     {
       userId: params.userId,
-      inputText: params.inputText.substring(0, 50),
+      inputTextLen: params.inputText.length,
       predictedTool: params.predictedToolId,
       actualTool: params.actualToolId,
     },
@@ -338,7 +338,7 @@ export async function recordExplicitCorrection(params: {
   log.info(
     {
       userId: params.userId,
-      inputText: params.inputText.substring(0, 50),
+      inputTextLen: params.inputText.length,
       wrongTool: params.wrongToolId,
       correctTool: params.correctToolId,
       userFeedback: params.userFeedback,

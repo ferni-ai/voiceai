@@ -165,7 +165,6 @@ const EXEMPT: Exemptions = {
   whole: [
     ['session-creator.ts', 'record'], // TURN_METRICS: latencies and token counts
     ['sip-caller.ts', "(result.status === 'invalid' ? { signedReason: result.reason } : {})"], // SipCallerReading: masked number, attestation enums; signedReason an enum
-    ['sip-caller.ts', 'result'], // SipCallerReading: masked number, attestation enums; signedReason an enum
     ['human-turn-intelligence.ts', 'result'], // TurnSignals: scores, flags and a backchannel kind
     ['agent-setup.ts', 'record'], // TURN_METRICS: latencies and token counts
     ['tts-wrapper.ts', 'extractedInfo'], // tool name and argument key names (analyzeLeakedJson)

@@ -599,7 +599,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       if (participant && ctx.room) {
         await markCallStageSafe(sessionId, 'participant_ready', participantWaitResult.endedAt);
         writeParticipantReady(participantWaitResult.source, participant.identity);
-        void noteCallerJoined({ participant, room: ctx.room, sessionId });
+        noteCallerJoined({ participant, room: ctx.room, sessionId });
         await markCallStageSafe(sessionId, 'orchestrator_start');
         const { runMultiAgentMode } = await import('../voice-agent/phases/index.js');
         const crash = await import('../shared/crash-analytics.js');

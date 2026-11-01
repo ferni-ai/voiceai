@@ -159,7 +159,7 @@ async function handleSpeechResponse(
     {
       callId,
       callSid: CallSid,
-      speechResult: SpeechResult?.slice(0, 100),
+      speechResultLen: SpeechResult?.length,
       confidence: Confidence,
     },
     '🎤 Family check-in speech response'

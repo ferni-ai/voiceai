@@ -91,6 +91,20 @@ describe('call room, flag on', () => {
     expect(line()).toBe("Ferni's listening");
   });
 
+  it('the state line calls the persona by first name', () => {
+    const persona = appState.get('activePersona');
+    try {
+      appState.set('activePersona', { ...persona, name: 'Maya Santos' });
+      setConnectionState('connecting');
+      expect(line()).toBe('Calling Maya…');
+      setConnectionState('connected');
+      setAudioState('listening');
+      expect(line()).toBe("Maya's listening");
+    } finally {
+      appState.set('activePersona', persona);
+    }
+  });
+
   it('the state line is polite and sits under the name', () => {
     const el = document.querySelector('.call-room-state');
     expect(el?.getAttribute('aria-live')).toBe('polite');

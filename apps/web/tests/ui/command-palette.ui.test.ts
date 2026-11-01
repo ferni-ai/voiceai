@@ -113,7 +113,7 @@ describe('command palette', () => {
       openPalette();
       const labels = optionLabels();
       expect(labels).toContain('Start a conversation');
-      expect(labels).not.toContain('End conversation');
+      expect(labels).not.toContain('End call');
       expect(labels).toContain('Talk with Ferni');
       expect(labels).not.toContain('Talk with Maya');
     });
@@ -123,7 +123,7 @@ describe('command palette', () => {
       mocks.unlocked.add('maya-santos');
       openPalette();
       const labels = optionLabels();
-      expect(labels).toContain('End conversation');
+      expect(labels).toContain('End call');
       expect(labels).not.toContain('Start a conversation');
       expect(labels).toContain('Talk with Maya');
     });
