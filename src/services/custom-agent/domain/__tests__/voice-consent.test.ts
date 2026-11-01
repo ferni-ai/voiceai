@@ -213,8 +213,29 @@ describe('scoreConsentTranscript', () => {
     const build = (subjectName: string) => () =>
       buildConsentStatement({ subjectName, creatorName: 'Maya Quill', spokenDate: 'today' });
     expect(build('Alex. I do not agree')).toThrow(RangeError);
-    expect(build('one two three four five six seven')).toThrow(RangeError);
+    expect(build('Louis 14')).toThrow(RangeError);
+    expect(build('one two three four five six seven eight nine ten eleven')).toThrow(RangeError);
     expect(build("Rosa O'Neill-Quill")).not.toThrow();
+    for (const real of [
+      'प्रिया शर्मा',
+      'கார்த்திக்',
+      'Jose\u0301 Mu\u0308ller',
+      'J. Smith',
+      'Martin Luther King Jr.',
+      'Mary\u2013Jane',
+      'María de los Ángeles García de la Cruz',
+    ]) {
+      expect(build(real)).not.toThrow();
+      const statement = buildConsentStatement({
+        subjectName: real,
+        creatorName: real,
+        spokenDate: 'today',
+        random: seq(0, 0, 0),
+      });
+      expect(scoreConsentTranscript(statement, statement.text.normalize('NFC')).verified).toBe(
+        true
+      );
+    }
   });
 
   it('refuses an empty transcript', () => {

@@ -104,14 +104,20 @@ function pickCheckWords(random: () => number): string[] {
   return picked;
 }
 
-const clean = (s: string) => s.replace(/\s+/g, ' ').trim();
+const clean = (s: string) => s.normalize('NFC').replace(/\s+/g, ' ').trim();
 
-const MAX_NAME_WORDS = 6;
+const MAX_NAME_WORDS = 10;
+/** A name word: letters with their marks (Hindi vowel signs), apostrophes and hyphens. */
+const NAME_WORD = /^[\p{L}\p{M}'\u2019\u02bc\u2010\u2011\u2013-]+$/u;
+/** An initial ("J.") or a short title ("Jr.", "Dr."): the only words that may end in a period. */
+const DOTTED_WORD = /^(?:\p{L}|jr|sr|st|dr)\.$/iu;
 
-/** A name a person can say: letters, spaces, hyphens and apostrophes, at most six words. */
+/** A name a person can say, not a sentence: at most ten name words. */
 function isSpeakableName(name: string): boolean {
-  const n = clean(name);
-  return /^[\p{L}' \u2019-]+$/u.test(n) && n.split(' ').length <= MAX_NAME_WORDS;
+  const words = clean(name).split(' ');
+  return (
+    words.length <= MAX_NAME_WORDS && words.every((w) => NAME_WORD.test(w) || DOTTED_WORD.test(w))
+  );
 }
 
 /** The statement the subject reads aloud. Throws on a name that isn't speakable (a sentence). */
@@ -137,8 +143,11 @@ export function buildConsentStatement(input: ConsentStatementInput): ConsentStat
 /** Lowercase whole words, numbers dropped (dates come back from speech to text in many forms). */
 export function consentWords(text: string): string[] {
   // Speech to text often writes curly apostrophes ("don’t"); read them as plain ones
-  const plain = text.toLowerCase().replace(/[\u2018\u2019\u02bc\uff07]/g, "'");
-  return (plain.match(/\p{L}+(?:'\p{L}+)?/gu) ?? []).map((w) => w.replace(/'s$/, ''));
+  const plain = text
+    .normalize('NFC')
+    .toLowerCase()
+    .replace(/[\u2018\u2019\u02bc\uff07]/g, "'");
+  return (plain.match(/[\p{L}\p{M}]+(?:'[\p{L}\p{M}]+)?/gu) ?? []).map((w) => w.replace(/'s$/, ''));
 }
 
 /** Words that turn the statement into a refusal ("I do not agree"); none is in the statement. */
