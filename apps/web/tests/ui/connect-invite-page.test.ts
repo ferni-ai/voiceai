@@ -156,7 +156,10 @@ describe('openStandalonePage(/connect)', () => {
     'clears the invite from %s before anything awaits, even when the page will not open',
     async (path) => {
       window.history.replaceState(null, '', `${path}?from=text#i=${INVITE}`);
+      const entries = window.history.length;
       const opening = openStandalonePage(path);
+      // Replaced, not pushed: no entry with the invite stays one Back press away.
+      expect(window.history.length).toBe(entries);
       expect(window.location.hash).toBe('');
       expect(window.location.href).not.toContain(INVITE);
       expect(window.location.search).toBe('?from=text');
@@ -330,7 +333,9 @@ describe('Connect', () => {
     [0, /Couldn't open Google/],
   ])('says why when the server answers %i, in place of the button', async (status, why) => {
     const detail = 'Firestore internal: deadline exceeded at connect_invites';
-    const { card, went } = await tapConnect({ ok: false, status, data: { error: detail } });
+    // The real client puts a refusal's text in res.error (utils/api.ts); data too, to be sure.
+    const refused = { ok: false, status, error: detail, data: { error: detail } };
+    const { card, went } = await tapConnect(refused);
     expect(went).toEqual([]);
     expect(card.querySelector('button')).toBeNull();
     expect(card.querySelector('[role="status"]')?.textContent).toMatch(why);
