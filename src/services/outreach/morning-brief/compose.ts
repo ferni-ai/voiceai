@@ -115,35 +115,16 @@ const unique = (items: readonly string[]): string[] => {
 
 /** The brief's text, or null when there is nothing on today. */
 export function composeMorningBrief(input: MorningBriefInput): string | null {
-  return composeMorningBriefParts(input)?.text ?? null;
-}
-
-/** The brief's text and the parts of it that stored text fills, each exactly as rendered. */
-export interface MorningBriefParts {
-  text: string;
-  /** The "Today" titles, clock times replaced by "at" so a busy day's times read as no number */
-  titles: string;
-  /** The "Due" and "Still open" sections */
-  stored: string;
-}
-
-/**
- * The brief, with the parts stored text fills, so the whole of each can be screened, not
- * just each item alone (pieces of a number can line up across items).
- */
-export function composeMorningBriefParts(input: MorningBriefInput): MorningBriefParts | null {
   const events = [...input.events].sort((a, b) => a.start.getTime() - b.start.getTime());
-  const todayAt = (at: (d: Date) => string): string[] =>
-    unique(
-      events.map((e) => {
-        if (e.invite) return e.allDay ? 'an invite' : `an invite at ${at(e.start)}`;
-        const title = cleanItem(e.title);
-        return e.allDay || !title ? title : `${at(e.start)} ${title}`;
-      })
-    );
-  const neutralToday = todayAt(() => 'at');
   const lists = {
-    today: todayAt((d) => clock(d, input.timeZone)),
+    today: unique(
+      events.map((e) => {
+        if (e.invite)
+          return e.allDay ? 'an invite' : `an invite at ${clock(e.start, input.timeZone)}`;
+        const title = cleanItem(e.title);
+        return e.allDay || !title ? title : `${clock(e.start, input.timeZone)} ${title}`;
+      })
+    ),
     due: unique(input.reminders.map(cleanItem)),
     open: unique([...input.tasks, ...input.commitments].map(cleanItem)),
   };
@@ -158,18 +139,12 @@ export function composeMorningBriefParts(input: MorningBriefInput): MorningBrief
     due: Math.min(lists.due.length, FIRST_TRY.due),
     open: Math.min(lists.open.length, FIRST_TRY.open),
   };
-  const storedPart = (): string =>
-    [
-      lists.due.length ? `Due: ${joinList(lists.due, shown.due)}.` : '',
-      lists.open.length ? `Still open: ${joinList(lists.open, shown.open)}.` : '',
-    ]
-      .filter(Boolean)
-      .join(' ');
   const render = (): string =>
     [
       hello,
       lists.today.length ? `Today: ${joinList(lists.today, shown.today)}.` : '',
-      storedPart(),
+      lists.due.length ? `Due: ${joinList(lists.due, shown.due)}.` : '',
+      lists.open.length ? `Still open: ${joinList(lists.open, shown.open)}.` : '',
       close,
     ]
       .filter(Boolean)
@@ -184,6 +159,5 @@ export function composeMorningBriefParts(input: MorningBriefInput): MorningBrief
     shown[longest]--;
     text = render();
   }
-  const titles = neutralToday.length ? `Today: ${joinList(neutralToday, shown.today)}.` : '';
-  return { text, titles, stored: storedPart() };
+  return text;
 }
