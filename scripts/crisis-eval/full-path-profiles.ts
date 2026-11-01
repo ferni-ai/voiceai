@@ -6,6 +6,9 @@
  * `prod-2026-10-31`: the crisis flags of the prod worker's boot settings on
  * 2026-10-31. Unset flags are written out at their code default, so a default
  * changing later shows up as a diff here, not as a silent change of baseline.
+ *
+ * `prod-2026-11-01`: the same, from the prod worker's boot settings for release
+ * rc2 (53bb669b4) on 2026-11-01.
  */
 
 export type FlagSet = Readonly<Record<string, string>>;
@@ -32,6 +35,14 @@ const PROD_2026_10_31: FlagSet = {
   CRISIS_EVENT_RECORD: 'off',
 };
 
+const PROD_2026_11_01: FlagSet = {
+  ...PROD_2026_10_31,
+  CRISIS_CONFIRMED_CALL_RISK: 'shadow',
+  EARLY_WARNING_STT_FORMS: 'off',
+  SEXUAL_TOPIC_BOUNDARY: 'on',
+  MINOR_CARE: 'on',
+};
+
 /** Every crisis brake that exists, on. The adjudicator's live mode is blocked in code. */
 const ALL_ON: FlagSet = {
   ...PROD_2026_10_31,
@@ -51,6 +62,7 @@ const ALL_ON: FlagSet = {
 
 export const PROFILES: Readonly<Record<string, FlagSet>> = {
   'prod-2026-10-31': PROD_2026_10_31,
+  'prod-2026-11-01': PROD_2026_11_01,
   'all-on': ALL_ON,
 };
 
