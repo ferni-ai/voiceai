@@ -14,6 +14,12 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  carriesCrisis,
+  crisisCallerLine,
+  screenCallerParts,
+  screenedCallerText,
+} from '../outreach/caller-text.js';
 import type {
   CheckinCallRecord,
   DetectedMood,
@@ -445,8 +451,22 @@ function validateFollowUp(followUp: Partial<FollowUpItem>): FollowUpItem {
 // SPONSOR NOTIFICATION
 // ============================================================================
 
+/** Said when the concern's own suggestion can't be passed on: Ferni's words. */
+const CHECK_IN_ACTION = 'You may want to check in with them.';
+
+/** Drops the closing stop so the line can sit inside Ferni's own sentence. */
+function clause(text: string): string {
+  return text.replace(/[.\s]+$/, '');
+}
+
 /**
- * Generate a notification message for the sponsor about urgent concerns
+ * Generate a notification message for the sponsor about urgent concerns.
+ *
+ * The concern is written from the family member's words on the call, so both
+ * fields go through the caller-text screen before they reach the sponsor: a
+ * link, number or money/credential request is never passed on. A risky
+ * suggestion is dropped for Ferni's own line. Crisis wording always reaches the
+ * sponsor, in their words or in crisisCallerLine.
  */
 export function generateUrgentNotification(record: CheckinCallRecord): string | null {
   if (!record.concernsIdentified || record.concernsIdentified.length === 0) {
@@ -462,7 +482,12 @@ export function generateUrgentNotification(record: CheckinCallRecord): string | 
   }
 
   const concern = urgentConcerns[0];
-  return `Important: During my call with ${record.familyMemberName}, ${concern.description}. ${concern.recommendedAction || 'You may want to check in with them.'}`;
+  const name = record.familyMemberName;
+  const what = screenedCallerText(concern.description, name, 200) || 'something came up';
+  const action = screenCallerParts(concern.recommendedAction, name, 200);
+  const next = action.said || CHECK_IN_ACTION; // empty whenever it was risky
+  const safety = action.safety && !carriesCrisis(what) ? crisisCallerLine(name) : '';
+  return `Important: During my call with ${name}, ${clause(what)}. ${[safety, next].filter(Boolean).join(' ')}`;
 }
 
 // ============================================================================
