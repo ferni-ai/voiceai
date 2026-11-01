@@ -172,6 +172,12 @@ export function buildCallOutcome(
       callbackRequired: true,
     };
   }
+  // They said no to having what they share passed along: before every other
+  // branch, so no path (a quick hang-up, a failed analysis) keeps what they said.
+  if (passAlongDeclined(turns)) {
+    const optedOut = isCallFollowthroughEnabled() && heard.some(isOptOutPhrase);
+    return passAlongDeclinedOutcome(call.callId, name, heard, optedOut);
+  }
 
   const quote = screenedCallerText(heard.slice(-2).join(' '), name, 200);
   // What they asked to pass on, from their own words (the analysis may phrase it better below).
@@ -209,9 +215,6 @@ export function buildCallOutcome(
       };
     }
   }
-
-  // They said no to having what they share passed along: keep nothing they said.
-  if (passAlongDeclined(turns)) return passAlongDeclinedOutcome(call.callId, name, heard);
 
   if (!analysis) {
     return {
@@ -350,6 +353,8 @@ async function reportCall(
     const talked =
       (disposition === undefined || disposition === 'completed') &&
       heard.length > 0 &&
+      // A no to passing it along keeps their words from the summary model too.
+      !passAlongDeclined(turns ?? []) &&
       (!isCallFollowthroughEnabled() ||
         classifyAnsweredCall(heard, durationSeconds) === 'answered');
     let analysis: SuperhumanCallResult | null = null;

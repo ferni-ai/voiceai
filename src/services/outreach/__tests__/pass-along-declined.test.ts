@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../superhuman/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
 
-const { buildCallOutcome } =
+const { buildCallOutcome, completeOnBehalfCall } =
   await import('../../../agents/outbound-call/on-behalf-call-lifecycle.js');
 const { buildOnBehalfDispatch } = await import('../on-behalf-dispatch.js');
 const { callResultText } = await import('../call-result-text.js');
@@ -80,18 +80,63 @@ describe('they said no to passing it along', () => {
     expect(o.outcome).toBe(`${NO_LINE} ${crisisCallerLine('Priya')}`);
     expect(o.outcome).not.toMatch(/want to die/i);
   });
+
+  it('a no and then a quick hang-up keeps only the no (decided before every other branch)', () => {
+    vi.stubEnv('CALL_FOLLOWTHROUGH', 'on');
+    const quick: Turn[] = [
+      { role: 'agent', content: ASK },
+      { role: 'recipient', content: 'No.' },
+    ];
+    quick.push({ role: 'recipient', content: SAID });
+    for (const a of [analysis(), null]) {
+      const o = buildCallOutcome(call, quick, a, undefined, 9);
+      expect(o.outcome).toBe(NO_LINE);
+      expect(JSON.stringify(o)).not.toMatch(/marmalade|lighthouse/i);
+    }
+    quick.push({ role: 'recipient', content: "And don't call me again." });
+    expect(buildCallOutcome(call, quick, null, undefined, 9).outcome).toBe(
+      "I reached Priya. They asked me not to pass anything along from the call, and not to call them again, so I won't. That's all I can share."
+    );
+    vi.unstubAllEnvs();
+  });
+
+  it.each([
+    'Actually, don’t tell him about the festival.',
+    "Please don't pass that on.",
+    'Keep this between us, okay?',
+    "That's off the record.",
+    "I'd rather you didn't share that.",
+  ])('taking it back later, %j, is a no too', (withdrawn) => {
+    const t = [...turns('Sure, go ahead.'), { role: 'recipient' as const, content: withdrawn }];
+    expect(passAlongDeclined(t)).toBe(true);
+    expect(buildCallOutcome(call, t, analysis(), undefined, 90).outcome).toBe(NO_LINE);
+  });
+
+  it('their words never reach the summary model, and the crisis read still runs', async () => {
+    const t = [...turns('No.'), { role: 'recipient' as const, content: 'I want to die.' }];
+    const analyze = vi.fn(async () => analysis());
+    const report = vi.fn(async () => undefined);
+    const ports = { readDisposition: () => undefined, readTranscript: () => t, analyze, report };
+    const o = await completeOnBehalfCall('s-pass', call, 90, true, ports);
+    expect(analyze).not.toHaveBeenCalled();
+    expect(o?.outcome).toBe(`${NO_LINE} ${crisisCallerLine('Priya')}`);
+    expect(report).toHaveBeenCalledWith('c-pass', o, expect.anything());
+  });
 });
 
 describe('they said yes', () => {
-  it.each(["Sure, that's fine.", 'No problem!', 'No worries at all', 'Of course'])(
-    '%j: the model summary is kept as before',
-    (answer) => {
-      expect(passAlongDeclined(turns(answer))).toBe(false);
-      const o = buildCallOutcome(call, turns(answer), analysis(), undefined, 90);
-      expect(o.outcome).not.toBe(NO_LINE);
-      expect(o.transcriptSummary).toContain('marmalade');
-    }
-  );
+  it.each([
+    "Sure, that's fine.",
+    'No problem!',
+    'No worries at all',
+    'no worries, sure',
+    'Of course',
+  ])('%j: the model summary is kept as before', (answer) => {
+    expect(passAlongDeclined(turns(answer))).toBe(false);
+    const o = buildCallOutcome(call, turns(answer), analysis(), undefined, 90);
+    expect(o.outcome).not.toBe(NO_LINE);
+    expect(o.transcriptSummary).toContain('marmalade');
+  });
 
   it('a no to some other question is not a no to passing it along', () => {
     const t: Turn[] = [
