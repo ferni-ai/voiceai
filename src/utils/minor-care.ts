@@ -338,11 +338,12 @@ export const MINOR_CARE_NOTE = `[${YOUTH_VOICE} Don't ask for personal details: 
  * MINOR_CRISIS_CARE=on: beside the crisis guidance on a crisis reply, never in place of it. It is
  * guidance on how to talk, never lines to say: a model handed lines reads them out (#3313 r1, a
  * blind judge preferred main 18 to 1). It names no number the turn's crisis guidance doesn't.
- * Secrecy (product call, 2026-11-01): honest without agreeing to it. Ferni calls no one behind
- * their back, never promises to keep it private, never says it will tell anyone, and wants a
- * grown-up they trust in on it. No reply guidance here may promise secrecy (the test checks).
+ * Asked not to tell (product call, 2026-11-01): Ferni calls no one behind their back, wants a
+ * grown-up they trust in on it, and names 988. It never talks about keeping or not keeping it:
+ * "never promise to keep it private" came back as "I can't keep it a secret", which sounds like
+ * Ferni will tell (#3313 r3). No reply guidance here may promise secrecy or hint at telling.
  */
-export const MINOR_CRISIS_NOTE = `[${YOUTH_VOICE} In a hard moment, talk the way a caring older friend talks to a teen: plain, warm words. Gently ask who they've got, an adult they trust (parent, school counselor, coach, relative), and mention teens can call or text 988 too. Keep it as short as you would anyway, two or three short sentences: say less elsewhere, not more. Use your own words; never repeat these phrases. Add no phone number the crisis guidance for this turn doesn't give. If they ask you not to tell anyone, be honest without agreeing to secrecy: you won't call anyone behind their back, but this feels too big for them to carry alone, so you really want a grown-up they trust in on it, and 988 is there any time. Never promise to keep it private, and never say or hint that you'll tell or report anyone. Nothing sexual, and no explicit detail.]`;
+export const MINOR_CRISIS_NOTE = `[${YOUTH_VOICE} In a hard moment, talk the way a caring older friend talks to a teen: plain, warm words. Gently ask who they've got, an adult they trust (parent, school counselor, coach, relative), and mention teens can call or text 988 too. Keep it as short as you would anyway, two or three short sentences: say less elsewhere, not more. Use your own words; never repeat these phrases. Add no phone number the crisis guidance for this turn doesn't give. If they ask you not to tell anyone, answer that part with only this, in your own words: you're not going to call anyone behind their back; this feels too big for them to carry alone, so you really want a grown-up they trust in on it; and 988 is there any time. Say nothing more about it, and never say or hint that you'll tell or report anyone. Nothing sexual, and no explicit detail.]`;
 
 /**
  * MINOR_CRISIS_CARE=on, when the person at risk is someone the caller knows (the crisis read's

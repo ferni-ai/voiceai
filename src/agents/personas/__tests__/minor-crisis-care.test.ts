@@ -11,7 +11,7 @@
  *   from the classifier, is main's script, then one short youth line after its own question;
  * - a soft check-in (SOFT_CRISIS_CHECK) gets no youth note: it asks for no crisis talk;
  * - a friend at risk (the crisis read's third_party subject) gets MINOR_FRIEND_CRISIS_NOTE instead.
- * No reply guidance here ever promises secrecy (promisesSecrecy).
+ * No reply guidance here ever promises secrecy or hints that Ferni will tell (promisesSecrecy).
  * Flag off, MINOR_CARE off, an adult, or a verified owner: byte for byte main. A likely minor on a
  * turn with no crisis: main's minor-care note, unchanged. All callers and lines are fictional.
  */
@@ -296,9 +296,22 @@ describe('a likely minor on a turn with no crisis', () => {
 const EXPORTS: unknown[] = [...Object.values(minorCare), ...Object.values(minorCrisisCare)];
 const GUIDANCE = EXPORTS.filter((v): v is string => typeof v === 'string' && v.length > 40);
 
-/** Wording that promises to keep a crisis secret: a confidentiality promise Ferni never makes. */
-const promisesSecrecy = (text: string): boolean =>
-  /not going to tell anyone|stays between us|keep it secret/i.test(text);
+/**
+ * Wording Ferni never says on a crisis turn: a confidentiality promise ("this stays between us"),
+ * or words that sound like it will tell ("I can't keep this a secret", "let a grown-up know").
+ */
+const NEVER_SAID: readonly RegExp[] = [
+  /not going to tell anyone/i,
+  /keep it secret/i,
+  /can['’]t (promise to )?keep (it|this|a|the)( \w+)? (a )?secret/i,
+  /won['’]t tell/i,
+  /promise you won['’]t tell/i,
+  /(let|tell) (a |an |some)?(grown-up|adult|someone|somebody|your \w+) know/i,
+  /tell someone/i,
+  /stays? between us/i,
+  /keep (it|this) (private|secret|between)/i,
+];
+const promisesSecrecy = (text: string): boolean => NEVER_SAID.some((ban) => ban.test(text));
 
 describe('the youth words', () => {
   it('guidance on how to talk, in their own words: no lines to say', () => {
@@ -328,12 +341,13 @@ describe('the youth words', () => {
     expect(YOUTH_SCRIPT_LINE.match(/[.!?]/g)).toHaveLength(1);
   });
 
-  it('secrecy: honest without agreeing to it, never that Ferni will tell or report anyone', () => {
-    expect(MINOR_CRISIS_NOTE).toMatch(/be honest without agreeing to secrecy/);
-    expect(MINOR_CRISIS_NOTE).toMatch(/you won't call anyone behind their back/);
-    expect(MINOR_CRISIS_NOTE).toMatch(/you really want a grown-up they trust in on it, and 988/);
-    expect(MINOR_CRISIS_NOTE).toMatch(/Never promise to keep it private/);
+  it('asked not to tell: no one called behind their back, a trusted grown-up, 988', () => {
+    expect(MINOR_CRISIS_NOTE).toMatch(/If they ask you not to tell anyone, answer that part with/);
+    expect(MINOR_CRISIS_NOTE).toMatch(/you're not going to call anyone behind their back/);
+    expect(MINOR_CRISIS_NOTE).toMatch(/you really want a grown-up they trust in on it; and 988/);
     expect(MINOR_CRISIS_NOTE).toMatch(/never say or hint that you'll tell or report anyone/);
+    // Never about keeping or not keeping it: "can't keep it a secret" sounds like Ferni will tell.
+    expect(MINOR_CRISIS_NOTE).not.toMatch(/secret|private|can['’]t keep|can['’]t promise|between us/i);
     const tells = /\b(I'll|I will|I have to|I need to|I'm going to) (tell|report|call)\b/i;
     for (const block of GUIDANCE) expect(block).not.toMatch(tells);
   });
@@ -345,8 +359,19 @@ describe('the youth words', () => {
     expect(
       promisesSecrecy("be honest: it stays with you and you're not going to tell anyone")
     ).toBe(true);
-    expect(promisesSecrecy('this stays between us')).toBe(true);
-    expect(promisesSecrecy("I'll keep it secret")).toBe(true);
+    for (const said of [
+      'this stays between us',
+      "I'll keep it secret",
+      "I can't keep this a secret",
+      "I can't keep a secret this big",
+      'I can’t promise to keep it a secret',
+      "promise you won't tell anyone",
+      "say you'll let a grown-up know",
+      'I have to tell someone',
+      'let your mom know',
+      "I'll keep this private",
+    ])
+      expect(promisesSecrecy(said), said).toBe(true);
     for (const block of GUIDANCE) expect(promisesSecrecy(block), block).toBe(false);
   });
 
