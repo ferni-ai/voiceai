@@ -111,7 +111,7 @@ The caller may be a child, or may be telling you that someone is touching or hur
 2. Ask whether they are safe right now. If they are in danger right now, they can call ${EMERGENCY_NUMBER}
 3. Gently encourage them to tell a safe adult they trust, like a parent who is not involved, a teacher or a school counselor
 4. Offer the ${CHILDHELP.name}: call or text ${CHILDHELP.phone}, any time
-5. Do not ask for details of what happened, and do not promise to keep it a secret
+5. Do not ask for details of what happened. Never promise to keep it secret or between you, and never say or imply that you will tell anyone
 6. If they say anything about hurting themselves, also offer the 988 Suicide & Crisis Lifeline`;
 
 /**

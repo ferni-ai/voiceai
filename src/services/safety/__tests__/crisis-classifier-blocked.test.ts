@@ -30,7 +30,11 @@ import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
 } from '../crisis-classifier.js';
+import { CRISIS_EVERYDAY_RULES } from '../crisis-everyday.js';
+import { buildCrisisGuidance } from '../crisis-guard.js';
 import { resetCallRiskSnapshots } from '../crisis-lone-imminent.js';
+import { EMERGENCY_NUMBER } from '../emergency-number.js';
+import { CRISIS_RESOURCES } from '../crisis-response.js';
 
 const BASE = {
   CRISIS_GUARD_MODE: 'live',
@@ -166,5 +170,42 @@ describe('what the flag never changes', () => {
     const on = (await turn('Something awful happened.', ON, blockedGenerate, { sessionId: null }))
       .summary;
     expect(on).toEqual(off);
+  });
+});
+
+describe('the guidance texts', () => {
+  it('the check-in offers 988 for words about hurting themselves', () => {
+    expect(BLOCKED_SAFETY_CHECK).toContain('offer the 988 Suicide & Crisis Lifeline');
+  });
+
+  it('child-safety care gives Childhelp and 911, and never promises secrecy or telling', () => {
+    expect(CHILD_SAFETY_CARE).toContain(CRISIS_RESOURCES.child_abuse[0].phone);
+    expect(CHILD_SAFETY_CARE).toContain(`they can call ${EMERGENCY_NUMBER}`);
+    expect(EMERGENCY_NUMBER).toBe('911');
+    expect(CHILD_SAFETY_CARE).toContain('Never promise to keep it secret or between you');
+    expect(CHILD_SAFETY_CARE).toContain('never say or imply that you will tell anyone');
+  });
+});
+
+describe('a blocked ruled read beside a plain read of risk', () => {
+  // The everyday rules' read is refused; the plain read (no rules) reads crisis. Fictional line
+  // the patterns read as nothing, with risk words, so the plain read runs.
+  const split: CrisisGenerateFn = async (prompt) =>
+    prompt.includes(CRISIS_EVERYDAY_RULES) ? BLOCKED_REPLY : '{"risk":"crisis","subject":"self"}';
+
+  it('is the crisis read with its 988 guidance, never the blocked check-in', async () => {
+    const { summary } = await turn("I'll die.", ON, split);
+    expect(summary.isCrisis).toBe(true);
+    expect(summary.softCheck).toBeUndefined();
+    expect(buildCrisisGuidance(summary)).toMatch(/\b988\b/);
+  });
+});
+
+describe('the kill switch', () => {
+  it('a block noted with the flag on gives no guidance once the flag is off', async () => {
+    const latest = 'Something awful happened.';
+    const { sessionId } = await turn(latest, ON);
+    expect(blockedReadGuidance(sessionId, { latest }, ON)).toBe(BLOCKED_SAFETY_CHECK);
+    expect(blockedReadGuidance(sessionId, { latest }, OFF)).toBeNull();
   });
 });
