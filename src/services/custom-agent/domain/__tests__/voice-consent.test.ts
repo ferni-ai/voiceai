@@ -154,10 +154,46 @@ describe('scoreConsentTranscript', () => {
       'a date that is a sentence',
       (t: string) => t.replace('November 1, 2026', 'the first of may and of the may of the may'),
     ],
+    ['"uh-uh" after', (t: string) => `${t} Uh-uh.`],
+    ['"mm-mm" after', (t: string) => `${t} Mm-mm.`],
+    ['"uh-uh" before the agreement', (t: string) => t.replace('I agree', 'Uh-uh, I agree')],
+    ['"no" inside the name', (t: string) => t.replace('Rosa Quill', 'Rosa, no, Quill')],
+    ['"or" inside the name', (t: string) => t.replace('Rosa Quill', 'Rosa or Quill')],
+    ['"no" before the name', (t: string) => t.replace("Maya Quill's", "no Maya Quill's")],
+    ["a relative's name", (t: string) => t.replace('Rosa Quill', 'Mona Quill')],
+    ['a statement word two letters off', (t: string) => t.replace('private use', 'pirate use')],
+    ['no date', (t: string) => t.replace(' November 1, 2026', '')],
   ])('refuses %s', (_label, change) => {
     const heard = change(forMaya.text);
     expect(heard).not.toBe(forMaya.text);
     expect(verifies(forMaya, heard)).toBe(false);
+  });
+
+  it('refuses "no" for a short name, and verifies a split name spelled exactly', () => {
+    const forJo = buildConsentStatement({
+      subjectName: 'Rosa Quill',
+      creatorName: 'Jo',
+      spokenDate: 'November 1, 2026',
+      random: seq(0, 0, 0),
+    });
+    expect(verifies(forJo, forJo.text)).toBe(true);
+    expect(verifies(forJo, forJo.text.replace("Jo's", 'no'))).toBe(false);
+    const obrien = buildConsentStatement({
+      subjectName: "Sean O'Brien",
+      creatorName: "Sean O'Brien",
+      spokenDate: 'November 1, 2026',
+      random: seq(0, 0, 0),
+    });
+    expect(verifies(obrien, obrien.text.replace("O'Brien", 'OBrien'))).toBe(true);
+    expect(verifies(obrien, obrien.text.replace("O'Brien", 'O Brien'))).toBe(true);
+    // A join or split must spell the name exactly, or an extra word could hide in it
+    expect(verifies(forMaya, forMaya.text.replace('Rosa Quill', 'Rosaquil'))).toBe(false);
+    expect(verifies(forMaya, forMaya.text.replace('Rosa Quill', 'Rosa a Quill'))).toBe(false);
+  });
+
+  it('verifies an ISO date and a hesitant "um um"', () => {
+    expect(verifies(forMaya, forMaya.text.replace('November 1, 2026', '2026-11-01'))).toBe(true);
+    expect(verifies(forMaya, forMaya.text.replace('I agree', 'Um, um, I agree'))).toBe(true);
   });
 
   it('verifies names that hold refusal words, read correctly', () => {
@@ -214,6 +250,12 @@ function consentWordsSorted(text: string): string {
 
 describe('consentWords', () => {
   it('lowercases, keeps whole words, drops numbers and possessive s', () => {
-    expect(consentWords("Maya's voice, November 1, 2026.")).toEqual(['maya', 'voice', 'november']);
+    expect(consentWords("Maya's voice, November 1, 2026.")).toEqual([
+      'maya',
+      'voice',
+      'november',
+      '1',
+      '2026',
+    ]);
   });
 });

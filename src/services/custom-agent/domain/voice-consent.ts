@@ -23,7 +23,7 @@
 
 import {
   consentWords,
-  DATE_WORDS,
+  isDateWord,
   heardWords,
   MAX_DATE_WORDS,
   nameHeardAs,
@@ -98,7 +98,11 @@ export interface ConsentStatementInput {
 export interface ConsentStatement {
   text: string;
   checkWords: readonly string[];
-  /** The date as written in the text; speech to text writes dates in many forms, so it isn't scored. */
+  /**
+   * The date as written in the text. Speech to text writes dates in many forms, so only
+   * its shape is checked (date words and numbers); the check words are what prove the
+   * reading is fresh.
+   */
   spokenDate: string;
   /** The subject's name, which must be heard where the statement says it. */
   subjectName: string;
@@ -212,14 +216,15 @@ export function scoreConsentTranscript(
   const heardSet = new Set(heard);
   const missingCheckWords = statement.checkWords.filter((w) => !heardSet.has(w));
   // The date as the statement writes it is a date too ("today", "Halloween")
-  const dateWords = new Set([...DATE_WORDS, ...consentWords(statement.spokenDate)]);
+  const ownDate = new Set(consentWords(statement.spokenDate));
   let at = 0;
   for (const part of statementParts(statement)) {
     const fail = { verified: false, mismatch: part.label, missingCheckWords };
     if (part.kind === 'date') {
       const start = at;
-      while (at < heard.length && dateWords.has(heard[at])) at++;
-      if (at - start > MAX_DATE_WORDS) return fail;
+      while (at < heard.length && isDateWord(heard[at], ownDate)) at++;
+      // A date must be said, and be no more than a date
+      if (at === start || at - start > MAX_DATE_WORDS) return fail;
       continue;
     }
     if (part.kind === 'name') {
