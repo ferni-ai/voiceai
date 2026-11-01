@@ -1,14 +1,10 @@
 /**
  * "Help shape Ferni" (CALL_CAPTURE_CONSENT, off by default): an adult owner's opt-in to keeping
- * full recordings of their calls for 120 days. Only the consent lives here; nothing here records
- * anything. Capture (later work) asks captureConsentHolds before it starts.
- *
- * One record per person in call_capture_consent/<uid> (server-only: firestore.rules denies
- * clients by default), keyed by the verified Firebase uid, never one a caller names. Withdrawing
- * stamps withdrawnAt and runs onCaptureWithdrawn, where deleting what was kept goes. askedAt:
- * Ferni asked on a call, so it never asks again. Account deletion erases the record and the
- * export carries it (platform/user-stores.ts). Consent holds only before CALL_CAPTURE_UNTIL
- * (default 2027-03-01), so the programme ends itself unless it is renewed.
+ * their calls for 120 days, only their own voice and Ferni's, never anyone else's on the line.
+ * Only the consent lives here; capture (later work) asks captureConsentHolds first. One
+ * server-only record per verified uid in call_capture_consent/<uid>; account deletion erases it
+ * and export carries it (platform/user-stores.ts). A withdrawal wins over any agreement that isn't
+ * strictly later, askedAt means Ferni never asks twice, and nothing holds after CALL_CAPTURE_UNTIL.
  *
  * @module services/call-capture-consent
  */
@@ -40,11 +36,9 @@ export interface CallCaptureConsent {
   askedAt?: string;
 }
 
-export interface CaptureAgreement {
-  version: string;
-  agreedAt: string;
-  source: CaptureSource;
-}
+export type CaptureAgreement = Required<
+  Pick<CallCaptureConsent, 'version' | 'agreedAt' | 'source'>
+>;
 
 interface Opts {
   db?: Firestore;
@@ -60,23 +54,11 @@ export function captureUntil(env: Env = process.env): Date {
   return Number.isNaN(until.getTime()) ? new Date(DEFAULT_UNTIL) : until;
 }
 
-/** A standing agreement, not withdrawn, before the programme's end date. */
-function consentHolds(
-  record: CallCaptureConsent | null,
-  now: Date,
-  env: Env = process.env
-): boolean {
-  return !!record?.agreedAt && !record.withdrawnAt && now < captureUntil(env);
-}
-
-function database(db?: Firestore): Firestore {
+function ref(uid: string, db?: Firestore): DocumentReference {
   const resolved = db ?? getFirestoreDb();
   if (!resolved) throw new Error('Firestore unavailable');
-  return resolved;
+  return resolved.collection(CALL_CAPTURE_CONSENT_COLLECTION).doc(uid);
 }
-
-const ref = (uid: string, db?: Firestore): DocumentReference =>
-  database(db).collection(CALL_CAPTURE_CONSENT_COLLECTION).doc(uid);
 
 export async function getCaptureConsent(
   uid: string,
@@ -87,11 +69,9 @@ export async function getCaptureConsent(
 }
 
 /**
- * The one minor check every path uses (the settings switch, the API, the voice tool and
- * captureConsentHolds): a minor-care hold on this person, from either source. userHeld is the
- * in-process hold (a live call of theirs sounded under 18; MINOR_CARE), sharedHeldStrict the
- * shared hold across instances (MINOR_CARE_SHARED_HOLD, read fail closed). A source whose flag is
- * off holds nobody, so adults are not refused for it. A check that throws counts as held.
+ * The one minor check (the API, the voice tool, captureConsentHolds): the in-process hold
+ * (userHeld, MINOR_CARE) or the shared one (sharedHeldStrict, MINOR_CARE_SHARED_HOLD, fail
+ * closed). A source whose flag is off holds nobody; a check that throws counts as held.
  */
 export async function captureBlockedForMinor(
   uid: string,
@@ -106,9 +86,8 @@ export async function captureBlockedForMinor(
 }
 
 /**
- * Whether this person's calls may be kept: flag on, consentHolds, and no minor-care hold (a
- * consent given before a hold appeared stops counting). A record that can't be read means no
- * (capture fails closed).
+ * Whether this person's calls may be kept: flag on, a standing agreement to the current disclosure
+ * before the end date, and no minor-care hold now. Unreadable means no.
  */
 export async function captureConsentHolds(
   uid: string,
@@ -118,21 +97,27 @@ export async function captureConsentHolds(
   const env = opts.env ?? process.env;
   if (!captureConsentOn(env)) return false;
   try {
-    if (!consentHolds(await getCaptureConsent(uid, opts.db), now, env)) return false;
-    return !(await captureBlockedForMinor(uid, env));
+    const r = await getCaptureConsent(uid, opts.db);
+    if (!r?.agreedAt || r.version !== CAPTURE_DISCLOSURE_DATE || r.withdrawnAt) return false;
+    return now < captureUntil(env) && !(await captureBlockedForMinor(uid, env));
   } catch (error) {
     log.warn({ error: String(error) }, 'Call capture consent unreadable: treated as none');
     return false;
   }
 }
 
-/** Record (or replace) the agreement; clears a withdrawal, keeps askedAt. */
+/**
+ * Record (or replace) the agreement, keeping askedAt. Null, changing nothing, when a withdrawal
+ * is not strictly earlier than agreedAt: a retried or stale request never undoes a "turn it off".
+ */
 export async function recordCaptureConsent(
   uid: string,
   agreement: CaptureAgreement,
   opts: Opts = {}
-): Promise<CallCaptureConsent> {
+): Promise<CallCaptureConsent | null> {
   const current = await getCaptureConsent(uid, opts.db);
+  const { withdrawnAt } = current ?? {};
+  if (withdrawnAt && !(Date.parse(agreement.agreedAt) > Date.parse(withdrawnAt))) return null;
   const record: CallCaptureConsent = {
     uid,
     ...agreement,
@@ -143,10 +128,7 @@ export async function recordCaptureConsent(
   return record;
 }
 
-/**
- * Withdraw: the record stays, stamped withdrawnAt, and onCaptureWithdrawn runs. Null when there
- * was no agreement to withdraw.
- */
+/** Stamps withdrawnAt and runs onCaptureWithdrawn; null when there was no agreement. */
 export async function withdrawCaptureConsent(
   uid: string,
   opts: Opts = {}
@@ -168,10 +150,7 @@ export async function markCaptureAsked(uid: string, opts: Opts = {}): Promise<vo
   await ref(uid, opts.db).set({ ...(current ?? { uid }), askedAt });
 }
 
-/**
- * Runs on every withdrawal. Nothing is captured yet, so it only logs a count (never the uid);
- * deleting the person's captures goes here.
- */
+/** Runs on every withdrawal: deleting what was kept goes here. Logs a count, never who. */
 export function onCaptureWithdrawn(_uid: string): void {
   log.info({ withdrawn: 1 }, 'Call capture consent withdrawn');
 }

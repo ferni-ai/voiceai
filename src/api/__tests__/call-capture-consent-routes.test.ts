@@ -39,6 +39,7 @@ vi.mock('../auth-middleware.js', () => ({
 
 const { handleAccountRoutes } = await import('../account-routes.js');
 const { setHoldStore } = await import('../../services/outreach/minor-care-shared-hold.js');
+const { captureConsentHolds } = await import('../../services/call-capture-consent.js');
 const { bindSessionUser, noteCallerWords, resetMinorCare } =
   await import('../../utils/minor-care.js');
 
@@ -124,8 +125,9 @@ describe('POST', () => {
     expect(fake.docs.size).toBe(0);
   });
 
-  it('rejects an agreement that is not one', async () => {
+  it('rejects an agreement that is not one, or is to an old disclosure', async () => {
     expect((await call('POST', as('riley'), { ...AGREE, agreedAt: 'soon' })).status).toBe(400);
+    expect((await call('POST', as('riley'), { ...AGREE, version: '2020-01-01' })).status).toBe(400);
     expect(stored('riley')).toBeUndefined();
   });
 });
@@ -170,5 +172,28 @@ describe('a minor-care hold refuses POST and hides the switch', () => {
   it('a shared hold that cannot be read', async () => {
     sharedHold(async () => Promise.reject(new Error('down')));
     await expectRefused('riley');
+  });
+});
+
+describe('a withdrawal wins over a stale agreement', () => {
+  it('an agreement not strictly later than the withdrawal is 409 and changes nothing', async () => {
+    await call('POST', as('riley'), AGREE);
+    await call('DELETE', as('riley'));
+    const withdrawnAt = String(stored('riley')?.withdrawnAt);
+
+    expect((await call('POST', as('riley'), AGREE)).status).toBe(409);
+    expect((await call('POST', as('riley'), { ...AGREE, agreedAt: withdrawnAt })).status).toBe(409);
+    expect(stored('riley')?.withdrawnAt).toBe(withdrawnAt);
+    expect(await captureConsentHolds('riley')).toBe(false);
+  });
+
+  it('a genuine re-opt-in after the withdrawal holds again', async () => {
+    await call('POST', as('riley'), AGREE);
+    await call('DELETE', as('riley'));
+    const later = new Date(Date.parse(String(stored('riley')?.withdrawnAt)) + 1).toISOString();
+
+    expect((await call('POST', as('riley'), { ...AGREE, agreedAt: later })).status).toBe(200);
+    expect(stored('riley')?.withdrawnAt).toBeUndefined();
+    expect(await captureConsentHolds('riley')).toBe(true);
   });
 });

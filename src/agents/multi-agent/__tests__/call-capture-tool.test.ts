@@ -26,6 +26,7 @@ const { bindSessionUser, noteCallerWords, resetMinorCare } =
   await import('../../../utils/minor-care.js');
 const { setHoldStore } = await import('../../../services/outreach/minor-care-shared-hold.js');
 const { isEssentialTool } = await import('../../../config/tool-config.js');
+const { recordCaptureConsent } = await import('../../../services/call-capture-consent.js');
 
 const UID = 'riley-test-uid';
 const SESSION = 'call-riley-1';
@@ -153,6 +154,52 @@ describe('refusals write nothing', () => {
     const result = await setCaptureConsentByVoice(true, { userData: owner, sessionId: SESSION });
     expect(result.status).toBe('off');
     expect(fake.docs.size).toBe(0);
+  });
+});
+
+describe('a no always turns it off, like DELETE', () => {
+  const agreed = () =>
+    recordCaptureConsent(UID, {
+      version: '2026-11-01',
+      agreedAt: '2026-11-01T00:00:00.000Z',
+      source: 'web',
+    });
+
+  it('under a minor-care hold', async () => {
+    await agreed();
+    setHoldStore({ heldUntil: async () => Date.now() + 60_000, write: async () => undefined });
+    const result = await setCaptureConsentByVoice(false, { userData: owner, sessionId: SESSION });
+    expect(result.status).toBe('withdrawn');
+    expect(stored()?.withdrawnAt).toEqual(expect.any(String));
+    expect(stored()?.askedAt).toBeUndefined();
+  });
+
+  it('during a crisis read', async () => {
+    await agreed();
+    noteCrisisRisk(SESSION);
+    const result = await setCaptureConsentByVoice(false, { userData: owner, sessionId: SESSION });
+    expect(result.status).toBe('withdrawn');
+    expect(stored()?.withdrawnAt).toEqual(expect.any(String));
+  });
+
+  it('under a hold with nothing to withdraw, writes nothing', async () => {
+    expect(noteCallerWords(SESSION, "I'm 15 years old", { userId: UID })).toBe(true);
+    const result = await setCaptureConsentByVoice(false, { userData: owner, sessionId: SESSION });
+    expect(result.status).toBe('declined');
+    expect(fake.docs.size).toBe(0);
+  });
+
+  it('a yes that a later withdrawal outranks is not saved', async () => {
+    const withdrawnAt = new Date(Date.now() + 60_000).toISOString(); // another instance, clock ahead
+    fake.docs.set(`call_capture_consent/${UID}`, {
+      uid: UID,
+      version: '2026-11-01',
+      agreedAt: '2026-11-01T00:00:00.000Z',
+      withdrawnAt,
+    });
+    const result = await setCaptureConsentByVoice(true, { userData: owner, sessionId: SESSION });
+    expect(result.status).toBe('not_saved');
+    expect(stored()?.withdrawnAt).toBe(withdrawnAt);
   });
 });
 

@@ -115,6 +115,11 @@ describe('captureConsentHolds', () => {
     expect(await captureConsentHolds('riley', NOW, { env: ended })).toBe(false);
   });
 
+  it('an agreement to an older disclosure version never holds', async () => {
+    await recordCaptureConsent('riley', { ...AGREE, version: '2020-01-01' }, { now: NOW });
+    expect(await captureConsentHolds('riley', NOW, { env: ON })).toBe(false);
+  });
+
   it('an end date that is not a date falls back to the default, never to "forever"', () => {
     expect(captureUntil({ CALL_CAPTURE_UNTIL: 'someday' }).toISOString()).toBe(
       '2027-03-01T00:00:00.000Z'
