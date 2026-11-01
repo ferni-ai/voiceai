@@ -299,6 +299,8 @@ const GUIDANCE = EXPORTS.filter((v): v is string => typeof v === 'string' && v.l
 /**
  * Wording Ferni never says on a crisis turn: a confidentiality promise ("this stays between us"),
  * or words that sound like it will tell ("I can't keep this a secret", "let a grown-up know").
+ * A teen hears "I'm not going to call anyone behind your back" as "Ferni won't tell anyone"
+ * (#3313 r4), so a promise not to call, tell or report is banned too.
  */
 const NEVER_SAID: readonly RegExp[] = [
   /not going to tell anyone/i,
@@ -310,6 +312,10 @@ const NEVER_SAID: readonly RegExp[] = [
   /tell someone/i,
   /stays? between us/i,
   /keep (it|this) (private|secret|between)/i,
+  /behind (your|their) back/i,
+  /behind your back\W+(and\W+)?(tell|report|call)/i,
+  /promise\b.{0,40}\b(tell|report|anyone|call)/i,
+  /(won['’]t|will not|not going to) (call|tell|report)( anyone| anybody)?/i,
 ];
 const promisesSecrecy = (text: string): boolean => NEVER_SAID.some((ban) => ban.test(text));
 
@@ -341,13 +347,21 @@ describe('the youth words', () => {
     expect(YOUTH_SCRIPT_LINE.match(/[.!?]/g)).toHaveLength(1);
   });
 
-  it('asked not to tell: no one called behind their back, a trusted grown-up, 988', () => {
-    expect(MINOR_CRISIS_NOTE).toMatch(/If they ask you not to tell anyone, answer that part with/);
-    expect(MINOR_CRISIS_NOTE).toMatch(/you're not going to call anyone behind their back/);
-    expect(MINOR_CRISIS_NOTE).toMatch(/you really want a grown-up they trust in on it; and 988/);
+  it('asked not to tell: too big to carry alone, a trusted grown-up, 988, and nothing else', () => {
+    expect(MINOR_CRISIS_NOTE).toMatch(
+      /If they ask you not to tell anyone, answer that part with only this, in your own words: this feels too big for them to carry alone, so you really want a grown-up they trust in on it; and 988 is there any time\./
+    );
+    // The answer itself: no promise, and nothing about calling, telling or reporting anyone.
+    const answer = /in your own words: (this feels too big[^.]*)\./.exec(MINOR_CRISIS_NOTE)?.[1];
+    expect(answer).toBeDefined();
+    expect(answer).not.toMatch(
+      /promise|behind your back|behind their back|call anyone|tell|report|secret|private|between us/i
+    );
     expect(MINOR_CRISIS_NOTE).toMatch(/never say or hint that you'll tell or report anyone/);
     // Never about keeping or not keeping it: "can't keep it a secret" sounds like Ferni will tell.
-    expect(MINOR_CRISIS_NOTE).not.toMatch(/secret|private|can['’]t keep|can['’]t promise|between us/i);
+    expect(MINOR_CRISIS_NOTE).not.toMatch(
+      /secret|private|can['’]t keep|can['’]t promise|between us/i
+    );
     const tells = /\b(I'll|I will|I have to|I need to|I'm going to) (tell|report|call)\b/i;
     for (const block of GUIDANCE) expect(block).not.toMatch(tells);
   });
@@ -370,6 +384,11 @@ describe('the youth words', () => {
       'I have to tell someone',
       'let your mom know',
       "I'll keep this private",
+      "I'm not going to call anyone behind your back",
+      "I won't go behind your back and tell anyone",
+      'I promise I won’t go secretly reporting this to anyone',
+      "I won't tell anyone",
+      'I will not report anybody',
     ])
       expect(promisesSecrecy(said), said).toBe(true);
     for (const block of GUIDANCE) expect(promisesSecrecy(block), block).toBe(false);
