@@ -260,11 +260,11 @@ export async function enrichMessage(context: EnrichmentContext): Promise<Enriche
 
   log.info(
     {
-      originalMessage: context.originalMessage,
-      contactName: context.relationship.contactName,
+      originalChars: context.originalMessage.length,
+      hasContactName: Boolean(context.relationship.contactName),
       relationship: context.relationship.relationship,
     },
-    'Enriching message'
+    'Enriching message' // never the message or the name: the contact never signed up
   );
 
   try {
@@ -283,7 +283,7 @@ export async function enrichMessage(context: EnrichmentContext): Promise<Enriche
 
     // Step 1: Classify the intent
     const intent = classifyIntent(context.originalMessage);
-    log.debug({ originalMessage: context.originalMessage, intent }, 'Intent classified');
+    log.debug({ originalChars: context.originalMessage.length, intent }, 'Intent classified');
 
     // Step 2: If known intent, use semantic templates (fast path)
     if (intent !== 'custom') {
@@ -414,8 +414,8 @@ export async function enrichVoicemailMessage(context: EnrichmentContext): Promis
 
   log.info(
     {
-      originalMessage: context.originalMessage,
-      contactName: context.relationship.contactName,
+      originalChars: context.originalMessage.length,
+      hasContactName: Boolean(context.relationship.contactName),
     },
     'Enriching voicemail message'
   );

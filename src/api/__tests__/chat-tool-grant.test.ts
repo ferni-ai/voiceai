@@ -33,16 +33,11 @@ vi.mock('../../utils/safe-logger.js', async (importOriginal) => {
       bindings.module === 'ChatToolAccess' ? accessLog : actual.createLogger(bindings),
   };
 });
-vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: class {
-    getGenerativeModel() {
-      return {
-        generateContent: async () => ({
-          response: { text: () => 'Done.', functionCalls: () => llm.calls },
-        }),
-      };
-    }
-  },
+vi.mock('../../config/gemini-config.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../config/gemini-config.js')>()),
+  getGeminiClient: async () => ({
+    models: { generateContent: async () => ({ text: 'Done.', functionCalls: llm.calls }) },
+  }),
 }));
 // "Bearer <uid>" is a verified token for <uid>; admin-uid is an admin.
 vi.mock('../auth-middleware.js', () => ({
@@ -53,7 +48,6 @@ vi.mock('../auth-middleware.js', () => ({
   }),
 }));
 
-process.env.GOOGLE_API_KEY = 'test-key';
 const { handleChatRoutes } = await import('../chat-routes.js');
 
 let lastBody: unknown;
