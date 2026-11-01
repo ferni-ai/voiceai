@@ -12,6 +12,13 @@ import { applyBillingLabels, geminiBillingLabels } from './gemini-billing-labels
 import { realtimeModelOrFail } from './realtime-model.js';
 import { applyThinkingDefaults } from './thinking-defaults.js';
 import { useVertexAI } from './vertex-flag.js';
+import {
+  geminiEmbeddingLocation,
+  geminiLocation,
+  VERTEX_MULTI_REGIONS,
+  vertexGenAIOptions,
+  vertexHost,
+} from './vertex-endpoint.js';
 
 const log = createLogger({ module: 'GeminiConfig' });
 
@@ -32,13 +39,18 @@ export const { GOOGLE_CLOUD_PROJECT } = process.env;
 /** Google Cloud Location (default: us-central1) */
 export const GOOGLE_CLOUD_LOCATION = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
 
-/** Vertex location for Gemini calls (default: global; Gemini 3.5 404s on us-central1) */
-export const GEMINI_LOCATION = process.env.GEMINI_LOCATION || 'global';
+/** Vertex location for Gemini calls (default: global; Gemini 3.5 404s on us-central1). Hosts: vertex-endpoint.ts. */
+export const GEMINI_LOCATION = geminiLocation();
 
-/** Init options for the legacy @google-cloud/vertexai SDK, which can't derive the global host. */
-export function vertexOptions(project: string, location = GEMINI_LOCATION) {
-  const region = location === 'global' ? '' : `${location}-`;
-  return { project, location, apiEndpoint: `${region}aiplatform.googleapis.com` };
+/** Vertex location for gemini-embedding-001 (GEMINI_EMBEDDING_LOCATION, default GEMINI_LOCATION). */
+export const GEMINI_EMBEDDING_LOCATION = geminiEmbeddingLocation();
+
+/** Init options for the legacy @google-cloud/vertexai SDK, which can't derive the global or multi-region host. */
+export function vertexOptions(
+  project: string,
+  location = GEMINI_LOCATION
+): { project: string; location: string; apiEndpoint: string } {
+  return { project, location, apiEndpoint: vertexHost(location) };
 }
 
 /** Gemini API Key (for non-Vertex AI usage) */
@@ -291,12 +303,9 @@ export function getGeminiConfigStatus(): string {
 // CLIENT FACTORY
 // ============================================================================
 
-// Cached client instance
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let cachedClient: any = null;
-// FIX: Promise-based singleton to prevent race condition when multiple callers
-// invoke getGeminiClient() concurrently during startup
-let clientInitPromise: Promise<unknown | null> | null = null;
+// One client per Vertex location, as a promise so concurrent first callers share
+// one initialization. A failed or unconfigured init is dropped so a later call retries.
+const clients = new Map<string, Promise<unknown | null>>();
 
 /**
  * Get a configured GoogleGenAI client
@@ -304,59 +313,53 @@ let clientInitPromise: Promise<unknown | null> | null = null;
  * This is the ONLY place that creates Gemini clients.
  * All services should use this instead of creating their own.
  *
+ * @param location Vertex location (default GEMINI_LOCATION); embeddings pass GEMINI_EMBEDDING_LOCATION.
  * @returns GoogleGenAI client or null if not configured
  */
-export async function getGeminiClient(): Promise<unknown | null> {
-  // Fast path: already initialized
-  if (cachedClient) return cachedClient;
-
-  // If initialization is in progress, wait for it (prevents race condition)
-  if (clientInitPromise) return clientInitPromise;
-
-  // Start initialization and store promise for concurrent callers
-  clientInitPromise = initializeGeminiClient();
-  return clientInitPromise;
+export async function getGeminiClient(location: string = GEMINI_LOCATION): Promise<unknown | null> {
+  const cached = clients.get(location);
+  if (cached !== undefined) return cached;
+  const client: Promise<unknown | null> = initializeGeminiClient(location).then((c) => {
+    if (!c && clients.get(location) === client) clients.delete(location);
+    return c;
+  });
+  clients.set(location, client);
+  return client;
 }
 
-async function initializeGeminiClient(): Promise<unknown | null> {
+async function initializeGeminiClient(location: string): Promise<unknown | null> {
   if (!isGeminiConfigured()) {
     log.warn({ status: getGeminiConfigStatus() }, 'Gemini not properly configured');
-    clientInitPromise = null;
     return null;
   }
 
   try {
     const { GoogleGenAI } = await import('@google/genai');
-
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let client: any;
     if (USE_VERTEX_AI && GOOGLE_CLOUD_PROJECT) {
-      cachedClient = new GoogleGenAI({
-        vertexai: true,
-        project: GOOGLE_CLOUD_PROJECT,
-        location: GEMINI_LOCATION,
-      });
-      applyBillingLabels(cachedClient, geminiBillingLabels()); // API keys reject labels
+      client = new GoogleGenAI(vertexGenAIOptions(GOOGLE_CLOUD_PROJECT, location));
+      applyBillingLabels(client, geminiBillingLabels()); // API keys reject labels
       log.info(
-        { project: GOOGLE_CLOUD_PROJECT, location: GEMINI_LOCATION },
+        { project: GOOGLE_CLOUD_PROJECT, location, host: vertexHost(location) },
         '🔷 Gemini client initialized with Vertex AI'
       );
     } else {
-      cachedClient = new GoogleGenAI({ apiKey: GEMINI_API_KEY! });
+      client = new GoogleGenAI({ apiKey: GEMINI_API_KEY! });
       log.info('🔶 Gemini client initialized with API key');
     }
 
-    applyThinkingDefaults(cachedClient);
-    return cachedClient;
+    applyThinkingDefaults(client);
+    return client;
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to initialize Gemini client');
-    clientInitPromise = null; // Allow retry on failure
     return null;
   }
 }
 
-/** Reset the cached client (useful for testing or config changes) */
+/** Reset the cached clients (useful for testing or config changes) */
 export function resetGeminiClient(): void {
-  cachedClient = null;
-  clientInitPromise = null;
+  clients.clear();
 }
 
 /** Alias for backward compatibility */
@@ -539,6 +542,7 @@ if (process.env.NODE_ENV !== 'test') {
       useVertexAI: USE_VERTEX_AI,
       project: GOOGLE_CLOUD_PROJECT || '(not set)',
       location: GEMINI_LOCATION,
+      embeddingLocation: GEMINI_EMBEDDING_LOCATION,
       model: GEMINI_MODEL,
       temperature: GEMINI_TEMPERATURE,
       timeoutMs: LLM_TIMEOUT_MS,
@@ -573,5 +577,13 @@ if (process.env.NODE_ENV !== 'test') {
       },
     },
     '📋 Gemini configuration loaded'
+  );
+}
+
+// gemini-embedding-001 404s on the `us` multi-region (2026-11-01): say so at startup, not per call.
+if (USE_VERTEX_AI && VERTEX_MULTI_REGIONS.includes(GEMINI_EMBEDDING_LOCATION)) {
+  log.error(
+    { embeddingLocation: GEMINI_EMBEDDING_LOCATION },
+    'gemini-embedding-001 is not served on a Vertex multi-region: set GEMINI_EMBEDDING_LOCATION to a US region'
   );
 }

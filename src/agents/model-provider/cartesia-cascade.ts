@@ -27,6 +27,7 @@ import { ThinkingLevel } from '@google/genai';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import * as google from '@livekit/agents-plugin-google';
 import { geminiBillingLabels, labelLlmChat } from '../../config/gemini-billing-labels.js';
+import { geminiLocation, vertexBaseUrl } from '../../config/vertex-endpoint.js';
 import { ALL_CANONICAL_IDS, DISPLAY_NAMES } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createCachedDeclarationsLLM, sharedDeclarationCache } from './gemini-declarations.js';
@@ -207,7 +208,7 @@ export function buildCascadeLLMOptions(
     model,
     vertexai: true,
     project: env.GOOGLE_CLOUD_PROJECT,
-    location: env.CASCADE_LLM_LOCATION || 'global',
+    location: env.CASCADE_LLM_LOCATION || geminiLocation(env),
     temperature,
     thinkingConfig: cascadeThinking(model, env),
   };
@@ -397,11 +398,14 @@ export class CartesiaCascadeProvider implements ModelProvider {
     const declarations = await sharedDeclarationCache();
     // Every cascade model is on Vertex (vertexai: true), which takes billing labels.
     const labels = geminiBillingLabels();
-    const gemini = (o: CascadeLLMOptions): google.LLM =>
-      labelLlmChat(
-        declarations ? createCachedDeclarationsLLM(o, declarations) : new google.LLM(o),
+    const gemini = (o: CascadeLLMOptions): google.LLM => {
+      // Each model's host follows its own location (a backup may be elsewhere): vertex-endpoint.ts.
+      const pinned = { ...o, httpOptions: { baseUrl: vertexBaseUrl(o.location) } };
+      return labelLlmChat(
+        declarations ? createCachedDeclarationsLLM(pinned, declarations) : new google.LLM(pinned),
         labels
       );
+    };
     const primary = gemini(opts);
     const main = hedge
       ? new HedgedLLM(

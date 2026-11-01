@@ -23,11 +23,12 @@ cp .env.example .env
 
 ### AI Services
 
-| Variable               | Description                                                      | Example           |
-| ---------------------- | ---------------------------------------------------------------- | ----------------- |
-| `GOOGLE_CLOUD_PROJECT` | Gemini runs on Vertex AI in this project (ADC credentials)       | `your-project-id` |
-| `GEMINI_LOCATION`      | Vertex location for Gemini (default `global`; keep it in the US) | `global`          |
-| `CARTESIA_API_KEY`     | Cartesia TTS API key                                             | `sk-...`          |
+| Variable                    | Description                                                                                                     | Example           |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------- |
+| `GOOGLE_CLOUD_PROJECT`      | Gemini runs on Vertex AI in this project (ADC credentials)                                                      | `your-project-id` |
+| `GEMINI_LOCATION`           | Vertex location for Gemini and the cascade LLM (default `global`; `us` keeps processing in the US)              | `us`              |
+| `GEMINI_EMBEDDING_LOCATION` | Vertex location for gemini-embedding-001 (default `GEMINI_LOCATION`; it is not served on `us`, use a US region) | `us-central1`     |
+| `CARTESIA_API_KEY`          | Cartesia TTS API key                                                                                            | `sk-...`          |
 
 Gemini calls go through the shared client (`getGeminiClient()` in
 `src/config/gemini-config.ts`), which uses Vertex when `USE_VERTEX_AI` is not
@@ -167,13 +168,13 @@ Every Maps-family call takes its key from one resolver, `googleMapsKey()` in
 Geocoding and Places, created 2026-10-30) wins for every caller. Until it is mounted,
 each caller falls back to exactly the names it read before (`MAPS_KEY_LEGACY`):
 
-| Caller | Fallback after `GOOGLE_MAPS_SERVER_KEY` |
-| ------ | --------------------------------------- |
-| Traffic, directions, capability checker | `GOOGLE_MAPS_API_KEY`, then `GOOGLE_API_KEY` |
-| Geocoding, weather | `GOOGLE_API_KEY` only |
-| Places (local search, restaurants, concierge discovery) | `GOOGLE_PLACES_API_KEY`, then `GOOGLE_API_KEY` |
-| Anticipation travel time, integration hub `google_maps` | `GOOGLE_MAPS_API_KEY` only |
-| Rideshare estimates | `GOOGLE_API_KEY`, read directly (not on the resolver; #3103 removes the file) |
+| Caller                                                  | Fallback after `GOOGLE_MAPS_SERVER_KEY`                                       |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Traffic, directions, capability checker                 | `GOOGLE_MAPS_API_KEY`, then `GOOGLE_API_KEY`                                  |
+| Geocoding, weather                                      | `GOOGLE_API_KEY` only                                                         |
+| Places (local search, restaurants, concierge discovery) | `GOOGLE_PLACES_API_KEY`, then `GOOGLE_API_KEY`                                |
+| Anticipation travel time, integration hub `google_maps` | `GOOGLE_MAPS_API_KEY` only                                                    |
+| Rideshare estimates                                     | `GOOGLE_API_KEY`, read directly (not on the resolver; #3103 removes the file) |
 
 `GOOGLE_MAPS_API_KEY` comes from secret `google-maps-api-key`, which Google currently
 rejects (`REQUEST_DENIED`). `GOOGLE_API_KEY` is also the Gemini key; don't rely on it for Maps.
@@ -277,12 +278,12 @@ Without these, reservations fall back to phone calls via Twilio.
 
 For Apple Music search:
 
-| Variable            | Required | Description                                     |
-| ------------------- | -------- | ----------------------------------------------- |
-| `APPLE_TEAM_ID`     | ✓        | Your 10-character Apple Team ID                 |
-| `APPLE_KEY_ID`      | ✓        | Key ID from the .p8 key you created             |
-| `APPLE_PRIVATE_KEY` | ✓        | Contents of your .p8 private key file           |
-| `APPLE_MUSIC_APP_ID`|          | Optional: App identifier for MusicKit           |
+| Variable             | Required | Description                           |
+| -------------------- | -------- | ------------------------------------- |
+| `APPLE_TEAM_ID`      | ✓        | Your 10-character Apple Team ID       |
+| `APPLE_KEY_ID`       | ✓        | Key ID from the .p8 key you created   |
+| `APPLE_PRIVATE_KEY`  | ✓        | Contents of your .p8 private key file |
+| `APPLE_MUSIC_APP_ID` |          | Optional: App identifier for MusicKit |
 
 **Setup:**
 
@@ -308,8 +309,8 @@ MIGTAgEAMBMGByq...
 shares env names with APNs, Sign in with Apple or MusicKit. Without all four it
 returns `unconfigured` and calls nothing.
 
-| Variable                 | Secret Manager (`johnb-2025`) | Description                                         |
-| ------------------------ | ----------------------------- | --------------------------------------------------- |
+| Variable                 | Secret Manager (`johnb-2025`) | Description                                          |
+| ------------------------ | ----------------------------- | ---------------------------------------------------- |
 | `APPLE_TEAM_ID`          | `apple-team-id`               | 10-character Team ID (JWT `iss`, first half of `id`) |
 | `WEATHERKIT_KEY_ID`      | `weatherkit-key-id`           | Key ID of a key with WeatherKit enabled (JWT `kid`)  |
 | `WEATHERKIT_SERVICE_ID`  | `weatherkit-service-id`       | The registered Services ID (JWT `sub`)               |

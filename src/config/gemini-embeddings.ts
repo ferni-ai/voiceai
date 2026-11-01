@@ -12,7 +12,7 @@
 
 import { EmbeddingApiError, EmbeddingUnavailableError } from '../utils/embedding-api-error.js';
 import { errorStatus } from '../utils/error-class.js';
-import { getGeminiClient } from './gemini-config.js';
+import { GEMINI_EMBEDDING_LOCATION, getGeminiClient } from './gemini-config.js';
 
 interface EmbedClient {
   models: {
@@ -37,7 +37,7 @@ export async function embedTexts(
   texts: string[],
   timeoutMs?: number
 ): Promise<number[][]> {
-  const client = (await getGeminiClient()) as EmbedClient | null;
+  const client = (await getGeminiClient(GEMINI_EMBEDDING_LOCATION)) as EmbedClient | null;
   if (!client) throw new EmbeddingUnavailableError();
   const out: number[][] = [];
   for (let i = 0; i < texts.length; i += BATCH_SIZE) {
