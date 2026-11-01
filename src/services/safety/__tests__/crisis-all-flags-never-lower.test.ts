@@ -16,6 +16,10 @@
  * lose their medical-emergency read. Every pinned crisis test stayed green, because those tests
  * call the whole-word helpers directly and the flag guarded a different path. This test reads
  * the five production readers instead. All lines are fictional.
+ *
+ * A read also counts as lowered when it keeps its level but loses a resource: a crisis resource
+ * the safety check or the life-coaching guard offered, a step down in the guard's recommended
+ * action, or 988 / 911 gone from everything those readers hand the reply.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -79,7 +83,17 @@ const ESCALATION = [
   'emergency',
 ];
 
+const ACTION = ['continue', 'check_in', 'resources', 'immediate_referral'];
+
 let profiles = 0;
+
+/** Sorted resource names, so a loss is named in the failure. */
+const names = (resources: readonly { name: string }[] | undefined): string[] =>
+  (resources ?? []).map((r) => r.name).sort();
+
+/** Whether a number appears anywhere in what the readers hand the reply. */
+const mentions = (text: string, number: string): boolean =>
+  new RegExp(`(?<![0-9])${number}(?![0-9])`).test(text);
 
 /** What each production reader makes of one line. */
 function read(line: string) {
@@ -90,6 +104,11 @@ function read(line: string) {
     recentMessages: [line],
   }).map((w) => w.type);
   const assess = assessSafety(line);
+  const handed = JSON.stringify([
+    assess.resources ?? [],
+    safety.response ?? null,
+    safety.contextInjection ?? null,
+  ]);
   return {
     gateCrisis: gate.isCrisis,
     gateSeverity: gate.severity,
@@ -103,6 +122,14 @@ function read(line: string) {
     safetyInterrupt: safety.shouldInterrupt,
     warnings: [...warnings].sort(),
     assessLevel: ASSESS.indexOf(assess.level),
+    assessAction: ACTION.indexOf(assess.recommendedAction),
+    assessResources: names(assess.resources),
+    safetyResources: names([
+      ...(safety.response?.primaryResource ? [safety.response.primaryResource] : []),
+      ...(safety.response?.additionalResources ?? []),
+    ]),
+    offers988: mentions(handed, '988'),
+    offers911: mentions(handed, '911'),
   };
 }
 type Reading = ReturnType<typeof read>;
@@ -120,6 +147,13 @@ function lower(off: Reading, on: Reading): string[] {
   if (off.safetyInterrupt && !on.safetyInterrupt) out.push('safety check interrupt');
   for (const w of off.warnings) if (!on.warnings.includes(w)) out.push(`warning ${w}`);
   if (on.assessLevel < off.assessLevel) out.push('life-coaching level');
+  if (on.assessAction < off.assessAction) out.push('life-coaching action');
+  for (const r of off.assessResources)
+    if (!on.assessResources.includes(r)) out.push(`life-coaching resource ${r}`);
+  for (const r of off.safetyResources)
+    if (!on.safetyResources.includes(r)) out.push(`safety check resource ${r}`);
+  if (off.offers988 && !on.offers988) out.push('988');
+  if (off.offers911 && !on.offers911) out.push('911');
   return out;
 }
 
@@ -164,6 +198,14 @@ describe('crisis flags never lower a production crisis read', () => {
       expect(CHECKED).toContain(name);
     }
     expect(LINES.length).toBeGreaterThan(500);
+    // The resource checks bite only if main hands the reply 988 and named resources.
+    const defaults = [...readUnder({}).values()];
+    expect(defaults.filter((r) => r.offers988).length).toBeGreaterThan(100);
+    // No reader hands the reply 911 on main today, so the 911 check cannot fail yet (#3341).
+    // When #3341 lands this goes red: change it to toBeGreaterThan(0).
+    expect(defaults.filter((r) => r.offers911).length).toBe(0);
+    expect(defaults.filter((r) => r.assessResources.length > 0).length).toBeGreaterThan(100);
+    expect(defaults.filter((r) => r.safetyResources.length > 0).length).toBeGreaterThan(100);
   });
 
   it('reads the pinned lines as risk where main does', () => {
