@@ -10,7 +10,7 @@ import type { llm } from '@livekit/agents';
 import { contextPacketEnabled } from '../../config/context-packet-flag.js';
 import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
+import { onlyPhoneSafeTools, PLACED_CALL_ALSO_SAFE } from '../shared/phone-safe-tools.js';
 import { ownerWritesBlocked } from '../../services/identity/owner-write-gate.js';
 import { withoutQuickShortcuts } from '../shared/quick-shortcuts-real-only.js';
 import { heldAfter, lastFerniLine } from '../../utils/minor-care.js';
@@ -20,6 +20,7 @@ import {
   withoutThirdPartyTools,
 } from '../shared/third-party-tools.js';
 import {
+  onPlacedCallSession,
   phoneOnlyIdentity,
   sessionIsVerifiedOwner,
 } from '../voice-agent-entry/caller-recognition.js';
@@ -426,7 +427,7 @@ export async function toolsForTurn(
   });
   const allowed =
     phoneOnlyIdentity(sessionId) || held || ownerWritesBlocked(userIdOf(session.userData))
-      ? await withoutAccountTools(toolCtx, state)
+      ? await withoutAccountTools(toolCtx, state, onPlacedCallSession(sessionId))
       : others
         ? toolCtx
         : await withoutReachingOthers(toolCtx, state);
@@ -483,12 +484,14 @@ interface ToolHolder {
 
 async function withoutAccountTools(
   toolCtx: llm.ToolContext,
-  state: TurnToolsState
+  state: TurnToolsState,
+  placedCall = false // PLACED_CALL_NOT_OWNER_PROOF: a call Ferni placed also keeps PLACED_CALL_ALSO_SAFE
 ): Promise<llm.ToolContext> {
+  const also = placedCall ? PLACED_CALL_ALSO_SAFE : undefined;
   const agent = state.agent as ToolHolder | undefined;
-  if (agent && onlyPhoneSafeTools(agent.toolCtx) !== agent.toolCtx) {
-    await agent.updateTools(onlyPhoneSafeTools(agent.toolCtx));
+  if (agent && onlyPhoneSafeTools(agent.toolCtx, also) !== agent.toolCtx) {
+    await agent.updateTools(onlyPhoneSafeTools(agent.toolCtx, also));
     log.info({}, 'Only phone-safe tools open for a phone-recognised caller');
   }
-  return onlyPhoneSafeTools(toolCtx);
+  return onlyPhoneSafeTools(toolCtx, also);
 }
