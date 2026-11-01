@@ -169,6 +169,25 @@ describe('scoreConsentTranscript', () => {
     });
   });
 
+  it('still hears a refusal when a name holds the same word', () => {
+    const cases: Array<[string, string, (text: string) => string]> = [
+      ['Rosa Quill', 'Not Sam', (t) => t.replace('I agree', 'I do not agree')],
+      ['Maya Not', 'Maya Not', (t) => t.replace('I agree', 'I do not agree')],
+      ['Noa Never', 'Noa Never', (t) => t.replace('I agree', 'I never agree')],
+      ['No Min-ji', 'No Min-ji', (t) => `${t} No.`],
+    ];
+    for (const [subjectName, creatorName, refuse] of cases) {
+      const statement = buildConsentStatement({
+        subjectName,
+        creatorName,
+        spokenDate: 'November 1, 2026',
+        random: seq(0, 0, 0),
+      });
+      expect(scoreConsentTranscript(statement, statement.text).verified).toBe(true);
+      expect(scoreConsentTranscript(statement, refuse(statement.text)).verified).toBe(false);
+    }
+  });
+
   it('refuses an empty transcript', () => {
     expect(scoreConsentTranscript(forMaya, '')).toMatchObject({ verified: false, coverage: 0 });
   });

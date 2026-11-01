@@ -87,6 +87,8 @@ export interface ConsentStatement {
   checkWords: readonly string[];
   /** The date as written in the text; speech to text writes dates in many forms, so it isn't scored. */
   spokenDate: string;
+  /** The names as written in the text; a name can hold a refusal word ("Noa Never"). */
+  names: readonly string[];
 }
 
 /** Unpredictable check words, so nobody can record them ahead of time. */
@@ -116,13 +118,13 @@ export function buildConsentStatement(input: ConsentStatementInput): ConsentStat
     `My name is ${subject}. I agree that Ferni may make an AI copy of my voice for ${forWhom}. ` +
     `I can take this back at any time. Today is ${spokenDate}. ` +
     `My check words are ${checkWords.join(', ')}.`;
-  return { text, checkWords, spokenDate };
+  return { text, checkWords, spokenDate, names: [subject, creator] };
 }
 
 /** Lowercase whole words, numbers dropped (dates come back from speech to text in many forms). */
 export function consentWords(text: string): string[] {
   // Speech to text often writes curly apostrophes ("don’t"); read them as plain ones
-  const plain = text.toLowerCase().replace(/[\u2018\u2019]/g, "'");
+  const plain = text.toLowerCase().replace(/[\u2018\u2019\u02bc\uff07]/g, "'");
   return (plain.match(/\p{L}+(?:'\p{L}+)?/gu) ?? []).map((w) => w.replace(/'s$/, ''));
 }
 
@@ -146,7 +148,24 @@ const REFUSAL_WORDS = new Set([
   'forbid',
   'nope',
   'nah',
+  'withdraw',
+  'didnt',
+  'doesnt',
+  'wouldnt',
+  'havent',
+  'isnt',
 ]);
+
+/** `words` with every run that spells out `phrase` taken out. */
+function withoutPhrase(words: string[], phrase: string[]): string[] {
+  if (!phrase.length) return words;
+  const out: string[] = [];
+  for (let i = 0; i < words.length; i++) {
+    if (phrase.every((w, j) => words[i + j] === w)) i += phrase.length - 1;
+    else out.push(words[i]);
+  }
+  return out;
+}
 
 /** A refusal word, or any "n't" contraction (didn't, wouldn't, haven't). */
 const isRefusal = (w: string) => REFUSAL_WORDS.has(w) || w.endsWith("n't");
@@ -172,8 +191,12 @@ export function scoreConsentTranscript(
   const coverage = expected.length ? found / expected.length : 0;
   const missingCheckWords = statement.checkWords.filter((w) => !heard.has(w));
   // A word the statement itself contains (a subject named No or Never) isn't a refusal
-  const own = new Set(consentWords(statement.text));
-  const refusals = [...heard].filter((w) => isRefusal(w) && !own.has(w));
+  // The names are cut out first, so a name like "Noa Never" can't hide a spoken "never"
+  const unnamed = statement.names.reduce(
+    (rest, name) => withoutPhrase(rest, consentWords(name)),
+    consentWords(transcript)
+  );
+  const refusals = [...new Set(unnamed)].filter(isRefusal);
   return {
     verified: missingCheckWords.length === 0 && refusals.length === 0 && coverage >= MIN_COVERAGE,
     refusals,
