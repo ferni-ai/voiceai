@@ -19,12 +19,11 @@ import { applyPushPreference } from '../services/push-preference.js';
 import { createLogger } from '../utils/logger.js';
 import { asModalDialog } from '../utils/accessibility.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { apiGet, apiPost } from '../utils/api.js';
+import { apiGet, apiPost, apiDelete } from '../utils/api.js';
 import { getUserTimezone } from '../services/timezone.service.js';
 import { isNoStreaksOn } from '../config/no-streaks.js';
 import { escapeHtml } from '../utils/escape-html.js';
 import { toUpcomingOutreachItem, type UpcomingOutreachItem } from './upcoming-outreach-item.js';
-import { cancelUpcomingItem, moveUpcomingItem } from './upcoming-outreach-actions.js';
 import { bindEmailSwitch, emailSwitchHtml, emailSwitchState, mountEmailSwitch } from './email-checkins-switch.js';
 
 const log = createLogger('NotifySettings');
@@ -686,12 +685,22 @@ class NotificationSettingsUI {
       { label: t('notificationSettings.tomorrowMorning'), time: '09:00' },
     ];
 
-    const item = this.upcomingItems.find((i) => i.id === outreachId);
-    const choice = item && (await this.showRescheduleDialog(options));
-    if (!item || !choice) return;
-    // Moved or not (upcoming-outreach-actions.ts says which), the list shows what is really set
-    await moveUpcomingItem(item, choice);
-    void this.loadUpcomingData();
+    const choice = await this.showRescheduleDialog(options);
+    if (!choice) return;
+
+    try {
+      const response = await apiPost<{ success?: boolean }>('/api/outreach/reschedule', {
+        triggerId: outreachId,
+        newTime: choice,
+      });
+
+      if (response.ok) {
+        log.info({ outreachId }, 'Rescheduled outreach');
+        void this.loadUpcomingData();
+      }
+    } catch (error) {
+      log.error({ error, outreachId }, 'Failed to reschedule');
+    }
   }
 
   private showRescheduleDialog(options: Array<{ label: string; offset?: number; time?: string }>): Promise<string | null> {
@@ -752,10 +761,20 @@ class NotificationSettingsUI {
   }
 
   private async handleCancelOutreach(outreachId: string): Promise<void> {
-    const item = this.upcomingItems.find((i) => i.id === outreachId);
-    if (!item || !confirm(t('outreachSchedule.confirmCancel'))) return;
-    await cancelUpcomingItem(item);
-    void this.loadUpcomingData();
+    if (!confirm(t('outreachSchedule.confirmCancel'))) {
+      return;
+    }
+
+    try {
+      const response = await apiDelete<{ success?: boolean }>(`/api/outreach/pending/${outreachId}`);
+
+      if (response.ok) {
+        log.info({ outreachId }, 'Cancelled outreach');
+        void this.loadUpcomingData();
+      }
+    } catch (error) {
+      log.error({ error, outreachId }, 'Failed to cancel outreach');
+    }
   }
 
   private save(): void {

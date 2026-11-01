@@ -12,7 +12,7 @@ import { formatDate, t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION } from '../config/animation-constants.js';
-import { apiGet } from '../utils/api.js';
+import { apiGet, apiPost, apiDelete } from '../utils/api.js';
 import {
   fetchOutreachHistory,
   PANEL_READ_OPTIONS,
@@ -26,7 +26,6 @@ import {
 import { closeOnEscape } from '../utils/accessibility.js';
 import { escapeHtml as escape } from '../utils/escape-html.js';
 import { toUpcomingOutreachItem, type UpcomingOutreachItem } from './upcoming-outreach-item.js';
-import { cancelUpcomingItem, moveUpcomingItem } from './upcoming-outreach-actions.js';
 
 const log = createLogger('OutreachScheduleUI');
 
@@ -707,10 +706,10 @@ async function handleAction(action: string, item: ScheduledOutreach): Promise<vo
       showPreview(item);
       break;
     case 'reschedule':
-      showReschedule(item);
+      await showReschedule(item.id);
       break;
     case 'cancel':
-      await cancelOutreach(item);
+      await cancelOutreach(item.id);
       break;
   }
 }
@@ -914,7 +913,8 @@ function addPreviewStyles(): void {
   document.head.appendChild(style);
 }
 
-function showReschedule(item: ScheduledOutreach): void {
+async function showReschedule(outreachId: string): Promise<void> {
+  // Create reschedule modal
   const reschedule = document.createElement('div');
   reschedule.className = 'outreach-reschedule-overlay';
 
@@ -959,21 +959,46 @@ function showReschedule(item: ScheduledOutreach): void {
   reschedule.querySelector('.outreach-preview-backdrop')?.addEventListener('click', close);
   reschedule.querySelector('.outreach-reschedule-cancel')?.addEventListener('click', close);
 
-  reschedule.querySelectorAll<HTMLElement>('.outreach-reschedule-option').forEach((btn) => {
+  reschedule.querySelectorAll('.outreach-reschedule-option').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      // Moved or not, the list is read again so it shows what is really set
-      await moveUpcomingItem(item, btn.dataset.time ?? '');
-      close();
-      await loadData();
+      const newTime = (btn as HTMLElement).dataset.time;
+      try {
+        // Call API to reschedule
+        const response = await apiPost<{ success?: boolean }>(`/api/outreach/reschedule`, {
+          triggerId: outreachId,
+          newTime,
+        });
+
+        if (response.ok) {
+          log.info({ outreachId, newTime }, 'Rescheduled outreach');
+          close();
+          await loadData(); // Refresh the list
+        } else {
+          log.error({ outreachId }, 'Failed to reschedule');
+        }
+      } catch (error) {
+        log.error({ error, outreachId }, 'Reschedule error');
+      }
     });
   });
 }
 
-/** Cancels only after a yes; says "cancelled" only when the server did (upcoming-outreach-actions.ts). */
-async function cancelOutreach(item: ScheduledOutreach): Promise<void> {
-  if (!confirm(t('outreachSchedule.confirmCancel'))) return;
-  await cancelUpcomingItem(item);
-  await loadData();
+async function cancelOutreach(outreachId: string): Promise<void> {
+  if (!confirm(t('outreachSchedule.confirmCancel'))) {
+    return;
+  }
+
+  try {
+    const response = await apiDelete<{ success?: boolean }>(`/api/outreach/pending/${outreachId}`);
+
+    if (response.ok) {
+      // Refresh the list
+      await loadData();
+      log.info({ outreachId }, 'Cancelled outreach');
+    }
+  } catch (error) {
+    log.error({ error, outreachId }, 'Failed to cancel outreach');
+  }
 }
 
 // ============================================================================

@@ -26,8 +26,6 @@ interface ImportMetaEnv {
   readonly VITE_SOUND_DIRECTOR?: string;
   /** "true" starts the seeds economy, toast and display (config/seeds-flag.ts). Off: seeds are cut. */
   readonly VITE_SEEDS?: string;
-  /** "true" shows Cancel and Reschedule in When I'll Reach Out (config/reach-out-actions-flag.ts). */
-  readonly VITE_REACH_OUT_ACTIONS?: string;
 }
 
 interface ImportMeta {

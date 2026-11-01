@@ -8,7 +8,7 @@
  * Weekly Recap switches were saved in this browser only and no sender read them
  * (Team Huddles was deleted, Predictions is hidden).
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 const apiGet = vi.fn();
 vi.mock('../../src/utils/api.js', () => ({
@@ -92,10 +92,6 @@ function injected(root: Element): string[] {
 }
 
 describe('Upcoming tab with markup in the server fields', () => {
-  // The cancel button carries the id too; it shows only with the flag on (reach-out-actions-flag.ts)
-  beforeEach(() => vi.stubEnv('VITE_REACH_OUT_ACTIONS', 'true'));
-  afterEach(() => vi.unstubAllEnvs());
-
   it('shows it as text, injects no element or attribute, and keeps priority to its values', async () => {
     await open('upcoming', [HOSTILE]);
 
