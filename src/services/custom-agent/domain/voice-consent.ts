@@ -137,6 +137,11 @@ const REFUSAL_WORDS = new Set([
   'refuse',
   'disagree',
   'deny',
+  'decline',
+  'reject',
+  'revoke',
+  'withhold',
+  'forbid',
 ]);
 
 export interface ConsentScore {

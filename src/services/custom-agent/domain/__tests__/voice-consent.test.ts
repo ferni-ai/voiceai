@@ -136,6 +136,7 @@ describe('scoreConsentTranscript', () => {
       forMaya.text.replace('I agree', 'I do not agree'),
       `${forMaya.text} But I refuse.`,
       forMaya.text.replace('I agree', "I don't agree"),
+      `${forMaya.text} I decline.`,
     ]) {
       const score = scoreConsentTranscript(forMaya, heard);
       expect(score.coverage).toBe(1);
