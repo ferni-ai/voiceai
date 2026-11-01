@@ -158,6 +158,17 @@ export function denyFraming(res: ServerResponse): void {
 }
 
 /**
+ * The answer card, approval and connect pages are never framed (clickjacking),
+ * and the connect page sends no Referer to the provider it hands off to.
+ */
+function protectStandalonePage(res: ServerResponse, pathname: string): void {
+  if (pathname.startsWith('/a/') || pathname.startsWith('/p/') || pathname === '/connect') {
+    denyFraming(res);
+  }
+  if (pathname === '/connect') res.setHeader('Referrer-Policy', 'no-referrer');
+}
+
+/**
  * Handle static file routes (SPA routing)
  */
 export function handleStaticRoutes(
@@ -165,10 +176,7 @@ export function handleStaticRoutes(
   res: ServerResponse,
   pathname: string
 ): boolean {
-  // The answer card, approval and connect pages are never framed (clickjacking)
-  if (pathname.startsWith('/a/') || pathname.startsWith('/p/') || pathname === '/connect') {
-    denyFraming(res);
-  }
+  protectStandalonePage(res, pathname);
 
   // Serve index.html for root
   if (pathname === '/' || pathname === '') {

@@ -56,4 +56,12 @@ describe('Firebase Hosting headers', () => {
       expect(value('Content-Security-Policy'), site.target).toBe("frame-ancestors 'none'");
     }
   });
+
+  it('every target sends no Referer from the connect page', () => {
+    for (const site of config.hosting) {
+      const rule = site.headers.find((h) => h.source === '/connect');
+      const policy = rule?.headers.find((h) => h.key === 'Referrer-Policy')?.value;
+      expect(policy, site.target).toBe('no-referrer');
+    }
+  });
 });

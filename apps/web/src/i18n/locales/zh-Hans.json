@@ -11073,6 +11073,7 @@
   "connectInvite": {
     "title": "让 Alex 帮你留意日历",
     "lead": "连接 Google 日历，日程就不会悄悄溜走。会共享以下内容：",
+    "account": "正在以 {account} 连接 Alex",
     "sees": "查看日程的时间、标题和地点",
     "changes": "只在你要求时添加或修改日程",
     "never": "绝不查看你的邮件或附件",
@@ -11080,7 +11081,6 @@
     "connect": "连接 Google 日历",
     "opening": "正在打开 Google...",
     "expired": "这个链接已过期或已被使用。下次通话时告诉我，我再发一个新的。",
-    "otherAccount": "这个链接属于另一个账号，所以我没有使用。下次通话时再向我要一个新的吧。",
     "failed": "暂时无法打开 Google。下次通话时告诉我，我再发一个新链接。"
   },
   "aiLabel": {

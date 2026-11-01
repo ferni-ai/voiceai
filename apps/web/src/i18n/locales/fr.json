@@ -11198,6 +11198,7 @@
   "connectInvite": {
     "title": "Laisse Alex garder un œil sur ton agenda",
     "lead": "Connecte Google Agenda pour qu'aucun rendez-vous ne te prenne par surprise. Voici ce qui est partagé :",
+    "account": "Connexion à Alex pour {account}",
     "sees": "Voit les heures, les titres et les lieux de tes événements",
     "changes": "Ajoute ou modifie des événements seulement quand tu le demandes",
     "never": "Ne voit jamais tes e-mails ni tes pièces jointes",
@@ -11205,7 +11206,6 @@
     "connect": "Connecter Google Agenda",
     "opening": "Ouverture de Google...",
     "expired": "Ce lien a expiré ou a déjà servi. Demande-moi au prochain appel et je t'en envoie un nouveau.",
-    "otherAccount": "Ce lien était pour un autre compte, alors je ne l'ai pas utilisé. Demande-m'en un nouveau au prochain appel.",
     "failed": "Impossible d'ouvrir Google pour l'instant. Demande-moi au prochain appel et je t'envoie un nouveau lien."
   },
   "aiLabel": {
