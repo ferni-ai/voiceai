@@ -15,11 +15,17 @@
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { apiFetch } from '../utils/api-helpers.js';
-import { AUTH_READY_TIMEOUT_MS, LONG_REQUEST_TIMEOUT_MS, valueWithin } from '../utils/request-deadline.js';
+import {
+  AUTH_READY_TIMEOUT_MS,
+  DATA_RIGHTS_AUTH_WAIT_MS,
+  LONG_REQUEST_TIMEOUT_MS,
+  valueWithin,
+} from '../utils/request-deadline.js';
 import { clearAllUserData, exportLocalStorage, sealUserData } from '../config/storage-keys.js';
 import { getAuthToken, initAuth } from './firebase-auth.service.js';
 import { signOutReleasingPush } from './push-preference.js';
 import { ritualsService } from './rituals.service.js';
+import { deletionFailureKey, deletionOutcome } from './deletion-outcome.js';
 
 const log = createLogger('DataExport');
 
@@ -92,11 +98,13 @@ function localizeCategories(categories: ExportableCategory[]): ExportableCategor
 }
 
 /**
- * A data-rights request that did not happen. `message` is safe to show the user.
+ * A data-rights request that wasn't confirmed. `message` is safe to show the user.
+ * 'refused': the server (or the sign-in check) turned it away, nothing was removed.
+ * 'unknown': no answer, or a 5xx, so a delete may have run anyway (deletion-outcome.ts).
  */
 export class DataRightsError extends Error {
   constructor(
-    readonly reason: 'not_signed_in' | 'server',
+    readonly reason: 'not_signed_in' | 'server' | 'refused' | 'unknown',
     message: string
   ) {
     super(message);
@@ -111,14 +119,49 @@ export function dataRightsErrorMessage(err: unknown, fallback: string): string {
 
 /**
  * The server binds export and delete to the verified Firebase token, never to an
- * id the client names, so there is nothing to do without one.
+ * id the client names, so there is nothing to do without one. Waits up to
+ * DATA_RIGHTS_AUTH_WAIT_MS for it; the caller sends it itself, so apiFetch's
+ * shorter wait can't drop it and turn the request into a 401.
  */
-async function requireSignedIn(message: string): Promise<void> {
-  await initAuth().catch(() => undefined);
-  const token = await getAuthToken();
+async function requireSignedIn(message: string): Promise<string> {
+  const signedIn = initAuth()
+    .catch(() => undefined)
+    .then(() => getAuthToken());
+  const token = await valueWithin<string | null | undefined>(
+    signedIn,
+    DATA_RIGHTS_AUTH_WAIT_MS,
+    undefined
+  );
+  if (token === undefined) {
+    throw new DataRightsError('refused', t('dataExportService.authSlow'));
+  }
   if (!token) {
     throw new DataRightsError('not_signed_in', message);
   }
+  return token;
+}
+
+/** A delete with the caller's token, waiting past the server's own limit. Null: no answer. */
+function sendDeletion(url: string, token: string, body: object): Promise<Response | null> {
+  return apiFetch(
+    url,
+    {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    },
+    LONG_REQUEST_TIMEOUT_MS
+  ).catch((err: unknown) => {
+    log.error('Deletion request got no answer', err);
+    return null;
+  });
+}
+
+function deletionError(response: Response | null, what: 'data' | 'account'): DataRightsError {
+  const outcome = deletionOutcome(response);
+  const failed = outcome === 'confirmed' ? 'unknown' : outcome; // 2xx without its confirmation
+  log.error('Deletion not confirmed', { what, outcome: failed, status: response?.status });
+  return new DataRightsError(failed, t(deletionFailureKey(failed, response?.status, what)));
 }
 
 // ============================================================================
@@ -132,12 +175,12 @@ class DataExportService {
    */
   async exportData(format: 'json' | 'csv', categories: string[]): Promise<void> {
     log.info('Starting data export', { format, categories });
-    await requireSignedIn(t('dataExportService.signInToDownload'));
+    const token = await requireSignedIn(t('dataExportService.signInToDownload'));
 
     try {
       const response = await apiFetch('/api/export', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ format, categories }),
       }, LONG_REQUEST_TIMEOUT_MS);
 
@@ -181,26 +224,15 @@ class DataExportService {
 
   /**
    * Delete all user data (GDPR right to erasure).
-   * The server deletion must succeed before anything local is cleared, so a
-   * failure leaves the user exactly where they were and says so.
+   * The server deletion must be confirmed before anything local is cleared. A
+   * refusal says nothing was removed; no answer says it couldn't be confirmed.
    */
   async deleteAllData(): Promise<void> {
     log.warn('Starting data deletion');
-    await requireSignedIn(t('dataExportService.signInToDeleteData'));
+    const token = await requireSignedIn(t('dataExportService.signInToDeleteData'));
 
-    const response = await apiFetch('/api/export/all', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ confirmDelete: true }),
-    }, LONG_REQUEST_TIMEOUT_MS).catch((err: unknown) => {
-      log.error('Data deletion request failed', err);
-      return null;
-    });
-
-    if (!response?.ok) {
-      log.error('Server refused data deletion', { status: response?.status });
-      throw new DataRightsError('server', t('dataExportService.deleteDataFailed'));
-    }
+    const response = await sendDeletion('/api/export/all', token, { confirmDelete: true });
+    if (!response?.ok) throw deletionError(response, 'data');
 
     this.clearLocalData();
     log.info('All user data deleted');
@@ -214,15 +246,10 @@ class DataExportService {
    */
   async deleteAccount(): Promise<string | null> {
     log.warn('Starting account deletion');
-    await requireSignedIn(t('dataExportService.signInToDeleteAccount'));
+    const token = await requireSignedIn(t('dataExportService.signInToDeleteAccount'));
 
-    const response = await apiFetch('/api/account', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ confirmation: 'DELETE_MY_ACCOUNT' }),
-    }, LONG_REQUEST_TIMEOUT_MS).catch((err: unknown) => {
-      log.error('Account deletion request failed', err);
-      return null;
+    const response = await sendDeletion('/api/account', token, {
+      confirmation: 'DELETE_MY_ACCOUNT',
     });
     const result = response?.ok
       ? ((await response.json().catch(() => ({}))) as {
@@ -231,16 +258,9 @@ class DataExportService {
         })
       : null;
 
-    if (!result?.success) {
-      log.error('Server did not confirm account deletion', { status: response?.status });
-      throw new DataRightsError('server', t('dataExportService.deleteAccountFailed'));
-    }
+    if (!result?.success) throw deletionError(response, 'account');
 
-    this.clearLocalData();
-    // Also kills this browser's push endpoint, so nothing addressed to the deleted account lands here.
-    await signOutReleasingPush().catch((err: unknown) =>
-      log.warn('Sign-out after account deletion failed', err)
-    );
+    await this.forgetClosedAccount();
     const failures = result.details?.failures;
     if (Array.isArray(failures) && failures.length > 0) {
       log.warn('Account deleted, but some records were left', { failures });
@@ -248,6 +268,33 @@ class DataExportService {
     }
     log.info('Account deleted');
     return null;
+  }
+
+  /**
+   * After an account delete whose answer never came: is the account still open?
+   * 'closed': the server no longer takes this sign-in (switched off when the erasure
+   * starts, deleted when it ends), so this device forgets it too. 'open': it took the
+   * sign-in, so the account wasn't closed. 'unknown': no clear answer yet.
+   * Never sends another delete.
+   */
+  async checkAccountClosed(): Promise<'open' | 'closed' | 'unknown'> {
+    const token = await valueWithin(getAuthToken(), DATA_RIGHTS_AUTH_WAIT_MS, null);
+    if (!token) return 'unknown';
+    const response = await apiFetch('/api/account', {
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => null);
+    if (response?.ok) return 'open';
+    if (response?.status !== 401 && response?.status !== 403) return 'unknown';
+    await this.forgetClosedAccount();
+    return 'closed';
+  }
+
+  private async forgetClosedAccount(): Promise<void> {
+    this.clearLocalData();
+    // Also kills this browser's push endpoint, so nothing addressed to the deleted account lands here.
+    await signOutReleasingPush().catch((err: unknown) =>
+      log.warn('Sign-out after account deletion failed', err)
+    );
   }
 
   private clearLocalData(): void {
