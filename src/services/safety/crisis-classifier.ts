@@ -424,6 +424,7 @@ export function startCrisisClassifier(
 ): CrisisClassifierRun | null {
   const env = options.env ?? process.env;
   const mode = resolveCrisisClassifierMode(env);
+  const v2 = contextV2Read(input, options, env); // CRISIS_CONTEXT_V2, before any early return
   if (mode === 'off') return null;
   if (mode === 'live' && options.pattern === 'block') return notePatternBlock(options.call, env);
 
@@ -431,7 +432,6 @@ export function startCrisisClassifier(
   // Key on what the model sees: the turn pipeline's history ends with the
   // latest message and the chat context's does not, which made them miss.
   const normalized = normalizeInput(input);
-  const v2 = contextV2Read(normalized.latest, env, input.earlier, options.call); // CRISIS_CONTEXT_V2
   const prompt = v2.prompt(crisisClassifierPrompt(env));
   // CRISIS_CLASSIFIER_SECOND_READ: v3 may fill a read that found nothing (crisis-classifier-v3.ts).
   const waitMs = resolveCrisisClassifierTimeoutMs(env);

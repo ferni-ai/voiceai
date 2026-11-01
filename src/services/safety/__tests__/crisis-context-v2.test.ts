@@ -13,12 +13,8 @@ import {
   startCrisisClassifier,
   type CrisisGenerateFn,
 } from '../crisis-classifier.js';
-import {
-  contextNarrows,
-  narrowedPrompt,
-  resetContextV2,
-  strongRisk,
-} from '../crisis-context-v2.js';
+import { callNarrowingHeld, holdCallNarrowing, resetCrisisCallRisk } from '../crisis-call-risk.js';
+import { contextNarrows, narrowedPrompt, strongRisk } from '../crisis-context-v2.js';
 
 const BASE = {
   CRISIS_CLASSIFIER_MODE: 'live',
@@ -63,7 +59,7 @@ const sha = (s: string) => createHash('sha256').update(s).digest('hex');
 
 beforeEach(() => {
   resetCrisisClassifierCache();
-  resetContextV2();
+  resetCrisisCallRisk();
 });
 
 describe('CRISIS_CONTEXT_V2 off', () => {
@@ -140,7 +136,7 @@ describe('strong risk phrases', () => {
   it('leaves the everyday near-misses narrowable', () => {
     for (const line of narrowable) {
       expect(strongRisk(line), line).toBe(false);
-      expect(contextNarrows(line, ON), line).toBe(true);
+      expect(contextNarrows(line, ON, [], 'v2-near-miss'), line).toBe(true);
     }
   });
 
@@ -174,11 +170,59 @@ describe('a call where the caller said strong risk', () => {
     contextNarrows('I want to die.', ON, [], 'v2-call-a');
     expect(contextNarrows('not really', ON, [], 'v2-call-b')).toBe(true);
   });
+
+  it('is held even when the read is skipped: classifier off, or the patterns already block', async () => {
+    const skipped: Array<[string, Record<string, string>]> = [
+      ['v2-mode-off', { ...ON, CRISIS_CLASSIFIER_MODE: 'off' }],
+      ['v2-pattern-block', ON],
+    ];
+    for (const [call, env] of skipped) {
+      const pattern = call === 'v2-pattern-block' ? 'block' : 'none';
+      const generate: CrisisGenerateFn = async () => '{"risk":"none","subject":"self"}';
+      const run = startCrisisClassifier(
+        { latest: 'I want to die.', earlier: [], companion: LINE_988 },
+        { pattern, env, generate, call }
+      );
+      await run?.verdict;
+      expect(contextNarrows('not really', ON, [], call), call).toBe(false);
+    }
+  });
+
+  it('is held when the patterns found risk on a line with no strong phrase', async () => {
+    const call = 'v2-pattern-crisis';
+    const generate: CrisisGenerateFn = async () => '{"risk":"none","subject":"self"}';
+    await startCrisisClassifier(
+      { latest: 'everything is pointless lately', earlier: [], companion: LINE_988 },
+      { pattern: 'crisis', env: ON, generate, call }
+    )?.verdict;
+    expect(contextNarrows('not really', ON, [], call)).toBe(false);
+  });
+
+  it('stays held for the life of the call, however many other calls are held meanwhile', () => {
+    const now = Date.now();
+    holdCallNarrowing('v2-long-call', now);
+    for (let i = 0; i < 5000; i += 1) holdCallNarrowing(`v2-other-${i}`, now + i);
+    expect(callNarrowingHeld('v2-long-call', now + 5 * 60 * 60 * 1000)).toBe(true);
+  });
+});
+
+describe('a turn with no call id', () => {
+  it('is never narrowed: there is no call to hold', async () => {
+    expect(contextNarrows('yeah', ON)).toBe(false);
+    expect(contextNarrows("no no, I'm fine, I meant work", ON, ['ugh this move'])).toBe(false);
+    const { off, on } = await offAndOn("no no, I'm fine, I meant the boxes", ['ugh this move']);
+    expect(on).toEqual(off);
+  });
 });
 
 describe('a turn without strong risk, flag on', () => {
   it('marks Ferni’s 988 line as his check-in and adds the context rules', async () => {
-    const calls = await sent(ON, "no no, I'm fine, I meant the boxes", ['ugh this move']);
+    const calls = await sent(
+      ON,
+      "no no, I'm fine, I meant the boxes",
+      ['ugh this move'],
+      'v2-narrowed'
+    );
     expect(calls).toHaveLength(1);
     expect(calls[0].prompt).toContain('COMPANION_CHECK_IN and EARLIER');
     expect(JSON.parse(calls[0].content)).toEqual({

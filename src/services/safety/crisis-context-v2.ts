@@ -25,6 +25,7 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
+import { callNarrowingHeld, holdCallNarrowing } from './crisis-call-risk.js';
 import type { CrisisGenerateFn } from './crisis-classifier.js';
 
 type Env = Record<string, string | undefined>;
@@ -85,44 +86,25 @@ export function strongRisk(text: string | undefined): boolean {
   }
 }
 
-/** Calls where the caller has said a strong risk phrase: never narrowed again (6 h, in memory). */
-const HOLD_MS = 6 * 60 * 60 * 1000;
-const MAX_CALLS = 2000;
-const strongCalls = new Map<string, number>();
-
-function heldCall(call: string | undefined, now = Date.now()): boolean {
-  const at = call ? strongCalls.get(call) : undefined;
-  return at !== undefined && now - at < HOLD_MS;
-}
-
-function holdCall(call: string | undefined, now = Date.now()): void {
-  if (!call) return;
-  strongCalls.delete(call);
-  strongCalls.set(call, now);
-  if (strongCalls.size > MAX_CALLS) strongCalls.delete(strongCalls.keys().next().value as string);
-}
-
 /**
- * With the flag on, whether this turn's read narrows its context: never when its own words or
- * any earlier caller line carry strong risk, and never again on a call where one did.
+ * With the flag on, whether this turn's read narrows its context. Never without a call to hold
+ * (no session id), never when this turn's words, an earlier caller line or the patterns carry
+ * risk, and never again on a call where one did: the hold lives with the call's risk record
+ * (crisis-call-risk.ts) for the whole call.
  */
 export function contextNarrows(
   latest: string,
   env: Env = process.env,
   earlier: readonly string[] = [],
-  call?: string
+  call?: string,
+  patternRisk = false
 ): boolean {
-  if (!flagOn('CRISIS_CONTEXT_V2', env)) return false;
-  if (strongRisk(latest) || earlier.some(strongRisk)) {
-    holdCall(call);
+  if (!flagOn('CRISIS_CONTEXT_V2', env) || !call) return false;
+  if (patternRisk || strongRisk(latest) || earlier.some(strongRisk)) {
+    holdCallNarrowing(call);
     return false;
   }
-  return !heldCall(call);
-}
-
-/** For tests: forget the held calls. */
-export function resetContextV2(): void {
-  strongCalls.clear();
+  return !callNarrowingHeld(call);
 }
 
 /** Ferni's own crisis line or safety question: the guard's scripts and what guidance asks it to say. */
@@ -162,13 +144,18 @@ function narrowedGenerate(generate: CrisisGenerateFn): CrisisGenerateFn {
   };
 }
 
-/** One turn's read under the flag: the prompt and model call it uses (unchanged when not narrowed). */
+/**
+ * One turn's read under the flag: the prompt and model call it uses (unchanged when not narrowed).
+ * Call it before anything can skip the read, so a call with risk is always held.
+ */
 export function contextV2Read(
-  latest: string,
-  env: Env = process.env,
-  earlier: readonly string[] = [],
-  call?: string
+  turn: { latest: string; earlier?: readonly string[] },
+  run: { call?: string; pattern: 'block' | 'crisis' | 'none' },
+  env: Env = process.env
 ): { prompt: (p: string) => string; generate: (g: CrisisGenerateFn) => CrisisGenerateFn } {
-  if (!contextNarrows(latest, env, earlier, call)) return { prompt: (p) => p, generate: (g) => g };
+  const { latest, earlier = [] } = turn;
+  if (!contextNarrows(latest.trim(), env, earlier, run.call, run.pattern !== 'none')) {
+    return { prompt: (p) => p, generate: (g) => g };
+  }
   return { prompt: (p) => narrowedPrompt(p, env), generate: narrowedGenerate };
 }

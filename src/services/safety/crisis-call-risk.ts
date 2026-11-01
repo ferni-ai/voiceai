@@ -225,9 +225,30 @@ export function unexplainedCrisisRisk(
   return !!reads && [...reads.keys()].some((t) => t !== turn);
 }
 
+/**
+ * CRISIS_CONTEXT_V2 (crisis-context-v2.ts): calls where the caller said a strong risk phrase, or
+ * the patterns found risk. Such a call is never narrowed again. Kept like `risky`: per call, 6 h
+ * from the last line noted, and only expired calls are ever dropped, however many calls there are.
+ */
+const narrowingHeld = new Map<string, number>();
+
+/** Hold this call off context narrowing for the rest of the call. */
+export function holdCallNarrowing(sessionId: string, now = Date.now()): void {
+  for (const [id, at] of narrowingHeld) if (now - at > TTL_MS) narrowingHeld.delete(id);
+  narrowingHeld.delete(sessionId);
+  narrowingHeld.set(sessionId, now);
+}
+
+/** Whether this call is held off context narrowing. */
+export function callNarrowingHeld(sessionId: string, now = Date.now()): boolean {
+  const at = narrowingHeld.get(sessionId);
+  return at !== undefined && now - at <= TTL_MS;
+}
+
 /** For tests. */
 export function resetCrisisCallRisk(): void {
   risky.clear();
   pending.clear();
   notes.clear();
+  narrowingHeld.clear();
 }
