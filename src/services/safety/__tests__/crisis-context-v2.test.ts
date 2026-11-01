@@ -1,8 +1,9 @@
 /**
  * CRISIS_CONTEXT_V2 (crisis-context-v2.ts) through the real classifier run
- * (startCrisisClassifier): off is byte-identical to before; a turn whose own
- * words, or any earlier caller line on the call, carry strong risk is read
- * exactly as off; goodbyes keep main's rules; a turn without strong risk gets
+ * (startCrisisClassifier): off is byte-identical to before; on, the only
+ * changes are Ferni's check-in marked as his and, with SEXUAL_TOPIC_BOUNDARY
+ * on, the sexual-content rule; a call where main's detector or the patterns
+ * found risk is read exactly as off for the rest of the call; a turn gets
  * the narrowed prompt and Ferni's check-in marked as his, never as evidence.
  */
 import { createHash } from 'node:crypto';
@@ -14,7 +15,7 @@ import {
   type CrisisGenerateFn,
 } from '../crisis-classifier.js';
 import { callNarrowingHeld, holdCallNarrowing, resetCrisisCallRisk } from '../crisis-call-risk.js';
-import { contextNarrows, narrowedPrompt, strongRisk } from '../crisis-context-v2.js';
+import { contextNarrows, narrowedPrompt } from '../crisis-context-v2.js';
 
 const BASE = {
   CRISIS_CLASSIFIER_MODE: 'live',
@@ -90,124 +91,57 @@ describe('CRISIS_CONTEXT_V2 off', () => {
   });
 });
 
-describe('strong risk phrases', () => {
-  // Every line here must hold the call off narrowing: dying, means, final goodbyes,
-  // preparatory acts, ongoing self-harm (independent verify of #3287, round 1).
-  const strong = [
-    'Anyway, forget the paint. I want to kill myself.',
-    "No, I'm fine, I just don't want to be alive.",
-    'I already have the pills.',
-    'This is my last call.',
-    "This is the last time you'll hear from me. Bye.",
-    "I'm done. Thank you for everything. Goodbye.",
-    'okay, bye Ferni. Thank you for everything, you were a good friend.',
-    "I won't be a problem for anyone soon.",
-    "I won't be around to do it.",
-    "I've written letters for everyone, they're on the kitchen table.",
-    "I've been saving up my meds for a while now.",
-    "I gave away my guitar and my books, I won't need them.",
-    "I gave my dog to my sister, she'll take care of him.",
-    "I've been getting my affairs in order.",
-    'I keep cutting after he makes me do stuff with him.',
-    "I've been burning myself again.",
-    "Bye Ferni. Tell her I'm sorry, she'll find the note.",
-    "Okay goodnight. I took all of them already so it doesn't matter.",
-    'Quiero morirme, ya no aguanto más.',
-    'i dont wanna be alive anymore',
-  ];
-  // Everyday lines that share words with them: they must stay narrowable.
-  const narrowable = [
-    "I'm done with my homework",
-    'this is the last call for drinks',
-    'I gave away the old couch',
-    'okay bye, talk tomorrow',
-    'thank you for everything today, talk tomorrow',
-    "I'm done, the cake is ready.",
-    "Okay I'm done for tonight.",
-    "no no, I'm fine, I meant work",
-    'can you call my mom for me?',
-    'yeah',
-  ];
+const BASE_PROMPT = () => crisisClassifierPrompt(ON);
+const ANCHOR = '\n\nReturn JSON only';
 
-  it('flags every final goodbye, preparatory act and self-harm line', () => {
-    for (const line of strong) expect(strongRisk(line), line).toBe(true);
+/** What the flag added to main's prompt, or null when the prompt is not main's plus one insert. */
+function added(prompt: string): string | null {
+  const base = BASE_PROMPT();
+  const at = base.indexOf(ANCHOR);
+  if (!prompt.startsWith(base.slice(0, at)) || !prompt.endsWith(base.slice(at))) return null;
+  return prompt.slice(at, prompt.length - (base.length - at));
+}
+
+describe('a turn after Ferni’s check-in, flag on', () => {
+  it('marks Ferni’s 988 line as his check-in, and adds only the check-in rule', async () => {
+    const calls = await sent(
+      ON,
+      "no no, I'm fine, I meant the boxes",
+      ['ugh this move'],
+      'v2-mark'
+    );
+    expect(calls).toHaveLength(1);
+    expect(JSON.parse(calls[0].content)).toEqual({
+      latest: "no no, I'm fine, I meant the boxes",
+      earlier: ['ugh this move'],
+      COMPANION_CHECK_IN: LINE_988,
+    });
+    const rule = added(calls[0].prompt);
+    expect(rule).toContain('COMPANION_CHECK_IN, when the input has it');
+    expect(rule?.trim().split('\n')).toHaveLength(1);
   });
 
-  it('leaves the everyday near-misses narrowable', () => {
-    for (const line of narrowable) {
-      expect(strongRisk(line), line).toBe(false);
-      expect(contextNarrows(line, ON, [], 'v2-near-miss'), line).toBe(true);
-    }
+  it('says the check-in is not by itself a sign of risk, and never lowers what the caller said', () => {
+    const rule = added(narrowedPrompt(BASE_PROMPT(), true, ON)) ?? '';
+    expect(rule).toContain('the check-in by itself is not a sign that the caller is at risk');
+    expect(rule).toContain("judge the caller's own words in LATEST and EARLIER exactly as above");
+    expect(rule).toContain('never lowers imminent to crisis');
+    expect(rule).not.toMatch(
+      /is evidence|counts as evidence|errand|goodbye|on its own words|only when/i
+    );
   });
 
-  it('reads every strong line exactly as with the flag off, after a 988 line', async () => {
-    for (const line of strong) {
-      const { off, on } = await offAndOn(line, ['rough day']);
-      expect(on, line).toEqual(off);
-    }
+  it('adds the sexual-content rule only with SEXUAL_TOPIC_BOUNDARY on', () => {
+    expect(narrowedPrompt(BASE_PROMPT(), true, ON)).not.toContain('adult-topic');
+    const sexual = { ...ON, SEXUAL_TOPIC_BOUNDARY: 'on' };
+    expect(narrowedPrompt(BASE_PROMPT(), true, sexual)).toContain('adult-topic');
+    expect(added(narrowedPrompt(BASE_PROMPT(), false, sexual))).toMatch(/^\n\n- Sexual/);
+    expect(narrowedPrompt(BASE_PROMPT(), false, ON)).toBe(BASE_PROMPT());
   });
 });
 
-describe('a call where the caller said strong risk', () => {
-  it('is never narrowed again, however far back the line was', async () => {
-    const call = 'v2-call-hold';
-    expect(contextNarrows("I've been thinking about killing myself.", ON, [], call)).toBe(false);
-    const later = [
-      'anyway, work was okay',
-      'my sister called',
-      'I made pasta',
-      'gray week',
-      'a show',
-    ];
-    for (const latest of ['no', 'not really', 'I guess', 'okay bye, talk tomorrow']) {
-      expect(contextNarrows(latest, ON, later, call), latest).toBe(false);
-      const { off, on } = await offAndOn(latest, later, call);
-      expect(on, latest).toEqual(off);
-    }
-  });
-
-  it('holds only that call', () => {
-    contextNarrows('I want to die.', ON, [], 'v2-call-a');
-    expect(contextNarrows('not really', ON, [], 'v2-call-b')).toBe(true);
-  });
-
-  it('is held even when the read is skipped: classifier off, or the patterns already block', async () => {
-    const skipped: Array<[string, Record<string, string>]> = [
-      ['v2-mode-off', { ...ON, CRISIS_CLASSIFIER_MODE: 'off' }],
-      ['v2-pattern-block', ON],
-    ];
-    for (const [call, env] of skipped) {
-      const pattern = call === 'v2-pattern-block' ? 'block' : 'none';
-      const generate: CrisisGenerateFn = async () => '{"risk":"none","subject":"self"}';
-      const run = startCrisisClassifier(
-        { latest: 'I want to die.', earlier: [], companion: LINE_988 },
-        { pattern, env, generate, call }
-      );
-      await run?.verdict;
-      expect(contextNarrows('not really', ON, [], call), call).toBe(false);
-    }
-  });
-
-  it('is held when the patterns found risk on a line with no strong phrase', async () => {
-    const call = 'v2-pattern-crisis';
-    const generate: CrisisGenerateFn = async () => '{"risk":"none","subject":"self"}';
-    await startCrisisClassifier(
-      { latest: 'everything is pointless lately', earlier: [], companion: LINE_988 },
-      { pattern: 'crisis', env: ON, generate, call }
-    )?.verdict;
-    expect(contextNarrows('not really', ON, [], call)).toBe(false);
-  });
-
-  it('stays held for the life of the call, however many other calls are held meanwhile', () => {
-    const now = Date.now();
-    holdCallNarrowing('v2-long-call', now);
-    for (let i = 0; i < 5000; i += 1) holdCallNarrowing(`v2-other-${i}`, now + i);
-    expect(callNarrowingHeld('v2-long-call', now + 5 * 60 * 60 * 1000)).toBe(true);
-  });
-});
-
-describe('a turn with nothing earlier and no check-in', () => {
-  it('is read exactly as off: the rules have nothing to narrow', async () => {
+describe('a turn with no check-in', () => {
+  it('is read exactly as off when SEXUAL_TOPIC_BOUNDARY is off', async () => {
     const latest = 'I just need a break from everything, you know?';
     const reads: Record<string, Array<{ prompt: string; content: string }>> = {};
     for (const [arm, env] of [
@@ -221,12 +155,10 @@ describe('a turn with nothing earlier and no check-in', () => {
         calls.push({ prompt, content });
         return '{"risk":"none","subject":"self"}';
       };
-      for (const earlier of [[], [latest]]) {
-        await startCrisisClassifier(
-          { latest, earlier },
-          { pattern: 'none', env, generate, call: 'v2-first-turn' }
-        )?.verdict;
-      }
+      await startCrisisClassifier(
+        { latest, earlier: ['rough week'], companion: 'Oh no. What happened?' },
+        { pattern: 'none', env, generate, call: 'v2-no-check-in' }
+      )?.verdict;
       reads[arm] = calls;
     }
     expect(reads.on.length).toBeGreaterThan(0);
@@ -234,54 +166,69 @@ describe('a turn with nothing earlier and no check-in', () => {
   });
 });
 
-describe('a turn with no call id', () => {
-  it('is never narrowed: there is no call to hold', async () => {
-    expect(contextNarrows('yeah', ON)).toBe(false);
-    expect(contextNarrows("no no, I'm fine, I meant work", ON, ['ugh this move'])).toBe(false);
-    const { off, on } = await offAndOn("no no, I'm fine, I meant the boxes", ['ugh this move']);
-    expect(on).toEqual(off);
+describe('a call where main’s detector or the patterns found risk', () => {
+  it('is held by a risky caller line however far back, and read as off for good', async () => {
+    const call = 'v2-call-hold';
+    const risky = "I've been thinking about killing myself.";
+    const later = ['work was okay', 'my sister called', 'I made pasta', 'gray week', 'a show'];
+    expect(contextNarrows(['yeah', risky, ...later], call, false, ON)).toBe(false);
+    for (const latest of ['no', 'not really', 'I guess']) {
+      expect(contextNarrows([latest, ...later], call, false, ON), latest).toBe(false);
+      const { off, on } = await offAndOn(latest, later, call);
+      expect(on, latest).toEqual(off);
+    }
+  });
+
+  it('is held when this turn’s own words score as risk', () => {
+    expect(contextNarrows(["I've been thinking about killing myself."], 'v2-own', false, ON)).toBe(
+      false
+    );
+    expect(contextNarrows(['not really'], 'v2-own', false, ON)).toBe(false);
+  });
+
+  it('holds only that call', () => {
+    contextNarrows(['I want to kill myself.'], 'v2-call-a', false, ON);
+    expect(contextNarrows(['not really'], 'v2-call-b', false, ON)).toBe(true);
+  });
+
+  it('is held even when the read is skipped: classifier off, or the patterns already block', async () => {
+    const skipped: Array<[string, Record<string, string>]> = [
+      ['v2-mode-off', { ...ON, CRISIS_CLASSIFIER_MODE: 'off' }],
+      ['v2-pattern-block', ON],
+    ];
+    for (const [call, env] of skipped) {
+      const pattern = call === 'v2-pattern-block' ? 'block' : 'crisis';
+      const generate: CrisisGenerateFn = async () => '{"risk":"none","subject":"self"}';
+      await startCrisisClassifier(
+        { latest: 'i want to slit my wrists', earlier: [], companion: LINE_988 },
+        { pattern, env, generate, call }
+      )?.verdict;
+      expect(contextNarrows(['not really'], call, false, ON), call).toBe(false);
+    }
+  });
+
+  it('is held when the patterns found risk the detector line score misses', async () => {
+    const call = 'v2-pattern-crisis';
+    const generate: CrisisGenerateFn = async () => '{"risk":"none","subject":"self"}';
+    await startCrisisClassifier(
+      { latest: 'everything is pointless lately', earlier: [], companion: LINE_988 },
+      { pattern: 'crisis', env: ON, generate, call }
+    )?.verdict;
+    expect(contextNarrows(['not really'], call, false, ON)).toBe(false);
+  });
+
+  it('stays held for the life of the call, however many other calls are held meanwhile', () => {
+    const now = Date.now();
+    holdCallNarrowing('v2-long-call', now);
+    for (let i = 0; i < 5000; i += 1) holdCallNarrowing(`v2-other-${i}`, now + i);
+    expect(callNarrowingHeld('v2-long-call', now + 5 * 60 * 60 * 1000)).toBe(true);
   });
 });
 
-describe('a turn without strong risk, flag on', () => {
-  it('marks Ferni’s 988 line as his check-in and adds the context rules', async () => {
-    const calls = await sent(
-      ON,
-      "no no, I'm fine, I meant the boxes",
-      ['ugh this move'],
-      'v2-narrowed'
-    );
-    expect(calls).toHaveLength(1);
-    expect(calls[0].prompt).toContain('COMPANION_CHECK_IN and EARLIER');
-    expect(JSON.parse(calls[0].content)).toEqual({
-      latest: "no no, I'm fine, I meant the boxes",
-      earlier: ['ugh this move'],
-      COMPANION_CHECK_IN: LINE_988,
-    });
-  });
-
-  it('tells the model a check-in is never evidence, and an admitting answer still is risk', () => {
-    const prompt = narrowedPrompt(crisisClassifierPrompt(ON), ON);
-    expect(prompt).toContain('so a check-in is never evidence that the caller is at risk');
-    expect(prompt).not.toMatch(/check-in is evidence|check-in counts as evidence/i);
-    expect(prompt).toContain(
-      'an answer that admits risk is risk (yes to thoughts of suicide or self-harm, no or not really to being safe)'
-    );
-  });
-
-  it('keeps main’s goodbye rules: the narrowed prompt only adds, and adds nothing about goodbyes', () => {
-    const base = crisisClassifierPrompt(ON);
-    const prompt = narrowedPrompt(base, ON);
-    const at = base.indexOf('\n\nReturn JSON only');
-    const added = prompt.slice(at, prompt.length - (base.length - at));
-    expect(prompt.startsWith(base.slice(0, base.indexOf('\n\nReturn JSON only')))).toBe(true);
-    expect(prompt.endsWith(base.slice(base.indexOf('\n\nReturn JSON only')))).toBe(true);
-    expect(added).not.toMatch(/goodbye|bye|last one|i'm done|thank you for everything/i);
-  });
-
-  it('adds the sexual-content rule only with SEXUAL_TOPIC_BOUNDARY on', () => {
-    const base = crisisClassifierPrompt(ON);
-    expect(narrowedPrompt(base, ON)).not.toContain('adult-topic');
-    expect(narrowedPrompt(base, { ...ON, SEXUAL_TOPIC_BOUNDARY: 'on' })).toContain('adult-topic');
+describe('a turn with no call id', () => {
+  it('is never changed: there is no call to hold', async () => {
+    expect(contextNarrows(['yeah'], undefined, false, ON)).toBe(false);
+    const { off, on } = await offAndOn("no no, I'm fine, I meant the boxes", ['ugh this move']);
+    expect(on).toEqual(off);
   });
 });
