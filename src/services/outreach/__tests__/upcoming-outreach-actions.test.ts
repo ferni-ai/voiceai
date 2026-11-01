@@ -175,7 +175,7 @@ describe('a held call', () => {
 });
 
 describe('a follow-up text', () => {
-  const textJob = (send: ReturnType<typeof vi.fn>, dryRun = false) =>
+  const textJob = (send: ReturnType<typeof vi.fn>) =>
     sendDueFollowUpTexts(
       {
         store: deps.followUps,
@@ -184,40 +184,39 @@ describe('a follow-up text', () => {
         sendText: send as never,
         forgotten: async () => [],
       },
-      { now: NOW, dryRun }
+      { now: NOW }
     );
 
-  it('cancelled is never texted by the follow-up job; the next one is', async () => {
-    putFollowUp(followUp('f_cancel', { dueAt: at(-15) }));
-    putFollowUp(followUp('f_keep', { dueAt: at(-10) }));
-    const send = vi.fn(async () => ({ sent: true }));
-    // Before the cancel the job would text the older one.
-    expect((await textJob(send, true)).wouldSendIds).toEqual(['f_cancel']);
+  // Cancel for follow-ups is #3303 (it needs the due-time rule): here it is refused for every one.
+  it('is never cancelled here: refused, left exactly as it was, and still texted', async () => {
+    putFollowUp(followUp('f1', { dueAt: at(-10) }));
+    const before = structuredClone(fs.docs.get('bogle_users/u1/follow_through/f1'));
 
-    expect(await cancelUpcoming(deps, 'u1', { kind: 'follow_up', id: 'f_cancel' }, NOW)).toEqual({
-      ok: true,
-    });
-    await textJob(send);
-
-    expect(send).toHaveBeenCalledTimes(1);
-    expect(send).toHaveBeenCalledWith(expect.objectContaining({ refId: 'f_keep' }));
-    expect(fs.docs.get('bogle_users/u1/follow_through/f_cancel')?.status).toBe('released');
-  });
-
-  it('is not found for someone else, and theirs stays open', async () => {
-    putFollowUp(followUp('f1'));
-    expect(await cancelUpcoming(deps, 'u2', { kind: 'follow_up', id: 'f1' }, NOW)).toMatchObject({
-      reason: 'not-found',
-    });
-    expect(fs.docs.get('bogle_users/u1/follow_through/f1')?.status).toBe('open');
-  });
-
-  it('made from a reminder is not offered: the reminder job texts it', async () => {
-    putFollowUp(fixture({ id: 'f1' })); // source: reminders
-    expect(await cancelUpcoming(deps, 'u1', { kind: 'follow_up', id: 'f1' }, NOW)).toMatchObject({
+    expect(await cancelUpcoming(deps, 'u1', { kind: 'follow_up', id: 'f1' }, NOW)).toEqual({
+      ok: false,
       reason: 'not-actionable',
     });
-    expect(fs.docs.get('bogle_users/u1/follow_through/f1')?.status).toBe('open');
+    expect(fs.docs.get('bogle_users/u1/follow_through/f1')).toEqual(before);
+
+    const send = vi.fn(async () => ({ sent: true }));
+    await textJob(send);
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ refId: 'f1' }));
+  });
+
+  it('is not found for someone else when moved, and theirs stays as it was', async () => {
+    putFollowUp(followUp('f1', { dueAt: at(60) }));
+    expect(
+      await rescheduleUpcoming(deps, 'u2', { kind: 'follow_up', id: 'f1' }, at(240), NOW)
+    ).toMatchObject({ reason: 'not-found' });
+    expect(fs.docs.get('bogle_users/u1/follow_through/f1')?.dueAt).toBe(at(60));
+  });
+
+  it('made from a reminder is not moved: the reminder job texts it', async () => {
+    putFollowUp(fixture({ id: 'f1', dueAt: at(60) })); // source: reminders
+    expect(
+      await rescheduleUpcoming(deps, 'u1', { kind: 'follow_up', id: 'f1' }, at(240), NOW)
+    ).toMatchObject({ reason: 'not-actionable' });
+    expect(fs.docs.get('bogle_users/u1/follow_through/f1')?.dueAt).toBe(at(60));
   });
 
   it('moves its due time, but not into saved quiet hours, and not once raised', async () => {
@@ -245,54 +244,13 @@ describe('a follow-up text', () => {
     expect(fs.docs.get('bogle_users/u1/follow_through/f1')?.dueAt).toBe(at(240));
   });
 
-  it('already texted by the job is gone, never "cancelled" (verifier probe on #3294)', async () => {
-    putFollowUp(followUp('f1', { dueAt: at(-10) }));
-    const send = vi.fn(async () => ({ sent: true }));
-    await textJob(send);
-    expect(send).toHaveBeenCalledTimes(1);
-
-    expect(await cancelUpcoming(deps, 'u1', { kind: 'follow_up', id: 'f1' }, NOW)).toEqual({
-      ok: false,
-      reason: 'gone',
-    });
-    expect(fs.docs.get('bogle_users/u1/follow_through/f1')?.status).toBe('surfaced');
-  });
-
-  it('claimed by the job while the text is still sending is gone too', async () => {
-    putFollowUp(followUp('f1', { dueAt: at(-10) }));
-    let during: unknown;
-    const send = vi.fn(async () => {
-      during = await cancelUpcoming(deps, 'u1', { kind: 'follow_up', id: 'f1' }, NOW);
-      return { sent: true };
-    });
-    await textJob(send);
-    expect(during).toEqual({ ok: false, reason: 'gone' });
-  });
-
-  it('held by the sender (nothing went out) is back to open and still cancellable', async () => {
-    putFollowUp(followUp('f1', { dueAt: at(-10) }));
-    await textJob(vi.fn(async () => ({ sent: false, reason: 'quiet-hours' })));
-    expect(await cancelUpcoming(deps, 'u1', { kind: 'follow_up', id: 'f1' }, NOW)).toEqual({
-      ok: true,
-    });
-  });
-
-  it('raised only on a call stays cancellable: nothing was texted', async () => {
-    const raised = { at: at(-30), via: 'in-call' as const };
-    putFollowUp(followUp('f1', { status: 'surfaced', surfaced: [raised], dueAt: at(60) }));
-    expect(await cancelUpcoming(deps, 'u1', { kind: 'follow_up', id: 'f1' }, NOW)).toEqual({
-      ok: true,
-    });
-    expect(fs.docs.get('bogle_users/u1/follow_through/f1')?.status).toBe('released');
-  });
-
-  it('changed by the job between read and save is gone, never "cancelled"', async () => {
-    putFollowUp(followUp('f1'));
+  it('changed by the job between read and save is gone, never "moved"', async () => {
+    putFollowUp(followUp('f1', { dueAt: at(60) }));
     const store = deps.followUps;
     deps.followUps = { live: store.live, save: async () => false };
-    expect(await cancelUpcoming(deps, 'u1', { kind: 'follow_up', id: 'f1' }, NOW)).toMatchObject({
-      reason: 'gone',
-    });
+    expect(
+      await rescheduleUpcoming(deps, 'u1', { kind: 'follow_up', id: 'f1' }, at(240), NOW)
+    ).toMatchObject({ reason: 'gone' });
   });
 });
 
@@ -307,11 +265,6 @@ describe('what the list offers', () => {
         followUps: async () => [
           followUp('f_open', { dueAt: at(60) }),
           followUp('f_raised', { dueAt: at(60), status: 'surfaced' }),
-          followUp('f_texted', {
-            dueAt: at(60),
-            status: 'surfaced',
-            surfaced: [{ at: at(-5), via: 'text' }],
-          }),
           fixture({ id: 'f_reminder', dueAt: at(60) }),
         ],
         followUpTextsOn: async () => true,
@@ -325,12 +278,11 @@ describe('what the list offers', () => {
     expect(Object.values(await offers(false)).flat()).not.toContain(true);
   });
 
-  it('offers only what really works when it is on', async () => {
+  it('offers only what really works when it is on: no follow-up cancel (#3303)', async () => {
     expect(await offers(true)).toEqual({
       deferred_a: [true, true],
-      f_open: [true, true],
-      f_raised: [true, false],
-      f_texted: [false, false],
+      f_open: [false, true],
+      f_raised: [false, false],
       f_reminder: [false, false],
     });
   });

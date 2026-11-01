@@ -112,10 +112,15 @@ describe('POST /api/outreach/upcoming/cancel', () => {
     expect(aCall().status).toBe('cancelled');
   });
 
-  it('cancels the caller’s own follow-up', async () => {
-    const out = await post('cancel', { type: 'follow_up', id: 'fa' }, 'tok-A');
-    expect(out.status).toBe(200);
-    expect(state.fs.docs.get('bogle_users/uid-A/follow_through/fa')?.status).toBe('released');
+  // Cancel for follow-ups is #3303: until then it is refused for every one, which stays as it was.
+  it('answers 409 to cancelling the caller’s own follow-up, and leaves it unchanged', async () => {
+    const path = 'bogle_users/uid-A/follow_through/fa';
+    const before = structuredClone(state.fs.docs.get(path));
+    expect(await post('cancel', { type: 'follow_up', id: 'fa' }, 'tok-A')).toMatchObject({
+      status: 409,
+      body: { success: false, error: 'not-actionable' },
+    });
+    expect(state.fs.docs.get(path)).toEqual(before);
   });
 
   it('answers 401 without a token and changes nothing', async () => {
@@ -126,11 +131,7 @@ describe('POST /api/outreach/upcoming/cancel', () => {
   it("answers 404 to another user, even naming the owner in the body, and the owner's stays", async () => {
     expect((await post('cancel', cancelA, 'tok-B')).status).toBe(404);
     expect((await post('cancel', { ...cancelA, userId: 'uid-A' }, 'tok-B')).status).toBe(404);
-    expect(
-      (await post('cancel', { type: 'follow_up', id: 'fa', userId: 'uid-A' }, 'tok-B')).status
-    ).toBe(404);
     expect(aCall().status).toBe('pending');
-    expect(state.fs.docs.get('bogle_users/uid-A/follow_through/fa')?.status).toBe('open');
   });
 
   it('answers 409 once the job has taken it, never success', async () => {
@@ -139,17 +140,6 @@ describe('POST /api/outreach/upcoming/cancel', () => {
       status: 409,
       body: { success: false },
     });
-  });
-
-  it('answers 409 to a follow-up the text job already sent, and leaves it as sent', async () => {
-    const path = 'bogle_users/uid-A/follow_through/fa';
-    const sent = { ...state.fs.docs.get(path), status: 'surfaced' };
-    state.fs.docs.set(path, { ...sent, surfaced: [{ at: inMin(-1), via: 'text' }] });
-    expect(await post('cancel', { type: 'follow_up', id: 'fa' }, 'tok-A')).toMatchObject({
-      status: 409,
-      body: { success: false, error: 'gone' },
-    });
-    expect(state.fs.docs.get(path)?.status).toBe('surfaced');
   });
 
   it('answers 400 to an unknown kind or an id that is a path', async () => {
@@ -199,6 +189,14 @@ describe('POST /api/outreach/upcoming/reschedule', () => {
     state.callAllowed = false;
     expect((await post('reschedule', { ...cancelA, at: inMin(180) }, 'tok-A')).status).toBe(422);
     expect(aCall().scheduledFor).toBe(inMin(60));
+  });
+
+  it('answers 404 to another user moving a follow-up, and it stays where it was', async () => {
+    const path = 'bogle_users/uid-A/follow_through/fa';
+    const dueAt = state.fs.docs.get(path)?.dueAt;
+    const body = { type: 'follow_up', id: 'fa', at: inMin(180), userId: 'uid-A' };
+    expect((await post('reschedule', body, 'tok-B')).status).toBe(404);
+    expect(state.fs.docs.get(path)?.dueAt).toBe(dueAt);
   });
 
   it('answers 404 to another user moving it', async () => {

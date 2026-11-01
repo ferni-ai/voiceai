@@ -7,12 +7,12 @@
  *   cancelled one is never placed. A move changes scheduledFor, only to a time the
  *   call-hours guard allows: the job checks the guard again on the way out and
  *   would just hold the call once more.
- * - follow_up: bogle_users/{uid}/follow_through/{id}. Cancel releases it, so it is
- *   never texted or raised on a call again, unless the follow-up job has already
- *   taken it to text (saved surfaced via 'text'): that is "gone". A move replans
- *   its dueAt. The follow-up job texts only live ones and holds a text inside saved quiet hours
- *   (unless the caller set the time), so a new time inside them is refused. One
- *   made from a reminder is texted by the reminder job instead: not actionable.
+ * - follow_up: bogle_users/{uid}/follow_through/{id}. Never cancelled here yet
+ *   (#3303: a cancel has to tell a text already sent from one still to come). A
+ *   move replans the dueAt of an open one; the follow-up job texts only live ones
+ *   and holds a text inside saved quiet hours (unless the caller set the time), so
+ *   a new time inside them is refused. One made from a reminder is texted by the
+ *   reminder job instead: not actionable.
  *
  * Every read is under the caller's own bogle_users/{uid}, so another person's id
  * is "not found". Both writes are compare-and-set (a transaction, or the store's
@@ -29,12 +29,7 @@ import {
   type FollowUp,
   type FollowUpStore,
 } from '../follow-through/index.js';
-import {
-  followUpCancellable,
-  followUpMovable,
-  followUpTexted,
-  type UpcomingOutreach,
-} from './upcoming-outreach.js';
+import { followUpMovable, type UpcomingOutreach } from './upcoming-outreach.js';
 
 export type UpcomingKind = UpcomingOutreach['type'];
 /** Which item: its kind picks the store, its id the document under the caller's own. */
@@ -128,13 +123,8 @@ export async function cancelUpcoming(
       cancelledAt: now.toISOString(),
     }));
   }
-  return changeFollowUp(deps.followUps, userId, id, (f) =>
-    followUpTexted(f)
-      ? 'gone'
-      : followUpCancellable(f)
-        ? applied(f, { type: 'release' }, now)
-        : 'not-actionable'
-  );
+  // Follow-up cancel is #3303. Refused before any read, so nothing about it changes.
+  return refuse('not-actionable');
 }
 
 /** Move the caller's own item to `rawAt`, when the sender would really send then. */

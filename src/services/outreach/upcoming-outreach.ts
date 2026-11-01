@@ -16,10 +16,10 @@
  *   is raised on their next call, not sent, so it is not listed.
  *
  * With REACH_OUT_ACTIONS on, each says whether its owner can cancel or move it
- * (upcoming-outreach-actions.ts); off, none can. A follow-up made from a reminder
- * is texted by the reminder job, so cancelling it here would not stop that text:
- * it is never offered. A failed read throws: the panel must show an error, never
- * "nothing planned".
+ * (upcoming-outreach-actions.ts); off, none can. A held call can be cancelled and
+ * moved; an open follow-up can be moved, never cancelled yet (#3303), and one made
+ * from a reminder (texted by the reminder job) not at all. A failed read throws:
+ * the panel must show an error, never "nothing planned".
  *
  * @module services/outreach/upcoming-outreach
  */
@@ -53,21 +53,12 @@ const LATE_AFTER_MS = 12 * 60 * 60 * 1000;
 export const MAX_UPCOMING = 20;
 
 /**
- * The follow-up job has taken it to text, or texted it: it claims a follow-up by saving it
- * surfaced via 'text' before sending, and it stays so after (follow-up-texts.ts). A held
- * text puts the claim back to open, so only a text that went out, or is going, counts.
+ * A follow-up that may move: still open (a surfaced one was raised already, so reopening it
+ * would text again), and texted by the follow-up job, not the reminder job. Follow-ups are
+ * never cancelled from the panel yet: issue #3303.
  */
-export const followUpTexted = (f: FollowUp): boolean =>
-  f.status === 'surfaced' && f.surfaced.some((s) => s.via === 'text');
-/**
- * A follow-up this panel may cancel: its text comes from the follow-up job, not the reminder
- * job, and that job hasn't taken it. One raised only on a call can still be cancelled.
- */
-export const followUpCancellable = (f: FollowUp): boolean =>
-  f.source.store !== 'reminders' && !followUpTexted(f);
-/** One that may move: still open (a surfaced one was raised already; reopening it texts again). */
 export const followUpMovable = (f: FollowUp): boolean =>
-  followUpCancellable(f) && f.status === 'open';
+  f.source.store !== 'reminders' && f.status === 'open';
 
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 const validIso = (v: unknown): string | null => {
@@ -113,7 +104,7 @@ function followUp(f: FollowUp, now: Date, actions: boolean): UpcomingOutreach | 
     reason: f.kind === 'commitment' ? 'Checking how it went' : 'A reminder you asked for',
     priority: 'medium',
     canReschedule: actions && followUpMovable(f),
-    canCancel: actions && followUpCancellable(f),
+    canCancel: false, // #3303
   };
 }
 
