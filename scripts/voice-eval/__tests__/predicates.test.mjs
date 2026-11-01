@@ -394,6 +394,36 @@ describe('dead-air', () => {
     );
     expect(hits('dead-air', c)).toEqual([]);
   });
+  it('passes a lead-in phrase when the caller took the next turn (rc3 candor-wrong)', () => {
+    // Agent stops, the caller speaks 2 s later, the agent answers: 12 s between agent voices,
+    // none of it silence.
+    const c = call(
+      [
+        'a: Hi.',
+        'u: I put my savings into one coin.',
+        "a: Whoa, hold on. That's a big risk.",
+        'u: Okay, so what would you do?',
+        'a: Keep most of it somewhere boring.',
+      ],
+      { gaps: { 3: 6000 } }
+    );
+    expect(hits('dead-air', c)).toEqual([]);
+  });
+  it('still flags a lead-in the caller had to break after 8 s of silence', () => {
+    const c = call(
+      [
+        'a: Hi.',
+        'u: Any news today?',
+        'a: One sec, let me check.',
+        'u: Hello?',
+        'a: Looks like the vote passed.',
+      ],
+      { gaps: { 2: 7000 } }
+    );
+    expect(hits('dead-air', c)).toEqual([
+      expect.objectContaining({ why: '9.0 s silent after the lead-in' }),
+    ]);
+  });
 
   // 2026-10-26 release: all 5 dead-air hits were the harness, not the agent.
   // Caller line 1 (2 s on the clock) then 15 s with no agent voice before the caller tries again.
