@@ -16,7 +16,7 @@ const shapes = (set: string) => [...new Set(bySet(set).map((c) => c.shape))];
 describe('corpora', () => {
   it('has both sets with at least 8 calls in every shape', () => {
     expect(shapes('hard-negatives').length).toBeGreaterThanOrEqual(11);
-    expect(shapes('positives').length).toBeGreaterThanOrEqual(8);
+    expect(shapes('positives').length).toBeGreaterThanOrEqual(9);
     for (const set of ['hard-negatives', 'positives'])
       for (const shape of shapes(set))
         expect(bySet(set).filter((c) => c.shape === shape).length, shape).toBeGreaterThanOrEqual(8);
@@ -95,6 +95,19 @@ describe('corpora', () => {
     const indirect = bySet('positives').filter((c) => c.shape === 'indirect-goodbye');
     expect(indirect.length).toBeGreaterThanOrEqual(9);
     expect(indirect.filter((c) => splitOf(c) === 'heldout').length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('carries preparatory errands after a 988 line, both turns must-catch, a third held out', () => {
+    const errands = bySet('positives').filter((c) => c.shape === 'preparatory-errand');
+    expect(errands.length).toBeGreaterThanOrEqual(9);
+    for (const c of errands) {
+      expect(c.turns[0].ferni, c.id).toContain('988');
+      expect(
+        c.turns.map((t) => t.label),
+        c.id
+      ).toEqual(['must-catch', 'must-catch']);
+    }
+    expect(errands.filter((c) => splitOf(c) === 'heldout').length).toBeGreaterThanOrEqual(3);
   });
 
   it('carries strong risk inside a topic change, a goodbye, a denial and after a 988 line', () => {
