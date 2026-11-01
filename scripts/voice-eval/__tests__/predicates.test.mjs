@@ -424,6 +424,58 @@ describe('dead-air', () => {
       expect.objectContaining({ why: '9.0 s silent after the lead-in' }),
     ]);
   });
+  it('still flags the silence after a short caller line inside a lead-in', () => {
+    // "One sec." then the caller says "Okay." and 20 s of nobody before the agent answers.
+    const c = call(
+      [
+        'a: Hi.',
+        'u: Any news today?',
+        'a: One sec, let me check.',
+        'u: Okay.',
+        'a: Looks like the vote passed.',
+      ],
+      { gaps: { 3: 18000 } }
+    );
+    expect(hits('dead-air', c)).toEqual([
+      expect.objectContaining({ why: '20.0 s silent after the lead-in' }),
+    ]);
+  });
+  it('reports the longest gap when the caller speaks late in a lead-in', () => {
+    // Caller at +7 s, then 12 s of silence: neither gap is hidden by the other.
+    const c = call(
+      [
+        'a: Hi.',
+        'u: Any news today?',
+        'a: One sec, let me check.',
+        'u: Okay.',
+        'a: Looks like the vote passed.',
+      ],
+      { gaps: { 2: 5000, 3: 10000 } }
+    );
+    expect(hits('dead-air', c)).toEqual([
+      expect.objectContaining({ why: '12.0 s silent after the lead-in' }),
+    ]);
+  });
+  it('does not let a zero-length caller line end a lead-in silence', () => {
+    const c = call(
+      [
+        'a: Hi.',
+        'u: Any news today?',
+        'a: One sec, let me check.',
+        'u: Hm.',
+        'a: Looks like the vote passed.',
+      ],
+      {
+        gaps: { 2: 4000, 3: 4000 },
+        edit: (r) => {
+          r.userSpeech[1][1] = r.userSpeech[1][0];
+        },
+      }
+    );
+    expect(hits('dead-air', c)).toEqual([
+      expect.objectContaining({ why: '14.0 s silent after the lead-in' }),
+    ]);
+  });
 
   // 2026-10-26 release: all 5 dead-air hits were the harness, not the agent.
   // Caller line 1 (2 s on the clock) then 15 s with no agent voice before the caller tries again.

@@ -148,17 +148,27 @@ function deadAir({ events, agentVoice: voice, callerSpeech }) {
   const hits = [];
   const spoken = callerSpeech.filter((line) => !callerSilent(line));
   // A lead-in, then silence. Captions land during or just after the words they caption.
-  // The silence ends at the next sound from either side: rc3 candor-wrong ("Whoa, hold on.
-  // ...") counted the caller's whole next turn as 9.6 s of dead air. A caller who only speaks
-  // up after 8 s ("Hello?") still leaves the hit standing.
+  // A caller line is sound, not silence: rc3 candor-wrong ("Whoa, hold on. ...") counted the
+  // caller's whole next turn as 9.6 s of dead air. So the hit is the longest gap between
+  // consecutive sounds from the lead-in's end to the agent's next voice. The clock restarts
+  // at the END of each caller line: "Okay." then 20 s of nobody is still dead air, and so is
+  // a caller who only speaks up after 8 s ("Hello?"). A zero-length line is not a sound.
   for (const e of events.filter((x) => x.who === 'agent' && LEAD_IN.test(norm(x.text)))) {
     const i = voice.findLastIndex(([s]) => s <= e.t);
     if (i < 0 || e.t > voice[i][1] + 3000) continue; // never voiced: the check below covers it
     const end = voice[i][1];
     const next = voice.slice(i + 1).find(([s]) => s >= end);
     if (!next) continue;
-    const caller = spoken.find(([s]) => s >= end && s < next[0]);
-    const silent = (caller ? caller[0] : next[0]) - end;
+    let clock = end;
+    let silent = 0;
+    const heard = spoken
+      .filter(([s, f]) => f > s && f > end && s < next[0])
+      .sort((a, b) => a[0] - b[0]);
+    for (const [s, f] of heard) {
+      silent = Math.max(silent, s - clock);
+      clock = Math.max(clock, f);
+    }
+    silent = Math.max(silent, next[0] - clock);
     if (silent > DEAD_AIR_MS)
       hits.push({ quote: e.text, why: `${secs(silent)} silent after the lead-in` });
   }
