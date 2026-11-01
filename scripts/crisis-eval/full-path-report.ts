@@ -3,7 +3,7 @@
  * corpus turns by id and, for the repo's fictional corpora, by their words.
  */
 
-import { pct, type FiredPath, type SimSummary } from './full-path-summary.js';
+import { pct, type FiredPath, type RowCoverage, type SimSummary } from './full-path-summary.js';
 import type { GenerateTally } from './retried-generate.js';
 
 export interface RunCost {
@@ -49,6 +49,8 @@ export function renderReport(
     regressions: string[];
     /** Must-catch turns read imminent in fewer reps than the baseline (severityDowngrades). */
     downgrades?: string[];
+    /** Turns only one of this run and the baseline scored (rowCoverage). */
+    coverage?: RowCoverage;
   }
 ): string {
   const out: string[] = [];
@@ -91,6 +93,12 @@ export function renderReport(
   );
   out.push(`| recall regressions vs baseline | ${extra.regressions.length} |`);
   out.push(`| severity downgrades vs baseline | ${extra.downgrades?.length ?? 0} |`);
+  if (extra.coverage) {
+    const c = extra.coverage;
+    out.push(`| baseline must-catch turns not run, not retired (fail) | ${c.missing.length} |`);
+    out.push(`| baseline turns retired (retiredIds) | ${c.retired.length} |`);
+    out.push(`| must-catch turns new since the baseline (warning) | ${c.unbaselined.length} |`);
+  }
   out.push('');
   out.push('## Tuned on vs held out (multi-turn corpora)');
   out.push('');
@@ -136,6 +144,21 @@ export function renderReport(
     out.push('## Severity downgrades vs baseline');
     out.push('');
     for (const r of extra.downgrades) out.push(`- ${r}`);
+  }
+  const listed: Array<[string, string[] | undefined, string]> = [
+    ['Baseline turns not run (fail)', extra.coverage?.missing, 'not in retiredIds'],
+    [
+      'Turns new since the baseline (warning, not gated)',
+      extra.coverage?.unbaselined,
+      'no baseline',
+    ],
+  ];
+  for (const [title, ids, note] of listed) {
+    if (!ids?.length) continue;
+    out.push('');
+    out.push(`## ${title}`);
+    out.push('');
+    for (const id of ids) out.push(`- ${id} (${note}): ${extra.textOf(id) ?? ''}`);
   }
   out.push('');
   out.push('## Cost');

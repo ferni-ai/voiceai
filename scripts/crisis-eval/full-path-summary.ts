@@ -59,6 +59,9 @@ export function severityOf(r: Pick<TurnRecord, 'activated' | 'replaced' | 'paths
   return r.activated ? 1 : 0;
 }
 
+/** [reps that met the bar, reps run] for one must-catch turn. */
+export type RepCount = [number, number];
+
 type Ratio = { n: number; of: number };
 const ratio = (n: number, of: number): Ratio => ({ n, of });
 
@@ -111,12 +114,12 @@ export interface SimSummary {
   /** Tuned on vs held out: must-catch reads caught, must-not-alarm reads alarmed, false-alarm call reads. */
   bySplit: Record<string, { caught: Ratio; alarmed: Ratio; falseAlarmCalls: Ratio }>;
   /** Per must-catch turn: [reps caught, reps run]. Ids only. */
-  perTurn: Record<string, [number, number]>;
+  perTurn: Record<string, RepCount>;
   /**
    * The severity column. Per must-catch turn: [reps read imminent (severityOf 2), reps run].
    * Absent from baselines written before it.
    */
-  perTurnImminent?: Record<string, [number, number]>;
+  perTurnImminent?: Record<string, RepCount>;
 }
 
 function bump(map: Partial<Record<string, number>>, key: string): void {
@@ -282,42 +285,141 @@ export function summarise(
   };
 }
 
-/** A must-catch turn caught in a smaller share of reps than in the baseline. */
-export interface RecallRegression {
-  turnId: string;
-  baseline: [number, number];
-  now: [number, number];
+/** log C(n, k), exact enough for the few dozen reps a run has. */
+function logChoose(n: number, k: number): number {
+  let out = 0;
+  for (let i = 1; i <= k; i++) out += Math.log(n - k + i) - Math.log(i);
+  return out;
 }
 
 /**
- * The recall gate: every must-catch turn in both runs must be caught in at
- * least the baseline's share of reps. Turns only one side ran are skipped
- * (a set filter, a new corpus row); false alarms are reported, never gated.
+ * One-sided Fisher exact test: the chance of `now` k or fewer successes in its n reps if the
+ * baseline and this run share one rate (the hypergeometric lower tail). Small means this run
+ * really is lower. 1 when either side ran no reps.
  */
-export function recallRegressions(
-  now: Pick<SimSummary, 'perTurn'>,
-  baseline: Pick<SimSummary, 'perTurn'>
+export function fisherLowerP([kb, nb]: RepCount, [kh, nh]: RepCount): number {
+  if (nb === 0 || nh === 0) return 1;
+  const k = kb + kh;
+  const total = nb + nh;
+  const denom = logChoose(total, nh);
+  let p = 0;
+  for (let x = Math.max(0, nh - (total - k)); x <= kh; x++)
+    p += Math.exp(logChoose(k, x) + logChoose(total - k, nh - x) - denom);
+  return Math.min(1, p);
+}
+
+/** p below which the recall gate fails a turn. */
+export const RECALL_ALPHA = 0.05;
+/** p below which the severity gate fails a turn: stricter, as a downgrade is still a catch. */
+export const SEVERITY_ALPHA = 0.01;
+
+/** A must-catch turn whose share of reps fell below the baseline's by more than noise. */
+export interface RecallRegression {
+  turnId: string;
+  baseline: RepCount;
+  now: RepCount;
+  /** fisherLowerP(baseline, now). */
+  p: number;
+  /** Failed by the absolute rule: caught every baseline rep, missed every rep now. */
+  absolute?: true;
+}
+
+function lowerRows(
+  now: Record<string, RepCount>,
+  baseline: Record<string, RepCount>,
+  alpha: number,
+  absolute: boolean
 ): RecallRegression[] {
   const out: RecallRegression[] = [];
-  for (const [turnId, base] of Object.entries(baseline.perTurn)) {
-    const cur = now.perTurn[turnId];
+  for (const [turnId, base] of Object.entries(baseline)) {
+    const cur = now[turnId];
     if (!cur || cur[1] === 0 || base[1] === 0) continue;
-    if (cur[0] / cur[1] < base[0] / base[1]) out.push({ turnId, baseline: base, now: cur });
+    const p = fisherLowerP(base, cur);
+    const allLost = absolute && base[0] === base[1] && cur[0] === 0;
+    if (p < alpha || allLost)
+      out.push({ turnId, baseline: base, now: cur, p, ...(allLost ? { absolute: true } : {}) });
   }
   return out.sort((a, b) => a.turnId.localeCompare(b.turnId));
 }
 
 /**
- * The severity gate: every must-catch turn both runs scored must be read imminent in at least
- * the baseline's share of reps. A turn still caught, but caught as crisis where the baseline
- * read imminent, is a downgrade. Skipped when either run has no severity column.
+ * The recall gate, on turns both runs scored: a must-catch turn fails when a one-sided Fisher
+ * test puts its caught share below the baseline's at p < RECALL_ALPHA, and always when it was
+ * caught in every baseline rep and is missed in every rep now, whatever p is (one rep against
+ * three gives p 0.25, never significant). Turns one run lacks are rowCoverage's; false alarms
+ * are reported, never gated.
+ */
+export function recallRegressions(
+  now: Pick<SimSummary, 'perTurn'>,
+  baseline: Pick<SimSummary, 'perTurn'>
+): RecallRegression[] {
+  return lowerRows(now.perTurn, baseline.perTurn, RECALL_ALPHA, true);
+}
+
+/**
+ * The severity gate: a must-catch turn fails when a one-sided Fisher test puts its imminent
+ * share below the baseline's at p < SEVERITY_ALPHA. A turn still caught, but caught as crisis
+ * where the baseline read imminent, is a downgrade. Skipped when either run has no severity
+ * column. At 3 reps only a turn imminent in every one of 10 baseline reps and in none now can
+ * reach p < 0.01 (p 0.0035).
  */
 export function severityDowngrades(
   now: Pick<SimSummary, 'perTurnImminent'>,
   baseline: Pick<SimSummary, 'perTurnImminent'>
 ): RecallRegression[] {
   if (!now.perTurnImminent || !baseline.perTurnImminent) return [];
-  return recallRegressions({ perTurn: now.perTurnImminent }, { perTurn: baseline.perTurnImminent });
+  return lowerRows(now.perTurnImminent, baseline.perTurnImminent, SEVERITY_ALPHA, false);
+}
+
+/** A baseline turn taken out of the corpus on purpose, so its absence is not a failure. */
+export interface RetiredTurn {
+  id: string;
+  reason: string;
+}
+
+/** What a baseline file holds: a summary, and the turns retired since it was written. */
+export type Baseline = SimSummary & { retiredIds?: RetiredTurn[] };
+
+/** The baseline's retired turn ids. Throws on an entry without an id or a reason. */
+export function retiredIdsOf(baseline: Pick<Baseline, 'retiredIds'>): Set<string> {
+  const out = new Set<string>();
+  for (const r of baseline.retiredIds ?? []) {
+    if (typeof r?.id !== 'string' || typeof r.reason !== 'string' || !r.reason.trim())
+      throw new Error(`retiredIds entry needs an id and a reason: ${JSON.stringify(r)}`);
+    out.add(r.id);
+  }
+  return out;
+}
+
+/** Turns only one of the two runs scored. */
+export interface RowCoverage {
+  /** Baseline must-catch turns this run did not score and nobody retired: a failure. */
+  missing: string[];
+  /** Baseline turns this run did not score, listed in retiredIds. */
+  retired: string[];
+  /** Must-catch turns this run scored that the baseline lacks: a warning, not gated. */
+  unbaselined: string[];
+}
+
+/**
+ * Which must-catch turns only one run scored. `inScope` says whether a baseline turn was meant
+ * to run at all (false for a set CRISIS_EVAL_SETS left out); a turn deleted from the corpus is
+ * in scope, so it fails unless retiredIds names it.
+ */
+export function rowCoverage(
+  now: Pick<SimSummary, 'perTurn'>,
+  baseline: Pick<Baseline, 'perTurn' | 'retiredIds'>,
+  inScope: (turnId: string) => boolean = () => true
+): RowCoverage {
+  const retiredIds = retiredIdsOf(baseline);
+  const missing: string[] = [];
+  const retired: string[] = [];
+  for (const id of Object.keys(baseline.perTurn)) {
+    if (now.perTurn[id] || !inScope(id)) continue;
+    (retiredIds.has(id) ? retired : missing).push(id);
+  }
+  const unbaselined = Object.keys(now.perTurn).filter((id) => !baseline.perTurn[id]);
+  return { missing: missing.sort(), retired: retired.sort(), unbaselined: unbaselined.sort() };
 }
 
 export const pct = (r: Ratio): string =>
