@@ -1,6 +1,6 @@
 /**
  * CRISIS_CONTEXT_V2 (off by default): what the crisis classifier counts as
- * evidence on a turn whose own words carry no strong risk phrase.
+ * evidence on a turn of a call where the caller has said nothing strongly risky.
  *
  * False crisis reads mostly follow an earlier activation on the same call: the
  * classifier reads Ferni's own 988 line or safety question as context, and the
@@ -13,15 +13,13 @@
  * - EARLIER raises risk only when the caller stated risk there and this turn
  *   continues it; a topic change, an errand, a request for someone else, or a
  *   denial of risk the caller never stated is judged on its own words;
- * - a goodbye or last request is imminent only with the caller's own words
- *   about dying, a plan or means on the call, and the everyday double read
- *   (crisis-everyday.ts) runs only then;
  * - with SEXUAL_TOPIC_BOUNDARY on, sexual or adult content alone is none.
  *
- * A turn whose own words carry a strong risk phrase, or that follows the
- * caller's own strong risk within the classifier's window of earlier lines, is
- * read exactly as with the flag off: no narrowing rule may ever lower it.
- * Anything unexpected here also falls back to that read.
+ * Nothing is narrowed on a turn whose own words, or any earlier caller line on
+ * the call, carry a strong risk phrase: dying, suicide, self-harm, a means, a
+ * final goodbye or a preparatory act. Such a turn, and every later turn of
+ * that call, is read exactly as with the flag off. Goodbyes are always judged
+ * by main's rules. Anything unexpected here also falls back to main's read.
  *
  * @module CrisisContextV2
  */
@@ -31,42 +29,100 @@ import type { CrisisGenerateFn } from './crisis-classifier.js';
 
 type Env = Record<string, string | undefined>;
 
-/** Words stating dying, suicide or self-harm, or naming a means. Whole words. */
-const STRONG_RISK = new RegExp(
-  '\\b(?:' +
-    [
-      'di(?:e|es|ed|ing)|dead|death|suicid\\w*|kms|ctb|unaliv\\w*|sewer ?slide',
-      'kill(?:ing|ed)? (?:my ?self|me)|take my (?:own )?life|end(?:ing)? (?:it|my life|things|everything)',
-      "(?:don't|do not|dont|doesn't) want to (?:live|be alive|be here|exist|wake up)|not (?:be|being) (?:here|around|alive)",
-      "won't be (?:here|around)|wont be (?:here|around)|better off without me|no reason to (?:live|keep living|go on)|can't go on|goodbye forever",
-      '(?:not|never) (?:to )?wake up|wish i (?:was|were) dead|disappear for good|want (?:it|it all|this) to end',
-      'pills?|overdos\\w*|gun|pistol|rifle|rope|noose|hang(?:ing)? my ?self|jump(?:ing)? (?:off|from)|bridge|ledge|roof',
-      'razor|blade|bleach|poison\\w*|(?:cut|cutting|hurt|hurting|harm|harming|burn|burning) my ?self|self ?harm|carbon monoxide|engine running',
-    ].join('|') +
-    ')\\b'
-);
+/** Strong risk phrases, whole words: no narrowing rule may ever lower a call that holds one. */
+const STRONG_RISK_PHRASES = [
+  // Dying, suicide, not wanting to be alive.
+  'di(?:e|es|ed|ing)|dead|death|suicid\\w*|kms|ctb|unaliv\\w*|sewer ?slide|off my ?self|end my ?self',
+  'kill(?:ing|ed)? (?:my ?self|me)|take my (?:own )?life|end(?:ing)? (?:it|it all|my life|things|everything)',
+  "(?:don'?t|do not|doesn'?t) (?:want|wanna) (?:to )?(?:live|be alive|be here|exist|wake up|go on)",
+  "not (?:be|being) (?:here|around|alive)|won'?t be (?:here|around)|better off without me|can'?t go on",
+  'no reason to (?:live|keep living|go on)|goodbye forever|(?:go|going|gone) away forever',
+  '(?:not|never) (?:to )?wake up|stay asleep|wish i (?:was|were) dead|disappear for good',
+  '(?:want|wish) (?:to|i could) (?:just )?disappear|want (?:it|it all|this|everything) to (?:end|stop)',
+  "(?:can'?t|cannot) (?:take|do) (?:it|this) any ?more|no way out|hopeless|burden",
+  '(?:see|is) (?:the|no) point (?:of|in) (?:anything|living|life|going on)|no point any ?more',
+  'never (?:going to )?get better|(?:nothing|it) is ever going to get better',
+  "(?:miss|notice) (?:me )?if i (?:was|were) gone|(?:after|before|when|once) i'?m gone",
+  "if i (?:was|were|wasn'?t) (?:gone|here|around)|(?:wasn'?t|weren'?t|not) in the picture",
+  '(?:those|these|suicidal|dark) thoughts|thoughts again',
+  // Means.
+  'pills?|tablets|overdos\\w*|whole bottle|sleeping (?:meds|medication|medicine)|took all (?:of )?them',
+  'gun|pistol|rifle|rope|noose|hang(?:ing)? my ?self|jump(?:ing)? (?:off|from|in front)',
+  'step(?:ping)? in front of|bridge|ledge|roof|overpass|train platform|razor|blade|bleach|poison\\w*',
+  'knife (?:in my hand|next to me|to my|on my)|bleed(?:ing)? out|carbon monoxide|engine running',
+  'running in the garage|(?:drive|drove|crash) (?:my car|it|myself) into',
+  // Self-harm, including ongoing.
+  '(?:cut|cutting|hurt|hurting|harm|harming|burn|burning) my ?self|self ?harm',
+  '(?:keep|kept|been|started|start) (?:cutting|burning|hurting)|cutting again',
+  // Final goodbyes.
+  "my last call|this is (?:my|the) last (?:call|time)(?! for)|(?:won'?t|will not|never) hear from me again",
+  "last time (?:you'?ll|you will) (?:hear from|talk to|see) me|won'?t (?:see|make it to) (?:it|tomorrow)",
+  "won'?t be (?:a problem|a burden|in the way)|i'?m (?:so )?done with (?:life|living|everything|it all)",
+  "i'?m (?:so )?done(?=\\s*[.!]*\\s*$)|i'?m (?:so )?done[.,!]+\\s*(?:good ?bye|bye|thank)",
+  'thank you for everything(?=.*\\b(?:good ?bye|bye|farewell)\\b)|(?:good ?bye|bye)\\b.*thank you for everything',
+  // Preparatory acts.
+  'letters? (?:for|to) (?:everyone|everybody|each of|all of|my )|wrote (?:a |my )?(?:note|letters?) (?:for|to)',
+  '(?:find|found|left|leave|leaving) (?:the|a|my) note|affairs in order|passwords?\\b.*\\bjust in case',
+  '(?:saving|saved|save|stockpil\\w*|hoard\\w*)(?: up)? (?:all )?(?:my )?(?:meds|medication|medicine|prescriptions?)',
+  'stopped taking my (?:meds|medication|pills)|cancel+ed (?:my )?therapy',
+  '(?:gave|giving|give|given) away (?:my|all my)\\b|gave my (?:dog|cat|pets?|guitar|records|books|things|stuff|car) (?:to|away)',
+  "won'?t need (?:them|it|these|my \\w+) any ?more|won'?t need (?:them|it)(?=\\s*[.!]*\\s*$)",
+  // Other languages: matched by meaning, never narrowed.
+  'morir\\w*|muerto|matar\\w*|mourir|tuer|sterben|umbringen|morire|uccid\\w*',
+];
+const STRONG_RISK = new RegExp(`\\b(?:${STRONG_RISK_PHRASES.join('|')})\\b`);
+/** Text these words cannot read (accents, other scripts): never narrowed. */
+const UNREADABLE = /[^\x20-\x7E\t\n\r’‘“”—–…]/;
 
-/** Whether these words state risk strongly. True on any surprise: such a turn is never narrowed. */
+/** Whether these words state risk strongly. True on any surprise: such a call is never narrowed. */
 export function strongRisk(text: string | undefined): boolean {
   if (typeof text !== 'string') return true;
   try {
+    if (UNREADABLE.test(text)) return true;
     return STRONG_RISK.test(text.normalize('NFKC').toLowerCase().replace(/[’‘]/g, "'"));
   } catch {
     return true;
   }
 }
 
+/** Calls where the caller has said a strong risk phrase: never narrowed again (6 h, in memory). */
+const HOLD_MS = 6 * 60 * 60 * 1000;
+const MAX_CALLS = 2000;
+const strongCalls = new Map<string, number>();
+
+function heldCall(call: string | undefined, now = Date.now()): boolean {
+  const at = call ? strongCalls.get(call) : undefined;
+  return at !== undefined && now - at < HOLD_MS;
+}
+
+function holdCall(call: string | undefined, now = Date.now()): void {
+  if (!call) return;
+  strongCalls.delete(call);
+  strongCalls.set(call, now);
+  if (strongCalls.size > MAX_CALLS) strongCalls.delete(strongCalls.keys().next().value as string);
+}
+
 /**
- * With the flag on, whether this turn's read narrows its context: never when its own words, or
- * the caller's earlier lines the classifier reads, carry strong risk. Once the caller has said
- * it, every turn in that window is read exactly as with the flag off.
+ * With the flag on, whether this turn's read narrows its context: never when its own words or
+ * any earlier caller line carry strong risk, and never again on a call where one did.
  */
 export function contextNarrows(
   latest: string,
   env: Env = process.env,
-  earlier: readonly string[] = []
+  earlier: readonly string[] = [],
+  call?: string
 ): boolean {
-  return flagOn('CRISIS_CONTEXT_V2', env) && !strongRisk(latest) && !earlier.some(strongRisk);
+  if (!flagOn('CRISIS_CONTEXT_V2', env)) return false;
+  if (strongRisk(latest) || earlier.some(strongRisk)) {
+    holdCall(call);
+    return false;
+  }
+  return !heldCall(call);
+}
+
+/** For tests: forget the held calls. */
+export function resetContextV2(): void {
+  strongCalls.clear();
 }
 
 /** Ferni's own crisis line or safety question: the guard's scripts and what guidance asks it to say. */
@@ -76,29 +132,21 @@ const FERNI_CHECK_IN =
 const RULES = `
 COMPANION_CHECK_IN and EARLIER (these come before the lists below):
 - COMPANION_CHECK_IN, when the input has it, is the companion's own crisis line or safety question. The companion says these on its own whenever a read was unsure, so a check-in is never evidence that the caller is at risk. It only tells you what LATEST answers: an answer that admits risk is risk (yes to thoughts of suicide or self-harm, no or not really to being safe), and so is risk in LATEST's own words; anything else is judged on LATEST's own words.
-- EARLIER raises the risk of LATEST only when an EARLIER line itself stated risk (dying, suicide, self-harm, not wanting to be alive, a plan or means) and LATEST continues it: a short answer to the companion ("yeah", "no", "not really", "I don't know"), agreement, or more about it. Heavy but ordinary feelings in EARLIER (stress, tiredness, grief, a breakup, loneliness, a bad day) are not risk stated. A caller agreeing with or echoing the companion's own low line is still judged as if they had said it, as above. LATEST does not continue EARLIER when it changes the subject, is an errand or plan, asks for someone else, or denies or clarifies risk the caller never stated ("no, I'm fine, I meant work", "it's not a crisis"): judge it on its own words.
-- A goodbye or last request is imminent only when the caller's own words, in LATEST or EARLIER, state dying, a plan or means; then judge it as above. Without such words, "bye", "this is the last one", "I'm done" and "thank you for everything" are risk "none".`;
+- EARLIER raises the risk of LATEST only when an EARLIER line itself stated risk (dying, suicide, self-harm, not wanting to be alive, a plan or means) and LATEST continues it: a short answer to the companion ("yeah", "no", "not really", "I don't know"), agreement, or more about it. Heavy but ordinary feelings in EARLIER (stress, tiredness, grief, a breakup, loneliness, a bad day) are not risk stated. A caller agreeing with or echoing the companion's own low line is still judged as if they had said it, as above. LATEST does not continue EARLIER when it changes the subject, is an errand or plan, asks for someone else, or denies or clarifies risk the caller never stated ("no, I'm fine, I meant work", "it's not a crisis"): judge it on its own words.`;
 
 const SEXUAL_RULE = `
 - Sexual, flirtatious or adult-topic questions and requests on their own (dating, sex, attraction, "talk dirty", a romantic or sexy story) are risk "none". Judge only words about dying or self-harm in them.`;
 
-/** The base prompt's imminent goodbye line, and the everyday rules' farewell sentence. */
-const GOODBYE_LINE = `- a final goodbye or last request ("won't be here tomorrow", "tell my mom I love her after I'm gone")`;
-const FAREWELL = `"this is the last time you'll hear from me").`;
-const ON_THE_CALL = " with the caller's own words about dying, a plan or means on the call";
-
-/** The classifier prompt for a narrowed read; the prompt unchanged when an anchor is missing. */
+/** The classifier prompt for a narrowed read; the prompt unchanged when its anchor is missing. */
 export function narrowedPrompt(prompt: string, env: Env = process.env): string {
   const insertAt = prompt.indexOf('\n\nReturn JSON only');
-  if (insertAt < 0 || !prompt.includes(GOODBYE_LINE)) return prompt;
+  if (insertAt < 0) return prompt;
   const rules = RULES + (flagOn('SEXUAL_TOPIC_BOUNDARY', env) ? SEXUAL_RULE : '');
-  return (prompt.slice(0, insertAt) + `\n${rules}` + prompt.slice(insertAt))
-    .replace(GOODBYE_LINE, GOODBYE_LINE + ON_THE_CALL)
-    .replace(FAREWELL, `${FAREWELL.slice(0, -2)}). It counts only${ON_THE_CALL}.`);
+  return `${prompt.slice(0, insertAt)}\n${rules}${prompt.slice(insertAt)}`;
 }
 
 /** The model call for a narrowed read: Ferni's check-in goes as COMPANION_CHECK_IN. */
-export function narrowedGenerate(generate: CrisisGenerateFn): CrisisGenerateFn {
+function narrowedGenerate(generate: CrisisGenerateFn): CrisisGenerateFn {
   return (prompt, content, signal) => {
     let input: { latest?: unknown; earlier?: unknown; companion?: unknown };
     try {
@@ -118,8 +166,9 @@ export function narrowedGenerate(generate: CrisisGenerateFn): CrisisGenerateFn {
 export function contextV2Read(
   latest: string,
   env: Env = process.env,
-  earlier: readonly string[] = []
+  earlier: readonly string[] = [],
+  call?: string
 ): { prompt: (p: string) => string; generate: (g: CrisisGenerateFn) => CrisisGenerateFn } {
-  if (!contextNarrows(latest, env, earlier)) return { prompt: (p) => p, generate: (g) => g };
+  if (!contextNarrows(latest, env, earlier, call)) return { prompt: (p) => p, generate: (g) => g };
   return { prompt: (p) => narrowedPrompt(p, env), generate: narrowedGenerate };
 }
