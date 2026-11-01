@@ -145,15 +145,12 @@ const DEVELOPER_API =
  * Vertex to the US, with what it sends.
  */
 const DEVELOPER_API_KNOWN = new Set([
-  'src/api/chat-routes.ts',
   'src/cli/commands/synthetic-e2e.ts',
   'src/cli/commands/test-agents.ts',
   'src/config/gemini-config.ts',
   'src/memory/vectors/embeddings.ts',
   'src/services/gtm/content-generator.ts',
-  'src/services/outreach/call-transcript-intelligence.ts',
   'src/services/self-healing/health-monitors.ts',
-  'src/services/voice/outbound-call-agent.ts',
 ]);
 
 describe('source scan', () => {
@@ -179,5 +176,10 @@ describe('source scan', () => {
   it('no new Gemini Developer API caller', () => {
     const found = files.filter((f) => DEVELOPER_API.test(f.text)).map((f) => f.rel);
     expect(found.filter((rel) => !DEVELOPER_API_KNOWN.has(rel))).toEqual([]);
+  });
+
+  it('every listed Developer API caller still is one, so a fixed file leaves the list', () => {
+    const callers = new Set(files.filter((f) => DEVELOPER_API.test(f.text)).map((f) => f.rel));
+    expect([...DEVELOPER_API_KNOWN].filter((rel) => !callers.has(rel))).toEqual([]);
   });
 });
