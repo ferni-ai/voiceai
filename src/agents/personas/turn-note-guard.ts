@@ -3,8 +3,9 @@
  * only its own note (#3077; #3061 put one catch around all of them, which also dropped the notes
  * that guard who is speaking). When a note about who the speaker is or what may be shared can't be
  * built, the turn gets UNVERIFIED_SPEAKER_NOTE instead of nothing: the safe default shares less.
- * That turn's request then carries no owner-only context either (#3091): no note marked OWNER,
- * no world facts or context packet (unverifiedReminder), and no call report (requestSent).
+ * That turn's request then carries no owner-only context either (#3091): only notes marked SAFE
+ * (an allowlist: a builder not marked SAFE never rides), no world facts or context packet
+ * (unverifiedReminder), and no call report (requestSent).
  *
  * withTurnReminder is synchronous, so the turn in flight is module state (guardedTurn sets it;
  * turn-notes-guarded.ts wraps the builders with `guarded`).
@@ -25,12 +26,12 @@ export const UNVERIFIED_SPEAKER_NOTE =
 export interface NoteMarks {
   /** The speaker's check rests on it: when it can't be built, the turn is unverified. */
   identity?: boolean;
-  /** It carries data about the owner or other people: an unverified turn leaves it out. */
-  owner?: boolean;
+  /** Its text never holds data about the owner or anyone else: it may ride an unverified turn. */
+  safe?: boolean;
 }
 export const IDENTITY: NoteMarks = { identity: true };
-export const OWNER: NoteMarks = { owner: true };
-export const IDENTITY_OWNER: NoteMarks = { identity: true, owner: true };
+export const SAFE: NoteMarks = { safe: true };
+export const IDENTITY_SAFE: NoteMarks = { identity: true, safe: true };
 
 type Log = ReturnType<typeof createLogger>;
 interface TurnState {
@@ -38,12 +39,22 @@ interface TurnState {
   sessionId: string | undefined;
   dropped: number;
   identityDropped: boolean;
-  /** What the OWNER notes built this turn: left out if the turn ends up unverified. */
-  ownerNotes: Set<string>;
+  /** What the SAFE notes built this turn: all an unverified turn keeps of its notes. */
+  safeNotes: Set<string>;
 }
 let active: TurnState | undefined;
 
 const errorName = (error: unknown): string => (error instanceof Error ? error.name : typeof error);
+
+/** The note text a builder returned: a string, strings in a list, or an object's (style, state). */
+function textsOf(built: unknown): string[] {
+  const parts = Array.isArray(built)
+    ? (built as unknown[])
+    : built !== null && typeof built === 'object'
+      ? Object.values(built)
+      : [built];
+  return parts.filter((part): part is string => typeof part === 'string' && part !== '');
+}
 
 /** `build()`, or `fallback` when it throws. Outside guardedTurn it is just `build()`. */
 export function attempt<T>(name: string, build: () => T, fallback: T, marks: NoteMarks = {}): T {
@@ -52,9 +63,7 @@ export function attempt<T>(name: string, build: () => T, fallback: T, marks: Not
   const identity = marks.identity === true;
   try {
     const built = build();
-    if (marks.owner) {
-      for (const note of [built].flat()) if (typeof note === 'string') turn.ownerNotes.add(note);
-    }
+    if (marks.safe) for (const note of textsOf(built)) turn.safeNotes.add(note);
     return built;
   } catch (error) {
     turn.dropped += 1;
@@ -81,13 +90,13 @@ export function guarded<F extends (...args: never[]) => unknown>(
 
 /**
  * The reminder for a turn whose speaker is unverified (an identity note was dropped), or
- * undefined when every identity note held. It is the unverified default, then the turn's notes
- * without any marked OWNER, and nothing else: no world facts, no context packet (#3091).
+ * undefined when every identity note held. It is the unverified default, then only the turn's
+ * notes built by a SAFE builder, and nothing else: no world facts, no context packet (#3091).
  */
 export function unverifiedReminder(notes: readonly string[]): string | undefined {
   const turn = active;
   if (!turn?.identityDropped) return undefined;
-  const kept = notes.filter((note) => note !== '' && !turn.ownerNotes.has(note));
+  const kept = notes.filter((note) => turn.safeNotes.has(note));
   return [UNVERIFIED_SPEAKER_NOTE, ...kept].join(' ');
 }
 
@@ -118,7 +127,7 @@ export function guardedTurn(
   build: () => llm.ChatContext
 ): llm.ChatContext {
   const outer = active;
-  active = { log, sessionId, dropped: 0, identityDropped: false, ownerNotes: new Set() };
+  active = { log, sessionId, dropped: 0, identityDropped: false, safeNotes: new Set() };
   try {
     return build();
   } catch (error) {

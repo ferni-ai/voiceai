@@ -2,8 +2,8 @@
  * The note builders turn-request.ts calls, each behind its own catch (turn-note-guard.ts): one that
  * throws gives '' (or []) and the turn goes on without that note. Those marked IDENTITY are about
  * who is speaking or what may be shared: when one fails the turn carries the unverified-speaker
- * default (#3077). Those marked OWNER carry the owner's data (their name, home weather, a past
- * call's summary, a contact read back, an account action): an unverified turn leaves them out
+ * default (#3077). Only those marked SAFE (text that never holds the owner's or anyone else's
+ * data) ride an unverified turn; any builder not marked SAFE is dropped there, a new one included
  * (#3091). Same names and signatures as the originals, so call sites read as before.
  */
 
@@ -51,63 +51,68 @@ import { styleFor as raw_styleFor } from './turn-request-style.js';
 import { noteTurn as raw_noteTurn } from './move-log.js';
 import { clearBurstOffer as raw_clearBurstOffer } from './vocal-bursts.js';
 import { noteReminder as raw_noteReminder } from '../shared/turn-receipt-session.js';
-import { guarded, IDENTITY, IDENTITY_OWNER } from './turn-note-guard.js';
+import { guarded, IDENTITY, IDENTITY_SAFE, SAFE } from './turn-note-guard.js';
 
-export const worldNowNote = guarded('worldNow', raw_worldNowNote, '', IDENTITY_OWNER);
+export const worldNowNote = guarded('worldNow', raw_worldNowNote, '', IDENTITY);
 export const confirmedActionNote = guarded(
   'confirmedAction',
   raw_confirmedActionNote,
   '',
-  IDENTITY_OWNER
+  IDENTITY
 );
-export const tuneTurnNote = guarded('namedTune', raw_tuneTurnNote, '', IDENTITY_OWNER);
-export const minorCareNote = guarded('minorCare', raw_minorCareNote, '', IDENTITY);
-export const sexualBoundaryNote = guarded('sexualBoundary', raw_sexualBoundaryNote, '', IDENTITY);
+export const tuneTurnNote = guarded('namedTune', raw_tuneTurnNote, '', IDENTITY);
+export const minorCareNote = guarded('minorCare', raw_minorCareNote, '', IDENTITY_SAFE);
+export const sexualBoundaryNote = guarded(
+  'sexualBoundary',
+  raw_sexualBoundaryNote,
+  '',
+  IDENTITY_SAFE
+);
 export const inReturningCallerFlow = guarded(
   'returningFlow',
   raw_inReturningCallerFlow,
   true,
-  IDENTITY
+  IDENTITY_SAFE
 );
 export const returningCallerTurnNote = guarded(
   'returningCaller',
   raw_returningCallerTurnNote,
   '',
-  IDENTITY_OWNER
+  IDENTITY
 );
-export const firstCallNote = guarded('firstCall', raw_firstCallNote, '', IDENTITY);
-export const roomGuestsNote = guarded('roomGuests', raw_roomGuestsNote, '', IDENTITY_OWNER);
-export const nameCorrectionNote = guarded(
-  'nameCorrection',
-  raw_nameCorrectionNote,
-  '',
-  IDENTITY_OWNER
-);
-export const callMeNote = guarded('callMe', raw_callMeNote, '', IDENTITY_OWNER);
-export const teammateIdentityNote = guarded('teammateIdentity', raw_teammateIdentityNote, '');
-export const aliasNoteFor = guarded('aliasNote', raw_aliasNoteFor, false);
-export const teamStatusNote = guarded('teamStatus', raw_teamStatusNote, '');
-export const heardTeammateNote = guarded('heardTeammate', raw_heardTeammateNote, '');
-export const correctionNotesFor = guarded('corrections', raw_correctionNotesFor, '');
-export const gameTurnNote = guarded('gameTurn', raw_gameTurnNote, '');
-export const quirkTurnNote = guarded('quirk', raw_quirkTurnNote, '');
-export const porchLightNote = guarded('porchLight', raw_porchLightNote, '');
-export const beatNote = guarded('beat', raw_beatNote, '');
-export const teamByNeedNote = guarded('teamByNeed', raw_teamByNeedNote, '');
-export const chiefOfStaffNote = guarded('chiefOfStaff', raw_chiefOfStaffNote, '');
-export const friendNotes = guarded('friends', raw_friendNotes, [] as string[]);
+export const firstCallNote = guarded('firstCall', raw_firstCallNote, '', IDENTITY_SAFE);
+export const roomGuestsNote = guarded('roomGuests', raw_roomGuestsNote, '', IDENTITY);
+export const nameCorrectionNote = guarded('nameCorrection', raw_nameCorrectionNote, '', IDENTITY);
+export const callMeNote = guarded('callMe', raw_callMeNote, '', IDENTITY);
+export const teammateIdentityNote = guarded('teammateIdentity', raw_teammateIdentityNote, '', SAFE);
+export const aliasNoteFor = guarded('aliasNote', raw_aliasNoteFor, false, SAFE);
+export const teamStatusNote = guarded('teamStatus', raw_teamStatusNote, '', SAFE);
+export const heardTeammateNote = guarded('heardTeammate', raw_heardTeammateNote, '', SAFE);
+export const correctionNotesFor = guarded('corrections', raw_correctionNotesFor, '', SAFE);
+export const gameTurnNote = guarded('gameTurn', raw_gameTurnNote, '', SAFE);
+export const quirkTurnNote = guarded('quirk', raw_quirkTurnNote, '', SAFE);
+export const porchLightNote = guarded('porchLight', raw_porchLightNote, '', SAFE);
+export const beatNote = guarded('beat', raw_beatNote, '', SAFE);
+export const teamByNeedNote = guarded('teamByNeed', raw_teamByNeedNote, '', SAFE);
+export const chiefOfStaffNote = guarded('chiefOfStaff', raw_chiefOfStaffNote, '', SAFE);
+export const friendNotes = guarded('friends', raw_friendNotes, [] as string[], SAFE);
 export const internalsTurn = guarded('internalsTurn', raw_internalsTurn, '' as const);
-export const internalsNote = guarded('internals', raw_internalsNote, '');
-export const withLiveData = guarded('liveData', raw_withLiveData, ['', '']);
-export const personaVoiceNote = guarded('personaVoice', raw_personaVoiceNote, '');
-export const attunementNote = guarded('attunement', raw_attunementNote, '');
-export const goodNewsNote = guarded('goodNews', raw_goodNewsNote, '');
-export const callerSetsDepthNote = guarded('callerSetsDepth', raw_callerSetsDepthNote, '');
-export const repairNoteFor = guarded('repair', raw_repairNoteFor, '');
+export const internalsNote = guarded('internals', raw_internalsNote, '', SAFE);
+export const withLiveData = guarded('liveData', raw_withLiveData, ['', ''], SAFE);
+export const personaVoiceNote = guarded('personaVoice', raw_personaVoiceNote, '', SAFE);
+export const attunementNote = guarded('attunement', raw_attunementNote, '', SAFE);
+export const goodNewsNote = guarded('goodNews', raw_goodNewsNote, '', SAFE);
+export const callerSetsDepthNote = guarded('callerSetsDepth', raw_callerSetsDepthNote, '', SAFE);
+export const repairNoteFor = guarded('repair', raw_repairNoteFor, '', SAFE);
 export const formatNotes = guarded('directorNotes', raw_formatNotes, '');
 export const listeningNotes = guarded('listening', raw_listeningNotes, [] as string[]);
-export const ferniStateTurn = guarded('ferniState', raw_ferniStateTurn, { note: '', last: '' });
-export const styleFor = guarded('style', raw_styleFor, { text: '' });
+export const ferniStateTurn = guarded(
+  'ferniState',
+  raw_ferniStateTurn,
+  { note: '', last: '' },
+  SAFE
+);
+export const styleFor = guarded('style', raw_styleFor, { text: '' }, SAFE);
 export const noteTurn = guarded('moveLog', raw_noteTurn, undefined);
 export const clearBurstOffer = guarded('burstOffer', raw_clearBurstOffer, undefined);
 export const noteReminder = guarded('receipt', raw_noteReminder, undefined);

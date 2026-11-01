@@ -18,7 +18,7 @@ vi.mock('../../../utils/minor-care.js', async (importOriginal) => ({
     return 'OWNER-CHECK-NOTE';
   },
 }));
-/** An OWNER note (it names the owner and a number) and an ordinary one (turn-notes-guarded.ts). */
+/** A note not marked SAFE (owner name and number) and a SAFE one (turn-notes-guarded.ts). */
 vi.mock('../call-me-note.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   callMeNote: () => 'Ring Robin Vale back on 555-0187 now.',
@@ -104,7 +104,7 @@ describe('an unverified turn carries no owner-only context (#3091)', () => {
     expect(out).not.toContain(FACT);
   });
 
-  it('an OWNER note is left out of an unverified turn; notes with no owner data stay', () => {
+  it('a note not marked SAFE is left out of an unverified turn; a SAFE note stays', () => {
     fail.owner = true;
     const out = text(withTurnReminder(request(), session()));
     expect(out).toContain(UNVERIFIED_SPEAKER_NOTE);

@@ -64,7 +64,7 @@ import {
   attempt,
   guardedTurn,
   IDENTITY,
-  OWNER,
+  SAFE,
   requestSent,
   unverifiedReminder,
 } from './turn-note-guard.js';
@@ -165,7 +165,7 @@ function buildTurnReminder(
   // REPAIR_MODE=on: own a correction, and keep earlier ones; none with crisis guidance.
   const corrected = crisis ? '' : safe.correctionNotesFor(chatCtx, session, process.env, plain);
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
-  const thought = crisis ? '' : attempt('thought', () => thoughtFor(session, words), '', OWNER);
+  const thought = crisis ? '' : attempt('thought', () => thoughtFor(session, words), '');
   // How Ferni is doing (FERNI_STATE=on), and if his own story may ride; none in a crisis.
   const state = safe.ferniStateTurn(chatCtx, session, { careful: options.shape === false });
   const style = turnStyleReminderEnabled()
@@ -188,7 +188,7 @@ function buildTurnReminder(
     safe.confirmedActionNote(session),
     options.closeLoop === false || held
       ? ''
-      : attempt('closeLoop', () => closeLoopNote(session, words), ''),
+      : attempt('closeLoop', () => closeLoopNote(session, words), '', SAFE),
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     safe.gameTurnNote(session, process.env, words),
@@ -251,7 +251,7 @@ function buildTurnReminder(
     // PERSONA_VOICE=on: how this persona sounds, after the shared style so it wins (persona-voice.ts).
     safe.personaVoiceNote(view.currentAgentId, { careful: options.shape === false }),
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
-    held ? '' : attempt('exit', () => exitFor(chatCtx, session, words, plain), ''),
+    held ? '' : attempt('exit', () => exitFor(chatCtx, session, words, plain), '', SAFE),
     // His self-share line after the shape, nearest the reply (ferni-state.ts).
     state.last,
     // ATTUNE=on: meet the caller's state, after the self-share so its "no stories" wins; no length.
@@ -263,7 +263,7 @@ function buildTurnReminder(
     // CALLER_SETS_DEPTH=on: they played heavy news down; take their lead (caller-sets-depth.ts).
     safe.callerSetsDepthNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false }),
     // DIRECTOR_ESCALATE=on: a note given twice becomes a rule, last but repair; never if held.
-    held ? '' : attempt('hardRule', () => hardRuleFor(director?.hardRule?.() ?? '', internals), ''),
+    held ? '' : attempt('hardRule', () => hardRuleFor(director?.hardRule?.(), internals), '', SAFE),
     // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"
     // note above cancels it; none with crisis guidance or when they answered Ferni's question.
     !crisis && !answering ? safe.repairNoteFor(chatCtx, session, process.env, plain) : '',
@@ -302,7 +302,7 @@ function reminderText(session: object, words: string, turnNotes: string[]): stri
     IDENTITY
   );
   // A dropped identity, owner or privacy note: until it can be built, the speaker is unverified,
-  // and gets no owner notes, world facts or packet memories (turn-note-guard.ts, #3091).
+  // and gets only SAFE notes: no world facts or packet memories (turn-note-guard.ts, #3091).
   const unverified = unverifiedReminder(turnNotes);
   if (unverified !== undefined) return unverified;
   const joined = [...facts, ...turnNotes].filter(Boolean).join(' ');
@@ -312,8 +312,8 @@ function reminderText(session: object, words: string, turnNotes: string[]): stri
 }
 
 /** A note given twice, unless it pushes him into his internals (no-invented-internals.ts). */
-const hardRuleFor = (rule: string, internals: InternalsTurn): string =>
-  pushesInternals(internals, rule) ? '' : rule;
+const hardRuleFor = (rule: string | undefined, internals: InternalsTurn): string =>
+  rule === undefined || pushesInternals(internals, rule) ? '' : rule;
 
 /** WRAP_UP=on: signing off after something was settled, the goodbye closes the loop (wrap-up.ts). */
 function closeLoopNote(session: object, words: string): string {
