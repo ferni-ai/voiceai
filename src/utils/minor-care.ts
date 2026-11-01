@@ -24,7 +24,9 @@
  * (the owner check is registered by caller-recognition.ts, a higher layer;
  * MINOR_CARE_OWNERS=on holds a verified owner too).
  * Crisis handling is untouched: the note is never added to a crisis reply,
- * and nothing here reads or changes crisis code.
+ * and nothing here reads or changes crisis code. MINOR_CRISIS_CARE=on adds
+ * MINOR_CRISIS_NOTE to a crisis reply instead, beside the crisis guidance
+ * (minor-crisis-care.ts has the spoken line for a crisis script).
  *
  * MINOR_CARE=shadow runs the same detection and logs it once per session (with
  * whether the session is a verified owner's), but holds nothing and adds no
@@ -327,24 +329,68 @@ export function userHeld(userId: string | undefined, env: Env = process.env): bo
 export const MINOR_CARE_NOT_SAVED =
   "Not saved: nothing from this call is kept. Cheer them on warmly, but don't say you'll remember it or check in on it later.";
 
-export const MINOR_CARE_NOTE =
-  "[They sound under 18. Be warm and friendly, like a caring older friend. Don't ask for personal details: where they live, their school's name, their religion or their age. If they mention skipping school, being alone or something worrying, gently ask if they're okay, without a lecture. If they say they love you, kindly keep the same boundary every time: you're glad to talk, and you're a friend-voice, not a partner. Nothing from this call is kept, so never say you'll remember it; if they ask, kindly say you won't keep notes from today.]";
+/** How Ferni sounds to a caller under 18: both notes open with it. */
+const YOUTH_VOICE = 'They sound under 18. Be warm and friendly, like a caring older friend.';
+
+export const MINOR_CARE_NOTE = `[${YOUTH_VOICE} Don't ask for personal details: where they live, their school's name, their religion or their age. If they mention skipping school, being alone or something worrying, gently ask if they're okay, without a lecture. If they say they love you, kindly keep the same boundary every time: you're glad to talk, and you're a friend-voice, not a partner. Nothing from this call is kept, so never say you'll remember it; if they ask, kindly say you won't keep notes from today.]`;
+
+/**
+ * MINOR_CRISIS_CARE=on: beside the crisis guidance on a crisis reply, never in place of it. It is
+ * guidance on how to talk, never lines to say: a model handed lines reads them out (#3313 r1, a
+ * blind judge preferred main 18 to 1). It names no number the turn's crisis guidance doesn't.
+ * Secrecy (product call, 2026-11-01): honest without agreeing to it. Ferni calls no one behind
+ * their back, never promises to keep it private, never says it will tell anyone, and wants a
+ * grown-up they trust in on it. No reply guidance here may promise secrecy (the test checks).
+ */
+export const MINOR_CRISIS_NOTE = `[${YOUTH_VOICE} In a hard moment, talk the way a caring older friend talks to a teen: plain, warm words. Gently ask who they've got, an adult they trust (parent, school counselor, coach, relative), and mention teens can call or text 988 too. Keep it as short as you would anyway, two or three short sentences: say less elsewhere, not more. Use your own words; never repeat these phrases. Add no phone number the crisis guidance for this turn doesn't give. If they ask you not to tell anyone, be honest without agreeing to secrecy: you won't call anyone behind their back, but this feels too big for them to carry alone, so you really want a grown-up they trust in on it, and 988 is there any time. Never promise to keep it private, and never say or hint that you'll tell or report anyone. Nothing sexual, and no explicit detail.]`;
+
+/**
+ * MINOR_CRISIS_CARE=on, when the person at risk is someone the caller knows (the crisis read's
+ * third_party subject): the crisis guidance's own steps stay first (check on them, 911 if they're
+ * in danger now, 988 on their behalf), and a trusted adult is one gentle offer, never an order.
+ * The general note made these replies directive and crowded out the check-on-them step (#3313 r2).
+ */
+export const MINOR_FRIEND_CRISIS_NOTE = `[${YOUTH_VOICE} They're scared for a friend. Follow the crisis guidance's steps in plain, warm words, as you would anyway: checking on their friend and staying with them, 911 if the friend is in danger tonight, and that they can call or text 988 for their friend. You can add, in one gentle clause, that a grown-up they trust could help with this too: an offer, never an order or a must. No longer than you'd be anyway. Use your own words; never repeat these phrases. Add no phone number the crisis guidance for this turn doesn't give. Nothing sexual, and no explicit detail.]`;
+
+/**
+ * A crisis reply for a caller who sounds under 18 gets youth-safe words (MINOR_CRISIS_CARE=on,
+ * with MINOR_CARE on): the same caller minorCareNote would give its note to.
+ */
+export function minorCrisisCare(
+  sessionId: string | undefined,
+  said: string,
+  options: HeardOptions = {}
+): boolean {
+  if (!minorCareOn(options.env) || !flagOn('MINOR_CRISIS_CARE', options.env)) return false;
+  if (sessionId && ownerExempt(sessionId, options.env)) return false;
+  return noteCallerWords(sessionId, said, options);
+}
+
+/** With crisis guidance: false on a soft check-in (no youth note), 'third_party' for a friend at risk. */
+export type YouthNote = boolean | 'third_party';
 
 /**
  * The note for this reply: flag on, the caller sounds under 18 and isn't a
  * verified account owner (an owner who mentions school isn't a stranger
- * child). Never with crisis guidance.
+ * child). With crisis guidance (careful): MINOR_CRISIS_NOTE, only with MINOR_CRISIS_CARE=on, and
+ * never on a soft check-in (youth: false), whose guidance asks for no crisis talk; when the risk is
+ * a friend's (youth: 'third_party'), MINOR_FRIEND_CRISIS_NOTE.
  */
 export function minorCareNote(
   sessionId: string | undefined,
   said: string,
-  options: HeardOptions & { careful?: boolean } = {}
+  options: HeardOptions & { careful?: boolean; youth?: YouthNote } = {}
 ): string {
   if (flagModeOf('MINOR_CARE', options.env) === 'shadow') {
     shadowNote(sessionId, said, options.asked);
     return '';
   }
-  if (options.careful || !minorCareOn(options.env)) return '';
+  // A soft check-in (youth: false) is no crisis turn: no note at all, as on main.
+  if (options.careful) {
+    if (options.youth === false || !minorCrisisCare(sessionId, said, options)) return '';
+    return options.youth === 'third_party' ? MINOR_FRIEND_CRISIS_NOTE : MINOR_CRISIS_NOTE;
+  }
+  if (!minorCareOn(options.env)) return '';
   if (sessionId && ownerExempt(sessionId, options.env)) return '';
   return noteCallerWords(sessionId, said, options) ? MINOR_CARE_NOTE : '';
 }
