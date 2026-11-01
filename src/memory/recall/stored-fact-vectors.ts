@@ -11,7 +11,7 @@
  * topics, forgotten or corrected facts, low confidence, supersession) with the
  * forgotten topics the call started with, before it can be recalled. Until those
  * topics have been read, or when they can't be, nothing is found. With
- * REMEMBER_TO_RECALL or FORGET_EVERY_READER on, topics forgotten in this process
+ * REMEMBER_TO_RECALL, MEMORY_TOOLS_HONEST or FORGET_EVERY_READER on, topics forgotten in this process
  * since count too: a fact remembered while a forget was reading lands unmarked.
  *
  * @module memory/recall/stored-fact-vectors
@@ -111,7 +111,8 @@ export function factItems(
 }
 
 /** Topics forgotten during the call count in the search (see the module comment). */
-const inCallForgets = (): boolean => flagOn('REMEMBER_TO_RECALL') || forgetEveryReaderEnabled();
+const inCallForgets = (): boolean =>
+  flagOn('REMEMBER_TO_RECALL') || flagOn('MEMORY_TOOLS_HONEST') || forgetEveryReaderEnabled();
 
 export function createStoredVectors(
   base: VectorRecallStore,

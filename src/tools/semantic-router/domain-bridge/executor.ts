@@ -123,7 +123,7 @@ export async function executeDomainTool(
       // tools that read it there fell back to 'default', one bucket for every routed caller
       // (same shape as calendar/index.ts routedContext).
       const opts = {
-        ctx: { userData: { userId } },
+        ctx: { userData: { userId, sessionId: context.sessionId } }, // the call's id: per-call counts
         toolCallId: `semantic:${mapping.domainToolId}`,
       };
       const result: unknown = await toolInstance.execute(transformedArgs, opts);

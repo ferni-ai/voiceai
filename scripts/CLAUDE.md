@@ -35,7 +35,6 @@
 ### Validation
 | Script | Purpose |
 |--------|---------|
-| `validate-architecture.ts` | Architecture layer checks |
 | `validate-tools.ts` | Tool registry validation |
 | `validate-identity.ts` | Identity system validation |
 | `validate-outbound-system.ts` | Outbound call validation |
@@ -71,7 +70,7 @@ pnpm script-name
 
 ```bash
 # Validate everything works
-npx tsx scripts/validate-architecture.ts
+pnpm quality:arch
 npx tsx scripts/validate-tools.ts
 
 # Debug user issues

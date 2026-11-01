@@ -127,25 +127,7 @@ export async function handleDailyAdminReport(res: ServerResponse): Promise<void>
     const { generateDailyReport } = await import('../../services/admin/daily-report.js');
     const { generateDailyReportHTML, generateDailyReportPlainText } =
       await import('../../services/admin/daily-report-template.js');
-    const { sendEmail, isEmailDeliveryAvailable, initializeEmailDelivery } =
-      await import('../../services/outreach/delivery/email-delivery.js');
-    const { emailProvider } = await import('../../services/email-transport/index.js');
-
-    // With EMAIL_PROVIDER=gmail the report goes through the Workspace port; no SendGrid key needed.
-    if (!isEmailDeliveryAvailable() && emailProvider() !== 'gmail') {
-      const apiKey = process.env.SENDGRID_API_KEY;
-      if (!apiKey) {
-        throw new Error('SENDGRID_API_KEY not configured');
-      }
-      initializeEmailDelivery({
-        provider: 'sendgrid',
-        apiKey,
-        fromEmail: process.env.SENDGRID_FROM_EMAIL || 'hello@ferni.ai',
-        fromName: process.env.SENDGRID_FROM_NAME || 'Ferni',
-        trackOpens: true,
-        trackClicks: true,
-      });
-    }
+    const { sendEmail } = await import('../../services/outreach/delivery/email-delivery.js');
 
     const reportData = await generateDailyReport();
     const html = generateDailyReportHTML(reportData);

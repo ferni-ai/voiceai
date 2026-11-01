@@ -9,12 +9,12 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const crisisReads = vi.hoisted(() => [] as Array<string | undefined>);
+const crisisReads = vi.hoisted(() => [] as Array<Array<string | undefined>>);
 
 vi.mock('../injection-builders/index.js', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
-  buildCrisisHistoryInjection: vi.fn(async (userId: string | undefined) => {
-    crisisReads.push(userId);
+  buildCrisisHistoryInjection: vi.fn(async (userId?: string, sessionId?: string) => {
+    crisisReads.push([userId, sessionId]);
     return null;
   }),
 }));
@@ -48,13 +48,13 @@ describe.each([
   ['turn-processor/context-injections.ts', turnProcessor.buildContextInjections],
   ['context-injection-builder.ts', legacyBuilder.buildContextInjections],
 ])('%s: the crisis-history read names the caller, never a shared bucket', (_site, build) => {
-  it('a turn with no id hands over no id (not unknown)', async () => {
+  it('a turn with no id hands over no id (not unknown), and its session', async () => {
     await build(...args({ sessionId: 'session-no-id' }));
-    expect(crisisReads).toEqual([undefined]);
+    expect(crisisReads).toEqual([[undefined, 'session-no-id']]);
   }, 20_000);
 
   it("a member's turn reads the member's own history", async () => {
     await build(...args({ sessionId: 'session-member', userId: 'uid-member' }));
-    expect(crisisReads).toEqual(['uid-member']);
+    expect(crisisReads).toEqual([['uid-member', 'session-member']]);
   }, 20_000);
 });

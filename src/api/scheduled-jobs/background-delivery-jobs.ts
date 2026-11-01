@@ -57,13 +57,17 @@ type LoadTemporalWorld = (
  * loadTemporalWorld, WORLD_MODEL_TEMPORAL). The module isn't on every
  * branch yet, so it is looked up at run time: without it, no world items.
  */
-export async function worldDue(userId: string, timeZone?: string): Promise<WorldDue[]> {
+async function temporalWorldLoader(): Promise<LoadTemporalWorld | undefined> {
   const spec = '../../intelligence/world-model/temporal/load.js';
   const mod = (await import(spec).catch((error: unknown) => {
     log.debug({ error: String(error) }, 'No temporal world model on this server');
     return null;
   })) as { loadTemporalWorld?: LoadTemporalWorld } | null;
-  const world = await mod?.loadTemporalWorld?.(userId, { timeZone });
+  return mod?.loadTemporalWorld;
+}
+
+export async function worldDue(userId: string, timeZone?: string): Promise<WorldDue[]> {
+  const world = await (await temporalWorldLoader())?.(userId, { timeZone });
   return (world?.sinceLastCall ?? [])
     .filter((i) => i.kind === 'due')
     .map(({ factId, text }) => ({ factId, text }));
@@ -83,7 +87,11 @@ export async function handleDeliverScheduledActions(
       await import('../../services/outreach/proactive-channels/proactive-tick.js');
     const { defaultProactiveDeps } =
       await import('../../services/outreach/proactive-channels/default-deps.js');
-    const deps = { ...defaultProactiveDeps(), worldDue };
+    // Without the world model the tick gets no worldDue, and its run line says so.
+    const deps = {
+      ...defaultProactiveDeps(),
+      ...((await temporalWorldLoader()) && { worldDue }),
+    };
     const proactive = await runProactiveChannelsTick(deps, {
       dryRun: isDryRun(req),
     }).catch((error: unknown) => ({ enabled: true, error: String(error) }));

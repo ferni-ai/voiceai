@@ -2,7 +2,7 @@
  * Notification Delivery Service
  * Actually delivers proactive outreach notifications via:
  * - Push notifications (web/mobile)
- * - Email (the app transport: SendGrid or the ferni.ai Workspace)
+ * - Email (the app transport: the ferni.ai Workspace mailbox)
  * - SMS (Twilio)
  *
  * Philosophy: The best check-ins feel like they came from a friend
@@ -635,9 +635,9 @@ async function getFirebaseAdmin(): Promise<typeof import('firebase-admin') | nul
 }
 
 /**
- * Send email through the app transport (EMAIL_PROVIDER: SendGrid by default, the
- * ferni.ai Workspace under gmail). A check-in is mail they can opt out of, so it
- * goes as 'bulk' with a List-Unsubscribe mailto.
+ * Send email through the app transport (the ferni.ai Workspace mailbox). A
+ * check-in is mail they can opt out of, so it goes as 'bulk' with a
+ * List-Unsubscribe mailto.
  */
 async function sendEmailViaTransport(payload: EmailPayload): Promise<boolean> {
   const { isEmailConfigured, sendAppEmail, unsubscribeMailbox } =

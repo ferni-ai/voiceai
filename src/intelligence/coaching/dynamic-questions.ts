@@ -555,7 +555,7 @@ export async function generateQuestion(
         log.info(
           {
             method: 'llm',
-            question: question.slice(0, 100),
+            questionLen: question.length,
             intent: result.intent.seekingToUnderstand,
             durationMs: Date.now() - startTime,
           },
@@ -587,7 +587,7 @@ export async function generateQuestion(
     log.info(
       {
         method: 'filtered_fallback',
-        question: filtered.text.slice(0, 100),
+        questionLen: filtered.text.length,
         durationMs: Date.now() - startTime,
       },
       '🧠 DYNAMIC QUESTION: Persona-filtered question generated'
@@ -625,7 +625,7 @@ export async function generateQuestion(
   log.info(
     {
       method: 'universal_fallback',
-      question: question.slice(0, 100),
+      questionLen: question.length,
       durationMs: Date.now() - startTime,
     },
     '🧠 DYNAMIC QUESTION: Universal fallback used'

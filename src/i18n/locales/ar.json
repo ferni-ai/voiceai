@@ -357,10 +357,6 @@
           "name": "Apple Health",
           "description": "الاتصال عبر تطبيق فيرني لـ iOS"
         },
-        "fitbit": {
-          "name": "Fitbit",
-          "description": "الخطوات والنوم ومعدل ضربات القلب"
-        },
         "garmin": {
           "name": "Garmin",
           "description": "بيانات النشاط والتدريب"

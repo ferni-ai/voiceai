@@ -242,7 +242,7 @@ export function detectGoalStatement(
       // Detect domain
       const domain = detectDomain(goalText);
 
-      log.debug({ userId, goalText, domain }, '🎯 Potential goal detected');
+      log.debug({ userId, goalTextLen: goalText.length, domain }, '🎯 Potential goal detected');
 
       return {
         detected: true,

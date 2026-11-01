@@ -1272,8 +1272,6 @@
       "notifications": "When I'll Check In",
       "toggleTheme": "Light / Dark",
       "themeLanguage": "Look & Feel",
-      "linkSpotify": "Connect Spotify",
-      "spotifyConnected": "Spotify Connected",
       "vibeController": "Set the Mood",
       "spotifyRooms": "Music Rooms",
       "thermostat": "Home Comfort",
@@ -1915,23 +1913,23 @@
   },
   "session": {
     "connected": "Connected",
-    "connecting": "Connecting...",
+    "connecting": "Connecting…",
     "disconnected": "Disconnected",
     "end": "End",
     "endConversation": "End conversation",
-    "endConversationGoodbye": "End conversation - Goodbye",
+    "goodbyeEndCall": "Goodbye. End call.",
     "endSession": "End Session",
-    "ending": "Ending...",
+    "ending": "Call ended",
     "goodbye": "Goodbye",
     "holdToSpeak": "Hold to speak",
-    "listening": "Listening...",
+    "listening": "Listening…",
     "releaseToSend": "Release to send",
     "sessionEnded": "Session ended",
-    "speaking": "Speaking...",
+    "speaking": "Speaking…",
     "takeCare": "Take care.",
     "tapToSpeak": "Tap to speak",
-    "thinking": "Thinking...",
-    "untilNextTime": "Until next time..."
+    "thinking": "Thinking…",
+    "untilNextTime": "Until next time"
   },
   "stages": {
     "acquaintance": "Acquaintance",
@@ -2500,10 +2498,6 @@
         "description": "Sync with Apple Watch and iPhone health data",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Connect your Fitbit device",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Sync with Garmin wearables",
         "name": "Garmin"
@@ -2825,8 +2819,7 @@
       "askFerni": "Or ask Ferni to play something",
       "play": "Play",
       "pause": "Pause",
-      "skip": "Skip",
-      "linkSpotify": "Link Spotify in Settings for full songs"
+      "skip": "Skip"
     },
     "volume": "Volume",
     "skipped": "Skipped",
@@ -8320,10 +8313,9 @@
     "appleHealthDesc": "Sleep, activity, and heart rate data",
     "ouraDesc": "Sleep quality and readiness scores",
     "eightSleepDesc": "Sleep tracking and temperature",
-    "wearablesDesc": "Fitbit, Garmin, Whoop, and more",
+    "wearablesDesc": "Garmin, Whoop, and more",
     "calendarDesc": "Events, meetings, and availability",
     "linkedInDesc": "Professional context and network",
-    "spotifyDesc": "Music, mood playlists, listening history",
     "ecobeeDesc": "Home temperature and comfort",
     "vibeControllerDesc": "Control music, lights, and more",
     "connected": "Connected"
@@ -8801,6 +8793,13 @@
     "exportFailed": "Couldn't export your data. Try again?",
     "deleteDataFailed": "Couldn't delete your data. Nothing was removed. Try again?",
     "deleteAccountFailed": "Couldn't delete your account. Try again?",
+    "deleteRefusedSignIn": "Your sign-in wasn't accepted, so this request deleted nothing. Sign in again, then try once more.",
+    "deleteDataUnknown": "Couldn't confirm whether your data was deleted. It may still be finishing, so check again in a few minutes.",
+    "deleteDataStillUnknown": "Still couldn't confirm whether your data was deleted. Try again in a few minutes.",
+    "deleteAccountUnknown": "Couldn't confirm whether your account was deleted. It may still be finishing, so check again in a few minutes.",
+    "accountStillOpen": "Your account is still open. If you still want it closed, you can delete it again.",
+    "accountSignInRefused": "Your sign-in is no longer accepted, which happens when an account is closing. If you didn't delete it, sign in again to check.",
+    "authSlow": "Couldn't check your sign-in in time, so nothing was sent. Try again?",
     "accountDeletedPartial": "Your account is deleted, but a few records didn't clear. Contact us to finish.",
     "categoryConversations": "All conversation transcripts and metadata",
     "categoryInsights": "What Ferni has learned about you",
@@ -8954,9 +8953,6 @@
     "trustJourneyExplore": "Explore",
     "customizeTitle": "Customise your experience",
     "customizeMessage": "Adjust themes, sounds, and more.",
-    "spotifyTitle": "Connect Spotify",
-    "spotifyMessage": "Link your Spotify to set the mood during our conversations.",
-    "spotifyConnect": "Connect",
     "maybeLater": "Maybe later"
   },
   "mentorTeachings": {
@@ -9313,6 +9309,8 @@
   },
   "dataExport": {
     "title": "Privacy & your data",
+    "loadFailed": "I couldn't load what I've saved for you just now. Nothing has changed.",
+    "checkAgain": "Check again",
     "exportFormat": "Export format",
     "deleteAll": "Delete All Data",
     "footer": "I save our conversations and the things you tell me so I can remember them next time, and if you ever want them gone, deleting your account erases them.",
@@ -10176,7 +10174,6 @@
     "startupError": "Having trouble starting up. Try refreshing?",
     "lastConversation": "This is your last conversation this month. Let's make it count.",
     "gettingReady": "Getting ready...",
-    "connecting": "Connecting",
     "almostThere": "Almost there...",
     "waitingQuietly": "I'll wait quietly",
     "listening": "I'm listening",
@@ -10198,7 +10195,6 @@
     "connectFirstToManage": "Connect first, then we can manage that.",
     "monthlyLimitReached": "We've reached our monthly limit. I'd love to keep talking...",
     "enableMicPrompt": "I'd love to hear your voice - enable mic access?",
-    "agentJoined": "{name} joined",
     "seeYouNextTime": "See you next time!",
     "handoffFailed": "Couldn't reach them right now. I'm still here though!",
     "personaBack": "{name} is back!",
@@ -10494,7 +10490,6 @@
     "names": {
       "stockData": "Stock Data",
       "marketData": "Market Data",
-      "weatherMaps": "Weather & Maps",
       "historicalFacts": "Historical Facts",
       "smartHome": "Smart Home",
       "lighting": "Lighting",
@@ -10782,18 +10777,22 @@
   "entrance": {
     "helper": "Your personal guide",
     "connectToTalk": "Talk to Ferni",
-    "endTalk": "Disconnect",
-    "connectingCancel": "Connecting. Tap to cancel",
-    "connectingNow": "Connecting…",
-    "tapToCancel": "Tap to cancel"
+    "endTalk": "End call",
+    "connectingCancel": "Calling {name}. Tap to cancel.",
+    "connectingNow": "Calling {name}…",
+    "tapToCancel": "Tap to cancel",
+    "stillCalling": "Still reaching {name}…",
+    "stillCallingCancel": "Still reaching {name}. Tap to cancel.",
+    "reconnecting": "Reconnecting…",
+    "arrived": "{name} is here"
   },
   "callRoom": {
-    "connecting": "Connecting",
+    "connecting": "Calling {name}…",
     "listening": "{name}'s listening",
     "talking": "{name}'s talking",
     "muted": "You're muted",
-    "end": "End",
-    "backHint": "Tap End to hang up"
+    "end": "End call",
+    "backHint": "Tap End call to hang up"
   },
   "analyticsDashboard": {
     "title": "Your Journey",
@@ -11056,6 +11055,19 @@
     "retry": "",
     "switchAccount": "",
     "seeSources": ""
+  },
+  "connectInvite": {
+    "title": "Let Alex keep an eye on your calendar",
+    "lead": "Connect Google Calendar so plans don't sneak up on you. Here's what it shares:",
+    "account": "Connecting to Alex for {account}",
+    "sees": "Sees event times, titles and places",
+    "changes": "Adds or changes events only when you ask",
+    "never": "Never sees your emails or attachments",
+    "undo": "Undo any time in Settings > Calendar, or just tell Alex",
+    "connect": "Connect Google Calendar",
+    "opening": "Opening Google...",
+    "expired": "This link has expired or was already used. Ask on your next call and I'll send a fresh one.",
+    "failed": "Couldn't open Google just now. Ask on your next call and I'll send a new link."
   },
   "approvePage": {
     "kind": {

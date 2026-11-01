@@ -238,7 +238,6 @@ export function resetFirestoreInstance(): void {
 export const COLLECTIONS = {
   USERS: 'bogle_users',
   CONTACTS: (userId: string) => `bogle_users/${userId}/contacts`,
-  CONTACT_RELATIONSHIPS: (userId: string) => `bogle_users/${userId}/contact_relationships`,
   PREFERENCES: (userId: string) => `bogle_users/${userId}/preferences`,
   MEMORIES: (userId: string) => `bogle_users/${userId}/memories`,
   HABITS: (userId: string) => `bogle_users/${userId}/habits`,

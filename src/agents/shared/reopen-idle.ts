@@ -12,6 +12,11 @@
  * does not. One watcher per call: a second reopen, or a persona swap's own
  * wrap-up on the same session, replaces it.
  *
+ * `heldGoodbyeCheckIn` (HELD_GOODBYE_CHECK_IN, #2695): after
+ * HELD_GOODBYE_CHECK_IN_MS of quiet it is asked to check in on a goodbye
+ * whose end is held; when it does, that is the one check-in. It never moves
+ * the idle end.
+ *
  * @module agents/shared/reopen-idle
  */
 import { voice } from '@livekit/agents';
@@ -22,6 +27,8 @@ import { IDLE_TIMEOUT } from './constants.js';
 export const REOPEN_CHECK_IN_MS = 60_000;
 /** Quiet after a reopen before the call ends (the existing 120 s idle). */
 export const REOPEN_IDLE_END_MS = IDLE_TIMEOUT.DISCONNECT_THRESHOLD_SECONDS * 1000;
+/** Quiet after a held goodbye before Ferni checks in, once (#2695). */
+export const HELD_GOODBYE_CHECK_IN_MS = 20_000;
 
 interface SessionEvents {
   on: (event: string, fn: (ev: never) => void) => unknown;
@@ -37,6 +44,8 @@ export function watchReopenIdle(
   agentSession: object,
   opts: {
     checkIn: () => void;
+    /** Check in on a held goodbye now; returns whether it did. */
+    heldGoodbyeCheckIn?: () => boolean;
     end: () => void;
     /** The caller's transcripts and turns, and whether they are mid-utterance (caller-activity.ts). */
     caller: CallerWatch;
@@ -53,9 +62,18 @@ export function watchReopenIdle(
   const cancel = (): void => timers.splice(0).forEach((t) => opts.clearTimer(t));
   const restart = (): void => {
     cancel();
+    const { heldGoodbyeCheckIn } = opts;
+    if (!checkedIn && heldGoodbyeCheckIn) {
+      timers.push(
+        opts.setTimer(() => {
+          if (!checkedIn && quiet()) checkedIn = heldGoodbyeCheckIn();
+        }, HELD_GOODBYE_CHECK_IN_MS)
+      );
+    }
     if (!checkedIn) {
       timers.push(
         opts.setTimer(() => {
+          if (checkedIn) return; // the held goodbye's check-in was the one
           if (!quiet()) return restart();
           checkedIn = true;
           opts.checkIn();

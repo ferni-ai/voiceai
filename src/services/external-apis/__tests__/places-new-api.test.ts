@@ -260,4 +260,20 @@ describe('discoverBusinesses (concierge)', () => {
     respond({ error: { code: 403, status: 'PERMISSION_DENIED' } }, 403);
     expect(await discoverBusinesses({ domain: 'hotel', location: 'Tampa' })).toEqual([]);
   });
+
+  it('returns no businesses, and calls nothing, when no Places key is set', async () => {
+    const saved = {
+      places: process.env.GOOGLE_PLACES_API_KEY,
+      google: process.env.GOOGLE_API_KEY,
+    };
+    delete process.env.GOOGLE_PLACES_API_KEY;
+    delete process.env.GOOGLE_API_KEY;
+    try {
+      expect(await discoverBusinesses({ domain: 'hotel', location: 'Tampa' })).toEqual([]);
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      if (saved.places !== undefined) process.env.GOOGLE_PLACES_API_KEY = saved.places;
+      if (saved.google !== undefined) process.env.GOOGLE_API_KEY = saved.google;
+    }
+  });
 });

@@ -298,7 +298,7 @@ function createWin(
   }
 
   log.debug(
-    { userId: profile.userId, type, description: message.slice(0, 50) },
+    { userId: profile.userId, type, descriptionLen: message.length },
     '🏆 Small win detected'
   );
 

@@ -6,18 +6,18 @@
  * Single responsibility: Fetching and presenting weather information.
  *
  * APIs used (in priority order):
- * 1. Google Weather API (primary - fast, uses existing GOOGLE_API_KEY)
- * 2. Open-Meteo (fallback - free, no key required)
+ * 1. Google Weather API (primary - fast; key from googleMapsKey(MAPS_KEY), config/google-maps-key.ts)
+ * 2. Open-Meteo (fallback - free, no key required, ~500ms slower)
  *
- * SETUP: To use Google Weather API (faster), enable it in GCP Console:
- * 1. Go to https://console.cloud.google.com/apis/library/weather.googleapis.com
- * 2. Enable "Weather API"
- * 3. The existing GOOGLE_API_KEY will work automatically
- *
- * Without Google Weather enabled, falls back to Open-Meteo (~500ms slower)
+ * The key must allow the Weather API, or every lookup falls back to Open-Meteo.
  */
 
 import { flagOn } from '../../../config/env-flag.js';
+import {
+  googleMapsKey,
+  MAPS_KEY_LEGACY,
+  mapsHttpOutcome,
+} from '../../../config/google-maps-key.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 
 import {
@@ -27,9 +27,12 @@ import {
   type GeocodingResult,
 } from './utils/geocoding.js';
 
+/** The key chain this caller read before GOOGLE_MAPS_SERVER_KEY (config/google-maps-key.ts). */
+const MAPS_KEY = { legacy: MAPS_KEY_LEGACY.generalOnly };
+
 // ============================================================================
 // GOOGLE WEATHER API
-// Uses the Google Maps Weather API - requires GOOGLE_API_KEY
+// The Google Maps Platform Weather API
 // Docs: https://developers.google.com/maps/documentation/weather
 // ============================================================================
 
@@ -62,10 +65,10 @@ interface GoogleWeatherResult {
  */
 async function tryGoogleWeather(location: string): Promise<GoogleWeatherResult> {
   const log = getLogger();
-  const apiKey = process.env.GOOGLE_API_KEY;
+  const apiKey = googleMapsKey(MAPS_KEY);
 
   if (!apiKey) {
-    log.debug({ locationChars: location.length }, '🌤️ Google Weather skipped - no API key');
+    log.debug({ outcome: 'unconfigured' }, '🌤️ Google Weather skipped - no Maps key');
     return { weather: null, geo: null };
   }
 
@@ -99,15 +102,12 @@ async function tryGoogleWeather(location: string): Promise<GoogleWeatherResult> 
     if (!response.ok) {
       // Google Weather API might not be enabled - fall back silently
       // BUT return the geo data so fallback doesn't need to re-geocode!
-      log.info(
-        { locationChars: location.length, status: response.status },
-        '🌤️ [DIAG] Google Weather API HTTP error'
-      );
+      const outcome = mapsHttpOutcome(response.status);
+      log.info({ status: response.status, outcome }, '🌤️ [DIAG] Google Weather API HTTP error');
       return { weather: null, geo }; // Pass geo for Open-Meteo fallback
     }
 
     const data = (await response.json()) as GoogleWeatherResponse;
-
 
     if (data.error || !data.temperature) {
       log.info(
@@ -375,7 +375,6 @@ async function fetchCurrentWeather(location: string): Promise<string> {
 
     const data = (await response.json()) as { current?: CurrentWeather };
     const { current } = data;
-
 
     if (!current) {
       log.warn(

@@ -56,10 +56,8 @@ export interface SettingsMenuUICallbacks {
   onThemeToggle?: () => void;
   onNotificationSettingsClick?: () => void;
   onSleepSettingsClick?: () => void;
-  onSpotifyClick?: () => void;
   onVibeControllerClick?: () => void;
   onSmartHomeClick?: () => void;
-  onEightSleepClick?: () => void;
   onOuraClick?: () => void;
   onAppleHealthClick?: () => void;
   onTrustJourneyClick?: () => void;
@@ -333,8 +331,6 @@ class SettingsMenuUI {
   private callbacks: SettingsMenuUICallbacks = {};
   private styleElement: HTMLStyleElement | null = null;
   private isVisible = false;
-  private spotifyLinked = false;
-  private spotifyConfigured = false;
   // Load saved preferences or use defaults (all expanded)
   private expandedSections: Set<string> = getExpandedSections();
   private pinnedItems: Set<string> = getPinnedItems();
@@ -364,39 +360,6 @@ class SettingsMenuUI {
 
   setCallbacks(callbacks: SettingsMenuUICallbacks): void {
     this.callbacks = callbacks;
-  }
-
-  /**
-   * Update Spotify link state (called by spotify.ui.ts)
-   */
-  updateSpotifyState(linked: boolean, configured: boolean): void {
-    this.spotifyLinked = linked;
-    this.spotifyConfigured = configured;
-    this.updateSpotifyMenuItem();
-  }
-
-  private updateSpotifyMenuItem(): void {
-    if (!this.panel) return;
-
-    const spotifyItem = this.panel.querySelector('[data-action="spotify"]') as HTMLElement;
-    if (!spotifyItem) return;
-
-    // Hide if not configured
-    if (!this.spotifyConfigured) {
-      spotifyItem.style.display = 'none';
-      return;
-    }
-
-    spotifyItem.style.display = 'flex';
-    const label = spotifyItem.querySelector('.settings-menu__label');
-    if (label) {
-      label.textContent = this.spotifyLinked
-        ? t('menu.items.spotifyConnected')
-        : t('menu.items.linkSpotify');
-    }
-
-    // Add/remove linked class for styling
-    spotifyItem.classList.toggle('settings-menu__item--active', this.spotifyLinked);
   }
 
   show(): void {
@@ -1104,17 +1067,11 @@ class SettingsMenuUI {
       case 'sleep-settings':
         this.callbacks.onSleepSettingsClick?.();
         break;
-      case 'spotify':
-        this.callbacks.onSpotifyClick?.();
-        break;
       case 'vibe-controller':
         this.callbacks.onVibeControllerClick?.();
         break;
       case 'smart-home':
         this.callbacks.onSmartHomeClick?.();
-        break;
-      case 'eight-sleep-settings':
-        this.callbacks.onEightSleepClick?.();
         break;
       case 'oura-settings':
         this.callbacks.onOuraClick?.();

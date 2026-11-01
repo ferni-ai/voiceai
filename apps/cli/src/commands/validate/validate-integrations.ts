@@ -3,7 +3,6 @@
  * Integration Validation Script
  * 
  * Validates all communication and scheduling integrations:
- * - SendGrid email
  * - Twilio SMS
  * - Twilio Voice
  * - Google Calendar
@@ -15,7 +14,6 @@
  *   npx ts-node scripts/validate-integrations.ts --send-test  # Actually sends test messages
  * 
  * Environment variables required for full validation:
- *   SENDGRID_API_KEY, SENDGRID_FROM_EMAIL
  *   TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER
  *   GOOGLE_CALENDAR_CREDENTIALS
  *   TEST_EMAIL, TEST_PHONE_NUMBER (for --send-test mode)
@@ -44,71 +42,6 @@ function checkEnvVar(name: string): boolean {
 
 function addCheck(check: IntegrationCheck): void {
   checks.push(check);
-}
-
-// ============================================================================
-// SENDGRID CHECK
-// ============================================================================
-
-async function checkSendGrid(sendTest: boolean): Promise<void> {
-  const apiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL;
-  const testEmail = process.env.TEST_EMAIL;
-
-  const check: IntegrationCheck = {
-    name: 'SendGrid Email',
-    category: 'communication',
-    configured: !!(apiKey && fromEmail),
-    required: ['SENDGRID_API_KEY', 'SENDGRID_FROM_EMAIL'],
-    optional: ['SENDGRID_FROM_NAME'],
-    status: 'not_configured',
-  };
-
-  if (!apiKey) {
-    check.message = 'Missing SENDGRID_API_KEY';
-    addCheck(check);
-    return;
-  }
-
-  if (!fromEmail) {
-    check.message = 'Missing SENDGRID_FROM_EMAIL';
-    check.status = 'not_configured';
-    addCheck(check);
-    return;
-  }
-
-  check.status = 'configured';
-
-  if (sendTest && testEmail) {
-    try {
-      const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          personalizations: [{ to: [{ email: testEmail }] }],
-          from: { email: fromEmail, name: 'Ferni Validation' },
-          subject: `✅ Integration Test - ${new Date().toISOString()}`,
-          content: [{ type: 'text/plain', value: 'This email confirms SendGrid integration is working.' }],
-        }),
-      });
-
-      if (response.status === 202) {
-        check.status = 'validated';
-        check.message = `Test email sent to ${testEmail}`;
-      } else {
-        check.status = 'failed';
-        check.message = `API returned ${response.status}`;
-      }
-    } catch (error) {
-      check.status = 'failed';
-      check.message = error instanceof Error ? error.message : 'Unknown error';
-    }
-  }
-
-  addCheck(check);
 }
 
 // ============================================================================
@@ -442,7 +375,7 @@ function printResults(): void {
   console.log('═'.repeat(70));
 
   // Production readiness
-  const criticalServices = ['SendGrid Email', 'Twilio SMS', 'Twilio Voice'];
+  const criticalServices = ['Twilio SMS', 'Twilio Voice'];
   const criticalConfigured = checks.filter(
     c => criticalServices.includes(c.name) && (c.status === 'configured' || c.status === 'validated')
   ).length;
@@ -492,7 +425,6 @@ async function main(): Promise<void> {
   }
 
   // Run all checks
-  await checkSendGrid(sendTest);
   await checkTwilio(sendTest);
   await checkGoogleCalendar(sendTest);
   await checkGooglePlaces(sendTest);

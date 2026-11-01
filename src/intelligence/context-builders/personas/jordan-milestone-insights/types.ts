@@ -32,7 +32,6 @@ export interface JordanInsightBriefing {
   /** Proactive discoveries */
   proactiveDiscoveries: string[];
   /** Seasonal awareness */
-  seasonalContext: SeasonalContext;
   /** Better Than Human: Milestone calendar sync from Alex */
   milestoneCalendarSync: string | null;
   /** Cross-Persona: Jordan ↔ Alex coordination context */
@@ -113,13 +112,6 @@ export interface LifeStageContext {
   transitionSignals: string[];
   stageSpecificAdvice: string[];
   upcomingTransitions: string[];
-}
-
-export interface SeasonalContext {
-  currentSeason: string;
-  seasonalOpportunities: string[];
-  upcomingDates: Array<{ name: string; date: string; daysAway: number }>;
-  planningWindows: string[];
 }
 
 // ============================================================================

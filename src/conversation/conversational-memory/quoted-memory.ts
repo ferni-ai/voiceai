@@ -146,7 +146,7 @@ export class QuotedMemoryEngine {
         });
 
         log.debug(
-          { phrase: phrase.slice(0, 50), context: contextDescription },
+          { phraseLen: phrase.length, context: contextDescription },
           'Hyper-specific memory stored'
         );
 

@@ -29,7 +29,7 @@ import {
   type NonverbalCarry,
   type OpeningDecision,
 } from './nonverbal.js';
-import { normalizeForSpeech } from './normalize.js';
+import { replyNormalizer } from './normalize.js';
 import { decideSpeed } from './pacing.js';
 import { personaTone, type PersonaDelivery } from './persona-delivery.js';
 import { respondToProsody, type ProsodyResponse } from './prosody-response.js';
@@ -161,6 +161,7 @@ export class DirectorEngine {
   private pendingTags = '';
   private segmentsSinceBreath = Infinity;
   private spokenSighChecked = false;
+  private readonly normalize = replyNormalizer(); // knows when a push starts mid-sentence
   /** Tags of a first push whose only words were the spoken sigh: they lead the next. */
   private stashedLead: { tags: string; prosody: SSMLProsodyConfig } | undefined;
 
@@ -201,7 +202,7 @@ export class DirectorEngine {
         return [];
       }
       const first = !this.opened;
-      const normalized = normalizeForSpeech(body);
+      const normalized = this.normalize(body);
       this.stats.normalizations += normalized.count;
 
       const planned = this.planPhrases.accept(normalized.text, first);
@@ -212,9 +213,8 @@ export class DirectorEngine {
 
       let spokenBody = this.live('normalize') ? normalized.text : body;
       if (this.live('emotion')) spokenBody = spokenBody.replace(ANY_EMOTION_TAG, '');
-      // Opening tags lead the first phrase. A later push's tags travel inline
-      // with its own text, so a phrase held back from the previous push is
-      // never voiced with them (review LOW: tags one phrase early).
+      // Opening tags lead the first phrase. A later push's tags travel inline with its own text,
+      // so a phrase held back from the previous push never carries them (review LOW).
       const strip = this.ctx.stripProsody === true;
       if (strip) spokenBody = spokenBody.replace(PROSODY_TAG, '');
       const lead = first ? this.openingTags(tags, prosody) : this.laterTags(tags, prosody, step);

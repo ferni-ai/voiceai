@@ -181,6 +181,8 @@ import {
   connectToLiveKit,
   cleanupStaleWorkers,
   closeConnection,
+  drainForRecycle,
+  pendingJobCount,
   prepareForShutdown,
   stopPingKeepalive,
   stopPendingJobsCleanup,
@@ -192,8 +194,16 @@ import { markLivekitDisconnected, signalPrewarmComplete } from './shared/worker-
 import { getCrashSummary } from './shared/crash-analytics.js';
 import { warmCallPath } from './gce/call-path-warmup.js';
 import { startProcessRuntime } from './gce/process-runtime.js';
-import { jobExecutorMode, startJobRunner, stopJobRunner } from './gce/job-runner.js';
-import { drainTimeoutMs, waitForActiveJobs } from './gce/drain.js';
+import {
+  activeJobCount,
+  drainJobRunner,
+  jobExecutorMode,
+  startJobRunner,
+} from './gce/job-runner.js';
+import { drainTimeoutMs } from './gce/drain.js';
+import { drainMemoryWork } from './gce/drain-memory-work.js';
+import { exitAfterFlush, holdEventLoop } from './gce/exit-worker.js';
+import { startWorkerRecycle } from './gce/worker-recycle.js';
 import { sdkLoggerOptions } from './gce/sdk-logger-options.js';
 log('Phase 2.5: Starting async background workers');
 const processRuntime = startProcessRuntime(log);
@@ -245,6 +255,17 @@ async function main(): Promise<void> {
   signalPrewarmComplete();
   log('✅ Startup complete - worker ready for jobs');
 
+  // WORKER_RECYCLE: past WORKER_RECYCLE_RSS_MB, take no new calls and exit once they end.
+  startWorkerRecycle({
+    rssBytes: () => process.memoryUsage.rss(),
+    activeJobs: activeJobCount,
+    pendingJobs: pendingJobCount,
+    jobsRun: () => getJobMetrics().totalJobs,
+    drain: drainForRecycle,
+    exit: () => void shutdown('WORKER_RECYCLE'),
+    log,
+  });
+
   // Diagnostic summary with crash analytics
   registerInterval(
     'gce-worker-diagnostics',
@@ -255,6 +276,7 @@ async function main(): Promise<void> {
         uptimeMs: Date.now() - _startTime,
         memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
         ...metrics,
+        activeJobs: activeJobCount(), // the children's calls in process mode
         crashes: crashSummary.totalCrashes,
         activeSessions: crashSummary.activeSessions,
         crashRate: crashSummary.crashRate,
@@ -277,25 +299,10 @@ async function main(): Promise<void> {
 
 let isShuttingDown = false;
 
-/** Deep extraction and knowledge capture batch turns; run what's pending before exit. */
+/** Memory work a call left running (drain-memory-work.ts); run it before exit. */
 async function drainBatchedMemoryWork(timeoutMs: number): Promise<void> {
   try {
-    const { getDeepExtractionWorker } = await import('../memory/dynamic/index.js');
-    const { drainTurnCaptures } = await import('../memory/knowledge-graph/index.js');
-    const worker = getDeepExtractionWorker();
-    worker.stop(); // flushes batched turns into its queue
-    const deadline = Date.now() + timeoutMs;
-    const extractionIdle = (async (): Promise<void> => {
-      while (Date.now() < deadline) {
-        const { queueDepth, isProcessing } = worker.getHealthStatus();
-        if (queueDepth === 0 && !isProcessing) return;
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, 250);
-        });
-      }
-    })();
-    await Promise.all([extractionIdle, drainTurnCaptures(timeoutMs)]);
-    log('Batched memory work drained', { extractionQueue: worker.getHealthStatus().queueDepth });
+    log('Batched memory work drained', { ...(await drainMemoryWork(timeoutMs)) });
   } catch (error) {
     log('Batched memory drain failed (continuing shutdown)', { error: String(error) });
   }
@@ -307,9 +314,9 @@ const shutdown = async (signal: string): Promise<void> => {
     return;
   }
   isShuttingDown = true;
+  holdEventLoop(); // Node must not end the process before step 7 (exit-worker.ts)
 
-  const { activeJobs } = getJobMetrics();
-  log(`Received ${signal}, shutting down...`, { activeJobs });
+  log(`Received ${signal}, shutting down...`, { activeJobs: activeJobCount() });
 
   // 1. Stop watchdog and health monitor
   try {
@@ -323,22 +330,22 @@ const shutdown = async (signal: string): Promise<void> => {
   // new jobs; the connection stays open so it doesn't re-dispatch the calls still running.
   prepareForShutdown();
 
-  // 3. Keep the calls alive until they end (drain.ts: 30 min, like LiveKit's SDK).
-  const drain = await waitForActiveJobs(() => getJobMetrics().activeJobs, drainTimeoutMs(), {
+  // 3. Keep the calls alive until they end (drain.ts: 30 min, like LiveKit's SDK), in
+  // this process or in the pool's children, then stop the job runner.
+  const drain = await drainJobRunner(drainTimeoutMs(), {
     pollMs: GCE_WORKER_STARTUP_DELAY_MS,
     onWait: (activeJobs, waitedMs) => log('Waiting for active jobs...', { activeJobs, waitedMs }),
   });
   log('Drain finished', { ...drain });
 
-  // 4. Now stop the job runner and timers, and close the connection.
+  // 4. Now stop the timers and close the connection.
   processRuntime.stop();
-  stopJobRunner();
   markLivekitDisconnected();
   stopPingKeepalive();
   stopPendingJobsCleanup();
   closeConnection();
 
-  // 6. Run memory work still waiting for its batch (deep extraction, knowledge capture), max 10s
+  // 6. Run memory work the calls left (deep extraction, knowledge capture: max 10 s; after-call tasks: max 30 s)
   await drainBatchedMemoryWork(10_000);
   // 6b. Send buffered analytics rows (bq-events.ts; nothing when BQ_EVENTS is off), max 5s
   await flushBqEvents(5_000);
@@ -354,8 +361,8 @@ const shutdown = async (signal: string): Promise<void> => {
     setTimeout(resolve, GCE_WORKER_READINESS_DELAY_MS);
   });
 
-  // 7. Exit cleanly
-  process.exit(0);
+  // 7. Exit cleanly, once the logs above are written out
+  await exitAfterFlush(0);
 };
 
 process.on('SIGTERM', () => void shutdown('SIGTERM'));

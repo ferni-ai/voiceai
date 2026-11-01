@@ -57,7 +57,7 @@ async function buildRagContext(input: ContextBuilderInput): Promise<ContextInjec
       const bestResult = knowledgeResults[0];
       getLogger().debug(
         {
-          query: query.slice(0, 50),
+          queryLen: query.length,
           resultCount: knowledgeResults.length,
           topScore: bestResult.score.toFixed(2),
         },

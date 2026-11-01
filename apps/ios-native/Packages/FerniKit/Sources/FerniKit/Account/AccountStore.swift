@@ -12,6 +12,9 @@ public final class AccountStore {
     public enum State: Equatable, Sendable {
         case starting
         case signedIn(AccountUser)
+        /// A real account signed in on this phone before and isn't here now:
+        /// ask them to sign in rather than quietly starting someone new.
+        case needsSignIn
         /// Signing in failed; `message` is safe to show.
         case unavailable(String)
     }
@@ -21,6 +24,9 @@ public final class AccountStore {
     public private(set) var isWorking = false
     /// The last thing worth telling the person, e.g. why Apple sign-in failed.
     public private(set) var notice: String?
+    /// Hands an anonymous account left behind at sign-in to the server to merge
+    /// (`AnonymousMerge`); true when it merged.
+    public var mergeLeftBehind: (@Sendable (LeftBehindAccount) async -> Bool)?
 
     private let backend: (any AuthBackend)?
     /// Sends Apple's authorization code to the server so a deleted account can
@@ -28,6 +34,7 @@ public final class AccountStore {
     /// since the API itself asks this store for tokens.
     public var uploadAppleCode: (@Sendable (String) async throws -> Void)?
     private let retryDelays: [Duration]
+    private let memory: AccountMemory
     private var startTask: Task<Void, Never>?
     private let log = Logger(subsystem: "com.sethdford.ferni", category: "account")
 
@@ -35,9 +42,11 @@ public final class AccountStore {
     public init(
         backend: (any AuthBackend)?,
         uploadAppleCode: (@Sendable (String) async throws -> Void)? = nil,
-        retryDelays: [Duration] = [.seconds(1), .seconds(3)]
+        retryDelays: [Duration] = [.seconds(1), .seconds(3)],
+        memory: AccountMemory = .device
     ) {
         self.backend = backend
+        self.memory = memory
         self.uploadAppleCode = uploadAppleCode
         self.retryDelays = retryDelays
     }
@@ -70,22 +79,10 @@ public final class AccountStore {
         }
     }
 
+    public var needsSignIn: Bool { state == .needsSignIn }
+
     public func signInWithApple(_ credential: AppleCredential) async {
-        guard let backend, !isWorking else { return }
-        isWorking = true
-        defer { isWorking = false }
-        let before = user?.uid
-        do {
-            let signedIn = try await backend.linkOrSignIn(apple: credential)
-            state = .signedIn(signedIn)
-            // Landing on the Apple ID's existing account leaves this phone's earlier
-            // conversations with the account left behind: say so (critic M3).
-            notice = before != nil && before != signedIn.uid ? Self.switchedNotice : nil
-        } catch {
-            log.error("Apple sign-in failed: \(error.localizedDescription, privacy: .public)")
-            notice = "That didn't go through. Your conversations are still here. Try again?"
-            return
-        }
+        guard await signIn(.apple(credential)) else { return }
         // Only after the account holds Apple: the server checks the code's Apple ID
         // against the account's linked Apple provider. Never blocks the sign-in.
         guard let code = credential.authorizationCode, let uploadAppleCode else { return }
@@ -94,6 +91,59 @@ public final class AccountStore {
         } catch {
             log.error("Apple authorization code not stored: \(String(describing: error), privacy: .public)")
         }
+    }
+
+    /// Texts a sign-in code. Returns the verification ID for `signIn(phoneVerification:code:)`,
+    /// or nil with a `notice` saying why not.
+    public func sendPhoneCode(to typed: String) async -> String? {
+        guard let backend, !isWorking else { return nil }
+        guard let number = PhoneNumber.e164(typed) else {
+            notice = SignInError.invalidPhoneNumber.message
+            return nil
+        }
+        isWorking = true
+        defer { isWorking = false }
+        do {
+            let verification = try await backend.sendPhoneCode(to: number)
+            notice = nil
+            return verification
+        } catch {
+            log.error("Phone code not sent: \(error.localizedDescription, privacy: .public)")
+            notice = (error as? SignInError ?? .other).message
+            return nil
+        }
+    }
+
+    public func signIn(phoneVerification: String, code: String) async {
+        await signIn(.phone(verificationID: phoneVerification, code: code.filter(\.isNumber)))
+    }
+
+    /// Links the credential to this account, or moves to the account it
+    /// already has, handing the anonymous one left behind to the server.
+    @discardableResult
+    public func signIn(_ credential: SignInCredential) async -> Bool {
+        guard let backend, !isWorking else { return false }
+        isWorking = true
+        defer { isWorking = false }
+        let before = user?.uid
+        let result: SignInResult
+        do {
+            result = try await backend.linkOrSignIn(credential)
+        } catch {
+            log.error("Sign-in failed: \(error.localizedDescription, privacy: .public)")
+            notice = (error as? SignInError ?? .other).message
+            return false
+        }
+        state = .signedIn(result.user)
+        remember(result.user)
+        var merged = false
+        if let leftBehind = result.leftBehind, let mergeLeftBehind {
+            merged = await mergeLeftBehind(leftBehind)
+        }
+        // Landing on an account they already had: say so, and whether this
+        // phone's conversations came along (critic M3).
+        notice = before == nil || before == result.user.uid ? nil : merged ? Self.welcomeBackNotice : Self.switchedNotice
+        return true
     }
 
     /// Sign out, then carry on as a new anonymous account on this device.
@@ -113,7 +163,10 @@ public final class AccountStore {
 
     public func clearNotice() { notice = nil }
 
-    static let switchedNotice = "This Apple ID already had a Ferni account, so you're on that one now. What you shared before signing in stays with the earlier account."
+    /// Moved to their account without the earlier calls (merge refused, or the
+    /// route not there yet): calm, nothing to fix.
+    static let switchedNotice = "You're signed in. Earlier calls on this phone stay separate."
+    static let welcomeBackNotice = "Welcome back. What you said on this phone is with your account now."
 
     /// The server API, asking this account for its ID token on every call.
     public func api(baseURL: URL) -> FerniAPI {
@@ -127,6 +180,11 @@ public final class AccountStore {
         }
         if let existing = await backend.currentUser() {
             state = .signedIn(existing)
+            remember(existing)
+            return
+        }
+        if memory.get() {
+            state = .needsSignIn
             return
         }
         state = .starting
@@ -141,6 +199,12 @@ public final class AccountStore {
             }
         }
         state = .unavailable("Ferni can't reach your account right now. Check your connection and try again.")
+    }
+}
+
+extension AccountStore {
+    fileprivate func remember(_ user: AccountUser) {
+        if !user.isAnonymous { memory.set(true) }
     }
 }
 

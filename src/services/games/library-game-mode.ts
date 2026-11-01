@@ -92,7 +92,7 @@ export async function checkLibraryAvailability(
   if (!library) {
     return {
       available: false,
-      reason: 'Spotify not connected. Connect Spotify to play from your library!',
+      reason: "Playing from your own Spotify library isn't available.",
       playableCount: 0,
       totalCount: 0,
       percentage: 0,

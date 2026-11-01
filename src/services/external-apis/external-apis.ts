@@ -1,7 +1,8 @@
 /**
  * External APIs
  *
- * Real-time data integrations for stocks, weather, history, and more.
+ * Real-time data integrations for stocks, history, and more. Weather lives in
+ * tools/domains/information/weather.ts.
  * All APIs have graceful fallbacks that stay in-character.
  *
  * Now with self-healing resilience:
@@ -16,7 +17,6 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   getAlphaVantageClient,
-  getGoogleApisClient,
   getWikipediaClient,
   getYahooFinanceClient,
 } from '../self-healing/index.js';
@@ -207,110 +207,6 @@ function getMarketFallback(): string {
 }
 
 // ============================================================================
-// WEATHER DATA (Google Weather API)
-// ============================================================================
-
-// Types for Google APIs
-interface GeocodingResponse {
-  status: string;
-  results?: Array<{
-    geometry?: { location?: { lat: number; lng: number } };
-    formatted_address?: string;
-  }>;
-}
-
-interface WeatherResponse {
-  temperature?: { value?: number };
-  humidity?: { value?: number };
-  weatherCondition?: { description?: { text?: string } };
-  feelsLikeTemperature?: { value?: number };
-}
-
-/**
- * Fetch weather for a location using Google Weather API
- * Uses GOOGLE_API_KEY (same as Gemini) - free during preview
- * Now with self-healing: circuit breaker + automatic retry
- */
-export async function getWeather(location: string): Promise<string> {
-  const apiKey = process.env['GOOGLE_API_KEY'];
-
-  if (!apiKey) {
-    logger.warn('No Google API key - using weather fallback');
-    return getWeatherFallback(location);
-  }
-
-  const googleClient = getGoogleApisClient();
-
-  // Check circuit health
-  if (!googleClient.isHealthy()) {
-    logger.debug('Google APIs circuit is open, using weather fallback');
-    return getWeatherFallback(location);
-  }
-
-  // Step 1: Geocode the location using Google Geocoding API
-  const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${apiKey}`;
-  const { data: geoData, error: geoError } = await googleClient.get<GeocodingResponse>(geoUrl);
-
-  if (geoError || geoData?.status !== 'OK' || !geoData?.results?.length) {
-    if (geoError) {
-      logger.warn({ error: geoError.message }, 'Geocoding request failed');
-      return getWeatherFallback(location);
-    }
-    return `I couldn't find weather data for "${location}". Could you be more specific about the location?`;
-  }
-
-  const firstResult = geoData.results[0];
-  const coords = firstResult?.geometry?.location;
-  if (!coords) {
-    return `I couldn't find weather data for "${location}". Could you be more specific about the location?`;
-  }
-
-  const locationName = firstResult.formatted_address || location;
-
-  // Step 2: Get weather from Google Weather API
-  const weatherUrl = `https://weather.googleapis.com/v1/currentConditions:lookup?key=${apiKey}&location.latitude=${coords.lat}&location.longitude=${coords.lng}&unitsSystem=IMPERIAL`;
-  const { data: weatherData, error: weatherError } =
-    await googleClient.get<WeatherResponse>(weatherUrl);
-
-  if (weatherError) {
-    logger.warn({ error: weatherError.message }, 'Google Weather API request failed');
-    return getWeatherFallback(location);
-  }
-
-  const temp = weatherData?.temperature?.value;
-  const humidity = weatherData?.humidity?.value;
-  const description = weatherData?.weatherCondition?.description?.text;
-  const feelsLike = weatherData?.feelsLikeTemperature?.value;
-
-  if (temp !== undefined) {
-    // Extract just the city/state from the full address for cleaner output
-    const shortLocation = locationName.split(',').slice(0, 2).join(',').trim();
-    let response = `It's ${Math.round(temp)}°F in ${shortLocation}`;
-
-    if (description) {
-      response += `, ${description.toLowerCase()}`;
-    }
-    response += '.';
-
-    if (feelsLike !== undefined && Math.abs(feelsLike - temp) >= 5) {
-      response += ` Feels like ${Math.round(feelsLike)}°F.`;
-    }
-
-    if (humidity !== undefined && humidity > 70) {
-      response += ` Humidity's at ${Math.round(humidity)}% - a bit muggy.`;
-    }
-
-    return response;
-  }
-
-  return getWeatherFallback(location);
-}
-
-function getWeatherFallback(location: string): string {
-  return `I don't have weather data for ${location} at the moment. You might want to check a weather app for the latest.`;
-}
-
-// ============================================================================
 // HISTORICAL EVENTS
 // ============================================================================
 
@@ -386,4 +282,4 @@ export async function getHistoricalEvent(): Promise<string | null> {
 // EXPORTS
 // ============================================================================
 
-export { getMarketFallback, getStockFallback, getWeatherFallback };
+export { getMarketFallback, getStockFallback };

@@ -269,6 +269,26 @@ describe('UserData Proxy', () => {
       expect(keys).toContain('name');
       expect(keys).toContain('services');
     });
+
+    // Production clears per-turn state with delete (roundtable speakingAs, speculative
+    // injections, personality signals); before the trap each delete left the value behind.
+    it('delete removes a direct field', () => {
+      userData.speakingAs = 'maya';
+      expect(delete userData.speakingAs).toBe(true);
+      expect(userData.speakingAs).toBeUndefined();
+      expect('speakingAs' in userData).toBe(false);
+      expect(Object.keys(userData)).not.toContain('speakingAs');
+    });
+
+    it('delete leaves mapped fields and other direct fields alone', () => {
+      userData.speculativeInjections = ['stale'];
+      delete userData.speculativeInjections;
+      delete userData.name;
+      expect(userData.name).toBe('Test User');
+      expect(userData.isFirstConversation).toBe(true);
+      userData.speculativeInjections = ['fresh'];
+      expect(userData.speculativeInjections).toEqual(['fresh']);
+    });
   });
 
   describe('Bidirectional Sync', () => {

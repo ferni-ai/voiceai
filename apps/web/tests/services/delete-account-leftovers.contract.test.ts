@@ -28,6 +28,9 @@ vi.mock('../../../../src/services/data-export.js', () => ({
 vi.mock('../../../../src/services/identity/firebase-auth.js', () => ({
   deleteFirebaseUser: vi.fn(async () => true),
   getFirebaseUser: vi.fn(),
+  // A live account whose sign-in switches off before the erasure (erasure-sign-in.ts)
+  getFirebaseUserOrThrow: vi.fn(async (uid: string) => ({ uid, disabled: false })),
+  setFirebaseUserDisabled: vi.fn(async () => 'done' as const),
 }));
 vi.mock('../../../../src/services/security-events.js', () => ({
   recordSecurityEvent: vi.fn(async () => undefined),

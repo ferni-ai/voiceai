@@ -15,7 +15,7 @@
  * least one must open with this run's keys. It refuses otherwise, and with no
  * key at all (encryptData would write plain JSON).
  *
- * Set the env vars the servers have. A re-seal run after OAUTH_ENCRYPTION_KEY
+ * Set the env vars the servers have. A re-seal run after TOKEN_SEALING_KEY (or OAUTH_ENCRYPTION_KEY)
  * is introduced needs BOTH: the new key to seal, LOG_HASH_SECRET to open the
  * legacy envelopes it re-seals (without it they count as unopenable).
  *

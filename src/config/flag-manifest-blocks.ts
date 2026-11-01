@@ -23,7 +23,6 @@ export const FLAGS_DISABLE_TO_EOT = {
   DISABLE_VAD: { default: 'off', owner: 'voice', kind: 'config' },
   DISPUTE_DENIED_FACTS: { default: 'off', owner: 'memory', kind: 'experiment' },
   // Ferni rests calm and lifts on bright words (director/emotion-lift.ts)
-  EMAIL_PROVIDER: { default: 'sendgrid', owner: 'platform', kind: 'config' },
   EMOTION_LIFT: { default: 'off', owner: 'voice', kind: 'experiment' },
   ENABLE_EMBEDDING_WORKER: { default: 'off', owner: 'platform', kind: 'experiment' },
   ENABLE_INTELLIGENT_ROUTING: { default: 'on', owner: 'tools', kind: 'kill-switch' },
@@ -85,7 +84,6 @@ export const FLAGS_STYLE_TO_TOOL = {
   // ("on the 30th", "in two weeks") instead of word lists (understanding/temporal, #2452)
   TEMPORAL_RESOLVER: { default: 'off', owner: 'voice', kind: 'experiment' },
   THEORY_OF_MIND: { default: 'off', owner: 'memory', kind: 'experiment' },
-  THINK_ALOUD: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a call or text read back and waiting for the owner's yes is kept as a follow-up (outreach/confirm-thread.ts)
   THREADS_PENDING_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
   TOLD_THIS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },

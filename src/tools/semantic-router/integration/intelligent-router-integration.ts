@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { isGeminiConfigured } from '../../../config/gemini-config.js';
 import { errorFields } from '../../../utils/error-class.js';
 import type { IntelligentRouterOrchestrator } from '../advanced/intelligent/index.js';
 import {
@@ -101,15 +102,14 @@ export async function initializeIntelligentRouter(
       }>,
     }));
 
-    // Set up LLM provider - prefer GEMINI_API_KEY for LLM, fallback to GOOGLE_API_KEY
-    let llmProvider;
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-    if (config.useGemini && geminiKey) {
-      llmProvider = createGeminiProvider(geminiKey);
+    let llmProvider; // Gemini on Vertex through the shared client, else OpenAI
+    const gemini = isGeminiConfigured();
+    if (config.useGemini && gemini) {
+      llmProvider = createGeminiProvider();
     } else if (config.useOpenAI && process.env.OPENAI_API_KEY) {
       llmProvider = createOpenAIProvider(process.env.OPENAI_API_KEY);
-    } else if (geminiKey) {
-      llmProvider = createGeminiProvider(geminiKey);
+    } else if (gemini) {
+      llmProvider = createGeminiProvider();
     }
 
     // Set up bandit persistence

@@ -10,6 +10,7 @@
  * ALL marketplace operations MUST go through this layer.
  */
 
+import { createHmac } from 'node:crypto';
 import { getLogger } from '../../utils/safe-logger.js';
 import { checkOutboundUrl } from '../../utils/outbound-url-guard.js';
 import { registerInterval } from '../../utils/interval-manager.js';
@@ -296,30 +297,29 @@ export function isValidExternalUrl(url: string): boolean {
 // ============================================================================
 
 /**
- * Create an anonymized user token for external services
- * This prevents external tools from tracking users across different tools
+ * MARKETPLACE_HMAC_SECRET is unset, so no pseudonym can be made. Thrown instead
+ * of falling back to a key committed to this public repo, with which anyone
+ * could turn a tool's user token back into a Ferni user id.
+ */
+class MarketplaceHmacUnavailableError extends Error {
+  readonly code = 'MARKETPLACE_HMAC_UNAVAILABLE';
+  constructor() {
+    super('MARKETPLACE_HMAC_SECRET is not set; refusing to sign a user token');
+    this.name = 'MarketplaceHmacUnavailableError';
+  }
+}
+
+/**
+ * Create an anonymized user token for external services: HMAC-SHA256 of
+ * userId + toolId, so each tool sees a different, unlinkable id. Throws
+ * MarketplaceHmacUnavailableError when the secret is unset, so the tool call
+ * is refused before anything leaves the process.
  */
 export function anonymizeUserId(userId: UserId, toolId: MarketplaceId): string {
-  // Create HMAC of userId + toolId so each tool sees a different ID
-  const secret = process.env.MARKETPLACE_HMAC_SECRET || 'dev-secret-change-in-prod';
-  const data = `${userId}:${toolId}`;
-
-  // Use Web Crypto API for HMAC
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(secret);
-  const messageData = encoder.encode(data);
-
-  // For now, use a simple hash (in production, use proper HMAC)
-  // This prevents the tool from correlating users across different tools
-  let hash = 0;
-  const combined = secret + data;
-  for (let i = 0; i < combined.length; i++) {
-    const char = combined.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-
-  return `anon_${Math.abs(hash).toString(36)}`;
+  const secret = process.env.MARKETPLACE_HMAC_SECRET;
+  if (!secret) throw new MarketplaceHmacUnavailableError();
+  const digest = createHmac('sha256', secret).update(`${userId}:${toolId}`).digest('base64url');
+  return `anon_${digest.slice(0, 32)}`;
 }
 
 // ============================================================================

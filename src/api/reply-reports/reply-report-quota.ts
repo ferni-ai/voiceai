@@ -22,9 +22,10 @@ export async function takeReplyReportQuota(
   db: Firestore,
   uid: string,
   now: number = Date.now(),
-  limit: number = REPLY_REPORTS_PER_DAY
+  limit: number = REPLY_REPORTS_PER_DAY,
+  collection: string = QUOTA_COLLECTION // call_felt_off_quota shares this logic
 ): Promise<boolean> {
-  const ref = db.collection(QUOTA_COLLECTION).doc(uid);
+  const ref = db.collection(collection).doc(uid);
   const day = utcDay(now);
   return db.runTransaction(async (tx) => {
     const data = (await tx.get(ref)).data();

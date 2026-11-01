@@ -407,7 +407,7 @@ export async function hybridSearch(
   log.debug(
     {
       userId,
-      query: query.slice(0, 50),
+      queryLen: query.length,
       results: results.length,
       sources: Array.from(rankedLists.keys()),
       bm25Ms: metrics.bm25LatencyMs,

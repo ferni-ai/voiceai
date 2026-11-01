@@ -261,7 +261,7 @@ const insideJokePolicy: EntityIndexingPolicy = {
     maxPerUser: 50,
   },
   contentFields: ['joke', 'context', 'sharedMoment'],
-  ttlDays: 0,
+  ttlDays: 365, // enforced in data-layer/index-expiry.ts (a year, #2971)
 };
 
 const smallWinPolicy: EntityIndexingPolicy = {

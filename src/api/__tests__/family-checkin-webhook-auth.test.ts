@@ -36,7 +36,10 @@ import { handleStaticRoutes } from '../../servers/api/static.js';
 import { handleFamilyCheckinWebhookRoutes } from '../family-checkin-webhook-routes.js';
 
 const TOKEN = 'test-twilio-auth-token';
-const HOST = 'api.ferni.example';
+/** Behind Firebase Hosting the request carries the run.app Host, not the public one. */
+const HOST = 'john-bogle-ui-test.a.run.app';
+/** The public origin the callback URL was built on (WEBHOOK_BASE_URL), which Twilio signs. */
+const PUBLIC = 'https://checkin.ferni.example';
 
 function sign(url: string, params: Record<string, string>): string {
   const data = Object.keys(params)
@@ -123,9 +126,10 @@ describe('Twilio callbacks check the signature whenever a token is configured', 
     it(`/${route}: a valid Twilio signature is accepted`, async () => {
       vi.stubEnv('NODE_ENV', 'development');
       vi.stubEnv('TWILIO_AUTH_TOKEN', TOKEN);
+      vi.stubEnv('WEBHOOK_BASE_URL', PUBLIC);
       const signed = {
         ...formHeaders,
-        'x-twilio-signature': sign(`https://${HOST}${path}`, fields),
+        'x-twilio-signature': sign(`${PUBLIC}${path}`, fields),
       };
       expect((await post(path, form, signed)).status).toBe(200);
       expect(family.getCallRecordById).toHaveBeenCalledTimes(1);
@@ -134,9 +138,10 @@ describe('Twilio callbacks check the signature whenever a token is configured', 
     it(`/${route}: production with no token fails closed`, async () => {
       vi.stubEnv('NODE_ENV', 'production');
       vi.stubEnv('TWILIO_AUTH_TOKEN', '');
+      vi.stubEnv('WEBHOOK_BASE_URL', PUBLIC);
       const signed = {
         ...formHeaders,
-        'x-twilio-signature': sign(`https://${HOST}${path}`, fields),
+        'x-twilio-signature': sign(`${PUBLIC}${path}`, fields),
       };
       expect((await post(path, form, signed)).status).toBe(403);
       expect(family.getCallRecordById).not.toHaveBeenCalled();

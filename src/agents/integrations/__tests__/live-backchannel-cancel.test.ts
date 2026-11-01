@@ -19,7 +19,6 @@ function frame(loud: boolean, t: number): AudioFrame {
 }
 
 function setup(cancelClip?: () => boolean) {
-  vi.stubEnv('BACKCHANNELS', 'on');
   vi.useFakeTimers({ now: 1_000_000 });
   vi.spyOn(Math, 'random').mockReturnValue(0);
   const played: Array<{ text: string; pauseStartedAt?: number; at: number }> = [];

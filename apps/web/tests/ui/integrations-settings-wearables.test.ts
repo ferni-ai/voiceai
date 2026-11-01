@@ -66,7 +66,6 @@ describe('IntegrationsSettingsUI wearables', () => {
       { provider: 'apple_health', configured: true, linked: false },
       { provider: 'oura', configured: true, linked: false },
       { provider: 'whoop', configured: false, linked: false },
-      { provider: 'fitbit', configured: false, linked: false },
       { provider: 'garmin', configured: false, linked: false },
     ]);
     const { getIntegrationsSettingsUI } = await import('../../src/ui/integrations-settings.ui.js');
@@ -82,7 +81,6 @@ describe('IntegrationsSettingsUI wearables', () => {
     ].map((el) => el.textContent?.replace(/\s+/g, ' ').trim());
     expect(disabled).toEqual([
       'WHOOP Not available yet',
-      'Fitbit Not available yet',
       'Garmin Not available yet',
     ]);
     const text = document.body.textContent ?? '';

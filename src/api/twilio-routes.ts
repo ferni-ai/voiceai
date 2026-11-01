@@ -12,7 +12,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import { validateTwilioSignature } from '../services/outreach/webhooks/twilio-webhooks.js';
+import { isSignedByTwilio } from './twilio-callback-signature.js';
 import {
   getTwilioStreamBridge,
   generateStreamTwiml,
@@ -33,8 +33,8 @@ import {
   createPhoneBridgeParticipant,
   cleanupBridgeSession,
 } from '../services/voice/livekit-phone-bridge.js';
-import { startOutboundAgent } from '../services/voice/outbound-call-agent.js';
 import { onBehalfDispatchFromStream } from '../services/outreach/on-behalf-dispatch.js';
+import { endCallAfterFailedDispatch } from '../services/voice/dispatch-failed-call.js';
 
 const log = createLogger({ module: 'twilio-routes' });
 
@@ -329,32 +329,8 @@ function registerBridgeHandlers(bridge: TwilioStreamBridge): void {
 
           log.info({ roomName, callSid, agentName }, '✅ Voice agent dispatched for outbound call');
         } catch (error) {
-          log.error(
-            { error: String(error), roomName },
-            'Failed to dispatch agent, falling back to local'
-          );
-
-          // Fall back to local agent if dispatch fails (e.g., no workers available)
-          try {
-            startOutboundAgent(
-              {
-                roomName,
-                callId: params.callId || roomName,
-                recipientName: params.recipientName || 'Friend',
-                purpose: params.purpose || 'Check in',
-                objective: params.objective || 'Have a conversation',
-                callType: (params.callType as 'personal' | 'business' | 'emergency') || 'personal',
-                userId: params.userId,
-                userName: params.userName,
-              },
-              bridge,
-              callSid
-            ).catch((err: unknown) => log.error({ error: String(err) }, 'Local agent error'));
-
-            log.info({ roomName, callSid }, '⚠️ Using local fallback agent');
-          } catch (fallbackError) {
-            log.error({ error: String(fallbackError), roomName }, 'Both agent strategies failed');
-          }
+          log.error({ error: String(error), roomName, callSid }, 'Failed to dispatch agent');
+          await endCallAfterFailedDispatch(callSid);
         }
       })();
     }
@@ -537,27 +513,12 @@ function validateTwilioRequest(
     return true;
   }
 
-  const signature = req.headers['x-twilio-signature'] as string | undefined;
-  if (!signature) {
-    log.warn({ url: req.url }, 'Missing Twilio signature header');
-    res.writeHead(403, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Missing signature' }));
-    return false;
-  }
-
-  // Reconstruct the full URL that Twilio signed
-  const protocol = req.headers['x-forwarded-proto'] || 'https';
-  const host = req.headers.host || '';
-  const fullUrl = `${protocol}://${host}${req.url}`;
-
-  const isValid = validateTwilioSignature(signature, fullUrl, body);
-  if (!isValid) {
-    log.warn({ url: req.url }, 'Invalid Twilio signature');
+  if (!isSignedByTwilio(req, req.url ?? '', body)) {
+    log.warn({ url: req.url }, 'Missing or invalid Twilio signature');
     res.writeHead(403, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Invalid signature' }));
     return false;
   }
-
   return true;
 }
 

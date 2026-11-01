@@ -17,6 +17,7 @@
  *
  * @module memory/recall/people
  */
+import { relationText, relationWordIn } from '../domain/person-key.js';
 import type { RecallFact } from './session-recall.js';
 
 export interface Person {
@@ -133,13 +134,11 @@ const NAME = /^(?:(?:Dr|Mr|Mrs|Ms)\.? )?[A-Z][\p{L}'’-]+(?: [A-Z][\p{L}'’-]+
 const OTHERS = /\b[A-Z][\p{L}-]+['’]s\b/u;
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const words = (s: string) => s.replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+const words = relationText;
 
-/** The first relation word in `text`, matched as whole words. */
+/** The first relation word in `text`, matched as whole words (every word is in person-key's map). */
 function relationIn(text: string): string | undefined {
-  return RELATIONS.find((r) =>
-    new RegExp(`(?<![\\p{L}-])${escape(r)}(?![\\p{L}-])`, 'iu').test(text)
-  );
+  return relationWordIn(text, RELATIONS);
 }
 
 /** What this fact says the person `entity` is to the caller, if it says so clearly. */

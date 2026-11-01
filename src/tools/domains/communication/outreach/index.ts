@@ -54,6 +54,9 @@ export {
   type MessageCraftingContext,
 } from './message-crafting.js';
 
+// The read-back still waiting on the caller's yes (agents/multi-agent/handoff-desk.ts)
+export { pendingFor } from './outreach-confirm.js';
+
 // Combined tool definitions for easy registration
 import { getUnifiedOutreachDefinition } from './unified-outreach.js';
 import { getBatchOutreachDefinitions } from './batch-outreach.js';

@@ -6,7 +6,9 @@
  * 41-symbol General American set (docs: capability-guides/phonemes), the
  * stress mark before the stressed syllable's first consonant, one primary
  * stress an entry. An entry may be several <<...>> words to stop Sonic gliding
- * across a syllable break (Nayan); only one of them carries ˈ. There is no ʌ:
+ * across a syllable break, but at the start of a sentence Sonic says them as
+ * two words (Nayan's two-word entry was heard as "Nah, Jan"); only one of them
+ * carries ˈ. There is no ʌ:
  * a stressed ə is "uh". Sounds-like spellings stay lowercase: Sonic spelled
  * capitalised syllables out as letters ("NUH-yun" as "N-U-H yun", "HOR-hay"
  * as "H-O-R hay").
@@ -14,8 +16,8 @@
  * How Cartesia matches (probed 2026-10-20 with a scratch dictionary):
  * - whole words only ("Isla" did not touch "Island"), so plurals need their
  *   own entry;
- * - a possessive matches its base word ("Isla's", with ' or ’), so there are
- *   no possessive entries;
+ * - a possessive matches its base word ("Isla's", with ' or ’), so possessives
+ *   need no entry of their own (Nayan's has one, with ' and ’, measured below);
  * - case_sensitive with a capitalised key matches that spelling only.
  *
  * Beyond the team's own names, an entry is here only if it beat no entry (or
@@ -46,10 +48,19 @@ export const TEAM_NAME_PRONUNCIATIONS: Readonly<Record<string, string>> = {
   Chen: '<<ˈ|tʃ|ɛ|n>>',
   Peter: '<<ˈ|p|i|t|ɝ>>',
   // NAH-yahn, /ˈnɑ.jɑn/ (the owner, 2026-10-20). As one IPA word Sonic glides
-  // ɑ+j into "aɪ" (NIGH-un, 1 of 24 takes right); split into two words, with
-  // the second unstressed, it says n ɑ j ɑ n in 36 of 36 takes on three voices,
-  // possessive included, with no added pause (lexicon-free phone recogniser).
-  Nayan: '<<ˈ|n|ɑ>> <<j|ɑ|n>>',
+  // ɑ+j into "aɪ" (NIGH-un; with or without a ˌ before j, whisper heard it
+  // right in 0 of 48 takes: "Nyon", "an eye on", 2026-10-29). The
+  // two-word IPA entry (<<ˈ|n|ɑ>> <<j|ɑ|n>>) is right mid-sentence but opens a
+  // sentence as "Nah, Jan" (0 of 6 at the start, 0 of 6 for "Nayan's ...", on
+  // ink-2 and whisper). The one-word sounds-like is heard as "Nahyan" at the
+  // start 6 of 6 and the end 6 of 6 on both, mid-sentence 5 of 6; "Nayan's"
+  // from the base word was 1 of 6 on both, 3 of 6 with its own entry (6 takes a
+  // position, Ferni's and Nayan's voices; evidence:
+  // ~/Documents/voiceai-evidence/speech-names-fix-2026-10-29/).
+  Nayan: 'nahyahn',
+  "Nayan's": 'nahyahnz',
+  // The same possessive with a curly apostrophe (not round-tripped; same entry).
+  'Nayan’s': 'nahyahnz',
   Patel: '<<p|ə|ˈ|t|ɛ|l>>',
   // The legends
   Henry: '<<ˈ|h|ɛ|n|ɹ|i>>',

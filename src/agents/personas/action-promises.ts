@@ -16,8 +16,11 @@
  *
  * @module agents/personas/action-promises
  */
+import { flagOn, type Env } from '../../config/env-flag.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { kindsOfTool, type ActionKind } from './action-claims.js';
+import { lookedUpLately } from './announced-check.js';
+import type { ClaimKind } from './honest-line.js';
 
 const KIN =
   '(?:mom|mum|mother|dad|father|sister|brother|grandma|grandmother|gran|grandpa|grandfather|aunt|auntie|uncle|cousin|wife|husband|partner|son|daughter|kids?|friend|boss|doctor|dentist|landlord|teacher|neighbou?r|family)';
@@ -58,28 +61,68 @@ const normalize = (text: string): string =>
     .replace(/\s+/g, ' ')
     .trim();
 
+/**
+ * GROUNDED_CLAIMS (#3006, prod 2026-10-28): "I'll make sure to give them a call" promises a call,
+ * and "I'll let you know as soon as I've reached them" says one is under way. Only with someone in
+ * the caller's world after the verb, a pronoun or a relation and never a name ("talked to Maya"
+ * may be a teammate), so "once I've reached the end of the list" or "spoken with the team" stand.
+ */
+const SURE = "\\b(?:i'll|i will|let me) make sure (?:to|i)";
+const SURE_PROMISES: Record<'call' | 'send', RegExp> = {
+  call: new RegExp(`${SURE} (?:(?:call|ring|phone) ${WHO}|give ${WHO} a (?:ring|call|buzz))`),
+  send: new RegExp(`${SURE} (?:text|message|email) ${WHO}`),
+};
+const REPORT_BACK = new RegExp(
+  `\\b(?:let you know|get back to you|report back|update you) (?:as soon as|when|once|the moment|if|after) i(?:'ve| have) (?:reached|got(?:ten)? (?:a ?hold|ahold) of|got through to|heard back from|talked to|spoken (?:to|with)) ${WHO}`
+);
+/** Lower case and straight quotes, but names left as they are (they are not read as "her" here). */
+const plainWords = (text: string): string =>
+  normalize(
+    text.replace(
+      /([a-z,;:]\s+)([A-Z][a-z]+)/g,
+      (_, gap: string, w: string) => gap + w.toLowerCase()
+    )
+  );
+
 /** The kind of action a sentence promises Ferni will do now (a call or a message), or null. */
-export function promisedAction(sentence: string): ActionKind | null {
+export function promisedAction(sentence: string, env: Env = process.env): ActionKind | null {
   const text = normalize(sentence);
   if (NOT_A_PROMISE.test(text) || NOT_AN_ACTION.test(text)) return null;
-  return (['call', 'send'] as const).find((k) => PROMISES[k].some((re) => re.test(text))) ?? null;
+  const kind = (['call', 'send'] as const).find((k) => PROMISES[k].some((re) => re.test(text)));
+  if (kind || !flagOn('GROUNDED_CLAIMS', env)) return kind ?? null;
+  const words = plainWords(sentence);
+  return (['call', 'send'] as const).find((k) => SURE_PROMISES[k].test(words)) ?? null;
+}
+
+/** GROUNDED_CLAIMS: "I'll let you know once I've reached her" claims a call under way, or null. */
+export function reportsBack(sentence: string, env: Env = process.env): 'call' | null {
+  if (!flagOn('GROUNDED_CLAIMS', env)) return null;
+  const words = plainWords(sentence);
+  return REPORT_BACK.test(words) && !NOT_A_PROMISE.test(words) ? 'call' : null;
 }
 
 const PROMISE_OF =
   /\b(?:I'll|I will|let me|I'm going to|I'm gonna)\s+(?:go ahead and |just |quickly )?([^.!?,;]+?)(?:\s+(?:then|now|right now|right away|straight away|for you|real quick|in a (?:sec|second|minute|moment)))*\s*(?:[.!,;]|$)/i;
 
-/** The promise asked as an offer instead: "I'll text him then." is "Want me to text him?" */
-export function offerFor(sentence: string): string | undefined {
+/**
+ * The promise asked as an offer instead: "I'll text him then." is "Want me to text him?". With
+ * `grounded`, "I'll make sure to give them a call." is "Want me to give them a call?".
+ */
+export function offerFor(sentence: string, grounded = false): string | undefined {
   const m = PROMISE_OF.exec(sentence.replace(/[‘’]/g, "'"));
-  return m ? `Want me to ${m[1].trim()}?` : undefined;
+  if (!m) return undefined;
+  const what = grounded ? m[1].replace(/^make sure (?:to|I) /i, '') : m[1];
+  return `Want me to ${what.trim()}?`;
 }
 
 /**
  * The kinds of action a tool ran for since the caller last spoke: the reply
- * after a tool's result may say "I'll send that now" of what already ran.
+ * after a tool's result may say "I'll send that now" of what already ran. A
+ * look-up tool that ran lately counts as 'lookup', so "I checked" may stand
+ * (announced-check.ts lookedUpLately).
  */
-export function kindsRunThisTurn(chatCtx: { items: readonly unknown[] }): Set<ActionKind> {
-  const kinds = new Set<ActionKind>();
+export function kindsRunThisTurn(chatCtx: { items: readonly unknown[] }): Set<ClaimKind> {
+  const kinds = new Set<ClaimKind>();
   const items = chatCtx.items as ReadonlyArray<{
     type?: string;
     role?: string;
@@ -94,5 +137,6 @@ export function kindsRunThisTurn(chatCtx: { items: readonly unknown[] }): Set<Ac
       for (const kind of kindsOfTool(item.name ?? '')) kinds.add(kind);
     }
   }
+  if (lookedUpLately(chatCtx)) kinds.add('lookup');
   return kinds;
 }

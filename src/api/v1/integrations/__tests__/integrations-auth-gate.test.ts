@@ -88,23 +88,23 @@ describe('integrations auth gate', () => {
   });
 
   it('builds the OAuth start URL for the signed-in caller (was 500)', async () => {
-    const res = await call('GET', '/biometrics/connect/oura', 'tok-A');
+    const res = await call('GET', '/biometrics/connect/whoop', 'tok-A');
     expect(res.status).toBe(200);
     expect(biometrics.getAuthorizationUrl).toHaveBeenCalledWith(
-      'oura',
+      'whoop',
       'uid-A',
       expect.stringMatching(/^[A-Za-z0-9_-]{43}$/)
     );
   });
 
   it('refuses an unauthenticated OAuth start with 401 (was 500)', async () => {
-    const res = await call('GET', '/biometrics/connect/oura');
+    const res = await call('GET', '/biometrics/connect/whoop');
     expect(res.status).toBe(401);
     expect(biometrics.getAuthorizationUrl).not.toHaveBeenCalled();
   });
 
   it('still lets the provider redirect reach the callback without a token', async () => {
-    const res = await call('GET', '/biometrics/callback/oura');
+    const res = await call('GET', '/biometrics/callback/whoop');
     expect(res.status).toBe(400); // reached the handler: missing code/state, not 401
     expect(await res.json()).toEqual({ error: 'Missing code or state parameter' });
   });

@@ -22,6 +22,7 @@
  * - Uses unified-result-capture.ts for storage/retrieval
  */
 
+import { flagOn } from '../../../config/env-flag.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { CALLER_TEXT_GUARD, reportedFromCall } from '../../../services/outreach/caller-text.js';
 import { voicemailWords } from '../../../services/outreach/voicemail-outcome.js';
@@ -218,9 +219,10 @@ export async function buildPendingCallResultsContext(userId: string): Promise<st
   );
   lines.push('');
 
-  // Mark as delivered (fire and forget - don't block on this)
+  // Delivered as built (fire and forget) only with CALL_REPORT_REACHES_YOU off; on, once a reply
+  // carries it (call-report.ts).
   const callIds = results.map((r) => r.callId);
-  void markCallResultsDelivered(userId, callIds);
+  if (!flagOn('CALL_REPORT_REACHES_YOU')) void markCallResultsDelivered(userId, callIds);
 
   return lines.join('\n');
 }

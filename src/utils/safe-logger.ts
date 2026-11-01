@@ -33,6 +33,7 @@ import pino from 'pino';
 
 import { redactLogDestination, redactPinoLogger } from './log-redaction.js';
 import { redactErrorValue } from './error-text.js';
+import { redactUrlField } from './url-redaction.js';
 
 /**
  * Console-based fallback logger that matches LiveKit's Logger interface
@@ -118,7 +119,8 @@ function sanitizeForLog(value: unknown, depth = 0, seen = new WeakSet<object>())
 
   const result: Record<string, unknown> = {};
   for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
-    result[key] = sanitizeForLog(nested, depth + 1, seen);
+    // url / endpoint / *Url fields: an API key or token in the query string never reaches a log
+    result[key] = sanitizeForLog(redactUrlField(key, nested), depth + 1, seen);
   }
   return result;
 }
@@ -264,6 +266,21 @@ let droppedLines = 0;
 /** How many log lines were dropped because writing them failed (see lazyLogger). */
 export function droppedLogLines(): number {
   return droppedLines;
+}
+
+/**
+ * Writes out what the stderr sink still holds (it writes off the event loop). For a process
+ * about to exit on purpose; resolves even if the flush fails, after saying so on stderr.
+ */
+export function flushLogs(): Promise<void> {
+  const sink = appSink;
+  if (!sink) return Promise.resolve();
+  return new Promise((resolve) => {
+    sink.flush((error) => {
+      if (error) process.stderr.write(`log flush failed: ${String(error)}\n`);
+      resolve();
+    });
+  });
 }
 
 /** Test helper: start the dropped-line count again. */

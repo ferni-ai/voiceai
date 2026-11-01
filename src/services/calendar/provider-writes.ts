@@ -1,12 +1,18 @@
 /**
  * Writes to the calendar a caller has connected (#1749). Google sign-in keeps
  * OAuth tokens; Outlook and Apple keep a provider record. Each write reports
- * whether the provider took it, and never throws, so a reply can be honest.
+ * whether the provider took it, and never throws (an Outlook create under OUTLOOK_CONNECT
+ * throws OutlookUnavailableError for the tool gate to word), so a reply can be honest.
  *
  * @module services/calendar/provider-writes
  */
 import { isCalendarConfigured } from '../identity/google-calendar-oauth.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  OutlookUnavailableError,
+  outlookCreate,
+  outlookLinkedOr,
+} from './providers/outlook-state.js';
 import { getProvider } from './providers/provider-registry.js';
 import { getProviderConnection } from './unified-calendar-store.js';
 import type { CalendarEvent } from './types.js';
@@ -25,6 +31,7 @@ export const PROVIDER_LABEL: Record<WriteProvider, string> = {
 /** The connected calendar writes go to, or null when none is connected. */
 export async function connectedWriteProvider(userId: string): Promise<WriteProvider | null> {
   if (await isCalendarConfigured(userId)) return 'google';
+  if (await outlookLinkedOr(userId, async () => false)) return 'outlook'; // OUTLOOK_CONNECT
   for (const name of ['outlook', 'apple'] as const) {
     if ((await getProviderConnection(userId, name))?.connected) return name;
   }
@@ -40,9 +47,12 @@ export async function createOnProvider(
   try {
     const adapter = getProvider(provider);
     if (!adapter) return { ok: false };
-    const externalId = await adapter.createEvent(userId, event);
+    const externalId =
+      (provider === 'outlook' && (await outlookCreate(userId, event))) ||
+      (await adapter.createEvent(userId, event));
     return externalId ? { ok: true, externalId } : { ok: false };
   } catch (error) {
+    if (error instanceof OutlookUnavailableError) throw error;
     log.error({ userId, provider, error: String(error) }, 'Provider create failed');
     return { ok: false };
   }

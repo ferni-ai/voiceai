@@ -246,7 +246,7 @@ async function sendEmailAlert(event: CircuitEvent, severity: AlertSeverity): Pro
     return false;
   }
 
-  // The app transport (EMAIL_PROVIDER): SendGrid by default, the ferni.ai Workspace under gmail
+  // The app transport: the ferni.ai Workspace mailbox
   const mail = getEmailSender();
   if (!mail.isConfigured()) {
     return false;

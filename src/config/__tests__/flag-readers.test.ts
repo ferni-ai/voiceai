@@ -25,11 +25,6 @@ const OUTSIDE_READERS: Readonly<Record<string, { file: string; needle: string }>
     file: 'node_modules/@google/genai/dist/index.mjs',
     needle: 'GOOGLE_GENAI_USE_VERTEXAI',
   },
-  // gate.ts builds SPEECH_DIRECTOR_<LEVER> for each lever, laughter among them.
-  SPEECH_DIRECTOR_LAUGHTER: {
-    file: 'src/speech/tts-gateway/director/gate.ts',
-    needle: 'env[`SPEECH_DIRECTOR_${lever.toUpperCase()}`]',
-  },
 };
 const BASELINE = join(__dirname, 'flag-readers.baseline.json');
 

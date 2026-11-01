@@ -39,28 +39,21 @@ export function formatMayaBriefing(
     }
   }
 
-  // Computed Metrics Dashboard
-  const { coachingMetrics } = briefing;
-  sections.push('\n=== 📊 COACHING METRICS DASHBOARD ===');
-  sections.push(`• Consistency Index: ${coachingMetrics.consistencyIndex}/100`);
-  sections.push(`• Cascade Potential: ${coachingMetrics.cascadePotential}/100`);
-  sections.push(`• Recovery Speed: ${coachingMetrics.recoverySpeed}/100`);
-  sections.push(`• Momentum Score: ${coachingMetrics.momentumScore}/100`);
-  sections.push(`• Keystone Power: ${coachingMetrics.keystonePower}/100`);
-  if (coachingMetrics.patterns.length > 0) {
-    sections.push(`PATTERNS: ${coachingMetrics.patterns.join('; ')}`);
-  }
+  // Only what the member's data holds from here; no invented scores (#3044).
+  const factsFrom = sections.length;
 
   // Habit health dashboard
   const { habitHealth } = briefing;
-  sections.push('\n=== 🌱 HABIT HEALTH ===');
-  sections.push(`• Active habits: ${habitHealth.activeHabits}`);
-  sections.push(`• Active streaks: ${habitHealth.totalStreaks}`);
-  sections.push(`• Success rate: ${Math.round(habitHealth.averageSuccessRate * 100)}%`);
-  sections.push(`• Total completions: ${habitHealth.totalCompletions}`);
-  sections.push(
-    `• Keystone: ${habitHealth.keystoneActive ? `✅ ${habitHealth.keystoneHabits.join(', ')}` : '❌ None active'}`
-  );
+  if (habitHealth.activeHabits > 0) {
+    sections.push('\n=== 🌱 HABIT HEALTH ===');
+    sections.push(`• Active habits: ${habitHealth.activeHabits}`);
+    sections.push(`• Active streaks: ${habitHealth.totalStreaks}`);
+    sections.push(`• Success rate: ${Math.round(habitHealth.averageSuccessRate * 100)}%`);
+    sections.push(`• Total completions: ${habitHealth.totalCompletions}`);
+    sections.push(
+      `• Keystone: ${habitHealth.keystoneActive ? `✅ ${habitHealth.keystoneHabits.join(', ')}` : '❌ None active'}`
+    );
+  }
   if (habitHealth.longestStreak) {
     sections.push(
       `• 🔥 Longest streak: ${habitHealth.longestStreak.name} (${habitHealth.longestStreak.days} days)`
@@ -80,9 +73,6 @@ export function formatMayaBriefing(
       );
     }
     sections.push(`• Trend: ${moodIntelligence.recentMoodTrend}`);
-    if (moodIntelligence.optimalCoachingTime) {
-      sections.push(`• Best time for challenges: ${moodIntelligence.optimalCoachingTime}`);
-    }
     if (moodIntelligence.moodHabitCorrelations.length > 0) {
       sections.push(`• ${moodIntelligence.moodHabitCorrelations.join('; ')}`);
     }
@@ -156,6 +146,8 @@ export function formatMayaBriefing(
       sections.push(`• What worked before: ${briefing.memoryInsights.whatWorked.join(', ')}`);
     }
   }
+
+  if (sections.length === factsFrom && !handoffBriefing) return [];
 
   // Coaching reminders (first turns only)
   if (turnCount === 0 || turnCount === 1) {

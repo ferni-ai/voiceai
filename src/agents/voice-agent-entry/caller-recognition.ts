@@ -24,12 +24,20 @@
  *
  * @module agents/voice-agent-entry/caller-recognition
  */
-import { bindSessionPhone, setVerifiedOwnerCheck } from '../../utils/minor-care.js';
+import {
+  bindSessionPhone,
+  holdSession,
+  setOnPhoneBound,
+  setVerifiedOwnerCheck,
+} from '../../utils/minor-care.js';
+import { phoneHoldId } from '../../services/outreach/checkin-replies.js';
+import { sharedHeldStrict } from '../../services/outreach/minor-care-shared-hold.js';
 import {
   beginReturningCaller,
   returningCallerEnabled,
 } from '../../services/identity/returning-caller.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { isPlacedCall, placedCallNotOwnerProofOn } from '../../services/identity/verified-caller.js';
 import {
   readSignedAttestation,
   readSipCaller,
@@ -188,11 +196,61 @@ export function rememberCallerRecognition(sessionId: string, r: CallerRecognitio
 export function rememberCallerPhone(
   sessionId: string,
   room: { remoteParticipants?: Map<string, SipParticipantLike> }
-): void {
+): boolean {
   for (const participant of room.remoteParticipants?.values() ?? []) {
-    const e164 = toE164(participant.attributes?.['sip.phoneNumber']);
-    if (e164) return bindSessionPhone(sessionId, e164);
+    if (bindParticipantPhone(sessionId, participant)) return true;
   }
+  return false;
+}
+
+function bindParticipantPhone(sessionId: string, p: SipParticipantLike | undefined): boolean {
+  const e164 = toE164(p?.attributes?.['sip.phoneNumber']);
+  if (e164) bindSessionPhone(sessionId, e164);
+  return !!e164;
+}
+
+/**
+ * MINOR_CARE_SHARED_HOLD: a call from a number with a live hold (minor_care_holds/phone#<hash>, the
+ * key minor-care-purge's shareHold writes) is held from when the number is bound here, at the start
+ * or by a late SIP join, whether or not the caller says their age again: every phone call gets a
+ * fresh anon: id, so only the number links it to the held call (dev soak 2026-10-27: 89 docs).
+ * Fail closed (sharedHeldStrict): a record not read within STRICT_READ_MS holds the call. What was
+ * written before is dropped by the end-of-call purge. Flag off: no read. Registered here, where
+ * every number is bound, so no load order can skip it.
+ */
+async function holdIfNumberHeld(sessionId: string, e164: string): Promise<void> {
+  const phoneId = phoneHoldId(e164); // undefined without LOG_HASH_SECRET: no record can exist
+  if (phoneId && (await sharedHeldStrict(phoneId))) holdSession(sessionId);
+}
+setOnPhoneBound((sessionId, e164) => void holdIfNumberHeld(sessionId, e164));
+
+/** How long a call keeps listening for its SIP caller's number after identification. */
+export const PHONE_WATCH_MS = 30_000;
+
+/**
+ * rememberCallerPhone, and if no number is in the room yet, keep listening (never awaited) until
+ * the SIP caller joins or their attributes land, for up to `waitMs`. Identification often ends
+ * before the SIP participant is in the room (dev soak 2026-10-26), so a single read bound nothing.
+ */
+export function watchCallerPhone(
+  sessionId: string,
+  room: Partial<RoomLike> & { remoteParticipants?: Map<string, SipParticipantLike> },
+  waitMs = PHONE_WATCH_MS
+): void {
+  if (rememberCallerPhone(sessionId, room) || !room.on || !room.off) return;
+  const events = room as RoomLike;
+  const joined = (p: SipParticipantLike): void =>
+    void (bindParticipantPhone(sessionId, p) && stop());
+  const changed = (_: Record<string, string>, p: SipParticipantLike): void => joined(p);
+  const stop = (): void => {
+    clearTimeout(timer);
+    events.off('participantConnected', joined);
+    events.off('participantAttributesChanged', changed);
+  };
+  const timer = setTimeout(stop, waitMs);
+  timer.unref?.();
+  events.on('participantConnected', joined);
+  events.on('participantAttributesChanged', changed);
 }
 
 export function callerRecognitionFor(sessionId: string | undefined): CallerRecognition | undefined {
@@ -201,8 +259,15 @@ export function callerRecognitionFor(sessionId: string | undefined): CallerRecog
 
 /** Sessions whose account came from an authenticated dispatch (accountNamedByDispatch). */
 const namedByDispatch = new Set<string>();
+/** PLACED_CALL_NOT_OWNER_PROOF=on: sessions of calls Ferni placed (placedByFerni). */
+const placedSessions = new Set<string>();
 
 export function rememberDispatchIdentity(sessionId: string, source: string, meta?: string): void {
+  if (placedByFerni(meta)) {
+    placedSessions.add(sessionId);
+    if (placedSessions.size > MAX_SESSIONS)
+      placedSessions.delete(placedSessions.values().next().value as string);
+  }
   if (!accountNamedByDispatch(source, meta)) return;
   namedByDispatch.add(sessionId);
   if (namedByDispatch.size > MAX_SESSIONS)
@@ -216,9 +281,32 @@ export function sessionIsVerifiedOwner(sessionId: string): boolean {
 // MINOR_CARE (minor-care.ts, a lower layer) asks this before holding a session's memory.
 setVerifiedOwnerCheck(sessionIsVerifiedOwner);
 
-/** A session known only by its phone number: only conversational tools are open. */
+/**
+ * The person on the line is proven to be the account owner, for anything that
+ * brings the account's private history into the call (CALL_KNOWS_RECENT_TEXTS).
+ * A phone session counts only when recognition says 'known': a call Ferni
+ * placed to their number can be answered by anyone, and a dispatch that names
+ * the account says nothing about who picked up. Any other session counts only
+ * with an authenticated dispatch (a signed-in app user).
+ */
+export function ownerProvenOnLine(sessionId: string, phoneCall: boolean): boolean {
+  const recognition = callerRecognitionFor(sessionId);
+  if (phoneCall || recognition) return recognition?.status === 'known';
+  return namedByDispatch.has(sessionId);
+}
+
+/** PLACED_CALL_NOT_OWNER_PROOF=on and Ferni placed this session's call: anyone may have answered. */
+export function onPlacedCallSession(sessionId: string | undefined): boolean {
+  return sessionId !== undefined && placedSessions.has(sessionId);
+}
+
+/**
+ * A session known only by its phone number: only conversational tools are open.
+ * PLACED_CALL_NOT_OWNER_PROOF=on: so is a call Ferni placed, whatever
+ * recognition says (Seth, 2026-11-01: whoever answers is not the owner).
+ */
 export function phoneOnlyIdentity(sessionId: string | undefined): boolean {
-  return callerRecognitionFor(sessionId)?.status === 'known';
+  return callerRecognitionFor(sessionId)?.status === 'known' || onPlacedCallSession(sessionId);
 }
 
 /** Both checks, for lower layers that are handed them (data-channel-handler.ts). */
@@ -239,15 +327,28 @@ export function unrecognisedCallerGreeting(r: CallerRecognition | undefined): st
  * Whether the dispatch already named the account: the app (signed-in user)
  * and calls Ferni placed for a user do; a phone caller's number, an
  * anonymous id, or the inbound webhook's unverified number lookup do not.
+ * PLACED_CALL_NOT_OWNER_PROOF=on: a call Ferni placed to the owner's number
+ * (isPlacedCall) doesn't either. Anyone can answer it, so it is recognised like
+ * an inbound call from that number and is never a dispatch-proven owner.
  */
 export function accountNamedByDispatch(source: string, jobMetadata: string | undefined): boolean {
-  let inbound = false;
-  try {
-    inbound = (JSON.parse(jobMetadata ?? '{}') as { type?: unknown }).type === 'inbound_call';
-  } catch {
-    // Unparseable metadata names nobody.
-  }
+  const inbound = jobTypeOf(jobMetadata) === 'inbound_call' || placedByFerni(jobMetadata);
   return !inbound && ['web_auth', 'firebase', 'sponsored'].includes(source);
+}
+
+/** The job's type, or undefined (unparseable metadata names nobody). */
+function jobTypeOf(jobMetadata: string | undefined): unknown {
+  try {
+    return (JSON.parse(jobMetadata ?? '{}') as { type?: unknown }).type;
+  } catch {
+    return undefined;
+  }
+}
+
+/** PLACED_CALL_NOT_OWNER_PROOF=on and this job is a call Ferni placed (isPlacedCall). */
+function placedByFerni(jobMetadata: string | undefined): boolean {
+  const type = jobTypeOf(jobMetadata);
+  return typeof type === 'string' && isPlacedCall(type) && placedCallNotOwnerProofOn();
 }
 
 type RoomLike = Parameters<typeof firstParticipant>[0] & AttributeUpdates;

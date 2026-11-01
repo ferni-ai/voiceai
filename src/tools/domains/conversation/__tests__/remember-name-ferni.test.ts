@@ -68,12 +68,19 @@ describe('rememberName refuses exact Ferni spellings', () => {
   );
 
   it.each(MODES.flatMap(([v, s]) => REAL.map((n) => [v, s, n] as const)))(
-    'CALL_ME_VOCATIVE=%s NAME_CAPTURE_STRICT=%s: "%s" saves as before',
+    'CALL_ME_VOCATIVE=%s NAME_CAPTURE_STRICT=%s: "%s" is not refused',
     async (vocative, strict, name) => {
       process.env.CALL_ME_VOCATIVE = vocative;
       process.env.NAME_CAPTURE_STRICT = strict;
       const c = call();
-      expect(await execute({ name }, { ctx: c })).toContain(`Name "${name}" stored`);
+      const out = await execute({ name }, { ctx: c });
+      if (vocative === 'on') {
+        // Flag on, a new name waits for the caller's yes (remember-name-confirm.test.ts).
+        expect(out).toContain('Not saved yet');
+        expect(c.saveProfile).not.toHaveBeenCalled();
+        return;
+      }
+      expect(out).toContain(`Name "${name}" stored`);
       expect(c.userProfile.name).toBe(name);
       expect(c.userProfile.preferredName).toBe(name);
       expect(c.saveProfile).toHaveBeenCalledTimes(1);

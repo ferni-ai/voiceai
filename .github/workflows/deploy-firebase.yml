@@ -86,6 +86,9 @@ jobs:
           # Toast region (apps/web/src/ui/overlay/toast-flag.ts): ON unless "off". Kill switch:
           # set the repo variable VITE_TOAST_REGION=off and re-run this workflow.
           VITE_TOAST_REGION: ${{ vars.VITE_TOAST_REGION }}
+          # Gate-first paint (apps/web/src/ui/gate-first.ui.ts): ON unless "false". Kill switch:
+          # set the repo variable VITE_GATE_FIRST=false and re-run this workflow.
+          VITE_GATE_FIRST: ${{ vars.VITE_GATE_FIRST }}
           # Talk first (apps/web/src/config/try-first-flag.ts): on for prod since
           # 2026-10-18. To turn it off, set the repo variable VITE_TRY_FIRST=false
           # and re-run this workflow.

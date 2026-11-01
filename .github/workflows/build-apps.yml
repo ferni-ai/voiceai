@@ -163,6 +163,12 @@ jobs:
             ${{ runner.temp }}/ui-audit-*.log
           retention-days: 14
 
+      # The archive checks themselves (build number, one version everywhere,
+      # English only), on synthetic bundles.
+      - name: Archive checks self-test
+        working-directory: apps/ios-native
+        run: scripts/test-archive-checks.sh
+
       # Tags and manual runs also check that a Release archive builds. It is
       # unsigned: signing and upload stay manual in Xcode.
       - name: Build iOS archive (unsigned)
@@ -178,9 +184,11 @@ jobs:
             -skipPackagePluginValidation \
             -skipMacroValidation \
             archive \
+            CURRENT_PROJECT_VERSION="$(scripts/build-number.sh)" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
+          scripts/check-archive.sh "$RUNNER_TEMP/Ferni.xcarchive"
 
       - name: Upload iOS archive
         if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'

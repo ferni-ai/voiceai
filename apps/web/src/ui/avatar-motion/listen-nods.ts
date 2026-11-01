@@ -12,14 +12,14 @@
  *   bridge consumes it without a case), so this module does.
  *
  * At most one nod per MIN_NOD_GAP_MS. Under prefers-reduced-motion nothing
- * moves. Off unless localStorage `ferni:listen-nods` is 'true'.
+ * moves. Off unless the listenNods switch (config/motion-flags.ts) is on.
  *
  * The app-side wiring (real nod, smile, timers) is app/backchannel-signal.ts.
  *
  * @module ui/avatar-motion/listen-nods
  */
 
-export const LISTEN_NODS_FLAG_KEY = 'ferni:listen-nods';
+import { isMotionFlagOn } from '../../config/motion-flags.js';
 
 /** Minimum gap between two nods, so a run of cues never reads as bobbing. */
 export const MIN_NOD_GAP_MS = 1200;
@@ -47,11 +47,7 @@ export interface ListenNods {
 }
 
 export function isListenNodsEnabled(): boolean {
-  try {
-    return localStorage.getItem(LISTEN_NODS_FLAG_KEY) === 'true';
-  } catch {
-    return false;
-  }
+  return isMotionFlagOn('listenNods');
 }
 
 function clampDelay(value: unknown): number {

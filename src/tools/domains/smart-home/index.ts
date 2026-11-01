@@ -2,12 +2,12 @@
  * Smart Home Domain Tools
  *
  * Unified smart home control with support for multiple platforms:
- * - Home Assistant
  * - Philips Hue
  * - LIFX
  * - Ecobee
  *
- * DOMAIN: home
+ * DOMAIN: home; with SMART_HOME_LIFX on, lifx-lights (two caller-bound light tools, their
+ * own domain so light words never load the vibe tools that share 'smart-home')
  */
 
 import { createDomainExport } from '../../registry/loader.js';
@@ -15,6 +15,9 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
+import { NO_TIMED_REMINDER } from '../../utils/honest-schedule.js';
+import { flagOn } from '../../../config/env-flag.js';
+import { controlCallerLight, listCallerLights } from './caller-lifx-tools.js';
 
 // Import existing smart home functionality
 import { createSmartHomeTools, getAllDevices, controlDevice, activateScene } from './smart-home.js';
@@ -128,10 +131,10 @@ const homeMaintenanceReminderDef: ToolDefinition = {
           response += `- Test garage door auto-reverse\n`;
           response += `- Clean dryer vent\n`;
         } else if (action === 'add' && task) {
-          response += `✓ Added "${task}" to maintenance schedule`;
-          if (frequency) response += ` (${frequency})`;
+          // Nothing stores a schedule or a reminder job here (#1439).
+          response += `Noted "${task}"${frequency ? ` (${frequency})` : ''}. ${NO_TIMED_REMINDER}`;
         } else if (action === 'complete' && task) {
-          response += `✓ Marked "${task}" as complete.`;
+          response += `Noted that "${task}" is done; I don't keep a maintenance log here.`;
         }
 
         return response;
@@ -255,6 +258,12 @@ const findContractorDef: ToolDefinition = {
 // BROADCAST/INTERCOM TOOLS
 // ============================================================================
 
+/**
+ * No speaker integration plays a message yet (Google Home and Alexa
+ * broadcast are unbuilt), so these tools say nothing was sent (#1447).
+ */
+const NO_HOME_SPEAKERS = "I can't reach your home speakers yet, so nothing was played.";
+
 const broadcastMessageDef: ToolDefinition = {
   id: 'broadcastMessage',
   name: 'Broadcast Message',
@@ -276,12 +285,8 @@ const broadcastMessageDef: ToolDefinition = {
       execute: async ({ message, target = 'all' }) => {
         log.info({ agentId: ctx.agentId, message, target }, '📢 Broadcasting message');
 
-        // This would integrate with Home Assistant, Google Home, or Alexa APIs
-        // For now, return a simulated response
-
         const targetStr = target === 'all' ? 'all speakers' : `the ${target.replace('_', ' ')}`;
-
-        return `Broadcasting to ${targetStr}: "${message}". Message sent! 📢`;
+        return `I couldn't broadcast that to ${targetStr}: ${NO_HOME_SPEAKERS}`;
       },
     });
   },
@@ -304,9 +309,7 @@ const intercomCallDef: ToolDefinition = {
       execute: async ({ room }) => {
         log.info({ agentId: ctx.agentId, room }, '📞 Starting intercom call');
 
-        // This would integrate with Home Assistant, Google Home, or Alexa APIs
-
-        return `Starting intercom to ${room}. Note: Two-way intercom requires smart speaker setup. For now, I can broadcast a message instead. Would you like me to send a message to ${room}?`;
+        return `I couldn't start an intercom call to ${room}: I can't reach your home speakers yet, so the call didn't go through.`;
       },
     });
   },
@@ -333,7 +336,7 @@ const announceDinnerDef: ToolDefinition = {
         const message = customMessage || 'Dinner is ready! Come and get it!';
         log.info({ agentId: ctx.agentId, message }, '🍽️ Announcing dinner');
 
-        return `Announcing to all speakers: "${message}" 🍽️`;
+        return `I couldn't announce dinner: ${NO_HOME_SPEAKERS}`;
       },
     });
   },
@@ -362,12 +365,60 @@ const smartHomeTools: ToolDefinition[] = [
 ];
 
 // ============================================================================
+// SMART_HOME_LIFX: THE CALLER'S OWN LIGHTS
+// ============================================================================
+
+/*
+ * Off, the tools above are built with no user (createSmartHomeTools()), so no
+ * saved LIFX token is ever loaded, and their domain 'home' is not the
+ * 'smart-home' domain loader.ts loads this module as. On, two LIFX-only tools
+ * run as the call's verified caller (caller-lifx-tools.ts), in their own
+ * lifx-lights domain (loader.ts DOMAIN_ALIASES).
+ */
+
+const lifxTools: ToolDefinition[] = [
+  {
+    ...controlLightDef,
+    domain: 'lifx-lights',
+    create: (_ctx: ToolContext): Tool =>
+      llm.tool({
+        description:
+          "Turn one of the caller's own LIFX lights on or off, or set its brightness. Lights only.",
+        parameters: z.object({
+          room: z.string().describe('Light or room name (e.g., "bedroom lamp", "kitchen")'),
+          action: z.enum(['on', 'off', 'toggle']).describe('What to do with the light'),
+          brightness: z.number().min(0).max(100).optional().describe('Brightness level 0-100'),
+        }),
+        execute: async (args, opts: unknown) => controlCallerLight(args, opts),
+      }),
+  },
+  {
+    // Not 'listDevices': simple-utilities registers that id for phones and tablets.
+    id: 'listSmartDevices',
+    name: 'List Smart Devices',
+    description: 'List the lights linked to this account',
+    domain: 'lifx-lights',
+    tags: ['devices', 'lights', 'smart-home'],
+    create: (_ctx: ToolContext): Tool =>
+      llm.tool({
+        description:
+          "List the caller's own linked LIFX lights and their state. Use when they ask which lights they have.",
+        parameters: z.object({}),
+        execute: async (_args, opts: unknown) => listCallerLights(opts),
+      }),
+  },
+];
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
-export const { getToolDefinitions, domain, definitions } = createDomainExport(
-  'home',
-  smartHomeTools
-);
+const legacy = createDomainExport('home', smartHomeTools);
+const lifx = createDomainExport('lifx-lights', lifxTools);
+
+/** Read when the domain loads: SMART_HOME_LIFX on gives the two caller-bound light tools. */
+export const getToolDefinitions = async (): Promise<ToolDefinition[]> =>
+  flagOn('SMART_HOME_LIFX') ? lifx.definitions : legacy.definitions;
+export const { domain, definitions } = legacy;
 
 export default getToolDefinitions;

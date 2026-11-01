@@ -165,7 +165,9 @@ export function registerAgentReplyRecorder(session: ReplySession, ctx: AgentRepl
 
   // What the agent says about itself, kept for the next call (life-ledger.ts).
   const userId = ctx.services?.userId;
-  const ledger = isMemberIdentity(userId) ? createLedgerRecorder(userId) : null;
+  const ledger = isMemberIdentity(userId)
+    ? createLedgerRecorder(userId, { sessionId: ctx.sessionId })
+    : null;
   session.on(voice.AgentSessionEventTypes.ConversationItemAdded, (event) => {
     recordCommittedAgentReply(ctx, event.item)
       .then((recorded) => {

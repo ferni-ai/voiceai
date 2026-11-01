@@ -62,8 +62,7 @@ memory/
 │
 ├── capture/                      # Real-time memory capture
 │   ├── CLAUDE.md                 # Full documentation
-│   ├── active-listening-capture.ts # Capture during speech
-│   └── index.ts                  # Capture orchestration
+│   └── active-listening-capture.ts # Capture during speech
 │
 ├── firestore-vector-store/       # Vector embeddings in Firestore
 │   ├── CLAUDE.md                 # Full documentation

@@ -28,7 +28,6 @@ const joyful = analysisFor('joy', 'positive', 0.8);
 
 afterEach(() => {
   delete process.env.FERNI_TASK_MOOD_ALONE_TRIGGERS;
-  delete process.env.FERNI_TASK_SCRIPTED_TRANSITIONS;
 });
 
 describe('celebration tasks need news, not just a good mood', () => {
@@ -78,15 +77,5 @@ describe('task transition lines are not handed to the model', () => {
     const context = manager.processUserTurn(analysisFor('neutral', 'neutral', 0.2), 'Okay.');
     expect(manager.getActiveTasks()).not.toContain('market_panic');
     expect(context.join('\n')).not.toContain('You have more time than you think');
-  });
-
-  it('FERNI_TASK_SCRIPTED_TRANSITIONS=on restores the opening line', () => {
-    process.env.FERNI_TASK_SCRIPTED_TRANSITIONS = 'on';
-    const manager = new TaskManager();
-    const context = manager.processUserTurn(joyful, 'I finally paid off my student loans!');
-
-    const opener = context.find((part) => part.startsWith('[TRANSITION] Start with:'));
-    expect(opener).toBeDefined();
-    expect(celebrationLines.some((line) => opener?.includes(line))).toBe(true);
   });
 });

@@ -7,6 +7,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { MOTION_FLAG_KEYS } from '../../src/config/motion-flags.js';
+
 // The imports below schedule timers at import (luxo-expressions auto-init, 100 ms).
 // Real ones can fire after jsdom is torn down ("document is not defined"), so fake
 // them from before the first import, as the other UI tests do.
@@ -22,9 +24,7 @@ vi.mock('../../src/eq/capabilities/active-listening.js', async (importOriginal) 
 
 import { handleDataMessage } from '../../src/app/data-message-handlers.js';
 import { resetListenSignalForTests } from '../../src/app/backchannel-signal.js';
-import { LISTEN_NODS_FLAG_KEY } from '../../src/ui/avatar-motion/listen-nods.js';
 import {
-  SPRING_BODY_FLAG_KEY,
   disposeSpringBody,
   initSpringBody,
   springBody,
@@ -70,7 +70,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  localStorage.removeItem(LISTEN_NODS_FLAG_KEY);
+  localStorage.removeItem(MOTION_FLAG_KEYS.listenNods);
   smile.mockRestore();
   vi.useRealTimers();
 });
@@ -87,7 +87,7 @@ describe('listen nods, flag off (default)', () => {
 });
 
 describe('listen nods, flag on', () => {
-  beforeEach(() => localStorage.setItem(LISTEN_NODS_FLAG_KEY, 'true'));
+  beforeEach(() => localStorage.setItem(MOTION_FLAG_KEYS.listenNods, 'true'));
 
   it('nods when the backchannel reaches the wire', () => {
     send(backchannel);
@@ -135,7 +135,7 @@ describe('listen nods kick the spring body', () => {
   let animate: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    localStorage.setItem(LISTEN_NODS_FLAG_KEY, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.listenNods, 'true');
     document.body.innerHTML = '<div id="coach"><div class="avatar-container"></div></div>';
     animate = vi.fn(() => ({ effect: { setKeyframes: vi.fn() }, cancel: vi.fn() }));
     const body = document.querySelector('.avatar-container');
@@ -143,7 +143,7 @@ describe('listen nods kick the spring body', () => {
   });
   afterEach(() => {
     disposeSpringBody();
-    localStorage.removeItem(SPRING_BODY_FLAG_KEY);
+    localStorage.removeItem(MOTION_FLAG_KEYS.springBody);
     vi.restoreAllMocks();
   });
 
@@ -165,7 +165,7 @@ describe('listen nods kick the spring body', () => {
   });
 
   it('spring body flag on: a nod moves the body', () => {
-    localStorage.setItem(SPRING_BODY_FLAG_KEY, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.springBody, 'true');
     expect(initSpringBody()).toBe(true);
     send(listeningNod);
     vi.advanceTimersByTime(100);

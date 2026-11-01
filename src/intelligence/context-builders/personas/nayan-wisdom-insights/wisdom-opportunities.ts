@@ -15,7 +15,7 @@ import type { LifeSynthesis, TeamSynthesis, WisdomMetrics } from './types.js';
 export function detectWisdomOpportunities(
   lifeSynthesis: LifeSynthesis,
   teamSynthesis: TeamSynthesis,
-  wisdomMetrics: WisdomMetrics
+  _wisdomMetrics: WisdomMetrics // scores, not facts: no longer read (#3044)
 ): string[] {
   const opportunities: string[] = [];
 
@@ -58,17 +58,6 @@ export function detectWisdomOpportunities(
   if (lifeSynthesis.compoundingAreas.length > 0) {
     opportunities.push(
       '📈 Compounding detected. The eighth wonder of the world applies to habits too, not just money.'
-    );
-  }
-
-  // Metrics-based wisdom
-  if (wisdomMetrics.meaningCoherence < 40) {
-    opportunities.push('⚖️ Values-action gap. Gently explore: what would alignment look like?');
-  }
-
-  if (wisdomMetrics.innerPeaceIndex > 70) {
-    opportunities.push(
-      "🕊️ Inner peace present. This is rare. Name it. Honor it. It didn't come by accident."
     );
   }
 

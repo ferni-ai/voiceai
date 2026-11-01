@@ -5,7 +5,7 @@
  * This script:
  * 1. Approves a user from the waitlist (updates their status in Firestore)
  * 2. Sends a personalized voicemail from Ferni via Twilio + Cartesia TTS
- * 3. Sends a personalized welcome email via SendGrid
+ * 3. Sends a personalized welcome email from the ferni.ai Workspace mailbox
  *
  * Usage:
  *   npx tsx scripts/approve-waitlist-user.ts --email=<address> --phone=<+1XXXXXXXXXX> [--name=<first name>]
@@ -17,6 +17,7 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
+import { getEmailSender } from '../src/services/email-transport/index.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -367,59 +368,26 @@ async function sendVoicemail(phone: string, name: string): Promise<boolean> {
 }
 
 // ============================================================================
-// STEP 3: SEND EMAIL VIA SENDGRID
+// STEP 3: SEND EMAIL (the ferni.ai Workspace mailbox, the app's only transport)
 // ============================================================================
 
 async function sendEmail(email: string, name: string): Promise<boolean> {
   console.log('\n📧 Step 3: Sending personalized welcome email...');
-
-  const sendgridApiKey = process.env.SENDGRID_API_KEY;
-
-  if (!sendgridApiKey) {
-    console.log('   ⚠️  SendGrid not configured. Email content:');
-    console.log('   ---');
-    console.log(`   Subject: ${generateEmailSubject(name)}`);
-    console.log('   ---');
-    console.log(generateEmailPlainText(name).split('\n').map(l => `   ${l}`).join('\n'));
-    console.log('   ---');
-    console.log('   💡 To enable: Set SENDGRID_API_KEY');
-    return false;
+  const sent = await getEmailSender().send({
+    to: email,
+    toName: name,
+    replyTo: 'hello@ferni.ai',
+    subject: generateEmailSubject(name),
+    text: generateEmailPlainText(name),
+    html: generateEmailHTML(name),
+    kind: 'transactional',
+  });
+  if (sent.ok) {
+    console.log('   ✅ Welcome email sent');
+    return true;
   }
-
-  try {
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${sendgridApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email, name }] }],
-        from: { email: process.env.SENDGRID_FROM_EMAIL || 'noreply@ferni.ai', name: 'Ferni' },
-        reply_to: { email: 'hello@ferni.ai', name: 'Ferni' },
-        subject: generateEmailSubject(name),
-        content: [
-          { type: 'text/plain', value: generateEmailPlainText(name) },
-          { type: 'text/html', value: generateEmailHTML(name) },
-        ],
-        tracking_settings: {
-          open_tracking: { enable: true },
-          click_tracking: { enable: true },
-        },
-      }),
-    });
-
-    if (response.status === 202) {
-      console.log(`   ✅ Email sent to ${email}!`);
-      return true;
-    }
-
-    const error = await response.text();
-    throw new Error(`SendGrid error: ${response.status} - ${error}`);
-  } catch (error) {
-    console.error(`   ❌ Failed to send email: ${error}`);
-    return false;
-  }
+  console.error(`   ❌ Email not sent (${sent.status ?? 'error'}): ${sent.error ?? 'unknown'}`);
+  return false;
 }
 
 // ============================================================================

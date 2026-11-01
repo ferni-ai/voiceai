@@ -29,6 +29,7 @@ import { join } from 'node:path';
 import { getDisplayName, isKnownId } from '../../personas/persona-ids.js';
 import { getPersonaPronouns, type PersonaPronouns } from '../../personas/persona-pronouns.js';
 import { selfRecallEnabled } from './self-recall.js';
+import { writeHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'LifeLedger' });
@@ -430,6 +431,7 @@ export function createLedgerRecorder(
     /** The biography check's model; injected so tests need none. */
     ask?: (system: string, input: string) => Promise<string>;
     callerNames?: CallerNames;
+    sessionId?: string; // the call's: a held caller's call stores nothing (MINOR_CARE writeHeld)
   } = {}
 ) {
   const lines = new Map<string, string[]>();
@@ -444,6 +446,8 @@ export function createLedgerRecorder(
     async flush(): Promise<number> {
       if (flushed || !lifeLedgerEnabled()) return 0;
       flushed = true;
+      // MINOR_CARE: the extractor can keep the caller's own details (a job, a school) as his.
+      if (writeHeld(userId, deps.sessionId, deps.env)) return 0;
       const saidAt = new Date((deps.now ?? Date.now)()).toISOString();
       let saved = 0;
       for (const [personaId, said] of lines) {

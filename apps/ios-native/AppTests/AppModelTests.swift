@@ -1,4 +1,5 @@
 import FerniKit
+import FerniVoice
 import XCTest
 @testable import Ferni
 
@@ -23,6 +24,41 @@ final class AppModelTests: XCTestCase {
         let model = model()
         model.talk(to: "nayan")
         XCTAssertEqual(model.team.chosen, "ferni")
+    }
+
+    /// Critic L1: the next person is greeted as new without a relaunch.
+    func testTheNextPersonIsGreetedAsNew() {
+        UserDefaults.standard.set(true, forKey: "ferni.call.hasTalked")
+        let model = model()
+        XCTAssertTrue(model.call.hasTalked)
+        model.accountChanged(from: "a", to: "b")
+        XCTAssertFalse(model.call.hasTalked)
+        XCTAssertEqual(RestingWords.words(home: nil, ended: false, hour: 20, hasTalked: model.call.hasTalked).headline, "Hi, I'm Ferni.")
+    }
+
+    /// Critic L2: a report goes to the session the line was heard in.
+    func testAReportGoesToTheLinesOwnSession() {
+        let model = model()
+        var line = Caption(id: "ferni-1", speaker: .ferni, text: "Hello", isFinal: true)
+        line.room = "ios-first"
+        XCTAssertEqual(model.reportSession(for: line), "ios-first")
+        line.room = nil
+        XCTAssertEqual(model.reportSession(for: line), "unknown", "no room known and no call")
+    }
+
+    /// Critic L3: once the server has deleted the account, nothing of the
+    /// person stays on this phone (the check-in record included), and the app
+    /// says it's done instead of quietly going back to Settings.
+    func testAfterDeletionNothingOfThePersonStaysAndItSaysSo() {
+        let model = model()
+        CheckInAsk().recordGoodCall(uid: "gone")
+        XCTAssertNotNil(UserDefaults.standard.object(forKey: "ferni.checkin.gone"))
+        UserDefaults.standard.set(true, forKey: "ferni.call.hasTalked")
+        model.afterDeletion(uid: "gone")
+        XCTAssertNil(UserDefaults.standard.object(forKey: "ferni.checkin.gone"))
+        XCTAssertFalse(model.call.hasTalked)
+        XCTAssertEqual(model.notice, "Your account is deleted.")
+        XCTAssertEqual(model.noticeDetail, "Everything Ferni remembered about you is gone.")
     }
 
     func testAnotherPersonSigningInClearsTheLastOne() {

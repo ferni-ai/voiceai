@@ -22,6 +22,7 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
+import { JUST_TALKED_HOURS, justTalked } from './outreach-cadence.js';
 
 export function isGroundedCheckInsOn(
   env: Record<string, string | undefined> = process.env
@@ -46,7 +47,6 @@ const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
 /** Evening, their time, as PR 734's follow-ups. */
 export const SEND_HOUR = 17;
-export const JUST_TALKED_HOURS = 12;
 /** An undated item waits this long without a call; before that it is for the next call. */
 export const UNDATED_GAP_DAYS = 3;
 export const WEEKLY_CAP = 2;
@@ -224,7 +224,7 @@ export function sendTimeFor(item: CheckInItem, call: SourceCall, ctx: PlanContex
     at = now;
   }
   if (at.getTime() > horizon) return 'not this week';
-  if (lastTalkedAt !== undefined && at.getTime() - lastTalkedAt < JUST_TALKED_HOURS * HOUR_MS) {
+  if (justTalked(lastTalkedAt, at.getTime())) {
     return `talked in the last ${JUST_TALKED_HOURS} hours`;
   }
   return at;

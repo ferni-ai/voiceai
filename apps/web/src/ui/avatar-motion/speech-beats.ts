@@ -2,10 +2,10 @@
  * Speech beats: Ferni's head moves with the stress in his voice, not on a
  * timer.
  *
- * Behind `ferni:speech-beats` (localStorage, off by default). With it on:
+ * Behind the speechBeats switch (config/motion-flags.ts, off by default). With it on:
  * - while it is Ferni's turn (`ferni:avatar-turn` with speaker `ferni`), each
  *   frame reads the gated RMS of the agent audio (audioService.getRmsVolume,
- *   the same source as ferni:lid-blend) and speech-beat-detector.ts finds
+ *   the same source as lid-blend.ts) and speech-beat-detector.ts finds
  *   stressed-syllable onsets;
  * - on each onset the avatar makes a tiny beat gesture: a 1-2 px head dip with
  *   a 0.3 degree tilt (alternating sides), plus a 1 px eye lift on strong
@@ -22,13 +22,13 @@
 
 import { DURATION } from '../../config/animation-constants.js';
 import { audioService } from '../../services/audio.service.js';
+import { isMotionFlagOn } from '../../config/motion-flags.js';
 import { createLogger } from '../../utils/logger.js';
 import { addTransformLayer, type TransformLayer } from './compositor.js';
 import { createBeatDetector, type BeatDetector } from './speech-beat-detector.js';
 
 const log = createLogger('SpeechBeats');
 
-export const SPEECH_BEATS_FLAG_KEY = 'ferni:speech-beats';
 /** The turn driver's event (detail `{ speaker }`). */
 export const SPEECH_BEATS_TURN_EVENT = 'ferni:avatar-turn';
 /** Dispatched on window at the end of each spoken phrase; detail `{ at }` (performance.now()). */
@@ -70,12 +70,7 @@ export function headTransform(strength: number, amount: number, side: 1 | -1): s
 }
 
 export function isSpeechBeatsEnabled(): boolean {
-  try {
-    return localStorage.getItem(SPEECH_BEATS_FLAG_KEY) === 'true';
-  } catch (error) {
-    log.debug('Could not read the speech beats flag, treating it as off', error);
-    return false;
-  }
+  return isMotionFlagOn('speechBeats');
 }
 
 function prefersReducedMotion(): boolean {

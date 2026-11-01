@@ -65,10 +65,32 @@ export function isCallHoursGuardOn(): boolean {
   return process.env.CALL_HOURS_GUARD === 'on';
 }
 
+// Building an Intl.DateTimeFormat costs far more than formatting with one, and the
+// opening searches below read local minutes many times per decision: one per zone.
+const minuteFormatters = new Map<string, Intl.DateTimeFormat>();
+const MAX_FORMATTERS = 500; // about the number of IANA zones
+
+/** The hour:minute formatter for a zone; throws RangeError for a zone Intl doesn't know. */
+function minuteFormatterFor(timeZone: string): Intl.DateTimeFormat {
+  let formatter = minuteFormatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hour: 'numeric',
+      minute: 'numeric',
+      hourCycle: 'h23',
+    });
+    // Intl accepts any letter case ("europe/london"), so callers could mint new keys forever
+    if (minuteFormatters.size >= MAX_FORMATTERS) minuteFormatters.clear();
+    minuteFormatters.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
 export function isValidTimezone(tz: string | undefined): tz is string {
   if (!tz) return false;
   try {
-    new Intl.DateTimeFormat('en-US', { timeZone: tz });
+    minuteFormatterFor(tz);
     return true;
   } catch {
     return false;
@@ -76,12 +98,7 @@ export function isValidTimezone(tz: string | undefined): tz is string {
 }
 
 export function localMinutes(at: Date, timezone: string): number {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: timezone,
-    hour: 'numeric',
-    minute: 'numeric',
-    hourCycle: 'h23',
-  }).formatToParts(at);
+  const parts = minuteFormatterFor(timezone).formatToParts(at);
   const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? 0);
   const minute = Number(parts.find((p) => p.type === 'minute')?.value ?? 0);
   return hour * 60 + minute;

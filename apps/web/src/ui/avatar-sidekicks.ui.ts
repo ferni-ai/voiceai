@@ -27,8 +27,10 @@
  * Icons appear in "slots" around the avatar:
  * - LEFT: Primary expressive slot (like left hand)
  * - RIGHT: Secondary slot (like right hand)
- * - Can show 1-2 icons at once for richness
- * 
+ * - ONE icon on screen at a time. A new one waits while the old one yields
+ *   (a short fade), so two never share a slot or squeeze each other.
+ * - None in the first seconds of a call: the arrival belongs to his face.
+ *
  * Brand compliant: NO emojis - uses Lucide SVG icons only
  */
 
@@ -207,9 +209,23 @@ interface SidekickConfig {
 
 interface ActiveSidekick {
   element: HTMLElement;
-  position: 'left' | 'right';
   timeline: gsap.core.Timeline;
 }
+
+/** A show resolved to one slot, ready to mount. */
+interface PendingShow {
+  icon: SidekickIcon;
+  slot: 'left' | 'right';
+  duration: number;
+  color: string;
+  size: 'sm' | 'md' | 'lg';
+  animation: string;
+}
+
+/** How long an interrupted sidekick takes to fade out before the next one mounts. */
+export const SIDEKICK_YIELD_MS = 180;
+/** No sidekick in the first seconds of a call: the arrival is his face, not props. */
+export const SIDEKICK_QUIET_AFTER_CONNECT_MS = 3000;
 
 // ============================================================================
 // STATE
@@ -218,7 +234,14 @@ interface ActiveSidekick {
 let container: HTMLElement | null = null;
 let leftSlot: HTMLElement | null = null;
 let rightSlot: HTMLElement | null = null;
-let activeSidekicks: ActiveSidekick[] = [];
+/** The one sidekick on screen. At most one exists across both slots. */
+let current: ActiveSidekick | null = null;
+/** An interrupted sidekick fading out. Nothing mounts until it is gone. */
+let yielding: ActiveSidekick | null = null;
+/** The latest show that arrived while another was on screen; it wins over earlier ones. */
+let queued: PendingShow | null = null;
+/** Date.now() before which shows are dropped (set by ferni:conversation-start). */
+let quietUntil = 0;
 let isInitialized = false;
 let eventAbortController: AbortController | null = null;
 
@@ -306,7 +329,8 @@ function createContainer(): void {
 export function showSidekick(config: SidekickConfig): void {
   if (!isInitialized) initAvatarSidekicks();
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  
+  if (Date.now() < quietUntil) return;
+
   const {
     icon,
     position = 'right',
@@ -315,61 +339,89 @@ export function showSidekick(config: SidekickConfig): void {
     size = 'md',
     animation = 'float',
   } = config;
-  
-  // Determine which slots to use
-  const positions: ('left' | 'right')[] = position === 'both' 
-    ? ['left', 'right'] 
-    : [position];
-  
-  positions.forEach((pos, index) => {
-    // Clear any existing sidekick in this slot
-    clearSlot(pos);
-    
-    // Create and animate the sidekick
-    const delay = position === 'both' ? index * 100 : 0;
-    trackedTimeout(() => {
-      createSidekick(icon, pos, duration, color, size, animation);
-    }, delay);
-  });
-  
-  log.debug('Sidekick shown:', icon, position);
+
+  // One on screen at a time: 'both' no longer means two icons.
+  const show: PendingShow = {
+    icon,
+    slot: position === 'left' ? 'left' : 'right',
+    duration,
+    color,
+    size,
+    animation,
+  };
+
+  // Mount synchronously when the stage is empty. A deferred mount (the old
+  // setTimeout 0) let same-tick shows each see an empty slot, and every call
+  // stacked two or three icons squeezed to 13 px each.
+  if (yielding !== null || current !== null) {
+    queued = show;
+    yieldCurrent();
+  } else {
+    mountSidekick(show);
+  }
+
+  log.debug('Sidekick shown:', icon, show.slot);
 }
 
 /**
- * Show a pair of sidekicks (left and right) for emphasis.
+ * Show a "pair". One icon at a time, so this shows the lead icon only.
  */
 export function showSidekickPair(
-  leftIcon: SidekickIcon, 
-  rightIcon: SidekickIcon,
+  leftIcon: SidekickIcon,
+  _rightIcon: SidekickIcon,
   duration = 2500
 ): void {
   showSidekick({ icon: leftIcon, position: 'left', duration });
-  trackedTimeout(() => {
-    showSidekick({ icon: rightIcon, position: 'right', duration: duration - 100 });
-  }, 100);
 }
 
 /**
- * Clear all active sidekicks.
+ * Clear all active sidekicks at once, with no fade (dispose, a new call).
  */
 export function clearAllSidekicks(): void {
-  activeSidekicks.forEach(sidekick => {
+  for (const sidekick of [current, yielding]) {
+    if (!sidekick) continue;
     sidekick.timeline.kill();
+    gsap.killTweensOf(sidekick.element);
     sidekick.element.remove();
-  });
-  activeSidekicks = [];
+  }
+  current = null;
+  yielding = null;
+  queued = null;
 }
 
 /**
- * Clear sidekick from a specific slot.
+ * Fade the current sidekick out (180 ms, scale 0.96), then mount whatever
+ * is queued. Nothing else mounts while it fades, so they never overlap.
  */
-function clearSlot(position: 'left' | 'right'): void {
-  const existing = activeSidekicks.find(s => s.position === position);
-  if (existing) {
-    existing.timeline.kill();
-    existing.element.remove();
-    activeSidekicks = activeSidekicks.filter(s => s !== existing);
-  }
+function yieldCurrent(): void {
+  const leaving = current;
+  if (!leaving) return;
+  current = null;
+  yielding = leaving;
+
+  leaving.timeline.kill();
+  gsap.to(leaving.element, {
+    opacity: 0,
+    scale: 0.96,
+    duration: toSeconds(SIDEKICK_YIELD_MS),
+    ease: 'sine.out',
+    overwrite: true,
+  });
+
+  trackedTimeout(() => {
+    leaving.element.remove();
+    if (yielding === leaving) yielding = null;
+    const next = queued;
+    queued = null;
+    if (next && Date.now() >= quietUntil) mountSidekick(next);
+  }, SIDEKICK_YIELD_MS);
+}
+
+/** A call just started: drop anything waiting, fade anything showing, stay quiet. */
+function quietForArrival(): void {
+  quietUntil = Date.now() + SIDEKICK_QUIET_AFTER_CONNECT_MS;
+  queued = null;
+  yieldCurrent();
 }
 
 // ============================================================================
@@ -377,16 +429,10 @@ function clearSlot(position: 'left' | 'right'): void {
 // ============================================================================
 
 /**
- * Create and animate a sidekick icon.
+ * Create and animate a sidekick icon. Callers make sure the stage is empty.
  */
-function createSidekick(
-  icon: SidekickIcon,
-  position: 'left' | 'right',
-  duration: number,
-  color: string,
-  size: 'sm' | 'md' | 'lg',
-  animation: string
-): void {
+function mountSidekick(show: PendingShow): void {
+  const { icon, slot: position, duration, color, size, animation } = show;
   const slot = position === 'left' ? leftSlot : rightSlot;
   if (!slot) {
     log.warn('Slot not found for position:', position);
@@ -427,14 +473,12 @@ function createSidekick(
   // Create animation timeline
   const tl = gsap.timeline({
     onComplete: () => {
-      // Remove from active list when animation completes
-      activeSidekicks = activeSidekicks.filter(s => s.element !== sidekick);
+      if (current?.element === sidekick) current = null;
       sidekick.remove();
     }
   });
   
-  // Track this sidekick
-  activeSidekicks.push({ element: sidekick, position, timeline: tl });
+  current = { element: sidekick, timeline: tl };
   
   // === ENTRANCE ===
   // Float in from the side with spring physics
@@ -1093,6 +1137,7 @@ export function dispose(): void {
   clearAllSidekicks();
   removeEventListeners();
   
+  quietUntil = 0;
   container?.remove();
   container = null;
   leftSlot = null;
@@ -1111,141 +1156,40 @@ export function dispose(): void {
 // ============================================================================
 
 /**
- * All the signals/events that can trigger sidekicks:
- * 
- * EMOTION SIGNALS (from voice prosody analysis):
- * - ferni:emotion-change - User's emotional state detected
- * - ferni:emotion-detected - Detailed emotion with confidence
- * 
- * ENGAGEMENT SIGNALS:
- * - ferni:celebration - Achievement or milestone
- * - ferni:memory-callback - Ferni remembered something
- * - ferni:growth-recognized - User growth detected
- * - ferni:concern-detected - User concern/distress
- * - ferni:deep-moment - Emotionally significant moment
- * 
- * CONVERSATION SIGNALS:
- * - ferni:conversation-start - Call began
- * - ferni:conversation-end - Call ended
- * - ferni:thinking - Ferni is processing
- * - ferni:user-speech-start/end - User speaking state
- * 
- * HUMANIZATION SIGNALS (from backend):
- * - humanization_signal with types: breakthrough, vulnerability, high_engagement, etc.
- * 
- * TOOL EXECUTION (from backend data messages):
- * - Music playing → music sidekick
- * - Calendar events → calendar sidekick
- * - Habit tracking → wellness sidekick
- * 
- * RELATIONSHIP MILESTONES:
- * - ferni:team-member-unlocked - New persona unlocked
- * - ferni:streak-milestone - Streak achievement
- * - ferni:milestone-celebrated - General milestone
+ * The signals that show a sidekick. Each one has a live dispatcher.
+ *
+ * Removed 2026-10-29 (sidekicks S1), and why:
+ * - brain on ferni:thinking, trendingUp on ferni:progress-tracked, hand on
+ *   ferni:conversation-start: they fired together at every connect and
+ *   stacked three squeezed icons on his arrival.
+ * - cake + gift / heart + star on a life_event outreach: a substring match on
+ *   "birthday" fired on grief ("since Mom died, the birthday...") while his
+ *   face was holding space.
+ * - the outreach bell: the toast already says it, and its type strings
+ *   ('thinking-of-you', 'check-in') never matched the real ones.
+ * - big-win, small-win, milestone, streak, team-unlock, deep-moment,
+ *   thinking-of-you, handoff (brand-integration dispatchers nobody calls),
+ *   sky-check and goal-achieved (no dispatcher), insights-generated (its
+ *   dispatcher, recordInsight, has no caller), and emotion-detected (read
+ *   emotion/intensity; the analyzer sends primary/confidence).
  */
-
 function setupEventListeners(): void {
   // Use AbortController for clean removal of all listeners
   if (eventAbortController) return; // Already set up
   eventAbortController = new AbortController();
   const signal = eventAbortController.signal;
 
-  // ─────────────────────────────────────────────────────────────────
-  // EMOTION SIGNALS - React to user's emotional state
-  // Uses ferni:emotion-detected (the actual dispatched event name)
-  // ─────────────────────────────────────────────────────────────────
-  
-  document.addEventListener('ferni:emotion-detected', ((e: CustomEvent) => {
-    const { emotion, intensity } = e.detail || {};
-    if (!emotion || intensity < 0.6) return; // Only strong emotions
-    
-    // Map emotions to sidekick icons
-    const emotionToIcon: Record<string, SidekickIcon> = {
-      happy: 'sparkles',
-      excited: 'zap',
-      curious: 'lightbulb',
-      sad: 'heart',
-      empathetic: 'hug',
-      proud: 'trophy',
-      surprised: 'sparkle',
-      thinking: 'brain',
-      celebrating: 'party',
-    };
-    
-    const icon = emotionToIcon[emotion as string];
-    if (icon) {
-      showSidekick({ icon, position: 'right', duration: 2500 });
-    }
-  }) as EventListener, { signal });
+  // A call starting is his moment: no props for the first few seconds.
+  // Dispatched on window by app.ts.
+  window.addEventListener('ferni:conversation-start', quietForArrival, { signal });
 
-  // ─────────────────────────────────────────────────────────────────
-  // CELEBRATION & MILESTONE SIGNALS
-  // Uses actual event names from brand-integration.ts
-  // ─────────────────────────────────────────────────────────────────
-  
-  // ferni:big-win from brand-integration.ts
-  document.addEventListener('ferni:big-win', () => {
-    showSidekickPair('sparkles', 'party', 3000);
-  }, { signal });
-  
-  // ferni:small-win from brand-integration.ts
-  document.addEventListener('ferni:small-win', () => {
-    showSidekick({ icon: 'sparkle', position: 'right', duration: 2000 });
-  }, { signal });
-
+  // eq/capabilities/anticipation.ts: "I remember!"
   document.addEventListener('ferni:memory-callback', () => {
-    // Recognition moment - lightbulb to show "I remember!"
     showSidekick({ icon: 'lightbulb', position: 'right', duration: 2000 });
   }, { signal });
 
-  // ferni:deep-moment from brand-integration.ts
-  document.addEventListener('ferni:deep-moment', () => {
-    // Heart for emotionally significant moments
-    showSidekick({ icon: 'heart', position: 'right', duration: 3000 });
-  }, { signal });
-
   // ─────────────────────────────────────────────────────────────────
-  // RELATIONSHIP MILESTONES
-  // Uses actual event names from brand-integration.ts
-  // ─────────────────────────────────────────────────────────────────
-  
-  // ferni:team-unlock (actual name, not team-member-unlocked)
-  document.addEventListener('ferni:team-unlock', () => {
-    showSidekickPair('sparkles', 'star', 4000);
-  }, { signal });
-
-  // ferni:streak from brand-integration.ts
-  document.addEventListener('ferni:streak', ((e: CustomEvent) => {
-    const streak = e.detail?.streak;
-    if (streak >= 7) {
-      showSidekickPair('trophy', 'flame', 3500);
-    } else {
-      showSidekick({ icon: 'flame', position: 'right', duration: 2500 });
-    }
-  }) as EventListener, { signal });
-
-  // ferni:milestone from brand-integration.ts
-  document.addEventListener('ferni:milestone', () => {
-    showSidekick({ icon: 'trophy', position: 'right', duration: 3000 });
-  }, { signal });
-
-  // ─────────────────────────────────────────────────────────────────
-  // CONVERSATION STATE SIGNALS
-  // ─────────────────────────────────────────────────────────────────
-  
-  document.addEventListener('ferni:thinking', () => {
-    showSidekick({ icon: 'brain', position: 'right', duration: 2000 });
-  }, { signal });
-
-  // ferni:conversation-start is dispatched on window, not document
-  window.addEventListener('ferni:conversation-start', () => {
-    // Gentle wave on connection
-    showSidekick({ icon: 'hand', position: 'right', duration: 2000 });
-  }, { signal });
-
-  // ─────────────────────────────────────────────────────────────────
-  // MUSIC & MEDIA SIGNALS
-  // Uses ferni:music-state (the actual dispatched event name)
+  // MUSIC & MEDIA SIGNALS (data-message-handlers.ts)
   // ─────────────────────────────────────────────────────────────────
   
   document.addEventListener('ferni:music-state', ((e: CustomEvent) => {
@@ -1259,7 +1203,8 @@ function setupEventListeners(): void {
 
   // ─────────────────────────────────────────────────────────────────
   // HANDOFF / PERSONA SWITCH SIGNALS
-  // These are dispatched on window by persona-magic.ui.ts
+  // Dispatched on window by persona-magic.ui.ts (performMagicalHandoff,
+  // run by soul.ui.ts on every ferni:switch-persona)
   // ─────────────────────────────────────────────────────────────────
   
   window.addEventListener('ferni:handoff-start', () => {
@@ -1270,52 +1215,6 @@ function setupEventListeners(): void {
   window.addEventListener('ferni:handoff-complete', () => {
     // Sparkle to welcome new persona
     showSidekick({ icon: 'sparkle', position: 'right', duration: 2000 });
-  }, { signal });
-  
-  // ferni:handoff from brand-integration.ts (alternate event)
-  document.addEventListener('ferni:handoff', () => {
-    showSidekick({ icon: 'sparkle', position: 'right', duration: 2000 });
-  }, { signal });
-
-  // ─────────────────────────────────────────────────────────────────
-  // WEATHER / SKY-CHECK SIGNALS (internal emotional weather)
-  // ─────────────────────────────────────────────────────────────────
-  
-  document.addEventListener('ferni:sky-check', ((e: CustomEvent) => {
-    const { weather, energy } = e.detail || {};
-    
-    // Map weather to sidekick icons
-    const weatherToIcon: Record<string, SidekickIcon> = {
-      sunny: 'sun',
-      'partly-cloudy': 'cloudSun',
-      cloudy: 'cloud',
-      rainy: 'cloudRain',
-      stormy: 'zap',
-      foggy: 'cloud',
-      rainbow: 'rainbow',
-    };
-    
-    const icon = weatherToIcon[weather as string] || 'sun';
-    const energyIcon: Record<string, SidekickIcon> = {
-      high: 'zap',
-      medium: 'coffee',
-      low: 'moon',
-    };
-    
-    // Show weather on left, energy indicator on right
-    showSidekickPair(icon, energyIcon[energy as string] || 'coffee', 3500);
-  }) as EventListener, { signal });
-
-  // ─────────────────────────────────────────────────────────────────
-  // BIRTHDAY / ANNIVERSARY / IMPORTANT DATES
-  // ─────────────────────────────────────────────────────────────────
-  
-  document.addEventListener('ferni:birthday-reminder', () => {
-    showSidekickPair('cake', 'gift', 4000);
-  }, { signal });
-
-  document.addEventListener('ferni:anniversary-reminder', () => {
-    showSidekickPair('heart', 'star', 4000);
   }, { signal });
 
   // ─────────────────────────────────────────────────────────────────
@@ -1330,26 +1229,6 @@ function setupEventListeners(): void {
       showSidekick({ icon: 'gamepad', position: 'right', duration: 3000 });
     }
   }) as EventListener, { signal });
-
-  // ─────────────────────────────────────────────────────────────────
-  // PROACTIVE OUTREACH (from proactive-outreach.ui.ts)
-  // ─────────────────────────────────────────────────────────────────
-  
-  document.addEventListener('ferni:proactive-outreach', ((e: CustomEvent) => {
-    const type = e.detail?.type;
-    if (type === 'thinking-of-you') {
-      showSidekick({ icon: 'heart', position: 'right', duration: 3000 });
-    } else if (type === 'check-in') {
-      showSidekick({ icon: 'messageCircle', position: 'right', duration: 2500 });
-    } else {
-      showSidekick({ icon: 'bell', position: 'right', duration: 2000 });
-    }
-  }) as EventListener, { signal });
-  
-  // ferni:thinking-of-you from brand-integration.ts
-  document.addEventListener('ferni:thinking-of-you', () => {
-    showSidekick({ icon: 'heart', position: 'right', duration: 3000 });
-  }, { signal });
 
   // ─────────────────────────────────────────────────────────────────
   // BREAKTHROUGH MOMENTS (from humanization-bridge.service.ts)
@@ -1380,25 +1259,6 @@ function setupEventListeners(): void {
   // ferni:meditation-started from game-picker.ui.ts (reflection games)
   document.addEventListener('ferni:meditation-started', () => {
     showSidekick({ icon: 'leaf', position: 'right', duration: 3000 });
-  }, { signal });
-  
-  // ─────────────────────────────────────────────────────────────────
-  // PROGRESS & GOALS SIGNALS
-  // ─────────────────────────────────────────────────────────────────
-  
-  // ferni:goal-achieved from monetization-integration.service.ts
-  document.addEventListener('ferni:goal-achieved', () => {
-    showSidekickPair('trophy', 'confetti', 4000);
-  }, { signal });
-  
-  // ferni:progress-tracked from growth-journey.service.ts
-  document.addEventListener('ferni:progress-tracked', () => {
-    showSidekick({ icon: 'trendingUp', position: 'right', duration: 2500 });
-  }, { signal });
-  
-  // ferni:insights-generated from relationship-stage.service.ts
-  document.addEventListener('ferni:insights-generated', () => {
-    showSidekick({ icon: 'lightbulb', position: 'right', duration: 2500 });
   }, { signal });
 
   log.debug('Event listeners set up for sidekick triggers');

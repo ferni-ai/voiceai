@@ -111,8 +111,10 @@ describe('whoHint (the lexical forms, as a hint only)', () => {
 
 const IMMINENT_TP: CrisisVerdict = { risk: 'imminent', subject: 'third_party' };
 const IMMINENT_SELF: CrisisVerdict = { risk: 'imminent', subject: 'self' };
+// Own imminent risk the patterns miss in every CRISIS_MEANS_IN_HAND mode (#2717 reads
+// "i have the pills right here and i'm taking them now" on the patterns once live).
 const OWN_IMMINENT =
-  "i have the pills right here and i'm taking them now and he said he'd kill himself";
+  "i'm holding the pills and i'm going to swallow them and he said he'd kill himself";
 
 describe('applyWhoRead: the classifier imminent level on a self read', () => {
   it("an own-imminent line beside a third-party clause gets main's self-imminent script", () => {

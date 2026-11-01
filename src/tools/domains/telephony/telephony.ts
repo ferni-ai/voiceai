@@ -17,6 +17,7 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { callSessionData } from '../../utils/call-session-data.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 
 /** What callUser returns when it can't ring the user's phone. */
@@ -42,22 +43,8 @@ const REPEAT_NOTE: Record<Refusal, string> = {
   scheduleCallback: ALREADY_SAID_CANT_SCHEDULE,
 };
 
-/**
- * The refusals already given in each call, keyed by the call session's
- * userData: one object per AgentSession, so nothing carries into the next
- * call, and the entry goes when the session does.
- */
+/** The refusals already given in each call, keyed by the call session's userData. */
 const refusedInCall = new WeakMap<object, Set<Refusal>>();
-
-/** The call session's userData, or undefined (no session, or the SDK throws: userData not set). */
-function callKey(opts: unknown): object | undefined {
-  try {
-    const data = (opts as { ctx?: { userData?: unknown } } | undefined)?.ctx?.userData;
-    return typeof data === 'object' && data !== null ? data : undefined;
-  } catch {
-    return undefined;
-  }
-}
 
 /**
  * The full refusal the first time in this call, then a short note telling
@@ -65,7 +52,7 @@ function callKey(opts: unknown): object | undefined {
  * the full refusal: better repeated than lost.
  */
 export function refuseOnce(tool: Refusal, refusal: string, opts: unknown): string {
-  const key = callKey(opts);
+  const key = callSessionData(opts);
   if (!key) return refusal;
   const said = refusedInCall.get(key) ?? new Set<Refusal>();
   if (said.has(tool)) return REPEAT_NOTE[tool];

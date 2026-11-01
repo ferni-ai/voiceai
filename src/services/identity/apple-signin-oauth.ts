@@ -20,6 +20,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { errorClass } from '../../utils/error-class.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { openTokens, sealTokens } from '../../utils/token-at-rest.js';
 import { getFirestoreDatabase } from '../../config/environment.js';
@@ -202,8 +203,11 @@ export async function handleAppleCallback(
 
     return { success: true, userId };
   } catch (error) {
-    log.error({ error: String(error) }, 'Apple callback failed');
-    return { success: false, error: String(error) };
+    // The name only: the message can quote Apple's token response, and the caller puts
+    // this error in a redirect URL.
+    const kind = errorClass(error);
+    log.error({ error: kind }, 'Apple callback failed');
+    return { success: false, error: kind };
   }
 }
 
@@ -229,8 +233,7 @@ async function exchangeCodeForTokens(code: string): Promise<AppleTokens> {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Apple token exchange failed: ${errorText}`);
+    throw new Error(`Apple token exchange failed: HTTP ${response.status}`);
   }
 
   const data = (await response.json()) as AppleTokenResponse;
@@ -268,8 +271,7 @@ export async function refreshAppleToken(refreshToken: string): Promise<AppleToke
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Apple token refresh failed: ${errorText}`);
+    throw new Error(`Apple token refresh failed: HTTP ${response.status}`);
   }
 
   const data = (await response.json()) as AppleTokenResponse;
@@ -299,7 +301,7 @@ export async function getValidAppleToken(userId: string): Promise<string | null>
       await saveTokens(userId, newTokens);
       return newTokens.accessToken;
     } catch (error) {
-      log.error({ userId, error: String(error) }, 'Failed to refresh Apple token');
+      log.error({ userId, error: errorClass(error) }, 'Failed to refresh Apple token');
       return null;
     }
   }

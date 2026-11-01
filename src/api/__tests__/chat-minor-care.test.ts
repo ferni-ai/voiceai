@@ -39,23 +39,17 @@ vi.mock('../../memory/firestore-vector-store.js', () => ({
   getFirestoreVectorStore: () => ({ addDocument: async (doc: unknown) => store.indexed.push(doc) }),
 }));
 vi.mock('../../memory/embeddings.js', () => ({ embed: async () => [0.1, 0.2, 0.3] }));
-vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: class {
-    getGenerativeModel() {
-      return {
-        generateContent: async (req: { contents: Array<{ parts: Array<{ text: string }> }> }) => {
-          llm.prompts.push(req.contents[0]?.parts[0]?.text ?? '');
-          const args = { fact: 'favourite band is The Synthetics', category: 'preference' };
-          return {
-            response: {
-              text: () => 'Love that band!',
-              functionCalls: () => [{ name: 'rememberAboutUser', args }],
-            },
-          };
-        },
-      };
-    }
-  },
+vi.mock('../../config/gemini-config.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../config/gemini-config.js')>()),
+  getGeminiClient: async () => ({
+    models: {
+      generateContent: async (req: { contents: Array<{ parts: Array<{ text: string }> }> }) => {
+        llm.prompts.push(req.contents[0]?.parts[0]?.text ?? '');
+        const args = { fact: 'favourite band is The Synthetics', category: 'preference' };
+        return { text: 'Love that band!', functionCalls: [{ name: 'rememberAboutUser', args }] };
+      },
+    },
+  }),
 }));
 // "Bearer <uid>" is a verified token for <uid>; admin-uid is an admin.
 vi.mock('../auth-middleware.js', () => ({
@@ -66,7 +60,6 @@ vi.mock('../auth-middleware.js', () => ({
   }),
 }));
 
-process.env.GOOGLE_API_KEY = 'test-key';
 const { handleChatRoutes } = await import('../chat-routes.js');
 const { heldAfter, MINOR_CARE_NOTE, resetMinorCare } = await import('../../utils/minor-care.js');
 const { setHoldStore, STRICT_READ_MS } =

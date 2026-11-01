@@ -16,7 +16,7 @@ import base from './playwright.signed-in.config';
 const HIDDEN_PANEL_SPECS = [
   '**/agent-chat.spec.ts', // Meet More Friends (the marketplace)
   '**/custom-agents.spec.ts', // Meet More Friends (the marketplace)
-  '**/connect-panels.spec.ts', // Apple Health, Oura, Eight Sleep, Wearables tiles
+  '**/connect-panels.spec.ts', // Apple Health, Oura, Wearables tiles
 ];
 const HIDDEN_PANELS = [
   /quiz: answering a question shows how you did/, // Knowledge Quiz

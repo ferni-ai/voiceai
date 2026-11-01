@@ -35,9 +35,10 @@ const logged = new Set<string>();
 
 /** True when the tool may be registered; logs a skipped tool once per process. */
 export function toolAvailable(
-  def: Pick<ToolDefinition, 'id' | 'domain' | 'requiresEnv'>,
+  def: Pick<ToolDefinition, 'id' | 'domain' | 'requiresEnv' | 'availableWhen'>,
   env: Env = process.env
 ): boolean {
+  if (def.availableWhen && !def.availableWhen()) return false;
   if (!toolRequiresEnvEnabled(env)) return true;
   const missing = missingEnv(def, env);
   if (missing.length === 0) return true;

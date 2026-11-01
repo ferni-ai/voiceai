@@ -225,7 +225,7 @@ export class SmsSender {
       to,
       from: TWILIO_PHONE_NUMBER,
       body,
-      statusCallback: `${process.env.API_BASE_URL}/api/concierge/sms-status`,
+      // No concierge status route exists yet; one must check Twilio's signature.
     });
 
     return { messageSid: message.sid };

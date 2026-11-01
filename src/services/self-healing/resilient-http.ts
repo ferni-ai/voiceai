@@ -19,6 +19,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { redactUrl } from '../../utils/url-redaction.js';
 import { createCircuitBreaker, CircuitBreakerError } from './circuit-breaker.js';
 import { withResilience } from './resilient-executor.js';
 import { humanizeError, type HumanizedError } from './error-humanizer.js';
@@ -386,7 +387,6 @@ export function createResilientClient(
         );
       });
 
-      // Parse JSON response
       const data = (await response.json()) as T;
       const durationMs = Date.now() - startTime;
 
@@ -397,7 +397,7 @@ export function createResilientClient(
       recordRequestResult(serviceName, true, durationMs);
 
       log.debug(
-        { serviceName, url, status: response.status, durationMs, retries },
+        { serviceName, url: redactUrl(url), status: response.status, durationMs, retries },
         'Request succeeded'
       );
 
@@ -420,7 +420,7 @@ export function createResilientClient(
       log.warn(
         {
           serviceName,
-          url,
+          url: redactUrl(url), // query-string API keys (Alpha Vantage's apikey=) must not reach logs
           error: err.message,
           code: resilientError.code,
           durationMs,
@@ -546,11 +546,7 @@ export function getUnhealthyClients(): string[] {
 
 let _yahooFinanceClient: ResilientClient | null = null;
 let _alphaVantageClient: ResilientClient | null = null;
-let _googleApisClient: ResilientClient | null = null;
 let _wikipediaClient: ResilientClient | null = null;
-let _homeAssistantClient: ResilientClient | null = null;
-let _lifxClient: ResilientClient | null = null;
-let _smartThingsClient: ResilientClient | null = null;
 
 export function getYahooFinanceClient(): ResilientClient {
   if (!_yahooFinanceClient) {
@@ -573,16 +569,6 @@ export function getAlphaVantageClient(): ResilientClient {
   return _alphaVantageClient;
 }
 
-export function getGoogleApisClient(): ResilientClient {
-  if (!_googleApisClient) {
-    _googleApisClient = createResilientClient('google-apis', {
-      timeout: HTTP_TIMEOUT_MS,
-      maxRetries: MAX_RETRIES_LIGHT,
-    });
-  }
-  return _googleApisClient;
-}
-
 export function getWikipediaClient(): ResilientClient {
   if (!_wikipediaClient) {
     _wikipediaClient = createResilientClient('wikipedia', {
@@ -594,35 +580,11 @@ export function getWikipediaClient(): ResilientClient {
   return _wikipediaClient;
 }
 
-export function getHomeAssistantClient(): ResilientClient {
-  if (!_homeAssistantClient) {
-    _homeAssistantClient = createResilientClient('home-assistant', {
-      timeout: HTTP_TIMEOUT_MS,
-      maxRetries: MAX_RETRIES_LIGHT,
-      failureThreshold: 3, // Smart home should fail faster
-    });
-  }
-  return _homeAssistantClient;
-}
-
-export function getLifxClient(): ResilientClient {
-  if (!_lifxClient) {
-    _lifxClient = createResilientClient('lifx', {
-      timeout: HTTP_TIMEOUT_MS,
-      maxRetries: MAX_RETRIES_LIGHT,
-      failureThreshold: 3,
-    });
-  }
-  return _lifxClient;
-}
-
-export function getSmartThingsClient(): ResilientClient {
-  if (!_smartThingsClient) {
-    _smartThingsClient = createResilientClient('smartthings', {
-      timeout: HTTP_TIMEOUT_MS,
-      maxRetries: MAX_RETRIES_LIGHT,
-      failureThreshold: 3,
-    });
-  }
-  return _smartThingsClient;
+/** One breaker per credential key: one caller's revoked token must not open it for all. */
+export function getLifxClient(credentialKey?: string): ResilientClient {
+  return createResilientClient(credentialKey ? `lifx:${credentialKey}` : 'lifx', {
+    timeout: HTTP_TIMEOUT_MS,
+    maxRetries: MAX_RETRIES_LIGHT,
+    failureThreshold: 3,
+  });
 }

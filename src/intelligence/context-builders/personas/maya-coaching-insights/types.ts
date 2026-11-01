@@ -78,7 +78,6 @@ export interface CoachingMetrics {
 export interface MoodIntelligence {
   recentMoodTrend: 'improving' | 'declining' | 'stable' | 'unknown';
   averageEnergy: number;
-  optimalCoachingTime: string | null;
   moodHabitCorrelations: string[];
   currentState: { mood: string; energy: string } | null;
   energyPatterns: string[];

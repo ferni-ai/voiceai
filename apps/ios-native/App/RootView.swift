@@ -1,6 +1,7 @@
 import FerniDesign
 import FerniKit
 import SwiftUI
+import UIKit
 
 /// iPhone: the room. iPad (regular width): a sidebar beside it, with the call
 /// as its own full-height detail (UX spec §9). A call that starts brings the
@@ -33,7 +34,19 @@ struct RootView: View {
     }
 
     var body: some View {
+        @Bindable var model = model
         layout
+            // The quick action's Help, over any sheet; `initial` for the one that launched the app.
+            .onChange(of: model.isShowingHelp, initial: true) { _, showing in
+                if showing { HelpSheet.present { model.isShowingHelp = false } }
+            }
+            .alert(model.notice ?? "", isPresented: Binding(
+                get: { model.notice != nil }, set: { if !$0 { model.notice = nil; model.noticeDetail = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                if let detail = model.noticeDetail { Text(detail) }
+            }
             // Only a build the server names as too old; nothing can dismiss it.
             .fullScreenCover(isPresented: .constant(model.minimumBuild.updateRequired)) {
                 UpdateRequiredView(message: model.minimumBuild.message)
@@ -136,5 +149,43 @@ struct UpdateRequiredView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(FerniColor.background)
         .interactiveDismissDisabled()
+    }
+}
+
+/// Help from the Home Screen's "Get help now", over whatever is on screen:
+/// the consent screen, Settings, sign-in. A sheet on RootView can't present
+/// while another sheet is up, and help never waits for one to close.
+@MainActor enum HelpSheet {
+    /// Presents as soon as something can (at launch the window may not be up
+    /// yet, or a sheet may be mid-animation); `closed` runs once it's gone.
+    static func present(closed: @escaping @MainActor () -> Void) {
+        Task {
+            for _ in 0..<50 {
+                if let top = UIApplication.shared.topViewController,
+                   top.viewIfLoaded?.window != nil, top.transitionCoordinator == nil {
+                    let host = UIHostingController(rootView: HelpSheetView(closed: closed))
+                    host.rootView.done = { [weak host] in host?.dismiss(animated: true) }
+                    top.present(host, animated: true)
+                    return
+                }
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            closed() // so the next press tries again
+        }
+    }
+}
+
+private struct HelpSheetView: View {
+    var done: () -> Void = {}
+    let closed: @MainActor () -> Void
+
+    var body: some View {
+        NavigationStack {
+            HelpView().toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Done", action: done) }
+            }
+        }
+        // Done or a swipe down.
+        .onDisappear(perform: closed)
     }
 }

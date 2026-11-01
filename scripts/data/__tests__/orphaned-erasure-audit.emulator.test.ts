@@ -12,10 +12,14 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 // This test runs against the real emulators under either config.
 vi.unmock('firebase-admin/app');
 vi.unmock('firebase-admin/firestore');
-import { getAuth } from 'firebase-admin/auth';
+import { getAuth, type Auth } from 'firebase-admin/auth';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
-import { runAudit } from '../orphaned-erasure-audit.js';
+import { openDatabase, runAudit } from '../orphaned-erasure-audit.js';
+
+/** The database id a Firestore instance is bound to */
+const databaseIdOf = (db: Firestore): string =>
+  (db as unknown as { databaseId: string }).databaseId;
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST && !!process.env.FIREBASE_AUTH_EMULATOR_HOST;
 const PROJECT = 'demo-orphan-audit';
@@ -145,5 +149,37 @@ describe.skipIf(!emulator)('orphaned erasure audit', () => {
     expect((await db.collection('answer_cards').where('userId', '==', GONE).get()).size).toBe(1);
     expect((await db.doc(`user_seeds/${LIVE}`).get()).exists).toBe(true);
     expect((await db.doc('unrelated/doc').get()).exists).toBe(true);
+  });
+
+  it('counts across more than one Auth lookup batch', async () => {
+    const many = Array.from(
+      { length: 150 },
+      (_, i) => `${String(i).padStart(6, '0')}${'a'.repeat(22)}`
+    );
+    const batch = db.batch();
+    for (const who of many) batch.set(db.doc(`user_seeds/${who}`), { balance: 1 });
+    await batch.commit();
+    const run = await runAudit({ db, auth });
+    expect(run.total).toBe(150);
+  });
+
+  it('aborts when Firebase Auth cannot be read, rather than counting users as missing', async () => {
+    await seedDeleted(GONE);
+    const unreadable = {
+      getUsers: async () => {
+        throw new Error('auth/internal-error');
+      },
+    } as unknown as Auth;
+    await expect(runAudit({ db, auth: unreadable })).rejects.toThrow('auth/internal-error');
+  });
+
+  it('reads the database FIRESTORE_DATABASE names, and the default when it is unset', async () => {
+    const app = getApps().find((a) => a.name === 'orphan-audit-test');
+    expect(app).toBeDefined();
+    vi.stubEnv('FIRESTORE_DATABASE', 'orphan-audit-named');
+    expect(databaseIdOf(openDatabase(app!))).toBe('orphan-audit-named');
+    vi.stubEnv('FIRESTORE_DATABASE', '');
+    expect(databaseIdOf(openDatabase(app!))).toBe('(default)');
+    vi.unstubAllEnvs();
   });
 });

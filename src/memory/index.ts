@@ -19,15 +19,13 @@
  * - Semantic deduplication
  * - Comprehensive metrics
  */
-
-// Store interfaces and implementations
+// Store interfaces and implementations, in-memory and production
 export { getDefaultStore, InMemoryStore, resetDefaultStore } from './in-memory-store.js';
 export { MemoryStore, type QueryOptions, type SearchResult } from './store.js';
-
-// Production stores
 export { FirestoreStore, getFirestoreStore, resetFirestoreStore } from './firestore-store.js';
 export { getPostgresStore, PostgresStore, resetPostgresStore } from './postgres-store.js';
 export { getRedisCache, RedisCache, resetRedisCache } from './redis-cache.js';
+export { isThirdPartyCallUser } from './third-party-call.js'; // the person on a call placed for a member
 
 // Embeddings
 export {
@@ -108,8 +106,7 @@ export {
   type UserLearnings,
 } from './learning-engine.js';
 
-// History Tracker Stubs (legacy - history tracking is now handled by session state)
-// These are no-op stubs for backward compatibility
+// History tracker no-op stubs, kept for backward compatibility (session state tracks history)
 // Uses ConversationTurn from summarizer.ts (re-exported below)
 import { type ConversationTurn as SummarizerTurn } from './summarizer.js';
 
@@ -233,8 +230,6 @@ export {
   type RetrievalContext,
   type RetrievedMemory,
 } from './advanced-retrieval.js';
-
-// --- NEW v2 MODULES ---
 
 // Result Type Pattern (error handling)
 export {
@@ -596,8 +591,7 @@ export { routeSignalsToSuperhuman } from './superhuman-signal-router.js';
 //   await store.initialize();
 //   const memory = await store.store({ userId, type: 'entity', content: '...' });
 //   const result = await store.recall({ userId, query: '...' });
-// This is part of the Superhuman Memory implementation (Phase 1).
-// See docs/plans/SUPERHUMAN-MEMORY-IMPLEMENTATION-PLAN.md
+// Superhuman Memory, Phase 1: docs/plans/SUPERHUMAN-MEMORY-IMPLEMENTATION-PLAN.md
 
 export {
   // Main entry point
@@ -678,7 +672,6 @@ export type {
 export {
   captureMultiplePeople,
   capturePersonEntity,
-  // Storage
   createEntity,
   createMention,
   deleteEntity,
@@ -695,8 +688,8 @@ export {
   getRelationshipsForEntity,
   hasEntityStore,
   initializeEntityStore,
-  // Integration
   isEntityStoreReady,
+  listPersonEntities,
   mergeEntities,
   migrateAllUsers,
   // Migration
@@ -705,6 +698,7 @@ export {
   // Resolver
   resolvePerson,
   searchEntities,
+  setPersonPhone,
   updateEntity,
   upsertRelationship,
   whatDoWeKnowAbout,
@@ -1282,9 +1276,13 @@ export default {
   rehydrateConversationEmbeddings,
 };
 export { forgottenInProcess, forgottenTopicsOrNull, worldFactText } from './recall/forget.js';
-export { aboutForgotten, forgottenWithin } from './recall/forget-every-reader.js';
-export { keepRemembered, profileForCaller } from './recall/forget-every-reader.js';
+export { aboutForgotten, forgottenWithin, keepRemembered, profileForCaller } from './recall/forget-every-reader.js'; // prettier-ignore
+export { isPersonaSubject } from './entity-hygiene.js';
+export { dualWriteFacts, mapWorldFact, type DualWriteDeps } from './writer/facts-dual-write.js';
 export { CALLER_PROVENANCE, contentWords, forgetTokens } from './recall/session-recall.js';
 export { isForgotten, undisputed, type RecallFact } from './recall/session-recall.js';
+export { containsContactData, contactNumberRuns, foldContactText } from './domain/contact-data.js';
 export { peopleOf } from './recall/people.js';
 export { isSensitiveThread } from './recall/sensitive.js';
+export { claimOpenerFollowUp } from './recall/opener-claim.js';
+export { keepLetters, nameTokens, OWNER_LEAD, relationWords } from './domain/person-key.js';

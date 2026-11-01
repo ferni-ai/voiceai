@@ -16,6 +16,7 @@ const SURFACE = [
   'src/agents/voice-agent-entry/metadata-parser.ts',
   'src/agents/voice-agent-entry/startup-log.ts',
   'src/agents/voice-agent-entry/handler-setup.ts',
+  'src/agents/voice-agent-entry/user-input-transcribed.ts',
   'src/agents/voice-agent-entry/session-creator.ts',
   'src/agents/voice-agent-entry/call-start-identify.ts',
   'src/agents/voice-agent-entry/caller-recognition.ts',
@@ -60,6 +61,18 @@ const SURFACE = [
   'src/agents/shared/tool-executors/information-executor.ts',
   'src/agents/processors/turn-processor/process-turn.ts',
   'src/agents/integrations/better-than-human-integration.ts',
+  // The placed call's own lines: the person called, their name and number (on-behalf privacy).
+  'src/services/outreach/outbound-call-tracker.ts',
+  'src/services/outreach/message-enrichment.ts',
+  'src/services/outreach/scheduled-outreach-executor.ts',
+  'src/services/outreach/scheduled-multi-outreach.ts',
+  'src/tools/domains/telephony/call-on-behalf.ts',
+  'src/services/outreach/webhooks/twilio-webhooks.ts',
+  'src/services/outreach/on-behalf-call-orchestrator.ts',
+  'src/services/outreach/user-contact.ts',
+  'src/services/contacts/contact-relationship-service.ts',
+  'src/services/identity/contacts/contact-onboarding.ts',
+  'src/services/trust-and-identity/identity-orchestrator.ts',
 ];
 
 /**
@@ -101,9 +114,10 @@ const REQUIRED = [
 const EXEMPT: Exemptions = {
   pending: [
     // E2E_USER_INPUT: the call reviewer reads what the caller said here (#2656): pending Seth's call.
+    // On a call placed for a member, `said` is empty: the person called never signed up.
     [
       'transcript-handler.ts',
-      '(\n        {\n          trace: \'E2E_USER_INPUT\',\n          transcript: event.transcript.slice(0, 100),\n          fullLength: event.transcript.length,\n          sessionId,\n          userId,\n          turnNumber: userData.turnCount || 0,\n        },\n        `🔍 E2E TRACE [STT] User said: "${event.transcript.slice(0, 50)}..." (${event.transcript.length} chars)`\n      )',
+      '(\n        {\n          trace: \'E2E_USER_INPUT\',\n          transcript: said.slice(0, 100),\n          fullLength: event.transcript.length,\n          sessionId,\n          userId,\n          turnNumber: userData.turnCount || 0,\n        },\n        `🔍 E2E TRACE [STT] User said: "${said.slice(0, 50)}..." (${event.transcript.length} chars)`\n      )',
     ],
     // voice-eval reads this preview (review-calls, turn-taking): pending Seth's call.
     ['process-turn.ts', "('Processing user turn', {\n    preview: userText.slice(0, 100),\n  })"],
@@ -160,15 +174,20 @@ const EXEMPT: Exemptions = {
     ['weather.ts', 'condition', 'condition'], // the weather API's condition text
     ['process-turn.ts', 'enriched', 'enriched.primary'], // an emotion label
     ['better-than-human-integration.ts', 'emotions', "contradictionResult.emotions.join(' + ')"], // emotion labels
+    ['twilio-webhooks.ts', 'phoneLast4', 'last4(phone)'], // a number's last four digits
+    ['twilio-webhooks.ts', 'phoneLast4', 'last4(From)'], // a number's last four digits
+    ['twilio-webhooks.ts', 'phoneLast4', 'last4(payload.To)'], // a number's last four digits
+    ['twilio-webhooks.ts', 'messageSid', 'payload.MessageSid'], // a Twilio id
+    ['twilio-webhooks.ts', 'callSid', 'payload.CallSid'], // a Twilio id
   ],
   whole: [
     ['session-creator.ts', 'record'], // TURN_METRICS: latencies and token counts
     ['sip-caller.ts', "(result.status === 'invalid' ? { signedReason: result.reason } : {})"], // SipCallerReading: masked number, attestation enums; signedReason an enum
-    ['sip-caller.ts', 'result'], // SipCallerReading: masked number, attestation enums; signedReason an enum
     ['human-turn-intelligence.ts', 'result'], // TurnSignals: scores, flags and a backchannel kind
     ['agent-setup.ts', 'record'], // TURN_METRICS: latencies and token counts
     ['tts-wrapper.ts', 'extractedInfo'], // tool name and argument key names (analyzeLeakedJson)
     ['e2e-latency-tracker.ts', 'summary'], // latencies, a bottleneck kind, the transcript's length
+    ['scheduled-outreach-executor.ts', 'result'], // ExecutionResult: counts
   ],
 };
 
@@ -186,11 +205,11 @@ describe('the call and turn logs', () => {
     );
     expect(changed).not.toBe(src);
     expect(offences(path, src, EXEMPT)).toEqual([]);
-    expect(offences(path, changed, EXEMPT).some((o) => o.includes('event.transcript'))).toBe(true);
+    expect(offences(path, changed, EXEMPT).some((o) => o.includes('said.slice'))).toBe(true);
     // A slice lengthened at the end of the call, its start unchanged, is caught too.
     const longer = src.replace(
-      'User said: "${event.transcript.slice(0, 50)}',
-      'User said: "${event.transcript.slice(0, 90)}'
+      'User said: "${said.slice(0, 50)}',
+      'User said: "${said.slice(0, 90)}'
     );
     expect(longer).not.toBe(src);
     expect(offences(path, longer, EXEMPT)).not.toEqual([]);

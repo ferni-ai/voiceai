@@ -17,6 +17,7 @@ import {
   sanitizePhoneForLog,
 } from '../utils/validation.js';
 import { MAX_RETRIES, RETRY_DELAY_MS, RETRY_MAX_DELAY_MS } from '../config/resilience-config.js';
+import { configuredEmailFrom } from '../config/house-facts.js';
 import {
   getEmailSender,
   type EmailSendResult,
@@ -109,14 +110,14 @@ async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): P
 // EMAIL SERVICE
 // ============================================================================
 
-/** True when the configured email transport (EMAIL_PROVIDER) can send. */
+/** True when the email transport (the ferni.ai Workspace mailbox) can send. */
 export function isEmailConfigured(): boolean {
   return getEmailSender().isConfigured();
 }
 
 /**
- * Send one email through the app's transport (SendGrid or the ferni.ai Workspace,
- * per EMAIL_PROVIDER). Never throws; check `ok`. For callers that can't import
+ * Send one email through the app's transport (the ferni.ai Workspace mailbox).
+ * Never throws; check `ok`. For callers that can't import
  * src/services/email-transport (L3 contexts).
  */
 export async function sendAppEmail(email: OutgoingEmail): Promise<EmailSendResult> {
@@ -129,22 +130,35 @@ export async function sendAppEmail(email: OutgoingEmail): Promise<EmailSendResul
  * Workspace user when EMAIL_FROM is unset (docs/runbooks/email-via-workspace.md).
  */
 export function unsubscribeMailbox(): string {
-  return process.env.EMAIL_FROM?.trim() || 'admin@ferni.ai';
+  return configuredEmailFrom() ?? 'admin@ferni.ai';
+}
+
+/** Who and what an email is for: carried to the transport as metadata, never sent. */
+export interface AppEmailOptions {
+  /** The member it is for (their account), when known. */
+  userId?: string;
+  /** What sent it, e.g. 'reminder' or 'agent-to-user'. */
+  trigger?: string;
+  /** The id of the thing it is about (reminder, outreach, call). */
+  sourceId?: string;
 }
 
 /**
- * Send a plain-text (or HTML) email from Ferni.
+ * Send a plain-text (or HTML) email from Ferni. Throws when the transport says
+ * it failed, so a caller never reports a send that didn't happen.
  *
  * @param to - Recipient email address
  * @param subject - Email subject
  * @param body - Email body content
  * @param isHtml - Whether body is HTML (default: false)
+ * @param options - userId / trigger / sourceId for the transport's metadata
  */
 export async function sendEmail(
   to: string,
   subject: string,
   body: string,
-  isHtml = false
+  isHtml = false,
+  options: AppEmailOptions = {}
 ): Promise<string> {
   // Validate email
   const emailValidation = validateEmail(to);
@@ -175,32 +189,23 @@ export async function sendEmail(
   const sanitizedBody = isHtml ? body : sanitizePlainText(body);
   const sanitizedSubject = sanitizePlainText(subject);
 
-  // Gmail backs off inside its transport. SendGrid doesn't retry at all, so its
-  // failures are retried here by status (isRetryableSendError: 408, 429, 5xx),
-  // plus a network error, which has no status.
-  const retryHere = sender.provider === 'sendgrid';
-  let result: EmailSendResult;
-  try {
-    result = await withRetry(async () => {
-      const attempt = await sender.send({
-        to,
-        subject: sanitizedSubject,
-        ...(isHtml ? { html: sanitizedBody } : { text: sanitizedBody }),
-        from: 'hello@ferni.ai',
-        fromName: 'Ferni',
-        kind: 'transactional',
-      });
-      if (retryHere && !attempt.ok && (attempt.status || attempt.retryable)) {
-        const message = attempt.error ?? 'send failed';
-        throw attempt.status ? new ProviderHttpError(message, attempt.status) : new Error(message);
-      }
-      return attempt;
-    });
-  } catch (error) {
-    throw new Error(`Email send failed (${sender.provider}): ${(error as Error).message}`);
-  }
-  if (!result.ok)
+  // The Gmail transport retries and backs off itself; it never throws.
+  const metadata = Object.fromEntries(
+    Object.entries(options).filter((e): e is [string, string] => typeof e[1] === 'string')
+  );
+  const result = await sender.send({
+    to,
+    subject: sanitizedSubject,
+    ...(isHtml ? { html: sanitizedBody } : { text: sanitizedBody }),
+    fromName: 'Ferni',
+    kind: 'transactional',
+    ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
+  });
+  if (!result.ok) {
+    // A code only: never the address or the body.
+    getLogger().warn({ provider: result.provider, code: result.status ?? 'send_failed', userId: options.userId }, 'Email not sent'); // prettier-ignore
     throw new Error(`Email send failed (${result.provider}): ${result.error ?? 'unknown error'}`);
+  }
 
   getLogger().info(
     {

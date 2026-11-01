@@ -34,6 +34,8 @@ await import('./config/refuse-production-data.js'); // loads dotenv, then the gu
 
 // Which token key this process seals and opens with (key id only), to match the web server's.
 await import('./utils/token-key-fingerprint-boot.js');
+// ...and which LOG_HASH_SECRET hashes phone numbers (fingerprint only), to match the web server's.
+await import('./services/outreach/phone-hash-key-boot.js');
 
 // Error reporting (Sentry), before the worker loads; a no-op without SENTRY_DSN.
 await import('./instrument.js');

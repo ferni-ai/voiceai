@@ -80,7 +80,7 @@ describe('Ferni Care dashboard: Connected services tab', () => {
           data: {
             providers: [
               { provider: 'oura', configured: true, linked: true },
-              { provider: 'fitbit', configured: true, linked: false },
+              { provider: 'whoop', configured: true, linked: false },
               { provider: 'garmin', configured: false, linked: false },
             ],
           },
@@ -99,7 +99,7 @@ describe('Ferni Care dashboard: Connected services tab', () => {
     );
     expect(rows['Your Calendar']).toBe('Connected');
     expect(rows['Oura Ring']).toBe('Connected');
-    expect(rows['Fitbit']).toBe('Not connected');
+    expect(rows['WHOOP']).toBe('Not connected');
     expect(rows['Garmin']).toBeUndefined(); // the server has no OAuth for it: nothing to offer
     expect(text()).not.toMatch(/coming soon/i);
   });

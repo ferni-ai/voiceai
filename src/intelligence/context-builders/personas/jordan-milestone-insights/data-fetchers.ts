@@ -10,6 +10,7 @@ import { createLogger } from '../../../../utils/safe-logger.js';
 import { getFinancialStore } from '../../../../services/stores/financial-store.js';
 import { getProductivityStore } from '../../../../services/stores/productivity-store.js';
 import { getGamificationStore } from '../../../../services/engagement/gamification-store.js';
+import { oldestFirst } from '../mood-log-order.js';
 import { getMemoryOrchestrator } from '../../../../memory/orchestrator.js';
 
 import type {
@@ -123,7 +124,6 @@ export async function getPeterFinancialInsights(userId: string): Promise<PeterFi
     await store.loadUserData(userId);
 
     const budget = store.getMainBudget(userId);
-    const goals = store.getActiveSavingsGoals(userId);
 
     if (budget) {
       const percentUsed = (budget.spent / budget.monthlyLimit) * 100;
@@ -153,34 +153,6 @@ export async function getPeterFinancialInsights(userId: string): Promise<PeterFi
       }
 
       insights.eventBudgetCapacity = remaining;
-
-      // Calculate savings velocity
-      if (goals.length > 0) {
-        const totalNeeded = goals.reduce((sum, g) => sum + (g.targetAmount - g.currentAmount), 0);
-        const savingsCapacity = remaining * 0.3; // Assume 30% could go to savings
-
-        if (savingsCapacity > 0 && totalNeeded > 0) {
-          const monthsNeeded = totalNeeded / savingsCapacity;
-          insights.monthsToGoalCompletion = Math.ceil(monthsNeeded);
-
-          if (monthsNeeded < 6) {
-            insights.savingsVelocity = 'rapid';
-            insights.financialReadiness.push(
-              `🚀 Peter calculates: ALL goals achievable in ~${Math.ceil(monthsNeeded)} months at current pace!`
-            );
-          } else if (monthsNeeded < 12) {
-            insights.savingsVelocity = 'steady';
-            insights.financialReadiness.push(
-              `Peter projects: Goals on track for completion within ${Math.ceil(monthsNeeded)} months`
-            );
-          } else {
-            insights.savingsVelocity = 'gradual';
-            insights.financialReadiness.push(
-              `Peter notes: Current pace suggests ${Math.ceil(monthsNeeded)} months to goal completion - may need acceleration`
-            );
-          }
-        }
-      }
     }
 
     // Check for celebration-related spending
@@ -288,7 +260,8 @@ export async function getMoodPatterns(userId: string): Promise<MoodInsights> {
     const now = new Date();
     const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-    const moodLogs = await gamificationStore.getMoodLogs(userId, twoWeeksAgo, now);
+    // Oldest first: the store returns newest first, and the reads below assume time order.
+    const moodLogs = oldestFirst(await gamificationStore.getMoodLogs(userId, twoWeeksAgo, now));
 
     if (moodLogs.length === 0) return insights;
 

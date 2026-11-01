@@ -22,41 +22,17 @@ export {
   type InboundMessage,
 } from './twilio-webhooks.js';
 
-// Email Webhooks
-export {
-  emailWebhooks,
-  initializeEmailWebhooks,
-  onEmailEvent,
-  validateSendGridSignature,
-  validateResendSignature,
-  handleSendGridWebhook,
-  handleResendWebhook,
-  handleOpenTracking,
-  handleClickTracking,
-  generateOpenTrackingPixel,
-  generateClickTrackingUrl,
-  getRecentEvents,
-  getMessageEvents,
-  clearOldEvents,
-  type SendGridEvent,
-  type ResendEvent,
-  type EmailTrackingEvent,
-} from './email-webhooks.js';
-
 // ============================================================================
 // UNIFIED INITIALIZATION
 // ============================================================================
 
 import { initializeTwilioWebhooks } from './twilio-webhooks.js';
-import { initializeEmailWebhooks } from './email-webhooks.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'webhooks' });
 
 export interface WebhooksConfig {
   twilioAuthToken?: string;
-  sendgridWebhookKey?: string;
-  resendWebhookSecret?: string;
 }
 
 let initialized = false;
@@ -76,12 +52,6 @@ export function initializeWebhooks(config: WebhooksConfig): void {
   if (config.twilioAuthToken) {
     initializeTwilioWebhooks(config.twilioAuthToken);
   }
-
-  // Initialize email webhooks
-  initializeEmailWebhooks({
-    sendgridWebhookKey: config.sendgridWebhookKey,
-    resendWebhookSecret: config.resendWebhookSecret,
-  });
 
   initialized = true;
   log.info('✅ Webhook handlers initialized');

@@ -74,11 +74,11 @@ describe('EnvValidator', () => {
         missing: [],
         warnings: [
           'REDIS_URL not set - Redis connection URL',
-          'SENDGRID_API_KEY not set - SendGrid API key for email',
+          'EMAIL_FROM not set - From address for the ferni.ai Workspace mailbox',
         ],
         available: {
           REDIS_URL: false,
-          SENDGRID_API_KEY: false,
+          EMAIL_FROM: false,
         },
       };
 
@@ -197,8 +197,7 @@ describe('EnvValidator', () => {
       expect(features.redisCache).toBe(true);
     });
 
-    it('should detect email notifications when SENDGRID_API_KEY set', () => {
-      process.env.SENDGRID_API_KEY = 'sg-key';
+    it('always offers email notifications: the Workspace mailbox needs no key', () => {
       const features = getFeatureAvailability();
       expect(features.emailNotifications).toBe(true);
     });
@@ -306,13 +305,12 @@ describe('EnvValidator', () => {
     it('should list missing features', () => {
       const missing = getMissingFeatures();
 
-      expect(missing.some((m) => m.includes('Email'))).toBe(true);
+      expect(missing.some((m) => m.includes('Email'))).toBe(false);
       expect(missing.some((m) => m.includes('SMS'))).toBe(true);
       expect(missing.some((m) => m.includes('Bank'))).toBe(true);
     });
 
     it('should not list available features', () => {
-      process.env.SENDGRID_API_KEY = 'sg-key';
       const missing = getMissingFeatures();
 
       expect(missing.some((m) => m.includes('Email'))).toBe(false);
@@ -335,7 +333,6 @@ describe('EnvValidator', () => {
     });
 
     it('should return empty array when all configured', () => {
-      process.env.SENDGRID_API_KEY = 'sg-key';
       process.env.TWILIO_ACCOUNT_SID = 'sid';
       process.env.TWILIO_AUTH_TOKEN = 'token';
       process.env.PLAID_CLIENT_ID = 'plaid-id';
@@ -412,7 +409,7 @@ describe('EnvValidator', () => {
     });
 
     describe('Communication variables', () => {
-      const commVars = ['SENDGRID_API_KEY', 'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN'];
+      const commVars = ['EMAIL_FROM', 'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN'];
 
       it.each(commVars)('%s should be optional', (varName) => {
         process.env.LIVEKIT_API_KEY = 'test-key';
@@ -433,7 +430,6 @@ describe('EnvValidator', () => {
       process.env.LIVEKIT_API_SECRET = 'test-secret';
       process.env.GOOGLE_API_KEY = 'google-key';
       process.env.CARTESIA_API_KEY = 'cartesia-key';
-      process.env.SENDGRID_API_KEY = 'sg-key';
       process.env.TWILIO_ACCOUNT_SID = 'sid';
       process.env.TWILIO_AUTH_TOKEN = 'token';
 

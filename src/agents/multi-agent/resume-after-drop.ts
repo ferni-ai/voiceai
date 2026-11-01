@@ -26,6 +26,7 @@ import { directedText } from '../../speech/direction/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { calmGreeting, directedGreeting } from './greeting-direction.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
+import { openingNotice } from '../shared/ai-notice.js';
 
 const log = createLogger({ module: 'ResumeAfterDrop' });
 
@@ -231,9 +232,24 @@ type GreetingUserData = Parameters<typeof directedGreeting>[2];
 
 /**
  * The agent's first line. A call that dropped moments ago gets its turns back
- * and an honest reconnect line; any other call gets the usual hello.
+ * and an honest reconnect line; any other call gets the usual hello. With
+ * AI_NOTICE_SPOKEN on, the line says Ferni is an AI unless this person heard
+ * that in the last 24 hours (ai-notice.ts; looked up while the line is made).
  */
 export async function greetingOrResume(
+  sessionId: string,
+  agent: { personaId: string; agent?: HistoryAgent },
+  userData: GreetingUserData
+): Promise<string> {
+  const ids = { userId: userData?.userId, personaId: agent.personaId };
+  const [line, withNotice] = await Promise.all([
+    firstLine(sessionId, agent, userData),
+    openingNotice(sessionId, ids),
+  ]);
+  return withNotice(line);
+}
+
+async function firstLine(
   sessionId: string,
   agent: { personaId: string; agent?: HistoryAgent },
   userData: GreetingUserData

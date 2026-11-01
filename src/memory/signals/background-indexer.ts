@@ -126,6 +126,8 @@ async function loadIndexStatus(): Promise<void> {
  * Save indexing status to Firestore
  */
 async function saveIndexStatus(bundleId: string, status: IndexingStatus): Promise<void> {
+  // Not a persona bundle (`__tests__`, `.cache`): Firestore rejects `__x__` and dot doc ids.
+  if (bundleId.startsWith('_') || bundleId.startsWith('.')) return;
   try {
     const { getGCPProjectId, getFirestoreDatabase } = await import('../../config/environment.js');
     const { Firestore } = await import('@google-cloud/firestore');

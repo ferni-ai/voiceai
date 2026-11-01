@@ -211,7 +211,10 @@ describe('vector index arm (oracle vectors)', () => {
    * part is the sum of the facts it is labelled for (small talk: its own).
    */
   function oracle(): Vectors {
-    const unit = (v: number[]) => v.map((x) => x / Math.hypot(...v));
+    const unit = (v: number[]) => {
+      const norm = Math.hypot(...v); // once per vector, not once per element
+      return v.map((x) => x / norm);
+    };
     const random = (text: string) => {
       const next = seededRandom([...text].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7));
       return unit(Array.from({ length: 768 }, () => next() * 2 - 1));

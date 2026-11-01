@@ -3,19 +3,20 @@
  * Comprehensive Integration Test Suite
  *
  * Tests ALL external integrations end-to-end:
- * 1. Communication: SendGrid, Twilio SMS, Twilio Voice
+ * 1. Communication: email (the ferni.ai Workspace mailbox), Twilio SMS, Twilio Voice
  * 2. Places: Google Places API
  * 3. Banking: Plaid (sandbox mode)
  * 4. Music: Spotify
  * 5. Research: Finnhub, Alpha Vantage
  * 6. Proactive: Full trigger → outreach flow
  *
- * Usage:
- *   npx env-cmd -f .env npx tsx scripts/test-all-integrations.ts
- *   npx env-cmd -f .env npx tsx scripts/test-all-integrations.ts --live  # Send real messages
+ * Usage (pnpm test:integrations, :live, :nightly):
+ *   npx env-cmd -f .env npx tsx apps/cli/src/commands/test/test-all-integrations.ts
+ *   ... --live      # Send real messages
+ *   ... --nightly   # read-only probes vs scripts/ops/integration-expected.json (integration-nightly.ts)
  */
+import { runNightly } from './integration-nightly.js';
 
-// Colors
 const GREEN = '\x1b[32m';
 const RED = '\x1b[31m';
 const YELLOW = '\x1b[33m';
@@ -66,28 +67,19 @@ function checkEnvVar(name: string): string {
 }
 
 // ============================================================================
-// SENDGRID TESTS
+// EMAIL TESTS (the ferni.ai Workspace mailbox; no API key)
 // ============================================================================
 
-async function testSendGrid(): Promise<void> {
-  console.log(`\n${CYAN}━━━ SendGrid Email ━━━${NC}`);
-
-  await runTest('SendGrid', 'API key configured', async () => {
-    const key = checkEnvVar('SENDGRID_API_KEY');
-    return `Key: ${key.slice(0, 10)}...`;
-  });
-
-  await runTest('SendGrid', 'From email configured', async () => {
-    return checkEnvVar('SENDGRID_FROM_EMAIL');
-  });
+async function testEmail(): Promise<void> {
+  console.log(`\n${CYAN}━━━ Email (Workspace) ━━━${NC}`);
 
   if (isLiveMode && process.env.TEST_EMAIL) {
-    await runTest('SendGrid', 'Send test email', async () => {
+    await runTest('Email', 'Send test email', async () => {
       const { sendEmail } = await import('../src/services/communication-service.js');
       const result = await sendEmail(
         process.env.TEST_EMAIL!,
         '✅ Ferni Integration Test',
-        `This email confirms SendGrid is working!\n\nTimestamp: ${new Date().toISOString()}`
+        `This email confirms Workspace email is working!\n\nTimestamp: ${new Date().toISOString()}`
       );
       return result;
     });
@@ -248,7 +240,6 @@ async function testPlaid(): Promise<void> {
     return `Env: ${process.env.PLAID_ENV || 'sandbox'}`;
   });
 
-  // Note: Can't test Plaid without going through OAuth flow
 }
 
 // ============================================================================
@@ -472,6 +463,7 @@ function printSummary(): void {
 // ============================================================================
 
 async function main(): Promise<void> {
+  if (process.argv.includes('--nightly')) process.exit(await runNightly(process.argv));
   console.log(`\n${CYAN}╔════════════════════════════════════════════════════════════╗${NC}`);
   console.log(`${CYAN}║        FERNI COMPREHENSIVE INTEGRATION TEST                ║${NC}`);
   console.log(`${CYAN}╚════════════════════════════════════════════════════════════╝${NC}`);
@@ -482,8 +474,7 @@ async function main(): Promise<void> {
     if (!process.env.TEST_PHONE_NUMBER) console.log(`${RED}   TEST_PHONE_NUMBER not set${NC}`);
   }
 
-  // Run all tests
-  await testSendGrid();
+  await testEmail();
   await testTwilio();
   await testGooglePlaces();
   await testCartesia();

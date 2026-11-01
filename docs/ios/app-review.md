@@ -21,6 +21,30 @@ The minimum-build screen (`MinimumBuild`) shows only when the server names
 this build as too old. That route doesn't exist yet, so it never shows. It
 gates no feature.
 
+## Paid plans: unreachable, and what's left in the binary
+
+Ferni is free for now (2026-10-10). `PaidPlans.isOffered` is a constant
+`false`, so the app never prices, sells or restores a plan, and nothing
+leads to the StoreKit code (`SubscriptionService`, `PlanPurchaseModel`),
+which stays in the source so paid plans can come back. The constant is a
+`let`, not a build-time `#if`: the code is compiled, then stripped where the
+linker can.
+
+Measured on an unsigned Release archive (build 2026101918.59, 2026-10-19):
+
+| Looked for in `Ferni.app/Ferni` | Found |
+|---|---|
+| The four product IDs (`com.ferni.subscription.*`) | none |
+| Purchase copy ("Restore purchases", "Your plan", "per month") | none |
+| A `.storekit` configuration in the bundle | none |
+| The class names `SubscriptionService`, `PlanPurchaseModel` | yes, as Objective-C runtime names (`_TtC8FerniKit19SubscriptionService`). Swift classes are listed in `__objc_classlist`, which the linker never strips |
+| StoreKit | linked (`otool -L`), for one type: `StoreKit.Product` |
+
+So no purchase path, product or price ships, but a static scan will see
+StoreKit linked and those two class names. Linking StoreKit isn't a
+guideline issue on its own, and nothing a reviewer can reach depends on it.
+If even that should go, wrap `FerniKit/Store/` in `#if PAID_PLANS`.
+
 ## Signing in: no demo account needed
 
 The app signs in anonymously on first launch, so a reviewer can talk to Ferni
@@ -39,7 +63,7 @@ notes as a one-time link, never in this repository.
 
 | Feature | Where | Notes |
 |---|---|---|
-| Coming back | Home, after time away | After 20 minutes away the last call's goodbye clears; after 8 hours Ferni wakes as the app opens. The greeting and the room's light follow the clock. With `GET /api/home` (server route pending), Home greets the person by name if they said it and shows one light thread from last time; without it (as in review today), the time-of-day greeting. No server flag hides UI. |
+| Coming back | Home, after time away | After 20 minutes away the last call's goodbye clears; after 8 hours Ferni wakes as the app opens. The greeting and the room's light follow the clock. With `GET /api/home` (server route in review), Home asks about one light thread from last time ("How's the interview on Thursday going?") and may show a note from Ferni with Talk about this; without it, the time-of-day greeting. No server flag hides UI. |
 | Touch Ferni | Home, tap Ferni at rest | He dents where touched, glances at the finger and lights up, with one soft tap in the hand. After a quiet 20 s at rest a firefly may wander by, once. Not in a call (there, a tap while Ferni speaks interrupts). Reduce Motion: a glance and a blink only. |
 | Talk to Ferni (a voice call) | Home, the Talk button | The first time, the consent screen comes first. It names the processors (Google, Anthropic, Cartesia, LiveKit). |
 | Microphone permission | First call | "Ferni listens only while you're talking together, so you can talk out loud." Denied: Home explains and offers Open Settings. |
@@ -48,18 +72,21 @@ notes as a one-time link, never in this repository.
 | Live captions | During a call | What you and Ferni say. Turn them off under More, then Captions. |
 | Report a reply (1.2) | Long-press a caption, or More, then Report | Sends the reply and a reason. Needs PR #2038 on the server. |
 | Mute, End, More | Call controls | More: captions, report the last reply, Call 988. |
-| Help now | More (in a call), Settings, then Help | Call or text 988. |
+| Help now | More (in a call), Settings, then Help, or long-press the app icon: Get help now | Call or text 988; outside the US, findahelpline.com. The quick action is static, so it works even when Ferni can't connect. |
 | Teammates | Home, the team row (iPad: sidebar, then Team) | Choose who answers next. Locked teammates say why. |
 | The family table | During a call, when Ferni brings in a teammate | The teammate peeks in, they greet and swap, and the room light changes. |
 | "I'll remember" | Home, after a call | Up to three things Ferni kept, each with Forget. |
+| Your next step | Home, after a call where you said you'd do something | The step in your words with its time. Add to Calendar opens the system's event sheet (EventKitUI; no calendar permission is asked, and the app can't read the calendar). Share opens the share sheet for Reminders, Things, Todoist or anything else. Needs the review account to have said something it will do. |
 | What Ferni remembers | Settings, then What Ferni remembers (iPad: sidebar) | View and forget memories. |
 | Account and Sign in with Apple | Settings, then Account | Links the anonymous account to an Apple ID. |
 | Delete account (5.1.1(v)) | Settings, then Delete account | Deletes the account and its data on the server, and revokes Sign in with Apple. The revoke needs PR #2004. |
 | Withdraw consent | Settings, then Privacy | Ferni asks again before the next call. |
+| Teammates in Spotlight | Spotlight: type a teammate's name or what they help with ("money", "habits") | Only teammates the person has met are indexed (a new account: Ferni). Opening one goes through Talk, so consent comes first. Shortcuts offers the same teammates. Memories, people and follow-ups are never indexed. |
 | Siri, Shortcuts, Action button | "Talk to Ferni", "Call Ferni", "Talk to Maya on Ferni" | App Intents. Talk always goes through consent; End is the Live Activity's button. |
 | Control Center and Lock Screen control | Controls gallery, "Talk to Ferni" | |
 | iPad | Sidebar (Talk, Team, What Ferni remembers, Settings) | In a landscape call, captions sit beside Ferni. Keyboard: Command-Return talks, Command-Period ends, Command-M mutes. |
-| Languages | System language | The web app's 11 locales. Untranslated strings show in English. |
+| The web's Apple Health link | `ferniapp://healthkit/authorize` (from Ferni on the web, on an iPhone) | Opens Ferni with "Health sharing isn't in the iPhone app yet." The app has no HealthKit; no link starts a call or changes anything. |
+| Languages | English | 1.0 ships in English only (most of the catalog was still English placeholders). The app declares `en` and builds no other language; the String Catalog stays in the repository for real translations later. |
 | Accessibility | Throughout | Dynamic Type, VoiceOver labels and actions (including Interrupt while Ferni speaks), Reduce Motion (Ferni moves at 35% and skips the big moments). |
 | Crash reports | Not visible | Sentry, only in builds that carry a DSN. No user, screenshots, view hierarchy or replay. |
 
@@ -73,7 +100,8 @@ notes as a one-time link, never in this repository.
 | Audio (the call) | Yes | App functionality |
 | User ID (the account id) | Yes | App functionality |
 | Other user content (transcripts, memories, reports) | Yes | App functionality |
-| Name, email (Sign in with Apple, if used) | Yes | App functionality |
+| Name, email (Sign in with Apple or Google, if used) | Yes | App functionality |
+| Phone number (phone sign-in, if used) | Yes | App functionality |
 | Crash data | No | App functionality |
 
 No tracking and no tracking domains. Required-reason APIs: UserDefaults
@@ -83,6 +111,7 @@ No tracking and no tracking domains. Required-reason APIs: UserDefaults
 
 - [ ] PR #2038 (reports) and PR #2004 (Apple revoke) merged and deployed.
 - [ ] H4 decided: `TAP_INTERRUPT` on in production, or the gesture removed.
+- [ ] `POST /api/identity/merge-anonymous` live in production with IDENTITY_MERGE_ANON on, before any external TestFlight or App Store build. Signing in to an account someone already has merges this phone's anonymous calls into it; without the route the app signs them in and quietly leaves those calls behind ("Earlier calls on this phone stay separate").
 - [ ] A device run of `docs/ios/device-test-checklist.md` on an iPhone and an iPad.
 - [x] The accessibility audit lane (XCUITest `performAccessibilityAudit`, default size and AX5): gating in CI on iPhone 17 Pro Max (0 findings); reported on iPad Pro 13" (see the note below).
 

@@ -1,7 +1,8 @@
 /**
  * The pronunciation dictionary is valid Cartesia input and covers the team.
  * Before 2026-10-12 only Ferni and Nayan were in it; before 2026-10-20
- * Nayan's IPA used ʌ, a symbol outside Cartesia's set.
+ * Nayan's IPA used ʌ, a symbol outside Cartesia's set; before 2026-10-29 it
+ * was two IPA words, heard as "Nah, Jan" at the start of a sentence.
  */
 import { describe, expect, it } from 'vitest';
 
@@ -30,6 +31,8 @@ const isIpa = (p: string) => p.includes('<<');
  * one also the sentence-start capital), case-insensitive keys any spelling.
  */
 function entryFor(word: string, dict: PronunciationDictItem[]): PronunciationDictItem | undefined {
+  const own = dict.find((i) => i.text === word);
+  if (own) return own;
   const base = word.replace(/['’]s$/, '');
   return dict.find((i) =>
     i.case_sensitive
@@ -55,10 +58,12 @@ describe('pronunciationDictItems', () => {
     }
   });
 
-  it('says Nayan NAH-yahn: two words so ɑ+j does not glide into "NIGH", stress on the first', () => {
-    // One-word <<ˈ|n|ɑ|j|ɑ|n>> came out "n aɪ" in 23 of 24 takes (2026-10-20).
-    expect(TEAM_NAME_PRONUNCIATIONS.Nayan).toBe('<<ˈ|n|ɑ>> <<j|ɑ|n>>');
-    expect(entryFor("Nayan's", items)?.pronunciation).toBe('<<ˈ|n|ɑ>> <<j|ɑ|n>>');
+  it('says Nayan NAH-yahn as one sounds-like word, with its own possessive', () => {
+    // One-word IPA <<ˈ|n|ɑ|j|ɑ|n>> glides into "NIGH-un" ("Nion", 2026-10-20 and
+    // 2026-10-29); the two-word IPA opened a sentence as "Nah, Jan" (0 of 6).
+    expect(TEAM_NAME_PRONUNCIATIONS.Nayan).toBe('nahyahn');
+    expect(entryFor("Nayan's", items)?.pronunciation).toBe('nahyahnz');
+    expect(entryFor('Nayan’s', items)?.pronunciation).toBe('nahyahnz');
   });
 
   it('keeps sounds-like spellings free of capital runs, which Sonic spells out as letters', () => {
@@ -122,14 +127,19 @@ describe('pronunciationDictItems', () => {
     ]) {
       expect(entryFor(name, items)?.pronunciation, name).toBe(TEAM_NAME_PRONUNCIATIONS[name]);
       expect(entryFor(`${name}'s`, items)?.pronunciation, `${name}'s`).toBe(
-        TEAM_NAME_PRONUNCIATIONS[name]
+        TEAM_NAME_PRONUNCIATIONS[`${name}'s`] ?? TEAM_NAME_PRONUNCIATIONS[name]
       );
       expect(entryFor(`${name}’s`, items)?.pronunciation, `${name}’s`).toBe(
-        TEAM_NAME_PRONUNCIATIONS[name]
+        TEAM_NAME_PRONUNCIATIONS[`${name}’s`] ?? TEAM_NAME_PRONUNCIATIONS[name]
       );
     }
-    // Possessives come from the base word; an "X's" entry would be dead weight.
-    expect(items.filter((i) => /['’]s$/.test(i.text))).toEqual([]);
+    // Possessives come from the base word; an "X's" entry is dead weight unless a
+    // round trip measured it: "Nayan's" 1 of 6 → 3 of 6 heard right (2026-10-29),
+    // with the same entry for the curly apostrophe the LLM sometimes writes.
+    expect(items.filter((i) => /['’]s$/.test(i.text)).map((i) => i.text)).toEqual([
+      "Nayan's",
+      'Nayan’s',
+    ]);
   });
 
   it('matches spoken words in any capitalisation, plurals by their own entry', () => {

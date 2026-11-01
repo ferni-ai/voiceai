@@ -18,7 +18,6 @@ import { synthHum, synthSnore, synthWhistle } from './presence-sounds.js';
 import {
   createPresenceWatcher,
   LONG_QUIET,
-  presenceHumEnabled,
   presenceSnoreEnabled,
   presenceSoundsEnabled,
 } from './presence-watcher.js';
@@ -51,16 +50,24 @@ const CLIP_RATE = 24000;
 const MIX_RATE = 48000;
 const FRAME_SAMPLES = CLIP_RATE / 100; // 10 ms
 
-/** 24 kHz mono s16le PCM → 48 kHz frames for the mixer. */
+/**
+ * 24 kHz mono s16le PCM → 48 kHz frames for the mixer. The resampler is a
+ * native (Rust FFI) handle: it is freed when the clip plays out or when the
+ * player ends the stream early (stop(), close()), not left to the GC.
+ */
 export async function* pcmToFrames(pcm: ArrayBuffer): AsyncGenerator<AudioFrame> {
   const samples = new Int16Array(pcm, 0, Math.floor(pcm.byteLength / 2));
   const resampler = new AudioResampler(CLIP_RATE, MIX_RATE, 1);
-  for (let i = 0; i < samples.length; i += FRAME_SAMPLES) {
-    const chunk = samples.slice(i, i + FRAME_SAMPLES);
-    const frame = new AudioFrame(chunk, CLIP_RATE, 1, chunk.length);
-    for (const out of resampler.push(frame)) yield out;
+  try {
+    for (let i = 0; i < samples.length; i += FRAME_SAMPLES) {
+      const chunk = samples.slice(i, i + FRAME_SAMPLES);
+      const frame = new AudioFrame(chunk, CLIP_RATE, 1, chunk.length);
+      for (const out of resampler.push(frame)) yield out;
+    }
+    for (const out of resampler.flush()) yield out;
+  } finally {
+    resampler.close();
   }
-  for (const out of resampler.flush()) yield out;
 }
 
 /** How far ahead of real time paced silence runs: a cushion against timer jitter. */
@@ -213,6 +220,8 @@ export async function startBackchannelClips(
     await player.start(room, session);
   } catch (error) {
     log.warn({ error: String(error) }, 'clip player failed to start');
+    // The player built its native AudioSource before start(): release it.
+    await player.close();
     return null;
   }
   let lastPlayedAt = 0;
@@ -329,7 +338,7 @@ const WHISTLE_VOLUME = 0.5;
 
 /**
  * Sounds of him being there in a silence (presence-watcher.ts), on the same
- * track as the backchannels: a whistle (or, with PRESENCE_HUM, a hum) in an
+ * track as the backchannels: a whistle or a hum (as often as each other) in an
  * easy pause, and with PRESENCE_SNORE a mock snore in a long quiet. Returns
  * the cleanup; a no-op unless PRESENCE_SOUNDS=on.
  */
@@ -383,7 +392,7 @@ function startPresenceSounds(
   const watchers = [
     createPresenceWatcher({
       play: (quietMs) =>
-        presenceHumEnabled() && Math.random() < 0.5
+        Math.random() < 0.5
           ? playing('hum', synthHum(), quietMs)
           : playing('whistle', recorded?.whistle.next() ?? synthWhistle(), quietMs),
       stop,

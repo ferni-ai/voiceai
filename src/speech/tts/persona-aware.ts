@@ -18,6 +18,7 @@ import { TTS as CartesiaTTS } from '@livekit/agents-plugin-cartesia';
 import { CARTESIA_API_VERSION, CARTESIA_MODEL, getVoiceIdForPersona } from '../../config/voice-ids.js';
 import { forwardTtsEvents } from './forward-tts-events.js';
 import { prewarmReplyVoice } from './prewarm-voice.js';
+import { withAlignedTranscript } from './aligned-transcript.js';
 import type { PersonaVoiceConfig } from './types.js';
 
 // ============================================================================
@@ -111,8 +112,6 @@ export class PersonaAwareTTS extends tts.TTS {
   private activeStreamCount = 0;
   private prewarmWarned = false; // a prewarm failure is logged once
 
-  // Adaptive delivery (emotion/speed) for the next reply; survives voice switches.
-
   // Legacy property for backwards compatibility (no longer auto-subscribes to events)
   private voiceSwitchHandler: ((data: { newAgent: string; voiceId: string }) => void) | null = null;
 
@@ -145,6 +144,11 @@ export class PersonaAwareTTS extends tts.TTS {
         '🌍 PersonaAwareTTS initialized'
       );
     });
+  }
+
+  /** TTS_ALIGNED_TRANSCRIPT (aligned-transcript.ts); read per reply, so a voice switch counts. */
+  override get capabilities(): tts.TTSCapabilities {
+    return withAlignedTranscript(super.capabilities, this.personaTTS);
   }
 
   /**

@@ -325,4 +325,22 @@ export function createWellnessTools() {
   };
 }
 
+export function createSleepSummaryTool(
+  description: string,
+  run: (date: string | undefined, opts: unknown) => Promise<unknown>
+) {
+  return llm.tool({
+    description,
+    parameters: z.object({
+      date: z
+        .string()
+        .optional()
+        .describe(
+          'The night to read, as the morning it ended, YYYY-MM-DD. Leave out for last night.'
+        ),
+    }),
+    execute: async ({ date }, opts) => run(date, opts),
+  });
+}
+
 export default createWellnessTools;

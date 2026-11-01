@@ -174,7 +174,7 @@ export function recordPersonaGrowth(params: {
       existing.userContribution = userContribution;
       if (triggerQuote) existing.triggerQuote = triggerQuote;
       existing.significance = significance;
-      log.debug({ userId, personaId, topic, growthType }, 'Updated existing growth record');
+      log.debug({ userId, personaId, growthType }, 'Updated existing growth record');
     }
     return existing;
   }
@@ -204,7 +204,7 @@ export function recordPersonaGrowth(params: {
     profile.growthRecords = profile.growthRecords.slice(-10);
   }
 
-  log.info({ userId, personaId, topic, growthType, significance }, '🌱 Persona growth recorded');
+  log.info({ userId, personaId, growthType, significance }, '🌱 Persona growth recorded');
 
   return record;
 }
@@ -264,7 +264,7 @@ export function markGrowthShared(recordId: string): void {
     if (record) {
       record.sharedAt = new Date();
       profile.sharedTopics.push(record.topic.toLowerCase());
-      log.debug({ recordId, topic: record.topic }, '🌱 Growth moment shared');
+      log.debug({ recordId }, '🌱 Growth moment shared');
       return;
     }
   }
