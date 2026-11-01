@@ -733,8 +733,8 @@ import { getUnifiedScheduleDef, checkScheduleConflictsDef } from './unified-sche
 // ============================================================================
 
 const schedulingTools: ToolDefinition[] = [
-  ...[scheduleMessageTool, scheduleCallTool, scheduleEmailTool, sendMessageNowTool].map(
-    ownerMessageTool
+  ...[scheduleMessageTool, scheduleCallTool, scheduleEmailTool, sendMessageNowTool].map((def) =>
+    ownerMessageTool(def)
   ),
   listScheduledTool,
   cancelScheduledTool,
