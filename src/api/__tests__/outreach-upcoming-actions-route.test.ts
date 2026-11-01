@@ -141,6 +141,17 @@ describe('POST /api/outreach/upcoming/cancel', () => {
     });
   });
 
+  it('answers 409 to a follow-up the text job already sent, and leaves it as sent', async () => {
+    const path = 'bogle_users/uid-A/follow_through/fa';
+    const sent = { ...state.fs.docs.get(path), status: 'surfaced' };
+    state.fs.docs.set(path, { ...sent, surfaced: [{ at: inMin(-1), via: 'text' }] });
+    expect(await post('cancel', { type: 'follow_up', id: 'fa' }, 'tok-A')).toMatchObject({
+      status: 409,
+      body: { success: false, error: 'gone' },
+    });
+    expect(state.fs.docs.get(path)?.status).toBe('surfaced');
+  });
+
   it('answers 400 to an unknown kind or an id that is a path', async () => {
     expect((await post('cancel', { type: 'reminder', id: 'deferred_a' }, 'tok-A')).status).toBe(
       400

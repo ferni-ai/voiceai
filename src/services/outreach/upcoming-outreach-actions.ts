@@ -8,8 +8,9 @@
  *   call-hours guard allows: the job checks the guard again on the way out and
  *   would just hold the call once more.
  * - follow_up: bogle_users/{uid}/follow_through/{id}. Cancel releases it, so it is
- *   never texted or raised on a call again; a move replans its dueAt. The
- *   follow-up job texts only live ones and holds a text inside saved quiet hours
+ *   never texted or raised on a call again, unless the follow-up job has already
+ *   taken it to text (saved surfaced via 'text'): that is "gone". A move replans
+ *   its dueAt. The follow-up job texts only live ones and holds a text inside saved quiet hours
  *   (unless the caller set the time), so a new time inside them is refused. One
  *   made from a reminder is texted by the reminder job instead: not actionable.
  *
@@ -31,6 +32,7 @@ import {
 import {
   followUpCancellable,
   followUpMovable,
+  followUpTexted,
   type UpcomingOutreach,
 } from './upcoming-outreach.js';
 
@@ -127,7 +129,11 @@ export async function cancelUpcoming(
     }));
   }
   return changeFollowUp(deps.followUps, userId, id, (f) =>
-    followUpCancellable(f) ? applied(f, { type: 'release' }, now) : 'not-actionable'
+    followUpTexted(f)
+      ? 'gone'
+      : followUpCancellable(f)
+        ? applied(f, { type: 'release' }, now)
+        : 'not-actionable'
   );
 }
 

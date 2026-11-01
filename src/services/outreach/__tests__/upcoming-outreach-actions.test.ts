@@ -139,6 +139,24 @@ describe('a held call', () => {
     expect(dial).not.toHaveBeenCalled();
   });
 
+  it('taken by the job after the first read and before the write is gone, and left as the job set it', async () => {
+    rows.push(held('deferred_a', 'u1'));
+    // The guard check runs between the first read and the transaction: the job claims it there.
+    allowed.mockImplementation(async () => {
+      rowOf('deferred_a').status = 'placing';
+      return true;
+    });
+    const out = await rescheduleUpcoming(
+      deps,
+      'u1',
+      { kind: 'held_call', id: 'deferred_a' },
+      at(120),
+      NOW
+    );
+    expect(out).toEqual({ ok: false, reason: 'gone' });
+    expect(rowOf('deferred_a')).toMatchObject({ status: 'placing', scheduledFor: at(-5) });
+  });
+
   it('refuses a time outside their call hours, in the past or too far out, and keeps the old one', async () => {
     rows.push(held('deferred_a', 'u1'));
     allowed.mockResolvedValue(false);
@@ -227,6 +245,47 @@ describe('a follow-up text', () => {
     expect(fs.docs.get('bogle_users/u1/follow_through/f1')?.dueAt).toBe(at(240));
   });
 
+  it('already texted by the job is gone, never "cancelled" (verifier probe on #3294)', async () => {
+    putFollowUp(followUp('f1', { dueAt: at(-10) }));
+    const send = vi.fn(async () => ({ sent: true }));
+    await textJob(send);
+    expect(send).toHaveBeenCalledTimes(1);
+
+    expect(await cancelUpcoming(deps, 'u1', { kind: 'follow_up', id: 'f1' }, NOW)).toEqual({
+      ok: false,
+      reason: 'gone',
+    });
+    expect(fs.docs.get('bogle_users/u1/follow_through/f1')?.status).toBe('surfaced');
+  });
+
+  it('claimed by the job while the text is still sending is gone too', async () => {
+    putFollowUp(followUp('f1', { dueAt: at(-10) }));
+    let during: unknown;
+    const send = vi.fn(async () => {
+      during = await cancelUpcoming(deps, 'u1', { kind: 'follow_up', id: 'f1' }, NOW);
+      return { sent: true };
+    });
+    await textJob(send);
+    expect(during).toEqual({ ok: false, reason: 'gone' });
+  });
+
+  it('held by the sender (nothing went out) is back to open and still cancellable', async () => {
+    putFollowUp(followUp('f1', { dueAt: at(-10) }));
+    await textJob(vi.fn(async () => ({ sent: false, reason: 'quiet-hours' })));
+    expect(await cancelUpcoming(deps, 'u1', { kind: 'follow_up', id: 'f1' }, NOW)).toEqual({
+      ok: true,
+    });
+  });
+
+  it('raised only on a call stays cancellable: nothing was texted', async () => {
+    const raised = { at: at(-30), via: 'in-call' as const };
+    putFollowUp(followUp('f1', { status: 'surfaced', surfaced: [raised], dueAt: at(60) }));
+    expect(await cancelUpcoming(deps, 'u1', { kind: 'follow_up', id: 'f1' }, NOW)).toEqual({
+      ok: true,
+    });
+    expect(fs.docs.get('bogle_users/u1/follow_through/f1')?.status).toBe('released');
+  });
+
   it('changed by the job between read and save is gone, never "cancelled"', async () => {
     putFollowUp(followUp('f1'));
     const store = deps.followUps;
@@ -248,6 +307,11 @@ describe('what the list offers', () => {
         followUps: async () => [
           followUp('f_open', { dueAt: at(60) }),
           followUp('f_raised', { dueAt: at(60), status: 'surfaced' }),
+          followUp('f_texted', {
+            dueAt: at(60),
+            status: 'surfaced',
+            surfaced: [{ at: at(-5), via: 'text' }],
+          }),
           fixture({ id: 'f_reminder', dueAt: at(60) }),
         ],
         followUpTextsOn: async () => true,
@@ -266,6 +330,7 @@ describe('what the list offers', () => {
       deferred_a: [true, true],
       f_open: [true, true],
       f_raised: [true, false],
+      f_texted: [false, false],
       f_reminder: [false, false],
     });
   });

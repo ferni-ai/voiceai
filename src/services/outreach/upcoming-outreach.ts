@@ -52,8 +52,19 @@ export interface UpcomingDeps {
 const LATE_AFTER_MS = 12 * 60 * 60 * 1000;
 export const MAX_UPCOMING = 20;
 
-/** A follow-up this panel may cancel: its text comes from the follow-up job, not the reminder job. */
-export const followUpCancellable = (f: FollowUp): boolean => f.source.store !== 'reminders';
+/**
+ * The follow-up job has taken it to text, or texted it: it claims a follow-up by saving it
+ * surfaced via 'text' before sending, and it stays so after (follow-up-texts.ts). A held
+ * text puts the claim back to open, so only a text that went out, or is going, counts.
+ */
+export const followUpTexted = (f: FollowUp): boolean =>
+  f.status === 'surfaced' && f.surfaced.some((s) => s.via === 'text');
+/**
+ * A follow-up this panel may cancel: its text comes from the follow-up job, not the reminder
+ * job, and that job hasn't taken it. One raised only on a call can still be cancelled.
+ */
+export const followUpCancellable = (f: FollowUp): boolean =>
+  f.source.store !== 'reminders' && !followUpTexted(f);
 /** One that may move: still open (a surfaced one was raised already; reopening it texts again). */
 export const followUpMovable = (f: FollowUp): boolean =>
   followUpCancellable(f) && f.status === 'open';
