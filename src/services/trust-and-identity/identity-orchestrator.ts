@@ -42,7 +42,7 @@ import {
 
 // Trust and Contact imports
 import { completeOnboarding, detectContactInfo } from '../contact-onboarding.js';
-import { isThirdPartyCallUser } from '../../memory/third-party-call.js';
+import { isThirdPartyCallUser } from '../../memory/index.js';
 import {
   calculateTrustLevel,
   canPerformOperation,

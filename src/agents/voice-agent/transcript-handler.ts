@@ -73,7 +73,7 @@ import type { UserData } from '../shared/types.js';
 import { heldAfter, memoryHeld } from '../../utils/minor-care.js';
 import { readCallerTurn } from '../personas/sexual-boundary.js';
 import { ownerWriteId } from '../../services/identity/owner-write-gate.js';
-import { isThirdPartyCallUser } from '../../memory/third-party-call.js';
+import { isThirdPartyCallUser } from '../../memory/index.js';
 import {
   analyzeTurnSignals,
   handleInterruption,

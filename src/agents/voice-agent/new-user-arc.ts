@@ -10,7 +10,7 @@
  */
 
 import { isUnsavedProfile } from '../../memory/storage/profile-read-failure.js';
-import { isThirdPartyCallUser } from '../../memory/third-party-call.js';
+import { isThirdPartyCallUser } from '../../memory/index.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import {
   checkTrialStatus,

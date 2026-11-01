@@ -321,7 +321,7 @@ export async function upsertContact(
   contactCache.set(userId, contacts);
   await persistContact(saved);
 
-  log.info({ userId, id: saved.id, hasName: Boolean(saved.name) }, 'Contact saved');
+  log.info({ userId, id: contactIdForLog(saved.id), hasName: !!saved.name }, 'Contact saved');
   return saved;
 }
 
@@ -543,7 +543,7 @@ export async function setFollowUp(
   contact.updatedAt = new Date();
 
   await persistContact(contact);
-  log.info({ userId, id: contact.id, dueDate: followUp.dueDate }, 'Follow-up reminder set');
+  log.info({ userId, dueDate: followUp.dueDate }, 'Follow-up reminder set'); // no contact id
 }
 
 /**

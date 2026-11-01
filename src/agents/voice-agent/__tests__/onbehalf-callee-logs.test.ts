@@ -153,9 +153,16 @@ describe('the called person on an on-behalf call, through the real loggers', () 
     expect(written).not.toMatch(/5550142/);
   });
 
-  it('a contact id built from a number or an address logs as its kind only', () => {
-    expect(contactIdForLog('phone_+15555550142')).toBe('phone');
-    expect(contactIdForLog('riley@example.com')).toBe('email');
-    expect(contactIdForLog('contact_1793560000000_abc1234')).toBe('contact_1793560000000_abc1234');
+  it.each([
+    ['phone_+15555550142', 'phone'],
+    ['phone_+1 (555) 010-0142', 'phone'],
+    ['phone_5550142ext', 'phone'],
+    ['5550142', 'phone'],
+    ['riley@example.com', 'email'],
+    ['email_riley@example.com', 'email'],
+    ['riley-test', 'contact'],
+    ['contact_1793560000000_abc1234', 'contact'],
+  ])('contact id %s logs as the kind %s, never the id', (id, kind) => {
+    expect(contactIdForLog(id)).toBe(kind);
   });
 });

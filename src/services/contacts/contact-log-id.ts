@@ -1,12 +1,15 @@
 /**
- * A contact id for a log line. Most contact ids are built from the contact's phone number or
- * email (`phone_<number>`, an address), and the contact never signed up: those log as their
- * kind only. A generated id (`contact_<time>_<random>`) logs as it is.
+ * A contact id for a log line: its kind, never the id itself. Contact ids are often built from
+ * the contact's number, address or name (`phone_<number>`, an email, a slug), and the contact
+ * never signed up. So this fails closed: it only ever returns one of three constants.
  *
  * @module services/contacts/contact-log-id
  */
-export function contactIdForLog(contactId: string | undefined): string | undefined {
-  if (!contactId) return contactId;
+export type ContactIdKind = 'phone' | 'email' | 'contact';
+
+export function contactIdForLog(contactId: string | undefined): ContactIdKind | undefined {
+  if (!contactId) return undefined;
   if (contactId.includes('@')) return 'email';
-  return /^(phone_)?\+?[\d\s().-]{7,}$/.test(contactId) ? 'phone' : contactId;
+  if (contactId.startsWith('phone_') || /^\+?[\d\s().-]{7,}$/.test(contactId)) return 'phone';
+  return 'contact'; // a name-based, generated or any other id
 }
