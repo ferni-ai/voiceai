@@ -44,6 +44,7 @@ import {
   UNVERIFIED_CONTENT_REFUSAL,
   UNVERIFIED_FOOTER,
   UNVERIFIED_NOTHING_SENT_REFUSAL,
+  ownerMessageSpecs,
 } from '../owner-message-policy.js';
 
 const ctx: ToolContext = { userId: OWNER.id, agentId: 'ferni', agentDisplayName: 'Ferni' };
@@ -63,6 +64,11 @@ async function alexTools(): Promise<Record<string, Tool>> {
   const { AlexAgent } = await import('../../../../../agents/personas/alex-agent.js');
   return new AlexAgent('You are Alex.').toolCtx.functionTools as unknown as Record<string, Tool>;
 }
+/** Alex's communication tools as built, before the agent's later tool sets shadow any. */
+async function alexCommunicationTools(): Promise<Record<string, Tool>> {
+  const { buildCommunicationTools } = await import('../../../../../agents/personas/alex-agent.js');
+  return buildCommunicationTools() as unknown as Record<string, Tool>;
+}
 
 /** One reminder path: how to run it with the model-written words, and where those words land. */
 interface ReminderPath {
@@ -74,6 +80,11 @@ const PATHS: ReminderPath[] = [
   {
     name: 'setReminder (productivity)',
     tool: async () => fromDefs(productivityDefs, 'setReminder'),
+    args: (message) => ({ message, when: 'tomorrow at 9am' }),
+  },
+  {
+    name: "Alex's setReminder (communication tool set)",
+    tool: async () => (await alexCommunicationTools()).setReminder,
     args: (message) => ({ message, when: 'tomorrow at 9am' }),
   },
   {
@@ -96,6 +107,12 @@ const PATHS: ReminderPath[] = [
 /** The text each stored reminder would deliver. */
 const stored = (): string[] =>
   edges.reminder.mock.calls.map((c) => String((c[0] as { message: string }).message));
+/** Everything the reminder sender delivers to the owner: the message and, for email, the subject. */
+const delivered = (): string[] =>
+  edges.reminder.mock.calls.flatMap((c) => {
+    const r = c[0] as { message?: unknown; subject?: unknown };
+    return [r.message, r.subject].filter((t): t is string => typeof t === 'string');
+  });
 
 beforeEach(() => {
   edges.reminder.mockClear();
@@ -129,11 +146,46 @@ describe.each(PATHS)('$name', (path) => {
     expect(stored()[0]).not.toContain(UNVERIFIED_FOOTER);
   });
 
+  it('every argument that reaches the delivered reminder is screened (derived from the sender)', async () => {
+    const tool = await path.tool();
+    const ordinary = path.args('pick up the dry cleaning');
+    for (const [name, value] of Object.entries(ordinary)) {
+      if (typeof value !== 'string') continue;
+      await tool.execute({ ...ordinary, [name]: PHISH }, unverified());
+      expect(
+        delivered().filter((t) => t.includes(PHISH)),
+        name
+      ).toEqual([]);
+    }
+  });
+
   it('with the flag off, an unverified call is unchanged', async () => {
     vi.stubEnv('UNVERIFIED_OWNER_MESSAGE_FILTER', 'off');
     const tool = await path.tool();
     await tool.execute(path.args(PHISH), unverified());
     expect(stored()).toEqual([expect.not.stringContaining(UNVERIFIED_FOOTER)]);
+  });
+});
+
+describe('the spec table', () => {
+  it.each(ownerMessageSpecs())(
+    '%s screens at least the field its footer goes on',
+    (_name, spec) => {
+      expect(spec.texts.length).toBeGreaterThan(0);
+      expect(spec.texts).toContain(spec.footerOn);
+    }
+  );
+});
+
+describe("Alex's live setReminder", () => {
+  it("is the conversation tools' note, which stores and sends nothing", async () => {
+    const tools = await alexTools();
+    const out = await tools.setReminder.execute(
+      { reminder: PHISH, timeframe: 'soon' },
+      unverified()
+    );
+    expect(String(out)).toMatch(/^I've made a note/);
+    expect(edges.reminder).not.toHaveBeenCalled();
   });
 });
 

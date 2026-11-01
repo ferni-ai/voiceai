@@ -184,6 +184,13 @@ const SPECS: Readonly<Record<string, OwnerMessageSpec>> = {
 /** Alex's scheduleCall (communication-tools.ts): texts the owner "Call with {contact}... Purpose: {purpose}". */
 export const CALL_REMINDER_SPEC: OwnerMessageSpec = { texts: ['contact', 'purpose'], footerOn: 'purpose' }; // prettier-ignore
 
+/** Every spec in use, by name: the default, each tool's, and Alex's call reminder. */
+export const ownerMessageSpecs = (): ReadonlyArray<[string, OwnerMessageSpec]> => [
+  ['default', MESSAGE],
+  ...Object.entries(SPECS),
+  ['CALL_REMINDER_SPEC', CALL_REMINDER_SPEC],
+];
+
 /** The definition, wrapped so each run goes through ownerMessagePolicy first. */
 export function ownerMessageTool(
   def: ToolDefinition,

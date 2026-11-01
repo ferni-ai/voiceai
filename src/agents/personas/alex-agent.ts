@@ -11,11 +11,12 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { ToolContext, ToolDefinition } from '../../tools/registry/types.js';
+import type { ToolContext } from '../../tools/registry/types.js';
 import { gateLegacyTool, wrapLegacyRuns } from '../../tools/registry/outbound-gate.js';
 import {
   CALL_REMINDER_SPEC,
   ownerMessageTool,
+  type OwnerMessageSpec,
 } from '../../tools/domains/proactive/outreach/owner-message-policy.js';
 import { loadSystemPrompt } from './prompt-loader.js';
 import { PersonaVoiceAgent, type PersonaVoiceAgentOptions } from './ferni-agent.js';
@@ -78,15 +79,17 @@ function buildMemoryTools(agentId: string): ToolSet {
   } as unknown as ToolSet;
 }
 
-function buildCommunicationTools(): ToolSet {
+/** Alex's communication tools (exported for tests: some are shadowed in the agent's own set). */
+export function buildCommunicationTools(): ToolSet {
   const commTools = createCommunicationTools();
   // These can text, call or email someone else: they wait for the caller's yes, checked
   // against the session's own user (outbound-gate.ts)
   const ctx = { agentId: 'alex', agentDisplayName: 'Alex' };
   const gate = (id: keyof typeof commTools) => gateLegacyTool(id, commTools[id], ctx);
-  // scheduleCall's 15-minute reminder texts the owner words the model wrote (owner-message-policy.ts)
-  const toOwner = (def: ToolDefinition) => ownerMessageTool(def, CALL_REMINDER_SPEC);
-  const scheduleCall = wrapLegacyRuns(toOwner, 'scheduleCall', commTools.scheduleCall, ctx);
+  // These text the owner words the model wrote (a reminder, scheduleCall's 15-minute reminder):
+  // ownerMessagePolicy first (owner-message-policy.ts)
+  const toOwner = (id: 'setReminder' | 'scheduleCall', spec?: OwnerMessageSpec) =>
+    wrapLegacyRuns((def) => ownerMessageTool(def, spec), id, commTools[id], ctx);
   return {
     // Email workflow
     draftEmail: commTools.draftEmail,
@@ -97,9 +100,9 @@ function buildCommunicationTools(): ToolSet {
     sendVoiceMessage: gate('sendVoiceMessage'),
     // Scheduling
     checkAvailability: commTools.checkAvailability,
-    scheduleCall,
+    scheduleCall: toOwner('scheduleCall', CALL_REMINDER_SPEC),
     // Reminders
-    setReminder: commTools.setReminder,
+    setReminder: toOwner('setReminder'), // shadowed by the conversation tools' setReminder below
     listReminders: commTools.listReminders,
     cancelReminder: commTools.cancelReminder,
     // Contacts
