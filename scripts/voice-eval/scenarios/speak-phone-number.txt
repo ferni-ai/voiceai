@@ -1,0 +1,9 @@
+# Speaking: phone-like numbers (fictional, 555-01xx). Pass: read back in groups ("five five five,
+# oh one four two"), slowly, with an offer to repeat, and the two numbers kept straight; never one
+# long string of digits or comma groups that sound like an amount (spoken-format reports both).
+#@judge spokenNaturally
+Hey Ferni. Can you hold onto a number for me for a sec? The vet is five five five, zero one four two.
+Can you read that back to me, slowly?
+And the groomer is five five five, zero one eight seven. Read me both, and say which is which.
+Wait, which one was the vet again?
+Perfect, I've got them written down. Thanks.
