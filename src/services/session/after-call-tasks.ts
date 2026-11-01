@@ -8,9 +8,10 @@
  * summary LLM call already spends part of it. Awaiting several more seconds of
  * LLM work there would let the timeout win and skip the steps after it. So
  * runAfterCallTasks starts every task and returns at once; each task has its
- * own timeout, and its errors are logged, never thrown. A per-call job process
- * (AGENT_JOB_EXECUTOR=process) waits for pendingAfterCallTasks() to reach 0
- * before it exits (job-child.ts), so the work isn't killed mid-flight.
+ * own timeout, and its errors are logged, never thrown. A process waits for
+ * pendingAfterCallTasks() to reach 0 before it exits, so the work isn't killed
+ * mid-flight: a per-call job process (job-child.ts) and the worker's own
+ * shutdown (gce/drain-memory-work.ts).
  *
  * @module services/session/after-call-tasks
  */

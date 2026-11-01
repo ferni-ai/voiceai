@@ -9329,6 +9329,7 @@
   },
   "dataExport": {
     "title": "Deine Daten",
+    "loadFailed": "Ich konnte gerade nicht laden, was ich für dich gespeichert habe. Es hat sich nichts geändert.",
     "exportFormat": "Exportformat",
     "deleteAll": "Alle Daten löschen",
     "footer": "Ich speichere unsere Gespräche und das, was du mir erzählst, damit ich mich beim nächsten Mal daran erinnere, und wenn du das irgendwann nicht mehr willst, wird mit deinem Konto auch all das gelöscht.",
