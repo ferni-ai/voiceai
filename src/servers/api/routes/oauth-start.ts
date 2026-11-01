@@ -43,7 +43,7 @@ import {
 } from '../../../api/linkedin-routes.js';
 
 export const OAUTH_START_PATH = '/auth/oauth/start';
-export const CONNECT_INVITE_START_PATH = '/auth/oauth/start-from-invite';
+const CONNECT_INVITE_START_PATH = '/auth/oauth/start-from-invite';
 
 /**
  * Oura needs the app credentials, and in production a redirect URI registered on the Oura

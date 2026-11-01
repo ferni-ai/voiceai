@@ -7,7 +7,8 @@
  * Real HTTP through bindVerifiedIdentity and the REAL route handlers
  * (oauth-start, Google login and callback). Mocked: Firebase token
  * verification, Google's token endpoint (fetch), the calendar token save and
- * the watch channel. Invites and OAuth states use memory stores.
+ * the watch channel. Invites and OAuth states use memory stores; account
+ * records a fake Firestore; log lines are captured.
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -21,6 +22,15 @@ Object.assign(process.env, {
   GOOGLE_CALENDAR_CLIENT_SECRET: 'g-secret',
 });
 
+const lines = vi.hoisted(() => [] as unknown[]);
+vi.mock('../../../utils/safe-logger.js', async (importActual) => {
+  const logger: Record<string, unknown> = { child: () => logger };
+  for (const level of ['trace', 'debug', 'info', 'warn', 'error', 'fatal']) {
+    logger[level] = (...args: unknown[]) => lines.push([level, ...args]);
+  }
+  const capture = { createLogger: () => logger, getLogger: () => logger, logger, default: logger };
+  return { ...(await importActual<object>()), ...capture };
+});
 vi.mock('../../../services/identity/firebase-auth.js', () => ({
   verifyFirebaseToken: vi.fn(async (token: string) =>
     token.startsWith('tok-')
@@ -42,6 +52,10 @@ const { setOAuthLinkStore } = await import('../../token/oauth-link-state.js');
 const { memorySingleUseStore, sha256Hex } =
   await import('../../../services/stores/single-use-records.js');
 const invites = await import('../../../services/connect-moments/connect-invites.js');
+const { createFakeFirestore, newFakeFirestoreState } =
+  await import('../../../tests/helpers/fake-firestore.js');
+const { getFirestoreDb } = await import('../../../utils/firestore-utils.js');
+const firestore = newFakeFirestoreState();
 
 const realFetch = globalThis.fetch;
 let base = '';
@@ -92,6 +106,10 @@ beforeEach(() => {
   inviteStore = memorySingleUseStore<ConnectInvite>(100);
   invites.setConnectInviteStore(inviteStore);
   savedCalendar.mockClear();
+  lines.length = 0;
+  firestore.docs.clear();
+  for (const uid of ['uid-ana', 'uid-ben']) firestore.docs.set(`bogle_users/${uid}`, {});
+  vi.mocked(getFirestoreDb).mockImplementation(createFakeFirestore(firestore) as never);
 });
 
 const send = (path: string, init: Parameters<typeof fetch>[1] = {}) =>
@@ -206,6 +224,44 @@ describe('start-from-invite', () => {
       status: 404,
       body: INVITE_NOT_FOUND,
     });
+  });
+
+  it("(c) the invite it puts back keeps exactly the expiry it had", async () => {
+    const token = await inviteFor('uid-ana');
+    const before = await inviteStore.get(sha256Hex(token));
+    const spent = await inviteStore.take(sha256Hex(token));
+    await inviteStore.put(sha256Hex(token), spent!);
+    vi.spyOn(stateStore, 'put').mockResolvedValueOnce(false);
+    expect((await tap(token, ANA)).status).toBe(503);
+    const after = await inviteStore.get(sha256Hex(token));
+    expect(after?.expiresAt).toBe(before?.expiresAt);
+    expect(after?.createdAt).toBe(before?.createdAt);
+  });
+
+  it("(c) puts nothing back once the account is being erased", async () => {
+    const token = await inviteFor('uid-ana');
+    vi.spyOn(stateStore, 'put').mockImplementationOnce(async () => {
+      firestore.docs.set('bogle_users/uid-ana', { erasing: true });
+      return false;
+    });
+    expect((await tap(token, ANA)).status).toBe(503);
+    expect(await inviteStore.get(sha256Hex(token))).toBeNull();
+  });
+
+  it('no log line carries the invite, on a tap that starts the flow or one that cannot', async () => {
+    const started = await inviteFor('uid-ana');
+    expect((await tap(started, ANA)).status).toBe(200);
+    const returned = await inviteFor('uid-ana');
+    vi.spyOn(stateStore, 'put').mockResolvedValueOnce(false);
+    expect((await tap(returned, ANA)).status).toBe(503);
+    const logged = JSON.stringify(lines);
+    // The capture works: both taps logged their step.
+    expect(logged).toContain('"step":"tapped"');
+    expect(logged).toContain('"reason":"no_state"');
+    for (const token of [started, returned]) {
+      expect(logged).not.toContain(token);
+      expect(logged).not.toContain(token.slice(0, 16));
+    }
   });
 
   it('refuses a GET', async () => {

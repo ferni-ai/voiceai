@@ -15,6 +15,9 @@ vi.mock('../../../utils/safe-logger.js', () => {
 });
 
 const { memorySingleUseStore, sha256Hex } = await import('../../stores/single-use-records.js');
+const { createFakeFirestore, newFakeFirestoreState } =
+  await import('../../../tests/helpers/fake-firestore.js');
+const { getFirestoreDb } = await import('../../../utils/firestore-utils.js');
 const invites = await import('../connect-invites.js');
 type Store = import('../../stores/single-use-records.js').SingleUseStore<
   import('../connect-invites.js').ConnectInvite
@@ -26,6 +29,9 @@ beforeEach(() => {
   vi.stubEnv('CONNECT_MOMENT_CALENDAR', 'on');
   store = memorySingleUseStore(100);
   invites.setConnectInviteStore(store);
+  const firestore = newFakeFirestoreState();
+  firestore.docs.set('bogle_users/ana', {});
+  vi.mocked(getFirestoreDb).mockImplementation(createFakeFirestore(firestore) as never);
 });
 afterEach(() => {
   vi.unstubAllEnvs();

@@ -19,6 +19,8 @@
  */
 import crypto from 'node:crypto';
 import { APP_URL } from '../../config/api-urls.js';
+import { isErasedOrErasing } from '../../utils/erasing-mark.js';
+import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   firestoreSingleUseStore,
@@ -32,8 +34,8 @@ import { noteConnectMoment } from './connect-moment-log.js';
 const log = createLogger({ module: 'ConnectInvites' });
 
 export const CONNECT_INVITE_TTL_MS = 30 * 60 * 1000;
-export const CONNECT_INVITES_COLLECTION = 'connect_invites';
-export const CONNECT_PAGE_PATH = '/connect';
+const CONNECT_INVITES_COLLECTION = 'connect_invites';
+const CONNECT_PAGE_PATH = '/connect';
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
 export interface ConnectInvite extends SingleUseRecord {
@@ -112,15 +114,24 @@ export async function redeemConnectInvite(
 
 /**
  * Put back an invite its owner just spent when the flow then couldn't start, so
- * tapping again works. It keeps its original expiry; best effort.
+ * tapping again works. It keeps its original expiry; best effort. Never for an
+ * account that is gone or being erased: erasure marks and deletes the account
+ * record before it sweeps invites, so a later put would outlive the sweep.
  */
 export async function returnConnectInvite(token: unknown, invite: ConnectInvite): Promise<void> {
   if (typeof token !== 'string' || !TOKEN_PATTERN.test(token)) return;
   try {
+    if (await accountErased(invite.uid)) return;
     await getStore().put(sha256Hex(token), invite);
   } catch (error) {
     log.error({ error: String(error), integration: invite.integration }, 'Could not return invite');
   }
+}
+
+/** Gone, being erased, or no Firestore to ask: all mean nothing is put back. */
+async function accountErased(uid: string): Promise<boolean> {
+  const account = getFirestoreDb()?.collection('bogle_users').doc(uid);
+  return !account || isErasedOrErasing(await account.get());
 }
 
 /** Remove every invite of `uid` (account deletion). Throws when it can't. */

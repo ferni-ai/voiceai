@@ -1,9 +1,15 @@
 /**
  * Connect invites: single use, 30 minutes, redeemed only by the signed-in uid
  * they name (anyone else leaves them unspent), stored only as a hash, and dead
- * once the integration's flag is off.
+ * once the integration's flag is off. A spent invite is put back, with its own
+ * expiry, only while its account exists and is not being erased.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  createFakeFirestore,
+  newFakeFirestoreState,
+} from '../../../tests/helpers/fake-firestore.js';
+import { getFirestoreDb } from '../../../utils/firestore-utils.js';
 import {
   memorySingleUseStore,
   sha256Hex,
@@ -21,9 +27,13 @@ import {
 } from '../connect-invites.js';
 
 let store: SingleUseStore<ConnectInvite>;
+const firestore = newFakeFirestoreState();
 
 beforeEach(() => {
   vi.stubEnv('CONNECT_MOMENT_CALENDAR', 'on');
+  firestore.docs.clear();
+  for (const uid of ['user-ana', 'user-ben']) firestore.docs.set(`bogle_users/${uid}`, {});
+  vi.mocked(getFirestoreDb).mockImplementation(createFakeFirestore(firestore) as never);
   store = memorySingleUseStore<ConnectInvite>(100);
   setConnectInviteStore(store);
 });
@@ -73,9 +83,31 @@ describe('createConnectInvite / redeemConnectInvite', () => {
     const token = (await invite()) as string;
     const spent = await redeemConnectInvite(token, ANA);
     if (!spent) throw new Error('the owner could not spend the invite');
-    vi.useFakeTimers({ now: Date.now() + 10 * 60_000 });
+    vi.useFakeTimers({ toFake: ['Date'], now: Date.now() + 10 * 60_000 });
     await returnConnectInvite(token, spent);
     expect((await store.get(sha256Hex(token)))?.expiresAt).toBe(spent.expiresAt);
+  });
+
+  it.each([
+    ['gone', undefined],
+    ['being erased', { erasing: true, erasingAt: '2026-11-02T10:00:00.000Z' }],
+  ])('puts nothing back for an account that is %s', async (_state, record) => {
+    const token = (await invite()) as string;
+    const spent = await redeemConnectInvite(token, ANA);
+    if (!spent) throw new Error('the owner could not spend the invite');
+    if (record) firestore.docs.set(`bogle_users/${ANA}`, record);
+    else firestore.docs.delete(`bogle_users/${ANA}`);
+    await returnConnectInvite(token, spent);
+    expect(await store.get(sha256Hex(token))).toBeNull();
+  });
+
+  it('puts nothing back when there is no Firestore to ask about the account', async () => {
+    const token = (await invite()) as string;
+    const spent = await redeemConnectInvite(token, ANA);
+    if (!spent) throw new Error('the owner could not spend the invite');
+    vi.mocked(getFirestoreDb).mockReturnValue(null as never);
+    await returnConnectInvite(token, spent);
+    expect(await store.get(sha256Hex(token))).toBeNull();
   });
 
   it('expires after 30 minutes, and the expired invite is deleted', async () => {
