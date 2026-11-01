@@ -94,45 +94,85 @@ function clock(at: Date, timeZone: string): string {
   return `${get('hour')}${minute === '00' ? '' : `:${minute}`}${get('dayPeriod').toLowerCase()}`;
 }
 
-/** "a, b and 2 more", or "a, b and c" when all fit. */
-function joinList(items: readonly string[], shown: number): string {
-  const head = items.slice(0, shown);
-  const hidden = items.length - head.length;
-  if (hidden > 0) return `${head.join(', ')} and ${hidden} more`;
-  if (head.length < 2) return head.join('');
-  return `${head.slice(0, -1).join(', ')} and ${head[head.length - 1]}`;
+/**
+ * The brief as an ordered list of segments: 'clock' is only an event time the brief wrote
+ * itself; everything else, titles and stored items included, is 'text'. The brief sent and
+ * the brief screened are two joins of the same segments (brief-job.ts briefToSend), so they
+ * can differ only in those clock values.
+ */
+export interface BriefSegment {
+  kind: 'clock' | 'text';
+  value: string;
 }
 
-const unique = (items: readonly string[]): string[] => {
+/** The segments joined; with `clockAs`, every clock segment reads as that instead. */
+export function joinSegments(segments: readonly BriefSegment[], clockAs?: string): string {
+  return segments.map((s) => (s.kind === 'clock' && clockAs !== undefined ? clockAs : s.value)).join(''); // prettier-ignore
+}
+
+const text = (value: string): BriefSegment => ({ kind: 'text', value });
+
+/** One entry in a list: who it is (time-independent, for dedup) and how it reads. */
+interface Item {
+  key: string;
+  segments: BriefSegment[];
+}
+
+/** "a, b and 2 more", or "a, b and c" when all fit. */
+function joinList(items: readonly Item[], shown: number): BriefSegment[] {
+  const head = items.slice(0, shown).map((i) => i.segments);
+  const hidden = items.length - head.length;
+  const out: BriefSegment[] = [];
+  head.forEach((segments, k) => {
+    if (k > 0) out.push(text(hidden === 0 && k === head.length - 1 ? ' and ' : ', '));
+    out.push(...segments);
+  });
+  if (hidden > 0) out.push(text(` and ${hidden} more`));
+  return out;
+}
+
+/** First of each key, in order; an entry with no words is dropped. */
+const unique = (items: readonly Item[]): Item[] => {
   const seen = new Set<string>();
   return items.filter((i) => {
-    const key = i.toLowerCase();
-    if (!i || seen.has(key)) return false;
-    seen.add(key);
+    if (!joinSegments(i.segments) || seen.has(i.key)) return false;
+    seen.add(i.key);
     return true;
   });
 };
 
+const textItem = (raw: string): Item => {
+  const value = cleanItem(raw);
+  return { key: value.toLowerCase(), segments: [text(value)] };
+};
+
+/** The brief's text, or null when there is nothing on today. */
+export function composeMorningBrief(input: MorningBriefInput): string | null {
+  const segments = composeMorningBriefSegments(input);
+  return segments && joinSegments(segments);
+}
+
 /**
- * The brief's text, or null when there is nothing on today. `formatTime` writes each event's
- * time; brief-job.ts passes one that writes "at" to screen the brief without its own clock
- * times (a busy day's times alone trip the digit rule), every item kept verbatim.
+ * The brief as segments, or null when there is nothing on today. Dedup and shortening run
+ * on the segments, keyed by what each entry is (an event's title and start, an item's
+ * words), before anything is joined.
  */
-export function composeMorningBrief(
-  input: MorningBriefInput,
-  formatTime: (at: Date) => string = (at) => clock(at, input.timeZone)
-): string | null {
+export function composeMorningBriefSegments(input: MorningBriefInput): BriefSegment[] | null {
   const events = [...input.events].sort((a, b) => a.start.getTime() - b.start.getTime());
+  const eventItem = (e: (typeof events)[number]): Item => {
+    const when = e.allDay ? 'all-day' : String(e.start.getTime());
+    const at: BriefSegment = { kind: 'clock', value: clock(e.start, input.timeZone) };
+    if (e.invite) {
+      return { key: `invite|${when}`, segments: e.allDay ? [text('an invite')] : [text('an invite at '), at] }; // prettier-ignore
+    }
+    const title = cleanItem(e.title);
+    const segments = !title ? [] : e.allDay ? [text(title)] : [at, text(` ${title}`)];
+    return { key: `${title.toLowerCase()}|${when}`, segments };
+  };
   const lists = {
-    today: unique(
-      events.map((e) => {
-        if (e.invite) return e.allDay ? 'an invite' : `an invite at ${formatTime(e.start)}`;
-        const title = cleanItem(e.title);
-        return e.allDay || !title ? title : `${formatTime(e.start)} ${title}`;
-      })
-    ),
-    due: unique(input.reminders.map(cleanItem)),
-    open: unique([...input.tasks, ...input.commitments].map(cleanItem)),
+    today: unique(events.map(eventItem)),
+    due: unique(input.reminders.map(textItem)),
+    open: unique([...input.tasks, ...input.commitments].map(textItem)),
   };
   if (!lists.today.length && !lists.due.length && !lists.open.length) return null;
 
@@ -145,25 +185,27 @@ export function composeMorningBrief(
     due: Math.min(lists.due.length, FIRST_TRY.due),
     open: Math.min(lists.open.length, FIRST_TRY.open),
   };
-  const render = (): string =>
+  const section = (label: string, items: Item[], n: number): BriefSegment[] =>
+    items.length ? [text(`${label}: `), ...joinList(items, n), text('.')] : [];
+  const render = (): BriefSegment[] =>
     [
-      hello,
-      lists.today.length ? `Today: ${joinList(lists.today, shown.today)}.` : '',
-      lists.due.length ? `Due: ${joinList(lists.due, shown.due)}.` : '',
-      lists.open.length ? `Still open: ${joinList(lists.open, shown.open)}.` : '',
-      close,
+      [text(hello)],
+      section('Today', lists.today, shown.today),
+      section('Due', lists.due, shown.due),
+      section('Still open', lists.open, shown.open),
+      [text(close)],
     ]
-      .filter(Boolean)
-      .join(' ');
+      .filter((part) => part.length > 0)
+      .flatMap((part, k) => (k === 0 ? part : [text(' '), ...part]));
 
-  let text = render();
-  while (text.length > MAX_CHARS) {
+  let segments = render();
+  while (joinSegments(segments).length > MAX_CHARS) {
     const longest = (Object.keys(shown) as Array<keyof typeof shown>)
       .filter((k) => shown[k] > 1)
       .sort((a, b) => shown[b] - shown[a])[0];
     if (!longest) break;
     shown[longest]--;
-    text = render();
+    segments = render();
   }
-  return text;
+  return segments;
 }

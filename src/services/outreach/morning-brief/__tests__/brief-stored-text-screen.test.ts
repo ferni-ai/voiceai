@@ -39,7 +39,8 @@ vi.mock('../../../superhuman/commitment-follow-up.js', () => ({
 
 const { readDay } = await import('../default-deps.js');
 const { briefToSend, runMorningBriefs } = await import('../brief-job.js');
-const { composeMorningBrief } = await import('../compose.js');
+const { composeMorningBrief, composeMorningBriefSegments, joinSegments } =
+  await import('../compose.js');
 const { blockedContent } =
   await import('../../../../tools/domains/proactive/outreach/owner-message-content.js');
 
@@ -130,6 +131,11 @@ describe('the brief as sent: one final gate on the exact text', () => {
     expect(sent).toContain('9:30am Book club');
   });
 
+  it('duplicate titles at different times: both are sent, and both are screened', () => {
+    const sent = briefToSend(brief({ events: [event('Lunch', 12), event('Lunch', 13)], tasks: ['book flights'] }), OWNER, ON); // prettier-ignore
+    expect(sent).toContain('12:30pm Lunch and 1:30pm Lunch');
+  });
+
   it('falls to a count of the day when every title and item is hostile', () => {
     const sent = briefToSend(brief({ events: [event(HEAD, 9), event(TAIL, 10)], tasks: [HEAD, TAIL] }), OWNER, ON); // prettier-ignore
     expect(gatePasses(sent)).toBe(true);
@@ -191,5 +197,60 @@ describe('the brief as sent: one final gate on the exact text', () => {
     const body = String(sendText.mock.calls[0]?.[0].body);
     expect(body).toContain('Book club');
     expect(body).not.toContain('212');
+  });
+});
+
+describe('the brief sent and the brief screened are two joins of the same segments', () => {
+  const event = (title: string, hour: number, minute = 30) => ({ title, start: new Date(Date.UTC(2026, 9, 19, hour + 4, minute)), allDay: false, invite: false }); // prettier-ignore
+  const brief = (day: Partial<MorningBriefInput>): MorningBriefInput => ({ timeZone: 'America/New_York', name: 'Sam', events: [], reminders: [], tasks: [], commitments: [], ...day }); // prettier-ignore
+  const many = (n: number, label: string) => Array.from({ length: n }, (_, k) => `${label} number ${k + 1} with some words`); // prettier-ignore
+  it.each([
+    [
+      'duplicate titles at different times',
+      brief({ events: [event('Lunch', 12, 0), event('Lunch', 13, 0), event('Lunch', 12, 0)] }),
+    ],
+    [
+      'an over-length day',
+      brief({
+        events: [9, 10, 11, 12, 13, 14, 15].map((h) =>
+          event(`Meeting about the quarterly plan ${h}`, h)
+        ),
+        reminders: many(6, 'reminder'),
+        tasks: many(6, 'task'),
+      }),
+    ],
+    [
+      'invites and all-day events',
+      brief({
+        events: [
+          { ...event('Offsite', 9), allDay: true },
+          { ...event('x', 10), invite: true },
+          { ...event('y', 10), invite: true },
+        ],
+      }),
+    ],
+    [
+      'items only',
+      brief({ reminders: ['call the pharmacy', 'Call the pharmacy'], tasks: ['book flights'] }),
+    ],
+  ])('%s: only clock values differ', (_name, input) => {
+    const segments = composeMorningBriefSegments(input) ?? [];
+    const sent = joinSegments(segments);
+    const screened = joinSegments(segments, 'at');
+    expect(sent).toBe(composeMorningBrief(input));
+    // Cut each clock segment out of each join at its own offset: what remains is identical
+    const withoutClocks = (joined: string, clockAs?: string): string => {
+      let at = 0;
+      let out = '';
+      for (const seg of segments) {
+        const len = (seg.kind === 'clock' && clockAs !== undefined ? clockAs : seg.value).length;
+        if (seg.kind === 'text') out += joined.slice(at, at + len);
+        at += len;
+      }
+      expect(at).toBe(joined.length);
+      return out;
+    };
+    expect(withoutClocks(sent)).toBe(withoutClocks(screened, 'at'));
+    expect(segments.filter((seg) => seg.kind === 'clock').every((seg) => /^\d{1,2}(:\d{2})?(am|pm)$/.test(seg.value))).toBe(true); // prettier-ignore
   });
 });
