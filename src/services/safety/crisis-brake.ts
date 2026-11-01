@@ -10,7 +10,7 @@ import { ageSignal, derivedHold, statesUnder18 } from '../../utils/minor-care.js
 
 type Env = Record<string, string | undefined>;
 
-export function resolveCrisisBrakeV2(env: Env = process.env): boolean {
+function resolveCrisisBrakeV2(env: Env = process.env): boolean {
   return env.CRISIS_BRAKE_V2?.trim().toLowerCase() === 'on';
 }
 
