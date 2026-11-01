@@ -46,7 +46,7 @@ const { showWellbeingDashboard, cleanupWellbeingDashboard } =
   await import('../../src/ui/wellbeing-dashboard.ui.js');
 const { showDataExport } = await import('../../src/app/panel-methods.js');
 const { getDataExportUI } = await import('../../src/ui/data-export.ui.js');
-await import('../../src/services/data-export.service.js'); // showDataExport loads it lazily
+await import('../../src/app/data-rights-callbacks.js'); // showDataExport loads it lazily
 const { getYourStoryUI } = await import('../../src/ui/your-story-dashboard.ui.js');
 const { createDemoStoryData } = await import('../../src/ui/visualizations/index.js');
 
@@ -103,6 +103,12 @@ describe('apiFetch time limits', () => {
 });
 
 describe('screens leave their loading state when the server never answers', () => {
+  // Loaded lazily by showDataExport, in whatever module registry is current (the
+  // describe above resets it): load it first, so the fake clock doesn't race the import.
+  beforeEach(async () => {
+    await import('../../src/app/data-rights-callbacks.js');
+  });
+
   it('How You\'re Feeling: the spinner gives way to "couldn\'t load" with a retry', async () => {
     void showWellbeingDashboard();
     await vi.advanceTimersByTimeAsync(0);

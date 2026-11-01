@@ -485,53 +485,15 @@ export async function showPredictionTracker(): Promise<void> {
  */
 export async function showDataExport(): Promise<void> {
   void trackScreen('settings');
-  const { dataExportService, dataRightsErrorMessage } =
-    await import('../services/data-export.service.js');
-
-  // Each request only reports success after the server confirms it.
-  getDataExportUI().setCallbacks({
-    onExport: async (format, categories) => {
-      try {
-        toast.info(t('app.preparingData'));
-        await dataExportService.exportData(format, categories);
-        toast.success(t('app.downloadStarted'));
-      } catch (err) {
-        log.error('Export failed:', err);
-        toast.error(dataRightsErrorMessage(err, t('dataExportService.exportFailed')));
-      }
-    },
-    onDeleteData: async () => {
-      try {
-        toast.info(t('app.deletingData'));
-        await dataExportService.deleteAllData();
-        toast.success(t('app.allDataDeleted'));
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 1500);
-      } catch (err) {
-        log.error('Delete failed:', err);
-        toast.error(dataRightsErrorMessage(err, t('dataExportService.deleteDataFailed')));
-      }
-    },
-    onDeleteAccount: async () => {
-      try {
-        toast.info(t('app.deletingAccount'));
-        const leftover = await dataExportService.deleteAccount();
-        toast[leftover ? 'warning' : 'success'](leftover ?? t('app.accountDeleted'));
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 1500);
-      } catch (err) {
-        log.error('Account deletion failed:', err);
-        toast.error(dataRightsErrorMessage(err, t('dataExportService.deleteAccountFailed')));
-      }
-    },
-    onClose: () => {
-      log.debug('Data export panel closed');
-    },
+  const ui = getDataExportUI();
+  await openDataExport(ui, async () => {
+    const rights = await import('./data-rights-callbacks.js').catch(() => null);
+    if (!rights) return null; // the panel says it couldn't load, with a retry
+    // Set before the categories (and their delete buttons) show: each request
+    // only reports success after the server confirms it.
+    ui.setCallbacks(rights.dataRightsCallbacks());
+    return rights.loadCategories();
   });
-
-  await openDataExport(getDataExportUI(), () => dataExportService.getExportableCategories());
 }
 
 // ============================================================================
