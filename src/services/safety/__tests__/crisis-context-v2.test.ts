@@ -206,6 +206,34 @@ describe('a call where the caller said strong risk', () => {
   });
 });
 
+describe('a turn with nothing earlier and no check-in', () => {
+  it('is read exactly as off: the rules have nothing to narrow', async () => {
+    const latest = 'I just need a break from everything, you know?';
+    const reads: Record<string, Array<{ prompt: string; content: string }>> = {};
+    for (const [arm, env] of [
+      ['off', OFF],
+      ['on', ON],
+    ] as const) {
+      resetCrisisClassifierCache();
+      resetCrisisCallRisk();
+      const calls: Array<{ prompt: string; content: string }> = [];
+      const generate: CrisisGenerateFn = async (prompt, content) => {
+        calls.push({ prompt, content });
+        return '{"risk":"none","subject":"self"}';
+      };
+      for (const earlier of [[], [latest]]) {
+        await startCrisisClassifier(
+          { latest, earlier },
+          { pattern: 'none', env, generate, call: 'v2-first-turn' }
+        )?.verdict;
+      }
+      reads[arm] = calls;
+    }
+    expect(reads.on.length).toBeGreaterThan(0);
+    expect(reads.on).toEqual(reads.off);
+  });
+});
+
 describe('a turn with no call id', () => {
   it('is never narrowed: there is no call to hold', async () => {
     expect(contextNarrows('yeah', ON)).toBe(false);

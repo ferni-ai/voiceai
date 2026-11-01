@@ -149,12 +149,18 @@ function narrowedGenerate(generate: CrisisGenerateFn): CrisisGenerateFn {
  * Call it before anything can skip the read, so a call with risk is always held.
  */
 export function contextV2Read(
-  turn: { latest: string; earlier?: readonly string[] },
+  turn: { latest: string; earlier?: readonly string[]; companion?: string },
   run: { call?: string; pattern: 'block' | 'crisis' | 'none' },
   env: Env = process.env
 ): { prompt: (p: string) => string; generate: (g: CrisisGenerateFn) => CrisisGenerateFn } {
-  const { latest, earlier = [] } = turn;
-  if (!contextNarrows(latest.trim(), env, earlier, run.call, run.pattern !== 'none')) {
+  const latest = turn.latest.trim();
+  const earlier = turn.earlier ?? [];
+  const narrows = contextNarrows(latest, env, earlier, run.call, run.pattern !== 'none');
+  // The rules only speak to EARLIER and Ferni's check-in: with neither, the read stays main's.
+  const context =
+    earlier.some((line) => line.trim() && line.trim() !== latest) ||
+    FERNI_CHECK_IN.test(turn.companion ?? '');
+  if (!narrows || !context) {
     return { prompt: (p) => p, generate: (g) => g };
   }
   return { prompt: (p) => narrowedPrompt(p, env), generate: narrowedGenerate };
