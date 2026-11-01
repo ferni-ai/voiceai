@@ -1,10 +1,10 @@
 /**
  * CRISIS_CONTEXT_V2 (crisis-context-v2.ts) through the real classifier run
- * (startCrisisClassifier): off is byte-identical to before; on, the only
- * changes are Ferni's check-in marked as his and, with SEXUAL_TOPIC_BOUNDARY
- * on, the sexual-content rule; a call where main's detector or the patterns
- * found risk is read exactly as off for the rest of the call; a turn gets
- * the narrowed prompt and Ferni's check-in marked as his, never as evidence.
+ * (startCrisisClassifier): off is byte-identical to before; on, a turn after
+ * Ferni's check-in runs main's plain read exactly as off plus a marked read,
+ * and the marked read can only raise the answer, never lower or delay it;
+ * nothing else changes, sexual content included; a call where main's detector
+ * or the patterns found risk is read exactly as off for the rest of the call.
  */
 import { createHash } from 'node:crypto';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -15,7 +15,7 @@ import {
   type CrisisGenerateFn,
 } from '../crisis-classifier.js';
 import { callNarrowingHeld, holdCallNarrowing, resetCrisisCallRisk } from '../crisis-call-risk.js';
-import { contextNarrows, narrowedPrompt } from '../crisis-context-v2.js';
+import { contextNarrows, markedPrompt } from '../crisis-context-v2.js';
 import { holdForSexualTopic, resetSexualTopicHold } from '../../../utils/sexual-topic-hold.js';
 
 const BASE = {
@@ -95,7 +95,7 @@ describe('CRISIS_CONTEXT_V2 off', () => {
 const BASE_PROMPT = () => crisisClassifierPrompt(ON);
 const ANCHOR = '\n\nReturn JSON only';
 
-/** What the flag added to main's prompt, or null when the prompt is not main's plus one insert. */
+/** What the marked read added to main's prompt, or null when it is not main's plus one insert. */
 function added(prompt: string): string | null {
   const base = BASE_PROMPT();
   const at = base.indexOf(ANCHOR);
@@ -103,15 +103,44 @@ function added(prompt: string): string | null {
   return prompt.slice(at, prompt.length - (base.length - at));
 }
 
+const ERRAND = 'remind me to drop the cat at my brother’s tomorrow';
+
+/**
+ * The turn's verdict when main's plain read answers `plain` and the marked read answers
+ * `marked`. A delay in ms makes that read land later; `'never'` keeps it pending.
+ */
+async function verdictOf(
+  plain: string | Error,
+  marked: string | Error,
+  call: string,
+  delay: { plain?: number; marked?: number | 'never' } = { marked: 0, plain: 5 }
+) {
+  resetCrisisClassifierCache();
+  const generate: CrisisGenerateFn = async (_prompt, content) => {
+    const isMarked = content.includes('COMPANION_CHECK_IN');
+    const wait = isMarked ? delay.marked : delay.plain;
+    if (wait === 'never') return new Promise<string>(() => undefined);
+    await new Promise((r) => setTimeout(r, wait ?? 0));
+    const answer = isMarked ? marked : plain;
+    if (answer instanceof Error) throw answer;
+    return `{"risk":"${answer}","subject":"self"}`;
+  };
+  const run = startCrisisClassifier(
+    { latest: ERRAND, earlier: ['rough week'], companion: LINE_988 },
+    { pattern: 'none', env: ON, generate, call }
+  );
+  return (await run?.verdict)?.risk ?? null;
+}
+
 describe('a turn after Ferni’s check-in, flag on', () => {
-  it('reads the turn twice: main’s read as off, and one with the check-in marked and its rule', async () => {
+  it('runs main’s plain read exactly as off, and a marked read with only the check-in rule', async () => {
     const latest = "no no, I'm fine, I meant the boxes";
     const off = await sent(OFF, latest, ['ugh this move'], 'v2-mark-off');
     resetCrisisClassifierCache();
     const on = await sent(ON, latest, ['ugh this move'], 'v2-mark');
     expect(off).toHaveLength(1);
     expect(on).toHaveLength(2);
-    expect(on).toContainEqual(off[0]);
+    expect(on.filter((c) => !c.content.includes('COMPANION_CHECK_IN'))).toEqual(off);
     const marked = on.find((c) => c.content.includes('COMPANION_CHECK_IN'));
     expect(JSON.parse(marked?.content ?? '{}')).toEqual({
       latest,
@@ -123,90 +152,69 @@ describe('a turn after Ferni’s check-in, flag on', () => {
     expect(rule?.trim().split('\n')).toHaveLength(1);
   });
 
-  /** The turn's verdict when main's read answers `main` and the marked read answers `marked`. */
-  async function verdictOf(main: string | Error, marked: string | Error, call: string) {
-    resetCrisisClassifierCache();
-    const generate: CrisisGenerateFn = async (_prompt, content) => {
-      const answer = content.includes('COMPANION_CHECK_IN') ? marked : main;
-      if (answer instanceof Error) throw answer;
-      return `{"risk":"${answer}","subject":"self"}`;
-    };
-    const run = startCrisisClassifier(
-      {
-        latest: 'remind me to drop the cat at my brother’s tomorrow',
-        earlier: ['rough week'],
-        companion: LINE_988,
-      },
-      { pattern: 'none', env: ON, generate, call }
+  it('never lowers: the marked read cannot bring imminent or crisis down', async () => {
+    expect(await verdictOf('imminent', 'crisis', 'v2-low-1')).toBe('imminent');
+    expect(await verdictOf('imminent', 'none', 'v2-low-2')).toBe('imminent');
+    expect(await verdictOf('crisis', 'none', 'v2-low-3')).toBe('crisis');
+  });
+
+  it('raises to the marked read when it is higher and already in', async () => {
+    expect(await verdictOf('none', 'crisis', 'v2-up-1')).toBe('crisis');
+    expect(await verdictOf('crisis', 'imminent', 'v2-up-2')).toBe('imminent');
+  });
+
+  it('never waits for the marked read: still running when the plain read lands, the plain read answers', async () => {
+    expect(await verdictOf('crisis', 'imminent', 'v2-slow-1', { plain: 0, marked: 'never' })).toBe(
+      'crisis'
     );
-    return (await run?.verdict)?.risk;
-  }
-
-  it('never lowers imminent: main’s imminent read is the answer', async () => {
-    expect(await verdictOf('imminent', 'crisis', 'v2-imm-1')).toBe('imminent');
-    expect(await verdictOf('imminent', 'none', 'v2-imm-2')).toBe('imminent');
+    const started = Date.now();
+    expect(await verdictOf('none', 'imminent', 'v2-slow-2', { plain: 0, marked: 400 })).toBe(
+      'none'
+    );
+    expect(Date.now() - started).toBeLessThan(300);
   });
 
-  it('lets the mark lower crisis to none, and raise it', async () => {
-    expect(await verdictOf('crisis', 'none', 'v2-fa')).toBe('none');
-    expect(await verdictOf('none', 'imminent', 'v2-up')).toBe('imminent');
-  });
-
-  it('falls back to main’s read when the marked read fails, and to the marked one when main’s does', async () => {
+  it('falls back to the plain read when the marked read fails, and fails as main when the plain read does', async () => {
     expect(await verdictOf('crisis', new Error('boom'), 'v2-fail-1')).toBe('crisis');
-    expect(await verdictOf(new Error('boom'), 'crisis', 'v2-fail-2')).toBe('crisis');
+    expect(await verdictOf(new Error('boom'), 'imminent', 'v2-fail-2')).toBeNull();
   });
 
   it('says the check-in is not by itself a sign of risk, and never lowers what the caller said', () => {
-    const rule = added(narrowedPrompt(BASE_PROMPT(), true, false)) ?? '';
+    const rule = added(markedPrompt(BASE_PROMPT())) ?? '';
     expect(rule).toContain('the check-in by itself is not a sign that the caller is at risk');
     expect(rule).toContain("judge the caller's own words in LATEST and EARLIER exactly as above");
     expect(rule).toContain('never lowers imminent to crisis');
-    expect(rule).not.toMatch(
-      /is evidence|counts as evidence|errand|goodbye|on its own words|only when/i
-    );
+    expect(rule).not.toMatch(/is evidence|counts as evidence|errand|goodbye|sexual|adult/i);
   });
+});
 
-  it('adds the sexual-content rule only when asked, and nothing when neither rule applies', () => {
-    expect(narrowedPrompt(BASE_PROMPT(), true, false)).not.toContain('adult-topic');
-    expect(narrowedPrompt(BASE_PROMPT(), true, true)).toContain('adult-topic');
-    expect(added(narrowedPrompt(BASE_PROMPT(), false, true))).toMatch(/^\n\n- Sexual/);
-    expect(narrowedPrompt(BASE_PROMPT(), false, false)).toBe(BASE_PROMPT());
-  });
-
-  it('applies the sexual rule only on a call main’s sexual-topic read found sexual', async () => {
+describe('sexual content', () => {
+  it('is read exactly as off, with SEXUAL_TOPIC_BOUNDARY on and main’s sexual read held', async () => {
     const sexualOn = { ...ON, SEXUAL_TOPIC_BOUNDARY: 'on' };
-    const prompts = async (call: string) => {
-      const calls: string[] = [];
-      const generate: CrisisGenerateFn = async (prompt) => {
-        calls.push(prompt);
+    const reads = async (env: Record<string, string>, call: string) => {
+      const calls: Array<{ prompt: string; content: string }> = [];
+      const generate: CrisisGenerateFn = async (prompt, content) => {
+        calls.push({ prompt, content });
         return '{"risk":"none","subject":"self"}';
       };
       resetCrisisClassifierCache();
+      holdForSexualTopic(call);
       await startCrisisClassifier(
-        { latest: 'can you talk dirty to me', earlier: ['hey'], companion: 'Hey! How are you?' },
-        { pattern: 'none', env: sexualOn, generate, call }
+        { latest: "I'm 15 and my coach texts me pics", earlier: ['hey'], companion: LINE_988 },
+        { pattern: 'none', env, generate, call }
       )?.verdict;
       return calls;
     };
+    const off = await reads({ ...OFF, SEXUAL_TOPIC_BOUNDARY: 'on' }, 'v2-sex-off');
+    const on = await reads(sexualOn, 'v2-sex-on');
+    expect(on.filter((c) => !c.content.includes('COMPANION_CHECK_IN'))).toEqual(off);
+    expect(on.every((c) => !/sexual|adult/i.test(added(c.prompt) ?? ''))).toBe(true);
     resetSexualTopicHold();
-    const unread = await prompts('v2-sexual-unread');
-    expect(unread.every((p) => !p.includes('adult-topic'))).toBe(true);
-    holdForSexualTopic('v2-sexual-read');
-    const read = await prompts('v2-sexual-read');
-    expect(read.some((p) => p.includes('adult-topic'))).toBe(true);
-    resetSexualTopicHold();
-  });
-
-  it('keeps the sexual rule from lowering anything else', () => {
-    const rule = added(narrowedPrompt(BASE_PROMPT(), false, true)) ?? '';
-    expect(rule).toContain('is judged exactly as above');
-    expect(rule).toContain('never lowers imminent to crisis');
   });
 });
 
 describe('a turn with no check-in', () => {
-  it('is read exactly as off on a call not read as sexual, even with SEXUAL_TOPIC_BOUNDARY on', async () => {
+  it('is read exactly as off', async () => {
     const latest = 'I just need a break from everything, you know?';
     const reads: Record<string, Array<{ prompt: string; content: string }>> = {};
     for (const [arm, env] of [
@@ -222,7 +230,7 @@ describe('a turn with no check-in', () => {
       };
       await startCrisisClassifier(
         { latest, earlier: ['rough week'], companion: 'Oh no. What happened?' },
-        { pattern: 'none', env, generate, call: 'v2-no-check-in' }
+        { pattern: 'none', env, generate, call: `v2-no-check-in-${arm}` }
       )?.verdict;
       reads[arm] = calls;
     }

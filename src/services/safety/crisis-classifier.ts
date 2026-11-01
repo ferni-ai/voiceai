@@ -432,7 +432,7 @@ export function startCrisisClassifier(
   // Key on what the model sees: the turn pipeline's history ends with the
   // latest message and the chat context's does not, which made them miss.
   const normalized = normalizeInput(input);
-  const prompt = v2.prompt(crisisClassifierPrompt(env));
+  const prompt = crisisClassifierPrompt(env);
   // CRISIS_CLASSIFIER_SECOND_READ: v3 may fill a read that found nothing (crisis-classifier-v3.ts).
   const waitMs = resolveCrisisClassifierTimeoutMs(env);
   const { call, pattern, secondRead } = options;
@@ -461,7 +461,7 @@ export function startCrisisClassifier(
     classifyCrisis(input, v2.generate(generate), resolveCrisisClassifierTimeoutMs(env), p);
   // Everyday rules on and risk words in the caller's words: the rules may not lower the read.
   const plain = needsPlainRead(normalized.latest, env)
-    ? v2.prompt(crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' }))
+    ? crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })
     : null;
   const base = readTurn(read, [prompt, plain], { ...options, ...normalized, env });
   const reads = second.apply(base, read, prompt);

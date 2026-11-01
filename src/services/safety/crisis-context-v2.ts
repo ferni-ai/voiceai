@@ -1,33 +1,26 @@
 /**
- * CRISIS_CONTEXT_V2 (off by default): two changes to what the crisis
- * classifier reads, and nothing else. Apart from these, its prompt and its
- * risk categories are main's.
+ * CRISIS_CONTEXT_V2 (off by default): one change to the crisis classifier's
+ * reads, and it can only raise a verdict, never lower one.
  *
- * False crisis reads mostly follow an earlier activation on the same call:
- * Ferni says a 988 line or asks a safety question, and the next read takes
- * Ferni's own words as a sign of risk. With the flag on:
+ * On a turn that answers Ferni's own crisis line or safety question, each read
+ * runs twice at once: main's plain read (main's prompt, main's input, exactly
+ * as with the flag off) and a marked read, where Ferni's line goes in as
+ * COMPANION_CHECK_IN with one rule saying the check-in by itself is not a sign
+ * of risk. The answer is the plain read, raised to the marked read's verdict
+ * when that is higher and already in. The marked read never delays, replaces
+ * or drops the plain one: if it is still running when the plain read lands, or
+ * fails, the plain read is the answer alone.
  *
- * - Ferni's own crisis line or safety question goes to the model marked as
- *   COMPANION_CHECK_IN: the companion's check-in, never evidence by itself.
- *   It is still what LATEST answers, and the caller's own words are judged
- *   exactly as on main. Main's own read runs beside it, and an imminent read
- *   there is the answer: the mark can lower crisis to none, never imminent;
- * - with SEXUAL_TOPIC_BOUNDARY on, on a call main's own sexual-topic read
- *   (sexual-boundary.ts) found sexual, sexual or adult content alone reads
- *   none.
- *
- * A call is held off both for good once main's own pattern detector finds
- * risk on it: this turn's pattern outcome, or any earlier caller line it
- * scores at crisis level. The hold is recorded before the read can be
- * skipped and lives with the call's risk record (crisis-call-risk.ts). A turn
- * with no call id is never changed. Anything unexpected falls back to main's
- * read.
+ * Nothing changes on a turn without a check-in, on a call where main's own
+ * pattern detector found risk (this turn's pattern outcome, or any caller line
+ * it scores at crisis level), or without a call id. A held call stays held for
+ * the rest of the call (crisis-call-risk.ts), recorded before the read can be
+ * skipped.
  *
  * @module CrisisContextV2
  */
 
 import { flagOn } from '../../config/env-flag.js';
-import { sexualTopicConfirmed } from '../../utils/sexual-topic-hold.js';
 import { callNarrowingHeld, holdCallNarrowing } from './crisis-call-risk.js';
 import type { CrisisGenerateFn } from './crisis-classifier.js';
 import { sessionSeverityOf } from './crisis-guard.js';
@@ -46,10 +39,10 @@ function mainSeesRisk(line: unknown): boolean {
 }
 
 /**
- * With the flag on, whether this turn's read may change. Never without a call to hold (no
- * session id); never when the patterns found risk on this turn or main's detector scores one
- * of the caller's lines (this turn's or earlier) at crisis level, and never again on a call
- * where either happened.
+ * With the flag on, whether this turn's read may run the marked read beside main's. Never
+ * without a call to hold (no session id); never when the patterns found risk on this turn or
+ * main's detector scores one of the caller's lines (this turn's or earlier) at crisis level, and
+ * never again on a call where either happened.
  */
 export function contextNarrows(
   lines: readonly string[],
@@ -72,76 +65,63 @@ const FERNI_CHECK_IN =
 const CHECK_IN_RULE = `
 - COMPANION_CHECK_IN, when the input has it, is the COMPANION line, and it is the companion's own crisis line or safety question. The companion says these on its own whenever a read was unsure, so the check-in by itself is not a sign that the caller is at risk. Everything above still holds: use it as COMPANION to work out what LATEST answers, and judge the caller's own words in LATEST and EARLIER exactly as above. This never lowers risk the caller's own words carry, and never lowers imminent to crisis.`;
 
-const SEXUAL_RULE = `
-- Sexual, flirtatious or adult-topic questions and requests (dating, sex, attraction, "talk dirty", a romantic or sexy story) are not a sign of risk by themselves: when that is all LATEST is about, risk is "none". Anything else in LATEST or EARLIER (dying, self-harm, a plan or means, a goodbye, giving things away, an errand for after) is judged exactly as above. This rule is only about sexual and adult content, and never lowers imminent to crisis.`;
-
-/**
- * The classifier prompt with the flag's rules; the prompt unchanged when it has none or no anchor.
- * `sexual`: main's own sexual-topic read (sexual-boundary.ts) found this call sexual.
- */
-export function narrowedPrompt(prompt: string, checkIn: boolean, sexual: boolean): string {
-  const rules = (checkIn ? CHECK_IN_RULE : '') + (sexual ? SEXUAL_RULE : '');
+/** The marked read's prompt: main's prompt with the check-in rule; unchanged without its anchor. */
+export function markedPrompt(prompt: string): string {
   const insertAt = prompt.indexOf('\n\nReturn JSON only');
-  if (!rules || insertAt < 0) return prompt;
-  return `${prompt.slice(0, insertAt)}\n${rules}${prompt.slice(insertAt)}`;
+  if (insertAt < 0) return prompt;
+  return `${prompt.slice(0, insertAt)}\n${CHECK_IN_RULE}${prompt.slice(insertAt)}`;
 }
 
-const riskOf = (reply: string): string | undefined => /"risk"\s*:\s*"(\w+)"/.exec(reply)?.[1];
+const RANK: Record<string, number> = { none: 0, crisis: 1, imminent: 2 };
+const rankOf = (reply: string | undefined): number => {
+  const risk = reply === undefined ? undefined : /"risk"\s*:\s*"(\w+)"/.exec(reply)?.[1];
+  return risk === undefined ? -1 : (RANK[risk] ?? -1);
+};
 
 /**
- * The model call with Ferni's check-in marked as COMPANION_CHECK_IN, beside main's own read of
- * the same turn (main's prompt, the check-in unmarked). The mark may lower crisis to none, the
- * false alarm it is for, but never imminent: when main's read is imminent, or the marked read
- * fails or can't be read, main's read is the answer (the marked one only when main's failed). `sexual`: the prompt also has SEXUAL_RULE.
+ * Main's plain read, raised to the marked read's verdict when that is higher and already in.
+ * The plain read is awaited exactly as main awaits it (its failure is main's failure); the
+ * marked read is never waited for.
  */
-function markedGenerate(sexual: boolean): (generate: CrisisGenerateFn) => CrisisGenerateFn {
-  const inserted = `\n${CHECK_IN_RULE}${sexual ? SEXUAL_RULE : ''}`;
-  const kept = sexual ? `\n${SEXUAL_RULE}` : '';
-  return (generate) => async (prompt, content, signal) => {
-    const unmarked = prompt.replace(inserted, kept);
-    let input: { latest?: unknown; earlier?: unknown; companion?: unknown };
+function withMarkedRead(generate: CrisisGenerateFn): CrisisGenerateFn {
+  return async (prompt, content, signal) => {
+    let input: { companion?: unknown };
     try {
       input = JSON.parse(content) as typeof input;
     } catch {
-      return generate(unmarked, content, signal);
+      return generate(prompt, content, signal);
     }
     if (typeof input.companion !== 'string' || !FERNI_CHECK_IN.test(input.companion)) {
-      return generate(unmarked, content, signal);
+      return generate(prompt, content, signal);
     }
     const { companion, ...rest } = input;
-    const marked = JSON.stringify({ ...rest, COMPANION_CHECK_IN: companion });
-    const [main, read] = await Promise.allSettled([
-      generate(unmarked, content, signal),
-      generate(prompt, marked, signal),
-    ]);
-    if (main.status === 'rejected') {
-      if (read.status === 'rejected') throw main.reason;
-      return read.value;
-    }
-    if (read.status === 'rejected' || !riskOf(read.value)) return main.value;
-    return riskOf(main.value) === 'imminent' ? main.value : read.value;
+    let marked: string | undefined;
+    generate(
+      markedPrompt(prompt),
+      JSON.stringify({ ...rest, COMPANION_CHECK_IN: companion }),
+      signal
+    )
+      .then((reply) => (marked = reply))
+      .catch(() => undefined);
+    const plain = await generate(prompt, content, signal);
+    const plainRank = rankOf(plain);
+    return plainRank >= 0 && marked !== undefined && rankOf(marked) > plainRank ? marked : plain;
   };
 }
 
 /**
- * One turn's read under the flag: the prompt and model call it uses (main's when nothing
- * changes). Call it before anything can skip the read, so a call with risk is always held.
+ * One turn's read under the flag: the model call it uses (main's when nothing changes). Main's
+ * prompt is never changed. Call it before anything can skip the read, so a call with risk is
+ * always held.
  */
 export function contextV2Read(
   turn: { latest: string; earlier?: readonly string[]; companion?: string },
   run: { call?: string; pattern: 'block' | 'crisis' | 'none' },
   env: Env = process.env
-): { prompt: (p: string) => string; generate: (g: CrisisGenerateFn) => CrisisGenerateFn } {
-  const same = { prompt: (p: string) => p, generate: (g: CrisisGenerateFn) => g };
+): { generate: (g: CrisisGenerateFn) => CrisisGenerateFn } {
+  const same = { generate: (g: CrisisGenerateFn) => g };
   const lines = [turn.latest, ...(turn.earlier ?? [])];
   if (!contextNarrows(lines, run.call, run.pattern !== 'none', env)) return same;
-  const checkIn = FERNI_CHECK_IN.test(turn.companion ?? '');
-  // Only on a call main's own sexual-topic read found sexual: unread, the rule lowered
-  // preparatory turns from imminent to crisis (verify of #3287, round 2).
-  const sexual = sexualTopicConfirmed(run.call, env);
-  if (!checkIn && !sexual) return same;
-  return {
-    prompt: (p) => narrowedPrompt(p, checkIn, sexual),
-    generate: checkIn ? markedGenerate(sexual) : (g) => g,
-  };
+  if (!FERNI_CHECK_IN.test(turn.companion ?? '')) return same;
+  return { generate: withMarkedRead };
 }
