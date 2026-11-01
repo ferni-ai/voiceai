@@ -122,6 +122,16 @@ describe('daily outreach run is retry-safe', () => {
     expect(deliver).toHaveBeenCalledTimes(1);
   });
 
+  it('the claim names the person and expires two days on (account deletion, TTL)', async () => {
+    seedUser(AVERY);
+    expect((await runDailyOutreach()).sent).toBe(1);
+    expect(docs.get(LOCK)).toEqual({
+      at: NOW.toISOString(),
+      userId: AVERY,
+      expireAt: new Date(NOW.getTime() + 2 * DAY),
+    });
+  });
+
   it('a run killed right after delivery has recorded the send, and the retry sends nothing', async () => {
     seedUser(AVERY);
     // The instance is shut down at the first await after delivery: the run never resumes.

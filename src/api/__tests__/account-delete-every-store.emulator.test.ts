@@ -102,6 +102,7 @@ const MUST_ERASE = [
   'apple_calendar_tokens/{uid}',
   'developer_oauth_tokens[userId]',
   'feature_checkins[userId]',
+  'daily_outreach_locks[userId]', // the daily run's send claims (daily-send-claim.ts)
   'context_injection_outcomes[injection.userId]',
   'vectors[metadata.userId]', // the semantic index (#2971 verify)
   'memory_vectors[metadata.userId]',

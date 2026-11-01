@@ -133,6 +133,7 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
     'roadmap_suggestions',
     'outreach_triggers',
     'outreach_history',
+    'daily_outreach_locks', // {uid}_{day}: the daily outreach run's one send a day (daily-send-claim.ts)
     'scheduled_deliveries',
     'pending_inapp_messages',
     'voice_conversations',
