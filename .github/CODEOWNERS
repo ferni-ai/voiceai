@@ -120,6 +120,9 @@
 /src/agents/multi-agent/caller-card/wiring.ts @sethdford
 /src/agents/multi-agent/greeting-date.ts @sethdford
 /src/servers/api/routes/apple-health.ts @sethdford
+/src/agents/personas/persona-growth-after-call.ts @sethdford
+/src/agents/personas/persona-growth-recall.ts @sethdford
+/src/agents/personas/turn-notes-guarded.ts @sethdford
 # Importers of agent safety, minor-care, turn-crisis, the crisis signals, filter and SMS
 # screen, and the crisis content crisis modules read (phrase-match, helplines...).
 /src/agents/group-conversation/roundtable-turns.ts @sethdford
