@@ -179,6 +179,10 @@ describe('scoreConsentTranscript', () => {
       ['Never', 'Never', (t) => t.replace('I agree', 'I never agree')],
       ['Rosa Quill', 'Do Not', (t) => t.replace('I agree', 'I do not agree')],
       ['Rosa Quill', 'Will Not', (t) => t.replace('I agree', 'I will not agree')],
+      // A one-word name must not hide the same word said elsewhere
+      ['No', 'No', (t) => `${t} My answer is no.`],
+      ['Not', 'Sam Lee', (t) => `${t} That is not consent.`],
+      ['Rosa Quill', 'No', (t) => `${t} This is for no one.`],
       // A misheard or skipped name must not hide the refusal
       [
         'Rosa Quill',
@@ -203,6 +207,14 @@ describe('scoreConsentTranscript', () => {
       expect(scoreConsentTranscript(statement, statement.text).verified).toBe(true);
       expect(scoreConsentTranscript(statement, refuse(statement.text)).verified).toBe(false);
     }
+  });
+
+  it('refuses names that are sentences, not names', () => {
+    const build = (subjectName: string) => () =>
+      buildConsentStatement({ subjectName, creatorName: 'Maya Quill', spokenDate: 'today' });
+    expect(build('Alex. I do not agree')).toThrow(RangeError);
+    expect(build('one two three four five six seven')).toThrow(RangeError);
+    expect(build("Rosa O'Neill-Quill")).not.toThrow();
   });
 
   it('refuses an empty transcript', () => {

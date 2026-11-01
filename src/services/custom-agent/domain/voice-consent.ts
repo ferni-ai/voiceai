@@ -87,7 +87,7 @@ export interface ConsentStatement {
   checkWords: readonly string[];
   /** The date as written in the text; speech to text writes dates in many forms, so it isn't scored. */
   spokenDate: string;
-  /** Each name with the word the statement puts right before it ("is Rosa Quill", "for Maya Quill"). */
+  /** Each name with the words the statement puts right before it ("name is", "voice for"). */
   names: readonly { after: string; name: string }[];
 }
 
@@ -106,10 +106,21 @@ function pickCheckWords(random: () => number): string[] {
 
 const clean = (s: string) => s.replace(/\s+/g, ' ').trim();
 
-/** The statement the subject reads aloud. */
+const MAX_NAME_WORDS = 6;
+
+/** A name a person can say: letters, spaces, hyphens and apostrophes, at most six words. */
+function isSpeakableName(name: string): boolean {
+  const n = clean(name);
+  return /^[\p{L}' \u2019-]+$/u.test(n) && n.split(' ').length <= MAX_NAME_WORDS;
+}
+
+/** The statement the subject reads aloud. Throws on a name that isn't speakable (a sentence). */
 export function buildConsentStatement(input: ConsentStatementInput): ConsentStatement {
   const subject = clean(input.subjectName);
   const creator = clean(input.creatorName);
+  if (!isSpeakableName(subject) || !isSpeakableName(creator)) {
+    throw new RangeError('consent names must be speakable names, not sentences');
+  }
   const forWhom =
     subject.toLowerCase() === creator.toLowerCase() ? 'my own use' : `${creator}'s private use`;
   const checkWords = pickCheckWords(input.random ?? secureRandom);
@@ -118,8 +129,8 @@ export function buildConsentStatement(input: ConsentStatementInput): ConsentStat
     `My name is ${subject}. I agree that Ferni may make an AI copy of my voice for ${forWhom}. ` +
     `I can take this back at any time. Today is ${spokenDate}. ` +
     `My check words are ${checkWords.join(', ')}.`;
-  const names = [{ after: 'is', name: subject }];
-  if (forWhom !== 'my own use') names.push({ after: 'for', name: creator });
+  const names = [{ after: 'name is', name: subject }];
+  if (forWhom !== 'my own use') names.push({ after: 'voice for', name: creator });
   return { text, checkWords, spokenDate, names };
 }
 
@@ -166,11 +177,13 @@ const REFUSAL_WORDS = new Set([
 function withoutAnchoredNames(words: string[], names: ConsentStatement['names']): string[] {
   const cut = new Set<number>();
   for (const { after, name } of names) {
+    const anchor = consentWords(after);
     const nameWords = consentWords(name);
     if (!nameWords.length) continue;
-    for (let i = 0; i < words.length; i++) {
-      if (words[i] === after && nameWords.every((w, j) => words[i + 1 + j] === w)) {
-        nameWords.forEach((_, j) => cut.add(i + 1 + j));
+    for (let i = anchor.length; i < words.length; i++) {
+      const anchored = anchor.every((w, j) => words[i - anchor.length + j] === w);
+      if (anchored && nameWords.every((w, j) => words[i + j] === w)) {
+        nameWords.forEach((_, j) => cut.add(i + j));
       }
     }
   }
