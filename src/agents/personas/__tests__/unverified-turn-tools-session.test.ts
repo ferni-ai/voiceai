@@ -33,6 +33,7 @@ const ACCOUNT = [
   'setReminder',
   'rememberAboutUser',
   'getContactInfo',
+  'playMusic', // phone-safe, but off an unverified turn: the fixed allowlist has no music
   'getWeather',
 ];
 const CRISIS = ['provideCrisisResources', 'connectToHumanExpert', 'evaluateHumanTransfer'];
@@ -115,6 +116,7 @@ describe('UNVERIFIED_TURN_TOOLS on a real agent session (#3305)', () => {
     const { model } = await call([{ input: ASKED, content: "I can't do that yet." }]);
     expect(model.offered[0]).toEqual([...CRISIS].sort());
     for (const name of ACCOUNT) expect(model.offered[0]).not.toContain(name);
+    expect(model.offered[0]).not.toContain('playMusic');
   }, 90_000);
 
   it('flag on, unverified: no teammate handoff is offered, and a call to one does not run', async () => {

@@ -179,54 +179,42 @@ describe('each request answers for itself, a crisis-guided re-ask included', () 
 });
 
 describe('the allowlist pin: a tool joins it only on purpose', () => {
-  it('no team tool or getWeather is offered; the rest of the phone-safe rule is', () => {
-    const team = ['handoffToMaya', 'handoffToPeter', 'askForTeammate', 'introduceMember'];
-    for (const name of [...team, 'meetTheTeam', 'softTeamIntro', 'getWeather'])
-      expect(offeredWhenUnverified(name)).toBe(false);
-    for (const name of ['endCall', 'getMovieInfo', 'playMusic', 'breatheWithMe'])
-      expect(offeredWhenUnverified(name)).toBe(true);
-  });
+  /** The rule: crisis/safety tools and fixed-text presence tools, nothing else (19 names). */
+  const NINETEEN = [
+    'breatheWithMe',
+    'connectToHumanExpert',
+    'createSafetyPlan',
+    'deEscalateAnxiety',
+    'evaluateHumanTransfer',
+    'findFinancialAssistance',
+    'findSafeResources',
+    'groundingExercise',
+    'groundingForTrauma',
+    'guideGroundingExercise',
+    'naturePrescription',
+    'noticeThisMoment',
+    'provideCrisisResources',
+    'quickCrisisResources',
+    'selfCompassionTrauma',
+    'somaticSupport',
+    'supportRecoveryJourney',
+    'trackSobrietyMilestone',
+    'windowOfTolerance',
+  ];
 
   it('SAFETY_TOOLS is every tool of the crisis and human-transfer domains', () => {
     const ids = [...crisis.definitions, ...humanTransfer.definitions].map((d) => d.id).sort();
     expect([...SAFETY_TOOLS].sort()).toEqual(ids);
   });
 
-  it('of every domain tool, exactly these are offered on an unverified turn', () => {
+  it('of every domain tool, exactly these 19 are offered on an unverified turn', () => {
     const offered = (DOMAIN_TOOL_IDS as readonly string[]).filter(offeredWhenUnverified).sort();
-    expect(offered).toEqual([
-      'breatheWithMe',
-      'connectToHumanExpert',
-      'createSafetyPlan',
-      'deEscalateAnxiety',
-      'endGame',
-      'endTextGame',
-      'evaluateHumanTransfer',
-      'findFinancialAssistance',
-      'findSafeResources',
-      'getGameHint',
-      'getGameStatus',
-      'getTextGameBoard',
-      'groundingExercise',
-      'groundingForTrauma',
-      'guideGroundingExercise',
-      'makeTextGameMove',
-      'musicControl',
-      'musicInfo',
-      'naturePrescription',
-      'noticeThisMoment',
-      'provideCrisisResources',
-      'quickCrisisResources',
-      'selfCompassionTrauma',
-      'skipGameRound',
-      'somaticSupport',
-      'startGame',
-      'startTextGame',
-      'submitGameAnswer',
-      'suggestGame',
-      'supportRecoveryJourney',
-      'trackSobrietyMilestone',
-      'windowOfTolerance',
-    ]);
+    expect(offered).toEqual(NINETEEN);
+  });
+
+  it('no music, game, movie, weather, team, handoff tool or endCall is offered', () => {
+    const others = ['playMusic', 'musicControl', 'searchAppleMusic', 'startGame', 'endGame'];
+    const more = ['getMovieInfo', 'getWeather', 'askForTeammate', 'handoffToMaya', 'endCall'];
+    for (const name of [...others, ...more]) expect(offeredWhenUnverified(name)).toBe(false);
   });
 });
