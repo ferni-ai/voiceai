@@ -15,6 +15,7 @@
  */
 
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
+import { claimRefused } from '../../utils/synthetic-write-guard.js';
 
 export interface DueItem {
   id: string;
@@ -34,7 +35,7 @@ export interface ClaimResult {
   late: number;
   /** The items marked late (none on a dry run), so a job can report each one. */
   lateItems: DueItem[];
-  /** Claimed by another run first. */
+  /** Claimed by another run first, or refused by the write guard (a shared placeholder owner). */
   skipped: number;
 }
 
@@ -94,17 +95,21 @@ export async function claimDueItems(db: Firestore, opts: ClaimOptions): Promise<
       continue;
     }
 
-    const outcome = await db.runTransaction(async (tx) => {
-      const fresh = await tx.get(doc.ref);
-      if (fresh.data()?.status !== 'pending') return 'skipped';
-      tx.update(
-        doc.ref,
-        late
-          ? { status: opts.lateStatus, missedAt: now.toISOString() }
-          : { status: opts.claimStatus, claimedAt: now.toISOString() }
-      );
-      return late ? 'late' : 'claimed';
-    });
+    // A claim the write guard refuses (an item under a shared placeholder owner) is skipped:
+    // never delivered, and never a reason to stop claiming everyone else's items.
+    const outcome = await db
+      .runTransaction(async (tx) => {
+        const fresh = await tx.get(doc.ref);
+        if (fresh.data()?.status !== 'pending') return 'skipped';
+        tx.update(
+          doc.ref,
+          late
+            ? { status: opts.lateStatus, missedAt: now.toISOString() }
+            : { status: opts.claimStatus, claimedAt: now.toISOString() }
+        );
+        return late ? 'late' : 'claimed';
+      })
+      .catch(claimRefused('skipped' as const));
     if (outcome === 'skipped') result.skipped++;
     else if (outcome === 'late') {
       result.late++;

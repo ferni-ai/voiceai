@@ -32,6 +32,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { claimRefused } from '../../utils/synthetic-write-guard.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { getChannelStatus, type ChannelStatus } from '../outreach/unified-delivery.js';
 import type { PromiseSweepResult } from '../superhuman/semantic-intelligence/promise-keeper.js';
@@ -225,17 +226,20 @@ export async function deliverDueReminders(
       continue;
     }
 
-    const claim = await db.runTransaction(async (tx) => {
-      const fresh = await tx.get(doc.ref);
-      if (fresh.data()?.status !== 'pending') return null;
-      tx.update(
-        doc.ref,
-        late
-          ? { status: 'missed', missedAt: now.toISOString() }
-          : { status: 'sending', claimedAt: now.toISOString() }
-      );
-      return late ? 'missed' : 'sending';
-    });
+    // A claim the write guard refuses (a shared placeholder owner) is skipped, never sent.
+    const claim = await db
+      .runTransaction(async (tx) => {
+        const fresh = await tx.get(doc.ref);
+        if (fresh.data()?.status !== 'pending') return null;
+        tx.update(
+          doc.ref,
+          late
+            ? { status: 'missed', missedAt: now.toISOString() }
+            : { status: 'sending', claimedAt: now.toISOString() }
+        );
+        return late ? 'missed' : 'sending';
+      })
+      .catch(claimRefused(null));
     if (claim === null) {
       result.skipped++;
       continue;
