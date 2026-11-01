@@ -7,7 +7,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  callerVerification,
+  isPlacedCall,
   isVerifiedIdentification,
+  onPlacedCall,
   verifiedAllowanceKey,
   verifiedCallerId,
 } from '../verified-caller.js';
@@ -76,4 +79,33 @@ describe('verifiedCallerId: only the boolean true the server set counts', () => 
       expect(verifiedCallerId({ userId, verifiedCaller: true })).toBeNull();
     }
   );
+});
+
+describe('a call we placed to their number', () => {
+  it('is a proactive self-call, and nothing else', () => {
+    expect(isPlacedCall('proactive_outreach')).toBe(true);
+    for (const callType of [
+      'inbound_call',
+      'web',
+      'app',
+      'on_behalf_call',
+      'family_checkin',
+      undefined,
+    ]) {
+      expect(isPlacedCall(callType), String(callType)).toBe(false);
+    }
+  });
+
+  it('is recorded beside verifiedCaller, which stays exactly what identification said', () => {
+    expect(callerVerification(true, 'proactive_outreach')).toEqual({ verifiedCaller: true, placedCall: true }); // prettier-ignore
+    expect(callerVerification(true, 'inbound_call')).toEqual({ verifiedCaller: true, placedCall: false }); // prettier-ignore
+    expect(callerVerification(false, undefined)).toEqual({ verifiedCaller: false, placedCall: false }); // prettier-ignore
+  });
+
+  it('is read only from an explicit true', () => {
+    expect(onPlacedCall({ placedCall: true })).toBe(true);
+    for (const data of [{ placedCall: 'true' }, { placedCall: 1 }, {}, undefined, null]) {
+      expect(onPlacedCall(data), JSON.stringify(data)).toBe(false);
+    }
+  });
 });

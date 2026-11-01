@@ -52,6 +52,31 @@ export function isVerifiedIdentification(
 interface CallerView {
   userId?: unknown;
   verifiedCaller?: unknown;
+  placedCall?: unknown;
+}
+
+/**
+ * A call we placed to their number (a proactive self-call): the signed dispatch
+ * names the account, so the session is `verifiedCaller`, but a call we placed
+ * to their number can be answered by anyone (as ownerProvenOnLine says in
+ * caller-recognition.ts). Only the owner-message policy reads this today; the
+ * verifiedCaller bit itself is unchanged.
+ */
+export function isPlacedCall(callType: string | undefined): boolean {
+  return callType === 'proactive_outreach';
+}
+
+/** What voice-agent-entry records on the call's userData about who the server verified. */
+export function callerVerification(
+  verified: boolean,
+  callType: string | undefined
+): { verifiedCaller: boolean; placedCall: boolean } {
+  return { verifiedCaller: verified, placedCall: isPlacedCall(callType) };
+}
+
+/** True when this call's userData marks a call we placed (isPlacedCall). */
+export function onPlacedCall(userData: unknown): boolean {
+  return ((userData ?? {}) as CallerView).placedCall === true;
 }
 
 /**
