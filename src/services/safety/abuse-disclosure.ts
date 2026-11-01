@@ -42,7 +42,7 @@ const PARTNER = 'boyfriend|girlfriend|husband|wife|partner|fianc[eé]e?|ex';
 /** "my older brother", "my new boyfriend". */
 const KIN = '(?:(?:older|younger|big|little|oldest|youngest|twin|new|current|real|own) )?';
 /** Who: "my <family>", "my <partner>", or he, she, they; up to four words before the verb. */
-const WHO = `(?<!\\b(?:not|never|no one|nobody) (?:that |like |saying )?)\\b(?:my ${KIN}(?<family>${FAMILY})|my ${KIN}(?<partner>${PARTNER})|(?<pronoun>he|she|they))\\b(?:'ll|'d)?(?: [\\w']+){0,4}? `;
+const WHO = `(?<!\\b(?:not|never|no one|nobody) (?:that |like |saying )?)\\b(?:my ${KIN}(?<family>${FAMILY})|my ${KIN}(?<partner>${PARTNER})|(?<pronoun>he|she|they))\\b(?:'ll|'d)?(?: [\\w']{1,30}){0,4}? `;
 /**
  * Not when a negator governs the verb itself: "never hits me", "doesn't hit me", "has never once
  * hit me", "would never hurt me". A negator elsewhere is no negation: "never stops hitting me",
@@ -68,7 +68,7 @@ const BLOW =
  * errand ("if I leave the gate open", "if I tell the dog joke").
  */
 const THREAT_IF =
-  "tell (?:anyone|anybody|someone|somebody|people|the police|the cops|a teacher|my \\w+|on (?:him|her|them))|tell(?=\\s*(?:[.,!?;]|$))|leave(?: (?:him|her|them|home|the house))?(?=\\s*(?:[.,!?;]|$|and\\b|or\\b))|go to the (?:police|cops)|call (?:the police|the cops|911|anyone|someone)|report (?:him|her|them|it)|say (?:anything|something)";
+  'tell (?:anyone|anybody|someone|somebody|people|the police|the cops|a teacher|my \\w{1,30}|on (?:him|her|them))|tell(?=\\s*(?:[.,!?;]|$))|leave(?: (?:him|her|them|home|the house))?(?=\\s*(?:[.,!?;]|$|and\\b|or\\b))|go to the (?:police|cops)|call (?:the police|the cops|911|anyone|someone)|report (?:him|her|them|it)|say (?:anything|something)';
 /** What they do to the caller, each anchored so everyday uses stay out. */
 const ACTS = [
   // hits / beats / punches / kicks / slaps / smacks me: not "hits me up", "hits me back", "beat
@@ -90,7 +90,7 @@ const ACTS = [
   // can't stop / won't stop / never stops hurting me.
   "(?:never|won'?t|doesn'?t|don'?t|can'?t|couldn'?t|wouldn'?t|didn'?t) (?:stops?|quits?) hurting me\\b",
   // never hit me before, but last night he did.
-  "(?:never|hadn'?t|had never|didn'?t) (?:ever )?(?:hit|hurt|beat|touched|laid a hand on) me (?:before|until)\\b[^.?!]*?\\b(?:but|and|then|until)\\b[^.?!]*?\\b(?:he|she|they) (?:did|does|has|have|started|hit|hits|hurt|hurts)\\b",
+  "(?:never|hadn'?t|had never|didn'?t) (?:ever )?(?:hit|hurt|beat|touched|laid a hand on) me (?:before|until)\\b(?:(?!\\b(?:but|and|then|until)\\b)[^.?!]){0,300}\\b(?:but|and|then|until)\\b[^.?!]{0,300}?\\b(?:he|she|they) (?:did|does|has|have|started|hit|hits|hurt|hurts)\\b",
   // hurts me, only with a physical act: never "really hurt me when she left".
   "(?:hurts?|hurting|hurt) me (?:physically|on purpose|so bad (?:that )?i (?:bleed|bled|can'?t walk)|and (?:it )?leaves? (?:marks|bruises))\\b",
   // a threat: threatened to kill me; or says he'll kill me if I tell or leave, never "she'll
@@ -101,21 +101,26 @@ const ACTS = [
 const DISCLOSURE = new RegExp(`${WHO}${NOT_NEGATED}(?:${ACTS.join('|')})`, 'gi');
 /** The threat first, then who: "if I tell anyone, he'll hurt me". */
 const TOLD_THREAT = new RegExp(
-  `\\bif i (?:tell|say anything to) (?:anyone|anybody|someone|somebody|my \\w+|the police|a teacher),? (?:my ${KIN}(?<family>${FAMILY})|my ${KIN}(?<partner>${PARTNER})|(?<pronoun>he|she|they))(?:'?ll| will| would|'?d) (?:kill|hurt|beat) me\\b`,
-  'i'
+  `\\bif i (?:tell|say anything to) (?:anyone|anybody|someone|somebody|my \\w{1,30}|the police|a teacher),? (?:my ${KIN}(?<family>${FAMILY})|my ${KIN}(?<partner>${PARTNER})|(?<pronoun>he|she|they))(?:'?ll| will| would|'?d) (?:kill|hurt|beat) me\\b`,
+  'gi'
 );
 /** Bruises a person left: "bruises where my dad grabbed me". */
 const BRUISES =
-  /\bbruises? (?:where|from where|from when|from|after) (?:\w+'?s? ){0,4}?(?:grabbed|hit|kicked|punched|squeezed|choked|threw) me\b/i;
+  /\bbruises? (?:where|from where|from when|from|after) (?:\w{1,30}'?s? ){0,4}?(?:grabbed|hit|kicked|punched|squeezed|choked|threw) me\b/gi;
 const FAMILY_WORD = new RegExp(`\\bmy (?:${FAMILY})\\b`, 'i');
 const PARTNER_WORD = new RegExp(`\\bmy (?:${PARTNER})\\b`, 'i');
 /** A game, a sport or play in the same sentence: "beats me every time we play Scrabble". */
 const PLAY =
   /\b(?:play(?:s|ed|ing)?|games?|match(?:es)?|race|racing|races|chess|checkers|scrabble|monopoly|uno|cards|poker|ping ?pong|air hockey|hockey|foosball|darts|connect four|tennis|basketball|soccer|football|baseball|softball|volleyball|dodgeball|golf|bowling|catch|video ?games?|fortnite|minecraft|mario|call of duty|roblox|madden|fifa|spar(?:s|r\w*)?|boxing|karate|judo|taekwondo|wrestl\w*|mma|jiu[- ]?jitsu|bjj|fencing|practice|drills?|pillow fight|tag|thumb war|trivia|quiz|finals|tournament|league|yellow car|punch buggy|slug ?bug|water balloons?|snowballs?|nerf|tickl\w*|kidding|joking|lol|haha|fair and square)\b/i;
 
-/** Scared to go home, at the end of the clause or before tonight / because / a person. */
-const SCARED_HOME =
-  /\b(?:i'?m|i am|i'?ve been) (?:so |really |too )?(?:scared|afraid|terrified) (?:to go|of going) home(?=\s*(?:[.,!?;]|$|tonight|because|cause|he|she|they|'cause))/i;
+/**
+ * Scared to go home, at the end of the clause or before tonight / because / a person; or not
+ * wanting to go home because of who will be there ("I don't want to go home, he'll be there").
+ */
+const SCARED_HOME = new RegExp(
+  `\\b(?:i'?m|i am|i'?ve been) (?:so |really |too )?(?:scared|afraid|terrified) (?:to go|of going) home(?=\\s*(?:[.,!?;]|$|tonight|because|cause|he|she|they|'cause))|\\bi (?:don'?t|do not|really don'?t) want to go (?:back )?home(?: tonight)?,? (?:because |cause |'cause |since )?(?:he|she|they|my ${KIN}(?:${FAMILY}|${PARTNER}))(?:'?ll| will|'?s| is|'?re| are) (?:be )?(?:there|home|back)\\b`,
+  'gi'
+);
 /** An everyday reason in the same sentence: "my mom will see my report card", "it's dark". */
 const EVERYDAY_REASON =
   /\b(?:grades?|report card|tests?|exams?|homework|fail(?:ed)?|curfew|late|mess|messy|my room|broke|broken|dent(?:ed)?|crashed|the car|bill|power|dark|lights?|spiders?|ghosts?|horror|movie|lost my|chores?|dishes)\b/i;
@@ -137,16 +142,11 @@ function sentenceAt(text: string, start: number, end: number): string {
 }
 
 /** The first disclosure in these words that no game or sport in its sentence explains. */
-function disclosureMatch(said: string): RegExpExecArray | null {
-  for (const m of said.matchAll(DISCLOSURE)) {
-    if (!PLAY.test(sentenceAt(said, m.index, m.index + m[0].length))) return m;
-  }
-  const told = TOLD_THREAT.exec(said);
-  if (told) return told;
-  const bruises = BRUISES.exec(said);
-  return bruises && !PLAY.test(sentenceAt(said, bruises.index, bruises.index + bruises[0].length))
-    ? bruises
-    : null;
+function disclosureMatch(said: string, from: number, to: number): RegExpExecArray | null {
+  const at = (re: RegExp) => matchesIn(re, said, from, to);
+  const unplayed = (m: RegExpExecArray) =>
+    !PLAY.test(sentenceAt(said, m.index, m.index + m[0].length));
+  return at(DISCLOSURE).find(unplayed) ?? at(TOLD_THREAT)[0] ?? at(BRUISES).find(unplayed) ?? null;
 }
 
 /** Self-harm or no-way-forward words in a caller's line. */
@@ -156,16 +156,55 @@ function selfHarmWords(text: string): boolean {
 
 /** What a disclosure in these words names, or null. */
 export function abuseDisclosure(text: string): { who: AbuseWho; selfHarm: boolean } | null {
-  const said = text.normalize('NFKC').replace(/[’‘]/g, "'");
-  const match = disclosureMatch(said);
-  const home = match ? null : SCARED_HOME.exec(said);
+  const whole = text.normalize('NFKC').replace(/[’‘]/g, "'");
+  for (const [said, from, to] of screenWindows(whole)) {
+    const found = disclosureIn(said, from, to);
+    if (found) return { who: found, selfHarm: SELF_HARM.test(whole) };
+  }
+  return null;
+}
+
+/**
+ * A long turn (speech-to-text often drops every period) is read in windows at fixed offsets, so
+ * no read scans more than SCREEN_LOOKBACK + SCREEN_STEP + SCREEN_OVERLAP characters, and none is
+ * skipped. Each window owns the matches that start in its SCREEN_STEP characters; it also holds
+ * SCREEN_LOOKBACK characters before them (the words before a match: "nobody like my dad...", a
+ * game earlier in the sentence) and SCREEN_OVERLAP after, which is longer than any match can be
+ * (word gaps are capped at 30 characters, clause gaps at 300: about 840 characters at most).
+ */
+const SCREEN_STEP = 1000;
+const SCREEN_OVERLAP = 1000;
+const SCREEN_LOOKBACK = 200;
+function screenWindows(text: string): Array<[string, number, number]> {
+  if (text.length <= SCREEN_STEP + SCREEN_OVERLAP) return [[text, 0, text.length]];
+  const out: Array<[string, number, number]> = [];
+  for (let at = 0; at < text.length; at += SCREEN_STEP) {
+    const start = Math.max(0, at - SCREEN_LOOKBACK);
+    out.push([
+      text.slice(start, at + SCREEN_STEP + SCREEN_OVERLAP),
+      at - start,
+      at + SCREEN_STEP - start,
+    ]);
+  }
+  return out;
+}
+
+/** Matches that start in [from, to); the regex still sees the words before from. */
+function matchesIn(re: RegExp, said: string, from: number, to: number): RegExpExecArray[] {
+  re.lastIndex = from;
+  return [...said.matchAll(re)].filter((m) => m.index < to);
+}
+
+/** Who a disclosure in one window names, or null; matches start in [from, to). */
+function disclosureIn(said: string, from: number, to: number): AbuseWho | null {
+  const match = disclosureMatch(said, from, to);
+  const home = match ? null : (matchesIn(SCARED_HOME, said, from, to)[0] ?? null);
   const scared = home !== null && !EVERYDAY_REASON.test(sentenceAt(said, home.index, said.length));
   if (!match && !scared) return null;
   const g = match?.groups ?? {};
   const family = g.family ?? (g.partner ? undefined : FAMILY_WORD.exec(said)?.[0]);
   const partner = g.partner ?? (family ? undefined : PARTNER_WORD.exec(said)?.[0]);
-  const who: AbuseWho = family ? 'child' : partner ? 'partner' : 'unknown';
-  return { who, selfHarm: SELF_HARM.test(said) };
+  return family ? 'child' : partner ? 'partner' : 'unknown';
 }
 
 /** What the call already shows besides this turn's disclosure (startTurnCrisis). */

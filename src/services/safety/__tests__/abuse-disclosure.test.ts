@@ -60,7 +60,10 @@ beforeEach(() => {
 
 const CORPUS = JSON.parse(
   readFileSync(
-    new URL('../../../../scripts/crisis-eval/corpus/abuse-disclosure-2026-11-01.json', import.meta.url),
+    new URL(
+      '../../../../scripts/crisis-eval/corpus/abuse-disclosure-2026-11-01.json',
+      import.meta.url
+    ),
     'utf8'
   )
 ) as { calls: Array<{ shape: string; turns: Array<{ text: string; label: string }> }> };
@@ -70,6 +73,7 @@ const corpusLines = (shape: RegExp) =>
 const DISCLOSURES: Array<[string, 'child' | 'partner' | 'unknown']> = [
   ["My stepdad hits me when he's drunk.", 'child'],
   ['My dad hits me.', 'child'],
+  ['he never hit me before but last night he did', 'unknown'],
   ['My mom beats me with a belt.', 'child'],
   ["My stepmom locks me in my room and doesn't feed me.", 'child'],
   ['My dad threw me down the stairs.', 'child'],
@@ -122,7 +126,7 @@ describe('abuseDisclosure', () => {
 
   it('reads every must-catch line in the corpus, first turn and mid-call', () => {
     const lines = corpusLines(/^abuse-(?:must-catch|self-harm)/);
-    expect(lines.length).toBe(68);
+    expect(lines.length).toBe(72);
     for (const line of lines) expect(abuseDisclosure(line), line).not.toBeNull();
   });
 
@@ -191,8 +195,94 @@ describe('abuseDisclosure', () => {
 
   it('scared to go home, unless the same sentence gives an everyday reason', () => {
     expect(abuseDisclosure("I'm scared to go home tonight.")).not.toBeNull();
+    expect(abuseDisclosure("I'm scared to go home")).not.toBeNull();
+    expect(abuseDisclosure("I don't want to go home, he'll be there")).not.toBeNull();
+    expect(
+      abuseDisclosure("I don't want to go home tonight because my stepdad is home.")?.who
+    ).toBe('child');
+    expect(abuseDisclosure("I don't want to go home, this party is fun.")).toBeNull();
+    expect(
+      abuseDisclosure("I don't want to go home, she'll be there and she'll see my report card.")
+    ).toBeNull();
     expect(abuseDisclosure("I'm scared to go home, my report card came.")).toBeNull();
     expect(abuseDisclosure("I'm scared to go home because it's dark.")).toBeNull();
+  });
+
+  it('reads a long unpunctuated turn in under 5 ms, match or miss', () => {
+    const filler = 'he never hit me before and '.repeat(200).slice(0, 5000);
+    const fastest = (line: string) => {
+      let best = Infinity;
+      for (let i = 0; i < 3; i++) {
+        const t = performance.now();
+        abuseDisclosure(line);
+        best = Math.min(best, performance.now() - t);
+      }
+      return best;
+    };
+    expect(filler.length).toBe(5000);
+    expect(abuseDisclosure(filler)).toBeNull();
+    expect(fastest(filler)).toBeLessThan(5);
+    expect(abuseDisclosure(`${filler} but last night he did`)).not.toBeNull();
+    expect(fastest(`${filler} but last night he did`)).toBeLessThan(5);
+  });
+
+  it('screens a long turn in windows that keep the far end and the words before a match', () => {
+    const late = `${'we talked about school and the weekend '.repeat(120)}my dad hits me`;
+    // Windows lose nothing at the far end of a long turn, and keep the words before a match.
+    expect(late.length).toBeGreaterThan(4000);
+    expect(abuseDisclosure(late)?.who).toBe('child');
+    // Slide the line across the window edge at character 1,000: never read without the words
+    // before it in view ("nobody like", a game earlier in the sentence).
+    const tail = ' and then we went home'.repeat(60);
+    for (let k = 0; k < 24; k++) {
+      const pad = `${'a '.repeat(490)}${'z'.repeat(k)}`;
+      const line = `${pad} nobody like my dad hits me${tail}`;
+      expect(line.length).toBeGreaterThan(2000);
+      expect(abuseDisclosure(line), String(k)).toBeNull();
+      expect(abuseDisclosure(line.replace('nobody like ', '')), String(k)).not.toBeNull();
+      const game = `${pad} we play chess most nights and my brother beats me${tail}`;
+      expect(abuseDisclosure(game), String(k)).toBeNull();
+      expect(abuseDisclosure(game.replace('play chess', 'eat dinner')), String(k)).not.toBeNull();
+    }
+  });
+
+  it('skips no text: a long token with no spaces, and a disclosure at every window offset', () => {
+    // Speech-to-text junk, a URL or joined words: one token with no spaces, then the disclosure.
+    for (const n of [1500, 2500, 4000]) {
+      expect(abuseDisclosure(`okay so ${'x'.repeat(n)} my dad hits me`)?.who, String(n)).toBe(
+        'child'
+      );
+      expect(
+        abuseDisclosure(`${'x'.repeat(n)} my dad hits me and then we ate`)?.who,
+        String(n)
+      ).toBe('child');
+    }
+    // Sweep a short and a long disclosure across the window edges at 1,000 and 2,000.
+    const long =
+      'my dad never hit me before, and for years we got along fine, he drove me to school every morning and helped me with homework at the kitchen table and sat with me when I was sick, but last night he did';
+    expect(long.length).toBeGreaterThan(180);
+    for (const said of ['my dad hits me', long]) {
+      for (let at = 700; at <= 2300; at += 11) {
+        const before = `${'we went to the park '.repeat(200).slice(0, at - 1)} `;
+        const line = `${before}${said} ${'and then we went home '.repeat(160)}`;
+        expect(line.length).toBeGreaterThan(4000);
+        expect(abuseDisclosure(line)?.who, `${said.length}@${at}`).toBe('child');
+      }
+    }
+  });
+
+  it('reads a long clause between "never ... before" and "but he did"', () => {
+    const lines = [
+      'He never hit me before we got married, back when we lived in the little apartment over the bakery on the corner of the square, he used to bring me flowers every Friday after work, but last week he did.',
+      'My stepdad had never laid a hand on me before, not once in the six years he has lived with us, not even when my mom was working nights at the hospital and money was tight, but on Saturday he hit me.',
+      "She didn't hurt me before the baby came, I mean we argued about money and about her mom living with us and about who would get up with her at night when she cried, but it never got physical until last month, then she started.",
+    ];
+    for (const line of lines) {
+      const gap = line.slice(line.indexOf('before') + 6, line.indexOf(' but '));
+      expect(gap.length, line).toBeGreaterThanOrEqual(120);
+      expect(gap.length, line).toBeLessThanOrEqual(250);
+      expect(abuseDisclosure(line), line).not.toBeNull();
+    }
   });
 
   it('notes self-harm and no-way-forward words beside the disclosure', () => {
@@ -287,7 +377,9 @@ describe('a disclosure through the turn pipeline', () => {
 describe('988 on an abuse disclosure', () => {
   it('is dropped only when the whole call is abuse-only', async () => {
     expect(await has988('My dad hits me.', ON)).toBe(false);
-    expect(await has988('My dad hits me.', ON, none, { earlier: ['Hi, can we talk?'] })).toBe(false);
+    expect(await has988('My dad hits me.', ON, none, { earlier: ['Hi, can we talk?'] })).toBe(
+      false
+    );
   });
 
   it('stays on the exact round 1 line, and on every mixed line in the corpus', async () => {
@@ -297,9 +389,9 @@ describe('988 on an abuse disclosure', () => {
     for (const line of mixed) expect(await has988(line, ON), line).toBe(true);
   });
 
-  it('stays for this turn\'s own words, with recentTranscripts holding the latest line', async () => {
+  it("stays for this turn's own words, with recentTranscripts holding the latest line", async () => {
     // No pattern read and a "none" classifier: only the words in this turn keep 988.
-    const line = 'My boyfriend hits me and I don\'t see the point in anything anymore.';
+    const line = "My boyfriend hits me and I don't see the point in anything anymore.";
     const s = await summary(line, ON);
     expect(s.indicators.filter((i) => !i.startsWith('abuse_'))).toEqual([]);
     expect(abuseGuidance(s)).toMatch(/\b988\b/);
@@ -308,7 +400,7 @@ describe('988 on an abuse disclosure', () => {
   it('stays for self-harm words in an earlier line of the call', async () => {
     for (const [before, line] of [
       ['Some nights I think about hurting myself.', 'My dad hits me.'],
-      ['Honestly I can\'t go on like this.', 'My boyfriend slapped me last night.'],
+      ["Honestly I can't go on like this.", 'My boyfriend slapped me last night.'],
     ])
       expect(await has988(line, ON, none, { earlier: [before] }), line).toBe(true);
   });
