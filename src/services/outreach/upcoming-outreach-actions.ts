@@ -20,7 +20,7 @@
  *
  * @module services/outreach/upcoming-outreach-actions
  */
-import type { Firestore } from 'firebase-admin/firestore';
+import type { Firestore } from '@google-cloud/firestore';
 import { flagOn } from '../../config/env-flag.js';
 import {
   apply,
@@ -169,7 +169,7 @@ export async function firestoreActionDeps(): Promise<UpcomingActionDeps> {
   const followUps = firestoreFollowUpStore();
   if (!db || !followUps) throw new Error('Firestore not available');
   return {
-    db: db as unknown as Firestore,
+    db,
     followUps,
     // The same input conversational-calls.ts holds the call with: the caller is the recipient.
     callAllowedAt: async (userId, at, call) => {
