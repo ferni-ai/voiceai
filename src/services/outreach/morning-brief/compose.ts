@@ -112,9 +112,8 @@ export function joinSegments(segments: readonly BriefSegment[], clockAs?: string
 
 const text = (value: string): BriefSegment => ({ kind: 'text', value });
 
-/** One entry in a list: who it is (time-independent, for dedup) and how it reads. */
+/** One entry in a list, as it reads. */
 interface Item {
-  key: string;
   segments: BriefSegment[];
 }
 
@@ -131,20 +130,18 @@ function joinList(items: readonly Item[], shown: number): BriefSegment[] {
   return out;
 }
 
-/** First of each key, in order; an entry with no words is dropped. */
+/** First of each entry as it reads (case aside), in order; an entry with no words is dropped. */
 const unique = (items: readonly Item[]): Item[] => {
   const seen = new Set<string>();
   return items.filter((i) => {
-    if (!joinSegments(i.segments) || seen.has(i.key)) return false;
-    seen.add(i.key);
+    const key = joinSegments(i.segments).toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
 };
 
-const textItem = (raw: string): Item => {
-  const value = cleanItem(raw);
-  return { key: value.toLowerCase(), segments: [text(value)] };
-};
+const textItem = (raw: string): Item => ({ segments: [text(cleanItem(raw))] });
 
 /** The brief's text, or null when there is nothing on today. */
 export function composeMorningBrief(input: MorningBriefInput): string | null {
@@ -154,20 +151,16 @@ export function composeMorningBrief(input: MorningBriefInput): string | null {
 
 /**
  * The brief as segments, or null when there is nothing on today. Dedup and shortening run
- * on the segments, keyed by what each entry is (an event's title and start, an item's
- * words), before anything is joined.
+ * on the segments before anything is joined; dedup keys each entry by how it reads, as the
+ * single-string brief did, so the brief sent is unchanged.
  */
 export function composeMorningBriefSegments(input: MorningBriefInput): BriefSegment[] | null {
   const events = [...input.events].sort((a, b) => a.start.getTime() - b.start.getTime());
   const eventItem = (e: (typeof events)[number]): Item => {
-    const when = e.allDay ? 'all-day' : String(e.start.getTime());
     const at: BriefSegment = { kind: 'clock', value: clock(e.start, input.timeZone) };
-    if (e.invite) {
-      return { key: `invite|${when}`, segments: e.allDay ? [text('an invite')] : [text('an invite at '), at] }; // prettier-ignore
-    }
+    if (e.invite) return { segments: e.allDay ? [text('an invite')] : [text('an invite at '), at] };
     const title = cleanItem(e.title);
-    const segments = !title ? [] : e.allDay ? [text(title)] : [at, text(` ${title}`)];
-    return { key: `${title.toLowerCase()}|${when}`, segments };
+    return { segments: !title ? [] : e.allDay ? [text(title)] : [at, text(` ${title}`)] };
   };
   const lists = {
     today: unique(events.map(eventItem)),
