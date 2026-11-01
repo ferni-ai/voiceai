@@ -23,6 +23,7 @@
  * @module CrisisGuard
  */
 
+import { riskTest } from '../../utils/crisis-word-boundaries.js'; // CRISIS_WORD_BOUNDARIES
 import { createLogger } from '../../utils/safe-logger.js';
 import { endingFloor } from './crisis-ending-floor.js';
 import { meansFormsOf, meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
@@ -43,7 +44,6 @@ import {
 } from './crisis-patterns.js';
 
 const log = createLogger({ module: 'CrisisGuard' });
-
 // TYPES
 
 export interface VoiceEmotionContext {
@@ -175,7 +175,7 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
   }
 
   for (const { re, tag } of PASSIVE_IDEATION_PATTERNS) {
-    if (re.test(text)) {
+    if (riskTest(re, text)) {
       hardSelf = true;
       add('passive_ideation', SEVERITY.passive);
       if (tag === 'self_harm') add('self_harm', 0);
@@ -184,7 +184,7 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
   }
 
   const softenedHits = implicitHits;
-  implicitHits += IMPLICIT_DISTRESS_PATTERNS.filter((p) => p.test(text)).length;
+  implicitHits += IMPLICIT_DISTRESS_PATTERNS.filter((p) => riskTest(p, text)).length;
   if (implicitHits > 0) add('implicit_distress', SEVERITY.implicit);
   if (implicitHits >= 2) add('compounded_distress', SEVERITY.passive);
 
@@ -194,7 +194,7 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
   if (
     genuineSignal &&
     severity < SEVERITY.explicit &&
-    PLAN_OR_MEANS_PATTERNS.some((p) => p.test(text))
+    PLAN_OR_MEANS_PATTERNS.some((p) => riskTest(p, text))
   ) {
     hardSelf = true;
     add('plan_or_means', SEVERITY.explicit);
@@ -223,7 +223,7 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
     subject = 'third_party';
   }
 
-  const contextHit = SESSION_CONTEXT_PATTERNS.some((p) => p.test(text));
+  const contextHit = SESSION_CONTEXT_PATTERNS.some((p) => riskTest(p, text));
   // A worry about someone else beside the caller's own softened tier words was the caller's own
   // turn before #2528, and still counts as one in a later turn's session check.
   const sessionSeverity = subject === 'self' ? severity : tierSoft ? selfSeverity : 0;

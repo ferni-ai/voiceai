@@ -5,7 +5,7 @@
  * (today's behaviour); on matches whole words, so everyday words that contain
  * a phrase stop firing and every real phrase still fires.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { checkWarnings } from '../early-warning.js';
 import { getWellbeingProfile } from '../index.js';
 import { mentions, resolveEarlyWarningWordBoundary } from '../../../utils/phrase-match.js';
@@ -17,6 +17,8 @@ function warned(message: string): string[] {
   return checkWarnings(profile, { recentMessages: [message] }).map((w) => w.type);
 }
 
+// "off" is today's matcher: CRISIS_WORD_BOUNDARIES (crisis-word-boundaries.test.ts) stays off here.
+beforeEach(() => vi.stubEnv('CRISIS_WORD_BOUNDARIES', 'off'));
 afterEach(() => vi.unstubAllEnvs());
 
 describe('crisis_risk on the 2026-10-22 canary line', () => {

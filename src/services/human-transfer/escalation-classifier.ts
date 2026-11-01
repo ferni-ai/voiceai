@@ -10,6 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { riskTest } from '../../utils/crisis-word-boundaries.js'; // CRISIS_WORD_BOUNDARIES
 import { SENSE_LOSS_MEDICAL } from './sight-emergency.js';
 import type {
   EscalationType,
@@ -120,6 +121,8 @@ const PROFESSIONAL_HELP_PATTERNS = [
   /\b(looking for|searching for|need) a (therapist|counselor|psychiatrist)/i,
   /\brecommend (a|any) (therapist|counselor|psychiatrist)/i,
 ];
+const CHILD_SAFETY =
+  /\b(hurt|harm|abuse|hit|beat|molest|inappropriate).*(child|kid|son|daughter|baby)/i;
 
 // ============================================================================
 // SIGNAL DETECTION
@@ -152,99 +155,96 @@ export function detectCrisisSignals(transcript: string): CrisisSignals {
 
   // Check each pattern category
   for (const pattern of SUICIDAL_PATTERNS) {
-    if (pattern.test(text)) {
+    if (riskTest(pattern, text)) {
       signals.suicidalIdeation = true;
       signals.rawSignals.push(`suicidal: ${pattern.source}`);
     }
   }
 
   for (const pattern of SELF_HARM_PATTERNS) {
-    if (pattern.test(text)) {
+    if (riskTest(pattern, text)) {
       signals.selfHarmIndicators = true;
       signals.rawSignals.push(`self-harm: ${pattern.source}`);
     }
   }
 
   for (const pattern of TRAUMA_PATTERNS) {
-    if (pattern.test(text)) {
+    if (riskTest(pattern, text)) {
       signals.traumaIndicators = true;
       signals.rawSignals.push(`trauma: ${pattern.source}`);
     }
   }
 
   for (const pattern of PERSISTENT_DEPRESSION_PATTERNS) {
-    if (pattern.test(text)) {
+    if (riskTest(pattern, text)) {
       signals.persistentDepression = true;
       signals.rawSignals.push(`depression: ${pattern.source}`);
     }
   }
 
   for (const pattern of ANXIETY_DISORDER_PATTERNS) {
-    if (pattern.test(text)) {
+    if (riskTest(pattern, text)) {
       signals.anxietyDisorder = true;
       signals.rawSignals.push(`anxiety: ${pattern.source}`);
     }
   }
 
   for (const pattern of PSYCHOTIC_PATTERNS) {
-    if (pattern.test(text)) {
+    if (riskTest(pattern, text)) {
       signals.psychoticSymptoms = true;
       signals.rawSignals.push(`psychotic: ${pattern.source}`);
     }
   }
 
   for (const pattern of DOMESTIC_VIOLENCE_PATTERNS) {
-    if (pattern.test(text)) {
+    if (riskTest(pattern, text)) {
       signals.domesticViolence = true;
       signals.rawSignals.push(`dv: ${pattern.source}`);
     }
   }
 
   for (const pattern of SUBSTANCE_CRISIS_PATTERNS) {
-    if (pattern.test(text)) {
+    if (riskTest(pattern, text)) {
       signals.substanceCrisis = true;
       signals.rawSignals.push(`substance: ${pattern.source}`);
     }
   }
 
   for (const pattern of MEDICAL_EMERGENCY_PATTERNS) {
-    if (pattern.test(text)) {
+    if (riskTest(pattern, text)) {
       signals.medicalEmergency = true;
       signals.rawSignals.push(`medical: ${pattern.source}`);
     }
   }
 
   for (const pattern of LEGAL_PATTERNS) {
-    if (pattern.test(text)) {
+    if (riskTest(pattern, text)) {
       signals.legalEmergency = true;
       signals.rawSignals.push(`legal: ${pattern.source}`);
     }
   }
 
   for (const pattern of FINANCIAL_CRISIS_PATTERNS) {
-    if (pattern.test(text)) {
+    if (riskTest(pattern, text)) {
       signals.financialCrisis = true;
       signals.rawSignals.push(`financial: ${pattern.source}`);
     }
   }
 
   for (const pattern of PROFESSIONAL_HELP_PATTERNS) {
-    if (pattern.test(text)) {
+    if (riskTest(pattern, text)) {
       signals.professionalHelpRequest = true;
       signals.rawSignals.push(`professional-help: ${pattern.source}`);
     }
   }
 
-  // Check for child safety concerns
-  if (
-    /\b(hurt|harm|abuse|hit|beat|molest|inappropriate).*(child|kid|son|daughter|baby)/i.test(text)
-  ) {
+  if (riskTest(CHILD_SAFETY, text)) {
     signals.childSafetyConcern = true;
     signals.rawSignals.push('child-safety');
   }
 
   // Check for danger to others
-  if (/\bi (want to|going to|will) (hurt|harm|kill) (them|him|her|someone)/i.test(text)) {
+  if (riskTest(/\bi (want to|going to|will) (hurt|harm|kill) (them|him|her|someone)/i, text)) {
     signals.dangerToOthers = true;
     signals.rawSignals.push('danger-to-others');
   }

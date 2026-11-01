@@ -32,6 +32,7 @@
  * @module utils/phrase-match
  */
 
+import { riskIncludes } from './crisis-word-boundaries.js';
 import { createLogger } from './safe-logger.js';
 
 type Env = Record<string, string | undefined>;
@@ -211,7 +212,7 @@ export function mentions(
 function listedMention(message: string, phrases: readonly string[], env: Env): boolean {
   if (!resolveEarlyWarningWordBoundary(env)) {
     const lower = message.toLowerCase();
-    return phrases.some((p) => lower.includes(p));
+    return phrases.some((p) => riskIncludes(lower, p, env)); // CRISIS_WORD_BOUNDARIES
   }
   if (typeof message !== 'string') return false;
   const text = normalized(message);

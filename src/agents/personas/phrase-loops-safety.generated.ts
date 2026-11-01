@@ -126,6 +126,7 @@ export const SAFETY_WORDING: readonly string[] = [
   'Are you safe to talk right now? Can your partner hear you?',
   'Do you have a safe place you could go if you needed to leave?',
   "Is there someone you trust who knows what's happening?",
+  '../../utils/crisis-word-boundaries.js',
   './crisis-ending-floor.js',
   './crisis-means-in-hand.js',
   './crisis-modifiers.js',
