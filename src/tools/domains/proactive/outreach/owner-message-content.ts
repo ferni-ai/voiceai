@@ -266,20 +266,11 @@ const ADDRESS_DOTS = [
   /[A-Za-z0-9]\.(?!\.)\s+[a-z]{2}/,
 ];
 
-/**
- * After the charset, every rule reads / & " as "-" and an emoji as a space:
- * separators that can't glue or break a shape.
- */
+// Every later rule reads / & " as "-" and an emoji as a space: separators that can't glue or break a shape
 const ruleForm = (folded: string): string =>
   folded.replace(/[/&"]/g, '-').replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}]/gu, ' ');
 
-/**
- * Somewhere to send a reply or money in `folded` (foldToAscii's form): a vanity or
- * phone-shaped number (look-alike letters and number words included), spaced-out
- * characters, an address, or a mail provider. These are blockedContent's own rules,
- * without its charset and credential rules; the stored-text screen
- * (owner-message-policy.ts) reads them too.
- */
+/** blockedContent's number, address and mail rules on foldToAscii's form; the stored-text screen reads them too. */
 export function destinationIn(folded: string): ContentBlock | null {
   const form = ruleForm(folded);
   if (vanityBlock(form)) return 'vanity_number';

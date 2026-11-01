@@ -176,14 +176,19 @@ const PHONE_SHAPED: ReadonlySet<ContentBlock> = new Set(['digits', 'short_code',
 /** A bare date a job wrote ("on 2026-10-19") with no other digit next to it: not a number to call. */
 const LONE_ISO_DATE = /(?<!\d[\s().-]*)\b(?:19|20)\d{2}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])\b(?![\s().-]*\d)/g; // prettier-ignore
 
+/** A price's digits ("1,200", "500.00"): at most six, or grouped in threes. */
+const AMOUNT = String.raw`(?:\d{1,3}(?:,\d{3})*|\d{1,6})(?:\.\d{2})?(?![\d,])`;
 /** An amount ("$500", "500 dollars") with no other digit next to it: a price, not a number to call. */
-const LONE_AMOUNT = /(?<!\d[\s().-]*)(?:[$\u20AC\u00A3]\s?\d[\d,]*(?:\.\d{2})?|\b\d[\d,]*(?:\.\d{2})?\s?(?:dollars?|bucks|usd)\b)(?![\s().-]*\d)/gi; // prettier-ignore
+const LONE_AMOUNT = new RegExp(String.raw`(?<!\d[\s().-]*)(?:[$\u20AC\u00A3]\s?${AMOUNT}|\b${AMOUNT}\s?(?:dollars?|bucks|usd)\b)(?![\s().-]*\d)`, 'gi'); // prettier-ignore
 
 function hostileIn(text: string): StoredTextBlock | null {
   const form = foldToAscii(text);
   if (CODE_WORD.test(form) && HAND_OVER.test(form)) return 'code_handover';
   // Each becomes a word, not a gap: a gap before a full stop would read as a spaced-out dot.
-  const destination = destinationIn(form.replace(LONE_ISO_DATE, 'date').replace(LONE_AMOUNT, 'amount')); // prettier-ignore
+  const dated = form.replace(LONE_ISO_DATE, 'date');
+  // An amount never hides a phone number: digits the unmasked text counts stay a destination.
+  const unmasked = destinationIn(dated);
+  const destination = unmasked === 'digits' ? unmasked : destinationIn(dated.replace(LONE_AMOUNT, 'amount')); // prettier-ignore
   if (!destination) return null;
   if (MONEY_WORD.test(form)) return 'money_destination';
   const callback = PHONE_SHAPED.has(destination) && CALLBACK.test(form);

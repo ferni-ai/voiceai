@@ -94,6 +94,21 @@ describe('hostileStoredText', () => {
     expect(hostileStoredText('wire $555 0142 to Sam')).toBe('money_destination');
   });
 
+  it('an amount never hides a phone number: only a price-shaped amount is read as a price', () => {
+    expect(hostileStoredText('Wire $5550100123 now')).toBe('money_destination');
+    expect(hostileStoredText('send 5,550,100,123 dollars')).toBe('money_destination');
+    expect(hostileStoredText('pay \u20AC555,010,0123 today')).toBe('money_destination');
+    expect(hostileStoredText('wire it to 2026-555-0100')).toBe('money_destination');
+    for (const line of [
+      'Pay rent $1,200',
+      'Pay rent $1200',
+      'Buy 2% milk',
+      'send $1,250.00 to Sam',
+    ]) {
+      expect(hostileStoredText(line)).toBeNull();
+    }
+  });
+
   it('a phone number or a link alone passes here, and blockedContent still refuses it', () => {
     // The live-call filter keeps its stricter rule; the stored screen needs an instruction too.
     for (const line of ['Call Dr. Lee at 555-0123', 'Order from amazon.com']) {
