@@ -55,6 +55,7 @@ vi.mock('../../../../services/superhuman/firestore-utils.js', () => ({
 
 const { buildCrisisHistoryInjection, buildHumanTransferInjections } =
   await import('../better-than-human-builders.js');
+const { withCallerWords } = await import('../../../../services/human-transfer/sight-emergency.js');
 
 const EVERYDAY = "I can't see your text, it never came through";
 /** The verifier's real same-call crises (#3034), verbatim. */
@@ -88,10 +89,11 @@ const fresh = () => {
 };
 const stored = (uid: string) => fake.stores.get(`${uid}/crisis_signals`)?.length ?? 0;
 
-/** A turn where the caller says `words`, then the next turn's follow-up. */
+/** A turn where the caller says `words` (their whole turn, as the pusher reads it), then the
+ * next turn's follow-up. */
 async function turnThenNext(words: string, expectLogged: boolean) {
   const { uid, call } = fresh();
-  await buildHumanTransferInjections(words, uid, call);
+  await withCallerWords(words, async () => buildHumanTransferInjections(words, uid, call));
   if (expectLogged) await vi.waitFor(() => expect(stored(uid)).toBe(1));
   else
     await new Promise((resolve) => {
