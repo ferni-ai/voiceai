@@ -47,11 +47,16 @@ import {
   crisisFromSignal,
   followUpCrisis,
 } from '../../src/services/human-transfer/crisis-signals.js';
-import type { CrisisGenerateFn } from '../../src/services/safety/crisis-classifier.js';
+import {
+  resetCrisisClassifierCache,
+  type CrisisGenerateFn,
+} from '../../src/services/safety/crisis-classifier.js';
+import { resetCrisisCallRisk } from '../../src/services/safety/crisis-call-risk.js';
+import { resetCallRiskSnapshots } from '../../src/services/safety/crisis-lone-imminent.js';
 import { minorAbuseGuidance } from '../../src/services/safety/minor-abuse-disclosure.js';
-import { NEUTRAL_REPLIES } from './full-path-corpus.js';
+import { NEUTRAL_REPLIES, splitOf, type SimCallSpec } from './full-path-corpus.js';
 import { guidedReplyFor } from './guided-reply.js';
-import type { FiredPath, LineState } from './full-path-summary.js';
+import type { FiredPath, LineState, TurnRecord } from './full-path-summary.js';
 
 type Line = { role: 'user' | 'assistant'; text: string };
 
@@ -268,4 +273,64 @@ export async function simulateTurn(
     line911: lineState(MENTIONS_911),
     repeat,
   };
+}
+
+async function pool<T>(items: readonly T[], width: number, work: (t: T) => Promise<void>) {
+  let next = 0;
+  const lanes = Array.from({ length: Math.min(width, items.length) }, async () => {
+    while (next < items.length) await work(items[next++]);
+  });
+  await Promise.all(lanes);
+}
+
+export interface RunOptions {
+  env: Record<string, string>;
+  generate: CrisisGenerateFn;
+  anon: boolean;
+  guidedReply: 'crisis-line' | 'neutral';
+}
+
+async function runCall(spec: SimCallSpec, rep: number, run: RunOptions): Promise<TurnRecord[]> {
+  const call = newCall(`sim-${rep}-${spec.id}`, run.anon);
+  for (const line of spec.opening) addContext(call, line.who, line.text);
+  const records: TurnRecord[] = [];
+  for (const [index, turn] of spec.turns.entries()) {
+    const outcome = await simulateTurn(call, turn.text, { ...run, ferni: turn.ferni });
+    records.push({
+      callId: spec.id,
+      set: spec.set,
+      shape: spec.shape,
+      split: splitOf(spec),
+      index,
+      turnId: `${spec.id}#${index}`,
+      label: turn.label,
+      rep,
+      ...outcome,
+    });
+  }
+  return records;
+}
+
+/**
+ * Every call, `reps` times, `width` calls at once, the classifier cache and the call-risk
+ * state cleared between reps so a rep never reads an earlier one's verdicts.
+ */
+export async function runReps(
+  calls: readonly SimCallSpec[],
+  reps: number,
+  run: RunOptions,
+  width: number,
+  onRep: (rep: number, reads: number) => void = () => {}
+): Promise<TurnRecord[]> {
+  const records: TurnRecord[] = [];
+  for (let rep = 0; rep < reps; rep++) {
+    resetCrisisClassifierCache();
+    resetCrisisCallRisk();
+    resetCallRiskSnapshots();
+    await pool(calls, width, async (spec) => {
+      records.push(...(await runCall(spec, rep, run)));
+    });
+    onRep(rep, records.length);
+  }
+  return records;
 }
