@@ -23,9 +23,9 @@ vi.mock('../call-me-note.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   callMeNote: () => 'Ring Robin Vale back on 555-0187 now.',
 }));
-vi.mock('../../../tools/handoff/team-by-need-note.js', async (importOriginal) => ({
+vi.mock('../persona-voice.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  teamByNeedNote: () => 'ORDINARY-NOTE',
+  personaVoiceNote: () => 'ORDINARY-NOTE',
 }));
 /** The owner's world facts, loaded for the call (in-call-load.ts). */
 const FACT = 'Robin Vale starts at Harbor Point Clinic on Monday.';

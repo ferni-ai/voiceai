@@ -64,7 +64,6 @@ import {
   attempt,
   guardedTurn,
   IDENTITY,
-  SAFE,
   requestSent,
   unverifiedReminder,
 } from './turn-note-guard.js';
@@ -263,7 +262,7 @@ function buildTurnReminder(
     // CALLER_SETS_DEPTH=on: they played heavy news down; take their lead (caller-sets-depth.ts).
     safe.callerSetsDepthNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false }),
     // DIRECTOR_ESCALATE=on: a note given twice becomes a rule, last but repair; never if held.
-    held ? '' : attempt('hardRule', () => hardRuleFor(director?.hardRule?.(), internals), '', SAFE),
+    held ? '' : attempt('hardRule', () => hardRuleFor(director?.hardRule?.(), internals), ''),
     // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"
     // note above cancels it; none with crisis guidance or when they answered Ferni's question.
     !crisis && !answering ? safe.repairNoteFor(chatCtx, session, process.env, plain) : '',

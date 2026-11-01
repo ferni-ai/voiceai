@@ -23,9 +23,10 @@ vi.mock('../call-me-note.js', async (importOriginal) => ({
     return 'CALL-ME-NOTE';
   },
 }));
-vi.mock('../../../tools/handoff/team-by-need-note.js', async (importOriginal) => ({
+// An ordinary note that is SAFE (turn-note-guard.ts), so it also rides an unverified turn.
+vi.mock('../persona-voice.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  teamByNeedNote: () => {
+  personaVoiceNote: () => {
     if (fail.other) throw new Error('an ordinary note failed');
     return 'ORDINARY-NOTE';
   },

@@ -50,7 +50,7 @@ vi.mock('../happy-exits.js', async (importOriginal) => ({
 }));
 
 const { withTurnReminder } = await import('../turn-request.js');
-const { attempt, guardedTurn, IDENTITY, UNVERIFIED_SPEAKER_NOTE, unverifiedReminder } =
+const { attempt, guardedTurn, IDENTITY, SAFE, UNVERIFIED_SPEAKER_NOTE, unverifiedReminder } =
   await import('../turn-note-guard.js');
 const safe = await import('../turn-notes-guarded.js');
 const { unlockViewFor } = await import('../../../tools/handoff/locked-teammates.js');
@@ -109,6 +109,26 @@ describe('notes that replay the call do not ride an unverified turn (#3091)', ()
 
   it("the goodbye note doesn't quote their plan", () => {
     expect(unverified()).not.toContain('Marisol');
+  });
+
+  it("a SAFE object's `text` and `note` ride; no other field does (textsOf)", () => {
+    const built = {
+      text: 'T-NOTE',
+      note: 'N-NOTE',
+      last: 'Robin Vale said hi',
+      agentSaid: '555-0171',
+    };
+    let reminder: string | undefined;
+    guardedTurn({ warn: vi.fn() } as never, 'replay-fields', llm.ChatContext.empty(), () => {
+      attempt('objectBuilder', () => built, built, SAFE);
+      attempt('identityCheck', boom, '', IDENTITY);
+      reminder = unverifiedReminder(Object.values(built));
+      return llm.ChatContext.empty();
+    });
+    expect(reminder).toContain('T-NOTE');
+    expect(reminder).toContain('N-NOTE');
+    expect(reminder).not.toContain('Robin Vale');
+    expect(reminder).not.toContain('555-0171');
   });
 
   it("the alias context (the last assistant line) isn't recorded as SAFE", () => {

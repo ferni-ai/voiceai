@@ -7,6 +7,14 @@
  * (an allowlist: a builder not marked SAFE never rides), no world facts or context packet
  * (unverifiedReminder), and no call report (requestSent).
  *
+ * The rule: an unverified turn carries only safety guidance and who is speaking. SAFE is these 7
+ * builders and no others (turn-notes-guarded.ts): minorCare and sexualBoundary (the safety notes),
+ * teammateIdentity and personaVoice (which persona speaks, and how), returningFlow (a yes/no, no
+ * text), style (`text` only) and ferniState (`note` only). A builder joins SAFE only with a test
+ * proving its text carries no data and no action steer, and the pinned set in
+ * turn-reminder-unverified-safe-set.test.ts updated on purpose. Crisis guidance is added after
+ * all this by gatedReply.
+ *
  * withTurnReminder is synchronous, so the turn in flight is module state (guardedTurn sets it;
  * turn-notes-guarded.ts wraps the builders with `guarded`).
  */
@@ -32,6 +40,10 @@ export interface NoteMarks {
 export const IDENTITY: NoteMarks = { identity: true };
 export const SAFE: NoteMarks = { safe: true };
 export const IDENTITY_SAFE: NoteMarks = { identity: true, safe: true };
+
+/** Every builder marked SAFE so far, by name: the set the safe-set test pins. */
+const safeBuilders = new Set<string>();
+export const safeBuilderNames = (): string[] => [...safeBuilders].sort();
 
 type Log = ReturnType<typeof createLogger>;
 interface TurnState {
@@ -66,6 +78,7 @@ export function attempt<T>(name: string, build: () => T, fallback: T, marks: Not
   const turn = active;
   if (!turn) return build();
   const identity = marks.identity === true;
+  if (marks.safe) safeBuilders.add(name);
   try {
     const built = build();
     if (marks.safe) for (const note of textsOf(built)) turn.safeNotes.add(note);
@@ -90,6 +103,7 @@ export function guarded<F extends (...args: never[]) => unknown>(
   fallback: ReturnType<F>,
   marks: NoteMarks = {}
 ): F {
+  if (marks.safe) safeBuilders.add(name);
   return ((...args: Parameters<F>) => attempt(name, () => fn(...args), fallback, marks)) as F;
 }
 

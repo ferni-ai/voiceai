@@ -2,9 +2,9 @@
  * The note builders turn-request.ts calls, each behind its own catch (turn-note-guard.ts): one that
  * throws gives '' (or []) and the turn goes on without that note. Those marked IDENTITY are about
  * who is speaking or what may be shared: when one fails the turn carries the unverified-speaker
- * default (#3077). Only those marked SAFE (text that never holds the owner's or anyone else's
- * data) ride an unverified turn; any builder not marked SAFE is dropped there, a new one included
- * (#3091). Same names and signatures as the originals, so call sites read as before.
+ * default (#3077). Only those marked SAFE ride an unverified turn: the 7 named in
+ * turn-note-guard.ts; any other builder is dropped there, a new one included (#3091). Same names
+ * and signatures as the originals, so call sites read as before.
  */
 
 import { worldNowNote as raw_worldNowNote } from '../shared/world-now.js';
@@ -80,29 +80,29 @@ export const returningCallerTurnNote = guarded(
   '',
   IDENTITY
 );
-export const firstCallNote = guarded('firstCall', raw_firstCallNote, '', IDENTITY_SAFE);
+export const firstCallNote = guarded('firstCall', raw_firstCallNote, '', IDENTITY);
 export const roomGuestsNote = guarded('roomGuests', raw_roomGuestsNote, '', IDENTITY);
 export const nameCorrectionNote = guarded('nameCorrection', raw_nameCorrectionNote, '', IDENTITY);
 export const callMeNote = guarded('callMe', raw_callMeNote, '', IDENTITY);
 export const teammateIdentityNote = guarded('teammateIdentity', raw_teammateIdentityNote, '', SAFE);
 export const aliasNoteFor = guarded('aliasNote', raw_aliasNoteFor, false);
-export const teamStatusNote = guarded('teamStatus', raw_teamStatusNote, '', SAFE);
-export const heardTeammateNote = guarded('heardTeammate', raw_heardTeammateNote, '', SAFE);
+export const teamStatusNote = guarded('teamStatus', raw_teamStatusNote, '');
+export const heardTeammateNote = guarded('heardTeammate', raw_heardTeammateNote, '');
 export const correctionNotesFor = guarded('corrections', raw_correctionNotesFor, '');
 export const gameTurnNote = guarded('gameTurn', raw_gameTurnNote, '');
-export const quirkTurnNote = guarded('quirk', raw_quirkTurnNote, '', SAFE);
-export const porchLightNote = guarded('porchLight', raw_porchLightNote, '', SAFE);
-export const beatNote = guarded('beat', raw_beatNote, '', SAFE);
-export const teamByNeedNote = guarded('teamByNeed', raw_teamByNeedNote, '', SAFE);
-export const chiefOfStaffNote = guarded('chiefOfStaff', raw_chiefOfStaffNote, '', SAFE);
-export const friendNotes = guarded('friends', raw_friendNotes, [] as string[], SAFE);
+export const quirkTurnNote = guarded('quirk', raw_quirkTurnNote, '');
+export const porchLightNote = guarded('porchLight', raw_porchLightNote, '');
+export const beatNote = guarded('beat', raw_beatNote, '');
+export const teamByNeedNote = guarded('teamByNeed', raw_teamByNeedNote, '');
+export const chiefOfStaffNote = guarded('chiefOfStaff', raw_chiefOfStaffNote, '');
+export const friendNotes = guarded('friends', raw_friendNotes, [] as string[]);
 export const internalsTurn = guarded('internalsTurn', raw_internalsTurn, '' as const);
-export const internalsNote = guarded('internals', raw_internalsNote, '', SAFE);
-export const withLiveData = guarded('liveData', raw_withLiveData, ['', ''], SAFE);
+export const internalsNote = guarded('internals', raw_internalsNote, '');
+export const withLiveData = guarded('liveData', raw_withLiveData, ['', '']);
 export const personaVoiceNote = guarded('personaVoice', raw_personaVoiceNote, '', SAFE);
-export const attunementNote = guarded('attunement', raw_attunementNote, '', SAFE);
-export const goodNewsNote = guarded('goodNews', raw_goodNewsNote, '', SAFE);
-export const callerSetsDepthNote = guarded('callerSetsDepth', raw_callerSetsDepthNote, '', SAFE);
+export const attunementNote = guarded('attunement', raw_attunementNote, '');
+export const goodNewsNote = guarded('goodNews', raw_goodNewsNote, '');
+export const callerSetsDepthNote = guarded('callerSetsDepth', raw_callerSetsDepthNote, '');
 export const repairNoteFor = guarded('repair', raw_repairNoteFor, '');
 export const formatNotes = guarded('directorNotes', raw_formatNotes, '');
 export const listeningNotes = guarded('listening', raw_listeningNotes, [] as string[]);
