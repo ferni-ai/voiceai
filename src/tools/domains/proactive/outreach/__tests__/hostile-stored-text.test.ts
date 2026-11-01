@@ -99,6 +99,9 @@ describe('hostileStoredText', () => {
     expect(hostileStoredText('send 5,550,100,123 dollars')).toBe('money_destination');
     expect(hostileStoredText('pay \u20AC555,010,0123 today')).toBe('money_destination');
     expect(hostileStoredText('wire it to 2026-555-0100')).toBe('money_destination');
+    // Not price-shaped, or run on into more digits: read as digits, near a dial word a short code.
+    expect(hostileStoredText('text $12,34,56 for the refund')).toBe('money_destination');
+    expect(hostileStoredText('text $1234 56 for the refund')).toBe('money_destination');
     for (const line of [
       'Pay rent $1,200',
       'Pay rent $1200',
