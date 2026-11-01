@@ -8,11 +8,27 @@
  * recorded in the same session, so the consenting voice and the cloned voice are
  * the same voice by construction.
  *
+ * The reading must be the statement, word for word and in order. Only the names
+ * may be misheard a little, the date may come back in any spoken form, and fillers
+ * ("um") are ignored. Anything else (a skipped "I agree", "she agrees", "on behalf
+ * of my mom", "just kidding", a condition, another language) fails, and the person
+ * reads it again. Failing closed is the point: a consent we are unsure of is no
+ * consent.
+ *
  * Pure rules only: building the statement and scoring a speech-to-text transcript
  * of it. Recording, transcribing and storing the consent are the use case's job.
  *
  * @module services/custom-agent/domain/voice-consent
  */
+
+import {
+  consentWords,
+  DATE_WORDS,
+  heardWords,
+  MAX_DATE_WORDS,
+  nameHeardAs,
+  wordHeard,
+} from './heard-words.js';
 
 /** Plain, distinct words that speech to text gets right and nobody says by accident. */
 export const CHECK_WORDS: readonly string[] = [
@@ -68,9 +84,6 @@ export const CHECK_WORDS: readonly string[] = [
 
 const CHECK_WORD_COUNT = 3;
 
-/** Share of the statement's words a transcript must contain, in any order. */
-export const MIN_COVERAGE = 0.8;
-
 export interface ConsentStatementInput {
   /** The person whose voice will be cloned, as they'd say their own name. */
   subjectName: string;
@@ -87,8 +100,10 @@ export interface ConsentStatement {
   checkWords: readonly string[];
   /** The date as written in the text; speech to text writes dates in many forms, so it isn't scored. */
   spokenDate: string;
-  /** Each name with the words the statement puts right before it ("name is", "voice for"). */
-  names: readonly { after: string; name: string }[];
+  /** The subject's name, which must be heard where the statement says it. */
+  subjectName: string;
+  /** The creator's name, or null when the twin is the subject's own ("for my own use"). */
+  creatorName: string | null;
 }
 
 /** Unpredictable check words, so nobody can record them ahead of time. */
@@ -108,7 +123,7 @@ const clean = (s: string) => s.normalize('NFC').replace(/\s+/g, ' ').trim();
 
 const MAX_NAME_WORDS = 10;
 /** A name word: letters with their marks (Hindi vowel signs), apostrophes and hyphens. */
-const NAME_WORD = /^[\p{L}\p{M}'\u2019\u02bc\u2010\u2011\u2013-]+$/u;
+const NAME_WORD = /^[\p{L}\p{M}'\u2019\u02bc\u2010\u2011\u2013\u200c\u200d-]+$/u;
 /** An initial ("J.") or a short title ("Jr.", "Dr."): the only words that may end in a period. */
 const DOTTED_WORD = /^(?:\p{L}|jr|sr|st|dr)\.$/iu;
 
@@ -127,88 +142,64 @@ export function buildConsentStatement(input: ConsentStatementInput): ConsentStat
   if (!isSpeakableName(subject) || !isSpeakableName(creator)) {
     throw new RangeError('consent names must be speakable names, not sentences');
   }
-  const forWhom =
-    subject.toLowerCase() === creator.toLowerCase() ? 'my own use' : `${creator}'s private use`;
+  const ownUse = subject.toLowerCase() === creator.toLowerCase();
+  const forWhom = ownUse ? 'my own use' : `${creator}'s private use`;
   const checkWords = pickCheckWords(input.random ?? secureRandom);
   const spokenDate = clean(input.spokenDate);
   const text =
     `My name is ${subject}. I agree that Ferni may make an AI copy of my voice for ${forWhom}. ` +
-    `I can take this back at any time. Today is ${spokenDate}. ` +
+    `I can withdraw this consent at any time. Today is ${spokenDate}. ` +
     `My check words are ${checkWords.join(', ')}.`;
-  const names = [{ after: 'name is', name: subject }];
-  if (forWhom !== 'my own use') names.push({ after: 'voice for', name: creator });
-  return { text, checkWords, spokenDate, names };
+  return {
+    text,
+    checkWords,
+    spokenDate,
+    subjectName: subject,
+    creatorName: ownUse ? null : creator,
+  };
 }
 
-/** Lowercase whole words, numbers dropped (dates come back from speech to text in many forms). */
-export function consentWords(text: string): string[] {
-  // Speech to text often writes curly apostrophes ("don’t"); read them as plain ones
-  const plain = text
-    .normalize('NFC')
-    .toLowerCase()
-    .replace(/[\u2018\u2019\u02bc\uff07]/g, "'");
-  return (plain.match(/[\p{L}\p{M}]+(?:'[\p{L}\p{M}]+)?/gu) ?? []).map((w) => w.replace(/'s$/, ''));
+/** What the statement is, part by part, in reading order. */
+type Part =
+  | { kind: 'words'; words: string[]; label: string; exact: boolean }
+  | { kind: 'name'; words: string[]; label: string }
+  | { kind: 'date'; label: string };
+
+function statementParts(statement: ConsentStatement): Part[] {
+  const words = (text: string, label: string, exact = false): Part => ({
+    kind: 'words',
+    words: consentWords(text),
+    label,
+    exact,
+  });
+  const name = (text: string, label: string): Part => ({
+    kind: 'name',
+    words: consentWords(text),
+    label,
+  });
+  return [
+    words('my name is', 'your name'),
+    name(statement.subjectName, 'your name'),
+    words('I agree that Ferni may make an AI copy of my voice for', 'the agreement'),
+    ...(statement.creatorName === null
+      ? [words('my own use', 'the agreement')]
+      : [
+          name(statement.creatorName, 'the name of who it is for'),
+          words('private use', 'the agreement'),
+        ]),
+    words('I can withdraw this consent at any time', 'the agreement'),
+    words('today is', 'the date'),
+    { kind: 'date', label: 'the date' },
+    words('my check words are', 'the check words'),
+    words(statement.checkWords.join(' '), 'the check words', true),
+  ];
 }
-
-/** Words that turn the statement into a refusal ("I do not agree"); none is in the statement. */
-const REFUSAL_WORDS = new Set([
-  'not',
-  'no',
-  'never',
-  "don't",
-  'dont',
-  "won't",
-  'cannot',
-  "can't",
-  'refuse',
-  'disagree',
-  'deny',
-  'decline',
-  'reject',
-  'revoke',
-  'withhold',
-  'forbid',
-  'nope',
-  'nah',
-  'withdraw',
-  'didnt',
-  'doesnt',
-  'wouldnt',
-  'havent',
-  'isnt',
-]);
-
-/**
- * The transcript's words with each name taken out where the statement puts it (right after
- * its anchor word). A name can hold a refusal word ("Noa Never", "Do Not"); a misheard or
- * skipped name is not cut, so a refusal said anywhere else still counts.
- */
-function withoutAnchoredNames(words: string[], names: ConsentStatement['names']): string[] {
-  const cut = new Set<number>();
-  for (const { after, name } of names) {
-    const anchor = consentWords(after);
-    const nameWords = consentWords(name);
-    if (!nameWords.length) continue;
-    for (let i = anchor.length; i < words.length; i++) {
-      const anchored = anchor.every((w, j) => words[i - anchor.length + j] === w);
-      if (anchored && nameWords.every((w, j) => words[i + j] === w)) {
-        nameWords.forEach((_, j) => cut.add(i + j));
-      }
-    }
-  }
-  return words.filter((_, i) => !cut.has(i));
-}
-
-/** A refusal word, or any "n't" contraction (didn't, wouldn't, haven't). */
-const isRefusal = (w: string) => REFUSAL_WORDS.has(w) || w.endsWith("n't");
 
 export interface ConsentScore {
-  /** True when every check word was said, enough of the statement was, and nothing refused it. */
+  /** True only when the whole statement was read, in order, with nothing added. */
   verified: boolean;
-  /** Refusal words heard ("not", "never"); any one of them means no consent. */
-  refusals: string[];
-  /** Share of the statement's words (the date excluded) found in the transcript. */
-  coverage: number;
+  /** The first part that didn't match ("the agreement"), for asking to read it again; null when verified. */
+  mismatch: string | null;
   missingCheckWords: string[];
 }
 
@@ -217,18 +208,34 @@ export function scoreConsentTranscript(
   statement: ConsentStatement,
   transcript: string
 ): ConsentScore {
-  const heard = new Set(consentWords(transcript));
-  const expected = consentWords(statement.text.replace(statement.spokenDate, ' '));
-  const found = expected.filter((w) => heard.has(w)).length;
-  const coverage = expected.length ? found / expected.length : 0;
-  const missingCheckWords = statement.checkWords.filter((w) => !heard.has(w));
-  const refusals = [
-    ...new Set(withoutAnchoredNames(consentWords(transcript), statement.names).filter(isRefusal)),
-  ];
-  return {
-    verified: missingCheckWords.length === 0 && refusals.length === 0 && coverage >= MIN_COVERAGE,
-    refusals,
-    coverage,
-    missingCheckWords,
-  };
+  const heard = heardWords(transcript);
+  const heardSet = new Set(heard);
+  const missingCheckWords = statement.checkWords.filter((w) => !heardSet.has(w));
+  // The date as the statement writes it is a date too ("today", "Halloween")
+  const dateWords = new Set([...DATE_WORDS, ...consentWords(statement.spokenDate)]);
+  let at = 0;
+  for (const part of statementParts(statement)) {
+    const fail = { verified: false, mismatch: part.label, missingCheckWords };
+    if (part.kind === 'date') {
+      const start = at;
+      while (at < heard.length && dateWords.has(heard[at])) at++;
+      if (at - start > MAX_DATE_WORDS) return fail;
+      continue;
+    }
+    if (part.kind === 'name') {
+      const k = nameHeardAs(heard, at, part.words);
+      if (!k) return fail;
+      at += k;
+      continue;
+    }
+    // Check words are exact: "handle" is not "candle"
+    const matches = part.exact ? (said: string, w: string) => said === w : wordHeard;
+    if (!part.words.every((w, j) => at + j < heard.length && matches(heard[at + j], w)))
+      return fail;
+    at += part.words.length;
+  }
+  if (at !== heard.length) {
+    return { verified: false, mismatch: 'something said after the check words', missingCheckWords };
+  }
+  return { verified: true, mismatch: null, missingCheckWords };
 }

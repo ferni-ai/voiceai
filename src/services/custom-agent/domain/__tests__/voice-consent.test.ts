@@ -3,13 +3,8 @@
  * words included. Names are fictional.
  */
 import { describe, expect, it } from 'vitest';
-import {
-  buildConsentStatement,
-  CHECK_WORDS,
-  consentWords,
-  MIN_COVERAGE,
-  scoreConsentTranscript,
-} from '../voice-consent.js';
+import { buildConsentStatement, CHECK_WORDS, scoreConsentTranscript } from '../voice-consent.js';
+import { consentWords } from '../heard-words.js';
 
 /** Steps through [0, 1) so each pick is predictable. */
 const seq = (...values: number[]) => {
@@ -28,7 +23,7 @@ describe('buildConsentStatement', () => {
   it('names the subject, who it is for, the date and three distinct check words', () => {
     expect(forMaya.text).toContain('My name is Rosa Quill.');
     expect(forMaya.text).toContain("for Maya Quill's private use");
-    expect(forMaya.text).toContain('I can take this back at any time.');
+    expect(forMaya.text).toContain('I can withdraw this consent at any time.');
     expect(forMaya.text).toContain('Today is November 1, 2026.');
     expect(forMaya.checkWords).toEqual(['apple', 'bridge', 'candle']);
     expect(forMaya.text.endsWith('My check words are apple, bridge, candle.')).toBe(true);
@@ -57,172 +52,147 @@ describe('buildConsentStatement', () => {
 });
 
 describe('scoreConsentTranscript', () => {
-  it('verifies the statement read back the way speech to text writes it', () => {
-    const heard =
-      "my name is rosa quill i agree that ferni may make an ai copy of my voice for maya quill's " +
-      'private use i can take this back at any time today is november first twenty twenty six ' +
-      'my check words are apple bridge candle';
-    expect(scoreConsentTranscript(forMaya, heard)).toMatchObject({
+  const verifies = (statement: typeof forMaya, heard: string) =>
+    scoreConsentTranscript(statement, heard).verified;
+
+  it('verifies the statement read exactly', () => {
+    expect(scoreConsentTranscript(forMaya, forMaya.text)).toEqual({
       verified: true,
+      mismatch: null,
       missingCheckWords: [],
     });
   });
 
-  it('still verifies with a misheard name', () => {
-    const heard = forMaya.text.replace('Rosa Quill', 'Rosa Quil');
-    expect(scoreConsentTranscript(forMaya, heard).verified).toBe(true);
-  });
-
-  it('refuses when a check word is missing (an old recording or a replay)', () => {
-    const heard = forMaya.text.replace('candle', 'handle');
-    expect(scoreConsentTranscript(forMaya, heard)).toMatchObject({
-      verified: false,
-      missingCheckWords: ['candle'],
-    });
-  });
-
-  it('refuses the check words alone, without the statement', () => {
-    const score = scoreConsentTranscript(forMaya, 'apple bridge candle');
-    expect(score.verified).toBe(false);
-    expect(score.coverage).toBeLessThan(MIN_COVERAGE);
-  });
-
-  it('matches whole words only', () => {
-    const score = scoreConsentTranscript(forMaya, `${forMaya.text.replace(/apple/, 'pineapples')}`);
-    expect(score.missingCheckWords).toEqual(['apple']);
-  });
-
-  it('refuses a reading that skips too much of the statement, check words and all', () => {
+  it('verifies the statement read back the way speech to text writes it', () => {
     const heard =
-      'my name is rosa quill i agree that ferni may make, my check words are apple bridge candle';
-    const score = scoreConsentTranscript(forMaya, heard);
-    expect(score.missingCheckWords).toEqual([]);
-    expect(score.coverage).toBeGreaterThan(0.5);
-    expect(score.coverage).toBeLessThan(MIN_COVERAGE);
-    expect(score.verified).toBe(false);
+      'my name is um rosa quill i agree that ferni may make an a i copy of my voice for maya quill’s ' +
+      'private use i can withdraw this consent at anytime today is sunday november first twenty twenty six ' +
+      'my check words are apple bridge candle';
+    expect(verifies(forMaya, heard)).toBe(true);
   });
 
-  it('still verifies when a couple of words are dropped', () => {
-    const heard = forMaya.text.replace('I can take this back', 'I take it back');
-    const score = scoreConsentTranscript(forMaya, heard);
-    expect(score.coverage).toBeLessThan(1);
-    expect(score.coverage).toBeGreaterThanOrEqual(MIN_COVERAGE);
-    expect(score.verified).toBe(true);
+  it('verifies whatever form the date comes back in', () => {
+    expect(verifies(forMaya, forMaya.text.replace('November 1, 2026', '11/1/2026'))).toBe(true);
+    expect(
+      verifies(forMaya, forMaya.text.replace('November 1, 2026', 'the first of November'))
+    ).toBe(true);
   });
 
-  it('does not score the date, however speech to text writes it', () => {
-    const heard = forMaya.text.replace('November 1, 2026', '11/1/2026');
-    expect(scoreConsentTranscript(forMaya, heard)).toMatchObject({ verified: true, coverage: 1 });
-  });
-
-  it('scores "may" in the statement even in May', () => {
-    const inMay = buildConsentStatement({
-      subjectName: 'Rosa Quill',
-      creatorName: 'Rosa Quill',
-      spokenDate: 'May 2, 2026',
-      random: seq(0, 0, 0),
-    });
-    const full = scoreConsentTranscript(inMay, inMay.text).coverage;
-    const noMay = scoreConsentTranscript(
-      inMay,
-      inMay.text.replace('Ferni may make', 'Ferni make').replace('May 2, 2026', '5/2/2026')
-    );
-    expect(full).toBe(1);
-    expect(noMay.coverage).toBeLessThan(1);
-  });
-
-  it('refuses a reading that says no, even with every word and check word in it', () => {
-    for (const heard of [
-      forMaya.text.replace('I agree', 'I do not agree'),
-      `${forMaya.text} But I refuse.`,
-      forMaya.text.replace('I agree', "I don't agree"),
-      `${forMaya.text} I decline.`,
-      forMaya.text.replace('I agree', 'I don\u2019t agree'),
-      forMaya.text.replace('I agree', "I didn't agree"),
-      `${forMaya.text} Nope.`,
-    ]) {
-      const score = scoreConsentTranscript(forMaya, heard);
-      expect(score.coverage).toBe(1);
-      expect(score.missingCheckWords).toEqual([]);
-      expect(score.refusals.length).toBeGreaterThan(0);
-      expect(score.verified).toBe(false);
-    }
-  });
-
-  it('has no refusal word in the statement itself', () => {
-    expect(scoreConsentTranscript(forMaya, forMaya.text)).toMatchObject({
-      verified: true,
-      refusals: [],
-    });
-  });
-
-  it('verifies a subject whose name is a refusal word', () => {
-    const forNo = buildConsentStatement({
-      subjectName: 'No Min-ji',
-      creatorName: 'No Min-ji',
+  it('verifies a name heard a little wrong, joined or split', () => {
+    expect(verifies(forMaya, forMaya.text.replace('Rosa Quill', 'Rosa Quil'))).toBe(true);
+    expect(verifies(forMaya, forMaya.text.replace('Rosa Quill', 'Rosaquill'))).toBe(true);
+    const minji = buildConsentStatement({
+      subjectName: 'Kim Min-ji',
+      creatorName: 'Kim Min-ji',
       spokenDate: 'November 1, 2026',
       random: seq(0, 0, 0),
     });
-    expect(scoreConsentTranscript(forNo, forNo.text)).toMatchObject({
-      verified: true,
-      refusals: [],
-    });
+    expect(verifies(minji, minji.text.replace('Min-ji', 'Minji'))).toBe(true);
+    expect(verifies(minji, minji.text.replace('Min-ji', 'Min ji'))).toBe(true);
   });
 
-  it('still hears a refusal when a name holds the same word', () => {
-    const cases: Array<[string, string, (text: string) => string]> = [
-      ['Rosa Quill', 'Not Sam', (t) => t.replace('I agree', 'I do not agree')],
-      ['Maya Not', 'Maya Not', (t) => t.replace('I agree', 'I do not agree')],
-      ['Noa Never', 'Noa Never', (t) => t.replace('I agree', 'I never agree')],
-      ['No Min-ji', 'No Min-ji', (t) => `${t} No.`],
-      ['No', 'No', (t) => `No. ${t}`],
-      ['Never', 'Never', (t) => t.replace('I agree', 'I never agree')],
-      ['Rosa Quill', 'Do Not', (t) => t.replace('I agree', 'I do not agree')],
-      ['Rosa Quill', 'Will Not', (t) => t.replace('I agree', 'I will not agree')],
-      // A one-word name must not hide the same word said elsewhere
-      ['No', 'No', (t) => `${t} My answer is no.`],
-      ['Not', 'Sam Lee', (t) => `${t} That is not consent.`],
-      ['Rosa Quill', 'No', (t) => `${t} This is for no one.`],
-      // A misheard or skipped name must not hide the refusal
-      [
-        'Rosa Quill',
-        'Not Sam',
-        (t) => t.replace("Not Sam's", "Knot Sam's").replace('I agree', 'I do not agree'),
-      ],
-      [
-        'Rosa Quill',
-        'Not Sam',
-        (t) => t.replace("Not Sam's ", '').replace('I agree', 'I do not agree'),
-      ],
-      ['Never', 'Never', (t) => t.replace('is Never', 'is').replace('I agree', 'I never agree')],
-      ['No Min-ji', 'No Min-ji', (t) => `${t.replace('No Min-ji', 'Noh Min-ji')} No.`],
-    ];
-    for (const [subjectName, creatorName, refuse] of cases) {
+  it('refuses when a check word is missing or misheard (an old recording or a replay)', () => {
+    expect(scoreConsentTranscript(forMaya, forMaya.text.replace('candle', 'handle'))).toMatchObject(
+      { verified: false, mismatch: 'the check words', missingCheckWords: ['candle'] }
+    );
+    expect(
+      scoreConsentTranscript(forMaya, forMaya.text.replace('apple', 'pineapples'))
+    ).toMatchObject({ verified: false, missingCheckWords: ['apple'] });
+  });
+
+  it('refuses the check words alone, or an empty reading', () => {
+    expect(scoreConsentTranscript(forMaya, 'apple bridge candle')).toMatchObject({
+      verified: false,
+      mismatch: 'your name',
+    });
+    expect(verifies(forMaya, '')).toBe(false);
+  });
+
+  // The verifier's adversarial readings: each holds every check word, and none is consent
+  it.each([
+    ['a skipped "I agree"', (t: string) => t.replace('I agree that ', '')],
+    ['the agreement skipped', (t: string) => t.replace(/I agree.*any time\. /, '')],
+    ['"she agrees"', (t: string) => t.replace('I agree', 'She agrees')],
+    ['"I do not agree"', (t: string) => t.replace('I agree', 'I do not agree')],
+    ['"I don’t agree"', (t: string) => t.replace('I agree', 'I don’t agree')],
+    ['"I never agree"', (t: string) => t.replace('I agree', 'I never agree')],
+    ['"I can\'t withdraw"', (t: string) => t.replace('I can withdraw', "I can't withdraw")],
+    ['"I cannot withdraw"', (t: string) => t.replace('I can withdraw', 'I cannot withdraw')],
+    [
+      'on behalf of someone',
+      (t: string) => t.replace('My name is', 'On behalf of my mom, my name is'),
+    ],
+    ['a condition', (t: string) => t.replace('private use.', 'private use, unless she asks.')],
+    ['"I take this back" after', (t: string) => `${t} I take this back.`],
+    ['"I changed my mind" after', (t: string) => `${t} Actually, I changed my mind.`],
+    ['a withdrawal in another language', (t: string) => `${t} Je retire mon consentement.`],
+    ['"stop" in the middle', (t: string) => t.replace('Today is', 'Stop. Today is')],
+    [
+      'someone else may use it',
+      (t: string) => t.replace('private use.', 'private use, and anyone else may use it.'),
+    ],
+    ['"just kidding" after', (t: string) => `${t} Just kidding.`],
+    ['"No." after', (t: string) => `${t} No.`],
+    ['"No." before', (t: string) => `No. ${t}`],
+    ['words between the check words', (t: string) => t.replace('bridge,', 'bridge, not')],
+    ['the sentences reordered', (t: string) => t.split('. ').reverse().join('. ')],
+    ['word salad', (t: string) => consentWordsSorted(t)],
+    [
+      'subject and creator swapped',
+      (t: string) => t.replace('Rosa', 'X').replace('Maya', 'Rosa').replace('X', 'Maya'),
+    ],
+    ["someone else's name", (t: string) => t.replace('Rosa Quill', 'Jane Doe')],
+    [
+      '"for my own use" when it is for Maya',
+      (t: string) => t.replace("Maya Quill's private use", 'my own use'),
+    ],
+    [
+      'a refusal hidden in the date',
+      (t: string) => t.replace('November 1, 2026', 'November first, I do not agree'),
+    ],
+    [
+      'a date that is a sentence',
+      (t: string) => t.replace('November 1, 2026', 'the first of may and of the may of the may'),
+    ],
+  ])('refuses %s', (_label, change) => {
+    const heard = change(forMaya.text);
+    expect(heard).not.toBe(forMaya.text);
+    expect(verifies(forMaya, heard)).toBe(false);
+  });
+
+  it('verifies names that hold refusal words, read correctly', () => {
+    for (const [subjectName, creatorName] of [
+      ['No Min-ji', 'No Min-ji'],
+      ['Noa Never', 'Noa Never'],
+      ['Rosa Quill', 'Do Not'],
+      ['Never', 'Never'],
+    ]) {
       const statement = buildConsentStatement({
         subjectName,
         creatorName,
         spokenDate: 'November 1, 2026',
         random: seq(0, 0, 0),
       });
-      expect(scoreConsentTranscript(statement, statement.text).verified).toBe(true);
-      expect(scoreConsentTranscript(statement, refuse(statement.text)).verified).toBe(false);
+      expect(verifies(statement, statement.text)).toBe(true);
+      expect(verifies(statement, `${statement.text} No.`)).toBe(false);
+      expect(verifies(statement, statement.text.replace('I agree', 'I do not agree'))).toBe(false);
     }
   });
 
-  it('refuses names that are sentences, not names', () => {
+  it('refuses names that are sentences, and verifies real names', () => {
     const build = (subjectName: string) => () =>
       buildConsentStatement({ subjectName, creatorName: 'Maya Quill', spokenDate: 'today' });
     expect(build('Alex. I do not agree')).toThrow(RangeError);
     expect(build('Louis 14')).toThrow(RangeError);
     expect(build('one two three four five six seven eight nine ten eleven')).toThrow(RangeError);
-    expect(build("Rosa O'Neill-Quill")).not.toThrow();
     for (const real of [
+      "Rosa O'Neill-Quill",
       'प्रिया शर्मा',
       'கார்த்திக்',
-      'Jose\u0301 Mu\u0308ller',
+      'José Müller',
       'J. Smith',
       'Martin Luther King Jr.',
-      'Mary\u2013Jane',
+      'Mary–Jane',
       'María de los Ángeles García de la Cruz',
     ]) {
       expect(build(real)).not.toThrow();
@@ -232,16 +202,15 @@ describe('scoreConsentTranscript', () => {
         spokenDate: 'today',
         random: seq(0, 0, 0),
       });
-      expect(scoreConsentTranscript(statement, statement.text.normalize('NFC')).verified).toBe(
-        true
-      );
+      expect(verifies(statement, statement.text)).toBe(true);
     }
   });
-
-  it('refuses an empty transcript', () => {
-    expect(scoreConsentTranscript(forMaya, '')).toMatchObject({ verified: false, coverage: 0 });
-  });
 });
+
+/** Every word of the text, sorted: all the words, none of the order. */
+function consentWordsSorted(text: string): string {
+  return text.split(/\s+/).sort().join(' ');
+}
 
 describe('consentWords', () => {
   it('lowercases, keeps whole words, drops numbers and possessive s', () => {
