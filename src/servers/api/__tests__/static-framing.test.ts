@@ -1,6 +1,7 @@
 /**
- * The answer card (/a/:id) and approval (/p/:id) pages can't be framed when
- * the UI server serves them; other pages keep the site-wide policy.
+ * The answer card (/a/:id), approval (/p/:id) and connect (/connect) pages
+ * can't be framed when the UI server serves them; other pages keep the
+ * site-wide policy.
  */
 import type { ServerResponse } from 'node:http';
 import { describe, expect, it } from 'vitest';
@@ -39,7 +40,7 @@ describe('denyFraming', () => {
 });
 
 describe('handleStaticRoutes', () => {
-  it.each(['/a/' + 'x'.repeat(43), '/p/' + 'y'.repeat(43)])('forbids framing %s', (path) => {
+  it.each(['/a/' + 'x'.repeat(43), '/p/' + 'y'.repeat(43), '/connect'])('forbids framing %s', (path) => {
     const { res, headers } = fakeRes(SITE_CSP);
     handleStaticRoutes({ headers: {} } as never, res, path);
     expect(headers.get('x-frame-options')).toBe('DENY');

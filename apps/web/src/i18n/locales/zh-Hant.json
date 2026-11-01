@@ -11070,6 +11070,19 @@
     "switchAccount": "",
     "seeSources": ""
   },
+  "connectInvite": {
+    "title": "讓 Alex 幫你留意行事曆",
+    "lead": "連結 Google 日曆，行程就不會悄悄溜走。會分享以下內容：",
+    "sees": "查看行程的時間、標題和地點",
+    "changes": "只在你要求時新增或修改行程",
+    "never": "絕不查看你的郵件或附件",
+    "undo": "隨時可在 設定 > 行事曆 中撤銷，或直接告訴 Alex",
+    "connect": "連結 Google 日曆",
+    "opening": "正在開啟 Google...",
+    "expired": "這個連結已過期或已被使用。下次通話時告訴我，我再傳一個新的。",
+    "otherAccount": "這個連結屬於另一個帳號，所以我沒有使用。下次通話時再跟我要一個新的吧。",
+    "failed": "暫時無法開啟 Google。下次通話時告訴我，我再傳一個新連結。"
+  },
   "aiLabel": {
     "role": {
       "lifeCoach": "",

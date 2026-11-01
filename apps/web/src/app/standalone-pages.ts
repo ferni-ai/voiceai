@@ -5,12 +5,26 @@
  * @module app/standalone-pages
  */
 
-/** Open the page for pathname if it is one; true when it took over. */
-export async function openStandalonePage(pathname: string): Promise<boolean> {
-  if (!pathname.startsWith('/a/')) return false;
-  const page = await import('../ui/answer-card-page.ui.js');
-  const id = page.answerCardIdFromPath(pathname);
-  if (!id) return false;
-  await page.initAnswerCardPage(id);
-  return true;
+/** Open the page for this location if it is one; true when it took over. */
+export async function openStandalonePage(
+  pathname: string,
+  hash = window.location.hash
+): Promise<boolean> {
+  if (pathname.startsWith('/a/')) {
+    const page = await import('../ui/answer-card-page.ui.js');
+    const id = page.answerCardIdFromPath(pathname);
+    if (!id) return false;
+    await page.initAnswerCardPage(id);
+    return true;
+  }
+  if (pathname.startsWith('/connect')) {
+    const page = await import('../ui/connect-invite-page.ui.js');
+    const invite = page.connectInviteFromLocation(pathname, hash);
+    if (!invite) return false;
+    // Keep the single-use invite out of the address bar, history and any screenshot.
+    window.history.replaceState(null, '', page.CONNECT_PAGE_PATH);
+    await page.initConnectInvitePage(invite);
+    return true;
+  }
+  return false;
 }

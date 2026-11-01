@@ -20,6 +20,19 @@
     "switchAccount": "Use another account",
     "seeSources": "Why I picked it, and where I found it"
   },
+  "connectInvite": {
+    "title": "Let Alex keep an eye on your calendar",
+    "lead": "Connect Google Calendar so plans don't sneak up on you. Here's what it shares:",
+    "sees": "Sees event times, titles and places",
+    "changes": "Adds or changes events only when you ask",
+    "never": "Never sees your emails or attachments",
+    "undo": "Undo any time in Settings > Calendar, or just tell Alex",
+    "connect": "Connect Google Calendar",
+    "opening": "Opening Google...",
+    "expired": "This link has expired or was already used. Ask on your next call and I'll send a fresh one.",
+    "otherAccount": "This link was for a different account, so I didn't use it. Ask me for a new one on your next call.",
+    "failed": "Couldn't open Google just now. Ask on your next call and I'll send a new link."
+  },
   "meta": {
     "locale": "en-US",
     "name": "English (US)",

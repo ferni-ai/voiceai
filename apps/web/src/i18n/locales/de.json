@@ -11070,6 +11070,19 @@
     "switchAccount": "",
     "seeSources": ""
   },
+  "connectInvite": {
+    "title": "Lass Alex ein Auge auf deinen Kalender haben",
+    "lead": "Verbinde Google Kalender, damit dich keine Termine mehr überraschen. Das wird geteilt:",
+    "sees": "Sieht Uhrzeiten, Titel und Orte deiner Termine",
+    "changes": "Legt Termine nur an oder ändert sie, wenn du darum bittest",
+    "never": "Sieht nie deine E-Mails oder Anhänge",
+    "undo": "Jederzeit rückgängig in Einstellungen > Kalender, oder sag es einfach Alex",
+    "connect": "Google Kalender verbinden",
+    "opening": "Google wird geöffnet...",
+    "expired": "Dieser Link ist abgelaufen oder wurde schon benutzt. Frag beim nächsten Anruf, dann schicke ich dir einen neuen.",
+    "otherAccount": "Dieser Link war für ein anderes Konto, deshalb habe ich ihn nicht benutzt. Frag mich beim nächsten Anruf nach einem neuen.",
+    "failed": "Google ließ sich gerade nicht öffnen. Frag beim nächsten Anruf, dann schicke ich dir einen neuen Link."
+  },
   "aiLabel": {
     "role": {
       "lifeCoach": "",

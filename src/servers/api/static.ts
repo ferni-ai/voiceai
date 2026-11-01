@@ -165,8 +165,10 @@ export function handleStaticRoutes(
   res: ServerResponse,
   pathname: string
 ): boolean {
-  // The answer card and approval pages are never framed (clickjacking)
-  if (pathname.startsWith('/a/') || pathname.startsWith('/p/')) denyFraming(res);
+  // The answer card, approval and connect pages are never framed (clickjacking)
+  if (pathname.startsWith('/a/') || pathname.startsWith('/p/') || pathname === '/connect') {
+    denyFraming(res);
+  }
 
   // Serve index.html for root
   if (pathname === '/' || pathname === '') {
