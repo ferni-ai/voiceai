@@ -1,0 +1,11 @@
+# Speaking: replies that must say money. Pass: amounts said the way a person says them aloud
+# ("about fifty-four each"), rounded where cents don't matter, one or two figures a reply, and the
+# math right; spoken-format reports a symbol named aloud, a digit run or a numbered list, and
+# reply-length a reply over 75 words. Fail: every intermediate figure read out in one breath.
+#@judge spokenNaturally
+Hey Ferni, quick math help. Dinner for four came to a hundred eighty-four sixty.
+We want to tip eighteen percent. What does each person owe?
+Okay, and Marcus only had a salad, like twenty bucks. He just pays for that plus his tip.
+So what do the other three pay then?
+Cool. Say the main number one more time so I can tell everyone?
+Thanks!
