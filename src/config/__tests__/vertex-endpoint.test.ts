@@ -47,10 +47,19 @@ describe('locations', () => {
   });
 
   it('embeddings follow GEMINI_LOCATION unless GEMINI_EMBEDDING_LOCATION is set', () => {
-    expect(geminiEmbeddingLocation({ GEMINI_LOCATION: 'us' })).toBe('us');
+    expect(geminiEmbeddingLocation({})).toBe('global');
+    expect(geminiEmbeddingLocation({ GEMINI_LOCATION: 'us-east5' })).toBe('us-east5');
     expect(
-      geminiEmbeddingLocation({ GEMINI_LOCATION: 'us', GEMINI_EMBEDDING_LOCATION: 'us-central1' })
-    ).toBe('us-central1');
+      geminiEmbeddingLocation({ GEMINI_LOCATION: 'us', GEMINI_EMBEDDING_LOCATION: 'us-east5' })
+    ).toBe('us-east5');
+  });
+
+  it('GEMINI_LOCATION=us defaults embeddings to us-central1, never us or global', () => {
+    // gemini-embedding-001 404s on the us multi-region (2026-11-01).
+    expect(geminiEmbeddingLocation({ GEMINI_LOCATION: 'us' })).toBe('us-central1');
+    expect(geminiEmbeddingLocation({ GEMINI_LOCATION: 'us', GEMINI_EMBEDDING_LOCATION: '' })).toBe(
+      'us-central1'
+    );
   });
 
   it('the cascade LLM follows GEMINI_LOCATION; CASCADE_LLM_LOCATION still wins', () => {

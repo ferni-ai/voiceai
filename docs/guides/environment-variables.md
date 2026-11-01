@@ -27,7 +27,7 @@ cp .env.example .env
 | --------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------- |
 | `GOOGLE_CLOUD_PROJECT`      | Gemini runs on Vertex AI in this project (ADC credentials)                                                      | `your-project-id` |
 | `GEMINI_LOCATION`           | Vertex location for Gemini and the cascade LLM (default `global`; `us` keeps processing in the US)              | `us`              |
-| `GEMINI_EMBEDDING_LOCATION` | Vertex location for gemini-embedding-001 (default `GEMINI_LOCATION`; it is not served on `us`, use a US region) | `us-central1`     |
+| `GEMINI_EMBEDDING_LOCATION` | Vertex location for gemini-embedding-001 (default `GEMINI_LOCATION`, except `us` defaults to `us-central1`: it is not served on `us`) | `us-central1`     |
 | `CARTESIA_API_KEY`          | Cartesia TTS API key                                                                                            | `sk-...`          |
 
 Gemini calls go through the shared client (`getGeminiClient()` in

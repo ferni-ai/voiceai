@@ -65,11 +65,14 @@ export function geminiLocation(env: Env = process.env): string {
 }
 
 /**
- * Location for gemini-embedding-001 through the shared client. Vertex does not
- * serve it on the `us` multi-region (404, 2026-11-01) but does on us-central1,
- * so GEMINI_EMBEDDING_LOCATION can keep embeddings on a US region when
- * GEMINI_LOCATION=us. Defaults to GEMINI_LOCATION.
+ * Location for gemini-embedding-001 through the shared client:
+ * GEMINI_EMBEDDING_LOCATION, else GEMINI_LOCATION. Vertex does not serve it on
+ * the `us` multi-region (404, 2026-11-01) but does on us-central1, so
+ * GEMINI_LOCATION=us defaults embeddings to us-central1: a missing env var
+ * can neither 404 nor fall back to global.
  */
 export function geminiEmbeddingLocation(env: Env = process.env): string {
-  return env.GEMINI_EMBEDDING_LOCATION || geminiLocation(env);
+  if (env.GEMINI_EMBEDDING_LOCATION) return env.GEMINI_EMBEDDING_LOCATION;
+  const location = geminiLocation(env);
+  return location === 'us' ? 'us-central1' : location;
 }

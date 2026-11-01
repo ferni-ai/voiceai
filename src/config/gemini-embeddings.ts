@@ -27,7 +27,7 @@ interface EmbedClient {
   };
 }
 
-/** GEMINI_EMBEDDING_LOCATION, default GEMINI_LOCATION. */
+/** GEMINI_EMBEDDING_LOCATION, default GEMINI_LOCATION (us becomes us-central1). */
 const LOCATION = geminiEmbeddingLocation();
 
 // gemini-embedding-001 404s on the `us` multi-region (2026-11-01): say so once at load, not per call.
