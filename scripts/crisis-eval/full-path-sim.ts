@@ -39,6 +39,7 @@ import { resolveProfile } from './full-path-profiles.js';
 import { costOf, renderReport } from './full-path-report.js';
 import {
   recallRegressions,
+  severityDowngrades,
   summarise,
   type SimSummary,
   type TurnRecord,
@@ -172,9 +173,11 @@ async function main(): Promise<number> {
     reps,
   });
   const baselinePath = arg('--baseline');
-  const regressions = baselinePath
-    ? recallRegressions(summary, JSON.parse(readFileSync(baselinePath, 'utf8')) as SimSummary)
-    : [];
+  const baseline = baselinePath
+    ? (JSON.parse(readFileSync(baselinePath, 'utf8')) as SimSummary)
+    : undefined;
+  const regressions = baseline ? recallRegressions(summary, baseline) : [];
+  const downgrades = baseline ? severityDowngrades(summary, baseline) : [];
   const text = new Map<string, string>();
   for (const c of calls) c.turns.forEach((t, i) => text.set(`${c.id}#${i}`, t.text));
   const commit = execFileSync('git', ['rev-parse', '--short', 'HEAD']).toString().trim();
@@ -184,6 +187,10 @@ async function main(): Promise<number> {
     regressions: regressions.map(
       (r) =>
         `${r.turnId}: baseline ${r.baseline.join('/')}, now ${r.now.join('/')}: ${text.get(r.turnId) ?? ''}`
+    ),
+    downgrades: downgrades.map(
+      (r) =>
+        `${r.turnId}: imminent baseline ${r.baseline.join('/')}, now ${r.now.join('/')}: ${text.get(r.turnId) ?? ''}`
     ),
   });
   const alarmed = new Map<string, { n: number; paths: Set<string> }>();
@@ -228,6 +235,12 @@ async function main(): Promise<number> {
   if (regressions.length) {
     process.stderr.write(
       `RECALL REGRESSION: ${regressions.length} must-catch turn(s) vs baseline\n`
+    );
+    return 1;
+  }
+  if (downgrades.length) {
+    process.stderr.write(
+      `SEVERITY DOWNGRADE: ${downgrades.length} must-catch turn(s) vs baseline\n`
     );
     return 1;
   }

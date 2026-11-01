@@ -43,7 +43,13 @@ const pathRows = (paths: Partial<Record<FiredPath, number>>): string =>
 export function renderReport(
   s: SimSummary,
   cost: RunCost,
-  extra: { commit: string; textOf: (turnId: string) => string | undefined; regressions: string[] }
+  extra: {
+    commit: string;
+    textOf: (turnId: string) => string | undefined;
+    regressions: string[];
+    /** Must-catch turns read imminent in fewer reps than the baseline (severityDowngrades). */
+    downgrades?: string[];
+  }
 ): string {
   const out: string[] = [];
   out.push(
@@ -56,6 +62,10 @@ export function renderReport(
   out.push('| measure | value |');
   out.push('|---|---|');
   out.push(`| must-catch reads caught | ${pct(s.mustCatch.reads)} |`);
+  const imminent = Object.values(s.perTurnImminent ?? {});
+  out.push(
+    `| must-catch reads imminent (severity 2) | ${pct({ n: imminent.reduce((t, [n]) => t + n, 0), of: imminent.reduce((t, [, of]) => t + of, 0) })} |`
+  );
   out.push(
     `| must-catch turns caught every rep | ${s.mustCatch.turnsAlwaysCaught}/${s.mustCatch.turns} |`
   );
@@ -80,6 +90,7 @@ export function renderReport(
     `| reads eased to a soft check-in (of them must-catch) | ${s.softChecks.all} (${s.softChecks.mustCatch}) |`
   );
   out.push(`| recall regressions vs baseline | ${extra.regressions.length} |`);
+  out.push(`| severity downgrades vs baseline | ${extra.downgrades?.length ?? 0} |`);
   out.push('');
   out.push('## Tuned on vs held out (multi-turn corpora)');
   out.push('');
@@ -119,6 +130,12 @@ export function renderReport(
     out.push('## Recall regressions vs baseline');
     out.push('');
     for (const r of extra.regressions) out.push(`- ${r}`);
+  }
+  if (extra.downgrades?.length) {
+    out.push('');
+    out.push('## Severity downgrades vs baseline');
+    out.push('');
+    for (const r of extra.downgrades) out.push(`- ${r}`);
   }
   out.push('');
   out.push('## Cost');

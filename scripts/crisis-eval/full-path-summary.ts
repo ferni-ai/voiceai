@@ -48,6 +48,17 @@ export interface TurnRecord {
   repeat: boolean;
 }
 
+/**
+ * How severe a read's handling was: 2 imminent (the crisis script replaced the reply, the
+ * patterns blocked, or the classifier read imminent), 1 crisis (any other activation), 0 none.
+ */
+export function severityOf(r: Pick<TurnRecord, 'activated' | 'replaced' | 'paths'>): 0 | 1 | 2 {
+  if (r.replaced || r.paths.includes('pattern-block') || r.paths.includes('classifier-imminent')) {
+    return 2;
+  }
+  return r.activated ? 1 : 0;
+}
+
 type Ratio = { n: number; of: number };
 const ratio = (n: number, of: number): Ratio => ({ n, of });
 
@@ -101,6 +112,11 @@ export interface SimSummary {
   bySplit: Record<string, { caught: Ratio; alarmed: Ratio; falseAlarmCalls: Ratio }>;
   /** Per must-catch turn: [reps caught, reps run]. Ids only. */
   perTurn: Record<string, [number, number]>;
+  /**
+   * The severity column. Per must-catch turn: [reps read imminent (severityOf 2), reps run].
+   * Absent from baselines written before it.
+   */
+  perTurnImminent?: Record<string, [number, number]>;
 }
 
 function bump(map: Partial<Record<string, number>>, key: string): void {
@@ -130,6 +146,7 @@ export function summarise(
   meta: { profile: string; mutation: string; reps: number }
 ): SimSummary {
   const perTurn: Record<string, [number, number]> = {};
+  const perTurnImminent: Record<string, [number, number]> = {};
   const alarmedNeg = new Set<string>();
   const negTurns = new Set<string>();
   const paths: Partial<Record<FiredPath, number>> = {};
@@ -151,6 +168,9 @@ export function summarise(
       mustReads++;
       const t = (perTurn[r.turnId] ??= [0, 0]);
       t[1]++;
+      const sev = (perTurnImminent[r.turnId] ??= [0, 0]);
+      sev[1]++;
+      if (severityOf(r) === 2) sev[0]++;
       if (r.activated) {
         caughtReads++;
         t[0]++;
@@ -258,6 +278,7 @@ export function summarise(
     byShape: group(records, (r) => r.shape),
     bySplit,
     perTurn,
+    perTurnImminent,
   };
 }
 
@@ -284,6 +305,19 @@ export function recallRegressions(
     if (cur[0] / cur[1] < base[0] / base[1]) out.push({ turnId, baseline: base, now: cur });
   }
   return out.sort((a, b) => a.turnId.localeCompare(b.turnId));
+}
+
+/**
+ * The severity gate: every must-catch turn both runs scored must be read imminent in at least
+ * the baseline's share of reps. A turn still caught, but caught as crisis where the baseline
+ * read imminent, is a downgrade. Skipped when either run has no severity column.
+ */
+export function severityDowngrades(
+  now: Pick<SimSummary, 'perTurnImminent'>,
+  baseline: Pick<SimSummary, 'perTurnImminent'>
+): RecallRegression[] {
+  if (!now.perTurnImminent || !baseline.perTurnImminent) return [];
+  return recallRegressions({ perTurn: now.perTurnImminent }, { perTurn: baseline.perTurnImminent });
 }
 
 export const pct = (r: Ratio): string =>

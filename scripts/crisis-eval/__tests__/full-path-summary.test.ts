@@ -6,7 +6,13 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { recallRegressions, summarise, type TurnRecord } from '../full-path-summary.js';
+import {
+  recallRegressions,
+  severityDowngrades,
+  severityOf,
+  summarise,
+  type TurnRecord,
+} from '../full-path-summary.js';
 
 const rec = (
   over: Partial<TurnRecord> & Pick<TurnRecord, 'callId' | 'index' | 'label'>
@@ -145,5 +151,70 @@ describe('recallRegressions', () => {
   it('compares shares when the rep counts differ', () => {
     expect(recallRegressions({ perTurn: { 'a#1': [0, 1] } }, base)).toHaveLength(1);
     expect(recallRegressions({ perTurn: { 'a#1': [1, 1] } }, base)).toEqual([]);
+  });
+});
+
+describe('severity column', () => {
+  it('scores a read 2 for imminent handling, 1 for any other activation, 0 for none', () => {
+    const at = (over: Partial<TurnRecord>) =>
+      severityOf(rec({ callId: 's', index: 0, label: 'must-catch', ...over }));
+    expect(at({ activated: true, replaced: true })).toBe(2);
+    expect(at({ activated: true, paths: ['pattern-block'] })).toBe(2);
+    expect(at({ activated: true, paths: ['classifier-imminent'] })).toBe(2);
+    expect(at({ activated: true, paths: ['classifier-crisis'] })).toBe(1);
+    expect(at({})).toBe(0);
+  });
+
+  it('counts imminent reads per must-catch turn', () => {
+    const s = summarise(
+      [
+        rec({
+          callId: 'p',
+          index: 0,
+          label: 'must-catch',
+          activated: true,
+          paths: ['classifier-imminent'],
+        }),
+        rec({
+          callId: 'p',
+          index: 0,
+          label: 'must-catch',
+          activated: true,
+          paths: ['classifier-crisis'],
+          rep: 1,
+        }),
+        rec({ callId: 'n', index: 0, label: 'must-not-alarm', activated: true, replaced: true }),
+      ],
+      { ...META, reps: 2 }
+    );
+    expect(s.perTurnImminent).toEqual({ 'p#0': [1, 2] });
+    expect(s.perTurn).toEqual({ 'p#0': [2, 2] });
+  });
+
+  it('counts a downgrade: still caught every rep, but read crisis where the baseline read imminent', () => {
+    const base = { perTurnImminent: { 'p#1': [3, 3] as [number, number] } };
+    const caughtAsCrisis = summarise(
+      [0, 1, 2].map((rep) =>
+        rec({
+          callId: 'p',
+          index: 1,
+          label: 'must-catch',
+          rep,
+          activated: true,
+          paths: ['classifier-crisis'],
+        })
+      ),
+      { ...META, reps: 3 }
+    );
+    expect(recallRegressions(caughtAsCrisis, { perTurn: { 'p#1': [3, 3] } })).toEqual([]);
+    expect(severityDowngrades(caughtAsCrisis, base)).toEqual([
+      { turnId: 'p#1', baseline: [3, 3], now: [0, 3] },
+    ]);
+  });
+
+  it('passes equal or higher severity, and skips a baseline without the column', () => {
+    const base = { perTurnImminent: { 'p#1': [2, 3] as [number, number] } };
+    expect(severityDowngrades({ perTurnImminent: { 'p#1': [3, 3] } }, base)).toEqual([]);
+    expect(severityDowngrades({ perTurnImminent: { 'p#1': [0, 3] } }, {})).toEqual([]);
   });
 });
