@@ -40,11 +40,17 @@ interface VerifiableSource {
   verified?: boolean;
 }
 
-/** True only for a Priority 1/2 identification of a real (not anonymous Firebase) account */
+/**
+ * True only for a Priority 1/2 identification of a real (not anonymous Firebase)
+ * account, and never on an inbound phone call: its caller is known only by a
+ * caller ID, which can be spoofed, however the dispatch is signed. No signed
+ * inbound_call dispatch exists today; this keeps a future one from verifying.
+ */
 export function isVerifiedIdentification(
   source: VerifiableSource,
   metadata: Readonly<Record<string, unknown>>
 ): boolean {
+  if (metadata.type === 'inbound_call') return false;
   if (source.verified !== true) return false;
   return source.type !== 'firebase' || metadata.firebase_account === true;
 }
