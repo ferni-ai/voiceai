@@ -19,11 +19,9 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
-import { formatStoredLocalTime } from '../../../utils/time-zone.js';
-import { asksToRepeat, NO_REPEAT_YET } from '../../utils/honest-schedule.js';
 import { forgottenFor, withoutForgottenLines } from './recent-context-forget.js';
 import { historyInTimeframe } from './recent-context-window.js';
-import { recordReminderPromise } from '../../../services/superhuman/semantic-intelligence/promise-keeper.js';
+import { captureReminder } from './quick-capture-reminder.js';
 
 const log = getLogger();
 
@@ -294,7 +292,7 @@ const quickCaptureDef: ToolDefinition = {
           .optional()
           .describe('How urgent'),
       }),
-      execute: async ({ thought, urgency }) => {
+      execute: async ({ thought, urgency }, opts?: unknown) => {
         log.info({ userId: ctx.userId, thoughtLength: thought.length, urgency }, 'Quick capture');
 
         // Detect intent patterns
@@ -319,26 +317,10 @@ const quickCaptureDef: ToolDefinition = {
           // Route and persist to appropriate service
           if (isReminder || (hasDate && (isTask || urgency === 'now' || urgency === 'soon'))) {
             routing = 'reminder';
-            try {
-              const { createReminder, parseNaturalTime, userTimeZone } =
-                await import('../../../services/scheduling/reminder-scheduler.js');
-              const when = thought.match(/\b(?:at|by|tomorrow|next|in)\b[\w\s:]*/i)?.[0];
-              const scheduledFor = parseNaturalTime(when ?? 'tomorrow at 9am', userTimeZone(ctx));
-              if (scheduledFor && ctx.userId) {
-                const reminder = await createReminder({
-                  userId: ctx.userId,
-                  message: thought,
-                  scheduledFor,
-                  deliveryMethod: 'voice_message',
-                  deliveryAddress: '',
-                });
-                persisted = true; // and "I'll remind you" is a promise the delivery job keeps or misses
-                await recordReminderPromise(ctx.userId, reminder);
-                followUp = `Saved one reminder for ${formatStoredLocalTime(scheduledFor, userTimeZone(ctx))}, as a message in the Ferni app.${asksToRepeat(thought) ? NO_REPEAT_YET : ''}`;
-              }
-            } catch (err) {
-              log.debug({ error: String(err) }, 'Could not create reminder, falling back');
-            }
+            // Only this branch can reach the owner (a reminder may be texted): ownerMessagePolicy
+            const captured = await captureReminder(ctx, thought, opts);
+            if ('refusal' in captured) return captured.refusal;
+            ({ persisted, followUp } = captured);
             confirmation = `📅 **Captured as reminder**\n\n"${thought}"`;
             followUp ||= `For a specific time, say "remind me to [task] at [time]".`;
           } else if (isShopping) {
