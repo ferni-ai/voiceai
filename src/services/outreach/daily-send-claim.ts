@@ -25,7 +25,7 @@ import { createOnce } from './checkin-replies.js';
 
 const log = createLogger({ module: 'daily-send-claim' });
 
-export const DAILY_LOCKS = 'daily_outreach_locks';
+const DAILY_LOCKS = 'daily_outreach_locks';
 
 export type DailyClaim = 'claimed' | 'Already sent today' | 'Send claim failed';
 
