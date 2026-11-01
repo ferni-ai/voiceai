@@ -143,7 +143,7 @@ export function parseJudgeChecks(text) {
 }
 
 /** The checks the call's scenario asks for (meta.scenario under scenarios/), or none. */
-export function checksFor(run, dir = SCENARIO_DIR()) {
+export function judgeChecksFor(run, dir = SCENARIO_DIR()) {
   const name = run?.meta?.scenario;
   return name ? parseJudgeChecks(readOr(`${dir.replace(/\/$/, '')}/${name}.txt`, '')) : [];
 }
@@ -224,7 +224,7 @@ const soundsNote = (who) =>
   `Square brackets like [${who}: mm-hm] or [${who} laughs] are non-speech sounds ${who} played, placed where the caller heard them; a line of its own says what the sound played into. Judge them as behaviour under conduct, empathy and quirks: a short backchannel or laugh at the caller's pause is what a good listener does; a sound into silence, the same sound again within a minute, or one over the caller's words or ${who}'s own speech is a tell that it is mechanical.\n\n`;
 
 /** The judge prompt; `order` is the order the dimensions are listed and asked for in. */
-export function promptFor(run, seed, order = Object.keys(DIMENSIONS), persona = personaProfile(personaOf(run)), { sounds = judgeSoundsOn(), checks = checksFor(run) } = {}) {
+export function promptFor(run, seed, order = Object.keys(DIMENSIONS), persona = personaProfile(personaOf(run)), { sounds = judgeSoundsOn(), checks = judgeChecksFor(run) } = {}) {
   const { name: who, bio } = persona;
   // Only the scenario's own #@judge checks, after the dimensions: a call without any is unchanged.
   const asks = checks.length

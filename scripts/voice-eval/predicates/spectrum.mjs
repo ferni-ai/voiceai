@@ -4,10 +4,8 @@
 // decision, made after their false-alarm rate on real sweeps is known. The judge's #@judge checks
 // (judge.mjs CHECKS) cover what a regex can't see. Same shape as index.mjs: (call) => [{ quote, why }].
 import { claimedContact } from '../nightly/false-done.mjs';
+import { agent, norm, sentences } from './text.mjs';
 
-const norm = (s) => s.replace(/[’‘]/g, "'");
-const sentences = (s) => norm(s).split(/(?<=[.!?…])\s+/);
-const agent = (call) => call.turns.filter((t) => t.who === 'agent');
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Number words as digits, so "fifty" in the caller's caption and "50" in Ferni's reply are one word.

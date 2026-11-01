@@ -8,7 +8,7 @@ import {
   CHECKS,
   DIMENSIONS,
   checkRates,
-  checksFor,
+  judgeChecksFor,
   checksOf,
   combine,
   parseJudgeChecks,
@@ -43,13 +43,13 @@ describe('#@judge lines', () => {
   });
   it('throws on an id that is not a check, so a typo cannot silently drop one', () => {
     expect(() => parseJudgeChecks('#@judge heardHonstly')).toThrow(/unknown #@judge check heardHonstly/);
-    expect(() => checksFor(run('typo'), dir)).toThrow(/heardHonstly/);
+    expect(() => judgeChecksFor(run('typo'), dir)).toThrow(/heardHonstly/);
   });
   it("reads the call's own scenario; none for a scenario without lines or with no file", () => {
-    expect(checksFor(run('asks'), dir)).toEqual(['heardHonestly', 'spokenNaturally']);
-    expect(checksFor(run('plain'), dir)).toEqual([]);
-    expect(checksFor(run('missing'), dir)).toEqual([]);
-    expect(checksFor({ events: [] }, dir)).toEqual([]);
+    expect(judgeChecksFor(run('asks'), dir)).toEqual(['heardHonestly', 'spokenNaturally']);
+    expect(judgeChecksFor(run('plain'), dir)).toEqual([]);
+    expect(judgeChecksFor(run('missing'), dir)).toEqual([]);
+    expect(judgeChecksFor({ events: [] }, dir)).toEqual([]);
   });
   it('every #@judge id in scenarios/ is a check', () => {
     const scen = new URL('../scenarios/', import.meta.url);
@@ -62,7 +62,7 @@ describe('the prompt', () => {
   it('is unchanged for a call whose scenario asks for nothing', () => {
     const plain = promptFor(run('plain'), null, order, persona, { sounds: false, checks: [] });
     expect(plain).not.toMatch(/Yes\/no checks|"checks"|checkEvidence/);
-    expect(promptFor(run('plain'), null, order, persona, { sounds: false, checks: checksFor(run('plain'), dir) })).toBe(plain);
+    expect(promptFor(run('plain'), null, order, persona, { sounds: false, checks: judgeChecksFor(run('plain'), dir) })).toBe(plain);
   });
   it('asks only the checks the scenario named, with their JSON slots', () => {
     const p = promptFor(run('asks'), null, order, persona, { sounds: false, checks: ['heardHonestly'] });
