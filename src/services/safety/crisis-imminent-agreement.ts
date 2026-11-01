@@ -40,7 +40,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { crisisBrakeOn, resolveCrisisBrakeV2 } from './crisis-brake.js';
-import { noteImminentRead } from './crisis-call-risk.js';
+import { imminentReadThisCall, noteImminentRead } from './crisis-call-risk.js';
 import type { CrisisVerdict, PatternOutcome } from './crisis-classifier.js';
 import { moreSevereRead } from './crisis-everyday.js';
 import { detectCrisis } from './crisis-guard.js';
@@ -130,13 +130,18 @@ export function agreementCacheScope(
 
 /** The read for a turn read with and without the everyday rules. */
 export function combineReads(reads: TurnReads): CrisisVerdict | null {
+  // CRISIS_BRAKE_V2: a split never eases on a call where an earlier turn was read imminent, and
+  // either read imminent is noted for the call, even one eased below.
+  const { env = process.env, call, latest, earlier } = reads;
+  const earlierImminent =
+    crisisBrakeOn(env, call, [latest, ...earlier]) && imminentReadThisCall(call, latest);
   if (reads.ruled?.risk === 'imminent' || reads.plain?.risk === 'imminent') {
-    noteImminentRead(reads.call); // CRISIS_BRAKE_V2: either read, even one eased below
+    noteImminentRead(call, latest);
   }
   const read = moreSevereRead(reads.ruled, reads.plain);
   if (!readsNeedAgreement(reads)) return read;
   try {
-    if (!eases(reads, read)) return read;
+    if (earlierImminent || !eases(reads, read)) return read;
     const imminentRead = reads.ruled?.risk === 'imminent' ? 'ruled' : 'plain';
     log.info({ imminentRead, risk: 'crisis' }, 'CRISIS_IMMINENT_SPLIT');
     return { risk: 'crisis', subject: read?.subject ?? 'self' };

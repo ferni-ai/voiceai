@@ -232,6 +232,59 @@ describe('nothing eases on a call where anything read a turn imminent', () => {
   });
 });
 
+/** Rank of what the caller got: the 911 script > the 988 number in crisis mode > crisis mode > less. */
+const strength = (t: SimTurn): number =>
+  (heard(t) === '911' ? 4 : heard(t) === '988' ? 2 : 0) + (caught(t) ? 1 : 0);
+/** What the caller gets, without the line note the brake adds to main's guidance. */
+const got = (t: SimTurn | undefined) => ({
+  heard: t && heard(t),
+  action: t?.gate.action,
+  crisis: t?.pipeline.isCrisis,
+  soft: t?.pipeline.softCheck === true,
+});
+const VOCATIVES = ['Ferni?', 'Hello?', 'Fern, you there?', 'hey Ferni', 'You still there?', 'um'];
+
+describe('a vocative after an imminent or crisis line never drops crisis mode or the number', () => {
+  // Read imminent: the gate never eases after it, so crisis mode and a number, stronger than main
+  // (main eases some of these). Read crisis: exactly main.
+  it.each(BARE_PRIORS)('after "%s", read imminent or crisis', async (prior) => {
+    for (const risk of ['imminent', 'crisis'] as const)
+      for (const vocative of VOCATIVES) {
+        const reads = { [prior]: risk, [vocative]: 'crisis' } as const;
+        const { off, on } = await bothArms([prior, vocative], reads, `voc-${risk}`);
+        const label = `${prior} [${risk}] / ${vocative}`;
+        expect(strength(on[1]!), label).toBeGreaterThanOrEqual(strength(off[1]!));
+        if (risk === 'crisis') expect(got(on[1]), label).toEqual(got(off[1]));
+        else {
+          expect(caught(on[1]!), label).toBe(true);
+          expect(heard(on[1]!), label).not.toBe('-');
+        }
+        resetCrisisSim();
+      }
+  });
+
+  it.each([
+    "Tonight's the night.",
+    "I can't live like this.",
+    'I just want to sleep.',
+    "I'm done with it all.",
+    "There's no point in living.",
+    "I'm all alone tonight.",
+    'Goodbye.',
+  ])('after "%s" read crisis, a vocative reads as main', async (said) => {
+    for (const vocative of VOCATIVES) {
+      const { off, on } = await bothArms(
+        [said, vocative],
+        { [said]: 'crisis', [vocative]: 'crisis' },
+        'masked'
+      );
+      expect(got(on[1]), vocative).toEqual(got(off[1]));
+      expect(caught(on[1]!), vocative).toBe(true);
+      resetCrisisSim();
+    }
+  });
+});
+
 describe('the one ease left: a safe answer to a risk-positive question, with no imminent read', () => {
   // Ferni's line asks only "if you've taken something" (a safety line in its own words).
   const opening = `I'm right here with you. ${TAKEN_OR_IN_DANGER}, ${IN_DANGER_NOW}`;

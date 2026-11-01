@@ -164,7 +164,7 @@ export function trackCrisisRead<T extends { risk: string } | null>(
   };
   read.then(
     (v) => {
-      if (v?.risk === 'imminent') noteImminentRead(sessionId);
+      if (v?.risk === 'imminent') noteImminentRead(sessionId, latest);
       settle(v?.risk !== 'none');
     },
     () => settle(true)
@@ -232,20 +232,32 @@ export function unexplainedCrisisRisk(
  * CRISIS_BRAKE_V2: calls where anything read a turn imminent (the patterns, a classifier read,
  * either read of a split), when last noted. Nothing on such a call eases (crisis-script-answer.ts).
  */
-const imminentAt = new Map<string, number>();
+const imminentAt = new Map<string, { at: number; turns: Set<string> }>();
 
-export function noteImminentRead(sessionId: string | undefined, now = Date.now()): void {
+/** Notes an imminent read of these caller words on the call. */
+export function noteImminentRead(sessionId: string | undefined, latest: string, now = Date.now()) {
   if (!sessionId) return;
-  for (const [id, at] of imminentAt) if (now - at > TTL_MS) imminentAt.delete(id);
+  for (const [id, kept] of imminentAt) if (now - kept.at > TTL_MS) imminentAt.delete(id);
+  const turns = imminentAt.get(sessionId)?.turns ?? new Set<string>();
+  turns.add(turnOf(latest));
   imminentAt.delete(sessionId);
-  imminentAt.set(sessionId, now);
+  imminentAt.set(sessionId, { at: now, turns });
 }
 
-/** Whether a turn on this call was read imminent; true without a call, which is never eased. */
-export function imminentReadThisCall(sessionId: string | undefined, now = Date.now()): boolean {
+/**
+ * Whether a turn on this call was read imminent, other than `except` (this turn's own words, for
+ * a read of it still settling). True without a call: nothing is eased then.
+ */
+export function imminentReadThisCall(
+  sessionId: string | undefined,
+  except?: string,
+  now = Date.now()
+) {
   if (!sessionId) return true;
-  const at = imminentAt.get(sessionId);
-  return at !== undefined && now - at <= TTL_MS;
+  const kept = imminentAt.get(sessionId);
+  if (!kept || now - kept.at > TTL_MS) return false;
+  const own = except === undefined ? undefined : turnOf(except);
+  return [...kept.turns].some((t) => t !== own);
 }
 
 /** For tests. */

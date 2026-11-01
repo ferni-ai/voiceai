@@ -3,7 +3,7 @@
  * agents/personas/__tests__/crisis-brake-v2.test.ts). Every line is fictional.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { agreementOutcome, hasCallerRiskContent, hasRiskContent } from '../crisis-agreement.js';
+import { agreementOutcome } from '../crisis-agreement.js';
 import { crisisBrakeOn, resetCrisisBrake } from '../crisis-brake.js';
 import type { CrisisVerdict } from '../crisis-classifier.js';
 import {
@@ -38,36 +38,55 @@ beforeEach(() => {
   n++;
 });
 
-describe('the agreement gate scans only the caller, and everyday words only in risk phrases', () => {
+describe("the agreement gate scans only the caller's words, with main's risk words", () => {
   const companion = "You don't have to carry this alone, and I'm right here.";
   type Turn = Parameters<typeof agreementOutcome>[0] & { call?: string };
-  /** As the gate calls it: the brake read for this call (crisisBrakeOn), then the outcome. */
+  /** As the gate calls it: the brake read for this call (briefTurn), then the outcome. */
   const turn = (env: Record<string, string>, extra: Partial<Turn> = {}) => {
-    const t: Turn = { pattern: 'none', verdicts: [CRISIS], latest: 'Why alone?', earlier: [] };
+    const t: Turn = { pattern: 'none', verdicts: [CRISIS], latest: 'Why?', earlier: [] };
     const { call, ...args } = { ...t, companion, call: `agree-${n}`, ...extra };
-    const brake = crisisBrakeOn(env, call, [args.latest, ...(args.earlier ?? [])]);
+    const on = crisisBrakeOn(env, call, [args.latest, ...(args.earlier ?? [])]);
+    const brake = on
+      ? imminentReadThisCall(call)
+        ? ('hold' as const)
+        : ('ease' as const)
+      : undefined;
     return agreementOutcome({ ...args, brake });
   };
 
-  it('off: a risk word in Ferni\'s line or the caller\'s "alone" escalates, as on main', () => {
+  it("off: a risk word in Ferni's line escalates, as on main", () => {
     expect(turn(OFF)).toBe('escalate');
     expect(turn({})).toBe('escalate');
   });
 
-  it("on: Ferni's own words no longer count, and a bare 'alone' is not risk", () => {
+  it("on: Ferni's own words no longer count", () => {
     expect(turn(ON)).toBe('soft');
-  });
-
-  it('on: risk words only Ferni said (its own crisis reply) do not keep the gate from easing', () => {
     const own = 'Thoughts of suicide are heavy to carry, and you can call or text 988.';
-    const ferni = { latest: 'Ferni?', companion: own };
-    expect(turn(OFF, ferni)).toBe('escalate');
-    expect(turn(ON, ferni)).toBe('presence');
+    expect(turn(OFF, { latest: 'Ferni?', companion: own })).toBe('escalate');
+    expect(turn(ON, { latest: 'Ferni?', companion: own })).toBe('presence');
   });
 
   it('on: two reads of the same turn are not agreement', () => {
     expect(turn(OFF, { verdicts: [CRISIS, CRISIS] })).toBe('escalate');
     expect(turn(ON, { verdicts: [CRISIS, CRISIS] })).toBe('soft');
+  });
+
+  // Every word main's list holds counts, alone or in a phrase: masking "tonight" or "live" deleted
+  // the phrase it completed, and a vocative after it eased (verify of 5b6a342c6).
+  it.each([
+    "Tonight's the night.",
+    'Tonight is the night.',
+    "I can't live like this.",
+    'I just want to sleep.',
+    "I'm done.",
+    'Goodbye.',
+    'Bye, everyone.',
+    "There's no point.",
+    "I'm all alone tonight.",
+    "I'm done living.",
+  ])('on: the caller saying "%s" never eases a later vocative', (said) => {
+    expect(turn(ON, { latest: 'Ferni?', earlier: [said] })).toBe('escalate');
+    expect(turn(ON, { latest: said })).toBe('escalate');
   });
 
   it("on: the caller's earlier risk words still escalate", () => {
@@ -77,43 +96,26 @@ describe('the agreement gate scans only the caller, and everyday words only in r
     );
   });
 
+  it('on: once a turn on the call was read imminent, nothing eases', () => {
+    expect(turn(ON, { latest: 'Ferni?' })).toBe('presence');
+    noteImminentRead(`agree-${n}`, 'I am going to do it now.');
+    expect(turn(ON, { latest: 'Ferni?' })).toBe('escalate');
+    expect(turn(ON)).toBe('escalate');
+    expect(
+      agreementOutcome({
+        pattern: 'none',
+        verdicts: [CRISIS],
+        latest: 'Why?',
+        companion,
+        brake: 'hold',
+      })
+    ).toBe('escalate');
+  });
+
   it('on: an imminent read, a missing read or no call never softens', () => {
     expect(turn(ON, { verdicts: [IMMINENT] })).toBe('escalate');
     expect(turn(ON, { verdicts: [null] })).toBe('escalate');
     expect(turn(ON, { call: undefined })).toBe('escalate');
-  });
-
-  it.each([
-    ['bye', 'Okay, bye.'],
-    ['done', "I'm done for today."],
-    ['point', 'Good point.'],
-    ['live', 'I live in Maplewood.'],
-    ['sleep', 'I need some sleep.'],
-    ['alone', 'I went alone.'],
-    ['tonight', "We're getting pizza tonight."],
-  ])('on: %s alone is everyday', (_word, line) => {
-    expect(hasRiskContent(line)).toBe(true);
-    expect(hasCallerRiskContent(line)).toBe(false);
-  });
-
-  it.each([
-    "I don't want to live anymore.",
-    'I just want to sleep forever.',
-    "What's the point of living?",
-    "I'm feeling so alone.",
-    "I'm done with life.",
-    "I'm going to end it tonight.",
-    'This is goodbye.',
-    'I feel so hopeless.',
-    'Ich will sterben.',
-    'Lo siento 💔',
-  ])('on: inside a risk phrase it still counts: %s', (line) => {
-    expect(hasCallerRiskContent(line)).toBe(true);
-  });
-
-  it('whole words: "alone" never hides inside another word, nor risk inside an everyday one', () => {
-    expect(hasCallerRiskContent('I watched Home Alone.')).toBe(false);
-    expect(hasCallerRiskContent('That was pointless.')).toBe(true);
   });
 });
 
@@ -151,6 +153,38 @@ describe('an imminent read needs agreement: the flag implies CRISIS_IMMINENT_NEE
     });
     expect(eased?.risk).toBe('crisis');
     expect(imminentReadThisCall(call)).toBe(true);
+  });
+
+  it('on: a split never eases once an earlier turn on the call was read imminent', () => {
+    const call = `split-after-${n}`;
+    noteImminentRead(call, 'Tonight is the night.');
+    const read = combineReads({
+      ruled: IMMINENT,
+      plain: NONE,
+      pattern: 'none',
+      latest: "Okay, I'm done for tonight, bye.",
+      earlier: ['Tonight is the night.'],
+      call,
+      env: ON,
+    });
+    expect(read?.risk).toBe('imminent');
+  });
+
+  it('off: the same split with CRISIS_IMMINENT_NEEDS_AGREEMENT alone eases as on main', () => {
+    const call = `split-flag-${n}`;
+    noteImminentRead(call, 'Tonight is the night.');
+    const env = { CRISIS_IMMINENT_NEEDS_AGREEMENT: 'on' };
+    const latest = "Okay, I'm done for tonight, bye.";
+    const read = combineReads({
+      ruled: IMMINENT,
+      plain: NONE,
+      pattern: 'none',
+      latest,
+      earlier: [],
+      call,
+      env,
+    });
+    expect(read?.risk).toBe('crisis');
   });
 
   it('on: both reads imminent keep imminent', () => {
@@ -193,6 +227,10 @@ describe("the script's own question: the next short answer is an answer", () => 
     'I meant something else.',
     'No, I have not taken anything.',
     'I meant the bake sale.',
+    // "I did" and "I have" are risk answers, never their negations
+    'I did not take anything.',
+    "I didn't take anything.",
+    'I have not taken anything.',
   ])('safe, a check-in: %s', (line) => {
     expect(answer(line)).toBe('safe');
   });
@@ -245,7 +283,7 @@ describe("the script's own question: the next short answer is an answer", () => 
   it('a safe answer on a call where anything read a turn imminent reads as main', () => {
     const turn = { latest: "I'm fine.", companion: SCRIPT, earlier: [], call: `imm-${n}`, env: ON };
     expect(scriptAnswer(turn)).toBe('safe');
-    noteImminentRead(turn.call);
+    noteImminentRead(turn.call, "I'm at the spot now.");
     for (const latest of ["I'm fine.", "It's not a crisis.", "I haven't taken anything."]) {
       expect(scriptAnswer({ ...turn, latest })).toBe('main');
     }
@@ -396,8 +434,9 @@ describe('minors (MINOR_CARE): the brake never applies', () => {
   it('every rule falls back to main for them', () => {
     const call = `minor-rules-${n}`;
     const earlier = ["I'm 15 and in ninth grade."];
-    const brake = crisisBrakeOn(ON, call, ['Why alone?', ...earlier]);
-    expect(brake).toBe(false);
+    const on = crisisBrakeOn(ON, call, ['Why alone?', ...earlier]);
+    expect(on).toBe(false);
+    const brake = on ? ('ease' as const) : undefined;
     expect(
       agreementOutcome({
         pattern: 'none',

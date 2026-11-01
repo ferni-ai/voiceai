@@ -30,7 +30,6 @@
 
 import { wholeWordSite } from '../../utils/safety-whole-word.js';
 import type { CrisisVerdict, PatternOutcome } from './crisis-classifier.js';
-import { detectCrisis } from './crisis-guard.js';
 
 export function resolveCrisisAgreementGate(
   env: Record<string, string | undefined> = process.env
@@ -176,25 +175,6 @@ export function hasRiskContent(text: string | undefined | null): boolean {
   }
 }
 
-/** CRISIS_BRAKE_V2: everyday words that are risk only in a risk phrase ("done with life" stays one). */
-const EVERYDAY_ALONE =
-  /\b(?:good ?bye|bye|point|live|sleep|alone|tonight)(?:s|ed)?\b|\bdone\b(?! with (?:it|everything|life|this)\b)/g;
-
-/**
- * The caller's words hold risk (CRISIS_BRAKE_V2): a guard pattern (the risk phrases: "sleep
- * forever"), or the list above without the everyday words alone. True for what it can't read.
- */
-export function hasCallerRiskContent(text: string | undefined | null): boolean {
-  if (typeof text !== 'string') return true;
-  try {
-    const found = detectCrisis(text);
-    if (found.severity > 0 || found.indicators.length > 0) return true;
-    return hasRiskContent(normalized(text).replace(EVERYDAY_ALONE, ' '));
-  } catch {
-    return true;
-  }
-}
-
 /** Words with no meaning of their own in a question back to Ferni. No assent, no "done" or "too much". */
 const FUNCTION_WORDS = new Set(
   (
@@ -248,8 +228,11 @@ export function agreementOutcome(args: {
   latest: string;
   earlier?: readonly string[];
   companion?: string;
-  /** CRISIS_BRAKE_V2 applies to this call: crisisBrakeOn, read by the caller (crisis-brake.ts). */
-  brake?: boolean;
+  /**
+   * CRISIS_BRAKE_V2 on this call (crisis-brake.ts), read by the caller: 'ease', or 'hold' when a turn
+   * on the call was read imminent (crisis-call-risk.ts), which never eases.
+   */
+  brake?: 'ease' | 'hold';
 }): AgreementOutcome {
   try {
     return outcomeOf(args);
@@ -274,9 +257,10 @@ function outcomeOf(args: Parameters<typeof agreementOutcome>[0]): AgreementOutco
   if (typeof companion !== 'string' || !companion.trim()) return 'escalate';
   // Ferni's line is checked too: it may have asked about the caller's safety. CRISIS_BRAKE_V2:
   // the caller's words only, since Ferni's own crisis reply made the gate unable to ease.
-  const brake = args.brake === true;
+  if (args.brake === 'hold') return 'escalate';
+  const brake = args.brake === 'ease';
   const scanned = brake ? [latest, ...earlier] : [latest, ...earlier, companion];
-  const quiet = !endorses(latest) && !scanned.some(brake ? hasCallerRiskContent : hasRiskContent);
+  const quiet = !endorses(latest) && !scanned.some(hasRiskContent);
   if (quiet && (isPresenceReply(latest, companion) || isVocative(latest))) return 'presence';
   // Soft only for a short question back about Ferni's own words, with no risk
   // or agreement anywhere: whether the reads disagree or one read stands alone.

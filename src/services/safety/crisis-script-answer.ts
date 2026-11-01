@@ -10,13 +10,13 @@
  * whose every question makes it safe) is a check-in, 'safe', only when ALL hold: it carries no
  * pattern, risk or held word; no turn on this call was read imminent by anything
  * (imminentReadThisCall, crisis-call-risk.ts; never without a call); and the caller's earlier lines
- * carry no risk (hasCallerRiskContent, as the agreement gate reads them). Otherwise it is 'main':
+ * carry no risk (main's risk words, nothing masked, or a guard pattern). Otherwise it is 'main':
  * the turn reads exactly as on main. Anything that is not a short answer: null.
  *
  * @module CrisisScriptAnswer
  */
 
-import { hasCallerRiskContent, hasRiskContent, mentionsMeans } from './crisis-agreement.js';
+import { hasRiskContent, mentionsMeans } from './crisis-agreement.js';
 import { crisisBrakeOn } from './crisis-brake.js';
 import { imminentReadThisCall } from './crisis-call-risk.js';
 import { clearNo } from './crisis-grounded-screen.js';
@@ -64,7 +64,7 @@ const BARE = new RegExp(
 );
 /** A hedge or a taken-it answer: risk whichever question it answers. */
 const RISK_ANSWER = new RegExp(
-  `^(?:${LEAD} )*(?:i did|i have|i took|i've taken|kind of|sort of|maybe|not really)\\b|\\bi (?:took|swallowed|have taken|'ve taken)\\b`
+  `^(?:${LEAD} )*(?:i did(?!n'?t| not)|i have(?!n'?t| not)|i took|i've taken|kind of|sort of|maybe|not really)\\b|\\bi (?:took|swallowed|have taken|'ve taken)\\b`
 );
 /** An answer to the first question alone, whatever "no" came before it. */
 const TOOK_NOTHING =
@@ -85,12 +85,16 @@ export interface ScriptAnswerTurn {
   env?: Record<string, string | undefined>;
 }
 
-/** What a no must not carry: a question, a hesitation, a risk or held word, a pattern. */
-function carriesRisk(latest: string): boolean {
-  if (/[?¿]|\.\.|…/.test(latest) || alwaysHold(latest) || hasRiskContent(latest)) return true;
-  const found = detectCrisis(latest);
+/** A risk word (main's list, nothing masked) or a guard pattern in the caller's words. */
+function saidRisk(line: string): boolean {
+  if (hasRiskContent(line)) return true;
+  const found = detectCrisis(line);
   return found.severity > 0 || found.indicators.length > 0;
 }
+
+/** What a no must not carry: a question, a hesitation, a risk or held word, a pattern. */
+const carriesRisk = (latest: string): boolean =>
+  /[?¿]|\.\.|…/.test(latest) || alwaysHold(latest) || saidRisk(latest);
 
 /**
  * 'risk': the full 911 script. 'safe': a check-in. 'main': the turn reads as on main, never held
@@ -116,7 +120,7 @@ export function scriptAnswer(turn: ScriptAnswerTurn): ScriptAnswer | null {
     // A no to "is anyone nearby" is being alone: a risk answer, never eased.
     if (STARTS_NO.test(text) && !tookNothing && asked.includes('safe')) return 'main';
     if (!BARE.test(text) && !clearNo(latest) && !SAID_NO.test(text)) return null;
-    const quiet = !imminentReadThisCall(call) && !turn.earlier.some(hasCallerRiskContent);
+    const quiet = !imminentReadThisCall(call) && !turn.earlier.some(saidRisk);
     return quiet ? 'safe' : 'main';
   } catch {
     return null; // the reads decide
@@ -125,16 +129,18 @@ export function scriptAnswer(turn: ScriptAnswerTurn): ScriptAnswer | null {
 
 /**
  * Once per turn, for the reply gate and the turn pipeline alike: the answer to the 911 script, the
- * turn crisis-line-once.ts reads (a 'main' answer reads as on main), and whether the brake applies.
+ * turn crisis-line-once.ts reads (a 'main' answer reads as on main), and the brake for the
+ * agreement gate ('hold' once a turn on the call was read imminent: it never eases then).
  */
 export function briefTurn(turn: ScriptAnswerTurn & Pick<LineTurn, 'ferni'>): {
   answer: ScriptAnswer | null;
   once: LineTurn;
-  brake: boolean;
+  brake?: 'ease' | 'hold';
 } {
   const answer = scriptAnswer(turn);
   const { call, latest, earlier, ferni, env } = turn;
-  const brake = crisisBrakeOn(env, call, [latest, ...earlier]);
+  const on = crisisBrakeOn(env, call, [latest, ...earlier]);
+  const brake = on ? (imminentReadThisCall(call) ? 'hold' : 'ease') : undefined;
   return {
     answer,
     once: { call, latest, earlier, ferni, env, fullLine: answer === 'main' },
