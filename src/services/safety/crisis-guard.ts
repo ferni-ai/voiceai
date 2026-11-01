@@ -26,6 +26,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { endingFloor } from './crisis-ending-floor.js';
 import { lineHeld, lineHeldGuidance } from './crisis-line-once.js';
+import { ANYONE_NEARBY, TAKEN_OR_IN_DANGER } from './crisis-script-questions.js';
 import { meansFormsOf, meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
 import {
@@ -324,9 +325,9 @@ function getCrisisResponse(
   if (imminent && language !== 'es') {
     return `I'm really glad you told me. Your safety matters most right now.
 
-If you've taken something or you're in danger right now, ${IN_DANGER_NOW}
+${TAKEN_OR_IN_DANGER}, ${IN_DANGER_NOW}
 
-I'm staying right here with you. Is anyone nearby who can be with you?`;
+I'm staying right here with you. ${ANYONE_NEARBY}`;
   }
   if (subject === 'third_party') {
     return `It sounds like you're really worried about them, and it matters that you're paying attention. You don't have to handle this alone either.

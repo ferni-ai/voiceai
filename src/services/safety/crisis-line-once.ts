@@ -33,7 +33,7 @@ export interface LineTurn {
   ferni: ReadonlyArray<string | undefined>;
   /** The patterns' read of this turn, before any classifier verdict. */
   patterns: { indicators: readonly string[] };
-  /** The turn reads as on main: a no to the 911 script from a caller who said risk earlier. */
+  /** The turn reads as on main: a 'main' answer to the 911 script (crisis-script-answer.ts). */
   fullLine?: boolean;
   env?: Record<string, string | undefined>;
   now?: number;

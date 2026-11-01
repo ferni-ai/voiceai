@@ -142,7 +142,7 @@ function briefed(
 }
 
 /** CRISIS_BRAKE_V2: the caller answering the 911 script's question (crisis-script-answer.ts);
- * null lets the reads decide, as on main for a no after the caller said risk. */
+ * null lets the reads decide, as on main for a 'main' answer. */
 function answerDecision(
   answer: ScriptAnswer | null,
   call: string | undefined,
@@ -150,8 +150,8 @@ function answerDecision(
 ): CrisisGateDecision | null {
   if (!answer) return null;
   log.info({ action: answer, source: 'script_answer' }, 'CRISIS_GATE');
-  if (answer === 'no_after_risk') return null;
-  if (answer === 'no') return guide(SCRIPT_ANSWER_CHECKIN);
+  if (answer === 'main') return null;
+  if (answer === 'safe') return guide(SCRIPT_ANSWER_CHECKIN);
   noteCrisisRisk(call);
   return decisionFor(answeredYes(detection));
 }
@@ -211,7 +211,7 @@ export function startCrisisGate(
   const call = sessionScope(userData);
   const said = { latest, earlier, companion };
   const answer = scriptAnswer({ latest, companion, earlier, call, env });
-  const fullLine = answer === 'no_after_risk';
+  const fullLine = answer === 'main';
   const once = { call, latest, earlier, ferni, patterns: detection, env, fullLine };
   const heard = briefed(decision, detection, once, gentle);
   // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).

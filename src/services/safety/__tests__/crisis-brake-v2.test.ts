@@ -16,6 +16,7 @@ import {
 import { combineReads, resetImminentAgreement } from '../crisis-imminent-agreement.js';
 import { asksForNumber, LINE_GIVEN, withLineOnce } from '../crisis-line-once.js';
 import { scriptAnswer } from '../crisis-script-answer.js';
+import { ANYONE_NEARBY, TAKEN_OR_IN_DANGER } from '../crisis-script-questions.js';
 
 const ON = { CRISIS_BRAKE_V2: 'on' };
 const OFF = { CRISIS_BRAKE_V2: 'off' };
@@ -164,22 +165,26 @@ describe("the script's own question: the next short answer is an answer", () => 
     'The pills.',
     'Kind of.',
     'No, just the bottle.',
-  ])('yes: %s', (line) => {
-    expect(answer(line)).toBe('yes');
+  ])('risk, the full script: %s', (line) => {
+    expect(answer(line)).toBe('risk');
   });
 
   it.each([
-    'No.',
-    'Nope.',
-    "No, I'm fine.",
     "I'm fine.",
     "It's not a crisis.",
     'I meant something else.',
     'No, I have not taken anything.',
     'I meant the bake sale.',
-  ])('no: %s', (line) => {
-    expect(answer(line)).toBe('no');
+  ])('safe, a check-in: %s', (line) => {
+    expect(answer(line)).toBe('safe');
   });
+
+  it.each(['No.', 'Nope.', 'No one.', 'Nobody.', "No, I'm fine.", 'Nope, nobody is here.'])(
+    'a no to "is anyone nearby" is being alone, never eased: %s',
+    (line) => {
+      expect(answer(line)).toBe('main');
+    }
+  );
 
   it.each([
     ['a danger word', "No, but I can't do this anymore."],
@@ -189,13 +194,14 @@ describe("the script's own question: the next short answer is an answer", () => 
     ['a held word in a closed-set no', "I'm fine, I meant the note."],
     ['a question', 'No?'],
     ['a hesitant no', 'Um, no...'],
-    [
-      'a long answer',
-      'No, I mean, it is a long story about my week and how my boss keeps calling.',
-    ],
     ['something else', 'Ferni?'],
-  ])('neither, so the reads decide: %s', (_name, line) => {
-    expect(answer(line)).toBeNull();
+  ])('carries risk, a question or a hesitation: main, never eased or held: %s', (_name, line) => {
+    expect(answer(line)).toBe('main');
+  });
+
+  it('a long answer is not a short answer to the script: the reads decide', () => {
+    const long = 'No, I mean, it is a long story about my week and how my boss keeps calling.';
+    expect(answer(long)).toBeNull();
   });
 
   it.each([
@@ -203,25 +209,73 @@ describe("the script's own question: the next short answer is an answer", () => 
     ['means in hand', 'I have the pills right here.'],
     ['a razor', "I'm holding a razor blade over my wrist."],
     ['a decision', "I'm going to kill myself, I've decided."],
-  ])('a no after the caller said risk (%s) reads as main', (_name, said) => {
+  ])('a safe answer after the caller said risk (%s) reads as main', (_name, said) => {
     for (const latest of ['No.', "I'm fine.", "It's not a crisis."]) {
       const turn = { latest, companion: SCRIPT, earlier: [said], call: `risk-${n}`, env: ON };
-      expect(scriptAnswer(turn)).toBe('no_after_risk');
-      expect(scriptAnswer({ ...turn, earlier: [said, 'Yes.', 'Yeah.'] })).toBe('no_after_risk');
+      expect(scriptAnswer(turn)).toBe('main');
+      expect(scriptAnswer({ ...turn, earlier: [said, 'Yes.', 'Yeah.'] })).toBe('main');
     }
   });
 
-  it('a no on a call whose caller said no risk is a no', () => {
+  it('a safe answer on a call whose caller said no risk is a check-in; a bare no is not', () => {
     const earlier = ['Can you text my cousin that the bake sale moved?', 'Yes.'];
-    expect(
-      scriptAnswer({ latest: 'No.', companion: SCRIPT, earlier, call: `quiet-${n}`, env: ON })
-    ).toBe('no');
+    const turn = { companion: SCRIPT, earlier, call: `quiet-${n}`, env: ON };
+    expect(scriptAnswer({ ...turn, latest: "I'm fine." })).toBe('safe');
+    expect(scriptAnswer({ ...turn, latest: 'No.' })).toBe('main');
   });
 
   it('only after the script asked it, only with the flag on', () => {
     expect(answer('No.', ON, 'Okay, tell me more.')).toBeNull();
     expect(answer('No.', OFF)).toBeNull();
     expect(answer('No.', {})).toBeNull();
+  });
+});
+
+describe("a yes or no means what the script's question makes it mean", () => {
+  const ANSWERS = ['Yes.', 'No.', 'No one.', 'Not really.'] as const;
+  const RISK_SAID = ['I have the pills right here.'];
+  // [question Ferni asked, quiet call (yes, no, no one, not really), call with risk said (same)]
+  const TABLE: Array<[string, string, readonly string[], readonly string[]]> = [
+    [
+      'the taken-something question alone',
+      `I'm right here. ${TAKEN_OR_IN_DANGER}, tell me.`,
+      // "no one" holds risk words of its own (being alone): never eased, whatever was asked
+      ['risk', 'safe', 'main', 'risk'],
+      ['risk', 'main', 'main', 'risk'],
+    ],
+    [
+      'the anyone-nearby question alone',
+      `I'm right here. ${ANYONE_NEARBY}`,
+      ['safe', 'main', 'main', 'risk'],
+      ['main', 'main', 'main', 'risk'],
+    ],
+    [
+      'the 911 script, which asks both',
+      SCRIPT,
+      ['risk', 'main', 'main', 'risk'],
+      ['risk', 'main', 'main', 'risk'],
+    ],
+  ];
+
+  it('the 911 script is built from both questions', () => {
+    expect(SCRIPT).toContain(TAKEN_OR_IN_DANGER);
+    expect(SCRIPT).toContain(ANYONE_NEARBY);
+  });
+
+  it.each(TABLE)('%s', (_name, companion, quiet, risky) => {
+    const read = (latest: string, earlier: readonly string[]) =>
+      scriptAnswer({ latest, companion, earlier, call: `table-${n}-${latest}`, env: ON });
+    expect(ANSWERS.map((a) => read(a, []))).toEqual(quiet);
+    expect(ANSWERS.map((a) => read(a, RISK_SAID))).toEqual(risky);
+  });
+
+  it('a line that asks neither question is not an answer to the script', () => {
+    const companion = 'Is there something on your mind tonight?';
+    for (const a of ANSWERS) {
+      expect(
+        scriptAnswer({ latest: a, companion, earlier: [], call: `none-${n}`, env: ON })
+      ).toBeNull();
+    }
   });
 });
 

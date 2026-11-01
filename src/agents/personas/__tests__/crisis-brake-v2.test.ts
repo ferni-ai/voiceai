@@ -6,6 +6,7 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { IN_DANGER_NOW } from '../../../services/safety/crisis-guard.js';
+import { ANYONE_NEARBY } from '../../../services/safety/crisis-script-questions.js';
 import {
   classifier,
   PROD,
@@ -41,8 +42,22 @@ describe('the script loop: the caller answering the script is an answer', () => 
     expect(out.map(heard)).toEqual(['-', '911', '911', '911']);
   });
 
-  it('flag on: "no" to the script gets a check-in; a later imminent read is the script again', async () => {
-    const out = await simulateCall(lines, reads, ON, `loop-on-${calls}`);
+  it('flag on: a bare "no" answers "is anyone nearby": being alone, never eased', async () => {
+    const off = await simulateCall(lines, reads, OFF, `loop-no-off-${calls}`);
+    resetCrisisSim();
+    const on = await simulateCall(lines, reads, ON, `loop-no-on-${calls}`);
+    expect(on.map(heard)).toEqual(['-', '911', '911', '911']);
+    expect(on[2]).toEqual(off[2]);
+  });
+
+  it('flag on: "I\'m fine" to the script on a quiet call gets a check-in, not a second script', async () => {
+    const fine = [ERRAND, 'Yes.', "I'm fine.", 'Ferni?'];
+    const fineReads = classifier({
+      'Yes.': 'imminent',
+      "I'm fine.": 'imminent',
+      'Ferni?': 'imminent',
+    });
+    const out = await simulateCall(fine, fineReads, ON, `loop-on-${calls}`);
     expect(out.map(heard)).toEqual(['-', '911', '-', '911']);
     const no = out[2];
     expect(no?.gate.action === 'guide' && no.gate.guidance).toMatch(/they said no/);
@@ -296,9 +311,9 @@ describe('a no to the 911 script eases only a call whose caller said no risk', (
     expect(out[last]?.pipeline.softCheck).toBeFalsy();
   });
 
-  it('a benign call whose script misfired still eases: the false-alarm win stays', async () => {
-    const lines = [ERRAND, 'Yes.', 'No.'];
-    const reads = classifier({ 'Yes.': 'imminent', 'No.': 'imminent' });
+  it('a benign call whose script misfired still eases on a safe answer', async () => {
+    const lines = [ERRAND, 'Yes.', "It's not a crisis."];
+    const reads = classifier({ 'Yes.': 'imminent', "It's not a crisis.": 'imminent' });
     const out = await simulateCall(lines, reads, ON, `benign-no-${calls}`);
     expect(out.map(heard)).toEqual(['-', '911', '-']);
     expect(out[2]?.gate.action === 'guide' && out[2].gate.guidance).toMatch(/they said no/);
@@ -321,4 +336,18 @@ describe('a no with a danger word after the 911 script keeps the script', () => 
       expect(on[1]?.pipeline.suggestedResponse).toContain(IN_DANGER_NOW);
     }
   );
+});
+
+describe('a bare no to "is anyone nearby" is never eased, even on a quiet call', () => {
+  it.each(['No.', 'No one.', 'Nope, nobody.'])('%s read imminent is main', async (answer) => {
+    const lines = [ERRAND, 'Yes.', answer];
+    const { off, on } = await sameAsMain(
+      lines,
+      { 'Yes.': 'imminent', [answer]: 'imminent' },
+      'alone'
+    );
+    expect(on[1]?.ferni).toContain(ANYONE_NEARBY);
+    expect(on[2]).toEqual(off[2]);
+    expect(on[2]?.gate.action === 'replace' && on[2].gate.script).toContain(IN_DANGER_NOW);
+  });
 });

@@ -157,13 +157,13 @@ function turnEaser(
 }
 
 /** CRISIS_BRAKE_V2: the answer to the 911 script's question (crisis-script-answer.ts), or null
- * for the reads to decide (a no after the caller said risk reads as on main). */
+ * for the reads to decide ('main' reads as on main). */
 function scriptAnswered(
   patterns: CrisisDetectionResult,
   answer: ScriptAnswer | null
 ): Settled | null {
-  if (answer === 'no') return { crisis: patterns, soft: true, guidance: SCRIPT_ANSWER_CHECKIN };
-  return answer === 'yes' ? { crisis: answeredYes(patterns), soft: false } : null;
+  if (answer === 'safe') return { crisis: patterns, soft: true, guidance: SCRIPT_ANSWER_CHECKIN };
+  return answer === 'risk' ? { crisis: answeredYes(patterns), soft: false } : null;
 }
 
 /** The turn result's crisis field, the crisis line held back once the call heard it (CRISIS_BRAKE_V2). */
@@ -348,7 +348,7 @@ export function startTurnCrisis(
     return easingOn ? (eased ??= easeTurn(turn)) : turn;
   };
   // CRISIS_BRAKE_V2: the crisis line in full once per call (crisis-line-once.ts).
-  const fullLine = answer === 'no_after_risk';
+  const fullLine = answer === 'main';
   const once = { ...input, ferni: [input.companion], patterns, call, env, fullLine };
   return {
     patterns,
