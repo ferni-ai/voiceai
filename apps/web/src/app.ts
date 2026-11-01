@@ -466,7 +466,7 @@ class VoiceAIApp {
       return;
     }
 
-    // Pages opened from a text link that replace the app (/a/:id)
+    // Pages opened from a text link that replace the app (/a/:id, /connect#i=…)
     const { openStandalonePage } = await import('./app/standalone-pages.js');
     if (await openStandalonePage(window.location.pathname)) return;
 
