@@ -87,6 +87,8 @@ export interface ConsentStatement {
   checkWords: readonly string[];
   /** The date as written in the text; speech to text writes dates in many forms, so it isn't scored. */
   spokenDate: string;
+  /** Each name with the word the statement puts right before it ("is Rosa Quill", "for Maya Quill"). */
+  names: readonly { after: string; name: string }[];
 }
 
 /** Unpredictable check words, so nobody can record them ahead of time. */
@@ -116,7 +118,9 @@ export function buildConsentStatement(input: ConsentStatementInput): ConsentStat
     `My name is ${subject}. I agree that Ferni may make an AI copy of my voice for ${forWhom}. ` +
     `I can take this back at any time. Today is ${spokenDate}. ` +
     `My check words are ${checkWords.join(', ')}.`;
-  return { text, checkWords, spokenDate };
+  const names = [{ after: 'is', name: subject }];
+  if (forWhom !== 'my own use') names.push({ after: 'for', name: creator });
+  return { text, checkWords, spokenDate, names };
 }
 
 /** Lowercase whole words, numbers dropped (dates come back from speech to text in many forms). */
@@ -154,11 +158,23 @@ const REFUSAL_WORDS = new Set([
   'isnt',
 ]);
 
-/** How many times each word occurs. */
-function wordCounts(words: string[]): Map<string, number> {
-  const counts = new Map<string, number>();
-  for (const w of words) counts.set(w, (counts.get(w) ?? 0) + 1);
-  return counts;
+/**
+ * The transcript's words with each name taken out where the statement puts it (right after
+ * its anchor word). A name can hold a refusal word ("Noa Never", "Do Not"); a misheard or
+ * skipped name is not cut, so a refusal said anywhere else still counts.
+ */
+function withoutAnchoredNames(words: string[], names: ConsentStatement['names']): string[] {
+  const cut = new Set<number>();
+  for (const { after, name } of names) {
+    const nameWords = consentWords(name);
+    if (!nameWords.length) continue;
+    for (let i = 0; i < words.length; i++) {
+      if (words[i] === after && nameWords.every((w, j) => words[i + 1 + j] === w)) {
+        nameWords.forEach((_, j) => cut.add(i + 1 + j));
+      }
+    }
+  }
+  return words.filter((_, i) => !cut.has(i));
 }
 
 /** A refusal word, or any "n't" contraction (didn't, wouldn't, haven't). */
@@ -184,12 +200,9 @@ export function scoreConsentTranscript(
   const found = expected.filter((w) => heard.has(w)).length;
   const coverage = expected.length ? found / expected.length : 0;
   const missingCheckWords = statement.checkWords.filter((w) => !heard.has(w));
-  // A name can hold a refusal word ("Noa Never"), so a refusal is one said more often than
-  // the statement says it: the name's own "never" is allowed, a spoken "I never agree" is not
-  const inStatement = wordCounts(consentWords(statement.text));
-  const refusals = [...wordCounts(consentWords(transcript))]
-    .filter(([w, n]) => isRefusal(w) && n > (inStatement.get(w) ?? 0))
-    .map(([w]) => w);
+  const refusals = [
+    ...new Set(withoutAnchoredNames(consentWords(transcript), statement.names).filter(isRefusal)),
+  ];
   return {
     verified: missingCheckWords.length === 0 && refusals.length === 0 && coverage >= MIN_COVERAGE,
     refusals,

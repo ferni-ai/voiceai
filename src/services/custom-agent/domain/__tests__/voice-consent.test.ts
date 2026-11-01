@@ -179,6 +179,19 @@ describe('scoreConsentTranscript', () => {
       ['Never', 'Never', (t) => t.replace('I agree', 'I never agree')],
       ['Rosa Quill', 'Do Not', (t) => t.replace('I agree', 'I do not agree')],
       ['Rosa Quill', 'Will Not', (t) => t.replace('I agree', 'I will not agree')],
+      // A misheard or skipped name must not hide the refusal
+      [
+        'Rosa Quill',
+        'Not Sam',
+        (t) => t.replace("Not Sam's", "Knot Sam's").replace('I agree', 'I do not agree'),
+      ],
+      [
+        'Rosa Quill',
+        'Not Sam',
+        (t) => t.replace("Not Sam's ", '').replace('I agree', 'I do not agree'),
+      ],
+      ['Never', 'Never', (t) => t.replace('is Never', 'is').replace('I agree', 'I never agree')],
+      ['No Min-ji', 'No Min-ji', (t) => `${t.replace('No Min-ji', 'Noh Min-ji')} No.`],
     ];
     for (const [subjectName, creatorName, refuse] of cases) {
       const statement = buildConsentStatement({
