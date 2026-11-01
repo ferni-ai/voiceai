@@ -124,9 +124,26 @@ export function consentWords(text: string): string[] {
   return (text.toLowerCase().match(/\p{L}+(?:'\p{L}+)?/gu) ?? []).map((w) => w.replace(/'s$/, ''));
 }
 
+/** Words that turn the statement into a refusal ("I do not agree"); none is in the statement. */
+const REFUSAL_WORDS = new Set([
+  'not',
+  'no',
+  'never',
+  "don't",
+  'dont',
+  "won't",
+  'cannot',
+  "can't",
+  'refuse',
+  'disagree',
+  'deny',
+]);
+
 export interface ConsentScore {
-  /** True when every check word was said and enough of the statement was. */
+  /** True when every check word was said, enough of the statement was, and nothing refused it. */
   verified: boolean;
+  /** Refusal words heard ("not", "never"); any one of them means no consent. */
+  refusals: string[];
   /** Share of the statement's words (the date excluded) found in the transcript. */
   coverage: number;
   missingCheckWords: string[];
@@ -142,8 +159,10 @@ export function scoreConsentTranscript(
   const found = expected.filter((w) => heard.has(w)).length;
   const coverage = expected.length ? found / expected.length : 0;
   const missingCheckWords = statement.checkWords.filter((w) => !heard.has(w));
+  const refusals = [...heard].filter((w) => REFUSAL_WORDS.has(w));
   return {
-    verified: missingCheckWords.length === 0 && coverage >= MIN_COVERAGE,
+    verified: missingCheckWords.length === 0 && refusals.length === 0 && coverage >= MIN_COVERAGE,
+    refusals,
     coverage,
     missingCheckWords,
   };

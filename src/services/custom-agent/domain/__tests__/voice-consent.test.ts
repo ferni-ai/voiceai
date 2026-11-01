@@ -131,6 +131,27 @@ describe('scoreConsentTranscript', () => {
     expect(noMay.coverage).toBeLessThan(1);
   });
 
+  it('refuses a reading that says no, even with every word and check word in it', () => {
+    for (const heard of [
+      forMaya.text.replace('I agree', 'I do not agree'),
+      `${forMaya.text} But I refuse.`,
+      forMaya.text.replace('I agree', "I don't agree"),
+    ]) {
+      const score = scoreConsentTranscript(forMaya, heard);
+      expect(score.coverage).toBe(1);
+      expect(score.missingCheckWords).toEqual([]);
+      expect(score.refusals.length).toBeGreaterThan(0);
+      expect(score.verified).toBe(false);
+    }
+  });
+
+  it('has no refusal word in the statement itself', () => {
+    expect(scoreConsentTranscript(forMaya, forMaya.text)).toMatchObject({
+      verified: true,
+      refusals: [],
+    });
+  });
+
   it('refuses an empty transcript', () => {
     expect(scoreConsentTranscript(forMaya, '')).toMatchObject({ verified: false, coverage: 0 });
   });
