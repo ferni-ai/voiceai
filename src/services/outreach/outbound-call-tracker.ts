@@ -30,6 +30,8 @@ export interface PendingCall {
   callType: CallType;
   originalSessionId: string;
   startedAt: string;
+  /** The voice agent couldn't be dispatched: the call ended on our apology, not a conversation. */
+  dispatchFailed?: boolean;
 }
 
 // ============================================================================
@@ -66,4 +68,11 @@ export function getPendingCall(externalCallId: string): PendingCall | undefined 
  */
 export function removePendingCall(externalCallId: string): void {
   pendingCalls.delete(externalCallId);
+}
+
+/** Flag a tracked call whose agent dispatch failed. False when the call isn't tracked. */
+export function markDispatchFailed(externalCallId: string): boolean {
+  const call = pendingCalls.get(externalCallId);
+  if (call) call.dispatchFailed = true;
+  return call !== undefined;
 }

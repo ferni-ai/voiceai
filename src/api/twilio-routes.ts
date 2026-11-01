@@ -34,6 +34,7 @@ import {
   cleanupBridgeSession,
 } from '../services/voice/livekit-phone-bridge.js';
 import { onBehalfDispatchFromStream } from '../services/outreach/on-behalf-dispatch.js';
+import { endCallAfterFailedDispatch } from '../services/voice/dispatch-failed-call.js';
 
 const log = createLogger({ module: 'twilio-routes' });
 
@@ -328,9 +329,8 @@ function registerBridgeHandlers(bridge: TwilioStreamBridge): void {
 
           log.info({ roomName, callSid, agentName }, '✅ Voice agent dispatched for outbound call');
         } catch (error) {
-          // No local fallback agent: it ran without the voice agent's safety stack, sent the
-          // caller's words to the API-key Gemini API, and on the cascade its model id was empty.
           log.error({ error: String(error), roomName, callSid }, 'Failed to dispatch agent');
+          await endCallAfterFailedDispatch(callSid);
         }
       })();
     }
