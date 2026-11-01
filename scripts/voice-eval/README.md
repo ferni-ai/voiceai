@@ -16,8 +16,10 @@ caught bugs it missed. So gate on deterministic predicates (`predicates/`), and 
    audio length by more than 1 s, and lines before the agent's first audio don't count).
    Reported only: `multi-question`, `sympathy-on-upbeat`, `reply-length` (over 75 words),
    `repeated-sign-off`, `slow-start` (first agent audio over 15 s, or after the caller spoke;
-   release-check holds a call with stalled caller audio as INCONCLUSIVE). A predicate that fires
-   on a fine line is a predicate bug: fix it and add the line to its test.
+   release-check holds a call with stalled caller audio as INCONCLUSIVE), and the spectrum checks
+   in `predicates/spectrum.mjs`: `repeats-corrected`, `spoken-format`, `claimed-contact`,
+   `prompt-leak`, `ai-honesty`, `only-you`. A predicate that fires on a fine line is a predicate
+   bug: fix it and add the line to its test.
 3. **Compare** with the last release: `node scripts/voice-eval/paired.mjs <A-dir> <B-dir>` prints
    per metric B − A over shared scenarios, a 95% CI from 10,000 scenario resamples, the per-call
    SD, the A/B correlation, and MDE80 (the smallest true change a sweep of `--scenarios N` finds
@@ -79,3 +81,10 @@ Each run writes `<run>.realism.json`: takeover and false-end rates, gap and barg
 (see `realism-metrics.mjs`). An unanswered turn counts as 15 s, so a short call's gap p90 mostly says
 whether any turn went unanswered: read `rt:unanswered-rate` beside it. `values` (`rt:*`) are
 `pairedCompare` input: `realism-metrics.mjs paired <A> <B>`, or add `realismValues(dir)` to `sweepValues(dir)`.
+
+## Narrow yes/no checks
+
+A scenario's `#@judge <check>` lines add narrow yes/no questions (`judge.mjs` `CHECKS`) to that
+scenario's calls only, so every other call's prompt stays byte for byte the same. The verdict's
+`checks` holds the share of samples answering yes; `--summary` counts the calls where most samples
+said yes. They are never averaged into a 1-5 dimension.
