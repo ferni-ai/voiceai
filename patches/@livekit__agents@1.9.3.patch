@@ -171,18 +171,19 @@ index 6012dbba6bcff20ff321ee2e2db75f2d6473b929..b06dee1b38e3f0e69697cd71c48099c4
              );
            }
 diff --git a/dist/utils.cjs b/dist/utils.cjs
-index 283765d34a86573e5dc984eed48b507e8a395543..e9e94311a9a62a5643443244195798b6345dbe2e 100644
+index 283765d34a86573e5dc984eed48b507e8a395543..60f6e65d45c1d90a41fb643b5ecced940ef99c42 100644
 --- a/dist/utils.cjs
 +++ b/dist/utils.cjs
-@@ -45,6 +45,7 @@ __export(utils_exports, {
+@@ -45,6 +45,8 @@ __export(utils_exports, {
    mergeFrames: () => mergeFrames,
    noop: () => noop,
    readStream: () => readStream,
++  readAbortFixOn: () => readAbortFixOn,
 +  readWithAbort: () => readWithAbort,
    rejectOnAbort: () => rejectOnAbort,
    resampleStream: () => resampleStream,
    resolveEnvVar: () => resolveEnvVar,
-@@ -967,14 +968,34 @@ async function waitForTrackPublication({
+@@ -967,14 +969,41 @@ async function waitForTrackPublication({
      signal == null ? void 0 : signal.removeEventListener("abort", onAbort);
    }
  }
@@ -190,6 +191,11 @@ index 283765d34a86573e5dc984eed48b507e8a395543..e9e94311a9a62a5643443244195798b6
 +// against one long-lived waitForAbort(signal) promise kept ~0.5 KB of promise state per read
 +// until the signal aborted (the call's end): ~3 MB/min per 16 kHz stream, linear. Each read
 +// here adds its own abort listener and removes it as soon as the read settles.
++// LK_READSTREAM_ABORT_FIX=on uses it (readStream, audio_recognition); off keeps the race.
++function readAbortFixOn() {
++  const v = (process.env.LK_READSTREAM_ABORT_FIX ?? "").trim().toLowerCase();
++  return v === "on" || v === "true" || v === "1" || v === "live";
++}
 +function readWithAbort(reader, signal) {
 +  if (signal.aborted) return Promise.resolve(void 0);
 +  return new Promise((resolve, reject) => {
@@ -213,38 +219,43 @@ index 283765d34a86573e5dc984eed48b507e8a395543..e9e94311a9a62a5643443244195798b6
    try {
      if (signal) {
 -      const abortPromise = waitForAbort(signal);
++      const abortFix = readAbortFixOn();
++      const abortPromise = abortFix ? void 0 : waitForAbort(signal);
        while (true) {
 -        const result = await import_throws.ThrowsPromise.race([reader.read(), abortPromise]);
-+        const result = await readWithAbort(reader, signal);
++        const result = abortFix ? await readWithAbort(reader, signal) : await import_throws.ThrowsPromise.race([reader.read(), abortPromise]);
          if (!result) {
            break;
          }
-@@ -1157,6 +1178,7 @@ function dedent(strings, ...values) {
+@@ -1157,6 +1186,8 @@ function dedent(strings, ...values) {
    mergeFrames,
    noop,
    readStream,
++  readAbortFixOn,
 +  readWithAbort,
    rejectOnAbort,
    resampleStream,
    resolveEnvVar,
 diff --git a/dist/utils.d.ts b/dist/utils.d.ts
-index 2bfbb004729ea1c635b01358a69324f05593ae6e..e0667a50534ae229d8fdf54916a4b5e2acd97b70 100644
+index 2bfbb004729ea1c635b01358a69324f05593ae6e..a9837a4d9713687eb577c5e2b999f11e2af804c1 100644
 --- a/dist/utils.d.ts
 +++ b/dist/utils.d.ts
-@@ -383,6 +383,8 @@ export declare function waitForTrackPublication({ room, identity, kind, waitForS
+@@ -383,6 +383,10 @@ export declare function waitForTrackPublication({ room, identity, kind, waitForS
   * Yields values from a ReadableStream until the stream ends or the signal is aborted.
   * Handles reader cleanup and stream-release errors internally.
   */
++/** LK_READSTREAM_ABORT_FIX is on: readStream and audio_recognition read with readWithAbort (Ferni patch). */
++export declare function readAbortFixOn(): boolean;
 +/** One read, or undefined once `signal` aborts; leaves no listener behind (Ferni patch). */
 +export declare function readWithAbort<T>(reader: ReadableStreamDefaultReader<T>, signal: AbortSignal): Promise<ReadableStreamReadResult<T> | undefined>;
  export declare function readStream<T>(stream: ReadableStream<T>, signal?: AbortSignal): AsyncGenerator<T>;
  export declare function toStream<T>(iterable: AsyncIterable<T>): ReadableStream<T>;
  export declare function waitForAbort(signal: AbortSignal): Promise<Throws<void, Error>>;
 diff --git a/dist/utils.js b/dist/utils.js
-index 047893c809b6f2b1c6760b49f5a1548b45dab34a..5c0ca59cb5981776119fd503133362d669d7d10f 100644
+index 047893c809b6f2b1c6760b49f5a1548b45dab34a..89534ef2b68f8a68b1b43b67dcb223507ece4ba3 100644
 --- a/dist/utils.js
 +++ b/dist/utils.js
-@@ -905,14 +905,34 @@ async function waitForTrackPublication({
+@@ -905,14 +905,41 @@ async function waitForTrackPublication({
      signal == null ? void 0 : signal.removeEventListener("abort", onAbort);
    }
  }
@@ -252,6 +263,11 @@ index 047893c809b6f2b1c6760b49f5a1548b45dab34a..5c0ca59cb5981776119fd503133362d6
 +// against one long-lived waitForAbort(signal) promise kept ~0.5 KB of promise state per read
 +// until the signal aborted (the call's end): ~3 MB/min per 16 kHz stream, linear. Each read
 +// here adds its own abort listener and removes it as soon as the read settles.
++// LK_READSTREAM_ABORT_FIX=on uses it (readStream, audio_recognition); off keeps the race.
++function readAbortFixOn() {
++  const v = (process.env.LK_READSTREAM_ABORT_FIX ?? "").trim().toLowerCase();
++  return v === "on" || v === "true" || v === "1" || v === "live";
++}
 +function readWithAbort(reader, signal) {
 +  if (signal.aborted) return Promise.resolve(void 0);
 +  return new Promise((resolve, reject) => {
@@ -275,16 +291,19 @@ index 047893c809b6f2b1c6760b49f5a1548b45dab34a..5c0ca59cb5981776119fd503133362d6
    try {
      if (signal) {
 -      const abortPromise = waitForAbort(signal);
++      const abortFix = readAbortFixOn();
++      const abortPromise = abortFix ? void 0 : waitForAbort(signal);
        while (true) {
 -        const result = await ThrowsPromise.race([reader.read(), abortPromise]);
-+        const result = await readWithAbort(reader, signal);
++        const result = abortFix ? await readWithAbort(reader, signal) : await ThrowsPromise.race([reader.read(), abortPromise]);
          if (!result) {
            break;
          }
-@@ -1068,6 +1088,7 @@ function dedent(strings, ...values) {
+@@ -1068,6 +1095,8 @@ function dedent(strings, ...values) {
  }
  export {
    AsyncIterableQueue,
++  readAbortFixOn,
 +  readWithAbort,
    AudioEnergyFilter,
    Event,
@@ -692,7 +711,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..3b419bc5557e9d1b8e282875f1652941
      }
    }
 diff --git a/dist/voice/audio_recognition.cjs b/dist/voice/audio_recognition.cjs
-index e2de266631f0c3fffc6fdc7e33dde9720722d341..9002596b12ae3d830e86ce668804a1ddc7bdc8c5 100644
+index e2de266631f0c3fffc6fdc7e33dde9720722d341..ab89b5a9075b52f0fc07d5d0abebfe26c20ebfcd 100644
 --- a/dist/voice/audio_recognition.cjs
 +++ b/dist/voice/audio_recognition.cjs
 @@ -738,13 +738,18 @@ class AudioRecognition {
@@ -731,31 +750,35 @@ index e2de266631f0c3fffc6fdc7e33dde9720722d341..9002596b12ae3d830e86ce668804a1dd
        this.logger.trace({ event: ev.type }, "holding STT event during agent speech");
        this.transcriptBuffer.push(ev);
        return;
-@@ -1622,10 +1636,9 @@ class AudioRecognition {
+@@ -1622,10 +1636,11 @@ class AudioRecognition {
          }
          forwardTask = (async () => {
            const inputReader = this.interruptionStreamChannel.stream().getReader();
 -          const abortPromise2 = (0, import_utils.waitForAbort)(signal);
++          const abortFix2 = (0, import_utils.readAbortFixOn)();
++          const abortPromise2 = abortFix2 ? void 0 : (0, import_utils.waitForAbort)(signal);
            try {
              while (!signal.aborted) {
 -              const res = await import_throws.ThrowsPromise.race([inputReader.read(), abortPromise2]);
-+              const res = await (0, import_utils.readWithAbort)(inputReader, signal);
++              const res = await (abortFix2 ? (0, import_utils.readWithAbort)(inputReader, signal) : import_throws.ThrowsPromise.race([inputReader.read(), abortPromise2]));
                if (!res) break;
                const { value, done } = res;
                if (done) break;
-@@ -1635,9 +1648,8 @@ class AudioRecognition {
+@@ -1635,9 +1650,10 @@ class AudioRecognition {
              inputReader.releaseLock();
            }
          })();
 -        const abortPromise = (0, import_utils.waitForAbort)(signal);
++        const abortFix = (0, import_utils.readAbortFixOn)();
++        const abortPromise = abortFix ? void 0 : (0, import_utils.waitForAbort)(signal);
          while (!signal.aborted) {
 -          const res = await import_throws.ThrowsPromise.race([eventReader.read(), abortPromise]);
-+          const res = await (0, import_utils.readWithAbort)(eventReader, signal);
++          const res = await (abortFix ? (0, import_utils.readWithAbort)(eventReader, signal) : import_throws.ThrowsPromise.race([eventReader.read(), abortPromise]));
            if (!res) break;
            const { done, value: ev } = res;
            if (done) break;
 diff --git a/dist/voice/audio_recognition.js b/dist/voice/audio_recognition.js
-index 3ba771633fd96a8611ac12968ec0a9c7ec5a3bf6..e490854f231cdb71c2fecfd279f8b5e56fb18139 100644
+index 3ba771633fd96a8611ac12968ec0a9c7ec5a3bf6..8fe7329f39f8640bc795d8a6f97e863a81bf4f82 100644
 --- a/dist/voice/audio_recognition.js
 +++ b/dist/voice/audio_recognition.js
 @@ -26,7 +26,7 @@ import { createStreamChannel } from "../stream/stream_channel.js";
@@ -763,7 +786,7 @@ index 3ba771633fd96a8611ac12968ec0a9c7ec5a3bf6..e490854f231cdb71c2fecfd279f8b5e5
  import { traceTypes, tracer } from "../telemetry/index.js";
  import { splitWords } from "../tokenize/basic/word.js";
 -import { Task, cancelAndWait, delay, readStream, toError, waitForAbort } from "../utils.js";
-+import { Task, cancelAndWait, delay, readStream, readWithAbort, toError } from "../utils.js";
++import { Task, cancelAndWait, delay, readAbortFixOn, readStream, readWithAbort, toError, waitForAbort } from "../utils.js";
  import { VADEventType } from "../vad.js";
  import {
    _createAgentBackchannelOpportunityEvent,
@@ -803,26 +826,30 @@ index 3ba771633fd96a8611ac12968ec0a9c7ec5a3bf6..e490854f231cdb71c2fecfd279f8b5e5
        this.logger.trace({ event: ev.type }, "holding STT event during agent speech");
        this.transcriptBuffer.push(ev);
        return;
-@@ -1617,10 +1631,9 @@ class AudioRecognition {
+@@ -1617,10 +1631,11 @@ class AudioRecognition {
          }
          forwardTask = (async () => {
            const inputReader = this.interruptionStreamChannel.stream().getReader();
 -          const abortPromise2 = waitForAbort(signal);
++          const abortFix2 = readAbortFixOn();
++          const abortPromise2 = abortFix2 ? void 0 : waitForAbort(signal);
            try {
              while (!signal.aborted) {
 -              const res = await ThrowsPromise.race([inputReader.read(), abortPromise2]);
-+              const res = await readWithAbort(inputReader, signal);
++              const res = await (abortFix2 ? readWithAbort(inputReader, signal) : ThrowsPromise.race([inputReader.read(), abortPromise2]));
                if (!res) break;
                const { value, done } = res;
                if (done) break;
-@@ -1630,9 +1643,8 @@ class AudioRecognition {
+@@ -1630,9 +1645,10 @@ class AudioRecognition {
              inputReader.releaseLock();
            }
          })();
 -        const abortPromise = waitForAbort(signal);
++        const abortFix = readAbortFixOn();
++        const abortPromise = abortFix ? void 0 : waitForAbort(signal);
          while (!signal.aborted) {
 -          const res = await ThrowsPromise.race([eventReader.read(), abortPromise]);
-+          const res = await readWithAbort(eventReader, signal);
++          const res = await (abortFix ? readWithAbort(eventReader, signal) : ThrowsPromise.race([eventReader.read(), abortPromise]));
            if (!res) break;
            const { done, value: ev } = res;
            if (done) break;
