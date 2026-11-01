@@ -200,7 +200,6 @@
   "src/services/voice/call-detection-service.ts": 2,
   "src/services/voice/inbound-voice-verification.ts": 1,
   "src/services/voice/livekit-phone-bridge.ts": 3,
-  "src/services/voice/outbound-call-agent.ts": 3,
   "src/services/voice/twilio-stream-bridge.ts": 5,
   "src/services/workflows/action-executor.ts": 1,
   "src/services/workflows/calendar-trigger-worker.ts": 3,
