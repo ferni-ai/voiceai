@@ -408,6 +408,20 @@ jobs:
             --build-arg VITE_CALL_WRAP_UP="${{ vars.VITE_CALL_WRAP_UP }}" \
             --build-arg VITE_PROMISES_PANEL="${{ vars.VITE_PROMISES_PANEL }}" \
             --build-arg VITE_TOAST_REGION="${{ vars.VITE_TOAST_REGION }}" \
+            --build-arg VITE_CALM_IDLE="${{ vars.VITE_CALM_IDLE }}" \
+            --build-arg VITE_NATURAL_BLINK="${{ vars.VITE_NATURAL_BLINK }}" \
+            --build-arg VITE_LID_BLEND="${{ vars.VITE_LID_BLEND }}" \
+            --build-arg VITE_GAZE="${{ vars.VITE_GAZE }}" \
+            --build-arg VITE_LISTEN_NODS="${{ vars.VITE_LISTEN_NODS }}" \
+            --build-arg VITE_SPRING_BODY="${{ vars.VITE_SPRING_BODY }}" \
+            --build-arg VITE_WEIGHTED_EASING="${{ vars.VITE_WEIGHTED_EASING }}" \
+            --build-arg VITE_SPEECH_BEATS="${{ vars.VITE_SPEECH_BEATS }}" \
+            --build-arg VITE_THINKING_GLANCE="${{ vars.VITE_THINKING_GLANCE }}" \
+            --build-arg VITE_TURN_GESTURES="${{ vars.VITE_TURN_GESTURES }}" \
+            --build-arg VITE_FACE_ENGINE="${{ vars.VITE_FACE_ENGINE }}" \
+            --build-arg VITE_EXPRESSION_ARBITER="${{ vars.VITE_EXPRESSION_ARBITER }}" \
+            --build-arg VITE_REPLY_TONE="${{ vars.VITE_REPLY_TONE }}" \
+            --build-arg VITE_SOUND_DIRECTOR="${{ vars.VITE_SOUND_DIRECTOR }}" \
             .
 
           # Push all tags
