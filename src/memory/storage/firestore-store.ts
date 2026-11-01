@@ -21,7 +21,8 @@ import { withoutProfileTokenFields } from '../../utils/token-at-rest.js';
 import { conversationDaysFor } from './conversation-days.js';
 import { forgetCallStartReads, readUserRootOnce } from '../../utils/call-start-reads.js';
 import { queryProfileByLinkedIdentifier } from './firestore-linked-identifier.js';
-import { invalidStoredProfile, notStored } from './profile-read-failure.js';
+import { invalidStoredProfile } from './profile-read-failure.js';
+import { notStored } from './profile-save-guard.js';
 import { writeProfileUnlessErased, type ProfileWriteDb } from './profile-write-unless-erased.js';
 import {
   isValidUserProfile,
@@ -223,7 +224,6 @@ export class FirestoreStore extends MemoryStore {
       // conversationDays is derived on load; token fields are written only by profile-token-field.
       const { conversationDays: _days, ...stored } = withoutProfileTokenFields(profile);
       const serialized = this.serializeForFirestore(stored);
-
       const data = cleanForFirestore(serialized);
       if (!(await writeProfileUnlessErased(db, docRef, data, profile))) return;
       forgetCallStartReads(profile.id); // later call-start readers see this write

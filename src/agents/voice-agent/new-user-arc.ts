@@ -10,6 +10,7 @@
  */
 
 import { isUnsavedProfile } from '../../memory/storage/profile-read-failure.js';
+import { isThirdPartyCallUser } from '../../memory/third-party-call.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import {
   checkTrialStatus,
@@ -35,8 +36,12 @@ interface ProfileHolder {
   userProfile: UserProfile | null;
 }
 
-/** After a failed profile read the caller is unknown, not new: no trial, no fresh arc. */
+/**
+ * After a failed profile read the caller is unknown, not new: no trial, no fresh arc. Nor for
+ * the person on a call placed for a member (`onbehalf:`): they never signed up.
+ */
 function unread(userId: string, services: ProfileHolder): boolean {
+  if (isThirdPartyCallUser(userId)) return true;
   if (!isUnsavedProfile(services.userProfile)) return false;
   diag.session('Profile unread this call: no new-user trial or onboarding', { userId });
   return true;

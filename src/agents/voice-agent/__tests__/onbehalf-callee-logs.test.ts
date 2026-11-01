@@ -26,6 +26,14 @@ vi.mock('../../processors/tool-routing-integration.js', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   runFTISRouting: w.ftis,
 }));
+const rec = await vi.hoisted(async () => {
+  const { createWriteRecorder } = await import('../../../tests/helpers/write-recorder.js');
+  return createWriteRecorder();
+});
+vi.mock('../../../utils/shared-firestore.js', async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  sharedFirestore: () => rec.db,
+}));
 vi.mock('../../../memory/dynamic/index.js', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   fastCapture: w.fastCapture,
@@ -37,6 +45,8 @@ import {
   trackOutboundCall,
   removePendingCall,
 } from '../../../services/outreach/outbound-call-tracker.js';
+import { upsertContact } from '../../../services/contacts/contact-relationship-service.js';
+import { contactIdForLog } from '../../../services/contacts/contact-log-id.js';
 
 // Fictional: the words a called person says, with a name in them.
 const SAID = 'Riley Test here, tell Marcus zqxcallee I will be home after six';
@@ -126,5 +136,26 @@ describe('the called person on an on-behalf call, through the real loggers', () 
     expect(written).toContain('Tracking outbound on-behalf call');
     expect(written).toContain('call-0103');
     expect(carried(written)).toEqual([]);
+  });
+
+  it("saving the called contact to the member's list logs neither name nor number", async () => {
+    // As call-on-behalf.ts saveContactForFuture saves a number the member gave.
+    await upsertContact('member-uid-0104', {
+      name: 'Riley Test',
+      contactId: 'phone_+15555550142',
+      phone: '+15555550142',
+      relationship: 'friend',
+    });
+    const written = out.join('');
+    expect(written).toContain('Contact saved');
+    expect(written).toContain('"hasName":true');
+    expect(carried(written)).toEqual([]);
+    expect(written).not.toMatch(/5550142/);
+  });
+
+  it('a contact id built from a number or an address logs as its kind only', () => {
+    expect(contactIdForLog('phone_+15555550142')).toBe('phone');
+    expect(contactIdForLog('riley@example.com')).toBe('email');
+    expect(contactIdForLog('contact_1793560000000_abc1234')).toBe('contact_1793560000000_abc1234');
   });
 });

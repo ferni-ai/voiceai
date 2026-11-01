@@ -11,7 +11,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { MemoryStore, type QueryOptions, type SearchResult } from './store.js';
-import { notStored } from './profile-read-failure.js';
+import { notStored } from './profile-save-guard.js';
 import type {
   UserProfile,
   ConversationSummary,

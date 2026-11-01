@@ -67,6 +67,12 @@ const SURFACE = [
   'src/services/outreach/scheduled-outreach-executor.ts',
   'src/services/outreach/scheduled-multi-outreach.ts',
   'src/tools/domains/telephony/call-on-behalf.ts',
+  'src/services/outreach/webhooks/twilio-webhooks.ts',
+  'src/services/outreach/on-behalf-call-orchestrator.ts',
+  'src/services/outreach/user-contact.ts',
+  'src/services/contacts/contact-relationship-service.ts',
+  'src/services/identity/contacts/contact-onboarding.ts',
+  'src/services/trust-and-identity/identity-orchestrator.ts',
 ];
 
 /**
@@ -168,6 +174,11 @@ const EXEMPT: Exemptions = {
     ['weather.ts', 'condition', 'condition'], // the weather API's condition text
     ['process-turn.ts', 'enriched', 'enriched.primary'], // an emotion label
     ['better-than-human-integration.ts', 'emotions', "contradictionResult.emotions.join(' + ')"], // emotion labels
+    ['twilio-webhooks.ts', 'phoneLast4', 'last4(phone)'], // a number's last four digits
+    ['twilio-webhooks.ts', 'phoneLast4', 'last4(From)'], // a number's last four digits
+    ['twilio-webhooks.ts', 'phoneLast4', 'last4(payload.To)'], // a number's last four digits
+    ['twilio-webhooks.ts', 'messageSid', 'payload.MessageSid'], // a Twilio id
+    ['twilio-webhooks.ts', 'callSid', 'payload.CallSid'], // a Twilio id
   ],
   whole: [
     ['session-creator.ts', 'record'], // TURN_METRICS: latencies and token counts
