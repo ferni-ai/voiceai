@@ -28,7 +28,7 @@ import { webPushDeliveryOn } from '../services/outreach/web-push-flag.js';
 import { cancelOwnedOutreach, findOwnedOutreach } from '../services/outreach/owned-outreach.js';
 import { sendOutreachHistory } from './outreach-history-route.js';
 import { sendMilestoneOutreach } from './milestone-outreach-route.js';
-import { sendUpcomingOutreach } from './outreach-upcoming-route.js';
+import { handleUpcoming } from './outreach-upcoming-route.js';
 import { panelConsentPatch, savePanelPrefs } from './messaging-prefs-route.js';
 import {
   readOutreachConsent,
@@ -350,9 +350,9 @@ export async function handleOutreachRoutes(
       return true;
     }
 
-    // GET /api/outreach/upcoming: what is really set to go out (outreach-upcoming-route.ts)
-    if (route === '/upcoming' && method === 'GET') {
-      await sendUpcomingOutreach(res, authenticatedUserId, new URL(req.url || '', 'http://x'));
+    // /upcoming: GET lists, POST /cancel or /reschedule changes one (outreach-upcoming-route.ts)
+    if (route === '/upcoming' || route.startsWith('/upcoming/')) {
+      await handleUpcoming(req, res, authenticatedUserId, route, method);
       return true;
     }
 
