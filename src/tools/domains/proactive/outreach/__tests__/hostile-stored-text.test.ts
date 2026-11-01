@@ -34,12 +34,13 @@ const HOSTILE: Array<[string, string]> = [
   ['text 555-0143, your card is locked', 'callback_scam'],
 ];
 
-/** R3's ordinary lines: a call or text with a number, and no account or alarm word. */
+/** R3's ordinary lines: a number with no account or alarm word, or the word with no number. */
 const CALLBACK_ORDINARY = [
   'Call Dr. Lee at 555-0123',
   'call mom at 555-0199 about dinner',
   'text the plumber 555-0144',
   'verify your bank', // nothing to act on: no number
+  'Contact HR at hr@example.com about the benefits account', // an address, not a number to call
 ];
 
 describe('hostileStoredText', () => {
@@ -90,6 +91,7 @@ describe('hostileStoredText', () => {
     expect(hostileStoredText('send 500 dollars to Sam')).toBeNull();
     expect(hostileStoredText('Pay rent $1200. Still open: the deck')).toBeNull(); // no "spaced dot" left behind
     expect(hostileStoredText('send $555-0142 to Sam')).toBe('money_destination'); // an "amount" that runs on is a number
+    expect(hostileStoredText('wire $555 0142 to Sam')).toBe('money_destination');
   });
 
   it('a phone number or a link alone passes here, and blockedContent still refuses it', () => {
