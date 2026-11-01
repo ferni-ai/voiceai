@@ -11195,6 +11195,19 @@
     "switchAccount": "",
     "seeSources": ""
   },
+  "connectInvite": {
+    "title": "Deja que Alex esté pendiente de tu calendario",
+    "lead": "Conecta Google Calendar para que ningún plan te pille por sorpresa. Esto es lo que comparte:",
+    "account": "Conectando con Alex para {account}",
+    "sees": "Ve las horas, los títulos y los lugares de tus eventos",
+    "changes": "Solo añade o cambia eventos cuando tú lo pides",
+    "never": "Nunca ve tus correos ni archivos adjuntos",
+    "undo": "Puedes deshacerlo cuando quieras en Ajustes > Calendario, o simplemente díselo a Alex",
+    "connect": "Conectar Google Calendar",
+    "opening": "Abriendo Google...",
+    "expired": "Este enlace caducó o ya se usó. Pídemelo en tu próxima llamada y te envío uno nuevo.",
+    "failed": "No pude abrir Google ahora mismo. Pídemelo en tu próxima llamada y te envío otro enlace."
+  },
   "aiLabel": {
     "role": {
       "lifeCoach": "",

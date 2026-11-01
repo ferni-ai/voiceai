@@ -16,10 +16,48 @@ const shapes = (set: string) => [...new Set(bySet(set).map((c) => c.shape))];
 describe('corpora', () => {
   it('has both sets with at least 8 calls in every shape', () => {
     expect(shapes('hard-negatives').length).toBeGreaterThanOrEqual(11);
-    expect(shapes('positives').length).toBeGreaterThanOrEqual(8);
+    expect(shapes('positives').length).toBeGreaterThanOrEqual(9);
     for (const set of ['hard-negatives', 'positives'])
       for (const shape of shapes(set))
         expect(bySet(set).filter((c) => c.shape === shape).length, shape).toBeGreaterThanOrEqual(8);
+  });
+
+  it('carries a recall audit: 60+ lines in five families, each as a first turn and mid-call', () => {
+    const audit = bySet('recall-audit');
+    const families = [
+      'death-bare',
+      'overdose',
+      'cant-go-on',
+      'abuse-child-dv',
+      'sexual-abuse-minor',
+    ];
+    for (const f of families) {
+      const first = audit.filter((c) => c.shape === `${f}-first`);
+      const mid = audit.filter((c) => c.shape === `${f}-mid`);
+      expect(first.length, f).toBeGreaterThanOrEqual(10);
+      expect(mid.map((c) => c.turns.at(-1)?.text)).toEqual(first.map((c) => c.turns[0].text));
+      for (const c of mid) expect(c.turns[0].label, c.id).toBe('either');
+    }
+    const lines = audit.filter((c) => c.id.endsWith('-first'));
+    expect(lines.length).toBeGreaterThanOrEqual(60);
+    for (const c of audit) expect(c.turns.at(-1)?.label, c.id).toBe('must-catch');
+  });
+
+  it('carries 40+ everyday hard negatives for each recall fix, never must-catch', () => {
+    const hn = bySet('recall-hard-negatives');
+    for (const f of [
+      'abuse-words',
+      'minor-touch-words',
+      'death-od-words',
+      'means-intent-words',
+      'blocked-adjacent',
+    ])
+      expect(hn.filter((c) => c.shape === f).length, f).toBeGreaterThanOrEqual(40);
+    for (const c of hn)
+      expect(
+        c.turns.map((t) => t.label),
+        c.id
+      ).toEqual(['must-not-alarm']);
   });
 
   it('never labels a hard-negative turn must-catch, and keeps most of them must-not-alarm', () => {
@@ -57,6 +95,19 @@ describe('corpora', () => {
     const indirect = bySet('positives').filter((c) => c.shape === 'indirect-goodbye');
     expect(indirect.length).toBeGreaterThanOrEqual(9);
     expect(indirect.filter((c) => splitOf(c) === 'heldout').length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('carries preparatory errands after a 988 line, both turns must-catch, a third held out', () => {
+    const errands = bySet('positives').filter((c) => c.shape === 'preparatory-errand');
+    expect(errands.length).toBeGreaterThanOrEqual(9);
+    for (const c of errands) {
+      expect(c.turns[0].ferni, c.id).toContain('988');
+      expect(
+        c.turns.map((t) => t.label),
+        c.id
+      ).toEqual(['must-catch', 'must-catch']);
+    }
+    expect(errands.filter((c) => splitOf(c) === 'heldout').length).toBeGreaterThanOrEqual(3);
   });
 
   it('carries strong risk inside a topic change, a goodbye, a denial and after a 988 line', () => {

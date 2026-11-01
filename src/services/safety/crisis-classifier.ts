@@ -31,6 +31,7 @@ import {
 } from './crisis-everyday.js';
 import { agreementCacheScope, notePatternBlock, readTurn } from './crisis-imminent-agreement.js';
 import { trackCrisisRead } from './crisis-call-risk.js';
+import { blockedReply, watchBlocked, type BlockedResponse } from './crisis-classifier-blocked.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
 import { stripSSML } from '../../utils/text-utils.js';
@@ -233,7 +234,7 @@ export function createGeminiCrisisGenerate(
     const { getGeminiClient } = await import('../../config/gemini-config.js');
     const client = (await getGeminiClient()) as {
       models: {
-        generateContent: (req: unknown) => Promise<{ text?: string }>;
+        generateContent: (req: unknown) => Promise<{ text?: string } & BlockedResponse>;
       };
     } | null;
     if (!client) return '';
@@ -249,7 +250,7 @@ export function createGeminiCrisisGenerate(
         abortSignal: signal,
       },
     });
-    return response.text ?? '';
+    return blockedReply(response) ?? response.text ?? ''; // CRISIS_CLASSIFIER_BLOCKED_SIGNAL
   };
 }
 
@@ -454,7 +455,8 @@ export function startCrisisClassifier(
     return { mode, verdict };
   }
 
-  const generate = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
+  const given = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
+  const generate = watchBlocked(given, options.call, normalized.latest, env); // BLOCKED_SIGNAL
   const read = (p: string): Promise<CrisisVerdict | null> =>
     classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env), p);
   // Everyday rules on and risk words in the caller's words: the rules may not lower the read.

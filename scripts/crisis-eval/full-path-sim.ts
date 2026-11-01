@@ -7,7 +7,7 @@
  *   USE_VERTEX_AI=true GOOGLE_CLOUD_PROJECT=<project> CRISIS_EVAL_REPS=3 \
  *   CRISIS_SIM_PROFILE=prod-2026-10-31 \
  *     npx tsx scripts/crisis-eval/full-path-sim.ts \
- *       --baseline scripts/crisis-eval/baselines/full-path-prod-2026-10-31.json \
+ *       --baseline scripts/crisis-eval/baselines/full-path-prod-2026-10-31.generated.json \
  *       --out report.md [--json summary.json] [--write-baseline <file>] [--neutral-guided]
  *
  * --neutral-guided: a guided turn's reply goes back into the call as the neutral
@@ -19,31 +19,34 @@
  * (no recentTranscripts, #2615), CRISIS_SIM_MUTATION (below, to prove the
  * instrument can go red).
  *
- * Exit 1: a must-catch turn caught in fewer reps than in --baseline. Exit 2:
- * inconclusive (model calls failing or empty). False alarms are reported, not
- * gated. Firestore is pointed at a closed local port: nothing reaches a database.
+ * Exit 1, against --baseline (full-path-summary.ts): a baseline must-catch turn
+ * this run did not score and the baseline's retiredIds does not name; a recall
+ * regression (Fisher p < 0.05, or caught every baseline rep and missed every rep
+ * now); a severity downgrade (Fisher p < 0.01). A turn the baseline lacks is a
+ * warning. Exit 2: inconclusive (model calls failing or empty). False alarms are
+ * reported, not gated. Firestore is pointed at a closed local port: nothing
+ * reaches a database.
  */
 
 import { execFileSync } from 'node:child_process';
 import { writeFileSync, readFileSync } from 'node:fs';
 import {
   CRISIS_CLASSIFIER_PROMPT,
-  resetCrisisClassifierCache,
   type CrisisGenerateFn,
 } from '../../src/services/safety/crisis-classifier.js';
 import { hasRiskContent } from '../../src/services/safety/crisis-agreement.js';
-import { resetCrisisCallRisk } from '../../src/services/safety/crisis-call-risk.js';
-import { resetCallRiskSnapshots } from '../../src/services/safety/crisis-lone-imminent.js';
-import { allCalls, NEUTRAL_REPLIES, splitOf, type SimCallSpec } from './full-path-corpus.js';
+import { allCalls, NEUTRAL_REPLIES } from './full-path-corpus.js';
 import { resolveProfile } from './full-path-profiles.js';
 import { costOf, renderReport } from './full-path-report.js';
 import {
   recallRegressions,
+  rowCoverage,
+  severityDowngrades,
   summarise,
-  type SimSummary,
-  type TurnRecord,
+  type Baseline,
+  type RecallRegression,
 } from './full-path-summary.js';
-import { addContext, newCall, simulateTurn } from './full-path-turn.js';
+import { runReps } from './full-path-turn.js';
 import { selectedSets } from './labelled-cases.js';
 import { retriedGenerate } from './retried-generate.js';
 
@@ -98,44 +101,6 @@ function arg(name: string): string | undefined {
   return i >= 0 ? process.argv[i + 1] : undefined;
 }
 
-async function pool<T>(items: readonly T[], width: number, work: (t: T) => Promise<void>) {
-  let next = 0;
-  const lanes = Array.from({ length: Math.min(width, items.length) }, async () => {
-    while (next < items.length) await work(items[next++]);
-  });
-  await Promise.all(lanes);
-}
-
-async function runCall(
-  spec: SimCallSpec,
-  rep: number,
-  run: {
-    env: Record<string, string>;
-    generate: CrisisGenerateFn;
-    anon: boolean;
-    guidedReply: 'crisis-line' | 'neutral';
-  }
-): Promise<TurnRecord[]> {
-  const call = newCall(`sim-${rep}-${spec.id}`, run.anon);
-  for (const line of spec.opening) addContext(call, line.who, line.text);
-  const records: TurnRecord[] = [];
-  for (const [index, turn] of spec.turns.entries()) {
-    const outcome = await simulateTurn(call, turn.text, { ...run, ferni: turn.ferni });
-    records.push({
-      callId: spec.id,
-      set: spec.set,
-      shape: spec.shape,
-      split: splitOf(spec),
-      index,
-      turnId: `${spec.id}#${index}`,
-      label: turn.label,
-      rep,
-      ...outcome,
-    });
-  }
-  return records;
-}
-
 async function main(): Promise<number> {
   for (const line of NEUTRAL_REPLIES)
     if (hasRiskContent(line)) throw new Error(`neutral reply has risk words: ${line}`);
@@ -152,18 +117,16 @@ async function main(): Promise<number> {
   // Flags read through process.env (flagOn without an env) see the same profile.
   Object.assign(process.env, env);
 
-  const calls = allCalls(selectedSets());
+  const sets = selectedSets();
+  const calls = allCalls(sets);
   const started = Date.now();
-  const records: TurnRecord[] = [];
-  for (let rep = 0; rep < reps; rep++) {
-    resetCrisisClassifierCache();
-    resetCrisisCallRisk();
-    resetCallRiskSnapshots();
-    await pool(calls, width, async (spec) => {
-      records.push(...(await runCall(spec, rep, { env, generate, anon, guidedReply })));
-    });
-    process.stderr.write(`rep ${rep + 1}/${reps} done, ${records.length} reads\n`);
-  }
+  const records = await runReps(
+    calls,
+    reps,
+    { env, generate, anon, guidedReply },
+    width,
+    (rep, n) => process.stderr.write(`rep ${rep + 1}/${reps} done, ${n} reads\n`)
+  );
   const minutes = (Date.now() - started) / 60000;
 
   const summary = summarise(records, {
@@ -172,19 +135,34 @@ async function main(): Promise<number> {
     reps,
   });
   const baselinePath = arg('--baseline');
-  const regressions = baselinePath
-    ? recallRegressions(summary, JSON.parse(readFileSync(baselinePath, 'utf8')) as SimSummary)
-    : [];
+  const baseline = baselinePath
+    ? (JSON.parse(readFileSync(baselinePath, 'utf8')) as Baseline)
+    : undefined;
+  const regressions = baseline ? recallRegressions(summary, baseline) : [];
+  const downgrades = baseline ? severityDowngrades(summary, baseline) : [];
+  // A set CRISIS_EVAL_SETS left out was not meant to run; a turn deleted from the corpus was.
+  const leftOut = new Set(
+    sets
+      ? allCalls(null)
+          .filter((c) => !sets.includes(c.set))
+          .map((c) => c.id)
+      : []
+  );
+  const coverage = baseline
+    ? rowCoverage(summary, baseline, (id) => !leftOut.has(id.slice(0, id.lastIndexOf('#'))))
+    : undefined;
   const text = new Map<string, string>();
   for (const c of calls) c.turns.forEach((t, i) => text.set(`${c.id}#${i}`, t.text));
+  const line = (r: RecallRegression, what: string) =>
+    `${r.turnId}: ${what} baseline ${r.baseline.join('/')}, now ${r.now.join('/')}, ` +
+    `${r.absolute ? 'missed every rep' : `p ${r.p.toPrecision(2)}`}: ${text.get(r.turnId) ?? ''}`;
   const commit = execFileSync('git', ['rev-parse', '--short', 'HEAD']).toString().trim();
   const report = renderReport(summary, costOf(tally, minutes), {
     commit,
     textOf: (id) => text.get(id),
-    regressions: regressions.map(
-      (r) =>
-        `${r.turnId}: baseline ${r.baseline.join('/')}, now ${r.now.join('/')}: ${text.get(r.turnId) ?? ''}`
-    ),
+    regressions: regressions.map((r) => line(r, 'caught')),
+    downgrades: downgrades.map((r) => line(r, 'imminent')),
+    coverage,
   });
   const alarmed = new Map<string, { n: number; paths: Set<string> }>();
   for (const r of records)
@@ -207,7 +185,9 @@ async function main(): Promise<number> {
     JSON.stringify(summary, null, 2).replace(/\[\s+(\d+),\s+(\d+)\s+\]/g, '[$1, $2]') + '\n';
   if (jsonPath) writeFileSync(jsonPath, asJson);
   const baselineOut = arg('--write-baseline');
-  if (baselineOut) writeFileSync(baselineOut, asJson);
+  // A new baseline retires nothing: a turn it lacks is simply not in it.
+  if (baselineOut)
+    writeFileSync(baselineOut, asJson.replace(/\n}\n$/, ',\n  "retiredIds": []\n}\n'));
 
   const asked = tally.calls + tally.failures;
   if (mutation.startsWith('tiebreak') || mutation === 'classifier-crisis') {
@@ -225,9 +205,23 @@ async function main(): Promise<number> {
     process.stderr.write(`INCONCLUSIVE: ${tally.failures} of ${asked} model calls failed\n`);
     return 2;
   }
+  for (const id of coverage?.unbaselined ?? [])
+    process.stderr.write(`WARNING: ${id} is not in the baseline, so it is not gated\n`);
+  if (coverage?.missing.length) {
+    process.stderr.write(
+      `MISSING ROWS: ${coverage.missing.length} baseline must-catch turn(s) not run and not in retiredIds: ${coverage.missing.join(', ')}\n`
+    );
+    return 1;
+  }
   if (regressions.length) {
     process.stderr.write(
       `RECALL REGRESSION: ${regressions.length} must-catch turn(s) vs baseline\n`
+    );
+    return 1;
+  }
+  if (downgrades.length) {
+    process.stderr.write(
+      `SEVERITY DOWNGRADE: ${downgrades.length} must-catch turn(s) vs baseline\n`
     );
     return 1;
   }
