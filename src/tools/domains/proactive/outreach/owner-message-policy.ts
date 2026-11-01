@@ -126,6 +126,10 @@ function logOutcome(message: OwnerMessage, reason: OwnerMessageLogReason): void 
   );
 }
 
+/** An allowed send the tool then did not deliver: logged (delivery_failed); the slot stays spent. */
+export const ownerMessageNotDelivered = (message: OwnerMessage): void =>
+  logOutcome(message, 'delivery_failed');
+
 /** An unverified call's message: allowed with the footer, or why not. Counts it when allowed. */
 function unverifiedDecision(message: OwnerMessage, call: object | undefined): OwnerMessageDecision {
   for (const text of message.texts) {

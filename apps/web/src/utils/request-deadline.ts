@@ -10,13 +10,21 @@
 export const API_REQUEST_TIMEOUT_MS = 15_000;
 
 /**
- * For work the server may take minutes over (a full export, erasing an account):
- * the API service's own 300 s Cloud Run request limit, past which it has given up too.
+ * For work the server may take minutes over (a full export, erasing an account).
+ * The web service's Cloud Run request limit is 300 s (deploy-production.yml); this
+ * waits 10 s past it, so the server's own answer (or Cloud Run's 504) decides how a
+ * delete ended, rather than the browser giving up at the same moment.
  */
-export const LONG_REQUEST_TIMEOUT_MS = 300_000;
+export const LONG_REQUEST_TIMEOUT_MS = 310_000;
 
 /** How long an API call waits for sign-in to start before going on without it. */
 export const AUTH_READY_TIMEOUT_MS = 5_000;
+
+/**
+ * How long export and delete wait for the sign-in token. Longer than
+ * AUTH_READY_TIMEOUT_MS: a slow token refresh must not turn a delete into a 401.
+ */
+export const DATA_RIGHTS_AUTH_WAIT_MS = 15_000;
 
 /** A request that got no answer within its time limit. */
 export class RequestTimeoutError extends Error {

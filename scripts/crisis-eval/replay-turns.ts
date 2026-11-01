@@ -15,83 +15,19 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { CRISIS_CONTEXTUAL } from '../../src/agents/__tests__/fixtures/crisis-contextual.js';
-import { CRISIS_HELDOUT } from '../../src/agents/__tests__/fixtures/crisis-heldout.js';
-import { CRISIS_TEST_BLIND } from '../../src/agents/__tests__/fixtures/crisis-test-blind.js';
 import { startTurnCrisis } from '../../src/agents/processors/turn-processor/turn-crisis.js';
 import { guardFromDetection } from '../../src/agents/safety/crisis-guard.js';
-import {
-  createGeminiCrisisGenerate,
-  resetCrisisClassifierCache,
-  type CrisisGenerateFn,
-} from '../../src/services/safety/crisis-classifier.js';
-import { CRISIS_TEST_CASES } from '../../src/services/superhuman/validation/crisis-test-cases.js';
+import { resetCrisisClassifierCache } from '../../src/services/safety/crisis-classifier.js';
+import { labelledCases, selectedSets, type Case, type Turn } from './labelled-cases.js';
+import { retriedGenerate } from './retried-generate.js';
 
-interface Turn {
-  latest: string;
-  earlier: string[];
-  companion?: string;
-}
-interface Case {
-  id: string;
-  set: string;
-  label: 'block' | 'crisis' | 'none';
-  variants: Turn[];
-  private?: boolean;
-}
 type Level = 'none' | 'soft' | 'guide' | 'block';
 const RANK: Record<Level, number> = { none: 0, soft: 1, guide: 2, block: 3 };
 
 const REPS = Number(process.env.CRISIS_EVAL_REPS) || 3;
-const base = createGeminiCrisisGenerate();
-let failures = 0;
-/** Retries transport errors, so a 429 does not count as the model's answer. */
-const generate: CrisisGenerateFn = async (prompt, content, signal) => {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      return await base(prompt, content, signal);
-    } catch (error) {
-      if (attempt >= 3) {
-        failures++;
-        throw error;
-      }
-      await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
-    }
-  }
-};
+const { generate, tally } = retriedGenerate();
 
-const labelled = (
-  set: string,
-  rows: Array<{ text: string; label: string; earlier?: string[]; companion?: string }>
-): Case[] =>
-  rows.map((r, i) => ({
-    id: `${set}-${i}`,
-    set,
-    label: r.label as Case['label'],
-    variants: [{ latest: r.text, earlier: r.earlier ?? [], companion: r.companion }],
-  }));
-const json = (file: string) => JSON.parse(readFileSync(file, 'utf8'));
-const cases: Case[] = [
-  ...labelled('dev', CRISIS_HELDOUT),
-  ...labelled('blind', CRISIS_TEST_BLIND),
-  ...labelled('context', CRISIS_CONTEXTUAL),
-  ...labelled('redteam', json('scripts/crisis-eval/redteam-2026-10-05.json')),
-  ...labelled('gloomy', json('scripts/crisis-eval/gloomy-ferni-2026-10-11.json')),
-  // Synthetic: everyday call business (none) and risk next to it (positives).
-  ...labelled(
-    'everyday',
-    json('src/agents/__tests__/fixtures/crisis-everyday-call-2026-10-17.json')
-  ),
-  ...labelled(
-    'bth',
-    CRISIS_TEST_CASES.filter((c) => typeof c.expectedResult.shouldDetect === 'boolean').map(
-      (c) => ({
-        text: c.input,
-        label: c.expectedResult.shouldDetect ? 'crisis' : 'none',
-      })
-    )
-  ),
-];
+const cases: Case[] = labelledCases();
 if (process.argv[2]) {
   for (const line of readFileSync(process.argv[2], 'utf8').split('\n').filter(Boolean)) {
     const row = JSON.parse(line) as { id: string; variants: Turn[] };
@@ -99,7 +35,7 @@ if (process.argv[2]) {
   }
 }
 
-const only = process.env.CRISIS_EVAL_SETS?.split(',');
+const only = selectedSets();
 if (only) cases.splice(0, cases.length, ...cases.filter((c) => only.includes(c.set)));
 
 const ARMS = [
@@ -112,7 +48,11 @@ const ARMS = [
   },
 ];
 
-async function replay(c: Case, env: Record<string, string | undefined>, scope: string): Promise<Level> {
+async function replay(
+  c: Case,
+  env: Record<string, string | undefined>,
+  scope: string
+): Promise<Level> {
   const turns = c.variants.map((v) =>
     startTurnCrisis(
       v.latest,
@@ -198,5 +138,5 @@ for (const c of cases.filter((x) => x.private))
   console.log(
     `- ${c.id}: ${ARMS.map((_, a) => (outcomes[a].get(c.id) ?? []).join(',')).join(' | ')}`
   );
-console.log(`\ntransport failures after retries: ${failures}`);
+console.log(`\ntransport failures after retries: ${tally.failures}`);
 process.exit(0);
