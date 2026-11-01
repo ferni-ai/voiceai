@@ -119,11 +119,14 @@ describe('scoreConsentTranscript', () => {
     const inMay = buildConsentStatement({
       subjectName: 'Rosa Quill',
       creatorName: 'Rosa Quill',
-      spokenDate: 'June 2, 2026',
+      spokenDate: 'May 2, 2026',
       random: seq(0, 0, 0),
     });
     const full = scoreConsentTranscript(inMay, inMay.text).coverage;
-    const noMay = scoreConsentTranscript(inMay, inMay.text.replace('Ferni may make', 'Ferni make'));
+    const noMay = scoreConsentTranscript(
+      inMay,
+      inMay.text.replace('Ferni may make', 'Ferni make').replace('May 2, 2026', '5/2/2026')
+    );
     expect(full).toBe(1);
     expect(noMay.coverage).toBeLessThan(1);
   });

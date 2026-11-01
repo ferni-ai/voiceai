@@ -138,8 +138,7 @@ export function scoreConsentTranscript(
   transcript: string
 ): ConsentScore {
   const heard = new Set(consentWords(transcript));
-  const dateWords = new Set(consentWords(statement.spokenDate));
-  const expected = consentWords(statement.text).filter((w) => !dateWords.has(w));
+  const expected = consentWords(statement.text.replace(statement.spokenDate, ' '));
   const found = expected.filter((w) => heard.has(w)).length;
   const coverage = expected.length ? found / expected.length : 0;
   const missingCheckWords = statement.checkWords.filter((w) => !heard.has(w));
