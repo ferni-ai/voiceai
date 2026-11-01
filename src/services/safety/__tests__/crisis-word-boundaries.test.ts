@@ -17,7 +17,19 @@ import { checkWarnings } from '../../wellbeing-tracking/early-warning.js';
 import { getWellbeingProfile } from '../../wellbeing-tracking/index.js';
 import { detectCrisis } from '../crisis-guard.js';
 import { performSafetyCheck } from '../index.js';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import ts from 'typescript';
 import { EVERYDAY, blankedEveryday } from '../../../utils/crisis-word-boundaries.js';
+import { SENSE_LOSS_MEDICAL } from '../../human-transfer/sight-emergency.js';
+import {
+  IMPLICIT_DISTRESS_PATTERNS,
+  PASSIVE_IDEATION_PATTERNS,
+  PLAN_OR_MEANS_PATTERNS,
+  SESSION_CONTEXT_PATTERNS,
+} from '../crisis-patterns.js';
+
+const ROOT = join(__dirname, '..', '..', '..', '..');
 
 let users = 0;
 /** Everything the four readers make of one caller line. */
@@ -55,7 +67,6 @@ const FIXED: Array<[string, string]> = [
   ['just send it whenever', 'send'],
   ["I couldn't attend it this year", 'attend'],
   ['can you lend it to me', 'lend'],
-  ["I'd recommend it to anyone", 'recommend'],
   ["let's pretend it never happened", 'pretend'],
   ['blend it until smooth', 'blend'],
   ['I want to diet before the wedding', 'diet'],
@@ -182,11 +193,70 @@ describe('real risk reads exactly as on main', () => {
   });
 });
 
+/**
+ * The source of every pattern and phrase read through riskTest / riskIncludes: the gate's
+ * passive, implicit, plan and session lists, every regex in escalation-classifier.ts (its
+ * signal lists and checks, all read through riskTest), the sight check main's medical list
+ * holds, and early-warning's phrase lists.
+ */
+function wrappedSources(): string[] {
+  const sources = [
+    ...PASSIVE_IDEATION_PATTERNS.map((p) => p.re.source),
+    ...IMPLICIT_DISTRESS_PATTERNS.map((p) => p.source),
+    ...PLAN_OR_MEANS_PATTERNS.map((p) => p.source),
+    ...SESSION_CONTEXT_PATTERNS.map((p) => p.source),
+    SENSE_LOSS_MEDICAL.source,
+  ];
+  const parse = (file: string, keep: (node: ts.Node) => boolean): void => {
+    const path = join(ROOT, file);
+    const root = ts.createSourceFile(
+      path,
+      readFileSync(path, 'utf8'),
+      ts.ScriptTarget.Latest,
+      true
+    );
+    const visit = (node: ts.Node): void => {
+      if (keep(node)) sources.push(node.getText(root));
+      ts.forEachChild(node, visit);
+    };
+    visit(root);
+  };
+  parse('src/services/human-transfer/escalation-classifier.ts', (n) =>
+    ts.isRegularExpressionLiteral(n)
+  );
+  // early-warning's phrase lists: the string arrays its detectors hand to mentionsAny.
+  parse(
+    'src/services/wellbeing-tracking/early-warning.ts',
+    (n) =>
+      ts.isStringLiteral(n) &&
+      ts.isArrayLiteralExpression(n.parent) &&
+      ts.isVariableDeclaration(n.parent.parent)
+  );
+  return sources;
+}
+
 describe('the everyday list', () => {
-  it('never holds a word a crisis check reads as risk', () => {
-    const listed = new Set(Object.values(EVERYDAY).flat());
-    for (const word of ['change', 'reason', 'methods', 'messages', 'today', 'homeless', 'points'])
-      expect(listed.has(word), word).toBe(false);
+  it('holds no word that any pattern read through it holds', () => {
+    // A regex escape (\b, \s) is not a letter of the word next to it: "\brecommend" holds it.
+    const sources = wrappedSources().map((s) => s.replace(/\\[a-z]/gi, ' ').toLowerCase());
+    expect(sources.length).toBeGreaterThan(80); // every list is in
+    expect(sources.some((s) => s.includes('recommend (a|any)'))).toBe(true);
+    for (const word of Object.values(EVERYDAY).flat()) {
+      const inside = new RegExp(`(?<![a-z])${word}(?![a-z])`);
+      expect(
+        sources.filter((s) => inside.test(s)),
+        word
+      ).toEqual([]);
+    }
+  });
+
+  it('a request for a therapist reads exactly as on main', () => {
+    const line = 'can you recommend a therapist';
+    flag('off');
+    const main = read(line);
+    expect(main.transfer.professionalHelpRequest).toBe(true);
+    flag('on');
+    expect(read(line)).toEqual(main);
   });
 
   it('blanks whole listed words only, keeping the length', () => {

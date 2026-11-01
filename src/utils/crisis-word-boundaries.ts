@@ -26,13 +26,14 @@ import { flagOn } from '../config/env-flag.js';
 type Env = Record<string, string | undefined>;
 
 /**
- * Everyday words that hold a risk word, by the risk word they hold. Never a word that a crisis
- * check reads as risk or as a risk subject: "change" ("nothing will ever change"), "reason"
- * ("no reason to keep living"), "methods", "messages" ("messages from god") and "today" (a
- * recency cue) are left out on purpose, as is "homeless". Plurals of a risk word are not here.
+ * Everyday words that hold a risk word, by the risk word they hold. Never a word that any
+ * pattern read through here holds (crisis-word-boundaries.test.ts walks every one): "recommend"
+ * ("recommend a therapist" is a request for help), "change" ("nothing will ever change"),
+ * "reason" ("no reason to keep living"), "methods", "messages" ("messages from god") and "today"
+ * (a recency cue) are left out on purpose, as is "homeless". Plurals of a risk word are not here.
  */
 export const EVERYDAY: Readonly<Record<string, readonly string[]>> = {
-  end: ['send', 'resend', 'spend', 'lend', 'attend', 'pretend', 'recommend', 'extend', 'blend'],
+  end: ['send', 'resend', 'spend', 'lend', 'attend', 'pretend', 'extend', 'blend'],
   it: ['items', 'itinerary'],
   die: ['diet', 'diets', 'dieting', 'dieter', 'diesel', 'studied', 'audience', 'ingredients'],
   kill: ['skill', 'skills', 'skilled', 'skillet'],
