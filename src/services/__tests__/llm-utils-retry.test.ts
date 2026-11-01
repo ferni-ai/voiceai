@@ -2,10 +2,10 @@
  * One callLLM. services/llm/llm-utils.ts was an 85% copy whose only caller
  * (llm-dynamic-content) got a 429 retry the other 16 callers didn't. The copy
  * is gone; the retry lives in services/llm-utils.ts, on for callers that ask
- * (retry429) and for everyone with LLM_RETRY_429=on. Real callLLM and
+ * (retry429). Real callLLM and
  * vertexText; only the Vertex SDK and OpenAI are stubbed.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const generateContent = vi.fn();
 vi.mock('@google-cloud/vertexai', () => ({
@@ -28,11 +28,7 @@ const rateLimited = () => new Error('[VertexAI.ClientError]: got status: 429 Too
 beforeEach(() => {
   generateContent.mockReset();
   resetAllCircuitBreakers();
-  delete process.env.LLM_RETRY_429;
   delete process.env.OPENAI_API_KEY;
-});
-afterEach(() => {
-  delete process.env.LLM_RETRY_429;
 });
 
 describe('callLLM 429 retry', () => {
@@ -45,13 +41,6 @@ describe('callLLM 429 retry', () => {
   it('retry429: retries a 429 and returns the answer', async () => {
     generateContent.mockRejectedValueOnce(rateLimited()).mockResolvedValue(ok('hello'));
     expect(await callLLM('p', { retry429: true })).toBe('hello');
-    expect(generateContent).toHaveBeenCalledTimes(2);
-  });
-
-  it('LLM_RETRY_429=on retries for every caller', async () => {
-    process.env.LLM_RETRY_429 = 'on';
-    generateContent.mockRejectedValueOnce(rateLimited()).mockResolvedValue(ok('hi'));
-    expect(await callLLM('p')).toBe('hi');
     expect(generateContent).toHaveBeenCalledTimes(2);
   });
 

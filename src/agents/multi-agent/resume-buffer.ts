@@ -29,19 +29,22 @@ import { AudioFrame } from '@livekit/rtc-node';
 /** More than the room output can queue (rtc AudioSource, 1 s by default). */
 const KEEP_MS = 1500;
 
-interface Queued {
+export interface Queued {
   readonly audioSource?: { readonly queuedDuration?: number };
   readonly nextInChain?: Queued;
 }
 
-/** ms of audio queued but not yet played in the room output at the end of the chain. */
-function queuedMs(output: Queued | undefined): number | null {
+/** The rtc AudioSource of the room output at the end of the chain (self-voice-gate taps it too). */
+export function chainAudioSource(output: Queued | undefined): Queued['audioSource'] {
   for (let o = output; o; o = o.nextInChain) {
-    const q = o.audioSource?.queuedDuration;
-    if (typeof q === 'number') return q;
+    if (typeof o.audioSource?.queuedDuration === 'number') return o.audioSource;
   }
-  return null;
+  return undefined;
 }
+
+/** ms of audio queued but not yet played in the room output at the end of the chain. */
+const queuedMs = (output: Queued | undefined): number | null =>
+  chainAudioSource(output)?.queuedDuration ?? null;
 
 const frameMs = (f: AudioFrame): number => (f.samplesPerChannel / f.sampleRate) * 1000;
 

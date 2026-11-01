@@ -47,8 +47,13 @@ export class ContinuousProsodyStream {
     log.debug('Continuous prosody stream started');
   }
 
-  /** Stop streaming */
-  stop(): void {
+  /**
+   * Stop streaming. With `onUpdate`, only if that callback is still the current
+   * one: the stream is one per process, and a call's callback keeps that call's
+   * handlers (and its session) alive until it is dropped here.
+   */
+  stop(onUpdate?: (snapshot: ProsodySnapshot) => void): void {
+    if (onUpdate && this.updateCallback !== onUpdate) return;
     this.active = false;
     this.updateCallback = null;
     if (this.intervalId) {

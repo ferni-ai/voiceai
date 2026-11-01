@@ -27,6 +27,11 @@ const h = vi.hoisted(() => ({
   fileStore: vi.fn(),
 }));
 
+// The sealed store reads the raw doc back (getFirestoreDb, the same Firestore); setup.ts stubs it.
+vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getFirestoreDb: () => h.db,
+}));
 vi.mock('@google-cloud/firestore', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   Firestore: class {

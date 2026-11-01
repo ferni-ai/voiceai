@@ -43,12 +43,7 @@ import {
   noteCallerTurn,
   recentCallerTurns,
 } from '../../speech/adaptive-ssml/heavy-moment.js';
-import {
-  backchannelContextEnabled,
-  pickContextualBackchannel,
-  REACTIONS,
-} from './backchannel-context.js';
-import { backchannelsEnabled } from '../../config/voice-humanization-flags.js';
+import { pickContextualBackchannel, REACTIONS } from './backchannel-context.js';
 import { callIsGrave } from './presence-heavy.js';
 import { ferniEnergyFor } from '../../speech/tts-gateway/director/ferni-energy.js';
 import { laughCapOn, nextReplyMayLaugh, recordLaugh } from '../personas/laugh-ledger.js';
@@ -155,14 +150,11 @@ export function initializeLiveBackchanneling<T>(
   isAgentSpeakingFn: () => boolean,
   config: Partial<LiveBackchannelConfig> = {}
 ): LiveBackchannelIntegration {
-  // The flag gates every caller: a caller's `enabled` can only turn them off
-  // (a native-audio model). Spreading `config` last let agent-setup's
-  // `enabled: true` override BACKCHANNELS, so they played although #296 made
-  // them opt-in.
+  // A caller's `enabled` can turn them off (a native-audio model).
   const cfg = {
     ...DEFAULT_CONFIG,
     ...config,
-    enabled: backchannelsEnabled() && (config.enabled ?? true),
+    enabled: config.enabled ?? true,
   };
 
   // Get session-scoped services
@@ -287,12 +279,11 @@ export function initializeLiveBackchanneling<T>(
       log.debug({ reason: decision.reason }, 'backchannel skipped');
       return;
     }
-    // BACKCHANNEL_CONTEXT=on: react to what they're saying ("oh no", "whoa").
+    // React to what they're saying ("oh no", "whoa").
     // Nothing fits, or that clip isn't cached for this persona: the neutral pick.
-    const contextual =
-      backchannelContextEnabled() && !heavy
-        ? pickContextualBackchannel(partialTranscript, emotional, lastClip)
-        : null;
+    const contextual = !heavy
+      ? pickContextualBackchannel(partialTranscript, emotional, lastClip)
+      : null;
     // Never a "Ha" at hard news, however they laughed ("kms lol").
     const laugh = contextual !== null && REACTIONS.funny.includes(contextual);
     const fitting =
@@ -416,7 +407,7 @@ export function initializeLiveBackchanneling<T>(
 
         log.debug(
           {
-            phrase: result.phrase.slice(0, 30),
+            phraseLen: result.phrase.length,
             speechDurationMs: context.userSpeakingDurationMs,
             pauseDurationMs: breathDetector.getCurrentPauseDuration(),
           },

@@ -150,27 +150,23 @@ export async function handleGetRelationshipProgress(
 
   try {
     const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
-    const { getConversationHistoryService } =
-      await import('../../services/stores/conversation-history.js');
+    const { getSessionsTogether, currentDayStreak, longestDayStreak, calendarDay } =
+      await import('../../services/stores/sessions-together.js');
 
     const store = await getEngagementStore();
-    const historyService = getConversationHistoryService();
-
     const profile = (await store.getProfile(userId)) as unknown as AnyRecord;
-    const history = await historyService.getHistory(userId, 100);
 
-    // Extract metrics from backend data
-    const totalConversations = history.totalSessions || 0;
-    const firstMeetingDate = (profile.firstMeetingDate as string) || profile.createdAt;
-    const daysSinceFirstMeeting = firstMeetingDate
-      ? Math.floor((Date.now() - new Date(firstMeetingDate).getTime()) / (24 * 60 * 60 * 1000))
+    // The Journey's counts come from the one count of sessions together, not from numbers a
+    // browser synced up (or the latest 100 calls): sent as fresh so the app takes them
+    const together = await getSessionsTogether(userId);
+    const totalConversations = together.count;
+    const firstMeetingDate = together.firstAt?.toISOString();
+    const daysSinceFirstMeeting = together.firstAt
+      ? (Date.parse(calendarDay(Date.now())) - Date.parse(calendarDay(+together.firstAt))) / 864e5
       : 0;
-    const currentStreak = (profile.currentStreak as number) || 0;
-    const longestStreak = (profile.longestStreak as number) || currentStreak;
-    const lastUpdated =
-      (profile.lastSyncedAt as string) ||
-      (profile.lastEngagementAt as string) ||
-      new Date().toISOString();
+    const currentStreak = currentDayStreak(together.days);
+    const longestStreak = longestDayStreak(together.days);
+    const lastUpdated = new Date().toISOString();
 
     const metrics = {
       totalConversations,
@@ -207,7 +203,7 @@ export async function handleGetRelationshipProgress(
         },
 
         // Sync metadata
-        firstMeetingDate: firstMeetingDate || new Date().toISOString(),
+        firstMeetingDate: firstMeetingDate ?? null, // none yet: never "today"
         lastUpdated,
       },
       60
@@ -356,7 +352,8 @@ export async function handleGetTeamUnlocks(
     const { getStore } = await import('../../memory/storage/store-factory.js');
     const store = await getStore();
     const profile = await store.getProfile(userId);
-    const tier = (profile?.subscription?.tier as 'free' | 'friend' | 'partner' | undefined) ?? 'free';
+    const tier =
+      (profile?.subscription?.tier as 'free' | 'friend' | 'partner' | undefined) ?? 'free';
     const state = getTeamUnlockState(profile, tier);
 
     const { currentStreak, longestStreak } = calculateStreaks(profile);

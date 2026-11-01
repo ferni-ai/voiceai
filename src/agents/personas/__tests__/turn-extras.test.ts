@@ -13,28 +13,14 @@ afterAll(() => {
   else process.env.TURN_SHAPE = shapeBefore;
 });
 
-const ALL_ON = { CURIOUS_DETAIL: 'on', THINK_ALOUD: 'on', LAUGH_ALONG: 'on', ASK_ADVICE: 'on' };
+const ALL_ON = { LAUGH_ALONG: 'on', ASK_ADVICE: 'on' };
 
-/** An rng that counts its draws and always returns `value`. */
-function counting(value: number): { rng: () => number; draws: () => number } {
-  let n = 0;
-  return {
-    rng: () => {
-      n++;
-      return value;
-    },
-    draws: () => n,
-  };
-}
+/** The behaviours that fired, limited to `names`: the others ride the same turn. */
+const only = (fired: string[], ...names: string[]): string[] =>
+  fired.filter((f) => names.includes(f));
+const TEXTURE = ['filler', 'laugh_spontaneous', 'opinion'];
 
 describe('turn extras', () => {
-  it('does nothing and draws nothing when every switch is off', () => {
-    const c = counting(0);
-    const out = extrasFor('haha what should I cook', 'request', 'answer', true, c.rng, {});
-    expect(out).toEqual({ lines: [], fired: [] });
-    expect(c.draws()).toBe(0);
-  });
-
   it('hears laughter as whole words only', () => {
     for (const t of [
       'Haha, she did.',
@@ -66,20 +52,19 @@ describe('turn extras', () => {
   });
 
   it('thinks aloud on real questions and some longer answers, never on a quick reaction', () => {
-    const env = { THINK_ALOUD: 'on' };
-    expect(extrasFor('what should I do', 'request', 'answer', false, () => 0, env).fired).toEqual([
+    const thinks = (...args: Parameters<typeof extrasFor>): string[] =>
+      only(extrasFor(...args).fired, 'think_aloud');
+    expect(thinks('what should I do', 'request', 'answer', false, () => 0)).toEqual([
       'think_aloud',
     ]);
-    expect(extrasFor('my cat did it', 'share', 'answer', false, () => 0, env).fired).toEqual([
-      'think_aloud',
-    ]);
-    expect(extrasFor('my cat did it', 'share', 'answer', false, () => 0.5, env).fired).toEqual([]);
-    expect(extrasFor('my cat did it', 'share', 'one', false, () => 0, env).fired).toEqual([]);
-    expect(extrasFor('how are you', 'about_ferni', 'react', false, () => 0, env).fired).toEqual([]);
+    expect(thinks('my cat did it', 'share', 'answer', false, () => 0)).toEqual(['think_aloud']);
+    expect(thinks('my cat did it', 'share', 'answer', false, () => 0.5)).toEqual([]);
+    expect(thinks('my cat did it', 'share', 'one', false, () => 0)).toEqual([]);
+    expect(thinks('how are you', 'about_ferni', 'react', false, () => 0)).toEqual([]);
   });
 
   it('aims an allowed question at a detail, and sometimes makes a share reply one curious question', () => {
-    const env = { CURIOUS_DETAIL: 'on' };
+    const env = {};
     const allowed = extrasFor('Biscuit ate it', 'share', 'answer', true, () => 0, env);
     expect(allowed.questionLine).toMatch(/one specific thing they mentioned/);
     expect(allowed.questionLine).toMatch(/never how it feels/);
@@ -91,37 +76,37 @@ describe('turn extras', () => {
 
   it('asks for advice on light turns, never while they are venting', () => {
     const env = { ASK_ADVICE: 'on' };
-    expect(extrasFor('yeah', 'ack', 'one', false, () => 0, env).fired).toEqual(['ask_advice']);
-    expect(extrasFor('we got a puppy', 'share', 'answer', false, () => 0, env).fired).toEqual([
-      'ask_advice',
-    ]);
-    expect(extrasFor('it has been a long day', 'share', 'one', false, () => 0, env).fired).toEqual(
-      []
-    );
-    expect(extrasFor('yeah', 'ack', 'react', false, () => 0, env).fired).toEqual([]);
+    const asks = (t: string, move: 'ack' | 'share', shape: 'one' | 'answer' | 'react') =>
+      only(extrasFor(t, move, shape, false, () => 0, env).fired, 'ask_advice');
+    expect(asks('yeah', 'ack', 'one')).toEqual(['ask_advice']);
+    expect(asks('we got a puppy', 'share', 'answer')).toEqual(['ask_advice']);
+    expect(asks('it has been a long day', 'share', 'one')).toEqual([]);
+    expect(asks('yeah', 'ack', 'react')).toEqual([]);
     // Live, both of these got a musing about his basil on top of the tool call.
     for (const request of [
       'Ah, the pasta needs 10 minutes. Can you keep an eye on the time for me?',
       'Remind me to call my mom tomorrow at noon.',
     ])
-      expect(extrasFor(request, 'share', 'answer', false, () => 0, env).fired, request).toEqual([]);
+      expect(asks(request, 'share', 'answer'), request).toEqual([]);
   });
 
-  it('adds fillers, laughter and opinions only with HUMAN_TEXTURE, and none while venting', () => {
-    const env = { HUMAN_TEXTURE: 'on' };
-    expect(extrasFor('we got a puppy', 'share', 'answer', false, () => 0, {}).fired).toEqual([]);
+  it('adds fillers, laughter and opinions, and none of the last two while venting', () => {
+    const env = {};
     expect(
-      extrasFor('the cat is plotting against me', 'share', 'answer', false, () => 0, env).fired
+      only(
+        extrasFor('the cat is plotting against me', 'share', 'answer', false, () => 0, env).fired,
+        ...TEXTURE
+      )
     ).toEqual(['filler', 'laugh_spontaneous', 'opinion']);
     const venting = extrasFor('honestly I am exhausted', 'share', 'answer', false, () => 0, env);
-    expect(venting.fired).toEqual(['filler']);
+    expect(only(venting.fired, ...TEXTURE)).toEqual(['filler']);
     expect(extrasFor('haha she did it', 'share', 'one', false, () => 0, env).fired).not.toContain(
       'laugh_spontaneous'
     );
   });
 
   it('laughs on its own only when their words are funny or a happy surprise', () => {
-    const env = { HUMAN_TEXTURE: 'on' };
+    const env = {};
     const laughs = (t: string) =>
       extrasFor(t, 'share', 'one', false, () => 0, env).fired.includes('laugh_spontaneous');
     expect(laughs('she did it on purpose, I swear')).toBe(true);
@@ -148,13 +133,13 @@ describe('turn extras', () => {
       expect(callerVenting(t), t).toBe(false);
   });
 
-  it('keeps the reply shape the same with extras off, and reports what fired with them on', () => {
+  it('keeps the reply shape the same with LAUGH_ALONG and ASK_ADVICE off, and reports what fired with them on', () => {
     const said = 'Haha, so what should I make for dinner?';
     const before = { ...process.env };
     try {
       for (const k of Object.keys(ALL_ON)) delete process.env[k];
       const off = turnShapeFor(said, rngFor('s'));
-      expect(off.extras).toEqual([]);
+      expect(only(off.extras, 'laugh_along', 'ask_advice')).toEqual([]);
       Object.assign(process.env, ALL_ON);
       const onShape = turnShapeFor(said, rngFor('s'));
       expect(onShape.shape).toBe(off.shape);

@@ -105,7 +105,7 @@ function skipComment(src: string, i: number): number {
 }
 
 /** The index of the bracket closing the one at `at`, skipping strings and comments. */
-function closing(src: string, at: number): number {
+export function closing(src: string, at: number): number {
   let depth = 0;
   for (let i = at; i < src.length; i++) {
     const past = skipComment(src, i);
@@ -186,14 +186,14 @@ function stripComments(text: string): string {
   return out;
 }
 
-interface Logged {
+export interface Logged {
   key?: string;
   value: string;
   kind: 'field' | 'spread' | 'bare' | 'interpolation';
 }
 
 /** Every value a logger call's arguments carry. */
-function logged(args: string): Logged[] {
+export function logged(args: string): Logged[] {
   const out: Logged[] = [];
   const visit = (expr: string, kind: Logged['kind'], key?: string): void => {
     const e = stripComments(expr).trim();

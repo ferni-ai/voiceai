@@ -279,7 +279,7 @@ describe('Peter Research Insights Builder', () => {
     expect(result).toHaveLength(0);
   });
 
-  it('should activate and return injection for Peter persona', async () => {
+  it('gives a member with no data no briefing at all (#3044: no "(Real Data)" defaults)', async () => {
     const { buildPeterResearchInsightsContext } =
       await import('../intelligence/context-builders/personas/peter-research-insights/index.js');
 
@@ -290,45 +290,7 @@ describe('Peter Research Insights Builder', () => {
       userData: { turnCount: 0 },
     };
 
-    const result = await buildPeterResearchInsightsContext(peterInput as never);
-    expect(result.length).toBeGreaterThan(0);
-    expect(result[0]).toHaveProperty('content');
-    expect(result[0]).toHaveProperty('source');
-
-    // Content should reference Peter or research-related terms
-    const contentLower = (result[0].content || '').toLowerCase();
-    expect(
-      contentLower.includes('peter') ||
-        contentLower.includes('research') ||
-        contentLower.includes('briefing') ||
-        contentLower.includes('financial') ||
-        contentLower.includes('pattern')
-    ).toBe(true);
-  });
-
-  it('should include cross-team data references in briefing', async () => {
-    const { buildPeterResearchInsightsContext } =
-      await import('../intelligence/context-builders/personas/peter-research-insights/index.js');
-
-    const peterInput = {
-      services: { userId: 'test-user-xteam', personaId: 'peter-john', sessionId: 'test-session' },
-      conversationState: {},
-      persona: { id: 'peter-john' },
-      userData: { turnCount: 0 },
-    };
-
-    const result = await buildPeterResearchInsightsContext(peterInput as never);
-    expect(result.length).toBeGreaterThan(0);
-
-    const content = (result[0].content || '').toLowerCase();
-    // Should reference cross-team data (maya's habits, jordan's goals, etc.)
-    expect(
-      content.includes('habit') ||
-        content.includes('maya') ||
-        content.includes('jordan') ||
-        content.includes('goal') ||
-        content.includes('mood')
-    ).toBe(true);
+    expect(await buildPeterResearchInsightsContext(peterInput as never)).toEqual([]);
   });
 });
 
@@ -562,8 +524,8 @@ describe('E2E Handoff Chain Tests', () => {
       userData: { turnCount: 0 },
       persona: { id: 'peter-john' },
     };
-    const peterResult = await buildPeterResearchInsightsContext(peterInput as never);
-    expect(peterResult.length).toBeGreaterThan(0);
+    // No data and no handoff in this call: Peter has nothing true to brief (#3044)
+    expect(await buildPeterResearchInsightsContext(peterInput as never)).toEqual([]);
 
     // Step 2: Maya receives handoff from Peter
     const mayaInput = {

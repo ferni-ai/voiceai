@@ -159,7 +159,7 @@ async function execute(
 
     if (result.success) {
       log.info(
-        { target, greeting: result.greeting?.slice(0, 50), sessionId: ctx.sessionId },
+        { target, greetingLen: result.greeting?.length, sessionId: ctx.sessionId },
         '✅ Handoff executed successfully'
       );
       return {

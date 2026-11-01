@@ -58,11 +58,13 @@ export const OUTBOUND_TOOLS: Readonly<Record<string, ConfirmSpec>> = {
 };
 
 /**
- * Gate a tool built without a ToolDefinition (legacy persona tool sets). The
- * user is read from each run's session (ctx.userData.userId), never a fixed
- * placeholder, so test accounts and the owner check apply to the real caller.
+ * Run a tool built without a ToolDefinition (legacy persona tool sets) through
+ * a definition wrapper. The user is read from each run's session
+ * (ctx.userData.userId), never a fixed placeholder, so test accounts and the
+ * owner checks apply to the real caller.
  */
-export function gateLegacyTool(
+export function wrapLegacyRuns(
+  wrap: (def: ToolDefinition) => ToolDefinition,
   id: string,
   tool: unknown,
   ctx: Omit<ToolContext, 'userId'>
@@ -74,16 +76,23 @@ export function gateLegacyTool(
     domain: 'communication',
     create: () => tool as Tool,
   };
-  const gated = gateOutboundTool(def);
-  if (gated === def) return tool;
+  const wrapped = wrap(def);
+  if (wrapped === def) return tool;
   type Run = { ctx?: { userData?: { userId?: unknown } } } | undefined;
   const execute = (args: Record<string, unknown>, opts?: unknown): Promise<unknown> => {
     const userId = (opts as Run)?.ctx?.userData?.userId;
     const user = typeof userId === 'string' ? userId : ''; // no session user: the gate sends nothing
-    return gated.create({ ...ctx, userId: user }).execute(args, opts) as Promise<unknown>;
+    return wrapped.create({ ...ctx, userId: user }).execute(args, opts) as Promise<unknown>;
   };
   return { ...(tool as Tool), execute };
 }
+
+/** Gate a legacy tool that may reach someone other than the owner (wrapLegacyRuns). */
+export const gateLegacyTool = (
+  id: string,
+  tool: unknown,
+  ctx: Omit<ToolContext, 'userId'>
+): unknown => wrapLegacyRuns(gateOutboundTool, id, tool, ctx);
 
 /**
  * Tools that call, text or email someone other than the account owner: the
@@ -114,9 +123,9 @@ const textArg = (args: Record<string, unknown>, k: string): string => {
 };
 
 /**
- * A person from a persona's own life (Jim, Ferni's friend) asked for by name,
+ * A person from a persona's own life (Hollis, Ferni's friend) asked for by name,
  * with no number or address given and none of the owner's contacts by that
- * name: the refusal, or null. The owner's own Jim (saved, or given with a
+ * name: the refusal, or null. The owner's own Hollis (saved, or given with a
  * number) is reached as before.
  */
 async function canonTargetRefusal(

@@ -5,26 +5,16 @@
  * A dry run on the one real returning user (2026-10-10, mostly short test
  * calls) produced, at confidence 0.85: "Seth frequently deflects personal
  * inquiries ... as a protective buffer to avoid vulnerability". Insights like
- * that are injected into every turn of every call (getDeepAnalysisContextForTurn,
- * live via turn-processor/context-injections.ts), so the analysis now needs
+ * that were injected into every turn of every call, so the analysis now needs
  * real history, insights need evidence from more than one call, clinical or
- * psychological labels are dropped from the output in code, and the in-call
- * injection is off unless DEEP_ANALYSIS_IN_CALL=on.
+ * psychological labels are dropped from the output in code, and nothing from
+ * it is injected into a call.
  *
  * @module intelligence/predictive/deep-analysis-guards
  */
 
 /** Calls with real content a weekly analysis needs before it says anything. */
 export const MIN_SUBSTANTIVE_CALLS = 5;
-
-/** Below this an insight is a guess, not a pattern. */
-export const MIN_INSIGHT_CONFIDENCE = 0.75;
-
-export function isDeepAnalysisInCallOn(
-  env: Record<string, string | undefined> = process.env
-): boolean {
-  return env.DEEP_ANALYSIS_IN_CALL === 'on';
-}
 
 interface SummaryShape {
   topics: string[];
@@ -77,15 +67,6 @@ export function isGroundedInsight(i: InsightShape): boolean {
     evidence.length >= 2 &&
     typeof i.observation === 'string' &&
     !hasClinicalLabel(`${i.observation} ${i.significance ?? ''}`)
-  );
-}
-
-/** One that may also be spoken into a call. */
-export function isSurfaceableInsight(i: InsightShape): boolean {
-  return (
-    isGroundedInsight(i) &&
-    i.confidence >= MIN_INSIGHT_CONFIDENCE &&
-    i.surfacingContext !== 'crisis_only'
   );
 }
 

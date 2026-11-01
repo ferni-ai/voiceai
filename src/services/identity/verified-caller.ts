@@ -20,6 +20,7 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
+import { isUnverifiedUserId } from './unverified-user-id.js';
 
 /** VERIFIED_CALLER_ALLOWANCE=on: per-person allowances follow verifiedAllowanceKey (default off). */
 export function verifiedCallerAllowanceOn(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -51,6 +52,44 @@ export function isVerifiedIdentification(
 interface CallerView {
   userId?: unknown;
   verifiedCaller?: unknown;
+  placedCall?: unknown;
+}
+
+/**
+ * A call we placed to their number (a proactive self-call): the signed dispatch
+ * names the account, so the session is `verifiedCaller`, but a call we placed
+ * to their number can be answered by anyone (as ownerProvenOnLine says in
+ * caller-recognition.ts). Only the owner-message policy reads this today; the
+ * verifiedCaller bit itself is unchanged.
+ */
+export function isPlacedCall(callType: string | undefined): boolean {
+  return callType === 'proactive_outreach';
+}
+
+/** What voice-agent-entry records on the call's userData about who the server verified. */
+export function callerVerification(
+  verified: boolean,
+  callType: string | undefined
+): { verifiedCaller: boolean; placedCall: boolean } {
+  return { verifiedCaller: verified, placedCall: isPlacedCall(callType) };
+}
+
+/** True when this call's userData marks a call we placed (isPlacedCall). */
+export function onPlacedCall(userData: unknown): boolean {
+  return ((userData ?? {}) as CallerView).placedCall === true;
+}
+
+/**
+ * The call's caller when the server verified them on this call: `verifiedCaller`
+ * is true (only voice-agent-entry sets it, from identification) and the id is
+ * not one anybody can mint or spoof (isUnverifiedUserId: anon:, device:, phone:,
+ * placeholders). Null for anyone else, and for a session that never set it.
+ */
+export function verifiedCallerId(userData: unknown): string | null {
+  const view = (userData ?? {}) as CallerView;
+  if (view.verifiedCaller !== true || typeof view.userId !== 'string') return null;
+  const id = view.userId.trim();
+  return isUnverifiedUserId(id) ? null : id;
 }
 
 /**

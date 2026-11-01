@@ -1880,9 +1880,9 @@
     "disconnected": "החיבור נותק",
     "end": "סיום",
     "endConversation": "לסיים את השיחה",
-    "endConversationGoodbye": "לסיים את השיחה - להתראות",
+    "goodbyeEndCall": "להתראות. סיום שיחה.",
     "endSession": "סיום השיחה",
-    "ending": "מסיימים...",
+    "ending": "השיחה הסתיימה",
     "goodbye": "להתראות",
     "holdToSpeak": "ללחוץ ולהחזיק כדי לדבר",
     "listening": "בהקשבה...",
@@ -1892,7 +1892,7 @@
     "takeCare": "שמרו על עצמכם.",
     "tapToSpeak": "ללחוץ כדי לדבר",
     "thinking": "רגע של מחשבה...",
-    "untilNextTime": "עד הפעם הבאה..."
+    "untilNextTime": "עד הפעם הבאה"
   },
   "stages": {
     "acquaintance": "מכר",
@@ -8887,6 +8887,13 @@
     "exportFailed": "לא הצלחנו לייצא את הנתונים שלך. לנסות שוב?",
     "deleteDataFailed": "לא הצלחנו למחוק את הנתונים שלך. שום דבר לא הוסר. לנסות שוב?",
     "deleteAccountFailed": "לא הצלחנו למחוק את החשבון שלך. לנסות שוב?",
+    "deleteRefusedSignIn": "ההתחברות שלך לא התקבלה, ולכן הבקשה הזו לא מחקה דבר. יש להתחבר מחדש ולנסות שוב.",
+    "deleteDataUnknown": "לא הצלחנו לאשר אם הנתונים שלך נמחקו. ייתכן שזה עדיין מסתיים, כדאי לבדוק שוב בעוד כמה דקות.",
+    "deleteDataStillUnknown": "עדיין לא הצלחנו לאשר אם הנתונים שלך נמחקו. כדאי לנסות שוב בעוד כמה דקות.",
+    "deleteAccountUnknown": "לא הצלחנו לאשר אם החשבון שלך נמחק. ייתכן שזה עדיין מסתיים, כדאי לבדוק שוב בעוד כמה דקות.",
+    "accountStillOpen": "החשבון שלך עדיין פתוח. אם עדיין רוצים לסגור אותו, אפשר למחוק אותו שוב.",
+    "accountSignInRefused": "ההתחברות שלך כבר לא מתקבלת, וזה קורה כשחשבון נסגר. אם לא מחקת אותו, יש להתחבר מחדש כדי לבדוק.",
+    "authSlow": "לא הצלחנו לבדוק את ההתחברות שלך בזמן, ולכן שום דבר לא נשלח. לנסות שוב?",
     "accountDeletedPartial": "החשבון שלך נמחק, אך מספר רשומות לא פונו. יש ליצור איתנו קשר כדי להשלים את התהליך.",
     "categoryConversations": "כל תמלולי השיחות ומטא-נתונים",
     "categoryInsights": "מה ש-Ferni למד עליך",
@@ -9399,6 +9406,8 @@
   },
   "dataExport": {
     "title": "הנתונים שלך",
+    "loadFailed": "לא הצלחתי לטעון עכשיו את מה ששמרתי בשבילך. שום דבר לא השתנה.",
+    "checkAgain": "לבדוק שוב",
     "exportFormat": "פורמט ייצוא",
     "deleteAll": "מחיקת כל הנתונים",
     "footer": "אני שומר את השיחות שלנו ואת מה שאתה מספר לי כדי שאוכל לזכור אותם בפעם הבאה, ואם תרצה פעם שהם ייעלמו, מחיקת החשבון שלך מוחקת אותם.",
@@ -10273,7 +10282,6 @@
     "startupError": "יש קושי בעליית האפליקציה. לנסות לרענן?",
     "lastConversation": "זו השיחה האחרונה שלכם החודש. בואו ננצל אותה הכי טוב שאפשר.",
     "gettingReady": "מתכונן...",
-    "connecting": "מתחבר...",
     "almostThere": "כמעט שם...",
     "waitingQuietly": "אחכה בשקט",
     "listening": "אני מקשיב",
@@ -10906,13 +10914,14 @@
   "entrance": {
     "helper": "ליווי אישי צמוד",
     "connectToTalk": "לדבר עם Ferni",
-    "endTalk": "ניתוק",
-    "connectingCancel": "מתחבר. הקש לביטול",
-    "connectingNow": "מתחבר…",
+    "endTalk": "סיום שיחה",
+    "connectingCancel": "מתקשרים אל {name}. הקש לביטול.",
+    "connectingNow": "מתקשרים אל {name}…",
     "tapToCancel": "הקש לביטול",
-    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
-    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
-    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
+    "stillCalling": "עדיין מתקשרים אל {name}…",
+    "stillCallingCancel": "עדיין מתקשרים אל {name}. הקש לביטול.",
+    "reconnecting": "מתחברים מחדש…",
+    "arrived": "{name} כאן"
   },
   "analyticsDashboard": {
     "title": "המסע האישי",

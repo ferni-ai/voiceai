@@ -6,7 +6,9 @@
  *   preflight), an allowed Origin when the browser sends one, and bearer
  *   auth only (never a cookie).
  * - Fresh sign-in: when the person last actually signed in, read from their
- *   own non-anonymous Firebase token, re-verified with revocation checked.
+ *   own non-anonymous Firebase token, re-verified strictly (token-revocation.ts:
+ *   the account is looked up now; when it can't be, the request is marked and
+ *   the route answers 503 via authCheckUnavailable, never a pass).
  *
  * @module ApprovalGuards
  */
@@ -14,6 +16,7 @@
 import type { IncomingMessage } from 'http';
 import { verifyFirebaseToken } from '../services/identity/firebase-auth.js';
 import { isOriginAllowed } from '../servers/shared/cors.js';
+import { nullIfUnavailable } from './verify-token-once.js';
 
 export const FRESH_SIGN_IN_MS = 5 * 60 * 1000;
 
@@ -31,7 +34,9 @@ export async function signedInRecently(
 ): Promise<boolean> {
   const header = req.headers.authorization;
   if (typeof header !== 'string' || !header.startsWith('Bearer ')) return false;
-  const verified = await verifyFirebaseToken(header.slice(7), true);
+  const verified = await verifyFirebaseToken(header.slice(7), { strict: true }).catch(
+    (error: unknown) => nullIfUnavailable(req, error)
+  );
   if (!verified || 'expired' in verified || verified.isAnonymous || verified.uid !== uid) {
     return false;
   }

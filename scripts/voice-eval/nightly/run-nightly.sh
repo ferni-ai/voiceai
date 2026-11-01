@@ -11,13 +11,25 @@
 #   NIGHTLY_CLEANUP_MIN_AGE_H  cleanup-users --min-age-hours (default 1)
 #   NIGHTLY_LANES       directory holding a.txt and b.txt (default lanes/ beside this script)
 #   NIGHTLY_LANE_B_DELAY_S  seconds lane B starts after lane A (default 20)
+#   NIGHTLY_TAG         the sweep's label, prefixed to every call's (default n<MMDDHHMM> UTC);
+#                       refused when scripts/voice-eval/out already holds calls under it
 # Exit: scorecard's 0 (nothing new) / 1 (new FAIL or regression) / 2 (harness or deploy
 # error), 3 when ferni-dev is claimed by someone else. On exit or a signal, a trap stops the
 # lanes (every run.sh under them), cleans up, reports, and only then releases the claim.
 set -uo pipefail
 ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
 HERE=$ROOT/scripts/voice-eval/nightly EVAL=$ROOT/scripts/voice-eval
-DATE=$(date -u +%F) TAG=n$(date -u +%m%d)
+DATE=$(date -u +%F)
+# A label unique to this sweep (#3164). Both 2026-10-30 release sweeps named their calls n1030<label>:
+# the second overwrote the first's run files, and the release check matched a call to the other
+# sweep's logs and came back INCONCLUSIVE. Minutes make a same-day rerun a new label; a label that
+# out/ already holds is refused, since every later step globs out/*-$TAG*.json.
+TAG=${NIGHTLY_TAG:-n$(date -u +%m%d%H%M)}
+case $TAG in '' | *[!a-z0-9]*) echo "run-nightly: NIGHTLY_TAG must be [a-z0-9]+ (got '$TAG')" >&2; exit 2 ;; esac
+if compgen -G "$EVAL/out/*-$TAG*.json" > /dev/null; then
+  echo "run-nightly: label $TAG is already used by calls in $EVAL/out; pick another NIGHTLY_TAG" >&2
+  exit 2
+fi
 OUT=${NIGHTLY_OUT:-$HOME/Documents/voiceai-evidence/nightly/$DATE}
 DRY=${NIGHTLY_DRY_RUN:-0}
 P=ferni-dev CONF=$ROOT/livekit.toml DEV_AGENT=CA_siTDMHEba4Fg GCP=johnb-2025

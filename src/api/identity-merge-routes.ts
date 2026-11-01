@@ -33,6 +33,7 @@ import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { API_ERRORS } from './error-messages.js';
 import { parseBody, sendError, sendJSON } from './helpers.js';
+import { authCheckUnavailable, nullIfUnavailable } from './verify-token-once.js';
 
 export const MERGE_ANONYMOUS_PATH = '/api/identity/merge-anonymous';
 
@@ -62,9 +63,10 @@ function countsOf(migrated: readonly string[]): { conversations: number; memorie
   return { conversations: count(['summaries']), memories: count(['memories', 'moments']) };
 }
 
-async function verified(token: unknown): Promise<VerifiedToken | null> {
+/** null for no token or a bad one; one whose account couldn't be checked also marks `req`, for a 503 */
+async function verified(req: IncomingMessage, token: unknown): Promise<VerifiedToken | null> {
   if (typeof token !== 'string' || !token) return null;
-  const result = await verifyFirebaseToken(token);
+  const result = await verifyFirebaseToken(token).catch((e) => nullIfUnavailable(req, e));
   return isVerifiedToken(result) ? result : null;
 }
 
@@ -91,8 +93,9 @@ export async function handleIdentityMergeRoutes(
   const auth = await requireAuth(req, res, { allowDevMode: false });
   if (!auth) return true;
   const bearer = req.headers.authorization?.slice('Bearer '.length);
-  const real = auth.authMethod === 'firebase' ? await verified(bearer) : null;
+  const real = auth.authMethod === 'firebase' ? await verified(req, bearer) : null;
   if (!real || real.uid !== auth.firebaseUid) {
+    if (authCheckUnavailable(req, res)) return true;
     sendError(res, API_ERRORS.AUTH_REQUIRED, 401);
     return true;
   }
@@ -108,8 +111,9 @@ export async function handleIdentityMergeRoutes(
     sendError(res, 'Invalid request body', 400);
     return true;
   }
-  const anon = await verified(body.anonIdToken);
+  const anon = await verified(req, body.anonIdToken);
   if (!anon) {
+    if (authCheckUnavailable(req, res)) return true;
     sendError(res, API_ERRORS.AUTH_REQUIRED, 401);
     return true;
   }

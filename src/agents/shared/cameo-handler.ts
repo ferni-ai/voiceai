@@ -300,7 +300,7 @@ export function createCameoHandlers(config: CameoHandlerConfig) {
           // Use coordinated speech for cameo greetings
           coordinatedSay(sessionId, greeting, { allowInterruptions: true });
           greetingSpoken = true;
-          diag.entry(`🎬 Cameo greeting spoken: "${greeting.slice(0, 50)}..."`);
+          diag.entry(`🎬 Cameo greeting spoken (${greeting.length} chars)`);
         } catch (sayErr) {
           logger.warn({ error: String(sayErr) }, 'Failed to speak cameo greeting');
         }

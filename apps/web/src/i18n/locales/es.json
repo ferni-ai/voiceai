@@ -1881,9 +1881,9 @@
     "disconnected": "Sin conexión",
     "end": "Terminar",
     "endConversation": "Terminar conversación",
-    "endConversationGoodbye": "Terminar conversación - Adiós",
+    "goodbyeEndCall": "Adiós. Colgar.",
     "endSession": "Terminar sesión",
-    "ending": "Terminando...",
+    "ending": "Llamada terminada",
     "goodbye": "Adiós",
     "holdToSpeak": "Mantén presionado para hablar",
     "listening": "Escuchando...",
@@ -1893,7 +1893,7 @@
     "takeCare": "Cuídate.",
     "tapToSpeak": "Toca para hablar",
     "thinking": "Pensando...",
-    "untilNextTime": "Hasta la próxima..."
+    "untilNextTime": "Hasta la próxima"
   },
   "stages": {
     "acquaintance": "Conocidos",
@@ -8890,6 +8890,13 @@
     "exportFailed": "No se pudieron exportar tus datos. ¿Quieres volver a intentarlo?",
     "deleteDataFailed": "No se pudieron eliminar tus datos. No se borró nada. ¿Quieres volver a intentarlo?",
     "deleteAccountFailed": "No se pudo eliminar tu cuenta. ¿Quieres volver a intentarlo?",
+    "deleteRefusedSignIn": "Tu sesión no fue aceptada, así que esta solicitud no borró nada. Vuelve a iniciar sesión y prueba otra vez.",
+    "deleteDataUnknown": "No se pudo confirmar si se borraron tus datos. Puede que aún esté terminando; vuelve a comprobarlo en unos minutos.",
+    "deleteDataStillUnknown": "Todavía no se pudo confirmar si se borraron tus datos. Vuelve a intentarlo en unos minutos.",
+    "deleteAccountUnknown": "No se pudo confirmar si se eliminó tu cuenta. Puede que aún esté terminando; vuelve a comprobarlo en unos minutos.",
+    "accountStillOpen": "Tu cuenta sigue abierta. Si aún quieres cerrarla, puedes eliminarla de nuevo.",
+    "accountSignInRefused": "Tu sesión ya no se acepta, algo que ocurre cuando una cuenta se está cerrando. Si no la eliminaste, vuelve a iniciar sesión para comprobarlo.",
+    "authSlow": "No se pudo comprobar tu sesión a tiempo, así que no se envió nada. ¿Quieres volver a intentarlo?",
     "accountDeletedPartial": "Tu cuenta ha sido eliminada, pero algunos registros no se borraron. Ponte en contacto con nosotros para terminar el proceso.",
     "categoryConversations": "Todas las transcripciones y metadatos de las conversaciones",
     "categoryInsights": "Lo que Ferni ha aprendido sobre ti",
@@ -9402,6 +9409,8 @@
   },
   "dataExport": {
     "title": "Tus datos",
+    "loadFailed": "No pude cargar lo que tengo guardado para ti en este momento. No ha cambiado nada.",
+    "checkAgain": "Comprobar de nuevo",
     "exportFormat": "Formato de exportación",
     "deleteAll": "Eliminar todos los datos",
     "footer": "Guardo nuestras conversaciones y lo que me cuentas para poder recordarlo la próxima vez, y si algún día quieres que desaparezca, al eliminar tu cuenta se borra todo.",
@@ -10276,7 +10285,6 @@
     "startupError": "Hay problemas para iniciar. ¿Quieres probar a actualizar?",
     "lastConversation": "Esta es tu última conversación de este mes. Hagamos que valga la pena.",
     "gettingReady": "Preparando todo...",
-    "connecting": "Conectando",
     "almostThere": "Ya casi está...",
     "waitingQuietly": "Esperaré en silencio",
     "listening": "Te escucho",
@@ -10911,13 +10919,14 @@
   "entrance": {
     "helper": "Tu guía personal",
     "connectToTalk": "Habla con Ferni",
-    "endTalk": "Desconectar",
-    "connectingCancel": "Conectando. Toca para cancelar",
-    "connectingNow": "Conectando…",
+    "endTalk": "Colgar",
+    "connectingCancel": "Llamando a {name}. Toca para cancelar.",
+    "connectingNow": "Llamando a {name}…",
     "tapToCancel": "Toca para cancelar",
-    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
-    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
-    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
+    "stillCalling": "Sigo llamando a {name}…",
+    "stillCallingCancel": "Sigo llamando a {name}. Toca para cancelar.",
+    "reconnecting": "Reconectando…",
+    "arrived": "{name} está aquí"
   },
   "analyticsDashboard": {
     "title": "Tu camino",

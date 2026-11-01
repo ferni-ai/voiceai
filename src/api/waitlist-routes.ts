@@ -40,6 +40,7 @@ import { canonicalEmail, isDisposableEmail, isValidEmail } from '../services/wai
 import { getEmailSender, type OutgoingEmail } from '../services/email-transport/index.js';
 import { unsubscribeMailbox } from '../services/communication-service.js';
 import { waitlistEmailAllowed, type WaitlistEmailBucket } from './waitlist-email-quota.js';
+import { tokenCheckStatus, verifyIdTokenChecked } from '../services/identity/token-revocation.js';
 
 const log = createLogger({ module: 'waitlist-routes' });
 
@@ -462,8 +463,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     const auth = admin.auth();
     const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
-    // Verify Firebase token
-    const decodedToken = await auth.verifyIdToken(idToken);
+    const decodedToken = await verifyIdTokenChecked(auth, idToken);
     const email = decodedToken.email?.toLowerCase().trim();
 
     if (!email) {
@@ -599,7 +599,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     return true;
   } catch (error) {
     log.error('Failed to check access', { error });
-    sendJson(res, 500, { error: 'Failed to verify access' });
+    sendJson(res, tokenCheckStatus(error, 500), { error: 'Failed to verify access' });
     return true;
   }
 }

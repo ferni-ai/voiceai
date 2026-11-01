@@ -11,6 +11,7 @@ vi.mock('../../model-provider/index.js', () => ({
 }));
 vi.mock('../../shared/session-listener-limit.js', () => ({ limitSessionListeners: () => {} }));
 vi.mock('../live-call-behaviors.js', () => ({ logBargeInDecisions: () => {} }));
+vi.mock('../phone-audio-summary.js', () => ({ watchPhoneAudio: () => {} }));
 
 const { createCallSession } = await import('../call-session.js');
 
@@ -20,7 +21,7 @@ interface Resolved {
   };
 }
 
-async function interruption() {
+async function interruption(phone?: boolean) {
   process.env.DISABLE_VAD = 'true';
   const session = (await createCallSession({
     persona: { id: 'ferni' } as never,
@@ -29,6 +30,7 @@ async function interruption() {
     userData: {} as never,
     llmModel: {},
     tts: {} as never,
+    phone,
   })) as unknown as Resolved;
   return session.sessionOptions.turnHandling.interruption;
 }
@@ -36,6 +38,7 @@ async function interruption() {
 describe('createCallSession barge-in guard', () => {
   afterEach(() => {
     delete process.env.BARGE_IN_GUARD;
+    delete process.env.PHONE_INTERRUPT_TUNING;
   });
 
   it('keeps the 150 ms gate and LiveKit 2 s resume when the guard is off', async () => {
@@ -49,5 +52,17 @@ describe('createCallSession barge-in guard', () => {
     const opts = await interruption();
     expect(opts.minDuration).toBe(500);
     expect(opts.falseInterruptionTimeout).toBe(1000);
+  });
+
+  it('PHONE_INTERRUPT_TUNING=on: LiveKit resolves the phone values for a phone caller only', async () => {
+    process.env.PHONE_INTERRUPT_TUNING = 'on';
+    expect(await interruption(true)).toMatchObject({
+      minDuration: 500,
+      falseInterruptionTimeout: 1000,
+      resumeFalseInterruption: true,
+    });
+    const app = await interruption(false);
+    expect(app.minDuration).toBe(150);
+    expect(app.falseInterruptionTimeout).toBe(2000);
   });
 });

@@ -7,6 +7,7 @@
  * its queued set/delete writes in order on commit().
  */
 import { FieldValue } from '@google-cloud/firestore';
+import { fakeRunTransaction } from './fake-transaction.js';
 
 type Json = Record<string, unknown>;
 
@@ -197,6 +198,7 @@ export function createMergeFakeFirestore(state: MergeFakeState) {
     collection,
     doc,
     batch,
+    runTransaction: fakeRunTransaction,
     collectionGroup: (name: string) =>
       query(() => [...state.docs.keys()].filter((p) => p.split('/').at(-2) === name)),
   };

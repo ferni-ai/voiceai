@@ -54,7 +54,6 @@ function clipsFor(transcript: string, earlier: string[] = [], revisions: string[
 }
 
 beforeEach(() => {
-  vi.stubEnv('BACKCHANNELS', 'on');
   vi.stubEnv('LAUGH_ALONG', 'on');
 });
 afterEach(() => {
@@ -86,7 +85,6 @@ describe('the laugh-along clip on a heavy moment', () => {
 
   it('gives no "Ha" either, with the reactions that fit on', () => {
     vi.stubEnv('LAUGH_ALONG', 'off');
-    vi.stubEnv('BACKCHANNEL_CONTEXT', 'on');
     expect(clipsFor('that is so funny lol')).toEqual(['Ha']);
     expect(clipsFor('kms lol that is so funny')).not.toContain('Ha');
   });

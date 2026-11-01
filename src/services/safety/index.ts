@@ -56,6 +56,7 @@ export type {
   CrisisResponseContent,
   CrisisResponseContext,
 } from './crisis-response.js';
+export { EMERGENCY_NUMBER } from './emergency-number.js';
 
 // ============================================================================
 // ESCALATION PATHWAYS

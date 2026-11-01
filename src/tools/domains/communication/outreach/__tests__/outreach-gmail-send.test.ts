@@ -49,6 +49,7 @@ const { encryptData } = await import('../../../../../utils/token-encryption.js')
 const { getOutreachToolDefinitions, getUnifiedOutreachDefinition } = await import('../index.js');
 const { outreachConfirmListeners } = await import('../outreach-confirm.js');
 const { gateOutboundTool } = await import('../../../../registry/outbound-gate.js');
+const { usePersonFlagLookup } = await import('../../../../../config/person-flag.js');
 type ToolDefinition = import('../../../../registry/types.js').ToolDefinition;
 
 const SEND_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send';
@@ -117,6 +118,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  usePersonFlagLookup(async () => undefined);
   vi.unstubAllEnvs();
   vi.clearAllMocks();
 });
@@ -175,6 +177,27 @@ describe('reachOut email from the caller’s own Gmail', () => {
     call.caller('yes');
     await call.call(TO_PAT, 'c2');
     expect(gmailSends()).toHaveLength(1);
+  });
+
+  it("env off: the caller whose own flag is on sends from Gmail; caller B gets Ferni's mailbox", async () => {
+    vi.stubEnv('GMAIL_SEND_AS_USER', '');
+    usePersonFlagLookup(async (uid) => (uid === 'user-a' ? 'on' : undefined));
+    grant('user-a');
+    grant('user-b');
+
+    const b = liveCall('user-b');
+    expect(await b.call(TO_PAT, 'c1')).toContain('pat.rivera@example.com, saying');
+    b.caller('yes');
+    await b.call(TO_PAT, 'c2');
+    expect(gmailSends()).toHaveLength(0);
+    expect(ferniSends()).toEqual([expect.objectContaining({ userId: 'user-b' })]);
+
+    const a = liveCall('user-a');
+    expect(await a.call(TO_PAT, 'c1')).toContain('from your Gmail, user-a@example.com');
+    a.caller('yes');
+    await a.call(TO_PAT, 'c2');
+    expect(gmailSends().map((g) => g.auth)).toEqual(['Bearer access-user-a']);
+    expect(ferniSends()).toHaveLength(1);
   });
 
   it("flag off (or no grant): Ferni's mailbox exactly as before, and Google is never called", async () => {
