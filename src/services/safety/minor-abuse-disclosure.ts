@@ -15,8 +15,11 @@
  * acts, coercion or sexual pictures, the turn is a crisis-level safety turn after every other
  * read, never the scripted takeover, and the call's memory is held. The voice turn's guidance
  * (turn-handler.ts): not their fault, are you safe right now, 911 if in danger now, a safe adult,
- * Childhelp (call or text), no details; 988 too unless the whole call is abuse-only (self-harm
- * words in any turn, the patterns' self-risk, or risk noted earlier on the call keep it).
+ * Childhelp (call or text), no details. When the caller may be at risk too, the turn gets main's
+ * crisis guidance, 988 and all, with the child-safety care after it: self-harm words in any turn
+ * (passive and means ideation included), risk noted earlier on the call, or this turn's own read
+ * of risk before the disclosure, whoever made it (the patterns, the classifier, a soft check).
+ * Main answers every one of those reads with guidance that names 988, so 988 is never taken away.
  *
  * Only adds: a turn already read as a crisis keeps everything it had, and gains the indicators.
  * Anchored so a child's everyday words ("touch up my essay", "touch base", "makes me do my
@@ -30,6 +33,7 @@ import { ageSignal, likelyMinor, statesUnder18 } from '../../utils/minor-care.js
 import { createLogger } from '../../utils/safe-logger.js';
 import { holdForSexualTopic } from '../../utils/sexual-topic-hold.js';
 import type { CrisisDetectionResult } from './crisis-guard.js';
+import { buildCrisisGuidance } from './crisis-guard.js';
 import { CRISIS_RESOURCES } from './crisis-response.js';
 import { SEVERITY } from './crisis-severity.js';
 import { EMERGENCY_NUMBER } from './emergency-number.js';
@@ -59,8 +63,25 @@ const HARM = new RegExp(
   ].join('|'),
   'i'
 );
-const SELF_HARM =
-  /\b(?:(?:kill|hurt|cut|harm|burn) my ?self|suicid\w*|want to die|wanna die|don'?t want to (?:live|be here|be alive)|end it all|better off dead|unalive)\b/i;
+/** A clause end after "the point of anything", "the point of living", ... */
+const CLAUSE = String.raw`(?=\s*(?:[.,!?;]|$|and\b|any ?more|at all))`;
+/** Not a time of day or a plan: "wake up early", "wake up for school", "not wake up until noon". */
+const NOT_A_TIME = String.raw`(?!\s+(?:early|late|so early|at|for|before|until|till|in time)\b)`;
+/** The caller hurting themselves, said outright, passively or as a way to do it. */
+const SELF_HARM = new RegExp(
+  [
+    String.raw`\b(?:(?:kill|hurt|cut|harm|burn) my ?self|suicid\w*|(?:want to|wanna) die(?!\s+(?:my|his|her|their|the|your|it)\b)|don'?t want to (?:live|be here|be alive)|end it all|better off dead|unalive)\b`,
+    // Passive: "don't want to wake up tomorrow", "hope I never wake up", "sleep and never wake up".
+    String.raw`\b(?:(?:don'?t|do not|never) want to|hope i (?:don'?t|never)) wake up${NOT_A_TIME}`,
+    String.raw`\b(?:sleep|asleep) and (?:never|not) wake up${NOT_A_TIME}`,
+    // No point: "don't see the point of anything anymore", "there's no point in living".
+    String.raw`\b(?:(?:don'?t|do not|can'?t|cannot) see (?:the|any)|there'?s no|there is no) point (?:of|in|to) (?:anything|living|life|being alive|being here|going on)${CLAUSE}`,
+    // Means: "thinking about taking all of my mom's pills", "want to swallow the whole bottle of meds".
+    String.raw`\b(?:think\w* (?:about|of)|want(?:s|ed)? to|wanna|going to|gonna|plan\w* (?:on|to)|wish i could) (?:just )?(?:tak\w*|swallow\w*) (?:all|the whole bottle|a bunch|a handful)(?: of)? (?:[\w']+ ){0,3}(?:pills|meds|medicine|medication|tablets)\b(?![^.!?]*\b(?:doctor|prescribed|pharmacy|drop-?off|on time|with (?:breakfast|lunch|dinner|food))\b)`,
+  ].join('|'),
+  'i'
+);
+const plain = (line: string): string => line.normalize('NFKC').replace(/[’‘]/g, "'");
 
 export interface MinorAbuseTurn {
   latest: string;
@@ -71,7 +92,7 @@ export interface MinorAbuseTurn {
 
 /** Whether these words, from a caller who sounds under 18, describe sexual harm to them. */
 export function minorAbuseDisclosure(call: string | undefined, turn: MinorAbuseTurn): boolean {
-  const said = turn.latest.normalize('NFKC').replace(/[’‘]/g, "'");
+  const said = plain(turn.latest);
   if (!HARM.test(said)) return false;
   const words = [said, ...(turn.earlier ?? [])];
   return (
@@ -80,11 +101,31 @@ export function minorAbuseDisclosure(call: string | undefined, turn: MinorAbuseT
 }
 
 const INDICATOR = 'minor_abuse_disclosure';
+const SELF_RISK = `${INDICATOR}_self_harm`;
+
+/** The turn as the crisis reads settled it, before this module. */
+interface SettledRead {
+  crisis: CrisisDetectionResult;
+  soft: boolean;
+}
+
+/**
+ * Whether the caller may be at risk themselves, so the disclosure turn keeps 988: risk noted
+ * earlier on the call, self-harm words in any turn, or this turn's own read of risk, whoever made
+ * it (the patterns, the classifier's crisis or imminent read, the who read, a soft check). Main
+ * answers each of those reads with guidance or a check-in that names 988.
+ */
+export function callerMayBeAtRisk(
+  settled: SettledRead,
+  turn: MinorAbuseTurn,
+  priorRisk: boolean
+): boolean {
+  if (priorRisk || settled.soft || settled.crisis.isCrisis) return true;
+  return [turn.latest, ...(turn.earlier ?? [])].some((line) => SELF_HARM.test(plain(line)));
+}
 
 /** The settled turn with the flag on: a minor's abuse disclosure is a crisis-level safety turn. */
-export function withMinorAbuseDisclosure<
-  T extends { crisis: CrisisDetectionResult; soft: boolean },
->(
+export function withMinorAbuseDisclosure<T extends SettledRead>(
   settled: T,
   call: string | undefined,
   turn: MinorAbuseTurn,
@@ -94,12 +135,7 @@ export function withMinorAbuseDisclosure<
   if (!flagOn('MINOR_ABUSE_DISCLOSURE', env) || !minorAbuseDisclosure(call, turn)) return settled;
   holdForSexualTopic(call);
   const { crisis } = settled;
-  // 988 stays unless the whole call is abuse-only: self-harm words in any turn, the patterns'
-  // self-risk this turn (not the classifier's or the voice's), or risk noted earlier on the call.
-  const selfHarm =
-    priorRisk ||
-    [turn.latest, ...(turn.earlier ?? [])].some((line) => SELF_HARM.test(line)) ||
-    (crisis.isCrisis && crisis.indicators.some((i) => !/^(classifier|voice|who)/.test(i)));
+  const selfHarm = callerMayBeAtRisk(settled, turn, priorRisk);
   log.info({ wasCrisis: crisis.isCrisis, selfHarm }, 'MINOR_ABUSE_DISCLOSURE');
   return {
     ...settled,
@@ -108,11 +144,7 @@ export function withMinorAbuseDisclosure<
       ...crisis,
       isCrisis: true,
       severity: Math.max(crisis.severity, SEVERITY.crisis),
-      indicators: [
-        ...crisis.indicators,
-        INDICATOR,
-        ...(selfHarm ? [`${INDICATOR}_self_harm`] : []),
-      ],
+      indicators: [...crisis.indicators, INDICATOR, ...(selfHarm ? [SELF_RISK] : [])],
       subject: 'self',
     },
   };
@@ -120,9 +152,14 @@ export function withMinorAbuseDisclosure<
 
 const CHILDHELP = CRISIS_RESOURCES.child_abuse[0];
 
-/** The voice turn's crisis guidance for a minor's abuse disclosure, or null for any other turn. */
-export function minorAbuseGuidance(crisis: { indicators: readonly string[] }): string | null {
+/**
+ * The voice turn's crisis guidance for a minor's abuse disclosure, or null for any other turn.
+ * When the caller may be at risk too, main's crisis guidance (988 and all) comes first and the
+ * child-safety care follows it: the stronger guidance, never one without 988.
+ */
+export function minorAbuseGuidance(crisis: CrisisDetectionResult): string | null {
   if (!crisis.indicators.includes(INDICATOR)) return null;
+  const selfRisk = crisis.indicators.includes(SELF_RISK);
   const lines = [
     '1. Thank them for telling you. Say plainly that it is not their fault and they are not in trouble',
     `2. Ask whether they are safe right now. If they are in danger right now, they can call ${EMERGENCY_NUMBER}`,
@@ -130,12 +167,13 @@ export function minorAbuseGuidance(crisis: { indicators: readonly string[] }): s
     `4. Offer the ${CHILDHELP.name}: call or text ${CHILDHELP.phone}, any time`,
     '5. Do not ask for details of what happened. Never promise to keep it secret or between you, and never say or imply that you will tell anyone',
   ];
-  if (crisis.indicators.includes(`${INDICATOR}_self_harm`)) {
+  if (selfRisk) {
     lines.push(
-      '6. They also said something about hurting themselves: include the 988 Suicide & Crisis Lifeline (call or text 988)'
+      '6. They may be at risk themselves too: keep the 988 Suicide & Crisis Lifeline (call or text 988) in the same reply as Childhelp'
     );
   }
-  return `[CRITICAL - CHILD SAFETY]
+  const childSafety = `[CRITICAL - CHILD SAFETY]
 The caller sounds under 18 and is telling you that someone is touching or hurting them. Your response MUST:
 ${lines.join('\n')}`;
+  return selfRisk ? `${buildCrisisGuidance(crisis)}\n\n${childSafety}` : childSafety;
 }

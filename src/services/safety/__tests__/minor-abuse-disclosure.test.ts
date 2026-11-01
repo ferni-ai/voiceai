@@ -2,18 +2,31 @@
  * MINOR_ABUSE_DISCLOSURE (minor-abuse-disclosure.ts) through the real turn pipeline
  * (startTurnCrisis). With the flag off, a turn is exactly as on main. With it on, a caller who
  * sounds under 18 and tells of sexual harm gets a crisis-level safety turn: child-safety care and
- * the call's memory held, 988 only if the call isn't abuse-only. A child's everyday words with the
- * same verbs never match, and neither does an adult's disclosure (that is ABUSE_DISCLOSURE_PATTERNS').
+ * the call's memory held, and main's crisis guidance (988 and all) with it whenever the caller may
+ * be at risk too. A child's everyday words with the same verbs never match, and neither does an
+ * adult's disclosure (that is ABUSE_DISCLOSURE_PATTERNS'). The voice turn handler's side is in
+ * agents/voice-agent/__tests__/turn-handler-minor-abuse.test.ts.
  */
 import { readFileSync } from 'fs';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { startTurnCrisis } from '../../../agents/processors/turn-processor/turn-crisis.js';
+import {
+  crisisSummary,
+  startTurnCrisis,
+} from '../../../agents/processors/turn-processor/turn-crisis.js';
 import { resetMinorCare } from '../../../utils/minor-care.js';
 import { resetSexualTopicHold, sexualTopicHeld } from '../../../utils/sexual-topic-hold.js';
 import { noteCrisisRisk, resetCrisisCallRisk } from '../crisis-call-risk.js';
 import { resetCrisisClassifierCache, type CrisisGenerateFn } from '../crisis-classifier.js';
+import { SOFT_CRISIS_CHECK } from '../crisis-agreement.js';
+import { buildCrisisGuidance, type CrisisDetectionResult } from '../crisis-guard.js';
 import { resetCallRiskSnapshots } from '../crisis-lone-imminent.js';
-import { minorAbuseDisclosure, minorAbuseGuidance } from '../minor-abuse-disclosure.js';
+import { SEVERITY } from '../crisis-severity.js';
+import {
+  callerMayBeAtRisk,
+  minorAbuseDisclosure,
+  minorAbuseGuidance,
+  withMinorAbuseDisclosure,
+} from '../minor-abuse-disclosure.js';
 
 const BASE = {
   CRISIS_GUARD_MODE: 'live',
@@ -25,16 +38,26 @@ const BASE = {
 const OFF = { ...BASE, MINOR_ABUSE_DISCLOSURE: 'off' };
 const ON = { ...BASE, MINOR_ABUSE_DISCLOSURE: 'on' };
 const none: CrisisGenerateFn = async () => '{"risk":"none","subject":"self"}';
+const reads =
+  (risk: string): CrisisGenerateFn =>
+  async () =>
+    `{"risk":"${risk}","subject":"self"}`;
 
 let n = 0;
-async function turn(line: string, env: Record<string, string>, earlier: string[] = [], call = '') {
+async function turn(
+  line: string,
+  env: Record<string, string>,
+  earlier: string[] = [],
+  call = '',
+  generate = none
+) {
   resetCrisisClassifierCache();
   resetCallRiskSnapshots();
   const sessionId = call || `minor-abuse-${++n}`;
   const t = startTurnCrisis(
     line,
     { recentTranscripts: [...earlier, line], turnCount: earlier.length + 1 },
-    { sessionId, env, generate: none }
+    { sessionId, env, generate }
   );
   return { sessionId, summary: await t.summary() };
 }
@@ -110,6 +133,7 @@ describe('a disclosure through the turn pipeline', () => {
   it('is a crisis-level safety turn with the flag on, never the scripted takeover, and holds the call', async () => {
     const { sessionId, summary } = await turn(line, ON);
     expect(summary.isCrisis).toBe(true);
+    expect(summary.severity).toBeGreaterThanOrEqual(SEVERITY.crisis); // X4
     expect(summary.shouldOverrideLLM).toBe(false);
     expect(summary.indicators).toContain('minor_abuse_disclosure');
     expect(sexualTopicHeld(sessionId, ON)).toBe(true);
@@ -126,12 +150,15 @@ describe('a disclosure through the turn pipeline', () => {
   });
 
   it('never promises secrecy and never implies Ferni will tell (Seth, 11-01)', async () => {
-    const g = minorAbuseGuidance((await turn(line, ON)).summary) ?? '';
-    expect(g).toContain('Never promise to keep it secret or between you');
-    expect(g).toContain('never say or imply that you will tell anyone');
-    expect(g).not.toMatch(
-      /stays? between us|not going to tell|keep (?:it|this) (?:a )?secret\b(?! or)/i
-    );
+    const risk = "I'm 14 and my coach touches me and I don't want to wake up tomorrow.";
+    for (const summary of [(await turn(line, ON)).summary, (await turn(risk, ON)).summary]) {
+      const g = minorAbuseGuidance(summary) ?? '';
+      expect(g).toContain('Never promise to keep it secret or between you');
+      expect(g).toContain('never say or imply that you will tell anyone');
+      expect(g).not.toMatch(
+        /stays? between us|won'?t tell anyone|not going to tell|keep (?:it|this) (?:a )?secret\b(?! or)/i
+      );
+    }
   });
 
   it('988 too when they say something about hurting themselves, this turn or earlier', async () => {
@@ -139,6 +166,21 @@ describe('a disclosure through the turn pipeline', () => {
     expect(minorAbuseGuidance(now.summary)).toMatch(/\b988\b/);
     const before = await turn(line, ON, ['Sometimes I want to kill myself.']);
     expect(minorAbuseGuidance(before.summary)).toMatch(/\b988\b/);
+  });
+
+  it('a soft read plus a disclosure is the crisis turn: soft gone, 911, Childhelp, 988 (X2)', () => {
+    const patterns: CrisisDetectionResult = { isCrisis: false, severity: 0, indicators: [] };
+    const soft = { crisis: patterns, soft: true, guidance: SOFT_CRISIS_CHECK };
+    const out = withMinorAbuseDisclosure(soft, undefined, { latest: line }, false, ON);
+    expect(out.soft).toBe(false);
+    const summary = crisisSummary(out.crisis, out.soft, out.guidance);
+    expect(summary.softCheck).toBeUndefined();
+    expect(summary.isCrisis).toBe(true);
+    expect(summary.severity).toBeGreaterThanOrEqual(SEVERITY.crisis);
+    const g = minorAbuseGuidance(summary) ?? '';
+    expect(g).toContain('call 911');
+    expect(g).toContain('1-800-422-4453');
+    expect(g).toMatch(/\b988\b/);
   });
 
   it('988 too when risk was noted earlier on the call', async () => {
@@ -163,7 +205,38 @@ describe('a disclosure through the turn pipeline', () => {
   });
 
   it('only a disclosure gets the child-safety guidance', () => {
-    expect(minorAbuseGuidance({ indicators: ['explicit_ideation'] })).toBeNull();
+    const crisis = { isCrisis: true, severity: 0.9, indicators: ['explicit_ideation'] };
+    expect(minorAbuseGuidance(crisis)).toBeNull();
+  });
+
+  it("keeps 988 on the classifier's read alone (K4: implicit_distress + classifier_crisis)", async () => {
+    const k4 = "I'm 13 and my stepdad touches me at night and I can't do this anymore.";
+    const off = (await turn(k4, OFF, [], '', reads('crisis'))).summary;
+    expect(off.indicators).toEqual(
+      expect.arrayContaining(['implicit_distress', 'classifier_crisis'])
+    );
+    const on = (await turn(k4, ON, [], '', reads('crisis'))).summary;
+    expect(on.indicators).toContain('minor_abuse_disclosure_self_harm');
+    expect(minorAbuseGuidance(on)).toMatch(/\b988\b/);
+  });
+
+  it('a classifier read is self-risk even when the patterns read nothing', async () => {
+    const quiet = "My coach touches me and I'm only 14 and I don't know what to do.";
+    expect((await turn(quiet, OFF)).summary.indicators).toEqual([]);
+    const read = (await turn(quiet, ON, [], '', reads('crisis'))).summary;
+    expect(minorAbuseGuidance(read)).toMatch(/\b988\b/);
+    const unread = (await turn(quiet, ON)).summary;
+    expect(minorAbuseGuidance(unread)).not.toMatch(/\b988\b/);
+  });
+
+  it("with self-risk, main's crisis guidance comes first and the child-safety care follows", async () => {
+    const mixed = "I'm 14 and my coach touches me and I don't want to wake up tomorrow.";
+    const { summary } = await turn(mixed, ON);
+    const g = minorAbuseGuidance(summary) ?? '';
+    expect(g.startsWith(buildCrisisGuidance(summary))).toBe(true);
+    expect(g).toContain('[CRITICAL - CHILD SAFETY]');
+    expect(g).toContain('call 911');
+    expect(g).toContain('1-800-422-4453');
   });
 
   it('is the guidance the voice turn injects for a crisis turn (turn-handler.ts)', () => {
@@ -176,4 +249,62 @@ describe('a disclosure through the turn pipeline', () => {
       'minorAbuseGuidance(result.crisis) ?? buildCrisisGuidance(result.crisis)'
     );
   });
+});
+
+// Fictional. Each new self-harm wording, then a line it must never read (r2, verify of #3332).
+const WORDS: Array<[string, string]> = [
+  ["I don't want to wake up tomorrow.", "I don't want to wake up early tomorrow."],
+  ['I don’t want to wake up ever again.', "I don't want to wake up for school tomorrow."],
+  ['I hope I never wake up.', "I hope I don't wake up late again."],
+  [
+    'I wish I could go to sleep and never wake up.',
+    'I want to go to sleep and not wake up until noon.',
+  ],
+  ["I don't see the point of anything anymore.", "I don't see the point of this homework."],
+  ["There's no point in living.", "There's no point in studying for this quiz."],
+  ["I can't see any point in going on.", "I don't see the point of anything they teach in gym."],
+  [
+    "I keep thinking about taking all of my mom's pills.",
+    'I keep forgetting to take my allergy pills.',
+  ],
+  [
+    "I want to swallow the whole bottle of my dad's sleeping pills.",
+    "I'm going to take all my meds with breakfast like the doctor said.",
+  ],
+  [
+    "I'm gonna take all the pills in the cabinet.",
+    "I'm going to take all my old meds to the pharmacy.",
+  ],
+  ['I just want to die.', 'I just want to die my hair blue.'],
+];
+
+describe('callerMayBeAtRisk', () => {
+  const unread = { crisis: { isCrisis: false, severity: 0, indicators: [] }, soft: false };
+
+  it('reads passive and means ideation, this turn or earlier, and never its hard negative', () => {
+    for (const [said, everyday] of WORDS) {
+      expect(callerMayBeAtRisk(unread, { latest: said }, false), said).toBe(true);
+      expect(callerMayBeAtRisk(unread, { latest: line(), earlier: [said] }, false), said).toBe(
+        true
+      );
+      expect(callerMayBeAtRisk(unread, { latest: everyday }, false), everyday).toBe(false);
+    }
+  });
+
+  it("counts the turn's own read: a crisis read, whoever made it, or a soft check", () => {
+    const latest = line();
+    const read = (indicators: string[]) => ({
+      crisis: { isCrisis: true, severity: 0.75, indicators },
+      soft: false,
+    });
+    expect(callerMayBeAtRisk(read(['classifier_crisis']), { latest }, false)).toBe(true);
+    expect(callerMayBeAtRisk(read(['classifier_imminent']), { latest }, false)).toBe(true);
+    expect(callerMayBeAtRisk({ ...unread, soft: true }, { latest }, false)).toBe(true);
+    expect(callerMayBeAtRisk(unread, { latest }, true)).toBe(true);
+    expect(callerMayBeAtRisk(unread, { latest }, false)).toBe(false);
+  });
+
+  function line(): string {
+    return "A teacher at my school touched me. I'm 14.";
+  }
 });
