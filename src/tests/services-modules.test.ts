@@ -132,7 +132,6 @@ describe('env-validator', () => {
     it('should detect optional features when configured', async () => {
       process.env.DATABASE_URL = 'postgresql://localhost:5432/test';
       process.env.REDIS_URL = 'redis://localhost:6379';
-      process.env.SENDGRID_API_KEY = 'test-sendgrid-key';
 
       const { getFeatureAvailability } = await import('../services/env-validator.js');
       const features = getFeatureAvailability();
@@ -216,13 +215,11 @@ describe('env-validator', () => {
   describe('isFeatureAvailable', () => {
     it('should check individual feature availability', async () => {
       // Store original values
-      const originalSendgrid = process.env.SENDGRID_API_KEY;
       const originalTwilioSid = process.env.TWILIO_ACCOUNT_SID;
       const originalTwilioToken = process.env.TWILIO_AUTH_TOKEN;
       const originalTwilioPhone = process.env.TWILIO_PHONE_NUMBER;
 
-      // Set up test environment
-      process.env.SENDGRID_API_KEY = 'test-key';
+      // Set up test environment (email needs no key: the Workspace mailbox)
       delete process.env.TWILIO_ACCOUNT_SID;
       delete process.env.TWILIO_AUTH_TOKEN;
       delete process.env.TWILIO_PHONE_NUMBER;
@@ -233,7 +230,6 @@ describe('env-validator', () => {
       expect(isFeatureAvailable('smsNotifications')).toBe(false);
 
       // Restore original values
-      process.env.SENDGRID_API_KEY = originalSendgrid;
       if (originalTwilioSid) process.env.TWILIO_ACCOUNT_SID = originalTwilioSid;
       if (originalTwilioToken) process.env.TWILIO_AUTH_TOKEN = originalTwilioToken;
       if (originalTwilioPhone) process.env.TWILIO_PHONE_NUMBER = originalTwilioPhone;
@@ -269,7 +265,6 @@ describe('env-validator', () => {
 
   describe('getMissingFeatures', () => {
     it('should return empty array when all optional features are configured', async () => {
-      process.env.SENDGRID_API_KEY = 'test-key';
       process.env.TWILIO_ACCOUNT_SID = 'test-sid';
       process.env.TWILIO_AUTH_TOKEN = 'test-token';
       process.env.PLAID_CLIENT_ID = 'test-client';
@@ -285,13 +280,11 @@ describe('env-validator', () => {
       expect(missing.length).toBeLessThanOrEqual(1);
     });
 
-    it('should list missing email notifications', async () => {
-      delete process.env.SENDGRID_API_KEY;
-
+    it('never lists email notifications as missing (the Workspace mailbox needs no key)', async () => {
       const { getMissingFeatures } = await import('../services/env-validator.js');
       const missing = getMissingFeatures();
 
-      expect(missing.some((m) => m.includes('Email notifications'))).toBe(true);
+      expect(missing.some((m) => m.includes('Email notifications'))).toBe(false);
     });
 
     it('should list missing SMS notifications', async () => {

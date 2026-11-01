@@ -25,6 +25,7 @@ vi.mock('../../services/identity/sponsored-identity.js', () => ({
   approveSelfRegisteredIdentity: vi.fn(),
 }));
 vi.mock('../auth-middleware.js', () => ({
+  rateLimit: () => false, // never limited here
   requireAuth: vi.fn(async () => ({ userId: 'sponsor-1', isAdmin: false })),
 }));
 

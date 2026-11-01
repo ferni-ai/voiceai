@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 // No database: the default store must read as unreadable, not as "nothing forgotten".
 vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
-import { foldText, stem } from '../forget-tokens.js';
+import { foldText, stem } from '../../domain/forget-tokens.js';
 import { forgetTokens, isForgotten, loadRecallSnapshot, storedTopic } from '../session-recall.js';
 import {
   forgottenTopics,

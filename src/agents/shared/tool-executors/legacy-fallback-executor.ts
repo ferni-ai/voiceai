@@ -1087,7 +1087,7 @@ export async function executeLegacyFallback(
   // Alex's full communication tools are in tools/domains/communication.
   // These fallbacks help draft/analyze messages conversationally.
   // Note: sendMessage/sendText/sendSMS are connected to real Twilio SMS
-  // Note: sendEmail is connected to real SendGrid email
+  // Note: sendEmail goes through the ferni.ai Workspace mailbox
   // ========================================
 
   // ========================================
@@ -1276,7 +1276,7 @@ export async function executeLegacyFallback(
   }
 
   // ========================================
-  // SEND EMAIL - Real SendGrid integration
+  // SEND EMAIL - the ferni.ai Workspace mailbox
   // ========================================
   if (fnLower === 'sendemail') {
     const contactName = (args.contactName || args.contact || args.recipient || args.to) as string;

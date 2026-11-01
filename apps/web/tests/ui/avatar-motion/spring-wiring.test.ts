@@ -7,13 +7,14 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { MOTION_FLAG_KEYS } from '../../../src/config/motion-flags.js';
+
 vi.mock('../../../src/utils/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
 import { addTransformLayer } from '../../../src/ui/avatar-motion/compositor.js';
 import {
-  SPRING_BODY_FLAG_KEY,
   SPRING_BODY_TURN_EVENT,
   disposeSpringBody,
   initSpringBody,
@@ -166,7 +167,7 @@ describe('spring body on the compositor layer', () => {
   });
 
   it('flag on: a contract-name turn moves the body, additively and on top of breathing', async () => {
-    localStorage.setItem(SPRING_BODY_FLAG_KEY, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.springBody, 'true');
     body.make([{ transform: 'scale(1)' }], 'replace'); // breathing, compositor off
     expect(initSpringBody()).toBe(true);
     turn('listening');

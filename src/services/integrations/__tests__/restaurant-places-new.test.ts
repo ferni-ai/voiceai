@@ -8,7 +8,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // google-places.ts reads keys at import.
 vi.hoisted(() => {
   process.env.GOOGLE_PLACES_API_KEY = 'test-places-key';
-  delete process.env.YELP_API_KEY;
 });
 
 vi.mock('../../../utils/safe-logger.js', () => {

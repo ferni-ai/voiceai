@@ -137,7 +137,7 @@ export async function initializeUtilitiesIntegration(
       );
 
       if (proactiveOpener) {
-        log.info({ userId, opener: proactiveOpener.slice(0, 50) }, 'Got proactive opener');
+        log.info({ userId, openerLen: proactiveOpener.length }, 'Got proactive opener');
       }
     } catch (err) {
       log.warn({ err, userId }, 'Could not get proactive opener');

@@ -499,6 +499,19 @@ Uses Cloud Run with traffic shifting:
 pnpm vitest run apps/cli/src/__tests__/
 ```
 
+### Nightly integration smoke
+
+```bash
+pnpm test:integrations:nightly   # read-only; needs the agent's secrets in .env or the shell
+```
+
+Runs `commands/test/integration-probes.ts` and compares each probe with
+`scripts/ops/integration-expected.json` (`working` or `unavailable`). Exit 0 and
+one `integration-nightly OK` line only when all match; exit 1 names the anomalies
+(a `working` probe failing, an `unavailable` one passing, a probe and its entry
+out of step); exit 2 is a harness error. Change an expectation on purpose, with
+a `why`. Scheduling (launchd) is not installed by this command.
+
 ---
 
 ## Rules

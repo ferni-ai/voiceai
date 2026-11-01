@@ -1,33 +1,22 @@
 /**
  * Concierge API Routes
  *
- * Handles API endpoints for the AI Concierge feature:
- * - Status queries for user requests
- * - Webhook handlers for outreach callbacks
+ * Handles API endpoints for the AI Concierge feature: status queries and
+ * cancels for the signed-in user's own requests. Every route needs auth.
+ *
+ * There are no concierge webhooks. The unsigned call-status / sms-reply /
+ * email-reply handlers were removed: no provider was pointed at them (concierge
+ * calls and texts are simulated, and email replies go to the user's own inbox),
+ * and anyone could forge a business reply through them.
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { requireAuth, rateLimit } from './auth-middleware.js';
-import { handleCorsPreflightIfNeeded, parseBody, sendJSON, sendError } from './helpers.js';
+import { handleCorsPreflightIfNeeded, sendJSON, sendError } from './helpers.js';
 import { getTaskTracker } from '../services/concierge/index.js';
 
 const log = createLogger({ module: 'concierge-routes' });
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface WebhookPayload {
-  requestId?: string;
-  targetId?: string;
-  status?: string;
-  callSid?: string;
-  messageSid?: string;
-  from?: string;
-  body?: string;
-  [key: string]: unknown;
-}
 
 // ============================================================================
 // MAIN ROUTER
@@ -49,12 +38,7 @@ export async function handleConciergeRoutes(
   }
 
   try {
-    // Webhook endpoints (no auth, but verify signature)
-    if (pathname.startsWith('/api/concierge/webhooks/')) {
-      return await handleWebhooks(req, res, pathname);
-    }
-
-    // Rate limiting for non-webhook routes
+    // Rate limiting
     if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })) {
       return true;
     }
@@ -215,177 +199,6 @@ async function handleCancelRequest(
   } catch (error) {
     log.error({ error: String(error), userId, requestId }, 'Failed to cancel request');
     sendError(res, 'Failed to cancel request', 500);
-    return true;
-  }
-}
-
-// ============================================================================
-// WEBHOOK HANDLERS
-// ============================================================================
-
-async function handleWebhooks(
-  req: IncomingMessage,
-  res: ServerResponse,
-  pathname: string
-): Promise<boolean> {
-  // Parse webhook body
-  const body = await parseBody<WebhookPayload>(req);
-
-  // POST /api/concierge/webhooks/call-status - Twilio call status
-  if (pathname === '/api/concierge/webhooks/call-status' && req.method === 'POST') {
-    return handleCallStatusWebhook(res, body);
-  }
-
-  // POST /api/concierge/webhooks/sms-reply - Inbound SMS from business
-  if (pathname === '/api/concierge/webhooks/sms-reply' && req.method === 'POST') {
-    return handleSmsReplyWebhook(res, body);
-  }
-
-  // POST /api/concierge/webhooks/email-reply - Email response from business
-  if (pathname === '/api/concierge/webhooks/email-reply' && req.method === 'POST') {
-    return handleEmailReplyWebhook(res, body);
-  }
-
-  sendError(res, 'Unknown webhook endpoint', 404);
-  return true;
-}
-
-async function handleCallStatusWebhook(
-  res: ServerResponse,
-  body: WebhookPayload
-): Promise<boolean> {
-  const { requestId, targetId, status, callSid } = body;
-
-  log.info({ requestId, targetId, status, callSid }, 'Call status webhook received');
-
-  if (!requestId || !targetId) {
-    log.warn({ body }, 'Missing required fields in call status webhook');
-    sendJSON(res, { received: true, warning: 'Missing fields' });
-    return true;
-  }
-
-  try {
-    const tracker = getTaskTracker();
-
-    // Map Twilio status to our target status
-    let targetStatus: 'completed' | 'no_answer' | 'failed' | 'calling' = 'calling';
-    if (status === 'completed') {
-      targetStatus = 'completed';
-    } else if (status === 'no-answer' || status === 'busy') {
-      targetStatus = 'no_answer';
-    } else if (status === 'failed' || status === 'canceled') {
-      targetStatus = 'failed';
-    }
-
-    await tracker.updateTargetStatus(requestId, targetId, targetStatus);
-
-    sendJSON(res, { received: true });
-    return true;
-  } catch (error) {
-    log.error({ error: String(error), requestId, targetId }, 'Failed to process call status');
-    sendJSON(res, { received: true, error: 'Processing failed' });
-    return true;
-  }
-}
-
-async function handleSmsReplyWebhook(res: ServerResponse, body: WebhookPayload): Promise<boolean> {
-  const { from, body: messageBody } = body;
-
-  log.info({ from, bodyLength: messageBody?.length }, 'SMS reply webhook received');
-
-  if (!from) {
-    sendJSON(res, { received: true, error: 'Missing sender phone number' });
-    return true;
-  }
-
-  try {
-    // Match phone number to active request target
-    const tracker = getTaskTracker();
-    const match = await tracker.findRequestByTargetPhone(from);
-
-    if (match) {
-      const { request, target } = match;
-      log.info(
-        { from, requestId: request.id, targetId: target.id, targetName: target.name },
-        'SMS reply matched to concierge request'
-      );
-
-      // Add result to the request
-      await tracker.addResult(request.id, {
-        requestId: request.id,
-        targetId: target.id,
-        channel: 'sms',
-        attemptNumber: target.attempts + 1,
-        success: true,
-        summary: `SMS reply from ${target.name}`,
-        data: {
-          messageBody: messageBody?.substring(0, 500), // Limit size
-          notes: 'Business replied via SMS',
-        },
-        timestamp: new Date(),
-      });
-    } else {
-      log.info({ from, message: messageBody }, 'SMS reply received - no matching request found');
-    }
-
-    sendJSON(res, { received: true, matched: !!match });
-    return true;
-  } catch (error) {
-    log.error({ error: String(error), from }, 'Failed to process SMS reply');
-    sendJSON(res, { received: true, error: 'Processing failed' });
-    return true;
-  }
-}
-
-async function handleEmailReplyWebhook(
-  res: ServerResponse,
-  body: WebhookPayload
-): Promise<boolean> {
-  const { from, body: emailBody } = body;
-
-  log.info({ from, bodyLength: emailBody?.length }, 'Email reply webhook received');
-
-  if (!from) {
-    sendJSON(res, { received: true, error: 'Missing sender email address' });
-    return true;
-  }
-
-  try {
-    // Match email address to active request target
-    const tracker = getTaskTracker();
-    const match = await tracker.findRequestByTargetEmail(from);
-
-    if (match) {
-      const { request, target } = match;
-      log.info(
-        { from, requestId: request.id, targetId: target.id, targetName: target.name },
-        'Email reply matched to concierge request'
-      );
-
-      // Add result to the request
-      await tracker.addResult(request.id, {
-        requestId: request.id,
-        targetId: target.id,
-        channel: 'email',
-        attemptNumber: target.attempts + 1,
-        success: true,
-        summary: `Email reply from ${target.name}`,
-        data: {
-          emailBody: emailBody?.substring(0, 2000), // Limit size
-          notes: 'Business replied via email',
-        },
-        timestamp: new Date(),
-        emailThreadId: `email_${Date.now()}`,
-      });
-    } else {
-      log.info({ from }, 'Email reply received - no matching request found');
-    }
-
-    sendJSON(res, { received: true, matched: !!match });
-    return true;
-  } catch (error) {
-    log.error({ error: String(error), from }, 'Failed to process email reply');
-    sendJSON(res, { received: true, error: 'Processing failed' });
     return true;
   }
 }

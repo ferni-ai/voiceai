@@ -4,7 +4,7 @@
  * - /api/calendar/providers/status returns providers keyed by name, not an array;
  * - while the checks run, the menu's loading shell is up;
  * - a check that fails shows "Couldn't check" with Try again, never "not connected";
- * - a hidden tile's status is never requested (Spotify was polled while hidden).
+ * - there is no Spotify tile, and its status is never requested (no per-user Spotify).
  *
  * The panel is opened the way the menu opens it (openEverythingConnected).
  */
@@ -21,7 +21,6 @@ vi.mock('../../src/utils/logger.js', () => ({
 vi.mock('../../src/state/app.state.js', () => ({ getDeviceId: () => 'device-1' }));
 const screens = vi.hoisted(() => ({ openCalendarSettings: vi.fn() }));
 vi.mock('../../src/ui/lazy-screens.js', () => screens);
-vi.mock('../../src/ui/spotify.ui.js', () => ({ triggerSpotifyLinkToggle: vi.fn() }));
 
 const mockApiGet = vi.fn();
 vi.mock('../../src/utils/api.js', () => ({ apiGet: mockApiGet }));
@@ -67,7 +66,7 @@ describe('Connected Life status', () => {
     document.body.innerHTML = '';
   });
 
-  it('connected: Calendar shows Connected, and the hidden Spotify tile is never asked', async () => {
+  it('connected: Calendar shows Connected; there is no Spotify tile to ask about', async () => {
     routes(v1, providers(true));
     await open();
     expect(calendarTile().classList.contains('connected')).toBe(true);

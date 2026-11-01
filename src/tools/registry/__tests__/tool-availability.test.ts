@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const logs = vi.hoisted(() => ({ info: vi.fn() }));
 vi.mock('../../../utils/safe-logger.js', () => {
-  const l = { debug: vi.fn(), info: logs.info, warn: vi.fn(), error: vi.fn() };
+  const l = { debug: vi.fn(), info: logs.info, warn: vi.fn(), error: vi.fn(), child: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }) };
   return { getLogger: () => l, createLogger: () => l, safeLog: () => l };
 });
 

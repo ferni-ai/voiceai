@@ -1,0 +1,51 @@
+name: Autonomy Lanes
+
+# Does a PR in a protected lane (crisis, evaluator) carry what the lane needs? Rules:
+# scripts/ci/autonomy-lanes.ts + autonomy-policy.json; docs: docs/ci/ci-inventory.md.
+# Fails only on merge_group, and the queue acts on it only while "Autonomy Lanes" is a
+# required check.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+  merge_group:
+
+concurrency:
+  # Per event, so a review-triggered run never cancels a pending pull_request run.
+  group: autonomy-lanes-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  autonomy-lanes:
+    name: Autonomy Lanes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Evaluator and policy come from main, never the PR, so a PR can't loosen its own
+      # lane. The head is fetched as data only; full history for the merge-base diff.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Evaluate autonomy lanes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          QUEUE_REF: ${{ github.event.merge_group.head_ref }} # gh-readonly-queue/main/pr-<N>-<sha>
+          # Enforced in the merge queue only, where every queued PR is read fresh on its head.
+          AUTONOMY_LANES_ENFORCE: ${{ github.event_name == 'merge_group' && '1' || '' }}
+        run: |
+          [ -f scripts/ci/autonomy-lanes.ts ] || { echo "::notice::evaluator not on main yet"; exit 0; }
+          node --experimental-strip-types scripts/ci/autonomy-lanes.ts

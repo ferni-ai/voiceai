@@ -745,7 +745,7 @@ export const SMART_PROMPT_RULES: SmartPromptRule[] = [
   },
   {
     featureId: 'connections',
-    triggers: ['sleep', 'health', 'workout', 'exercise', 'tired', 'energy', 'steps', 'fitbit', 'apple watch', 'garmin', 'calendar', 'busy', 'schedule', 'meetings', 'overbooked', 'sync', 'connect'],
+    triggers: ['sleep', 'health', 'workout', 'exercise', 'tired', 'energy', 'steps', 'apple watch', 'garmin', 'calendar', 'busy', 'schedule', 'meetings', 'overbooked', 'sync', 'connect'],
     minMentions: 3,
   },
   {

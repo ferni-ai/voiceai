@@ -10,6 +10,7 @@ import { extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { maxJobsPerWorker, podCpuCount } from './cpu-load.js';
+import { waitForActiveJobs, type DrainOptions, type DrainResult } from './drain.js';
 import {
   getActiveJobIds,
   getActiveJobs,
@@ -93,9 +94,20 @@ export function startJobRunner(log: LogFn, mode: JobExecutorMode = jobExecutorMo
   log('Job executor: one process per call', { idle: idleProcesses(), entry });
 }
 
-export function stopJobRunner(): void {
+/**
+ * Shutdown: keeps every running call alive until it ends or `timeoutMs` passes,
+ * then closes the pool (which ends its children). It counts the calls where they
+ * run: in process mode the children's, since the worker's own counter stays 0
+ * there. Draining on that counter took 0 ms and cut live calls off (#2661).
+ */
+export async function drainJobRunner(
+  timeoutMs: number,
+  opts: DrainOptions = {}
+): Promise<DrainResult> {
+  const result = await waitForActiveJobs(activeJobCount, timeoutMs, opts);
   pool?.close();
   pool = null;
+  return result;
 }
 
 /** Called on every job start, completion and failure, in either mode. */
@@ -114,6 +126,7 @@ export async function runJob(info: JobInfo, log: LogFn): Promise<void> {
   }
 }
 
+/** Calls running now: in the pool's children, or on this process without a pool. */
 export function activeJobCount(): number {
   return pool ? pool.activeJobIds().length : getActiveJobs();
 }

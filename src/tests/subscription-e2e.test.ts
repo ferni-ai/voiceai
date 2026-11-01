@@ -473,8 +473,33 @@ describe('Subscription E2E Integration', () => {
       expect(savedProfile.subscription.monthlyUsage.conversationCount).toBe(3);
     });
 
-    it('should reset usage when new month', async () => {
+    // Real clock plus pinned clocks: the 31st of a month whose predecessor is
+    // shorter (Oct, Mar, May) used to make "last month" equal this month, and
+    // a mid-January date crosses the year boundary.
+    it.each([
+      ['the real clock', null],
+      ['Oct 31', '2026-10-31T12:00:00Z'],
+      ['Mar 31', '2026-03-31T12:00:00Z'],
+      ['May 31', '2026-05-31T12:00:00Z'],
+      ['Jan 15', '2026-01-15T12:00:00Z'],
+    ])('should reset usage when new month (%s)', async (_label, pinnedNow) => {
+      if (pinnedNow) {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date(pinnedNow));
+      }
+      try {
+        await expectUsageResetForNewMonth();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    async function expectUsageResetForNewMonth(): Promise<void> {
+      // Pin to the 1st before stepping back a month: on the 29th-31st,
+      // setMonth(m - 1) overflows (Oct 31 -> "Sep 31" -> Oct 1), so "last
+      // month" would equal this month and no reset would happen.
       const lastMonth = new Date();
+      lastMonth.setDate(1);
       lastMonth.setMonth(lastMonth.getMonth() - 1);
       const lastMonthPeriod = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
 
@@ -515,7 +540,7 @@ describe('Subscription E2E Integration', () => {
       // Verify the usage was reset to 1 (not 6)
       const savedProfile = mockSaveProfile.mock.calls[0][0];
       expect(savedProfile.subscription.monthlyUsage.conversationCount).toBe(1);
-    });
+    }
   });
 
   // ============================================================================

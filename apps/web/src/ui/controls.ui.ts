@@ -16,12 +16,17 @@ import {
 } from '../utils/dom.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
+import { personaFirstName } from '../config/personas.js';
+import { announce } from '../utils/accessibility.js';
 import { endLabelKey, installCallRoom } from './call-room/call-room.js';
 
 const log = createLogger('ControlsUI');
 
 /** The span holding a button's visible label (index.html `.btn-content`) */
 const LABEL_SELECTOR = '.btn-content';
+
+/** A first connect still going after this long says so ("Still reaching Ferni…"). */
+const CONNECT_SLOW_MS = 4000;
 
 
 // ============================================================================
@@ -51,6 +56,20 @@ let elements: ControlElements | null = null;
 let callbacks: ControlCallbacks | null = null;
 const cleanupFunctions: (() => void)[] = [];
 let uninstallCallRoom: (() => void) | null = null;
+let slowTimer: ReturnType<typeof setTimeout> | null = null;
+/** The state the buttons last showed, to tell an arrival from a reconnect */
+let shownState: ConnectionState | null = null;
+
+function clearSlowTimer(): void {
+  if (slowTimer !== null) clearTimeout(slowTimer);
+  slowTimer = null;
+}
+
+/** Who the call is to, by first name: "Calling Jordan…" */
+function callee(): string {
+  const name = appState.get('activePersona')?.name;
+  return name ? personaFirstName(name) : 'Ferni';
+}
 
 // ============================================================================
 // INITIALIZATION
@@ -81,7 +100,8 @@ export function initControlsUI(controlCallbacks: ControlCallbacks): void {
     uninstallCallRoom?.();
     uninstallCallRoom = installCallRoom();
 
-    // Initial state
+    // Initial state (no arrival to announce for a call already on)
+    shownState = null;
     updateButtonVisibility(appState.get('connection'));
 
   } catch (error) {
@@ -157,6 +177,10 @@ function setupSubscriptions(): void {
  */
 function updateButtonVisibility(state: ConnectionState): void {
   if (!elements) return;
+  // Any state change ends the wait the slow label was counting
+  clearSlowTimer();
+  const previous = shownState;
+  shownState = state;
 
   // Mute only means something during a live call
   if (elements.muteBtn) {
@@ -168,64 +192,94 @@ function updateButtonVisibility(state: ConnectionState): void {
     case 'disconnected':
       show(elements.connectBtn, 'flex');
       hide(elements.disconnectBtn);
-      showConnectingStatus(elements.connectBtn, false);
+      showConnectingStatus(elements.connectBtn, null);
       removeClass(elements.disconnectBtn, 'btn-end-call');
       break;
 
-    case 'connecting':
+    case 'connecting': {
+      show(elements.connectBtn, 'flex');
+      hide(elements.disconnectBtn);
+      // A first connect can be called off from the button
+      const btn = elements.connectBtn;
+      showConnectingStatus(btn, 'connecting');
+      slowTimer = setTimeout(() => {
+        slowTimer = null;
+        showConnectingStatus(btn, 'slow');
+      }, CONNECT_SLOW_MS);
+      break;
+    }
+
     case 'reconnecting':
       show(elements.connectBtn, 'flex');
       hide(elements.disconnectBtn);
-      // A first connect can be called off from the button; a reconnect cannot
-      showConnectingStatus(elements.connectBtn, true, state === 'connecting');
+      // A reconnect of a live call cannot be called off, and is not a new call
+      showConnectingStatus(elements.connectBtn, 'reconnecting');
       break;
 
     case 'connected':
-      showConnectingStatus(elements.connectBtn, false);
+      showConnectingStatus(elements.connectBtn, null);
       hide(elements.connectBtn);
       show(elements.disconnectBtn, 'flex');
       elements.disconnectBtn.disabled = false;
       // Ending the call must not look like starting one: a calm outlined button
       // with a soft warm tint, never the filled persona Connect pill.
       addClass(elements.disconnectBtn, 'btn-end-call');
+      // Screen readers hear the arrival the face shows ("Jordan is here"), once
+      // per call: a reconnect is the same call, not a new arrival.
+      if (previous === 'connecting') announce(t('entrance.arrived', { name: callee() }));
       break;
 
     case 'error':
       show(elements.connectBtn, 'flex');
       hide(elements.disconnectBtn);
-      showConnectingStatus(elements.connectBtn, false);
+      showConnectingStatus(elements.connectBtn, null);
       break;
   }
 }
 
+type ConnectingStatus = 'connecting' | 'slow' | 'reconnecting';
+
+/** Pill label and screen-reader sentence for each waiting status */
+const STATUS_KEYS: Record<ConnectingStatus, { label: string; aria: string }> = {
+  connecting: { label: 'entrance.connectingNow', aria: 'entrance.connectingCancel' },
+  slow: { label: 'entrance.stillCalling', aria: 'entrance.stillCallingCancel' },
+  reconnecting: { label: 'entrance.reconnecting', aria: 'entrance.reconnecting' },
+};
+
 /**
- * Show (or clear) the button's one connecting status, tappable to cancel: two
- * lines in the pill, "Connecting…" over a smaller "Tap to cancel", beside the
- * spinner. A label drawn over the button used to wrap under the spinner and
- * clip at large text sizes. Screen readers get one sentence (aria-label).
+ * Show (or clear, with null) the button's one waiting status: two lines in the
+ * pill, "Calling Ferni…" over a smaller "Tap to cancel", beside the spinner. A
+ * reconnect of a live call can't be called off, so it has no hint. A label drawn
+ * over the button used to wrap under the spinner and clip at large text sizes.
+ * Screen readers get one sentence (aria-label).
  */
-function showConnectingStatus(btn: HTMLButtonElement, on: boolean, cancellable = false): void {
+function showConnectingStatus(btn: HTMLButtonElement, status: ConnectingStatus | null): void {
+  const on = status !== null;
+  const cancellable = status === 'connecting' || status === 'slow';
   btn.disabled = on && !cancellable;
   btn.setAttribute('aria-busy', String(on));
   btn.querySelector('.btn-status')?.remove();
-  if (on) {
+  if (status) {
+    const name = callee();
+    const keys = STATUS_KEYS[status];
+    const label = t(keys.label, { name });
     addClass(btn, 'btn-connecting');
-    btn.dataset.status = t('entrance.connectingNow');
-    const status = document.createElement('span');
-    status.className = 'btn-status';
-    status.setAttribute('aria-hidden', 'true');
+    btn.dataset.status = label;
+    const box = document.createElement('span');
+    box.className = 'btn-status';
+    box.setAttribute('aria-hidden', 'true');
     const main = document.createElement('span');
     main.className = 'btn-status-main';
-    main.textContent = t('entrance.connectingNow');
-    status.append(main);
+    main.textContent = label;
+    box.append(main);
     if (cancellable) {
       const hint = document.createElement('span');
       hint.className = 'btn-status-hint';
       hint.textContent = t('entrance.tapToCancel');
-      status.append(hint);
+      box.append(hint);
     }
-    btn.append(status);
-    btn.setAttribute('aria-label', cancellable ? t('entrance.connectingCancel') : t('app.connecting'));
+    btn.append(box);
+    btn.setAttribute('aria-label', t(keys.aria, { name }));
   } else {
     removeClass(btn, 'btn-connecting');
     delete btn.dataset.status;
@@ -274,7 +328,7 @@ function updateWrapUpState(isWrappingUp: boolean): void {
     addClass(elements.disconnectBtn, 'btn-attention');
 
     // Update aria label for accessibility
-    elements.disconnectBtn.setAttribute('aria-label', t('session.endConversationGoodbye'));
+    elements.disconnectBtn.setAttribute('aria-label', t('session.goodbyeEndCall'));
   } else {
     // Reset to normal disconnect state
     removeClass(elements.disconnectBtn, 'btn-wrap-up');
@@ -288,9 +342,16 @@ function updateWrapUpState(isWrappingUp: boolean): void {
       textSpan.textContent = t(endLabelKey());
     }
     elements.disconnectBtn.removeAttribute('data-wrap-up-text');
-    elements.disconnectBtn.setAttribute('aria-label', t('session.endConversation'));
+    elements.disconnectBtn.setAttribute('aria-label', t(endLabelKey()));
     elements.disconnectBtn.disabled = false; // a goodbye taken back re-enables End (#2291)
   }
+}
+
+/** Put one label on the end button, seen and spoken alike (not a stale "End call"). */
+function showEndLabel(btn: HTMLButtonElement, label: string): void {
+  const textSpan = btn.querySelector(LABEL_SELECTOR);
+  if (textSpan) textSpan.textContent = label;
+  btn.setAttribute('aria-label', label);
 }
 
 /**
@@ -304,11 +365,8 @@ export function showClosingState(): void {
   removeClass(elements.disconnectBtn, 'btn-attention');
   addClass(elements.disconnectBtn, 'btn-closing');
 
-  // Change text to show it's happening
-  const textSpan = elements.disconnectBtn.querySelector(LABEL_SELECTOR);
-  if (textSpan) {
-    textSpan.textContent = t('session.untilNextTime');
-  }
+  // Change text to show it's happening; screen readers hear the same words
+  showEndLabel(elements.disconnectBtn, t('session.untilNextTime'));
 
   // Disable the button during ceremony
   elements.disconnectBtn.disabled = true;
@@ -329,11 +387,8 @@ export function showAgentHangupState(): void {
   // Add agent hangup state - tactile button press
   addClass(elements.disconnectBtn, 'btn-agent-hangup');
 
-  // Brief text change
-  const textSpan = elements.disconnectBtn.querySelector(LABEL_SELECTOR);
-  if (textSpan) {
-    textSpan.textContent = t('session.ending');
-  }
+  // Brief text change; screen readers hear the same words
+  showEndLabel(elements.disconnectBtn, t('session.ending'));
 
   // Disable the button
   elements.disconnectBtn.disabled = true;
@@ -365,6 +420,8 @@ export function setConnecting(isConnecting: boolean): void {
  * Clean up resources.
  */
 export function dispose(): void {
+  clearSlowTimer();
+  shownState = null;
   for (const fn of cleanupFunctions) {
     fn();
   }

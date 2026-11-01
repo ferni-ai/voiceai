@@ -9,7 +9,8 @@
  * @module intelligence/relationship
  */
 
-import { Firestore, Timestamp } from '@google-cloud/firestore';
+import { Timestamp } from '@google-cloud/firestore';
+import { sharedFirestore, type Firestore } from '../../utils/shared-firestore.js';
 import { toSafeDate, toSafeDateOptional } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { unexpiredMoments } from '../../utils/shared-moment-retention.js';
@@ -43,7 +44,7 @@ function getFirestoreDb(): Firestore | null {
   }
 
   try {
-    db = new Firestore({ databaseId: getFirestoreDatabase() });
+    db = sharedFirestore({ databaseId: getFirestoreDatabase() });
     initialized = true;
     log.debug('Relationship persistence Firestore initialized');
     return db;

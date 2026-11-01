@@ -492,7 +492,7 @@ export function getDeliveryRecord(id: string): UnifiedDeliveryRecord | undefined
 /**
  * Get delivery record by external ID
  */
-export function getDeliveryByExternalId(externalId: string): UnifiedDeliveryRecord | undefined {
+function getDeliveryByExternalId(externalId: string): UnifiedDeliveryRecord | undefined {
   for (const record of deliveryRecords.values()) {
     if (record.externalId === externalId) {
       return record;

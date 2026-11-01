@@ -534,17 +534,9 @@ TWILIO_AUTH_TOKEN=xxx
 TWILIO_PHONE_NUMBER=+1xxx
 
 # ============================================================================
-# EMAIL DELIVERY (choose one)
+# EMAIL DELIVERY: the ferni.ai Workspace mailbox, the only transport (no API key;
+# docs/runbooks/email-via-workspace.md)
 # ============================================================================
-# SendGrid
-SENDGRID_API_KEY=xxx
-SENDGRID_WEBHOOK_KEY=xxx          # For webhook signature validation
-
-# OR Resend
-RESEND_API_KEY=xxx
-RESEND_WEBHOOK_SECRET=xxx         # For webhook signature validation
-
-# Email Settings
 EMAIL_FROM=hello@ferni.ai
 EMAIL_FROM_NAME=Ferni
 EMAIL_REPLY_TO=support@ferni.ai
@@ -595,16 +587,6 @@ SMS Inbound:   https://app.ferni.ai/api/outreach/webhooks/twilio/sms-inbound
 Call Status:   https://app.ferni.ai/api/outreach/webhooks/twilio/call-status
 ```
 
-**SendGrid:**
-```
-Event Webhook: https://app.ferni.ai/api/outreach/webhooks/sendgrid
-```
-
-**Resend:**
-```
-Webhook URL:   https://app.ferni.ai/api/outreach/webhooks/resend
-```
-
 ## Files
 
 ```
@@ -628,7 +610,7 @@ src/services/outreach/
 ├── delivery/                  # Channel delivery services
 │   ├── index.ts               # Delivery exports
 │   ├── sms-delivery.ts        # Twilio SMS sending
-│   ├── email-delivery.ts      # SendGrid/Resend email sending
+│   ├── email-delivery.ts      # Persona email via the Workspace mailbox
 │   ├── push-notifications.ts  # Firebase Cloud Messaging
 │   └── delivery-tracker.ts    # Unified delivery tracking
 │
@@ -674,7 +656,7 @@ apps/web/src/ui/
 
 ### Phase 16-20 (Complete)
 - [x] Real SMS delivery via Twilio
-- [x] Email delivery via SendGrid/Resend with beautiful templates
+- [x] Email delivery (now the ferni.ai Workspace mailbox) with beautiful templates
 - [x] Delivery tracking & retry logic
 - [x] Twilio SMS/call webhook handlers
 - [x] Email tracking webhooks (opens/clicks)

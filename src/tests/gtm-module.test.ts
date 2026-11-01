@@ -328,7 +328,6 @@ describe('GTM Configuration', () => {
     delete process.env.SOCIAL_ACCOUNT_TYPE;
     delete process.env.LINKEDIN_ORGANIZATION_URN;
     delete process.env.GTM_ENABLED;
-    delete process.env.GTM_AUTO_PUBLISH;
   });
 
   afterEach(() => {

@@ -12,7 +12,14 @@
  * scene (roleplay, coaching, a task) is context the person never sees as their message.
  */
 import type { IncomingMessage, ServerResponse } from 'http';
+import { flagOn } from '../../config/env-flag.js';
 import { callLLM } from '../../services/llm-utils.js';
+import {
+  buildLiveCustomAgentPrompt,
+  CUSTOM_AGENT_NAME_MAX,
+  customAgentToPersonaConfig,
+  sanitizeOwnerText,
+} from '../../services/custom-agent/index.js';
 import { getCustomAgent } from '../../services/custom-agent/custom-agent-persistence-service.js';
 import type { CustomAgent } from '../../types/custom-agent-api.js';
 import { parseBody } from '../helpers.js';
@@ -39,10 +46,12 @@ export function readChatRequest(
   const scene = text(input.scene);
   if (!message && !scene) return null;
   const history = (Array.isArray(input.history) ? input.history : [])
-    .filter((turn): turn is ChatTurn =>
-      typeof turn === 'object' && turn !== null &&
-      ((turn as ChatTurn).from === 'person' || (turn as ChatTurn).from === 'agent') &&
-      typeof (turn as ChatTurn).text === 'string'
+    .filter(
+      (turn): turn is ChatTurn =>
+        typeof turn === 'object' &&
+        turn !== null &&
+        ((turn as ChatTurn).from === 'person' || (turn as ChatTurn).from === 'agent') &&
+        typeof (turn as ChatTurn).text === 'string'
     )
     .slice(-MAX_TURNS)
     .map((turn) => ({ from: turn.from, text: text(turn.text) }));
@@ -54,18 +63,30 @@ export function buildAgentChatPrompt(
   agent: CustomAgent,
   history: ChatTurn[],
   message: string,
-  scene: string
+  scene: string,
+  env: Record<string, string | undefined> = process.env
 ): string {
-  const name = agent.displayName || agent.name;
-  const stories = [...(agent.memories?.stories ?? []), ...(agent.memories?.wisdom ?? [])]
-    .map((memory) => memory.content)
-    .filter(Boolean)
-    .slice(0, 8);
+  // CUSTOM_AGENT_CHAT_HONESTY: the live call's prompt (owner text kept as data, honest when
+  // sincerely asked whether it's an AI) instead of one that pastes the owner's text raw.
+  // The name is owner text too and lands after the profile, so it is cleaned the same way.
+  const honest = flagOn('CUSTOM_AGENT_CHAT_HONESTY', env);
+  const rawName = agent.displayName || agent.name;
+  const name = honest
+    ? sanitizeOwnerText(rawName, CUSTOM_AGENT_NAME_MAX) || 'your character'
+    : rawName;
+  const stories = honest
+    ? []
+    : [...(agent.memories?.stories ?? []), ...(agent.memories?.wisdom ?? [])]
+        .map((memory) => memory.content)
+        .filter(Boolean)
+        .slice(0, 8);
   return [
-    generateSystemPrompt(agent),
+    honest
+      ? buildLiveCustomAgentPrompt(customAgentToPersonaConfig(agent), 'text')
+      : generateSystemPrompt(agent),
     stories.length ? `## What you remember\n${stories.map((s) => `- ${s}`).join('\n')}` : '',
     scene ? `## This conversation\n${scene}` : '',
-    `Reply as ${name} only: one or two short paragraphs of what ${name} says, in character, with no stage notes about being an AI.`,
+    `Reply as ${name} only: one or two short paragraphs of what ${name} says, in character, with no stage notes${honest ? '' : ' about being an AI'}.`,
     history.length || message ? '## Conversation so far' : '',
     ...history.map((turn) => `${turn.from === 'person' ? 'Them' : name}: ${turn.text}`),
     message ? `Them: ${message}` : `(${name} opens the conversation.)`,

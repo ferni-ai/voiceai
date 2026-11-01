@@ -4,7 +4,7 @@
  *
  * @module intelligence/person-model/util
  */
-import { isForgotten } from '../../memory/index.js';
+import { containsContactData, isForgotten } from '../../memory/index.js';
 import type { FollowUpKind } from '../../services/follow-through/index.js';
 import { wallTimeIn } from '../../utils/time-zone.js';
 import type { Provenance } from './types.js';
@@ -13,12 +13,8 @@ export type Doc = Record<string, unknown>;
 
 export const DAY = 86_400_000;
 
-/** A run of 7+ digits (separators allowed) or an @: contact data, never stored or rendered. */
-const CONTACT = /@|(?:\d[\s().-]*){7,}/;
-
-export function hasContactData(text: string): boolean {
-  return CONTACT.test(text);
-}
+/** Contact data, never stored or rendered: the one shared rule (memory/domain/contact-data). */
+export const hasContactData = containsContactData;
 
 export const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 export const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);

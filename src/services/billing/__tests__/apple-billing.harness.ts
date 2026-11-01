@@ -12,6 +12,7 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { CompactSign, generateKeyPair } from 'jose';
 import { vi } from 'vitest';
+import { fakeRunTransaction } from '../../../tests/helpers/fake-transaction.js';
 
 export interface FakeProfile {
   id: string;
@@ -105,6 +106,7 @@ export function fakeFirestoreSdkModule(original: object) {
   });
   class Firestore {
     collection = (name: string) => ({ doc: (id: string) => doc(`${name}/${id}`) });
+    runTransaction = fakeRunTransaction;
     terminate = async () => undefined;
   }
   return { ...original, Firestore };

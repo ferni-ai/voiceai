@@ -14,4 +14,4 @@ export {
   hasLinkedAccounts,
   getTokenData,
   removeAccessToken,
-} from './finance/plaid-store.js';
+} from './finance/plaid-items.js';

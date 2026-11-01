@@ -101,7 +101,7 @@ describe('holdUnaskedHandoff', () => {
 
   it('holds an unasked handoff when the flag is on, and says why', () => {
     const held = holdUnaskedHandoff(unasked, 'Henry Caldwell', false, ON);
-    expect(held?.unavailable).toBe(true);
+    expect(held).toHaveProperty('unavailable', true);
     expect(held?.instruction).toContain("didn't ask for Henry");
     expect(held?.instruction).toContain('Answer them yourself');
   });

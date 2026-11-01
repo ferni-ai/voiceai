@@ -16,10 +16,9 @@ import { ReadableStream } from 'node:stream/web';
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { ASKS, inviteTurnSeed } from './commitment-invite.js';
+import { contentOf, type ReplyChunk as Chunk } from './reply-chunks.js';
 
 const log = createLogger({ module: 'CommitmentInvite' });
-
-type Chunk = llm.ChatChunk | string | object;
 
 const DEADLINE =
   /\b(?:today|tonight|tomorrow|this (?:week|weekend|afternoon|evening)|by (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|the weekend|next)|on (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|before (?:bed|work|we talk))\b/i;
@@ -42,13 +41,6 @@ export function checkInviteReply(text: string, seed: number): { text: string; ch
   const out = kept.join('').trim();
   const ask = ASKS[seed % ASKS.length];
   return { text: out.includes('?') ? out : `${out} ${ask}`.trim(), changed: true };
-}
-
-function contentOf(chunk: Chunk): string | undefined {
-  if (typeof chunk === 'string') return chunk;
-  const delta = (chunk as Partial<llm.ChatChunk> | null)?.delta;
-  if (delta === undefined || (delta.toolCalls?.length ?? 0) > 0) return undefined;
-  return delta.content ?? '';
 }
 
 /** The reply stream, checked a sentence at a time when this is the invite turn; else as is. */

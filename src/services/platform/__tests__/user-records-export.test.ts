@@ -598,3 +598,22 @@ describe('store allowlist', () => {
     ).toEqual([]);
   });
 });
+
+describe('booking preferences (BOOKING_PREFS)', () => {
+  it('exports bogle_users/{uid}/booking_prefs with every field and who said it', async () => {
+    const stored = {
+      kind: 'restaurant',
+      partySize: 2,
+      seating: 'window',
+      days: ['fri', 'sat'],
+      updatedAt: '2026-10-30T14:00:00.000Z',
+      provenance: { partySize: { by: 'said_by_owner', at: '2026-10-30T14:00:00.000Z' } },
+    };
+    const out = await exportUserRecords(
+      'u-1',
+      undefined,
+      storedDb({ 'bogle_users/u-1/booking_prefs/restaurant': stored })
+    );
+    expect(out['bogle_users/{uid}/booking_prefs']).toEqual([{ id: 'restaurant', ...stored }]);
+  });
+});

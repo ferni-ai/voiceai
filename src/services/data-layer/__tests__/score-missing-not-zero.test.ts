@@ -32,10 +32,7 @@ const SCORE_DEFAULTS_TO_ZERO =
   /\w*(mood|energy|stress|sleep|wellbeing|worry|loneliness|hope|sentiment|satisfaction|streak|rating|score|closeness)\w*(\??\.\w+)*\s*(\?\?|\|\|)\s*0(?![.\d])(?!\s*\)?\s*([<>=!]|\+\s*1\b))/i;
 
 /** "file: trimmed line" → why it may stay. */
-const ALLOWED: Record<string, string> = {
-  'services/identity/eight-sleep-api.ts: score: interval.score || 0,':
-    'SleepSummary.score is a required number in the /eight-sleep API the app reads; making it optional changes that contract and the client, so it is a separate PR',
-};
+const ALLOWED: Record<string, string> = {};
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {

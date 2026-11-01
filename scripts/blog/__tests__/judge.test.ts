@@ -119,7 +119,7 @@ describe('judgePrompt and truthPack', () => {
     const truth = truthPack(root);
     expect(truth).toContain('"lastReviewed"');
     expect(truth).toMatch(/^PAYWALL$/m); // flag-manifest-entries.ts
-    expect(truth).toMatch(/^EMOTION_LIFT$/m); // flag-manifest-blocks.ts
+    expect(truth).toMatch(/^EMOTION_LIFT: Ferni rests calm/m); // flag-manifest-blocks.ts
     expect(offFlags(root).has('EMOTION_LIFT')).toBe(true);
     expect(truth).toMatch(/^ALEX_CHIEF_OF_STAFF: Alex keeps/m);
   });

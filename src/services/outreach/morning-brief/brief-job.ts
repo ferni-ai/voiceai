@@ -16,6 +16,7 @@
  */
 
 import { flagOn, type Env } from '../../../config/env-flag.js';
+import { logJobRun } from '../../../utils/job-run.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { wallTimeIn, zonedWallTimeToUtc, type WallTime } from '../../../utils/time-zone.js';
 import type { BriefingClaimStore } from '../../../tasks/scheduled/calendar-briefing-job.js';
@@ -101,6 +102,20 @@ function inBriefHour(user: Record<string, unknown>, zone: string, local: WallTim
   return inHour && local.hour < MORNING_BRIEF_LATEST_HOUR;
 }
 
+/** MORNING_BRIEF_RUN. nothing-today with commitments off: only calendar, reminders and tasks counted. */
+function logBriefRun(report: MorningBriefReport, composed: number, env: Env): void {
+  const counts = { considered: report.checked, eligible: composed, sent: report.sent };
+  logJobRun(
+    log,
+    'MORNING_BRIEF',
+    { ...counts, skippedBy: report.reasons },
+    {
+      enabled: flagOn('MORNING_BRIEF', env),
+      commitments: flagOn('MORNING_BRIEF_COMMITMENTS', env) ? 'on' : 'off',
+    }
+  );
+}
+
 /** One pass over the recipients. Returns who they are, so the push brief can skip them. */
 export async function runMorningBriefs(
   deps: MorningBriefDeps,
@@ -121,6 +136,8 @@ export async function runMorningBriefs(
     count(report.reasons, reason);
   };
   const recipients = await morningBriefRecipients(deps);
+  /** People a brief was written for (sent, or held after composing). */
+  let composed = 0;
 
   for (const userId of recipients) {
     report.checked++;
@@ -162,6 +179,7 @@ export async function runMorningBriefs(
         await release('nothing-today');
         continue;
       }
+      composed++;
       const text = await deps.sendText({
         userId,
         body,
@@ -200,5 +218,6 @@ export async function runMorningBriefs(
   }
 
   log.info(report, 'Morning brief run complete');
+  logBriefRun(report, composed, deps.env);
   return { recipients, report };
 }

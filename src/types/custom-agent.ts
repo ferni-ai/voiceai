@@ -90,7 +90,7 @@ export type VoiceSource =
 /**
  * Cloned voice configuration
  */
-export interface ClonedVoice {
+interface ClonedVoice {
   /** Cartesia voice ID */
   cartesiaVoiceId: string;
 

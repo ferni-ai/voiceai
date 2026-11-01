@@ -65,7 +65,6 @@ function saveEnvFile(env: Record<string, string>): void {
     'Ecobee': ['ECOBEE_API_KEY'],
     'Philips Hue': ['HUE_BRIDGE_IP', 'HUE_USERNAME'],
     'LIFX': ['LIFX_TOKEN'],
-    'Home Assistant (Optional)': ['HOME_ASSISTANT_URL', 'HOME_ASSISTANT_TOKEN'],
     'Test Options': ['DRY_RUN', 'VERBOSE', 'SKIP_RESTORE'],
   };
 
@@ -360,7 +359,7 @@ async function main(): Promise<void> {
   console.log('🏠 FERNI SMART HOME SETUP');
   console.log('═'.repeat(60));
   console.log('\nThis will help you set up direct integrations with your');
-  console.log('smart home devices. No Home Assistant required!\n');
+  console.log('smart home devices.\n');
 
   const rl = createReadline();
   const env = loadEnvFile();

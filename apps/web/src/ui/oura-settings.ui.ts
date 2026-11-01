@@ -12,7 +12,8 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { apiGet, apiDelete } from '../utils/api.js';
+import { apiGet, apiPost } from '../utils/api.js';
+import { startOAuthConnect } from '../services/oauth-connect.service.js';
 import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
 import { asModalDialog } from '../utils/accessibility.js';
@@ -61,11 +62,11 @@ interface OuraStatus {
   sleep?: OuraSleepSummary;
   readiness?: OuraReadinessSummary;
   activity?: OuraActivitySummary;
+  needsReauth?: boolean; // Oura refused the saved link: connect again
   error?: string;
 }
 
 interface OuraSettingsCallbacks {
-  onConnected?: () => void;
   onDisconnected?: () => void;
   onClose?: () => void;
 }
@@ -78,6 +79,7 @@ let container: HTMLElement | null = null;
 let releaseEscape: (() => void) | null = null;
 let styleElement: HTMLStyleElement | null = null;
 let callbacks: OuraSettingsCallbacks = {};
+let needsReauth = false;
 let isLoading = false;
 
 // ============================================================================
@@ -547,26 +549,23 @@ function renderConnectState(): void {
   const content = container.querySelector('.oura-settings__content');
   if (!content) return;
 
-  // Clear existing content safely
   while (content.firstChild) {
     content.removeChild(content.firstChild);
   }
 
   const connectDiv = createElement('div', { className: 'oura-settings__connect' });
 
-  // Icon
   const iconDiv = createElement('div', { className: 'oura-settings__connect-icon' });
   const ringIcon = createIcon('ring');
   if (ringIcon) iconDiv.appendChild(ringIcon);
   connectDiv.appendChild(iconDiv);
 
-  // Title
-  const title = createElement('h3', { textContent: 'Connect Your Oura Ring' });
+  const title = createElement('h3', { textContent: needsReauth ? 'Reconnect Your Oura Ring' : 'Connect Your Oura Ring' });
   connectDiv.appendChild(title);
 
   // Description
   const description = createElement('p', {
-    textContent: 'Link your Oura Ring to get personalized insights about your sleep, readiness, and activity.',
+    textContent: needsReauth ? 'Oura needs you to sign in again before Ferni can see your sleep.' : 'Link your Oura Ring to get personalized insights about your sleep, readiness, and activity.',
   });
   connectDiv.appendChild(description);
 
@@ -814,17 +813,11 @@ async function handleConnect(): Promise<void> {
   isLoading = true;
   renderLoadingState();
 
-  try {
-    const response = await apiGet<{ url: string }>('/api/oura/auth/url');
-
-    if (!response.ok || !response.data?.url) {
-      throw new Error(response.error || 'Failed to get authorization URL');
-    }
-
-    window.location.href = response.data.url;
-  } catch {
+  // The shared connect flow: the server binds the state to the signed-in user, then we leave for Oura.
+  const result = await startOAuthConnect('oura');
+  if (!result.success) {
     isLoading = false;
-    toast.error("Couldn't connect to Oura. Try again?");
+    toast.error(result.error ?? "Couldn't connect to Oura. Try again?");
     renderConnectState();
   }
 }
@@ -836,7 +829,7 @@ async function handleDisconnect(): Promise<void> {
   renderLoadingState();
 
   try {
-    if (!(await apiDelete('/api/oura/disconnect')).ok) throw new Error('Disconnect failed');
+    if (!(await apiPost('/wearables/oura/unlink', {})).ok) throw new Error('Disconnect failed');
     toast.success(t('toasts.ouraDisconnected'));
     callbacks.onDisconnected?.();
     renderConnectState();
@@ -860,6 +853,7 @@ async function loadStatus(): Promise<void> {
     }
 
     const status = response.data;
+    needsReauth = Boolean(status?.needsReauth);
     if (status?.connected) {
       renderConnectedState(status);
     } else {
@@ -931,26 +925,6 @@ export async function showOuraSettings(): Promise<void> {
 
   // Load status
   await loadStatus();
-
-  // Check for OAuth callback results
-  const urlParams = new URLSearchParams(window.location.search);
-  const ouraResult = urlParams.get('oura');
-  if (ouraResult === 'success') {
-    toast.success(t('toasts.ouraRingConnected'));
-    callbacks.onConnected?.();
-    // Clean up URL
-    const url = new URL(window.location.href);
-    url.searchParams.delete('oura');
-    window.history.replaceState({}, '', url.toString());
-  } else if (ouraResult === 'error') {
-    const message = urlParams.get('message');
-    toast.error(message || "Couldn't connect Oura");
-    // Clean up URL
-    const url = new URL(window.location.href);
-    url.searchParams.delete('oura');
-    url.searchParams.delete('message');
-    window.history.replaceState({}, '', url.toString());
-  }
 }
 
 export function hideOuraSettings(): void {

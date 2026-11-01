@@ -36,7 +36,12 @@ vi.mock('../../superhuman/firestore-utils.js', () => ({
 const deleteAllData = vi.hoisted(() => vi.fn());
 vi.mock('../../data-export.js', () => ({ getDataExportService: () => ({ deleteAllData }) }));
 const deleteFirebaseUser = vi.hoisted(() => vi.fn());
-vi.mock('../../identity/firebase-auth.js', () => ({ deleteFirebaseUser }));
+const setFirebaseUserDisabled = vi.hoisted(() => vi.fn(async () => 'done' as const));
+vi.mock('../../identity/firebase-auth.js', () => ({
+  deleteFirebaseUser,
+  getFirebaseUserOrThrow: vi.fn(async (uid: string) => ({ uid, disabled: false })),
+  setFirebaseUserDisabled,
+}));
 
 import { processAppleNotification } from '../apple-signin-notifications.js';
 
@@ -44,6 +49,7 @@ describe('Apple account-delete failure', () => {
   beforeEach(() => {
     vi.stubEnv('APPLE_SIGNIN_SERVICES_ID', 'com.example.services');
     updates.length = 0;
+    setFirebaseUserDisabled.mockClear();
     Object.values(logged).forEach((fn) => fn.mockClear());
     deleteAllData.mockRejectedValue(
       Object.assign(new Error(`No document to update: waitlist/${FAKE_EMAIL}`), { code: 5 })
@@ -79,6 +85,11 @@ describe('Apple account-delete failure', () => {
       Object.assign(new Error(`could not delete ${FAKE_EMAIL}`), { code: 'auth/internal-error' })
     );
     expect(await processAppleNotification('signed.jwt.token')).toMatchObject({ success: true });
+    // off before the data went, and off again once the delete failed
+    expect(setFirebaseUserDisabled.mock.calls).toEqual([
+      ['u-1', true],
+      ['u-1', true],
+    ]);
     expect(logged.warn).toHaveBeenCalledWith(
       { error: 'Error:auth/internal-error', userId: 'u-1...' },
       'Firebase user deletion failed (non-fatal)'

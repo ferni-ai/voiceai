@@ -4,8 +4,13 @@
  * risky turn (multi-agent/first-turn-defer.ts). A leaf module, so both sides
  * can import it without an import cycle.
  *
+ * It also marks the turn for the handoff tools' transfer aliases
+ * (services/safety/crisis-turn-mark.ts).
+ *
  * @module agents/safety/crisis-gate-signal
  */
+
+import { markCrisisTurn, unmarkCrisisTurn } from '../../services/safety/crisis-turn-mark.js';
 
 export const CRISIS_GATE_SIGNAL = 'crisis_gate_decision';
 import type { CrisisReader } from '../../services/safety/index.js';
@@ -18,13 +23,18 @@ export function crisisDecidedOn(session: unknown): boolean {
   return typeof session === 'object' && session !== null && crisisSessions.has(session);
 }
 
-/** Emits { action } on the session for any decision but 'pass'. */
+/** Emits { action } on the session for any decision but 'pass', and marks the turn. */
 export function signalCrisisDecision(
   session: unknown,
   action: string | undefined,
   reader: CrisisReader = 'pattern',
   kind?: CrisisEventKind
 ): void {
+  // Every decision marks the turn, 'pass' included: only a pass clears it for transfer aliases
+  // (crisis-turn-mark.ts). No pattern gate at all: unknown, so unmarked (fail closed).
+  const userData = (session as { userData?: unknown } | null | undefined)?.userData;
+  if (action) markCrisisTurn(userData, action);
+  else if (reader === 'pattern') unmarkCrisisTurn(userData);
   if (!action || action === 'pass') return;
   if (typeof session === 'object' && session !== null) crisisSessions.add(session);
   const emitter = session as { emit?: (event: string, ...args: unknown[]) => unknown };

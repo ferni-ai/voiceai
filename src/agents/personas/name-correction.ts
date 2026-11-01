@@ -46,6 +46,9 @@ import {
   readCallMe,
   withoutVocatives,
 } from '../../utils/call-me-vocative.js';
+import { isCallbackTime } from '../../utils/callback-time.js';
+import { agreeTo } from '../../tools/domains/conversation/index.js';
+import { callerTurns } from './call-me-note.js';
 import { confirmNameNote, pendingOf, personaFirstNameOf, propose, settle } from './name-confirm.js';
 
 const log = createLogger({ module: 'NameCorrection' });
@@ -191,6 +194,15 @@ function ownerMayKeep(user: SessionUser, deps: NameCorrectionDeps): boolean {
   return deps.verifiedOwner?.(sessionId) === true && !outboundOf(deps)(sessionId);
 }
 
+/** Whether this session's caller may rename the account (the owner rule), for rememberName. */
+export function accountMayKeepName(
+  session: object,
+  verifiedOwner: (id: string) => boolean
+): boolean {
+  const user = (session as { userData?: SessionUser }).userData;
+  return !!user && ownerMayKeep(user, { verifiedOwner });
+}
+
 /**
  * Renames the caller for the rest of the call (session only) and, when the
  * account owner is proven to be the one on the line, on the account.
@@ -242,33 +254,43 @@ function heardName(
   const reading = readCallMe(words, persona);
   if (reading.rename) return reading.rename;
   const rest = withoutVocatives(words, reading.spans);
-  return (
+  const name =
     statedName(rest, current, agentLast) ??
-    firstName(rest, ANY_SELF_CUE, current, (n) => isCommonWord(n) || n.toLowerCase() === persona)
-  );
+    firstName(rest, ANY_SELF_CUE, current, (n) => isCommonWord(n) || n.toLowerCase() === persona);
+  // "Call me Later" / "Call me Tomorrow" is a callback request, not a name (callback-time.ts).
+  return name && !isCallbackTime(name) ? name : null;
 }
 
 const currentName = (session: object, user: SessionUser): string | undefined =>
   corrected.get(session)?.name ?? user.userName;
 
-/** A yes to "Sam from now on?", or "the name" to "ring or call you Fern?": rename them now. */
-function applyAnswers(
+/**
+ * A yes to "Sam from now on?", or "the name" to "ring or call you Fern?". The
+ * rename itself is rememberName's (remember-name.ts), the one writer of the
+ * caller's name with CALL_ME_VOCATIVE on: this records the yes for this turn
+ * (agreeTo) and returns the names the model should now save.
+ */
+function agreedNames(
   session: object,
   user: SessionUser,
-  turn: { words: string; heard: string | null },
-  deps: NameCorrectionDeps
-): void {
+  turn: { words: string; heard: string | null; count: number }
+): string[] {
+  const names: string[] = [];
   for (const kind of ['rename', 'either'] as const) {
-    const done = settle(session, kind, turn.words, turn.heard);
+    const done = settle(session, kind, turn, turn.heard);
     const name = done?.pending.name;
     const agreed = done?.outcome === 'yes' || done?.outcome === 'name';
     if (!name || !agreed || sameName(name, currentName(session, user))) continue;
-    const was = corrected.get(session)?.was ?? currentName(session, user);
-    corrected.set(session, { name, was });
-    rename(user, name, deps);
-    log.info({ sessionId: user.services?.sessionId, hadName: !!was }, 'NAME_CORRECTION confirmed');
+    if (!agreeTo(session, name, turn.count)) continue;
+    names.push(name);
+    log.info({ sessionId: user.services?.sessionId }, 'NAME_CORRECTION agreed');
   }
+  return names;
 }
+
+const saveNote = (name: string, current: string | undefined): string =>
+  `They said yes to ${name}. Call rememberName with "${name}" now to save it` +
+  `${current ? `; until it's saved, keep calling them ${current}` : ''}.`;
 
 /**
  * CALL_ME_VOCATIVE=on: a new name waits for their yes (name-confirm.ts). This
@@ -285,15 +307,15 @@ function confirmingNote(
   const heard = words
     ? heardName(words, currentName(session, user), session, lastAgentLine(chatCtx))
     : null;
-  applyAnswers(session, user, { words, heard }, deps);
+  const count = callerTurns(chatCtx.items);
+  const yes = agreedNames(session, user, { words, heard, count });
   const current = currentName(session, user);
   if (heard && !sameName(heard, current) && pendingOf(session, 'rename')?.name !== heard)
-    propose(session, { kind: 'rename', name: heard, askedOn: words });
+    propose(session, { kind: 'rename', name: heard, askedOn: count });
   const ask = pendingOf(session, 'rename');
-  const now = corrected.get(session);
   return [
+    ...yes.map((name) => saveNote(name, current)),
     ask ? confirmNameNote(ask.name, current, deps.plain) : '',
-    now ? nameNote(now.name, now.was) : '',
   ]
     .filter((line) => line !== '')
     .join(' ');

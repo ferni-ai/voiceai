@@ -10,6 +10,11 @@
  *   bogle_users/{uid}/trust_profiles/inside_jokes (trust-systems/inside-jokes.ts): moments
  *   inside one document, so no TTL can reach them: reads drop expired ones and the next save
  *   leaves them out
+ * - bogle_users/{uid}/human_signals/inside_jokes (memory/storage/human-signal-persistence.ts):
+ *   one document too; reads drop expired jokes and the next save removes them
+ * - bogle_users/{uid}/summaries insideJokes (memory/operations/inside-jokes.ts): a summary is
+ *   written once, so recall drops expired bits and an after-call sweep takes them out
+ *   (memory/storage/summary-joke-retention.ts)
  * Moments written before this have no expireAt and are kept as they are.
  *
  * @module utils/shared-moment-retention

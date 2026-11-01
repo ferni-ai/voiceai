@@ -20,8 +20,6 @@ import {
   buildNudgeContext,
   getOverdueFrequentContacts,
 } from '../../../services/contacts/outreach-nudges.js';
-import { inMemoryContext } from '../../../services/contacts/in-memory.js';
-import { listInMemoryPeople } from '../../../services/contacts/in-memory-people.js';
 import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'context:outreach-awareness' });
@@ -51,12 +49,8 @@ export const outreachAwarenessBuilder: ContextBuilder = {
 
     try {
       const nudgeContext = await buildNudgeContext(userId);
-      // Anyone the user has lost, on every turn and not only near a date
-      const inMemory = inMemoryContext(await listInMemoryPeople(userId));
-
       // Only inject if there's something worth mentioning
       if (
-        inMemory === '' &&
         nudgeContext.upcomingDates.length === 0 &&
         nudgeContext.needsAttention.length === 0 &&
         nudgeContext.upcomingHolidays.length === 0
@@ -64,8 +58,8 @@ export const outreachAwarenessBuilder: ContextBuilder = {
         return [];
       }
 
-      // Build the outreach awareness section, starting with anyone the user has lost
-      let content = inMemory;
+      // Build the outreach awareness section
+      let content = '';
 
       // Someone the user has lost: remembered together, never an outreach occasion
       const remembering = nudgeContext.upcomingDates.filter((d) => d.remembered);

@@ -563,14 +563,14 @@ export async function deliverReminderOutcome(
           ? `⏰ Reminder from ${reminder.sourceIdentityName} (via ${firstName})`
           : reminder.subject || `⏰ Reminder from ${firstName}`;
 
-        const emailResult = await sendEmail(
+        // Throws when the transport says it failed, so a failed email is never "sent".
+        await sendEmail(
           reminder.deliveryAddress,
           subject,
-          `${messageToDeliver}\n\n${reminder.context ? `Context: ${reminder.context}\n\n` : ''}— ${firstName}`
+          `${messageToDeliver}\n\n${reminder.context ? `Context: ${reminder.context}\n\n` : ''}— ${firstName}`,
+          false,
+          { userId: reminder.userId, trigger: 'reminder', sourceId: reminder.id }
         );
-        if (emailResult.includes('trouble') || emailResult.includes('error')) {
-          throw new Error(emailResult);
-        }
         break;
       }
 

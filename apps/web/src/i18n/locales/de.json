@@ -1213,7 +1213,6 @@
       "journaling": "Die Chronik",
       "language": "Sprache",
       "lifeContext": "Deine Welt",
-      "linkSpotify": "Spotify verbinden",
       "memoryBrowser": "Woran ich mich erinnere",
       "musicalYou": "Gemeinsam Musik hören",
       "notifications": "Wann ich mich melde",
@@ -1224,7 +1223,6 @@
       "predictionAccuracy": "Wie ich mich schlage",
       "progressAnalytics": "Wie es dir geht",
       "shareFerni": "Bring jemanden mit",
-      "spotifyConnected": "Spotify verbunden",
       "supportFerni": "Ferni unterstützen",
       "supportFerniExpanded": "Ferni unterstützen",
       "takeTour": "Zeig mir alles",
@@ -1870,9 +1868,9 @@
     "disconnected": "Verbindung getrennt",
     "end": "Beenden",
     "endConversation": "Gespräch beenden",
-    "endConversationGoodbye": "Gespräch beenden – Tschüss",
+    "goodbyeEndCall": "Mach's gut. Auflegen.",
     "endSession": "Sitzung beenden",
-    "ending": "Wird beendet...",
+    "ending": "Anruf beendet",
     "goodbye": "Mach's gut",
     "holdToSpeak": "Halte zum Sprechen",
     "listening": "Ich höre zu...",
@@ -1882,7 +1880,7 @@
     "takeCare": "Pass auf dich auf.",
     "tapToSpeak": "Tippe zum Sprechen",
     "thinking": "Ich überlege...",
-    "untilNextTime": "Bis zum nächsten Mal..."
+    "untilNextTime": "Bis zum nächsten Mal"
   },
   "stages": {
     "acquaintance": "Bekannt",
@@ -2419,10 +2417,6 @@
         "description": "Synchronisiere mit den Gesundheitsdaten deiner Apple Watch und deines iPhones",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Verbinde dein Fitbit-Gerät",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Synchronisiere mit Garmin-Wearables",
         "name": "Garmin"
@@ -2776,8 +2770,7 @@
       "askFerni": "Oder bitte Ferni, etwas abzuspielen",
       "play": "Abspielen",
       "pause": "Pause",
-      "skip": "Überspringen",
-      "linkSpotify": "Verknüpfe Spotify in den Einstellungen für ganze Songs"
+      "skip": "Überspringen"
     },
     "volume": "Lautstärke",
     "skipped": "Übersprungen",
@@ -8349,10 +8342,9 @@
     "appleHealthDesc": "Schlaf-, Aktivitäts- und Herzfrequenzdaten",
     "ouraDesc": "Schlafqualität und Tagesform-Werte",
     "eightSleepDesc": "Schlaftracking und Temperatur",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP und mehr",
+    "wearablesDesc": "Garmin, WHOOP und mehr",
     "calendarDesc": "Termine, Meetings und Verfügbarkeit",
     "linkedInDesc": "Beruflicher Kontext und Netzwerk",
-    "spotifyDesc": "Musik, Stimmungs-Playlists, Hörverlauf",
     "ecobeeDesc": "Zuhause-Temperatur und Komfort",
     "vibeControllerDesc": "Steuere Musik, Licht und mehr",
     "connected": "Verbunden"
@@ -8829,6 +8821,13 @@
     "exportFailed": "Deine Daten konnten nicht exportiert werden. Nochmal versuchen?",
     "deleteDataFailed": "Deine Daten konnten nicht gelöscht werden. Es wurde nichts entfernt. Nochmal versuchen?",
     "deleteAccountFailed": "Dein Konto konnte nicht gelöscht werden. Nochmal versuchen?",
+    "deleteRefusedSignIn": "Deine Anmeldung wurde nicht akzeptiert, deshalb hat diese Anfrage nichts gelöscht. Melde dich neu an und versuch es dann noch einmal.",
+    "deleteDataUnknown": "Ob deine Daten gelöscht wurden, ließ sich nicht bestätigen. Vielleicht läuft es noch, schau in ein paar Minuten noch einmal nach.",
+    "deleteDataStillUnknown": "Ob deine Daten gelöscht wurden, ließ sich immer noch nicht bestätigen. Versuch es in ein paar Minuten noch einmal.",
+    "deleteAccountUnknown": "Ob dein Konto gelöscht wurde, ließ sich nicht bestätigen. Vielleicht läuft es noch, schau in ein paar Minuten noch einmal nach.",
+    "accountStillOpen": "Dein Konto ist noch offen. Wenn du es weiterhin schließen möchtest, kannst du es noch einmal löschen.",
+    "accountSignInRefused": "Deine Anmeldung wird nicht mehr akzeptiert. Das passiert, wenn ein Konto geschlossen wird. Wenn du es nicht gelöscht hast, melde dich neu an, um nachzusehen.",
+    "authSlow": "Deine Anmeldung ließ sich nicht rechtzeitig prüfen, deshalb wurde nichts gesendet. Nochmal versuchen?",
     "accountDeletedPartial": "Dein Konto wurde gelöscht, aber einige Daten konnten nicht entfernt werden. Bitte kontaktiere uns, um den Vorgang abzuschließen.",
     "categoryConversations": "Alle Gesprächstranskripte und Metadaten",
     "categoryInsights": "Was Ferni über dich gelernt hat",
@@ -8982,9 +8981,6 @@
     "trustJourneyExplore": "Erkunden",
     "customizeTitle": "Passe dein Erlebnis an",
     "customizeMessage": "Passe Designs, Töne und mehr an.",
-    "spotifyTitle": "Spotify verbinden",
-    "spotifyMessage": "Verknüpfe dein Spotify, um die Stimmung bei unseren Gesprächen zu untermalen.",
-    "spotifyConnect": "Verbinden",
     "maybeLater": "Vielleicht später"
   },
   "mentorTeachings": {
@@ -9340,6 +9336,8 @@
   },
   "dataExport": {
     "title": "Deine Daten",
+    "loadFailed": "Ich konnte gerade nicht laden, was ich für dich gespeichert habe. Es hat sich nichts geändert.",
+    "checkAgain": "Noch einmal prüfen",
     "exportFormat": "Exportformat",
     "deleteAll": "Alle Daten löschen",
     "footer": "Ich speichere unsere Gespräche und das, was du mir erzählst, damit ich mich beim nächsten Mal daran erinnere, und wenn du das irgendwann nicht mehr willst, wird mit deinem Konto auch all das gelöscht.",
@@ -10192,7 +10190,6 @@
     "startupError": "Es gibt Probleme beim Starten. Möchtest du die Seite neu laden?",
     "lastConversation": "Das ist dein letztes Gespräch in diesem Monat. Lass es uns besonders machen.",
     "gettingReady": "Ich mache mich bereit...",
-    "connecting": "Verbindung wird hergestellt",
     "almostThere": "Gleich da...",
     "waitingQuietly": "Ich warte ganz leise",
     "listening": "Ich höre zu",
@@ -10214,7 +10211,6 @@
     "connectFirstToManage": "Verbinde dich zuerst, dann können wir uns darum kümmern.",
     "monthlyLimitReached": "Wir haben unser monatliches Limit erreicht. Ich würde so gerne weiterreden...",
     "enableMicPrompt": "Ich würde so gerne deine Stimme hören – gibst du mir Zugriff auf das Mikrofon?",
-    "agentJoined": "{name} ist jetzt dabei",
     "seeYouNextTime": "Bis zum nächsten Mal!",
     "handoffFailed": "Ich kann gerade niemanden erreichen. Aber ich bin ja noch hier!",
     "personaBack": "{name} ist wieder da!",
@@ -10510,7 +10506,6 @@
     "names": {
       "stockData": "Börsendaten",
       "marketData": "Marktdaten",
-      "weatherMaps": "Wetter & Karten",
       "historicalFacts": "Historische Fakten",
       "lighting": "Beleuchtung",
       "aiContext": "Gedächtnis & Kontext",
@@ -10805,9 +10800,13 @@
     "helper": "Dein persönlicher Wegbegleiter",
     "connectToTalk": "Mit Ferni reden",
     "endTalk": "Auflegen",
-    "connectingCancel": "Verbindung wird hergestellt. Zum Abbrechen tippen",
-    "connectingNow": "Verbindung wird hergestellt…",
-    "tapToCancel": "Zum Abbrechen tippen"
+    "connectingCancel": "Rufe {name} an. Zum Abbrechen tippen.",
+    "connectingNow": "Rufe {name} an…",
+    "tapToCancel": "Zum Abbrechen tippen",
+    "stillCalling": "Klingelt bei {name}…",
+    "stillCallingCancel": "Klingelt bei {name}. Zum Abbrechen tippen.",
+    "reconnecting": "Verbinde erneut…",
+    "arrived": "{name} ist da"
   },
   "analyticsDashboard": {
     "title": "Deine Reise",
@@ -11070,6 +11069,19 @@
     "retry": "",
     "switchAccount": "",
     "seeSources": ""
+  },
+  "connectInvite": {
+    "title": "Lass Alex ein Auge auf deinen Kalender haben",
+    "lead": "Verbinde Google Kalender, damit dich keine Termine mehr überraschen. Das wird geteilt:",
+    "account": "Verbindung mit Alex für {account}",
+    "sees": "Sieht Uhrzeiten, Titel und Orte deiner Termine",
+    "changes": "Legt Termine nur an oder ändert sie, wenn du darum bittest",
+    "never": "Sieht nie deine E-Mails oder Anhänge",
+    "undo": "Jederzeit rückgängig in Einstellungen > Kalender, oder sag es einfach Alex",
+    "connect": "Google Kalender verbinden",
+    "opening": "Google wird geöffnet...",
+    "expired": "Dieser Link ist abgelaufen oder wurde schon benutzt. Frag beim nächsten Anruf, dann schicke ich dir einen neuen.",
+    "failed": "Google ließ sich gerade nicht öffnen. Frag beim nächsten Anruf, dann schicke ich dir einen neuen Link."
   },
   "aiLabel": {
     "role": {

@@ -19,7 +19,9 @@
  */
 import { createLogger } from '../../utils/safe-logger.js';
 import { forgottenInProcess, forgottenTopicsOrNull } from './forget.js';
-import { forgetTokens, isForgotten } from './session-recall.js';
+import { isForgottenPassage } from '../domain/forgotten.js';
+// The shared passage matcher, re-exported for its existing importers.
+export { isForgottenPassage };
 import {
   createSemanticIndex,
   estimateTokens,
@@ -64,33 +66,6 @@ export const EPISODE_TOKENS_PER_TURN = 80;
 export const CALLS_READ = 8;
 /** A call this short is a test or a hang-up. */
 export const MIN_TURNS = 4;
-
-/**
- * True when a raw passage is about a forgotten topic. Speech rarely uses the
- * topic's own words ("forget my brother's number" vs "it's uh 435 555
- * 0188"), so a passage goes if it has any distinctive word of the topic
- * (five letters or more, or a number of four digits or more); otherwise it
- * needs all the topic's words, as facts do. One tokenizer (forgetTokens) on
- * both sides, so a request can't match one way and slip past the other. A
- * privacy request errs toward leaving a passage out.
- */
-export function isForgottenPassage(text: string, topics: readonly string[]): boolean {
-  if (isForgotten(text, topics)) return true;
-  const words = new Set(forgetTokens(text));
-  // "Distinctive" is judged on the word as written, not its stem: a stemmer
-  // can shorten "wedding" below five letters, and the topic must still count.
-  return topics.some((t) =>
-    t
-      .split(/\s+/)
-      .map((raw) => ({ raw: raw.replace(/[^\p{L}\p{N}]/gu, ''), tokens: forgetTokens(raw) }))
-      .some(
-        ({ raw, tokens }) =>
-          (/^\d{4,}$/.test(raw) || raw.length >= 5) &&
-          tokens.length > 0 &&
-          tokens.every((w) => words.has(w))
-      )
-  );
-}
 
 /** Short overlapping passages of each call's lines, newest call first. */
 export function episodesOf(calls: readonly EpisodeCall[]): Episode[] {

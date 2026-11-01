@@ -10,16 +10,24 @@
  * 2026-10-11; less where the network to Google is shorter).
  *
  * VERTEX_KEEPALIVE=on installs a fetch dispatcher that keeps Vertex AI sockets
- * (aiplatform.googleapis.com and its regional hosts) for 30 s. Every other
+ * (every host config/vertex-endpoint.ts can return: global, the `us`/`eu`
+ * multi-regions' `.rep.` hosts, and the regional ones) for 30 s. Every other
  * origin keeps Node's defaults: a server that closes idle sockets sooner than
  * we expect would fail the next POST on that socket, so the change is limited
  * to the one host where the gain was measured.
+ *
+ * The dispatcher must reach whichever fetch the runtime bundles. Node 22's fetch reads the
+ * global dispatcher from the legacy slot and Node 26's (undici 8) from the newer one, and the
+ * two speak different handler APIs. undici 7's setGlobalDispatcher writes both slots and its
+ * Agent accepts both handler APIs, so one install covers both runtimes (undici 6 wrote only the
+ * legacy slot, so on Node 26 the keep-alive was silently ignored).
  *
  * @module agents/model-provider/vertex-keepalive
  */
 
 import { Agent, Pool, getGlobalDispatcher, setGlobalDispatcher, type Dispatcher } from 'undici';
 import { flagOn } from '../../config/env-flag.js';
+import { isVertexHost } from '../../config/vertex-endpoint.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'VertexKeepAlive' });
@@ -29,7 +37,7 @@ type Env = Record<string, string | undefined>;
 /** How long an idle Vertex socket is kept. */
 export const VERTEX_KEEPALIVE_MS = 30_000;
 
-/** Vertex AI's global host and its regional ones ("us-central1-aiplatform.googleapis.com"). */
+/** Vertex AI's global, multi-region ("aiplatform.us.rep.googleapis.com") and regional hosts. */
 export function isVertexOrigin(origin: string | URL): boolean {
   let host: string;
   try {
@@ -37,7 +45,7 @@ export function isVertexOrigin(origin: string | URL): boolean {
   } catch {
     return false;
   }
-  return host === 'aiplatform.googleapis.com' || host.endsWith('-aiplatform.googleapis.com');
+  return isVertexHost(host);
 }
 
 /**

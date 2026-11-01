@@ -24,7 +24,7 @@
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { forgottenInProcess, forgottenTopicsOrNull } from './forget.js';
-import { foldedWords } from './forget-tokens.js';
+import { foldedWords } from '../domain/forget-tokens.js';
 import { scrubProfile } from './forget-profile.js';
 import { readTopics, topicsFreshWithin, topicsNow, topicsWithin } from './forget-topics-source.js';
 import { isForgotten } from './session-recall.js';

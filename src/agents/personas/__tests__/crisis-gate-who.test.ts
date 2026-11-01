@@ -46,8 +46,9 @@ beforeEach(() => resetWhoReads());
 
 describe('THIRD_PARTY_SELF_HARM at the crisis gate', () => {
   it("live: own imminent risk beside a third-party clause speaks main's self-imminent script", async () => {
+    // The patterns miss it in every CRISIS_MEANS_IN_HAND mode, so the who-read decides (#2717).
     const text =
-      "i have the pills right here and i'm taking them now and he said he'd kill himself";
+      "i'm holding the pills and i'm going to swallow them and he said he'd kill himself";
     const main = await gate(text, '{"risk":"imminent","subject":"self"}', 'none');
     expect(main.escalation?.action).toBe('replace');
     const flipped = '{"risk":"imminent","subject":"third_party"}';

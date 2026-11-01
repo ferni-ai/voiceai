@@ -9,8 +9,8 @@
  *
  * The writers #2729 missed hold the same way: corrections and implicit preferences, stated
  * preferences, data capture (entity store, contacts, contact_relationships), FRIEND_REPAIR,
- * the relationship engine and personality profile behind recordUnifiedMoment, Creative You topics
- * and BTH signals.
+ * the relationship engine and personality profile behind recordUnifiedMoment and Creative You
+ * topics. (The BTH signal writer, bth_signals, was deleted in memory v2 C5a: nothing read it.)
  *
  * Each case runs the real writer with only storage faked, after the real detector read the
  * caller's words the way the phone path does (session-init binds the anon user,
@@ -123,6 +123,8 @@ import {
   userHeld,
   writeHeld,
 } from '../minor-care.js';
+import { holdForSexualTopic, resetSexualTopicHold } from '../sexual-topic-hold.js';
+import { readCallerTurn } from '../../agents/personas/sexual-boundary.js';
 import { fastCapture } from '../../memory/dynamic/fast-capture.js';
 import {
   DeepExtractionWorker,
@@ -148,11 +150,6 @@ import {
 import { createPersonalityService } from '../../personality/v2/index.js';
 import { recordConversationTopics } from '../../services/creative-you/conversation-integration.js';
 import { getCreativeYouPersistence } from '../../services/creative-you/persistence.js';
-import {
-  flushBTHSignalQueue,
-  logBTHSignal,
-  resetBTHSignalLogger,
-} from '../../services/analytics/bth-signal-logger.js';
 
 type Case = 'held' | 'owner' | 'off';
 const CASES: Case[] = ['held', 'owner', 'off'];
@@ -188,7 +185,6 @@ beforeEach(() => {
 });
 afterEach(() => {
   resetMinorCare();
-  resetBTHSignalLogger();
   clearAllRelationshipEngines();
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
@@ -407,23 +403,94 @@ describe('MINOR_CARE: an anonymous phone caller who said "I\'m only 14."', () =>
     expect(stored).toEqual(c === 'held' ? [] : [`topic_history/${userId}`]);
   });
 
-  it.each(CASES)('BTH signals for the caller are not written when held (%s)', async (c) => {
-    const { sessionId, userId } = phoneCall(c);
-    const payload = { signalType: 'concern_detected', intensity: 0.9 };
-    logBTHSignal({
-      userId,
-      sessionId,
-      personaId: 'ferni',
-      signalType: 'concern_detected',
-      payload,
-    });
-    await flushBTHSignalQueue();
-    const signals = storedFor(userId).filter((p) => p.includes('/bth_signals/'));
-    expect(signals.length).toBe(c === 'held' ? 0 : 1);
-  });
-
   it('the note tells Ferni not to promise to remember', () => {
     // On the dev call Ferni said "I will remember Riley, Jess, and Lincoln High for next time."
     expect(MINOR_CARE_NOTE).toMatch(/never (?:say|promise) you'll remember/i);
+  });
+});
+
+/**
+ * SEXUAL_TOPIC_BOUNDARY: the same entity writers for an anonymous phone call held because a turn
+ * was read as sexual (sexual-boundary.ts), with no age said. held: flag on; owner: never read, so
+ * never held; off: flag off.
+ */
+describe('SEXUAL_TOPIC_BOUNDARY: a call held for a sexual topic', () => {
+  function topicCall(c: Case): { sessionId: string; userId: string } {
+    n++;
+    const sessionId = `session-AJ_topic${n}-1792856630903`;
+    const userId = `anon:28818ea5-84db-455f-a625-${String(n).padStart(12, '0')}`;
+    vi.stubEnv('MINOR_CARE', 'on');
+    vi.stubEnv('SEXUAL_TOPIC_BOUNDARY', c === 'off' ? 'off' : 'on');
+    bindSessionUser(sessionId, userId);
+    if (c !== 'owner') holdForSexualTopic(sessionId, userId);
+    expect(memoryHeld(sessionId)).toBe(c === 'held'); // the precondition
+    return { sessionId, userId };
+  }
+  afterEach(() => resetSexualTopicHold());
+
+  it.each(CASES)('fastCapture queues no deep extraction (%s)', async (c) => {
+    const { sessionId, userId } = topicCall(c);
+    const result = await fastCapture({ transcript: RILEY, userId, sessionId, turnNumber: 6 });
+    expect(result.asyncJobId === null).toBe(c === 'held');
+  });
+
+  it.each(CASES)('a deep extraction already queued writes no entity (%s)', async (c) => {
+    const { sessionId, userId } = topicCall(c);
+    const worker = new DeepExtractionWorker();
+    const internals = worker as unknown as {
+      getGeminiModel: () => Promise<unknown>;
+      processJob: (j: DeepExtractionJob) => Promise<void>;
+    };
+    internals.getGeminiModel = async () => null; // hint-only extraction, no LLM
+    await internals.processJob({
+      jobId: `deep-${userId}-${sessionId}-6`,
+      userId,
+      sessionId,
+      turnNumber: 6,
+      transcript: RILEY,
+      timestamp: new Date('2026-10-30T15:44:22Z'),
+      priority: 'normal',
+      fastCaptureHints: {
+        mentionedEntities: [{ name: 'Riley', type: 'person', context: 'friend', confidence: 0.9 }],
+        emotionSignals: [],
+        topicHints: ['friendship'],
+        dateSignals: [],
+        relationshipSignals: [],
+      },
+    });
+    const entities = storedFor(userId).filter((p) => p.includes('/dynamic_entities/'));
+    if (c === 'held') expect(storedFor(userId)).toEqual([]);
+    else expect(entities.length).toBeGreaterThan(0);
+  });
+
+  it('the turn whose read is still running writes nothing: fastCapture and knowledge capture', async () => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    vi.stubEnv('SEXUAL_TOPIC_BOUNDARY', 'on');
+    const sessionId = `session-AJ_pending${++n}-1792856630903`;
+    const userId = `anon:38818ea5-84db-455f-a625-${String(n).padStart(12, '0')}`;
+    bindSessionUser(sessionId, userId);
+    let answer: (v: string) => void = () => undefined;
+    const understand = async () =>
+      new Promise<string>((resolve) => {
+        answer = resolve;
+      });
+    const read = readCallerTurn({ sessionId, userId, text: RILEY }, { understand });
+    const result = await fastCapture({ transcript: RILEY, userId, sessionId, turnNumber: 6 });
+    await initializeKnowledgeCapture();
+    await captureTurn({ userId, sessionId, turnNumber: 6, transcript: RILEY });
+    expect(result.asyncJobId).toBeNull();
+    expect(storedFor(userId)).toEqual([]);
+    answer('{"sexual": true}');
+    await read;
+    await captureTurn({ userId, sessionId, turnNumber: 7, transcript: RILEY });
+    expect(storedFor(userId)).toEqual([]);
+  });
+
+  it.each(CASES)('knowledge capture stores no entity (%s)', async (c) => {
+    const { sessionId, userId } = topicCall(c);
+    await initializeKnowledgeCapture();
+    await captureTurn({ userId, sessionId, turnNumber: 6, transcript: RILEY });
+    if (c === 'held') expect(storedFor(userId)).toEqual([]);
+    else expect(storedFor(userId)).toContain(`entity_store/${userId}/person`);
   });
 });

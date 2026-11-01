@@ -202,7 +202,7 @@ export function parseJudgeJson(text) {
 
 // gcloud access tokens last an hour and a long judging run outlives one, so
 // each request gets a fresh token (gcloud serves a cached one until expiry).
-async function askGemini(prompt, { model, project }) {
+export async function askGemini(prompt, { model, project }) {
   const token = gcloud(['auth', 'print-access-token']);
   const url = `https://aiplatform.googleapis.com/v1/projects/${project}/locations/global/publishers/google/models/${model}:generateContent`;
   const res = await fetch(url, {

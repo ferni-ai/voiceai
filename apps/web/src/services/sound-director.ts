@@ -16,20 +16,19 @@
  * within MIN_EARCON_GAP_MS of the last one, and on a rejoin after a drop.
  * One saved Sound setting turns every engine off.
  *
- * Off by default. Turn it on for one browser with
- * `localStorage.setItem('ferni:sound-director', 'true')`, or for a build
- * with `VITE_SOUND_DIRECTOR=true`. Off, every request passes and nothing
+ * Off by default: the soundDirector switch in config/motion-flags.ts (a
+ * browser override or a build value). Off, every request passes and nothing
  * here changes what plays.
  *
  * @module services/sound-director
  */
 
+import { isMotionFlagOn } from '../config/motion-flags.js';
 import { createLogger } from '../utils/logger.js';
 import { installEarconUnlock, playEarcon, type Earcon } from './earcon-player.js';
 
 const log = createLogger('SoundDirector');
 
-export const SOUND_DIRECTOR_FLAG_KEY = 'ferni:sound-director';
 /** The saved Sound setting: 'off' silences every engine (director on). */
 export const SOUND_SETTING_KEY = 'ferni:sound';
 export const MAX_EARCONS_PER_CALL = 4;
@@ -48,13 +47,7 @@ export interface SpeechRoom {
 }
 
 export function isSoundDirectorOn(): boolean {
-  if (import.meta.env.VITE_SOUND_DIRECTOR === 'true') return true;
-  try {
-    return localStorage.getItem(SOUND_DIRECTOR_FLAG_KEY) === 'true';
-  } catch {
-    // Storage blocked (private mode, sandboxed frame): the flag stays off.
-    return false;
-  }
+  return isMotionFlagOn('soundDirector');
 }
 
 /** In-memory copy, for when storage is blocked: the toggle still works for this page. */

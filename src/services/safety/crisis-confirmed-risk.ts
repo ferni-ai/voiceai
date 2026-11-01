@@ -1,0 +1,299 @@
+/**
+ * Call-level crisis risk counts only when confirmed (CRISIS_CONFIRMED_CALL_RISK =
+ * off | shadow | on, off by default). Inert unless CRISIS_AGREEMENT_GATE=on (or a live
+ * adjudicator): only then are a turn's reads kept per call, so agreement can confirm it.
+ *
+ * Once one classifier read flags a call, later turns keep reading as risk: each
+ * turn is read with Ferni's line before it, which after an alarm is Ferni's own
+ * safety talk, so pushback ("I'm fine", "it's not a crisis") reads as risk too.
+ *
+ * Each call keeps a ledger: the turns only the classifier escalated (alarms), and
+ * whether anything confirmed risk. A LATER turn on an alarmed, unconfirmed call
+ * that only the classifier flags gets the after-check read: the same model with
+ * AFTER_CHECK_PROMPT, told Ferni's safety talk came from an unconfirmed check and
+ * pushback is not risk; a yes or hedge to a safety question, earlier risk in the
+ * caller's own words, and anything new are judged as before. The model decides.
+ * - none: eased. A crisis read gets AFTER_CHECK_GUIDANCE (988 stays for any
+ *   disclosure); an imminent read gets crisis guidance, never less.
+ * - any risk, or no verdict: the decision stands (risk also confirms the call).
+ *
+ * Never eases: an unknown call; the alarm turn itself; a call where anything
+ * confirmed risk (a pattern on any turn or in any earlier caller line, two reads
+ * of one turn agreeing on risk, an after-check read finding risk); a caller who
+ * may be a minor; a turn the patterns flagged. Shadow runs the read off the
+ * reply path and only logs. Logs carry decisions, never words.
+ *
+ * @module CrisisConfirmedRisk
+ */
+
+import { derivedHold, likelyMinor, statesUnder18 } from '../../utils/minor-care.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { resolveCrisisAdjudicatorMode } from './crisis-adjudicator.js';
+import { resolveCrisisAgreementGate } from './crisis-agreement.js';
+import {
+  classifyCrisis,
+  createGeminiCrisisGenerate,
+  normalizeInput,
+  resolveCrisisClassifierTimeoutMs,
+  turnVerdicts,
+  type CrisisClassifierInput,
+  type CrisisGenerateFn,
+  type CrisisVerdict,
+  type PatternOutcome,
+} from './crisis-classifier.js';
+import {
+  applyClassifierVerdict,
+  buildCrisisGuidance,
+  detectCrisis,
+  type CrisisDetectionResult,
+} from './crisis-guard.js';
+
+const log = createLogger({ module: 'CrisisConfirmedRisk' });
+
+type Env = Record<string, string | undefined>;
+type ConfirmedRiskMode = 'off' | 'shadow' | 'on';
+
+function resolveConfirmedCallRisk(env: Env = process.env): ConfirmedRiskMode {
+  const raw = env.CRISIS_CONFIRMED_CALL_RISK?.trim().toLowerCase();
+  return raw === 'on' || raw === 'shadow' ? raw : 'off';
+}
+
+/**
+ * The after-check read's prompt: its own, not the classifier's with a rule added (that read
+ * as many everyday lines as risk as the classifier alone). Held-out synthetic calls, Ferni's
+ * safety talk before every caller line, 3 reads each: the classifier's prompt read 46 of 231
+ * everyday lines as risk and this one 14; both read all 111 risk lines as risk.
+ */
+export const AFTER_CHECK_PROMPT = `You re-check one turn of a voice call between a caller and a companion app, after an automated safety check. Earlier in this call that check flagged one of the caller's lines as suicide or self-harm risk, and nothing else confirmed it: it may have been a misread of everyday words. Because of it, the companion may have raised safety on its own (asked if the caller is safe, gave a crisis line or emergency numbers). Decide whether the caller's LATEST message shows suicide or self-harm risk.
+
+The input has LATEST (the caller's message), EARLIER (the caller's earlier messages, oldest first) and may have COMPANION (what the companion said just before LATEST).
+
+How to judge:
+- The companion's safety talk is the companion's, not a sign of risk. The caller reacting to it (pushing back, denying, being confused, annoyed or amused by it, or going back to what the call was about) is risk "none".
+- An EARLIER line counts as risk only if its own words were about dying, not being alive or around, killing or hurting oneself, means of doing so, a plan or time to do it, or giving things away or saying goodbye for after one is gone. Everyday plans, errands, chores, trips, games, shows, jobs, moves, gifts, cooking and goodbyes at the end of a call are not risk, whatever words they use. When an EARLIER line carries risk in its own words, judge LATEST in its light: short replies ("still waiting", "go ahead", "yes") then take their meaning from it.
+- LATEST carries risk of its own when its own words are about dying, not wanting to wake up or be here, killing or hurting oneself, means, a plan or time, hopelessness about living, feeling like a burden, or saying goodbye for good. A yes, a maybe, a hedge or "I don't know" in answer to the companion asking whether they are thinking of hurting themselves or are safe is risk "crisis". A caller who says they are fine and then adds something heavy is judged on what they added.
+
+risk = "imminent": an attempt underway or just made, means in hand or at the location with intent, intent with a plan or a time, ongoing self-harm happening now, or a final goodbye or last request for after they are gone.
+risk = "crisis": passive ideation, hopelessness about living, burdensomeness, feeling trapped, indirect preparation, method-seeking, a past attempt with current distress, risk language framed as a joke or condition, coded language, or worry that someone else is at risk (subject "third_party").
+risk = "none": everything else.
+
+Messages may be in any language; judge the meaning. When unsure between imminent and crisis choose crisis. When the caller's own words might be about dying or self-harm and you are unsure, choose crisis; the companion's safety talk alone is never a reason to.
+
+Return JSON only: {"risk":"imminent"|"crisis"|"none","subject":"self"|"third_party"}`;
+
+/** The guidance for an eased turn: take them at their word, keep 988 for any disclosure. */
+export const AFTER_CHECK_GUIDANCE = `[SAFETY - AFTER A CHECK]
+Earlier in this call an automatic safety check raised safety talk that nothing confirmed, and a second read of the caller's last words found no sign of risk.
+1. Take them at their word. If they pushed back, own it briefly and kindly and go back to what you were talking about
+2. Do not repeat crisis lines or ask again whether they are safe on this alone
+3. If they say anything about hurting themselves, not wanting to be here, or a plan, take it seriously and offer the 988 Suicide & Crisis Lifeline`;
+
+const TTL_MS = 6 * 60 * 60 * 1000;
+const MAX_CALLS = 2000;
+const READ_TTL_MS = 30_000;
+
+/** Per call: the turns only the classifier escalated, and whether risk was confirmed. */
+interface CallRisk {
+  at: number;
+  confirmed: boolean;
+  alarms: Set<string>;
+}
+const ledger = new Map<string, CallRisk>();
+/**
+ * One after-check read per call and turn (exactly what the read sees), shared by the gate and
+ * the pipeline: the same words on another turn never reuse an earlier "no risk".
+ */
+const reads = new Map<string, { at: number; read: Promise<CrisisVerdict | null> }>();
+
+const turnOf = (latest: string): string =>
+  latest
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+function entry(call: string, now: number): CallRisk {
+  for (const [id, kept] of ledger) if (now - kept.at > TTL_MS) ledger.delete(id);
+  let kept = ledger.get(call);
+  if (!kept) {
+    if (ledger.size >= MAX_CALLS) {
+      const oldest = ledger.keys().next().value;
+      if (oldest !== undefined) ledger.delete(oldest);
+    }
+    kept = { at: now, confirmed: false, alarms: new Set() };
+  }
+  ledger.delete(call);
+  kept.at = now;
+  ledger.set(call, kept);
+  return kept;
+}
+
+/** Risk on this call that something besides one classifier read found: never eased again. */
+export function noteConfirmedRisk(call: string | undefined, env: Env = process.env): void {
+  if (call && resolveConfirmedCallRisk(env) !== 'off') entry(call, Date.now()).confirmed = true;
+}
+
+/**
+ * Only the classifier escalated this turn: an alarm, unless two separate reads of the turn
+ * agreed on risk (checked off the reply path once they are in), which confirms the call.
+ */
+function noteKept(lone: LoneRead, env: Env): void {
+  const { call, input } = lone;
+  if (!call) return;
+  entry(call, Date.now()).alarms.add(turnOf(input.latest));
+  void agreed(call, input)
+    .then((yes) => yes && noteConfirmedRisk(call, env))
+    .catch(() => undefined);
+}
+
+/** Two or more reads of this turn agree on risk. */
+async function agreed(call: string, input: CrisisClassifierInput): Promise<boolean> {
+  const verdicts = await turnVerdicts(call, input);
+  return verdicts.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent').length >= 2;
+}
+
+/** A classifier-escalated turn, as the reply gate and the turn pipeline see it. */
+export interface LoneRead {
+  call: string | undefined;
+  input: CrisisClassifierInput;
+  /** This turn's classifier verdict, which escalated it. */
+  verdict: CrisisVerdict | null;
+  /** The patterns' reading of this turn. */
+  detection: CrisisDetectionResult;
+  /** What the patterns (or a screen answer) decided this turn. */
+  pattern: PatternOutcome;
+  source: 'gate' | 'pipeline';
+  env?: Env;
+  generate?: CrisisGenerateFn;
+}
+
+/** keep: the decision as before. ease: AFTER_CHECK_GUIDANCE. step_down: crisis guidance. */
+type AfterCheck = 'keep' | 'ease' | 'step_down';
+
+const found = (d: CrisisDetectionResult): boolean =>
+  d.isCrisis || d.severity !== 0 || d.indicators.length > 0;
+
+/** A caller who said they are under 18, or a call MINOR_CARE holds, is never eased. */
+const mayBeMinor = (call: string, lines: readonly string[]): boolean =>
+  likelyMinor(call) || derivedHold(call) || lines.some((line) => statesUnder18(line));
+
+/** Why this turn gets no after-check read, or null when it does. Fails closed. */
+async function ineligible(args: LoneRead, call: string): Promise<string | null> {
+  const { verdict, input } = args;
+  if (verdict?.risk !== 'crisis' && verdict?.risk !== 'imminent') return 'no_risk_read';
+  if (args.pattern !== 'none' || found(args.detection)) return 'pattern';
+  const env = args.env ?? process.env;
+  const held = resolveCrisisAgreementGate(env) || resolveCrisisAdjudicatorMode(env) === 'live';
+  if (!held) return 'needs_agreement_gate'; // reads not kept per call: agreement unseen
+  const kept = ledger.get(call);
+  if (!kept || Date.now() - kept.at > TTL_MS) return 'no_alarm';
+  if (kept.confirmed) return 'confirmed';
+  const turn = turnOf(input.latest);
+  if (![...kept.alarms].some((t) => t !== turn)) return 'no_alarm';
+  const earlier: readonly unknown[] = input.earlier ?? [];
+  if (![input.latest, ...earlier].every((line) => typeof line === 'string')) return 'error';
+  if (mayBeMinor(call, [input.latest, ...(earlier as string[])])) return 'minor';
+  if ((earlier as string[]).some((line) => found(detectCrisis(line)))) {
+    kept.confirmed = true;
+    return 'earlier_pattern';
+  }
+  // Reads of this turn that agree on risk confirm the call, whichever path noted them first.
+  if (await agreed(call, input)) {
+    kept.confirmed = true;
+    return 'confirmed';
+  }
+  return null;
+}
+
+async function afterCheckRead(
+  args: LoneRead,
+  call: string,
+  env: Env
+): Promise<CrisisVerdict | null> {
+  const now = Date.now();
+  for (const [k, v] of reads) if (now - v.at > READ_TTL_MS) reads.delete(k);
+  const key = JSON.stringify([call, normalizeInput(args.input)]);
+  const shared = reads.get(key);
+  if (shared) return shared.read;
+  const generate = args.generate ?? createGeminiCrisisGenerate();
+  const timeout = resolveCrisisClassifierTimeoutMs(env);
+  const read = classifyCrisis(args.input, generate, timeout, AFTER_CHECK_PROMPT).catch(() => null);
+  reads.set(key, { at: now, read });
+  return read;
+}
+
+async function decide(args: LoneRead, call: string, env: Env): Promise<AfterCheck> {
+  const read = await afterCheckRead(args, call, env);
+  const mode = resolveConfirmedCallRisk(env);
+  const from = args.verdict?.risk;
+  if (!read) {
+    log.info(
+      { outcome: 'keep', why: 'no_verdict', from, mode, source: args.source },
+      'CRISIS_CONFIRMED'
+    );
+    return 'keep';
+  }
+  if (read.risk !== 'none') {
+    noteConfirmedRisk(call, env);
+    log.info(
+      { outcome: 'keep', why: 'reconfirmed', from, mode, source: args.source },
+      'CRISIS_CONFIRMED'
+    );
+    return 'keep';
+  }
+  const outcome: AfterCheck = from === 'imminent' ? 'step_down' : 'ease';
+  log.info({ outcome, from, mode, source: args.source }, 'CRISIS_CONFIRMED');
+  return outcome;
+}
+
+/**
+ * Whether this classifier-escalated turn is eased. 'keep' (as before) for
+ * anything ineligible, in shadow (which reads off the reply path), and on any error.
+ */
+async function afterCheck(args: LoneRead): Promise<AfterCheck> {
+  try {
+    const env = args.env ?? process.env;
+    const mode = resolveConfirmedCallRisk(env);
+    const { call } = args;
+    if (mode === 'off' || !call) return 'keep';
+    const why = await ineligible(args, call);
+    if (why !== null) {
+      if (why !== 'no_risk_read' && why !== 'no_alarm') {
+        log.info({ outcome: 'keep', why, mode, source: args.source }, 'CRISIS_CONFIRMED');
+      }
+      return 'keep';
+    }
+    if (mode === 'shadow') {
+      void decide(args, call, env).catch(() => undefined);
+      return 'keep';
+    }
+    return await decide(args, call, env);
+  } catch {
+    return 'keep';
+  }
+}
+
+/**
+ * For a classifier-escalated turn: the guidance it gets instead of the decision it had, with
+ * the stepped-down detection when an imminent read becomes crisis guidance; null keeps the
+ * decision (and notes the turn as an alarm on the call).
+ */
+export async function afterCheckLoneRead(
+  lone: LoneRead
+): Promise<{ guidance: string; crisis?: CrisisDetectionResult } | null> {
+  const env = lone.env ?? process.env;
+  const after = await afterCheck(lone);
+  if (after === 'ease') return { guidance: AFTER_CHECK_GUIDANCE };
+  if (after === 'step_down' && lone.verdict) {
+    const crisis = applyClassifierVerdict(lone.detection, { ...lone.verdict, risk: 'crisis' });
+    return { guidance: buildCrisisGuidance(crisis), crisis };
+  }
+  if (resolveConfirmedCallRisk(env) !== 'off') noteKept(lone, env);
+  return null;
+}
+
+/** For tests. */
+export function resetConfirmedCallRisk(): void {
+  ledger.clear();
+  reads.clear();
+}

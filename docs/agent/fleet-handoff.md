@@ -54,7 +54,7 @@ Each lane maps to an agent in `.claude/agents/`.
 - **Ferni's invented life:**
   - `ferni-self-share.ts` DAY_DETAILS has 4 items that are in no canon file;
   - `life-updates.ts` (LIFE_MOVES_ON, on in prod) has the model invent
-    developments, the likely source of "Ken called me this morning…".
+    developments, the likely source of "Owen called me this morning…".
   
   Stop the invention; #1494 is related.
 - #1494 (Ferni's own mood told as the caller's): merge main in (#1469 has landed), then re-verify. The plan for the canon-only self-share follow-up is in its body.

@@ -98,7 +98,7 @@ function isThirdPartyPhoneReference(text: string): boolean {
   for (const pattern of thirdPartyPatterns) {
     if (pattern.test(lower)) {
       getLogger().debug(
-        { text: lower.substring(0, 50) },
+        { textLen: lower.length },
         '📱 Third-party phone reference detected, skipping contact onboarding'
       );
       return true;

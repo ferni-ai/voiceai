@@ -74,10 +74,10 @@ const forged = Buffer.from(JSON.stringify({ userId: 'victim' })).toString('base6
 
 describe.each([
   {
-    name: 'biometrics (oura)',
-    connectPath: '/biometrics/connect/oura',
-    callbackPath: '/biometrics/callback/oura',
-    otherCallback: '/biometrics/callback/whoop',
+    name: 'biometrics (whoop)',
+    connectPath: '/biometrics/connect/whoop',
+    callbackPath: '/biometrics/callback/whoop',
+    otherCallback: '/biometrics/callback/googlefit',
     savedFor: () => biometrics.exchangeCodeForTokens.mock.calls.map((c) => c[2]),
   },
 ])('$name OAuth state', ({ connectPath, callbackPath, otherCallback, savedFor }) => {

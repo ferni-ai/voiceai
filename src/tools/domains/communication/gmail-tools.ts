@@ -20,6 +20,7 @@ import {
   formatInboxSummaryForSpeech,
   isGmailConfigured,
 } from '../../../services/gmail/gmail-service.js';
+import { gmailNotConnected, honestGmailReadTools } from '../../../services/gmail/gmail-honesty.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition, Tool, ToolContext } from '../../registry/types.js';
 
@@ -33,7 +34,7 @@ const log = getLogger();
  * Get Gmail tool definitions
  */
 export function getGmailToolDefinitions(): ToolDefinition[] {
-  return [
+  return honestGmailReadTools([
     // =========================================================================
     // getInboxSummary - Quick inbox overview
     // =========================================================================
@@ -58,7 +59,7 @@ export function getGmailToolDefinitions(): ToolDefinition[] {
 
             const isConfigured = await isGmailConfigured(userId);
             if (!isConfigured) {
-              return 'Gmail is not connected yet. Would you like me to help you connect your Google account?';
+              return gmailNotConnected();
             }
 
             const stats = await getInboxStats(userId);
@@ -100,7 +101,7 @@ export function getGmailToolDefinitions(): ToolDefinition[] {
 
             const isConfigured = await isGmailConfigured(userId);
             if (!isConfigured) {
-              return 'Gmail is not connected yet. Would you like me to help you connect your Google account?';
+              return gmailNotConnected();
             }
 
             const count = params.count || 5;
@@ -152,7 +153,7 @@ export function getGmailToolDefinitions(): ToolDefinition[] {
 
             const isConfigured = await isGmailConfigured(userId);
             if (!isConfigured) {
-              return 'Gmail is not connected yet. Would you like me to help you connect your Google account?';
+              return gmailNotConnected();
             }
 
             const count = params.count || 5;
@@ -197,7 +198,7 @@ export function getGmailToolDefinitions(): ToolDefinition[] {
 
             const isConfigured = await isGmailConfigured(userId);
             if (!isConfigured) {
-              return 'Gmail is not connected yet. Would you like me to help you connect your Google account?';
+              return gmailNotConnected();
             }
 
             const triage = await triageUnreadEmails(userId);
@@ -278,7 +279,7 @@ export function getGmailToolDefinitions(): ToolDefinition[] {
 
             const isConfigured = await isGmailConfigured(userId);
             if (!isConfigured) {
-              return 'Gmail is not connected yet.';
+              return gmailNotConnected();
             }
 
             const thread = await getEmailThread(userId, params.threadId);
@@ -333,7 +334,7 @@ export function getGmailToolDefinitions(): ToolDefinition[] {
 
             const isConfigured = await isGmailConfigured(userId);
             if (!isConfigured) {
-              return 'Gmail is not connected yet. Would you like me to help you connect your Google account?';
+              return gmailNotConnected();
             }
 
             const unreadOnly = params.unreadOnly !== false;
@@ -357,7 +358,7 @@ export function getGmailToolDefinitions(): ToolDefinition[] {
         });
       },
     },
-  ];
+  ]);
 }
 
 // ============================================================================

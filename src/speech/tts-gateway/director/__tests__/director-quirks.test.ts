@@ -60,7 +60,7 @@ async function reply(
   return { sessionId, all: inner.pushes.join(''), added };
 }
 
-const LIVE = { SPEECH_DIRECTOR: 'live', SPEECH_DIRECTOR_LAUGHTER: 'live', QUIRK_AWARENESS: 'on' };
+const LIVE = { SPEECH_DIRECTOR: 'live', QUIRK_AWARENESS: 'on' };
 
 beforeEach(() => {
   vi.spyOn(Math, 'random').mockReturnValue(0); // every roll passes

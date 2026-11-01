@@ -10,6 +10,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { redactUrl } from '../../utils/url-redaction.js';
 import {
   OutboundUrlBlockedError,
   readCappedJson,
@@ -47,7 +48,7 @@ export async function executeHttpTool(
   const requestId = generateSecureId('req');
 
   log.debug(
-    { toolId: manifest.id, endpoint, timeoutMs: effectiveTimeout, requestId },
+    { toolId: manifest.id, endpoint: redactUrl(endpoint), timeoutMs: effectiveTimeout, requestId },
     'Executing HTTP tool'
   );
 
@@ -81,7 +82,10 @@ export async function executeHttpTool(
     );
   } catch (error) {
     if (error instanceof OutboundUrlBlockedError) {
-      log.warn({ toolId: manifest.id, endpoint }, 'Blocked invalid/internal endpoint URL');
+      log.warn(
+        { toolId: manifest.id, endpoint: redactUrl(endpoint) },
+        'Blocked invalid/internal endpoint URL'
+      );
       throw new Error('Tool endpoint URL is invalid or points to internal resources');
     }
     throw error;

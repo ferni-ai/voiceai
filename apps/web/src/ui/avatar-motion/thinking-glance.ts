@@ -1,7 +1,7 @@
 /**
  * Thinking glance: Ferni glances away while he thinks, mid-call.
  *
- * Behind `ferni:thinking-glance` (localStorage, off by default). It follows
+ * Behind the thinkingGlance switch (config/motion-flags.ts, off by default). It follows
  * the turn driver's settled turns (the `ferni:avatar-turn` window event): a
  * `thinking` turn starts the glance, and the next other turn ends it.
  *
@@ -14,21 +14,13 @@
  * @module ui/avatar-motion/thinking-glance
  */
 
-import { createLogger } from '../../utils/logger.js';
+import { isMotionFlagOn } from '../../config/motion-flags.js';
 
-const log = createLogger('ThinkingGlance');
-
-export const THINKING_GLANCE_FLAG_KEY = 'ferni:thinking-glance';
 /** Window event fired once per settled turn change, detail `{ speaker }` (turn-driver.ts). */
 export const AVATAR_TURN_EVENT = 'ferni:avatar-turn';
 
 export function isThinkingGlanceEnabled(): boolean {
-  try {
-    return localStorage.getItem(THINKING_GLANCE_FLAG_KEY) === 'true';
-  } catch (error) {
-    log.debug('Could not read the thinking glance flag, treating it as off', error);
-    return false;
-  }
+  return isMotionFlagOn('thinkingGlance');
 }
 
 function speakerOf(event: Event): unknown {

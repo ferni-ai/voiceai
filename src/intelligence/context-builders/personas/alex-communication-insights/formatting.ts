@@ -33,31 +33,21 @@ export function formatBriefingForInjection(
     }
   }
 
-  // Communication Metrics Dashboard
-  const { communicationMetrics } = briefing;
-  sections.push('\n=== 📊 COMMUNICATION METRICS ===');
-  sections.push(`• Readiness: ${communicationMetrics.communicationReadiness}/100`);
-  sections.push(`• Calendar Density: ${communicationMetrics.calendarDensity}/100`);
-  sections.push(`• Response Velocity: ${communicationMetrics.responseVelocity}/100`);
-  sections.push(`• Delegation Clarity: ${communicationMetrics.delegationClarity}/100`);
-  sections.push(`• Context Switch Load: ${communicationMetrics.contextSwitchLoad}/100`);
-  if (communicationMetrics.patterns.length > 0) {
-    sections.push(`PATTERNS: ${communicationMetrics.patterns.join('; ')}`);
-  }
-
-  // User State
+  // Only what the member's data holds from here: no invented scores, no server clock (#3044).
+  const factsFrom = sections.length;
   const { userState } = briefing;
-  sections.push('\n=== 🎯 USER STATE ===');
-  sections.push(`• Stress level: ${userState.stressLevel}`);
-  sections.push(`• Energy: ${userState.energyLevel}`);
-  sections.push(`• Productivity: ${userState.productivityMomentum}`);
-  sections.push(`• Time context: ${userState.timeOfDayContext}`);
-  if (userState.optimalCommunicationWindow) {
-    sections.push(`• Best window: ${userState.optimalCommunicationWindow}`);
-  }
-  if (userState.stressSignals.length > 0) {
-    sections.push(`• Stress signals: ${userState.stressSignals.join(', ')}`);
-  }
+  const known = (value: string) => value !== 'unknown';
+  const stateLines = [
+    known(userState.stressLevel) ? `• Stress level: ${userState.stressLevel}` : '',
+    known(userState.energyLevel) ? `• Energy: ${userState.energyLevel}` : '',
+    known(userState.productivityMomentum)
+      ? `• Productivity: ${userState.productivityMomentum}`
+      : '',
+    userState.stressSignals.length > 0
+      ? `• Stress signals: ${userState.stressSignals.join(', ')}`
+      : '',
+  ].filter(Boolean);
+  if (stateLines.length > 0) sections.push('\n=== 🎯 USER STATE ===', ...stateLines);
 
   // High-priority proactive triggers
   const highTriggers = briefing.proactiveTriggers.filter((t) => t.priority === 'high');
@@ -178,6 +168,8 @@ export function formatBriefingForInjection(
     sections.push('\n=== 🎯 SUGGESTED ACTIONS ===');
     briefing.actionItems.forEach((a) => sections.push(`→ ${a}`));
   }
+
+  if (sections.length === factsFrom && !handoffContext) return [];
 
   // Alex's principles (first turns only)
   if (turnCount === 0 || turnCount === 1) {

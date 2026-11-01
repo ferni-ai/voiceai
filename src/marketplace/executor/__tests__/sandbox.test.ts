@@ -121,6 +121,7 @@ describe('Sandbox Executor', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     clearRegistry();
+    vi.stubEnv('MARKETPLACE_HMAC_SECRET', 'fixture-marketplace-secret');
 
     // Setup default tool
     registerTool(createMockManifest());
@@ -134,6 +135,7 @@ describe('Sandbox Executor', () => {
 
   afterEach(() => {
     clearRegistry();
+    vi.unstubAllEnvs();
   });
 
   describe('executeMarketplaceTool', () => {

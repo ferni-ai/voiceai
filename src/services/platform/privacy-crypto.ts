@@ -24,6 +24,7 @@ import {
   timingSafeEqual,
 } from 'crypto';
 import { promisify } from 'util';
+import { containsContactData } from '../../memory/domain/contact-data.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   findExistingToken,
@@ -422,21 +423,15 @@ export async function detokenizeAsync(token: string): Promise<string | null> {
 // DATA MINIMIZATION HELPERS
 // ============================================================================
 
+const PII_FIELDS = 'phone email name address ssn password token voiceSketch'.split(' ');
+
 /**
- * Strip PII from an object for logging
+ * Strip PII from an object for logging: named PII fields are redacted, and so is any
+ * other string value holding a phone number or email (the shared contact-data rule).
  */
 export function stripPII<T extends Record<string, unknown>>(
   obj: T,
-  fieldsToStrip: string[] = [
-    'phone',
-    'email',
-    'name',
-    'address',
-    'ssn',
-    'password',
-    'token',
-    'voiceSketch',
-  ]
+  fieldsToStrip: string[] = PII_FIELDS
 ): Partial<T> {
   const result: Partial<T> = {};
 
@@ -448,6 +443,8 @@ export function stripPII<T extends Record<string, unknown>>(
         value as Record<string, unknown>,
         fieldsToStrip
       );
+    } else if (typeof value === 'string' && containsContactData(value)) {
+      (result as Record<string, unknown>)[key] = '[REDACTED]';
     } else {
       (result as Record<string, unknown>)[key] = value;
     }

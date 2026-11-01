@@ -15,6 +15,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition, Tool, ToolContext } from '../../registry/types.js';
 import { createDomainExport } from '../../registry/loader.js';
 import { getDefaultStore } from '../../../memory/index.js';
+import { NO_TIMED_REMINDER } from '../../utils/honest-schedule.js';
 
 const log = getLogger();
 
@@ -58,13 +59,14 @@ function saveUserEvents(userId: string, events: SocialEvent[]): void {
 const setBirthdayDef: ToolDefinition = {
   id: 'setBirthday',
   name: 'Set Birthday',
-  description: "Remember someone's birthday for annual reminders.",
+  description: "Note someone's birthday for this conversation. Sets no reminder.",
   domain: 'social-events',
   tags: ['birthday', 'reminder', 'contact'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: "Remember someone's birthday for annual reminders.",
+      description:
+        "Note someone's birthday for this conversation (and their age, given a birth year). It sets no reminder, so never promise one.",
       parameters: z.object({
         name: z.string().describe("Person's name"),
         date: z.string().describe('Birthday date (e.g., "March 15" or "03-15")'),
@@ -72,7 +74,7 @@ const setBirthdayDef: ToolDefinition = {
         reminderDays: z
           .array(z.number())
           .optional()
-          .describe('Days before to remind (default: [7, 1])'),
+          .describe('Days before they would like a reminder (none is set)'),
       }),
       execute: async (params) => {
         const userId = ctx.userId;
@@ -105,8 +107,7 @@ const setBirthdayDef: ToolDefinition = {
         // Check for existing
         const existing = events.findIndex(
           (e) =>
-            e.contactName.toLowerCase() === params.name.toLowerCase() &&
-            e.eventType === 'birthday'
+            e.contactName.toLowerCase() === params.name.toLowerCase() && e.eventType === 'birthday'
         );
         if (existing >= 0) {
           events[existing] = event;
@@ -116,12 +117,13 @@ const setBirthdayDef: ToolDefinition = {
 
         saveUserEvents(userId, events);
 
-        let response = `🎂 Birthday saved for **${params.name}**: ${params.date}`;
+        // The store is this process's memory and no reminder job is saved (#1439).
+        let response = `🎂 Birthday noted for **${params.name}**: ${params.date}`;
         if (params.year) {
           const age = new Date().getFullYear() - params.year;
           response += `\nThey'll be turning ${age + 1} on their next birthday.`;
         }
-        response += `\nI'll remind you ${event.reminderDays.join(' and ')} days before.`;
+        response += `\n${NO_TIMED_REMINDER}`;
 
         return response;
       },

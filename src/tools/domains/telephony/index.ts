@@ -26,6 +26,9 @@ import { createTelephonyTools } from './telephony.js';
 import { createCallOnBehalfTool } from './call-on-behalf.js';
 // The requesting call's real session id, read from LiveKit's run context (row 12 of the audit).
 import { withLiveSessionId } from '../../registry/live-session.js';
+// "Did you call my dad?": read-only status from the owner's own call records
+import { callStatusReply } from './call-status-tool.js';
+import { flagOn } from '../../../config/env-flag.js';
 
 // The call path that really rings the user's phone
 import { callUserDef } from '../proactive/outreach/agent-to-user.js';
@@ -78,6 +81,45 @@ function callUserDefinition(refusal: unknown): ToolDefinition {
             : refuse({ reason }, opts),
       });
     },
+  };
+}
+
+const CALL_STATUS_TOLD =
+  'Check whether you already called someone for the caller and how it went: not yet ' +
+  '(waiting for their yes, or set for a later hour), under way, done (answered, ' +
+  'voicemail, no answer, and what they said), or failed. Use it whenever the caller ' +
+  'asks "did you call my dad?", "how did the call go?" or "what did she say?". Read-only: ' +
+  'it never calls anyone. Never use callOnBehalf to answer such a question.';
+const BY_PURPOSE_HINT =
+  ' It also finds a call by what it was about ("how\'s the dentist thing?", "did the ' +
+  'restaurant get back?"): pass those words as contactQuery.';
+
+/** callStatus: read-only, never calls anyone (call-status-tool.ts). */
+function callStatusDefinition(): ToolDefinition {
+  const byPurpose = flagOn('CALL_STATUS_BY_PURPOSE');
+  return {
+    id: 'callStatus',
+    name: 'Call Status',
+    description: 'Whether Ferni already called someone for the owner, and how it went',
+    domain: 'telephony',
+    tags: ['telephony', 'phone', 'status', 'history'],
+    create: (ctx: ToolContext): Tool =>
+      llm.tool({
+        description: `${CALL_STATUS_TOLD}${byPurpose ? BY_PURPOSE_HINT : ''}`,
+        parameters: z.object({
+          contactQuery: z
+            .string()
+            .describe(
+              byPurpose
+                ? 'Who, or what the call was about: e.g. "dad", "Sam" or "the dentist"'
+                : 'Who: a name or relationship, e.g. "dad" or "Sam"'
+            ),
+        }),
+        execute: async ({ contactQuery }, opts) => {
+          const session = (opts as { ctx?: { session?: object } } | undefined)?.ctx?.session;
+          return callStatusReply(ctx.userId, contactQuery, session);
+        },
+      }),
   };
 }
 
@@ -145,6 +187,7 @@ function getTelephonyToolDefinitions(): ToolDefinition[] {
       requiredServices: ['twilio'],
       create: (ctx: ToolContext) => withLiveSessionId(ctx, createCallOnBehalfTool),
     },
+    callStatusDefinition(),
   ];
 }
 
@@ -163,6 +206,8 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
   telephonyTools
 );
 
-export { getTelephonyToolDefinitions };
+export { getTelephonyToolDefinitions, callStatusReply };
+export { setCallRecallPort } from './call-status-tool.js';
+export type { CallQuery, CallRecallPort, RecalledCall, SeenCall } from './call-status-tool.js';
 
 export default getToolDefinitions;

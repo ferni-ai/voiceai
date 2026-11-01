@@ -20,6 +20,19 @@
     "switchAccount": "Use another account",
     "seeSources": "Why I picked it, and where I found it"
   },
+  "connectInvite": {
+    "title": "Let Alex keep an eye on your calendar",
+    "lead": "Connect Google Calendar so plans don't sneak up on you. Here's what it shares:",
+    "account": "Connecting to Alex for {account}",
+    "sees": "Sees event times, titles and places",
+    "changes": "Adds or changes events only when you ask",
+    "never": "Never sees your emails or attachments",
+    "undo": "Undo any time in Settings > Calendar, or just tell Alex",
+    "connect": "Connect Google Calendar",
+    "opening": "Opening Google...",
+    "expired": "This link has expired or was already used. Ask on your next call and I'll send a fresh one.",
+    "failed": "Couldn't open Google just now. Ask on your next call and I'll send a new link."
+  },
   "meta": {
     "locale": "en-US",
     "name": "English (US)",
@@ -308,8 +321,6 @@
       "notifications": "When I'll Check In",
       "toggleTheme": "Light / Dark",
       "themeLanguage": "Look & Feel",
-      "linkSpotify": "Connect Spotify",
-      "spotifyConnected": "Spotify Connected",
       "vibeController": "Set the Mood",
       "spotifyRooms": "Music Rooms",
       "thermostat": "Home Comfort",
@@ -375,12 +386,12 @@
     "languageCurrent": "{language} (current)"
   },
   "session": {
-    "connecting": "Connecting...",
+    "connecting": "Connecting…",
     "connected": "Connected",
     "disconnected": "Disconnected",
-    "listening": "Listening...",
-    "thinking": "Thinking...",
-    "speaking": "Speaking...",
+    "listening": "Listening…",
+    "thinking": "Thinking…",
+    "speaking": "Speaking…",
     "tapToSpeak": "Tap to speak",
     "holdToSpeak": "Hold to speak",
     "releaseToSend": "Release to send",
@@ -388,11 +399,11 @@
     "sessionEnded": "Session ended",
     "goodbye": "Goodbye",
     "end": "End",
-    "untilNextTime": "Until next time...",
+    "untilNextTime": "Until next time",
     "endConversation": "End conversation",
-    "endConversationGoodbye": "End conversation - Goodbye",
+    "goodbyeEndCall": "Goodbye. End call.",
     "takeCare": "Take care.",
-    "ending": "Ending..."
+    "ending": "Call ended"
   },
   "memoryBrowser": {
     "eyebrow": "Your Journey",
@@ -1361,10 +1372,6 @@
       "apple_health": {
         "name": "Apple Health",
         "description": "Sync with Apple Watch and iPhone health data"
-      },
-      "fitbit": {
-        "name": "Fitbit",
-        "description": "Connect your Fitbit device"
       },
       "garmin": {
         "name": "Garmin",
@@ -2858,8 +2865,7 @@
       "askFerni": "Or ask Ferni to play something",
       "play": "Play",
       "pause": "Pause",
-      "skip": "Skip",
-      "linkSpotify": "Link Spotify in Settings for full songs"
+      "skip": "Skip"
     },
     "volume": "Volume",
     "skipped": "Skipped",
@@ -3079,9 +3085,9 @@
   },
   "tryFirst": {
     "subtitle": "Say hello first. Sign in whenever you want to keep the conversation.",
-    "talkNow": "Talk to Ferni now",
+    "talkNow": "Talk to Ferni",
     "noAccount": "No account needed. Just say hello.",
-    "connecting": "Connecting",
+    "connecting": "Calling {name}…",
     "inCall": "You're talking with Ferni. Say whatever's on your mind.",
     "endCall": "End call",
     "keepTitle": "Want to keep this conversation?",
@@ -4308,6 +4314,11 @@
     "reschedule": "Reschedule",
     "scheduledFor": "Scheduled for {time}",
     "confirmCancel": "Are you sure you want to cancel this check-in?",
+    "cancelled": "Cancelled. I won't reach out about this one.",
+    "moved": "Moved to {time}.",
+    "actionFailed": "That didn't go through, so nothing changed. Want to try again?",
+    "actionTooLate": "That one is already on its way, so it couldn't be changed.",
+    "moveBadTime": "I can't reach out then. Try another time.",
     "todayAt": "Today at {time}",
     "tomorrowAt": "Tomorrow at {time}",
     "channelSms": "SMS",
@@ -8433,10 +8444,9 @@
     "appleHealthDesc": "Sleep, activity, and heart rate data",
     "ouraDesc": "Sleep quality and readiness scores",
     "eightSleepDesc": "Sleep tracking and temperature",
-    "wearablesDesc": "Fitbit, Garmin, Whoop, and more",
+    "wearablesDesc": "Garmin, Whoop, and more",
     "calendarDesc": "Events, meetings, and availability",
     "linkedInDesc": "Professional context and network",
-    "spotifyDesc": "Music, mood playlists, listening history",
     "ecobeeDesc": "Home temperature and comfort",
     "vibeControllerDesc": "Control music, lights, and more",
     "connected": "Connected",
@@ -8916,6 +8926,13 @@
     "exportFailed": "Couldn't export your data. Try again?",
     "deleteDataFailed": "Couldn't delete your data. Nothing was removed. Try again?",
     "deleteAccountFailed": "Couldn't delete your account. Try again?",
+    "deleteRefusedSignIn": "Your sign-in wasn't accepted, so this request deleted nothing. Sign in again, then try once more.",
+    "deleteDataUnknown": "Couldn't confirm whether your data was deleted. It may still be finishing, so check again in a few minutes.",
+    "deleteDataStillUnknown": "Still couldn't confirm whether your data was deleted. Try again in a few minutes.",
+    "deleteAccountUnknown": "Couldn't confirm whether your account was deleted. It may still be finishing, so check again in a few minutes.",
+    "accountStillOpen": "Your account is still open. If you still want it closed, you can delete it again.",
+    "accountSignInRefused": "Your sign-in is no longer accepted, which happens when an account is closing. If you didn't delete it, sign in again to check.",
+    "authSlow": "Couldn't check your sign-in in time, so nothing was sent. Try again?",
     "accountDeletedPartial": "Your account is deleted, but a few records didn't clear. Contact us to finish.",
     "categoryConversations": "All conversation transcripts and metadata",
     "categoryInsights": "What Ferni has learned about you",
@@ -9074,9 +9091,6 @@
     "trustJourneyExplore": "Explore",
     "customizeTitle": "Customize your experience",
     "customizeMessage": "Adjust themes, sounds, and more.",
-    "spotifyTitle": "Connect Spotify",
-    "spotifyMessage": "Link your Spotify to set the mood during our conversations.",
-    "spotifyConnect": "Connect",
     "maybeLater": "Maybe later"
   },
   "mentorTeachings": {
@@ -9433,6 +9447,8 @@
   },
   "dataExport": {
     "title": "Privacy & your data",
+    "loadFailed": "I couldn't load what I've saved for you just now. Nothing has changed.",
+    "checkAgain": "Check again",
     "intro": {
       "one": "You have {count} item across {categories}. Select what to export.",
       "other": "You have {count} items across {categories}. Select what to export."
@@ -10308,7 +10324,6 @@
       "other": "{count} conversations left. I'm here whenever you need me."
     },
     "gettingReady": "Getting ready...",
-    "connecting": "Connecting",
     "almostThere": "Almost there...",
     "waitingQuietly": "I'll wait quietly",
     "listening": "I'm listening",
@@ -10334,7 +10349,6 @@
     },
     "monthlyLimitReached": "We've reached our monthly limit. I'd love to keep talking...",
     "enableMicPrompt": "I'd love to hear your voice - enable mic access?",
-    "agentJoined": "{name} joined",
     "seeYouNextTime": "See you next time!",
     "handoffFailed": "Couldn't reach them right now. I'm still here though!",
     "personaBack": "{name} is back!",
@@ -10622,7 +10636,6 @@
     "names": {
       "stockData": "Stock Data",
       "marketData": "Market Data",
-      "weatherMaps": "Weather & Maps",
       "historicalFacts": "Historical Facts",
       "smartHome": "Smart Home",
       "lighting": "Lighting",
@@ -10914,18 +10927,22 @@
     "micHelpIos": "Open your iPhone Settings, find this browser, and turn on Microphone. Then come back and try again.",
     "micHelpAndroid": "Tap the icon left of the address bar, then Permissions, then set Microphone to Allow. Then try again.",
     "micHelpDesktop": "Open your browser’s site settings (the icon left of the address bar), set Microphone to Allow, then try again.",
-    "endTalk": "Disconnect",
-    "connectingCancel": "Connecting. Tap to cancel",
-    "connectingNow": "Connecting…",
-    "tapToCancel": "Tap to cancel"
+    "endTalk": "End call",
+    "connectingCancel": "Calling {name}. Tap to cancel.",
+    "connectingNow": "Calling {name}…",
+    "tapToCancel": "Tap to cancel",
+    "stillCalling": "Still reaching {name}…",
+    "stillCallingCancel": "Still reaching {name}. Tap to cancel.",
+    "reconnecting": "Reconnecting…",
+    "arrived": "{name} is here"
   },
   "callRoom": {
-    "connecting": "Connecting",
+    "connecting": "Calling {name}…",
     "listening": "{name}'s listening",
     "talking": "{name}'s talking",
     "muted": "You're muted",
-    "end": "End",
-    "backHint": "Tap End to hang up"
+    "end": "End call",
+    "backHint": "Tap End call to hang up"
   },
   "analyticsDashboard": {
     "title": "Your Journey",

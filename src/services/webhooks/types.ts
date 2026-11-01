@@ -235,6 +235,8 @@ export interface WebhookServiceResult<T> {
   success: boolean;
   data?: T;
   error?: string;
+  /** Set when a save was refused because the webhook could not be sealed. */
+  code?: 'sealing_unavailable';
 }
 
 /** List webhooks result */

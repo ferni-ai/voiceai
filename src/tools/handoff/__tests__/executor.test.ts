@@ -269,22 +269,26 @@ describe('Handoff Executor', () => {
 
     it('should reset state correctly', () => {
       setCurrentAgent('peter-john');
-      captureHandoffContext({ topics: ['stocks'] });
+      captureHandoffContext({ topics: ['stocks'] }, 'session-a', 'peter-john');
 
       resetHandoffState();
 
       expect(getCurrentAgent()).toBe('ferni');
-      expect(getHandoffContext()).toBeNull();
+      expect(getHandoffContext('session-a')).toBeNull();
     });
 
     it('should capture and retrieve context', () => {
-      captureHandoffContext({
-        topics: ['investing', 'stocks'],
-        emotionalState: 'curious',
-        summary: 'User asked about growth stocks',
-      });
+      captureHandoffContext(
+        {
+          topics: ['investing', 'stocks'],
+          emotionalState: 'curious',
+          summary: 'User asked about growth stocks',
+        },
+        'session-a',
+        'peter-john'
+      );
 
-      const context = getHandoffContext();
+      const context = getHandoffContext('session-a');
       expect(context).toBeDefined();
       expect(context?.topics).toContain('investing');
       expect(context?.emotionalState).toBe('curious');

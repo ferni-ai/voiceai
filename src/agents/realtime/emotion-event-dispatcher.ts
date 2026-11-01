@@ -16,7 +16,6 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getBetterThanHumanTelemetry } from '../../services/analytics/better-than-human-telemetry.js';
-import { logBTHSignal } from '../../services/analytics/bth-signal-logger.js';
 import {
   getConcernLevelFromDistress,
   CONCERN_MIN_DISTRESS,
@@ -33,35 +32,6 @@ import {
 } from '../../config/emotion-thresholds.js';
 
 const log = createLogger({ module: 'EmotionEventDispatcher' });
-
-// ============================================================================
-// BTH SIGNAL LOGGING WRAPPER
-// ============================================================================
-
-/**
- * Wraps sendDataMessage to also log BTH signals to Firestore (fire-and-forget).
- * Returns a new sendDataMessage that transparently logs all humanization_signal events.
- */
-function withBTHLogging(
-  sendDataMessage: SendDataMessageFn,
-  telemetryContext?: BTHTelemetryContext
-): SendDataMessageFn {
-  if (!telemetryContext?.userId) return sendDataMessage;
-
-  return async (type: string, payload: Record<string, unknown>) => {
-    await sendDataMessage(type, payload);
-
-    if (type === 'humanization_signal' && payload.signalType) {
-      logBTHSignal({
-        userId: telemetryContext.userId,
-        sessionId: telemetryContext.sessionId ?? 'unknown',
-        personaId: telemetryContext.personaId ?? 'unknown',
-        signalType: String(payload.signalType),
-        payload,
-      });
-    }
-  };
-}
 
 // ============================================================================
 // TELEMETRY CONTEXT
@@ -208,17 +178,10 @@ function getConcernType(emotionalState: EmotionalStateWithMismatch): string | un
  */
 export async function dispatchEmotionEvents(
   options: EmotionDispatchOptions,
-  rawSendDataMessage: SendDataMessageFn
+  sendDataMessage: SendDataMessageFn
 ): Promise<void> {
   const { emotionalState, userId, personaId } = options;
   const { distressLevel, trajectory, mismatch, primary, intensity } = emotionalState;
-
-  // Wrap with BTH Firestore logging
-  const sendDataMessage = withBTHLogging(rawSendDataMessage, {
-    userId: userId ?? '',
-    personaId: personaId ?? '',
-    sessionId: options.sessionId,
-  });
 
   try {
     // ========================================================================
@@ -414,7 +377,7 @@ function mapRelationshipToSignal(
  */
 export async function dispatchHolisticEvents(
   options: HolisticDispatchOptions,
-  rawSendDataMessage: SendDataMessageFn
+  sendDataMessage: SendDataMessageFn
 ): Promise<void> {
   const { holisticContext, userId, personaId } = options;
   const {
@@ -426,13 +389,6 @@ export async function dispatchHolisticEvents(
     relationshipSentiment,
     isCompoundIntent,
   } = holisticContext;
-
-  // Wrap with BTH Firestore logging
-  const sendDataMessage = withBTHLogging(rawSendDataMessage, {
-    userId: userId ?? '',
-    personaId: personaId ?? '',
-    sessionId: options.sessionId,
-  });
 
   try {
     // ========================================================================

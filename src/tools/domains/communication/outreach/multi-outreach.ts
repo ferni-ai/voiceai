@@ -696,7 +696,7 @@ export function getMultiOutreachDefinition(): ToolDefinition {
     description: 'Reach out to multiple people with mixed channels and optional scheduling',
     domain: 'communication',
     tags: ['outreach', 'batch', 'call', 'text', 'email', 'multi', 'group'],
-    requiredServices: ['twilio', 'sendgrid'],
+    requiredServices: ['twilio', 'email'],
     create: createMultiOutreachTool,
   };
 }

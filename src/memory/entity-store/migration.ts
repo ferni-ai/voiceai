@@ -30,6 +30,7 @@ import {
   deleteEntity,
 } from './storage.js';
 import { mergeEntities } from './entity-resolver.js';
+import { keepLetters } from '../domain/person-key.js';
 import type {
   Entity,
   EntityType,
@@ -369,13 +370,10 @@ interface CandidateEntity {
 }
 
 /**
- * Normalize name for comparison
+ * Normalize name for comparison, in any script: the ASCII-only class turned "Ольга" into ''.
  */
 function normalizeName(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z\s]/g, '');
+  return keepLetters(name);
 }
 
 /**

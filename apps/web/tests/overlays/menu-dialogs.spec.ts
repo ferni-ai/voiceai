@@ -14,7 +14,6 @@ import { expect, test, type Page } from '@playwright/test';
 /** Rows that leave the page or start something rather than opening a panel */
 const NOT_PANELS = new Set([
   'sign-out', // signs out
-  'spotify', // starts OAuth
   'support-ferni', // opens the payment provider when the flag is on
 ]);
 

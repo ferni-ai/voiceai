@@ -22,7 +22,6 @@ import {
 } from '../../../conversation/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { DISTRESS } from '../../distress-levels.js';
-import { scriptedHintLinesEnabled } from '../../scripted-hint-lines.js';
 import { createInjection, type ContextBuilderInput, type ContextInjection } from '../index.js';
 
 const log = createLogger({ module: 'context:conversation-humanizing' });
@@ -71,7 +70,7 @@ export function buildConversationHumanizingContext(
   };
 
   // Process the user message (records in memory, dynamics, etc.)
-  const preActions = humanizer.processUserMessage(humanizationContext);
+  humanizer.processUserMessage(humanizationContext);
 
   // Generate all context guidance from the humanizer
   const guidance = humanizer.generateContextGuidance(humanizationContext);
@@ -80,22 +79,6 @@ export function buildConversationHumanizingContext(
   const injections: ContextInjection[] = guidance.map((g) =>
     createInjection(g.source, g.content, g.priority)
   );
-
-  // Add topic change notification if detected. The bridge line is canned, so it
-  // is only quoted with FERNI_SCRIPTED_HINT_LINES=on.
-  if (
-    preActions.topicChange?.detected &&
-    preActions.topicChange.transitionPhrase &&
-    scriptedHintLinesEnabled()
-  ) {
-    injections.push(
-      createInjection(
-        'topic_change',
-        `[TOPIC SHIFT] User changed topic. Consider: "${preActions.topicChange.transitionPhrase}"`,
-        'standard'
-      )
-    );
-  }
 
   // Log what we're injecting
   if (injections.length > 0) {

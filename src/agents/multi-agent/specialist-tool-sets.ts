@@ -106,6 +106,7 @@ export const SPECIALIST_TOOL_SETS: Readonly<Record<string, ToolsByName>> = {
     logExercise: 'health',
     analyzeSleepPattern: 'health',
     suggestSleepHygiene: 'health',
+    getSleepSummary: 'wellness',
     coachOnNutrition: 'health',
     budgetPlanner: 'finance',
     debtPayoff: 'finance',

@@ -78,7 +78,7 @@ A human friend might not notice these subtle shifts. You did. Share it with care
       });
 
       diag.info('🌱 Growth reflection ready', {
-        reflectionPreview: String(reflection).slice(0, 50),
+        reflectionLen: String(reflection).length,
       });
     }
 
@@ -171,7 +171,7 @@ IMPORTANT: This is "better than human" listening. A friend might miss this signa
         });
 
         diag.info(`🎧 Unsaid signal detected: ${signal.type}`, {
-          observation: signal.observation.slice(0, 50),
+          observationLen: signal.observation.length,
           confidence: signal.confidence,
           approach: signal.approach,
           hasPersonaPhrase: !!personaPhrase,

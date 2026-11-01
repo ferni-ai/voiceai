@@ -14,6 +14,23 @@ import { z } from 'zod';
 const valence = z.number().int().min(-2).max(2);
 const strict = <T extends z.ZodRawShape>(shape: T) => z.object(shape).strict();
 
+/** YYYY-MM-DD, optionally with a clock time THH:MM[:SS][.sss] and Z or an offset. */
+const ISO_DATE =
+  /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:\d{2})?)?$/;
+
+/** `value` when it is an ISO date (or date-time), else null: the only time values a reading keeps. */
+export function isoDateOrNull(value: unknown): string | null {
+  return typeof value === 'string' && ISO_DATE.test(value) ? value : null;
+}
+
+// The model's date for a phrase: free text it writes there ("mom's surgery") is
+// the caller's words, so it becomes null and the rest of the reading stands.
+// A non-string still fails the reading. The model's JSON schema is unchanged.
+const isoDate = z.preprocess(
+  (v) => (typeof v === 'string' ? isoDateOrNull(v) : v),
+  z.string().nullable()
+);
+
 const turnReading = strict({
   speech_act: z.enum([
     'answer',
@@ -44,8 +61,8 @@ const turnReading = strict({
       text: z.string(),
       kind: z.enum(['point', 'span']),
       // Null for vague phrases ("soon"); YYYY-MM-DD for whole days.
-      start_iso: z.string().nullable(),
-      end_iso: z.string().nullable(),
+      start_iso: isoDate,
+      end_iso: isoDate,
       relation: z.enum(['future', 'ongoing', 'past']),
     })
   ),

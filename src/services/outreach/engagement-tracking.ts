@@ -32,7 +32,6 @@ export interface EngagementEvent {
     linkUrl?: string;
     userAgent?: string;
     ipCity?: string;
-    sendgridEventId?: string;
   };
 }
 
@@ -49,17 +48,6 @@ export interface UserEngagementStats {
   bestHourToReach: number | null; // 0-23
   bestDayToReach: number | null; // 0-6 (Sunday = 0)
   lastEngagement: Date | null;
-}
-
-export interface SendGridWebhookEvent {
-  email: string;
-  timestamp: number;
-  event: 'delivered' | 'open' | 'click' | 'bounce' | 'spam_report' | 'unsubscribe';
-  sg_message_id: string;
-  sg_event_id: string;
-  url?: string;
-  useragent?: string;
-  ip?: string;
 }
 
 // ============================================================================
@@ -210,73 +198,6 @@ async function updateChannelPreference(
 }
 
 // ============================================================================
-// SENDGRID WEBHOOK HANDLER
-// ============================================================================
-
-/**
- * Handle SendGrid webhook events for email tracking
- */
-export async function handleSendGridWebhook(events: SendGridWebhookEvent[]): Promise<void> {
-  log.info({ eventCount: events.length }, 'Processing SendGrid webhook events');
-
-  for (const event of events) {
-    try {
-      // Look up user by email
-      const userId = await findUserIdByEmail(event.email);
-      if (!userId) {
-        log.debug({ email: event.email }, 'User not found for email engagement event');
-        continue;
-      }
-
-      // Map SendGrid event types to our types
-      const eventTypeMap: Record<string, EngagementEvent['eventType']> = {
-        delivered: 'delivered',
-        open: 'opened',
-        click: 'clicked',
-        bounce: 'bounced',
-        spam_report: 'spam',
-        unsubscribe: 'unsubscribed',
-      };
-
-      const engagementEvent: EngagementEvent = {
-        userId,
-        messageId: event.sg_message_id,
-        channel: 'email',
-        eventType: eventTypeMap[event.event] || 'delivered',
-        timestamp: new Date(event.timestamp * 1000),
-        metadata: {
-          linkUrl: event.url,
-          userAgent: event.useragent,
-          sendgridEventId: event.sg_event_id,
-        },
-      };
-
-      await recordEngagementEvent(engagementEvent);
-    } catch (error) {
-      log.error({ error: String(error), event }, 'Failed to process SendGrid event');
-    }
-  }
-}
-
-/**
- * Find user ID by email address
- */
-async function findUserIdByEmail(email: string): Promise<string | null> {
-  const db = getFirestoreDb();
-  if (!db) return null;
-
-  try {
-    const snapshot = await db.collection('bogle_users').where('email', '==', email).limit(1).get();
-
-    if (snapshot.empty) return null;
-    return snapshot.docs[0].id;
-  } catch (error) {
-    log.error({ error: String(error), email }, 'Failed to find user by email');
-    return null;
-  }
-}
-
-// ============================================================================
 // ANALYTICS QUERIES
 // ============================================================================
 
@@ -334,7 +255,6 @@ export async function getPreferredChannel(
 
 export const engagementTracking = {
   recordEvent: recordEngagementEvent,
-  handleSendGridWebhook,
   getStats: getEngagementStats,
   getOptimalTime: getOptimalOutreachTime,
   getPreferredChannel,

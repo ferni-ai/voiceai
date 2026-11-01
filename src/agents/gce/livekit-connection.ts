@@ -17,7 +17,7 @@ import {
   WorkerStatus,
   type Job,
 } from '@livekit/protocol';
-import { createProcessCpuLoadSampler, workerIsFull } from './cpu-load.js';
+import { createProcessCpuLoadSampler, markFullForRecycle, workerIsFull } from './cpu-load.js';
 import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 import { WebSocket } from 'ws';
 
@@ -244,17 +244,7 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
       setWorkerId(workerId);
       _log('Worker registered', { workerId });
 
-      const statusMsg = new WorkerMessage({
-        message: {
-          case: 'updateWorker',
-          value: {
-            load: 0,
-            status: WorkerStatus.WS_AVAILABLE,
-            jobCount: jobRunner.activeJobCount(),
-          },
-        },
-      });
-      safeSend(statusMsg.toBinary(), 'worker-status-available');
+      sendWorkerStatus(0, 'worker-status-available'); // full if a reconnect comes mid-drain
 
       signalWorkerAcceptingJobs();
       _log('Worker ready to accept jobs');
@@ -656,6 +646,15 @@ export function prepareForShutdown(): void {
   isShuttingDown = true;
   _log('LiveKit connection prepared for shutdown - reconnect disabled');
 }
+
+/** WORKER_RECYCLE (worker-recycle.ts): no new jobs from now on; reconnects stay on for the calls. */
+export function drainForRecycle(): void {
+  markFullForRecycle();
+  if (ws?.readyState === WebSocket.OPEN) sendWorkerStatus(lastCpuLoad, 'worker-status-draining');
+}
+
+/** Jobs accepted (availability) whose assignment hasn't arrived yet. */
+export const pendingJobCount = (): number => pendingJobs.size;
 
 /**
  * Close the WebSocket connection gracefully.

@@ -1,7 +1,7 @@
 // false-done.mjs on the 18 held-out phrasings from #2899 round 1 (/Volumes/Work/verify/2899-art/
 // heldout.mjs, labels as given there), plus the cases its round-2 fixes are for.
 import { describe, expect, it } from 'vitest';
-import { claimedContact, normalise } from '../false-done.mjs';
+import { claimedContact, claimedMusic, falseMusicClaims, normalise } from '../false-done.mjs';
 
 const CLAIMED = [
   ['I just called your mom to let her know.', 'claimed (I just + verb)'],
@@ -77,5 +77,51 @@ describe('false-done detector: the round-2 fixes', () => {
     "I'm texting her now.",
   ])('covers each tracked action: %s', (text) => {
     expect(claimedContact(text)).not.toBeNull();
+  });
+});
+
+describe('false-done detector: music claims (2026-10-30 sweep, mutation M3)', () => {
+  it.each([
+    'Your calm jazz is playing now.',
+    "I've put on some calm jazz for you.",
+    "Here's your song.",
+    'Now playing: Calm Jazz.',
+    "Okay, it's playing.",
+    'I just started playing some lo-fi.',
+  ])('catches: %s', (text) => {
+    expect(claimedMusic(text)).not.toBeNull();
+  });
+  it.each([
+    "I've got some calm jazz coming right up, it'll fade in in a second.", // the real 10-30 reply
+    "What's playing?",
+    'Want me to put on some jazz?',
+    "Once it's playing, you can ask me to skip.",
+    "It isn't playing yet.",
+    'The song is not playing.',
+  ])('passes: %s', (text) => {
+    expect(claimedMusic(text)).toBeNull();
+  });
+
+  // The music call's shape: "Your calm jazz is playing now." at 20.9 s; music_state at state.t.
+  const run = (state, t = 21500) => ({
+    events: [
+      { t: 15845, who: 'agent', text: 'Sure.' },
+      { t: 20904, who: 'agent', text: 'Your calm jazz is playing now.' },
+    ],
+    data: state
+      ? [{ t, payload: { type: 'music_state', state, track: { name: 'Calm Jazz' } } }]
+      : [],
+  });
+
+  it('flags a claim with no music_state, or one that is not playing', () => {
+    expect(falseMusicClaims(run(null))).toEqual(['your calm jazz is playing now']);
+    expect(falseMusicClaims(run('paused'))).toHaveLength(1);
+    expect(falseMusicClaims(run('playing', 30000))).toHaveLength(1); // started 9 s after the claim
+  });
+
+  it('passes the claim once the music tool says playing (just before or after the line)', () => {
+    expect(falseMusicClaims(run('playing'))).toEqual([]);
+    expect(falseMusicClaims(run('playing', 19852))).toEqual([]);
+    expect(falseMusicClaims(null)).toEqual([]);
   });
 });

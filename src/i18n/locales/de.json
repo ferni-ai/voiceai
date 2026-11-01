@@ -356,10 +356,6 @@
           "name": "Apple Health",
           "description": "Verbindung über die Ferni iOS-App"
         },
-        "fitbit": {
-          "name": "Fitbit",
-          "description": "Schritte, Schlaf und Herzfrequenz"
-        },
         "garmin": {
           "name": "Garmin",
           "description": "Aktivitäts- und Trainingsdaten"

@@ -1,30 +1,43 @@
 /** What each outreach tool fixes and reads back before the caller's yes (outreach-confirm.ts). */
 
-import { PLANNED, type ConfirmSpec, type Planned } from './outreach-confirm.js';
+import { ownerKnown, PLANNED, type ConfirmSpec, type Planned } from './outreach-confirm.js';
 import type { OutreachResult } from './unified-outreach.js';
 
 const CALLS = ['call', 'voicemail'];
 
 /** reachOut: fix the words, channel, contact and address now, and send exactly those. */
 export const reachOutConfirm: ConfirmSpec = {
-  prepare: async (args, _userId, plan) => {
+  prepare: async (args, _userId, plan, session) => {
     const out = await plan(args);
     if (typeof out === 'string') return `${out} Nothing was sent.`;
     const r = out as OutreachResult;
+    if (r.error) return r.error;
     if (!r.success || !r.to || !r.contactId)
       return `Nothing was sent: no ${r.channel} for ${r.contactName}.`;
     // A live two-way call has no fixed words to read back; calls get their own confirmation.
     if (r.channel === 'conversation')
       return 'Nothing was sent: live calls need their own confirmation.';
-    const planned: Planned = { contactId: r.contactId, to: r.to, channel: r.channel };
-    const how = CALLS.includes(r.channel) ? 'a call' : `a ${r.channel}`;
+    const planned: Planned = { contactId: r.contactId, to: r.to, channel: r.channel, from: r.from };
+    const article = r.channel === 'email' ? 'an' : 'a';
+    const how = CALLS.includes(r.channel) ? 'a call' : `${article} ${r.channel}`;
     const words = CALLS.includes(r.channel) ? 'where Ferni will open with' : 'saying';
     return {
       args: { ...args, customMessage: r.message, preferredChannel: r.channel, [PLANNED]: planned },
-      readBack: `${how} to ${r.contactName} at ${r.to}, ${words} "${r.message}"`,
+      readBack: `${how} to ${r.contactName} at ${r.to}${fromWhere(r, session)}, ${words} "${r.message}"`,
     };
   },
 };
+
+/**
+ * Which mailbox an email goes from, when GMAIL_SEND_AS_USER chose one (outreach-email.ts).
+ * The caller's address is said only when the speaker is known to be its owner.
+ */
+function fromWhere(r: OutreachResult, session?: object): string {
+  if (r.from === 'ferni') return " from Ferni's address";
+  if (r.from !== 'gmail') return '';
+  const address = r.fromAddress && ownerKnown(session) ? `, ${r.fromAddress}` : '';
+  return ` from your Gmail${address}`;
+}
 
 /** multiOutreach can't yet read back every person's address, so under the flag it sends nothing. */
 export const multiOutreachConfirm: ConfirmSpec = {

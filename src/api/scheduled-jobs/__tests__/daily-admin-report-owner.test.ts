@@ -11,7 +11,6 @@ const { sendEmail } = vi.hoisted(() => ({
 vi.mock('../../../services/outreach/delivery/email-delivery.js', () => ({
   sendEmail,
   isEmailDeliveryAvailable: () => true,
-  initializeEmailDelivery: () => {},
 }));
 vi.mock('../../../services/admin/daily-report.js', () => ({
   generateDailyReport: async () => ({

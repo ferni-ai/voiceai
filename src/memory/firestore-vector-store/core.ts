@@ -171,9 +171,9 @@ export class FirestoreVectorStore implements VectorStoreContract {
     }
 
     try {
-      const { Firestore } = await import('@google-cloud/firestore');
+      const { sharedFirestore } = await import('../../utils/shared-firestore.js');
 
-      this.db = new Firestore({
+      this.db = sharedFirestore({
         projectId: this.config.projectId,
         databaseId: this.config.databaseId,
       }) as unknown as FirestoreInstance;
@@ -308,6 +308,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
         metadata: doc.metadata,
         createdAt: new Date(),
         updatedAt: new Date(),
+        expireAt: doc.expireAt, // a policy's expiry (store-hooks.ts); none is kept
         needsEmbedding, // Flag for background job to retry embedding generation
       });
 
@@ -553,7 +554,6 @@ export class FirestoreVectorStore implements VectorStoreContract {
           score: topKResult.similarities[i],
         }));
 
-        // Cache the results
         this.searchCache.set(query, queryEmbedding, results, options?.filter, { topK, minScore });
         return results;
       }
@@ -817,10 +817,8 @@ export class FirestoreVectorStore implements VectorStoreContract {
   async close(): Promise<void> {
     this.recoveryManager.cleanupTimer();
 
-    if (this.db) {
-      await this.db.terminate();
-      this.db = null;
-    }
+    // Not terminated: the client is the process's shared one (sharedFirestore), still in use.
+    this.db = null;
     this.fallbackCache.clear();
     this.searchCache.clear();
     this._initialized = false;

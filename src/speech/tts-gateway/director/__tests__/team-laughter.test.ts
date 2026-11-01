@@ -188,12 +188,10 @@ describe('on the live gateway path', () => {
     };
     const roll = vi.spyOn(Math, 'random').mockReturnValue(0);
     try {
-      expect(
-        await run({ SPEECH_DIRECTOR: 'live', SPEECH_DIRECTOR_LAUGHTER: 'live', TEAM_VOICES: 'on' })
-      ).toMatch(/^(?:<[^>]+>)*\[laughter\] Okay/);
-      expect(
-        await run({ SPEECH_DIRECTOR: 'live', SPEECH_DIRECTOR_LAUGHTER: 'live' })
-      ).not.toContain('[laughter]');
+      expect(await run({ SPEECH_DIRECTOR: 'live', TEAM_VOICES: 'on' })).toMatch(
+        /^(?:<[^>]+>)*\[laughter\] Okay/
+      );
+      expect(await run({ SPEECH_DIRECTOR: 'live' })).not.toContain('[laughter]');
     } finally {
       roll.mockRestore();
     }

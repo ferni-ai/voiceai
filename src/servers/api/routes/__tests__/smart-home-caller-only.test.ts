@@ -18,9 +18,11 @@ import {
 
 const h = vi.hoisted(() => ({ db: null as unknown }));
 vi.mock('../../../../services/identity/firebase-auth.js', () => ({
-  verifyFirebaseToken: vi.fn(async (token: string) =>
-    token === 'tok-A' ? { uid: 'uid-A', claims: {}, isAnonymous: false } : null
-  ),
+  verifyFirebaseToken: vi.fn(async (token: string) => {
+    if (token === 'tok-unchecked')
+      throw Object.assign(new Error('unchecked'), { code: 'auth/revocation-check-unavailable' });
+    return token === 'tok-A' ? { uid: 'uid-A', claims: {}, isAnonymous: false } : null;
+  }),
   isVerifiedToken: (t: unknown) => t !== null,
 }));
 vi.mock('firebase-admin/firestore', async (importOriginal) => ({
@@ -124,5 +126,12 @@ describe('HomeKit sync writes only the verified token uid', () => {
       expect(res.status).toBe(401);
     }
     expect(state.docs.has('bogle_users/victim/homekit/config')).toBe(false);
+  });
+
+  it("answers 503 with Retry-After, not 401, when the token's account couldn't be checked", async () => {
+    const res = await sync({ homeData }, 'Bearer tok-unchecked');
+    expect(res.status).toBe(503);
+    expect(res.headers.get('retry-after')).toBe('5');
+    expect(state.docs.has('bogle_users/uid-A/homekit/config')).toBe(false);
   });
 });

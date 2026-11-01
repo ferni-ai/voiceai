@@ -81,7 +81,7 @@ describe('the written asks', () => {
 
   it('are small, with no em dash or ellipsis, and name only his own people', () => {
     const asks = Object.values(HELP_ASKS).flatMap((a) => a.filter((x) => x !== undefined));
-    const canon = ['Scott', 'Ken', 'Dermot', 'Japan', 'Tokyo', 'Alps'];
+    const canon = ['Marty', 'Owen', 'Boyd', 'Japan', 'Tokyo', 'Alps'];
     for (const { ask } of asks) {
       expect(ask).not.toMatch(/—|…|\.\.\./);
       expect(ask.split(/\s+/).length).toBeLessThanOrEqual(25);

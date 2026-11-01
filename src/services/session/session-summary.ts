@@ -12,7 +12,6 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { onSessionSummaryChange } from '../data-layer/hooks/better-than-human-hooks.js';
-import { writeSummaryContinuity } from './session-continuity.js';
 
 const log = createLogger({ module: 'SessionSummary' });
 
@@ -182,7 +181,6 @@ export async function storeSessionSummary(summary: VoiceSessionSummary): Promise
   // Persist to Firestore
   await persistSummaryToFirestore(summary);
   await persistContextToFirestore(context);
-  await writeSummaryContinuity(summary);
 }
 
 /**

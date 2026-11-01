@@ -374,7 +374,8 @@ export async function buildAmbientModeInjections(userId: string): Promise<Contex
 export async function buildHumanTransferInjections(
   userText: string,
   userId?: string,
-  sessionId?: string
+  sessionId?: string,
+  turn?: number
 ): Promise<ContextInjection | null> {
   try {
     const { humanTransfer, buildTransferAwarenessContext, logCrisisSignal } =
@@ -385,7 +386,7 @@ export async function buildHumanTransferInjections(
     // PRIVACY: under the caller's own id or the session's anon: id; never a shared 'unknown'
     if (signals.severity > 0) {
       const caller = callerIdFor(userId, sessionId);
-      logCrisisSignal(caller, signals, userText, sessionId).catch((err: Error) => {
+      logCrisisSignal(caller, signals, userText, sessionId, turn).catch((err: Error) => {
         diag.debug('Crisis signal logging failed', { error: String(err) });
       });
     }
@@ -443,20 +444,24 @@ async function withinBudget<T>(work: Promise<T>, fallback: T, ms: number): Promi
  */
 export async function buildCrisisHistoryInjection(
   userId: string | undefined,
-  sessionId?: string
+  sessionId?: string,
+  turn?: number
 ): Promise<ContextInjection | null> {
   try {
-    const { hadRecentCrisis } = await import('../../../services/human-transfer/index.js');
+    const transfer = await import('../../../services/human-transfer/index.js');
 
     // CALL_START_TRIM: a slow read no longer holds the turn; it keeps loading and
     // the next turn uses it (hadRecentCrisis keeps the answer for a minute).
     const caller = callerIdFor(userId, sessionId);
-    const check = hadRecentCrisis(caller, 7);
-    const { hasCrisis, lastCrisis } = flagOn('CALL_START_TRIM')
+    const check = transfer.hadRecentCrisis(caller, 7);
+    const recent = flagOn('CALL_START_TRIM')
       ? await withinBudget(check, { hasCrisis: false }, CRISIS_READ_BUDGET_MS)
       : await check;
+    const lastCrisis = flagOn('CRISIS_SAME_CALL_NOTE_FADES') // #3000: fades after 3 turns
+      ? transfer.followUpCrisis(recent.crises, sessionId, turn)
+      : recent.lastCrisis;
 
-    if (!hasCrisis || !lastCrisis) {
+    if (!recent.hasCrisis || !lastCrisis) {
       return null;
     }
 

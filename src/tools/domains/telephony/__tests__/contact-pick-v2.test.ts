@@ -202,7 +202,7 @@ describe('the prod bug and the call itself', () => {
     const call = liveCall();
     const preview = await call.call({ contactQuery: 'my mom', purpose: 'say hi' }, 'c1');
     expect(preview).toContain('Mom at 801-555-0163');
-    call.caller('Yes, call her.');
+    call.caller('Yes, go ahead and call.');
     expect(await call.call({ contactQuery: 'my mom', purpose: 'say hi' }, 'c2')).toContain(
       'calling Mom'
     );

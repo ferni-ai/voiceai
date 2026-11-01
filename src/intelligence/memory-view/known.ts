@@ -10,8 +10,10 @@
  * facts recall uses (memory-control.ts), world facts still current, theory of
  * mind patterns established enough to act on, and the latest pondering.
  *
- * Off unless MEMORY_VIEW=on; pondering also needs MEMORY_VIEW_PONDERING=on,
- * since it is the private side of a feature still being tuned.
+ * Off unless MEMORY_VIEW=on. Pondering also follows MEMORY_VIEW_PONDERING, on
+ * unless set off (the kill switch, src/config/flags/MEMORY_VIEW_PONDERING.ts). Only
+ * the ponder job writes that doc, so most callers get an empty section, which the
+ * web leaves out.
  *
  * The Firestore side lives with the route (api/routes/known-store.ts), so this
  * module reads no store itself.
@@ -19,6 +21,7 @@
  * @module intelligence/memory-view/known
  */
 import { createHash } from 'node:crypto';
+import { flagOn } from '../../config/env-flag.js';
 import { isForgotten } from '../../memory/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { TemporalFact } from '../world-model/temporal/types.js';
@@ -34,7 +37,7 @@ export function isMemoryViewOn(env: Env = process.env): boolean {
 }
 
 export function isMemoryViewPonderingOn(env: Env = process.env): boolean {
-  return isMemoryViewOn(env) && env.MEMORY_VIEW_PONDERING === 'on';
+  return isMemoryViewOn(env) && flagOn('MEMORY_VIEW_PONDERING', env);
 }
 
 /** Which store an item lives in, so an action reaches the right one. */

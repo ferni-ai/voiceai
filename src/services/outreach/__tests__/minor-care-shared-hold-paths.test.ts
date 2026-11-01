@@ -23,14 +23,12 @@ vi.mock('../../conversation-thread/thread-manager.js', () => threads);
 vi.mock('../conversation-context-bridge.js', () => ({
   getConversationBridgeContext: async () => null,
 }));
-vi.mock('../../../memory/profile-store.js', () => ({
-  getProfileStore: async () => ({
-    isInitialized: true,
-    listProfiles: async () => [
-      { id: 'profile-uid', contactInfo: { phone: '+15551234567' } },
-      { id: 'adult-uid', contactInfo: { phone: '+15559876543' } },
-    ],
-  }),
+// The webhook names the account by its verified phone (sms-sender-account.ts): here the Firebase one.
+vi.mock('../../identity/firebase-auth.js', async (orig) => ({
+  ...(await orig<object>()),
+  getFirebaseUserByPhoneOrThrow: async (e164: string) =>
+    ({ '+15551234567': { uid: 'profile-uid' }, '+15559876543': { uid: 'adult-uid' } })[e164] ??
+    null,
 }));
 vi.mock('../proactive-channels/sms-replies.js', () => ({
   handleProactiveSmsReply: async () => null,

@@ -11,7 +11,7 @@
  * Supports multiple channels:
  * - Slack (via webhook)
  * - Google Cloud Monitoring (custom metrics)
- * - Email (via SendGrid or similar)
+ * - Email (the ferni.ai Workspace mailbox)
  */
 
 import { getLogger } from '../../utils/safe-logger.js';

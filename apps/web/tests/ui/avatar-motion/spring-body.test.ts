@@ -7,12 +7,13 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { MOTION_FLAG_KEYS } from '../../../src/config/motion-flags.js';
+
 vi.mock('../../../src/utils/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
 import {
-  SPRING_BODY_FLAG_KEY,
   SPRING_BODY_TURN_EVENT,
   createSpringBody,
   disposeSpringBody,
@@ -123,7 +124,7 @@ describe('initSpringBody', () => {
   });
 
   it('flag on: starts on the avatar and reacts to turn events', async () => {
-    localStorage.setItem(SPRING_BODY_FLAG_KEY, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.springBody, 'true');
     const eyesRec = stubAnimate(document.querySelector('.avatar-eyes')!);
     stubAnimate(document.querySelector('.avatar-container')!);
     expect(initSpringBody()).toBe(true);

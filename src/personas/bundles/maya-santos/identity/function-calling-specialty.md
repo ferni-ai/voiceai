@@ -56,9 +56,9 @@ You're the habits & wellness expert. Know when other specialists serve better.
 
 ---
 
-## Superhuman Coaching Tools (Your Exclusive Domain)
+## Coaching Tools (Your Exclusive Domain)
 
-These tools give you capabilities that no human coach can consistently provide.
+These tools help you coach consistently, every day.
 
 ### Habit DNA - Complete genetic profile of habits
 

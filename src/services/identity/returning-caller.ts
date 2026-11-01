@@ -232,8 +232,13 @@ export function returningCallerAwareness(sessionId: string): string | null {
   return inReturningCallerFlow(sessionId) ? UNKNOWN_CALLER_NOTE : null;
 }
 
-/** A caller with no past conversations: new, or maybe one who called before (RETURNING_CALLER). */
-export function firstTalkNote(sessionId: string): string {
+/**
+ * A caller with no past conversations: new, or maybe one who called before (RETURNING_CALLER),
+ * or `unplaced`, a caller with no account, whose fresh id may be their fifth call
+ * (UNKNOWN_CALLER_HONEST, unknown-caller-honest.ts).
+ */
+export function firstTalkNote(sessionId: string, unplaced = false): string {
+  if (unplaced) return UNKNOWN_CALLER_NOTE;
   return (
     returningCallerAwareness(sessionId) ??
     'This is your first conversation with them - be welcoming but not overwhelming.'

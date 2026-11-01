@@ -1,6 +1,7 @@
 /**
- * The answer card (/a/:id) and approval (/p/:id) pages can't be framed when
- * the UI server serves them; other pages keep the site-wide policy.
+ * The answer card (/a/:id), approval (/p/:id) and connect (/connect) pages
+ * can't be framed when the UI server serves them; other pages keep the
+ * site-wide policy.
  */
 import type { ServerResponse } from 'node:http';
 import { describe, expect, it } from 'vitest';
@@ -39,16 +40,34 @@ describe('denyFraming', () => {
 });
 
 describe('handleStaticRoutes', () => {
-  it.each(['/a/' + 'x'.repeat(43), '/p/' + 'y'.repeat(43)])('forbids framing %s', (path) => {
-    const { res, headers } = fakeRes(SITE_CSP);
-    handleStaticRoutes({ headers: {} } as never, res, path);
-    expect(headers.get('x-frame-options')).toBe('DENY');
-    expect(String(headers.get('content-security-policy'))).toContain("frame-ancestors 'none'");
-  });
+  it.each(['/a/' + 'x'.repeat(43), '/p/' + 'y'.repeat(43), '/connect'])(
+    'forbids framing %s',
+    (path) => {
+      const { res, headers } = fakeRes(SITE_CSP);
+      handleStaticRoutes({ headers: {} } as never, res, path);
+      expect(headers.get('x-frame-options')).toBe('DENY');
+      expect(String(headers.get('content-security-policy'))).toContain("frame-ancestors 'none'");
+    }
+  );
 
   it('leaves other pages on the site-wide policy', () => {
     const { res, headers } = fakeRes(SITE_CSP);
     handleStaticRoutes({ headers: {} } as never, res, '/');
     expect(headers.get('content-security-policy')).toBe(SITE_CSP);
+    expect(headers.get('referrer-policy')).toBeUndefined();
+  });
+
+  it('sends no Referer from the connect page', () => {
+    const { res, headers } = fakeRes(SITE_CSP);
+    handleStaticRoutes({ headers: {} } as never, res, '/connect');
+    expect(headers.get('referrer-policy')).toBe('no-referrer');
+  });
+
+  it('keeps no-referrer to the connect page alone', () => {
+    for (const path of ['/connect/', '/connects', '/connect/other']) {
+      const { res, headers } = fakeRes(SITE_CSP);
+      handleStaticRoutes({ headers: {} } as never, res, path);
+      expect(headers.get('referrer-policy'), path).toBeUndefined();
+    }
   });
 });

@@ -14,7 +14,7 @@ const SENTINEL = 'my sister Dolores has stage-three lupus';
 
 vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
   const capture = (...args: unknown[]) => void logged.push(args);
-  const logger = { debug: capture, info: capture, warn: capture, error: capture };
+  const logger = { debug: capture, info: capture, warn: capture, error: capture, child: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }) };
   return {
     ...(await importOriginal<typeof import('../../../utils/safe-logger.js')>()),
     createLogger: () => logger,

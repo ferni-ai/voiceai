@@ -154,7 +154,7 @@ describe('Vibe Service', () => {
           name: 'Living Room',
           type: 'light',
           state: 'on',
-          platform: 'home_assistant',
+          platform: 'lifx',
         },
       ]);
       vi.mocked(isEcobeeConfigured).mockResolvedValue(true);
@@ -204,7 +204,7 @@ describe('Vibe Service', () => {
           name: 'Living Room',
           type: 'light',
           state: 'on',
-          platform: 'home_assistant',
+          platform: 'lifx',
         },
       ]);
       // setLightsForVibe must return success for lights to be applied

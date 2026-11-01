@@ -238,7 +238,7 @@ export async function trackAdviceInResponse(
       {
         userId,
         category: detection.category,
-        advice: detection.adviceText.slice(0, 50),
+        adviceLen: detection.adviceText.length,
         confidence: detection.confidence,
       },
       '📝 Advice tracked for counterfactual memory'

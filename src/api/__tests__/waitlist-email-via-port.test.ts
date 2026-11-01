@@ -1,6 +1,6 @@
 /**
- * Waitlist email goes through the email port (EMAIL_PROVIDER: SendGrid by
- * default, the ferni.ai Workspace under gmail), not a raw SendGrid fetch: the
+ * Waitlist email goes through the email port (the ferni.ai Workspace mailbox,
+ * the only transport), never a direct provider fetch: the
  * admin signup notice, the newsletter welcome, the welcome email, and the
  * welcome-call notices. Driven through the real routes with a stubbed port.
  */
@@ -72,8 +72,8 @@ vi.mock('../../services/email-transport/index.js', async (orig) => ({
 const { handleWaitlistRoutes } = await import('../waitlist-routes.js');
 
 const fetchSpy = vi.fn(async () => new Response('{}', { status: 202 }));
-const sendGridCalls = () =>
-  fetchSpy.mock.calls.filter((args: unknown[]) => String(args[0]).includes('api.sendgrid.com'));
+/** Any fetch: waitlist mail goes only through the port, so nothing is fetched. */
+const directMailCalls = () => fetchSpy.mock.calls;
 const docId = (e: string) => Buffer.from(e).toString('base64').replace(/[/+=]/g, '_');
 
 async function post(url: string, body: Record<string, unknown>): Promise<number> {
@@ -99,7 +99,6 @@ beforeEach(() => {
   quota.fail = false;
   fetchSpy.mockClear();
   vi.stubGlobal('fetch', fetchSpy);
-  vi.stubEnv('SENDGRID_API_KEY', 'sg-key-that-must-not-be-used');
   vi.stubEnv('EMAIL_FROM', 'admin@ferni.ai');
 });
 
@@ -114,7 +113,7 @@ describe('waitlist email through the port', () => {
       subject: '🌿 New Waitlist Signup: new@example.com',
     });
     expect(port.sent[0]!.text).toContain('Source: landing');
-    expect(sendGridCalls()).toHaveLength(0);
+    expect(directMailCalls()).toHaveLength(0);
   });
 
   it('a newsletter signup also sends the welcome as bulk mail with an unsubscribe mailto', async () => {
@@ -127,7 +126,7 @@ describe('waitlist email through the port', () => {
       fromName: 'Ferni',
     });
     expect(welcome!.subject).toMatch(/^Welcome to Ferni/);
-    expect(sendGridCalls()).toHaveLength(0);
+    expect(directMailCalls()).toHaveLength(0);
   });
 
   it('approving someone with no phone sends the welcome email', async () => {
@@ -139,7 +138,7 @@ describe('waitlist email through the port', () => {
       kind: 'transactional',
       subject: "You're in! Welcome to Ferni 🌿",
     });
-    expect(sendGridCalls()).toHaveLength(0);
+    expect(directMailCalls()).toHaveLength(0);
   });
 
   it('a welcome call that went through notifies the admins', async () => {
@@ -151,7 +150,7 @@ describe('waitlist email through the port', () => {
       kind: 'transactional',
       subject: '📞 ✅ Welcome Call Made: caller@example.com',
     });
-    expect(sendGridCalls()).toHaveLength(0);
+    expect(directMailCalls()).toHaveLength(0);
   });
 
   it('a failed welcome call notifies the admins of the failure', async () => {
@@ -167,14 +166,14 @@ describe('waitlist email through the port', () => {
     expect(port.sent[0]!.html).toContain('Error: no answer');
   });
 
-  it('with the port unconfigured nothing is sent, even with a SendGrid key set', async () => {
+  it('with the port unconfigured nothing is sent', async () => {
     port.configured = false;
     await post('/api/waitlist', { email: 'quiet@example.com', source: 'newsletter' });
     await new Promise<void>((resolve) => {
       setTimeout(resolve, 20);
     });
     expect(port.sent).toHaveLength(0);
-    expect(sendGridCalls()).toHaveLength(0);
+    expect(directMailCalls()).toHaveLength(0);
   });
 });
 

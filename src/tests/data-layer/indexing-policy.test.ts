@@ -17,6 +17,7 @@ import {
   getPoliciesByDomain,
 } from '../../services/data-layer/indexing-policy.js';
 import type { EntityType } from '../../services/data-layer/types.js';
+import { MOMENT_TTL_MS } from '../../utils/shared-moment-retention.js';
 
 describe('Indexing Policy', () => {
   describe('DEFAULT_INDEXING_POLICY', () => {
@@ -256,9 +257,14 @@ describe('Indexing Policy', () => {
   describe('Policy TTL values', () => {
     it('should have no expiry for permanent data', () => {
       expect(getEntityPolicy('boundary')?.ttlDays).toBe(0);
-      expect(getEntityPolicy('inside_joke')?.ttlDays).toBe(0);
       expect(getEntityPolicy('life_lesson')?.ttlDays).toBe(0);
       expect(getEntityPolicy('commitment')?.ttlDays).toBe(0);
+    });
+
+    it("expires an inside joke's copy after a year, the shared-moment rule (#2971)", () => {
+      // It keeps the caller's words, which a shared moment keeps for one year only
+      const days = getEntityPolicy('inside_joke')?.ttlDays ?? 0;
+      expect(days * 24 * 60 * 60 * 1000).toBe(MOMENT_TTL_MS);
     });
 
     it('should have reasonable TTL for time-sensitive data', () => {

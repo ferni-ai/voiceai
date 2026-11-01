@@ -1,7 +1,7 @@
 /**
  * The Maya notification service starts in every agent call process. Its
- * proactive loop lists up to 100 user profiles and can schedule SMS
- * reminders for them, so it must stay off unless MAYA_PROACTIVE_CHECKS=on.
+ * proactive loop, which listed up to 100 user profiles and could schedule SMS
+ * reminders for them, is gone: starting the service scans nobody.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -30,19 +30,14 @@ describe('Maya proactive check loop gate', () => {
   });
 
   afterEach(async () => {
-    delete process.env.MAYA_PROACTIVE_CHECKS;
     await shutdownEngagementNotificationService();
   });
 
-  it('does not scan user profiles when the flag is unset', async () => {
+  it('does not scan user profiles', async () => {
     await initializeMayaNotificationService();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
     expect(listProfiles).not.toHaveBeenCalled();
-  });
-
-  it('scans user profiles when MAYA_PROACTIVE_CHECKS=on', async () => {
-    process.env.MAYA_PROACTIVE_CHECKS = 'on';
-    await initializeMayaNotificationService();
-    await vi.waitFor(() => expect(listProfiles).toHaveBeenCalledTimes(1));
   });
 });

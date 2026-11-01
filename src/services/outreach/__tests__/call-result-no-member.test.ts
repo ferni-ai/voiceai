@@ -16,8 +16,7 @@ vi.mock('../delivery/push-notifications.js', () => ({
 
 const { buildCallOutcome, toOnBehalfCallRequest } =
   await import('../../../agents/outbound-call/on-behalf-call-lifecycle.js');
-const { captureCallResult, getRecentCallResults, getPendingFollowUps } =
-  await import('../call-result-capture.js');
+const { captureCallResult, getRecentCallResults } = await import('../call-result-capture.js');
 const { onBehalfDispatchFromStream } = await import('../on-behalf-dispatch.js');
 
 const HEARD = [
@@ -39,7 +38,6 @@ describe('call results with no member behind them', () => {
     await reportFromStream({ callId: 'c-two', recipientName: 'Mom', phone: '+15555550102' });
 
     expect(await getRecentCallResults('unknown')).toEqual([]);
-    expect(await getPendingFollowUps('unknown')).toEqual([]);
     expect(sendPushNotification).not.toHaveBeenCalled();
   });
 

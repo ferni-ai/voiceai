@@ -4,17 +4,31 @@
  * against the emulator in copy-user.emulator.test.ts.
  */
 import type { Firestore } from '@google-cloud/firestore';
-import { describe, expect, it } from 'vitest';
+import { fileURLToPath } from 'node:url';
+import { describe, expect, it, vi } from 'vitest';
 
+import {
+  EXPORTED_STORES,
+  WITHHELD_STORES,
+} from '../../../src/services/platform/user-records-export.js';
 import { ERASED_STORES, storeLabel } from '../../../src/services/platform/user-stores.js';
+import { PROFILE_TOKEN_FIELDS } from '../../../src/utils/token-at-rest.js';
 import {
   assertDatabases,
   COPIED_STORES,
+  COPIED_SUBCOLLECTIONS,
+  copiedSubcollection,
   copyUser,
   EXCLUDED_STORES,
   excludedSubcollection,
+  NOT_COPIED_SUBCOLLECTIONS,
   uidRefusal,
 } from '../copy-user.js';
+import { userRecordSubcollections } from './user-record-writers.js';
+
+// The secret filter (export-redaction.ts) checks values against the real Firestore classes;
+// the shared unit setup fakes that module
+vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
 
 const REAL = 'Ab3dEf6hIj9kLm2nOp5qRs8tUv1w'; // the shape of a Firebase uid, nobody's
 // Only databaseId is read before refusing; the unit setup mocks the real client
@@ -87,6 +101,7 @@ describe('what is copied', () => {
       'contacts',
       'push_subscriptions',
       'google_calendar_tokens',
+      'outlook_tokens',
       'on_behalf_calls',
       'deferred_calls',
       'voice_profile',
@@ -163,8 +178,6 @@ describe('what is copied', () => {
         "watch_history[userId]",
         "learning_journey_progress[userId]",
         "crisis_events[userId]",
-        "ferni_actions[userId]",
-        "concierge_requests[userId]",
         "delivery_order_history[userId]",
         "user_habits[userId]",
         "habit_completions[userId]",
@@ -184,15 +197,358 @@ describe('what is copied', () => {
         "semantic_routing_feedback[userId]",
         "game_analytics_events[userId]",
         "bth_production_events[userId]",
-        "feature_checkins[userId]",
         "relationship_memories[userId]",
         "answer_cards[userId]",
         "share_links[ownerId]",
         "analytics_sessions[odId]",
         "context_injection_outcomes[injection.userId]",
+        "vectors[metadata.userId]",
+        "memory_vectors[metadata.userId]",
         "reply_reports[uid]",
         "reply_report_quota/{uid}",
+        "call_felt_off[uid]",
+        "call_felt_off_quota/{uid}",
       ]
     `);
+  });
+});
+
+/** The credential stores of the 2026-10-30 audit: each held 0 docs then, none may be copied */
+const CREDENTIAL_STORES = [
+  'smart_home',
+  'plaid_tokens',
+  'spotify_links',
+  'gmail_send_tokens',
+  'wearable_whoop_tokens',
+  'wearable_oura_tokens',
+  'social_tokens',
+  'oauth_tokens',
+  'calendar_providers',
+  'webhooks',
+  'siri_tokens',
+  'passkeys',
+  'google_calendar_tokens',
+  'push_subscriptions',
+];
+
+describe('subcollections under a user record: an allowlist', () => {
+  const repo = fileURLToPath(new URL('../../..', import.meta.url));
+
+  it('every name the code writes under bogle_users/{uid} or users/{uid} is classified', () => {
+    const written = userRecordSubcollections(repo);
+    // the reader is not vacuous: it finds memories, a token store and a smart-home store
+    for (const name of [
+      'memories',
+      'plaid_tokens',
+      'gmail_send_tokens',
+      'smart_home',
+      'passkeys',
+    ]) {
+      expect(written.has(name), name).toBe(true);
+    }
+    expect(written.size).toBeGreaterThan(300);
+    // plus every name prod held when the export allowlist was reviewed
+    const names = new Set([
+      ...written.keys(),
+      ...(EXPORTED_STORES.bogle_users ?? []),
+      ...(EXPORTED_STORES.users ?? []),
+      ...Object.keys(WITHHELD_STORES),
+    ]);
+    const unclassified = [...names].filter(
+      (n) =>
+        !COPIED_SUBCOLLECTIONS.has(n) &&
+        !excludedSubcollection(n) &&
+        !Object.hasOwn(NOT_COPIED_SUBCOLLECTIONS, n)
+    );
+    // a new name: add it to COPIED_SUBCOLLECTIONS, or exclude it with a reason
+    expect(unclassified.map((n) => `${n} (${written.get(n) ?? 'prod listing'})`)).toEqual([]);
+  }, 60_000);
+
+  it('never allowlists a credential, an exclusion or a held-back name', () => {
+    for (const name of COPIED_SUBCOLLECTIONS) {
+      expect(excludedSubcollection(name), name).toBe(false);
+      expect(Object.hasOwn(NOT_COPIED_SUBCOLLECTIONS, name), name).toBe(false);
+    }
+    for (const name of CREDENTIAL_STORES) {
+      expect(COPIED_SUBCOLLECTIONS.has(name), name).toBe(false);
+      expect(copiedSubcollection(name, true), name).toBe(false);
+      expect(copiedSubcollection(name, false), name).toBe(false);
+    }
+  });
+
+  it('copies an allowlisted name, and nothing unlisted, under a user record', () => {
+    expect(copiedSubcollection('memories', true)).toBe(true);
+    expect(copiedSubcollection('a_store_nobody_reviewed', true)).toBe(false);
+    // elsewhere (entity_store/{uid}/entities) only the exclusions apply
+    expect(copiedSubcollection('a_store_nobody_reviewed', false)).toBe(true);
+    expect(copiedSubcollection('history', false)).toBe(true); // cameo_engagements keeps one
+  });
+});
+
+/** Just enough of Firestore for copyUser, kept in a Map of document paths */
+class FakeDb {
+  readonly docs = new Map<string, Record<string, unknown>>();
+  constructor(readonly databaseId: string) {}
+  private children(path: string): string[] {
+    const ids = [...this.docs.keys()]
+      .filter((p) => p.startsWith(`${path}/`))
+      .map((p) => p.slice(path.length + 1).split('/')[0] ?? '');
+    return [...new Set(ids)];
+  }
+  doc(path: string) {
+    return {
+      path,
+      listCollections: async () =>
+        this.children(path).map((id) => this.collection(`${path}/${id}`)),
+    };
+  }
+  collection(path: string) {
+    return {
+      id: path.split('/').pop(),
+      doc: (id: string) => this.doc(`${path}/${id}`),
+      listDocuments: async () => this.children(path).map((id) => this.doc(`${path}/${id}`)),
+      // where(field, '==', value): the direct documents whose (dotted) field holds value
+      where: (field: string, _op: string, value: unknown) => ({
+        select: () => ({
+          get: async () => ({
+            docs: this.children(path)
+              .map((id) => `${path}/${id}`)
+              .filter((p) => {
+                let v: unknown = this.docs.get(p);
+                for (const key of field.split('.')) v = (v as Record<string, unknown>)?.[key];
+                return v === value;
+              })
+              .map((p) => ({ ref: this.doc(p) })),
+          }),
+        }),
+      }),
+    };
+  }
+  async getAll(...refs: Array<{ path: string }>) {
+    return refs.map((ref) => {
+      const data = this.docs.get(ref.path);
+      return { exists: data !== undefined, data: () => data, ref };
+    });
+  }
+  batch() {
+    const sets: Array<[string, Record<string, unknown>]> = [];
+    return {
+      set: (ref: { path: string }, data: Record<string, unknown>) =>
+        void sets.push([ref.path, data]),
+      commit: async () => sets.forEach(([path, data]) => this.docs.set(path, data)),
+    };
+  }
+}
+
+describe('copyUser leaves credentials behind (fake Firestore)', () => {
+  it('copies allowlisted data, not credential stores, unlisted stores or token fields', async () => {
+    const source = new FakeDb('(default)');
+    const dest = new FakeDb('ferni-dev');
+    const seed: Record<string, Record<string, unknown>> = {
+      [`bogle_users/${REAL}`]: {
+        name: 'me',
+        linkedInTokens: { access_token: 'x' },
+        biometricTokens: { t: 'y' },
+      },
+      [`bogle_users/${REAL}/memories/m1`]: { text: 'mine' },
+      [`bogle_users/${REAL}/memories/m1/webhooks/w`]: { url: 'https://hook.invalid/s3cret' },
+      [`bogle_users/${REAL}/memories/m1/a_store_nobody_reviewed/x`]: { v: 1 },
+      [`bogle_users/${REAL}/smart_home/hue`]: { bridgeKey: 'k' },
+      [`bogle_users/${REAL}/plaid_tokens/data`]: { encrypted: 'e' },
+      [`bogle_users/${REAL}/wearable_whoop_tokens/data`]: { encrypted: 'e' },
+      [`bogle_users/${REAL}/a_store_nobody_reviewed/x`]: { v: 1 },
+      [`users/${REAL}/journal/j1`]: { entry: 'mine' },
+      [`users/${REAL}/oauth_tokens/microsoft`]: { encrypted: 'e' },
+      [`users/${REAL}/calendar_providers/outlook`]: { refreshToken: 'r' },
+      [`users/${REAL}/passkeys/p1`]: { publicKey: 'pk' },
+      [`entity_store/${REAL}/entities/e1`]: { name: 'mine' },
+    };
+    for (const [path, data] of Object.entries(seed)) source.docs.set(path, data);
+    const db = (fake: FakeDb) => fake as unknown as Firestore;
+
+    const counts = await copyUser({
+      source: db(source),
+      dest: db(dest),
+      uids: [REAL],
+      apply: true,
+    });
+
+    expect([...dest.docs.keys()].sort()).toEqual(
+      [
+        `bogle_users/${REAL}`,
+        `bogle_users/${REAL}/memories/m1`,
+        `entity_store/${REAL}/entities/e1`,
+        `users/${REAL}/journal/j1`,
+      ].sort()
+    );
+    expect(dest.docs.get(`bogle_users/${REAL}`)).toEqual({ name: 'me' });
+    for (const field of PROFILE_TOKEN_FIELDS) {
+      expect(source.docs.get(`bogle_users/${REAL}`)).toHaveProperty(field); // the source keeps it
+    }
+    expect(counts['bogle_users/{uid}']).toEqual({ found: 2, copied: 2, skipped: 0 });
+  });
+});
+
+/** Seed a fake prod, copy REAL into a fake dev, return dev's documents */
+async function copyInto(
+  seed: Record<string, Record<string, unknown>>
+): Promise<Map<string, Record<string, unknown>>> {
+  const source = new FakeDb('(default)');
+  const dest = new FakeDb('ferni-dev');
+  for (const [path, data] of Object.entries(seed)) source.docs.set(path, data);
+  const db = (fake: FakeDb) => fake as unknown as Firestore;
+  await copyUser({ source: db(source), dest: db(dest), uids: [REAL], apply: true });
+  return dest.docs;
+}
+
+/** Subcollections holding other people's emails, phones or words (round-2 review) */
+const THIRD_PARTY = [
+  'meeting_interactions',
+  'meeting_commitments',
+  'email_intelligence',
+  'calendar_events',
+  'event_planning',
+  'calendar_conflicts',
+  'meeting_outcomes',
+  'background_results',
+  'custom_agents',
+  'conflict_records',
+  'ferni_actions',
+  'concierge_requests',
+  'special_dates',
+  'unified_entities',
+  'visual_memories',
+  'tool_executions',
+  'semantic_intelligence',
+];
+
+describe('other people stay in prod', () => {
+  it.each(THIRD_PARTY)('%s is not copied, under either record or any document', async (name) => {
+    expect(COPIED_SUBCOLLECTIONS.has(name)).toBe(false);
+    expect(excludedSubcollection(name)).toBe(true);
+    const docs = await copyInto({
+      [`bogle_users/${REAL}`]: { name: 'me' },
+      [`bogle_users/${REAL}/${name}/x`]: { personEmail: 'someone@example.invalid' },
+      [`users/${REAL}/${name}/x`]: { attendees: ['someone@example.invalid'] },
+      [`bogle_users/${REAL}/memories/m1/${name}/x`]: { phone: '+15550000009' },
+      ['entities/mine1']: { userId: REAL },
+      [`entities/mine1/${name}/x`]: { personName: 'Someone' },
+    });
+    expect([...docs.keys()].sort()).toEqual([`bogle_users/${REAL}`, 'entities/mine1']);
+  });
+
+  it.each([
+    'local_calendar_events[userId]',
+    'ferni_actions[userId]',
+    'concierge_requests[userId]',
+    'feature_checkins[userId]',
+  ])('copies no %s store (attendees, people reached, businesses called)', (label) => {
+    expect(COPIED_STORES.map(storeLabel)).not.toContain(label);
+    expect(Object.keys(EXCLUDED_STORES)).toContain(label);
+  });
+
+  it('copies no action_items: they sit under group_sessions, with participants', async () => {
+    expect(COPIED_SUBCOLLECTIONS.has('action_items')).toBe(false);
+    const docs = await copyInto({
+      [`bogle_users/${REAL}/action_items/a1`]: { assignedTo: 'Someone', text: 'their words' },
+    });
+    expect([...docs.keys()]).toEqual([]);
+  });
+});
+
+describe('a store found by an owner field', () => {
+  it('copies its documents and subcollections, but no credential-named subcollection', async () => {
+    const docs = await copyInto({
+      ['entities/mine1']: { userId: REAL, name: 'mine' },
+      ['entities/mine1/notes/n1']: { text: 'mine' },
+      ['entities/mine1/plaid_tokens/data']: { encrypted: 'e' },
+      ['entities/mine1/oauth_tokens/google']: { refresh: 'r' },
+      ['entities/mine1/passkeys/p1']: { publicKey: 'pk' },
+      ['entities/mine1/notes/n1/api_keys/k']: { value: 'k' },
+      ['entities/theirs1']: { userId: 'Zy9xWv8uTs7rQp6oNm5lKj4iHg3f' },
+    });
+    expect([...docs.keys()].sort()).toEqual(['entities/mine1', 'entities/mine1/notes/n1']);
+  });
+});
+
+describe('copied documents lose their secrets at every depth', () => {
+  it('drops token fields, a workflow secretKey, sealed records and secret values', async () => {
+    const docs = await copyInto({
+      [`bogle_users/${REAL}`]: {
+        name: 'me',
+        fcmTokens: ['f1'],
+        fcmToken: 'f',
+        settings: { pushToken: 'p', theme: 'dark' },
+      },
+      [`bogle_users/${REAL}/life_automation/w1`]: {
+        title: 'morning',
+        steps: [
+          { action: 'webhook', config: { url: 'https://hook.invalid', secretKey: 's' } },
+          { action: 'note', config: '{"secretKey":"s","text":"hi"}' },
+        ],
+        linked: { encrypted: 'ciphertext' },
+        header: 'Bearer abc.def',
+        count: 3,
+      },
+    });
+    expect(docs.get(`bogle_users/${REAL}`)).toEqual({ name: 'me', settings: { theme: 'dark' } });
+    expect(docs.get(`bogle_users/${REAL}/life_automation/w1`)).toEqual({
+      title: 'morning',
+      steps: [
+        { action: 'webhook', config: { url: 'https://hook.invalid' } },
+        { action: 'note', config: '{"text":"hi"}' },
+      ],
+      count: 3,
+    });
+  });
+
+  it("keeps the export's per-store exceptions: a fact's key, an entity's attributes", async () => {
+    const docs = await copyInto({
+      [`bogle_users/${REAL}/dynamic_facts/f1`]: { key: 'favorite_color', value: 'blue' },
+      [`bogle_users/${REAL}/dynamic_entities/e1`]: {
+        attributes: { pin: 'the blue one', apiKey: 'k' },
+        key: 'dropped here',
+      },
+    });
+    expect(docs.get(`bogle_users/${REAL}/dynamic_facts/f1`)).toEqual({
+      key: 'favorite_color',
+      value: 'blue',
+    });
+    expect(docs.get(`bogle_users/${REAL}/dynamic_entities/e1`)).toEqual({
+      attributes: { pin: 'the blue one' },
+    });
+  });
+});
+
+describe('round 3: the search index, check-in texts, tool-call args', () => {
+  it("copies the person's index entries but not a meeting_memory, whose metadata holds attendees", async () => {
+    const docs = await copyInto({
+      ['vectors/mine']: { text: 'mine', metadata: { userId: REAL, entityType: 'memory' } },
+      ['vectors/meeting']: {
+        text: 'Meeting: sync',
+        metadata: { userId: REAL, entityType: 'meeting_memory', attendees: ['a@example.invalid'] },
+      },
+      ['memory_vectors/meeting']: {
+        text: 'Meeting: sync',
+        metadata: { userId: REAL, entityType: 'meeting_memory', attendees: ['a@example.invalid'] },
+      },
+    });
+    expect([...docs.keys()]).toEqual(['vectors/mine']);
+  });
+
+  it('copies no feature check-in text (the recipient phone, the callee quoted)', async () => {
+    const docs = await copyInto({
+      ['feature_checkins/c1']: { userId: REAL, text: 'they said yes', toLast4: '0009' },
+    });
+    expect([...docs.keys()]).toEqual([]);
+  });
+
+  it('copies no semantic_intelligence/execution_records (raw tool-call args)', async () => {
+    const docs = await copyInto({
+      [`bogle_users/${REAL}/semantic_intelligence/execution_records`]: {
+        records: [{ tool: 'send_text', args: { to: '+15550000009', message: 'hi' } }],
+      },
+    });
+    expect([...docs.keys()]).toEqual([]);
   });
 });

@@ -13,6 +13,7 @@ import { Room, RoomEvent, TrackKind } from '@livekit/rtc-node';
 import { EventEmitter } from 'node:events';
 
 import { InProcessInferenceExecutor } from '../core/inference-executor.js';
+import { traceCallMemory } from '../shared/call-memory-trace.js';
 import { watchCallLoop } from '../shared/loop-watch.js';
 import { watchTimeToFirstWord } from '../shared/time-to-first-word.js';
 import { runFullVoiceAgentEntry } from '../voice-agent-entry/index.js';
@@ -23,10 +24,14 @@ import '../after-call-register.js';
 import '../journal-store-register.js';
 // After a call, the verified owner's reminders and commitments become follow-ups (FOLLOW_THROUGH_IMPORT).
 import '../voice-agent-entry/follow-through-import-register.js';
+// Letters to future you are kept for the account's owner (futureSelfLetter).
+import '../voice-agent-entry/future-letter-register.js';
 // An unverified phone caller's first name and a one-line summary, by hashed number (RETURNING_CALLER).
 import '../voice-agent-entry/returning-caller-register.js';
 // Which sessions may read their own texts with Ferni (readSMS refuses all until this loads).
 import '../voice-agent-entry/sms-owner-register.js';
+// Which sessions may hear about the texts Ferni sent them (CALL_KNOWS_RECENT_TEXTS).
+import '../voice-agent-entry/recent-texts-owner-register.js';
 // A caller's own cohort flags for code that runs after their call (config/person-flag.ts).
 import '../person-flag-register.js';
 // What a caller asks Ferni to remember, written where recall reads it (REMEMBER_TO_RECALL).
@@ -153,6 +158,8 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
   });
   // LOOP_STALL / LOOP_SUMMARY: event-loop blocks the caller hears as audio hangs.
   const finishLoopWatch = watchCallLoop(jobId);
+  // CALL_MEMORY / HEAP_SAMPLE (CALL_MEMORY_TRACE=on): what the call's process holds as it runs.
+  const finishMemoryTrace = traceCallMemory(jobId);
 
   // Notify LiveKit immediately that this job is running (UpdateJobStatus JS_RUNNING)
   try {
@@ -390,5 +397,6 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
     } catch {
       // Ignore disconnect errors
     }
+    await finishMemoryTrace(); // after cleanup: what the call never let go
   }
 }

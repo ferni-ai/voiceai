@@ -16,6 +16,7 @@ vi.mock('../../utils/firebase-admin-app.js', () => ({
   },
 }));
 vi.mock('../auth-middleware.js', () => ({
+  rateLimit: () => false, // never limited here
   requireAuth: vi.fn(async () => ({ userId: 'sponsor-1', isAdmin: false })),
 }));
 

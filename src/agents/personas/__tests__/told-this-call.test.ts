@@ -99,7 +99,7 @@ describe('what Ferni has already told on this call', () => {
   it('reaches the next request through the director, without a model', async () => {
     const director = new Director({ sessionId: 's', writeNotes: false });
     await director.observe(call);
-    const session = {};
+    const session = { userData: { services: { sessionId: 'told' } } };
     setDirector(session, director);
     const ctx = llm.ChatContext.empty();
     ctx.addMessage({ role: 'user', content: 'What more can we do to make you human?' });
@@ -133,6 +133,7 @@ describe('what Ferni has already told on this call', () => {
     delete process.env.DIRECTOR_NOTES;
     const handlers: Array<(ev: unknown) => void> = [];
     const session = {
+      userData: { services: { sessionId: 's' } },
       on: (_e: string, h: (ev: unknown) => void) => handlers.push(h),
       off: () => {},
     };

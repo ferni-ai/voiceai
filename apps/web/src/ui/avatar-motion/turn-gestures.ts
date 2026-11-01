@@ -17,19 +17,18 @@
  * compose with breathing, the body pulse and the thinking tilt instead of
  * competing with them. Nothing moves under prefers-reduced-motion.
  *
- * Off by default. Active only when the turn driver is on too:
- *   localStorage.setItem('ferni:avatar-turns', 'true')
- *   localStorage.setItem('ferni:turn-gestures', 'true')
+ * Off by default: the turnGestures switch in config/motion-flags.ts. It moves
+ * only while the turn driver (turn-driver.ts, on by default) sends turns.
  *
  * Avatar audit item 5, "Anticipation beat and thinking pose".
  */
 
 import { DURATION, EASING } from '../../config/animation-constants.js';
+import { isMotionFlagOn } from '../../config/motion-flags.js';
 import { createLogger } from '../../utils/logger.js';
 
 const log = createLogger('TurnGestures');
 
-export const TURN_GESTURES_FLAG_KEY = 'ferni:turn-gestures';
 /** Dispatched on window by the turn driver once per settled turn change. */
 export const AVATAR_TURN_EVENT = 'ferni:avatar-turn';
 
@@ -261,12 +260,7 @@ export function createTurnGestures(deps: TurnGesturesDeps): TurnGestures {
 }
 
 export function isTurnGesturesEnabled(): boolean {
-  try {
-    return localStorage.getItem(TURN_GESTURES_FLAG_KEY) === 'true';
-  } catch (error) {
-    log.debug('Could not read the turn gestures flag, treating it as off', { error });
-    return false;
-  }
+  return isMotionFlagOn('turnGestures');
 }
 
 const defaultDeps: TurnGesturesDeps = {

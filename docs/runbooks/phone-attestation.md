@@ -19,21 +19,21 @@ the token's `from`.
 
 Code: `src/services/identity/phone-attestation.ts` (mint/verify),
 `src/api/voice-auth/inbound-call-routes.ts` (webhook),
-`src/agents/voice-agent-entry/sip-caller.ts` (agent, shadow log only).
+`src/agents/voice-agent-entry/sip-caller.ts` (agent, read by caller recognition).
 
-## Blocker found while building this (fix first)
+## Blocker found while building this (fixed, #2679)
 
-Twilio already posts to the webhook, and **every request since 2026-10-07 got
-403** (Cloud Run logs, `john-bogle-ui`, UA `TwilioProxy/1.1`: 16 calls + 16
-status callbacks, 0 accepted). Likely cause (UNCONFIRMED): the number's voice
-URL is `https://app.ferni.ai/api/voice/inbound` (as `PHONE-IDENTITY-SETUP.md`
-says), Firebase Hosting rewrites it to Cloud Run with Host
-`john-bogle-ui-…run.app` (confirmed: a POST to `app.ferni.ai/api/voice/inbound/status`
-is logged by Cloud Run as `john-bogle-ui-bmopaivmsq-uc.a.run.app/...`), and
-`isSignedByTwilio` rebuilds the signed URL from the Host header, so the
-signature never matches. The number's configured URL itself is unverified. Either point the number at the
-run.app URL directly or make the signature check use the public host. Until
-then this webhook can't mint anything.
+Every Twilio request since 2026-10-07 got **403** (Cloud Run logs,
+`john-bogle-ui`, UA `TwilioProxy/1.1`: 16 calls + 16 status callbacks, 0
+accepted). Cause: Firebase Hosting rewrites `https://app.ferni.ai/...` to Cloud
+Run with Host `john-bogle-ui-…run.app`, and `isSignedByTwilio` rebuilt the
+signed URL from that Host header, so the signature never matched. It now checks
+the signature against our configured public origins (`APP_URL`, default
+`https://app.ferni.ai`, and `WEBHOOK_BASE_URL`, default `https://api.ferni.ai`)
+plus the path and query, never a request header. Until the steps below land, a signed
+inbound call gets the "not set up to receive calls" TwiML (no
+`SIP_INBOUND_TRUNK_ID` or attestation config on the UI service). The number's
+configured URL is still unverified: it must be on one of those origins.
 
 ## Steps (each needs-owner-approval)
 
@@ -49,8 +49,9 @@ then this webhook can't mint anything.
    shown in LiveKit Cloud → Telephony → SIP; it is not the `LIVEKIT_URL` host.
    `LIVEKIT_SIP_HOST` must be a bare `host[:port]`; anything else disables
    attestation (logged).
-3. **Agent secret**: add `PHONE_ATTEST_SECRET` (same value) and
-   `PHONE_VERIFY=shadow` to the agent's LiveKit Cloud secrets. Without
+3. **Agent secret**: add `PHONE_ATTEST_SECRET` (same value) to the agent's
+   LiveKit Cloud secrets. (The `PHONE_VERIFY=shadow` log was removed on
+   2026-10-31.) Without
    `--overwrite` `lk agent update-secrets` only adds keys; pass one `--secrets`
    per key (a comma-joined value sets ONE key). Do dev (`CA_siTDMHEba4Fg`)
    first, then prod (`CA_GeFvEpsNXLSF`).
@@ -73,13 +74,10 @@ then this webhook can't mint anything.
    US carrier mobile).
 2. Twilio debugger: the webhook returned 200 and TwiML with
    `X-Ferni-Attest=` in the `<Sip>` URI.
-3. Agent logs for that call have one `SIP_CALLER` line with
-   `attestationSource: "signed"`, `signedStatus: "signed"`, `attestation: "A"`,
-   and only a masked number (`**67`). It must not contain the token or the full
-   number.
+3. Agent logs for that call have a `CALLER_ATTESTATION` line with
+   `signedStatus: "signed"`. It must not contain the token or the full number.
 4. Negative check: dial the trunk directly (bypassing the webhook) with a
-   forged `X-Twilio-VerStat` — the line shows `attestationSource: "header"` and
-   `signedStatus: "unsigned"`.
+   forged `X-Twilio-VerStat` — the line shows `signedStatus: "unsigned"`.
 
 ## Rollback
 

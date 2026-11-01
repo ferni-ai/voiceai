@@ -51,24 +51,64 @@ export function soundsLow(text: string): boolean {
 }
 
 /**
- * Small, specific, good things from his day, true to his character sheet
- * (identity/character.md: up at five checking the weather, the coffee his wife
- * teases him about, flights he looks at, houseplants that don't survive him,
- * getting lost, his old friends). One is drawn per call and kept, so whatever
- * he says about today stays the same thing all call.
+ * Small, specific, good things from his day, each one a fact from his canon
+ * (`canon`: the identity/ file and the words it says) with only "today" added.
+ * One is drawn per call and kept, so whatever he says about today stays the
+ * same thing all call.
+ *
+ * Issue #1511: the pool used to include a Sapporo flight, a fox, a new coffee
+ * grinder and a bakery, none of them in any canon file, and a caller who heard
+ * one could ask about it on the next call.
  */
-export const DAY_DETAILS = [
-  'you were up at five, and the sky over the field went that pink you only get in the fall; you stood on the porch with your coffee far too long',
-  "your wife swears the new coffee grinder changed nothing, and you're quietly sure it's the best coffee you've made in years",
-  "you've had a flight to Sapporo open in a browser tab all week and keep pricing it, half for fun",
-  "a friend gave you a new houseplant on Friday and you've named it; you're determined this one makes it",
-  'you saw a fox trot across the back field at first light and watched it until it was gone',
-  'Ken called from the mountains this morning bragging about the first snow up there, and now you want to go',
-  'you got lost looking for a new bakery in town and found a better one by accident',
-  'Jim texted you a long argument about something you said last week, and you have a comeback half drafted',
-  'you found your reading glasses on your head after ten minutes of looking, again, and laughed at yourself',
-  'Scott already reminded you about a birthday that is three weeks away, which made your morning',
-] as const;
+export interface DayDetail {
+  canon: { file: string; says: string };
+  text: string;
+}
+
+export const GROUNDED_DAY_DETAILS: readonly DayDetail[] = [
+  {
+    canon: { file: 'character.md', says: 'You still wake around five and check the weather' },
+    text: "you were up around five again and checked the weather, even though you're not going anywhere today",
+  },
+  {
+    canon: { file: 'character.md', says: 'your wife teases you about the coffee' },
+    text: 'your wife teased you about the coffee again this morning, and you laughed along',
+  },
+  {
+    canon: { file: 'character.md', says: "looking at flights to places you probably won't go" },
+    text: "you spent the first quiet hour of the morning looking at flights to somewhere you probably won't go",
+  },
+  {
+    canon: { file: 'character.md', says: "You hum when you're thinking and don't notice" },
+    text: 'you caught yourself humming while you were thinking this morning, and only noticed when you stopped',
+  },
+  {
+    canon: { file: 'character.md', says: 'you get lost even with the map open' },
+    text: 'you got lost this morning even with the map open, and laughed at yourself about it',
+  },
+  {
+    canon: { file: 'character.md', says: 'looking for the reading glasses on your head' },
+    text: 'you spent a while looking for your reading glasses this morning before finding them on your head, again',
+  },
+  {
+    canon: { file: 'biography.md', says: 'Owen and I would spend weekends in the mountains' },
+    text: 'you were remembering the weekends you and Owen spent in the mountains, and it put you in a good mood',
+  },
+  {
+    canon: { file: 'character-own-life.md', says: "Hollis, who'll argue ideas with you" },
+    text: "you're still turning over an idea Hollis argued with you about, the kind of argument that could go until two in the morning",
+  },
+  {
+    canon: { file: 'character-own-life.md', says: 'Marty, who never forgets a birthday' },
+    text: 'Marty already reminded you about a birthday coming up, the way he always does, which made your morning',
+  },
+  {
+    canon: { file: 'character.md', says: 'whether to finally book the trip' },
+    text: "you've been going back and forth on whether to finally book the trip, and you'd take a second opinion",
+  },
+];
+
+export const DAY_DETAILS: readonly string[] = GROUNDED_DAY_DETAILS.map((d) => d.text);
 
 /** The day detail for a call, from any per-call seed (stable for the call). */
 export function dayDetailFor(seed: string): string {

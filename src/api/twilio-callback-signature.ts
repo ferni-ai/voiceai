@@ -1,7 +1,8 @@
 /**
  * Twilio-signed callbacks: requests Twilio makes carry no user, so they are
  * admitted on a valid X-Twilio-Signature instead — never on a user token, and
- * never with the header missing.
+ * never with the header missing. Every Twilio webhook route checks through
+ * here.
  *
  * Under /api/group, the voice agent's ConferenceCallManager points Twilio at
  * two paths that skip the engagement router's user check (engagement-routes.ts).
@@ -11,6 +12,7 @@
 
 import type { IncomingMessage } from 'http';
 import type { NextFunction, Request, Response } from 'express';
+import { twilioCallbackOrigins } from '../services/outreach/webhooks/twilio-callback-url.js';
 import { validateTwilioSignature } from '../services/outreach/webhooks/twilio-webhooks.js';
 import { getLogger } from '../utils/safe-logger.js';
 
@@ -34,27 +36,32 @@ function postedParams(req: Request): Record<string, string> {
 }
 
 /**
- * True only when X-Twilio-Signature is present and matches the URL Twilio
- * called (rebuilt behind the proxy the same way twilio-routes.ts and
- * family-checkin-webhook-routes.ts do) plus the posted form fields. With no
- * auth token configured the validator refuses everything.
+ * The public URL this request's X-Twilio-Signature is valid for, or null.
+ *
+ * Twilio signed the URL we gave it: one of our configured public origins plus
+ * the path and query as received. The Host and X-Forwarded-* headers are not
+ * read — behind Firebase Hosting the Host is the run.app host, and a header
+ * the caller controls must not choose what is checked (#2679). With no auth
+ * token configured the validator refuses everything.
  */
+export function twilioSignedUrl(
+  req: IncomingMessage,
+  pathAndQuery: string,
+  params: Record<string, string>
+): string | null {
+  const signature = req.headers['x-twilio-signature'];
+  if (typeof signature !== 'string' || !signature || !pathAndQuery.startsWith('/')) return null;
+  const urls = twilioCallbackOrigins().map((origin) => `${origin}${pathAndQuery}`);
+  return urls.find((url) => validateTwilioSignature(signature, url, params)) ?? null;
+}
+
+/** True only when X-Twilio-Signature is present and valid (see twilioSignedUrl). */
 export function isSignedByTwilio(
   req: IncomingMessage,
   pathAndQuery: string,
   params: Record<string, string>
 ): boolean {
-  const signature = req.headers['x-twilio-signature'];
-  if (typeof signature !== 'string' || !signature) return false;
-  const forwardedProto = req.headers['x-forwarded-proto'];
-  const protocol = typeof forwardedProto === 'string' ? forwardedProto : 'https';
-  // Behind Firebase Hosting the Host is the run.app host, not the public one
-  // Twilio signed, so /api/voice/inbound refuses every real call today
-  // (UNCONFIRMED cause). Changing this turns that webhook on for real calls:
-  // do it as a separate step, in the order docs/runbooks/phone-attestation.md
-  // gives ("Blocker", then "Steps"), not as a drive-by fix.
-  const host = req.headers.host ?? '';
-  return validateTwilioSignature(signature, `${protocol}://${host}${pathAndQuery}`, params);
+  return twilioSignedUrl(req, pathAndQuery, params) !== null;
 }
 
 /** Express middleware: 403 unless isSignedByTwilio. */

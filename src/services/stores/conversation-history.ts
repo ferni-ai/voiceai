@@ -9,6 +9,26 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { getDisplayName } from '../../personas/persona-ids.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { getEngagementStore } from '../engagement/engagement-store.js';
+import { getStore } from '../../memory/store-factory.js';
+import { getSessionsTogether, isCountedSession } from './sessions-together.js';
+import { accountLiveNow, type AccountNow } from '../identity/account-live-now.js';
+
+/** First saves refused for want of a live account: counted by reason, one line a minute at most. */
+const refusedFirstSaves = new Map<AccountNow, number>();
+let refusedLoggedAt = 0;
+const REFUSED_LOG_MS = 60_000;
+
+function countRefusedFirstSave(reason: AccountNow): void {
+  refusedFirstSaves.set(reason, (refusedFirstSaves.get(reason) ?? 0) + 1);
+  const now = Date.now();
+  if (now - refusedLoggedAt < REFUSED_LOG_MS) return;
+  refusedLoggedAt = now;
+  getLogger().warn(
+    { event: 'CONVERSATION_FIRST_SAVE_REFUSED', counts: Object.fromEntries(refusedFirstSaves) },
+    'Conversation not saved: no record and no live account'
+  );
+  refusedFirstSaves.clear();
+}
 
 // ============================================================================
 // TYPES
@@ -31,6 +51,7 @@ export interface ConversationSession {
 
 export interface ConversationHistoryData {
   sessions: ConversationSession[];
+  /** Every session together (sessions-together), not just the ones listed in `sessions`. */
   totalSessions: number;
   totalMinutes: number;
   favoritePersona?: string;
@@ -59,7 +80,16 @@ class ConversationHistoryService {
   private firestoreEnabled = true;
 
   /**
-   * Record a new conversation session.
+   * Record a new conversation session (the web app's hang-up). A first web call can come
+   * before anything made the caller's user record, and engagement writes for a uid with
+   * neither a record nor an engagement profile are dropped as an erased account's
+   * (engagement-write-unless-erased.ts). So the record is made first, as user-migration
+   * does: the caller is then a real new user and the session lands.
+   *
+   * Only for an account Firebase says is live right now: a token keeps verifying for a while
+   * after its account is erased, and making the record would bring the erased user back. A
+   * gone or disabled account gets nothing written (as when its writes were dropped); a failed
+   * check throws, so the caller reports the save failed. A caller with a record isn't checked.
    */
   async recordSession(
     userId: string,
@@ -74,6 +104,16 @@ class ConversationHistoryService {
 
     if (this.firestoreEnabled) {
       try {
+        const users = await getStore();
+        if (!(await users.getProfileForWrite(userId))) {
+          const account = await accountLiveNow(userId);
+          if (account !== 'live') {
+            countRefusedFirstSave(account);
+            if (account === 'unavailable') throw new Error('Account check unavailable');
+            return id;
+          }
+          await users.getOrCreateProfile(userId);
+        }
         const store = await getEngagementStore();
         await store.addConversationSession(
           userId,
@@ -101,13 +141,16 @@ class ConversationHistoryService {
    */
   async getHistory(userId: string, limit = 50): Promise<ConversationHistoryData> {
     let sessions: ConversationSession[] = [];
+    let totalSessions = 0;
 
     if (this.firestoreEnabled) {
       const store = await getEngagementStore();
-      const [calls, storedSessions] = await Promise.all([
+      const [calls, storedSessions, together] = await Promise.all([
         readAgentCalls(userId, limit),
         store.getConversationSessions(userId, limit),
+        getSessionsTogether(userId, undefined, { fresh: true }), // rows are live: so is the total
       ]);
+      totalSessions = together.count;
       const webSessions = storedSessions.map((s) => ({
         id: s.id as string,
         date: s.date as string,
@@ -144,7 +187,7 @@ class ConversationHistoryService {
 
     return {
       sessions,
-      totalSessions: sessions.length,
+      totalSessions, // the total, not the length of this (latest-`limit`) page
       totalMinutes,
       favoritePersona,
       insightCount,
@@ -270,7 +313,8 @@ async function readAgentCalls(userId: string, limit: number): Promise<AgentCall[
   for (const doc of snapshot.docs) {
     const data = doc.data();
     const startMs = toMillis(data.startedAt);
-    if (startMs === undefined) continue;
+    // Only sessions together are listed, so the rows agree with the total in the header
+    if (startMs === undefined || !isCountedSession(data)) continue;
     const endMs = toMillis(data.endedAt);
     const personaId = typeof data.personaId === 'string' ? data.personaId : 'ferni';
     const summary = typeof data.summary === 'string' ? data.summary.trim() : '';
@@ -296,13 +340,13 @@ async function readAgentCalls(userId: string, limit: number): Promise<AgentCall[
 /**
  * The web app records its own summary of a call on hang-up (POST
  * /api/conversations). Fold each one into the agent call it describes so a web
- * call shows once; keep the rest (the agent's write may have failed).
+ * call shows once. A summary with no counted call is not listed: the rows are the
+ * sessions together the header counts (a greeting-only call is not one).
  */
 function mergeWebSessions(
   calls: AgentCall[],
   webSessions: ConversationSession[]
 ): ConversationSession[] {
-  const unmatched: ConversationSession[] = [];
   const taken = new Set<AgentCall>();
   for (const web of webSessions) {
     const hangUpMs = Date.parse(web.date);
@@ -313,10 +357,7 @@ function mergeWebSessions(
         c.startMs <= hangUpMs + HANGUP_MATCH_MS && Math.abs(endMs - hangUpMs) <= HANGUP_MATCH_MS
       );
     });
-    if (!call) {
-      unmatched.push(web);
-      continue;
-    }
+    if (!call) continue;
     taken.add(call);
     Object.assign(call.session, {
       personaName: web.personaName || call.session.personaName,
@@ -329,9 +370,7 @@ function mergeWebSessions(
       topicsDiscussed: web.topicsDiscussed,
     });
   }
-  return [...calls.map((c) => c.session), ...unmatched].sort(
-    (a, b) => Date.parse(b.date) - Date.parse(a.date)
-  );
+  return calls.map((c) => c.session).sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
 }
 
 // ============================================================================
