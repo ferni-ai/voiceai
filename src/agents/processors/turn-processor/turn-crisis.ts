@@ -44,7 +44,11 @@ import {
 } from '../../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
 import { startWhoRead } from '../../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
-import { blockedReadGuidance, noteMeansInHandShadow } from '../../../services/safety/index.js';
+import {
+  blockedReadGuidance,
+  noteMeansInHandShadow,
+  withMinorAbuseDisclosure,
+} from '../../../services/safety/index.js';
 import {
   resolveClassifierOnlyCheckin,
   shadowClassifierOnly,
@@ -325,7 +329,9 @@ export function startTurnCrisis(
         env
       );
     }
-    return easingOn ? (eased ??= easeTurn(turn)) : turn;
+    const read = easingOn ? (eased ??= easeTurn(turn)) : turn;
+    // MINOR_ABUSE_DISCLOSURE: a caller under 18 telling of sexual harm, after every read.
+    return read.then((s) => withMinorAbuseDisclosure(s, call, input, priorRisk, env));
   };
   return {
     patterns,
