@@ -2,15 +2,22 @@
  * ABUSE_DISCLOSURE_PATTERNS (abuse-disclosure.ts) through the real turn pipeline
  * (startTurnCrisis): off, a turn is exactly as on main; on, a caller saying someone hurts them
  * is a crisis-level safety turn answered with are-you-safe, 911 if in danger, and the line that
- * fits (Childhelp for family, the DV hotline for a partner), 988 only with self-harm words.
- * Everyday uses of the same words never match, and a turn already read as a crisis keeps it all.
+ * fits (Childhelp for family, the DV hotline for a partner). 988 stays unless the whole call is
+ * abuse-only. Everyday uses of the same words never match, and a turn already read as a crisis
+ * keeps it all. Every line here is fictional.
  */
 import { readFileSync } from 'fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { startTurnCrisis } from '../../../agents/processors/turn-processor/turn-crisis.js';
-import { abuseDisclosure, abuseGuidance } from '../abuse-disclosure.js';
+import {
+  abuseDisclosure,
+  abuseGuidance,
+  classifierReadSelf,
+  withAbuseDisclosure,
+} from '../abuse-disclosure.js';
 import { noteCrisisRisk, resetCrisisCallRisk } from '../crisis-call-risk.js';
 import { resetCrisisClassifierCache, type CrisisGenerateFn } from '../crisis-classifier.js';
+import type { CrisisDetectionResult } from '../crisis-guard.js';
 import { resetCallRiskSnapshots } from '../crisis-lone-imminent.js';
 
 const BASE = {
@@ -21,23 +28,44 @@ const BASE = {
 };
 const OFF = { ...BASE, ABUSE_DISCLOSURE_PATTERNS: 'off' };
 const ON = { ...BASE, ABUSE_DISCLOSURE_PATTERNS: 'on' };
-const none: CrisisGenerateFn = async () => '{"risk":"none","subject":"self"}';
+const verdict =
+  (risk: string, subject = 'self'): CrisisGenerateFn =>
+  async () =>
+    JSON.stringify({ risk, subject });
+const none = verdict('none');
 
 let n = 0;
-async function summary(line: string, env: Record<string, string>, generate = none) {
+/** One turn as production runs it: recentTranscripts already holds the latest line. */
+async function summary(
+  line: string,
+  env: Record<string, string>,
+  generate = none,
+  { earlier = [] as string[], call = `abuse-${++n}` } = {}
+) {
   resetCrisisClassifierCache();
   resetCallRiskSnapshots();
   const t = startTurnCrisis(
     line,
-    { recentTranscripts: [line], turnCount: 1 },
-    { sessionId: `abuse-${++n}`, env, generate }
+    { recentTranscripts: [...earlier, line], turnCount: earlier.length + 1 },
+    { sessionId: call, env, generate }
   );
   return t.summary();
 }
+const has988 = async (...args: Parameters<typeof summary>) =>
+  /\b988\b/.test(abuseGuidance(await summary(...args)) ?? '');
 
 beforeEach(() => {
   resetCrisisCallRisk();
 });
+
+const CORPUS = JSON.parse(
+  readFileSync(
+    new URL('../../../../scripts/crisis-eval/corpus/abuse-disclosure-2026-11-01.json', import.meta.url),
+    'utf8'
+  )
+) as { calls: Array<{ shape: string; turns: Array<{ text: string; label: string }> }> };
+const corpusLines = (shape: RegExp) =>
+  CORPUS.calls.filter((c) => shape.test(c.shape)).map((c) => c.turns.at(-1)?.text ?? '');
 
 const DISCLOSURES: Array<[string, 'child' | 'partner' | 'unknown']> = [
   ["My stepdad hits me when he's drunk.", 'child'],
@@ -45,19 +73,24 @@ const DISCLOSURES: Array<[string, 'child' | 'partner' | 'unknown']> = [
   ['My mom beats me with a belt.', 'child'],
   ["My stepmom locks me in my room and doesn't feed me.", 'child'],
   ['My dad threw me down the stairs.', 'child'],
-  ["My mom's boyfriend hurts me when she's at work.", 'child'],
+  ["My mom's boyfriend hurts me physically when she's at work.", 'child'],
   ['I have bruises where my dad grabbed me.', 'child'],
   ['My uncle hits me and says no one will believe me.', 'child'],
   ["My brother beats me up and my parents don't care.", 'child'],
+  ['My older brother punches me in the stomach.', 'child'],
+  ['My dad gets drunk and hits me.', 'child'],
   ['My boyfriend hits me.', 'partner'],
   ['My husband choked me last night.', 'partner'],
   ['My girlfriend threw me against the wall.', 'partner'],
   ["My partner says he'll kill me if I leave.", 'partner'],
-  ['He hurts me.', 'unknown'],
+  ['My husband threatened to kill me.', 'partner'],
+  ['He hurts me on purpose.', 'unknown'],
+  ['She slapped me across the face.', 'unknown'],
+  ["If I tell anyone, he'll hurt me.", 'unknown'],
   ["I'm scared to go home tonight, he'll be there.", 'unknown'],
 ];
 
-// Fictional everyday lines with the same words (more in the sim's recall-hard-negatives set).
+// Fictional everyday lines with the same words; the corpus holds 40 more of each family.
 const EVERYDAY = [
   'My dad hits golf balls every Sunday morning.',
   'My brother beat me at chess again.',
@@ -71,7 +104,6 @@ const EVERYDAY = [
   'He hurts my feelings when he forgets my birthday.',
   'My husband choked on his coffee laughing.',
   'My girlfriend threw me a surprise party.',
-  'My brother threw me in the pool at the party.',
   'I have bruises from soccer practice.',
   'I have bruises where the dog jumped on me.',
   "I'm scared to go home and see how messy my room is.",
@@ -88,9 +120,80 @@ describe('abuseDisclosure', () => {
     for (const line of EVERYDAY) expect(abuseDisclosure(line), line).toBeNull();
   });
 
-  it('notes self-harm words beside the disclosure', () => {
-    expect(abuseDisclosure('My dad hits me and I want to die.')?.selfHarm).toBe(true);
+  it('reads every must-catch line in the corpus, first turn and mid-call', () => {
+    const lines = corpusLines(/^abuse-(?:must-catch|self-harm)/);
+    expect(lines.length).toBe(56);
+    for (const line of lines) expect(abuseDisclosure(line), line).not.toBeNull();
+  });
+
+  it('reads none of the 240 everyday corpus lines that the round 1 patterns matched', () => {
+    const lines = corpusLines(/^abuse-hn-/);
+    expect(lines.length).toBe(240);
+    for (const line of lines) expect(abuseDisclosure(line), line).toBeNull();
+  });
+
+  it('skips a negator between the person and the verb', () => {
+    expect(abuseDisclosure('My dad never hits me.')).toBeNull();
+    expect(abuseDisclosure('My mom would never hit me.')).toBeNull();
+    expect(abuseDisclosure("My brother doesn't hit me anymore.")).toBeNull();
+    expect(abuseDisclosure('Nobody like my dad hits me.')).toBeNull();
+    expect(abuseDisclosure('My dad really hits me.')).not.toBeNull();
+  });
+
+  it('a blow, not "hits me up", "hits me with a pun", "beats me at", or a game', () => {
+    expect(abuseDisclosure('My dad hits me up for money.')).toBeNull();
+    expect(abuseDisclosure('My dad hits me with bad puns.')).toBeNull();
+    expect(abuseDisclosure('My dad hits me with a belt.')).not.toBeNull();
+    expect(abuseDisclosure('My dad hits me in the head.')).not.toBeNull();
+    expect(abuseDisclosure('My dad hits me in Mario Kart.')).toBeNull();
+    expect(abuseDisclosure('My dad hits me at home.')).not.toBeNull();
+    expect(abuseDisclosure('My dad beats me at checkers.')).toBeNull();
+    expect(abuseDisclosure('My brother hits me every time we spar.')).toBeNull();
+    expect(abuseDisclosure('My brother punches me when we play the yellow car game.')).toBeNull();
+  });
+
+  it('thrown against something, not into the deep end', () => {
+    expect(abuseDisclosure('My dad threw me into the wall.')).not.toBeNull();
+    expect(abuseDisclosure('My dad threw me into the deep end at work.')).toBeNull();
+    expect(abuseDisclosure('My dad pushed me out of the car.')).not.toBeNull();
+  });
+
+  it('a threat with a condition about telling or leaving, not a joke about an errand', () => {
+    expect(abuseDisclosure("My dad said he'll kill me if I tell anyone.")).not.toBeNull();
+    expect(abuseDisclosure("My dad said he'll kill me if I leave him.")).not.toBeNull();
+    expect(abuseDisclosure("My dad said he'll kill me if I go to the police.")).not.toBeNull();
+    expect(abuseDisclosure("My mom said she'll kill me if I'm late again.")).toBeNull();
+    expect(abuseDisclosure("My mom said she'll kill me if I leave the gate open.")).toBeNull();
+    expect(abuseDisclosure("My mom said she'll kill me if I tell the dog joke.")).toBeNull();
+  });
+
+  it('hurt only with a physical sign, never hurt feelings', () => {
+    expect(abuseDisclosure('My ex really hurt me when she left.')).toBeNull();
+    expect(abuseDisclosure('He hurts me.')).toBeNull();
+    expect(abuseDisclosure('He hurts me and leaves marks.')).not.toBeNull();
+  });
+
+  it('scared to go home, unless the same sentence gives an everyday reason', () => {
+    expect(abuseDisclosure("I'm scared to go home tonight.")).not.toBeNull();
+    expect(abuseDisclosure("I'm scared to go home, my report card came.")).toBeNull();
+    expect(abuseDisclosure("I'm scared to go home because it's dark.")).toBeNull();
+  });
+
+  it('notes self-harm and no-way-forward words beside the disclosure', () => {
+    for (const tail of [
+      'I want to die',
+      'I feel like hurting myself',
+      "I've been cutting myself",
+      'I think about killing myself',
+      "I don't see the point anymore",
+      "I can't go on",
+      "they'd be better off without me",
+      'I feel so hopeless',
+      "life isn't worth living",
+    ])
+      expect(abuseDisclosure(`My dad hits me and ${tail}.`)?.selfHarm, tail).toBe(true);
     expect(abuseDisclosure('My dad hits me.')?.selfHarm).toBe(false);
+    expect(abuseDisclosure('My dad hits me and I want it to stop.')?.selfHarm).toBe(false);
   });
 });
 
@@ -126,35 +229,10 @@ describe('a disclosure through the turn pipeline', () => {
     expect(g).not.toMatch(/\b988\b/);
   });
 
-  it('988 too when they also say something about hurting themselves', async () => {
-    const g = abuseGuidance(await summary('My dad hits me and I just want to kill myself.', ON));
-    expect(g).toMatch(/\b988\b/);
-  });
-
-  it('988 too when they said something about hurting themselves earlier in the call', async () => {
-    resetCrisisClassifierCache();
-    resetCallRiskSnapshots();
-    const line = 'My dad hits me.';
-    const earlier = ['Sometimes I want to die.', line];
-    const t = startTurnCrisis(
-      line,
-      { recentTranscripts: earlier, turnCount: 2 },
-      { sessionId: `abuse-${++n}`, env: ON, generate: none }
-    );
-    expect(abuseGuidance(await t.summary())).toMatch(/\b988\b/);
-  });
-
-  it('988 too when risk was noted earlier on the call', async () => {
-    resetCrisisClassifierCache();
-    resetCallRiskSnapshots();
-    const call = `abuse-${++n}`;
-    noteCrisisRisk(call);
-    const t = startTurnCrisis(
-      'My dad hits me.',
-      { recentTranscripts: ['My dad hits me.'], turnCount: 2 },
-      { sessionId: call, env: ON, generate: none }
-    );
-    expect(abuseGuidance(await t.summary())).toMatch(/\b988\b/);
+  it('never promises secrecy, and never says it will tell anyone', async () => {
+    const g = abuseGuidance(await summary('My dad hits me.', ON)) ?? '';
+    expect(g).toContain('Never promise to keep it secret or between you');
+    expect(g).toContain('never say or imply that you will tell anyone');
   });
 
   it('a turn already read as a crisis keeps everything it had', async () => {
@@ -169,7 +247,7 @@ describe('a disclosure through the turn pipeline', () => {
   });
 
   it('an everyday line is not a crisis with the flag on', async () => {
-    for (const line of EVERYDAY.slice(0, 6))
+    for (const line of [...EVERYDAY.slice(0, 6), ...corpusLines(/^abuse-hn-/).slice(0, 240)])
       expect((await summary(line, ON)).isCrisis, line).toBe(false);
   });
 
@@ -184,5 +262,88 @@ describe('a disclosure through the turn pipeline', () => {
     );
     const injection = /category: 'crisis_response',[^}]*?content: ([^,\n]+),/.exec(handler)?.[1];
     expect(injection).toBe('abuseGuidance(result.crisis) ?? buildCrisisGuidance(result.crisis)');
+  });
+});
+
+// 988 stays unless the whole call is abuse-only (Seth's call (b), 2026-11-01). Each test below
+// isolates one input: the others are off (classifier reads none, no words, no earlier risk), so
+// removing that one input from selfRiskOnCall turns its test red.
+describe('988 on an abuse disclosure', () => {
+  it('is dropped only when the whole call is abuse-only', async () => {
+    expect(await has988('My dad hits me.', ON)).toBe(false);
+    expect(await has988('My dad hits me.', ON, none, { earlier: ['Hi, can we talk?'] })).toBe(false);
+  });
+
+  it('stays on the exact round 1 line, and on every mixed line in the corpus', async () => {
+    expect(await has988('My dad hits me and I feel like hurting myself.', ON)).toBe(true);
+    const mixed = corpusLines(/^abuse-self-harm-mix-first$/);
+    expect(mixed.length).toBe(11);
+    for (const line of mixed) expect(await has988(line, ON), line).toBe(true);
+  });
+
+  it('stays for this turn\'s own words, with recentTranscripts holding the latest line', async () => {
+    // No pattern read and a "none" classifier: only the words in this turn keep 988.
+    const line = 'My boyfriend hits me and I don\'t see the point in anything anymore.';
+    const s = await summary(line, ON);
+    expect(s.indicators.filter((i) => !i.startsWith('abuse_'))).toEqual([]);
+    expect(abuseGuidance(s)).toMatch(/\b988\b/);
+  });
+
+  it('stays for self-harm words in an earlier line of the call', async () => {
+    for (const [before, line] of [
+      ['Some nights I think about hurting myself.', 'My dad hits me.'],
+      ['Honestly I can\'t go on like this.', 'My boyfriend slapped me last night.'],
+    ])
+      expect(await has988(line, ON, none, { earlier: [before] }), line).toBe(true);
+  });
+
+  it('stays when risk was noted earlier on the call', async () => {
+    const call = `abuse-${++n}`;
+    noteCrisisRisk(call);
+    expect(await has988('My dad hits me.', ON, none, { call })).toBe(true);
+  });
+
+  it('stays when this turn\'s own patterns read risk, with no words and a "none" classifier', async () => {
+    // riskBefore is read before this turn's own noteCrisisRisk (turn-crisis.ts), so only the
+    // pattern read keeps 988 here.
+    const line = "My dad hits me. I'm such a burden to everyone.";
+    expect(abuseDisclosure(line)?.selfHarm).toBe(false);
+    const s = await summary(line, ON);
+    expect(s.indicators).toEqual(expect.arrayContaining(['implicit_distress']));
+    expect(abuseGuidance(s)).toMatch(/\b988\b/);
+  });
+
+  it('stays when the classifier reads the turn as risk to the caller', async () => {
+    expect(await has988('My dad hits me.', ON, verdict('crisis'))).toBe(true);
+    expect(await has988('My dad hits me.', ON, verdict('crisis', 'third_party'))).toBe(false);
+  });
+
+  it('stays when the classifier gives no read', async () => {
+    expect(await classifierReadSelf(null)).toBe(true);
+    expect(await classifierReadSelf({ verdict: Promise.resolve(null) })).toBe(true);
+    expect(await classifierReadSelf({ verdict: Promise.reject(new Error('timeout')) })).toBe(true);
+    expect(
+      await classifierReadSelf({ verdict: Promise.resolve({ risk: 'none', subject: 'self' }) })
+    ).toBe(false);
+  });
+});
+
+describe('withAbuseDisclosure', () => {
+  const quiet: CrisisDetectionResult = {
+    isCrisis: false,
+    severity: 0,
+    indicators: [],
+  } as unknown as CrisisDetectionResult;
+  const turn = { latest: 'My dad hits me.', earlier: ['My dad hits me.'] };
+  const call = { riskBefore: false, patternRisk: false, classifierSelf: false };
+
+  it('is never the soft check-in, whatever the read before it was', () => {
+    for (const soft of [true, false])
+      expect(withAbuseDisclosure({ crisis: quiet, soft }, turn, call, ON).soft).toBe(false);
+  });
+
+  it('leaves the turn untouched with the flag off', () => {
+    const settled = { crisis: quiet, soft: true };
+    expect(withAbuseDisclosure(settled, turn, call, OFF)).toBe(settled);
   });
 });

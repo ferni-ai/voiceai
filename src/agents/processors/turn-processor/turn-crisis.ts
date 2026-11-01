@@ -44,7 +44,12 @@ import {
 } from '../../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
 import { startWhoRead } from '../../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
-import { noteMeansInHandShadow, withAbuseDisclosure } from '../../../services/safety/index.js';
+import {
+  classifierReadSelf,
+  crisisRiskThisCall,
+  noteMeansInHandShadow,
+  withAbuseDisclosure,
+} from '../../../services/safety/index.js';
 import {
   resolveClassifierOnlyCheckin,
   shadowClassifierOnly,
@@ -180,6 +185,8 @@ export function startTurnCrisis(
   const shouldBlock = guardFromDetection(patterns).shouldBlock;
   // A gentle 988 offer counts as a match: risk on this call, and both paths agree.
   const pattern = shouldBlock ? 'block' : patterns.isCrisis || gentle ? 'crisis' : 'none';
+  // ABUSE_DISCLOSURE_PATTERNS: risk on this call before this turn's own note (abuse-disclosure.ts).
+  const riskBefore = !options.sessionId || crisisRiskThisCall(options.sessionId, userText);
   if (pattern !== 'none') noteCrisisRisk(options.sessionId); // risk on this call (crisis-call-risk.ts)
   if (pattern !== 'none') noteConfirmedRisk(options.sessionId || undefined, options.env);
   const { env = process.env, generate } = options;
@@ -322,7 +329,11 @@ export function startTurnCrisis(
     }
     const read = easingOn ? (eased ??= easeTurn(turn)) : turn;
     // ABUSE_DISCLOSURE_PATTERNS: someone hurting the caller is a safety turn, after every read.
-    return read.then((s) => withAbuseDisclosure(s, input, priorRisk, env));
+    return read.then(async (s) => {
+      const call = { riskBefore, patternRisk: pattern !== 'none' };
+      const classifierSelf = await classifierReadSelf(classifier);
+      return withAbuseDisclosure(s, input, { ...call, classifierSelf }, env);
+    });
   };
   return {
     patterns,

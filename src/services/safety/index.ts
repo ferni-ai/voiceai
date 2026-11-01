@@ -58,7 +58,7 @@ export type {
 } from './crisis-response.js';
 export { EMERGENCY_NUMBER } from './emergency-number.js';
 // Someone hurting the caller (ABUSE_DISCLOSURE_PATTERNS, turn-crisis.ts and turn-handler.ts).
-export { abuseGuidance, withAbuseDisclosure } from './abuse-disclosure.js';
+export { abuseGuidance, classifierReadSelf, withAbuseDisclosure } from './abuse-disclosure.js';
 export { SOFT_CRISIS_CHECK } from './crisis-agreement.js';
 
 // ============================================================================
