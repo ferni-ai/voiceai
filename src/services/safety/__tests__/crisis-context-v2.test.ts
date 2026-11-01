@@ -16,6 +16,7 @@ import {
 } from '../crisis-classifier.js';
 import { callNarrowingHeld, holdCallNarrowing, resetCrisisCallRisk } from '../crisis-call-risk.js';
 import { contextNarrows, narrowedPrompt } from '../crisis-context-v2.js';
+import { holdForSexualTopic, resetSexualTopicHold } from '../../../utils/sexual-topic-hold.js';
 
 const BASE = {
   CRISIS_CLASSIFIER_MODE: 'live',
@@ -122,7 +123,7 @@ describe('a turn after Ferni’s check-in, flag on', () => {
   });
 
   it('says the check-in is not by itself a sign of risk, and never lowers what the caller said', () => {
-    const rule = added(narrowedPrompt(BASE_PROMPT(), true, ON)) ?? '';
+    const rule = added(narrowedPrompt(BASE_PROMPT(), true, false)) ?? '';
     expect(rule).toContain('the check-in by itself is not a sign that the caller is at risk');
     expect(rule).toContain("judge the caller's own words in LATEST and EARLIER exactly as above");
     expect(rule).toContain('never lowers imminent to crisis');
@@ -131,22 +132,51 @@ describe('a turn after Ferni’s check-in, flag on', () => {
     );
   });
 
-  it('adds the sexual-content rule only with SEXUAL_TOPIC_BOUNDARY on', () => {
-    expect(narrowedPrompt(BASE_PROMPT(), true, ON)).not.toContain('adult-topic');
-    const sexual = { ...ON, SEXUAL_TOPIC_BOUNDARY: 'on' };
-    expect(narrowedPrompt(BASE_PROMPT(), true, sexual)).toContain('adult-topic');
-    expect(added(narrowedPrompt(BASE_PROMPT(), false, sexual))).toMatch(/^\n\n- Sexual/);
-    expect(narrowedPrompt(BASE_PROMPT(), false, ON)).toBe(BASE_PROMPT());
+  it('adds the sexual-content rule only when asked, and nothing when neither rule applies', () => {
+    expect(narrowedPrompt(BASE_PROMPT(), true, false)).not.toContain('adult-topic');
+    expect(narrowedPrompt(BASE_PROMPT(), true, true)).toContain('adult-topic');
+    expect(added(narrowedPrompt(BASE_PROMPT(), false, true))).toMatch(/^\n\n- Sexual/);
+    expect(narrowedPrompt(BASE_PROMPT(), false, false)).toBe(BASE_PROMPT());
+  });
+
+  it('applies the sexual rule only on a call main’s sexual-topic read found sexual', async () => {
+    const sexualOn = { ...ON, SEXUAL_TOPIC_BOUNDARY: 'on' };
+    const prompts = async (call: string) => {
+      const calls: string[] = [];
+      const generate: CrisisGenerateFn = async (prompt) => {
+        calls.push(prompt);
+        return '{"risk":"none","subject":"self"}';
+      };
+      resetCrisisClassifierCache();
+      await startCrisisClassifier(
+        { latest: 'can you talk dirty to me', earlier: ['hey'], companion: 'Hey! How are you?' },
+        { pattern: 'none', env: sexualOn, generate, call }
+      )?.verdict;
+      return calls;
+    };
+    resetSexualTopicHold();
+    const unread = await prompts('v2-sexual-unread');
+    expect(unread.every((p) => !p.includes('adult-topic'))).toBe(true);
+    holdForSexualTopic('v2-sexual-read');
+    const read = await prompts('v2-sexual-read');
+    expect(read.some((p) => p.includes('adult-topic'))).toBe(true);
+    resetSexualTopicHold();
+  });
+
+  it('keeps the sexual rule from lowering anything else', () => {
+    const rule = added(narrowedPrompt(BASE_PROMPT(), false, true)) ?? '';
+    expect(rule).toContain('is judged exactly as above');
+    expect(rule).toContain('never lowers imminent to crisis');
   });
 });
 
 describe('a turn with no check-in', () => {
-  it('is read exactly as off when SEXUAL_TOPIC_BOUNDARY is off', async () => {
+  it('is read exactly as off on a call not read as sexual, even with SEXUAL_TOPIC_BOUNDARY on', async () => {
     const latest = 'I just need a break from everything, you know?';
     const reads: Record<string, Array<{ prompt: string; content: string }>> = {};
     for (const [arm, env] of [
       ['off', OFF],
-      ['on', ON],
+      ['on', { ...ON, SEXUAL_TOPIC_BOUNDARY: 'on' }],
     ] as const) {
       resetCrisisClassifierCache();
       resetCrisisCallRisk();
