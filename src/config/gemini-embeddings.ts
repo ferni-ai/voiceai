@@ -12,7 +12,10 @@
 
 import { EmbeddingApiError, EmbeddingUnavailableError } from '../utils/embedding-api-error.js';
 import { errorStatus } from '../utils/error-class.js';
-import { GEMINI_EMBEDDING_LOCATION, getGeminiClient } from './gemini-config.js';
+import { createLogger } from '../utils/safe-logger.js';
+import { getGeminiClient } from './gemini-config.js';
+import { geminiEmbeddingLocation, VERTEX_MULTI_REGIONS } from './vertex-endpoint.js';
+import { useVertexAI } from './vertex-flag.js';
 
 interface EmbedClient {
   models: {
@@ -22,6 +25,17 @@ interface EmbedClient {
       config?: { abortSignal?: AbortSignal };
     }): Promise<{ embeddings?: Array<{ values?: number[] }> }>;
   };
+}
+
+/** GEMINI_EMBEDDING_LOCATION, default GEMINI_LOCATION. */
+const LOCATION = geminiEmbeddingLocation();
+
+// gemini-embedding-001 404s on the `us` multi-region (2026-11-01): say so once at load, not per call.
+if (useVertexAI() && VERTEX_MULTI_REGIONS.includes(LOCATION)) {
+  createLogger({ module: 'GeminiEmbeddings' }).error(
+    { embeddingLocation: LOCATION },
+    'gemini-embedding-001 is not served on a Vertex multi-region: set GEMINI_EMBEDDING_LOCATION to a US region'
+  );
 }
 
 /** Inputs per request. Vertex accepted 250 gemini-embedding-001 inputs in one call (2026-10-30). */
@@ -37,7 +51,7 @@ export async function embedTexts(
   texts: string[],
   timeoutMs?: number
 ): Promise<number[][]> {
-  const client = (await getGeminiClient(GEMINI_EMBEDDING_LOCATION)) as EmbedClient | null;
+  const client = (await getGeminiClient(LOCATION)) as EmbedClient | null;
   if (!client) throw new EmbeddingUnavailableError();
   const out: number[][] = [];
   for (let i = 0; i < texts.length; i += BATCH_SIZE) {

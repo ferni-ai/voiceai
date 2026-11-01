@@ -12,13 +12,7 @@ import { applyBillingLabels, geminiBillingLabels } from './gemini-billing-labels
 import { realtimeModelOrFail } from './realtime-model.js';
 import { applyThinkingDefaults } from './thinking-defaults.js';
 import { useVertexAI } from './vertex-flag.js';
-import {
-  geminiEmbeddingLocation,
-  geminiLocation,
-  VERTEX_MULTI_REGIONS,
-  vertexGenAIOptions,
-  vertexHost,
-} from './vertex-endpoint.js';
+import { geminiLocation, vertexGenAIOptions, vertexHost } from './vertex-endpoint.js';
 
 const log = createLogger({ module: 'GeminiConfig' });
 
@@ -41,9 +35,6 @@ export const GOOGLE_CLOUD_LOCATION = process.env.GOOGLE_CLOUD_LOCATION || 'us-ce
 
 /** Vertex location for Gemini calls (default: global; Gemini 3.5 404s on us-central1). Hosts: vertex-endpoint.ts. */
 export const GEMINI_LOCATION = geminiLocation();
-
-/** Vertex location for gemini-embedding-001 (GEMINI_EMBEDDING_LOCATION, default GEMINI_LOCATION). */
-export const GEMINI_EMBEDDING_LOCATION = geminiEmbeddingLocation();
 
 /** Init options for the legacy @google-cloud/vertexai SDK, which can't derive the global or multi-region host. */
 export function vertexOptions(
@@ -313,7 +304,7 @@ const clients = new Map<string, Promise<unknown | null>>();
  * This is the ONLY place that creates Gemini clients.
  * All services should use this instead of creating their own.
  *
- * @param location Vertex location (default GEMINI_LOCATION); embeddings pass GEMINI_EMBEDDING_LOCATION.
+ * @param location Vertex location (default GEMINI_LOCATION; gemini-embeddings.ts passes its own).
  * @returns GoogleGenAI client or null if not configured
  */
 export async function getGeminiClient(location: string = GEMINI_LOCATION): Promise<unknown | null> {
@@ -542,7 +533,6 @@ if (process.env.NODE_ENV !== 'test') {
       useVertexAI: USE_VERTEX_AI,
       project: GOOGLE_CLOUD_PROJECT || '(not set)',
       location: GEMINI_LOCATION,
-      embeddingLocation: GEMINI_EMBEDDING_LOCATION,
       model: GEMINI_MODEL,
       temperature: GEMINI_TEMPERATURE,
       timeoutMs: LLM_TIMEOUT_MS,
@@ -577,13 +567,5 @@ if (process.env.NODE_ENV !== 'test') {
       },
     },
     '📋 Gemini configuration loaded'
-  );
-}
-
-// gemini-embedding-001 404s on the `us` multi-region (2026-11-01): say so at startup, not per call.
-if (USE_VERTEX_AI && VERTEX_MULTI_REGIONS.includes(GEMINI_EMBEDDING_LOCATION)) {
-  log.error(
-    { embeddingLocation: GEMINI_EMBEDDING_LOCATION },
-    'gemini-embedding-001 is not served on a Vertex multi-region: set GEMINI_EMBEDDING_LOCATION to a US region'
   );
 }

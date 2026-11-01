@@ -17,7 +17,6 @@ vi.mock('../../../utils/safe-logger.js', () => {
 });
 
 vi.mock('../../../config/gemini-config.js', () => ({
-  GEMINI_EMBEDDING_LOCATION: 'global',
   getGeminiClient: async () => ({ models: { embedContent } }),
 }));
 
