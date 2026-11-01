@@ -68,6 +68,14 @@ const GATE_MODES: GateMode[] = ['live', 'shadow', 'off'];
 const PATTERNS_ONLY = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'off' };
 const CRISIS_CATEGORIES = ['safety', 'crisis_response', 'crisis_transfer'];
 
+/** A turn hook's chat context: the SDK hands it over before it adds the caller's new message. */
+function hookCtx(...turns: Array<['user' | 'assistant', string]>): llm.ChatContext {
+  const ctx = llm.ChatContext.empty();
+  ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
+  for (const [role, content] of turns) ctx.addMessage({ role, content });
+  return ctx;
+}
+
 let n = 0;
 /** One caller turn through both word checks: what they inject, and the crisis_signals written. */
 async function turn(line: string) {
@@ -80,7 +88,7 @@ async function turn(line: string) {
     persona: { id: 'ferni' },
   } as never;
   const safety = await buildSafetyInjections(ctx);
-  const transfer = await buildHumanTransferInjections(line, uid, `session-v2-${n}`, 1);
+  const transfer = await buildHumanTransferInjections(line, uid, `session-v2-${n}`, 1, hookCtx());
   await new Promise((resolve) => {
     setTimeout(resolve, 0); // the write is fire-and-forget
   });
@@ -259,5 +267,79 @@ describe('MINOR_CARE is unchanged', () => {
     const main = (await turn(minor)).writes;
     v2(true);
     expect((await turn(minor)).writes).toEqual(main);
+  });
+});
+
+describe('split turns: the note defers only on the words the gate scores (round-3 verify)', () => {
+  /** The gate's own pattern decision on the request it gets: the hook's context plus the message. */
+  function gateOn(earlier: string[], latest: string) {
+    const ctx = hookCtx(...earlier.map((e): ['user', string] => ['user', e]), ['user', latest]);
+    return startCrisisGate(ctx, undefined, { env: PATTERNS_ONLY })?.decision;
+  }
+  async function note(earlier: string[], latest: string, withCtx = true) {
+    n += 1;
+    const ctx = hookCtx(...earlier.map((e): ['user', string] => ['user', e]));
+    const sid = `session-split-${n}`;
+    return buildHumanTransferInjections(latest, `uid-split-${n}`, sid, 1, withCtx ? ctx : undefined);
+  }
+
+  // The newest message alone reads crisis; joined with the one before it, the gate reads a negation.
+  it.each([
+    ["I'm not saying", "I want to kill myself, but I've thought about it a lot"],
+    ["it's not that", 'I want to die. I just want it all to stop'],
+    ["I'm not saying", 'I want to die'],
+    ['not that', 'I want to die'],
+  ])('(a) "%s" + "%s": the gate passes, so main\'s note stays', async (earlier, latest) => {
+    expect(gateOn([earlier], latest)?.action).toBe('pass');
+    v2(false);
+    const main = await note([earlier], latest);
+    v2(true);
+    expect(main?.category).toBe('crisis_transfer');
+    expect(await note([earlier], latest)).toEqual(main);
+  });
+
+  it('(b) the joined words still read crisis: the note defers and the gate gives 988', async () => {
+    const earlier = ["I can't do this anymore"];
+    const latest = 'I want to kill myself';
+    const decision = gateOn(earlier, latest);
+    expect(decision?.action).toMatch(/^(guide|replace)$/);
+    const words = decision?.action === 'replace' ? decision.script : decision?.action === 'guide' ? decision.guidance : '';
+    expect(words).toContain('988');
+    v2(true);
+    expect(await note(earlier, latest)).toBeNull();
+  });
+
+  it('(c) three messages: the gate\'s join decides either way', async () => {
+    v2(true);
+    expect(gateOn(['not', 'that'], 'I want to die')?.action).toBe('pass');
+    expect((await note(['not', 'that'], 'I want to die'))?.category).toBe('crisis_transfer');
+    expect(gateOn(['I hate this', "I'm so tired"], 'I want to kill myself')?.action).toMatch(
+      /^(guide|replace)$/
+    );
+    expect(await note(['I hate this', "I'm so tired"], 'I want to kill myself')).toBeNull();
+  });
+
+  it('(d) no chat context: the note never defers', async () => {
+    v2(true);
+    expect((await note([], 'I want to kill myself', false))?.category).toBe('crisis_transfer');
+  });
+
+  it('a Ferni line in between: only the words after it are the gate\'s', async () => {
+    v2(true);
+    n += 1;
+    const ctx = hookCtx(['user', "I'm not saying"], ['assistant', "I'm listening."]);
+    expect(await buildHumanTransferInjections('I want to die', `uid-split-${n}`, `s-${n}`, 1, ctx)).toBeNull();
+  });
+});
+
+describe('the realtime models reply without the gate: the note always stays', () => {
+  it.each(
+    ['openai-realtime', 'gemini-native-audio', 'gemini-live'].flatMap((pipeline) =>
+      ['I cut myself on purpose', "I don't want to be here anymore"].map((line) => [pipeline, line])
+    )
+  )('%s: %s', async (pipeline, line) => {
+    v2(true);
+    vi.stubEnv('VOICE_PIPELINE', pipeline);
+    expect((await turn(line)).transfer?.category).toBe('crisis_transfer');
   });
 });

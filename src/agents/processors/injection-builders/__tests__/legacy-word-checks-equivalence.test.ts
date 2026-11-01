@@ -12,7 +12,7 @@
  * - SIGHT_CUE: exactly what CRISIS_SIGHT_NEEDS_CUE=on gives main (the flag implies it).
  * A listed line that stops differing fails too, so the lists stay exact.
  *
- * Lines: the round-2 verifier's 161 real-risk and 51 benign lines, plus this PR's own.
+ * Lines: the round-2 and round-3 verifiers' 233 real-risk and 80 benign lines, plus this PR's own.
  * All fictional.
  */
 import { llm } from '@livekit/agents';
@@ -70,6 +70,14 @@ const MODES = ['live', 'shadow', 'off'].flatMap((gate) =>
 );
 type Mode = (typeof MODES)[number];
 
+/** A turn hook's chat context: the SDK hands it over before it adds the caller's new message. */
+function hookCtx(...turns: Array<['user' | 'assistant', string]>): llm.ChatContext {
+  const ctx = llm.ChatContext.empty();
+  ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
+  for (const [role, content] of turns) ctx.addMessage({ role, content });
+  return ctx;
+}
+
 /** One caller turn through both word checks: everything they produce, in full. */
 async function turn(line: string, uid: string) {
   fake.docs.delete(uid);
@@ -80,7 +88,7 @@ async function turn(line: string, uid: string) {
     persona: { id: 'ferni' },
   } as never;
   const safety = await buildSafetyInjections(ctx);
-  const transfer = await buildHumanTransferInjections(line, uid, `session-${uid}`, 1);
+  const transfer = await buildHumanTransferInjections(line, uid, `session-${uid}`, 1, hookCtx());
   await new Promise((resolve) => {
     setTimeout(resolve, 0); // the write is fire-and-forget
   });
@@ -130,7 +138,7 @@ const deferredHere = (mode: Mode) => mode.gate === 'live' && mode.pipeline === '
 describe('CRISIS_LEXICAL_V2 on: every line equals main, but for the listed lines', () => {
   it('the lists name lines that are in the set', () => {
     for (const line of [...DEFERRED, ...SIGHT_CUE]) expect(LINES).toContain(line);
-    expect(LINES.length).toBe(217); // 161 + 51 from the verifier, the rest this PR's own
+    expect(LINES.length).toBe(324); // 233 + 80 from the verifies (rounds 2 and 3), the rest this PR's own
   });
 
   describe.each(MODES)('gate $gate, $pipeline', (mode) => {

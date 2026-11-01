@@ -8,8 +8,10 @@
  * - the gate is live (CRISIS_GUARD_MODE),
  * - the voice path is the cascade, whose llmNode runs the gate (the realtime models reply
  *   without it),
- * - the gate's own pattern guard reads crisis in these words, so no classifier verdict is
- *   needed for the gate to guide or replace the reply,
+ * - the gate's own pattern guard reads crisis in exactly the words the gate scores
+ *   (`gateWords`: every caller message since Ferni's last line, joined, from the builder's
+ *   injection-builders/gate-words.ts), so no classifier verdict is needed for the gate to
+ *   guide or replace the reply; without those words the note never defers,
  * - and the turn's only risk is suicide or self-harm. A medical emergency, danger to
  *   others, domestic violence, a child, substances or psychosis keep main's note: the gate
  *   does not read them.
@@ -47,23 +49,28 @@ function onlyGateRisk(s: CrisisSignals): boolean {
   return gate && !other;
 }
 
-/** The live gate is sure to act on these words: its own pattern guard reads crisis in them. */
-function gateActsOn(text: string, env: Record<string, string | undefined>): boolean {
+/** The live gate is sure to act on the words it scores: its own pattern guard reads crisis. */
+function gateActsOn(gateWords: string, env: Record<string, string | undefined>): boolean {
   return (
     flagOn('CRISIS_LEXICAL_V2', env) &&
     resolveCrisisGuardMode(env) === 'live' &&
     getProviderIdSync(env) === 'cartesia-cascade' &&
-    scoreCrisisLanguage(text).isCrisis
+    scoreCrisisLanguage(gateWords).isCrisis
   );
 }
 
-/** The transfer decision for this turn's signals (detectCrisisSignals of `userText`). */
+/**
+ * The transfer decision for this turn's signals (detectCrisisSignals of `userText`).
+ * `gateWords` are the words the gate scores this turn; without them, main's decision.
+ */
 export function transferNeed(
   signals: CrisisSignals,
   userText: string,
+  gateWords?: string,
   env: Record<string, string | undefined> = process.env
 ): EscalationDecision {
-  if (!onlyGateRisk(signals) || !gateActsOn(userText, env)) return evaluateTransferNeed(userText);
+  const defer = gateWords !== undefined && onlyGateRisk(signals) && gateActsOn(gateWords, env);
+  if (!defer) return evaluateTransferNeed(userText);
   const kind = signals.suicidalIdeation ? 'suicidal' : 'self-harm';
   log.info({ check: 'human_transfer', reason: 'deferred_to_gate', kind }, 'CRISIS_LEXICAL');
   return FERNI_HANDLES;

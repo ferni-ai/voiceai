@@ -103,6 +103,13 @@ export const MIXED_RISK = [
   "I want to die, they're watching me",
   "I want to die and I'm having chest pain",
   'I want to die, my husband hits me',
+  // Round-3 verify thin spots: two more each for medical, substances and psychosis.
+  "I want to die and I can't breathe",
+  "I want to kill myself, I think I'm having a stroke",
+  "I want to die, I'm high right now",
+  "I want to kill myself, I can't stop drinking",
+  'I want to die, I hear voices that tell me to',
+  "I want to kill myself, they're following me",
 ] as const;
 
 /**
