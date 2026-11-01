@@ -28,7 +28,7 @@
 
 import { flagOn } from '../../../../config/env-flag.js';
 import { isMemberIdentity } from '../../../../services/identity/member-identity.js';
-import { verifiedCallerId } from '../../../../services/identity/verified-caller.js';
+import { onPlacedCall, verifiedCallerId } from '../../../../services/identity/verified-caller.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { callSessionData } from '../../../utils/call-session-data.js';
@@ -126,6 +126,10 @@ function logOutcome(message: OwnerMessage, reason: OwnerMessageLogReason): void 
   );
 }
 
+/** An allowed send the tool then did not deliver: logged (delivery_failed); the slot stays spent. */
+export const ownerMessageNotDelivered = (message: OwnerMessage): void =>
+  logOutcome(message, 'delivery_failed');
+
 /** An unverified call's message: allowed with the footer, or why not. Counts it when allowed. */
 function unverifiedDecision(message: OwnerMessage, call: object | undefined): OwnerMessageDecision {
   for (const text of message.texts) {
@@ -144,8 +148,10 @@ export function ownerMessagePolicy(message: OwnerMessage): OwnerMessageDecision 
   if (!unverifiedOwnerMessageFilterOn()) return { outcome: 'unchanged' };
   const call = callSessionData(message.opts);
   const member = isMemberIdentity(message.ownerId);
-  // A routed run (semantic-router executor) carries no verified bit: unverified, fail closed
-  if (member && verifiedCallerId(call) === message.ownerId) return { outcome: 'unchanged' };
+  // A routed run (semantic-router executor) carries no verified bit: unverified, fail closed.
+  // A call we placed to their number can be answered by anyone (onPlacedCall): unverified too.
+  const verified = verifiedCallerId(call) === message.ownerId && !onPlacedCall(call);
+  if (member && verified) return { outcome: 'unchanged' };
   const decision = member ? unverifiedDecision(message, call) : refuse('no_account');
   if (decision.outcome === 'refused') logOutcome(message, decision.reason);
   return decision;
