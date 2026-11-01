@@ -113,16 +113,22 @@ const unique = (items: readonly string[]): string[] => {
   });
 };
 
-/** The brief's text, or null when there is nothing on today. */
-export function composeMorningBrief(input: MorningBriefInput): string | null {
+/**
+ * The brief's text, or null when there is nothing on today. `formatTime` writes each event's
+ * time; brief-job.ts passes one that writes "at" to screen the brief without its own clock
+ * times (a busy day's times alone trip the digit rule), every item kept verbatim.
+ */
+export function composeMorningBrief(
+  input: MorningBriefInput,
+  formatTime: (at: Date) => string = (at) => clock(at, input.timeZone)
+): string | null {
   const events = [...input.events].sort((a, b) => a.start.getTime() - b.start.getTime());
   const lists = {
     today: unique(
       events.map((e) => {
-        if (e.invite)
-          return e.allDay ? 'an invite' : `an invite at ${clock(e.start, input.timeZone)}`;
+        if (e.invite) return e.allDay ? 'an invite' : `an invite at ${formatTime(e.start)}`;
         const title = cleanItem(e.title);
-        return e.allDay || !title ? title : `${clock(e.start, input.timeZone)} ${title}`;
+        return e.allDay || !title ? title : `${formatTime(e.start)} ${title}`;
       })
     ),
     due: unique(input.reminders.map(cleanItem)),

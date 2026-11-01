@@ -38,7 +38,7 @@ vi.mock('../../../superhuman/commitment-follow-up.js', () => ({
 }));
 
 const { readDay } = await import('../default-deps.js');
-const { briefToSend, neutralizeTimes, runMorningBriefs } = await import('../brief-job.js');
+const { briefToSend, runMorningBriefs } = await import('../brief-job.js');
 const { composeMorningBrief } = await import('../compose.js');
 const { blockedContent } =
   await import('../../../../tools/domains/proactive/outreach/owner-message-content.js');
@@ -92,7 +92,10 @@ describe('readDay with the stored-text screen', () => {
 
 describe('the brief as sent: one final gate on the exact text', () => {
   const ON = { OWNER_OUTREACH_STORED_TEXT_SCREEN: 'on' };
-  const gatePasses = (text: string | null) => text === null || blockedContent(neutralizeTimes(text)) === null; // prettier-ignore
+  // The test's own event times (event() below: hh:30 in New York), and nothing else, read as "at"
+  const clockOf = (hour: number) => `${hour % 12 || 12}:30${hour < 12 ? 'am' : 'pm'}`;
+  const OWN_CLOCKS = new RegExp(`\\b(${[9, 10, 11, 12, 13, 14, 17, 18].map(clockOf).join('|')})(?![\\w:])`, 'g'); // prettier-ignore
+  const gatePasses = (text: string | null) => text === null || blockedContent(text.replace(OWN_CLOCKS, 'at')) === null; // prettier-ignore
   const event = (title: string, hour: number) => ({ title, start: new Date(Date.UTC(2026, 9, 19, hour + 4, 30)), allDay: false, invite: false }); // prettier-ignore
   const brief = (day: Partial<MorningBriefInput>): MorningBriefInput => ({ timeZone: 'America/New_York', name: 'Sam', events: [], reminders: [], tasks: [], commitments: [], ...day }); // prettier-ignore
   // Each half passes on its own; joined they make one phone number (fictional).
@@ -118,6 +121,13 @@ describe('the brief as sent: one final gate on the exact text', () => {
     const sent = briefToSend(brief(day), OWNER, ON);
     expect(gatePasses(sent)).toBe(true);
     expect(sent ?? '').not.toMatch(/212 555\D+0198/);
+  });
+
+  it('a number hidden between am/pm tokens in a stored item is refused; real event times are not', () => {
+    const hidden = '12am 34pm 56am 78pm 90am'; // 1234567890 in plain view
+    const sent = briefToSend(brief({ events: [event('Book club', 9)], tasks: [hidden] }), OWNER, ON); // prettier-ignore
+    expect(sent).not.toContain('34pm');
+    expect(sent).toContain('9:30am Book club');
   });
 
   it('falls to a count of the day when every title and item is hostile', () => {

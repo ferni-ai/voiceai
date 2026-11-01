@@ -103,29 +103,25 @@ function inBriefHour(user: Record<string, unknown>, zone: string, local: WallTim
   return inHour && local.hour < MORNING_BRIEF_LATEST_HOUR;
 }
 
-/** Clock times ("9:30am", "10pm") read as "at": a busy day's times alone trip the digit rule. */
-export function neutralizeTimes(text: string): string {
-  return text.replace(/\b\d{1,2}(?::\d{2})?\s?(?:am|pm)\b/gi, 'at');
-}
-
 /**
  * OWNER_OUTREACH_STORED_TEXT_SCREEN: the brief that is sent passes the screen as sent, not
  * only item by item (default-deps.ts readDay filters each item early): the brief joins
- * items, and pieces of a number or a link can line up anywhere in it. Each step down is
- * composed again and gated again; the first that passes is sent:
- * 1. the full brief; 2. without the stored sections (reminders, tasks, commitments);
- * 3. with every event by time only; 4. a count of today's events, which holds no stored text.
+ * items, and pieces of a number or a link can line up anywhere in it. What is screened is
+ * the same brief with only its own clock times written as "at" (a busy day's times alone
+ * trip the digit rule; isClockTime excuses clock times from the short-code rule only),
+ * every title and item verbatim. Each step down is composed and screened again; the first
+ * that passes is sent: 1. the full brief; 2. without the stored sections (reminders, tasks,
+ * commitments); 3. with every event by time only; 4. a count of today's events, which
+ * holds no stored text.
  */
 export function briefToSend(input: MorningBriefInput, userId: string, env: Env): string | null {
-  const passes = (text: string | null): text is string =>
-    text !== null && storedTextForOwner([neutralizeTimes(text)], { site: 'morning-brief', userId }, env); // prettier-ignore
-  const full = composeMorningBrief(input);
-  if (!full || passes(full)) return full;
+  const passes = (text: string | null): boolean =>
+    text !== null && storedTextForOwner([text], { site: 'morning-brief', userId }, env);
+  if (!composeMorningBrief(input)) return null;
   const calendar = { ...input, reminders: [], tasks: [], commitments: [] };
   const timesOnly = { ...calendar, events: input.events.map((e) => ({ ...e, invite: true })) };
-  for (const step of [calendar, timesOnly]) {
-    const text = composeMorningBrief(step);
-    if (passes(text)) return text;
+  for (const step of [input, calendar, timesOnly]) {
+    if (passes(composeMorningBrief(step, () => 'at'))) return composeMorningBrief(step);
   }
   const n = input.events.length;
   const count = n ? `Morning, it's Alex. You have ${n} ${n === 1 ? 'thing' : 'things'} on your calendar today.` : null; // prettier-ignore
