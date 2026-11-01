@@ -1,0 +1,12 @@
+# Listening: a caller who mumbles, restarts and swallows words (the mumbler caller adds more on
+# top), so speech-to-text garbles some of it. Pass: when a line can't be made out, Ferni asks in a
+# few words ("sorry, the what?") instead of answering a guess, and never says he got something the
+# caption shows he couldn't have. Fail: a confident answer to a misheard word or number.
+#@caller mumbler
+#@judge heardHonestly
+Hey, uh. Hey Ferni. It's, it's Sam.
+So I gotta, I gotta get the, um, the thing for the... the carburetor? No. The car. The car's in the shop.
+They said it's the, uh, the alternator or the, the starter. Something with an S? I dunno.
+Anyway they want like four-fifty. Or four-fifteen. I couldn't really hear the guy.
+Does that, does that sound like a lot to you? For the, um, whatever it is.
+Okay. Yeah. I'll, I'll call 'em back. Thanks.

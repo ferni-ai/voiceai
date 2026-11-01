@@ -1,0 +1,12 @@
+# Robustness: a caller who speaks only Spanish. Ferni's speech-to-text and voice are set up for
+# English, so this probes the failure: pass if Ferni answers in a way that shows he understood (in
+# Spanish or simple English) or says plainly that he only caught part of it; fail if he answers a
+# guess at garbled words as if he understood, or carries on in fast English as if nothing happened.
+# HARNESS: caller-tts.mjs renders with language 'en' and `say` uses an English voice, so this
+# caller has a strong English accent; the agent's speech-to-text runs in English.
+#@judge languageHonest heardHonestly
+Hola Ferni. ¿Me entiendes? Hablo español.
+Mi hermana Lucía se muda a mi casa la próxima semana y estoy un poco nerviosa.
+No sé cómo vamos a compartir la cocina. Ella cocina mucho.
+¿Tienes algún consejo para mí?
+Gracias, Ferni. Hasta luego.

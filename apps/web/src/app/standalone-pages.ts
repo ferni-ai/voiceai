@@ -5,6 +5,9 @@
  * @module app/standalone-pages
  */
 
+/** /connect, with or without trailing slashes; not /connections. */
+const CONNECT_PATHS = /^\/connect\/*$/;
+
 /** Open the page for this location if it is one; true when it took over. */
 export async function openStandalonePage(
   pathname: string,
@@ -17,12 +20,16 @@ export async function openStandalonePage(
     await page.initAnswerCardPage(id);
     return true;
   }
-  if (pathname.startsWith('/connect')) {
+  if (CONNECT_PATHS.test(pathname)) {
+    // Before anything awaits, and even when the page won't open: keep the
+    // single-use invite out of the address bar, history, screenshots and
+    // anything that reads the URL, such as a crash report.
+    if (window.location.hash) {
+      window.history.replaceState(null, '', pathname + window.location.search);
+    }
     const page = await import('../ui/connect-invite-page.ui.js');
     const invite = page.connectInviteFromLocation(pathname, hash);
     if (!invite) return false;
-    // Keep the single-use invite out of the address bar, history and any screenshot.
-    window.history.replaceState(null, '', page.CONNECT_PAGE_PATH);
     await page.initConnectInvitePage(invite);
     return true;
   }
