@@ -32,7 +32,7 @@ const log = createLogger({ module: 'CrisisClassifierBlocked' });
 
 type Env = Record<string, string | undefined>;
 
-export const blockedSignalOn = (env: Env = process.env): boolean =>
+const blockedSignalOn = (env: Env = process.env): boolean =>
   flagOn('CRISIS_CLASSIFIER_BLOCKED_SIGNAL', env);
 
 /** What the model call returns, with the flag on, when the provider blocked the read. */
@@ -89,7 +89,7 @@ export function watchBlocked(
 }
 
 /** Whether this turn's crisis read was blocked. */
-export function readWasBlocked(call: string | undefined, latest: string): boolean {
+function readWasBlocked(call: string | undefined, latest: string): boolean {
   return !!call && !!blocked.get(call)?.turns.has(turnOf(latest));
 }
 
