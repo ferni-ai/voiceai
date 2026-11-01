@@ -14,7 +14,11 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { onCallResultChange, onFollowUpActionChange } from '../data-layer/hooks/misc-hooks.js';
 import { callResultDetails, callResultTextOn, tellOwnerAboutCall } from './call-result-text.js';
 import { ownerEmailWords, tellOwnerOnce } from './call-result-once.js';
-import { callResultLiveReportOn, reportCallResultLive } from './call-result-live.js';
+import {
+  callLiveRelayOn,
+  callResultLiveReportOn,
+  reportCallResultLive,
+} from './call-result-live.js';
 import { notePushOutcome } from './delivery/push-outcome.js';
 import { logCallResultOutcome } from '../follow-through/index.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
@@ -153,32 +157,26 @@ export async function getCallResult(
 // ============================================================================
 
 /**
- * Inject call result into active LiveKit session: if the user is still in the
- * requesting call's room, the result goes to them on the data channel. By the
- * room's name (originalRoomName): the session id (session-<job>-<time>) names no room.
+ * Inject call result into active LiveKit session: if the user is still in the requesting call's
+ * room, the result goes to them on the data channel. CALL_LIVE_RELAY on: by the room's name
+ * (originalRoomName), as the session id (session-<job>-<time>) names no room; off: as on main.
  */
 async function injectToActiveSession(
   outcome: CallOutcome,
   request: OnBehalfCallRequest
 ): Promise<boolean> {
-  const room = request.originalRoomName || request.originalSessionId;
+  const room = (callLiveRelayOn() && request.originalRoomName) || request.originalSessionId;
   const { callId } = outcome;
   if (!room) return false; // no requesting call (an empty name is no room)
   try {
     // Dynamic import to avoid circular deps and allow graceful degradation
     const livekitSdk = await import('livekit-server-sdk').catch(() => null);
 
-    if (!livekitSdk) {
+    if (!livekitSdk?.RoomServiceClient) {
       log.debug({ callId }, 'LiveKit SDK not available for active session injection');
       return false;
     }
-
     const { RoomServiceClient, DataPacket_Kind } = livekitSdk;
-
-    if (!RoomServiceClient) {
-      log.debug({ callId }, 'LiveKit SDK not available for active session injection');
-      return false;
-    }
 
     const livekitUrl = process.env.LIVEKIT_URL;
     const livekitApiKey = process.env.LIVEKIT_API_KEY;

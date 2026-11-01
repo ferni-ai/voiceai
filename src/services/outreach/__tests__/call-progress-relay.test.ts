@@ -120,6 +120,7 @@ const { registerVoiceCallbackHandler } =
 const { noteCrisisRisk, resetCrisisCallRisk } = await import('../../safety/crisis-call-risk.js');
 const placed = {
   ...placedProgress,
+  ...(await import('../call-result-live.js')),
   ...(await import('../../../intelligence/context-builders/external/outbound-call-context.js')),
 };
 import type { CallOutcome, OnBehalfCallRequest } from '../../../tools/domains/telephony/types.js';

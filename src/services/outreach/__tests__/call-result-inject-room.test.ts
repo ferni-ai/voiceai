@@ -8,6 +8,10 @@
  * The owner's call notes its room beside its session id (live-session.ts); the
  * dispatch for the placed call carries it, signed with the rest
  * (on-behalf-dispatch.ts), so the worker that captures the result knows it.
+ *
+ * The room is used only with CALL_LIVE_RELAY on (and so CALL_RESULT_LIVE_REPORT,
+ * which speaks a member's result instead: the message is then sent only for a
+ * call with no member behind it). Off, the lookup is by the session id, as on main.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -67,9 +71,17 @@ function asTheCaptureWorkerSeesIt(): OnBehalfCallRequest {
   return onBehalfRequestFromDispatch(call);
 }
 
+const sentTo = (): string[] =>
+  livekit.sendData.mock.calls
+    .filter(([, bytes]) =>
+      new TextDecoder().decode(bytes as Uint8Array).includes('"on_behalf_call_complete"')
+    )
+    .map(([room]) => room);
+
 beforeEach(() => {
   vi.clearAllMocks();
   delete process.env.CALL_RESULT_LIVE_REPORT;
+  delete process.env.CALL_LIVE_RELAY;
   process.env.LIVEKIT_URL = 'wss://example.invalid';
   process.env.LIVEKIT_API_KEY = 'k';
   process.env.LIVEKIT_API_SECRET = 's';
@@ -85,21 +97,37 @@ describe('the call result reaches the owner app by its room', () => {
     expect('originalRoomName' in onBehalfDispatchFor('c-room-1', asked).requester).toBe(false);
   });
 
-  it('the capture worker sends the data message to that room, not to the session id', async () => {
+  // (While You Were Away's own data message, unified-result-capture.ts, still asks by the
+  // session id: the same mistake, left for its own change. Only the call result's is asserted.)
+  it('CALL_LIVE_RELAY on: the capture worker sends the message to that room', async () => {
+    process.env.CALL_RESULT_LIVE_REPORT = 'on';
+    process.env.CALL_LIVE_RELAY = 'on';
     const release = noteLiveSession({}, SESSION, ROOM);
-    const request = asTheCaptureWorkerSeesIt();
+    const request = { ...asTheCaptureWorkerSeesIt(), userId: 'unknown' }; // no member: sent
     release(); // the capture worker is another process: nothing of the owner call there
     await captureCallResult('c-room-1', outcome, request);
-
-    // (While You Were Away's own data message, unified-result-capture.ts, still asks by the
-    // session id: the same mistake, left as it is here because fixing it adds a second
-    // on-screen message to every call result. Only the call result's message is asserted.)
-    const resultMessages = livekit.sendData.mock.calls.filter(([, bytes]) =>
-      new TextDecoder().decode(bytes as Uint8Array).includes('"on_behalf_call_complete"')
-    );
     expect(livekit.listRooms).toHaveBeenCalledWith([ROOM]);
-    expect(resultMessages).toHaveLength(1);
-    expect(resultMessages[0][0]).toBe(ROOM);
+    expect(livekit.listRooms).not.toHaveBeenCalledWith([SESSION]);
+    expect(sentTo()).toEqual([ROOM]);
+  });
+
+  it('CALL_LIVE_RELAY off: looked up by the session id, as on main, room or not', async () => {
+    const release = noteLiveSession({}, SESSION, ROOM);
+    const request = asTheCaptureWorkerSeesIt();
+    release();
+    expect(request.originalRoomName).toBe(ROOM); // carried, and still not used
+    await captureCallResult('c-room-1', outcome, request);
+    await captureCallResult(
+      'c-room-3',
+      { ...outcome, callId: 'c-room-3' },
+      {
+        ...request,
+        userId: 'unknown',
+      }
+    );
+    expect(livekit.listRooms.mock.calls.length).toBeGreaterThanOrEqual(2); // one per result
+    expect(livekit.listRooms.mock.calls.every(([names]) => names[0] === SESSION)).toBe(true);
+    expect(sentTo()).toEqual([]);
   });
 
   it('no room known (an older dispatch): looked up as before, by the session id', async () => {

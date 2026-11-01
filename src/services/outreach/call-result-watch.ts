@@ -30,8 +30,13 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { liveSessionFor } from '../../tools/registry/live-session.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
-import { callResultLiveReportOn, reportableOutcome, tellLiveOnce } from './call-result-live.js';
-import { callLiveRelayOn, relayProgress } from './call-progress.js';
+import {
+  callLiveRelayOn,
+  callResultLiveReportOn,
+  reportableOutcome,
+  tellLiveOnce,
+} from './call-result-live.js';
+import { relayProgress } from './call-progress.js';
 import type { reportCallResultLive } from './call-result-live.js';
 
 /** The placed call's request, as the live report takes it. */

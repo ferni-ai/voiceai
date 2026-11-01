@@ -24,23 +24,18 @@
  *
  * @module services/outreach/call-progress
  */
-import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { triggerVoiceCallback } from '../../tools/domains/simple-utilities/voice-callbacks.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
 import { crisisRiskThisCall } from '../safety/index.js';
 import { callerText } from './caller-text.js';
-import { callResultLiveReportOn } from './call-result-live.js';
+import { callLiveRelayOn } from './call-result-live.js';
 import { claimOnCallDoc } from './live-report-record.js';
 
 const log = createLogger({ module: 'call-progress' });
 
 export type ProgressKind = 'answered' | 'voicemail';
 const KINDS: readonly ProgressKind[] = ['answered', 'voicemail'];
-
-export function callLiveRelayOn(env?: Record<string, string | undefined>): boolean {
-  return flagOn('CALL_LIVE_RELAY', env) && callResultLiveReportOn(env);
-}
 
 /**
  * The placed call's job (its session id) heard who answered: note it on the call
