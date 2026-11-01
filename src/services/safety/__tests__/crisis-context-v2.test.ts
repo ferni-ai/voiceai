@@ -15,7 +15,7 @@ import {
   type CrisisGenerateFn,
 } from '../crisis-classifier.js';
 import { callNarrowingHeld, holdCallNarrowing, resetCrisisCallRisk } from '../crisis-call-risk.js';
-import { contextNarrows, markedPrompt } from '../crisis-context-v2.js';
+import { contextNarrows, higherReply, markedPrompt } from '../crisis-context-v2.js';
 import { holdForSexualTopic, resetSexualTopicHold } from '../../../utils/sexual-topic-hold.js';
 
 const BASE = {
@@ -185,6 +185,44 @@ describe('a turn after Ferni’s check-in, flag on', () => {
     expect(rule).toContain("judge the caller's own words in LATEST and EARLIER exactly as above");
     expect(rule).toContain('never lowers imminent to crisis');
     expect(rule).not.toMatch(/is evidence|counts as evidence|errand|goodbye|sexual|adult/i);
+  });
+});
+
+describe('comparing the two replies', () => {
+  const v = (risk: string, subject = 'self') => `{"risk":"${risk}","subject":"${subject}"}`;
+
+  it('returns the marked verdict, rebuilt from the classifier’s own parse, only when strictly higher', () => {
+    expect(higherReply(v('none'), 'sure: ' + v('crisis', 'third_party') + ' done')).toBe(
+      '{"risk":"crisis","subject":"third_party"}'
+    );
+    expect(higherReply(v('crisis'), v('crisis'))).toBe(v('crisis'));
+    // A tie never takes the marked subject: third_party is handled more lightly than self.
+    expect(higherReply(v('crisis'), v('crisis', 'third_party'))).toBe(v('crisis'));
+    expect(higherReply(v('imminent'), v('crisis'))).toBe(v('imminent'));
+  });
+
+  it('keeps the plain reply when the marked one only looks higher to a regex', () => {
+    // Duplicate keys: JSON.parse keeps the last, a first-match regex the first.
+    expect(higherReply(v('none'), '{"risk":"imminent","risk":"none","subject":"self"}')).toBe(
+      v('none')
+    );
+    // The word inside a nested object or a string field.
+    expect(higherReply(v('none'), '{"why":{"risk":"imminent"},"risk":"none"}')).toBe(v('none'));
+    expect(higherReply(v('none'), '{"note":"\\"risk\\": \\"imminent\\"","risk":"none"}')).toBe(
+      v('none')
+    );
+    // The word written before the JSON object the parser reads.
+    expect(higherReply(v('none'), 'I\'d say "risk": "imminent", but {"risk":"none"}')).toBe(
+      v('none')
+    );
+    // Malformed, or a risk the parser rejects.
+    expect(higherReply(v('none'), '{"risk":"imminent",')).toBe(v('none'));
+    expect(higherReply(v('crisis'), '{"risk":"imminent_now","subject":"self"}')).toBe(v('crisis'));
+  });
+
+  it('keeps the plain reply when it cannot be parsed, or the marked read is missing', () => {
+    expect(higherReply('no json here', v('imminent'))).toBe('no json here');
+    expect(higherReply(v('none'), undefined)).toBe(v('none'));
   });
 });
 

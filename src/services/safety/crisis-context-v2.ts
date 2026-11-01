@@ -25,6 +25,7 @@ import { callNarrowingHeld, holdCallNarrowing } from './crisis-call-risk.js';
 import type { CrisisGenerateFn } from './crisis-classifier.js';
 import { sessionSeverityOf } from './crisis-guard.js';
 import { SEVERITY } from './crisis-severity.js';
+import { parseClassifierReply } from './crisis-verdict.js';
 
 type Env = Record<string, string | undefined>;
 
@@ -72,11 +73,20 @@ export function markedPrompt(prompt: string): string {
   return `${prompt.slice(0, insertAt)}\n${CHECK_IN_RULE}${prompt.slice(insertAt)}`;
 }
 
-const RANK: Record<string, number> = { none: 0, crisis: 1, imminent: 2 };
-const rankOf = (reply: string | undefined): number => {
-  const risk = reply === undefined ? undefined : /"risk"\s*:\s*"(\w+)"/.exec(reply)?.[1];
-  return risk === undefined ? -1 : (RANK[risk] ?? -1);
-};
+const RANK = { none: 0, crisis: 1, imminent: 2 } as const;
+
+/**
+ * The reply to return: the plain one, unless the marked one parses (with the classifier's own
+ * parser) to a valid verdict strictly higher than the plain one's. Then a fresh JSON built from
+ * that parsed verdict, so nothing downstream can read it differently. Either one unparseable:
+ * the plain reply.
+ */
+export function higherReply(plain: string, marked: string | undefined): string {
+  const floor = parseClassifierReply(plain);
+  const raised = marked === undefined ? null : parseClassifierReply(marked);
+  if (!floor || !raised || RANK[raised.risk] <= RANK[floor.risk]) return plain;
+  return JSON.stringify({ risk: raised.risk, subject: raised.subject });
+}
 
 /**
  * Main's plain read, raised to the marked read's verdict when that is higher and already in.
@@ -104,8 +114,7 @@ function withMarkedRead(generate: CrisisGenerateFn): CrisisGenerateFn {
       .then((reply) => (marked = reply))
       .catch(() => undefined);
     const plain = await generate(prompt, content, signal);
-    const plainRank = rankOf(plain);
-    return plainRank >= 0 && marked !== undefined && rankOf(marked) > plainRank ? marked : plain;
+    return higherReply(plain, marked);
   };
 }
 

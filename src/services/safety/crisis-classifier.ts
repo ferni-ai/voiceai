@@ -32,6 +32,9 @@ import {
 import { agreementCacheScope, notePatternBlock, readTurn } from './crisis-imminent-agreement.js';
 import { trackCrisisRead } from './crisis-call-risk.js';
 import { contextV2Read } from './crisis-context-v2.js';
+import { parseClassifierReply } from './crisis-verdict.js';
+
+export { parseClassifierReply };
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
 import { stripSSML } from '../../utils/text-utils.js';
@@ -152,20 +155,6 @@ export function resolveCrisisClassifierTimeoutMs(
 ): number {
   const ms = Number(env.CRISIS_CLASSIFIER_TIMEOUT_MS);
   return Number.isFinite(ms) && ms > 0 ? ms : DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS;
-}
-
-/** The model's JSON reply, or null when it is not a valid verdict. */
-export function parseClassifierReply(reply: string): CrisisVerdict | null {
-  const json = reply.match(/\{[\s\S]*\}/)?.[0];
-  if (!json) return null;
-  try {
-    const parsed = JSON.parse(json) as { risk?: unknown; subject?: unknown };
-    const { risk } = parsed;
-    if (risk !== 'imminent' && risk !== 'crisis' && risk !== 'none') return null;
-    return { risk, subject: parsed.subject === 'third_party' ? 'third_party' : 'self' };
-  } catch {
-    return null;
-  }
 }
 
 /** The companion's line is context, not the subject: its end is what LATEST answers. */
