@@ -1,18 +1,18 @@
 /**
  * "Help shape Ferni" consent through the real /api/account routes over the shared fake
  * Firestore: absent while CALL_CAPTURE_CONSENT is off, the record is the VERIFIED caller's (never
- * a uid in the body), a minor-care hold hides and refuses it, withdrawal stamps it. Only the token
- * verifier, the hold read and the account-deletion sweeps' other stores are doubles.
+ * a uid in the body), a minor-care hold (in-process or shared, through the real
+ * captureBlockedForMinor) hides and refuses it, withdrawal stamps it. Only the token verifier and
+ * the shared hold's store are doubles.
  */
 import { EventEmitter } from 'events';
 import type { IncomingMessage, ServerResponse } from 'http';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetFakeFirestore } from '../../tests/helpers/fake-firestore.js';
 
 const fake = await vi.hoisted(async () =>
   (await import('../../tests/helpers/fake-firestore.js')).newFakeFirestoreState()
 );
-const held = vi.hoisted(() => new Set<string>());
 
 vi.mock('../../utils/firestore-utils.js', async (importOriginal) => {
   const { createFakeFirestore } = await import('../../tests/helpers/fake-firestore.js');
@@ -21,9 +21,6 @@ vi.mock('../../utils/firestore-utils.js', async (importOriginal) => {
     getFirestoreDb: createFakeFirestore(fake),
   };
 });
-vi.mock('../../services/outreach/minor-care-shared-hold.js', () => ({
-  sharedHeldStrict: vi.fn(async (uid: string) => held.has(uid)),
-}));
 vi.mock('../auth-middleware.js', () => ({
   requireAuth: vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
     if (req.headers['x-api-key'] === 'service-key') {
@@ -41,6 +38,9 @@ vi.mock('../auth-middleware.js', () => ({
 }));
 
 const { handleAccountRoutes } = await import('../account-routes.js');
+const { setHoldStore } = await import('../../services/outreach/minor-care-shared-hold.js');
+const { bindSessionUser, noteCallerWords, resetMinorCare } =
+  await import('../../utils/minor-care.js');
 
 const PATH = '/api/account/call-capture-consent';
 const AGREE = { version: '2026-11-01', agreedAt: '2026-11-01T12:00:00.000Z', source: 'web' };
@@ -75,12 +75,30 @@ async function call(method: string, headers: Record<string, string>, body?: unkn
 
 const as = (uid: string) => ({ authorization: `Bearer verified-${uid}` });
 const stored = (uid: string) => fake.docs.get(`call_capture_consent/${uid}`);
+const held = new Set<string>();
+const sharedHold = (heldUntil: (uid: string) => Promise<number | undefined>) =>
+  setHoldStore({ heldUntil, write: async () => undefined });
 
 beforeEach(() => {
   resetFakeFirestore(fake);
+  resetMinorCare();
   held.clear();
+  sharedHold(async (uid) => (held.has(uid) ? Date.now() + 60_000 : undefined));
   vi.stubEnv('CALL_CAPTURE_CONSENT', 'on');
+  vi.stubEnv('MINOR_CARE', 'on');
+  vi.stubEnv('MINOR_CARE_SHARED_HOLD', 'on');
 });
+afterEach(() => {
+  setHoldStore();
+  vi.unstubAllEnvs();
+});
+
+/** POST is refused, nothing is stored, and GET hides the switch. */
+async function expectRefused(uid: string) {
+  expect((await call('POST', as(uid), AGREE)).status).toBe(403);
+  expect(stored(uid)).toBeUndefined();
+  expect((await call('GET', as(uid))).body).toEqual({ consent: null, available: false });
+}
 
 describe('flag off', () => {
   it.each(['GET', 'POST', 'DELETE'])('%s answers 404 and stores nothing', async (method) => {
@@ -104,12 +122,6 @@ describe('POST', () => {
     expect((await call('POST', { 'x-api-key': 'service-key' }, AGREE)).status).toBe(403);
     expect((await call('POST', {}, AGREE)).status).toBe(401);
     expect(fake.docs.size).toBe(0);
-  });
-
-  it('refuses a person under a minor-care hold, storing nothing', async () => {
-    held.add('riley');
-    expect((await call('POST', as('riley'), AGREE)).status).toBe(403);
-    expect(stored('riley')).toBeUndefined();
   });
 
   it('rejects an agreement that is not one', async () => {
@@ -138,5 +150,25 @@ describe('GET and DELETE', () => {
 
     expect(sent.body.consent).toMatchObject({ withdrawnAt: expect.any(String) });
     expect(stored('sam')?.withdrawnAt).toBeUndefined();
+  });
+});
+
+describe('a minor-care hold refuses POST and hides the switch', () => {
+  it('an in-process hold only (not yet shared)', async () => {
+    vi.stubEnv('MINOR_CARE_SHARED_HOLD', 'off');
+    expect(noteCallerWords('call-riley', "I'm 15 years old")).toBe(true);
+    bindSessionUser('call-riley', 'riley');
+    await expectRefused('riley');
+    expect((await call('POST', as('sam'), AGREE)).status).toBe(200);
+  });
+
+  it('a shared hold only', async () => {
+    held.add('riley');
+    await expectRefused('riley');
+  });
+
+  it('a shared hold that cannot be read', async () => {
+    sharedHold(async () => Promise.reject(new Error('down')));
+    await expectRefused('riley');
   });
 });

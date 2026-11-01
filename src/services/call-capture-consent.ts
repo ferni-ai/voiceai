@@ -15,7 +15,9 @@
 import type { DocumentReference, Firestore } from '@google-cloud/firestore';
 import { flagOn, type Env } from '../config/env-flag.js';
 import { getFirestoreDb } from '../utils/firestore-utils.js';
+import { userHeld } from '../utils/minor-care.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { sharedHeldStrict } from './outreach/minor-care-shared-hold.js';
 
 const log = createLogger({ module: 'call-capture-consent' });
 
@@ -85,8 +87,28 @@ export async function getCaptureConsent(
 }
 
 /**
- * Whether this person's calls may be kept: flag on, and consentHolds. A record that can't be read
- * means no (capture fails closed).
+ * The one minor check every path uses (the settings switch, the API, the voice tool and
+ * captureConsentHolds): a minor-care hold on this person, from either source. userHeld is the
+ * in-process hold (a live call of theirs sounded under 18; MINOR_CARE), sharedHeldStrict the
+ * shared hold across instances (MINOR_CARE_SHARED_HOLD, read fail closed). A source whose flag is
+ * off holds nobody, so adults are not refused for it. A check that throws counts as held.
+ */
+export async function captureBlockedForMinor(
+  uid: string,
+  env: Env = process.env
+): Promise<boolean> {
+  try {
+    return userHeld(uid, env) || (await sharedHeldStrict(uid, env));
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Minor-care hold unreadable: capture blocked');
+    return true;
+  }
+}
+
+/**
+ * Whether this person's calls may be kept: flag on, consentHolds, and no minor-care hold (a
+ * consent given before a hold appeared stops counting). A record that can't be read means no
+ * (capture fails closed).
  */
 export async function captureConsentHolds(
   uid: string,
@@ -96,7 +118,8 @@ export async function captureConsentHolds(
   const env = opts.env ?? process.env;
   if (!captureConsentOn(env)) return false;
   try {
-    return consentHolds(await getCaptureConsent(uid, opts.db), now, env);
+    if (!consentHolds(await getCaptureConsent(uid, opts.db), now, env)) return false;
+    return !(await captureBlockedForMinor(uid, env));
   } catch (error) {
     log.warn({ error: String(error) }, 'Call capture consent unreadable: treated as none');
     return false;

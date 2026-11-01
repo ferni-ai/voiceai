@@ -5,8 +5,9 @@
  * caller, never whoever picks up a call Ferni placed), and the tool is not on the phone-safe
  * allowlist (phone-safe-tools.ts), so an unverified turn is never offered it. It refuses, writing
  * nothing, while a crisis read is active on the call (crisisRiskThisCall: risk noted, or a read
- * still in flight) and on any sign the caller is under 18 (ageSignal, a held user, the shared
- * minor-care hold read fail-closed). An answer by voice stamps askedAt, so Ferni never asks again.
+ * still in flight) and on any sign the caller is under 18 (ageSignal on this call, then
+ * captureBlockedForMinor: the in-process or shared hold, fail closed). An answer by voice stamps
+ * askedAt, so Ferni never asks again.
  *
  * @module agents/multi-agent/call-capture-tool
  */
@@ -14,6 +15,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import {
   CAPTURE_DISCLOSURE_DATE,
+  captureBlockedForMinor,
   captureConsentOn,
   getCaptureConsent,
   markCaptureAsked,
@@ -21,9 +23,8 @@ import {
   withdrawCaptureConsent,
 } from '../../services/call-capture-consent.js';
 import { ownerProvenOnThisCall } from '../../services/identity/verified-caller.js';
-import { sharedHeldStrict } from '../../services/outreach/minor-care-shared-hold.js';
 import { crisisRiskThisCall } from '../../services/safety/index.js';
-import { ageSignal, userHeld } from '../../utils/minor-care.js';
+import { ageSignal } from '../../utils/minor-care.js';
 import { isPersonAccountId } from '../../utils/synthetic-user.js';
 import type { Tool, ToolContext } from '../../tools/registry/index.js';
 
@@ -42,8 +43,7 @@ async function captureCaller(
     return { refusal: 'not_owner' };
   }
   if (crisisRiskThisCall(call.sessionId)) return { refusal: 'crisis' };
-  const minor =
-    ageSignal(call.sessionId) || userHeld(uid, env) || (await sharedHeldStrict(uid, env));
+  const minor = ageSignal(call.sessionId) || (await captureBlockedForMinor(uid, env));
   return minor ? { refusal: 'minor' } : { uid };
 }
 

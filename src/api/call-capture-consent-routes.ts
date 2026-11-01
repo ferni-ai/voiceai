@@ -3,8 +3,8 @@
  * services/call-capture-consent.ts. 404 while CALL_CAPTURE_CONSENT is off.
  *
  * - GET    → 200 { consent: null | record, available }. `available` is false while the
- *            person is under a minor-care hold (minor-care-shared-hold.ts, fail closed):
- *            the switch is then not shown.
+ *            person is under a minor-care hold (captureBlockedForMinor: in-process or
+ *            shared, fail closed): the switch is then not shown.
  * - POST   { version, agreedAt (ISO), source?: 'ios' | 'web' } → 200 { consent }; 403 while
  *            not available. Replaces the record and clears a withdrawal.
  * - DELETE → 200 { consent } with withdrawnAt set, or { consent: null } when there was none.
@@ -14,12 +14,12 @@
  */
 import type { IncomingMessage, ServerResponse } from 'http';
 import {
+  captureBlockedForMinor,
   captureConsentOn,
   getCaptureConsent,
   recordCaptureConsent,
   withdrawCaptureConsent,
 } from '../services/call-capture-consent.js';
-import { sharedHeldStrict } from '../services/outreach/minor-care-shared-hold.js';
 import { parseAgreement } from '../services/processing-consent.js';
 import type { AuthContext } from './auth-middleware.js';
 import { parseBody, sendError, sendJSON } from './helpers.js';
@@ -40,7 +40,10 @@ export async function handleCallCaptureConsent(
   }
   switch (req.method) {
     case 'GET': {
-      const [consent, held] = await Promise.all([getCaptureConsent(uid), sharedHeldStrict(uid)]);
+      const [consent, held] = await Promise.all([
+        getCaptureConsent(uid),
+        captureBlockedForMinor(uid),
+      ]);
       sendJSON(res, { consent, available: !held });
       return true;
     }
@@ -51,7 +54,7 @@ export async function handleCallCaptureConsent(
         sendError(res, parsed.error, 400);
         return true;
       }
-      if (await sharedHeldStrict(uid)) {
+      if (await captureBlockedForMinor(uid)) {
         sendError(res, 'Not available for this account', 403);
         return true;
       }
