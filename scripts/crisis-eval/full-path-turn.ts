@@ -47,7 +47,7 @@ import {
   crisisFromSignal,
   followUpCrisis,
 } from '../../src/services/human-transfer/crisis-signals.js';
-import { abuseGuidance } from '../../src/services/safety/abuse-disclosure.js';
+import { abuseGuidance } from '../../src/services/safety/abuse-disclosure-turn.js';
 import type { CrisisGenerateFn } from '../../src/services/safety/crisis-classifier.js';
 import { NEUTRAL_REPLIES } from './full-path-corpus.js';
 import { guidedReplyFor } from './guided-reply.js';

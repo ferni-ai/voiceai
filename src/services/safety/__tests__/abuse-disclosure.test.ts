@@ -1,5 +1,5 @@
 /**
- * ABUSE_DISCLOSURE_PATTERNS (abuse-disclosure.ts) through the real turn pipeline
+ * ABUSE_DISCLOSURE_PATTERNS (abuse-disclosure.ts, abuse-disclosure-turn.ts) through the real turn pipeline
  * (startTurnCrisis): off, a turn is exactly as on main; on, a caller saying someone hurts them
  * is a crisis-level safety turn answered with are-you-safe, 911 if in danger, and the line that
  * fits (Childhelp for family, the DV hotline for a partner). 988 stays unless the whole call is
@@ -9,12 +9,12 @@
 import { readFileSync } from 'fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { startTurnCrisis } from '../../../agents/processors/turn-processor/turn-crisis.js';
+import { abuseDisclosure } from '../abuse-disclosure.js';
 import {
-  abuseDisclosure,
   abuseGuidance,
   classifierReadSelf,
   withAbuseDisclosure,
-} from '../abuse-disclosure.js';
+} from '../abuse-disclosure-turn.js';
 import { noteCrisisRisk, resetCrisisCallRisk } from '../crisis-call-risk.js';
 import { resetCrisisClassifierCache, type CrisisGenerateFn } from '../crisis-classifier.js';
 import type { CrisisDetectionResult } from '../crisis-guard.js';
