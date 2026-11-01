@@ -22,6 +22,7 @@ import {
   PHONE_STYLES, afterPhoneCleared, bindPhoneActions, bindPhoneInput, escapeAttr,
   field, loadPhoneAndChannels, phoneActionsHtml, phoneStatus, planPhoneSave, sendCode,
 } from './contact-settings-phone.js';
+import { loadQuietHours, saveQuietHours } from './contact-settings-quiet.js';
 import { bindReachSwitch, reachSwitchHtml } from './contact-settings-reach.js';
 import type { ContactSettingsState } from './contact-settings-types.js';
 import { escapeHtml } from './engagement-components.js';
@@ -623,6 +624,7 @@ function render(): void {
   const modal = modalContainer.querySelector('.contact-settings-modal');
   if (!modal) return;
   const focusedId = modal.contains(document.activeElement) ? document.activeElement?.id : undefined;
+  const quietOff = state.quiet === 'loaded' ? '' : 'disabled'; // never edit a window we couldn't read
 
   modal.innerHTML = `
     <button class="contact-settings-close" aria-label="${t('common.close')}">
@@ -717,24 +719,27 @@ function render(): void {
               id="quiet-hours-toggle"
               aria-pressed="${state.contactInfo.quietHoursEnabled !== false}"
               aria-label="${t('accessibility.toggleQuietHours')}"
+              ${quietOff}
             >
               <span class="contact-settings-toggle-knob"></span>
             </button>
           </div>
           
-          <div class="contact-settings-time-row ${state.contactInfo.quietHoursEnabled !== false ? 'enabled' : ''}">
+          <div class="contact-settings-time-row ${!quietOff && state.contactInfo.quietHoursEnabled !== false ? 'enabled' : ''}">
             <span class="contact-settings-time-label">${t('contactSettings.dontCall', "Don't call")}</span>
-            <select class="contact-settings-time-select" id="quiet-start" aria-label="${t('accessibility.quietHoursStart', 'Quiet hours start time')}">
+            <select class="contact-settings-time-select" id="quiet-start" ${quietOff} aria-label="${t('accessibility.quietHoursStart', 'Quiet hours start time')}">
               ${generateTimeOptions(state.contactInfo.quietHoursStart || '22:00')}
             </select>
             <span class="contact-settings-time-label">${t('contactSettings.until', 'until')}</span>
-            <select class="contact-settings-time-select" id="quiet-end" aria-label="${t('accessibility.quietHoursEnd', 'Quiet hours end time')}">
+            <select class="contact-settings-time-select" id="quiet-end" ${quietOff} aria-label="${t('accessibility.quietHoursEnd', 'Quiet hours end time')}">
               ${generateTimeOptions(state.contactInfo.quietHoursEnd || '08:00')}
             </select>
           </div>
           
-          <p class="contact-settings-quiet-note">
-            ${t('contactSettings.quietNote', "I'll stay quiet during these hours. If something feels urgent, I might still reach out.")}
+          <p class="contact-settings-quiet-note" id="quiet-note" ${state.quiet === 'failed' ? 'role="status"' : ''}>
+            ${state.quiet === 'failed'
+              ? t('contactSettings.quietUnavailable', "I couldn't load your quiet hours, so I've left them just as they were. Open this again to change them.")
+              : t('contactSettings.quietNote', "I'll stay quiet during these hours. If something feels urgent, I might still reach out.")}
           </p>
           
           ${state.contactInfo.timezone ? `
@@ -802,9 +807,11 @@ function bindEvents(): void {
   const quietEnd = modalContainer.querySelector('#quiet-end') as HTMLSelectElement;
   quietStart?.addEventListener('change', (e) => {
     state.contactInfo.quietHoursStart = (e.target as HTMLSelectElement).value;
+    state.quietEdited = true;
   });
   quietEnd?.addEventListener('change', (e) => {
     state.contactInfo.quietHoursEnd = (e.target as HTMLSelectElement).value;
+    state.quietEdited = true;
   });
 
   // Escape key
@@ -852,32 +859,9 @@ async function loadContactInfo(): Promise<void> {
     }
     await loadPhoneAndChannels(opened);
 
-    // Load user preferences (timezone, quiet hours)
-    try {
-      const prefsResponse = await apiGet<{
-        success?: boolean;
-        preferences?: {
-          timezone?: string;
-          quietHoursStart?: string;
-          quietHoursEnd?: string;
-        };
-      }>('/api/user/preferences');
-
-      if (prefsResponse.ok && prefsResponse.data?.success && prefsResponse.data.preferences) {
-        state.contactInfo.timezone = prefsResponse.data.preferences.timezone;
-        state.contactInfo.quietHoursStart = prefsResponse.data.preferences.quietHoursStart;
-        state.contactInfo.quietHoursEnd = prefsResponse.data.preferences.quietHoursEnd;
-        state.contactInfo.quietHoursEnabled = true; // Enabled by default
-      }
-    } catch (prefsError) {
-      log.debug({ prefsError }, 'Could not load preferences, using defaults');
-      // Use detected timezone as fallback
-      state.contactInfo.timezone = getUserTimezone();
-      state.contactInfo.quietHoursStart = '22:00';
-      state.contactInfo.quietHoursEnd = '08:00';
-      state.contactInfo.quietHoursEnabled = true;
-    }
+    await loadQuietHours(opened); // timezone and quiet hours
   } catch (error) {
+    opened.quiet = 'failed';
     log.error({ error }, 'Failed to load contact info');
     state.error = t('contactSettings.errorLoad', "Couldn't load your contact details. Try again?");
     state.contactInfo.timezone = getUserTimezone();
@@ -900,11 +884,6 @@ async function handleSave(): Promise<void> {
   render();
   if (invalid) return;
 
-  // Get quiet hours values
-  const quietHoursStart = state.contactInfo.quietHoursStart || '22:00';
-  const quietHoursEnd = state.contactInfo.quietHoursEnd || '08:00';
-  const quietHoursEnabled = state.contactInfo.quietHoursEnabled !== false;
-
   try {
     // Save contact info
     const personalResponse = await apiPost<{ error?: string; phoneChannelsOff?: boolean }>('/api/user/contact', {
@@ -921,27 +900,13 @@ async function handleSave(): Promise<void> {
       throw new Error(personalResponse.error || 'Failed to save contact info');
     }
 
-    // Save quiet hours preferences (only if enabled)
-    if (quietHoursEnabled) {
-      const prefsResponse = await apiPost('/api/user/preferences', {
-        timezone: state.contactInfo.timezone || getUserTimezone(),
-        quietHoursStart,
-        quietHoursEnd,
-      });
-
-      if (!prefsResponse.ok) {
-        log.warn('Failed to save quiet hours preferences');
-      }
-    }
+    const quiet = await saveQuietHours(state); // only a window that loaded and changed here
 
     state.contactInfo = {
       ...state.contactInfo,
       ...(clearPhone && { phone: '', phoneVerified: false }),
       email,
       preferredName,
-      quietHoursStart,
-      quietHoursEnd,
-      quietHoursEnabled,
     };
     state.drafts = { phone: state.drafts.phone };
     if (needsCode && e164) {
@@ -952,12 +917,14 @@ async function handleSave(): Promise<void> {
       }
       return;
     }
-    state.success = quietHoursEnabled 
+    const { quietHoursStart = '', quietHoursEnd = '' } = state.contactInfo;
+    state.success = quiet === 'saved'
       ? t('contactSettings.successWithQuiet', `Saved! I'll stay quiet ${formatHour(parseInt(quietHoursStart))} - ${formatHour(parseInt(quietHoursEnd))}.`)
       : t('contactSettings.success', "Saved! I'll use this to stay in touch.");
+    if (quiet === 'failed') state.error = t('contactSettings.quietNotSaved', "Saved your details, but not your quiet hours. Try again?");
     // Clearing the phone turned texts and calls off server-side: say so.
     state.success = afterPhoneCleared(state, clearPhone && personalResponse.data?.phoneChannelsOff) ?? state.success;
-    log.info({ quietHoursEnabled, quietHoursStart, quietHoursEnd }, 'Contact info and preferences saved');
+    log.info({ quiet, quietHoursStart, quietHoursEnd }, 'Contact info and preferences saved');
   } catch (error) {
     state.error = t('contactSettings.errorSave', "Couldn't save that. Try again?");
     log.error({ error }, 'Failed to save contact info');

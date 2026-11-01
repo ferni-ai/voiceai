@@ -30,12 +30,13 @@ export const panelView = (
   channels: p.channels,
 });
 
+/** Saves what the panel sent; returns the prefs as saved, for its read-back. */
 export async function savePanelQuietHours(
   userId: string,
   u: { timezone?: string; quietHoursStart?: string; quietHoursEnd?: string }
-): Promise<void> {
+): Promise<MessagingPrefs> {
   const patch = { quietStart: u.quietHoursStart, quietEnd: u.quietHoursEnd, zone: u.timezone };
-  await writePrefs(userId, patch, 'panel');
+  return writePrefs(userId, patch, 'panel');
 }
 
 /** The SMS/email switches a POST /api/outreach/preferences body sets, on or off. */

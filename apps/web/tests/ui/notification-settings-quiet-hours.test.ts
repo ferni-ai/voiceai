@@ -70,6 +70,17 @@ describe('notification settings quiet hours', () => {
     });
   });
 
+  it('a Save that leaves the window alone sends none, so it cannot overwrite a newer one', async () => {
+    apiGet.mockResolvedValue({ ok: false, status: 503, error: 'Service Unavailable' });
+    await openPanel();
+
+    document.querySelector<HTMLButtonElement>('[data-action="save"]')?.click();
+    await flush();
+
+    const sent = apiPost.mock.calls.filter(([url]) => url === '/api/user/preferences');
+    expect(sent).toEqual([]);
+  });
+
   it('shows the server value when the panel opens', async () => {
     await openPanel();
 
