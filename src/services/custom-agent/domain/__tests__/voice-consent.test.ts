@@ -98,9 +98,13 @@ describe('scoreConsentTranscript', () => {
     ).toBe(true);
   });
 
-  it('verifies a name heard a little wrong, joined or split', () => {
-    expect(verifies(forMaya, forMaya.text.replace('Rosa Quill', 'Rosa Quil'))).toBe(true);
+  it('verifies a name joined or split, and refuses one even a letter off', () => {
     expect(verifies(forMaya, forMaya.text.replace('Rosa Quill', 'Rosaquill'))).toBe(true);
+    expect(verifies(forMaya, forMaya.text.replace('Rosa Quill', 'ROSA QUILL'))).toBe(true);
+    // A near miss is read again: no tolerance a foreign "no" could slip through
+    expect(verifies(forMaya, forMaya.text.replace('Rosa Quill', 'Rosa Quil'))).toBe(false);
+    expect(verifies(forMaya, forMaya.text.replace('Rosa Quill', 'Rosa Quinn'))).toBe(false);
+    expect(verifies(forMaya, forMaya.text.replace('Rosa Quill', 'Rosalind Quill'))).toBe(false);
     const minji = buildConsentStatement({
       subjectName: 'Kim Min-ji',
       creatorName: null,
@@ -232,7 +236,7 @@ describe('scoreConsentTranscript', () => {
       spokenDate: 'November 1, 2026',
       random: seq(0, 0, 0),
     });
-    expect(verifies(forNadia, forNadia.text.replace("Nadia's", "Nadja's"))).toBe(true);
+    expect(verifies(forNadia, forNadia.text.replace("Nadia's", "Nadja's"))).toBe(false);
     expect(verifies(forNadia, forNadia.text.replace("Nadia's", 'nada'))).toBe(false);
     const obrien = buildConsentStatement({
       subjectName: "Sean O'Brien",
@@ -267,6 +271,26 @@ describe('scoreConsentTranscript', () => {
       ).toBe(false);
     }
   );
+
+  it.each([
+    ['Nahid', 'nahi'],
+    ['Kaine', 'keine'],
+    ['Khang', 'khong'],
+    ['Nevaeh', 'nevah'],
+    ['Nienke', 'niente'],
+    ['Nikky', 'nikdy'],
+    ['Notting', 'nothing'],
+    ['Margaret', 'margret'],
+  ])('refuses %s heard as "%s", a near miss that may mean no', (name, heard) => {
+    const statement = buildConsentStatement({
+      subjectName: 'Rosa Quill',
+      creatorName: name,
+      spokenDate: 'November 1, 2026',
+      random: seq(0, 0, 0),
+    });
+    expect(verifies(statement, statement.text)).toBe(true);
+    expect(verifies(statement, statement.text.replace(`${name}'s`, heard))).toBe(false);
+  });
 
   it('verifies a name that ends in an initial before "I agree"', () => {
     const statement = buildConsentStatement({
@@ -332,7 +356,7 @@ function consentWordsSorted(text: string): string {
 }
 
 describe('consentWords', () => {
-  it('lowercases, keeps whole words, drops numbers and possessive s', () => {
+  it('lowercases, keeps whole words and numbers, drops possessive s', () => {
     expect(consentWords("Maya's voice, November 1, 2026.")).toEqual([
       'maya',
       'voice',

@@ -65,36 +65,18 @@ export function heardWords(transcript: string): string[] {
   return out;
 }
 
-const letters = (word: string) => Array.from(word).length;
-
-/** Letters a name word may be misheard by: none up to four letters ("Jo" is not "no"), two at most. */
-const nameSlack = (word: string) => {
-  const n = letters(word);
-  return n <= 4 ? 0 : n < 8 ? 1 : 2;
-};
-
-/** Words that say no; a name word heard as one must be the name exactly ("Nadia" is not "nada"). */
-const NEGATIONS = new Set(
-  'no not none never nope nah nor neither nada nein non nay naw nix nyet nae nuh'.split(' ')
-);
-
-const nameWordHeard = (said: string, word: string) =>
-  said === word || (!NEGATIONS.has(said) && editDistance(said, word) <= nameSlack(word));
-
+/** A word with its apostrophes dropped, so "OBrien" is "O'Brien". */
 const bare = (words: string[]) => words.join('').replace(/'/g, '');
 
 /**
- * How many heard words make up the name at `at`, or 0 when it isn't there. Speech to
- * text gets names wrong: a letter off ("Rosa Quil") word by word, or joined or split
- * ("Minji" for "Min-ji"). A join or split must spell the name exactly, so no extra
- * word ("Rosa, no, Quill") can hide inside it.
+ * How many heard words make up the name at `at`, or 0 when it isn't there. A name must
+ * be heard exactly, apart from case and apostrophes, or joined or split ("Minji" for
+ * "Min-ji") with the same letters. No near miss is allowed: in some language a name
+ * one letter off is a word for no ("Nahid" and "nahi"), and no list of those is ever
+ * complete. A misheard name fails closed, and the person reads it again.
  */
 export function nameHeardAs(heard: string[], at: number, name: string[]): number {
-  const said = heard.slice(at, at + name.length);
-  if (said.length === name.length && said.every((w, j) => nameWordHeard(w, name[j]))) {
-    return name.length;
-  }
-  for (const k of [name.length - 1, name.length + 1]) {
+  for (const k of [name.length, name.length - 1, name.length + 1]) {
     if (k >= 1 && at + k <= heard.length && bare(heard.slice(at, at + k)) === bare(name)) return k;
   }
   return 0;

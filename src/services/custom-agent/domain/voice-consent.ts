@@ -8,9 +8,9 @@
  * recorded in the same session, so the consenting voice and the cloned voice are
  * the same voice by construction.
  *
- * The reading must be the statement, word for word and in order. Only the names
- * may be misheard a little, the date may come back in any spoken form, and fillers
- * ("um") are ignored. Anything else (a skipped "I agree", "she agrees", "on behalf
+ * The reading must be the statement, word for word and in order. Names must be
+ * heard exactly (joined or split is fine), long statement words may be a letter off,
+ * the date may come back in any spoken form, and fillers ("um") are ignored. Anything else (a skipped "I agree", "she agrees", "on behalf
  * of my mom", "just kidding", a condition, another language) fails, and the person
  * reads it again. Failing closed is the point: a consent we are unsure of is no
  * consent.
