@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_APPLE_WEB_SIGNIN?: string;
   /** "on" or "true" gives the call its own room on phones (config/call-room-flag.ts). */
   readonly VITE_CALL_ROOM?: string;
+  /** "false" turns gate-first paint off: Home paints first, the gate fades in over it (ui/gate-first.ui.ts). */
+  readonly VITE_GATE_FIRST?: string;
   /** "on" or "true" turns an avatar motion switch on for the build (config/motion-flags.ts). */
   readonly VITE_NATURAL_BLINK?: string;
   readonly VITE_LID_BLEND?: string;
