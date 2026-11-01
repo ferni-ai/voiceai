@@ -175,6 +175,10 @@ describe('scoreConsentTranscript', () => {
       ['Maya Not', 'Maya Not', (t) => t.replace('I agree', 'I do not agree')],
       ['Noa Never', 'Noa Never', (t) => t.replace('I agree', 'I never agree')],
       ['No Min-ji', 'No Min-ji', (t) => `${t} No.`],
+      ['No', 'No', (t) => `No. ${t}`],
+      ['Never', 'Never', (t) => t.replace('I agree', 'I never agree')],
+      ['Rosa Quill', 'Do Not', (t) => t.replace('I agree', 'I do not agree')],
+      ['Rosa Quill', 'Will Not', (t) => t.replace('I agree', 'I will not agree')],
     ];
     for (const [subjectName, creatorName, refuse] of cases) {
       const statement = buildConsentStatement({
