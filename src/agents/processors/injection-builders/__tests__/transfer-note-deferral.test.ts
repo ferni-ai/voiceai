@@ -280,7 +280,13 @@ describe('split turns: the note defers only on the words the gate scores (round-
     n += 1;
     const ctx = hookCtx(...earlier.map((e): ['user', string] => ['user', e]));
     const sid = `session-split-${n}`;
-    return buildHumanTransferInjections(latest, `uid-split-${n}`, sid, 1, withCtx ? ctx : undefined);
+    return buildHumanTransferInjections(
+      latest,
+      `uid-split-${n}`,
+      sid,
+      1,
+      withCtx ? ctx : undefined
+    );
   }
 
   // The newest message alone reads crisis; joined with the one before it, the gate reads a negation.
@@ -303,13 +309,18 @@ describe('split turns: the note defers only on the words the gate scores (round-
     const latest = 'I want to kill myself';
     const decision = gateOn(earlier, latest);
     expect(decision?.action).toMatch(/^(guide|replace)$/);
-    const words = decision?.action === 'replace' ? decision.script : decision?.action === 'guide' ? decision.guidance : '';
+    const words =
+      decision?.action === 'replace'
+        ? decision.script
+        : decision?.action === 'guide'
+          ? decision.guidance
+          : '';
     expect(words).toContain('988');
     v2(true);
     expect(await note(earlier, latest)).toBeNull();
   });
 
-  it('(c) three messages: the gate\'s join decides either way', async () => {
+  it("(c) three messages: the gate's join decides either way", async () => {
     v2(true);
     expect(gateOn(['not', 'that'], 'I want to die')?.action).toBe('pass');
     expect((await note(['not', 'that'], 'I want to die'))?.category).toBe('crisis_transfer');
@@ -324,11 +335,13 @@ describe('split turns: the note defers only on the words the gate scores (round-
     expect((await note([], 'I want to kill myself', false))?.category).toBe('crisis_transfer');
   });
 
-  it('a Ferni line in between: only the words after it are the gate\'s', async () => {
+  it("a Ferni line in between: only the words after it are the gate's", async () => {
     v2(true);
     n += 1;
     const ctx = hookCtx(['user', "I'm not saying"], ['assistant', "I'm listening."]);
-    expect(await buildHumanTransferInjections('I want to die', `uid-split-${n}`, `s-${n}`, 1, ctx)).toBeNull();
+    expect(
+      await buildHumanTransferInjections('I want to die', `uid-split-${n}`, `s-${n}`, 1, ctx)
+    ).toBeNull();
   });
 });
 
