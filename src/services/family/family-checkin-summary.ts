@@ -457,6 +457,17 @@ function validateFollowUp(followUp: Partial<FollowUpItem>): FollowUpItem {
 /** Said when the concern's own suggestion can't be passed on: Ferni's words. */
 const CHECK_IN_ACTION = 'You may want to check in with them.';
 
+/**
+ * The caller-text screen reads only this many characters (isRiskyCallerText).
+ * Text longer than that is never screened in full, so it is not passed on.
+ */
+const SCREEN_WINDOW = 10_000;
+
+/** The model's JSON can put any value in a field; only a string is text. */
+function asText(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
 /** Drops the closing stop so the line can sit inside Ferni's own sentence. */
 function clause(text: string): string {
   return text.replace(/[.\s]+$/, '');
@@ -472,6 +483,7 @@ function clause(text: string): string {
  * that each pass can join into a number. A risky suggestion is dropped for
  * Ferni's own line. Crisis wording always reaches the sponsor, in their words
  * or in crisisCallerLine, including a phrase split across the two fields.
+ * Fields too long for the screen to read in full send the generic alert.
  */
 export function generateUrgentNotification(record: CheckinCallRecord): string | null {
   if (!record.concernsIdentified || record.concernsIdentified.length === 0) {
@@ -493,14 +505,18 @@ export function generateUrgentNotification(record: CheckinCallRecord): string | 
     return `Important: During my call with ${name}, ${clause(what)}. ${tail}`;
   };
 
-  const what = screenedCallerText(concern.description, name, 200) || 'something came up';
-  const action = screenCallerParts(concern.recommendedAction, name, 200);
+  const description = asText(concern.description);
+  const suggestion = asText(concern.recommendedAction);
+  const what = screenedCallerText(description, name, 200) || 'something came up';
+  const action = screenCallerParts(suggestion, name, 200);
   const next = action.said || CHECK_IN_ACTION; // empty whenever it was risky
-  const both = [concern.description, concern.recommendedAction].filter(Boolean).join(' ');
+  const both = [description, suggestion].filter(Boolean).join(' ');
   const crisis = action.safety || crisisRead(both);
   const sent = alert(what, next, crisis && !carriesCrisis(what) && !carriesCrisis(next));
-  if (!isRiskyCallerText(sent)) return sent;
-  // The joined fields formed something risky: pass neither on, and never lose a crisis.
+  const screened = both.length <= SCREEN_WINDOW && sent.length <= SCREEN_WINDOW;
+  if (screened && !isRiskyCallerText(sent)) return sent;
+  // Too long to screen in full, or the joined fields formed something risky:
+  // pass neither on, and never lose a crisis.
   return alert(riskyCallerLine(name), CHECK_IN_ACTION, crisis || carriesCrisis(sent));
 }
 

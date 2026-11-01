@@ -128,6 +128,49 @@ describe('urgent family check-in alert: text split across the two fields', () =>
   });
 });
 
+/** Everyday words, then a fictional number past the screen's 10,000-char window. */
+const PAST_WINDOW = `${'she talked about the garden and the tomatoes '.repeat(224)}call 555 0142`;
+
+const GENERIC = `Important: During my call with ${NAME}, ${riskyCallerLine(NAME).replace(/\.$/, '')}. ${CHECK_IN}`;
+
+describe('urgent family check-in alert: text too long to screen in full', () => {
+  it('caps a long safe description instead of passing all of it on', () => {
+    const description = `mentioned ${'a long walk by the lake '.repeat(22)}`.trim();
+    expect(description.length).toBeGreaterThan(490);
+
+    const alert = alertFor({ description });
+    expect(alert).toContain(`During my call with ${NAME}, mentioned a long walk by the lake`);
+    expect(alert).not.toContain(description);
+    expect(alert!.length).toBeLessThan(300);
+  });
+
+  it('sends the generic alert when a number sits past the screen window', () => {
+    expect(PAST_WINDOW.length).toBeGreaterThan(10_000);
+    expect(PAST_WINDOW.indexOf('555')).toBeGreaterThan(10_000);
+    expect(isRiskyCallerText(PAST_WINDOW)).toBe(false); // the prefix-only read misses it
+
+    expect(alertFor({ description: PAST_WINDOW })).toBe(GENERIC);
+    expect(alertFor({ recommendedAction: PAST_WINDOW })).toBe(GENERIC);
+  });
+
+  it('keeps crisisCallerLine when a crisis phrase sits past the screen window', () => {
+    const description = PAST_WINDOW.replace('call 555 0142', 'and said she wants to end her life');
+    expect(description.indexOf('end her life')).toBeGreaterThan(10_000);
+
+    const alert = alertFor({ description });
+    expect(alert).toContain(crisisCallerLine(NAME));
+    expect(alert?.endsWith(CHECK_IN)).toBe(true);
+  });
+
+  it('treats a field that is not text as empty instead of throwing', () => {
+    const alert = alertFor({
+      description: 5550142 as never,
+      recommendedAction: ['555 0142'] as never,
+    });
+    expect(alert).toBe(`Important: During my call with ${NAME}, something came up. ${CHECK_IN}`);
+  });
+});
+
 describe('urgent family check-in alert: the sponsor send path', () => {
   beforeEach(() => {
     sent.messages = [];
@@ -161,5 +204,25 @@ describe('urgent family check-in alert: the sponsor send path', () => {
     expect(sent.messages[0]).not.toMatch(DIGITS);
     expect(sent.messages[0]).not.toContain('example.test');
     expect(sent.messages[0]).toContain(`During my call with ${NAME}`);
+  });
+
+  it('sends the generic alert for a description too long to screen in full', async () => {
+    vi.mocked(callLLM).mockResolvedValueOnce(
+      JSON.stringify({
+        mood: 'worried',
+        summary: 'Rosa sounded worried.',
+        concerns: [{ description: PAST_WINDOW, urgency: 'urgent', category: 'other' }],
+      })
+    );
+    await handleCheckinCallComplete('call-test-3', 'sponsor-test-1', {
+      status: 'completed',
+      transcript: [
+        { role: 'assistant', content: 'How are you doing today?' },
+        { role: 'user', content: 'Fine, dear.' },
+      ],
+      familyMemberName: NAME,
+      relationship: 'grandmother',
+    });
+    expect(sent.messages).toEqual([GENERIC]);
   });
 });
