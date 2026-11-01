@@ -34,11 +34,22 @@
 				<string>ferniapp</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.sethdford.ferni.signin</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.1031920444452-rgi4043g7hddgf4lqhargcl2j6cuc8tr</string>
+				<string>app-1-1031920444452-ios-523d8b146e8d1b27b164b1</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>FerniAPIBaseURL</key>
 	<string>$(FERNI_API_BASE_URL)</string>
+	<key>GIDClientID</key>
+	<string>1031920444452-rgi4043g7hddgf4lqhargcl2j6cuc8tr.apps.googleusercontent.com</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
@@ -56,6 +67,17 @@
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
 	</dict>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>phone.arrow.up.right</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Get help now</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.sethdford.ferni.help</string>
+		</dict>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
