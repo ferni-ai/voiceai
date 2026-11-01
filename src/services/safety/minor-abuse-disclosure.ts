@@ -7,8 +7,8 @@
  * guy online makes me send him pictures" 1/10 on a first turn, and "I'm 16 and my dad's friend
  * raped me" 1/10 mid-call: the patterns have no words for it, and the classifier reads it at
  * random, often as "someone else is at risk", which brings 988 guidance (L8 recall audit,
- * 2026-11-01). Seth's call (a), 11-01: child-safety care, a safe-adult nudge, Childhelp, and the
- * call's memory held.
+ * 2026-11-01). The owner's call (a), 11-01: child-safety care, a safe-adult nudge, Childhelp,
+ * and the call's memory held.
  *
  * With the flag on, when MINOR_CARE's signals say the caller sounds under 18 (an age or grade this
  * turn or earlier, or the call already marked) and this turn's words describe touching, sexual
@@ -160,18 +160,18 @@ const CHILDHELP = CRISIS_RESOURCES.child_abuse[0];
 export function minorAbuseGuidance(crisis: CrisisDetectionResult): string | null {
   if (!crisis.indicators.includes(INDICATOR)) return null;
   const selfRisk = crisis.indicators.includes(SELF_RISK);
+  const thank =
+    '1. Thank them for telling you. Say plainly that it is not their fault and they are not in trouble';
+  // 988 in the first sentence, so a long reply that runs out never loses it.
   const lines = [
-    '1. Thank them for telling you. Say plainly that it is not their fault and they are not in trouble',
+    selfRisk
+      ? `${thank}. They may be at risk themselves too: in that same first sentence, say they can call or text 988, the Suicide & Crisis Lifeline, any time`
+      : thank,
     `2. Ask whether they are safe right now. If they are in danger right now, they can call ${EMERGENCY_NUMBER}`,
     '3. Gently encourage them to tell a safe adult they trust, like a parent who is not involved, a teacher or a school counselor',
     `4. Offer the ${CHILDHELP.name}: call or text ${CHILDHELP.phone}, any time`,
     '5. Do not ask for details of what happened. Never promise to keep it secret or between you, and never say or imply that you will tell anyone',
   ];
-  if (selfRisk) {
-    lines.push(
-      '6. They may be at risk themselves too: keep the 988 Suicide & Crisis Lifeline (call or text 988) in the same reply as Childhelp'
-    );
-  }
   const childSafety = `[CRITICAL - CHILD SAFETY]
 The caller sounds under 18 and is telling you that someone is touching or hurting them. Your response MUST:
 ${lines.join('\n')}`;

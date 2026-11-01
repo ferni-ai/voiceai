@@ -149,7 +149,7 @@ describe('a disclosure through the turn pipeline', () => {
     expect(g).not.toMatch(/\b988\b/);
   });
 
-  it('never promises secrecy and never implies Ferni will tell (Seth, 11-01)', async () => {
+  it('never promises secrecy and never implies Ferni will tell (owner call, 11-01)', async () => {
     const risk = "I'm 14 and my coach touches me and I don't want to wake up tomorrow.";
     for (const summary of [(await turn(line, ON)).summary, (await turn(risk, ON)).summary]) {
       const g = minorAbuseGuidance(summary) ?? '';
@@ -234,7 +234,11 @@ describe('a disclosure through the turn pipeline', () => {
     const { summary } = await turn(mixed, ON);
     const g = minorAbuseGuidance(summary) ?? '';
     expect(g.startsWith(buildCrisisGuidance(summary))).toBe(true);
-    expect(g).toContain('[CRITICAL - CHILD SAFETY]');
+    const care = g.slice(g.indexOf('[CRITICAL - CHILD SAFETY]'));
+    expect(care).toMatch(/\b988\b/);
+    // 988 beside 911, before Childhelp: a reply that runs long keeps it (r2 real-reply check).
+    expect(care.search(/\b988\b/)).toBeLessThan(care.indexOf('1-800-422-4453'));
+    expect(care.search(/\b988\b/)).toBeLessThan(care.indexOf('call 911'));
     expect(g).toContain('call 911');
     expect(g).toContain('1-800-422-4453');
   });
