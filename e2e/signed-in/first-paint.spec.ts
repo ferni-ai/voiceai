@@ -52,7 +52,14 @@ test('signed in: a reload paints Home at once, never the sign-in gate', async ({
   const s = summarize(capture, SAMPLE_MS);
   console.log('signed-in reload', JSON.stringify(s));
 
-  expect(s.frames, 'frames sampled').toBeGreaterThan(30);
+  // The sampler must have watched the whole window, not hit a frame count: CI's
+  // runners paint about 10 fps under load (24 and 26 frames in Menu walk L2 1/3,
+  // run 41181918126), and the gate's copy would stay up for several frames.
+  expect(s.frames, 'frames sampled').toBeGreaterThanOrEqual(10);
+  expect(
+    Math.max(...capture.frames.map((f) => f.t)),
+    'last sampled frame (ms), so the sampler covered the window'
+  ).toBeGreaterThanOrEqual(SAMPLE_MS * 0.9);
   expect(s.gateFrames, 'frames showing the sign-in gate or its copy').toBe(0);
   expect(s.homeFrames, 'frames showing Home').toBeGreaterThan(0);
   expect(s.maxAvatars, 'avatars on screen at once').toBeLessThanOrEqual(1);
