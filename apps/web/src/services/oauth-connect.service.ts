@@ -39,7 +39,7 @@ const PROVIDER_NAMES: Record<OAuthConnectProvider, string> = {
 };
 
 /** Only same-origin paths: the server returns e.g. /auth/google/login?state=… */
-function isSameOriginPath(url: unknown): url is string {
+export function isSameOriginPath(url: unknown): url is string {
   return typeof url === 'string' && url.startsWith('/') && !url.startsWith('//');
 }
 

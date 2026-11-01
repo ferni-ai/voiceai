@@ -1,6 +1,7 @@
 /**
- * The approval (/p/:id) and answer card (/a/:id) pages must never be framed:
- * a framed approve button is a clickjacking target. The hosting and server
+ * The approval (/p/:id), answer card (/a/:id) and connect (/connect) pages
+ * must never be framed: a framed approve or connect button is a clickjacking
+ * target. The hosting and server
  * headers (X-Frame-Options DENY, frame-ancestors 'none') are the defense;
  * this is the fallback for a host that drops them.
  *
