@@ -18,6 +18,8 @@ import { signOutOfThisBrowser } from './sign-out.js';
 // Roadmap service - for "What's Growing" experience
 import { roadmapService } from '../services/roadmap.service.js';
 import { isMenuActionVisible } from '../config/menu-visibility.js';
+import { isMenuRegroupOn } from '../config/menu-regroup-flag.js';
+import { menuGroups } from './settings-menu-groups.js';
 
 import { transcriptUI } from './transcript.ui.js';
 import { canOpenSupport } from './support/open-support.js';
@@ -113,10 +115,6 @@ export interface SettingsMenuUICallbacks {
   onTogetherSessionsClick?: () => void;
   onAllConnectionsClick?: () => void;
 }
-
-// ============================================================================
-// ICONS
-// ============================================================================
 
 // ============================================================================
 // ICONS - Natural, earthy, on-brand (consistent 1.5px stroke, rounded caps)
@@ -552,6 +550,8 @@ class SettingsMenuUI {
 
     // Render pinned items section if any
     const pinnedItemsHtml = this.renderPinnedItems();
+    // The five groups: settings-menu-groups.ts when regrouped, else the legacy ones below
+    const grouped = isMenuRegroupOn() ? this.renderMenuGroups(expandedSections, chipIn) : null;
 
     this.panel.innerHTML = `
       <div class="settings-menu__backdrop"></div>
@@ -568,24 +568,11 @@ class SettingsMenuUI {
           <!-- How I reach you: first, where a person looks for "me" -->
           ${this.renderReachMeItem()}
 
-          <!-- PINNED ITEMS (Your Favorites) -->
           ${pinnedItemsHtml}
 
-          <!-- ============================================================
-               FERNI MENU - Relationship-First, Warm & Human
-               
-               Philosophy: The menu should feel like asking a friend 
-               "What shall we do?" not navigating software.
-               
-               STREAMLINED: 5 sections, ~25 items (from 6 sections, ~43 items)
-               1. Let's Practice - Daily rituals and guided moments
-               2. Our Story - Memories, reflections, insights
-               3. Let's Do Something - Active engagement & play
-               4. Your World - People, connections in your life
-               5. Settings - Preferences and account
-               ============================================================ -->
-
-          <!-- SECTION 1: Let's Practice - Daily rituals and guided moments -->
+          ${
+            grouped ??
+            `
           ${this.renderCollapsibleSection(
             'yourPractices',
             t('menu.sections.yourPractices'),
@@ -601,7 +588,6 @@ class SettingsMenuUI {
           `
           )}
 
-          <!-- SECTION 2: Our Story - Memories, reflections, insights (consolidated) -->
           ${this.renderCollapsibleSection(
             'understandingYou',
             t('menu.sections.ourStory'),
@@ -617,7 +603,6 @@ class SettingsMenuUI {
           `
           )}
 
-          <!-- SECTION 3: Let's Do Something - Active engagement & play (trimmed) -->
           ${this.renderCollapsibleSection(
             'waysToConnect',
             t('menu.sections.waysToConnect'),
@@ -632,7 +617,6 @@ class SettingsMenuUI {
           `
           )}
 
-          <!-- SECTION 4: Your World - People and connections (merged with integrations) -->
           ${this.renderCollapsibleSection(
             'yourPeople',
             t('menu.sections.yourPeople'),
@@ -645,7 +629,6 @@ class SettingsMenuUI {
           `
           )}
 
-          <!-- SECTION 5: Settings - Preferences and account (streamlined) -->
           ${this.renderCollapsibleSection(
             'settings',
             t('menu.sections.settings'),
@@ -662,6 +645,8 @@ class SettingsMenuUI {
             ${this.renderMenuItem('export', ICONS.shield, t('menu.items.exportData'))}
           `
           )}
+          `
+          }
 
           <!-- SECTION: Admin (only visible for admins) -->
           ${this.renderAdminSection(expandedSections)}
@@ -799,9 +784,24 @@ class SettingsMenuUI {
     }
   }
 
-  /**
-   * Render a collapsible section with header and expandable content
-   */
+  /** The regrouped layout (config/menu-regroup-flag.ts): the same rows in five groups. */
+  private renderMenuGroups(expanded: Set<string>, chipIn: boolean): string {
+    const toggleOn = { transcription: transcriptUI.isEnabled(), sounds: !soundUI.getMuted() };
+    return menuGroups({ chipIn, memoryControl: memoryControlEnabled() })
+      .map(({ id, titleKey, rows }) => {
+        const content = rows
+          .map(({ action, icon, labelKey, toggle }) =>
+            toggle
+              ? this.renderToggleItem(action, ICONS[icon], t(labelKey), toggleOn[toggle])
+              : this.renderMenuItem(action, ICONS[icon], t(labelKey))
+          )
+          .join('');
+        return this.renderCollapsibleSection(id, t(titleKey), expanded.has(id), content);
+      })
+      .join('');
+  }
+
+  /** Render a collapsible section with header and expandable content */
   private renderCollapsibleSection(
     id: string,
     title: string,

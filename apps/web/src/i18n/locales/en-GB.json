@@ -1334,7 +1334,14 @@
     "ariaLabel": "Settings menu",
     "collapseSection": "Collapse {title}",
     "expandSection": "Expand {title}",
-    "languageCurrent": "{language} (current)"
+    "languageCurrent": "{language} (current)",
+    "groups": {
+      "checkIns": "Check-ins",
+      "whatIRemember": "What I remember",
+      "yourDay": "Your day",
+      "yourJourney": "Your journey",
+      "settings": "Settings"
+    }
   },
   "meta": {
     "direction": "ltr",
