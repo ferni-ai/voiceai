@@ -268,6 +268,21 @@ export function droppedLogLines(): number {
   return droppedLines;
 }
 
+/**
+ * Writes out what the stderr sink still holds (it writes off the event loop). For a process
+ * about to exit on purpose; resolves even if the flush fails, after saying so on stderr.
+ */
+export function flushLogs(): Promise<void> {
+  const sink = appSink;
+  if (!sink) return Promise.resolve();
+  return new Promise((resolve) => {
+    sink.flush((error) => {
+      if (error) process.stderr.write(`log flush failed: ${String(error)}\n`);
+      resolve();
+    });
+  });
+}
+
 /** Test helper: start the dropped-line count again. */
 export function resetDroppedLogLinesForTests(): void {
   droppedLines = 0;

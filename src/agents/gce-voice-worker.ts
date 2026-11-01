@@ -202,6 +202,7 @@ import {
 } from './gce/job-runner.js';
 import { drainTimeoutMs } from './gce/drain.js';
 import { drainMemoryWork } from './gce/drain-memory-work.js';
+import { exitAfterFlush, holdEventLoop } from './gce/exit-worker.js';
 import { startWorkerRecycle } from './gce/worker-recycle.js';
 import { sdkLoggerOptions } from './gce/sdk-logger-options.js';
 log('Phase 2.5: Starting async background workers');
@@ -313,6 +314,7 @@ const shutdown = async (signal: string): Promise<void> => {
     return;
   }
   isShuttingDown = true;
+  holdEventLoop(); // Node must not end the process before step 7 (exit-worker.ts)
 
   log(`Received ${signal}, shutting down...`, { activeJobs: activeJobCount() });
 
@@ -359,8 +361,8 @@ const shutdown = async (signal: string): Promise<void> => {
     setTimeout(resolve, GCE_WORKER_READINESS_DELAY_MS);
   });
 
-  // 7. Exit cleanly
-  process.exit(0);
+  // 7. Exit cleanly, once the logs above are written out
+  await exitAfterFlush(0);
 };
 
 process.on('SIGTERM', () => void shutdown('SIGTERM'));
