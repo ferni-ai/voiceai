@@ -33,6 +33,7 @@ import {
 import {
   answeredYes,
   briefTurn,
+  noteMeansInHandShadow,
   SCRIPT_ANSWER_CHECKIN,
   withLineOnce,
   type LineTurn,
@@ -52,7 +53,6 @@ import {
 } from '../../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
 import { startWhoRead } from '../../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
-import { noteMeansInHandShadow } from '../../../services/safety/index.js';
 import {
   resolveClassifierOnlyCheckin,
   shadowClassifierOnly,
@@ -166,7 +166,7 @@ function scriptAnswered(
   return answer === 'risk' ? { crisis: answeredYes(patterns), soft: false } : null;
 }
 
-/** The turn result's crisis field, the crisis line held back once the call heard it (CRISIS_BRAKE_V2). */
+/** The turn result's crisis field, marked once the call heard the line (CRISIS_BRAKE_V2). */
 const briefedSummary = (s: Settled, once: LineTurn): CrisisDetection =>
   crisisSummary(withLineOnce(s.crisis, once), s.soft, s.guidance);
 
@@ -220,7 +220,7 @@ export function startTurnCrisis(
   const call = options.sessionId || undefined;
   const lone = { call, input, detection: patterns, pattern, env, generate } as const;
   // CRISIS_BRAKE_V2: the 911 script's answer, and the crisis line in full once per call.
-  const { answer, once } = briefTurn({ ...input, call, env, ferni: [input.companion], patterns });
+  const { answer, once, brake } = briefTurn({ ...input, call, env, ferni: [input.companion] });
   // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
   const transfer =
     adjudicatorMode !== 'live' && transferRequestIsEveryday(input, pattern, call, env);
@@ -296,7 +296,7 @@ export function startTurnCrisis(
             // Fail closed: a failed lookup counts as a missing read, which escalates.
             const verdicts = await turnVerdicts(scope, input).catch(() => [null]);
             const outcome = agreementGate
-              ? agreementOutcome({ pattern, verdicts, ...input, env, call })
+              ? agreementOutcome({ pattern, verdicts, ...input, brake })
               : 'escalate';
             if (outcome !== 'escalate') {
               log.info({ outcome, reads: verdicts.length }, 'CRISIS_AGREEMENT');

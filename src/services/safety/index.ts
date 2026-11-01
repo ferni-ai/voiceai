@@ -29,7 +29,7 @@ export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.
 export { crisisRiskThisCall } from './crisis-call-risk.js';
 export { offersCrisisLine } from './crisis-line-speech.js';
 // CRISIS_BRAKE_V2: the line once per call, and the answer to the 911 script (crisis-gate.ts, turn-crisis.ts).
-export { withLineOnce, type LineTurn } from './crisis-line-once.js';
+export { withLineNote, withLineOnce, type LineTurn } from './crisis-line-once.js';
 export {
   answeredYes,
   briefTurn,

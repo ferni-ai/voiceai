@@ -2,31 +2,40 @@
  * The caller's answer to the 911 script (CRISIS_BRAKE_V2=on, off by default). Prod, 10-17 to
  * 10-31: the next "yes", "no" or "it's not a crisis" was read imminent again, up to 6 scripts in a
  * row. With the flag on, a short answer right after the script is an answer, and a bare yes or no
- * means what the script's question makes it mean (QUESTIONS, crisis-script-questions.ts): a yes to
- * "if you've taken something" and a no to "is anyone nearby" are both risk. The script asks both,
- * so a bare yes is 'risk' (the full script) and a bare no is 'main' (never eased).
+ * means what the script's question makes it mean (QUESTIONS, read from the guard's own script): a
+ * yes to "if you've taken something" and a no to "is anyone nearby" are both risk. The script asks
+ * both, so a bare yes is 'risk' (the full script) and a bare no is 'main' (never eased).
  *
  * A safe answer ("I'm fine", "it's not a crisis", "I haven't taken anything", or a bare yes or no
- * whose every question makes it safe) is a check-in, 'safe', only when it carries no pattern, risk
- * or held word and the caller's own earlier lines carry no risk either (hasCallerRiskContent, as
- * the agreement gate reads them). Otherwise, and for any answer with a risk word, a question or a
- * hesitation, it is 'main': the turn reads exactly as on main, line and all, never held. Anything
- * that is not a short answer: null.
+ * whose every question makes it safe) is a check-in, 'safe', only when ALL hold: it carries no
+ * pattern, risk or held word; no turn on this call was read imminent by anything
+ * (imminentReadThisCall, crisis-call-risk.ts; never without a call); and the caller's earlier lines
+ * carry no risk (hasCallerRiskContent, as the agreement gate reads them). Otherwise it is 'main':
+ * the turn reads exactly as on main. Anything that is not a short answer: null.
  *
  * @module CrisisScriptAnswer
  */
 
 import { hasCallerRiskContent, hasRiskContent, mentionsMeans } from './crisis-agreement.js';
 import { crisisBrakeOn } from './crisis-brake.js';
+import { imminentReadThisCall } from './crisis-call-risk.js';
 import { clearNo } from './crisis-grounded-screen.js';
 import {
   applyClassifierVerdict,
   detectCrisis,
+  IN_DANGER_NOW,
   type CrisisDetectionResult,
 } from './crisis-guard.js';
-import { SCRIPT_YES, type LineTurn } from './crisis-line-once.js';
+import type { LineTurn } from './crisis-line-once.js';
 import { alwaysHold, wordsOf } from './crisis-release-words.js';
-import { ANYONE_NEARBY, TAKEN_OR_IN_DANGER } from './crisis-script-questions.js';
+
+const IMMINENT_SELF = { risk: 'imminent', subject: 'self' } as const;
+/** The 911 script as the guard gives it: its two questions are read from it, never copied. */
+const SCRIPT = applyClassifierVerdict(detectCrisis(''), IMMINENT_SELF).suggestedResponse ?? '';
+/** "If you've taken something or you're in danger right now": a yes is risk. */
+export const TAKEN_OR_IN_DANGER = SCRIPT.split(`, ${IN_DANGER_NOW}`)[0]?.split('\n').pop() ?? '';
+/** "Is anyone nearby who can be with you?": a no (nobody is there) is risk. */
+export const ANYONE_NEARBY = SCRIPT.slice(SCRIPT.lastIndexOf('. ') + 2);
 
 type Meaning = 'risk' | 'safe';
 /** What a bare yes to each of the script's own questions means; a bare no means the other. */
@@ -40,7 +49,7 @@ const flat = (text: string): string => text.toLowerCase().replace(/[‘’]/g, "
 function yesMeanings(companion: string | undefined): Meaning[] {
   if (typeof companion !== 'string') return [];
   const line = flat(companion);
-  return QUESTIONS.filter(([q]) => line.includes(flat(q))).map(([, yes]) => yes);
+  return QUESTIONS.filter(([q]) => q && line.includes(flat(q))).map(([, yes]) => yes);
 }
 
 const LEAD = '(?:um|uh|well|oh|ferni|fern|look|okay|ok)';
@@ -107,33 +116,35 @@ export function scriptAnswer(turn: ScriptAnswerTurn): ScriptAnswer | null {
     // A no to "is anyone nearby" is being alone: a risk answer, never eased.
     if (STARTS_NO.test(text) && !tookNothing && asked.includes('safe')) return 'main';
     if (!BARE.test(text) && !clearNo(latest) && !SAID_NO.test(text)) return null;
-    return turn.earlier.some(hasCallerRiskContent) ? 'main' : 'safe';
+    const quiet = !imminentReadThisCall(call) && !turn.earlier.some(hasCallerRiskContent);
+    return quiet ? 'safe' : 'main';
   } catch {
     return null; // the reads decide
   }
 }
 
 /**
- * Once per turn, for the reply gate and the turn pipeline alike: the answer to the 911 script,
- * and the turn crisis-line-once.ts reads (a 'main' answer is never held).
+ * Once per turn, for the reply gate and the turn pipeline alike: the answer to the 911 script, the
+ * turn crisis-line-once.ts reads (a 'main' answer reads as on main), and whether the brake applies.
  */
-export function briefTurn(turn: ScriptAnswerTurn & Pick<LineTurn, 'ferni' | 'patterns'>): {
+export function briefTurn(turn: ScriptAnswerTurn & Pick<LineTurn, 'ferni'>): {
   answer: ScriptAnswer | null;
   once: LineTurn;
+  brake: boolean;
 } {
   const answer = scriptAnswer(turn);
-  const { call, latest, earlier, ferni, patterns, env } = turn;
+  const { call, latest, earlier, ferni, env } = turn;
+  const brake = crisisBrakeOn(env, call, [latest, ...earlier]);
   return {
     answer,
-    once: { call, latest, earlier, ferni, patterns, env, fullLine: answer === 'main' },
+    once: { call, latest, earlier, ferni, env, fullLine: answer === 'main' },
+    brake,
   };
 }
 
-/** The imminent read a risk answer gives: the full 911 script, never held back (crisis-line-once.ts). */
-export function answeredYes(patterns: CrisisDetectionResult): CrisisDetectionResult {
-  const imminent = applyClassifierVerdict(patterns, { risk: 'imminent', subject: 'self' });
-  return { ...imminent, indicators: [...imminent.indicators, SCRIPT_YES] };
-}
+/** The imminent read a risk answer gives: the full 911 script. */
+export const answeredYes = (patterns: CrisisDetectionResult): CrisisDetectionResult =>
+  applyClassifierVerdict(patterns, IMMINENT_SELF);
 
 /** The guidance for a safe answer. */
 export const SCRIPT_ANSWER_CHECKIN = `[SAFETY - CHECK-IN]

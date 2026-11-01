@@ -25,8 +25,6 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { endingFloor } from './crisis-ending-floor.js';
-import { lineHeld, lineHeldGuidance } from './crisis-line-once.js';
-import { ANYONE_NEARBY, TAKEN_OR_IN_DANGER } from './crisis-script-questions.js';
 import { meansFormsOf, meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
 import {
@@ -325,9 +323,9 @@ function getCrisisResponse(
   if (imminent && language !== 'es') {
     return `I'm really glad you told me. Your safety matters most right now.
 
-${TAKEN_OR_IN_DANGER}, ${IN_DANGER_NOW}
+If you've taken something or you're in danger right now, ${IN_DANGER_NOW}
 
-I'm staying right here with you. ${ANYONE_NEARBY}`;
+I'm staying right here with you. Is anyone nearby who can be with you?`;
   }
   if (subject === 'third_party') {
     return `It sounds like you're really worried about them, and it matters that you're paying attention. You don't have to handle this alone either.
@@ -379,7 +377,6 @@ The user is worried that someone they know is at risk. Your response MUST:
 4. Ask how THEY are holding up; supporting someone in crisis is hard
 5. NEVER treat the user as the one at risk unless they say so`;
   }
-  if (lineHeld(crisis)) return lineHeldGuidance(header); // CRISIS_BRAKE_V2 (crisis-line-once.ts)
 
   const lines = [
     '1. Acknowledge their pain with genuine empathy',
@@ -456,8 +453,8 @@ export function applyClassifierVerdict(
 
 /** The pre-response decision for an already computed detection. */
 export function guardFromDetection(crisis: CrisisDetectionResult): CrisisGuardResult {
-  if (crisis.isCrisis && crisis.severity >= SEVERITY.block && !lineHeld(crisis)) {
-    // Severe crisis - override with crisis response (once a call heard it: crisis-line-once.ts)
+  if (crisis.isCrisis && crisis.severity >= SEVERITY.block) {
+    // Severe crisis - override with crisis response
     log.warn(
       {
         severity: crisis.severity,
@@ -495,5 +492,9 @@ export function guardPreResponse(
 ): CrisisGuardResult {
   return guardFromDetection(detectCrisis(userMessage, voiceEmotion, options));
 }
+
+// ============================================================================
+// EXPORTS
+// ============================================================================
 
 export default { detectCrisis, guardPreResponse, guardFromDetection, buildCrisisGuidance };

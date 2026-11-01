@@ -13,10 +13,14 @@ import {
   guardFromDetection,
   IN_DANGER_NOW,
 } from '../crisis-guard.js';
+import {
+  imminentReadThisCall,
+  noteImminentRead,
+  resetCrisisCallRisk,
+} from '../crisis-call-risk.js';
 import { combineReads, resetImminentAgreement } from '../crisis-imminent-agreement.js';
-import { asksForNumber, LINE_GIVEN, withLineOnce } from '../crisis-line-once.js';
-import { scriptAnswer } from '../crisis-script-answer.js';
-import { ANYONE_NEARBY, TAKEN_OR_IN_DANGER } from '../crisis-script-questions.js';
+import { LINE_GIVEN, withLineNote, withLineOnce } from '../crisis-line-once.js';
+import { ANYONE_NEARBY, scriptAnswer, TAKEN_OR_IN_DANGER } from '../crisis-script-answer.js';
 
 const ON = { CRISIS_BRAKE_V2: 'on' };
 const OFF = { CRISIS_BRAKE_V2: 'off' };
@@ -30,22 +34,20 @@ let n = 0;
 beforeEach(() => {
   resetCrisisBrake();
   resetImminentAgreement();
+  resetCrisisCallRisk();
   n++;
 });
 
 describe('the agreement gate scans only the caller, and everyday words only in risk phrases', () => {
   const companion = "You don't have to carry this alone, and I'm right here.";
-  const turn = (env: Record<string, string>, extra: Record<string, unknown> = {}) =>
-    agreementOutcome({
-      pattern: 'none',
-      verdicts: [CRISIS],
-      latest: 'Why alone?',
-      earlier: [],
-      companion,
-      env,
-      call: `agree-${n}`,
-      ...extra,
-    });
+  type Turn = Parameters<typeof agreementOutcome>[0] & { call?: string };
+  /** As the gate calls it: the brake read for this call (crisisBrakeOn), then the outcome. */
+  const turn = (env: Record<string, string>, extra: Partial<Turn> = {}) => {
+    const t: Turn = { pattern: 'none', verdicts: [CRISIS], latest: 'Why alone?', earlier: [] };
+    const { call, ...args } = { ...t, companion, call: `agree-${n}`, ...extra };
+    const brake = crisisBrakeOn(env, call, [args.latest, ...(args.earlier ?? [])]);
+    return agreementOutcome({ ...args, brake });
+  };
 
   it('off: a risk word in Ferni\'s line or the caller\'s "alone" escalates, as on main', () => {
     expect(turn(OFF)).toBe('escalate');
@@ -133,6 +135,22 @@ describe('an imminent read needs agreement: the flag implies CRISIS_IMMINENT_NEE
 
   it('on: the split gives crisis guidance, never the script', () => {
     expect(split(ON)?.risk).toBe('crisis');
+  });
+
+  it('either read imminent, even a split eased to crisis, is noted for the call', () => {
+    const call = `noted-${n}`;
+    expect(imminentReadThisCall(call)).toBe(false);
+    const eased = combineReads({
+      ruled: IMMINENT,
+      plain: NONE,
+      pattern: 'none',
+      latest: "Okay, I'm done for tonight, bye.",
+      earlier: [],
+      call,
+      env: ON,
+    });
+    expect(eased?.risk).toBe('crisis');
+    expect(imminentReadThisCall(call)).toBe(true);
   });
 
   it('on: both reads imminent keep imminent', () => {
@@ -224,6 +242,23 @@ describe("the script's own question: the next short answer is an answer", () => 
     expect(scriptAnswer({ ...turn, latest: 'No.' })).toBe('main');
   });
 
+  it('a safe answer on a call where anything read a turn imminent reads as main', () => {
+    const turn = { latest: "I'm fine.", companion: SCRIPT, earlier: [], call: `imm-${n}`, env: ON };
+    expect(scriptAnswer(turn)).toBe('safe');
+    noteImminentRead(turn.call);
+    for (const latest of ["I'm fine.", "It's not a crisis.", "I haven't taken anything."]) {
+      expect(scriptAnswer({ ...turn, latest })).toBe('main');
+    }
+  });
+
+  it('without a call nothing eases: the imminent record fails closed', () => {
+    expect(imminentReadThisCall(undefined)).toBe(true);
+    expect(imminentReadThisCall('')).toBe(true);
+    expect(
+      scriptAnswer({ latest: "I'm fine.", companion: SCRIPT, earlier: [], env: ON })
+    ).toBeNull();
+  });
+
   it('only after the script asked it, only with the flag on', () => {
     expect(answer('No.', ON, 'Okay, tell me more.')).toBeNull();
     expect(answer('No.', OFF)).toBeNull();
@@ -257,7 +292,9 @@ describe("a yes or no means what the script's question makes it mean", () => {
     ],
   ];
 
-  it('the 911 script is built from both questions', () => {
+  it("the questions are read from the guard's own 911 script", () => {
+    expect(TAKEN_OR_IN_DANGER).toBe("If you've taken something or you're in danger right now");
+    expect(ANYONE_NEARBY).toBe('Is anyone nearby who can be with you?');
     expect(SCRIPT).toContain(TAKEN_OR_IN_DANGER);
     expect(SCRIPT).toContain(ANYONE_NEARBY);
   });
@@ -279,118 +316,64 @@ describe("a yes or no means what the script's question makes it mean", () => {
   });
 });
 
-describe('#1464: the crisis line once per call', () => {
-  const STRESS = detectCrisis('Honestly, nobody would even notice if I was gone.');
+describe('#1464: the crisis line once per call, never withheld', () => {
   const plain = detectCrisis('Okay.');
   const turn = (over: Record<string, unknown> = {}) => ({
     call: `line-${n}`,
     latest: 'Yeah.',
     earlier: [],
     ferni: ['I hear you. You can call or text 988, any time.'],
-    patterns: plain,
     env: ON,
     ...over,
   });
-  const crisisRead = { ...plain, isCrisis: true, severity: 0.9, subject: 'self' as const };
+  const crisisRead = { ...plain, isCrisis: true, severity: 0.75, subject: 'self' as const };
+  const guidanceOf = (read: typeof crisisRead) => withLineNote(buildCrisisGuidance(read), read);
 
-  it('the line not yet heard: unchanged', () => {
+  it('the line not yet heard: unchanged, main guidance', () => {
     const t = turn({ ferni: ['Okay, tell me more.'] });
     expect(withLineOnce(crisisRead, t)).toBe(crisisRead);
+    expect(guidanceOf(crisisRead)).toBe(buildCrisisGuidance(crisisRead));
   });
 
-  it('heard once on this call: later crisis turns stay in crisis mode, without the line', () => {
+  it('heard once: a later crisis turn keeps crisis mode and the 988 number, with the note', () => {
     withLineOnce(plain, turn()); // Ferni's 988 line, noted on a turn with no risk
     const later = withLineOnce(crisisRead, turn({ ferni: ['Okay.'] }));
     expect(later.indicators).toContain(LINE_GIVEN);
     expect(later.isCrisis).toBe(true);
-    expect(guardFromDetection(later).shouldBlock).toBe(false);
-    const guidance = buildCrisisGuidance(later);
-    expect(guidance).toMatch(/already heard the 988 line/);
-    expect(guidance).not.toMatch(/Include the 988/);
+    const guidance = guidanceOf(later);
+    expect(guidance).toMatch(/Include the 988 Suicide & Crisis Lifeline/);
+    expect(guidance).toMatch(/already heard the 988 number on this call/);
+    expect(guidance).toMatch(/don't re-read the crisis script/);
   });
 
-  it.each([
-    ['explicit words', 'I want to kill myself.'],
-    ['means in hand', 'I have the pills right here in my hand.'],
-    ['an explicit plan', "Tonight's the night."],
-    ['a means form', "I'm holding the gun right now."],
-  ])('new risk always gets the full line: %s', (_name, latest) => {
-    const t = turn({ latest, patterns: detectCrisis(latest) });
-    expect(withLineOnce(crisisRead, t).indicators).not.toContain(LINE_GIVEN);
+  it('heard once: a severe crisis turn still gets the 988 script, as on main', () => {
+    withLineOnce(plain, turn());
+    const severe = detectCrisis('I want to kill myself.');
+    const later = withLineOnce(severe, turn({ ferni: ['Okay.'] }));
+    expect(guardFromDetection(later).shouldBlock).toBe(true);
+    expect(later.suggestedResponse).toBe(severe.suggestedResponse);
   });
 
   it.each([
     ['the classifier', applyClassifierVerdict(plain, IMMINENT)],
     ['the patterns', detectCrisis("I'm on the roof and I'm going to jump, I might kill myself")],
-  ])('an imminent read from %s is never held: the 911 script, as on main', (_name, read) => {
+  ])('an imminent read from %s is never marked, and is noted for the call', (_name, read) => {
     withLineOnce(plain, turn());
     const t = turn({ latest: "I'm on the roof.", ferni: ['Okay.'] });
     expect(read.indicators).toContain('imminent_danger');
+    expect(imminentReadThisCall(t.call)).toBe(false);
     const after = withLineOnce(read, t);
     expect(after).toBe(read);
     expect(guardFromDetection(after).shouldBlock).toBe(true);
     expect(after.suggestedResponse).toContain(IN_DANGER_NOW);
+    expect(imminentReadThisCall(t.call)).toBe(true);
   });
 
-  it('a no to the script after the caller said risk (fullLine) is never held', () => {
+  it('a main answer to the script (fullLine) is never marked', () => {
     withLineOnce(plain, turn());
     const t = turn({ latest: 'No.', ferni: ['Okay.'], fullLine: true });
     expect(withLineOnce(crisisRead, t)).toBe(crisisRead);
     expect(withLineOnce(crisisRead, { ...t, fullLine: false }).indicators).toContain(LINE_GIVEN);
-  });
-
-  it.each(["Tonight's the night.", 'Tonight is the night.', 'tonight s the night'])(
-    'a crisis-level plan read is new risk: %s',
-    (latest) => {
-      withLineOnce(plain, turn());
-      const t = turn({ latest, ferni: ['Okay.'], patterns: plain });
-      expect(withLineOnce(crisisRead, t)).toBe(crisisRead);
-    }
-  );
-
-  it('asking for the number again gets it', () => {
-    const t = turn({ latest: "What's the number again?" });
-    expect(withLineOnce(crisisRead, t).indicators).not.toContain(LINE_GIVEN);
-  });
-
-  it.each([
-    "What's the number again?",
-    'What was that number?',
-    'Can you say the hotline number again?',
-    "What's the crisis line?",
-    '988 again?',
-    // the 12 a caller asked it on the PR head, 7 of them missed then
-    'Can I have the number?',
-    "What's the suicide hotline?",
-    "What's the number again?",
-    'Can you give me that number again?',
-    'What number do I call?',
-    'Who do I call?',
-    'What was that hotline?',
-    'Remind me the number.',
-    'Say the number one more time.',
-    'How do I reach them?',
-    'Can you text me the crisis line?',
-    'What was it, 988?',
-    // and a few more
-    "what's the number again",
-    'can you give me the hotline',
-    'Who should I call?',
-    'How can I reach someone?',
-  ])('asks for the number: %s', (line) => {
-    expect(asksForNumber(line)).toBe(true);
-  });
-
-  it.each([
-    "What's the number for the pizza place?",
-    'Send me the number for the plumber again.',
-    'What line are we in?',
-    'I lost my phone number.',
-    'Who called me?',
-    'Tell me the number of times you have heard that.',
-    'the number of times',
-  ])('does not ask for the crisis line: %s', (line) => {
-    expect(asksForNumber(line)).toBe(false);
   });
 
   it('a worry about someone else, the flag off, or no call: unchanged', () => {
@@ -399,10 +382,6 @@ describe('#1464: the crisis line once per call', () => {
     expect(withLineOnce(other, turn())).toBe(other);
     expect(withLineOnce(crisisRead, turn({ env: OFF }))).toBe(crisisRead);
     expect(withLineOnce(crisisRead, turn({ call: undefined }))).toBe(crisisRead);
-  });
-
-  it('a guidance without the indicator is the guidance on main', () => {
-    expect(buildCrisisGuidance(STRESS)).toMatch(/Include the 988/);
   });
 });
 
@@ -417,6 +396,8 @@ describe('minors (MINOR_CARE): the brake never applies', () => {
   it('every rule falls back to main for them', () => {
     const call = `minor-rules-${n}`;
     const earlier = ["I'm 15 and in ninth grade."];
+    const brake = crisisBrakeOn(ON, call, ['Why alone?', ...earlier]);
+    expect(brake).toBe(false);
     expect(
       agreementOutcome({
         pattern: 'none',
@@ -424,8 +405,7 @@ describe('minors (MINOR_CARE): the brake never applies', () => {
         latest: 'Why alone?',
         earlier,
         companion: "You don't have to carry this alone.",
-        env: ON,
-        call,
+        brake,
       })
     ).toBe('escalate');
     expect(scriptAnswer({ latest: 'No.', companion: SCRIPT, earlier, call, env: ON })).toBeNull();

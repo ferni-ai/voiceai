@@ -29,7 +29,6 @@
  */
 
 import { wholeWordSite } from '../../utils/safety-whole-word.js';
-import { crisisBrakeOn } from './crisis-brake.js';
 import type { CrisisVerdict, PatternOutcome } from './crisis-classifier.js';
 import { detectCrisis } from './crisis-guard.js';
 
@@ -98,9 +97,6 @@ export function isVocative(latest: string): boolean {
   return bare(latest) && VOCATIVE.test(words(latest));
 }
 
-/** The means words: risk content below, and read alone by crisis-script-answer.ts. */
-const MEANS_WORDS =
-  'pills?|overdos\\w*|bleach|poison\\w*|insulin|antifreeze|swallow\\w*|drank|tylenol|meds|medication|dose|bottle|sleeping|gun|pistol|rifle|bullet|loaded|rope|noose|hang\\w*|knot';
 /**
  * Anything about dying, self-harm, means, goodbyes, hopelessness or distress,
  * in English or a few other languages. Broad on purpose: a match only keeps
@@ -111,7 +107,7 @@ const RISK_WORDS = [
   'di(?:e|es|ed|ing)|dead|death|deadly|lethal|fatal|kill\\w*|suicid\\w*|murder\\w*|kms|ctb|unaliv\\w*|sewer ?slide',
   'end(?:s|ed|ing)? (?:it|things|my|me|this|everything)|over (?:for good|with)|be over',
   '(?:hurt|harm|cut|burn|hit|starv)\\w* (?:my|me|your)|self ?harm|cutting|razor|blade|knife|bleed\\w*|blood|scars?',
-  MEANS_WORDS,
+  'pills?|overdos\\w*|bleach|poison\\w*|insulin|antifreeze|swallow\\w*|drank|tylenol|meds|medication|dose|bottle|sleeping|gun|pistol|rifle|bullet|loaded|rope|noose|hang\\w*|knot',
   'bridge|ledge|edge|roof|jump\\w*|fall\\w*|tracks|train|drown\\w*|river|garage|engine|exhaust|carbon',
   'wak(?:e|ing) up|(?:be|being|stay|staying) (?:here|around|alive)|alive|living|live|exist\\w*|disappear\\w*|vanish\\w*|gone|forever|sleep',
   'good ?bye|bye|farewell|last|final|note|letters?|passwords?|my will|give (?:away|up)|giving (?:away|up)|gave (?:away|up)|after i',
@@ -131,7 +127,8 @@ const RISK_CONTENT = riskPattern(RISK_WORDS);
  * to crash this plane", "boarding a plane, never coming back").
  */
 const RISK_CONTENT_SITES = riskPattern([...RISK_WORDS, 'dying|dyin']);
-const MEANS = riskPattern([MEANS_WORDS]);
+/** The means words alone (crisis-script-answer.ts): the RISK_WORDS entry that starts "pills". */
+const MEANS = riskPattern(RISK_WORDS.filter((w) => w.startsWith('pills?')));
 
 /** A means word ("pills", "rope", "the bottle"), whole words only. */
 export const mentionsMeans = (text: string): boolean => MEANS.test(words(text));
@@ -251,9 +248,8 @@ export function agreementOutcome(args: {
   latest: string;
   earlier?: readonly string[];
   companion?: string;
-  /** CRISIS_BRAKE_V2 reads both (crisis-brake.ts). */
-  env?: Record<string, string | undefined>;
-  call?: string;
+  /** CRISIS_BRAKE_V2 applies to this call: crisisBrakeOn, read by the caller (crisis-brake.ts). */
+  brake?: boolean;
 }): AgreementOutcome {
   try {
     return outcomeOf(args);
@@ -278,7 +274,7 @@ function outcomeOf(args: Parameters<typeof agreementOutcome>[0]): AgreementOutco
   if (typeof companion !== 'string' || !companion.trim()) return 'escalate';
   // Ferni's line is checked too: it may have asked about the caller's safety. CRISIS_BRAKE_V2:
   // the caller's words only, since Ferni's own crisis reply made the gate unable to ease.
-  const brake = crisisBrakeOn(args.env, args.call, [latest, ...earlier]);
+  const brake = args.brake === true;
   const scanned = brake ? [latest, ...earlier] : [latest, ...earlier, companion];
   const quiet = !endorses(latest) && !scanned.some(brake ? hasCallerRiskContent : hasRiskContent);
   if (quiet && (isPresenceReply(latest, companion) || isVocative(latest))) return 'presence';

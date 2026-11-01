@@ -163,7 +163,10 @@ export function trackCrisisRead<T extends { risk: string } | null>(
     if (risk) noteCrisisRisk(sessionId, Date.now(), turn);
   };
   read.then(
-    (v) => settle(v?.risk !== 'none'),
+    (v) => {
+      if (v?.risk === 'imminent') noteImminentRead(sessionId);
+      settle(v?.risk !== 'none');
+    },
     () => settle(true)
   );
   return read;
@@ -225,9 +228,30 @@ export function unexplainedCrisisRisk(
   return !!reads && [...reads.keys()].some((t) => t !== turn);
 }
 
+/**
+ * CRISIS_BRAKE_V2: calls where anything read a turn imminent (the patterns, a classifier read,
+ * either read of a split), when last noted. Nothing on such a call eases (crisis-script-answer.ts).
+ */
+const imminentAt = new Map<string, number>();
+
+export function noteImminentRead(sessionId: string | undefined, now = Date.now()): void {
+  if (!sessionId) return;
+  for (const [id, at] of imminentAt) if (now - at > TTL_MS) imminentAt.delete(id);
+  imminentAt.delete(sessionId);
+  imminentAt.set(sessionId, now);
+}
+
+/** Whether a turn on this call was read imminent; true without a call, which is never eased. */
+export function imminentReadThisCall(sessionId: string | undefined, now = Date.now()): boolean {
+  if (!sessionId) return true;
+  const at = imminentAt.get(sessionId);
+  return at !== undefined && now - at <= TTL_MS;
+}
+
 /** For tests. */
 export function resetCrisisCallRisk(): void {
   risky.clear();
   pending.clear();
   notes.clear();
+  imminentAt.clear();
 }

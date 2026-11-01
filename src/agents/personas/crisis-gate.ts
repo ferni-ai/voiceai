@@ -48,6 +48,7 @@ import {
   answeredYes,
   briefTurn,
   SCRIPT_ANSWER_CHECKIN,
+  withLineNote,
   withLineOnce,
   type LineTurn,
   type ScriptAnswer,
@@ -128,19 +129,21 @@ export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   if (guardFromDetection(crisis).shouldBlock && crisis.suggestedResponse) {
     return { action: 'replace', script: crisis.suggestedResponse, kind: crisisKindOf(crisis) };
   }
-  if (crisis.isCrisis) return { action: 'guide', guidance: buildCrisisGuidance(crisis) };
+  if (crisis.isCrisis) {
+    return { action: 'guide', guidance: withLineNote(buildCrisisGuidance(crisis), crisis) };
+  }
   return { action: 'pass' };
 }
 
-/** CRISIS_BRAKE_V2: the line held back once heard; runs every turn to note it (crisis-line-once.ts). */
+/** CRISIS_BRAKE_V2: marks a turn once the line was heard, never withholds it (crisis-line-once.ts). */
 function briefed(
   decision: CrisisGateDecision,
   crisis: CrisisDetectionResult,
   once: LineTurn,
   keep: boolean
 ): CrisisGateDecision {
-  const held = withLineOnce(crisis, once);
-  return keep || held === crisis ? decision : decisionFor(held);
+  const marked = withLineOnce(crisis, once);
+  return keep || marked === crisis ? decision : decisionFor(marked);
 }
 
 /** CRISIS_BRAKE_V2: the caller answering the 911 script's question (crisis-script-answer.ts);
@@ -212,7 +215,7 @@ export function startCrisisGate(
   const holdForReads = agreementGate || adjudicatorMode === 'live';
   const call = sessionScope(userData);
   const said = { latest, earlier, companion };
-  const { answer, once } = briefTurn({ ...said, call, env, ferni, patterns: detection });
+  const { answer, once, brake } = briefTurn({ ...said, call, env, ferni });
   const heard = briefed(decision, detection, once, gentle);
   // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
   const transfer =
@@ -269,7 +272,7 @@ export function startCrisisGate(
         null,
       ]);
       const outcome = agreementGate
-        ? agreementOutcome({ pattern, verdicts, latest, earlier, companion, env, call })
+        ? agreementOutcome({ pattern, verdicts, latest, earlier, companion, brake })
         : 'escalate';
       if (outcome !== 'escalate') {
         log.info({ action: outcome, source: 'agreement' }, 'CRISIS_GATE');

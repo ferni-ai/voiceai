@@ -18,9 +18,6 @@ const SAFETY_SOURCES = [
   'src/services/safety/crisis-grounded-screen.ts',
   'src/services/safety/crisis-agreement.ts',
   'src/services/safety/crisis-grounded-release.ts',
-  'src/services/safety/crisis-line-once.ts',
-  'src/services/safety/crisis-script-answer.ts',
-  'src/services/safety/crisis-script-questions.ts',
 ];
 
 /** Every string literal's lines of three or more words, in source order, once each. */

@@ -40,6 +40,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { crisisBrakeOn, resolveCrisisBrakeV2 } from './crisis-brake.js';
+import { noteImminentRead } from './crisis-call-risk.js';
 import type { CrisisVerdict, PatternOutcome } from './crisis-classifier.js';
 import { moreSevereRead } from './crisis-everyday.js';
 import { detectCrisis } from './crisis-guard.js';
@@ -129,6 +130,9 @@ export function agreementCacheScope(
 
 /** The read for a turn read with and without the everyday rules. */
 export function combineReads(reads: TurnReads): CrisisVerdict | null {
+  if (reads.ruled?.risk === 'imminent' || reads.plain?.risk === 'imminent') {
+    noteImminentRead(reads.call); // CRISIS_BRAKE_V2: either read, even one eased below
+  }
   const read = moreSevereRead(reads.ruled, reads.plain);
   if (!readsNeedAgreement(reads)) return read;
   try {
