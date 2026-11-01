@@ -13,19 +13,23 @@ const logged = vi.hoisted(() => ({ calls: [] as unknown[][] }));
 const CONCERN = 'Rosa said the pharmacy on Maple Street has not called her back';
 const ACTION = 'Ask Rosa about the refill at Maple Street';
 
-vi.mock('../../utils/safe-logger.js', () => {
+vi.mock('../../utils/safe-logger.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../utils/safe-logger.js')>();
   const record =
     (level: string) =>
     (...args: unknown[]) => {
       logged.calls.push([level, ...args]);
     };
-  const logger = {
+  const logger: Record<string, unknown> = {
+    child: () => logger,
+    trace: record('trace'),
+    fatal: record('fatal'),
     info: record('info'),
     warn: record('warn'),
     error: record('error'),
     debug: record('debug'),
   };
-  return { createLogger: () => logger };
+  return { ...actual, createLogger: () => logger, getLogger: () => logger };
 });
 vi.mock('../../services/family/proactive-family-checkin.js', () => ({
   getCallRecordById: vi.fn(async () => ({
