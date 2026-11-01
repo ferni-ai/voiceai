@@ -4,7 +4,7 @@
  * Every persona reply goes through PersonaVoiceAgent.llmNode. Before the LLM is
  * asked, the crisis guard's patterns decide instantly:
  *   replace — speak the crisis script instead of the model's reply
- *   guide   — add crisis guidance to this request (buildCrisisGuidance)
+ *   guide   — add crisis guidance to this request (crisisGuidanceOnce)
  *   pass    — nothing to do
  *
  * The semantic classifier (services/safety/crisis-classifier.ts) runs in parallel with the
@@ -47,8 +47,8 @@ import {
 import {
   answeredYes,
   briefTurn,
+  crisisGuidanceOnce,
   SCRIPT_ANSWER_CHECKIN,
-  withLineNote,
   withLineOnce,
   type LineTurn,
   type ScriptAnswer,
@@ -75,7 +75,6 @@ import {
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   applyClassifierVerdict,
-  buildCrisisGuidance,
   detectCrisis,
   guardFromDetection,
   type CrisisDetectionResult,
@@ -129,9 +128,7 @@ export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   if (guardFromDetection(crisis).shouldBlock && crisis.suggestedResponse) {
     return { action: 'replace', script: crisis.suggestedResponse, kind: crisisKindOf(crisis) };
   }
-  if (crisis.isCrisis) {
-    return { action: 'guide', guidance: withLineNote(buildCrisisGuidance(crisis), crisis) };
-  }
+  if (crisis.isCrisis) return { action: 'guide', guidance: crisisGuidanceOnce(crisis) };
   return { action: 'pass' };
 }
 

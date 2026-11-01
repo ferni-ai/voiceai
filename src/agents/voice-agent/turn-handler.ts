@@ -24,8 +24,7 @@ import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { SOFT_CRISIS_CHECK } from '../../services/safety/crisis-agreement.js';
-import { buildCrisisGuidance } from '../safety/crisis-guard.js';
-import { withLineNote } from '../../services/safety/index.js'; // CRISIS_BRAKE_V2
+import { crisisGuidanceOnce } from '../../services/safety/index.js'; // CRISIS_BRAKE_V2
 import type { SessionServices } from '../../services/index.js';
 import { getContextAwareThinkingFiller } from '../../speech/persona-phrases.js';
 import type { SessionStateManager } from '../session/session-state.js';
@@ -1372,7 +1371,7 @@ ${result.crisis.suggestedResponse}`
 
       result.context.injections.unshift({
         category: 'crisis_response',
-        content: withLineNote(buildCrisisGuidance(result.crisis), result.crisis),
+        content: crisisGuidanceOnce(result.crisis),
         priority: 100,
       });
     } else if (result.crisis?.softCheck) {

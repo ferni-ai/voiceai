@@ -13,8 +13,7 @@ import {
 } from '../../../services/safety/crisis-classifier.js';
 import { resetImminentAgreement } from '../../../services/safety/crisis-imminent-agreement.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
-import { buildCrisisGuidance } from '../../../services/safety/crisis-guard.js';
-import { withLineNote } from '../../../services/safety/crisis-line-once.js';
+import { crisisGuidanceOnce } from '../../../services/safety/crisis-line-once.js';
 import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import type { CrisisDetection } from '../../processors/types.js';
 import { startCrisisGate, type CrisisGateDecision } from '../crisis-gate.js';
@@ -94,10 +93,7 @@ export async function simulateCall(
     const injected = pipeline.shouldOverrideLLM
       ? null
       : pipeline.isCrisis
-        ? withLineNote(
-            buildCrisisGuidance(pipeline as Parameters<typeof buildCrisisGuidance>[0]),
-            pipeline
-          )
+        ? crisisGuidanceOnce(pipeline as Parameters<typeof crisisGuidanceOnce>[0])
         : (pipeline.softGuidance ?? null);
     const override = pipeline.shouldOverrideLLM ? pipeline.suggestedResponse : undefined;
     const ferni =

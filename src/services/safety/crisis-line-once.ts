@@ -9,6 +9,7 @@
  */
 
 import { crisisBrakeOn } from './crisis-brake.js';
+import { buildCrisisGuidance, type CrisisDetectionResult } from './crisis-guard.js';
 import { noteImminentRead } from './crisis-call-risk.js';
 import { offersCrisisLine } from './crisis-line-speech.js';
 
@@ -69,9 +70,8 @@ export function withLineOnce<
 const NOTE =
   "They already heard the 988 number on this call. Give it again in one short, natural sentence of your own; don't re-read the crisis script or repeat the same wording.";
 
-/** Main's crisis guidance, with the note for a turn on a call that already heard the line. */
-export const withLineNote = (
-  guidance: string,
-  crisis: { indicators?: readonly string[] }
-): string =>
-  crisis.indicators?.includes(LINE_GIVEN) === true ? `${guidance}\n\n${NOTE}` : guidance;
+/** Main's crisis guidance (buildCrisisGuidance), with the note once the call heard the line. */
+export function crisisGuidanceOnce(crisis: CrisisDetectionResult): string {
+  const guidance = buildCrisisGuidance(crisis);
+  return crisis.indicators.includes(LINE_GIVEN) ? `${guidance}\n\n${NOTE}` : guidance;
+}

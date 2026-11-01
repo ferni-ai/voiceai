@@ -19,7 +19,7 @@ import {
   resetCrisisCallRisk,
 } from '../crisis-call-risk.js';
 import { combineReads, resetImminentAgreement } from '../crisis-imminent-agreement.js';
-import { LINE_GIVEN, withLineNote, withLineOnce } from '../crisis-line-once.js';
+import { crisisGuidanceOnce, LINE_GIVEN, withLineOnce } from '../crisis-line-once.js';
 import { ANYONE_NEARBY, scriptAnswer, TAKEN_OR_IN_DANGER } from '../crisis-script-answer.js';
 
 const ON = { CRISIS_BRAKE_V2: 'on' };
@@ -327,7 +327,7 @@ describe('#1464: the crisis line once per call, never withheld', () => {
     ...over,
   });
   const crisisRead = { ...plain, isCrisis: true, severity: 0.75, subject: 'self' as const };
-  const guidanceOf = (read: typeof crisisRead) => withLineNote(buildCrisisGuidance(read), read);
+  const guidanceOf = crisisGuidanceOnce;
 
   it('the line not yet heard: unchanged, main guidance', () => {
     const t = turn({ ferni: ['Okay, tell me more.'] });
