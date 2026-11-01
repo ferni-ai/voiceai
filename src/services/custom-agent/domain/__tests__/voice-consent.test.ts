@@ -92,6 +92,42 @@ describe('scoreConsentTranscript', () => {
     expect(score.missingCheckWords).toEqual(['apple']);
   });
 
+  it('refuses a reading that skips too much of the statement, check words and all', () => {
+    const heard =
+      'my name is rosa quill i agree that ferni may make, my check words are apple bridge candle';
+    const score = scoreConsentTranscript(forMaya, heard);
+    expect(score.missingCheckWords).toEqual([]);
+    expect(score.coverage).toBeGreaterThan(0.5);
+    expect(score.coverage).toBeLessThan(MIN_COVERAGE);
+    expect(score.verified).toBe(false);
+  });
+
+  it('still verifies when a couple of words are dropped', () => {
+    const heard = forMaya.text.replace('I can take this back', 'I take it back');
+    const score = scoreConsentTranscript(forMaya, heard);
+    expect(score.coverage).toBeLessThan(1);
+    expect(score.coverage).toBeGreaterThanOrEqual(MIN_COVERAGE);
+    expect(score.verified).toBe(true);
+  });
+
+  it('does not score the date, however speech to text writes it', () => {
+    const heard = forMaya.text.replace('November 1, 2026', '11/1/2026');
+    expect(scoreConsentTranscript(forMaya, heard)).toMatchObject({ verified: true, coverage: 1 });
+  });
+
+  it('scores "may" in the statement even in May', () => {
+    const inMay = buildConsentStatement({
+      subjectName: 'Rosa Quill',
+      creatorName: 'Rosa Quill',
+      spokenDate: 'June 2, 2026',
+      random: seq(0, 0, 0),
+    });
+    const full = scoreConsentTranscript(inMay, inMay.text).coverage;
+    const noMay = scoreConsentTranscript(inMay, inMay.text.replace('Ferni may make', 'Ferni make'));
+    expect(full).toBe(1);
+    expect(noMay.coverage).toBeLessThan(1);
+  });
+
   it('refuses an empty transcript', () => {
     expect(scoreConsentTranscript(forMaya, '')).toMatchObject({ verified: false, coverage: 0 });
   });

@@ -78,14 +78,19 @@ export interface ConsentStatementInput {
   creatorName: string;
   /** The day it is read, already formatted for speech ("October 31, 2026"). */
   spokenDate: string;
-  /** Random number in [0, 1); injected so tests are repeatable. */
+  /** Random number in [0, 1); injected so tests are repeatable. Defaults to Web Crypto. */
   random?: () => number;
 }
 
 export interface ConsentStatement {
   text: string;
   checkWords: readonly string[];
+  /** The date as written in the text; speech to text writes dates in many forms, so it isn't scored. */
+  spokenDate: string;
 }
+
+/** Unpredictable check words, so nobody can record them ahead of time. */
+const secureRandom = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
 
 function pickCheckWords(random: () => number): string[] {
   const pool = [...CHECK_WORDS];
@@ -105,12 +110,13 @@ export function buildConsentStatement(input: ConsentStatementInput): ConsentStat
   const creator = clean(input.creatorName);
   const forWhom =
     subject.toLowerCase() === creator.toLowerCase() ? 'my own use' : `${creator}'s private use`;
-  const checkWords = pickCheckWords(input.random ?? Math.random);
+  const checkWords = pickCheckWords(input.random ?? secureRandom);
+  const spokenDate = clean(input.spokenDate);
   const text =
     `My name is ${subject}. I agree that Ferni may make an AI copy of my voice for ${forWhom}. ` +
-    `I can take this back at any time. Today is ${clean(input.spokenDate)}. ` +
+    `I can take this back at any time. Today is ${spokenDate}. ` +
     `My check words are ${checkWords.join(', ')}.`;
-  return { text, checkWords };
+  return { text, checkWords, spokenDate };
 }
 
 /** Lowercase whole words, numbers dropped (dates come back from speech to text in many forms). */
@@ -121,25 +127,10 @@ export function consentWords(text: string): string[] {
 export interface ConsentScore {
   /** True when every check word was said and enough of the statement was. */
   verified: boolean;
-  /** Share of the statement's words (dates excluded) found in the transcript. */
+  /** Share of the statement's words (the date excluded) found in the transcript. */
   coverage: number;
   missingCheckWords: string[];
 }
-
-const MONTHS = new Set([
-  'january',
-  'february',
-  'march',
-  'april',
-  'may',
-  'june',
-  'july',
-  'august',
-  'september',
-  'october',
-  'november',
-  'december',
-]);
 
 /** Score a speech-to-text transcript of the subject reading the statement. */
 export function scoreConsentTranscript(
@@ -147,7 +138,8 @@ export function scoreConsentTranscript(
   transcript: string
 ): ConsentScore {
   const heard = new Set(consentWords(transcript));
-  const expected = consentWords(statement.text).filter((w) => !MONTHS.has(w));
+  const dateWords = new Set(consentWords(statement.spokenDate));
+  const expected = consentWords(statement.text).filter((w) => !dateWords.has(w));
   const found = expected.filter((w) => heard.has(w)).length;
   const coverage = expected.length ? found / expected.length : 0;
   const missingCheckWords = statement.checkWords.filter((w) => !heard.has(w));
