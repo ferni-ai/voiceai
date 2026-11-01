@@ -37,6 +37,7 @@ import {
   returningCallerEnabled,
 } from '../../services/identity/returning-caller.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { isPlacedCall, placedCallNotOwnerProofOn } from '../../services/identity/verified-caller.js';
 import {
   readSignedAttestation,
   readSipCaller,
@@ -310,11 +311,16 @@ export function unrecognisedCallerGreeting(r: CallerRecognition | undefined): st
  * Whether the dispatch already named the account: the app (signed-in user)
  * and calls Ferni placed for a user do; a phone caller's number, an
  * anonymous id, or the inbound webhook's unverified number lookup do not.
+ * PLACED_CALL_NOT_OWNER_PROOF=on: a call Ferni placed to the owner's number
+ * (isPlacedCall) doesn't either. Anyone can answer it, so it is recognised like
+ * an inbound call from that number and is never a dispatch-proven owner.
  */
 export function accountNamedByDispatch(source: string, jobMetadata: string | undefined): boolean {
   let inbound = false;
   try {
-    inbound = (JSON.parse(jobMetadata ?? '{}') as { type?: unknown }).type === 'inbound_call';
+    const type = (JSON.parse(jobMetadata ?? '{}') as { type?: unknown }).type;
+    const placed = typeof type === 'string' && isPlacedCall(type) && placedCallNotOwnerProofOn();
+    inbound = type === 'inbound_call' || placed;
   } catch {
     // Unparseable metadata names nobody.
   }
