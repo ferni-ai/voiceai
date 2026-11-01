@@ -28,6 +28,8 @@ const ASKED = "what's on my calendar, remind me to call her";
 /** Account tools the turn could act with, and the crisis tools it must keep. */
 const ACCOUNT = ['getCalendarToday', 'setReminder', 'rememberAboutUser', 'getContactInfo'];
 const CRISIS = ['provideCrisisResources', 'connectToHumanExpert', 'evaluateHumanTransfer'];
+/** Team tools: a handoff moves the call; the rest read the owner's tier or lead into a handoff. */
+const TEAM = ['handoffToMaya', 'handoffToPeter', 'introduceMember', 'meetTheTeam', 'softTeamIntro'];
 
 /** Records the tools of every request, keyed on a fragment of the caller's words. */
 class RecordingLLM extends voice.testing.FakeLLM {
@@ -58,7 +60,9 @@ async function call(script: voice.testing.FakeLLMResponse[]) {
         return `${name} done`;
       },
     });
-  const tools = Object.fromEntries([...ACCOUNT, ...CRISIS].map((name) => [name, tool(name)]));
+  const tools = Object.fromEntries(
+    [...ACCOUNT, ...CRISIS, ...TEAM].map((name) => [name, tool(name)])
+  );
   const model = new RecordingLLM(script);
   const agent = new PersonaVoiceAgent('You are Ferni.', {
     tools: tools as unknown as llm.ToolContext,
@@ -80,13 +84,13 @@ async function call(script: voice.testing.FakeLLMResponse[]) {
 const saved = { ...process.env };
 beforeEach(() => {
   fail.identity = false;
+  process.env.BYPASS_TEAM_UNLOCKS = 'all'; // every teammate open, so main offers each handoff
 });
 afterEach(() => {
   process.env = { ...saved };
 });
 
-// askForTeammate: every persona agent carries it (withTeammateTool), and it connects no one.
-const ALL = [...ACCOUNT, ...CRISIS, 'askForTeammate'].sort();
+const ALL = [...ACCOUNT, ...CRISIS, ...TEAM].sort();
 const reminds = {
   input: ASKED,
   content: 'On it.',
@@ -98,8 +102,18 @@ describe('UNVERIFIED_TURN_TOOLS on a real agent session (#3305)', () => {
     process.env.UNVERIFIED_TURN_TOOLS = 'on';
     fail.identity = true;
     const { model } = await call([{ input: ASKED, content: "I can't do that yet." }]);
-    expect(model.offered[0]).toEqual([...CRISIS, 'askForTeammate'].sort());
+    expect(model.offered[0]).toEqual([...CRISIS].sort());
     for (const name of ACCOUNT) expect(model.offered[0]).not.toContain(name);
+  }, 90_000);
+
+  it('flag on, unverified: no teammate handoff is offered, and a call to one does not run', async () => {
+    process.env.UNVERIFIED_TURN_TOOLS = 'on';
+    fail.identity = true;
+    const handoff = { name: 'handoffToMaya', args: { q: 'x' } };
+    const { model, ran } = await call([{ input: ASKED, content: 'Sure.', toolCalls: [handoff] }]);
+    for (const name of TEAM) expect(model.offered[0]).not.toContain(name);
+    expect(model.offered[0].filter((name) => /^handoffTo/.test(name))).toEqual([]);
+    expect(ran).toEqual([]);
   }, 90_000);
 
   it('flag on, unverified: a call to a tool it was not offered does not run', async () => {

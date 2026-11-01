@@ -104,6 +104,7 @@ describe('the tools a request offers (#3305)', () => {
   it('flag on, unverified: no tool that acts on the owner account is offered', () => {
     const offered = names(toolsForRequest(built(true), catalog()).tools);
     for (const name of ACCOUNT) expect(offered).not.toContain(name);
+    expect(offered).not.toContain('handoffToMaya'); // a handoff may carry owner context
   });
 
   it('flag on, unverified: every crisis/safety tool is still offered', () => {
@@ -177,6 +178,14 @@ describe('each request answers for itself, a crisis-guided re-ask included', () 
 });
 
 describe('the allowlist pin: a tool joins it only on purpose', () => {
+  it('no team tool the phone-safe rule keeps is offered; the rest of that rule is', () => {
+    const team = ['handoffToMaya', 'handoffToPeter', 'askForTeammate', 'introduceMember'];
+    for (const name of [...team, 'meetTheTeam', 'softTeamIntro'])
+      expect(offeredWhenUnverified(name)).toBe(false);
+    for (const name of ['endCall', 'getWeather', 'playMusic', 'breatheWithMe'])
+      expect(offeredWhenUnverified(name)).toBe(true);
+  });
+
   it('SAFETY_TOOLS is every tool of the crisis and human-transfer domains', () => {
     const ids = [...crisis.definitions, ...humanTransfer.definitions].map((d) => d.id).sort();
     expect([...SAFETY_TOOLS].sort()).toEqual(ids);

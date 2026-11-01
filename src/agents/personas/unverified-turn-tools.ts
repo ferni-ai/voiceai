@@ -4,8 +4,9 @@
  * account action (#3305). Before this, only one sentence of the reminder held the model back.
  *
  * An allowlist, as #3091's SAFE set: the phone-safe tools (phone-safe-tools.ts: play, support and
- * public), plus every crisis and human-transfer tool (SAFETY_TOOLS), so 988, the crisis resources
- * and the human transfer are offered as on any turn. Every other tool leaves that request.
+ * public) but none of the team tools (TEAM_TOOLS), plus every crisis and human-transfer tool
+ * (SAFETY_TOOLS), so 988, the crisis resources and the human transfer are offered as on any turn.
+ * Every other tool leaves that request.
  *
  * Taking a tool off the request is not enough on its own: the SDK runs a tool call against the
  * reply's full tool context, not the request's (@livekit/agents voice/agent_activity.js hands
@@ -45,9 +46,23 @@ export const SAFETY_TOOLS: ReadonlySet<string> = new Set([
   'trackSobrietyMilestone',
 ]);
 
-/** Offered on an unverified turn: a phone-safe tool (handoffs included) or a safety tool. */
+/**
+ * The team tools the phone-safe rule keeps, never offered on an unverified turn: a handoff
+ * (handoffTo*) moves the call to a teammate, and no one has shown it carries no owner context;
+ * the others read the owner's tier and unlocks or lead into a handoff (handoff-factory.ts,
+ * locked-teammates.ts). A later change can bring one back with that proof (#3305).
+ */
+const TEAM_TOOLS: ReadonlySet<string> = new Set([
+  'askForTeammate',
+  'introduceMember',
+  'meetTheTeam',
+  'softTeamIntro',
+]);
+const isTeamTool = (name: string): boolean => TEAM_TOOLS.has(name) || /^handoffTo[A-Z]/.test(name);
+
+/** Offered on an unverified turn: a safety tool, or a phone-safe tool that isn't a team tool. */
 export const offeredWhenUnverified = (name: string): boolean =>
-  phoneSafeTool(name) || SAFETY_TOOLS.has(name);
+  SAFETY_TOOLS.has(name) || (phoneSafeTool(name) && !isTeamTool(name));
 
 /** The tools a request offers, and its reply with no call to a tool it didn't offer. */
 export interface RequestTools {
