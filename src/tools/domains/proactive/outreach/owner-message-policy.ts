@@ -154,17 +154,48 @@ export function ownerMessagePolicy(message: OwnerMessage): OwnerMessageDecision 
 type Args = Record<string, unknown>;
 /** How these tools' replies begin when nothing went out (no verified phone, quiet hours, a failure). */
 const NOT_SENT_REPLY = /^(?:I can't|I couldn't|I didn't|Couldn't|Something went wrong|I need)/;
-/** Which runs speak their message on a call (no footer); every other run sends text. */
-const SPOKEN: Readonly<Record<string, (args: Args) => boolean>> = {
-  callUser: () => true,
-  scheduleCall: () => true,
-  sendImmediateOutreach: (args) => args.method === 'call',
-  scheduleProactiveReminder: (args) => args.method === 'voice',
-  scheduleAtBestTime: (args) => args.channel === 'call',
+
+/** How a tool's run reaches the owner: what the model wrote, and how it is delivered. */
+export interface OwnerMessageSpec {
+  /** Every model-written argument that is sent or stored */
+  texts: readonly string[];
+  /** The argument the footer is added to */
+  footerOn: string;
+  /** Spoken on a call rather than texted: no footer */
+  spoken?: (args: Args) => boolean;
+  /** False for runs that send the owner nothing (a calendar event): those skip the policy */
+  applies?: (args: Args) => boolean;
+}
+
+const MESSAGE: OwnerMessageSpec = { texts: ['message', 'subject', 'contactName'], footerOn: 'message' }; // prettier-ignore
+const REMINDER: OwnerMessageSpec = { texts: ['message'], footerOn: 'message' };
+/** By tool id; any other id sends `message` (with `subject` and `contactName`) as text. */
+const SPECS: Readonly<Record<string, OwnerMessageSpec>> = {
+  callUser: { ...MESSAGE, spoken: () => true },
+  scheduleCall: { ...MESSAGE, spoken: () => true },
+  sendImmediateOutreach: { ...MESSAGE, spoken: (args) => args.method === 'call' },
+  scheduleProactiveReminder: { ...MESSAGE, spoken: (args) => args.method === 'voice' },
+  scheduleAtBestTime: { ...MESSAGE, spoken: (args) => args.channel === 'call' },
+  // Reminders: any of them may be texted to the owner (reminder-text-guard.ts)
+  setReminder: { ...REMINDER, spoken: (args) => args.deliveryMethod === 'call' },
+  recurringReminder: REMINDER,
+  scheduleReminder: { texts: ['title'], footerOn: 'title', applies: (args) => args.type !== 'event' }, // prettier-ignore
 };
+/** Alex's scheduleCall (communication-tools.ts): texts the owner "Call with {contact}... Purpose: {purpose}". */
+export const CALL_REMINDER_SPEC: OwnerMessageSpec = { texts: ['contact', 'purpose'], footerOn: 'purpose' }; // prettier-ignore
+
+/** Every spec in use, by name: the default, each tool's, and Alex's call reminder. */
+export const ownerMessageSpecs = (): ReadonlyArray<[string, OwnerMessageSpec]> => [
+  ['default', MESSAGE],
+  ...Object.entries(SPECS),
+  ['CALL_REMINDER_SPEC', CALL_REMINDER_SPEC],
+];
 
 /** The definition, wrapped so each run goes through ownerMessagePolicy first. */
-export function ownerMessageTool(def: ToolDefinition): ToolDefinition {
+export function ownerMessageTool(
+  def: ToolDefinition,
+  spec: OwnerMessageSpec = SPECS[def.id] ?? MESSAGE
+): ToolDefinition {
   return {
     ...def,
     create: (ctx: ToolContext): Tool => {
@@ -173,15 +204,17 @@ export function ownerMessageTool(def: ToolDefinition): ToolDefinition {
       const execute = (tool as { execute: Execute }).execute.bind(tool);
       const run = async (args: unknown, opts?: unknown): Promise<unknown> => {
         const given = (args ?? {}) as Args;
-        const spoken = SPOKEN[def.id]?.(given) ?? false;
-        const texts = [given.message, given.subject, given.contactName]; // every model-written field
+        if (spec.applies && !spec.applies(given)) return execute(args, opts);
+        const spoken = spec.spoken?.(given) ?? false;
+        const texts = spec.texts.map((name) => given[name]);
         const message: OwnerMessage = { tool: def.id, ownerId: ctx.userId, opts, texts, spoken };
         const decision = ownerMessagePolicy(message);
         if (decision.outcome === 'refused') return decision.line;
         if (decision.outcome === 'unchanged') return execute(args, opts);
-        const body = typeof given.message === 'string' ? given.message : '';
+        const raw = given[spec.footerOn];
+        const body = typeof raw === 'string' ? raw : '';
         const sent = decision.footer
-          ? { ...given, message: `${body}\n\n${decision.footer}` }
+          ? { ...given, [spec.footerOn]: `${body}\n\n${decision.footer}` }
           : args;
         try {
           const reply = await execute(sent, opts);

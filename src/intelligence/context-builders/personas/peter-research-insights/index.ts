@@ -23,6 +23,7 @@ import {
   type ContextInjection,
 } from '../../index.js';
 import { getSuperhuman } from '../../superhuman/superhuman-integration.js';
+import { loadBriefingStores } from '../briefing-stores.js';
 
 // V5 Superhuman Persona Intelligence - Causal Inference & Financial Patterns
 import {
@@ -43,13 +44,7 @@ import { clearPeterResearchSession, getSession } from './session.js';
 import { getPendingDecisions } from '../../../../tools/domains/ceo-coaching/storage.js';
 import { formatBriefingForInjection } from './formatting.js';
 import { analyzeHandoffContext } from './handoff-analysis.js';
-import {
-  analyzePersonalLifePatterns,
-  computeBehavioralMetrics,
-  generateCoachingInsights,
-  generateCrossDomainPatterns,
-  generateDeepFinancialInsights,
-} from './metrics.js';
+import { detectCrossDomainPatterns } from './metrics.js';
 import { detectProactiveCoachingInsights } from './opportunities.js';
 import type { HabitInsights, MemoryInsights, MoodInsights, UserInsightBriefing } from './types.js';
 import { isMemberIdentity } from '../../../../services/identity/member-identity.js';
@@ -67,6 +62,8 @@ async function buildInsightBriefing(
   userId: string,
   _isHandoff: boolean
 ): Promise<UserInsightBriefing> {
+  // The store getters read an empty cache until the member's data is loaded (#3044).
+  await loadBriefingStores(userId);
   // Default fallback values for graceful degradation
   const defaultHabitInsights: HabitInsights = {
     activeHabits: 0,
@@ -127,11 +124,6 @@ async function buildInsightBriefing(
     getPendingDecisions(userId).catch(() => []),
   ]);
 
-  const crossDomainPatterns = generateCrossDomainPatterns();
-  const personalLifeInsights = analyzePersonalLifePatterns();
-  const coachingInsights = generateCoachingInsights();
-  const financialDeepInsights = generateDeepFinancialInsights();
-
   // Detect proactive coaching triggers (sync, based on already-fetched data)
   // Cross-Domain: Include CEO decisions for Peter's analytical support
   const proactiveCoachingInsights = detectProactiveCoachingInsights(
@@ -140,8 +132,12 @@ async function buildInsightBriefing(
     ceoPendingDecisions // CEO Coaching: Pending decisions Peter can help analyze
   );
 
-  // Compute behavioral metrics from cross-team data
-  const behavioralMetrics = computeBehavioralMetrics(mayaInsights, moodPatterns, spendingInsights);
+  // Patterns the member's own habits, moods and spending show
+  const crossDomainPatterns = detectCrossDomainPatterns(
+    mayaInsights,
+    moodPatterns,
+    spendingInsights
+  );
 
   // Proactive discoveries Peter should surface
   const proactiveDiscoveries: string[] = [];
@@ -184,13 +180,13 @@ async function buildInsightBriefing(
       'Declining mood trend detected - approach with extra care, look for underlying causes'
     );
   }
-  if (moodPatterns.averageEnergy < 2.5) {
+  if (moodPatterns.lastMood && moodPatterns.averageEnergy < 2.5) {
     proactiveDiscoveries.push('Low energy average - may need to address rest before goals');
   }
 
-  // Behavioral metric discoveries
-  if (behavioralMetrics.patterns.length > 0) {
-    proactiveDiscoveries.push(`Cross-domain pattern: ${behavioralMetrics.patterns[0]}`);
+  // Cross-domain discoveries
+  if (crossDomainPatterns.length > 0) {
+    proactiveDiscoveries.push(`Cross-domain pattern: ${crossDomainPatterns[0]}`);
   }
 
   // Memory system insights
@@ -208,30 +204,16 @@ async function buildInsightBriefing(
     proactiveDiscoveries.push(...proactiveCoachingInsights.priorityInsights);
   }
 
-  // Personal life discoveries
-  if (personalLifeInsights.length > 0) {
-    proactiveDiscoveries.push(...personalLifeInsights.slice(0, 1));
-  }
-
-  // Build habit correlations (framework prompts + real correlations)
-  const habitCorrelations: string[] = [];
-  if (behavioralMetrics.patterns.length > 0) {
-    habitCorrelations.push(...behavioralMetrics.patterns.slice(0, 2));
-  }
-  habitCorrelations.push(...coachingInsights.slice(0, 2), ...financialDeepInsights.slice(0, 2));
-
   return {
     spendingInsights,
-    habitCorrelations,
     goalInsights,
-    crossDomainPatterns: [...crossDomainPatterns, ...personalLifeInsights.slice(1)],
+    crossDomainPatterns,
     anomalies: spendingInsights.filter(
       (i) => i.includes('over') || i.includes('ahead') || i.includes('behind')
     ),
     proactiveDiscoveries,
     mayaInsights,
     moodPatterns,
-    behavioralMetrics,
     calendarContext,
   };
 }
@@ -289,6 +271,8 @@ async function buildPeterResearchInsightsContext(
   try {
     // Build comprehensive briefing
     const briefing = await buildInsightBriefing(userId, isHandoff);
+    const briefingLines = formatBriefingForInjection(briefing, handoffBriefing, turnCount);
+    if (briefingLines.length === 0) return injections; // nothing true to say
 
     // Get superhuman context (predictions, values, commitments)
     // V3 Semantic Intelligence needs current conversation context
@@ -301,9 +285,6 @@ async function buildPeterResearchInsightsContext(
       currentEmotion: input.analysis?.emotion?.primary,
       currentMentionedPerson: personMatch?.[1],
     });
-
-    // Format for injection
-    const briefingLines = formatBriefingForInjection(briefing, handoffBriefing, turnCount);
 
     // Add superhuman context if available
     if (superhumanContext) {
@@ -331,36 +312,15 @@ async function buildPeterResearchInsightsContext(
 
     // 🤝 TEAM HUDDLE: Record Peter's observations for cross-persona intelligence
     try {
-      const { peter: peterObserver, recordConcern } =
+      const { peter: peterObserver } =
         await import('../../../../services/cross-persona/observation-recorder.js');
 
-      // Record spending/financial concerns (financialStressLevel is a string like "high", "moderate")
-      const stressLevel = briefing.behavioralMetrics.financialStressLevel.toLowerCase();
-      if (stressLevel === 'high' || stressLevel === 'stressed') {
-        recordConcern(
-          userId,
-          'peter',
-          `Financial stress elevated: ${briefing.behavioralMetrics.financialStressLevel}`,
-          0.8,
-          ['finances', 'stress', 'spending']
-        );
-      }
-
-      // Record pattern discoveries
+      // Record pattern discoveries (only ones the member's data shows, #3044)
       if (briefing.crossDomainPatterns.length > 0) {
         peterObserver.pattern(userId, briefing.crossDomainPatterns[0], 0.8, [
           'patterns',
           'research',
           'correlation',
-        ]);
-      }
-
-      // Record insights about habit correlations
-      if (briefing.habitCorrelations.length > 0) {
-        peterObserver.insight(userId, briefing.habitCorrelations[0], 0.75, [
-          'habits',
-          'correlation',
-          'data',
         ]);
       }
 

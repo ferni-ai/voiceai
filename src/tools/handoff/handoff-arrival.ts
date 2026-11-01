@@ -108,8 +108,11 @@ export function getHandoffContext(sessionId?: string): HandoffArrivalContext | n
   return liveArrival(sessionId)?.context ?? null;
 }
 
-/** True when `personaId` (canonical) was just handed this call and its first turn hasn't taken the arrival yet. */
-function hasHandoffArrival(sessionId: string | undefined, personaId: string): boolean {
+/**
+ * True when `personaId` (canonical) was just handed this call and its first turn hasn't taken the
+ * arrival yet. A peek: it takes nothing, so the persona's builder still gets the arrival.
+ */
+export function hasHandoffArrival(sessionId: string | undefined, personaId: string): boolean {
   const arrival = liveArrival(sessionId);
   if (!arrival || arrival.taken) return false;
   return arrival.personaId === personaId;
