@@ -36,8 +36,8 @@ const resultStore = new Map<string, BackgroundResult[]>();
 // FIRESTORE OPERATIONS
 // ============================================================================
 
-/** Store a background result in Firestore */
-async function storeResult(result: BackgroundResult): Promise<void> {
+/** Store a background result in Firestore; expireAt is a Date, since a TTL policy reads only a Timestamp. */
+async function storeResult(result: BackgroundResult, expireAt?: Date): Promise<void> {
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({
       getFirestoreDb: null,
@@ -54,7 +54,7 @@ async function storeResult(result: BackgroundResult): Promise<void> {
         .doc(result.userId)
         .collection('background_results')
         .doc(result.id)
-        .set(cleanResult);
+        .set(expireAt ? { ...cleanResult, expireAt } : cleanResult);
 
       log.info(
         { userId: result.userId, resultId: result.id, type: result.type },
@@ -458,6 +458,7 @@ export async function captureBackgroundResult(params: {
   specificData?: Record<string, unknown>;
   skipPush?: boolean; // the caller tells the user its own way (one text)
   skipEmail?: boolean; // the caller sends its own; else urgent and high results are emailed
+  expireAt?: Date; // a Firestore TTL policy on background_results.expireAt deletes it then
 }): Promise<BackgroundResult> {
   const result = createBackgroundResult({
     userId: params.userId,
@@ -487,7 +488,7 @@ export async function captureBackgroundResult(params: {
 
   try {
     // 1. Store the result
-    await storeResult(result);
+    await storeResult(result, params.expireAt);
 
     // 2. Try to send to active session
     let sentToActive = false;

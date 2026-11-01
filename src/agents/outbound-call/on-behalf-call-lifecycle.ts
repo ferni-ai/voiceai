@@ -23,8 +23,13 @@ import {
   onBehalfRequestFromDispatch,
   type OnBehalfDispatch,
 } from '../../services/outreach/on-behalf-dispatch.js';
-import { screenedCallerText } from '../../services/outreach/caller-text.js';
-import { relayedMessage } from '../../services/outreach/relayed-message.js';
+import {
+  crisisCallerLine,
+  crisisRead,
+  isRiskyCallerText,
+  riskyCallerLine,
+  screenedCallerText,
+} from '../../services/outreach/caller-text.js';
 import { isCallFollowthroughEnabled } from '../../services/outreach/call-retry.js';
 import { noteCallRefinement } from '../../services/follow-through/index.js';
 import {
@@ -92,11 +97,28 @@ export function classifyAnsweredCall(
 }
 
 /**
+ * Ferni's own fixed lines for what the person's words carried, never the words:
+ * crisis language (it always reaches the requester, #2861) and money, an account
+ * or a number. Empty when they carried neither.
+ */
+function flaggedLines(heard: string[], name: string): string {
+  const words = heard.join(' ');
+  const crisis = crisisRead(words) || heard.some(crisisRead);
+  const risky = isRiskyCallerText(words);
+  return [crisis ? crisisCallerLine(name) : '', risky ? riskyCallerLine(name) : '']
+    .filter(Boolean)
+    .join(' ');
+}
+
+const withFlags = (said: string, flags: string): string => (flags ? `${said} ${flags}` : said);
+
+/**
  * What the requester is told. `turns` is the raw transcript (null if capture
  * never started); `analysis` is the LLM's read of it (null if that failed).
- * Everything that came from the call (the other person's words and the model's
- * read of them) is untrusted and goes through screenedCallerText before it
- * reaches the requester's prompt, push, email or calendar.
+ * The other person's own words are never kept: the stored result carries the
+ * call's status and the model's summary only, and with no summary it says so
+ * (summaryUnavailable). The model's read is untrusted and goes through
+ * screenedCallerText before it reaches the requester's prompt, push, email or calendar.
  */
 export function buildCallOutcome(
   call: OnBehalfDispatch,
@@ -169,9 +191,6 @@ export function buildCallOutcome(
     };
   }
 
-  const quote = screenedCallerText(heard.slice(-2).join(' '), name, 200);
-  // What they asked to pass on, from their own words (the analysis may phrase it better below).
-  const message = relayedMessage(heard, call.requester.name, name);
   if (isCallFollowthroughEnabled()) {
     const how = classifyAnsweredCall(heard, durationSeconds);
     if (how === 'voicemail') {
@@ -199,9 +218,10 @@ export function buildCallOutcome(
         callId: call.callId,
         status: 'completed',
         objectiveAchieved: false,
-        outcome: `I reached ${name}, but they had to go before we really got to talk. They said: "${quote}"`,
-        transcriptSummary: screenedCallerText(heard.join(' '), name, 600),
-        message,
+        outcome: withFlags(
+          `I reached ${name}, but they had to go before we really got to talk.`,
+          flaggedLines(heard, name)
+        ),
       };
     }
   }
@@ -211,9 +231,11 @@ export function buildCallOutcome(
       callId: call.callId,
       status: 'completed',
       objectiveAchieved: false,
-      outcome: `I talked with ${name}. I couldn't put together a proper summary, but the last thing they said was: "${quote}"`,
-      transcriptSummary: screenedCallerText(heard.join(' '), name, 600),
-      message,
+      outcome: withFlags(
+        `I talked with ${name}, but I couldn't put together a summary of the call.`,
+        flaggedLines(heard, name)
+      ),
+      summaryUnavailable: true,
     };
   }
 
@@ -234,7 +256,7 @@ export function buildCallOutcome(
     callbackTime: screenedCallerText(insights.callbackDetails, name, 100) || undefined,
     actionItems: actionItems.length > 0 ? actionItems : undefined,
     // Screened again once joined: clean pieces can join into a link, a number or an instruction.
-    message: screenedCallerText(clean(insights.messagesForUser).join(' '), name, 200) || message,
+    message: screenedCallerText(clean(insights.messagesForUser).join(' '), name, 200) || undefined,
   };
 }
 

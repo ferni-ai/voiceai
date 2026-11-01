@@ -177,12 +177,14 @@ describe('a held on-behalf call placed by the deferred-calls job', () => {
     expect(captureCallResult).toHaveBeenCalledTimes(1);
     const [, outcome, request] = captureCallResult.mock.calls[0] as unknown as [
       string,
-      { status: string; transcriptSummary?: string },
+      { status: string; summaryUnavailable?: boolean },
       { userId: string },
     ];
     expect(request.userId).toBe('owner-1');
     expect(outcome.status).toBe('completed');
-    expect(outcome.transcriptSummary).toContain('go to church too');
+    // No model in this test: the report says so, and keeps none of their words.
+    expect(outcome.summaryUnavailable).toBe(true);
+    expect(JSON.stringify(outcome)).not.toContain('church');
     expect(callRecords()).toEqual([`owner-1/${String(JSON.parse(raw).callId)}`]);
   });
 

@@ -21,6 +21,7 @@ import { isMemberIdentity } from '../identity/member-identity.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
 import { voicemailWords } from './voicemail-outcome.js';
 import { completedAtFor, contactForOwner, type StepOutcome } from './call-result-words.js';
+import { callResultExpireAt } from './call-result-expiry.js';
 
 const log = getLogger().child({ service: 'call-result-capture' });
 
@@ -41,6 +42,8 @@ export interface StoredCallResult {
     callType: string;
   };
   capturedAt: string;
+  /** When Firestore's TTL deletes this result (call-result-expiry.ts). */
+  expireAt: Date;
 }
 
 interface FollowUpAction {
@@ -71,7 +74,8 @@ async function storeCallResult(result: StoredCallResult): Promise<void> {
     const db = getFirestoreDb ? getFirestoreDb() : null;
 
     if (db) {
-      const clean = cleanForFirestore(result);
+      // A Date, not cleanForFirestore's ISO string: a TTL policy only reads a Timestamp.
+      const clean = { ...cleanForFirestore(result), expireAt: result.expireAt };
       await db
         .collection('bogle_users')
         .doc(result.userId)
@@ -347,6 +351,7 @@ export async function captureCallResult(
         callType: request.callType,
       },
       capturedAt: new Date().toISOString(),
+      expireAt: callResultExpireAt(),
     };
 
     // 2. Store the result, 3. follow-up actions (keyed by callId, so a second capture rewrites them)
@@ -363,7 +368,7 @@ export async function captureCallResult(
         push: async (lead) => sendCallResultPushNotification(request, outcome, callId, lead),
         email: async () => sendCallResultEmail(request, outcome, callId),
         calendar: async () => createCallbackCalendarEvent(request, outcome, callId),
-        record: async () => storeInUnifiedResults(request, outcome, callId),
+        record: async () => storeInUnifiedResults(request, outcome, callId, result.expireAt),
         text: async (live) => tellOwnerAboutCall({ request, outcome, callId, live }),
         textOn: () => callResultTextOn(),
       }
@@ -733,7 +738,8 @@ async function getUserEmail(userId: string): Promise<string | null> {
 async function storeInUnifiedResults(
   request: OnBehalfCallRequest,
   outcome: CallOutcome,
-  callId: string
+  callId: string,
+  expireAt: Date
 ): Promise<void> {
   try {
     const { captureBackgroundResult } =
@@ -788,6 +794,7 @@ async function storeInUnifiedResults(
       // a second push on every call and a second email for a callback (audit 2026-10-29, C).
       skipPush: true,
       skipEmail: true,
+      expireAt, // the copy goes when the call result does
     });
 
     log.debug({ callId }, 'Call result stored in unified background results');
