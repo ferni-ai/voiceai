@@ -94,10 +94,8 @@ async function runOutreach(outreach: ScheduledOutreach): Promise<OutreachEnd> {
   const { userId, personaId, target, id } = outreach;
   const outreachId = `sched_exec_${id}`;
 
-  log.info(
-    { userId, contact: target.resolvedContactName, channel: target.channel },
-    '⏰ Executing scheduled outreach'
-  );
+  // Never the contact's name in a log (nor in an error that gets logged): they never signed up.
+  log.info({ userId, outreachId: id, channel: target.channel }, '⏰ Executing scheduled outreach');
 
   if (outreach.heldAt && Date.now() - outreach.scheduledFor.getTime() > HELD_EXPIRY_MS) {
     await updateOutreachStatus(userId, id, 'cancelled', {
@@ -140,7 +138,7 @@ async function runOutreach(outreach: ScheduledOutreach): Promise<OutreachEnd> {
       errorMsg = result.error;
     } else if (channelUsed === 'call' || channelUsed === 'conversation') {
       if (!target.resolvedPhone) {
-        throw new Error(`No phone number for ${target.resolvedContactName}`);
+        throw new Error('No phone number for the contact');
       }
       // MESSAGING_PIPELINE: a number that asked not to be called is never rung, and someone
       // other than the member must have agreed to calls (nothing confirms a scheduled call).
@@ -184,7 +182,7 @@ async function runOutreach(outreach: ScheduledOutreach): Promise<OutreachEnd> {
       }
     } else if (channelUsed === 'text') {
       if (!target.resolvedPhone) {
-        throw new Error(`No phone number for ${target.resolvedContactName}`);
+        throw new Error('No phone number for the contact');
       }
 
       const sent = await textOnBehalf({
@@ -220,7 +218,7 @@ async function runOutreach(outreach: ScheduledOutreach): Promise<OutreachEnd> {
       errorMsg = sent.sent ? undefined : sent.reason;
     } else if (channelUsed === 'email') {
       if (!target.resolvedEmail) {
-        throw new Error(`No email for ${target.resolvedContactName}`);
+        throw new Error('No email for the contact');
       }
 
       const result = await sendEmail({
@@ -244,23 +242,14 @@ async function runOutreach(outreach: ScheduledOutreach): Promise<OutreachEnd> {
     });
 
     if (success) {
-      log.info(
-        { userId, contact: target.resolvedContactName, channel: channelUsed },
-        '✅ Scheduled outreach completed'
-      );
+      log.info({ userId, outreachId: id, channel: channelUsed }, '✅ Scheduled outreach completed');
     } else {
-      log.warn(
-        { userId, contact: target.resolvedContactName, error: errorMsg },
-        '⚠️ Scheduled outreach failed'
-      );
+      log.warn({ userId, outreachId: id, error: errorMsg }, '⚠️ Scheduled outreach failed');
     }
     return end;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-    log.error(
-      { userId, contact: target.resolvedContactName, error: errorMsg },
-      '❌ Scheduled outreach error'
-    );
+    log.error({ userId, outreachId: id, error: errorMsg }, '❌ Scheduled outreach error');
 
     // Check if we should retry
     const { shouldRetry } = await incrementRetry(userId, id);
