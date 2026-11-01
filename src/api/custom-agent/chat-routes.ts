@@ -14,8 +14,12 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { flagOn } from '../../config/env-flag.js';
 import { callLLM } from '../../services/llm-utils.js';
-import { buildLiveCustomAgentPrompt } from '../../services/custom-agent/custom-agent-live-prompt.js';
-import { customAgentToPersonaConfig } from '../../services/custom-agent/custom-agent-runtime-service.js';
+import {
+  buildLiveCustomAgentPrompt,
+  CUSTOM_AGENT_NAME_MAX,
+  customAgentToPersonaConfig,
+  sanitizeOwnerText,
+} from '../../services/custom-agent/index.js';
 import { getCustomAgent } from '../../services/custom-agent/custom-agent-persistence-service.js';
 import type { CustomAgent } from '../../types/custom-agent-api.js';
 import { parseBody } from '../helpers.js';
@@ -62,10 +66,14 @@ export function buildAgentChatPrompt(
   scene: string,
   env: Record<string, string | undefined> = process.env
 ): string {
-  const name = agent.displayName || agent.name;
   // CUSTOM_AGENT_CHAT_HONESTY: the live call's prompt (owner text kept as data, honest when
   // sincerely asked whether it's an AI) instead of one that pastes the owner's text raw.
+  // The name is owner text too and lands after the profile, so it is cleaned the same way.
   const honest = flagOn('CUSTOM_AGENT_CHAT_HONESTY', env);
+  const rawName = agent.displayName || agent.name;
+  const name = honest
+    ? sanitizeOwnerText(rawName, CUSTOM_AGENT_NAME_MAX) || 'your character'
+    : rawName;
   const stories = honest
     ? []
     : [...(agent.memories?.stories ?? []), ...(agent.memories?.wisdom ?? [])]
