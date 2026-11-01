@@ -5,7 +5,7 @@
  *
  * @module agents/multi-agent/live-call-behaviors
  */
-import { voice } from '@livekit/agents';
+import { getJobContext, voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utilities/voice-callbacks.js';
 import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
@@ -163,7 +163,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     )
   );
   // A call placed from this one reports back here by its real id (tools/registry/live-session.ts).
-  cleanupFunctions.push(noteLiveSession(session, sessionId));
+  cleanupFunctions.push(noteLiveSession(session, sessionId, jobRoomName()));
 
   // Answer a caller turn that was left hanging (turn-keeper.ts).
   if (process.env.TURN_KEEPER !== 'off') {
@@ -429,4 +429,13 @@ export async function startTurnSounds(input: TurnSoundsInput) {
     };
   }
   return clips;
+}
+
+/** This job's room: where the owner's app hears a data message (call-result-capture.ts). */
+function jobRoomName(): string | undefined {
+  try {
+    return getJobContext().room.name || undefined;
+  } catch {
+    return undefined; // no job running (tests, tools outside a call)
+  }
 }

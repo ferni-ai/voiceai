@@ -18,6 +18,9 @@
  * poll, not a listener: nothing in the agent holds Firestore listeners, and
  * one read every few seconds of one document, for one call, is cheap.
  *
+ * With CALL_LIVE_RELAY on it also tells, before the result, who picked up
+ * (call-progress.ts): the same read, the same speaker.
+ *
  * It stops on the result, when the owner's call ends (its closing signal, or
  * it is no longer the live call under that id), after MAX_WATCH_MS, or on
  * stop(). Never throws.
@@ -28,6 +31,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { liveSessionFor } from '../../tools/registry/live-session.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
 import { callResultLiveReportOn, reportableOutcome, tellLiveOnce } from './call-result-live.js';
+import { callLiveRelayOn, relayProgress } from './call-progress.js';
 import type { reportCallResultLive } from './call-result-live.js';
 
 /** The placed call's request, as the live report takes it. */
@@ -70,6 +74,7 @@ export function watchCallResult(
     const session = liveSessionFor(sessionId);
     if (!callId || !session || !isMemberIdentity(userId?.trim())) return null;
     const deps = { ...defaultDeps, ...overrides };
+    const contactName = request.resolvedContact?.name || request.contactQuery;
     const closing = (session as { _closingSignal?: AbortSignal } | undefined)?._closingSignal;
     let stopped = false;
     let poll: ReturnType<typeof setTimeout> | undefined;
@@ -97,9 +102,13 @@ export function watchCallResult(
       const stored = await deps.readCall(userId, callId).catch(() => null);
       if (stopped) return;
       const outcome = reportableOutcome(stored);
-      if (!outcome) return next();
+      if (!outcome) {
+        // CALL_LIVE_RELAY: picked up / voicemail, told once, only before there is a result.
+        const call = { session, sessionId, userId, callId, contactName };
+        if (callLiveRelayOn()) await relayProgress(call, stored);
+        return stopped ? undefined : next();
+      }
       stop('result');
-      const contactName = request.resolvedContact?.name || request.contactQuery;
       const told = await tellLiveOnce({ session, sessionId, userId, contactName, outcome });
       log.info({ callId, told }, 'CALL_RESULT_LIVE_REPORT (watch)');
     };

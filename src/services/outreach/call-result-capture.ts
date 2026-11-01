@@ -153,30 +153,30 @@ export async function getCallResult(
 // ============================================================================
 
 /**
- * Inject call result into active LiveKit session
- *
- * If the user is still connected to their session, this sends the result
- * directly to them via LiveKit data channel, providing instant feedback.
+ * Inject call result into active LiveKit session: if the user is still in the
+ * requesting call's room, the result goes to them on the data channel. By the
+ * room's name (originalRoomName): the session id (session-<job>-<time>) names no room.
  */
 async function injectToActiveSession(
-  sessionId: string,
   outcome: CallOutcome,
   request: OnBehalfCallRequest
 ): Promise<boolean> {
-  if (!sessionId) return false; // no requesting call (an empty name is no room)
+  const room = request.originalRoomName || request.originalSessionId;
+  const id = { callId: outcome.callId };
+  if (!room) return false; // no requesting call (an empty name is no room)
   try {
     // Dynamic import to avoid circular deps and allow graceful degradation
     const livekitSdk = await import('livekit-server-sdk').catch(() => null);
 
     if (!livekitSdk) {
-      log.debug({ sessionId }, 'LiveKit SDK not available for active session injection');
+      log.debug(id, 'LiveKit SDK not available for active session injection');
       return false;
     }
 
     const { RoomServiceClient, DataPacket_Kind } = livekitSdk;
 
     if (!RoomServiceClient) {
-      log.debug({ sessionId }, 'LiveKit SDK not available for active session injection');
+      log.debug(id, 'LiveKit SDK not available for active session injection');
       return false;
     }
 
@@ -185,16 +185,16 @@ async function injectToActiveSession(
     const livekitApiSecret = process.env.LIVEKIT_API_SECRET;
 
     if (!livekitUrl || !livekitApiKey || !livekitApiSecret) {
-      log.debug({ sessionId }, 'LiveKit credentials not configured');
+      log.debug(id, 'LiveKit credentials not configured');
       return false;
     }
 
     const roomService = new RoomServiceClient(livekitUrl, livekitApiKey, livekitApiSecret);
 
     // Check if the room still exists (user still connected)
-    const rooms = await roomService.listRooms([sessionId]);
+    const rooms = await roomService.listRooms([room]);
     if (!rooms || rooms.length === 0) {
-      log.debug({ sessionId }, 'Session room not found, user likely disconnected');
+      log.debug(id, 'Session room not found, user likely disconnected');
       return false;
     }
 
@@ -214,17 +214,17 @@ async function injectToActiveSession(
 
     // Send data to the room
     const dataBytes = new TextEncoder().encode(JSON.stringify(dataMessage));
-    await roomService.sendData(sessionId, dataBytes, DataPacket_Kind.RELIABLE, {});
+    await roomService.sendData(room, dataBytes, DataPacket_Kind.RELIABLE, {});
 
     log.info(
-      { sessionId, callId: outcome.callId, hasContactName: Boolean(contactName) },
+      { callId: outcome.callId, hasContactName: Boolean(contactName) },
       'Injected call result into active session'
     );
     return true;
   } catch (error) {
     // Log but don't fail - this is a nice-to-have, not critical
     log.debug(
-      { error: String(error), sessionId },
+      { error: String(error), callId: outcome.callId },
       'Could not inject to active session (user may have disconnected)'
     );
     return false;
@@ -328,7 +328,7 @@ export async function captureCallResult(
   // such result shared one bucket the next lookup read. Tell a live session, store nothing.
   if (!isMemberIdentity(request.userId?.trim())) {
     log.warn({ callId }, 'Call result has no member to report to; nothing stored or sent');
-    await injectToActiveSession(request.originalSessionId, outcome, request);
+    await injectToActiveSession(outcome, request);
     return;
   }
 
@@ -359,7 +359,7 @@ export async function captureCallResult(
     const { push, email: mailSent } = await tellOwnerOnce(
       { userId: request.userId, callId, outcome, contactName },
       {
-        live: async () => callResultLiveReportOn() ? reportCallResultLive(request, outcome) : injectToActiveSession(request.originalSessionId, outcome, request), // prettier-ignore
+        live: async () => callResultLiveReportOn() ? reportCallResultLive(request, outcome) : injectToActiveSession(outcome, request), // prettier-ignore
         push: async (lead) => sendCallResultPushNotification(request, outcome, callId, lead),
         email: async () => sendCallResultEmail(request, outcome, callId),
         calendar: async () => createCallbackCalendarEvent(request, outcome, callId),
