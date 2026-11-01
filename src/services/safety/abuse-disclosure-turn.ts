@@ -120,10 +120,14 @@ export function withAbuseRead<T extends { crisis: CrisisDetectionResult; soft: b
 
 const CHILDHELP = CRISIS_RESOURCES.child_abuse[0];
 const DV_HOTLINE = CRISIS_RESOURCES.domestic_abuse[0];
+// A safe person beside the line: a trusted adult for a child or teen, and for an adult someone
+// they trust to be with, never "a trusted adult".
+const SAFE_ADULT = 'gently encourage them to tell a safe adult they trust';
+const SAFE_PERSON = 'gently ask whether there is someone they trust they could be with tonight';
 const LINES: Record<AbuseWho, string> = {
-  child: `Offer the ${CHILDHELP.name}: call or text ${CHILDHELP.phone}, any time. If they are a child or teen, gently encourage them to tell a safe adult they trust`,
-  partner: `Offer the ${DV_HOTLINE.name}: call ${DV_HOTLINE.phone} or ${DV_HOTLINE.text?.toLowerCase() ?? 'text'}, any time`,
-  unknown: `If they are a child or teen, offer the ${CHILDHELP.name} (call or text ${CHILDHELP.phone}); otherwise the ${DV_HOTLINE.name} (${DV_HOTLINE.phone})`,
+  child: `Offer the ${CHILDHELP.name}: call or text ${CHILDHELP.phone}, any time. If they are a child or teen, ${SAFE_ADULT}`,
+  partner: `Offer the ${DV_HOTLINE.name}: call ${DV_HOTLINE.phone} or ${DV_HOTLINE.text?.toLowerCase() ?? 'text'}, any time, and ${SAFE_PERSON}`,
+  unknown: `If they are a child or teen, offer the ${CHILDHELP.name} (call or text ${CHILDHELP.phone}) and ${SAFE_ADULT}; otherwise offer the ${DV_HOTLINE.name} (${DV_HOTLINE.phone}) and ${SAFE_PERSON}`,
 };
 
 /** The crisis guidance for an abuse disclosure (turn-handler.ts), or null for any other turn. */

@@ -19,6 +19,7 @@ import { noteCrisisRisk, resetCrisisCallRisk } from '../crisis-call-risk.js';
 import { resetCrisisClassifierCache, type CrisisGenerateFn } from '../crisis-classifier.js';
 import type { CrisisDetectionResult } from '../crisis-guard.js';
 import { resetCallRiskSnapshots } from '../crisis-lone-imminent.js';
+import { SEVERITY } from '../crisis-severity.js';
 
 const BASE = {
   CRISIS_GUARD_MODE: 'live',
@@ -335,6 +336,39 @@ describe('a disclosure through the turn pipeline', () => {
     expect(g).not.toMatch(/\b988\b/);
   });
 
+  it('a safe person beside the line when the abuser is unnamed: a safe adult for a child or teen, someone to be with for an adult', async () => {
+    for (const line of [
+      "He can't stop hurting me.",
+      "he grabs me by the throat when he's angry",
+      "I don't want to go home, he'll be there.",
+      'He grabs me by the neck when he gets angry.',
+      "He won't stop hitting me.",
+      "I'm 13 and he said if I tell anyone he'll hurt me.",
+    ]) {
+      const s = await summary(line, ON);
+      expect(s.indicators, line).toContain('abuse_disclosure_unknown');
+      const g = abuseGuidance(s) ?? '';
+      expect(g, line).not.toMatch(/\b988\b/);
+      for (const want of ['call 911', '1-800-422-4453', '1-800-799-7233'])
+        expect(g, line).toContain(want);
+      expect(g, line).toMatch(
+        /child or teen, offer [^;]* and gently encourage them to tell a safe adult they trust;/
+      );
+      expect(g, line).toMatch(
+        /otherwise offer [^;]* and gently ask whether there is someone they trust they could be with tonight/
+      );
+    }
+  });
+
+  it('for a partner, someone they trust to be with tonight, never "a trusted adult"', async () => {
+    for (const line of ['My girlfriend threw me against the wall.', 'My boyfriend hits me.']) {
+      const g = abuseGuidance(await summary(line, ON)) ?? '';
+      expect(g, line).toContain('1-800-799-7233');
+      expect(g, line).toContain('someone they trust they could be with tonight');
+      expect(g, line).not.toMatch(/(?:safe|trusted) adult/);
+    }
+  });
+
   it('never promises secrecy, and never says it will tell anyone', async () => {
     const g = abuseGuidance(await summary('My dad hits me.', ON)) ?? '';
     expect(g).toContain('Never promise to keep it secret or between you');
@@ -350,6 +384,29 @@ describe('a disclosure through the turn pipeline', () => {
     expect(on.shouldOverrideLLM).toBe(off.shouldOverrideLLM);
     expect(on.severity).toBeGreaterThanOrEqual(off.severity);
     expect(on.indicators).toEqual(expect.arrayContaining(off.indicators));
+  });
+
+  it('reaches crisis severity with a "none" classifier, so the outreach signal is high', async () => {
+    // process-turn.ts maps the turn's severity to the outreach signal; at SEVERITY.crisis (0.7)
+    // that is "high". Below 0.5 it would be "moderate".
+    const turn = readFileSync(
+      new URL('../../../agents/processors/turn-processor/process-turn.ts', import.meta.url),
+      'utf8'
+    );
+    expect(turn).toMatch(
+      /severity > 0\.7\s*\?\s*'severe'\s*:\s*crisisResult\.severity > 0\.5\s*\?\s*'high'\s*:\s*'moderate'/
+    );
+    const outreach = (sev: number) => (sev > 0.7 ? 'severe' : sev > 0.5 ? 'high' : 'moderate');
+    for (const line of [
+      'My dad hits me.',
+      'My boyfriend hits me.',
+      'He grabs me by the throat when he gets angry.',
+    ]) {
+      const s = await summary(line, ON);
+      expect(s.indicators, line).toContain('abuse_disclosure');
+      expect(s.severity, line).toBeGreaterThanOrEqual(SEVERITY.crisis);
+      expect(outreach(s.severity), line).toBe('high');
+    }
   });
 
   it('an everyday line is not a crisis with the flag on', async () => {
@@ -401,6 +458,7 @@ describe('988 on an abuse disclosure', () => {
     for (const [before, line] of [
       ['Some nights I think about hurting myself.', 'My dad hits me.'],
       ["Honestly I can't go on like this.", 'My boyfriend slapped me last night.'],
+      ['Some days I just want to disappear.', 'My dad hits me.'],
     ])
       expect(await has988(line, ON, none, { earlier: [before] }), line).toBe(true);
   });
