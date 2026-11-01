@@ -367,16 +367,12 @@ describe('E2E Crisis Routing', () => {
 });
 
 describe('Integration: buildHumanTransferInjections', () => {
-  afterEach(() => vi.unstubAllEnvs());
-
   it('should be callable from injection-builders', async () => {
     // Import the injection builder
     const { buildHumanTransferInjections } =
       await import('../../../../agents/processors/injection-builders/index.js');
 
-    // Test with a crisis statement. Main's note: with CRISIS_LEXICAL_V2 on, a live gate that
-    // reads this line takes it over (transfer-note-deferral.test.ts), so the flag is pinned off.
-    vi.stubEnv('CRISIS_LEXICAL_V2', 'off');
+    // Test with a crisis statement
     const crisisInjection = await buildHumanTransferInjections("I don't want to be here anymore");
 
     // Should return a high-priority injection

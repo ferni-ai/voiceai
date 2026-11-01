@@ -63,7 +63,7 @@ export const GOLDEN_LINES = [
 
 /**
  * Must keep main's guidance and crisis_signals write, in every gate mode (#3267 verify, round 1):
- * the verifier's real-risk lines, the deferral lines and the turn-1 line, verbatim shapes.
+ * the verifier's real-risk lines and the turn-1 line, verbatim shapes.
  */
 export const MUST_KEEP = [
   "I don't want to be here in the morning",
@@ -96,7 +96,7 @@ export const MUST_KEEP = [
   "they're watching me through the walls",
 ] as const;
 
-/** Suicide plus something the gate does not read: the transfer note never defers. */
+/** Suicide plus something the gate does not read: main's transfer note, every mode. */
 export const MIXED_RISK = [
   'I want to kill myself and I hurt my kid',
   "I want to die, I'm drunk right now",

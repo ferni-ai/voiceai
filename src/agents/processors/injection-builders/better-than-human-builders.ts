@@ -20,7 +20,6 @@ import { callerIdFor } from '../../../services/identity/call-caller-id.js';
 import type { ContextInjection } from '../types.js';
 import type { UserData } from '../../shared/types.js';
 import { getCachedInjection, setCachedInjection } from './cache.js';
-import { gateWordsFor, type TurnChat } from './gate-words.js';
 import type { BoundaryCheckContext } from './types.js';
 
 // ============================================================================
@@ -369,13 +368,14 @@ export async function buildAmbientModeInjections(userId: string): Promise<Contex
 // HUMAN TRANSFER INJECTION
 // ============================================================================
 
-/** Build human transfer awareness injection; with chatCtx its note may defer to a live gate. */
+/**
+ * Build human transfer awareness injection
+ */
 export async function buildHumanTransferInjections(
   userText: string,
   userId?: string,
   sessionId?: string,
-  turn?: number,
-  chatCtx?: TurnChat
+  turn?: number
 ): Promise<ContextInjection | null> {
   try {
     const { humanTransfer, buildTransferAwarenessContext, logCrisisSignal } =
@@ -391,11 +391,11 @@ export async function buildHumanTransferInjections(
       });
     }
 
-    const { transferNeed } = await import('../../../services/human-transfer/transfer-need.js');
-    const gateWords = chatCtx && (await gateWordsFor(chatCtx, userText));
-    const decision = transferNeed(signals, userText, gateWords);
+    const decision = humanTransfer.evaluateTransferNeed(userText);
 
-    if (decision.type === 'none') return null;
+    if (decision.type === 'none') {
+      return null;
+    }
 
     const content = buildTransferAwarenessContext(decision);
     if (!content) return null;
