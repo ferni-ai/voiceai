@@ -18,6 +18,7 @@ import { resetSexualTopicHold, sexualTopicHeld } from '../../../utils/sexual-top
 import { noteCrisisRisk, resetCrisisCallRisk } from '../crisis-call-risk.js';
 import { resetCrisisClassifierCache, type CrisisGenerateFn } from '../crisis-classifier.js';
 import { SOFT_CRISIS_CHECK } from '../crisis-agreement.js';
+import { BLOCKED_REPLY, CHILD_SAFETY_CARE } from '../crisis-classifier-blocked.js';
 import { buildCrisisGuidance, type CrisisDetectionResult } from '../crisis-guard.js';
 import { resetCallRiskSnapshots } from '../crisis-lone-imminent.js';
 import { SEVERITY } from '../crisis-severity.js';
@@ -229,6 +230,24 @@ describe('a disclosure through the turn pipeline', () => {
     expect(minorAbuseGuidance(unread)).not.toMatch(/\b988\b/);
   });
 
+  it("a blocked read (CRISIS_CLASSIFIER_BLOCKED_SIGNAL) of a minor's disclosure is the crisis turn", async () => {
+    const line = "A teacher at my school touched me. I'm 14.";
+    const env = { ...ON, CRISIS_CLASSIFIER_BLOCKED_SIGNAL: 'on' };
+    const blocked: CrisisGenerateFn = async () => BLOCKED_REPLY;
+    const offFlag = (await turn(line, { ...env, MINOR_ABUSE_DISCLOSURE: 'off' }, [], '', blocked))
+      .summary;
+    expect(offFlag.softCheck).toBe(true);
+    expect(offFlag.softGuidance).toBe(CHILD_SAFETY_CARE);
+    const { summary } = await turn(line, env, [], '', blocked);
+    expect(summary.softCheck).toBeUndefined();
+    expect(summary.isCrisis).toBe(true);
+    expect(summary.severity).toBeGreaterThanOrEqual(SEVERITY.crisis);
+    const g = minorAbuseGuidance(summary) ?? '';
+    // Never less than the blocked read's own care: 988, 911, a safe adult, Childhelp.
+    for (const must of ['988', 'call 911', 'safe adult', '1-800-422-4453', 'not their fault'])
+      expect(g).toContain(must);
+  });
+
   it("with self-risk, main's crisis guidance comes first and the child-safety care follows", async () => {
     const mixed = "I'm 14 and my coach touches me and I don't want to wake up tomorrow.";
     const { summary } = await turn(mixed, ON);
@@ -236,7 +255,7 @@ describe('a disclosure through the turn pipeline', () => {
     expect(g.startsWith(buildCrisisGuidance(summary))).toBe(true);
     const care = g.slice(g.indexOf('[CRITICAL - CHILD SAFETY]'));
     expect(care).toMatch(/\b988\b/);
-    // 988 beside 911, before Childhelp: a reply that runs long keeps it (r2 real-reply check).
+    // 988 in the first sentence, before 911 and Childhelp: a reply that runs long keeps it.
     expect(care.search(/\b988\b/)).toBeLessThan(care.indexOf('1-800-422-4453'));
     expect(care.search(/\b988\b/)).toBeLessThan(care.indexOf('call 911'));
     expect(g).toContain('call 911');
