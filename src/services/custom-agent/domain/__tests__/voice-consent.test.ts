@@ -156,6 +156,8 @@ describe('scoreConsentTranscript', () => {
     ],
     ['"uh-uh" after', (t: string) => `${t} Uh-uh.`],
     ['"mm-mm" after', (t: string) => `${t} Mm-mm.`],
+    ['"hmm-mm" after', (t: string) => `${t} Hmm-mm.`],
+    ['"hmm, mm" before the agreement', (t: string) => t.replace('I agree', 'Hmm, mm, I agree')],
     ['"uh-uh" before the agreement', (t: string) => t.replace('I agree', 'Uh-uh, I agree')],
     ['"no" inside the name', (t: string) => t.replace('Rosa Quill', 'Rosa, no, Quill')],
     ['"or" inside the name', (t: string) => t.replace('Rosa Quill', 'Rosa or Quill')],
@@ -178,6 +180,14 @@ describe('scoreConsentTranscript', () => {
     });
     expect(verifies(forJo, forJo.text)).toBe(true);
     expect(verifies(forJo, forJo.text.replace("Jo's", 'no'))).toBe(false);
+    const forNona = buildConsentStatement({
+      subjectName: 'Rosa Quill',
+      creatorName: 'Nona',
+      spokenDate: 'November 1, 2026',
+      random: seq(0, 0, 0),
+    });
+    expect(verifies(forNona, forNona.text.replace("Nona's", 'Nonna'))).toBe(true);
+    expect(verifies(forNona, forNona.text.replace("Nona's", 'none'))).toBe(false);
     const obrien = buildConsentStatement({
       subjectName: "Sean O'Brien",
       creatorName: "Sean O'Brien",
@@ -229,6 +239,7 @@ describe('scoreConsentTranscript', () => {
       'J. Smith',
       'Martin Luther King Jr.',
       'Mary–Jane',
+      'Mehr\u200cnoush',
       'María de los Ángeles García de la Cruz',
     ]) {
       expect(build(real)).not.toThrow();

@@ -40,8 +40,8 @@ export const MAX_DATE_WORDS = 10;
 export const isDateWord = (word: string, extra: ReadonlySet<string>) =>
   DATE_WORDS.has(word) || extra.has(word) || /^\d+(?:st|nd|rd|th)?$/.test(word);
 
-/** "Uh-uh" and "mm-mm" mean no; speech to text writes them as a filler said twice. */
-const SPOKEN_NO = new Set(['uh', 'mm']);
+/** "Uh-uh", "mm-mm" and "hmm-mm" mean no; speech to text writes them as two fillers. */
+const SPOKEN_NO = new Set(['uh', 'mm', 'hmm']);
 
 /**
  * The transcript as words, fillers out, "a i" and "anytime" read the way the statement
@@ -50,7 +50,7 @@ const SPOKEN_NO = new Set(['uh', 'mm']);
 export function heardWords(transcript: string): string[] {
   const all = consentWords(transcript);
   const words = all.filter((w, i) => {
-    const doubled = SPOKEN_NO.has(w) && (all[i - 1] === w || all[i + 1] === w);
+    const doubled = SPOKEN_NO.has(w) && (SPOKEN_NO.has(all[i - 1]) || SPOKEN_NO.has(all[i + 1]));
     return doubled || !FILLERS.has(w);
   });
   const out: string[] = [];
@@ -70,6 +70,12 @@ const nameSlack = (word: string) => {
   return n <= 3 ? 0 : n < 8 ? 1 : 2;
 };
 
+/** Words that say no; a name word heard as one must be the name exactly ("Nona" is not "none"). */
+const NEGATIONS = new Set(['no', 'not', 'none', 'never', 'nope', 'nah', 'nor', 'neither']);
+
+const nameWordHeard = (said: string, word: string) =>
+  said === word || (!NEGATIONS.has(said) && editDistance(said, word) <= nameSlack(word));
+
 const bare = (words: string[]) => words.join('').replace(/'/g, '');
 
 /**
@@ -80,10 +86,7 @@ const bare = (words: string[]) => words.join('').replace(/'/g, '');
  */
 export function nameHeardAs(heard: string[], at: number, name: string[]): number {
   const said = heard.slice(at, at + name.length);
-  if (
-    said.length === name.length &&
-    said.every((w, j) => editDistance(w, name[j]) <= nameSlack(name[j]))
-  ) {
+  if (said.length === name.length && said.every((w, j) => nameWordHeard(w, name[j]))) {
     return name.length;
   }
   for (const k of [name.length - 1, name.length + 1]) {

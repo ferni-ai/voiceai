@@ -126,8 +126,8 @@ function pickCheckWords(random: () => number): string[] {
 const clean = (s: string) => s.normalize('NFC').replace(/\s+/g, ' ').trim();
 
 const MAX_NAME_WORDS = 10;
-/** A name word: letters with their marks (Hindi vowel signs), apostrophes and hyphens. */
-const NAME_WORD = /^[\p{L}\p{M}'\u2019\u02bc\u2010\u2011\u2013\u200c\u200d-]+$/u;
+/** A name word: letters with their marks (Hindi vowel signs), apostrophes, hyphens and joiners. */
+const NAME_WORD = /^(?:[\p{L}\p{M}'\u2019\u02bc\u2010\u2011\u2013-]|\u200c|\u200d)+$/u;
 /** An initial ("J.") or a short title ("Jr.", "Dr."): the only words that may end in a period. */
 const DOTTED_WORD = /^(?:\p{L}|jr|sr|st|dr)\.$/iu;
 
