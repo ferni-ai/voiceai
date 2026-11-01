@@ -53,7 +53,9 @@ describe('urgent family check-in alert: caller text screen', () => {
     expect(alertFor({ recommendedAction: 'Call her doctor today' })).toBe(
       `Important: During my call with ${NAME}, mentioned chest pain. Call her doctor today`
     );
-    expect(alertFor({})).toBe(`Important: During my call with ${NAME}, mentioned chest pain. ${CHECK_IN}`);
+    expect(alertFor({})).toBe(
+      `Important: During my call with ${NAME}, mentioned chest pain. ${CHECK_IN}`
+    );
   });
 
   it('never passes on a number or money request from the description', () => {
