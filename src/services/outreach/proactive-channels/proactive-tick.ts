@@ -46,6 +46,7 @@ import type { CallOutcome } from './self-call.js';
 import { writeOutreachText } from './outreach-text.js';
 import { optedOutChannels, phoneOptOuts, type PhoneOptOuts } from './opt-outs.js';
 import type { ProactiveChannel, ProactiveTrigger } from './types.js';
+import { storedTextForOwner } from '../../../tools/domains/proactive/outreach/owner-message-policy.js';
 
 const log = createLogger({ module: 'ProactiveChannels' });
 
@@ -160,7 +161,7 @@ async function nextTrigger(
   deps: ProactiveDeps,
   notesOnly: boolean
 ): Promise<ProactiveTrigger | 'no-trigger' | 'nothing-new'> {
-  const triggers = [
+  const found = [
     ...(notesOnly ? [] : await checkInTriggers(userId, user, now, deps)),
     // Pondered follow-ups backed by the caller's own words (OUTREACH_PONDERED_NOTES).
     // A failed read skips them this minute; the triggers above still go out.
@@ -169,6 +170,8 @@ async function nextTrigger(
       return [];
     })),
   ];
+  // OWNER_OUTREACH_STORED_TEXT_SCREEN: each trigger's words come from stored text
+  const triggers = found.filter((t) => storedTextForOwner([t.reason, t.text], { site: 'proactive', userId })); // prettier-ignore
   for (const t of triggers) {
     // Sequential on purpose: usually the first one is new.
     // eslint-disable-next-line no-await-in-loop

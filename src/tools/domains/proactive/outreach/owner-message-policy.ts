@@ -130,6 +130,44 @@ function logOutcome(message: OwnerMessage, reason: OwnerMessageLogReason): void 
 export const ownerMessageNotDelivered = (message: OwnerMessage): void =>
   logOutcome(message, 'delivery_failed');
 
+/**
+ * OWNER_OUTREACH_STORED_TEXT_SCREEN=on (default off): text stored from calls (what a
+ * caller said, or what was saved from it) is screened before the outreach jobs put it
+ * in a message to the owner: proactive check-ins, pondered notes, the morning brief,
+ * commitment pushes. Those jobs can't tell a verified owner's row from an unverified
+ * caller's, so every stored text is screened. Read where those jobs run (the UI
+ * server); UNVERIFIED_OWNER_MESSAGE_FILTER belongs to live calls and is not read here.
+ */
+export function storedTextScreenOn(env: NodeJS.ProcessEnv = process.env): boolean {
+  return flagOn('OWNER_OUTREACH_STORED_TEXT_SCREEN', env);
+}
+
+/** Where stored text is about to go to the owner: the job's site, and whose message it is. */
+export interface StoredTextSite {
+  site: 'proactive' | 'pondering' | 'morning-brief' | 'commitment-push';
+  userId: string;
+}
+
+/**
+ * Whether stored texts may go into a message to the owner: yes unless the screen is on
+ * and the content filter (owner-message-content.ts) refuses one. A refusal is logged
+ * with the site, user and reason code, never the text.
+ */
+export function storedTextForOwner(
+  texts: readonly unknown[],
+  where: StoredTextSite,
+  env: NodeJS.ProcessEnv = process.env
+): boolean {
+  if (!storedTextScreenOn(env)) return true;
+  for (const text of texts) {
+    const reason = typeof text === 'string' ? blockedContent(text) : null;
+    if (!reason) continue;
+    log.info({ ...where, reason }, 'Stored text kept out of a message to the owner');
+    return false;
+  }
+  return true;
+}
+
 /** An unverified call's message: allowed with the footer, or why not. Counts it when allowed. */
 function unverifiedDecision(message: OwnerMessage, call: object | undefined): OwnerMessageDecision {
   for (const text of message.texts) {

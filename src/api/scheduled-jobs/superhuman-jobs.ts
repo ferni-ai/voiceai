@@ -13,6 +13,7 @@ import type { ServerResponse } from 'http';
 import type { SuperhumanInsight } from '../../services/automation/insight-action-bridge.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { sendJson } from './helpers.js';
+import { storedTextForOwner } from '../../tools/domains/proactive/outreach/owner-message-policy.js';
 
 const log = createLogger({ module: 'SuperhumanJobs' });
 
@@ -85,6 +86,8 @@ export async function handleBetterThanHumanOutreach(res: ServerResponse): Promis
           const commitment = doc.data();
           const userId = doc.ref.parent.parent?.id;
           if (!userId) continue;
+          const site = { site: 'commitment-push', userId } as const;
+          if (!storedTextForOwner([commitment.description], site)) continue;
 
           const { getOutreachOrchestrator } =
             await import('../../services/outreach/outreach-orchestrator.js');

@@ -286,6 +286,8 @@ const LEGACY_FLAG_MANIFEST = {
   // on: the caller's yes sends the read-back from the server, and sibling call or text tools
   // share one read-back (tools/domains/communication/outreach/outreach-confirm-family.ts)
   OUTREACH_SERVER_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // on (read by the UI server's outreach jobs only): text stored from calls is screened before it goes into an owner message (owner-message-policy.ts)
+  OWNER_OUTREACH_STORED_TEXT_SCREEN: { default: 'off', owner: 'outreach', kind: 'experiment' },
   ...FLAGS_MOVE_TO_PHONE_AUDIO,
   // on: a caller who says they're under 18 (and isn't a verified owner): nothing personal stored, a care note (minor-care.ts)
   MINOR_CARE: { default: 'off', owner: 'memory', kind: 'experiment' },

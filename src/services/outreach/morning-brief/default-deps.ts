@@ -24,6 +24,7 @@ import {
 import { forgottenTopicsOrNull } from '../../../memory/recall/forget.js';
 import { isForgotten } from '../../../memory/recall/session-recall.js';
 import { usersWithFlag } from '../../platform/cohort-flags.js';
+import { storedTextForOwner } from '../../../tools/domains/proactive/outreach/owner-message-policy.js';
 import { judgedRowText, singleWriterFor } from '../../superhuman/commitment-single-writer.js';
 import { resolveClaimStore } from '../../../tasks/scheduled/calendar-briefing-job.js';
 import { pushUnlessFocusHeld } from '../focus-send-hold.js';
@@ -141,7 +142,15 @@ export async function readDay(
     orNone('reminders', userId, () => remindersDueToday(userId, zone, now)),
     withCommitments ? orNone('commitments', userId, () => openCommitments(userId)) : [],
   ]);
-  return { events, reminders, tasks: openTasks(user), commitments };
+  // OWNER_OUTREACH_STORED_TEXT_SCREEN: what calls stored goes in only if it passes the screen
+  const screened = (items: string[]): string[] =>
+    items.filter((t) => storedTextForOwner([t], { site: 'morning-brief', userId }, env));
+  return {
+    events,
+    reminders: screened(reminders),
+    tasks: screened(openTasks(user)),
+    commitments: screened(commitments),
+  };
 }
 
 export async function defaultMorningBriefDeps(): Promise<MorningBriefDeps> {
