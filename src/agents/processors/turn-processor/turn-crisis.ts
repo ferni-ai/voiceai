@@ -44,7 +44,7 @@ import {
 } from '../../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
 import { startWhoRead } from '../../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
-import { noteMeansInHandShadow } from '../../../services/safety/index.js';
+import { blockedReadGuidance, noteMeansInHandShadow } from '../../../services/safety/index.js';
 import {
   resolveClassifierOnlyCheckin,
   shadowClassifierOnly,
@@ -213,6 +213,11 @@ export function startTurnCrisis(
     (settled ??=
       classifier?.mode === 'live'
         ? classifier.verdict.then(async (verdict) => {
+            // CRISIS_CLASSIFIER_BLOCKED_SIGNAL: a read the provider refused is a check-in, never a
+            // quiet none, on a turn the patterns read as nothing (crisis-classifier-blocked.ts).
+            const blocked =
+              verdict || pattern !== 'none' ? null : blockedReadGuidance(call, input, env);
+            if (blocked) return { crisis: patterns, soft: true, guidance: blocked };
             // A gentle 988 offer (crisis-grounded-screen.ts), unless the classifier also reads risk.
             if (gentle && verdict?.risk !== 'imminent' && verdict?.risk !== 'crisis') {
               return { crisis: patterns, soft: true, guidance: SCREEN_GENTLE_OFFER };
