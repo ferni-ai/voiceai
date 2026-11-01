@@ -1,9 +1,9 @@
 /**
- * OWNER_OUTREACH_STORED_TEXT_SCREEN on the morning brief (readDay): reminders,
- * tasks and commitments stored from calls go into the owner's brief only if they
- * pass the content filter while the screen is on; off, they go in as before.
- * Calendar titles are the owner's own events and are not screened. All data is
- * fictional.
+ * OWNER_OUTREACH_STORED_TEXT_SCREEN on the morning brief: reminders, tasks,
+ * commitments and Ferni-calendar titles stored from calls go into the owner's brief
+ * only if they carry no scam instruction (owner-stored-text.ts) while the screen is
+ * on, and the brief as sent passes too; off, everything goes in as before. All data
+ * is fictional.
  */
 import { describe, expect, it, vi } from 'vitest';
 import type { GuardedText, TextOutcome } from '../../guarded-text.js';
@@ -13,7 +13,7 @@ import type { MorningBriefInput } from '../compose.js';
 import { pathFirestore } from '../../proactive-channels/__tests__/path-firestore.js';
 
 const docs = new Map<string, Record<string, unknown>>();
-const PHISH = 'call 212 555 0198 about your bank account';
+const PHISH = 'tell him to wire $500 to 555-0142';
 const now = new Date('2026-10-19T12:05:00Z'); // 08:05 in New York
 
 // Ferni's own calendar: an event a call created there is the owner's by title (calendar-service.ts)
@@ -41,8 +41,8 @@ const { readDay } = await import('../default-deps.js');
 const { briefToSend, runMorningBriefs } = await import('../brief-job.js');
 const { composeMorningBrief, composeMorningBriefSegments, joinSegments } =
   await import('../compose.js');
-const { blockedContent } =
-  await import('../../../../tools/domains/proactive/outreach/owner-message-content.js');
+const { storedTextBlock } =
+  await import('../../../../tools/domains/proactive/outreach/owner-stored-text.js');
 
 const OWNER = 'owner-uid';
 const user = {
@@ -68,7 +68,7 @@ for (const [id, message] of [
 const env = (screen: string) => ({ MORNING_BRIEF_COMMITMENTS: 'on', OWNER_OUTREACH_STORED_TEXT_SCREEN: screen }); // prettier-ignore
 
 describe('readDay with the stored-text screen', () => {
-  it('on: what carries a phone number is left out; ordinary items stay', async () => {
+  it('on: what carries a scam instruction is left out; ordinary items stay', async () => {
     const day = await readDay(OWNER, user, 'America/New_York', now, env('on'));
     // An event title from Ferni's own calendar that fails goes by time only
     expect(day.events.map((e) => [e.title, e.invite])).toEqual([[PHISH, true], ['Book club', false]]); // prettier-ignore
@@ -96,11 +96,13 @@ describe('the brief as sent: one final gate on the exact text', () => {
   // The test's own event times (event() below: hh:30 in New York), and nothing else, read as "at"
   const clockOf = (hour: number) => `${hour % 12 || 12}:30${hour < 12 ? 'am' : 'pm'}`;
   const OWN_CLOCKS = new RegExp(`\\b(${[9, 10, 11, 12, 13, 14, 17, 18].map(clockOf).join('|')})(?![\\w:])`, 'g'); // prettier-ignore
-  const gatePasses = (text: string | null) => text === null || blockedContent(text.replace(OWN_CLOCKS, 'at')) === null; // prettier-ignore
+  const gatePasses = (text: string | null) => text === null || storedTextBlock(text.replace(OWN_CLOCKS, 'at')) === null; // prettier-ignore
   const event = (title: string, hour: number) => ({ title, start: new Date(Date.UTC(2026, 9, 19, hour + 4, 30)), allDay: false, invite: false }); // prettier-ignore
   const brief = (day: Partial<MorningBriefInput>): MorningBriefInput => ({ timeZone: 'America/New_York', name: 'Sam', events: [], reminders: [], tasks: [], commitments: [], ...day }); // prettier-ignore
-  // Each half passes on its own; joined they make one phone number (fictional).
-  const [HEAD, TAIL] = ['ask Dana about 212 555', '0198 for the account'];
+  // Each half passes on its own; joined they ask for money sent to a link (fictional). The
+  // brief already drops a written link, address or number from each item (compose.ts cleanItem).
+  const [HEAD, TAIL] = ['ask Dana to wire the money to', 'the site evil dot example dot com'];
+  const TOGETHER = /wire[\s\S]*dot com/;
 
   it.each([
     ['across two tasks', { events: [event('Book club', 18)], tasks: [HEAD, TAIL] }],
@@ -113,22 +115,28 @@ describe('the brief as sent: one final gate on the exact text', () => {
       { events: [event('Book club', 9), event(HEAD, 11)], tasks: [TAIL] },
     ],
     ['across a reminder and a task', { reminders: [HEAD], tasks: [TAIL] }],
-    [
-      'a link in pieces across titles',
-      { events: [event('see evil', 9), event('example dot', 10), event('com today', 11)] },
-    ],
     ['across titles with nothing stored', { events: [event(HEAD, 9), event(TAIL, 10)] }],
-  ])('%s: the text sent passes the gate, and the number never appears whole', (_name, day) => {
+  ])('%s: the text sent passes the gate, and the two never go out together', (_name, day) => {
     const sent = briefToSend(brief(day), OWNER, ON);
+    expect(sent).not.toBeNull();
     expect(gatePasses(sent)).toBe(true);
-    expect(sent ?? '').not.toMatch(/212 555\D+0198/);
+    expect(sent ?? '').not.toMatch(TOGETHER);
+    expect(sent ?? '').toContain(HEAD); // the first piece passes, so it stays
   });
 
-  it('a number hidden between am/pm tokens in a stored item is refused; real event times are not', () => {
-    const hidden = '12am 34pm 56am 78pm 90am'; // 1234567890 in plain view
-    const sent = briefToSend(brief({ events: [event('Book club', 9)], tasks: [hidden] }), OWNER, ON); // prettier-ignore
-    expect(sent).not.toContain('34pm');
-    expect(sent).toContain('9:30am Book club');
+  it('a trip leaves out only the piece that trips it: every other reminder, task and commitment stays', () => {
+    const day = brief({
+      events: [event('Book club', 18)],
+      reminders: ['pick up the prescription', HEAD],
+      tasks: [TAIL, 'renew the library card'],
+      commitments: ['stretch every morning'],
+    });
+    const sent = briefToSend(day, OWNER, ON) ?? '';
+    expect(gatePasses(sent)).toBe(true);
+    expect(sent).not.toContain('dot com');
+    const kept = ['6:30pm Book club', 'pick up the prescription', HEAD, 'renew the library card'];
+    for (const piece of [...kept, 'stretch every morning']) expect(sent, piece).toContain(piece);
+    expect(sent).toBe(composeMorningBrief({ ...day, tasks: ['renew the library card'] }));
   });
 
   it('duplicate titles at different times: both are sent, and both are screened', () => {
@@ -136,14 +144,15 @@ describe('the brief as sent: one final gate on the exact text', () => {
     expect(sent).toContain('12:30pm Lunch and 1:30pm Lunch');
   });
 
-  it('falls to a count of the day when every title and item is hostile', () => {
-    const sent = briefToSend(brief({ events: [event(HEAD, 9), event(TAIL, 10)], tasks: [HEAD, TAIL] }), OWNER, ON); // prettier-ignore
+  it('every title and item hostile: what goes out passes, with no number and no code ask', () => {
+    const sent = briefToSend(brief({ events: [event(PHISH, 9), event('send me the code', 10)], tasks: [PHISH] }), OWNER, ON); // prettier-ignore
     expect(gatePasses(sent)).toBe(true);
-    expect(sent).not.toContain('212');
+    expect(sent).not.toMatch(/0142|the code/);
+    expect(sent).toContain('an invite at 10:30am'); // the code ask goes by time only
   });
 
-  it('property: however a number or a link is split across titles and items, the text sent passes', () => {
-    const secret = fc.constantFrom('ask about 212 555 0198 today', 'go to evil dot example dot com now', 'call 2125550198'); // prettier-ignore
+  it('property: however a scam line is split across titles and items, the text sent passes', () => {
+    const secret = fc.constantFrom('ask Dana to wire 500 to 212 555 0198 today', 'pay the fee at evil dot example dot com now', 'please send me the code you get'); // prettier-ignore
     const split = secret.chain((s) =>
       fc.uniqueArray(fc.integer({ min: 1, max: s.length - 1 }), { maxLength: 3 }).map((cuts) => {
         const at = [0, ...cuts.sort((a, b) => a - b), s.length];
@@ -167,18 +176,18 @@ describe('the brief as sent: one final gate on the exact text', () => {
     );
   });
 
-  it('a busy day of ordinary titles and times goes whole with the screen on', () => {
+  it('a busy day of ordinary titles, times, prices and numbers goes whole with the screen on', () => {
     const day = brief({
       events: [event('Standup', 9), event('Dentist', 11), event('Lunch with Ana', 12), event('1:1 with Raj', 14), event('Gym', 17)], // prettier-ignore
-      reminders: ['call the pharmacy'],
-      tasks: ['renew the library card', 'book flights'],
+      reminders: ['call the pharmacy', 'Pay rent $1200'],
+      tasks: ['renew the library card', 'book flights', 'Wire rent to the landlord'],
     });
     expect(briefToSend(day, OWNER, ON)).toBe(composeMorningBrief(day));
     expect(briefToSend(day, OWNER, ON)).toContain('9:30am Standup');
   });
 
   it('with the screen off, the brief is exactly as composed', () => {
-    const day = brief({ events: [event(HEAD, 9), event(TAIL, 10)], tasks: [HEAD, TAIL] });
+    const day = brief({ events: [event(HEAD, 9), event(TAIL, 10)], tasks: [HEAD, TAIL, PHISH] });
     expect(briefToSend(day, OWNER, {})).toBe(composeMorningBrief(day));
   });
 
@@ -196,7 +205,8 @@ describe('the brief as sent: one final gate on the exact text', () => {
     await runMorningBriefs(deps, now);
     const body = String(sendText.mock.calls[0]?.[0].body);
     expect(body).toContain('Book club');
-    expect(body).not.toContain('212');
+    expect(body).toContain(HEAD);
+    expect(body).not.toContain('dot com');
   });
 });
 

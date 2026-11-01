@@ -33,6 +33,7 @@ import { getLogger } from '../../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { callSessionData } from '../../../utils/call-session-data.js';
 import { CONTENT_BLOCKS, blockedContent, type ContentBlock } from './owner-message-content.js';
+import { storedTextBlock } from './owner-stored-text.js';
 
 /** UNVERIFIED_OWNER_MESSAGE_FILTER=on: unverified calls message the owner under this policy (default off). */
 function unverifiedOwnerMessageFilterOn(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -144,14 +145,22 @@ export function storedTextScreenOn(env: NodeJS.ProcessEnv = process.env): boolea
 
 /** Where stored text is about to go to the owner: the job's site, and whose message it is. */
 export interface StoredTextSite {
-  site: 'proactive' | 'morning-brief' | 'commitment-push';
+  site:
+    | 'proactive'
+    | 'morning-brief'
+    | 'commitment-push'
+    | 'follow-up'
+    | 'reminder'
+    | 'calendar-briefing'
+    | 'calendar-trigger';
   userId: string;
 }
 
 /**
  * Whether stored texts may go into a message to the owner: yes unless the screen is on
- * and the content filter (owner-message-content.ts) refuses one. A refusal is logged
- * with the site, user and reason code, never the text.
+ * and one carries a scam's instruction (owner-stored-text.ts); a non-string, or a text
+ * that can't be read, is refused. A refusal is logged with the site, user and reason
+ * code, never the text.
  */
 export function storedTextForOwner(
   texts: readonly unknown[],
@@ -160,9 +169,12 @@ export function storedTextForOwner(
 ): boolean {
   if (!storedTextScreenOn(env)) return true;
   for (const text of texts) {
-    const reason = typeof text === 'string' ? blockedContent(text) : null;
+    const reason = storedTextBlock(text);
     if (!reason) continue;
-    log.info({ ...where, reason }, 'Stored text kept out of a message to the owner');
+    log.info(
+      { site: where.site, userId: where.userId, reason },
+      'Stored text kept out of a message to the owner'
+    );
     return false;
   }
   return true;

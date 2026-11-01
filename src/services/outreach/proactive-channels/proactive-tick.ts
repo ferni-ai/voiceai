@@ -243,12 +243,17 @@ async function send(
   policy: PolicyInput,
   deps: ProactiveDeps
 ): Promise<Delivered> {
-  const written = await writeOutreachText({
+  const drafted = await writeOutreachText({
     trigger,
     channel: choice.channel,
     lastText: lastTextOf(policy.recent),
     rotation: policy.recent.length,
   });
+  // OWNER_OUTREACH_STORED_TEXT_SCREEN: the model wrote from stored words, so its line is
+  // screened too; one that fails goes out as the trigger's own (screened) text.
+  const written = storedTextForOwner([drafted.text], { site: 'proactive', userId })
+    ? drafted
+    : { text: trigger.text, source: 'template' as const };
   const toSend = { ...trigger, text: written.text };
   const phone = policy.verifiedPhone;
   const sent =

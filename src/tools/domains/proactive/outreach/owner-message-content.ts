@@ -242,7 +242,7 @@ function credentialAsk(text: string): boolean {
  * sees "verify" however it was dressed. Case is kept for the vanity and
  * sentence-start rules.
  */
-const foldToAscii = (text: string): string =>
+export const foldToAscii = (text: string): string =>
   text
     .normalize('NFKC')
     .replace(/[\u2018\u2019]/g, "'")

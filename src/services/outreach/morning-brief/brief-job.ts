@@ -103,27 +103,51 @@ function inBriefHour(user: Record<string, unknown>, zone: string, local: WallTim
   return inHour && local.hour < MORNING_BRIEF_LATEST_HOUR;
 }
 
+const NO_STORED_SECTIONS = { reminders: [], tasks: [], commitments: [] } as const;
+type PutBack = (brief: MorningBriefInput) => MorningBriefInput;
+
+/** Each stored piece of `input`, in brief order, as a step that puts it back: titles, then items. */
+function piecesOf(input: MorningBriefInput): PutBack[] {
+  const titles = input.events.map((event, i): PutBack => (brief) => ({
+    ...brief,
+    events: brief.events.map((e, j) => (j === i ? event : e)),
+  }));
+  const items = (['reminders', 'tasks', 'commitments'] as const).flatMap((list) =>
+    input[list].map((item): PutBack => (brief) => ({ ...brief, [list]: [...brief[list], item] }))
+  );
+  return [...titles, ...items];
+}
+
 /**
  * OWNER_OUTREACH_STORED_TEXT_SCREEN: the brief that is sent passes the screen as sent, not
- * only item by item (default-deps.ts readDay filters each item early): the brief joins
- * items, and pieces of a number or a link can line up anywhere in it. What is screened is
- * the same segments (compose.ts) with only its own clock times written as "at" (a busy day's
- * times alone trip the digit rule; isClockTime excuses them from the short-code rule only),
- * every title and item verbatim. Each step down is composed and screened again; the first
- * that passes is sent: 1. the full brief; 2. without the stored sections (reminders, tasks,
- * commitments); 3. with every event by time only; 4. a count of today's events, which
- * holds no stored text.
+ * only item by item (default-deps.ts readDay screens each item early): the brief joins
+ * items, and two that pass alone can read as one instruction together. What is screened is
+ * the same segments (compose.ts) with its own clock times written as "at", every title and
+ * item verbatim. When the full brief trips, it is built back up from every event by time
+ * only, adding each title, then each reminder, task and commitment, in order, and keeping
+ * each only if the brief with it still passes: only what trips it is left out. With nothing
+ * that passes, a count of today's events, which holds no stored text.
  */
 export function briefToSend(input: MorningBriefInput, userId: string, env: Env): string | null {
   const passes = (text: string | null): boolean =>
     text !== null && storedTextForOwner([text], { site: 'morning-brief', userId }, env);
-  if (!composeMorningBriefSegments(input)) return null;
-  const calendar = { ...input, reminders: [], tasks: [], commitments: [] };
-  const timesOnly = { ...calendar, events: input.events.map((e) => ({ ...e, invite: true })) };
-  for (const step of [input, calendar, timesOnly]) {
+  const sendable = (step: MorningBriefInput): string | null => {
     const segments = composeMorningBriefSegments(step);
-    if (segments && passes(joinSegments(segments, 'at'))) return joinSegments(segments);
+    return segments && passes(joinSegments(segments, 'at')) ? joinSegments(segments) : null;
+  };
+  if (!composeMorningBriefSegments(input)) return null;
+  const full = sendable(input);
+  if (full !== null) return full;
+  let kept: MorningBriefInput = { ...input, events: input.events.map((e) => ({ ...e, invite: true })), ...NO_STORED_SECTIONS }; // prettier-ignore
+  let text = sendable(kept);
+  for (const putBack of piecesOf(input)) {
+    const next = putBack(kept);
+    const withIt = sendable(next);
+    if (withIt === null) continue;
+    kept = next;
+    text = withIt;
   }
+  if (text !== null) return text;
   const n = input.events.length;
   const count = n ? `Morning, it's Alex. You have ${n} ${n === 1 ? 'thing' : 'things'} on your calendar today.` : null; // prettier-ignore
   return passes(count) ? count : null;

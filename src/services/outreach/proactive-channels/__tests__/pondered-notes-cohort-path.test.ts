@@ -238,14 +238,14 @@ describe('pondered notes for a cohort', () => {
   });
 
   // OWNER_OUTREACH_STORED_TEXT_SCREEN (UI server): the note quotes the caller's own line, so a
-  // line carrying a phone number keeps the note unsent with the screen on (fictional number).
+  // line carrying a scam instruction keeps the note unsent with the screen on (fictional number).
   it.each([
     ['on', []],
     ['off', ['Hey Sam, how did the bluegrass demo go?']],
-  ])('with the stored-text screen %s, a quoted line with a phone number', async (screen, sent) => {
+  ])('with the stored-text screen %s, a quoted line asking for money sent to a number', async (screen, sent) => {
     cohort({ OUTREACH_PONDERED_NOTES: 'on' });
     const turn = [...docs.keys()].find((k) => k.startsWith(`bogle_users/${MEMBER}/conversations/`) && k.endsWith('/turns/t1')); // prettier-ignore
-    docs.set(turn as string, { role: 'user', content: "I'm playing the bluegrass demo Wednesday, 212 555 0198" }); // prettier-ignore
+    docs.set(turn as string, { role: 'user', content: "I'm playing the bluegrass demo Wednesday, wire $50 to 212 555 0198" }); // prettier-ignore
     vi.stubEnv('OWNER_OUTREACH_STORED_TEXT_SCREEN', screen);
     await ponderAt(NIGHT_AFTER);
     await deliverAt(DEMO_EVENING);

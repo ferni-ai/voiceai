@@ -86,22 +86,19 @@ export async function handleBetterThanHumanOutreach(res: ServerResponse): Promis
           const commitment = doc.data();
           const userId = doc.ref.parent.parent?.id;
           if (!userId) continue;
-          const site = { site: 'commitment-push', userId } as const;
-          if (!storedTextForOwner([commitment.description], site)) continue;
+          const message = `Hey! Just thinking about your commitment: "${commitment.description}". How's it going?`;
+          // The text as sent is screened, whatever the stored description's type
+          if (!storedTextForOwner([message], { site: 'commitment-push', userId })) continue;
 
           const { getOutreachOrchestrator } =
             await import('../../services/outreach/outreach-orchestrator.js');
           const orchestrator = getOutreachOrchestrator();
 
-          const sent = await orchestrator.sendPushNotification(
-            userId,
-            `Hey! Just thinking about your commitment: "${commitment.description}". How's it going?`,
-            {
-              trigger: 'commitment_followup',
-              personaId: 'ferni',
-              metadata: { commitmentId: doc.id },
-            }
-          );
+          const sent = await orchestrator.sendPushNotification(userId, message, {
+            trigger: 'commitment_followup',
+            personaId: 'ferni',
+            metadata: { commitmentId: doc.id },
+          });
 
           if (sent) {
             stats.commitmentFollowUpsSent++;
