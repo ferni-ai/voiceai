@@ -29,21 +29,41 @@ describe('buildConsentStatement', () => {
     expect(forMaya.text.endsWith('My check words are apple, bridge, candle.')).toBe(true);
   });
 
-  it('says "my own use" for a twin of yourself, whatever the casing', () => {
+  it('says "my own use" only when the caller says it is your own twin, not when names match', () => {
     const self = buildConsentStatement({
       subjectName: 'Rosa Quill',
-      creatorName: ' rosa  quill ',
+      creatorName: null,
       spokenDate: 'November 1, 2026',
       random: seq(0.5),
     });
     expect(self.text).toContain('for my own use');
     expect(new Set(self.checkWords).size).toBe(3);
+    const namesake = buildConsentStatement({
+      subjectName: 'Rosa Quill',
+      creatorName: 'ROSA QUILL',
+      spokenDate: 'November 1, 2026',
+      random: seq(0.5),
+    });
+    expect(namesake.text).toContain("for ROSA QUILL's private use");
+  });
+
+  it('refuses a random source outside [0, 1), so no check word is ever blank', () => {
+    for (const bad of [1, 1.5, -0.1, Number.NaN]) {
+      expect(() =>
+        buildConsentStatement({
+          subjectName: 'Rosa Quill',
+          creatorName: null,
+          spokenDate: 'today',
+          random: () => bad,
+        })
+      ).toThrow(RangeError);
+    }
   });
 
   it('draws different check words each time with real randomness', () => {
     const seen = new Set<string>();
     for (let i = 0; i < 20; i++) {
-      const s = buildConsentStatement({ subjectName: 'A', creatorName: 'A', spokenDate: 'today' });
+      const s = buildConsentStatement({ subjectName: 'A', creatorName: null, spokenDate: 'today' });
       s.checkWords.forEach((w) => seen.add(w));
       expect(s.checkWords.every((w) => CHECK_WORDS.includes(w))).toBe(true);
     }
@@ -83,7 +103,7 @@ describe('scoreConsentTranscript', () => {
     expect(verifies(forMaya, forMaya.text.replace('Rosa Quill', 'Rosaquill'))).toBe(true);
     const minji = buildConsentStatement({
       subjectName: 'Kim Min-ji',
-      creatorName: 'Kim Min-ji',
+      creatorName: null,
       spokenDate: 'November 1, 2026',
       random: seq(0, 0, 0),
     });
@@ -164,6 +184,8 @@ describe('scoreConsentTranscript', () => {
     ['"no" before the name', (t: string) => t.replace("Maya Quill's", "no Maya Quill's")],
     ["a relative's name", (t: string) => t.replace('Rosa Quill', 'Mona Quill')],
     ['a statement word two letters off', (t: string) => t.replace('private use', 'pirate use')],
+    ['a short statement word misheard', (t: string) => t.replace('withdraw this', 'withdraw his')],
+    ['"what" for "that"', (t: string) => t.replace('agree that', 'agree what')],
     ['no date', (t: string) => t.replace(' November 1, 2026', '')],
   ])('refuses %s', (_label, change) => {
     const heard = change(forMaya.text);
@@ -189,13 +211,20 @@ describe('scoreConsentTranscript', () => {
     });
     expect(verifies(forDan, forDan.text)).toBe(true);
     expect(verifies(forDan, forDan.text.replace("Dan's", "Don's"))).toBe(false);
+    // Four letters are exact too: "Dina" is someone else, not a mishearing of "Dana"
+    const forDana = buildConsentStatement({
+      subjectName: 'Rosa Quill',
+      creatorName: 'Dana',
+      spokenDate: 'November 1, 2026',
+      random: seq(0, 0, 0),
+    });
+    expect(verifies(forDana, forDana.text.replace("Dana's", "Dina's"))).toBe(false);
     const forNona = buildConsentStatement({
       subjectName: 'Rosa Quill',
       creatorName: 'Nona',
       spokenDate: 'November 1, 2026',
       random: seq(0, 0, 0),
     });
-    expect(verifies(forNona, forNona.text.replace("Nona's", 'Nonna'))).toBe(true);
     expect(verifies(forNona, forNona.text.replace("Nona's", 'none'))).toBe(false);
     const forNadia = buildConsentStatement({
       subjectName: 'Rosa Quill',
@@ -207,7 +236,7 @@ describe('scoreConsentTranscript', () => {
     expect(verifies(forNadia, forNadia.text.replace("Nadia's", 'nada'))).toBe(false);
     const obrien = buildConsentStatement({
       subjectName: "Sean O'Brien",
-      creatorName: "Sean O'Brien",
+      creatorName: null,
       spokenDate: 'November 1, 2026',
       random: seq(0, 0, 0),
     });
@@ -223,13 +252,39 @@ describe('scoreConsentTranscript', () => {
     expect(verifies(forMaya, forMaya.text.replace('I agree', 'Um, um, I agree'))).toBe(true);
   });
 
+  it.each(['nay', 'naw', 'nix', 'nyet', 'nae', 'nuh'])(
+    'refuses "%s" read in place of a name one letter away',
+    (no) => {
+      const statement = buildConsentStatement({
+        subjectName: 'Rosa Quill',
+        creatorName: `${no[0].toUpperCase()}${no.slice(1)}a`,
+        spokenDate: 'November 1, 2026',
+        random: seq(0, 0, 0),
+      });
+      expect(verifies(statement, statement.text)).toBe(true);
+      expect(
+        verifies(statement, statement.text.replace(/for \S+ private/, `for ${no} private`))
+      ).toBe(false);
+    }
+  );
+
+  it('verifies a name that ends in an initial before "I agree"', () => {
+    const statement = buildConsentStatement({
+      subjectName: 'Rosa A.',
+      creatorName: null,
+      spokenDate: 'November 1, 2026',
+      random: seq(0, 0, 0),
+    });
+    expect(verifies(statement, statement.text)).toBe(true);
+  });
+
   it('verifies names that hold refusal words, read correctly', () => {
     for (const [subjectName, creatorName] of [
-      ['No Min-ji', 'No Min-ji'],
-      ['Noa Never', 'Noa Never'],
+      ['No Min-ji', null],
+      ['Noa Never', null],
       ['Rosa Quill', 'Do Not'],
-      ['Never', 'Never'],
-    ]) {
+      ['Never', null],
+    ] as const) {
       const statement = buildConsentStatement({
         subjectName,
         creatorName,
@@ -262,7 +317,7 @@ describe('scoreConsentTranscript', () => {
       expect(build(real)).not.toThrow();
       const statement = buildConsentStatement({
         subjectName: real,
-        creatorName: real,
+        creatorName: null,
         spokenDate: 'today',
         random: seq(0, 0, 0),
       });

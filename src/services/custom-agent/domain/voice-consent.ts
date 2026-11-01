@@ -87,8 +87,11 @@ const CHECK_WORD_COUNT = 3;
 export interface ConsentStatementInput {
   /** The person whose voice will be cloned, as they'd say their own name. */
   subjectName: string;
-  /** The person the twin is for; the same as subjectName for a twin of yourself. */
-  creatorName: string;
+  /**
+   * The person the twin is for, or null for a twin of yourself. The caller decides that
+   * from who is signed in, never from the names: two people can share a name.
+   */
+  creatorName: string | null;
   /** The day it is read, already formatted for speech ("October 31, 2026"). */
   spokenDate: string;
   /** Random number in [0, 1); injected so tests are repeatable. Defaults to Web Crypto. */
@@ -117,7 +120,10 @@ function pickCheckWords(random: () => number): string[] {
   const pool = [...CHECK_WORDS];
   const picked: string[] = [];
   while (picked.length < CHECK_WORD_COUNT) {
-    const [word] = pool.splice(Math.floor(random() * pool.length), 1);
+    const r = random();
+    // A bad random source must not leave a check word blank: that would drop the freshness proof
+    if (!(r >= 0 && r < 1)) throw new RangeError('random() must return a number in [0, 1)');
+    const [word] = pool.splice(Math.floor(r * pool.length), 1);
     picked.push(word);
   }
   return picked;
@@ -142,12 +148,11 @@ function isSpeakableName(name: string): boolean {
 /** The statement the subject reads aloud. Throws on a name that isn't speakable (a sentence). */
 export function buildConsentStatement(input: ConsentStatementInput): ConsentStatement {
   const subject = clean(input.subjectName);
-  const creator = clean(input.creatorName);
-  if (!isSpeakableName(subject) || !isSpeakableName(creator)) {
+  const creator = input.creatorName === null ? null : clean(input.creatorName);
+  if (!isSpeakableName(subject) || (creator !== null && !isSpeakableName(creator))) {
     throw new RangeError('consent names must be speakable names, not sentences');
   }
-  const ownUse = subject.toLowerCase() === creator.toLowerCase();
-  const forWhom = ownUse ? 'my own use' : `${creator}'s private use`;
+  const forWhom = creator === null ? 'my own use' : `${creator}'s private use`;
   const checkWords = pickCheckWords(input.random ?? secureRandom);
   const spokenDate = clean(input.spokenDate);
   const text =
@@ -159,7 +164,7 @@ export function buildConsentStatement(input: ConsentStatementInput): ConsentStat
     checkWords,
     spokenDate,
     subjectName: subject,
-    creatorName: ownUse ? null : creator,
+    creatorName: creator,
   };
 }
 

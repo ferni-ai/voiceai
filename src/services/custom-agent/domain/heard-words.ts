@@ -55,7 +55,8 @@ export function heardWords(transcript: string): string[] {
   });
   const out: string[] = [];
   for (let i = 0; i < words.length; i++) {
-    if (words[i] === 'a' && words[i + 1] === 'i') {
+    // Only "a i copy", so a name ending in "A." before "I agree" stays as said
+    if (words[i] === 'a' && words[i + 1] === 'i' && words[i + 2] === 'copy') {
       out.push('ai');
       i++;
     } else if (words[i] === 'anytime') out.push('any', 'time');
@@ -64,14 +65,18 @@ export function heardWords(transcript: string): string[] {
   return out;
 }
 
-/** Letters a name word may be misheard by: none when short ("Jo" is not "no"), two at most. */
+const letters = (word: string) => Array.from(word).length;
+
+/** Letters a name word may be misheard by: none up to four letters ("Jo" is not "no"), two at most. */
 const nameSlack = (word: string) => {
-  const n = Array.from(word).length;
-  return n <= 3 ? 0 : n < 8 ? 1 : 2;
+  const n = letters(word);
+  return n <= 4 ? 0 : n < 8 ? 1 : 2;
 };
 
-/** Words that say no; a name word heard as one must be the name exactly ("Nona" is not "none"). */
-const NEGATIONS = new Set('no not none never nope nah nor neither nada nein non'.split(' '));
+/** Words that say no; a name word heard as one must be the name exactly ("Nadia" is not "nada"). */
+const NEGATIONS = new Set(
+  'no not none never nope nah nor neither nada nein non nay naw nix nyet nae nuh'.split(' ')
+);
 
 const nameWordHeard = (said: string, word: string) =>
   said === word || (!NEGATIONS.has(said) && editDistance(said, word) <= nameSlack(word));
