@@ -162,21 +162,21 @@ async function injectToActiveSession(
   request: OnBehalfCallRequest
 ): Promise<boolean> {
   const room = request.originalRoomName || request.originalSessionId;
-  const id = { callId: outcome.callId };
+  const { callId } = outcome;
   if (!room) return false; // no requesting call (an empty name is no room)
   try {
     // Dynamic import to avoid circular deps and allow graceful degradation
     const livekitSdk = await import('livekit-server-sdk').catch(() => null);
 
     if (!livekitSdk) {
-      log.debug(id, 'LiveKit SDK not available for active session injection');
+      log.debug({ callId }, 'LiveKit SDK not available for active session injection');
       return false;
     }
 
     const { RoomServiceClient, DataPacket_Kind } = livekitSdk;
 
     if (!RoomServiceClient) {
-      log.debug(id, 'LiveKit SDK not available for active session injection');
+      log.debug({ callId }, 'LiveKit SDK not available for active session injection');
       return false;
     }
 
@@ -185,7 +185,7 @@ async function injectToActiveSession(
     const livekitApiSecret = process.env.LIVEKIT_API_SECRET;
 
     if (!livekitUrl || !livekitApiKey || !livekitApiSecret) {
-      log.debug(id, 'LiveKit credentials not configured');
+      log.debug({ callId }, 'LiveKit credentials not configured');
       return false;
     }
 
@@ -194,7 +194,7 @@ async function injectToActiveSession(
     // Check if the room still exists (user still connected)
     const rooms = await roomService.listRooms([room]);
     if (!rooms || rooms.length === 0) {
-      log.debug(id, 'Session room not found, user likely disconnected');
+      log.debug({ callId }, 'Session room not found, user likely disconnected');
       return false;
     }
 
