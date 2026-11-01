@@ -88,6 +88,16 @@ describe('quickCapture, reminder branch', () => {
     expect(out).toContain('Saved one reminder');
   });
 
+  it.each(['remind me to water the plants tomorrow at 5pm', 'remind me to call mom next week'])(
+    'the footer never moves the time: %s',
+    async (thought) => {
+      await capture(thought, verified());
+      await capture(thought, unverified());
+      const [plain, footered] = edges.reminder.mock.calls.map((c) => (c[0] as { scheduledFor: Date }).scheduledFor); // prettier-ignore
+      expect(footered.getTime()).toBe(plain.getTime());
+    }
+  );
+
   it('a verified call is unchanged: no filter, no footer', async () => {
     await capture(PHISH_REMINDER, verified());
     expect(stored()).toEqual([PHISH_REMINDER]);
