@@ -118,23 +118,32 @@ export function composeMorningBrief(input: MorningBriefInput): string | null {
   return composeMorningBriefParts(input)?.text ?? null;
 }
 
+/** The brief's text and the parts of it that stored text fills, each exactly as rendered. */
+export interface MorningBriefParts {
+  text: string;
+  /** The "Today" titles, clock times replaced by "at" so a busy day's times read as no number */
+  titles: string;
+  /** The "Due" and "Still open" sections */
+  stored: string;
+}
+
 /**
- * The brief, and the part of it that stored text fills (the "Due" and "Still open" sections
- * exactly as rendered), so the whole of that can be screened, not just each item alone.
+ * The brief, with the parts stored text fills, so the whole of each can be screened, not
+ * just each item alone (pieces of a number can line up across items).
  */
-export function composeMorningBriefParts(
-  input: MorningBriefInput
-): { text: string; stored: string } | null {
+export function composeMorningBriefParts(input: MorningBriefInput): MorningBriefParts | null {
   const events = [...input.events].sort((a, b) => a.start.getTime() - b.start.getTime());
-  const lists = {
-    today: unique(
+  const todayAt = (at: (d: Date) => string): string[] =>
+    unique(
       events.map((e) => {
-        if (e.invite)
-          return e.allDay ? 'an invite' : `an invite at ${clock(e.start, input.timeZone)}`;
+        if (e.invite) return e.allDay ? 'an invite' : `an invite at ${at(e.start)}`;
         const title = cleanItem(e.title);
-        return e.allDay || !title ? title : `${clock(e.start, input.timeZone)} ${title}`;
+        return e.allDay || !title ? title : `${at(e.start)} ${title}`;
       })
-    ),
+    );
+  const neutralToday = todayAt(() => 'at');
+  const lists = {
+    today: todayAt((d) => clock(d, input.timeZone)),
     due: unique(input.reminders.map(cleanItem)),
     open: unique([...input.tasks, ...input.commitments].map(cleanItem)),
   };
@@ -175,5 +184,6 @@ export function composeMorningBriefParts(
     shown[longest]--;
     text = render();
   }
-  return { text, stored: storedPart() };
+  const titles = neutralToday.length ? `Today: ${joinList(neutralToday, shown.today)}.` : '';
+  return { text, titles, stored: storedPart() };
 }

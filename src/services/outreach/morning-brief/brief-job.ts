@@ -24,11 +24,7 @@ import type { GuardedText, TextOutcome } from '../guarded-text.js';
 import { firstName } from '../proactive-channels/pondered-triggers.js';
 import { timezoneOf } from '../proactive-channels/proactive-tick.js';
 import { isUserQuiet, quietEndsAt, savedQuietHours, type QuietHoursUser } from '../quiet-hours.js';
-import {
-  composeMorningBrief,
-  composeMorningBriefParts,
-  type MorningBriefInput,
-} from './compose.js';
+import { composeMorningBriefParts, type MorningBriefInput } from './compose.js';
 import { storedTextForOwner } from '../../../tools/domains/proactive/outreach/index.js';
 
 const log = createLogger({ module: 'MorningBrief' });
@@ -108,18 +104,26 @@ function inBriefHour(user: Record<string, unknown>, zone: string, local: WallTim
 }
 
 /**
- * OWNER_OUTREACH_STORED_TEXT_SCREEN: the stored-text part of the brief as sent passes the screen
- * too. Items are screened one by one (default-deps.ts readDay), but the brief joins them, and
- * pieces of a number or a link can line up across items. If the joined part is refused, the
- * brief goes calendar-only. (Event times stay out of the check: a busy day's clock times alone
- * add up to a long run of digits.)
+ * OWNER_OUTREACH_STORED_TEXT_SCREEN: the brief as sent passes the screen too, not only each
+ * item (default-deps.ts readDay): the brief joins items, and pieces of a number or a link can
+ * line up across two titles, two stored items, or the last title and the first stored item.
+ * Joined titles that fail go by time only; titles and stored sections that fail together
+ * drop the stored sections. Clock times are read as "at" (composeMorningBriefParts): a busy
+ * day's times alone trip the digit rule.
  */
 function screenedBrief(input: MorningBriefInput, userId: string, env: Env): string | null {
-  const full = composeMorningBriefParts(input);
-  if (!full || storedTextForOwner([full.stored], { site: 'morning-brief', userId }, env)) {
-    return full?.text ?? null;
+  const passes = (text: string) => storedTextForOwner([text], { site: 'morning-brief', userId }, env); // prettier-ignore
+  let brief = input;
+  let parts = composeMorningBriefParts(brief);
+  if (!parts) return null;
+  if (!passes(parts.titles)) {
+    brief = { ...brief, events: brief.events.map((e) => ({ ...e, invite: true })) };
+    parts = composeMorningBriefParts(brief);
   }
-  return composeMorningBrief({ ...input, reminders: [], tasks: [], commitments: [] });
+  if (parts && !passes(`${parts.titles} ${parts.stored}`)) {
+    parts = composeMorningBriefParts({ ...brief, reminders: [], tasks: [], commitments: [] });
+  }
+  return parts?.text ?? null;
 }
 
 /** MORNING_BRIEF_RUN. nothing-today with commitments off: only calendar, reminders and tasks counted. */

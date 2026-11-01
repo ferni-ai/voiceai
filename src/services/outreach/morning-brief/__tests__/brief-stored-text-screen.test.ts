@@ -7,7 +7,7 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 import type { GuardedText, TextOutcome } from '../../guarded-text.js';
-import type { MorningBriefDeps } from '../brief-job.js';
+import type { DayItems as DayItemsLike, MorningBriefDeps } from '../brief-job.js';
 import { pathFirestore } from '../../proactive-channels/__tests__/path-firestore.js';
 
 const docs = new Map<string, Record<string, unknown>>();
@@ -85,21 +85,17 @@ describe('readDay with the stored-text screen', () => {
   });
 });
 
-describe('the brief as sent: a number split across two tasks', () => {
-  // Each half passes on its own; joined in "Still open" they make one phone number (fictional).
-  const split = ['ask Dana about 212 555', '0198 for the account'];
-  async function sentBody(screen: string): Promise<string> {
+describe('the brief as sent: pieces of a number across items', () => {
+  // Each half passes on its own; joined in the brief they make one phone number (fictional).
+  const [HEAD, TAIL] = ['ask Dana about 212 555', '0198 for the account'];
+  const event = (title: string, hour: number) => ({ title, start: new Date(Date.UTC(2026, 9, 19, hour + 4, 30)), allDay: false, invite: false }); // prettier-ignore
+  async function sentBody(screen: string, day: Partial<DayItemsLike>): Promise<string> {
     const sendText = vi.fn(async (_t: GuardedText): Promise<TextOutcome> => ({ sent: true }));
     const deps: MorningBriefDeps = {
       env: { MORNING_BRIEF: 'on', MORNING_BRIEF_USERS: OWNER, OWNER_OUTREACH_STORED_TEXT_SCREEN: screen }, // prettier-ignore
       cohortUsers: async () => [],
       userDoc: async () => ({ contactInfo: { timezone: 'America/New_York' }, name: 'Sam Tester' }),
-      readDay: async () => ({
-        events: [{ title: 'Book club', start: new Date('2026-10-19T23:00:00Z'), allDay: false, invite: false }], // prettier-ignore
-        reminders: [],
-        tasks: split,
-        commitments: [],
-      }),
+      readDay: async () => ({ events: [], reminders: [], tasks: [], commitments: [], ...day }),
       claims: { claim: async () => true, release: async () => undefined },
       sendText,
       sendPush: vi.fn(async () => true),
@@ -108,14 +104,38 @@ describe('the brief as sent: a number split across two tasks', () => {
     return String(sendText.mock.calls[0]?.[0].body);
   }
 
-  it('on: the stored sections are dropped and the calendar-only brief goes', async () => {
-    const body = await sentBody('on');
-    expect(body).toContain('Book club');
-    expect(body).not.toContain('212');
-    expect(body).not.toContain('Still open');
+  it('across two tasks: on, the stored sections are dropped; off, sent as before', async () => {
+    const day = { events: [event('Book club', 18)], tasks: [HEAD, TAIL] };
+    const on = await sentBody('on', day);
+    expect(on).toContain('Book club');
+    expect(on).not.toContain('212');
+    expect(await sentBody('off', day)).toContain(`${HEAD} and ${TAIL}`);
   });
 
-  it('off: the brief goes as before', async () => {
-    expect(await sentBody('off')).toContain('ask Dana about 212 555 and 0198 for the account');
+  it("across two event titles (Ferni's own calendar): on, they go by time only", async () => {
+    const day = { events: [event(HEAD, 9), event(TAIL, 11)], tasks: ['book flights'] };
+    const on = await sentBody('on', day);
+    expect(on).not.toContain('212');
+    expect(on).toContain('an invite at 9:30am');
+    expect(on).toContain('book flights');
+    expect(await sentBody('off', day)).toContain(HEAD);
+  });
+
+  it('across the last title and the first task: on, the stored sections are dropped', async () => {
+    const day = { events: [event('Book club', 9), event(HEAD, 11)], tasks: [TAIL, 'book flights'] };
+    const on = await sentBody('on', day);
+    expect(on).not.toContain('0198');
+    expect(on).not.toContain('Still open');
+    expect(await sentBody('off', day)).toContain(TAIL);
+  });
+
+  it('a busy day of ordinary titles and times is sent whole with the screen on', async () => {
+    const day = {
+      events: [event('Standup', 9), event('Dentist', 11), event('Lunch with Ana', 12), event('1:1 with Raj', 14), event('Gym', 17)], // prettier-ignore
+      reminders: ['call the pharmacy'],
+      tasks: ['renew the library card', 'book flights'],
+    };
+    expect(await sentBody('on', day)).toBe(await sentBody('off', day));
+    expect(await sentBody('on', day)).toContain('9:30am Standup');
   });
 });
