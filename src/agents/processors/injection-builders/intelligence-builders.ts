@@ -23,6 +23,7 @@ import { isMemberIdentity } from '../../../services/identity/member-identity.js'
 import { flagOn } from '../../../config/env-flag.js';
 import type { FlagName } from '../../../config/flag-manifest.js';
 import { isKnownId, toCanonical, type CanonicalPersonaId } from '../../../personas/index.js';
+import { hasHandoffArrival } from '../../../tools/handoff/handoff-arrival.js';
 
 // ============================================================================
 // PERSONA BUILDERS (lazy-loaded, keyed by canonical persona id)
@@ -31,6 +32,11 @@ import { isKnownId, toCanonical, type CanonicalPersonaId } from '../../../person
 interface PersonaBuilderEntry {
   /** Off-by-default flag a builder waits behind until it is fixed. */
   flag?: FlagName;
+  /**
+   * Flag for the builder's handoff briefing when the builder itself is unflagged. A persona is
+   * briefed on its arrival turn only behind `arrivalFlag ?? flag`, so Ferni and Joel never are.
+   */
+  arrivalFlag?: FlagName;
   load: () => Promise<PersonaContextBuilder>;
 }
 
@@ -49,6 +55,7 @@ const PERSONA_BUILDERS: Partial<Record<CanonicalPersonaId, PersonaBuilderEntry>>
       ).buildFerniCoordinatorIntelligenceContext,
   },
   'peter-john': {
+    arrivalFlag: 'PERSONA_BRIEFING_PETER_HANDOFF',
     load: async () =>
       (
         await import('../../../intelligence/context-builders/personas/peter-research-insights/index.js')
@@ -113,6 +120,20 @@ async function getPersonaBuilder(personaId: string): Promise<PersonaContextBuild
     diag.debug(`Failed to load persona builder for ${personaId}`, { error: String(error) });
     return null;
   }
+}
+
+/**
+ * True when this call was just handed to `personaId` and nothing has taken the arrival yet, and
+ * the persona's briefing flag is on. Nothing set userData.isHandoff, so a specialist was only
+ * briefed on turn 0 or a 10th turn and arrived mid-call knowing nothing.
+ * Keyed by session id: an arrival on one call never briefs another (#3044).
+ */
+function isBriefedArrival(personaId: string, sessionId: string | undefined): boolean {
+  if (typeof personaId !== 'string' || !isKnownId(personaId)) return false;
+  const canonical = toCanonical(personaId);
+  const entry = PERSONA_BUILDERS[canonical];
+  const gate = entry?.arrivalFlag ?? entry?.flag;
+  return gate !== undefined && flagOn(gate) && hasHandoffArrival(sessionId, canonical);
 }
 
 // ============================================================================
@@ -213,12 +234,16 @@ export function buildFunctionCallingReinforcement(
 /**
  * Build persona-specific context injections.
  *
- * Runs on first turn, handoff, or every 10 turns for refresh.
+ * Runs on first turn, handoff (including this call's pending arrival for a briefed
+ * persona), or every 10 turns for refresh.
  */
 export async function buildPersonaSpecificContextInjections(
   ctx: PersonaSpecificContextInput
 ): Promise<ContextInjection[]> {
-  const { services, userData, persona, userText, analysis, turnCount, isHandoff } = ctx;
+  const { services, userData, persona, userText, analysis, turnCount } = ctx;
+  // A peek: the persona's builder takes the arrival (so this fires once), and the record stays
+  // readable by getHandoffContext.
+  const isHandoff = ctx.isHandoff || isBriefedArrival(persona.id, services.sessionId);
 
   const shouldInject = turnCount === 0 || isHandoff || (turnCount > 0 && turnCount % 10 === 0);
 
