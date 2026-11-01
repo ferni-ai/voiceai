@@ -17,7 +17,6 @@
  */
 
 import { detectCrisis as detectGuardCrisis } from './crisis-guard.js';
-import { wordsMatch } from './legacy-word-checks.js'; // CRISIS_LEXICAL_V2
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'CrisisDetection' });
@@ -369,7 +368,7 @@ export function detectCrisis(
       const matchedPatterns: string[] = [];
 
       for (const pattern of patterns) {
-        if (wordsMatch(pattern, text, crisisType, 'safety_check')) {
+        if (pattern.test(text)) {
           matchedPatterns.push(pattern.source);
           totalPatternMatches++;
         }

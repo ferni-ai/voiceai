@@ -6,7 +6,7 @@
  *
  * Any unrecognised value resolves to live, so a typo can never silently disable
  * the guard. Here in services so the safety service can ask it too
- * (legacy-word-checks.ts); agents/safety/crisis-shadow.ts re-exports it.
+ * (human-transfer/transfer-need.ts); agents/safety/crisis-shadow.ts re-exports it.
  *
  * @module services/safety/crisis-guard-mode
  */

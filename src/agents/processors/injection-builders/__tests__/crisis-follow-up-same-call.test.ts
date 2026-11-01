@@ -13,7 +13,7 @@
  * same-call note shows for the 3 caller turns after its signal, then stops; a new
  * signal restarts the 3 turns. Cross-call notes are unchanged.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const fake = vi.hoisted(() => {
   const stores = new Map<string, Array<Record<string, unknown>>>();
@@ -99,6 +99,10 @@ async function turnThenNext(words: string, expectLogged: boolean) {
     });
   return { logged: stored(uid), next: await buildCrisisHistoryInjection(uid, call) };
 }
+
+// "Flag off (main)" is main: CRISIS_LEXICAL_V2 implies CRISIS_SIGHT_NEEDS_CUE, so it is pinned
+// off here; its effect is pinned in legacy-word-checks-equivalence.test.ts (SIGHT_CUE).
+beforeEach(() => vi.stubEnv('CRISIS_LEXICAL_V2', 'off'));
 
 afterEach(() => {
   vi.unstubAllEnvs();

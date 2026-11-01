@@ -14,7 +14,7 @@
  * Never-lower: on every set, line by line, the flag misses no emergency main catches.
  */
 import { readFileSync } from 'node:fs';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { classifyEscalation, detectCrisisSignals } from '../escalation-classifier.js';
 
 type SightSet = { emergency: string[]; everyday: string[]; breathe_feel_move?: string[] };
@@ -50,6 +50,9 @@ const fired = (v: 'on' | 'off', lines: string[]) => {
   return lines.filter((line) => detectCrisisSignals(line).medicalEmergency);
 };
 
+// "Flag off" here is main. CRISIS_LEXICAL_V2 implies this cue (sight-emergency.ts), so it is
+// pinned off; its effect is pinned in legacy-word-checks-equivalence.test.ts (SIGHT_CUE).
+beforeEach(() => vi.stubEnv('CRISIS_LEXICAL_V2', 'off'));
 afterEach(() => vi.unstubAllEnvs());
 
 describe('the prod line: "I can\'t see." about a text', () => {

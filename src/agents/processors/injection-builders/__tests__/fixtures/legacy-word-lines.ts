@@ -106,9 +106,9 @@ export const MIXED_RISK = [
 ] as const;
 
 /**
- * Held out: strong risk phrases written beside the shapes the exclusions look for (a negator
- * before the words, an everyday object, an injury, an event). The first seven are dropped by
- * the negation rule if it ever runs before the strong check.
+ * Held out: strong risk phrases written beside shapes a word-check exclusion would look for
+ * (a negator before the words, an everyday object, an injury, an event). The flag has no
+ * exclusions; these pin that it never grows one (legacy-word-checks-equivalence.test.ts).
  */
 export const HELD_OUT_STRONG = [
   "it's not that I want to die it's that I can't take it",

@@ -6,7 +6,7 @@
  * [SAFETY, which is all a text check saw (review of #2489).
  */
 import { llm } from '@livekit/agents';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../../services/human-transfer/index.js', async (importOriginal) => {
   const real = await importOriginal<Record<string, unknown>>();
@@ -62,6 +62,8 @@ function noteFor(injections: Array<{ category: string; content: string; priority
 }
 
 describe('crisis and safety guidance is recognised by its category', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
   it('[ESCALATION AWARENESS] and [CRISIS SUPPORT] (safety, crisis_response)', async () => {
     const injections = await buildSafetyInjections(ctx);
     const escalation = injections.find((i) => i.content.includes('[ESCALATION AWARENESS]'));
@@ -72,6 +74,9 @@ describe('crisis and safety guidance is recognised by its category', () => {
   });
 
   it('[TRANSFER AWARENESS] with crisis indicators', async () => {
+    // Main's note. With CRISIS_LEXICAL_V2 on, a live gate that reads this line takes it over
+    // (transfer-note-deferral.test.ts), so the flag is pinned off for the note's category here.
+    vi.stubEnv('CRISIS_LEXICAL_V2', 'off');
     const injection = await buildHumanTransferInjections(CRISIS, 'u-1', 's-1');
     expect(injection?.content).toContain('CRISIS INDICATORS DETECTED');
     expect(isSafetyCategory(injection!.category)).toBe(true);

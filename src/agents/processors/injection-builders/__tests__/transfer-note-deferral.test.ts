@@ -1,18 +1,14 @@
 /**
- * CRISIS_LEXICAL_V2: the two legacy word checks outside the crisis gate stop raising
- * crisis on their own. Runs the real builders (buildSafetyInjections ->
- * performSafetyCheck, buildHumanTransferInjections -> the human-transfer detector and
- * its crisis_signals writer on a fake store) and the real gate (startCrisisGate,
- * patterns only, so no model call). Every line is fictional.
- *
- * The rule (#3267 verify, round 1): no line gets less than main gave it unless it is a
- * known false-alarm shape. MUST_KEEP, MIXED_RISK and HELD_OUT_STRONG pin that in every
- * gate mode.
+ * CRISIS_LEXICAL_V2: the human-transfer note for a suicide or self-harm-only turn is left to
+ * the crisis gate when the gate is sure to act on that line (live, cascade, its own pattern
+ * guard reads crisis: transfer-need.ts). Runs the real builders (buildSafetyInjections ->
+ * performSafetyCheck, buildHumanTransferInjections -> the human-transfer detector and its
+ * crisis_signals writer on a fake store) and the real gate (startCrisisGate). Every line is
+ * fictional. Full-output equality with main is legacy-word-checks-equivalence.test.ts.
  */
 import { llm } from '@livekit/agents';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  FALSE_ALARMS,
   HELD_OUT_STRONG,
   MIXED_RISK,
   MUST_KEEP,
@@ -177,56 +173,6 @@ describe('no line gets less than main gave it, in every gate mode', () => {
   });
 });
 
-describe('a false alarm on main writes crisis_signals; with the flag on it writes nothing', () => {
-  const written = [
-    FALSE_ALARMS.meeting,
-    FALSE_ALARMS.trip,
-    FALSE_ALARMS.fingerCut,
-    FALSE_ALARMS.shavingCut,
-    FALSE_ALARMS.cantSeeText, // CRISIS_LEXICAL_V2 implies CRISIS_SIGHT_NEEDS_CUE
-  ];
-  it.each(written)('%s', async (line) => {
-    v2(false);
-    expect((await turn(line)).writes.length).toBe(1);
-    v2(true);
-    const on = await turn(line);
-    expect(on.writes).toEqual([]);
-    expect(on.transfer).toBeNull();
-    // performSafetyCheck's suicide note is the guard's own read, so it stays where the guard
-    // reads one ("the point of this meeting", "go on that trip": the gate's lane, L1/L2).
-    expect(on.crisisInjections.map((i) => i.category)).not.toContain('crisis_transfer');
-  });
-
-  // Safety beats false alarms: a strong phrase turns every exclusion off.
-  it.each([FALSE_ALARMS.boyfriend, FALSE_ALARMS.endThere, FALSE_ALARMS.dieLaughing])(
-    "a strong phrase keeps main's alarm, false or not: %s",
-    async (line) => {
-      v2(false);
-      const main = (await turn(line)).writes;
-      v2(true);
-      expect((await turn(line)).writes).toEqual(main);
-    }
-  );
-});
-
-describe('performSafetyCheck false alarms: main injects crisis guidance, the flag injects none', () => {
-  const guided = [
-    FALSE_ALARMS.messagesFrom,
-    FALSE_ALARMS.gameTalk,
-    FALSE_ALARMS.photos,
-    FALSE_ALARMS.notLosingIt,
-    FALSE_ALARMS.noVoices,
-  ];
-  it.each(guided)('%s', async (line) => {
-    for (const gate of ['live', 'shadow'] as const) {
-      v2(false, gate);
-      expect((await turn(line)).crisisInjections.map((i) => i.category)).toContain('safety');
-      v2(true, gate);
-      expect((await turn(line)).crisisInjections).toEqual([]);
-    }
-  });
-});
-
 describe('real risk still reaches the gate and is caught end to end', () => {
   it.each(REAL_RISK)('%s', async (line) => {
     // The gate itself is unchanged: its pattern read and its whole decision, flag off or on.
@@ -297,13 +243,6 @@ describe('paths the gate does not read keep their guidance with the flag on', ()
       'crisis_response',
       'crisis_transfer',
     ]);
-  });
-
-  it('an everyday injury gets no crisis or 911 note', async () => {
-    v2(true);
-    const { transfer, writes } = await turn(FALSE_ALARMS.fingerCut);
-    expect(transfer).toBeNull();
-    expect(writes).toEqual([]);
   });
 });
 

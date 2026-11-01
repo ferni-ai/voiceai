@@ -1,20 +1,31 @@
 /**
  * What the human-transfer detector's signals ask Ferni to do on this turn.
  *
- * CRISIS_LEXICAL_V2 off: evaluateTransferNeed, exactly main. On, when the gate is sure to
- * act on the line (gateDecides: live, on the cascade path, and its own pattern guard reads
- * crisis in these words), a turn whose only risk is suicide or self-harm adds no transfer
- * note of its own: the gate gives the crisis guidance or the script. Otherwise main's note. Anything the gate does not read (a medical
- * emergency, danger to others, domestic violence, a child, substances, psychosis) keeps
- * main's decision. The crisis_signals write is the caller's business and is unchanged
- * (better-than-human-builders.ts), so a real crisis still leaves its record.
+ * CRISIS_LEXICAL_V2 off: evaluateTransferNeed, exactly main. On, the detector reads the
+ * same words exactly as main does (every signal, severity and crisis_signals write is
+ * main's); only its transfer note may be left to the crisis gate, and only when the gate
+ * is sure to act on this very line:
+ * - the gate is live (CRISIS_GUARD_MODE),
+ * - the voice path is the cascade, whose llmNode runs the gate (the realtime models reply
+ *   without it),
+ * - the gate's own pattern guard reads crisis in these words, so no classifier verdict is
+ *   needed for the gate to guide or replace the reply,
+ * - and the turn's only risk is suicide or self-harm. A medical emergency, danger to
+ *   others, domestic violence, a child, substances or psychosis keep main's note: the gate
+ *   does not read them.
+ * Then the note would repeat the gate's own crisis guidance. Otherwise main's note stays.
+ * performSafetyCheck never defers. Each deferral is logged (CRISIS_LEXICAL, a reason only).
  *
  * @module services/human-transfer/transfer-need
  */
-import { gateDecides, noteWordCheck } from '../safety/legacy-word-checks.js';
-import { classifyEscalation } from './escalation-classifier.js';
+import { flagOn } from '../../config/env-flag.js';
+import { getProviderIdSync } from '../../config/model-provider-config.js';
+import { resolveCrisisGuardMode, scoreCrisisLanguage } from '../safety/index.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { evaluateTransferNeed } from './transfer-flow.js';
 import type { CrisisSignals, EscalationDecision } from './types.js';
+
+const log = createLogger({ module: 'TransferNeed' });
 
 const FERNI_HANDLES: EscalationDecision = {
   type: 'none',
@@ -36,14 +47,24 @@ function onlyGateRisk(s: CrisisSignals): boolean {
   return gate && !other;
 }
 
-/** The transfer decision for this turn's signals (detectCrisisSignals of `userText`). */
-export function transferNeed(signals: CrisisSignals, userText: string): EscalationDecision {
-  if (!gateDecides(userText)) return evaluateTransferNeed(userText);
-  if (!onlyGateRisk(signals)) return classifyEscalation(signals);
-  noteWordCheck(
-    'human_transfer',
-    'deferred_to_gate',
-    signals.suicidalIdeation ? 'suicidal' : 'self-harm'
+/** The live gate is sure to act on these words: its own pattern guard reads crisis in them. */
+function gateActsOn(text: string, env: Record<string, string | undefined>): boolean {
+  return (
+    flagOn('CRISIS_LEXICAL_V2', env) &&
+    resolveCrisisGuardMode(env) === 'live' &&
+    getProviderIdSync(env) === 'cartesia-cascade' &&
+    scoreCrisisLanguage(text).isCrisis
   );
+}
+
+/** The transfer decision for this turn's signals (detectCrisisSignals of `userText`). */
+export function transferNeed(
+  signals: CrisisSignals,
+  userText: string,
+  env: Record<string, string | undefined> = process.env
+): EscalationDecision {
+  if (!onlyGateRisk(signals) || !gateActsOn(userText, env)) return evaluateTransferNeed(userText);
+  const kind = signals.suicidalIdeation ? 'suicidal' : 'self-harm';
+  log.info({ check: 'human_transfer', reason: 'deferred_to_gate', kind }, 'CRISIS_LEXICAL');
   return FERNI_HANDLES;
 }
