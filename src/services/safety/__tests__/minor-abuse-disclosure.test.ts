@@ -125,6 +125,15 @@ describe('a disclosure through the turn pipeline', () => {
     expect(g).not.toMatch(/\b988\b/);
   });
 
+  it('never promises secrecy and never implies Ferni will tell (Seth, 11-01)', async () => {
+    const g = minorAbuseGuidance((await turn(line, ON)).summary) ?? '';
+    expect(g).toContain('Never promise to keep it secret or between you');
+    expect(g).toContain('never say or imply that you will tell anyone');
+    expect(g).not.toMatch(
+      /stays? between us|not going to tell|keep (?:it|this) (?:a )?secret\b(?! or)/i
+    );
+  });
+
   it('988 too when they say something about hurting themselves, this turn or earlier', async () => {
     const now = await turn("My coach touches me and I'm only 14 and I want to die.", ON);
     expect(minorAbuseGuidance(now.summary)).toMatch(/\b988\b/);

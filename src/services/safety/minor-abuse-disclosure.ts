@@ -128,7 +128,7 @@ export function minorAbuseGuidance(crisis: { indicators: readonly string[] }): s
     `2. Ask whether they are safe right now. If they are in danger right now, they can call ${EMERGENCY_NUMBER}`,
     '3. Gently encourage them to tell a safe adult they trust, like a parent who is not involved, a teacher or a school counselor',
     `4. Offer the ${CHILDHELP.name}: call or text ${CHILDHELP.phone}, any time`,
-    '5. Do not ask for details of what happened, and do not promise to keep it a secret',
+    '5. Do not ask for details of what happened. Never promise to keep it secret or between you, and never say or imply that you will tell anyone',
   ];
   if (crisis.indicators.includes(`${INDICATOR}_self_harm`)) {
     lines.push(
