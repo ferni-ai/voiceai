@@ -8,9 +8,10 @@
  * summary LLM call already spends part of it. Awaiting several more seconds of
  * LLM work there would let the timeout win and skip the steps after it. So
  * runAfterCallTasks starts every task and returns at once; each task has its
- * own timeout, and its errors are logged, never thrown. A per-call job process
- * (AGENT_JOB_EXECUTOR=process) waits for pendingAfterCallTasks() to reach 0
- * before it exits (job-child.ts), so the work isn't killed mid-flight.
+ * own timeout, and its errors are logged, never thrown. A process waits for
+ * pendingAfterCallTasks() to reach 0 before it exits, so the work isn't killed
+ * mid-flight: a per-call job process (job-child.ts) and the worker's own
+ * shutdown (gce/drain-memory-work.ts).
  *
  * @module services/session/after-call-tasks
  */
@@ -130,16 +131,26 @@ function startAfterCallTasks(ctx: AfterCallContext): void {
   }
 }
 
-/** Resolves when every started task has settled, or after maxMs; returns how many were left. */
+/**
+ * Resolves when every task has settled, or after maxMs; returns how many were left. Tasks
+ * that start while it waits count too: a call held for a sexual-topic read starts its tasks
+ * only when the read ends (runAfterCallTasks), so one wait on the tasks running at the start
+ * returned with those still to run.
+ */
 export async function drainAfterCallTasks(maxMs: number): Promise<number> {
   if (inFlight.size === 0) return 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  await Promise.race([
-    Promise.allSettled([...inFlight]),
-    new Promise<void>((resolve) => {
-      timer = setTimeout(resolve, maxMs);
-    }),
-  ]);
+  let timeUp = false;
+  const deadline = new Promise<void>((resolve) => {
+    timer = setTimeout(() => {
+      timeUp = true;
+      resolve();
+    }, maxMs);
+  });
+  while (inFlight.size > 0 && !timeUp) {
+    // eslint-disable-next-line no-await-in-loop -- each pass waits on the tasks running now
+    await Promise.race([Promise.allSettled([...inFlight]), deadline]);
+  }
   clearTimeout(timer);
   return inFlight.size;
 }

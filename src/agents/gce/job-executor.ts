@@ -13,6 +13,7 @@ import { Room, RoomEvent, TrackKind } from '@livekit/rtc-node';
 import { EventEmitter } from 'node:events';
 
 import { InProcessInferenceExecutor } from '../core/inference-executor.js';
+import { traceCallMemory } from '../shared/call-memory-trace.js';
 import { watchCallLoop } from '../shared/loop-watch.js';
 import { watchTimeToFirstWord } from '../shared/time-to-first-word.js';
 import { runFullVoiceAgentEntry } from '../voice-agent-entry/index.js';
@@ -157,6 +158,8 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
   });
   // LOOP_STALL / LOOP_SUMMARY: event-loop blocks the caller hears as audio hangs.
   const finishLoopWatch = watchCallLoop(jobId);
+  // CALL_MEMORY / HEAP_SAMPLE (CALL_MEMORY_TRACE=on): what the call's process holds as it runs.
+  const finishMemoryTrace = traceCallMemory(jobId);
 
   // Notify LiveKit immediately that this job is running (UpdateJobStatus JS_RUNNING)
   try {
@@ -394,5 +397,6 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
     } catch {
       // Ignore disconnect errors
     }
+    await finishMemoryTrace(); // after cleanup: what the call never let go
   }
 }

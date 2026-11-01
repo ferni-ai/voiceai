@@ -18,12 +18,11 @@
 import dns, { type LookupAddress } from 'node:dns';
 import net, { type LookupFunction } from 'node:net';
 // The guarded Agent is handed to the runtime's global fetch, which is the undici bundled with
-// Node, not this package. undici 6 Agents only understand the legacy handler API, so under a
-// runtime whose fetch speaks the newer one (Node 26+, undici 8) every guarded request failed in dispatch
-// with InvalidArgumentError (before any lookup or connect). undici 7 Agents accept both handler
-// APIs, so they work with the fetch of every supported Node. Kept as an alias so the rest of the
-// app's undici (the turn path's keep-alive dispatcher) is not changed by this file.
-import { Agent } from 'undici7';
+// Node, not this package. Node 22's fetch uses the legacy handler API and Node 26's (undici 8)
+// the newer one; an undici 6 Agent understood only the legacy one, so on Node 26 every guarded
+// request failed in dispatch (#3194). undici 7 Agents accept both, so the package is pinned to
+// 7 until the bundled fetch of every supported Node is undici 8.
+import { Agent } from 'undici';
 
 const MAX_REDIRECTS = 3;
 const DEFAULT_TIMEOUT_MS = 10_000;
