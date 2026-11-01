@@ -52,6 +52,19 @@ enum UITestScenario: String {
         return AccountStore(backend: backend, memory: AccountMemory(get: { realBefore }, set: { _ in }))
     }
 
+    /// A UI test's stand-in for pressing "Get help now" on the Home Screen
+    /// icon (which XCUITest can't reach reliably): a Darwin notification,
+    /// handed to the same `FerniAppDelegate.onShortcut` as FerniSceneDelegate.
+    static let helpShortcutNotification = "com.sethdford.ferni.uitest.helpShortcut"
+
+    static func listenForHelpShortcut() {
+        CFNotificationCenterAddObserver(
+            CFNotificationCenterGetDarwinNotifyCenter(), nil,
+            { _, _, _, _, _ in Task { @MainActor in FerniAppDelegate.onShortcut?(AppModel.helpShortcut) } },
+            helpShortcutNotification as CFString, nil, .deliverImmediately
+        )
+    }
+
     private static func value(after name: String) -> String? {
         let args = ProcessInfo.processInfo.arguments
         guard let i = args.firstIndex(of: name), i + 1 < args.count else { return nil }

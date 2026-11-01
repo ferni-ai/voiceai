@@ -100,7 +100,8 @@ notes as a one-time link, never in this repository.
 | Audio (the call) | Yes | App functionality |
 | User ID (the account id) | Yes | App functionality |
 | Other user content (transcripts, memories, reports) | Yes | App functionality |
-| Name, email (Sign in with Apple, if used) | Yes | App functionality |
+| Name, email (Sign in with Apple or Google, if used) | Yes | App functionality |
+| Phone number (phone sign-in, if used) | Yes | App functionality |
 | Crash data | No | App functionality |
 
 No tracking and no tracking domains. Required-reason APIs: UserDefaults

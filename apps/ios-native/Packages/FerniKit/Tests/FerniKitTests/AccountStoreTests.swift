@@ -347,6 +347,50 @@ final class AccountStoreTests: XCTestCase {
         XCTAssertEqual(backend.anonymousCalls, 0)
     }
 
+    /// Signed out of Apple, then Apple again: the same account, its code sent,
+    /// and no anonymous account in between to start someone new or to merge.
+    func testSigningOutOfAppleThenAppleAgainReachesTheSameAccount() async {
+        let backend = FakeBackend()
+        let uploads = Uploads()
+        let merged = Merges()
+        let account = store(backend, uploads: uploads)
+        account.mergeLeftBehind = { merged.accounts.append($0); return true }
+        await account.start()
+        await account.signInWithApple(apple)
+        let appleUID = account.user?.uid
+        backend.appleAccount = appleUID
+        await account.signOut()
+        XCTAssertEqual(account.state, .needsSignIn)
+
+        await account.signInWithApple(apple)
+
+        XCTAssertEqual(account.user?.uid, appleUID)
+        XCTAssertEqual(account.user?.isSignedInWithApple, true)
+        XCTAssertEqual(uploads.codes, ["code-1", "code-1"])
+        XCTAssertEqual(backend.anonymousCalls, 1, "only the first launch's")
+        XCTAssertTrue(merged.accounts.isEmpty)
+        XCTAssertNil(account.notice)
+    }
+
+    /// The server didn't merge (refused, or not reachable): signed in, and told
+    /// plainly that this phone's earlier calls stay with the account left behind.
+    func testAMergeThatDidntHappenSaysEarlierCallsStaySeparate() async throws {
+        let backend = FakeBackend()
+        backend.phoneAccounts["+14155550134"] = "seths-real-uid"
+        let merged = Merges()
+        let account = store(backend)
+        account.mergeLeftBehind = { merged.accounts.append($0); return false }
+        await account.start()
+
+        let verification = await account.sendPhoneCode(to: "4155550134")
+        await account.signIn(phoneVerification: try XCTUnwrap(verification), code: "123456")
+
+        XCTAssertEqual(account.user?.uid, "seths-real-uid")
+        XCTAssertEqual(merged.accounts.count, 1, "the merge was asked for")
+        XCTAssertEqual(account.notice, AccountStore.switchedNotice)
+        XCTAssertTrue(try XCTUnwrap(account.notice).contains("Earlier calls on this phone stay separate"))
+    }
+
     /// Deleting the account is the one way back to a fresh anonymous start.
     func testTheDeletionKeysIncludeTheRealAccountMemory() {
         XCTAssertTrue(AccountDeletion.localKeys.contains(AccountMemory.key))

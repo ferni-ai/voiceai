@@ -1,12 +1,14 @@
+import AuthenticationServices
 import FerniDesign
 import FerniKit
 import GoogleSignIn
 import SwiftUI
 import UIKit
 
-/// Signing in to a Ferni account someone already has (from the web, by phone
-/// or Google). Without it, a person who already uses Ferni could only ever
-/// be a new anonymous account on the phone (P0 2026-10-19).
+/// Signing in to a Ferni account someone already has (with Apple, by phone or
+/// Google). Without it, a person who already uses Ferni could only ever be a
+/// new anonymous account on the phone (P0 2026-10-19), and someone who signed
+/// out of Apple couldn't get back (App Store 4.8: Apple sits beside Google).
 struct SignInView: View {
     let account: AccountStore
     @Environment(\.dismiss) private var dismiss
@@ -18,6 +20,9 @@ struct SignInView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    AppleSignInButton(account: account, label: .signIn)
+                }
                 Section {
                     if let verification {
                         TextField("Code from the text", text: $code)
@@ -132,7 +137,7 @@ enum GoogleSignInFlow {
     static var isAvailable: Bool { Bundle.main.object(forInfoDictionaryKey: "GIDClientID") is String }
 
     @MainActor static func credential() async throws -> SignInCredential {
-        guard let presenter = topViewController() else { throw SignInError.other }
+        guard let presenter = UIApplication.shared.topViewController else { throw SignInError.other }
         do {
             let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: presenter)
             guard let idToken = result.user.idToken?.tokenString else { throw SignInError.other }
@@ -143,14 +148,49 @@ enum GoogleSignInFlow {
     }
 
     @MainActor static func handle(_ url: URL) -> Bool { GIDSignIn.sharedInstance.handle(url) }
+}
 
-    /// The sheet asking, so Google's page goes over it.
-    @MainActor private static func topViewController() -> UIViewController? {
-        let window = UIApplication.shared.connectedScenes
-            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-            .first
+/// Sign in with Apple, the one way in: Settings (linking this phone's account)
+/// and the sign-in sheet (an Apple account someone signed out of) both use it,
+/// so it always goes through `AccountStore.signInWithApple`: link or move to
+/// the account Apple already has, the anonymous merge, and the code upload.
+struct AppleSignInButton: View {
+    let account: AccountStore
+    let label: SignInWithAppleButton.Label
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var nonce = AppleNonce()
+
+    var body: some View {
+        SignInWithAppleButton(label) { request in
+            nonce = AppleNonce()
+            request.requestedScopes = [.fullName, .email]
+            request.nonce = nonce.sha256
+        } onCompletion: { result in
+            guard case .success(let authorization) = result,
+                  let apple = authorization.credential as? ASAuthorizationAppleIDCredential,
+                  let idToken = apple.identityToken.flatMap({ String(data: $0, encoding: .utf8) })
+            else { return } // cancelled, or Apple sent nothing to sign in with
+            let credential = AppleCredential(
+                idToken: idToken, rawNonce: nonce.raw,
+                authorizationCode: apple.authorizationCode.flatMap { String(data: $0, encoding: .utf8) },
+                fullName: apple.fullName
+            )
+            Task { await account.signInWithApple(credential) }
+        }
+        .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+        .frame(minHeight: 48)
+        .disabled(account.isWorking)
+        .accessibilityIdentifier("signIn.apple")
+    }
+}
+
+extension UIApplication {
+    /// The view controller showing now (the top of the key window's
+    /// presentations), so a page or sheet can go over whatever is up.
+    var topViewController: UIViewController? {
+        let window = connectedScenes.compactMap { ($0 as? UIWindowScene)?.keyWindow }.first
         var top = window?.rootViewController
-        while let presented = top?.presentedViewController { top = presented }
+        while let presented = top?.presentedViewController, !presented.isBeingDismissed { top = presented }
         return top
     }
 }

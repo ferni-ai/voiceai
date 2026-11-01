@@ -345,6 +345,7 @@ final class AppModel {
         Self.shared = self
         #if DEBUG
         if let scenario = scenario.flatMap(UITestScenario.init(rawValue:)) {
+            UITestScenario.listenForHelpShortcut()
             switch scenario {
             case .home: break
             case .consent: isAskingConsent = true

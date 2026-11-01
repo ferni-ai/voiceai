@@ -46,4 +46,48 @@ final class HelpLinksUITests: XCTestCase {
         XCTAssertTrue(text.waitForExistence(timeout: 5))
         XCTAssertTrue(app.descendants(matching: .any)["Get help now (988)"].firstMatch.exists)
     }
+
+    /// "Get help now" from the Home Screen opens Help over whatever is up,
+    /// and Done goes back to it. A sheet used to swallow it.
+    func testGetHelpNowOpensOverAnySheet() {
+        for screen in [Screen.home, .consent, .settings] {
+            let app = XCUIApplication.ferni(screen)
+            XCTAssertTrue(screen.ready(in: app).waitForExistence(timeout: 20), "\(screen)")
+            pressGetHelpNow()
+            assertHelpIsUp(in: app, "\(screen)")
+            app.navigationBars["Help"].buttons["Done"].tap()
+            XCTAssertTrue(app.navigationBars["Help"].waitForNonExistence(timeout: 5), "\(screen)")
+            XCTAssertTrue(screen.ready(in: app).exists, "\(screen) is still there")
+            pressGetHelpNow()
+            assertHelpIsUp(in: app, "\(screen), a second time")
+            app.terminate()
+        }
+    }
+
+    /// Over the sign-in sheet, on top of Home.
+    func testGetHelpNowOpensOverSignIn() {
+        let app = XCUIApplication.ferni(.home, account: "needsSignIn")
+        XCTAssertTrue(Screen.home.ready(in: app).waitForExistence(timeout: 20))
+        Screen.home.ready(in: app).tap()
+        XCTAssertTrue(app.textFields["Phone number"].waitForExistence(timeout: 5))
+        pressGetHelpNow()
+        assertHelpIsUp(in: app, "sign-in")
+    }
+
+    /// UITestScenario.helpShortcutNotification: the quick action, as the Home Screen sends it.
+    private func pressGetHelpNow() {
+        CFNotificationCenterPostNotification(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            CFNotificationName("com.sethdford.ferni.uitest.helpShortcut" as CFString), nil, nil, true
+        )
+    }
+
+    private func assertHelpIsUp(in app: XCUIApplication, _ context: String) {
+        XCTAssertTrue(app.navigationBars["Help"].waitForExistence(timeout: 10), context)
+        for line in ["Call 988", "Text 988"] {
+            XCTAssertTrue(app.descendants(matching: .any)[line].firstMatch.exists, "\(context): \(line)")
+        }
+        let footer = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'call 911'")).firstMatch
+        XCTAssertTrue(footer.exists, "\(context): the 911 line")
+    }
 }

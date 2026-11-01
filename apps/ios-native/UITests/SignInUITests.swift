@@ -52,4 +52,19 @@ final class SignInUITests: XCTestCase {
             app.terminate()
         }
     }
+
+    /// Signed out of Sign in with Apple: the way back is Apple again, from
+    /// Talk and from Settings. Phone or Google would start someone new.
+    func testASignedOutPersonCanSignInWithAppleAgain() {
+        for screen in [Screen.home, .settings] {
+            let app = XCUIApplication.ferni(screen, account: "needsSignIn")
+            XCTAssertTrue(screen.ready(in: app).waitForExistence(timeout: 20), "\(screen)")
+            if screen == .home { talk(app).tap() } else { app.collectionViews.buttons["Sign in"].tap() }
+            XCTAssertTrue(app.textFields["Phone number"].waitForExistence(timeout: 5), "\(screen): the sign-in sheet")
+            let apple = app.descendants(matching: .any)["signIn.apple"].firstMatch
+            XCTAssertTrue(apple.exists, "\(screen): Sign in with Apple is offered")
+            XCTAssertTrue(apple.isHittable, "\(screen)")
+            app.terminate()
+        }
+    }
 }
