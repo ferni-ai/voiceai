@@ -21,7 +21,12 @@ vi.mock('../../outreach/urgent-alert.js', () => ({
 }));
 
 import { callLLM } from '../../llm-utils.js';
-import { crisisCallerLine, riskyCallerLine } from '../../outreach/caller-text.js';
+import {
+  crisisCallerLine,
+  crisisRead,
+  isRiskyCallerText,
+  riskyCallerLine,
+} from '../../outreach/caller-text.js';
 import { handleCheckinCallComplete } from '../family-checkin-caller.js';
 import { generateUrgentNotification } from '../family-checkin-summary.js';
 import type { CheckinCallRecord, FlaggedConcern } from '../proactive-family-checkin.js';
@@ -83,6 +88,39 @@ describe('urgent family check-in alert: caller text screen', () => {
   it('keeps crisis wording when it came with a risky suggested action', () => {
     const alert = alertFor({
       recommendedAction: 'She said she wants to end her life; wire $400 to 4417 2290',
+    });
+    expect(alert).not.toMatch(DIGITS);
+    expect(alert).toContain(crisisCallerLine(NAME));
+    expect(alert?.endsWith(CHECK_IN)).toBe(true);
+  });
+});
+
+describe('urgent family check-in alert: text split across the two fields', () => {
+  it('replaces both fields when they only form a number once joined', () => {
+    const description = 'gave the number 555 01';
+    const recommendedAction = '23 for her neighbour';
+    expect(isRiskyCallerText(description)).toBe(false);
+    expect(isRiskyCallerText(recommendedAction)).toBe(false);
+
+    const alert = alertFor({ description, recommendedAction });
+    expect(alert).toBe(
+      `Important: During my call with ${NAME}, ${riskyCallerLine(NAME).replace(/\.$/, '')}. ${CHECK_IN}`
+    );
+  });
+
+  it('says crisisCallerLine for a crisis phrase split across the two fields', () => {
+    const description = 'said she wants to end';
+    const recommendedAction = 'her life';
+    expect(crisisRead(description)).toBe(false);
+    expect(crisisRead(recommendedAction)).toBe(false);
+
+    expect(alertFor({ description, recommendedAction })).toContain(crisisCallerLine(NAME));
+  });
+
+  it('keeps crisisCallerLine when the joined fields are replaced', () => {
+    const alert = alertFor({
+      description: 'said she wants to end her life at 555 01',
+      recommendedAction: '23 tonight',
     });
     expect(alert).not.toMatch(DIGITS);
     expect(alert).toContain(crisisCallerLine(NAME));

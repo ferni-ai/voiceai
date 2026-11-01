@@ -17,6 +17,9 @@ import { createLogger } from '../../utils/safe-logger.js';
 import {
   carriesCrisis,
   crisisCallerLine,
+  crisisRead,
+  isRiskyCallerText,
+  riskyCallerLine,
   screenCallerParts,
   screenedCallerText,
 } from '../outreach/caller-text.js';
@@ -462,11 +465,13 @@ function clause(text: string): string {
 /**
  * Generate a notification message for the sponsor about urgent concerns.
  *
- * The concern is written from the family member's words on the call, so both
- * fields go through the caller-text screen before they reach the sponsor: a
- * link, number or money/credential request is never passed on. A risky
- * suggestion is dropped for Ferni's own line. Crisis wording always reaches the
- * sponsor, in their words or in crisisCallerLine.
+ * The concern is written from the family member's words on the call, so it
+ * goes through the caller-text screen before it reaches the sponsor: a link,
+ * number or money/credential request is never passed on. Each field is
+ * screened alone, then the exact alert is screened again, since two fields
+ * that each pass can join into a number. A risky suggestion is dropped for
+ * Ferni's own line. Crisis wording always reaches the sponsor, in their words
+ * or in crisisCallerLine, including a phrase split across the two fields.
  */
 export function generateUrgentNotification(record: CheckinCallRecord): string | null {
   if (!record.concernsIdentified || record.concernsIdentified.length === 0) {
@@ -483,11 +488,20 @@ export function generateUrgentNotification(record: CheckinCallRecord): string | 
 
   const concern = urgentConcerns[0];
   const name = record.familyMemberName;
+  const alert = (what: string, next: string, crisis: boolean): string => {
+    const tail = [crisis ? crisisCallerLine(name) : '', next].filter(Boolean).join(' ');
+    return `Important: During my call with ${name}, ${clause(what)}. ${tail}`;
+  };
+
   const what = screenedCallerText(concern.description, name, 200) || 'something came up';
   const action = screenCallerParts(concern.recommendedAction, name, 200);
   const next = action.said || CHECK_IN_ACTION; // empty whenever it was risky
-  const safety = action.safety && !carriesCrisis(what) ? crisisCallerLine(name) : '';
-  return `Important: During my call with ${name}, ${clause(what)}. ${[safety, next].filter(Boolean).join(' ')}`;
+  const both = [concern.description, concern.recommendedAction].filter(Boolean).join(' ');
+  const crisis = action.safety || crisisRead(both);
+  const sent = alert(what, next, crisis && !carriesCrisis(what) && !carriesCrisis(next));
+  if (!isRiskyCallerText(sent)) return sent;
+  // The joined fields formed something risky: pass neither on, and never lose a crisis.
+  return alert(riskyCallerLine(name), CHECK_IN_ACTION, crisis || carriesCrisis(sent));
 }
 
 // ============================================================================
