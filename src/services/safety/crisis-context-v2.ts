@@ -10,7 +10,8 @@
  * - Ferni's own crisis line or safety question goes to the model marked as
  *   COMPANION_CHECK_IN: the companion's check-in, never evidence by itself.
  *   It is still what LATEST answers, and the caller's own words are judged
- *   exactly as on main;
+ *   exactly as on main. Main's own read runs beside it, and an imminent read
+ *   there is the answer: the mark can lower crisis to none, never imminent;
  * - with SEXUAL_TOPIC_BOUNDARY on, on a call main's own sexual-topic read
  *   (sexual-boundary.ts) found sexual, sexual or adult content alone reads
  *   none.
@@ -85,20 +86,40 @@ export function narrowedPrompt(prompt: string, checkIn: boolean, sexual: boolean
   return `${prompt.slice(0, insertAt)}\n${rules}${prompt.slice(insertAt)}`;
 }
 
-/** The model call with Ferni's check-in marked as COMPANION_CHECK_IN; unchanged otherwise. */
-function markedGenerate(generate: CrisisGenerateFn): CrisisGenerateFn {
-  return (prompt, content, signal) => {
+const riskOf = (reply: string): string | undefined => /"risk"\s*:\s*"(\w+)"/.exec(reply)?.[1];
+
+/**
+ * The model call with Ferni's check-in marked as COMPANION_CHECK_IN, beside main's own read of
+ * the same turn (main's prompt, the check-in unmarked). The mark may lower crisis to none, the
+ * false alarm it is for, but never imminent: when main's read is imminent, or the marked read
+ * fails or can't be read, main's read is the answer (the marked one only when main's failed). `sexual`: the prompt also has SEXUAL_RULE.
+ */
+function markedGenerate(sexual: boolean): (generate: CrisisGenerateFn) => CrisisGenerateFn {
+  const inserted = `\n${CHECK_IN_RULE}${sexual ? SEXUAL_RULE : ''}`;
+  const kept = sexual ? `\n${SEXUAL_RULE}` : '';
+  return (generate) => async (prompt, content, signal) => {
+    const unmarked = prompt.replace(inserted, kept);
     let input: { latest?: unknown; earlier?: unknown; companion?: unknown };
     try {
       input = JSON.parse(content) as typeof input;
     } catch {
-      return generate(prompt, content, signal);
+      return generate(unmarked, content, signal);
     }
     if (typeof input.companion !== 'string' || !FERNI_CHECK_IN.test(input.companion)) {
-      return generate(prompt, content, signal);
+      return generate(unmarked, content, signal);
     }
     const { companion, ...rest } = input;
-    return generate(prompt, JSON.stringify({ ...rest, COMPANION_CHECK_IN: companion }), signal);
+    const marked = JSON.stringify({ ...rest, COMPANION_CHECK_IN: companion });
+    const [main, read] = await Promise.allSettled([
+      generate(unmarked, content, signal),
+      generate(prompt, marked, signal),
+    ]);
+    if (main.status === 'rejected') {
+      if (read.status === 'rejected') throw main.reason;
+      return read.value;
+    }
+    if (read.status === 'rejected' || !riskOf(read.value)) return main.value;
+    return riskOf(main.value) === 'imminent' ? main.value : read.value;
   };
 }
 
@@ -121,6 +142,6 @@ export function contextV2Read(
   if (!checkIn && !sexual) return same;
   return {
     prompt: (p) => narrowedPrompt(p, checkIn, sexual),
-    generate: checkIn ? markedGenerate : (g) => g,
+    generate: checkIn ? markedGenerate(sexual) : (g) => g,
   };
 }

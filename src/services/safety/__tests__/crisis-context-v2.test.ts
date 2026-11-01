@@ -104,22 +104,57 @@ function added(prompt: string): string | null {
 }
 
 describe('a turn after Ferni’s check-in, flag on', () => {
-  it('marks Ferni’s 988 line as his check-in, and adds only the check-in rule', async () => {
-    const calls = await sent(
-      ON,
-      "no no, I'm fine, I meant the boxes",
-      ['ugh this move'],
-      'v2-mark'
-    );
-    expect(calls).toHaveLength(1);
-    expect(JSON.parse(calls[0].content)).toEqual({
-      latest: "no no, I'm fine, I meant the boxes",
+  it('reads the turn twice: main’s read as off, and one with the check-in marked and its rule', async () => {
+    const latest = "no no, I'm fine, I meant the boxes";
+    const off = await sent(OFF, latest, ['ugh this move'], 'v2-mark-off');
+    resetCrisisClassifierCache();
+    const on = await sent(ON, latest, ['ugh this move'], 'v2-mark');
+    expect(off).toHaveLength(1);
+    expect(on).toHaveLength(2);
+    expect(on).toContainEqual(off[0]);
+    const marked = on.find((c) => c.content.includes('COMPANION_CHECK_IN'));
+    expect(JSON.parse(marked?.content ?? '{}')).toEqual({
+      latest,
       earlier: ['ugh this move'],
       COMPANION_CHECK_IN: LINE_988,
     });
-    const rule = added(calls[0].prompt);
+    const rule = added(marked?.prompt ?? '');
     expect(rule).toContain('COMPANION_CHECK_IN, when the input has it');
     expect(rule?.trim().split('\n')).toHaveLength(1);
+  });
+
+  /** The turn's verdict when main's read answers `main` and the marked read answers `marked`. */
+  async function verdictOf(main: string | Error, marked: string | Error, call: string) {
+    resetCrisisClassifierCache();
+    const generate: CrisisGenerateFn = async (_prompt, content) => {
+      const answer = content.includes('COMPANION_CHECK_IN') ? marked : main;
+      if (answer instanceof Error) throw answer;
+      return `{"risk":"${answer}","subject":"self"}`;
+    };
+    const run = startCrisisClassifier(
+      {
+        latest: 'remind me to drop the cat at my brother’s tomorrow',
+        earlier: ['rough week'],
+        companion: LINE_988,
+      },
+      { pattern: 'none', env: ON, generate, call }
+    );
+    return (await run?.verdict)?.risk;
+  }
+
+  it('never lowers imminent: main’s imminent read is the answer', async () => {
+    expect(await verdictOf('imminent', 'crisis', 'v2-imm-1')).toBe('imminent');
+    expect(await verdictOf('imminent', 'none', 'v2-imm-2')).toBe('imminent');
+  });
+
+  it('lets the mark lower crisis to none, and raise it', async () => {
+    expect(await verdictOf('crisis', 'none', 'v2-fa')).toBe('none');
+    expect(await verdictOf('none', 'imminent', 'v2-up')).toBe('imminent');
+  });
+
+  it('falls back to main’s read when the marked read fails, and to the marked one when main’s does', async () => {
+    expect(await verdictOf('crisis', new Error('boom'), 'v2-fail-1')).toBe('crisis');
+    expect(await verdictOf(new Error('boom'), 'crisis', 'v2-fail-2')).toBe('crisis');
   });
 
   it('says the check-in is not by itself a sign of risk, and never lowers what the caller said', () => {
