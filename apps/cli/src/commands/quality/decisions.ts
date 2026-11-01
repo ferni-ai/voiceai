@@ -104,8 +104,8 @@ export const DECISIONS: readonly DomainDecision[] = [
   {
     id: 'minor-status',
     question: 'Is the caller a minor?',
-    owner: { module: 'src/utils/minor-care.ts', fn: 'statesUnder18', provisional: true },
-    ownerPaths: ['src/utils/minor-care.ts'],
+    owner: { module: 'src/utils/minor-care-detect.ts', fn: 'statesUnder18', provisional: true },
+    ownerPaths: ['src/utils/minor-care.ts', 'src/utils/minor-care-detect.ts'],
     target: 'identity/member AgeStatus + a judgment minorGuard (ddd.md 2.2, S5)',
     fingerprints: [{ name: 'age threshold', pattern: /\bunder[ -]?(?:18|eighteen)\b|\bCOPPA\b|\bisMinor\b/i }],
   },
@@ -123,8 +123,8 @@ export const DECISIONS: readonly DomainDecision[] = [
   {
     id: 'memory-injection',
     question: 'What memories may be injected (and has the caller said forget that)?',
-    owner: { module: 'src/memory/recall/session-recall.ts', fn: 'isForgotten', provisional: true },
-    ownerPaths: ['src/memory/recall/'],
+    owner: { module: 'src/memory/domain/forgotten.ts', fn: 'isForgotten', provisional: true },
+    ownerPaths: ['src/memory/recall/', 'src/memory/domain/forgotten.ts'],
     target: 'memory selects MemoryCandidates; one admit(candidate, scope) runs last (ddd.md 2.6, S9)',
     fingerprints: [
       {
