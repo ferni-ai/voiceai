@@ -266,15 +266,22 @@ const ADDRESS_DOTS = [
   /[A-Za-z0-9]\.(?!\.)\s+[a-z]{2}/,
 ];
 
-/** The first rule `text` breaks for an unverified call, or null when it may be sent. */
-export function blockedContent(text: string): ContentBlock | null {
-  if (LETTER_SHAPED_SYMBOLS.test(text)) return 'charset'; // 🅰 🅿 © ®: pictographs that read as letters
-  const folded = foldToAscii(text);
-  if (!CHARSET.test(folded)) return 'charset';
-  // Every later rule reads / & " as "-" and an emoji as a space: separators that can't glue or break a shape
-  const form = folded
-    .replace(/[/&"]/g, '-')
-    .replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}]/gu, ' ');
+/**
+ * After the charset, every rule reads / & " as "-" and an emoji as a space:
+ * separators that can't glue or break a shape.
+ */
+const ruleForm = (folded: string): string =>
+  folded.replace(/[/&"]/g, '-').replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}]/gu, ' ');
+
+/**
+ * Somewhere to send a reply or money in `folded` (foldToAscii's form): a vanity or
+ * phone-shaped number (look-alike letters and number words included), spaced-out
+ * characters, an address, or a mail provider. These are blockedContent's own rules,
+ * without its charset and credential rules; the stored-text screen
+ * (owner-message-policy.ts) reads them too.
+ */
+export function destinationIn(folded: string): ContentBlock | null {
+  const form = ruleForm(folded);
   if (vanityBlock(form)) return 'vanity_number';
   const lower = form.toLowerCase();
   if (/(?<![\p{L}0-9])(?:[\p{L}0-9] +){2,}[\p{L}0-9](?![\p{L}0-9])/u.test(lower)) return 'spaced_chars'; // prettier-ignore
@@ -290,6 +297,15 @@ export function blockedContent(text: string): ContentBlock | null {
   const mail = words.some(
     (w, i) => w === 'at' && near(i).some((n) => MAIL_PROVIDERS.test(n ?? ''))
   );
-  if (mail) return 'mail_provider';
-  return credentialAsk(plain) ? 'credential_ask' : null;
+  return mail ? 'mail_provider' : null;
+}
+
+/** The first rule `text` breaks for an unverified call, or null when it may be sent. */
+export function blockedContent(text: string): ContentBlock | null {
+  if (LETTER_SHAPED_SYMBOLS.test(text)) return 'charset'; // 🅰 🅿 © ®: pictographs that read as letters
+  const folded = foldToAscii(text);
+  if (!CHARSET.test(folded)) return 'charset';
+  const destination = destinationIn(folded);
+  if (destination) return destination;
+  return credentialAsk(collapseSpacedLetters(ruleForm(folded).toLowerCase())) ? 'credential_ask' : null; // prettier-ignore
 }

@@ -1,6 +1,6 @@
 /**
  * storedTextForOwner (owner-message-policy.ts): with OWNER_OUTREACH_STORED_TEXT_SCREEN
- * on, stored text carrying a scam's instruction (owner-stored-text.ts) is kept out of
+ * on, stored text carrying a scam's instruction (hostileStoredText) is kept out of
  * a message to the owner; off, everything passes. It is the UI server's own flag:
  * UNVERIFIED_OWNER_MESSAGE_FILTER (live calls) is never consulted. A refusal is logged
  * with ids and a reason code only, and a screen that throws refuses. Fictional data only.

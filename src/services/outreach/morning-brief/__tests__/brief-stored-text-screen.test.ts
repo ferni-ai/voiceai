@@ -1,7 +1,7 @@
 /**
  * OWNER_OUTREACH_STORED_TEXT_SCREEN on the morning brief: reminders, tasks,
  * commitments and Ferni-calendar titles stored from calls go into the owner's brief
- * only if they carry no scam instruction (owner-stored-text.ts) while the screen is
+ * only if they carry no scam instruction (hostileStoredText, owner-message-policy.ts) while the screen is
  * on, and the brief as sent passes too; off, everything goes in as before. All data
  * is fictional.
  */
@@ -41,8 +41,8 @@ const { readDay } = await import('../default-deps.js');
 const { briefToSend, runMorningBriefs } = await import('../brief-job.js');
 const { composeMorningBrief, composeMorningBriefSegments, joinSegments } =
   await import('../compose.js');
-const { storedTextBlock } =
-  await import('../../../../tools/domains/proactive/outreach/owner-stored-text.js');
+const { hostileStoredText } =
+  await import('../../../../tools/domains/proactive/outreach/owner-message-policy.js');
 
 const OWNER = 'owner-uid';
 const user = {
@@ -96,7 +96,7 @@ describe('the brief as sent: one final gate on the exact text', () => {
   // The test's own event times (event() below: hh:30 in New York), and nothing else, read as "at"
   const clockOf = (hour: number) => `${hour % 12 || 12}:30${hour < 12 ? 'am' : 'pm'}`;
   const OWN_CLOCKS = new RegExp(`\\b(${[9, 10, 11, 12, 13, 14, 17, 18].map(clockOf).join('|')})(?![\\w:])`, 'g'); // prettier-ignore
-  const gatePasses = (text: string | null) => text === null || storedTextBlock(text.replace(OWN_CLOCKS, 'at')) === null; // prettier-ignore
+  const gatePasses = (text: string | null) => text === null || hostileStoredText(text.replace(OWN_CLOCKS, 'at')) === null; // prettier-ignore
   const event = (title: string, hour: number) => ({ title, start: new Date(Date.UTC(2026, 9, 19, hour + 4, 30)), allDay: false, invite: false }); // prettier-ignore
   const brief = (day: Partial<MorningBriefInput>): MorningBriefInput => ({ timeZone: 'America/New_York', name: 'Sam', events: [], reminders: [], tasks: [], commitments: [], ...day }); // prettier-ignore
   // Each half passes on its own; joined they ask for money sent to a link (fictional). The
