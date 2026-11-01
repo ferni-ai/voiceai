@@ -7,16 +7,13 @@
  *   guide   — add crisis guidance to this request (buildCrisisGuidance)
  *   pass    — nothing to do
  *
- * The semantic classifier (services/safety/crisis-classifier.ts) starts at the
- * same moment, in parallel with the LLM. While its verdict is pending the
- * reply stream is held, not spoken; when it escalates the decision, the held
- * reply is dropped and the caller hears the script, or a reply regenerated
- * with guidance. Both take about the same time to first output, so a turn
- * without risk waits at most the difference.
+ * The semantic classifier (services/safety/crisis-classifier.ts) runs in parallel with the
+ * LLM. While its verdict is pending the reply is held, not spoken; if it escalates, the held
+ * reply is dropped for the script or a reply regenerated with guidance. A turn without
+ * risk waits at most the difference between the two.
  *
- * CRISIS_GUARD_MODE (crisis-shadow.ts) turns the gate off or to shadow;
- * CRISIS_CLASSIFIER_MODE governs the classifier stage. Logs carry the
- * decision, never the caller's words.
+ * CRISIS_GUARD_MODE (crisis-shadow.ts) turns the gate off or to shadow; CRISIS_CLASSIFIER_MODE
+ * governs the classifier stage. Logs carry the decision, never the caller's words.
  */
 
 import type { llm } from '@livekit/agents';
