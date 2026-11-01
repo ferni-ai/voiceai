@@ -24,7 +24,12 @@ import type { GuardedText, TextOutcome } from '../guarded-text.js';
 import { firstName } from '../proactive-channels/pondered-triggers.js';
 import { timezoneOf } from '../proactive-channels/proactive-tick.js';
 import { isUserQuiet, quietEndsAt, savedQuietHours, type QuietHoursUser } from '../quiet-hours.js';
-import { composeMorningBrief, type MorningBriefInput } from './compose.js';
+import {
+  composeMorningBrief,
+  composeMorningBriefParts,
+  type MorningBriefInput,
+} from './compose.js';
+import { storedTextForOwner } from '../../../tools/domains/proactive/outreach/index.js';
 
 const log = createLogger({ module: 'MorningBrief' });
 
@@ -102,6 +107,21 @@ function inBriefHour(user: Record<string, unknown>, zone: string, local: WallTim
   return inHour && local.hour < MORNING_BRIEF_LATEST_HOUR;
 }
 
+/**
+ * OWNER_OUTREACH_STORED_TEXT_SCREEN: the stored-text part of the brief as sent passes the screen
+ * too. Items are screened one by one (default-deps.ts readDay), but the brief joins them, and
+ * pieces of a number or a link can line up across items. If the joined part is refused, the
+ * brief goes calendar-only. (Event times stay out of the check: a busy day's clock times alone
+ * add up to a long run of digits.)
+ */
+function screenedBrief(input: MorningBriefInput, userId: string, env: Env): string | null {
+  const full = composeMorningBriefParts(input);
+  if (!full || storedTextForOwner([full.stored], { site: 'morning-brief', userId }, env)) {
+    return full?.text ?? null;
+  }
+  return composeMorningBrief({ ...input, reminders: [], tasks: [], commitments: [] });
+}
+
 /** MORNING_BRIEF_RUN. nothing-today with commitments off: only calendar, reminders and tasks counted. */
 function logBriefRun(report: MorningBriefReport, composed: number, env: Env): void {
   const counts = { considered: report.checked, eligible: composed, sent: report.sent };
@@ -174,7 +194,11 @@ export async function runMorningBriefs(
       claimed = dateKey;
 
       const day = await deps.readDay(userId, user, zone, now);
-      const body = composeMorningBrief({ ...day, timeZone: zone, name: firstName(user) });
+      const body = screenedBrief(
+        { ...day, timeZone: zone, name: firstName(user) },
+        userId,
+        deps.env
+      );
       if (!body) {
         await release('nothing-today');
         continue;

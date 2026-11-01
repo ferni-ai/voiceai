@@ -115,6 +115,16 @@ const unique = (items: readonly string[]): string[] => {
 
 /** The brief's text, or null when there is nothing on today. */
 export function composeMorningBrief(input: MorningBriefInput): string | null {
+  return composeMorningBriefParts(input)?.text ?? null;
+}
+
+/**
+ * The brief, and the part of it that stored text fills (the "Due" and "Still open" sections
+ * exactly as rendered), so the whole of that can be screened, not just each item alone.
+ */
+export function composeMorningBriefParts(
+  input: MorningBriefInput
+): { text: string; stored: string } | null {
   const events = [...input.events].sort((a, b) => a.start.getTime() - b.start.getTime());
   const lists = {
     today: unique(
@@ -139,12 +149,18 @@ export function composeMorningBrief(input: MorningBriefInput): string | null {
     due: Math.min(lists.due.length, FIRST_TRY.due),
     open: Math.min(lists.open.length, FIRST_TRY.open),
   };
+  const storedPart = (): string =>
+    [
+      lists.due.length ? `Due: ${joinList(lists.due, shown.due)}.` : '',
+      lists.open.length ? `Still open: ${joinList(lists.open, shown.open)}.` : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
   const render = (): string =>
     [
       hello,
       lists.today.length ? `Today: ${joinList(lists.today, shown.today)}.` : '',
-      lists.due.length ? `Due: ${joinList(lists.due, shown.due)}.` : '',
-      lists.open.length ? `Still open: ${joinList(lists.open, shown.open)}.` : '',
+      storedPart(),
       close,
     ]
       .filter(Boolean)
@@ -159,5 +175,5 @@ export function composeMorningBrief(input: MorningBriefInput): string | null {
     shown[longest]--;
     text = render();
   }
-  return text;
+  return { text, stored: storedPart() };
 }
