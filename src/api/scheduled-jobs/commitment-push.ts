@@ -108,9 +108,10 @@ export async function sendCommitmentPushes(
   let sent = 0;
   for (const { userId, commitment } of due) {
     if (proactive.has(userId)) continue;
-    const message = pushMessage(commitment);
-    if (!storedTextForOwner([message], { site: 'commitment-push', userId })) continue;
+    // Inside the try: one person's row that can't be read or screened skips only them.
     try {
+      const message = pushMessage(commitment);
+      if (!storedTextForOwner([message], { site: 'commitment-push', userId })) continue;
       if (!(await deps.send(userId, message, commitment.id))) continue;
       sent++;
       await store.markFollowedUp(userId, commitment, now);
