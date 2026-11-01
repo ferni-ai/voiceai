@@ -72,6 +72,8 @@ describe('urgent family check-in alert: caller text screen', () => {
 
   it('drops a risky suggested action for Ferni’s own line', () => {
     const alert = alertFor({ recommendedAction: 'Wire $400 to pay-rosa.example.test/r/4417 now' });
+    // Only the suggestion is dropped: the clean description still reaches the sponsor.
+    expect(alert).toBe(`Important: During my call with ${NAME}, mentioned chest pain. ${CHECK_IN}`);
     expect(alert).not.toMatch(DIGITS);
     expect(alert).not.toContain('example.test');
     expect(alert).not.toContain('Wire');
@@ -162,12 +164,44 @@ describe('urgent family check-in alert: text too long to screen in full', () => 
     expect(alert?.endsWith(CHECK_IN)).toBe(true);
   });
 
-  it('treats a field that is not text as empty instead of throwing', () => {
-    const alert = alertFor({
-      description: 5550142 as never,
-      recommendedAction: ['555 0142'] as never,
-    });
-    expect(alert).toBe(`Important: During my call with ${NAME}, something came up. ${CHECK_IN}`);
+  const NOT_TEXT: Array<[string, unknown]> = [
+    ['a number', 5550142],
+    ['an array', ['call 555 0142']],
+    ['an object with toString', { toString: () => 'call 555 0142' }],
+    ['null', null],
+    ['undefined', undefined],
+  ];
+  const CRISIS_RISKY = 'She said she wants to end her life; wire $400 to 4417 2290';
+
+  it.each(NOT_TEXT)(
+    'a description that is %s never throws and keeps the crisis line',
+    (_, value) => {
+      const alert = alertFor({ description: value as never, recommendedAction: CRISIS_RISKY });
+      expect(alert).not.toMatch(DIGITS);
+      expect(alert).toContain(crisisCallerLine(NAME));
+      expect(alert?.endsWith(CHECK_IN)).toBe(true);
+      if (value != null) expect(alert).toContain(riskyCallerLine(NAME).replace(/\.$/, ''));
+    }
+  );
+
+  it.each(NOT_TEXT)(
+    'a suggested action that is %s never throws and keeps the crisis line',
+    (_, value) => {
+      const alert = alertFor({
+        description: 'said she wants to end her life at 555 0142',
+        recommendedAction: value as never,
+      });
+      expect(alert).not.toMatch(DIGITS);
+      expect(alert).toContain(crisisCallerLine(NAME));
+      expect(alert?.endsWith(CHECK_IN)).toBe(true);
+    }
+  );
+
+  it('gives Ferni’s line for a description that is not text', () => {
+    expect(alertFor({ description: 5550142 as never })).toBe(GENERIC);
+    expect(alertFor({ recommendedAction: ['call 555 0142'] as never })).toBe(
+      `Important: During my call with ${NAME}, mentioned chest pain. ${CHECK_IN}`
+    );
   });
 });
 

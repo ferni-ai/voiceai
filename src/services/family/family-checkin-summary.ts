@@ -463,9 +463,12 @@ const CHECK_IN_ACTION = 'You may want to check in with them.';
  */
 const SCREEN_WINDOW = 10_000;
 
-/** The model's JSON can put any value in a field; only a string is text. */
-function asText(value: unknown): string {
-  return typeof value === 'string' ? value : '';
+/**
+ * The model's JSON can put any value in a field. Only a string (or nothing) is
+ * read; anything else is never coerced to text, and is treated as risky.
+ */
+function readable(value: unknown): value is string | null | undefined {
+  return value == null || typeof value === 'string';
 }
 
 /** Drops the closing stop so the line can sit inside Ferni's own sentence. */
@@ -483,7 +486,8 @@ function clause(text: string): string {
  * that each pass can join into a number. A risky suggestion is dropped for
  * Ferni's own line. Crisis wording always reaches the sponsor, in their words
  * or in crisisCallerLine, including a phrase split across the two fields.
- * Fields too long for the screen to read in full send the generic alert.
+ * Fields too long for the screen to read in full send the generic alert, and
+ * a field that is not text gets Ferni's line for that field.
  */
 export function generateUrgentNotification(record: CheckinCallRecord): string | null {
   if (!record.concernsIdentified || record.concernsIdentified.length === 0) {
@@ -505,12 +509,14 @@ export function generateUrgentNotification(record: CheckinCallRecord): string | 
     return `Important: During my call with ${name}, ${clause(what)}. ${tail}`;
   };
 
-  const description = asText(concern.description);
-  const suggestion = asText(concern.recommendedAction);
-  const what = screenedCallerText(description, name, 200) || 'something came up';
-  const action = screenCallerParts(suggestion, name, 200);
-  const next = action.said || CHECK_IN_ACTION; // empty whenever it was risky
-  const both = [description, suggestion].filter(Boolean).join(' ');
+  const description: unknown = concern.description;
+  const suggestion: unknown = concern.recommendedAction;
+  const what = readable(description)
+    ? screenedCallerText(description, name, 200) || 'something came up'
+    : riskyCallerLine(name);
+  const action = screenCallerParts(readable(suggestion) ? suggestion : null, name, 200);
+  const next = action.said || CHECK_IN_ACTION; // empty whenever it was risky or not text
+  const both = [description, suggestion].filter((f) => typeof f === 'string' && f).join(' ');
   const crisis = action.safety || crisisRead(both);
   const sent = alert(what, next, crisis && !carriesCrisis(what) && !carriesCrisis(next));
   const screened = both.length <= SCREEN_WINDOW && sent.length <= SCREEN_WINDOW;
