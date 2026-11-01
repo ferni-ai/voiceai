@@ -44,7 +44,7 @@ import {
 } from '../../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
 import { startWhoRead } from '../../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
-import { noteMeansInHandShadow } from '../../../services/safety/index.js';
+import { noteMeansInHandShadow, withAbuseDisclosure } from '../../../services/safety/index.js';
 import {
   resolveClassifierOnlyCheckin,
   shadowClassifierOnly,
@@ -320,7 +320,9 @@ export function startTurnCrisis(
         env
       );
     }
-    return easingOn ? (eased ??= easeTurn(turn)) : turn;
+    const read = easingOn ? (eased ??= easeTurn(turn)) : turn;
+    // ABUSE_DISCLOSURE_PATTERNS: someone hurting the caller is a safety turn, after every read.
+    return read.then((s) => withAbuseDisclosure(s, userText, env));
   };
   return {
     patterns,
