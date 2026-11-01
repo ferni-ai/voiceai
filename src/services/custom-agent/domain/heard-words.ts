@@ -71,7 +71,7 @@ const nameSlack = (word: string) => {
 };
 
 /** Words that say no; a name word heard as one must be the name exactly ("Nona" is not "none"). */
-const NEGATIONS = new Set(['no', 'not', 'none', 'never', 'nope', 'nah', 'nor', 'neither']);
+const NEGATIONS = new Set('no not none never nope nah nor neither nada nein non'.split(' '));
 
 const nameWordHeard = (said: string, word: string) =>
   said === word || (!NEGATIONS.has(said) && editDistance(said, word) <= nameSlack(word));

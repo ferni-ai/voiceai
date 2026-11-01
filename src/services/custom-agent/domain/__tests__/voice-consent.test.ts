@@ -180,6 +180,15 @@ describe('scoreConsentTranscript', () => {
     });
     expect(verifies(forJo, forJo.text)).toBe(true);
     expect(verifies(forJo, forJo.text.replace("Jo's", 'no'))).toBe(false);
+    // A short name word must be exact: "Don" is someone else, not a mishearing of "Dan"
+    const forDan = buildConsentStatement({
+      subjectName: 'Rosa Quill',
+      creatorName: 'Dan',
+      spokenDate: 'November 1, 2026',
+      random: seq(0, 0, 0),
+    });
+    expect(verifies(forDan, forDan.text)).toBe(true);
+    expect(verifies(forDan, forDan.text.replace("Dan's", "Don's"))).toBe(false);
     const forNona = buildConsentStatement({
       subjectName: 'Rosa Quill',
       creatorName: 'Nona',
@@ -188,6 +197,14 @@ describe('scoreConsentTranscript', () => {
     });
     expect(verifies(forNona, forNona.text.replace("Nona's", 'Nonna'))).toBe(true);
     expect(verifies(forNona, forNona.text.replace("Nona's", 'none'))).toBe(false);
+    const forNadia = buildConsentStatement({
+      subjectName: 'Rosa Quill',
+      creatorName: 'Nadia',
+      spokenDate: 'November 1, 2026',
+      random: seq(0, 0, 0),
+    });
+    expect(verifies(forNadia, forNadia.text.replace("Nadia's", "Nadja's"))).toBe(true);
+    expect(verifies(forNadia, forNadia.text.replace("Nadia's", 'nada'))).toBe(false);
     const obrien = buildConsentStatement({
       subjectName: "Sean O'Brien",
       creatorName: "Sean O'Brien",
