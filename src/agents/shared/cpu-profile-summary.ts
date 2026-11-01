@@ -61,21 +61,28 @@ export function shortUrl(url: string): string {
   return url.replace(/^file:\/\//, '');
 }
 
-function isOwnCode(url: string): boolean {
+/** Our own code: dist/ or src/, outside node_modules. */
+export function isOwnCode(url: string): boolean {
   return /\/(dist|src)\//.test(url) && !url.includes('node_modules/');
 }
 
-function packageOf(url: string): string | null {
+/** The package a frame's file belongs to, or null for our own code and V8 frames. */
+export function packageOf(url: string): string | null {
   const nm = url.lastIndexOf('node_modules/');
   if (nm < 0) return null;
   const parts = url.slice(nm + 'node_modules/'.length).split('/');
   return parts[0].startsWith('@') ? `${parts[0]}/${parts[1] ?? ''}` : parts[0];
 }
 
-function frameName(n: CpuProfileNode): string {
-  const { functionName, url, lineNumber } = n.callFrame;
+/** `fn path:line` (1-based line), or the bare name for V8 frames. */
+export function callFrameName(callFrame: CpuProfileNode['callFrame']): string {
+  const { functionName, url, lineNumber } = callFrame;
   const fn = functionName || '(anonymous)';
   return url ? `${fn} ${shortUrl(url)}:${lineNumber + 1}` : fn;
+}
+
+function frameName(n: CpuProfileNode): string {
+  return callFrameName(n.callFrame);
 }
 
 function top(m: Map<string, number>, n: number): Ranked[] {

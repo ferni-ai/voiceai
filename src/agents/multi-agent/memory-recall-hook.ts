@@ -69,6 +69,7 @@ import {
   type LifeUpdateDeps,
 } from '../personas/life-updates.js';
 import { loadRepairRecall, type RepairStore } from '../personas/friend-repair.js';
+import { growthRecallFor, withGrowth } from '../personas/persona-growth-recall.js';
 import { checkInsWithCalls } from '../../services/outreach/call-status.js';
 import {
   coachFollowThroughMode,
@@ -313,9 +314,10 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const week = deps.week ?? predictionCheckInFor(deps.userId, personaId);
   const loading = [loaded, since, checkedIn, canonLoaded, dates.ready];
   const repairs = loadRepairRecall(deps.userId, deps.repairStore); // FRIEND_REPAIR, first note
+  const growth = growthRecallFor(deps.userId, personaId, deps.sessionId); // PERSONA_GROWTH
   const ready = Promise.all([...loading, repairs.ready, loops?.ready]).then(() => undefined);
 
-  return {
+  return withGrowth(growth, {
     ready,
     noteFor(transcript, opts = {}) {
       const text = transcript.trim();
@@ -478,7 +480,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       summaryRecall?.newTurn();
     },
     snapshot: () => snapshot,
-  };
+  });
 }
 
 export { addRecallNote, type RecallAgent } from './recall-note.js';

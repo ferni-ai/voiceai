@@ -15,6 +15,7 @@
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { apiFetch } from '../utils/api-helpers.js';
+import { AUTH_READY_TIMEOUT_MS, LONG_REQUEST_TIMEOUT_MS, valueWithin } from '../utils/request-deadline.js';
 import { clearAllUserData, exportLocalStorage, sealUserData } from '../config/storage-keys.js';
 import { getAuthToken, initAuth } from './firebase-auth.service.js';
 import { signOutReleasingPush } from './push-preference.js';
@@ -138,7 +139,7 @@ class DataExportService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ format, categories }),
-      });
+      }, LONG_REQUEST_TIMEOUT_MS);
 
       if (!response.ok) {
         log.error('Export request failed', { status: response.status });
@@ -191,7 +192,7 @@ class DataExportService {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ confirmDelete: true }),
-    }).catch((err: unknown) => {
+    }, LONG_REQUEST_TIMEOUT_MS).catch((err: unknown) => {
       log.error('Data deletion request failed', err);
       return null;
     });
@@ -219,7 +220,7 @@ class DataExportService {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ confirmation: 'DELETE_MY_ACCOUNT' }),
-    }).catch((err: unknown) => {
+    }, LONG_REQUEST_TIMEOUT_MS).catch((err: unknown) => {
       log.error('Account deletion request failed', err);
       return null;
     });
@@ -261,25 +262,32 @@ class DataExportService {
   /**
    * Get exportable categories from the backend.
    * This shows what data exists and can be exported.
+   * Null when the backend didn't answer or refused: the panel then says it
+   * couldn't load, instead of showing every category with 0 items.
    */
-  async getExportableCategories(): Promise<ExportableCategory[]> {
-    if (!(await getAuthToken())) {
-      return this.getDefaultCategories();
-    }
+  async getExportableCategories(): Promise<ExportableCategory[] | null> {
+    // Signed out: the categories, empty. A token that never comes: couldn't load.
+    const token = await valueWithin<string | null | undefined>(
+      getAuthToken(),
+      AUTH_READY_TIMEOUT_MS,
+      undefined
+    );
+    if (token === undefined) return null;
+    if (!token) return this.getDefaultCategories();
 
     try {
       const response = await apiFetch('/api/export/categories');
 
       if (!response.ok) {
-        log.warn('Failed to get categories from API, using defaults');
-        return this.getDefaultCategories();
+        log.warn('Failed to get categories from API', { status: response.status });
+        return null;
       }
 
       const data = await response.json();
-      return data.categories ? localizeCategories(data.categories) : this.getDefaultCategories();
+      return data.categories ? localizeCategories(data.categories) : null;
     } catch (err) {
       log.warn('Error fetching categories', err);
-      return this.getDefaultCategories();
+      return null;
     }
   }
 

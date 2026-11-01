@@ -37,6 +37,7 @@
 import { getAuthToken, getFirebaseUid, initAuth } from '../services/firebase-auth.service.js';
 import { dedupeInFlight, fetchWithRetry, isOffline, type FetchRetryOptions } from './fetch-retry.js';
 import { createLogger } from './logger.js';
+import { API_REQUEST_TIMEOUT_MS, AUTH_READY_TIMEOUT_MS } from './request-deadline.js';
 import { IDENTITY_KEYS } from '../config/storage-keys.js';
 import { getLocale } from '../i18n/index.js';
 
@@ -82,7 +83,6 @@ let authReadyPromise: Promise<void> | null = null;
  */
 async function ensureAuthReady(): Promise<void> {
   if (!authReadyPromise) {
-    // Create auth init with a 5-second timeout to prevent hanging
     const authWithTimeout = Promise.race([
       initAuth()
         .then(() => {
@@ -96,7 +96,7 @@ async function ensureAuthReady(): Promise<void> {
         setTimeout(() => {
           log.warn('Auth init timed out after 5s - continuing without auth');
           resolve();
-        }, 5000);
+        }, AUTH_READY_TIMEOUT_MS);
       }),
     ]);
 
@@ -200,7 +200,7 @@ const DEFAULT_RETRY_OPTIONS: FetchRetryOptions = {
   maxRetries: 2,
   initialDelay: 500,
   maxDelay: 3000,
-  timeout: 15000,
+  timeout: API_REQUEST_TIMEOUT_MS,
   // Don't retry on 401/403 (auth errors) or 400 (bad request)
   retryStatusCodes: [408, 429, 500, 502, 503, 504],
   retryOnNetworkError: true,
