@@ -23,7 +23,8 @@ import {
   type CheckinCallRecord,
   type CheckinCallStatus,
 } from './proactive-family-checkin.js';
-import { analyzeCheckinCall, generateUrgentNotification } from './family-checkin-summary.js';
+import { analyzeCheckinCall } from './family-checkin-summary.js';
+import { generateUrgentNotification } from './urgent-notification.js';
 import { getSponsoredIdentity } from '../identity/sponsored-identity.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { deferredOutsideCallHours } from './checkin-call-hours.js';

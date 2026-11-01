@@ -28,7 +28,7 @@ import {
   riskyCallerLine,
 } from '../../outreach/caller-text.js';
 import { handleCheckinCallComplete } from '../family-checkin-caller.js';
-import { generateUrgentNotification } from '../family-checkin-summary.js';
+import { generateUrgentNotification } from '../urgent-notification.js';
 import type { CheckinCallRecord, FlaggedConcern } from '../proactive-family-checkin.js';
 
 const NAME = 'Rosa';

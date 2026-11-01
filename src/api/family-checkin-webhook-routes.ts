@@ -192,8 +192,9 @@ async function handleSpeechResponse(
         { role: 'family_member' as const, content: SpeechResult },
       ];
 
-      const { analyzeCheckinCall, generateUrgentNotification } =
-        await import('../services/family/family-checkin-summary.js');
+      const { analyzeCheckinCall } = await import('../services/family/family-checkin-summary.js');
+      const { generateUrgentNotification } =
+        await import('../services/family/urgent-notification.js');
 
       const analysis = await analyzeCheckinCall(
         transcript,

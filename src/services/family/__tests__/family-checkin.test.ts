@@ -52,11 +52,8 @@ vi.mock('../../llm-utils.js', () => ({
 }));
 
 // Import after mocks
-import {
-  analyzeCheckinCall,
-  generateUrgentNotification,
-  type TranscriptMessage,
-} from '../family-checkin-summary.js';
+import { analyzeCheckinCall, type TranscriptMessage } from '../family-checkin-summary.js';
+import { generateUrgentNotification } from '../urgent-notification.js';
 
 import type { FamilyCheckinSchedule, CheckinCallRecord } from '../proactive-family-checkin.js';
 
