@@ -49,11 +49,14 @@ function deleteNotConfirmed(err: unknown, unknownKey: string, check: () => void)
 /** The panel's categories and counts; null when they couldn't be loaded. */
 export const loadCategories = () => dataExportService.getExportableCategories();
 
-/** Re-load the categories and their counts, so the user sees what's still there. */
+/**
+ * Re-load the categories and their counts from the server, so the user sees what's
+ * still there. Signed out, this is "still couldn't confirm", never the empty list.
+ */
 function checkData(): void {
   void recheckAfterDelete(
     getDataExportUI(),
-    loadCategories,
+    () => dataExportService.getServerCategories(),
     t('dataExportService.deleteDataStillUnknown')
   );
 }

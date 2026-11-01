@@ -32,6 +32,7 @@ const shown = (): string =>
     ...Object.values(toast).flatMap((fn) => fn.mock.calls.map((c) => String(c[0]))),
   ].join('\n');
 
+const { getAuthToken } = await import('../../src/services/firebase-auth.service.js');
 const { dataRightsCallbacks } = await import('../../src/app/data-rights-callbacks.js');
 const { getDataExportUI } = await import('../../src/ui/data-export.ui.js');
 
@@ -109,7 +110,7 @@ describe('delete all data', () => {
     ['a 401', 401],
     ['a 500', 500],
     ['a network failure', 'network'],
-  ] as const)('Check again that gets %s says it still can\'t confirm', async (_, answer) => {
+  ] as const)("Check again that gets %s says it still can't confirm", async (_, answer) => {
     serve(
       { method: 'DELETE', url: '/api/export/all', status: 504, body: {} },
       ...(answer === 'network'
@@ -127,6 +128,22 @@ describe('delete all data', () => {
     expect(shown()).not.toContain(t('dataExport.loadFailed'));
     expect(shown()).not.toMatch(/nothing has changed|nothing was removed/i);
     expect(checkAgain()).toBeDefined(); // and it can be checked again later
+  });
+
+  // Signed out in another tab, or the token refresh failed offline: the signed-out list
+  // (every category at 0) would read as "your data is gone" with no server answer.
+  it("Check again with no sign-in says it still can't confirm, never an empty list", async () => {
+    serve({ method: 'DELETE', url: '/api/export/all', status: 504, body: {} });
+    await dataRightsCallbacks().onDeleteData?.();
+    vi.mocked(getAuthToken).mockResolvedValueOnce(null);
+
+    checkAgain()?.click();
+    await settle();
+
+    expect(sent).toEqual(['DELETE /api/export/all']);
+    expect(document.querySelector('.data-export__categories')).toBeNull();
+    expect(status()?.textContent).toContain(t('dataExportService.deleteDataStillUnknown'));
+    expect(checkAgain()).toBeDefined();
   });
 
   it('a 401 is a refusal: says nothing was deleted and to sign in again', async () => {

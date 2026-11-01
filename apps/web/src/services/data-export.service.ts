@@ -178,11 +178,15 @@ class DataExportService {
     const token = await requireSignedIn(t('dataExportService.signInToDownload'));
 
     try {
-      const response = await apiFetch('/api/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ format, categories }),
-      }, LONG_REQUEST_TIMEOUT_MS);
+      const response = await apiFetch(
+        '/api/export',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ format, categories }),
+        },
+        LONG_REQUEST_TIMEOUT_MS
+      );
 
       if (!response.ok) {
         log.error('Export request failed', { status: response.status });
@@ -315,14 +319,27 @@ class DataExportService {
    */
   async getExportableCategories(): Promise<ExportableCategory[] | null> {
     // Signed out: the categories, empty. A token that never comes: couldn't load.
-    const token = await valueWithin<string | null | undefined>(
-      getAuthToken(),
-      AUTH_READY_TIMEOUT_MS,
-      undefined
-    );
+    const token = await this.authToken();
     if (token === undefined) return null;
     if (!token) return this.getDefaultCategories();
+    return this.fetchCategories();
+  }
 
+  /**
+   * Only what the server says is there: null when signed out or it didn't answer.
+   * "Check again" after an unconfirmed delete reads this, because the signed-out
+   * list (every category at 0) would read as "your data is gone" with nothing
+   * confirmed by the server.
+   */
+  async getServerCategories(): Promise<ExportableCategory[] | null> {
+    return (await this.authToken()) ? this.fetchCategories() : null;
+  }
+
+  private authToken(): Promise<string | null | undefined> {
+    return valueWithin<string | null | undefined>(getAuthToken(), AUTH_READY_TIMEOUT_MS, undefined);
+  }
+
+  private async fetchCategories(): Promise<ExportableCategory[] | null> {
     try {
       const response = await apiFetch('/api/export/categories');
 
