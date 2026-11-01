@@ -7,7 +7,7 @@
  *   USE_VERTEX_AI=true GOOGLE_CLOUD_PROJECT=<project> CRISIS_EVAL_REPS=3 \
  *   CRISIS_SIM_PROFILE=prod-2026-10-31 \
  *     npx tsx scripts/crisis-eval/full-path-sim.ts \
- *       --baseline scripts/crisis-eval/baselines/full-path-prod-2026-10-31.json \
+ *       --baseline scripts/crisis-eval/baselines/full-path-prod-2026-10-31.generated.json \
  *       --out report.md [--json summary.json] [--write-baseline <file>] [--neutral-guided]
  *
  * --neutral-guided: a guided turn's reply goes back into the call as the neutral

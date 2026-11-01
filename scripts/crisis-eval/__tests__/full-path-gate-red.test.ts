@@ -20,7 +20,7 @@ import {
 } from '../full-path-summary.js';
 import { runReps } from '../full-path-turn.js';
 
-const BASELINE = 'scripts/crisis-eval/baselines/full-path-prod-2026-10-31.json';
+const BASELINE = 'scripts/crisis-eval/baselines/full-path-prod-2026-10-31.generated.json';
 const none: CrisisGenerateFn = async () => '{"risk":"none","subject":"self"}';
 const env = { ...PROFILES['prod-2026-10-31'], CRISIS_CLASSIFIER_TIMEOUT_MS: '10000' };
 

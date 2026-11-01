@@ -15,7 +15,7 @@ import {
   type RepCount,
 } from '../full-path-summary.js';
 
-const BASELINE = 'scripts/crisis-eval/baselines/full-path-prod-2026-10-31.json';
+const BASELINE = 'scripts/crisis-eval/baselines/full-path-prod-2026-10-31.generated.json';
 const TRIALS = 2000;
 
 /** mulberry32: a small seeded generator, so the draws never change between runs. */
