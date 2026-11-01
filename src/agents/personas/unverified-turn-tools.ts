@@ -4,7 +4,7 @@
  * account action (#3305). Before this, only one sentence of the reminder held the model back.
  *
  * An allowlist, as #3091's SAFE set: the phone-safe tools (phone-safe-tools.ts: play, support and
- * public) but none of the team tools (TEAM_TOOLS), plus every crisis and human-transfer tool
+ * public) except those held back (HELD_BACK), plus every crisis and human-transfer tool
  * (SAFETY_TOOLS), so 988, the crisis resources and the human transfer are offered as on any turn.
  * Every other tool leaves that request.
  *
@@ -47,22 +47,29 @@ export const SAFETY_TOOLS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * The team tools the phone-safe rule keeps, never offered on an unverified turn: a handoff
- * (handoffTo*) moves the call to a teammate, and no one has shown it carries no owner context;
- * the others read the owner's tier and unlocks or lead into a handoff (handoff-factory.ts,
- * locked-teammates.ts). A later change can bring one back with that proof (#3305).
+ * Phone-safe tools never offered on an unverified turn, each for its reason. A later change can
+ * bring one back with proof it touches no owner data (#3305).
+ * - Team tools: a handoff (handoffTo*) moves the call to a teammate, and no one has shown it
+ *   carries no owner context; the others read the owner's tier and unlocks or lead into a handoff
+ *   (handoff-factory.ts, locked-teammates.ts).
+ * - getWeather: with no place named it reads the owner's saved home, then the profile city
+ *   (weather-location.ts, WEATHER_SAVED_HOME).
  */
-const TEAM_TOOLS: ReadonlySet<string> = new Set([
+const HELD_BACK: ReadonlySet<string> = new Set([
   'askForTeammate',
+  'getWeather',
   'introduceMember',
   'meetTheTeam',
   'softTeamIntro',
 ]);
-const isTeamTool = (name: string): boolean => TEAM_TOOLS.has(name) || /^handoffTo[A-Z]/.test(name);
+const heldBack = (name: string): boolean => HELD_BACK.has(name) || /^handoffTo[A-Z]/.test(name);
 
-/** Offered on an unverified turn: a safety tool, or a phone-safe tool that isn't a team tool. */
+/** Offered on an unverified turn: a safety tool, or a phone-safe tool not held back. */
 export const offeredWhenUnverified = (name: string): boolean =>
-  SAFETY_TOOLS.has(name) || (phoneSafeTool(name) && !isTeamTool(name));
+  SAFETY_TOOLS.has(name) || (phoneSafeTool(name) && !heldBack(name));
+
+/** Spoken in place of a dropped call when the reply had nothing else: never silence. */
+const NOT_VERIFIED_LINE = "I can't do that until I know it's you.";
 
 /** The tools a request offers, and its reply with no call to a tool it didn't offer. */
 export interface RequestTools {
@@ -91,28 +98,42 @@ export function toolsForRequest(
 }
 
 interface CallChunk {
-  delta?: { toolCalls?: Array<{ type?: string; name?: string }> };
+  id?: string;
+  delta?: { content?: string; toolCalls?: Array<{ type?: string; name?: string }> };
 }
+type Call = { type?: string; name?: string };
 
-/** The reply without a function call to any tool outside `names` (logged by tool name only). */
+/**
+ * The reply without a function call to any tool outside `names` (logged by tool name only). A
+ * reply that was only such a call would be silence: it ends with NOT_VERIFIED_LINE instead.
+ */
 async function onlyCallsTo<T>(reply: Promise<T> | T, names: ReadonlySet<string>): Promise<T> {
   const stream = (await reply) as ReadableStream<unknown> | null | undefined;
   if (!stream) return stream as T;
+  const offered = (c: Call): boolean => c.type !== 'function_call' || names.has(c.name ?? '');
+  let id = '';
+  let dropped = 0;
+  let said = false; // words, or a call that runs: the caller hears something either way
   const filtered = stream.pipeThrough(
     new TransformStream<unknown, unknown>({
       transform(chunk, controller) {
-        const calls = (chunk as CallChunk | null)?.delta?.toolCalls;
+        const { delta, id: chunkId } = (chunk ?? {}) as CallChunk;
+        id = chunkId ?? id;
+        said ||= typeof chunk === 'string' ? chunk.trim() !== '' : !!delta?.content?.trim();
+        const calls = delta?.toolCalls;
         if (!calls) return controller.enqueue(chunk);
-        const offered = (c: { type?: string; name?: string }): boolean =>
-          c.type !== 'function_call' || names.has(c.name ?? '');
-        const dropped = calls.filter((c) => !offered(c)).map((c) => c.name);
-        if (!dropped.length) return controller.enqueue(chunk);
-        log.warn({ dropped }, 'UNVERIFIED_TURN_TOOLS: call to a tool not offered, dropped');
-        const { delta } = chunk as Required<CallChunk>;
-        controller.enqueue({
-          ...(chunk as object),
-          delta: { ...delta, toolCalls: calls.filter(offered) },
-        });
+        const kept = calls.filter(offered);
+        said ||= kept.some((c) => c.type === 'function_call');
+        if (kept.length === calls.length) return controller.enqueue(chunk);
+        dropped += calls.length - kept.length;
+        const names = calls.filter((c) => !offered(c)).map((c) => c.name);
+        log.warn({ dropped: names }, 'UNVERIFIED_TURN_TOOLS: call to a tool not offered, dropped');
+        controller.enqueue({ ...(chunk as object), delta: { ...delta, toolCalls: kept } });
+      },
+      flush(controller) {
+        if (dropped && !said) {
+          controller.enqueue({ id, delta: { role: 'assistant', content: NOT_VERIFIED_LINE } });
+        }
       },
     })
   );

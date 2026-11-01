@@ -105,6 +105,7 @@ describe('the tools a request offers (#3305)', () => {
     const offered = names(toolsForRequest(built(true), catalog()).tools);
     for (const name of ACCOUNT) expect(offered).not.toContain(name);
     expect(offered).not.toContain('handoffToMaya'); // a handoff may carry owner context
+    expect(offered).not.toContain('getWeather'); // no place named: the owner's saved home
   });
 
   it('flag on, unverified: every crisis/safety tool is still offered', () => {
@@ -178,11 +179,11 @@ describe('each request answers for itself, a crisis-guided re-ask included', () 
 });
 
 describe('the allowlist pin: a tool joins it only on purpose', () => {
-  it('no team tool the phone-safe rule keeps is offered; the rest of that rule is', () => {
+  it('no team tool or getWeather is offered; the rest of the phone-safe rule is', () => {
     const team = ['handoffToMaya', 'handoffToPeter', 'askForTeammate', 'introduceMember'];
-    for (const name of [...team, 'meetTheTeam', 'softTeamIntro'])
+    for (const name of [...team, 'meetTheTeam', 'softTeamIntro', 'getWeather'])
       expect(offeredWhenUnverified(name)).toBe(false);
-    for (const name of ['endCall', 'getWeather', 'playMusic', 'breatheWithMe'])
+    for (const name of ['endCall', 'getMovieInfo', 'playMusic', 'breatheWithMe'])
       expect(offeredWhenUnverified(name)).toBe(true);
   });
 
@@ -206,7 +207,6 @@ describe('the allowlist pin: a tool joins it only on purpose', () => {
       'getGameHint',
       'getGameStatus',
       'getTextGameBoard',
-      'getWeather',
       'groundingExercise',
       'groundingForTrauma',
       'guideGroundingExercise',

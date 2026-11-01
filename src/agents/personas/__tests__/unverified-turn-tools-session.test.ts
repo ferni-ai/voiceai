@@ -20,13 +20,21 @@ vi.mock('../call-me-note.js', async (importOriginal) => ({
 }));
 
 const { PersonaVoiceAgent } = await import('../ferni-agent.js');
+const NOT_VERIFIED_LINE = "I can't do that until I know it's you.";
 const { rememberDispatchIdentity } = await import('../../voice-agent-entry/caller-recognition.js');
 
 initializeLogger({ pretty: false, level: 'warn' });
 
 const ASKED = "what's on my calendar, remind me to call her";
 /** Account tools the turn could act with, and the crisis tools it must keep. */
-const ACCOUNT = ['getCalendarToday', 'setReminder', 'rememberAboutUser', 'getContactInfo'];
+// getWeather: with no place named it reads the owner's saved home (weather-location.ts).
+const ACCOUNT = [
+  'getCalendarToday',
+  'setReminder',
+  'rememberAboutUser',
+  'getContactInfo',
+  'getWeather',
+];
 const CRISIS = ['provideCrisisResources', 'connectToHumanExpert', 'evaluateHumanTransfer'];
 /** Team tools: a handoff moves the call; the rest read the owner's tier or lead into a handoff. */
 const TEAM = ['handoffToMaya', 'handoffToPeter', 'introduceMember', 'meetTheTeam', 'softTeamIntro'];
@@ -77,8 +85,11 @@ async function call(script: voice.testing.FakeLLMResponse[]) {
   });
   await session.start({ agent });
   await session.run({ userInput: ASKED }).wait();
+  const spoken = session.history.items.flatMap((i) =>
+    i.type === 'message' && i.role === 'assistant' ? [i.textContent ?? ''] : []
+  );
   await session.close();
-  return { model, ran };
+  return { model, ran, spoken };
 }
 
 const saved = { ...process.env };
@@ -121,6 +132,26 @@ describe('UNVERIFIED_TURN_TOOLS on a real agent session (#3305)', () => {
     fail.identity = true;
     const { ran } = await call([reminds]);
     expect(ran).toEqual([]);
+  }, 90_000);
+
+  it('flag on, unverified: getWeather is neither offered nor run', async () => {
+    process.env.UNVERIFIED_TURN_TOOLS = 'on';
+    fail.identity = true;
+    const weather = { name: 'getWeather', args: { q: '' } };
+    const { model, ran } = await call([
+      { input: ASKED, content: 'Let me look.', toolCalls: [weather] },
+    ]);
+    expect(model.offered[0]).not.toContain('getWeather');
+    expect(ran).toEqual([]);
+  }, 90_000);
+
+  it('flag on, unverified: a reply that is only a dropped call says the line, not silence', async () => {
+    process.env.UNVERIFIED_TURN_TOOLS = 'on';
+    fail.identity = true;
+    const only = { name: 'setReminder', args: { q: 'x' } };
+    const { ran, spoken } = await call([{ input: ASKED, content: '', toolCalls: [only] }]);
+    expect(ran).toEqual([]);
+    expect(spoken).toEqual([NOT_VERIFIED_LINE]);
   }, 90_000);
 
   it('flag on, unverified: a call to a crisis tool still runs', async () => {
