@@ -351,12 +351,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
       } = params;
 
       log.info(
-        // Never who is called or why: the contact never signed up, and the purpose names them.
-        {
-          userId: ctx.userId,
-          hasPhoneNumber: Boolean(phoneNumber),
-          purposeChars: purpose?.length ?? 0,
-        },
+        { userId: ctx.userId, hasPhone: Boolean(phoneNumber) }, // never who or why
         'Initiating call on behalf of user'
       );
 

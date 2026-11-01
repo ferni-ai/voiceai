@@ -108,10 +108,10 @@ const REQUIRED = [
 const EXEMPT: Exemptions = {
   pending: [
     // E2E_USER_INPUT: the call reviewer reads what the caller said here (#2656): pending Seth's call.
-    // The person on a call placed for a member never reaches this branch (their words: never).
+    // On a call placed for a member, `said` is empty: the person called never signed up.
     [
       'transcript-handler.ts',
-      '(\n          {\n            trace: \'E2E_USER_INPUT\',\n            transcript: event.transcript.slice(0, 100),\n            fullLength: event.transcript.length,\n            sessionId,\n            userId,\n            turnNumber,\n          },\n          `🔍 E2E TRACE [STT] User said: "${event.transcript.slice(0, 50)}..." (${event.transcript.length} chars)`\n        )',
+      '(\n        {\n          trace: \'E2E_USER_INPUT\',\n          transcript: said.slice(0, 100),\n          fullLength: event.transcript.length,\n          sessionId,\n          userId,\n          turnNumber: userData.turnCount || 0,\n        },\n        `🔍 E2E TRACE [STT] User said: "${said.slice(0, 50)}..." (${event.transcript.length} chars)`\n      )',
     ],
     // voice-eval reads this preview (review-calls, turn-taking): pending Seth's call.
     ['process-turn.ts', "('Processing user turn', {\n    preview: userText.slice(0, 100),\n  })"],
@@ -189,16 +189,16 @@ describe('the call and turn logs', () => {
     const path = 'src/agents/voice-agent/transcript-handler.ts';
     const src = readFileSync(path, 'utf8');
     const changed = src.replace(
-      "trace: 'E2E_USER_INPUT',\n            transcript",
-      "trace: 'E2E_USER_INPUT',\n            userName,\n            transcript"
+      "trace: 'E2E_USER_INPUT',",
+      "trace: 'E2E_USER_INPUT',\n          userName,"
     );
     expect(changed).not.toBe(src);
     expect(offences(path, src, EXEMPT)).toEqual([]);
-    expect(offences(path, changed, EXEMPT).some((o) => o.includes('event.transcript'))).toBe(true);
+    expect(offences(path, changed, EXEMPT).some((o) => o.includes('said.slice'))).toBe(true);
     // A slice lengthened at the end of the call, its start unchanged, is caught too.
     const longer = src.replace(
-      'User said: "${event.transcript.slice(0, 50)}',
-      'User said: "${event.transcript.slice(0, 90)}'
+      'User said: "${said.slice(0, 50)}',
+      'User said: "${said.slice(0, 90)}'
     );
     expect(longer).not.toBe(src);
     expect(offences(path, longer, EXEMPT)).not.toEqual([]);

@@ -665,29 +665,20 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     // FINAL TRANSCRIPT PROCESSING
     // ===============================================
     if (event.isFinal && event.transcript) {
-      // 🔍 E2E TRACE: User input received (STT complete). On a call placed for a member, the
-      // speaker is the person called, who never signed up: their words are never logged.
+      // 🔍 E2E TRACE: STT complete. Never the words of a called person: they never signed up.
       const sttCompleteTime = Date.now();
-      const turnNumber = userData.turnCount || 0;
-      if (isThirdPartyCallUser(userId)) {
-        const fullLength = event.transcript.length;
-        log().info(
-          { trace: 'E2E_USER_INPUT', fullLength, sessionId, userId, turnNumber },
-          `🔍 E2E TRACE [STT] Called person spoke (${fullLength} chars)`
-        );
-      } else {
-        log().info(
-          {
-            trace: 'E2E_USER_INPUT',
-            transcript: event.transcript.slice(0, 100),
-            fullLength: event.transcript.length,
-            sessionId,
-            userId,
-            turnNumber,
-          },
-          `🔍 E2E TRACE [STT] User said: "${event.transcript.slice(0, 50)}..." (${event.transcript.length} chars)`
-        );
-      }
+      const said = isThirdPartyCallUser(userId) ? '' : event.transcript;
+      log().info(
+        {
+          trace: 'E2E_USER_INPUT',
+          transcript: said.slice(0, 100),
+          fullLength: event.transcript.length,
+          sessionId,
+          userId,
+          turnNumber: userData.turnCount || 0,
+        },
+        `🔍 E2E TRACE [STT] User said: "${said.slice(0, 50)}..." (${event.transcript.length} chars)`
+      );
 
       // 📊 E2E LATENCY: Start tracking this turn
       // This helps diagnose whether pauses are OpenAI, TTS, or our code
@@ -1563,10 +1554,7 @@ async function processFinalTranscript(
     const extractedPrefs = extractMusicPreferences(event.transcript);
     if (extractedPrefs.length > 0) {
       // Preferences are stored via the music learning persistence system
-      diag.state('🎵 Extracted music preferences from conversation', {
-        count: extractedPrefs.length,
-        kinds: extractedPrefs.map((p) => `${p.type} ${p.category}`), // never the value said
-      });
+      diag.state('🎵 Extracted music preferences', { count: extractedPrefs.length }); // no values
     }
   }
 
@@ -1582,10 +1570,7 @@ async function processFinalTranscript(
           await saveExtractedPreference(memoryUserId, pref);
         }, 'preference-extraction');
       }
-      diag.state('🧠 Extracted general preferences from conversation', {
-        count: extractedPrefs.length,
-        categories: extractedPrefs.map((p) => p.category), // never the value said
-      });
+      diag.state('🧠 Extracted general preferences', { count: extractedPrefs.length }); // no values
     }
   }
 

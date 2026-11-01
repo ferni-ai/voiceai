@@ -258,14 +258,13 @@ OUTPUT as JSON:
 export async function enrichMessage(context: EnrichmentContext): Promise<EnrichedMessage> {
   const startTime = Date.now();
 
-  // Never the message or the contact's name (the person on the other end never signed up).
   log.info(
     {
       originalChars: context.originalMessage.length,
       hasContactName: Boolean(context.relationship.contactName),
       relationship: context.relationship.relationship,
     },
-    'Enriching message'
+    'Enriching message' // never the message or the name: the contact never signed up
   );
 
   try {

@@ -22,6 +22,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { withoutProfileTokenFields } from '../../utils/token-at-rest.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { isValidUserProfile } from '../type-guards.js';
+import { isThirdPartyCallUser } from '../third-party-call.js';
 
 const UNSAVED = Symbol.for('ferni.profileReadFailed');
 
@@ -98,6 +99,17 @@ export function isUnsavedProfile(profile: unknown): boolean {
 /** Every MemoryStore.saveProfile calls this first. */
 export function refuseUnsaved(profile: UserProfile): void {
   if (isUnsavedProfile(profile)) throw new UnsavedProfileError(profile.id);
+}
+
+/**
+ * Asked first by every backend's saveProfile. A stand-in throws (refuseUnsaved). True for the
+ * person on a call placed for a member (`onbehalf:<callId>`): they never signed up, so nothing
+ * is stored for them, ONBEHALF_WRITE_GATE or not. The trial start and the contact info they
+ * spoke both reached saveProfile and created bogle_users/onbehalf:<callId>.
+ */
+export function notStored(profile: UserProfile): boolean {
+  refuseUnsaved(profile);
+  return isThirdPartyCallUser(profile.id);
 }
 
 /** Defaults for this call only, after a failed read: saving it throws UnsavedProfileError. */
