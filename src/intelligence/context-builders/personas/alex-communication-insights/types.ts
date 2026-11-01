@@ -50,7 +50,6 @@ export interface UserStateSnapshot {
   energyLevel: 'low' | 'moderate' | 'high' | 'unknown';
   productivityMomentum: 'building' | 'stable' | 'struggling' | 'unknown';
   timeOfDayContext: string;
-  optimalCommunicationWindow: string | null;
 }
 
 // ============================================================================

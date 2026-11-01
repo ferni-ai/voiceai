@@ -48,13 +48,15 @@ vi.mock('@livekit/agents', () => ({
 
 // Mock Twilio client
 const mockTwilioCall = vi.hoisted(() => vi.fn());
-vi.mock('twilio', () => ({
-  default: vi.fn(() => ({
-    calls: {
-      create: mockTwilioCall,
-    },
-  })),
-}));
+vi.mock('twilio', async (importOriginal) => {
+  const actual = await importOriginal<{ default: typeof import('twilio') }>();
+  // The real validateRequest checks webhook signatures; only the client is faked.
+  const client = Object.assign(
+    vi.fn(() => ({ calls: { create: mockTwilioCall } })),
+    { validateRequest: actual.default.validateRequest }
+  );
+  return { default: client };
+});
 
 // Mock orchestrator - must return valid call ID
 const mockOrchestratorInitiateCall = vi.hoisted(() => vi.fn());
@@ -99,20 +101,32 @@ vi.mock('../compliance.js', async () => {
 // Mock Firestore
 const mockFirestoreSet = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const mockFirestoreAdd = vi.hoisted(() => vi.fn().mockResolvedValue({ id: 'mock-doc-id' }));
+/** Every subcollection name asked for under a user doc, e.g. 'on_behalf_calls' */
+const subcollectionsTouched = vi.hoisted(() => [] as string[]);
 vi.mock('../../../../services/superhuman/firestore-utils.js', () => ({
   getFirestoreDb: () => ({
     collection: () => ({
       doc: () => ({
-        collection: () => ({
-          doc: () => ({
-            set: mockFirestoreSet,
-          }),
-          add: mockFirestoreAdd,
-        }),
+        collection: (name: string) => {
+          subcollectionsTouched.push(name);
+          return {
+            doc: () => ({
+              set: mockFirestoreSet,
+            }),
+            add: mockFirestoreAdd,
+          };
+        },
         set: mockFirestoreSet,
       }),
     }),
   }),
+}));
+
+// The semantic-index hook a follow-up action goes to (the live copy of it)
+const mockOnFollowUpActionChange = vi.hoisted(() => vi.fn());
+vi.mock('../../../../services/data-layer/hooks/misc-hooks.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../services/data-layer/hooks/misc-hooks.js')>()),
+  onFollowUpActionChange: mockOnFollowUpActionChange,
 }));
 
 // Mock LiveKit for active session injection
@@ -168,6 +182,10 @@ function createMockContext(): ToolContext {
   };
 }
 
+/** The call record was stored, its own fields only, so told.* (call-result-once.ts) survives. */
+const expectStored = (fields: object): void =>
+  expect(mockFirestoreSet).toHaveBeenCalledWith(expect.objectContaining(fields), expect.objectContaining({ mergeFields: expect.arrayContaining(['callId', 'outcome']) })); // prettier-ignore
+
 const TEST_TWILIO_AUTH_TOKEN = 'test-twilio-auth-token';
 const TEST_WEBHOOK_HOST = 'webhooks.test';
 const TEST_WEBHOOK_PATH = '/api/webhooks/call-status';
@@ -175,6 +193,8 @@ const TEST_WEBHOOK_PATH = '/api/webhooks/call-status';
 // Sign webhook requests the way Twilio does so the handler's real signature
 // check runs in tests rather than being bypassed.
 initializeTwilioWebhooks(TEST_TWILIO_AUTH_TOKEN);
+// Twilio signs the public URL it was given (WEBHOOK_BASE_URL), not the Host header (#2679).
+process.env.WEBHOOK_BASE_URL = `https://${TEST_WEBHOOK_HOST}`;
 
 function signTwilioPayload(url: string, params: Record<string, string>): string {
   const data = Object.keys(params)
@@ -415,13 +435,7 @@ describe('E2E: Call On Behalf Flow', () => {
       await handleTwilioCallStatus(req, res);
 
       // Should capture with voicemail outcome
-      expect(mockFirestoreSet).toHaveBeenCalledWith(
-        expect.objectContaining({
-          outcome: expect.objectContaining({
-            outcome: expect.stringContaining('voicemail'),
-          }),
-        })
-      );
+      expectStored({ outcome: expect.objectContaining({ outcome: expect.stringContaining('voicemail') }) }); // prettier-ignore
     });
   });
 
@@ -464,9 +478,7 @@ describe('E2E: Call On Behalf Flow', () => {
 
       // Kept as the call record the next call's opener reads (pending-call-results.ts),
       // not in pending_notifications, which nothing read (phone-calls audit, row 12)
-      expect(mockFirestoreSet).toHaveBeenCalledWith(
-        expect.objectContaining({ callId: 'call-disconnect-test' })
-      );
+      expectStored({ callId: 'call-disconnect-test' });
       expect(mockFirestoreAdd).not.toHaveBeenCalled();
     });
   });
@@ -502,16 +514,14 @@ describe('E2E: Call On Behalf Flow', () => {
       await expect(captureCallResult('call-active-test', outcome, request)).resolves.not.toThrow();
 
       // Should have stored the result in Firestore
-      expect(mockFirestoreSet).toHaveBeenCalledWith(
-        expect.objectContaining({
-          callId: 'call-active-test',
-          userId: 'test-user-e2e',
-          outcome: expect.objectContaining({
-            status: 'completed',
-            objectiveAchieved: true,
-          }),
-        })
-      );
+      expectStored({
+        callId: 'call-active-test',
+        userId: 'test-user-e2e',
+        outcome: expect.objectContaining({
+          status: 'completed',
+          objectiveAchieved: true,
+        }),
+      });
 
       // Should have sent push notification
       expect(mockSendPushNotification).toHaveBeenCalledWith(
@@ -617,14 +627,12 @@ describe('E2E: Call On Behalf Flow', () => {
       await handleTwilioCallStatus(req, res);
 
       // Should capture with failure status
-      expect(mockFirestoreSet).toHaveBeenCalledWith(
-        expect.objectContaining({
-          outcome: expect.objectContaining({
-            status: 'failed',
-            outcome: 'Invalid phone number',
-          }),
-        })
-      );
+      expectStored({
+        outcome: expect.objectContaining({
+          status: 'failed',
+          outcome: 'Invalid phone number',
+        }),
+      });
     });
   });
 
@@ -654,16 +662,26 @@ describe('E2E: Call On Behalf Flow', () => {
         callbackTime: 'in 30 minutes',
       };
 
+      subcollectionsTouched.length = 0;
       await captureCallResult('call-followup-test', outcome, request);
 
-      // Should create follow-up action in Firestore
-      expect(mockFirestoreSet).toHaveBeenCalledWith(
+      // The callback follow-up goes to the semantic index...
+      expect(mockOnFollowUpActionChange).toHaveBeenCalledWith(
+        'test-user-e2e',
+        'call-followup-test-callback',
         expect.objectContaining({
-          type: 'callback',
+          actionType: 'callback',
           description: expect.stringContaining('Acme Insurance'),
           scheduledFor: 'in 30 minutes',
-        })
+          relatedCallId: 'call-followup-test',
+          status: 'pending',
+        }),
+        'create'
       );
+      // ...and no longer to bogle_users/{uid}/follow_up_actions, which nothing read
+      // (memory v2 C5a). The call result itself is still stored.
+      expect(subcollectionsTouched).toContain('on_behalf_calls');
+      expect(subcollectionsTouched).not.toContain('follow_up_actions');
     });
   });
 });

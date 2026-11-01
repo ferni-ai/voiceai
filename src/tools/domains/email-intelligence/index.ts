@@ -34,6 +34,7 @@ import {
   isGmailConfigured,
   type EmailSummary,
 } from '../../../services/gmail/gmail-service.js';
+import { gmailNotConnected, honestGmailReadTools } from '../../../services/gmail/gmail-honesty.js';
 
 const log = getLogger();
 
@@ -68,7 +69,7 @@ const analyzeInboxPriorityDef: ToolDefinition = {
 
         const isConfigured = await isGmailConfigured(userId);
         if (!isConfigured) {
-          return 'Gmail is not connected yet. Would you like me to help you connect your Google account?';
+          return gmailNotConnected();
         }
 
         const emails = await getUnreadMessages(userId, params.count || 20);
@@ -276,7 +277,7 @@ const summarizeThreadDef: ToolDefinition = {
 
         const isConfigured = await isGmailConfigured(userId);
         if (!isConfigured) {
-          return 'Gmail is not connected yet. Would you like me to help you connect your Google account?';
+          return gmailNotConnected();
         }
 
         // Search for the thread
@@ -419,9 +420,7 @@ const closeFollowUpDef: ToolDefinition = {
 
         const tracker = getFollowUpTracker(userId);
         const followUps = tracker.getFollowUpsByContact(params.contact);
-        const pending = followUps.filter(
-          (f) => f.status === 'awaiting' || f.status === 'reminded'
-        );
+        const pending = followUps.filter((f) => f.status === 'awaiting' || f.status === 'reminded');
 
         if (pending.length === 0) {
           return `I don't have any pending follow-ups for ${params.contact}.`;
@@ -441,13 +440,22 @@ const closeFollowUpDef: ToolDefinition = {
 // DOMAIN EXPORT
 // ============================================================================
 
-export const { getToolDefinitions, domain, definitions } = createDomainExport('email-intelligence', [
+// The two that read the inbox: offered only under GMAIL_READ_TOOLS (gmail-honesty.ts).
+const [analyzeInboxPriority, summarizeThread] = honestGmailReadTools([
   analyzeInboxPriorityDef,
-  getFollowUpNeededDef,
-  bulkUnsubscribeDef,
   summarizeThreadDef,
-  markVipSenderDef,
-  blockSenderDef,
-  trackFollowUpDef,
-  closeFollowUpDef,
 ]);
+
+export const { getToolDefinitions, domain, definitions } = createDomainExport(
+  'email-intelligence',
+  [
+    analyzeInboxPriority,
+    getFollowUpNeededDef,
+    bulkUnsubscribeDef,
+    summarizeThread,
+    markVipSenderDef,
+    blockSenderDef,
+    trackFollowUpDef,
+    closeFollowUpDef,
+  ]
+);

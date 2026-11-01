@@ -525,7 +525,7 @@ async function detectAndRecordCorrections(ctx: LearningContext): Promise<void> {
 
   if (!isCorrection) return;
 
-  logger.debug({ userText: ctx.userText.slice(0, 100) }, '🔧 User correction detected');
+  logger.debug({ userTextLen: ctx.userText.length }, '🔧 User correction detected');
 
   // Extract what they're correcting (heuristic: use the message content)
   // The "original" is inferred from context - we'll store the correction itself

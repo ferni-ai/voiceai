@@ -19,6 +19,7 @@ export type * from './types.js';
 export {
   // Contact CRUD
   getContacts,
+  loadContacts,
   getContact,
   upsertContact,
   searchContacts,

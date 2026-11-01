@@ -6,7 +6,7 @@
  *
  * This test suite checks:
  * - SVC-001: Voice clone rejects missing Cartesia key in production
- * - SVC-003: Email rejects missing SendGrid key in production
+ * - SVC-003: Email rejects an unconfigured Workspace transport in production
  * - SVC-004: SMS rejects missing Twilio credentials in production
  * - SVC-005: Response evaluator rejects missing API keys in production
  * - SVC-006: Voice preview rejects missing Cartesia key in production
@@ -29,38 +29,32 @@ describe('Honest Failure Handling - Production Configuration Errors', () => {
   });
 
   describe('Communication Service - Email (SVC-003)', () => {
-    it('should throw honest error when SENDGRID_API_KEY is missing in production', async () => {
-      // Ensure API key is not set
-      const savedKey = process.env.SENDGRID_API_KEY;
-      delete process.env.SENDGRID_API_KEY;
+    const unconfigured = { provider: 'gmail' as const, isConfigured: () => false, send: vi.fn() };
 
+    it('should throw honest error when the email transport is unconfigured in production', async () => {
+      const { setEmailSenderForTests } = await import('../email-transport/index.js');
+      setEmailSenderForTests(unconfigured);
       try {
-        // Dynamically import to get fresh module with updated env
         const { sendEmail } = await import('../communication-service.js');
-
-        // Should throw, not return a "[DEV MODE]" string
         await expect(sendEmail('user@example.com', 'Test Subject', 'Test Body')).rejects.toThrow(
           /Email service is not available/
         );
+        expect(unconfigured.send).not.toHaveBeenCalled();
       } finally {
-        if (savedKey) process.env.SENDGRID_API_KEY = savedKey;
+        setEmailSenderForTests(null);
       }
     });
 
-    it('should return [DEV MODE] string when SENDGRID_API_KEY is missing in development', async () => {
+    it('should return [DEV MODE] string when the transport is unconfigured in development', async () => {
       process.env.NODE_ENV = 'development';
-
-      const savedKey = process.env.SENDGRID_API_KEY;
-      delete process.env.SENDGRID_API_KEY;
-
+      const { setEmailSenderForTests } = await import('../email-transport/index.js');
+      setEmailSenderForTests(unconfigured);
       try {
         const { sendEmail } = await import('../communication-service.js');
-
-        // Should return [DEV MODE] string in development, not throw
         const result = await sendEmail('user@example.com', 'Test Subject', 'Test Body');
         expect(result).toContain('[DEV MODE]');
       } finally {
-        if (savedKey) process.env.SENDGRID_API_KEY = savedKey;
+        setEmailSenderForTests(null);
       }
     });
   });

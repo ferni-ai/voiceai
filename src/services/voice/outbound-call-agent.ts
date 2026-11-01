@@ -141,7 +141,7 @@ export async function startOutboundAgent(
 
   // Speak dynamic greeting
   const greeting = buildDynamicGreeting(context);
-  log.info({ greeting: greeting.substring(0, 50) }, '🗣️ Speaking greeting');
+  log.info({ greetingLen: greeting.length }, '🗣️ Speaking greeting');
   await speakToCaller(state, bridge, greeting);
 
   log.info({ callSid }, '✅ Outbound agent ready for conversation');
@@ -162,7 +162,7 @@ async function handleUserSpeech(
   if (!transcript.trim()) return;
 
   state.turnCount++;
-  log.info({ turnCount: state.turnCount, transcript: transcript.substring(0, 50) }, '👂 User said');
+  log.info({ turnCount: state.turnCount, transcriptLen: transcript.length }, '👂 User said');
 
   // Add to history
   state.history.push({ role: 'user', content: transcript });
@@ -171,7 +171,7 @@ async function handleUserSpeech(
   const response = await generateResponse(state, transcript);
 
   if (response && state.isRunning) {
-    log.info({ response: response.substring(0, 50) }, '💬 Ferni responding');
+    log.info({ responseLen: response.length }, '💬 Ferni responding');
 
     // Add to history
     state.history.push({ role: 'model', content: response });
@@ -238,7 +238,7 @@ async function speakToCaller(
   // Mark agent as speaking (bridge will stop collecting user audio)
   bridge.setAgentSpeaking(state.callSid, true);
 
-  log.info({ text: text.substring(0, 50) + (text.length > 50 ? '...' : '') }, '🗣️ Speaking');
+  log.info({ textLen: text.length }, '🗣️ Speaking');
 
   try {
     const voiceId = getVoiceId('ferni');

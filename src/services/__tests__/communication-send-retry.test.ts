@@ -1,15 +1,14 @@
 /**
- * Email and SMS sends retry by HTTP status, not by message text.
+ * SMS sends retry by HTTP status, not by message text.
  *
  * withRetry skipped a retry only when the error message contained one of a few
- * keywords. SendGrid's 401 body says "not authorized", which matched none, so a
- * key without Mail Send was retried on every email (prod logs, 2026-10-18).
- * These tests drive the real sendEmail / sendSMS against a stubbed fetch and
- * count the requests.
+ * keywords. A provider 401 body saying "not authorized" matched none, so it was
+ * retried on every send (prod logs, 2026-10-18). Email has one transport, the
+ * Workspace mailbox, which retries itself; communication-service sends to it once
+ * and surfaces its answer. These tests drive the real sendEmail / sendSMS.
  */
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.stubEnv('SENDGRID_API_KEY', 'SG.test-key');
 vi.stubEnv('TWILIO_ACCOUNT_SID', 'ACtest');
 vi.stubEnv('TWILIO_AUTH_TOKEN', 'token');
 vi.stubEnv('TWILIO_PHONE_NUMBER', '+15005550006');
@@ -22,12 +21,19 @@ vi.stubGlobal('fetch', fetchMock);
 
 const { isRetryableSendError, ProviderHttpError, sendEmail, sendSMS } =
   await import('../communication-service.js');
+const { setEmailSenderForTests } = await import('../email-transport/index.js');
+const gmailSend = vi.fn();
+setEmailSenderForTests({ provider: 'gmail', isConfigured: () => true, send: gmailSend });
 
 afterAll(() => {
+  setEmailSenderForTests(null);
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
-beforeEach(() => fetchMock.mockReset());
+beforeEach(() => {
+  fetchMock.mockReset();
+  gmailSend.mockReset();
+});
 
 const reply = (status: number, body = '{}'): Response => new Response(body, { status });
 
@@ -54,42 +60,29 @@ describe('send retry classification', () => {
     ).toBe(true);
   });
 
-  it('sends a SendGrid 401 "not authorized" once and surfaces it', async () => {
-    fetchMock.mockResolvedValue(
-      reply(401, '{"errors":[{"message":"The provided authorization grant is not authorized"}]}')
-    );
+  it('hands an email to the Workspace transport once and surfaces its failure', async () => {
+    gmailSend.mockResolvedValue({ ok: false, provider: 'gmail', status: 401, error: 'gmail 401: not authorized' }); // prettier-ignore
     await expect(sendEmail('a@example.com', 'hi', 'body')).rejects.toThrow(
-      'Email send failed (sendgrid): SendGrid 401'
+      'Email send failed (gmail): gmail 401: not authorized'
     );
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(gmailSend).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('retries a SendGrid 503 until it succeeds', async () => {
-    fetchMock.mockResolvedValueOnce(reply(503)).mockResolvedValueOnce(reply(202));
-    await expect(sendEmail('a@example.com', 'hi', 'body')).resolves.toContain('Email sent');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  it('retries a SendGrid 429 up to the limit', async () => {
-    fetchMock.mockImplementation(async () => reply(429));
-    await expect(sendEmail('a@example.com', 'hi', 'body')).rejects.toThrow(
-      'Email send failed (sendgrid): SendGrid 429'
-    );
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-  });
-
-  it('retries a SendGrid 408 like main did', async () => {
-    fetchMock.mockResolvedValueOnce(reply(408)).mockResolvedValueOnce(reply(202));
-    await expect(sendEmail('a@example.com', 'hi', 'body')).resolves.toContain('Email sent');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  it('retries a SendGrid network error', async () => {
-    fetchMock
-      .mockRejectedValueOnce(new TypeError('fetch failed'))
-      .mockResolvedValueOnce(reply(202));
-    await expect(sendEmail('a@example.com', 'hi', 'body')).resolves.toContain('Email sent');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+  it('passes userId / trigger / sourceId to the transport as metadata', async () => {
+    gmailSend.mockResolvedValue({ ok: true, provider: 'gmail', messageId: 'g1' });
+    await expect(
+      sendEmail('a@example.com', 'hi', 'body', false, {
+        userId: 'u1',
+        trigger: 'reminder',
+        sourceId: 'r1',
+      })
+    ).resolves.toContain('Email sent');
+    expect(gmailSend.mock.calls[0][0]).toMatchObject({
+      text: 'body',
+      kind: 'transactional',
+      metadata: { userId: 'u1', trigger: 'reminder', sourceId: 'r1' },
+    });
   });
 
   it('sends a Twilio 400 once', async () => {

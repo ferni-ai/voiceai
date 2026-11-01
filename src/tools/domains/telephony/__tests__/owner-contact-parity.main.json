@@ -1,0 +1,159 @@
+{
+  "fresh": {
+    "turns": [
+      {
+        "preview": "NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: a call to my dad at 801-555-0142, to say hi. Call callOnBehalf again only after the caller says yes.",
+        "placed": "Got it! I'm calling my dad now to say hi. I'll let you know how it goes once the call is complete."
+      },
+      {
+        "preview": "NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: a call to Dad at 801-555-0142, to say hi. Call callOnBehalf again only after the caller says yes.",
+        "placed": "Got it! I'm calling Dad now to say hi. I'll let you know how it goes once the call is complete."
+      }
+    ],
+    "dialed": [
+      "+18015550142",
+      "+18015550142"
+    ],
+    "stored": [
+      "{\"contactId\":\"phone_18015550142\",\"importantDates\":[],\"interactionCount\":0,\"name\":\"Dad\",\"notes\":\"User's dad\",\"phone\":\"18015550142\",\"recentContext\":[],\"relationship\":\"family\",\"topics\":[]}"
+    ]
+  },
+  "noYes": {
+    "turns": [
+      {
+        "preview": "NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: a call to my dad at 801-555-0142, to say hi. Call callOnBehalf again only after the caller says yes.",
+        "placed": ""
+      },
+      {
+        "preview": "Nothing was dialed: I don't have a number for dad. Ask the caller for it.",
+        "placed": ""
+      }
+    ],
+    "dialed": [],
+    "stored": []
+  },
+  "entityContactTwin": {
+    "turns": [
+      {
+        "preview": "NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: a call to my dad at 801-555-0142, to say hi. Call callOnBehalf again only after the caller says yes.",
+        "placed": "Got it! I'm calling my dad now to say hi. I'll let you know how it goes once the call is complete."
+      },
+      {
+        "preview": "NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: a call to Dad at 801-555-0199, to say hi. Call callOnBehalf again only after the caller says yes.",
+        "placed": "Got it! I'm calling Dad now to say hi. I'll let you know how it goes once the call is complete."
+      }
+    ],
+    "dialed": [
+      "+18015550142",
+      "+18015550199"
+    ],
+    "stored": [
+      "{\"aliases\":[\"dad\",\"dad\"],\"attributes\":{\"relationship\":\"dad\"},\"canonicalName\":\"Dad\",\"contact\":{\"phone\":\"+18015550199\"},\"salience\":0.5,\"specificRelation\":\"dad\",\"type\":\"person\"}",
+      "{\"contactId\":\"c0_Dad\",\"importantDates\":[],\"interactionCount\":0,\"name\":\"Dad\",\"notes\":\"User's dad\",\"phone\":\"+18015550199\",\"recentContext\":[],\"relationship\":\"family\",\"topics\":[]}",
+      "{\"contactId\":\"phone_18015550142\",\"importantDates\":[],\"interactionCount\":0,\"name\":\"Dad\",\"notes\":\"User's dad\",\"phone\":\"18015550142\",\"recentContext\":[],\"relationship\":\"family\",\"topics\":[]}"
+    ]
+  },
+  "entityAttributes": {
+    "turns": [
+      {
+        "preview": "NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: a call to dad's at 801-555-0142, to say hi. Call callOnBehalf again only after the caller says yes.",
+        "placed": "Got it! I'm calling dad's now to say hi. I'll let you know how it goes once the call is complete."
+      },
+      {
+        "preview": "NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: a call to Dad's at 801-555-0142, to say hi. Call callOnBehalf again only after the caller says yes.",
+        "placed": "Got it! I'm calling Dad's now to say hi. I'll let you know how it goes once the call is complete."
+      }
+    ],
+    "dialed": [
+      "+18015550142",
+      "+18015550142"
+    ],
+    "stored": [
+      "{\"aliases\":[\"dad\",\"dad\"],\"attributes\":{\"relationship\":\"dad\",\"phone\":\"+18015550199\"},\"canonicalName\":\"Dad\",\"salience\":0.5,\"specificRelation\":\"dad\",\"type\":\"person\"}",
+      "{\"contactId\":\"phone_18015550142\",\"importantDates\":[],\"interactionCount\":0,\"name\":\"Dad's\",\"notes\":\"User's dad\",\"phone\":\"18015550142\",\"recentContext\":[],\"relationship\":\"family\",\"topics\":[]}"
+    ]
+  },
+  "sharedMomCr": {
+    "turns": [
+      {
+        "preview": "NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: a call to Doug at 801-555-0177, to say hi. Call callOnBehalf again only after the caller says yes.",
+        "placed": "Got it! I'm calling Doug now to say hi. I'll let you know how it goes once the call is complete."
+      },
+      {
+        "preview": "NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: a call to Doug at 801-555-0177, to say hi. Call callOnBehalf again only after the caller says yes.",
+        "placed": "Got it! I'm calling Doug now to say hi. I'll let you know how it goes once the call is complete."
+      },
+      {
+        "preview": "NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: a call to Mom at 801-555-0177, to say hi. Call callOnBehalf again only after the caller says yes.",
+        "placed": "Got it! I'm calling Mom now to say hi. I'll let you know how it goes once the call is complete."
+      }
+    ],
+    "dialed": [
+      "+18015550177",
+      "+18015550177",
+      "+18015550177"
+    ],
+    "stored": [
+      "{\"contactId\":\"c0_Mom\",\"importantDates\":[],\"interactionCount\":0,\"name\":\"Mom\",\"notes\":\"User's mom\",\"phone\":\"+18015550177\",\"recentContext\":[],\"relationship\":\"family\",\"topics\":[]}",
+      "{\"contactId\":\"phone_18015550177\",\"importantDates\":[],\"interactionCount\":0,\"name\":\"Doug\",\"phone\":\"18015550177\",\"recentContext\":[],\"relationship\":\"other\",\"topics\":[]}"
+    ]
+  },
+  "sharedMomEntity": {
+    "turns": [
+      {
+        "preview": "NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: a call to dad at 801-555-0177, to say hi. Call callOnBehalf again only after the caller says yes.",
+        "placed": "Got it! I'm calling dad now to say hi. I'll let you know how it goes once the call is complete."
+      },
+      {
+        "preview": "NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: a call to Dad at 801-555-0177, to say hi. Call callOnBehalf again only after the caller says yes.",
+        "placed": "Got it! I'm calling Dad now to say hi. I'll let you know how it goes once the call is complete."
+      }
+    ],
+    "dialed": [
+      "+18015550177",
+      "+18015550177"
+    ],
+    "stored": [
+      "{\"aliases\":[\"mom\",\"mom\"],\"attributes\":{\"relationship\":\"mom\"},\"canonicalName\":\"Mom\",\"contact\":{\"phone\":\"+18015550177\"},\"salience\":0.5,\"specificRelation\":\"mom\",\"type\":\"person\"}",
+      "{\"contactId\":\"phone_18015550177\",\"importantDates\":[],\"interactionCount\":0,\"name\":\"Dad\",\"notes\":\"User's dad\",\"phone\":\"18015550177\",\"recentContext\":[],\"relationship\":\"family\",\"topics\":[]}"
+    ]
+  },
+  "noSession": {
+    "turns": [
+      {
+        "preview": "NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: a call to my dad at 801-555-0142, to say hi. Call callOnBehalf again only after the caller says yes.",
+        "placed": "Got it! I'm calling my dad now to say hi. I'll let you know how it goes once the call is complete."
+      }
+    ],
+    "dialed": [
+      "+18015550142"
+    ],
+    "stored": [
+      "{\"contactId\":\"phone_18015550142\",\"importantDates\":[],\"interactionCount\":0,\"name\":\"Dad\",\"notes\":\"User's dad\",\"phone\":\"18015550142\",\"recentContext\":[],\"relationship\":\"family\",\"topics\":[]}"
+    ]
+  },
+  "heldSession": {
+    "turns": [
+      {
+        "preview": "NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: a call to my dad at 801-555-0142, to say hi. Call callOnBehalf again only after the caller says yes.",
+        "placed": "Got it! I'm calling my dad now to say hi. I'll let you know how it goes once the call is complete."
+      }
+    ],
+    "dialed": [
+      "+18015550142"
+    ],
+    "stored": [
+      "{\"contactId\":\"phone_18015550142\",\"importantDates\":[],\"interactionCount\":0,\"name\":\"Dad\",\"notes\":\"User's dad\",\"phone\":\"18015550142\",\"recentContext\":[],\"relationship\":\"family\",\"topics\":[]}"
+    ]
+  },
+  "junk": {
+    "turns": [
+      {
+        "preview": "Nothing was dialed: \"12345\" isn't a valid US phone number.",
+        "placed": "Nothing was dialed: \"12345\" isn't a valid US phone number."
+      }
+    ],
+    "dialed": [],
+    "stored": []
+  }
+}

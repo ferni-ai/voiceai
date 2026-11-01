@@ -30,32 +30,7 @@ export async function initializeBackgroundDelivery(): Promise<void> {
   log.info('🚀 Initializing background agents delivery services...');
 
   try {
-    const { sendsViaWorkspace } = await import('../outreach/delivery/email-delivery.js');
-    // EMAIL_PROVIDER=gmail: email-delivery sends through the Workspace port and needs no init.
-    if (sendsViaWorkspace()) {
-      log.info('✅ Email delivery via Workspace (gmail)');
-    } else if (process.env.SENDGRID_API_KEY) {
-      const { initializeEmailDelivery } = await import('../outreach/delivery/email-delivery.js');
-      initializeEmailDelivery({
-        provider: 'sendgrid',
-        apiKey: process.env.SENDGRID_API_KEY,
-        fromEmail: process.env.EMAIL_FROM || process.env.SENDGRID_FROM_EMAIL || 'hello@ferni.ai',
-        fromName: process.env.EMAIL_FROM_NAME || process.env.SENDGRID_FROM_NAME || 'Ferni',
-        replyToEmail: process.env.EMAIL_REPLY_TO,
-        trackOpens: true,
-        trackClicks: true,
-      });
-      log.info('✅ Email delivery initialized (SendGrid)');
-    } else if (process.env.RESEND_API_KEY) {
-      const { initializeEmailDelivery } = await import('../outreach/delivery/email-delivery.js');
-      initializeEmailDelivery({
-        provider: 'resend',
-        apiKey: process.env.RESEND_API_KEY,
-        fromEmail: process.env.EMAIL_FROM || 'hello@ferni.ai',
-        fromName: process.env.EMAIL_FROM_NAME || 'Ferni',
-      });
-      log.info('✅ Email delivery initialized (Resend)');
-    }
+    // Email needs no init: email-delivery sends through the Workspace transport.
 
     // Initialize push notifications if Firebase configured
     // Note: We use Firebase Admin SDK which auto-initializes with ADC

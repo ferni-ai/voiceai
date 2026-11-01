@@ -28,7 +28,12 @@ vi.mock('../utils/safe-logger.js', () => ({
   }),
 }));
 
-vi.mock('../memory/index.js', () => ({
+// The real person-key helpers: owner-contact (via the memory tools) builds its
+// relation table from them at import time.
+vi.mock('../memory/index.js', async () => ({
+  ...(await vi.importActual<typeof import('../memory/domain/person-key.js')>(
+    '../memory/domain/person-key.js'
+  )),
   getMemoryOrchestrator: vi.fn(() => ({
     recall: vi.fn(async () => ({
       primaryMemories: [

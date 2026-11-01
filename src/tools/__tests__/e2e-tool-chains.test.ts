@@ -47,7 +47,12 @@ vi.mock('../domains/shared/index.js', () => ({
   isLifeCoachAnalyticsEnabled: vi.fn(() => false),
 }));
 
-vi.mock('../../memory/index.js', () => ({
+// The real person-key helpers: the telephony tools build their relation table
+// from them at import time.
+vi.mock('../../memory/index.js', async () => ({
+  ...(await vi.importActual<typeof import('../../memory/domain/person-key.js')>(
+    '../../memory/domain/person-key.js'
+  )),
   memoryService: {
     remember: vi.fn().mockResolvedValue({ success: true }),
     recall: vi.fn().mockResolvedValue({ success: true, facts: [] }),
@@ -59,11 +64,6 @@ vi.mock('../../memory/index.js', () => ({
 // that suite's beforeEach; Vitest hoisted them here anyway, and Vitest 5
 // rejects vi.mock outside the top level.
 vi.mock('../../services/self-healing/index.js', () => ({
-  getHomeAssistantClient: vi.fn(() => ({
-    isHealthy: () => true,
-    get: vi.fn(() => Promise.resolve({ data: [], error: null })),
-    post: vi.fn(() => Promise.resolve({ data: {}, error: null })),
-  })),
   getHueClient: vi.fn(() => ({
     isHealthy: () => true,
     get: vi.fn(() => Promise.resolve({ data: {}, error: null })),
@@ -74,10 +74,6 @@ vi.mock('../../services/self-healing/index.js', () => ({
     get: vi.fn(() => Promise.resolve({ data: [], error: null })),
     put: vi.fn(() => Promise.resolve({ data: {}, error: null })),
   })),
-}));
-
-vi.mock('../../services/smart-home/home-assistant.js', () => ({
-  getHomeAssistantService: vi.fn(() => null),
 }));
 
 vi.mock('../../services/identity/ecobee-api.js', () => ({

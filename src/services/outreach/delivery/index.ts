@@ -24,18 +24,14 @@ export {
 // Email Delivery
 export {
   emailDelivery,
-  initializeEmailDelivery,
   isEmailDeliveryAvailable,
   sendEmail,
   sendEmailWithRetry,
-  handleEmailEvent,
   generatePersonaEmailHTML,
   generatePlainText,
-  type EmailDeliveryConfig,
   type EmailMessage,
   type EmailDeliveryResult,
   type EmailDeliveryRecord,
-  type EmailProvider,
   type EmailAttachment,
 } from './email-delivery.js';
 
@@ -64,7 +60,6 @@ export {
   updateDeliveryStatus,
   markResponded,
   getDeliveryRecord,
-  getDeliveryByExternalId,
   getUserDeliveries,
   getOutreachDeliveries,
   getQueueItems,
@@ -83,7 +78,6 @@ export {
 // ============================================================================
 
 import { initializeSMSDelivery, type SMSDeliveryConfig } from './sms-delivery.js';
-import { initializeEmailDelivery, type EmailDeliveryConfig } from './email-delivery.js';
 import { initializePushNotifications, type PushNotificationConfig } from './push-notifications.js';
 import { startQueueProcessor, stopQueueProcessor } from './delivery-tracker.js';
 import { getLogger } from '../../../utils/safe-logger.js';
@@ -92,7 +86,6 @@ const log = getLogger().child({ module: 'delivery' });
 
 export interface DeliveryConfig {
   sms?: SMSDeliveryConfig;
-  email?: EmailDeliveryConfig;
   push?: PushNotificationConfig;
   queueProcessorIntervalMs?: number;
 }
@@ -119,14 +112,7 @@ export function initializeDeliveryServices(config: DeliveryConfig): void {
     }
   }
 
-  // Initialize email if configured
-  if (config.email) {
-    try {
-      initializeEmailDelivery(config.email);
-    } catch (error) {
-      log.warn({ error }, 'Email delivery initialization failed');
-    }
-  }
+  // Email needs no init: it goes through the Workspace transport (email-transport).
 
   // Initialize push notifications if configured
   if (config.push) {

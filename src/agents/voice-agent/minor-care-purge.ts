@@ -48,6 +48,7 @@ import { clearOurSongsUser } from '../../services/trust-systems/index.js';
 import { recordSharedHold } from '../../services/outreach/minor-care-shared-hold.js';
 import { phoneHoldId } from '../../services/outreach/checkin-replies.js';
 import {
+  derivedHold,
   ownerSessionFor,
   sessionBoundAt,
   sessionPhone,
@@ -62,10 +63,12 @@ const log = createLogger({ module: 'minor-care-purge' });
 /**
  * MINOR_CARE_SHARED_HOLD: the shared record (no words) for the user, and for the caller's number
  * (keyed by its hash), since a text from that number resolves to whatever account the number
- * names, not the call's anon: or account id. A phone: id is its own number.
+ * names, not the call's anon: or account id. A phone: id is its own number. A call held only by
+ * its number's hold (derivedHold) never writes the number's: only an age said extends it.
  */
 export function shareHold(userId: string, sessionId?: string): void {
   void recordSharedHold(userId);
+  if (derivedHold(sessionId)) return;
   sharePhoneHold((sessionId && sessionPhone(sessionId)) || userId.match(/^phone:(.+)$/)?.[1]);
 }
 function sharePhoneHold(phone: string | undefined): void {

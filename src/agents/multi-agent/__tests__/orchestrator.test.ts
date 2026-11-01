@@ -12,6 +12,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
+  AgentOrchestrator,
   createAgentOrchestrator,
   type PersonaAgent,
   type OrchestratorConfig,
@@ -50,6 +51,11 @@ describe('AgentOrchestrator', () => {
   let agentIdCounter: number;
 
   beforeEach(() => {
+    // Each line is waited out for its estimated length (seconds); nothing here plays audio
+    vi.spyOn(
+      AgentOrchestrator.prototype as unknown as { estimateSpeechDuration: (t: string) => number },
+      'estimateSpeechDuration'
+    ).mockReturnValue(0);
     mockAgents = new Map();
     agentIdCounter = 0;
 
@@ -80,6 +86,7 @@ describe('AgentOrchestrator', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.clearAllMocks();
   });
 

@@ -40,11 +40,15 @@ describe('firestore index drift', () => {
     ]);
   });
 
-  it('the repo file deletes nothing in prod; it only creates the 3 exemptions', () => {
+  it('the repo file deletes nothing in prod; it only creates the 3 exemptions and the activity indexes', () => {
     const drift = computeDrift(indexFile(), prod());
     expect(drift.wouldDelete).toEqual([]);
     expect(drift.allowedDelete).toEqual([]);
     expect(drift.wouldCreate).toEqual([
+      // the activity ledger's readers (activity-store.ts listActivity), not deployed yet
+      'composite activity (COLLECTION): state ASCENDING, updatedAt DESCENDING',
+      'composite activity (COLLECTION): subjectKeys CONTAINS, state ASCENDING, updatedAt DESCENDING',
+      'composite activity (COLLECTION): subjectKeys CONTAINS, updatedAt DESCENDING',
       'field override memory_vectors.text indexes=[none (exempt)]',
       'field override unified_memories.content indexes=[none (exempt)]',
       'field override vectors.text indexes=[none (exempt)]',

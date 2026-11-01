@@ -95,7 +95,8 @@ export function personToCall(statement: string): string | null {
   return who && !NOT_A_PERSON.has(who) ? (SAME[who] ?? who) : null;
 }
 
-const about = (doc: Doc, person: string): boolean => {
+/** Whether a call record is to this person (a word as personWord names it). */
+export const about = (doc: Doc, person: string): boolean => {
   const r = (doc.request ?? {}) as Record<string, unknown>;
   const c = (r.resolvedContact ?? {}) as Record<string, unknown>;
   return [r.contactQuery, r.contactName, c.name, c.relationship, c.notes]

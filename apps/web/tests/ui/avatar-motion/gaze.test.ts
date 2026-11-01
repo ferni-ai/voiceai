@@ -7,6 +7,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { MOTION_FLAG_KEYS } from '../../../src/config/motion-flags.js';
+
 vi.mock('../../../src/utils/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
@@ -15,7 +17,6 @@ import {
   AT_USER,
   AVATAR_TURN_EVENT,
   GAZE_ATTR,
-  GAZE_FLAG_KEY,
   LOOK_AWAY,
   LOOK_AWAY_MAX_MS,
   MAX_GAZE_PX,
@@ -216,7 +217,7 @@ describe('initGaze (DOM)', () => {
 
   afterEach(() => {
     disposeGaze();
-    localStorage.removeItem(GAZE_FLAG_KEY);
+    localStorage.removeItem(MOTION_FLAG_KEYS.gaze);
     document.getElementById('avatar-gaze-styles')?.remove();
     vi.restoreAllMocks();
   });
@@ -230,7 +231,7 @@ describe('initGaze (DOM)', () => {
   });
 
   it('renders the turn gaze on the eyes with the flag on', () => {
-    localStorage.setItem(GAZE_FLAG_KEY, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.gaze, 'true');
     expect(initGaze()).toBe(true);
     expect(eyes()?.hasAttribute(GAZE_ATTR)).toBe(true);
     expect(document.getElementById('avatar-gaze-styles')?.textContent).toContain('translate:');
@@ -242,7 +243,7 @@ describe('initGaze (DOM)', () => {
   });
 
   it('measures the avatar on resize, not on every pointer move', () => {
-    localStorage.setItem(GAZE_FLAG_KEY, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.gaze, 'true');
     const avatar = document.getElementById('coachAvatar');
     if (!avatar) throw new Error('fixture missing');
     const measure = vi.spyOn(avatar, 'getBoundingClientRect');
@@ -267,7 +268,7 @@ describe('initGaze (DOM)', () => {
   });
 
   it('returns to idle on disconnect and cleans up on dispose', () => {
-    localStorage.setItem(GAZE_FLAG_KEY, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.gaze, 'true');
     initGaze();
     window.dispatchEvent(new CustomEvent(AVATAR_TURN_EVENT, { detail: { speaker: 'thinking' } }));
     document.dispatchEvent(new CustomEvent('ferni:disconnected'));
@@ -278,7 +279,7 @@ describe('initGaze (DOM)', () => {
   });
 
   it('is torn down when presence is disposed', async () => {
-    localStorage.setItem(GAZE_FLAG_KEY, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.gaze, 'true');
     initGaze();
     const { dispose } = await import('../../../src/ui/presence.ui.js');
     dispose();

@@ -762,8 +762,6 @@ async function setupSecrets(options: SetupOptions): Promise<boolean> {
     TWILIO_ACCOUNT_SID: 'twilio-account-sid',
     TWILIO_AUTH_TOKEN: 'twilio-auth-token',
     TWILIO_PHONE_NUMBER: 'twilio-phone-number',
-    SENDGRID_API_KEY: 'sendgrid-api-key',
-    SENDGRID_FROM_EMAIL: 'sendgrid-from-email',
     SPOTIFY_CLIENT_ID: 'spotify-client-id',
     SPOTIFY_CLIENT_SECRET: 'spotify-client-secret',
     SPOTIFY_REFRESH_TOKEN: 'spotify-refresh-token',

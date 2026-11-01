@@ -87,6 +87,36 @@ export function quietProcessReport(): void {
   if (report) report.excludeNetwork = true;
 }
 
+/** The parts of @livekit/rtc-node the warm-up touches; tests pass a recorder. */
+export interface RtcNative {
+  AudioSource: new (sampleRate: number, channels: number) => { close: () => Promise<void> };
+  LocalAudioTrack: {
+    createAudioTrack: (name: string, source: never) => { close: () => Promise<void> };
+  };
+}
+
+/**
+ * Create and close one local audio track, so LiveKit's native WebRTC layer starts before a
+ * call, not during its greeting. Dev CPU profiles of fresh call processes (2026-10-29)
+ * charged 434-698 ms of the first 8 s to @livekit/rtc-node, most of it around the greeting;
+ * locally the first createAudioTrack in a process took 70-89 ms against 1-3 ms after it.
+ * False when the module or the track could not be made. Never throws.
+ */
+export async function warmRtcNative(
+  load: () => Promise<RtcNative> = async () => import('@livekit/rtc-node')
+): Promise<boolean> {
+  try {
+    const rtc = await load();
+    const source = new rtc.AudioSource(48_000, 1);
+    const track = rtc.LocalAudioTrack.createAudioTrack('warmup', source as never);
+    await track.close();
+    await source.close();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Import the call path's and the turn build's dynamic imports and the native
  * audio module, and load the bundle voices. Never throws.
@@ -136,6 +166,7 @@ export async function warmCallPath(
   } catch {
     failed++;
   }
+  if (!(await warmRtcNative())) failed++;
   // Bundle voices, before the call path's first getVoiceId would settle for the
   // hardcoded fallbacks (voice-registry.ts).
   try {

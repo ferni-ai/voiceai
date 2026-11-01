@@ -75,7 +75,7 @@ const QUIRK_NOTE = /\[You [^\]]*\]/g;
 beforeEach(() => {
   mixer.plays = 0;
   vi.useFakeTimers();
-  vi.spyOn(Math, 'random').mockReturnValue(0); // every roll passes: whistle, then snore
+  vi.spyOn(Math, 'random').mockReturnValue(0); // every roll passes: a hum (under 0.5), then snore
   vi.stubEnv('PRESENCE_SOUNDS', 'on');
   vi.stubEnv('PRESENCE_SNORE', 'on');
   vi.stubEnv('QUIRK_AWARENESS', 'on');
@@ -92,8 +92,8 @@ describe('quirk awareness on the next reply', () => {
     const { session, sessionId } = await call();
     const replyAt = Date.now();
     expect(nextRequest(session, 'Okay, I am back.', replyAt)).not.toMatch(QUIRK_NOTE); // nothing yet
-    vi.advanceTimersByTime(30_000); // a long quiet: whistle (~4.5 s), then snore (~18 s)
-    expect(quirkEvents(sessionId).map((e) => e.kind)).toEqual(['whistle', 'snore']);
+    vi.advanceTimersByTime(30_000); // a long quiet: hum (~4.5 s), then snore (~18 s)
+    expect(quirkEvents(sessionId).map((e) => e.kind)).toEqual(['hum', 'snore']);
     const sent = nextRequest(session, 'Okay, I am back.', replyAt);
     expect(sent).toContain('mock snore');
     expect(sent).toContain('the line went quiet for about 18 seconds');

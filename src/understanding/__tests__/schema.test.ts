@@ -41,6 +41,15 @@ describe('turn reading schema v0.1', () => {
       { ...carReading(), action_claim: { kind: 'text', tense: 'past', own_life: true } },
     ],
     [
+      'a date that is not a string',
+      {
+        ...carReading(),
+        time_expressions: [
+          { text: 'monday', kind: 'point', start_iso: 20261019, end_iso: null, relation: 'past' },
+        ],
+      },
+    ],
+    [
       'a time phrase with no relation',
       {
         ...carReading(),
@@ -50,6 +59,37 @@ describe('turn reading schema v0.1', () => {
   ])('returns null without throwing for %s', (_name, raw) => {
     expect(() => parseTurnReading(raw)).not.toThrow();
     expect(parseTurnReading(raw)).toBeNull();
+  });
+
+  it('drops a date that is not ISO and keeps the rest of the reading', () => {
+    const time = (start_iso: string, end_iso: string) =>
+      carReading({
+        time_expressions: [
+          { text: 'after the surgery', kind: 'point', start_iso, end_iso, relation: 'future' },
+        ],
+      });
+    expect(parseTurnReading(time("mom's surgery", 'next tuesday'))).toEqual(
+      carReading({
+        time_expressions: [
+          {
+            text: 'after the surgery',
+            kind: 'point',
+            start_iso: null,
+            end_iso: null,
+            relation: 'future',
+          },
+        ],
+      })
+    );
+    for (const iso of [
+      '2026-10-30',
+      '2026-10-30T15:00',
+      '2026-10-30T15:00:00Z',
+      '2026-10-30T15:00:00.000-04:00',
+    ])
+      expect(parseTurnReading(time(iso, iso))?.time_expressions[0].start_iso).toBe(iso);
+    for (const bad of ['2026-10-30 because of the surgery', 'Oct 30', '2026-10-30T3pm'])
+      expect(parseTurnReading(time(bad, bad))?.time_expressions[0].start_iso).toBeNull();
   });
 
   it('gives the model a JSON schema Vertex accepts: no $schema, every field required, closed', () => {

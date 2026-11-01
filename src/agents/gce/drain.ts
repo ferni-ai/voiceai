@@ -27,16 +27,18 @@ export interface DrainResult {
   activeJobs: number;
 }
 
+export interface DrainOptions {
+  pollMs?: number;
+  now?: () => number;
+  sleep?: (ms: number) => Promise<void>;
+  onWait?: (activeJobs: number, waitedMs: number) => void;
+}
+
 /** Waits until no job is active or `timeoutMs` passes. */
 export async function waitForActiveJobs(
   activeJobs: () => number,
   timeoutMs: number,
-  opts: {
-    pollMs?: number;
-    now?: () => number;
-    sleep?: (ms: number) => Promise<void>;
-    onWait?: (activeJobs: number, waitedMs: number) => void;
-  } = {}
+  opts: DrainOptions = {}
 ): Promise<DrainResult> {
   const now = opts.now ?? Date.now;
   const sleep =

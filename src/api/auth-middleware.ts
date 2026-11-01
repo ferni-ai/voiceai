@@ -38,7 +38,8 @@ import { getClientIp } from '../utils/ddos-protection.js';
 import { rateLimitUid } from './rate-limit-identity.js';
 import { API_ERRORS } from './error-messages.js';
 import { sendError } from './helpers.js';
-import { verifyTokenOnce } from './verify-token-once.js';
+import { authCheckUnavailable, verifyTokenOnce } from './verify-token-once.js';
+import { isAuthCheckUnavailable } from '../services/identity/token-revocation.js';
 
 const log = createLogger({ module: 'AuthMiddleware' });
 
@@ -69,6 +70,8 @@ export interface AuthConfig {
   requireAdmin?: boolean;
   /** Accept the development-only X-Admin-Key dev-mode bypass (default true; false sends 401) */
   allowDevMode?: boolean;
+  /** Approval, consent, payment and step-up routes: the account is checked now (token-revocation.ts) */
+  strict?: boolean;
 }
 
 // ============================================================================
@@ -199,12 +202,12 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
  * Verify the request's pending Firebase token (once per request: call via verifyTokenOnce).
  * Returns AuthContext if valid Firebase token, null otherwise.
  */
-async function tryFirebaseAuth(req: IncomingMessage, token: string): Promise<AuthContext | null> {
+async function tryFirebaseAuth(req: IncomingMessage, token: string, strict = false): Promise<AuthContext | null> {
   const ip = getClientIP(req);
   const userAgent = getHeader(req, 'User-Agent');
 
   try {
-    const verified = await verifyFirebaseToken(token);
+    const verified = await verifyFirebaseToken(token, { strict });
     if (!verified) {
       // A failed Firebase token counts toward lockout; a Google service token (Scheduler's OIDC) doesn't
       if (claimsFirebaseIssuer(token))
@@ -232,6 +235,7 @@ async function tryFirebaseAuth(req: IncomingMessage, token: string): Promise<Aut
       isAnonymous: verified.isAnonymous,
     };
   } catch (error) {
+    if (isAuthCheckUnavailable(error)) throw error; // not a bad token: verifyTokenOnce marks it
     log.debug({ error: String(error) }, 'Firebase token verification failed');
     void recordSecurityEvent({
       type: 'auth_failure',
@@ -259,11 +263,10 @@ export async function requireAuth(
   res: ServerResponse,
   config: AuthConfig = {}
 ): Promise<AuthContext | null> {
-  const { optional = false, requireAdmin = false, allowDevMode = true } = config;
+  const { optional = false, requireAdmin = false, allowDevMode = true, strict = false } = config;
   const ip = getClientIP(req);
   const userAgent = getHeader(req, 'User-Agent');
 
-  // Check if IP is locked out before processing auth
   const ipLockout = isLockedOut(`ip:${ip}`);
   if (ipLockout.locked) {
     log.warn({ ip, lockoutUntil: ipLockout.lockoutUntil }, 'Request from locked out IP');
@@ -280,16 +283,13 @@ export async function requireAuth(
     return null;
   }
 
-  // Try sync authentication first (API key, dev mode)
+  // Sync authentication first (API key, dev mode), then a pending Firebase token
   let auth = authenticate(req);
+  if (!auth) auth = await verifyTokenOnce(req, (r, t) => tryFirebaseAuth(r, t, strict), strict);
 
-  // If no sync auth and we have a pending Firebase token, try async Firebase auth
+  // No auth found (a token that couldn't be checked is a 503, never a 401)
   if (!auth) {
-    auth = await verifyTokenOnce(req, tryFirebaseAuth);
-  }
-
-  // No auth found
-  if (!auth) {
+    if (authCheckUnavailable(req, res)) return null;
     if (optional) return null;
     log.warn({ url: req.url, method: req.method }, 'Unauthorized request');
     sendError(res, API_ERRORS.AUTH_REQUIRED, 401);

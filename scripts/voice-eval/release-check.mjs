@@ -90,33 +90,38 @@ export function crisisAnswer(call) {
   return { status: call.turns.slice(at + 1).some(namesLine) ? 'answered' : 'missed' };
 }
 
-/** A failing gate under --accept-known: WAIVED only if every candidate hit is in a scenario where
- *  the baseline fired it too, the candidate's rate per call is no higher, and #N is an open issue
- *  (not a PR) in ferni-ai/voiceai naming the predicate in its title or a label. Else FAIL, saying why. */
+/** A failing gate under --accept-known: WAIVED only if at most WAIVER_MAX_RATE of candidate calls
+ *  fire it, its paired pass rate against the baseline is no worse than WAIVER_MARGIN (lower 95%
+ *  bound, over at least MIN_BOOT_CLUSTERS shared scenarios), and #N is an open issue (not a PR) in
+ *  ferni-ai/voiceai naming the predicate in its title or a label. Else FAIL, saying why. Rates,
+ *  not scenarios: false alarms move between scenarios run to run, so a rule that every hit sit in
+ *  a scenario the baseline also fired refused every build and pushed releases to the full skip. */
+export const WAIVER_MAX_RATE = 8 / 60;
+export const WAIVER_MARGIN = 0.1;
 function waive(item, id, n, ev) {
   const { issue, found } = ev.waiver;
-  const base = ev.baselineGateRows ?? [];
-  const fired = (rows) => rows.filter((r) => r.hits[id].length);
-  const baseScen = new Set(fired(base).map((r) => r.call.scenario));
-  const fresh = [...new Set(fired(ev.gateRows).map((r) => r.call.scenario))].filter(
-    (x) => !baseScen.has(x)
-  );
-  const [c, b] = [n / ev.gateRows.length, fired(base).length / Math.max(1, base.length)];
   const refuse = (why) => ({ ...item, why: `${item.why}; waiver #${issue} refused: ${why}` });
-  if (!baseScen.size) return refuse('the baseline never fired it');
-  if (fresh.length) return refuse(`new in ${fresh.join(', ')}, where the baseline never fired it`);
-  if (c > b)
-    return refuse(
-      `its rate per call ${c.toFixed(3)} is higher than the baseline's ${b.toFixed(3)}`
-    );
+  const calls = ev.gateRows.length;
+  if (n / calls > WAIVER_MAX_RATE)
+    return refuse(`${n}/${calls} is over the cap of ${(WAIVER_MAX_RATE * 60).toFixed(0)} in 60`);
+  const row = (ev.rows ?? []).find((r) => r.metric === `pred:${id}`);
+  if (!row || row.scenarios < MIN_BOOT_CLUSTERS)
+    return refuse(`under ${MIN_BOOT_CLUSTERS} shared scenarios measured it, so no paired rate`);
+  const [lo, hi] = row.ci;
+  const paired = `paired diff ${row.diff.toFixed(3)} [${lo.toFixed(3)}, ${hi.toFixed(3)}]`;
+  if (lo < -WAIVER_MARGIN)
+    return refuse(`${paired}: its lower bound is under -${WAIVER_MARGIN}, it may be worse`);
   if (!found) return refuse(`#${issue} is not an issue in ${REPO} (or gh failed)`);
   if (found.pull_request) return refuse(`#${issue} is a pull request, not an issue`);
   if (found.state !== 'open') return refuse(`#${issue} is ${found.state}`);
   const labels = (found.labels ?? []).map((l) => l?.name ?? l);
   if (!String(found.title ?? '').includes(id) && !labels.includes(id))
     return refuse(`#${issue} names ${id} in neither its title nor a label`);
-  const why = `${item.why}; baseline ${fired(base).length}/${base.length}; known issue #${issue} (open)`;
-  return { ...item, verdict: 'WAIVED', why };
+  return {
+    ...item,
+    verdict: 'WAIVED',
+    why: `${item.why}; ${paired}; known issue #${issue} (open)`,
+  };
 }
 
 /** Cloud Logging filters covering these calls: worker boot lines (commit) and eval-room lines. */
@@ -415,7 +420,6 @@ function main(argv, say) {
   const bScen = [...new Set(bCalls.map((c) => c.scenario))].sort();
   const res = checkRelease({
     gateRows: gates.flatMap(([, g]) => g.rows),
-    baselineGateRows: bSweeps.flatMap((sw) => gateSweep(sw).rows),
     waiver,
     rows,
     provCandidate: prov[0],

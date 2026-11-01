@@ -4,7 +4,7 @@
  * Type definitions for Apple Health integration.
  * Apple Health data comes from the native iOS app via sync API.
  *
- * Unlike Ecobee/Oura/Eight Sleep, Apple Health doesn't have a web API.
+ * Unlike Ecobee/Oura, Apple Health doesn't have a web API.
  * The native app reads HealthKit data and syncs it to our backend.
  */
 
@@ -49,7 +49,6 @@ export interface AppleHealthSleepSummary {
   deep: number; // minutes
   rem: number; // minutes
   efficiency: number; // percentage
-  sources: string[];
 }
 
 // ============================================================================
@@ -135,6 +134,7 @@ export interface AppleHealthDailySummary {
     totalMinutes: number;
     sessions: number;
   } | null;
+  workouts?: { count: number; minutes: number } | null;
 }
 
 export interface AppleHealthWeekSummary {
@@ -181,13 +181,15 @@ export interface AppleHealthResult<T> {
  * apple_health_status/{userId}
  *   - connected: boolean
  *   - lastSyncAt: timestamp
- *   - deviceId: string
- *   - deviceName: string
+ *   - deviceId: string (never the device's name; a status from before may hold one)
  *   - authorizedTypes: string[]
  *
- * apple_health_data/{userId}/daily/{date}
- *   - AppleHealthDailySummary
+ * apple_health_tokens/{userId}: the sync token's sha-256 and the device id
  *
- * apple_health_data/{userId}/raw/{syncId}
- *   - Raw sync payloads for debugging
+ * apple_health_data/{userId}/daily/{date}
+ *   - AppleHealthDailySummary: totals only, never a sample or a source name
+ *
+ * apple_health_data/{userId}/workouts/{id}: legacy, no longer written (one raw workout
+ * with its sourceName each); disconnect (apple-health-erase.ts) and account deletion
+ * erase it with the rest
  */

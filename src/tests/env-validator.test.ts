@@ -44,7 +44,6 @@ describe('Environment Validator', () => {
     delete process.env.DATABASE_URL;
     delete process.env.GOOGLE_CLOUD_PROJECT;
     delete process.env.REDIS_URL;
-    delete process.env.SENDGRID_API_KEY;
     delete process.env.TWILIO_ACCOUNT_SID;
     delete process.env.TWILIO_AUTH_TOKEN;
     delete process.env.PLAID_CLIENT_ID;
@@ -135,7 +134,7 @@ describe('Environment Validator', () => {
   });
 
   describe('getFeatureAvailability', () => {
-    it('should return all false when no env vars set', () => {
+    it('should return false for keyed services when no env vars set', () => {
       const features = getFeatureAvailability();
 
       expect(features.livekitCore).toBe(false);
@@ -144,7 +143,8 @@ describe('Environment Validator', () => {
       expect(features.postgresMemory).toBe(false);
       expect(features.firestoreMemory).toBe(false);
       expect(features.redisCache).toBe(false);
-      expect(features.emailNotifications).toBe(false);
+      // Email goes through the Gmail Workspace mailbox, which needs no key
+      expect(features.emailNotifications).toBe(true);
       expect(features.smsNotifications).toBe(false);
       expect(features.plaidBanking).toBe(false);
       expect(features.spotifyMusic).toBe(false);
@@ -189,9 +189,7 @@ describe('Environment Validator', () => {
       expect(getFeatureAvailability().redisCache).toBe(true);
     });
 
-    it('should detect email notifications availability', () => {
-      process.env.SENDGRID_API_KEY = 'test-key';
-
+    it('always offers email notifications (the Workspace mailbox needs no key)', () => {
       expect(getFeatureAvailability().emailNotifications).toBe(true);
     });
 
@@ -283,7 +281,7 @@ describe('Environment Validator', () => {
     it('should list all missing optional features', () => {
       const missing = getMissingFeatures();
 
-      expect(missing).toContain('Email notifications (configure SENDGRID_API_KEY)');
+      expect(missing.some((m) => m.includes('Email notifications'))).toBe(false);
       expect(missing).toContain('SMS notifications (configure TWILIO_*)');
       expect(missing).toContain('Bank account linking (configure PLAID_*)');
       expect(missing).toContain('Real-time market data (configure ALPHA_VANTAGE_API_KEY)');
@@ -291,7 +289,6 @@ describe('Environment Validator', () => {
     });
 
     it('should not list features that are configured', () => {
-      process.env.SENDGRID_API_KEY = 'test-key';
       process.env.REDIS_URL = 'redis://localhost:6379';
 
       const missing = getMissingFeatures();

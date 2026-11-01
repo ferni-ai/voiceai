@@ -19,21 +19,18 @@ import {
   isReservationServiceConfigured,
   formatRestaurantForSpeech,
 } from '../../services/restaurant-reservations.js';
+import { isConfirmedReservation, unconfirmedReservationReply } from './reservation-confirmation.js';
 import { getAppointmentFollowUpService } from '../../services/scheduling/appointment-followup.js';
 import {
   createAppointmentRequest,
   updateAppointmentStatus,
   businessCallReply,
   BUSINESS_CALL_OFFER,
-  getAppointment,
   getUserAppointments,
 } from './appointment-core.js';
 import type { AppointmentType, AppointmentStatus, ScheduledAppointment } from './types.js';
 
 import { getToolDescription } from '../utils/tool-descriptions.js';
-// Helper aliases
-const _getAppointmentsForUser = getUserAppointments;
-const _getAppointmentById = getAppointment;
 
 export function createAppointmentTools() {
   return {
@@ -128,7 +125,7 @@ export function createAppointmentTools() {
           if (match && match.reservationProvider !== 'phone_only') {
             // We can book online!
             if (!phone) {
-              return `Great news! I found ${match.name} on ${match.reservationProvider === 'opentable' ? 'OpenTable' : 'Resy'} and can book instantly! I just need your phone number for the reservation. What's the best number?`;
+              return `Great news! I found ${match.name} on ${match.reservationProvider === 'opentable' ? 'OpenTable' : 'Resy'} and can try to book it online. I just need your phone number for the reservation. What's the best number?`;
             }
 
             const result = await bookReservation(match, {
@@ -141,6 +138,9 @@ export function createAppointmentTools() {
               specialRequests,
             });
 
+            if (result.success && !isConfirmedReservation(result)) {
+              return unconfirmedReservationReply(match.name, partySize, dateStr, timeStr);
+            }
             if (result.success) {
               // Create appointment record
               await createAppointmentRequest({

@@ -16,6 +16,8 @@
  */
 
 import { TEAM_MEMBERS, type TeamMemberId } from '../../services/team-unlocks.js';
+import type { Env } from '../../config/env-flag.js';
+import { aliasesInTransfer } from './transfer-aliases.js';
 
 /** STT spellings of each teammate's first name (lowercase), the name itself aside. */
 export const HEARD_AS: Readonly<Record<string, TeamMemberId>> = {
@@ -54,16 +56,40 @@ export function misheardTeammates(text: string): Array<{ heard: string; id: Team
   return [...seen].map(([heard, id]) => ({ heard, id }));
 }
 
+const capitalized = (heard: string): string => heard[0].toUpperCase() + heard.slice(1);
+
+/** How a turn may read transfer-only aliases; false on a call with crisis handling. */
+export interface AliasNoteContext {
+  env?: Env;
+  /** The agent's line before the caller's words (911 or 988 there: no alias). */
+  agentSaid?: string;
+  /** Teammates locked for this caller: never a "may be" (teamStatusNote declines them). */
+  locked?: readonly string[];
+}
+
 /**
  * One line for a turn whose words hold an STT spelling of a teammate's name,
  * so the model and the transfer it picks know who was asked for; '' otherwise.
+ * A word that is only a teammate as the target of a transfer ("pass me to 9",
+ * transfer-aliases.ts, TRANSFER_NAME_ALIASES) gets a "may be": the caller
+ * could mean someone else. Never with crisis handling (`aliases` false).
  */
-export function heardTeammateNote(callerWords: string): string {
-  return misheardTeammates(callerWords)
+export function heardTeammateNote(
+  callerWords: string,
+  aliases: AliasNoteContext | false = false
+): string {
+  const sure = misheardTeammates(callerWords).map(({ heard, id }) => {
+    const name = firstNameOf(id);
+    return `"${capitalized(heard)}" is speech-to-text for ${name}, your teammate: they mean ${name}.`;
+  });
+  const aliased =
+    aliases !== false ? aliasesInTransfer(callerWords, aliases.env, aliases.agentSaid) : [];
+  const locked = aliases !== false ? (aliases.locked ?? []) : [];
+  const maybe = aliased
+    .filter(({ id }) => !locked.includes(id))
     .map(({ heard, id }) => {
       const name = firstNameOf(id);
-      const said = heard[0].toUpperCase() + heard.slice(1);
-      return `"${said}" is speech-to-text for ${name}, your teammate: they mean ${name}.`;
-    })
-    .join(' ');
+      return `"${capitalized(heard)}" may be speech-to-text for ${name}, your teammate: if they are asking to be passed to a teammate, they mean ${name}.`;
+    });
+  return [...sure, ...maybe].join(' ');
 }

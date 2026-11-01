@@ -13,8 +13,8 @@
  * (b) answer in the call: told in the call where Ferni asked about that person,
  *     not dated after that call, and either the same event in other words (b1:
  *     the same kind and words as (c), any day) or nothing but how it went (b2:
- *     "pretty well", no content words left). "She also fell in the kitchen",
- *     told while answering about her surgery, is its own event and is asked;
+ *     "pretty well", "it was rough"; plain-outcome.ts). "She also fell in the
+ *     kitchen", told while answering about her surgery, is its own event and is asked;
  * (c) same subject, same kind and similar words, within SAME_EVENT_DAYS.
  *
  * Yearly dates are never matched here (recall.ts), and an ask only quiets the
@@ -24,6 +24,7 @@
  */
 import { forgetTokens } from '../../../memory/index.js';
 import { callMomentFor } from '../extraction/extraction-prompt.js';
+import { isPlainOutcome } from './plain-outcome.js';
 import { normaliseText, type TemporalFact } from '../temporal/types.js';
 import type { DateFact } from './store.js';
 import { daysBetween, nextOccurrence } from './timex.js';
@@ -87,8 +88,9 @@ function sameWords(f: Fact, asked: AskedEvent): boolean {
   return shared / (a.size + b.size - shared) >= SIMILAR_WORDS;
 }
 
-/** Nothing but how it went ("pretty well", "went great"): no event of its own. */
-const pureOutcome = (f: Fact): boolean => eventWords(f).length === 0;
+/** Nothing but how it went ("pretty well", "it was rough"): no event of its own (plain-outcome.ts). */
+const pureOutcome = (f: Fact): boolean =>
+  isPlainOutcome(f.value, `${f.subject} ${f.relation ?? ''}`);
 
 /**
  * Told in the call that raised `g` (b): its session when the raise recorded one (raisedIn),

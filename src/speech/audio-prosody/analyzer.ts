@@ -20,6 +20,7 @@ import {
   processNativeFrame,
   getNativeFullFeatures,
   resetNativeProcessor,
+  removeNativeProcessor,
   type NativeFullProsodyFeatures,
 } from './native-analyzer.js';
 import {
@@ -259,6 +260,17 @@ export class AudioProsodyAnalyzer {
     if (this.useNativeProcessor && this.sessionId) {
       resetNativeProcessor(this.sessionId);
     }
+  }
+
+  /**
+   * The call is over. reset() keeps the native processor registered (by session
+   * id, in Rust, outside the JS heap), so ending calls with it alone kept every
+   * call's processor, ~1.7 MB of RSS each, for the worker's life.
+   */
+  dispose(): void {
+    this.reset();
+    if (this.useNativeProcessor && this.sessionId) removeNativeProcessor(this.sessionId);
+    this.useNativeProcessor = false;
   }
 
   // ============================================================================

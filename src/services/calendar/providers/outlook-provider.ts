@@ -84,7 +84,7 @@ interface MicrosoftTokens {
   displayName?: string;
 }
 
-interface GraphEvent {
+export interface GraphEvent {
   id?: string;
   subject?: string;
   body?: { contentType: string; content: string };
@@ -694,7 +694,7 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
     }
   }
 
-  private graphToCalendarEvent(ge: GraphEvent, userId: string): CalendarEvent {
+  graphToCalendarEvent(ge: GraphEvent, userId: string): CalendarEvent {
     const startTime = ge.start?.dateTime
       ? new Date(ge.start.dateTime + (ge.start.timeZone === 'UTC' ? 'Z' : ''))
       : new Date();

@@ -240,9 +240,9 @@ async function deliverSMS(
 }
 
 /**
- * Deliver via Email through the app transport (EMAIL_PROVIDER: SendGrid by
- * default, the ferni.ai Workspace under gmail). Outreach is mail they can opt
- * out of: 'bulk', with the preferences page as List-Unsubscribe.
+ * Deliver via Email through the app transport (the ferni.ai Workspace mailbox).
+ * Outreach is mail they can opt out of: 'bulk', with the preferences page as
+ * List-Unsubscribe.
  */
 async function deliverEmail(
   userId: string,
@@ -268,7 +268,6 @@ async function deliverEmail(
     html: content.htmlBody || `<p>${content.text}</p>`,
     kind: 'bulk',
     unsubscribe: { url: `https://app.ferni.ai/preferences?user=${encodeURIComponent(userId)}` },
-    tracking: { opens: true, clicks: false }, // unmodified links deliver better
     tags: [outreachType, 'ferni-outreach'],
   });
   if (!sent.ok) {

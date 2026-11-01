@@ -17,8 +17,9 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { captureCallResult } from '../../../services/outreach/call-result-capture.js';
+import { userTimezone } from '../../../services/outreach/call-hours-guard.js';
 import { voicemailWords } from '../../../services/outreach/voicemail-outcome.js';
-import { validateTwilioSignature } from '../../../services/outreach/webhooks/twilio-webhooks.js';
+import { isSignedByTwilio } from '../../../api/twilio-callback-signature.js';
 import type { CallOutcome } from '../../../tools/domains/telephony/types.js';
 import {
   trackOutboundCall,
@@ -200,21 +201,9 @@ export async function handleTwilioCallStatus(
     const skipValidation =
       process.env.SKIP_TWILIO_VALIDATION === 'true' && process.env.NODE_ENV === 'test';
     if (!skipValidation) {
-      const signature = req.headers['x-twilio-signature'];
-      if (typeof signature !== 'string' || !signature) {
-        log.warn({ url: req.url }, 'Missing Twilio signature for call-status webhook');
-        res.writeHead(403, { 'Content-Type': 'text/plain' });
-        res.end('Forbidden');
-        return true;
-      }
-
-      const protocol = req.headers['x-forwarded-proto'] || 'https';
-      const host = req.headers.host || '';
-      const fullUrl = `${protocol}://${host}${req.url}`;
       const params = payload as unknown as Record<string, string>;
-
-      if (!validateTwilioSignature(signature, fullUrl, params)) {
-        log.warn({ url: req.url, callSid: payload.CallSid }, 'Invalid Twilio signature');
+      if (!isSignedByTwilio(req, req.url ?? '', params)) {
+        log.warn({ url: req.url, callSid: payload.CallSid }, 'Missing or invalid Twilio signature');
         res.writeHead(403, { 'Content-Type': 'text/plain' });
         res.end('Forbidden');
         return true;
@@ -268,7 +257,8 @@ export async function handleTwilioCallStatus(
         callType: pendingCall.callType,
         originalSessionId: pendingCall.originalSessionId,
         userId: pendingCall.userId,
-        userTimezone: 'America/Los_Angeles', // Default, should be passed from orchestrator
+        // The owner's saved zone, never a guess: with none, call-result-text holds the text (no-time-zone).
+        userTimezone: (await userTimezone(pendingCall.userId).catch(() => undefined)) ?? '',
         userName: 'the user',
         recordingConsent: true,
       });

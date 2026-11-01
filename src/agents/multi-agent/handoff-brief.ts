@@ -28,11 +28,10 @@ import {
 } from './arrival-grounding.js';
 import { groundedIn, topicWords } from './caller-words.js';
 import {
-  ARRIVAL_DIRECTION,
-  ARRIVAL_DIRECTION_PLAIN,
   arrivalContextEnabled,
+  arrivalDirection,
+  arrivalLineCut,
   momentFacts,
-  withoutStockOpener,
 } from './handoff-arrival.js';
 
 const log = createLogger({ module: 'HandoffBrief' });
@@ -41,7 +40,8 @@ export function briefedHandoffs(env: Record<string, string | undefined> = proces
   return env.BRIEFED_HANDOFF === 'on';
 }
 
-const firstName = (personaId: string): string => getPersonaDisplayName(personaId).split(/\s+/)[0];
+export const personaFirstName = (personaId: string): string =>
+  getPersonaDisplayName(personaId).split(/\s+/)[0];
 
 /**
  * What the outgoing persona says as it hands over: the pair's banter, or a
@@ -53,7 +53,7 @@ export function departureLine(from: string, to: string, env = process.env): stri
   const banter = getHandoffBanter(from, to);
   if (banter) return banter;
   return handoffAskFirstEnabled(env)
-    ? `Sure, here's ${firstName(to)}.`
+    ? `Sure, here's ${personaFirstName(to)}.`
     : `Let me hand you off to ${getPersonaDisplayName(to)}.`;
 }
 
@@ -65,7 +65,7 @@ export function departureLine(from: string, to: string, env = process.env): stri
 export function arrivalLine(to: string, from: string, env = process.env): string {
   const banter = getArrivingBanter(to, from);
   if (banter) return banter;
-  return handoffAskFirstEnabled(env) ? `Hey, it's ${firstName(to)}.` : "Hey! What's up?";
+  return handoffAskFirstEnabled(env) ? `Hey, it's ${personaFirstName(to)}.` : "Hey! What's up?";
 }
 
 export interface BriefTurn {
@@ -399,7 +399,7 @@ export async function prepareBriefing(
   const character = characterOf(input.toPersonaId);
   const grounded = arrivalGrounded(opts.env); // arrival-grounding.ts
   const reason = fromBrief.reason(callerLines);
-  const direction = `${context ? ARRIVAL_DIRECTION : ARRIVAL_DIRECTION_PLAIN}${grounded ? ARRIVAL_DIRECTION_GROUNDED : ''}${fromBrief.cue(reason)}`;
+  const direction = `${arrivalDirection(opts.env)}${grounded ? ARRIVAL_DIRECTION_GROUNDED : ''}${fromBrief.cue(reason)}`;
   const facts = fromBrief.facts(
     arrivalFacts(input, plain, context, opts.now ?? new Date()),
     reason
@@ -433,7 +433,7 @@ export async function prepareBriefing(
   const invented =
     spoken.source === 'actor' && (ungroundedClaim(spoken.text, callerLines) || added.length > 0);
   const said = spoken.source === 'actor' && !invented ? spoken.text : undefined;
-  const cut = said !== undefined && context ? withoutStockOpener(said) : said;
+  const cut = arrivalLineCut(said, opts.env);
   const firstLine = fromBrief.line(cut, reason);
   log.info(
     {

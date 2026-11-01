@@ -29,7 +29,6 @@ const wearablesStatus = (ouraConfigured: boolean) =>
   ok({
     providers: [
       { provider: 'apple_health', configured: true, linked: false },
-      { provider: 'fitbit', configured: false, linked: false },
       { provider: 'oura', configured: ouraConfigured, linked: false },
       { provider: 'garmin', configured: false, linked: false },
       { provider: 'whoop', configured: false, linked: true },
@@ -87,7 +86,7 @@ describe('biometrics.service', () => {
 
     const list = getBiometricsPlatformList(providers as never);
 
-    expect(list.map((p) => p.id)).toEqual(['apple_health', 'oura', 'whoop', 'fitbit', 'garmin']);
+    expect(list.map((p) => p.id)).toEqual(['apple_health', 'oura', 'whoop', 'garmin']);
     expect(list.filter((p) => p.available).map((p) => p.id)).toEqual(['apple_health', 'oura']);
     expect(
       getBiometricsPlatformList(null)

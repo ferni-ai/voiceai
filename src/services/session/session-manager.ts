@@ -147,6 +147,7 @@ import type { CreateSessionOptions, SessionServices } from '../types.js';
 
 // Handoff state (per-session, not global)
 import { createHandoffState, initializeFromPersistedData } from '../handoff/handoff-state.js';
+import { personasVisitedOf, startPersonaOf } from './active-persona.js';
 
 // Intelligence persistence - unified save/load for all learning engines
 import {
@@ -157,8 +158,8 @@ import {
   stopAutoSave,
 } from '../intelligence-persistence.js';
 
-// Persistence metrics for observability
-import { persistenceMetrics } from '../analytics/persistence-metrics.js';
+import { persistenceMetrics } from '../analytics/persistence-metrics.js'; // observability
+import { sessionCounter } from './sessions-together-profile.js';
 import { markCallStageSoon } from '../analytics/call-start-stages.js';
 
 // ============================================================================
@@ -254,11 +255,15 @@ export async function createSessionServices(
   let userProfile: UserProfile | null = null;
   const validatedUserId = validateUserId(userId);
 
+  const sessionCount = sessionCounter(); // the prompt reads the counted sessions; saves never lower
   const loadProfileForSession = async (profileUserId: string): Promise<UserProfile | null> => {
     userProfile = await loadSessionProfile(global.store, profileUserId, userName);
     markCallStageSoon(sessionId, 'profile_ready');
-    return userProfile;
+    return sessionCount.load(profileUserId, userProfile); // one count of sessions together
   };
+  /** Every write of the call's profile: forgotten summaries dropped, the counter never lowered. */
+  const saveSessionProfile = async (profile: UserProfile, uid: string) =>
+    (await import('./last-summary.js')).saveKept(global.store, sessionCount.forSave(profile), uid);
 
   if (validatedUserId && !deferProfileLoad) {
     userProfile = await loadProfileForSession(validatedUserId);
@@ -545,7 +550,7 @@ export async function createSessionServices(
         {
           openThreads: sessionPriming.openThreads.length,
           pendingFollowUps: sessionPriming.pendingFollowUps.length,
-          suggestedOpenerPreview: sessionPriming.suggestedOpener.slice(0, 50),
+          suggestedOpenerLen: sessionPriming.suggestedOpener.length,
         },
         '🎯 Session priming generated for returning user'
       );
@@ -578,7 +583,7 @@ export async function createSessionServices(
           {
             totalInsights: insightResult.insights.length,
             highPriority: insightResult.highPriorityCount,
-            suggestedStarter: insightResult.suggestedConversationStarter?.slice(0, 50),
+            suggestedStarterLen: insightResult.suggestedConversationStarter?.length,
           },
           'Generated proactive insights for returning user'
         );
@@ -660,8 +665,7 @@ export async function createSessionServices(
         if (current && !memoryHeld(sessionId)) {
           const updatedProfile = applyIntelligenceToProfile(current, uid); // + intelligence state
           services.userProfile = updatedProfile;
-
-          await (await import('./last-summary.js')).saveKept(global.store, updatedProfile, uid);
+          await saveSessionProfile(updatedProfile, uid);
 
           const durationMs = Date.now() - startTime;
           persistenceMetrics.recordAutoSave(sessionId, durationMs);
@@ -919,7 +923,7 @@ export async function createSessionServices(
       const turnCount = historyTracker.getTurnCount();
       if (turnCount <= 5 || turnCount % 10 === 0) {
         getLogger().debug(
-          { sessionId, role, turnCount, contentPreview: content.slice(0, 50) },
+          { sessionId, role, turnCount, contentLen: content.length },
           `📝 Turn added (total: ${turnCount})`
         );
       }
@@ -1478,15 +1482,11 @@ export async function createSessionServices(
     // ========================================================================
 
     /**
-     * Save user profile with error handling
-     * FIX BUG #session-7: Don't fail silently on save errors
-     * FIX BUG #memory-audit-2: Use services.userProfile NOT the closure variable!
-     * The closure variable userProfile was stale - any updates made to services.userProfile
-     * (like totalConversations increment, lastConversationSummary, etc.) were being ignored.
+     * Save user profile; errors are logged and rethrown (BUG #session-7). Reads services.userProfile,
+     * not the stale closure variable, which missed endSession's updates (BUG #memory-audit-2).
      */
     saveProfile: async () => {
-      // CRITICAL FIX: Use services.userProfile, not the closure variable!
-      // The closure variable is stale and doesn't include updates from endSession()
+      // CRITICAL FIX: services.userProfile, not the stale closure (it misses endSession updates)
       const profileToSave = savable(services.userProfile); // never a stand-in (failed read)
       if (profileToSave && validatedUserId && !memoryHeld(sessionId)) {
         try {
@@ -1540,11 +1540,11 @@ export async function createSessionServices(
             );
           }
 
-          await (await import('./last-summary.js')).saveKept(global.store, updated, validatedUserId);
+          await saveSessionProfile(updated, validatedUserId);
           services.userProfile = updated;
 
           getLogger().info(
-            { userId: validatedUserId, lastSummary: updated.lastConversationSummary?.slice(0, 50) },
+            { userId: validatedUserId, lastSummaryLen: updated.lastConversationSummary?.length },
             '✅ Saved profile for user'
           );
         } catch (error) {
@@ -1781,7 +1781,7 @@ export async function createSessionServices(
               getLogger().info(
                 {
                   userId: validatedUserId,
-                  fallbackSummary: updatedProfile.lastConversationSummary.slice(0, 60),
+                  fallbackSummaryLen: updatedProfile.lastConversationSummary.length,
                 },
                 '📝 Used fallback summary (LLM summarization unavailable)'
               );
@@ -1939,8 +1939,7 @@ export async function createSessionServices(
           }
 
           // ================================================================
-          // 🧠 HUMAN MEMORY: Extract relationship signals from conversation
-          // Dates, values, dreams, fears, growth markers, comfort patterns...
+          // 🧠 HUMAN MEMORY: relationship signals (dates, values, dreams, fears, growth, comfort)
           // ================================================================
           try {
             const { extractHumanSignals, mergeSignalsIntoMemory } =
@@ -1949,7 +1948,7 @@ export async function createSessionServices(
             if (turns.length > 0) {
               const signals = extractHumanSignals(turns, {
                 userId: validatedUserId,
-                personaId: services.personaId || 'ferni',
+                personaId: startPersonaOf(services), // unread by the extractor
                 userName: userProfile.preferredName || userProfile.name,
                 existingMemory: updatedProfile.humanMemory,
                 sessionEmotion: summary?.emotionalArc,
@@ -2019,7 +2018,7 @@ export async function createSessionServices(
               userId: validatedUserId,
               totalConversations: updatedProfile.totalConversations,
               hasLastSummary: !!updatedProfile.lastConversationSummary,
-              lastSummaryPreview: updatedProfile.lastConversationSummary?.slice(0, 60),
+              lastSummaryLen: updatedProfile.lastConversationSummary?.length,
             },
             '✅ Profile saved with conversation data'
           );
@@ -2072,14 +2071,14 @@ export async function createSessionServices(
             getLogger().debug({ error: String(indexErr) }, 'User memory indexer not available');
           }
 
-          // 📤 Analyze session for proactive outreach opportunities
-          // This extracts commitments, detects emotional state, and creates outreach triggers
+          // 📤 Outreach: commitments, emotional state and follow-up triggers from the call
           try {
             const { analyzeSessionForOutreach } = await import('../outreach/session-integration.js');
             const outreachResult = await analyzeSessionForOutreach({
               userId: validatedUserId,
               sessionId,
-              personaId: services.personaId || 'ferni',
+              personaId: startPersonaOf(services), // follow-ups stay with it (S2 decides owners)
+              personasVisited: personasVisitedOf(services), // the Maya habit check reads it
               turns: turns.map((t) => ({
                 role: t.role as 'user' | 'assistant',
                 content: t.content,

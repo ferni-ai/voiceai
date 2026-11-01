@@ -78,11 +78,12 @@ describe('the laugh lines in extrasFor', () => {
   it('never laughs along when the signals say the moment is heavy', () => {
     const env = { LAUGH_ALONG: 'on' };
     const heavy = { ...regexSignals('haha anyway', 'share'), heavy: true };
-    expect(extrasFor('haha anyway', 'share', 'one', false, () => 0, env, heavy).fired).toEqual([]);
+    const laughs = extrasFor('haha anyway', 'share', 'one', false, () => 0, env, heavy).fired;
+    expect(laughs.filter((f) => f.startsWith('laugh'))).toEqual([]);
   });
 
   it('never laughs on its own at hard words that read as funny', () => {
-    const env = { HUMAN_TEXTURE: 'on' };
+    const env = {};
     const t = 'kms, she did it on purpose';
     expect(extrasFor('she did it on purpose', 'share', 'one', false, () => 0, env).fired).toContain(
       'laugh_spontaneous'

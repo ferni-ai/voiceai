@@ -19,7 +19,7 @@ When you change or add code under `src/`, treat the **package** (top-level folde
    - **Clean code:** No `as any`/console, files ≤500 lines, single responsibility, JSDoc on public APIs, Result/throw discipline.
    - **Clean architecture:** Imports respect layers; no circular deps.
    - **Fully wired:** Barrel exports, DI/startup registration, routes registered if HTTP; no dead code.
-   - **Normalized:** Naming and module suffixes match `.cursorrules`; same patterns as siblings.
+   - **Normalized:** Naming and module suffixes match AGENTS.md ("Names"); same patterns as siblings.
    - **Working e2e:** Unit tests for core logic; run `pnpm vitest run src/<package>` where relevant.
    - **Valuable:** Clear purpose; no duplicate behavior; documented if non-obvious.
 

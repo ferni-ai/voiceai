@@ -67,14 +67,7 @@ const tools = createSuperhumanCommunicationTools(ctx);
 ```
 
 ### 3. Real-Time Processing
-User transcripts are processed for pattern detection:
-
-```typescript
-import { processTranscriptForSuperhuman } from './superhuman-context.js';
-
-// Called on each turn
-await processTranscriptForSuperhuman(userId, transcript);
-```
+None: a briefing builder must not write (Alex's recorded "Unknown" debts until #3044).
 
 ## 🗄️ Data Storage
 

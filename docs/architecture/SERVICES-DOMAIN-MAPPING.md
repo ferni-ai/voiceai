@@ -78,7 +78,6 @@
 | `apple-iap.ts` | Move |
 | `itunes.ts` | Move |
 | `google-places.ts` | Move |
-| `yelp.ts` | Move |
 | `food-delivery.ts` | Move |
 | `restaurant-reservations.ts` | Move |
 | `developer-mcp-registry.ts` | Move |

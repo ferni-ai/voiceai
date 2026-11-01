@@ -1,6 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getGlobalDispatcher, request, setGlobalDispatcher } from 'undici';
 import {
   installVertexKeepAlive,
@@ -51,6 +51,24 @@ describe('vertex keep-alive', () => {
     expect(installVertexKeepAlive({ VERTEX_KEEPALIVE: 'on' })).toBe(true);
     expect(getGlobalDispatcher()).toBe(installed);
     expect(VERTEX_KEEPALIVE_MS).toBeGreaterThan(10_000); // longer than the ~10 s between turns
+  });
+
+  // @google/genai calls the runtime's global fetch, which is the undici bundled with Node, not
+  // this package: Node 22's reads the legacy global-dispatcher slot, Node 26's the newer one.
+  // Run under both (CI runs 22); on Node 26 an install that writes only the legacy slot is red.
+  it('the runtime’s own fetch dispatches through the installed dispatcher', async () => {
+    expect(installVertexKeepAlive({ VERTEX_KEEPALIVE: 'on' })).toBe(true);
+    const installed = getGlobalDispatcher();
+    const dispatch = vi.spyOn(installed, 'dispatch');
+    const srv = await server();
+    try {
+      const res = await fetch(srv.url);
+      expect(await res.text()).toBe('ok');
+      expect(dispatch).toHaveBeenCalled();
+    } finally {
+      dispatch.mockRestore();
+      srv.close();
+    }
   });
 
   it('reuses a socket idle past Node’s 4 s default only for the origins it keeps', async () => {

@@ -25,7 +25,13 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { endingFloor } from './crisis-ending-floor.js';
+import { meansFormsOf, meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
+import {
+  HIGH_DISTRESS_VOICE_EMOTIONS,
+  MODERATE_DISTRESS_VOICE_EMOTIONS,
+  SEVERITY,
+} from './crisis-severity.js';
 import { whoGuidance } from './crisis-who-guidance.js';
 import {
   EXPLICIT_CRISIS_PATTERNS,
@@ -38,9 +44,7 @@ import {
 
 const log = createLogger({ module: 'CrisisGuard' });
 
-// ============================================================================
 // TYPES
-// ============================================================================
 
 export interface VoiceEmotionContext {
   primary: string;
@@ -81,26 +85,13 @@ export interface CrisisDetectionOptions {
    * current message is ignored, so userData.recentTranscripts can be passed as is.
    */
   recentMessages?: readonly string[];
+  /** Overrides CRISIS_MEANS_IN_HAND for this read; 'all' is the shadow log's (crisis-means-shadow.ts). */
+  meansInHand?: 'off' | 'shadow' | 'live' | 'all';
 }
 
-/** Patterns that indicate high distress from voice */
-const HIGH_DISTRESS_VOICE_EMOTIONS = [
-  'distressed',
-  'panicked',
-  'desperate',
-  'hopeless',
-  'suicidal',
-];
-
-/** Patterns that indicate moderate distress requiring care */
-const MODERATE_DISTRESS_VOICE_EMOTIONS = ['anxious', 'sad', 'hurt', 'scared', 'overwhelmed'];
-
-const SEVERITY = { explicit: 0.9, passive: 0.75, implicit: 0.6, block: 0.85, crisis: 0.7 } as const;
 export const CRISIS_SEVERITY = SEVERITY; // the tiers, for callers that weigh a read (caller-text.ts)
 
-// ============================================================================
 // CRISIS DETECTION
-// ============================================================================
 
 interface TextScore {
   severity: number;
@@ -116,7 +107,7 @@ interface TextScore {
 }
 
 /** Score one message from its words alone. */
-function scoreText(text: string): TextScore {
+function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextScore {
   const indicators: string[] = [];
   let severity = 0;
   let implicitHits = 0;
@@ -209,6 +200,16 @@ function scoreText(text: string): TextScore {
     add('plan_or_means', SEVERITY.explicit);
   }
 
+  // CRISIS_MEANS_IN_HAND (#2697): a live form reads 911; 'all' (the shadow log) names the form.
+  const means = meansInHandRead(text, indicators, softened, forms);
+  if (means) {
+    hardSelf = true;
+    if (means.tag === 'self_harm') add('self_harm', 0);
+    if (forms === 'all') add(`means_form:${means.form}`, 0);
+    add('explicit_crisis_language', SEVERITY.explicit);
+    add('imminent_danger', SEVERITY.explicit);
+  }
+
   // A worry about someone else outranks the caller's own words only when those are negated,
   // recovered or hyperbole ("my brother keeps talking about killing himself. I would never kill
   // myself"): the third-party read is never lowered. Joking, conditional, hedged or past words
@@ -232,7 +233,7 @@ function scoreText(text: string): TextScore {
 
 /** What one earlier message counts for in a later turn's session check (crisis-who.ts reads it too). */
 export const sessionSeverityOf = (message: string): number =>
-  scoreText(normalize(message)).sessionSeverity;
+  scoreText(normalize(message), meansFormsOf(resolveMeansInHandMode())).sessionSeverity;
 
 /** Detect crisis indicators in user message */
 export function detectCrisis(
@@ -241,7 +242,8 @@ export function detectCrisis(
   options?: CrisisDetectionOptions
 ): CrisisDetectionResult {
   const text = normalize(userMessage);
-  const score = scoreText(text);
+  const forms = meansFormsOf(options?.meansInHand ?? resolveMeansInHandMode());
+  const score = scoreText(text, forms);
   const indicators = [...score.indicators];
   let { severity, subject } = score;
 
@@ -251,7 +253,7 @@ export function detectCrisis(
     .map(normalize)
     .filter((m) => m.length > 0 && m !== text)
     .slice(-5)
-    .map((m) => scoreText(m).sessionSeverity);
+    .map((m) => scoreText(m, forms).sessionSeverity);
   const priorPeak = Math.max(0, ...prior);
   const priorDistressTurns = prior.filter((v) => v >= SEVERITY.implicit).length;
   const signalNow = (subject === 'self' && severity >= SEVERITY.implicit) || score.contextHit;
@@ -447,9 +449,7 @@ export function applyClassifierVerdict(
   };
 }
 
-// ============================================================================
 // PRE-RESPONSE GUARD
-// ============================================================================
 
 /** The pre-response decision for an already computed detection. */
 export function guardFromDetection(crisis: CrisisDetectionResult): CrisisGuardResult {

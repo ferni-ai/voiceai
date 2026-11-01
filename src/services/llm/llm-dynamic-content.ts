@@ -509,7 +509,7 @@ export async function generateContent(context: ContentContext): Promise<Generate
         cleanCache();
 
         log.debug(
-          { contentType: context.contentType, content: cleaned.slice(0, 50), latencyMs },
+          { contentType: context.contentType, contentLen: cleaned.length, latencyMs },
           '📝 LLM content generated'
         );
 

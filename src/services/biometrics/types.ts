@@ -12,10 +12,10 @@
 
 /**
  * Supported biometric platforms
- * Note: 'terra' aggregates HealthKit, Fitbit, and 300+ other wearables via web OAuth
+ * Note: 'terra' aggregates HealthKit and 300+ other wearables via web OAuth
  * Recommended for web apps that need Apple Health data without a native iOS app
  */
-export type BiometricPlatform = 'healthkit' | 'googlefit' | 'oura' | 'whoop' | 'fitbit' | 'terra';
+export type BiometricPlatform = 'healthkit' | 'googlefit' | 'oura' | 'whoop' | 'terra';
 
 /** Stress level categorization */
 export type StressLevel = 'low' | 'moderate' | 'high' | 'elevated' | 'unknown';

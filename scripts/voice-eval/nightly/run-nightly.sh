@@ -11,13 +11,25 @@
 #   NIGHTLY_CLEANUP_MIN_AGE_H  cleanup-users --min-age-hours (default 1)
 #   NIGHTLY_LANES       directory holding a.txt and b.txt (default lanes/ beside this script)
 #   NIGHTLY_LANE_B_DELAY_S  seconds lane B starts after lane A (default 20)
+#   NIGHTLY_TAG         the sweep's label, prefixed to every call's (default n<MMDDHHMM> UTC);
+#                       refused when scripts/voice-eval/out already holds calls under it
 # Exit: scorecard's 0 (nothing new) / 1 (new FAIL or regression) / 2 (harness or deploy
 # error), 3 when ferni-dev is claimed by someone else. On exit or a signal, a trap stops the
 # lanes (every run.sh under them), cleans up, reports, and only then releases the claim.
 set -uo pipefail
 ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
 HERE=$ROOT/scripts/voice-eval/nightly EVAL=$ROOT/scripts/voice-eval
-DATE=$(date -u +%F) TAG=n$(date -u +%m%d)
+DATE=$(date -u +%F)
+# A label unique to this sweep (#3164). Both 2026-10-30 release sweeps named their calls n1030<label>:
+# the second overwrote the first's run files, and the release check matched a call to the other
+# sweep's logs and came back INCONCLUSIVE. Minutes make a same-day rerun a new label; a label that
+# out/ already holds is refused, since every later step globs out/*-$TAG*.json.
+TAG=${NIGHTLY_TAG:-n$(date -u +%m%d%H%M)}
+case $TAG in '' | *[!a-z0-9]*) echo "run-nightly: NIGHTLY_TAG must be [a-z0-9]+ (got '$TAG')" >&2; exit 2 ;; esac
+if compgen -G "$EVAL/out/*-$TAG*.json" > /dev/null; then
+  echo "run-nightly: label $TAG is already used by calls in $EVAL/out; pick another NIGHTLY_TAG" >&2
+  exit 2
+fi
 OUT=${NIGHTLY_OUT:-$HOME/Documents/voiceai-evidence/nightly/$DATE}
 DRY=${NIGHTLY_DRY_RUN:-0}
 P=ferni-dev CONF=$ROOT/livekit.toml DEV_AGENT=CA_siTDMHEba4Fg GCP=johnb-2025
@@ -33,6 +45,8 @@ export CLAUDE_CODE_SESSION_ID=nightly-sweep CLAUDE_SESSION_NAME=nightly-sweep
 export GEMINI_BILLING_JOB=nightly_sweep
 RC=2 CLAIMED=0 LANES=0 STATUS=harness-error REASON="harness error" LANE_PIDS="" RENEW_PID="" RUNNER=$$
 cd "$ROOT" || exit 2
+# shellcheck source=scripts/voice-eval/nightly/deploy-retry.sh
+. "$HERE/deploy-retry.sh" || exit 2
 
 say() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$*"; }
 log() { if [ "$DRY" = 1 ]; then return; fi; say "$*" >> "$OUT/nightly.log"; }
@@ -124,7 +138,7 @@ do_deploy() {
     && [ "$(echo "$rooms" | grep -c '│ RM_')" = 0 ] \
     && git rev-parse HEAD > .build-sha \
     && cp docker/Dockerfile.agent ./Dockerfile \
-    && { lk agent deploy --project $P --config "$CONF" -y . > "$dlog" 2>&1; rm -f Dockerfile .build-sha; } \
+    && { deploy_with_retry "$dlog" 60 lk agent deploy --project $P --config "$CONF" -y .; rm -f Dockerfile .build-sha; } \
     && ! grep -qE "error TS[0-9]{4}|^(#[0-9]+ )?ERROR:|[Bb]uild failed|✘ \[ERROR\]" "$dlog" \
     && ! grep "unable to deploy agent" "$dlog" | grep -qv "bufio.Scanner" \
     && for _ in $(seq 1 16); do live && break; sleep 15; done \
@@ -192,6 +206,15 @@ tonight() { # tonight's scored test runs in scripts/voice-eval/out
 }
 # Pro, explicitly: the scorecard's judge checks compare tonight with earlier
 # nights judged by Pro, and judges now default to Flash (scripts/lib/judge-model.mjs).
+# The held-out recall eval (recall-eval.mjs): NIGHTLY_RECALL_WORLDS worlds a night (rotated), its
+# transcripts under $OUT/recall, numbers only in $OUT/recall.json for the scorecard. Runs only on a
+# machine that holds the held-out set (never in the repo); its exit 1 is the scorecard's to report.
+RECALL_SET=${NIGHTLY_RECALL_SET:-$HOME/Documents/voiceai-evidence/recall-eval/heldout/set.json}
+do_recall() {
+  node "$HERE/recall-eval.mjs" --set "$RECALL_SET" --worlds "${NIGHTLY_RECALL_WORLDS:-3}" \
+    --out "$OUT/recall" --summary "$OUT/recall.json" >> "$OUT/recall.log" 2>&1
+  [ $? != 2 ]
+}
 do_judge() {
   tonight | JUDGE_K=2 JUDGE_MODEL=pro GCP_PROJECT=$GCP xargs -0 -n 1 -P 4 node "$EVAL/judge.mjs" >> "$OUT/judge.log" 2>&1 \
     || log "some judge calls failed (see judge.log)"
@@ -276,6 +299,8 @@ if [ "${NIGHTLY_DEPLOY:-1}" = 1 ]; then
 fi
 step lanes "lanes a + b in parallel, label $TAG<label>, memlive uid $MEMLIVE" do_lanes
 [ "$DRY" = 1 ] && { LANES=1; lane "$LANES_DIR/a.txt" /dev/null; lane "$LANES_DIR/b.txt" /dev/null; }
+[ -f "$RECALL_SET" ] && { step recall "recall-eval.mjs: ${NIGHTLY_RECALL_WORLDS:-3} held-out worlds -> $OUT/recall.json" do_recall \
+  || log "recall eval failed (see recall.log)"; }
 step judge "judge.mjs (JUDGE_K=2, JUDGE_MODEL=pro, GCP_PROJECT=$GCP) on tonight's runs, 4 at a time" do_judge
 step collect "copy scripts/voice-eval/out/*-$TAG*.json to $OUT/runs" do_collect
 step logs "gcloud logging read cloud-agents for agent $DEV_AGENT over the lanes' window + boot lines" do_logs \

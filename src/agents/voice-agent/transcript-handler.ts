@@ -19,7 +19,7 @@
  * @module voice-agent/transcript-handler
  */
 
-import { log, voice } from '@livekit/agents';
+import { log, type voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { TextEncoder } from 'node:util';
 import {
@@ -71,6 +71,7 @@ import { trackConversationTurn } from '../integrations/speech-metrics-integratio
 import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
 import type { UserData } from '../shared/types.js';
 import { heldAfter, memoryHeld } from '../../utils/minor-care.js';
+import { readCallerTurn } from '../personas/sexual-boundary.js';
 import { ownerWriteId } from '../../services/identity/owner-write-gate.js';
 import {
   analyzeTurnSignals,
@@ -109,8 +110,6 @@ import {
   recordAnticipatoryOutcome,
   type VoiceProsodyCue,
 } from '../../intelligence/triggers/index.js';
-// Semantic Router types - used for transcript routing results
-// Tool selection handled by UTO semantic selection + LLM native function calling
 // Unified Anticipation Pipeline - "Better Than Human" anticipation during speech
 import { getAnticipationPipeline } from '../../speech/anticipation/index.js';
 // Speech Orchestrator integration for micro-reactions
@@ -121,7 +120,6 @@ import {
   getAdaptiveEchoWindow,
   recordEchoDetected,
 } from '../../speech/coordination/index.js';
-// Session closing tracker to prevent errors during shutdown
 // Tool updater for mid-session tool updates (OpenAI Realtime)
 import { createLogger } from '../../utils/safe-logger.js';
 import { isMidSessionToolUpdateSafe, supportsToolUpdates } from '../shared/tool-updater.js';
@@ -134,6 +132,8 @@ import {
   processActiveListeningPartial,
 } from './active-listening-handler.js';
 import { getUserResponseGapMs } from './user-response-gap.js';
+import { handleRejectedTranscript, installSpeechTracker } from './rejected-transcript-policy.js';
+import { flagOn } from '../../config/env-flag.js';
 
 // ============================================================================
 // TYPES
@@ -282,6 +282,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     sendDataMessage,
     agent,
   } = ctx;
+  if (flagOn('REJECTED_TRANSCRIPT_KEEPS_SPEECH')) installSpeechTracker(session);
 
   const handler = (event: TranscriptEvent): void => {
     // ===============================================
@@ -712,34 +713,13 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         // The SDK auto-responds based on VAD (voice activity detection), independent of
         // this handler. When we detect a garbage transcript (foreign chars, echo, noise),
         // the LLM may have already started generating a response based on the audio.
-        //
-        // RACE CONDITION FIX (Feb 2026 v2): Single interrupt is often too late.
-        // Gemini's VAD starts generation BEFORE our transcript handler runs, so by the
-        // time we call interrupt(), TTS may have already received and queued audio frames.
-        // We use a double-interrupt strategy with a small delay to catch late-arriving chunks.
-        if (session) {
-          try {
-            session.interrupt();
-            diag.state('🛡️ Interrupted pending LLM response for rejected transcript', {
-              reason: validation.reason,
-            });
-
-            // Second interrupt after a brief delay to catch any TTS chunks that
-            // were in-flight during the first interrupt
-            setTimeout(() => {
-              try {
-                session.interrupt();
-                diag.debug('🛡️ Follow-up interrupt for rejected transcript');
-              } catch {
-                // Non-critical - first interrupt likely handled it
-              }
-            }, 100);
-          } catch (interruptErr) {
-            diag.debug('⚠️ Interrupt failed for rejected transcript', {
-              error: String(interruptErr),
-            });
-          }
-        }
+        // REJECTED_TRANSCRIPT_KEEPS_SPEECH spares a reply that began before the caller spoke.
+        handleRejectedTranscript(session, validation.reason, {
+          keepsSpeechFlag: flagOn('REJECTED_TRANSCRIPT_KEEPS_SPEECH'),
+          isAgentSpeaking: isAgentCurrentlySpeaking,
+          agentSpeechStartedAt: userData.lastAgentSpeechStartTime,
+          userSpeechStartedAt: userData.userSpeakingStartTime,
+        });
 
         // Don't process this as a user turn - it's noise/echo
         return;
@@ -1285,6 +1265,8 @@ async function processFinalTranscript(
   } = ctx;
   // MINOR_CARE=on: a caller under 18 (not a verified owner): nothing below stores their words.
   const asked = userData.lastAgentResponse; // userId binds userHeld; asked: the bare-number rule
+  // SEXUAL_TOPIC_BOUNDARY=on: this turn's read first (bounded; this isn't the reply path).
+  await readCallerTurn({ sessionId, userId, text: event.transcript, asked });
   const held = heldAfter(sessionId, event.transcript, { userId, asked });
   const memoryUserId = held ? undefined : ownerWriteId(userId); // nor an on-behalf call's id
 

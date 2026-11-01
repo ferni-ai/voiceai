@@ -426,7 +426,7 @@ export function checkCapability(
     weather: ['weather', 'open-meteo'],
     // Calendar specifically uses google-calendar circuit breaker
     calendar: ['google-calendar'],
-    smartHome: ['home-assistant', 'hue', 'lifx', 'smartthings'],
+    smartHome: ['hue', 'lifx'],
     memory: ['firestore', 'context'],
   };
 

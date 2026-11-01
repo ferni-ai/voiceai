@@ -5,7 +5,9 @@
  * the scheduling executor's makePhoneCall, and the communication and legacy executors' text and
  * voice message. None reaches an account, or a number, a call held under 18; the code a person
  * asked for still goes. The real senders run; only Twilio, ElevenLabs/GCS, the contact lookup,
- * consent and the hold store are faked.
+ * consent and the hold store are faked. The Plaid bank link, an owner text through the real
+ * guarded sender (call-user-adapter), also runs over an in-memory Firestore and a faked
+ * Firebase Auth phone.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -53,6 +55,28 @@ vi.mock('@livekit/agents', () => ({
   llm: { tool: (config: unknown) => config },
   log: () => ({ info: () => undefined, warn: () => undefined, error: () => undefined }),
 }));
+// Only the Plaid owner-text cases switch these on: the guarded sender's stores and the verified phone.
+const ownerText = vi.hoisted(() => ({ db: null as unknown, phone: '' }));
+vi.mock('../../../utils/firestore-utils.js', async (orig) => {
+  const real = await orig<{ getFirestoreDb: () => unknown }>();
+  return { ...real, getFirestoreDb: () => ownerText.db ?? real.getFirestoreDb() };
+});
+vi.mock('../../superhuman/firestore-utils.js', async (orig) => {
+  const real = await orig<{ getFirestoreDb: () => unknown }>();
+  return { ...real, getFirestoreDb: () => ownerText.db ?? real.getFirestoreDb() };
+});
+vi.mock('../../identity/firebase-auth.js', async (orig) => {
+  const real = await orig<{ getFirebaseUser: (uid: string) => Promise<unknown> }>();
+  return {
+    ...real,
+    getFirebaseUser: async (uid: string) =>
+      ownerText.db
+        ? ownerText.phone
+          ? { phoneNumber: ownerText.phone }
+          : null
+        : real.getFirebaseUser(uid),
+  };
+});
 vi.mock('../../messaging/consent.js', async (orig) => ({
   ...(await orig<object>()),
   consentBlocks: async () => null,
@@ -79,6 +103,10 @@ const { communicationExecutor } =
 const { executeLegacyFallback } =
   await import('../../../agents/shared/tool-executors/legacy-fallback-executor.js');
 const { createPlaidTools } = await import('../../../tools/domains/finance/plaid.js');
+const { setCallUserPort } =
+  await import('../../../tools/domains/proactive/outreach/call-user-port.js');
+const { callUserAdapter } = await import('../call-user-adapter.js');
+const { pathFirestore } = await import('../proactive-channels/__tests__/path-firestore.js');
 const { phoneHoldId } = await import('../checkin-replies.js');
 const { setHoldStore, sharedHeld } = await import('../minor-care-shared-hold.js');
 
@@ -172,16 +200,6 @@ const SENDERS: Array<[string, () => Promise<unknown>]> = [
     () => executeLegacyFallback('sendText', { contactName: 'Pat', message: 'hi' }, ctx),
   ],
   [
-    // verify of #2813: the bank link texted straight to Twilio (number from the model). The
-    // account is the session's (#2073), so the model's userId arg is ignored.
-    'plaid linkBankAccount by text',
-    () =>
-      (createPlaidTools() as unknown as Tools).linkBankAccount.execute(
-        { userId: 'model-arg', deliveryMethod: 'sms', contact: PHONE },
-        { ctx: { userData: { userId: UID } } }
-      ),
-  ],
-  [
     'legacy-fallback sendVoiceMessage',
     () => executeLegacyFallback('sendVoiceMessage', { contactName: 'Pat', message: 'hi' }, ctx),
   ],
@@ -265,5 +283,62 @@ describe('external-apis twilio-sms', () => {
     expect(await sharedHeld(phoneHoldId(PHONE))).toBe(false);
     expect(await sendSMS(PHONE, 'hi')).toBe('SM1');
     expect(sent()).toBe(1);
+  });
+});
+
+/**
+ * verify of #2813: the bank link went straight to Twilio, to a number from the model. It is now
+ * an owner text through the real guarded sender, to the account's verified phone only, for a
+ * caller the server verified, and not marked asked-for-now: a held account or number gets none.
+ */
+describe('plaid linkBankAccount by text (guarded owner text)', () => {
+  const linkByText = (call: unknown) =>
+    (createPlaidTools() as unknown as Tools).linkBankAccount.execute(
+      { userId: 'model-arg', deliveryMethod: 'sms', contact: '+15550142' },
+      call
+    );
+  const verified = { ctx: { userData: { userId: UID, verifiedCaller: true } } };
+
+  beforeEach(() => {
+    ownerText.db = pathFirestore(new Map());
+    ownerText.phone = PHONE;
+    setCallUserPort(callUserAdapter);
+  });
+  afterEach(() => {
+    ownerText.db = null;
+    setCallUserPort(undefined);
+  });
+
+  it('held by the account: no bank link reaches Twilio', async () => {
+    holdFor(UID);
+    expect(await sharedHeld(UID)).toBe(true);
+    expect(await linkByText(verified)).toContain("didn't send");
+    expect(sent()).toBe(0);
+  });
+
+  it('held by the number: no bank link reaches Twilio', async () => {
+    holdFor(phoneHoldId(PHONE));
+    expect(await sharedHeld(phoneHoldId(PHONE))).toBe(true);
+    expect(await linkByText(verified)).toContain("didn't send");
+    expect(sent()).toBe(0);
+  });
+
+  it('not held: sent once, to the verified phone, never the number in the args', async () => {
+    expect(await linkByText(verified)).toContain('the phone on your account');
+    expect(sent()).toBe(1);
+    expect(JSON.stringify([fetchSpy.mock.calls, twilio.messagesCreate.mock.calls])).not.toContain('5550142'); // prettier-ignore
+  });
+
+  it('flag off: sent as before, even with a hold on record', async () => {
+    vi.stubEnv('MINOR_CARE_SHARED_HOLD', 'off');
+    holdFor(UID);
+    holdFor(phoneHoldId(PHONE));
+    expect(await linkByText(verified)).toContain('the phone on your account');
+    expect(sent()).toBe(1);
+  });
+
+  it('a caller the server did not verify: nothing sent', async () => {
+    await linkByText({ ctx: { userData: { userId: UID, verifiedCaller: false } } });
+    expect(sent()).toBe(0);
   });
 });

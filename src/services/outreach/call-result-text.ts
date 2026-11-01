@@ -198,10 +198,3 @@ export async function tellOwnerAboutCall(
   log.info({ callId, told }, 'Owner told about call');
   return told;
 }
-
-/** tellOwnerAboutCall when CALL_RESULT_TEXT is on; null (nothing done) when it's off. */
-export async function tellOwnerIfOn(
-  call: Parameters<typeof tellOwnerAboutCall>[0]
-): Promise<CallResultTold | null> {
-  return callResultTextOn() ? tellOwnerAboutCall(call) : null;
-}

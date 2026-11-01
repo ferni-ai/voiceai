@@ -16,6 +16,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { onCalendarEventChange } from '../data-layer/hooks/calendar-hooks.js';
 import { recordCalendarSignal } from '../data-layer/domain-signals.js';
+import { withOutlookEvents } from './providers/outlook-state.js';
 import type {
   CalendarEvent,
   CalendarProvider,
@@ -53,8 +54,8 @@ async function getFirestore(): Promise<FirestoreType | null> {
 
 async function initializeFirestore(): Promise<FirestoreType | null> {
   try {
-    const { Firestore } = await import('@google-cloud/firestore');
-    db = new Firestore({
+    const { sharedFirestore } = await import('../../utils/shared-firestore.js');
+    db = sharedFirestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
       databaseId: process.env.FIRESTORE_DATABASE || '(default)',
     });
@@ -203,9 +204,8 @@ export async function getEvents(
     }
   }
 
-  // Sort by start time
-  results.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-  return results;
+  // Sorted; OUTLOOK_CONNECT adds a linked Outlook live (throws OutlookUnavailableError, never [])
+  return withOutlookEvents(userId, startDate, endDate, results);
 }
 
 /**

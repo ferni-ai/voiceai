@@ -8,6 +8,7 @@ import { createLogger } from '../../../../utils/safe-logger.js';
 import { getProductivityStore } from '../../../../services/stores/productivity-store.js';
 import { getFinancialStore } from '../../../../services/stores/financial-store.js';
 import { getGamificationStore } from '../../../../services/engagement/gamification-store.js';
+import { oldestFirst } from '../mood-log-order.js';
 import type { HabitHealthSummary, MoodIntelligence, MemoryInsights } from './types.js';
 
 const log = createLogger({ module: 'context:maya-data-fetchers' });
@@ -99,7 +100,6 @@ export async function analyzeMoodIntelligence(userId: string): Promise<MoodIntel
   const intelligence: MoodIntelligence = {
     recentMoodTrend: 'unknown',
     averageEnergy: 0,
-    optimalCoachingTime: null,
     moodHabitCorrelations: [],
     currentState: null,
     energyPatterns: [],
@@ -110,7 +110,8 @@ export async function analyzeMoodIntelligence(userId: string): Promise<MoodIntel
     const now = new Date();
     const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-    const moodLogs = await gamificationStore.getMoodLogs(userId, twoWeeksAgo, now);
+    // Oldest first: the store returns newest first, and the reads below assume time order.
+    const moodLogs = oldestFirst(await gamificationStore.getMoodLogs(userId, twoWeeksAgo, now));
 
     if (moodLogs.length === 0) return intelligence;
 
@@ -142,28 +143,7 @@ export async function analyzeMoodIntelligence(userId: string): Promise<MoodIntel
       }
     }
 
-    // Optimal coaching time (based on when energy is highest)
-    const hourlyEnergy: Record<number, number[]> = {};
-    for (const moodLog of moodLogs) {
-      const hour = new Date(moodLog.date).getHours();
-      if (!hourlyEnergy[hour]) hourlyEnergy[hour] = [];
-      hourlyEnergy[hour].push(moodLog.energy);
-    }
-
-    let bestHour = -1;
-    let bestEnergy = 0;
-    for (const [hour, energies] of Object.entries(hourlyEnergy)) {
-      const avg = energies.reduce((a, b) => a + b, 0) / energies.length;
-      if (avg > bestEnergy) {
-        bestEnergy = avg;
-        bestHour = parseInt(hour);
-      }
-    }
-
-    if (bestHour >= 0) {
-      const period = bestHour < 12 ? 'morning' : bestHour < 17 ? 'afternoon' : 'evening';
-      intelligence.optimalCoachingTime = period;
-    }
+    // Best hour of day returns once a member timezone exists: the server clock is not theirs (#3044).
 
     // Energy patterns
     if (intelligence.averageEnergy < 2.5) {

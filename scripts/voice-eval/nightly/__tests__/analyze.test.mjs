@@ -9,8 +9,8 @@ import { describe, expect, it } from 'vitest';
 
 const ANALYZE = join(dirname(fileURLToPath(import.meta.url)), '..', 'analyze.py');
 
-/** One call's agent log: a session line, then TURN_RECEIPTs on the same host and pid. */
-function analyze(receipts) {
+/** One call's agent log: a session line, then TURN_RECEIPTs (and `more` lines) on one host and pid. */
+function analyze(receipts, more = [], run = {}) {
   const t = mkdtempSync(join(tmpdir(), 'analyze-'));
   const runs = join(t, 'runs');
   mkdirSync(runs);
@@ -23,12 +23,13 @@ function analyze(receipts) {
     ...receipts.map((r, i) =>
       line({ time: 2000 + i, msg: 'TURN_RECEIPT', personaId: 'ferni', turn: i + 1, ...r })
     ),
+    ...more.map(line),
   ];
   writeFileSync(join(t, 'logs.json'), JSON.stringify(logs));
   writeFileSync(join(t, 'boot.json'), '[]');
   writeFileSync(
     join(runs, 'lookups-s1.json'),
-    JSON.stringify({ meta: { scenario: 'lookups', room: 'eval-r1' } })
+    JSON.stringify({ meta: { scenario: 'lookups', room: 'eval-r1' }, ...run })
   );
   const r = spawnSync(
     'python3',
@@ -61,5 +62,32 @@ describe('analyze.py tool_reply_gaps', () => {
     ]);
     expect(row.receipts).toBe(4);
     expect(row.tool_reply_gaps).toEqual([1900, 1300]);
+  });
+});
+
+describe('analyze.py tool_outputs (tool-grounding.mjs)', () => {
+  const executed = (time, outputs) => ({
+    time,
+    msg: 'FUNCTION TOOLS EXECUTED',
+    event: { type: 'function_tools_executed', functionCallOutputs: outputs },
+  });
+
+  it('keeps each tool output with its time on the run clock', () => {
+    const row = analyze(
+      [{ tools: { called: ['getWeather'] } }],
+      [executed(2500, [{ name: 'getWeather', output: '"39°F"', isError: false }])],
+      { wallT0: 1000 }
+    );
+    expect(row.tool_outputs).toEqual([
+      { name: 'getWeather', isError: false, output: '"39°F"', atMs: 1500 },
+    ]);
+  });
+
+  it('has no time without the run clock, and an empty list on a call with no tools', () => {
+    const row = analyze([], [executed(2500, [{ name: 'searchWeb', output: '""', isError: true }])]);
+    expect(row.tool_outputs).toEqual([
+      { name: 'searchWeb', isError: true, output: '""', atMs: null },
+    ]);
+    expect(analyze([{ tools: { called: [] } }]).tool_outputs).toEqual([]);
   });
 });

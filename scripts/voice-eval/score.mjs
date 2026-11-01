@@ -72,7 +72,7 @@ const stt = { edits: 0, refWords: 0 };
 const echo = { phantomCallerCaptions: 0, selfInterruptions: 0, phantoms: [] };
 // Greetings that asked something, met by a hello, then answered by Ferni himself (B2).
 const ownOpener = { asked: 0, answeredByFerni: 0, replies: [] };
-const scenarioDir = join(dirname(fileURLToPath(import.meta.url)), 'scenarios');
+const scenarioDir = process.env.EVAL_SCENARIO_DIR || join(dirname(fileURLToPath(import.meta.url)), 'scenarios');
 for (const file of process.argv.slice(2)) {
   const run = JSON.parse(readFileSync(file, 'utf8'));
   runs.push(run);

@@ -146,6 +146,8 @@ export interface SharedMoment {
   readonly topic?: string;
   callbackCount: number;
   lastCallback?: Date;
+  /** A year after timestamp (shared-moment-retention.ts); none on moments written before */
+  readonly expireAt?: Date;
 }
 
 // ============================================================================

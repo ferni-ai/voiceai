@@ -1,7 +1,7 @@
 /**
  * PRIVACY: the call-result readers never read a non-member's bucket, even when
- * Firestore holds one (prod has bogle_users/unknown/on_behalf_calls and
- * follow_up_actions). A member still reads their own.
+ * Firestore holds one (prod has bogle_users/unknown/on_behalf_calls). A member
+ * still reads their own.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -39,15 +39,13 @@ const db = vi.hoisted(() => {
 });
 vi.mock('../../superhuman/firestore-utils.js', () => ({ getFirestoreDb: () => db }));
 
-const { getCallResult, getRecentCallResults, getPendingFollowUps } =
-  await import('../call-result-capture.js');
+const { getCallResult, getRecentCallResults } = await import('../call-result-capture.js');
 
 beforeEach(() => {
   docs.clear();
   touched.length = 0;
   for (const owner of ['unknown', 'anon', 'uid-member']) {
     docs.set(`bogle_users/${owner}/on_behalf_calls/c1`, { callId: 'c1', userId: owner });
-    docs.set(`bogle_users/${owner}/follow_up_actions/a1`, { id: 'a1', userId: owner });
   }
 });
 
@@ -57,7 +55,6 @@ describe('call-result readers', () => {
     async (id) => {
       expect(await getCallResult('c1', id)).toBeNull();
       expect(await getRecentCallResults(id)).toEqual([]);
-      expect(await getPendingFollowUps(id)).toEqual([]);
       expect(touched).toEqual([]);
     }
   );
@@ -67,6 +64,5 @@ describe('call-result readers', () => {
     expect(await getRecentCallResults('uid-member')).toEqual([
       { callId: 'c1', userId: 'uid-member' },
     ]);
-    expect(await getPendingFollowUps('uid-member')).toEqual([{ id: 'a1', userId: 'uid-member' }]);
   });
 });

@@ -40,6 +40,28 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 - `frontend-quality` - Frontend-specific checks
 - `dependencies` - Outdated dependency check
 
+**How many unit shards a pull request gets** (`ci.yml`, `test-unit-shard`):
+
+| Pull request | Shards | What each runs |
+|--------------|--------|----------------|
+| Small affected set (at most 700 test files) | 1 | `vitest run --changed HEAD^1` |
+| Big affected set (over 700 files, e.g. any file under `src/config/flags/`) | 4 | `vitest run --changed HEAD^1 --shard=N/4`: a quarter of the affected files |
+| Diff hits a `forceRerunTriggers` file, touches crisis-safety or memory code, or carries `ci:full-tests` | 4 | a quarter of the whole suite, with coverage |
+
+- A file under `src/config/flags/` reaches ~1,500 test files through the generated barrel
+  `index.generated.ts`. One shard timed out on those at its 25 min (7 of 22 attempts in
+  four hours, 2026-10-29); a full run on four shards never took more than 14 min.
+- Setup counts the affected files with `scripts/ci/unit-affected-count.mjs`
+  (`vitest list --changed HEAD^1 --filesOnly`, about a minute) and outputs
+  `unit-affected-count` and `unit-affected-sharded`. The threshold is `THRESHOLD` in that
+  script. If the count fails, the PR gets four shards.
+- vitest applies `--shard` after `--changed` selects the files, so the four shards are
+  disjoint and together run the whole affected set. `vitest list` ignores `--shard`, so
+  use `vitest run --shard` (or the CI run) to see a shard's slice.
+- The "Unit Tests" check fails when the number of shards that ran is not the number the
+  run called for (4, or 1 for a small affected set). The matrix condition, `FULL_SUITE`
+  and `AFFECTED_SHARDED` are pinned together by `src/tests/deploy/merge-queue-jobs.test.ts`.
+
 **Optimizations Applied:**
 - Path filters (70% reduction in unnecessary runs)
 - Concurrency control (cancel-in-progress)
@@ -98,13 +120,16 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 
 ## Quality Workflows
 
-### lead-verified.yml (enforced in the merge queue)
+### lead-verified.yml (enforced on PRs and in the merge queue)
 
 **Purpose:** Check that the exact code a PR merges was independently verified
 (rules: `scripts/ci/lead-verified.ts`, always run from main's copy, never the PR's).
-Runs on PRs, PR comments and merge_group. On a PR it only reports. On merge_group it
-fails (since 2026-10-25) when a queued head is NOT_VERIFIED or the evidence can't be read
-(ERROR). The queue drops the PR only while `Lead Verified` is a required check (rollout:
+Runs on PRs, PR comments and merge_group. It fails when the head is NOT_VERIFIED or the
+evidence can't be read (ERROR): on merge_group since 2026-10-25, and on PRs since
+2026-10-29, so an armed but unverified PR waits outside the queue instead of entering it,
+failing and ejecting every group behind it (one sweep that day armed 13 unverified PRs).
+Comment-triggered runs only report: they don't update the PR's check, so
+`post-lead-verify.sh` re-runs the PR's check after it posts. The queue drops the PR only while `Lead Verified` is a required check (rollout:
 merge this, then add the context to main's required checks). The only allowed author, for
 both the `lead-verify` status and bound comments, is `ferni-verifier[bot]`. A green "Lead
 Verified" on a PR page is not verification; the evidence is that app's
@@ -116,6 +141,10 @@ Verified" on a PR page is not verification; the evidence is that app's
 `scripts/ci/post-lead-verify.sh <pr> <head-sha> pass|fail "<what you ran>"`. It refuses
 any SHA that is not the head and posts the `lead-verify` status (the only tamper-proof
 evidence) plus a comment whose first line is `RESULT_verifier=PASS sha=<40-hex head>`.
+Then it waits for the PR's Lead Verified run on that head to finish and re-runs it (as
+`ferni-agent`, which may re-run Actions; the verifier app may not), unless a PASS finds it
+passing already. Exit 5: the verdict is posted but the check wasn't re-run; re-run it by
+hand (`gh run rerun <id>`) or it updates on the next push.
 A hand-written comment counts only if that marker starts a line outside quotes and code
 fences, the author is in `LEAD_VERIFIED_AUTHORS` (see above), and it is never
 edited. Prose verdicts, reviews and auto-merge text never verify. Any FAIL wording
@@ -128,10 +157,64 @@ in" (no conflict, no extra edit), which carries the verdict forward.
 its PRs are the `(#N)` titles of the commits above main, plus the PR the ref names. Each
 PR is judged on its current head. A commit with no PR number blocks the group. Known
 gaps: a PR whose head moves after queueing is judged on the new head, not the queued one,
-and the PR can still edit the workflow file (not the evaluator, which comes from main)
-until main requires code-owner review (#2547) or the workflow moves to a main-pinned
-trigger. `issue_comment` runs log a
+and the workflow file runs from the PR's own merge or queue commit (the evaluator comes
+from main). What stops a PR editing it is the main ruleset's required code-owner review
+on `.github/workflows/` (on, checked 2026-10-29), and stale approvals are dismissed on
+push (on 2026-10-30), so a later workflow edit needs a fresh approval. `issue_comment` runs log a
 verdict but do not update the PR check, so re-run the check after a new verdict.
+
+### autonomy-lanes.yml (reports until it is a required check)
+
+**Purpose:** Keep protected lanes behind the right hands (rules:
+`scripts/ci/autonomy-lanes.ts`, lanes: `scripts/ci/autonomy-policy.json`, both always run
+from main's copy). A **crisis** PR (988 and referral, AI-disclosure notices, minor
+protections) needs an approving review from `sethdford` on its exact head commit, with
+no exception: commit author and committer logins come from the commit email, so anyone
+who can push can claim his, and authorship never signs. His own crisis PRs, which GitHub
+won't let him approve, merge with his ruleset admin bypass. A crisis path counts for
+every author. A **loop PR** is default-deny: it may change only files under the
+policy's `loopAllowed.paths` (docs and tests) without the crisis approval, and any other
+changed file puts it in the crisis lane ("outside the loop's allowed paths"), so a crisis
+file missing from crisis.paths still can't merge autonomously. An allowed test file must
+also pass the crisis screen below on its whole head content, not just its changed lines
+(a test that imports or names crisis code is crisis); one whose content can't be read
+fails closed. The crisis paths themselves are the best-effort, human-side net that
+CODEOWNERS follows: `crisis-paths-complete.test.ts` checks that every file its derivation
+finds (crisis-named files, the crisis modules, their importers and pinned dependencies)
+is covered, which is narrower than "complete". In a loop PR, a changed line (added or removed) also counts when it
+matches a crisis pattern (988 in any written form, also once quotes, `+`, `${`, `}` and
+spaces are removed, so `'9' + '88'` and `` `9${'8'}8` `` count) or names a screened export
+of a crisis module in `src/`: one no non-crisis module in `src/` really declares (re-exports and
+wrappers of the crisis symbol don't count) and no built-in method shares
+(`str.normalize`), plus the policy's
+reviewed `alwaysScreen` (`autonomy-crisis-symbols.generated.json`, regenerated by
+`scripts/ci/crisis-symbols.ts --write` and kept exact by `crisis-symbols.test.ts`; a
+screened name can leave the screen only through the policy's reviewed `unscreened`), and
+so do any binary file and any import of a crisis module (a
+relative specifier by the path it resolves to, any other by its name). A loop PR is one
+whose head branch starts with `loop/`; this depends on a ruleset that lets the
+`ferni-loop` app push only to `loop/**` (SETUP.md). Commit attribution can't establish
+it: author and committer logins come from the commit email, which anyone with push access
+can set (this Mac's default git identity reads as sethdford). A `ferni-loop[bot]` opener,
+author or committer, or a commit with no linked account, adds the screen; none of them
+can remove it. A path git had to quote or that holds a control character puts the PR in
+every lane. This screen is lexical: a cheap first filter, not a proof. The behavioural
+backstop is Phase 3's frozen crisis suites, which run on every loop PR and reroute it to
+the crisis lane on any change in outcome; a TypeScript-resolver symbol check is a Phase 3
+candidate. An **evaluator** PR (the code that grades changes, this workflow and
+CODEOWNERS) needs the `ferni-eval` app as opener with every commit verified by GitHub
+and committed by the app (what committing through the GitHub API produces; a git push
+can't), or the same approval; Seth's own evaluator PRs, like his crisis ones, merge with
+his admin bypass. **Privacy** is reported only; the local arm gate already requires a verifier
+PASS there. Runs on PRs, reviews and merge_group; fails only on merge_group, where each
+queued PR is judged on its current head, and the queue acts on it only once `Autonomy
+Lanes` is a required check. The policy's crisis and evaluator paths are also in
+`.github/CODEOWNERS` (`codeowners-covers-policy.test.ts` keeps them in step). Like Lead
+Verified, the workflow file runs from the PR's own merge or queue commit; what stops a
+PR editing it is the main ruleset's required code-owner review on `.github/workflows/`
+(on, checked 2026-10-29). Stale approvals are dismissed on push (on 2026-10-30), so a
+later edit to this workflow needs a fresh code-owner approval, and the check itself only
+counts approvals on the exact head.
 
 ### design-system.yml
 

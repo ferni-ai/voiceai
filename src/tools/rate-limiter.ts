@@ -164,8 +164,8 @@ function getServiceConfig(service: string): Partial<RateLimitConfig> {
       refillInterval: 12000, // ~5 per minute
     },
 
-    // SendGrid - generous limits
-    sendgrid: {
+    // Email (the Workspace mailbox) - generous limits
+    email: {
       maxTokens: 10,
       refillRate: 2,
       refillInterval: 1000,

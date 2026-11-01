@@ -27,6 +27,16 @@ import type { CallerHistory } from './greeting-direction.js';
 export const STRANGER_GREETING_DIRECTION =
   'They just called you, and this is the first time you have ever talked. Answer the way you would someone you are glad to meet: warm, plain and curious, one short sentence, maybe a quick easy question about how they are or what is on their mind. No exclamation marks, no "so good to hear your voice", no hype, no tease, do not list what you can do or introduce yourself. You know nothing about them beyond the facts you are given: never imply you have talked before or know their habits, so no "again", "finally", "still", "back", "as usual" or "last time", and no guesses about their day.';
 
+/**
+ * The same hello for a caller Ferni can't place (UNKNOWN_CALLER_HONEST,
+ * unknown-caller-honest.ts): each unrecognised call is a fresh `anon:` id, so
+ * it may be their fifth call. No claim either way, and no shared past.
+ */
+export const UNPLACED_GREETING_DIRECTION = STRANGER_GREETING_DIRECTION.replace(
+  ', and this is the first time you have ever talked',
+  ''
+);
+
 /** The fact that says so, beside the time of day and their name. */
 export const FIRST_CALL_FACTS: Readonly<Record<string, string>> = {
   'how well you know each other': 'first time talking',

@@ -161,7 +161,7 @@ export class CommunicationMirroringEngine {
     if (this.loaded || !this.persistenceStore) return;
 
     try {
-      const data = await this.persistenceStore.load(this.userId);
+      const data = await this.persistenceStore.load(this.userId, { strict: 'read' });
       if (data) {
         this.samples = data.samples.map((s) => ({
           ...s,

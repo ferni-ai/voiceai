@@ -1,31 +1,27 @@
 /**
- * Owner decision 2026-10-25: all email goes through the Workspace port. With
- * EMAIL_PROVIDER=gmail, email-delivery hands every send to getEmailSender() and
- * never calls SendGrid (whose key 401s in prod). Unset, the SendGrid path is unchanged.
+ * Email is Gmail Workspace only (Seth, 2026-10-27, #2947): email-delivery hands
+ * every send to the app's one transport, getEmailSender(), and reports what the
+ * transport answered. There is no other provider and no init.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { OutgoingEmail } from '../../../../types/email-sender.js';
+import type {
+  EmailSendResult,
+  EmailSender,
+  OutgoingEmail,
+} from '../../../../types/email-sender.js';
+import { setEmailSenderForTests } from '../../../email-transport/index.js';
 
-const port = vi.hoisted(() => ({
-  send: vi.fn(async (_email: OutgoingEmail) => ({
-    ok: true,
-    provider: 'gmail' as const,
-    messageId: 'gm-abc',
-  })),
-  isConfigured: vi.fn(() => true),
-}));
-vi.mock('../../../email-transport/index.js', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../../email-transport/index.js')>()),
-  getEmailSender: () => ({ provider: 'gmail', ...port }),
-}));
-
-const { sendEmail, isEmailDeliveryAvailable, initializeEmailDelivery, getDeliveryRecord } =
+const { sendEmail, isEmailDeliveryAvailable, getDeliveryRecord } =
   await import('../email-delivery.js');
 
-const fetchMock = vi.fn(
-  async (_url: string, _init?: unknown) =>
-    new Response('', { status: 202, headers: { 'x-message-id': 'sg-123' } })
-);
+const send = vi.fn(async (_email: OutgoingEmail): Promise<EmailSendResult> => ({
+  ok: true,
+  provider: 'gmail',
+  messageId: 'gm-abc',
+}));
+const isConfigured = vi.fn(() => true);
+const fakeGmail: EmailSender = { provider: 'gmail', isConfigured, send };
+const fetchMock = vi.fn(async () => new Response('', { status: 599 }));
 
 const message = {
   to: 'pat.example@gmail.com', // made up
@@ -40,90 +36,58 @@ const message = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  port.send.mockReset(); // drops any unconsumed mockResolvedValueOnce; keeps the vi.fn() default
-  port.isConfigured.mockReturnValue(true);
+  send.mockReset();
+  send.mockResolvedValue({ ok: true, provider: 'gmail', messageId: 'gm-abc' });
+  isConfigured.mockReturnValue(true);
+  setEmailSenderForTests(fakeGmail);
   vi.stubGlobal('fetch', fetchMock);
-  vi.stubEnv('SENDGRID_API_KEY', '');
-  vi.stubEnv('RESEND_API_KEY', '');
 });
 afterEach(() => {
-  vi.unstubAllEnvs();
+  setEmailSenderForTests(null);
   vi.unstubAllGlobals();
 });
 
-// Order matters: the SendGrid config is module state and these first tests need it unset.
-describe('email-delivery with EMAIL_PROVIDER=gmail', () => {
-  it('is available with no SendGrid key and no init, following the port', () => {
-    vi.stubEnv('EMAIL_PROVIDER', '');
-    expect(isEmailDeliveryAvailable()).toBe(false); // pre: nothing configured
-    vi.stubEnv('EMAIL_PROVIDER', 'gmail');
+describe('email-delivery: Gmail Workspace only', () => {
+  it('is available exactly when the transport is configured, with no init', () => {
     expect(isEmailDeliveryAvailable()).toBe(true);
-    port.isConfigured.mockReturnValue(false);
+    isConfigured.mockReturnValue(false);
     expect(isEmailDeliveryAvailable()).toBe(false);
   });
 
-  it('sends through the port, never SendGrid, without initializeEmailDelivery', async () => {
-    vi.stubEnv('EMAIL_PROVIDER', 'gmail');
+  it('sends through the transport and records it as sent only on its success', async () => {
     const result = await sendEmail(message);
 
     expect(result).toMatchObject({ success: true, messageId: 'gm-abc', status: 'sent' });
-    expect(port.send).toHaveBeenCalledTimes(1);
-    expect(fetchMock).not.toHaveBeenCalled();
-    const sent = port.send.mock.calls[0][0];
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalled(); // no other provider is ever called
+    const sent = send.mock.calls[0][0];
     expect(sent).toMatchObject({
       to: 'pat.example@gmail.com',
       toName: 'Pat',
       subject: 'How the call went',
       kind: 'transactional',
       fromName: 'Ferni from Ferni',
-      tags: ['on-behalf-call'],
       metadata: { userId: 'u-1', outreachId: 'call-1', personaId: 'ferni' },
     });
     expect(sent.text).toContain('Mom says hi.');
-    expect(sent.html).toContain('Mom says hi.');
     expect(getDeliveryRecord('gm-abc')).toMatchObject({ userId: 'u-1', status: 'sent' });
   });
 
-  it("returns the port's error instead of succeeding", async () => {
-    vi.stubEnv('EMAIL_PROVIDER', 'gmail');
-    port.send.mockResolvedValueOnce({
+  it("returns the transport's failure and records nothing as sent", async () => {
+    send.mockResolvedValueOnce({
       ok: false,
       provider: 'gmail',
       status: 403,
-      error: 'gmail 403: delegation denied for [redacted]',
-    } as never);
-    const result = await sendEmail(message);
-    expect(result).toMatchObject({
-      success: false,
-      status: '403',
-      error: 'gmail 403: delegation denied for [redacted]',
+      error: 'gmail 403: denied',
     });
+    const result = await sendEmail({ ...message, outreachId: 'call-2' });
+    expect(result).toMatchObject({ success: false, status: '403', error: 'gmail 403: denied' });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('still uses the port when a SendGrid config was initialized', async () => {
-    initializeEmailDelivery({
-      provider: 'sendgrid',
-      apiKey: 'SG.dead',
-      fromEmail: 'hello@ferni.ai',
-      fromName: 'Ferni',
-    });
-    vi.stubEnv('EMAIL_PROVIDER', 'gmail');
-    const result = await sendEmail(message);
-    expect(result.success).toBe(true);
-    expect(port.send).toHaveBeenCalledTimes(1);
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-});
-
-describe('email-delivery with EMAIL_PROVIDER unset', () => {
-  it('keeps the SendGrid path (config initialized above)', async () => {
-    vi.stubEnv('EMAIL_PROVIDER', '');
-    expect(isEmailDeliveryAvailable()).toBe(true);
-    const result = await sendEmail(message);
-    expect(result).toMatchObject({ success: true, messageId: 'sg-123' });
-    expect(port.send).not.toHaveBeenCalled();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][0]).toBe('https://api.sendgrid.com/v3/mail/send');
+  it('sends nothing when the transport is not configured', async () => {
+    isConfigured.mockReturnValue(false);
+    expect(await sendEmail(message)).toMatchObject({ success: false });
+    expect(send).not.toHaveBeenCalled();
   });
 });

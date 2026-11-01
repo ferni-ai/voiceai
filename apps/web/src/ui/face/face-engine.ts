@@ -1,6 +1,6 @@
 /**
- * The one writer of Ferni's face. Off by default; turn on with
- * localStorage.setItem('ferni:face-engine', 'true').
+ * The one writer of Ferni's face. Off by default: the faceEngine switch in
+ * config/motion-flags.ts.
  *
  * Today two expression systems write his eyes (ferni-expressions' own lid
  * table and luxo's token expressions, whose CSS matches no live element), so
@@ -15,13 +15,13 @@
  */
 
 import type { ExpressionId } from '../../config/avatar-expressions.js';
+import { isMotionFlagOn } from '../../config/motion-flags.js';
 import { createLogger } from '../../utils/logger.js';
 import { mayReplace, resolveFace, type FaceSource, type HeldFace } from './face-model.js';
 import { createFaceRenderer, type FaceRenderer } from './face-renderer.js';
 
 const log = createLogger('FaceEngine');
 
-export const FACE_ENGINE_FLAG = 'ferni:face-engine';
 /** While on, the old SVG eyes and lid overlay are hidden; the engine's layers replace them. */
 const ON_CLASS = 'face-engine-on';
 const HIDE_OLD_CSS = `.${ON_CLASS} #avatarEyes, .${ON_CLASS} #avatarLidOverlay { visibility: hidden; }`;
@@ -29,12 +29,7 @@ const HIDE_OLD_CSS = `.${ON_CLASS} #avatarEyes, .${ON_CLASS} #avatarLidOverlay {
 const NO_BLINK: ReadonlySet<ExpressionId> = new Set(['resting', 'sleepy', 'drowsy', 'exhausted']);
 
 export function faceEngineEnabled(): boolean {
-  try {
-    return localStorage.getItem(FACE_ENGINE_FLAG) === 'true';
-  } catch (error) {
-    log.debug('Could not read the face engine flag, treating it as off', error);
-    return false;
-  }
+  return isMotionFlagOn('faceEngine');
 }
 
 const reducedMotion = (): boolean =>

@@ -7,17 +7,17 @@
  * sets the lid expression Ferni rests in for the reply, and the reply's speed
  * sets the breathing rate: a slower, softer reply breathes slower.
  *
- * Off by default. Turn on: localStorage.setItem('ferni:reply-tone', 'true')
+ * Off by default: the replyTone switch in config/motion-flags.ts.
  */
 
 import type { DataMessage } from '../types/events.js';
 import { ferniExpressions, type EmotionalExpression } from '../ui/ferni-expressions.ui.js';
 import { presenceUI } from '../ui/presence.ui.js';
+import { isMotionFlagOn } from '../config/motion-flags.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('ReplyTone');
 
-export const REPLY_TONE_FLAG_KEY = 'ferni:reply-tone';
 export const REPLY_TONE_MESSAGE = 'reply_tone';
 
 /** The voice's emotions (src/speech/tts-gateway/director/emotion.ts) as resting faces. */
@@ -40,12 +40,7 @@ let breathAdjusted = false;
 let restingFace: EmotionalExpression | null = null;
 
 export function isReplyToneEnabled(): boolean {
-  try {
-    return localStorage.getItem(REPLY_TONE_FLAG_KEY) === 'true';
-  } catch (err) {
-    log.debug('localStorage unavailable; reply tone stays off', { err: String(err) });
-    return false;
-  }
+  return isMotionFlagOn('replyTone');
 }
 
 /** Breaths per minute for a reply spoken at `speed`, or null for the default. */

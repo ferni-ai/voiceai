@@ -7,4 +7,5 @@
 export * from './schema.js';
 export * from './reader.js';
 export * from './llm-teacher.js';
+export * from './compare.js';
 export { clash } from './teacher-prompts.js';

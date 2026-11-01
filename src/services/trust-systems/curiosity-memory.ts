@@ -24,6 +24,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { keepLetters } from '../../memory/index.js';
 
 const log = createLogger({ module: 'CuriosityMemory' });
 
@@ -723,11 +724,9 @@ function calculateFollowUpPriority(params: {
 // HELPERS
 // ============================================================================
 
+/** Any script's letters, plus digits and "_" as before (ASCII-only, every non-Latin name was ''). */
 function normalizeName(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s]/g, '');
+  return keepLetters(name, '\\p{N}_');
 }
 
 function capitalizeFirst(str: string): string {

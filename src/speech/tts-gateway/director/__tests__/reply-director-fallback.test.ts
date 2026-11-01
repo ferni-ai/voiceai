@@ -13,9 +13,13 @@ import { DirectorSessions } from '../session-state.js';
 vi.mock('../normalize.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('../normalize.js')>();
   return {
-    normalizeForSpeech: (text: string) => {
-      if (text.includes('BOOM')) throw new Error('normalizer exploded');
-      return real.normalizeForSpeech(text);
+    ...real,
+    replyNormalizer: () => {
+      const normalize = real.replyNormalizer();
+      return (text: string) => {
+        if (text.includes('BOOM')) throw new Error('normalizer exploded');
+        return normalize(text);
+      };
     },
   };
 });

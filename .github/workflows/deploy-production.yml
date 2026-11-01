@@ -484,9 +484,7 @@ jobs:
         if: steps.guard.outputs.deploy == 'true'
         id: deploy
         env:
-          # App email goes through the ferni.ai Workspace (runbook: email-via-workspace.md).
-          # Back to SendGrid without a PR: `gh variable set EMAIL_PROVIDER --body sendgrid`, redeploy.
-          EMAIL_PROVIDER: ${{ vars.EMAIL_PROVIDER || 'gmail' }}
+          # App email goes through the ferni.ai Workspace, the only transport (runbook: email-via-workspace.md).
           EMAIL_FROM: ${{ vars.EMAIL_FROM || 'admin@ferni.ai' }}
         run: |
           REVISION_SUFFIX=${{ steps.meta.outputs.revision_suffix }}
@@ -520,7 +518,6 @@ jobs:
           printf 'BUILD_SHA: "%s"\n' "$DEPLOY_SHA" >> "$ENV_FILE"
           printf 'GCLOUD_PROJECT: "%s"\n' "$GCP_PROJECT_ID" >> "$ENV_FILE"
           printf 'GOOGLE_CLOUD_PROJECT: "%s"\n' "$GCP_PROJECT_ID" >> "$ENV_FILE"
-          printf 'EMAIL_PROVIDER: "%s"\n' "$EMAIL_PROVIDER" >> "$ENV_FILE"
           printf 'EMAIL_FROM: "%s"\n' "$EMAIL_FROM" >> "$ENV_FILE"
           SECRETS=$(grep -v -e '^#' -e '^$' deploy/ui-server/secrets.txt | paste -sd, -)
           gcloud run deploy john-bogle-ui \

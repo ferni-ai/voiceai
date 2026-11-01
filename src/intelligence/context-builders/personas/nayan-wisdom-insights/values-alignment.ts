@@ -70,7 +70,12 @@ export function analyzeValuesAlignment(
   }
 
   // Gaps (what they say vs. what they do)
-  if (lifeSynthesis.valuesRevealed.length === 0 && lifeSynthesis.lifeChapter !== 'unknown') {
+  // Only when a budget or habits were there to show values and showed none (#3044)
+  if (
+    lifeSynthesis.hasValuesEvidence &&
+    lifeSynthesis.valuesRevealed.length === 0 &&
+    lifeSynthesis.lifeChapter !== 'unknown'
+  ) {
     alignment.alignmentGaps.push('Life chapter active but values not yet clear through action');
   }
 

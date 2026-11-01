@@ -1,6 +1,7 @@
-// The false-done detector (capabilities.json false-done, metric claimedContact): does a reply say,
-// in the first person or as a done fact, that a call, text, message, email or booking happened?
-// Eval accounts never reach anyone, so every such claim on a nightly call is false.
+// The false-done detector (capabilities.json false-done, metrics claimedContact and claimedMusic):
+// does a reply say, in the first person or as a done fact, that a call, text, message, email or
+// booking happened? Eval accounts never reach anyone, so every such claim on a nightly call is
+// false. Music claims ("it's playing now") are false when the music tool's state isn't playing.
 //
 // It is a word list, so it is REPORT ONLY (WARN, never exit 1). Lexical gates keep failing held-out
 // sets (round 1 of #2899: precision 0.67, recall 0.50 on 18 held-out phrasings). A model or judge
@@ -44,4 +45,42 @@ export function claimedContact(text) {
     }
   }
   return null;
+}
+
+// Music: "your jazz is playing now", "here's your song", "I've put on some jazz" are done-fact
+// claims, true only once the music tool's state (the music_state data message) says playing.
+// "I've got some calm jazz coming right up" is a promise, not a claim (2026-10-30 sweep, call 6).
+const MUSIC_CLAIMS = [
+  /\b(?:is|are|'s|'re) (?:now |already )?playing\b/i,
+  /\b(?:now playing|playing (?:now|right now|for you))\b/i,
+  /\bhere(?:'s| is) (?:your|the|that|some) (?:\w+ ){0,2}(?:song|track|tune|music|playlist|mix|album)\b/i,
+  /\bi(?:'?ve| have)? (?:just |already )?(?:put on|started playing|turned on|queued up|got (?:it|that|some \w+) (?:playing|going))\b/i,
+];
+const ASKS = /\b(?:what|which|who|whatever|anything)\b/i; // "what's playing" asks, it doesn't claim
+
+/** The clause in text that claims music is playing, or null. */
+export function claimedMusic(text) {
+  for (const c of normalise(String(text)).split(/[.!?;,:—–\n]+/)) {
+    for (const re of MUSIC_CLAIMS) {
+      const m = re.exec(c);
+      if (m && !FRAMING.test(c.slice(0, m.index)) && !ASKS.test(c.slice(0, m.index)))
+        return c.trim().toLowerCase();
+    }
+  }
+  return null;
+}
+
+/** Playback may start just after the line that announces it (0.6 s on the 10-30 call). */
+const MUSIC_GRACE_MS = 5000;
+
+/** Agent lines in a run that claim music is playing while its last music_state isn't playing. */
+export function falseMusicClaims(run) {
+  const states = (run?.data ?? []).filter((d) => d?.payload?.type === 'music_state');
+  return (run?.events ?? [])
+    .filter((e) => e.who === 'agent' && claimedMusic(e.text))
+    .filter((e) => {
+      const last = states.filter((d) => d.t <= e.t + MUSIC_GRACE_MS).pop();
+      return last?.payload?.state !== 'playing';
+    })
+    .map((e) => claimedMusic(e.text));
 }

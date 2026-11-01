@@ -25,7 +25,8 @@ describe('isClearYes: the name in a yes', () => {
     ['Yes.', true],
     ['Yes, go ahead.', true],
     ['Yes, go ahead, Ferni.', true],
-    ['Okay Maya, go ahead', true],
+    // A persona's name isn't on the allow-list: it asks once.
+    ['Okay Maya, go ahead', false],
     // STT mishearings of "Ferni".
     ['Uh, go ahead, Fred.', true],
     ['Yes, go ahead, Freddie!', true],
@@ -44,7 +45,8 @@ describe('isClearYes: the name in a yes', () => {
     ['Yes, Dana.', false],
     // Unchanged refusals.
     ['Go ahead, call Bob instead', false],
-    ['Go ahead Fred', false],
+    ['Go ahead Fred', true], // Ferni misheard; never after a bare "call"
+    ['Go ahead and call Fred', false],
     ['Yes, Fred?', false],
     ['Yes, Mom.', false],
   ])('%s → %s (call to Mike, owner Seth)', (text, yes) => {
@@ -57,8 +59,9 @@ describe('isClearYes: the name in a yes', () => {
     expect(isClearYes('Yes, go ahead, Mike.', ['bob'], OWNER)).toBe(false);
   });
 
-  it('a relative is never the name, even when it is the target', () => {
-    expect(isClearYes('Yes, Dad.', ['my', 'dad'], OWNER)).toBe(false);
+  it('the relation read back may be named; any other relation may not', () => {
+    expect(isClearYes('Yes, Dad.', ['my', 'dad'], OWNER)).toBe(true);
+    expect(isClearYes('Yes, Mom.', ['my', 'dad'], OWNER)).toBe(false);
   });
 });
 

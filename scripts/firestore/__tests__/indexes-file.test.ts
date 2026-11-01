@@ -10,7 +10,7 @@
  * It lived in src/tests, which neither CI config runs, and stayed red there unnoticed.
  */
 import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 interface FieldIndex {
@@ -101,6 +101,16 @@ const NAMED_ONLY_IN_PATH_TEMPLATES: Record<string, string> = {
 };
 
 /**
+ * Not-Ferni names that one src file quotes as something other than a collection. Each entry
+ * names that file; the name's quotes there are not a use, its quotes anywhere else still are,
+ * and the test fails if that file stops quoting it or starts using it as a collection.
+ */
+const QUOTED_AS_NON_COLLECTION: Record<string, string> = {
+  // CALL_TELEMETRY=reports, a flag mode (felt-off reports only); Ferni has no `reports` store.
+  reports: 'api/call-telemetry/call-telemetry-store.ts',
+};
+
+/**
  * Prod field overrides that the rules below would reject, declared because prod has them: a
  * deploy of the file deletes any override the file lacks (#2477). Every entry must be in the
  * checked-in prod listing (scripts/ci/fixtures/firestore-indexes/default, from `gcloud
@@ -141,30 +151,40 @@ const file = JSON.parse(readFileSync(join(repoRoot, 'firestore.indexes.json'), '
  * Same answer as testing `['"\`]name['"\`]` against the joined source, but one pass: that
  * regex per declared name took 10-18 s over 55 MB, near the 30 s timeout under disk load.
  */
-let tokenCache: Set<string> | undefined;
-function quotedTokens(): Set<string> {
+let tokenCache: Map<string, Set<string>> | undefined;
+/** Each quoted token → the src-relative files that quote it. */
+function quotedTokenFiles(): Map<string, Set<string>> {
   if (!tokenCache) {
-    tokenCache = new Set<string>();
-    for (const m of productionSource().matchAll(/['"`]([^'"`\s]+)(?=['"`])/g)) tokenCache.add(m[1]);
+    tokenCache = new Map<string, Set<string>>();
+    for (const [rel, text] of productionSources())
+      for (const m of text.matchAll(/['"`]([^'"`\s]+)(?=['"`])/g)) {
+        const files = tokenCache.get(m[1]) ?? new Set<string>();
+        files.add(rel);
+        tokenCache.set(m[1], files);
+      }
   }
   return tokenCache;
 }
+function quotedTokens(): Set<string> {
+  return new Set(quotedTokenFiles().keys());
+}
 
-/** Every non-test source file under src/, concatenated (about 5k files). */
-function productionSource(): string {
-  const parts: string[] = [];
+/** Every non-test source file under src/ (about 5k files), src-relative path → text. */
+function productionSources(): Map<string, string> {
+  const files = new Map<string, string>();
   const walk = (dir: string): void => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       if (entry.isDirectory()) {
         if (!['node_modules', '__tests__', 'tests'].includes(entry.name))
           walk(join(dir, entry.name));
       } else if (entry.name.endsWith('.ts') && !entry.name.includes('.test.')) {
-        parts.push(readFileSync(join(dir, entry.name), 'utf8'));
+        const path = join(dir, entry.name);
+        files.set(relative(srcDir, path), readFileSync(path, 'utf8'));
       }
     }
   };
   walk(srcDir);
-  return parts.join('\n');
+  return files;
 }
 
 describe('firestore.indexes.json field overrides', () => {
@@ -251,13 +271,27 @@ describe('firestore.indexes.json composite indexes', () => {
   });
 
   it('lists only declared, unused names as not Ferni', () => {
-    const tokens = quotedTokens();
+    const quotedIn = quotedTokenFiles();
     const names = new Set([
       ...file.indexes.map((i) => i.collectionGroup),
       ...file.fieldOverrides.map((o) => o.collectionGroup),
     ]);
-    const stale = NOT_FERNI_COLLECTIONS.filter((n) => !names.has(n) || tokens.has(n));
+    const used = (n: string): boolean =>
+      [...(quotedIn.get(n) ?? [])].some((rel) => rel !== QUOTED_AS_NON_COLLECTION[n]);
+    const stale = NOT_FERNI_COLLECTIONS.filter((n) => !names.has(n) || used(n));
     expect(stale).toEqual([]);
+  });
+
+  it('excuses a quoted not-Ferni name only in its one file, and never as a collection', () => {
+    for (const [name, rel] of Object.entries(QUOTED_AS_NON_COLLECTION)) {
+      expect(NOT_FERNI_COLLECTIONS).toContain(name);
+      const text = readFileSync(join(srcDir, rel), 'utf8');
+      expect(text, `${rel} no longer quotes '${name}'; drop the entry`).toMatch(
+        new RegExp(`['"\`]${name}['"\`]`)
+      );
+      expect(text).not.toMatch(new RegExp(`collection(?:Group)?\\(\\s*['"\`]${name}\\b`));
+      expect(text).not.toMatch(new RegExp(`['"\`]${name}/`));
+    }
   });
 
   it('does not list a composite index twice', () => {

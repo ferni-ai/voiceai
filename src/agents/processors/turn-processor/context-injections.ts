@@ -19,7 +19,6 @@ import type {
   TurnContext,
 } from '../types.js';
 import type { ContextInjectionsResult } from './types.js';
-import { responseStyleHints } from './response-style-hints.js';
 
 import { diag } from '../../../services/diagnostic-logger.js';
 import { createBuilderBudget } from './builder-budget.js';
@@ -65,6 +64,7 @@ import {
 } from '../../integrations/better-than-human-integration.js';
 
 import { getHonestyInjection } from '../../../intelligence/context-builders/safety/honesty-guardrail.js';
+import { callReportInjection } from '../../../intelligence/context-builders/external/call-report.js';
 
 import { filterBuildersByTopic, skipBuilder, type BuilderName } from '../topic-builder-filter.js';
 
@@ -78,9 +78,7 @@ import {
   formatConversationHumanizingForPrompt,
 } from '../../../intelligence/context-builders/humanization/conversation-humanizing.js';
 
-import { getResponseEnhancements } from '../../../speech/response-naturalness.js';
 import { valueCapture } from '../../../services/monetization/value-capture.js';
-
 import { getBetterThanHuman } from '../../../conversation/superhuman/index.js';
 
 import {
@@ -89,6 +87,8 @@ import {
 } from '../../../intelligence/context-builders/engagement/referral-prompt.js';
 
 import type { ConversationDynamicsResult } from '../conversation-dynamics.js';
+import { callerTurnOf } from '../../shared/caller-turn-count.js';
+import { firstTurnContextDue, logFirstTurnContext } from './first-turn-context.js';
 
 /**
  * Build all context injections for the LLM
@@ -182,10 +182,10 @@ export async function buildContextInjections(
     });
   }
 
-  // 2c–2g. PREDICTIVE + FIRST-TURN CONTEXT (all run in PARALLEL)
-  // Previously these ran sequentially, adding 300-600ms on first turn.
+  // 2c–2g. PREDICTIVE + FIRST-TURN CONTEXT (all run in PARALLEL); 2d–2f: first-turn-context.ts
   const FIRST_TURN_TIMEOUT_MS = 150;
   const isFirstTurn = (userData.turnCount || 0) === 0;
+  const firstTurnContext = firstTurnContextDue(isFirstTurn, userData, safetyInjections.length > 0);
   const userId = services.userId;
 
   const firstTurnResults = await Promise.allSettled([
@@ -198,7 +198,7 @@ export async function buildContextInjections(
       : Promise.resolve(null),
 
     // 2d. TEAM HUDDLE (first turn only)
-    userId && isFirstTurn
+    userId && firstTurnContext
       ? Promise.race([
           import('../../../services/cross-persona/team-huddle.js').then(async ({ generateTeamHuddle, formatTeamHuddleForLLM }) => {
             const huddle = await generateTeamHuddle(userId);
@@ -212,7 +212,7 @@ export async function buildContextInjections(
       : Promise.resolve(null),
 
     // 2e. OUTREACH BRIDGE (first turn only)
-    userId && isFirstTurn
+    userId && firstTurnContext
       ? Promise.race([
           import('../../../services/outreach/conversation-context-bridge.js').then(async ({ buildOutreachBridgeInjection }) => {
             const bridgeInjection = await buildOutreachBridgeInjection(userId);
@@ -226,7 +226,7 @@ export async function buildContextInjections(
       : Promise.resolve(null),
 
     // 2f. CROSS-CHANNEL CONTEXT (first turn only)
-    userId && isFirstTurn
+    userId && firstTurnContext
       ? Promise.race([
           import('../../../services/session/session-summary.js').then(async ({ getActiveUserContext, formatContextForVoiceCall }) => {
             const activeContext = await getActiveUserContext(userId);
@@ -242,19 +242,16 @@ export async function buildContextInjections(
         ]).catch(() => null)
       : Promise.resolve(null),
 
-    // 2g. WHILE YOU WERE AWAY (first turn only)
-    userId && isFirstTurn
-      ? Promise.race([
-          import('../../../intelligence/context-builders/external/pending-call-results.js').then(async ({ buildAllPendingResultsContext }) => {
-            const pendingResultsContext = await buildAllPendingResultsContext(userId);
-            if (pendingResultsContext) {
-              return { category: 'pending_background_results' as const, content: pendingResultsContext, priority: 90 };
-            }
-            return null;
-          }),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), FIRST_TURN_TIMEOUT_MS)),
-        ]).catch(() => null)
-      : Promise.resolve(null),
+    // 2g. WHILE YOU WERE AWAY: first turn only; CALL_REPORT_REACHES_YOU=on, until a reply carries it
+    callReportInjection({
+      userId: userId ?? undefined,
+      sessionId: services.sessionId,
+      turnCount: userData.turnCount || 0,
+      callerTurn: callerTurnOf(userData),
+      latest: userText,
+      crisis: safetyInjections.length > 0,
+      timeoutMs: FIRST_TURN_TIMEOUT_MS,
+    }),
   ]);
 
   // Process parallel results
@@ -274,11 +271,7 @@ export async function buildContextInjections(
     }
   }
 
-  if (isFirstTurn) {
-    const settled = firstTurnOnlyResults.filter((r) => r.status === 'fulfilled' && r.value).length;
-    const timedOut = firstTurnOnlyResults.filter((r) => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value)).length;
-    diag.debug('First-turn parallel context complete', { settled, timedOut });
-  }
+  if (firstTurnContext) logFirstTurnContext(firstTurnOnlyResults);
 
   // ============================================================================
   // TIERED CONTEXT BUILDERS (LATENCY OPTIMIZED)
@@ -341,8 +334,8 @@ export async function buildContextInjections(
         behavioralFallback,
         'buildIntegratedContext'
       ),
-      buildHumanTransferInjections(userText, services.userId, services.sessionId),
-      buildCrisisHistoryInjection(services.userId, services.sessionId),
+      buildHumanTransferInjections(userText, services.userId, services.sessionId, callerTurnOf(userData)),
+      buildCrisisHistoryInjection(services.userId, services.sessionId, callerTurnOf(userData)),
       buildToolHistoryInjection(builderInput),
     ]);
 
@@ -424,19 +417,11 @@ export async function buildContextInjections(
               userText,
               currentTopic,
               emotionalState,
-              voiceEmotion: userData.voiceEmotion
-                ? {
-                    primary: userData.voiceEmotion.primary,
-                    confidence: userData.voiceEmotion.confidence,
-                    stressLevel: userData.voiceEmotion.stressLevel,
-                    valence: userData.voiceEmotion.valence,
-                    anxietyMarkers: userData.voiceEmotion.anxietyMarkers,
-                    prosody: userData.voiceEmotion.prosody,
-                  }
-                : undefined,
+              voiceEmotion: userData.voiceEmotion,
               analysis,
               turnCount: userData.turnCount || 0,
               totalConversations: services.userProfile?.totalConversations,
+              services,
             }),
             IMPORTANT_TIMEOUT_MS,
             superhumanFallback,
@@ -1105,22 +1090,6 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
       });
     }
   }
-
-  // 13. Response naturalness (opener/catchphrase lines are gated in response-style-hints.ts)
-  const turnCount = userData.turnCount || 0;
-  const enhancements = getResponseEnhancements({
-    personaId: persona.id,
-    turnCount,
-    userEmotion: analysis.emotion.primary,
-    topicWeight: 'medium',
-    isQuestion: userText.includes('?'),
-    isFollowUp: turnCount > 0,
-    isGreeting: turnCount === 0,
-    isPositiveMoment:
-      analysis.emotion.primary === 'joy' || analysis.emotion.primary === 'anticipation',
-  });
-
-  injections.push(...responseStyleHints(enhancements));
 
   // 14. Conversation state summary
   if (userData.conversationState) {

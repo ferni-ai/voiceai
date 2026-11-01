@@ -1270,8 +1270,6 @@
       "notifications": "チェックインのタイミング",
       "toggleTheme": "ライト/ダーク",
       "themeLanguage": "見た目とデザイン",
-      "linkSpotify": "Spotifyを連携する",
-      "spotifyConnected": "Spotify連携済み",
       "vibeController": "雰囲気を変える",
       "spotifyRooms": "ミュージックルーム",
       "thermostat": "お部屋の快適さ",
@@ -1870,9 +1868,9 @@
     "disconnected": "切断されました",
     "end": "終了",
     "endConversation": "お話を終了する",
-    "endConversationGoodbye": "お話を終了して、さようなら",
+    "goodbyeEndCall": "さようなら。通話を終了",
     "endSession": "セッションを終了する",
-    "ending": "終了しています...",
+    "ending": "通話終了",
     "goodbye": "さようなら",
     "holdToSpeak": "長押ししてお話しする",
     "listening": "聞いています...",
@@ -1882,7 +1880,7 @@
     "takeCare": "お元気で。",
     "tapToSpeak": "タップしてお話しする",
     "thinking": "考え中...",
-    "untilNextTime": "また次回お会いしましょう..."
+    "untilNextTime": "また次回お会いしましょう"
   },
   "stages": {
     "acquaintance": "知り合い",
@@ -2419,10 +2417,6 @@
         "description": "Apple WatchとiPhoneのヘルスケアデータと同期します",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Fitbitデバイスを接続します",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Garminのウェアラブルと同期します",
         "name": "Garmin"
@@ -2776,8 +2770,7 @@
       "askFerni": "または、Ferniに何かかけてと頼んでみてくださいね",
       "play": "再生",
       "pause": "一時停止",
-      "skip": "スキップ",
-      "linkSpotify": "曲をフルで再生するには、設定からSpotifyを連携してください"
+      "skip": "スキップ"
     },
     "volume": "音量",
     "skipped": "スキップしました",
@@ -8349,10 +8342,9 @@
     "appleHealthDesc": "睡眠、アクティビティ、心拍数のデータ",
     "ouraDesc": "睡眠の質とレディネス（コンディション）のスコア",
     "eightSleepDesc": "睡眠トラッキングと温度調整",
-    "wearablesDesc": "Fitbit、Garmin、WHOOPなど",
+    "wearablesDesc": "Garmin、WHOOPなど",
     "calendarDesc": "予定、会議、空き時間",
     "linkedInDesc": "仕事の状況やネットワーク",
-    "spotifyDesc": "音楽、気分に合わせたプレイリスト、再生履歴",
     "ecobeeDesc": "自宅の温度と快適さ",
     "vibeControllerDesc": "音楽や照明などのコントロール",
     "connected": "連携済み"
@@ -8829,6 +8821,13 @@
     "exportFailed": "データをエクスポートできませんでした。もう一度お試しになりますか？",
     "deleteDataFailed": "データを削除できませんでした。何も削除されていません。もう一度お試しになりますか？",
     "deleteAccountFailed": "アカウントを削除できませんでした。もう一度お試しになりますか？",
+    "deleteRefusedSignIn": "サインインが受け付けられなかったため、今回のリクエストでは何も削除されていません。もう一度サインインしてから、再度お試しください。",
+    "deleteDataUnknown": "データが削除されたかどうかを確認できませんでした。まだ処理中の可能性があります。数分後にもう一度確認してください。",
+    "deleteDataStillUnknown": "データが削除されたかどうか、まだ確認できません。数分後にもう一度お試しください。",
+    "deleteAccountUnknown": "アカウントが削除されたかどうかを確認できませんでした。まだ処理中の可能性があります。数分後にもう一度確認してください。",
+    "accountStillOpen": "アカウントはまだ有効です。閉じたい場合は、もう一度削除できます。",
+    "accountSignInRefused": "サインインが受け付けられなくなりました。これはアカウントの閉鎖中に起こります。削除していない場合は、もう一度サインインして確認してください。",
+    "authSlow": "サインインを時間内に確認できなかったため、何も送信されていません。もう一度お試しになりますか？",
     "accountDeletedPartial": "アカウントは削除されましたが、一部のデータが残っています。完全に削除するにはお問い合わせください。",
     "categoryConversations": "すべてのお話の文字起こしとメタデータ",
     "categoryInsights": "Ferniがあなたについて学んだこと",
@@ -8982,10 +8981,7 @@
     "trustJourneyExplore": "見てみる",
     "customizeTitle": "体験をカスタマイズする",
     "customizeMessage": "テーマやサウンドなどを調整できます。",
-    "spotifyMessage": "Spotifyを連携して、お話中の気分を盛り上げましょう。",
-    "spotifyConnect": "連携する",
-    "maybeLater": "また今度",
-    "spotifyTitle": "Spotifyと連携する"
+    "maybeLater": "また今度"
   },
   "mentorTeachings": {
     "learningFrom": "学びの源",
@@ -9340,6 +9336,8 @@
   },
   "dataExport": {
     "title": "あなたのデータ",
+    "loadFailed": "保存している内容を今は読み込めませんでした。何も変わっていません。",
+    "checkAgain": "もう一度確認",
     "exportFormat": "エクスポート形式",
     "deleteAll": "すべてのデータを削除",
     "footer": "次に話すときに覚えていられるように、私たちの会話やあなたが話してくれたことを保存しています。消したくなったら、アカウントを削除すればすべて消去されます。",
@@ -10192,7 +10190,6 @@
     "startupError": "起動に問題が発生しています。再読み込みをお試しください。",
     "lastConversation": "これが今月最後のお話です。大切な時間にしましょうね。",
     "gettingReady": "準備をしています...",
-    "connecting": "接続中",
     "almostThere": "あと少しです...",
     "waitingQuietly": "静かにお待ちしていますね",
     "listening": "聴いていますよ",
@@ -10214,7 +10211,6 @@
     "connectFirstToManage": "まずは接続してください。それから管理しましょう。",
     "monthlyLimitReached": "今月の制限に達してしまいました。もっとお話ししたいのですが...",
     "enableMicPrompt": "あなたの声が聴きたいです。マイクへのアクセスを許可していただけますか？",
-    "agentJoined": "{name}が参加しました",
     "seeYouNextTime": "また次回お会いしましょう！",
     "handoffFailed": "今は連絡がつきませんでした。でも、私はここにいますよ！",
     "personaBack": "{name}が戻ってきました！",
@@ -10510,7 +10506,6 @@
     "names": {
       "stockData": "株価データ",
       "marketData": "市場データ",
-      "weatherMaps": "天気と地図",
       "historicalFacts": "歴史的事実",
       "smartHome": "スマートホーム",
       "lighting": "照明",
@@ -10804,10 +10799,14 @@
   "entrance": {
     "helper": "あなた専属のガイド",
     "connectToTalk": "Ferniと話す",
-    "endTalk": "終了",
-    "connectingCancel": "接続中です。タップしてキャンセル",
-    "connectingNow": "接続中…",
-    "tapToCancel": "タップしてキャンセル"
+    "endTalk": "通話を終了",
+    "connectingCancel": "{name}を呼び出し中です。タップしてキャンセル",
+    "connectingNow": "{name}を呼び出し中…",
+    "tapToCancel": "タップしてキャンセル",
+    "stillCalling": "引き続き{name}を呼び出し中…",
+    "stillCallingCancel": "引き続き{name}を呼び出し中です。タップしてキャンセル",
+    "reconnecting": "再接続中…",
+    "arrived": "{name}とつながりました"
   },
   "analyticsDashboard": {
     "title": "あなたの道のり",

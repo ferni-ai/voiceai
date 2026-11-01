@@ -16,7 +16,9 @@ import { withPlayful } from './ferni-playful-turn.js';
 import { withCallTrouble, withCrisisRisk, withSupportHold } from './turn-holds.js';
 import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
-import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
+import { lengthAdaptive, lengthLearned, recentTurns, textureLearned } from './turn-length.js';
+import { substanceOf } from './turn-substance.js';
+import { unlockViewFor } from '../../tools/handoff/locked-teammates.js';
 import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
 import type { TurnShape } from './turn-shape.js';
 import {
@@ -42,11 +44,15 @@ export function styleFor(
   session: object,
   shape: boolean,
   state: { ownStory?: boolean; brief?: boolean } = {},
-  { answering = false, plain = false }: { answering?: boolean; plain?: boolean } = {}
+  {
+    answering = false,
+    plain = false,
+    exitsHeld = false,
+  }: { answering?: boolean; plain?: boolean; exitsHeld?: boolean } = {}
 ): { text: string; turn?: TurnShape } {
   const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
   if (!said) return { text: plain ? SCRIPT_FREE_BASE : TURN_STYLE_REMINDER };
-  const listening = listeningReply(said, chatCtx, session, plain);
+  const listening = listeningReply(said, chatCtx, session, plain, exitsHeld);
   if (listening) return { text: listening };
   // Seeded per call and words: preemptive and final requests agree; another call may differ.
   const { signals, source } = signalsFor(session, said);
@@ -57,7 +63,12 @@ export function styleFor(
   const marked = withHeavyMoment(withPlayful(session, said, quiet), chatCtx);
   const shaped = withLaughCap(session, said, marked); // LAUGH_CAP: no laugh line it would strip
   const troubled = withCrisisRisk(session, said, withCallTrouble(session, said, shaped, source));
-  const { turn, burst } = shapeFor(session, said, troubled, shaped, plain);
+  const sized = withSubstance(troubled, said, chatCtx, session);
+  // exits-held.ts: no "No question this time" line on a held turn.
+  const asked = exitsHeld
+    ? { ...(sized ?? regexSignals(said, callerMove(said))), exitsHeld }
+    : sized;
+  const { turn, burst } = shapeFor(session, said, asked, shaped, plain);
   // At the moment the reply is asked for: what live mode would have had (shadow too).
   const understood = understandingStatusFor(session, said);
   log.info(
@@ -110,6 +121,25 @@ function withRecent(
       : [];
   });
   return { ...(signals ?? regexSignals(said, callerMove(said))), recent: recentTurns(turns) };
+}
+
+/**
+ * TURN_LENGTH=adaptive: whether this turn needs a real answer (turn-substance.ts). Never on a call
+ * with crisis risk, whose length stays learned; a crisis turn itself is never shaped (styleFor).
+ */
+function withSubstance(
+  signals: TurnSignals | undefined,
+  said: string,
+  chatCtx: llm.ChatContext,
+  session: object
+): TurnSignals | undefined {
+  if (!lengthAdaptive()) return signals;
+  const sig = signals ?? regexSignals(said, callerMove(said));
+  if (sig.crisisRisk) return signals;
+  // Who is answering: a specialist asked about their own beat needs substance.
+  const speaker = unlockViewFor((session as { userData?: unknown }).userData).currentAgentId;
+  const substance = substanceOf(said, sig.move, { items: chatCtx.items, speaker });
+  return substance ? { ...sig, substance } : signals;
 }
 
 /**

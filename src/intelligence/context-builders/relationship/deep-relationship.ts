@@ -148,7 +148,7 @@ async function getRelationshipHistory(userId: string): Promise<Partial<Relations
 
     const userData = userDoc.data() as Record<string, unknown> | undefined;
 
-    // MINOR_CARE: never the moments made during a purged held call (shared-moments.ts)
+    // Never an expired moment, or one made during a purged held call (shared-moments.ts)
     const sharedMoments = withoutHeldMoments(
       userId,
       jokesSnapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data())

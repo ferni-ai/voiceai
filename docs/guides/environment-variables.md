@@ -23,10 +23,25 @@ cp .env.example .env
 
 ### AI Services
 
-| Variable           | Description           | Example   |
-| ------------------ | --------------------- | --------- |
-| `GOOGLE_API_KEY`   | Google Gemini API key | `AIza...` |
-| `CARTESIA_API_KEY` | Cartesia TTS API key  | `sk-...`  |
+| Variable               | Description                                                      | Example           |
+| ---------------------- | ---------------------------------------------------------------- | ----------------- |
+| `GOOGLE_CLOUD_PROJECT` | Gemini runs on Vertex AI in this project (ADC credentials)       | `your-project-id` |
+| `GEMINI_LOCATION`      | Vertex location for Gemini (default `global`; keep it in the US) | `global`          |
+| `CARTESIA_API_KEY`     | Cartesia TTS API key                                             | `sk-...`          |
+
+Gemini calls go through the shared client (`getGeminiClient()` in
+`src/config/gemini-config.ts`), which uses Vertex when `USE_VERTEX_AI` is not
+`false`. The semantic router's LLM fallback (`ROUTER_LLM_VERTEX`), dynamic
+greetings (`DYNAMIC_GREETING`), humanization (`HUMANIZATION_LLM`) and the memory
+cross-encoder no longer read `GOOGLE_API_KEY` or `GEMINI_API_KEY`. The three
+flags default off: the turn waits on those calls. Do not send user text through the
+unpaid Gemini API tier: its terms bar sensitive data and users under 18.
+
+`GOOGLE_API_KEY` is still read by a few paths not yet moved (semantic-router
+embeddings, the embedding matcher, memory vector embeddings, call-transcript
+intelligence, chat routes, content generation, outbound calls, the self-healing
+health check) and as the off-Vertex fallback
+when `USE_VERTEX_AI=false`.
 
 ---
 
@@ -144,6 +159,34 @@ Uses same Twilio credentials as SMS, plus optional:
 
 ## Third-Party Integrations (Optional)
 
+### Google Maps Platform (geocoding, traffic, directions, weather, Places)
+
+Every Maps-family call takes its key from one resolver, `googleMapsKey()` in
+`src/config/google-maps-key.ts`, read per call. `GOOGLE_MAPS_SERVER_KEY` (secret
+`google-maps-server-key` in project `johnb-2025`, API-restricted to Weather, Routes,
+Geocoding and Places, created 2026-10-30) wins for every caller. Until it is mounted,
+each caller falls back to exactly the names it read before (`MAPS_KEY_LEGACY`):
+
+| Caller | Fallback after `GOOGLE_MAPS_SERVER_KEY` |
+| ------ | --------------------------------------- |
+| Traffic, directions, capability checker | `GOOGLE_MAPS_API_KEY`, then `GOOGLE_API_KEY` |
+| Geocoding, weather | `GOOGLE_API_KEY` only |
+| Places (local search, restaurants, concierge discovery) | `GOOGLE_PLACES_API_KEY`, then `GOOGLE_API_KEY` |
+| Anticipation travel time, integration hub `google_maps` | `GOOGLE_MAPS_API_KEY` only |
+| Rideshare estimates | `GOOGLE_API_KEY`, read directly (not on the resolver; #3103 removes the file) |
+
+`GOOGLE_MAPS_API_KEY` comes from secret `google-maps-api-key`, which Google currently
+rejects (`REQUEST_DENIED`). `GOOGLE_API_KEY` is also the Gemini key; don't rely on it for Maps.
+
+The fallbacks keep today's behaviour until `GOOGLE_MAPS_SERVER_KEY` is mounted on the
+agent and the UI server. Mounting it is a deploy step, not a code change. Only the env
+name (`googleMapsKeySource()`) is ever logged, never the key.
+
+When the key is missing or Google rejects it, the caller hears an honest "I can't look up
+directions right now", not a line that blames the addresses. Lookups log a typed outcome:
+`unconfigured`, `unauthorized` (HTTP 401/403 or `REQUEST_DENIED`), `rate_limited`,
+`unreachable`, `no_data`.
+
 ### Google Calendar ⭐ CRITICAL for Smart Timing
 
 Required for: Calendar integration, smart outreach timing, appointment scheduling
@@ -230,9 +273,9 @@ Without these, reservations fall back to phone calls via Twilio.
 2. Add redirect URI matching your production URL
 3. Set `SPOTIFY_REDIRECT_URI` environment variable to match
 
-### Apple Services (MusicKit & WeatherKit)
+### Apple MusicKit
 
-For Apple Music search and premium weather data:
+For Apple Music search:
 
 | Variable            | Required | Description                                     |
 | ------------------- | -------- | ----------------------------------------------- |
@@ -245,7 +288,7 @@ For Apple Music search and premium weather data:
 
 1. Go to [Apple Developer Account](https://developer.apple.com/account/)
 2. Navigate to **Keys** → **Create a Key**
-3. Enable **MusicKit** and **WeatherKit**
+3. Enable **MusicKit**
 4. Download the `.p8` private key file
 5. Add to `.env`:
 
@@ -257,30 +300,25 @@ MIGTAgEAMBMGByq...
 -----END PRIVATE KEY-----"
 ```
 
-**Free Tier:** Apple Developer account ($99/year) includes:
-- MusicKit: 25,000 API calls/month
-- WeatherKit: 500,000 API calls/month
+**Free Tier:** Apple Developer account ($99/year) includes MusicKit: 25,000 API calls/month.
 
-### Home Assistant (Smart Home)
+### Apple WeatherKit (REST)
 
-Control smart home devices via Home Assistant:
+`src/services/apple/weatherkit.ts`. Its own key and a Services ID, so it never
+shares env names with APNs, Sign in with Apple or MusicKit. Without all four it
+returns `unconfigured` and calls nothing.
 
-| Variable               | Required | Description                              |
-| ---------------------- | -------- | ---------------------------------------- |
-| `HOME_ASSISTANT_URL`   | ✓        | Your Home Assistant URL                  |
-| `HOME_ASSISTANT_TOKEN` | ✓        | Long-lived access token                  |
+| Variable                 | Secret Manager (`johnb-2025`) | Description                                         |
+| ------------------------ | ----------------------------- | --------------------------------------------------- |
+| `APPLE_TEAM_ID`          | `apple-team-id`               | 10-character Team ID (JWT `iss`, first half of `id`) |
+| `WEATHERKIT_KEY_ID`      | `weatherkit-key-id`           | Key ID of a key with WeatherKit enabled (JWT `kid`)  |
+| `WEATHERKIT_SERVICE_ID`  | `weatherkit-service-id`       | The registered Services ID (JWT `sub`)               |
+| `WEATHERKIT_PRIVATE_KEY` | `weatherkit-private-key`      | The key's `.p8` PEM contents (`\n` escapes accepted) |
 
-**Setup:**
-
-1. Set up [Home Assistant](https://www.home-assistant.io/)
-2. Go to your profile → **Long-Lived Access Tokens**
-3. Create a new token
-4. Add to `.env`:
-
-```bash
-HOME_ASSISTANT_URL=http://homeassistant.local:8123
-HOME_ASSISTANT_TOKEN=eyJhbGciOi...your-long-token...
-```
+Licence (Apple Developer Program License Agreement, Attachment 8): show the
+Apple Weather attribution and legal link the client returns with every result,
+pass severe weather alerts through verbatim with the issuing agency, and do not
+cache weather data beyond temporary use. 500,000 calls/month are included.
 
 ---
 
@@ -381,8 +419,8 @@ LIVEKIT_URL=wss://your-project.livekit.cloud
 LIVEKIT_API_KEY=APIxxxxxxxx
 LIVEKIT_API_SECRET=xxxxxxxxxxxx
 
-# AI Services
-GOOGLE_API_KEY=AIza...
+# AI Services (Gemini on Vertex AI through ADC; no API key)
+GOOGLE_CLOUD_PROJECT=your-project-id
 CARTESIA_API_KEY=sk-...
 
 # ============================================================================
@@ -498,7 +536,7 @@ npx vitest run src/tests/integration/scheduling-e2e.test.ts
 
 ```bash
 echo $LIVEKIT_URL
-echo $GOOGLE_API_KEY
+echo $GOOGLE_CLOUD_PROJECT
 echo $SENDGRID_API_KEY
 echo $TWILIO_ACCOUNT_SID
 ```
@@ -510,7 +548,7 @@ echo $TWILIO_ACCOUNT_SID
 ### ✅ Core (Required)
 
 - [ ] `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`
-- [ ] `GOOGLE_API_KEY` (Gemini LLM)
+- [ ] `GOOGLE_CLOUD_PROJECT` + ADC (Gemini on Vertex AI)
 - [ ] `CARTESIA_API_KEY` (TTS)
 
 ### ✅ Communication (Required for full features)

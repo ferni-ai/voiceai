@@ -18,6 +18,14 @@
  * With no live call in this process it returns false and the result stays in
  * While You Were Away for the next call.
  *
+ * The owner's call may be in another worker than the one that captures the
+ * result (LiveKit Cloud runs each call as its own job), so the call that placed
+ * it also watches the result (call-result-watch.ts). Both paths claim the report
+ * on the call record (`liveReport`, live-report-record.ts) first, so the owner
+ * hears it once, and once it is heard it is delivered for the opener; neither
+ * speaks while the owner's call has crisis risk (crisis-call-risk.ts): the
+ * result waits for the next call's opener.
+ *
  * @module services/outreach/call-result-live
  */
 import { flagOn } from '../../config/env-flag.js';
@@ -31,6 +39,8 @@ import {
 } from './caller-text.js';
 import { callResultDetails } from './call-result-text.js';
 import { liveSessionFor } from '../../tools/registry/live-session.js';
+import { crisisRiskThisCall } from '../safety/index.js';
+import { claimVoiceReport, markLiveReportSpoken } from './live-report-record.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
 
 const log = createLogger({ module: 'call-result-live' });
@@ -68,10 +78,55 @@ export function liveReportMessage(contactName: string, outcome: CallOutcome): st
   ].join('\n');
 }
 
+/** A stored call result's outcome, when it has one Ferni can report. */
+export function reportableOutcome(value: unknown): CallOutcome | null {
+  const outcome = (value as { outcome?: Partial<CallOutcome> } | null | undefined)?.outcome;
+  return outcome && typeof outcome.status === 'string' && outcome.status in STATUS_LINE
+    ? (outcome as CallOutcome)
+    : null;
+}
+
+type LiveTold = 'handed' | 'crisis_hold' | 'already_told' | 'not_handed';
+
 /**
- * Tell the owner in their live call. True when that call is on in this process
- * and the report was handed to its speaker (CALL_ALERT_SPOKEN / _DROPPED log
- * whether it was heard); false when there is no such call.
+ * Tell the owner in this live call, once: not on a call with crisis risk (held for
+ * the next opener, re-checked when the speaker has its pause), and only if this
+ * path wins the claim. Heard (CALL_ALERT_SPOKEN), it is marked delivered by voice.
+ * Never throws.
+ */
+export async function tellLiveOnce(call: {
+  session: object;
+  sessionId: string;
+  userId: string;
+  contactName: string;
+  outcome: CallOutcome;
+}): Promise<LiveTold> {
+  const { session, sessionId, userId, outcome } = call;
+  try {
+    const crisis = (): boolean => crisisRiskThisCall(sessionId);
+    if (crisis()) return 'crisis_hold';
+    if (!(await claimVoiceReport(userId, outcome.callId))) return 'already_told';
+    const handed = await triggerVoiceCallback({
+      type: 'call_outcome',
+      userId,
+      message: liveReportMessage(call.contactName, outcome),
+      priority: 'high',
+      session,
+      holdIf: crisis,
+      onSpoken: () => void markLiveReportSpoken(userId, outcome.callId),
+    });
+    return handed ? 'handed' : 'not_handed';
+  } catch (error) {
+    log.warn({ callId: outcome.callId, error: String(error) }, 'CALL_RESULT_LIVE_REPORT failed');
+    return 'not_handed';
+  }
+}
+
+/**
+ * Tell the owner in their live call. True when that call is on in this process:
+ * the report is claimed and handed to its speaker (CALL_ALERT_SPOKEN / _DROPPED log
+ * whether it was heard), or held for the next opener on crisis risk; false when
+ * there is no such call.
  */
 export function reportCallResultLive(request: OnBehalfCallRequest, outcome: CallOutcome): boolean {
   const session = liveSessionFor(request.originalSessionId);
@@ -79,19 +134,13 @@ export function reportCallResultLive(request: OnBehalfCallRequest, outcome: Call
     log.info({ callId: outcome.callId }, 'CALL_RESULT_LIVE_REPORT: owner not live here');
     return false;
   }
-  const contactName = request.resolvedContact?.name || request.contactQuery;
-  const handed = triggerVoiceCallback({
-    type: 'call_outcome',
-    userId: request.userId,
-    message: liveReportMessage(contactName, outcome),
-    priority: 'high',
-    session,
-  });
   // The speaker waits for a pause; the rest of the capture (stores, email) does not wait on it.
-  void handed.then(
-    (ok) => log.info({ callId: outcome.callId, handed: ok }, 'CALL_RESULT_LIVE_REPORT'),
-    (error: unknown) =>
-      log.warn({ callId: outcome.callId, error: String(error) }, 'CALL_RESULT_LIVE_REPORT failed')
-  );
+  void tellLiveOnce({
+    session,
+    sessionId: request.originalSessionId,
+    userId: request.userId,
+    contactName: request.resolvedContact?.name || request.contactQuery,
+    outcome,
+  }).then((told) => log.info({ callId: outcome.callId, told }, 'CALL_RESULT_LIVE_REPORT'));
   return true;
 }

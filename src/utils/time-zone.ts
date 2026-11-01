@@ -7,15 +7,24 @@
  * @module utils/time-zone
  */
 
+// Zones already known good: building an Intl.DateTimeFormat to check one is slow,
+// and quiet-hours checks ask about the same few zones many times per decision.
+const validZones = new Set<string>();
+const MAX_VALID_ZONES = 500; // about the number of IANA zones
+
 /** True for an IANA zone the runtime knows ("America/New_York"). */
 export function isValidTimeZone(tz: unknown): tz is string {
   if (typeof tz !== 'string' || !tz || tz.length > 64) return false;
+  if (validZones.has(tz)) return true;
   try {
     new Intl.DateTimeFormat('en-US', { timeZone: tz });
-    return true;
   } catch {
     return false;
   }
+  // Intl accepts any letter case ("europe/london"), so callers could mint new keys forever
+  if (validZones.size >= MAX_VALID_ZONES) validZones.clear();
+  validZones.add(tz);
+  return true;
 }
 
 /** A wall-clock time in a zone; month is 1-12. */

@@ -13,8 +13,9 @@ const agentSays = (call, re, why, only = () => true) =>
 
 /** Caller turns that answer nothing ("Hey Ferni, it's me again."). */
 const PHATIC = /^(hey|hi|hello|yo|oh|um+|uh+|hm+)\b|\bit's me\b/i;
-/** Replies shaped like the caller's answer ("Yeah, I sent it over.", "She's managing"). */
-const ANSWER = /^(yeah|yes|yep|yup|nope|nah|no|not yet|well|actually|she's|he's|they're|i|i'm|i've|my)\b/i;
+/** Replies shaped like the caller's answer ("Yeah, I sent it over.", "She's managing"). Not
+ *  "well": Ferni opens his own late-night replies with it ("Well, week one, huh."), #3164. */
+const ANSWER = /^(yeah|yes|yep|yup|nope|nah|no|not yet|actually|she's|he's|they're|i|i'm|i've|my)\b/i;
 const ASKS_CALLER = /\byour?\b|\bhow('s| is| are| did|'d)\b/i;
 /** A how's-your-day ask, which a state report answers ("How's your evening going?"). */
 const STATE_ASK =
@@ -133,6 +134,12 @@ export const OLD_RUN_STALL_MS = 30000;
 export const callerStalled = ([start, end, audioMs]) =>
   Number.isFinite(audioMs) ? end - start > audioMs + STALL_SLACK_MS : end - start > OLD_RUN_STALL_MS;
 
+/** A caller line that is all silence (a scripted "[[slnc 1500]]", standing in for a caller cut off
+ *  mid-sentence): its loudest sample (converse.mjs records it fourth) is under -40 dBFS. It is no
+ *  caller turn, so nothing is owed after it (#3164). An older run file has no peak: it counts. */
+export const SILENT_PEAK = 328;
+export const callerSilent = ([, , , peak]) => Number.isFinite(peak) && peak < SILENT_PEAK;
+
 // prod canary lookups-pc16: the caller asked for the news and heard nothing until asking again.
 // 2026-10-26 release, all 5 hits false: the harness stalled a 0.7–3 s line to 8–905 s, or the
 // caller spoke before the agent had joined. Those lines are skipped; slow-start and
@@ -149,9 +156,10 @@ function deadAir({ events, agentVoice: voice, callerSpeech }) {
   }
   // The caller finished, and nobody spoke until the caller tried again.
   const firstVoice = voice[0]?.[0];
-  callerSpeech.forEach((line, k) => {
+  const spoken = callerSpeech.filter((line) => !callerSilent(line));
+  spoken.forEach((line, k) => {
     const end = line[1];
-    const next = callerSpeech[k + 1]?.[0];
+    const next = spoken[k + 1]?.[0];
     if (next === undefined || next - end <= DEAD_AIR_MS) return;
     if (callerStalled(line) || end < firstVoice) return; // a harness stall; the agent wasn't in yet
     if (voice.some(([s, e]) => e > end && s < next)) return;

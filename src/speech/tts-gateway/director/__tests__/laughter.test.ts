@@ -1,5 +1,5 @@
 /**
- * The laughter lever (SPEECH_DIRECTOR_LAUGHTER=off|shadow|live, opt-in).
+ * The laughter lever: follows SPEECH_DIRECTOR; SPEECH_DIRECTOR_LAUGHTER=off|shadow lowers it.
  * `[laughter]` is the one nonverbal Cartesia documents. The Director reuses
  * the existing decision rules (speech/adaptive-ssml/contextual-laughter.ts
  * decideLaughter: no laughter on heavy topics, a distressed user or a
@@ -24,7 +24,7 @@ class Recorder implements ReplyStream {
   async *[Symbol.asyncIterator](): AsyncGenerator<ArrayBuffer> {}
 }
 
-const LIVE = { SPEECH_DIRECTOR: 'live', SPEECH_DIRECTOR_LAUGHTER: 'live' };
+const LIVE = { SPEECH_DIRECTOR: 'live' };
 const TEASE = ["I'm just teasing you, you know that. ", 'Anyway, how was the weekend?'];
 let sid = 0;
 
@@ -85,8 +85,11 @@ describe('laughter lever', () => {
     expect(summary.laughter).toBeDefined();
   });
 
-  it('is opt-in: nothing with SPEECH_DIRECTOR=live alone', async () => {
-    const { all } = await reply(TEASE, { SPEECH_DIRECTOR: 'live' });
+  it('SPEECH_DIRECTOR_LAUGHTER=off lowers it below the Director: nothing', async () => {
+    const { all } = await reply(TEASE, {
+      SPEECH_DIRECTOR: 'live',
+      SPEECH_DIRECTOR_LAUGHTER: 'off',
+    });
     expect(count(all)).toBe(0);
   });
 

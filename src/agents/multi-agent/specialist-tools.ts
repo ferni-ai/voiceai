@@ -25,7 +25,7 @@ import {
 const log = createLogger({ module: 'specialist-tools' });
 
 /** agent-setup.ts adds findTools (live retrieval) and endCall (on-behalf calls) after the cap. */
-const ADDED_AFTER_CAP = 2;
+export const ADDED_AFTER_CAP = 2;
 
 /** The most tools a specialist's set may hold, so the final set stays within 64. */
 export function specialistToolLimit(): number {
@@ -40,20 +40,22 @@ export function specialtyFor(agentId: string): Readonly<Record<string, ToolDomai
 }
 
 /**
- * From `tools`, in this order: the core tools, the always-kept tools and the
+ * From `tools`, in this order: the `core` tools, the always-kept tools and the
  * teammate tools (handoffs, askForTeammate), then `specialty`, all within
  * `limit`. Only specialty tools are ever dropped for room, from the end.
+ * PERSONA_TOOLSETS passes its own core (persona-toolsets.ts).
  */
 export function pickSpecialistSet<T>(
   tools: Record<string, T>,
   specialty: readonly string[],
-  limit: number
+  limit: number,
+  core: readonly string[] = Object.keys(SPECIALIST_CORE_TOOLS)
 ): Record<string, T> {
   const kept: Record<string, T> = {};
   const keep = (name: string): void => {
     if (name in tools && !(name in kept)) kept[name] = tools[name];
   };
-  Object.keys(SPECIALIST_CORE_TOOLS).forEach(keep);
+  core.forEach(keep);
   SPECIALIST_KEEP_IF_PRESENT.forEach(keep);
   Object.keys(tools).filter(isTeammateTool).forEach(keep);
   const dropped: string[] = [];

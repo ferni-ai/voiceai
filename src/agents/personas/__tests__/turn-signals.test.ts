@@ -21,7 +21,7 @@ const understood = (over: Partial<Understanding> = {}): Understanding => ({
   reaction: null,
   ...over,
 });
-const ALL_ON = { HUMAN_TEXTURE: 'on', LAUGH_ALONG: 'on', ASK_ADVICE: 'on' };
+const ALL_ON = { LAUGH_ALONG: 'on', ASK_ADVICE: 'on' };
 /** 0.5 picks a one-sentence shape (0 would pick "react", which never adds a story); then 0. */
 const oneThenZero = () => {
   let first = true;
@@ -80,7 +80,6 @@ describe('model signals drive the turn', () => {
   });
 
   it('is plain when the model has nothing in time: no laugh, no aside', () => {
-    vi.stubEnv('HUMAN_TEXTURE', 'on');
     vi.stubEnv('ASK_ADVICE', 'on');
     const out = extrasFor(
       'my cat is plotting against me',

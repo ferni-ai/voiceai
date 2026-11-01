@@ -36,7 +36,7 @@ vi.mock('../services/superhuman/firestore-utils.js', async (importOriginal) => {
     getFirestoreDb: () => sharedNestedFirestore.db,
   };
 });
-// External senders only: the guarded text sender (installed below), SendGrid email,
+// External senders only: the guarded text sender (installed below), Workspace email,
 // the outbound call. The old unguarded sendReminder must never be used.
 const sent = vi.fn(async (_to: string, _text: string) => 'Reminder sent');
 const unguarded = vi.fn(async () => 'Reminder sent');

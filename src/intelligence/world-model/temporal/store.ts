@@ -30,6 +30,9 @@ function defined<T extends object>(value: T): T {
   return Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined)) as T;
 }
 
+/** The database the world_facts store writes to; the facts dual-write (ingest.ts) uses it too. */
+export const worldFactsDb = (): Firestore | null => getFirestoreDb();
+
 export function createFirestoreWorldFactStore(
   getDb: () => Firestore | null = getFirestoreDb
 ): WorldFactStore {

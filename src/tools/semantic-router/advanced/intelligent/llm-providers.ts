@@ -21,8 +21,12 @@ import {
   GEMINI_TEMPERATURE_LOW,
   LLM_TIMEOUT_MS,
   OPENAI_FALLBACK_MODEL,
+  isGeminiConfigured,
 } from '../../../../config/gemini-config.js';
+import { flagOn } from '../../../../config/env-flag.js';
+import { GeminiUnavailableError, generateText } from '../../../../config/generative-model.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { errorFields } from '../../../../utils/error-class.js';
 import type { GoalPlannerLLMProvider, ToolDefinition as PlannerTool } from './goal-planner.js';
 import type { LLMProvider as FallbackLLMProvider, ToolCandidate } from './llm-fallback.js';
 import type { ReActLLMProvider, ToolDescription as ReActTool } from './react-reasoning.js';
@@ -173,9 +177,10 @@ Respond in JSON:
 /**
  * Create a Gemini-based LLM provider
  */
-export function createGeminiProvider(config: LLMProviderConfig): UnifiedLLMProvider {
+export function createGeminiProvider(
+  config: Omit<LLMProviderConfig, 'apiKey'> = {}
+): UnifiedLLMProvider {
   const {
-    apiKey,
     model = GEMINI_MODEL,
     temperature = GEMINI_TEMPERATURE_LOW, // Low temp for routing/classification
     maxTokens = GEMINI_MAX_OUTPUT_TOKENS,
@@ -183,38 +188,28 @@ export function createGeminiProvider(config: LLMProviderConfig): UnifiedLLMProvi
   } = config; // All defaults from centralized gemini-config.ts
 
   async function callGemini(prompt: string): Promise<string> {
+    // Off: fail fast, as the dead API key did, so callers keep their non-LLM path
+    if (!flagOn('ROUTER_LLM_VERTEX')) throw new GeminiUnavailableError('ROUTER_LLM_VERTEX is off');
     const startTime = performance.now();
 
     try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature,
-              maxOutputTokens: maxTokens,
-              responseMimeType: 'application/json',
-            },
-          }),
-          signal: AbortSignal.timeout(timeoutMs),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      // Vertex through the shared client; throws GeminiUnavailableError / GeminiCallError
+      const text = await generateText({
+        model,
+        prompt,
+        generationConfig: {
+          temperature,
+          maxOutputTokens: maxTokens,
+          responseMimeType: 'application/json',
+        },
+        timeoutMs,
+      });
 
       log.debug({ model, latencyMs: performance.now() - startTime }, 'Gemini call complete');
 
       return text;
     } catch (error) {
-      log.error({ error, model }, 'Gemini call failed');
+      log.error({ ...errorFields(error), model }, 'Gemini call failed');
       throw error;
     }
   }
@@ -693,11 +688,9 @@ export function createLLMProvider(
  * Auto-detect and create provider from environment
  */
 export function createProviderFromEnv(): UnifiedLLMProvider | null {
-  // Prefer GEMINI_API_KEY for LLM, fallback to GOOGLE_API_KEY
-  const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  if (geminiKey) {
-    log.info('Using Gemini provider (auto-detected from GEMINI_API_KEY or GOOGLE_API_KEY)');
-    return createGeminiProvider({ apiKey: geminiKey });
+  if (isGeminiConfigured()) {
+    log.info('Using Gemini provider (Vertex through the shared client)');
+    return createGeminiProvider();
   }
 
   if (process.env.OPENAI_API_KEY) {

@@ -10,6 +10,11 @@ import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { withoutHeldAt, madeWhileHeld } from '../../../utils/held-window-check.js';
 import { writeHeld } from '../../../utils/minor-care.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import {
+  clampMomentWords,
+  momentExpireAt,
+  unexpiredMoments,
+} from '../../../utils/shared-moment-retention.js';
 
 const log = createLogger({ module: 'SharedMoments' });
 
@@ -26,13 +31,16 @@ export function forgetReadMoments(userId: string): void {
   for (const forget of readCaches) forget(userId);
 }
 
-/** These stored moments minus the ones made during a purged held call. */
+/** These stored moments minus the expired ones and the ones made during a purged held call. */
 export const withoutHeldMoments = <T extends Record<string, unknown>>(
   userId: string,
   moments: T[]
-) => withoutHeldAt(userId, moments, (m) => m.createdAt);
+) => withoutHeldAt(userId, unexpiredMoments(moments), (m) => m.createdAt);
 
-/** Record a shared moment (joke, phrase, callback moment). A held caller gets none. */
+/**
+ * Record a shared moment (joke, phrase, callback moment). A held caller gets none. It keeps 80
+ * characters of what they said and expires in a year (shared-moment-retention.ts).
+ */
 export async function recordSharedMoment(
   userId: string,
   moment: {
@@ -48,19 +56,20 @@ export async function recordSharedMoment(
   try {
     const momentId = `moment_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const ref = userDocs(userId).doc(momentId);
-    await ref.set(
-      cleanForFirestore({
+    await ref.set({
+      ...cleanForFirestore({
         id: momentId,
         type: moment.type,
-        content: moment.content,
-        origin: { whatTheySaid: moment.whatTheySaid, timestamp: new Date() },
+        content: clampMomentWords(moment.content),
+        origin: { whatTheySaid: clampMomentWords(moment.whatTheySaid), timestamp: new Date() },
         triggers: moment.triggers || [],
         significance: moment.significance || 'warm',
         callbackCount: 0,
         callbackReception: 'unknown',
         createdAt: new Date(),
-      })
-    );
+      }),
+      expireAt: momentExpireAt(), // a Date, so Firestore keeps a Timestamp the TTL policy reads
+    });
     log.info({ userId, momentId, type: moment.type }, '💫 Shared moment recorded');
   } catch (err) {
     log.debug({ error: String(err) }, 'Could not record shared moment');

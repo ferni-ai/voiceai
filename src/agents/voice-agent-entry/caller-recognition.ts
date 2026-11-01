@@ -24,7 +24,14 @@
  *
  * @module agents/voice-agent-entry/caller-recognition
  */
-import { bindSessionPhone, setVerifiedOwnerCheck } from '../../utils/minor-care.js';
+import {
+  bindSessionPhone,
+  holdSession,
+  setOnPhoneBound,
+  setVerifiedOwnerCheck,
+} from '../../utils/minor-care.js';
+import { phoneHoldId } from '../../services/outreach/checkin-replies.js';
+import { sharedHeldStrict } from '../../services/outreach/minor-care-shared-hold.js';
 import {
   beginReturningCaller,
   returningCallerEnabled,
@@ -201,6 +208,21 @@ function bindParticipantPhone(sessionId: string, p: SipParticipantLike | undefin
   return !!e164;
 }
 
+/**
+ * MINOR_CARE_SHARED_HOLD: a call from a number with a live hold (minor_care_holds/phone#<hash>, the
+ * key minor-care-purge's shareHold writes) is held from when the number is bound here, at the start
+ * or by a late SIP join, whether or not the caller says their age again: every phone call gets a
+ * fresh anon: id, so only the number links it to the held call (dev soak 2026-10-27: 89 docs).
+ * Fail closed (sharedHeldStrict): a record not read within STRICT_READ_MS holds the call. What was
+ * written before is dropped by the end-of-call purge. Flag off: no read. Registered here, where
+ * every number is bound, so no load order can skip it.
+ */
+async function holdIfNumberHeld(sessionId: string, e164: string): Promise<void> {
+  const phoneId = phoneHoldId(e164); // undefined without LOG_HASH_SECRET: no record can exist
+  if (phoneId && (await sharedHeldStrict(phoneId))) holdSession(sessionId);
+}
+setOnPhoneBound((sessionId, e164) => void holdIfNumberHeld(sessionId, e164));
+
 /** How long a call keeps listening for its SIP caller's number after identification. */
 export const PHONE_WATCH_MS = 30_000;
 
@@ -250,6 +272,20 @@ export function sessionIsVerifiedOwner(sessionId: string): boolean {
 }
 // MINOR_CARE (minor-care.ts, a lower layer) asks this before holding a session's memory.
 setVerifiedOwnerCheck(sessionIsVerifiedOwner);
+
+/**
+ * The person on the line is proven to be the account owner, for anything that
+ * brings the account's private history into the call (CALL_KNOWS_RECENT_TEXTS).
+ * A phone session counts only when recognition says 'known': a call Ferni
+ * placed to their number can be answered by anyone, and a dispatch that names
+ * the account says nothing about who picked up. Any other session counts only
+ * with an authenticated dispatch (a signed-in app user).
+ */
+export function ownerProvenOnLine(sessionId: string, phoneCall: boolean): boolean {
+  const recognition = callerRecognitionFor(sessionId);
+  if (phoneCall || recognition) return recognition?.status === 'known';
+  return namedByDispatch.has(sessionId);
+}
 
 /** A session known only by its phone number: only conversational tools are open. */
 export function phoneOnlyIdentity(sessionId: string | undefined): boolean {

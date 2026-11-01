@@ -64,14 +64,13 @@ export interface LLMCallOptions {
   maxTokens?: number;
   temperature?: number;
   timeout?: number;
-  /** Retry a Vertex 429 three times (0.5s, 1s, 2s). Default: LLM_RETRY_429=on. */
+  /** Retry a Vertex 429 three times (0.5s, 1s, 2s). Default: no retry. */
   retry429?: boolean;
   task?: LLMTask; // CLAUDE_LLM_TASKS can route this background job to Claude first
 }
 
 const is429 = (error: unknown): boolean => /429|RESOURCE_EXHAUSTED/.test(String(error));
-const retries429 = (o: LLMCallOptions): number =>
-  (o.retry429 ?? process.env.LLM_RETRY_429 === 'on') ? 3 : 0;
+const retries429 = (o: LLMCallOptions): number => (o.retry429 ? 3 : 0);
 
 // ============================================================================
 // VERTEX AI (Primary) - Enterprise tier with higher quotas

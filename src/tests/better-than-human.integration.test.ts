@@ -299,7 +299,7 @@ describe('Speech State Dispatcher', () => {
 // TRUST MOMENT WRITE-THROUGH
 // ============================================================================
 
-describe('Trust Moment Write-Through', () => {
+describe('Trust Moments', () => {
   it('exports recordTrustMoment function', async () => {
     const { recordTrustMoment } = await import('../services/trust-systems/unified-recorder.js');
     expect(typeof recordTrustMoment).toBe('function');

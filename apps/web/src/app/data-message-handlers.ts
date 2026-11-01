@@ -1984,15 +1984,8 @@ function handleProactiveOutreach(message: DataMessage & { data: ProactiveOutreac
       playMicroExpression('concern_flash');
       ferniExpressions.setExpression('holdingSpace', 500, 2500);
     }, 300);
-
-    // 🤲 Sidekick: Check if this is a birthday or anniversary reminder
-    const contextLower = (outreach.context || '').toLowerCase();
-    const messageLower = (outreach.message || '').toLowerCase();
-    if (contextLower.includes('birthday') || messageLower.includes('birthday')) {
-      document.dispatchEvent(new CustomEvent('ferni:birthday-reminder'));
-    } else if (contextLower.includes('anniversary') || messageLower.includes('anniversary')) {
-      document.dispatchEvent(new CustomEvent('ferni:anniversary-reminder'));
-    }
+    // No party props here: a life event is often a loss ("since Mom died,
+    // the birthday is hard"), and his face is holding space.
   } else if (outreach.type === 'celebration' || outreach.type === 'growth_reflection') {
     // Something good happened - celebrate!
     setTimeout(() => {

@@ -1273,8 +1273,6 @@
       "notifications": "Quand je fais mes check-ins",
       "toggleTheme": "Clair / Sombre",
       "themeLanguage": "Apparence",
-      "linkSpotify": "Connecter Spotify",
-      "spotifyConnected": "Spotify connecté",
       "vibeController": "Installe la vibe",
       "spotifyRooms": "Salons de musique",
       "thermostat": "Confort de la maison",
@@ -1883,9 +1881,9 @@
     "disconnected": "Hors ligne",
     "end": "Fin",
     "endConversation": "Terminer la conversation",
-    "endConversationGoodbye": "Terminer la conversation - Au revoir",
+    "goodbyeEndCall": "Au revoir. Raccrocher.",
     "endSession": "Terminer la session",
-    "ending": "Fermeture...",
+    "ending": "Appel terminé",
     "goodbye": "Au revoir",
     "holdToSpeak": "Maintenir pour parler",
     "listening": "À l'écoute...",
@@ -1895,7 +1893,7 @@
     "takeCare": "Prends soin de toi.",
     "tapToSpeak": "Appuyer pour parler",
     "thinking": "Réflexion...",
-    "untilNextTime": "À la prochaine..."
+    "untilNextTime": "À la prochaine"
   },
   "stages": {
     "acquaintance": "Connaissance",
@@ -2438,10 +2436,6 @@
         "description": "Synchronise tes données de santé avec ton Apple Watch et ton iPhone",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Connecte ton appareil Fitbit",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Synchronise tes objets connectés Garmin",
         "name": "Garmin"
@@ -2795,8 +2789,7 @@
       "askFerni": "Ou demande à Ferni de jouer quelque chose",
       "play": "Lecture",
       "pause": "Pause",
-      "skip": "Passer",
-      "linkSpotify": "Associe Spotify dans les paramètres pour écouter les morceaux en entier"
+      "skip": "Passer"
     },
     "volume": "Volume",
     "skipped": "Passé",
@@ -8398,10 +8391,9 @@
     "appleHealthDesc": "Données de sommeil, d'activité et de fréquence cardiaque",
     "ouraDesc": "Qualité du sommeil et score de préparation",
     "eightSleepDesc": "Suivi du sommeil et température",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP et plus encore",
+    "wearablesDesc": "Garmin, WHOOP et plus encore",
     "calendarDesc": "Événements, réunions et disponibilités",
     "linkedInDesc": "Contexte professionnel et réseau",
-    "spotifyDesc": "Musique, playlists selon ton humeur et historique d'écoute",
     "ecobeeDesc": "Température et confort de la maison",
     "vibeControllerDesc": "Contrôle ta musique, tes lumières et plus encore",
     "connected": "Connecté"
@@ -8898,6 +8890,13 @@
     "exportFailed": "Impossible d'exporter tes données. Veux-tu réessayer ?",
     "deleteDataFailed": "Impossible de supprimer tes données. Rien n'a été retiré. Veux-tu réessayer ?",
     "deleteAccountFailed": "Impossible de supprimer ton compte. Veux-tu réessayer ?",
+    "deleteRefusedSignIn": "Ta connexion n'a pas été acceptée, donc cette demande n'a rien supprimé. Reconnecte-toi, puis réessaie.",
+    "deleteDataUnknown": "Impossible de confirmer si tes données ont été supprimées. C'est peut-être encore en cours ; vérifie à nouveau dans quelques minutes.",
+    "deleteDataStillUnknown": "Toujours impossible de confirmer si tes données ont été supprimées. Réessaie dans quelques minutes.",
+    "deleteAccountUnknown": "Impossible de confirmer si ton compte a été supprimé. C'est peut-être encore en cours ; vérifie à nouveau dans quelques minutes.",
+    "accountStillOpen": "Ton compte est toujours ouvert. Si tu veux toujours le fermer, tu peux le supprimer à nouveau.",
+    "accountSignInRefused": "Ta connexion n'est plus acceptée, ce qui arrive quand un compte est en cours de fermeture. Si tu ne l'as pas supprimé, reconnecte-toi pour vérifier.",
+    "authSlow": "Impossible de vérifier ta connexion à temps, donc rien n'a été envoyé. Veux-tu réessayer ?",
     "accountDeletedPartial": "Ton compte est supprimé, mais quelques données n'ont pas pu être effacées. Contacte-nous pour finaliser.",
     "categoryConversations": "Toutes les transcriptions et métadonnées de tes conversations",
     "categoryInsights": "Ce que Ferni a appris sur toi",
@@ -9052,9 +9051,6 @@
     "trustJourneyExplore": "Explorer",
     "customizeTitle": "Personnalise ton expérience",
     "customizeMessage": "Ajuste les thèmes, les sons et bien plus encore.",
-    "spotifyTitle": "Connecter Spotify",
-    "spotifyMessage": "Associe ton compte Spotify pour définir la vibe pendant nos conversations.",
-    "spotifyConnect": "Connecter",
     "maybeLater": "Peut-être plus tard"
   },
   "mentorTeachings": {
@@ -9413,6 +9409,8 @@
   },
   "dataExport": {
     "title": "Tes données",
+    "loadFailed": "Je n'ai pas pu charger ce que je garde pour toi pour l'instant. Rien n'a changé.",
+    "checkAgain": "Vérifier à nouveau",
     "exportFormat": "Format d'export",
     "deleteAll": "Supprimer toutes les données",
     "footer": "Je garde nos conversations et ce que tu me racontes pour m'en souvenir la prochaine fois, et si un jour tu veux que tout disparaisse, supprimer ton compte efface tout.",
@@ -10287,7 +10285,6 @@
     "startupError": "Un petit souci au démarrage. Tu veux rafraîchir la page ?",
     "lastConversation": "C'est ta dernière conversation ce mois-ci. Faisons en sorte qu'elle compte.",
     "gettingReady": "Préparation en cours...",
-    "connecting": "Connexion...",
     "almostThere": "Presque là...",
     "waitingQuietly": "Je t'attends sagement",
     "listening": "Je t'écoute",
@@ -10308,7 +10305,6 @@
     "connectFirstToManage": "Connecte-toi d'abord, on s'en occupera ensuite.",
     "monthlyLimitReached": "Nous avons atteint notre limite mensuelle. J'adorerais continuer à discuter...",
     "enableMicPrompt": "J'aimerais beaucoup entendre ta voix — activer l'accès au micro ?",
-    "agentJoined": "{name} a rejoint la conversation",
     "seeYouNextTime": "À la prochaine !",
     "handoffFailed": "Impossible de les joindre pour le moment. Mais je suis toujours là !",
     "personaBack": "{name} est de retour !",
@@ -10616,7 +10612,6 @@
     "names": {
       "stockData": "Données boursières",
       "marketData": "Données du marché",
-      "weatherMaps": "Météo & Cartes",
       "historicalFacts": "Faits historiques",
       "smartHome": "Maison connectée",
       "lighting": "Éclairage",
@@ -10925,9 +10920,13 @@
     "helper": "Ton guide personnel",
     "connectToTalk": "Parler à Ferni",
     "endTalk": "Raccrocher",
-    "connectingCancel": "Connexion en cours. Touchez pour annuler",
-    "connectingNow": "Connexion…",
-    "tapToCancel": "Touchez pour annuler"
+    "connectingCancel": "On appelle {name}. Touchez pour annuler.",
+    "connectingNow": "On appelle {name}…",
+    "tapToCancel": "Touchez pour annuler",
+    "stillCalling": "Ça sonne chez {name}…",
+    "stillCallingCancel": "Ça sonne chez {name}. Touchez pour annuler.",
+    "reconnecting": "Reconnexion…",
+    "arrived": "{name} est là"
   },
   "analyticsDashboard": {
     "title": "Ton parcours",

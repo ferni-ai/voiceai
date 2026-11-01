@@ -33,6 +33,7 @@ import {
 import type {
   ConfirmEvent,
   ConfirmSpec,
+  ConfirmState,
   PendingAction,
   Planned,
   SessionLog,
@@ -42,11 +43,7 @@ const log = getLogger();
 
 /** What the gate lends this module: its yes judgement, owner check and markers. */
 export interface ConfirmGate {
-  confirmationState: (
-    pending: PendingAction,
-    events: ConfirmEvent[],
-    now: number
-  ) => 'confirmed' | 'waiting' | 'void';
+  confirmationState: (pending: PendingAction, events: ConfirmEvent[], now: number) => ConfirmState;
   ownerKnown: (session: object) => boolean;
   isClearNo: (text: string) => boolean;
   /** The owner's first names from the call's user data, so a yes may address them (PendingAction.owner). */
@@ -171,8 +168,11 @@ export async function gateInFamily(c: FamilyCall): Promise<unknown> {
   const { gate } = c;
   const early = familyAnswer(c, familyOf(c.toolId, c.args), targetOf(c.args));
   if (early !== undefined) return early;
-  const prepared = await c.spec.prepare(c.args, c.userId, async (a) =>
-    c.execute({ ...a, [gate.planOnly]: true }, c.opts)
+  const prepared = await c.spec.prepare(
+    c.args,
+    c.userId,
+    async (a) => c.execute({ ...a, [gate.planOnly]: true }, c.opts),
+    c.session
   );
   if (typeof prepared === 'string') return prepared;
   const planned = (prepared.args as Record<symbol, unknown>)[gate.planned] as Planned | undefined;

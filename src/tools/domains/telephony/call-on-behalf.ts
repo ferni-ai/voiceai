@@ -17,6 +17,7 @@
  */
 
 import { llm } from '@livekit/agents';
+import { flagOn } from '../../../config/env-flag.js';
 import { callOnBehalfSchema } from './call-on-behalf-schema.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolContext, Tool } from '../../registry/types.js';
@@ -62,6 +63,12 @@ async function findContact(
   userId: string
 ): Promise<ResolvedContact | { choices: ResolvedContact[]; ask: string } | null> {
   try {
+    // CONTACT_SAVE_ON_YES: the person as both stores hold them, "my dad" too (owner-contact.ts)
+    if (flagOn('CONTACT_SAVE_ON_YES')) {
+      const { oneNumber, resolveOwnerContact } = await import('./owner-contact.js');
+      const one = oneNumber(await resolveOwnerContact(userId, contactQuery).catch(() => null));
+      if (one) return one;
+    }
     // =========================================================================
     // PRIMARY: Try unified entity store first
     // =========================================================================
@@ -297,6 +304,7 @@ async function saveContactForFuture(
   contactQuery: string,
   phone: string
 ): Promise<void> {
+  if (flagOn('CONTACT_SAVE_ON_YES')) return; // saved on the yes instead (call-confirm.ts onYes), or refused
   try {
     const { upsertContact } =
       await import('../../../services/contacts/contact-relationship-service.js');

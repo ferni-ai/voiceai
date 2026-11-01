@@ -78,7 +78,9 @@ describe('engagement profile reads', () => {
       occurredAt: '2026-10-19T00:00:00.000Z',
     });
     expect(firestore.docs.get(PROFILE_PATH)).toEqual(stored);
-    expect(firestore.docs.has(`${PROFILE_PATH}/team_huddles/h1`)).toBe(true);
+    // The huddle's own write reads the profile too (the erased-account guard), so with
+    // that read failing it fails closed instead of writing under an unknown account
+    expect(firestore.docs.has(`${PROFILE_PATH}/team_huddles/h1`)).toBe(false);
 
     // The default was not cached: once the read recovers, the real profile loads.
     firestore.failReads.match = null;
@@ -86,6 +88,7 @@ describe('engagement profile reads', () => {
   });
 
   it('a missing document still creates the default profile', async () => {
+    firestore.docs.set(`bogle_users/${USER}`, { name: 'live user' }); // a live user has a record
     const store = await getEngagementStore();
 
     const profile = await store.getProfile(USER);

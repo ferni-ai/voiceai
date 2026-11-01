@@ -1,62 +1,61 @@
 /**
- * Spotify links are read only from the uid-keyed collection.
+ * The per-user Spotify link store is delete only, and lives where account
+ * deletion erases it.
  *
- * The old spotify_oauth_tokens collection was keyed by a device_id the client
- * named in /spotify/login, so anyone could have saved their own Spotify link
- * under another person's uid. Now links are keyed by the verified uid; reading
- * the old collection by uid would hand the victim the attacker's planted link.
+ * Ferni no longer links a person's Spotify (Developer Policy III.3). Up to 5
+ * dev-mode accounts may still hold tokens: nothing may read or write them, an
+ * unlink must remove them, and they must sit under bogle_users/{uid}, which
+ * account deletion erases with everything under it (USER_RECORD_ROOTS).
  *
  * REAL token/oauth/spotify.ts; mocked: the Firestore-backed persistence store
- * (one in-memory map per collection) and token encryption.
+ * (one in-memory map per collection, recording the options it was made with).
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { USER_RECORD_ROOTS } from '../../../services/platform/user-stores.js';
 
 const collections = vi.hoisted(() => new Map<string, Map<string, unknown>>());
+const options = vi.hoisted(() => [] as Array<{ collection: string; useRootCollection?: boolean }>);
 
 vi.mock('../../../services/persistence/index.js', () => ({
-  // Reads go through the shared map each call, so a test can seed any collection.
-  createPersistenceStore: ({ collection }: { collection: string }) => {
+  createPersistenceStore: (opts: { collection: string; useRootCollection?: boolean }) => {
+    options.push(opts);
     const docs = () => {
-      if (!collections.has(collection)) collections.set(collection, new Map());
-      return collections.get(collection) as Map<string, unknown>;
+      if (!collections.has(opts.collection)) collections.set(opts.collection, new Map());
+      return collections.get(opts.collection) as Map<string, unknown>;
     };
     return {
       get: async (id: string) => docs().get(id) ?? null,
-      setImmediate: async (id: string, value: unknown) => void docs().set(id, value),
       delete: async (id: string) => void docs().delete(id),
       shutdown: async () => undefined,
     };
   },
 }));
-vi.mock('../../shared/encryption.js', () => ({
-  encryptData: (v: unknown) => JSON.stringify(v),
-  decryptData: (v: string) => JSON.parse(v) as unknown,
-}));
 
 const spotify = await import('../oauth/spotify.js');
 
-const planted = { access_token: 'attacker-access', refresh_token: 'r', expires_at: 9e15 };
-
-beforeEach(async () => {
-  collections.clear();
-  await spotify.removeTokens('uid-victim'); // clears the module's decrypted cache
-});
-
-describe('Spotify link store', () => {
-  it('never reads a record planted under a uid in the old device-keyed collection', async () => {
-    const legacy = new Map<string, unknown>([
-      ['uid-victim', { encrypted: JSON.stringify(planted), updated_at: 1 }],
+describe('Spotify link store (delete only)', () => {
+  it('exposes no way to read, save or refresh a link', () => {
+    expect(Object.keys(spotify).sort()).toEqual([
+      'SPOTIFY_LINK_COLLECTION',
+      'removeTokens',
+      'shutdown',
     ]);
-    collections.set('spotify_oauth_tokens', legacy);
-
-    expect(spotify.SPOTIFY_LINK_COLLECTION).not.toBe('spotify_oauth_tokens');
-    expect(await spotify.getTokens('uid-victim')).toBeNull();
-    expect(await spotify.getValidToken('uid-victim')).toBeNull();
   });
 
-  it('round-trips a link saved for the uid', async () => {
-    await spotify.saveTokens('uid-victim', { ...planted, access_token: 'own-access' });
-    expect(collections.get(spotify.SPOTIFY_LINK_COLLECTION)?.has('uid-victim')).toBe(true);
-    expect(await spotify.getValidToken('uid-victim')).toBe('own-access');
+  it("removeTokens deletes that uid's old link and no one else's", async () => {
+    const links = new Map<string, unknown>([
+      ['uid-A', { encrypted: 'a', updated_at: 1 }],
+      ['uid-B', { encrypted: 'b', updated_at: 1 }],
+    ]);
+    collections.set(spotify.SPOTIFY_LINK_COLLECTION, links);
+
+    await spotify.removeTokens('uid-A');
+    expect([...links.keys()]).toEqual(['uid-B']);
+  });
+
+  it('is a per-user store under bogle_users/{uid}, which account deletion erases', () => {
+    const store = options.find((o) => o.collection === spotify.SPOTIFY_LINK_COLLECTION);
+    expect(store?.useRootCollection).toBe(false); // bogle_users/{uid}/spotify_links/data
+    expect(USER_RECORD_ROOTS).toContain('bogle_users');
   });
 });

@@ -14,8 +14,8 @@ vi.mock('../../services/scheduling/proactive-scheduler.js', () => ({
   getProactiveScheduler: () => ({ start }),
 }));
 vi.mock('../../utils/safe-logger.js', () => ({
-  getLogger: () => ({ info, warn, debug: vi.fn(), error: vi.fn() }),
-  createLogger: () => ({ info, warn, debug: vi.fn(), error: vi.fn() }),
+  getLogger: () => ({ info, warn, debug: vi.fn(), error: vi.fn(), child: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }) }),
+  createLogger: () => ({ info, warn, debug: vi.fn(), error: vi.fn(), child: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }) }),
 }));
 
 const { initializeTeamHandlers } = await import('../lifecycle.js');

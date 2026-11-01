@@ -6,12 +6,20 @@
  * conversation (normalised for case and punctuation) and says who said it.
  * Anything the model invents, or any bare string from an older summary, has no
  * line and is dropped, so recall never brings back a bit that wasn't said.
+ *
+ * A kept bit holds at most 80 characters of the line and of the bit, and expires a year after
+ * the call (Seth, 2026-10-26: utils/shared-moment-retention.ts). Recall skips an expired bit, and
+ * after the next call the sweep (storage/summary-joke-retention.ts) takes it out of the summary.
  */
 
 import type { InsideJokeRef } from '../../types/profile/inside-joke.js';
+import {
+  clampMomentWords,
+  isMomentExpired,
+  momentExpireAt,
+} from '../../utils/shared-moment-retention.js';
 
 const MAX_INSIDE_JOKES = 3;
-const MAX_BIT_LENGTH = 140;
 const MIN_QUOTE_WORDS = 3;
 
 /** Closes the summary JSON shape with the insideJokes field and says what counts. */
@@ -51,7 +59,8 @@ export const jokeWords = (text: string): Set<string> =>
  */
 export function parseInsideJokes(
   raw: unknown,
-  turns: ReadonlyArray<{ role: 'user' | 'assistant'; content: string }>
+  turns: ReadonlyArray<{ role: 'user' | 'assistant'; content: string }>,
+  now?: number // the clock, for tests; momentExpireAt reads it otherwise
 ): InsideJokeRef[] {
   if (!Array.isArray(raw)) return [];
   // Padded with spaces so a quote only matches whole words, never inside one.
@@ -62,15 +71,34 @@ export function parseInsideJokes(
     const { bit, quote, speaker } = item as Record<string, unknown>;
     if (typeof bit !== 'string' || typeof quote !== 'string') continue;
     if (speaker !== 'user' && speaker !== 'assistant') continue;
-    const text = bit.trim().slice(0, MAX_BIT_LENGTH);
+    const text = clampMomentWords(bit);
     const needle = normalise(quote);
     if (!text || needle.split(' ').length < MIN_QUOTE_WORDS) continue;
     // The line must be said by the speaker the model named, and the bit must name a word in it.
     const line = said.find((s) => s.speaker === speaker && s.text.includes(` ${needle} `));
     if (!line || [...jokeWords(text)].every((w) => !jokeWords(quote).has(w))) continue;
-    if (refs.some((r) => r.bit.toLowerCase() === text.toLowerCase() || lineKey(r.quote) === lineKey(quote))) continue;
-    refs.push({ bit: text, quote: quote.trim(), speaker });
+    const kept = clampMomentWords(quote); // checked whole above, kept cut
+    if (refs.some((r) => r.bit.toLowerCase() === text.toLowerCase() || lineKey(r.quote) === lineKey(kept))) continue;
+    refs.push({ bit: text, quote: kept, speaker, expireAt: momentExpireAt(now).toISOString() });
     if (refs.length >= MAX_INSIDE_JOKES) break;
   }
   return refs;
+}
+
+/** A summary's bits, and the earliest one's expiry: the after-call sweep finds the summary by it */
+export interface SummaryInsideJokes {
+  insideJokes?: InsideJokeRef[];
+  insideJokesExpireAt?: string;
+}
+
+/** The summary fields for these bits: none for no bits, else the bits and their earliest expiry. */
+export function summaryInsideJokes(jokes: InsideJokeRef[]): SummaryInsideJokes {
+  if (jokes.length === 0) return {};
+  const expiries = jokes.flatMap((j) => (j.expireAt ? [j.expireAt] : [])).sort();
+  return { insideJokes: jokes, ...(expiries[0] && { insideJokesExpireAt: expiries[0] }) };
+}
+
+/** A stored bit past its expireAt: recall leaves it out. One with none (from before) never expires. */
+export function jokeExpired(joke: object, now: number = Date.now()): boolean {
+  return isMomentExpired(joke as { expireAt?: unknown }, now);
 }

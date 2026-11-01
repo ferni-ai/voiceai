@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  backchannelContextEnabled,
   classifyBackchannelContext,
   pickContextualBackchannel,
   REACTIONS,
@@ -102,13 +101,7 @@ describe('pickContextualBackchannel', () => {
   });
 });
 
-describe('backchannelContextEnabled', () => {
-  it('is off unless BACKCHANNEL_CONTEXT=on', () => {
-    expect(backchannelContextEnabled({})).toBe(false);
-    expect(backchannelContextEnabled({ BACKCHANNEL_CONTEXT: 'off' })).toBe(false);
-    expect(backchannelContextEnabled({ BACKCHANNEL_CONTEXT: 'on' })).toBe(true);
-  });
-
+describe('contextual backchannels on dev-eval lines', () => {
   it('fits what callers actually said on dev evals (2026-10-09), which all got nothing or "Right"', () => {
     const cases: Array<[string, string]> = [
       ["Hey Ferni, it's been kind of a long day.", 'bad_news'],
