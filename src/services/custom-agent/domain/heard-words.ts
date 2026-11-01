@@ -24,7 +24,7 @@ export function consentWords(text: string): string[] {
 const FILLERS = new Set(['um', 'uh', 'er', 'erm', 'ah', 'hmm', 'mm']);
 
 /** Words a spoken date can be made of ("the first of November, twenty twenty six"). */
-export const DATE_WORDS = new Set(
+const DATE_WORDS = new Set(
   (
     'january february march april may june july august september october november december ' +
     'the of and st nd rd th first second third fourth fifth sixth seventh eighth ninth tenth ' +
