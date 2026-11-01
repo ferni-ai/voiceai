@@ -19,7 +19,7 @@ import {
 import { shownRows, singleWriterFor } from '../../services/superhuman/commitment-single-writer.js';
 import { commitmentsShown } from '../../services/superhuman/commitment-forget.js';
 import { proactiveUserIds } from '../../services/outreach/proactive-channels/proactive-tick.js';
-import { storedTextForOwner } from '../../tools/domains/proactive/outreach/owner-message-policy.js';
+import { storedTextForOwner } from '../../tools/domains/proactive/outreach/index.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 

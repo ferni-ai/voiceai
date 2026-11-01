@@ -13,7 +13,7 @@ import type { ServerResponse } from 'http';
 import type { SuperhumanInsight } from '../../services/automation/insight-action-bridge.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { sendJson } from './helpers.js';
-import { storedTextForOwner } from '../../tools/domains/proactive/outreach/owner-message-policy.js';
+import { storedTextForOwner } from '../../tools/domains/proactive/outreach/index.js';
 
 const log = createLogger({ module: 'SuperhumanJobs' });
 

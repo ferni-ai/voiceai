@@ -46,7 +46,7 @@ import type { CallOutcome } from './self-call.js';
 import { writeOutreachText } from './outreach-text.js';
 import { optedOutChannels, phoneOptOuts, type PhoneOptOuts } from './opt-outs.js';
 import type { ProactiveChannel, ProactiveTrigger } from './types.js';
-import { storedTextForOwner } from '../../../tools/domains/proactive/outreach/owner-message-policy.js';
+import { storedTextForOwner } from '../../../tools/domains/proactive/outreach/index.js';
 
 const log = createLogger({ module: 'ProactiveChannels' });
 

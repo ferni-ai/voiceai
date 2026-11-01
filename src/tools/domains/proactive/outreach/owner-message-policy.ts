@@ -144,7 +144,7 @@ export function storedTextScreenOn(env: NodeJS.ProcessEnv = process.env): boolea
 
 /** Where stored text is about to go to the owner: the job's site, and whose message it is. */
 export interface StoredTextSite {
-  site: 'proactive' | 'pondering' | 'morning-brief' | 'commitment-push';
+  site: 'proactive' | 'morning-brief' | 'commitment-push';
   userId: string;
 }
 

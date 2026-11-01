@@ -8,7 +8,6 @@
  */
 import type { Firestore } from 'firebase-admin/firestore';
 import { CALLER_PROVENANCE, isForgotten } from '../../memory/index.js';
-import { storedTextForOwner } from '../../tools/domains/proactive/outreach/owner-message-policy.js';
 import {
   isPonderingOn,
   ponder,
@@ -91,18 +90,8 @@ export async function readRecentCalls(db: Firestore, userId: string): Promise<Re
     .orderBy('timestamp', 'desc')
     .limit(SUMMARIES_READ)
     .get();
-  // OWNER_OUTREACH_STORED_TEXT_SCREEN: pondering's notes go to the owner, so its inputs pass the screen
-  const kept = (items: string[]): string[] =>
-    items.filter((t) => storedTextForOwner([t], { site: 'pondering', userId }));
-  const screened = (s: PonderSummary): PonderSummary => ({
-    ...s,
-    topics: kept(s.topics),
-    keyPoints: kept(s.keyPoints),
-    openThreads: kept(s.openThreads),
-    followUps: kept(s.followUps),
-  });
   return {
-    summaries: snap.docs.map((d) => screened(toPonderSummary(d.id, d.data()))),
+    summaries: snap.docs.map((d) => toPonderSummary(d.id, d.data())),
     callEnds: snap.docs.flatMap((d) => instant(d.data().timestamp) ?? []),
   };
 }

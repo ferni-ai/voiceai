@@ -24,7 +24,7 @@ import {
 import { forgottenTopicsOrNull } from '../../../memory/recall/forget.js';
 import { isForgotten } from '../../../memory/recall/session-recall.js';
 import { usersWithFlag } from '../../platform/cohort-flags.js';
-import { storedTextForOwner } from '../../../tools/domains/proactive/outreach/owner-message-policy.js';
+import { storedTextForOwner } from '../../../tools/domains/proactive/outreach/index.js';
 import { judgedRowText, singleWriterFor } from '../../superhuman/commitment-single-writer.js';
 import { resolveClaimStore } from '../../../tasks/scheduled/calendar-briefing-job.js';
 import { pushUnlessFocusHeld } from '../focus-send-hold.js';
