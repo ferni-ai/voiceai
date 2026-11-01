@@ -32,8 +32,8 @@ export { offersCrisisLine } from './crisis-line-speech.js';
 export { withLineOnce, type LineTurn } from './crisis-line-once.js';
 export {
   answeredYes,
+  briefTurn,
   SCRIPT_ANSWER_CHECKIN,
-  scriptAnswer,
   type ScriptAnswer,
 } from './crisis-script-answer.js';
 

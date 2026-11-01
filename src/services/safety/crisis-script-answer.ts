@@ -24,7 +24,7 @@ import {
   detectCrisis,
   type CrisisDetectionResult,
 } from './crisis-guard.js';
-import { SCRIPT_YES } from './crisis-line-once.js';
+import { SCRIPT_YES, type LineTurn } from './crisis-line-once.js';
 import { alwaysHold, wordsOf } from './crisis-release-words.js';
 import { ANYONE_NEARBY, TAKEN_OR_IN_DANGER } from './crisis-script-questions.js';
 
@@ -111,6 +111,22 @@ export function scriptAnswer(turn: ScriptAnswerTurn): ScriptAnswer | null {
   } catch {
     return null; // the reads decide
   }
+}
+
+/**
+ * Once per turn, for the reply gate and the turn pipeline alike: the answer to the 911 script,
+ * and the turn crisis-line-once.ts reads (a 'main' answer is never held).
+ */
+export function briefTurn(turn: ScriptAnswerTurn & Pick<LineTurn, 'ferni' | 'patterns'>): {
+  answer: ScriptAnswer | null;
+  once: LineTurn;
+} {
+  const answer = scriptAnswer(turn);
+  const { call, latest, earlier, ferni, patterns, env } = turn;
+  return {
+    answer,
+    once: { call, latest, earlier, ferni, patterns, env, fullLine: answer === 'main' },
+  };
 }
 
 /** The imminent read a risk answer gives: the full 911 script, never held back (crisis-line-once.ts). */

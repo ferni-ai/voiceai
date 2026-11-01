@@ -44,8 +44,8 @@ import {
 } from '../../services/safety/crisis-confirmed-risk.js';
 import {
   answeredYes,
+  briefTurn,
   SCRIPT_ANSWER_CHECKIN,
-  scriptAnswer,
   withLineOnce,
   type LineTurn,
   type ScriptAnswer,
@@ -210,9 +210,7 @@ export function startCrisisGate(
   const holdForReads = agreementGate || adjudicatorMode === 'live';
   const call = sessionScope(userData);
   const said = { latest, earlier, companion };
-  const answer = scriptAnswer({ latest, companion, earlier, call, env });
-  const fullLine = answer === 'main';
-  const once = { call, latest, earlier, ferni, patterns: detection, env, fullLine };
+  const { answer, once } = briefTurn({ ...said, call, env, ferni, patterns: detection });
   const heard = briefed(decision, detection, once, gentle);
   // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
   const transfer =

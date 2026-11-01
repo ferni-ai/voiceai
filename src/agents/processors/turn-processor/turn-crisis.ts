@@ -32,8 +32,8 @@ import {
 } from '../../../services/safety/crisis-confirmed-risk.js'; // CRISIS_CONFIRMED_CALL_RISK
 import {
   answeredYes,
+  briefTurn,
   SCRIPT_ANSWER_CHECKIN,
-  scriptAnswer,
   withLineOnce,
   type LineTurn,
   type ScriptAnswer,
@@ -219,7 +219,8 @@ export function startTurnCrisis(
   };
   const call = options.sessionId || undefined;
   const lone = { call, input, detection: patterns, pattern, env, generate } as const;
-  const answer = scriptAnswer({ ...input, call, env }); // CRISIS_BRAKE_V2
+  // CRISIS_BRAKE_V2: the 911 script's answer, and the crisis line in full once per call.
+  const { answer, once } = briefTurn({ ...input, call, env, ferni: [input.companion], patterns });
   // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
   const transfer =
     adjudicatorMode !== 'live' && transferRequestIsEveryday(input, pattern, call, env);
@@ -347,9 +348,6 @@ export function startTurnCrisis(
     }
     return easingOn ? (eased ??= easeTurn(turn)) : turn;
   };
-  // CRISIS_BRAKE_V2: the crisis line in full once per call (crisis-line-once.ts).
-  const fullLine = answer === 'main';
-  const once = { ...input, ferni: [input.companion], patterns, call, env, fullLine };
   return {
     patterns,
     shouldBlock,
