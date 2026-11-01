@@ -53,6 +53,7 @@ import {
 } from '../../src/services/safety/crisis-classifier.js';
 import { resetCrisisCallRisk } from '../../src/services/safety/crisis-call-risk.js';
 import { resetCallRiskSnapshots } from '../../src/services/safety/crisis-lone-imminent.js';
+import { minorAbuseGuidance } from '../../src/services/safety/minor-abuse-disclosure.js';
 import { NEUTRAL_REPLIES, splitOf, type SimCallSpec } from './full-path-corpus.js';
 import { guidedReplyFor } from './guided-reply.js';
 import type { FiredPath, LineState, TurnRecord } from './full-path-summary.js';
@@ -231,7 +232,9 @@ export async function simulateTurn(
   const instructions = [
     ...requests.filter((r) => r.includes(CRISIS_GUIDE)),
     // The turn handler's crisis_response injection for a pipeline crisis (turn-handler.ts).
-    ...(summary.isCrisis && !summary.shouldOverrideLLM ? [buildCrisisGuidance(resolved)] : []),
+    ...(summary.isCrisis && !summary.shouldOverrideLLM
+      ? [minorAbuseGuidance(summary) ?? buildCrisisGuidance(resolved)]
+      : []),
     ...lexicalSafety.map((i) => i.content),
     transferCrisis ?? '',
   ].join('\n');
