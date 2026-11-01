@@ -228,26 +228,17 @@ describe('an imminent read on the call blocks every ease; no turn is told apart 
     expect(brakeOf(call, "I'm going to do it now.")).toBe('hold');
   });
 
-  it('a non-English imminent line, then a non-English safe answer: no easing', () => {
-    const call = `es-${n}`;
-    combineReads({
-      ruled: IMMINENT,
-      plain: IMMINENT,
-      pattern: 'none',
-      latest: 'Voy a hacerlo ahora.',
-      earlier: [],
-      call,
-      env: ON,
-    });
-    expect(split(call, 'Estoy bien.')?.risk).toBe('imminent');
-    expect(brakeOf(call, 'Estoy bien.')).toBe('hold');
-    const answer = {
-      latest: 'Estoy bien.',
-      companion: SCRIPT,
-      earlier: ['Voy a hacerlo ahora.'],
-      call,
-      env: ON,
-    };
+  it.each([
+    ['Spanish', 'Voy a hacerlo ahora.', 'Estoy bien.'],
+    ['Arabic', 'سأفعلها الآن', 'أنا بخير'],
+  ])('a %s imminent line, then a safe answer in it: no easing', (_lang, imminent, safe) => {
+    const call = `lang-${n}`;
+    // An imminent read of the line, as the guard or the classifier gives it (no agreed split).
+    const read = applyClassifierVerdict(detectCrisis(imminent), IMMINENT);
+    withLineOnce(read, { call, latest: imminent, earlier: [], ferni: [], env: ON });
+    expect(split(call, safe)?.risk).toBe('imminent');
+    expect(brakeOf(call, safe)).toBe('hold');
+    const answer = { latest: safe, companion: SCRIPT, earlier: [imminent], call, env: ON };
     expect(scriptAnswer(answer)).not.toBe('safe');
   });
 
