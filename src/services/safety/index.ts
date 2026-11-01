@@ -38,6 +38,9 @@ export type {
 
 // Whether crisis handling may touch a turn (handoff transfer aliases)
 export { crisisGuidedTurn, markCrisisTurn, unmarkCrisisTurn } from './crisis-turn-mark.js';
+// A caller under 18 telling of sexual harm (MINOR_ABUSE_DISCLOSURE, turn-crisis.ts, turn-handler.ts).
+export { minorAbuseGuidance, withMinorAbuseDisclosure } from './minor-abuse-disclosure.js';
+export { SOFT_CRISIS_CHECK } from './crisis-agreement.js';
 
 // ============================================================================
 // CRISIS RESPONSE
