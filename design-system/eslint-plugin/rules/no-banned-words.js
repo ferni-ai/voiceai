@@ -16,6 +16,8 @@
  *   - "24/7 availability"
  */
 
+const keyOf = require('./key-name');
+
 const BANNED_WORDS = [
   'chatbot',
   'bot',
@@ -166,7 +168,7 @@ module.exports = {
 
       // Property in object that looks like content
       if (parent.type === 'Property' && parent.key) {
-        const keyName = parent.key.name || parent.key.value;
+        const keyName = keyOf(parent.key);
         const contentKeys = [
           'message', 'text', 'title', 'label', 'description',
           'placeholder', 'headline', 'body', 'content', 'copy',

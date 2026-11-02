@@ -14,6 +14,8 @@
  *   background: 'var(--persona-primary)'   // OK for backgrounds
  */
 
+const keyOf = require('./key-name');
+
 // Persona primary colors (hex) - these should never be text colors
 const PERSONA_COLORS = {
   '#4a6741': 'Ferni Green',
@@ -110,7 +112,7 @@ module.exports = {
       Property(node) {
         if (!node.key || !node.value) return;
         
-        const keyName = node.key.name || node.key.value;
+        const keyName = keyOf(node.key);
         
         // Only check text color properties
         if (!isTextColorProperty(keyName)) return;
@@ -122,7 +124,7 @@ module.exports = {
 
       // Check template literals for inline styles
       TemplateLiteral(node) {
-        const sourceCode = context.getSourceCode();
+        const sourceCode = context.sourceCode;
         const text = sourceCode.getText(node);
         
         // Check if this looks like a color property in CSS

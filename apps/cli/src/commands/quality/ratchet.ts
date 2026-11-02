@@ -20,8 +20,8 @@
  *   npx tsx apps/cli/src/commands/quality/ratchet.ts --update   lower the baseline to today
  *   npx tsx apps/cli/src/commands/quality/ratchet.ts --init     write a fresh baseline
  *   ... ratchet.ts --bundle [--init|--update]   the built web bundle (after pnpm build:frontend)
- *   ... ratchet.ts --eslint <results.json> [--init|--update]   web ESLint errors per rule
- *       (results from `eslint --format json --output-file <results.json>`)
+ *   ... ratchet.ts --eslint <results.json> [--as webEslint|designEslint] [--init|--update]
+ *       ESLint errors per rule (results from `eslint --format json --output-file <results.json>`)
  *
  * @module quality/ratchet
  */
@@ -158,6 +158,19 @@ export function eslintRegressions(base: Record<string, number>, now: Record<stri
     .map(([rule, n]) => `ESLint "${rule}" errors rose ${base[rule] ?? 0} → ${n}.`);
 }
 
+/**
+ * Baselined rules with errors that reported none at all. A rule turned off, set to warn, or
+ * matching no files reads as zero, and "nothing rose" would pass it as fixed.
+ */
+export function eslintSilentRules(base: Record<string, number>, now: Record<string, number>): string[] {
+  return Object.entries(base)
+    .filter(([rule, n]) => n > 0 && !(rule in now))
+    .map(
+      ([rule, n]) =>
+        `ESLint "${rule}" reported nothing (baseline ${n}): turned off, set to warn, or matching no files. If every violation is really fixed, run --update.`
+    );
+}
+
 function isSource(path: string): boolean {
   return (
     /\.(ts|tsx)$/.test(path) &&
@@ -279,21 +292,40 @@ async function bundleMain(args: string[]): Promise<void> {
   console.log('\n✅ The bundle did not grow.');
 }
 
+/**
+ * ESLint runs whose per-rule error counts are ratcheted, by baseline key (`--as`):
+ * apps/web's own config, and the design-system rules (eslint.design.config.mjs).
+ *
+ * `requireEveryRule` also fails a baselined rule that reports nothing. The design config
+ * and plugin aren't code-owned, so without it an ordinary PR could switch a rule off and
+ * stay green. The web baseline predates this and may hold rules that no longer fire.
+ */
+const ESLINT_BASELINES = {
+  webEslint: { label: 'Web ESLint', requireEveryRule: false },
+  designEslint: { label: 'Design-system ESLint', requireEveryRule: true },
+} as const;
+type EslintBaseline = keyof typeof ESLINT_BASELINES;
+type BaselineFile = Partial<Record<EslintBaseline, Record<string, number>>> & { bundle?: BundleSize };
+
 async function eslintMain(args: string[]): Promise<void> {
-  const file = JSON.parse(readFileSync(BASELINE, 'utf8')) as { webEslint?: Record<string, number> };
+  const key = (args.includes('--as') ? args[args.indexOf('--as') + 1] : 'webEslint') as EslintBaseline;
+  if (!Object.hasOwn(ESLINT_BASELINES, key)) throw new Error(`--as must be one of ${Object.keys(ESLINT_BASELINES).join(', ')}`);
+  const { label, requireEveryRule } = ESLINT_BASELINES[key];
+  const file = JSON.parse(readFileSync(BASELINE, 'utf8')) as BaselineFile;
   const results = JSON.parse(readFileSync(args[args.indexOf('--eslint') + 1] ?? '', 'utf8')) as EslintFileResult[];
   const now = eslintErrorsByRule(results);
   const total = (m: Record<string, number>): number => Object.values(m).reduce((a, b) => a + b, 0);
   if (args.includes('--init') || args.includes('--update')) {
-    const base = args.includes('--init') ? undefined : file.webEslint;
+    const base = args.includes('--init') ? undefined : file[key];
     const next = base ? Object.fromEntries(Object.entries(base).map(([r, n]) => [r, Math.min(n, now[r] ?? 0)])) : now;
-    writeFileSync(BASELINE, JSON.stringify({ ...file, webEslint: next }, null, 1) + '\n');
-    process.stdout.write(`Web ESLint baseline: ${total(next)} errors` + '\n');
+    writeFileSync(BASELINE, JSON.stringify({ ...file, [key]: next }, null, 1) + '\n');
+    process.stdout.write(`${label} baseline: ${total(next)} errors` + '\n');
     return;
   }
-  if (!file.webEslint) throw new Error('No web ESLint baseline: run with --eslint <file> --init');
-  const worse = eslintRegressions(file.webEslint, now);
-  process.stdout.write(`Web ESLint errors. Baseline: ${total(file.webEslint)}  Now: ${total(now)}` + '\n');
+  const base = file[key];
+  if (!base) throw new Error(`No ${label} baseline: run with --eslint <file> --as ${key} --init`);
+  const worse = [...eslintRegressions(base, now), ...(requireEveryRule ? eslintSilentRules(base, now) : [])];
+  process.stdout.write(`${label} errors. Baseline: ${total(base)}  Now: ${total(now)}` + '\n');
   if (worse.length > 0) {
     process.stdout.write(`\n❌ ${worse.map((w) => `  - ${w}`).join('\n')}\n`);
     process.exit(1);
@@ -301,22 +333,27 @@ async function eslintMain(args: string[]): Promise<void> {
   process.stdout.write('\n✅ No rule has more ESLint errors than its baseline.' + '\n');
 }
 
+/** The baselines other modes own, carried over when the main ratchet rewrites the file. */
+export const otherModes = (file: BaselineFile): BaselineFile => ({
+  bundle: file.bundle,
+  webEslint: file.webEslint,
+  designEslint: file.designEslint,
+});
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   if (args.includes('--bundle')) return bundleMain(args);
   if (args.includes('--eslint')) return eslintMain(args);
   const now = await measure();
   if (args.includes('--init')) {
-    const old = JSON.parse(readFileSync(BASELINE, 'utf8')) as { bundle?: BundleSize; webEslint?: unknown };
-    const keep = { bundle: old.bundle, webEslint: old.webEslint };
+    const keep = otherModes(JSON.parse(readFileSync(BASELINE, 'utf8')) as BaselineFile);
     writeFileSync(BASELINE, JSON.stringify({ ...now, brandCritical: 0, ...keep }, null, 1) + '\n');
     console.log(`Baseline written: ${summary(now)}`);
     return;
   }
   const base = JSON.parse(readFileSync(BASELINE, 'utf8')) as Measurement;
   if (args.includes('--update')) {
-    const kept = base as { bundle?: BundleSize; webEslint?: unknown };
-    const next = { ...lowered(base, now), bundle: kept.bundle, webEslint: kept.webEslint };
+    const next = { ...lowered(base, now), ...otherModes(base as BaselineFile) };
     writeFileSync(BASELINE, JSON.stringify(next, null, 1) + '\n');
     console.log(`Baseline lowered: ${summary(base)}  →  ${summary(next)}`);
     return;
