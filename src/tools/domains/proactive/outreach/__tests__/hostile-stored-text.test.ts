@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { blockedContent } from '../owner-message-content.js';
+import { blockedContent, ownerTextDestination } from '../owner-message-content.js';
 import { STORED_TEXT_MAX_CHARS, hostileStoredText } from '../owner-message-policy.js';
 
 const ORDINARY = [
@@ -76,6 +76,15 @@ describe('hostileStoredText', () => {
     // A timestamp's tail is digits too, and a date touching another number is one number.
     expect(hostileStoredText('pay it to 2026-10-19T5550142')).toBe('money_destination');
     expect(hostileStoredText('pay it to 212-2026-10-19')).toBe('money_destination');
+    // Only a bare date is masked, never a time after it: any run there stays digits.
+    for (const tail of [
+      '2026-10-19T8005551234',
+      '2026-10-19T800.555.1234',
+      '2026-10-19T18:30Z then 8005551234',
+    ]) {
+      expect(ownerTextDestination(tail).destination).toBe('digits');
+      expect(hostileStoredText(`pay it to ${tail}`)).toBe('money_destination');
+    }
   });
 
   it('counts digits across every separator and look-alike letter, as blockedContent does', () => {
