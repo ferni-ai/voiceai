@@ -13,13 +13,14 @@
  */
 
 import {
+  callerText,
   carriesCrisis,
   crisisCallerLine,
   crisisRead,
   isRiskyCallerText,
   riskyCallerLine,
   screenCallerParts,
-  screenedCallerText,
+  type ScreenedCallerParts,
 } from './caller-text.js';
 
 /**
@@ -44,12 +45,24 @@ const CHECK_IN_ACTION = 'You may want to check in with them.';
  */
 const SCREEN_WINDOW = 10_000;
 
-/**
- * The model's JSON can put any value in a field. Only a string (or nothing) is
- * read; anything else is never coerced to text, and is treated as risky.
- */
-function readable(value: unknown): value is string | null | undefined {
-  return value == null || typeof value === 'string';
+/** A field's words as the screen reads them, or null when the field holds something else. */
+function fieldText(value: unknown): string | null {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (!Array.isArray(value)) return null; // never coerced: a number, or an object's toString
+  // An array of words is read as its words, as the alert always read it.
+  const parts: unknown[] = value.flat(Infinity);
+  return parts.every((p) => typeof p === 'string') ? parts.join(' ') : null;
+}
+
+/** A field that isn't text: none of it is quoted. */
+const NOT_TEXT: ScreenedCallerParts = { said: '', risky: true, safety: false };
+
+/** One field through the screen, and whether it went out word for word (cleaned only). */
+function screenField(value: unknown, name: string): ScreenedCallerParts & { intact: boolean } {
+  const raw = fieldText(value);
+  const part = raw === null ? NOT_TEXT : screenCallerParts(raw, name, 200);
+  return { ...part, intact: raw !== null && part.said === callerText(raw, SCREEN_WINDOW) };
 }
 
 /** Drops the closing stop so the line can sit inside Ferni's own sentence. */
@@ -65,10 +78,17 @@ function clause(text: string): string {
  * number or money/credential request is never passed on. Each field is
  * screened alone, then the exact alert is screened again, since two fields
  * that each pass can join into a number. A risky suggestion is dropped for
- * Ferni's own line. Crisis wording always reaches the sponsor, in their words
- * or in crisisCallerLine, including a phrase split across the two fields.
- * Fields too long for the screen to read in full send the generic alert, and
- * a field that is not text gets Ferni's line for that field.
+ * Ferni's own line. Fields too long for the screen to read in full send the
+ * generic alert, and a field that is not text gets Ferni's line for that field.
+ *
+ * The screen never costs a crisis signal. Before it, the sponsor got the
+ * concern's words in full. So whenever any of those words are withheld or cut,
+ * the alert says crisisCallerLine, whatever the words were: the crisis guard
+ * reads first-person wording, not "she said she doesn't want to be here", so
+ * an urgent concern's lost words are never left to its reading. When the words
+ * go out in full they carry their own meaning, and crisisCallerLine is added
+ * only for crisis the guard reads in both fields together that they don't
+ * carry, such as a phrase split across the two fields.
  */
 export function generateUrgentNotification(record: CheckinAlertInput): string | null {
   if (!record.concernsIdentified || record.concernsIdentified.length === 0) {
@@ -90,19 +110,22 @@ export function generateUrgentNotification(record: CheckinAlertInput): string | 
     return `Important: During my call with ${name}, ${clause(what)}. ${tail}`;
   };
 
-  const description: unknown = concern.description;
-  const suggestion: unknown = concern.recommendedAction;
-  const what = readable(description)
-    ? screenedCallerText(description, name, 200) || 'something came up'
-    : riskyCallerLine(name);
-  const action = screenCallerParts(readable(suggestion) ? suggestion : null, name, 200);
-  const next = action.said || CHECK_IN_ACTION; // empty whenever it was risky or not text
-  const both = [description, suggestion].filter((f) => typeof f === 'string' && f).join(' ');
-  const crisis = action.safety || crisisRead(both);
-  const sent = alert(what, next, crisis && !carriesCrisis(what) && !carriesCrisis(next));
+  const desc = screenField(concern.description, name);
+  const act = screenField(concern.recommendedAction, name);
+  const what = desc.said || (desc.risky ? riskyCallerLine(name) : 'something came up');
+  const next = act.said || CHECK_IN_ACTION; // Ferni's line whenever it was risky or not text
+  const both = [concern.description, concern.recommendedAction]
+    .map(fieldText)
+    .filter(Boolean)
+    .join(' ');
+  const withheld = !desc.intact || !act.intact;
+  // crisisRead is the crisis guard's own read (services/safety/crisis-guard.ts),
+  // the one each turn gets, on the full text of both fields: no cap, no window.
+  const crisis = withheld || (crisisRead(both) && !carriesCrisis(what) && !carriesCrisis(next));
+  const sent = alert(what, next, crisis);
   const screened = both.length <= SCREEN_WINDOW && sent.length <= SCREEN_WINDOW;
   if (screened && !isRiskyCallerText(sent)) return sent;
   // Too long to screen in full, or the joined fields formed something risky:
-  // pass neither on, and never lose a crisis.
-  return alert(riskyCallerLine(name), CHECK_IN_ACTION, crisis || carriesCrisis(sent));
+  // pass neither on, so their words are withheld and crisisCallerLine goes.
+  return alert(riskyCallerLine(name), CHECK_IN_ACTION, true);
 }

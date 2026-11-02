@@ -3,6 +3,8 @@
  * on the call (an unverified caller), then texted or pushed to the sponsor. Its
  * description and suggested action go through the caller-text screen first:
  * no link, number or money request is passed on, and crisis wording always is.
+ * Whenever the screen withholds or cuts any of their words, crisisCallerLine
+ * goes in their place: before the screen the sponsor got every word.
  * Fictional people and numbers only.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -53,6 +55,10 @@ function alertFor(concern: Partial<FlaggedConcern>): string | null {
 }
 
 const DIGITS = /\d/;
+const CRISIS = crisisCallerLine(NAME);
+const RISKY = riskyCallerLine(NAME).replace(/\.$/, '');
+/** The alert when none of their words can be passed on. */
+const GENERIC = `Important: During my call with ${NAME}, ${RISKY}. ${CRISIS} ${CHECK_IN}`;
 
 describe('urgent family check-in alert: caller text screen', () => {
   it('passes a clean concern through exactly as before', () => {
@@ -73,8 +79,11 @@ describe('urgent family check-in alert: caller text screen', () => {
 
   it('drops a risky suggested action for Ferni’s own line', () => {
     const alert = alertFor({ recommendedAction: 'Wire $400 to pay-rosa.example.test/r/4417 now' });
-    // Only the suggestion is dropped: the clean description still reaches the sponsor.
-    expect(alert).toBe(`Important: During my call with ${NAME}, mentioned chest pain. ${CHECK_IN}`);
+    // Only the suggestion is dropped: the clean description still reaches the sponsor,
+    // and crisisCallerLine stands in for the words that didn't.
+    expect(alert).toBe(
+      `Important: During my call with ${NAME}, mentioned chest pain. ${CRISIS} ${CHECK_IN}`
+    );
     expect(alert).not.toMatch(DIGITS);
     expect(alert).not.toContain('example.test');
     expect(alert).not.toContain('Wire');
@@ -105,10 +114,7 @@ describe('urgent family check-in alert: text split across the two fields', () =>
     expect(isRiskyCallerText(description)).toBe(false);
     expect(isRiskyCallerText(recommendedAction)).toBe(false);
 
-    const alert = alertFor({ description, recommendedAction });
-    expect(alert).toBe(
-      `Important: During my call with ${NAME}, ${riskyCallerLine(NAME).replace(/\.$/, '')}. ${CHECK_IN}`
-    );
+    expect(alertFor({ description, recommendedAction })).toBe(GENERIC);
   });
 
   it('says crisisCallerLine for a crisis phrase split across the two fields', () => {
@@ -134,8 +140,6 @@ describe('urgent family check-in alert: text split across the two fields', () =>
 /** Everyday words, then a fictional number past the screen's 10,000-char window. */
 const PAST_WINDOW = `${'she talked about the garden and the tomatoes '.repeat(224)}call 555 0142`;
 
-const GENERIC = `Important: During my call with ${NAME}, ${riskyCallerLine(NAME).replace(/\.$/, '')}. ${CHECK_IN}`;
-
 describe('urgent family check-in alert: text too long to screen in full', () => {
   it('caps a long safe description instead of passing all of it on', () => {
     const description = `mentioned ${'a long walk by the lake '.repeat(22)}`.trim();
@@ -144,7 +148,8 @@ describe('urgent family check-in alert: text too long to screen in full', () => 
     const alert = alertFor({ description });
     expect(alert).toContain(`During my call with ${NAME}, mentioned a long walk by the lake`);
     expect(alert).not.toContain(description);
-    expect(alert!.length).toBeLessThan(300);
+    expect(alert).toContain(CRISIS); // the cut words are said to matter, never just dropped
+    expect(alert?.length).toBeLessThan(300 + CRISIS.length);
   });
 
   it('sends the generic alert when a number sits past the screen window', () => {
@@ -200,8 +205,10 @@ describe('urgent family check-in alert: text too long to screen in full', () => 
 
   it('gives Ferni’s line for a description that is not text', () => {
     expect(alertFor({ description: 5550142 as never })).toBe(GENERIC);
+    // A number is never coerced to text, even one the screen would pass.
+    expect(alertFor({ description: 42 as never })).toBe(GENERIC);
     expect(alertFor({ recommendedAction: ['call 555 0142'] as never })).toBe(
-      `Important: During my call with ${NAME}, mentioned chest pain. ${CHECK_IN}`
+      `Important: During my call with ${NAME}, mentioned chest pain. ${CRISIS} ${CHECK_IN}`
     );
   });
 });
