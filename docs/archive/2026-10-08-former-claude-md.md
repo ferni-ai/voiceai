@@ -2265,3 +2265,4 @@ curl -s http://localhost:3002/health && curl -s http://localhost:3004/ | head -c
 ```
 
 **Stop all:** `ferni dev stop`
+
