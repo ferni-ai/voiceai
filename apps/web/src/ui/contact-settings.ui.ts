@@ -741,7 +741,7 @@ function render(): void {
             </select>
           </div>
           
-          <p class="contact-settings-quiet-note" id="quiet-note" ${state.quiet === 'failed' ? 'role="status"' : ''}>
+          <p class="contact-settings-quiet-note" id="quiet-note" ${state.quiet === 'failed' ? 'role="status"' : ''} ${state.quiet === undefined ? 'hidden' : ''}>
             ${state.quiet === 'failed'
               ? t('contactSettings.quietUnavailable', "I couldn't load your quiet hours, so I've left them just as they were. Open this again to change them.")
               : t('contactSettings.quietNote', "I'll stay quiet during these hours. If something feels urgent, I might still reach out.")}
