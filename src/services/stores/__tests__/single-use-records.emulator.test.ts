@@ -2,18 +2,25 @@
  * Single-use records on the Firestore emulator, for both stores built on them:
  * OAuth connect states (oauth_link_states) and connect-moment invites
  * (connect_invites). Each is used at most once even when taps race (`take` is
- * a transaction), an expired one is refused and deleted, and the stored copy
- * carries ttlAt as a Timestamp for the TTL policy (TTL ignores numbers).
+ * a transaction), an expired one is refused and deleted, the stored copy
+ * carries ttlAt as a Timestamp for the TTL policy (TTL ignores numbers), and an
+ * invite put back while its account is erased never outlives the erasure.
  *
  * The memory store can't show any of this: it runs on one thread, so a race
  * never interleaves. Runs in CI under data-layer-e2e.yml ("Run Single-Use
  * Record Tests"); skipped without FIRESTORE_EMULATOR_HOST.
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { Timestamp, type Firestore } from 'firebase-admin/firestore';
+import {
+  DocumentReference,
+  Timestamp,
+  Transaction,
+  type Firestore,
+} from 'firebase-admin/firestore';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { OAuthLinkRecord } from '../../../servers/token/oauth-link-state.js';
 import type { ConnectInvite } from '../../connect-moments/connect-invites.js';
+import { erasingMark } from '../../../utils/erasing-mark.js';
 
 // The shared setup fakes Firestore for every test; here the store must reach the emulator
 vi.mock('firebase-admin/app', async () => vi.importActual('firebase-admin/app'));
@@ -148,5 +155,74 @@ describe.skipIf(!emulator)('connect_invites on Firestore', () => {
     expect(doc?.ttlAt).toBeInstanceOf(Timestamp);
     expect((doc?.ttlAt as Timestamp).toMillis()).toBe(doc?.expiresAt);
     expect(JSON.stringify(doc)).not.toContain(token);
+  });
+
+  it('puts a spent invite back, with its own expiry, for a live account', async () => {
+    const uid = `invite-return-${run}`;
+    await db.collection('bogle_users').doc(uid).set({ name: 'Ana Example' });
+    const token = await inviteFor(uid);
+    // Without the ttlAt the taken copy carries, so the restore must write its own.
+    const { ttlAt: _taken, ...spent } = (await invites.redeemConnectInvite(
+      token,
+      uid
+    )) as ConnectInvite & { ttlAt?: unknown };
+    await invites.returnConnectInvite(token, spent);
+    const doc = await raw('connect_invites', token);
+    expect(doc?.expiresAt).toBe(spent.expiresAt);
+    expect((doc?.ttlAt as Timestamp).toMillis()).toBe(spent.expiresAt);
+  });
+
+  it(`an invite put back during erasure never outlives it, every round`, async () => {
+    // Erasure's order: mark the account, delete it (platform/erase-user-record.ts),
+    // then sweep its invites (account-routes.ts LINKED_RECORDS).
+    const erase = async (uid: string) => {
+      const account = db.collection('bogle_users').doc(uid);
+      await account.set(erasingMark(), { merge: true });
+      await account.delete();
+      await invites.deleteConnectInvitesFor(uid);
+    };
+    const txGet = Transaction.prototype.get;
+    const docGet = DocumentReference.prototype.get;
+    for (let round = 0; round < ROUNDS; round++) {
+      const uid = `invite-erase-${run}-${round}`;
+      await db.collection('bogle_users').doc(uid).set({ name: 'Ana Example' });
+      const token = await inviteFor(uid);
+      const spent = (await invites.redeemConnectInvite(token, uid)) as ConnectInvite;
+      // The erasure starts the moment the restore has read the account, wherever it
+      // reads it; the restore then gives it a second to finish before it writes.
+      let erasure: Promise<void> | undefined;
+      const afterRead = async <T>(ref: unknown, snap: T): Promise<T> => {
+        if (ref instanceof DocumentReference && ref.path === `bogle_users/${uid}` && !erasure) {
+          erasure = erase(uid);
+          await Promise.race([
+            erasure,
+            new Promise<void>((done) => {
+              setTimeout(done, 1000);
+            }),
+          ]);
+        }
+        return snap;
+      };
+      const inTx = vi.spyOn(Transaction.prototype, 'get').mockImplementation(async function (
+        this: Transaction,
+        ref: never
+      ) {
+        return afterRead(ref, await txGet.call(this, ref));
+      } as never);
+      const outside = vi
+        .spyOn(DocumentReference.prototype, 'get')
+        .mockImplementation(async function (this: DocumentReference) {
+          return afterRead(this, await docGet.call(this));
+        } as never);
+      try {
+        await invites.returnConnectInvite(token, spent);
+        await erasure;
+      } finally {
+        inTx.mockRestore();
+        outside.mockRestore();
+      }
+      expect(erasure, `round ${round}: the restore read the account`).toBeDefined();
+      expect(await raw('connect_invites', token), `round ${round}`).toBeUndefined();
+    }
   });
 });

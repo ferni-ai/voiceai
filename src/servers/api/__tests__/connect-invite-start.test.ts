@@ -7,7 +7,7 @@
  * Real HTTP through bindVerifiedIdentity and the REAL route handlers
  * (oauth-start, Google login and callback). Mocked: Firebase token
  * verification, Google's token endpoint (fetch), the calendar token save and
- * the watch channel. Invites and OAuth states use memory stores; account
+ * the watch channel. OAuth states use a memory store; invites and account
  * records a fake Firestore; log lines are captured.
  */
 import { createServer, type Server } from 'node:http';
@@ -49,7 +49,7 @@ const { bindVerifiedIdentity } = await import('../request-identity.js');
 const { handleOAuthStartRoute, INVITE_NOT_FOUND } = await import('../routes/oauth-start.js');
 const { handleGoogleCalendarRoutes } = await import('../routes/google-calendar.js');
 const { setOAuthLinkStore } = await import('../../token/oauth-link-state.js');
-const { memorySingleUseStore, sha256Hex } =
+const { firestoreSingleUseStore, memorySingleUseStore, sha256Hex } =
   await import('../../../services/stores/single-use-records.js');
 const invites = await import('../../../services/connect-moments/connect-invites.js');
 const { createFakeFirestore, newFakeFirestoreState } =
@@ -103,7 +103,7 @@ beforeEach(() => {
   process.env.CONNECT_MOMENT_CALENDAR = 'on';
   stateStore = memorySingleUseStore<OAuthLinkRecord>(100);
   setOAuthLinkStore(stateStore);
-  inviteStore = memorySingleUseStore<ConnectInvite>(100);
+  inviteStore = firestoreSingleUseStore<ConnectInvite>('connect_invites');
   invites.setConnectInviteStore(inviteStore);
   savedCalendar.mockClear();
   lines.length = 0;
@@ -226,7 +226,7 @@ describe('start-from-invite', () => {
     });
   });
 
-  it("(c) the invite it puts back keeps exactly the expiry it had", async () => {
+  it('(c) the invite it puts back keeps exactly the expiry it had', async () => {
     const token = await inviteFor('uid-ana');
     const before = await inviteStore.get(sha256Hex(token));
     const spent = await inviteStore.take(sha256Hex(token));
@@ -238,7 +238,7 @@ describe('start-from-invite', () => {
     expect(after?.createdAt).toBe(before?.createdAt);
   });
 
-  it("(c) puts nothing back once the account is being erased", async () => {
+  it('(c) puts nothing back once the account is being erased', async () => {
     const token = await inviteFor('uid-ana');
     vi.spyOn(stateStore, 'put').mockImplementationOnce(async () => {
       firestore.docs.set('bogle_users/uid-ana', { erasing: true });

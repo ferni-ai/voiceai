@@ -19,8 +19,6 @@
  */
 import crypto from 'node:crypto';
 import { APP_URL } from '../../config/api-urls.js';
-import { isErasedOrErasing } from '../../utils/erasing-mark.js';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   firestoreSingleUseStore,
@@ -115,23 +113,16 @@ export async function redeemConnectInvite(
 /**
  * Put back an invite its owner just spent when the flow then couldn't start, so
  * tapping again works. It keeps its original expiry; best effort. Never for an
- * account that is gone or being erased: erasure marks and deletes the account
- * record before it sweeps invites, so a later put would outlive the sweep.
+ * account that is gone or being erased (putUnlessErased checks in the same
+ * transaction as the write), and never without Firestore.
  */
 export async function returnConnectInvite(token: unknown, invite: ConnectInvite): Promise<void> {
   if (typeof token !== 'string' || !TOKEN_PATTERN.test(token)) return;
   try {
-    if (await accountErased(invite.uid)) return;
-    await getStore().put(sha256Hex(token), invite);
+    await getStore().putUnlessErased(sha256Hex(token), invite);
   } catch (error) {
     log.error({ error: String(error), integration: invite.integration }, 'Could not return invite');
   }
-}
-
-/** Gone, being erased, or no Firestore to ask: all mean nothing is put back. */
-async function accountErased(uid: string): Promise<boolean> {
-  const account = getFirestoreDb()?.collection('bogle_users').doc(uid);
-  return !account || isErasedOrErasing(await account.get());
 }
 
 /** Remove every invite of `uid` (account deletion). Throws when it can't. */

@@ -11,7 +11,7 @@ import {
 } from '../../../tests/helpers/fake-firestore.js';
 import { getFirestoreDb } from '../../../utils/firestore-utils.js';
 import {
-  memorySingleUseStore,
+  firestoreSingleUseStore,
   sha256Hex,
   type SingleUseStore,
 } from '../../stores/single-use-records.js';
@@ -34,7 +34,7 @@ beforeEach(() => {
   firestore.docs.clear();
   for (const uid of ['user-ana', 'user-ben']) firestore.docs.set(`bogle_users/${uid}`, {});
   vi.mocked(getFirestoreDb).mockImplementation(createFakeFirestore(firestore) as never);
-  store = memorySingleUseStore<ConnectInvite>(100);
+  store = firestoreSingleUseStore<ConnectInvite>('connect_invites');
   setConnectInviteStore(store);
 });
 afterEach(() => {
@@ -111,7 +111,7 @@ describe('createConnectInvite / redeemConnectInvite', () => {
   });
 
   it('expires after 30 minutes, and the expired invite is deleted', async () => {
-    vi.useFakeTimers({ now: new Date('2026-11-02T10:00:00Z') });
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-02T10:00:00Z') });
     const token = (await invite()) as string;
     vi.setSystemTime(Date.now() + CONNECT_INVITE_TTL_MS + 1);
     expect(await redeemConnectInvite(token, ANA)).toBeNull();
@@ -130,6 +130,7 @@ describe('createConnectInvite / redeemConnectInvite', () => {
     const get = vi.spyOn(store, 'get');
     const take = vi.spyOn(store, 'take');
     const put = vi.spyOn(store, 'put');
+    const putBack = vi.spyOn(store, 'putUnlessErased');
     const record = { uid: ANA, integration: 'calendar' as const, createdAt: 0, expiresAt: 1 };
     for (const bad of [undefined, 42, '', 'short', `${'a'.repeat(43)}/`]) {
       expect(await redeemConnectInvite(bad, ANA)).toBeNull();
@@ -138,6 +139,7 @@ describe('createConnectInvite / redeemConnectInvite', () => {
     expect(get).not.toHaveBeenCalled();
     expect(take).not.toHaveBeenCalled();
     expect(put).not.toHaveBeenCalled();
+    expect(putBack).not.toHaveBeenCalled();
   });
 
   it('returns null rather than throwing when the store fails', async () => {

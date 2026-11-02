@@ -14,7 +14,7 @@ vi.mock('../../../utils/safe-logger.js', () => {
   return { createLogger: () => logger, logger, default: logger };
 });
 
-const { memorySingleUseStore, sha256Hex } = await import('../../stores/single-use-records.js');
+const { firestoreSingleUseStore, sha256Hex } = await import('../../stores/single-use-records.js');
 const { createFakeFirestore, newFakeFirestoreState } =
   await import('../../../tests/helpers/fake-firestore.js');
 const { getFirestoreDb } = await import('../../../utils/firestore-utils.js');
@@ -27,7 +27,7 @@ let store: Store;
 beforeEach(() => {
   lines.length = 0;
   vi.stubEnv('CONNECT_MOMENT_CALENDAR', 'on');
-  store = memorySingleUseStore(100);
+  store = firestoreSingleUseStore('connect_invites');
   invites.setConnectInviteStore(store);
   const firestore = newFakeFirestoreState();
   firestore.docs.set('bogle_users/ana', {});
@@ -63,7 +63,7 @@ it('logs no raw token when an invite is made, refused, spent, expired, returned 
   const fail = async (key: string) => {
     throw new Error(`store down at ${key}`);
   };
-  invites.setConnectInviteStore({ ...store, get: fail, put: fail });
+  invites.setConnectInviteStore({ ...store, get: fail, put: fail, putUnlessErased: fail });
   expect(await invites.redeemConnectInvite(broken, 'ana')).toBeNull();
   await invites.returnConnectInvite(broken, spent);
 
