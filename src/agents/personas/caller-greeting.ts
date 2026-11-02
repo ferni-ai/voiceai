@@ -119,7 +119,7 @@ const SMALL_WORDS = new Set(
   )
 );
 /** "tackled" ~ "tackle", "sending" ~ "send". */
-const stem = (w: string): string => w.replace(/(?:ing|ed|es|s|e)$/, '');
+export const stem = (w: string): string => w.replace(/(?:ing|ed|es|s|e)$/, '');
 /** Who a line greets: "Hey Sam, ..." / "Morning, Seth." */
 const ADDRESSEE =
   /^\W*(?:hey|hi|hello|morning|evening|afternoon|good (?:morning|afternoon|evening))\W+(\p{L}+)/iu;

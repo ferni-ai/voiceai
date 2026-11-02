@@ -14,8 +14,9 @@
  * bogle_users/{uid}/greeting_state/last_topic, and a later greeting leaves the
  * topic out while the summary is unchanged. A new summary has a new hash, so
  * it can open a call again. Only a hash is stored, never the words; the record
- * goes with the user's erase (erase-store.ts deletes the user doc recursively)
- * and `expireAt` is for a Firestore TTL policy.
+ * goes with the user's erase (erase-store.ts deletes the user doc recursively).
+ * `expireAt` is for a Firestore TTL policy that is not yet configured, so today the
+ * record lasts until erase.
  *
  * Read or write failures fall back to the old behaviour (the topic is offered)
  * and are logged. Flag off: nothing is read or written.
@@ -25,7 +26,8 @@
 
 import { createHash } from 'node:crypto';
 import { flagOn, type Env } from '../../config/env-flag.js';
-import { sharedWords } from '../personas/caller-greeting.js';
+import { sharedWords, stem } from '../personas/caller-greeting.js';
+import { isCommonEnglishWord } from '../../utils/common-english-words.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -49,10 +51,15 @@ const WARMTH = `love loved lovely glad happy hope hoping excited exciting missed
 
 /**
  * The hello raised `topic` itself: it shares a word with the summary that isn't a name,
- * small talk or warmth. Errs toward not raised, which offers the topic again next call.
+ * small talk or warmth, and that word is either uncommon ("hike", "recital") or one of two
+ * or more it shares ("the new job"). One common word is chance: "What's new?" after a
+ * summary about a new job, "How's life?" after one about life at home. Errs toward not
+ * raised, which offers the topic again next call (main's behaviour).
  */
 export function raisesTopic(line: string, topic: string, userName?: string): boolean {
-  return sharedWords(topic, line, [...(userName ? [userName] : []), ...WARMTH]).length > 0;
+  const shared = sharedWords(topic, line, [...(userName ? [userName] : []), ...WARMTH]);
+  const distinct = new Set(shared.map((w) => stem(w.toLowerCase())));
+  return distinct.size >= 2 || shared.some((w) => !isCommonEnglishWord(w));
 }
 
 /** The same summary, however it was spaced or cased, has one key. */

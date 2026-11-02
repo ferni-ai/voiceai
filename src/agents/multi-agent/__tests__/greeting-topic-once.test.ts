@@ -84,7 +84,7 @@ describe('LAST_TOPIC_ONCE on', () => {
   it('offers a new summary again', async () => {
     await greet(TOPIC);
     const next = 'Training for the autumn 10k';
-    line = 'Hey Sam, how is the 10k training going?';
+    line = 'Hey Sam, how is the training for the autumn 10k going?';
     expect((await greet(next)).facts[TOPIC_FACT]).toBe(next);
     expect(docs.get(RECORD)?.key).toBe(topicKey(next));
   });
@@ -189,6 +189,32 @@ describe('raisesTopic', () => {
       expect(raisesTopic(hello, summary, 'Sam')).toBe(true);
     }
   );
+
+  // r3: one common word a hello shares with the summary is chance, not the topic.
+  it.each([
+    ["What's new with you, Sam?", 'Sam started a new job at a design studio.'],
+    ["How's life, Sam?", 'Life at home has been chaotic since the new baby arrived.'],
+    ['Long time no see, Sam!', 'They went on a long hike up the ridge trail.'],
+    ['Big day today, Sam?', 'They planned a big birthday party for their dad.'],
+    ['First time calling this week, huh?', 'Nervous about the first week at the studio.'],
+    ['Feeling any better, Sam?', 'They want to start therapy and feel better.'],
+    ["How's work treating you?", 'Work has been stressful because of a product launch.'],
+    ["How's the family, Sam?", 'Their family is visiting and the house is full.'],
+    ['How are things at home?', 'Life at home has been chaotic since the new baby arrived.'],
+    ['How are the kids, Sam?', 'Their kids have a school play and they are sewing costumes.'],
+    ['Anything you planned for tonight?', 'They planned a surprise for their sister.'],
+    ['Did you get to start, Sam?', 'They want to start over and started journaling.'],
+  ])('one common shared word is not the topic: %s', (hello, topic) => {
+    expect(raisesTopic(hello, topic, 'Sam')).toBe(false);
+  });
+  it.each([
+    ['How was the hike, Sam?', 'They went on a long hike up the ridge trail.'],
+    ['Are you ready for the recital?', 'A piano recital on Saturday, practising every night.'],
+    ["How's the new job going, Sam?", 'Sam started a new job at a design studio.'],
+    ["How's the new baby?", 'Life at home has been chaotic since the new baby arrived.'],
+  ])('an uncommon word, or two shared words, raises it: %s', (hello, topic) => {
+    expect(raisesTopic(hello, topic, 'Sam')).toBe(true);
+  });
 });
 
 describe('topicKey', () => {
