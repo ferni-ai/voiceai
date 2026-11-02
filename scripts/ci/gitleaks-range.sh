@@ -19,7 +19,10 @@
 #     otherwise load both from the checkout);
 #   - inline `gitleaks:allow` comments are ignored;
 #   - merge commits are scanned for what they add (--remerge-diff), so a key
-#     slipped in while resolving a conflict is caught too.
+#     slipped in while resolving a conflict is caught too;
+#   - diffs are always text (--text): gitleaks reads `git log -p`, and a
+#     .gitattributes saying `-diff` or `binary` would otherwise turn the change
+#     into "Binary files differ" with nothing to scan.
 #
 # Before scanning, it proves it can still go red: it commits a fake key made up
 # at run time into a throwaway repo and requires gitleaks to report it under the
@@ -70,5 +73,5 @@ echo "Canary: gitleaks reported the planted fake key"
 
 # Scan through the .git directory, not the working tree: gitleaks also reads a
 # .gitleaksignore from the directory it scans, and the change could add one there.
-gitleaks git "${flags[@]}" --log-opts="--remerge-diff $base..$head" \
+gitleaks git "${flags[@]}" --log-opts="--remerge-diff --text $base..$head" \
   "$(git rev-parse --absolute-git-dir)"

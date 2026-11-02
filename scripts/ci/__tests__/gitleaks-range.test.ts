@@ -121,11 +121,12 @@ function run(canaryRc: number, rangeRc = 0, range: [string, string] = [base, hea
 const read = (name: string) => readFileSync(join(dir, name), 'utf8');
 
 describe('gitleaks-range.sh', () => {
-  it('scans base..head (merge commits included) after gitleaks reports the planted key', () => {
+  it('scans base..head as text diffs, merge commits included, after gitleaks reports the planted key', () => {
     const r = run(1, 0);
     expect(r.status).toBe(0);
     expect(r.calls.map((c) => c.split(' ')[0])).toEqual(['canary', 'range']);
-    expect(r.calls[1]).toContain(`--log-opts=--remerge-diff ${base}..${head}`);
+    // --text: a .gitattributes `-diff`/`binary` in the change must not hide its content.
+    expect(r.calls[1]).toContain(`--log-opts=--remerge-diff --text ${base}..${head}`);
     expect(r.calls[1]).toContain('--exit-code 1');
   });
 
