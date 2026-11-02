@@ -114,6 +114,7 @@
     "test:synthetic:concierge:verbose": "npx tsx tests/synthetic/runner/concierge-test-runner.ts --verbose",
     "test:outbound-call": "npx tsx scripts/test-outbound-call.ts",
     "test:outbound-call:dry-run": "npx tsx scripts/test-outbound-call.ts --dry-run",
+    "crisis:baseline": "LOG_LEVEL=silent tsx scripts/crisis-eval/baseline/generate.ts",
     "test:e2e:tools:crisis": "npx tsx scripts/test-tool-execution-e2e.ts --tool crisis --verbose",
     "test:synthetic:all": "npx tsx src/cli/commands/synthetic-e2e.ts --execute --report --verbose",
     "test:agents": "npx tsx src/cli/commands/test-agents.ts",
