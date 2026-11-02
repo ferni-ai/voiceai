@@ -213,17 +213,18 @@ describe('everything else is delivered, as main does', () => {
 
   it('a no to another question in the same turn: the ask must be the last question', () => {
     const both = `${ASK} I'd like to book a table for two on Friday at seven. Do you have availability?`;
-    for (const reply of [...BOOKING_REPLIES, 'No.']) delivered([A(both), R(reply), R(SAID)]);
+    for (const reply of [...BOOKING_REPLIES, 'No.'])
+      delivered([A(both), R(reply), A('Okay, thanks!'), R(SAID)]);
     // Ferni asked something else before they answered.
-    delivered([A(ASK), A('Oh, and are you free Saturday?'), R('No.'), R(SAID)]);
+    delivered([A(ASK), A('Oh, and are you free Saturday?'), R('No.'), A('Okay!'), R(SAID)]);
   });
 
   it('a no to "do you mind" is a yes', () => {
-    delivered([A("I'll pass along what you say to Riley Test, do you mind, is that okay?"), R('No.'), R(SAID)]); // prettier-ignore
+    delivered([A("I'll pass along what you say to Riley Test, do you mind, is that okay?"), R('No.'), A('Great!'), R(SAID)]); // prettier-ignore
   });
 
   it('a lone no followed by more words before Ferni speaks is one answer, not a no', () => {
-    delivered([A(ASK), R('No,'), R("that's cool."), R(SAID)]);
+    delivered([A(ASK), R('No,'), R("that's cool."), A('Great!'), R(SAID)]);
   });
 
   it.each([
@@ -233,7 +234,8 @@ describe('everything else is delivered, as main does', () => {
   ] as const)('%s calls tell, never ask: even a bare no to an improvised ask delivers', (_, t) => {
     const c = dispatch(t);
     expect(c.script).not.toMatch(/is that okay\?/i);
-    for (const reply of [...BOOKING_REPLIES, 'No.']) delivered([A(ASK), R(reply), R(SAID)], c);
+    for (const reply of [...BOOKING_REPLIES, 'No.'])
+      delivered([A(ASK), R(reply), A('Okay, thanks!'), R(SAID)], c);
   });
 
   it('a call with no script (a retry) never declines', () => {
