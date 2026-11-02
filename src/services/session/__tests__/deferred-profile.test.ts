@@ -107,15 +107,19 @@ describe('returning user after the deferred profile load', () => {
 describe('deferredProfileSettled: a bounded wait for the load', () => {
   afterEach(() => vi.useRealTimers());
 
-  it('nothing pending, or already settled: true at once, no timer armed', async () => {
+  it('nothing pending, or already settled: true at once, and no timer is armed to get there', async () => {
     vi.useFakeTimers();
     const none = {};
-    await expect(deferredProfileSettled(none, 1200)).resolves.toBe(true);
+    const noneWait = deferredProfileSettled(none, 1200);
+    expect(vi.getTimerCount()).toBe(0); // the async function has run to its first await by now
+    await expect(noneWait).resolves.toBe(true);
+
     const done = {};
     trackDeferredProfileLoad(done, Promise.resolve());
-    await vi.advanceTimersByTimeAsync(0);
-    await expect(deferredProfileSettled(done, 1200)).resolves.toBe(true);
-    expect(vi.getTimerCount()).toBe(0);
+    await vi.advanceTimersByTimeAsync(0); // the load settles
+    const doneWait = deferredProfileSettled(done, 1200);
+    expect(vi.getTimerCount()).toBe(0); // a cap timer armed here is cleared later, so look now
+    await expect(doneWait).resolves.toBe(true);
   });
 
   it('settles inside the cap: true, and the cap timer is cleared', async () => {
@@ -142,7 +146,12 @@ describe('deferredProfileSettled: a bounded wait for the load', () => {
   it('still loading at the cap: false', async () => {
     vi.useFakeTimers();
     const services = {};
-    trackDeferredProfileLoad(services, new Promise(() => undefined));
+    trackDeferredProfileLoad(
+      services,
+      new Promise(() => {
+        /* never settles */
+      })
+    );
     const wait = deferredProfileSettled(services, 1200);
     await vi.advanceTimersByTimeAsync(1199);
     let settled: boolean | undefined;

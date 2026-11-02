@@ -168,7 +168,9 @@ function deferredServices(attachAfterMs: number | null, erased = false): Service
   const services: Services = { userId: 'riley-test', userProfile: null };
   const load =
     attachAfterMs === null
-      ? new Promise<void>(() => undefined)
+      ? new Promise<void>(() => {
+          /* never settles */
+        })
       : new Promise<void>((resolve) => {
           setTimeout(() => {
             if (!erased) services.userProfile = PROFILE;
