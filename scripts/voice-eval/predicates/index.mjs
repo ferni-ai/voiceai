@@ -1,11 +1,10 @@
 // Deterministic checks over one recorded call (call.mjs has its shape): (call, sweep) => hits
 // [{ quote, why }], no hits is a pass. A gating hit fails the release (gate.mjs exits 1); the rest
 // are reported only. Comments cite the 2026-10-21 capability-sweep transcript behind each check.
+import { SPECTRUM_PREDICATES } from './spectrum.mjs';
+import { agent, norm, sentences } from './text.mjs';
 
-const norm = (s) => s.replace(/[’‘]/g, "'");
 const words = (s) => norm(s.toLowerCase()).match(/[a-z0-9']+/g) ?? [];
-const sentences = (s) => norm(s).split(/(?<=[.!?…])\s+/);
-const agent = (call) => call.turns.filter((t) => t.who === 'agent');
 const secs = (ms) => `${(ms / 1000).toFixed(1)} s`;
 /** Agent turns (all, or those passing only) whose text matches re, as hits. */
 const agentSays = (call, re, why, only = () => true) =>
@@ -193,6 +192,7 @@ export const PREDICATES = [
   { id: 'crisis-line-non-crisis', gating: true, check: crisisLine },
   { id: 'dead-air', gating: true, check: deadAir },
   { id: 'slow-start', gating: false, check: slowStart },
+  ...SPECTRUM_PREDICATES,
 ];
 
 /** Every predicate on one call: { [id]: hits }. */
