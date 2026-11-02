@@ -28,6 +28,7 @@
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
 import { dirname, join, relative } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
+import { gitVisible } from './git-visible.js';
 import { changedSources, sizeRegressions } from './size-diff.js';
 import { checkWebsiteThemeDebt } from './website-theme-debt.js';
 
@@ -206,7 +207,7 @@ export function measureOversized(roots = SIZE_ROOTS, root = ROOT): Record<string
   const files: string[] = [];
   for (const r of roots) walk(join(root, r), files);
   const oversized: Record<string, number> = {};
-  for (const file of files.sort()) {
+  for (const file of files.filter(gitVisible(root)).sort()) {
     const lines = lineCount(readFileSync(file, 'utf8'));
     if (lines > MAX_LINES) oversized[relative(root, file)] = lines;
   }
