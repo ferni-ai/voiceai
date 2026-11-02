@@ -65,8 +65,3 @@ export {
 } from './instacart/instacart-client.js';
 export { UberClient, getUberClient, resetUberClient } from './uber/uber-client.js';
 export { LyftClient, getLyftClient, resetLyftClient } from './lyft/lyft-client.js';
-export {
-  GoogleMapsClient,
-  getGoogleMapsClient,
-  resetGoogleMapsClient,
-} from './google-maps/maps-client.js';
