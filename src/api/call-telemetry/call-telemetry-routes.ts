@@ -89,6 +89,7 @@ async function store(
   const roomVerified = holders.every((h) => h === 'mine');
   const ref = db.collection(felt.COLLECTION).doc();
   await ref.set(felt.feltOffRecord(uid, body, roomVerified, now));
+  await ref.set(felt.feltOffRecord(uid, body, roomVerified, now));
   log.info({ reportId: ref.id, roomVerified }, 'Call felt off');
   sendJSON(res, { ok: true, id: ref.id }, 201);
 }
