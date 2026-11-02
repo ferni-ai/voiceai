@@ -7,6 +7,7 @@
  * - PUT /api/account/profile - Update profile info
  * - POST /api/account/apple-authorization - Keep a Sign in with Apple grant to revoke on delete
  * - GET|POST|DELETE /api/account/processing-consent - Third-party processing consent
+ * - GET|POST|DELETE /api/account/call-capture-consent - Help shape Ferni (CALL_CAPTURE_CONSENT)
  *
  * @module AccountRoutes
  */
@@ -39,6 +40,7 @@ import { rateLimit, requireAuth } from './auth-middleware.js';
 import { parseBody, sendError, sendJSON } from './helpers.js';
 import { sendUserFacingError } from './user-facing-error.js';
 import { handleProcessingConsent } from './processing-consent-routes.js';
+import { handleCallCaptureConsent } from './call-capture-consent-routes.js';
 
 // Alias for compatibility
 const sendJson = sendJSON;
@@ -80,6 +82,9 @@ export async function handleAccountRoutes(
     // GET|POST|DELETE /api/account/processing-consent - third-party processing consent
     if (pathname === '/api/account/processing-consent') {
       return await handleProcessingConsent(req, res, auth);
+    }
+    if (pathname === '/api/account/call-capture-consent') {
+      return await handleCallCaptureConsent(req, res, auth); // 404 while CALL_CAPTURE_CONSENT is off
     }
 
     // GET /api/account - Get account info
