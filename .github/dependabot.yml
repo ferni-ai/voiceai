@@ -52,6 +52,14 @@ updates:
       # with a PR that adapts topicOnlyQuery to the new version.
       - dependency-name: "compromise"
         versions: [">=14.18.0"]
+      # The agent loads one libonnxruntime.so.1: Silero VAD's copy is pinned to 1.30.0
+      # (pnpm-workspace.yaml), so a root bump alone splits it and the speaker model
+      # falls back to DSP (#3413, #301). Lift this with a PR that moves the root,
+      # Silero and transformers copies together (onnxruntime-single-version.test.ts).
+      - dependency-name: "onnxruntime-node"
+        versions: [">=1.31.0"]
+      - dependency-name: "onnxruntime-web"
+        versions: [">=1.31.0"]
 
   # Frontend (apps/web): covered by the root entry above. apps/web is a pnpm
   # workspace package; its old npm package-lock.json is gone, and
