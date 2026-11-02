@@ -34,6 +34,7 @@ function fakeDb() {
         },
         set: async () => undefined,
         update: async () => undefined,
+        create: async () => undefined, // the daily send claim (daily-send-claim.ts)
       }),
     }),
   };

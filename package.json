@@ -280,7 +280,7 @@
     "quality:lint-coverage": "npx tsx apps/cli/src/commands/quality/lint-coverage-ratchet.ts",
     "quality:full": "npm run quality && npm run quality:check && npm run quality:arch && npm run brand:check && npm run tokens:check && npm run i18n:check && npm run lint:design",
     "quality:deploy": "npx tsx apps/cli/src/commands/quality/check-deploy-safety.ts --all",
-    "quality:module-state": "npx tsx apps/cli/src/commands/quality/module-state-check.ts --max=5",
+    "quality:module-state": "npx tsx apps/cli/src/commands/quality/module-state-check.ts --max=4",
     "bridge:coverage": "npx tsx -e \"import('./src/tools/semantic-router/domain-bridge.js').then(m => { const all = m.getAllMappings(); console.log('Mapped:', Object.keys(all).length, 'tools'); })\"",
     "tool:validate": "npx tsx src/tests/e2e/synthetic-tool-testing/quick-tool-validation.ts",
     "tool:generate": "npx tsx src/tests/e2e/synthetic-tool-testing/tool-test-generator.ts --generate-only",

@@ -7,9 +7,10 @@
  * The one exception is messagingPrefs.focus, a Focus hold, which
  * focus-store.ts owns; the merge below leaves it alone.
  *
- * Reads never fail: a missing or invalid field reads as its default (quiet
- * 21:00 to 08:00, every channel on). Until a record is saved, quiet hours come
- * from the older outreachPreferences.quietHours when it holds a valid window.
+ * A missing or invalid field reads as its default (quiet 21:00 to 08:00, every
+ * channel on). Until a record is saved, quiet hours come from the older
+ * outreachPreferences.quietHours when it holds a valid window. A read that fails
+ * throws: the panels would show the defaults as the person's own and save them back.
  *
  * @module services/messaging/prefs
  */
@@ -153,15 +154,12 @@ export function validatePatch(
   return { ok: true, patch };
 }
 
-/** Their prefs; the defaults when there is no record or it can't be read. */
+/** Their prefs; the defaults when there is no record. Throws when it can't be read. */
 export async function readPrefs(userId: string): Promise<MessagingPrefs> {
-  try {
-    const doc = await getFirestoreDb()?.collection('bogle_users').doc(userId).get();
-    return prefsFromDoc(doc?.exists ? doc.data() : undefined);
-  } catch (error) {
-    log.warn({ error: String(error), userId: userId.slice(0, 8) }, 'Prefs not read; defaults');
-    return DEFAULT_PREFS;
-  }
+  const db = getFirestoreDb();
+  if (!db) throw new Error('Firestore not available');
+  const doc = await db.collection('bogle_users').doc(userId).get();
+  return prefsFromDoc(doc.exists ? doc.data() : undefined);
 }
 
 /** A value the caller sent that can't be saved (the route answers 400). */
@@ -170,10 +168,12 @@ export class PrefsError extends Error {
 }
 
 /**
- * Validates and saves `raw` over what is stored; returns the result. The whole
- * record is written, so a value read from the older store lives here from now
- * on (the zone excepted: a profile's zone can change). Throws when it can't
- * save: a setting that silently didn't stick is worse than an error.
+ * Validates `raw` and saves only the fields it holds, in a transaction, so a
+ * save that leaves quiet hours out never rewrites the window someone else set
+ * (the panel's name-only Save, a voice change). Half a quiet window is saved
+ * with the other half as it reads now, so the pair stays whole. Returns the
+ * result. Throws when it can't save: a setting that silently didn't stick is
+ * worse than an error.
  */
 export async function writePrefs(
   userId: string,
@@ -185,22 +185,30 @@ export async function writePrefs(
   const db = getFirestoreDb();
   if (!db) throw new Error('Firestore not available');
   const ref = db.collection('bogle_users').doc(userId);
-  const snap = await ref.get();
-  const doc = snap.exists ? snap.data() : undefined;
-  const current = prefsFromDoc(doc);
   const { patch } = checked;
-  const next: MessagingPrefs = {
-    ...current,
-    ...patch,
-    channels: { ...current.channels, ...patch.channels },
-    updatedAt: new Date().toISOString(),
-    updatedBy: source,
-  };
-  if (next.quietStart === next.quietEnd)
-    throw new PrefsError('Quiet hours need a different start and end');
-  const zone = patch.zone ?? zoneOf(field(doc, 'messagingPrefs').zone);
-  const { zone: _readZone, ...stored } = next;
-  await ref.set({ messagingPrefs: { ...stored, ...(zone && { zone }) } }, { merge: true });
+  const next = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const current = prefsFromDoc(snap.exists ? snap.data() : undefined);
+    const merged: MessagingPrefs = {
+      ...current,
+      ...patch,
+      channels: { ...current.channels, ...patch.channels },
+      updatedAt: new Date().toISOString(),
+      updatedBy: source,
+    };
+    if (merged.quietStart === merged.quietEnd)
+      throw new PrefsError('Quiet hours need a different start and end');
+    const quiet = patch.quietStart !== undefined || patch.quietEnd !== undefined;
+    const { quietStart: _s, quietEnd: _e, ...rest } = patch;
+    const stored = {
+      ...rest,
+      ...(quiet && { quietStart: merged.quietStart, quietEnd: merged.quietEnd }),
+      updatedAt: merged.updatedAt,
+      updatedBy: source,
+    };
+    tx.set(ref, { messagingPrefs: stored }, { merge: true });
+    return merged;
+  });
   log.info({ userId: userId.slice(0, 8), source, fields: Object.keys(patch) }, 'Prefs saved');
   return next;
 }
