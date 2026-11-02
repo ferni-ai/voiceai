@@ -6,8 +6,9 @@
  * never ask (owner, 2026-11-02), so only a call whose script asked can decline.
  *
  * A no counts only when it is unambiguous, and the ask was the last question
- * in Ferni's turn: their whole answer is a lone no ("No.", "Nope.", "Um, no.")
- * or an explicit refusal of all of it ("Please don't.", "I'm not comfortable
+ * in Ferni's turn: their whole answer, or their first reply when it is a
+ * finished sentence ("No." then "Sorry, bad line."), is a lone no ("No.",
+ * "Nope.", "Um, no.") or an explicit refusal of all of it ("Please don't.", "I'm not comfortable
  * with that.", "Keep it to yourself."). Any other answer, a no followed by more
  * words included ("No, that's cool", "Keep this between us, but I'm bringing a
  * plus-one"), is delivered as before. A secret shared later in the call never
@@ -49,6 +50,9 @@ const REFUSED = new RegExp(
   'i'
 );
 
+/** A reply cut off mid-sentence: the next reply carries on from it. */
+const UNFINISHED = /(?:[,;:\u2013\u2014-]|\.\.\.|\u2026)\s*$/;
+
 const straight = (text: string): string =>
   text.replace(/[‘’]/g, "'").replace(/\bdo not\b/gi, "don't");
 
@@ -76,12 +80,15 @@ export function passAlongDeclined(
   if (asked < 0) return false;
   const after = turns.slice(asked + 1);
   const next = after.findIndex((t) => t.role === 'agent');
-  // Their answer is everything they said before Ferni spoke again, read whole.
-  const answer = (next < 0 ? after : after.slice(0, next))
+  // Their answer is everything they said before Ferni spoke again, read whole...
+  const replies = (next < 0 ? after : after.slice(0, next))
     .filter((t) => t.role === 'recipient')
-    .map((t) => straight(t.content.trim()))
-    .join(' ');
-  return LONE_NO.test(answer) || REFUSED.test(answer);
+    .map((t) => straight(t.content.trim()));
+  // ...or their first reply on its own, when it is a finished sentence: "No." then "Hello?" is
+  // still a no, while "No," then "that's cool." is one answer.
+  const first = replies[0] ?? '';
+  const read = UNFINISHED.test(first) ? [replies.join(' ')] : [replies.join(' '), first];
+  return read.some((answer) => LONE_NO.test(answer) || REFUSED.test(answer));
 }
 
 /** What the requester hears when they said no: that they did, and nothing they said. */

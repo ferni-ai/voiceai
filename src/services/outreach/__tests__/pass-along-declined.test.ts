@@ -121,6 +121,29 @@ describe('a personal call: an unambiguous no is honoured', () => {
     expect(buildCallOutcome(call, turns(answer), analysis(), undefined, 90).outcome).toBe(NO_LINE);
   });
 
+  // A finished first reply is their answer; what follows before Ferni speaks is not a yes
+  // (#3371 r2 security addendum, fictional).
+  it.each([
+    ['No.', 'Sorry, bad line.'],
+    ['No.', 'Hello?'],
+    ['No.', 'I mean it.'],
+    ['No.', 'Not a thing, please.'],
+    ['No.', 'Sorry.'],
+    ['Nope.', 'Is that weird?'],
+    ['No', 'Can you hear me?'],
+    ["Please don't.", 'Thanks.'],
+    ["I'd rather you didn't.", 'Okay?'],
+    ['Keep it between us.', 'Please.'],
+    ['No.', 'No.'],
+    ["I'm not comfortable with that.", 'Sorry.'],
+    ["Please don't.", 'Can you hear me?'],
+    ['Keep it to yourself.', 'Is that weird?'],
+  ])('%j then %j before Ferni speaks: a no', (first, then) => {
+    const t = [A(ASK), R(first), R(then), A("Okay, I won't."), R(SAID)];
+    expect(passAlongDeclined(call.script, t)).toBe(true);
+    expect(buildCallOutcome(call, t, analysis(), undefined, 90).outcome).toBe(NO_LINE);
+  });
+
   // A no holds for the rest of the call: Ferni's follow-up draws a yes to that, not to
   // passing it on (#3371 r2 verify, fictional flows).
   it.each([
@@ -286,6 +309,10 @@ describe('everything else is delivered, as main does', () => {
 
   it('a lone no followed by more words before Ferni speaks is one answer, not a no', () => {
     delivered([A(ASK), R('No,'), R("that's cool."), A('Great!'), R(SAID)]);
+    delivered([A(ASK), R('No -'), R('go ahead, tell him.'), A('Great!'), R(SAID)]);
+    delivered([A(ASK), R('Nope...'), R("that's fine."), A('Great!'), R(SAID)]);
+    // One secret as the first reply is not a refusal of all of it, whatever follows.
+    delivered([A(ASK), R("Don't tell her about the surprise, but yes, go ahead."), R('Sorry.'), A('Great!'), R(SAID)]); // prettier-ignore
   });
 
   it.each([
