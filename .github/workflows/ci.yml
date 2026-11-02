@@ -1153,6 +1153,11 @@ jobs:
       - name: Dead code (knip ratchet)
         run: pnpm quality:knip
 
+      # Blocking: no more than 4 module-level lets filled from a per-caller value (session,
+      # room, user), which leak one caller's state into the next (quality:module-state).
+      - name: Module-level per-caller state
+        run: pnpm quality:module-state
+
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates
 
@@ -1350,11 +1355,12 @@ jobs:
           cd apps/web
           pnpm lint:tokens
 
-      - name: UI audit
-        run: |
-          cd apps/web
-          pnpm audit:ui || true
-        continue-on-error: true
+      # Blocking ratchet: UI audit errors (missing alt text, empty catch blocks) may not rise
+      # above MAX_UI_AUDIT_ERRORS in apps/web/scripts/audit-ui.js, and a scan that can't read
+      # a directory or finds no files fails. It used to run with `|| true`, so it never failed.
+      - name: UI audit (ratchet)
+        working-directory: apps/web
+        run: pnpm audit:ui
 
       # The build must succeed, and the bundle may not grow past its baseline (2% slack).
       - name: Build and bundle ratchet
