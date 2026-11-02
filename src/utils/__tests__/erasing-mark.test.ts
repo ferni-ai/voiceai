@@ -1,4 +1,4 @@
-import {describe, expect, it} from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { erasingMark, isErasedOrErasing } from '../erasing-mark.js';
 
 const snap = (data: object | undefined) => ({ exists: data !== undefined, data: () => data });

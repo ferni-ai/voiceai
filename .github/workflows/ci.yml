@@ -301,10 +301,12 @@ jobs:
       - name: Lint coverage ratchet
         run: pnpm quality:lint-coverage
 
-      # Prettier's content cache for the Format ratchet (cold ~100 s, warm much less). It only
+      # Prettier's content cache for the Format ratchet (cold ~95 s, warm ~30 s). It only
       # skips a file whose content hash prettier already saw formatted under the same version
-      # and options, so a miss gives the same result, slower. Only a push to main saves it;
-      # pull requests and the merge queue restore it read-only, so a branch can't seed it.
+      # and options, so a miss gives the same result, slower. Only main saves it: the nightly
+      # run, plus any push to main that runs this job (most skip it, because the merge queue
+      # already tested that tree). Pull requests and the merge queue restore it read-only,
+      # so a branch can't seed it.
       - name: Prettier cache key
         id: prettier-cache
         run: |
@@ -327,7 +329,7 @@ jobs:
       - name: Save prettier cache
         # PROOF ONLY (draft, never merged): also save from this branch so a second run can
         # restore warm before anything is on main.
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.head_ref == 'ci/w1-6-red-proof'
+        if: (github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'schedule')) || github.head_ref == 'ci/w1-6-red-proof'
         uses: actions/cache/save@v6
         with:
           path: ${{ runner.temp }}/prettier-cache

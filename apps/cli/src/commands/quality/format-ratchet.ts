@@ -43,6 +43,8 @@ export interface PrettierRun {
 
 /** `[error] src/x.json: SyntaxError: …`, one per file prettier couldn't parse. */
 const PARSE_ERROR = /^\[error\] (\S+\.(?:ts|tsx|json)): /;
+/** The code frame under a parse error: `[error]   112 | …`, `[error] > 114 | }`, `[error]     |  ^`. */
+const CODE_FRAME = /^\[error\](?:\s*$| {2,}| *> *\d+ \|)/;
 // CI forces colour on, which wraps `error` in escape codes; --no-color plus this keeps the match.
 // eslint-disable-next-line no-control-regex
 const ANSI = /\x1b\[[0-9;]*m/g;
@@ -56,16 +58,22 @@ export function unformattedFiles(run: PrettierRun): { files: string[]; unparsabl
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean);
-  const unparsable = run.stderr
+  const errors = run.stderr
     .split('\n')
-    .map((l) => PARSE_ERROR.exec(l.replace(ANSI, ''))?.[1])
+    .map((l) => l.replace(ANSI, ''))
+    .filter((l) => l.startsWith('[error]'));
+  const unparsable = errors
+    .map((l) => PARSE_ERROR.exec(l)?.[1])
     .filter((f): f is string => f !== undefined);
+  // Any other error (bad config, no files matched, a crash) names no file, so it can't go in
+  // the list; one parse error elsewhere in the run must not hide it.
+  const other = errors.filter((l) => !PARSE_ERROR.test(l) && !CODE_FRAME.test(l));
   // 0: all formatted; 1: some aren't; 2: some files errored (or none matched, or bad config).
   const ok =
     (run.status === 0 && listed.length === 0) ||
     (run.status === 1 && listed.length > 0) ||
     (run.status === 2 && unparsable.length > 0);
-  if (!ok) {
+  if (!ok || other.length > 0) {
     throw new Error(
       `prettier exited ${run.status} with ${listed.length} listed and ${unparsable.length} unparsable file(s):\n${run.stderr.trim()}`
     );
