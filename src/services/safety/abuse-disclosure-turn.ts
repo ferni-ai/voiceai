@@ -15,6 +15,7 @@ import { EMERGENCY_NUMBER } from './emergency-number.js';
 
 import { abuseDisclosure, type AbuseWho, selfHarmWords } from './abuse-disclosure.js';
 import { crisisRiskThisCall } from './crisis-call-risk.js';
+import { minorAbuseGuidance } from './minor-abuse-disclosure.js';
 
 type Env = Record<string, string | undefined>;
 
@@ -153,4 +154,13 @@ export function abuseGuidance(crisis: { indicators: readonly string[] }): string
   return `[CRITICAL - USER SAFETY]
 The caller is telling you that someone is hurting them. Your response MUST:
 ${lines.join('\n')}`;
+}
+
+/**
+ * The voice turn's guidance for a disclosure (turn-handler.ts), or null: a minor's
+ * (MINOR_ABUSE_DISCLOSURE, main's) first, then this module's. Each is null unless its flag read
+ * the turn, so a turn both read keeps the minor's child-safety care, as with this flag off.
+ */
+export function disclosureGuidance(crisis: CrisisDetectionResult): string | null {
+  return minorAbuseGuidance(crisis) ?? abuseGuidance(crisis);
 }

@@ -445,7 +445,7 @@ describe('a disclosure through the turn pipeline', () => {
       .exec(handler)?.[1]
       ?.replace(/\s+/g, ' ');
     expect(injection).toBe(
-      'minorAbuseGuidance(result.crisis) ?? abuseGuidance(result.crisis) ?? buildCrisisGuidance(result.crisis)'
+      'disclosureGuidance(result.crisis) ?? buildCrisisGuidance(result.crisis)'
     );
   });
 });

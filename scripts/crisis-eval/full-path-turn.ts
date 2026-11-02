@@ -47,14 +47,13 @@ import {
   crisisFromSignal,
   followUpCrisis,
 } from '../../src/services/human-transfer/crisis-signals.js';
-import { abuseGuidance } from '../../src/services/safety/abuse-disclosure-turn.js';
+import { disclosureGuidance } from '../../src/services/safety/abuse-disclosure-turn.js';
 import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
 } from '../../src/services/safety/crisis-classifier.js';
 import { resetCrisisCallRisk } from '../../src/services/safety/crisis-call-risk.js';
 import { resetCallRiskSnapshots } from '../../src/services/safety/crisis-lone-imminent.js';
-import { minorAbuseGuidance } from '../../src/services/safety/minor-abuse-disclosure.js';
 import { NEUTRAL_REPLIES, splitOf, type SimCallSpec } from './full-path-corpus.js';
 import { guidedReplyFor } from './guided-reply.js';
 import type { FiredPath, LineState, TurnRecord } from './full-path-summary.js';
@@ -235,7 +234,7 @@ export async function simulateTurn(
   // The turn handler's crisis_response injection for a pipeline crisis (turn-handler.ts).
   const turnGuidance =
     summary.isCrisis && !summary.shouldOverrideLLM
-      ? (minorAbuseGuidance(summary) ?? abuseGuidance(summary) ?? buildCrisisGuidance(resolved))
+      ? (disclosureGuidance(summary) ?? buildCrisisGuidance(resolved))
       : '';
   const instructions = [
     ...requests.filter((r) => r.includes(CRISIS_GUIDE)),
