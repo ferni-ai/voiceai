@@ -301,11 +301,37 @@ jobs:
       - name: Lint coverage ratchet
         run: pnpm quality:lint-coverage
 
+      # Prettier's content cache for the Format ratchet (cold ~100 s, warm much less). It only
+      # skips a file whose content hash prettier already saw formatted under the same version
+      # and options, so a miss gives the same result, slower. Only a push to main saves it;
+      # pull requests and the merge queue restore it read-only, so a branch can't seed it.
+      - name: Prettier cache key
+        id: prettier-cache
+        run: |
+          version=$(node -p "require('prettier/package.json').version")
+          echo "prefix=prettier-${{ runner.os }}-${version}-${{ hashFiles('pnpm-lock.yaml', '.prettierrc*', '.prettierignore') }}-" >> "$GITHUB_OUTPUT"
+
+      - name: Restore prettier cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/prettier-cache
+          key: ${{ steps.prettier-cache.outputs.prefix }}${{ github.sha }}
+          restore-keys: ${{ steps.prettier-cache.outputs.prefix }}
+
       # Blocking ratchet: the src files prettier would reformat may only get fewer, so a PR
       # formats what it adds without reformatting files it didn't touch
       # (baseline: apps/cli/src/commands/quality/format-baseline.generated.json).
       - name: Format ratchet
-        run: pnpm quality:format
+        run: pnpm quality:format --cache="$RUNNER_TEMP/prettier-cache/cache.json"
+
+      - name: Save prettier cache
+        # PROOF ONLY (draft, never merged): also save from this branch so a second run can
+        # restore warm before anything is on main.
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.head_ref == 'ci/w1-6-red-proof'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/prettier-cache
+          key: ${{ steps.prettier-cache.outputs.prefix }}${{ github.sha }}
 
       - name: Tool schema validation
         run: pnpm tools:schemas:validate
