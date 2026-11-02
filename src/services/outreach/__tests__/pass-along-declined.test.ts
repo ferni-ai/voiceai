@@ -4,6 +4,7 @@
  * script says so); the stored result keeps only that they said no, and the
  * member is told just that. Real buildCallOutcome; fictional people and words.
  */
+import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../superhuman/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
@@ -113,7 +114,9 @@ describe('they said no to passing it along', () => {
   });
 
   it('their words never reach the summary model, and the crisis read still runs', async () => {
+    // The crisis is said mid-call, not last.
     const t = [...turns('No.'), { role: 'recipient' as const, content: 'I want to die.' }];
+    t.push({ role: 'recipient', content: 'Anyway, talk soon.' });
     const analyze = vi.fn(async () => analysis());
     const report = vi.fn(async () => undefined);
     const ports = { readDisposition: () => undefined, readTranscript: () => t, analyze, report };
@@ -131,6 +134,8 @@ describe('they said yes', () => {
     'No worries at all',
     'no worries, sure',
     'Of course',
+    'Don’t worry about it.',
+    "Don't worry, I trust you.",
   ])('%j: the model summary is kept as before', (answer) => {
     expect(passAlongDeclined(turns(answer))).toBe(false);
     const o = buildCallOutcome(call, turns(answer), analysis(), undefined, 90);
@@ -150,5 +155,52 @@ describe('they said yes', () => {
       { role: 'recipient', content: "No, I'm not, sorry." },
     ];
     expect(passAlongDeclined(message)).toBe(false);
+  });
+});
+
+describe('the fictional reply set (fixtures/pass-along-replies.tsv)', () => {
+  const rows = readFileSync(new URL('fixtures/pass-along-replies.tsv', import.meta.url), 'utf8')
+    .split('\n')
+    .filter((l) => l && !l.startsWith('#'))
+    .map((l) => l.split('\t') as ['YES' | 'NO', string]);
+  const declined = (reply: string) => passAlongDeclined(turns(reply));
+
+  it('reads all 44 replies', () => expect(rows).toHaveLength(44));
+
+  it('no yes reads as a no (false declines: 0 of 22)', () => {
+    expect(rows.filter(([l, r]) => l === 'YES' && declined(r))).toEqual([]);
+  });
+
+  it('every no reads as a no (missed declines: 0 of 22)', () => {
+    expect(rows.filter(([l, r]) => l === 'NO' && !declined(r))).toEqual([]);
+  });
+
+  it.each(["Don't mention it!", "Don't tell anyone I said this, but he's the best."])(
+    'later in a yes call, %j is not taking it back',
+    (later) => {
+      const t = [...turns('Sure.'), { role: 'recipient' as const, content: later }];
+      expect(passAlongDeclined(t)).toBe(false);
+    }
+  );
+});
+
+describe('a bare "no" is captured', () => {
+  it.each(['No', 'no', 'ok'])('%j is kept as their reply, so a no still counts', async (reply) => {
+    const { setOutboundCallContext } =
+      await import('../../../intelligence/context-builders/external/outbound-call-context.js');
+    const capture = await import('../../../agents/integrations/on-behalf-transcript-capture.js');
+    const transcripts = await import('../call-transcript-intelligence.js');
+    const sessionId = `s-short-${reply}`;
+    setOutboundCallContext(sessionId, { callId: `c-short-${reply}` } as never);
+    transcripts.initializeTranscriptCapture(`c-short-${reply}`, 'Priya', 'friend');
+    capture.initializeOnBehalfCapture(sessionId);
+    capture.captureAgentTurn(sessionId, ASK);
+    capture.captureRecipientTurn(sessionId, reply);
+    capture.captureRecipientTurn(sessionId, SAID);
+    const captured = transcripts.getActiveTranscript(`c-short-${reply}`)?.turns ?? [];
+    expect(captured.map((t) => t.content)).toEqual([ASK, reply, SAID]);
+    expect(passAlongDeclined(captured)).toBe(reply !== 'ok');
+    capture.cleanupOnBehalfCapture(sessionId);
+    transcripts.finalizeTranscript(`c-short-${reply}`, 9);
   });
 });

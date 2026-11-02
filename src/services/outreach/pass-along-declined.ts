@@ -4,8 +4,9 @@
  * Every call script asks ("Just so you know, I'll pass along what you tell me
  * to Riley. Is that okay?", scripts/*: passAlongScript) and tells the model
  * that a no is fine: it still gives them the member's message and doesn't
- * press. A no counts when it starts their first reply to that question, or
- * when they take it back at any point ("off the record", "don't tell him").
+ * press. A no counts when their first reply to that question is one (a
+ * refusal, or a leading no with no yes after it: "No, that's fine" is a yes),
+ * or when they take it back at any point ("off the record", "don't tell him").
  * The member then hears only that they asked for nothing to be passed along:
  * no summary, no message and no action items are kept, and their words never
  * go to the summary model. A crisis read on their words still reaches the
@@ -20,14 +21,27 @@ import { crisisCallerLine, crisisRead } from './caller-text.js';
 
 /** Ferni's pass-along question, however the model words it: "pass ... along ... okay?". */
 const ASKED = /\bpass\b[^.?!]*\b(?:along|on)\b[^?]*\b(?:okay|ok|alright|all right|fine)\b[^?]*\?/i;
-/** Their answer starts with a no. "No problem" and "no worries" are a yes. */
-const SAID_NO =
-  /^\W*(?:(?:oh|um+|uh+|well|hmm+|actually)\W+)*(?:no\b(?!\W*(?:problem|worries|prob)\b)|nope\b|nah\b|please don't|don't\b|i'd (?:rather|prefer) (?:you )?(?:not|didn't)|not really\b|keep (?:this|it) between us)/i;
+/**
+ * A no anywhere in their answer, which no yes cue undoes: "please don't",
+ * "I'd rather not", "I don't want you to", "that's not okay".
+ */
+const REFUSED =
+  /\b(?:please don't|don't (?:tell|share|pass|repeat)\b|(?:rather|prefer) (?:you )?(?:not|didn't)\b|don't want (?:you|him|her|them)\b|keep (?:this|that|it) (?:between us|to yourself|private)|not (?:okay|ok|alright|all right)\b|don't think so\b|no way\b)/i;
+/** Their answer starts with a no ("no", "nope", "nah", "not really"), after an "oh" or an "um". */
+const STARTS_NO = /^\W*(?:(?:oh|um+|uh+|well|hmm+|actually)\W+)*(?:no|nope|nah|not really)\b/i;
+/** A yes after that no: "No, that's fine", "Nope, all good", "No worries". */
+const THEN_YES =
+  /\b(?:fine|okay|ok|alright|all right|go ahead|go for it|all good|don't mind|sure|no (?:problem|worries|prob))\b/i;
 /** Anywhere in the call, they take it back: "don't pass that on", "keep this between us". */
 const WITHDRAWN =
-  /\b(?:don't|do not|dont) (?:pass (?:that|this|it|any of (?:that|this)) (?:on|along)|tell (?:him|her|them|anyone|anybody)\b|share (?:that|this|it)\b|mention (?:that|this|it)\b|repeat (?:that|this|it)\b)|\b(?:keep (?:this|that|it)|just) between (?:us|you and me)\b|\boff the record\b|\bi'd (?:rather|prefer) you (?:didn't|not)\b/i;
+  /\bdon't (?:pass (?:that|this|it|any of (?:that|this)) (?:on|along)|tell (?:him|her|them)\b|share (?:that|this|it)\b|repeat (?:that|this|it)\b)|\b(?:keep (?:this|that|it)|just) between (?:us|you and me)\b|\bkeep (?:this|that|it) to yourself\b|\boff the record\b|\bi'd (?:rather|prefer) you (?:didn't|not)\b|\bdon't want (?:him|her|them) to know\b/i;
 
-const straight = (text: string): string => text.replace(/[\u2018\u2019]/g, "'");
+const straight = (text: string): string =>
+  text.replace(/[\u2018\u2019]/g, "'").replace(/\bdo not\b/gi, "don't");
+
+/** Their answer to the question is a no: a refusal, or a leading no with no yes after it. */
+const saidNo = (answer: string): boolean =>
+  REFUSED.test(answer) || (STARTS_NO.test(answer) && !THEN_YES.test(answer));
 
 /** True when their first reply to Ferni's pass-along question is a no, or they take it back later. */
 export function passAlongDeclined(turns: readonly CallTranscriptTurn[]): boolean {
@@ -36,7 +50,7 @@ export function passAlongDeclined(turns: readonly CallTranscriptTurn[]): boolean
   const asked = turns.findIndex((t) => t.role === 'agent' && ASKED.test(t.content));
   if (asked < 0) return false;
   const answer = turns.slice(asked + 1).find((t) => t.role === 'recipient');
-  return answer !== undefined && SAID_NO.test(straight(answer.content));
+  return answer !== undefined && saidNo(straight(answer.content));
 }
 
 /** What the member hears when they said no: that they did, and nothing they said. */

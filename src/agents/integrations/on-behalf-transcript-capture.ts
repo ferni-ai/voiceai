@@ -84,8 +84,8 @@ export function captureRecipientTurn(sessionId: string, text: string): void {
     return;
   }
 
-  // Skip very short utterances (likely just acknowledgments)
-  if (text.length < 3) {
+  // Keep every reply, however short: a bare "no" or "ok" can be their answer to the pass-along question.
+  if (!text.trim()) {
     return;
   }
 
