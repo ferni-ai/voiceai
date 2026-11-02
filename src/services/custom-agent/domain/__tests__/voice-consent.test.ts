@@ -3,7 +3,12 @@
  * words included. Names are fictional.
  */
 import { describe, expect, it } from 'vitest';
-import { buildConsentStatement, CHECK_WORDS, scoreConsentTranscript } from '../voice-consent.js';
+import {
+  buildConsentStatement,
+  CHECK_WORDS,
+  type ConsentStatement,
+  scoreConsentTranscript,
+} from '../voice-consent.js';
 import { consentWords } from '../heard-words.js';
 
 /** Steps through [0, 1) so each pick is predictable. */
@@ -302,22 +307,73 @@ describe('scoreConsentTranscript', () => {
     expect(verifies(statement, statement.text)).toBe(true);
   });
 
-  it('verifies names that hold refusal words, read correctly', () => {
-    for (const [subjectName, creatorName] of [
-      ['No Min-ji', null],
-      ['Noa Never', null],
-      ['Rosa Quill', 'Do Not'],
-      ['Never', null],
-    ] as const) {
-      const statement = buildConsentStatement({
-        subjectName,
-        creatorName,
-        spokenDate: 'November 1, 2026',
-        random: seq(0, 0, 0),
-      });
+  const statementFor = (subjectName: string, creatorName: string | null) =>
+    buildConsentStatement({
+      subjectName,
+      creatorName,
+      spokenDate: 'November 1, 2026',
+      random: seq(0, 0, 0),
+    });
+
+  it.each([
+    'I do not agree',
+    'Rosa Quill and I agree',
+    'No',
+    'Not',
+    'Nobody',
+    'Agree',
+    'Consent',
+    'Withdraw',
+    'No Min-ji',
+    'Do Not',
+    'Uh-uh',
+  ])('refuses %s as the subject name: it says no or consents', (name) => {
+    expect(() => statementFor(name, null)).toThrow(RangeError);
+    expect(() => statementFor(name, 'Maya Quill')).toThrow(RangeError);
+  });
+
+  it.each(['everyone', 'anyone', 'someone', 'Everybody', 'you', 'I do not agree', 'Never'])(
+    'refuses %s as the name of who it is for: it names nobody in particular or says no',
+    (name) => {
+      expect(() => statementFor('Rosa Quill', name)).toThrow(RangeError);
+    }
+  );
+
+  it.each([
+    'Rosa Quill',
+    'Nona',
+    'Noel',
+    'Nat',
+    'Ann-Marie',
+    "O'Neil",
+    'Ifeoma',
+    'José',
+    'I. M. Wu',
+  ])('verifies %s, a name that only looks like a refusal or is plain', (name) => {
+    for (const statement of [statementFor(name, null), statementFor('Rosa Quill', name)]) {
       expect(verifies(statement, statement.text)).toBe(true);
       expect(verifies(statement, `${statement.text} No.`)).toBe(false);
-      expect(verifies(statement, statement.text.replace('I agree', 'I do not agree'))).toBe(false);
+    }
+  });
+
+  it('builds a name holding a filler, which can never verify (fails closed)', () => {
+    const erLing = statementFor('Er Ling', null);
+    expect(verifies(erLing, erLing.text)).toBe(false);
+  });
+
+  it('refuses a name split or joined by two words, even spelled exactly', () => {
+    const joined = statementFor('Rosaquill', null);
+    expect(verifies(joined, joined.text.replace('Rosaquill', 'Rosa qu ill'))).toBe(false);
+    const split = statementFor('Mary Ann Lee', null);
+    expect(verifies(split, split.text.replace('Mary Ann Lee', 'Maryannlee'))).toBe(false);
+    expect(verifies(split, split.text.replace('Mary Ann Lee', 'Maryann Lee'))).toBe(true);
+  });
+
+  it('refuses a date that is a sentence or a refusal', () => {
+    for (const spokenDate of ['today, and I do not agree', 'November 1 for everyone', '']) {
+      expect(() =>
+        buildConsentStatement({ subjectName: 'Rosa Quill', creatorName: null, spokenDate })
+      ).toThrow(RangeError);
     }
   });
 
@@ -350,6 +406,78 @@ describe('scoreConsentTranscript', () => {
   });
 });
 
+describe('scoreConsentTranscript on a statement it did not build', () => {
+  /** The statement with its parts swapped, and its text rewritten to say them. */
+  const tampered = (change: Partial<ConsentStatement>): ConsentStatement => {
+    const statement = { ...forMaya, ...change };
+    const text = forMaya.text
+      .replace('apple, bridge, candle', statement.checkWords.join(', '))
+      .replace('Rosa Quill', statement.subjectName)
+      .replace('Maya Quill', statement.creatorName ?? '')
+      .replace('November 1, 2026', statement.spokenDate);
+    return { ...statement, text };
+  };
+
+  it('verifies a stored statement with three distinct check words, read in full', () => {
+    const stored = tampered({ checkWords: ['zebra', 'quilt', 'tiger'] });
+    expect(stored.text).toContain('My check words are zebra, quilt, tiger.');
+    expect(scoreConsentTranscript(stored, stored.text).verified).toBe(true);
+  });
+
+  it.each([
+    ['no check words', []],
+    ['blank check words', ['', '', '']],
+    ['one check word', ['apple']],
+    ['two check words', ['apple', 'bridge']],
+    ['four check words', ['apple', 'bridge', 'candle', 'desert']],
+    ['the same word three times', ['apple', 'apple', 'apple']],
+    ['a repeated word', ['apple', 'bridge', 'apple']],
+    ['"no no no"', ['no', 'no', 'no']],
+    ['a word outside the list', ['apple', 'bridge', 'handle']],
+    ['a check word in capitals', ['Apple', 'bridge', 'candle']],
+  ])('refuses a statement with %s, even read word for word', (_label, checkWords) => {
+    const stored = tampered({ checkWords });
+    expect(scoreConsentTranscript(stored, stored.text)).toMatchObject({
+      verified: false,
+      mismatch: 'a statement without fresh check words',
+    });
+  });
+
+  it.each([
+    ['a subject name that says no', { subjectName: 'I do not agree' }],
+    ['an open-scope creator', { creatorName: 'everyone' }],
+    ['a creator name that is a sentence', { creatorName: 'Maya. I take it back' }],
+  ])('refuses a statement with %s, even read word for word', (_label, change) => {
+    const stored = tampered(change);
+    expect(scoreConsentTranscript(stored, stored.text)).toMatchObject({
+      verified: false,
+      mismatch: 'a statement whose names are not names',
+    });
+  });
+
+  it('refuses a stored statement with missing or mistyped parts, without throwing', () => {
+    for (const change of [
+      { checkWords: undefined },
+      { checkWords: 'apple bridge candle' },
+      { checkWords: [1, 2, 3] },
+      { subjectName: undefined },
+      { creatorName: undefined },
+      { spokenDate: undefined },
+    ]) {
+      const stored = { ...forMaya, ...change } as unknown as ConsentStatement;
+      expect(scoreConsentTranscript(stored, forMaya.text).verified).toBe(false);
+    }
+  });
+
+  it('refuses a statement whose date holds a refusal, even read word for word', () => {
+    const stored = tampered({ spokenDate: 'not today' });
+    expect(scoreConsentTranscript(stored, stored.text)).toMatchObject({
+      verified: false,
+      mismatch: 'a statement whose date is not a date',
+    });
+  });
+});
+
 /** Every word of the text, sorted: all the words, none of the order. */
 function consentWordsSorted(text: string): string {
   return text.split(/\s+/).sort().join(' ');
@@ -364,5 +492,6 @@ describe('consentWords', () => {
       '1',
       '2026',
     ]);
+    expect(consentWords("O'Neil's voice, O’Brien’s")).toEqual(["o'neil", 'voice', "o'brien"]);
   });
 });

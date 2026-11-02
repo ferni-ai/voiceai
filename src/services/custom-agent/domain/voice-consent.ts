@@ -23,6 +23,7 @@
 
 import {
   consentWords,
+  holdsNotANameWord,
   isDateWord,
   heardWords,
   MAX_DATE_WORDS,
@@ -137,20 +138,61 @@ const NAME_WORD = /^(?:[\p{L}\p{M}'\u2019\u02bc\u2010\u2011\u2013-]|\u200c|\u200
 /** An initial ("J.") or a short title ("Jr.", "Dr."): the only words that may end in a period. */
 const DOTTED_WORD = /^(?:\p{L}|jr|sr|st|dr)\.$/iu;
 
-/** A name a person can say, not a sentence: at most ten name words. */
+/**
+ * A name a person can say, not a sentence: at most ten name words, none of them a word
+ * that says no, gives or takes back consent, or names nobody in particular ("everyone").
+ */
 function isSpeakableName(name: string): boolean {
   const words = clean(name).split(' ');
   return (
-    words.length <= MAX_NAME_WORDS && words.every((w) => NAME_WORD.test(w) || DOTTED_WORD.test(w))
+    words.length <= MAX_NAME_WORDS &&
+    words.every((w) => DOTTED_WORD.test(w) || (NAME_WORD.test(w) && !holdsNotANameWord(w)))
   );
 }
 
-/** The statement the subject reads aloud. Throws on a name that isn't speakable (a sentence). */
+/** A date short enough to be only a date, with no refusal in it. */
+const isSpeakableDate = (date: unknown): boolean =>
+  typeof date === 'string' &&
+  consentWords(date).length >= 1 &&
+  consentWords(date).length <= MAX_DATE_WORDS &&
+  !holdsNotANameWord(date);
+
+/** Three distinct words from CHECK_WORDS: the only proof a reading is fresh. */
+function hasFreshCheckWords(words: unknown): boolean {
+  if (!Array.isArray(words)) return false;
+  const list: unknown[] = words;
+  return (
+    list.length === CHECK_WORD_COUNT &&
+    new Set(list).size === CHECK_WORD_COUNT &&
+    list.every((w) => typeof w === 'string' && CHECK_WORDS.includes(w))
+  );
+}
+
+const isName = (name: unknown): boolean => typeof name === 'string' && isSpeakableName(name);
+
+/**
+ * Why a statement can't be scored, or null. The scorer may be handed a statement that was
+ * stored, sent back by a client or written before these rules, so it checks again.
+ */
+function statementFault(statement: ConsentStatement): string | null {
+  if (!hasFreshCheckWords(statement.checkWords)) return 'a statement without fresh check words';
+  const { subjectName, creatorName } = statement;
+  if (!isName(subjectName) || (creatorName !== null && !isName(creatorName))) {
+    return 'a statement whose names are not names';
+  }
+  if (!isSpeakableDate(statement.spokenDate)) return 'a statement whose date is not a date';
+  return null;
+}
+
+/** The statement the subject reads aloud. Throws on a name or date that isn't speakable. */
 export function buildConsentStatement(input: ConsentStatementInput): ConsentStatement {
   const subject = clean(input.subjectName);
   const creator = input.creatorName === null ? null : clean(input.creatorName);
   if (!isSpeakableName(subject) || (creator !== null && !isSpeakableName(creator))) {
     throw new RangeError('consent names must be speakable names, not sentences');
+  }
+  if (!isSpeakableDate(input.spokenDate)) {
+    throw new RangeError('the consent date must be a spoken date, not a sentence');
   }
   const forWhom = creator === null ? 'my own use' : `${creator}'s private use`;
   const checkWords = pickCheckWords(input.random ?? secureRandom);
@@ -205,7 +247,10 @@ function statementParts(statement: ConsentStatement): Part[] {
 }
 
 export interface ConsentScore {
-  /** True only when the whole statement was read, in order, with nothing added. */
+  /**
+   * True only when the whole statement was read, in order, with nothing added, and the
+   * statement itself has three distinct check words and real names.
+   */
   verified: boolean;
   /** The first part that didn't match ("the agreement"), for asking to read it again; null when verified. */
   mismatch: string | null;
@@ -217,6 +262,9 @@ export function scoreConsentTranscript(
   statement: ConsentStatement,
   transcript: string
 ): ConsentScore {
+  // Fail closed on a statement that was not built here: no check words, no freshness proof
+  const fault = statementFault(statement);
+  if (fault) return { verified: false, mismatch: fault, missingCheckWords: [] };
   const heard = heardWords(transcript);
   const heardSet = new Set(heard);
   const missingCheckWords = statement.checkWords.filter((w) => !heardSet.has(w));

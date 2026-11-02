@@ -8,14 +8,14 @@
 
 import { editDistance } from '../../../utils/call-me-vocative.js';
 
-/** Lowercase whole words and numbers, possessive "'s" dropped. */
+/** Lowercase whole words and numbers, possessive "'s" dropped (also after "O'Neil"). */
 export function consentWords(text: string): string[] {
   // Speech to text often writes curly apostrophes ("don’t"); read them as plain ones
   const plain = text
     .normalize('NFC')
     .toLowerCase()
     .replace(/[\u2018\u2019\u02bc\uff07]/g, "'");
-  return (plain.match(/[\p{L}\p{M}\p{N}]+(?:'[\p{L}\p{M}]+)?/gu) ?? []).map((w) =>
+  return (plain.match(/[\p{L}\p{M}\p{N}]+(?:'[\p{L}\p{M}]+)*/gu) ?? []).map((w) =>
     w.replace(/'s$/, '')
   );
 }
@@ -42,6 +42,25 @@ export const isDateWord = (word: string, extra: ReadonlySet<string>) =>
 
 /** "Uh-uh", "mm-mm" and "hmm-mm" mean no; speech to text writes them as two fillers. */
 const SPOKEN_NO = new Set(['uh', 'mm', 'hmm']);
+
+/**
+ * Words a consent name may not hold, so "My name is I do not agree" or "for everyone's
+ * private use" can't be built: words that say no, words that give or take back consent,
+ * and words that name nobody in particular.
+ */
+const NOT_A_NAME = new Set([
+  ...SPOKEN_NO,
+  ...'no not never none nobody nothing nor neither nope nah cannot dont cant'.split(' '),
+  ..."don't doesn't didn't won't can't isn't aren't wasn't wouldn't shouldn't".split(' '),
+  ...'agree agreed agrees disagree consent consents withdraw withdraws withdrawn'.split(' '),
+  ...'revoke refuse decline deny'.split(' '),
+  ...'everyone anyone someone somebody anybody everybody whoever all people'.split(' '),
+  ...'others you me i we us myself yourself'.split(' '),
+]);
+
+/** True when the text holds a word no name or date may hold ("No", "agree", "everyone's"). */
+export const holdsNotANameWord = (text: string): boolean =>
+  consentWords(text).some((w) => NOT_A_NAME.has(w));
 
 /**
  * The transcript as words, fillers out, "a i" and "anytime" read the way the statement
