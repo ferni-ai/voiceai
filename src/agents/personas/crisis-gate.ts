@@ -66,6 +66,7 @@ import {
   callRiskBeforeTurn,
   loneImminentGoodbye,
 } from '../../services/safety/crisis-lone-imminent.js';
+import { minorCrisisScript } from '../../utils/minor-crisis-care.js'; // MINOR_CRISIS_CARE
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   applyClassifierVerdict,
@@ -101,8 +102,10 @@ const log = createLogger({ module: 'CrisisGate' });
 
 export type CrisisGateDecision =
   | { action: 'pass' }
-  | { action: 'guide'; guidance: string }
+  // about: the crisis read's subject when the risk is someone the caller knows (MINOR_CRISIS_CARE).
+  | { action: 'guide'; guidance: string; about?: 'third_party' }
   | { action: 'replace'; script: string; kind?: ReturnType<typeof crisisKindOf> };
+type GuideDecision = Extract<CrisisGateDecision, { action: 'guide' }>;
 
 export interface CrisisGateTurn {
   /** What the patterns decided, before the LLM is asked. */
@@ -122,6 +125,9 @@ const guide = (guidance: string): CrisisGateDecision => ({ action: 'guide', guid
 export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   if (guardFromDetection(crisis).shouldBlock && crisis.suggestedResponse) {
     return { action: 'replace', script: crisis.suggestedResponse, kind: crisisKindOf(crisis) };
+  }
+  if (crisis.isCrisis && crisis.subject === 'third_party') {
+    return { action: 'guide', guidance: buildCrisisGuidance(crisis), about: 'third_party' };
   }
   if (crisis.isCrisis) return { action: 'guide', guidance: buildCrisisGuidance(crisis) };
   return { action: 'pass' };
@@ -404,20 +410,29 @@ export async function gatedReply(
     .catch(() => undefined);
   if (gate?.escalation) noteCrisisVerdictPending(session, gate.escalation);
   if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);
+  // MINOR_CRISIS_CARE=on: a caller who sounds under 18 also hears the youth line; the script stays.
+  const script = (text: string): string =>
+    minorCrisisScript(text, risk, callerWords(chatCtx).latest, chatCtx.items);
   if (gate?.decision.action === 'replace') {
     // A turn with no moves, so the script isn't counted as the last reply's (move-log.ts).
     noteTurn(session, callerWords(chatCtx).latest, undefined);
-    return textReply(gate.decision.script);
+    return textReply(script(gate.decision.script));
   }
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn shape ("six words at
   // most") must never hold it back, and no goodbye closes the loop on a plan (wrap-up.ts).
   // A guided reply never carries PERSONA_GROWTH's note, whenever this turn found the risk.
-  const plain = (): llm.ChatContext =>
-    withTurnReminder(withoutGrowthNote(chatCtx), session, { shape: false, closeLoop: false });
+  // A soft check-in asks for no crisis talk, so it gets no youth crisis note (MINOR_CRISIS_CARE);
+  // a friend at risk gets the friend note.
+  const plain = ({ guidance, about }: GuideDecision): llm.ChatContext =>
+    withTurnReminder(withoutGrowthNote(chatCtx), session, {
+      shape: false,
+      closeLoop: false,
+      youth: guidance !== SOFT_CRISIS_CHECK && guidance !== GROUNDED_LIGHT_TOUCH && (about ?? true),
+    });
   const ctx =
     gate?.decision.action === 'guide'
-      ? withTurnStyleReminder(plain(), gate.decision.guidance)
+      ? withTurnStyleReminder(plain(gate.decision), gate.decision.guidance)
       : withTurnReminder(chatCtx, session, { held: gate?.escalation });
   // A vocal burst only where this request invited one, never with crisis guidance.
   const burst = burstAllowed(session, gate?.decision.action === 'guide', env);
@@ -453,10 +468,10 @@ export async function gatedReply(
   // No first reply: an empty one, so a release still speaks its question.
   return holdUntilCleared(reply ?? textReply(''), gate.escalation, async (decision) => {
     if (decision.action !== 'pass') holdAfterCrisis(session);
-    if (decision.action === 'replace') return textReply(decision.script);
+    if (decision.action === 'replace') return textReply(script(decision.script));
     if (decision.action === 'pass') return null;
     const guided = await ask(
-      withTurnStyleReminder(plain(), decision.guidance),
+      withTurnStyleReminder(plain(decision), decision.guidance),
       burst === undefined ? undefined : false,
       true
     );
