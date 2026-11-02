@@ -17,6 +17,12 @@ const stubs = vi.hoisted(() => ({
   amdOptions: [] as unknown[],
   amdCreated: 0,
   hangUpCall: vi.fn(async (_sessionId: string, _disposition?: string) => true),
+  noteCallProgress: vi.fn(async (_sessionId: string, _kind: string) => undefined),
+}));
+
+// CALL_LIVE_RELAY's writer (call-progress.ts has its own tests): which verdict notes what.
+vi.mock('../../../services/outreach/call-progress.js', () => ({
+  noteCallProgress: stubs.noteCallProgress,
 }));
 
 vi.mock('@livekit/agents', async (importOriginal) => {
@@ -80,6 +86,7 @@ beforeEach(() => {
   stubs.queue = [];
   stubs.amdOptions = [];
   stubs.hangUpCall.mockClear();
+  stubs.noteCallProgress.mockClear();
   phoneRoom('active');
   registerOnBehalfCallRoom(SESSION, 'c1', 'room-c1');
   setOutboundCallContext(SESSION, {
@@ -219,3 +226,52 @@ describe('with CALL_OPENING_AMD on', () => {
     expect(agent.say).not.toHaveBeenCalled();
   });
 });
+
+describe('CALL_LIVE_RELAY: the verdict is noted for the owner call', () => {
+  beforeEach(() => {
+    process.env.CALL_OPENING_AMD = 'on';
+  });
+
+  it('a person who said hello: noted as answered, once', async () => {
+    stubs.verdict = { category: 'human', transcript: 'Hello?', delayMs: 300 };
+    const agent = callingAgent();
+    openIfOnBehalfCall(SESSION, agent);
+    await vi.waitFor(() => expect(stubs.noteCallProgress).toHaveBeenCalledTimes(1));
+    expect(stubs.noteCallProgress).toHaveBeenCalledWith(SESSION, 'answered');
+  });
+
+  it('a voicemail: noted as voicemail before the message is asked for', async () => {
+    stubs.verdict = { category: 'machine-vm', transcript: 'leave a message', delayMs: 900 };
+    const agent = callingAgent();
+    const order: string[] = [];
+    stubs.noteCallProgress.mockImplementationOnce(async (_s, kind) => void order.push(kind));
+    agent.session.generateReply.mockImplementation(() => {
+      order.push('message');
+      return { waitForPlayout: vi.fn(async () => undefined) };
+    });
+    openIfOnBehalfCall(SESSION, agent);
+    await vi.waitFor(() => expect(stubs.hangUpCall).toHaveBeenCalled());
+    expect(order).toEqual(['voicemail', 'message']);
+    expect(stubs.noteCallProgress).toHaveBeenCalledTimes(1);
+  });
+
+  it('a silent pickup, a full mailbox or no answer: nothing noted', async () => {
+    for (const category of ['uncertain', 'machine-unavailable']) {
+      stubs.verdict = { category, transcript: '', delayMs: 0 };
+      openIfOnBehalfCall(SESSION, callingAgent());
+    }
+    const room = phoneRoom('dialing');
+    openIfOnBehalfCall(SESSION, callingAgent());
+    room.emit('participantAttributesChanged', { 'sip.callStatus': 'hangup' }, phoneOf('hangup'));
+    // each of the three ends the call
+    await vi.waitFor(() => expect(stubs.hangUpCall).toHaveBeenCalledTimes(3));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 20);
+    });
+    expect(stubs.noteCallProgress).not.toHaveBeenCalled();
+  });
+});
+
+function phoneOf(callStatus: string) {
+  return { identity: 'phone_c1', attributes: { 'sip.callStatus': callStatus } };
+}

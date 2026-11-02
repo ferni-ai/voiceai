@@ -93,6 +93,7 @@
 /src/intelligence/context-builders/coaching/coaching-context.ts @sethdford
 /src/intelligence/context-builders/coaching/scientific-coaching.ts @sethdford
 /src/intelligence/context-builders/external/call-report.ts @sethdford
+/src/services/outreach/call-progress.ts @sethdford
 /src/services/outreach/call-result-live.ts @sethdford
 /src/services/outreach/caller-text.ts @sethdford
 /src/services/principal-alignment/human-referral.ts @sethdford

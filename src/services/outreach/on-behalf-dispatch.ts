@@ -24,6 +24,7 @@ import type {
   OnBehalfCallRequest,
 } from '../../tools/domains/telephony/types.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
+import { liveRoomFor, type LiveRoom } from '../../tools/registry/live-session.js';
 
 export interface OnBehalfDispatch {
   type: 'on_behalf_call';
@@ -35,6 +36,10 @@ export interface OnBehalfDispatch {
     name: string;
     timezone: string;
     originalSessionId: string;
+    /** The room of the call that asked, for the result's data message (live-session.ts). */
+    originalRoomName?: string;
+    /** That room's sid, from LiveKit's job for the asking call; signed, so no client sets it. */
+    originalRoomSid?: string;
   };
   contact: { name: string; phone: string; relationship?: string };
   purpose: string;
@@ -156,6 +161,12 @@ export function verifyOnBehalfDispatch(
   });
 }
 
+/** The requester's room, only when known: no empty key, so a dispatch without one signs as before. */
+const roomOf = (room: Partial<LiveRoom> | undefined) => ({
+  ...(room?.name ? { originalRoomName: room.name } : {}),
+  ...(room?.name && room.sid ? { originalRoomSid: room.sid } : {}),
+});
+
 /** The dispatch for a call the orchestrator places from an on-behalf request. */
 export function onBehalfDispatchFor(
   callId: string,
@@ -169,6 +180,13 @@ export function onBehalfDispatchFor(
       name: request.userName,
       timezone: request.userTimezone,
       originalSessionId: request.originalSessionId,
+      // The asking call's own room when it runs here; else what a signed dispatch carried (a retry).
+      ...roomOf(
+        liveRoomFor(request.originalSessionId) ?? {
+          name: request.originalRoomName,
+          sid: request.originalRoomSid,
+        }
+      ),
     },
     contact: {
       name: request.resolvedContact?.name ?? request.contactQuery,
@@ -193,6 +211,7 @@ export function onBehalfRequestFromDispatch(call: OnBehalfDispatch): OnBehalfCal
     objective: call.objective,
     callType: call.callType,
     originalSessionId: call.requester.originalSessionId,
+    ...roomOf({ name: call.requester.originalRoomName, sid: call.requester.originalRoomSid }),
     userId: call.requester.userId,
     userTimezone: call.requester.timezone,
     userName: call.requester.name,
@@ -266,6 +285,7 @@ export function parseOnBehalfDispatch(metadata: Record<string, unknown>): OnBeha
       name: str(requester.name) || str(metadata.userName) || 'your person',
       timezone: str(requester.timezone) || 'UTC',
       originalSessionId: str(requester.originalSessionId) || str(metadata.originalSessionId),
+      ...roomOf({ name: str(requester.originalRoomName), sid: str(requester.originalRoomSid) }),
     },
     contact: {
       name: str(contact.name) || 'them',

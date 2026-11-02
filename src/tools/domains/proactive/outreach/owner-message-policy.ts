@@ -32,7 +32,12 @@ import { onPlacedCall, verifiedCallerId } from '../../../../services/identity/ve
 import { getLogger } from '../../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { callSessionData } from '../../../utils/call-session-data.js';
-import { CONTENT_BLOCKS, blockedContent, type ContentBlock } from './owner-message-content.js';
+import {
+  CONTENT_BLOCKS,
+  blockedContent,
+  ownerTextDestination,
+  type ContentBlock,
+} from './owner-message-content.js';
 
 /** UNVERIFIED_OWNER_MESSAGE_FILTER=on: unverified calls message the owner under this policy (default off). */
 function unverifiedOwnerMessageFilterOn(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -129,6 +134,103 @@ function logOutcome(message: OwnerMessage, reason: OwnerMessageLogReason): void 
 /** An allowed send the tool then did not deliver: logged (delivery_failed); the slot stays spent. */
 export const ownerMessageNotDelivered = (message: OwnerMessage): void =>
   logOutcome(message, 'delivery_failed');
+
+/**
+ * OWNER_OUTREACH_STORED_TEXT_SCREEN=on (default off): text stored from calls (what a
+ * caller said, or what was saved from it) is screened before the outreach jobs put it
+ * in a message to the owner: proactive check-ins, pondered notes, the morning brief,
+ * commitment pushes. Those jobs can't tell a verified owner's row from an unverified
+ * caller's, so every stored text is screened. Read where those jobs run (the UI
+ * server); UNVERIFIED_OWNER_MESSAGE_FILTER belongs to live calls and is not read here.
+ */
+export function storedTextScreenOn(env: NodeJS.ProcessEnv = process.env): boolean {
+  return flagOn('OWNER_OUTREACH_STORED_TEXT_SCREEN', env);
+}
+
+/** Where stored text is about to go to the owner: the job's site, and whose message it is. */
+export interface StoredTextSite {
+  site: 'proactive' | 'morning-brief' | 'commitment-push';
+  userId: string;
+}
+
+/** Why stored text was kept out; logged as the reason code, never with the text. */
+export type StoredTextBlock =
+  | 'code_handover'
+  | 'money_destination'
+  | 'callback_scam'
+  | 'not_text'
+  | 'too_long'
+  | 'screen_error';
+
+/** Longer than any line these jobs send; past it, refuse rather than scan. */
+export const STORED_TEXT_MAX_CHARS = 10_000;
+
+const CODE_WORD = /\b(?:pass)?codes?\b|\bpasswords?\b|\bpins?\b|\bone[\s-]?time\b|\botps?\b|\bverification\b/i; // prettier-ignore
+const HAND_OVER = /\b(?:send|text|tell|give|read|share|reply|forward)(?:s|ed|ing)?\b|\bsent\b|\btold\b|\bgave\b/i; // prettier-ignore
+const MONEY_WORD = /\b(?:wir(?:e|es|ed|ing)|pay(?:s|ing|ment|ments)?|paid|send(?:s|ing)?|sent|transfer\w*|refund\w*|deposit\w*|gift\s?cards?|venmo|zelle|paypal|cash\s?app|bitcoin|crypto)\b|[$\u20AC\u00A3]\s?\d|\b\d+\s?(?:dollars?|bucks|usd)\b/i; // prettier-ignore
+const CALLBACK = /\b(?:call|text|contact|reach|ring|dial)(?:s|ed|ing)?\b|\brang\b/i;
+const ACCOUNT_CUE = /\b(?:accounts?|banks?|banking|cards?|fraud\w*|suspend\w*|lock(?:s|ed)?|security|verif\w*|irs|warrants?|overdue|arrest\w*)\b/i; // prettier-ignore
+/** ownerTextDestination's phone-shaped results, as against an address or a mail provider. */
+const PHONE_SHAPED: ReadonlySet<ContentBlock> = new Set(['digits', 'short_code', 'vanity_number', 'spaced_chars']); // prettier-ignore
+
+function hostileIn(text: string): StoredTextBlock | null {
+  const { folded: form, destination } = ownerTextDestination(text);
+  if (CODE_WORD.test(form) && HAND_OVER.test(form)) return 'code_handover';
+  if (!destination) return null;
+  if (MONEY_WORD.test(form)) return 'money_destination';
+  const callback = PHONE_SHAPED.has(destination) && CALLBACK.test(form);
+  return callback && ACCOUNT_CUE.test(form) ? 'callback_scam' : null;
+}
+
+/**
+ * Why stored call text may not go into a message to the owner, or null when it may.
+ * The jobs can't tell the owner's rows from a caller's, and the owner's rows carry
+ * numbers, prices, links and phone numbers all the time ("Call Dr. Lee at 555-0123",
+ * "Pay rent $1200", "Order from amazon.com"). So nothing is refused for its characters,
+ * only for an instruction a scam needs, read on the folded form ownerTextDestination gives:
+ * - code_handover: a code word (code, password, PIN, one-time, OTP, verification) with
+ *   a hand-over verb (send, text, tell, give, read, share, reply, forward);
+ * - money_destination: a money word (wire, pay, send, transfer, refund, deposit, gift
+ *   card, a payment app, crypto, a currency amount) with somewhere to send it;
+ * - callback_scam: a call or text verb with a phone-shaped number and an account or
+ *   alarm word (account, bank, card, fraud, locked, security, IRS, warrant...).
+ * "Somewhere to send it" is ownerTextDestination: blockedContent's own number, address
+ * and mail rules, with lone prices and dates read as words. Anything that is not a string, is over STORED_TEXT_MAX_CHARS, or can't
+ * be read is refused (fail closed).
+ */
+export function hostileStoredText(text: unknown): StoredTextBlock | null {
+  if (typeof text !== 'string') return 'not_text';
+  if (text.length > STORED_TEXT_MAX_CHARS) return 'too_long';
+  try {
+    return hostileIn(text);
+  } catch {
+    return 'screen_error';
+  }
+}
+
+/**
+ * Whether stored texts may go into a message to the owner: yes unless the screen is on
+ * and one carries a scam's instruction (hostileStoredText); a non-string, or a text
+ * that can't be read, is refused. A refusal is logged with the site, user and reason
+ * code, never the text.
+ */
+export function storedTextForOwner(
+  texts: readonly unknown[],
+  where: StoredTextSite,
+  env: NodeJS.ProcessEnv = process.env
+): boolean {
+  if (!storedTextScreenOn(env)) return true;
+  for (const text of texts) {
+    const reason = hostileStoredText(text);
+    if (!reason) continue;
+    log.info(
+      { site: where.site, userId: where.userId, reason },
+      'Stored text kept out of a message to the owner'
+    );
+    return false;
+  }
+  return true;
+}
 
 /** An unverified call's message: allowed with the footer, or why not. Counts it when allowed. */
 function unverifiedDecision(message: OwnerMessage, call: object | undefined): OwnerMessageDecision {
