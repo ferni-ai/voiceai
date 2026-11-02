@@ -216,7 +216,6 @@ test.describe('Wellbeing Dashboard UI', () => {
     await page.goto(BASE_URL);
 
     await page.evaluate((userId) => {
-      localStorage.setItem('bogle_user_id', userId);
       localStorage.setItem('ferni_user_id', userId);
     }, TEST_USER_ID);
 
