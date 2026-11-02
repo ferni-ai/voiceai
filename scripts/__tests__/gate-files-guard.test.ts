@@ -127,6 +127,11 @@ function guard(
   write(files);
   for (const path of opts.removed ?? []) rmSync(join(dir, path));
   commit(opts.commitEnv);
+  return rerun(opts.env);
+}
+
+/** Runs the guard on the last commit again, without committing. */
+function rerun(env: Record<string, string> = {}) {
   const res = spawnSync('bash', [GUARD, 'HEAD^', 'HEAD'], {
     cwd: dir,
     encoding: 'utf8',
@@ -137,7 +142,7 @@ function guard(
       PR_NUMBER: '7',
       GITHUB_RUN_ID: '99',
       GITHUB_REPOSITORY: 'o/r',
-      ...opts.env,
+      ...env,
     },
   });
   return { status: res.status, out: `${res.stdout}${res.stderr}` };
@@ -244,6 +249,33 @@ describe('gate-files-guard.sh: what it flags', () => {
       /continue-on-error: \$\{\{matrix\.experimental\}\}/,
     ],
     [
+      'quoted "continue-on-error": true',
+      ci(
+        '      - run: pnpm extras\n',
+        '      - run: pnpm extras\n        "continue-on-error": true\n'
+      ),
+      'ci.yml:29:',
+      /continue-on-error: true/,
+    ],
+    [
+      "quoted 'continue-on-error': yes",
+      ci(
+        '      - run: pnpm extras\n',
+        "      - run: pnpm extras\n        'continue-on-error': yes\n"
+      ),
+      'ci.yml:29:',
+      /continue-on-error: yes/,
+    ],
+    [
+      'continue-on-error : true (space before the colon)',
+      ci(
+        '      - run: pnpm extras\n',
+        '      - run: pnpm extras\n        continue-on-error : true\n'
+      ),
+      'ci.yml:29:',
+      /continue-on-error: true/,
+    ],
+    [
       'continue-on-error in an action',
       {
         '.github/actions/setup/action.yml':
@@ -277,6 +309,24 @@ describe('gate-files-guard.sh: what it flags', () => {
       /'\|\| :'/,
     ],
     [
+      '|| true after bash scripts/ci/',
+      ci('run: upload-coverage\n', 'run: bash scripts/ci/secret-scan-range.sh || true\n'),
+      'ci.yml:14:',
+      /'\|\| true'/,
+    ],
+    [
+      '|| : after node scripts/ci/',
+      ci('run: upload-coverage\n', 'run: node scripts/ci/cli-typecheck-ratchet.mjs || :\n'),
+      'ci.yml:14:',
+      /'\|\| :'/,
+    ],
+    [
+      '|| exit 0 after ./scripts/ci/',
+      ci('run: upload-coverage\n', 'run: ./scripts/ci/check.sh || exit 0\n'),
+      'ci.yml:14:',
+      /'\|\| exit 0'/,
+    ],
+    [
       'set +e',
       { 'scripts/ci/check.sh': '#!/usr/bin/env bash\nset +e\nset -euo pipefail\nrun-check\n' },
       'check.sh:2:',
@@ -287,6 +337,12 @@ describe('gate-files-guard.sh: what it flags', () => {
       { 'scripts/ci/check.sh': CHECK_SH.replace('run-check', 'set +eu\nrun-check') },
       'check.sh:3:',
       /'set \+eu'/,
+    ],
+    [
+      'set +x +e',
+      { 'scripts/ci/check.sh': CHECK_SH.replace('run-check', 'set +x +e\nrun-check') },
+      'check.sh:3:',
+      /'set \+e'/,
     ],
     [
       'set +o errexit',
@@ -325,6 +381,18 @@ describe('gate-files-guard.sh: what it flags', () => {
       /'if: false'/,
     ],
     [
+      'step if : false (space before the colon)',
+      ci('      - name: Lint\n', '      - name: Lint\n        if : false\n'),
+      'ci.yml:18:',
+      /'if: false'/,
+    ],
+    [
+      'step "if": false',
+      ci('      - name: Lint\n', '      - name: Lint\n        "if": false\n'),
+      'ci.yml:18:',
+      /'if: false'/,
+    ],
+    [
       'job if: ${{ false }}',
       ci('    name: Extras\n', '    name: Extras\n    if: ${{ false }}\n'),
       'ci.yml:26:',
@@ -351,6 +419,11 @@ describe('gate-files-guard.sh: what it flags', () => {
 
   it('passes a swallowed failure on a line that runs no test/lint/build tool', () => {
     const res = guard(ci('run: upload-coverage\n', 'run: gh api repos/x || true\n'));
+    expect(res.status).toBe(0);
+  });
+
+  it('passes || true on a line that only names a scripts/ci/ path', () => {
+    const res = guard(ci('run: upload-coverage\n', 'run: rm -f scripts/ci/tmp.log || true\n'));
     expect(res.status).toBe(0);
   });
 
@@ -476,6 +549,260 @@ describe('gate-files-guard.sh: what it flags', () => {
     expect(res.out).toMatch(
       /removed 'run: pnpm lint' \(main's line 18\) from required job 'Unit Tests'/
     );
+  });
+
+  it('fails a scripts/ci/ run line (the secret scan) deleted from a required job', () => {
+    const scan = '      - run: bash scripts/ci/secret-scan-range.sh\n';
+    guard(ci('        run: pnpm lint\n', `        run: pnpm lint\n${scan}`));
+    const res = guard({ '.github/workflows/ci.yml': CI });
+    expect(res.status).toBe(1);
+    expect(res.out).toMatch(
+      /removed '- run: bash scripts\/ci\/secret-scan-range\.sh' \(main's line 19\) from required job 'Unit Tests'/
+    );
+  });
+
+  it('fails a need dropped from a required job, in either list form', () => {
+    guard(ci('    name: Unit Tests\n', '    name: Unit Tests\n    needs: [setup, shards]\n'));
+    const flow = guard(ci('    name: Unit Tests\n', '    name: Unit Tests\n    needs: [setup]\n'));
+    expect(flow.status).toBe(1);
+    expect(flow.out).toMatch(/required job 'Unit Tests' no longer needs 'shards'/);
+    expect(flow.out).not.toMatch(/no longer needs 'setup'/);
+
+    git(['reset', '-q', '--hard', 'HEAD^']);
+    guard(
+      ci(
+        '    name: Unit Tests\n',
+        '    name: Unit Tests\n    needs:\n      - setup\n      - shards\n'
+      )
+    );
+    const block = guard(ci('    name: Unit Tests\n', '    name: Unit Tests\n    needs: setup\n'));
+    expect(block.status).toBe(1);
+    expect(block.out).toMatch(/required job 'Unit Tests' no longer needs 'shards'/);
+  });
+
+  it('passes needs reordered, reformatted or added to, and a need dropped from a job no check needs', () => {
+    guard({
+      '.github/workflows/ci.yml': CI.replace(
+        '    name: Unit Tests\n',
+        '    name: Unit Tests\n    needs: [setup, shards]\n'
+      ).replace('    name: Extras\n', '    name: Extras\n    needs: [setup, shards]\n'),
+    });
+    const res = guard({
+      '.github/workflows/ci.yml': CI.replace(
+        '    name: Unit Tests\n',
+        "    name: Unit Tests\n    needs:\n      - 'shards'\n      - lint # new\n      - setup\n"
+      ).replace('    name: Extras\n', '    name: Extras\n    needs: setup\n'),
+    });
+    expect(res.status).toBe(0);
+  });
+});
+
+describe('gate-files-guard.sh: what runs before or around the guard', () => {
+  // A job no check needs, so only the guard's-job rules can catch these.
+  const GATES = [
+    '  gates:',
+    '    name: Gates',
+    '    runs-on: ubuntu-latest',
+    '    steps:',
+    '      - name: Checkout',
+    '        uses: actions/checkout@v4',
+    '        with:',
+    '          fetch-depth: 0',
+    '      - name: Gate files guard',
+    "        if: github.event_name == 'pull_request'",
+    '        run: bash "$RUNNER_TEMP/gate-files-guard.sh" HEAD^1 HEAD',
+    '      - run: pnpm gates',
+    '',
+  ].join('\n');
+  const BASE_CI = CI + GATES;
+  const edit = (...pairs: [string, string][]) => {
+    let body = BASE_CI;
+    for (const [from, to] of pairs) {
+      if (!body.includes(from)) throw new Error(`fixture has no ${from}`);
+      body = body.replace(from, to);
+    }
+    return { '.github/workflows/ci.yml': body };
+  };
+  const FETCH = '          fetch-depth: 0\n';
+  const GATES_NAME = '    name: Gates\n';
+  const GUARD_STEP = '      - name: Gate files guard\n';
+
+  beforeEach(() => {
+    guard({ '.github/workflows/ci.yml': BASE_CI });
+  });
+
+  it.each<[string, Record<string, string>, RegExp]>([
+    [
+      'the checkout of the PR head commit',
+      edit([FETCH, `${FETCH}          ref: \${{ github.event.pull_request.head.sha }}\n`]),
+      /ci\.yml:42: a checkout of another ref in the guard's job/,
+    ],
+    [
+      'the checkout of another repository',
+      edit([FETCH, `${FETCH}          repository: someone/fork\n`]),
+      /ci\.yml:42: a checkout of another ref in the guard's job/,
+    ],
+    [
+      'a step ahead of the guard',
+      edit([GUARD_STEP, `      - run: git reset -q --hard HEAD~1\n${GUARD_STEP}`]),
+      /ci\.yml:42: a step ahead of the gate files guard/,
+    ],
+    [
+      'job-level defaults.run.shell: true {0}',
+      edit([GATES_NAME, `${GATES_NAME}    defaults:\n      run:\n        shell: true {0}\n`]),
+      /ci\.yml:36: defaults: on the job that runs the gate files guard/,
+    ],
+    [
+      'workflow-level defaults.run.shell: true {0}',
+      edit(['jobs:\n', 'defaults:\n  run:\n    shell: true {0}\njobs:\n']),
+      /ci\.yml:9: defaults: at workflow level/,
+    ],
+    [
+      'workflow-level defaults.run.working-directory',
+      edit(['jobs:\n', 'defaults: { run: { working-directory: sub } }\njobs:\n']),
+      /ci\.yml:7: defaults: at workflow level/,
+    ],
+    [
+      'job-level env: BASH_ENV',
+      edit([GATES_NAME, `${GATES_NAME}    env:\n      BASH_ENV: ./x.sh\n`]),
+      /ci\.yml:37: env: on the job that runs the gate files guard/,
+    ],
+    [
+      'job-level container',
+      edit([GATES_NAME, `${GATES_NAME}    container: someone/image\n`]),
+      /ci\.yml:36: container: on the job that runs the gate files guard/,
+    ],
+    [
+      'workflow-level env: BASH_ENV',
+      edit(['jobs:\n', 'env:\n  BASH_ENV: ./x.sh\njobs:\n']),
+      /ci\.yml:8: workflow env that bash or git reads/,
+    ],
+    [
+      'workflow-level env: an exported bash function',
+      edit(['jobs:\n', "env:\n  'BASH_FUNC_git%%': '() { :; }'\njobs:\n"]),
+      /ci\.yml:8: workflow env that bash or git reads/,
+    ],
+    [
+      'workflow-level env: { PATH } in flow style',
+      edit(['jobs:\n', 'env: { NODE_VERSION: 22, PATH: ./bin }\njobs:\n']),
+      /ci\.yml:7: workflow env that bash or git reads/,
+    ],
+    [
+      'shell: true {0} on the guard step',
+      edit([GUARD_STEP, `${GUARD_STEP}        shell: true {0}\n`]),
+      /'Gate files guard' step changed/,
+    ],
+  ])('fails %s', (_what, files, reason) => {
+    const res = guard(files);
+    expect(res.status).toBe(1);
+    expect(res.out).toMatch(reason);
+  });
+
+  it('fails the guard step moved, unchanged, into another job', () => {
+    const step = [
+      GUARD_STEP,
+      "        if: github.event_name == 'pull_request'\n",
+      '        run: bash "$RUNNER_TEMP/gate-files-guard.sh" HEAD^1 HEAD\n',
+    ].join('');
+    const res = guard(
+      edit([step, ''], ['      - run: pnpm extras\n', `${step}      - run: pnpm extras\n`])
+    );
+    expect(res.status).toBe(1);
+    expect(res.out).toMatch(/step moved from job gates to job extras/);
+  });
+
+  it('passes shell, env, defaults and checkout refs on other jobs, and safe env at workflow level', () => {
+    const res = guard(
+      edit(
+        ['jobs:\n', 'env:\n  NODE_VERSION: 22\n  NODE_ENV: test\njobs:\n'],
+        [
+          '    name: Extras\n',
+          '    name: Extras\n    defaults:\n      run:\n        shell: bash\n    env:\n      BASH_ENV: ./x.sh\n',
+        ],
+        [
+          '      - run: pnpm extras\n',
+          '      - uses: actions/checkout@v4\n        with:\n          ref: other\n        shell: sh\n      - run: pnpm extras\n',
+        ]
+      )
+    );
+    expect(res.out).toMatch(/nothing that switches a gate off/);
+    expect(res.status).toBe(0);
+  });
+
+  it('passes the usual job keys on the guard job and a step after the guard', () => {
+    const res = guard(
+      edit(
+        [
+          '    runs-on: ubuntu-latest\n    steps:\n      - name: Checkout',
+          '    runs-on: ubuntu-latest\n    timeout-minutes: 15\n    needs: setup\n    permissions:\n      issues: read\n    steps:\n      - name: Checkout',
+        ],
+        [
+          '      - run: pnpm gates\n',
+          '      - run: pnpm gates\n      - run: git reset -q --hard HEAD~1\n        shell: sh\n        env:\n          BASH_ENV: x\n',
+        ]
+      )
+    );
+    expect(res.out).toMatch(/nothing that switches a gate off/);
+    expect(res.status).toBe(0);
+  });
+});
+
+describe('gate-files-guard.sh: files bigger than a pipe buffer', () => {
+  // A reader that stops early (grep -q, awk exit) used to kill `git show` with
+  // SIGPIPE once a file outgrew the 64 KB pipe buffer, and pipefail turned that
+  // into a dropped finding or a made-up one, a few runs in four. Each case runs
+  // the guard five times on the same commit.
+  const FILLER = Array.from(
+    { length: 4000 },
+    (_, i) => `      - run: echo filler step ${i} padding the file past the pipe buffer\n`
+  ).join('');
+  const BIG_JOB = `  filler:\n    name: Filler\n    runs-on: x\n    steps:\n${FILLER}`;
+  const RUNS = 5;
+  const statuses = () => Array.from({ length: RUNS }, () => rerun().status);
+
+  it('fails a path filter under pull_request every time', () => {
+    guard({ '.github/workflows/ci.yml': CI + BIG_JOB });
+    guard({
+      '.github/workflows/ci.yml': (CI + BIG_JOB).replace(
+        '  pull_request:\n',
+        "  pull_request:\n    paths: ['src/**']\n"
+      ),
+    });
+    expect(rerun().out).toMatch(/ci\.yml:6: path filter on a merge-queue workflow/);
+    expect(statuses()).toEqual(Array(RUNS).fill(1));
+  });
+
+  it('fails an exit 0 ending a run block and a change to the guard step every time', () => {
+    const step =
+      "      - name: Gate files guard\n        if: github.event_name == 'pull_request'\n        run: bash guard.sh\n";
+    const base =
+      CI.replace('      - run: pnpm extras\n', `${step}      - run: pnpm extras\n`) + BIG_JOB;
+    guard({ '.github/workflows/ci.yml': base });
+    guard({
+      '.github/workflows/ci.yml': base
+        .replace('          echo extras\n', '          echo extras\n          exit 0\n')
+        .replace("'pull_request'\n", "'never'\n"),
+    });
+    const out = rerun().out;
+    expect(out).toMatch(/'exit 0' ends the run block/);
+    expect(out).toMatch(/'Gate files guard' step changed/);
+    expect(statuses()).toEqual(Array(RUNS).fill(1));
+  });
+
+  it('passes set -e kept in a big script, and a step moved within a big required job, every time', () => {
+    const script = `#!/usr/bin/env bash\nset -euo pipefail\n${'echo filler line padding the script past the pipe buffer\n'.repeat(4000)}`;
+    const unit = CI.replace('        run: pnpm test\n', `        run: pnpm test\n${FILLER}`);
+    guard({ 'scripts/ci/check.sh': script, '.github/workflows/ci.yml': unit });
+    guard({
+      'scripts/ci/check.sh': script.replace('set -euo', 'set -eo'),
+      '.github/workflows/ci.yml': unit
+        .replace('      - name: Lint\n        run: pnpm lint\n', '')
+        .replace(
+          '      - name: Coverage upload\n',
+          '      - name: Lint\n        run: pnpm lint\n      - name: Coverage upload\n'
+        ),
+    });
+    expect(statuses()).toEqual(Array(RUNS).fill(0));
   });
 });
 
