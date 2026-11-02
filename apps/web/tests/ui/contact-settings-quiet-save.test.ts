@@ -97,6 +97,28 @@ describe('quiet hours that did not load', () => {
     expect(document.querySelector<HTMLElement>('.contact-settings-time-row')?.hidden).toBe(true);
   });
 
+  it('while the window is still loading, no made-up window is shown', async () => {
+    let loaded!: (prefs: unknown) => void;
+    const pending = new Promise((resolve) => {
+      loaded = resolve;
+    });
+    apiGet.mockImplementation(async (url: string) =>
+      url === '/api/user/preferences' ? pending : ok({ contactInfo: CONTACT })
+    );
+    vi.resetModules();
+    const ui = await import('../../src/ui/contact-settings.ui.js');
+    close = ui.close;
+    const opened = ui.openContactSettings(); // renders now, then waits on the load
+    await settle();
+    // a slow load showed the dimmed 22:00-08:00 placeholder (menu-axe saw it fail contrast)
+    expect(document.querySelector<HTMLElement>('.contact-settings-time-row')?.hidden).toBe(true);
+
+    loaded(ok({ preferences: SAVED }));
+    await opened;
+    await settle();
+    expect(document.querySelector<HTMLElement>('.contact-settings-time-row')?.hidden).toBe(false);
+  });
+
   it('the contact load fails: Save posts no quiet fields either', async () => {
     answer(DOWN, ok({ preferences: SAVED }));
     await open();

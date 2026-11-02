@@ -730,7 +730,7 @@ function render(): void {
             </button>
           </div>
           
-          <div class="contact-settings-time-row ${!quietOff && state.contactInfo.quietHoursEnabled !== false ? 'enabled' : ''}" ${state.quiet === 'failed' ? 'hidden' : ''}>
+          <div class="contact-settings-time-row ${!quietOff && state.contactInfo.quietHoursEnabled !== false ? 'enabled' : ''}" ${state.quiet !== 'loaded' ? 'hidden' : ''}>
             <span class="contact-settings-time-label">${t('contactSettings.dontCall', "Don't call")}</span>
             <select class="contact-settings-time-select" id="quiet-start" ${quietOff} aria-label="${t('accessibility.quietHoursStart', 'Quiet hours start time')}">
               ${generateTimeOptions(state.contactInfo.quietHoursStart || '22:00')}
