@@ -1121,6 +1121,12 @@ jobs:
       - name: Architecture gate
         run: pnpm quality:arch
 
+      # Blocking ratchet: a new direct Firestore .set/.update/.add with no safe wrapper
+      # (safeSet, cleanForFirestore, ...) near it fails; the ~316 existing sites pass. Measured
+      # against the merge base like the gates above (scripts/check-unsafe-firestore.ts). ~2 s.
+      - name: Unsafe Firestore writes
+        run: pnpm quality:firestore
+
       # Blocking ratchet: a relative vi.mock-family string naming no module fails (vitest
       # mocks a path nobody imports and the real module loads). Fix: point the string at
       # the module the test means. The baseline only shrinks: a fixed entry fails until
