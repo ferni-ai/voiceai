@@ -144,6 +144,8 @@ describe('hostileStoredText', () => {
       '$555 a $0123',
       'pay $555 Ol $23',
       '$555 Il $0123',
+      '$555 lIl $0123',
+      '$555xxx$0123',
     ]) {
       expect(hostileStoredText(line)).toBe('money_destination');
     }
