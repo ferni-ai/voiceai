@@ -409,8 +409,37 @@ export const ENDING_IDIOM_BEFORE = /\b(almost|nearly|practically|could have|coul
 export const ENDING_ACCIDENT =
   /^kill(ed)? my ?self ((falling|tripping|slipping|crashing|riding) (on|off|down|over|into) |(on|off) )(the|my|a|that|this) (stairs|steps|step|bike|ice|ladder|skateboard|scooter|curb|treadmill|trampoline|horse)\b/;
 
+/** Someone the caller talks about, named by a pronoun or by who they are to someone. */
+const OTHER = String.raw`(?:he|she|they|(?:my|our|a|his|her|their) (?:best )?(?:friend|sister|brother|mom|mother|mum|dad|father|son|daughter|kid|wife|husband|partner|boyfriend|girlfriend|cousin|roommate|coworker|classmate|student|grandma|grandmother|grandpa|grandfather|aunt|uncle|niece|nephew|neighbou?r|stepmom|stepdad|parent|teen|teenager))`;
+const AUX = String.raw`(?:'s|'d| is| are| was| were| has| have| had)?(?: been)?(?: got)?`;
+const PILLS = String.raw`(?:pills|meds|medications?|tablets|sleeping pills|painkillers)`;
+/** "with her", "at work", "early": the words are about something else ending, hurting or waking. */
+const EVERYDAY_AFTER = String.raw`(?! (?:all )?(?:with|between|for|on|at|in|over|before|after|because|cause|since|early|off|by|while|when|during|playing|lifting|working|running|training|doing|falling|tripping|accidentally)\b)`;
+
+/**
+ * Reported speech about someone else (#3345: a family check-in summary): "she said she doesn't
+ * want to be here anymore", "he talked about ending it", "she has been hurting herself", "she
+ * mentioned she has pills saved up". Each needs a third-person subject, so the caller's own words
+ * stay theirs.
+ */
+const THIRD_PERSON_REPORTED = [
+  new RegExp(
+    String.raw`\b${OTHER} (?:doesn'?t|does not|don'?t|do not|didn'?t|did not) want to (?:be here anymore|be alive|live anymore|exist anymore|wake up (?:anymore|again))\b`
+  ),
+  new RegExp(
+    String.raw`\b${OTHER}${AUX} (?:talk(?:s|ed|ing)?|(?:keeps?|kept) talking|thinking|thought|mentioned|mentioning|brought up|bringing up) (?:about )?(?:ending it(?: all)?|not (?:being|wanting to be) (?:here|alive|around) anymore)\b${EVERYDAY_AFTER}`
+  ),
+  new RegExp(
+    String.raw`\b(?:is|'s|are|been|keeps?|kept|started) (?:hurting|burning) (?:himself|herself|themselves|themself)\b${EVERYDAY_AFTER}|\b${OTHER}${AUX} self[- ]?harm(?:s|ing|ed)?\b`
+  ),
+  new RegExp(
+    String.raw`\b${OTHER}${AUX} (?:saving|saved|stockpiling|stockpiled|hoarding|hoarded|stashing|stashed) (?:up )?(?:(?:all )?(?:his|her|their|the|some) )?${PILLS}\b|\b${OTHER}${AUX} (?:(?:a bunch of|a lot of|some|extra) )?${PILLS} (?:saved up|stockpiled|stashed away|hoarded|hidden away)\b`
+  ),
+];
+
 /** Someone the caller knows is at risk. */
 export const THIRD_PARTY_PATTERNS = [
+  ...THIRD_PERSON_REPORTED,
   /\b(wants?|going|gonna|threaten(s|ed|ing)?|talk(s|ed|ing)? about|tr(y|ies|ied|ying)|plan(s|ning)?|thinking about) (to )?(kill|killing|hurt|hurting|end|ending) (himself|herself|themselves|themself|(his|her|their) (own )?life)\b/,
   /\b(is|'s|been|keeps?|started) (cutting|harming) (himself|herself|themselves|themself)\b|\bhurting (himself|herself|themselves) on purpose\b/,
   /\b(he|she|they) (wants?|want) to (die\b(?! (of|from|laughing)\b)|end it\b(?! with\b))/,
