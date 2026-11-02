@@ -43,7 +43,7 @@ export interface RoomTarget {
 }
 
 /** Why the owner's room was not used: a kind, never a name or id. */
-export type NotOwnerRoom = 'unbound' | 'room_gone' | 'other_room' | 'owner_absent';
+type NotOwnerRoom = 'unbound' | 'room_gone' | 'other_room' | 'owner_absent';
 
 /** The room name to ask LiveKit for: the owner's room with the flag on, else the session id. */
 export function resultRoomName(request: OwnerCall): string | undefined {
