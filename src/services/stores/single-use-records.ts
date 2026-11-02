@@ -113,7 +113,6 @@ export function firestoreSingleUseStore<R extends SingleUseRecord>(
       return db.runTransaction(async (tx) => {
         const snap = await tx.get(ref);
         if (!snap.exists) return null;
-        tx.delete(ref);
         return snap.data() as R;
       });
     },
