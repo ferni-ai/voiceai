@@ -84,12 +84,16 @@ function ownName(words: string[], i: number, asked: Set<string>): boolean {
   );
 }
 
+/** Every word of `text` in order, short ones included: "a new job" -> a, new, job. */
+const wordsInOrder = (text: string): string[] =>
+  text.replace(/’/g, "'").match(/\p{L}[\p{L}']*/gu) ?? [];
+
 /** What a turn made only of hello words does: greet, say who it is, or neither (null). */
 function helloShape(
   said: string,
   asked: Set<string>
 ): { greets: boolean; saysWho: boolean } | null {
-  const words = said.replace(/’/g, "'").match(/\p{L}[\p{L}']*/gu) ?? [];
+  const words = wordsInOrder(said);
   let [greets, saysWho, fillers] = [false, false, 0];
   for (let i = 0; i < words.length; i++) {
     const w = words[i].toLowerCase();
@@ -119,7 +123,7 @@ const SMALL_WORDS = new Set(
   )
 );
 /** "tackled" ~ "tackle", "sending" ~ "send". */
-export const stem = (w: string): string => w.replace(/(?:ing|ed|es|s|e)$/, '');
+const stem = (w: string): string => w.replace(/(?:ing|ed|es|s|e)$/, '');
 /** Who a line greets: "Hey Sam, ..." / "Morning, Seth." */
 const ADDRESSEE =
   /^\W*(?:hey|hi|hello|morning|evening|afternoon|good (?:morning|afternoon|evening))\W+(\p{L}+)/iu;
@@ -136,6 +140,27 @@ export function sharedWords(a: string, b: string, exclude: string[] = []): strin
     !SMALL_WORDS.has(w) && !GREETING_WORDS.has(w) && !isVocative(w) && !skip.has(stem(w));
   const inB = new Set([...contentWords(b)].filter(keep).map(stem));
   return [...contentWords(a)].filter((w) => keep(w) && inB.has(stem(w)));
+}
+
+/**
+ * Two different words of `shared` stand side by side in both `a` and `b`: a phrase the
+ * lines share ("a new job" / "the new job"), not two words each uses apart ("start of a
+ * new month" / "started a new job"). Order doesn't matter ("start school" / "school start").
+ */
+export function sharePhrase(a: string, b: string, shared: string[]): boolean {
+  const wanted = new Set(shared.map((w) => stem(w.toLowerCase())));
+  const pairs = (text: string): Set<string> => {
+    const stems = wordsInOrder(text).map((w) => stem(w.toLowerCase().replace(/'s$/, '')));
+    const found = new Set<string>();
+    for (let i = 1; i < stems.length; i++) {
+      const [before, word] = [stems[i - 1], stems[i]];
+      if (before !== word && wanted.has(before) && wanted.has(word))
+        found.add([before, word].sort().join(' '));
+    }
+    return found;
+  };
+  const inB = pairs(b);
+  return [...pairs(a)].some((pair) => inB.has(pair));
 }
 
 /** How they say they are: "doing well", "I'm doing great" (#2414). */
