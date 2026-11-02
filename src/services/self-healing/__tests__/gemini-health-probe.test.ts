@@ -40,6 +40,7 @@ describe('gemini health probe on Vertex', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     if (savedVertex === undefined) delete process.env.USE_VERTEX_AI;
     else process.env.USE_VERTEX_AI = savedVertex;
   });
@@ -51,8 +52,44 @@ describe('gemini health probe on Vertex', () => {
 
     expect(getGeminiClient).toHaveBeenCalledTimes(1);
     expect(countTokens).toHaveBeenCalledTimes(1);
-    expect(countTokens).toHaveBeenCalledWith({ model: 'gemini-test-model', contents: 'ping' });
+    expect(countTokens).toHaveBeenCalledWith({
+      model: 'gemini-test-model',
+      contents: 'ping',
+      config: { abortSignal: expect.any(AbortSignal) },
+    });
     expect(get).not.toHaveBeenCalled();
+  });
+
+  it('reports unhealthy with a timeout after 5 s when countTokens never settles, and aborts it', async () => {
+    vi.useFakeTimers();
+    countTokens.mockReturnValue(new Promise(() => {}));
+
+    const pending = checkServiceHealth('gemini');
+    await vi.advanceTimersByTimeAsync(4999);
+    let settled = false;
+    void pending.then(() => (settled = true));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(settled).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(1);
+    const result = await pending;
+
+    expect(result?.healthy).toBe(false);
+    expect(result?.error).toMatch(/timed out after 5000ms/);
+    const signal = (countTokens.mock.calls[0][0] as { config: { abortSignal: AbortSignal } }).config
+      .abortSignal;
+    expect(signal.aborted).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('clears its timer when countTokens resolves, leaving no handle open', async () => {
+    vi.useFakeTimers();
+    countTokens.mockResolvedValue({ totalTokens: 1 });
+
+    const result = await checkServiceHealth('gemini');
+
+    expect(result?.healthy).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it('reports healthy when countTokens resolves', async () => {
