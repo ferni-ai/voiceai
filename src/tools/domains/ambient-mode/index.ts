@@ -198,7 +198,15 @@ const setQuietHoursDef: ToolDefinition = {
           if (!save) throw new Error('quiet hours writer not installed');
           if ((await save(ctx.userId, startTime, endTime)) === 'same')
             return 'Quiet hours need a different start and end time.';
-          await ambientMode.setQuietHours(ctx.userId, startTime, endTime);
+          // Saved above, so say so even if the nudges' copy fails; log that one.
+          await ambientMode
+            .setQuietHours(ctx.userId, startTime, endTime)
+            .catch((error) =>
+              log.warn(
+                { error: String(error), userId: ctx.userId },
+                'Ambient quiet hours not saved'
+              )
+            );
 
           log.info({ userId: ctx.userId, startTime, endTime }, 'Quiet hours set');
 

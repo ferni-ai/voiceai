@@ -768,10 +768,10 @@ class NotificationSettingsUI {
     void applyPushPreference(this.localPrefs.enabled);
 
     // Texts, calls and check-ins are sent by the server, in the user's own time zone.
-    void this.saveServerQuietHours(
-      this.localPrefs.quietHoursStart || '22:00',
-      this.localPrefs.quietHoursEnd || '08:00'
-    );
+    // Only a window changed here: an unchanged (or never loaded) one would overwrite the saved one.
+    const { quietHoursStart, quietHoursEnd } = this.localPrefs;
+    if (this.quietHoursEdited && quietHoursStart && quietHoursEnd)
+      void this.saveServerQuietHours(quietHoursStart, quietHoursEnd);
 
     // Save outreach preferences
     if (this.outreachPrefs) {
