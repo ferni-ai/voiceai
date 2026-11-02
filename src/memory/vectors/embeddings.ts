@@ -22,14 +22,14 @@ import {
 import { errorFields } from '../../utils/error-class.js';
 import { EmbeddingApiError } from '../../utils/embedding-api-error.js';
 import { getLogger } from '../../utils/safe-logger.js';
-// Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
 import {
   cosineSimilarity,
   type EmbeddingVector as RustEmbeddingVector,
 } from './rust-accelerator/index.js';
 import { useVertexAI } from '../../config/vertex-flag.js';
+import { vertexBaseUrl } from '../../config/vertex-endpoint.js';
 
-// Re-export for backwards compatibility with existing consumers
+// Re-export the SIMD-ready rust-accelerator similarity for existing consumers
 export { cosineSimilarity };
 export type { RustEmbeddingVector as EmbeddingVectorLike };
 
@@ -426,7 +426,7 @@ export class VertexAIEmbeddings extends EmbeddingProvider {
     }
 
     try {
-      const url = `https://${this.location}-aiplatform.googleapis.com/v1/projects/${this.projectId}/locations/${this.location}/publishers/google/models/${this._model}:predict`;
+      const url = `${vertexBaseUrl(this.location)}v1/projects/${this.projectId}/locations/${this.location}/publishers/google/models/${this._model}:predict`;
       // Same text, model and task type: one request per process (embedding-memo.ts).
       const validResults = await this.memo.embed(
         this._model,

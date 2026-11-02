@@ -286,6 +286,8 @@ const LEGACY_FLAG_MANIFEST = {
   // on: the caller's yes sends the read-back from the server, and sibling call or text tools
   // share one read-back (tools/domains/communication/outreach/outreach-confirm-family.ts)
   OUTREACH_SERVER_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // on (read by the UI server's outreach jobs only): text stored from calls is screened before it goes into an owner message (owner-message-policy.ts)
+  OWNER_OUTREACH_STORED_TEXT_SCREEN: { default: 'off', owner: 'outreach', kind: 'experiment' },
   ...FLAGS_MOVE_TO_PHONE_AUDIO,
   // on: a caller who says they're under 18 (and isn't a verified owner): nothing personal stored, a care note (minor-care.ts)
   MINOR_CARE: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -418,6 +420,8 @@ const LEGACY_FLAG_MANIFEST = {
   UNFINISHED_TURN_HOLD: { default: 'on', owner: 'voice', kind: 'config' },
   // an unverified call may message the owner only filtered, footed and twice (owner-message-policy.ts)
   UNVERIFIED_OWNER_MESSAGE_FILTER: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // a call Ferni placed to the owner's number proves no owner; read in the voice agent only (verified-caller.ts)
+  PLACED_CALL_NOT_OWNER_PROOF: { default: 'off', owner: 'tools', kind: 'experiment' },
   USE_GENERATED_TOOL_DOCS: { default: 'off', owner: 'voice', kind: 'config' },
   ...FLAGS_USE_TO_VOICE,
   VOICE_PATTERN_ENGINE: { default: 'on', owner: 'voice', kind: 'kill-switch' },

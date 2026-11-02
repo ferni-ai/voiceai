@@ -7,6 +7,7 @@ import { flagOn, type Env } from '../../../config/env-flag.js';
 import { getOuraNight } from '../../../services/identity/oura-night.js';
 import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 import { isUnverifiedUserId } from '../../../services/identity/unverified-user-id.js';
+import { placedCallProvesNoOwner } from '../../../services/identity/verified-caller.js';
 import { toolCallerId } from '../../registry/per-caller-tool.js';
 import type { Tool, ToolDefinition } from '../../registry/types.js';
 import { createSleepSummaryTool } from './wellness-tools.js';
@@ -37,7 +38,7 @@ function durationText(minutes: number | null): string | null {
 
 type Caller = { userId: string; verified: boolean };
 
-/** Always the caller the call names, never the factory's ctx.userId; verified only as the session says (verified-caller.ts). */
+/** Always the caller the call names, never the factory's ctx.userId; verified only as the session says (verified-caller.ts), and never on a call Ferni placed with PLACED_CALL_NOT_OWNER_PROOF on. */
 export function callerOf(opts: unknown): Caller {
   const userId = toolCallerId(opts);
   const userData = (opts as { ctx?: { userData?: { verifiedCaller?: unknown } } } | undefined)?.ctx
@@ -45,7 +46,10 @@ export function callerOf(opts: unknown): Caller {
   return {
     userId,
     verified:
-      userData?.verifiedCaller === true && isMemberIdentity(userId) && !isUnverifiedUserId(userId),
+      userData?.verifiedCaller === true &&
+      isMemberIdentity(userId) &&
+      !isUnverifiedUserId(userId) &&
+      !placedCallProvesNoOwner(userData), // PLACED_CALL_NOT_OWNER_PROOF: never whoever answers a call Ferni placed
   };
 }
 

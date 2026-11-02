@@ -24,7 +24,8 @@ import type { GuardedText, TextOutcome } from '../guarded-text.js';
 import { firstName } from '../proactive-channels/pondered-triggers.js';
 import { timezoneOf } from '../proactive-channels/proactive-tick.js';
 import { isUserQuiet, quietEndsAt, savedQuietHours, type QuietHoursUser } from '../quiet-hours.js';
-import { composeMorningBrief, type MorningBriefInput } from './compose.js';
+import { composeMorningBriefSegments, joinSegments, type MorningBriefInput } from './compose.js';
+import { storedTextForOwner } from '../../../tools/domains/proactive/outreach/index.js';
 
 const log = createLogger({ module: 'MorningBrief' });
 
@@ -102,6 +103,56 @@ function inBriefHour(user: Record<string, unknown>, zone: string, local: WallTim
   return inHour && local.hour < MORNING_BRIEF_LATEST_HOUR;
 }
 
+const NO_STORED_SECTIONS = { reminders: [], tasks: [], commitments: [] } as const;
+type PutBack = (brief: MorningBriefInput) => MorningBriefInput;
+
+/** Each stored piece of `input`, in brief order, as a step that puts it back: titles, then items. */
+function piecesOf(input: MorningBriefInput): PutBack[] {
+  const titles = input.events.map((event, i): PutBack => (brief) => ({
+    ...brief,
+    events: brief.events.map((e, j) => (j === i ? event : e)),
+  }));
+  const items = (['reminders', 'tasks', 'commitments'] as const).flatMap((list) =>
+    input[list].map((item): PutBack => (brief) => ({ ...brief, [list]: [...brief[list], item] }))
+  );
+  return [...titles, ...items];
+}
+
+/**
+ * OWNER_OUTREACH_STORED_TEXT_SCREEN: the brief that is sent passes the screen as sent, not
+ * only item by item (default-deps.ts readDay screens each item early): the brief joins
+ * items, and two that pass alone can read as one instruction together. What is screened is
+ * the same segments (compose.ts) with its own clock times written as "at", every title and
+ * item verbatim. When the full brief trips, it is built back up from every event by time
+ * only, adding each title, then each reminder, task and commitment, in order, and keeping
+ * each only if the brief with it still passes: only what trips it is left out. With nothing
+ * that passes, a count of today's events, which holds no stored text.
+ */
+export function briefToSend(input: MorningBriefInput, userId: string, env: Env): string | null {
+  const passes = (text: string | null): boolean =>
+    text !== null && storedTextForOwner([text], { site: 'morning-brief', userId }, env);
+  const sendable = (step: MorningBriefInput): string | null => {
+    const segments = composeMorningBriefSegments(step);
+    return segments && passes(joinSegments(segments, 'at')) ? joinSegments(segments) : null;
+  };
+  if (!composeMorningBriefSegments(input)) return null;
+  const full = sendable(input);
+  if (full !== null) return full;
+  let kept: MorningBriefInput = { ...input, events: input.events.map((e) => ({ ...e, invite: true })), ...NO_STORED_SECTIONS }; // prettier-ignore
+  let text = sendable(kept);
+  for (const putBack of piecesOf(input)) {
+    const next = putBack(kept);
+    const withIt = sendable(next);
+    if (withIt === null) continue;
+    kept = next;
+    text = withIt;
+  }
+  if (text !== null) return text;
+  const n = input.events.length;
+  const count = n ? `Morning, it's Alex. You have ${n} ${n === 1 ? 'thing' : 'things'} on your calendar today.` : null; // prettier-ignore
+  return passes(count) ? count : null;
+}
+
 /** MORNING_BRIEF_RUN. nothing-today with commitments off: only calendar, reminders and tasks counted. */
 function logBriefRun(report: MorningBriefReport, composed: number, env: Env): void {
   const counts = { considered: report.checked, eligible: composed, sent: report.sent };
@@ -174,7 +225,7 @@ export async function runMorningBriefs(
       claimed = dateKey;
 
       const day = await deps.readDay(userId, user, zone, now);
-      const body = composeMorningBrief({ ...day, timeZone: zone, name: firstName(user) });
+      const body = briefToSend({ ...day, timeZone: zone, name: firstName(user) }, userId, deps.env);
       if (!body) {
         await release('nothing-today');
         continue;

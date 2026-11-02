@@ -10,16 +10,17 @@ import type { llm } from '@livekit/agents';
 import { contextPacketEnabled } from '../../config/context-packet-flag.js';
 import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
+import { onlyPhoneSafeTools, PLACED_CALL_ALSO_SAFE } from '../shared/phone-safe-tools.js';
 import { ownerWritesBlocked } from '../../services/identity/owner-write-gate.js';
 import { withoutQuickShortcuts } from '../shared/quick-shortcuts-real-only.js';
-import { heldAfter, lastFerniLine } from '../../utils/minor-care.js';
+import { heldAfter, lastFerniLine, type YouthNote } from '../../utils/minor-care.js';
 import {
   hasThirdPartyTools,
   mayReachOthers,
   withoutThirdPartyTools,
 } from '../shared/third-party-tools.js';
 import {
+  onPlacedCallSession,
   phoneOnlyIdentity,
   sessionIsVerifiedOwner,
 } from '../voice-agent-entry/caller-recognition.js';
@@ -121,7 +122,8 @@ export function withTurnReminder(
   return guardedTurn(log, sessionId, request, () => buildTurnReminder(request, session, options));
 }
 
-type TurnReminderOptions = { shape?: boolean; closeLoop?: boolean; held?: Promise<unknown> | null };
+type TurnReminderOptions = { shape?: boolean; closeLoop?: boolean; held?: Held; youth?: YouthNote };
+type Held = Promise<unknown> | null;
 
 /**
  * A copy of the context with the turn reminder, plus what Ferni has already
@@ -142,6 +144,7 @@ function buildTurnReminder(
   const director = getDirector(session);
   const view = unlockViewFor((session as { userData?: unknown }).userData);
   const words = callerWords(chatCtx);
+  const asked = lastFerniLine(chatCtx.items); // Ferni's question their words may answer
   // SCRIPT_FREE_REMINDER=on: no shared style or quoted lines; never on a crisis turn (script-free.ts).
   const plain = !crisis && scriptFreeOn();
   const held = exitsHeld(sessionId, crisis); // no goodbye or no-question note (exits-held.ts)
@@ -202,9 +205,9 @@ function buildTurnReminder(
     // PORCH_LIGHT=on: softer and simpler on a call started in the caller's small hours.
     safe.porchLightNote(chatCtx, session, { careful: options.shape === false }),
     // MINOR_CARE=on: a caller who sounds under 18 (minor-care.ts), never with crisis guidance; shadow only logs.
-    safe.minorCareNote(sessionId, words, { careful: crisis, asked: lastFerniLine(chatCtx.items) }),
+    safe.minorCareNote(sessionId, words, { careful: crisis, asked, youth: options.youth }),
     // SEXUAL_TOPIC_BOUNDARY=on: not a verified owner, or under-18 signs: no sexual detail, ever.
-    safe.sexualBoundaryNote(sessionId, words, lastFerniLine(chatCtx.items)),
+    safe.sexualBoundaryNote(sessionId, words, asked),
     // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
     safe.beatNote({
       said: words,
@@ -426,7 +429,7 @@ export async function toolsForTurn(
   });
   const allowed =
     phoneOnlyIdentity(sessionId) || held || ownerWritesBlocked(userIdOf(session.userData))
-      ? await withoutAccountTools(toolCtx, state)
+      ? await withoutAccountTools(toolCtx, state, onPlacedCallSession(sessionId))
       : others
         ? toolCtx
         : await withoutReachingOthers(toolCtx, state);
@@ -483,12 +486,14 @@ interface ToolHolder {
 
 async function withoutAccountTools(
   toolCtx: llm.ToolContext,
-  state: TurnToolsState
+  state: TurnToolsState,
+  placedCall = false // PLACED_CALL_NOT_OWNER_PROOF: a call Ferni placed also keeps PLACED_CALL_ALSO_SAFE
 ): Promise<llm.ToolContext> {
+  const also = placedCall ? PLACED_CALL_ALSO_SAFE : undefined;
   const agent = state.agent as ToolHolder | undefined;
-  if (agent && onlyPhoneSafeTools(agent.toolCtx) !== agent.toolCtx) {
-    await agent.updateTools(onlyPhoneSafeTools(agent.toolCtx));
+  if (agent && onlyPhoneSafeTools(agent.toolCtx, also) !== agent.toolCtx) {
+    await agent.updateTools(onlyPhoneSafeTools(agent.toolCtx, also));
     log.info({}, 'Only phone-safe tools open for a phone-recognised caller');
   }
-  return onlyPhoneSafeTools(toolCtx);
+  return onlyPhoneSafeTools(toolCtx, also);
 }

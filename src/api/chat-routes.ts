@@ -11,7 +11,6 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import type { FunctionDeclaration } from '@google/generative-ai';
 
 import { claimedUserFor } from './acting-user.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
@@ -21,9 +20,19 @@ import { chatHold, chatToolContext } from './chat-minor-care.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { executeTool } from '../agents/shared/tool-dispatcher.js';
-import { GEMINI_MODEL } from '../config/gemini-config.js';
+import { GEMINI_MODEL, getGeminiClient } from '../config/gemini-config.js';
 
 const log = createLogger({ module: 'ChatAPI' });
+
+/** The slice of the @google/genai client the chat route uses. */
+interface ChatGeminiClient {
+  models: {
+    generateContent: (req: unknown) => Promise<{
+      text?: string;
+      functionCalls?: Array<{ name?: string; args?: Record<string, unknown> }>;
+    }>;
+  };
+}
 
 interface ChatMessageRequest {
   message: string;
@@ -326,48 +335,35 @@ async function callLLMWithTools(
   messages: Array<{ role: string; content: string }>,
   _tools: Array<{ name: string; description: string; parameters?: Record<string, unknown> }>
 ): Promise<{ response: string; toolCalls: Array<{ fn: string; args: Record<string, unknown> }> }> {
-  // Use Gemini for chat
-  const { GoogleGenerativeAI } = await import('@google/generative-ai');
-
-  const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('GOOGLE_API_KEY or GEMINI_API_KEY required');
-  }
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  // Chat tool params are JSON Schema objects; the SDK type is FunctionDeclarationSchema.
+  // The shared client: Vertex on the configured location, never the API-key Developer API.
+  const client = (await getGeminiClient()) as ChatGeminiClient | null;
+  if (!client) throw new Error('Gemini client not configured');
   const functionDeclarations = _tools.map((t) => ({
     name: t.name,
     description: t.description,
     parameters: t.parameters ?? { type: 'object', properties: {} },
-  })) as unknown as FunctionDeclaration[];
-  const model = genAI.getGenerativeModel({
-    model: GEMINI_MODEL,
-    tools: functionDeclarations.length > 0 ? [{ functionDeclarations }] : undefined,
-  });
+  }));
 
   // Convert messages to Gemini format
   const geminiMessages = messages.map((m) => ({
-    role: m.role === 'assistant' ? 'model' : m.role === 'system' ? 'user' : 'user',
+    role: m.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: m.content }],
   }));
 
-  const result = await model.generateContent({
+  const result = await client.models.generateContent({
+    model: GEMINI_MODEL,
     contents: geminiMessages,
-    generationConfig: {
+    config: {
       temperature: 0.7,
       maxOutputTokens: 1024,
+      tools: functionDeclarations.length > 0 ? [{ functionDeclarations }] : undefined,
     },
   });
 
-  const responseText = result.response.text();
-  const nativeCalls = result.response.functionCalls?.() ?? [];
-  const toolCalls = nativeCalls
+  const responseText = result.text ?? '';
+  const toolCalls = (result.functionCalls ?? [])
     .filter((call) => typeof call.name === 'string' && call.name.length > 0)
-    .map((call) => ({
-      fn: call.name,
-      args: (call.args ?? {}) as Record<string, unknown>,
-    }));
+    .map((call) => ({ fn: call.name as string, args: call.args ?? {} }));
 
   return {
     response: responseText,

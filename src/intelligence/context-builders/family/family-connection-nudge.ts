@@ -24,6 +24,7 @@ import {
 import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { listSpecialDates } from './special-dates-awareness.js';
+import { isCallResultExpired } from '../../../services/outreach/call-result-expiry.js';
 
 const log = createLogger({ module: 'context:family-nudge' });
 
@@ -99,11 +100,13 @@ async function getFamilyContactsNeedingAttention(userId: string): Promise<Family
     const lastContactMap = new Map<string, { date: Date; summary?: string }>();
     for (const doc of callsSnapshot.docs) {
       const data = doc.data();
+      if (isCallResultExpired(data)) continue;
       const name = (data.request?.contactName || data.request?.contactQuery || '').toLowerCase();
       if (name && !lastContactMap.has(name)) {
         lastContactMap.set(name, {
           date: new Date(data.capturedAt),
-          summary: data.outcome?.transcriptSummary || data.outcome?.outcome,
+          // Only the owner-facing outcome line: an older transcriptSummary can hold their words.
+          summary: data.outcome?.outcome,
         });
       }
     }

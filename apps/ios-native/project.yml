@@ -25,6 +25,9 @@ packages:
   Sentry:
     url: https://github.com/getsentry/sentry-cocoa
     exactVersion: 9.30.0
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    exactVersion: 10.0.0
 
 settings:
   base:
@@ -54,7 +57,12 @@ targets:
       - package: FerniKit
       - package: FerniVoice
       - package: FerniDesign
+      # The dynamic product: the same SDK and module, but its xcframework ships
+      # dSYMs, so the archive carries them (the static one ships none).
       - package: Sentry
+        product: Sentry-Dynamic
+      - package: GoogleSignIn
+        product: GoogleSignIn
       - package: FerniLink
       - target: FerniWatch
       - target: FerniLive
@@ -76,10 +84,24 @@ targets:
         # placeholders. Add languages back here, and stop excluding the catalog
         # below, once real translations exist.
         CFBundleLocalizations: [en]
+        # "Get help now" on the Home Screen icon, there even when Ferni can't connect (critic L4).
+        UIApplicationShortcutItems:
+          - UIApplicationShortcutItemType: com.sethdford.ferni.help
+            UIApplicationShortcutItemTitle: Get help now
+            UIApplicationShortcutItemIconSymbolName: phone.arrow.up.right
         # ferniapp:// only answers the web's Apple Health link with a note (App/DeepLink.swift).
         CFBundleURLTypes:
           - CFBundleURLName: com.sethdford.ferni
             CFBundleURLSchemes: [ferniapp]
+          # Sign-in return trips, both from App/GoogleService-Info.plist: Google
+          # Sign-In and Firebase phone sign-in's reCAPTCHA page (REVERSED_CLIENT_ID),
+          # and the encoded app ID Firebase falls back to (GOOGLE_APP_ID).
+          - CFBundleURLName: com.sethdford.ferni.signin
+            CFBundleURLSchemes:
+              - com.googleusercontent.apps.1031920444452-rgi4043g7hddgf4lqhargcl2j6cuc8tr
+              - app-1-1031920444452-ios-523d8b146e8d1b27b164b1
+        # Google Sign-In's client: the Firebase app's CLIENT_ID.
+        GIDClientID: 1031920444452-rgi4043g7hddgf4lqhargcl2j6cuc8tr.apps.googleusercontent.com
         # Crash reporting: empty (off) unless Config/Sentry.local.xcconfig sets it.
         SentryDSN: $(SENTRY_DSN)
         ITSAppUsesNonExemptEncryption: false

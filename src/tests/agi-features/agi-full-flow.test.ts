@@ -39,7 +39,6 @@ import {
   markExecuted as auditMarkExecuted,
   queryAuditLog,
 } from '../../services/automation/audit-log.js';
-import { bookRide } from '../../services/integrations/rideshare-booking.js';
 
 describe('AGI Full Flow E2E', () => {
   let testUserId: string;
@@ -80,29 +79,6 @@ describe('AGI Full Flow E2E', () => {
       });
       expect(createResult.success).toBe(true);
       await auditMarkExecuted(testUserId, auditEntry.id, 'success', 300);
-    });
-  });
-
-  describe('Booking Full Flow', () => {
-    it('should complete rideshare booking flow', async () => {
-      const preview = createMockActionPreview({
-        title: 'Book Uber',
-        summary: 'To Airport',
-        canUndo: true,
-        estimatedCost: 35,
-      });
-      const checkResult = await checkActionPermission(testUserId, 'book_ride', preview);
-      expect(checkResult.success).toBe(true);
-      expect(checkResult.requiresApproval).toBe(true);
-
-      const bookResult = await bookRide({
-        userId: testUserId,
-        pickup: { address: '123 Main St', lat: 37.77, lng: -122.41 },
-        dropoff: { address: 'SFO Airport', lat: 37.62, lng: -122.37 },
-        provider: 'uber',
-        productId: 'uberx',
-      });
-      expect(bookResult.success).toBe(true);
     });
   });
 

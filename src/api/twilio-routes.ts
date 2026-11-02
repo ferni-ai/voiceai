@@ -33,8 +33,8 @@ import {
   createPhoneBridgeParticipant,
   cleanupBridgeSession,
 } from '../services/voice/livekit-phone-bridge.js';
-import { startOutboundAgent } from '../services/voice/outbound-call-agent.js';
 import { onBehalfDispatchFromStream } from '../services/outreach/on-behalf-dispatch.js';
+import { endCallAfterFailedDispatch } from '../services/voice/dispatch-failed-call.js';
 
 const log = createLogger({ module: 'twilio-routes' });
 
@@ -329,32 +329,8 @@ function registerBridgeHandlers(bridge: TwilioStreamBridge): void {
 
           log.info({ roomName, callSid, agentName }, '✅ Voice agent dispatched for outbound call');
         } catch (error) {
-          log.error(
-            { error: String(error), roomName },
-            'Failed to dispatch agent, falling back to local'
-          );
-
-          // Fall back to local agent if dispatch fails (e.g., no workers available)
-          try {
-            startOutboundAgent(
-              {
-                roomName,
-                callId: params.callId || roomName,
-                recipientName: params.recipientName || 'Friend',
-                purpose: params.purpose || 'Check in',
-                objective: params.objective || 'Have a conversation',
-                callType: (params.callType as 'personal' | 'business' | 'emergency') || 'personal',
-                userId: params.userId,
-                userName: params.userName,
-              },
-              bridge,
-              callSid
-            ).catch((err: unknown) => log.error({ error: String(err) }, 'Local agent error'));
-
-            log.info({ roomName, callSid }, '⚠️ Using local fallback agent');
-          } catch (fallbackError) {
-            log.error({ error: String(fallbackError), roomName }, 'Both agent strategies failed');
-          }
+          log.error({ error: String(error), roomName, callSid }, 'Failed to dispatch agent');
+          await endCallAfterFailedDispatch(callSid);
         }
       })();
     }

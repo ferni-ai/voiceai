@@ -44,7 +44,13 @@ import {
 } from '../../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
 import { startWhoRead } from '../../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
-import { noteMeansInHandShadow } from '../../../services/safety/index.js';
+import {
+  abuseCallRisk,
+  blockedReadGuidance,
+  noteMeansInHandShadow,
+  withAbuseRead,
+  withMinorAbuseDisclosure,
+} from '../../../services/safety/index.js';
 import {
   resolveClassifierOnlyCheckin,
   shadowClassifierOnly,
@@ -180,6 +186,8 @@ export function startTurnCrisis(
   const shouldBlock = guardFromDetection(patterns).shouldBlock;
   // A gentle 988 offer counts as a match: risk on this call, and both paths agree.
   const pattern = shouldBlock ? 'block' : patterns.isCrisis || gentle ? 'crisis' : 'none';
+  // ABUSE_DISCLOSURE_PATTERNS: call risk before this turn's own note (abuse-disclosure-turn.ts).
+  const abuseRisk = abuseCallRisk(options.sessionId, userText, pattern !== 'none');
   if (pattern !== 'none') noteCrisisRisk(options.sessionId); // risk on this call (crisis-call-risk.ts)
   if (pattern !== 'none') noteConfirmedRisk(options.sessionId || undefined, options.env);
   const { env = process.env, generate } = options;
@@ -213,6 +221,11 @@ export function startTurnCrisis(
     (settled ??=
       classifier?.mode === 'live'
         ? classifier.verdict.then(async (verdict) => {
+            // CRISIS_CLASSIFIER_BLOCKED_SIGNAL: a read the provider refused is a check-in, never a
+            // quiet none, on a turn the patterns read as nothing (crisis-classifier-blocked.ts).
+            const blocked =
+              verdict || pattern !== 'none' ? null : blockedReadGuidance(call, input, env);
+            if (blocked) return { crisis: patterns, soft: true, guidance: blocked };
             // A gentle 988 offer (crisis-grounded-screen.ts), unless the classifier also reads risk.
             if (gentle && verdict?.risk !== 'imminent' && verdict?.risk !== 'crisis') {
               return { crisis: patterns, soft: true, guidance: SCREEN_GENTLE_OFFER };
@@ -320,7 +333,12 @@ export function startTurnCrisis(
         env
       );
     }
-    return easingOn ? (eased ??= easeTurn(turn)) : turn;
+    const read = easingOn ? (eased ??= easeTurn(turn)) : turn;
+    // MINOR_ABUSE_DISCLOSURE: a caller under 18 telling of sexual harm, after every read.
+    const minor = read.then((s) => withMinorAbuseDisclosure(s, call, input, priorRisk, env));
+    // ABUSE_DISCLOSURE_PATTERNS: someone hurting the caller is a safety turn, after every read,
+    // the minor's read included; its guidance yields to the minor's (turn-handler.ts).
+    return withAbuseRead(minor, input, abuseRisk, classifier, env);
   };
   return {
     patterns,

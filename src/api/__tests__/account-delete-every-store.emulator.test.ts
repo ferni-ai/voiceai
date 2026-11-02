@@ -118,6 +118,7 @@ const MUST_ERASE = [
   'apple_health_tokens/{uid}',
   'apple_health_status/{uid}',
   'apple_health_data/{uid}',
+  'call_capture_consent/{uid}', // Help shape Ferni (call-capture-consent.ts)
   // ...and inside them, gone with the record
   'bogle_users/{uid}/smart_home', // LIFX, Sonos, SmartThings credentials
   'bogle_users/{uid}/homekit',

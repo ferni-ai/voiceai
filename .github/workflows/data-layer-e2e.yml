@@ -16,6 +16,9 @@ on:
       - 'src/api/roadmap-*.ts'
       - 'src/api/outreach*.ts'
       - 'src/services/outreach/outreach-history*.ts'
+      - 'src/services/outreach/live-report-record.ts'
+      - 'src/services/outreach/call-progress.ts'
+      - 'src/services/outreach/__tests__/call-claim-race.emulator.test.ts'
       - 'src/api/__tests__/menu-*.emulator.test.ts'
       - 'src/services/wellbeing-tracking/**'
       - 'src/api/wellbeing*.ts'
@@ -29,6 +32,10 @@ on:
       - 'src/services/platform/erase-other-keys.ts'
       - 'scripts/devdb/**'
       - 'src/api/account-routes.ts'
+      - 'src/services/stores/single-use-records.ts'
+      - 'src/services/stores/__tests__/single-use-records.emulator.test.ts'
+      - 'src/servers/token/oauth-link-state.ts'
+      - 'src/services/connect-moments/**'
       - 'src/memory/**'
       - 'src/tasks/scheduled/transcript-cleanup-job.ts'
       - 'src/tasks/scheduled/__tests__/transcript-cleanup.emulator.test.ts'
@@ -57,6 +64,9 @@ on:
       - 'src/api/roadmap-*.ts'
       - 'src/api/outreach*.ts'
       - 'src/services/outreach/outreach-history*.ts'
+      - 'src/services/outreach/live-report-record.ts'
+      - 'src/services/outreach/call-progress.ts'
+      - 'src/services/outreach/__tests__/call-claim-race.emulator.test.ts'
       - 'src/api/__tests__/menu-*.emulator.test.ts'
       - 'src/services/wellbeing-tracking/**'
       - 'src/api/wellbeing*.ts'
@@ -70,6 +80,10 @@ on:
       - 'src/services/platform/erase-other-keys.ts'
       - 'scripts/devdb/**'
       - 'src/api/account-routes.ts'
+      - 'src/services/stores/single-use-records.ts'
+      - 'src/services/stores/__tests__/single-use-records.emulator.test.ts'
+      - 'src/servers/token/oauth-link-state.ts'
+      - 'src/services/connect-moments/**'
       - 'src/memory/**'
       - 'src/tasks/scheduled/transcript-cleanup-job.ts'
       - 'src/tasks/scheduled/__tests__/transcript-cleanup.emulator.test.ts'
@@ -173,6 +187,15 @@ jobs:
           GCLOUD_PROJECT: demo-project
           NODE_ENV: test
 
+      # OAuth states and connect invites: used once even when taps race (a transaction), TTL field a Timestamp
+      - name: Run Single-Use Record Tests
+        run: |
+          pnpm vitest run src/services/stores/__tests__/single-use-records.emulator.test.ts --reporter=verbose
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+          GCLOUD_PROJECT: demo-project
+          NODE_ENV: test
+
       # copy-user.ts copies one person from (default) to ferni-dev: only theirs, dry run writes nothing
       - name: Run Dev Database Copy Tests
         run: |
@@ -185,6 +208,14 @@ jobs:
       - name: Run Emotion Point Tests
         run: |
           pnpm vitest run -c vitest.config.unit.ts src/api/__tests__/record-emotion.emulator.test.ts --reporter=verbose
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+          NODE_ENV: test
+
+      # A placed call's once-claims (progress line, end-of-call report): racing workers, one winner
+      - name: Run Call Claim Race Tests
+        run: |
+          pnpm vitest run -c vitest.config.unit.ts src/services/outreach/__tests__/call-claim-race.emulator.test.ts --reporter=verbose
         env:
           FIRESTORE_EMULATOR_HOST: localhost:8080
           NODE_ENV: test
