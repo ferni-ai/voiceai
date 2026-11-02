@@ -25,9 +25,14 @@ export function lineAsks(line: string, item: string): boolean {
   return [...contentWords(item)].some((w) => said.has(w));
 }
 
-/** The line asks about `topic` itself: a shared word that isn't a name or small talk. */
+/** The line is about `topic` itself: a shared word that isn't a name or small talk. */
+export function mentionsTopic(line: string, topic: string, userName?: string): boolean {
+  return sharedWords(topic, line, userName ? [userName] : []).length > 0;
+}
+
+/** The line asks about `topic` itself. */
 export function asksAboutTopic(line: string, topic: string, userName?: string): boolean {
-  return line.includes('?') && sharedWords(topic, line, userName ? [userName] : []).length > 0;
+  return line.includes('?') && mentionsTopic(line, topic, userName);
 }
 
 export interface GreetingThreads {
