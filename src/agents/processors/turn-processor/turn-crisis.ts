@@ -45,8 +45,10 @@ import {
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
 import { startWhoRead } from '../../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
 import {
+  abuseCallRisk,
   blockedReadGuidance,
   noteMeansInHandShadow,
+  withAbuseRead,
   withMinorAbuseDisclosure,
 } from '../../../services/safety/index.js';
 import {
@@ -184,6 +186,8 @@ export function startTurnCrisis(
   const shouldBlock = guardFromDetection(patterns).shouldBlock;
   // A gentle 988 offer counts as a match: risk on this call, and both paths agree.
   const pattern = shouldBlock ? 'block' : patterns.isCrisis || gentle ? 'crisis' : 'none';
+  // ABUSE_DISCLOSURE_PATTERNS: call risk before this turn's own note (abuse-disclosure-turn.ts).
+  const abuseRisk = abuseCallRisk(options.sessionId, userText, pattern !== 'none');
   if (pattern !== 'none') noteCrisisRisk(options.sessionId); // risk on this call (crisis-call-risk.ts)
   if (pattern !== 'none') noteConfirmedRisk(options.sessionId || undefined, options.env);
   const { env = process.env, generate } = options;
@@ -331,7 +335,10 @@ export function startTurnCrisis(
     }
     const read = easingOn ? (eased ??= easeTurn(turn)) : turn;
     // MINOR_ABUSE_DISCLOSURE: a caller under 18 telling of sexual harm, after every read.
-    return read.then((s) => withMinorAbuseDisclosure(s, call, input, priorRisk, env));
+    const minor = read.then((s) => withMinorAbuseDisclosure(s, call, input, priorRisk, env));
+    // ABUSE_DISCLOSURE_PATTERNS: someone hurting the caller is a safety turn, after every read,
+    // the minor's read included; its guidance yields to the minor's (turn-handler.ts).
+    return withAbuseRead(minor, input, abuseRisk, classifier, env);
   };
   return {
     patterns,
