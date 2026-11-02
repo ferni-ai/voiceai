@@ -120,6 +120,56 @@ const heardCrisis = (heard: string[]): boolean =>
   crisisRead(heard.join(' ')) || heard.some(crisisRead);
 
 /**
+ * With follow-through on, how the call went by what they said: a voicemail greeting,
+ * a no or an opt-out, a quick hang-up. Null when they talked.
+ */
+function heardOutcome(
+  call: OnBehalfDispatch,
+  heard: string[],
+  durationSeconds: number,
+  voicemailSpoken: boolean
+): CallOutcome | null {
+  const name = call.contact.name;
+  const how = classifyAnsweredCall(heard, durationSeconds);
+  if (how === 'voicemail') {
+    return {
+      callId: call.callId,
+      status: 'voicemail',
+      objectiveAchieved: false,
+      outcome: `I got ${name}'s voicemail. Want me to try again later?`,
+      callbackRequired: true,
+      voicemailLeft: voicemailSpoken,
+    };
+  }
+  if (how === 'opted_out' || how === 'declined') {
+    const promise =
+      how === 'opted_out' ? " and asked not to be called again, so I won't call them" : '';
+    return {
+      callId: call.callId,
+      status: 'completed',
+      objectiveAchieved: false,
+      // Crisis words still reach the requester when they opt out (#2861).
+      outcome: withFlags(
+        `I reached ${name}, but they didn't want to talk${promise}.`,
+        flaggedLines(heard, name)
+      ),
+    };
+  }
+  if (how === 'hung_up_early') {
+    return {
+      callId: call.callId,
+      status: 'completed',
+      objectiveAchieved: false,
+      outcome: withFlags(
+        `I reached ${name}, but they had to go before we really got to talk.`,
+        flaggedLines(heard, name)
+      ),
+    };
+  }
+  return null;
+}
+
+/**
  * What the requester is told. `turns` is the raw transcript (null if capture
  * never started); `analysis` is the LLM's read of it (null if that failed).
  * The other person's own words are never kept: the stored result carries the
@@ -210,44 +260,10 @@ export function buildCallOutcome(
     };
   }
 
-  if (isCallFollowthroughEnabled()) {
-    const how = classifyAnsweredCall(heard, durationSeconds);
-    if (how === 'voicemail') {
-      return {
-        callId: call.callId,
-        status: 'voicemail',
-        objectiveAchieved: false,
-        outcome: `I got ${name}'s voicemail. Want me to try again later?`,
-        callbackRequired: true,
-        voicemailLeft: voicemailSpoken,
-      };
-    }
-    if (how === 'opted_out' || how === 'declined') {
-      const promise =
-        how === 'opted_out' ? " and asked not to be called again, so I won't call them" : '';
-      return {
-        callId: call.callId,
-        status: 'completed',
-        objectiveAchieved: false,
-        // Crisis words still reach the requester when they opt out (#2861).
-        outcome: withFlags(
-          `I reached ${name}, but they didn't want to talk${promise}.`,
-          flaggedLines(heard, name)
-        ),
-      };
-    }
-    if (how === 'hung_up_early') {
-      return {
-        callId: call.callId,
-        status: 'completed',
-        objectiveAchieved: false,
-        outcome: withFlags(
-          `I reached ${name}, but they had to go before we really got to talk.`,
-          flaggedLines(heard, name)
-        ),
-      };
-    }
-  }
+  const heardAs = isCallFollowthroughEnabled()
+    ? heardOutcome(call, heard, durationSeconds, voicemailSpoken)
+    : null;
+  if (heardAs) return heardAs;
 
   if (!analysis) {
     return {
