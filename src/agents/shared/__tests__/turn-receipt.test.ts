@@ -14,6 +14,7 @@ import { promptSections } from '../prompt-sections.js';
 import { withActionClaimCheck } from '../../personas/action-claim-guard.js';
 import { holdReplyAudio } from '../../../speech/output-control/reply-activity.js';
 import { noteTurnTiming } from '../../../speech/output-control/turn-timing.js';
+import { plantedPiiIn } from '../../../tests/helpers/snippet-leak.js';
 
 const INSTRUCTIONS = 'You are Ferni, a warm friend on a call.';
 const RECALL = '[WHAT YOU REMEMBER ABOUT JANE]\n- Jane Doe: phone = +1 555 867 5309';
@@ -21,6 +22,8 @@ const DIRECTOR = '[Director: ask Jane Doe about jane@example.com]';
 const REMINDER = `Already told: the lake story. ${DIRECTOR} Keep it short, a friend on a call.`;
 const CALLER = 'my name is Jane Doe, call me at +1 555 867 5309 or jane@example.com';
 const REPLY = 'Hey Jane Doe! Got it. I will call +1 555 867 5309?';
+/** The planted phone as one number: the only number in a receipt that would be a leak. */
+const PHONE_DIGITS = '5558675309';
 const PII = [
   'Jane',
   'Doe',
@@ -312,9 +315,8 @@ describe('attachTurnReceipts', () => {
   it('carries no transcript, reply, tool argument, note, name, number or uid', () => {
     const c = call();
     c.turn({ tools: ['getWeather'] });
-    const json = JSON.stringify(c.receipts);
     expect(c.receipts).toHaveLength(1);
-    for (const pii of PII) expect(json).not.toContain(pii);
+    expect(plantedPiiIn(c.receipts, PII, PHONE_DIGITS)).toEqual([]);
   });
 
   it('counts each turn once: two signals per commit, greetings and repeats aside', () => {

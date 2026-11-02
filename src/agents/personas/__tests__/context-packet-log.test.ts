@@ -24,7 +24,10 @@ vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => null
 import { setDirector, type Director } from '../director-notes.js';
 import { rememberForPacket, packetLogFields, turnPacket } from '../context-packet/turn-packet.js';
 import { withTurnReminder } from '../turn-request.js';
+import { plantedPiiIn } from '../../../tests/helpers/snippet-leak.js';
 
+/** The planted phone as one number: the only number in a log that would be a leak. */
+const PHONE_DIGITS = '5558675309';
 const PII = [
   'Jane',
   'Doe',
@@ -82,11 +85,9 @@ describe('CONTEXT_PACKET logging', () => {
     // Non-vacuous: the planted details really are in the packet.
     for (const pii of ['Jane', '5309', 'lake story', 'Biscuit']) expect(packet.text).toContain(pii);
 
-    const json = JSON.stringify(packetLogFields(packet.accounting));
-    for (const pii of PII) expect(json).not.toContain(pii);
+    expect(plantedPiiIn(packetLogFields(packet.accounting), PII, PHONE_DIGITS)).toEqual([]);
     // The accounting the receipt will read carries no text either: ids are opaque.
-    const accounting = JSON.stringify(packet.accounting);
-    for (const pii of PII) expect(accounting).not.toContain(pii);
+    expect(plantedPiiIn(packet.accounting, PII, PHONE_DIGITS)).toEqual([]);
   });
 
   it('what withTurnReminder logs on the live path has none of it', () => {
@@ -107,7 +108,6 @@ describe('CONTEXT_PACKET logging', () => {
 
     const packetLines = logged.filter((args) => (args as unknown[]).includes('CONTEXT_PACKET'));
     expect(packetLines).toHaveLength(1);
-    const json = JSON.stringify(logged);
-    for (const pii of PII) expect(json).not.toContain(pii);
+    expect(plantedPiiIn(logged, PII, PHONE_DIGITS)).toEqual([]);
   });
 });

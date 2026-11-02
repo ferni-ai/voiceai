@@ -23,3 +23,34 @@ export function leakedPieces(value: unknown, sentinel = SENTINEL): string[] {
   }
   return [...found];
 }
+
+/**
+ * Which of the `planted` fragments a log carries as text: in a key or a string
+ * value. A bare `JSON.stringify(log).includes('555')` cannot tell a leaked phone
+ * from a count, so a log that holds a 555-token section estimate or an 867 ms timing
+ * fails a no-PII test it passes. Numbers are counts here; the one number that is
+ * a leak, the planted phone's digits as a number, is caught through `digits`.
+ * The value is read as it would be logged (JSON round-trip), so toJSON applies.
+ */
+export function plantedPiiIn(
+  value: unknown,
+  planted: readonly string[],
+  digits?: string
+): string[] {
+  const texts: string[] = [];
+  const numbers: string[] = [];
+  const walk = (v: unknown): void => {
+    if (typeof v === 'string') texts.push(v);
+    else if (typeof v === 'number') numbers.push(String(v));
+    else if (Array.isArray(v)) v.forEach(walk);
+    else if (v !== null && typeof v === 'object')
+      for (const [key, inner] of Object.entries(v)) {
+        texts.push(key);
+        walk(inner);
+      }
+  };
+  walk(JSON.parse(JSON.stringify(value) ?? 'null'));
+  const found = planted.filter((p) => texts.some((t) => t.includes(p)));
+  if (digits !== undefined && numbers.some((n) => n.includes(digits))) found.push(digits);
+  return found;
+}
