@@ -66,27 +66,42 @@ vi.mock('../../model-provider/index.js', async (importOriginal) => {
 const { setupPersonaAgent, buildHandoffContext } = await import('../agent-setup.js');
 const { takeCallerHistory } = await import('../greeting-direction.js');
 const { resetForgetTopicsSource } = await import('../../../memory/recall/forget-topics-source.js');
+const { trackDeferredProfileLoad } = await import('../../../services/session/deferred-profile.js');
 
 let seq = 0;
 
-async function setup(): Promise<{ instructions: string; lastTopic?: string }> {
+/** `lateMs`: the profile attaches that long after setup starts (the deferred load). */
+async function setup(lateMs?: number): Promise<{ instructions: string; lastTopic?: string }> {
   captured.instructions.length = 0;
   const sessionId = `forget-setup-${++seq}`;
+  const profile = {
+    name: 'Sam',
+    totalConversations: 4,
+    lastCallerSummary: 'how Biscuit keeps chewing the couch',
+    goals: [],
+    primaryConcerns: [],
+  };
+  const services = {
+    userId: `member-forget-setup-${seq}`,
+    userProfile: lateMs === undefined ? profile : null,
+  };
+  if (lateMs !== undefined) {
+    trackDeferredProfileLoad(
+      services,
+      new Promise<void>((resolve) => {
+        setTimeout(() => {
+          services.userProfile = profile;
+          resolve();
+        }, lateMs);
+      })
+    );
+  }
   await expect(
     setupPersonaAgent({
       persona: { id: 'ferni', name: 'Ferni' } as never,
       ctx: {} as never,
       room: { name: 'forget-setup-room', on: vi.fn(), off: vi.fn() } as never,
-      services: {
-        userId: `member-forget-setup-${seq}`,
-        userProfile: {
-          name: 'Sam',
-          totalConversations: 4,
-          lastCallerSummary: 'how Biscuit keeps chewing the couch',
-          goals: [],
-          primaryConcerns: [],
-        },
-      } as never,
+      services: services as never,
       userData: { callerTimezone: 'America/New_York' } as never,
       sessionId,
       enableFullHandlers: false,
@@ -117,6 +132,14 @@ describe('agent setup: the caller profile (FORGET_EVERY_READER)', () => {
     expect(lastTopic).toBeUndefined();
     expect(stored.reads).toBe(1); // one read...
     expect(stored.readBeforePrompts).toBe(true); // ...started beside the prompt loads
+  });
+
+  it('on, the profile attaches after setup starts: the block is there, the forgotten summary is not', async () => {
+    vi.stubEnv('FORGET_EVERY_READER', 'on');
+    const { instructions, lastTopic } = await setup(150);
+    expect(instructions).toContain("You're talking to Sam.");
+    expect(instructions).not.toContain('Biscuit');
+    expect(lastTopic).toBeUndefined();
   });
 
   it('off: the summary is in both, as before', async () => {
