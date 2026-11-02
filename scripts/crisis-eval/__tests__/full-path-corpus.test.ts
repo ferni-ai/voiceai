@@ -91,6 +91,23 @@ describe('corpora', () => {
     expect(splitOf({ id: 'dev-3', set: 'dev' })).toBe('shared');
   });
 
+  it('carries third-person risk with no risk word, first and mid-call, each with a near miss', () => {
+    const set = bySet('third-person');
+    const first = set.filter((c) => c.shape === 'third-person-must-catch-first');
+    const mid = set.filter((c) => c.shape === 'third-person-must-catch-mid');
+    const near = set.filter((c) => c.shape === 'third-person-near-miss');
+    expect(first.length).toBeGreaterThanOrEqual(10);
+    // the same risk line mid-call, after a neutral opening
+    expect(mid.map((c) => c.turns.at(-1)?.text)).toEqual(first.map((c) => c.turns[0]?.text));
+    for (const c of [...first, ...mid]) expect(c.turns.at(-1)?.label, c.id).toBe('must-catch');
+    expect(near.length).toBe(first.length);
+    for (const c of near)
+      expect(
+        c.turns.map((t) => t.label),
+        c.id
+      ).toEqual(['must-not-alarm']);
+  });
+
   it('carries indirect goodbyes and preparatory acts, a third held out', () => {
     const indirect = bySet('positives').filter((c) => c.shape === 'indirect-goodbye');
     expect(indirect.length).toBeGreaterThanOrEqual(9);

@@ -48,7 +48,8 @@ if [ "$kind" = canary ]; then
   cp "$target/settings.ini" "$STUB_DIR/canary-settings.ini"
   rc=$CANARY_RC
 fi
-[ "$rc" = 1 ] && rc=$leak_rc
+# "fatal" is gitleaks failing outright (say, a config it cannot load): a bare 1.
+if [ "$rc" = 1 ]; then rc=$leak_rc; elif [ "$rc" = fatal ]; then rc=1; fi
 exit "$rc"
 `;
 
@@ -96,7 +97,7 @@ beforeEach(() => {
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-function run(canaryRc: number, rangeRc = 0, range: [string, string] = [base, head]) {
+function run(canaryRc: number | 'fatal', rangeRc = 0, range: [string, string] = [base, head]) {
   const r = spawnSync('bash', [SCRIPT, ...range], {
     cwd: repo,
     encoding: 'utf8',
@@ -126,7 +127,7 @@ describe('gitleaks-range.sh', () => {
     expect(r.status).toBe(0);
     expect(r.calls.map((c) => c.split(' ')[0])).toEqual(['canary', 'range']);
     // --text: a .gitattributes `-diff`/`binary` in the change must not hide its content.
-    expect(r.calls[1]).toContain(`--log-opts=--remerge-diff --text ${base}..${head}`);
+    expect(r.calls[1]).toContain(`--log-opts=--remerge-diff --text --no-textconv ${base}..${head}`);
     expect(r.calls[1]).toContain('--exit-code 1');
   });
 
@@ -146,6 +147,14 @@ describe('gitleaks-range.sh', () => {
     expect(r.status).toBe(1);
     expect(r.out).toContain('did not report a planted fake key (exit 0)');
     expect(r.calls).toEqual([expect.stringMatching(/^canary /)]);
+  });
+
+  it('fails without scanning when gitleaks fails outright on the canary, not mistaking it for a find', () => {
+    const r = run('fatal');
+    expect(r.status).toBe(1);
+    expect(r.out).toContain('did not report a planted fake key (exit 1)');
+    expect(r.calls).toHaveLength(1);
+    expect(r.calls[0]).toMatch(/--exit-code 9 /);
   });
 
   it('fails without scanning when gitleaks errors on the canary', () => {
@@ -193,5 +202,140 @@ describe('gitleaks-range.sh', () => {
       expect(call).toContain('--redact');
       expect(call).toContain('--no-banner');
     }
+  });
+});
+
+// Built from parts so this file never holds a real pointer line, which the gate
+// would (rightly) refuse when this file's own change is scanned.
+const LFS_POINTER = ['version https://git-lfs', 'github.com/spec/v1'].join('.');
+
+describe("gitleaks-range.sh refuses what the scan can't see through", () => {
+  function expectRefused(r: ReturnType<typeof run>, message: string) {
+    expect(r.status).toBe(1);
+    expect(r.out).toContain(message);
+    expect(r.calls).toEqual([]); // refused before gitleaks runs at all
+  }
+
+  function sideCommit(name: string) {
+    return git('commit-tree', git('rev-parse', 'HEAD^{tree}'), '-p', base, '-m', name);
+  }
+
+  function withBaseConfig(config: string) {
+    const newBase = commit({ '.gitleaks.toml': config }, 'base config');
+    // Content varies with the config, so repeated calls in one test still commit.
+    const later = commit({ 'c.txt': config }, 'later');
+    return run(1, 0, [newBase, later]);
+  }
+
+  it('an octopus merge, which --remerge-diff does not diff', () => {
+    const tree = git('rev-parse', 'HEAD^{tree}');
+    const octopus = git(
+      'commit-tree',
+      tree,
+      '-p',
+      head,
+      '-p',
+      sideCommit('one'),
+      '-p',
+      sideCommit('two'),
+      '-m',
+      'octopus'
+    );
+    expectRefused(run(1, 0, [base, octopus]), 'octopus merge');
+  });
+
+  it('but scans an ordinary two-parent merge', () => {
+    const tree = git('rev-parse', 'HEAD^{tree}');
+    const merge = git('commit-tree', tree, '-p', head, '-p', sideCommit('one'), '-m', 'merge');
+    const r = run(1, 0, [base, merge]);
+    expect(r.status).toBe(0);
+    expect(r.calls.map((c) => c.split(' ')[0])).toEqual(['canary', 'range']);
+  });
+
+  it('a filter=lfs attribute, at the root or in a subdirectory', () => {
+    const atRoot = commit(
+      { '.gitattributes': '*.bin filter=lfs diff=lfs merge=lfs -text\n' },
+      'lfs'
+    );
+    expectRefused(run(1, 0, [head, atRoot]), 'filter=lfs attribute');
+
+    mkdirSync(join(repo, 'assets'));
+    const inSub = commit({ 'assets/.gitattributes': '*.dat filter=lfs\n' }, 'lfs sub');
+    expectRefused(run(1, 0, [atRoot, inSub]), 'filter=lfs attribute');
+  });
+
+  it('a Git LFS pointer file', () => {
+    const pointer = `${LFS_POINTER}\noid sha256:${'0'.repeat(64)}\nsize 42\n`;
+    expectRefused(run(1, 0, [head, commit({ 'blob.bin': pointer }, 'pointer')]), 'LFS pointer');
+  });
+
+  it('in every spelling git-lfs accepts: spec aliases, CRLF, surrounding spaces', () => {
+    const oid = `oid sha256:${'0'.repeat(64)}`;
+    const spellings = {
+      'hawser.bin': `version https://hawser.github.com/spec/v1\n${oid}\nsize 1\n`,
+      'media.bin': `version http://git-media.io/v/2\n${oid}\nsize 1\n`,
+      'crlf.bin': `${LFS_POINTER}\r\n${oid}\r\nsize 1\r\n`,
+      'indented.bin': `  ${LFS_POINTER}\n${oid}\nsize 1\n`,
+      'trailing.bin': `${LFS_POINTER}  \n${oid}\nsize 1\n`,
+    };
+    let from = head;
+    for (const [name, pointer] of Object.entries(spellings)) {
+      const to = commit({ [name]: pointer }, name);
+      expectRefused(run(1, 0, [from, to]), 'LFS pointer');
+      from = to;
+    }
+  });
+
+  it('a filter=lfs line that starts with "+", or in a .gitattributes of another case', () => {
+    const plus = commit({ '.gitattributes': '+x.bin filter=lfs\n' }, 'plus');
+    expectRefused(run(1, 0, [head, plus]), 'filter=lfs attribute');
+    mkdirSync(join(repo, 'docs'));
+    const cased = commit({ 'docs/.GitAttributes': '*.dat filter=lfs\n' }, 'cased');
+    expectRefused(run(1, 0, [plus, cased]), 'filter=lfs attribute');
+  });
+
+  it('a base or head that does not resolve, which gitleaks would scan as empty', () => {
+    expectRefused(run(1, 0, ['no-such-ref', head]), "can't resolve 'no-such-ref'");
+    expectRefused(run(1, 0, [base, '0'.repeat(40)]), `can't resolve '${'0'.repeat(40)}'`);
+  });
+
+  it('but not text that merely mentions LFS', () => {
+    // The second line starts like a pointer but goes on: only a whole-line match refuses.
+    const notes =
+      `Big files use filter=lfs; a pointer starts with "${LFS_POINTER}".\n` +
+      `${LFS_POINTER} is the first line of every pointer.\n`;
+    const r = run(1, 0, [head, commit({ 'notes.md': notes }, 'notes')]);
+    expect(r.status).toBe(0);
+  });
+
+  it('base rules that [extend] a file, in table, dotted or inline form', () => {
+    expectRefused(withBaseConfig('[extend]\npath = "extra.toml"\n'), '[extend] path');
+    expectRefused(withBaseConfig('title = "x"\nextend.path = "extra.toml"\n'), '[extend] path');
+    expectRefused(
+      withBaseConfig('extend = { useDefault = true, path = "extra.toml" }\n'),
+      '[extend] path'
+    );
+  });
+
+  it('including quoted keys and any key case, which gitleaks reads as the same key', () => {
+    expectRefused(withBaseConfig('["extend"]\n"path" = "extra.toml"\n'), '[extend] path');
+    expectRefused(withBaseConfig("[ 'extend' ]\n'path' = \"extra.toml\"\n"), '[extend] path');
+    expectRefused(withBaseConfig('[Extend]\nPATH = "extra.toml"\n'), '[extend] path');
+    // One key to TOML, but gitleaks's config loader splits it on the dot.
+    expectRefused(withBaseConfig('"extend.path" = "extra.toml"\n'), '[extend] path');
+    expectRefused(withBaseConfig('\'EXTEND.PATH\' = "extra.toml"\n'), '[extend] path');
+    expectRefused(withBaseConfig('[extend]\n"path.sub" = "extra.toml"\n'), '[extend] path');
+  });
+
+  it('base rules that do not parse as TOML', () => {
+    expectRefused(withBaseConfig('[extend\npath = \n'), "couldn't check the base .gitleaks.toml");
+  });
+
+  it('but accepts base rules whose own rules carry a path key', () => {
+    const r = withBaseConfig(
+      '[extend]\nuseDefault = true\npathology = "a key that only starts with path"\n\n' +
+        '[[rules]]\nid = "x"\nregex = "zzz"\npath = "src/"\n'
+    );
+    expect(r.status).toBe(0);
   });
 });
