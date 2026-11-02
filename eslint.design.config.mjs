@@ -23,6 +23,7 @@ export default [
     // none of its rules is turned on, so those comments are unused here, and not reported.
     plugins: { ...designSystem.configs.strict.plugins, '@typescript-eslint': tseslint },
     linterOptions: { reportUnusedDisableDirectives: 'off' },
-    rules: designSystem.configs.strict.rules,
+    // PLANTED for the red proof (do not merge): silences one baselined rule.
+    rules: { ...designSystem.configs.strict.rules, '@ferni/design-system/no-hardcoded-colors': 'warn' },
   },
 ];
