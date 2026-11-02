@@ -54,13 +54,18 @@ const REFUSED = new RegExp(
 /** A reply cut off mid-sentence: the next reply carries on from it. */
 const UNFINISHED = /(?:[,;:\u2013\u2014-]|\.\.\.|\u2026)\s*$/;
 
+/** Longest reply the cues read: a longer one is never a lone no, a refusal or a go-ahead. */
+const MAX_REPLY = 200;
+
+/** Go-ahead words. None is also a lead-in word, so each reply splits one way only. */
 const GO = [
   "(?:that's|that is|it's|it is) (?:cool|fine|ok|okay|alright|all right|perfect|great)",
-  '(?:totally )?fine',
+  'fine',
   'go (?:right )?ahead',
   'go for it',
   'go on',
-  '(?:you can )?(?:tell|share|pass|say)(?: (?:it|that|him|her|them|anything|whatever|everything|all)\\b[^.!?]*)?',
+  '(?:you can )?(?:tell|share)(?: (?:it|that|him|her|them))?(?: (?:anything|whatever|everything|all of it)(?: you (?:want|like))?)?',
+  '(?:you can )?(?:pass|say) it (?:on|along)',
   'sure',
   'okay',
   'ok',
@@ -73,18 +78,24 @@ const GO = [
   "i don't (?:mind|care)",
   'why would i mind\\?',
 ].join('|');
+/** Words that may lead into a go-ahead: "Oh no, go ahead.", "Not at all, go ahead." */
+const LEAD_IN =
+  /^\W*(?:(?:oh|um+|uh+|well|hmm+|ah|ha|no+|nope|nah|not at all(?=\s*[,;:.!\u2013\u2014-]))\W+)*/i;
 /**
- * A reply that is a go-ahead and nothing else: "that's cool", "go ahead", "tell him whatever".
+ * A go-ahead and nothing else: "that's cool", "go ahead", "tell him whatever you want".
  * Never a question ("Okay?", "Is that okay with you?"), a fragment ("Hello?") or one secret
- * ("don't tell her about X"). "Not at all" alone answers "Is that okay?" with a no, so it only
- * leads into a go-ahead ("not at all, go ahead"). Read only inside their answer, before Ferni
- * speaks again.
+ * ("don't tell her about X"). Read only inside their answer, before Ferni speaks again.
  */
-const GO_AHEAD = new RegExp(
-  `^\\W*(?:(?:oh|um+|uh+|well|hmm+|ah|ha|yeah|yes|no+|nope|nah|of course|totally|not at all)\\W+)*` +
-    `(?:${GO})(?:\\W+(?:${GO}))*[.!\\s]*$`,
-  'i'
-);
+const GO_AHEAD = new RegExp(`^(?:${GO})(?:\\W+(?:${GO}))*[.!\\s]*$`, 'i');
+/** A go-ahead never says no past its lead-in: "Tell him nothing.", "Not at all okay." */
+const NEGATED = /\b(?:not|no|don't|never|nothing|nobody|no one)\b/i;
+
+function goAhead(reply: string): boolean {
+  if (reply.length > MAX_REPLY) return false;
+  // "Not at all" alone answers "Is that okay?" with a no, so it only leads into a go-ahead.
+  const said = reply.replace(LEAD_IN, '');
+  return !NEGATED.test(said.replace(/\bi don't (?:mind|care)\b/gi, '')) && GO_AHEAD.test(said);
+}
 
 const straight = (text: string): string =>
   text.replace(/[‘’]/g, "'").replace(/\bdo not\b/gi, "don't");
@@ -121,9 +132,11 @@ export function passAlongDeclined(
   // go-ahead: "No." then "Hello?" is still a no, while "No." then "that's cool." and "No," then
   // "that's cool." are one answer (owner, 2026-11-02: when in doubt, deliver).
   const [first = '', ...rest] = replies;
-  const alone = !UNFINISHED.test(first) && !rest.some((reply) => GO_AHEAD.test(reply));
+  const alone = !UNFINISHED.test(first.slice(-MAX_REPLY)) && !rest.some(goAhead);
   const read = alone ? [replies.join(' '), first] : [replies.join(' ')];
-  return read.some((answer) => LONE_NO.test(answer) || REFUSED.test(answer));
+  return read.some(
+    (answer) => answer.length <= MAX_REPLY && (LONE_NO.test(answer) || REFUSED.test(answer))
+  );
 }
 
 /** What the requester hears when they said no: that they did, and nothing they said. */

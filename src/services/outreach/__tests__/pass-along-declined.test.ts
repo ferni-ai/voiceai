@@ -142,6 +142,12 @@ describe('a personal call: an unambiguous no is honoured', () => {
     ['No.', 'Not at all.'],
     ['Nope.', 'Not at all!'],
     ['No.', "I don't care what you do."],
+    ['No.', 'Tell him nothing.'],
+    ['No.', 'Say nothing.'],
+    ['No.', 'Tell him later.'],
+    ['No.', 'Not at all okay.'],
+    ['No.', "Don't tell him anything, okay?"],
+    ['No.', `${'Yes, '.repeat(40)}go ahead.`],
   ])('%j then %j before Ferni speaks: a no', (first, then) => {
     const t = [A(ASK), R(first), R(then), A("Okay, I won't."), R(SAID)];
     expect(passAlongDeclined(call.script, t)).toBe(true);
@@ -342,6 +348,26 @@ describe('everything else is delivered, as main does', () => {
     ['No -', 'he can hear all of it.'],
   ])('a cut-off %j then %j is one answer: delivered', (first, then) => {
     delivered([A(ASK), R(first), R(then), A('Great!'), R(SAID)]);
+  });
+
+  it.each(['Go ahead, tell him.', 'Sure.'])('"No." then %j is one answer: delivered', (then) => {
+    delivered([A(ASK), R('No.'), R(then), A('Great!'), R(SAID)]);
+  });
+
+  // Every cue reads 200 characters at most and splits a reply one way only, so a long reply
+  // never stalls it. The old go-ahead cue took ~20 ms at 10k characters and ~320 ms at 40k.
+  it.each([
+    ['No.', 'yes, '.repeat(2000)],
+    ['No.', `${'yes, '.repeat(8000)}x`],
+    ['No.', `${'totally '.repeat(5000)}x`],
+    ['yes, '.repeat(2000), 'Hello?'],
+    ['no, '.repeat(2500), 'Hello?'],
+    [`${'please, '.repeat(1250)}x`, 'Sorry.'],
+    [`No${' '.repeat(10000)},x`, 'Hello?'],
+  ])('a 10k-40k-character reply is read in under 50 ms (%#)', (first, then) => {
+    const started = performance.now();
+    passAlongDeclined(call.script, [A(ASK), R(first), R(then), A("Okay, I won't."), R(SAID)]);
+    expect(performance.now() - started).toBeLessThan(50);
   });
 
   it('a no, a fragment and a go-ahead before Ferni speaks is in doubt: delivered', () => {
