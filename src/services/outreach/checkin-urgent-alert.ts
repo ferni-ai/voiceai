@@ -58,11 +58,34 @@ function fieldText(value: unknown): string | null {
 /** A field that isn't text: none of it is quoted. */
 const NOT_TEXT: ScreenedCallerParts = { said: '', risky: true, safety: false };
 
-/** One field through the screen, and whether it went out word for word (cleaned only). */
-function screenField(value: unknown, name: string): ScreenedCallerParts & { intact: boolean } {
+/** A field's screen result, and whether it went out word for word (cleaned only). */
+type ScreenedField = ScreenedCallerParts & { intact: boolean };
+
+/** One field through the screen. */
+function screenField(value: unknown, name: string): ScreenedField {
   const raw = fieldText(value);
   const part = raw === null ? NOT_TEXT : screenCallerParts(raw, name, 200);
   return { ...part, intact: raw !== null && part.said === callerText(raw, SCREEN_WINDOW) };
+}
+
+/**
+ * Whether the alert says crisisCallerLine. Always when any of their words were
+ * withheld or cut, or when the screen raised its own safety signal. And when the
+ * crisis guard (services/safety/crisis-guard.ts, the read each turn gets) reads
+ * crisis in the full text of both fields, no cap and no window, that the words
+ * going out don't carry.
+ */
+function needsCrisisLine(
+  desc: ScreenedField,
+  act: ScreenedField,
+  both: string,
+  what: string,
+  next: string
+): boolean {
+  const withheld = !desc.intact || !act.intact;
+  const flagged = desc.safety || act.safety;
+  const read = crisisRead(both) && !carriesCrisis(what) && !carriesCrisis(next);
+  return withheld || flagged || read;
 }
 
 /** Drops the closing stop so the line can sit inside Ferni's own sentence. */
@@ -118,10 +141,7 @@ export function generateUrgentNotification(record: CheckinAlertInput): string | 
     .map(fieldText)
     .filter(Boolean)
     .join(' ');
-  const withheld = !desc.intact || !act.intact;
-  // crisisRead is the crisis guard's own read (services/safety/crisis-guard.ts),
-  // the one each turn gets, on the full text of both fields: no cap, no window.
-  const crisis = withheld || (crisisRead(both) && !carriesCrisis(what) && !carriesCrisis(next));
+  const crisis = needsCrisisLine(desc, act, both, what, next);
   const sent = alert(what, next, crisis);
   const screened = both.length <= SCREEN_WINDOW && sent.length <= SCREEN_WINDOW;
   if (screened && !isRiskyCallerText(sent)) return sent;
