@@ -181,18 +181,18 @@ async function checkGemini(): Promise<HealthCheckResult> {
   const start = Date.now();
 
   // On Vertex the agent never uses GOOGLE_API_KEY, so checking that key
-  // reported Gemini down (every check, with Slack alerts) while every reply
-  // was being served. Ask the client the agent actually uses for the model's
-  // metadata instead: no tokens spent.
+  // reported Gemini down (every check, with Slack alerts) while replies were
+  // served. countTokens on the agent's client and model is free and served
+  // where generateContent is; models.get isn't (200 on us-central1, where both 404).
   if (useVertexAI()) {
     try {
       const { getGeminiClient, GEMINI_MODEL } = await import('../../config/gemini-config.js');
       const client = (await getGeminiClient()) as {
-        models: { get(req: { model: string }): Promise<unknown> };
+        models: { countTokens: (req: { model: string; contents: string }) => Promise<unknown> };
       } | null;
       if (!client) return { healthy: false, latencyMs: 0, error: 'Vertex client unavailable' };
-      await client.models.get({ model: GEMINI_MODEL });
-      return { healthy: true, latencyMs: Date.now() - start, details: 'Vertex model reachable' };
+      await client.models.countTokens({ model: GEMINI_MODEL, contents: 'ping' });
+      return { healthy: true, latencyMs: Date.now() - start, details: 'Vertex model serving' };
     } catch (error) {
       return {
         healthy: false,
