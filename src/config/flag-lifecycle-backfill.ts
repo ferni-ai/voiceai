@@ -13,7 +13,7 @@
  * The 2026-10-24..29 groups and 16 of the 2026-10-23 names were grandfathered when main was
  * merged on 2026-10-26..29: 83 experiments that landed on main after this list was cut, same rule.
  * The 2026-10-30 group holds the 51 that landed on 2026-10-30 and 10-31, the 2026-11-01 group
- * the 9 that landed on 2026-11-01 and 11-02 (main merged at dc16c0ec7). Names whose flags were
+ * the 11 that landed on 2026-11-01 and 11-02 (main merged at 6d67de17e). Names whose flags were
  * deleted, promoted or made kill-switches on main by 2026-10-31 are gone.
  *
  * @module config/flag-lifecycle-backfill
@@ -173,7 +173,7 @@ const GROUPS: readonly BackfillGroup[] = [
     firstSeen: '2026-11-01',
     expires: '2027-01-30',
     flags:
-      'CALL_CAPTURE_CONSENT CONNECT_MOMENT_CALENDAR CRISIS_CLASSIFIER_BLOCKED_SIGNAL CUSTOM_AGENT_CHAT_HONESTY LK_READSTREAM_ABORT_FIX MINOR_ABUSE_DISCLOSURE PLACED_CALL_NOT_OWNER_PROOF REACH_OUT_ACTIONS UNVERIFIED_TURN_TOOLS',
+      'ABUSE_DISCLOSURE_PATTERNS CALL_CAPTURE_CONSENT CONNECT_MOMENT_CALENDAR CRISIS_CLASSIFIER_BLOCKED_SIGNAL CUSTOM_AGENT_CHAT_HONESTY LAST_TOPIC_ONCE LK_READSTREAM_ABORT_FIX MINOR_ABUSE_DISCLOSURE PLACED_CALL_NOT_OWNER_PROOF REACH_OUT_ACTIONS UNVERIFIED_TURN_TOOLS',
   },
 ];
 
