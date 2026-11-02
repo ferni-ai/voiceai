@@ -98,7 +98,12 @@ export function resetCrashContext(): void {
 // NETWORK INFO
 // ============================================================================
 
-function getNetworkInfo(): { connectionType?: string; effectiveType?: string; downlink?: number; rtt?: number } {
+function getNetworkInfo(): {
+  connectionType?: string;
+  effectiveType?: string;
+  downlink?: number;
+  rtt?: number;
+} {
   const nav = navigator as Navigator & {
     connection?: {
       type?: string;
@@ -125,6 +130,15 @@ function getNetworkInfo(): { connectionType?: string; effectiveType?: string; do
 // ============================================================================
 
 /**
+ * The page's address without its fragment. A fragment can hold a single-use
+ * secret (the invite in a /connect link), and it never helps a crash report.
+ */
+export function reportableUrl(): string {
+  const { origin, pathname, search } = window.location;
+  return `${origin}${pathname}${search}`;
+}
+
+/**
  * Report a crash to the backend
  */
 export async function reportCrash(
@@ -143,7 +157,7 @@ export async function reportCrash(
     turnCount,
     lastUserMessage,
     userAgent: navigator.userAgent,
-    url: window.location.href,
+    url: reportableUrl(),
     timestamp: new Date().toISOString(),
     ...getNetworkInfo(),
   };
@@ -337,4 +351,3 @@ export const crashReporter = {
   recordMessage: recordUserMessage,
   resetContext: resetCrashContext,
 };
-
