@@ -13,11 +13,18 @@
 # is live. Until this script it ran only in security-scan.yml, after `|| true`,
 # and only when OPTIONAL_CI was on, so it could never fail anything.
 #
+# A change must not be able to excuse itself, so:
+#   - the rules (.gitleaks.toml) and the ignore list (.gitleaksignore) come from
+#     the BASE commit, never from the change being scanned (gitleaks would
+#     otherwise load both from the checkout);
+#   - inline `gitleaks:allow` comments are ignored;
+#   - merge commits are scanned for what they add (--remerge-diff), so a key
+#     slipped in while resolving a conflict is caught too.
+#
 # Before scanning, it proves it can still go red: it commits a fake key made up
-# at run time into a throwaway repo and requires gitleaks to report it. Nothing
-# key-shaped is committed to this repo. The canary uses the same config as the
-# real scan, so a change that turns gitleaks off (a broken binary, a config that
-# allows everything) fails here instead of passing every PR.
+# at run time into a throwaway repo and requires gitleaks to report it under the
+# same rules. A broken binary or rules that allow everything fail here instead of
+# passing every PR. Nothing key-shaped is committed to this repo.
 #
 # Usage: gitleaks-range.sh <base> <head>
 # =============================================================================
@@ -26,24 +33,33 @@ set -euo pipefail
 base=${1:?usage: gitleaks-range.sh <base> <head>}
 head=${2:?usage: gitleaks-range.sh <base> <head>}
 
-canary=$(mktemp -d)
-trap 'rm -rf "$canary"' EXIT
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
 
-# A config in the repo replaces gitleaks' default rules; the canary must face it too.
-[ -f .gitleaks.toml ] && cp .gitleaks.toml "$canary/"
+# Rules and ignore list as of the base commit. With no config there, gitleaks'
+# own defaults; with no ignore file there, an empty one.
+config="$work/gitleaks.toml"
+ignore="$work/gitleaksignore"
+git show "$base:.gitleaks.toml" >"$config" 2>/dev/null \
+  || printf '[extend]\nuseDefault = true\n' >"$config"
+git show "$base:.gitleaksignore" >"$ignore" 2>/dev/null || : >"$ignore"
+
+flags=(--no-banner --redact --exit-code 1 --ignore-gitleaks-allow
+  --config "$config" --gitleaks-ignore-path "$ignore")
 
 # Built in a loop: `tr </dev/urandom | head` dies of SIGPIPE under pipefail.
 alphabet=ABCDEFGHIJKLMNOPQRSTUVWXYZ234567
 key_id=AKIA
 for _ in {1..16}; do key_id+=${alphabet:RANDOM%32:1}; done
-git -C "$canary" init --quiet
+canary="$work/canary"
+git init --quiet "$canary"
 printf 'aws_access_key_id = %s\n' "$key_id" >"$canary/settings.ini"
 git -C "$canary" add settings.ini
 git -C "$canary" -c user.name=canary -c user.email=canary@example.com \
   commit --quiet -m canary
 
 set +e
-gitleaks git --no-banner --redact --exit-code 1 "$canary" >/dev/null 2>&1
+gitleaks git "${flags[@]}" "$canary" >/dev/null 2>&1
 canary_rc=$?
 set -e
 if [ "$canary_rc" -ne 1 ]; then
@@ -52,4 +68,7 @@ if [ "$canary_rc" -ne 1 ]; then
 fi
 echo "Canary: gitleaks reported the planted fake key"
 
-gitleaks git --no-banner --redact --exit-code 1 --log-opts="$base..$head" .
+# Scan through the .git directory, not the working tree: gitleaks also reads a
+# .gitleaksignore from the directory it scans, and the change could add one there.
+gitleaks git "${flags[@]}" --log-opts="--remerge-diff $base..$head" \
+  "$(git rev-parse --absolute-git-dir)"
