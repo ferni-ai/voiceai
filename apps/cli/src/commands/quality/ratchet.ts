@@ -158,6 +158,19 @@ export function eslintRegressions(base: Record<string, number>, now: Record<stri
     .map(([rule, n]) => `ESLint "${rule}" errors rose ${base[rule] ?? 0} → ${n}.`);
 }
 
+/**
+ * Baselined rules with errors that reported none at all. A rule turned off, set to warn, or
+ * matching no files reads as zero, and "nothing rose" would pass it as fixed.
+ */
+export function eslintSilentRules(base: Record<string, number>, now: Record<string, number>): string[] {
+  return Object.entries(base)
+    .filter(([rule, n]) => n > 0 && !(rule in now))
+    .map(
+      ([rule, n]) =>
+        `ESLint "${rule}" reported nothing (baseline ${n}): turned off, set to warn, or matching no files. If every violation is really fixed, run --update.`
+    );
+}
+
 function isSource(path: string): boolean {
   return (
     /\.(ts|tsx)$/.test(path) &&
@@ -282,15 +295,22 @@ async function bundleMain(args: string[]): Promise<void> {
 /**
  * ESLint runs whose per-rule error counts are ratcheted, by baseline key (`--as`):
  * apps/web's own config, and the design-system rules (eslint.design.config.mjs).
+ *
+ * `requireEveryRule` also fails a baselined rule that reports nothing. The design config
+ * and plugin aren't code-owned, so without it an ordinary PR could switch a rule off and
+ * stay green. The web baseline predates this and may hold rules that no longer fire.
  */
-const ESLINT_BASELINES = { webEslint: 'Web ESLint', designEslint: 'Design-system ESLint' } as const;
+const ESLINT_BASELINES = {
+  webEslint: { label: 'Web ESLint', requireEveryRule: false },
+  designEslint: { label: 'Design-system ESLint', requireEveryRule: true },
+} as const;
 type EslintBaseline = keyof typeof ESLINT_BASELINES;
 type BaselineFile = Partial<Record<EslintBaseline, Record<string, number>>> & { bundle?: BundleSize };
 
 async function eslintMain(args: string[]): Promise<void> {
   const key = (args.includes('--as') ? args[args.indexOf('--as') + 1] : 'webEslint') as EslintBaseline;
   if (!Object.hasOwn(ESLINT_BASELINES, key)) throw new Error(`--as must be one of ${Object.keys(ESLINT_BASELINES).join(', ')}`);
-  const label = ESLINT_BASELINES[key];
+  const { label, requireEveryRule } = ESLINT_BASELINES[key];
   const file = JSON.parse(readFileSync(BASELINE, 'utf8')) as BaselineFile;
   const results = JSON.parse(readFileSync(args[args.indexOf('--eslint') + 1] ?? '', 'utf8')) as EslintFileResult[];
   const now = eslintErrorsByRule(results);
@@ -304,7 +324,7 @@ async function eslintMain(args: string[]): Promise<void> {
   }
   const base = file[key];
   if (!base) throw new Error(`No ${label} baseline: run with --eslint <file> --as ${key} --init`);
-  const worse = eslintRegressions(base, now);
+  const worse = [...eslintRegressions(base, now), ...(requireEveryRule ? eslintSilentRules(base, now) : [])];
   process.stdout.write(`${label} errors. Baseline: ${total(base)}  Now: ${total(now)}` + '\n');
   if (worse.length > 0) {
     process.stdout.write(`\n❌ ${worse.map((w) => `  - ${w}`).join('\n')}\n`);
