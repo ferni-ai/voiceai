@@ -26,7 +26,7 @@
 
 import { createHash } from 'node:crypto';
 import { flagOn, type Env } from '../../config/env-flag.js';
-import { sharedWords, stem } from '../personas/caller-greeting.js';
+import { sharePhrase, sharedWords } from '../personas/caller-greeting.js';
 import { isCommonEnglishWord } from '../../utils/common-english-words.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -51,15 +51,14 @@ const WARMTH = `love loved lovely glad happy hope hoping excited exciting missed
 
 /**
  * The hello raised `topic` itself: it shares a word with the summary that isn't a name,
- * small talk or warmth, and that word is either uncommon ("hike", "recital") or one of two
- * or more it shares ("the new job"). One common word is chance: "What's new?" after a
- * summary about a new job, "How's life?" after one about life at home. Errs toward not
- * raised, which offers the topic again next call (main's behaviour).
+ * small talk or warmth, and that word is uncommon ("hike", "recital"), or two common words
+ * it shares make one phrase in both ("the new job"). Common words apart are chance: "What's
+ * new?" after a summary about a new job, "Start of a new month!" after one about starting a
+ * new job. Errs toward not raised, which offers the topic again next call (main's behaviour).
  */
 export function raisesTopic(line: string, topic: string, userName?: string): boolean {
   const shared = sharedWords(topic, line, [...(userName ? [userName] : []), ...WARMTH]);
-  const distinct = new Set(shared.map((w) => stem(w.toLowerCase())));
-  return distinct.size >= 2 || shared.some((w) => !isCommonEnglishWord(w));
+  return shared.some((w) => !isCommonEnglishWord(w)) || sharePhrase(topic, line, shared);
 }
 
 /** The same summary, however it was spaced or cased, has one key. */
