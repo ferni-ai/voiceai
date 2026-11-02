@@ -11,7 +11,7 @@ import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { ESLint } from 'eslint';
 import { afterAll, describe, expect, it } from 'vitest';
-import { otherModes } from '../ratchet.js';
+import { eslintSilentRules, otherModes } from '../ratchet.js';
 
 const ROOT = fileURLToPath(new URL('../../../../../../', import.meta.url));
 const RATCHET = join(ROOT, 'apps/cli/src/commands/quality/ratchet.ts');
@@ -114,6 +114,30 @@ describe('design-system ESLint ratchet', () => {
     expect(more.stdout).toContain(`"${P}no-console-in-ui" errors rose`);
   });
 
+  it('fails when every rule goes quiet (all turned off or set to warn)', () => {
+    const quiet = run({});
+    expect(quiet.status).toBe(1);
+    for (const rule of Object.keys(baseline))
+      expect(quiet.stdout).toContain(`"${rule}" reported nothing`);
+  });
+
+  it('fails when one baselined rule goes quiet, naming only that rule', () => {
+    const { [P + 'no-hardcoded-colors']: _off, ...rest } = baseline;
+    const quiet = run(rest);
+    expect(quiet.status).toBe(1);
+    expect(quiet.stdout).toContain(`"${P}no-hardcoded-colors" reported nothing`);
+    expect(quiet.stdout.match(/reported nothing/g)).toHaveLength(1);
+  });
+
+  it('lets a rule really fixed to zero (baseline 0 after --update) report nothing', () => {
+    expect(eslintSilentRules({ fixed: 0, open: 2 }, { open: 2 })).toEqual([]);
+    expect(eslintSilentRules({ fixed: 0, open: 2 }, {})).toHaveLength(1);
+  });
+
+  it('keeps the web baseline as it was: a quiet rule there still passes', () => {
+    expect(run({}, 'webEslint').status).toBe(0);
+  });
+
   it('survives the main ratchet rewriting the baseline file (--init / --update)', () => {
     const file = {
       designEslint: { r: 1 },
@@ -127,5 +151,34 @@ describe('design-system ESLint ratchet', () => {
     const wrong = run(baseline, 'nope');
     expect(wrong.status).toBe(1);
     expect(wrong.stderr).toContain('--as must be one of webEslint, designEslint');
+  });
+});
+
+describe('the CI step', () => {
+  const lines = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8').split('\n');
+  const at = lines.findIndex((l) => l.trim() === '- name: Design-system ESLint (ratchet)');
+  const end = lines.findIndex((l, i) => i > at && /^ {6}- |^ {2}[a-z][a-z0-9-]*:$/.test(l));
+  const step = lines.slice(at, end).join('\n');
+  const job = lines
+    .slice(0, at)
+    .filter((l) => /^ {2}[a-z][a-z0-9-]*:$/.test(l))
+    .pop()
+    ?.trim();
+  const jobHeader = lines
+    .slice(lines.indexOf(`  ${job}`), at)
+    .join('\n')
+    .split(/^ {4}steps:$/m)[0]!;
+
+  it('runs in Frontend Quality and checks against the designEslint baseline', () => {
+    expect(at).toBeGreaterThan(0);
+    expect(job).toBe('frontend-quality:');
+    expect(step).toContain('pnpm lint:design --format json');
+    expect(step).toContain('--as designEslint');
+  });
+
+  it('lets only ESLint exit 1 (findings) through, and nothing can mark it passed', () => {
+    expect(step).toContain('|| [ $? -eq 1 ]');
+    expect(step).not.toMatch(/\|\|\s*true|continue-on-error|set \+e/);
+    expect(jobHeader).not.toContain('continue-on-error');
   });
 });
