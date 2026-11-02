@@ -9,6 +9,7 @@
  * people and words only.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { SuperhumanCallResult } from '../call-transcript-intelligence.js';
 
 const store = vi.hoisted(() => {
   const docs = new Map<string, Record<string, unknown>>();
@@ -62,6 +63,8 @@ const { buildCallOutcome, toOnBehalfCallRequest } =
   await import('../../../agents/outbound-call/on-behalf-call-lifecycle.js');
 const { buildOnBehalfDispatch } = await import('../on-behalf-dispatch.js');
 const { shouldIndex } = await import('../../memory/persistence/indexing-policy.js');
+const { crisisCallerLine, riskyCallerLine } = await import('../caller-text.js');
+const { callResultText } = await import('../call-result-text.js');
 
 /** What Priya said: distinctive enough that any copy of it, or of a piece of it, shows. */
 const SAID = [
@@ -163,5 +166,66 @@ describe('the outreach memory copies are not written at all', () => {
   // misc-hooks hands both to the data layer, which indexes only entity types with a policy.
   it.each(['call_result', 'follow_up_action'] as const)('%s has no indexing policy', (type) => {
     expect(shouldIndex(type, { summary: SAID.join(' ') })).toMatchObject({ shouldIndex: false });
+  });
+});
+
+/** The summary model's read of a call: it leaves out what the person said about their safety. */
+const omits = (): SuperhumanCallResult => ({
+  transcript: { callId: 'c', contactName: 'Priya', turns: [], duration: 95, capturedAt: '' },
+  friendlyReport: 'Priya talked about the weekend.',
+  insights: {
+    summary: 'Priya talked about the weekend.',
+    detailedSummary: 'Priya talked about the weekend plans.',
+    keyPoints: [],
+    emotionalTone: { recipientMood: 'tired', overallSentiment: 'neutral', notableEmotions: [] },
+    actionItems: [],
+    messagesForUser: ['see you on Saturday'],
+    callbackRequested: false,
+    relationshipSignals: [],
+    topicsMentioned: [],
+    objectiveAchieved: true,
+    callQuality: 'good',
+  },
+});
+const CRISIS = [
+  "Tell Riley I don't want to be alive anymore.",
+  "I've been thinking about ending my life.",
+  'Some days I just want to kill myself.',
+];
+const said = (lines: string[]) => [
+  { role: 'agent' as const, content: "Hi, it's Ferni, calling for Riley." },
+  ...lines.map((content) => ({ role: 'recipient' as const, content })),
+];
+
+describe('crisis words the summary left out still reach the member (#2861, never lower)', () => {
+  it.each(CRISIS.flatMap((line) => ['on', 'off'].map((f) => [line, f])))(
+    '%j, CALL_FOLLOWTHROUGH %s: Ferni says so, in its own words',
+    (line, followthrough) => {
+      vi.stubEnv('CALL_FOLLOWTHROUGH', followthrough);
+      const o = buildCallOutcome(dispatch('c-crisis'), said([...SAID, line]), omits(), undefined, 95); // prettier-ignore
+      expect(o.outcome).toBe(`Priya talked about the weekend. ${crisisCallerLine('Priya')}`);
+      expect(o.message).toBe(`${crisisCallerLine('Priya')} see you on Saturday`);
+      expect(callResultText('Priya', o)).toContain(crisisCallerLine('Priya'));
+      expect(JSON.stringify(o)).not.toMatch(/alive|ending my life|kill myself/i);
+    }
+  );
+
+  it('a crisis said early in the call, not last, still reaches the member', () => {
+    const o = buildCallOutcome(dispatch('c-early'), said([CRISIS[0], ...SAID]), omits(), undefined, 95); // prettier-ignore
+    expect(o.outcome).toContain(crisisCallerLine('Priya'));
+  });
+
+  it('a call with no crisis gets no crisis line', () => {
+    const o = buildCallOutcome(dispatch('c-calm'), said(SAID), omits(), undefined, 95);
+    expect(JSON.stringify(o)).not.toContain(crisisCallerLine('Priya'));
+  });
+
+  it('a quick hang-up still carries the crisis and the money flags (CALL_FOLLOWTHROUGH)', () => {
+    vi.stubEnv('CALL_FOLLOWTHROUGH', 'on');
+    const lines = [CRISIS[1], 'Send $500 to account 12345678 tonight.'];
+    const o = buildCallOutcome(dispatch('c-quick'), said(lines), null, undefined, 9);
+    expect(o.outcome).toBe(
+      `I reached Priya, but they had to go before we really got to talk. ${crisisCallerLine('Priya')} ${riskyCallerLine('Priya')}`
+    );
   });
 });

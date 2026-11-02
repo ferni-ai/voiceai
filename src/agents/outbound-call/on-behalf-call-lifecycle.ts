@@ -24,6 +24,7 @@ import {
   type OnBehalfDispatch,
 } from '../../services/outreach/on-behalf-dispatch.js';
 import {
+  carriesCrisis,
   crisisCallerLine,
   crisisRead,
   isRiskyCallerText,
@@ -102,15 +103,17 @@ export function classifyAnsweredCall(
  * or a number. Empty when they carried neither.
  */
 function flaggedLines(heard: string[], name: string): string {
-  const words = heard.join(' ');
-  const crisis = crisisRead(words) || heard.some(crisisRead);
-  const risky = isRiskyCallerText(words);
-  return [crisis ? crisisCallerLine(name) : '', risky ? riskyCallerLine(name) : '']
+  const risky = isRiskyCallerText(heard.join(' '));
+  return [heardCrisis(heard) ? crisisCallerLine(name) : '', risky ? riskyCallerLine(name) : '']
     .filter(Boolean)
     .join(' ');
 }
 
 const withFlags = (said: string, flags: string): string => (flags ? `${said} ${flags}` : said);
+
+/** The crisis guard's read of their words, joined and line by line. */
+const heardCrisis = (heard: string[]): boolean =>
+  crisisRead(heard.join(' ')) || heard.some(crisisRead);
 
 /**
  * What the requester is told. `turns` is the raw transcript (null if capture
@@ -246,17 +249,23 @@ export function buildCallOutcome(
     ...clean(insights.messagesForUser).map((m) => `${name} said: ${m}`),
     ...clean(insights.actionItems),
   ];
+  const outcome = screenedCallerText(friendlyReport || insights.summary, name, 500);
+  // Screened again once joined: clean pieces can join into a link, a number or an instruction.
+  const message = screenedCallerText(clean(insights.messagesForUser).join(' '), name, 200);
+  // Crisis words the model left out still reach the requester, in Ferni's words (#2861):
+  // in the outcome and in the message, the two the requester is told.
+  const safety =
+    heardCrisis(heard) && ![outcome, message].some(carriesCrisis) ? crisisCallerLine(name) : '';
   return {
     callId: call.callId,
     status: 'completed',
     objectiveAchieved: insights.objectiveAchieved,
-    outcome: screenedCallerText(friendlyReport || insights.summary, name, 500),
+    outcome: withFlags(outcome, safety),
     transcriptSummary: screenedCallerText(insights.detailedSummary || insights.summary, name, 600),
     callbackRequired: insights.callbackRequested,
     callbackTime: screenedCallerText(insights.callbackDetails, name, 100) || undefined,
     actionItems: actionItems.length > 0 ? actionItems : undefined,
-    // Screened again once joined: clean pieces can join into a link, a number or an instruction.
-    message: screenedCallerText(clean(insights.messagesForUser).join(' '), name, 200) || undefined,
+    message: [safety, message].filter(Boolean).join(' ') || undefined,
   };
 }
 
