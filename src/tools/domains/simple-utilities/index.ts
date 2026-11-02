@@ -235,7 +235,6 @@ import {
 // ============================================================================
 // RE-EXPORTS FROM SUPPORT MODULES
 // ============================================================================
-
 // Pattern Intelligence - makes us "better than human"
 export {
   generateInsight,
@@ -250,6 +249,7 @@ export {
   onTimerComplete,
   registerVoiceCallbackHandler,
   speakDuration,
+  triggerVoiceCallback,
   type VoiceCallback,
 } from './voice-callbacks.js';
 

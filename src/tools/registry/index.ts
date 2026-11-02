@@ -686,5 +686,5 @@ export {
   type ToolSetResult,
   type ToolSetSpec,
 } from './types.js';
-
+export { liveRoomNameFor } from './live-session.js';
 export default toolRegistry;

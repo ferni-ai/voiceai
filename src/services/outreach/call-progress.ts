@@ -26,7 +26,7 @@
  * @module services/outreach/call-progress
  */
 import { createLogger } from '../../utils/safe-logger.js';
-import { triggerVoiceCallback } from '../../tools/domains/simple-utilities/voice-callbacks.js';
+import { triggerVoiceCallback } from '../../tools/domains/simple-utilities/index.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
 import { crisisRiskThisCall } from '../safety/index.js';
 import { callerText } from './caller-text.js';
@@ -52,7 +52,7 @@ export async function noteCallProgress(sessionId: string, kind: ProgressKind): P
     const userId = call?.requesterUserId?.trim();
     callId = call?.callId;
     if (!callId || call?.kind !== 'on_behalf' || !isMemberIdentity(userId)) return;
-    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
+    const { getFirestoreDb } = await import('../superhuman/index.js');
     const db = getFirestoreDb();
     if (!db) return; // no record to watch: the end-of-call report still tells it
     await db

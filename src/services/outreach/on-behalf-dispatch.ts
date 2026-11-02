@@ -24,7 +24,7 @@ import type {
   OnBehalfCallRequest,
 } from '../../tools/domains/telephony/types.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
-import { liveRoomNameFor } from '../../tools/registry/live-session.js';
+import { liveRoomNameFor } from '../../tools/registry/index.js';
 
 export interface OnBehalfDispatch {
   type: 'on_behalf_call';
