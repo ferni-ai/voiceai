@@ -264,15 +264,8 @@ counts approvals on the exact head.
 | Runner | ubuntu-latest |
 | Duration | ~3 min |
 
-### token-check.yml
-
-**Purpose:** Validate design token drift
-
-| Property | Value |
-|----------|-------|
-| Trigger | PR touching design-system/* |
-| Runner | ubuntu-latest |
-| Duration | ~2 min |
+Token drift has no workflow of its own: `pnpm tokens:drift` runs in ci.yml's
+Frontend Quality job (required, PRs, merge queue and nightly).
 
 ## Scheduled Workflows
 
