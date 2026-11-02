@@ -107,8 +107,8 @@ function clause(text: string): string {
  * The screen never costs a crisis signal. Before it, the sponsor got the
  * concern's words in full. So whenever any of those words are withheld or cut,
  * the alert says crisisCallerLine, whatever the words were: the crisis guard
- * reads first-person wording, not "she said she doesn't want to be here", so
- * an urgent concern's lost words are never left to its reading. When the words
+ * can still miss a wording, so an urgent concern's lost words are never left to
+ * its reading (owner, 2026-11-02: kept until a neutral line lands). When the words
  * go out in full they carry their own meaning, and crisisCallerLine is added
  * only for crisis the guard reads in both fields together that they don't
  * carry, such as a phrase split across the two fields.
