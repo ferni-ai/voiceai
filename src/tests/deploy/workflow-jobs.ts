@@ -72,6 +72,8 @@ function expandMatrix(name: string, text: string): string[] {
  * `outputs` overrides named `needs.X.outputs.Y` values (the rest read as 'true')
  * and `needs.X.result` values (the rest read as 'success'). Workflow inputs and
  * workflow_run and issue payload fields read as '': these events carry neither.
+ * Repository variables (`vars.X`) read as '', as an unset one does; override
+ * them by name (`'vars.OPTIONAL_CI': 'off'`).
  * The repository is 'o/r'. A pull_request comes from a branch of it (its head repo
  * is 'o/r'; override `github.event.pull_request.head.repo.full_name` for a fork);
  * other events carry no pull request, so that field reads as ''.
@@ -81,6 +83,7 @@ function evaluate(cond: string, event: Event, outputs: Record<string, string> = 
     .replace(/^\$\{\{\s*|\s*\}\}$/g, '')
     .replace(/needs\.[\w-]+\.outputs\.[\w-]+/g, (ref) => `'${outputs[ref] ?? 'true'}'`)
     .replace(/needs\.[\w-]+\.result\b/g, (ref) => `'${outputs[ref] ?? 'success'}'`)
+    .replace(/\bvars\.\w+/g, (ref) => `'${outputs[ref] ?? ''}'`)
     .replace(/github\.event\.pull_request\.labels\.\*\.name/g, '[]')
     .replace(/github\.event\.pull_request\.head\.repo\.full_name/g, (ref) => {
       return `'${outputs[ref] ?? (event === 'pull_request' ? 'o/r' : '')}'`;
