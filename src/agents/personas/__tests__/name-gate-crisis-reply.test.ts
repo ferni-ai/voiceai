@@ -6,8 +6,8 @@
  * (continuation-tts.ts). With either flag on, the only change to such a reply is the caller's
  * name: every other word stays, in order, and 988 and 911 are always said. All lines fictional.
  */
-import { ReadableStream } from 'node:stream/web';
-import { describe, expect, it } from 'vitest';
+import { ReadableStream, type ReadableStreamDefaultController } from 'node:stream/web';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { withFallingVocative } from '../../../speech/tts-gateway/name-intonation.js';
 import { withNameGate, type HistoryItem } from '../name-gate.js';
@@ -126,5 +126,55 @@ describe('NAME_FALLING_SPLIT reaches a crisis reply in the TTS gateway', () => {
     // Pre: without the split, the opening is said as written.
     expect(await spoken(NAMED[0][1], V2)).toBe(NAMED[0][1]);
     expect(await spoken(NAMED[0][1], V2_SPLIT)).toBe('Riley. Please call or text 988 right now.');
+  });
+
+  it('a hello after an interjection loses only the interjection; the rest and 988 stay', async () => {
+    const line = 'Oh hey Riley, please call or text 988 right now.';
+    // Pre: without the split, the line is said as written.
+    expect(await spoken(line, V2)).toBe(line);
+    const out = await spoken(line, V2_SPLIT);
+    expect(out).toBe('Hey Riley. Please call or text 988 right now.');
+    expect(words(out)).toEqual(words(line).slice(1)); // only "oh" goes
+    expect(numbers(out)).toEqual(['988']);
+    // An interjection straight before the name is not a hello: nothing changes.
+    const bare = 'Oh Riley, please call or text 988 right now.';
+    expect(await spoken(bare, V2_SPLIT)).toBe(bare);
+  });
+
+  describe('when the split holds past its limit', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('the held opening goes out on the timer, and the rest with 988 follows', async () => {
+      vi.useFakeTimers();
+      // After "Riley, " the split waits to see whether a list follows; the plain path has
+      // decided. The split only ever holds the opening words, so 988 comes after the hold.
+      const head = 'Riley, ';
+      const line = `${head}please call or text 988 right now.`;
+      let feed!: ReadableStreamDefaultController<string>;
+      const source = new ReadableStream<string>({
+        start(c) {
+          feed = c;
+        },
+      });
+      const out: string[] = [];
+      const stream = withFallingVocative(source as never, V2_SPLIT, NAME, { holdMs: 150 });
+      const done = (async () => {
+        for await (const chunk of stream as unknown as AsyncIterable<string>) out.push(chunk);
+      })();
+
+      feed.enqueue(head);
+      await vi.advanceTimersByTimeAsync(149);
+      expect(out.join('')).toBe(''); // still held
+      await vi.advanceTimersByTimeAsync(1);
+      expect(out.join('')).toBe(head); // the timer let it out, as written
+
+      for (const piece of line.slice(head.length).match(/\S+\s*/g) ?? []) feed.enqueue(piece);
+      feed.close();
+      await done;
+      expect(out.join('')).toBe(line);
+      expect(numbers(out.join(''))).toEqual(['988']);
+    });
   });
 });
