@@ -251,6 +251,9 @@ describe('raisesTopic', () => {
     ['Did the kids start school okay, Sam?', "Sam's kids started school this week."],
     ['Hey Sam, how did the big meeting go?', 'Sam has a big meeting with the boss on Friday.'],
     ['Did school start okay, Sam?', "Sam's kids start school on Monday."],
+    // The phrase still counts capitalised at the start of the hello, or with a possessive.
+    ['New job going well, Sam?', 'Sam started a new job last week.'],
+    ["Hey Sam, how are the new job's hours?", 'Sam started a new job last week.'],
   ])('two common words as one phrase raise it: %s', (hello, topic) => {
     expect(raisesTopic(hello, topic, 'Sam')).toBe(true);
   });
