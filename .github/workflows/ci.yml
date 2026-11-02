@@ -1341,6 +1341,15 @@ jobs:
           (cd apps/web && pnpm lint --format json --output-file eslint.json) || true
           pnpm tsx apps/cli/src/commands/quality/ratchet.ts --eslint apps/web/eslint.json
 
+      # The design-system rules (eslint.design.config.mjs) on apps/web and packages/ferni-react.
+      # ~6,600 old violations, so the ratchet fails only when a rule gains errors (baseline:
+      # ratchet-baseline.json "designEslint"). ESLint exits 1 for findings; any other exit (a
+      # crash, an unknown option: lint:design exited 2 for months) fails the step. ~5 s.
+      - name: Design-system ESLint (ratchet)
+        run: |
+          pnpm lint:design --format json --output-file "$RUNNER_TEMP/design-eslint.json" || [ $? -eq 1 ]
+          pnpm tsx apps/cli/src/commands/quality/ratchet.ts --eslint "$RUNNER_TEMP/design-eslint.json" --as designEslint
+
       - name: Web unit tests
         working-directory: apps/web
         run: npx vitest run
