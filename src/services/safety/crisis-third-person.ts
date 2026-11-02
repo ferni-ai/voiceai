@@ -16,6 +16,8 @@ const AUX = String.raw`(?:'s|'d|'ve|'re| is| are| was| were| has| have| had)?(?:
 /** "my friend robin keeps saying", "she told me", "he's been saying that". */
 const SAYS = String.raw`${OTHER}(?: [a-z]+)?${AUX} (?:keeps? saying|kept saying|saying|says|said|told (?:me|us|her|him|them)|thinks|thought|feels|felt|believes|mentioned|wrote|texted(?: me)?|posted)(?: that)?`;
 const PILLS = String.raw`(?:pills|meds|medications?|tablets|sleeping pills|painkillers)`;
+/** "saving her pills for the trip": kept for a reason, not stockpiled. */
+const FOR_A_TRIP = String.raw`(?![^.!?]{0,20}\bfor (?:the |a |an |our |his |her |their |my )?(?:trip|travel|vacation|holiday|flight|cruise|camping|move|weekend|winter|summer|allergy season|road)\b)`;
 /** "with her", "at work", "early": the words are about something else ending, hurting or waking. */
 const EVERYDAY_AFTER = String.raw`(?! (?:all )?(?:with|between|for|on|at|in|over|before|after|because|cause|since|early|off|by|while|when|during|playing|lifting|working|running|training|doing|falling|tripping|accidentally)\b)`;
 /** A move, a new job or a clear-out: why someone says goodbye or gives things away. */
@@ -36,7 +38,7 @@ export const THIRD_PERSON_REPORTED: readonly RegExp[] = [
   ),
   // "she mentioned she has pills saved up"
   new RegExp(
-    String.raw`\b${OTHER}${AUX} (?:saving|saved|stockpiling|stockpiled|hoarding|hoarded|stashing|stashed) (?:up )?(?:(?:all )?(?:his|her|their|the|some) )?${PILLS}\b|\b${OTHER}${AUX} (?:(?:a bunch of|a lot of|some|extra) )?${PILLS} (?:saved up|stockpiled|stashed away|hoarded|hidden away)\b`
+    String.raw`\b${OTHER}${AUX} (?:saving|saved|stockpiling|stockpiled|hoarding|hoarded|stashing|stashed) (?:up )?(?:(?:all )?(?:his|her|their|the|some) )?${PILLS}\b${FOR_A_TRIP}|\b${OTHER}${AUX} (?:(?:a bunch of|a lot of|some|extra) )?${PILLS} (?:saved up|stockpiled|stashed away|hoarded|hidden away)\b${FOR_A_TRIP}`
   ),
   // "she keeps saying everyone would be better off without her": said by the person at risk.
   new RegExp(
@@ -44,7 +46,7 @@ export const THIRD_PERSON_REPORTED: readonly RegExp[] = [
   ),
   // "my brother told me he doesn't see the point of going on"
   new RegExp(
-    String.raw`\b${OTHER} (?:doesn'?t|does not|don'?t|do not|didn'?t|did not|can'?t|cannot|couldn'?t) see (?:the |a |any )?point (?:of|in|to) (?:(?:going|go) on(?! (?:a|an|the|this|that|these|those|my|his|her|their|our|vacation|holiday|trips?|dates?|tours?|walks?|runs?|about|with|to|at|like)\b)|living(?! (?:in|there|here|with|at|near|on|like|alone|together|by)\b)|being alive|being here|life|trying anymore|anything anymore)\b`
+    String.raw`\b${OTHER} (?:doesn'?t|does not|don'?t|do not|didn'?t|did not|can'?t|cannot|couldn'?t) see (?:the |a |any )?point (?:of|in|to) (?:(?:going|go) on(?! (?:a|an|the|this|that|these|those|my|his|her|their|our|vacation|holiday|trips?|dates?|tours?|walks?|runs?|about|with|to|at|like)\b)|living(?! (?:in|there|here|with|at|near|on|like|alone|together|by)\b)|being alive|being here|life(?=$|[.,!?;]| (?:anymore|anyway|now|right now|lately|at all|and|but)\b)|trying anymore|anything anymore)\b`
   ),
   // "my roommate wrote goodbye letters to all of us"
   new RegExp(
@@ -58,17 +60,37 @@ export const THIRD_PERSON_REPORTED: readonly RegExp[] = [
 
 /** Down, and not getting up: "fell and can't get up", "collapsed and won't wake up". */
 const DOWN = String.raw`(?:fell(?! (?:asleep|for|in love|behind|apart|short|silent|quiet|ill|sick|through)\b)|has fallen|had a fall|collapsed|passed out|fainted|blacked out)`;
+/** "won't answer his phone", "won't respond to my messages": not answering, not unresponsive. */
+const NOT_CONTACT = String.raw`(?! (?:to )?(?:[a-z]+'?s? )?(?:phone|texts?|calls?|messages?|e-?mails?|door|dms?|slack|voicemails?)\b)`;
 /** "won't get up" is often just won't; "won't wake up" after a collapse is not. */
-const NOT_UP = String.raw`(?:(?:can'?t|cannot|can not|couldn'?t|isn'?t able to|is not able to|still can'?t) (?:get up|stand(?: up)?|move|wake up|breathe|respond)|(?:won'?t|will not|still won'?t) (?:wake up|breathe|respond|answer)|(?:isn'?t|is not|still isn'?t) (?:breathing|responding|waking up|moving))(?! (?:early|on time|in time|for|until|till|before|when|in the morning|tomorrow)\b)(?![^.!?]{0,30}\bfor a (?:minute|second|sec|bit|while|moment)\b)`;
-const EMERGENCY = [
-  new RegExp(
-    String.raw`\b${OTHER}(?: [a-z]+)?${AUX} ${DOWN}\b[^.!?]{0,40}?\b(?:and|but|now)(?: (?:he|she|they)(?:'s|'re)?)? ${NOT_UP}`
-  ),
-  // "he's not breathing", but not "unresponsive to my texts" or "not breathing a word".
-  new RegExp(
-    String.raw`\b${OTHER}(?: [a-z]+)?${AUX} (?:not breathing|stopped breathing|unconscious|unresponsive)\b(?! (?:a word|down|easy|bias|to|on|in|at|with|lately|these|for|about|again)\b)`
-  ),
-];
+const NOT_UP = String.raw`(?:(?:can'?t|cannot|can not|couldn'?t|isn'?t able to|is not able to|still can'?t) (?:get up|stand(?: up)?|move|wake up|breathe|respond${NOT_CONTACT})|(?:won'?t|will not|still won'?t) (?:wake up|breathe|(?:respond|answer)${NOT_CONTACT})|(?:isn'?t|is not|still isn'?t) (?:breathing|responding${NOT_CONTACT}|waking up|moving))(?! (?:early|on time|in time|for|until|till|before|when|in the morning|tomorrow)\b)(?![^.!?]{0,30}\bfor a (?:minute|second|sec|bit|while|moment)\b)`;
+const DOWN_NOT_UP = new RegExp(
+  String.raw`\b${OTHER}(?: [a-z]+)?${AUX} ${DOWN}\b[^.!?]{0,40}?\b(?:and|but|now)(?: (?:he|she|they)(?:'s|'re| is| are)?)? ${NOT_UP}`
+);
+// "he's not breathing", but not "not breathing a word" or "unconscious of how loud he is".
+const NOT_BREATHING = new RegExp(
+  String.raw`\b${OTHER}(?: [a-z]+)?${AUX} (?:not breathing|stopped breathing|unconscious)\b(?! (?:a word|down|easy|bias|of|to|on|in|at|with|lately|these|for|about|again)\b)`
+);
+const UNRESPONSIVE = new RegExp(
+  String.raw`\b${OTHER}(?: [a-z]+)?${AUX} unresponsive\b(?! (?:to|on|in|at|with|lately|these|for|about|again|when)\b)`
+);
+/** A laugh or a joke in the same sentence ("collapsed in laughter"), but not "no joke" or "not kidding". */
+const JOKING =
+  /(?<!\b(?:not|no|isn'?t|not a|no) )\b(?:laugh\w*|giggl\w*|lol|haha\w*|lmao|jok(?:e|es|ed|ing)|kidding|hysterics|prank\w*)\b/;
+/** Unresponsive to messages: "is unresponsive, I've emailed her five times". */
+const MESSAGES =
+  /\b(?:e-?mails?|e-?mailed|texts?|texted|messages?|messaged|calls? (?:me )?back|phone|repl(?:y|ied|ies)|slack|dms?|voicemails?)\b/;
+/** Help is being called: "she's unresponsive, I called 911" stays an emergency. */
+const GETTING_HELP = /\b(?:911|ambulance|paramedics?|cpr|emergency)\b/;
 
 /** Someone else is down and not getting up, or not breathing: an emergency for them now. */
-export const thirdPartyEmergency = (text: string): boolean => EMERGENCY.some((re) => re.test(text));
+export const thirdPartyEmergency = (text: string): boolean =>
+  text
+    .split(/[.!?]+/)
+    .some(
+      (said) =>
+        !JOKING.test(said) &&
+        (DOWN_NOT_UP.test(said) ||
+          NOT_BREATHING.test(said) ||
+          (UNRESPONSIVE.test(said) && (GETTING_HELP.test(said) || !MESSAGES.test(said))))
+    );

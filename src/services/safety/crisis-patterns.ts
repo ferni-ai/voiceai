@@ -196,7 +196,7 @@ export const PASSIVE_IDEATION_PATTERNS: TaggedPattern[] = [
     tag: 'suicidal',
   },
   {
-    re: /\b(want|wanna|just want) to (just )?(disappear|vanish|stop existing|cease to exist)\b(?! (into|for|to|from|on)\b)/,
+    re: /\b(want|wanna|just want) to (just )?(disappear|vanish|stop existing|cease to exist)\b(?! (into|to|from|on)\b| for (?!good\b|ever\b))/,
     tag: 'suicidal',
   },
   {

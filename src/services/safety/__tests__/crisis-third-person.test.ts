@@ -172,6 +172,11 @@ describe('third-person reported crisis (#3345)', () => {
       "my brother collapsed at practice and he isn't breathing",
       "my aunt has fallen down the stairs and can't move",
       "our neighbor's not breathing",
+      'My dad collapsed and he is not breathing',
+      "no joke, my uncle collapsed and he won't wake up",
+      "I'm not kidding, she's not breathing",
+      'my grandpa is unresponsive, I called 911',
+      "she's unresponsive, I texted my sister and called 911",
     ])('blocks with the 911-for-them reply, first and mid-call: %s', (line) => {
       for (const read of [
         detectCrisis(line),
@@ -213,6 +218,36 @@ describe('third-person reported crisis (#3345)', () => {
       expect(caller.suggestedResponse).toContain('911');
     });
 
+    it("a mixed turn keeps the caller's own crisis reply, with 988", () => {
+      const line = "my mom fell and can't get up and I want to kill myself";
+      for (const read of [
+        detectCrisis(line),
+        detectCrisis(line, undefined, { recentMessages: [OPENER] }),
+      ]) {
+        expect(read.subject).toBe('self');
+        const guard = guardFromDetection(read);
+        expect(guard.shouldBlock).toBe(true);
+        expect(guard.replacementResponse).not.toBe(EMERGENCY_FOR_THEM);
+        expect(guard.replacementResponse).toContain('988');
+      }
+    });
+
+    it("a frightened voice that makes it the caller's own turn keeps 988", () => {
+      const line = "my dad collapsed and isn't breathing. I'm not going to end my life";
+      const voice = { primary: 'distressed', intensity: 0.9, confidence: 0.9 };
+      for (const read of [
+        detectCrisis(line, voice),
+        detectCrisis(line, voice, { recentMessages: [OPENER] }),
+      ]) {
+        expect(read.subject).toBe('self');
+        expect(read.indicators).toContain('third_party_emergency');
+        const guard = guardFromDetection(read);
+        expect(guard.shouldBlock).toBe(true);
+        expect(guard.replacementResponse).not.toBe(EMERGENCY_FOR_THEM);
+        expect(guard.replacementResponse).toContain('988');
+      }
+    });
+
     it.each([
       "she fell asleep on the train and couldn't wake up in time for her stop",
       'he fell off his bike but got right up',
@@ -230,6 +265,61 @@ describe('third-person reported crisis (#3345)', () => {
     ])('stays without the emergency read: %s', (line) => {
       expectNotImminent(detectCrisis(line));
       expectNotImminent(detectCrisis(line, undefined, { recentMessages: [OPENER] }));
+    });
+
+    // A laugh, a joke, not answering messages, or an everyday reason: not someone down and not getting up.
+    it.each([
+      "he collapsed in laughter and couldn't breathe",
+      "my wife collapsed laughing and couldn't breathe, it was so funny",
+      "they collapsed into giggles and couldn't stand up",
+      "my aunt collapsed laughing at the joke and couldn't breathe",
+      "my grandpa fell for the prank and couldn't respond",
+      "my roommate fainted when she saw the bill, we couldn't stop laughing, she can't stand up straight",
+      "my coworker is unresponsive, I've emailed her five times",
+      "my brother's been unresponsive on slack all day",
+      'my sister is unresponsive to texts lately',
+      "my neighbor is unresponsive, she hasn't replied to a single message",
+      'she is so unresponsive, she never calls me back',
+      'my teen is unresponsive when I ask about homework',
+      "my dad passed out on the couch and won't answer his phone",
+      "my mom fell asleep and won't answer her phone",
+      "he passed out after the party and won't answer my calls",
+      "she collapsed onto the bed and won't answer anyone's texts",
+      "my son passed out playing video games and won't respond to my messages",
+      "they passed out early and won't answer their phone",
+      'my dad is unconscious of how loud he chews',
+      'my mom has been saving her pills for the trip',
+      "he doesn't see the point of life insurance",
+      'my laptop collapsed',
+    ])('stays everyday, first and mid-call: %s', (line) => {
+      for (const read of [
+        detectCrisis(line),
+        detectCrisis(line, undefined, { recentMessages: [OPENER] }),
+      ]) {
+        expect(read.isCrisis).toBe(false);
+        expectNotImminent(read);
+      }
+    });
+  });
+
+  describe("the caller's own disappearing (first person, 988)", () => {
+    it('reads "disappear for good" as the caller\'s own crisis, first and mid-call', () => {
+      const line = 'I want to disappear for good and not wake up';
+      for (const read of [
+        detectCrisis(line),
+        detectCrisis(line, undefined, { recentMessages: [OPENER] }),
+      ]) {
+        expect(read.isCrisis).toBe(true);
+        expect(read.subject).toBe('self');
+        expect(read.suggestedResponse).toContain('988');
+        expect(read.indicators).not.toContain('third_party_emergency');
+      }
+    });
+
+    it('stays everyday for a weekend away, first and mid-call', () => {
+      const line = 'I want to disappear for the weekend';
+      expect(detectCrisis(line).isCrisis).toBe(false);
+      expect(detectCrisis(line, undefined, { recentMessages: [OPENER] }).isCrisis).toBe(false);
     });
   });
 });
