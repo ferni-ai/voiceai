@@ -26,6 +26,15 @@ const { getPersonaAsync } = await import('../../../personas/index.js');
 const CHECK_IN = 'I wanted to check in about the move. You seemed down about it last time.';
 const INSIGHT = 'You mentioned wanting to sleep earlier. How has that been going?';
 const QUIRK = 'rearranging my sock drawer by color again';
+const CELEBRATE = 'You were so excited about the new job! How did that turn out?';
+const THREAD = 'Did you ever hear back from the landlord?';
+const PLAYFUL = /caught me|I was just|Perfect timing|So good to see you/i;
+
+type CheckInKind = 'follow_up' | 'celebration';
+const CHECK_INS: Record<CheckInKind, { id: string; opener: string }> = {
+  follow_up: { id: 'moment-1', opener: CHECK_IN },
+  celebration: { id: 'moment-2', opener: CELEBRATE },
+};
 
 type Branch = 'stage' | 'time' | 'fallback';
 
@@ -42,7 +51,14 @@ function runtimeFor(branch: Branch) {
   };
 }
 
-function servicesFor(opts: { distressed: boolean; insight?: boolean }) {
+/** `distressed` is shorthand for one open follow_up concern; `checkIns` lists them in order. */
+function servicesFor(opts: {
+  distressed?: boolean;
+  checkIns?: CheckInKind[];
+  insight?: boolean;
+  thread?: boolean;
+}) {
+  const kinds = opts.checkIns ?? (opts.distressed ? ['follow_up'] : []);
   const markFollowedUp = vi.fn();
   const markInsightDelivered = vi.fn();
   const getProactiveInsights = vi.fn(async () =>
@@ -57,21 +73,17 @@ function servicesFor(opts: { distressed: boolean; insight?: boolean }) {
   const services = {
     userId: 'eval-user-riley',
     userProfile: { name: 'Riley', relationshipStage: 'friend', totalConversations: 4 },
-    getOpenThreads: () => [],
-    getThreadConversationStarter: () => null,
+    getOpenThreads: () => (opts.thread ? [{ questionsToAnswer: [] }] : []),
+    getThreadConversationStarter: () => (opts.thread ? THREAD : null),
     getProactiveInsights,
     emotionalMemory: {
       getCheckInSuggestions: () =>
-        opts.distressed
-          ? [
-              {
-                moment: { id: 'moment-1' },
-                type: 'follow_up',
-                reference: 'the move',
-                suggestedOpener: CHECK_IN,
-              },
-            ]
-          : [],
+        kinds.map((type) => ({
+          moment: { id: CHECK_INS[type].id },
+          type,
+          reference: 'the move',
+          suggestedOpener: CHECK_INS[type].opener,
+        })),
       markFollowedUp,
     },
     markInsightDelivered,
@@ -85,6 +97,8 @@ async function greet(opts: {
   runtime?: ReturnType<typeof runtimeFor>;
   services: ReturnType<typeof servicesFor>['services'];
   returning?: boolean;
+  /** This session's distress (userData.lastEmotionAnalysis.distressLevel). */
+  distressLevel?: number;
 }) {
   const persona = await getPersonaAsync(opts.personaId ?? 'maya-santos');
   if (!persona) throw new Error('persona missing');
@@ -93,6 +107,15 @@ async function greet(opts: {
     name: 'Riley',
     isFirstConversation: !returning,
     isTrialUser: false,
+    ...(opts.distressLevel === undefined
+      ? {}
+      : {
+          lastEmotionAnalysis: {
+            primary: 'sadness',
+            intensity: 0.9,
+            distressLevel: opts.distressLevel,
+          },
+        }),
   };
   // The coordinator accepts every greeting (mocked above), so the session is never spoken to.
   const session = { say: vi.fn() };
@@ -140,7 +163,7 @@ describe('greeting check-in survives a loaded bundle runtime', () => {
       const lead = greeting.slice(0, greeting.indexOf(CHECK_IN));
 
       expect(greeting).not.toContain(QUIRK);
-      expect(greeting).not.toMatch(/caught me|I was just|Perfect timing|So good to see you/i);
+      expect(greeting).not.toMatch(PLAYFUL);
       expect(lead).not.toContain('!');
       expect(lead).toContain('Riley');
     });
@@ -190,4 +213,61 @@ describe('greeting check-in survives a loaded bundle runtime', () => {
       expect(s.markInsightDelivered).toHaveBeenCalledWith('insight-7');
     });
   }
+  for (const branch of ['stage', 'time', 'fallback'] as const) {
+    it(`caller back with good news, bundle ${branch} branch: bright lead, no quirk`, async () => {
+      const s = servicesFor({ checkIns: ['celebration'] });
+      const raw = await greet({ runtime: runtimeFor(branch), services: s.services });
+      const greeting = words(raw);
+
+      expect(raw).toContain('<emotion value="happy"/>Hey, Riley!');
+      expect(greeting.startsWith(`Hey, Riley! ${CELEBRATE}`)).toBe(true);
+      expect(greeting).not.toContain(QUIRK);
+      expect(greeting).not.toMatch(PLAYFUL);
+      expect(s.markFollowedUp).toHaveBeenCalledWith('moment-2');
+    });
+
+    it(`distressed caller with an insight and no check-in, bundle ${branch} branch: calm lead`, async () => {
+      const s = servicesFor({ distressed: true, insight: true });
+      const greeting = words(await greet({ runtime: runtimeFor(branch), services: s.services }));
+
+      expect(greeting).toBe(`Hey, Riley. ${INSIGHT}`);
+      expect(s.markFollowedUp).not.toHaveBeenCalled();
+      expect(s.markInsightDelivered).toHaveBeenCalledTimes(1);
+    });
+  }
+
+  it('good news on top of an open sadness gets the quiet lead', async () => {
+    const s = servicesFor({ checkIns: ['celebration', 'follow_up'] });
+    const greeting = words(await greet({ runtime: runtimeFor('stage'), services: s.services }));
+
+    expect(greeting).toBe(`Hey, Riley. ${CELEBRATE}`);
+  });
+
+  it('good news from a caller distressed this session gets the quiet lead', async () => {
+    const s = servicesFor({ checkIns: ['celebration'] });
+    const greeting = words(
+      await greet({ runtime: runtimeFor('stage'), services: s.services, distressLevel: 0.85 })
+    );
+
+    expect(greeting).toBe(`Hey, Riley. ${CELEBRATE}`);
+  });
+
+  it('distressed caller with a thread and no check-in gets the calm lead', async () => {
+    const s = servicesFor({ distressed: true, thread: true });
+    const greeting = words(await greet({ runtime: runtimeFor('fallback'), services: s.services }));
+
+    expect(greeting).toBe(`Hey, Riley. ${THREAD}`);
+    expect(s.markFollowedUp).not.toHaveBeenCalled();
+  });
+
+  it('a calm session keeps the stage greeting when nothing is pending', async () => {
+    const s = servicesFor({});
+    const greeting = await greet({
+      runtime: runtimeFor('stage'),
+      services: s.services,
+      distressLevel: 0.2,
+    });
+
+    expect(greeting).toBe('Hey Riley! So good to see you!');
+  });
 });

@@ -36,6 +36,7 @@ import type { SpeechContext } from '../../speech/types/index.js';
 import { getDJController } from '../../audio/dj-controller.js';
 import type { UserData } from '../shared/types.js';
 import { weaveProactiveIntoGreeting } from '../shared/utilities-integration.js';
+import { getProactiveContext, type ProactiveContext } from './greeting-proactive-context.js';
 // NOTE: conversation-priming is imported dynamically in generateAndSpeakGreeting
 import { logPrimingApplied } from '../shared/function-call-telemetry.js';
 // Speech coordination for centralized speech management
@@ -546,9 +547,9 @@ async function generateBundleGreeting(
   sessionPersona: PersonaConfig,
   personaMemories: PersonaMemoryForGreeting[]
 ): Promise<{ greeting: string; hasReferencedLastConversation: boolean }> {
-  const proactive = await getProactiveContext(services, isReturningUser);
-  if (proactive.emotionalCheckIn) {
-    return greetWithCheckIn(userData.name, proactive, services);
+  const proactive = await getProactiveContext(services, userData, isReturningUser);
+  if (proactive.callerDistressed || proactive.emotionalCheckIn) {
+    return greetWithProactiveLead(userData.name, proactive, services);
   }
 
   let greeting: string;
@@ -625,9 +626,9 @@ async function generateStandardGreeting(
   personaMemories: PersonaMemoryForGreeting[]
 ): Promise<{ greeting: string; hasReferencedLastConversation: boolean }> {
   // Get proactive context (threads, insights, emotional check-ins)
-  const proactive = await getProactiveContext(services, isReturningUser);
-  if (proactive.emotionalCheckIn) {
-    return greetWithCheckIn(userData.name, proactive, services);
+  const proactive = await getProactiveContext(services, userData, isReturningUser);
+  if (proactive.callerDistressed || proactive.emotionalCheckIn) {
+    return greetWithProactiveLead(userData.name, proactive, services);
   }
 
   const greeting = await greetingFromProfile(
@@ -651,16 +652,21 @@ async function generateStandardGreeting(
 }
 
 /**
- * A returning caller who left distressed: a quiet hello, then the check-in. No caught_doing,
- * no upbeat entrance, the same rule generateAliveEntrance applies to a stressed or sad caller.
- * Identical with or without a bundle runtime.
+ * A short hello, then the check-in, thread or insight. A distressed caller gets a quiet hello:
+ * no caught_doing, no upbeat entrance, the rule generateAliveEntrance applies to a stressed or
+ * sad caller. A caller back with good news and no distress gets a bright one. Neither uses
+ * persona quirks, and both are identical with or without a bundle runtime.
  */
-function greetWithCheckIn(
+function greetWithProactiveLead(
   userName: string | undefined,
   proactive: ProactiveContext,
   services: SessionServices
 ): { greeting: string; hasReferencedLastConversation: boolean } {
-  const hello = `<emotion value="sympathetic"/>Hey${userName ? `, ${userName}` : ''}.`;
+  const name = userName ? `, ${userName}` : '';
+  const bright = !proactive.callerDistressed && proactive.emotionalCheckInType === 'celebration';
+  const hello = bright
+    ? `<emotion value="happy"/>Hey${name}!`
+    : `<emotion value="sympathetic"/>Hey${name}.`;
   return applyProactiveContext(
     hello,
     proactive.threadStarter,
@@ -723,79 +729,6 @@ async function greetingFromProfile(
     userId: services.userId,
     pendingIntentions,
   });
-}
-
-/** Threads, insights and emotional check-ins for the opener, fetched once per greeting. */
-interface ProactiveContext {
-  threadStarter?: string;
-  proactiveInsight?: string;
-  proactiveInsightId?: string;
-  emotionalCheckIn?: string;
-  openQuestions: string[];
-}
-
-/**
- * Get proactive context (threads, insights, emotional check-ins)
- */
-async function getProactiveContext(
-  services: SessionServices,
-  isReturningUser: boolean
-): Promise<ProactiveContext> {
-  // Get open thread conversation starter for proactive greeting
-  let threadStarter: string | undefined;
-  const openThreads = services.getOpenThreads();
-  if (openThreads.length > 0 && isReturningUser) {
-    threadStarter = services.getThreadConversationStarter() || undefined;
-    if (threadStarter) {
-      diag.session('Found cross-session thread to surface', {
-        threadCount: openThreads.length,
-        starterLen: threadStarter.length,
-      });
-    }
-  }
-
-  // Get open questions from threads
-  const openQuestions = openThreads.flatMap((t) => t.questionsToAnswer || []).slice(0, 3);
-
-  // Get high-priority proactive insights for check-ins
-  let proactiveInsight: string | undefined;
-  let proactiveInsightId: string | undefined;
-  if (isReturningUser) {
-    try {
-      const insightResult = await services.getProactiveInsights();
-      if (insightResult.highPriorityCount > 0 && insightResult.suggestedConversationStarter) {
-        // Only use proactive insight if no thread starter (avoid double-starter)
-        if (!threadStarter) {
-          proactiveInsight = insightResult.suggestedConversationStarter;
-          proactiveInsightId = insightResult.suggestedInsightId;
-        }
-      }
-    } catch (e) {
-      log().debug({ error: String(e) }, 'Proactive insights fetch failed (non-blocking)');
-    }
-  }
-
-  // Get emotional memory check-in suggestions for returning users
-  let emotionalCheckIn: string | undefined;
-  if (isReturningUser && !threadStarter && !proactiveInsight) {
-    try {
-      const checkIns = services.emotionalMemory.getCheckInSuggestions();
-      if (checkIns.length > 0) {
-        const topCheckIn = checkIns[0];
-        // Mark as followed up so we don't repeat
-        services.emotionalMemory.markFollowedUp(topCheckIn.moment.id);
-        emotionalCheckIn = topCheckIn.suggestedOpener;
-        diag.session('Using emotional memory check-in', {
-          type: topCheckIn.type,
-          reference: topCheckIn.reference,
-        });
-      }
-    } catch (e) {
-      log().debug({ error: String(e) }, 'Emotional check-in fetch failed (non-blocking)');
-    }
-  }
-
-  return { threadStarter, proactiveInsight, proactiveInsightId, emotionalCheckIn, openQuestions };
 }
 
 /**
