@@ -301,6 +301,12 @@ jobs:
       - name: Lint coverage ratchet
         run: pnpm quality:lint-coverage
 
+      # Blocking ratchet: the src files prettier would reformat may only get fewer, so a PR
+      # formats what it adds without reformatting files it didn't touch
+      # (baseline: apps/cli/src/commands/quality/format-baseline.generated.json).
+      - name: Format ratchet
+        run: pnpm quality:format
+
       - name: Tool schema validation
         run: pnpm tools:schemas:validate
 
