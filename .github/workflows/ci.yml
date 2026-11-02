@@ -996,6 +996,30 @@ jobs:
           # fails its check (unverified) is reported in the log but doesn't fail.
           extra_args: --results=verified,unknown
 
+      # trufflehog above passes any key it can't verify. gitleaks matches on shape,
+      # so a revoked or unverifiable key still fails the job. Pinned and checksummed
+      # for the same reason trufflehog is pinned. The script first proves gitleaks
+      # still reports a planted fake key, then scans the same range.
+      - name: Install gitleaks
+        if: steps.scan-range.outcome == 'success' && steps.scan-range.outputs.commits != '0'
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfL -o "$RUNNER_TEMP/$tarball" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/$tarball"
+          echo "$GITLEAKS_SHA256  $RUNNER_TEMP/$tarball" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP" gitleaks
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: Check for secrets (gitleaks)
+        if: steps.scan-range.outcome == 'success' && steps.scan-range.outputs.commits != '0'
+        env:
+          BASE: ${{ steps.scan-range.outputs.base }}
+          HEAD: ${{ steps.scan-range.outputs.head }}
+        run: bash scripts/ci/gitleaks-range.sh "$BASE" "$HEAD"
+
   # ============================================================================
   # CODE QUALITY METRICS (using unified audit CLI)
   # ============================================================================
