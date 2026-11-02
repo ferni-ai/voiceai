@@ -359,17 +359,71 @@ describe('everything else is delivered, as main does', () => {
     delivered([A(ASK), R('No.'), R(then), A('Great!'), R(SAID)]);
   });
 
-  // Only a question of 300 characters or fewer can be the ask, so a long one never stalls the read.
+  // The ask is read whole in one pass, so a long question never stalls the read.
   it.each(
     ['pass on ', 'pass it along to him, '].flatMap((unit) =>
       [4_000, 8_000, 40_000].map((n) => [unit, n] as const)
     )
   )('a %j question repeated to %i characters is read in under 50 ms', (unit, n) => {
-    const question = `${unit.repeat(Math.ceil(n / unit.length))}?`;
+    const body = unit.repeat(Math.ceil(n / unit.length));
     const started = performance.now();
-    const declined = passAlongDeclined(call.script, [A(question), R('No.'), A('Okay.'), R(SAID)]);
+    const unasked = passAlongDeclined(call.script, [A(`${body}?`), R('No.'), A('Okay.'), R(SAID)]);
+    const asked = passAlongDeclined(call.script, [A(`${body}okay?`), R('No.'), A('Okay.')]);
     expect(performance.now() - started).toBeLessThan(50);
-    expect(declined).toBe(false);
+    expect([unasked, asked]).toEqual([false, true]);
+  });
+
+  /** Fictional, and over 300 characters with no question in it. */
+  const PREAMBLE =
+    'Hi Priya Test-Lindqvist! This is Ferni, Riley Test’s AI friend, calling from Riley’s phone. ' +
+    'Riley is away at the marmalade festival planning meeting all afternoon and asked me to ring you. ' +
+    'Riley says the lighthouse picnic is now on Saturday at noon, and the parking is by the harbour. ' +
+    'Riley also wanted me to say thank you for the jars you dropped off last week. ';
+
+  it('a long ask after a long opening is still the ask', () => {
+    expect(PREAMBLE.length).toBeGreaterThan(300);
+    expect(PREAMBLE).not.toContain('?');
+    const ask = `${PREAMBLE}Just so you know, I'll pass along what you tell me to Riley Test. Is that okay?`;
+    expect(passAlongDeclined(call.script, [A(ask), R('No.'), A("Okay, I won't."), R(SAID)])).toBe(
+      true
+    );
+    delivered([A(ask), R('Sure, go ahead.'), A('Great!'), R(SAID)]);
+  });
+
+  it('a 600-character ask in one sentence is still the ask', () => {
+    const why = 'who asked me to call because '.padEnd(560, 'the festival and the picnic, ');
+    const ask = `Just so you know, I'll pass along what you tell me to Riley Test, ${why} is that okay?`;
+    expect(ask.length).toBeGreaterThan(600);
+    expect(ask.slice(0, -1)).not.toMatch(/[.!?]/);
+    expect(passAlongDeclined(call.script, [A(ask), R('No.'), A("Okay, I won't."), R(SAID)])).toBe(
+      true
+    );
+  });
+
+  // The one-pass read answers exactly as the regex it replaced: "pass" and "along"/"on" in one
+  // sentence, then an okay. Checked against that regex on 20,000 seeded questions from these words.
+  it('reads the ask exactly as the regex it replaced', () => {
+    const ASKED = /\bpass\b[^.?!]*\b(?:along|on)\b[^?]*\b(?:okay|ok|alright|all right|fine)\b[^?]*\?$/i; // prettier-ignore
+    const WORDS = 'pass pass Pass passing along along on ona okay okay ok fine mind x . ! ,'
+      .split(' ')
+      .concat('all right');
+    const SEPARATORS = [' ', '', ', ', '\n'];
+    let seed = 7;
+    const pick = <T>(list: readonly T[]): T => {
+      seed = (seed * 48_271) % 2_147_483_647;
+      return list[seed % list.length] as T;
+    };
+    let asked = 0;
+    for (let i = 0; i < 20_000; i++) {
+      const length = 3 + (i % 10);
+      const words = Array.from({ length }, () => pick(WORDS));
+      const question = `${words.map((w) => w + pick(SEPARATORS)).join('')}?`;
+      const expected = ASKED.test(question) && !/\bmind\b/i.test(question);
+      const t = [A(question), R('No.'), A("Okay, I won't.")];
+      expect([question, passAlongDeclined(call.script, t)]).toEqual([question, expected]);
+      if (expected) asked++;
+    }
+    expect(asked).toBeGreaterThan(1_000);
   });
 
   // A long no is still a no: only the go-ahead cue stops reading at 200 characters.

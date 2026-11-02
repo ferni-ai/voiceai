@@ -24,8 +24,6 @@
 import type { CallTranscriptTurn } from './call-transcript-intelligence.js';
 import { PASS_ALONG_ASK_HEADING } from '../../tools/domains/telephony/scripts/index.js';
 
-/** Ferni's question: "pass ... along/on ... okay?". Never "mind": a no to that is a yes. */
-const ASKED = /\bpass\b[^.?!]*\b(?:along|on)\b[^?]*\b(?:okay|ok|alright|all right|fine)\b[^?]*\?$/i;
 /** A no and nothing else: "No.", "Um, no.", "No thanks.", "Not really.", "Don't tell him." */
 const LONE_NO =
   /^\W*(?:(?:oh|um+|uh+|well|hmm+|ah|er)\W+)*(?:(?:no+|nope|nah)(?:\W+(?:no+|nope|nah))*(?:\W+thanks|\W+thank you)?|(?:absolutely|definitely|certainly) not|not really|no way|i don't think so|(?:please )?don't tell (?:him|her|them))\W*$/i;
@@ -112,17 +110,29 @@ function lastQuestion(text: string): string {
   return end < 0 ? '' : text.slice(text.lastIndexOf('?', end - 1) + 1, end + 1).trim();
 }
 
-/** Longest question that can be the ask (the real one is ~90 characters); ASKED is cubic past it. */
-const MAX_ASK = 300;
+const PASS_OR_ALONG = /\bpass\b|\b(?:along|on)\b|[.!?]/gi;
+const OKAY = /\b(?:okay|ok|alright|all right|fine)\b/i;
 
+/**
+ * Ferni's question: "pass ... along/on ... okay?", with "pass" and "along" in one sentence ("I'll
+ * pass along what you tell me to Riley. Is that okay?"). Read whole, in one left-to-right pass: a
+ * single regex for it backtracks cubically on a long question, and a cap on the length would read
+ * a long ask as no ask at all, so their no would go unread.
+ */
+function asksToPassAlong(question: string): boolean {
+  let passed = false;
+  for (const { 0: word, index } of question.matchAll(PASS_OR_ALONG)) {
+    if (/^pass$/i.test(word)) passed = true;
+    else if (/^[.!?]$/.test(word)) passed = false;
+    else if (passed) return OKAY.test(question.slice(index + word.length));
+  }
+  return false;
+}
+
+/** The ask, never "mind": a no to "do you mind?" is a yes. */
 const asks = (turn: CallTranscriptTurn): boolean => {
   const question = lastQuestion(turn.content);
-  return (
-    turn.role === 'agent' &&
-    question.length <= MAX_ASK &&
-    ASKED.test(question) &&
-    !/\bmind\b/i.test(question)
-  );
+  return turn.role === 'agent' && asksToPassAlong(question) && !/\bmind\b/i.test(question);
 };
 
 /**
