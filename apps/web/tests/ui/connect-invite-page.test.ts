@@ -27,6 +27,16 @@ vi.mock('../../src/services/auth-init.service.js', () => ({ initializeAuth: mock
 vi.mock('../../src/utils/frame-guard.js', () => ({ refuseFraming: mockRefuseFraming }));
 vi.mock('../../src/ui/sign-in-gate.ui.js', () => ({ showSignInGate: mockSignIn }));
 vi.mock('../../src/services/firebase-auth.service.js', () => ({ getAuthState: mockAuthState }));
+const logged = vi.hoisted(() => [] as unknown[]);
+vi.mock('../../src/utils/logger.js', () => {
+  const logger = Object.fromEntries(
+    ['debug', 'info', 'warn', 'error'].map((level) => [
+      level,
+      (...args: unknown[]) => logged.push([level, ...args]),
+    ])
+  );
+  return { createLogger: () => logger, log: logger };
+});
 
 const { connectInviteFromLocation, maskEmail, showConnectInvite, CONNECT_INVITE_START_PATH } =
   await import('../../src/ui/connect-invite-page.ui');
@@ -39,6 +49,7 @@ const realLocation = window.location;
 beforeEach(() => {
   vi.clearAllMocks();
   mockApiPost.mockReset();
+  logged.length = 0;
   document.body.replaceChildren();
   window.history.replaceState(null, '', '/');
 });
@@ -141,6 +152,30 @@ describe('openStandalonePage(/connect)', () => {
     expect(mockApiPost).not.toHaveBeenCalled(); // opening the link spends nothing
   });
 
+  it.each(['/connect', '/connect/', '/connect//'])(
+    'clears the invite from %s before anything awaits, even when the page will not open',
+    async (path) => {
+      window.history.replaceState(null, '', `${path}?from=text#i=${INVITE}`);
+      const entries = window.history.length;
+      const opening = openStandalonePage(path);
+      // Replaced, not pushed: no entry with the invite stays one Back press away.
+      expect(window.history.length).toBe(entries);
+      expect(window.location.hash).toBe('');
+      expect(window.location.href).not.toContain(INVITE);
+      expect(window.location.search).toBe('?from=text');
+      expect(await opening).toBe(path === '/connect');
+    }
+  );
+
+  it.each(['/connections', '/connectx', '/connect/x'])(
+    'leaves %s and its fragment alone: not the connect page',
+    async (path) => {
+      window.history.replaceState(null, '', `${path}#i=${INVITE}`);
+      expect(await openStandalonePage(path)).toBe(false);
+      expect(window.location.hash).toBe(`#i=${INVITE}`);
+    }
+  );
+
   it('leaves the app alone without a well-formed invite', async () => {
     const app = document.createElement('div');
     app.id = 'app';
@@ -214,6 +249,20 @@ describe("someone else's link", () => {
 });
 
 describe('Connect', () => {
+  it('never logs the invite, whatever the server answers', async () => {
+    for (const response of [
+      { ok: false, status: 401, data: null },
+      { ok: false, status: 404, data: null },
+      { ok: false, status: 503, data: null },
+      { ok: true, status: 200, data: { url: 'https://evil.example.com' } },
+    ]) {
+      await tapConnect(response);
+      mockApiPost.mockReset();
+    }
+    expect(logged.length).toBeGreaterThan(0); // the capture sees the page's log lines
+    expect(JSON.stringify(logged)).not.toContain(INVITE);
+  });
+
   it('spends the invite once and goes to the login URL the server returns', async () => {
     const { went } = await tapConnect({
       ok: true,
@@ -228,14 +277,19 @@ describe('Connect', () => {
     expect(went).toEqual(['/auth/google/login?state=s1']);
   });
 
-  it.each(['//evil.example.com/steal', 'https://evil.example.com/steal', 'javascript:steal()'])(
-    'never follows a URL off this site: %s',
-    async (url) => {
-      const { card, went } = await tapConnect({ ok: true, status: 200, data: { url } });
-      expect(went).toEqual([]);
-      expect(card.querySelector('[role="status"]')?.textContent).toMatch(/Couldn't open Google/);
-    }
-  );
+  it.each([
+    '//evil.example.com/steal',
+    'https://evil.example.com/steal',
+    'javascript:steal()',
+    '/\\evil.example.com/steal',
+    '/\\/evil.example.com/steal',
+    '/\t/evil.example.com/steal',
+    '/\n/evil.example.com/steal',
+  ])('never follows a URL off this site: %s', async (url) => {
+    const { card, went } = await tapConnect({ ok: true, status: 200, data: { url } });
+    expect(went).toEqual([]);
+    expect(card.querySelector('[role="status"]')?.textContent).toMatch(/Couldn't open Google/);
+  });
   it('never follows an answer with no URL', async () => {
     const { card, went } = await tapConnect({ ok: true, status: 200, data: {} });
     expect(went).toEqual([]);
@@ -278,9 +332,13 @@ describe('Connect', () => {
     [503, /Couldn't open Google/],
     [0, /Couldn't open Google/],
   ])('says why when the server answers %i, in place of the button', async (status, why) => {
-    const { card, went } = await tapConnect({ ok: false, status, data: null });
+    const detail = 'Firestore internal: deadline exceeded at connect_invites';
+    // The real client puts a refusal's text in res.error (utils/api.ts); data too, to be sure.
+    const refused = { ok: false, status, error: detail, data: { error: detail } };
+    const { card, went } = await tapConnect(refused);
     expect(went).toEqual([]);
     expect(card.querySelector('button')).toBeNull();
     expect(card.querySelector('[role="status"]')?.textContent).toMatch(why);
+    expect(card.textContent).not.toContain(detail);
   });
 });

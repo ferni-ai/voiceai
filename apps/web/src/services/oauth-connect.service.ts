@@ -38,9 +38,19 @@ const PROVIDER_NAMES: Record<OAuthConnectProvider, string> = {
   linkedin: 'LinkedIn',
 };
 
+/** A host no real URL has: anything that parses to another host left this site. */
+const SAME_SITE = 'same-site.invalid';
+
 /** Only same-origin paths: the server returns e.g. /auth/google/login?state=… */
 export function isSameOriginPath(url: unknown): url is string {
-  return typeof url === 'string' && url.startsWith('/') && !url.startsWith('//');
+  if (typeof url !== 'string' || !url.startsWith('/') || url.startsWith('//')) return false;
+  // Ask the URL parser, as the browser will: it reads a backslash as a slash and drops
+  // tabs and newlines, so either one after the first slash could leave this site.
+  try {
+    return new URL(url, `https://${SAME_SITE}`).host === SAME_SITE;
+  } catch {
+    return false;
+  }
 }
 
 /** What to tell the user when the server won't start the flow. */

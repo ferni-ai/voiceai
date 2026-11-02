@@ -47,6 +47,7 @@ import {
   crisisFromSignal,
   followUpCrisis,
 } from '../../src/services/human-transfer/crisis-signals.js';
+import { disclosureGuidance } from '../../src/services/safety/abuse-disclosure-turn.js';
 import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
@@ -119,6 +120,8 @@ export interface TurnOutcome {
   note: boolean;
   line988: LineState;
   line911: LineState;
+  /** 988 in the turn's own script or crisis guidance (turn-handler.ts), not the reply gate's. */
+  turn988: boolean;
   repeat: boolean;
 }
 
@@ -228,10 +231,14 @@ export async function simulateTurn(
     !gateReplaced && summary.shouldOverrideLLM ? summary.suggestedResponse : undefined;
   const replaced = gateReplaced || !!required;
   const script = gateReplaced ? spoken : (required ?? '');
+  // The turn handler's crisis_response injection for a pipeline crisis (turn-handler.ts).
+  const turnGuidance =
+    summary.isCrisis && !summary.shouldOverrideLLM
+      ? (disclosureGuidance(summary) ?? buildCrisisGuidance(resolved))
+      : '';
   const instructions = [
     ...requests.filter((r) => r.includes(CRISIS_GUIDE)),
-    // The turn handler's crisis_response injection for a pipeline crisis (turn-handler.ts).
-    ...(summary.isCrisis && !summary.shouldOverrideLLM ? [buildCrisisGuidance(resolved)] : []),
+    turnGuidance,
     ...lexicalSafety.map((i) => i.content),
     transferCrisis ?? '',
   ].join('\n');
@@ -268,6 +275,7 @@ export async function simulateTurn(
     note,
     line988: lineState(MENTIONS_988),
     line911: lineState(MENTIONS_911),
+    turn988: MENTIONS_988.test(required ?? turnGuidance),
     repeat,
   };
 }

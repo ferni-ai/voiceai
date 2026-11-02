@@ -79,6 +79,7 @@ export const EXCLUDED_STORES: Readonly<Record<string, string>> = {
   'tracked_appointments[userId]': `${QUEUE} (appointment follow-ups)`,
   'intelligence_queue[userId]': QUEUE,
   'holder_verification_sends/{uid}': 'a send-rate counter: throttles dev verification texts',
+  'call_capture_consent/{uid}': "consent to keep the person's prod calls, never a dev call's",
   'outreach_profiles/{uid}': SCHEDULING,
   'outreach_context/{uid}': SCHEDULING,
   'outreach_history/{uid}': SCHEDULING,
@@ -237,7 +238,7 @@ export const COPIED_SUBCOLLECTIONS: ReadonlySet<string> = new Set(
   favorite_places feedback ferni_commitments financial_data financial_goals
   financial_profile fire_progress focus_sessions follow_through follow_up_actions follow_ups
   friction_points future_letters future_self_letters gift_history goal_progress goals gratitude
-  growth_activities growth_markers growth_milestones habit_autopsies habit_completions
+  greeting_state growth_activities growth_markers growth_milestones habit_autopsies habit_completions
   habit_dna habits handoff_preferences health_metrics health_summaries human_memory
   human_signals humanization humor_history ideas identity_statements implementation_intentions
   implicit_preferences important_dates info_preferences inside_jokes insight_tasks insights
