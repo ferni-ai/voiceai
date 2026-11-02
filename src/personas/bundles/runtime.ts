@@ -16,6 +16,7 @@ import {
   type ThemeCategory,
 } from '../../services/session-variety-tracker.js';
 import type { PersonaConfig } from '../types.js';
+import { loadContentOrNull } from './content-load.js';
 import type {
   BundleConflictHandling,
   BundleContextualNuances,
@@ -145,9 +146,6 @@ export class BundleRuntimeEngine {
     };
   }
 
-  /** FIX BUG #bundle-7: Timeout for content loading operations */
-  private static readonly CONTENT_LOAD_TIMEOUT_MS = 5000; // 5 seconds
-
   /**
    * Initialize all extended content (lazy load on first use)
    * FIX BUG #bundle-7: Added timeout to prevent hanging on slow/stuck file operations
@@ -155,35 +153,10 @@ export class BundleRuntimeEngine {
   async initialize(): Promise<void> {
     const startTime = Date.now();
 
-    // Helper to wrap promises with timeout
-    // FIX BUG #bundle-8: Clear timeout on success to prevent false-positive warnings
-    const withTimeout = async <T>(
-      promise: Promise<T> | undefined,
-      name: string
-    ): Promise<T | null> => {
-      if (!promise) return Promise.resolve(null);
-
-      let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-      return Promise.race([
-        promise.then((result) => {
-          // Clear the timeout if promise resolves first
-          if (timeoutId !== null) {
-            clearTimeout(timeoutId);
-          }
-          return result ?? null;
-        }),
-        new Promise<null>((resolve) => {
-          timeoutId = setTimeout(() => {
-            getLogger().warn(
-              { personaId: this.state.personaId, operation: name },
-              'Content load timed out'
-            );
-            resolve(null);
-          }, BundleRuntimeEngine.CONTENT_LOAD_TIMEOUT_MS);
-        }),
-      ]);
-    };
+    // Each content type times out, or fails, on its own (content-load.ts): one
+    // bad file must not cost the other eight, nor the whole runtime.
+    const withTimeout = <T>(load: Promise<T | null> | undefined, name: string) =>
+      loadContentOrNull(load, this.state.personaId, name);
 
     // Load all extended content in parallel with timeout protection
     const [
