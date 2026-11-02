@@ -445,9 +445,11 @@ Scans for:
 - **Consistency**: Hardcoded z-index values
 - **Performance**: Animating expensive properties
 
-CI blocks when errors rise above `MAX_UI_AUDIT_ERRORS` in `scripts/audit-ui.js` (a ratchet,
-like `lint:tokens`), or when a scan directory can't be read or holds no files. When you fix
-errors, lower the constant to the new count.
+CI blocks on any error: an `<img>` with no `alt` (`alt=""` is fine for a decorative image)
+or an empty `.catch(() => {})`. The limit is `MAX_UI_AUDIT_ERRORS` in `scripts/audit-ui.js`,
+which is 0. A scan directory that can't be read or holds no files also fails. Warnings and
+info don't block. When you change a rule, add a flagged and a passing case to
+`tests/audit-ui-rules.test.ts`.
 
 ---
 
