@@ -256,9 +256,9 @@ describe('homeExecutor', () => {
             name: 'Front Door',
             type: 'lock',
             state: 'unlocked',
-            platform: 'homekit',
+            platform: 'nest',
           },
-          { id: 'lock.2', name: 'Back Door', type: 'lock', state: 'unlocked', platform: 'homekit' },
+          { id: 'lock.2', name: 'Back Door', type: 'lock', state: 'unlocked', platform: 'nest' },
         ]);
         vi.mocked(smartHome.controlDevice)
           .mockResolvedValueOnce('✅ Front Door locked')

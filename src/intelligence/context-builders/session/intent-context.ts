@@ -8,8 +8,6 @@
  * - Relationship context
  *
  * These shape the response based on what user wants.
- *
- * Extracted from jack-bogle.ts lines 1007-1051, 1188-1194
  */
 import {
   registerContextBuilder,

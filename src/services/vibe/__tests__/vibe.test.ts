@@ -58,16 +58,11 @@ vi.mock('../../identity/ecobee-auth.js', () => ({
 vi.mock('../../smart-home/user-credentials.js', () => ({
   getUserSmartHomeCredentials: vi.fn().mockResolvedValue({
     sonos: { ip: '192.168.1.100' },
-    homeKit: { enabled: false },
   }),
 }));
 
 vi.mock('../../smart-home/sonos.js', () => ({
   setAllGroupsVolume: vi.fn().mockResolvedValue(true),
-}));
-
-vi.mock('../../smart-home/homekit-bridge.js', () => ({
-  activateMatchingScene: vi.fn().mockResolvedValue(false),
 }));
 
 import {

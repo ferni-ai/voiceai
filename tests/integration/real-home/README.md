@@ -1,6 +1,6 @@
 # 🏠 Real Home Integration Tests
 
-Test Ferni's smart home capabilities against your **actual devices** - Ecobee, HomeKit, TVs, and more.
+Test Ferni's smart home capabilities against your **actual devices** - Ecobee, LIFX, TVs, and more.
 
 ## Quick Start
 
@@ -128,11 +128,8 @@ DRY_RUN=true pnpm test:real-home:control
 **"401 Unauthorized"**
 - Regenerate token at cloud.lifx.com/settings
 
-## HomeKit Control
+## HomeKit
 
-HomeKit devices can be controlled via:
-
-1. **iOS App** - Native `HomeKitService.swift` integration (already implemented!)
-2. **Homebridge** - Exposes HomeKit to a REST API
-
-For Node.js testing, we recommend Homebridge if you want HomeKit control from the test runner.
+Not supported. Apple allows HomeKit only in apps built mainly for home automation
+and bans moving HomeKit data off the device (Apple Developer Program License
+Agreement §3.3 I), so the server bridge was removed on 2026-10-30.

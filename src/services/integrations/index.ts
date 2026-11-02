@@ -19,9 +19,6 @@ export type {
   IntegrationConnection,
   RateLimitState,
   RateLimitResult,
-  WebhookConfig,
-  WebhookEvent,
-  WebhookHandler,
   ApiRequestConfig,
   ApiResponse,
   IntegrationRegistry,
@@ -60,9 +57,6 @@ export {
   formatRateLimit,
 } from './rate-limiter.js';
 
-// Webhook Router
-export { WebhookRouter, getWebhookRouter, resetWebhookRouter } from './webhook-router.js';
-
 // API Clients
 export {
   InstacartClient,
@@ -76,7 +70,3 @@ export {
   getGoogleMapsClient,
   resetGoogleMapsClient,
 } from './google-maps/maps-client.js';
-
-// Webhooks
-export { initializeUberWebhooks, handleUberWebhook } from './uber/uber-webhooks.js';
-export { initializeLyftWebhooks, handleLyftWebhook } from './lyft/lyft-webhooks.js';
