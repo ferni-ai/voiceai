@@ -17,6 +17,7 @@ import {
   sanitizePhoneForLog,
 } from '../utils/validation.js';
 import { MAX_RETRIES, RETRY_DELAY_MS, RETRY_MAX_DELAY_MS } from '../config/resilience-config.js';
+import { configuredEmailFrom } from '../config/house-facts.js';
 import {
   getEmailSender,
   type EmailSendResult,
@@ -129,7 +130,7 @@ export async function sendAppEmail(email: OutgoingEmail): Promise<EmailSendResul
  * Workspace user when EMAIL_FROM is unset (docs/runbooks/email-via-workspace.md).
  */
 export function unsubscribeMailbox(): string {
-  return process.env.EMAIL_FROM?.trim() || 'admin@ferni.ai';
+  return configuredEmailFrom() ?? 'admin@ferni.ai';
 }
 
 /** Who and what an email is for: carried to the transport as metadata, never sent. */

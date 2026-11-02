@@ -11,7 +11,13 @@ import {
   saveTokens,
   removeTokens,
   shutdownTokenStore,
+  googleTokenStore,
 } from '../../../services/identity/google-calendar-token-store.js';
+import {
+  TokenPermanentlyInvalidError,
+  permanentGrantErrorClass,
+  refreshWithRevocation,
+} from '../../../services/identity/oauth-revocation.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { GOOGLE_CALENDAR_SCOPES } from '../../../config/google-calendar-scopes.js';
 import { isInsufficientLink } from '../../../services/identity/google-link-scope.js';
@@ -73,44 +79,44 @@ export async function refreshToken(userId: string): Promise<OAuthTokens | null> 
     return null;
   }
 
-  try {
-    const response = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        refresh_token: userTokens.refresh_token,
-        client_id: GOOGLE_CLIENT_ID!,
-        client_secret: GOOGLE_CLIENT_SECRET!,
-        grant_type: 'refresh_token',
-      }),
-    });
+  const refreshed = await refreshWithRevocation(
+    googleTokenStore,
+    userId,
+    userTokens.refresh_token,
+    async () => {
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          refresh_token: userTokens.refresh_token,
+          client_id: GOOGLE_CLIENT_ID!,
+          client_secret: GOOGLE_CLIENT_SECRET!,
+          grant_type: 'refresh_token',
+        }),
+      });
 
-    if (!response.ok) {
-      log.error(
-        { status: response.status, userId: userId.substring(0, 8) },
-        'Google Calendar token refresh failed'
-      );
-      return null;
+      if (!response.ok) {
+        const errorClass = permanentGrantErrorClass(await response.text());
+        if (errorClass) {
+          throw new TokenPermanentlyInvalidError('Google refresh token revoked', errorClass);
+        }
+        throw new Error(`Google Calendar token refresh failed: status ${response.status}`);
+      }
+
+      const data = (await response.json()) as GoogleTokenResponse;
+      const newTokens: OAuthTokens = {
+        access_token: data.access_token,
+        refresh_token: userTokens.refresh_token, // Keep existing refresh token
+        expires_at: Date.now() + data.expires_in * 1000,
+        scope: data.scope || userTokens.scope,
+      };
+
+      await saveTokens(userId, newTokens);
+      return newTokens;
     }
-
-    const data = (await response.json()) as GoogleTokenResponse;
-    const newTokens: OAuthTokens = {
-      access_token: data.access_token,
-      refresh_token: userTokens.refresh_token, // Keep existing refresh token
-      expires_at: Date.now() + data.expires_in * 1000,
-      scope: data.scope || userTokens.scope,
-    };
-
-    await saveTokens(userId, newTokens);
-    log.info({ userId: userId.substring(0, 8) }, 'Google Calendar token refreshed');
-    return newTokens;
-  } catch (err) {
-    log.error(
-      { error: (err as Error).message, userId: userId.substring(0, 8) },
-      'Error refreshing Google Calendar token'
-    );
-    return null;
-  }
+  );
+  if (refreshed) log.info({ userId: userId.substring(0, 8) }, 'Google Calendar token refreshed');
+  return refreshed;
 }
 
 /**

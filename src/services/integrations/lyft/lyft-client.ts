@@ -57,7 +57,7 @@ export interface LyftEta {
   isValid: boolean;
 }
 
-export type LyftRideStatus =
+type LyftRideStatus =
   | 'pending'
   | 'accepted'
   | 'arrived'
@@ -82,7 +82,7 @@ export interface LyftVehicle {
   imageUrl?: string;
 }
 
-export interface LyftRide {
+interface LyftRide {
   rideId: string;
   status: LyftRideStatus;
   rideType: LyftRideType;
@@ -114,7 +114,7 @@ export interface LyftRide {
   canceledBy?: 'driver' | 'passenger' | 'system';
 }
 
-export interface LyftRideReceipt {
+interface LyftRideReceipt {
   rideId: string;
   price: {
     amount: number;

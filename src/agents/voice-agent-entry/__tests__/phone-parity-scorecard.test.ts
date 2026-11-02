@@ -1,5 +1,5 @@
 /**
- * Phone vs app parity scorecard (PHONE_PARITY).
+ * Phone vs app parity scorecard.
  *
  * The same person starts a call three ways through the real session-start
  * path: from the app (dispatch names the account, browser zone), by phone from
@@ -128,12 +128,10 @@ async function startCall(way: Way): Promise<Row> {
   };
 }
 
-const card: Array<{ mode: string; way: Way; row: Row }> = [];
-async function scored(way: Way, parity: boolean): Promise<Row> {
-  if (parity) process.env.PHONE_PARITY = 'on';
-  else delete process.env.PHONE_PARITY;
+const card: Array<{ way: Way; row: Row }> = [];
+async function scored(way: Way): Promise<Row> {
   const row = await startCall(way);
-  card.push({ mode: parity ? 'PHONE_PARITY=on' : 'PHONE_PARITY off', way, row });
+  card.push({ way, row });
   return row;
 }
 
@@ -147,25 +145,22 @@ describe('phone vs app parity scorecard', () => {
   });
   afterAll(() => {
     delete process.env.CALLER_RECOGNITION;
-    delete process.env.PHONE_PARITY;
     productionRecognitionDeps.signedAttestation = realSigned;
     if (process.env.SCORECARD !== '1') return;
     const rows = Object.keys(card[0].row);
-    const cols = card.map((c) => `${c.way} [${c.mode}]`);
+    const cols = card.map((c) => c.way);
     const lines = [`| | ${cols.join(' | ')} |`, `|---|${cols.map(() => '---').join('|')}|`];
     for (const r of rows)
       lines.push(`| ${r} | ${card.map((c) => (c.row[r] ? 'yes' : 'no')).join(' | ')} |`);
     process.stdout.write(`\n${lines.join('\n')}\n`);
   });
 
-  it('the app gets everything, flag or not', async () => {
-    for (const parity of [false, true]) {
-      expect(Object.values(await scored('app', parity)).every(Boolean)).toBe(true);
-    }
+  it('the app gets everything', async () => {
+    expect(Object.values(await scored('app')).every(Boolean)).toBe(true);
   });
 
-  it('PHONE_PARITY off: a recognised phone caller is named and dated, but gets no local time or turn-1 prefetch', async () => {
-    const row = await scored('phone, signed A', false);
+  it('a recognised phone caller is named and dated, but gets no local time or turn-1 prefetch', async () => {
+    const row = await scored('phone, signed A');
     expect(row['account identified (memory, profile)']).toBe(true);
     expect(row['greeting uses their name']).toBe(true);
     expect(row['greeting knows time of day']).toBe(false);
@@ -174,20 +169,13 @@ describe('phone vs app parity scorecard', () => {
     expect(row['turn-1 commitments prefetched']).toBe(false);
   });
 
-  it('PHONE_PARITY=on: a recognised phone caller gets what the app gets', async () => {
-    const row = await scored('phone, signed A', true);
-    expect(row).toEqual(card.find((c) => c.way === 'app')?.row);
-  });
-
-  it('an unsigned call from the same number gets nothing from the account, flag or not', async () => {
-    for (const parity of [false, true]) {
-      const row = await scored('phone, unsigned', parity);
-      expect(row['account identified (memory, profile)']).toBe(false);
-      expect(row['greeting uses their name']).toBe(false);
-      expect(row['greeting knows time of day']).toBe(false);
-      expect(row['memories dated in their zone']).toBe(false);
-      expect(row['turn-1 commitments prefetched']).toBe(false);
-    }
+  it('an unsigned call from the same number gets nothing from the account', async () => {
+    const row = await scored('phone, unsigned');
+    expect(row['account identified (memory, profile)']).toBe(false);
+    expect(row['greeting uses their name']).toBe(false);
+    expect(row['greeting knows time of day']).toBe(false);
+    expect(row['memories dated in their zone']).toBe(false);
+    expect(row['turn-1 commitments prefetched']).toBe(false);
   });
 
   it('production has no signed-attestation check wired yet: no phone caller is recognised', async () => {

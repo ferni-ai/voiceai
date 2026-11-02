@@ -37,6 +37,7 @@ config/
 ├── cartesia-config.ts          # Cartesia TTS config
 ├── gemini-config.ts            # Gemini LLM configuration
 ├── brand-colors.ts             # Brand color constants
+├── house-facts.ts              # Ferni's real website and text/email senders (#3001)
 ├── intelligence-constants.ts   # AI/ML constants
 ├── resilience-config.ts        # Circuit breaker/resilience settings
 └── tool-routing-config.ts      # Tool semantic routing configuration

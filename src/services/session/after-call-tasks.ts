@@ -8,15 +8,17 @@
  * summary LLM call already spends part of it. Awaiting several more seconds of
  * LLM work there would let the timeout win and skip the steps after it. So
  * runAfterCallTasks starts every task and returns at once; each task has its
- * own timeout, and its errors are logged, never thrown. A per-call job process
- * (AGENT_JOB_EXECUTOR=process) waits for pendingAfterCallTasks() to reach 0
- * before it exits (job-child.ts), so the work isn't killed mid-flight.
+ * own timeout, and its errors are logged, never thrown. A process waits for
+ * pendingAfterCallTasks() to reach 0 before it exits, so the work isn't killed
+ * mid-flight: a per-call job process (job-child.ts) and the worker's own
+ * shutdown (gce/drain-memory-work.ts).
  *
  * @module services/session/after-call-tasks
  */
 import { callerTimeZoneFor } from '../../utils/caller-time-zone.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { memoryHeld } from '../../utils/minor-care.js';
+import { sexualReadsSettled } from '../../utils/sexual-topic-hold.js';
 
 const log = createLogger({ module: 'after-call-tasks' });
 
@@ -103,16 +105,32 @@ async function runOne(
   }
 }
 
-/** Starts every registered task for this call and returns without waiting. */
+/**
+ * Starts every registered task for this call and returns without waiting. A read of the last
+ * turn still running (SEXUAL_TOPIC_BOUNDARY) is waited for first, counted as a pending task.
+ */
 export function runAfterCallTasks(ctx: AfterCallContext): void {
-  // MINOR_CARE=on: nothing about a caller under 18 (not a verified owner) is extracted or kept.
+  const reading = sexualReadsSettled(ctx.sessionId);
+  if (!reading) return startAfterCallTasks(ctx);
+  const askedAt = Date.now();
+  const p = reading.then(() => startAfterCallTasks(ctx, Date.now() - askedAt));
+  inFlight.add(p);
+  void p.finally(() => inFlight.delete(p));
+}
+
+/**
+ * Logs "After-call tasks started" with `afterReadMs` when they waited for the last turn's read
+ * (the late start a worker's shutdown must still wait for; drainAfterCallTasks), so it shows.
+ */
+function startAfterCallTasks(ctx: AfterCallContext, afterReadMs?: number): void {
+  const late = afterReadMs !== undefined ? { afterReadMs } : {};
+  // MINOR_CARE=on: nothing about a caller under 18 (not a verified owner) is extracted or kept;
+  // SEXUAL_TOPIC_BOUNDARY=on: nor from a call held for a sexual topic.
   if (memoryHeld(ctx.sessionId)) {
-    log.info(
-      { sessionId: ctx.sessionId, skipped: tasks.size },
-      'After-call tasks held: MINOR_CARE'
-    );
+    log.info({ sessionId: ctx.sessionId, skipped: tasks.size, ...late }, 'After-call tasks held');
     return;
   }
+  log.info({ sessionId: ctx.sessionId, tasks: tasks.size, ...late }, 'After-call tasks started');
   for (const [name, reg] of tasks) {
     const p = runOne(name, reg, ctx);
     inFlight.add(p);
@@ -120,16 +138,26 @@ export function runAfterCallTasks(ctx: AfterCallContext): void {
   }
 }
 
-/** Resolves when every started task has settled, or after maxMs; returns how many were left. */
+/**
+ * Resolves when every task has settled, or after maxMs; returns how many were left. Tasks
+ * that start while it waits count too: a call held for a sexual-topic read starts its tasks
+ * only when the read ends (runAfterCallTasks), so one wait on the tasks running at the start
+ * returned with those still to run.
+ */
 export async function drainAfterCallTasks(maxMs: number): Promise<number> {
   if (inFlight.size === 0) return 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  await Promise.race([
-    Promise.allSettled([...inFlight]),
-    new Promise<void>((resolve) => {
-      timer = setTimeout(resolve, maxMs);
-    }),
-  ]);
+  let timeUp = false;
+  const deadline = new Promise<void>((resolve) => {
+    timer = setTimeout(() => {
+      timeUp = true;
+      resolve();
+    }, maxMs);
+  });
+  while (inFlight.size > 0 && !timeUp) {
+    // eslint-disable-next-line no-await-in-loop -- each pass waits on the tasks running now
+    await Promise.race([Promise.allSettled([...inFlight]), deadline]);
+  }
   clearTimeout(timer);
   return inFlight.size;
 }

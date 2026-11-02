@@ -170,6 +170,13 @@ function formatEmail(email: Email): string {
   return lines.join('\n');
 }
 
+/** A tool that could not run (Gmail read not connected) answers {unavailable, say}: say it, never "no emails". */
+function unavailableSay(result: unknown): string | null {
+  if (typeof result !== 'object' || result === null || !('unavailable' in result)) return null;
+  const { say } = result as { say?: unknown };
+  return typeof say === 'string' ? say : "I can't read your inbox right now.";
+}
+
 async function handleSummary(options: EmailArgs['options']): Promise<void> {
   console.log(colors.dim('Getting email summary...'));
 
@@ -182,6 +189,12 @@ async function handleSummary(options: EmailArgs['options']): Promise<void> {
 
   if (options.json) {
     console.log(JSON.stringify(result.result, null, 2));
+    return;
+  }
+
+  const unavailable = unavailableSay(result.result);
+  if (unavailable) {
+    console.log(colors.yellow(`📧 ${unavailable}`));
     return;
   }
 
@@ -272,6 +285,12 @@ async function handleUnread(options: EmailArgs['options']): Promise<void> {
 
   if (options.json) {
     console.log(JSON.stringify(result.result, null, 2));
+    return;
+  }
+
+  const unavailable = unavailableSay(result.result);
+  if (unavailable) {
+    console.log(colors.yellow(`📧 ${unavailable}`));
     return;
   }
 

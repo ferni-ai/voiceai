@@ -1270,8 +1270,6 @@
       "notifications": "체크인 알림 시간",
       "toggleTheme": "라이트 / 다크 모드",
       "themeLanguage": "화면 스타일",
-      "linkSpotify": "Spotify 연결하기",
-      "spotifyConnected": "Spotify 연결됨",
       "vibeController": "분위기 설정하기",
       "spotifyRooms": "뮤직 룸",
       "thermostat": "스마트 홈 온도",
@@ -1870,9 +1868,9 @@
     "disconnected": "연결 끊김",
     "end": "종료",
     "endConversation": "대화 종료하기",
-    "endConversationGoodbye": "대화 종료하고 인사하기",
+    "goodbyeEndCall": "다음에 또 만나요. 통화 종료",
     "endSession": "대화 종료하기",
-    "ending": "종료하는 중...",
+    "ending": "통화가 끝났어요",
     "goodbye": "다음에 또 만나요",
     "holdToSpeak": "누른 채로 말하기",
     "listening": "듣고 있어요...",
@@ -1882,7 +1880,7 @@
     "takeCare": "잘 지내요.",
     "tapToSpeak": "눌러서 말하기",
     "thinking": "생각하는 중...",
-    "untilNextTime": "다음에 또 만나요..."
+    "untilNextTime": "다음에 또 만나요"
   },
   "stages": {
     "acquaintance": "아는 사이",
@@ -2095,8 +2093,6 @@
     "couldNotConnectNetwork": "연결할 수 없었어요. 같은 네트워크에 연결되어 있는지 확인해 주세요.",
     "enterTokenFirst": "먼저 토큰을 입력해 주세요",
     "getIosApp": "아직 앱이 없으신가요? App Store에서 다운로드해 보세요!",
-    "homeKitConnected": "HomeKit이 연결되었어요!",
-    "homeKitNotConnected": "아직 HomeKit이 연결되지 않았어요. 먼저 iOS 앱을 열어 주세요.",
     "ecobeeConnected": "Ecobee가 연결되었어요!",
     "couldNotConnectEcobee": "Ecobee에 연결할 수 없었어요. 다시 시도해 보시겠어요?",
     "hueConnected": "Hue가 연결되었어요!",
@@ -2418,10 +2414,6 @@
       "apple_health": {
         "description": "Apple Watch 및 iPhone 건강 데이터와 동기화해요",
         "name": "Apple Health"
-      },
-      "fitbit": {
-        "description": "Fitbit 기기를 연결해요",
-        "name": "Fitbit"
       },
       "garmin": {
         "description": "Garmin 웨어러블과 동기화해요",
@@ -2776,8 +2768,7 @@
       "askFerni": "아니면 Ferni에게 음악을 틀어달라고 부탁해 보세요",
       "play": "재생",
       "pause": "일시 정지",
-      "skip": "건너뛰기",
-      "linkSpotify": "전체 곡을 들으려면 설정에서 Spotify를 연결해 주세요"
+      "skip": "건너뛰기"
     },
     "volume": "볼륨",
     "skipped": "건너뛰었어요",
@@ -7818,22 +7809,15 @@
     "sonosDescription": "스피커 및 음악",
     "speakers": "스피커",
     "nowPlaying": "현재 재생 중",
-    "homekit": "HomeKit",
-    "homekitDescription": "Apple 홈 및 Siri",
-    "home": "홈",
-    "devices": "기기",
-    "scenes": "장면",
     "apiKeyPlaceholder": "여기에 API 키를 붙여넣어 주세요...",
     "tokenPlaceholder": "여기에 토큰을 붙여넣어 주세요...",
     "checkingDevices": "기기를 확인하는 중이에요...",
     "welcome": "집을 연결해 주시면 딱 맞는 분위기를 연출해 드릴게요. 영화를 볼 때는 조명을 어둡게 조절하고, 쌀쌀할 때는 온도를 높이거나, 집중이 필요할 때는 차분한 분위기를 만들어 드려요.",
     "defaultThermostat": "내 온도 조절기",
     "idle": "대기 중",
-    "defaultHome": "우리 집",
     "setUp": "설정하기",
     "connectHue": "Philips Hue 연결하기",
     "connectSonos": "Sonos 연결하기",
-    "connectHomeKit": "HomeKit 연결하기",
     "ecobeeSetup": {
       "getKeyTitle": "Ecobee API 키 가져오기",
       "getKeyText": "먼저 Ecobee 개발자 포털에서 키를 받아와야 해요. 걱정 마세요, 금방 끝나요!",
@@ -7880,14 +7864,6 @@
       "hint": "로그인을 위해 Sonos 페이지로 이동하며, 로그인 후 자동으로 여기로 돌아오게 돼요.",
       "connectFailed": "Sonos에 연결할 수 없었어요. 다시 시도해 볼까요?",
       "connectSonosFailed": "Sonos를 연결할 수 없었어요. 다시 시도해 볼까요?"
-    },
-    "homekitSetup": {
-      "title": "iOS 앱을 통해 연결하기",
-      "text": "HomeKit은 Ferni iOS 앱을 통해 연결돼요. iPhone에서 앱을 열어 Apple Home을 연동해 주세요.",
-      "openApp": "Ferni iOS 앱 열기",
-      "getApp": "아직 앱이 없으신가요? App Store에서 다운로드해 보세요!",
-      "hint": "연결하고 나면 \"Siri야, Ferni한테 분위기 편안하게 해달라고 해줘\"라고 말해 보세요. 온 집안이 반응할 거예요.",
-      "alreadyConnected": "이미 연결했어요"
     },
     "setupDone": "준비가 모두 끝났어요! \"조명 좀 어둡게 해줘\"나 \"아늑하게 만들어줘\"처럼 기분을 맞춰달라고 편하게 말씀해 주세요. 제가 알아서 해드릴게요.",
     "settingsTitle": "스마트홈 설정",
@@ -8349,10 +8325,9 @@
     "appleHealthDesc": "수면, 활동 및 심박수 데이터",
     "ouraDesc": "수면의 질과 준비도 점수",
     "eightSleepDesc": "수면 분석과 온도 조절",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP 등",
+    "wearablesDesc": "Garmin, WHOOP 등",
     "calendarDesc": "일정, 회의, 비는 시간",
     "linkedInDesc": "커리어 맥락과 네트워크",
-    "spotifyDesc": "음악, 기분별 플레이리스트, 감상 기록",
     "ecobeeDesc": "집안 온도와 쾌적함",
     "vibeControllerDesc": "음악, 조명 등 제어하기",
     "connected": "연결됨"
@@ -8829,6 +8804,13 @@
     "exportFailed": "데이터를 내보내지 못했어요. 다시 시도해 볼까요?",
     "deleteDataFailed": "데이터를 삭제하지 못했어요. 삭제된 항목이 없습니다. 다시 시도해 볼까요?",
     "deleteAccountFailed": "계정을 삭제하지 못했어요. 다시 시도해 볼까요?",
+    "deleteRefusedSignIn": "로그인이 받아들여지지 않아서 이번 요청으로는 아무것도 삭제되지 않았어요. 다시 로그인한 다음 한 번 더 시도해 주세요.",
+    "deleteDataUnknown": "데이터가 삭제되었는지 확인하지 못했어요. 아직 처리 중일 수 있으니 몇 분 뒤에 다시 확인해 주세요.",
+    "deleteDataStillUnknown": "데이터가 삭제되었는지 아직 확인하지 못했어요. 몇 분 뒤에 다시 시도해 주세요.",
+    "deleteAccountUnknown": "계정이 삭제되었는지 확인하지 못했어요. 아직 처리 중일 수 있으니 몇 분 뒤에 다시 확인해 주세요.",
+    "accountStillOpen": "계정이 아직 열려 있어요. 그래도 닫고 싶다면 다시 삭제할 수 있어요.",
+    "accountSignInRefused": "로그인이 더 이상 받아들여지지 않아요. 계정이 닫히는 중일 때 이런 일이 생겨요. 삭제하지 않았다면 다시 로그인해서 확인해 주세요.",
+    "authSlow": "로그인을 제때 확인하지 못해서 아무것도 보내지 않았어요. 다시 시도해 볼까요?",
     "accountDeletedPartial": "계정은 삭제되었지만 일부 기록이 정리되지 않았어요. 완료하려면 저희에게 문의해 주세요.",
     "categoryConversations": "모든 대화 기록 및 메타데이터",
     "categoryInsights": "Ferni가 회원님에 대해 알게 된 점들",
@@ -8982,10 +8964,7 @@
     "trustJourneyExplore": "둘러보기",
     "customizeTitle": "나에게 맞게 설정하기",
     "customizeMessage": "테마, 소리 등을 조절해 보세요.",
-    "spotifyMessage": "Spotify를 연결해서 대화하는 동안의 기분을 설정해 보세요.",
-    "spotifyConnect": "연결하기",
-    "maybeLater": "나중에 할게요",
-    "spotifyTitle": "Spotify 연결하기"
+    "maybeLater": "나중에 할게요"
   },
   "mentorTeachings": {
     "learningFrom": "배우는 중",
@@ -9340,6 +9319,8 @@
   },
   "dataExport": {
     "title": "내 데이터",
+    "loadFailed": "지금은 저장해 둔 내용을 불러오지 못했어요. 바뀐 것은 없어요.",
+    "checkAgain": "다시 확인",
     "exportFormat": "내보내기 형식",
     "deleteAll": "모든 데이터 삭제",
     "footer": "다음에도 기억할 수 있도록 우리의 대화와 당신이 들려준 이야기를 저장해요. 언젠가 지우고 싶다면 계정을 탈퇴하면 모두 지워져요.",
@@ -10192,7 +10173,6 @@
     "startupError": "시작하는 데 문제가 생겼어요. 새로고침해 볼까요?",
     "lastConversation": "이번 달의 마지막 대화예요. 소중한 시간으로 만들어 봐요.",
     "gettingReady": "준비하는 중...",
-    "connecting": "연결하는 중",
     "almostThere": "거의 다 되었어요...",
     "waitingQuietly": "조용히 기다릴게요",
     "listening": "듣고 있어요",
@@ -10509,7 +10489,6 @@
     "names": {
       "stockData": "주식 데이터",
       "marketData": "시장 데이터",
-      "weatherMaps": "날씨 및 지도",
       "historicalFacts": "역사적 사실",
       "smartHome": "스마트 홈",
       "lighting": "조명",
@@ -10803,13 +10782,14 @@
   "entrance": {
     "helper": "나만을 위한 다정한 가이드",
     "connectToTalk": "Ferni와 대화하기",
-    "endTalk": "대화 종료",
-    "connectingCancel": "연결 중입니다. 탭하여 취소",
-    "connectingNow": "연결 중…",
+    "endTalk": "통화 종료",
+    "connectingCancel": "{name}님에게 전화하는 중입니다. 탭하여 취소",
+    "connectingNow": "{name}님에게 전화하는 중…",
     "tapToCancel": "탭하여 취소",
-    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
-    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
-    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
+    "stillCalling": "{name}님에게 계속 연결하는 중…",
+    "stillCallingCancel": "{name}님에게 계속 연결하는 중입니다. 탭하여 취소",
+    "reconnecting": "다시 연결하는 중…",
+    "arrived": "{name}님이 왔어요"
   },
   "analyticsDashboard": {
     "title": "나의 여정",
@@ -11072,6 +11052,19 @@
     "retry": "",
     "switchAccount": "",
     "seeSources": ""
+  },
+  "connectInvite": {
+    "title": "Alex가 캘린더를 챙겨 드릴게요",
+    "lead": "Google 캘린더를 연결하면 일정을 놓치지 않아요. 공유되는 내용:",
+    "account": "{account} 계정으로 Alex에 연결합니다",
+    "sees": "일정의 시간, 제목, 장소를 확인해요",
+    "changes": "요청하실 때만 일정을 추가하거나 변경해요",
+    "never": "이메일이나 첨부파일은 절대 보지 않아요",
+    "undo": "설정 > 캘린더에서 언제든 해제할 수 있어요. Alex에게 말씀만 하셔도 돼요",
+    "connect": "Google 캘린더 연결",
+    "opening": "Google을 여는 중...",
+    "expired": "이 링크는 만료되었거나 이미 사용되었어요. 다음 통화 때 말씀해 주시면 새 링크를 보내 드릴게요.",
+    "failed": "지금은 Google을 열 수 없었어요. 다음 통화 때 말씀해 주시면 새 링크를 보내 드릴게요."
   },
   "aiLabel": {
     "role": {

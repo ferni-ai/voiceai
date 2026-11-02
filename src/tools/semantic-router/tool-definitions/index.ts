@@ -258,13 +258,11 @@ export {
   giftRecommendationTool,
 } from './recommendations.semantic.js';
 
-// Local Search (Yelp-powered business discovery)
+// Local Search (Google Places business discovery)
 export {
   localSearchTools,
   searchLocalBusinessesTool,
   findRestaurantsTool,
-  getBusinessReviewsTool,
-  lookupBusinessByPhoneTool,
 } from './local-search.semantic.js';
 
 // Smart Home (lights, thermostat, locks)
@@ -746,7 +744,7 @@ export const allToolDefinitions: SemanticToolDefinition[] = [
 
   // Recommendations & Smart Home
   ...recommendationsTools, // 4 tools: books, podcasts, restaurants, gifts
-  ...localSearchTools, // 4 tools: search businesses, find restaurants, reviews, phone lookup (Yelp)
+  ...localSearchTools, // 2 tools: search businesses, find restaurants (Google Places)
   ...smartHomeTools, // 4 tools: lights, thermostat, locks, devices
 
   // Phase 1 additions (High Impact)

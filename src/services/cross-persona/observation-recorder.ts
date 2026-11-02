@@ -79,7 +79,7 @@ export function recordPersonaObservation(userId: string, observation: SimpleObse
       type: observation.observationType,
       domain: observation.domain,
     },
-    `👁️ ${observation.personaId.toUpperCase()} observed: ${observation.content.slice(0, 50)}...`
+    `👁️ ${observation.personaId.toUpperCase()} observed (${observation.content.length} chars)`
   );
 }
 
@@ -90,7 +90,7 @@ export function recordPersonaObservation(userId: string, observation: SimpleObse
 /**
  * Record a concern (something worrying).
  */
-export function recordConcern(
+function recordConcern(
   userId: string,
   personaId: PersonaId,
   content: string,
@@ -219,4 +219,4 @@ export const ferni = {
 // EXPORTS
 // ============================================================================
 
-export { PERSONA_DOMAINS, type PersonaId };
+export { PERSONA_DOMAINS };

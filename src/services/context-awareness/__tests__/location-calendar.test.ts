@@ -19,7 +19,7 @@ vi.mock('../../../utils/safe-logger.js', () => ({
 // Mock google-calendar-oauth
 vi.mock('../../identity/google-calendar-oauth.js', () => ({
   getUserTokens: vi.fn().mockResolvedValue(null),
-  refreshAccessToken: vi.fn().mockResolvedValue(null),
+  refreshAccessTokenForUser: vi.fn().mockResolvedValue(null),
   isCalendarConfigured: vi.fn().mockResolvedValue(false),
   getEvents: vi.fn().mockResolvedValue([]),
   generateAuthUrl: vi.fn().mockReturnValue('https://auth.example.com'),

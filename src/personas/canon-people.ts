@@ -1,5 +1,5 @@
 /**
- * The people in the personas' own lives (Ferni's friends Jack and Jim, Nayan's
+ * The people in the personas' own lives (Ferni's friends Lyle and Hollis, Nayan's
  * late wife Jyoti): every bundle's identity/people.json, read where the bundle
  * loader looks. They exist only in the story, so a tool that calls, texts or
  * emails someone must never take one of them for a real person
@@ -41,7 +41,7 @@ function namesIn(text: string): string[] {
   }
 }
 
-/** The canon name `target` refers to ("Jim", "my friend Jim", "jim's cell"), or null. */
+/** The canon name `target` refers to ("Hollis", "my friend Hollis", "hollis's cell"), or null. */
 export function canonPersonIn(target: string, people: ReadonlySet<string>): string | null {
   const words = target.toLowerCase().match(/[a-z]+/g) ?? [];
   return words.find((w) => people.has(w)) ?? null;

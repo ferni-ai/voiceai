@@ -248,12 +248,12 @@ function parseJSONResponse<T>(text: string): T | null {
       try {
         return JSON.parse(jsonMatch[0]) as T;
       } catch {
-        log.warn({ text: cleaned.slice(0, 200) }, 'Failed to parse JSON from response');
+        log.warn({ textLen: cleaned.length }, 'Failed to parse JSON from response');
         return null;
       }
     }
 
-    log.warn({ text: cleaned.slice(0, 200) }, 'No JSON found in response');
+    log.warn({ textLen: cleaned.length }, 'No JSON found in response');
     return null;
   }
 }

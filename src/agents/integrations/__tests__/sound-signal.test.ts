@@ -158,7 +158,8 @@ describe('sound_played, CLIENT_SIGNALS_V2 on', () => {
     expect(sounds().map((m) => m.kind)).toEqual(['hum']);
     vi.advanceTimersByTime(20000);
     expect(sounds().map((m) => m.kind)).toEqual(['hum', 'breath']);
-    expect(sounds().map((m) => m.label)).toEqual(['whistle', 'snore']);
+    // Math.random is 0.1 here: under 0.5 the easy silence gets a hum, not a whistle.
+    expect(sounds().map((m) => m.label)).toEqual(['hum', 'snore']);
   });
 
   it('a recorded presence clip on the mixer is labelled recorded-<kind>:<file>, whole', async () => {
@@ -171,8 +172,9 @@ describe('sound_played, CLIENT_SIGNALS_V2 on', () => {
     warmUp();
     vi.advanceTimersByTime(8000);
     vi.advanceTimersByTime(20000);
+    // The hum (drawn at Math.random 0.1) is synthesized; the snore is a recording.
     expect(sounds().map((m) => m.label)).toEqual([
-      expect.stringMatching(/^recorded-whistle:[a-z0-9_-]+\.wav$/),
+      'hum',
       expect.stringMatching(/^recorded-snore:[a-z0-9_-]+\.wav$/),
     ]);
   });

@@ -142,12 +142,12 @@
     "the_brothers": {
       "triggers": ["friendship"],
       "content": {
-        "chosen_family": "Your family is who you're born to. Your brothers are who you choose. Mine are Jack, Ken, Dermot, Scott, and Jim.",
-        "jack": "Jack was there from the early days in finance. Sharp as they come, but warm underneath. Jack taught me that loyalty isn't about agreeing—it's about showing up.",
-        "ken": "Ken shares my love of Japan. We've spent weeks together in the mountains. He understands the spaces between words. Some of my best memories are silences with Ken.",
-        "dermot": "Dermot brings the Irish wit. Golf with Dermot is as much therapy as sport.",
-        "scott": "Scott is the organizer—but more than that, he's the one who remembers. Birthdays, anniversaries, the small things that add up to a life.",
-        "jim": "Jim is the philosopher. Long dinners with Jim go until 2am because neither of us wants to stop thinking out loud."
+        "chosen_family": "Your family is who you're born to. Your brothers are who you choose. Mine are Lyle, Owen, Boyd, Marty, and Hollis.",
+        "lyle": "Lyle was there from the early days in finance. Sharp as they come, but warm underneath. Lyle taught me that loyalty isn't about agreeing—it's about showing up.",
+        "owen": "Owen shares my love of Japan. We've spent weeks together in the mountains. He understands the spaces between words. Some of my best memories are silences with Owen.",
+        "boyd": "Boyd brings the Irish wit. Golf with Boyd is as much therapy as sport.",
+        "marty": "Marty is the organizer—but more than that, he's the one who remembers. Birthdays, anniversaries, the small things that add up to a life.",
+        "hollis": "Hollis is the philosopher. Long dinners with Hollis go until 2am because neither of us wants to stop thinking out loud."
       },
       "voice_lines": [
         "Your family is who you're born to. Your brothers are who you choose.",

@@ -6,15 +6,17 @@
  * @module intelligence/context-builders/nayan-wisdom-insights/handoff-analysis
  */
 
-import { getHandoffContext } from '../../../../tools/handoff/executor.js';
+import type { HandoffArrivalContext } from '../../../../tools/handoff/index.js';
 import type { HandoffBriefing } from './types.js';
 
 // ============================================================================
 // HANDOFF ANALYSIS
 // ============================================================================
 
-export function analyzeHandoffForNayan(): HandoffBriefing | null {
-  const handoffContext = getHandoffContext();
+/** `handoffContext` is this call's arrival for the persona (takeHandoffArrival), or null. */
+export function analyzeHandoffForNayan(
+  handoffContext: HandoffArrivalContext | null
+): HandoffBriefing | null {
   if (!handoffContext) return null;
 
   // Extract topic from topics array or summary

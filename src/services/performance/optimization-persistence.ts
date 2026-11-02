@@ -73,8 +73,8 @@ class OptimizationPersistenceService {
       this.db = db;
     } else {
       try {
-        const { Firestore } = await import('@google-cloud/firestore');
-        this.db = new Firestore({
+        const { sharedFirestore } = await import('../../utils/shared-firestore.js');
+        this.db = sharedFirestore({
           projectId: getGCPProjectId(),
           databaseId: getFirestoreDatabase(),
         }) as unknown as FirestoreDB;

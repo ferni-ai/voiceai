@@ -20,6 +20,19 @@
     "switchAccount": "Use another account",
     "seeSources": "Why I picked it, and where I found it"
   },
+  "connectInvite": {
+    "title": "Let Alex keep an eye on your calendar",
+    "lead": "Connect Google Calendar so plans don't sneak up on you. Here's what it shares:",
+    "account": "Connecting to Alex for {account}",
+    "sees": "Sees event times, titles and places",
+    "changes": "Adds or changes events only when you ask",
+    "never": "Never sees your emails or attachments",
+    "undo": "Undo any time in Settings > Calendar, or just tell Alex",
+    "connect": "Connect Google Calendar",
+    "opening": "Opening Google...",
+    "expired": "This link has expired or was already used. Ask on your next call and I'll send a fresh one.",
+    "failed": "Couldn't open Google just now. Ask on your next call and I'll send a new link."
+  },
   "meta": {
     "locale": "en-US",
     "name": "English (US)",
@@ -308,8 +321,6 @@
       "notifications": "When I'll Check In",
       "toggleTheme": "Light / Dark",
       "themeLanguage": "Look & Feel",
-      "linkSpotify": "Connect Spotify",
-      "spotifyConnected": "Spotify Connected",
       "vibeController": "Set the Mood",
       "spotifyRooms": "Music Rooms",
       "thermostat": "Home Comfort",
@@ -390,7 +401,7 @@
     "end": "End",
     "untilNextTime": "Until next time",
     "endConversation": "End conversation",
-    "endConversationGoodbye": "End conversation - Goodbye",
+    "goodbyeEndCall": "Goodbye. End call.",
     "takeCare": "Take care.",
     "ending": "Call ended"
   },
@@ -1361,10 +1372,6 @@
       "apple_health": {
         "name": "Apple Health",
         "description": "Sync with Apple Watch and iPhone health data"
-      },
-      "fitbit": {
-        "name": "Fitbit",
-        "description": "Connect your Fitbit device"
       },
       "garmin": {
         "name": "Garmin",
@@ -2606,8 +2613,6 @@
     "getIosApp": "Don't have the app? Get it from the App Store!",
     "giftRecorded": "Gift recorded!",
     "hmmmTryAgain": "Hmm, that didn't work. Want to try again?",
-    "homeKitConnected": "HomeKit is connected!",
-    "homeKitNotConnected": "HomeKit not connected yet. Open the iOS app first.",
     "hueConnected": "Hue connected!",
     "imageMustBeLessThan5mb": "Image must be less than 5MB",
     "importFailed": "Import failed",
@@ -2858,8 +2863,7 @@
       "askFerni": "Or ask Ferni to play something",
       "play": "Play",
       "pause": "Pause",
-      "skip": "Skip",
-      "linkSpotify": "Link Spotify in Settings for full songs"
+      "skip": "Skip"
     },
     "volume": "Volume",
     "skipped": "Skipped",
@@ -4308,6 +4312,11 @@
     "reschedule": "Reschedule",
     "scheduledFor": "Scheduled for {time}",
     "confirmCancel": "Are you sure you want to cancel this check-in?",
+    "cancelled": "Cancelled. I won't reach out about this one.",
+    "moved": "Moved to {time}.",
+    "actionFailed": "That didn't go through, so nothing changed. Want to try again?",
+    "actionTooLate": "That one is already on its way, so it couldn't be changed.",
+    "moveBadTime": "I can't reach out then. Try another time.",
     "todayAt": "Today at {time}",
     "tomorrowAt": "Tomorrow at {time}",
     "channelSms": "SMS",
@@ -7888,22 +7897,15 @@
     "sonosDescription": "Speakers & music",
     "speakers": "Speakers",
     "nowPlaying": "Now Playing",
-    "homekit": "HomeKit",
-    "homekitDescription": "Apple home & Siri",
-    "home": "Home",
-    "devices": "Devices",
-    "scenes": "Scenes",
     "apiKeyPlaceholder": "Paste your API key here...",
     "tokenPlaceholder": "Paste your token here...",
     "checkingDevices": "Checking your devices...",
     "welcome": "Connect your home and I can help set the perfect atmosphere: dimming lights for movie night, warming things up when you're chilly, or creating calm when you need to focus.",
     "defaultThermostat": "My Thermostat",
     "idle": "Idle",
-    "defaultHome": "My Home",
     "setUp": "Set up",
     "connectHue": "Connect Philips Hue",
     "connectSonos": "Connect Sonos",
-    "connectHomeKit": "Connect HomeKit",
     "ecobeeSetup": {
       "getKeyTitle": "Get your Ecobee API Key",
       "getKeyText": "First, we need a key from Ecobee's developer portal. Don't worry, it's quick!",
@@ -7950,14 +7952,6 @@
       "hint": "You'll be redirected to Sonos to sign in, then brought back here automatically.",
       "connectFailed": "Couldn't connect to Sonos. Try again?",
       "connectSonosFailed": "Couldn't connect Sonos. Try again?"
-    },
-    "homekitSetup": {
-      "title": "Connect via iOS app",
-      "text": "HomeKit connects through the Ferni iOS app. Open the app on your iPhone to link your Apple Home.",
-      "openApp": "Open Ferni iOS App",
-      "getApp": "Don't have the app? Get it from the App Store!",
-      "hint": "Once connected, say \"Hey Siri, tell Ferni to set the vibe to relax\" and your whole home responds.",
-      "alreadyConnected": "I've already connected"
     },
     "setupDone": "You're all set! Just ask me to set the mood, like \"dim the lights\" or \"make it cozy\", and I'll take care of it.",
     "settingsTitle": "Smart Home Settings",
@@ -8433,10 +8427,9 @@
     "appleHealthDesc": "Sleep, activity, and heart rate data",
     "ouraDesc": "Sleep quality and readiness scores",
     "eightSleepDesc": "Sleep tracking and temperature",
-    "wearablesDesc": "Fitbit, Garmin, Whoop, and more",
+    "wearablesDesc": "Garmin, Whoop, and more",
     "calendarDesc": "Events, meetings, and availability",
     "linkedInDesc": "Professional context and network",
-    "spotifyDesc": "Music, mood playlists, listening history",
     "ecobeeDesc": "Home temperature and comfort",
     "vibeControllerDesc": "Control music, lights, and more",
     "connected": "Connected",
@@ -8916,6 +8909,13 @@
     "exportFailed": "Couldn't export your data. Try again?",
     "deleteDataFailed": "Couldn't delete your data. Nothing was removed. Try again?",
     "deleteAccountFailed": "Couldn't delete your account. Try again?",
+    "deleteRefusedSignIn": "Your sign-in wasn't accepted, so this request deleted nothing. Sign in again, then try once more.",
+    "deleteDataUnknown": "Couldn't confirm whether your data was deleted. It may still be finishing, so check again in a few minutes.",
+    "deleteDataStillUnknown": "Still couldn't confirm whether your data was deleted. Try again in a few minutes.",
+    "deleteAccountUnknown": "Couldn't confirm whether your account was deleted. It may still be finishing, so check again in a few minutes.",
+    "accountStillOpen": "Your account is still open. If you still want it closed, you can delete it again.",
+    "accountSignInRefused": "Your sign-in is no longer accepted, which happens when an account is closing. If you didn't delete it, sign in again to check.",
+    "authSlow": "Couldn't check your sign-in in time, so nothing was sent. Try again?",
     "accountDeletedPartial": "Your account is deleted, but a few records didn't clear. Contact us to finish.",
     "categoryConversations": "All conversation transcripts and metadata",
     "categoryInsights": "What Ferni has learned about you",
@@ -9074,9 +9074,6 @@
     "trustJourneyExplore": "Explore",
     "customizeTitle": "Customize your experience",
     "customizeMessage": "Adjust themes, sounds, and more.",
-    "spotifyTitle": "Connect Spotify",
-    "spotifyMessage": "Link your Spotify to set the mood during our conversations.",
-    "spotifyConnect": "Connect",
     "maybeLater": "Maybe later"
   },
   "mentorTeachings": {
@@ -9433,6 +9430,8 @@
   },
   "dataExport": {
     "title": "Privacy & your data",
+    "loadFailed": "I couldn't load what I've saved for you just now. Nothing has changed.",
+    "checkAgain": "Check again",
     "intro": {
       "one": "You have {count} item across {categories}. Select what to export.",
       "other": "You have {count} items across {categories}. Select what to export."
@@ -10308,7 +10307,6 @@
       "other": "{count} conversations left. I'm here whenever you need me."
     },
     "gettingReady": "Getting ready...",
-    "connecting": "Connecting",
     "almostThere": "Almost there...",
     "waitingQuietly": "I'll wait quietly",
     "listening": "I'm listening",
@@ -10621,7 +10619,6 @@
     "names": {
       "stockData": "Stock Data",
       "marketData": "Market Data",
-      "weatherMaps": "Weather & Maps",
       "historicalFacts": "Historical Facts",
       "smartHome": "Smart Home",
       "lighting": "Lighting",
@@ -10919,7 +10916,8 @@
     "tapToCancel": "Tap to cancel",
     "stillCalling": "Still reaching {name}…",
     "stillCallingCancel": "Still reaching {name}. Tap to cancel.",
-    "reconnecting": "Reconnecting…"
+    "reconnecting": "Reconnecting…",
+    "arrived": "{name} is here"
   },
   "callRoom": {
     "connecting": "Calling {name}…",

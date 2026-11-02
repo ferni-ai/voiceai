@@ -41,19 +41,10 @@ export interface SonosCredentials {
   connectedAt?: string;
 }
 
-export interface HomeKitCredentials {
-  enabled: boolean;
-  homeId?: string;
-  homeName?: string;
-  deviceCount?: number;
-  connectedAt?: string;
-}
-
 export interface SmartHomeCredentials {
   hue: HueCredentials | null;
   lifx: LifxCredentials | null;
   sonos: SonosCredentials | null;
-  homeKit: HomeKitCredentials | null;
   // Ecobee is handled separately in ecobee-auth.ts
 }
 
@@ -140,7 +131,7 @@ async function decryptFields<T extends object>(
  * opened envelope still holds enc_ fields the agent wrote. A ciphertext that does
  * not open for this doc (another user, field or integration, or tampered) throws,
  * so a caller never gets a partial or plaintext-from-elsewhere value.
- * Docs that are not token-shaped (homekit) come back as stored.
+ * Docs that are not token-shaped come back as stored.
  */
 export async function openSmartHomeCredentials<T>(
   userId: string,
@@ -185,7 +176,6 @@ export async function getUserSmartHomeCredentials(userId: string): Promise<Smart
     hue: null,
     lifx: null,
     sonos: null,
-    homeKit: null,
   };
 
   try {
@@ -193,11 +183,10 @@ export async function getUserSmartHomeCredentials(userId: string): Promise<Smart
     const smartHomeRef = db.collection('bogle_users').doc(userId).collection('smart_home');
 
     // Load all credentials in parallel
-    const [hueDoc, lifxDoc, sonosDoc, homeKitDoc] = await Promise.all([
+    const [hueDoc, lifxDoc, sonosDoc] = await Promise.all([
       smartHomeRef.doc('hue').get(),
       smartHomeRef.doc('lifx').get(),
       smartHomeRef.doc('sonos').get(),
-      smartHomeRef.doc('homekit').get(),
     ]);
 
     // Open docs the web routes sealed; decrypt the ones this module wrote. One bad
@@ -214,18 +203,12 @@ export async function getUserSmartHomeCredentials(userId: string): Promise<Smart
     credentials.lifx = await open<LifxCredentials>('lifx', lifxDoc.data());
     credentials.sonos = await open<SonosCredentials>('sonos', sonosDoc.data());
 
-    if (homeKitDoc.exists) {
-      // HomeKit has no sensitive credentials to decrypt
-      credentials.homeKit = homeKitDoc.data() as HomeKitCredentials;
-    }
-
     log.debug(
       {
         userId,
         hasHue: !!credentials.hue,
         hasLifx: !!credentials.lifx,
         hasSonos: !!credentials.sonos,
-        hasHomeKit: !!credentials.homeKit,
       },
       'Loaded smart home credentials'
     );
@@ -250,14 +233,13 @@ export async function getCredential<K extends keyof SmartHomeCredentials>(
       .collection('bogle_users')
       .doc(userId)
       .collection('smart_home')
-      .doc(type === 'homeKit' ? 'homekit' : type)
+      .doc(type)
       .get();
 
     if (!doc.exists) return null as SmartHomeCredentials[K];
 
     // Same view as the web routes: opened if sealed, enc_ fields decrypted
-    const docId = type === 'homeKit' ? 'homekit' : type;
-    return (await openSmartHomeCredentials(userId, docId, doc.data())) as SmartHomeCredentials[K];
+    return (await openSmartHomeCredentials(userId, type, doc.data())) as SmartHomeCredentials[K];
   } catch (error) {
     log.error({ error: String(error), userId, type }, 'Failed to load credential');
     return null as SmartHomeCredentials[K];
@@ -275,16 +257,15 @@ export async function saveCredential<K extends keyof SmartHomeCredentials>(
 ): Promise<boolean> {
   try {
     const db = getAdminFirestore();
-    const docId = type === 'homeKit' ? 'homekit' : type;
 
     // Encrypt sensitive fields (bound to this user and field) before saving
-    const encryptedCredentials = await encryptFields(userId, docId, credentials);
+    const encryptedCredentials = await encryptFields(userId, type, credentials);
 
     await db
       .collection('bogle_users')
       .doc(userId)
       .collection('smart_home')
-      .doc(docId)
+      .doc(type)
       .set(
         {
           ...encryptedCredentials,
@@ -314,9 +295,8 @@ export async function deleteCredential(
 ): Promise<boolean> {
   try {
     const db = getAdminFirestore();
-    const docId = type === 'homeKit' ? 'homekit' : type;
 
-    await db.collection('bogle_users').doc(userId).collection('smart_home').doc(docId).delete();
+    await db.collection('bogle_users').doc(userId).collection('smart_home').doc(type).delete();
 
     // Update setup state
     await updateSetupState(userId, type, false);
@@ -444,7 +424,7 @@ export async function markSetupAbandoned(userId: string): Promise<void> {
  */
 export async function hasAnySmartHomeIntegration(userId: string): Promise<boolean> {
   const credentials = await getUserSmartHomeCredentials(userId);
-  return !!(credentials.hue || credentials.lifx || credentials.sonos || credentials.homeKit);
+  return !!(credentials.hue || credentials.lifx || credentials.sonos);
 }
 
 /**
@@ -468,7 +448,6 @@ export async function getConfiguredIntegrations(userId: string): Promise<string[
   if (credentials.hue) configured.push('hue');
   if (credentials.lifx) configured.push('lifx');
   if (credentials.sonos) configured.push('sonos');
-  if (credentials.homeKit) configured.push('homeKit');
 
   return configured;
 }

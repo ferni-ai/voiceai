@@ -733,7 +733,7 @@ async function getSemanticMemories(
     log.debug(
       {
         userId,
-        query: query.slice(0, 50),
+        queryLen: query.length,
         resultsCount: memories.length,
       },
       '🔍 Semantic memory search completed'

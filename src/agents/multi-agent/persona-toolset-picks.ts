@@ -27,6 +27,7 @@ export interface PersonaToolPicks {
 export const FERNI_HEAD_DOMAINS: Readonly<Record<string, ToolDomain>> = {
   getFunFact: 'simple-utilities',
   addRelationship: 'information',
+  getSleepSummary: 'wellness',
 };
 
 /** Education and calculators, no securities picks (specialist-tool-sets.ts MONEY_EDUCATION). */
@@ -53,6 +54,7 @@ export const PERSONA_TOOL_PICKS: Readonly<Record<string, PersonaToolPicks>> = {
       'getCalendarToday',
       'createCalendarEvent',
       'getReminders',
+      'getSleepSummary',
       'tellJoke',
       'getFunFact',
       'quickText',
@@ -63,6 +65,7 @@ export const PERSONA_TOOL_PICKS: Readonly<Record<string, PersonaToolPicks>> = {
   'maya-santos': {
     beat: ['createHabit', 'logHabitCompletion', 'getHabits', 'habitCheckIn'],
     head: [
+      'getSleepSummary',
       'habitSetback',
       'implementationIntention',
       'celebrateTinyWin',

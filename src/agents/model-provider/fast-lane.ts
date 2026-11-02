@@ -78,6 +78,11 @@ export function callerTurn(items: readonly ItemView[]): string | null {
   return said.join(' ').trim();
 }
 
+/** A question put to him about something other than himself ("should I tell her?"). */
+export function asksAQuestion(text: string): boolean {
+  return text.includes('?') && !ABOUT_FERNI.test(text);
+}
+
 export type LaneReason = 'after_tool' | 'no_words' | 'request' | 'question' | 'chat';
 
 /** Why a reply to these words goes where it goes (logged, so a misroute shows). */
@@ -85,7 +90,7 @@ export function laneReason(text: string | null): LaneReason {
   if (text === null) return 'after_tool';
   if (!text) return 'no_words';
   if (mayNeedTool(text)) return 'request';
-  if (text.includes('?') && !ABOUT_FERNI.test(text)) return 'question';
+  if (asksAQuestion(text)) return 'question';
   return 'chat';
 }
 

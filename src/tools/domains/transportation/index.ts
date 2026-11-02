@@ -29,6 +29,15 @@ const log = createLogger({ module: 'transportation-tools' });
 // REGISTER ACTION TYPES
 // ============================================================================
 
+/** What a ride request reports: sent, not yet a driver on the way. */
+export function rideRequestedMessage(provider: 'Uber' | 'Lyft'): string {
+  return `${provider} ride requested. It isn't confirmed until a driver accepts it.`;
+}
+
+/** What requestRide says: Uber and Lyft can't be connected, so Ferni books no rides. */
+export const RIDE_BOOKING_UNAVAILABLE =
+  "I can't book Uber or Lyft rides: neither can be connected to Ferni. The Uber or Lyft app can book this trip.";
+
 // Register Uber ride action
 registerActionType({
   type: 'uber_ride',
@@ -98,7 +107,7 @@ registerActionType({
 
     return {
       success: true,
-      message: `Your Uber is on the way! ETA: ${response.data.eta || 'calculating'} minutes`,
+      message: rideRequestedMessage('Uber'),
       externalId: response.data.requestId,
     };
   },
@@ -189,7 +198,7 @@ registerActionType({
 
     return {
       success: true,
-      message: 'Your Lyft is on the way!',
+      message: rideRequestedMessage('Lyft'),
       externalId: response.data.rideId,
     };
   },
@@ -213,13 +222,14 @@ registerActionType({
 const requestRideDef: ToolDefinition = {
   id: 'requestRide',
   name: 'Request Ride',
-  description: 'Request an Uber or Lyft ride with price estimate and confirmation.',
+  description: 'Asked to request an Uber or Lyft ride: books nothing.',
   domain: 'transportation',
   tags: ['uber', 'lyft', 'ride', 'transport'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (): Tool => {
     return llm.tool({
-      description: 'Request an Uber or Lyft ride with price estimate and confirmation.',
+      description:
+        'Asked to request an Uber or Lyft ride. It books nothing and gets no fare: tell the caller plainly.',
       parameters: z.object({
         destination: z.string().describe('Where you want to go'),
         from: z.string().optional().describe('Pickup location (default: current location)'),
@@ -228,33 +238,8 @@ const requestRideDef: ToolDefinition = {
           .optional()
           .describe('Ride provider (default: best price)'),
       }),
-      execute: async (params: { destination: string; from?: string; provider?: string }) => {
-        const userId = ctx.userId;
-        if (!userId) {
-          return 'I need to know who you are to request a ride.';
-        }
-
-        const uberClient = getUberClient(userId);
-        const lyftClient = getLyftClient(userId);
-
-        const uberConnected = uberClient.isConnected();
-        const lyftConnected = lyftClient.isConnected();
-
-        if (!uberConnected && !lyftConnected) {
-          return 'Neither Uber nor Lyft is connected. Would you like me to help you connect your account?';
-        }
-
-        // For now, return information about the feature
-        // In production, this would geocode addresses and get real estimates
-        return (
-          `To request a ride to **${params.destination}**:\n\n` +
-          `1. I'll get price estimates from ${uberConnected && lyftConnected ? 'Uber and Lyft' : uberConnected ? 'Uber' : 'Lyft'}\n` +
-          `2. Show you the options with ETAs\n` +
-          `3. Ask you to confirm before requesting\n\n` +
-          `${!uberConnected ? '📱 Connect Uber for more options\n' : ''}` +
-          `${!lyftConnected ? '📱 Connect Lyft for more options\n' : ''}`
-        );
-      },
+      // Nothing here can request a ride, so nothing is promised.
+      execute: async () => RIDE_BOOKING_UNAVAILABLE,
     });
   },
 };

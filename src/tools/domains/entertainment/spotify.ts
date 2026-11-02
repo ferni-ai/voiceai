@@ -702,7 +702,7 @@ async function searchTracks(query: string, limit = 5): Promise<string> {
     return `Found these tracks:\n${trackList}\n\nWant me to play one?`;
   } catch (error) {
     getLogger().error({ error, query }, 'Spotify search error');
-    return "I'm having trouble searching Spotify right now. Is your Spotify connected?";
+    return "I'm having trouble searching Spotify right now.";
   }
 }
 
@@ -1154,7 +1154,7 @@ async function getCurrentlyPlaying(): Promise<string> {
     return `${status}: "${track.name}" by ${artists}\n${progressMin}:${progressSec.toString().padStart(2, '0')} / ${durationMin}:${durationSec.toString().padStart(2, '0')}${commentaryText}`;
   } catch (error) {
     getLogger().error({ error }, 'Spotify status error');
-    return "I can't check Spotify right now. Is it connected?";
+    return "I can't check Spotify right now.";
   }
 }
 

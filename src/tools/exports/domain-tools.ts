@@ -115,7 +115,7 @@ export {
   hasLinkedAccounts,
   removeAccessToken,
   storeAccessToken,
-} from '../domains/finance/plaid-store.js';
+} from '../domains/finance/plaid-items.js';
 export { createPlaidTools } from '../domains/finance/plaid.js';
 
 // ============================================================================

@@ -5500,7 +5500,7 @@ async function handleAudit(args: string[]): Promise<void> {
 
   if (subcommand === 'architecture') {
     console.log(`${colors.cyan}Validating architecture layers...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/validate-architecture.ts`], { stdio: 'inherit' });
+    spawnSync('sh', ['-c', 'pnpm quality:arch'], { stdio: 'inherit' });
   }
 
   if (subcommand === 'bth') {
@@ -5564,7 +5564,7 @@ async function handleAudit(args: string[]): Promise<void> {
 
     const audits = [
       { name: 'Quality', cmd: 'pnpm quality:check' },
-      { name: 'Architecture', cmd: `npx tsx ${scriptsDir}/validate-architecture.ts` },
+      { name: 'Architecture', cmd: 'pnpm quality:arch' },
       { name: 'Better Than Human', cmd: `npx tsx ${scriptsDir}/audit-better-than-human.ts` },
       { name: 'Tools', cmd: `npx tsx ${scriptsDir}/validate-tools.ts` },
     ];

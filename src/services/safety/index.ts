@@ -28,6 +28,8 @@ export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
 export { crisisRiskThisCall } from './crisis-call-risk.js';
 export { offersCrisisLine } from './crisis-line-speech.js';
+// A turn whose crisis read the provider blocked (CRISIS_CLASSIFIER_BLOCKED_SIGNAL, turn-crisis.ts).
+export { blockedReadGuidance } from './crisis-classifier-blocked.js';
 
 export type {
   CrisisDetectionResult,
@@ -38,12 +40,16 @@ export type {
 
 // Whether crisis handling may touch a turn (handoff transfer aliases)
 export { crisisGuidedTurn, markCrisisTurn, unmarkCrisisTurn } from './crisis-turn-mark.js';
+// A caller under 18 telling of sexual harm (MINOR_ABUSE_DISCLOSURE, turn-crisis.ts, turn-handler.ts).
+export { minorAbuseGuidance, withMinorAbuseDisclosure } from './minor-abuse-disclosure.js';
+export { SOFT_CRISIS_CHECK } from './crisis-agreement.js';
 
 // ============================================================================
 // CRISIS RESPONSE
 // ============================================================================
 
 export {
+  CRISIS_RESOURCES as SAFETY_CRISIS_RESOURCES,
   generateCrisisResponse,
   getCrisisResources,
   getGroundingExercise,
@@ -55,6 +61,7 @@ export type {
   CrisisResponseContent,
   CrisisResponseContext,
 } from './crisis-response.js';
+export { EMERGENCY_NUMBER } from './emergency-number.js';
 
 // ============================================================================
 // ESCALATION PATHWAYS

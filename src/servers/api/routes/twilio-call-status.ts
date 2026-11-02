@@ -17,6 +17,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { captureCallResult } from '../../../services/outreach/call-result-capture.js';
+import { userTimezone } from '../../../services/outreach/call-hours-guard.js';
 import { voicemailWords } from '../../../services/outreach/voicemail-outcome.js';
 import { isSignedByTwilio } from '../../../api/twilio-callback-signature.js';
 import type { CallOutcome } from '../../../tools/domains/telephony/types.js';
@@ -87,6 +88,16 @@ export function twilioStatusToOutcome(
     outcome: '',
     callbackRequired: false,
   };
+
+  // Our agent never joined: whatever Twilio reports, the call failed and it was our fault.
+  if (pendingCall.dispatchFailed) {
+    return {
+      ...baseOutcome,
+      status: 'failed',
+      outcome: `Ferni couldn't connect the call to ${pendingCall.contactName}`,
+      callbackRequired: true,
+    };
+  }
 
   switch (CallStatus) {
     case 'completed':
@@ -256,7 +267,8 @@ export async function handleTwilioCallStatus(
         callType: pendingCall.callType,
         originalSessionId: pendingCall.originalSessionId,
         userId: pendingCall.userId,
-        userTimezone: 'America/Los_Angeles', // Default, should be passed from orchestrator
+        // The owner's saved zone, never a guess: with none, call-result-text holds the text (no-time-zone).
+        userTimezone: (await userTimezone(pendingCall.userId).catch(() => undefined)) ?? '',
         userName: 'the user',
         recordingConsent: true,
       });

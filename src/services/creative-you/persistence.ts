@@ -113,8 +113,8 @@ class CreativeYouPersistence {
 
   private async doInitialize(): Promise<void> {
     try {
-      const { Firestore: FirestoreClass } = await import('@google-cloud/firestore');
-      this.db = new FirestoreClass({
+      const { sharedFirestore } = await import('../../utils/shared-firestore.js');
+      this.db = sharedFirestore({
         projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
         databaseId: process.env.FIRESTORE_DATABASE || '(default)',
       }) as unknown as Firestore;

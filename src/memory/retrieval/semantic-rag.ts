@@ -141,7 +141,7 @@ export async function indexAllPersonaContent(vectorStore?: AnyVectorStore): Prom
     await store.initialize();
   }
 
-  // Load knowledge content from jack-bogle bundle
+  // Load knowledge content from every persona bundle
   const { readdir, readFile } = await import('fs/promises');
   const { join, dirname } = await import('path');
   const { fileURLToPath } = await import('url');

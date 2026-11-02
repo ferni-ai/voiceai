@@ -32,7 +32,7 @@ export const LINK_KEYS = [
   ...['errandId', 'reminderId', 'providerRef'],
 ] as const;
 
-type ActivityKind = (typeof ACTIVITY_KINDS)[number];
+export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 export type ActivityState = (typeof ACTIVITY_STATES)[number];
 type ActivityReason = (typeof ACTIVITY_REASONS)[number];
 type OutcomeStatus = (typeof OUTCOME_STATUSES)[number];

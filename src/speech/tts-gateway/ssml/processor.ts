@@ -18,6 +18,7 @@ import { TransformStream } from 'node:stream/web';
 import type { ISSMLProcessor, SSMLParseResult, SSMLProsodyConfig } from '../types.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { holdBreak, isUnspeakable, restoreHeldBreaks, speakableText } from './native-breaks.js';
+import { fixStuckPunctuation } from './stuck-punctuation.js';
 
 export { speakableText };
 import { BREATH_BRACKET_REGEX, LAUGHTER_BRACKET_REGEX } from './nonverbal-brackets.js';
@@ -29,7 +30,6 @@ const log = createLogger({ module: 'SSMLProcessor' });
 // ============================================================================
 // CONSTANTS
 // ============================================================================
-
 
 /** Maximum buffer size to prevent memory issues */
 const MAX_BUFFER_SIZE = 4096;
@@ -447,21 +447,16 @@ export class SSMLProcessor implements ISSMLProcessor {
    * - Leading/trailing punctuation
    */
   private cleanupText(text: string): string {
+    const collapsed = text
+      // Collapse multiple spaces
+      .replace(/\s+/g, ' ')
+      // Runs of periods: keep a spoken ellipsis ("..."), collapse the rest.
+      // Collapsing "..." to "." turned a trailing-off pause into a full stop.
+      .replace(/\.{4,}/g, '...')
+      .replace(/(^|[^.])\.\.(?!\.)/g, '$1.');
     return (
-      text
-        // Collapse multiple spaces
-        .replace(/\s+/g, ' ')
-        // Runs of periods: keep a spoken ellipsis ("..."), collapse the rest.
-        // Collapsing "..." to "." turned a trailing-off pause into a full stop.
-        .replace(/\.{4,}/g, '...')
-        .replace(/(^|[^.])\.\.(?!\.)/g, '$1.')
-        // Fix multiple commas
-        .replace(/,+/g, ',')
-        // A comma stuck to sentence punctuation ("Talk to me., Mm.,") comes
-        // from a pause tag turned into a comma; the sentence end already pauses
-        .replace(/([.!?])\s*,/g, '$1')
-        // ...or a period stuck to a question or exclamation mark ("happening?.")
-        .replace(/([!?])\s*\.(?!\.)/g, '$1')
+      // Multiple commas, and a comma or period stuck to sentence punctuation
+      fixStuckPunctuation(collapsed)
         // Fix space before punctuation
         .replace(/\s+([.,!?;:])/g, '$1')
         // Sentences joined without a space ("background.I'm"), but not

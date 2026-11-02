@@ -1213,7 +1213,6 @@
       "journaling": "Die Chronik",
       "language": "Sprache",
       "lifeContext": "Deine Welt",
-      "linkSpotify": "Spotify verbinden",
       "memoryBrowser": "Woran ich mich erinnere",
       "musicalYou": "Gemeinsam Musik hören",
       "notifications": "Wann ich mich melde",
@@ -1224,7 +1223,6 @@
       "predictionAccuracy": "Wie ich mich schlage",
       "progressAnalytics": "Wie es dir geht",
       "shareFerni": "Bring jemanden mit",
-      "spotifyConnected": "Spotify verbunden",
       "supportFerni": "Ferni unterstützen",
       "supportFerniExpanded": "Ferni unterstützen",
       "takeTour": "Zeig mir alles",
@@ -1870,9 +1868,9 @@
     "disconnected": "Verbindung getrennt",
     "end": "Beenden",
     "endConversation": "Gespräch beenden",
-    "endConversationGoodbye": "Gespräch beenden – Tschüss",
+    "goodbyeEndCall": "Mach's gut. Auflegen.",
     "endSession": "Sitzung beenden",
-    "ending": "Wird beendet...",
+    "ending": "Anruf beendet",
     "goodbye": "Mach's gut",
     "holdToSpeak": "Halte zum Sprechen",
     "listening": "Ich höre zu...",
@@ -1882,7 +1880,7 @@
     "takeCare": "Pass auf dich auf.",
     "tapToSpeak": "Tippe zum Sprechen",
     "thinking": "Ich überlege...",
-    "untilNextTime": "Bis zum nächsten Mal..."
+    "untilNextTime": "Bis zum nächsten Mal"
   },
   "stages": {
     "acquaintance": "Bekannt",
@@ -2095,8 +2093,6 @@
     "couldNotConnectNetwork": "Verbindung fehlgeschlagen. Stelle sicher, dass du im selben Netzwerk bist.",
     "enterTokenFirst": "Gib zuerst dein Token ein",
     "getIosApp": "Du hast die App noch nicht? Hol sie dir im App Store!",
-    "homeKitConnected": "HomeKit ist verbunden!",
-    "homeKitNotConnected": "HomeKit ist noch nicht verbunden. Öffne zuerst die iOS-App.",
     "ecobeeConnected": "Ecobee verbunden!",
     "couldNotConnectEcobee": "Verbindung zu Ecobee fehlgeschlagen. Nochmal versuchen?",
     "hueConnected": "Hue verbunden!",
@@ -2418,10 +2414,6 @@
       "apple_health": {
         "description": "Synchronisiere mit den Gesundheitsdaten deiner Apple Watch und deines iPhones",
         "name": "Apple Health"
-      },
-      "fitbit": {
-        "description": "Verbinde dein Fitbit-Gerät",
-        "name": "Fitbit"
       },
       "garmin": {
         "description": "Synchronisiere mit Garmin-Wearables",
@@ -2776,8 +2768,7 @@
       "askFerni": "Oder bitte Ferni, etwas abzuspielen",
       "play": "Abspielen",
       "pause": "Pause",
-      "skip": "Überspringen",
-      "linkSpotify": "Verknüpfe Spotify in den Einstellungen für ganze Songs"
+      "skip": "Überspringen"
     },
     "volume": "Lautstärke",
     "skipped": "Übersprungen",
@@ -7818,22 +7809,15 @@
     "sonosDescription": "Lautsprecher & Musik",
     "speakers": "Lautsprecher",
     "nowPlaying": "Aktuelle Wiedergabe",
-    "homekit": "HomeKit",
-    "homekitDescription": "Apple home & Siri",
-    "home": "Zuhause",
-    "devices": "Geräte",
-    "scenes": "Szenen",
     "apiKeyPlaceholder": "Füge deinen API-Schlüssel hier ein...",
     "tokenPlaceholder": "Füge dein Token hier ein...",
     "checkingDevices": "Ich überprüfe deine Geräte...",
     "welcome": "Verbinde dein Zuhause und ich helfe dir, die perfekte Atmosphäre zu schaffen – ob gedimmtes Licht für den Filmabend, wohlige Wärme, wenn dir kalt ist, oder Ruhe, wenn du dich konzentrieren musst.",
     "defaultThermostat": "Mein Thermostat",
     "idle": "Bereit",
-    "defaultHome": "Mein Zuhause",
     "setUp": "Einrichten",
     "connectHue": "Mit Philips Hue verbinden",
     "connectSonos": "Mit Sonos verbinden",
-    "connectHomeKit": "Mit HomeKit verbinden",
     "ecobeeSetup": {
       "getKeyTitle": "Hol dir deinen Ecobee API-Key",
       "getKeyText": "Zuerst brauchen wir einen Key aus dem Entwicklerportal von Ecobee. Keine Sorge, das geht ganz schnell!",
@@ -7880,14 +7864,6 @@
       "hint": "Du wirst zur Anmeldung an Sonos weitergeleitet und danach automatisch wieder hierher zurückgebracht.",
       "connectFailed": "Verbindung zu Sonos fehlgeschlagen. Nochmal versuchen?",
       "connectSonosFailed": "Verbindung zu Sonos fehlgeschlagen. Nochmal versuchen?"
-    },
-    "homekitSetup": {
-      "title": "Über iOS-App verbinden",
-      "text": "HomeKit verbindet sich über die Ferni iOS-App. Öffne die App auf deinem iPhone, um dein Apple Home zu verknüpfen.",
-      "openApp": "Ferni iOS-App öffnen",
-      "getApp": "Du hast die App noch nicht? Hol sie dir im App Store!",
-      "hint": "Sobald die Verbindung steht, sag einfach „Hey Siri, sag Ferni, den Vibe auf Entspannung zu setzen“ und dein ganzes Zuhause reagiert.",
-      "alreadyConnected": "Ich bin bereits verbunden"
     },
     "setupDone": "Alles bereit! Bitte mich einfach, die Stimmung anzupassen – „dimme das Licht“ oder „mach es gemütlich“ – und ich kümmere mich darum.",
     "settingsTitle": "Smart-Home-Einstellungen",
@@ -8349,10 +8325,9 @@
     "appleHealthDesc": "Schlaf-, Aktivitäts- und Herzfrequenzdaten",
     "ouraDesc": "Schlafqualität und Tagesform-Werte",
     "eightSleepDesc": "Schlaftracking und Temperatur",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP und mehr",
+    "wearablesDesc": "Garmin, WHOOP und mehr",
     "calendarDesc": "Termine, Meetings und Verfügbarkeit",
     "linkedInDesc": "Beruflicher Kontext und Netzwerk",
-    "spotifyDesc": "Musik, Stimmungs-Playlists, Hörverlauf",
     "ecobeeDesc": "Zuhause-Temperatur und Komfort",
     "vibeControllerDesc": "Steuere Musik, Licht und mehr",
     "connected": "Verbunden"
@@ -8829,6 +8804,13 @@
     "exportFailed": "Deine Daten konnten nicht exportiert werden. Nochmal versuchen?",
     "deleteDataFailed": "Deine Daten konnten nicht gelöscht werden. Es wurde nichts entfernt. Nochmal versuchen?",
     "deleteAccountFailed": "Dein Konto konnte nicht gelöscht werden. Nochmal versuchen?",
+    "deleteRefusedSignIn": "Deine Anmeldung wurde nicht akzeptiert, deshalb hat diese Anfrage nichts gelöscht. Melde dich neu an und versuch es dann noch einmal.",
+    "deleteDataUnknown": "Ob deine Daten gelöscht wurden, ließ sich nicht bestätigen. Vielleicht läuft es noch, schau in ein paar Minuten noch einmal nach.",
+    "deleteDataStillUnknown": "Ob deine Daten gelöscht wurden, ließ sich immer noch nicht bestätigen. Versuch es in ein paar Minuten noch einmal.",
+    "deleteAccountUnknown": "Ob dein Konto gelöscht wurde, ließ sich nicht bestätigen. Vielleicht läuft es noch, schau in ein paar Minuten noch einmal nach.",
+    "accountStillOpen": "Dein Konto ist noch offen. Wenn du es weiterhin schließen möchtest, kannst du es noch einmal löschen.",
+    "accountSignInRefused": "Deine Anmeldung wird nicht mehr akzeptiert. Das passiert, wenn ein Konto geschlossen wird. Wenn du es nicht gelöscht hast, melde dich neu an, um nachzusehen.",
+    "authSlow": "Deine Anmeldung ließ sich nicht rechtzeitig prüfen, deshalb wurde nichts gesendet. Nochmal versuchen?",
     "accountDeletedPartial": "Dein Konto wurde gelöscht, aber einige Daten konnten nicht entfernt werden. Bitte kontaktiere uns, um den Vorgang abzuschließen.",
     "categoryConversations": "Alle Gesprächstranskripte und Metadaten",
     "categoryInsights": "Was Ferni über dich gelernt hat",
@@ -8982,9 +8964,6 @@
     "trustJourneyExplore": "Erkunden",
     "customizeTitle": "Passe dein Erlebnis an",
     "customizeMessage": "Passe Designs, Töne und mehr an.",
-    "spotifyTitle": "Spotify verbinden",
-    "spotifyMessage": "Verknüpfe dein Spotify, um die Stimmung bei unseren Gesprächen zu untermalen.",
-    "spotifyConnect": "Verbinden",
     "maybeLater": "Vielleicht später"
   },
   "mentorTeachings": {
@@ -9340,6 +9319,8 @@
   },
   "dataExport": {
     "title": "Deine Daten",
+    "loadFailed": "Ich konnte gerade nicht laden, was ich für dich gespeichert habe. Es hat sich nichts geändert.",
+    "checkAgain": "Noch einmal prüfen",
     "exportFormat": "Exportformat",
     "deleteAll": "Alle Daten löschen",
     "footer": "Ich speichere unsere Gespräche und das, was du mir erzählst, damit ich mich beim nächsten Mal daran erinnere, und wenn du das irgendwann nicht mehr willst, wird mit deinem Konto auch all das gelöscht.",
@@ -10192,7 +10173,6 @@
     "startupError": "Es gibt Probleme beim Starten. Möchtest du die Seite neu laden?",
     "lastConversation": "Das ist dein letztes Gespräch in diesem Monat. Lass es uns besonders machen.",
     "gettingReady": "Ich mache mich bereit...",
-    "connecting": "Verbindung wird hergestellt",
     "almostThere": "Gleich da...",
     "waitingQuietly": "Ich warte ganz leise",
     "listening": "Ich höre zu",
@@ -10509,7 +10489,6 @@
     "names": {
       "stockData": "Börsendaten",
       "marketData": "Marktdaten",
-      "weatherMaps": "Wetter & Karten",
       "historicalFacts": "Historische Fakten",
       "lighting": "Beleuchtung",
       "aiContext": "Gedächtnis & Kontext",
@@ -10804,12 +10783,13 @@
     "helper": "Dein persönlicher Wegbegleiter",
     "connectToTalk": "Mit Ferni reden",
     "endTalk": "Auflegen",
-    "connectingCancel": "Verbindung wird hergestellt. Zum Abbrechen tippen",
-    "connectingNow": "Verbindung wird hergestellt…",
+    "connectingCancel": "Rufe {name} an. Zum Abbrechen tippen.",
+    "connectingNow": "Rufe {name} an…",
     "tapToCancel": "Zum Abbrechen tippen",
-    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
-    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
-    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
+    "stillCalling": "Klingelt bei {name}…",
+    "stillCallingCancel": "Klingelt bei {name}. Zum Abbrechen tippen.",
+    "reconnecting": "Verbinde erneut…",
+    "arrived": "{name} ist da"
   },
   "analyticsDashboard": {
     "title": "Deine Reise",
@@ -11072,6 +11052,19 @@
     "retry": "",
     "switchAccount": "",
     "seeSources": ""
+  },
+  "connectInvite": {
+    "title": "Lass Alex ein Auge auf deinen Kalender haben",
+    "lead": "Verbinde Google Kalender, damit dich keine Termine mehr überraschen. Das wird geteilt:",
+    "account": "Verbindung mit Alex für {account}",
+    "sees": "Sieht Uhrzeiten, Titel und Orte deiner Termine",
+    "changes": "Legt Termine nur an oder ändert sie, wenn du darum bittest",
+    "never": "Sieht nie deine E-Mails oder Anhänge",
+    "undo": "Jederzeit rückgängig in Einstellungen > Kalender, oder sag es einfach Alex",
+    "connect": "Google Kalender verbinden",
+    "opening": "Google wird geöffnet...",
+    "expired": "Dieser Link ist abgelaufen oder wurde schon benutzt. Frag beim nächsten Anruf, dann schicke ich dir einen neuen.",
+    "failed": "Google ließ sich gerade nicht öffnen. Frag beim nächsten Anruf, dann schicke ich dir einen neuen Link."
   },
   "aiLabel": {
     "role": {

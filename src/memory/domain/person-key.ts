@@ -130,6 +130,14 @@ export function keepLetters(s: string, also = ''): string {
     .replace(new RegExp(`[^\\p{L}\\p{M}\\s${also}]`, 'gu'), '');
 }
 
+/** How the extractor names the caller themself: "User", "the speaker", "me", "Caller". */
+const CALLER_NAME = /^(?:the )?(?:speaker|user|me|caller)$/i;
+
+/** Whether an extracted subject is the caller themself, not someone in their life. */
+export function isCallerName(name: string): boolean {
+  return CALLER_NAME.test(name.trim());
+}
+
 /** "my", "the" or "our" leading a phrase: "my Mom", "the dentist". */
 export const OWNER_LEAD = /^\s*(?:my|the|our)\s+/i;
 

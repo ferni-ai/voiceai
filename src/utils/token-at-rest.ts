@@ -97,16 +97,6 @@ export function openTokens<T>(stored: unknown, store: string): T | null {
 }
 
 /**
- * For stores whose docs are not always token-shaped (smart_home also holds
- * HomeKit config): a sealed doc is opened, anything else is returned as stored.
- */
-export function openSealedOrRaw<T>(stored: unknown, store: string): T | null {
-  if (stored === null || typeof stored !== 'object') return null;
-  if (typeof (stored as Partial<SealedTokens>).encrypted !== 'string') return stored as T;
-  return openTokens<T>(stored, store);
-}
-
-/**
  * The boot line the web server and the agent log, for comparing their keys. With
  * TOKEN_SEALING_KEY set it also lists the key ids on the ring (ids only), so
  * prod, dev and the UI can be compared; unset, the line is what it always was.

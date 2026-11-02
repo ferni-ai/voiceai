@@ -18,7 +18,6 @@ export { handleWebhookRoutes } from './webhooks.js';
 export { handleEcobeeRoutes } from './ecobee.js';
 export { handleSmartHomeRoutes } from './smart-home.js';
 export { handleVibeRoutes } from './vibe.js';
-export { handleEightSleepRoutes } from './eight-sleep.js';
 export { handleOuraRoutes } from './oura.js';
 export { handleAppleHealthRoutes } from './apple-health.js';
 // Apple Sign In notifications (server-to-server)

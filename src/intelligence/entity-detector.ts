@@ -370,7 +370,7 @@ export function detectEntities(
   }
 
   log.debug(
-    { input: text.slice(0, 50), detected: detected.length },
+    { inputLen: text.length, detected: detected.length },
     '🔍 Entity detection complete'
   );
 

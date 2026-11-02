@@ -35,6 +35,10 @@ export interface VoiceCallback {
   context?: Record<string, unknown>;
   /** The AgentSession of the call that asked for it, when known. */
   session?: object;
+  /** True when it must not be said now (crisis risk on the call); checked at each pause. */
+  holdIf?: () => boolean;
+  /** Called once the speaker heard it played (CALL_ALERT_SPOKEN), not when it was held or dropped. */
+  onSpoken?: () => void;
 }
 
 type VoiceCallbackHandler = (callback: VoiceCallback) => Promise<void>;

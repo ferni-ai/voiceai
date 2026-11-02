@@ -86,6 +86,9 @@ jobs:
           # Toast region (apps/web/src/ui/overlay/toast-flag.ts): ON unless "off". Kill switch:
           # set the repo variable VITE_TOAST_REGION=off and re-run this workflow.
           VITE_TOAST_REGION: ${{ vars.VITE_TOAST_REGION }}
+          # Gate-first paint (apps/web/src/ui/gate-first.ui.ts): ON unless "false". Kill switch:
+          # set the repo variable VITE_GATE_FIRST=false and re-run this workflow.
+          VITE_GATE_FIRST: ${{ vars.VITE_GATE_FIRST }}
           # Talk first (apps/web/src/config/try-first-flag.ts): on for prod since
           # 2026-10-18. To turn it off, set the repo variable VITE_TRY_FIRST=false
           # and re-run this workflow.
@@ -94,6 +97,23 @@ jobs:
           VITE_APPLE_WEB_SIGNIN: ${{ vars.VITE_APPLE_WEB_SIGNIN }}
           # Goodbye ceremony and reconnect prompt (apps/web/src/config/call-wrap-up-flag.ts); off unless exactly "true".
           VITE_CALL_WRAP_UP: ${{ vars.VITE_CALL_WRAP_UP }}
+          # Avatar motion switches (apps/web/src/config/motion-flags.ts); off unless "on" or "true".
+          # To turn one on, set its repo variable (e.g. VITE_NATURAL_BLINK=true) and re-run this
+          # workflow. scripts/ci/prod-web-flags.test.mjs fails if one is missing here.
+          VITE_NATURAL_BLINK: ${{ vars.VITE_NATURAL_BLINK }}
+          VITE_LID_BLEND: ${{ vars.VITE_LID_BLEND }}
+          VITE_GAZE: ${{ vars.VITE_GAZE }}
+          VITE_LISTEN_NODS: ${{ vars.VITE_LISTEN_NODS }}
+          VITE_SPRING_BODY: ${{ vars.VITE_SPRING_BODY }}
+          VITE_WEIGHTED_EASING: ${{ vars.VITE_WEIGHTED_EASING }}
+          VITE_SPEECH_BEATS: ${{ vars.VITE_SPEECH_BEATS }}
+          VITE_THINKING_GLANCE: ${{ vars.VITE_THINKING_GLANCE }}
+          VITE_TURN_GESTURES: ${{ vars.VITE_TURN_GESTURES }}
+          VITE_FACE_ENGINE: ${{ vars.VITE_FACE_ENGINE }}
+          VITE_EXPRESSION_ARBITER: ${{ vars.VITE_EXPRESSION_ARBITER }}
+          VITE_REPLY_TONE: ${{ vars.VITE_REPLY_TONE }}
+          VITE_SOUND_DIRECTOR: ${{ vars.VITE_SOUND_DIRECTOR }}
+          VITE_IDLE_LIFE: ${{ vars.VITE_IDLE_LIFE }}
           # Android app links (apps/web/scripts/asset-links.ts): the signing
           # SHA-256 fingerprint(s), comma separated. Unset serves [] as before.
           ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}

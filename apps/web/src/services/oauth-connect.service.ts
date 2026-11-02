@@ -1,6 +1,6 @@
 /**
  * Start an OAuth "connect account" flow (Google/Outlook/Apple calendar, wearables,
- * LinkedIn, Spotify).
+ * LinkedIn).
  *
  * A full-page navigation can't carry the Firebase token, so the server never
  * learns who is connecting from the login URL. We first POST /auth/oauth/start
@@ -23,28 +23,34 @@ export type OAuthConnectProvider =
   | 'google_calendar'
   | 'microsoft_calendar'
   | 'apple_calendar'
-  | 'fitbit'
   | 'oura'
   | 'garmin'
   | 'whoop'
-  | 'linkedin'
-  | 'spotify';
+  | 'linkedin';
 
 const PROVIDER_NAMES: Record<OAuthConnectProvider, string> = {
   google_calendar: 'Google Calendar',
   microsoft_calendar: 'Outlook',
   apple_calendar: 'Apple Calendar',
-  fitbit: 'Fitbit',
   oura: 'Oura',
   garmin: 'Garmin',
   whoop: 'WHOOP',
   linkedin: 'LinkedIn',
-  spotify: 'Spotify',
 };
 
+/** A host no real URL has: anything that parses to another host left this site. */
+const SAME_SITE = 'same-site.invalid';
+
 /** Only same-origin paths: the server returns e.g. /auth/google/login?state=… */
-function isSameOriginPath(url: unknown): url is string {
-  return typeof url === 'string' && url.startsWith('/') && !url.startsWith('//');
+export function isSameOriginPath(url: unknown): url is string {
+  if (typeof url !== 'string' || !url.startsWith('/') || url.startsWith('//')) return false;
+  // Ask the URL parser, as the browser will: it reads a backslash as a slash and drops
+  // tabs and newlines, so either one after the first slash could leave this site.
+  try {
+    return new URL(url, `https://${SAME_SITE}`).host === SAME_SITE;
+  } catch {
+    return false;
+  }
 }
 
 /** What to tell the user when the server won't start the flow. */

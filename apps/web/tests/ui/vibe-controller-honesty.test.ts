@@ -40,7 +40,6 @@ vi.mock('../../src/ui/smart-home-settings.ui.js', () => ({ showSmartHomeSettings
 
 function serveStatus(): void {
   mockApiGet.mockImplementation(async (path: string) => {
-    if (path === '/spotify/status') return { ok: true, status: 200, data: { linked: true } };
     if (path === '/api/vibe/lights/status')
       return { ok: true, status: 200, data: { connected: false, brightness: 50, colorTemp: 4000 } };
     if (path === '/api/ecobee/status') return { ok: true, status: 200, data: { connected: false } };

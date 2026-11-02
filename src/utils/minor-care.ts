@@ -36,6 +36,8 @@ import { flagModeOf, flagOn } from '../config/env-flag.js';
 import { statesUnder18 } from './minor-care-detect.js';
 import { createLogger } from './safe-logger.js';
 import { PLACEHOLDER_IDS } from './synthetic-user.js';
+import { sexualTopicHeld, sexualTopicUserHeld } from './sexual-topic-hold.js';
+export { sexualReadsSettled } from './sexual-topic-hold.js';
 
 const log = createLogger({ module: 'minor-care' });
 
@@ -232,12 +234,28 @@ export function likelyMinor(sessionId: string | undefined): boolean {
   return !!sessionId && likely.has(sessionId);
 }
 
-/** Nothing personal is stored for this session: flag on, sounds under 18, not a verified owner. */
+/**
+ * Nothing personal is stored for this session: MINOR_CARE holds it (minorHeld), or
+ * SEXUAL_TOPIC_BOUNDARY does (sexual-topic-hold.ts).
+ */
 export function memoryHeld(sessionId: string | undefined, env: Env = process.env): boolean {
+  return minorHeld(sessionId, env) || sexualTopicHeld(sessionId, env);
+}
+
+/** MINOR_CARE's own hold: flag on, sounds under 18, not a verified owner. Its purge keys on this. */
+export function minorHeld(sessionId: string | undefined, env: Env = process.env): boolean {
   if (!sessionId || !minorCareOn(env) || !likely.has(sessionId)) return false;
   touch(sessionId);
   return !ownerExempt(sessionId, env);
 }
+
+/** Any sign this caller is under 18: a held read, or MINOR_CARE=shadow's logged one. */
+export const ageSignal = (sessionId: string | undefined): boolean =>
+  !!sessionId && (likely.has(sessionId) || shadowLogged.has(sessionId));
+
+/** The session is a verified account owner's (caller-recognition.ts registers the check). */
+export const verifiedOwner = (sessionId: string | undefined): boolean =>
+  !!sessionId && ownerCheck(sessionId);
 
 /** Read this turn's words, then memoryHeld: the per-turn writers' one-line check. */
 export function heldAfter(
@@ -245,7 +263,7 @@ export function heldAfter(
   said: string,
   options: HeardOptions = {}
 ): boolean {
-  if (!minorCareOn(options.env)) return false;
+  if (!minorCareOn(options.env)) return sexualTopicHeld(sessionId, options.env);
   noteCallerWords(sessionId, said, options);
   bindSessionUser(sessionId, options.userId);
   return memoryHeld(sessionId, options.env);
@@ -277,7 +295,7 @@ export function writeHeld(
   sessionId?: string,
   env: Env = process.env
 ): boolean {
-  if (!minorCareOn(env)) return false;
+  if (!minorCareOn(env)) return memoryHeld(sessionId, env) || userHeld(userId, env);
   return memoryHeld(sessionId, env) || userHeld(userId, env) || sharedId(userId);
 }
 
@@ -295,6 +313,7 @@ export function callerHeld(
  * timer can't keep a hold alive past IDLE_MS.
  */
 export function userHeld(userId: string | undefined, env: Env = process.env): boolean {
+  if (sexualTopicUserHeld(userId, env)) return true;
   if (!userId || sharedId(userId) || !minorCareOn(env)) return false;
   for (const [sessionId, owner] of sessionUsers) {
     const used = likely.get(sessionId);

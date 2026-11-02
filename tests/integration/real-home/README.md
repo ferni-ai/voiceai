@@ -1,6 +1,6 @@
 # 🏠 Real Home Integration Tests
 
-Test Ferni's smart home capabilities against your **actual devices** - Ecobee, HomeKit, TVs, and more.
+Test Ferni's smart home capabilities against your **actual devices** - Ecobee, LIFX, TVs, and more.
 
 ## Quick Start
 
@@ -18,7 +18,7 @@ pnpm test:real-home:control
 
 ## Required Setup
 
-We support **direct integrations** with your devices - no Home Assistant required!
+We support **direct integrations** with your devices.
 
 ### Option A: Ecobee Thermostat (Recommended First Step)
 
@@ -61,18 +61,6 @@ Simple cloud-based control for LIFX bulbs.
 # 2. Add to .env.local:
 LIFX_TOKEN=your_token
 ```
-
-### Option D: Home Assistant (Optional, for Power Users)
-
-If you already run Home Assistant, it can aggregate ALL your devices:
-
-```bash
-# Add to .env.local:
-HOME_ASSISTANT_URL=http://homeassistant.local:8123
-HOME_ASSISTANT_TOKEN=your_long_lived_token
-```
-
-**Pro tip**: Home Assistant's HomeKit Controller lets you access HomeKit devices from Node.js!
 
 ## Test Categories
 
@@ -140,19 +128,8 @@ DRY_RUN=true pnpm test:real-home:control
 **"401 Unauthorized"**
 - Regenerate token at cloud.lifx.com/settings
 
-### Home Assistant Issues (Optional)
+## HomeKit
 
-**"Connection refused"**
-- Check `HOME_ASSISTANT_URL` is correct
-- Ensure token has admin permissions
-- Try: `curl -H "Authorization: Bearer $TOKEN" http://your-ha:8123/api/`
-
-## HomeKit Control
-
-HomeKit devices can be controlled via:
-
-1. **iOS App** - Native `HomeKitService.swift` integration (already implemented!)
-2. **Home Assistant** - HomeKit Controller integration (optional)
-3. **Homebridge** - Exposes HomeKit to a REST API
-
-For Node.js testing, we recommend Home Assistant or Homebridge if you want HomeKit control from the test runner.
+Not supported. Apple allows HomeKit only in apps built mainly for home automation
+and bans moving HomeKit data off the device (Apple Developer Program License
+Agreement §3.3 I), so the server bridge was removed on 2026-10-30.

@@ -1270,8 +1270,6 @@
       "notifications": "チェックインのタイミング",
       "toggleTheme": "ライト/ダーク",
       "themeLanguage": "見た目とデザイン",
-      "linkSpotify": "Spotifyを連携する",
-      "spotifyConnected": "Spotify連携済み",
       "vibeController": "雰囲気を変える",
       "spotifyRooms": "ミュージックルーム",
       "thermostat": "お部屋の快適さ",
@@ -1870,9 +1868,9 @@
     "disconnected": "切断されました",
     "end": "終了",
     "endConversation": "お話を終了する",
-    "endConversationGoodbye": "お話を終了して、さようなら",
+    "goodbyeEndCall": "さようなら。通話を終了",
     "endSession": "セッションを終了する",
-    "ending": "終了しています...",
+    "ending": "通話終了",
     "goodbye": "さようなら",
     "holdToSpeak": "長押ししてお話しする",
     "listening": "聞いています...",
@@ -1882,7 +1880,7 @@
     "takeCare": "お元気で。",
     "tapToSpeak": "タップしてお話しする",
     "thinking": "考え中...",
-    "untilNextTime": "また次回お会いしましょう..."
+    "untilNextTime": "また次回お会いしましょう"
   },
   "stages": {
     "acquaintance": "知り合い",
@@ -2095,8 +2093,6 @@
     "couldNotConnectNetwork": "接続できませんでした。同じネットワークに接続しているか確認してみてくださいね。",
     "enterTokenFirst": "最初にトークンを入力してください",
     "getIosApp": "アプリをお持ちでないですか？App Storeからダウンロードしましょう！",
-    "homeKitConnected": "HomeKitに接続しました！",
-    "homeKitNotConnected": "HomeKitにまだ接続されていません。まずiOSアプリを開いてください。",
     "ecobeeConnected": "Ecobeeと接続しました！",
     "couldNotConnectEcobee": "Ecobeeに接続できませんでした。もう一度試してみてくださいね。",
     "hueConnected": "Hueに接続しました！",
@@ -2418,10 +2414,6 @@
       "apple_health": {
         "description": "Apple WatchとiPhoneのヘルスケアデータと同期します",
         "name": "Apple Health"
-      },
-      "fitbit": {
-        "description": "Fitbitデバイスを接続します",
-        "name": "Fitbit"
       },
       "garmin": {
         "description": "Garminのウェアラブルと同期します",
@@ -2776,8 +2768,7 @@
       "askFerni": "または、Ferniに何かかけてと頼んでみてくださいね",
       "play": "再生",
       "pause": "一時停止",
-      "skip": "スキップ",
-      "linkSpotify": "曲をフルで再生するには、設定からSpotifyを連携してください"
+      "skip": "スキップ"
     },
     "volume": "音量",
     "skipped": "スキップしました",
@@ -7818,22 +7809,15 @@
     "sonosDescription": "スピーカー＆音楽",
     "speakers": "スピーカー",
     "nowPlaying": "再生中",
-    "homekit": "HomeKit",
-    "homekitDescription": "Apple HomeとSiri",
-    "home": "ホーム",
-    "devices": "デバイス",
-    "scenes": "シーン",
     "apiKeyPlaceholder": "ここにAPIキーを貼り付けてください...",
     "tokenPlaceholder": "ここにトークンを貼り付けてください...",
     "checkingDevices": "デバイスを確認しています...",
     "welcome": "お家を連携させると、映画の時間にライトを暗くしたり、肌寒いときに部屋を暖めたり、集中したいときに静かな空間を作ったりと、あなたにぴったりの雰囲気作りをお手伝いできますよ。",
     "defaultThermostat": "マイサーモスタット",
     "idle": "待機中",
-    "defaultHome": "マイホーム",
     "setUp": "セットアップ",
     "connectHue": "Philips Hueを連携",
     "connectSonos": "Sonosを連携",
-    "connectHomeKit": "HomeKitを連携",
     "ecobeeSetup": {
       "getKeyTitle": "EcobeeのAPIキーを取得",
       "getKeyText": "まずは、Ecobeeの開発者ポータルからキーを取得する必要があります。難しくないので、すぐに終わりますよ！",
@@ -7880,14 +7864,6 @@
       "hint": "サインインのためにSonosにリダイレクトされ、その後自動的にここに戻ります。",
       "connectFailed": "Sonosに接続できませんでした。もう一度お試しになりますか？",
       "connectSonosFailed": "Sonosを接続できませんでした。もう一度お試しになりますか？"
-    },
-    "homekitSetup": {
-      "title": "iOSアプリ経由で連携",
-      "text": "HomeKitはFerniのiOSアプリ経由で接続します。iPhoneでアプリを開き、Apple Homeを連携してください。",
-      "openApp": "FerniのiOSアプリを開く",
-      "getApp": "アプリをお持ちでないですか？App Storeからダウンロードしましょう！",
-      "hint": "接続したら、「Hey Siri、Ferniに雰囲気をリラックスにしてって伝えて」と言うだけで、お家全体が応えてくれます。",
-      "alreadyConnected": "すでに接続しました"
     },
     "setupDone": "準備完了です！「明かりを暗くして」や「心地いい雰囲気にして」など、気分を合わせるよう私に声をかけてくれれば、すぐにお手伝いします。",
     "settingsTitle": "スマートホーム設定",
@@ -8349,10 +8325,9 @@
     "appleHealthDesc": "睡眠、アクティビティ、心拍数のデータ",
     "ouraDesc": "睡眠の質とレディネス（コンディション）のスコア",
     "eightSleepDesc": "睡眠トラッキングと温度調整",
-    "wearablesDesc": "Fitbit、Garmin、WHOOPなど",
+    "wearablesDesc": "Garmin、WHOOPなど",
     "calendarDesc": "予定、会議、空き時間",
     "linkedInDesc": "仕事の状況やネットワーク",
-    "spotifyDesc": "音楽、気分に合わせたプレイリスト、再生履歴",
     "ecobeeDesc": "自宅の温度と快適さ",
     "vibeControllerDesc": "音楽や照明などのコントロール",
     "connected": "連携済み"
@@ -8829,6 +8804,13 @@
     "exportFailed": "データをエクスポートできませんでした。もう一度お試しになりますか？",
     "deleteDataFailed": "データを削除できませんでした。何も削除されていません。もう一度お試しになりますか？",
     "deleteAccountFailed": "アカウントを削除できませんでした。もう一度お試しになりますか？",
+    "deleteRefusedSignIn": "サインインが受け付けられなかったため、今回のリクエストでは何も削除されていません。もう一度サインインしてから、再度お試しください。",
+    "deleteDataUnknown": "データが削除されたかどうかを確認できませんでした。まだ処理中の可能性があります。数分後にもう一度確認してください。",
+    "deleteDataStillUnknown": "データが削除されたかどうか、まだ確認できません。数分後にもう一度お試しください。",
+    "deleteAccountUnknown": "アカウントが削除されたかどうかを確認できませんでした。まだ処理中の可能性があります。数分後にもう一度確認してください。",
+    "accountStillOpen": "アカウントはまだ有効です。閉じたい場合は、もう一度削除できます。",
+    "accountSignInRefused": "サインインが受け付けられなくなりました。これはアカウントの閉鎖中に起こります。削除していない場合は、もう一度サインインして確認してください。",
+    "authSlow": "サインインを時間内に確認できなかったため、何も送信されていません。もう一度お試しになりますか？",
     "accountDeletedPartial": "アカウントは削除されましたが、一部のデータが残っています。完全に削除するにはお問い合わせください。",
     "categoryConversations": "すべてのお話の文字起こしとメタデータ",
     "categoryInsights": "Ferniがあなたについて学んだこと",
@@ -8982,10 +8964,7 @@
     "trustJourneyExplore": "見てみる",
     "customizeTitle": "体験をカスタマイズする",
     "customizeMessage": "テーマやサウンドなどを調整できます。",
-    "spotifyMessage": "Spotifyを連携して、お話中の気分を盛り上げましょう。",
-    "spotifyConnect": "連携する",
-    "maybeLater": "また今度",
-    "spotifyTitle": "Spotifyと連携する"
+    "maybeLater": "また今度"
   },
   "mentorTeachings": {
     "learningFrom": "学びの源",
@@ -9340,6 +9319,8 @@
   },
   "dataExport": {
     "title": "あなたのデータ",
+    "loadFailed": "保存している内容を今は読み込めませんでした。何も変わっていません。",
+    "checkAgain": "もう一度確認",
     "exportFormat": "エクスポート形式",
     "deleteAll": "すべてのデータを削除",
     "footer": "次に話すときに覚えていられるように、私たちの会話やあなたが話してくれたことを保存しています。消したくなったら、アカウントを削除すればすべて消去されます。",
@@ -10192,7 +10173,6 @@
     "startupError": "起動に問題が発生しています。再読み込みをお試しください。",
     "lastConversation": "これが今月最後のお話です。大切な時間にしましょうね。",
     "gettingReady": "準備をしています...",
-    "connecting": "接続中",
     "almostThere": "あと少しです...",
     "waitingQuietly": "静かにお待ちしていますね",
     "listening": "聴いていますよ",
@@ -10509,7 +10489,6 @@
     "names": {
       "stockData": "株価データ",
       "marketData": "市場データ",
-      "weatherMaps": "天気と地図",
       "historicalFacts": "歴史的事実",
       "smartHome": "スマートホーム",
       "lighting": "照明",
@@ -10803,13 +10782,14 @@
   "entrance": {
     "helper": "あなた専属のガイド",
     "connectToTalk": "Ferniと話す",
-    "endTalk": "終了",
-    "connectingCancel": "接続中です。タップしてキャンセル",
-    "connectingNow": "接続中…",
+    "endTalk": "通話を終了",
+    "connectingCancel": "{name}を呼び出し中です。タップしてキャンセル",
+    "connectingNow": "{name}を呼び出し中…",
     "tapToCancel": "タップしてキャンセル",
-    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
-    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
-    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
+    "stillCalling": "引き続き{name}を呼び出し中…",
+    "stillCallingCancel": "引き続き{name}を呼び出し中です。タップしてキャンセル",
+    "reconnecting": "再接続中…",
+    "arrived": "{name}とつながりました"
   },
   "analyticsDashboard": {
     "title": "あなたの道のり",
@@ -11072,6 +11052,19 @@
     "retry": "",
     "switchAccount": "",
     "seeSources": ""
+  },
+  "connectInvite": {
+    "title": "Alexにカレンダーを見守ってもらいましょう",
+    "lead": "Googleカレンダーを連携すると、予定をうっかり忘れることがなくなります。共有される内容：",
+    "account": "{account} で Alex に接続します",
+    "sees": "予定の時間・タイトル・場所を確認します",
+    "changes": "予定の追加や変更は、頼まれたときだけ行います",
+    "never": "メールや添付ファイルは見ません",
+    "undo": "設定 > カレンダー からいつでも解除できます。Alexに伝えるだけでも大丈夫です",
+    "connect": "Googleカレンダーを連携",
+    "opening": "Googleを開いています...",
+    "expired": "このリンクは期限切れか、すでに使われています。次の通話で言ってくれたら、新しいリンクを送りますね。",
+    "failed": "今はGoogleを開けませんでした。次の通話で言ってくれたら、新しいリンクを送りますね。"
   },
   "aiLabel": {
     "role": {

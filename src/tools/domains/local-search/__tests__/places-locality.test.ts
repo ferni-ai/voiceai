@@ -55,7 +55,9 @@ describe('findCityByName', () => {
         places: [
           {
             types: ['route'],
-            addressComponents: [{ longText: 'Baker Street', shortText: 'Baker St', types: ['route'] }],
+            addressComponents: [
+              { longText: 'Baker Street', shortText: 'Baker St', types: ['route'] },
+            ],
           },
         ],
       })
@@ -70,7 +72,7 @@ describe('findCityByName', () => {
 
   it('throws when the lookup fails, so the failure is not read as an unknown city', async () => {
     vi.stubGlobal('fetch', reply({ error: 'quota' }, 503));
-    await expect(findCityByName('Philadelphia')).rejects.toThrow(/status 503/);
+    await expect(findCityByName('Philadelphia')).rejects.toThrow(/unreachable \(503\)/);
   });
 
   it('does not pass on the body of a non-JSON reply', async () => {
@@ -83,7 +85,9 @@ describe('findCityByName', () => {
             ok: true,
             status: 200,
             json: async () => {
-              throw new SyntaxError(`Unexpected token '<', "<html>${secret}</html>" is not valid JSON`);
+              throw new SyntaxError(
+                `Unexpected token '<', "<html>${secret}</html>" is not valid JSON`
+              );
             },
           }) as unknown as Response
       )
@@ -97,6 +101,7 @@ describe('findCityByName', () => {
   it('throws without an API key', async () => {
     delete process.env.GOOGLE_PLACES_API_KEY;
     delete process.env.GOOGLE_API_KEY;
-    await expect(findCityByName('Philadelphia')).rejects.toThrow(/not configured/);
+    delete process.env.GOOGLE_MAPS_SERVER_KEY;
+    await expect(findCityByName('Philadelphia')).rejects.toThrow(/unconfigured/);
   });
 });

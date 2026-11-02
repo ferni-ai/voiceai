@@ -18,7 +18,6 @@ function frame(loud: boolean, t: number): AudioFrame {
 }
 
 function setup(clock: 'on' | 'off') {
-  vi.stubEnv('BACKCHANNELS', 'on');
   vi.stubEnv('BACKCHANNEL_AUDIO_CLOCK', clock);
   vi.useFakeTimers({ now: 1_000_000 });
   vi.spyOn(Math, 'random').mockReturnValue(0);

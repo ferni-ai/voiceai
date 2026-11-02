@@ -30,6 +30,10 @@ import {
   getRoomConfig,
 } from '../../../services/identity/spotify-room-service.js';
 
+/** There is no rooms page in the app and no voice path to make one, so nothing points there. */
+const NO_ROOM_SETUP = "No music rooms are set up, and I can't set them up for you yet.";
+const NO_ROOM_ASSIGN = "I can't add a device to a room for you yet.";
+
 const log = createLogger({ module: 'spotify-connect-tools' });
 
 // ============================================================================
@@ -68,7 +72,7 @@ const playMusicInRoomDef: ToolDefinition = {
           if (result.error?.includes('not found')) {
             const roomsResult = await getRoomsForVoice(ctx.userId);
             if (roomsResult.rooms.length === 0) {
-              return `I don't have any rooms set up yet. You can configure rooms in Settings, or just say "play ${query}" to play on the default device.`;
+              return `${NO_ROOM_SETUP} Just say "play ${query}" to play on the default device.`;
             }
             const roomNames = roomsResult.rooms.map((r) => r.name).join(', ');
             return `I couldn't find "${room}". Your configured rooms are: ${roomNames}. Which one would you like?`;
@@ -116,7 +120,7 @@ const transferToRoomDef: ToolDefinition = {
           if (result.error?.includes('not found')) {
             const roomsResult = await getRoomsForVoice(ctx.userId);
             if (roomsResult.rooms.length === 0) {
-              return `I don't have any rooms set up. You can configure rooms in Settings.`;
+              return NO_ROOM_SETUP;
             }
             const roomNames = roomsResult.rooms.map((r) => r.name).join(', ');
             return `I couldn't find "${room}". Available rooms: ${roomNames}.`;
@@ -195,7 +199,7 @@ const listRoomsDef: ToolDefinition = {
         const result = await getRoomsForVoice(ctx.userId);
 
         if (result.rooms.length === 0) {
-          return `You don't have any music rooms set up yet. You can configure rooms in Settings under "Spotify Rooms".`;
+          return NO_ROOM_SETUP;
         }
 
         let response = `You have ${result.rooms.length} room${result.rooms.length > 1 ? 's' : ''} configured:\n`;
@@ -258,7 +262,7 @@ const syncRoomsDef: ToolDefinition = {
         if (!result.success) {
           const config = await getRoomConfig(ctx.userId);
           if (!config.success || !config.data?.rooms.length) {
-            return `You don't have any rooms configured yet. Set up rooms in Settings first.`;
+            return NO_ROOM_SETUP;
           }
           return result.error || "Couldn't sync to all rooms";
         }
@@ -323,7 +327,7 @@ const discoverDevicesDef: ToolDefinition = {
           response += `\n• ${device.name} (${device.type})${active}`;
         }
 
-        response += '\n\nTo add a device to a room, go to Settings > Spotify Rooms.';
+        response += `\n\n${NO_ROOM_ASSIGN}`;
 
         return response;
       },

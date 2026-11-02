@@ -53,7 +53,6 @@ export const ENV_CLASSIFICATION: Readonly<Record<string, EnvClass>> = {
   SIP_TRUNK_ID: 'secret',
   SKIP_PREWARM_GENERATEREPLY: 'behavior',
   SPEECH_DIRECTOR: 'behavior',
-  SPEECH_DIRECTOR_LAUGHTER: 'behavior',
   SPEND_SAVE_VOICE_ID: 'config',
   SPOTIFY_CLIENT_ID: 'secret',
   SPOTIFY_CLIENT_SECRET: 'secret',

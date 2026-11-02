@@ -34,16 +34,6 @@ vi.mock('../../../../services/google-places.js', () => ({
   formatRestaurantListForSpeech: vi.fn(),
   isGooglePlacesConfigured: () => true,
 }));
-vi.mock('../../../../services/yelp.js', () => ({
-  searchBusinesses: vi.fn(async () => []),
-  searchRestaurants: vi.fn(async () => []),
-  getBusinessDetails: vi.fn(),
-  getBusinessReviews: vi.fn(),
-  getBusinessByPhone: vi.fn(),
-  formatBusinessForSpeech: vi.fn(),
-  formatReviewForSpeech: vi.fn(),
-  isYelpConfigured: () => false,
-}));
 
 // Stands in for Firestore-backed preferences. updateUserPreferences merges like the real one.
 type SavedCity = { placeId?: string; city: string; regionCode?: string; savedAt: string };

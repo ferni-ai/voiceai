@@ -11,7 +11,6 @@ vi.mock('../../../../utils/safe-logger.js', () => {
   return { getLogger: () => logger, createLogger: () => logger, safeLog: () => logger };
 });
 vi.mock('../../../../services/self-healing/index.js', () => ({
-  getHomeAssistantClient: vi.fn(() => ({ isHealthy: () => false })),
   getLifxClient: vi.fn(() => ({ isHealthy: () => false })),
   getHueClient: h.hueClient, // a trap: nothing may build a client to a bridge
 }));
@@ -20,11 +19,7 @@ vi.mock('../../../../services/smart-home/user-credentials.js', () => ({
     hue: { bridgeIp: '10.0.0.5', username: 'fixturehueappkey' },
     lifx: null,
     sonos: null,
-    homeKit: null,
   })),
-}));
-vi.mock('../../../../services/smart-home/homekit-bridge.js', () => ({
-  getDevices: async () => [],
 }));
 vi.mock('../../../../services/identity/ecobee-auth.js', () => ({
   isEcobeeConfigured: async () => false,

@@ -31,10 +31,9 @@ import { ReadableStream } from 'node:stream/web';
 
 import { flagModeOf, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { contentOf, hasToolCall, type ReplyChunk as Chunk } from './reply-chunks.js';
 
 const log = createLogger({ module: 'CallerVoiceGuard' });
-
-type Chunk = llm.ChatChunk | string | object;
 
 export type CallerVoiceMode = 'off' | 'shadow' | 'on';
 
@@ -151,18 +150,6 @@ const isCallerQuestion = (sentence: string): boolean =>
 function sentenceEnd(text: string): number {
   const m = text.match(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|vs|etc))[.!?]+["”’')\]]*(?:\s|(?=[A-Z]))/);
   return m?.index === undefined ? 0 : m.index + m[0].length;
-}
-
-function contentOf(chunk: Chunk): string | undefined {
-  if (typeof chunk === 'string') return chunk;
-  const delta = (chunk as Partial<llm.ChatChunk> | null)?.delta;
-  if (delta === undefined || (delta.toolCalls?.length ?? 0) > 0) return undefined;
-  return delta.content ?? '';
-}
-
-function hasToolCall(chunk: Chunk): boolean {
-  if (typeof chunk !== 'object' || chunk === null) return false;
-  return ((chunk as { delta?: { toolCalls?: unknown[] } }).delta?.toolCalls?.length ?? 0) > 0;
 }
 
 /**

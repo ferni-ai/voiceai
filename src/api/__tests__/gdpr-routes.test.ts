@@ -59,14 +59,24 @@ vi.mock('firebase-admin', () => {
 });
 
 const deleteAllData = vi.hoisted(() => vi.fn());
-vi.mock('../../services/data-export.js', () => ({ getDataExportService: () => ({ deleteAllData }) }));
+vi.mock('../../services/data-export.js', () => ({
+  getDataExportService: () => ({ deleteAllData }),
+}));
 const deleteFirebaseUser = vi.hoisted(() => vi.fn());
 const logged = vi.hoisted(() => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() }));
 vi.mock('../../utils/safe-logger.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/safe-logger.js')>()),
   createLogger: () => ({ ...logged, child: () => logged }),
 }));
-vi.mock('../../services/identity/firebase-auth.js', () => ({ deleteFirebaseUser }));
+const getFirebaseUserOrThrow = vi.hoisted(() => vi.fn(async () => ({ disabled: false })));
+const setFirebaseUserDisabled = vi.hoisted(() =>
+  vi.fn(async (_uid: string, _off: boolean): Promise<'done' | 'no_user' | 'failed'> => 'done')
+);
+vi.mock('../../services/identity/firebase-auth.js', () => ({
+  deleteFirebaseUser,
+  getFirebaseUserOrThrow,
+  setFirebaseUserDisabled,
+}));
 
 // Mock helpers
 vi.mock('../helpers.js', async () => {
@@ -415,21 +425,41 @@ describe('GDPR Routes API', () => {
       const { parseBody } = await import('../helpers.js');
       vi.mocked(parseBody).mockResolvedValue({ confirmation: 'DELETE_MY_DATA' });
       const { handleGDPRRoutes } = await import('../gdpr-routes.js');
-      const req = createMockRequest({ method: 'DELETE', url: '/api/gdpr/account', headers: { 'x-user-id': uid } });
+      const req = createMockRequest({
+        method: 'DELETE',
+        url: '/api/gdpr/account',
+        headers: { 'x-user-id': uid },
+      });
       Object.assign(req, { socket: { remoteAddress: '127.0.0.1' } });
       const res = createMockResponse();
       await handleGDPRRoutes(req, res, '/api/gdpr/account');
       return res;
     }
 
-    it('erases the data through the shared sweep, then closes the sign-in', async () => {
+    it('switches the sign-in off, erases the data through the shared sweep, then deletes the sign-in', async () => {
       const order: string[] = [];
+      setFirebaseUserDisabled.mockImplementation(async (_uid: string, off: boolean) => {
+        order.push(off ? 'sign-in off' : 'sign-in on');
+        return 'done';
+      });
       deleteAllData.mockImplementation(async () => (order.push('data'), { profile: true }));
-      deleteFirebaseUser.mockImplementation(async () => (order.push('sign-in'), true));
+      deleteFirebaseUser.mockImplementation(async () => (order.push('sign-in deleted'), true));
       const res = await deleteAccount();
       expect(res._statusCode).toBe(200);
       expect(deleteAllData).toHaveBeenCalledWith(uid);
-      expect(order).toEqual(['data', 'sign-in']);
+      expect(setFirebaseUserDisabled).toHaveBeenCalledWith(uid, true);
+      expect(order).toEqual(['sign-in off', 'data', 'sign-in deleted']);
+    });
+
+    it('leaves the sign-in off when the final delete fails', async () => {
+      deleteAllData.mockResolvedValue({ profile: true });
+      deleteFirebaseUser.mockResolvedValue(false);
+      const res = await deleteAccount();
+      expect(res._statusCode).toBe(200);
+      expect(setFirebaseUserDisabled.mock.calls).toEqual([
+        [uid, true],
+        [uid, true],
+      ]);
     });
 
     it("logs a failed sign-in deletion's code, never its message", async () => {
@@ -454,6 +484,7 @@ describe('GDPR Routes API', () => {
       const res = await deleteAccount();
       expect(res._statusCode).toBe(500);
       expect(deleteFirebaseUser).not.toHaveBeenCalled();
+      expect(setFirebaseUserDisabled).toHaveBeenLastCalledWith(uid, false); // back on, to retry
     });
 
     it('keeps the sign-in and says so when the data could not be erased', async () => {
@@ -461,7 +492,10 @@ describe('GDPR Routes API', () => {
       const res = await deleteAccount();
       expect(res._statusCode).toBe(500);
       expect(deleteFirebaseUser).not.toHaveBeenCalled();
-      expect(JSON.parse(res._data).error).toBe('Failed to delete account. Your sign-in is still open, so try again.');
+      expect(setFirebaseUserDisabled).toHaveBeenLastCalledWith(uid, false);
+      expect(JSON.parse(res._data).error).toBe(
+        'Failed to delete account. Your sign-in is still open, so try again.'
+      );
     });
   });
 });

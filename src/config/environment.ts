@@ -155,7 +155,6 @@ export interface AppConfig {
       clientSecret: string;
       refreshToken: string;
     };
-    yelp?: string;
     delivery?: {
       doordashApiKey?: string;
       doordashDeveloperId?: string;
@@ -274,7 +273,6 @@ export function loadConfig(): AppConfig {
             refreshToken: process.env.SPOTIFY_REFRESH_TOKEN || '',
           }
         : undefined,
-      yelp: process.env.YELP_API_KEY,
       delivery:
         process.env.DOORDASH_API_KEY || process.env.UBER_CLIENT_ID
           ? {
@@ -374,9 +372,6 @@ export function printConfigSummary(config: AppConfig): void {
   );
   logger.info(
     `│ Spotify:      ${(config.integrations.spotify ? '✓ Configured' : '○ Optional').padEnd(33)}│`
-  );
-  logger.info(
-    `│ Yelp:         ${(config.integrations.yelp ? '✓ Configured' : '○ Optional').padEnd(33)}│`
   );
   logger.info(
     `│ Twilio:       ${(config.integrations.twilio ? '✓ Configured' : '○ Optional').padEnd(33)}│`

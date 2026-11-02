@@ -9,6 +9,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { rateLimit } from '../../auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendJSON, sendError } from '../../helpers.js';
 import {
   registerPublisher,
@@ -19,6 +20,7 @@ import {
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { RELINK_MESSAGE } from './shared/developer-auth.js';
 import { getFirestoreDatabase } from '../../../config/environment.js';
+import { tokenCheckStatus, verifyIdTokenChecked } from '../../../services/identity/token-revocation.js';
 
 const log = getLogger().child({ module: 'developers-auth' });
 
@@ -320,6 +322,7 @@ export async function handleDeveloperAuthRoutes(
   }
 
   const method = req.method?.toUpperCase();
+  if (rateLimit(req, res, { maxRequests: 20, windowMs: 60_000, keyPrefix: 'developer-auth' })) return true;
 
   try {
     // POST /api/v1/developers/auth/verify
@@ -345,12 +348,12 @@ export async function handleDeveloperAuthRoutes(
       let decodedToken: FirebaseDecodedToken;
 
       try {
-        decodedToken = (await auth.verifyIdToken(body.idToken)) as FirebaseDecodedToken;
+        decodedToken = (await verifyIdTokenChecked(auth, body.idToken, { strict: true })) as FirebaseDecodedToken;
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         // SECURITY: Log only metadata, never any part of the token
         log.warn({ error: err.message, tokenLength, tokenParts }, 'Invalid Firebase ID token');
-        sendError(res, 'Invalid or expired token', 401);
+        sendError(res, 'Invalid or expired token', tokenCheckStatus(error, 401));
         return true;
       }
 
@@ -427,9 +430,9 @@ export async function handleDeveloperAuthRoutes(
       let decodedToken: FirebaseDecodedToken;
 
       try {
-        decodedToken = (await auth.verifyIdToken(idToken)) as FirebaseDecodedToken;
+        decodedToken = (await verifyIdTokenChecked(auth, idToken, { strict: true })) as FirebaseDecodedToken;
       } catch (error) {
-        sendError(res, 'Invalid or expired token', 401);
+        sendError(res, 'Invalid or expired token', tokenCheckStatus(error, 401));
         return true;
       }
 

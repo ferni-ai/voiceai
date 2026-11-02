@@ -2,10 +2,10 @@
  * There were two session-summary modules. Every live caller used the
  * session-context copy (null-safe, but it never wrote memory continuity); the
  * session/ copy wrote continuity but nothing called it, so continuity never
- * ran. Now there is one module: it keeps the null-safety, and writes
- * continuity at storeSessionSummary only when SESSION_CONTINUITY_WRITE=on.
+ * ran. Now there is one module: it keeps the null-safety, and never writes
+ * memory continuity.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('firebase-admin', () => {
   const doc = {
@@ -52,39 +52,12 @@ const summary: Summary = {
 beforeEach(() => {
   clearAllSessionData();
   writeSessionContinuity.mockClear();
-  delete process.env.SESSION_CONTINUITY_WRITE;
-});
-afterEach(() => {
-  delete process.env.SESSION_CONTINUITY_WRITE;
 });
 
 describe('storeSessionSummary and memory continuity', () => {
-  it('flag off: no continuity write', async () => {
+  it('no continuity write', async () => {
     await storeSessionSummary(summary);
     expect(writeSessionContinuity).not.toHaveBeenCalled();
-  });
-
-  it('SESSION_CONTINUITY_WRITE=on: writes threads, anchors and capsule from the summary', async () => {
-    process.env.SESSION_CONTINUITY_WRITE = 'on';
-    await storeSessionSummary(summary);
-    expect(writeSessionContinuity).toHaveBeenCalledTimes(1);
-    expect(writeSessionContinuity.mock.calls[0][0]).toMatchObject({
-      sessionId: 's1',
-      userId: 'u1',
-      mainTopics: ['work stress'],
-      naturalSummary: 'Talked through a hard week at work',
-      insights: [{ type: 'pattern', content: 'Mondays are hardest', confidence: 0.8 }],
-      emotionalArc: 'Started anxious, ended calmer',
-      unfinishedTopics: ['sleep'],
-      commitmentsMade: ['walk at lunch'],
-      durationSeconds: 300,
-    });
-  });
-
-  it('a failing continuity write does not fail the summary', async () => {
-    process.env.SESSION_CONTINUITY_WRITE = 'on';
-    writeSessionContinuity.mockRejectedValueOnce(new Error('spanner down'));
-    await expect(storeSessionSummary(summary)).resolves.toBeUndefined();
   });
 });
 

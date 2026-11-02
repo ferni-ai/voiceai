@@ -97,7 +97,7 @@ test.describe('Biometrics API', () => {
   test('GET /api/v1/integrations/biometrics/connect/:platform - returns auth URL', async ({
     request,
   }) => {
-    const platforms = ['healthkit', 'googlefit', 'oura', 'whoop', 'fitbit', 'terra'];
+    const platforms = ['healthkit', 'googlefit', 'oura', 'whoop', 'terra'];
 
     for (const platform of platforms) {
       const response = await request.get(

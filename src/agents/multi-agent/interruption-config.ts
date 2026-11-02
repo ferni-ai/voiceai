@@ -28,8 +28,22 @@
  * With NEVER_SILENT=on a reply paused for noise resumes 1 s after the noise
  * ends instead of LiveKit's 2 s (resume-buffer.ts brings back its lost audio).
  *
+ * PHONE_INTERRUPT_TUNING=on (off by default) gives phone (SIP) callers both
+ * guard values whatever BARGE_IN_GUARD and NEVER_SILENT say. Prod 2026-10-23..30:
+ * LiveKit paused Ferni 221 times in 824 phone replies (27 per 100; web 9.5),
+ * and the barge-in model ruled only 89 of those overlaps interruptions. The
+ * rest came from voice activity alone, which in adaptive mode still pauses
+ * Ferni in the first second of a reply, after minDuration of caller audio
+ * (150 ms unless guarded). 500 ms keeps 92% of real utterances and drops 81%
+ * of backchannels (AMI, above); a word gate (minWords) would also stop the
+ * model's real interruptions until Ink-2's first word, the 2.6 s talk-over
+ * above, so it stays 0. A pause that brought no words resumes after 1 s, the
+ * shortest wait that still lets 98% of real turns' words arrive (above).
+ *
  * @module agents/multi-agent/interruption-config
  */
+
+import { flagOn } from '../../config/env-flag.js';
 
 export interface InterruptionOverrides {
   mode: 'adaptive' | 'vad';
@@ -38,6 +52,8 @@ export interface InterruptionOverrides {
   minDuration?: number;
   /** How long a pause with no words lasts before Ferni resumes (ms). */
   falseInterruptionTimeout?: number;
+  /** Resume a reply paused for audio that brought no words (LiveKit's default is true). */
+  resumeFalseInterruption?: boolean;
 }
 
 export const GUARD_MIN_SPEECH_MS = 500;
@@ -47,9 +63,29 @@ export function bargeInGuardOn(env: Record<string, string | undefined> = process
   return env.BARGE_IN_GUARD === 'on';
 }
 
-export function interruptionOverrides(
+/** Phone callers get the guard values when PHONE_INTERRUPT_TUNING is on. */
+export function phoneInterruptTuningOn(
+  phone: boolean | undefined,
   env: Record<string, string | undefined> = process.env
+): boolean {
+  return phone === true && flagOn('PHONE_INTERRUPT_TUNING', env);
+}
+
+export function interruptionOverrides(
+  env: Record<string, string | undefined> = process.env,
+  opts: { phone?: boolean } = {}
 ): InterruptionOverrides {
+  const overrides = guardedOverrides(env);
+  if (!phoneInterruptTuningOn(opts.phone, env)) return overrides;
+  return {
+    ...overrides,
+    minDuration: GUARD_MIN_SPEECH_MS,
+    falseInterruptionTimeout: GUARD_RESUME_AFTER_MS,
+    resumeFalseInterruption: true,
+  };
+}
+
+function guardedOverrides(env: Record<string, string | undefined>): InterruptionOverrides {
   const resume = env.NEVER_SILENT?.trim().toLowerCase() === 'on' && {
     falseInterruptionTimeout: 1000,
   };

@@ -1272,8 +1272,6 @@
       "notifications": "When I'll Check In",
       "toggleTheme": "Light / Dark",
       "themeLanguage": "Look & Feel",
-      "linkSpotify": "Connect Spotify",
-      "spotifyConnected": "Spotify Connected",
       "vibeController": "Set the Mood",
       "spotifyRooms": "Music Rooms",
       "thermostat": "Home Comfort",
@@ -1919,7 +1917,7 @@
     "disconnected": "Disconnected",
     "end": "End",
     "endConversation": "End conversation",
-    "endConversationGoodbye": "End conversation - Goodbye",
+    "goodbyeEndCall": "Goodbye. End call.",
     "endSession": "End Session",
     "ending": "Call ended",
     "goodbye": "Goodbye",
@@ -2144,8 +2142,6 @@
     "couldNotConnectNetwork": "Couldn't connect. Make sure you're on the same network.",
     "enterTokenFirst": "Enter your token first",
     "getIosApp": "Don't have the app? Get it from the App Store!",
-    "homeKitConnected": "HomeKit is connected!",
-    "homeKitNotConnected": "HomeKit not connected yet. Open the iOS app first.",
     "ecobeeConnected": "Ecobee connected!",
     "couldNotConnectEcobee": "Couldn't connect to Ecobee. Try again?",
     "hueConnected": "Hue connected!",
@@ -2500,10 +2496,6 @@
         "description": "Sync with Apple Watch and iPhone health data",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Connect your Fitbit device",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Sync with Garmin wearables",
         "name": "Garmin"
@@ -2825,8 +2817,7 @@
       "askFerni": "Or ask Ferni to play something",
       "play": "Play",
       "pause": "Pause",
-      "skip": "Skip",
-      "linkSpotify": "Link Spotify in Settings for full songs"
+      "skip": "Skip"
     },
     "volume": "Volume",
     "skipped": "Skipped",
@@ -7775,22 +7766,15 @@
     "sonosDescription": "Speakers & music",
     "speakers": "Speakers",
     "nowPlaying": "Now Playing",
-    "homekit": "HomeKit",
-    "homekitDescription": "Apple home & Siri",
-    "home": "Home",
-    "devices": "Devices",
-    "scenes": "Scenes",
     "apiKeyPlaceholder": "Paste your API key here...",
     "tokenPlaceholder": "Paste your token here...",
     "checkingDevices": "Checking your devices...",
     "welcome": "Connect your home and I can help set the perfect atmosphere: dimming lights for movie night, warming things up when you're chilly, or creating calm when you need to focus.",
     "defaultThermostat": "My Thermostat",
     "idle": "Idle",
-    "defaultHome": "My Home",
     "setUp": "Set up",
     "connectHue": "Connect Philips Hue",
     "connectSonos": "Connect Sonos",
-    "connectHomeKit": "Connect HomeKit",
     "ecobeeSetup": {
       "getKeyTitle": "Get your Ecobee API Key",
       "getKeyText": "First, we need a key from Ecobee's developer portal. Don't worry, it's quick!",
@@ -7837,14 +7821,6 @@
       "hint": "You'll be redirected to Sonos to sign in, then brought back here automatically.",
       "connectFailed": "Couldn't connect to Sonos. Try again?",
       "connectSonosFailed": "Couldn't connect Sonos. Try again?"
-    },
-    "homekitSetup": {
-      "title": "Connect via iOS app",
-      "text": "HomeKit connects through the Ferni iOS app. Open the app on your iPhone to link your Apple Home.",
-      "openApp": "Open Ferni iOS App",
-      "getApp": "Don't have the app? Get it from the App Store!",
-      "hint": "Once connected, say \"Hey Siri, tell Ferni to set the vibe to relax\" and your whole home responds.",
-      "alreadyConnected": "I've already connected"
     },
     "setupDone": "You're all set! Just ask me to set the mood, \"dim the lights\" or \"make it cosy\", and I'll take care of it.",
     "settingsTitle": "Smart Home Settings",
@@ -8320,10 +8296,9 @@
     "appleHealthDesc": "Sleep, activity, and heart rate data",
     "ouraDesc": "Sleep quality and readiness scores",
     "eightSleepDesc": "Sleep tracking and temperature",
-    "wearablesDesc": "Fitbit, Garmin, Whoop, and more",
+    "wearablesDesc": "Garmin, Whoop, and more",
     "calendarDesc": "Events, meetings, and availability",
     "linkedInDesc": "Professional context and network",
-    "spotifyDesc": "Music, mood playlists, listening history",
     "ecobeeDesc": "Home temperature and comfort",
     "vibeControllerDesc": "Control music, lights, and more",
     "connected": "Connected"
@@ -8801,6 +8776,13 @@
     "exportFailed": "Couldn't export your data. Try again?",
     "deleteDataFailed": "Couldn't delete your data. Nothing was removed. Try again?",
     "deleteAccountFailed": "Couldn't delete your account. Try again?",
+    "deleteRefusedSignIn": "Your sign-in wasn't accepted, so this request deleted nothing. Sign in again, then try once more.",
+    "deleteDataUnknown": "Couldn't confirm whether your data was deleted. It may still be finishing, so check again in a few minutes.",
+    "deleteDataStillUnknown": "Still couldn't confirm whether your data was deleted. Try again in a few minutes.",
+    "deleteAccountUnknown": "Couldn't confirm whether your account was deleted. It may still be finishing, so check again in a few minutes.",
+    "accountStillOpen": "Your account is still open. If you still want it closed, you can delete it again.",
+    "accountSignInRefused": "Your sign-in is no longer accepted, which happens when an account is closing. If you didn't delete it, sign in again to check.",
+    "authSlow": "Couldn't check your sign-in in time, so nothing was sent. Try again?",
     "accountDeletedPartial": "Your account is deleted, but a few records didn't clear. Contact us to finish.",
     "categoryConversations": "All conversation transcripts and metadata",
     "categoryInsights": "What Ferni has learned about you",
@@ -8954,9 +8936,6 @@
     "trustJourneyExplore": "Explore",
     "customizeTitle": "Customise your experience",
     "customizeMessage": "Adjust themes, sounds, and more.",
-    "spotifyTitle": "Connect Spotify",
-    "spotifyMessage": "Link your Spotify to set the mood during our conversations.",
-    "spotifyConnect": "Connect",
     "maybeLater": "Maybe later"
   },
   "mentorTeachings": {
@@ -9313,6 +9292,8 @@
   },
   "dataExport": {
     "title": "Privacy & your data",
+    "loadFailed": "I couldn't load what I've saved for you just now. Nothing has changed.",
+    "checkAgain": "Check again",
     "exportFormat": "Export format",
     "deleteAll": "Delete All Data",
     "footer": "I save our conversations and the things you tell me so I can remember them next time, and if you ever want them gone, deleting your account erases them.",
@@ -10176,7 +10157,6 @@
     "startupError": "Having trouble starting up. Try refreshing?",
     "lastConversation": "This is your last conversation this month. Let's make it count.",
     "gettingReady": "Getting ready...",
-    "connecting": "Connecting",
     "almostThere": "Almost there...",
     "waitingQuietly": "I'll wait quietly",
     "listening": "I'm listening",
@@ -10493,7 +10473,6 @@
     "names": {
       "stockData": "Stock Data",
       "marketData": "Market Data",
-      "weatherMaps": "Weather & Maps",
       "historicalFacts": "Historical Facts",
       "smartHome": "Smart Home",
       "lighting": "Lighting",
@@ -10787,7 +10766,8 @@
     "tapToCancel": "Tap to cancel",
     "stillCalling": "Still reaching {name}…",
     "stillCallingCancel": "Still reaching {name}. Tap to cancel.",
-    "reconnecting": "Reconnecting…"
+    "reconnecting": "Reconnecting…",
+    "arrived": "{name} is here"
   },
   "callRoom": {
     "connecting": "Calling {name}…",
@@ -11058,6 +11038,19 @@
     "retry": "",
     "switchAccount": "",
     "seeSources": ""
+  },
+  "connectInvite": {
+    "title": "Let Alex keep an eye on your calendar",
+    "lead": "Connect Google Calendar so plans don't sneak up on you. Here's what it shares:",
+    "account": "Connecting to Alex for {account}",
+    "sees": "Sees event times, titles and places",
+    "changes": "Adds or changes events only when you ask",
+    "never": "Never sees your emails or attachments",
+    "undo": "Undo any time in Settings > Calendar, or just tell Alex",
+    "connect": "Connect Google Calendar",
+    "opening": "Opening Google...",
+    "expired": "This link has expired or was already used. Ask on your next call and I'll send a fresh one.",
+    "failed": "Couldn't open Google just now. Ask on your next call and I'll send a new link."
   },
   "approvePage": {
     "kind": {

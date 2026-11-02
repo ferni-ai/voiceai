@@ -101,6 +101,7 @@ await orchestrator.handoff({
 | `multi-agent-entry.ts` | Entry point for multi-agent sessions |
 | `handoff-desk.ts` | What the teammate is handed: the caller's asks and unfinished actions, and a first line that names them (`HANDOFF_DESK`) |
 | `greeting-direction.ts` | The hello: what the director is told, and the lines it turns away |
+| `call-news-opener.ts` | The hello leads with news from a call Ferni made for the owner; gentle for hard news, none of their words for crisis or risky ones (`CALL_NEWS_OPENER`) |
 | `first-call-stranger.ts` | A first meeting's hello: no tease, no shared past |
 | `unknown-caller-honest.ts` | A caller Ferni can't place: met, never promised memory (`UNKNOWN_CALLER_HONEST`) |
 | `unfinished-turn.ts` | Don't answer half a sentence; stop commands commit at once, pause requests wait (`PAUSE_REQUEST_COMMITS_TURN`) |

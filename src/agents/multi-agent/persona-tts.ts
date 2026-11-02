@@ -72,7 +72,7 @@ export async function createPersonaTTS(personaId: string) {
             process.stderr.write(`\n${'='.repeat(60)}\n`);
             process.stderr.write(`🔊 [TTS SYNTHESIZE] ${timestamp}\n`);
             process.stderr.write(
-              `  📝 Text: "${text.slice(0, 200)}${text.length > 200 ? '...' : ''}"\n`
+              `  📝 Text: ${text.length} chars\n`
             );
             process.stderr.write(`  🎙️ Voice: ${voiceId}\n`);
             process.stderr.write(`  📏 Length: ${text.length} chars\n`);

@@ -1,7 +1,7 @@
 /**
  * Re-seal on read must not outlive a disconnect or undo a refresh.
  *
- * The real Spotify and Google Calendar stores and the real persistence store, on the Firestore
+ * The real Google Calendar store and the real persistence store, on the Firestore
  * fake. A hook inside the write simulates the other process landing between the re-seal's read
  * and its write: a disconnect (the doc must stay deleted: no set(), no recreate) and a refresh
  * (the newer token must stay).
@@ -28,7 +28,6 @@ fake.db = createMergeFakeFirestore(state);
 
 const { encryptData, decryptData, keyIdOf } = await import('../../../utils/token-encryption.js');
 const { resealCountsSnapshot } = await import('../../../utils/token-at-rest.js');
-const spotify = await import('../../../servers/token/oauth/spotify.js');
 const google = await import('../../identity/google-calendar-token-store.js');
 
 const SEAL = Buffer.alloc(32, 9).toString('base64');
@@ -38,11 +37,6 @@ const NEWER = { ...OLD, access_token: 'at-refreshed' };
 const saved = { ...process.env };
 
 const stores = [
-  {
-    name: 'spotify link',
-    path: (uid: string) => `bogle_users/${uid}/${spotify.SPOTIFY_LINK_COLLECTION}/data`,
-    read: (uid: string) => spotify.getTokens(uid),
-  },
   {
     name: 'google calendar',
     path: (uid: string) => `bogle_users/${uid}/google_calendar_tokens/data`,

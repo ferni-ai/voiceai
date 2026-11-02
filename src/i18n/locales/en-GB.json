@@ -356,10 +356,6 @@
           "name": "Apple Health",
           "description": "Connect via the Ferni iOS app"
         },
-        "fitbit": {
-          "name": "Fitbit",
-          "description": "Steps, sleep, and heart rate"
-        },
         "garmin": {
           "name": "Garmin",
           "description": "Activity and training data"

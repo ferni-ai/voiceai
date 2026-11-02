@@ -26,6 +26,7 @@ const SECRET_MAPPING: Record<string, string> = {
   'google-client-id': 'GOOGLE_CLIENT_ID',
   'google-client-secret': 'GOOGLE_CLIENT_SECRET',
   'google-maps-api-key': 'GOOGLE_MAPS_API_KEY',
+  'google-maps-server-key': 'GOOGLE_MAPS_SERVER_KEY',
 
   // LiveKit
   'livekit-url': 'LIVEKIT_URL',
