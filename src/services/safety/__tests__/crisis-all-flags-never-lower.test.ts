@@ -1,8 +1,10 @@
 /**
  * A crisis flag may ADD a production crisis read; it may never remove one.
  *
- * Every flag in the crisis lane (CRISIS_*, SAFETY_*, EARLY_WARNING_*, MINOR_CARE*, SMS_CRISIS_*)
- * is checked from two baselines, so a new crisis flag is covered the day it is registered:
+ * Every flag in the crisis lane is checked from two baselines, so a new crisis flag is covered the
+ * day a crisis module reads it. The lane is every crisis-named flag (CRISIS_*, SAFETY_*,
+ * EARLY_WARNING_*, MINOR_CARE*, SMS_CRISIS_*) plus every flag a crisis-lane source file reads,
+ * whatever its name (crisis-lane-flags.ts):
  *
  * - alone: the flag on, against every crisis flag at its manifest default (what main runs);
  * - last: the flag on, against every other crisis flag already on, so a flag that lowers only
@@ -21,6 +23,8 @@
  * the safety check or the life-coaching guard offered, a step down in the guard's recommended
  * action, or 988 / 911 gone from everything those readers hand the reply.
  */
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { FLAG_MANIFEST } from '../../../config/flag-manifest.js';
@@ -31,13 +35,9 @@ import { checkWarnings } from '../../wellbeing-tracking/early-warning.js';
 import { getWellbeingProfile } from '../../wellbeing-tracking/index.js';
 import { detectCrisis } from '../crisis-guard.js';
 import { performSafetyCheck } from '../index.js';
+import { CRISIS_FLAGS, LANE_READS, ROOT, RUNNER_MARKERS } from './crisis-lane-flags.js';
 
 type FlagValues = Readonly<Record<string, string>>;
-
-/** Every registered flag in the crisis lane. */
-const CRISIS_FLAGS = Object.keys(FLAG_MANIFEST)
-  .filter((name) => /^(CRISIS_|SAFETY_|EARLY_WARNING_|MINOR_CARE|SMS_CRISIS_)/.test(name))
-  .sort();
 
 /**
  * Flags known to lower a read today. Each must stay off by default, and the test below fails
@@ -49,7 +49,17 @@ const KNOWN_LOWERS: Readonly<Record<string, string>> = {
   EARLY_WARNING_WORD_BOUNDARY: 'warning crisis_risk',
 };
 
-const CHECKED = CRISIS_FLAGS.filter((name) => !(name in KNOWN_LOWERS));
+/**
+ * Crisis-lane flags this test doesn't check, each with the test that drives it and why. Only for
+ * a flag the five readers can't run (one that needs a call, a network or a model); a flag they
+ * simply don't read stays checked, which costs time but no coverage. The path must exist and
+ * name the flag. Empty today: every flag a crisis module reads runs here.
+ */
+const COVERED_ELSEWHERE: Readonly<Record<string, { test: string; reason: string }>> = {};
+
+const CHECKED = CRISIS_FLAGS.filter(
+  (name) => !(name in KNOWN_LOWERS) && !(name in COVERED_ELSEWHERE)
+);
 const ON_VALUES = ['on', 'live'] as const;
 const CASES = CHECKED.flatMap((name) => ON_VALUES.map((value) => [name, value] as const));
 
@@ -242,4 +252,52 @@ describe('crisis flags never lower a production crisis read', () => {
       for (const entry of lost) expect(entry.endsWith(` :: ${what}`), entry).toBe(true);
     }
   );
+});
+
+/** Crisis flags no crisis name marks, so only the lane read finds them. */
+const READ_NOT_NAMED = [
+  'MINOR_ABUSE_DISCLOSURE', // a caller under 18 telling of sexual harm (turn path)
+  'THIRD_PARTY_SELF_HARM', // who is at risk on a third-party crisis read
+  'SEXUAL_TOPIC_BOUNDARY', // the sexual-content hold for a caller under 18
+  'SPEAK_988_DIGITS', // 988 spoken as digits
+  'AI_NOTICE_SPOKEN', // the spoken AI notice
+];
+
+describe('every flag a crisis module reads is checked or covered elsewhere', () => {
+  it('finds crisis flags by what crisis modules read, not by name', () => {
+    for (const name of READ_NOT_NAMED) {
+      expect(LANE_READS.has(name), `${name} is read by no crisis-lane file`).toBe(true);
+      expect(CRISIS_FLAGS, name).toContain(name);
+    }
+  });
+
+  it('accounts for each lane flag exactly once', () => {
+    const unaccounted: string[] = [];
+    for (const name of new Set([...CRISIS_FLAGS, ...LANE_READS.keys()])) {
+      const homes = [
+        CHECKED.includes(name) && 'checked',
+        name in KNOWN_LOWERS && 'KNOWN_LOWERS',
+        name in COVERED_ELSEWHERE && 'COVERED_ELSEWHERE',
+        name in RUNNER_MARKERS && 'RUNNER_MARKERS',
+      ].filter(Boolean);
+      if (homes.length !== 1) unaccounted.push(`${name}: ${homes.join(', ') || 'nowhere'}`);
+    }
+    expect(unaccounted).toEqual([]);
+  });
+
+  it('points each COVERED_ELSEWHERE flag at a test that drives it', () => {
+    for (const [name, { test, reason }] of Object.entries(COVERED_ELSEWHERE)) {
+      expect(LANE_READS.has(name), `${name} is no longer read by a crisis module`).toBe(true);
+      expect(reason.trim(), name).not.toBe('');
+      expect(existsSync(join(ROOT, test)), `${name}: ${test} does not exist`).toBe(true);
+      expect(readFileSync(join(ROOT, test), 'utf8'), `${test} never names ${name}`).toContain(name);
+    }
+  });
+
+  it('skips only runner markers a crisis module still reads', () => {
+    for (const name of Object.keys(RUNNER_MARKERS)) {
+      expect(name in FLAG_MANIFEST, name).toBe(true);
+      expect(LANE_READS.has(name), `${name}: stale RUNNER_MARKERS entry`).toBe(true);
+    }
+  });
 });
