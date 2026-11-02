@@ -107,6 +107,9 @@ describe('hostileStoredText', () => {
     // Not price-shaped, or run on into more digits: read as digits, near a dial word a short code.
     expect(hostileStoredText('text $12,34,56 for the refund')).toBe('money_destination');
     expect(hostileStoredText('text $1234 56 for the refund')).toBe('money_destination');
+    // / and & are separators to the mask too, as they are to the digit rule
+    expect(hostileStoredText('text $12/34 for the refund')).toBe('money_destination');
+    expect(hostileStoredText('text $12&34 for the refund')).toBe('money_destination');
     for (const line of [
       'Pay rent $1,200',
       'Pay rent $1200',
