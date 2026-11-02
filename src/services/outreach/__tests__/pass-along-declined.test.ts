@@ -358,6 +358,7 @@ describe('everything else is delivered, as main does', () => {
   // never stalls it. The old go-ahead cue took ~20 ms at 10k characters and ~320 ms at 40k.
   it.each([
     ['No.', 'yes, '.repeat(2000)],
+    ['No.', 'yes, yeah, '.repeat(910)],
     ['No.', `${'yes, '.repeat(8000)}x`],
     ['No.', `${'totally '.repeat(5000)}x`],
     ['yes, '.repeat(2000), 'Hello?'],
