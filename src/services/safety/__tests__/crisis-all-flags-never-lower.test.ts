@@ -1,17 +1,23 @@
 /**
  * A crisis flag may ADD a production crisis read; it may never remove one.
  *
- * Every flag in the crisis lane is checked from two baselines, so a new crisis flag is covered the
- * day a crisis module reads it. The lane is every crisis-named flag (CRISIS_*, SAFETY_*,
- * EARLY_WARNING_*, MINOR_CARE*, SMS_CRISIS_*) plus every flag a crisis-lane source file reads,
- * whatever its name (crisis-lane-flags.ts):
+ * Checked here: every flag the five production readers below actually read. That set is measured,
+ * not listed: the readers run the corpus behind a process.env that records each name read, at
+ * the defaults and with every crisis flag on. A flag a reader starts reading is checked the day
+ * it does. Each checked flag is read from two baselines:
  *
- * - alone: the flag on, against every crisis flag at its manifest default (what main runs);
- * - last: the flag on, against every other crisis flag already on, so a flag that lowers only
+ * - alone: the flag on, against every flag at its manifest default (what main runs);
+ * - last: the flag on, against every other checked flag already on, so a flag that lowers only
  *   together with another one is caught too.
  *
  * "On" is checked as both 'on' and 'live', since some crisis modules read their own modes. A
- * flag in 'shadow' must change no read at all.
+ * flag in 'shadow' must change no read at all, and a flag that defaults on (a kill switch) must
+ * lower nothing when turned off either.
+ *
+ * The rest of the crisis lane (every crisis-named flag plus every flag a crisis-lane source file
+ * reads, crisis-lane-flags.ts) acts outside these readers. The guard at the bottom makes each of
+ * those name a test that drives it (COVERED_ELSEWHERE) or sit on a list that may only shrink
+ * (NOT_YET_COVERED).
  *
  * Why this exists: #3317 (CRISIS_WORD_BOUNDARIES, closed) made four #2645 warning lines lose
  * their only crisis read, and, with CRISIS_SIGHT_NEEDS_CUE on, seven stroke / sight-loss lines
@@ -35,7 +41,13 @@ import { checkWarnings } from '../../wellbeing-tracking/early-warning.js';
 import { getWellbeingProfile } from '../../wellbeing-tracking/index.js';
 import { detectCrisis } from '../crisis-guard.js';
 import { performSafetyCheck } from '../index.js';
-import { CRISIS_FLAGS, LANE_READS, ROOT, RUNNER_MARKERS } from './crisis-lane-flags.js';
+import {
+  CRISIS_FLAGS,
+  flagReadsIn,
+  LANE_READS,
+  ROOT,
+  RUNNER_MARKERS,
+} from './crisis-lane-flags.js';
 
 type FlagValues = Readonly<Record<string, string>>;
 
@@ -48,20 +60,6 @@ const KNOWN_LOWERS: Readonly<Record<string, string>> = {
   // speech-to-text forms ("iwant to die", "tokill myself", "dieee") and the #2645 lines.
   EARLY_WARNING_WORD_BOUNDARY: 'warning crisis_risk',
 };
-
-/**
- * Crisis-lane flags this test doesn't check, each with the test that drives it and why. Only for
- * a flag the five readers can't run (one that needs a call, a network or a model); a flag they
- * simply don't read stays checked, which costs time but no coverage. The path must exist and
- * name the flag. Empty today: every flag a crisis module reads runs here.
- */
-const COVERED_ELSEWHERE: Readonly<Record<string, { test: string; reason: string }>> = {};
-
-const CHECKED = CRISIS_FLAGS.filter(
-  (name) => !(name in KNOWN_LOWERS) && !(name in COVERED_ELSEWHERE)
-);
-const ON_VALUES = ['on', 'live'] as const;
-const CASES = CHECKED.flatMap((name) => ON_VALUES.map((value) => [name, value] as const));
 
 /** #2645: a risk line whose only match sits inside an everyday word ("skill", "send", "spend"). */
 const INSIDE_A_WORD = [
@@ -173,13 +171,56 @@ function readUnder(flags: FlagValues): Map<string, Reading> {
   const key = JSON.stringify(Object.entries(flags).sort());
   let found = readings.get(key);
   if (!found) {
-    for (const name of CRISIS_FLAGS) vi.stubEnv(name, flags[name]);
+    for (const name of STUBBED) vi.stubEnv(name, flags[name]);
     found = new Map(LINES.map((line) => [line, read(line)]));
     vi.unstubAllEnvs();
     readings.set(key, found);
   }
   return found;
 }
+
+/**
+ * Every manifest flag the five readers read on the corpus, at the defaults and with every crisis
+ * flag on, recorded by a process.env that notes each name looked up.
+ */
+function flagsTheReadersRead(): string[] {
+  const seen = new Set<string>();
+  const note = (key: string | symbol): void => {
+    if (typeof key === 'string') seen.add(key);
+  };
+  const pass = (flags: FlagValues): void => {
+    for (const name of CRISIS_FLAGS) vi.stubEnv(name, flags[name]);
+    const real = process.env;
+    process.env = new Proxy(real, {
+      get: (target, key) => (note(key), Reflect.get(target, key)),
+      has: (target, key) => (note(key), Reflect.has(target, key)),
+    });
+    try {
+      for (const line of LINES) read(line);
+    } finally {
+      process.env = real;
+      vi.unstubAllEnvs();
+    }
+  };
+  pass({});
+  pass(Object.fromEntries(CRISIS_FLAGS.map((name) => [name, 'on'])));
+  return [...seen].filter((name) => name in FLAG_MANIFEST && !(name in RUNNER_MARKERS)).sort();
+}
+
+const defaultOf = (name: string): string =>
+  FLAG_MANIFEST[name as keyof typeof FLAG_MANIFEST].default;
+
+/** The flags the five readers read, measured, so the set can't drift from what they do. */
+const READ_BY_READERS = flagsTheReadersRead();
+const CHECKED = READ_BY_READERS.filter((name) => !(name in KNOWN_LOWERS));
+/** Unset (manifest default) unless a case sets it. */
+const STUBBED = [...new Set([...CRISIS_FLAGS, ...READ_BY_READERS])];
+const ON_VALUES = ['on', 'live'] as const;
+const CASES = CHECKED.flatMap((name) => ON_VALUES.map((value) => [name, value] as const));
+/** Checked flags that don't default off: turned off, they must lower nothing either. */
+const DEFAULT_ON = CHECKED.filter((name) => defaultOf(name) !== 'off').map(
+  (name) => [name, defaultOf(name)] as const
+);
 
 /** Every line some reader reads lower with `flags` than with `base`, with what it lost. */
 function losses(base: FlagValues, flags: FlagValues): string[] {
@@ -199,7 +240,7 @@ afterEach(() => vi.unstubAllEnvs());
 
 describe('crisis flags never lower a production crisis read', () => {
   it('covers the crisis lane flags and a real corpus', () => {
-    // Named here so a rename that drops one out of the filter fails loudly.
+    // Named here so a change that stops the readers reading one fails loudly.
     for (const name of [
       'CRISIS_SIGHT_NEEDS_CUE',
       'SAFETY_WHOLE_WORD_SITES',
@@ -230,21 +271,26 @@ describe('crisis flags never lower a production crisis read', () => {
     expect(losses({}, { [name]: value })).toEqual([]);
   });
 
-  it.each(CASES)('%s=%s on top of every other crisis flag lowers no read', (name, value) => {
+  it.each(CASES)('%s=%s on top of every other checked flag lowers no read', (name, value) => {
     const base = allBut(name, value);
     expect(losses(base, { ...base, [name]: value })).toEqual([]);
   });
 
-  it.each(
-    CHECKED.filter((name) => FLAG_MANIFEST[name as keyof typeof FLAG_MANIFEST].default === 'off')
-  )('%s=shadow changes no read', (name) => {
-    expect(readUnder({ [name]: 'shadow' })).toEqual(readUnder({}));
+  it.each(DEFAULT_ON)('%s=off (default %s) lowers no read', (name) => {
+    expect(losses({}, { [name]: 'off' })).toEqual([]);
   });
+
+  it.each(CHECKED.filter((name) => defaultOf(name) === 'off'))(
+    '%s=shadow changes no read',
+    (name) => {
+      expect(readUnder({ [name]: 'shadow' })).toEqual(readUnder({}));
+    }
+  );
 
   it.each(Object.entries(KNOWN_LOWERS))(
     '%s is off by default and still lowers %s',
     (name, what) => {
-      expect(FLAG_MANIFEST[name as keyof typeof FLAG_MANIFEST].default).toBe('off');
+      expect(defaultOf(name)).toBe('off');
       const lost = losses({}, { [name]: 'on' });
       // Fixed? Delete the KNOWN_LOWERS entry so the flag is checked like every other.
       expect(lost.length).toBeGreaterThan(0);
@@ -254,14 +300,147 @@ describe('crisis flags never lower a production crisis read', () => {
   );
 });
 
+/**
+ * Crisis-lane flags the five readers don't read, each with an existing test that drives it.
+ * Picked as the unit test that sets the flag, named after the module that reads it where one is.
+ */
+const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
+  ABUSE_DISCLOSURE_PATTERNS:
+    'src/agents/voice-agent/__tests__/turn-handler-abuse-disclosure.test.ts',
+  ACTION_CLAIM_BARE_WILL: 'src/agents/personas/__tests__/action-claim-bare-will.test.ts',
+  ACTION_CLAIM_GUARD: 'src/agents/personas/__tests__/action-claim-guard-spacing.test.ts',
+  ACTION_CLAIM_PAST: 'src/agents/personas/__tests__/action-claim-past.test.ts',
+  ACTION_CLAIM_STREAM: 'src/agents/personas/__tests__/action-claim-guard-spacing.test.ts',
+  AI_NOTICE_SPOKEN: 'src/agents/multi-agent/__tests__/ai-notice-opening.test.ts',
+  BOOKING_PREFS: 'src/services/stores/__tests__/booking-prefs-store.test.ts',
+  CALLER_CARD: 'src/agents/multi-agent/__tests__/caller-card-setup.test.ts',
+  CALLER_RECOGNITION: 'src/agents/voice-agent-entry/__tests__/caller-recognition.test.ts',
+  CALL_CAPTURE_CONSENT: 'src/api/__tests__/call-capture-consent-routes.test.ts',
+  CALL_NEWS_OPENER: 'src/agents/multi-agent/__tests__/greeting-call-news.test.ts',
+  CALL_REPORT_REACHES_YOU: 'src/agents/multi-agent/__tests__/call-report-after-crisis.test.ts',
+  CALL_RESULT_LIVE_REPORT: 'src/services/outreach/__tests__/call-result-cross-process.test.ts',
+  CALL_STATUS_RECALL: 'src/tools/domains/telephony/__tests__/call-status-replay.test.ts',
+  CALL_WRAP_UP: 'src/agents/shared/__tests__/call-farewell.test.ts',
+  CLIENT_SIGNALS_V2: 'src/tools/domains/memory/__tests__/memory-saved.test.ts',
+  COACH_WINS: 'src/services/superhuman/__tests__/wins.test.ts',
+  CONTACT_SAVE_ON_YES: 'src/tools/domains/telephony/__tests__/owner-contact.test.ts',
+  CRISIS_ADJUDICATOR: 'src/services/safety/__tests__/crisis-adjudicator-shadow.test.ts',
+  CRISIS_AGREEMENT_GATE:
+    'src/agents/processors/turn-processor/__tests__/crisis-agreement-replay.test.ts',
+  CRISIS_CLASSIFIER_BLOCKED_SIGNAL:
+    'src/services/safety/__tests__/crisis-classifier-blocked.test.ts',
+  CRISIS_CLASSIFIER_EVERYDAY_RULES:
+    'src/agents/personas/__tests__/crisis-classifier-only-shadow.test.ts',
+  CRISIS_CLASSIFIER_ONLY_CHECKIN:
+    'src/agents/personas/__tests__/crisis-classifier-only-shadow.test.ts',
+  CRISIS_CLASSIFIER_SECOND_READ: 'src/services/safety/__tests__/crisis-classifier-v3.test.ts',
+  CRISIS_CONFIRMED_CALL_RISK: 'src/agents/personas/__tests__/crisis-gate-confirmed-risk.test.ts',
+  CRISIS_EVENT_RECORD: 'src/agents/safety/__tests__/crisis-event-record.test.ts',
+  CRISIS_GROUNDED_RELEASE:
+    'src/services/safety/__tests__/crisis-grounded-release-failclosed.test.ts',
+  CRISIS_IMMINENT_NEEDS_AGREEMENT:
+    'src/services/safety/__tests__/crisis-imminent-agreement.test.ts',
+  CRISIS_SAME_CALL_NOTE_FADES: 'src/agents/multi-agent/__tests__/call-report-after-crisis.test.ts',
+  CRISIS_TRANSFER_EVERYDAY: 'src/services/safety/__tests__/crisis-transfer-request.test.ts',
+  DATES_IN_HELLO: 'src/agents/multi-agent/__tests__/greeting-date-arbiter.test.ts',
+  EOT_CONTINUED_MERGE: 'src/agents/personas/__tests__/late-words.test.ts',
+  FAMILY_TABLE: 'src/agents/multi-agent/__tests__/family-table-handoff.test.ts',
+  FERNI_SELF_MEMORY: 'src/agents/personas/__tests__/self-memory.test.ts',
+  FERNI_STATE: 'src/agents/personas/__tests__/ferni-state.test.ts',
+  FIRST_TURN_DEFER_BACKGROUND: 'src/agents/multi-agent/__tests__/first-turn-defer.test.ts',
+  FRIEND_REPAIR: 'src/agents/personas/__tests__/friend-repair.test.ts',
+  GOODBYE_ENDS_CALL: 'src/agents/shared/__tests__/call-wrap-up-quiet.test.ts',
+  GROUNDED_CLAIMS: 'src/agents/personas/__tests__/grounded-claims-verify.test.ts',
+  HANDOFF_ASK_FIRST: 'src/tools/handoff/__tests__/handoff-consent.test.ts',
+  HANDOFF_FAILED_SAY_SO: 'src/agents/multi-agent/__tests__/llm-handoff.test.ts',
+  HANDOFF_HELD_TRUTHFUL: 'src/tools/handoff/__tests__/handoff-held-truthful.test.ts',
+  HELD_GOODBYE_CHECK_IN: 'src/agents/shared/__tests__/call-wrap-up-held-goodbye.test.ts',
+  LAUGH_CAP: 'src/agents/personas/__tests__/laugh-ledger.test.ts',
+  LISTEN_OFFER_STRIP: 'src/agents/personas/__tests__/listen-offer.test.ts',
+  MINOR_ABUSE_DISCLOSURE: 'src/services/safety/__tests__/minor-abuse-disclosure.test.ts',
+  MINOR_CARE: 'src/agents/multi-agent/caller-card/__tests__/minor-care.test.ts',
+  MINOR_CARE_OWNERS: 'src/utils/__tests__/minor-care-shared-hold.test.ts',
+  MINOR_CARE_SHARED_HOLD:
+    'src/services/outreach/__tests__/minor-care-shared-hold-call-paths.test.ts',
+  OPENER_GATE: 'src/agents/personas/__tests__/crisis-gate.test.ts',
+  OPEN_PROMISE_TRIGGERS:
+    'src/services/outreach/proactive-channels/__tests__/open-promise-triggers-path.test.ts',
+  OUTREACH_PONDERED_NOTES:
+    'src/services/outreach/proactive-channels/__tests__/grounded-path.test.ts',
+  PERSONA_GROWTH: 'src/agents/multi-agent/__tests__/persona-growth-recall.test.ts',
+  PHONE_GOODBYE: 'src/agents/shared/__tests__/phone-goodbye.test.ts',
+  PHRASE_LOOP_GUARD: 'src/agents/personas/__tests__/phrase-loops.test.ts',
+  QUESTION_PACE: 'src/agents/personas/__tests__/question-pace-wiring.test.ts',
+  QUIET_AFTER_QUESTION: 'src/agents/voice-agent/__tests__/quiet-presence.test.ts',
+  REJECTED_TRANSCRIPT_KEEPS_SPEECH:
+    'src/agents/voice-agent/__tests__/rejected-transcript-policy.test.ts',
+  REPAIR_MODE: 'src/agents/personas/__tests__/repair-check.test.ts',
+  REQUIRE_FIX_VOICE: 'src/agents/voice-agent/__tests__/echo-window-esm.test.ts',
+  SEXUAL_TOPIC_BOUNDARY: 'src/agents/personas/__tests__/sexual-boundary-call-end.test.ts',
+  SMS_CRISIS_SCREEN: 'src/services/outreach/__tests__/sms-crisis-screen.test.ts',
+  SPEAK_988_DIGITS: 'src/services/safety/__tests__/crisis-line-speech.test.ts',
+  TEAMMATE_TALK_FILTER: 'src/utils/__tests__/teammate-talk.test.ts',
+  THIRD_PARTY_SELF_HARM: 'src/services/safety/__tests__/crisis-who.test.ts',
+  TOLD_THIS_CALL: 'src/agents/personas/__tests__/told-this-call.test.ts',
+  TOOL_HUM: 'src/agents/integrations/__tests__/tool-hum-crisis-pending.test.ts',
+  TRANSFER_NAME_ALIASES: 'src/tools/handoff/__tests__/transfer-aliases.test.ts',
+  TURN_INTELLIGENCE: 'src/agents/multi-agent/__tests__/turn-intelligence.test.ts',
+  USE_SMART_CONTEXT_ROUTING: 'src/utils/__tests__/minor-care-cleanup.test.ts',
+  WEEKLY_PREDICTION: 'src/agents/multi-agent/__tests__/prediction-check-in.test.ts',
+  WELLBEING_AFTER_CALL: 'src/services/wellbeing-tracking/__tests__/after-call.test.ts',
+};
+
+/**
+ * Crisis-lane flags with no test that names them yet. A ratchet: it may only shrink. A new
+ * crisis-lane flag gets a real test and a COVERED_ELSEWHERE entry, never a name here.
+ */
+const NOT_YET_COVERED: readonly string[] = [
+  'DEBUG_GEMINI_ALL',
+  'DEBUG_GEMINI_MESSAGES',
+  'DEBUG_GEMINI_TRANSCRIPTS',
+  'DEBUG_INJECTIONS',
+  'DEBUG_ROUTING',
+  'DEBUG_TTS_PIPELINE',
+  'DEBUG_TURN_TIMING',
+  'DEBUG_VOICE_AGENT',
+  'DEV_TELEMETRY',
+  'DISABLE_INTERRUPT_TRANSFORM',
+  'DISABLE_LINGUISTIC_MIRRORING',
+  'DISABLE_NOISE_FILTER',
+  'LIFE_LEDGER',
+  'LOG_CONTEXT_BUILDS',
+  'USE_TOOL_GATEWAY',
+];
+/** NOT_YET_COVERED as of 2026-11-02. Never add to it; delete a name once its flag has a test. */
+const NOT_YET_COVERED_CEILING: readonly string[] = [
+  'DEBUG_GEMINI_ALL',
+  'DEBUG_GEMINI_MESSAGES',
+  'DEBUG_GEMINI_TRANSCRIPTS',
+  'DEBUG_INJECTIONS',
+  'DEBUG_ROUTING',
+  'DEBUG_TTS_PIPELINE',
+  'DEBUG_TURN_TIMING',
+  'DEBUG_VOICE_AGENT',
+  'DEV_TELEMETRY',
+  'DISABLE_INTERRUPT_TRANSFORM',
+  'DISABLE_LINGUISTIC_MIRRORING',
+  'DISABLE_NOISE_FILTER',
+  'LIFE_LEDGER',
+  'LOG_CONTEXT_BUILDS',
+  'USE_TOOL_GATEWAY',
+];
+
 /** Crisis flags no crisis name marks, so only the lane read finds them. */
 const READ_NOT_NAMED = [
   'MINOR_ABUSE_DISCLOSURE', // a caller under 18 telling of sexual harm (turn path)
+  'ABUSE_DISCLOSURE_PATTERNS', // someone hurting the caller (turn path)
   'THIRD_PARTY_SELF_HARM', // who is at risk on a third-party crisis read
   'SEXUAL_TOPIC_BOUNDARY', // the sexual-content hold for a caller under 18
   'SPEAK_988_DIGITS', // 988 spoken as digits
   'AI_NOTICE_SPOKEN', // the spoken AI notice
 ];
+
+const TEST_FILE = /\.test\.[cm]?[jt]sx?$/;
 
 describe('every flag a crisis module reads is checked or covered elsewhere', () => {
   it('finds crisis flags by what crisis modules read, not by name', () => {
@@ -271,26 +450,51 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
     }
   });
 
+  it('counts a read, never a mention in a comment', () => {
+    const source = [
+      "// `SPEAK_988_DIGITS` and 'AI_NOTICE_SPOKEN' are only mentioned here",
+      "/* THIRD_PARTY_SELF_HARM: 'MINOR_ABUSE_DISCLOSURE' */",
+      "const site = 'https://example.test/'; // `SEXUAL_TOPIC_BOUNDARY`",
+      "if (flagOn('CRISIS_SIGHT_NEEDS_CUE', env)) mark();",
+      'const who = env?.CRISIS_MEANS_IN_HAND ?? process.env.EARLY_WARNING_STT_FORMS;',
+    ].join('\n');
+    expect([...flagReadsIn(source)].sort()).toEqual([
+      'CRISIS_MEANS_IN_HAND',
+      'CRISIS_SIGHT_NEEDS_CUE',
+      'EARLY_WARNING_STT_FORMS',
+    ]);
+  });
+
   it('accounts for each lane flag exactly once', () => {
     const unaccounted: string[] = [];
-    for (const name of new Set([...CRISIS_FLAGS, ...LANE_READS.keys()])) {
+    for (const name of new Set([...CRISIS_FLAGS, ...LANE_READS.keys(), ...READ_BY_READERS])) {
       const homes = [
         CHECKED.includes(name) && 'checked',
         name in KNOWN_LOWERS && 'KNOWN_LOWERS',
         name in COVERED_ELSEWHERE && 'COVERED_ELSEWHERE',
+        NOT_YET_COVERED.includes(name) && 'NOT_YET_COVERED',
         name in RUNNER_MARKERS && 'RUNNER_MARKERS',
       ].filter(Boolean);
       if (homes.length !== 1) unaccounted.push(`${name}: ${homes.join(', ') || 'nowhere'}`);
     }
+    // A flag the readers start reading is checked: delete its other entry.
     expect(unaccounted).toEqual([]);
   });
 
-  it('points each COVERED_ELSEWHERE flag at a test that drives it', () => {
-    for (const [name, { test, reason }] of Object.entries(COVERED_ELSEWHERE)) {
-      expect(LANE_READS.has(name), `${name} is no longer read by a crisis module`).toBe(true);
-      expect(reason.trim(), name).not.toBe('');
+  it('points each COVERED_ELSEWHERE flag at an existing test that names it', () => {
+    for (const [name, test] of Object.entries(COVERED_ELSEWHERE)) {
+      expect(CRISIS_FLAGS, `${name} is no longer a crisis-lane flag`).toContain(name);
+      expect(test, `${name}: ${test} is not a test file`).toMatch(TEST_FILE);
       expect(existsSync(join(ROOT, test)), `${name}: ${test} does not exist`).toBe(true);
-      expect(readFileSync(join(ROOT, test), 'utf8'), `${test} never names ${name}`).toContain(name);
+      const text = readFileSync(join(ROOT, test), 'utf8');
+      expect(text.includes(name), `${test} never names ${name}`).toBe(true);
+    }
+  });
+
+  it('only shrinks NOT_YET_COVERED', () => {
+    for (const name of NOT_YET_COVERED) {
+      expect(NOT_YET_COVERED_CEILING, `${name} was added to NOT_YET_COVERED`).toContain(name);
+      expect(CRISIS_FLAGS, `${name} is no longer a crisis-lane flag`).toContain(name);
     }
   });
 

@@ -6,7 +6,8 @@
  * `lanes.crisis.paths`, matched the way the autonomy-lanes gate matches them) names it as a
  * string literal (`flagOn('MINOR_ABUSE_DISCLOSURE')`), reads it off an env object
  * (`env.THIRD_PARTY_SELF_HARM`), or is the flag's own definition file. Test files don't count.
- * Comments don't count either: a crisis module that only mentions a flag doesn't read it.
+ * Comments don't count either: the file is parsed, so a flag a comment mentions (even in
+ * backticks) is not a read.
  *
  * Why: the prefix rule left out every crisis flag with another name, such as
  * MINOR_ABUSE_DISCLOSURE and THIRD_PARTY_SELF_HARM, and nothing said so.
@@ -14,6 +15,7 @@
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
+import ts from 'typescript';
 
 import { FLAG_MANIFEST } from '../../../config/flag-manifest.js';
 
@@ -33,8 +35,7 @@ const CRISIS_NAME = /^(CRISIS_|SAFETY_|EARLY_WARNING_|MINOR_CARE|SMS_CRISIS_)/;
 const SOURCE = /\.(?:[cm]?[jt]sx?)$/;
 const TEST = /(?:^|\/)__tests__\/|\.(?:test|spec)\.[cm]?[jt]sx?$/;
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'build', 'coverage', '.git']);
-/** A quoted name, or a name read off an env object (`process.env.X`, `env?.X`). */
-const READ = /['"`]([A-Z][A-Z0-9_]*)['"`]|\benv\??\.([A-Z][A-Z0-9_]*)\b/g;
+const FLAG_NAME = /^[A-Z][A-Z0-9_]*$/;
 const DEFINITION = /^src\/config\/flags\/([A-Z][A-Z0-9_]*)\.ts$/;
 
 /**
@@ -48,6 +49,31 @@ export const RUNNER_MARKERS: Readonly<Record<string, string>> = {
 };
 
 const MANIFEST = new Set(Object.keys(FLAG_MANIFEST));
+
+/** `env`, `process.env` or `import.meta.env`: the objects a flag is read off. */
+function isEnv(node: ts.Expression): boolean {
+  if (ts.isIdentifier(node)) return node.text === 'env';
+  return ts.isPropertyAccessExpression(node) && node.name.text === 'env';
+}
+
+/**
+ * The flag-shaped names a source text reads: a string literal that is exactly the name
+ * (`flagOn('X')`, `env['X']`), or a property read off an env object (`process.env.X`,
+ * `env?.X`). Parsed, not matched, so comments never count.
+ */
+export function flagReadsIn(text: string, fileName = 'source.ts'): Set<string> {
+  const found = new Set<string>();
+  const visit = (node: ts.Node): void => {
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+      if (FLAG_NAME.test(node.text)) found.add(node.text);
+    } else if (ts.isPropertyAccessExpression(node) && isEnv(node.expression)) {
+      if (FLAG_NAME.test(node.name.text)) found.add(node.name.text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(ts.createSourceFile(fileName, text, ts.ScriptTarget.Latest, false));
+  return found;
+}
 
 /** Every crisis-lane source file, repo-relative, tests left out. */
 function laneFiles(): string[] {
@@ -80,7 +106,7 @@ function laneReads(): Map<string, string[]> {
   for (const file of laneFiles()) {
     const defined = DEFINITION.exec(file)?.[1];
     if (defined) add(defined, file);
-    for (const m of readFileSync(join(ROOT, file), 'utf8').matchAll(READ)) add(m[1] ?? m[2], file);
+    for (const name of flagReadsIn(readFileSync(join(ROOT, file), 'utf8'), file)) add(name, file);
   }
   return new Map([...reads].sort(([a], [b]) => a.localeCompare(b)));
 }
