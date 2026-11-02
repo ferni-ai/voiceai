@@ -119,9 +119,12 @@ export interface CallOutcome {
 
   // Recording (if consented)
   recordingUrl?: string;
+  /** The model's summary of the call; never the other person's own words. */
   transcriptSummary?: string;
+  /** The person answered but the model couldn't summarise the call: nothing they said is kept. */
+  summaryUnavailable?: boolean;
 
-  /** What the person asked Ferni to pass on to the user, in their (screened) words. */
+  /** What the person asked Ferni to pass on to the user, as the model's summary put it. */
   message?: string;
 
   /** status 'voicemail' only: Ferni really spoke a message (services/outreach/voicemail-outcome.ts). */
