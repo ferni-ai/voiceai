@@ -270,6 +270,10 @@ const ADDRESS_DOTS = [
 const ruleForm = (folded: string): string =>
   folded.replace(/[/&"]/g, '-').replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}]/gu, ' ');
 
+/** Rule 2 alone on destinationIn's form, for a reader that must not depend on which rule comes first. */
+export const digitsIn = (folded: string): ContentBlock | null =>
+  digitBlock(collapseSpacedLetters(ruleForm(folded).toLowerCase()));
+
 /** blockedContent's number, address and mail rules on foldToAscii's form; the stored-text screen reads them too. */
 export function destinationIn(folded: string): ContentBlock | null {
   const form = ruleForm(folded);

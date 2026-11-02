@@ -19,6 +19,8 @@ const ORDINARY = [
   'Wire rent to the landlord', 'Call Dr. Lee at 555-0123', 'Order from amazon.com',
   'Team lunch @ noon', 'Bring #2 pencils', "Mom's b-day 3/14", 'Pick up dry cleaning; then gym',
   'Get the PIN for the garage',
+  // Two prices in one line are two amounts, not one seven-digit number
+  'pay $1200 and $350', 'pay $1,200 rent and $350 for utilities', 'split $40 / $25',
 ]; // prettier-ignore
 
 const HOSTILE: Array<[string, string]> = [
@@ -44,8 +46,8 @@ const CALLBACK_ORDINARY = [
 ];
 
 describe('hostileStoredText', () => {
-  it('passes all 25 ordinary owner lines', () => {
-    expect(ORDINARY).toHaveLength(25);
+  it('passes all 28 ordinary owner lines', () => {
+    expect(ORDINARY).toHaveLength(28);
     expect(ORDINARY.filter((t) => hostileStoredText(t) !== null)).toEqual([]);
   });
 
@@ -99,17 +101,27 @@ describe('hostileStoredText', () => {
     expect(hostileStoredText('send 5,550,100,123 dollars')).toBe('money_destination');
     expect(hostileStoredText('pay \u20AC555,010,0123 today')).toBe('money_destination');
     expect(hostileStoredText('wire it to 2026-555-0100')).toBe('money_destination');
+    // Grouped in threes past six digits: phone-length, so never a price
+    expect(hostileStoredText('Wire $1,234,567')).toBe('money_destination');
+    expect(hostileStoredText('send 5,550,100 dollars')).toBe('money_destination');
     // Not price-shaped, or run on into more digits: read as digits, near a dial word a short code.
     expect(hostileStoredText('text $12,34,56 for the refund')).toBe('money_destination');
     expect(hostileStoredText('text $1234 56 for the refund')).toBe('money_destination');
     for (const line of [
       'Pay rent $1,200',
       'Pay rent $1200',
+      'Pay rent $250,000',
       'Buy 2% milk',
       'send $1,250.00 to Sam',
     ]) {
       expect(hostileStoredText(line)).toBeNull();
     }
+  });
+
+  it('a rule that fires before the digit rule on the unmasked text still counts', () => {
+    // vanity_number comes first in destinationIn; masking the amount would hide the number
+    expect(hostileStoredText('Pay $800-FLOWERS now')).toBe('money_destination');
+    expect(hostileStoredText('Pay $888-CALL-NOW')).toBe('money_destination');
   });
 
   it('a phone number or a link alone passes here, and blockedContent still refuses it', () => {
