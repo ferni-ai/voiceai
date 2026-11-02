@@ -46,9 +46,6 @@ jobs:
       # The scoring code (detectCrisis + assessSafety and everything they import
       # that can change a read), the crisis personas and turn handling, the
       # fixtures, the sweep itself and this workflow.
-      - name: 'RED PROOF: detection fails'
-        run: exit 1
-
       - id: crisis
         uses: ./.github/actions/pr-changes
         with:
