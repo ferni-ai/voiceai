@@ -7,11 +7,14 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-import { baselineText, OUT, readAll } from '../baseline/generate.js';
+import { baselineText, changedRows, OUT, readAll } from '../baseline/generate.js';
 
 describe('crisis K0 deterministic baseline', () => {
   it('regenerating on this head reproduces the committed file byte for byte', () => {
-    expect(baselineText() === readFileSync(OUT, 'utf8'), 'run pnpm crisis:baseline').toBe(true);
+    const [committed, fresh] = [readFileSync(OUT, 'utf8'), baselineText()];
+    // The rows read differently first, by name; then any other byte (a key, a hash, the head).
+    expect(changedRows(committed, fresh), 'run pnpm crisis:baseline').toEqual([]);
+    expect(fresh === committed, 'run pnpm crisis:baseline').toBe(true);
   }, 120_000);
 
   it('a flag the readers read changes the readings, so a profile is really applied', () => {

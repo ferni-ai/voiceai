@@ -6,10 +6,14 @@
  *   pnpm crisis:baseline          rewrite deterministic.generated.json
  *   pnpm crisis:baseline --check  exit 1 when the committed file differs from this head
  *
- * A row is one corpus line, `[key, textHash, tuple per config]`; a tuple is the five readings,
+ * A row is one corpus line, `[key, textHash, tuple id per config]`; a tuple is the five readings,
  * each `[level, resources, actions, has988, has911]` (has988: the number appears anywhere in what
  * that reader returns). Lines are never copied here, only a key and a hash. The clock, the zone
  * and Math.random are pinned per line, so every machine writes the same bytes.
+ *
+ * Everything is named by its own content, so a change shows only where it happened: a tuple's id
+ * is the hash of its readings, and a line in a plain list is keyed by its text hash (`~2` on a
+ * repeat), not its index. To find that line, hash the list's entries. Calls keep `callId/turn`.
  */
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -52,7 +56,18 @@ const FLAGS = [
 
 type Line = readonly [key: string, text: string];
 const json = <T>(path: string): T => JSON.parse(readFileSync(path, 'utf8')) as T;
-const keyed = (texts: readonly string[]): Line[] => texts.map((t, i) => [`${i}`, t]);
+const hash = (s: string, n: number): string =>
+  createHash('sha256').update(s).digest('hex').slice(0, n);
+/** A plain list's lines, keyed by text hash so inserting a line leaves every other key alone. */
+const keyed = (texts: readonly string[]): Line[] => {
+  const seen = new Map<string, number>();
+  return texts.map((t) => {
+    const k = hash(t, 8);
+    const n = (seen.get(k) ?? 0) + 1;
+    seen.set(k, n);
+    return [n === 1 ? k : `${k}~${n}`, t];
+  });
+};
 const texts = (path: string): string[] =>
   json<Array<string | { text: string }>>(path).map((r) => (typeof r === 'string' ? r : r.text));
 const ls = (dir: string, match: RegExp): string[] =>
@@ -223,20 +238,17 @@ export function readAll(flags: Readonly<Record<string, string>>): Map<string, Re
 export function baselineText(): string {
   const names = Object.keys(CONFIGS);
   const runs = names.map((n) => readAll(CONFIGS[n]));
-  const tuples: string[] = [];
-  const index = new Map<string, number>();
-  const idOf = (t: Reading[]): number => {
+  const tuples = new Map<string, string>();
+  const idOf = (t: Reading[]): string => {
     const k = JSON.stringify(t);
-    if (!index.has(k)) index.set(k, tuples.push(k) - 1);
-    return index.get(k)!;
+    const id = hash(k, 8);
+    if ((tuples.get(id) ?? k) !== k) throw new Error(`tuple id ${id} names two tuples`);
+    tuples.set(id, k);
+    return id;
   };
   const files = Object.entries(corpora()).map(([file, lines]) => {
     const rows = lines.map(([key, text], i) =>
-      JSON.stringify([
-        key,
-        createHash('sha256').update(text).digest('hex').slice(0, 8),
-        ...runs.map((run) => idOf(run.get(file)![i])),
-      ])
+      JSON.stringify([key, hash(text, 8), ...runs.map((run) => idOf(run.get(file)![i]))])
     );
     return `{"file":${JSON.stringify(file)},"lines":${lines.length},"rows":[\n${rows.join(',\n')}\n]}`;
   });
@@ -245,7 +257,29 @@ export function baselineText(): string {
     readers: ['crisis-guard', 'transfer', 'safety-check', 'early-warning', 'life-coaching'],
     reading: ['level', 'resources', 'actions', 'has988', 'has911'],
   };
-  return `{"head":${JSON.stringify(head)},\n"tuples":[\n${tuples.join(',\n')}\n],\n"corpora":[\n${files.join(',\n')}\n]}\n`;
+  const byId = [...tuples].sort(([a], [b]) => (a < b ? -1 : 1)).map(([id, t]) => `"${id}":${t}`);
+  return `{"head":${JSON.stringify(head)},\n"tuples":{\n${byId.join(',\n')}\n},\n"corpora":[\n${files.join(',\n')}\n]}\n`;
+}
+
+type Baseline = {
+  tuples: Record<string, unknown>;
+  corpora: { file: string; rows: string[][] }[];
+};
+
+/** `file key: config old -> new` for every row two baselines read differently; [] when none. */
+export function changedRows(before: string, after: string): string[] {
+  const [a, b] = [before, after].map((t) => JSON.parse(t) as Baseline);
+  const rows = (x: Baseline) =>
+    new Map(x.corpora.flatMap((c) => c.rows.map((r) => [`${c.file} ${r[0]}`, r] as const)));
+  const [ra, rb] = [rows(a), rows(b)];
+  const show = (x: Baseline, r: string[] | undefined, i: number) =>
+    r ? JSON.stringify(x.tuples[r[i + 2]]) : 'absent';
+  return [...new Set([...ra.keys(), ...rb.keys()])].flatMap((k) =>
+    Object.keys(CONFIGS).flatMap((config, i) => {
+      const [old, now] = [show(a, ra.get(k), i), show(b, rb.get(k), i)];
+      return old === now ? [] : [`${k}: ${config} ${old} -> ${now}`];
+    })
+  );
 }
 
 function main(): number {
