@@ -45,7 +45,8 @@ jobs:
       # One regex per line: grep -E reads each line as its own pattern. `|-`
       # drops the trailing newline, which would add an empty match-all pattern.
       # Schedule and dispatch always match (see the action). The last lines are
-      # what the single-use and call-claim race tests load besides their stores.
+      # what the race tests load besides their stores, including the helpers
+      # getFirestoreDb installs.
       # No comments inside the block: each line there is a pattern.
       - id: data_layer
         uses: ./.github/actions/pr-changes
@@ -64,6 +65,7 @@ jobs:
             ^src/services/outreach/(live-report-record|call-progress)\.ts$
             ^src/services/outreach/__tests__/call-claim-race\.emulator\.test\.ts$
             ^src/api/__tests__/menu-[^/]*\.emulator\.test\.ts$
+            ^src/api/__tests__/(seeds-(routes-ledger|purchase|import)|roadmap-seeds|account-delete-every-store)\.emulator\.test\.ts$
             ^src/services/wellbeing-tracking/
             ^src/api/wellbeing[^/]*\.ts$
             ^src/personality/(pattern-persistence|emotional-data-shape)\.ts$
@@ -88,7 +90,7 @@ jobs:
             ^firebase\.json$
             ^\.github/workflows/data-layer-e2e\.yml$
             ^\.github/actions/(pr-changes|setup-node-pnpm)/
-            ^src/utils/(firestore-utils|erasing-mark)\.ts$
+            ^src/utils/(firestore-utils|shared-firestore|firestore-db-pin|synthetic-write-guard|erasing-mark)\.ts$
             ^src/services/superhuman/firestore-utils\.ts$
             ^src/config/flags/CONNECT_MOMENT_CALENDAR\.ts$
             ^src/tests/setup(-emulator)?\.ts$
