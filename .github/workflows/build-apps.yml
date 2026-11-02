@@ -63,9 +63,6 @@ jobs:
     outputs:
       ios: ${{ steps.ios.outputs.matched }}
     steps:
-      - name: 'RED PROOF: iOS change check fails'
-        run: exit 1
-
       - uses: actions/checkout@v7
 
       - id: ios

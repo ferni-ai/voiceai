@@ -33,9 +33,6 @@ jobs:
       # macos-menubar (see ci.yml's setup job; CI_SCOPED_QUEUE=off scopes PRs only)
       code: ${{ steps.code.outputs.matched }}
     steps:
-      - name: 'RED PROOF: Build Scope fails'
-        run: exit 1
-
       - name: Checkout
         uses: actions/checkout@v7
 
