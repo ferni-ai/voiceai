@@ -552,6 +552,11 @@ function injectStyles(): void {
       transition: opacity 0.2s;
     }
 
+    /* display:flex above would beat the hidden attribute: keep a row we couldn't load out of sight */
+    .contact-settings-time-row[hidden] {
+      display: none;
+    }
+
     .contact-settings-time-row.enabled {
       opacity: 1;
       pointer-events: auto;
@@ -725,7 +730,7 @@ function render(): void {
             </button>
           </div>
           
-          <div class="contact-settings-time-row ${!quietOff && state.contactInfo.quietHoursEnabled !== false ? 'enabled' : ''}">
+          <div class="contact-settings-time-row ${!quietOff && state.contactInfo.quietHoursEnabled !== false ? 'enabled' : ''}" ${state.quiet === 'failed' ? 'hidden' : ''}>
             <span class="contact-settings-time-label">${t('contactSettings.dontCall', "Don't call")}</span>
             <select class="contact-settings-time-select" id="quiet-start" ${quietOff} aria-label="${t('accessibility.quietHoursStart', 'Quiet hours start time')}">
               ${generateTimeOptions(state.contactInfo.quietHoursStart || '22:00')}

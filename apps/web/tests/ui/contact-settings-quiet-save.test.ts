@@ -93,6 +93,8 @@ describe('quiet hours that did not load', () => {
     expect(document.querySelector<HTMLSelectElement>('#quiet-start')?.disabled).toBe(true);
     expect(document.querySelector<HTMLSelectElement>('#quiet-end')?.disabled).toBe(true);
     expect(document.querySelector<HTMLButtonElement>('#quiet-hours-toggle')?.disabled).toBe(true);
+    // the made-up 22:00-08:00 is not shown at all (and its dimmed labels failed axe contrast)
+    expect(document.querySelector<HTMLElement>('.contact-settings-time-row')?.hidden).toBe(true);
   });
 
   it('the contact load fails: Save posts no quiet fields either', async () => {
@@ -119,6 +121,7 @@ describe('quiet hours that loaded', () => {
     await open();
     const start = document.querySelector<HTMLSelectElement>('#quiet-start')!;
     expect(start.disabled).toBe(false);
+    expect(document.querySelector<HTMLElement>('.contact-settings-time-row')?.hidden).toBe(false);
     start.value = '21:00';
     start.dispatchEvent(new Event('change'));
     await save();
