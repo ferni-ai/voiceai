@@ -67,10 +67,12 @@ git show "$base:.gitleaks.toml" >"$config" 2>/dev/null \
 git show "$base:.gitleaksignore" >"$ignore" 2>/dev/null || : >"$ignore"
 
 # `[extend] path` is resolved against the checkout, so rules that extend a file
-# could be loosened by the change editing that file. Parsed as TOML, not matched
-# with regexes: quoted keys (`["extend"]`, `"path" =`) are the same key to
-# gitleaks, and its config loader (viper) ignores key case, so `[Extend]` and
-# `PATH` count too. A config that won't parse, or no tomllib, refuses as well.
+# could be loosened by the change editing that file. Parsed as TOML, then keys
+# flattened the way gitleaks's config loader (viper) sees them: joined with "."
+# and lower-cased. So quoted keys (`["extend"]`, `"path" =`), any case
+# (`[Extend]`, `PATH`), and one dotted key (`"extend.path" =`, a single key to
+# TOML that viper splits) all count. A config that won't parse, or no tomllib,
+# refuses as well.
 set +e
 python3 -I -c '
 import sys
@@ -81,10 +83,15 @@ try:
 except Exception as e:
     print(e, file=sys.stderr)
     sys.exit(3)
-for key, value in config.items():
-    if key.lower() == "extend" and isinstance(value, dict):
-        if any(k.lower() == "path" for k in value):
-            sys.exit(1)
+def keys(table, prefix=""):
+    for key, value in table.items():
+        name = (prefix + "." + key if prefix else key).lower()
+        if isinstance(value, dict):
+            yield from keys(value, name)
+        else:
+            yield name
+if any(k == "extend.path" or k.startswith("extend.path.") for k in keys(config)):
+    sys.exit(1)
 ' "$config"
 extend_rc=$?
 set -e
@@ -133,10 +140,12 @@ git -C "$canary" -c user.name=canary -c user.email=canary@example.com \
   commit --quiet -m canary
 
 set +e
-gitleaks git "${flags[@]}" "$canary" >/dev/null 2>&1
+# Its own exit code for a finding, so a config gitleaks can't load (exit 1) isn't
+# mistaken for the planted key being found. The last --exit-code given wins.
+gitleaks git "${flags[@]}" --exit-code 9 "$canary" >/dev/null 2>&1
 canary_rc=$?
 set -e
-if [ "$canary_rc" -ne 1 ]; then
+if [ "$canary_rc" -ne 9 ]; then
   echo "::error::gitleaks did not report a planted fake key (exit $canary_rc), so it can't catch a real one"
   exit 1
 fi

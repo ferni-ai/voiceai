@@ -48,7 +48,8 @@ if [ "$kind" = canary ]; then
   cp "$target/settings.ini" "$STUB_DIR/canary-settings.ini"
   rc=$CANARY_RC
 fi
-[ "$rc" = 1 ] && rc=$leak_rc
+# "fatal" is gitleaks failing outright (say, a config it cannot load): a bare 1.
+if [ "$rc" = 1 ]; then rc=$leak_rc; elif [ "$rc" = fatal ]; then rc=1; fi
 exit "$rc"
 `;
 
@@ -96,7 +97,7 @@ beforeEach(() => {
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-function run(canaryRc: number, rangeRc = 0, range: [string, string] = [base, head]) {
+function run(canaryRc: number | 'fatal', rangeRc = 0, range: [string, string] = [base, head]) {
   const r = spawnSync('bash', [SCRIPT, ...range], {
     cwd: repo,
     encoding: 'utf8',
@@ -146,6 +147,14 @@ describe('gitleaks-range.sh', () => {
     expect(r.status).toBe(1);
     expect(r.out).toContain('did not report a planted fake key (exit 0)');
     expect(r.calls).toEqual([expect.stringMatching(/^canary /)]);
+  });
+
+  it('fails without scanning when gitleaks fails outright on the canary, not mistaking it for a find', () => {
+    const r = run('fatal');
+    expect(r.status).toBe(1);
+    expect(r.out).toContain('did not report a planted fake key (exit 1)');
+    expect(r.calls).toHaveLength(1);
+    expect(r.calls[0]).toMatch(/--exit-code 9 /);
   });
 
   it('fails without scanning when gitleaks errors on the canary', () => {
@@ -312,6 +321,10 @@ describe("gitleaks-range.sh refuses what the scan can't see through", () => {
     expectRefused(withBaseConfig('["extend"]\n"path" = "extra.toml"\n'), '[extend] path');
     expectRefused(withBaseConfig("[ 'extend' ]\n'path' = \"extra.toml\"\n"), '[extend] path');
     expectRefused(withBaseConfig('[Extend]\nPATH = "extra.toml"\n'), '[extend] path');
+    // One key to TOML, but gitleaks's config loader splits it on the dot.
+    expectRefused(withBaseConfig('"extend.path" = "extra.toml"\n'), '[extend] path');
+    expectRefused(withBaseConfig('\'EXTEND.PATH\' = "extra.toml"\n'), '[extend] path');
+    expectRefused(withBaseConfig('[extend]\n"path.sub" = "extra.toml"\n'), '[extend] path');
   });
 
   it('base rules that do not parse as TOML', () => {
@@ -320,7 +333,8 @@ describe("gitleaks-range.sh refuses what the scan can't see through", () => {
 
   it('but accepts base rules whose own rules carry a path key', () => {
     const r = withBaseConfig(
-      '[extend]\nuseDefault = true\n\n[[rules]]\nid = "x"\nregex = "zzz"\npath = "src/"\n'
+      '[extend]\nuseDefault = true\npathology = "a key that only starts with path"\n\n' +
+        '[[rules]]\nid = "x"\nregex = "zzz"\npath = "src/"\n'
     );
     expect(r.status).toBe(0);
   });
