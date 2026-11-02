@@ -57,7 +57,7 @@ jobs:
       - id: menu
         uses: ./.github/actions/pr-changes
         with:
-          include: '^(apps/web/|src/(api|servers|services|memory|config|types|utils)/|e2e/signed-in/|playwright\.(signed-in|menu-e2e)\.config\.ts$|firebase\.json$|firestore\.(rules|indexes\.json)$|package\.json$|pnpm-lock\.yaml$|scripts/ci/(menu-e2e-no-skips|prod-web-flags)\.mjs$|\.github/workflows/deploy-firebase\.yml$|deploy/ui-server/env\.yaml$|\.github/workflows/menu-e2e\.yml$|\.github/actions/)'
+          include: '^((apps/web/|src/(api|servers|services|memory|config|types|utils)/|e2e/signed-in/|playwright\.(signed-in|menu-e2e)\.config\.ts$|firebase\.json$|firestore\.(rules|indexes\.json)$|package\.json$|pnpm-lock\.yaml$|scripts/ci/(menu-e2e-no-skips|prod-web-flags)\.mjs$|\.github/workflows/deploy-firebase\.yml$|deploy/ui-server/env\.yaml$|\.github/workflows/menu-e2e\.yml$|\.github/actions/)'
           merge-group: 'true'
 
   contracts:
