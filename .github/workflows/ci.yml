@@ -1355,9 +1355,10 @@ jobs:
           cd apps/web
           pnpm lint:tokens
 
-      # Blocking ratchet: UI audit errors (missing alt text, empty catch blocks) may not rise
-      # above MAX_UI_AUDIT_ERRORS in apps/web/scripts/audit-ui.js, and a scan that can't read
-      # a directory or finds no files fails. It used to run with `|| true`, so it never failed.
+      # Blocking: no UI audit errors (an <img> with no alt, an empty .catch(() => {})).
+      # MAX_UI_AUDIT_ERRORS in apps/web/scripts/audit-ui.js is 0, the count on main; a scan
+      # that can't read a directory or finds no files fails too. Each rule has a flagged and a
+      # passing case in apps/web/tests/audit-ui-rules.test.ts. It used to run with `|| true`.
       - name: UI audit (ratchet)
         working-directory: apps/web
         run: pnpm audit:ui
