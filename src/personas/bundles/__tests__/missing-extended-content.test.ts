@@ -6,15 +6,19 @@
  * was silent, so a bundle shipped with none of it looked like a complete one.
  * Now the runtime warns once per persona per process, naming the missing
  * files, through the REAL logger (the global setup mocks safe-logger; this
- * unmocks it and reads back the JSON lines it writes to stderr).
+ * unmocks it and reads back the JSON lines it writes to stderr). LOG_LEVEL is
+ * debug here so a debug line can be told apart from a warn.
  */
 import { cp, mkdtemp, rm, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.unmock('../../../utils/safe-logger.js');
+// Read once, when the real logger is first used.
+const savedLogLevel = process.env.LOG_LEVEL;
+process.env.LOG_LEVEL = 'debug';
 
 const { loadBundle } = await import('../loader.js');
 const { BundleRuntimeEngine } = await import('../runtime.js');
@@ -32,6 +36,7 @@ const REMOVED = [
 interface LogLine {
   level?: number;
   msg?: string;
+  path?: string;
   personaId?: string;
   missing?: string[];
 }
@@ -39,8 +44,8 @@ interface LogLine {
 let written: string[];
 let dir: string;
 
-/** The missing-content warnings the real logger wrote. */
-function missingContentWarnings(): LogLine[] {
+/** Every JSON line the real logger wrote. */
+function logLines(): LogLine[] {
   return written
     .join('')
     .split('\n')
@@ -50,8 +55,12 @@ function missingContentWarnings(): LogLine[] {
       } catch {
         return [];
       }
-    })
-    .filter((line) => line.msg === MESSAGE);
+    });
+}
+
+/** The missing-content warnings the real logger wrote. */
+function missingContentWarnings(): LogLine[] {
+  return logLines().filter((line) => line.msg === MESSAGE);
 }
 
 async function removeFiles(): Promise<void> {
@@ -67,6 +76,11 @@ async function startRuntime() {
 beforeAll(async () => {
   // initialize() imports this; load it before stderr is captured.
   await import('../../../conversation/index.js');
+});
+
+afterAll(() => {
+  if (savedLogLevel === undefined) delete process.env.LOG_LEVEL;
+  else process.env.LOG_LEVEL = savedLogLevel;
 });
 
 beforeEach(async () => {
@@ -112,11 +126,30 @@ describe('missing extended content', () => {
     expect(missingContentWarnings()).toEqual([]);
   });
 
-  it('leaves an unparsable file to the existing debug path, not the missing list', async () => {
-    await writeFile(join(dir, 'content/behaviors/quirks.json'), '{ "caught_doing": [');
+  it('warns once when two first loads for the same persona run at the same time', async () => {
+    await removeFiles();
+    // Two sessions starting the same persona at once: neither has warned yet.
+    const bundle = await loadBundle(dir);
+    const first = new BundleRuntimeEngine(bundle);
+    const second = new BundleRuntimeEngine(bundle);
+    await Promise.all([first.loadInnerWorld(), second.loadInnerWorld()]);
+
+    expect(missingContentWarnings()).toHaveLength(1);
+  });
+
+  it('logs a malformed optional file at debug, never warn, and the rest still loads', async () => {
+    const quirks = join(dir, 'content/behaviors/quirks.json');
+    await writeFile(quirks, '{ "caught_doing": [');
     const engine = await startRuntime();
 
-    expect(missingContentWarnings()).toEqual([]);
+    const parseLogs = logLines().filter((line) => line.msg === 'Failed to load quirks.json');
+    expect(parseLogs).toHaveLength(1);
+    expect(parseLogs[0]).toMatchObject({ level: 20, path: quirks });
+    expect(logLines().filter((line) => (line.level ?? 0) >= 40)).toEqual([]);
+    // The bad file costs only its own content: quirks stay empty, inner world loads.
     expect(engine.getCaughtDoing()).toBeNull();
+    expect(engine.getPublicPrivateSelf()).toEqual(
+      expect.objectContaining({ public_self: expect.any(String) })
+    );
   });
 });
