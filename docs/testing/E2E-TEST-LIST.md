@@ -115,7 +115,9 @@ pnpm test:voice
 | Workflow             | Purpose                                                                                           |
 | -------------------- | ------------------------------------------------------------------------------------------------- |
 | `e2e-critical.yml`   | **Critical E2E subset** – tool routing, handoff, superhuman (on path changes)                     |
-| `e2e-tests.yml`      | Playwright E2E (frontend)                                                                         |
+| `menu-e2e.yml`       | Menu walk and contract tests (Playwright, every PR and the merge queue)                           |
+| `signed-in-e2e.yml`  | Signed-in walk (Playwright, nightly; PR and push runs follow OPTIONAL_CI)                         |
+| `deploy-firebase.yml`| Browser smoke of the deployed web app after every main push, rolls back on failure                |
 | `agent-e2e.yml`      | Agent E2E                                                                                         |
 | `bth-benchmarks.yml` | BTH benchmarks                                                                                    |
 | `ci.yml`             | Lint, test, build (unit/integration)                                                              |
