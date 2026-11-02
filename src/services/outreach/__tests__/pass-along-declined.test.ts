@@ -138,8 +138,15 @@ describe('a personal call: an unambiguous no is honoured', () => {
     ["I'm not comfortable with that.", 'Sorry.'],
     ["Please don't.", 'Can you hear me?'],
     ['Keep it to yourself.', 'Is that weird?'],
+    ['No.', 'Is that okay with you?'],
   ])('%j then %j before Ferni speaks: a no', (first, then) => {
     const t = [A(ASK), R(first), R(then), A("Okay, I won't."), R(SAID)];
+    expect(passAlongDeclined(call.script, t)).toBe(true);
+    expect(buildCallOutcome(call, t, analysis(), undefined, 90).outcome).toBe(NO_LINE);
+  });
+
+  it('a split no stays a no when a go-ahead comes only after Ferni speaks again', () => {
+    const t = [A(ASK), R('No.'), R('Hello?'), A("Okay, I won't. Can I still give you Riley's message?"), R('Sure, go ahead.'), R(SAID)]; // prettier-ignore
     expect(passAlongDeclined(call.script, t)).toBe(true);
     expect(buildCallOutcome(call, t, analysis(), undefined, 90).outcome).toBe(NO_LINE);
   });
@@ -263,6 +270,14 @@ const ONE_SECRET = [
   'Keep that between us, okay?',
   "That's off the record.",
 ]; // prettier-ignore
+// Yeses that open with a no-word, split by transcription into two replies (fictional).
+const SPLIT_YES = [
+  "No, that's cool.", 'No, go right ahead.', 'No, you can tell him.', 'Nope, tell him whatever you want.',
+  "No, that's all right.", "Uh, no, it's cool.", "No, I don't care, tell her.", 'No, why would I mind?',
+  'Well, no, go on.', "No that's perfect.", 'No, go ahead.', 'Nope, go for it.', 'No no no, it is fine.',
+  'Oh no, not at all, go ahead.', 'No, of course, tell him anything.', 'No, yeah, that works.', 'Nah, go ahead.',
+  'No, totally.', "No, it's cool.", 'No, sure.', 'Ha, no, go ahead.', 'Nope!! Totally fine!!', 'Yeah no, fine.',
+]; // prettier-ignore
 const BOOKING_REPLIES = [
   "No, sorry, we're fully booked on Friday.", 'Nope, nothing at seven, but eight works.',
   "Not really, we're closed Fridays.", 'Sure, seven works. Name?', 'Who is Sam?',
@@ -305,6 +320,29 @@ describe('everything else is delivered, as main does', () => {
 
   it('a no to "do you mind" is a yes', () => {
     delivered([A("I'll pass along what you say to Riley Test, do you mind, is that okay?"), R('No.'), A('Great!'), R(SAID)]); // prettier-ignore
+  });
+
+  // Owner, 2026-11-02: a no then a go-ahead in the same answer is in doubt, so it delivers.
+  it.each(['.', '', '!', ','])('a yes split after its no-word (%j) is delivered', (mark) => {
+    expect(SPLIT_YES).toHaveLength(23);
+    for (const yes of SPLIT_YES) {
+      const [, head = '', tail = ''] = /^(.*?\b(?:no+|nope|nah)\b)\W*(.*)$/i.exec(yes) ?? [];
+      expect(tail).not.toBe('');
+      delivered([A(ASK), R(`${head}${mark}`), R(tail), A('Great!'), R(SAID)]);
+    }
+  });
+
+  // A first reply cut off mid-sentence is read only with what follows, go-ahead or not.
+  it.each([
+    ['No,', 'he already knows about the trip anyway.'],
+    ['Nope...', 'my brother tells him everything anyway.'],
+    ['No -', 'he can hear all of it.'],
+  ])('a cut-off %j then %j is one answer: delivered', (first, then) => {
+    delivered([A(ASK), R(first), R(then), A('Great!'), R(SAID)]);
+  });
+
+  it('a no, a fragment and a go-ahead before Ferni speaks is in doubt: delivered', () => {
+    delivered([A(ASK), R('No.'), R('Hello?'), R('Go ahead.'), A('Great!'), R(SAID)]);
   });
 
   it('a lone no followed by more words before Ferni speaks is one answer, not a no', () => {

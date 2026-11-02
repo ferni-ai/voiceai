@@ -6,10 +6,11 @@
  * never ask (owner, 2026-11-02), so only a call whose script asked can decline.
  *
  * A no counts only when it is unambiguous, and the ask was the last question
- * in Ferni's turn: their whole answer, or their first reply when it is a
- * finished sentence ("No." then "Sorry, bad line."), is a lone no ("No.",
- * "Nope.", "Um, no.") or an explicit refusal of all of it ("Please don't.", "I'm not comfortable
- * with that.", "Keep it to yourself."). Any other answer, a no followed by more
+ * in Ferni's turn: their whole answer is a lone no ("No.", "Nope.", "Um, no.")
+ * or an explicit refusal of all of it ("Please don't.", "I'm not comfortable
+ * with that.", "Keep it to yourself."). So is their first reply alone, when it
+ * is a finished sentence and nothing else in their answer is a go-ahead ("No."
+ * then "Sorry, bad line." is a no; "No." then "That's cool." is not). Any other answer, a no followed by more
  * words included ("No, that's cool", "Keep this between us, but I'm bringing a
  * plus-one"), is delivered as before. A secret shared later in the call never
  * withholds the whole call (owner, 2026-11-02): withholding just that part is
@@ -53,6 +54,37 @@ const REFUSED = new RegExp(
 /** A reply cut off mid-sentence: the next reply carries on from it. */
 const UNFINISHED = /(?:[,;:\u2013\u2014-]|\.\.\.|\u2026)\s*$/;
 
+const GO = [
+  "(?:that's|that is|it's|it is) (?:cool|fine|ok|okay|alright|all right|perfect|great)",
+  '(?:totally )?fine',
+  'go (?:right )?ahead',
+  'go for it',
+  'go on',
+  '(?:you can )?(?:tell|share|pass|say)(?: (?:it|that|him|her|them|anything|whatever|everything|all)\\b[^.!?]*)?',
+  'sure',
+  'okay',
+  'ok',
+  'yes',
+  'yeah',
+  'yep',
+  'totally',
+  'of course',
+  'not at all',
+  'that works',
+  "i don't (?:mind|care)",
+  'why would i mind\\?',
+].join('|');
+/**
+ * A reply that is a go-ahead and nothing else: "that's cool", "go ahead", "tell him whatever".
+ * Never a question ("Okay?", "Is that okay with you?"), a fragment ("Hello?") or one secret
+ * ("don't tell her about X"). Read only inside their answer, before Ferni speaks again.
+ */
+const GO_AHEAD = new RegExp(
+  `^\\W*(?:(?:oh|um+|uh+|well|hmm+|ah|ha|yeah|yes|no+|nope|nah|of course|totally)\\W+)*` +
+    `(?:${GO})(?:\\W+(?:${GO}))*[.!\\s]*$`,
+  'i'
+);
+
 const straight = (text: string): string =>
   text.replace(/[‘’]/g, "'").replace(/\bdo not\b/gi, "don't");
 
@@ -84,10 +116,12 @@ export function passAlongDeclined(
   const replies = (next < 0 ? after : after.slice(0, next))
     .filter((t) => t.role === 'recipient')
     .map((t) => straight(t.content.trim()));
-  // ...or their first reply on its own, when it is a finished sentence: "No." then "Hello?" is
-  // still a no, while "No," then "that's cool." is one answer.
-  const first = replies[0] ?? '';
-  const read = UNFINISHED.test(first) ? [replies.join(' ')] : [replies.join(' '), first];
+  // ...or their first reply on its own, when it is a finished sentence and nothing after it is a
+  // go-ahead: "No." then "Hello?" is still a no, while "No." then "that's cool." and "No," then
+  // "that's cool." are one answer (owner, 2026-11-02: when in doubt, deliver).
+  const [first = '', ...rest] = replies;
+  const alone = !UNFINISHED.test(first) && !rest.some((reply) => GO_AHEAD.test(reply));
+  const read = alone ? [replies.join(' '), first] : [replies.join(' ')];
   return read.some((answer) => LONE_NO.test(answer) || REFUSED.test(answer));
 }
 
