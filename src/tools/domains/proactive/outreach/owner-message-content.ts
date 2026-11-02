@@ -54,6 +54,7 @@ const LATIN_LOOK_ALIKES: Readonly<Record<string, string>> = {
 }; // prettier-ignore
 /** Letters next to a digit that stand in for one ("55S-O1l2" is 555-0112). */
 const DIGIT_LOOK_ALIKES: Readonly<Record<string, string>> = { l: '1', i: '1', o: '0', s: '5' };
+const ONLY_LOOK_ALIKES = /^[lios]+$/;
 const NUMBER_WORDS: Readonly<Record<string, string>> = {
   zero: '0', oh: '0', o: '0', one: '1', two: '2', three: '3', four: '4', five: '5', six: '6',
   seven: '7', eight: '8', nine: '9', ten: '10', eleven: '11', twelve: '12', thirteen: '13',
@@ -154,7 +155,7 @@ function mapLookAlikes(text: string, acrossSpace: boolean, keepWords: boolean): 
     before = out;
     out = out.replace(/[a-z]+/g, (piece: string, offset: number, whole: string) => {
       if (piece !== 'o' && wordDigits(piece) !== null) return piece; // a lone o is a look-alike too
-      const pure = /^[lios]+$/.test(piece) && !(keepWords && LOOK_ALIKE_WORDS.has(piece));
+      const pure = ONLY_LOOK_ALIKES.test(piece) && !(keepWords && LOOK_ALIKE_WORDS.has(piece));
       const gap = pure && acrossSpace ? '[-.()\\s]*' : '[-.()]*';
       const left = new RegExp(`[0-9]${gap}$`).test(whole.slice(0, offset));
       const right = new RegExp(`^${gap}[0-9]`).test(whole.slice(offset + piece.length));
@@ -242,7 +243,7 @@ function credentialAsk(text: string): boolean {
  * sees "verify" however it was dressed. Case is kept for the vanity and
  * sentence-start rules.
  */
-export const foldToAscii = (text: string): string =>
+const foldToAscii = (text: string): string =>
   text
     .normalize('NFKC')
     .replace(/[\u2018\u2019]/g, "'")
@@ -267,15 +268,11 @@ const ADDRESS_DOTS = [
 ];
 
 // Every later rule reads / & " as "-" and an emoji as a space: separators that can't glue or break a shape
-export const ruleForm = (folded: string): string =>
+const ruleForm = (folded: string): string =>
   folded.replace(/[/&"]/g, '-').replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}]/gu, ' ');
 
-/** Rule 2 alone on destinationIn's form, for a reader that must not depend on which rule comes first. */
-export const digitsIn = (folded: string): ContentBlock | null =>
-  digitBlock(collapseSpacedLetters(ruleForm(folded).toLowerCase()));
-
-/** blockedContent's number, address and mail rules on foldToAscii's form; the stored-text screen reads them too. */
-export function destinationIn(folded: string): ContentBlock | null {
+/** blockedContent's number, address and mail rules on foldToAscii's form. */
+function destinationIn(folded: string): ContentBlock | null {
   const form = ruleForm(folded);
   if (vanityBlock(form)) return 'vanity_number';
   const lower = form.toLowerCase();
@@ -293,6 +290,47 @@ export function destinationIn(folded: string): ContentBlock | null {
     (w, i) => w === 'at' && near(i).some((n) => MAIL_PROVIDERS.test(n ?? ''))
   );
   return mail ? 'mail_provider' : null;
+}
+
+/** A bare date a job wrote ("on 2026-10-19") with no other digit next to it: not a number to call. */
+const LONE_ISO_DATE = /(?<!\d[\s().-]*)\b(?:19|20)\d{2}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])\b(?![\s().-]*\d)/g; // prettier-ignore
+/** A price's digits ("1,200", "500.00"): at most six, never a phone-length run. */
+const AMOUNT = String.raw`(?:\d{1,3}(?:,\d{3})?|\d{1,6})(?:\.\d{2})?(?![\d,])`;
+/** An amount ("$500", "500 dollars") with no other digit next to it: a price, not a number to call. */
+const LONE_AMOUNT = new RegExp(String.raw`(?<!\d[\s().-]*)(?:[$\u20AC\u00A3]\s?${AMOUNT}|\b${AMOUNT}\s?(?:dollars?|bucks|usd)\b)(?![\s().-]*\d)`, 'gi'); // prettier-ignore
+/** The rules a price's own digits can trip: the only ones the amount mask may lift. */
+const DIGIT_RULES: ReadonlySet<ContentBlock> = new Set(['digits', 'short_code']);
+
+/** A word that splits two amounts: whole, three letters or more, not all look-alike digits.
+ * "and" splits; "to", "ok", "a", "Ol" and the "xx" in "555xx" don't. */
+const separatesAmounts = (text: string): boolean =>
+  (text.match(/[\p{L}0-9]+/gu) ?? []).some((t) => /^\p{L}{3,}$/u.test(t) && !ONLY_LOOK_ALIKES.test(t.toLowerCase())); // prettier-ignore
+
+/** The text cut before a currency sign only where separatesAmounts says the last piece holds a word. */
+function amountRuns(text: string): string[] {
+  const runs: string[] = [];
+  for (const piece of text.split(/(?=[$\u20AC\u00A3])/)) {
+    if (runs.length > 0 && !separatesAmounts(runs[runs.length - 1])) runs[runs.length - 1] += piece;
+    else runs.push(piece);
+  }
+  return runs;
+}
+
+/** Where stored call text points, for the owner-message screen: destinationIn with lone dates and
+ * prices read as words ("Pay rent $1200"), never laxer than the text as written: seven digits stay
+ * a number unless a word stands between the amounts that hold them. `folded` is what words read. */
+export function ownerTextDestination(text: string): {
+  folded: string;
+  destination: ContentBlock | null;
+} {
+  const folded = foldToAscii(text);
+  // Each becomes a word, not a gap: a gap before a full stop would read as a spaced-out dot.
+  const ruled = ruleForm(folded.replace(LONE_ISO_DATE, 'date'));
+  const masked = destinationIn(ruled.replace(LONE_AMOUNT, 'amount'));
+  const unmasked = destinationIn(ruled);
+  const longRun = amountRuns(ruled).some((run) => digitBlock(collapseSpacedLetters(run.toLowerCase())) === 'digits'); // prettier-ignore
+  const destination = longRun ? 'digits' : unmasked && !DIGIT_RULES.has(unmasked) ? unmasked : masked; // prettier-ignore
+  return { folded, destination };
 }
 
 /** The first rule `text` breaks for an unverified call, or null when it may be sent. */

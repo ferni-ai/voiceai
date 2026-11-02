@@ -32,9 +32,9 @@ vi.mock('../owner-message-content.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../owner-message-content.js')>();
   return {
     ...actual,
-    foldToAscii: (text: string) => {
+    ownerTextDestination: (text: string) => {
       if (ctl.throwOnFold) throw new Error('screen failed');
-      return actual.foldToAscii(text);
+      return actual.ownerTextDestination(text);
     },
   };
 });

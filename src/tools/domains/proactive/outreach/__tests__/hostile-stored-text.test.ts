@@ -134,6 +134,23 @@ describe('hostileStoredText', () => {
     }
   });
 
+  it('only a whole word of three letters or more splits two amounts, not one read as digits', () => {
+    for (const line of [
+      '$555xx$0123',
+      '$555-xx-$0123',
+      '$555 ok $1234',
+      '$555 to $1234',
+      '$555 or $1234',
+      '$555 a $0123',
+      'pay $555 Ol $23',
+      '$555 Il $0123',
+    ]) {
+      expect(hostileStoredText(line)).toBe('money_destination');
+    }
+    expect(hostileStoredText('pay $1200 and $350')).toBeNull();
+    expect(hostileStoredText('pay $1,200 rent and $350 for utilities')).toBeNull();
+  });
+
   it('a rule that fires before the digit rule on the unmasked text still counts', () => {
     // vanity_number comes first in destinationIn; masking the amount would hide the number
     expect(hostileStoredText('Pay $800-FLOWERS now')).toBe('money_destination');
