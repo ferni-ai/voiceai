@@ -413,19 +413,9 @@ describe('dead-air', () => {
   const deadAirWhy = (c) => hits('dead-air', c).map((h) => h.why);
 
   it('passes a lead-in phrase when the caller took the next turn (rc3 candor-wrong)', () => {
-    // Agent stops, the caller speaks 2.1 s later, the agent answers 3.5 s after the caller:
-    // 5.6 s of silence, the caller's turn is not.
-    const c = call(
-      [
-        'a: Hi.',
-        'u: I put my savings into one coin.',
-        "a: Whoa, hold on. That's a big risk.",
-        'u: Okay, so what would you do?',
-        'a: Keep most of it somewhere boring.',
-      ],
-      { gaps: { 2: 100, 3: 1500 } }
-    );
-    expect(hits('dead-air', c)).toEqual([]);
+    // The real call: agent stops, the caller speaks 2.1 s later for 4 s, the agent answers
+    // 3.5 s after the caller. 9.6 s from lead-in to answer (main flagged it), 5.6 s of silence.
+    expect(deadAirWhy(leadIn([[2100, 6100]], 9600))).toEqual([]);
   });
   it('still flags a lead-in the caller had to break after 9 s of silence', () => {
     const c = call(
