@@ -7,7 +7,6 @@ name: Build
 
 on:
   pull_request:
-    branches: [main]
   merge_group:
 
 # A new push to a PR supersedes its running build. Merge-queue runs always finish
@@ -23,7 +22,7 @@ jobs:
   changes:
     name: Build Scope
     # Build & Test is skipped on pull_request (below), so this is too.
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'red-proof-never'
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     permissions:
       contents: read
@@ -34,6 +33,9 @@ jobs:
       # macos-menubar (see ci.yml's setup job; CI_SCOPED_QUEUE=off scopes PRs only)
       code: ${{ steps.code.outputs.matched }}
     steps:
+      - name: 'RED PROOF: Build Scope fails'
+        run: exit 1
+
       - name: Checkout
         uses: actions/checkout@v7
 
@@ -54,7 +56,7 @@ jobs:
     # `code` is false, never filtered out by `paths:`, which would leave it pending
     # forever. The merge queue builds and tests every PR before it merges, and PR
     # runs were starving it of runners (#1250).
-    if: github.event_name != 'pull_request' && needs.changes.outputs.code != 'false'
+    if: github.event_name != 'red-proof-never' && needs.changes.outputs.code != 'false'
     
     steps:
       - name: Checkout
