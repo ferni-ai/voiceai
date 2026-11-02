@@ -215,6 +215,89 @@ describe('raisesTopic', () => {
   ])('an uncommon word, or two shared words, raises it: %s', (hello, topic) => {
     expect(raisesTopic(hello, topic, 'Sam')).toBe(true);
   });
+
+  // Two common words count only as one phrase in both lines. Apart, they are chance, and
+  // marking would drop last call's topic from every later greeting.
+  it.each([
+    ['Hey Sam, start of a new month!', 'Sam started a new job and the first days were hard.'],
+    [
+      "Hey Sam, how's the new week starting?",
+      'Sam started a new job and the first days were hard.',
+    ],
+    [
+      'Hey Sam, start of a new month!',
+      'Sam had a hard time at work and wants to start over somewhere new.',
+    ],
+    [
+      "Hey Sam, how's the new week starting?",
+      'Sam had a hard time at work and wants to start over somewhere new.',
+    ],
+    [
+      'Hey Sam, start of a new month!',
+      'Sam went to two concerts this month and loved the new album.',
+    ],
+    // A phrase in the summary only: the hello says the words apart.
+    ["Hey Sam, what's new this month?", 'Sam is excited about the new month of training.'],
+  ])('two common words apart are not the topic: %s', (hello, topic) => {
+    expect(raisesTopic(hello, topic, 'Sam')).toBe(false);
+  });
+  it('one common word said twice is not a phrase', () => {
+    const topic = 'They went on a long, long hike up the ridge.';
+    expect(raisesTopic('Hey Sam, long, long time no see!', topic, 'Sam')).toBe(false);
+  });
+  it.each([
+    ['Enjoying the whole month off, Sam?', 'Sam is off work the whole month for surgery.'],
+    ["How's the new job, Sam?", 'Sam started a new job last week.'],
+    ['Did the kids start school okay, Sam?', "Sam's kids started school this week."],
+    ['Hey Sam, how did the big meeting go?', 'Sam has a big meeting with the boss on Friday.'],
+    ['Did school start okay, Sam?', "Sam's kids start school on Monday."],
+  ])('two common words as one phrase raise it: %s', (hello, topic) => {
+    expect(raisesTopic(hello, topic, 'Sam')).toBe(true);
+  });
+  it.each([
+    ["Hey Sam, how's the knee?", 'Sam is training for a 10k and is worried about the knee.'],
+    [
+      'Hey Sam, any more concerts lately?',
+      'Sam went to two concerts this month and loved the new album.',
+    ],
+    ['Hey Sam, been to any concerts since?', 'Sam went to a concert and loved it.'],
+    ['Hey Sam, how was the concert?', 'Sam went to two concerts this month.'],
+    [
+      'Hey Sam, how is your mom doing after the surgery?',
+      "Sam's mom is moving back home after the surgery.",
+    ],
+    ["Hey Sam, how's your mom recovering?", "Sam's mom is recovering from surgery."],
+    ['Hey Sam, is the Ohio trip still on?', 'Sam is planning a big trip to see family in Ohio.'],
+    ['Hey Sam, how is the new job?', 'Sam started a new job and the first days were hard.'],
+    [
+      'Hey Sam, did school start okay for the kids?',
+      'Sam was stressed about money and the kids starting school.',
+    ],
+    ['Hey Sam, how is Biscuit settling in?', 'Sam adopted a puppy named Biscuit.'],
+    ['Hey Sam, how did the interview go?', 'Sam has a job interview at the bakery.'],
+    ['Hey Sam, any luck with the sourdough?', 'Sam is learning to bake sourdough bread.'],
+    ['Hey Sam, how are you feeling about the surgery?', 'Sam is worried about the knee surgery.'],
+  ])('a hello about the topic raises it: %s', (hello, topic) => {
+    expect(raisesTopic(hello, topic, 'Sam')).toBe(true);
+  });
+
+  // Known limits: these assert today's behaviour. A future fix flips each one; when it
+  // does, move the case to the list above it belongs in.
+  it.each([
+    // One common word, so a real mention is missed (the topic is offered again next call).
+    ['Hey Sam, how did studying go?', 'Sam is studying for the bar exam.'],
+    // "10k" has a digit, so it is not a word here; "training" alone is common.
+    ['Hey Sam, how is the 10k training going?', 'Training for the autumn 10k.'],
+    // "puppies" singularises to "puppie", so it never meets "puppy".
+    ['Hey Sam, how is the puppy?', 'Sam adopted two puppies.'],
+  ])('known limit, a real mention is missed today: %s', (hello, topic) => {
+    expect(raisesTopic(hello, topic, 'Sam')).toBe(false);
+  });
+  it('known limit, a common phrase both lines happen to use marks today', () => {
+    // "whole family" is one phrase in both, though the hello asks about no trip.
+    const topic = 'Sam is planning a long weekend trip with the whole family.';
+    expect(raisesTopic("Hey Sam, how's the whole family?", topic, 'Sam')).toBe(true);
+  });
 });
 
 describe('topicKey', () => {
