@@ -76,8 +76,11 @@ jobs:
   build-ios:
     name: iOS build and test
     needs: ios-changes
+    # Also runs when the iOS change check failed (it runs only on pull requests),
+    # and then fails at its first step: skipped, it would report success unbuilt.
     if: >
       !cancelled() && github.event_name != 'merge_group' && (
+        (github.event_name == 'pull_request' && needs.ios-changes.result != 'success') ||
         needs.ios-changes.outputs.ios == 'true' ||
         github.event_name == 'push' ||
         github.event.inputs.platforms == 'all' ||
@@ -90,6 +93,12 @@ jobs:
       SPM_DIR: ${{ github.workspace }}/.spm
 
     steps:
+      - name: The iOS change check succeeded
+        if: github.event_name == 'pull_request' && needs.ios-changes.result != 'success'
+        env:
+          CHECK: ${{ needs.ios-changes.result }}
+        run: echo "::error::Did the iOS app change? did not succeed ($CHECK)"; exit 1
+
       - uses: actions/checkout@v7
 
       # The one Xcode for iOS builds (apps/ios-native/.xcode-version), shared with
