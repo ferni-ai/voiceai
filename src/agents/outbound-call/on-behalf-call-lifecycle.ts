@@ -39,6 +39,10 @@ import {
   voicemailWords,
 } from '../../services/outreach/voicemail-outcome.js';
 import type { CallDisposition } from './call-control.js';
+import {
+  passAlongDeclined,
+  passAlongDeclinedLine,
+} from '../../services/outreach/pass-along-declined.js';
 
 const log = createLogger({ module: 'on-behalf-call-lifecycle' });
 
@@ -194,6 +198,18 @@ export function buildCallOutcome(
     };
   }
 
+  // On a personal call they said no to having it passed along: before every other branch,
+  // so no path (a quick hang-up, a failed analysis) keeps what they said. A crisis still goes.
+  if (passAlongDeclined(call.script, turns)) {
+    const optedOut = isCallFollowthroughEnabled() && heard.some(isOptOutPhrase);
+    return {
+      callId: call.callId,
+      status: 'completed',
+      objectiveAchieved: false,
+      outcome: withFlags(passAlongDeclinedLine(name, optedOut), flaggedLines(heard, name)),
+    };
+  }
+
   if (isCallFollowthroughEnabled()) {
     const how = classifyAnsweredCall(heard, durationSeconds);
     if (how === 'voicemail') {
@@ -213,7 +229,11 @@ export function buildCallOutcome(
         callId: call.callId,
         status: 'completed',
         objectiveAchieved: false,
-        outcome: `I reached ${name}, but they didn't want to talk${promise}.`,
+        // Crisis words still reach the requester when they opt out (#2861).
+        outcome: withFlags(
+          `I reached ${name}, but they didn't want to talk${promise}.`,
+          flaggedLines(heard, name)
+        ),
       };
     }
     if (how === 'hung_up_early') {
@@ -374,6 +394,8 @@ async function reportCall(
     const talked =
       (disposition === undefined || disposition === 'completed') &&
       heard.length > 0 &&
+      // A no to passing it along keeps their words from the summary model too.
+      !passAlongDeclined(call.script, turns ?? []) &&
       (!isCallFollowthroughEnabled() ||
         classifyAnsweredCall(heard, durationSeconds) === 'answered');
     let analysis: SuperhumanCallResult | null = null;
