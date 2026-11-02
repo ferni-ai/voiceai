@@ -12,7 +12,7 @@ const { buildCallOutcome, completeOnBehalfCall } =
   await import('../../../agents/outbound-call/on-behalf-call-lifecycle.js');
 const { buildOnBehalfDispatch } = await import('../on-behalf-dispatch.js');
 const { callResultText } = await import('../call-result-text.js');
-const { crisisCallerLine } = await import('../caller-text.js');
+const { crisisCallerLine, riskyCallerLine } = await import('../caller-text.js');
 const { passAlongDeclined } = await import('../pass-along-declined.js');
 const { buildCallScript } = await import('../../../tools/domains/telephony/scripts/index.js');
 const { personalScript } = await import('../../../tools/domains/telephony/scripts/personal.js');
@@ -114,13 +114,15 @@ describe('a personal call: an unambiguous no is honoured', () => {
   });
 
   it.each([
-    'Actually, don’t pass that on.',
     'Keep that between us, okay?',
     "That's off the record.",
-    "I'd rather you didn't mention that part.",
-  ])('taking it back later, %j, is a no too', (later) => {
-    const t = [...turns('Sure, go ahead.'), R(later)];
-    expect(passAlongDeclined(call.script, t)).toBe(true);
+    "I'd rather keep it private, thanks.",
+  ])('a refusal of all of it as their answer, %j, is a no', (answer) => {
+    expect(buildCallOutcome(call, turns(answer), analysis(), undefined, 90).outcome).toBe(NO_LINE);
+  });
+
+  it('a no stays a no when their next reply is not a go-ahead', () => {
+    const t = [A(ASK), R('No.'), A("Okay, I won't."), R("Okay, that's fine, bye."), R(SAID)];
     expect(buildCallOutcome(call, t, analysis(), undefined, 90).outcome).toBe(NO_LINE);
   });
 
@@ -149,7 +151,6 @@ describe('a crisis always reaches the member, in Ferni’s words', () => {
     ['after the no', [...turns('No.'), R(CRISIS)]],
     ['mid-call, not last', [A(ASK), R('No.'), A('Okay!'), R(CRISIS), R('Anyway, talk soon.')]],
     ['before the ask', [R('Hello?'), R(CRISIS), A(ASK), R('Nope.')]],
-    ['after a yes, then taken back', [A(ASK), R('Sure.'), R(CRISIS), R('Keep this between us.')]],
   ])('declined, crisis %s', async (shape, t) => {
     const c = { ...call, callId: `c-crisis-${shape}` }; // each its own call: one report per call
     const o = buildCallOutcome(c, t, analysis(), undefined, 90);
@@ -159,6 +160,28 @@ describe('a crisis always reaches the member, in Ferni’s words', () => {
     const ports = { readDisposition: () => undefined, readTranscript: () => t, analyze, report: vi.fn(async () => undefined) }; // prettier-ignore
     expect((await completeOnBehalfCall('s-c', c, 90, true, ports))?.outcome).toBe(o.outcome);
     expect(analyze).not.toHaveBeenCalled();
+  });
+
+  it('a crisis on a line of its own reaches the member, even when the whole call reads softer', () => {
+    // Joined, "I don't want to die" softens the line after it; read line by line it does not.
+    const t = [A(ASK), R('No.'), A("Okay, I won't."), R("I don't want to die, I'm just tired."), R('Some days I really want to die.')]; // prettier-ignore
+    const o = buildCallOutcome(call, t, analysis(), undefined, 90);
+    expect(o.outcome).toBe(`${NO_LINE} ${crisisCallerLine('Priya')}`);
+  });
+
+  it('a yes, a crisis, then "keep this between us": delivered as main, crisis line and all', () => {
+    const t = [A(ASK), R('Sure.'), R(CRISIS), R('Keep this between us.')];
+    expect(passAlongDeclined(call.script, t)).toBe(false);
+    const o = buildCallOutcome(call, t, analysis(), undefined, 90);
+    expect(o.outcome).not.toContain('asked me not to pass');
+    expect(o.outcome).toContain(crisisCallerLine('Priya'));
+  });
+
+  it('money, an account or a number still reaches the member on a no, in Ferni’s words', () => {
+    const t = [A(ASK), R('No.'), A("Okay, I won't."), R('Tell him to Venmo me the 40 dollars.')];
+    const o = buildCallOutcome(call, t, analysis(), undefined, 90);
+    expect(o.outcome).toBe(`${NO_LINE} ${riskyCallerLine('Priya')}`);
+    expect(o.outcome).not.toMatch(/venmo|40/i);
   });
 
   it('a crisis inside a no with more words is delivered as main, crisis line and all', () => {
@@ -194,6 +217,18 @@ const LATER_NOT_A_WITHDRAWAL = [
   "Tell him don't share it on Facebook", 'I told him just between us that the cake is lemon',
   "Haha don't tell them I burned the toast",
 ]; // prettier-ignore
+// One secret mid-call withholds only that part, never the whole call (owner, 2026-11-02). That
+// partial withhold is not built here, so each of these delivers as main (#3371 r1 verify).
+const ONE_SECRET = [
+  "It's a surprise party, so don't pass that on, but tell him to keep the 9th free.",
+  "Keep this between us, but I'm bringing a plus-one. Tell Riley I said hi.",
+  "I'd rather you didn't mention the job thing, but yes to Saturday.",
+  'Off the record, the tart is store-bought. Anyway, the ninth works!',
+  "I'd rather you didn't mention that part.",
+  'Actually, don’t pass that on.',
+  'Keep that between us, okay?',
+  "That's off the record.",
+]; // prettier-ignore
 const BOOKING_REPLIES = [
   "No, sorry, we're fully booked on Friday.", 'Nope, nothing at seven, but eight works.',
   "Not really, we're closed Fridays.", 'Sure, seven works. Name?', 'Who is Sam?',
@@ -209,6 +244,26 @@ describe('everything else is delivered, as main does', () => {
 
   it.each(LATER_NOT_A_WITHDRAWAL)('later in a yes call, %j is not taking it back', (later) => {
     delivered([...turns('Sure.'), R(later)]);
+  });
+
+  it.each(ONE_SECRET)('a secret later in a yes call, %j, does not withhold the call', (later) => {
+    delivered([...turns('Sure, go ahead.'), R(later)]);
+  });
+
+  it.each(ONE_SECRET.slice(0, 5))(
+    'one secret as their answer, %j, does not withhold the call',
+    (a) => {
+      delivered(turns(a));
+    }
+  );
+
+  it('a no taken back once Ferni has answered it is delivered', () => {
+    delivered([A(ASK), R('No'), A("Okay, that's fine, I won't"), R("Wait, I meant no it's fine, go ahead!"), R(SAID)]); // prettier-ignore
+    delivered([A(ASK), R('Nope.'), A('No problem.'), R('Actually, you can tell him.'), R(SAID)]);
+  });
+
+  it('their own question is not the ask', () => {
+    delivered([R("You'll pass along what I say to Riley, is that okay?"), R('Nope.'), A('Yes, I will.'), R(SAID)]); // prettier-ignore
   });
 
   it('a no to another question in the same turn: the ask must be the last question', () => {
