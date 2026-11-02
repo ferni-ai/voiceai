@@ -39,8 +39,8 @@ on:
     # Tests, Security Scan, Quality Gates. Integration Tests, Build and the other
     # slow jobs skip on pull_request (a skipped job still reports its check), so PR
     # runs stop starving the merge queue for runners. The queue runs the required
-    # checks only. AGI Feature Tests, Build, Code Quality Metrics, Validation, E2E
-    # Validation and Dependency Check are required by nothing: they run on every push
+    # checks only. AGI Feature Tests, Build, Validation and E2E Validation are
+    # required by nothing: they run on every push
     # to main, even when queue-tested skips the required suite, and nightly; and
     # nightly-health.yml opens a main-red issue when the push run fails
     # (src/tests/deploy/merge-queue-jobs.test.ts).
@@ -1021,51 +1021,6 @@ jobs:
         run: bash scripts/ci/gitleaks-range.sh "$BASE" "$HEAD"
 
   # ============================================================================
-  # CODE QUALITY METRICS (using unified audit CLI)
-  # ============================================================================
-  code-quality:
-    name: Code Quality Metrics
-    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
-    timeout-minutes: 15
-    needs: setup
-    if: github.event_name == 'push' || github.event_name == 'schedule'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Restore node_modules cache
-        id: nm-cache
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            node_modules
-            apps/*/node_modules
-            packages/*/node_modules
-          key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: false
-
-      # The cache is saved by the setup job of the same run. "Re-run failed jobs"
-      # and cache eviction (10 GB repo limit) both leave it missing; install
-      # instead of failing a job that has nothing wrong with it.
-      - name: Install dependencies (node_modules cache miss)
-        if: steps.nm-cache.outputs.cache-hit != 'true'
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Run unified audit
-        run: pnpm audit all
-        continue-on-error: true
-
-  # ============================================================================
   # STRICT QUALITY GATES (blocking - fails build if thresholds exceeded)
   # ============================================================================
   quality-gates:
@@ -1449,48 +1404,3 @@ jobs:
       - name: First-paint check
         working-directory: apps/web
         run: pnpm exec playwright test -c playwright.first-paint.config.ts
-
-  # ============================================================================
-  # DEPENDENCY CHECK
-  # ============================================================================
-  dependencies:
-    name: Dependency Check
-    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
-    timeout-minutes: 10
-    needs: setup
-    if: github.event_name == 'push' || github.event_name == 'schedule'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Restore node_modules cache
-        id: nm-cache
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            node_modules
-            apps/*/node_modules
-            packages/*/node_modules
-          key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: false
-
-      # The cache is saved by the setup job of the same run. "Re-run failed jobs"
-      # and cache eviction (10 GB repo limit) both leave it missing; install
-      # instead of failing a job that has nothing wrong with it.
-      - name: Install dependencies (node_modules cache miss)
-        if: steps.nm-cache.outputs.cache-hit != 'true'
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Check for outdated dependencies
-        run: pnpm outdated || true
-
-      - name: Check for duplicate dependencies
-        run: pnpm dlx depcheck --ignores="@types/*" || true
