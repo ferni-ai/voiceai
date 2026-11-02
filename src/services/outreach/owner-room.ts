@@ -17,12 +17,19 @@
  * @module services/outreach/owner-room
  */
 import type { SendDataOptions } from 'livekit-server-sdk';
-import type { OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
 import { callLiveRelayOn } from './call-result-live.js';
 
 const log = createLogger({ module: 'OwnerRoom' });
+
+/** What this reads off an on-behalf call request: the asking call and its owner. */
+export interface OwnerCall {
+  userId: string;
+  originalSessionId: string;
+  originalRoomName?: string;
+  originalRoomSid?: string;
+}
 
 /** The two RoomServiceClient reads this needs. */
 export interface RoomLookup {
@@ -39,7 +46,7 @@ export interface RoomTarget {
 export type NotOwnerRoom = 'unbound' | 'room_gone' | 'other_room' | 'owner_absent';
 
 /** The room name to ask LiveKit for: the owner's room with the flag on, else the session id. */
-export function resultRoomName(request: OnBehalfCallRequest): string | undefined {
+export function resultRoomName(request: OwnerCall): string | undefined {
   return (callLiveRelayOn() && request.originalRoomName) || request.originalSessionId || undefined;
 }
 
@@ -47,7 +54,7 @@ export function resultRoomName(request: OnBehalfCallRequest): string | undefined
 export async function roomToTell(
   rooms: RoomLookup,
   room: string,
-  request: OnBehalfCallRequest,
+  request: OwnerCall,
   callId: string
 ): Promise<RoomTarget | null> {
   if (!callLiveRelayOn()) {
