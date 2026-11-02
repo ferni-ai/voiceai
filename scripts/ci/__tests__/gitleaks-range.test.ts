@@ -126,7 +126,7 @@ describe('gitleaks-range.sh', () => {
     expect(r.status).toBe(0);
     expect(r.calls.map((c) => c.split(' ')[0])).toEqual(['canary', 'range']);
     // --text: a .gitattributes `-diff`/`binary` in the change must not hide its content.
-    expect(r.calls[1]).toContain(`--log-opts=--remerge-diff --text ${base}..${head}`);
+    expect(r.calls[1]).toContain(`--log-opts=--remerge-diff --text --no-textconv ${base}..${head}`);
     expect(r.calls[1]).toContain('--exit-code 1');
   });
 
@@ -193,5 +193,95 @@ describe('gitleaks-range.sh', () => {
       expect(call).toContain('--redact');
       expect(call).toContain('--no-banner');
     }
+  });
+});
+
+// Built from parts so this file never holds a real pointer line, which the gate
+// would (rightly) refuse when this file's own change is scanned.
+const LFS_POINTER = ['version https://git-lfs', 'github.com/spec/v1'].join('.');
+
+describe("gitleaks-range.sh refuses what the scan can't see through", () => {
+  function expectRefused(r: ReturnType<typeof run>, message: string) {
+    expect(r.status).toBe(1);
+    expect(r.out).toContain(message);
+    expect(r.calls).toEqual([]); // refused before gitleaks runs at all
+  }
+
+  function sideCommit(name: string) {
+    return git('commit-tree', git('rev-parse', 'HEAD^{tree}'), '-p', base, '-m', name);
+  }
+
+  function withBaseConfig(config: string) {
+    const newBase = commit({ '.gitleaks.toml': config }, 'base config');
+    // Content varies with the config, so repeated calls in one test still commit.
+    const later = commit({ 'c.txt': config }, 'later');
+    return run(1, 0, [newBase, later]);
+  }
+
+  it('an octopus merge, which --remerge-diff does not diff', () => {
+    const tree = git('rev-parse', 'HEAD^{tree}');
+    const octopus = git(
+      'commit-tree',
+      tree,
+      '-p',
+      head,
+      '-p',
+      sideCommit('one'),
+      '-p',
+      sideCommit('two'),
+      '-m',
+      'octopus'
+    );
+    expectRefused(run(1, 0, [base, octopus]), 'octopus merge');
+  });
+
+  it('but scans an ordinary two-parent merge', () => {
+    const tree = git('rev-parse', 'HEAD^{tree}');
+    const merge = git('commit-tree', tree, '-p', head, '-p', sideCommit('one'), '-m', 'merge');
+    const r = run(1, 0, [base, merge]);
+    expect(r.status).toBe(0);
+    expect(r.calls.map((c) => c.split(' ')[0])).toEqual(['canary', 'range']);
+  });
+
+  it('a filter=lfs attribute, at the root or in a subdirectory', () => {
+    const atRoot = commit(
+      { '.gitattributes': '*.bin filter=lfs diff=lfs merge=lfs -text\n' },
+      'lfs'
+    );
+    expectRefused(run(1, 0, [head, atRoot]), 'filter=lfs attribute');
+
+    mkdirSync(join(repo, 'assets'));
+    const inSub = commit({ 'assets/.gitattributes': '*.dat filter=lfs\n' }, 'lfs sub');
+    expectRefused(run(1, 0, [atRoot, inSub]), 'filter=lfs attribute');
+  });
+
+  it('a Git LFS pointer file', () => {
+    const pointer = `${LFS_POINTER}\noid sha256:${'0'.repeat(64)}\nsize 42\n`;
+    expectRefused(run(1, 0, [head, commit({ 'blob.bin': pointer }, 'pointer')]), 'LFS pointer');
+  });
+
+  it('but not text that merely mentions LFS', () => {
+    // The second line starts like a pointer but goes on: only a whole-line match refuses.
+    const notes =
+      `Big files use filter=lfs; a pointer starts with "${LFS_POINTER}".\n` +
+      `${LFS_POINTER} is the first line of every pointer.\n`;
+    const r = run(1, 0, [head, commit({ 'notes.md': notes }, 'notes')]);
+    expect(r.status).toBe(0);
+  });
+
+  it('base rules that [extend] a file, in table, dotted or inline form', () => {
+    expectRefused(withBaseConfig('[extend]\npath = "extra.toml"\n'), '[extend] path');
+    expectRefused(withBaseConfig('title = "x"\nextend.path = "extra.toml"\n'), '[extend] path');
+    expectRefused(
+      withBaseConfig('extend = { useDefault = true, path = "extra.toml" }\n'),
+      '[extend] path'
+    );
+  });
+
+  it('but accepts base rules whose own rules carry a path key', () => {
+    const r = withBaseConfig(
+      '[extend]\nuseDefault = true\n\n[[rules]]\nid = "x"\nregex = "zzz"\npath = "src/"\n'
+    );
+    expect(r.status).toBe(0);
   });
 });

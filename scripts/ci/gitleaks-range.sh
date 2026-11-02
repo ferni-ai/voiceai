@@ -22,7 +22,12 @@
 #     slipped in while resolving a conflict is caught too;
 #   - diffs are always text (--text): gitleaks reads `git log -p`, and a
 #     .gitattributes saying `-diff` or `binary` would otherwise turn the change
-#     into "Binary files differ" with nothing to scan.
+#     into "Binary files differ" with nothing to scan; --no-textconv for the
+#     same reason;
+#   - three things the scan can't see through are refused outright: base rules
+#     that `[extend]` a file (gitleaks reads it from the checkout, i.e. from the
+#     change), octopus merges (--remerge-diff doesn't diff them), and Git LFS
+#     (history holds only a pointer; the content sits in LFS storage).
 #
 # Before scanning, it proves it can still go red: it commits a fake key made up
 # at run time into a throwaway repo and requires gitleaks to report it under the
@@ -46,6 +51,39 @@ ignore="$work/gitleaksignore"
 git show "$base:.gitleaks.toml" >"$config" 2>/dev/null \
   || printf '[extend]\nuseDefault = true\n' >"$config"
 git show "$base:.gitleaksignore" >"$ignore" 2>/dev/null || : >"$ignore"
+
+refuse() {
+  echo "::error::$*"
+  exit 1
+}
+
+# `[extend] path` is resolved against the checkout, so rules that extend a file
+# could be loosened by the change editing that file. Matches the table form, the
+# dotted key and the inline table; a false match only refuses.
+if awk '
+  /^[[:space:]]*\[/ { in_extend = ($0 ~ /^[[:space:]]*\[[[:space:]]*extend[[:space:]]*\]/) }
+  in_extend && /^[[:space:]]*path[[:space:]]*=/ { found = 1 }
+  /^[[:space:]]*extend[[:space:]]*\.[[:space:]]*path[[:space:]]*=/ { found = 1 }
+  /^[[:space:]]*extend[[:space:]]*=[[:space:]]*\{.*path[[:space:]]*=/ { found = 1 }
+  END { exit !found }' "$config"; then
+  refuse "the base .gitleaks.toml uses [extend] path, which gitleaks reads from the change being scanned; inline those rules instead"
+fi
+
+# --remerge-diff skips merges with three or more parents.
+if [ -n "$(git rev-list --min-parents=3 "$base..$head")" ]; then
+  refuse "the range has an octopus merge (3+ parents), which the scan can't diff; merge one branch at a time"
+fi
+
+# Git LFS keeps only a pointer in history, so a key stored through LFS is never
+# scanned (and is downloadable from a public repo). No grep -q here: it would
+# close the pipe early, and under pipefail git's SIGPIPE would hide the match.
+log_p=(git log --format= -p -U0 --text --no-textconv --remerge-diff "$base..$head")
+if "${log_p[@]}" -- ':(glob)**/.gitattributes' | grep -E '^\+[^+].*filter=lfs' >/dev/null; then
+  refuse "the range adds a filter=lfs attribute; LFS content isn't scanned for secrets"
+fi
+if "${log_p[@]}" | grep -Ex '\+version https://git-lfs\.github\.com/spec/v1' >/dev/null; then
+  refuse "the range adds a Git LFS pointer file; LFS content isn't scanned for secrets"
+fi
 
 flags=(--no-banner --redact --exit-code 1 --ignore-gitleaks-allow
   --config "$config" --gitleaks-ignore-path "$ignore")
@@ -73,5 +111,5 @@ echo "Canary: gitleaks reported the planted fake key"
 
 # Scan through the .git directory, not the working tree: gitleaks also reads a
 # .gitleaksignore from the directory it scans, and the change could add one there.
-gitleaks git "${flags[@]}" --log-opts="--remerge-diff --text $base..$head" \
+gitleaks git "${flags[@]}" --log-opts="--remerge-diff --text --no-textconv $base..$head" \
   "$(git rev-parse --absolute-git-dir)"
