@@ -172,7 +172,13 @@ describe('a disclosure through the turn pipeline', () => {
   it('a soft read plus a disclosure is the crisis turn: soft gone, 911, Childhelp, 988 (X2)', () => {
     const patterns: CrisisDetectionResult = { isCrisis: false, severity: 0, indicators: [] };
     const soft = { crisis: patterns, soft: true, guidance: SOFT_CRISIS_CHECK };
-    const out = withMinorAbuseDisclosure(soft, undefined, { latest: line }, false, ON);
+    const out = withMinorAbuseDisclosure(
+      soft,
+      undefined,
+      { latest: line },
+      { priorRisk: false },
+      ON
+    );
     expect(out.soft).toBe(false);
     const summary = crisisSummary(out.crisis, out.soft, out.guidance);
     expect(summary.softCheck).toBeUndefined();

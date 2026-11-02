@@ -5,7 +5,7 @@
  *
  * @module agents/multi-agent/live-call-behaviors
  */
-import { voice } from '@livekit/agents';
+import { getJobContext, voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utilities/voice-callbacks.js';
 import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
@@ -20,7 +20,7 @@ import {
   registerBargeInJudge,
 } from '../../speech/graceful-interrupt/barge-in-judge.js';
 import { createCallAlertSpeaker } from '../shared/call-alerts.js';
-import { noteLiveSession } from '../../tools/registry/live-session.js';
+import { noteLiveSession, type LiveRoom } from '../../tools/registry/live-session.js';
 import { installMoveLog, noteMove } from '../personas/move-log.js';
 import {
   createBargeInFastPath,
@@ -163,7 +163,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     )
   );
   // A call placed from this one reports back here by its real id (tools/registry/live-session.ts).
-  cleanupFunctions.push(noteLiveSession(session, sessionId));
+  cleanupFunctions.push(noteLiveSession(session, sessionId, jobRoom()));
 
   // Answer a caller turn that was left hanging (turn-keeper.ts).
   if (process.env.TURN_KEEPER !== 'off') {
@@ -429,4 +429,16 @@ export async function startTurnSounds(input: TurnSoundsInput) {
     };
   }
   return clips;
+}
+
+/** This job's room: where the owner's app hears a data message (call-result-capture.ts). */
+export function jobRoom(): LiveRoom | undefined {
+  try {
+    const ctx = getJobContext();
+    const name = ctx.room.name;
+    // The sid is LiveKit's, from the job it assigned: no client sets it.
+    return name ? { name, sid: ctx.job.room?.sid || undefined } : undefined;
+  } catch {
+    return undefined; // no job running (tests, tools outside a call)
+  }
 }

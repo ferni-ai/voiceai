@@ -246,7 +246,9 @@ async function checkGemini(): Promise<HealthCheckResult> {
 }
 
 /**
- * Firestore health check - verify database connectivity
+ * Firestore health check - one document read, bounded at 5 s so a hung read can't stall the
+ * health loop. DocumentReference.get() takes no abort signal, so a timed-out read is not
+ * cancelled; it is only no longer waited on.
  */
 async function checkFirestore(): Promise<HealthCheckResult> {
   const start = Date.now();
@@ -255,31 +257,14 @@ async function checkFirestore(): Promise<HealthCheckResult> {
     // Dynamic import to avoid loading Firebase unless needed
     const { initializeApp, getApps } = await import('firebase-admin/app');
     const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    if (getApps().length === 0) initializeApp();
 
-    // Initialize if not already
-    if (getApps().length === 0) {
-      initializeApp();
-    }
-
-    const db = getAdminFirestore();
-
-    // Simple read operation to verify connectivity
-    const testRef = db.collection('_health_check').doc('test');
-    await testRef.get();
-
-    const latencyMs = Date.now() - start;
-
-    return {
-      healthy: true,
-      latencyMs,
-      details: 'Connected to Firestore',
-    };
+    const read = getAdminFirestore().collection('_health_check').doc('test').get();
+    await withTimeout(read, 5000, 'Firestore probe');
+    return { healthy: true, latencyMs: Date.now() - start, details: 'Connected to Firestore' };
   } catch (error) {
-    return {
-      healthy: false,
-      latencyMs: Date.now() - start,
-      error: error instanceof Error ? error.message : String(error),
-    };
+    const message = error instanceof Error ? error.message : String(error);
+    return { healthy: false, latencyMs: Date.now() - start, error: message };
   }
 }
 

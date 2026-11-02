@@ -265,6 +265,7 @@ describe('daily outreach for allowlisted users', () => {
 
     modelReply = "Hey, it's Ferni. How's your Monday shaping up?";
     docs.delete(`bogle_users/${SETH}/proactive_outreach_log/daily:2026-10-12`);
+    docs.delete(`daily_outreach_locks/${SETH}_2026-10-12`); // and today's send claim
     const user = docs.get(`bogle_users/${SETH}`) ?? {};
     delete user.lastOutreachDate;
     await runDailyOutreach();

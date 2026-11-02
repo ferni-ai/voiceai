@@ -49,6 +49,11 @@ export function callResultLiveReportOn(env?: Record<string, string | undefined>)
   return flagOn('CALL_RESULT_LIVE_REPORT', env);
 }
 
+/** CALL_LIVE_RELAY (call-progress.ts): only ever on with the live report. */
+export function callLiveRelayOn(env?: Record<string, string | undefined>): boolean {
+  return flagOn('CALL_LIVE_RELAY', env) && callResultLiveReportOn(env);
+}
+
 const STATUS_LINE: Record<CallOutcome['status'], string> = {
   completed: 'They picked up',
   voicemail: 'It went to voicemail',
