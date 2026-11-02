@@ -25,6 +25,11 @@ function tmp(): string {
   return dir;
 }
 
+function put(root: string, path: string, text: string): void {
+  mkdirSync(dirname(join(root, path)), { recursive: true });
+  writeFileSync(join(root, path), text);
+}
+
 const listed = (...files: string[]): PrettierRun => ({
   status: files.length ? 1 : 0,
   stdout: files.map((f) => `${f}\n`).join(''),
@@ -152,6 +157,29 @@ describe('unformattedFiles', () => {
     expect(r).toEqual({ files: ['src/a.ts', 'src/b.json'], unparsable: ['src/b.json'] });
   });
 
+  it('reads a parse error whose [error] tag is wrapped in colour codes (CI forces colour)', () => {
+    const r = unformattedFiles({
+      status: 2,
+      stdout: 'src/a.ts\n',
+      stderr: '[\x1b[31merror\x1b[39m] src/b.json: SyntaxError: Unexpected token (3:1)\n',
+    });
+    expect(r.unparsable).toEqual(['src/b.json']);
+  });
+
+  it('the real binary under FORCE_COLOR still names the unparsable file', () => {
+    const root = tmp();
+    put(root, '.prettierrc', '{}\n');
+    put(root, 'src/broken.json', '{ "a": 1,, }\n');
+    const prev = process.env.FORCE_COLOR;
+    process.env.FORCE_COLOR = '1';
+    try {
+      expect(unformattedFiles(prettier(root, PRETTIER)).unparsable).toEqual(['src/broken.json']);
+    } finally {
+      if (prev === undefined) delete process.env.FORCE_COLOR;
+      else process.env.FORCE_COLOR = prev;
+    }
+  });
+
   it('throws when prettier errors without naming a file (bad glob, bad config)', () => {
     expect(() =>
       unformattedFiles({
@@ -170,11 +198,6 @@ describe('unformattedFiles', () => {
 });
 
 describe('prettier (the real binary)', () => {
-  function put(root: string, path: string, text: string): void {
-    mkdirSync(dirname(join(root, path)), { recursive: true });
-    writeFileSync(join(root, path), text);
-  }
-
   it('reports the unformatted and the unparsable file, and not the formatted one', () => {
     const root = tmp();
     put(root, '.prettierrc', '{}\n');

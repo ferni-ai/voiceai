@@ -38,6 +38,9 @@ export interface PrettierRun {
 
 /** `[error] src/x.json: SyntaxError: …`, one per file prettier couldn't parse. */
 const PARSE_ERROR = /^\[error\] (\S+\.(?:ts|tsx|json)): /;
+// CI forces colour on, which wraps `error` in escape codes; --no-color plus this keeps the match.
+// eslint-disable-next-line no-control-regex
+const ANSI = /\x1b\[[0-9;]*m/g;
 
 /**
  * Files `prettier --list-different` reports, plus files it couldn't parse.
@@ -50,7 +53,7 @@ export function unformattedFiles(run: PrettierRun): { files: string[]; unparsabl
     .filter(Boolean);
   const unparsable = run.stderr
     .split('\n')
-    .map((l) => PARSE_ERROR.exec(l)?.[1])
+    .map((l) => PARSE_ERROR.exec(l.replace(ANSI, ''))?.[1])
     .filter((f): f is string => f !== undefined);
   // 0: all formatted; 1: some aren't; 2: some files errored (or none matched, or bad config).
   const ok =
@@ -81,7 +84,7 @@ export function prettier(
   bin = join(root, 'node_modules', '.bin', 'prettier')
 ): PrettierRun {
   if (!existsSync(bin)) throw new Error(`no prettier at ${bin}; run pnpm install`);
-  const r = spawnSync(bin, ['--list-different', GLOB], {
+  const r = spawnSync(bin, ['--list-different', '--no-color', GLOB], {
     cwd: root,
     encoding: 'utf8',
     maxBuffer: 1 << 26,
