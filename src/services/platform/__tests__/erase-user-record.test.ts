@@ -217,6 +217,17 @@ describe('eraseUserRecord', () => {
     expect([...docs.keys()]).toEqual(['minor_care_holds/u-2']);
   });
 
+  it('erases the "Help shape Ferni" consent record with the account', async () => {
+    const stores = ERASED_STORES.filter((s) => s.collection === 'call_capture_consent');
+    const { db, docs } = fakeFirestore({
+      'call_capture_consent/u-1': { uid: 'u-1', agreedAt: '2026-11-01T12:00:00.000Z' },
+      'call_capture_consent/u-2': { uid: 'u-2', agreedAt: '2026-11-01T12:00:00.000Z' },
+    });
+    await eraseUserRecord('u-1', db, stores, []);
+    expect(await findUserRecordRemnants(db, 'u-1', stores)).toEqual([]);
+    expect([...docs.keys()]).toEqual(['call_capture_consent/u-2']);
+  });
+
   it("erases the person's queued intelligence events, which hold their words", async () => {
     const stores = ERASED_STORES.filter((s) => s.collection === 'intelligence_queue');
     const { db, docs } = fakeFirestore({

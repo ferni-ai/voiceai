@@ -101,7 +101,7 @@ import { composeAgentInstructions } from './agent-instructions.js';
 const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
 import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
-import { withAlwaysOnTools } from './everyday-basics.js';
+import { withAlwaysOnTools, withCaptureConsentTool } from './everyday-basics.js';
 import { withCallJournalTools } from './call-journal-tools.js';
 import {
   createFindToolsTool,
@@ -982,7 +982,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   // Before the cap, so it keeps them: every path above (handoff, first agent, fallback)
   const toolsCtx = { userId: userId || 'anonymous', sessionId, agentId: persona.id };
   const named = { ...toolsCtx, agentDisplayName: persona.name || persona.id };
-  const withJournal = await withCallJournalTools(loadedTools, named); // CALL_JOURNAL=on
+  const withJournal = await withCallJournalTools(withCaptureConsentTool(loadedTools, named), named); // CALL_JOURNAL=on
   const withAlwaysOn = await withAlwaysOnTools(withJournal, named, isHandoff === true);
   const orchestratorTools = await toolPolicy.applyPersonaToolPolicy(withAlwaysOn, persona.id);
 

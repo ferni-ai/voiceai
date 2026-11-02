@@ -19,6 +19,7 @@ export const OWNED_ELSEWHERE: ReadonlyArray<
   { collection: 'user_seeds', doc: 'uid' }, // seed balance and history (Seeds card)
   { collection: 'engagement_profiles', doc: 'uid' },
   { collection: 'households', doc: 'uid' },
+  { collection: 'call_capture_consent', doc: 'uid' }, // Help shape Ferni: version and times only
   // People You've Told Me About: the person's own account of their people, from their calls
   // Its schema is known (ContactRelationship), so its fields are allowlisted too.
   {
