@@ -21,6 +21,7 @@ import { isMemberIdentity } from '../identity/member-identity.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
 import { voicemailWords } from './voicemail-outcome.js';
 import { completedAtFor, contactForOwner, type StepOutcome } from './call-result-words.js';
+import { callResultExpireAt } from './call-result-expiry.js';
 
 const log = getLogger().child({ service: 'call-result-capture' });
 
@@ -63,7 +64,6 @@ const callResultStore = new Map<string, StoredCallResult>();
 /** Store a call result in Firestore (with in-memory fallback) */
 async function storeCallResult(result: StoredCallResult): Promise<void> {
   try {
-    // Try Firestore first
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({
       getFirestoreDb: null,
     }));
@@ -71,7 +71,8 @@ async function storeCallResult(result: StoredCallResult): Promise<void> {
     const db = getFirestoreDb ? getFirestoreDb() : null;
 
     if (db) {
-      const clean = cleanForFirestore(result);
+      // A Date, not an ISO string: Firestore's TTL (call-result-expiry.ts) reads only a Timestamp.
+      const clean = { ...cleanForFirestore(result), expireAt: callResultExpireAt() };
       await db
         .collection('bogle_users')
         .doc(result.userId)
@@ -100,12 +101,10 @@ async function storeCallResult(result: StoredCallResult): Promise<void> {
 
       log.debug({ callId: result.callId }, 'Call result stored in Firestore');
     } else {
-      // Fallback to in-memory
       callResultStore.set(result.callId, result);
       log.debug({ callId: result.callId }, 'Call result stored in memory');
     }
   } catch (error) {
-    // Store in memory as fallback
     callResultStore.set(result.callId, result);
     log.warn(
       { error: String(error), callId: result.callId },
@@ -788,6 +787,7 @@ async function storeInUnifiedResults(
       // a second push on every call and a second email for a callback (audit 2026-10-29, C).
       skipPush: true,
       skipEmail: true,
+      expireAt: callResultExpireAt(), // the copy goes when the call result does
     });
 
     log.debug({ callId }, 'Call result stored in unified background results');

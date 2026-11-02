@@ -62,6 +62,13 @@ export type {
   CrisisResponseContext,
 } from './crisis-response.js';
 export { EMERGENCY_NUMBER } from './emergency-number.js';
+// Someone hurting the caller (ABUSE_DISCLOSURE_PATTERNS, turn-crisis.ts and turn-handler.ts).
+export {
+  abuseCallRisk,
+  abuseGuidance,
+  disclosureGuidance,
+  withAbuseRead,
+} from './abuse-disclosure-turn.js';
 
 // ============================================================================
 // ESCALATION PATHWAYS

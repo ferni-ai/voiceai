@@ -145,17 +145,36 @@ export const callerSilent = ([, , , peak]) => Number.isFinite(peak) && peak < SI
 // release-check's "caller audio" item report them instead, so nothing is hidden.
 function deadAir({ events, agentVoice: voice, callerSpeech }) {
   const hits = [];
+  const spoken = callerSpeech.filter((line) => !callerSilent(line));
   // A lead-in, then silence. Captions land during or just after the words they caption.
+  // The hit is the total silence from the lead-in's end to the agent's next voice: the window
+  // minus the caller's own speech (lines merged where they overlap). rc3 candor-wrong ("Whoa,
+  // hold on. ...") counted the caller's whole next turn as 9.6 s of dead air; the caller's
+  // speech is not silence. But caller sound never resets the clock: "One sec", "Okay." at 5 s,
+  // "Hello?" at 10 s, the answer at 16 s is ~15 s of nothing from Ferni, split by backchannels.
+  // An all-silence line is no speech; a zero-length line adds none.
   for (const e of events.filter((x) => x.who === 'agent' && LEAD_IN.test(norm(x.text)))) {
     const i = voice.findLastIndex(([s]) => s <= e.t);
     if (i < 0 || e.t > voice[i][1] + 3000) continue; // never voiced: the check below covers it
-    const next = voice.slice(i + 1).find(([s]) => s >= voice[i][1]);
-    if (next && next[0] - voice[i][1] > DEAD_AIR_MS)
-      hits.push({ quote: e.text, why: `${secs(next[0] - voice[i][1])} silent after the lead-in` });
+    const end = voice[i][1];
+    const next = voice.slice(i + 1).find(([s]) => s >= end);
+    if (!next) continue;
+    const heard = spoken
+      .filter(([s, f]) => f > end && s < next[0])
+      .sort((a, b) => a[0] - b[0]);
+    let clock = end; // speech is counted only once, from the lead-in's end
+    let speech = 0;
+    for (const [s, f] of heard) {
+      const to = Math.min(f, next[0]);
+      speech += Math.max(0, to - Math.max(s, clock));
+      clock = Math.max(clock, to);
+    }
+    const silent = next[0] - end - speech;
+    if (silent > DEAD_AIR_MS)
+      hits.push({ quote: e.text, why: `${secs(silent)} silent after the lead-in` });
   }
   // The caller finished, and nobody spoke until the caller tried again.
   const firstVoice = voice[0]?.[0];
-  const spoken = callerSpeech.filter((line) => !callerSilent(line));
   spoken.forEach((line, k) => {
     const end = line[1];
     const next = spoken[k + 1]?.[0];

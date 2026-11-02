@@ -26,6 +26,7 @@ import {
 import { about, firestoreCallRecords, personWord, type CallRecords } from './call-status.js';
 import { aboutPurpose, callStatusByPurposeOn, purposeWords } from './call-purpose.js';
 import { spokenWhen } from './held-call-clocks.js';
+import { isCallResultExpired } from './call-result-expiry.js';
 import {
   setCallRecallPort,
   type CallQuery,
@@ -127,7 +128,12 @@ const noReadBacks = (): RecalledCall[] => [];
  * Where the latest call to this person stands, from the records; undefined when there is none.
  * None to the person, and CALL_STATUS_BY_PURPOSE on: the call whose purpose the words name.
  */
-export function recallFrom(q: CallQuery, input: Records, now: number): RecalledCall | undefined {
+export function recallFrom(q: CallQuery, records: Records, now: number): RecalledCall | undefined {
+  // Firestore's TTL deletes an expired result late: past its expireAt it is gone already.
+  const input = {
+    ...records,
+    results: records.results.filter((d) => !isCallResultExpired(d, now)),
+  };
   return latestCall(input, now, (d) => matches(d, q), awaitingAs(q)) ?? byPurpose(q, input, now);
 }
 

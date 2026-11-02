@@ -237,9 +237,10 @@ These are things **native can do better than web ever will**:
    - Sleep data → appropriate energy level
    - Workout detection → energized persona
 
-6. **HomeKit Ambient Mode**
-   - Dim lights when late night mode activates
-   - Already implemented: `HomeKitService.swift`
+6. ~~**HomeKit Ambient Mode**~~ Dropped 2026-10-30: Apple allows HomeKit only in
+   apps built mainly for home automation and bans moving HomeKit data off the
+   device (Apple Developer Program License Agreement §3.3 I). `HomeKitService.swift`
+   never shipped, and the server bridge was removed.
 
 ### Android Exclusive
 
