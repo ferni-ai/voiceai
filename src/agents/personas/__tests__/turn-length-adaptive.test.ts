@@ -31,7 +31,9 @@ function call(said: string, after: llm.ChatItem[] = []): llm.ChatContext {
   c.addMessage({ role: 'user', content: 'hey' });
   c.addMessage({ role: 'assistant', content: 'hey you' });
   c.addMessage({ role: 'user', content: said });
-  c.insert(after);
+  // Appended, not insert()ed: `after` is built before this call, so insert() would sort it by
+  // createdAt ahead of their words whenever the clock ticks between the two (red in CI).
+  c.items.push(...after);
   return c;
 }
 const toolRan = (name: string): llm.ChatItem[] => [
