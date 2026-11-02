@@ -148,6 +148,8 @@ describe('a personal call: an unambiguous no is honoured', () => {
     ['No.', 'Not at all okay.'],
     ['No.', "Don't tell him anything, okay?"],
     ['No.', `${'Yes, '.repeat(40)}go ahead.`],
+    ['No.', `${'no, '.repeat(62)}no.`],
+    [`${'No, '.repeat(62)}no.`, 'Sorry, bad line.'],
   ])('%j then %j before Ferni speaks: a no', (first, then) => {
     const t = [A(ASK), R(first), R(then), A("Okay, I won't."), R(SAID)];
     expect(passAlongDeclined(call.script, t)).toBe(true);
@@ -352,6 +354,28 @@ describe('everything else is delivered, as main does', () => {
 
   it.each(['Go ahead, tell him.', 'Sure.'])('"No." then %j is one answer: delivered', (then) => {
     delivered([A(ASK), R('No.'), R(then), A('Great!'), R(SAID)]);
+  });
+
+  // A long no is still a no: only the go-ahead cue stops reading at 200 characters.
+  it.each([`${'No, '.repeat(62)}no.`, `${'Um, '.repeat(70)}please don't tell her.`])(
+    'an over-long no as their whole answer is a no (%#)',
+    (reply) => {
+      expect(reply.length).toBeGreaterThan(200);
+      const t = [A(ASK), R(reply), A("Okay, I won't."), R(SAID)];
+      expect(passAlongDeclined(call.script, t)).toBe(true);
+    }
+  );
+
+  it.each(
+    ['no, ', 'please ', 'um, ', 'nope no nah '].flatMap((unit) =>
+      [40_000, 100_000].map((n) => [unit, n] as const)
+    )
+  )('%j repeated to %i characters is read in under 50 ms', (unit, n) => {
+    const reply = unit.repeat(Math.ceil(n / unit.length));
+    const started = performance.now();
+    passAlongDeclined(call.script, [A(ASK), R(reply), R('Hello?'), A("Okay, I won't."), R(SAID)]);
+    passAlongDeclined(call.script, [A(ASK), R(`${reply}x`), A("Okay, I won't."), R(SAID)]);
+    expect(performance.now() - started).toBeLessThan(50);
   });
 
   // Every cue reads 200 characters at most and splits a reply one way only, so a long reply

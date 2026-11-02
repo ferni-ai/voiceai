@@ -54,7 +54,10 @@ const REFUSED = new RegExp(
 /** A reply cut off mid-sentence: the next reply carries on from it. */
 const UNFINISHED = /(?:[,;:\u2013\u2014-]|\.\.\.|\u2026)\s*$/;
 
-/** Longest reply the cues read: a longer one is never a lone no, a refusal or a go-ahead. */
+/**
+ * Longest reply the go-ahead cue reads: a longer one is never a go-ahead, so it can only leave a no
+ * standing. The no and refusal cues read any length (each splits a reply one way only, linear).
+ */
 const MAX_REPLY = 200;
 
 /** Go-ahead words. None is also a lead-in word, so each reply splits one way only. */
@@ -87,7 +90,10 @@ const LEAD_IN =
  * ("don't tell her about X"). Read only inside their answer, before Ferni speaks again.
  */
 const GO_AHEAD = new RegExp(`^(?:${GO})(?:\\W+(?:${GO}))*[.!\\s]*$`, 'i');
-/** A go-ahead never says no past its lead-in: "Tell him nothing.", "Not at all okay." */
+/**
+ * A go-ahead never says no past its lead-in: "Tell him nothing.", "Not at all okay.". The closed
+ * tell/share list already keeps these out; this guard keeps them out if that list is ever widened.
+ */
 const NEGATED = /\b(?:not|no|don't|never|nothing|nobody|no one)\b/i;
 
 function goAhead(reply: string): boolean {
@@ -134,9 +140,7 @@ export function passAlongDeclined(
   const [first = '', ...rest] = replies;
   const alone = !UNFINISHED.test(first.slice(-MAX_REPLY)) && !rest.some(goAhead);
   const read = alone ? [replies.join(' '), first] : [replies.join(' ')];
-  return read.some(
-    (answer) => answer.length <= MAX_REPLY && (LONE_NO.test(answer) || REFUSED.test(answer))
-  );
+  return read.some((answer) => LONE_NO.test(answer) || REFUSED.test(answer));
 }
 
 /** What the requester hears when they said no: that they did, and nothing they said. */
