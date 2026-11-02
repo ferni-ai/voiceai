@@ -147,6 +147,9 @@ describe('a personal call: an unambiguous no is honoured', () => {
     ['No.', 'Tell him later.'],
     ['No.', 'Not at all okay.'],
     ['No.', "Don't tell him anything, okay?"],
+    ['No.', 'No one, okay.'],
+    ['No.', 'No way, okay.'],
+    ['No.', 'Nobody, okay.'],
     ['No.', `${'Yes, '.repeat(40)}go ahead.`],
     ['No.', `${'no, '.repeat(62)}no.`],
     [`${'No, '.repeat(62)}no.`, 'Sorry, bad line.'],
@@ -354,6 +357,19 @@ describe('everything else is delivered, as main does', () => {
 
   it.each(['Go ahead, tell him.', 'Sure.'])('"No." then %j is one answer: delivered', (then) => {
     delivered([A(ASK), R('No.'), R(then), A('Great!'), R(SAID)]);
+  });
+
+  // Only a question of 300 characters or fewer can be the ask, so a long one never stalls the read.
+  it.each(
+    ['pass on ', 'pass it along to him, '].flatMap((unit) =>
+      [4_000, 8_000, 40_000].map((n) => [unit, n] as const)
+    )
+  )('a %j question repeated to %i characters is read in under 50 ms', (unit, n) => {
+    const question = `${unit.repeat(Math.ceil(n / unit.length))}?`;
+    const started = performance.now();
+    const declined = passAlongDeclined(call.script, [A(question), R('No.'), A('Okay.'), R(SAID)]);
+    expect(performance.now() - started).toBeLessThan(50);
+    expect(declined).toBe(false);
   });
 
   // A long no is still a no: only the go-ahead cue stops reading at 200 characters.

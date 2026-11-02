@@ -112,9 +112,17 @@ function lastQuestion(text: string): string {
   return end < 0 ? '' : text.slice(text.lastIndexOf('?', end - 1) + 1, end + 1).trim();
 }
 
+/** Longest question that can be the ask (the real one is ~90 characters); ASKED is cubic past it. */
+const MAX_ASK = 300;
+
 const asks = (turn: CallTranscriptTurn): boolean => {
   const question = lastQuestion(turn.content);
-  return turn.role === 'agent' && ASKED.test(question) && !/\bmind\b/i.test(question);
+  return (
+    turn.role === 'agent' &&
+    question.length <= MAX_ASK &&
+    ASKED.test(question) &&
+    !/\bmind\b/i.test(question)
+  );
 };
 
 /**
