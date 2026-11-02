@@ -40,27 +40,64 @@ export const MAX_DATE_WORDS = 10;
 export const isDateWord = (word: string, extra: ReadonlySet<string>) =>
   DATE_WORDS.has(word) || extra.has(word) || /^\d+(?:st|nd|rd|th)?$/.test(word);
 
+/** The only words besides date words a statement's date may be written with. */
+const RELATIVE_DATE: ReadonlySet<string> = new Set(['today']);
+
+/**
+ * A date as a statement may write it: one to ten date words, numbers, ordinals or "today",
+ * and nothing else, so it can't carry a condition ("until I say stop").
+ */
+export function isStatementDate(date: string): boolean {
+  const words = consentWords(date);
+  return (
+    words.length >= 1 &&
+    words.length <= MAX_DATE_WORDS &&
+    words.every((w) => isDateWord(w, RELATIVE_DATE))
+  );
+}
+
 /** "Uh-uh", "mm-mm" and "hmm-mm" mean no; speech to text writes them as two fillers. */
 const SPOKEN_NO = new Set(['uh', 'mm', 'hmm']);
 
 /**
  * Words a consent name may not hold, so "My name is I do not agree" or "for everyone's
  * private use" can't be built: words that say no, words that give or take back consent,
- * and words that name nobody in particular.
+ * and words that name nobody in particular. Apostrophes dropped: "don't" is "dont".
  */
-const NOT_A_NAME = new Set([
-  ...SPOKEN_NO,
-  ...'no not never none nobody nothing nor neither nope nah cannot dont cant'.split(' '),
-  ..."don't doesn't didn't won't can't isn't aren't wasn't wouldn't shouldn't".split(' '),
-  ...'agree agreed agrees disagree consent consents withdraw withdraws withdrawn'.split(' '),
-  ...'revoke refuse decline deny'.split(' '),
-  ...'everyone anyone someone somebody anybody everybody whoever all people'.split(' '),
-  ...'others you me i we us myself yourself'.split(' '),
-]);
+const NOT_A_NAME: ReadonlySet<string> = new Set(
+  [
+    ...SPOKEN_NO,
+    ...'no not never none nobody nothing nor neither nope nah cannot dont cant'.split(' '),
+    ..."don't doesn't didn't won't can't isn't aren't wasn't wouldn't shouldn't".split(' '),
+    ...'agree agreed agrees disagree consent consents withdraw withdraws withdrawn'.split(' '),
+    ...'revoke refuse decline deny'.split(' '),
+    ...'everyone anyone someone somebody anybody everybody whoever all people'.split(' '),
+    ...'others you me i we us myself yourself'.split(' '),
+  ].map((w) => w.replace(/'/g, ''))
+);
 
-/** True when the text holds a word no name or date may hold ("No", "agree", "everyone's"). */
-export const holdsNotANameWord = (text: string): boolean =>
-  consentWords(text).some((w) => NOT_A_NAME.has(w));
+/** A lone initial ("I." in "I. M. Wu"): a letter, not the word "I". */
+const INITIAL = /^\p{L}\.$/u;
+
+/**
+ * True when the name holds a word no name may hold, however it is written: on its own
+ * ("No"), split ("Some One", "E. Veryone"), hyphenated ("Any-one") or with apostrophes
+ * ("Every'one"). Every run of the name's words is joined and checked, since a run is
+ * what gets heard when the name is read aloud.
+ */
+export function holdsNotANameWord(nameWords: readonly string[]): boolean {
+  const tokens = nameWords.flatMap((word) =>
+    consentWords(word).map((t) => ({ t: t.replace(/'/g, ''), initial: INITIAL.test(word) }))
+  );
+  for (let i = 0; i < tokens.length; i++) {
+    let run = '';
+    for (let j = i; j < tokens.length; j++) {
+      run += tokens[j].t;
+      if (NOT_A_NAME.has(run) && !(j === i && tokens[i].initial)) return true;
+    }
+  }
+  return false;
+}
 
 /**
  * The transcript as words, fillers out, "a i" and "anytime" read the way the statement

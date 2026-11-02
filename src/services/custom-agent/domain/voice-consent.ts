@@ -25,6 +25,7 @@ import {
   consentWords,
   holdsNotANameWord,
   isDateWord,
+  isStatementDate,
   heardWords,
   MAX_DATE_WORDS,
   nameHeardAs,
@@ -146,16 +147,14 @@ function isSpeakableName(name: string): boolean {
   const words = clean(name).split(' ');
   return (
     words.length <= MAX_NAME_WORDS &&
-    words.every((w) => DOTTED_WORD.test(w) || (NAME_WORD.test(w) && !holdsNotANameWord(w)))
+    words.every((w) => DOTTED_WORD.test(w) || NAME_WORD.test(w)) &&
+    !holdsNotANameWord(words)
   );
 }
 
-/** A date short enough to be only a date, with no refusal in it. */
+/** Only a date: date words, numbers and "today", nothing that could be a condition. */
 const isSpeakableDate = (date: unknown): boolean =>
-  typeof date === 'string' &&
-  consentWords(date).length >= 1 &&
-  consentWords(date).length <= MAX_DATE_WORDS &&
-  !holdsNotANameWord(date);
+  typeof date === 'string' && isStatementDate(date);
 
 /** Three distinct words from CHECK_WORDS: the only proof a reading is fresh. */
 function hasFreshCheckWords(words: unknown): boolean {
@@ -268,7 +267,7 @@ export function scoreConsentTranscript(
   const heard = heardWords(transcript);
   const heardSet = new Set(heard);
   const missingCheckWords = statement.checkWords.filter((w) => !heardSet.has(w));
-  // The date as the statement writes it is a date too ("today", "Halloween")
+  // The date as written is a date too ("today"); statementFault let only date words through
   const ownDate = new Set(consentWords(statement.spokenDate));
   let at = 0;
   for (const part of statementParts(statement)) {

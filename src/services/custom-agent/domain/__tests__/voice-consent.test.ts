@@ -369,12 +369,50 @@ describe('scoreConsentTranscript', () => {
     expect(verifies(split, split.text.replace('Mary Ann Lee', 'Maryann Lee'))).toBe(true);
   });
 
-  it('refuses a date that is a sentence or a refusal', () => {
-    for (const spokenDate of ['today, and I do not agree', 'November 1 for everyone', '']) {
-      expect(() =>
-        buildConsentStatement({ subjectName: 'Rosa Quill', creatorName: null, spokenDate })
-      ).toThrow(RangeError);
-    }
+  it.each([
+    'until I say stop',
+    'November 1 unless she asks',
+    'today, and I do not agree',
+    'November 1 for everyone',
+    'Halloween',
+    'one two three four five six seven eight nine ten eleven',
+    '',
+  ])('refuses %j as the date: only date words, numbers and "today"', (spokenDate) => {
+    expect(() =>
+      buildConsentStatement({ subjectName: 'Rosa Quill', creatorName: null, spokenDate })
+    ).toThrow(RangeError);
+  });
+
+  it.each([
+    'November 1, 2026',
+    'today',
+    '2026-11-01',
+    '11/1/2026',
+    'Sunday, the first of November',
+  ])('verifies %j as the date', (spokenDate) => {
+    const statement = buildConsentStatement({
+      subjectName: 'Rosa Quill',
+      creatorName: null,
+      spokenDate,
+      random: seq(0, 0, 0),
+    });
+    expect(verifies(statement, statement.text)).toBe(true);
+  });
+
+  it.each([
+    'Some One',
+    'Every One',
+    'Any-one',
+    "Every'one",
+    'E. Veryone',
+    'Maya Some One',
+    "No'body",
+    'Ag Ree',
+    'With-draw',
+    "Do N't",
+  ])("refuses %s: a refusal or open scope split, hyphenated or apostrophe'd", (name) => {
+    expect(() => statementFor(name, null)).toThrow(RangeError);
+    expect(() => statementFor('Rosa Quill', name)).toThrow(RangeError);
   });
 
   it('refuses names that are sentences, and verifies real names', () => {
@@ -469,13 +507,16 @@ describe('scoreConsentTranscript on a statement it did not build', () => {
     }
   });
 
-  it('refuses a statement whose date holds a refusal, even read word for word', () => {
-    const stored = tampered({ spokenDate: 'not today' });
-    expect(scoreConsentTranscript(stored, stored.text)).toMatchObject({
-      verified: false,
-      mismatch: 'a statement whose date is not a date',
-    });
-  });
+  it.each(['not today', 'until I say stop', 'Halloween'])(
+    'refuses a statement whose date is %j, even read word for word',
+    (spokenDate) => {
+      const stored = tampered({ spokenDate });
+      expect(scoreConsentTranscript(stored, stored.text)).toMatchObject({
+        verified: false,
+        mismatch: 'a statement whose date is not a date',
+      });
+    }
+  );
 });
 
 /** Every word of the text, sorted: all the words, none of the order. */
