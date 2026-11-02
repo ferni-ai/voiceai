@@ -12,9 +12,9 @@
  * words included ("No, that's cool", "Keep this between us, but I'm bringing a
  * plus-one"), is delivered as before. A secret shared later in the call never
  * withholds the whole call (owner, 2026-11-02): withholding just that part is
- * not built yet, so those calls deliver as main does. A clear go-ahead right
- * after Ferni answers the no ("Wait, I meant it's fine, go ahead!") takes the
- * no back. When in doubt, deliver.
+ * not built yet, so those calls deliver as main does. Once given, a no holds
+ * for the rest of the call: a later "sure, go ahead" is most often a yes to
+ * Ferni's next question, not taking the no back. When in doubt, deliver.
  *
  * @module services/outreach/pass-along-declined
  */
@@ -48,9 +48,6 @@ const REFUSED = new RegExp(
     `(?:${REFUSAL})(?:\\W+(?:please|thanks|thank you|sorry|okay|ok))*\\W*$`,
   'i'
 );
-/** Taking the no back once Ferni has answered it: "Wait, I meant it's fine", "go ahead". */
-const GO_AHEAD =
-  /\b(?:go ahead|go for it|you can (?:tell|pass|share|say)|(?:i meant|i mean|wait|sorry|actually)\W+(?:no\W+)?(?:yes|yeah|yep|sure|(?:it's|that's) (?:fine|okay|ok|cool|alright)))\b/i;
 
 const straight = (text: string): string =>
   text.replace(/[‘’]/g, "'").replace(/\bdo not\b/gi, "don't");
@@ -66,18 +63,6 @@ const asks = (turn: CallTranscriptTurn): boolean => {
   return turn.role === 'agent' && ASKED.test(question) && !/\bmind\b/i.test(question);
 };
 
-/** What they said from `from` until Ferni spoke again, and the turns after that. */
-function answerFrom(
-  turns: readonly CallTranscriptTurn[],
-  from: number
-): { said: string[]; rest: readonly CallTranscriptTurn[] } {
-  const after = turns.slice(from);
-  const next = after.findIndex((t) => t.role === 'agent');
-  const window = next < 0 ? after : after.slice(0, next);
-  const said = window.filter((t) => t.role === 'recipient').map((t) => straight(t.content.trim()));
-  return { said, rest: next < 0 ? [] : after.slice(next + 1) };
-}
-
 /**
  * True when the call's script asked to pass things along and they declined,
  * unambiguously. `script` is the dispatched call script (OnBehalfDispatch.script).
@@ -89,12 +74,14 @@ export function passAlongDeclined(
   if (!script?.includes(PASS_ALONG_ASK_HEADING)) return false;
   const asked = turns.findIndex(asks);
   if (asked < 0) return false;
+  const after = turns.slice(asked + 1);
+  const next = after.findIndex((t) => t.role === 'agent');
   // Their answer is everything they said before Ferni spoke again, read whole.
-  const { said, rest } = answerFrom(turns, asked + 1);
-  const answer = said.join(' ');
-  if (!LONE_NO.test(answer) && !REFUSED.test(answer)) return false;
-  // Their next reply, after Ferni answered the no, can take it back.
-  return !answerFrom(rest, 0).said.some((reply) => GO_AHEAD.test(reply));
+  const answer = (next < 0 ? after : after.slice(0, next))
+    .filter((t) => t.role === 'recipient')
+    .map((t) => straight(t.content.trim()))
+    .join(' ');
+  return LONE_NO.test(answer) || REFUSED.test(answer);
 }
 
 /** What the requester hears when they said no: that they did, and nothing they said. */

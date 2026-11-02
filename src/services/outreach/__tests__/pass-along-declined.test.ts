@@ -121,9 +121,20 @@ describe('a personal call: an unambiguous no is honoured', () => {
     expect(buildCallOutcome(call, turns(answer), analysis(), undefined, 90).outcome).toBe(NO_LINE);
   });
 
-  it('a no stays a no when their next reply is not a go-ahead', () => {
-    const t = [A(ASK), R('No.'), A("Okay, I won't."), R("Okay, that's fine, bye."), R(SAID)];
-    expect(buildCallOutcome(call, t, analysis(), undefined, 90).outcome).toBe(NO_LINE);
+  // A no holds for the rest of the call: Ferni's follow-up draws a yes to that, not to
+  // passing it on (#3371 r2 verify, fictional flows).
+  it.each([
+    'Sure, go ahead.',
+    "Actually yes, I'm free!",
+    "Sorry, yes, I'm sure, don't tell her.",
+    "Okay, that's fine, bye.",
+  ])("a no, then Ferni's follow-up, then %j: still a no", (reply) => {
+    const t = [A(ASK), R('No.'), A("Okay, I won't. Can I still give you Riley's message?"), R(reply), R(SAID)]; // prettier-ignore
+    expect(passAlongDeclined(call.script, t)).toBe(true);
+    const o = buildCallOutcome(call, t, analysis(), undefined, 90);
+    expect(o.outcome).toBe(NO_LINE);
+    expect(o.transcriptSummary).toBeUndefined();
+    expect(JSON.stringify(o)).not.toMatch(/marmalade|lighthouse|free/i);
   });
 
   it('a no then "stop calling" keeps only that, and the promise not to call', () => {
@@ -256,11 +267,6 @@ describe('everything else is delivered, as main does', () => {
       delivered(turns(a));
     }
   );
-
-  it('a no taken back once Ferni has answered it is delivered', () => {
-    delivered([A(ASK), R('No'), A("Okay, that's fine, I won't"), R("Wait, I meant no it's fine, go ahead!"), R(SAID)]); // prettier-ignore
-    delivered([A(ASK), R('Nope.'), A('No problem.'), R('Actually, you can tell him.'), R(SAID)]);
-  });
 
   it('their own question is not the ask', () => {
     delivered([R("You'll pass along what I say to Riley, is that okay?"), R('Nope.'), A('Yes, I will.'), R(SAID)]); // prettier-ignore
