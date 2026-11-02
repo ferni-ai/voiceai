@@ -111,35 +111,6 @@ export interface RateLimitResult {
 }
 
 // ============================================================================
-// WEBHOOK TYPES
-// ============================================================================
-
-export interface WebhookConfig {
-  integrationId: string;
-  path: string;
-  secret?: string;
-  verifySignature: boolean;
-  signatureHeader?: string;
-  signatureAlgorithm?: 'sha256' | 'sha1' | 'hmac-sha256';
-}
-
-export interface WebhookEvent {
-  id: string;
-  integrationId: string;
-  eventType: string;
-  payload: unknown;
-  receivedAt: Date;
-  headers: Record<string, string>;
-  verified: boolean;
-}
-
-export interface WebhookHandler {
-  integrationId: string;
-  eventType: string | '*';
-  handler: (event: WebhookEvent) => Promise<void>;
-}
-
-// ============================================================================
 // API CLIENT TYPES
 // ============================================================================
 

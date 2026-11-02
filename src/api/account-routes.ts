@@ -15,6 +15,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getStore } from '../memory/store-factory.js';
 import { deleteOAuthLinkStatesFor } from '../servers/token/oauth-link-state.js';
+import { deleteConnectInvitesFor } from '../services/connect-moments/connect-invites.js';
 import {
   exchangeAuthorizationCode,
   revokeAppleSignIn,
@@ -192,7 +193,7 @@ async function handleGetAccount(
 
 /**
  * Records about the user kept outside their own documents (keyed by an
- * endpoint or device-token hash, an OAuth state hash, an Apple transaction id, a challenge id
+ * endpoint or device-token hash, an OAuth state or connect-invite hash, an Apple transaction id, a challenge id
  * or a leaderboard), so the deleteAllData sweep can't reach them. Challenge
  * sweeps also free the other party's open-challenge slot.
  */
@@ -200,6 +201,7 @@ const LINKED_RECORDS: ReadonlyArray<readonly [string, (userId: string) => Promis
   ['push_subscriptions', erasePushRecordsFor],
   ['push_devices', eraseDevicesFor],
   ['oauth_link_states', deleteOAuthLinkStatesFor],
+  ['connect_invites', deleteConnectInvitesFor],
   ['apple_transaction_owners', tombstoneTransactionOwnersFor],
   ['musical_challenges_and_leaderboards', eraseMusicalSocialData],
   ['social_challenges', eraseSocialChallengesFor],
