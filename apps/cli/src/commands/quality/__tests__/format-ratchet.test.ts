@@ -1,4 +1,12 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -207,6 +215,39 @@ describe('prettier (the real binary)', () => {
     const r = unformattedFiles(prettier(root, PRETTIER));
     expect(r.files).toEqual(['src/broken.json', 'src/deep/messy.ts']);
     expect(r.unparsable).toEqual(['src/broken.json']);
+  });
+
+  it('with the content cache: a warm run gives the cold list, and a cached file edited unformatted is caught', () => {
+    const root = tmp();
+    const cache = join(root, 'cache', 'prettier.json');
+    put(root, '.prettierrc', '{}\n');
+    put(root, 'src/ok.ts', 'export const a = 1;\n');
+    put(root, 'src/messy.ts', 'export   const b=2\n');
+    put(root, 'src/broken.json', '{ "a": 1,, }\n');
+    const cold = unformattedFiles(prettier(root, PRETTIER, cache));
+    expect(existsSync(cache)).toBe(true);
+    const warm = unformattedFiles(prettier(root, PRETTIER, cache));
+    expect(warm).toEqual(cold);
+    expect(cold.files).toEqual(['src/broken.json', 'src/messy.ts']);
+    // src/ok.ts is cached as formatted; new content must be checked again, not trusted.
+    put(root, 'src/ok.ts', 'export   const a=1\n');
+    expect(unformattedFiles(prettier(root, PRETTIER, cache)).files).toEqual([
+      'src/broken.json',
+      'src/messy.ts',
+      'src/ok.ts',
+    ]);
+  });
+
+  it('--cache=FILE reaches prettier through run()', () => {
+    const root = tmp();
+    symlinkSync(join(REPO, 'node_modules'), join(root, 'node_modules'));
+    put(root, '.prettierrc', '{}\n');
+    put(root, 'src/ok.ts', 'export const a = 1;\n');
+    const baseline = join(root, 'baseline.json');
+    writeFileSync(baseline, '[]');
+    const cache = join(root, 'c.json');
+    expect(run(root, baseline, [`--cache=${cache}`], () => {})).toBe(0);
+    expect(existsSync(cache)).toBe(true);
   });
 
   it('an all-formatted tree reports nothing', () => {

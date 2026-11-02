@@ -19,6 +19,11 @@
  *   pnpm quality:format              check (CI: Lint & Type Check)
  *   pnpm quality:format --update     drop now-formatted files from the baseline
  *   pnpm quality:format --init       write a fresh baseline
+ *   pnpm quality:format --cache=FILE use prettier's content cache at FILE (CI restores it)
+ *
+ * The cache only skips files whose content hash prettier has already seen formatted under the
+ * same options, so a miss gives the same list as a hit, only slower. CI writes it only on push
+ * to main; pull requests and the merge queue restore it read-only.
  *
  * @module quality/format-ratchet
  */
@@ -78,13 +83,17 @@ export function compareFormat(base: string[], now: string[]): { added: string[];
   };
 }
 
-/** `prettier --list-different GLOB` in `root`. */
+/** `prettier --list-different GLOB` in `root`, with its content cache at `cache` if given. */
 export function prettier(
   root: string,
-  bin = join(root, 'node_modules', '.bin', 'prettier')
+  bin = join(root, 'node_modules', '.bin', 'prettier'),
+  cache?: string
 ): PrettierRun {
   if (!existsSync(bin)) throw new Error(`no prettier at ${bin}; run pnpm install`);
-  const r = spawnSync(bin, ['--list-different', '--no-color', GLOB], {
+  const caching = cache
+    ? ['--cache', '--cache-strategy', 'content', '--cache-location', cache]
+    : [];
+  const r = spawnSync(bin, ['--list-different', '--no-color', ...caching, GLOB], {
     cwd: root,
     encoding: 'utf8',
     maxBuffer: 1 << 26,
@@ -99,9 +108,11 @@ export function run(
   baseline: string,
   args: string[],
   log: (line: string) => void = console.log,
-  check: (root: string) => PrettierRun = prettier
+  check?: (root: string) => PrettierRun
 ): number {
-  const { files: now, unparsable } = unformattedFiles(check(root));
+  const cache = args.find((a) => a.startsWith('--cache='))?.slice('--cache='.length);
+  const runPrettier = check ?? ((r: string) => prettier(r, undefined, cache || undefined));
+  const { files: now, unparsable } = unformattedFiles(runPrettier(root));
   const write = (files: string[]): void =>
     writeFileSync(baseline, `${JSON.stringify(files, null, 2)}\n`);
   if (args.includes('--init')) {
