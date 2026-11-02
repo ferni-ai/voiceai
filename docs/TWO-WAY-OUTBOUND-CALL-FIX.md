@@ -1,6 +1,6 @@
 # Two-Way Outbound Call Fix - Deep Analysis & Plan
 
-> **Status:** Historical. The local `outbound-call-agent.ts` was removed in Nov 2026; a failed dispatch now only logs.  
+> **Status:** Historical. The local `outbound-call-agent.ts` was removed in Nov 2026; a failed dispatch now plays a short apology, hangs up, and records the call as failed (provider error).  
 > **Date:** December 29, 2024  
 > **Problem:** Ferni can make outbound calls and speak, but user responses are not processed
 

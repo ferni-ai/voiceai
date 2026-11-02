@@ -1,0 +1,10 @@
+# Speaking: street addresses (fictional). Pass: the address read back plainly ("forty-two ten
+# Maplewood Avenue, apartment three B"), the zip in digits said one by one, no abbreviations read as
+# letters ("Ave", "Apt"), and the card line short.
+#@judge spokenNaturally
+Hey Ferni. I'm sending a birthday card to my friend Priya and I want to make sure I have her address right.
+It's four two one zero Maplewood Avenue, apartment three B, Riverbend. Zip is zero one two three four.
+Can you read the whole thing back to me?
+Oh, and her old place was eighteen Elm Court. Which one goes on the card?
+And what's a nice short thing to write inside? Just one line.
+Great, thanks Ferni.
