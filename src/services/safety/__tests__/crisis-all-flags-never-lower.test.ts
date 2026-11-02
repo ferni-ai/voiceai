@@ -1,7 +1,7 @@
 /**
  * A crisis flag may ADD a production crisis read; it may never remove one.
  *
- * Checked here: every flag the five production readers below actually read. That set is measured,
+ * Checked here: every flag the six production readers below actually read. That set is measured,
  * not listed: the readers run the corpus behind a process.env that records each name read, at
  * the defaults and with every crisis flag on. A flag a reader starts reading is checked the day
  * it does. Each checked flag is read from two baselines:
@@ -23,11 +23,13 @@
  * their only crisis read, and, with CRISIS_SIGHT_NEEDS_CUE on, seven stroke / sight-loss lines
  * lose their medical-emergency read. Every pinned crisis test stayed green, because those tests
  * call the whole-word helpers directly and the flag guarded a different path. This test reads
- * the five production readers instead. All lines are fictional.
+ * the production readers instead. All lines are fictional.
  *
  * A read also counts as lowered when it keeps its level but loses a resource: a crisis resource
  * the safety check or the life-coaching guard offered, a step down in the guard's recommended
- * action, or 988 / 911 gone from everything those readers hand the reply.
+ * action, or 988 / 911 gone from everything those readers hand the reply. The sixth reader is
+ * the crisis script as the caller hears it (minorCrisisScript over crisis-guard's script): it
+ * may gain a line, but never lose one of the script's, nor its 988 or 911.
  */
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
@@ -35,6 +37,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { FLAG_MANIFEST } from '../../../config/flag-manifest.js';
 import { assessSafety } from '../../../tools/domains/life-coaching-shared/safety-guards.js';
+import { minorCrisisScript } from '../../../utils/minor-crisis-care.js';
 import { detectCrisisSignals } from '../../human-transfer/escalation-classifier.js';
 import { riskCorpus } from '../../wellbeing-tracking/__tests__/crisis-corpus.js';
 import { checkWarnings } from '../../wellbeing-tracking/early-warning.js';
@@ -80,7 +83,16 @@ const SIGHT_WORD_SLOT = [
   'I can barely see, my mouth feels somewhat funny',
 ];
 
-const LINES = [...new Set([...riskCorpus(), ...INSIDE_A_WORD, ...SIGHT_WORD_SLOT])];
+/** Risk lines from a caller who sounds under 18, so the youth path of a crisis script is read. */
+const SOUNDS_UNDER_18 = [
+  "I'm 15 and I want to kill myself",
+  "I'm 14 and in 9th grade and I took a bunch of pills just now",
+  "I'm 16 and I keep thinking everyone would be better off without me",
+];
+
+const LINES = [
+  ...new Set([...riskCorpus(), ...INSIDE_A_WORD, ...SIGHT_WORD_SLOT, ...SOUNDS_UNDER_18]),
+];
 
 const ASSESS = ['safe', 'concerning', 'urgent', 'crisis'];
 const ESCALATION = [
@@ -112,6 +124,11 @@ function read(line: string) {
     recentMessages: [line],
   }).map((w) => w.type);
   const assess = assessSafety(line);
+  // The crisis script the caller hears when the gate replaces the reply (crisis-gate.ts), as
+  // spoken: a caller who sounds under 18 also gets a youth line (MINOR_CRISIS_CARE). A fresh
+  // session per read, so one line's age never carries to another.
+  const script = gate.suggestedResponse ?? '';
+  const spoken = script ? minorCrisisScript(script, `flag-gate-call-${++profiles}`, line, []) : '';
   const handed = JSON.stringify([
     assess.resources ?? [],
     safety.response ?? null,
@@ -138,6 +155,10 @@ function read(line: string) {
     ]),
     offers988: mentions(handed, '988'),
     offers911: mentions(handed, '911'),
+    scriptWhole: spoken.includes(script),
+    spokenAdded: spoken.length > script.length,
+    script988: mentions(spoken, '988'),
+    script911: mentions(spoken, '911'),
   };
 }
 type Reading = ReturnType<typeof read>;
@@ -162,6 +183,9 @@ function lower(off: Reading, on: Reading): string[] {
     if (!on.safetyResources.includes(r)) out.push(`safety check resource ${r}`);
   if (off.offers988 && !on.offers988) out.push('988');
   if (off.offers911 && !on.offers911) out.push('911');
+  if (off.scriptWhole && !on.scriptWhole) out.push('spoken crisis script cut');
+  if (off.script988 && !on.script988) out.push('spoken script 988');
+  if (off.script911 && !on.script911) out.push('spoken script 911');
   return out;
 }
 
@@ -180,7 +204,7 @@ function readUnder(flags: FlagValues): Map<string, Reading> {
 }
 
 /**
- * Every manifest flag the five readers read on the corpus, at the defaults and with every crisis
+ * Every manifest flag the six readers read on the corpus, at the defaults and with every crisis
  * flag on, recorded by a process.env that notes each name looked up.
  */
 function flagsTheReadersRead(): string[] {
@@ -210,7 +234,7 @@ function flagsTheReadersRead(): string[] {
 const defaultOf = (name: string): string =>
   FLAG_MANIFEST[name as keyof typeof FLAG_MANIFEST].default;
 
-/** The flags the five readers read, measured, so the set can't drift from what they do. */
+/** The flags the six readers read, measured, so the set can't drift from what they do. */
 const READ_BY_READERS = flagsTheReadersRead();
 const CHECKED = READ_BY_READERS.filter((name) => !(name in KNOWN_LOWERS));
 /** Unset (manifest default) unless a case sets it. */
@@ -267,6 +291,19 @@ describe('crisis flags never lower a production crisis read', () => {
     for (const line of SIGHT_WORD_SLOT) expect(sight.get(line)!.transferSeverity, line).toBe(10);
   });
 
+  it('reads the spoken script with its youth line for a caller who sounds under 18', () => {
+    const defaults = readUnder({});
+    const youth = readUnder({ MINOR_CARE: 'on', MINOR_CRISIS_CARE: 'on' });
+    for (const line of SOUNDS_UNDER_18) {
+      expect(defaults.get(line)?.spokenAdded, line).toBe(false);
+      expect(youth.get(line)).toMatchObject({
+        spokenAdded: true,
+        scriptWhole: true,
+        script988: true,
+      });
+    }
+  });
+
   it.each(CASES)('%s=%s alone lowers no read', (name, value) => {
     expect(losses({}, { [name]: value })).toEqual([]);
   });
@@ -301,7 +338,7 @@ describe('crisis flags never lower a production crisis read', () => {
 });
 
 /**
- * Crisis-lane flags the five readers don't read, each with an existing test that drives it.
+ * Crisis-lane flags the six readers don't read, each with an existing test that drives it.
  * Picked as the unit test that sets the flag, named after the module that reads it where one is.
  */
 const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
@@ -316,6 +353,8 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   CALLER_CARD: 'src/agents/multi-agent/__tests__/caller-card-setup.test.ts',
   CALLER_RECOGNITION: 'src/agents/voice-agent-entry/__tests__/caller-recognition.test.ts',
   CALL_CAPTURE_CONSENT: 'src/api/__tests__/call-capture-consent-routes.test.ts',
+  // Dropped, never said later, on a call with crisis risk: 'crisis risk on the owner call'.
+  CALL_LIVE_RELAY: 'src/services/outreach/__tests__/call-progress-relay.test.ts',
   CALL_NEWS_OPENER: 'src/agents/multi-agent/__tests__/greeting-call-news.test.ts',
   CALL_REPORT_REACHES_YOU: 'src/agents/multi-agent/__tests__/call-report-after-crisis.test.ts',
   CALL_RESULT_LIVE_REPORT: 'src/services/outreach/__tests__/call-result-cross-process.test.ts',
@@ -358,8 +397,6 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   LAUGH_CAP: 'src/agents/personas/__tests__/laugh-ledger.test.ts',
   LISTEN_OFFER_STRIP: 'src/agents/personas/__tests__/listen-offer.test.ts',
   MINOR_ABUSE_DISCLOSURE: 'src/services/safety/__tests__/minor-abuse-disclosure.test.ts',
-  MINOR_CARE: 'src/agents/multi-agent/caller-card/__tests__/minor-care.test.ts',
-  MINOR_CARE_OWNERS: 'src/utils/__tests__/minor-care-shared-hold.test.ts',
   MINOR_CARE_SHARED_HOLD:
     'src/services/outreach/__tests__/minor-care-shared-hold-call-paths.test.ts',
   OPENER_GATE: 'src/agents/personas/__tests__/crisis-gate.test.ts',
