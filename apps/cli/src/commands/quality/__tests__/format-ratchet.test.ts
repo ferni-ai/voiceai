@@ -138,6 +138,12 @@ describe('run', () => {
     expect(r.base).toEqual(['src/a.ts']);
   });
 
+  it('new: a newly unformatted .json fails and is named, like a .ts', () => {
+    const r = check(['src/a.ts'], listed('src/a.ts', 'src/config/new.json'));
+    expect(r.code).toBe(1);
+    expect(r.out).toContain('  src/config/new.json');
+  });
+
   it('a swap (format one, unformat another) fails on the new file', () => {
     const r = check(['src/a.ts', 'src/b.ts'], listed('src/a.ts', 'src/c.ts'));
     expect(r.code).toBe(1);
@@ -196,6 +202,39 @@ describe('unformattedFiles', () => {
         stderr: '[error] No files matching the pattern were found: "src/**/*.ts".\n',
       })
     ).toThrow(/prettier exited 2/);
+  });
+
+  it('throws on an error that names no file, even beside a parse error', () => {
+    expect(() =>
+      unformattedFiles({
+        status: 2,
+        stdout: 'src/a.ts\n',
+        stderr: [
+          '[error] src/b.json: SyntaxError: Unexpected token (3:1)',
+          '[error]   2 |   "a": 1,',
+          '[error] > 3 | }',
+          '[error]     | ^',
+          '[error] Invalid configuration for file "src/c.ts":',
+          '',
+        ].join('\n'),
+      })
+    ).toThrow(/Invalid configuration/);
+  });
+
+  it('near miss: a parse error with its full code frame is accepted', () => {
+    const r = unformattedFiles({
+      status: 2,
+      stdout: '',
+      stderr: [
+        '[error] src/b.json: SyntaxError: Unexpected token (3:1)',
+        '[error]   2 |   "a": 1,',
+        '[error] > 3 | }',
+        '[error]     | ^',
+        '[error]   4 |',
+        '',
+      ].join('\n'),
+    });
+    expect(r.unparsable).toEqual(['src/b.json']);
   });
 
   it('throws when the exit code and the output disagree', () => {
