@@ -298,7 +298,7 @@ export class BreathingGuide {
     this.options = {
       pattern: 'relaxing',
       size: 200,
-      color: 'var(--persona-primary)',
+      color: '#4a6741',
       showInstructions: true,
       showTimer: true,
       hapticsEnabled: true,
