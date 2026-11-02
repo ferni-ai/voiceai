@@ -26,8 +26,8 @@ import { rememberForPacket, packetLogFields, turnPacket } from '../context-packe
 import { withTurnReminder } from '../turn-request.js';
 import { plantedPiiIn } from '../../../tests/helpers/snippet-leak.js';
 
-/** The planted phone as one number: the only number in a log that would be a leak. */
-const PHONE_DIGITS = '5558675309';
+/** Fields the packet log fills with sizes and counts; every other number is read as text. */
+const COUNTS = ['version', 'sections', 'tokens', 'totalTokensEst', 'dropped', 'guidanceDropped'];
 const PII = [
   'Jane',
   'Doe',
@@ -85,9 +85,9 @@ describe('CONTEXT_PACKET logging', () => {
     // Non-vacuous: the planted details really are in the packet.
     for (const pii of ['Jane', '5309', 'lake story', 'Biscuit']) expect(packet.text).toContain(pii);
 
-    expect(plantedPiiIn(packetLogFields(packet.accounting), PII, PHONE_DIGITS)).toEqual([]);
+    expect(plantedPiiIn(packetLogFields(packet.accounting), PII, COUNTS)).toEqual([]);
     // The accounting the receipt will read carries no text either: ids are opaque.
-    expect(plantedPiiIn(packet.accounting, PII, PHONE_DIGITS)).toEqual([]);
+    expect(plantedPiiIn(packet.accounting, PII, COUNTS)).toEqual([]);
   });
 
   it('what withTurnReminder logs on the live path has none of it', () => {
@@ -108,6 +108,6 @@ describe('CONTEXT_PACKET logging', () => {
 
     const packetLines = logged.filter((args) => (args as unknown[]).includes('CONTEXT_PACKET'));
     expect(packetLines).toHaveLength(1);
-    expect(plantedPiiIn(logged, PII, PHONE_DIGITS)).toEqual([]);
+    expect(plantedPiiIn(logged, PII, COUNTS)).toEqual([]);
   });
 });

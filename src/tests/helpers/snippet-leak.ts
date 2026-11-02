@@ -25,32 +25,31 @@ export function leakedPieces(value: unknown, sentinel = SENTINEL): string[] {
 }
 
 /**
- * Which of the `planted` fragments a log carries as text: in a key or a string
- * value. A bare `JSON.stringify(log).includes('555')` cannot tell a leaked phone
- * from a count, so a log that holds a 555-token section estimate or an 867 ms timing
- * fails a no-PII test it passes. Numbers are counts here; the one number that is
- * a leak, the planted phone's digits as a number, is caught through `digits`.
+ * Which of the `planted` fragments a log carries: in a key, a string, or a number.
+ * A bare `JSON.stringify(log).includes('555')` cannot tell a leaked phone from a
+ * count, so a log holding a 555-token section estimate fails a no-PII test it
+ * passes. `countKeys` names the fields the code fills with counts and timings; a
+ * number anywhere under one of them is skipped. Every other number is read as
+ * text, so a phone fragment logged as a number (a `last4: 5309`) is still caught.
  * The value is read as it would be logged (JSON round-trip), so toJSON applies.
  */
 export function plantedPiiIn(
   value: unknown,
   planted: readonly string[],
-  digits?: string
+  countKeys: readonly string[] = []
 ): string[] {
   const texts: string[] = [];
-  const numbers: string[] = [];
-  const walk = (v: unknown): void => {
+  const walk = (v: unknown, inCount: boolean): void => {
     if (typeof v === 'string') texts.push(v);
-    else if (typeof v === 'number') numbers.push(String(v));
-    else if (Array.isArray(v)) v.forEach(walk);
+    else if (typeof v === 'number') {
+      if (!inCount) texts.push(String(v));
+    } else if (Array.isArray(v)) v.forEach((item) => walk(item, inCount));
     else if (v !== null && typeof v === 'object')
       for (const [key, inner] of Object.entries(v)) {
         texts.push(key);
-        walk(inner);
+        walk(inner, inCount || countKeys.includes(key));
       }
   };
-  walk(JSON.parse(JSON.stringify(value) ?? 'null'));
-  const found = planted.filter((p) => texts.some((t) => t.includes(p)));
-  if (digits !== undefined && numbers.some((n) => n.includes(digits))) found.push(digits);
-  return found;
+  walk(JSON.parse(JSON.stringify(value) ?? 'null'), false);
+  return planted.filter((p) => texts.some((t) => t.includes(p)));
 }
