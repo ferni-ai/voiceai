@@ -336,7 +336,6 @@
   "src/services/habits/habit-calendar-integration.ts -> src/services/stores/productivity-store.ts",
   "src/services/humanization/relationship-artifacts.ts -> src/utils/firestore-utils.ts",
   "src/services/integrations/oauth-token-store.ts -> src/utils/firestore-utils.ts",
-  "src/services/integrations/rideshare-booking.ts -> src/utils/firestore-utils.ts",
   "src/services/intelligence/cross-agent-awareness.ts -> src/utils/firestore-utils.ts",
   "src/services/journal/index.ts -> src/services/stores/productivity-store.ts",
   "src/services/life-thesis/thesis-service.ts -> src/services/data-layer/hooks/wisdom-hooks.ts",

@@ -969,7 +969,6 @@
   "src/services/integrations/google-maps/maps-client.ts": 676,
   "src/services/integrations/integration-hub.ts": 559,
   "src/services/integrations/oauth-manager.ts": 613,
-  "src/services/integrations/rideshare-booking.ts": 540,
   "src/services/integrations/slack-notifications.ts": 621,
   "src/services/intelligence/cross-agent-awareness.ts": 640,
   "src/services/intelligence/emotion-detection.ts": 670,
