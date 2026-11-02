@@ -176,9 +176,7 @@ describe('flag lifecycle: the hard rule for a spec a PR adds or edits', () => {
     expect(specProblems('X', spec, '2027-01-15', EXISTING)[0]).toMatch(
       /edited after 2027-01-15 and its issue is 'TBD'/
     );
-    expect(
-      specProblems('X', spec, '2027-01-15', { isNew: false, issues: fakeGitHub })
-    ).toEqual([]);
+    expect(specProblems('X', spec, '2027-01-15', { isNew: false, issues: fakeGitHub })).toEqual([]);
     expect(
       specProblems('X', exp({ expires: '2027-03-01', issue: '#7' }), '2027-01-15', {
         isNew: false,
@@ -209,6 +207,34 @@ describe('flag lifecycle: the backfill file', () => {
     );
     expect(parsed.size).toBeGreaterThan(200);
   });
+
+  it('expires every group 90 days after firstSeen, except the 7 single flags already past 90 days', () => {
+    // The Flag expiry check compares against the merge base, and main has no backfill yet, so
+    // nothing else stops a hand edit from pushing a group out by years.
+    const PAST_90_ON_DAY_ONE = [
+      'GOOGLE_GENAI_USE_VERTEXAI',
+      'INTELLIGENCE_PUBSUB_ENABLED',
+      'PERSONA_VOICE',
+      'USE_RUNTIME',
+      'USE_SMART_CONTEXT_ROUTING',
+      'USE_SONATA_STT',
+      'VITEST',
+    ];
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const days = (from: string, to: string) => (Date.parse(to) - Date.parse(from)) / DAY_MS;
+    const off90 = Object.entries(FLAG_EXPIRY_BACKFILL)
+      .filter(([, b]) => days(b.firstSeen, b.expires) !== 90)
+      .map(([name]) => name)
+      .sort();
+    expect(off90).toEqual(PAST_90_ON_DAY_ONE);
+    const early = Object.entries(FLAG_EXPIRY_BACKFILL).filter(([n]) =>
+      PAST_90_ON_DAY_ONE.includes(n)
+    );
+    for (const [name, b] of early) {
+      expect(b.expires < '2026-12-20', name).toBe(true);
+      expect(days(b.firstSeen, b.expires), name).toBeGreaterThan(90);
+    }
+  });
 });
 
 describe('flag lifecycle: after the grace date, touching a flag means fixing it', () => {
@@ -233,7 +259,9 @@ describe('flag lifecycle: after the grace date, touching a flag means fixing it'
   it("accepts the owner's open nightly issue for a backfilled flag, with no hand edit", () => {
     const name = Object.keys(FLAG_EXPIRY_BACKFILL)[0]!;
     expect(touchedProblems(name, exp(), '2027-01-15', fakeGitHub)).toEqual([]); // owner voice: #3001
-    expect(touchedProblems(name, exp({ owner: 'memory' }), '2027-01-15', fakeGitHub)).toHaveLength(1);
+    expect(touchedProblems(name, exp({ owner: 'memory' }), '2027-01-15', fakeGitHub)).toHaveLength(
+      1
+    );
     // before the cut-off nothing is looked up (no gh call in CI until 2027-01-15)
     asked.length = 0;
     expect(touchedProblems(name, exp(), '2027-01-14', fakeGitHub)).toEqual([]);
