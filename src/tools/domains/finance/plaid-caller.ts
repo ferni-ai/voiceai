@@ -19,7 +19,7 @@
  */
 
 import { isMemberIdentity } from '../../../services/identity/member-identity.js';
-import { verifiedCallerId } from '../../../services/identity/verified-caller.js';
+import { ownerProvenOnThisCall } from '../../../services/identity/verified-caller.js';
 import { noteLinkedTokenUse } from '../../../utils/linked-token-use.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getStoredAccessToken, getTokenData } from './plaid-items.js';
@@ -56,7 +56,7 @@ export function plaidCaller(opts: unknown): PlaidCaller {
   const named = userData ? userData.userId : run?.userId;
   const id = typeof named === 'string' ? named.trim() : undefined;
   if (!isMemberIdentity(id)) return { outcome: 'not_connected' };
-  return verifiedCallerId(userData) === id
+  return ownerProvenOnThisCall(userData) === id // never whoever answers a call Ferni placed
     ? { outcome: 'verified', id }
     : { outcome: 'needs_verification' };
 }

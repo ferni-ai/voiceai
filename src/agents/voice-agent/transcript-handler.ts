@@ -73,6 +73,7 @@ import type { UserData } from '../shared/types.js';
 import { heldAfter, memoryHeld } from '../../utils/minor-care.js';
 import { readCallerTurn } from '../personas/sexual-boundary.js';
 import { ownerWriteId } from '../../services/identity/owner-write-gate.js';
+import { isThirdPartyCallUser } from '../../memory/index.js';
 import {
   analyzeTurnSignals,
   handleInterruption,
@@ -664,18 +665,19 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     // FINAL TRANSCRIPT PROCESSING
     // ===============================================
     if (event.isFinal && event.transcript) {
-      // 🔍 E2E TRACE: User input received (STT complete)
+      // 🔍 E2E TRACE: STT complete. Never the words of a called person: they never signed up.
       const sttCompleteTime = Date.now();
+      const said = isThirdPartyCallUser(userId) ? '' : event.transcript;
       log().info(
         {
           trace: 'E2E_USER_INPUT',
-          transcript: event.transcript.slice(0, 100),
+          transcript: said.slice(0, 100),
           fullLength: event.transcript.length,
           sessionId,
           userId,
           turnNumber: userData.turnCount || 0,
         },
-        `🔍 E2E TRACE [STT] User said: "${event.transcript.slice(0, 50)}..." (${event.transcript.length} chars)`
+        `🔍 E2E TRACE [STT] User said: "${said.slice(0, 50)}..." (${event.transcript.length} chars)`
       );
 
       // 📊 E2E LATENCY: Start tracking this turn
@@ -1552,10 +1554,7 @@ async function processFinalTranscript(
     const extractedPrefs = extractMusicPreferences(event.transcript);
     if (extractedPrefs.length > 0) {
       // Preferences are stored via the music learning persistence system
-      diag.state('🎵 Extracted music preferences from conversation', {
-        count: extractedPrefs.length,
-        preferences: extractedPrefs.map((p) => `${p.type} ${p.category}: ${p.value}`),
-      });
+      diag.state('🎵 Extracted music preferences', { count: extractedPrefs.length }); // no values
     }
   }
 
@@ -1571,10 +1570,7 @@ async function processFinalTranscript(
           await saveExtractedPreference(memoryUserId, pref);
         }, 'preference-extraction');
       }
-      diag.state('🧠 Extracted general preferences from conversation', {
-        count: extractedPrefs.length,
-        preferences: extractedPrefs.map((p) => `${p.category}: ${p.value}`),
-      });
+      diag.state('🧠 Extracted general preferences', { count: extractedPrefs.length }); // no values
     }
   }
 

@@ -1,0 +1,15 @@
+# Listening: a caller in a loud cafe. Run with --echo-gain-db -90 --echo-noise-db -35: room noise
+# under the mic and no speaker echo (seeded white noise, not cafe babble; without the flags it is a
+# clean call). Confusables
+# that matter: fifty/fifteen, thirtieth/thirteenth. Pass: Ferni checks the number that matters
+# before using it, and once corrected uses the right one from then on (repeats-corrected reports
+# the wrong one coming back). The caller corrects whether or not Ferni misheard, as people do in
+# noise: "right, fifty" is a fine answer to a correction he didn't need.
+#@judge heardHonestly
+Hey Ferni, sorry, it's really loud in here. Can you hear me okay?
+I'm at a cafe with Priya. We're planning her brother Marcus's surprise party.
+It's on the thirtieth. Thirtieth. And it's for about fifty people.
+No, I said fifty, not fifteen. Five zero.
+And it's the thirtieth, not the thirteenth.
+Okay, so is a backyard thing enough for that many people?
+Perfect. I gotta go, they called our order. Bye!

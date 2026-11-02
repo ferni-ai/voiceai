@@ -28,6 +28,17 @@ export function verifiedCallerAllowanceOn(env: NodeJS.ProcessEnv = process.env):
 }
 
 /**
+ * PLACED_CALL_NOT_OWNER_PROOF=on: a call Ferni placed to the owner's number
+ * proves no owner (default off; Seth's ruling, 2026-11-01). Whoever answers can
+ * be anyone, so owner-only checks treat them like an inbound caller from that
+ * number: ownerProvenOnThisCall here, and caller-recognition.ts's
+ * accountNamedByDispatch. Read in the voice agent only.
+ */
+export function placedCallNotOwnerProofOn(env: NodeJS.ProcessEnv = process.env): boolean {
+  return flagOn('PLACED_CALL_NOT_OWNER_PROOF', env);
+}
+
+/**
  * For /token: a verified Firebase token from a real sign-in. Any client can mint
  * a fresh anonymous Firebase user, so 'anonymous' (or no provider) never counts.
  */
@@ -40,11 +51,17 @@ interface VerifiableSource {
   verified?: boolean;
 }
 
-/** True only for a Priority 1/2 identification of a real (not anonymous Firebase) account */
+/**
+ * True only for a Priority 1/2 identification of a real (not anonymous Firebase)
+ * account, and never on an inbound phone call: its caller is known only by a
+ * caller ID, which can be spoofed, however the dispatch is signed. No signed
+ * inbound_call dispatch exists today; this keeps a future one from verifying.
+ */
 export function isVerifiedIdentification(
   source: VerifiableSource,
   metadata: Readonly<Record<string, unknown>>
 ): boolean {
+  if (metadata.type === 'inbound_call') return false;
   if (source.verified !== true) return false;
   return source.type !== 'firebase' || metadata.firebase_account === true;
 }
@@ -52,6 +69,32 @@ export function isVerifiedIdentification(
 interface CallerView {
   userId?: unknown;
   verifiedCaller?: unknown;
+  placedCall?: unknown;
+}
+
+/**
+ * A call we placed to their number (a proactive self-call): the signed dispatch
+ * names the account, so the session is `verifiedCaller`, but a call we placed
+ * to their number can be answered by anyone (as ownerProvenOnLine says in
+ * caller-recognition.ts). The owner-message policy reads it always; with
+ * PLACED_CALL_NOT_OWNER_PROOF on, so does every owner-only check
+ * (ownerProvenOnThisCall).
+ */
+export function isPlacedCall(callType: string | undefined): boolean {
+  return callType === 'proactive_outreach';
+}
+
+/** What voice-agent-entry records on the call's userData about who the server verified. */
+export function callerVerification(
+  verified: boolean,
+  callType: string | undefined
+): { verifiedCaller: boolean; placedCall: boolean } {
+  return { verifiedCaller: verified, placedCall: isPlacedCall(callType) };
+}
+
+/** True when this call's userData marks a call we placed (isPlacedCall). */
+export function onPlacedCall(userData: unknown): boolean {
+  return ((userData ?? {}) as CallerView).placedCall === true;
 }
 
 /**
@@ -67,18 +110,40 @@ export function verifiedCallerId(userData: unknown): string | null {
   return isUnverifiedUserId(id) ? null : id;
 }
 
+/** The flag is on and Ferni placed this call: its answerer proves no owner. */
+export function placedCallProvesNoOwner(
+  userData: unknown,
+  env: NodeJS.ProcessEnv = process.env
+): boolean {
+  return placedCallNotOwnerProofOn(env) && onPlacedCall(userData);
+}
+
+/**
+ * The account owner proven on this call, for owner-only tools (bank data,
+ * lights): verifiedCallerId, except that with PLACED_CALL_NOT_OWNER_PROOF on a
+ * call Ferni placed proves nobody. Flag off: exactly verifiedCallerId.
+ */
+export function ownerProvenOnThisCall(
+  userData: unknown,
+  env: NodeJS.ProcessEnv = process.env
+): string | null {
+  return placedCallProvesNoOwner(userData, env) ? null : verifiedCallerId(userData);
+}
+
 /**
  * The key a per-person allowance is charged to: `user:<id>` for a verified
- * caller, or null to share the strangers' bucket. Only when a session never set
+ * caller, or null to share the strangers' bucket (also a call Ferni placed, with
+ * PLACED_CALL_NOT_OWNER_PROOF on). Only when a session never set
  * `verifiedCaller` (an older or test session) does `isUnverified` decide.
  */
 export function verifiedAllowanceKey(
   userData: unknown,
-  isUnverified: (userId: string) => boolean
+  isUnverified: (userId: string) => boolean,
+  env: NodeJS.ProcessEnv = process.env
 ): string | null {
   const view = (userData ?? {}) as CallerView;
   const userId = typeof view.userId === 'string' && view.userId ? view.userId : null;
-  if (!userId) return null;
+  if (!userId || placedCallProvesNoOwner(userData, env)) return null; // the strangers' bucket
   if (view.verifiedCaller === true) return `user:${userId}`;
   if (view.verifiedCaller === false) return null;
   return isUnverified(userId) ? null : `user:${userId}`;

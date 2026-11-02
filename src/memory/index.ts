@@ -19,13 +19,13 @@
  * - Semantic deduplication
  * - Comprehensive metrics
  */
-
 // Store interfaces and implementations, in-memory and production
 export { getDefaultStore, InMemoryStore, resetDefaultStore } from './in-memory-store.js';
 export { MemoryStore, type QueryOptions, type SearchResult } from './store.js';
 export { FirestoreStore, getFirestoreStore, resetFirestoreStore } from './firestore-store.js';
 export { getPostgresStore, PostgresStore, resetPostgresStore } from './postgres-store.js';
 export { getRedisCache, RedisCache, resetRedisCache } from './redis-cache.js';
+export { isThirdPartyCallUser } from './third-party-call.js'; // the person on a call placed for a member
 
 // Embeddings
 export {

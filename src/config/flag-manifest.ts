@@ -418,6 +418,8 @@ const LEGACY_FLAG_MANIFEST = {
   UNFINISHED_TURN_HOLD: { default: 'on', owner: 'voice', kind: 'config' },
   // an unverified call may message the owner only filtered, footed and twice (owner-message-policy.ts)
   UNVERIFIED_OWNER_MESSAGE_FILTER: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // a call Ferni placed to the owner's number proves no owner; read in the voice agent only (verified-caller.ts)
+  PLACED_CALL_NOT_OWNER_PROOF: { default: 'off', owner: 'tools', kind: 'experiment' },
   USE_GENERATED_TOOL_DOCS: { default: 'off', owner: 'voice', kind: 'config' },
   ...FLAGS_USE_TO_VOICE,
   VOICE_PATTERN_ENGINE: { default: 'on', owner: 'voice', kind: 'kill-switch' },

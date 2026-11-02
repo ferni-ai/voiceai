@@ -12,7 +12,7 @@
 
 import { createHash } from 'node:crypto';
 import { isMemberIdentity } from '../../../services/identity/member-identity.js';
-import { verifiedCallerId } from '../../../services/identity/verified-caller.js';
+import { ownerProvenOnThisCall } from '../../../services/identity/verified-caller.js';
 import { getCredential } from '../../../services/smart-home/user-credentials.js';
 import { getLifxLights, setLifxLight, type SmartDevice } from './smart-home.js';
 
@@ -23,11 +23,11 @@ const NO_LIGHTS = "I don't see any LIFX lights on your account, so nothing chang
 
 /**
  * The call's own caller (LiveKit's opts.ctx.userData, never a model argument),
- * when the server verified them (userData.verifiedCaller, voice-agent-entry):
+ * when the server verified them (ownerProvenOnThisCall, voice-agent-entry):
  * never an anon:, device:, phone: or onbehalf: id. Null for anyone else.
  */
 function verifiedCaller(opts: unknown): string | null {
-  const caller = verifiedCallerId((opts as { ctx?: { userData?: unknown } } | undefined)?.ctx?.userData); // prettier-ignore
+  const caller = ownerProvenOnThisCall((opts as { ctx?: { userData?: unknown } } | undefined)?.ctx?.userData); // prettier-ignore
   return isMemberIdentity(caller) ? caller : null;
 }
 

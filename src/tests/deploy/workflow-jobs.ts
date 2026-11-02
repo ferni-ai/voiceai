@@ -72,6 +72,9 @@ function expandMatrix(name: string, text: string): string[] {
  * `outputs` overrides named `needs.X.outputs.Y` values (the rest read as 'true')
  * and `needs.X.result` values (the rest read as 'success'). Workflow inputs and
  * workflow_run and issue payload fields read as '': these events carry neither.
+ * The repository is 'o/r'. A pull_request comes from a branch of it (its head repo
+ * is 'o/r'; override `github.event.pull_request.head.repo.full_name` for a fork);
+ * other events carry no pull request, so that field reads as ''.
  */
 function evaluate(cond: string, event: Event, outputs: Record<string, string> = {}): boolean {
   const src = cond
@@ -79,6 +82,9 @@ function evaluate(cond: string, event: Event, outputs: Record<string, string> = 
     .replace(/needs\.[\w-]+\.outputs\.[\w-]+/g, (ref) => `'${outputs[ref] ?? 'true'}'`)
     .replace(/needs\.[\w-]+\.result\b/g, (ref) => `'${outputs[ref] ?? 'success'}'`)
     .replace(/github\.event\.pull_request\.labels\.\*\.name/g, '[]')
+    .replace(/github\.event\.pull_request\.head\.repo\.full_name/g, (ref) => {
+      return `'${outputs[ref] ?? (event === 'pull_request' ? 'o/r' : '')}'`;
+    })
     .replace(/github\.event\.inputs\.\w+/g, "''")
     .replace(/github\.event\.workflow_run\.[\w.]+/g, "''")
     .replace(/github\.event\.issue\.[\w.]+/g, "''")

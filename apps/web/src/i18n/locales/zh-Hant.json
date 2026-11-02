@@ -8821,6 +8821,13 @@
     "exportFailed": "無法匯出你的資料。要再試一次嗎？",
     "deleteDataFailed": "無法刪除你的資料，沒有任何內容被移除。要再試一次嗎？",
     "deleteAccountFailed": "無法刪除你的帳號。要再試一次嗎？",
+    "deleteRefusedSignIn": "你的登入未被接受，所以這次請求沒有刪除任何內容。請重新登入後再試一次。",
+    "deleteDataUnknown": "無法確認你的資料是否已刪除。可能仍在處理中，請幾分鐘後再查看。",
+    "deleteDataStillUnknown": "仍無法確認你的資料是否已刪除。請幾分鐘後再試。",
+    "deleteAccountUnknown": "無法確認你的帳號是否已刪除。可能仍在處理中，請幾分鐘後再查看。",
+    "accountStillOpen": "你的帳號仍然有效。如果仍想關閉它，可以再刪除一次。",
+    "accountSignInRefused": "你的登入已不再被接受，帳號正在關閉時會出現這種情況。如果你沒有刪除它，請重新登入確認。",
+    "authSlow": "未能及時驗證你的登入，所以沒有傳送任何內容。要再試一次嗎？",
     "accountDeletedPartial": "你的帳號已刪除，但有少數紀錄尚未清除。請聯絡我們以完成後續處理。",
     "categoryConversations": "所有對話逐字稿與中繼資料",
     "categoryInsights": "Ferni 記錄的關於你的洞察",
@@ -9330,6 +9337,7 @@
   "dataExport": {
     "title": "你的資料",
     "loadFailed": "暫時無法載入我為你保存的內容。沒有任何變更。",
+    "checkAgain": "再次查看",
     "exportFormat": "匯出格式",
     "deleteAll": "刪除所有資料",
     "footer": "我會保存我們的對話和你告訴我的事，這樣下次我還能記得；如果你哪天想讓它們消失，刪除帳號就會把它們全部清除。",
@@ -11061,6 +11069,19 @@
     "retry": "",
     "switchAccount": "",
     "seeSources": ""
+  },
+  "connectInvite": {
+    "title": "讓 Alex 幫你留意行事曆",
+    "lead": "連結 Google 日曆，行程就不會悄悄溜走。會分享以下內容：",
+    "account": "正在以 {account} 連接 Alex",
+    "sees": "查看行程的時間、標題和地點",
+    "changes": "只在你要求時新增或修改行程",
+    "never": "絕不查看你的郵件或附件",
+    "undo": "隨時可在 設定 > 行事曆 中撤銷，或直接告訴 Alex",
+    "connect": "連結 Google 日曆",
+    "opening": "正在開啟 Google...",
+    "expired": "這個連結已過期或已被使用。下次通話時告訴我，我再傳一個新的。",
+    "failed": "暫時無法開啟 Google。下次通話時告訴我，我再傳一個新連結。"
   },
   "aiLabel": {
     "role": {

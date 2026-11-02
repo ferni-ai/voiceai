@@ -8890,6 +8890,13 @@
     "exportFailed": "Impossible d'exporter tes données. Veux-tu réessayer ?",
     "deleteDataFailed": "Impossible de supprimer tes données. Rien n'a été retiré. Veux-tu réessayer ?",
     "deleteAccountFailed": "Impossible de supprimer ton compte. Veux-tu réessayer ?",
+    "deleteRefusedSignIn": "Ta connexion n'a pas été acceptée, donc cette demande n'a rien supprimé. Reconnecte-toi, puis réessaie.",
+    "deleteDataUnknown": "Impossible de confirmer si tes données ont été supprimées. C'est peut-être encore en cours ; vérifie à nouveau dans quelques minutes.",
+    "deleteDataStillUnknown": "Toujours impossible de confirmer si tes données ont été supprimées. Réessaie dans quelques minutes.",
+    "deleteAccountUnknown": "Impossible de confirmer si ton compte a été supprimé. C'est peut-être encore en cours ; vérifie à nouveau dans quelques minutes.",
+    "accountStillOpen": "Ton compte est toujours ouvert. Si tu veux toujours le fermer, tu peux le supprimer à nouveau.",
+    "accountSignInRefused": "Ta connexion n'est plus acceptée, ce qui arrive quand un compte est en cours de fermeture. Si tu ne l'as pas supprimé, reconnecte-toi pour vérifier.",
+    "authSlow": "Impossible de vérifier ta connexion à temps, donc rien n'a été envoyé. Veux-tu réessayer ?",
     "accountDeletedPartial": "Ton compte est supprimé, mais quelques données n'ont pas pu être effacées. Contacte-nous pour finaliser.",
     "categoryConversations": "Toutes les transcriptions et métadonnées de tes conversations",
     "categoryInsights": "Ce que Ferni a appris sur toi",
@@ -9403,6 +9410,7 @@
   "dataExport": {
     "title": "Tes données",
     "loadFailed": "Je n'ai pas pu charger ce que je garde pour toi pour l'instant. Rien n'a changé.",
+    "checkAgain": "Vérifier à nouveau",
     "exportFormat": "Format d'export",
     "deleteAll": "Supprimer toutes les données",
     "footer": "Je garde nos conversations et ce que tu me racontes pour m'en souvenir la prochaine fois, et si un jour tu veux que tout disparaisse, supprimer ton compte efface tout.",
@@ -11186,6 +11194,19 @@
     "retry": "",
     "switchAccount": "",
     "seeSources": ""
+  },
+  "connectInvite": {
+    "title": "Laisse Alex garder un œil sur ton agenda",
+    "lead": "Connecte Google Agenda pour qu'aucun rendez-vous ne te prenne par surprise. Voici ce qui est partagé :",
+    "account": "Connexion à Alex pour {account}",
+    "sees": "Voit les heures, les titres et les lieux de tes événements",
+    "changes": "Ajoute ou modifie des événements seulement quand tu le demandes",
+    "never": "Ne voit jamais tes e-mails ni tes pièces jointes",
+    "undo": "Annule quand tu veux dans Réglages > Agenda, ou dis-le simplement à Alex",
+    "connect": "Connecter Google Agenda",
+    "opening": "Ouverture de Google...",
+    "expired": "Ce lien a expiré ou a déjà servi. Demande-moi au prochain appel et je t'en envoie un nouveau.",
+    "failed": "Impossible d'ouvrir Google pour l'instant. Demande-moi au prochain appel et je t'envoie un nouveau lien."
   },
   "aiLabel": {
     "role": {

@@ -8821,6 +8821,13 @@
     "exportFailed": "无法导出你的数据。要再试一次吗？",
     "deleteDataFailed": "无法删除你的数据，没有任何内容被移除。要再试一次吗？",
     "deleteAccountFailed": "无法注销你的账号。要再试一次吗？",
+    "deleteRefusedSignIn": "你的登录未被接受，所以这次请求没有删除任何内容。请重新登录后再试一次。",
+    "deleteDataUnknown": "无法确认你的数据是否已删除。可能仍在处理中，请几分钟后再查看。",
+    "deleteDataStillUnknown": "仍无法确认你的数据是否已删除。请几分钟后再试。",
+    "deleteAccountUnknown": "无法确认你的账号是否已注销。可能仍在处理中，请几分钟后再查看。",
+    "accountStillOpen": "你的账号仍然有效。如果仍想注销，可以再删除一次。",
+    "accountSignInRefused": "你的登录已不再被接受，账号正在注销时会出现这种情况。如果你没有注销它，请重新登录确认。",
+    "authSlow": "未能及时验证你的登录，所以没有发送任何内容。要再试一次吗？",
     "accountDeletedPartial": "你的账号已注销，但有少数记录未能清除。请联系我们以完成处理。",
     "categoryConversations": "所有对话记录和元数据",
     "categoryInsights": "Ferni 对你的了解与感悟",
@@ -9330,6 +9337,7 @@
   "dataExport": {
     "title": "你的数据",
     "loadFailed": "暂时无法加载我为你保存的内容。没有任何改动。",
+    "checkAgain": "再次查看",
     "exportFormat": "导出格式",
     "deleteAll": "删除所有数据",
     "footer": "我会保存我们的对话和你告诉我的事情，这样下次我还能记得；如果你哪天想让它们消失，注销账号就会把它们全部清除。",
@@ -11061,6 +11069,19 @@
     "retry": "",
     "switchAccount": "",
     "seeSources": ""
+  },
+  "connectInvite": {
+    "title": "让 Alex 帮你留意日历",
+    "lead": "连接 Google 日历，日程就不会悄悄溜走。会共享以下内容：",
+    "account": "正在以 {account} 连接 Alex",
+    "sees": "查看日程的时间、标题和地点",
+    "changes": "只在你要求时添加或修改日程",
+    "never": "绝不查看你的邮件或附件",
+    "undo": "随时可在 设置 > 日历 中撤销，或者直接告诉 Alex",
+    "connect": "连接 Google 日历",
+    "opening": "正在打开 Google...",
+    "expired": "这个链接已过期或已被使用。下次通话时告诉我，我再发一个新的。",
+    "failed": "暂时无法打开 Google。下次通话时告诉我，我再发一个新链接。"
   },
   "aiLabel": {
     "role": {

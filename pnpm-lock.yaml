@@ -81,7 +81,7 @@ patchedDependencies:
     hash: c1ba53b53dbab48aea4c649177151f6333043954cba3bf903b8e17700f7ef17e
     path: patches/@livekit__agents-plugin-google@1.9.3.patch
   '@livekit/agents@1.9.3':
-    hash: aace6868659ed2c7445c0bda43b1f2278f829e85f4c8933ba93aba6ca74c4731
+    hash: 055bc41e539b24fa310912c105bf9bee7aaea87d4b9809d69976d7719fa3f6bc
     path: patches/@livekit__agents@1.9.3.patch
 
 importers:
@@ -123,19 +123,19 @@ importers:
         version: 4.3.1(@types/node@22.20.5)
       '@livekit/agents':
         specifier: 1.9.3
-        version: 1.9.3(patch_hash=aace6868659ed2c7445c0bda43b1f2278f829e85f4c8933ba93aba6ca74c4731)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7)
+        version: 1.9.3(patch_hash=055bc41e539b24fa310912c105bf9bee7aaea87d4b9809d69976d7719fa3f6bc)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7)
       '@livekit/agents-plugin-cartesia':
         specifier: 1.9.3
-        version: 1.9.3(patch_hash=de305f26f8cb5ba92d67fe7cc45d38fea0aba249b6e831c09de5ee74114d327f)(@livekit/agents@1.9.3(patch_hash=aace6868659ed2c7445c0bda43b1f2278f829e85f4c8933ba93aba6ca74c4731)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7))(@livekit/rtc-node@1.1.0)(zod@4.6.7)
+        version: 1.9.3(patch_hash=de305f26f8cb5ba92d67fe7cc45d38fea0aba249b6e831c09de5ee74114d327f)(@livekit/agents@1.9.3(patch_hash=055bc41e539b24fa310912c105bf9bee7aaea87d4b9809d69976d7719fa3f6bc)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7))(@livekit/rtc-node@1.1.0)(zod@4.6.7)
       '@livekit/agents-plugin-google':
         specifier: 1.9.3
-        version: 1.9.3(patch_hash=c1ba53b53dbab48aea4c649177151f6333043954cba3bf903b8e17700f7ef17e)(@livekit/agents@1.9.3(patch_hash=aace6868659ed2c7445c0bda43b1f2278f829e85f4c8933ba93aba6ca74c4731)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7))(@livekit/rtc-node@1.1.0)(@modelcontextprotocol/sdk@1.32.1(zod@4.6.7))(ws@8.22.0)(zod@4.6.7)
+        version: 1.9.3(patch_hash=c1ba53b53dbab48aea4c649177151f6333043954cba3bf903b8e17700f7ef17e)(@livekit/agents@1.9.3(patch_hash=055bc41e539b24fa310912c105bf9bee7aaea87d4b9809d69976d7719fa3f6bc)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7))(@livekit/rtc-node@1.1.0)(@modelcontextprotocol/sdk@1.32.1(zod@4.6.7))(ws@8.22.0)(zod@4.6.7)
       '@livekit/agents-plugin-openai':
         specifier: 1.9.3
-        version: 1.9.3(@livekit/agents@1.9.3(patch_hash=aace6868659ed2c7445c0bda43b1f2278f829e85f4c8933ba93aba6ca74c4731)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7))(@livekit/rtc-node@1.1.0)(zod@4.6.7)
+        version: 1.9.3(@livekit/agents@1.9.3(patch_hash=055bc41e539b24fa310912c105bf9bee7aaea87d4b9809d69976d7719fa3f6bc)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7))(@livekit/rtc-node@1.1.0)(zod@4.6.7)
       '@livekit/agents-plugin-silero':
         specifier: 1.9.3
-        version: 1.9.3(@livekit/agents@1.9.3(patch_hash=aace6868659ed2c7445c0bda43b1f2278f829e85f4c8933ba93aba6ca74c4731)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7))(@livekit/rtc-node@1.1.0)
+        version: 1.9.3(@livekit/agents@1.9.3(patch_hash=055bc41e539b24fa310912c105bf9bee7aaea87d4b9809d69976d7719fa3f6bc)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7))(@livekit/rtc-node@1.1.0)
       '@livekit/noise-cancellation-node':
         specifier: ^0.3.0
         version: 0.3.0(@livekit/rtc-node@1.1.0)
@@ -306,8 +306,8 @@ importers:
         specifier: 4.10.2
         version: 4.10.2
       glob:
-        specifier: 14.0.2
-        version: 14.0.2
+        specifier: 14.0.3
+        version: 14.0.3
       gray-matter:
         specifier: 4.0.3
         version: 4.0.3
@@ -473,7 +473,7 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: ^3.10.8
-        version: 3.10.8(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@25.9.9)
+        version: 3.10.8(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@types/node@25.9.9)
 
   apps/rust-perf:
     devDependencies:
@@ -5467,8 +5467,8 @@ packages:
     resolution: {integrity: sha512-Wjlyrolmm8uDpm/ogGyXZXb1Z+Ca2B8NbJwqBVg0axK9GbBeoS7yGV6vjXnYdGm6X53iehEuxxbyiKp8QmN4Vw==}
     engines: {node: 18 || 20 || >=22}
 
-  glob@14.0.2:
-    resolution: {integrity: sha512-vfMgTR2djMHPUchsJMLpZlYQvtjVL+mHpEr5wPpoCbQs2vr/FBNK+3Gnl9Ara1DSs4Aeg4eG9HiADb5/rkY/ZA==}
+  glob@14.0.3:
+    resolution: {integrity: sha512-A1vjIwC3qpdCso45Iw127gnp7sPhqgY8lUQhDrArIs+GbmfaaVPFuoyy7WyLT9EPZCRZ7j7aLdwUhQmHWesEow==}
     engines: {node: 18 || 20 || >=22}
 
   glob@7.2.3:
@@ -9239,9 +9239,9 @@ snapshots:
 
   '@levischuck/tiny-cbor@0.2.11': {}
 
-  '@livekit/agents-plugin-cartesia@1.9.3(patch_hash=de305f26f8cb5ba92d67fe7cc45d38fea0aba249b6e831c09de5ee74114d327f)(@livekit/agents@1.9.3(patch_hash=aace6868659ed2c7445c0bda43b1f2278f829e85f4c8933ba93aba6ca74c4731)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7))(@livekit/rtc-node@1.1.0)(zod@4.6.7)':
+  '@livekit/agents-plugin-cartesia@1.9.3(patch_hash=de305f26f8cb5ba92d67fe7cc45d38fea0aba249b6e831c09de5ee74114d327f)(@livekit/agents@1.9.3(patch_hash=055bc41e539b24fa310912c105bf9bee7aaea87d4b9809d69976d7719fa3f6bc)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7))(@livekit/rtc-node@1.1.0)(zod@4.6.7)':
     dependencies:
-      '@livekit/agents': 1.9.3(patch_hash=aace6868659ed2c7445c0bda43b1f2278f829e85f4c8933ba93aba6ca74c4731)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7)
+      '@livekit/agents': 1.9.3(patch_hash=055bc41e539b24fa310912c105bf9bee7aaea87d4b9809d69976d7719fa3f6bc)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7)
       '@livekit/rtc-node': 1.1.0
       ws: 8.22.0
       zod: 4.6.7
@@ -9249,10 +9249,10 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents-plugin-google@1.9.3(patch_hash=c1ba53b53dbab48aea4c649177151f6333043954cba3bf903b8e17700f7ef17e)(@livekit/agents@1.9.3(patch_hash=aace6868659ed2c7445c0bda43b1f2278f829e85f4c8933ba93aba6ca74c4731)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7))(@livekit/rtc-node@1.1.0)(@modelcontextprotocol/sdk@1.32.1(zod@4.6.7))(ws@8.22.0)(zod@4.6.7)':
+  '@livekit/agents-plugin-google@1.9.3(patch_hash=c1ba53b53dbab48aea4c649177151f6333043954cba3bf903b8e17700f7ef17e)(@livekit/agents@1.9.3(patch_hash=055bc41e539b24fa310912c105bf9bee7aaea87d4b9809d69976d7719fa3f6bc)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7))(@livekit/rtc-node@1.1.0)(@modelcontextprotocol/sdk@1.32.1(zod@4.6.7))(ws@8.22.0)(zod@4.6.7)':
     dependencies:
       '@google/genai': 2.30.0(@modelcontextprotocol/sdk@1.32.1(zod@4.6.7))
-      '@livekit/agents': 1.9.3(patch_hash=aace6868659ed2c7445c0bda43b1f2278f829e85f4c8933ba93aba6ca74c4731)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7)
+      '@livekit/agents': 1.9.3(patch_hash=055bc41e539b24fa310912c105bf9bee7aaea87d4b9809d69976d7719fa3f6bc)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7)
       '@livekit/mutex': 1.1.1
       '@livekit/rtc-node': 1.1.0
       '@types/json-schema': 7.0.15
@@ -9267,9 +9267,9 @@ snapshots:
       - ws
       - zod
 
-  '@livekit/agents-plugin-openai@1.9.3(@livekit/agents@1.9.3(patch_hash=aace6868659ed2c7445c0bda43b1f2278f829e85f4c8933ba93aba6ca74c4731)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7))(@livekit/rtc-node@1.1.0)(zod@4.6.7)':
+  '@livekit/agents-plugin-openai@1.9.3(@livekit/agents@1.9.3(patch_hash=055bc41e539b24fa310912c105bf9bee7aaea87d4b9809d69976d7719fa3f6bc)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7))(@livekit/rtc-node@1.1.0)(zod@4.6.7)':
     dependencies:
-      '@livekit/agents': 1.9.3(patch_hash=aace6868659ed2c7445c0bda43b1f2278f829e85f4c8933ba93aba6ca74c4731)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7)
+      '@livekit/agents': 1.9.3(patch_hash=055bc41e539b24fa310912c105bf9bee7aaea87d4b9809d69976d7719fa3f6bc)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7)
       '@livekit/rtc-node': 1.1.0
       openai: 6.10.0(ws@8.22.0)(zod@4.6.7)
       ws: 8.22.0
@@ -9278,9 +9278,9 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents-plugin-silero@1.9.3(@livekit/agents@1.9.3(patch_hash=aace6868659ed2c7445c0bda43b1f2278f829e85f4c8933ba93aba6ca74c4731)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7))(@livekit/rtc-node@1.1.0)':
+  '@livekit/agents-plugin-silero@1.9.3(@livekit/agents@1.9.3(patch_hash=055bc41e539b24fa310912c105bf9bee7aaea87d4b9809d69976d7719fa3f6bc)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7))(@livekit/rtc-node@1.1.0)':
     dependencies:
-      '@livekit/agents': 1.9.3(patch_hash=aace6868659ed2c7445c0bda43b1f2278f829e85f4c8933ba93aba6ca74c4731)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7)
+      '@livekit/agents': 1.9.3(patch_hash=055bc41e539b24fa310912c105bf9bee7aaea87d4b9809d69976d7719fa3f6bc)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7)
       '@livekit/rtc-node': 1.1.0
       onnxruntime-node: 1.30.0
       ws: 8.22.0
@@ -9288,7 +9288,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents@1.9.3(patch_hash=aace6868659ed2c7445c0bda43b1f2278f829e85f4c8933ba93aba6ca74c4731)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7)':
+  '@livekit/agents@1.9.3(patch_hash=055bc41e539b24fa310912c105bf9bee7aaea87d4b9809d69976d7719fa3f6bc)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.7)':
     dependencies:
       '@bufbuild/protobuf': 1.10.1
       '@livekit/av': 10.1.0
@@ -9488,37 +9488,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@napi-rs/cli@3.10.8(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@25.9.9)':
-    dependencies:
-      '@inquirer/prompts': 8.7.2(@types/node@25.9.9)
-      '@napi-rs/cross-toolchain': 1.0.3
-      '@napi-rs/wasm-tools': 1.1.0
-      '@octokit/rest': 22.0.1
-      clipanion: 4.0.0-rc.4(typanion@3.14.0)
-      colorette: 2.0.20
-      es-toolkit: 1.52.0
-      js-yaml: 5.4.2
-      obug: 3.0.0
-      semver: 7.8.5
-      typanion: 3.14.0
-      typescript: 6.0.3
-    optionalDependencies:
-      '@emnapi/core': 1.11.2
-      '@emnapi/runtime': 1.11.2
-    transitivePeerDependencies:
-      - '@napi-rs/cross-toolchain-arm64-target-aarch64'
-      - '@napi-rs/cross-toolchain-arm64-target-armv7'
-      - '@napi-rs/cross-toolchain-arm64-target-ppc64le'
-      - '@napi-rs/cross-toolchain-arm64-target-s390x'
-      - '@napi-rs/cross-toolchain-arm64-target-x86_64'
-      - '@napi-rs/cross-toolchain-x64-target-aarch64'
-      - '@napi-rs/cross-toolchain-x64-target-armv7'
-      - '@napi-rs/cross-toolchain-x64-target-ppc64le'
-      - '@napi-rs/cross-toolchain-x64-target-s390x'
-      - '@napi-rs/cross-toolchain-x64-target-x86_64'
-      - '@types/node'
-      - supports-color
-
   '@napi-rs/cli@3.10.8(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@25.9.9)':
     dependencies:
       '@inquirer/prompts': 8.7.2(@types/node@25.9.9)
@@ -9536,6 +9505,37 @@ snapshots:
     optionalDependencies:
       '@emnapi/core': 1.11.2
       '@emnapi/runtime': 1.11.3
+    transitivePeerDependencies:
+      - '@napi-rs/cross-toolchain-arm64-target-aarch64'
+      - '@napi-rs/cross-toolchain-arm64-target-armv7'
+      - '@napi-rs/cross-toolchain-arm64-target-ppc64le'
+      - '@napi-rs/cross-toolchain-arm64-target-s390x'
+      - '@napi-rs/cross-toolchain-arm64-target-x86_64'
+      - '@napi-rs/cross-toolchain-x64-target-aarch64'
+      - '@napi-rs/cross-toolchain-x64-target-armv7'
+      - '@napi-rs/cross-toolchain-x64-target-ppc64le'
+      - '@napi-rs/cross-toolchain-x64-target-s390x'
+      - '@napi-rs/cross-toolchain-x64-target-x86_64'
+      - '@types/node'
+      - supports-color
+
+  '@napi-rs/cli@3.10.8(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@types/node@25.9.9)':
+    dependencies:
+      '@inquirer/prompts': 8.7.2(@types/node@25.9.9)
+      '@napi-rs/cross-toolchain': 1.0.3
+      '@napi-rs/wasm-tools': 1.1.0
+      '@octokit/rest': 22.0.1
+      clipanion: 4.0.0-rc.4(typanion@3.14.0)
+      colorette: 2.0.20
+      es-toolkit: 1.52.0
+      js-yaml: 5.4.2
+      obug: 3.0.0
+      semver: 7.8.5
+      typanion: 3.14.0
+      typescript: 6.0.3
+    optionalDependencies:
+      '@emnapi/core': 1.9.2
+      '@emnapi/runtime': 1.9.2
     transitivePeerDependencies:
       - '@napi-rs/cross-toolchain-arm64-target-aarch64'
       - '@napi-rs/cross-toolchain-arm64-target-armv7'
@@ -11344,7 +11344,7 @@ snapshots:
       obug: 3.0.0
       std-env: 4.3.0
       tinyrainbow: 3.2.0
-      vitest: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(jsdom@30.1.3)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.6.1)(tsx@4.23.15)(yaml@2.9.1))
+      vitest: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(jsdom@30.1.3)(vite@8.3.4(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.6.1)(tsx@4.23.15)(yaml@2.9.1))
 
   '@vitest/expect@3.2.4':
     dependencies:
@@ -11400,7 +11400,7 @@ snapshots:
       pathe: 2.0.3
       sirv: 3.0.2
       tinyrainbow: 3.2.0
-      vitest: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(jsdom@30.1.3)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.6.1)(tsx@4.23.15)(yaml@2.9.1))
+      vitest: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(jsdom@30.1.3)(vite@8.3.4(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.6.1)(tsx@4.23.15)(yaml@2.9.1))
 
   '@vitest/utils@3.2.4':
     dependencies:
@@ -12602,7 +12602,7 @@ snapshots:
       minipass: 7.1.3
       path-scurry: 2.0.2
 
-  glob@14.0.2:
+  glob@14.0.3:
     dependencies:
       minimatch: 11.0.3
       minipass: 7.1.3

@@ -1,22 +1,26 @@
 /**
- * Gate-first paint. Off by default.
+ * Gate-first paint. On by default since the motion audit of 2026-10-29 (P8).
  *
- * Signed out on a cold start, the Home shell in index.html painted for about
- * 12 s on a slow phone with a "Talk to Ferni" button that did nothing, then
- * the sign-in gate replaced it (mobile web audit 2026-10-20, P1-1). With the
- * flag on, the head script in index.html finds no remembered session on the
- * home path and adds `gate-first` to <html>: #app stays hidden and a static
- * copy of the gate's layout (#gateFirst) paints instead, its button disabled
- * and marked busy. Once initializeAuth resolves, app.ts calls settleGateFirst:
- * signed in, the app shows at once; signed out, the real gate fades in over
- * the copy, then the copy goes.
+ * Signed out on a cold start, the Home shell in index.html used to paint
+ * first, then the sign-in gate cross-faded over it with two avatars on screen,
+ * and Home kept animating, unseen, under the gate (mobile web audit 2026-10-20
+ * P1-1; motion audit P8). The head script in index.html finds no remembered
+ * session on the home path and adds `gate-first` to <html>: #app stays hidden
+ * with its animations paused, and a static copy of the gate's layout
+ * (#gateFirst) paints instead, its buttons disabled and marked busy. Once
+ * initializeAuth resolves, app.ts calls settleGateFirst: signed in, the app
+ * shows at once; signed out, the sign-in gate takes the copy's place in a
+ * single frame (showGateOverApp), with Home still hidden and paused under it.
  *
- * Turn it on for a build with VITE_GATE_FIRST=true, or for one browser with
- * localStorage `ferni:flag:gate-first` = 'true' ('false' forces it off). The
- * head script reads both, since it runs before any module loads.
+ * Turn it off for a build with VITE_GATE_FIRST=false, or for one browser with
+ * localStorage `ferni:flag:gate-first` = 'false' ('true' forces it on). The
+ * head script reads both, since it runs before any module loads. Off, all of
+ * it is off: no copy, and the gate fades in over Home as it did before.
+ * The copy also waits for its avatar to decode (index.html, #gate-first-ready),
+ * so its words never paint beside an empty circle.
  *
- * The session hint is kept whether or not the flag is on, so turning the flag
- * on doesn't show a returning person a sign-in screen on their next visit.
+ * The session hint is kept whether or not the flag is on, so a returning
+ * person never sees a sign-in screen on their next visit.
  *
  * @module ui/gate-first
  */
@@ -29,9 +33,15 @@ const log = createLogger('GateFirst');
 
 /** Read by the head script in index.html: '1' means a session was signed in last time. */
 export const SESSION_HINT_KEY = 'ferni:session-hint';
+/** Browser override of the build flag, read by the head script in index.html too: 'true' or 'false'. */
+const GATE_FIRST_STORAGE_KEY = 'ferni:flag:gate-first';
 /** Set on <html> by the head script in index.html. */
 export const GATE_FIRST_CLASS = 'gate-first';
+/** Set on <html> by index.html once the copy's avatar can paint: the copy shows only then. */
+const COPY_READY_CLASS = 'gate-first-ready';
 const PLACEHOLDER_ID = 'gateFirst';
+/** On <html> while the sign-in gate covers the app: index.html hides #app, paused-when-hidden.css pauses it. */
+export const GATE_UP_CLASS = 'sign-in-gate-up';
 
 let tracking = false;
 
@@ -44,15 +54,52 @@ export function rememberSessionHint(signedIn: boolean): void {
   }
 }
 
-/** Show #app and drop the placeholder. Safe to call more than once. */
+/**
+ * The kill switch, read the way the head script in index.html reads it. Off
+ * (VITE_GATE_FIRST=false), the sign-in gate opens as it did before gate-first
+ * paint: a fade-in over Home, with nothing hidden or paused.
+ */
+function isGateFirstEnabled(): boolean {
+  try {
+    const override = localStorage.getItem(GATE_FIRST_STORAGE_KEY);
+    if (override === 'true') return true;
+    if (override === 'false') return false;
+  } catch (error) {
+    log.debug('localStorage unavailable for the gate-first flag', { error: String(error) });
+  }
+  return import.meta.env.VITE_GATE_FIRST !== 'false';
+}
+
+/** True while the static copy of the gate is on screen. */
+export function isGateFirstPainted(): boolean {
+  return (
+    document.documentElement.classList.contains(GATE_FIRST_CLASS) &&
+    !!document.getElementById(PLACEHOLDER_ID)
+  );
+}
+
+/** Resolves once `img` can paint, or after DURATION.SLOW, so a swap never shows an empty circle. */
+function imageReady(img: HTMLImageElement | null): Promise<void> {
+  if (!img || typeof img.decode !== 'function') return Promise.resolve();
+  const decoded = img.decode().catch(() => undefined);
+  return Promise.race([
+    decoded,
+    new Promise<void>((resolve) => setTimeout(resolve, DURATION.SLOW)),
+  ]);
+}
+
+/**
+ * Drop the placeholder and stop holding #app hidden for it. Safe to call more
+ * than once. While the sign-in gate is up it keeps #app hidden itself.
+ */
 export function revealApp(): void {
-  document.documentElement.classList.remove(GATE_FIRST_CLASS);
+  document.documentElement.classList.remove(GATE_FIRST_CLASS, COPY_READY_CLASS);
   document.getElementById(PLACEHOLDER_ID)?.remove();
 }
 
 /**
  * Call once initializeAuth resolves. `showAppNow` is false only when the
- * sign-in gate opens next: the copy stays until the real gate has faded in.
+ * sign-in gate opens next: the copy stays until the gate takes its place.
  */
 export function settleGateFirst(signedIn: boolean, showAppNow: boolean = signedIn): void {
   rememberSessionHint(signedIn);
@@ -60,9 +107,33 @@ export function settleGateFirst(signedIn: boolean, showAppNow: boolean = signedI
     tracking = true;
     onAuthStateChange((state) => rememberSessionHint(state.isAuthenticated)); // signing out clears it
   }
-  if (showAppNow || !document.documentElement.classList.contains(GATE_FIRST_CLASS)) {
-    revealApp();
+  if (showAppNow || !isGateFirstPainted()) revealApp(); // flag off: just drop the unused copy
+}
+
+/**
+ * Put the sign-in gate on screen with Home hidden (and paused) under it, so the
+ * two never show through each other. Over the gate-first copy it takes the
+ * copy's place in one frame, once its avatar can paint; otherwise it fades in.
+ * With the flag off it only fades in, Home visible underneath, as before.
+ */
+export async function showGateOverApp(overlay: HTMLElement): Promise<void> {
+  const replacingCopy = isGateFirstPainted();
+  if (replacingCopy) await imageReady(overlay.querySelector('img'));
+  // The kill switch must roll all of this back, not just the copy
+  if (isGateFirstEnabled()) document.documentElement.classList.add(GATE_UP_CLASS);
+  document.body.appendChild(overlay);
+  if (replacingCopy) {
+    overlay.style.transition = 'none'; // same layout as the copy: no fade, never two on screen
+    overlay.classList.add('visible');
+    revealApp(); // drops the copy; #app stays hidden under GATE_UP_CLASS
     return;
   }
-  setTimeout(revealApp, DURATION.SLOW);
+  void overlay.offsetHeight; // reflow, so the fade-in animates
+  overlay.classList.add('visible');
+}
+
+/** The gate is going: Home comes back as it fades out. */
+export function uncoverApp(overlay: HTMLElement): void {
+  document.documentElement.classList.remove(GATE_UP_CLASS);
+  overlay.style.removeProperty('transition');
 }
