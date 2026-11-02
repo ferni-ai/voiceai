@@ -85,3 +85,12 @@ export function checkMusicAvailability(player: CallMusicPlayer | null): {
   );
   return { available: true, reason: 'Music playback available' };
 }
+
+// RED PROOF ONLY (DO NOT MERGE): one more module-level per-caller let for quality:module-state.
+let redProofRoom: unknown;
+function bindRedProofRoom(room: unknown): unknown {
+  const previous = redProofRoom;
+  redProofRoom = room;
+  return previous;
+}
+bindRedProofRoom(undefined);
