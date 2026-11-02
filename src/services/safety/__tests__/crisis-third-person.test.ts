@@ -107,6 +107,13 @@ const NEAR_MISSES = [
   'she fell off the swing and got right back up giggling',
 ];
 
+/** The other half of the owner's rule: only someone down and not getting up is imminent. */
+function expectNotImminent(read: ReturnType<typeof detectCrisis>): void {
+  expect(read.indicators).not.toContain('imminent_danger');
+  expect(read.indicators).not.toContain('third_party_emergency');
+  expect(guardFromDetection(read).shouldBlock).toBe(false);
+}
+
 describe('third-person reported crisis (#3345)', () => {
   for (const [shape, lines] of Object.entries(SHAPES)) {
     describe(shape, () => {
@@ -118,6 +125,7 @@ describe('third-person reported crisis (#3345)', () => {
           expect(read.isCrisis).toBe(true);
           expect(read.subject).toBe('third_party');
           expect(read.indicators).toContain('third_party_risk');
+          expectNotImminent(read);
         }
         expect(crisisRead(line)).toBe(true);
       });
@@ -128,6 +136,8 @@ describe('third-person reported crisis (#3345)', () => {
     const read = detectCrisis(line);
     expect(read.isCrisis).toBe(false);
     expect(read.indicators).not.toContain('third_party_risk');
+    expectNotImminent(read);
+    expectNotImminent(detectCrisis(line, undefined, { recentMessages: [OPENER] }));
     expect(crisisRead(line)).toBe(false);
   });
 
@@ -212,12 +222,14 @@ describe('third-person reported crisis (#3345)', () => {
       "she fell for him and can't stop smiling",
       "he's not breathing a word about the surprise",
       "I fell and can't get up",
+      "she fell asleep during the movie and couldn't stand the ending",
       "he collapsed on the couch and won't get up",
       "he collapsed after the race and couldn't move his legs for a minute",
       "she's been unresponsive to my texts",
       'she stopped breathing for a second when she saw the bill',
     ])('stays without the emergency read: %s', (line) => {
-      expect(detectCrisis(line).indicators).not.toContain('third_party_emergency');
+      expectNotImminent(detectCrisis(line));
+      expectNotImminent(detectCrisis(line, undefined, { recentMessages: [OPENER] }));
     });
   });
 });
