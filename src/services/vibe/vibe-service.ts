@@ -3,7 +3,7 @@
  *
  * Orchestrates environment control for a unified "vibe" experience:
  * - Music: Sonos, Spotify playback control
- * - Lights: Hue, LIFX, HomeKit integration
+ * - Lights: Hue, LIFX integration
  * - Temperature: Ecobee thermostat control
  *
  * Philosophy: Users think in vibes ("I need to focus"), not devices.
@@ -25,7 +25,6 @@ import { getThermostatStatus, setTemperature, setClimateMode } from '../identity
 import { isEcobeeConfigured } from '../identity/ecobee-auth.js';
 import { getUserSmartHomeCredentials } from '../smart-home/user-credentials.js';
 import * as sonosService from '../smart-home/sonos.js';
-import * as homekitBridge from '../smart-home/homekit-bridge.js';
 
 const log = createLogger({ module: 'vibe-service' });
 
@@ -281,7 +280,7 @@ export async function getVibeState(userId: string): Promise<VibeState> {
     }
   }
 
-  // Check lights (Hue, LIFX, HomeKit) - pass userId for credentials
+  // Check lights (Hue, LIFX) - pass userId for credentials
   try {
     const devices = await getAllDevices(userId);
     const lights = devices.filter((d) => d.type === 'light');
@@ -407,15 +406,6 @@ export async function activateVibe(
           'Lights set for vibe'
         );
       }
-
-      // Also try HomeKit scenes if available
-      if (credentials.homeKit?.enabled) {
-        const sceneActivated = await homekitBridge.activateMatchingScene(userId, presetId);
-        if (sceneActivated) {
-          result.applied.lights = true;
-          log.info({ preset: presetId }, 'Activated HomeKit scene');
-        }
-      }
     } catch (error) {
       result.errors.push(`Lights: ${String(error)}`);
       log.warn({ error: String(error) }, 'Failed to set lights');
@@ -447,16 +437,6 @@ export async function activateVibe(
         if (!tempResult.success) {
           result.errors.push(`Temperature: ${tempResult.error}`);
         }
-      }
-
-      // Also try HomeKit thermostats if configured
-      if (credentials.homeKit?.enabled) {
-        await homekitBridge.activateHomeKitVibe(userId, presetId, {
-          temperature: preset.temperature.target,
-          brightness: preset.lights?.brightness,
-          colorTemperature: preset.lights?.colorTemp,
-        });
-        // Don't override Ecobee result, just supplement
       }
     } catch (error) {
       result.errors.push(`Temperature: ${String(error)}`);
@@ -587,7 +567,6 @@ export async function getConfiguredIntegrations(userId: string): Promise<{
   sonos: boolean;
   hue: boolean;
   lifx: boolean;
-  homeKit: boolean;
   ecobee: boolean;
 }> {
   const credentials = await getUserSmartHomeCredentials(userId);
@@ -597,7 +576,6 @@ export async function getConfiguredIntegrations(userId: string): Promise<{
     sonos: !!credentials.sonos,
     hue: !!credentials.hue,
     lifx: !!credentials.lifx,
-    homeKit: !!credentials.homeKit?.enabled,
     ecobee: ecobeeConfigured,
   };
 }

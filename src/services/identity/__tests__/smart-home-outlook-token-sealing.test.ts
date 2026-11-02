@@ -92,10 +92,6 @@ describe('smart_home and Outlook tokens are sealed at rest', () => {
       tokenExpiry: 1,
       householdId: 'hh-1',
     });
-
-    // HomeKit config is not token-shaped and is read as stored.
-    state.docs.set(`${base}/homekit`, { enabled: true });
-    expect(await routes.getCredentials('u1', 'homekit')).toEqual({ enabled: true });
   });
 
   it('the agent reader (user-credentials) opens what the routes sealed', async () => {

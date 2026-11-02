@@ -19,6 +19,8 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { CARTESIA_API_VERSION } from '../../config/voice-ids.js';
 import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 import { useVertexAI } from '../../config/vertex-flag.js';
+import { withTimeout } from '../../utils/async.js';
+import type { GoogleGenAI } from '@google/genai';
 
 const log = createLogger({ module: 'health-monitors' });
 
@@ -180,25 +182,23 @@ async function checkCartesia(): Promise<HealthCheckResult> {
 async function checkGemini(): Promise<HealthCheckResult> {
   const start = Date.now();
 
-  // On Vertex the agent never uses GOOGLE_API_KEY, so checking that key
-  // reported Gemini down (every check, with Slack alerts) while every reply
-  // was being served. Ask the client the agent actually uses for the model's
-  // metadata instead: no tokens spent.
+  // Vertex: the agent never uses GOOGLE_API_KEY. countTokens on its client and model is free and is
+  // served where generateContent is (models.get isn't: 200 on us-central1, where both 404). The
+  // timer, not the abort signal, bounds the check, so a call ignoring the signal can't stall it.
   if (useVertexAI()) {
+    const controller = new AbortController();
     try {
       const { getGeminiClient, GEMINI_MODEL } = await import('../../config/gemini-config.js');
-      const client = (await getGeminiClient()) as {
-        models: { get(req: { model: string }): Promise<unknown> };
-      } | null;
+      const client = (await getGeminiClient()) as GoogleGenAI | null;
       if (!client) return { healthy: false, latencyMs: 0, error: 'Vertex client unavailable' };
-      await client.models.get({ model: GEMINI_MODEL });
-      return { healthy: true, latencyMs: Date.now() - start, details: 'Vertex model reachable' };
+      const config = { abortSignal: controller.signal };
+      const probe = client.models.countTokens({ model: GEMINI_MODEL, contents: 'ping', config });
+      await withTimeout(probe, 5000, 'Vertex probe');
+      return { healthy: true, latencyMs: Date.now() - start, details: 'Vertex model serving' };
     } catch (error) {
-      return {
-        healthy: false,
-        latencyMs: Date.now() - start,
-        error: error instanceof Error ? error.message : String(error),
-      };
+      controller.abort(); // a timed-out request stops instead of running on
+      const message = error instanceof Error ? error.message : String(error);
+      return { healthy: false, latencyMs: Date.now() - start, error: message };
     }
   }
 

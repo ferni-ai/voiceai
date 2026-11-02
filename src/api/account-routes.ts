@@ -7,6 +7,7 @@
  * - PUT /api/account/profile - Update profile info
  * - POST /api/account/apple-authorization - Keep a Sign in with Apple grant to revoke on delete
  * - GET|POST|DELETE /api/account/processing-consent - Third-party processing consent
+ * - GET|POST|DELETE /api/account/call-capture-consent - Help shape Ferni (CALL_CAPTURE_CONSENT)
  *
  * @module AccountRoutes
  */
@@ -14,6 +15,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getStore } from '../memory/store-factory.js';
 import { deleteOAuthLinkStatesFor } from '../servers/token/oauth-link-state.js';
+import { deleteConnectInvitesFor } from '../services/connect-moments/connect-invites.js';
 import {
   exchangeAuthorizationCode,
   revokeAppleSignIn,
@@ -39,6 +41,7 @@ import { rateLimit, requireAuth } from './auth-middleware.js';
 import { parseBody, sendError, sendJSON } from './helpers.js';
 import { sendUserFacingError } from './user-facing-error.js';
 import { handleProcessingConsent } from './processing-consent-routes.js';
+import { handleCallCaptureConsent } from './call-capture-consent-routes.js';
 
 // Alias for compatibility
 const sendJson = sendJSON;
@@ -80,6 +83,9 @@ export async function handleAccountRoutes(
     // GET|POST|DELETE /api/account/processing-consent - third-party processing consent
     if (pathname === '/api/account/processing-consent') {
       return await handleProcessingConsent(req, res, auth);
+    }
+    if (pathname === '/api/account/call-capture-consent') {
+      return await handleCallCaptureConsent(req, res, auth); // 404 while CALL_CAPTURE_CONSENT is off
     }
 
     // GET /api/account - Get account info
@@ -187,7 +193,7 @@ async function handleGetAccount(
 
 /**
  * Records about the user kept outside their own documents (keyed by an
- * endpoint or device-token hash, an OAuth state hash, an Apple transaction id, a challenge id
+ * endpoint or device-token hash, an OAuth state or connect-invite hash, an Apple transaction id, a challenge id
  * or a leaderboard), so the deleteAllData sweep can't reach them. Challenge
  * sweeps also free the other party's open-challenge slot.
  */
@@ -195,6 +201,7 @@ const LINKED_RECORDS: ReadonlyArray<readonly [string, (userId: string) => Promis
   ['push_subscriptions', erasePushRecordsFor],
   ['push_devices', eraseDevicesFor],
   ['oauth_link_states', deleteOAuthLinkStatesFor],
+  ['connect_invites', deleteConnectInvitesFor],
   ['apple_transaction_owners', tombstoneTransactionOwnersFor],
   ['musical_challenges_and_leaderboards', eraseMusicalSocialData],
   ['social_challenges', eraseSocialChallengesFor],

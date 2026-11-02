@@ -9,8 +9,6 @@
  * Don't rush past these moments - they MATTER.
  *
  * NOW INCLUDES PERSONA-SPECIFIC CELEBRATION RESPONSES!
- *
- * Extracted from jack-bogle.ts lines 847-884
  */
 import { getCelebration, type CelebrationType } from '../../../personas/theatrical.js';
 import { createLogger } from '../../../utils/safe-logger.js';

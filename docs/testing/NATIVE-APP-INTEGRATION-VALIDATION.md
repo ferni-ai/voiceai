@@ -266,7 +266,7 @@ Features:
 
 ### For Production Deployment
 
-1. **Enable all entitlements** - HealthKit, HomeKit, Siri (done in previous audit)
+1. **Enable all entitlements** - HealthKit, Siri (done in previous audit). No HomeKit: Ferni is not a home-automation app (Apple Developer Program License Agreement §3.3 I)
 2. **Configure App Store Connect** - Create app records, subscription products
 3. **Set up signing credentials** - Use `setup-signing.sh` for macOS
 4. **Test on real devices** - Simulator doesn't support all features

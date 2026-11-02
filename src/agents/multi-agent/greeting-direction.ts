@@ -9,6 +9,7 @@ import { coachFollowThroughMode } from '../../services/superhuman/commitment-fol
 import { markWinSurfaced, winForOpener, type Win } from '../../services/superhuman/wins.js';
 import { checkInsWithCalls } from '../../services/outreach/call-status.js';
 import { claimIfAsked, lineAsks } from './greeting-claim.js';
+import { markTopicRaised, raisesTopic, topicAlreadyRaised } from './greeting-topic-once.js';
 import { isPonderingOn } from '../../intelligence/pondering/pondering.js';
 import { markSurfaced } from '../../intelligence/pondering/pondering-reader.js';
 import { ponderingForOpener } from '../../intelligence/pondering/pondering-opener.js';
@@ -223,6 +224,13 @@ export interface CallerHistory {
   firstContact?: string;
 }
 
+/** The history without last call's topic (LAST_TOPIC_ONCE: a hello already raised it). */
+function withoutTopic(history: CallerHistory | undefined): CallerHistory | undefined {
+  if (!history) return history;
+  const { lastTopic: _raised, ...rest } = history;
+  return rest;
+}
+
 /** The caller's history from their profile, or undefined for a first call. */
 export function callerHistory(
   profile: {
@@ -345,6 +353,8 @@ export async function directedGreeting(
     });
     return calmGreeting(directed.text);
   }
+  // LAST_TOPIC_ONCE: an earlier hello already raised last time's topic (greeting-topic-once.ts).
+  const raised = inTime(topicAlreadyRaised(userData?.userId, history?.lastTopic));
   // Not gated on history: the profile behind it can still be loading.
   const [openCheckIn, openWin, pondered, anniversary, isNew, introName, letter, news, date] =
     await Promise.all([
@@ -379,7 +389,8 @@ export async function directedGreeting(
   const introAs = unknown ? undefined : introName;
   if (introAs) log.info({ sessionId, personaId }, 'First call: the hello says who is calling');
   // Nothing still ahead, and nothing from before on a same-day return (greeting-not-yet.ts).
-  const hold = notYet.openingRestraint(history, userData?.callerTimezone);
+  const told = (await raised) ? withoutTopic(history) : history;
+  const hold = notYet.openingRestraint(told, userData?.callerTimezone);
   const dueCheckIn = hold.allows(openCheckIn) ? openCheckIn : undefined;
   const launched = launchDirection(takeCallLaunch(sessionId)); // CALL_LAUNCH_CONTEXT: their reason
   // What decides the call, if anything (first-thread.ts): their reason, news, a letter, a date.
@@ -400,7 +411,7 @@ export async function directedGreeting(
         personaId,
         process.env,
         {
-          topic: history?.lastTopic,
+          topic: told?.lastTopic,
           tender: careful,
           firstCall,
           unplaced,
@@ -444,8 +455,12 @@ export async function directedGreeting(
   if (letterNow && directed.source === 'actor' && lineOffersLetter(spoken)) letterNow.mark();
   // One follow-up per call opener (greeting-claim.ts): the first recall note won't ask it again.
   if (!unknown && userData?.userId && directed.source === 'actor' && spoken === directed.text) {
-    const threads = { checkIn, pondered: ask?.text, lastTopic: history?.lastTopic };
+    const threads = { checkIn, pondered: ask?.text, lastTopic: told?.lastTopic };
     claimIfAsked(userData.userId, spoken, { ...threads, userName: userData.userName });
+    // Only a topic the hello was given: a same-day return or a date still ahead holds it back.
+    const given = hold.history?.lastTopic;
+    if (given && raisesTopic(spoken, given, userData.userName))
+      void markTopicRaised(userData.userId, given);
   }
   if (dateNow && directed.source === 'actor') dateNow.commit(spoken); // the winner, if it said it
   return calmGreeting(spoken);

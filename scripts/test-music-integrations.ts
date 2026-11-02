@@ -277,45 +277,6 @@ async function testSonos(): Promise<void> {
 }
 
 // ============================================================================
-// HOMEKIT STATUS
-// ============================================================================
-
-async function testHomeKit(): Promise<void> {
-  console.log(`\n${CYAN}━━━ HomeKit ━━━${NC}`);
-
-  console.log(`  ${GRAY}HomeKit is controlled through the iOS app.${NC}`);
-  console.log(`  ${GRAY}The iOS app syncs HomeKit data to Ferni.${NC}`);
-
-  const userIdArg = process.argv.find((arg) => arg.startsWith('--user='));
-  const userId = userIdArg?.split('=')[1] || process.env.TEST_USER_ID;
-
-  if (!userId) {
-    console.log(`\n  ${YELLOW}⚠️ Run with --user=YOUR_USER_ID to check HomeKit sync status${NC}`);
-    return;
-  }
-
-  await runTest('HomeKit', 'Check sync status', async () => {
-    // HomeKit data is stored in Firestore, synced from iOS
-    const { getAdminFirestore } = await import('../src/utils/firebase-admin-app.js');
-    const db = getAdminFirestore();
-
-    const configDoc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('homekit')
-      .doc('config')
-      .get();
-
-    if (!configDoc.exists) {
-      throw new Error('No HomeKit data synced - use iOS app to sync');
-    }
-
-    const data = configDoc.data();
-    return `Last synced: ${data?.syncedAt || 'unknown'}`;
-  });
-}
-
-// ============================================================================
 // MAIN
 // ============================================================================
 
@@ -336,7 +297,6 @@ async function main(): Promise<void> {
   await testITunes();
   await testSpotify();
   await testSonos();
-  await testHomeKit();
 
   // Summary
   console.log(`\n${'='.repeat(50)}`);
