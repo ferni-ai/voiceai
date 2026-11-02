@@ -84,6 +84,8 @@ export interface OnBehalfCallRequest {
   originalSessionId: string;
   /** The LiveKit room of that call, where its app listens; set when the dispatch knew it. */
   originalRoomName?: string;
+  /** That room's LiveKit sid: a later room with the same name has another (owner-room.ts). */
+  originalRoomSid?: string;
   userId: string;
   userTimezone: string;
   userName: string;

@@ -14,11 +14,8 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { onCallResultChange, onFollowUpActionChange } from '../data-layer/hooks/misc-hooks.js';
 import { callResultDetails, callResultTextOn, tellOwnerAboutCall } from './call-result-text.js';
 import { ownerEmailWords, tellOwnerOnce } from './call-result-once.js';
-import {
-  callLiveRelayOn,
-  callResultLiveReportOn,
-  reportCallResultLive,
-} from './call-result-live.js';
+import { callResultLiveReportOn, reportCallResultLive } from './call-result-live.js';
+import { resultRoomName, roomToTell } from './owner-room.js';
 import { notePushOutcome } from './delivery/push-outcome.js';
 import { logCallResultOutcome } from '../follow-through/index.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
@@ -158,14 +155,14 @@ export async function getCallResult(
 
 /**
  * Inject call result into active LiveKit session: if the user is still in the requesting call's
- * room, the result goes to them on the data channel. CALL_LIVE_RELAY on: by the room's name
- * (originalRoomName), as the session id (session-<job>-<time>) names no room; off: as on main.
+ * room, the result goes to them on the data channel. CALL_LIVE_RELAY on: the owner's own room
+ * only, to the owner only (owner-room.ts); off: by the session id, as on main.
  */
 async function injectToActiveSession(
   outcome: CallOutcome,
   request: OnBehalfCallRequest
 ): Promise<boolean> {
-  const room = (callLiveRelayOn() && request.originalRoomName) || request.originalSessionId;
+  const room = resultRoomName(request);
   const { callId } = outcome;
   if (!room) return false; // no requesting call (an empty name is no room)
   try {
@@ -189,12 +186,8 @@ async function injectToActiveSession(
 
     const roomService = new RoomServiceClient(livekitUrl, livekitApiKey, livekitApiSecret);
 
-    // Check if the room still exists (user still connected)
-    const rooms = await roomService.listRooms([room]);
-    if (!rooms || rooms.length === 0) {
-      log.debug({ callId }, 'Session room not found, user likely disconnected');
-      return false;
-    }
+    const target = await roomToTell(roomService, room, request, callId);
+    if (!target) return false; // the room is gone, or (flag on) not the owner's own
 
     // Build the data message
     const contactName = request.resolvedContact?.name || request.contactQuery;
@@ -212,7 +205,7 @@ async function injectToActiveSession(
 
     // Send data to the room
     const dataBytes = new TextEncoder().encode(JSON.stringify(dataMessage));
-    await roomService.sendData(room, dataBytes, DataPacket_Kind.RELIABLE, {});
+    await roomService.sendData(target.room, dataBytes, DataPacket_Kind.RELIABLE, target.options);
 
     log.info(
       { callId: outcome.callId, hasContactName: Boolean(contactName) },

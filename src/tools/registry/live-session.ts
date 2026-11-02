@@ -25,8 +25,16 @@ interface Runnable {
 interface Entry {
   session: object;
   sessionId: string;
-  /** The LiveKit room the owner's app is in: not the session id (session-<job>-<time>). */
-  roomName?: string;
+  room?: LiveRoom;
+}
+
+/**
+ * The LiveKit room the owner's app is in: not the session id (session-<job>-<time>). Its sid,
+ * from the job LiveKit assigned, tells this room apart from a later one given the same name.
+ */
+export interface LiveRoom {
+  name: string;
+  sid?: string;
 }
 
 const entryBySession = new WeakMap<object, Entry>();
@@ -37,8 +45,8 @@ const entryById = new Map<string, Entry>();
  * release, which removes only this registration: after a handoff re-notes the
  * session, the old persona's late cleanup leaves the new one in place.
  */
-export function noteLiveSession(session: object, sessionId: string, roomName?: string): () => void {
-  const entry: Entry = { session, sessionId, roomName };
+export function noteLiveSession(session: object, sessionId: string, room?: LiveRoom): () => void {
+  const entry: Entry = { session, sessionId, room };
   entryBySession.set(session, entry);
   entryById.set(sessionId, entry);
   return () => {
@@ -53,8 +61,8 @@ export function liveSessionFor(sessionId: string | undefined): object | undefine
 }
 
 /** The room of the live call with this id in this process, for a data message to its app. */
-export function liveRoomNameFor(sessionId: string | undefined): string | undefined {
-  return sessionId ? entryById.get(sessionId)?.roomName : undefined;
+export function liveRoomFor(sessionId: string | undefined): LiveRoom | undefined {
+  return sessionId ? entryById.get(sessionId)?.room : undefined;
 }
 
 /** The real session id of the call a tool is running in (LiveKit's `opts.ctx.session`). */

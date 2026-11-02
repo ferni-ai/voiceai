@@ -17,7 +17,7 @@ export * from './validation/index.js';
 
 // --- FORGET REQUESTS over stored commitments (every reader applies them) ---
 export * from './commitment-forget.js';
-export { getFirestoreDb } from './firestore-utils.js'; // the Firestore client, for other contexts
+
 // --- RE-EXPORTS --- Commitment Keeper
 export {
   buildCommitmentContext,
