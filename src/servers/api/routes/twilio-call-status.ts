@@ -89,6 +89,16 @@ export function twilioStatusToOutcome(
     callbackRequired: false,
   };
 
+  // Our agent never joined: whatever Twilio reports, the call failed and it was our fault.
+  if (pendingCall.dispatchFailed) {
+    return {
+      ...baseOutcome,
+      status: 'failed',
+      outcome: `Ferni couldn't connect the call to ${pendingCall.contactName}`,
+      callbackRequired: true,
+    };
+  }
+
   switch (CallStatus) {
     case 'completed':
       // A machine answer is a voicemail with no message on record: this webhook

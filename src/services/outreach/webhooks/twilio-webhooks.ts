@@ -370,8 +370,7 @@ export async function handleInboundSMSWebhook(
         log.info(
           {
             contactId: contactLookup.contactId,
-            contactName: contactLookup.contactName,
-            userId: contactLookup.userId,
+            userId: contactLookup.userId, // never the contact's name: they never signed up
           },
           '📊 ML timing model updated - contact responded to outreach'
         );
@@ -545,8 +544,7 @@ export async function handleCallStatusWebhook(
           log.info(
             {
               contactId: contactLookup.contactId,
-              contactName: contactLookup.contactName,
-              callStatus: CallStatus,
+              callStatus: CallStatus, // never the contact's name: they never signed up
             },
             '📊 ML timing model updated - contact answered call'
           );

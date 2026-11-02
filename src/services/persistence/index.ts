@@ -12,6 +12,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { userHeld } from '../../utils/minor-care.js';
 import { isSharedPlaceholderId } from '../../utils/synthetic-user.js';
+import { isThirdPartyCallUser } from '../../memory/third-party-call.js';
 import { heldFields } from './held-fields.js';
 import { updateIfUnchangedFor, type UpdateIfUnchanged } from './update-if-unchanged.js';
 import { timestampsToDates } from './timestamps.js';
@@ -160,9 +161,9 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     (tainted.has(userId) || holdWrites(userId)) &&
     (tainted.add(userId), cache.delete(userId), true);
   const heldParts = heldFields<T>(whenHeld, syncIntervalMs);
-  // PRIVACY: a placeholder id (anonymous, unknown, default, shared, blank) is one bucket every caller
-  // without an id shares, so under bogle_users it is never cached, read or written.
-  const shared = (userId: string): boolean => !useRootCollection && isSharedPlaceholderId(userId);
+  // PRIVACY, never stored: a shared placeholder id under bogle_users; an on-behalf callee anywhere.
+  const shared = (u: string): boolean =>
+    (!useRootCollection && isSharedPlaceholderId(u)) || isThirdPartyCallUser(u);
   let isShutdown = false;
   const refFor = (firestore: FirestoreType, userId: string) =>
     useRootCollection

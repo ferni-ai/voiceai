@@ -33,6 +33,10 @@ describe('vertex keep-alive', () => {
   it('picks Vertex AI hosts only', () => {
     expect(isVertexOrigin('https://aiplatform.googleapis.com')).toBe(true);
     expect(isVertexOrigin(new URL('https://us-central1-aiplatform.googleapis.com/v1'))).toBe(true);
+    // GEMINI_LOCATION=us: the US multi-region's host (vertex-endpoint.ts) keeps its sockets too.
+    expect(isVertexOrigin('https://aiplatform.us.rep.googleapis.com/v1/projects/p')).toBe(true);
+    expect(isVertexOrigin('https://aiplatform.eu.rep.googleapis.com')).toBe(true);
+    expect(isVertexOrigin('https://aiplatform.evil.rep.googleapis.com')).toBe(false);
     expect(isVertexOrigin('https://generativelanguage.googleapis.com')).toBe(false);
     expect(isVertexOrigin('https://api.cartesia.ai')).toBe(false);
     expect(isVertexOrigin('https://aiplatform.googleapis.com.evil.example')).toBe(false);

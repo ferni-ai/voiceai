@@ -37,6 +37,8 @@ final class AccessibilityAuditTests: XCTestCase {
         ("home|call", .textClipped, "Talk", "iPad sidebar row: the AX5 screenshot shows the full word."),
         ("home|call", .textClipped, "What Ferni remembers", "iPad sidebar row: wraps to three full lines at AX5 (screenshot)."),
         ("settings", .dynamicType, "Try again", "A system List button row; it scales at AX5 like the other rows."),
+        ("settings", .dynamicType, "Get help with your account",
+         "Account footer link; HelpLinksUITests.testAccountHelpGrowsWithTextSize proves it grows at AX5 (pinned, it stays 34 pt and fails)."),
     ]
 
     /// Every issue fails the test, named with its element so the log says what

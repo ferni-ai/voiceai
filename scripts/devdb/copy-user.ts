@@ -79,6 +79,7 @@ export const EXCLUDED_STORES: Readonly<Record<string, string>> = {
   'tracked_appointments[userId]': `${QUEUE} (appointment follow-ups)`,
   'intelligence_queue[userId]': QUEUE,
   'holder_verification_sends/{uid}': 'a send-rate counter: throttles dev verification texts',
+  'call_capture_consent/{uid}': "consent to keep the person's prod calls, never a dev call's",
   'outreach_profiles/{uid}': SCHEDULING,
   'outreach_context/{uid}': SCHEDULING,
   'outreach_history/{uid}': SCHEDULING,
