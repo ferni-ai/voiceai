@@ -34,7 +34,7 @@ export const GOLDEN_CASES: GoldenCase[] = [
       followUps: [],
     },
     laterQuery: "I still can't sleep at night",
-    expectedKeys: ['sleep'],
+    expectedKeys: ['planted_wrong_key'],
   },
   {
     id: 'job-move-austin',
