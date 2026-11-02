@@ -163,7 +163,7 @@ export function withMinorAbuseDisclosure<T extends SettledRead>(
 }
 
 /** Whether the classifier gave no read of the turn: off (no run), an error or no answer in time. */
-export async function classifierGaveNoRead(
+async function classifierGaveNoRead(
   run: { verdict: Promise<CrisisVerdict | null> } | null
 ): Promise<boolean> {
   if (!run) return true;
