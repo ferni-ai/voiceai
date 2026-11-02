@@ -112,11 +112,14 @@ describe('quiet hours that did not load', () => {
     await settle();
     // a slow load showed the dimmed 22:00-08:00 placeholder (menu-axe saw it fail contrast)
     expect(document.querySelector<HTMLElement>('.contact-settings-time-row')?.hidden).toBe(true);
+    // "these hours" with no hours on screen reads as a broken sentence
+    expect(document.querySelector<HTMLElement>('#quiet-note')?.hidden).toBe(true);
 
     loaded(ok({ preferences: SAVED }));
     await opened;
     await settle();
     expect(document.querySelector<HTMLElement>('.contact-settings-time-row')?.hidden).toBe(false);
+    expect(document.querySelector<HTMLElement>('#quiet-note')?.hidden).toBe(false);
   });
 
   it('the contact load fails: Save posts no quiet fields either', async () => {
