@@ -260,6 +260,36 @@ describe("gitleaks-range.sh refuses what the scan can't see through", () => {
     expectRefused(run(1, 0, [head, commit({ 'blob.bin': pointer }, 'pointer')]), 'LFS pointer');
   });
 
+  it('in every spelling git-lfs accepts: spec aliases, CRLF, surrounding spaces', () => {
+    const oid = `oid sha256:${'0'.repeat(64)}`;
+    const spellings = {
+      'hawser.bin': `version https://hawser.github.com/spec/v1\n${oid}\nsize 1\n`,
+      'media.bin': `version http://git-media.io/v/2\n${oid}\nsize 1\n`,
+      'crlf.bin': `${LFS_POINTER}\r\n${oid}\r\nsize 1\r\n`,
+      'indented.bin': `  ${LFS_POINTER}\n${oid}\nsize 1\n`,
+      'trailing.bin': `${LFS_POINTER}  \n${oid}\nsize 1\n`,
+    };
+    let from = head;
+    for (const [name, pointer] of Object.entries(spellings)) {
+      const to = commit({ [name]: pointer }, name);
+      expectRefused(run(1, 0, [from, to]), 'LFS pointer');
+      from = to;
+    }
+  });
+
+  it('a filter=lfs line that starts with "+", or in a .gitattributes of another case', () => {
+    const plus = commit({ '.gitattributes': '+x.bin filter=lfs\n' }, 'plus');
+    expectRefused(run(1, 0, [head, plus]), 'filter=lfs attribute');
+    mkdirSync(join(repo, 'docs'));
+    const cased = commit({ 'docs/.GitAttributes': '*.dat filter=lfs\n' }, 'cased');
+    expectRefused(run(1, 0, [plus, cased]), 'filter=lfs attribute');
+  });
+
+  it('a base or head that does not resolve, which gitleaks would scan as empty', () => {
+    expectRefused(run(1, 0, ['no-such-ref', head]), "can't resolve 'no-such-ref'");
+    expectRefused(run(1, 0, [base, '0'.repeat(40)]), `can't resolve '${'0'.repeat(40)}'`);
+  });
+
   it('but not text that merely mentions LFS', () => {
     // The second line starts like a pointer but goes on: only a whole-line match refuses.
     const notes =
