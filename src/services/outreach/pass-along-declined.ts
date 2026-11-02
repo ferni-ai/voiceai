@@ -69,7 +69,6 @@ const GO = [
   'yep',
   'totally',
   'of course',
-  'not at all',
   'that works',
   "i don't (?:mind|care)",
   'why would i mind\\?',
@@ -77,10 +76,12 @@ const GO = [
 /**
  * A reply that is a go-ahead and nothing else: "that's cool", "go ahead", "tell him whatever".
  * Never a question ("Okay?", "Is that okay with you?"), a fragment ("Hello?") or one secret
- * ("don't tell her about X"). Read only inside their answer, before Ferni speaks again.
+ * ("don't tell her about X"). "Not at all" alone answers "Is that okay?" with a no, so it only
+ * leads into a go-ahead ("not at all, go ahead"). Read only inside their answer, before Ferni
+ * speaks again.
  */
 const GO_AHEAD = new RegExp(
-  `^\\W*(?:(?:oh|um+|uh+|well|hmm+|ah|ha|yeah|yes|no+|nope|nah|of course|totally)\\W+)*` +
+  `^\\W*(?:(?:oh|um+|uh+|well|hmm+|ah|ha|yeah|yes|no+|nope|nah|of course|totally|not at all)\\W+)*` +
     `(?:${GO})(?:\\W+(?:${GO}))*[.!\\s]*$`,
   'i'
 );

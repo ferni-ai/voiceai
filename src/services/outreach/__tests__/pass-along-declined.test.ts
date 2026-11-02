@@ -139,6 +139,9 @@ describe('a personal call: an unambiguous no is honoured', () => {
     ["Please don't.", 'Can you hear me?'],
     ['Keep it to yourself.', 'Is that weird?'],
     ['No.', 'Is that okay with you?'],
+    ['No.', 'Not at all.'],
+    ['Nope.', 'Not at all!'],
+    ['No.', "I don't care what you do."],
   ])('%j then %j before Ferni speaks: a no', (first, then) => {
     const t = [A(ASK), R(first), R(then), A("Okay, I won't."), R(SAID)];
     expect(passAlongDeclined(call.script, t)).toBe(true);
