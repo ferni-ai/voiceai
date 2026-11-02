@@ -60,6 +60,8 @@
         "src/agents/voice-agent/turn-handler.ts",
         "src/api/wellbeing.routes.ts",
         "src/config/flags/FORGET_EVERY_READER.ts",
+        "src/config/flags/NAME_FALLING_SPLIT.ts",
+        "src/config/flags/NAME_GATE_V2.ts",
         "src/config/flags/PREEMPT_STABLE_CONTEXT.ts",
         "src/config/flags/SAFETY_WHOLE_WORD_SITES.ts",
         "src/config/flags/THIRD_PARTY_SELF_HARM.ts",

@@ -401,6 +401,9 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   MINOR_ABUSE_DISCLOSURE: 'src/services/safety/__tests__/minor-abuse-disclosure.test.ts',
   MINOR_CARE_SHARED_HOLD:
     'src/services/outreach/__tests__/minor-care-shared-hold-call-paths.test.ts',
+  // A guided crisis reply loses only the caller's name: every other word, 988 and 911 stay.
+  NAME_FALLING_SPLIT: 'src/agents/personas/__tests__/name-gate-crisis-reply.test.ts',
+  NAME_GATE_V2: 'src/agents/personas/__tests__/name-gate-crisis-reply.test.ts',
   OPENER_GATE: 'src/agents/personas/__tests__/crisis-gate.test.ts',
   OPEN_PROMISE_TRIGGERS:
     'src/services/outreach/proactive-channels/__tests__/open-promise-triggers-path.test.ts',
