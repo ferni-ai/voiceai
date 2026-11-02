@@ -22,19 +22,6 @@ const DIRECTOR = '[Director: ask Jane Doe about jane@example.com]';
 const REMINDER = `Already told: the lake story. ${DIRECTOR} Keep it short, a friend on a call.`;
 const CALLER = 'my name is Jane Doe, call me at +1 555 867 5309 or jane@example.com';
 const REPLY = 'Hey Jane Doe! Got it. I will call +1 555 867 5309?';
-/** Receipt fields that hold timings and counts; every other number is read as text. */
-const COUNTS = [
-  'v',
-  'turn',
-  'timing',
-  'tokens',
-  'prompt',
-  'director',
-  'tools',
-  'reply',
-  'pauseHoldMs',
-  'audio',
-];
 const PII = [
   'Jane',
   'Doe',
@@ -327,7 +314,7 @@ describe('attachTurnReceipts', () => {
     const c = call();
     c.turn({ tools: ['getWeather'] });
     expect(c.receipts).toHaveLength(1);
-    expect(plantedPiiIn(c.receipts, PII, COUNTS)).toEqual([]);
+    expect(plantedPiiIn(c.receipts, PII)).toEqual([]);
   });
 
   it('counts each turn once: two signals per commit, greetings and repeats aside', () => {

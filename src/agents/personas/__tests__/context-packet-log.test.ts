@@ -26,8 +26,12 @@ import { rememberForPacket, packetLogFields, turnPacket } from '../context-packe
 import { withTurnReminder } from '../turn-request.js';
 import { plantedPiiIn } from '../../../tests/helpers/snippet-leak.js';
 
-/** Fields the packet log fills with sizes and counts; every other number is read as text. */
-const COUNTS = ['version', 'sections', 'tokens', 'totalTokensEst', 'dropped', 'guidanceDropped'];
+/**
+ * The live packet log's size fields. Their values move with the turn shape (Math.random
+ * picks this turn's extras), so a section can land on 555 tokens; every other number in
+ * the log is read as text.
+ */
+const LIVE_COUNTS = ['sections', 'tokens'];
 const PII = [
   'Jane',
   'Doe',
@@ -85,9 +89,9 @@ describe('CONTEXT_PACKET logging', () => {
     // Non-vacuous: the planted details really are in the packet.
     for (const pii of ['Jane', '5309', 'lake story', 'Biscuit']) expect(packet.text).toContain(pii);
 
-    expect(plantedPiiIn(packetLogFields(packet.accounting), PII, COUNTS)).toEqual([]);
+    expect(plantedPiiIn(packetLogFields(packet.accounting), PII)).toEqual([]);
     // The accounting the receipt will read carries no text either: ids are opaque.
-    expect(plantedPiiIn(packet.accounting, PII, COUNTS)).toEqual([]);
+    expect(plantedPiiIn(packet.accounting, PII)).toEqual([]);
   });
 
   it('what withTurnReminder logs on the live path has none of it', () => {
@@ -108,6 +112,6 @@ describe('CONTEXT_PACKET logging', () => {
 
     const packetLines = logged.filter((args) => (args as unknown[]).includes('CONTEXT_PACKET'));
     expect(packetLines).toHaveLength(1);
-    expect(plantedPiiIn(logged, PII, COUNTS)).toEqual([]);
+    expect(plantedPiiIn(logged, PII, LIVE_COUNTS)).toEqual([]);
   });
 });

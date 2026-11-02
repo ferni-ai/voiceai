@@ -26,6 +26,12 @@ describe('plantedPiiIn', () => {
     ]);
   });
 
+  it('a count field only counts on the log object itself, not nested deeper', () => {
+    expect(plantedPiiIn({ caller: { tokens: 5309 } }, PLANTED, COUNTS)).toEqual(['5309']);
+    // logger call args wrap the log object in arrays; its own keys still qualify
+    expect(plantedPiiIn([[{ tokens: 5309 }, 'CONTEXT_PACKET']], PLANTED, COUNTS)).toEqual([]);
+  });
+
   it('with no count fields named, every number is read as text', () => {
     expect(plantedPiiIn({ tokens: 555 }, PLANTED)).toEqual(['555']);
   });
