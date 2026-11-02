@@ -17,8 +17,9 @@
  * (turn-handler.ts): not their fault, are you safe right now, 911 if in danger now, a safe adult,
  * Childhelp (call or text), no details. When the caller may be at risk too, the turn gets main's
  * crisis guidance, 988 and all, with the child-safety care after it: self-harm words in any turn
- * (passive and means ideation included), risk noted earlier on the call, or this turn's own read
- * of risk before the disclosure, whoever made it (the patterns, the classifier, a soft check).
+ * (passive and means ideation included), risk noted earlier on the call, this turn's own read
+ * of risk before the disclosure, whoever made it (the patterns, the classifier, a soft check), or
+ * no classifier read at all (off, an error or a timeout: the risk can't be read, so 988 stays).
  * Main answers every one of those reads with guidance that names 988, so 988 is never taken away.
  *
  * Only adds: a turn already read as a crisis keeps everything it had, and gains the indicators.
@@ -32,6 +33,7 @@ import { flagOn } from '../../config/env-flag.js';
 import { ageSignal, likelyMinor, statesUnder18 } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { holdForSexualTopic } from '../../utils/sexual-topic-hold.js';
+import type { CrisisVerdict } from './crisis-classifier.js';
 import type { CrisisDetectionResult } from './crisis-guard.js';
 import { buildCrisisGuidance } from './crisis-guard.js';
 import { CRISIS_RESOURCES } from './crisis-response.js';
@@ -111,17 +113,27 @@ interface SettledRead {
 
 /**
  * Whether the caller may be at risk themselves, so the disclosure turn keeps 988: risk noted
- * earlier on the call, self-harm words in any turn, or this turn's own read of risk, whoever made
- * it (the patterns, the classifier's crisis or imminent read, the who read, a soft check). Main
- * answers each of those reads with guidance or a check-in that names 988.
+ * earlier on the call, self-harm words in any turn, this turn's own read of risk, whoever made
+ * it (the patterns, the classifier's crisis or imminent read, the who read, a soft check), or no
+ * classifier read at all (the owner's ruling, 11-02: if the risk can't be read, the lifeline
+ * stays). Main answers each of those reads with guidance or a check-in that names 988.
  */
 export function callerMayBeAtRisk(
   settled: SettledRead,
   turn: MinorAbuseTurn,
-  priorRisk: boolean
+  priorRisk: boolean,
+  classifierNoRead = false
 ): boolean {
-  if (priorRisk || settled.soft || settled.crisis.isCrisis) return true;
+  if (priorRisk || classifierNoRead || settled.soft || settled.crisis.isCrisis) return true;
   return [turn.latest, ...(turn.earlier ?? [])].some((line) => SELF_HARM.test(plain(line)));
+}
+
+/** What the call shows besides this turn's words (startTurnCrisis). */
+export interface MinorCallRisk {
+  /** Risk noted on the call before this turn's own read (crisis-lone-imminent.ts). */
+  priorRisk: boolean;
+  /** The classifier gave no read of this turn: off, an error or no answer in time. */
+  classifierNoRead?: boolean;
 }
 
 /** The settled turn with the flag on: a minor's abuse disclosure is a crisis-level safety turn. */
@@ -129,14 +141,14 @@ export function withMinorAbuseDisclosure<T extends SettledRead>(
   settled: T,
   call: string | undefined,
   turn: MinorAbuseTurn,
-  priorRisk: boolean,
+  { priorRisk, classifierNoRead = false }: MinorCallRisk,
   env: Env = process.env
 ): T {
   if (!flagOn('MINOR_ABUSE_DISCLOSURE', env) || !minorAbuseDisclosure(call, turn)) return settled;
   holdForSexualTopic(call);
   const { crisis } = settled;
-  const selfHarm = callerMayBeAtRisk(settled, turn, priorRisk);
-  log.info({ wasCrisis: crisis.isCrisis, selfHarm }, 'MINOR_ABUSE_DISCLOSURE');
+  const selfHarm = callerMayBeAtRisk(settled, turn, priorRisk, classifierNoRead);
+  log.info({ wasCrisis: crisis.isCrisis, selfHarm, classifierNoRead }, 'MINOR_ABUSE_DISCLOSURE');
   return {
     ...settled,
     soft: false,
@@ -148,6 +160,28 @@ export function withMinorAbuseDisclosure<T extends SettledRead>(
       subject: 'self',
     },
   };
+}
+
+/** Whether the classifier gave no read of the turn: off (no run), an error or no answer in time. */
+export async function classifierGaveNoRead(
+  run: { verdict: Promise<CrisisVerdict | null> } | null
+): Promise<boolean> {
+  if (!run) return true;
+  return (await run.verdict.catch(() => null)) === null;
+}
+
+/** startTurnCrisis's settled read, then a minor's disclosure once the classifier answered or not. */
+export async function withMinorAbuseRead<T extends SettledRead>(
+  read: Promise<T>,
+  call: string | undefined,
+  turn: MinorAbuseTurn,
+  risk: { priorRisk: boolean; classifier: { verdict: Promise<CrisisVerdict | null> } | null },
+  env: Env = process.env
+): Promise<T> {
+  const settled = await read;
+  const classifierNoRead = await classifierGaveNoRead(risk.classifier);
+  const { priorRisk } = risk;
+  return withMinorAbuseDisclosure(settled, call, turn, { priorRisk, classifierNoRead }, env);
 }
 
 const CHILDHELP = CRISIS_RESOURCES.child_abuse[0];
