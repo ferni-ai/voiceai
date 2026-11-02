@@ -445,6 +445,10 @@ Scans for:
 - **Consistency**: Hardcoded z-index values
 - **Performance**: Animating expensive properties
 
+CI blocks when errors rise above `MAX_UI_AUDIT_ERRORS` in `scripts/audit-ui.js` (a ratchet,
+like `lint:tokens`), or when a scan directory can't be read or holds no files. When you fix
+errors, lower the constant to the new count.
+
 ---
 
 ## Workflow

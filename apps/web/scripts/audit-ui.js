@@ -170,21 +170,17 @@ function getAllFiles(dir, files = []) {
     return [dir];
   }
 
-  try {
-    const entries = readdirSync(dir);
-    for (const entry of entries) {
-      const fullPath = join(dir, entry);
-      if (shouldIgnore(fullPath)) continue;
+  // A directory that can't be read throws: skipping it would lower the error count.
+  for (const entry of readdirSync(dir)) {
+    const fullPath = join(dir, entry);
+    if (shouldIgnore(fullPath)) continue;
 
-      const stat = statSync(fullPath);
-      if (stat.isDirectory()) {
-        getAllFiles(fullPath, files);
-      } else if (EXTENSIONS.some(ext => entry.endsWith(ext))) {
-        files.push(fullPath);
-      }
+    const stat = statSync(fullPath);
+    if (stat.isDirectory()) {
+      getAllFiles(fullPath, files);
+    } else if (EXTENSIONS.some(ext => entry.endsWith(ext))) {
+      files.push(fullPath);
     }
-  } catch (err) {
-    // Ignore permission errors
   }
 
   return files;
@@ -271,10 +267,15 @@ function main() {
     bySeverity: { error: 0, warning: 0, info: 0 },
     zIndexValues: new Set(),
   };
+  // Directories that could not be scanned, or held no files. Either makes the count wrong.
+  const scanFailures = [];
 
   for (const dir of SCAN_DIRS) {
     try {
       const files = getAllFiles(dir);
+      if (files.length === 0) {
+        scanFailures.push(`${relative(join(__dirname, '..'), dir)}: no files`);
+      }
       stats.totalFiles += files.length;
 
       for (const file of files) {
@@ -294,9 +295,7 @@ function main() {
         }
       }
     } catch (err) {
-      if (err.code !== 'ENOENT') {
-        console.error(`Error scanning ${dir}:`, err.message);
-      }
+      scanFailures.push(`${relative(join(__dirname, '..'), dir)}: ${err.message}`);
     }
   }
 
@@ -413,8 +412,25 @@ function main() {
   console.log('Run `npx lighthouse http://localhost:3004 --view` for full audit');
   console.log('═'.repeat(60) + '\n');
 
-  // Exit with error if there are errors
-  process.exit(stats.bySeverity.error > 0 ? 1 : 0);
+  // A scan that went wrong must not pass on a count it never finished.
+  if (scanFailures.length > 0) {
+    console.error(`UI audit did not finish scanning:\n  ${scanFailures.join('\n  ')}`);
+    process.exit(1);
+  }
+
+  // Ratchet: old errors may remain, but the count must not grow (as lint:tokens does).
+  // CI ran this with `|| true`, so new errors never failed anything (8 on main, 2026-11-02).
+  const MAX_UI_AUDIT_ERRORS = 8;
+  const errors = stats.bySeverity.error;
+  if (errors > MAX_UI_AUDIT_ERRORS) {
+    console.error(
+      `UI audit ratchet exceeded: ${errors} > ${MAX_UI_AUDIT_ERRORS} errors. Fix the new ones before landing.`
+    );
+    process.exit(1);
+  }
+  const lower = errors < MAX_UI_AUDIT_ERRORS ? ` Lower MAX_UI_AUDIT_ERRORS to ${errors}.` : '';
+  console.log(`Ratchet: ${errors}/${MAX_UI_AUDIT_ERRORS} errors (must not grow).${lower}\n`);
+  process.exit(0);
 }
 
 main();
