@@ -17,7 +17,8 @@
  *
  * A call that ends unanswered (no answer, busy, failed) gets no line here: the
  * end-of-call report already says "No answer: ..." once, at that moment. Once a
- * result is on the record, progress is no longer told.
+ * result is on the record, progress is no longer told: not claimed once the
+ * result is stored, and dropped at the pause once the watch has seen it.
  *
  * Only with CALL_RESULT_LIVE_REPORT on too. Off: nothing written or said.
  * Never throws. Logs carry the call id, the kind and booleans only.
@@ -29,7 +30,7 @@ import { triggerVoiceCallback } from '../../tools/domains/simple-utilities/voice
 import { isMemberIdentity } from '../identity/member-identity.js';
 import { crisisRiskThisCall } from '../safety/index.js';
 import { callerText } from './caller-text.js';
-import { callLiveRelayOn } from './call-result-live.js';
+import { callLiveRelayOn, reportableOutcome } from './call-result-live.js';
 import { claimOnCallDoc } from './live-report-record.js';
 
 const log = createLogger({ module: 'call-progress' });
@@ -89,6 +90,8 @@ export interface WatchedCall {
   userId: string;
   callId: string;
   contactName: string;
+  /** True once the watch has seen the result: a line not yet said is then dropped. */
+  resultSeen: () => boolean;
 }
 
 /** The owner's watch, before a result is stored: each noted kind is told once. Never throws. */
@@ -104,11 +107,14 @@ async function tellProgressOnce(call: WatchedCall, kind: ProgressKind): Promise<
   try {
     const field = `${kind}Told`;
     const taken = (data: Record<string, unknown> | undefined): boolean =>
-      (data?.progress as Record<string, unknown> | undefined)?.[field] !== undefined;
+      (data?.progress as Record<string, unknown> | undefined)?.[field] !== undefined ||
+      reportableOutcome(data) !== null;
     if (!(await claimOnCallDoc(userId, callId, `progress.${field}`, taken, 'CALL_PROGRESS'))) {
       return;
     }
     const crisis = (): boolean => crisisRiskThisCall(sessionId);
+    // Held (dropped) at the pause on crisis risk, or once the result is told instead.
+    const held = (): boolean => crisis() || call.resultSeen();
     if (crisis()) {
       log.info({ callId, kind, crisis: true }, 'CALL_PROGRESS dropped');
       return;
@@ -120,7 +126,7 @@ async function tellProgressOnce(call: WatchedCall, kind: ProgressKind): Promise<
       message: progressMessage(kind, call.contactName),
       priority: 'normal',
       session,
-      holdIf: crisis,
+      holdIf: held,
     })
       .then((handed) => log.info({ callId, kind, handed }, 'CALL_PROGRESS'))
       .catch((error: unknown) => notTold(callId, kind, error));

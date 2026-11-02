@@ -82,6 +82,8 @@ export function watchCallResult(
     const contactName = request.resolvedContact?.name || request.contactQuery;
     const closing = (session as { _closingSignal?: AbortSignal } | undefined)?._closingSignal;
     let stopped = false;
+    let resultSeen = false;
+    const call = { session, sessionId, userId, callId, contactName, resultSeen: () => resultSeen };
     let poll: ReturnType<typeof setTimeout> | undefined;
 
     const stop = (reason: string): void => {
@@ -109,10 +111,10 @@ export function watchCallResult(
       const outcome = reportableOutcome(stored);
       if (!outcome) {
         // CALL_LIVE_RELAY: picked up / voicemail, told once, only before there is a result.
-        const call = { session, sessionId, userId, callId, contactName };
         if (callLiveRelayOn()) await relayProgress(call, stored);
         return stopped ? undefined : next();
       }
+      resultSeen = true; // a progress line not yet said is dropped (call-progress.ts)
       stop('result');
       const told = await tellLiveOnce({ session, sessionId, userId, contactName, outcome });
       log.info({ callId, told }, 'CALL_RESULT_LIVE_REPORT (watch)');

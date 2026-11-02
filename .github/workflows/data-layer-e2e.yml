@@ -16,6 +16,9 @@ on:
       - 'src/api/roadmap-*.ts'
       - 'src/api/outreach*.ts'
       - 'src/services/outreach/outreach-history*.ts'
+      - 'src/services/outreach/live-report-record.ts'
+      - 'src/services/outreach/call-progress.ts'
+      - 'src/services/outreach/__tests__/call-claim-race.emulator.test.ts'
       - 'src/api/__tests__/menu-*.emulator.test.ts'
       - 'src/services/wellbeing-tracking/**'
       - 'src/api/wellbeing*.ts'
@@ -57,6 +60,9 @@ on:
       - 'src/api/roadmap-*.ts'
       - 'src/api/outreach*.ts'
       - 'src/services/outreach/outreach-history*.ts'
+      - 'src/services/outreach/live-report-record.ts'
+      - 'src/services/outreach/call-progress.ts'
+      - 'src/services/outreach/__tests__/call-claim-race.emulator.test.ts'
       - 'src/api/__tests__/menu-*.emulator.test.ts'
       - 'src/services/wellbeing-tracking/**'
       - 'src/api/wellbeing*.ts'
@@ -185,6 +191,14 @@ jobs:
       - name: Run Emotion Point Tests
         run: |
           pnpm vitest run -c vitest.config.unit.ts src/api/__tests__/record-emotion.emulator.test.ts --reporter=verbose
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+          NODE_ENV: test
+
+      # A placed call's once-claims (progress line, end-of-call report): racing workers, one winner
+      - name: Run Call Claim Race Tests
+        run: |
+          pnpm vitest run -c vitest.config.unit.ts src/services/outreach/__tests__/call-claim-race.emulator.test.ts --reporter=verbose
         env:
           FIRESTORE_EMULATOR_HOST: localhost:8080
           NODE_ENV: test

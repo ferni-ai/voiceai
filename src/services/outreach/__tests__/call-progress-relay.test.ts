@@ -381,4 +381,19 @@ describe('flags', () => {
     expect(fs.docs.get(pathOf('c-fam'))).toBeUndefined();
     expect(fs.docs.get(pathOf('c-unsigned'))).toBeUndefined();
   });
+
+  // Each fails only on the member check: a call id, an on-behalf call, and an id a doc can take.
+  it.each(['anonymous', 'anon:caller-7f3a'])(
+    'a requester who is no member (%s) is never noted',
+    async (requesterUserId) => {
+      const job = `nonmember-${requesterUserId}`;
+      placed.setOutboundCallContext(job, {
+        ...contextOf(placedCall('c-nonmember')),
+        requesterUserId,
+      });
+      await placed.noteCallProgress(job, 'answered');
+      const path = `bogle_users/${requesterUserId}/on_behalf_calls/c-nonmember`;
+      expect(fs.docs.get(path)).toBeUndefined();
+    }
+  );
 });

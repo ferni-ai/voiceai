@@ -66,6 +66,7 @@ const watched = (callId: string, sessionId: string) => ({
   userId: UID,
   callId,
   contactName: NAME,
+  resultSeen: () => false,
 });
 const noted = { progress: { answeredAt: 'now', voicemailAt: 'now' } };
 
