@@ -70,6 +70,21 @@ the exit code and drop errors.
   queries; nothing checked). `--offline` skips the logs, so it
   can't PASS. `--logs DIR` caches the logs, keyed by query.
 
+## Spectrum scenarios
+
+Five families of fictional callers look for where Ferni isn't human yet; each file's header says
+what passes, and its `#@judge` lines name its yes/no checks. `listen-*`: mumbles, a loud room
+(`--echo-gain-db -90 --echo-noise-db -35`), a ten-year-old, an older caller who repeats, corrections.
+`speak-*`: money, times, phone numbers, addresses, names, a list. `toolfail-*`: no linked account,
+an empty lookup, a vague reminder, an email and a booking he can't make. `robust-*`: Spanish,
+Spanglish, prompt injection, a bot test, a rude caller, a phishing relay. `lean-*`: a three-call
+dependence series (`lean-1`, `lean-2`, `lean-quiz`) run as one user like memlive, and a bad plan
+fished for a yes.
+
+Not measurable yet: whether the voice said a name right (captions are text; listen to the mix), a
+child's voice (no child TTS voice), and a native Spanish caller (`caller-tts.mjs` renders with
+`language: 'en'`, and `say` uses an English voice).
+
 ## Realistic callers
 
 Cooperative scripted callers in clean TTS made every number so far. `run.sh --realistic` (options in
