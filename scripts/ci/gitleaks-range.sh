@@ -58,16 +58,32 @@ refuse() {
 }
 
 # `[extend] path` is resolved against the checkout, so rules that extend a file
-# could be loosened by the change editing that file. Matches the table form, the
-# dotted key and the inline table; a false match only refuses.
-if awk '
-  /^[[:space:]]*\[/ { in_extend = ($0 ~ /^[[:space:]]*\[[[:space:]]*extend[[:space:]]*\]/) }
-  in_extend && /^[[:space:]]*path[[:space:]]*=/ { found = 1 }
-  /^[[:space:]]*extend[[:space:]]*\.[[:space:]]*path[[:space:]]*=/ { found = 1 }
-  /^[[:space:]]*extend[[:space:]]*=[[:space:]]*\{.*path[[:space:]]*=/ { found = 1 }
-  END { exit !found }' "$config"; then
-  refuse "the base .gitleaks.toml uses [extend] path, which gitleaks reads from the change being scanned; inline those rules instead"
-fi
+# could be loosened by the change editing that file. Parsed as TOML, not matched
+# with regexes: quoted keys (`["extend"]`, `"path" =`) are the same key to
+# gitleaks, and its config loader (viper) ignores key case, so `[Extend]` and
+# `PATH` count too. A config that won't parse, or no tomllib, refuses as well.
+set +e
+python3 -I -c '
+import sys
+try:
+    import tomllib
+    with open(sys.argv[1], "rb") as f:
+        config = tomllib.load(f)
+except Exception as e:
+    print(e, file=sys.stderr)
+    sys.exit(3)
+for key, value in config.items():
+    if key.lower() == "extend" and isinstance(value, dict):
+        if any(k.lower() == "path" for k in value):
+            sys.exit(1)
+' "$config"
+extend_rc=$?
+set -e
+case $extend_rc in
+  0) ;;
+  1) refuse "the base .gitleaks.toml uses [extend] path, which gitleaks reads from the change being scanned; inline those rules instead" ;;
+  *) refuse "couldn't check the base .gitleaks.toml for [extend] path (exit $extend_rc); it must parse as TOML with python3 tomllib" ;;
+esac
 
 # --remerge-diff skips merges with three or more parents.
 if [ -n "$(git rev-list --min-parents=3 "$base..$head")" ]; then

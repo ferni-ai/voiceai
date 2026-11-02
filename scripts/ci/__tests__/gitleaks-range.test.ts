@@ -278,6 +278,16 @@ describe("gitleaks-range.sh refuses what the scan can't see through", () => {
     );
   });
 
+  it('including quoted keys and any key case, which gitleaks reads as the same key', () => {
+    expectRefused(withBaseConfig('["extend"]\n"path" = "extra.toml"\n'), '[extend] path');
+    expectRefused(withBaseConfig("[ 'extend' ]\n'path' = \"extra.toml\"\n"), '[extend] path');
+    expectRefused(withBaseConfig('[Extend]\nPATH = "extra.toml"\n'), '[extend] path');
+  });
+
+  it('base rules that do not parse as TOML', () => {
+    expectRefused(withBaseConfig('[extend\npath = \n'), "couldn't check the base .gitleaks.toml");
+  });
+
   it('but accepts base rules whose own rules carry a path key', () => {
     const r = withBaseConfig(
       '[extend]\nuseDefault = true\n\n[[rules]]\nid = "x"\nregex = "zzz"\npath = "src/"\n'
