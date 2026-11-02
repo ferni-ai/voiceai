@@ -53,6 +53,7 @@
 /src/agents/integrations/slow-turn-wiring.ts @sethdford
 /src/agents/integrations/tool-ack-clip-wiring.ts @sethdford
 /src/agents/integrations/tool-hum.ts @sethdford
+/src/agents/multi-agent/call-capture-tool.ts @sethdford
 /src/agents/multi-agent/call-news-opener.ts @sethdford
 /src/agents/multi-agent/early-goodbye-call.ts @sethdford
 /src/agents/multi-agent/family-table.ts @sethdford
@@ -173,6 +174,7 @@
 /src/personality/bridge/personality-bridge.ts @sethdford
 /src/personality/infrastructure/firestore-personality-repository.ts @sethdford
 /src/personas/shared/personality-resonance-store.ts @sethdford
+/src/services/call-capture-consent.ts @sethdford
 /src/services/cognitive-intelligence/ant-tracker.ts @sethdford
 /src/services/conversation-thread/group-outreach.ts @sethdford
 /src/services/conversation-thread/thread-manager.ts @sethdford

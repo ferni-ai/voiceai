@@ -168,6 +168,7 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
   // the sponsor's daily holder-verification text count; the same collection's phone_{hash}
   // docs are each number's own send record, uid-free, kept like a STOP (holder-send-ledger.ts)
   { collection: 'holder_verification_sends', doc: 'uid' },
+  { collection: 'call_capture_consent', doc: 'uid' }, // Help shape Ferni (call-capture-consent.ts)
 ];
 
 /**

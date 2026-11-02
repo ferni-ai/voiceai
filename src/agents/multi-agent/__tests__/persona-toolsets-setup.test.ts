@@ -142,3 +142,14 @@ describe.each([
     process.stderr.write(`${persona} off: ${run.offered.length} offered\n`);
   }, 60_000);
 });
+
+describe('CALL_CAPTURE_CONSENT', () => {
+  it('on: the agent is offered setCallCaptureConsent, before the cap; off: it is not', async () => {
+    vi.stubEnv('HANDOFF_FULL_TOOLS', 'on');
+    vi.stubEnv('CALL_CAPTURE_CONSENT', 'off');
+    expect((await build('ferni', false)).offered).not.toContain('setCallCaptureConsent');
+    vi.stubEnv('CALL_CAPTURE_CONSENT', 'on');
+    expect((await build('ferni', false)).offered).toContain('setCallCaptureConsent');
+    expect((await build('maya-santos', true)).offered).toContain('setCallCaptureConsent');
+  }, 60_000);
+});
