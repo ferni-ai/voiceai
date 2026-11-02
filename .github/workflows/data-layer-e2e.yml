@@ -44,7 +44,9 @@ jobs:
 
       # One regex per line: grep -E reads each line as its own pattern. `|-`
       # drops the trailing newline, which would add an empty match-all pattern.
-      # Schedule and dispatch always match (see the action).
+      # Schedule and dispatch always match (see the action). The last lines are
+      # what the single-use and call-claim race tests load besides their stores.
+      # No comments inside the block: each line there is a pattern.
       - id: data_layer
         uses: ./.github/actions/pr-changes
         with:
@@ -86,6 +88,12 @@ jobs:
             ^firebase\.json$
             ^\.github/workflows/data-layer-e2e\.yml$
             ^\.github/actions/(pr-changes|setup-node-pnpm)/
+            ^src/utils/(firestore-utils|erasing-mark)\.ts$
+            ^src/services/superhuman/firestore-utils\.ts$
+            ^src/config/flags/CONNECT_MOMENT_CALENDAR\.ts$
+            ^src/tests/setup(-emulator)?\.ts$
+            ^vitest\.config(\.unit)?\.ts$
+            ^firestore\.rules$
 
   firestore-e2e:
     needs: changes
