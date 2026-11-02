@@ -387,6 +387,8 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   FERNI_SELF_MEMORY: 'src/agents/personas/__tests__/self-memory.test.ts',
   FERNI_STATE: 'src/agents/personas/__tests__/ferni-state.test.ts',
   FIRST_TURN_DEFER_BACKGROUND: 'src/agents/multi-agent/__tests__/first-turn-defer.test.ts',
+  // A forget re-check takes recall's own notes out, never a crisis note naming the topic.
+  FORGET_EVERY_READER: 'src/memory/recall/__tests__/forget-every-reader.test.ts',
   FRIEND_REPAIR: 'src/agents/personas/__tests__/friend-repair.test.ts',
   GOODBYE_ENDS_CALL: 'src/agents/shared/__tests__/call-wrap-up-quiet.test.ts',
   GROUNDED_CLAIMS: 'src/agents/personas/__tests__/grounded-claims-verify.test.ts',
@@ -407,6 +409,8 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   PERSONA_GROWTH: 'src/agents/multi-agent/__tests__/persona-growth-recall.test.ts',
   PHONE_GOODBYE: 'src/agents/shared/__tests__/phone-goodbye.test.ts',
   PHRASE_LOOP_GUARD: 'src/agents/personas/__tests__/phrase-loops.test.ts',
+  // A crisis or safety note is pushed at once, never held behind a preemptive reply.
+  PREEMPT_STABLE_CONTEXT: 'src/agents/multi-agent/__tests__/preempt-stable-context.sdk.test.ts',
   QUESTION_PACE: 'src/agents/personas/__tests__/question-pace-wiring.test.ts',
   QUIET_AFTER_QUESTION: 'src/agents/voice-agent/__tests__/quiet-presence.test.ts',
   REJECTED_TRANSCRIPT_KEEPS_SPEECH:
@@ -419,6 +423,10 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   TEAMMATE_TALK_FILTER: 'src/utils/__tests__/teammate-talk.test.ts',
   THIRD_PARTY_SELF_HARM: 'src/services/safety/__tests__/crisis-who.test.ts',
   TOLD_THIS_CALL: 'src/agents/personas/__tests__/told-this-call.test.ts',
+  // No ack clip on a call with crisis risk noted or a crisis decision.
+  TOOL_ACK_CLIP: 'src/agents/integrations/__tests__/tool-ack-clip.test.ts',
+  // No look-up line or "On it." on a grave call: crisis risk noted or hard news.
+  TOOL_ACK_WIDE: 'src/agents/personas/__tests__/tool-ack-coverage.test.ts',
   TOOL_HUM: 'src/agents/integrations/__tests__/tool-hum-crisis-pending.test.ts',
   TRANSFER_NAME_ALIASES: 'src/tools/handoff/__tests__/transfer-aliases.test.ts',
   TURN_INTELLIGENCE: 'src/agents/multi-agent/__tests__/turn-intelligence.test.ts',
