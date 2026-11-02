@@ -76,6 +76,9 @@ const NOT_A_NAME: ReadonlySet<string> = new Set(
   ].map((w) => w.replace(/'/g, ''))
 );
 
+/** No run longer than this can be on the list, so the check stops there. */
+const LONGEST_NOT_A_NAME = Math.max(...[...NOT_A_NAME].map((w) => w.length));
+
 /** A lone initial ("I." in "I. M. Wu"): a letter, not the word "I". */
 const INITIAL = /^\p{L}\.$/u;
 
@@ -93,6 +96,7 @@ export function holdsNotANameWord(nameWords: readonly string[]): boolean {
     let run = '';
     for (let j = i; j < tokens.length; j++) {
       run += tokens[j].t;
+      if (run.length > LONGEST_NOT_A_NAME) break;
       if (NOT_A_NAME.has(run) && !(j === i && tokens[i].initial)) return true;
     }
   }

@@ -33,56 +33,13 @@ import {
 } from './heard-words.js';
 
 /** Plain, distinct words that speech to text gets right and nobody says by accident. */
-export const CHECK_WORDS: readonly string[] = [
-  'apple',
-  'bridge',
-  'candle',
-  'desert',
-  'eagle',
-  'forest',
-  'garden',
-  'harbor',
-  'island',
-  'jacket',
-  'kettle',
-  'lemon',
-  'meadow',
-  'needle',
-  'orange',
-  'pepper',
-  'rabbit',
-  'saddle',
-  'tiger',
-  'velvet',
-  'window',
-  'yellow',
-  'anchor',
-  'basket',
-  'cactus',
-  'dolphin',
-  'feather',
-  'ginger',
-  'hammer',
-  'iceberg',
-  'jungle',
-  'ladder',
-  'marble',
-  'nickel',
-  'oyster',
-  'pillow',
-  'quilt',
-  'river',
-  'silver',
-  'tunnel',
-  'violin',
-  'walnut',
-  'zebra',
-  'bottle',
-  'copper',
-  'dragon',
-  'falcon',
-  'glacier',
-];
+export const CHECK_WORDS: readonly string[] = (
+  'apple bridge candle desert eagle forest garden harbor island jacket kettle ' +
+  'lemon meadow needle orange pepper rabbit saddle tiger velvet window yellow ' +
+  'anchor basket cactus dolphin feather ginger hammer iceberg jungle ladder ' +
+  'marble nickel oyster pillow quilt river silver tunnel violin walnut zebra ' +
+  'bottle copper dragon falcon glacier'
+).split(' ');
 
 const CHECK_WORD_COUNT = 3;
 
@@ -134,6 +91,9 @@ function pickCheckWords(random: () => number): string[] {
 const clean = (s: string) => s.normalize('NFC').replace(/\s+/g, ' ').trim();
 
 const MAX_NAME_WORDS = 10;
+/** Caps checked before anything else, so a huge "name" costs nothing to refuse. */
+const MAX_NAME_CHARS = 100;
+const MAX_NAME_TOKENS = MAX_NAME_WORDS * 4;
 /** A name word: letters with their marks (Hindi vowel signs), apostrophes, hyphens and joiners. */
 const NAME_WORD = /^(?:[\p{L}\p{M}'\u2019\u02bc\u2010\u2011\u2013-]|\u200c|\u200d)+$/u;
 /** An initial ("J.") or a short title ("Jr.", "Dr."): the only words that may end in a period. */
@@ -144,8 +104,11 @@ const DOTTED_WORD = /^(?:\p{L}|jr|sr|st|dr)\.$/iu;
  * that says no, gives or takes back consent, or names nobody in particular ("everyone").
  */
 function isSpeakableName(name: string): boolean {
-  const words = clean(name).split(' ');
+  const cleaned = clean(name);
+  const words = cleaned.split(' ');
   return (
+    cleaned.length <= MAX_NAME_CHARS &&
+    consentWords(cleaned).length <= MAX_NAME_TOKENS &&
     words.length <= MAX_NAME_WORDS &&
     words.every((w) => DOTTED_WORD.test(w) || NAME_WORD.test(w)) &&
     !holdsNotANameWord(words)

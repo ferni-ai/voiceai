@@ -9,7 +9,7 @@ import {
   type ConsentStatement,
   scoreConsentTranscript,
 } from '../voice-consent.js';
-import { consentWords } from '../heard-words.js';
+import { consentWords, holdsNotANameWord } from '../heard-words.js';
 
 /** Steps through [0, 1) so each pick is predictable. */
 const seq = (...values: number[]) => {
@@ -505,6 +505,34 @@ describe('scoreConsentTranscript on a statement it did not build', () => {
       const stored = { ...forMaya, ...change } as unknown as ConsentStatement;
       expect(scoreConsentTranscript(stored, forMaya.text).verified).toBe(false);
     }
+  });
+
+  const build = (subjectName: string, creatorName: string | null) =>
+    buildConsentStatement({ subjectName, creatorName, spokenDate: 'today', random: seq(0, 0, 0) });
+
+  it('refuses a 10,000-character name in well under 50 ms, built or stored', () => {
+    const huge = 'Rosa'.repeat(2500);
+    const started = performance.now();
+    expect(() => build(huge, null)).toThrow(RangeError);
+    expect(() => build('Rosa Quill', `${'a-'.repeat(4999)}a`)).toThrow(RangeError);
+    expect(scoreConsentTranscript(tampered({ subjectName: huge }), forMaya.text).verified).toBe(
+      false
+    );
+    expect(performance.now() - started).toBeLessThan(50);
+  });
+
+  it('caps a name at 100 characters and 40 words heard, before any word check', () => {
+    expect(() => build('X'.repeat(100), null)).not.toThrow();
+    expect(() => build('X'.repeat(101), null)).toThrow(RangeError);
+    expect(() => build(`${'a-'.repeat(39)}a`, null)).not.toThrow();
+    expect(() => build(`${'a-'.repeat(40)}a`, null)).toThrow(RangeError);
+  });
+
+  it('checks a name of thousands of heard words in linear time, to the last word', () => {
+    const started = performance.now();
+    expect(holdsNotANameWord([`${'a-'.repeat(3000)}a`])).toBe(false);
+    expect(holdsNotANameWord([`${'a-'.repeat(3000)}some-one`])).toBe(true);
+    expect(performance.now() - started).toBeLessThan(50);
   });
 
   it.each(['not today', 'until I say stop', 'Halloween'])(
