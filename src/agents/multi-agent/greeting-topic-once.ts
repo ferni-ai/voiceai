@@ -25,6 +25,7 @@
 
 import { createHash } from 'node:crypto';
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { sharedWords } from '../personas/caller-greeting.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -33,8 +34,25 @@ const log = createLogger({ module: 'greeting-topic-once' });
 /** Longer than the gap between most calls; the record has nothing to do after it. */
 const KEEP_MS = 60 * 24 * 60 * 60 * 1000;
 
-export function lastTopicOnceOn(env: Env = process.env): boolean {
+function lastTopicOnceOn(env: Env): boolean {
   return flagOn('LAST_TOPIC_ONCE', env);
+}
+
+/**
+ * Warmth any hello can carry, so sharing one with the summary is not raising it: "Love
+ * hearing your voice, so glad you called!" after a summary about a concert they loved.
+ */
+const WARMTH = `love loved lovely glad happy hope hoping excited exciting missed miss welcome
+  back catch caught thinking thought hear hearing voice called calling feel feeling felt
+  wonderful amazing awesome fun proud sorry wish wishing care caring nice smile laugh
+  thanks thank grateful`.split(/\s+/);
+
+/**
+ * The hello raised `topic` itself: it shares a word with the summary that isn't a name,
+ * small talk or warmth. Errs toward not raised, which offers the topic again next call.
+ */
+export function raisesTopic(line: string, topic: string, userName?: string): boolean {
+  return sharedWords(topic, line, [...(userName ? [userName] : []), ...WARMTH]).length > 0;
 }
 
 /** The same summary, however it was spaced or cased, has one key. */

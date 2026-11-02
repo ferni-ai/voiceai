@@ -8,8 +8,8 @@
 import { coachFollowThroughMode } from '../../services/superhuman/commitment-follow-up.js';
 import { markWinSurfaced, winForOpener, type Win } from '../../services/superhuman/wins.js';
 import { checkInsWithCalls } from '../../services/outreach/call-status.js';
-import { claimIfAsked, lineAsks, mentionsTopic } from './greeting-claim.js';
-import { markTopicRaised, topicAlreadyRaised } from './greeting-topic-once.js';
+import { claimIfAsked, lineAsks } from './greeting-claim.js';
+import { markTopicRaised, raisesTopic, topicAlreadyRaised } from './greeting-topic-once.js';
 import { isPonderingOn } from '../../intelligence/pondering/pondering.js';
 import { markSurfaced } from '../../intelligence/pondering/pondering-reader.js';
 import { ponderingForOpener } from '../../intelligence/pondering/pondering-opener.js';
@@ -457,8 +457,10 @@ export async function directedGreeting(
   if (!unknown && userData?.userId && directed.source === 'actor' && spoken === directed.text) {
     const threads = { checkIn, pondered: ask?.text, lastTopic: told?.lastTopic };
     claimIfAsked(userData.userId, spoken, { ...threads, userName: userData.userName });
-    if (told?.lastTopic && mentionsTopic(spoken, told.lastTopic, userData.userName))
-      void markTopicRaised(userData.userId, told.lastTopic);
+    // Only a topic the hello was given: a same-day return or a date still ahead holds it back.
+    const given = hold.history?.lastTopic;
+    if (given && raisesTopic(spoken, given, userData.userName))
+      void markTopicRaised(userData.userId, given);
   }
   if (dateNow && directed.source === 'actor') dateNow.commit(spoken); // the winner, if it said it
   return calmGreeting(spoken);
