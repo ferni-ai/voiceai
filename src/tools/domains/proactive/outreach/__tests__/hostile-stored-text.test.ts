@@ -118,6 +118,19 @@ describe('hostileStoredText', () => {
     }
   });
 
+  it('a currency sign alone never splits a number: only a word between two amounts does', () => {
+    for (const line of [
+      '$555-$123-$4567',
+      '$555 $123 $4567',
+      '$555/$1234',
+      '$555&$1234',
+      '$5551234',
+      'pay $20 then $555-$1234',
+    ]) {
+      expect(hostileStoredText(line)).toBe('money_destination');
+    }
+  });
+
   it('a rule that fires before the digit rule on the unmasked text still counts', () => {
     // vanity_number comes first in destinationIn; masking the amount would hide the number
     expect(hostileStoredText('Pay $800-FLOWERS now')).toBe('money_destination');

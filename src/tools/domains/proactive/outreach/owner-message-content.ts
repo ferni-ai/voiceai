@@ -267,7 +267,7 @@ const ADDRESS_DOTS = [
 ];
 
 // Every later rule reads / & " as "-" and an emoji as a space: separators that can't glue or break a shape
-const ruleForm = (folded: string): string =>
+export const ruleForm = (folded: string): string =>
   folded.replace(/[/&"]/g, '-').replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}]/gu, ' ');
 
 /** Rule 2 alone on destinationIn's form, for a reader that must not depend on which rule comes first. */
