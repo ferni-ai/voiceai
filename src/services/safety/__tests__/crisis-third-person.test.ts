@@ -82,8 +82,6 @@ const OPENER = 'hey, can I tell you about something going on with my family?';
 const NEAR_MISSES = [
   "she said she doesn't want to be here, the party's boring",
   'he talked about ending it with his girlfriend',
-  'she talked about ending it at work, the project is a mess',
-  'my brother mentioned ending it before the holidays',
   "she fell asleep and can't get up early",
   "my dad's killing it at work",
   'she keeps hurting herself at the gym',
@@ -93,7 +91,6 @@ const NEAR_MISSES = [
   "she's saving up for a car",
   'he talked about ending the lease',
   "she doesn't want to live in that neighborhood",
-  'they talked about ending it early this year',
   'she said the band would be better off without his drumming',
   'my uncle jokes the office would be better off without the printer',
   "he doesn't see the point of the weekly status meeting",
@@ -141,6 +138,37 @@ describe('third-person reported crisis (#3345)', () => {
     expect(crisisRead(line)).toBe(false);
   });
 
+  // A filter may only skip the named everyday idiom. A time, a place, a reason or a trip
+  // elsewhere in the sentence never turns a report about someone else into an everyday line.
+  it.each([
+    'she talked about ending it at work, the project is a mess',
+    'my brother mentioned ending it before the holidays',
+    'they talked about ending it early this year',
+    'he talked about ending it because nothing helps',
+    'she talked about ending it on her birthday',
+    'they talked about ending it while I was away',
+    'she has been hurting herself since the divorce',
+    'she has been hurting herself at night',
+    'my sister has been hurting herself over the breakup',
+    "he doesn't see the point of going on like this",
+    "she doesn't see the point in living with this pain",
+    "she doesn't see the point of life without dad",
+    "she doesn't see the point of life so she can be with grandpa",
+    "he gave all his stuff away and said he's moving on",
+    "he's been stockpiling his pills for the trip",
+    "she's been saving her pills for the weekend",
+    'she has pills saved up for the trip',
+  ])('still reads a third-party crisis, first and mid-call: %s', (line) => {
+    for (const read of [
+      detectCrisis(line),
+      detectCrisis(line, undefined, { recentMessages: [OPENER] }),
+    ]) {
+      expect(read.isCrisis).toBe(true);
+      expect(read.subject).toBe('third_party');
+      expectNotImminent(read);
+    }
+  });
+
   it('never takes the 988 override for a worry about someone else', () => {
     const read = detectCrisis('she mentioned she has pills saved up', {
       primary: 'distressed',
@@ -177,6 +205,23 @@ describe('third-person reported crisis (#3345)', () => {
       "I'm not kidding, she's not breathing",
       'my grandpa is unresponsive, I called 911',
       "she's unresponsive, I texted my sister and called 911",
+      // A laugh word, a message word or a time elsewhere in the sentence never cancels it.
+      "my dad collapsed and isn't breathing, my kids were laughing at the TV",
+      "he collapsed laughing and now he isn't breathing",
+      "I wish I was joking, my mom fell and can't get up",
+      "this isn't a joke, he collapsed and won't wake up",
+      "not even kidding, she passed out and isn't responding",
+      "she's unresponsive on the floor, I called 911 and they're on the phone",
+      "she's unresponsive and won't wake up, I keep texting her",
+      'my grandpa is unconscious on the kitchen floor',
+      "he's been unresponsive for ten minutes",
+      "my mom fell and she won't answer the door",
+      "my dad collapsed on the floor and won't answer his phone",
+      "she collapsed and won't wake up when I shake her",
+      "my grandpa passed out and won't wake up for anything",
+      "he fell and can't get up until someone helps him",
+      "she collapsed and isn't breathing, it's been like that for a while",
+      "my mom fell ill and can't get up",
     ])('blocks with the 911-for-them reply, first and mid-call: %s', (line) => {
       for (const read of [
         detectCrisis(line),
@@ -291,6 +336,24 @@ describe('third-person reported crisis (#3345)', () => {
       'my mom has been saving her pills for the trip',
       "he doesn't see the point of life insurance",
       'my laptop collapsed',
+      "my phone fell and can't turn on",
+      'she collapsed on the floor laughing when the dog sneezed',
+      "my dad fell asleep on the floor and won't wake up for the movie",
+      "he's not breathing a word about the party",
+      'my sister has been unresponsive on the group chat',
+      "she fainted at the concert but she's fine now",
+      "my brother blacked out at the party and can't remember a thing",
+      'he fell off the ladder but got up and kept painting',
+      'my mom has been hurting herself at pilates',
+      'he talked about ending it with his landlord',
+      "she doesn't see the point in going on a diet",
+      "they've been saving their meds for the cruise",
+      "my uncle passed out on the beach chair and won't get up",
+      "my grandma fell for the scam email and can't get her money back",
+      'our teen is unresponsive in the mornings',
+      'my roommate collapsed onto the sofa and is not moving until dinner',
+      "she's been unresponsive since I asked about the money",
+      'my friend stopped breathing for a second when she saw the price tag',
     ])('stays everyday, first and mid-call: %s', (line) => {
       for (const read of [
         detectCrisis(line),
