@@ -6,7 +6,7 @@ import { readFile } from 'fs/promises';
 import { getLogger } from '../../utils/safe-logger.js';
 
 /** How long one content type may take to load before the runtime goes on without it. */
-export const CONTENT_LOAD_TIMEOUT_MS = 5000;
+const CONTENT_LOAD_TIMEOUT_MS = 5000;
 
 /**
  * Read and parse a JSON file. A parse error names the file in its message and
