@@ -23,10 +23,10 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join, posix } from 'node:path';
-import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
+import { scan, type Scan } from './node-code-imports';
 
 const ROOT = join(__dirname, '..', '..', '..');
 const CLIENT_SDK = /^(firebase|@firebase\/[^/]+)(\/|$)/;
@@ -75,50 +75,6 @@ interface FileInfo {
   unresolved: string[];
 }
 
-const isViMock = (e: ts.Expression): boolean =>
-  ts.isPropertyAccessExpression(e) &&
-  ts.isIdentifier(e.expression) &&
-  e.expression.text === 'vi' &&
-  e.name.text === 'mock';
-
-/** A factory with no parameters that never calls the original replaces the module outright. */
-const replacesModule = (factory: ts.Expression, text: string): boolean =>
-  (ts.isArrowFunction(factory) || ts.isFunctionExpression(factory)) &&
-  factory.parameters.length === 0 &&
-  !/importActual|importOriginal/.test(text.slice(factory.pos, factory.end));
-
-/** Value imports of one file, plus `vi.mock` targets whose factory never loads the original. */
-function scan(file: string, text: string): { specs: string[]; dynamic: string[]; mocks: string[] } {
-  const specs: string[] = [];
-  const dynamic: string[] = [];
-  const mocks: string[] = [];
-  const visit = (node: ts.Node): void => {
-    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier) {
-      const typeOnly = ts.isImportDeclaration(node)
-        ? node.importClause?.isTypeOnly
-        : node.isTypeOnly;
-      if (!typeOnly && ts.isStringLiteral(node.moduleSpecifier))
-        specs.push(node.moduleSpecifier.text);
-    } else if (ts.isCallExpression(node)) {
-      const [first, factory] = node.arguments;
-      const callee = node.expression;
-      if (first && ts.isStringLiteralLike(first)) {
-        if (callee.kind === ts.SyntaxKind.ImportKeyword) {
-          dynamic.push(first.text);
-        } else if (ts.isIdentifier(callee) && callee.text === 'require') {
-          specs.push(first.text);
-        } else if (isViMock(callee) && factory && replacesModule(factory, text)) {
-          mocks.push(first.text);
-        }
-      }
-    }
-    ts.forEachChild(node, visit);
-  };
-  if (/\b(import|require|from)\b/.test(text))
-    visit(ts.createSourceFile(file, text, ts.ScriptTarget.Latest, false));
-  return { specs, dynamic, mocks };
-}
-
 /** Repo path a specifier loads, `null` for a package, or `undefined` when it cannot be resolved. */
 function resolveSpec(from: string, spec: string, files: Set<string>): string | null | undefined {
   const bare = spec.split('?')[0] ?? spec;
@@ -137,15 +93,15 @@ function resolveSpec(from: string, spec: string, files: Set<string>): string | n
 }
 
 function buildGraph(
-  read: (file: string) => string | undefined,
+  scanOf: (file: string) => Scan | undefined,
   all: string[]
 ): Map<string, FileInfo> {
   const files = new Set(all);
   const graph = new Map<string, FileInfo>();
   for (const file of all.filter((f) => CODE.test(f))) {
-    const text = read(file);
-    if (text === undefined) continue;
-    const { specs, dynamic, mocks } = scan(file, text);
+    const scanned = scanOf(file);
+    if (scanned === undefined) continue;
+    const { specs, dynamic, mocks } = scanned;
     const info: FileInfo = { edges: [], lazy: [], sdk: [], mocked: [], unresolved: [] };
     const add = (spec: string, into: string[]): void => {
       // A dynamic import of the SDK itself stays in `sdk`: LAZY_CUTS skips repo edges only.
@@ -199,6 +155,32 @@ function nodeEntries(graph: Map<string, FileInfo>): string[] {
   return [...graph.keys()].filter((f) => !BROWSER.test(f) || WEB_VITEST.test(f));
 }
 
+/**
+ * Files with any import path to a client SDK specifier, ignoring stubs, mocks and cuts.
+ * Those only remove edges, so an entry outside this set has no chain to search for.
+ */
+function reachesSdk(graph: Map<string, FileInfo>): Set<string> {
+  const importers = new Map<string, string[]>();
+  for (const [file, info] of graph) {
+    for (const to of [...info.edges, ...info.lazy]) {
+      const list = importers.get(to);
+      if (list) list.push(file);
+      else importers.set(to, [file]);
+    }
+  }
+  const reach = new Set([...graph].filter(([, info]) => info.sdk.length > 0).map(([f]) => f));
+  const queue = [...reach];
+  for (let file = queue.pop(); file !== undefined; file = queue.pop()) {
+    for (const from of importers.get(file) ?? []) {
+      if (!reach.has(from)) {
+        reach.add(from);
+        queue.push(from);
+      }
+    }
+  }
+  return reach;
+}
+
 /** `entry > ... > specifier` for each Node entry that loads the client SDK. */
 function violations(
   graph: Map<string, FileInfo>,
@@ -206,7 +188,8 @@ function violations(
   cuts: Record<string, LazyCut> = LAZY_CUTS
 ): Map<string, string> {
   const out = new Map<string, string>();
-  for (const entry of nodeEntries(graph)) {
+  const reach = reachesSdk(graph);
+  for (const entry of nodeEntries(graph).filter((f) => reach.has(f))) {
     const stubs = runsUnderWebVitest(entry) ? stubbed : [];
     const chain = chainToSdk(entry, graph, stubs, cuts[entry]);
     if (chain) out.set(entry, chain.join(' > '));
@@ -230,9 +213,19 @@ function repoGraph(): Map<string, FileInfo> {
     }
   );
   const all = out.toString('utf8').split('\0').filter(Boolean);
-  const read = (f: string): string | undefined =>
-    existsSync(join(ROOT, f)) ? readFileSync(join(ROOT, f), 'utf8') : undefined;
-  return buildGraph(read, all);
+  // Scan in a plain Node process, outside this worker's coverage instrumentation (see the
+  // helper's header). No coverage is wanted for it, even with autoAttachSubprocess on.
+  const env = { ...process.env };
+  delete env.NODE_V8_COVERAGE;
+  const scans = execFileSync(
+    process.execPath,
+    ['--import', 'tsx', join(__dirname, 'node-code-imports.ts'), ROOT],
+    { cwd: ROOT, env, input: JSON.stringify(all.filter((f) => CODE.test(f))), maxBuffer: 1 << 30 }
+  );
+  const byFile = new Map(
+    Object.entries(JSON.parse(scans.toString('utf8')) as Record<string, Scan>)
+  );
+  return buildGraph((f) => byFile.get(f), all);
 }
 
 describe('the Firebase client SDK never runs in Node', () => {
@@ -283,7 +276,7 @@ describe('the Firebase client SDK never runs in Node', () => {
 
   const stub = ['firebase/app', 'firebase/auth'];
   const fixture = (files: Record<string, string>): Map<string, FileInfo> =>
-    buildGraph((f) => files[f], Object.keys(files));
+    buildGraph((f) => (files[f] === undefined ? undefined : scan(f, files[f])), Object.keys(files));
   const sdkModule = { 'apps/web/src/sdk.ts': `import { getFirestore } from 'firebase/firestore';` };
 
   it.each([
