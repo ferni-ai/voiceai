@@ -437,7 +437,7 @@
     "@livekit/agents": "1.9.3",
     "@livekit/agents-plugin-cartesia": "1.9.3",
     "@livekit/agents-plugin-google": "1.9.3",
-    "@livekit/agents-plugin-openai": "1.9.3",
+    "@livekit/agents-plugin-openai": "1.9.5",
     "@livekit/agents-plugin-silero": "1.9.3",
     "@livekit/noise-cancellation-node": "^0.3.0",
     "@livekit/protocol": "1.53.1",
