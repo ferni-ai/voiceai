@@ -48,10 +48,9 @@ jobs:
         with:
           frozen-lockfile: 'false'
 
-      - name: Check token drift
-        run: pnpm tokens:check
-        working-directory: .
-
+      # No token drift step here: `tokens:check` compared mtimes, which a checkout
+      # makes equal, so it could never fail in CI. The content-based gate is
+      # `pnpm tokens:drift` in ci.yml (Frontend Quality, required).
       - name: Validate brand alignment
         run: pnpm brand:check
         working-directory: .

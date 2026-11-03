@@ -1,3 +1,4 @@
+import { execFileSync } from 'child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -163,6 +164,7 @@ describe('brand copy check', () => {
         mkdirSync(join(repo, file, '..'), { recursive: true });
         writeFileSync(join(repo, file), '');
       }
+      execFileSync('git', ['init', '-q'], { cwd: repo });
       expect(getAllRelevantFiles(repo)).toEqual(['apps/web/src/app.ts', 'apps/web/src/ui/menu.ui.ts']);
     } finally {
       rmSync(repo, { recursive: true, force: true });

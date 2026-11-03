@@ -39,8 +39,8 @@ on:
     # Tests, Security Scan, Quality Gates. Integration Tests, Build and the other
     # slow jobs skip on pull_request (a skipped job still reports its check), so PR
     # runs stop starving the merge queue for runners. The queue runs the required
-    # checks only. AGI Feature Tests, Build, Code Quality Metrics, Validation, E2E
-    # Validation and Dependency Check are required by nothing: they run on every push
+    # checks only. AGI Feature Tests, Build, Validation and E2E Validation are
+    # required by nothing: they run on every push
     # to main, even when queue-tested skips the required suite, and nightly; and
     # nightly-health.yml opens a main-red issue when the push run fails
     # (src/tests/deploy/merge-queue-jobs.test.ts).
@@ -1021,51 +1021,6 @@ jobs:
         run: bash scripts/ci/gitleaks-range.sh "$BASE" "$HEAD"
 
   # ============================================================================
-  # CODE QUALITY METRICS (using unified audit CLI)
-  # ============================================================================
-  code-quality:
-    name: Code Quality Metrics
-    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
-    timeout-minutes: 15
-    needs: setup
-    if: github.event_name == 'push' || github.event_name == 'schedule'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Restore node_modules cache
-        id: nm-cache
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            node_modules
-            apps/*/node_modules
-            packages/*/node_modules
-          key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: false
-
-      # The cache is saved by the setup job of the same run. "Re-run failed jobs"
-      # and cache eviction (10 GB repo limit) both leave it missing; install
-      # instead of failing a job that has nothing wrong with it.
-      - name: Install dependencies (node_modules cache miss)
-        if: steps.nm-cache.outputs.cache-hit != 'true'
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Run unified audit
-        run: pnpm audit all
-        continue-on-error: true
-
-  # ============================================================================
   # STRICT QUALITY GATES (blocking - fails build if thresholds exceeded)
   # ============================================================================
   quality-gates:
@@ -1121,6 +1076,12 @@ jobs:
       - name: Architecture gate
         run: pnpm quality:arch
 
+      # Blocking ratchet: a new direct Firestore .set/.update/.add with no safe wrapper
+      # (safeSet, cleanForFirestore, ...) near it fails; the ~316 existing sites pass. Measured
+      # against the merge base like the gates above (scripts/check-unsafe-firestore.ts). ~2 s.
+      - name: Unsafe Firestore writes
+        run: pnpm quality:firestore
+
       # Blocking ratchet: a relative vi.mock-family string naming no module fails (vitest
       # mocks a path nobody imports and the real module loads). Fix: point the string at
       # the module the test means. The baseline only shrinks: a fixed entry fails until
@@ -1152,6 +1113,11 @@ jobs:
       # the merge base, fails (knip.json; knip runs here and on the base). ~10 s.
       - name: Dead code (knip ratchet)
         run: pnpm quality:knip
+
+      # Blocking: no more than 4 module-level lets filled from a per-caller value (session,
+      # room, user), which leak one caller's state into the next (quality:module-state).
+      - name: Module-level per-caller state
+        run: pnpm quality:module-state
 
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates
@@ -1341,6 +1307,15 @@ jobs:
           (cd apps/web && pnpm lint --format json --output-file eslint.json) || true
           pnpm tsx apps/cli/src/commands/quality/ratchet.ts --eslint apps/web/eslint.json
 
+      # The design-system rules (eslint.design.config.mjs) on apps/web and packages/ferni-react.
+      # ~6,600 old violations, so the ratchet fails only when a rule gains errors (baseline:
+      # ratchet-baseline.json "designEslint"). ESLint exits 1 for findings; any other exit (a
+      # crash, an unknown option: lint:design exited 2 for months) fails the step. ~5 s.
+      - name: Design-system ESLint (ratchet)
+        run: |
+          pnpm lint:design --format json --output-file "$RUNNER_TEMP/design-eslint.json" || [ $? -eq 1 ]
+          pnpm tsx apps/cli/src/commands/quality/ratchet.ts --eslint "$RUNNER_TEMP/design-eslint.json" --as designEslint
+
       - name: Web unit tests
         working-directory: apps/web
         run: npx vitest run
@@ -1350,11 +1325,13 @@ jobs:
           cd apps/web
           pnpm lint:tokens
 
-      - name: UI audit
-        run: |
-          cd apps/web
-          pnpm audit:ui || true
-        continue-on-error: true
+      # Blocking: no UI audit errors (an <img> with no alt, an empty .catch(() => {})).
+      # MAX_UI_AUDIT_ERRORS in apps/web/scripts/audit-ui.js is 0, the count on main; a scan
+      # that can't read a directory or finds no files fails too. Each rule has a flagged and a
+      # passing case in apps/web/tests/audit-ui-rules.test.ts. It used to run with `|| true`.
+      - name: UI audit (ratchet)
+        working-directory: apps/web
+        run: pnpm audit:ui
 
       # The build must succeed, and the bundle may not grow past its baseline (2% slack).
       - name: Build and bundle ratchet
@@ -1449,48 +1426,3 @@ jobs:
       - name: First-paint check
         working-directory: apps/web
         run: pnpm exec playwright test -c playwright.first-paint.config.ts
-
-  # ============================================================================
-  # DEPENDENCY CHECK
-  # ============================================================================
-  dependencies:
-    name: Dependency Check
-    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
-    timeout-minutes: 10
-    needs: setup
-    if: github.event_name == 'push' || github.event_name == 'schedule'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Restore node_modules cache
-        id: nm-cache
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            node_modules
-            apps/*/node_modules
-            packages/*/node_modules
-          key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: false
-
-      # The cache is saved by the setup job of the same run. "Re-run failed jobs"
-      # and cache eviction (10 GB repo limit) both leave it missing; install
-      # instead of failing a job that has nothing wrong with it.
-      - name: Install dependencies (node_modules cache miss)
-        if: steps.nm-cache.outputs.cache-hit != 'true'
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Check for outdated dependencies
-        run: pnpm outdated || true
-
-      - name: Check for duplicate dependencies
-        run: pnpm dlx depcheck --ignores="@types/*" || true
