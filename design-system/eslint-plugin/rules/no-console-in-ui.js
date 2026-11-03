@@ -74,7 +74,7 @@ module.exports = {
     const allowInScripts = options.allowInScripts !== false;
     const allowedPaths = options.allowedPaths || [];
 
-    const filename = context.getFilename();
+    const filename = context.filename;
 
     // Skip test files
     if (allowInTests && (

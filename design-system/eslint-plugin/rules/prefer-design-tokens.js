@@ -11,6 +11,8 @@
  *   - Z-index values
  */
 
+const keyOf = require('./key-name');
+
 // Spacing scale from design system
 const SPACING_SCALE = {
   0: '--space-0',
@@ -199,7 +201,7 @@ module.exports = {
         if (!node.key || !node.value) return;
         if (node.value.type !== 'Literal') return;
 
-        const keyName = node.key.name || node.key.value;
+        const keyName = keyOf(node.key);
         const value = node.value.value;
 
         // Check spacing properties

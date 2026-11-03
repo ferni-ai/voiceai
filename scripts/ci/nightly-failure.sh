@@ -32,7 +32,7 @@ failed=$(gh api "repos/$REPO/actions/runs/$RUN_ID/jobs?per_page=100" --paginate 
 if [[ "$event" == "push" ]]; then
   label=main-red
   title="main red: \"$workflow\" failed on a push to main"
-  why="The merge queue keeps merging onto a red main until this is fixed. The jobs no required check needs (AGI Feature Tests, Build, Code Quality Metrics, Validation, E2E Validation, Dependency Check, the iOS build) run only on this push, never in the queue. Fix it or revert the commit; if it was a flake, say so and close."
+  why="The merge queue keeps merging onto a red main until this is fixed. The jobs no required check needs (AGI Feature Tests, Build, Validation, E2E Validation, the iOS build) run only on this push, never in the queue. Fix it or revert the commit; if it was a flake, say so and close."
 else
   label=ci-health
   title="CI health: nightly \"$workflow\" failing on main"

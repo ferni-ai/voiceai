@@ -83,15 +83,34 @@ describe('merge-base diff', () => {
     expect(resolveBase(root, {})).toBe(base);
   });
 
-  it('uses merge_group.base_sha in the queue, and the push event\'s before', () => {
+  it('measures a queue entry from the target branch, not from the entry ahead (merge_group.base_sha)', () => {
+    const base = repo();
+    git('update-ref', 'refs/remotes/origin/main', base);
+    write({ 'src/ahead.ts': 'export const a = 1;\n' });
+    git('add', '.');
+    git('commit', '-q', '-m', 'entry queued ahead');
+    const ahead = git('rev-parse', 'HEAD');
+    write({ 'src/c.ts': 'export const c = 1;\n' });
+    git('add', '.');
+    git('commit', '-q', '-m', 'this entry');
+    const head = git('rev-parse', 'HEAD');
+    const event = join(root, 'event.json');
+    const group = { base_ref: 'refs/heads/main', base_sha: ahead, head_sha: head };
+    writeFileSync(event, JSON.stringify({ merge_group: group }));
+    expect(resolveBase(root, { GITHUB_EVENT_PATH: event })).toBe(base);
+    git('update-ref', '-d', 'refs/remotes/origin/main');
+    expect(() => resolveBase(root, { GITHUB_EVENT_PATH: event })).toThrow(/No merge base/);
+    writeFileSync(event, JSON.stringify({ merge_group: { base_sha: ahead, head_sha: head } }));
+    expect(() => resolveBase(root, { GITHUB_EVENT_PATH: event })).toThrow(/without base_ref/);
+  });
+
+  it("uses the push event's before", () => {
     const base = repo();
     write({ 'src/c.ts': 'export const c = 1;\n' });
     git('add', '.');
     git('commit', '-q', '-m', 'next');
     const head = git('rev-parse', 'HEAD');
     const event = join(root, 'event.json');
-    writeFileSync(event, JSON.stringify({ merge_group: { base_sha: base, head_sha: head } }));
-    expect(resolveBase(root, { GITHUB_EVENT_PATH: event })).toBe(base);
     writeFileSync(event, JSON.stringify({ before: base, after: head }));
     expect(resolveBase(root, { GITHUB_EVENT_PATH: event })).toBe(base);
   });
