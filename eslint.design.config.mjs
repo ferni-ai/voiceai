@@ -4,7 +4,7 @@
  *
  * They get their own config because neither existing one can carry them: the root
  * eslint.config.mjs ignores apps/web and is type-aware against ./tsconfig.json, which
- * doesn't include apps/web; apps/web/.eslintrc.cjs is legacy eslintrc. Only these rules run
+ * doesn't include apps/web; apps/web/eslint.config.mjs is the web app's own ratcheted rule set. Only these rules run
  * here, so CI can ratchet their counts per rule (ratchet-baseline.json "designEslint").
  */
 import tseslint from '@typescript-eslint/eslint-plugin';
