@@ -218,8 +218,8 @@ importers:
         specifier: ^0.35.5
         version: 0.35.5(@types/node@22.20.5)
       stripe:
-        specifier: ^20.0.0
-        version: 20.1.0(@types/node@22.20.5)
+        specifier: ^23.1.0
+        version: 23.1.0(@types/node@22.20.5)
       twilio:
         specifier: ^5.10.7
         version: 5.10.7
@@ -6915,11 +6915,11 @@ packages:
     resolution: {integrity: sha512-1tB5mhVo7U+ETBKNf92xT4hrQa3pm0MZ0PQvuDnWgAAGHDsfp4lPSpiS6psrSiet87wyGPh9ft6wmhOMQ0hDiw==}
     engines: {node: '>=14.16'}
 
-  stripe@20.1.0:
-    resolution: {integrity: sha512-o1VNRuMkY76ZCq92U3EH3/XHm/WHp7AerpzDs4Zyo8uE5mFL4QUcv/2SudWsSnhBSp4moO2+ZoGCZ7mT8crPmQ==}
-    engines: {node: '>=16'}
+  stripe@23.1.0:
+    resolution: {integrity: sha512-fVUfMSfTPoukfoV//MUKAx2+YxyKmYaYtnAL9VkfnHfaPNQylFdWZMD+zgUFerI8rjbaiER8Vzj2XEUQ2AhAsQ==}
+    engines: {node: '>=20'}
     peerDependencies:
-      '@types/node': '>=16'
+      '@types/node': '>=20'
     peerDependenciesMeta:
       '@types/node':
         optional: true
@@ -14091,9 +14091,7 @@ snapshots:
 
   strip-json-comments@5.0.3: {}
 
-  stripe@20.1.0(@types/node@22.20.5):
-    dependencies:
-      qs: 6.16.0
+  stripe@23.1.0(@types/node@22.20.5):
     optionalDependencies:
       '@types/node': 22.20.5
 
