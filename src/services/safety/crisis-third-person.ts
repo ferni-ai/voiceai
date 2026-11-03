@@ -62,8 +62,8 @@ export const THIRD_PERSON_REPORTED: readonly RegExp[] = [
 
 /** Down: "fell", "collapsed", "passed out". The everyday "fell asleep" or "fell for" is masked first. */
 const DOWN = String.raw`(?:fell|has fallen|had a fall|collapsed|passed out|fainted|blacked out)`;
-/** Not getting up: "can't get up", "won't wake up", "isn't breathing". */
-const NOT_UP = String.raw`(?:(?:can'?t|cannot|can not|isn'?t able to|is not able to|still can'?t|couldn'?t) (?:get up|stand(?: up)?|move|wake up|breathe|respond)|(?:won'?t|will not|still won'?t) (?:wake up|breathe|respond|answer)|(?:isn'?t|is not|still isn'?t) (?:breathing|responding|waking up|moving))`;
+/** Not getting up: "can't get up", "won't wake up", "isn't breathing", "she's not responding". */
+const NOT_UP = String.raw`(?:(?:can'?t|cannot|can not|isn'?t able to|is not able to|still can'?t|couldn'?t) (?:get up|stand(?: up)?|move|wake up|breathe|respond)|(?:won'?t|will not|still won'?t) (?:wake up|breathe|respond|answer)|(?:isn'?t|is not|still isn'?t|not|still not) (?:breathing|responding|waking up|moving))`;
 /**
  * Who went down: "my dad collapsed", or the same subject carried on past a first clause: "my dad
  * got dizzy, then fell". Never past an "i" or "we", so the caller's own fall stays theirs.
@@ -71,7 +71,7 @@ const NOT_UP = String.raw`(?:(?:can'?t|cannot|can not|isn'?t able to|is not able
 const CLAUSE_START = String.raw`(?:^ *(?:(?!i\b)[a-z]+ )?|[,;] ?|\b(?:and|so|but|then|because|now|okay|well|oh) )`;
 const WHO_WENT_DOWN = String.raw`(?:\b${OTHER}(?: [a-z]+)?${AUX} |${CLAUSE_START}${OTHER}\b(?:(?!\b(?:i|we|you)\b)[^.!?]){0,60}?(?:,|\band|\bthen)(?: then)? )${DOWN}\b`;
 const DOWN_NOT_UP = new RegExp(
-  String.raw`${WHO_WENT_DOWN}[^.!?]{0,40}?\b(?:and|but|now)(?: (?:he|she|they)(?:'s|'re| is| are)?)? ${NOT_UP}`
+  String.raw`${WHO_WENT_DOWN}[^.!?]{0,40}?(?:\b(?:and|but|now)|,)(?: (?:he|she|they)(?:'s|'re| is| are)?)? ${NOT_UP}`
 );
 const NOT_BREATHING = new RegExp(
   String.raw`\b${OTHER}(?: [a-z]+)?${AUX} (?:(?:not|isn'?t|wasn'?t|aren'?t|weren'?t|no longer|barely|still not) breathing|(?:stopped|stops) breathing|unconscious)\b`
@@ -88,8 +88,9 @@ const EVERYDAY: readonly RegExp[] = [
   /\bfell (?:asleep|for|in love|behind|apart|short|silent|quiet|through)\b/g,
   // Not answering messages: "won't answer his phone", "won't respond to my texts".
   /\b(?:respond(?:ing)?|answer(?:ing)?) (?:to )?(?:[a-z]+'?s? )?(?:phone|texts?|calls?|messages?|e-?mails?|dms?|slack|voicemails?)\b/g,
-  // A time: "won't wake up for dinner", "can't get up early", "is not moving until dinner".
-  /\b(?:get up|stand(?: up)?|move|wake up|breathe|respond|answer|breathing|responding|waking up|moving) (?:early|on time|in time|in the morning|tomorrow|(?:for|until|till) (?:dinner|lunch|breakfast|school|work|class|church|practice|the bus|noon|morning))\b/g,
+  // A time or a reason: "won't wake up for dinner", "can't get up to date", "can't move after that meeting".
+  // It masks the not-getting-up words too, so they can't force the unmasked re-read on their own.
+  /\b(?:get up|stand(?: up)?|move|wake up|breathe|respond|answer|breathing|responding|waking up|moving) (?:early|on time|in time|in the morning|tomorrow|to (?:date|speed)|the (?:nerve|courage|energy|motivation)|(?:for|until|till) (?:dinner|lunch|breakfast|school|work|class|church|practice|the bus|noon|morning)|(?:for|until|till|after) (?:the|a|that|this|his|her|their|our|my) (?:show|movie|game|meeting|appointment|test|bus))\b/g,
   // Back up after a moment: "couldn't move his legs for a minute".
   /\bcouldn'?t (?:get up|stand(?: up)?|move|wake up|breathe|respond)[^.!?]{0,30}\bfor a (?:minute|second|sec|moment)\b/g,
   /\bstand(?: up)? straight\b/g,

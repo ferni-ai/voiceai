@@ -118,3 +118,48 @@ describe('an idiom masks only its own words', () => {
     }
   });
 });
+
+describe('an everyday reason after not getting up (r6)', () => {
+  const emergencyRead = (line: string): boolean[] =>
+    firstAndMid(line).map((read) => read.indicators.includes('third_party_emergency'));
+
+  it.each([
+    "he fell asleep and won't wake up for his show",
+    "my dad fell asleep and won't wake up for the game",
+    "she fell behind on her bills and can't get up to date",
+    "he fell behind in class and can't get up to speed",
+    "he fell behind at work and can't get up the energy",
+    "my sister fell asleep early and can't get up the motivation",
+    "my coworker collapsed into her chair and can't move after that meeting",
+  ])('a time or a reason the words name is not an emergency: %s', (line) => {
+    expect(emergencyRead(line)).toEqual([false, false]);
+  });
+
+  // Recall first (the owner's rule): no reason given, a place, a degree or a relapse stays 911.
+  it.each([
+    "my grandma fell asleep in her chair and won't wake up",
+    "my mom fell asleep in the car and won't wake up",
+    "my mom watched the movie and fell asleep and won't wake up",
+    "he passed out on the couch after the game and won't wake up for anything, typical",
+    'he fell off the wagon, not responding to anyone lately',
+  ])('accepted false alarm, still 911 first: %s', (line) => {
+    expect(emergencyRead(line)).toEqual([true, true]);
+  });
+
+  it.each([
+    "my dad got dizzy, then fell, can't get up",
+    "my dad fell, can't get up",
+    "my grandma got up from the table, then collapsed and now she's not responding",
+    "my uncle felt faint, then passed out and he's not waking up",
+    'my brother is no longer breathing',
+    // A physical cue beats any reason in the same sentence.
+    "she fell and can't get up for the show, she's on the floor",
+    "my dad collapsed and can't move after the meeting, he's not breathing",
+    "my mom fell asleep and can't get up to date, she's on the floor",
+  ])('reads someone else down, 911 first: %s', (line) => {
+    for (const read of firstAndMid(line)) {
+      expect(read.indicators).toContain('third_party_emergency');
+      expect(guardFromDetection(read).replacementResponse).toBe(EMERGENCY_FOR_THEM);
+    }
+  });
+});
