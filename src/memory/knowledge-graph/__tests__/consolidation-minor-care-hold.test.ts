@@ -126,6 +126,22 @@ describe('knowledge-graph consolidation: MINOR_CARE hold', () => {
     expect(graphTouched(u)).toEqual([]);
   });
 
+  it.each([
+    ['a Date', new Date(Date.now() + HOUR)],
+    ['a string', 'soon'],
+    ['null', null],
+    ['NaN', Number.NaN],
+  ])('skips a caller whose heldUntil is present but not a number (%s)', async (_, heldUntil) => {
+    const u = uid('Odd');
+    seedGraph(u);
+    fs.docs.set(`minor_care_holds/${u}`, { heldUntil, v: 1 });
+    const { engine } = await proc();
+
+    await engine.runConsolidation(u);
+
+    expect(graphTouched(u)).toEqual([]);
+  });
+
   it('consolidates a caller whose shared hold has lapsed', async () => {
     const u = uid('Lapsed');
     seedGraph(u);

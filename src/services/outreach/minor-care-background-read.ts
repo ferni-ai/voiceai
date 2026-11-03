@@ -20,7 +20,9 @@ import { readHoldDocStrict } from './minor-care-shared-hold.js';
 export async function heldFromBackgroundJobs(userId: string): Promise<boolean> {
   const doc = await readHoldDocStrict(userId);
   const until = doc?.heldUntil;
-  if (typeof until === 'number' && until > Date.now()) return true;
+  // Only a number at or before now has lapsed: anything else present (a Date, a Timestamp, null,
+  // NaN) is held
+  if (until !== undefined && !(typeof until === 'number' && until <= Date.now())) return true;
   noteStoredHeldWindows(userId, doc);
   return heldSince(userId) !== undefined;
 }
