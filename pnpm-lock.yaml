@@ -218,8 +218,8 @@ importers:
         specifier: ^0.35.5
         version: 0.35.5(@types/node@22.20.5)
       stripe:
-        specifier: ^20.0.0
-        version: 20.1.0(@types/node@22.20.5)
+        specifier: ^23.1.0
+        version: 23.1.0(@types/node@22.20.5)
       twilio:
         specifier: ^5.10.7
         version: 5.10.7
@@ -473,7 +473,7 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: ^3.10.9
-        version: 3.10.9(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@25.9.9)
+        version: 3.10.9(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@types/node@25.9.9)
 
   apps/rust-perf:
     devDependencies:
@@ -7189,11 +7189,11 @@ packages:
     resolution: {integrity: sha512-1tB5mhVo7U+ETBKNf92xT4hrQa3pm0MZ0PQvuDnWgAAGHDsfp4lPSpiS6psrSiet87wyGPh9ft6wmhOMQ0hDiw==}
     engines: {node: '>=14.16'}
 
-  stripe@20.1.0:
-    resolution: {integrity: sha512-o1VNRuMkY76ZCq92U3EH3/XHm/WHp7AerpzDs4Zyo8uE5mFL4QUcv/2SudWsSnhBSp4moO2+ZoGCZ7mT8crPmQ==}
-    engines: {node: '>=16'}
+  stripe@23.1.0:
+    resolution: {integrity: sha512-fVUfMSfTPoukfoV//MUKAx2+YxyKmYaYtnAL9VkfnHfaPNQylFdWZMD+zgUFerI8rjbaiER8Vzj2XEUQ2AhAsQ==}
+    engines: {node: '>=20'}
     peerDependencies:
-      '@types/node': '>=16'
+      '@types/node': '>=20'
     peerDependenciesMeta:
       '@types/node':
         optional: true
@@ -9610,37 +9610,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@napi-rs/cli@3.10.9(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@25.9.9)':
-    dependencies:
-      '@inquirer/prompts': 8.7.5(@types/node@25.9.9)
-      '@napi-rs/cross-toolchain': 1.0.3
-      '@napi-rs/wasm-tools': 1.1.0
-      '@octokit/rest': 22.0.1
-      clipanion: 4.0.0-rc.4(typanion@3.14.0)
-      colorette: 2.0.20
-      es-toolkit: 1.53.1
-      js-yaml: 5.5.0
-      obug: 3.0.0
-      semver: 7.8.5
-      typanion: 3.14.0
-      typescript: 6.0.3
-    optionalDependencies:
-      '@emnapi/core': 1.11.2
-      '@emnapi/runtime': 1.11.2
-    transitivePeerDependencies:
-      - '@napi-rs/cross-toolchain-arm64-target-aarch64'
-      - '@napi-rs/cross-toolchain-arm64-target-armv7'
-      - '@napi-rs/cross-toolchain-arm64-target-ppc64le'
-      - '@napi-rs/cross-toolchain-arm64-target-s390x'
-      - '@napi-rs/cross-toolchain-arm64-target-x86_64'
-      - '@napi-rs/cross-toolchain-x64-target-aarch64'
-      - '@napi-rs/cross-toolchain-x64-target-armv7'
-      - '@napi-rs/cross-toolchain-x64-target-ppc64le'
-      - '@napi-rs/cross-toolchain-x64-target-s390x'
-      - '@napi-rs/cross-toolchain-x64-target-x86_64'
-      - '@types/node'
-      - supports-color
-
   '@napi-rs/cli@3.10.9(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@25.9.9)':
     dependencies:
       '@inquirer/prompts': 8.7.5(@types/node@25.9.9)
@@ -9658,6 +9627,37 @@ snapshots:
     optionalDependencies:
       '@emnapi/core': 1.11.2
       '@emnapi/runtime': 1.11.3
+    transitivePeerDependencies:
+      - '@napi-rs/cross-toolchain-arm64-target-aarch64'
+      - '@napi-rs/cross-toolchain-arm64-target-armv7'
+      - '@napi-rs/cross-toolchain-arm64-target-ppc64le'
+      - '@napi-rs/cross-toolchain-arm64-target-s390x'
+      - '@napi-rs/cross-toolchain-arm64-target-x86_64'
+      - '@napi-rs/cross-toolchain-x64-target-aarch64'
+      - '@napi-rs/cross-toolchain-x64-target-armv7'
+      - '@napi-rs/cross-toolchain-x64-target-ppc64le'
+      - '@napi-rs/cross-toolchain-x64-target-s390x'
+      - '@napi-rs/cross-toolchain-x64-target-x86_64'
+      - '@types/node'
+      - supports-color
+
+  '@napi-rs/cli@3.10.9(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@types/node@25.9.9)':
+    dependencies:
+      '@inquirer/prompts': 8.7.5(@types/node@25.9.9)
+      '@napi-rs/cross-toolchain': 1.0.3
+      '@napi-rs/wasm-tools': 1.1.0
+      '@octokit/rest': 22.0.1
+      clipanion: 4.0.0-rc.4(typanion@3.14.0)
+      colorette: 2.0.20
+      es-toolkit: 1.53.1
+      js-yaml: 5.5.0
+      obug: 3.0.0
+      semver: 7.8.5
+      typanion: 3.14.0
+      typescript: 6.0.3
+    optionalDependencies:
+      '@emnapi/core': 1.9.2
+      '@emnapi/runtime': 1.9.2
     transitivePeerDependencies:
       - '@napi-rs/cross-toolchain-arm64-target-aarch64'
       - '@napi-rs/cross-toolchain-arm64-target-armv7'
@@ -14639,9 +14639,7 @@ snapshots:
 
   strip-json-comments@5.0.3: {}
 
-  stripe@20.1.0(@types/node@22.20.5):
-    dependencies:
-      qs: 6.16.0
+  stripe@23.1.0(@types/node@22.20.5):
     optionalDependencies:
       '@types/node': 22.20.5
 
