@@ -11,6 +11,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { firstTrigger, loadTriggers } from '../../../scripts/ci/unit-full-suite-needed.mjs';
 
 const ROOT = join(__dirname, '..', '..', '..');
 const SECTIONS = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'];
@@ -24,7 +25,8 @@ interface Mismatch {
 
 /**
  * Mismatches that predate this test, each with the exact range and override. A
- * change to either side fails a test below, so this list can only shrink.
+ * change to either side fails a test below, and its length is capped, so this list
+ * can only shrink.
  */
 // The Firestore override exists to pull firebase-admin's own copy up to 8.0.0 (it
 // brought 7.x, and two copies clash with TS6200). Each ^8.0.0 below admits 8.0.0.
@@ -142,5 +144,18 @@ describe('package.json agrees with the pnpm overrides', () => {
         `${k.file} "${k.dep}" ${k.declared} vs ${k.override} no longer differs: drop it from KNOWN`
     );
     expect(stale).toEqual([]);
+    // The cap only goes down: lower it when you drop an entry, never raise it. A new
+    // drift plus a matching entry would otherwise pass.
+    expect(KNOWN.length).toBeLessThanOrEqual(3);
   });
+
+  // This test reads its inputs from disk, so no import edge leads to them. On a pull
+  // request (`vitest --changed`), it runs only because every package.json and
+  // pnpm-workspace.yaml are whole-suite triggers: an override-only edit must reach it.
+  it.each(['package.json', 'apps/web/package.json', 'pnpm-workspace.yaml'])(
+    'runs on a pull request that changes only %s',
+    async (file) => {
+      expect(firstTrigger([file], await loadTriggers(ROOT), ROOT)).toBe(file);
+    }
+  );
 });

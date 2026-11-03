@@ -65,13 +65,15 @@ export default defineConfig({
     // Pull requests run `--changed`: only the tests whose imports reach a changed
     // file (ci.yml, Unit Tests). A change to any of these runs the whole suite,
     // because no import edge leads from a test to them: the setup files, the
-    // lockfile and tsconfig, and non-code files under src/ that code reads from
-    // disk at runtime (persona bundles, prompt and data files).
+    // lockfile and tsconfig, pnpm-workspace.yaml (its overrides change what installs,
+    // like the lockfile), and non-code files under src/ that code reads from disk
+    // at runtime (persona bundles, prompt and data files).
     forceRerunTriggers: [
       ...configDefaults.forceRerunTriggers,
       '**/src/tests/setup.ts',
       '**/src/tests/gcp-test-guard.ts',
       '**/pnpm-lock.yaml',
+      '**/pnpm-workspace.yaml',
       '**/tsconfig*.json',
       '**/src/**/*.{md,json,yaml,yml,txt,csv}',
     ],
