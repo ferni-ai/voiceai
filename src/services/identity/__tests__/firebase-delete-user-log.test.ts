@@ -6,9 +6,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const deleteUser = vi.hoisted(() => vi.fn());
-vi.mock('firebase-admin', () => ({
-  default: { apps: [{}], auth: () => ({ deleteUser }) },
-}));
+vi.mock('firebase-admin/auth', () => ({ getAuth: () => ({ deleteUser }) }));
 
 const logged = vi.hoisted(() => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() }));
 vi.mock('../../../utils/safe-logger.js', async (importOriginal) => ({

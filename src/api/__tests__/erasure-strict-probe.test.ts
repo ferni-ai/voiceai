@@ -29,7 +29,7 @@ const store = vi.hoisted(() => ({
   getOrCreateProfile: vi.fn(async (id: string) => ({ id, name: 'User' })),
 }));
 
-vi.mock('firebase-admin', () => ({ default: { apps: [{}], auth: () => auth } }));
+vi.mock('firebase-admin/auth', () => ({ getAuth: () => auth }));
 vi.mock('../../memory/store-factory.js', () => ({ getStore: async () => store }));
 vi.mock('../../services/outreach/outreach-intelligence.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),

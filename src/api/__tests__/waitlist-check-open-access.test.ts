@@ -28,18 +28,16 @@ const fakeDb = {
     }),
   }),
 };
-vi.mock('firebase-admin', () => ({
-  default: {
-    apps: [{}],
-    auth: () => ({
-      verifyIdToken: async () => ({
-        uid: 'uid-1',
-        email: email.value,
-        email_verified: email.verified,
-      }),
-      getUser: async () => ({ disabled: false }), // a live account (token-revocation.ts)
+// The app is already initialized: the global firebase-admin/app mock (setup.ts) reports one.
+vi.mock('firebase-admin/auth', () => ({
+  getAuth: () => ({
+    verifyIdToken: async () => ({
+      uid: 'uid-1',
+      email: email.value,
+      email_verified: email.verified,
     }),
-  },
+    getUser: async () => ({ disabled: false }), // a live account (token-revocation.ts)
+  }),
 }));
 vi.mock('firebase-admin/firestore', () => ({ getFirestore: () => fakeDb, FieldValue: {} }));
 vi.mock('../../utils/firestore-utils.js', async (orig) => ({
