@@ -109,3 +109,6 @@ export function useAnimationPreset(preset: AnimationPreset): AnimationConfig {
   const { duration: durationToken, easing: easingToken } = PRESETS[preset];
   return useAnimation(durationToken, easingToken);
 }
+
+// eslint-disable-next-line @ferni/design-system/no-hardcoded-durations
+export const plantedFade = (el: HTMLElement) => el.animate([], { duration: 150 });
