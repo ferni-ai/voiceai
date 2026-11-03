@@ -19,6 +19,8 @@ export async function handleKnowledgeGraphInsights(res: ServerResponse): Promise
   try {
     log.info('Running knowledge graph insight generation job (Cloud Scheduler)');
 
+    // MINOR_CARE: registers the hold reader the job asks first; without it every user is skipped
+    await import('../../services/outreach/minor-care-background-read.js');
     const { InsightGenerationJob } = await import('../../tasks/scheduled/knowledge-graph-jobs.js');
 
     const job = new InsightGenerationJob();
@@ -60,6 +62,8 @@ export async function handleKnowledgeGraphConsolidation(res: ServerResponse): Pr
   try {
     log.info('Running knowledge graph consolidation job (Cloud Scheduler)');
 
+    // MINOR_CARE: registers the hold reader the job asks first; without it every user is skipped
+    await import('../../services/outreach/minor-care-background-read.js');
     const { ConsolidationJob } = await import('../../tasks/scheduled/knowledge-graph-jobs.js');
 
     const job = new ConsolidationJob();
