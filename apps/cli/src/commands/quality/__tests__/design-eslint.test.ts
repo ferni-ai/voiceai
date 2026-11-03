@@ -24,12 +24,17 @@ const eslint = new ESLint({
 });
 /**
  * Rule ids reported for `code` as if it lived at `path` (relative to the repo root). The
- * ratchet counts errors only, so a warning shows up marked as one.
+ * ratchet counts errors only, so a warning shows up marked as one, with its message when it
+ * has no rule.
  */
 async function rulesFor(code: string, path = 'apps/web/src/ui/probe.ui.ts'): Promise<string[]> {
   const [result] = await eslint.lintText(code, { filePath: join(ROOT, path) });
   return result!.messages.map((m) =>
-    m.ruleId ? (m.severity === 2 ? m.ruleId : `warning: ${m.ruleId}`) : `fatal: ${m.message}`
+    m.ruleId
+      ? m.severity === 2
+        ? m.ruleId
+        : `warning: ${m.ruleId}`
+      : `${m.fatal ? 'fatal' : 'warning'}: ${m.message}`
   );
 }
 
@@ -64,23 +69,35 @@ describe('lint:design config', () => {
     ]);
   });
 
-  it("accepts the code's eslint-disable comments for rules it doesn't run", async () => {
+  const ignoredComment = expect.stringMatching(
+    /^warning: .* has no effect because .*noInlineConfig/
+  );
+
+  it('ignores eslint-disable comments, so none can hide a design violation', async () => {
+    const animate = 'el.animate([], { duration: 150 });';
+    for (const comment of [
+      `// eslint-disable-next-line ${P}no-hardcoded-durations`,
+      '/* eslint-disable */',
+    ])
+      expect(await rulesFor(`${comment}\n${animate}`)).toEqual([
+        ignoredComment,
+        P + 'no-hardcoded-durations',
+      ]);
+  });
+
+  it("reads the code's comments for rules it doesn't run as warnings, never errors", async () => {
     const code =
       '// eslint-disable-next-line @typescript-eslint/no-explicit-any\nexport const x: any = 1;';
-    expect(await rulesFor(code)).toEqual([]);
+    expect(await rulesFor(code)).toEqual([ignoredComment]);
   });
 });
 
 describe('design-system ESLint ratchet', () => {
   const dir = mkdtempSync(join(tmpdir(), 'design-eslint-'));
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
-  const baseline = (
-    JSON.parse(
-      readFileSync(join(ROOT, 'apps/cli/src/commands/quality/ratchet-baseline.json'), 'utf8')
-    ) as {
-      designEslint: Record<string, number>;
-    }
-  ).designEslint;
+  const { designEslint: baseline, webEslint: webBaseline } = JSON.parse(
+    readFileSync(join(ROOT, 'apps/cli/src/commands/quality/ratchet-baseline.json'), 'utf8')
+  ) as Record<'designEslint' | 'webEslint', Record<string, number>>;
   /** ESLint JSON results holding `counts` errors per rule. */
   const run = (counts: Record<string, number>, as = 'designEslint') => {
     const messages = Object.entries(counts).flatMap(([ruleId, n]) =>
@@ -134,8 +151,18 @@ describe('design-system ESLint ratchet', () => {
     expect(eslintSilentRules({ fixed: 0, open: 2 }, {})).toHaveLength(1);
   });
 
-  it('keeps the web baseline as it was: a quiet rule there still passes', () => {
-    expect(run({}, 'webEslint').status).toBe(0);
+  it('fails a rule with a single baselined error that goes quiet', () => {
+    expect(eslintSilentRules({ once: 1 }, {})).toEqual([
+      'ESLint "once" reported nothing (baseline 1): turned off, set to warn, or matching no files. If every violation is really fixed, run --update.',
+    ]);
+  });
+
+  it('holds the web baseline the same way: a quiet rule there fails too', () => {
+    expect(run(webBaseline, 'webEslint').status).toBe(0);
+    const { 'prefer-const': _off, ...rest } = webBaseline;
+    const quiet = run(rest, 'webEslint');
+    expect(quiet.status).toBe(1);
+    expect(quiet.stdout).toContain('"prefer-const" reported nothing (baseline 1)');
   });
 
   it('survives the main ratchet rewriting the baseline file (--init / --update)', () => {
@@ -154,31 +181,43 @@ describe('design-system ESLint ratchet', () => {
   });
 });
 
-describe('the CI step', () => {
+describe('the CI steps', () => {
   const lines = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8').split('\n');
-  const at = lines.findIndex((l) => l.trim() === '- name: Design-system ESLint (ratchet)');
-  const end = lines.findIndex((l, i) => i > at && /^ {6}- |^ {2}[a-z][a-z0-9-]*:$/.test(l));
-  const step = lines.slice(at, end).join('\n');
-  const job = lines
-    .slice(0, at)
-    .filter((l) => /^ {2}[a-z][a-z0-9-]*:$/.test(l))
-    .pop()
-    ?.trim();
-  const jobHeader = lines
-    .slice(lines.indexOf(`  ${job}`), at)
-    .join('\n')
-    .split(/^ {4}steps:$/m)[0]!;
+  /** A step's text, the job it is in, and that job's header (everything before `steps:`). */
+  function step(name: string) {
+    const at = lines.findIndex((l) => l.trim() === `- name: ${name}`);
+    const end = lines.findIndex((l, i) => i > at && /^ {6}- |^ {2}[a-z][a-z0-9-]*:$/.test(l));
+    const job = lines
+      .slice(0, at)
+      .filter((l) => /^ {2}[a-z][a-z0-9-]*:$/.test(l))
+      .pop()
+      ?.trim();
+    const header = lines
+      .slice(lines.indexOf(`  ${job}`), at)
+      .join('\n')
+      .split(/^ {4}steps:$/m)[0]!;
+    return { at, text: lines.slice(at, end).join('\n'), job, header };
+  }
+  const design = step('Design-system ESLint (ratchet)');
+  const web = step('ESLint (ratchet)');
 
-  it('runs in Frontend Quality and checks against the designEslint baseline', () => {
-    expect(at).toBeGreaterThan(0);
-    expect(job).toBe('frontend-quality:');
-    expect(step).toContain('pnpm lint:design --format json');
-    expect(step).toContain('--as designEslint');
+  it('run in Frontend Quality, each against its own baseline', () => {
+    expect(design.at).toBeGreaterThan(0);
+    expect(design.job).toBe('frontend-quality:');
+    expect(design.text).toContain('pnpm lint:design --format json');
+    expect(design.text).toContain('--as designEslint');
+    expect(web.at).toBeGreaterThan(0);
+    expect(web.job).toBe('frontend-quality:');
+    expect(web.text).toContain('pnpm lint --format json --output-file eslint.json');
+    expect(web.text).toContain('ratchet.ts --eslint apps/web/eslint.json');
   });
 
-  it('lets only ESLint exit 1 (findings) through, and nothing can mark it passed', () => {
-    expect(step).toContain('|| [ $? -eq 1 ]');
-    expect(step).not.toMatch(/\|\|\s*true|continue-on-error|set \+e/);
-    expect(jobHeader).not.toContain('continue-on-error');
+  it.each([
+    ['design', design],
+    ['web', web],
+  ])('%s: lets only ESLint exit 1 (findings) through, and nothing can mark it passed', (_, s) => {
+    expect(s.text).toContain('|| [ $? -eq 1 ]');
+    expect(s.text).not.toMatch(/\|\|\s*true|continue-on-error|set \+e/);
+    expect(s.header).not.toContain('continue-on-error');
   });
 });
