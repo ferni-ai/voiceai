@@ -75,11 +75,11 @@ class FirestoreBillingStore implements BillingStore {
     if (this.initialized) return;
 
     try {
-      const admin = (await import('firebase-admin')).default;
+      const { getApps, initializeApp } = await import('firebase-admin/app');
       const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
 
-      if (admin.apps.length === 0) {
-        admin.initializeApp({
+      if (getApps().length === 0) {
+        initializeApp({
           projectId: process.env.GCP_PROJECT_ID || process.env.FIREBASE_PROJECT_ID,
         });
       }

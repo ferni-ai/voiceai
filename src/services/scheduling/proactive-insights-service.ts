@@ -16,7 +16,7 @@
  * - Surfaces insights via proactive notifications
  */
 
-import type admin from 'firebase-admin';
+import type { Firestore } from 'firebase-admin/firestore';
 
 import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -28,10 +28,10 @@ import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 // FIRESTORE SETUP
 // ============================================================================
 
-let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInstance: Firestore | null = null;
 let firestoreInitAttempted = false;
 
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   if (firestoreInstance) return firestoreInstance;
   if (firestoreInitAttempted) return null;
 
