@@ -56,8 +56,9 @@ describe('an idiom masks only its own words', () => {
     "he's not breathing a word about it, he collapsed and won't wake up",
     'my dad is not breathing, he was so easy-going an hour ago',
     "my brother is unconscious, i'm so scared of losing him",
-    // On the floor and won't wake: recall first, whatever the reason given.
-    "my dad fell asleep on the floor and won't wake up for the movie",
+    // On the floor and won't wake, with no time or reason given: recall first.
+    "my dad fell asleep on the floor and won't wake up",
+    "my dad fell asleep on the floor and won't wake up when I shake him",
     // A reported-risk idiom beside a fall: the fall still reads.
     "he talked about ending it with his girlfriend, and now he collapsed and can't get up",
     "she keeps hurting herself at the gym, and today she fell off the treadmill and isn't moving",
@@ -134,6 +135,19 @@ describe('an everyday reason after not getting up (r6)', () => {
     "my dad fell asleep watching tv and won't wake up for his show",
     "my mom fell behind on her bills and can't get up to date",
     "my brother fell for her and can't get up the nerve to ask",
+    // Sleep is not a collapse: a time or a reason clears it, even on the floor.
+    "my son fell asleep on the floor of his room and won't wake up for school",
+    "my dad fell asleep on the floor and won't wake up for the movie",
+    "my mom fell asleep and can't get up to date, she's on the floor",
+    // A "fell" idiom is never a fall, even when the sentence is read again unmasked.
+    "my mom fell and can't get up to date",
+    "my sister fell out with her boss and can't move on",
+    "my dad fell out with his brother and won't answer the question",
+    "my mom fell off the diet and can't stand vegetables now",
+    "my son fell out of love with soccer and can't move past it",
+    "my friend fell in the rankings and can't get up there again",
+    "my son fell in the standings and can't move up",
+    "my dad fell off his diet and can't stand salad",
   ])('a time or a reason the words name is not an emergency: %s', (line) => {
     expect(emergencyRead(line)).toEqual([false, false]);
   });
@@ -142,6 +156,7 @@ describe('an everyday reason after not getting up (r6)', () => {
   it.each([
     "my grandma fell asleep in her chair and won't wake up",
     "my mom fell asleep in the car and won't wake up",
+    "my daughter fell asleep in the car and won't wake up",
     "my dad passed out and won't wake up in the car",
     "my mom watched the movie and fell asleep and won't wake up",
     "he passed out on the couch after the game and won't wake up for anything, typical",
@@ -156,10 +171,23 @@ describe('an everyday reason after not getting up (r6)', () => {
     "my grandma got up from the table, then collapsed and now she's not responding",
     "my uncle felt faint, then passed out and he's not waking up",
     'my brother is no longer breathing',
-    // A physical cue beats any reason in the same sentence.
+    // Not, is not, still not, with every not-getting-up word.
+    "my mom collapsed and she's not answering",
+    'my dad passed out and is not getting up',
+    "my grandpa fainted and he's still not moving",
+    "my mom and my dad fainted and they aren't moving",
+    "she fell over laughing and now she's not responding",
+    // A physical fall after the same words as an idiom.
+    "my dad tripped and fell and can't move his arm",
+    "my grandpa fell and can't get up off the floor",
+    "my dad fell through the ice and can't get up",
+    "my grandma fell out of bed and can't get up",
+    "she fell behind the couch and can't get up",
+    "my dad fell for the third time today and can't get up",
+    "he fell silent and isn't responding",
+    // A physical cue beats any reason in the same sentence, unless it was sleep.
     "she fell and can't get up for the show, she's on the floor",
     "my dad collapsed and can't move after the meeting, he's not breathing",
-    "my mom fell asleep and can't get up to date, she's on the floor",
   ])('reads someone else down, 911 first: %s', (line) => {
     for (const read of firstAndMid(line)) {
       expect(read.indicators).toContain('third_party_emergency');
