@@ -57,12 +57,12 @@ const COLLECTION = 'admin_activity_log';
  */
 export async function initializeActivityLog(): Promise<boolean> {
   try {
-    const admin = (await import('firebase-admin')).default;
+    const { getApps, initializeApp } = await import('firebase-admin/app');
     const { getAdminFirestore } = await import('../utils/firebase-admin-app.js');
 
-    if (admin.apps.length === 0) {
+    if (getApps().length === 0) {
       try {
-        admin.initializeApp({
+        initializeApp({
           projectId: process.env.GCP_PROJECT_ID || process.env.FIREBASE_PROJECT_ID,
         });
       } catch {
@@ -100,15 +100,15 @@ export async function recordActivity(
 
   if (firestoreAvailable && firestoreClient) {
     try {
-      const admin = (await import('firebase-admin')).default;
+      const { Timestamp } = await import('firebase-admin/firestore');
       const doc: FirestoreActivityDoc = {
         id: newEvent.id,
         type: newEvent.type,
         action: newEvent.action,
         description: newEvent.description,
         metadata: newEvent.metadata,
-        timestamp: admin.firestore.Timestamp.fromDate(newEvent.timestamp),
-        createdAt: admin.firestore.Timestamp.now(),
+        timestamp: Timestamp.fromDate(newEvent.timestamp),
+        createdAt: Timestamp.now(),
       };
 
       await firestoreClient.collection(COLLECTION).doc(newEvent.id).set(cleanForFirestore(doc));
@@ -144,10 +144,10 @@ export async function getRecentActivity(limit = 20): Promise<ActivityEvent[]> {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - TTL_DAYS);
 
-      const admin = (await import('firebase-admin')).default;
+      const { Timestamp } = await import('firebase-admin/firestore');
       const snapshot = await firestoreClient
         .collection(COLLECTION)
-        .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(cutoffDate))
+        .where('timestamp', '>=', Timestamp.fromDate(cutoffDate))
         .orderBy('timestamp', 'desc')
         .limit(limit)
         .get();
@@ -184,11 +184,11 @@ export async function getActivityByType(
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - TTL_DAYS);
 
-      const admin = (await import('firebase-admin')).default;
+      const { Timestamp } = await import('firebase-admin/firestore');
       const snapshot = await firestoreClient
         .collection(COLLECTION)
         .where('type', '==', type)
-        .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(cutoffDate))
+        .where('timestamp', '>=', Timestamp.fromDate(cutoffDate))
         .orderBy('timestamp', 'desc')
         .limit(limit)
         .get();
@@ -232,10 +232,10 @@ export async function getActivityCounts(): Promise<Record<ActivityEvent['type'],
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - TTL_DAYS);
 
-      const admin = (await import('firebase-admin')).default;
+      const { Timestamp } = await import('firebase-admin/firestore');
       const snapshot = await firestoreClient
         .collection(COLLECTION)
-        .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(cutoffDate))
+        .where('timestamp', '>=', Timestamp.fromDate(cutoffDate))
         .get();
 
       for (const doc of snapshot.docs) {
@@ -284,8 +284,8 @@ export async function cleanupOldEvents(): Promise<number> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - TTL_DAYS);
 
-    const admin = (await import('firebase-admin')).default;
-    const cutoffTimestamp = admin.firestore.Timestamp.fromDate(cutoffDate);
+    const { Timestamp } = await import('firebase-admin/firestore');
+    const cutoffTimestamp = Timestamp.fromDate(cutoffDate);
 
     let totalDeleted = 0;
 
