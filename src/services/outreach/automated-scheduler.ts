@@ -39,6 +39,7 @@ import {
 import { dailyCheckIn } from './proactive-channels/daily-checkin.js';
 import { blocksGenericCheckIns } from './grounded-checkin.js';
 import { pushInAppIfOn } from './in-app-push.js';
+import { claimDailySend, releaseDailySend } from './daily-send-claim.js';
 import { skipReasonCounts, type SchedulerResult } from './scheduler-report.js';
 
 const log = createLogger({ module: 'AutomatedScheduler' });
@@ -227,26 +228,19 @@ async function processCandidate(
     ? await proactive.content()
     : await generatePersonalizedContent(userContext, outreachType, channel);
 
-  // Send the outreach
-  const deliveryResult = await deliver({
-    userId,
-    channel,
-    content,
-    email,
-    phone,
-    outreachType,
-  });
+  // A retried run must not send twice (daily-send-claim.ts).
+  const claim = await claimDailySend(userId, now);
+  if (claim !== 'claimed') return { sent: false, reason: claim };
 
-  await proactive?.done(outreachType, deliveryResult.success);
+  const deliveryResult = await deliver({ userId, channel, content, email, phone, outreachType });
+  // Recorded before any other await: a run cut off after this holds them on a retry.
+  const sent = deliveryResult.success;
+  if (sent) await recordOutreachSent(userId, channel, outreachType, candidate.unanswered + 1);
+  else await releaseDailySend(userId, now);
+
+  await proactive?.done(outreachType, sent);
   await pushInAppIfOn(userId, deliveryResult, { ...content, kind: outreachType });
-
-  if (deliveryResult.success) {
-    // Record that we sent outreach
-    await recordOutreachSent(userId, channel, outreachType, candidate.unanswered + 1);
-    return { sent: true, channel, outreachType };
-  }
-
-  return { sent: false, reason: deliveryResult.error };
+  return sent ? { sent, channel, outreachType } : { sent, reason: deliveryResult.error };
 }
 
 // ============================================================================

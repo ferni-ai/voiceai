@@ -92,6 +92,16 @@ describe('gemini health probe on Vertex', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it('clears its timer when countTokens rejects fast, leaving no handle open', async () => {
+    vi.useFakeTimers();
+    countTokens.mockRejectedValue(new Error('Publisher model was not found (404)'));
+
+    const result = await checkServiceHealth('gemini');
+
+    expect(result?.healthy).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('reports healthy when countTokens resolves', async () => {
     countTokens.mockResolvedValue({ totalTokens: 1 });
 

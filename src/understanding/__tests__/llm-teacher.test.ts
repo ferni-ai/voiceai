@@ -129,6 +129,29 @@ describe('time phrases resolved by code', () => {
     expect(resolveTimes(said('tomorrow', 'future'), at, undefined).resolved).toBe(0);
     expect(resolveTimes(said('tomorrow', 'future'), at, 'Mars/Base').resolved).toBe(0);
   });
+
+  // Pinned when compromise-dates 3.10 / spacetime 7.17 landed (#3427); both failed on the versions before.
+  it('a price before the day doesn\'t swallow it ("it costs $30 on monday")', () => {
+    const saturday = new Date('2026-10-31T16:00:00.000Z'); // Sat 12:00 in New York
+    const { reading, resolved } = resolveTimes(
+      said('it costs $30 on monday', 'future'),
+      saturday,
+      'America/New_York'
+    );
+    expect(resolved).toBe(1);
+    expect(reading.time_expressions[0].start_iso).toBe('2026-11-02');
+  });
+
+  it('a past clock time before the clocks change keeps GMT ("march 8 at 2:30am", London)', () => {
+    const march10 = new Date('2026-03-10T12:00:00.000Z'); // BST starts Mar 29
+    const { reading, resolved } = resolveTimes(
+      said('march 8 at 2:30am', 'past'),
+      march10,
+      'Europe/London'
+    );
+    expect(resolved).toBe(1);
+    expect(reading.time_expressions[0].start_iso).toBe('2026-03-08T02:30:00.000Z');
+  });
 });
 
 describe('the resolver keeps its date plugin to itself', () => {

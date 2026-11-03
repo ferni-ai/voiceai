@@ -39,14 +39,20 @@ async function callDoc(userId: string, callId: string) {
 }
 
 /**
- * Claim the spoken report of this call: false when it is already claimed
- * (`liveReport.claimedAt`) or the owner was already texted (`delivered`). Never
- * throws. The other path that could speak this report runs where the owner's call
- * is, which is this process (liveSessionFor), so with no call record (stored in
- * memory) or a failed transaction, this process's own claim decides.
+ * Claim `field` on this call's doc, once across processes: false when `taken`
+ * says it is already claimed. Never throws. The other path that could claim it
+ * runs where the owner's call is, which is this process (liveSessionFor), so with
+ * no call record (stored in memory) or a failed transaction, this process's own
+ * claim decides. `what` names the claim in the warning.
  */
-export async function claimVoiceReport(userId: string, callId: string): Promise<boolean> {
-  const key = `${userId}/${callId}`;
+export async function claimOnCallDoc(
+  userId: string,
+  callId: string,
+  field: string,
+  taken: (data: Record<string, unknown> | undefined) => boolean,
+  what: string
+): Promise<boolean> {
+  const key = `${userId}/${callId}/${field}`;
   if (claimedHere.has(key)) return false;
   claimedHere.add(key);
   if (claimedHere.size > CLAIMS_KEPT) claimedHere.delete(claimedHere.values().next().value ?? '');
@@ -56,16 +62,26 @@ export async function claimVoiceReport(userId: string, callId: string): Promise<
     return await doc.db.runTransaction(async (tx) => {
       const fresh = await tx.get(doc.ref);
       if (fresh.exists !== true) return true;
-      const data = fresh.data() as
-        { liveReport?: { claimedAt?: unknown }; delivered?: unknown } | undefined;
-      if (data?.liveReport?.claimedAt !== undefined || data?.delivered === true) return false;
-      tx.update(doc.ref, { 'liveReport.claimedAt': new Date().toISOString() });
+      if (taken(fresh.data())) return false;
+      tx.update(doc.ref, { [field]: new Date().toISOString() });
       return true;
     });
   } catch (error) {
-    log.warn({ callId, error: String(error) }, 'CALL_RESULT_LIVE_REPORT claim failed; told here');
+    log.warn({ callId, error: String(error) }, `${what} claim failed; told here`);
     return true;
   }
+}
+
+/**
+ * Claim the spoken report of this call: false when it is already claimed
+ * (`liveReport.claimedAt`) or the owner was already texted (`delivered`).
+ */
+export async function claimVoiceReport(userId: string, callId: string): Promise<boolean> {
+  const taken = (data: Record<string, unknown> | undefined): boolean => {
+    const report = data?.liveReport as { claimedAt?: unknown } | undefined;
+    return report?.claimedAt !== undefined || data?.delivered === true;
+  };
+  return claimOnCallDoc(userId, callId, 'liveReport.claimedAt', taken, 'CALL_RESULT_LIVE_REPORT');
 }
 
 const later = async (ms: number): Promise<void> =>

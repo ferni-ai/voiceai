@@ -22,7 +22,8 @@ export type VoiceCallbackType =
   | 'countdown_milestone'
   | 'proactive_suggestion'
   | 'pattern_insight'
-  | 'call_outcome';
+  | 'call_outcome'
+  | 'call_progress';
 
 export interface VoiceCallback {
   type: VoiceCallbackType;

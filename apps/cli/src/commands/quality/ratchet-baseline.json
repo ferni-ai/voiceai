@@ -1588,5 +1588,13 @@
   "prefer-const": 1,
   "@typescript-eslint/no-explicit-any": 3,
   "@typescript-eslint/ban-types": 1
+ },
+ "designEslint": {
+  "@ferni/design-system/no-banned-words": 143,
+  "@ferni/design-system/no-hardcoded-colors": 5156,
+  "@ferni/design-system/no-direct-persona-colors": 812,
+  "@ferni/design-system/no-hardcoded-durations": 334,
+  "@ferni/design-system/no-console-in-ui": 26,
+  "@ferni/design-system/prefer-design-tokens": 136
  }
 }

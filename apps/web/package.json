@@ -43,9 +43,9 @@
     "prepare": "husky || true"
   },
   "dependencies": {
-    "@tsparticles/effect-shadow": "^4.4.0",
-    "@tsparticles/engine": "^4.4.0",
-    "@tsparticles/slim": "^4.4.0",
+    "@tsparticles/effect-shadow": "^4.5.0",
+    "@tsparticles/engine": "^4.5.0",
+    "@tsparticles/slim": "^4.5.0",
     "dompurify": "^3.4.17",
     "firebase": "^12.19.0",
     "gsap": "^3.15.0",

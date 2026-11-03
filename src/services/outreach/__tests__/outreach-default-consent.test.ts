@@ -34,6 +34,7 @@ function fakeDb() {
         },
         set: async (value: unknown, opts: unknown) => void setCalls.push({ id, value, opts }),
         update: async () => undefined,
+        create: async () => undefined, // the daily send claim (daily-send-claim.ts)
       }),
     }),
   };
