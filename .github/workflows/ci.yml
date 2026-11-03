@@ -1301,10 +1301,12 @@ jobs:
           pnpm test:arch
 
       # Web ESLint has 123 old errors, so plain `pnpm lint` can't gate. The ratchet fails
-      # only when a rule gains errors (baseline: ratchet-baseline.json "webEslint").
+      # when a rule gains errors or a baselined rule reports none (baseline:
+      # ratchet-baseline.json "webEslint"). ESLint exits 1 for findings; any other exit (a
+      # crash, a config it can't load) fails the step.
       - name: ESLint (ratchet)
         run: |
-          (cd apps/web && pnpm lint --format json --output-file eslint.json) || true
+          (cd apps/web && pnpm lint --format json --output-file eslint.json) || [ $? -eq 1 ]
           pnpm tsx apps/cli/src/commands/quality/ratchet.ts --eslint apps/web/eslint.json
 
       # The design-system rules (eslint.design.config.mjs) on apps/web and packages/ferni-react.
