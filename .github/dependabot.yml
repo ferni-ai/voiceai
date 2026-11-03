@@ -60,9 +60,17 @@ updates:
       # APIs production doesn't have; bump it in the PR that moves the runtime.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
-      # Ignore major version updates for critical packages (review manually)
+      # The LiveKit packages move as one family, by hand: pnpm-workspace.yaml pins
+      # agents, every plugin and rtc-node to one version, and patches/ holds patches
+      # made for exactly that version. A Dependabot bump of one or two of them
+      # splits the family (#3441; package-json-overrides-agree.test.ts fails).
+      # Ignoring every version-update type still lets security updates through.
       - dependency-name: "@livekit/*"
-        update-types: ["version-update:semver-major"]
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
+      # Ignore major version updates for critical packages (review manually)
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
       # 14.18.0 drops the word after "in" ("practice in spanish" -> "practice in"),
