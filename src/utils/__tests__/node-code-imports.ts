@@ -9,7 +9,7 @@
  * of that.
  */
 
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
@@ -75,9 +75,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const root = process.argv[2] ?? process.cwd();
   const files = JSON.parse(readFileSync(0, 'utf8')) as string[];
   const out: Record<string, Scan> = {};
-  for (const file of files) {
-    const path = join(root, file);
-    if (existsSync(path)) out[file] = scan(file, readFileSync(path, 'utf8'));
-  }
+  for (const file of files) out[file] = scan(file, readFileSync(join(root, file), 'utf8'));
   process.stdout.write(JSON.stringify(out));
 }

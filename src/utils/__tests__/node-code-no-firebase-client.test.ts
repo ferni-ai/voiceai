@@ -23,7 +23,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, posix } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { scan, type Scan } from './node-code-imports';
@@ -203,7 +203,8 @@ function stubbedSpecifiers(): string[] {
   return [...config.matchAll(/'(firebase\/[a-z-]+)':\s*firebaseStub/g)].map((m) => m[1] ?? '');
 }
 
-function repoGraph(): Map<string, FileInfo> {
+/** The repo graph, plus how many code files git lists and how many the child scanned. */
+function repoGraph(): { graph: Map<string, FileInfo>; codeFiles: number; scanned: number } {
   const out = execFileSync(
     'git',
     ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
@@ -213,24 +214,36 @@ function repoGraph(): Map<string, FileInfo> {
     }
   );
   const all = out.toString('utf8').split('\0').filter(Boolean);
+  // A tracked file deleted in the working tree has nothing to scan.
+  const code = all.filter((f) => CODE.test(f) && existsSync(join(ROOT, f)));
   // Scan in a plain Node process, outside this worker's coverage instrumentation (see the
   // helper's header). No coverage is wanted for it, even with autoAttachSubprocess on.
+  // The timeout makes a hung child fail the file instead of stalling the run.
   const env = { ...process.env };
   delete env.NODE_V8_COVERAGE;
   const scans = execFileSync(
     process.execPath,
     ['--import', 'tsx', join(__dirname, 'node-code-imports.ts'), ROOT],
-    { cwd: ROOT, env, input: JSON.stringify(all.filter((f) => CODE.test(f))), maxBuffer: 1 << 30 }
+    { cwd: ROOT, env, input: JSON.stringify(code), maxBuffer: 1 << 30, timeout: 60_000 }
   );
   const byFile = new Map(
     Object.entries(JSON.parse(scans.toString('utf8')) as Record<string, Scan>)
   );
-  return buildGraph((f) => byFile.get(f), all);
+  return {
+    graph: buildGraph((f) => byFile.get(f), all),
+    codeFiles: code.length,
+    scanned: byFile.size,
+  };
 }
 
 describe('the Firebase client SDK never runs in Node', () => {
-  const graph = repoGraph();
+  const { graph, codeFiles, scanned } = repoGraph();
   const found = violations(graph, stubbedSpecifiers());
+
+  it('the scan covered every code file git lists', () => {
+    expect(codeFiles).toBeGreaterThan(1000);
+    expect(scanned).toBe(codeFiles);
+  });
 
   it('no Node entry reaches firebase, firebase/* or @firebase/* except the named exceptions', () => {
     expect(graph.size).toBeGreaterThan(1000); // the walk saw the repo, not an empty list
