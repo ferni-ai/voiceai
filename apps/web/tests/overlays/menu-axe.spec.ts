@@ -148,8 +148,9 @@ interface Sweep {
 /**
  * Run `scan` with the marked panel at its opening position, then step each of its
  * scroll areas from top to bottom and run `scan` at every step. Text below the
- * fold that no scroll area can bring up, a scroll area that stops short, or a
- * panel taller than MAX_SCANS_PER_PANEL steps comes back with a `problem`.
+ * fold that no scroll area can bring up, a scroll area that stops short, a sweep
+ * that ends before the bottom, or a panel taller than MAX_SCANS_PER_PANEL steps
+ * comes back with a `problem`.
  */
 async function sweepPanel(page: Page, scan: () => Promise<void>): Promise<Sweep> {
   const sweep: Sweep = { scans: 0, unsettled: false };
@@ -198,6 +199,7 @@ async function sweepPanel(page: Page, scan: () => Promise<void>): Promise<Sweep>
       end: el.scrollHeight - el.clientHeight,
     }));
     const stride = Math.max(1, Math.floor(height * SCROLL_STRIDE));
+    let scannedAt = 0;
     for (let top = 0; top < end;) {
       if (sweep.scans >= MAX_SCANS_PER_PANEL) {
         sweep.problem = `taller than ${MAX_SCANS_PER_PANEL} scroll steps`;
@@ -219,6 +221,12 @@ async function sweepPanel(page: Page, scan: () => Promise<void>): Promise<Sweep>
       );
       if (!(await waitForPanelToSettle(page))) sweep.unsettled = true;
       await scanHere();
+      scannedAt = reached;
+    }
+    // The last scan must be at the bottom. A loop bound that stops one step early
+    // leaves the last stretch unscanned and nothing else notices.
+    if (!sweep.problem && end - scannedAt > 1) {
+      sweep.problem = `scroll area ${i}: last scan at ${Math.round(scannedAt)} of ${end} px`;
     }
     await area.evaluate((el) => {
       el.scrollTop = 0;

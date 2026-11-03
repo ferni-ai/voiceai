@@ -53,10 +53,20 @@ jobs:
     # Required check: skipped (which reports success) on pull_request and when
     # `code` is false, never filtered out by `paths:`, which would leave it pending
     # forever. The merge queue builds and tests every PR before it merges, and PR
-    # runs were starving it of runners (#1250).
-    if: github.event_name != 'pull_request' && needs.changes.outputs.code != 'false'
-    
+    # runs were starving it of runners (#1250). `!cancelled()` runs it when Build
+    # Scope failed too: a job whose need failed is skipped, and a skipped required
+    # check passes, so a broken scope step would have merged the group unbuilt.
+    if: >-
+      !cancelled() && github.event_name != 'pull_request' &&
+      (needs.changes.result != 'success' || needs.changes.outputs.code != 'false')
+
     steps:
+      - name: Build Scope succeeded
+        if: needs.changes.result != 'success'
+        env:
+          SCOPE: ${{ needs.changes.result }}
+        run: echo "::error::Build Scope did not succeed ($SCOPE), so nothing says this group can skip the build"; exit 1
+
       - name: Checkout
         uses: actions/checkout@v7
 
