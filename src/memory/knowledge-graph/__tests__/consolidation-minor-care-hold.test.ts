@@ -12,63 +12,12 @@
  * Synthetic ids and names only.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { seedGraph as seed } from './minor-care-fake-firestore.js';
 
-type Data = Record<string, unknown>;
-interface Ref {
-  path: string;
-}
-const fs = vi.hoisted(() => {
-  const docs = new Map<string, Data>();
-  const writes: string[] = [];
-  const reads: string[] = [];
-  const failHolds = { on: false };
-  const analyze = vi.fn(async () => []);
-  const snap = (path: string) => ({
-    id: path.slice(path.lastIndexOf('/') + 1),
-    ref: docRef(path),
-    exists: docs.has(path),
-    data: () => docs.get(path),
-  });
-  const docRef = (path: string) => ({
-    path,
-    collection: (c: string) => coll(`${path}/${c}`),
-    get: async () => {
-      reads.push(path);
-      if (failHolds.on && path.startsWith('minor_care_holds/')) throw new Error('fake outage');
-      return snap(path);
-    },
-    update: async () => void writes.push(`update ${path}`),
-    set: async () => void writes.push(`set ${path}`),
-    delete: async () => void writes.push(`delete ${path}`),
-  });
-  const coll = (path: string) => {
-    const query = {
-      where: () => query,
-      get: async () => {
-        reads.push(path);
-        const rows = [...docs.keys()].filter(
-          (p) => p.startsWith(`${path}/`) && !p.slice(path.length + 1).includes('/')
-        );
-        return { docs: rows.map(snap) };
-      },
-    };
-    return {
-      ...query,
-      doc: (id: string) => docRef(`${path}/${id}`),
-      add: async () => void writes.push(`add ${path}`),
-    };
-  };
-  const db = {
-    collection: (c: string) => coll(c),
-    batch: () => ({
-      update: (ref: Ref) => void writes.push(`update ${ref.path}`),
-      delete: (ref: Ref) => void writes.push(`delete ${ref.path}`),
-      commit: async () => undefined,
-    }),
-  };
-  return { docs, writes, reads, failHolds, analyze, db };
+const fs = await vi.hoisted(async () => {
+  const { fakeFirestore } = await import('./minor-care-fake-firestore.js');
+  return { ...fakeFirestore(), analyze: vi.fn(async () => []) };
 });
-
 vi.mock('../../../utils/firebase-admin-app.js', () => ({ getAdminFirestore: () => fs.db }));
 vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -94,27 +43,10 @@ vi.mock('../../entity-store/correlation-engine.js', () => ({
   getCorrelationEngine: () => ({ analyzePatterns: fs.analyze }),
 }));
 
-const DAY = 24 * 60 * 60 * 1000;
 const HOUR = 60 * 60 * 1000;
 let n = 0;
 const uid = (tag: string) => `KgMc${tag}${String(++n).padStart(3, '0')}wQ7zR2pLx`;
-
-/** A graph the engine rewrites: an entity that decays and an old weak relationship it deletes. */
-function seedGraph(u: string): void {
-  const now = Date.now();
-  fs.docs.set(`knowledge_graph/${u}/entities/e1`, {
-    canonicalName: 'Garden club',
-    aliases: [],
-    importance: 0.5,
-    emotionalSalience: 0,
-    lastMentioned: new Date(now - 30 * DAY),
-  });
-  fs.docs.set(`knowledge_graph/${u}/relationships/r1`, {
-    strength: 0.1,
-    reinforcementCount: 0,
-    lastReinforced: new Date(now - 90 * DAY),
-  });
-}
+const seedGraph = (u: string) => seed(fs.docs, u);
 
 /** A held call's window, already scrubbed: kept KEEP_DAYS, so it still marks the caller held. */
 const storeHeldWindow = (u: string) =>
@@ -131,17 +63,16 @@ async function proc(reader = true) {
   return { engine: new ConsolidationEngine(), batch };
 }
 
-const graphTouched = (u: string) =>
-  [...fs.reads, ...fs.writes].filter((p) => p.includes(`knowledge_graph/${u}`));
+const graphTouched = fs.graphTouched;
 
 beforeEach(() => {
-  fs.docs.clear();
-  fs.writes.length = 0;
-  fs.reads.length = 0;
-  fs.failHolds.on = false;
+  fs.reset();
   fs.analyze.mockClear();
 });
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+});
 
 describe('knowledge-graph consolidation: MINOR_CARE hold', () => {
   it('rewrites a caller who was never held (the same graph a held caller has)', async () => {
@@ -181,9 +112,10 @@ describe('knowledge-graph consolidation: MINOR_CARE hold', () => {
     expect(fs.analyze).not.toHaveBeenCalled();
   });
 
-  it('skips a caller the shared hold record holds, with no window stored yet', async () => {
-    vi.stubEnv('MINOR_CARE', 'on');
-    vi.stubEnv('MINOR_CARE_SHARED_HOLD', 'on');
+  it('skips a caller the shared hold record holds, no window stored, flags off here', async () => {
+    // The voice agent wrote heldUntil with MINOR_CARE_SHARED_HOLD on; this process has it off
+    vi.stubEnv('MINOR_CARE', 'off');
+    vi.stubEnv('MINOR_CARE_SHARED_HOLD', 'off');
     const u = uid('Shared');
     seedGraph(u);
     fs.docs.set(`minor_care_holds/${u}`, { heldUntil: Date.now() + HOUR, v: 1 });
@@ -194,6 +126,17 @@ describe('knowledge-graph consolidation: MINOR_CARE hold', () => {
     expect(graphTouched(u)).toEqual([]);
   });
 
+  it('consolidates a caller whose shared hold has lapsed', async () => {
+    const u = uid('Lapsed');
+    seedGraph(u);
+    fs.docs.set(`minor_care_holds/${u}`, { heldUntil: Date.now() - HOUR, v: 1 });
+    const { engine } = await proc();
+
+    await engine.runConsolidation(u);
+
+    expect(fs.writes).toContain(`add knowledge_graph/${u}/consolidation_log`);
+  });
+
   it('skips when the hold can not be read (fails closed)', async () => {
     const u = uid('Down');
     seedGraph(u);
@@ -201,6 +144,20 @@ describe('knowledge-graph consolidation: MINOR_CARE hold', () => {
     const { engine } = await proc();
 
     await engine.runConsolidation(u);
+
+    expect(graphTouched(u)).toEqual([]);
+  });
+
+  it('skips when the hold read does not answer in time (fails closed)', async () => {
+    const u = uid('Late');
+    seedGraph(u);
+    fs.hangHolds.on = true;
+    const { engine } = await proc();
+    vi.useFakeTimers();
+
+    const run = engine.runConsolidation(u);
+    await vi.advanceTimersByTimeAsync(5000);
+    await run;
 
     expect(graphTouched(u)).toEqual([]);
   });
