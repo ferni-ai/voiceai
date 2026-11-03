@@ -17,7 +17,7 @@ module.exports = {
     project: ['./tsconfig.json'],
     tsconfigRootDir: __dirname,
   },
-  plugins: ['@typescript-eslint'],
+  plugins: ['@typescript-eslint', 'red-proof-missing'],
   rules: {
     // TypeScript - Critical (keep as errors)
     '@typescript-eslint/explicit-function-return-type': 'off',
