@@ -22,6 +22,11 @@
 /apps/cli/src/commands/quality/ @sethdford
 /scripts/flags/ @sethdford
 /src/config/flag-lifecycle* @sethdford
+# The ESLint configs and rules whose error counts CI ratchets per rule (web, and the
+# design-system rules): turning a rule off or narrowing what it matches changes the gate.
+/apps/web/.eslintrc.cjs @sethdford
+/eslint.design.config.mjs @sethdford
+/design-system/eslint-plugin/ @sethdford
 
 # Autonomy lanes (scripts/ci/autonomy-policy.json; the "Autonomy Lanes" check). Crisis:
 # 988 and referral, AI-disclosure notices, minor protections. Evaluator: the code that
