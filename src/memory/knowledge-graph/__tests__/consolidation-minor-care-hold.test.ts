@@ -12,7 +12,7 @@
  * Synthetic ids and names only.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { seedGraph as seed } from './minor-care-fake-firestore.js';
+import { lapsedWithOpenWindow, seedGraph as seed } from './minor-care-fake-firestore.js';
 
 const fs = await vi.hoisted(async () => {
   const { fakeFirestore } = await import('./minor-care-fake-firestore.js');
@@ -151,6 +151,20 @@ describe('knowledge-graph consolidation: MINOR_CARE hold', () => {
     await engine.runConsolidation(u);
 
     expect(fs.writes).toContain(`add knowledge_graph/${u}/consolidation_log`);
+  });
+
+  it('skips a caller whose shared hold has lapsed while a held window is still unscrubbed', async () => {
+    vi.stubEnv('MINOR_CARE', 'off');
+    vi.stubEnv('MINOR_CARE_SHARED_HOLD', 'off');
+    const u = uid('Window');
+    seedGraph(u);
+    fs.docs.set(`minor_care_holds/${u}`, lapsedWithOpenWindow(Date.now()));
+    const { engine } = await proc();
+
+    await engine.runConsolidation(u);
+
+    expect(fs.reads).toEqual([`minor_care_holds/${u}`]); // the hold, nothing of the graph
+    expect(fs.writes).toEqual([]);
   });
 
   it('skips when the hold can not be read (fails closed)', async () => {

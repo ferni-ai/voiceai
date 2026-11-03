@@ -99,3 +99,17 @@ export function seedGraph(docs: Map<string, Data>, u: string): void {
     lastReinforced: new Date(now - 90 * DAY),
   });
 }
+
+const HOUR = 60 * 60 * 1000;
+
+/**
+ * A hold record whose 6 h shared hold ran out, with the held call's window stored and not yet
+ * purged (unscrubbed windows are kept until they are): the caller is still held.
+ */
+export function lapsedWithOpenWindow(now: number): Data {
+  return {
+    heldUntil: now - HOUR,
+    v: 1,
+    windows: [{ start: now - 8 * HOUR, end: now - 7 * HOUR, scrubbed: false }],
+  };
+}
