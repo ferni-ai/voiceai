@@ -60,52 +60,68 @@ export const THIRD_PERSON_REPORTED: readonly RegExp[] = [
   ),
 ];
 
-/** Down, and not getting up: "fell and can't get up", "collapsed and won't wake up". */
-const DOWN = String.raw`(?:fell(?! (?:asleep|for|in love|behind|apart|short|silent|quiet|through)\b)|has fallen|had a fall|collapsed|passed out|fainted|blacked out)`;
-/** "won't answer his phone", "won't respond to my messages": not answering, not unresponsive. */
-const NOT_CONTACT = String.raw`(?! (?:to )?(?:[a-z]+'?s? )?(?:phone|texts?|calls?|messages?|e-?mails?|dms?|slack|voicemails?)\b)`;
-/** "won't get up" is often just won't; "won't wake up" after a collapse is not. */
-const notUp = (contact: string): string =>
-  String.raw`(?:(?:can'?t|cannot|can not|isn'?t able to|is not able to|still can'?t) (?:get up|stand(?: up)?(?! straight\b)|move|wake up|breathe|respond${contact})|couldn'?t (?:get up|stand(?: up)?(?! straight\b)|move|wake up|breathe|respond${contact})(?![^.!?]{0,30}\bfor a (?:minute|second|sec|moment)\b)|(?:won'?t|will not|still won'?t) (?:wake up|breathe|(?:respond|answer)${contact})|(?:isn'?t|is not|still isn'?t) (?:breathing|responding${contact}|waking up|moving))(?! (?:early|on time|in time|in the morning|tomorrow|(?:for|until|till) (?:dinner|lunch|breakfast|school|work|class|church|practice|the bus|noon|morning))\b)`;
-const downNotUp = (contact: string): RegExp =>
-  new RegExp(
-    String.raw`\b${OTHER}(?: [a-z]+)?${AUX} ${DOWN}\b[^.!?]{0,40}?\b(?:and|but|now)(?: (?:he|she|they)(?:'s|'re| is| are)?)? ${notUp(contact)}`
-  );
-const DOWN_NOT_UP = downNotUp(NOT_CONTACT);
-/** "collapsed on the floor and won't answer his phone": on the floor, the phone doesn't matter. */
-const DOWN_NOT_UP_ANY = downNotUp('');
-const ON_THE_FLOOR =
-  /\b(?:floor|ground|stairs|bleeding|blood|911|ambulance|paramedics?|cpr|turning blue|no pulse|seizure)\b/;
-// "he's not breathing", but not "not breathing a word", "unconscious of how loud he is" or
-// "stopped breathing for a second when she saw the bill".
+/** Down: "fell", "collapsed", "passed out". The everyday "fell asleep" or "fell for" is masked first. */
+const DOWN = String.raw`(?:fell|has fallen|had a fall|collapsed|passed out|fainted|blacked out)`;
+/** Not getting up: "can't get up", "won't wake up", "isn't breathing". */
+const NOT_UP = String.raw`(?:(?:can'?t|cannot|can not|isn'?t able to|is not able to|still can'?t|couldn'?t) (?:get up|stand(?: up)?|move|wake up|breathe|respond)|(?:won'?t|will not|still won'?t) (?:wake up|breathe|respond|answer)|(?:isn'?t|is not|still isn'?t) (?:breathing|responding|waking up|moving))`;
+/**
+ * Who went down: "my dad collapsed", or the same subject carried on past a first clause: "my dad
+ * got dizzy, then fell". Never past an "i" or "we", so the caller's own fall stays theirs.
+ */
+const CLAUSE_START = String.raw`(?:^ *(?:(?!i\b)[a-z]+ )?|[,;] ?|\b(?:and|so|but|then|because|now|okay|well|oh) )`;
+const WHO_WENT_DOWN = String.raw`(?:\b${OTHER}(?: [a-z]+)?${AUX} |${CLAUSE_START}${OTHER}\b(?:(?!\b(?:i|we|you)\b)[^.!?]){0,60}?(?:,|\band|\bthen)(?: then)? )${DOWN}\b`;
+const DOWN_NOT_UP = new RegExp(
+  String.raw`${WHO_WENT_DOWN}[^.!?]{0,40}?\b(?:and|but|now)(?: (?:he|she|they)(?:'s|'re| is| are)?)? ${NOT_UP}`
+);
 const NOT_BREATHING = new RegExp(
-  String.raw`\b${OTHER}(?: [a-z]+)?${AUX} (?:not breathing|stopped breathing|unconscious)\b(?! (?:a word|down (?:my|his|her|their|our) necks?|easy|bias|of)\b)(?! for a (?:second|sec|moment) when\b)`
+  String.raw`\b${OTHER}(?: [a-z]+)?${AUX} (?:(?:not|isn'?t|wasn'?t|aren'?t|weren'?t|no longer|barely|still not) breathing|(?:stopped|stops) breathing|unconscious)\b`
 );
-/** Unresponsive, but not "unresponsive to my texts", "on slack" or "when I ask about homework". */
-const UNRESPONSIVE = new RegExp(
-  String.raw`\b${OTHER}(?: [a-z]+)?${AUX} unresponsive\b(?! (?:to|on|in|at|with|over) (?:(?:my|his|her|their|our|the|any|all|a) )?(?:e-?mails?|texts?|messages?|slack|dms?|calls?|chats?|emails?|group chat|work chat)\b)(?! (?:lately|these days|when|in the mornings?|since (?:i|I|we) (?:asked|told|mentioned|brought up))\b)`
-);
-/** A laughing fit, not a fall: "collapsed in laughter", "cracked up laughing", "fell for the prank". */
-const LAUGHING_FIT =
-  /\b(?:collapsed|fell(?: over| down)?|cracked up|doubled over|keeled over)(?: (?:in|into|with|from)(?: (?:a fit of|fits of|hysterical))? (?:laughter|giggles|laughing|hysterics|stitches)| laughing)\b|\bfell for (?:the|a|my|his|her|their|our) (?:prank|joke|trick)\b/;
-/** Words that keep it an emergency whatever else the sentence says. */
+const UNRESPONSIVE = new RegExp(String.raw`\b${OTHER}(?: [a-z]+)?${AUX} unresponsive\b`);
+
+/**
+ * Everyday idioms built from the same words. Each one masks only its own words, and the rest of
+ * the sentence is read again, so "cracked up laughing, then he fell and can't get up" still reads.
+ */
+const EVERYDAY: readonly RegExp[] = [
+  // A laughing fit or a prank, not a fall.
+  /\b(?:collapsed|fell(?: over| down)?|cracked up|doubled over|keeled over)(?: (?:in|into|with|from)(?: (?:a fit of|fits of|hysterical))? (?:laughter|giggles|laughing|hysterics|stitches)| laughing)\b|\bfell for (?:the|a|my|his|her|their|our) (?:prank|joke|trick)\b/g,
+  /\bfell (?:asleep|for|in love|behind|apart|short|silent|quiet|through)\b/g,
+  // Not answering messages: "won't answer his phone", "won't respond to my texts".
+  /\b(?:respond(?:ing)?|answer(?:ing)?) (?:to )?(?:[a-z]+'?s? )?(?:phone|texts?|calls?|messages?|e-?mails?|dms?|slack|voicemails?)\b/g,
+  // A time: "won't wake up for dinner", "can't get up early", "is not moving until dinner".
+  /\b(?:get up|stand(?: up)?|move|wake up|breathe|respond|answer|breathing|responding|waking up|moving) (?:early|on time|in time|in the morning|tomorrow|(?:for|until|till) (?:dinner|lunch|breakfast|school|work|class|church|practice|the bus|noon|morning))\b/g,
+  // Back up after a moment: "couldn't move his legs for a minute".
+  /\bcouldn'?t (?:get up|stand(?: up)?|move|wake up|breathe|respond)[^.!?]{0,30}\bfor a (?:minute|second|sec|moment)\b/g,
+  /\bstand(?: up)? straight\b/g,
+  // "not breathing a word", "breathing down my neck", "unconscious bias", "stopped breathing for a second when".
+  /\b(?:breathing|unconscious)(?: (?:a word|down (?:my|his|her|their|our) necks?|easy|bias|of)\b| for a (?:second|sec|moment) when\b)/g,
+  // Unresponsive to messages, or at times: "unresponsive to my texts", "unresponsive lately".
+  /\bunresponsive (?:(?:to|on|in|at|with|over) (?:(?:my|his|her|their|our|the|any|all|a) )?(?:e-?mails?|texts?|messages?|slack|dms?|calls?|chats?|group chat|work chat)|lately|these days|when|in the mornings?|since (?:i|we) (?:asked|told|mentioned|brought up))\b/g,
+];
+const mask = (said: string): string =>
+  EVERYDAY.reduce((rest, idiom) => rest.replace(idiom, ' _ '), said);
+
+/** Words that keep it an emergency, whatever idiom the sentence also holds. */
 const STILL_EMERGENCY =
-  /\b(?:not breathing|isn'?t breathing|stopped breathing|won'?t wake|can'?t wake|unconscious|unresponsive|911|ambulance|paramedics?|cpr|emergency|floor|ground|bleeding|blood|turning blue|no pulse|seizure)\b/;
-/** Not answering messages, with nothing physical in the sentence. */
+  /\b(?:not breathing|isn'?t breathing|stopped breathing|won'?t wake|can'?t wake|can'?t get up|can'?t move|isn'?t responding|isn'?t moving|unconscious|unresponsive|911|ambulance|paramedics?|cpr|emergency|floor|ground|stairs|bleeding|blood|turning blue|no pulse|seizure|(?:shook|shaking|shake) (?:him|her|them)|tried to wake)\b/;
+/** Not answering messages: "unresponsive, I've emailed her five times". A physical word overrides it. */
 const MESSAGES =
   /\b(?:e-?mails?|e-?mailed|texts?|texted|messages?|messaged|calls? (?:me )?back|slack|dms?|voicemails?)\b/;
 const PHYSICAL =
-  /\b(?:floor|ground|collapsed|fell|fallen|passed out|fainted|breathing|breathe|wake|awake|911|ambulance|paramedics?|cpr|emergency|bleeding|blood|blue|pulse|seizure|hospital)\b/;
+  /\b(?:floor|ground|stairs|collapsed|fell|fallen|passed out|fainted|breathing|breathe|wake|awake|moving|move|911|ambulance|paramedics?|cpr|emergency|bleeding|blood|blue|pulse|seizure|hospital)\b/;
 
-/** Someone else is down and not getting up, or not breathing: an emergency for them now. */
+const reads = (said: string, masked: string): boolean =>
+  DOWN_NOT_UP.test(said) ||
+  NOT_BREATHING.test(said) ||
+  (UNRESPONSIVE.test(said) && (PHYSICAL.test(masked) || !MESSAGES.test(masked)));
+
+/**
+ * Someone else is down and not getting up, or not breathing: an emergency for them now. Read with
+ * the everyday idioms masked; and when a word that keeps it an emergency is left over, read again
+ * with nothing masked, so no idiom ever outweighs "on the floor" or "I shook him".
+ */
 export const thirdPartyEmergency = (text: string): boolean =>
-  text
-    .split(/[.!?]+/)
-    .some(
-      (said) =>
-        (!LAUGHING_FIT.test(said) || STILL_EMERGENCY.test(said)) &&
-        (DOWN_NOT_UP.test(said) ||
-          (ON_THE_FLOOR.test(said) && DOWN_NOT_UP_ANY.test(said)) ||
-          NOT_BREATHING.test(said) ||
-          (UNRESPONSIVE.test(said) && (PHYSICAL.test(said) || !MESSAGES.test(said))))
-    );
+  text.split(/[.!?]+/).some((said) => {
+    const masked = mask(said);
+    return reads(masked, masked) || (STILL_EMERGENCY.test(masked) && reads(said, masked));
+  });

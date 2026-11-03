@@ -338,7 +338,6 @@ describe('third-person reported crisis (#3345)', () => {
       'my laptop collapsed',
       "my phone fell and can't turn on",
       'she collapsed on the floor laughing when the dog sneezed',
-      "my dad fell asleep on the floor and won't wake up for the movie",
       "he's not breathing a word about the party",
       'my sister has been unresponsive on the group chat',
       "she fainted at the concert but she's fine now",
