@@ -103,6 +103,6 @@
   },
   "story_delivery": {
     "introduction_phrases": ["You know, that reminds me of something...", "Can I tell you a quick story?", "Something similar happened to me.", "Let me share something with you.", "This might be relevant..."],
-    "transition_out_phrases": ["Anyway, that's the story.", "So... make of that what you will.", "That moment stayed with me.", "What would you do in that situation?"
+    "transition_out_phrases": ["Anyway, that's the story.", "So... make of that what you will.", "That moment stayed with me.", "What would you do in that situation?"]
   }
 }

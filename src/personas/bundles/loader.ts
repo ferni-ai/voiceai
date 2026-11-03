@@ -11,6 +11,7 @@
 import { readFile, stat } from 'fs/promises';
 import { join } from 'path';
 import { getLogger } from '../../utils/safe-logger.js';
+import { loadJsonFile } from './content-load.js';
 import { normalizeBundleStory } from './story-normalizer.js';
 
 import type {
@@ -149,11 +150,6 @@ function substituteEnvVarsDeep<T>(obj: T): T {
 // ============================================================================
 // FILE LOADING HELPERS
 // ============================================================================
-
-async function loadJsonFile<T>(path: string): Promise<T> {
-  const content = await readFile(path, 'utf-8');
-  return JSON.parse(content) as T;
-}
 
 async function loadMarkdownFile(path: string): Promise<string> {
   return readFile(path, 'utf-8');

@@ -34,17 +34,43 @@ updates:
         update-types:
           - "minor"
           - "patch"
-      # Majors land together in one weekly PR (they arrived one PR each and
-      # crowded the queue: 4 of 10 open dependabot PRs on 2026-10-08).
-      majors:
+      # Majors: packages that must move together share a PR; every other major
+      # comes alone. One group for all majors (#3415: 16 majors, 13 failing
+      # checks) gave no way to tell which bump broke what. open-pull-requests-limit
+      # above still caps how many are open at once.
+      # eslint 9+ needs flat config, and typescript-eslint must match the eslint major.
+      lint-majors:
         patterns:
-          - "*"
+          - "eslint"
+          - "@eslint/*"
+          - "@typescript-eslint/*"
+          - "typescript-eslint"
+        update-types:
+          - "major"
+      # firebase-admin pins its own @google-cloud/firestore; bumping one alone
+      # leaves two Firestore clients in the tree.
+      firebase-admin-majors:
+        patterns:
+          - "firebase-admin"
+          - "@google-cloud/*"
         update-types:
           - "major"
     ignore:
-      # Ignore major version updates for critical packages (review manually)
-      - dependency-name: "@livekit/*"
+      # @types/node follows the runtime major in .nvmrc (22). A newer major types
+      # APIs production doesn't have; bump it in the PR that moves the runtime.
+      - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # The LiveKit packages move as one family, by hand: pnpm-workspace.yaml pins
+      # agents, every plugin and rtc-node to one version, and patches/ holds patches
+      # made for exactly that version. A Dependabot bump of one or two of them
+      # splits the family (#3441; package-json-overrides-agree.test.ts fails).
+      # Ignoring every version-update type still lets security updates through.
+      - dependency-name: "@livekit/*"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
+      # Ignore major version updates for critical packages (review manually)
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
       # 14.18.0 drops the word after "in" ("practice in spanish" -> "practice in"),

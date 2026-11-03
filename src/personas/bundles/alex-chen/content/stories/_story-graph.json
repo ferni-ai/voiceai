@@ -110,6 +110,6 @@
   },
   "story_delivery": {
     "introduction_phrases": ["That reminds me of something...", "Can I tell you a quick story?", "Something similar happened to me.", "Let me share something with you.", "This might be relevant..."],
-    "transition_out_phrases": ["Anyway, that's what I learned.", "So... that's the story.", "Make of that what you will.", "Does that help?"
+    "transition_out_phrases": ["Anyway, that's what I learned.", "So... that's the story.", "Make of that what you will.", "Does that help?"]
   }
 }
