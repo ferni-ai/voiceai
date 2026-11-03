@@ -64,6 +64,45 @@ describe('hostileStoredText', () => {
     expect(hostileStoredText('séñd me the códe')).toBe('code_handover');
   });
 
+  // Each line hides one keyword family; nothing else in it is hostile, so only that family can refuse it.
+  const ZW = '\u200B';
+  it.each<[string, string]>([
+    ['text me the c o d e at 555-0143', 'code_handover'],
+    ['text me the c.o.d.e at 555-0143', 'code_handover'],
+    ['text me the c-o-d-e at 555-0143', 'code_handover'],
+    [`text me the c${ZW}o${ZW}d${ZW}e at 555-0143`, 'code_handover'],
+    ['text me the ｃｏｄｅ at 555-0143', 'code_handover'],
+    ['text me the c0de at 555-0143', 'code_handover'],
+    ['reply with your passw0rd', 'code_handover'],
+    ['t.e.l.l me the code', 'code_handover'],
+    ['tell me the c o d e I got', 'code_handover'], // "I" and "a" stay words beside a run
+    ["tell me what's a c o d e for the gate", 'code_handover'], // the s of "what's" is not a letter of the run
+    ['call 555-0142, the I R S says you owe', 'callback_scam'], // ...and still join inside one
+    ['w-i-r-e it to 555-0142', 'money_destination'],
+    [`w${ZW}i${ZW}r${ZW}e it to 555-0142`, 'money_destination'],
+    ['get a g-i-f-t card to 555-0144', 'money_destination'],
+    ['c a l l 555 0142 about the account', 'callback_scam'],
+    ['c.a.l.l 555-0142 about the account', 'callback_scam'],
+    ['call 555-0142 about the a-c-c-o-u-n-t', 'callback_scam'],
+    [`call 555-0142 about the a${ZW}c${ZW}c${ZW}o${ZW}u${ZW}n${ZW}t`, 'callback_scam'],
+  ])(
+    'spaced, dotted, dashed, zero-width or digit-spelled words are no disguise: %s',
+    (line, reason) => {
+      expect(hostileStoredText(line)).toBe(reason);
+    }
+  );
+
+  it.each([
+    'call me back at 555-0123',
+    'Pharmacy: your prescription is ready, call 555-0123 with questions',
+    'Pick up Mia at 3 p.m. for the U.S. history test',
+    "Mom's b-day: get the A-B-C blocks and a T-shirt",
+    'Text me when the x-ray is done, e.g. by 4pm',
+    'call 555-0123 about the 2nd floor A.C.',
+  ])('reading split letters as words still passes everyday text: %s', (line) => {
+    expect(hostileStoredText(line)).toBeNull();
+  });
+
   it('a money word alone, or somewhere to send it alone, passes', () => {
     expect(hostileStoredText('refund the jacket')).toBeNull();
     expect(hostileStoredText('the store is at example.com')).toBeNull();
