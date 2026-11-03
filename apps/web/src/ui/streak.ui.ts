@@ -58,3 +58,6 @@ export const streakUI = {
 };
 
 export default streakUI;
+
+// eslint-disable-next-line @ferni/design-system/no-hardcoded-durations
+export const plantedFade = (el: HTMLElement) => el.animate([], { duration: 150 });
