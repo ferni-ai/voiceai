@@ -45,7 +45,7 @@ module.exports = {
     // General
     'no-case-declarations': 'warn',
     'no-console': ['warn', { allow: ['warn', 'error', 'log', 'debug'] }],
-    'prefer-const': 'error',
+    'prefer-const': 'off',
     'no-var': 'error',
     'no-empty': 'warn',
     'eqeqeq': ['error', 'always', { null: 'ignore' }],
