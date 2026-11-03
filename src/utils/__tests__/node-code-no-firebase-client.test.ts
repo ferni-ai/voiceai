@@ -7,7 +7,7 @@
  * for Node consumers. We build and test on Node 22 and declare our own build/test floor
  * instead, which is honest only while the client SDK runs in the browser. This test keeps
  * that true, except for the named EXCEPTIONS below. When the runtime moves to Node 24,
- * drop the exceptions and this test.
+ * drop the exceptions, LAZY_CUTS and this test.
  *
  * Every git-visible source file is a Node entry except browser code (apps/web/src, and the
  * apps/website page scripts and service worker); apps/web vitest files are entries too. A
@@ -43,12 +43,33 @@ const EXCEPTIONS: Record<string, string> = {
     'integration contract test of the real trust dashboard UI; loads firebase/auth under Node 22, green in CI. Node 24 removes the reason.',
   'src/tests/trust-together-contract.test.ts':
     'integration contract test of the real trust dashboard UI; loads firebase/auth under Node 22, green in CI. Node 24 removes the reason.',
-  'src/tests/features/feature-sprint-e2e.test.ts':
-    'reaches it only through lazy import()s (mobile-bottom-sheet > lazy-screens > marketplace.ui) that the test never triggers.',
+};
+
+/** One `import()` edge, `lazyFrom` > `lazyTo`, that an entry never triggers. */
+interface LazyCut {
+  lazyFrom: string;
+  lazyTo: string;
+}
+
+/**
+ * The walk skips only that one dynamic edge, only for that entry; every static import and
+ * every other path from the entry still count. A cut whose edge is gone, or that no longer
+ * removes a chain through it, fails.
+ */
+const LAZY_CUTS: Record<string, LazyCut & { reason: string }> = {
+  'src/tests/features/feature-sprint-e2e.test.ts': {
+    lazyFrom: 'apps/web/src/ui/mobile-bottom-sheet.ui.ts',
+    lazyTo: 'apps/web/src/ui/lazy-screens.ts',
+    reason:
+      'the test loads the bottom sheet, which imports lazy-screens only inside a contact-settings handler the test never fires; a resolve-hook probe saw 0 firebase loads.',
+  },
 };
 
 interface FileInfo {
+  /** Static imports, export-from and require(). */
   edges: string[];
+  /** `import()` targets, kept apart so LAZY_CUTS can skip one dynamic edge. */
+  lazy: string[];
   sdk: string[];
   mocked: string[];
   unresolved: string[];
@@ -67,8 +88,9 @@ const replacesModule = (factory: ts.Expression, text: string): boolean =>
   !/importActual|importOriginal/.test(text.slice(factory.pos, factory.end));
 
 /** Value imports of one file, plus `vi.mock` targets whose factory never loads the original. */
-function scan(file: string, text: string): { specs: string[]; mocks: string[] } {
+function scan(file: string, text: string): { specs: string[]; dynamic: string[]; mocks: string[] } {
   const specs: string[] = [];
+  const dynamic: string[] = [];
   const mocks: string[] = [];
   const visit = (node: ts.Node): void => {
     if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier) {
@@ -81,10 +103,9 @@ function scan(file: string, text: string): { specs: string[]; mocks: string[] } 
       const [first, factory] = node.arguments;
       const callee = node.expression;
       if (first && ts.isStringLiteralLike(first)) {
-        if (
-          callee.kind === ts.SyntaxKind.ImportKeyword ||
-          (ts.isIdentifier(callee) && callee.text === 'require')
-        ) {
+        if (callee.kind === ts.SyntaxKind.ImportKeyword) {
+          dynamic.push(first.text);
+        } else if (ts.isIdentifier(callee) && callee.text === 'require') {
           specs.push(first.text);
         } else if (isViMock(callee) && factory && replacesModule(factory, text)) {
           mocks.push(first.text);
@@ -95,7 +116,7 @@ function scan(file: string, text: string): { specs: string[]; mocks: string[] } 
   };
   if (/\b(import|require|from)\b/.test(text))
     visit(ts.createSourceFile(file, text, ts.ScriptTarget.Latest, false));
-  return { specs, mocks };
+  return { specs, dynamic, mocks };
 }
 
 /** Repo path a specifier loads, `null` for a package, or `undefined` when it cannot be resolved. */
@@ -124,16 +145,19 @@ function buildGraph(
   for (const file of all.filter((f) => CODE.test(f))) {
     const text = read(file);
     if (text === undefined) continue;
-    const { specs, mocks } = scan(file, text);
-    const info: FileInfo = { edges: [], sdk: [], mocked: [], unresolved: [] };
-    for (const spec of specs) {
+    const { specs, dynamic, mocks } = scan(file, text);
+    const info: FileInfo = { edges: [], lazy: [], sdk: [], mocked: [], unresolved: [] };
+    const add = (spec: string, into: string[]): void => {
+      // A dynamic import of the SDK itself stays in `sdk`: LAZY_CUTS skips repo edges only.
       if (CLIENT_SDK.test(spec)) info.sdk.push(spec);
       else {
         const target = resolveSpec(file, spec, files);
         if (target === undefined) info.unresolved.push(spec);
-        else if (target && CODE.test(target)) info.edges.push(target);
+        else if (target && CODE.test(target)) into.push(target);
       }
-    }
+    };
+    for (const spec of specs) add(spec, info.edges);
+    for (const spec of dynamic) add(spec, info.lazy);
     info.mocked = mocks.map((m) => (CLIENT_SDK.test(m) ? m : (resolveSpec(file, m, files) ?? m)));
     graph.set(file, info);
   }
@@ -144,7 +168,8 @@ function buildGraph(
 function chainToSdk(
   entry: string,
   graph: Map<string, FileInfo>,
-  stubbed: string[]
+  stubbed: string[],
+  skip?: LazyCut
 ): string[] | null {
   const cut = new Set([...stubbed, ...(graph.get(entry)?.mocked ?? [])]);
   const prev = new Map<string, string>();
@@ -155,7 +180,8 @@ function chainToSdk(
     const info = graph.get(file);
     const hit = info?.sdk.find((s) => !cut.has(s));
     if (hit) return [...path(file), hit];
-    for (const next of info?.edges ?? []) {
+    const lazy = (info?.lazy ?? []).filter((t) => file !== skip?.lazyFrom || t !== skip.lazyTo);
+    for (const next of [...(info?.edges ?? []), ...lazy]) {
       if (seen.has(next) || cut.has(next)) continue;
       seen.add(next);
       prev.set(next, file);
@@ -174,10 +200,15 @@ function nodeEntries(graph: Map<string, FileInfo>): string[] {
 }
 
 /** `entry > ... > specifier` for each Node entry that loads the client SDK. */
-function violations(graph: Map<string, FileInfo>, stubbed: string[]): Map<string, string> {
+function violations(
+  graph: Map<string, FileInfo>,
+  stubbed: string[],
+  cuts: Record<string, LazyCut> = LAZY_CUTS
+): Map<string, string> {
   const out = new Map<string, string>();
   for (const entry of nodeEntries(graph)) {
-    const chain = chainToSdk(entry, graph, runsUnderWebVitest(entry) ? stubbed : []);
+    const stubs = runsUnderWebVitest(entry) ? stubbed : [];
+    const chain = chainToSdk(entry, graph, stubs, cuts[entry]);
     if (chain) out.set(entry, chain.join(' > '));
   }
   return out;
@@ -222,6 +253,16 @@ describe('the Firebase client SDK never runs in Node', () => {
 
   it('every exception still reaches the client SDK (drop stale entries)', () => {
     expect(Object.keys(EXCEPTIONS).filter((entry) => !found.has(entry))).toEqual([]);
+  });
+
+  // With the cut, the first test requires no chain; so a chain without it means the cut is
+  // what removes it.
+  it('every lazy cut names a live import() edge that still hides a chain', () => {
+    const stale = Object.entries(LAZY_CUTS).filter(([entry, { lazyFrom, lazyTo }]) => {
+      const edgeLive = graph.get(lazyFrom)?.lazy.includes(lazyTo) ?? false;
+      return !edgeLive || chainToSdk(entry, graph, []) === null;
+    });
+    expect(stale.map(([entry]) => entry)).toEqual([]);
   });
 
   // Only apps/web depends on firebase, so only an import the walk cannot follow in or into
@@ -295,6 +336,56 @@ describe('the Firebase client SDK never runs in Node', () => {
     ],
   ])('allows %s', (_label, files) => {
     expect([...violations(fixture(files), stub)]).toEqual([]);
+  });
+
+  describe('a lazy cut', () => {
+    const cut = {
+      'src/e.test.ts': { lazyFrom: 'apps/web/src/screens.ts', lazyTo: 'apps/web/src/market.ts' },
+    };
+    const lazyChain = {
+      'src/e.test.ts': `import '../apps/web/src/sheet';`,
+      'apps/web/src/sheet.ts': `import './screens';`,
+      'apps/web/src/screens.ts': `const open = () => import('./market');`,
+      'apps/web/src/market.ts': `import './sdk';`,
+      ...sdkModule,
+    };
+    const flagged = (files: Record<string, string>): string[] => [
+      ...violations(fixture(files), stub, cut).values(),
+    ];
+
+    it('skips that one import() edge for its entry', () => {
+      expect(flagged(lazyChain)).toEqual([]);
+    });
+
+    it('still flags another import() in lazyFrom', () => {
+      const files = {
+        ...lazyChain,
+        'apps/web/src/screens.ts': `const open = () => import('./market');\nconst other = () => import('./sdk');`,
+      };
+      expect(flagged(files)).toEqual([
+        'src/e.test.ts > apps/web/src/sheet.ts > apps/web/src/screens.ts > apps/web/src/sdk.ts > firebase/firestore',
+      ]);
+    });
+
+    it('still flags a static chain from the entry', () => {
+      const files = {
+        ...lazyChain,
+        'src/e.test.ts': `import '../apps/web/src/sheet';\nimport '../apps/web/src/sdk';`,
+      };
+      expect(flagged(files)).toEqual(['src/e.test.ts > apps/web/src/sdk.ts > firebase/firestore']);
+    });
+
+    it('still flags a static import in lazyFrom', () => {
+      const files = { ...lazyChain, 'apps/web/src/screens.ts': `import './market';` };
+      expect(flagged(files)).toEqual([
+        'src/e.test.ts > apps/web/src/sheet.ts > apps/web/src/screens.ts > apps/web/src/market.ts > apps/web/src/sdk.ts > firebase/firestore',
+      ]);
+    });
+
+    it('still flags another entry through the same lazy edge', () => {
+      const files = { ...lazyChain, 'src/other.ts': `import '../apps/web/src/sheet';` };
+      expect([...violations(fixture(files), stub, cut).keys()]).toEqual(['src/other.ts']);
+    });
   });
 
   it('does not treat a vi.mock that loads the original as a replacement', () => {
