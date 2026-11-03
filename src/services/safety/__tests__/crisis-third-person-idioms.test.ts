@@ -131,6 +131,9 @@ describe('an everyday reason after not getting up (r6)', () => {
     "he fell behind at work and can't get up the energy",
     "my sister fell asleep early and can't get up the motivation",
     "my coworker collapsed into her chair and can't move after that meeting",
+    "my dad fell asleep watching tv and won't wake up for his show",
+    "my mom fell behind on her bills and can't get up to date",
+    "my brother fell for her and can't get up the nerve to ask",
   ])('a time or a reason the words name is not an emergency: %s', (line) => {
     expect(emergencyRead(line)).toEqual([false, false]);
   });
@@ -139,6 +142,7 @@ describe('an everyday reason after not getting up (r6)', () => {
   it.each([
     "my grandma fell asleep in her chair and won't wake up",
     "my mom fell asleep in the car and won't wake up",
+    "my dad passed out and won't wake up in the car",
     "my mom watched the movie and fell asleep and won't wake up",
     "he passed out on the couch after the game and won't wake up for anything, typical",
     'he fell off the wagon, not responding to anyone lately',

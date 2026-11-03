@@ -68,7 +68,7 @@ const NOT_UP = String.raw`(?:(?:can'?t|cannot|can not|isn'?t able to|is not able
  * Who went down: "my dad collapsed", or the same subject carried on past a first clause: "my dad
  * got dizzy, then fell". Never past an "i" or "we", so the caller's own fall stays theirs.
  */
-const CLAUSE_START = String.raw`(?:^ *(?:(?!i\b)[a-z]+ )?|[,;] ?|\b(?:and|so|but|then|because|now|okay|well|oh) )`;
+const CLAUSE_START = String.raw`(?:^ *(?:[a-z]+ )?|[,;] ?|\b(?:and|so|but|then|because|now|okay|well|oh) )`;
 const WHO_WENT_DOWN = String.raw`(?:\b${OTHER}(?: [a-z]+)?${AUX} |${CLAUSE_START}${OTHER}\b(?:(?!\b(?:i|we|you)\b)[^.!?]){0,60}?(?:,|\band|\bthen)(?: then)? )${DOWN}\b`;
 const DOWN_NOT_UP = new RegExp(
   String.raw`${WHO_WENT_DOWN}[^.!?]{0,40}?(?:\b(?:and|but|now)|,)(?: (?:he|she|they)(?:'s|'re| is| are)?)? ${NOT_UP}`
