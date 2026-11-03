@@ -15,6 +15,8 @@
  *   borderColor: 'var(--color-border-subtle)'
  */
 
+const keyOf = require('./key-name');
+
 // Regex patterns for color values
 const HEX_COLOR = /#([0-9a-fA-F]{3}){1,2}\b/;
 const HEX_COLOR_ALPHA = /#([0-9a-fA-F]{4}){1,2}\b/;
@@ -110,14 +112,14 @@ module.exports = {
     const allowInTests = options.allowInTests !== false;
 
     // Skip test files if configured
-    const filename = context.getFilename();
+    const filename = context.filename;
     if (allowInTests && (filename.includes('.test.') || filename.includes('.spec.') || filename.includes('__tests__'))) {
       return {};
     }
 
     function isInAllowedContext(node) {
       // Check if we're in a var() function call
-      const sourceCode = context.getSourceCode();
+      const sourceCode = context.sourceCode;
       const text = sourceCode.getText(node);
       if (text.includes('var(--')) {
         return true;
@@ -186,16 +188,6 @@ module.exports = {
     }
 
     return {
-      // Check object properties like { backgroundColor: '#fff' }
-      Property(node) {
-        if (node.key && node.value && node.value.type === 'Literal') {
-          const keyName = node.key.name || node.key.value;
-          if (keyName && isColorProperty(keyName)) {
-            checkColorValue(node.value, node.value.value);
-          }
-        }
-      },
-
       // Check template literals
       TemplateLiteral(node) {
         node.quasis.forEach(quasi => {
@@ -230,7 +222,7 @@ module.exports = {
         // Only check if parent suggests it's a style value
         const parent = node.parent;
         if (parent && parent.type === 'Property') {
-          const keyName = parent.key && (parent.key.name || parent.key.value);
+          const keyName = keyOf(parent.key);
           if (keyName && isColorProperty(keyName)) {
             checkColorValue(node, node.value);
           }

@@ -6,15 +6,19 @@ name: Crisis Sweep
 #
 # No `paths:` filter: should this become a required check, a filtered workflow
 # never reports and the PR waits forever (ci.yml). The sweep job is gated with a
-# job-level `if:` instead; a skipped job reports success. labeled/unlabeled
-# re-run it, so adding or removing the approval label takes effect.
+# job-level `if:` instead. A skipped job reports success, and so does one whose
+# `needs:` failed, so the check to require is "Crisis Sweep Verdict", which is
+# green only when the sweep passed or had a reason to skip. labeled/unlabeled
+# re-run it, so adding or removing the approval label takes effect. It runs in
+# the merge queue too, against main and every PR in the group.
 on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, labeled, unlabeled]
+  merge_group:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -30,22 +34,43 @@ jobs:
       pull-requests: read
     outputs:
       crisis: ${{ steps.crisis.outputs.matched }}
+      # merge_group only: the queued PR has crisis:lowering-approved and is the
+      # whole group (scripts/ci/queue-lowering-approved.sh).
+      queue_lowering_approved: ${{ steps.queue-label.outputs.approved }}
     steps:
       - uses: actions/checkout@v7
         with:
-          sparse-checkout: .github/actions
+          sparse-checkout: |
+            .github/actions
+            scripts/ci
       # The scoring code (detectCrisis + assessSafety and everything they import
       # that can change a read), the crisis personas and turn handling, the
       # fixtures, the sweep itself and this workflow.
       - id: crisis
         uses: ./.github/actions/pr-changes
         with:
-          include: '^(src/services/safety/|src/agents/personas/crisis|src/agents/processors/turn-processor/turn-crisis|src/tools/domains/life-coaching-shared/safety-guards\.ts$|src/utils/(safety-whole-word|phrase-match)|src/agents/__tests__/fixtures/crisis-|src/services/superhuman/validation/crisis-test-cases\.ts$|src/services/wellbeing-tracking/__tests__/crisis-|scripts/crisis-eval/|\.github/workflows/crisis-sweep\.yml$)'
+          include: '^(src/services/safety/|src/agents/personas/crisis|src/agents/processors/turn-processor/turn-crisis|src/tools/domains/life-coaching-shared/safety-guards\.ts$|src/utils/(safety-whole-word|phrase-match)|src/agents/__tests__/fixtures/crisis-|src/services/superhuman/validation/crisis-test-cases\.ts$|src/services/wellbeing-tracking/__tests__/crisis-|scripts/crisis-eval/|scripts/ci/queue-lowering-approved\.sh$|\.github/workflows/crisis-sweep\.yml$)'
+          # In the queue: every file the group changes against main.
+          merge-group: 'true'
+
+      # The queue carries no pull_request labels; read them for the queued PR.
+      - id: queue-label
+        if: github.event_name == 'merge_group'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.event.merge_group.head_ref }}
+          BASE_REF: ${{ github.event.merge_group.base_ref }}
+          HEAD_SHA: ${{ github.event.merge_group.head_sha }}
+          REPO: ${{ github.repository }}
+        run: echo "approved=$(scripts/ci/queue-lowering-approved.sh "$HEAD_REF" "$BASE_REF" "$HEAD_SHA" "$REPO")" >> "$GITHUB_OUTPUT"
 
   sweep:
     name: Crisis Sweep (no lowered reads)
     needs: changes
-    if: needs.changes.outputs.crisis != 'false' && !contains(github.event.pull_request.labels.*.name, 'crisis:lowering-approved')
+    if: >-
+      needs.changes.outputs.crisis != 'false' &&
+      !contains(github.event.pull_request.labels.*.name, 'crisis:lowering-approved') &&
+      needs.changes.outputs.queue_lowering_approved != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -57,6 +82,27 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 2
+
+      # In the queue HEAD is the group's head and HEAD^1 is the PR ahead of it, so
+      # the base is where the group leaves main: every PR in the group is compared,
+      # not only the last one (#2027).
+      - name: Pick the base commit
+        id: base
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          TARGET: ${{ github.event.merge_group.base_ref }}
+          HEAD_SHA: ${{ github.event.merge_group.head_sha }}
+        run: |
+          if [ "$EVENT" = merge_group ]; then
+            sha=$(gh api "repos/$REPO/compare/${TARGET#refs/heads/}...$HEAD_SHA" --jq '.merge_base_commit.sha')
+            [ -n "$sha" ] || { echo "::error::No merge base for the group"; exit 1; }
+            git fetch --no-tags --depth=1 origin "$sha"
+          else
+            sha=$(git rev-parse HEAD^1)
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -84,12 +130,14 @@ jobs:
 
       # The base tree's scoring code imports pino, so it borrows the head's node_modules.
       - name: Extract the base tree
+        env:
+          BASE_SHA: ${{ steps.base.outputs.sha }}
         run: |
           base="$RUNNER_TEMP/crisis-base"
           mkdir -p "$base"
-          git archive HEAD^1 src scripts package.json tsconfig.json | tar -x -C "$base"
+          git archive "$BASE_SHA" src scripts package.json tsconfig.json | tar -x -C "$base"
           ln -s "$GITHUB_WORKSPACE/node_modules" "$base/node_modules"
-          echo "Base: $(git rev-parse HEAD^1)"
+          echo "Base: $BASE_SHA"
 
       # A node_modules cache hit skips postinstall, which writes the generated flag lists that the
       # safety barrel loads (src/services/safety/index.ts -> crisis-line-speech -> env-flag), so both
@@ -105,3 +153,38 @@ jobs:
             echo "::error title=Crisis reads lowered::This PR lowers crisis reads vs main (listed above). Restore them, or Seth approves the lowering with the PR label crisis:lowering-approved."
             exit 1
           fi
+
+  # The check to require. Green only when detection succeeded and the sweep passed,
+  # or skipped because nothing crisis-related changed or Seth approved the lowering.
+  # Anything else, including a failed detection that skipped the sweep, is red.
+  crisis-sweep-verdict:
+    name: Crisis Sweep Verdict
+    needs: [changes, sweep]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: The sweep passed or had a reason to skip
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          SWEEP: ${{ needs.sweep.result }}
+          CRISIS: ${{ needs.changes.outputs.crisis }}
+          PR_APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'crisis:lowering-approved') }}
+          QUEUE_APPROVED: ${{ needs.changes.outputs.queue_lowering_approved }}
+        run: |
+          if [ "$CHANGES" != success ]; then
+            echo "::error::Detect Crisis Scoring Changes did not succeed ($CHANGES)"; exit 1
+          fi
+          case "$SWEEP" in
+            success) echo "The sweep found no lowered crisis read" ;;
+            skipped)
+              if [ "$CRISIS" = false ]; then
+                echo "Nothing that can change a crisis read changed"
+              elif [ "$PR_APPROVED" = true ] || [ "$QUEUE_APPROVED" = true ]; then
+                echo "Seth approved the lowering (crisis:lowering-approved)"
+              else
+                echo "::error::The sweep was skipped with crisis='$CRISIS' and no approval"; exit 1
+              fi ;;
+            *) echo "::error::The sweep did not pass ($SWEEP)"; exit 1 ;;
+          esac

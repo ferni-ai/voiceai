@@ -53,11 +53,9 @@ ci.yml (primary)
 ├── test-agi-features
 ├── build (depends on above)
 ├── security
-├── code-quality
 ├── quality-gates
 ├── validation
-├── frontend-quality
-└── dependencies
+└── frontend-quality
 
 deploy-production.yml
 ├── Uses reusable-design-system.yml

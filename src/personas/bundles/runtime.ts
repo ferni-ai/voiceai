@@ -9,7 +9,9 @@
 // It creates a circular dependency chain:
 // personas/bundles → conversation → services/persona-content-loader → personas/bundles
 // Instead, we use dynamic import below to break the cycle at compile time.
+import { join } from 'node:path';
 import { getLogger } from '../../utils/safe-logger.js';
+import { readOptionalJson, warnMissingExtendedContentOnce } from './extended-content.js';
 import {
   getSessionVarietyTracker,
   type PersonalityExpression,
@@ -949,66 +951,23 @@ export class BundleRuntimeEngine {
   // ============================================================================
 
   /**
-   * Load inner world content (called after initialization)
-   * FIX BUG #bundle-4: Log specific file errors for debugging
+   * Load inner world content (called after initialization). A missing file is
+   * reported once per persona by warnMissingExtendedContentOnce; any other
+   * failure is logged at debug with its path (FIX BUG #bundle-4).
    */
   async loadInnerWorld(): Promise<void> {
     try {
-      const fs = await import('node:fs/promises');
-      const path = await import('node:path');
+      const { bundlePath } = this.bundle;
+      await warnMissingExtendedContentOnce(this.state.personaId, bundlePath);
+      const read = async <T>(dir: string, file: string): Promise<T | undefined> =>
+        readOptionalJson<T>(join(bundlePath, 'content', dir, file), file);
 
-      // Try to load inner-world.json
-      const innerWorldPath = path.join(
-        this.bundle.bundlePath,
-        'content',
-        'identity',
-        'inner-world.json'
-      );
-      try {
-        const content = await fs.readFile(innerWorldPath, 'utf-8');
-        this.innerWorld = JSON.parse(content);
-      } catch (err) {
-        // FIX BUG #bundle-4: Log specific file path on error (only at debug level)
-        const e = err as NodeJS.ErrnoException;
-        if (e.code !== 'ENOENT') {
-          getLogger().debug(
-            { path: innerWorldPath, error: String(err) },
-            'Failed to load inner-world.json'
-          );
-        }
-      }
-
-      // Try to load sensory-world.json
-      const sensoryWorldPath = path.join(
-        this.bundle.bundlePath,
-        'content',
-        'identity',
-        'sensory-world.json'
-      );
-      try {
-        const content = await fs.readFile(sensoryWorldPath, 'utf-8');
-        this.sensoryWorld = JSON.parse(content);
-      } catch (err) {
-        const e = err as NodeJS.ErrnoException;
-        if (e.code !== 'ENOENT') {
-          getLogger().debug(
-            { path: sensoryWorldPath, error: String(err) },
-            'Failed to load sensory-world.json'
-          );
-        }
-      }
-
-      // Try to load quirks.json
-      const quirksPath = path.join(this.bundle.bundlePath, 'content', 'behaviors', 'quirks.json');
-      try {
-        const content = await fs.readFile(quirksPath, 'utf-8');
-        this.quirks = JSON.parse(content);
-      } catch (err) {
-        const e = err as NodeJS.ErrnoException;
-        if (e.code !== 'ENOENT') {
-          getLogger().debug({ path: quirksPath, error: String(err) }, 'Failed to load quirks.json');
-        }
-      }
+      const innerWorld = await read<BundleInnerWorld>('identity', 'inner-world.json');
+      if (innerWorld !== undefined) this.innerWorld = innerWorld;
+      const sensoryWorld = await read<BundleSensoryWorld>('identity', 'sensory-world.json');
+      if (sensoryWorld !== undefined) this.sensoryWorld = sensoryWorld;
+      const quirks = await read<BundleQuirks>('behaviors', 'quirks.json');
+      if (quirks !== undefined) this.quirks = quirks;
     } catch (error) {
       getLogger().debug(
         { error: String(error), personaId: this.state.personaId },

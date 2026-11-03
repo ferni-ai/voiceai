@@ -23,11 +23,9 @@ flowchart TB
             integration[Integration Tests]
             agi[AGI Feature Tests]
             security[Security Scan]
-            quality[Code Quality]
             gates[Quality Gates]
             validation[Validation]
             frontend[Frontend Quality]
-            deps[Dependency Check]
         end
 
         build[Build]
@@ -43,7 +41,7 @@ flowchart TB
     push --> checkout
     pr --> checkout
     checkout --> setup
-    setup --> lint & unit & integration & agi & security & quality & gates & validation & frontend & deps
+    setup --> lint & unit & integration & agi & security & gates & validation & frontend
     lint & unit & integration & agi --> build
     build --> artifacts
     artifacts --> deploy_firebase
