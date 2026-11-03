@@ -362,6 +362,11 @@ test('button states', async ({ page }) => {
 
 ## 5.1 GitHub Actions Workflow
 
+This was the original sketch; `brand-compliance.yml` no longer exists. The gates
+that run are in `ci.yml`: the quality ratchet in Quality Gates (brand copy and
+brand-lint counts may not rise) and the design-system drift gate and ESLint
+ratchet in Frontend Quality.
+
 ```yaml
 # .github/workflows/brand-compliance.yml
 name: Brand Compliance

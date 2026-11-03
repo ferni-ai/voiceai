@@ -13,7 +13,7 @@
  */
 
 import { readFileSync, readdirSync, statSync } from 'fs';
-import { join, relative } from 'path';
+import { join, relative, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
@@ -21,25 +21,97 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // ============================================================================
-// AUDIT RULES
+// TAG READING
 // ============================================================================
 
-const AUDIT_RULES = {
+// Reads the markup tag that opens at `start` ("<name ..."). Quoted values and {...} / ${...}
+// expressions are skipped as a whole, so a ">" inside `onLoad={() => x}` or a string doesn't
+// end the tag early. `attrs` keeps only the text between them, where attribute names live.
+// `dynamic` means the tag spreads props or interpolates attributes, so any attribute may be
+// set. Returns null for a tag that never closes.
+export function readTag(content, start) {
+  const name = /^<([A-Za-z][\w.:-]*)/.exec(content.slice(start, start + 80))?.[1];
+  if (!name) return null;
+  let attrs = '';
+  let dynamic = false;
+  let depth = 0;
+  let quote = null;
+  for (let i = start + 1 + name.length; i < content.length; i++) {
+    const c = content[i];
+    if (quote) {
+      if (c === quote) quote = null;
+    } else if (c === '"' || c === "'" || c === '`') {
+      quote = c;
+    } else if (c === '{') {
+      if (depth === 0 && !attrs.replace(/\$$/, '').trimEnd().endsWith('=')) dynamic = true;
+      depth++;
+    } else if (c === '}') {
+      depth = Math.max(0, depth - 1);
+    } else if (depth === 0 && c === '>') {
+      return { name, attrs, dynamic, end: i };
+    } else if (depth === 0) {
+      attrs += c;
+    }
+  }
+  return null;
+}
+
+// Whether a tag read by readTag names one of `names` (a regex alternation) as an attribute.
+// `data-alt` is not `alt`: the name must start the attribute.
+function hasAttr(tag, names) {
+  return new RegExp(`(?:^|[\\s/])(?:${names})(?=[\\s=/]|$)`, 'i').test(tag.attrs);
+}
+
+// Built-in elements that are interactive without a role.
+const INTERACTIVE_TAGS = new Set('a button input select textarea summary option label'.split(' '));
+
+// ============================================================================
+// AUDIT RULES
+// ============================================================================
+// A rule's `pattern` finds candidates; `isViolation(content, index)`, when present, decides
+// whether the candidate at `index` is a finding. A negative lookahead after `[^>]*` can't do
+// that (the scan just backtracks past it), which made three rules match every tag.
+
+export const AUDIT_RULES = {
   // Accessibility
   missingAriaLabel: {
-    pattern: /<button[^>]*(?!aria-label)[^>]*>/g,
+    pattern: /<button\b/gi,
+    // A button with no label attribute and no visible text. Dynamic content can't be judged.
+    isViolation: (content, index) => {
+      const tag = readTag(content, index);
+      if (!tag || tag.dynamic || hasAttr(tag, 'aria-label|aria-labelledby|title')) return false;
+      const close = content.slice(tag.end).search(/<\/button\s*>/i);
+      if (close < 0) return false;
+      const inner = content.slice(tag.end + 1, tag.end + close);
+      const labelledInside = /\b(alt|aria-label|title)\s*=\s*["'][^"']/i;
+      if (/[{}]/.test(inner) || labelledInside.test(inner)) return false;
+      const text = inner.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '');
+      return text.trim() === '';
+    },
     message: 'Button may need aria-label for accessibility',
     severity: 'warning',
     category: 'accessibility',
   },
   missingAltText: {
-    pattern: /<img[^>]*(?!alt=)[^>]*>/g,
+    pattern: /<img\b/gi,
+    // alt="" is valid (a decorative image). Spread or interpolated attributes may carry alt.
+    isViolation: (content, index) => {
+      const tag = readTag(content, index);
+      return tag !== null && !tag.dynamic && !hasAttr(tag, 'alt');
+    },
     message: 'Image missing alt attribute',
     severity: 'error',
     category: 'accessibility',
   },
   clickableWithoutRole: {
-    pattern: /onClick[^}]*(?!role=)/g,
+    pattern: /<[a-z][\w-]*/g,
+    // A lowercase (built-in) element with a click handler that isn't interactive and has no
+    // role. Capitalised JSX components set their own semantics.
+    isViolation: (content, index) => {
+      const tag = readTag(content, index);
+      if (!tag || tag.dynamic || INTERACTIVE_TAGS.has(tag.name.toLowerCase())) return false;
+      return hasAttr(tag, 'onclick') && !hasAttr(tag, 'role');
+    },
     message: 'Clickable element may need role="button"',
     severity: 'warning',
     category: 'accessibility',
@@ -170,21 +242,17 @@ function getAllFiles(dir, files = []) {
     return [dir];
   }
 
-  try {
-    const entries = readdirSync(dir);
-    for (const entry of entries) {
-      const fullPath = join(dir, entry);
-      if (shouldIgnore(fullPath)) continue;
+  // A directory that can't be read throws: skipping it would lower the error count.
+  for (const entry of readdirSync(dir)) {
+    const fullPath = join(dir, entry);
+    if (shouldIgnore(fullPath)) continue;
 
-      const stat = statSync(fullPath);
-      if (stat.isDirectory()) {
-        getAllFiles(fullPath, files);
-      } else if (EXTENSIONS.some(ext => entry.endsWith(ext))) {
-        files.push(fullPath);
-      }
+    const stat = statSync(fullPath);
+    if (stat.isDirectory()) {
+      getAllFiles(fullPath, files);
+    } else if (EXTENSIONS.some(ext => entry.endsWith(ext))) {
+      files.push(fullPath);
     }
-  } catch (err) {
-    // Ignore permission errors
   }
 
   return files;
@@ -195,7 +263,10 @@ function getAllFiles(dir, files = []) {
 // ============================================================================
 
 function auditFile(filePath) {
-  const content = readFileSync(filePath, 'utf-8');
+  return auditContent(readFileSync(filePath, 'utf-8'), filePath);
+}
+
+export function auditContent(content, filePath) {
   const findings = [];
   const lines = content.split('\n');
 
@@ -226,6 +297,10 @@ function auditFile(filePath) {
 
       // Skip comments
       if (line?.trim().startsWith('//') || line?.trim().startsWith('*')) {
+        continue;
+      }
+
+      if (rule.isViolation && !rule.isViolation(content, match.index)) {
         continue;
       }
 
@@ -271,10 +346,15 @@ function main() {
     bySeverity: { error: 0, warning: 0, info: 0 },
     zIndexValues: new Set(),
   };
+  // Directories that could not be scanned, or held no files. Either makes the count wrong.
+  const scanFailures = [];
 
   for (const dir of SCAN_DIRS) {
     try {
       const files = getAllFiles(dir);
+      if (files.length === 0) {
+        scanFailures.push(`${relative(join(__dirname, '..'), dir)}: no files`);
+      }
       stats.totalFiles += files.length;
 
       for (const file of files) {
@@ -294,9 +374,7 @@ function main() {
         }
       }
     } catch (err) {
-      if (err.code !== 'ENOENT') {
-        console.error(`Error scanning ${dir}:`, err.message);
-      }
+      scanFailures.push(`${relative(join(__dirname, '..'), dir)}: ${err.message}`);
     }
   }
 
@@ -413,8 +491,28 @@ function main() {
   console.log('Run `npx lighthouse http://localhost:3004 --view` for full audit');
   console.log('═'.repeat(60) + '\n');
 
-  // Exit with error if there are errors
-  process.exit(stats.bySeverity.error > 0 ? 1 : 0);
+  // A scan that went wrong must not pass on a count it never finished.
+  if (scanFailures.length > 0) {
+    console.error(`UI audit did not finish scanning:\n  ${scanFailures.join('\n  ')}`);
+    process.exit(1);
+  }
+
+  // Ratchet: old errors may remain, but the count must not grow (as lint:tokens does).
+  // CI ran this with `|| true`, so new errors never failed anything. 0 on main, 2026-11-02.
+  const MAX_UI_AUDIT_ERRORS = 0;
+  const errors = stats.bySeverity.error;
+  if (errors > MAX_UI_AUDIT_ERRORS) {
+    console.error(
+      `UI audit ratchet exceeded: ${errors} > ${MAX_UI_AUDIT_ERRORS} errors. Fix the new ones before landing.`
+    );
+    process.exit(1);
+  }
+  const lower = errors < MAX_UI_AUDIT_ERRORS ? ` Lower MAX_UI_AUDIT_ERRORS to ${errors}.` : '';
+  console.log(`Ratchet: ${errors}/${MAX_UI_AUDIT_ERRORS} errors (must not grow).${lower}\n`);
+  process.exit(0);
 }
 
-main();
+// Run only as a script; tests import the rules.
+if (process.argv[1] && resolve(process.argv[1]) === __filename) {
+  main();
+}

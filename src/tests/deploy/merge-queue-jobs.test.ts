@@ -39,10 +39,8 @@ const REQUIRED: Record<string, string> = {
 const POST_MERGE = [
   'ci.yml#test-agi-features',
   'ci.yml#build',
-  'ci.yml#code-quality',
   'ci.yml#validation',
   'ci.yml#e2e-validation',
-  'ci.yml#dependencies',
   'build-apps.yml#build-ios',
 ];
 

@@ -4,6 +4,7 @@
 # It also dismisses stale approvals on push (dismiss_stale_reviews_on_push, on 2026-10-30).
 /.github/CODEOWNERS   @sethdford
 /.github/workflows/   @sethdford
+/.github/actions/     @sethdford
 /scripts/ci/          @sethdford
 
 # Quality gates. They fail only on what a PR adds, measured against its merge base
