@@ -749,7 +749,6 @@
   "src/utils/__tests__/firestore-utils.test.ts",
   "src/utils/__tests__/minor-care-stores.test.ts",
   "src/utils/__tests__/no-bare-require.test.ts",
-  "src/utils/__tests__/onnxruntime-single-version.test.ts",
   "src/utils/__tests__/url-redaction.test.ts",
   "src/utils/audio/pre-stt-transform.ts",
   "src/utils/firestore-utils.ts"
