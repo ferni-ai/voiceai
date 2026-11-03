@@ -85,13 +85,6 @@ export interface PublisherPayout {
 // STRIPE CLIENT
 // ============================================================================
 
-/**
- * The Stripe API version this client is pinned to. stripe-node types `apiVersion` as
- * its own latest version only, so an older pin needs this assertion. Moving the
- * version is a separate decision. Every other config key stays type-checked.
- */
-const STRIPE_API_VERSION = '2025-12-15.clover' as string;
-
 let stripeClient: Stripe | null = null;
 
 function getStripeClient(): Stripe {
@@ -101,7 +94,10 @@ function getStripeClient(): Stripe {
       throw new Error('STRIPE_SECRET_KEY not configured');
     }
     stripeClient = new Stripe(secretKey, {
-      apiVersion: STRIPE_API_VERSION as Stripe.LatestApiVersion,
+      // The Stripe API version this client is pinned to. stripe-node types `apiVersion`
+      // as its own latest version only, so an older pin needs this assertion. Moving
+      // the version is a separate decision. Every other config key stays type-checked.
+      apiVersion: '2025-12-15.clover' as Stripe.LatestApiVersion,
     });
   }
   return stripeClient;
