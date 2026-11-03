@@ -65,10 +65,18 @@ const ROOT_SPECIFIER = 'firebase-admin';
 const DIRECT_INIT = /\binitializeApp\(/;
 const SOURCE_GLOBS = ['*.ts', '*.tsx', '*.mts', '*.cts', '*.js', '*.mjs', '*.cjs', '*.jsx'];
 
+// The scanner reports only string-literal specifiers, so a file that imports the root
+// has the literal 'firebase-admin' in its text (unless it spells it with escape
+// sequences, which nobody does). Files without it can't match, so they skip the scanner.
+// About 430 of the ~11.4k tracked files contain it; scanning them all took ~9 s per test
+// under --coverage and timed out in CI.
 function importsRoot(text: string): boolean {
-  return ts
-    .preProcessFile(text, true, true)
-    .importedFiles.some(({ fileName }) => fileName === ROOT_SPECIFIER);
+  return (
+    text.includes(ROOT_SPECIFIER) &&
+    ts
+      .preProcessFile(text, true, true)
+      .importedFiles.some(({ fileName }) => fileName === ROOT_SPECIFIER)
+  );
 }
 
 /** Every tracked or new (not ignored) JS/TS file in the repo, repo-relative. */
@@ -106,6 +114,9 @@ function offenders(): string[] {
 }
 
 describe('firebase-admin is initialized in one place', () => {
+  // Both checks below read the same scan, so it runs once.
+  const found = offenders();
+
   it('the root import is found in every form the scanner reads, and not inside strings', () => {
     expect(importsRoot("import admin from 'firebase-admin';")).toBe(true);
     expect(importsRoot("const a = (await import('firebase-admin')).default;")).toBe(true);
@@ -120,12 +131,12 @@ describe('firebase-admin is initialized in one place', () => {
   });
 
   it('no file outside the migration list imports the namespaced API or calls initializeApp', () => {
-    const unexpected = offenders().filter((file) => !NOT_YET_MIGRATED.has(file));
+    const unexpected = found.filter((file) => !NOT_YET_MIGRATED.has(file));
     expect(unexpected, `use getAdminApp()/getAdminFirestore() from ${HELPER}`).toEqual([]);
   });
 
   it('the migration list only names files that still need migrating', () => {
-    const stillOffending = new Set(offenders());
+    const stillOffending = new Set(found);
     const migrated = [...NOT_YET_MIGRATED].filter((file) => !stillOffending.has(file));
     expect(migrated, 'remove these from NOT_YET_MIGRATED').toEqual([]);
   });
