@@ -41,6 +41,8 @@ export const EMBEDDING_MODEL = 'text-embedding-005';
 const TOP_C = 3;
 const SPEC_WEIGHT = 0.3;
 const BUILD_BATCH = 100;
+/** Example requests indexed per tool: the first two carry most of the signal, and the build drops from ~14k to ~3.5k vectors. */
+const MAX_QUERIES_PER_TOOL = 2;
 const BUILD_CONCURRENCY = 8;
 const LOCK_WAIT_MS = 180_000;
 /** A lock this old belongs to a process that died while building. */
@@ -86,7 +88,8 @@ export function indexTexts(
   const split = (n: string): string => n.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
   const out: Array<{ tool: string; kind: 'q' | 'spec'; text: string }> = [];
   for (const [tool, e] of Object.entries(manual.tools)) {
-    for (const q of e.queries) out.push({ tool, kind: 'q', text: q });
+    for (const q of e.queries.slice(0, MAX_QUERIES_PER_TOOL))
+      out.push({ tool, kind: 'q', text: q });
     out.push({ tool, kind: 'spec', text: `${split(tool)}: ${e.description}` });
   }
   return out;
