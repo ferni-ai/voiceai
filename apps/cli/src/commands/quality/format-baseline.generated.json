@@ -124,7 +124,6 @@
   "src/agents/voice-agent/anticipation-handler.ts",
   "src/agents/voice-agent/cleanup-handler.ts",
   "src/agents/voice-agent/dev-mode-sync.ts",
-  "src/agents/voice-agent/greeting-handler.ts",
   "src/agents/voice-agent/human-turn-intelligence.ts",
   "src/agents/voice-agent/phases/demo-call-cap.ts",
   "src/agents/voice-agent/phases/multi-agent-mode.ts",
