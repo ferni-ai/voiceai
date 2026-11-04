@@ -18,12 +18,6 @@ import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-vi.mock('firebase-admin', () => {
-  const unavailable = (): never => {
-    throw new Error('no Firebase in this test');
-  };
-  return { default: { apps: [], initializeApp: unavailable, firestore: unavailable } };
-});
 // The voice stores reach Firestore through getAdminFirestore(); it is unavailable too.
 vi.mock('../../utils/firebase-admin-app.js', () => ({
   getAdminFirestore: (): never => {
