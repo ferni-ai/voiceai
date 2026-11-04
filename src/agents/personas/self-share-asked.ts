@@ -51,7 +51,7 @@ export const ASKED_NO_DETAIL =
  * back ("What about you, how's your afternoon shaping up?"), and a second ask
  * got "Fair enough, what's on your mind then?". Off: the lines are as before.
  */
-export function stayWhenAskedOn(env: Record<string, string | undefined> = process.env): boolean {
+function stayWhenAskedOn(env: Record<string, string | undefined> = process.env): boolean {
   return flagOn('SELF_SHARE_STAY_WHEN_ASKED', env);
 }
 
