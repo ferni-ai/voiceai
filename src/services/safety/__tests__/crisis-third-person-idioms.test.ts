@@ -301,13 +301,35 @@ describe('an everyday reason after not getting up (r6)', () => {
   });
 
   // Sleep with an alarm the reader has no word for stays 911 first, as high as round 5 or
-  // higher: a hit head, drinking, vomit and cold, gurgling. No word list can clear these.
+  // higher: a hit head, drinking, vitals, vomit and cold, gurgling, foaming, insulin, a crash, using,
+  // or something taken. No word list can clear these.
   it.each([
     "my son fell asleep on the floor of his room and won't wake up for school. he banged his head on the desk",
     "my dad fell asleep on the couch and won't wake up for work. he was drinking all night",
     "my son fell asleep on the floor and won't wake up for school. he threw up and he's cold",
     "my mom fell asleep on the couch and won't wake up for work. she threw up and she feels cold",
     "my dad fell asleep on the couch and won't wake up for dinner. he's making a gurgling sound",
+    "my son fell asleep on the couch and won't wake up for school. he bumped his head pretty hard earlier",
+    "my dad fell asleep on the couch and won't wake up for dinner. he hit the back of his head",
+    "my dad fell asleep on the couch and won't wake up for work. he had a lot to drink",
+    "my dad fell asleep on the couch and won't wake up for work. he had six beers and some vodka",
+    "my dad fell asleep in his chair and won't wake up for dinner. i checked his vitals and they're weird",
+    "my dad fell asleep on the couch and won't wake up for dinner. it looks like a collapse to me",
+    "my son fell asleep on the floor and won't wake up for school. he threw up and he's cold and stiff",
+    "my dad fell asleep on the couch and won't wake up for dinner. he's making gurgling sounds",
+    "my son fell asleep on the couch and won't wake up for school. he's foaming at the mouth",
+    "my dad fell asleep in his chair and won't wake up for dinner. he's diabetic and missed his insulin",
+    "my dad fell asleep on the couch and won't wake up for work. he was in a car accident this morning",
+    "my son fell asleep on the couch and won't wake up for school. he took something",
+    "my son fell asleep on the floor and won't wake up for work. he was using again",
+    "my dad fell asleep on the couch and won't wake up for work. he took a handful of his oxy",
+    "she fell asleep in her chair and won't wake up for lunch. she's gray and her hands are cold",
+    // Two calm sentences, then the alarm in the third.
+    "my dad fell asleep on the couch and won't wake up for dinner. we had a long day. he's not breathing right.",
+    "my dad fell asleep on the couch and won't wake up for dinner. we had a long day. he had a lot to drink",
+    "my mom fell asleep in her chair and won't wake up for lunch. it was a busy week! she hit her head earlier",
+    // The cost of recall first: sleep on the floor with a reason, and nothing else, is 911 too.
+    "my dad fell asleep on the floor and won't wake up for dinner",
   ])('reads sleep beside an alarm as an emergency: %s', (line) => {
     for (const read of firstAndMid(line)) {
       expect(read.indicators).toContain('third_party_emergency');
