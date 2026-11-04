@@ -37,6 +37,7 @@ async function getKnowledgeGraphUsers(limit = 100): Promise<string[]> {
 
     const snapshot = await db
       .collection('bogle_users')
+      .select() // ids only: a profile doc carries stored preferences (MINOR_CARE)
       .where('lastContact', '>=', sevenDaysAgo.toISOString())
       .limit(limit)
       .get();

@@ -65,7 +65,9 @@ it.each([
     vi.stubEnv('MINOR_CARE_SHARED_HOLD', 'off');
     const now = Date.now();
     for (const u of [HELD, FREE]) {
-      fs.docs.set(`bogle_users/${u}`, { lastContact: new Date(now).toISOString() });
+      // The caller list must not read whole profiles: they carry stored preferences
+      const preferences = { favoriteColor: 'teal' };
+      fs.docs.set(`bogle_users/${u}`, { lastContact: new Date(now).toISOString(), preferences });
     }
     // Written by a voice agent with MINOR_CARE_SHARED_HOLD on
     fs.docs.set(`minor_care_holds/${HELD}`, { heldUntil: now + HOUR, v: 1 });
@@ -79,6 +81,7 @@ it.each([
     expect(res.writeHead).toHaveBeenCalledWith(200, expect.anything());
     expect(touched(FREE)).not.toEqual([]); // the job ran and read the caller nobody holds
     expect(touched(HELD)).toEqual([]);
+    expect(fs.selects.filter((f) => f !== 'bogle_users.lastContact')).toEqual([]); // no profile
   }
 );
 

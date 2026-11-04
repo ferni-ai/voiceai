@@ -55,12 +55,12 @@ async function getActiveUserIds(limit = 500): Promise<string[]> {
     const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
     const db = getAdminFirestore();
 
-    // Get users from bogle_users collection that have had activity
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const snapshot = await db
       .collection('bogle_users')
+      .select() // ids only: a profile doc carries stored preferences (MINOR_CARE)
       .where('lastContact', '>=', thirtyDaysAgo.toISOString())
       .limit(limit)
       .get();
