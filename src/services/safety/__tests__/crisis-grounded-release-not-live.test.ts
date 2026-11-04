@@ -45,6 +45,14 @@ describe('CRISIS_GROUNDED_RELEASE=live without CRISIS_GUARD_MODE=live', () => {
     expect(notLiveWarnings()).toEqual([{ guardMode: 'x'.repeat(16), runsAs: 'shadow' }]);
   });
 
+  it('still returns shadow when the logger throws', () => {
+    warn.mockImplementationOnce(() => {
+      throw new Error('logger down');
+    });
+    expect(resolveGroundedReleaseMode({ CRISIS_GROUNDED_RELEASE: 'live' })).toBe('shadow');
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
   it('warns again after a reset', () => {
     const env = { CRISIS_GROUNDED_RELEASE: 'live' };
     resolveGroundedReleaseMode(env);

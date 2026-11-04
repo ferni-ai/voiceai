@@ -188,7 +188,11 @@ function warnNotLive(guard: string | undefined): void {
   if (warnedNotLive) return;
   warnedNotLive = true;
   const guardMode = guard === undefined ? 'unset' : guard.slice(0, 16);
-  log.warn({ guardMode, runsAs: 'shadow' }, 'CRISIS_GROUNDED_RELEASE_NOT_LIVE');
+  try {
+    log.warn({ guardMode, runsAs: 'shadow' }, 'CRISIS_GROUNDED_RELEASE_NOT_LIVE');
+  } catch {
+    // A warning must never change the mode or skip the turn's shadow reads.
+  }
 }
 
 /** Lower case, letters and digits only, single spaces. */
