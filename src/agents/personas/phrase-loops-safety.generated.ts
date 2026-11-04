@@ -250,5 +250,6 @@ export const SAFETY_WORDING: readonly string[] = [
   "A safety screen flagged the caller's last words. One gentle, direct question about their safety is added right after your reply.",
   '1. Answer what they said the way you normally would, in your own voice, briefly',
   '2. End without a question of your own, and add no check-in, no lecture and no hotline: the added question is the check-in',
+  'CRISIS_GROUNDED_RELEASE_NOT_LIVE',
   'CRISIS_GROUNDED_RELEASE',
 ];
