@@ -85,6 +85,10 @@ describe('hostileStoredText', () => {
     ['c.a.l.l 555-0142 about the account', 'callback_scam'],
     ['call 555-0142 about the a-c-c-o-u-n-t', 'callback_scam'],
     [`call 555-0142 about the a${ZW}c${ZW}c${ZW}o${ZW}u${ZW}n${ZW}t`, 'callback_scam'],
+    // A zero-width mark glued between two whole words: only the folded form still sees both words.
+    [`send the code${ZW}please`, 'code_handover'],
+    [`wire${ZW}it to 555-0142`, 'money_destination'],
+    [`call 555-0142 about the account${ZW}today`, 'callback_scam'],
   ])(
     'spaced, dotted, dashed, zero-width or digit-spelled words are no disguise: %s',
     (line, reason) => {
