@@ -135,8 +135,10 @@ export function raised(main: Allowlist, current: Allowlist): string[] {
 
 /**
  * The allowlist as committed at `ref`: 'no-ref' when the ref isn't there (a shallow
- * clone: CI must fetch it), 'no-file' when the ref predates the allowlist (true only
+ * clone: CI must fetch it), 'no-file' when the ref's tree has no such path (true only
  * for the PR that adds it). Once the allowlist is on main, every run compares to it.
+ * Throws when the file is in the tree but can't be read (a missing blob) or isn't JSON:
+ * reading that as 'no-file' would skip the raised-allowlist check.
  */
 export function allowlistAt(
   repo: string,
@@ -144,16 +146,18 @@ export function allowlistAt(
   path: string
 ): Allowlist | 'no-ref' | 'no-file' {
   const git = (args: string[]): string =>
-    execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   try {
     git(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]);
   } catch {
     return 'no-ref';
   }
+  if (git(['ls-tree', ref, '--', path]).trim() === '') return 'no-file';
+  const text = git(['show', `${ref}:${path}`]);
   try {
-    return JSON.parse(git(['show', `${ref}:${path}`])) as Allowlist;
-  } catch {
-    return 'no-file';
+    return JSON.parse(text) as Allowlist;
+  } catch (error) {
+    throw new Error(`${ref}:${path} is not valid JSON: ${String(error)}`);
   }
 }
 
@@ -187,10 +191,18 @@ function main(): void {
     return;
   }
 
-  const atMain = allowlistAt(REPO, 'origin/main', relative(REPO, BASELINE).split(sep).join('/'));
+  let atMain: ReturnType<typeof allowlistAt>;
+  try {
+    atMain = allowlistAt(REPO, 'origin/main', relative(REPO, BASELINE).split(sep).join('/'));
+  } catch (error) {
+    console.error(
+      `❌ Could not read origin/main's allowlist, so the raised-allowlist check cannot run: ${String(error)}`
+    );
+    process.exit(1);
+  }
   if (atMain === 'no-ref' && process.env.CI) {
     console.error(
-      '❌ origin/main is not fetched, so an allowlist raised above main would pass. Fetch it (fetch-depth: 0).'
+      '❌ origin/main is not fetched, so an allowlist raised above main would pass. Fetch it first (the "Fetch main for the ratchets" step in ci.yml).'
     );
     process.exit(1);
   }
