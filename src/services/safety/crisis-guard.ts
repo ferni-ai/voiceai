@@ -25,6 +25,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { endingFloor } from './crisis-ending-floor.js';
+import { EMERGENCY_FOR_THEM, getCrisisResponse, IN_DANGER_NOW } from './crisis-guard-replies.js';
 import { meansFormsOf, meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
 import {
@@ -32,6 +33,7 @@ import {
   MODERATE_DISTRESS_VOICE_EMOTIONS,
   SEVERITY,
 } from './crisis-severity.js';
+import { thirdPartyEmergency } from './crisis-third-person.js';
 import { whoGuidance } from './crisis-who-guidance.js';
 import {
   EXPLICIT_CRISIS_PATTERNS,
@@ -90,6 +92,8 @@ export interface CrisisDetectionOptions {
 }
 
 export const CRISIS_SEVERITY = SEVERITY; // the tiers, for callers that weigh a read (caller-text.ts)
+
+export { IN_DANGER_NOW }; // its home is crisis-guard-replies.ts
 
 // CRISIS DETECTION
 
@@ -222,6 +226,12 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
     add('third_party_risk', SEVERITY.passive);
     subject = 'third_party';
   }
+  // Someone else down and not getting up (owner, 2026-11-02): imminent, 911 for them.
+  if (thirdPartyEmergency(text) && (!subject || !hardSelf)) {
+    for (const tag of ['third_party_risk', 'third_party_emergency', 'imminent_danger'])
+      add(tag, SEVERITY.explicit);
+    subject = 'third_party';
+  }
 
   const contextHit = SESSION_CONTEXT_PATTERNS.some((p) => p.test(text));
   // A worry about someone else beside the caller's own softened tier words was the caller's own
@@ -275,6 +285,7 @@ export function detectCrisis(
     const distressed = [...HIGH_DISTRESS_VOICE_EMOTIONS, ...MODERATE_DISTRESS_VOICE_EMOTIONS];
     if (distressed.includes(primary)) subject = 'self';
   }
+  const emergency = subject === 'third_party' && indicators.includes('third_party_emergency');
   const ceiling = subject === 'third_party' ? SEVERITY.block - 0.05 : 1.0;
   if (voiceEmotion?.confidence !== undefined && voiceEmotion.confidence > 0.5) {
     const high = HIGH_DISTRESS_VOICE_EMOTIONS.includes(voiceEmotion.primary);
@@ -301,60 +312,17 @@ export function detectCrisis(
     indicators,
     subject,
     language: subject ? (score.language ?? 'en') : undefined,
-    suggestedResponse: isCrisis
-      ? getCrisisResponse(severity, subject, score.language, indicators.includes('imminent_danger'))
-      : undefined,
+    suggestedResponse: !isCrisis
+      ? undefined
+      : emergency
+        ? EMERGENCY_FOR_THEM
+        : getCrisisResponse(
+            severity,
+            subject,
+            score.language,
+            indicators.includes('imminent_danger')
+          ),
   };
-}
-
-/** Where to turn when someone is in danger now; the action-claim guard reuses it (issue 1553). */
-export const IN_DANGER_NOW =
-  'please call 911 or get to the nearest emergency room. You can also call or text 988 to talk to someone immediately.';
-
-/**
- * Get appropriate crisis response based on severity
- */
-function getCrisisResponse(
-  severity: number,
-  subject: CrisisSubject | undefined,
-  language: 'en' | 'es' | undefined,
-  imminent: boolean
-): string {
-  if (imminent && language !== 'es') {
-    return `I'm really glad you told me. Your safety matters most right now.
-
-If you've taken something or you're in danger right now, ${IN_DANGER_NOW}
-
-I'm staying right here with you. Is anyone nearby who can be with you?`;
-  }
-  if (subject === 'third_party') {
-    return `It sounds like you're really worried about them, and it matters that you're paying attention. You don't have to handle this alone either.
-
-You can call or text 988, the Suicide & Crisis Lifeline, on their behalf to talk through how to help. If they're in immediate danger, call 911.
-
-What's going on with them right now?`;
-  }
-  if (language === 'es') {
-    return `Escucho cuánto dolor sientes ahora, y me alegra mucho que me lo cuentes. Lo que sientes importa, y no tienes que cargar con esto solo.
-
-Puedes llamar al 988 y oprimir 2 para hablar en español, o enviar un mensaje de texto con la palabra AYUDA al 988. Hay consejeros disponibles las 24 horas. Si estás en peligro ahora mismo, llama al 911.
-
-Estoy aquí contigo. ¿Me cuentas qué está pasando?`;
-  }
-  if (severity >= SEVERITY.block) {
-    // Severe crisis - immediate support + resources
-    return `I hear how much pain you're in right now, and I'm really glad you're sharing this with me. What you're feeling matters, and you don't have to carry this alone.
-
-If you're in crisis or having thoughts of suicide, please reach out to the 988 Suicide & Crisis Lifeline by calling or texting 988. They have trained counselors available 24/7.
-
-I'm here with you right now. Can you tell me more about what you're going through?`;
-  }
-  // High distress - validate + gentle support
-  return `I can hear how difficult things are for you right now. What you're feeling is real and valid, and it takes courage to share it.
-
-I want you to know that support is available. The 988 Suicide & Crisis Lifeline (call or text 988) is there 24/7 if you need to talk to someone.
-
-I'm here to listen. What's weighing on you most right now?`;
 }
 
 /**
