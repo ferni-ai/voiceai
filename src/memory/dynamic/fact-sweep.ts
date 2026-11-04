@@ -19,7 +19,8 @@
  * to dynamic_facts like any other, so recall, supersession and forgetting
  * treat them the same.
  *
- * Off by default; FACT_SWEEP=on turns it on.
+ * Off by default; FACT_SWEEP=on turns it on. With FACT_SUBJECT_GUARD on, the model is told
+ * whose "you" is and what the persona said about itself is never kept (fact-subject-guard.ts).
  *
  * @module memory/dynamic/fact-sweep
  */
@@ -28,6 +29,7 @@ import { callMomentLine } from '../operations/call-moment.js';
 import type { ExtractedFact } from './deep-extraction-worker.js';
 import { buildExtractionFirestoreWritePayloads, factDocId } from './extraction-firestore-docs.js';
 import { isValidFact } from './extraction-vector-docs.js';
+import { FACT_SUBJECT_RULE, keepCallerFacts, type CallLine } from './fact-subject-guard.js';
 
 const log = createLogger({ module: 'fact-sweep' });
 
@@ -61,7 +63,12 @@ export function sweepWindows(lines: readonly string[]): SweepWindow[] {
   return out.slice(-MAX_WINDOWS);
 }
 
-export function sweepPrompt(window: SweepWindow, known: readonly string[], moment: string): string {
+export function sweepPrompt(
+  window: SweepWindow,
+  known: readonly string[],
+  moment: string,
+  subjectRule = false
+): string {
   return [
     'Below is what a caller said on one phone call with an AI friend, transcribed by speech-to-text. It has fillers, restarts and transcription slips, and one thing is often said over several lines ("could you call my brother?" / "his name is Pete" / "it\'s uh 435 555 0188").',
     moment,
@@ -69,6 +76,7 @@ export function sweepPrompt(window: SweepWindow, known: readonly string[], momen
     '- Read through fillers, restarts and slips; join a fact said across lines into one fact.',
     '- Name people and things as they were named, never "he", "she", "him", "it" or "they". Use "User" for the caller.',
     '- Only what the caller said or clearly meant. Skip requests to the assistant, small talk, and anything already known (below).',
+    ...(subjectRule ? [FACT_SUBJECT_RULE] : []),
     known.length > 0
       ? `Already known:\n${known.map((k) => `- ${k}`).join('\n')}`
       : 'Already known: nothing yet.',
@@ -116,6 +124,12 @@ export interface SweepStore {
 
 export type SweepLLM = (prompt: string) => Promise<string | null>;
 
+/** FACT_SUBJECT_GUARD on: the whole call, both sides in order, and the personas' canon names. */
+export interface SweepSubjectGuard {
+  lines: readonly CallLine[];
+  canon: ReadonlySet<string>;
+}
+
 /**
  * Reads the call's caller lines in windows and stores the facts not already
  * known. Returns how many were added. Windows run one after another, each
@@ -129,9 +143,9 @@ export async function sweepCall(
     lines: readonly string[];
     timeZone?: string;
   },
-  deps: { llm: SweepLLM; store: SweepStore; now?: Date }
+  deps: { llm: SweepLLM; store: SweepStore; now?: Date; subjectGuard?: SweepSubjectGuard }
 ): Promise<number> {
-  const { store } = deps;
+  const { store, subjectGuard: guard } = deps;
   const windows = sweepWindows(call.lines);
   if (windows.length === 0) return 0;
   const stored = await store.facts(call.userId);
@@ -143,7 +157,8 @@ export async function sweepCall(
   for (const window of windows) {
     // One window at a time, so each sees what the earlier ones found.
     // eslint-disable-next-line no-await-in-loop
-    const found = parseSweep(await deps.llm(sweepPrompt(window, known, moment)));
+    const said = parseSweep(await deps.llm(sweepPrompt(window, known, moment, !!guard)));
+    const found = guard ? keepCallerFacts(said, guard.lines, guard.canon, 'sweep') : said;
     const { facts } = buildExtractionFirestoreWritePayloads(
       call.userId,
       { entities: [], facts: found, relationships: [] },

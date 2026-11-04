@@ -45,6 +45,58 @@ describe('fact sweep after a call', () => {
     expect(d.prompts[0]).not.toContain('what is his name');
   });
 
+  // FACT_SUBJECT_GUARD, through the real after-call entry point: the persona named its own
+  // friends, the caller echoed the names, and the model took them as the caller's friends.
+  const echoed = {
+    ...ctx,
+    turns: [
+      { role: 'user', content: 'Who do you hang out with these days?' },
+      { role: 'assistant', content: "There's Theo, who I hike with, and Max. We go way back." },
+      { role: 'user', content: 'Theo and Max.' },
+      { role: 'user', content: 'My brother Pete is visiting next week.' },
+    ],
+  };
+  const found = JSON.stringify([
+    {
+      entityName: 'User',
+      factType: 'relationship',
+      key: 'friends',
+      value: 'Theo and Max',
+      confidence: 0.9,
+    },
+    {
+      entityName: 'Theo',
+      factType: 'relationship',
+      key: 'friend of',
+      value: 'User',
+      confidence: 0.9,
+    },
+    {
+      entityName: 'Pete',
+      factType: 'event',
+      key: 'visit',
+      value: 'visiting next week',
+      confidence: 0.9,
+    },
+  ]);
+
+  it("with FACT_SUBJECT_GUARD on, stores the caller's facts and never the persona's friends", async () => {
+    const d = deps({ FACT_SWEEP: 'on', FACT_SUBJECT_GUARD: 'on' });
+    d.run.llm = async (p: string) => (d.prompts.push(p), found);
+    expect(await sweepAfterCall(echoed, { ...d.run, canon: new Set() })).toBe(1);
+    expect(d.added).toEqual(['Pete']);
+    expect(d.prompts[0]).toContain('"You" and "your" in them mean the AI friend');
+    expect(d.prompts[0]).not.toContain('who I hike with'); // persona lines still never reach the model
+  });
+
+  it('with FACT_SUBJECT_GUARD off, stores what the model found as on main', async () => {
+    const d = deps({ FACT_SWEEP: 'on' });
+    d.run.llm = async (p: string) => (d.prompts.push(p), found);
+    expect(await sweepAfterCall(echoed, d.run)).toBe(3);
+    expect(d.added).toEqual(['User', 'Theo', 'Pete']);
+    expect(d.prompts[0]).not.toContain('mean the AI friend');
+  });
+
   it('does nothing, with no model call, when the flag is off', async () => {
     const d = deps({});
     expect(await sweepAfterCall(ctx, d.run)).toBe(0);

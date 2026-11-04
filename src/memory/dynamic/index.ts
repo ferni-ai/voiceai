@@ -142,6 +142,9 @@ export {
   type VoiceCaptureConfig,
 } from './voice-context-capture.js';
 
+// FACT_SUBJECT_GUARD: the persona's own facts are never the caller's
+export { factSubjectGuardOn, personaCanonNames, type CallLine } from './fact-subject-guard.js';
+
 // Dependency Injection configuration (services layer injects AsyncEvents)
 export {
   configureAsyncEvents,

@@ -31,6 +31,16 @@ export function canonPeople(): Promise<ReadonlySet<string>> {
   return cached;
 }
 
+/**
+ * Each bundle's own partner and pets as its canon-facts.json writes them ("Sam", "a dog
+ * named Compass"): with canonPeople, everyone and everything in the personas' own lives.
+ */
+export async function canonPartnersAndPets(): Promise<string[]> {
+  const { CANON_BUNDLES, loadCanonFacts } = await import('./persona-canon-facts.js');
+  const all = await Promise.all(CANON_BUNDLES.map(async (b) => loadCanonFacts(b)));
+  return all.flatMap((f) => (f ? [`${f.partner}, ${f.pets}`] : []));
+}
+
 /** The string names in one people.json; none when it is missing or malformed. */
 function namesIn(text: string): string[] {
   try {
