@@ -19,6 +19,7 @@
  * @module services/data-layer/max-per-user
  */
 
+import { ownerId } from '../../memory/retrieval/vector-ownership.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getEntityPolicy } from './indexing-policy.js';
 import type { EntityType } from './types.js';
@@ -73,7 +74,7 @@ async function load(store: CappedVectorStore, userId: string, entityType: string
 /**
  * Make room for `docId` under the user's cap for this entity type, before it
  * is indexed. Returns the ids removed. Best effort: a failure is logged and
- * the doc is indexed anyway.
+ * the doc is indexed anyway. A missing or placeholder owner id removes nothing.
  */
 export async function enforceMaxPerUser(
   store: CappedVectorStore,
@@ -84,6 +85,12 @@ export async function enforceMaxPerUser(
 ): Promise<string[]> {
   const max = getEntityPolicy(entityType)?.conditions?.maxPerUser;
   if (!max || max <= 0) return [];
+  // No real owner: the read would not be narrowed to one user, so the cap
+  // would delete other users' docs.
+  if (!ownerId(userId)) {
+    log.debug({ entityType }, 'maxPerUser skipped: no real owner id');
+    return [];
+  }
   try {
     const cached = tracked.get(keyOf(userId, entityType));
     const t =

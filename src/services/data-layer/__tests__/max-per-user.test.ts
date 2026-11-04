@@ -149,6 +149,35 @@ describe('maxPerUser enforcement', () => {
     expect(s.removeDocument).toHaveBeenCalledWith(`s_${TYPE}_0`);
   });
 
+  it('without a real owner id, nothing is read or removed', async () => {
+    // Two users over the cap. Like list(), an empty userId narrows nothing.
+    const docs = ['u1', 'u2'].flatMap((userId) =>
+      Array.from({ length: MAX + 1 }, (_, i) => ({
+        id: `${userId}_${TYPE}_${i}`,
+        metadata: { userId, entityType: TYPE, indexedAt: new Date(T0 - i).toISOString() },
+      }))
+    );
+    const s: CappedVectorStore = {
+      list: vi.fn(async (filter: { userId: string }) =>
+        filter.userId ? docs.filter((d) => d.metadata.userId === filter.userId) : docs
+      ),
+      removeDocument: vi.fn(async () => true),
+    };
+    for (const userId of ['', '  ', 'anonymous']) {
+      expect(await enforceMaxPerUser(s, userId, TYPE, 'new', T0), JSON.stringify(userId)).toEqual(
+        []
+      );
+    }
+    expect(s.list).toHaveBeenCalledTimes(0);
+    expect(s.removeDocument).toHaveBeenCalledTimes(0);
+    // A real owner still enforces the cap, on that owner's docs only.
+    expect(await enforceMaxPerUser(s, 'u1', TYPE, 'new', T0)).toEqual([
+      `u1_${TYPE}_${MAX}`,
+      `u1_${TYPE}_${MAX - 1}`,
+    ]);
+    expect(s.removeDocument).toHaveBeenCalledTimes(2);
+  });
+
   it('types without a cap are never read', async () => {
     const s = store(0);
     await enforceMaxPerUser(s, 'u1', 'no_such_type' as EntityType, 'a', T0);
