@@ -1,10 +1,10 @@
 /**
  * The check-in alert's screen never costs a crisis signal. Before the screen,
  * the sponsor got the concern's words in full, whoever they were about. The
- * crisis guard reads first-person wording, so third-person crisis ("she said she
- * doesn't want to be here anymore") must still reach the sponsor whenever the
- * screen withholds or cuts the words: as crisisCallerLine. Fictional people and
- * numbers only.
+ * crisis guard reads third-person crisis too ("she said she doesn't want to be
+ * here anymore", crisis-third-person.ts), and it must still reach the sponsor
+ * whenever the screen withholds or cuts the words: as crisisCallerLine.
+ * Fictional people and numbers only.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -31,7 +31,7 @@ const NAME = 'Priya';
 const CRISIS = crisisCallerLine(NAME);
 const CHECK_IN = 'You may want to check in with them.';
 
-/** Wording the crisis guard does not read as crisis: about someone else, or not suicide. */
+/** Crisis about someone else, which the shared guard reads (it missed all three before). */
 const THIRD_PERSON = [
   "she said she doesn't want to be here anymore",
   'he talked about ending it',
@@ -45,9 +45,9 @@ function alertFor(description: unknown, recommendedAction?: unknown, urgency = '
   });
 }
 
-describe('check-in alert: third-person crisis the guard does not read', () => {
-  it.each(THIRD_PERSON)('the guard alone misses "%s"', (line) => {
-    expect(crisisRead(line)).toBe(false);
+describe('check-in alert: third-person crisis', () => {
+  it.each(THIRD_PERSON)('the shared guard reads "%s" as crisis', (line) => {
+    expect(crisisRead(line)).toBe(true);
   });
 
   it.each(THIRD_PERSON)('"%s" in full reaches the sponsor word for word', (line) => {

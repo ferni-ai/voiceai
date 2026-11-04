@@ -94,8 +94,14 @@
 /src/agents/voice-agent/quiet-presence.ts @sethdford
 /src/agents/voice-agent/turn-handler.ts @sethdford
 /src/api/wellbeing.routes.ts @sethdford
+/src/config/flags/FORGET_EVERY_READER.ts @sethdford
+/src/config/flags/NAME_FALLING_SPLIT.ts @sethdford
+/src/config/flags/NAME_GATE_V2.ts @sethdford
+/src/config/flags/PREEMPT_STABLE_CONTEXT.ts @sethdford
 /src/config/flags/SAFETY_WHOLE_WORD_SITES.ts @sethdford
 /src/config/flags/THIRD_PARTY_SELF_HARM.ts @sethdford
+/src/config/flags/TOOL_ACK_CLIP.ts @sethdford
+/src/config/flags/TOOL_ACK_WIDE.ts @sethdford
 /src/intelligence/context-builders/coaching/coaching-context.ts @sethdford
 /src/intelligence/context-builders/coaching/scientific-coaching.ts @sethdford
 /src/intelligence/context-builders/external/call-report.ts @sethdford

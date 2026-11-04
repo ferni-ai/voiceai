@@ -56,6 +56,8 @@ export const COHORT_FLAGS = [
   'RECALL_VECTOR_INDEX',
   'FACT_SUPERSESSION',
   'EXTRACTION_CONTEXT',
+  // After-call extractors ask per person (personFlagOn): fact-sweep-register.ts, deep extraction.
+  'FACT_SUBJECT_GUARD',
   'OPENER_FOLLOW_UP',
   'LIVE_SUMMARIES', // asked per person: readCallSummaries (call-summaries.ts) via personFlagOn
   'COACH_FOLLOW_THROUGH',

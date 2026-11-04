@@ -375,7 +375,7 @@ Extract entities as JSON array:`;
 
       // After-call work: CALLER_CARD as this caller's call had it (envForCaller), not process.env.
       const cardOn = await personFlagOn(userId, 'CALLER_CARD');
-      const prompt = `${factExtractionPrompt(cardOn)}
+      const prompt = `${factExtractionPrompt(cardOn, await personFlagOn(userId, 'FACT_SUBJECT_GUARD'))}
 ${moment}
 
 Entities found:

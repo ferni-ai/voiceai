@@ -106,6 +106,8 @@ export async function handleKnowledgeGraphThreadMaintenance(res: ServerResponse)
   try {
     log.info('Running knowledge graph thread maintenance job (Cloud Scheduler)');
 
+    // MINOR_CARE: registers the hold reader the job asks first; without it every user is skipped
+    await import('../../services/outreach/minor-care-background-read.js');
     const { ThreadMaintenanceJob } = await import('../../tasks/scheduled/knowledge-graph-jobs.js');
 
     const job = new ThreadMaintenanceJob();
@@ -147,6 +149,8 @@ export async function handleKnowledgeGraphEntityDecay(res: ServerResponse): Prom
   try {
     log.info('Running knowledge graph entity decay job (Cloud Scheduler)');
 
+    // MINOR_CARE: registers the hold reader the job asks first; without it every user is skipped
+    await import('../../services/outreach/minor-care-background-read.js');
     const { EntityDecayJob } = await import('../../tasks/scheduled/knowledge-graph-jobs.js');
 
     const job = new EntityDecayJob();

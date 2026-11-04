@@ -276,6 +276,7 @@
     "debt:json": "npx tsx apps/cli/src/commands/quality/tech-debt.ts --json",
     "debt:markdown": "npx tsx apps/cli/src/commands/quality/tech-debt.ts --markdown",
     "quality:arch": "npx tsx apps/cli/src/commands/quality/architecture-gate.ts",
+    "quality:decisions": "npx tsx apps/cli/src/commands/quality/decision-gate.ts",
     "quality:mock-paths": "npx tsx apps/cli/src/commands/quality/mock-paths.ts",
     "quality:format": "npx tsx apps/cli/src/commands/quality/format-ratchet.ts",
     "docs:map": "npx tsx apps/cli/src/commands/quality/docs-map.ts",

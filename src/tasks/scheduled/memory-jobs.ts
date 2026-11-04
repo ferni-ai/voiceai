@@ -33,6 +33,7 @@ import {
 import { getLogger } from '../../utils/safe-logger.js';
 import { opsAlert } from '../../services/platform/ops-alert.js';
 import { ScheduledJob, type BaseJobConfig, type JobContext } from './base-job.js';
+import { skipIfHeld } from './skip-if-held.js';
 import { TranscriptCleanupJob } from './transcript-cleanup-job.js';
 import {
   createFirestoreCursorStore,
@@ -54,12 +55,12 @@ async function getActiveUserIds(limit = 500): Promise<string[]> {
     const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
     const db = getAdminFirestore();
 
-    // Get users from bogle_users collection that have had activity
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const snapshot = await db
       .collection('bogle_users')
+      .select() // ids only: a profile doc carries stored preferences (MINOR_CARE)
       .where('lastContact', '>=', thirtyDaysAgo.toISOString())
       .limit(limit)
       .get();
@@ -327,7 +328,6 @@ export class MemoryDecayJob extends ScheduledJob<DecayJobConfig, DecayJobResult>
 
     ctx.log.info('Starting memory decay pass');
 
-    // Get active users
     const userIds = await getActiveUserIds(config.maxUsersPerRun);
     ctx.log.info({ userCount: userIds.length }, 'Found users for decay processing');
 
@@ -339,12 +339,11 @@ export class MemoryDecayJob extends ScheduledJob<DecayJobConfig, DecayJobResult>
     let usersProcessed = 0;
 
     for (const userId of userIds) {
+      if (await skipIfHeld(userId, ctx.counters)) continue; // MINOR_CARE
       try {
         const memories = await getUserMemories(userId);
 
-        if (memories.length === 0) {
-          continue;
-        }
+        if (memories.length === 0) continue;
 
         ctx.counters.processed++;
         usersProcessed++;
@@ -471,7 +470,6 @@ export class MemoryDeduplicationJob extends ScheduledJob<
 
     ctx.log.info('Starting memory deduplication scan');
 
-    // Get active users
     const userIds = await getActiveUserIds(config.maxUsersPerRun);
     ctx.log.info({ userCount: userIds.length }, 'Found users for deduplication');
 
@@ -482,6 +480,7 @@ export class MemoryDeduplicationJob extends ScheduledJob<
     let usersProcessed = 0;
 
     for (const userId of userIds) {
+      if (await skipIfHeld(userId, ctx.counters)) continue; // MINOR_CARE
       try {
         const memories = await getUserMemories(userId);
 
