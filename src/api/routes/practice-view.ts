@@ -32,6 +32,7 @@ import {
 import { rateLimit } from '../auth-middleware.js';
 import { localeForRequest, tFor, type SupportedLocale } from '../../i18n/index.js';
 import { loadPracticeStats, type PracticeViewStats } from './practice-view-stats.js';
+import type { OutreachType } from '../../services/outreach/proactive-scheduler.js';
 import {
   attribute,
   generateEventEmotionalContext,
@@ -121,7 +122,7 @@ export interface PracticePrediction {
 
 export interface PracticeOutreach {
   id: string;
-  type: 'thinking_of_you' | 'check_in' | 'celebration' | 'reminder';
+  type: OutreachType;
   message: string;
   scheduledFor?: string;
   persona: string;
@@ -468,35 +469,30 @@ async function loadPredictions(userId: string): Promise<PracticePrediction[]> {
   return predictions;
 }
 
+/** Most pending outreach the practice view lists. */
+const PRACTICE_OUTREACH_LIMIT = 5;
+
 /**
- * Load pending outreach for the user
+ * Load the outreach Ferni has planned for the user, from where the proactive
+ * scheduler writes it (bogle_users/{uid}/scheduled_outreach).
  */
 async function loadPendingOutreach(userId: string): Promise<PracticeOutreach[]> {
   const outreach: PracticeOutreach[] = [];
 
   try {
-    const { Firestore } = await import('@google-cloud/firestore');
-    const db = new Firestore({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
-    });
+    const { getFirestoreDb } = await import('../../utils/firestore-utils.js');
+    const db = getFirestoreDb();
+    if (!db) return outreach;
+    const { queryUserPendingOutreach } =
+      await import('../../services/outreach/pending-outreach-query.js');
 
-    // Load pending outreach from Firestore
-    const snapshot = await db
-      .collection('outreach')
-      .where('userId', '==', userId)
-      .where('status', '==', 'pending')
-      .orderBy('scheduledFor', 'asc')
-      .limit(5)
-      .get();
-
-    for (const doc of snapshot.docs) {
+    for (const doc of await queryUserPendingOutreach(db, userId, PRACTICE_OUTREACH_LIMIT)) {
       const data = doc.data();
       outreach.push({
         id: doc.id,
         type: data.type || 'check_in',
         message: data.message || '',
-        scheduledFor: data.scheduledFor?.toDate?.()?.toISOString?.() || data.scheduledFor,
+        scheduledFor: data.scheduledFor,
         persona: data.personaId || 'ferni',
       });
     }

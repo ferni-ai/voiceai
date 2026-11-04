@@ -20,6 +20,7 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { runBackground } from '../../utils/background-task.js';
 import { onScheduledOutreachChange } from '../data-layer/hooks/misc-hooks.js';
 import { outreachPaused } from './outreach-pause.js';
+import { PROACTIVE_OUTREACH_SOURCE, queryPendingOutreach } from './pending-outreach-query.js';
 
 const log = createLogger({ module: 'ProactiveScheduler' });
 
@@ -71,9 +72,6 @@ export interface SchedulerConfig {
   retryDelayMs: number;
   maxRetries: number;
 }
-
-/** Marks our scheduled_outreach docs; scheduled-multi-outreach's go to contacts, not the user. */
-export const PROACTIVE_OUTREACH_SOURCE = 'proactive-scheduler';
 
 const DEFAULT_CONFIG: SchedulerConfig = {
   checkIntervalMs: 60 * 1000, // Check every minute
@@ -452,7 +450,6 @@ export async function loadPendingOutreach(): Promise<void> {
     const db = getFirestoreDb();
     if (!db) return;
 
-    const { queryPendingOutreach } = await import('./pending-outreach-query.js');
     const { snapshot, capped } = await queryPendingOutreach(db); // bounded: runs every cold boot
 
     // Filtered here: a collection-group query on `source` would need a new index.

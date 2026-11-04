@@ -1,14 +1,29 @@
 /**
  * Just enough Firestore for collection-group "due items" queries and claim
- * transactions: where ==/<=, orderBy, limit, runTransaction(get/update), and
- * bogle_users/{uid}/{collection}/{id} get/set/create/update.
+ * transactions: where ==/<=/>=, orderBy, limit, runTransaction(get/update),
+ * bogle_users/{uid}/{collection}/{id} get/set/create/update, and the same
+ * queries on one user's bogle_users/{uid}/{collection}.
  */
 export type Row = { id: string; userId: string; collection: string; data: Record<string, unknown> };
+
+// Like Firestore, a range filter only matches values of its own type (a Date never matches a string).
+const sameType = (a: unknown, b: unknown): boolean =>
+  a instanceof Date || b instanceof Date
+    ? a instanceof Date && b instanceof Date
+    : typeof a === typeof b;
 
 const cmp = (a: unknown, b: unknown): number => {
   const v = (x: unknown) => (x instanceof Date ? x.getTime() : x);
   const [x, y] = [v(a), v(b)];
   return x === y ? 0 : (x as number | string) < (y as number | string) ? -1 : 1;
+};
+
+const matches = (value: unknown, op: string, v: unknown): boolean => {
+  if (op === '==') return value === v;
+  if (!sameType(value, v)) return false;
+  if (op === '<=') return cmp(value, v) <= 0;
+  if (op === '>=') return cmp(value, v) >= 0;
+  return false;
 };
 
 export function fakeFirestore(rows: Row[]) {
@@ -17,20 +32,17 @@ export function fakeFirestore(rows: Row[]) {
     collection: string,
     filters: Array<[string, string, unknown]> = [],
     order?: string,
-    n = Infinity
+    n = Infinity,
+    uid?: string
   ) => ({
     where: (f: string, op: string, v: unknown) =>
-      query(collection, [...filters, [f, op, v]], order, n),
-    orderBy: (f: string) => query(collection, filters, f, n),
-    limit: (k: number) => query(collection, filters, order, k),
+      query(collection, [...filters, [f, op, v]], order, n, uid),
+    orderBy: (f: string) => query(collection, filters, f, n, uid),
+    limit: (k: number) => query(collection, filters, order, k, uid),
     get: async () => {
       const docs = rows
-        .filter((r) => r.collection === collection)
-        .filter((r) =>
-          filters.every(([f, op, v]) =>
-            op === '==' ? r.data[f] === v : op === '<=' ? cmp(r.data[f], v) <= 0 : false
-          )
-        )
+        .filter((r) => r.collection === collection && (uid === undefined || r.userId === uid))
+        .filter((r) => filters.every(([f, op, v]) => matches(r.data[f], op, v)))
         .sort((a, b) => (order ? cmp(a.data[order], b.data[order]) : 0))
         .slice(0, n)
         .map((r) => ({ id: r.id, ref: ref(r), data: () => r.data }));
@@ -40,6 +52,7 @@ export function fakeFirestore(rows: Row[]) {
   // bogle_users/{uid}/{collection}/{id}.set(): replaces the matching row's data.
   const userDoc = (uid: string) => ({
     collection: (c: string) => ({
+      ...query(c, [], undefined, Infinity, uid),
       doc: (id: string) => ({
         // So a transaction can read and update this document by its ref.
         get _row() {

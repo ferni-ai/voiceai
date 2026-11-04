@@ -13,10 +13,15 @@
  * Index: scheduled_outreach COLLECTION_GROUP (status ASC, scheduledFor ASC),
  * live in prod and in firestore.indexes.json.
  *
+ * Also one person's pending proactive outreach, for the practice view.
+ *
  * @module services/outreach/pending-outreach-query
  */
 
-import type { Firestore, QuerySnapshot } from '@google-cloud/firestore';
+import type { Firestore, QueryDocumentSnapshot, QuerySnapshot } from '@google-cloud/firestore';
+
+/** Marks our scheduled_outreach docs; scheduled-multi-outreach's go to contacts, not the user. */
+export const PROACTIVE_OUTREACH_SOURCE = 'proactive-scheduler';
 
 /** Most pending docs one startup read loads. */
 export const PENDING_OUTREACH_LOAD_LIMIT = 500;
@@ -36,4 +41,32 @@ export async function queryPendingOutreach(
     .limit(PENDING_OUTREACH_LOAD_LIMIT)
     .get();
   return { snapshot, capped: snapshot.size >= PENDING_OUTREACH_LOAD_LIMIT };
+}
+
+/**
+ * One person's pending proactive outreach, soonest first.
+ *
+ * Same type trick as above: the range on the ISO-string `scheduledFor` keeps
+ * only proactive-scheduler's docs and skips the Timestamp-typed ones that call
+ * other people (scheduled-multi-outreach, call-retry). Every string ranks at or
+ * above '', so no pending doc is dropped for being overdue.
+ *
+ * Index: scheduled_outreach COLLECTION (status ASC, scheduledFor ASC), live in
+ * prod and in firestore.indexes.json.
+ */
+export async function queryUserPendingOutreach(
+  db: Firestore,
+  userId: string,
+  limit: number
+): Promise<QueryDocumentSnapshot[]> {
+  const snapshot = await db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('scheduled_outreach')
+    .where('status', '==', 'pending')
+    .where('scheduledFor', '>=', '')
+    .orderBy('scheduledFor')
+    .limit(limit)
+    .get();
+  return snapshot.docs.filter((d) => d.data().source === PROACTIVE_OUTREACH_SOURCE);
 }

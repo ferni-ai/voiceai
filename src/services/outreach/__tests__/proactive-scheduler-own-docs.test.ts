@@ -85,7 +85,7 @@ afterEach(async () => {
 describe('proactive scheduler only loads its own scheduled_outreach docs', () => {
   it('tags its writes with its source and the multi-outreach docs carry none', async () => {
     const { proactiveId, multiId } = await writeBothShapes();
-    const { PROACTIVE_OUTREACH_SOURCE } = await import('../proactive-scheduler.js');
+    const { PROACTIVE_OUTREACH_SOURCE } = await import('../pending-outreach-query.js');
 
     expect(rows.find((r) => r.id === proactiveId)!.data.source).toBe(PROACTIVE_OUTREACH_SOURCE);
     expect(rows.find((r) => r.id === multiId)!.data.source).toBeUndefined();
