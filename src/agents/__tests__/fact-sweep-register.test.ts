@@ -85,7 +85,7 @@ describe('fact sweep after a call', () => {
     d.run.llm = async (p: string) => (d.prompts.push(p), found);
     expect(await sweepAfterCall(echoed, { ...d.run, canon: new Set() })).toBe(1);
     expect(d.added).toEqual(['Pete']);
-    expect(d.prompts[0]).toContain('"You" and "your" in them mean the AI friend');
+    expect(d.prompts[0]).toContain('are about the AI friend, never the caller');
     expect(d.prompts[0]).not.toContain('who I hike with'); // persona lines still never reach the model
   });
 
@@ -94,7 +94,7 @@ describe('fact sweep after a call', () => {
     d.run.llm = async (p: string) => (d.prompts.push(p), found);
     expect(await sweepAfterCall(echoed, d.run)).toBe(3);
     expect(d.added).toEqual(['User', 'Theo', 'Pete']);
-    expect(d.prompts[0]).not.toContain('mean the AI friend');
+    expect(d.prompts[0]).not.toContain('about the AI friend, never the caller');
   });
 
   it('does nothing, with no model call, when the flag is off', async () => {

@@ -88,13 +88,13 @@ describe('deep extraction with FACT_SUBJECT_GUARD', () => {
     vi.stubEnv('FACT_SUBJECT_GUARD', 'on');
     const { stored, factPrompt } = await run();
     expect(stored).toEqual(['getting a kitten next week']);
-    expect(factPrompt).toContain('mean the AI friend, never the caller');
+    expect(factPrompt).toContain('are about the AI friend, never the caller');
   });
 
   it('off: both facts are stored and the prompt is as on main', async () => {
     vi.stubEnv('FACT_SUBJECT_GUARD', 'off');
     const { stored, factPrompt } = await run();
     expect(stored).toEqual(['Does not have a dog', 'getting a kitten next week']);
-    expect(factPrompt).not.toContain('mean the AI friend');
+    expect(factPrompt).not.toContain('about the AI friend, never the caller');
   });
 });
