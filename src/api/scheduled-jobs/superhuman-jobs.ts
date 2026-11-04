@@ -13,6 +13,7 @@ import type { ServerResponse } from 'http';
 import type { SuperhumanInsight } from '../../services/automation/insight-action-bridge.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { sendJson } from './helpers.js';
+import { storedTextForOwner } from '../../tools/domains/proactive/outreach/index.js';
 
 const log = createLogger({ module: 'SuperhumanJobs' });
 
@@ -85,20 +86,19 @@ export async function handleBetterThanHumanOutreach(res: ServerResponse): Promis
           const commitment = doc.data();
           const userId = doc.ref.parent.parent?.id;
           if (!userId) continue;
+          const message = `Hey! Just thinking about your commitment: "${commitment.description}". How's it going?`;
+          // The text as sent is screened, whatever the stored description's type
+          if (!storedTextForOwner([message], { site: 'commitment-push', userId })) continue;
 
           const { getOutreachOrchestrator } =
             await import('../../services/outreach/outreach-orchestrator.js');
           const orchestrator = getOutreachOrchestrator();
 
-          const sent = await orchestrator.sendPushNotification(
-            userId,
-            `Hey! Just thinking about your commitment: "${commitment.description}". How's it going?`,
-            {
-              trigger: 'commitment_followup',
-              personaId: 'ferni',
-              metadata: { commitmentId: doc.id },
-            }
-          );
+          const sent = await orchestrator.sendPushNotification(userId, message, {
+            trigger: 'commitment_followup',
+            personaId: 'ferni',
+            metadata: { commitmentId: doc.id },
+          });
 
           if (sent) {
             stats.commitmentFollowUpsSent++;

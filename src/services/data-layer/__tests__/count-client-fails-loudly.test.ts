@@ -11,7 +11,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let db: unknown;
 vi.mock('../../../utils/firebase-admin-app.js', () => ({ getAdminFirestore: () => db }));
-vi.mock('firebase-admin', () => ({ default: { apps: [{}], initializeApp: vi.fn() } }));
 
 import { safeCount } from '../firestore-pagination.js';
 import { runTTLCleanup, TTL_CONFIGS, TTLCleanupClientError } from '../ttl-cleanup.js';

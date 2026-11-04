@@ -94,6 +94,8 @@ interface ScreenSession {
 export interface LineDeps {
   hangUp(): Promise<void>;
   record(answerer: Answerer): Promise<void>;
+  /** Who answered, as soon as it is known (before any message): CALL_LIVE_RELAY tells the owner. */
+  heard?: (answerer: Answerer) => void;
   /** Leave no message on a machine: whoever placed the call hangs it up. */
   noMessage?: boolean;
   /** The voicemail message played (voicemail-outcome noteVoicemailSpoken): the report's evidence. */
@@ -189,6 +191,7 @@ export async function screenLine(
   screening.add(session);
   try {
     const answerer = await poll(() => classifyLine(ear.evidence()), tick);
+    deps.heard?.(answerer);
     if (answerer === 'voicemail' && !deps.noMessage) {
       await leaveMessage(session, parties, deps, ear, tick);
     }
@@ -220,6 +223,8 @@ function defaultDeps(
       await rooms.removeParticipant(room.name ?? '', participant.identity);
     },
     messageSpoken: () => noteVoicemailSpoken(sessionId),
+    heard: (answerer) =>
+      void noteProgress(sessionId, answerer === 'human' ? 'answered' : 'voicemail'),
     record: async (answerer) => {
       const { getOutboundCallContext } =
         await import('../../intelligence/context-builders/external/outbound-call-context.js');
@@ -228,6 +233,12 @@ function defaultDeps(
       if (call) await recordAnsweredBy(call, answerer);
     },
   };
+}
+
+/** CALL_LIVE_RELAY: who answered goes on the call record for the owner's call (call-progress.ts). */
+async function noteProgress(sessionId: string, kind: 'answered' | 'voicemail'): Promise<void> {
+  const progress = await import('../../services/outreach/call-progress.js').catch(() => null);
+  await progress?.noteCallProgress(sessionId, kind);
 }
 
 /**

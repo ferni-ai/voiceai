@@ -16,9 +16,8 @@ vi.mock('@livekit/agents', () => ({
   llm: { tool: vi.fn((config: unknown) => config) },
 }));
 
-vi.mock('firebase-admin', () => ({
-  default: { apps: [], firestore: vi.fn() },
-}));
+// No Firebase app: storage keeps relationships in memory.
+vi.mock('firebase-admin/app', () => ({ getApps: () => [] }));
 
 vi.mock('../../../../../utils/safe-logger.js', () => ({
   getLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),

@@ -1,29 +1,35 @@
 #!/usr/bin/env npx tsx
 /**
- * Check for Unsafe Firestore Writes
+ * Unsafe Firestore writes: a direct .set() / .update() / .add() whose surrounding lines
+ * use none of the safe wrappers (cleanForFirestore, safeSet, ...). Firestore rejects a
+ * document holding `undefined`, so an unwrapped write of a partly filled object throws at
+ * runtime.
  *
- * Scans the codebase for direct Firestore .set(), .update(), .add() calls
- * that don't use cleanForFirestore or safe wrappers.
+ * A ratchet on what a change adds, measured against its merge base (the quality gates'
+ * merge-base.ts). Until 2026-11-02 this script only printed its findings and exited 0, and
+ * no workflow ran it, so ~316 sites accumulated. Each site is keyed by (file at the base,
+ * kind, the line's trimmed text), counted: moving or re-indenting a site within its file,
+ * or moving the file, keeps its key; a second copy of a known line is new.
  *
- * Run: npx tsx scripts/check-unsafe-firestore.ts
+ *   pnpm quality:firestore          fail on new sites (CI, Quality Gates)
+ *   pnpm quality:firestore --all    list every site in src/ (exit 0)
  */
+import { readdirSync, readFileSync, statSync } from 'fs';
+import { join, relative } from 'path';
+import { pathToFileURL } from 'url';
+import {
+  basePathOf,
+  diffAgainstBase,
+  readAtBase,
+  resolveBase,
+} from '../apps/cli/src/commands/quality/merge-base.js';
 
-import { readdir, readFile, stat } from 'fs/promises';
-import { join } from 'path';
-
-interface UnsafeWrite {
+export interface UnsafeWrite {
   file: string;
   line: number;
   code: string;
   type: 'set' | 'update' | 'add';
 }
-
-const UNSAFE_PATTERNS = [
-  /\.doc\([^)]*\)\.set\(/g,
-  /\.set\([^)]*\{/g, // .set({ ... })
-  /\.update\([^)]*\{/g,
-  /\.add\([^)]*\{/g,
-];
 
 const SAFE_PATTERNS = [
   'cleanForFirestore',
@@ -45,134 +51,124 @@ const EXCLUDE_PATTERNS = [
   '.d.ts',
 ];
 
-async function scanDirectory(dir: string): Promise<UnsafeWrite[]> {
+const scanned = (path: string): boolean =>
+  path.endsWith('.ts') && !EXCLUDE_PATTERNS.some((p) => path.includes(p));
+
+/** Every unsafe write in one file's text. */
+export function findUnsafeWrites(file: string, content: string): UnsafeWrite[] {
   const results: UnsafeWrite[] = [];
-
-  const entries = await readdir(dir);
-
-  for (const entry of entries) {
-    const fullPath = join(dir, entry);
-    const entryStat = await stat(fullPath);
-
-    if (entryStat.isDirectory()) {
-      if (!EXCLUDE_PATTERNS.some((p) => fullPath.includes(p))) {
-        results.push(...(await scanDirectory(fullPath)));
-      }
-    } else if (entry.endsWith('.ts') && !EXCLUDE_PATTERNS.some((p) => fullPath.includes(p))) {
-      const fileResults = await scanFile(fullPath);
-      results.push(...fileResults);
-    }
-  }
-
-  return results;
-}
-
-async function scanFile(filePath: string): Promise<UnsafeWrite[]> {
-  const results: UnsafeWrite[] = [];
-  const content = await readFile(filePath, 'utf-8');
-  const lines = content.split('\n');
-
-  // Skip if file imports safe utilities
-  const hasFirestoreImport =
+  const touchesFirestore =
     content.includes('firestore') ||
     content.includes('Firestore') ||
     content.includes('.collection(') ||
     content.includes('.doc(');
+  if (!touchesFirestore) return results;
 
-  if (!hasFirestoreImport) return results;
-
+  const lines = content.split('\n');
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const lineNum = i + 1;
+    const context = lines.slice(Math.max(0, i - 3), Math.min(lines.length, i + 3)).join('\n');
+    if (SAFE_PATTERNS.some((p) => context.includes(p))) continue;
+    const site = (type: UnsafeWrite['type']): void => {
+      results.push({ file, line: i + 1, code: line.trim(), type });
+    };
 
-    // Check if this line or surrounding context uses safe patterns
-    const contextStart = Math.max(0, i - 3);
-    const contextEnd = Math.min(lines.length, i + 3);
-    const context = lines.slice(contextStart, contextEnd).join('\n');
-
-    const usesSafePattern = SAFE_PATTERNS.some((p) => context.includes(p));
-    if (usesSafePattern) continue;
-
-    // Check for .set() on Firestore doc
     if (line.includes('.set(') && (line.includes('.doc(') || context.includes('.doc('))) {
-      // Skip Map.set() operations
-      if (line.includes('Map') || line.includes('cache.') || line.includes('Cache')) continue;
-      // Skip if it's in-memory (not Firestore)
-      if (context.includes('new Map') || context.includes('= new')) continue;
-
-      results.push({
-        file: filePath,
-        line: lineNum,
-        code: line.trim(),
-        type: 'set',
-      });
+      // Map.set() and other in-memory writes: the line is skipped entirely
+      const inMemory =
+        line.includes('Map') ||
+        line.includes('cache.') ||
+        line.includes('Cache') ||
+        context.includes('new Map') ||
+        context.includes('= new');
+      if (inMemory) continue;
+      site('set');
     }
-
-    // Check for .update() on Firestore doc
-    if (line.includes('.update(') && context.includes('.doc(')) {
-      results.push({
-        file: filePath,
-        line: lineNum,
-        code: line.trim(),
-        type: 'update',
-      });
-    }
-
-    // Check for .add() on Firestore collection
-    if (line.includes('.add(') && context.includes('.collection(')) {
-      results.push({
-        file: filePath,
-        line: lineNum,
-        code: line.trim(),
-        type: 'add',
-      });
-    }
+    if (line.includes('.update(') && context.includes('.doc(')) site('update');
+    if (line.includes('.add(') && context.includes('.collection(')) site('add');
   }
-
   return results;
 }
 
-async function main() {
-  console.log('\n🔍 Scanning for unsafe Firestore writes...\n');
+/** A site's identity across commits: no line number, so moving it doesn't make it new. */
+const siteKey = (file: string, w: UnsafeWrite): string =>
+  `${file}\0${w.type}\0${w.code}`;
 
-  const srcDir = join(process.cwd(), 'src');
-  const results = await scanDirectory(srcDir);
+/** The sites in `root`'s working tree under src/ that its merge base doesn't have. */
+export function newUnsafeWrites(
+  root = process.cwd(),
+  env: NodeJS.ProcessEnv = process.env
+): { base: string; added: UnsafeWrite[] } {
+  const base = resolveBase(root, env);
+  const diff = diffAgainstBase(base, ['src'], root);
+  const files = diff.changed.filter(scanned);
+  const basePaths = files.map((f) => basePathOf(diff, f)).filter((p): p is string => p !== null);
+  const baseTexts = readAtBase(base, basePaths, root);
 
-  if (results.length === 0) {
-    console.log('✅ No unsafe Firestore writes detected!\n');
+  const known = new Map<string, number>();
+  for (const [path, text] of baseTexts)
+    for (const w of findUnsafeWrites(path, text)) {
+      const k = siteKey(path, w);
+      known.set(k, (known.get(k) ?? 0) + 1);
+    }
+
+  const added: UnsafeWrite[] = [];
+  for (const file of files) {
+    const basePath = basePathOf(diff, file);
+    for (const w of findUnsafeWrites(file, readFileSync(join(root, file), 'utf8'))) {
+      const k = siteKey(basePath ?? file, w);
+      const left = known.get(k) ?? 0;
+      if (left > 0) known.set(k, left - 1);
+      else added.push(w);
+    }
+  }
+  return { base, added };
+}
+
+function listAll(root: string): UnsafeWrite[] {
+  const walk = (dir: string): UnsafeWrite[] =>
+    readdirSync(dir).flatMap((entry) => {
+      const path = join(dir, entry);
+      if (EXCLUDE_PATTERNS.some((p) => path.includes(p))) return [];
+      if (statSync(path).isDirectory()) return walk(path);
+      return scanned(path)
+        ? findUnsafeWrites(relative(root, path), readFileSync(path, 'utf8'))
+        : [];
+    });
+  return walk(join(root, 'src'));
+}
+
+const show = (w: UnsafeWrite): string =>
+  `${w.file}:${w.line}  unsafe-${w.type}  ${w.code.length > 100 ? `${w.code.slice(0, 100)}...` : w.code}`;
+
+function main(args: string[]): void {
+  const root = process.cwd();
+  if (args.includes('--all')) {
+    const all = listAll(root);
+    for (const w of all) console.log(show(w));
+    console.log(`\n${all.length} unsafe Firestore writes in src/`);
     return;
   }
-
-  console.log(`⚠️  Found ${results.length} potentially unsafe Firestore writes:\n`);
-
-  // Group by file
-  const byFile = new Map<string, UnsafeWrite[]>();
-  for (const result of results) {
-    const existing = byFile.get(result.file) || [];
-    existing.push(result);
-    byFile.set(result.file, existing);
+  const { base, added } = newUnsafeWrites(root);
+  if (added.length === 0) {
+    console.log(`No new unsafe Firestore writes against ${base.slice(0, 9)}.`);
+    return;
   }
+  console.log(`${added.length} new unsafe Firestore write(s) against ${base.slice(0, 9)}:\n`);
+  for (const w of added) console.log(`::error file=${w.file},line=${w.line}::unsafe-${w.type}`);
+  for (const w of added) console.log(show(w));
+  console.log(
+    '\nFix: await safeSet(docRef, data) / safeUpdate / safeAdd (src/utils/safe-firestore.ts), ' +
+      'or cleanForFirestore(data) before the write.'
+  );
+  process.exitCode = 1;
+}
 
-  for (const [file, writes] of byFile) {
-    const relPath = file.replace(process.cwd() + '/', '');
-    console.log(`📄 ${relPath}`);
-    for (const write of writes) {
-      console.log(`   Line ${write.line}: ${write.code.substring(0, 80)}${write.code.length > 80 ? '...' : ''}`);
-    }
-    console.log();
-  }
-
-  console.log('\n📋 How to fix:');
-  console.log('   1. Import: import { safeSet, safeUpdate, safeAdd } from "../../utils/index.js";');
-  console.log('   2. Replace: await docRef.set(data) → await safeSet(docRef, data)');
-  console.log('   3. Or use:  cleanForFirestore(data) before .set()');
-  console.log('\nSee: src/utils/safe-firestore.ts for documentation\n');
-
-  // Exit with error code if there are issues (for CI)
-  if (process.argv.includes('--strict')) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  try {
+    main(process.argv.slice(2));
+  } catch (error: unknown) {
+    console.error(`quality:firestore could not run: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   }
 }
-
-main().catch(console.error);
-

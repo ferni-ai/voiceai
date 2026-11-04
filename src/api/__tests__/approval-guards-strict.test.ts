@@ -27,11 +27,8 @@ const auth = vi.hoisted(() => {
   };
   return { mode, verifyIdToken: vi.fn(verifyIdToken), getUser: vi.fn(getUser) };
 });
-vi.mock('firebase-admin', () => ({
-  default: {
-    apps: [{}],
-    auth: () => ({ verifyIdToken: auth.verifyIdToken, getUser: auth.getUser }),
-  },
+vi.mock('firebase-admin/auth', () => ({
+  getAuth: () => ({ verifyIdToken: auth.verifyIdToken, getUser: auth.getUser }),
 }));
 
 const { signedInRecently } = await import('../approval-guards.js');

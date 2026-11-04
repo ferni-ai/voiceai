@@ -207,10 +207,10 @@ async function notifyCrashToSlack(event: CrashEvent): Promise<void> {
 async function persistCrashAnalytics(event: CrashEvent): Promise<void> {
   try {
     // Dynamic import to avoid circular dependencies
-    const admin = (await import('firebase-admin')).default;
+    const { getApps, initializeApp } = await import('firebase-admin/app');
+    const { FieldValue } = await import('firebase-admin/firestore');
 
-    // Check if already initialized
-    const app = admin.apps.length > 0 ? admin.apps[0] : admin.initializeApp();
+    const app = getApps().length > 0 ? getApps()[0] : initializeApp();
     if (!app) return;
 
     const firestore = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
@@ -222,7 +222,7 @@ async function persistCrashAnalytics(event: CrashEvent): Promise<void> {
         ...event,
         instanceId,
         environment: process.env.NODE_ENV || 'production',
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
       })
     );
 

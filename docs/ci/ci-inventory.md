@@ -34,11 +34,9 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 - `test-agi-features` - AGI feature tests
 - `build` - Backend + design system + frontend
 - `security` - Dependency audit + secret scan
-- `code-quality` - Unified audit metrics
 - `quality-gates` - Blocking quality thresholds
 - `validation` - Voice and integration validation
 - `frontend-quality` - Frontend-specific checks
-- `dependencies` - Outdated dependency check
 
 **How many unit shards a pull request gets** (`ci.yml`, `test-unit-shard`):
 
@@ -218,11 +216,11 @@ counts approvals on the exact head.
 
 ### design-system.yml
 
-**Purpose:** Validate design tokens, build packages
+**Purpose:** Check brand tokens, build the design-system packages and Storybook
 
 | Property | Value |
 |----------|-------|
-| Trigger | Push/PR touching design-system/* |
+| Trigger | Nightly on main; push/PR touching design-system/* only when `OPTIONAL_CI` is on |
 | Runner | ubuntu-latest |
 | Duration | ~5 min |
 
@@ -266,15 +264,8 @@ counts approvals on the exact head.
 | Runner | ubuntu-latest |
 | Duration | ~3 min |
 
-### token-check.yml
-
-**Purpose:** Validate design token drift
-
-| Property | Value |
-|----------|-------|
-| Trigger | PR touching design-system/* |
-| Runner | ubuntu-latest |
-| Duration | ~2 min |
+Token drift has no workflow of its own: `pnpm tokens:drift` runs in ci.yml's
+Frontend Quality job (required, PRs, merge queue and nightly).
 
 ## Scheduled Workflows
 

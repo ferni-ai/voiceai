@@ -4,6 +4,7 @@
 # It also dismisses stale approvals on push (dismiss_stale_reviews_on_push, on 2026-10-30).
 /.github/CODEOWNERS   @sethdford
 /.github/workflows/   @sethdford
+/.github/actions/     @sethdford
 /scripts/ci/          @sethdford
 
 # Quality gates. They fail only on what a PR adds, measured against its merge base
@@ -21,6 +22,11 @@
 /apps/cli/src/commands/quality/ @sethdford
 /scripts/flags/ @sethdford
 /src/config/flag-lifecycle* @sethdford
+# The ESLint configs and rules whose error counts CI ratchets per rule (web, and the
+# design-system rules): turning a rule off or narrowing what it matches changes the gate.
+/apps/web/.eslintrc.cjs @sethdford
+/eslint.design.config.mjs @sethdford
+/design-system/eslint-plugin/ @sethdford
 
 # Autonomy lanes (scripts/ci/autonomy-policy.json; the "Autonomy Lanes" check). Crisis:
 # 988 and referral, AI-disclosure notices, minor protections. Evaluator: the code that
@@ -93,6 +99,7 @@
 /src/intelligence/context-builders/coaching/coaching-context.ts @sethdford
 /src/intelligence/context-builders/coaching/scientific-coaching.ts @sethdford
 /src/intelligence/context-builders/external/call-report.ts @sethdford
+/src/services/outreach/call-progress.ts @sethdford
 /src/services/outreach/call-result-live.ts @sethdford
 /src/services/outreach/caller-text.ts @sethdford
 /src/services/principal-alignment/human-referral.ts @sethdford

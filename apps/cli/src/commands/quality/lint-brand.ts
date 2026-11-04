@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { glob } from 'glob';
 
+import { gitVisible } from './git-visible.js';
 import { LINT_RULES, type LintError, type LintRule } from './lint-brand-rules.js';
 
 export { LINT_RULES, isEmojiInLoggingCall, logCallRanges } from './lint-brand-rules.js';
@@ -46,19 +47,19 @@ export const EXCLUDE_PATTERNS = [
 
 // LINTING ENGINE
 
-async function getFilesToLint(): Promise<string[]> {
+export async function getFilesToLint(root = ROOT_DIR): Promise<string[]> {
   const files: string[] = [];
   
   for (const pattern of INCLUDE_PATTERNS) {
     const matches = await glob(pattern, {
-      cwd: ROOT_DIR,
+      cwd: root,
       ignore: EXCLUDE_PATTERNS,
       absolute: true,
     });
     files.push(...matches);
   }
   
-  return [...new Set(files)];
+  return [...new Set(files)].filter(gitVisible(root));
 }
 
 /**

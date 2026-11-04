@@ -1,5 +1,7 @@
 # Ferni Design System CI/CD
-# Validates tokens, builds packages, and publishes to npm
+# Checks brand tokens, builds the design-system packages and Storybook, and
+# publishes to npm. Nothing else in CI builds these packages, so the nightly run
+# is what tells us they still build.
 
 name: Design System
 
@@ -17,6 +19,10 @@ on:
       - 'packages/ferni-react/**'
       - 'apps/vscode-extension/**'
       - 'apps/figma-plugin/**'
+  # Nightly on main, whatever OPTIONAL_CI says; PR and push runs still follow it.
+  # nightly-health.yml opens an issue when a nightly run fails.
+  schedule:
+    - cron: '29 4 * * *'
   workflow_dispatch:
     inputs:
       publish:
@@ -33,11 +39,11 @@ concurrency:
 
 jobs:
   # ============================================================================
-  # Token Validation
+  # Brand Alignment
   # ============================================================================
-  validate-tokens:
-    if: ${{ vars.OPTIONAL_CI != 'off' }}
-    name: Validate Design Tokens
+  brand:
+    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    name: Brand Alignment
     # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest
     steps:
@@ -48,28 +54,28 @@ jobs:
         with:
           frozen-lockfile: 'false'
 
-      - name: Check token drift
-        run: pnpm tokens:check
-        working-directory: .
+      # No token drift step here: `tokens:check` compared mtimes, which a checkout
+      # makes equal, so it could never fail in CI. The content-based gate is
+      # `pnpm tokens:drift` in ci.yml (Frontend Quality, required).
 
+      # Fails when a critical brand token in design-system/tokens/colors.json
+      # changes. Hardcoded brand colours in website CSS are warnings only.
       - name: Validate brand alignment
         run: pnpm brand:check
         working-directory: .
-        continue-on-error: true
 
-      - name: Check accessibility
-        run: pnpm run check:a11y
-        working-directory: design-system
-        continue-on-error: true
+      # No accessibility step: `check:a11y` always exits 0, and its strict mode
+      # fails on main today (#3414), so neither form is a gate.
 
   # ============================================================================
   # Build Packages
   # ============================================================================
+  # brand, build and storybook don't need each other: on the nightly run one
+  # failure must not skip the others and hide what else broke. publish needs all three.
   build:
-    if: ${{ vars.OPTIONAL_CI != 'off' }}
+    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     name: Build All Packages
     runs-on: ubuntu-latest
-    needs: validate-tokens
     steps:
       - uses: actions/checkout@v7
 
@@ -118,10 +124,9 @@ jobs:
   # Storybook Build
   # ============================================================================
   storybook:
-    if: ${{ vars.OPTIONAL_CI != 'off' }}
+    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     name: Build Storybook
     runs-on: ubuntu-latest
-    needs: build
     steps:
       - uses: actions/checkout@v7
 
@@ -153,7 +158,7 @@ jobs:
     # GitHub-hosted on purpose: this job holds NPM_TOKEN, and the self-hosted CI
     # runner runs PR code with docker (root) access. See ci.yml.
     runs-on: ubuntu-latest
-    needs: [build, storybook]
+    needs: [brand, build, storybook]
     if: >-
       ${{ vars.OPTIONAL_CI != 'off' && (
       (github.event_name == 'workflow_dispatch' && inputs.publish) ||
