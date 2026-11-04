@@ -51,7 +51,8 @@ describe('fact sweep after a call', () => {
     ...ctx,
     turns: [
       { role: 'user', content: 'Who do you hang out with these days?' },
-      { role: 'assistant', content: "There's Theo, who I hike with, and Max. We go way back." },
+      { role: 'assistant', content: 'My buddies Theo and Max, we go way back.' },
+      { role: 'system', content: 'Persona instructions never reach the sweep.' },
       { role: 'user', content: 'Theo and Max.' },
       { role: 'user', content: 'My brother Pete is visiting next week.' },
     ],
@@ -80,13 +81,16 @@ describe('fact sweep after a call', () => {
     },
   ]);
 
-  it("with FACT_SUBJECT_GUARD on, stores the caller's facts and never the persona's friends", async () => {
+  it("with FACT_SUBJECT_GUARD on, the model reads both sides and the persona's friends are dropped", async () => {
     const d = deps({ FACT_SWEEP: 'on', FACT_SUBJECT_GUARD: 'on' });
     d.run.llm = async (p: string) => (d.prompts.push(p), found);
-    expect(await sweepAfterCall(echoed, { ...d.run, canon: new Set() })).toBe(1);
+    expect(await sweepAfterCall(echoed, d.run)).toBe(1);
     expect(d.added).toEqual(['Pete']);
     expect(d.prompts[0]).toContain('are about the AI friend, never the caller');
-    expect(d.prompts[0]).not.toContain('who I hike with'); // persona lines still never reach the model
+    expect(d.prompts[0]).toContain(
+      'The call:\nCaller: Who do you hang out with these days?\nAI friend: My buddies Theo and Max, we go way back.\nCaller: Theo and Max.'
+    );
+    expect(d.prompts[0]).not.toContain('Persona instructions'); // only the two speakers
   });
 
   it('with FACT_SUBJECT_GUARD off, stores what the model found as on main', async () => {

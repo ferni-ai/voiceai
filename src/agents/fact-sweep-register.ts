@@ -16,7 +16,7 @@ import {
   type SweepLLM,
   type SweepStore,
 } from '../memory/dynamic/fact-sweep.js';
-import { factSubjectGuardOn, personaCanonNames, type CallLine } from '../memory/dynamic/index.js';
+import { factSubjectGuardOn, type CallLine } from '../memory/dynamic/index.js';
 import { firestoreSweepStore } from '../memory/storage/sweep-store.js';
 
 export const FACT_SWEEP_TASK = 'fact-sweep';
@@ -24,24 +24,16 @@ export const FACT_SWEEP_TASK = 'fact-sweep';
 /** The task body; exported so tests can run it with a fake model and store. */
 export async function sweepAfterCall(
   ctx: AfterCallContext,
-  deps: {
-    llm?: SweepLLM;
-    store?: SweepStore;
-    env?: Record<string, string | undefined>;
-    canon?: ReadonlySet<string>;
-  } = {}
+  deps: { llm?: SweepLLM; store?: SweepStore; env?: Record<string, string | undefined> } = {}
 ): Promise<number> {
   if (!factSweepEnabled(deps.env)) return 0;
   const lines = ctx.turns.filter((t) => t.role === 'user').map((t) => t.content);
-  // FACT_SUBJECT_GUARD: the persona's lines vouch for what is the persona's, never feed the model.
+  // FACT_SUBJECT_GUARD: the model reads the AI friend's lines too, so it can tell who owns what.
   const subjectGuard = (await factSubjectGuardOn(ctx.userId, deps.env))
-    ? {
-        lines: ctx.turns.map((t): CallLine => ({
-          speaker: t.role === 'user' ? 'caller' : 'persona',
-          text: t.content,
-        })),
-        canon: deps.canon ?? (await personaCanonNames()),
-      }
+    ? ctx.turns.flatMap((t): CallLine[] => {
+        if (t.role === 'user') return [{ speaker: 'caller', text: t.content }];
+        return t.role === 'assistant' ? [{ speaker: 'persona', text: t.content }] : [];
+      })
     : undefined;
   return sweepCall(
     {

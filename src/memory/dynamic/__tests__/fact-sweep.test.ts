@@ -5,6 +5,7 @@ import {
   sweepCall,
   sweepPrompt,
   sweepWindows,
+  windowCall,
   type StoredFactRow,
   type SweepStore,
 } from '../fact-sweep.js';
@@ -151,5 +152,48 @@ describe('sweepCall', () => {
     expect(factSweepEnabled({})).toBe(false);
     expect(factSweepEnabled({ FACT_SWEEP: 'off' })).toBe(false);
     expect(factSweepEnabled({ FACT_SWEEP: 'on' })).toBe(true);
+  });
+});
+
+describe('windowCall (FACT_SUBJECT_GUARD on)', () => {
+  const c = (text: string) => ({ speaker: 'caller' as const, text });
+  const p = (text: string) => ({ speaker: 'persona' as const, text });
+
+  it("tags the window's caller lines with the AI friend's lines between and just before", () => {
+    const talk = [
+      p('Hi there.'),
+      c('Who do you hang out with?'),
+      p('My buddies Theo and Wren.'),
+      c('ok'),
+      c('Theo and Wren.'),
+    ];
+    const windows = sweepWindows(talk.filter((l) => l.speaker === 'caller').map((l) => l.text));
+    expect(windowCall(windows[0], talk)).toEqual([
+      'AI friend: Hi there.',
+      'Caller: Who do you hang out with?',
+      'AI friend: My buddies Theo and Wren.',
+      'Caller: ok',
+      'Caller: Theo and Wren.',
+    ]);
+  });
+
+  it('bounds the AI friend: each line clipped, nothing from far before the window', () => {
+    const long = p(`My buddy Theo ${'and so on '.repeat(60)}`);
+    expect(
+      windowCall({ start: 0, lines: ['Theo and Wren.'] }, [long, c('Theo and Wren.')])[0]
+    ).toHaveLength('AI friend: '.length + 300);
+    const far = [p('My buddy Theo.'), c('a'), c('b'), c('c'), c('Theo and Wren.')];
+    expect(windowCall({ start: 0, lines: ['Theo and Wren.'] }, far)).toEqual([
+      'Caller: Theo and Wren.',
+    ]);
+  });
+
+  it('with no call, the prompt is the caller-only prompt of main', () => {
+    const prompt = sweepPrompt({ start: 0, lines: call }, [], 'Monday.');
+    expect(prompt).toContain('Below is what a caller said on one phone call');
+    expect(prompt).not.toContain('AI friend:');
+    expect(sweepPrompt({ start: 0, lines: call }, [], 'Monday.', ['Caller: hi there'])).toContain(
+      'The call:\nCaller: hi there'
+    );
   });
 });
