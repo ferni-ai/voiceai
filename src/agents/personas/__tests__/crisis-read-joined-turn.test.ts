@@ -206,6 +206,30 @@ describe('CRISIS_READ_JOINED_TURN on: a fragment the hold is waiting on', () => 
     expect(call.reads).toEqual([revised, FRAGMENT]);
   });
 
+  it('is read when the next final has its words in another order', async () => {
+    const call = new Call();
+    const fragment = call.ask(FRAGMENT, ON);
+    await settle();
+    const reordered = 'I can cut my hair shorter?'; // the same words, not in the fragment's order
+    const next = call.ask(reordered, ON);
+    call.commit(reordered);
+    await said(next);
+    await said(fragment);
+    expect(call.reads).toEqual([reordered, FRAGMENT]);
+  });
+
+  it('reads a joined commit once, however many waits saw it', async () => {
+    const call = new Call();
+    const first = call.ask(FRAGMENT, ON);
+    const again = call.ask(FRAGMENT, ON); // a second preemptive request on the same words
+    await settle();
+    call.commit(MARKS);
+    await Promise.all([said(first), said(again)]);
+    await settle();
+    expect(call.reads).toEqual([MARKS]);
+    expect(call.alarms).toEqual(['guide']);
+  });
+
   it('is read as it is at the hold-end commit when the caller goes quiet: recall kept', async () => {
     const call = new Call();
     const fragment = call.ask(FRAGMENT, ON);

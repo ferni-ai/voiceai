@@ -82,8 +82,8 @@ import {
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
 import { replyOpenedBySound } from '../integrations/turn-opening-sound.js';
-import { crisisKindOf, replaceKind } from '../safety/crisis-event-record.js'; // CRISIS_EVENT_RECORD
-import { noteCrisisVerdictPending, signalCrisisDecision } from '../safety/crisis-gate-signal.js';
+import { crisisKindOf } from '../safety/crisis-event-record.js'; // CRISIS_EVENT_RECORD
+import { noteCrisisVerdictPending, signalGateDecisions } from '../safety/crisis-gate-signal.js';
 import { noteCrisisHold } from '../safety/crisis-hold-timing.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
@@ -422,10 +422,7 @@ export async function gatedReply(
   // A turn-opening clip played after this request began: the reply follows it.
   const openedBySound = (): boolean => replyOpenedBySound(session, askedAt);
   const gate = gateRequest(chatCtx, session, options);
-  signalCrisisDecision(session, gate?.decision.action, 'pattern', replaceKind(gate?.decision));
-  gate?.escalation
-    ?.then((d) => signalCrisisDecision(session, d?.action, 'classifier', replaceKind(d)))
-    .catch(() => undefined);
+  signalGateDecisions(session, gate);
   if (gate?.escalation) noteCrisisVerdictPending(session, gate.escalation);
   if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);
   // MINOR_CRISIS_CARE=on: a caller who sounds under 18 also hears the youth line; the script stays.

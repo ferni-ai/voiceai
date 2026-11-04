@@ -36,8 +36,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { TURN_KEEPER_GRACE_MS } from '../multi-agent/turn-keeper.js';
 import type { UnfinishedTurnHoldSession } from '../multi-agent/unfinished-turn.js';
-import { replaceKind } from '../safety/crisis-event-record.js';
-import { signalCrisisDecision } from '../safety/crisis-gate-signal.js';
+import { signalGateDecisions } from '../safety/crisis-gate-signal.js';
 import type { CrisisGateOptions, CrisisGateTurn } from './crisis-gate.js';
 import { sessionScope } from './crisis-gate-words.js';
 
@@ -148,11 +147,7 @@ function gateCommittedLine(
   const items = request.items.map((x, i) => (i === at ? item : x));
   const ctx = new llm.ChatContext(at < 0 ? [...items, item] : items);
   const userData = (session as CommitSession | null)?.userData;
-  const gate = startGate(ctx, userData, options);
-  signalCrisisDecision(session, gate?.decision.action, 'pattern', replaceKind(gate?.decision));
-  gate?.escalation
-    ?.then((d) => signalCrisisDecision(session, d?.action, 'classifier', replaceKind(d)))
-    .catch(() => undefined);
+  signalGateDecisions(session, startGate(ctx, userData, options));
 }
 
 /** A live session with the hold installed, while the flag and the live classifier are on. */
