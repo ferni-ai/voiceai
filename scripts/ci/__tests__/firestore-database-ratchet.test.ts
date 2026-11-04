@@ -173,6 +173,24 @@ describe('firestore database ratchet', () => {
     expect(allowlistAt(repo, 'main', 'scripts/ci/other.json')).toBe('no-file');
   });
 
+  it("fails closed when main's allowlist is in the tree but unreadable or not JSON", () => {
+    const repo = tree({
+      'scripts/ci/list.json': '{"src/a.ts": 2}\n',
+      'scripts/ci/bad.json': '{"src/a.ts": 2,\n',
+    });
+    const git = (...args: string[]): string =>
+      execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: 'pipe' }).trim();
+    git('init', '-q', '-b', 'main');
+    git('add', '.');
+    git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'x');
+    expect(() => allowlistAt(repo, 'main', 'scripts/ci/bad.json')).toThrow(/not valid JSON/);
+    // A missing blob (a partial clone that could not fetch it): the tree still lists the path.
+    const blob = git('rev-parse', 'main:scripts/ci/list.json');
+    rmSync(join(repo, '.git', 'objects', blob.slice(0, 2), blob.slice(2)));
+    expect(() => allowlistAt(repo, 'main', 'scripts/ci/list.json')).toThrow();
+    expect(allowlistAt(repo, 'main', 'scripts/ci/other.json')).toBe('no-file');
+  });
+
   it('does not count a local getFirestore() wrapper that shadows the import', () => {
     const r = tree({
       'scripts/tool.mjs': `

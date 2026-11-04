@@ -17,6 +17,7 @@
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { pathToFileURL } from 'url';
 
 // ============================================================================
 // CONFIGURATION
@@ -100,6 +101,8 @@ interface TodoReport {
     ancient: number; // > 90 days
   };
   items: TodoItem[];
+  /** In a shallow checkout blame stops at the boundary commit, so every age reads 0. */
+  shallow: boolean;
 }
 
 // ============================================================================
@@ -134,6 +137,21 @@ function getGitBlame(file: string, lineNumber: number): { author: string; date: 
   }
   return null;
 }
+
+/** True in a shallow clone (CI's default checkout). */
+export function isShallowCheckout(cwd = process.cwd()): boolean {
+  try {
+    const args = ['rev-parse', '--is-shallow-repository'];
+    const opts = { cwd, encoding: 'utf-8' as const, stdio: ['ignore', 'pipe', 'ignore'] as const };
+    return execFileSync('git', args, opts).trim() === 'true';
+  } catch {
+    return false;
+  }
+}
+
+/** The age half of the TODO summary. Display only: no threshold reads it. */
+export const ageSummary = (ancient: number, shallow: boolean): string =>
+  shallow ? 'age unknown (shallow checkout)' : `${ancient} over 90 days old`;
 
 // ============================================================================
 // FILE SCANNING
@@ -208,7 +226,7 @@ function findTodosInFile(filePath: string): TodoItem[] {
 // REPORTING
 // ============================================================================
 
-function generateReport(items: TodoItem[]): TodoReport {
+function generateReport(items: TodoItem[], shallow: boolean): TodoReport {
   const report: TodoReport = {
     totalCount: items.length,
     staleCount: items.filter((i) => i.isStale).length,
@@ -218,6 +236,7 @@ function generateReport(items: TodoItem[]): TodoReport {
     byAuthor: {},
     byAge: { fresh: 0, stale: 0, ancient: 0 },
     items,
+    shallow,
   };
 
   for (const item of items) {
@@ -251,9 +270,15 @@ function printReport(report: TodoReport, options: { staleOnly: boolean; critical
   // Summary
   process.stdout.write(colors.bold + 'Summary:\n' + colors.reset);
   process.stdout.write(`  Total TODOs:   ${report.totalCount}\n`);
-  process.stdout.write(`  Fresh (<30d):  ${colors.green}${report.byAge.fresh}${colors.reset}\n`);
-  process.stdout.write(`  Stale (30-90d): ${colors.yellow}${report.byAge.stale}${colors.reset}\n`);
-  process.stdout.write(`  Ancient (>90d): ${colors.red}${report.byAge.ancient}${colors.reset}\n`);
+  if (report.shallow) {
+    process.stdout.write(`  Age:           unknown (shallow checkout)\n`);
+  } else {
+    process.stdout.write(`  Fresh (<30d):  ${colors.green}${report.byAge.fresh}${colors.reset}\n`);
+    process.stdout.write(
+      `  Stale (30-90d): ${colors.yellow}${report.byAge.stale}${colors.reset}\n`
+    );
+    process.stdout.write(`  Ancient (>90d): ${colors.red}${report.byAge.ancient}${colors.reset}\n`);
+  }
 
   // By Priority
   process.stdout.write('\n' + colors.bold + 'By Priority:\n' + colors.reset);
@@ -370,7 +395,7 @@ async function main(): Promise<void> {
     }
   }
 
-  const report = generateReport(allItems);
+  const report = generateReport(allItems, isShallowCheckout());
 
   if (jsonOutput) {
     process.stdout.write(JSON.stringify(report, null, 2) + '\n');
@@ -384,7 +409,9 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err) => {
-  process.stderr.write(colors.red + 'Error: ' + colors.reset + String(err) + '\n');
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((err) => {
+    process.stderr.write(colors.red + 'Error: ' + colors.reset + String(err) + '\n');
+    process.exit(1);
+  });
+}
