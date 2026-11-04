@@ -46,7 +46,7 @@ describe('fact sweep after a call', () => {
   });
 
   // FACT_SUBJECT_GUARD, through the real after-call entry point: the persona named its own
-  // friends, the caller echoed the names, and the model took them as the caller's friends.
+  // friends and the caller echoed the names. With the flag on the model sees who said what.
   const echoed = {
     ...ctx,
     turns: [
@@ -81,11 +81,11 @@ describe('fact sweep after a call', () => {
     },
   ]);
 
-  it("with FACT_SUBJECT_GUARD on, the model reads both sides and the persona's friends are dropped", async () => {
+  it('with FACT_SUBJECT_GUARD on, the model reads both sides, tagged; nothing is dropped after it', async () => {
     const d = deps({ FACT_SWEEP: 'on', FACT_SUBJECT_GUARD: 'on' });
     d.run.llm = async (p: string) => (d.prompts.push(p), found);
-    expect(await sweepAfterCall(echoed, d.run)).toBe(1);
-    expect(d.added).toEqual(['Pete']);
+    expect(await sweepAfterCall(echoed, d.run)).toBe(3);
+    expect(d.added).toEqual(['User', 'Theo', 'Pete']);
     expect(d.prompts[0]).toContain('are about the AI friend, never the caller');
     expect(d.prompts[0]).toContain(
       'The call:\nCaller: Who do you hang out with these days?\nAI friend: My buddies Theo and Max, we go way back.\nCaller: Theo and Max.'

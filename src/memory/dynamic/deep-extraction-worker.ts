@@ -28,7 +28,6 @@ import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { dualWriteFacts, mapDynamicFacts } from '../writer/facts-dual-write.js';
 import { personFlagOn } from '../../config/person-flag.js';
 import type { DeepExtractionBatchOptions } from './deep-extraction-batch.js';
-import { factSubjectGuardOn, keepCallerOwn } from './fact-subject-guard.js';
 import {
   ENTITY_EXTRACTION_PROMPT,
   factExtractionPrompt,
@@ -262,11 +261,13 @@ export class DeepExtractionWorker {
     // 3. LLM Relationship Extraction
     const relationships = await this.extractRelationships(job.transcript, entities);
 
-    // 4. Self-Questioning Refinement (ProMem pattern), then FACT_SUBJECT_GUARD: the caller's facts only
-    const refined = await keepCallerOwn(
-      job,
-      await this.selfQuestionRefine({ entities, facts, relationships, transcript: job.transcript })
-    );
+    // 4. Self-Questioning Refinement (ProMem pattern)
+    const refined = await this.selfQuestionRefine({
+      entities,
+      facts,
+      relationships,
+      transcript: job.transcript,
+    });
 
     // 5. Calculate importance
     const importanceScore = this.calculateImportance(refined, job.fastCaptureHints);
@@ -374,7 +375,7 @@ Extract entities as JSON array:`;
 
       // After-call work: CALLER_CARD as this caller's call had it (envForCaller), not process.env.
       const cardOn = await personFlagOn(userId, 'CALLER_CARD');
-      const prompt = `${factExtractionPrompt(cardOn, await factSubjectGuardOn(userId))}
+      const prompt = `${factExtractionPrompt(cardOn, await personFlagOn(userId, 'FACT_SUBJECT_GUARD'))}
 ${moment}
 
 Entities found:

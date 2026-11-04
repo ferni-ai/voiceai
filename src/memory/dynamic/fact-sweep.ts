@@ -21,7 +21,7 @@
  *
  * Off by default; FACT_SWEEP=on turns it on. With FACT_SUBJECT_GUARD on, the model reads the
  * AI friend's lines too, tagged, so it can tell whose friend or dog a name is, and is told whose
- * "you" is; what the persona owns is never kept (fact-subject-guard.ts).
+ * "you" is (fact-subject.ts).
  *
  * @module memory/dynamic/fact-sweep
  */
@@ -30,7 +30,7 @@ import { callMomentLine } from '../operations/call-moment.js';
 import type { ExtractedFact } from './deep-extraction-worker.js';
 import { buildExtractionFirestoreWritePayloads, factDocId } from './extraction-firestore-docs.js';
 import { isValidFact } from './extraction-vector-docs.js';
-import { FACT_SUBJECT_RULE, keepCallerFacts, type CallLine } from './fact-subject-guard.js';
+import { FACT_SUBJECT_RULE, type CallLine } from './fact-subject.js';
 
 const log = createLogger({ module: 'fact-sweep' });
 
@@ -67,6 +67,8 @@ export function sweepWindows(lines: readonly string[]): SweepWindow[] {
 /** Longest AI-friend line shown to the sweep: enough to tell who owns what, bounded. */
 const MAX_FRIEND_CHARS = 300;
 const readable = (line: string): boolean => line.trim().split(/\s+/).length >= 2;
+/** One turn on one line, so a turn said over several lines is tagged whole. */
+const oneLine = (text: string): string => text.trim().replace(/\s+/g, ' ');
 
 /**
  * FACT_SUBJECT_GUARD on: the window's caller lines in call order, tagged by speaker, with the
@@ -81,8 +83,8 @@ export function windowCall(window: SweepWindow, call: readonly CallLine[]): stri
     .slice(before ?? first, last + 1)
     .map((l) =>
       l.speaker === 'caller'
-        ? `Caller: ${l.text.trim()}`
-        : `AI friend: ${l.text.trim().slice(0, MAX_FRIEND_CHARS)}`
+        ? `Caller: ${oneLine(l.text)}`
+        : `AI friend: ${oneLine(l.text).slice(0, MAX_FRIEND_CHARS)}`
     );
 }
 
@@ -168,10 +170,10 @@ export async function sweepCall(
     lines: readonly string[];
     timeZone?: string;
   },
-  /** subjectGuard (FACT_SUBJECT_GUARD on): the whole call, both sides in order. */
-  deps: { llm: SweepLLM; store: SweepStore; now?: Date; subjectGuard?: readonly CallLine[] }
+  /** bothSides (FACT_SUBJECT_GUARD on): the whole call, both speakers in order. */
+  deps: { llm: SweepLLM; store: SweepStore; now?: Date; bothSides?: readonly CallLine[] }
 ): Promise<number> {
-  const { store, subjectGuard: guard } = deps;
+  const { store, bothSides } = deps;
   const windows = sweepWindows(call.lines);
   if (windows.length === 0) return 0;
   const stored = await store.facts(call.userId);
@@ -181,11 +183,10 @@ export async function sweepCall(
   const at = (deps.now ?? new Date()).toISOString();
   let added = 0;
   for (const window of windows) {
-    const tagged = guard ? windowCall(window, guard) : undefined;
+    const tagged = bothSides ? windowCall(window, bothSides) : undefined;
     // One window at a time, so each sees what the earlier ones found.
     // eslint-disable-next-line no-await-in-loop
-    const said = parseSweep(await deps.llm(sweepPrompt(window, known, moment, tagged)));
-    const found = guard ? keepCallerFacts(said, guard, 'sweep') : said;
+    const found = parseSweep(await deps.llm(sweepPrompt(window, known, moment, tagged)));
     const { facts } = buildExtractionFirestoreWritePayloads(
       call.userId,
       { entities: [], facts: found, relationships: [] },

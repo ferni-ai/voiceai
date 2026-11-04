@@ -1,8 +1,9 @@
 /**
- * FACT_SUBJECT_GUARD through deep extraction's real job path (processJob): the caller's
- * line about the persona ("I thought you had a dog") is never stored as the caller having no
- * dog, and the caller's own fact in the same job is. The model is a fake; everything
- * between its replies and the write is the production code. Fictional lines.
+ * FACT_SUBJECT_GUARD through deep extraction's real job path (processJob): with the flag on,
+ * the fact prompt says whose "you" is ("I thought you had a dog" is about the AI friend), and
+ * every fact the model returns is still stored: nothing is dropped after the model. The model
+ * is a fake; everything between its replies and the write is the production code. Fictional
+ * lines.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,6 +18,8 @@ import {
   type DeepExtractionJob,
   type ExtractionResult,
 } from '../deep-extraction-worker.js';
+import { factExtractionPrompt } from '../deep-extraction-prompts.js';
+import { FACT_SUBJECT_RULE } from '../fact-subject.js';
 
 const FACTS = [
   {
@@ -84,17 +87,24 @@ async function run(): Promise<{ stored: string[]; factPrompt: string }> {
 describe('deep extraction with FACT_SUBJECT_GUARD', () => {
   afterEach(() => vi.unstubAllEnvs());
 
-  it("on: the persona's no-dog is never the caller's; the caller's kitten is kept", async () => {
+  it('on: the model is told whose "you" it is, and what it returns is all stored', async () => {
     vi.stubEnv('FACT_SUBJECT_GUARD', 'on');
     const { stored, factPrompt } = await run();
-    expect(stored).toEqual(['getting a kitten next week']);
-    expect(factPrompt).toContain('are about the AI friend, never the caller');
+    expect(stored).toEqual(['Does not have a dog', 'getting a kitten next week']);
+    expect(factPrompt).toContain(FACT_SUBJECT_RULE);
   });
 
   it('off: both facts are stored and the prompt is as on main', async () => {
     vi.stubEnv('FACT_SUBJECT_GUARD', 'off');
     const { stored, factPrompt } = await run();
     expect(stored).toEqual(['Does not have a dog', 'getting a kitten next week']);
-    expect(factPrompt).not.toContain('about the AI friend, never the caller');
+    expect(factPrompt).not.toContain(FACT_SUBJECT_RULE);
+  });
+
+  it('the rule rides on the fact prompt with or without CALLER_CARD, and only when on', () => {
+    expect(factExtractionPrompt(false, true)).toContain(FACT_SUBJECT_RULE);
+    expect(factExtractionPrompt(true, true)).toContain(FACT_SUBJECT_RULE);
+    expect(factExtractionPrompt(false)).not.toContain(FACT_SUBJECT_RULE);
+    expect(factExtractionPrompt(true)).not.toContain(FACT_SUBJECT_RULE);
   });
 });

@@ -1,9 +1,10 @@
 /**
  * FACT_SUBJECT_GUARD never costs the caller a fact of their own. Every probe so far, run end
- * to end through both extractors with the flag off and on: the after-call sweep sees both
- * sides of the call, deep extraction the caller's lines only. Every fact kept with the flag
- * off is kept with it on; the traced shapes drop. Fictional lines; common first names that
- * are also persona canon names (Owen, Daniel, Diane, Sam, Marty, Lyle) are used on purpose.
+ * to end through both extractors with the flag off and on: every fact the model returns is
+ * stored either way, since nothing is dropped after the model. With the flag on, the sweep
+ * shows the model both sides of the call, tagged, plus the rule on whose "you" it is. Fictional
+ * lines; common first names that are also persona canon names (Owen, Daniel, Diane, Sam,
+ * Marty, Lyle) are used on purpose.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -14,6 +15,7 @@ vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
 vi.mock('../async-events-config.js', () => ({ safeOnEvent: () => () => undefined }));
 
 import { sweepAfterCall } from '../../../agents/fact-sweep-register.js';
+import { FACT_SUBJECT_RULE } from '../fact-subject.js';
 import {
   DeepExtractionWorker,
   type DeepExtractionJob,
@@ -21,16 +23,16 @@ import {
 } from '../deep-extraction-worker.js';
 
 /**
- * id, the call ("C:" caller, "P:" persona), the fact the model returns, and what the flag
- * does: keep it, drop it on both paths, or drop it on the sweep only (deep extraction never
- * sees the persona's lines, so a caller line that only echoes its names reads as theirs).
+ * id, the call ("C:" caller, "P:" persona), the fact the model returns, and whose fact it is:
+ * the caller's, or the persona's (an earlier round dropped those after the model; now the
+ * model is shown who said what, and SHOWN pins what it sees).
  */
 type Row = [
   id: string,
   lines: string[],
   entityName: string,
   value: string,
-  on: 'keep' | 'drop' | 'sweep',
+  whose: 'keep' | 'persona',
 ];
 
 const ROWS: Row[] = [
@@ -116,19 +118,33 @@ const ROWS: Row[] = [
   ['X2', ["P:How's my favorite pup Pepper doing?", 'C:Oh, Pepper!'], 'User', 'has a dog named Pepper', 'keep'],
   ['X3', ["P:I hope Maya's recital went well!", 'C:Oh, Maya! Yes.'], 'Maya', 'had a recital', 'keep'],
   // The traced shapes, and the caller speaking of the persona's own
-  ['S1', ['C:Who do you hang out with?', 'P:My buddies Theo and Wren, we go way back.', 'C:Theo and Wren.', 'P:Yep, those two are my people.'], 'User', 'Theo and Wren', 'sweep'],
-  ['S2', ['C:Who are your friends?', 'P:My friends Lyle and Hollis, mostly.', 'C:Lyle and Hollis.', 'P:That is them.'], 'User', 'Lyle and Hollis', 'sweep'],
-  ['D5', ['P:My buddies Theo and Wren, we go way back.', 'C:theo and wren'], 'User', 'Theo and Wren', 'sweep'],
-  ['S3', ['C:Really? I thought you had a dog.', "P:Nope, I don't have a dog."], 'User', 'Does not have a dog', 'drop'],
-  ['S4', ['C:Your dog is so cute.'], 'User', 'has a cute dog', 'drop'],
-  ['D6', ["C:How's your friend Lyle?"], 'Lyle', 'friend', 'drop'],
+  ['S1', ['C:Who do you hang out with?', 'P:My buddies Theo and Wren, we go way back.', 'C:Theo and Wren.', 'P:Yep, those two are my people.'], 'User', 'Theo and Wren', 'persona'],
+  ['S2', ['C:Who are your friends?', 'P:My friends Lyle and Hollis, mostly.', 'C:Lyle and Hollis.', 'P:That is them.'], 'User', 'Lyle and Hollis', 'persona'],
+  ['D5', ['P:My buddies Theo and Wren, we go way back.', 'C:theo and wren'], 'User', 'Theo and Wren', 'persona'],
+  ['S3', ['C:Really? I thought you had a dog.', "P:Nope, I don't have a dog."], 'User', 'Does not have a dog', 'persona'],
+  ['S4', ['C:Your dog is so cute.'], 'User', 'has a cute dog', 'persona'],
+  ['D6', ["C:How's your friend Lyle?"], 'Lyle', 'friend', 'persona'],
+  // A turn said over several lines is tagged whole
+  ['L1', ['C:Who do you hang out with?', 'P:Mostly my buddies Theo and Wren.\nWe hike on Sundays.', 'C:Theo and Wren.\nAnd my brother Pete is visiting.'], 'Pete', 'visiting next week', 'keep'],
 ]; // prettier-ignore
+
+/** What the model is shown with the flag on, for the persona's rows and the multi-line turn. */
+const SHOWN: Record<string, string> = {
+  S1: 'Caller: Who do you hang out with?\nAI friend: My buddies Theo and Wren, we go way back.\nCaller: Theo and Wren.',
+  S2: 'Caller: Who are your friends?\nAI friend: My friends Lyle and Hollis, mostly.\nCaller: Lyle and Hollis.',
+  D5: 'AI friend: My buddies Theo and Wren, we go way back.\nCaller: theo and wren',
+  S3: 'Caller: Really? I thought you had a dog.',
+  S4: 'Caller: Your dog is so cute.',
+  D6: "Caller: How's your friend Lyle?",
+  L1: 'Caller: Who do you hang out with?\nAI friend: Mostly my buddies Theo and Wren. We hike on Sundays.\nCaller: Theo and Wren. And my brother Pete is visiting.',
+}; // prettier-ignore
 
 const factJson = (entityName: string, value: string): string =>
   JSON.stringify([{ entityName, value, key: 'k', factType: 'state', confidence: 0.9 }]);
 
 async function sweepKept(lines: string[], entity: string, value: string, on: boolean) {
-  return sweepAfterCall(
+  const prompts: string[] = [];
+  const kept = await sweepAfterCall(
     {
       userId: 'u-recall',
       sessionId: 's-recall',
@@ -140,11 +156,16 @@ async function sweepKept(lines: string[], entity: string, value: string, on: boo
     },
     {
       env: { FACT_SWEEP: 'on', FACT_SUBJECT_GUARD: on ? 'on' : 'off' },
-      llm: async () => factJson(entity, value),
+      llm: async (prompt) => (prompts.push(prompt), factJson(entity, value)),
       store: { facts: async () => [], add: async (_u, docs) => docs.length },
     }
   );
+  return { kept, prompt: prompts.join('\n') };
 }
+
+/** The call as the prompt shows it, with the flag on. */
+const callShown = (prompt: string): string =>
+  prompt.split('The call:\n')[1]?.split('\nReply with')[0] ?? '';
 
 async function deepKept(lines: string[], entity: string, value: string, on: boolean) {
   vi.stubEnv('FACT_SUBJECT_GUARD', on ? 'on' : 'off');
@@ -192,12 +213,22 @@ describe('FACT_SUBJECT_GUARD: every probe, both extractors, flag off and on', ()
   afterEach(() => vi.unstubAllEnvs());
 
   it.each(ROWS)('%s', async (...row) => {
-    const [, lines, entity, value, on] = row;
-    // Flag off: stored as on main.
-    expect(await sweepKept(lines, entity, value, false)).toBe(1);
+    const [id, lines, entity, value] = row;
+    // Flag off: stored and prompted as on main.
+    const off = await sweepKept(lines, entity, value, false);
+    expect(off.kept).toBe(1);
+    expect(off.prompt).not.toContain('AI friend:');
+    expect(off.prompt).not.toContain(FACT_SUBJECT_RULE);
     expect(await deepKept(lines, entity, value, false)).toBe(1);
-    // Flag on: kept unless the persona positively owns it.
-    expect(await sweepKept(lines, entity, value, true)).toBe(on === 'keep' ? 1 : 0);
-    expect(await deepKept(lines, entity, value, true)).toBe(on === 'drop' ? 0 : 1);
+    // Flag on: the same facts are stored; the model sees both sides, tagged, and the rule.
+    const on = await sweepKept(lines, entity, value, true);
+    expect(on.kept).toBe(1);
+    expect(await deepKept(lines, entity, value, true)).toBe(1);
+    expect(on.prompt).toContain(FACT_SUBJECT_RULE);
+    const shown = callShown(on.prompt).split('\n');
+    expect(shown.every((l) => /^(?:Caller|AI friend): \S/.test(l))).toBe(true);
+    for (const l of lines.filter((x) => x.startsWith('C:') && x.trim().split(/\s+/).length >= 2))
+      expect(shown).toContain(`Caller: ${l.slice(2).replace(/\s+/g, ' ')}`);
+    if (SHOWN[id]) expect(callShown(on.prompt)).toBe(SHOWN[id]);
   });
 });

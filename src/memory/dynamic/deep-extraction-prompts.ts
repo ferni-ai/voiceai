@@ -4,7 +4,7 @@
  * @module memory/dynamic/deep-extraction-prompts
  */
 
-import { FACT_SUBJECT_RULE } from './fact-subject-guard.js';
+import { FACT_SUBJECT_RULE } from './fact-subject.js';
 
 export const ENTITY_EXTRACTION_PROMPT = `You are an expert at identifying entities (people, places, events, concepts) in conversation.
 

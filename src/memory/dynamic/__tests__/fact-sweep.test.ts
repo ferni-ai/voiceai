@@ -188,6 +188,20 @@ describe('windowCall (FACT_SUBJECT_GUARD on)', () => {
     ]);
   });
 
+  it('tags every line of a turn said over several lines: no untagged line reaches the model', () => {
+    const talk = [
+      c('Who do you hang out with?'),
+      p('Mostly my buddies Theo and Wren.\nWe hike on Sundays.'),
+      c('Theo and Wren.\n  And my brother Pete is visiting.'),
+    ];
+    const windows = sweepWindows(talk.filter((l) => l.speaker === 'caller').map((l) => l.text));
+    expect(windowCall(windows[0], talk)).toEqual([
+      'Caller: Who do you hang out with?',
+      'AI friend: Mostly my buddies Theo and Wren. We hike on Sundays.',
+      'Caller: Theo and Wren. And my brother Pete is visiting.',
+    ]);
+  });
+
   it('with no call, the prompt is the caller-only prompt of main', () => {
     const prompt = sweepPrompt({ start: 0, lines: call }, [], 'Monday.');
     expect(prompt).toContain('Below is what a caller said on one phone call');
