@@ -744,7 +744,6 @@
   "src/types/relationship-stages.ts",
   "src/types/user-profile.ts",
   "src/utils/__tests__/error-reporting.test.ts",
-  "src/utils/__tests__/firestore-ref-wrapping.test.ts",
   "src/utils/__tests__/firestore-utils.test.ts",
   "src/utils/__tests__/minor-care-stores.test.ts",
   "src/utils/__tests__/no-bare-require.test.ts",
