@@ -47,16 +47,20 @@ const GREETING =
 const ASK_FOR =
   "(?:i (?:want|wanna|need) to (?:talk|speak) (?:to|with)|i'd like to (?:talk|speak) (?:to|with)|(?:can|could|may) i (?:talk|speak) (?:to|with)|let me (?:talk|speak) (?:to|with)|switch (?:me )?(?:over )?to|put me through to|put on|get me|bring in)";
 const CLARIFY =
-  "(?:what|what did you say|what was that|wait what|sorry|sorry what|pardon(?: me)?|huh|come again|(?:can you |could you )?say that again|(?:can you |could you )?repeat that|i didn't (?:catch|hear) (?:that|you))";
+  "(?:what did you say|what was that|sorry what|pardon(?: me)?|come again|(?:can you |could you )?say that again|(?:can you |could you )?repeat that|i didn't (?:catch|hear) (?:that|you))";
 
 /**
  * A caller turn that answers nothing in the script, as a whole. A request for a
  * teammate may open with a bare "no" ("No, I want to talk to Maya."): the turn
- * is the request. Nothing else is listed; the list only ever narrows the change.
+ * is the request. A bare name may not ("No, Maya." can answer "are you safe?"
+ * to the persona), and a repeat request is only one with no other reading
+ * (not "sorry", "huh" or "what"). Nothing else is listed; the list only ever
+ * narrows the change.
  */
 const NON_ANSWER = new RegExp(
   `^(?:(?:${GREETING})(?: ${GREETING}){0,2}(?: ${NAME})?` +
-    `|(?:(?:no|nah)(?: no)? )?(?:(?:${ASK_FOR}) ${NAME}|(?:put|bring) ${NAME} on|${NAME})(?: please)?` +
+    `|(?:(?:no|nah)(?: no)? )?(?:(?:${ASK_FOR}) ${NAME}|(?:put|bring) ${NAME} on)(?: please)?` +
+    `|${NAME}(?: please)?` +
     `|(?:${CLARIFY}))$`
 );
 

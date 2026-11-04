@@ -83,8 +83,11 @@ describe('CRISIS_OWN_SCRIPT_NOT_EVIDENCE on', () => {
     'Let me talk to Peter.',
     'switch to Alex',
     'Maya?',
+    'nah, put Maya on',
+    'no, can I talk to Alex',
     'What did you say?',
-    'Sorry?',
+    'Sorry, what?',
+    'Can you repeat that?',
     'Say that again?',
   ])('a turn that answers nothing reads the marker after every script: %s', async (latest) => {
     for (const companion of Object.values(SCRIPTS)) {
@@ -115,6 +118,19 @@ describe('CRISIS_OWN_SCRIPT_NOT_EVIDENCE on', () => {
     "Can I talk to Maya, I don't want to be here anymore",
     'hello… I took them all',
     "can you hear me? I'm not okay",
+    // A bare name after "no" or "nah" can answer the script to the persona.
+    'No, Maya.',
+    'nah, Maya',
+    'No, Alex.',
+    'no maya',
+    'no ferni',
+    'nah',
+    // A bare "sorry" (or "huh", "what") has readings other than "say that again".
+    'sorry',
+    'sorry?',
+    'huh',
+    'What?',
+    'wait what',
   ])('every other turn reads exactly what main sends, after every script: %s', async (latest) => {
     for (const companion of Object.values(SCRIPTS)) {
       const input = { latest, earlier: [], companion };
