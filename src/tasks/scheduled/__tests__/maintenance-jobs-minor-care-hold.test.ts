@@ -50,7 +50,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 
-it.each([
+const routes: Array<[string, () => Promise<Route>]> = [
   ['memory-decay', async () => (await memoryRoutes()).handleMemoryDecay],
   ['memory-deduplication', async () => (await memoryRoutes()).handleMemoryDeduplication],
   [
@@ -58,17 +58,22 @@ it.each([
     async () => (await kgRoutes()).handleKnowledgeGraphThreadMaintenance,
   ],
   ['knowledge-graph-entity-decay', async () => (await kgRoutes()).handleKnowledgeGraphEntityDecay],
-])(
+];
+const seedCallers = (now: number) => {
+  for (const u of [HELD, FREE]) {
+    // The caller list must not read whole profiles: they carry stored preferences
+    const preferences = { favoriteColor: 'teal' };
+    fs.docs.set(`bogle_users/${u}`, { lastContact: new Date(now).toISOString(), preferences });
+  }
+};
+
+it.each(routes)(
   '%s: no read or write of a held caller, flags off here; a free caller is still processed',
   async (_, route: () => Promise<Route>) => {
     vi.stubEnv('MINOR_CARE', 'off');
     vi.stubEnv('MINOR_CARE_SHARED_HOLD', 'off');
     const now = Date.now();
-    for (const u of [HELD, FREE]) {
-      // The caller list must not read whole profiles: they carry stored preferences
-      const preferences = { favoriteColor: 'teal' };
-      fs.docs.set(`bogle_users/${u}`, { lastContact: new Date(now).toISOString(), preferences });
-    }
+    seedCallers(now);
     // Written by a voice agent with MINOR_CARE_SHARED_HOLD on
     fs.docs.set(`minor_care_holds/${HELD}`, { heldUntil: now + HOUR, v: 1 });
     vi.resetModules();
@@ -84,6 +89,48 @@ it.each([
     expect(fs.selects.filter((f) => f !== 'bogle_users.lastContact')).toEqual([]); // no profile
   }
 );
+
+it.each(routes)(
+  '%s: a hold record that cannot be read holds every caller (fails closed)',
+  async (_, route: () => Promise<Route>) => {
+    vi.stubEnv('MINOR_CARE', 'off');
+    vi.stubEnv('MINOR_CARE_SHARED_HOLD', 'off');
+    seedCallers(Date.now());
+    fs.failHolds.on = true; // every hold read rejects
+    vi.resetModules();
+    const res = { writeHead: vi.fn(), end: vi.fn() };
+
+    await (
+      await route()
+    )(res as never);
+
+    expect(res.writeHead).toHaveBeenCalledWith(200, expect.anything());
+    expect(fs.reads.filter((p) => p.startsWith('minor_care_holds/'))).not.toEqual([]); // it asked
+    expect([...touched(HELD), ...touched(FREE)]).toEqual([]);
+  }
+);
+
+it.each([
+  ['answers true', async () => true],
+  ['answers neither true nor false', async () => 'held' as unknown as boolean],
+  ['answers nothing', async () => undefined as unknown as boolean],
+  [
+    'throws',
+    async (): Promise<boolean> => {
+      throw new Error('fake outage');
+    },
+  ],
+])('skipIfHeld holds a caller when the hold reader %s', async (_, reader) => {
+  vi.resetModules();
+  const { skipIfHeld } = await import('../skip-if-held.js');
+  const { setBackgroundHoldReader } = await import('../../../utils/minor-care-background-hold.js');
+  setBackgroundHoldReader(reader);
+  const counts = { processed: 0, success: 0, skipped: 0, errors: 0 };
+
+  expect(await skipIfHeld(HELD, counts)).toBe(true);
+
+  expect(counts.skipped).toBe(1);
+});
 
 it('skipIfHeld counts a held caller as skipped and logs the reason, not the id', async () => {
   vi.resetModules();
