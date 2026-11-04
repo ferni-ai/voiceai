@@ -141,9 +141,12 @@ function getGitBlame(file: string, lineNumber: number): { author: string; date: 
 /** True in a shallow clone (CI's default checkout). */
 export function isShallowCheckout(cwd = process.cwd()): boolean {
   try {
-    const args = ['rev-parse', '--is-shallow-repository'];
-    const opts = { cwd, encoding: 'utf-8' as const, stdio: ['ignore', 'pipe', 'ignore'] as const };
-    return execFileSync('git', args, opts).trim() === 'true';
+    const out = execFileSync('git', ['rev-parse', '--is-shallow-repository'], {
+      cwd,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return out.trim() === 'true';
   } catch {
     return false;
   }
