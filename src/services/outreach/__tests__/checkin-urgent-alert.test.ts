@@ -31,7 +31,7 @@ import {
   riskyCallerLine,
 } from '../caller-text.js';
 import { handleCheckinCallComplete } from '../../family/family-checkin-caller.js';
-import { generateUrgentNotification } from '../checkin-urgent-alert.js';
+import { generateUrgentNotification, withheldCallerLine } from '../checkin-urgent-alert.js';
 import type { CheckinCallRecord, FlaggedConcern } from '../../family/proactive-family-checkin.js';
 
 const NAME = 'Rosa';
@@ -57,8 +57,11 @@ function alertFor(concern: Partial<FlaggedConcern>): string | null {
 const DIGITS = /\d/;
 const CRISIS = crisisCallerLine(NAME);
 const RISKY = riskyCallerLine(NAME).replace(/\.$/, '');
-/** The alert when none of their words can be passed on. */
+/** The alert when none of their words can be passed on because the screen read a risk. */
 const GENERIC = `Important: During my call with ${NAME}, ${RISKY}. ${CRISIS} ${CHECK_IN}`;
+const HELD = withheldCallerLine(NAME).replace(/\.$/, '');
+/** The alert when none of their words can be passed on with no risky read: too long, or not text. */
+const GENERIC_HELD = `Important: During my call with ${NAME}, ${HELD}. ${CRISIS} ${CHECK_IN}`;
 
 describe('urgent family check-in alert: caller text screen', () => {
   it('passes a clean concern through exactly as before', () => {
@@ -157,8 +160,8 @@ describe('urgent family check-in alert: text too long to screen in full', () => 
     expect(PAST_WINDOW.indexOf('555')).toBeGreaterThan(10_000);
     expect(isRiskyCallerText(PAST_WINDOW)).toBe(false); // the prefix-only read misses it
 
-    expect(alertFor({ description: PAST_WINDOW })).toBe(GENERIC);
-    expect(alertFor({ recommendedAction: PAST_WINDOW })).toBe(GENERIC);
+    expect(alertFor({ description: PAST_WINDOW })).toBe(GENERIC_HELD);
+    expect(alertFor({ recommendedAction: PAST_WINDOW })).toBe(GENERIC_HELD);
   });
 
   it('keeps crisisCallerLine when a crisis phrase sits past the screen window', () => {
@@ -186,7 +189,8 @@ describe('urgent family check-in alert: text too long to screen in full', () => 
       expect(alert).not.toMatch(DIGITS);
       expect(alert).toContain(crisisCallerLine(NAME));
       expect(alert?.endsWith(CHECK_IN)).toBe(true);
-      if (value != null) expect(alert).toContain(riskyCallerLine(NAME).replace(/\.$/, ''));
+      // Not text: the neutral line. An array of words is text, and these words are risky.
+      if (value != null) expect(alert).toContain(Array.isArray(value) ? RISKY : HELD);
     }
   );
 
@@ -204,9 +208,9 @@ describe('urgent family check-in alert: text too long to screen in full', () => 
   );
 
   it('gives Ferni’s line for a description that is not text', () => {
-    expect(alertFor({ description: 5550142 as never })).toBe(GENERIC);
+    expect(alertFor({ description: 5550142 as never })).toBe(GENERIC_HELD);
     // A number is never coerced to text, even one the screen would pass.
-    expect(alertFor({ description: 42 as never })).toBe(GENERIC);
+    expect(alertFor({ description: 42 as never })).toBe(GENERIC_HELD);
     expect(alertFor({ recommendedAction: ['call 555 0142'] as never })).toBe(
       `Important: During my call with ${NAME}, mentioned chest pain. ${CRISIS} ${CHECK_IN}`
     );
@@ -265,6 +269,6 @@ describe('urgent family check-in alert: the sponsor send path', () => {
       familyMemberName: NAME,
       relationship: 'grandmother',
     });
-    expect(sent.messages).toEqual([GENERIC]);
+    expect(sent.messages).toEqual([GENERIC_HELD]);
   });
 });

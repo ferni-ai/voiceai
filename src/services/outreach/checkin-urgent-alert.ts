@@ -40,6 +40,15 @@ export interface CheckinAlertInput {
 const CHECK_IN_ACTION = 'You may want to check in with them.';
 
 /**
+ * Said instead of their words when they are withheld with no risky read: too long to screen
+ * in full, or not text at all. Ferni's own words, naming no reason the screen didn't find
+ * (riskyCallerLine is for a money, account or number read).
+ */
+export function withheldCallerLine(name: string): string {
+  return `${name} said something I didn't pass along; ask them directly.`;
+}
+
+/**
  * The caller-text screen reads only this many characters (isRiskyCallerText).
  * Text longer than that is never screened in full, so it is not passed on.
  */
@@ -55,17 +64,27 @@ function fieldText(value: unknown): string | null {
   return parts.every((p) => typeof p === 'string') ? parts.join(' ') : null;
 }
 
-/** A field that isn't text: none of it is quoted. */
-const NOT_TEXT: ScreenedCallerParts = { said: '', risky: true, safety: false };
+/** A field that isn't text: none of it is quoted, and the screen read nothing in it. */
+const NOT_TEXT: ScreenedCallerParts = { said: '', risky: false, safety: false };
 
-/** A field's screen result, and whether it went out word for word (cleaned only). */
-type ScreenedField = ScreenedCallerParts & { intact: boolean };
+/**
+ * A field's screen result, whether it went out word for word (cleaned only), and whether it
+ * was text at all.
+ */
+type ScreenedField = ScreenedCallerParts & { intact: boolean; text: boolean };
 
 /** One field through the screen. */
 function screenField(value: unknown, name: string): ScreenedField {
   const raw = fieldText(value);
   const part = raw === null ? NOT_TEXT : screenCallerParts(raw, name, 200);
-  return { ...part, intact: raw !== null && part.said === callerText(raw, SCREEN_WINDOW) };
+  const intact = raw !== null && part.said === callerText(raw, SCREEN_WINDOW);
+  return { ...part, intact, text: raw !== null };
+}
+
+/** Ferni's line for a description not passed on: money only for a risky read. */
+function heldLine(desc: ScreenedField, name: string): string {
+  if (desc.risky) return riskyCallerLine(name);
+  return desc.text ? 'something came up' : withheldCallerLine(name);
 }
 
 /**
@@ -135,7 +154,7 @@ export function generateUrgentNotification(record: CheckinAlertInput): string | 
 
   const desc = screenField(concern.description, name);
   const act = screenField(concern.recommendedAction, name);
-  const what = desc.said || (desc.risky ? riskyCallerLine(name) : 'something came up');
+  const what = desc.said || heldLine(desc, name);
   const next = act.said || CHECK_IN_ACTION; // Ferni's line whenever it was risky or not text
   const both = [concern.description, concern.recommendedAction]
     .map(fieldText)
@@ -146,6 +165,8 @@ export function generateUrgentNotification(record: CheckinAlertInput): string | 
   const screened = both.length <= SCREEN_WINDOW && sent.length <= SCREEN_WINDOW;
   if (screened && !isRiskyCallerText(sent)) return sent;
   // Too long to screen in full, or the joined fields formed something risky:
-  // pass neither on, so their words are withheld and crisisCallerLine goes.
-  return alert(riskyCallerLine(name), CHECK_IN_ACTION, true);
+  // pass neither on, so their words are withheld and crisisCallerLine goes. The
+  // money line only when the screen read something risky; length alone is neutral.
+  const risky = isRiskyCallerText(sent) || isRiskyCallerText(both);
+  return alert(risky ? riskyCallerLine(name) : withheldCallerLine(name), CHECK_IN_ACTION, true);
 }
