@@ -66,6 +66,7 @@ import {
   callRiskBeforeTurn,
   loneImminentGoodbye,
 } from '../../services/safety/crisis-lone-imminent.js';
+import { minorHarmScript } from '../../services/safety/minor-abuse-disclosure.js'; // MINOR_ABUSE_DISCLOSURE
 import { minorCrisisScript } from '../../utils/minor-crisis-care.js'; // MINOR_CRISIS_CARE
 import { createLogger } from '../../utils/safe-logger.js';
 import {
@@ -411,8 +412,14 @@ export async function gatedReply(
   if (gate?.escalation) noteCrisisVerdictPending(session, gate.escalation);
   if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);
   // MINOR_CRISIS_CARE=on: a caller who sounds under 18 also hears the youth line; the script stays.
+  // MINOR_ABUSE_DISCLOSURE=on: one who told of harm this turn hears the child-safety lines last.
   const script = (text: string): string =>
-    minorCrisisScript(text, risk, callerWords(chatCtx).latest, chatCtx.items);
+    minorHarmScript(
+      minorCrisisScript(text, risk, callerWords(chatCtx).latest, chatCtx.items),
+      risk,
+      callerWords(chatCtx),
+      env
+    );
   if (gate?.decision.action === 'replace') {
     // A turn with no moves, so the script isn't counted as the last reply's (move-log.ts).
     noteTurn(session, callerWords(chatCtx).latest, undefined);
