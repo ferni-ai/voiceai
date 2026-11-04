@@ -16,6 +16,10 @@
 import type { ConsolidationResult, MemoryItem } from '../../memory/index.js';
 import type { DocumentReference } from 'firebase-admin/firestore';
 import type { JobContext } from './base-job.js';
+import {
+  backgroundHeld,
+  type BackgroundHoldReader,
+} from '../../utils/minor-care-background-hold.js';
 
 /**
  * Stop starting new users after this long. It sits well under the job socket
@@ -50,6 +54,8 @@ export interface ConsolidationBatchDeps {
   consolidate: (memories: MemoryItem[]) => Promise<ConsolidationResult>;
   cursor: CursorStore;
   now?: () => number;
+  /** MINOR_CARE: replaces the registered background hold reader (tests). */
+  held?: BackgroundHoldReader;
 }
 
 export interface ConsolidationBatchOptions {
@@ -139,6 +145,12 @@ async function consolidateUser(
   result: ConsolidationBatchResult
 ): Promise<void> {
   try {
+    // MINOR_CARE: before any read, so no held caller's words reach the embedding provider
+    if (await backgroundHeld(userId, deps.held)) {
+      ctx.counters.skipped++;
+      ctx.log.info({ reason: 'minor_care' }, 'Skipping user - held');
+      return;
+    }
     const memories = await deps.loadMemories(userId);
     if (memories.length < options.minMemoriesForConsolidation) {
       ctx.log.debug({ userId, memoryCount: memories.length }, 'Skipping user - too few memories');

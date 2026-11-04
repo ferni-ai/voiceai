@@ -415,11 +415,11 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
         (async () => {
           try {
             // Use firebase-admin directly (same pattern as humanization/persistence.ts)
-            const admin = (await import('firebase-admin')).default;
+            const { getApps, initializeApp } = await import('firebase-admin/app');
 
             // Initialize Firebase Admin if not already done
-            if (admin.apps.length === 0) {
-              admin.initializeApp();
+            if (getApps().length === 0) {
+              initializeApp();
             }
             const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
 

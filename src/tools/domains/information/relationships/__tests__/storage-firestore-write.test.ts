@@ -22,18 +22,12 @@ function makeCollectionRef() {
   return { doc: vi.fn(() => makeDocRef()) };
 }
 
-vi.mock('firebase-admin', () => ({
-  default: {
-    apps: [{}], // non-empty -> storage.ts treats Firebase Admin as already initialized
-    firestore: () => ({ collection: makeCollectionRef }),
-  },
+// The global firebase-admin/app mock (setup.ts) reports an app, so storage.ts treats
+// Firebase Admin as already initialized. The module reaches Firestore through
+// getAdminFirestore(); it serves the fake.
+vi.mock('../../../../../utils/firebase-admin-app.js', () => ({
+  getAdminFirestore: () => ({ collection: makeCollectionRef }),
 }));
-
-// The module reaches Firestore through getAdminFirestore(); it serves the same fake.
-vi.mock('../../../../../utils/firebase-admin-app.js', async () => {
-  const admin = (await import('firebase-admin')).default;
-  return { getAdminFirestore: () => admin.firestore() };
-});
 
 vi.mock('../../../../../utils/safe-logger.js', () => ({
   getLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),

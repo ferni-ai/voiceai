@@ -18,7 +18,8 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import admin from 'firebase-admin';
+import { getApps, initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import { FieldValue } from 'firebase-admin/firestore';
 
 import { createLogger } from '../utils/safe-logger.js';
@@ -52,7 +53,7 @@ const log = createLogger({ module: 'waitlist-routes' });
  * Ensure Firebase Admin is initialized
  */
 function ensureFirebaseInitialized(): void {
-  if (admin.apps.length === 0) {
+  if (getApps().length === 0) {
     try {
       // Use the same project ID pattern as other routes
       const projectId =
@@ -61,11 +62,11 @@ function ensureFirebaseInitialized(): void {
         process.env.GOOGLE_CLOUD_PROJECT;
 
       if (projectId) {
-        admin.initializeApp({ projectId });
+        initializeApp({ projectId });
         log.info({ projectId }, 'Firebase initialized for waitlist routes');
       } else {
         // Fall back to ADC (works on Cloud Run)
-        admin.initializeApp();
+        initializeApp();
         log.info('Firebase initialized with default credentials for waitlist routes');
       }
     } catch {
@@ -460,10 +461,9 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
 
   try {
     ensureFirebaseInitialized();
-    const auth = admin.auth();
     const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
-    const decodedToken = await verifyIdTokenChecked(auth, idToken);
+    const decodedToken = await verifyIdTokenChecked(getAuth(), idToken);
     const email = decodedToken.email?.toLowerCase().trim();
 
     if (!email) {

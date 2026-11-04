@@ -12,7 +12,8 @@
  * - GET  /metrics             - Worker metrics
  */
 
-import admin from 'firebase-admin';
+import { getApps, initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 import express from 'express';
 import { createLogger } from './logger.js';
 import {
@@ -36,13 +37,13 @@ const log = createLogger('server');
 // Initialize Firebase
 // ============================================================================
 
-if (!admin.apps.length) {
-  admin.initializeApp({
+if (!getApps().length) {
+  initializeApp({
     projectId: process.env.GCP_PROJECT_ID || 'johnb-2025',
   });
 }
 
-const db = admin.firestore();
+const db = getFirestore();
 
 const config: WorkerConfig = {
   db,

@@ -7,14 +7,6 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('firebase-admin', () => {
-  const doc = {
-    set: vi.fn(async () => undefined),
-    get: vi.fn(async () => ({ exists: false })),
-    collection: () => ({ doc: () => doc }),
-  };
-  return { default: { firestore: () => ({ collection: () => ({ doc: () => doc }) }) } };
-});
 const writeSessionContinuity = vi.fn(async (_data: Record<string, unknown>) => ({
   threadsUpdated: 1,
   anchorsCreated: 1,

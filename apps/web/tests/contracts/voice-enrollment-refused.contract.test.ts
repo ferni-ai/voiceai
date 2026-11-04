@@ -13,13 +13,7 @@
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('firebase-admin', () => {
-  const unavailable = (): never => {
-    throw new Error('no Firebase in this test');
-  };
-  return { default: { apps: [], initializeApp: unavailable, firestore: unavailable } };
-});
-// The voice stores reach Firestore through getAdminFirestore(); it is unavailable too.
+// No Firebase: the voice stores reach Firestore through getAdminFirestore(), which throws.
 vi.mock('../../../../src/utils/firebase-admin-app.js', () => ({
   getAdminFirestore: (): never => {
     throw new Error('no Firebase in this test');
