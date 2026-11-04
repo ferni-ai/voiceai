@@ -1065,6 +1065,13 @@ jobs:
     # knocked out every PR queued with it (2026-10-18). Its three steps are cheap.
     # arch-map: a PR that edits only ARCHITECTURE.md (root markdown) still runs docs:map --check.
     if: needs.setup.outputs.code != 'false' || needs.setup.outputs.arch-map == 'true'
+    # The gate files guard reads the PR's label events and this run's start time.
+    # Nothing else here calls the API (cache restore uses the runner's own token).
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      actions: read
     steps:
       # This commit and 49 ancestors, not every branch and tag: the full fetch-depth: 0 fetch
       # hung to the job timeout 5 times in 7 days (2026-11-03 census) while depth-1/2 checkouts
@@ -1081,6 +1088,25 @@ jobs:
       - name: Fetch main for the ratchets
         timeout-minutes: 3
         run: git fetch --no-tags --depth=50 origin +refs/heads/main:refs/remotes/origin/main
+
+      # Blocking. A PR may not switch a gate off in .github/workflows/, .github/actions/
+      # or scripts/ci/ (continue-on-error, a swallowed test failure, `if: false`, a
+      # required job deleted or skipped; scripts/ci/gate-files-guard.sh). From July to
+      # September every test step carried continue-on-error and CI hid 214 failures.
+      # It runs main's copy of the guard, so a PR can't loosen the guard that judges it
+      # (the PR's copy only until main has one). PRs only: a PR whose Quality Gates
+      # failed can't join the merge queue, and a merge_group payload has no labels.
+      # The ci-gate-change-ok label, added by a person after this run started,
+      # approves the change: add it, then re-run this job.
+      - name: Gate files guard
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          git show HEAD^1:scripts/ci/gate-files-guard.sh >"$RUNNER_TEMP/gate-files-guard.sh" 2>/dev/null \
+            || cp scripts/ci/gate-files-guard.sh "$RUNNER_TEMP/gate-files-guard.sh"
+          bash "$RUNNER_TEMP/gate-files-guard.sh" HEAD^1 HEAD
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
