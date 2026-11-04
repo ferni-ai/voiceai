@@ -18,20 +18,16 @@ const sdk = vi.hoisted(() => ({
     throw Object.assign(new Error('no user'), { code: 'auth/user-not-found' });
   }),
 }));
-vi.mock('firebase-admin', () => {
-  const admin = {
-    get apps() {
-      return sdk.apps;
-    },
-    initializeApp: () => {
-      throw new Error('no credentials');
-    },
-    credential: { applicationDefault: () => ({}) },
-    auth: () => ({ getUserByPhoneNumber: sdk.getUserByPhoneNumber }),
-  };
-  return { default: admin };
-});
-vi.mock('firebase-admin/auth', () => ({ getAuth: () => ({}) }));
+vi.mock('firebase-admin/app', () => ({
+  getApps: () => sdk.apps,
+  initializeApp: () => {
+    throw new Error('no credentials');
+  },
+  applicationDefault: () => ({}),
+}));
+vi.mock('firebase-admin/auth', () => ({
+  getAuth: () => ({ getUserByPhoneNumber: sdk.getUserByPhoneNumber }),
+}));
 vi.mock('../../../../utils/firestore-utils.js', async (orig) => ({
   ...(await orig<object>()),
   getFirestoreDb: () => pathFirestore(docs),

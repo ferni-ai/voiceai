@@ -33,7 +33,6 @@ const fs = vi.hoisted(() => {
   });
   return { writes, db: { collection: (name: string) => colRef(name) } };
 });
-vi.mock('firebase-admin', () => ({ default: { apps: [{}], initializeApp: vi.fn() } }));
 vi.mock('firebase-admin/firestore', () => ({
   getFirestore: () => fs.db,
   FieldValue: { serverTimestamp: () => 'SERVER_TS', increment: (n: number) => ({ increment: n }) },

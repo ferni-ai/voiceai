@@ -15,7 +15,7 @@
  */
 
 import pino from 'pino';
-import admin from 'firebase-admin';
+import { type Firestore, type Query, Timestamp } from 'firebase-admin/firestore';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
@@ -100,10 +100,10 @@ const COLLECTION_NAME = 'voice_auth_audit';
 const RETENTION_DAYS = 90; // Keep audit logs for 90 days
 const FIRESTORE_BATCH_LIMIT = 500; // Firestore batch write limit
 
-let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInstance: Firestore | null = null;
 let initAttempted = false;
 
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   if (firestoreInstance) return firestoreInstance;
   if (initAttempted) return null;
 
@@ -162,7 +162,7 @@ export async function logVoiceAuthEvent(
       const docRef = await db.collection(COLLECTION_NAME).add(
         removeUndefined({
           ...fullEntry,
-          timestamp: admin.firestore.Timestamp.fromDate(fullEntry.timestamp),
+          timestamp: Timestamp.fromDate(fullEntry.timestamp),
         })
       );
       return docRef.id;
@@ -367,7 +367,7 @@ export async function queryAuditLogs(options: AuditQueryOptions): Promise<VoiceA
 
   if (db) {
     try {
-      let query: admin.firestore.Query = db.collection(COLLECTION_NAME);
+      let query: Query = db.collection(COLLECTION_NAME);
 
       if (options.userId) {
         query = query.where('userId', '==', options.userId);
@@ -386,15 +386,11 @@ export async function queryAuditLogs(options: AuditQueryOptions): Promise<VoiceA
       }
 
       if (options.startDate) {
-        query = query.where(
-          'timestamp',
-          '>=',
-          admin.firestore.Timestamp.fromDate(options.startDate)
-        );
+        query = query.where('timestamp', '>=', Timestamp.fromDate(options.startDate));
       }
 
       if (options.endDate) {
-        query = query.where('timestamp', '<=', admin.firestore.Timestamp.fromDate(options.endDate));
+        query = query.where('timestamp', '<=', Timestamp.fromDate(options.endDate));
       }
 
       query = query.orderBy('timestamp', 'desc');
@@ -569,7 +565,7 @@ export async function checkSuspiciousActivity(userId: string): Promise<{
  */
 export async function cleanupOldAuditLogs(): Promise<number> {
   const cutoffDate = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
-  const cutoffTimestamp = admin.firestore.Timestamp.fromDate(cutoffDate);
+  const cutoffTimestamp = Timestamp.fromDate(cutoffDate);
 
   const db = getFirestore();
   let totalDeleted = 0;

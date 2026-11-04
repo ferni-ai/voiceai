@@ -15,7 +15,7 @@
  */
 
 import pino from 'pino';
-import admin from 'firebase-admin';
+import { type Firestore, Timestamp } from 'firebase-admin/firestore';
 import { getGCPProjectId } from '../../config/environment.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { identifySpeaker, type VoiceProfile } from './voice-enrollment.js';
@@ -71,10 +71,10 @@ export interface SpeakerIdentificationResult {
 
 const COLLECTION_NAME = 'voice_households';
 
-let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInstance: Firestore | null = null;
 let initAttempted = false;
 
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   if (firestoreInstance) return firestoreInstance;
   if (initAttempted) return null;
 
@@ -186,13 +186,13 @@ async function saveHousehold(household: Household): Promise<void> {
       .set(
         removeUndefined({
           ...household,
-          createdAt: admin.firestore.Timestamp.fromDate(household.createdAt),
-          updatedAt: admin.firestore.Timestamp.fromDate(household.updatedAt),
+          createdAt: Timestamp.fromDate(household.createdAt),
+          updatedAt: Timestamp.fromDate(household.updatedAt),
           members: household.members.map((m) =>
             removeUndefined({
               ...m,
-              enrolledAt: admin.firestore.Timestamp.fromDate(m.enrolledAt),
-              lastSeen: m.lastSeen ? admin.firestore.Timestamp.fromDate(m.lastSeen) : null,
+              enrolledAt: Timestamp.fromDate(m.enrolledAt),
+              lastSeen: m.lastSeen ? Timestamp.fromDate(m.lastSeen) : null,
             })
           ),
         })

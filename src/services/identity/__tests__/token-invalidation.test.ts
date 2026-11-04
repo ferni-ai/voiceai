@@ -16,7 +16,7 @@ const auth = vi.hoisted(() => ({
   revokeRefreshTokens: vi.fn(async () => undefined),
   deleteUser: vi.fn(async () => undefined),
 }));
-vi.mock('firebase-admin', () => ({ default: { apps: [{}], auth: () => auth } }));
+vi.mock('firebase-admin/auth', () => ({ getAuth: () => auth }));
 
 const { verifyFirebaseToken, revokeRefreshTokens, deleteFirebaseUser } =
   await import('../firebase-auth.js');

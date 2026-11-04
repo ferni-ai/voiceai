@@ -18,7 +18,6 @@
  * @module VoiceProfileStore
  */
 
-import admin from 'firebase-admin';
 import { FieldValue, Timestamp, type Firestore } from 'firebase-admin/firestore';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
