@@ -57,7 +57,6 @@ const NOT_YET_MIGRATED = new Set([
   'src/services/pubsub/worker-main.ts',
   'src/services/self-healing/health-monitors.ts',
   'src/services/trust-systems/notification-delivery.ts',
-  'src/tests/setup.ts',
   'src/utils/__tests__/firestore-ref-wrapping.test.ts',
 ]);
 
