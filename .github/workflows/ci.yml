@@ -1034,10 +1034,21 @@ jobs:
     # arch-map: a PR that edits only ARCHITECTURE.md (root markdown) still runs docs:map --check.
     if: needs.setup.outputs.code != 'false' || needs.setup.outputs.arch-map == 'true'
     steps:
+      # This commit and 49 ancestors, not every branch and tag: the full fetch-depth: 0 fetch
+      # hung to the job timeout 5 times in 7 days (2026-11-03 census) while depth-1/2 checkouts
+      # in the other jobs never did. 50 covers a merge-queue head back to main for queueBase
+      # (merge-base.ts); deeper than that, queueBase throws rather than measuring nothing.
       - name: Checkout
         uses: actions/checkout@v7
+        timeout-minutes: 5
         with:
-          fetch-depth: 0
+          fetch-depth: 50
+
+      # The Firestore database ratchet compares the allowlist with origin/main's, and queueBase
+      # reads origin/main. fetch-depth: 0 used to create this ref; without it the ratchet fails.
+      - name: Fetch main for the ratchets
+        timeout-minutes: 3
+        run: git fetch --no-tags --depth=50 origin +refs/heads/main:refs/remotes/origin/main
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
