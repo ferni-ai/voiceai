@@ -219,6 +219,9 @@ export const QUESTION_LINE = {
  */
 function noQuestion(ownStory: boolean | undefined): string {
   if (ownStory === undefined) return QUESTION_LINE.none;
+  // SELF_SHARE_STAY_WHEN_ASKED=on (#3475): no forced question back after a word about himself;
+  // an unasked share still turns to them through its own line (ferni-state.ts).
+  if (ownStory && flagOn('SELF_SHARE_STAY_WHEN_ASKED')) return QUESTION_LINE.none;
   return ownStory ? QUESTION_LINE.noneUnlessOwn : QUESTION_LINE.noneOnThem;
 }
 

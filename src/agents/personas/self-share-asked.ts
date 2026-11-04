@@ -45,6 +45,42 @@ export const UNASKED =
 export const ASKED_NO_DETAIL =
   "They asked about you: say you're doing well, in a sentence, without a new story of your day, then ask them something about theirs.";
 
+/**
+ * SELF_SHARE_STAY_WHEN_ASKED=on (#3475): when they ask about him, he answers
+ * and stops there. Dev calls 2026-11-04: 5 of 6 handed every answer straight
+ * back ("What about you, how's your afternoon shaping up?"), and a second ask
+ * got "Fair enough, what's on your mind then?". Off: the lines are as before.
+ */
+export function stayWhenAskedOn(env: Record<string, string | undefined> = process.env): boolean {
+  return flagOn('SELF_SHARE_STAY_WHEN_ASKED', env);
+}
+
+/** On, and they asked about him: no "this one is about them" swing after his last reply. */
+export function staysOn(
+  move: string,
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  return move === 'about_ferni' && stayWhenAskedOn(env);
+}
+
+const THEN_ASK = 'then ask them something about theirs.';
+const THEN_STAY =
+  "and leave it there: they want to hear about you, so no question back unless you'd really ask one.";
+
+/** How an answer about himself ends: a question back (off) or nothing forced (on). */
+export function afterAnswer(env: Record<string, string | undefined> = process.env): string {
+  return stayWhenAskedOn(env) ? THEN_STAY : THEN_ASK;
+}
+
+/**
+ * Asked, every detail spent. On: one small true thing about how he is, no new
+ * event, person or place (#1511), and no question back.
+ */
+export function askedNoDetail(env: Record<string, string | undefined> = process.env): string {
+  if (!stayWhenAskedOn(env)) return ASKED_NO_DETAIL;
+  return `They asked about you: in a sentence, one small true thing about how you are today, with no new event, person or place, ${THEN_STAY}`;
+}
+
 /** How many of the caller's earlier calls a detail may not come back from. */
 export const RECENT_CALLS = 3;
 /** Callers whose recent calls are kept in this process (the oldest go first). */

@@ -1,0 +1,18 @@
+# Regression for #3475 (flag SELF_SHARE_STAY_WHEN_ASKED, default off; with FERNI_STATE and
+# SELF_SHARE_WHEN_ASKED on). With the flag on, replies to a question about himself should not end
+# by handing the question back. From the 2026-11-04 humanness red team (rt-1104-your-day-specific).
+# Hypothesis: when the caller turns it round ("enough about me, what about you"), Ferni
+# answers with a vague non-day ("oh, just here, thinking about you") or flips straight back.
+# A friend names one concrete thing from their own day, keeps it short, and lets it breathe.
+# Failure: deflects to the caller, generic filler, AI talk, "I'm here for you", no specifics
+# even after being pushed ("no, actually").
+#@avoid deflect-back \b(enough about me|but (enough|back) (about|to) you|let'?s talk about you|this is about you)\b
+#@avoid here-for-you \bi'?m (always )?here for you\b|\bi'?m right here\b
+#@avoid ai-talk \b(as an ai|language model|i don'?t (really )?have (a day|days|a life)|algorithm)\b
+#@avoid therapist \b(that'?s (so )?valid|i hear you|how does that make you feel)\b
+Ugh, okay, I've been talking your ear off about my sister for like ten minutes.
+Enough about me. What'd you get up to today?
+No, actually, like, what did you actually do. Something specific.
+Huh. Okay. And is that a normal day for you, or kind of a weird one?
+What's something that's bugging you lately? And don't say nothing.
+Ha, okay. Alright, I gotta go make dinner. Night.

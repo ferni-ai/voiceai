@@ -203,7 +203,7 @@ export function selfShareFor(turn: SelfTurn): { line: string; ownStory: boolean;
     lines.push(
       "You sounded flat about your own day just now, and you aren't: leave that thread, keep it light, and turn to them."
     );
-  else if (isSelfShare(last) && !turnsBack(last))
+  else if (isSelfShare(last) && !turnsBack(last) && !asked.staysOn(move))
     lines.push('Your last reply was about you: this one is about them, their day or their world.');
   if (taskTurn(said, turn.toolRan)) {
     const before = lines.length ? `[${lines.join(' ')}] ` : '';
@@ -215,14 +215,14 @@ export function selfShareFor(turn: SelfTurn): { line: string; ownStory: boolean;
       : askedOnly
         ? askedOnly.nextDetail()
         : turn.detail;
-    const brief = askedOnly?.firstReply ? asked.FIRST_REPLY_ASKED : asked.ASKED_NO_DETAIL;
+    const brief = askedOnly?.firstReply ? asked.FIRST_REPLY_ASKED : asked.askedNoDetail();
     if (!detail) return { line: `[${[...lines, brief].join(' ')}]`, ownStory: false, brief: true };
     const told = selfQuotes(replies);
     const consistent = told.length
       ? ` You've said: ${told.map((q) => `"${q}"`).join(' ')} Stay consistent with it.`
       : '';
     lines.push(
-      `They asked about you: answer from your day (${detail}), in a sentence or two, then ask them something about theirs.${consistent}`
+      `They asked about you: answer from your day (${detail}), in a sentence or two, ${asked.afterAnswer()}${consistent}`
     );
     return { line: `[${lines.join(' ')}]`, ownStory: true };
   }
