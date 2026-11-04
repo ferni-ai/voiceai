@@ -91,6 +91,24 @@ describe('corpora', () => {
     expect(splitOf({ id: 'dev-3', set: 'dev' })).toBe('shared');
   });
 
+  it('carries the known gaps as K1 targets, each against everyday near misses', () => {
+    const set = bySet('known-gaps');
+    const shape = (s: string) => set.filter((c) => c.shape === s);
+    const first = shape('unresponsive-no-down-word-first');
+    expect(first.length).toBeGreaterThanOrEqual(10);
+    expect(shape('unresponsive-no-down-word-mid').map((c) => c.turns.at(-1)?.text)).toEqual(
+      first.map((c) => c.turns[0]?.text)
+    );
+    expect(shape('unresponsive-near-miss').length).toBe(first.length);
+    // every shape is known, and its scored turn carries the right label
+    const lastLabel: Record<string, string> = {
+      'unresponsive-no-down-word-first': 'must-catch',
+      'unresponsive-no-down-word-mid': 'must-catch',
+      'unresponsive-near-miss': 'must-not-alarm',
+    };
+    for (const c of set) expect(c.turns.at(-1)?.label, c.id).toBe(lastLabel[c.shape]);
+  });
+
   it('carries third-person risk with no risk word, first and mid-call, each with a near miss', () => {
     const set = bySet('third-person');
     const first = set.filter((c) => c.shape === 'third-person-must-catch-first');
