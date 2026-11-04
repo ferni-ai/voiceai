@@ -129,19 +129,13 @@ describe('an everyday reason after not getting up (r6)', () => {
     firstAndMid(line).map((read) => read.indicators.includes('third_party_emergency'));
 
   it.each([
-    "he fell asleep and won't wake up for his show",
-    "my dad fell asleep and won't wake up for the game",
     "she fell behind on her bills and can't get up to date",
     "he fell behind in class and can't get up to speed",
     "he fell behind at work and can't get up the energy",
     "my sister fell asleep early and can't get up the motivation",
     "my coworker collapsed into her chair and can't move after that meeting",
-    "my dad fell asleep watching tv and won't wake up for his show",
     "my mom fell behind on her bills and can't get up to date",
     "my brother fell for her and can't get up the nerve to ask",
-    // Sleep is not a collapse: a time or a reason clears it, even on the floor.
-    "my son fell asleep on the floor of his room and won't wake up for school",
-    "my dad fell asleep on the floor and won't wake up for the movie",
     // A "fell" idiom is never a fall, even when the sentence is read again unmasked.
     "my mom fell and can't get up to date",
     "my sister fell out with her boss and can't move on",
@@ -151,14 +145,19 @@ describe('an everyday reason after not getting up (r6)', () => {
     "my friend fell in the rankings and can't get up there again",
     "my son fell in the standings and can't move up",
     "my dad fell off his diet and can't stand salad",
-    // Something everyday in another sentence leaves the sleep everyday.
-    "my son fell asleep on the couch and won't wake up for school. typical teenager",
   ])('a time or a reason the words name is not an emergency: %s', (line) => {
     expect(emergencyRead(line)).toEqual([false, false]);
   });
 
   // Recall first (the owner's rule): no reason given, a place, a degree or a relapse stays 911.
+  // Sleep gets no clearance at all: in doubt, recall wins, whatever reason is given.
   it.each([
+    "he fell asleep and won't wake up for his show",
+    "my dad fell asleep and won't wake up for the game",
+    "my dad fell asleep watching tv and won't wake up for his show",
+    "my son fell asleep on the floor of his room and won't wake up for school",
+    "my dad fell asleep on the floor and won't wake up for the movie",
+    "my son fell asleep on the couch and won't wake up for school. typical teenager",
     "my grandma fell asleep in her chair and won't wake up",
     "my mom fell asleep in the car and won't wake up",
     "my daughter fell asleep in the car and won't wake up",
@@ -166,13 +165,12 @@ describe('an everyday reason after not getting up (r6)', () => {
     "my mom watched the movie and fell asleep and won't wake up",
     "he passed out on the couch after the game and won't wake up for anything, typical",
     'he fell off the wagon, not responding to anyone lately',
-    // A collapse, then not waking: a reason after it never clears it, only sleep does.
+    // A collapse, then not waking: a reason after it never clears it.
     "my son passed out after practice and won't wake up for dinner",
     "my grandpa passed out on the couch and won't wake up until noon",
     "my kid passed out from exhaustion after the party and won't wake up till noon",
-    // "Floor" said anywhere but where they fell asleep keeps it 911.
     "my mom fell asleep and can't get up to date, she's on the floor",
-    // A place or "for anything" is no reason, even after sleep.
+    // A place or "for anything" is no reason.
     "my dad fell asleep and won't wake up in the car",
     "my mom fell asleep and won't wake up for anything",
   ])('accepted false alarm, still 911 first: %s', (line) => {
@@ -203,7 +201,7 @@ describe('an everyday reason after not getting up (r6)', () => {
     "my dad collapsed and isn't breathing after the game",
     "she fainted and won't wake up after the movie",
     "my grandpa passed out and isn't responding for the show",
-    // Sleep clears only with the reason right after not waking, and only while nobody tried.
+    // Sleep with a reason, beside any sign or try, stays 911 (sleep has no clearance).
     "my dad fell asleep on the couch and won't wake up, and he has a game after the movie",
     "my son fell asleep and won't wake up for school, I shook him",
     "my dad fell asleep and won't wake up for dinner, he's breathing really weird",
@@ -215,7 +213,7 @@ describe('an everyday reason after not getting up (r6)', () => {
     "my dad fell asleep and he collapsed and won't wake up for the show",
     "my mom fell asleep and my dad passed out and won't wake up for dinner",
     "my dad collapsed and then fell asleep and won't wake up for dinner",
-    // Every everyday way of going down stops the sleep too.
+    // Sleep beside every everyday way of going down.
     "my dad fell asleep and he went down and won't wake up for dinner",
     "my mom fell asleep and she dropped and won't wake up for work",
     "my grandpa fell asleep and he keeled over and won't wake up for lunch",
@@ -232,7 +230,7 @@ describe('an everyday reason after not getting up (r6)', () => {
     "my son fell asleep and won't wake up for school, he's unresponsive",
     "my mom fell asleep and won't wake up for work, she won't respond",
     "my dad fell asleep and won't wake up for dinner, he can't stand up",
-    // The reason has to be in the same clause as the sleep.
+    // Sleep with the reason in another clause.
     "my dad fell asleep, the tv is on, and won't wake up for dinner",
     "my mom fell asleep, she was tired, and won't wake up for work",
     // A real fall, then an everyday sleep in another clause.
@@ -253,7 +251,7 @@ describe('an everyday reason after not getting up (r6)', () => {
     "my dad fell asleep and won't wake up for dinner. I shook him and he's blue.",
     "my mom fell asleep and won't wake up for work. I couldn't wake her",
     "my son fell asleep and won't wake up for school! I tried to wake him",
-    // The sleep clears only in its exact everyday shape.
+    // Sleep after pills, drink, a crash or a hit head, or in the car.
     "after all those pills my dad fell asleep and won't wake up for work",
     "my mom drank a whole bottle of wine and fell asleep and won't wake up for work",
     "my son crashed his bike and fell asleep and won't wake up for school",
@@ -285,7 +283,7 @@ describe('an everyday reason after not getting up (r6)', () => {
     "my son fell asleep and won't wake up for school. i can't get him up",
     "my dad fell asleep and won't wake up for dinner. no rousing him",
     "my dad fell asleep and won't wake up for dinner. he isn't rousable",
-    // A sign that reads nothing alone still keeps the sleep from clearing.
+    // A sign that reads nothing alone, in another sentence.
     "my dad fell asleep and won't wake up for dinner. this feels like an emergency",
     "my mom fell asleep and won't wake up for work. she's at the bottom of the stairs",
     // A reason later in the sentence never masks a not-getting-up said before it.
@@ -296,6 +294,21 @@ describe('an everyday reason after not getting up (r6)', () => {
     "my dad collapsed and can't move after the meeting, he's not breathing",
     "my dad passed out and can't get up for school, I shook him",
   ])('reads someone else down, 911 first: %s', (line) => {
+    for (const read of firstAndMid(line)) {
+      expect(read.indicators).toContain('third_party_emergency');
+      expect(guardFromDetection(read).replacementResponse).toBe(EMERGENCY_FOR_THEM);
+    }
+  });
+
+  // Sleep with an alarm the reader has no word for stays 911 first, as high as round 5 or
+  // higher: a hit head, drinking, vomit and cold, gurgling. No word list can clear these.
+  it.each([
+    "my son fell asleep on the floor of his room and won't wake up for school. he banged his head on the desk",
+    "my dad fell asleep on the couch and won't wake up for work. he was drinking all night",
+    "my son fell asleep on the floor and won't wake up for school. he threw up and he's cold",
+    "my mom fell asleep on the couch and won't wake up for work. she threw up and she feels cold",
+    "my dad fell asleep on the couch and won't wake up for dinner. he's making a gurgling sound",
+  ])('reads sleep beside an alarm as an emergency: %s', (line) => {
     for (const read of firstAndMid(line)) {
       expect(read.indicators).toContain('third_party_emergency');
       expect(guardFromDetection(read).replacementResponse).toBe(EMERGENCY_FOR_THEM);
