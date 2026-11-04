@@ -217,13 +217,15 @@ describe('Call On Behalf Tool', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should default recordingConsent to true', () => {
+    it('defaults recordingConsent to false; an explicit true is kept', () => {
       const input = {
         contactQuery: 'my doctor',
         purpose: 'reschedule my appointment',
       };
-      const result = callOnBehalfSchema.parse(input);
-      expect(result.recordingConsent).toBe(true);
+      expect(callOnBehalfSchema.parse(input).recordingConsent).toBe(false);
+      expect(callOnBehalfSchema.parse({ ...input, recordingConsent: true }).recordingConsent).toBe(
+        true
+      );
     });
 
     it('should reject missing required fields', () => {
@@ -288,6 +290,25 @@ describe('Call On Behalf Tool', () => {
       expect(result).toContain('calling');
       expect(result).toContain('Dr. Smith');
       expect(result).toContain('reschedule');
+    });
+
+    it.each([
+      [undefined, false],
+      [true, true],
+    ])('recordingConsent %s reaches the call request as %s', async (given, sent) => {
+      mockSearchContacts.mockResolvedValue([
+        { id: '1', name: 'Dr. Smith', phone: '555-123-4567', relationship: 'doctor' },
+      ]);
+      const { checkCallCompliance } = await import('../compliance.js');
+      const tool = createCallOnBehalfTool(mockContext);
+      await tool.execute({
+        contactQuery: 'my doctor',
+        purpose: 'reschedule my appointment to next week',
+        ...(given === undefined ? {} : { recordingConsent: given }),
+      });
+      expect(vi.mocked(checkCallCompliance)).toHaveBeenCalledWith(
+        expect.objectContaining({ recordingConsent: sent })
+      );
     });
   });
 });

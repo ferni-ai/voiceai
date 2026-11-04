@@ -436,7 +436,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
             preferredTimes,
             additionalContext,
           },
-          recordingConsent: recordingConsent ?? true,
+          recordingConsent: recordingConsent ?? false,
           ...(callNow && { callNow, ...(lateConfirmed && { lateConfirmed }) }),
           requiresHIPAA:
             callType === 'business' &&
