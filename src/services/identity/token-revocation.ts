@@ -5,12 +5,15 @@
  * nor fails open.
  *
  * - Cache: each account is looked up at most once a minute (bounded, per uid); the app
- *   polls /api/user-events/pending every 2 seconds. Deleting, revoking or erasing an
- *   account here refuses its tokens at once (invalidateAccount). That is sticky: no
- *   later lookup, strict or not, overwrites it, because during an erasure the Firebase
- *   user still exists. 'gone' is never downgraded (a revoke after it changes nothing)
- *   and, like 'revoked', is kept apart from the bounded cache, so no amount of other
- *   traffic evicts it (#3228). Another server instance learns within the minute.
+ *   polls /api/user-events/pending every 2 seconds. Checks that arrive while an account's
+ *   lookup runs share it instead of each spending the account's budget on the same
+ *   answer: a web page sends several calls at once, and the one past the per-account
+ *   burst used to get a 503 (or a 401 where only the request's identity was read).
+ *   Deleting, revoking or erasing an account here refuses its tokens at once
+ *   (invalidateAccount). That is sticky: no later lookup, strict or not, overwrites it,
+ *   because during an erasure the Firebase user still exists. 'gone' is never downgraded
+ *   (a revoke after it changes nothing) and, like 'revoked', is kept apart from the
+ *   bounded cache, so no amount of other traffic evicts it (#3228). Another server instance learns within the minute.
  * - Stale state: only when Auth itself fails (a transport error, a timeout, a 5xx) is an
  *   account state under an hour old used (logged auth_revocation_stale). With none, or
  *   for any other failure, the answer is 'unavailable': a 503, try again. Never a 401,
@@ -125,6 +128,8 @@ export function revocationCheck(limits: Limits = LIMITS) {
   // revokes (oldest first) for REVOKED_KEEP_MS
   const gone = new Set<string>();
   const revokedAt = new Map<string, number>();
+  // Each account's non-strict lookup while it runs, shared by the checks that arrive meanwhile
+  const running = new Map<string, Promise<AccountState | { failed: unknown }>>();
   const budgets = {
     normal: budget(limits.normal, limits.normalPerAccount),
     strict: budget(limits.strict, limits.strictPerAccount),
@@ -164,6 +169,18 @@ export function revocationCheck(limits: Limits = LIMITS) {
     }
   };
 
+  /** A lookup the account's other non-strict checks can join until it settles */
+  const sharedLookUp = (
+    uid: string,
+    lookup: (uid: string) => Promise<AccountRecord>,
+    now: number
+  ): Promise<AccountState | { failed: unknown }> => {
+    const pending = lookUp(uid, lookup, now); // never rejects: a failure is { failed }
+    running.set(uid, pending);
+    void pending.then(() => running.get(uid) === pending && running.delete(uid));
+    return pending;
+  };
+
   /** The account's state (stale, or skipped for an anonymous one); 'unavailable' when unknown */
   const stateOf = async (
     token: CheckedToken,
@@ -180,11 +197,13 @@ export function revocationCheck(limits: Limits = LIMITS) {
       return { state: cached.state, stale: false, skipped: true };
     }
     const kind = anonymousSignIn ? 'anonymous' : strict ? 'strict' : 'normal';
-    if (!budgets[kind](token.uid, now)) {
+    // Strict looks the account up now, for itself: it never joins or offers a running lookup
+    const joined = strict ? undefined : running.get(token.uid);
+    if (!joined && !budgets[kind](token.uid, now)) {
       unavailable(now, `${kind}-budget`);
       return 'unavailable'; // a refused lookup is never a stale pass
     }
-    const found = await lookUp(token.uid, lookup, now);
+    const found = await (joined ?? (strict ? lookUp : sharedLookUp)(token.uid, lookup, now));
     if (!('failed' in found)) return { state: found, stale: false, skipped: false };
     if (cached && age < STALE_MS && authFailed(found.failed)) {
       stale(now, codeOf(found.failed));

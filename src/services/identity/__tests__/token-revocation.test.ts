@@ -131,6 +131,45 @@ describe('token revocation check', () => {
     expect(await check(token('p4'), lookup, T0 + 3)).toBe('unavailable'); // the global 3 are spent
   });
 
+  it("a page's burst of calls shares one lookup, so none is refused for the account's budget", async () => {
+    const { check } = revocationCheck(); // prod limits: 3 lookups at once per account
+    const waiting: Array<(account: AccountRecord) => void> = [];
+    const lookup = vi.fn(
+      () =>
+        new Promise<AccountRecord>((resolve) => {
+          waiting.push(resolve);
+        })
+    );
+
+    const burst = [0, 1, 2, 3, 4].map((ms) => check(token('u-page'), lookup, T0 + ms));
+    for (const answer of waiting) answer(live);
+
+    expect(await Promise.all(burst)).toEqual(['ok', 'ok', 'ok', 'ok', 'ok']);
+    expect(lookup).toHaveBeenCalledTimes(1);
+    // Settled, the lookup is not reused: past the fresh minute the account is looked up again
+    const next = vi.fn(async () => revokedSince(T0));
+    expect(await check(token('u-page'), next, T0 + 2 * MINUTE)).toBe('revoked');
+    expect(next).toHaveBeenCalledTimes(1);
+  });
+
+  it('a strict check never joins a running lookup: it looks the account up itself', async () => {
+    const { check } = revocationCheck();
+    let answer!: (account: AccountRecord) => void;
+    const slow = vi.fn(
+      () =>
+        new Promise<AccountRecord>((resolve) => {
+          answer = resolve;
+        })
+    );
+    const normal = check(token('u-mixed'), slow, T0);
+
+    const revokedNow = vi.fn(async () => revokedSince(T0 - MINUTE));
+    expect(await check(token('u-mixed'), revokedNow, T0 + 1, true)).toBe('revoked');
+    expect(revokedNow).toHaveBeenCalledTimes(1);
+    answer(live);
+    expect(await normal).toBe('ok');
+  });
+
   it('logs the unavailable count once a minute, not per request', async () => {
     const { check } = revocationCheck();
     for (let i = 0; i < 20; i += 1) await check(token(`u-down-${i}`), outage, T0 + i);
