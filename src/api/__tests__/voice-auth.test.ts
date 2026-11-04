@@ -19,36 +19,6 @@ vi.mock('../voice-auth/helpers.js', () => ({
   getDeviceInfo: vi.fn(() => ({ userAgent: 'test', platform: 'test' })),
 }));
 
-// Mock Firestore
-vi.mock('firebase-admin', () => {
-  const mockDoc = {
-    exists: true,
-    data: () => ({
-      voiceId: 'voice-123',
-      enrolled: true,
-      enrolledAt: new Date().toISOString(),
-    }),
-  };
-
-  return {
-    default: {
-      apps: [],
-      initializeApp: vi.fn(),
-      firestore: vi.fn(() => ({
-        collection: vi.fn().mockReturnThis(),
-        doc: vi.fn().mockReturnThis(),
-        get: vi.fn().mockResolvedValue(mockDoc),
-        set: vi.fn().mockResolvedValue(undefined),
-        update: vi.fn().mockResolvedValue(undefined),
-        delete: vi.fn().mockResolvedValue(undefined),
-        where: vi.fn().mockReturnThis(),
-        orderBy: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
-      })),
-    },
-  };
-});
-
 // Mock helpers
 vi.mock('../helpers.js', async () => {
   const actual = await vi.importActual('../helpers.js');

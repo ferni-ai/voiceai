@@ -29,7 +29,7 @@ const store = vi.hoisted(() => ({
   getProfile: vi.fn(async () => null),
   getOrCreateProfile: vi.fn(async (id: string) => ({ id, name: 'Test User' })),
 }));
-vi.mock('firebase-admin', () => ({ default: { apps: [{}], auth: () => auth } }));
+vi.mock('firebase-admin/auth', () => ({ getAuth: () => auth }));
 vi.mock('../../memory/store-factory.js', () => ({ getStore: async () => store }));
 vi.mock('../../services/security-events.js', () => ({
   isLockedOut: () => ({ locked: false }),

@@ -216,11 +216,11 @@ counts approvals on the exact head.
 
 ### design-system.yml
 
-**Purpose:** Validate design tokens, build packages
+**Purpose:** Check brand tokens, build the design-system packages and Storybook
 
 | Property | Value |
 |----------|-------|
-| Trigger | Push/PR touching design-system/* |
+| Trigger | Nightly on main; push/PR touching design-system/* only when `OPTIONAL_CI` is on |
 | Runner | ubuntu-latest |
 | Duration | ~5 min |
 

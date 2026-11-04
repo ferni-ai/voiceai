@@ -41,11 +41,8 @@ const store = vi.hoisted(() => ({
   getOrCreateProfile: vi.fn(async (id: string) => ({ id, name: 'User' })),
 }));
 
-vi.mock('firebase-admin', () => ({
-  default: {
-    apps: [{}],
-    auth: () => ({ verifyIdToken: auth.verifyIdToken, getUser: auth.getUser }),
-  },
+vi.mock('firebase-admin/auth', () => ({
+  getAuth: () => ({ verifyIdToken: auth.verifyIdToken, getUser: auth.getUser }),
 }));
 vi.mock('../../memory/store-factory.js', () => ({ getStore: async () => store }));
 vi.mock('../../services/security-events.js', () => ({

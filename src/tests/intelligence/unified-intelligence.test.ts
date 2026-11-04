@@ -13,24 +13,6 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Mock Firestore before importing modules
-vi.mock('firebase-admin', () => ({
-  apps: [],
-  initializeApp: vi.fn(),
-  firestore: vi.fn(() => ({
-    collection: vi.fn(() => ({
-      doc: vi.fn(() => ({
-        get: vi.fn(() => Promise.resolve({ exists: false, data: () => null })),
-        set: vi.fn(() => Promise.resolve()),
-        update: vi.fn(() => Promise.resolve()),
-      })),
-      where: vi.fn(() => ({
-        get: vi.fn(() => Promise.resolve({ empty: true, docs: [] })),
-      })),
-    })),
-  })),
-}));
-
 // Mock embeddings
 vi.mock('../../memory/embeddings.js', () => ({
   embed: vi.fn(async (text: string) => new Array(768).fill(0)),

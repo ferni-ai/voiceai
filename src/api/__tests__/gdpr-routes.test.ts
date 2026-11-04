@@ -35,29 +35,6 @@ vi.mock('../../services/security-events.js', () => ({
   recordSecurityEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock Firestore
-vi.mock('firebase-admin', () => {
-  const mockCollection = vi.fn().mockReturnThis();
-  const mockDoc = vi.fn().mockReturnThis();
-  const mockGet = vi.fn().mockResolvedValue({ exists: false, data: () => null });
-  const mockSet = vi.fn().mockResolvedValue(undefined);
-  const mockDelete = vi.fn().mockResolvedValue(undefined);
-
-  return {
-    default: {
-      apps: [],
-      initializeApp: vi.fn(),
-      firestore: vi.fn(() => ({
-        collection: mockCollection,
-        doc: mockDoc,
-        get: mockGet,
-        set: mockSet,
-        delete: mockDelete,
-      })),
-    },
-  };
-});
-
 const deleteAllData = vi.hoisted(() => vi.fn());
 vi.mock('../../services/data-export.js', () => ({
   getDataExportService: () => ({ deleteAllData }),

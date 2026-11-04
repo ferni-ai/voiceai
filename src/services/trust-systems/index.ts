@@ -11,6 +11,6 @@
 export * from '../trust/index.js';
 export { default } from '../trust/index.js';
 // MINOR_CARE: a reader in any process applies the stored held windows (held-window.ts)
-export { loadHeldWindows } from './held-window.js';
+export { heldSince, loadHeldWindows, noteStoredHeldWindows } from './held-window.js';
 // Persona growth after the call (agents/personas/persona-growth-after-call.ts) reads and saves here
 export { loadUnifiedProfile, saveSystemData } from './unified-persistence.js';

@@ -2,12 +2,12 @@
 import { config } from 'dotenv';
 config({ quiet: true });
 
-import admin from 'firebase-admin';
+import { getApps, initializeApp } from 'firebase-admin/app';
 import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 
 // Initialize Firebase if not already done
-if (!admin.apps.length) {
-  admin.initializeApp({
+if (!getApps().length) {
+  initializeApp({
     projectId: process.env.GCLOUD_PROJECT || 'johnb-2025',
   });
 }

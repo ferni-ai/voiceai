@@ -21,6 +21,8 @@ export async function handleMemoryConsolidation(res: ServerResponse): Promise<vo
   try {
     log.info('Running memory consolidation job (Cloud Scheduler)');
 
+    // MINOR_CARE: registers the hold reader the job asks first; without it every user is skipped
+    await import('../../services/outreach/minor-care-background-read.js');
     const { MemoryConsolidationJob } = await import('../../tasks/scheduled/memory-jobs.js');
 
     const job = new MemoryConsolidationJob();
