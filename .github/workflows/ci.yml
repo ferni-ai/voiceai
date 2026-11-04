@@ -1145,6 +1145,11 @@ jobs:
       - name: Architecture gate
         run: pnpm quality:arch
 
+      # Blocking: a file this PR touches gains a crisis word list, voice resolver, quiet-hours
+      # rule, tool cap, forget checker or Twilio sender outside its owner (decisions.ts). ~3 s.
+      - name: Decision gate
+        run: pnpm quality:decisions
+
       # Blocking ratchet: a new direct Firestore .set/.update/.add with no safe wrapper
       # (safeSet, cleanForFirestore, ...) near it fails; the ~316 existing sites pass. Measured
       # against the merge base like the gates above (scripts/check-unsafe-firestore.ts). ~2 s.
