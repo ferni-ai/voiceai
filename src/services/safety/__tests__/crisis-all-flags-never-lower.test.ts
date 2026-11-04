@@ -379,6 +379,9 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
     'src/services/safety/__tests__/crisis-grounded-release-failclosed.test.ts',
   CRISIS_IMMINENT_NEEDS_AGREEMENT:
     'src/services/safety/__tests__/crisis-imminent-agreement.test.ts',
+  // Changes only when the reply gate's classifier reads a held line, never what a reader decides,
+  // so the six readers here can't see it. Its test drives the real gatedReply flag off and on,
+  // under a classifier with and without a fragment false alarm, and checks it never lowers.
   CRISIS_READ_JOINED_TURN: 'src/agents/personas/__tests__/crisis-read-joined-turn.test.ts',
   CRISIS_SAME_CALL_NOTE_FADES: 'src/agents/multi-agent/__tests__/call-report-after-crisis.test.ts',
   CRISIS_TRANSFER_EVERYDAY: 'src/services/safety/__tests__/crisis-transfer-request.test.ts',

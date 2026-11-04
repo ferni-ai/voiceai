@@ -143,11 +143,8 @@ export interface CrisisGateOptions {
   adjudicate?: CrisisGenerateFn;
   /** The grounded release's model calls (crisis-grounded-release.ts). */
   groundedReads?: readonly CrisisGenerateFn[];
-  /**
-   * CRISIS_READ_JOINED_TURN (crisis-read-joined-turn.ts): once the patterns pass, a held line's
-   * classifier read waits for this. True reads it then; false never reads it (the joined turn's
-   * own request reads the whole sentence). Null reads at once.
-   */
+  /** CRISIS_READ_JOINED_TURN: a held line's read waits for this once the patterns pass. True
+   * reads it; false: a newer request or the commit reads (crisis-read-joined-turn.ts). */
   readAfter?: () => Promise<boolean> | null;
 }
 
@@ -374,6 +371,14 @@ export function holdUntilCleared(
   });
 }
 
+/** A reply request's gate; CRISIS_READ_JOINED_TURN may hold a held line's read. */
+const gateRequest = (
+  ctx: llm.ChatContext,
+  session: { userData: unknown },
+  o: CrisisGateOptions
+): CrisisGateTurn | null =>
+  startCrisisGate(ctx, session.userData, withHeldRead(session, ctx, o, startCrisisGate));
+
 /**
  * A crisis turn: no background thought now or for the next few turns
  * (deliberation.ts), and no small-step invite for the rest of the call
@@ -416,7 +421,7 @@ export async function gatedReply(
   const askedAt = Date.now();
   // A turn-opening clip played after this request began: the reply follows it.
   const openedBySound = (): boolean => replyOpenedBySound(session, askedAt);
-  const gate = startCrisisGate(chatCtx, session.userData, withHeldRead(session, chatCtx, options));
+  const gate = gateRequest(chatCtx, session, options);
   signalCrisisDecision(session, gate?.decision.action, 'pattern', replaceKind(gate?.decision));
   gate?.escalation
     ?.then((d) => signalCrisisDecision(session, d?.action, 'classifier', replaceKind(d)))

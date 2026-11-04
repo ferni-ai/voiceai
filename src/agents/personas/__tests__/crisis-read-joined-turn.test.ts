@@ -12,8 +12,13 @@ import { EventEmitter } from 'node:events';
 import { ReadableStream } from 'node:stream/web';
 import { llm } from '@livekit/agents';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import {
+  crisisRiskThisCall,
+  noteCrisisRisk,
+  resetCrisisCallRisk,
+} from '../../../services/safety/crisis-call-risk.js';
+import {
+  DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS,
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
@@ -34,6 +39,12 @@ const JOINED = 'Can I cut my hair shorter or is that weird?';
 const CRISIS = '{"risk":"crisis","subject":"self"}';
 const NONE = '{"risk":"none","subject":"self"}';
 const RISKY = [/^can i cut my$/i, /wrists/i, /hide the marks/i, /want to die/i];
+/** A classifier with no fragment false alarm: risk only where the words carry it. */
+const HONEST = [/wrists/i, /hide the marks/i, /want to die/i, /giving away my things/i];
+/** A held line the classifier alone reads as risk (no pattern), then a joined one. */
+const MARKS = `${FRAGMENT} sleeves long enough to hide the marks?`;
+/** How long the session's hold holds the fragment (it ends on a dangling word). */
+const HOLD_MS = unfinishedTurnHoldMs(FRAGMENT);
 
 let calls = 0;
 /** A live call: the session LiveKit hands the gate, with the hold installed. */
@@ -46,7 +57,11 @@ class Call extends EventEmitter {
   /** Every crisis decision the gate signalled, pattern or classifier. */
   readonly alarms: string[] = [];
 
-  constructor() {
+  constructor(
+    readonly risky: readonly RegExp[] = RISKY,
+    /** How long the classifier takes; Infinity never answers (its timeout decides). */
+    readonly readMs = 0
+  ) {
     super();
     this.on(CRISIS_GATE_SIGNAL, (ev: { action: string }) => this.alarms.push(ev.action));
   }
@@ -55,8 +70,20 @@ class Call extends EventEmitter {
   readonly generate: CrisisGenerateFn = async (_prompt, content) => {
     const { latest, earlier = [] } = JSON.parse(content) as { latest: string; earlier?: string[] };
     this.reads.push(latest);
-    return [latest, ...earlier].some((line) => RISKY.some((re) => re.test(line))) ? CRISIS : NONE;
+    const risk = [latest, ...earlier].some((line) => this.risky.some((re) => re.test(line)));
+    if (this.readMs === Infinity) return new Promise<string>(() => {});
+    if (this.readMs > 0) {
+      await new Promise<void>((r) => {
+        setTimeout(r, this.readMs);
+      });
+    }
+    return risk ? CRISIS : NONE;
   };
+
+  /** Crisis risk noted for this call (crisis-call-risk.ts). */
+  get risk(): boolean {
+    return crisisRiskThisCall(this.userData.services.sessionId);
+  }
 
   /** LiveKit commits the turn: the caller's words join the history. */
   commit(text: string): void {
@@ -143,15 +170,40 @@ describe('CRISIS_READ_JOINED_TURN on: a fragment the hold is waiting on', () => 
     expect(call.reads).toEqual([JOINED]);
   });
 
-  it('is never read when the joined turn is committed before its own request', async () => {
+  it('is read whole when the joined line is committed with no request (the call closed)', async () => {
+    // LiveKit asks the LLM before it adds a line; a joined commit with no request has no reply.
     const call = new Call();
     const fragment = call.ask(FRAGMENT, ON);
     await settle();
-    call.commit(JOINED);
-    expect(await said(call.ask(JOINED, ON))).toBe('Sure.');
+    call.commit(MARKS);
     await said(fragment);
-    expect(call.reads).toEqual([JOINED]);
-    expect(call.alarms).toEqual([]);
+    await settle();
+    expect(call.reads).toEqual([MARKS]);
+    expect(call.alarms).toEqual(['guide']);
+    expect(call.risk).toBe(true);
+  });
+
+  it('is read whole, patterns first, when a pattern ends the closing line', async () => {
+    const call = new Call();
+    const fragment = call.ask(FRAGMENT, ON);
+    await settle();
+    call.commit(`${FRAGMENT} wrists tonight`);
+    await said(fragment);
+    await settle();
+    expect(call.alarms).toEqual(['replace']);
+    expect(call.risk).toBe(true);
+  });
+
+  it('is read when the next final is longer but does not go on from it', async () => {
+    const call = new Call();
+    const fragment = call.ask(FRAGMENT, ON);
+    await settle();
+    const revised = 'Could I cut my hair shorter?'; // speech-to-text revised the words
+    const next = call.ask(revised, ON);
+    call.commit(revised);
+    await said(next);
+    await said(fragment);
+    expect(call.reads).toEqual([revised, FRAGMENT]);
   });
 
   it('is read as it is at the hold-end commit when the caller goes quiet: recall kept', async () => {
@@ -165,9 +217,23 @@ describe('CRISIS_READ_JOINED_TURN on: a fragment the hold is waiting on', () => 
     expect(call.alarms).toEqual(['guide']);
   });
 
-  it('is read as it is when nothing settles within the ceiling (fail closed)', async () => {
+  it('is read as it is once the hold runs out, before any commit', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     const call = new Call();
+    const fragment = call.ask(FRAGMENT, ON);
+    await settle();
+    await vi.advanceTimersByTimeAsync(HOLD_MS - 1);
+    expect(call.reads).toEqual([]);
+    await vi.advanceTimersByTimeAsync(1);
+    await said(fragment);
+    expect(call.reads).toEqual([FRAGMENT]);
+    expect(call.alarms).toEqual(['guide']);
+  });
+
+  it('never waits past the ceiling, however long the hold (fail closed)', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const call = new Call();
+    call.unfinishedTurnHoldMs = () => 60_000;
     const fragment = call.ask(FRAGMENT, ON);
     await settle();
     await vi.advanceTimersByTimeAsync(CEILING_MS - 1);
@@ -176,7 +242,26 @@ describe('CRISIS_READ_JOINED_TURN on: a fragment the hold is waiting on', () => 
     expect(CEILING_MS).toBeLessThanOrEqual(3000); // a held reply never waits longer than 3 s
     await said(fragment);
     expect(call.reads).toEqual([FRAGMENT]);
-    expect(call.alarms).toEqual(['guide']);
+  });
+
+  it('holds the reply after the commit no longer than the classifier timeout, as main', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    const released = async (env: Record<string, string>) => {
+      resetCrisisClassifierCache();
+      const call = new Call(RISKY, Infinity); // the classifier never answers
+      const reply = said(call.ask(FRAGMENT, env)).then(() => Date.now());
+      await vi.advanceTimersByTimeAsync(HOLD_MS); // the hold runs out
+      const committedAt = Date.now();
+      call.commit(FRAGMENT);
+      await vi.advanceTimersByTimeAsync(CEILING_MS);
+      const after = Math.max(0, (await reply) - committedAt);
+      return { after, alarms: call.alarms, risk: call.risk };
+    };
+    const off = await released(OFF);
+    const on = await released(ON);
+    expect(off.after).toBe(0); // main's read timed out before the commit
+    expect(on.after).toBe(DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS);
+    expect({ ...on, after: 0 }).toEqual({ ...off, after: 0 }); // the same timeout outcome
   });
 });
 
@@ -240,6 +325,11 @@ describe('CRISIS_READ_JOINED_TURN on: what never waits', () => {
     expect((await atOnce(FRAGMENT, ON, (c) => c.commit(FRAGMENT))).reads).toEqual([FRAGMENT]);
   });
 
+  it('a line the session hold answers at once is read at once', async () => {
+    const noWait = (c: Call) => (c.unfinishedTurnHoldMs = () => 0);
+    expect((await atOnce(FRAGMENT, ON, noWait)).reads).toEqual([FRAGMENT]);
+  });
+
   it('a held line with no hold installed is read at once', async () => {
     const noHold = (c: Call) => (c.unfinishedTurnHoldMs = undefined);
     expect((await atOnce(FRAGMENT, ON, noHold)).reads).toEqual([FRAGMENT]);
@@ -290,5 +380,89 @@ describe('CRISIS_READ_JOINED_TURN gate rows (flags on)', () => {
     const call = new Call();
     expect(await turn(call, ['I want to die'])).toEqual(['replace']);
     expect(await turn(call, ['hello'])).not.toEqual([]);
+  });
+});
+
+/**
+ * Never lower than off (crisis-all-flags-never-lower.test.ts points here): with a classifier
+ * that has no fragment false alarm, every way a held line can settle notes call risk and a
+ * decision at least as strong as off, and a line that gets no reply is read as often.
+ * Model-free: the classifier is a stub.
+ */
+describe('CRISIS_READ_JOINED_TURN never lowers a crisis read', () => {
+  const RANK = ['pass', 'guide', 'replace'];
+  const strongest = (alarms: string[]) => Math.max(0, ...alarms.map((a) => RANK.indexOf(a)));
+
+  /** One caller turn, step by step: 'ask' a final, 'commit' a line, or let the hold run out. */
+  type Step = ['ask' | 'commit', string] | ['hold'];
+  async function run(steps: Step[], env: Record<string, string>, risky = HONEST) {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    resetCrisisClassifierCache();
+    const call = new Call(risky);
+    const replies: Promise<string>[] = [];
+    let asked = '';
+    for (const step of steps) {
+      if (step[0] === 'ask') replies.push(said(call.ask((asked = step[1]), env)));
+      else if (step[0] === 'commit') call.commit(step[1]);
+      else await vi.advanceTimersByTimeAsync(unfinishedTurnHoldMs(asked));
+      await settle();
+    }
+    await vi.advanceTimersByTimeAsync(CEILING_MS);
+    await Promise.all(replies);
+    await settle();
+    return { reads: call.reads.length, strongest: strongest(call.alarms), risk: call.risk };
+  }
+
+  const ROWS: Record<string, Step[]> = {
+    'joined commit with no request (classifier only)': [
+      ['ask', FRAGMENT],
+      ['commit', MARKS],
+    ],
+    'joined commit with no request (pattern)': [
+      ['ask', FRAGMENT],
+      ['commit', `${FRAGMENT} wrists tonight`],
+    ],
+    'joined request, then its commit': [
+      ['ask', FRAGMENT],
+      ['ask', MARKS],
+      ['commit', MARKS],
+    ],
+    'risky held line, hold runs out': [
+      ['ask', "I've been giving away my things"],
+      ['hold'],
+      ['commit', "I've been giving away my things"],
+    ],
+    'risky held line, caller goes on': [
+      ['ask', "I've been giving away my things"],
+      ['ask', "I've been giving away my things to friends lately"],
+      ['commit', "I've been giving away my things to friends lately"],
+    ],
+    'benign held line, hold runs out': [['ask', FRAGMENT], ['hold'], ['commit', FRAGMENT]],
+  };
+
+  // Both classifiers: one with no fragment false alarm, and one like prod's, which has it.
+  const STUBS = { honest: HONEST, 'fragment alarm': RISKY };
+  for (const [name, steps] of Object.entries(ROWS)) {
+    for (const [stub, risky] of Object.entries(STUBS)) {
+      it(`${name} (${stub})`, async () => {
+        const off = await run(steps, OFF, risky);
+        const on = await run(steps, ON, risky);
+        expect(Number(on.risk)).toBeGreaterThanOrEqual(Number(off.risk));
+        expect(on.strongest).toBeGreaterThanOrEqual(off.strongest);
+      });
+    }
+  }
+
+  it('reads the closing joined line as often as off, with equal risk', async () => {
+    const steps: Step[] = [
+      ['ask', FRAGMENT],
+      ['commit', MARKS],
+    ];
+    // The prod classifier: the fragment alone and the joined line both read as crisis.
+    expect(await run(steps, OFF, RISKY)).toEqual({ reads: 1, strongest: 1, risk: true });
+    expect(await run(steps, ON, RISKY)).toEqual({ reads: 1, strongest: 1, risk: true });
+    // With no fragment false alarm, off never reads the joined line at all; on does.
+    expect(await run(steps, OFF)).toEqual({ reads: 1, strongest: 0, risk: false });
+    expect(await run(steps, ON)).toEqual({ reads: 1, strongest: 1, risk: true });
   });
 });

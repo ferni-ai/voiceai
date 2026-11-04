@@ -11,29 +11,34 @@
  * spoken: for the call (crisis-call-risk.ts) and among the joined turn's own reads
  * (crisis-classifier.ts turnVerdicts, whose loose key matches a fragment of a line).
  *
- * With the flag on, a request whose caller line the hold holds, on a call with no risk
- * noted and with no pattern hit, starts its classifier read only once that line settles:
- * - committed as it is (the caller went quiet and the hold ran out): read it then.
- *   Nothing is dropped, only delayed by at most the hold.
- * - committed, or asked again, with more words after it: no read. LiveKit drops a
- *   preemptive reply whose transcript changed, so it is never spoken; the joined
- *   turn's own request reads the whole sentence once.
- * - committed as anything else, or nothing settles within CEILING_MS: read it then
- *   (fail closed).
+ * With the flag on, a request whose caller line the session's hold holds, on a call with
+ * no risk noted and with no pattern hit, starts its classifier read only once that line
+ * settles. Every way it settles reads something, except one: a newer request on longer
+ * words. LiveKit drops the older preemptive reply then, and the newer request reads.
+ * - the hold runs out (timed from this request, at most CEILING_MS): read the fragment.
+ *   The read starts at about the commit, so the reply waits at most one classifier read
+ *   (bounded by its own timeout, as on main) after it.
+ * - committed with more words after it: LiveKit asks the LLM for a line before it adds it,
+ *   so this joined line had no request and gets no reply (the call closed, or the turn was
+ *   skipped). The gate reads the joined line here, patterns and classifier, as a reply's
+ *   gate would.
+ * - committed as anything else: read the fragment.
  * The patterns, imminent detection and any call with risk noted act at once, as on
  * main. Logs carry the reason and the wait, never the caller's words.
  *
  * @module agents/personas/crisis-read-joined-turn
  */
 
-import type { llm } from '@livekit/agents';
+import { llm } from '@livekit/agents';
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { resolveCrisisClassifierMode } from '../../services/safety/crisis-classifier.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { TURN_KEEPER_GRACE_MS } from '../multi-agent/turn-keeper.js';
-import { unfinishedness, type UnfinishedTurnHoldSession } from '../multi-agent/unfinished-turn.js';
-import type { CrisisGateOptions } from './crisis-gate.js';
+import type { UnfinishedTurnHoldSession } from '../multi-agent/unfinished-turn.js';
+import { replaceKind } from '../safety/crisis-event-record.js';
+import { signalCrisisDecision } from '../safety/crisis-gate-signal.js';
+import type { CrisisGateOptions, CrisisGateTurn } from './crisis-gate.js';
 import { sessionScope } from './crisis-gate-words.js';
 
 const log = createLogger({ module: 'CrisisReadJoinedTurn' });
@@ -50,12 +55,23 @@ interface CommitSession extends UnfinishedTurnHoldSession {
   off?: (event: string, handler: (ev: unknown) => void) => unknown;
 }
 
+/** startCrisisGate, handed in by the gate so this module never imports it. */
+type StartGate = (
+  chatCtx: llm.ChatContext,
+  userData: unknown,
+  options?: CrisisGateOptions
+) => CrisisGateTurn | null;
+
+type Reason = 'joined' | 'joined-commit' | 'commit' | 'hold' | 'ceiling';
+
 interface Waiting {
   line: string[];
-  settle: (read: boolean, reason: 'commit' | 'joined' | 'ceiling') => void;
+  settle: (read: boolean, reason: Reason) => void;
 }
 
 const waitingBy = new WeakMap<object, Set<Waiting>>();
+/** Joined lines already read at their commit: one read per line, however many waits saw it. */
+const readCommits = new WeakSet<object>();
 
 function crisisReadJoinedTurnOn(env: Record<string, string | undefined>): boolean {
   return env.CRISIS_READ_JOINED_TURN === 'on';
@@ -82,16 +98,21 @@ interface ItemView {
   textContent?: string;
 }
 
-/** The last caller message in a request or a history, past any pushed context note. */
-function lastCallerLine(items: readonly unknown[] | undefined): string | undefined {
-  for (let i = (items?.length ?? 0) - 1; i >= 0; i--) {
-    const item = items?.[i] as ItemView;
-    const text = item?.textContent?.trim();
-    if (item?.role !== 'user' || !text || text.startsWith(TURN_CONTEXT_HEADER)) continue;
-    return text;
-  }
-  return undefined;
+/** A caller message's words, or undefined for anything else (a pushed context note too). */
+function callerText(item: unknown): string | undefined {
+  const view = item as ItemView | undefined;
+  const text = view?.role === 'user' ? view.textContent?.trim() : undefined;
+  return text && !text.startsWith(TURN_CONTEXT_HEADER) ? text : undefined;
 }
+
+/** Where the last caller message sits in a request or a history; -1 when there is none. */
+function lastCallerAt(items: readonly unknown[] | undefined): number {
+  for (let i = (items?.length ?? 0) - 1; i >= 0; i--) if (callerText(items?.[i])) return i;
+  return -1;
+}
+
+const lastCallerLine = (items: readonly unknown[] | undefined): string | undefined =>
+  callerText(items?.[lastCallerAt(items)]);
 
 /**
  * The gate's options with CRISIS_READ_JOINED_TURN's wait for this request (gatedReply);
@@ -100,11 +121,38 @@ function lastCallerLine(items: readonly unknown[] | undefined): string | undefin
 export function withHeldRead(
   session: unknown,
   chatCtx: llm.ChatContext,
-  options: CrisisGateOptions
+  options: CrisisGateOptions,
+  startGate: StartGate
 ): CrisisGateOptions {
+  const request = heldRequest(session, chatCtx, options.env ?? process.env);
+  const readJoined = (item: llm.ChatItem): void =>
+    gateCommittedLine(session, chatCtx, item, options, startGate);
   const readAfter = (): Promise<boolean> | null =>
-    joinedTurnRead(session, chatCtx, options.env ?? process.env);
+    request ? joinedTurnRead(request, readJoined) : null;
   return { readAfter, ...options };
+}
+
+/**
+ * A joined line committed with no request of its own: this request's context with the
+ * committed line in place of the fragment, through the gate, decisions signalled as
+ * gatedReply signals them. There is no reply to hold.
+ */
+function gateCommittedLine(
+  session: unknown,
+  request: llm.ChatContext,
+  item: llm.ChatItem,
+  options: CrisisGateOptions,
+  startGate: StartGate
+): void {
+  const at = lastCallerAt(request.items);
+  const items = request.items.map((x, i) => (i === at ? item : x));
+  const ctx = new llm.ChatContext(at < 0 ? [...items, item] : items);
+  const userData = (session as CommitSession | null)?.userData;
+  const gate = startGate(ctx, userData, options);
+  signalCrisisDecision(session, gate?.decision.action, 'pattern', replaceKind(gate?.decision));
+  gate?.escalation
+    ?.then((d) => signalCrisisDecision(session, d?.action, 'classifier', replaceKind(d)))
+    .catch(() => undefined);
 }
 
 /** A live session with the hold installed, while the flag and the live classifier are on. */
@@ -118,50 +166,75 @@ function heldSession(
   return live ? s : null;
 }
 
+interface HeldRequest {
+  s: CommitSession;
+  text: string;
+  line: string[];
+  waiting: Set<Waiting>;
+}
+
 /**
- * For the reply gate, once its patterns pass: when this request's classifier read
- * waits for its caller line to settle, the wait (true: read now, false: never read).
- * Null reads at once, as on main.
+ * Every request, whatever the gate then decides: a newer request on longer words ends the
+ * waits it continues, since LiveKit dropped those preemptive replies and this one reads.
  */
-function joinedTurnRead(
+function heldRequest(
   session: unknown,
   chatCtx: llm.ChatContext,
-  env: Record<string, string | undefined> = process.env
-): Promise<boolean> | null {
+  env: Record<string, string | undefined>
+): HeldRequest | null {
   const s = heldSession(session, env);
   const text = s ? lastCallerLine(chatCtx.items) : undefined;
   if (!s || !text) return null;
   const line = wordsOf(text);
   const waiting = waitingBy.get(s) ?? new Set<Waiting>();
   waitingBy.set(s, waiting);
-  // A newer request on longer words: LiveKit dropped the older preemptive reply.
   for (const w of [...waiting]) if (goesOn(line, w.line)) w.settle(false, 'joined');
-  if (unfinishedness(text, env) === 'finished') return null;
+  return { s, text, line, waiting };
+}
+
+/**
+ * For the reply gate, once its patterns pass: when this request's classifier read
+ * waits for its caller line to settle, the wait (true: read now, false: no read here).
+ * Null reads at once, as on main.
+ */
+function joinedTurnRead(
+  { s, text, line, waiting }: HeldRequest,
+  readJoined: (item: llm.ChatItem) => void
+): Promise<boolean> | null {
+  const holdMs = s.unfinishedTurnHoldMs?.(text) ?? 0;
+  if (!(holdMs > 0)) return null; // the hold answers this line at once
   const call = sessionScope(s.userData);
   if (call && crisisRiskThisCall(call)) return null;
   const committed = lastCallerLine(s.history?.items);
   if (committed !== undefined && same(wordsOf(committed), line)) return null;
-  return waitForLine(s, waiting, line);
+  return waitForLine(s, waiting, { line, holdMs, readJoined });
 }
 
 async function waitForLine(
   s: CommitSession,
   waiting: Set<Waiting>,
-  line: string[]
+  held: { line: string[]; holdMs: number; readJoined: (item: llm.ChatItem) => void }
 ): Promise<boolean> {
   const startedAt = Date.now();
   return new Promise<boolean>((resolve) => {
     const onCommit = (ev: unknown): void => {
-      const item = (ev as { item?: ItemView } | undefined)?.item;
-      const text = item?.role === 'user' ? item.textContent?.trim() : undefined;
-      if (!text || text.startsWith(TURN_CONTEXT_HEADER)) return;
-      const joined = goesOn(wordsOf(text), line);
-      entry.settle(!joined, joined ? 'joined' : 'commit');
+      const item = (ev as { item?: llm.ChatItem } | undefined)?.item;
+      const text = callerText(item);
+      if (!item || !text) return;
+      if (!goesOn(wordsOf(text), held.line)) return entry.settle(true, 'commit');
+      entry.settle(false, 'joined-commit');
+      if (readCommits.has(item)) return;
+      readCommits.add(item);
+      held.readJoined(item);
     };
-    const timer = setTimeout(() => entry.settle(true, 'ceiling'), CEILING_MS);
+    const capped = held.holdMs > CEILING_MS;
+    const timer = setTimeout(
+      () => entry.settle(true, capped ? 'ceiling' : 'hold'),
+      capped ? CEILING_MS : held.holdMs
+    );
     timer.unref?.();
     const entry: Waiting = {
-      line,
+      line: held.line,
       settle: (read, reason) => {
         if (!waiting.delete(entry)) return;
         clearTimeout(timer);
