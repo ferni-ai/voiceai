@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { crisisRead } from '../../outreach/caller-text.js';
 import { detectCrisis, guardFromDetection } from '../crisis-guard.js';
 import { EMERGENCY_FOR_THEM } from '../crisis-guard-replies.js';
+import { thirdPartyEmergency } from '../crisis-third-person.js';
 
 const OPENER = 'hey, can I tell you about something going on with my family?';
 const firstAndMid = (line: string) => [
@@ -161,6 +162,10 @@ describe('an everyday reason after not getting up (r6)', () => {
     "my mom watched the movie and fell asleep and won't wake up",
     "he passed out on the couch after the game and won't wake up for anything, typical",
     'he fell off the wagon, not responding to anyone lately',
+    // A collapse, then not waking: a reason after it never clears it, only sleep does.
+    "my son passed out after practice and won't wake up for dinner",
+    "my grandpa passed out on the couch and won't wake up until noon",
+    "my kid passed out from exhaustion after the party and won't wake up till noon",
   ])('accepted false alarm, still 911 first: %s', (line) => {
     expect(emergencyRead(line)).toEqual([true, true]);
   });
@@ -185,6 +190,17 @@ describe('an everyday reason after not getting up (r6)', () => {
     "she fell behind the couch and can't get up",
     "my dad fell for the third time today and can't get up",
     "he fell silent and isn't responding",
+    // A reason after breathing, responding or waking from a collapse is never everyday.
+    "my dad collapsed and isn't breathing after the game",
+    "she fainted and won't wake up after the movie",
+    "my grandpa passed out and isn't responding for the show",
+    // Sleep clears only with the reason right after not waking, and only while nobody tried.
+    "my dad fell asleep on the couch and won't wake up, and he has a game after the movie",
+    "my son fell asleep and won't wake up for school, I shook him",
+    "my dad fell asleep and won't wake up for dinner, he's breathing really weird",
+    "my son fell asleep and won't wake up for school, his lips are blue",
+    "my dad fell asleep on the couch, he collapsed and won't wake up for the movie",
+    "my mom fell asleep and won't wake up for dinner and she isn't breathing",
     // A physical cue beats any reason in the same sentence, unless it was sleep.
     "she fell and can't get up for the show, she's on the floor",
     "my dad collapsed and can't move after the meeting, he's not breathing",
@@ -193,5 +209,11 @@ describe('an everyday reason after not getting up (r6)', () => {
       expect(read.indicators).toContain('third_party_emergency');
       expect(guardFromDetection(read).replacementResponse).toBe(EMERGENCY_FOR_THEM);
     }
+  });
+
+  // Can't breathe after an idiom always reads the sentence again. The shared read still gives
+  // "he can't breathe" to the caller's own distress first (a known follow-up), so this pins the reader.
+  it("reads can't breathe past a laughing fit", () => {
+    expect(thirdPartyEmergency("my dad collapsed laughing and now he can't breathe")).toBe(true);
   });
 });

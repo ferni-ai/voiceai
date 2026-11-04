@@ -297,7 +297,6 @@ describe('third-person reported crisis (#3345)', () => {
       "she fell asleep on the train and couldn't wake up in time for her stop",
       'he fell off his bike but got right up',
       'my grandpa collapsed onto the couch and napped all afternoon',
-      "my son passed out after practice and won't wake up for dinner",
       "he fell behind on homework and can't catch up",
       "she fell for him and can't stop smiling",
       "he's not breathing a word about the surprise",
