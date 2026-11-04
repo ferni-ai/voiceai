@@ -19,8 +19,13 @@ function stepAt(lines: string[], at: number): string[] {
   return lines.slice(at, end === -1 ? undefined : end);
 }
 
+interface Depths {
+  checkout: number;
+  main: number;
+}
+
 /** The checkout depth and the main-fetch depth of the Quality Gates job. Throws if either is missing. */
-export function qualityGatesDepths(yml: string): { checkout: number; main: number } {
+export function qualityGatesDepths(yml: string): Depths {
   const lines = yml.split('\n');
   const job = lines.findIndex((l) => l.trim() === 'name: Quality Gates (Blocking)');
   if (job === -1) throw new Error('no Quality Gates (Blocking) job in ci.yml');
@@ -45,11 +50,27 @@ export function qualityGatesDepths(yml: string): { checkout: number; main: numbe
   };
 }
 
+/** Why the main fetch is too shallow for the checkout, or undefined when it goes deep enough. */
+export function depthGap({ checkout, main }: Depths): string | undefined {
+  return main >= checkout
+    ? undefined
+    : `main is fetched at depth ${main}, shallower than the checkout's ${checkout}`;
+}
+
 describe('Quality Gates fetch depths (ci.yml)', () => {
   it('fetches main at least as deep as the checkout', () => {
-    const { checkout, main } = qualityGatesDepths(readFileSync(CI_YML, 'utf8'));
-    expect(checkout).toBeGreaterThan(0);
-    expect(main).toBeGreaterThanOrEqual(checkout);
+    const depths = qualityGatesDepths(readFileSync(CI_YML, 'utf8'));
+    expect(depths.checkout).toBeGreaterThan(0);
+    expect(depthGap(depths)).toBeUndefined();
+  });
+
+  it('flags a main fetch shallower than the checkout, and only that', () => {
+    // Both real depths are 50, so the real check alone can't tell >= from <=.
+    expect(depthGap({ checkout: 50, main: 40 })).toBe(
+      "main is fetched at depth 40, shallower than the checkout's 50"
+    );
+    expect(depthGap({ checkout: 40, main: 50 })).toBeUndefined();
+    expect(depthGap({ checkout: 50, main: 50 })).toBeUndefined();
   });
 
   it('reads both depths, and fails when either is missing', () => {

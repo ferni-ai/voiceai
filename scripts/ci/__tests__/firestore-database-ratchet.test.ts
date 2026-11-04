@@ -3,10 +3,10 @@
  * FIRESTORE_DATABASE, pass the allowlisted ones, and skip the helpers and tests.
  * Runs measure() over a throwaway tree laid out like the repo.
  */
-import { execFileSync } from 'child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { execFileSync, spawnSync } from 'child_process';
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
-import { dirname, join } from 'path';
+import { delimiter, dirname, join } from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   allowlistAt,
@@ -190,6 +190,41 @@ describe('firestore database ratchet', () => {
     expect(() => allowlistAt(repo, 'main', 'scripts/ci/list.json')).toThrow();
     expect(allowlistAt(repo, 'main', 'scripts/ci/other.json')).toBe('no-file');
   });
+
+  it("exits 1 in CI when main's allowlist is listed but can't be read", () => {
+    // A stub git: main is fetched and lists the allowlist, but `git show` of it fails.
+    const bin = tree({
+      git: [
+        '#!/bin/sh',
+        'case "$1" in',
+        '  rev-parse) echo 1111111111111111111111111111111111111111 ;;',
+        '  ls-tree) printf \'100644 blob 2222222222222222222222222222222222222222\\t%s\\n\' "$4" ;;',
+        '  *) echo "fatal: stub cannot read $2" >&2; exit 128 ;;',
+        'esac',
+        '',
+      ].join('\n'),
+    });
+    chmodSync(join(bin, 'git'), 0o755);
+    const run = spawnSync(
+      process.execPath,
+      ['--import', 'tsx', join(__dirname, '..', 'firestore-database-ratchet.ts')],
+      {
+        env: { ...process.env, CI: '1', PATH: `${bin}${delimiter}${process.env.PATH ?? ''}` },
+        encoding: 'utf8',
+        // spawnSync blocks the worker, so vitest's timeout can't stop a hung run.
+        timeout: 60_000,
+        killSignal: 'SIGKILL',
+      }
+    );
+    expect(run.stderr).toContain(
+      "❌ Could not read origin/main's allowlist, so the raised-allowlist check cannot run:"
+    );
+    expect(run.stderr).toContain(
+      'stub cannot read origin/main:scripts/ci/firestore-database-allowlist.generated.json'
+    );
+    expect(run.stdout).not.toContain('Firestore database ratchet:');
+    expect(run.status).toBe(1);
+  }, 60_000);
 
   it('does not count a local getFirestore() wrapper that shadows the import', () => {
     const r = tree({
