@@ -379,6 +379,7 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
     'src/services/safety/__tests__/crisis-grounded-release-failclosed.test.ts',
   CRISIS_IMMINENT_NEEDS_AGREEMENT:
     'src/services/safety/__tests__/crisis-imminent-agreement.test.ts',
+  CRISIS_OWN_SCRIPT_NOT_EVIDENCE: 'src/services/safety/__tests__/crisis-own-script.test.ts',
   CRISIS_SAME_CALL_NOTE_FADES: 'src/agents/multi-agent/__tests__/call-report-after-crisis.test.ts',
   CRISIS_TRANSFER_EVERYDAY: 'src/services/safety/__tests__/crisis-transfer-request.test.ts',
   DATES_IN_HELLO: 'src/agents/multi-agent/__tests__/greeting-date-arbiter.test.ts',

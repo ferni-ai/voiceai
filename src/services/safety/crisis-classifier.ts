@@ -33,6 +33,7 @@ import { agreementCacheScope, notePatternBlock, readTurn } from './crisis-immine
 import { trackCrisisRead } from './crisis-call-risk.js';
 import { blockedReply, watchBlocked, type BlockedResponse } from './crisis-classifier-blocked.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
+import { inputForRead } from './crisis-own-script.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
 import { stripSSML } from '../../utils/text-utils.js';
 
@@ -440,7 +441,7 @@ export function startCrisisClassifier(
   const key = JSON.stringify([
     normalized.latest,
     normalized.earlier,
-    normalized.companion ?? '',
+    normalizeInput(inputForRead(input, env)).companion ?? '', // CRISIS_OWN_SCRIPT_NOT_EVIDENCE
     prompt.length,
     second.key,
     ...agreementCacheScope(env, options.call),
@@ -458,7 +459,7 @@ export function startCrisisClassifier(
   const given = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
   const generate = watchBlocked(given, options.call, normalized.latest, env); // BLOCKED_SIGNAL
   const read = (p: string): Promise<CrisisVerdict | null> =>
-    classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env), p);
+    classifyCrisis(inputForRead(input, env), generate, waitMs, p);
   // Everyday rules on and risk words in the caller's words: the rules may not lower the read.
   const plain = needsPlainRead(normalized.latest, env)
     ? crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })
