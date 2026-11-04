@@ -54,6 +54,7 @@ import {
   stopHealthMonitoring,
 } from '../shared/openai-health-monitor.js';
 import * as forgotten from '../../memory/recall/forget-every-reader.js';
+import { setupProfileReader } from './setup-profile.js';
 
 // ============================================================================
 // CRITICAL PATH IMPORTS - Hoisted to module level for faster startup
@@ -324,10 +325,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     personaCleanups.push(fn);
   };
 
-  // =========================================================================
-  // BUILD SYSTEM PROMPTS - Two levels for optimal instruction following
-  // FIX: Previously used buildAgentSystemPrompt which missed function-calling instructions
-  // =========================================================================
+  // BUILD SYSTEM PROMPTS - two levels for optimal instruction following
   // TWO-LEVEL INSTRUCTION ARCHITECTURE:
   // Model-level: Foundational rules (tool format, honesty, platform context)
   //   - These are active from the VERY FIRST MOMENT of connection
@@ -343,6 +341,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     mark('load_prompts_start');
     // Both levels in parallel; ALEX_CHIEF_OF_STAFF=on adds Alex's role (chief-of-staff-role.ts)
     forgotten.prefetchForgotten(services.userId); // FORGET_EVERY_READER: read it alongside
+    const readProfile = setupProfileReader(services, sessionId); // waits for the deferred load
     const callerCard = callerCardText(sessionId, services, config.phoneCaller); // CALLER_CARD
     const [baseInstructions, loadedSystemPrompt, texts] = await Promise.all([
       loadModelBaseInstructions(),
@@ -373,7 +372,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       baseInstructions + dateTimeContext + worldNowRule + cityContext + who + texts;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
-    const userProfile = outboundAwareness ? undefined : await forgotten.profileForPrompt(services);
+    const userProfile = outboundAwareness ? undefined : await readProfile();
     if (userProfile) {
       // Days since the last call count in the zone this call settled (phone-parity.ts)
       const callZone = userData?.callerTimezone ?? callerTimeZoneFor(sessionId);

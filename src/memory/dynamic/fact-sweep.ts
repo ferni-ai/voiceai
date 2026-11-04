@@ -19,7 +19,9 @@
  * to dynamic_facts like any other, so recall, supersession and forgetting
  * treat them the same.
  *
- * Off by default; FACT_SWEEP=on turns it on.
+ * Off by default; FACT_SWEEP=on turns it on. With FACT_SUBJECT_GUARD on, the model reads the
+ * AI friend's lines too, tagged, so it can tell whose friend or dog a name is, and is told whose
+ * "you" is (fact-subject.ts).
  *
  * @module memory/dynamic/fact-sweep
  */
@@ -28,6 +30,7 @@ import { callMomentLine } from '../operations/call-moment.js';
 import type { ExtractedFact } from './deep-extraction-worker.js';
 import { buildExtractionFirestoreWritePayloads, factDocId } from './extraction-firestore-docs.js';
 import { isValidFact } from './extraction-vector-docs.js';
+import { FACT_SUBJECT_RULE, type CallLine } from './fact-subject.js';
 
 const log = createLogger({ module: 'fact-sweep' });
 
@@ -61,18 +64,56 @@ export function sweepWindows(lines: readonly string[]): SweepWindow[] {
   return out.slice(-MAX_WINDOWS);
 }
 
-export function sweepPrompt(window: SweepWindow, known: readonly string[], moment: string): string {
+/** Longest AI-friend line shown to the sweep: enough to tell who owns what, bounded. */
+const MAX_FRIEND_CHARS = 300;
+const readable = (line: string): boolean => line.trim().split(/\s+/).length >= 2;
+/** One turn on one line, so a turn said over several lines is tagged whole. */
+const oneLine = (text: string): string => text.trim().replace(/\s+/g, ' ');
+
+/**
+ * FACT_SUBJECT_GUARD on: the window's caller lines in call order, tagged by speaker, with the
+ * AI friend's lines between them and the one just before (what the caller was answering).
+ */
+export function windowCall(window: SweepWindow, call: readonly CallLine[]): string[] {
+  const at = call.flatMap((l, i) => (l.speaker === 'caller' && readable(l.text) ? [i] : []));
+  const first = at[window.start] ?? 0;
+  const last = at[window.start + window.lines.length - 1] ?? call.length - 1;
+  const before = [first - 1, first - 2, first - 3].find((i) => call[i]?.speaker === 'persona');
+  return call
+    .slice(before ?? first, last + 1)
+    .map((l) =>
+      l.speaker === 'caller'
+        ? `Caller: ${oneLine(l.text)}`
+        : `AI friend: ${oneLine(l.text).slice(0, MAX_FRIEND_CHARS)}`
+    );
+}
+
+const SPOKEN =
+  'It has fillers, restarts and transcription slips, and one thing is often said over several lines ("could you call my brother?" / "his name is Pete" / "it\'s uh 435 555 0188").';
+
+/** `call` (FACT_SUBJECT_GUARD on): the window as windowCall tags it; without it, as on main. */
+export function sweepPrompt(
+  window: SweepWindow,
+  known: readonly string[],
+  moment: string,
+  call?: readonly string[]
+): string {
   return [
-    'Below is what a caller said on one phone call with an AI friend, transcribed by speech-to-text. It has fillers, restarts and transcription slips, and one thing is often said over several lines ("could you call my brother?" / "his name is Pete" / "it\'s uh 435 555 0188").',
+    call
+      ? `Below is part of one phone call between a caller and their AI friend, transcribed by speech-to-text. Each line starts with "Caller:" or "AI friend:"; the AI friend's lines are there only to show what the caller was answering. ${SPOKEN}`
+      : `Below is what a caller said on one phone call with an AI friend, transcribed by speech-to-text. ${SPOKEN}`,
     moment,
     "List every specific detail about the caller's life a friend would want to remember on a later call, even one said in passing: people (by name, and how they relate to the caller), numbers, places, work, plans and when, health, pets, things that happened, opinions and preferences.",
     '- Read through fillers, restarts and slips; join a fact said across lines into one fact.',
     '- Name people and things as they were named, never "he", "she", "him", "it" or "they". Use "User" for the caller.',
     '- Only what the caller said or clearly meant. Skip requests to the assistant, small talk, and anything already known (below).',
+    ...(call ? [FACT_SUBJECT_RULE] : []),
     known.length > 0
       ? `Already known:\n${known.map((k) => `- ${k}`).join('\n')}`
       : 'Already known: nothing yet.',
-    `What the caller said:\n${window.lines.map((l) => `- ${l}`).join('\n')}`,
+    call
+      ? `The call:\n${call.join('\n')}`
+      : `What the caller said:\n${window.lines.map((l) => `- ${l}`).join('\n')}`,
     'Reply with a JSON array only, each item {"entityName", "factType" (attribute|event|relationship|state|preference), "key", "value", "confidence" (0-1), "temporalContext"}. Reply [] if there is nothing new.',
   ].join('\n');
 }
@@ -129,9 +170,10 @@ export async function sweepCall(
     lines: readonly string[];
     timeZone?: string;
   },
-  deps: { llm: SweepLLM; store: SweepStore; now?: Date }
+  /** bothSides (FACT_SUBJECT_GUARD on): the whole call, both speakers in order. */
+  deps: { llm: SweepLLM; store: SweepStore; now?: Date; bothSides?: readonly CallLine[] }
 ): Promise<number> {
-  const { store } = deps;
+  const { store, bothSides } = deps;
   const windows = sweepWindows(call.lines);
   if (windows.length === 0) return 0;
   const stored = await store.facts(call.userId);
@@ -141,9 +183,10 @@ export async function sweepCall(
   const at = (deps.now ?? new Date()).toISOString();
   let added = 0;
   for (const window of windows) {
+    const tagged = bothSides ? windowCall(window, bothSides) : undefined;
     // One window at a time, so each sees what the earlier ones found.
     // eslint-disable-next-line no-await-in-loop
-    const found = parseSweep(await deps.llm(sweepPrompt(window, known, moment)));
+    const found = parseSweep(await deps.llm(sweepPrompt(window, known, moment, tagged)));
     const { facts } = buildExtractionFirestoreWritePayloads(
       call.userId,
       { entities: [], facts: found, relationships: [] },

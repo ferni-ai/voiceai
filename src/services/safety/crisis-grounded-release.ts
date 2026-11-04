@@ -172,8 +172,27 @@ export function resolveGroundedReleaseMode(
   // Live only where the reply gate is explicitly live: it appends the direct question
   // (crisis-gate.ts). Unset or anything else: a release would carry no question, so shadow.
   const guard = env.CRISIS_GUARD_MODE?.trim();
-  if (raw === 'live') return guard === 'live' ? 'live' : 'shadow';
-  return raw === 'shadow' ? raw : 'off';
+  if (raw !== 'live') return raw === 'shadow' ? raw : 'off';
+  if (guard === 'live') return 'live';
+  warnNotLive(guard);
+  return 'shadow';
+}
+
+let warnedNotLive = false;
+
+/**
+ * Live was asked for but CRISIS_GUARD_MODE is not literally 'live' (unset counts: the gate
+ * reads unset as live, this does not). Say so once per process, so shadow never passes for live.
+ */
+function warnNotLive(guard: string | undefined): void {
+  if (warnedNotLive) return;
+  warnedNotLive = true;
+  const guardMode = guard === undefined ? 'unset' : guard.slice(0, 16);
+  try {
+    log.warn({ guardMode, runsAs: 'shadow' }, 'CRISIS_GROUNDED_RELEASE_NOT_LIVE');
+  } catch {
+    // A warning must never change the mode or skip the turn's shadow reads.
+  }
 }
 
 /** Lower case, letters and digits only, single spaces. */
@@ -338,6 +357,7 @@ const recent = new Map<string, { at: number; run: Promise<boolean> }>();
 /** For tests. */
 export function resetGroundedRelease(): void {
   recent.clear();
+  warnedNotLive = false;
   resetGroundedScreen();
 }
 
