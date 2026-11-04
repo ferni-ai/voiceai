@@ -107,6 +107,9 @@ describe('an idiom masks only its own words', () => {
     'he talked about ending it, and it has nothing to do with his girlfriend',
     "she's been hurting herself, ever since she quit playing soccer",
     "my mom has been saving her pills and told me she won't be around for the holiday",
+    // A trip in another clause is no reason to keep them.
+    "my sister has been saving her pills, we're packing for the trip",
+    'my dad has been saving his meds; we leave for the trip friday',
     "my dad doesn't see the point of going on, not even with the trip to the lake",
     "she doesn't see the point of living, she just sits alone in the apartment",
     "my grandpa doesn't see the point of life, he cancelled his life insurance",
@@ -139,7 +142,6 @@ describe('an everyday reason after not getting up (r6)', () => {
     // Sleep is not a collapse: a time or a reason clears it, even on the floor.
     "my son fell asleep on the floor of his room and won't wake up for school",
     "my dad fell asleep on the floor and won't wake up for the movie",
-    "my mom fell asleep and can't get up to date, she's on the floor",
     // A "fell" idiom is never a fall, even when the sentence is read again unmasked.
     "my mom fell and can't get up to date",
     "my sister fell out with her boss and can't move on",
@@ -149,6 +151,8 @@ describe('an everyday reason after not getting up (r6)', () => {
     "my friend fell in the rankings and can't get up there again",
     "my son fell in the standings and can't move up",
     "my dad fell off his diet and can't stand salad",
+    // Something everyday in another sentence leaves the sleep everyday.
+    "my son fell asleep on the couch and won't wake up for school. typical teenager",
   ])('a time or a reason the words name is not an emergency: %s', (line) => {
     expect(emergencyRead(line)).toEqual([false, false]);
   });
@@ -166,6 +170,11 @@ describe('an everyday reason after not getting up (r6)', () => {
     "my son passed out after practice and won't wake up for dinner",
     "my grandpa passed out on the couch and won't wake up until noon",
     "my kid passed out from exhaustion after the party and won't wake up till noon",
+    // "Floor" said anywhere but where they fell asleep keeps it 911.
+    "my mom fell asleep and can't get up to date, she's on the floor",
+    // A place or "for anything" is no reason, even after sleep.
+    "my dad fell asleep and won't wake up in the car",
+    "my mom fell asleep and won't wake up for anything",
   ])('accepted false alarm, still 911 first: %s', (line) => {
     expect(emergencyRead(line)).toEqual([true, true]);
   });
@@ -201,14 +210,106 @@ describe('an everyday reason after not getting up (r6)', () => {
     "my son fell asleep and won't wake up for school, his lips are blue",
     "my dad fell asleep on the couch, he collapsed and won't wake up for the movie",
     "my mom fell asleep and won't wake up for dinner and she isn't breathing",
+    // No collapse before, inside or after the sleep.
+    "my dad fell asleep and then he collapsed and won't wake up for the show",
+    "my dad fell asleep and he collapsed and won't wake up for the show",
+    "my mom fell asleep and my dad passed out and won't wake up for dinner",
+    "my dad collapsed and then fell asleep and won't wake up for dinner",
+    // Every everyday way of going down stops the sleep too.
+    "my dad fell asleep and he went down and won't wake up for dinner",
+    "my mom fell asleep and she dropped and won't wake up for work",
+    "my grandpa fell asleep and he keeled over and won't wake up for lunch",
+    "my uncle fell asleep and he slumped over and won't wake up for the movie",
+    "my aunt fell asleep and she hit the floor and won't wake up for church",
+    "my brother fell asleep and he is down and won't wake up for school",
+    "my sister fell asleep and she's face down and won't wake up for practice",
+    "my grandma fell asleep and she went limp and won't wake up for dinner",
+    "my dad fell asleep and he dropped to the ground and won't wake up for the game",
+    "my dad went limp and then fell asleep and won't wake up for dinner",
+    // Fail closed: any other sign in the sentence keeps it 911.
+    "my dad fell asleep and won't wake up for dinner, he isn't moving",
+    "my mom fell asleep at the bottom of the stairs and won't wake up for work",
+    "my son fell asleep and won't wake up for school, he's unresponsive",
+    "my mom fell asleep and won't wake up for work, she won't respond",
+    "my dad fell asleep and won't wake up for dinner, he can't stand up",
+    // The reason has to be in the same clause as the sleep.
+    "my dad fell asleep, the tv is on, and won't wake up for dinner",
+    "my mom fell asleep, she was tired, and won't wake up for work",
+    // A real fall, then an everyday sleep in another clause.
+    "my dad fell down the stairs and can't get up, he fell asleep before the game",
+    // "Not" forms after a down word.
+    "my mom fell, she can't get up",
+    "my mom collapsed, she's not responding",
+    "my dad passed out and he's not waking up",
+    "my grandpa fainted and they're not moving",
+    "my mom collapsed and she's still not answering",
+    "my dad and my uncle collapsed and they aren't breathing",
+    // Every way of trying to wake them.
+    "my son fell asleep and won't wake up for school, I tried waking him",
+    "my mom fell asleep and won't wake up for dinner, I'm trying to wake her",
+    "my dad fell asleep and won't wake up for dinner, I can't wake him",
+    "my son fell asleep and won't wake up for school, I shook his shoulder",
+    // Trying counts anywhere in the message, not just in the same sentence.
+    "my dad fell asleep and won't wake up for dinner. I shook him and he's blue.",
+    "my mom fell asleep and won't wake up for work. I couldn't wake her",
+    "my son fell asleep and won't wake up for school! I tried to wake him",
+    // The sleep clears only in its exact everyday shape.
+    "after all those pills my dad fell asleep and won't wake up for work",
+    "my mom drank a whole bottle of wine and fell asleep and won't wake up for work",
+    "my son crashed his bike and fell asleep and won't wake up for school",
+    "my brother hit his head and fell asleep and won't wake up for dinner",
+    "my dad fell asleep in the car and won't wake up for dinner",
+    // Anything alarm-shaped in another sentence keeps it 911, after a period or a "!".
+    "my dad fell asleep and won't wake up for dinner. he isn't moving",
+    "my dad fell asleep and won't wake up for dinner! he isn't moving",
+    "my mom fell asleep and won't wake up for work. she won't respond",
+    "my mom fell asleep and won't wake up for work! she won't respond",
+    "my son fell asleep and won't wake up for school. he's unresponsive",
+    "my son fell asleep and won't wake up for school! he's unresponsive",
+    "my dad fell asleep and won't wake up for dinner. he can't stand up",
+    "my dad fell asleep and won't wake up for dinner! he's not breathing",
+    "my dad fell asleep and won't wake up for dinner. he's breathing really weird",
+    "my son fell asleep and won't wake up for school! his lips are blue",
+    "my mom fell asleep and won't wake up for dinner. she's on the floor",
+    "my dad fell asleep and won't wake up for dinner. then he collapsed",
+    "my mom was drinking all night. she fell asleep and won't wake up for work",
+    "my son crashed his bike. he fell asleep and won't wake up for school",
+    "my brother hit his head! he fell asleep and won't wake up for dinner",
+    // Any try to wake, rouse or get them up, said any way.
+    "my dad fell asleep and won't wake up for dinner. i could not wake him",
+    "my mom fell asleep and won't wake up for work. i can not wake her",
+    "my son fell asleep and won't wake up for school. i can't get him to wake",
+    "my dad fell asleep and won't wake up for dinner. she tries to rouse him",
+    "my mom fell asleep and won't wake up for work. i've shaken her twice",
+    "my dad fell asleep and won't wake up for dinner. i tried everything",
+    "my son fell asleep and won't wake up for school. i can't get him up",
+    "my dad fell asleep and won't wake up for dinner. no rousing him",
+    "my dad fell asleep and won't wake up for dinner. he isn't rousable",
+    // A sign that reads nothing alone still keeps the sleep from clearing.
+    "my dad fell asleep and won't wake up for dinner. this feels like an emergency",
+    "my mom fell asleep and won't wake up for work. she's at the bottom of the stairs",
+    // A reason later in the sentence never masks a not-getting-up said before it.
+    "my grandma fell and can't move, she was getting ready for church",
+    "my mom fell and can't get up, she was trying to get ready for work",
     // A physical cue beats any reason in the same sentence, unless it was sleep.
     "she fell and can't get up for the show, she's on the floor",
     "my dad collapsed and can't move after the meeting, he's not breathing",
+    "my dad passed out and can't get up for school, I shook him",
   ])('reads someone else down, 911 first: %s', (line) => {
     for (const read of firstAndMid(line)) {
       expect(read.indicators).toContain('third_party_emergency');
       expect(guardFromDetection(read).replacementResponse).toBe(EMERGENCY_FOR_THEM);
     }
+  });
+
+  // Pills before the sleep never clear it. The shared read gives "took a bunch of pills" to the
+  // caller's own overdose first (imminent, blocking; a known follow-up), so this pins the reader.
+  it.each([
+    "my dad took a bunch of pills and fell asleep and won't wake up for work",
+    "my dad took a bunch of pills. he fell asleep and won't wake up for work",
+  ])('reads pills, then sleep, as an emergency: %s', (line) => {
+    expect(thirdPartyEmergency(line)).toBe(true);
+    for (const read of firstAndMid(line)) expect(read.indicators).toContain('imminent_danger');
   });
 
   // Can't breathe after an idiom always reads the sentence again. The shared read still gives

@@ -16,8 +16,8 @@ const AUX = String.raw`(?:'s|'d|'ve|'re| is| are| was| were| has| have| had)?(?:
 /** "my friend robin keeps saying", "she told me", "he's been saying that". */
 const SAYS = String.raw`${OTHER}(?: [a-z]+)?${AUX} (?:keeps? saying|kept saying|saying|says|said|told (?:me|us|her|him|them)|thinks|thought|feels|felt|believes|mentioned|wrote|texted(?: me)?|posted)(?: that)?`;
 const PILLS = String.raw`(?:pills|meds|medications?|tablets|sleeping pills|painkillers)`;
-/** "saving her pills for the trip": a reason to keep them. Only after plain saving, never stockpiling. */
-const FOR_A_TRIP = String.raw`(?![^.!?]{0,20}\bfor (?:the |a |an |our |his |her |their |my )?(?:trip|travel|vacation|holiday|flight|cruise|camping|allergy season|road trip)\b)`;
+/** "saving her pills for the trip": a reason to keep them, in the same clause. Only after plain saving, never stockpiling. */
+const FOR_A_TRIP = String.raw`(?![^.!?,;]{0,20}\bfor (?:the |a |an |our |his |her |their |my )?(?:trip|travel|vacation|holiday|flight|cruise|camping|allergy season|road trip)\b)`;
 /** Ending a relationship: "ending it with his girlfriend". Only the named idiom, never a time or a reason. */
 const ENDING_SOMETHING_ELSE = String.raw`(?! (?:all )?(?:with (?:(?:his|her|their|my|our|the) )?(?:girlfriend|boyfriend|partner|wife|husband|fianc\w*|ex|date|band|team|landlord|lease)|between them)\b)`;
 /** Hurt in sport or by accident: "hurting herself at the gym", "playing soccer", "by accident". */
@@ -110,25 +110,34 @@ const mask = (said: string): string =>
   EVERYDAY.reduce((rest, idiom) => rest.replace(idiom, ' _ '), said);
 
 /** Words that keep it an emergency, whatever idiom the sentence also holds. */
-const STILL_EMERGENCY =
-  /\b(?:can'?t breathe|cannot breathe|not breathing|isn'?t breathing|stopped breathing|won'?t wake|can'?t wake|can'?t get up|can'?t move|isn'?t responding|isn'?t moving|not (?:responding|moving|waking up|getting up)|unconscious|unresponsive|911|ambulance|paramedics?|cpr|emergency|floor|ground|stairs|bleeding|blood|turning blue|no pulse|seizure|(?:shook|shaking|shake) (?:him|her|them)|tried to wake)\b/;
+const STILL_SIGNS = String.raw`can'?t breathe|cannot breathe|not breathing|isn'?t breathing|stopped breathing|won'?t wake|can'?t wake|can'?t get up|can'?t move|isn'?t responding|isn'?t moving|not (?:responding|moving|waking up|getting up)|unconscious|unresponsive|911|ambulance|paramedics?|cpr|emergency|stairs|bleeding|blood|turning blue|no pulse|seizure|(?:shook|shaking|shake) (?:him|her|them)|tried to wake`;
+const STILL_EMERGENCY = new RegExp(String.raw`\b(?:${STILL_SIGNS}|floor|ground)\b`);
 /** Not answering messages: "unresponsive, I've emailed her five times". A physical word overrides it. */
 const MESSAGES =
   /\b(?:e-?mails?|e-?mailed|texts?|texted|messages?|messaged|calls? (?:me )?back|slack|dms?|voicemails?)\b/;
 const PHYSICAL =
   /\b(?:floor|ground|stairs|collapsed|fell|fallen|passed out|fainted|breathing|breathe|wake|awake|moving|move|911|ambulance|paramedics?|cpr|emergency|bleeding|blood|blue|pulse|seizure|hospital)\b/;
 
+/** Where they fell asleep: one short, ordinary place, the only place "floor" may be said. */
+const SLEEP_PLACE = String.raw`(?:(?:on|in|at|by) (?:the|a|his|her|their|my|our) (?:couch|sofa|floor|ground|bed|chair|recliner|armchair|desk|table|porch|hammock|room|bedroom|living room)(?: (?:of|in) (?:the|his|her|their|my|our) (?:room|bedroom|living room|house|apartment))?|watching (?:tv|the tv|a movie|the movie|the game|a show|his show|her show))`;
 /**
- * Sleep is not a collapse: "fell asleep on the floor and won't wake up for school" is everyday. Only
- * when the time or reason sits right after not waking, in the same clause; never once someone tried
- * to wake them or a breathing word is said ("...for school, I shook him" stays 911).
+ * Sleep is not a collapse, in one exact shape only: someone fell asleep, maybe somewhere ordinary,
+ * and won't wake or get up for an everyday reason ("my son fell asleep on the floor of his room and
+ * won't wake up for school"). Any other word in the sentence, and it is read as said.
  */
 const SLEPT_FOR_A_REASON = new RegExp(
-  String.raw`\bfell asleep\b[^.!?,;]{0,40}?\b(?:(?:won'?t|will not|can'?t|cannot|couldn'?t|still won'?t|still can'?t) (?:wake up|get up)|(?:isn'?t|is not|not|still not) (?:waking up|getting up)) ${FOR_A_REASON}\b`,
-  'g'
+  String.raw`^ *(?:(?:so|and|oh|okay|well|um|yeah|hey) )?${OTHER} fell asleep(?: ${SLEEP_PLACE})? and (?:(?:won'?t|will not|can'?t|cannot|couldn'?t|still won'?t|still can'?t) (?:wake up|get up)|(?:isn'?t|is not|still isn'?t) (?:waking up|getting up)) ${FOR_A_REASON} *$`
 );
-const TRIED_AND_REAL =
-  /\b(?:(?:shook|shaking|shake) (?:him|her|them)|tried to wake|breathing|breathe|pulse|blue|bleeding|blood|seizure|911|ambulance|paramedics?|cpr)\b/;
+/** Any way of going down: the down words and their everyday synonyms. */
+const COLLAPSE = String.raw`(?:${DOWN}|went (?:down|limp)|dropped|keeled over|slumped(?: over)?|hit the (?:floor|ground)|(?:is|'s) down|face down)`;
+/**
+ * Anything alarm-shaped said anywhere else in the message keeps the sleep an emergency: any sign
+ * that keeps it one, not getting up, a way of going down, where they lie, any try to wake or rouse
+ * them, pills, drink, a crash or a hit head.
+ */
+const ALARM_SHAPED = new RegExp(
+  String.raw`\b(?:${STILL_SIGNS}|${NOT_UP}|${COLLAPSE}|floor|ground|wak(?:e|es|ing|en)|woke|awake|rous\w*|shak(?:e|es|ing|en)|shook|tr(?:y|ies|ied|ying)|get (?:\w+ )?up|pills?|meds|medications?|drugs?|tablets|drank|drunk|drinking|alcohol|overdos\w*|crash\w*|hit (?:his|her|their) head|breath\w*|pulse|blue|bleeding|blood|seizure|911|ambulance|paramedics?|cpr|hospital)\b`
+);
 
 const reads = (said: string, masked: string): boolean =>
   DOWN_NOT_UP.test(said) ||
@@ -138,11 +147,16 @@ const reads = (said: string, masked: string): boolean =>
 /**
  * Someone else is down and not getting up, or not breathing: an emergency for them now. Read with
  * the everyday idioms masked; and when a word that keeps it an emergency is left over, read again
- * with nothing masked, so no idiom ever outweighs "on the floor" or "I shook him".
+ * with nothing masked, so no idiom ever outweighs "on the floor" or "I shook him". A sentence in
+ * the exact everyday sleep shape is skipped, only while nothing else in the message is alarm-shaped.
  */
-export const thirdPartyEmergency = (text: string): boolean =>
-  text.split(/[.!?]+/).some((said) => {
-    const read = TRIED_AND_REAL.test(said) ? said : said.replace(SLEPT_FOR_A_REASON, ' _ ');
-    const masked = mask(read);
-    return reads(masked, masked) || (STILL_EMERGENCY.test(masked) && reads(read, masked));
+export const thirdPartyEmergency = (text: string): boolean => {
+  const sentences = text.split(/[.!?]+/);
+  const asleep = sentences.map((said) => SLEPT_FOR_A_REASON.test(said));
+  const sleepClears = !ALARM_SHAPED.test(sentences.filter((_, at) => !asleep[at]).join(' . '));
+  return sentences.some((said, at) => {
+    if (sleepClears && asleep[at]) return false;
+    const masked = mask(said);
+    return reads(masked, masked) || (STILL_EMERGENCY.test(masked) && reads(said, masked));
   });
+};
