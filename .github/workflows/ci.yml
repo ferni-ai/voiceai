@@ -1059,25 +1059,23 @@ jobs:
     name: Quality Gates (Blocking)
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
-    # Read-only. Checkout needs contents; Flag expiry reads issues (from 2027-01-15: is an issue
-    # open, is the owner's nightly issue open). Without issues: read the token sees an empty list,
-    # not an error. No other step here calls the GitHub API.
+    # Read-only, and one block: a job may define permissions only once (two blocks are an
+    # invalid workflow, so the merge queue never starts and no required check reports).
+    # contents: checkout. issues: Flag expiry (from 2027-01-15: is an issue open, is the
+    # owner's nightly issue open; without it the token sees an empty list, not an error) and
+    # the gate files guard's label events. pull-requests + actions: the gate files guard reads
+    # the PR's labels and this run's start time. Cache restore uses the runner's own token.
     permissions:
       contents: read
+      pull-requests: read
       issues: read
+      actions: read
     needs: setup
     # Runs on pull_request too. Skipped there, it first ran in the merge queue, so
     # one PR that grew a 713-line file to 723 failed 15 of 15 merge groups and
     # knocked out every PR queued with it (2026-10-18). Its three steps are cheap.
     # arch-map: a PR that edits only ARCHITECTURE.md (root markdown) still runs docs:map --check.
     if: needs.setup.outputs.code != 'false' || needs.setup.outputs.arch-map == 'true'
-    # The gate files guard reads the PR's label events and this run's start time.
-    # Nothing else here calls the API (cache restore uses the runner's own token).
-    permissions:
-      contents: read
-      pull-requests: read
-      issues: read
-      actions: read
     steps:
       # This commit and 49 ancestors, not every branch and tag: the full fetch-depth: 0 fetch
       # hung to the job timeout 5 times in 7 days (2026-11-03 census) while depth-1/2 checkouts
