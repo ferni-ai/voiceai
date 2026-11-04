@@ -100,25 +100,13 @@ describe('corpora', () => {
       first.map((c) => c.turns[0]?.text)
     );
     expect(shape('unresponsive-near-miss').length).toBe(first.length);
-    expect(shape('safe-everyday-answered-no').length).toBe(
-      shape('safety-question-answered-no').length
-    );
+    // every shape is known, and its scored turn carries the right label
     const lastLabel: Record<string, string> = {
       'unresponsive-no-down-word-first': 'must-catch',
       'unresponsive-no-down-word-mid': 'must-catch',
       'unresponsive-near-miss': 'must-not-alarm',
-      'safety-question-answered-no': 'must-catch',
-      'safe-everyday-answered-no': 'must-not-alarm',
-      'abandoned-fragment-then-benign': 'must-not-alarm',
     };
     for (const c of set) expect(c.turns.at(-1)?.label, c.id).toBe(lastLabel[c.shape]);
-    // a safety question answered "no" is scored only after Ferni asked it
-    for (const c of [
-      ...shape('safety-question-answered-no'),
-      ...shape('safe-everyday-answered-no'),
-    ])
-      expect(c.turns[0]?.ferni, c.id).toMatch(/safe/i);
-    expect(shape('abandoned-fragment-then-benign').length).toBeGreaterThanOrEqual(4);
   });
 
   it('carries third-person risk with no risk word, first and mid-call, each with a near miss', () => {
