@@ -36,6 +36,7 @@ import {
   startCrisisClassifier,
   turnVerdicts,
   type CrisisGenerateFn,
+  type CrisisVerdict,
 } from '../../services/safety/crisis-classifier.js';
 import {
   crisisRiskNoted,
@@ -88,6 +89,7 @@ import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
 import { callerWords, callTranscript, sessionScope } from './crisis-gate-words.js';
+import { withHeldRead } from './crisis-read-joined-turn.js';
 import { getDeliberator } from './deliberation.js';
 import { brightOpenerInvited } from './ferni-playful.js';
 import { noteTurn } from './move-log.js';
@@ -141,6 +143,12 @@ export interface CrisisGateOptions {
   adjudicate?: CrisisGenerateFn;
   /** The grounded release's model calls (crisis-grounded-release.ts). */
   groundedReads?: readonly CrisisGenerateFn[];
+  /**
+   * CRISIS_READ_JOINED_TURN (crisis-read-joined-turn.ts): once the patterns pass, a held line's
+   * classifier read waits for this. True reads it then; false never reads it (the joined turn's
+   * own request reads the whole sentence). Null reads at once.
+   */
+  readAfter?: () => Promise<boolean> | null;
 }
 
 /** This reply's crisis handling, from the request about to go to the LLM; null when the gate is
@@ -195,13 +203,17 @@ export function startCrisisGate(
   const groundedPrior = groundedPriorRisk(call, latest);
   // CRISIS_CLASSIFIER_SECOND_READ: the gate decides for the turn (crisis-second-read-turn.ts).
   const secondRead = secondReadOf('gate', userData, detection.subject);
-  const run = startCrisisClassifier(said, { pattern, env, generate, scope, call, secondRead });
-  if (run?.mode !== 'live' || decision.action === 'replace') {
-    return { decision, escalation: null, reask };
-  }
-  const who = startWhoRead({ latest, earlier, companion }, detection, { env, generate });
-
-  const escalation = run.verdict.then(async (verdict): Promise<CrisisGateDecision | null> => {
+  let who: ReturnType<typeof startWhoRead> | undefined;
+  const read = (): Promise<CrisisVerdict | null> | undefined => {
+    const run = startCrisisClassifier(said, { pattern, env, generate, scope, call, secondRead });
+    if (run?.mode !== 'live' || decision.action === 'replace') return undefined;
+    who = startWhoRead({ latest, earlier, companion }, detection, { env, generate });
+    return run.verdict;
+  };
+  const wait = decision.action === 'pass' && !gentle && !reask ? options.readAfter?.() : null;
+  const verdictRead = wait ? wait.then(async (go) => (go ? read() : undefined)) : read();
+  if (!verdictRead) return { decision, escalation: null, reask };
+  const escalate = async (verdict: CrisisVerdict | null): Promise<CrisisGateDecision | null> => {
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
     if (loneImminentGoodbye({ detection, verdict, latest, earlier, companion, priorRisk })) {
       log.info({ action: 'guide', source: 'lone_imminent_goodbye' }, 'CRISIS_GATE');
@@ -287,7 +299,8 @@ export function startCrisisGate(
       'CRISIS_GATE'
     );
     return stronger;
-  });
+  };
+  const escalation = verdictRead.then(async (v) => (v === undefined ? null : escalate(v)));
   return { decision, escalation, reask };
 }
 
@@ -403,7 +416,7 @@ export async function gatedReply(
   const askedAt = Date.now();
   // A turn-opening clip played after this request began: the reply follows it.
   const openedBySound = (): boolean => replyOpenedBySound(session, askedAt);
-  const gate = startCrisisGate(chatCtx, session.userData, options);
+  const gate = startCrisisGate(chatCtx, session.userData, withHeldRead(session, chatCtx, options));
   signalCrisisDecision(session, gate?.decision.action, 'pattern', replaceKind(gate?.decision));
   gate?.escalation
     ?.then((d) => signalCrisisDecision(session, d?.action, 'classifier', replaceKind(d)))
