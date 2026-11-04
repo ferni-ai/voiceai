@@ -15,6 +15,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { ScheduledJob, type BaseJobConfig, type JobContext } from './base-job.js';
+import { skipIfHeld } from './skip-if-held.js';
 
 const log = getLogger();
 
@@ -304,6 +305,7 @@ export class ThreadMaintenanceJob extends ScheduledJob<
       ctx.log.info({ userCount: users.length }, 'Starting thread maintenance job');
 
       for (const userId of users) {
+        if (await skipIfHeld(userId, ctx.counters)) continue; // MINOR_CARE
         ctx.counters.processed++;
 
         try {
@@ -385,6 +387,7 @@ export class EntityDecayJob extends ScheduledJob<EntityDecayConfig, EntityDecayR
       ctx.log.info({ userCount: users.length }, 'Starting entity decay job');
 
       for (const userId of users) {
+        if (await skipIfHeld(userId, ctx.counters)) continue; // MINOR_CARE
         ctx.counters.processed++;
 
         try {
