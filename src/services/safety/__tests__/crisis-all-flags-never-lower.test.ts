@@ -383,6 +383,8 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   CRISIS_TRANSFER_EVERYDAY: 'src/services/safety/__tests__/crisis-transfer-request.test.ts',
   DATES_IN_HELLO: 'src/agents/multi-agent/__tests__/greeting-date-arbiter.test.ts',
   EOT_CONTINUED_MERGE: 'src/agents/personas/__tests__/late-words.test.ts',
+  // Read by deep-extraction-worker.ts: adds one subject rule to the fact prompt, nothing dropped.
+  FACT_SUBJECT_GUARD: 'src/memory/dynamic/__tests__/fact-subject-deep.test.ts',
   FAMILY_TABLE: 'src/agents/multi-agent/__tests__/family-table-handoff.test.ts',
   FERNI_SELF_MEMORY: 'src/agents/personas/__tests__/self-memory.test.ts',
   FERNI_STATE: 'src/agents/personas/__tests__/ferni-state.test.ts',
