@@ -65,6 +65,28 @@ describe('check-in alert: the line for words not passed on', () => {
       'a money read inside the window of a long text',
       { description: `send $400 now ${ONLY_LONG}` },
     ],
+    [
+      'a description that is a number, and a money read in the suggested action',
+      { description: 5550142, recommendedAction: 'wire $400 to 4417 2290' },
+    ],
+    [
+      'a description that is an object, and a crisis and money read in the suggested action',
+      {
+        description: { toString: () => 'fine' },
+        recommendedAction: 'She said she wants to end her life; wire $400 to 4417 2290',
+      },
+    ],
+    [
+      'a number split across the fields, the two together past the window',
+      {
+        description: `${'she talked about the garden and the tomatoes '.repeat(221)}gave 555 01`,
+        recommendedAction: '42 to call her back about the garden and the tomatoes today',
+      },
+    ],
+    [
+      'a description past the window, and a money read in the suggested action',
+      { description: ONLY_LONG, recommendedAction: 'send $400 to my account' },
+    ],
   ])('%s: still the money line', (_, concern) => {
     const alert = alertFor(concern);
     expect(alert).toContain(MONEY);

@@ -189,8 +189,8 @@ describe('urgent family check-in alert: text too long to screen in full', () => 
       expect(alert).not.toMatch(DIGITS);
       expect(alert).toContain(crisisCallerLine(NAME));
       expect(alert?.endsWith(CHECK_IN)).toBe(true);
-      // Not text: the neutral line. An array of words is text, and these words are risky.
-      if (value != null) expect(alert).toContain(Array.isArray(value) ? RISKY : HELD);
+      // The suggested action is a real money read, so the money line, whatever the description.
+      if (value != null) expect(alert).toContain(RISKY);
     }
   );
 

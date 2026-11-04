@@ -81,9 +81,9 @@ function screenField(value: unknown, name: string): ScreenedField {
   return { ...part, intact, text: raw !== null };
 }
 
-/** Ferni's line for a description not passed on: money only for a risky read. */
-function heldLine(desc: ScreenedField, name: string): string {
-  if (desc.risky) return riskyCallerLine(name);
+/** Ferni's line for a description not passed on: money only for a risky read in either field. */
+function heldLine(desc: ScreenedField, act: ScreenedField, name: string): string {
+  if (desc.risky || act.risky) return riskyCallerLine(name);
   return desc.text ? 'something came up' : withheldCallerLine(name);
 }
 
@@ -154,7 +154,7 @@ export function generateUrgentNotification(record: CheckinAlertInput): string | 
 
   const desc = screenField(concern.description, name);
   const act = screenField(concern.recommendedAction, name);
-  const what = desc.said || heldLine(desc, name);
+  const what = desc.said || heldLine(desc, act, name);
   const next = act.said || CHECK_IN_ACTION; // Ferni's line whenever it was risky or not text
   const both = [concern.description, concern.recommendedAction]
     .map(fieldText)
@@ -166,7 +166,9 @@ export function generateUrgentNotification(record: CheckinAlertInput): string | 
   if (screened && !isRiskyCallerText(sent)) return sent;
   // Too long to screen in full, or the joined fields formed something risky:
   // pass neither on, so their words are withheld and crisisCallerLine goes. The
-  // money line only when the screen read something risky; length alone is neutral.
-  const risky = isRiskyCallerText(sent) || isRiskyCallerText(both);
+  // money line only when the screen read something risky in either field alone, the
+  // alert, or the joined fields; length alone is neutral. Each field is read alone
+  // because the joined text is read only up to the screen's window.
+  const risky = desc.risky || act.risky || isRiskyCallerText(sent) || isRiskyCallerText(both);
   return alert(risky ? riskyCallerLine(name) : withheldCallerLine(name), CHECK_IN_ACTION, true);
 }
