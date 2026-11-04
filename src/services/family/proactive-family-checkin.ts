@@ -17,6 +17,7 @@
  * @module services/family/proactive-family-checkin
  */
 
+import type { ConcernUrgency } from '../../types/concern-urgency.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore, getFirestoreDb } from '../superhuman/firestore-utils.js';
 import type { SponsoredIdentity } from '../identity/sponsored-identity.js';
@@ -71,10 +72,8 @@ export type DetectedMood =
   | 'unwell'
   | 'unknown';
 
-/**
- * Urgency level for flagged concerns
- */
-export type ConcernUrgency = 'low' | 'medium' | 'high' | 'urgent';
+/** Urgency level for flagged concerns. */
+export type { ConcernUrgency };
 
 /**
  * A scheduled family check-in

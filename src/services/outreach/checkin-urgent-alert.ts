@@ -12,6 +12,7 @@
  * @module services/outreach/checkin-urgent-alert
  */
 
+import { concernUrgency } from '../../types/concern-urgency.js';
 import {
   callerText,
   carriesCrisis,
@@ -118,9 +119,10 @@ export function generateUrgentNotification(record: CheckinAlertInput): string | 
     return null;
   }
 
-  const urgentConcerns = record.concernsIdentified.filter(
-    (c) => c.urgency === 'urgent' || c.urgency === 'high'
-  );
+  const urgentConcerns = record.concernsIdentified.filter((c) => {
+    const urgency = concernUrgency(c.urgency); // any case, trimmed, "critical" as "urgent"
+    return urgency === 'urgent' || urgency === 'high';
+  });
 
   if (urgentConcerns.length === 0) {
     return null;

@@ -13,6 +13,7 @@
  * @module services/family/family-checkin-summary
  */
 
+import { concernUrgency } from '../../types/concern-urgency.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   DetectedMood,
@@ -415,9 +416,7 @@ function validateMood(mood: string): DetectedMood {
 function validateConcern(concern: Partial<FlaggedConcern>): FlaggedConcern {
   return {
     description: concern.description || 'Unspecified concern',
-    urgency: (['low', 'medium', 'high', 'urgent'].includes(concern.urgency || '')
-      ? concern.urgency
-      : 'low') as ConcernUrgency,
+    urgency: concernUrgency(concern.urgency) ?? 'low',
     category: (['health', 'safety', 'emotional', 'financial', 'other'].includes(
       concern.category || ''
     )
