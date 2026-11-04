@@ -30,7 +30,6 @@ const fake = vi.hoisted(() => {
 });
 
 // The default app counts as initialized; attachVerifiedPhone uses the modular getAuth().
-vi.mock('firebase-admin', () => ({ default: { apps: [{}] } }));
 vi.mock('firebase-admin/auth', () => ({ getAuth: () => fake.authApi }));
 vi.mock('../../services/identity/firebase-auth.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../services/identity/firebase-auth.js')>()),

@@ -20,7 +20,7 @@
  */
 
 import 'dotenv/config';
-import admin from 'firebase-admin';
+import { getApps, initializeApp } from 'firebase-admin/app';
 import { pathToFileURL } from 'node:url';
 import { getLogger } from '../src/utils/safe-logger.js';
 import { destructiveMode, refusalMessage } from './destructive-gate.js';
@@ -44,8 +44,8 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
   log.info('🗑️ Starting stale profile cleanup...');
 
   // Initialize Firebase Admin
-  if (!admin.apps.length) {
-    admin.initializeApp({ projectId });
+  if (!getApps().length) {
+    initializeApp({ projectId });
     log.info({ projectId }, 'Firebase Admin initialized');
   }
 

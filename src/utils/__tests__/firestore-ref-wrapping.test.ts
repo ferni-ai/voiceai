@@ -11,9 +11,15 @@
  */
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
-import admin from 'firebase-admin';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { cleanForFirestore } from '../firestore-utils.js';
+
+// The real SDK, not the global test mocks (setup.ts): this needs a real DocumentReference.
+const { getApps, initializeApp } =
+  await vi.importActual<typeof import('firebase-admin/app')>('firebase-admin/app');
+const { DocumentReference, getFirestore } = await vi.importActual<
+  typeof import('firebase-admin/firestore')
+>('firebase-admin/firestore');
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -28,15 +34,17 @@ describe('document references and cleanForFirestore', () => {
   it('cleanForFirestore does not hand back a reference: it rebuilds it as a plain object', () => {
     // So wrapping a reference is always wrong. In the running server it went further and
     // overflowed the stack (a used client is full of cycles); a fresh one here only loses its type.
-    const app = admin.apps.find((a) => a?.name === 'ref-wrapping-test') ?? admin.initializeApp({ projectId: 'demo-ref-test' }, 'ref-wrapping-test');
-    const ref = app.firestore().collection('feature_votes').doc('someone_some-feature');
+    const app =
+      getApps().find((a) => a.name === 'ref-wrapping-test') ??
+      initializeApp({ projectId: 'demo-ref-test' }, 'ref-wrapping-test');
+    const ref = getFirestore(app).collection('feature_votes').doc('someone_some-feature');
     let cleaned: unknown;
     try {
       cleaned = cleanForFirestore(ref);
     } catch (error) {
       cleaned = error; // the server's stack overflow is the other way this goes wrong
     }
-    expect(cleaned).not.toBeInstanceOf(admin.firestore.DocumentReference);
+    expect(cleaned).not.toBeInstanceOf(DocumentReference);
   });
 
   it('no transaction or batch write wraps its reference in cleanForFirestore', () => {

@@ -253,10 +253,10 @@ export async function runTTLCleanup(options?: {
 
   try {
     // Get Firestore instance
-    const admin = (await import('firebase-admin')).default;
+    const { getApps, initializeApp } = await import('firebase-admin/app');
     const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
-    if (admin.apps.length === 0) {
-      admin.initializeApp();
+    if (getApps().length === 0) {
+      initializeApp();
     }
     const db = getAdminFirestore();
     if (options?.dryRun) requireCountQueries(db);
@@ -356,10 +356,10 @@ export async function runUserDataCleanup(userId: string): Promise<CleanupReport>
   log.info({ userId }, '🧹 Starting user data cleanup');
 
   try {
-    const admin = (await import('firebase-admin')).default;
+    const { getApps, initializeApp } = await import('firebase-admin/app');
     const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
-    if (admin.apps.length === 0) {
-      admin.initializeApp();
+    if (getApps().length === 0) {
+      initializeApp();
     }
     const db = getAdminFirestore();
 
