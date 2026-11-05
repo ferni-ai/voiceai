@@ -26,6 +26,17 @@ caught bugs it missed. So gate on deterministic predicates (`predicates/`), and 
    80% of the time). A CI spanning 0 is not a change; an MDE above the change you care about means
    add scenarios or repeats, not read the judge's means harder.
 
+## Caller audio must go out in real time
+
+`converse.mjs` sends the caller against the clock: on every wake it queues all the audio due up
+to 200 ms ahead (`MicClock`, `converse-timing.mjs`), so a process whose timers macOS coalesces
+(a launchd `ProcessType=Background` job) or a loaded host sends bigger frames, not slower lines.
+Every call records `callerAudio: { ratios, maxRatio, valid }`: each line's send time over its
+audio length. A line over `MAX_SEND_RATIO` (1.2) means the agent heard fragments, so the call's
+reply delays read `timing invalid`, `score.mjs` and `turn-taking.mjs runs` leave it out of every
+timing number (or print `timing invalid` when nothing is left), and `judge.mjs` marks its scores
+as confounded. Older run files are checked from `userSpeech` the same way.
+
 ## Checking a release
 
 `release-check.mjs` runs steps 2 and 3 against an env that already runs the candidate, and decides.
