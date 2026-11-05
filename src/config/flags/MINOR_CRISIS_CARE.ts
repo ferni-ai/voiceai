@@ -5,4 +5,8 @@ export const MINOR_CRISIS_CARE = {
   default: 'off',
   owner: 'voice',
   kind: 'experiment',
+  expires: '2027-01-31',
+  issue: 'TBD',
+  context:
+    'Safety: expiry only warns, never turns it off. Decide permanent (kill-switch, on) or replace; never just delete.',
 } as const satisfies FlagSpec;

@@ -80,7 +80,9 @@ export function issueCounts(
 }
 
 const notCountedWhy = (issue: string | undefined): string =>
-  isRealIssue(issue) ? `'${issue}' is not an open issue in this repo` : `its issue is '${issue ?? ISSUE_TBD}'`;
+  isRealIssue(issue)
+    ? `'${issue}' is not an open issue in this repo`
+    : `its issue is '${issue ?? ISSUE_TBD}'`;
 
 /** The fields this module reads: a FlagSpec, or a spec parsed from a registry file's text. */
 interface LifecycleFields {
