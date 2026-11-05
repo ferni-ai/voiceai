@@ -5,7 +5,7 @@
  *
  * @module agents/multi-agent/live-call-behaviors
  */
-import { voice } from '@livekit/agents';
+import { getJobContext, voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utilities/voice-callbacks.js';
 import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
@@ -20,7 +20,7 @@ import {
   registerBargeInJudge,
 } from '../../speech/graceful-interrupt/barge-in-judge.js';
 import { createCallAlertSpeaker } from '../shared/call-alerts.js';
-import { noteLiveSession } from '../../tools/registry/live-session.js';
+import { noteLiveSession, type LiveRoom } from '../../tools/registry/live-session.js';
 import { installMoveLog, noteMove } from '../personas/move-log.js';
 import {
   createBargeInFastPath,
@@ -41,6 +41,7 @@ import {
 } from './follow-through-opener.js';
 import { hasGuests, roomGuestsEnabled } from '../personas/room-guests.js';
 import { installNeverSilent } from './never-silent-install.js';
+import { installSelfVoiceGate, logSelfVoiceShadow } from './self-voice-gate/session-gate.js';
 import {
   installFinishedTurnEndpointing,
   installUnfinishedTurnHold,
@@ -119,7 +120,10 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
           return false;
         }
       },
-      log: (fields) => log.info({ sessionId, ...fields }, 'BARGE_IN_FASTPATH'),
+      log: (fields) => {
+        log.info({ sessionId, ...fields }, 'BARGE_IN_FASTPATH');
+        logSelfVoiceShadow(session, 'fastpath'); // SELF_VOICE_GATE=shadow: was it Ferni's echo?
+      },
       softPause,
     });
     if (softPause) onBargeInVerdict(input, bargeIn.onOverlapDecision);
@@ -159,7 +163,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     )
   );
   // A call placed from this one reports back here by its real id (tools/registry/live-session.ts).
-  cleanupFunctions.push(noteLiveSession(session, sessionId));
+  cleanupFunctions.push(noteLiveSession(session, sessionId, jobRoom()));
 
   // Answer a caller turn that was left hanging (turn-keeper.ts).
   if (process.env.TURN_KEEPER !== 'off') {
@@ -200,6 +204,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
   // Say something human when a reply fails instead of going silent (never-silent.ts).
   installNeverSilent(input);
+  // SELF_VOICE_GATE=shadow logs how much of each barge-in was Ferni's own voice (session-gate.ts).
+  installSelfVoiceGate(input);
 
   // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off). When
   // LiveKit's end-of-turn model decides alone (TURN_DETECTOR_SOLE=on), it stands down:
@@ -423,4 +429,16 @@ export async function startTurnSounds(input: TurnSoundsInput) {
     };
   }
   return clips;
+}
+
+/** This job's room: where the owner's app hears a data message (call-result-capture.ts). */
+export function jobRoom(): LiveRoom | undefined {
+  try {
+    const ctx = getJobContext();
+    const name = ctx.room.name;
+    // The sid is LiveKit's, from the job it assigned: no client sets it.
+    return name ? { name, sid: ctx.job.room?.sid || undefined } : undefined;
+  } catch {
+    return undefined; // no job running (tests, tools outside a call)
+  }
 }

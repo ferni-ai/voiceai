@@ -116,7 +116,7 @@ describe('firestore index drift', () => {
     const prodTtls = prod().ttls.map((f) =>
       f.name.split('/collectionGroups/')[1].replace('/fields/', '.')
     );
-    expect(prodTtls).toHaveLength(18);
+    expect(prodTtls).toHaveLength(19);
     // Each prod policy is either already on dev or one the next dev deploy adds.
     const devTtls = new Set(
       dev().ttls.map((f) => f.name.split('/collectionGroups/')[1].replace('/fields/', '.'))

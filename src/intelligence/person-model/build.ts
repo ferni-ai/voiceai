@@ -9,11 +9,17 @@
  *   summaries are read undisputed() and threads only with CALLER_PROVENANCE;
  * - forgotten topics that could not be read (null) fail closed: no text at all;
  * - nothing that looks like a phone number or an email enters the doc.
+ * - Ferni and his teammates are never one of their people (isPersonaSubject).
  * Mood, sentiment and "what changed" are LLM work (PR 4): left dirty for now.
  *
  * @module intelligence/person-model/build
  */
-import { isSensitiveThread, peopleOf, type RecallFact } from '../../memory/index.js';
+import {
+  isPersonaSubject,
+  isSensitiveThread,
+  peopleOf,
+  type RecallFact,
+} from '../../memory/index.js';
 import { buildFollowThrough, buildRhythms } from './stats.js';
 import * as T from './types.js';
 import { buildUnfinished } from './unfinished.js';
@@ -73,7 +79,7 @@ function buildTopics(i: PersonModelInputs, forgotten: string[]): T.Topics {
   };
 }
 
-type Draft = T.Person & { notes: string[] };
+type Draft = T.Person & { notes: string[]; stored: string };
 
 function buildPeople(i: PersonModelInputs, now: Date, forgotten: string[]): T.Person[] {
   const since = now.getTime() - 90 * DAY;
@@ -82,7 +88,7 @@ function buildPeople(i: PersonModelInputs, now: Date, forgotten: string[]): T.Pe
     const k = name.toLowerCase();
     const p = byName.get(k) ?? {
       ...{ name, relation, mentions90d: 0, lastMentioned: null, openThread: null },
-      ...{ sentiment: 'unknown' as const, sensitive: false, notes: [] },
+      ...{ sentiment: 'unknown' as const, sensitive: false, notes: [], stored: '' },
     };
     p.relation ??= relation;
     byName.set(k, p);
@@ -95,14 +101,17 @@ function buildPeople(i: PersonModelInputs, now: Date, forgotten: string[]): T.Pe
   };
   // Who is who comes from RECALL_PEOPLE's roster (never guessed), then relations from their profile.
   for (const r of peopleOf(i.facts)) person(r.name, r.relation);
+  // The relation is stored now (person-model-store.ts): the same contact and forget rule as names.
   for (const m of i.familyMembers)
-    if (str(m.name)) person(str(m.name), str(m.relationship).toLowerCase() || null);
+    if (str(m.name))
+      person(str(m.name), keep(m.relationship, forgotten, 40)?.toLowerCase() ?? null);
   // relationship_network: mentions and aliases; a name only it knows has no relation.
   for (const n of i.relationshipNetwork) {
     const names = [str(n.name), ...arr(n.aliases).map(str)].filter(Boolean);
     const known = names.map((x) => byName.get(x.toLowerCase())).find(Boolean);
     const p = known ?? (names[0] ? person(names[0], null) : null);
     if (!p) continue;
+    p.stored ||= str(n.type) || str(n.relationship); // for isPersonaSubject; not shown: a guess
     if (!p.lastMentioned || (ms(n.lastMentioned) ?? 0) > Date.parse(p.lastMentioned))
       p.lastMentioned = iso(ms(n.lastMentioned));
     for (const m of arr(n.recentMentions) as Doc[]) {
@@ -116,9 +125,11 @@ function buildPeople(i: PersonModelInputs, now: Date, forgotten: string[]): T.Pe
     seen(p, ms(f.extractedAt));
     p.notes.push(`${f.key} ${f.value}`);
   }
+  const theirs = (p: Draft) =>
+    keep(p.name, forgotten, 60) === p.name && !isPersonaSubject(p.name, p.relation || p.stored);
   return [...byName.values()]
-    .filter((p) => keep(p.name, forgotten, 60) === p.name)
-    .map(({ notes, ...p }) => ({ ...p, sensitive: notes.some(isSensitiveThread) }))
+    .filter(theirs)
+    .map(({ notes, stored: _, ...p }) => ({ ...p, sensitive: notes.some(isSensitiveThread) }))
     .sort(
       (a, b) =>
         b.mentions90d - a.mentions90d ||

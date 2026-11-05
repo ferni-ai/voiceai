@@ -5,3 +5,4 @@
  * @module intelligence/pondering
  */
 export type { Pondering, PonderFollowUp, PonderNote } from './pondering.js';
+export { hadRecentCrisis } from './pondering-opener.js';

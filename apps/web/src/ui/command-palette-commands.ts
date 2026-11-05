@@ -151,11 +151,11 @@ export function getDefaultCommands(): Command[] {
     },
     {
       id: 'end-conversation',
-      label: 'End conversation',
+      label: 'End call',
       icon: PALETTE_ICONS.phoneOff,
       shortcut: '↵',
       category: 'actions',
-      keywords: ['hang up', 'stop', 'disconnect', 'end'],
+      keywords: ['hang up', 'stop', 'disconnect', 'end', 'conversation'],
       enabled: () => appState.get('connection') === 'connected',
       action: () => emit('ferni:toggle-call'),
     },

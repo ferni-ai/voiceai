@@ -218,7 +218,7 @@ export async function resolveLoop(
     loop.resolution = resolution;
     await saveOpenLoop(userId, loop);
 
-    log.debug({ userId, loopId, resolution: resolution?.slice(0, 50) }, '✅ Loop resolved');
+    log.debug({ userId, loopId, resolutionLen: resolution?.length }, '✅ Loop resolved');
   }
 }
 

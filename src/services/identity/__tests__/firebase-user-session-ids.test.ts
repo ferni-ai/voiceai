@@ -8,9 +8,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getUser = vi.hoisted(() => vi.fn());
-vi.mock('firebase-admin', () => ({
-  default: { apps: [{}], auth: () => ({ getUser }) },
-}));
+vi.mock('firebase-admin/auth', () => ({ getAuth: () => ({ getUser }) }));
 const log = vi.hoisted(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }));
 vi.mock('../../../utils/safe-logger.js', () => ({ createLogger: () => log }));
 

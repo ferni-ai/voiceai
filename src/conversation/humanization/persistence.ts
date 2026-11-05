@@ -94,18 +94,18 @@ async function getFirestore(): Promise<FirebaseFirestore.Firestore | null> {
   initAttempted = true;
 
   try {
-    const admin = (await import('firebase-admin')).default;
+    const { getApps, initializeApp } = await import('firebase-admin/app');
 
-    if (admin.apps.length === 0) {
+    if (getApps().length === 0) {
       const projectId =
         process.env.GCP_PROJECT_ID ||
         process.env.FIREBASE_PROJECT_ID ||
         process.env.GOOGLE_CLOUD_PROJECT;
 
       if (projectId) {
-        admin.initializeApp({ projectId });
+        initializeApp({ projectId });
       } else {
-        admin.initializeApp();
+        initializeApp();
       }
     }
 

@@ -27,7 +27,7 @@ describe('COHORT_FLAGS', () => {
     expect([...COHORT_FLAGS].sort()).toEqual(
       [
         'SEMANTIC_RECALL', 'RECALL_PEOPLE', 'RECALL_EPISODES', 'RECALL_RARE_WORDS',
-        'FACT_SUPERSESSION', 'EXTRACTION_CONTEXT', 'OPENER_FOLLOW_UP', 'LIVE_SUMMARIES',
+        'FACT_SUPERSESSION', 'EXTRACTION_CONTEXT', 'FACT_SUBJECT_GUARD', 'OPENER_FOLLOW_UP', 'LIVE_SUMMARIES',
         'COACH_FOLLOW_THROUGH', 'LIFE_MOVES_ON', 'CANDOR', 'WEB_SEARCH', 'WORLD_MODEL_TEMPORAL',
         'WORLD_FACTS_IN_CALL', 'POST_CALL_CHECKIN', 'FOLLOW_THROUGH_TEXTS',
         'OUTREACH_PONDERED_NOTES', 'CALL_WRAP_UP', 'WRAP_UP', 'SHORT_GOODBYE', 'PHONE_GOODBYE',
@@ -37,7 +37,7 @@ describe('COHORT_FLAGS', () => {
         'PROACTIVE_CHANNELS', 'WEEKLY_PREDICTION', 'WELLBEING_AFTER_CALL', 'TOOLS_REAL_CALL_USER',
         'COACH_WINS',
         'FRIEND_CELEBRATIONS', 'REVIVED_INTELLIGENCE', 'CALL_JOURNAL', 'FOLLOW_THROUGH_IMPORT',
-        'PONDERING', 'HANDOFF_FIRST_FIX', 'MORNING_BRIEF', 'TOOLS_SAME_TURN',
+        'PONDERING', 'HANDOFF_FIRST_FIX', 'MORNING_BRIEF', 'TOOLS_SAME_TURN', 'PERSON_MODEL',
         'FOLLOW_THROUGH_OPENER', 'NAMED_TUNE', 'GOOD_NEWS_BIGGER', 'ALEX_CHIEF_OF_STAFF',
         'WEB_PUSH_DELIVERY', 'PERSONA_VOICE', 'TURN_LENGTH', 'TURN_TEXTURE',
         'REMINDER_SMS_DEFAULT', 'REMINDER_IN_APP_PUSH', 'FAMILY_TABLE', 'OPEN_LOOPS_IN_CONTEXT',
@@ -45,6 +45,13 @@ describe('COHORT_FLAGS', () => {
         'FOCUS_HOLD', 'OUTREACH_SERVER_CONFIRM', 'COMMITMENT_SINGLE_WRITER',
         'ACTION_CLAIM_STREAM', 'PREEMPT_STABLE_CONTEXT', 'CACHE_WARM_PRIMARY',
         'HANDOFF_CACHE_WARM', 'FORGET_DELETES', 'CRISIS_IMMINENT_NEEDS_AGREEMENT',
+        'GMAIL_SEND_AS_USER',
+        'PERSONA_GROWTH', 'QUIET_AFTER_QUESTION',
+        'CALL_NEWS_OPENER', 'TURN_MEMORY_RRF_SCALE', 'TURN_MEMORY_RERANK', 'CALLER_CARD',
+        'DATES_IN_HELLO', 'PERSONA_BRIEFING_ALEX', 'PERSONA_BRIEFING_JORDAN',
+        'PERSONA_BRIEFING_MAYA', 'PERSONA_BRIEFING_NAYAN', 'PERSONA_BRIEFING_PETER_HANDOFF',
+        'HANDOFF_DESK', 'REMEMBER_TO_RECALL', 'MEMORY_TOOLS_HONEST', 'FACTS_DUAL_WRITE',
+        'MEMORY_FACTS',
       ].sort() // prettier-ignore
     );
   });
@@ -56,6 +63,28 @@ describe('COHORT_FLAGS', () => {
     expect(missingPrerequisites({ OUTREACH_PONDERED_NOTES: 'on' })).toEqual([
       'OUTREACH_PONDERED_NOTES needs PONDERING',
     ]);
+  });
+
+  it('turn rerank needs the rescale; dates in the hello need the dates writer and temporal facts', () => {
+    expect(missingPrerequisites({ TURN_MEMORY_RERANK: 'on' })).toEqual([
+      'TURN_MEMORY_RERANK needs TURN_MEMORY_RRF_SCALE',
+    ]);
+    expect(missingPrerequisites({ DATES_IN_HELLO: 'on', DATES_THAT_MATTER: 'on' })).toEqual([
+      'DATES_IN_HELLO needs WORLD_MODEL_TEMPORAL',
+    ]);
+    expect(missingPrerequisites({ DATES_IN_HELLO: 'on' })).toEqual([
+      'DATES_IN_HELLO needs DATES_THAT_MATTER, WORLD_MODEL_TEMPORAL',
+    ]);
+    const all = { TURN_MEMORY_RRF_SCALE: 'on', TURN_MEMORY_RERANK: 'on', DATES_THAT_MATTER: 'on' };
+    expect(
+      missingPrerequisites({ ...all, WORLD_MODEL_TEMPORAL: 'on', DATES_IN_HELLO: 'on' })
+    ).toEqual([]);
+  });
+  it('the facts dual write needs the facts store', () => {
+    expect(missingPrerequisites({ FACTS_DUAL_WRITE: 'on' })).toEqual([
+      'FACTS_DUAL_WRITE needs MEMORY_FACTS',
+    ]);
+    expect(missingPrerequisites({ FACTS_DUAL_WRITE: 'on', MEMORY_FACTS: 'on' })).toEqual([]);
   });
 });
 

@@ -23,6 +23,8 @@ import { withFallingVocative } from './name-intonation.js';
 import { sendReplyTone } from './reply-tone-signal.js';
 import type { ReplyStream } from './providers/cartesia-reply-stream.js';
 import type { SSMLProsodyConfig } from './types.js';
+import { ReplyWordTimings } from './word-timings.js';
+import { flagOn } from '../../config/env-flag.js';
 
 // Big emotions widened the voice's pitch range (8.7 to 10.9 st) and swung it
 // between turns; only the measured-stable set reaches Cartesia (#180).
@@ -132,6 +134,8 @@ export interface ContinuationOptions {
   /** Timing marks for the first-audio log: first LLM text in, first text sent. */
   onStage?(stage: 'text' | 'push'): void;
   onError(error: unknown, phase: 'text' | 'audio'): void;
+  /** Put the reply stream's word timings on the frames (default: TTS_ALIGNED_TRANSCRIPT). */
+  wordTimings?: boolean;
 }
 
 export function createContinuationTTS(opts: ContinuationOptions): NodeReadableStream<AudioFrame> {
@@ -295,6 +299,7 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
     async start(controller) {
       const feeding = feed();
       let heardAudio = false;
+      const timings = new ReplyWordTimings(opts.wordTimings ?? flagOn('TTS_ALIGNED_TRANSCRIPT'));
       try {
         for (let i = 0; !stopped; i++) {
           while (i >= replies.length && !feedDone) {
@@ -303,8 +308,9 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
             });
           }
           if (i >= replies.length) break;
+          timings.startContext();
           for await (const pcm of i === 0 && trimLead
-            ? trimLeadingSilence(replies[i], 24000, onFirstAudio.trimmed)
+            ? trimLeadingSilence(replies[i], 24000, timings.onTrimmed(onFirstAudio.trimmed))
             : replies[i]) {
             if (stopped) break;
             if (pcm.byteLength === 0) continue;
@@ -314,9 +320,12 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
               if (stopped) break;
               onFirstAudio();
             }
-            for (const frame of toFrames(pcm)) controller.enqueue(frame);
+            for (const frame of timings.frames(pcm, replies[i], toFrames))
+              controller.enqueue(frame);
           }
+          timings.addLate(replies[i]);
         }
+        for (const f of timings.tail(heardAudio && !stopped, toFrames)) controller.enqueue(f);
       } catch (error) {
         onError(error, 'audio');
       }

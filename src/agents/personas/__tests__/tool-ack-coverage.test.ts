@@ -5,6 +5,7 @@
 import { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { describe, expect, it } from 'vitest';
+import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import { LEAD_INS, ON_IT, withoutPastLeadIns, withToolLeadIn } from '../tool-lead-in.js';
 
 const ON = { TOOL_ACK_WIDE: 'on' };
@@ -98,6 +99,25 @@ describe('TOOL_ACK_WIDE tool coverage', () => {
   it('flag on: no "On it." after hard news either; Ferni goes straight to the read-back', async () => {
     expect(await spokenBefore('callOnBehalf', 'My mom died. Call my sister.', ON)).toBe('');
     expect(await spokenBefore('saveContact', 'Add the funeral home as a contact.', ON)).toBe('');
+  });
+
+  it('flag on: a call with crisis risk noted gets no line, whatever this turn says', async () => {
+    const sessionId = 'tool-ack-wide-crisis';
+    const session = { userData: { services: { sessionId } } };
+    const words = 'Can you call Riley and ask about Sunday?';
+    const lookup = 'Can you look up Riley’s number?';
+    // Pre: the same words on this session, before any risk, get a line.
+    expect(await spokenBefore('callOnBehalf', words, ON, session)).toBe(ON_IT);
+    expect(LEAD_INS as readonly string[]).toContain(
+      await spokenBefore('getContactInfo', lookup, ON, session)
+    );
+    noteCrisisRisk(sessionId);
+    try {
+      expect(await spokenBefore('callOnBehalf', words, ON, session)).toBe('');
+      expect(await spokenBefore('getContactInfo', lookup, ON, session)).toBe('');
+    } finally {
+      resetCrisisCallRisk();
+    }
   });
 
   it('flag on: a call the model makes unasked (no request in the words) gets nothing', async () => {

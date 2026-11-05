@@ -13,7 +13,7 @@
 import type { JWTPayload } from 'jose';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { createLogger } from '../../utils/safe-logger.js';
-import { assertErased, erasureErrorCode } from '../platform/erasure-step.js';
+import { erasureErrorCode } from '../platform/erasure-step.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 
 const log = createLogger({ module: 'apple-signin-notifications' });
@@ -249,12 +249,13 @@ async function handleAccountDelete(userId: string, event: AppleNotificationEvent
     try {
       const { getDataExportService } = await import('../data-export.js');
       const dataExportService = getDataExportService();
-      assertErased(await dataExportService.deleteAllData(userId));
+      // The sign-in goes off before any data does, so no instance reads the account as live
+      const signIn = await import('../identity/erasure-sign-in.js');
+      await signIn.eraseWithSignInOff(userId, () => dataExportService.deleteAllData(userId));
 
       // Also delete Firebase user account
       try {
-        const { deleteFirebaseUser } = await import('../identity/firebase-auth.js');
-        await deleteFirebaseUser(userId);
+        await signIn.deleteSignInAfterErasure(userId);
         log.info({ userId: `${userId.substring(0, 8)}...` }, 'Firebase user deleted');
       } catch (firebaseErr) {
         log.warn(

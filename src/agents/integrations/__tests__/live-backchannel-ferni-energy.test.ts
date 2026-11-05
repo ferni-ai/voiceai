@@ -35,7 +35,6 @@ describe("backchannels follow Ferni's energy (FERNI_STATE, ferni-energy.ts)", ()
   });
 
   it('a worn-out Ferni says a soft "mhm" where he would otherwise say "yeah"', () => {
-    vi.stubEnv('BACKCHANNELS', 'on');
     vi.useFakeTimers({ now: 1_000_000 });
     // 0.5 plays (under the 0.6 odds) and picks the middle clip of the pool.
     vi.spyOn(Math, 'random').mockReturnValue(0.5);

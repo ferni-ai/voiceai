@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_APPLE_WEB_SIGNIN?: string;
   /** "on" or "true" gives the call its own room on phones (config/call-room-flag.ts). */
   readonly VITE_CALL_ROOM?: string;
+  /** "false" turns gate-first paint off: Home paints first, the gate fades in over it (ui/gate-first.ui.ts). */
+  readonly VITE_GATE_FIRST?: string;
   /** "on" or "true" turns an avatar motion switch on for the build (config/motion-flags.ts). */
   readonly VITE_NATURAL_BLINK?: string;
   readonly VITE_LID_BLEND?: string;
@@ -26,6 +28,8 @@ interface ImportMetaEnv {
   readonly VITE_SOUND_DIRECTOR?: string;
   /** "true" starts the seeds economy, toast and display (config/seeds-flag.ts). Off: seeds are cut. */
   readonly VITE_SEEDS?: string;
+  /** "true" shows Cancel and Reschedule in When I'll Reach Out (config/reach-out-actions-flag.ts). */
+  readonly VITE_REACH_OUT_ACTIONS?: string;
 }
 
 interface ImportMeta {

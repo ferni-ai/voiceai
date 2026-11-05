@@ -91,16 +91,16 @@ export const GROUNDED_DAY_DETAILS: readonly DayDetail[] = [
     text: 'you spent a while looking for your reading glasses this morning before finding them on your head, again',
   },
   {
-    canon: { file: 'biography.md', says: 'Ken and I would spend weekends in the mountains' },
-    text: 'you were remembering the weekends you and Ken spent in the mountains, and it put you in a good mood',
+    canon: { file: 'biography.md', says: 'Owen and I would spend weekends in the mountains' },
+    text: 'you were remembering the weekends you and Owen spent in the mountains, and it put you in a good mood',
   },
   {
-    canon: { file: 'character-own-life.md', says: "Jim, who'll argue ideas with you" },
-    text: "you're still turning over an idea Jim argued with you about, the kind of argument that could go until two in the morning",
+    canon: { file: 'character-own-life.md', says: "Hollis, who'll argue ideas with you" },
+    text: "you're still turning over an idea Hollis argued with you about, the kind of argument that could go until two in the morning",
   },
   {
-    canon: { file: 'character-own-life.md', says: 'Scott, who never forgets a birthday' },
-    text: 'Scott already reminded you about a birthday coming up, the way he always does, which made your morning',
+    canon: { file: 'character-own-life.md', says: 'Marty, who never forgets a birthday' },
+    text: 'Marty already reminded you about a birthday coming up, the way he always does, which made your morning',
   },
   {
     canon: { file: 'character.md', says: 'whether to finally book the trip' },

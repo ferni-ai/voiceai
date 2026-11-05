@@ -22,42 +22,29 @@ vi.mock('../../../../utils/safe-logger.js', () => ({
   }),
 }));
 
-// Mock firebase-admin
-vi.mock('firebase-admin', () => ({
-  default: {
-    apps: [],
-    initializeApp: vi.fn(),
-    firestore: vi.fn(() => ({
-      collection: vi.fn(() => ({
-        add: vi.fn().mockResolvedValue({ id: 'test-doc-id' }),
-        doc: vi.fn(() => ({
-          set: vi.fn().mockResolvedValue(undefined),
-          get: vi.fn().mockResolvedValue({ exists: false }),
-        })),
-        get: vi.fn().mockResolvedValue({ docs: [] }),
-        where: vi.fn(() => ({
-          orderBy: vi.fn(() => ({
-            limit: vi.fn(() => ({
-              get: vi.fn().mockResolvedValue({ docs: [] }),
-            })),
+// The module reaches Firestore through getAdminFirestore(); it serves this fake.
+// FieldValue comes from the global firebase-admin/firestore mock (setup.ts).
+vi.mock('../../../../utils/firebase-admin-app.js', () => ({
+  getAdminFirestore: vi.fn(() => ({
+    collection: vi.fn(() => ({
+      add: vi.fn().mockResolvedValue({ id: 'test-doc-id' }),
+      doc: vi.fn(() => ({
+        set: vi.fn().mockResolvedValue(undefined),
+        get: vi.fn().mockResolvedValue({ exists: false }),
+      })),
+      get: vi.fn().mockResolvedValue({ docs: [] }),
+      where: vi.fn(() => ({
+        orderBy: vi.fn(() => ({
+          limit: vi.fn(() => ({
+            get: vi.fn().mockResolvedValue({ docs: [] }),
           })),
         })),
       })),
     })),
-  },
-  firestore: {
-    FieldValue: {
-      increment: vi.fn((n) => ({ increment: n })),
-    },
-  },
+  })),
 }));
 
 // Mock feature flags config
-// The module reaches Firestore through getAdminFirestore(); it serves the same fake.
-vi.mock('../../../../utils/firebase-admin-app.js', async () => {
-  const admin = (await import('firebase-admin')).default;
-  return { getAdminFirestore: () => admin.firestore() };
-});
 
 vi.mock('../../../../config/feature-flags.js', () => ({
   isLifeCoachDomainEnabled: vi.fn((domain: string) => {

@@ -36,6 +36,7 @@ import type { SpeechContext } from '../../speech/types/index.js';
 import { getDJController } from '../../audio/dj-controller.js';
 import type { UserData } from '../shared/types.js';
 import { weaveProactiveIntoGreeting } from '../shared/utilities-integration.js';
+import { getProactiveContext, type ProactiveContext } from './greeting-proactive-context.js';
 // NOTE: conversation-priming is imported dynamically in generateAndSpeakGreeting
 import { logPrimingApplied } from '../shared/function-call-telemetry.js';
 // Speech coordination for centralized speech management
@@ -154,7 +155,7 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
     greeting = getTrialWelcomePrompt();
     diag.session('Using trial welcome prompt for first-time user', {
       userId,
-      greeting: `${greeting.slice(0, 50)}...`,
+      greetingLen: greeting.length,
     });
   }
 
@@ -191,7 +192,7 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
   if (!greeting && warmGreeting && elapsedSoFar > 100) {
     diag.session('Using warm greeting (personalized taking too long)', {
       elapsedMs: elapsedSoFar,
-      warmGreeting: warmGreeting.slice(0, 30),
+      warmGreetingLen: warmGreeting.length,
     });
     greeting = warmGreeting;
     usedWarmGreeting = true;
@@ -280,7 +281,7 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
   if (utilitiesProactiveOpener) {
     greeting = weaveProactiveIntoGreeting(greeting, utilitiesProactiveOpener, 0.3);
     diag.session('Wove in utilities proactive opener', {
-      opener: utilitiesProactiveOpener.slice(0, 50),
+      openerLen: utilitiesProactiveOpener.length,
     });
   }
 
@@ -290,7 +291,7 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
   greeting = await appendMusicCallback(greeting, isReturningUser, services, sessionPersona);
 
   diag.tts('Generated greeting', {
-    greeting: greeting.substring(0, 100) + (greeting.length > 100 ? '...' : ''),
+    greetingLen: greeting.length,
     length: greeting.length,
   });
 
@@ -328,7 +329,7 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
   // Ferni's natural voice is his best voice. Only use speed for specific effect.
 
   diag.tts('Enhanced greeting', {
-    enhanced: enhancedGreeting.substring(0, 100) + (enhancedGreeting.length > 100 ? '...' : ''),
+    enhancedLen: enhancedGreeting.length,
   });
 
   // Speak the greeting via coordinated speech system
@@ -534,7 +535,9 @@ async function loadPersonaMemories(
 }
 
 /**
- * Generate greeting using bundle runtime (time-aware, relationship-stage aware)
+ * Generate greeting using bundle runtime (time-aware, relationship-stage aware).
+ * Proactive context (check-in, insight) comes from the same getProactiveContext the standard
+ * path uses, fetched once here, so a loaded bundle never drops it.
  */
 async function generateBundleGreeting(
   bundleRuntime: BundleRuntimeEngine,
@@ -544,8 +547,12 @@ async function generateBundleGreeting(
   sessionPersona: PersonaConfig,
   personaMemories: PersonaMemoryForGreeting[]
 ): Promise<{ greeting: string; hasReferencedLastConversation: boolean }> {
+  const proactive = await getProactiveContext(services, userData, isReturningUser);
+  if (proactive.callerDistressed || proactive.emotionalCheckIn) {
+    return greetWithProactiveLead(userData.name, proactive, services);
+  }
+
   let greeting: string;
-  let hasReferencedLastConversation = false;
 
   // Get time-of-day aware greeting from bundle
   const timeGreeting = bundleRuntime.getTimeOfDayGreeting();
@@ -574,25 +581,38 @@ async function generateBundleGreeting(
     diag.session('Using bundle time-of-day greeting');
   } else {
     // Fall back to standard greeting generator with persona memories + bundleRuntime
-    const result = await generateGreetingWithContext(
+    const base = await greetingFromProfile(
       services,
       userData,
       isReturningUser,
       sessionPersona,
       personaMemories,
+      proactive.openQuestions,
       bundleRuntime
     );
-    greeting = result.greeting;
-    hasReferencedLastConversation = result.hasReferencedLastConversation;
+    return applyProactiveContext(
+      base,
+      proactive.threadStarter,
+      proactive.proactiveInsight,
+      proactive.proactiveInsightId,
+      undefined,
+      services
+    );
   }
 
-  // Apply time-of-day modifiers to greeting delivery
-  // NOTE: Removed soft volume modifier - it made Ferni sound timid/weird
-  // Ferni should sound confident and warm, not whisper-quiet at night
-  const timeModifiers = bundleRuntime.getTimeOfDayModifiers();
-  void timeModifiers; // Keep for potential future use, but don't apply volume
+  // Stage and time greetings carry no thread starter; a pending insight still lands.
+  if (proactive.proactiveInsight) {
+    return applyProactiveContext(
+      greeting,
+      undefined,
+      proactive.proactiveInsight,
+      proactive.proactiveInsightId,
+      undefined,
+      services
+    );
+  }
 
-  return { greeting, hasReferencedLastConversation };
+  return { greeting, hasReferencedLastConversation: false };
 }
 
 /**
@@ -606,91 +626,70 @@ async function generateStandardGreeting(
   personaMemories: PersonaMemoryForGreeting[]
 ): Promise<{ greeting: string; hasReferencedLastConversation: boolean }> {
   // Get proactive context (threads, insights, emotional check-ins)
-  const { threadStarter, proactiveInsight, proactiveInsightId, emotionalCheckIn, openQuestions } =
-    await getProactiveContext(services, isReturningUser);
-
-  // BETTER-THAN-HUMAN: Load pending intentions for follow-up
-  let pendingIntentions: Array<{ intention: string; statedAt: Date; targetTime?: Date }> = [];
-  const intentionsUserId = services.userId;
-  try {
-    if (intentionsUserId) {
-      const { getPendingIntentions } = await import('../../services/trust-systems/small-wins.js');
-      const rawIntentions = getPendingIntentions(intentionsUserId);
-      pendingIntentions = rawIntentions.map((i) => ({
-        intention: i.intention,
-        statedAt: i.statedAt,
-        targetTime: i.targetTime,
-      }));
-    }
-  } catch (e) {
-    // Non-critical - continue without intentions
+  const proactive = await getProactiveContext(services, userData, isReturningUser);
+  if (proactive.callerDistressed || proactive.emotionalCheckIn) {
+    return greetWithProactiveLead(userData.name, proactive, services);
   }
 
-  // Generate the greeting
-  const greeting = await generateGreeting(sessionPersona, {
+  const greeting = await greetingFromProfile(
+    services,
+    userData,
     isReturningUser,
-    userName: userData.name,
-    lastConversationSummary: services.userProfile?.lastConversationSummary,
+    sessionPersona,
     personaMemories,
-    relationshipStage: services.userProfile?.relationshipStage as
-      | 'stranger'
-      | 'acquaintance'
-      | 'friend'
-      | 'trusted_advisor'
-      | undefined,
-    usedGreetings: services.userProfile?.humanizingState?.usedGreetings,
-    lastConversationDate: services.userProfile?.lastContact
-      ? new Date(services.userProfile.lastContact)
-      : undefined,
-    goals: services.userProfile?.goals,
-    primaryConcerns: services.userProfile?.primaryConcerns,
-    openQuestions,
-    lifeEvents: services.userProfile?.lifeEvents
-      ? convertFromUserProfileEvents(services.userProfile.lifeEvents)
-      : undefined,
-    conversationCount: services.userProfile?.totalConversations,
-    userId: services.userId,
-    pendingIntentions,
-  });
+    proactive.openQuestions
+  );
 
   // Apply proactive context to greeting
   return applyProactiveContext(
     greeting,
-    threadStarter,
-    proactiveInsight,
-    proactiveInsightId,
-    emotionalCheckIn,
+    proactive.threadStarter,
+    proactive.proactiveInsight,
+    proactive.proactiveInsightId,
+    proactive.emotionalCheckIn,
     services
   );
 }
 
 /**
- * Generate greeting with full context (used by bundle runtime fallback)
+ * A short hello, then the check-in, thread or insight. A distressed caller gets a quiet hello:
+ * no caught_doing, no upbeat entrance, the rule generateAliveEntrance applies to a stressed or
+ * sad caller. A caller back with good news and no distress gets a bright one. Neither uses
+ * persona quirks, and both are identical with or without a bundle runtime.
  */
-async function generateGreetingWithContext(
+function greetWithProactiveLead(
+  userName: string | undefined,
+  proactive: ProactiveContext,
+  services: SessionServices
+): { greeting: string; hasReferencedLastConversation: boolean } {
+  const name = userName ? `, ${userName}` : '';
+  const bright = !proactive.callerDistressed && proactive.emotionalCheckInType === 'celebration';
+  const hello = bright
+    ? `<emotion value="happy"/>Hey${name}!`
+    : `<emotion value="sympathetic"/>Hey${name}.`;
+  return applyProactiveContext(
+    hello,
+    proactive.threadStarter,
+    proactive.proactiveInsight,
+    proactive.proactiveInsightId,
+    proactive.emotionalCheckIn,
+    services
+  );
+}
+
+/**
+ * The persona's greeting from the caller's profile (intentions, life events, memories,
+ * compositional atoms). With a bundle runtime it may open with a caught_doing quirk.
+ */
+async function greetingFromProfile(
   services: SessionServices,
   userData: UserData,
   isReturningUser: boolean,
   sessionPersona: PersonaConfig,
   personaMemories: PersonaMemoryForGreeting[],
+  openQuestions: string[],
   bundleRuntime?: BundleRuntimeEngine
-): Promise<{ greeting: string; hasReferencedLastConversation: boolean }> {
-  // Get open thread conversation starter for proactive greeting
-  let threadStarter: string | undefined;
-  const openThreads = services.getOpenThreads();
-  if (openThreads.length > 0 && isReturningUser) {
-    threadStarter = services.getThreadConversationStarter() || undefined;
-    if (threadStarter) {
-      diag.session('Found cross-session thread to surface', {
-        threadCount: openThreads.length,
-        starter: threadStarter.slice(0, 50),
-      });
-    }
-  }
-
-  // Get open questions from threads
-  const openQuestions = openThreads.flatMap((t) => t.questionsToAnswer || []).slice(0, 3);
-
+): Promise<string> {
   // BETTER-THAN-HUMAN: Load pending intentions for follow-up
   let pendingIntentions: Array<{ intention: string; statedAt: Date; targetTime?: Date }> = [];
   const intentionsUserId = services.userId;
@@ -704,22 +703,18 @@ async function generateGreetingWithContext(
         targetTime: i.targetTime,
       }));
     }
-  } catch (e) {
+  } catch {
     // Non-critical - continue without intentions
   }
 
-  const greeting = await generateGreeting(sessionPersona, {
+  return generateGreeting(sessionPersona, {
     isReturningUser,
     userName: userData.name,
     lastConversationSummary: services.userProfile?.lastConversationSummary,
     personaMemories,
     bundleRuntime,
     relationshipStage: services.userProfile?.relationshipStage as
-      | 'stranger'
-      | 'acquaintance'
-      | 'friend'
-      | 'trusted_advisor'
-      | undefined,
+      'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor' | undefined,
     usedGreetings: services.userProfile?.humanizingState?.usedGreetings,
     lastConversationDate: services.userProfile?.lastContact
       ? new Date(services.userProfile.lastContact)
@@ -734,83 +729,6 @@ async function generateGreetingWithContext(
     userId: services.userId,
     pendingIntentions,
   });
-
-  // Track if greeting referenced last conversation
-  const hasReferencedLastConversation = greeting.toLowerCase().includes('last time');
-
-  // If we have a thread starter and didn't use it in greeting, append it
-  if (threadStarter && !hasReferencedLastConversation) {
-    return {
-      greeting: `${greeting} <break time="400ms"/> ${threadStarter}`,
-      hasReferencedLastConversation: true,
-    };
-  }
-
-  return { greeting, hasReferencedLastConversation };
-}
-
-/**
- * Get proactive context (threads, insights, emotional check-ins)
- */
-async function getProactiveContext(
-  services: SessionServices,
-  isReturningUser: boolean
-): Promise<{
-  threadStarter?: string;
-  proactiveInsight?: string;
-  proactiveInsightId?: string;
-  emotionalCheckIn?: string;
-  openQuestions: string[];
-}> {
-  // Get open thread conversation starter for proactive greeting
-  let threadStarter: string | undefined;
-  const openThreads = services.getOpenThreads();
-  if (openThreads.length > 0 && isReturningUser) {
-    threadStarter = services.getThreadConversationStarter() || undefined;
-  }
-
-  // Get open questions from threads
-  const openQuestions = openThreads.flatMap((t) => t.questionsToAnswer || []).slice(0, 3);
-
-  // Get high-priority proactive insights for check-ins
-  let proactiveInsight: string | undefined;
-  let proactiveInsightId: string | undefined;
-  if (isReturningUser) {
-    try {
-      const insightResult = await services.getProactiveInsights();
-      if (insightResult.highPriorityCount > 0 && insightResult.suggestedConversationStarter) {
-        // Only use proactive insight if no thread starter (avoid double-starter)
-        if (!threadStarter) {
-          proactiveInsight = insightResult.suggestedConversationStarter;
-          proactiveInsightId = insightResult.suggestedInsightId;
-        }
-      }
-    } catch (e) {
-      log().debug({ error: String(e) }, 'Proactive insights fetch failed (non-blocking)');
-    }
-  }
-
-  // Get emotional memory check-in suggestions for returning users
-  let emotionalCheckIn: string | undefined;
-  if (isReturningUser && !threadStarter && !proactiveInsight) {
-    try {
-      const checkIns = services.emotionalMemory.getCheckInSuggestions();
-      if (checkIns.length > 0) {
-        const topCheckIn = checkIns[0];
-        // Mark as followed up so we don't repeat
-        services.emotionalMemory.markFollowedUp(topCheckIn.moment.id);
-        emotionalCheckIn = topCheckIn.suggestedOpener;
-        diag.session('Using emotional memory check-in', {
-          type: topCheckIn.type,
-          reference: topCheckIn.reference,
-        });
-      }
-    } catch (e) {
-      log().debug({ error: String(e) }, 'Emotional check-in fetch failed (non-blocking)');
-    }
-  }
-
-  return { threadStarter, proactiveInsight, proactiveInsightId, emotionalCheckIn, openQuestions };
 }
 
 /**
@@ -875,7 +793,7 @@ async function appendMusicCallback(
     // 20% chance to mention music preferences in greeting (not too pushy)
     if (musicCallback && Math.random() < 0.2) {
       diag.session('Added cross-session music callback', {
-        callback: musicCallback.slice(0, 50),
+        callbackLen: musicCallback.length,
       });
       return `${greeting} <break time="500ms"/> ${musicCallback}`;
     }

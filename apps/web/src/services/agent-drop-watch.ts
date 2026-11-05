@@ -7,8 +7,8 @@
  * stayed connected, alone, for 15+ minutes with nothing on screen.
  *
  * Two signals:
- * 1. `agent_session_ended` on the data channel: the agent says its session
- *    closed (server flag SESSION_ENDED_SIGNAL).
+ * 1. `agent_session_ended` on the data channel: an agent that says its
+ *    session closed (the voice agent no longer sends it; signal 2 covers that).
  * 2. The agent participant leaves and no agent is back within a short grace.
  *    Covers a crashed pod that never sends anything. Persona handoffs keep the
  *    same agent participant, and an agent swap rejoins within the grace.

@@ -19,6 +19,7 @@ import {
 import { shownRows, singleWriterFor } from '../../services/superhuman/commitment-single-writer.js';
 import { commitmentsShown } from '../../services/superhuman/commitment-forget.js';
 import { proactiveUserIds } from '../../services/outreach/proactive-channels/proactive-tick.js';
+import { storedTextForOwner } from '../../tools/domains/proactive/outreach/index.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -66,7 +67,10 @@ async function scanDue(now: number): Promise<DueCommitment[]> {
     users.map(async (u) => {
       const on = await singleWriterFor(u);
       const [notForgotten, judged] = await Promise.all([commitmentsShown(u), shownRows(u, on)]);
-      return [u, { on, shown: (d: Record<string, unknown>) => notForgotten(d) && judged(d) }] as const;
+      return [
+        u,
+        { on, shown: (d: Record<string, unknown>) => notForgotten(d) && judged(d) },
+      ] as const;
     })
   );
   const byUser = new Map(flags);
@@ -104,8 +108,11 @@ export async function sendCommitmentPushes(
   let sent = 0;
   for (const { userId, commitment } of due) {
     if (proactive.has(userId)) continue;
+    // Inside the try: one person's row that can't be read or screened skips only them.
     try {
-      if (!(await deps.send(userId, pushMessage(commitment), commitment.id))) continue;
+      const message = pushMessage(commitment);
+      if (!storedTextForOwner([message], { site: 'commitment-push', userId })) continue;
+      if (!(await deps.send(userId, message, commitment.id))) continue;
       sent++;
       await store.markFollowedUp(userId, commitment, now);
     } catch (error) {

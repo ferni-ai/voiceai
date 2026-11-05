@@ -51,8 +51,10 @@ export interface CallScriptTemplate {
   greeting: string;
   identityDisclosure: string;
 
-  // Recording consent (required in many jurisdictions)
-  recordingConsentScript?: string;
+  // What Ferni says it does with the call: nothing is recorded, the details are passed on
+  passAlongScript?: string;
+  // Personal calls ask ("Is that okay?") and honour a no; business calls tell (owner, 2026-11-02)
+  passAlongAsks?: boolean;
 
   // Domain-specific
   hipaaNote?: string;
@@ -82,6 +84,10 @@ export interface OnBehalfCallRequest {
 
   // Context from original conversation
   originalSessionId: string;
+  /** The LiveKit room of that call, where its app listens; set when the dispatch knew it. */
+  originalRoomName?: string;
+  /** That room's LiveKit sid: a later room with the same name has another (owner-room.ts). */
+  originalRoomSid?: string;
   userId: string;
   userTimezone: string;
   userName: string;
@@ -119,9 +125,12 @@ export interface CallOutcome {
 
   // Recording (if consented)
   recordingUrl?: string;
+  /** The model's summary of the call; never the other person's own words. */
   transcriptSummary?: string;
+  /** The person answered but the model couldn't summarise the call: nothing they said is kept. */
+  summaryUnavailable?: boolean;
 
-  /** What the person asked Ferni to pass on to the user, in their (screened) words. */
+  /** What the person asked Ferni to pass on to the user, as the model's summary put it. */
   message?: string;
 
   /** status 'voicemail' only: Ferni really spoke a message (services/outreach/voicemail-outcome.ts). */

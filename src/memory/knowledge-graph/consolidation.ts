@@ -3,21 +3,11 @@
  *
  * Human memory consolidates during sleep - similar memories merge,
  * important ones strengthen, unimportant ones fade. This system
- * does the same for Ferni's knowledge graph.
+ * does the same for Ferni's knowledge graph, as a nightly background job:
+ * merge duplicate entities, supersede repeated facts, decay unused ones,
+ * prune weak relationships and refresh correlations.
  *
- * Why this matters:
- * - Without decay, the graph grows unbounded
- * - Without consolidation, we have redundant entities
- * - Without reinforcement, everything has equal weight
- *
- * Processes:
- * 1. Entity Merging: Detect and merge duplicate entities
- * 2. Fact Consolidation: Combine similar facts
- * 3. Strength Decay: Reduce importance of unused entities
- * 4. Relationship Pruning: Remove weak, unused relationships
- * 5. Correlation Refresh: Update correlation statistics
- *
- * This runs as a background job, typically daily.
+ * MINOR_CARE: a held caller's graph is skipped (utils/minor-care-background-hold.ts).
  *
  * @module memory/knowledge-graph/consolidation
  */
@@ -26,6 +16,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getEntityResolver } from '../entity-store/entity-resolver.js';
 import { getCorrelationEngine } from '../entity-store/correlation-engine.js';
 import { getFirestoreDb, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { backgroundHeld } from '../../utils/minor-care-background-hold.js';
 import type {
   Entity,
   Fact,
@@ -73,9 +64,6 @@ export class ConsolidationEngine {
    * This should be called as a scheduled job (e.g., daily at 3 AM).
    */
   async runConsolidation(userId: string): Promise<ConsolidationResult> {
-    const startTime = Date.now();
-    log.info({ userId }, 'Starting memory consolidation');
-
     const result: ConsolidationResult = {
       entitiesMerged: 0,
       factsConsolidated: 0,
@@ -83,6 +71,15 @@ export class ConsolidationEngine {
       memoriesDecayed: 0,
       newCorrelations: [],
     };
+
+    // MINOR_CARE: a held caller's graph is neither read nor rewritten here (fails closed; no id)
+    if (await backgroundHeld(userId)) {
+      log.info({ reason: 'minor_care' }, 'Memory consolidation skipped');
+      return result;
+    }
+
+    const startTime = Date.now();
+    log.info({ userId }, 'Starting memory consolidation');
 
     try {
       // 1. Merge duplicate entities

@@ -966,10 +966,8 @@
   "src/services/identity/user-identification.ts": 914,
   "src/services/index.ts": 701,
   "src/services/integrations/developer-webhook-dispatcher.ts": 605,
-  "src/services/integrations/google-maps/maps-client.ts": 676,
   "src/services/integrations/integration-hub.ts": 559,
   "src/services/integrations/oauth-manager.ts": 613,
-  "src/services/integrations/rideshare-booking.ts": 540,
   "src/services/integrations/slack-notifications.ts": 621,
   "src/services/intelligence/cross-agent-awareness.ts": 640,
   "src/services/intelligence/emotion-detection.ts": 670,
@@ -1101,7 +1099,6 @@
   "src/services/session/session-summary.ts": 647,
   "src/services/session/session-variety-tracker.ts": 543,
   "src/services/sharing/card-generator.ts": 551,
-  "src/services/smart-home/homekit-bridge.ts": 572,
   "src/services/smart-home/sonos-music.ts": 943,
   "src/services/smart-home/sonos.ts": 828,
   "src/services/social-graph/index.ts": 1149,
@@ -1591,5 +1588,13 @@
   "prefer-const": 1,
   "@typescript-eslint/no-explicit-any": 3,
   "@typescript-eslint/ban-types": 1
+ },
+ "designEslint": {
+  "@ferni/design-system/no-banned-words": 143,
+  "@ferni/design-system/no-hardcoded-colors": 5156,
+  "@ferni/design-system/no-direct-persona-colors": 812,
+  "@ferni/design-system/no-hardcoded-durations": 334,
+  "@ferni/design-system/no-console-in-ui": 26,
+  "@ferni/design-system/prefer-design-tokens": 136
  }
 }

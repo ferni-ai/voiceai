@@ -21,6 +21,8 @@ export async function handleMemoryConsolidation(res: ServerResponse): Promise<vo
   try {
     log.info('Running memory consolidation job (Cloud Scheduler)');
 
+    // MINOR_CARE: registers the hold reader the job asks first; without it every user is skipped
+    await import('../../services/outreach/minor-care-background-read.js');
     const { MemoryConsolidationJob } = await import('../../tasks/scheduled/memory-jobs.js');
 
     const job = new MemoryConsolidationJob();
@@ -69,6 +71,8 @@ export async function handleMemoryDecay(res: ServerResponse): Promise<void> {
   try {
     log.info('Running memory decay job (Cloud Scheduler)');
 
+    // MINOR_CARE: registers the hold reader the job asks first; without it every user is skipped
+    await import('../../services/outreach/minor-care-background-read.js');
     const { MemoryDecayJob } = await import('../../tasks/scheduled/memory-jobs.js');
 
     const job = new MemoryDecayJob();
@@ -114,6 +118,8 @@ export async function handleMemoryDeduplication(res: ServerResponse): Promise<vo
   try {
     log.info('Running memory deduplication job (Cloud Scheduler)');
 
+    // MINOR_CARE: registers the hold reader the job asks first; without it every user is skipped
+    await import('../../services/outreach/minor-care-background-read.js');
     const { MemoryDeduplicationJob } = await import('../../tasks/scheduled/memory-jobs.js');
 
     const job = new MemoryDeduplicationJob();

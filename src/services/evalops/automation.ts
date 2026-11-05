@@ -25,10 +25,6 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import {
-  fetchRecentEvaluations as fetchRecentEvaluationsFromFirestore,
-  persistEvaluation,
-} from './evaluation-persistence.js';
-import {
   DEFAULT_SAMPLING_CONFIG,
   evaluateResponse,
   evaluateVoiceConsistency,
@@ -221,9 +217,6 @@ function storeEvaluation(sessionId: string, evaluation: ResponseEvaluation): voi
     evaluationStore.shift();
   }
 
-  // Persist asynchronously (never block)
-  void persistEvaluation({ ...evaluation, sessionId }).catch(() => undefined);
-
   // Record to activity log
   if (evaluation.flagged) {
     // Find the lowest scoring dimension
@@ -253,12 +246,6 @@ export async function getRecentEvaluations(
   limit = 50,
   filters?: { personaId?: string; flagged?: boolean }
 ): Promise<StoredEvaluation[]> {
-  const fromFirestore = await fetchRecentEvaluationsFromFirestore(limit, filters);
-  if (fromFirestore.length > 0) {
-    // Ensure sessionId exists (ResponseEvaluation has it; StoredEvaluation expects it too)
-    return fromFirestore.map((e) => ({ ...(e as StoredEvaluation), sessionId: e.sessionId }));
-  }
-
   let results = [...evaluationStore];
 
   if (filters?.personaId) {
@@ -400,7 +387,7 @@ interface TurnContext {
  * Hook to evaluate a conversation turn
  * Call this after each AI response is generated
  */
-export async function afterTurn(
+async function afterTurn(
   sessionId: string,
   personaId: string,
   userMessage: string,

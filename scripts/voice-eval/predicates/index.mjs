@@ -1,11 +1,10 @@
 // Deterministic checks over one recorded call (call.mjs has its shape): (call, sweep) => hits
 // [{ quote, why }], no hits is a pass. A gating hit fails the release (gate.mjs exits 1); the rest
 // are reported only. Comments cite the 2026-10-21 capability-sweep transcript behind each check.
+import { SPECTRUM_PREDICATES } from './spectrum.mjs';
+import { agent, norm, sentences } from './text.mjs';
 
-const norm = (s) => s.replace(/[’‘]/g, "'");
 const words = (s) => norm(s.toLowerCase()).match(/[a-z0-9']+/g) ?? [];
-const sentences = (s) => norm(s).split(/(?<=[.!?…])\s+/);
-const agent = (call) => call.turns.filter((t) => t.who === 'agent');
 const secs = (ms) => `${(ms / 1000).toFixed(1)} s`;
 /** Agent turns (all, or those passing only) whose text matches re, as hits. */
 const agentSays = (call, re, why, only = () => true) =>
@@ -13,8 +12,9 @@ const agentSays = (call, re, why, only = () => true) =>
 
 /** Caller turns that answer nothing ("Hey Ferni, it's me again."). */
 const PHATIC = /^(hey|hi|hello|yo|oh|um+|uh+|hm+)\b|\bit's me\b/i;
-/** Replies shaped like the caller's answer ("Yeah, I sent it over.", "She's managing"). */
-const ANSWER = /^(yeah|yes|yep|yup|nope|nah|no|not yet|well|actually|she's|he's|they're|i|i'm|i've|my)\b/i;
+/** Replies shaped like the caller's answer ("Yeah, I sent it over.", "She's managing"). Not
+ *  "well": Ferni opens his own late-night replies with it ("Well, week one, huh."), #3164. */
+const ANSWER = /^(yeah|yes|yep|yup|nope|nah|no|not yet|actually|she's|he's|they're|i|i'm|i've|my)\b/i;
 const ASKS_CALLER = /\byour?\b|\bhow('s| is| are| did|'d)\b/i;
 /** A how's-your-day ask, which a state report answers ("How's your evening going?"). */
 const STATE_ASK =
@@ -133,25 +133,51 @@ export const OLD_RUN_STALL_MS = 30000;
 export const callerStalled = ([start, end, audioMs]) =>
   Number.isFinite(audioMs) ? end - start > audioMs + STALL_SLACK_MS : end - start > OLD_RUN_STALL_MS;
 
+/** A caller line that is all silence (a scripted "[[slnc 1500]]", standing in for a caller cut off
+ *  mid-sentence): its loudest sample (converse.mjs records it fourth) is under -40 dBFS. It is no
+ *  caller turn, so nothing is owed after it (#3164). An older run file has no peak: it counts. */
+export const SILENT_PEAK = 328;
+export const callerSilent = ([, , , peak]) => Number.isFinite(peak) && peak < SILENT_PEAK;
+
 // prod canary lookups-pc16: the caller asked for the news and heard nothing until asking again.
 // 2026-10-26 release, all 5 hits false: the harness stalled a 0.7–3 s line to 8–905 s, or the
 // caller spoke before the agent had joined. Those lines are skipped; slow-start and
 // release-check's "caller audio" item report them instead, so nothing is hidden.
 function deadAir({ events, agentVoice: voice, callerSpeech }) {
   const hits = [];
+  const spoken = callerSpeech.filter((line) => !callerSilent(line));
   // A lead-in, then silence. Captions land during or just after the words they caption.
+  // The hit is the total silence from the lead-in's end to the agent's next voice: the window
+  // minus the caller's own speech (lines merged where they overlap). rc3 candor-wrong ("Whoa,
+  // hold on. ...") counted the caller's whole next turn as 9.6 s of dead air; the caller's
+  // speech is not silence. But caller sound never resets the clock: "One sec", "Okay." at 5 s,
+  // "Hello?" at 10 s, the answer at 16 s is ~15 s of nothing from Ferni, split by backchannels.
+  // An all-silence line is no speech; a zero-length line adds none.
   for (const e of events.filter((x) => x.who === 'agent' && LEAD_IN.test(norm(x.text)))) {
     const i = voice.findLastIndex(([s]) => s <= e.t);
     if (i < 0 || e.t > voice[i][1] + 3000) continue; // never voiced: the check below covers it
-    const next = voice.slice(i + 1).find(([s]) => s >= voice[i][1]);
-    if (next && next[0] - voice[i][1] > DEAD_AIR_MS)
-      hits.push({ quote: e.text, why: `${secs(next[0] - voice[i][1])} silent after the lead-in` });
+    const end = voice[i][1];
+    const next = voice.slice(i + 1).find(([s]) => s >= end);
+    if (!next) continue;
+    const heard = spoken
+      .filter(([s, f]) => f > end && s < next[0])
+      .sort((a, b) => a[0] - b[0]);
+    let clock = end; // speech is counted only once, from the lead-in's end
+    let speech = 0;
+    for (const [s, f] of heard) {
+      const to = Math.min(f, next[0]);
+      speech += Math.max(0, to - Math.max(s, clock));
+      clock = Math.max(clock, to);
+    }
+    const silent = next[0] - end - speech;
+    if (silent > DEAD_AIR_MS)
+      hits.push({ quote: e.text, why: `${secs(silent)} silent after the lead-in` });
   }
   // The caller finished, and nobody spoke until the caller tried again.
   const firstVoice = voice[0]?.[0];
-  callerSpeech.forEach((line, k) => {
+  spoken.forEach((line, k) => {
     const end = line[1];
-    const next = callerSpeech[k + 1]?.[0];
+    const next = spoken[k + 1]?.[0];
     if (next === undefined || next - end <= DEAD_AIR_MS) return;
     if (callerStalled(line) || end < firstVoice) return; // a harness stall; the agent wasn't in yet
     if (voice.some(([s, e]) => e > end && s < next)) return;
@@ -185,6 +211,7 @@ export const PREDICATES = [
   { id: 'crisis-line-non-crisis', gating: true, check: crisisLine },
   { id: 'dead-air', gating: true, check: deadAir },
   { id: 'slow-start', gating: false, check: slowStart },
+  ...SPECTRUM_PREDICATES,
 ];
 
 /** Every predicate on one call: { [id]: hits }. */

@@ -7,8 +7,6 @@
  * - Music stop detection
  *
  * For phone users who have music streaming into the call.
- *
- * Extracted from jack-bogle.ts lines 430-453
  */
 import { getLogger } from '../../../utils/safe-logger.js';
 import {

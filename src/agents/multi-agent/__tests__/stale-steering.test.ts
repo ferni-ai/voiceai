@@ -61,7 +61,7 @@ describe('pushed turn context', () => {
   it('reaches the next reply as background on its own turn, never before the new question', async () => {
     const { agent } = await afterTurn('What more can we do to make you human?');
     say(agent.chatCtx, 'user', 'Why do you keep forgetting?');
-    const lines = requestText(withTurnReminder(agent.chatCtx, {})).split('\n');
+    const lines = requestText(withTurnReminder(agent.chatCtx, { userData: { services: { sessionId: 'stale-steering' } } })).split('\n');
     const at = (text: string) => lines.findIndex((l) => l.includes(text));
     expect(at(NOTE)).toBeGreaterThan(at('What more can we do'));
     expect(at(NOTE)).toBeLessThan(at("I'm just Ferni"));
@@ -112,7 +112,7 @@ describe('pushed turn context', () => {
     // Ready before the reply started: the caller's words land after the note.
     await pusher.onFinalTranscript('What more can we do to make you human?');
     say(agent.chatCtx, 'user', 'What more can we do to make you human?');
-    expect(requestText(withTurnReminder(agent.chatCtx, {}))).toContain(NOTE);
+    expect(requestText(withTurnReminder(agent.chatCtx, { userData: { services: { sessionId: 'stale-steering' } } }))).toContain(NOTE);
   });
 
   it('reaches every reply with STALE_TURN_CONTEXT=keep', async () => {
@@ -136,7 +136,7 @@ describe("the director's notes", () => {
   ];
 
   async function nextReply(directorReply: string) {
-    const session = {};
+    const session = { userData: { services: { sessionId: 'stale-steering' } } };
     const director = new Director({ sessionId: 's', writer: async () => directorReply });
     setDirector(session, director);
     await director.observe(call); // after Ferni's "Mm?"

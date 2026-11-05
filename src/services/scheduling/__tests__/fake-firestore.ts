@@ -1,7 +1,7 @@
 /**
  * Just enough Firestore for collection-group "due items" queries and claim
  * transactions: where ==/<=, orderBy, limit, runTransaction(get/update), and
- * bogle_users/{uid}/{collection}/{id} set/create/update.
+ * bogle_users/{uid}/{collection}/{id} get/set/create/update.
  */
 export type Row = { id: string; userId: string; collection: string; data: Record<string, unknown> };
 
@@ -45,6 +45,10 @@ export function fakeFirestore(rows: Row[]) {
         get _row() {
           return rows.find((r) => r.collection === c && r.id === id && r.userId === uid);
         },
+        get: async () => {
+          const row = rows.find((r) => r.collection === c && r.id === id && r.userId === uid);
+          return { exists: !!row, data: () => row?.data };
+        },
         set: async (data: Record<string, unknown>) => {
           const existing = rows.find((r) => r.collection === c && r.id === id);
           if (existing) existing.data = { ...data };
@@ -80,7 +84,7 @@ export function fakeFirestore(rows: Row[]) {
     collectionGroup: (c: string) => query(c),
     runTransaction: async <T>(fn: (tx: unknown) => Promise<T>) =>
       fn({
-        get: async (r: { _row: Row }) => ({ data: () => r._row.data }),
+        get: async (r: { _row?: Row }) => ({ exists: !!r._row, data: () => r._row?.data }),
         update: (r: { _row: Row }, patch: Record<string, unknown>) =>
           Object.assign(r._row.data, patch),
       }),

@@ -225,14 +225,24 @@ describe('call news opens the call, from structured fields only', () => {
     });
   });
 
-  it('reads the pending results once (48 h, on-behalf calls), then the one call record', async () => {
+  it('reads the pending results once (a week, on-behalf calls), then the one call record', async () => {
     await greet();
     expect(store.getPendingResults).toHaveBeenCalledTimes(1);
     expect(store.getPendingResults).toHaveBeenCalledWith(USER, {
-      maxAge: 48,
+      maxAge: 168,
       limit: 5,
       types: ['on_behalf_call'],
     });
+  });
+
+  it('a call from 100 hours ago can still lead the hello', async () => {
+    seed({ ...GOOD, capturedAt: new Date(Date.now() - 100 * 3_600_000).toISOString() });
+    const seeded = (await store.getPendingResults()) as Array<{ capturedAt: string }>;
+    // Like the real read: only results inside the window asked for.
+    store.getPendingResults.mockImplementation(async (_u: string, o: { maxAge: number }) =>
+      seeded.filter((r) => Date.now() - Date.parse(r.capturedAt) <= o.maxAge * 3_600_000)
+    );
+    expect((await greet()).direction).toMatch(/You (?:made|tried) a call for them/);
   });
 
   it('tells only the newest, and says other things are waiting', async () => {

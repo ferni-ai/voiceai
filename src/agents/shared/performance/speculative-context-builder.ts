@@ -163,7 +163,7 @@ export class SpeculativeContextBuilder {
           sessionId,
           injectionCount: injections.length,
           durationMs: Date.now() - startMs,
-          transcriptPreview: interimTranscript.slice(0, 40),
+          transcriptLen: interimTranscript.length,
         },
         'Speculative context built'
       );

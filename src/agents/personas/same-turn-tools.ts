@@ -25,7 +25,11 @@ import {
   forbiddenToolsNow,
   withoutForbiddenTools,
 } from '../../tools/orchestrator/persona-tool-policy.js';
-import { smartHomeTopicPatterns, TOPIC_PATTERNS } from '../../tools/dynamic-loader/index.js';
+import {
+  rideTopicPatterns,
+  smartHomeTopicPatterns,
+  TOPIC_PATTERNS,
+} from '../../tools/dynamic-loader/index.js';
 import { SAME_TURN_TOPIC_PATTERNS } from '../../tools/dynamic-loader/same-turn-topics.js';
 import { loadToolDomainsLazy } from '../../tools/registry/loader.js';
 import type { ToolDomain } from '../../tools/registry/types.js';
@@ -63,6 +67,7 @@ export async function preloadTopicDomains(): Promise<number> {
   for (const [, list] of TOPIC_PATTERNS) list.forEach((d) => domains.add(d));
   for (const [, list] of SAME_TURN_TOPIC_PATTERNS) list.forEach((d) => domains.add(d));
   for (const [, list] of smartHomeTopicPatterns()) list.forEach((d) => domains.add(d));
+  for (const [, list] of rideTopicPatterns()) list.forEach((d) => domains.add(d));
   return loadToolDomainsLazy([...domains]);
 }
 

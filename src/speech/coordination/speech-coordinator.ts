@@ -243,7 +243,7 @@ class AdaptiveTimingCalculator {
       const isLikelyLegitimate = this.isLikelyLegitimateRequest(userTranscript);
       if (isLikelyLegitimate) {
         log.debug(
-          { transcript: userTranscript.slice(0, 30), reason: 'content-aware bypass' },
+          { transcriptLen: userTranscript.length, reason: 'content-aware bypass' },
           '✅ Echo prevention bypassed - legitimate user request detected'
         );
         return 300; // Minimal window - trust this is a real utterance
@@ -286,7 +286,7 @@ class AdaptiveTimingCalculator {
       // Even short questions like "what?" or "really?" are legitimate
       if (normalized.length >= 5) {
         log.debug(
-          { transcript: normalized.slice(0, 30) },
+          { transcriptLen: normalized.length },
           '✅ Question detected - likely legitimate request'
         );
         return true;
@@ -302,7 +302,7 @@ class AdaptiveTimingCalculator {
     for (const pattern of REACTION_PATTERNS) {
       if (pattern.test(normalized)) {
         log.debug(
-          { transcript: normalized.slice(0, 30), pattern: pattern.toString() },
+          { transcriptLen: normalized.length, pattern: pattern.toString() },
           '✅ Reaction/question pattern detected - likely legitimate request'
         );
         return true;
@@ -320,7 +320,7 @@ class AdaptiveTimingCalculator {
       // Exact match = definitely echo
       if (agentSpeech.includes(normalized) || normalized.includes(agentSpeech)) {
         log.debug(
-          { transcript: normalized.slice(0, 30) },
+          { transcriptLen: normalized.length },
           '🔊 Matches recent agent speech - likely echo'
         );
         return false;
@@ -330,7 +330,7 @@ class AdaptiveTimingCalculator {
       const overlap = this.calculateWordOverlap(normalized, agentSpeech);
       if (overlap > 0.7) {
         log.debug(
-          { transcript: normalized.slice(0, 30), overlap: overlap.toFixed(2) },
+          { transcriptLen: normalized.length, overlap: overlap.toFixed(2) },
           '🔊 High word overlap with agent speech - likely echo'
         );
         return false;
@@ -805,8 +805,8 @@ export class SpeechCoordinator {
 
         log.debug(
           {
-            original: request.text.slice(0, 50),
-            stripped: textToSpeak.slice(0, 50),
+            originalLen: request.text.length,
+            strippedLen: textToSpeak.length,
             hadSSML: request.text !== textToSpeak,
           },
           'Speaking text (SSML stripped) - legacy path'

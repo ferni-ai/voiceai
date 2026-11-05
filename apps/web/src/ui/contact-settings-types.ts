@@ -37,6 +37,10 @@ export interface ContactSettingsState {
   channels: string[]; // check-in channels besides in-app: 'sms' | 'call' | 'email'
   /** The server's outreach on/off (outreachEnabled); undefined until it answers. */
   reachOn?: boolean;
+  /** Whether the saved quiet hours loaded; undefined until the load answers. */
+  quiet?: 'loaded' | 'failed';
+  /** The user changed a quiet time here: only then does Save send the window. */
+  quietEdited?: boolean;
   error?: string;
   success?: string;
 }

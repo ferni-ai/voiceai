@@ -380,3 +380,73 @@ describe('an emotional-arc insight (ARC_INSIGHT_ONCE)', () => {
     expect(await atTurn(19)).toBeNull();
   });
 });
+
+// #3167: nothing marked a pattern-mirror pattern shared, so it came back every
+// third turn of every call (22 times in one 18-minute call).
+describe('a pattern-mirror insight (PATTERN_MIRROR_ONCE)', () => {
+  const pattern = {
+    id: 'pattern_putting_off',
+    category: 'pattern_mirror',
+    message: "Can I share something I've noticed? It seems like when work piles up...",
+  };
+  const shared: Array<[string, string]> = [];
+  const withMark = (): FollowUpGateDeps => ({
+    ...deps(),
+    markPatternShared: async (userId, patternId) => {
+      shared.push([userId, patternId]);
+    },
+  });
+  const atTurn = (turnNumber: number, insight: typeof pattern = pattern) =>
+    surfaceProactiveInsight({ userId: USER, turnNumber, insight }, withMark());
+
+  beforeEach(() => {
+    shared.length = 0;
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('on: reaches the prompt once, is stored as shared, then is dropped on later pauses', async () => {
+    vi.stubEnv('PATTERN_MIRROR_ONCE', 'on');
+    expect(await atTurn(6)).toBe(pattern);
+    expect(shared).toEqual([[USER, pattern.id]]);
+    markInsightSurfaced(USER, pattern.id);
+    expect(await atTurn(9)).toBeNull();
+    expect(await atTurn(12)).toBeNull();
+    expect(shared).toHaveLength(1);
+  });
+
+  it('on: a store that fails to save still lets the insight through once', async () => {
+    vi.stubEnv('PATTERN_MIRROR_ONCE', 'on');
+    const other = { ...pattern, id: 'pattern_store_down' };
+    const failing: FollowUpGateDeps = {
+      ...deps(),
+      markPatternShared: () => Promise.reject(new Error('UNAVAILABLE')),
+    };
+    const out = await surfaceProactiveInsight(
+      { userId: USER, turnNumber: 6, insight: other },
+      failing
+    );
+    expect(out).toBe(other);
+  });
+
+  it('on: an arc or a different pattern is not marked as a shared pattern', async () => {
+    vi.stubEnv('PATTERN_MIRROR_ONCE', 'on');
+    const arc = { ...pattern, id: 'arc_other', category: 'emotional_trajectory' };
+    expect(await atTurn(6, arc)).toBe(arc);
+    expect(shared).toEqual([]);
+    const next = { ...pattern, id: 'pattern_next' };
+    expect(await atTurn(9, next)).toBe(next);
+    expect(shared).toEqual([[USER, 'pattern_next']]);
+  });
+
+  it('off (default): never stored as shared and comes back on every pause, as before', async () => {
+    markInsightSurfaced(USER, pattern.id);
+    expect(await atTurn(6)).toBe(pattern);
+    vi.stubEnv('PATTERN_MIRROR_ONCE', 'off');
+    expect(await atTurn(9)).toBe(pattern);
+    expect(await atTurn(12)).toBe(pattern);
+    expect(await atTurn(13)).toBeNull();
+    expect(shared).toEqual([]);
+  });
+});

@@ -1,34 +1,36 @@
 # Lane B (the 2026-10-21 sweep): crisis, attunement, handoff, play, music, journal, lookups,
 # turn-taking, timer, bh samples. Fields: ENV | scenario | label | uid | capability
-EVAL_TZ=Asia/Tokyo | sweep-crisis-bye | s1 | | goodbye
-EVAL_TZ=Asia/Tokyo | sweep-crisis-real | s1 | | crisis-real
-EVAL_TZ=Asia/Tokyo | crisis-relay | s1 | | crisis-false-alarm
-EVAL_TZ=Asia/Tokyo | good-news-job | s1 | | attunement
-EVAL_TZ=Asia/Tokyo | hard-news | s1 | | attunement
-EVAL_TZ=Asia/Tokyo | hard-ground | s1 | | attunement
-EVAL_TZ=Asia/Tokyo | long-day | s1 | | attunement
-EVAL_TZ=Asia/Tokyo | depth-unstated | s1 | | attunement
-EVAL_TZ=Asia/Tokyo | candor-wrong | s1 | | attunement
-EVAL_TZ=Asia/Tokyo EVAL_TIER=partner | handoff-every-teammate | s1 | | handoff
-EVAL_TZ=Asia/Tokyo EVAL_TIER=partner | handoff-by-name | s1 | | handoff
-EVAL_TZ=Asia/Tokyo | handoff-nayan-tap | s1 | | handoff
-EVAL_TZ=Asia/Tokyo EVAL_TIER=partner | overlap-handoff | s1 | | handoff
-EVAL_TZ=Asia/Tokyo | play-roleplay | s1 | | play
-EVAL_TZ=Asia/Tokyo | play-twenty-questions | s1 | | play
-EVAL_TZ=Asia/Tokyo | music-control | s1 | | music
-EVAL_TZ=Asia/Tokyo | music-call-ends | s1 | | music
-EVAL_TZ=Asia/Tokyo | journal-remember | s1 | | journal
+# No EVAL_TZ unless a line needs that zone: run.sh puts each caller at 14:00 local, whenever the
+# sweep runs (caller-clock.mjs, #3164). A fixed Asia/Tokyo made a 19:00Z sweep a 04:00 caller.
+- | sweep-crisis-bye | s1 | | goodbye
+- | sweep-crisis-real | s1 | | crisis-real
+- | crisis-relay | s1 | | crisis-false-alarm
+- | good-news-job | s1 | | attunement
+- | hard-news | s1 | | attunement
+- | hard-ground | s1 | | attunement
+- | long-day | s1 | | attunement
+- | depth-unstated | s1 | | attunement
+- | candor-wrong | s1 | | attunement
+EVAL_TIER=partner | handoff-every-teammate | s1 | | handoff
+EVAL_TIER=partner | handoff-by-name | s1 | | handoff
+- | handoff-nayan-tap | s1 | | handoff
+EVAL_TIER=partner | overlap-handoff | s1 | | handoff
+- | play-roleplay | s1 | | play
+- | play-twenty-questions | s1 | | play
+- | music-control | s1 | | music
+- | music-call-ends | s1 | | music
+- | journal-remember | s1 | | journal
 EVAL_TZ=America/Denver EVAL_CITY=Denver EVAL_REGION=CO | lookups | s1 | | lookups
-EVAL_TZ=Asia/Tokyo | overlap-reply-start | s1 | | turn-taking
-EVAL_TZ=Asia/Tokyo | talk-over | s1 | | turn-taking
-EVAL_TZ=Asia/Tokyo | timer | s1 | | timer
-EVAL_TZ=Asia/Tokyo EVAL_TIER=partner | bh-01 | s1 | | bh-sample
-EVAL_TZ=Asia/Tokyo EVAL_TIER=partner | bh-05 | s1 | | bh-sample
-EVAL_TZ=Asia/Tokyo EVAL_TIER=partner | bh-09 | s1 | | bh-sample
-EVAL_TZ=Asia/Tokyo EVAL_TIER=partner | bh-13 | s1 | | bh-sample
-EVAL_TZ=Asia/Tokyo EVAL_TIER=partner | bh-17 | s1 | | bh-sample
-EVAL_TZ=Asia/Tokyo EVAL_TIER=partner | bh-20 | s1 | | bh-sample
-EVAL_TZ=Asia/Tokyo | crisis-relay | s2 | | crisis-false-alarm
-EVAL_TZ=Asia/Tokyo | hard-ground | s2 | | attunement
-EVAL_TZ=Asia/Tokyo | sweep-crisis-bye | s2 | | goodbye
-EVAL_TZ=Asia/Tokyo EVAL_TIER=partner | bh-20 | s2 | | bh-sample
+- | overlap-reply-start | s1 | | turn-taking
+- | talk-over | s1 | | turn-taking
+- | timer | s1 | | timer
+EVAL_TIER=partner | bh-01 | s1 | | bh-sample
+EVAL_TIER=partner | bh-05 | s1 | | bh-sample
+EVAL_TIER=partner | bh-09 | s1 | | bh-sample
+EVAL_TIER=partner | bh-13 | s1 | | bh-sample
+EVAL_TIER=partner | bh-17 | s1 | | bh-sample
+EVAL_TIER=partner | bh-20 | s1 | | bh-sample
+- | crisis-relay | s2 | | crisis-false-alarm
+- | hard-ground | s2 | | attunement
+- | sweep-crisis-bye | s2 | | goodbye
+EVAL_TIER=partner | bh-20 | s2 | | bh-sample

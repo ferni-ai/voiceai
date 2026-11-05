@@ -79,8 +79,9 @@ Measured on dev before anything ships; the user listens before prod.
 
 `apps/cli/src/commands/quality/ratchet.ts` measures 2 and 3 against a committed
 baseline (`ratchet-baseline.json`) and fails only when a change makes something
-worse. It runs on every PR (`Brand Compliance Check`) in ~10 s; the bundle part
-runs after the frontend build (`📦 Bundle Size Check`).
+worse. It runs on every PR in Quality Gates (Blocking), step `Quality ratchet`, in
+~10 s; the bundle part runs after the frontend build in Frontend Quality, step
+`Build and bundle ratchet`.
 
 ```bash
 npx tsx apps/cli/src/commands/quality/ratchet.ts            # check

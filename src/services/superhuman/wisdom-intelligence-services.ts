@@ -283,7 +283,7 @@ export async function recordIncubatingWisdom(
       .collection('wisdom_incubation')
       .add(item);
     void onIncubatingWisdomChange(userId, docRef.id, item, 'create');
-    log.info({ userId, question: item.question.substring(0, 50) }, 'Wisdom incubation recorded');
+    log.info({ userId, questionLen: item.question.length }, 'Wisdom incubation recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record wisdom incubation');
   }

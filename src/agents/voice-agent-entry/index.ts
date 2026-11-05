@@ -39,6 +39,7 @@ import {
   type VoiceDeps,
 } from '../voice-agent/phases/index.js';
 import { ownerWriteId } from '../../services/identity/owner-write-gate.js';
+import { callerVerification } from '../../services/identity/verified-caller.js';
 import { finops } from '../../services/observability/finops.js';
 import { classifyCallEnd } from '../../services/analytics/call-end-reason.js';
 import {
@@ -49,7 +50,6 @@ import {
 
 // Action confirmation dispatcher
 import { clearActionDispatcher, initActionDispatcher } from '../realtime/action-event-dispatcher.js';
-
 import {
   generateReply,
   prewarmSessionAsync,
@@ -392,7 +392,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
 
     userData.personaId = sessionPersona.id; // the TTS wrapper reads it
-    userData.verifiedCaller = verified; // tools gate per-person allowances on it (verified-caller.ts)
+    Object.assign(userData, callerVerification(verified, callType)); // verifiedCaller + placedCall (verified-caller.ts)
 
     // Minimal sync work required before greeting (handoff + FinOps).
     const customData = services.userProfile?.customData as Record<string, unknown> | undefined;
@@ -599,7 +599,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       if (participant && ctx.room) {
         await markCallStageSafe(sessionId, 'participant_ready', participantWaitResult.endedAt);
         writeParticipantReady(participantWaitResult.source, participant.identity);
-        void noteCallerJoined({ participant, room: ctx.room, sessionId });
+        noteCallerJoined({ participant, room: ctx.room, sessionId });
         await markCallStageSafe(sessionId, 'orchestrator_start');
         const { runMultiAgentMode } = await import('../voice-agent/phases/index.js');
         const crash = await import('../shared/crash-analytics.js');

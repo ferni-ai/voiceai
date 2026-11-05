@@ -15,7 +15,6 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
-  CheckinCallRecord,
   DetectedMood,
   FlaggedConcern,
   FollowUpItem,
@@ -439,30 +438,6 @@ function validateFollowUp(followUp: Partial<FollowUpItem>): FollowUpItem {
       ? followUp.responsibleParty
       : 'ferni') as FollowUpItem['responsibleParty'],
   };
-}
-
-// ============================================================================
-// SPONSOR NOTIFICATION
-// ============================================================================
-
-/**
- * Generate a notification message for the sponsor about urgent concerns
- */
-export function generateUrgentNotification(record: CheckinCallRecord): string | null {
-  if (!record.concernsIdentified || record.concernsIdentified.length === 0) {
-    return null;
-  }
-
-  const urgentConcerns = record.concernsIdentified.filter(
-    (c) => c.urgency === 'urgent' || c.urgency === 'high'
-  );
-
-  if (urgentConcerns.length === 0) {
-    return null;
-  }
-
-  const concern = urgentConcerns[0];
-  return `Important: During my call with ${record.familyMemberName}, ${concern.description}. ${concern.recommendedAction || 'You may want to check in with them.'}`;
 }
 
 // ============================================================================

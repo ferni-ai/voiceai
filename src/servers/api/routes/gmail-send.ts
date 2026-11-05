@@ -7,6 +7,10 @@
  * redirect URI has to be registered on the OAuth client: this handler runs
  * first and takes the callback only when its state was started for gmail_send.
  *
+ * On for everyone (the env), or for the one person whose own GMAIL_SEND_AS_USER
+ * is on: the callback and login check the user the state was minted for, and
+ * status/disconnect the verified caller.
+ *
  * @module servers/api/routes/gmail-send
  */
 
@@ -15,7 +19,7 @@ import { consumeOAuthLinkState, peekOAuthLinkState } from '../../token/oauth-lin
 import { getVerifiedUserId } from '../request-identity.js';
 import {
   GMAIL_SEND_OAUTH_PROVIDER,
-  isGmailSendAsUserEnabled,
+  isGmailSendAsUserEnabledFor,
 } from '../../../config/gmail-send-flag.js';
 import {
   buildGmailSendAuthUrl,
@@ -49,9 +53,9 @@ export async function handleGmailSendRoutes(
   parsedUrl: URL
 ): Promise<boolean> {
   if (pathname === '/auth/google/callback') {
-    if (!isGmailSendAsUserEnabled()) return false;
     const state = parsedUrl.searchParams.get('state');
-    if (!(await peekOAuthLinkState(state, GMAIL_SEND_OAUTH_PROVIDER))) return false;
+    const pending = await peekOAuthLinkState(state, GMAIL_SEND_OAUTH_PROVIDER);
+    if (!pending || !(await isGmailSendAsUserEnabledFor(pending.uid))) return false;
     const record = await consumeOAuthLinkState(req, state, GMAIL_SEND_OAUTH_PROVIDER);
     const code = parsedUrl.searchParams.get('code');
     const error = parsedUrl.searchParams.get('error');
@@ -72,7 +76,13 @@ export async function handleGmailSendRoutes(
 
   if (!pathname.startsWith('/auth/google/gmail-send/')) return false;
 
-  if (!isGmailSendAsUserEnabled()) {
+  // Login carries only the state, bound to the user who started the flow.
+  const isLogin = pathname === GMAIL_SEND_LOGIN_PATH;
+  const state = isLogin ? parsedUrl.searchParams.get('state') : null;
+  const pending = isLogin ? await peekOAuthLinkState(state, GMAIL_SEND_OAUTH_PROVIDER) : null;
+  const userId = isLogin ? pending?.uid : getVerifiedUserId(req);
+
+  if (!(await isGmailSendAsUserEnabledFor(userId))) {
     sendJson(res, 503, {
       error: "Sending from your Gmail isn't available right now",
       unavailable: true,
@@ -80,9 +90,8 @@ export async function handleGmailSendRoutes(
     return true;
   }
 
-  if (pathname === GMAIL_SEND_LOGIN_PATH) {
-    const state = parsedUrl.searchParams.get('state');
-    if (!state || !(await peekOAuthLinkState(state, GMAIL_SEND_OAUTH_PROVIDER))) {
+  if (isLogin) {
+    if (!state || !pending) {
       sendJson(res, 401, { error: 'Sign in required', connect: CONNECT });
       return true;
     }
@@ -90,7 +99,6 @@ export async function handleGmailSendRoutes(
     return true;
   }
 
-  const userId = getVerifiedUserId(req);
   if (!userId) {
     sendJson(res, 401, { error: 'Sign in required' });
     return true;

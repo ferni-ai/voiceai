@@ -12,7 +12,13 @@ vi.mock('../../config/generative-model.js', () => ({
 }));
 
 import { extractEntities } from '../knowledge-graph/extractors/llm-entity-extractor.js';
-import { junkReason, keepRealEntities, type NamedEntity } from '../entity-hygiene.js';
+import {
+  isPersonaSubject,
+  junkReason,
+  UNSTATED_RELATIONS,
+  keepRealEntities,
+  type NamedEntity,
+} from '../entity-hygiene.js';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -230,5 +236,36 @@ describe('ENTITY_ROLE_LABELS', () => {
     vi.stubEnv('ENTITY_ROLE_LABELS', 'on');
     const both = await extractEntities('my sister Sarah says hi', context);
     expect(both.entities.map((e) => e.name)).toEqual(['Sarah']);
+  });
+});
+
+describe('isPersonaSubject', () => {
+  it('is Ferni or a teammate name only when no relation they stated is stored', () => {
+    expect(isPersonaSubject('Ferni')).toBe(true);
+    expect(isPersonaSubject('Maya')).toBe(true);
+    expect(isPersonaSubject('Peter John', null)).toBe(true);
+    expect(isPersonaSubject('Maya', '  ')).toBe(true);
+    // What a store files on its own from "I talked to Maya" is not a relation they stated.
+    expect(isPersonaSubject('Maya', 'acquaintance')).toBe(true);
+    expect(isPersonaSubject('Maya', 'Acquaintance ')).toBe(true);
+    for (const r of UNSTATED_RELATIONS) expect(isPersonaSubject('Maya', r)).toBe(true);
+    // Any stored relationship is a real person in their life, a human coach included.
+    expect(isPersonaSubject('Maya', 'friend')).toBe(false);
+    expect(isPersonaSubject('Jordan', 'coach')).toBe(false);
+    expect(isPersonaSubject('Alex', 'companion')).toBe(false);
+    expect(isPersonaSubject('Maya Angelou')).toBe(false);
+  });
+
+  it('is Ferni, in any case or spelling STT gives him, whatever relation is stored', () => {
+    for (const [name, relation] of [
+      ['Ferni', 'friend'],
+      ['FERNI', 'family'],
+      ['Fernie', 'best friend'],
+      ['ferny', 'brother'],
+      ['Ferni', null],
+    ])
+      expect(isPersonaSubject(name as string, relation)).toBe(true);
+    expect(isPersonaSubject('Rowan')).toBe(false);
+    expect(isPersonaSubject('  ')).toBe(false);
   });
 });

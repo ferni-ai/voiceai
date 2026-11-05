@@ -199,7 +199,6 @@ test.describe('Journey Modal UI', () => {
     // Set up test user
     await page.evaluate((userId) => {
       localStorage.setItem('ferni_user_id', userId);
-      localStorage.setItem('bogle_user_id', userId);
       
       // Set up some relationship data
       localStorage.setItem('ferni_relationship', JSON.stringify({
@@ -737,7 +736,6 @@ test.describe('Trust Insights Section', () => {
 
     await page.evaluate((userId) => {
       localStorage.setItem('ferni_user_id', userId);
-      localStorage.setItem('bogle_user_id', userId);
       
       // Set up relationship data
       localStorage.setItem('ferni_relationship', JSON.stringify({

@@ -42,9 +42,8 @@ export function lowEnergyCaller(callerTurns: readonly string[]): boolean {
 
 /**
  * The caller's time zone as settled for this call: the device's (the app sends
- * it) or, for a verified owner with PHONE_PARITY=on, their profile's
- * (phone-parity.ts). The profile is never read here: on a phone call the
- * account's zone may belong to someone other than the caller.
+ * it). The profile is never read here: on a phone call the account's zone may
+ * belong to someone other than the caller (phone-parity.ts).
  */
 export function callerTimeZoneOf(userData: unknown): string | undefined {
   const zone = (userData as { callerTimezone?: string } | undefined)?.callerTimezone;
@@ -77,6 +76,8 @@ export interface ListeningCues {
   /** Ferni's previous reply asked a question: this one doesn't (one at most every other turn). */
   askedLastTime: boolean;
   lateNight: boolean;
+  /** No line may bar a question on this turn (exits-held.ts). */
+  exitsHeld?: boolean;
   /** Ferni's replies so far on the call, to offer sleep only once. */
   ferniLines: readonly string[];
   /** The caller asked about Ferni himself. */
@@ -147,6 +148,7 @@ export function listeningLines(cues: ListeningCues): string[] {
     lines.push(LATE);
     if (!cues.ferniLines.some((l) => OFFERED_SLEEP.test(l))) lines.push(OFFER_SLEEP);
   }
-  lines.push(cues.askedLastTime ? NO_QUESTION : ASK_ALLOWED);
+  if (!cues.askedLastTime) lines.push(ASK_ALLOWED);
+  else if (!cues.exitsHeld) lines.push(NO_QUESTION);
   return lines;
 }

@@ -58,6 +58,9 @@ export function turnRequestFor(
   return [waits ? stripped(chatCtx) : chatCtx, waits];
 }
 
+/** The request for a speaker who can't be verified: the report is the owner's news (#3091). */
+export const withoutReport = (chatCtx: llm.ChatContext): llm.ChatContext => stripped(chatCtx);
+
 /** An item that holds the report, or can't be read (then it is treated as holding it). */
 function holdsReport(item: unknown): boolean {
   try {

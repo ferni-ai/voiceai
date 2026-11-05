@@ -16,7 +16,11 @@ const { docs, db } = await vi.hoisted(async () =>
 const tokens = vi.hoisted(() => new Map<string, Record<string, unknown>>());
 
 vi.mock('../../services/identity/firebase-auth.js', () => ({
-  verifyFirebaseToken: vi.fn(async (token: string) => tokens.get(token) ?? null),
+  verifyFirebaseToken: vi.fn(async (token: string) => {
+    if (token === 'tok-unchecked')
+      throw Object.assign(new Error('unchecked'), { code: 'auth/revocation-check-unavailable' });
+    return tokens.get(token) ?? null;
+  }),
   isVerifiedToken: (r: unknown) => r !== null && typeof r === 'object' && !('expired' in r),
   claimsFirebaseIssuer: () => true,
 }));
@@ -55,7 +59,7 @@ let ip = 0;
 async function merge(
   body: Record<string, unknown>,
   bearer?: string
-): Promise<{ status: number; body: Record<string, unknown> }> {
+): Promise<{ status: number; retryAfter?: string; body: Record<string, unknown> }> {
   const req = Object.assign(Readable.from([Buffer.from(JSON.stringify(body))]), {
     url: '/api/identity/merge-anonymous',
     method: 'POST',
@@ -73,8 +77,10 @@ async function merge(
     statusCode: 200,
     writableEnded: false,
     headersSent: false,
-    writeHead(s: number) {
+    retryAfter: undefined as string | undefined,
+    writeHead(s: number, h?: Record<string, string>) {
       status = s;
+      this.retryAfter = h?.['Retry-After'];
       return this;
     },
     setHeader: () => {},
@@ -88,7 +94,11 @@ async function merge(
     '/api/identity/merge-anonymous'
   );
   expect(handled).toBe(true);
-  return { status: status || res.statusCode, body: text ? JSON.parse(text) : {} };
+  return {
+    status: status || res.statusCode,
+    retryAfter: res.retryAfter,
+    body: text ? JSON.parse(text) : {},
+  };
 }
 
 const at = (path: string) => docs.get(`bogle_users/${path}`);
@@ -117,6 +127,14 @@ beforeEach(() => {
 });
 
 describe('POST /api/identity/merge-anonymous', () => {
+  it("answers 503 with Retry-After, not 401, when the anonymous token's account couldn't be checked", async () => {
+    const { status, retryAfter } = await merge({ anonIdToken: 'tok-unchecked' }, 'tok-real');
+
+    expect(status).toBe(503);
+    expect(retryAfter).toBe('5');
+    expect(at(ANON)?._migratedTo).toBeUndefined();
+  });
+
   it("merges the anonymous account's data into the real one, newer wins", async () => {
     expect(at(`${REAL}/summaries/s2`)).toBeUndefined();
 

@@ -4,6 +4,8 @@
  * @module CrisisPatterns
  */
 
+import { THIRD_PERSON_REPORTED } from './crisis-third-person.js';
+
 type PatternTag = 'suicidal' | 'self_harm';
 
 interface TaggedPattern {
@@ -194,7 +196,7 @@ export const PASSIVE_IDEATION_PATTERNS: TaggedPattern[] = [
     tag: 'suicidal',
   },
   {
-    re: /\b(want|wanna|just want) to (just )?(disappear|vanish|stop existing|cease to exist)\b(?! (into|for|to|from|on)\b)/,
+    re: /\b(want|wanna|just want) to (just )?(disappear|vanish|stop existing|cease to exist)\b(?! (into|to|from|on)\b| for (?!good\b|ever\b))/,
     tag: 'suicidal',
   },
   {
@@ -411,6 +413,7 @@ export const ENDING_ACCIDENT =
 
 /** Someone the caller knows is at risk. */
 export const THIRD_PARTY_PATTERNS = [
+  ...THIRD_PERSON_REPORTED,
   /\b(wants?|going|gonna|threaten(s|ed|ing)?|talk(s|ed|ing)? about|tr(y|ies|ied|ying)|plan(s|ning)?|thinking about) (to )?(kill|killing|hurt|hurting|end|ending) (himself|herself|themselves|themself|(his|her|their) (own )?life)\b/,
   /\b(is|'s|been|keeps?|started) (cutting|harming) (himself|herself|themselves|themself)\b|\bhurting (himself|herself|themselves) on purpose\b/,
   /\b(he|she|they) (wants?|want) to (die\b(?! (of|from|laughing)\b)|end it\b(?! with\b))/,

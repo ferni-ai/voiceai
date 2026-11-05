@@ -1,18 +1,18 @@
 /**
- * Weight-aware easing for Ferni's lid expressions.
+ * Lid expressions timed by feeling (motion T2 "C", Seth 2026-10-29).
  *
  * "Honor the Moment: heavy moments get weight, joyful moments get light."
- * Today every lid expression bounces in with the same elastic ease, and a held
- * expression snaps back to neutral. With the flag on:
- * - heavy expressions (sad, worried, holding space...) glide in with
- *   `sine.inOut` over 600-900 ms, with no anticipation squeeze or overshoot;
- * - light expressions (happy, delighted, excited, celebrating) keep the spring;
- * - everything else eases out with `power2.out`;
- * - under prefers-reduced-motion every expression becomes a 150 ms crossfade;
+ * With the weightedEasing switch on:
+ * - light feelings (happy, delighted, pleased, warm, curious...) land in 350 ms
+ *   with `power2.out`, and the body lifts a little;
+ * - heavy feelings (sad, worried, empathetic, holding space...) settle over
+ *   900 ms with `sine.inOut` and the body sinks a little; never an overshoot;
+ * - everything else eases out over 500 ms;
  * - a held expression returns to the mood baseline (the last resting mood)
  *   instead of neutral.
- *
- * Off by default: the weightedEasing switch in config/motion-flags.ts.
+ * - under prefers-reduced-motion every change is a 150 ms ease with no
+ *   squeeze, lift or overshoot.
+ * With it off every expression keeps the legacy elastic bounce, as before.
  */
 
 import { DURATION } from '../../config/animation-constants.js';
@@ -31,21 +31,21 @@ export interface ExpressionMotion {
   delayMs: number;
   /** Play the small squeeze before the main tween. */
   anticipate: boolean;
+  /** Body posture in px: negative lifts (light), positive sinks (heavy). */
+  liftPx: number;
 }
 
-/** The ease every expression used before this module (kept for flag off). */
+/** The ease every expression used before this module (kept for the switch off). */
 export const LEGACY_EASE = 'elastic.out(1, 0.7)';
 export const HEAVY_EASE = 'sine.inOut';
 export const NEUTRAL_EASE = 'power2.out';
-export const LIGHT_EASE = LEGACY_EASE;
+export const LIGHT_EASE = 'power2.out';
 export const REDUCED_MOTION_EASE = 'power1.out';
 
-// The 600-900 ms heavy glide is the face's own range. It was DURATION.DRAMATIC,
-// which became 1000 ms (above HEAVY_MAX_MS) when the scale moved; held at 600
-// so the face keeps its timing until the face PR revisits it.
-export const HEAVY_MIN_MS = 600;
-export const HEAVY_MAX_MS = 900;
 export const REDUCED_MOTION_MS = DURATION.FAST_RELEASE;
+
+/** Small enough to read as posture, not a jump: the 1-2 px of the T2 taste clip. */
+const POSTURE_PX = 1.5;
 
 const HEAVY = new Set<string>([
   'sad',
@@ -56,7 +56,15 @@ const HEAVY = new Set<string>([
   'holding',
 ]);
 
-const LIGHT = new Set<string>(['happy', 'delighted', 'excited', 'celebrating']);
+const LIGHT = new Set<string>([
+  'happy',
+  'delighted',
+  'pleased',
+  'warm',
+  'curious',
+  'excited',
+  'celebrating',
+]);
 
 /**
  * Resting moods: expressions that can stay on the face as a baseline.
@@ -103,13 +111,36 @@ export function expressionWeight(expression: string): ExpressionWeight {
   return 'neutral';
 }
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
+const LEGACY_MOTION = { ease: LEGACY_EASE, delayMs: DURATION.MICRO, anticipate: true, liftPx: 0 };
+const REDUCED_MOTION: ExpressionMotion = {
+  ease: REDUCED_MOTION_EASE,
+  durationMs: REDUCED_MOTION_MS,
+  delayMs: 0,
+  anticipate: false,
+  liftPx: 0,
+};
+const FEELING_MOTION: Readonly<Record<ExpressionWeight, ExpressionMotion>> = {
+  light: {
+    ease: LIGHT_EASE,
+    durationMs: DURATION.EXPRESSION_LIGHT,
+    delayMs: 0,
+    anticipate: false,
+    liftPx: -POSTURE_PX,
+  },
+  heavy: {
+    ease: HEAVY_EASE,
+    durationMs: DURATION.EXPRESSION_HEAVY,
+    delayMs: 0,
+    anticipate: false,
+    liftPx: POSTURE_PX,
+  },
+  neutral: { ease: NEUTRAL_EASE, durationMs: DURATION.SLOWEST, delayMs: 0, anticipate: false, liftPx: 0 },
+};
 
 /**
- * The motion for a transition into `expression`. With the flag off this is the
- * legacy motion: anticipation squeeze, then elastic for every expression.
+ * The motion for a transition into `expression`. With the switch on the
+ * feeling sets the timing and `requestedMs` is ignored; with it off this is the
+ * legacy squeeze then elastic, over `requestedMs`.
  */
 export function expressionMotion(
   expression: string,
@@ -117,40 +148,9 @@ export function expressionMotion(
   enabled: boolean = isWeightedEasingEnabled(),
   reducedMotion: boolean = enabled && prefersReducedMotion()
 ): ExpressionMotion {
-  if (!enabled) {
-    return {
-      ease: LEGACY_EASE,
-      durationMs: requestedMs,
-      delayMs: DURATION.MICRO,
-      anticipate: true,
-    };
-  }
-  if (reducedMotion) {
-    return {
-      ease: REDUCED_MOTION_EASE,
-      durationMs: REDUCED_MOTION_MS,
-      delayMs: 0,
-      anticipate: false,
-    };
-  }
-  switch (expressionWeight(expression)) {
-    case 'heavy':
-      return {
-        ease: HEAVY_EASE,
-        durationMs: clamp(requestedMs, HEAVY_MIN_MS, HEAVY_MAX_MS),
-        delayMs: 0,
-        anticipate: false,
-      };
-    case 'light':
-      return {
-        ease: LIGHT_EASE,
-        durationMs: requestedMs,
-        delayMs: DURATION.MICRO,
-        anticipate: true,
-      };
-    default:
-      return { ease: NEUTRAL_EASE, durationMs: requestedMs, delayMs: 0, anticipate: false };
-  }
+  if (reducedMotion) return REDUCED_MOTION;
+  if (!enabled) return { ...LEGACY_MOTION, durationMs: requestedMs };
+  return FEELING_MOTION[expressionWeight(expression)];
 }
 
 /**

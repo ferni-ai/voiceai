@@ -51,6 +51,8 @@ const { handleGmailSendRoutes } = await import('../routes/gmail-send.js');
 const { handleGoogleCalendarRoutes } = await import('../routes/google-calendar.js');
 const { setOAuthLinkStore } = await import('../../token/oauth-link-state.js');
 const { decryptData } = await import('../../../utils/token-encryption.js');
+const { usePersonFlagLookup } = await import('../../../config/person-flag.js');
+const { flagForUser, forgetFlagCache } = await import('../../../services/platform/cohort-flags.js');
 
 const realFetch = globalThis.fetch;
 const idToken = (claims: object) =>
@@ -91,6 +93,7 @@ afterAll(
 );
 beforeEach(() => {
   process.env.GMAIL_SEND_AS_USER = 'on';
+  usePersonFlagLookup(async () => undefined);
   setOAuthLinkStore(null);
   for (const col of docs.values()) col.clear();
   savedCalendar.mockClear();
@@ -108,10 +111,10 @@ const send = (path: string, init: Parameters<typeof fetch>[1] = {}) =>
   realFetch(`${base}${path}`, { redirect: 'manual', ...init });
 
 /** start → login: the cookie and the Google URL the login redirects to. */
-async function startAndLogin(provider: string) {
+async function startAndLogin(provider: string, who = 'A') {
   const start = await send('/auth/oauth/start', {
     method: 'POST',
-    headers: { authorization: 'Bearer tok-A', 'content-type': 'application/json' },
+    headers: { authorization: `Bearer tok-${who}`, 'content-type': 'application/json' },
     body: JSON.stringify({ provider, returnUrl: '/settings' }),
   });
   if (!start.ok) return { status: start.status, cookie: '', google: null };
@@ -194,5 +197,79 @@ describe('gmail.send consent', () => {
     expect(await before.json()).toMatchObject({ connected: true, email: 'sam@gmail.com' });
     await send('/auth/google/gmail-send/disconnect', { method: 'POST', headers: auth });
     expect(storedGrant('uid-A')).toBeNull();
+  });
+});
+
+describe('gmail.send for one person (their own GMAIL_SEND_AS_USER, env off)', () => {
+  /** The UI server's lookup (flagForUser) over an in-memory cohort store: uid-A's override is on. */
+  function overrideFor(owners: Record<string, string>) {
+    forgetFlagCache();
+    usePersonFlagLookup((uid, flag) =>
+      flagForUser(uid, flag, {
+        env: { COHORT_FLAGS: 'on' },
+        store: {
+          cohortsFor: async () => [],
+          overridesFor: async (u): Promise<Record<string, string>> => {
+            const own = owners[u];
+            return own ? { GMAIL_SEND_AS_USER: own } : {};
+          },
+          sampledCohorts: async () => [],
+        },
+      })
+    );
+  }
+
+  it('connects the overridden user end to end; user B is refused at the start', async () => {
+    process.env.GMAIL_SEND_AS_USER = 'off';
+    overrideFor({ 'uid-A': 'on' });
+
+    const a = await startAndLogin('gmail_send', 'A');
+    expect(a.status).toBe(302);
+    expect(a.google?.origin).toBe('https://accounts.google.com');
+    const state = a.google?.searchParams.get('state') ?? '';
+    const cb = await send(`/auth/google/callback?code=c&state=${encodeURIComponent(state)}`, {
+      headers: { cookie: a.cookie },
+    });
+    expect(cb.headers.get('location')).toBe('/settings?gmail_send=connected');
+    expect(storedGrant('uid-A')).toMatchObject({ email: 'sam@gmail.com' });
+    const statusA = await send('/auth/google/gmail-send/status', {
+      headers: { authorization: 'Bearer tok-A' },
+    });
+    expect(statusA.status).toBe(200);
+
+    expect((await startAndLogin('gmail_send', 'B')).status).toBe(503);
+    const statusB = await send('/auth/google/gmail-send/status', {
+      headers: { authorization: 'Bearer tok-B' },
+    });
+    expect(statusB.status).toBe(503);
+    expect(storedGrant('uid-B')).toBeNull();
+  });
+
+  it('no override and the env off: refused for everyone, as before', async () => {
+    process.env.GMAIL_SEND_AS_USER = 'off';
+    overrideFor({ 'uid-A': 'off' });
+    expect((await startAndLogin('gmail_send', 'A')).status).toBe(503);
+    expect((await startAndLogin('gmail_send', 'B')).status).toBe(503);
+  });
+
+  it("a state minted while A was on isn't completed once A's override is off", async () => {
+    process.env.GMAIL_SEND_AS_USER = 'off';
+    const owners: Record<string, string> = { 'uid-A': 'on' };
+    overrideFor(owners);
+    const { google, cookie } = await startAndLogin('gmail_send', 'A');
+    owners['uid-A'] = 'off';
+    forgetFlagCache();
+    const state = google?.searchParams.get('state') ?? '';
+    await send(`/auth/google/callback?code=c&state=${encodeURIComponent(state)}`, {
+      headers: { cookie },
+    });
+    expect(storedGrant('uid-A')).toBeNull();
+    expect(savedCalendar).not.toHaveBeenCalled();
+  });
+
+  it('the env on: on for everyone, whatever their own value', async () => {
+    overrideFor({ 'uid-B': 'off' });
+    expect((await startAndLogin('gmail_send', 'A')).status).toBe(302);
+    expect((await startAndLogin('gmail_send', 'B')).status).toBe(302);
   });
 });

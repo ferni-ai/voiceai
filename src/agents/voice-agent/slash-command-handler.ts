@@ -113,7 +113,7 @@ export async function handleSlashCommand(ctx: SlashCommandContext): Promise<Slas
     logger.info({ commandId }, 'Slash command executed successfully');
     return { handled: true, commandId }; // Command was handled
   } catch (error) {
-    logger.error({ error: String(error), text }, 'Error handling slash command');
+    logger.error({ error: String(error), textLen: text.length }, 'Error handling slash command');
     return { handled: false, error: String(error) }; // Let normal processing handle it
   }
 }

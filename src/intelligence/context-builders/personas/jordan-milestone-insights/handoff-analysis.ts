@@ -6,15 +6,17 @@
  * @module intelligence/context-builders/jordan-milestone-insights/handoff-analysis
  */
 
-import { getHandoffContext } from '../../../../tools/handoff/executor.js';
+import type { HandoffArrivalContext } from '../../../../tools/handoff/index.js';
 import type { HandoffBriefing } from './types.js';
 
 // ============================================================================
 // HANDOFF CONTEXT ANALYSIS
 // ============================================================================
 
-export function analyzeHandoffForJordan(): HandoffBriefing | null {
-  const handoffContext = getHandoffContext();
+/** `handoffContext` is this call's arrival for the persona (takeHandoffArrival), or null. */
+export function analyzeHandoffForJordan(
+  handoffContext: HandoffArrivalContext | null
+): HandoffBriefing | null {
   if (!handoffContext) return null;
 
   const briefing: HandoffBriefing = {

@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { calculateStreaks, getTeamUnlockState } from '../../../services/social/team-unlocks.js';
 import type { UserProfile } from '../../../types/user-profile.js';
+import { fakeRunTransaction } from '../../../tests/helpers/fake-transaction.js';
 import {
   dayOf,
   distinctDays,
@@ -177,7 +178,11 @@ describe('FirestoreStore profile load and save', () => {
         return query;
       },
     };
-    return { collection: () => ({ doc: () => doc }), terminate: async () => undefined };
+    return {
+      collection: () => ({ doc: () => doc }),
+      runTransaction: fakeRunTransaction,
+      terminate: async () => undefined,
+    };
   }
 
   it('getProfile puts the summary days on the profile, saveProfile leaves them out', async () => {

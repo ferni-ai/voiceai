@@ -14,6 +14,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { getFirestoreDb } from '../utils/firestore-utils.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { parseBody } from './helpers.js';
+import { authCheckUnavailable, nullIfUnavailable } from './verify-token-once.js';
 import { joinWaitlist } from '../services/waitlist/join.js';
 import { meFor } from '../services/waitlist/me.js';
 import { firestoreWaitlistStore } from '../services/waitlist/store.js';
@@ -35,7 +36,10 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body));
 }
 
-/** The signed-in caller with a verified email, or null (no token, a bad one, or an unproven email). */
+/**
+ * The signed-in caller with a verified email, or null (no token, a bad one, or an unproven
+ * email; a token whose account couldn't be checked marks the request, for a 503).
+ */
 async function verifiedCaller(
   req: IncomingMessage
 ): Promise<{ email: string; uid: string } | null> {
@@ -43,7 +47,9 @@ async function verifiedCaller(
   if (!header?.startsWith('Bearer ')) return null;
   const { verifyFirebaseToken, isVerifiedToken } =
     await import('../services/identity/firebase-auth.js');
-  const verified = await verifyFirebaseToken(header.slice(7));
+  const verified = await verifyFirebaseToken(header.slice(7)).catch((e) =>
+    nullIfUnavailable(req, e)
+  );
   if (!isVerifiedToken(verified) || !verified.emailVerified || !verified.email) return null;
   return { email: verified.email.toLowerCase().trim(), uid: verified.uid };
 }
@@ -59,6 +65,7 @@ export async function handleWaitlistQueueRoutes(
   // Both need a verified sign-in: the address comes from the token, never the body
   const caller = await verifiedCaller(req);
   if (!caller) {
+    if (authCheckUnavailable(req, res)) return true; // 503, try again: never a 401
     sendJson(res, 401, { error: 'sign_in_required' });
     return true;
   }

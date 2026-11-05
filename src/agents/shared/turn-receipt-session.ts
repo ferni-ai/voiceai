@@ -31,6 +31,7 @@ import { watchToolRuns } from './turn-receipt-tool-timing.js';
 import { noteOfferedTools, withTurnMetricsBq } from './turn-receipt-bq.js';
 import { turnDetectionInUse } from './turn-patience.js';
 import { timelineFor } from './call-timeline.js';
+import { preemptiveCause } from './preemptive-cause.js';
 
 // One recorder per AgentSession, so llmNode and withTurnReminder can find it.
 const recorders = new WeakMap<object, TurnReceiptRecorder>();
@@ -113,9 +114,10 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
       },
     ],
     // Our LiveKit patch: the PREEMPTIVE_DECISION, just before this turn's eou_metrics.
+    // Its cause is read now, while LiveKit still holds the reply (preemptive-cause.ts).
     [
       'ferni_preemptive_decision',
-      (ev) => rec.onPreemptive(Boolean((ev as { used?: boolean })?.used)),
+      (ev) => rec.onPreemptive(Boolean((ev as { used?: boolean })?.used), preemptiveCause(session)),
     ],
     ['close', () => rec.flush()],
   ];

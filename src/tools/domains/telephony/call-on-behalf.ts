@@ -81,7 +81,7 @@ async function findContact(
 
         if (entityResult) {
           log.info(
-            { contactQuery, name: entityResult.name, source: 'entity_store' },
+            { source: 'entity_store' }, // never who: the person called never signed up
             '📇 Contact resolved from unified entity store'
           );
 
@@ -313,7 +313,7 @@ async function saveContactForFuture(
     const fields = saveFieldsFor(contactQuery, inferRelationshipFromQuery(contactQuery));
     if (!fields) return; // CONTACT_PICK_V2: "them" / "contact" names no one to save
     await upsertContact(userId, { ...fields, contactId: `phone_${phone}`, phone });
-    log.info({ name: fields.name }, '📇 Contact saved for future calls');
+    log.info({ userId }, '📇 Contact saved for future calls'); // never the contact's name
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to save contact');
     // Non-critical - don't throw
@@ -351,7 +351,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
       } = params;
 
       log.info(
-        { userId: ctx.userId, contactQuery, phoneNumber: phoneNumber ? '***' : undefined, purpose },
+        { userId: ctx.userId, hasPhone: Boolean(phoneNumber) }, // never who or why
         'Initiating call on behalf of user'
       );
 
@@ -368,10 +368,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
           if (contact) {
             // Update existing contact with new phone number
             contact.phone = normalizedPhone;
-            log.info(
-              { contactName: contact.name },
-              'Using provided phone number for existing contact'
-            );
+            log.info('Using provided phone number for existing contact');
           } else {
             // Create a temporary contact from the provided info
             contact = {
@@ -379,7 +376,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
               phone: normalizedPhone,
               relationship: inferRelationshipFromQuery(contactQuery),
             };
-            log.info({ contactQuery, phone: '***' }, 'Using provided phone number for new contact');
+            log.info('Using provided phone number for new contact');
 
             // Save this contact for future use (async, don't wait)
             saveContactForFuture(ctx.userId, contactQuery, normalizedPhone).catch((err) => {
@@ -439,7 +436,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
             preferredTimes,
             additionalContext,
           },
-          recordingConsent: recordingConsent ?? true,
+          recordingConsent: recordingConsent ?? false,
           ...(callNow && { callNow, ...(lateConfirmed && { lateConfirmed }) }),
           requiresHIPAA:
             callType === 'business' &&
@@ -463,14 +460,14 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
         const { placeOrHold } = await import('../../../services/outreach/deferred-calls.js');
         const { callId, held, others = '' } = await placeOrHold(request, initiateOnBehalfCall);
         if (held) return held;
-        log.info({ callId, contactName: contact.name, purpose }, 'Call initiated successfully');
+        log.info({ callId }, 'Call initiated successfully'); // never the name or the purpose
         const callTypeLabel = callType === 'personal' ? '' : ` (${callType})`;
         return (
           `Got it! I'm calling ${contact.name}${callTypeLabel} now to ${purpose}. ` +
           `I'll let you know how it goes once the call is complete.${others}`
         );
       } catch (error) {
-        log.error({ error: String(error), contactQuery, purpose }, 'Failed to initiate call');
+        log.error({ error: String(error) }, 'Failed to initiate call'); // never who or why
         const sorry = `Sorry, I ran into a problem trying to call ${contactQuery}.`;
         return { success: false, error: `${sorry} Would you like me to try again?` };
       }

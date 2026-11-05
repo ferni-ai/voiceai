@@ -23,8 +23,14 @@ import {
   onBehalfRequestFromDispatch,
   type OnBehalfDispatch,
 } from '../../services/outreach/on-behalf-dispatch.js';
-import { screenedCallerText } from '../../services/outreach/caller-text.js';
-import { relayedMessage } from '../../services/outreach/relayed-message.js';
+import {
+  carriesCrisis,
+  crisisCallerLine,
+  crisisRead,
+  isRiskyCallerText,
+  riskyCallerLine,
+  screenedCallerText,
+} from '../../services/outreach/caller-text.js';
 import { isCallFollowthroughEnabled } from '../../services/outreach/call-retry.js';
 import { noteCallRefinement } from '../../services/follow-through/index.js';
 import {
@@ -33,6 +39,10 @@ import {
   voicemailWords,
 } from '../../services/outreach/voicemail-outcome.js';
 import type { CallDisposition } from './call-control.js';
+import {
+  passAlongDeclined,
+  passAlongDeclinedLine,
+} from '../../services/outreach/pass-along-declined.js';
 
 const log = createLogger({ module: 'on-behalf-call-lifecycle' });
 
@@ -92,11 +102,80 @@ export function classifyAnsweredCall(
 }
 
 /**
+ * Ferni's own fixed lines for what the person's words carried, never the words:
+ * crisis language (it always reaches the requester, #2861) and money, an account
+ * or a number. Empty when they carried neither.
+ */
+function flaggedLines(heard: string[], name: string): string {
+  const risky = isRiskyCallerText(heard.join(' '));
+  return [heardCrisis(heard) ? crisisCallerLine(name) : '', risky ? riskyCallerLine(name) : '']
+    .filter(Boolean)
+    .join(' ');
+}
+
+const withFlags = (said: string, flags: string): string => (flags ? `${said} ${flags}` : said);
+
+/** The crisis guard's read of their words, joined and line by line. */
+const heardCrisis = (heard: string[]): boolean =>
+  crisisRead(heard.join(' ')) || heard.some(crisisRead);
+
+/**
+ * With follow-through on, how the call went by what they said: a voicemail greeting,
+ * a no or an opt-out, a quick hang-up. Null when they talked.
+ */
+function heardOutcome(
+  call: OnBehalfDispatch,
+  heard: string[],
+  durationSeconds: number,
+  voicemailSpoken: boolean
+): CallOutcome | null {
+  const name = call.contact.name;
+  const how = classifyAnsweredCall(heard, durationSeconds);
+  if (how === 'voicemail') {
+    return {
+      callId: call.callId,
+      status: 'voicemail',
+      objectiveAchieved: false,
+      outcome: `I got ${name}'s voicemail. Want me to try again later?`,
+      callbackRequired: true,
+      voicemailLeft: voicemailSpoken,
+    };
+  }
+  if (how === 'opted_out' || how === 'declined') {
+    const promise =
+      how === 'opted_out' ? " and asked not to be called again, so I won't call them" : '';
+    return {
+      callId: call.callId,
+      status: 'completed',
+      objectiveAchieved: false,
+      // Crisis words still reach the requester when they opt out (#2861).
+      outcome: withFlags(
+        `I reached ${name}, but they didn't want to talk${promise}.`,
+        flaggedLines(heard, name)
+      ),
+    };
+  }
+  if (how === 'hung_up_early') {
+    return {
+      callId: call.callId,
+      status: 'completed',
+      objectiveAchieved: false,
+      outcome: withFlags(
+        `I reached ${name}, but they had to go before we really got to talk.`,
+        flaggedLines(heard, name)
+      ),
+    };
+  }
+  return null;
+}
+
+/**
  * What the requester is told. `turns` is the raw transcript (null if capture
  * never started); `analysis` is the LLM's read of it (null if that failed).
- * Everything that came from the call (the other person's words and the model's
- * read of them) is untrusted and goes through screenedCallerText before it
- * reaches the requester's prompt, push, email or calendar.
+ * The other person's own words are never kept: the stored result carries the
+ * call's status and the model's summary only, and with no summary it says so
+ * (summaryUnavailable). The model's read is untrusted and goes through
+ * screenedCallerText before it reaches the requester's prompt, push, email or calendar.
  */
 export function buildCallOutcome(
   call: OnBehalfDispatch,
@@ -169,51 +248,33 @@ export function buildCallOutcome(
     };
   }
 
-  const quote = screenedCallerText(heard.slice(-2).join(' '), name, 200);
-  // What they asked to pass on, from their own words (the analysis may phrase it better below).
-  const message = relayedMessage(heard, call.requester.name, name);
-  if (isCallFollowthroughEnabled()) {
-    const how = classifyAnsweredCall(heard, durationSeconds);
-    if (how === 'voicemail') {
-      return {
-        callId: call.callId,
-        status: 'voicemail',
-        objectiveAchieved: false,
-        outcome: `I got ${name}'s voicemail. Want me to try again later?`,
-        callbackRequired: true,
-        voicemailLeft: voicemailSpoken,
-      };
-    }
-    if (how === 'opted_out' || how === 'declined') {
-      const promise =
-        how === 'opted_out' ? " and asked not to be called again, so I won't call them" : '';
-      return {
-        callId: call.callId,
-        status: 'completed',
-        objectiveAchieved: false,
-        outcome: `I reached ${name}, but they didn't want to talk${promise}.`,
-      };
-    }
-    if (how === 'hung_up_early') {
-      return {
-        callId: call.callId,
-        status: 'completed',
-        objectiveAchieved: false,
-        outcome: `I reached ${name}, but they had to go before we really got to talk. They said: "${quote}"`,
-        transcriptSummary: screenedCallerText(heard.join(' '), name, 600),
-        message,
-      };
-    }
+  // On a personal call they said no to having it passed along: before every other branch,
+  // so no path (a quick hang-up, a failed analysis) keeps what they said. A crisis still goes.
+  if (passAlongDeclined(call.script, turns)) {
+    const optedOut = isCallFollowthroughEnabled() && heard.some(isOptOutPhrase);
+    return {
+      callId: call.callId,
+      status: 'completed',
+      objectiveAchieved: false,
+      outcome: withFlags(passAlongDeclinedLine(name, optedOut), flaggedLines(heard, name)),
+    };
   }
+
+  const heardAs = isCallFollowthroughEnabled()
+    ? heardOutcome(call, heard, durationSeconds, voicemailSpoken)
+    : null;
+  if (heardAs) return heardAs;
 
   if (!analysis) {
     return {
       callId: call.callId,
       status: 'completed',
       objectiveAchieved: false,
-      outcome: `I talked with ${name}. I couldn't put together a proper summary, but the last thing they said was: "${quote}"`,
-      transcriptSummary: screenedCallerText(heard.join(' '), name, 600),
-      message,
+      outcome: withFlags(
+        `I talked with ${name}, but I couldn't put together a summary of the call.`,
+        flaggedLines(heard, name)
+      ),
+      summaryUnavailable: true,
     };
   }
 
@@ -224,17 +285,23 @@ export function buildCallOutcome(
     ...clean(insights.messagesForUser).map((m) => `${name} said: ${m}`),
     ...clean(insights.actionItems),
   ];
+  const outcome = screenedCallerText(friendlyReport || insights.summary, name, 500);
+  // Screened again once joined: clean pieces can join into a link, a number or an instruction.
+  const message = screenedCallerText(clean(insights.messagesForUser).join(' '), name, 200);
+  // Crisis words the model left out still reach the requester, in Ferni's words (#2861):
+  // in the outcome and in the message, the two the requester is told.
+  const safety =
+    heardCrisis(heard) && ![outcome, message].some(carriesCrisis) ? crisisCallerLine(name) : '';
   return {
     callId: call.callId,
     status: 'completed',
     objectiveAchieved: insights.objectiveAchieved,
-    outcome: screenedCallerText(friendlyReport || insights.summary, name, 500),
+    outcome: withFlags(outcome, safety),
     transcriptSummary: screenedCallerText(insights.detailedSummary || insights.summary, name, 600),
     callbackRequired: insights.callbackRequested,
     callbackTime: screenedCallerText(insights.callbackDetails, name, 100) || undefined,
     actionItems: actionItems.length > 0 ? actionItems : undefined,
-    // Screened again once joined: clean pieces can join into a link, a number or an instruction.
-    message: screenedCallerText(clean(insights.messagesForUser).join(' '), name, 200) || message,
+    message: [safety, message].filter(Boolean).join(' ') || undefined,
   };
 }
 
@@ -343,6 +410,8 @@ async function reportCall(
     const talked =
       (disposition === undefined || disposition === 'completed') &&
       heard.length > 0 &&
+      // A no to passing it along keeps their words from the summary model too.
+      !passAlongDeclined(call.script, turns ?? []) &&
       (!isCallFollowthroughEnabled() ||
         classifyAnsweredCall(heard, durationSeconds) === 'answered');
     let analysis: SuperhumanCallResult | null = null;

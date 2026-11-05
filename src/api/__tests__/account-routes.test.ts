@@ -7,9 +7,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EventEmitter } from 'events';
 import type { IncomingMessage, ServerResponse } from 'http';
 
-const { mockDeleteAllData, mockDeleteFirebaseUser } = vi.hoisted(() => ({
+const { mockDeleteAllData, mockDeleteFirebaseUser, mockSetDisabled } = vi.hoisted(() => ({
   mockDeleteAllData: vi.fn(),
   mockDeleteFirebaseUser: vi.fn(),
+  mockSetDisabled: vi.fn(),
 }));
 
 vi.mock('../auth-middleware.js', () => ({
@@ -33,6 +34,8 @@ vi.mock('../../services/data-export.js', () => ({
 vi.mock('../../services/identity/firebase-auth.js', () => ({
   deleteFirebaseUser: mockDeleteFirebaseUser,
   getFirebaseUser: vi.fn(),
+  getFirebaseUserOrThrow: vi.fn(async (uid: string) => ({ uid, disabled: false })),
+  setFirebaseUserDisabled: mockSetDisabled,
 }));
 
 vi.mock('../../services/security-events.js', () => ({
@@ -75,6 +78,7 @@ describe('DELETE /api/account', () => {
     vi.clearAllMocks();
     mockDeleteAllData.mockResolvedValue(undefined);
     mockDeleteFirebaseUser.mockResolvedValue(true);
+    mockSetDisabled.mockResolvedValue('done');
   });
 
   it('erases all data stores and the sign-in for the verified caller', async () => {
@@ -201,5 +205,49 @@ describe('DELETE /api/account', () => {
 
     expect(res.status).toBe(500);
     expect(res.body().success).not.toBe(true);
+    expect(mockSetDisabled.mock.calls).toEqual([
+      ['user-123', true],
+      ['user-123', true], // the failed delete leaves it off
+    ]);
+  });
+
+  it('switches the sign-in off before any data goes', async () => {
+    const order: string[] = [];
+    mockSetDisabled.mockImplementation(async (_uid: string, off: boolean) => {
+      order.push(off ? 'sign-in off' : 'sign-in on');
+      return 'done';
+    });
+    mockDeleteAllData.mockImplementation(async () => (order.push('data'), undefined));
+    mockDeleteFirebaseUser.mockImplementation(async () => (order.push('sign-in deleted'), true));
+    const { handleAccountRoutes } = await import('../account-routes.js');
+    const res = response();
+
+    await handleAccountRoutes(
+      deleteRequest({ confirmation: 'DELETE_MY_ACCOUNT' }),
+      res,
+      '/api/account'
+    );
+
+    expect(res.status).toBe(200);
+    expect(order).toEqual(['sign-in off', 'data', 'sign-in deleted']);
+  });
+
+  it('switches the sign-in back on when the erasure fails, as the error says', async () => {
+    mockDeleteAllData.mockRejectedValue(new Error('User record not fully erased'));
+    const { handleAccountRoutes } = await import('../account-routes.js');
+    const res = response();
+
+    await handleAccountRoutes(
+      deleteRequest({ confirmation: 'DELETE_MY_ACCOUNT' }),
+      res,
+      '/api/account'
+    );
+
+    expect(res.status).toBe(500);
+    expect(mockSetDisabled.mock.calls).toEqual([
+      ['user-123', true],
+      ['user-123', false],
+    ]);
+    expect(mockDeleteFirebaseUser).not.toHaveBeenCalled();
   });
 });

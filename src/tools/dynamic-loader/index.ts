@@ -30,6 +30,9 @@ import { TOPIC_PATTERNS } from './topic-patterns.js';
 import { predictionTopicPatterns } from './prediction-topics.js';
 import { smartHomeTopicPatterns } from './smart-home-topics.js';
 export { smartHomeTopicPatterns };
+import { rideTopicPatterns } from './ride-topics.js';
+import { sleepTopicPatterns } from './sleep-topics.js';
+export { rideTopicPatterns };
 import { flagOn } from '../../config/env-flag.js';
 import { LEAN_LOADER_DOMAINS, sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
 import { SAME_TURN_TOPIC_PATTERNS } from './same-turn-topics.js';
@@ -137,9 +140,11 @@ export class DynamicToolLoader {
     // WEEKLY_PREDICTION=on: "predict my week" loads Peter's game (prediction-topics.ts).
     const patterns = [
       ...TOPIC_PATTERNS,
+      ...rideTopicPatterns(), // RIDE_LINKS=on: "get me an uber" loads openRideLink only
       ...(flagOn('WEEKLY_PREDICTION') ? predictionTopicPatterns(this.toolContext?.userId) : []),
       ...(sameTurnToolsEnabled() ? SAME_TURN_TOPIC_PATTERNS : []),
       ...smartHomeTopicPatterns(), // SMART_HOME_LIFX=on: "dim the lamp" loads the caller's lights
+      ...sleepTopicPatterns(), // OURA_SLEEP_TOOL=on: "I slept terribly" loads wellness
     ];
     const leadTools = new Set<string>();
     for (const [topic, domains, pattern] of patterns) {
@@ -344,7 +349,7 @@ export class DynamicToolLoader {
     if (loadedDomains.length > 0) {
       getLogger().info(
         {
-          message: message.slice(0, 50),
+          messageLen: message.length,
           topics: detection.detectedTopics,
           loadedDomains,
         },
