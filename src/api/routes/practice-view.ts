@@ -32,7 +32,7 @@ import {
 import { rateLimit } from '../auth-middleware.js';
 import { localeForRequest, tFor, type SupportedLocale } from '../../i18n/index.js';
 import { loadPracticeStats, type PracticeViewStats } from './practice-view-stats.js';
-import type { OutreachType } from '../../services/outreach/proactive-scheduler.js';
+import type { UpcomingOutreach } from '../../services/outreach/upcoming-outreach.js';
 import {
   attribute,
   generateEventEmotionalContext,
@@ -120,14 +120,6 @@ export interface PracticePrediction {
   timing: 'now' | 'tomorrow' | 'this_week';
 }
 
-export interface PracticeOutreach {
-  id: string;
-  type: OutreachType;
-  message: string;
-  scheduledFor?: string;
-  persona: string;
-}
-
 export interface CrossPersonaInsight {
   persona: 'ferni' | 'maya' | 'peter' | 'alex' | 'jordan' | 'nayan';
   type: 'notice' | 'suggest' | 'celebrate' | 'warn';
@@ -146,7 +138,12 @@ export interface PracticeViewResponse {
   mayaNotices: MayaPatternNotice | null;
   crossPersonaInsights: CrossPersonaInsight[];
   predictions: PracticePrediction[];
-  pendingOutreach: PracticeOutreach[];
+  /**
+   * What Ferni is set to reach out about, soonest first: the same items as GET
+   * /api/outreach/upcoming. null when it could not be read, never [] (that would
+   * say "nothing planned").
+   */
+  pendingOutreach: UpcomingOutreach[] | null;
   stats: PracticeViewStats;
   lastUpdated: string;
 }
@@ -473,36 +470,27 @@ async function loadPredictions(userId: string): Promise<PracticePrediction[]> {
 const PRACTICE_OUTREACH_LIMIT = 5;
 
 /**
- * Load the outreach Ferni has planned for the user, from where the proactive
- * scheduler writes it (bogle_users/{uid}/scheduled_outreach).
+ * What Ferni is set to reach out to the user about, from the one source "When
+ * I'll Reach Out" reads (services/outreach/upcoming-outreach.ts). null when it
+ * can't be read, so the view never turns a failed read into "nothing planned".
  */
-async function loadPendingOutreach(userId: string): Promise<PracticeOutreach[]> {
-  const outreach: PracticeOutreach[] = [];
-
+async function loadPendingOutreach(userId: string): Promise<UpcomingOutreach[] | null> {
   try {
-    const { getFirestoreDb } = await import('../../utils/firestore-utils.js');
-    const db = getFirestoreDb();
-    if (!db) return outreach;
-    const { queryUserPendingOutreach } =
-      await import('../../services/outreach/pending-outreach-query.js');
-
-    for (const doc of await queryUserPendingOutreach(db, userId, PRACTICE_OUTREACH_LIMIT)) {
-      const data = doc.data();
-      outreach.push({
-        id: doc.id,
-        type: data.type || 'check_in',
-        message: data.message || '',
-        scheduledFor: data.scheduledFor,
-        persona: data.personaId || 'ferni',
-      });
-    }
-
+    const [{ firestoreUpcomingDeps, listUpcomingOutreach }, { reachOutActionsOn }] =
+      await Promise.all([
+        import('../../services/outreach/upcoming-outreach.js'),
+        import('../../services/outreach/upcoming-outreach-actions.js'),
+      ]);
+    const outreach = await listUpcomingOutreach(userId, await firestoreUpcomingDeps(), {
+      limit: PRACTICE_OUTREACH_LIMIT,
+      actions: reachOutActionsOn(),
+    });
     log.debug({ userId, count: outreach.length }, 'Loaded pending outreach');
+    return outreach;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Could not load pending outreach');
+    return null;
   }
-
-  return outreach;
 }
 
 /**
@@ -638,7 +626,7 @@ export async function handleGetPracticeView(
         eventsCount: events.length,
         habitsCount: habits.length,
         predictionsCount: predictions.length,
-        outreachCount: pendingOutreach.length,
+        outreachCount: pendingOutreach?.length ?? null,
       },
       'Practice view loaded'
     );
