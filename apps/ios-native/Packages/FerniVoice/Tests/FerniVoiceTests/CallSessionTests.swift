@@ -53,7 +53,10 @@ final class CallSessionTests: XCTestCase {
         private(set) var activations = 0
         private(set) var deactivations = 0
         init() { (interruptions, interrupt) = AsyncStream.makeStream(of: AudioInterruption.self) }
-        func requestMicrophone() async -> Bool { micAllowed }
+        private(set) var micRequests = 0
+        func requestMicrophone() async -> Bool { micRequests += 1; return micAllowed }
+        /// The app can't activate the session itself either.
+        var refuseOwnAudio = false
         var order: Order?
         /// The next activation throws (the system still has the audio).
         var failNextActivation = false
@@ -68,6 +71,7 @@ final class CallSessionTests: XCTestCase {
                 failNextActivation = false
                 throw NSError(domain: "AVAudioSession", code: 561_015_905) // '!pri': can't activate
             }
+            if refuseOwnAudio, !systemOwned { throw NSError(domain: "AVAudioSession", code: 561_015_905) }
             order?.steps.append("activate")
         }
         func deactivate(systemOwned: Bool) { deactivations += 1 }
