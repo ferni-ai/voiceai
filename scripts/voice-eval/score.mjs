@@ -16,14 +16,18 @@
 //   their words, Ferni's own speech, just before a reply, or silence over
 //   2.5 s after the caller stopped), and the same clip again within 60 s
 //   (sounds.mjs). Thresholds start WARN-only (nightly/capabilities.json).
+// Caller audio: a run whose caller lines went out over MAX_SEND_RATIO x real time
+//   (converse-timing.mjs) was heard in fragments, so it is left out of every
+//   timing number; when no run is left, those numbers read "timing invalid".
 import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { compareToTargets, computeHumanness } from './humanness.mjs';
 import { presenceOfRuns } from './presence.mjs';
 import { cutSoundsOf, placeSounds, poolSoundMetrics, soundMetrics } from './sounds.mjs';
 import { checksFor } from './transcript-checks.mjs';
+import { TIMING_INVALID, callerAudioOfRun, timingInvalidNote } from './converse-timing.mjs';
 
 const STOCK_OPENER = /^(?:oh+|ugh+|ha(?:ha)*|hah|yeah|yep|hmm+|mm+|ah+|aw+|wow|whoa)\b/i;
 const BACKCHANNEL_MAX_MS = 1500;
@@ -66,6 +70,8 @@ const overlaps = []; // caller talking over the agent (converse.mjs @backchannel
 const users = new Set();
 
 const runs = [];
+const timedRuns = []; // runs whose caller audio went out in real time: the only ones timed (#2740)
+const timingInvalid = []; // { file, maxRatio } of the rest
 const soundRuns = [];
 // How well the agent heard the scripted caller, and whether it heard itself.
 const stt = { edits: 0, refWords: 0 };
@@ -93,13 +99,20 @@ for (const file of process.argv.slice(2)) {
       }
     }
   }
-  for (const r of run.results) if (typeof r.replyDelayMs === 'number') delays.push(r.replyDelayMs);
-  for (const r of run.results) if (r.mode) overlaps.push(r);
+  const audio = callerAudioOfRun(run);
+  if (!audio.valid) {
+    timingInvalid.push({ file: basename(file), maxRatio: audio.maxRatio });
+    console.error(`score.mjs: ${basename(file)}: ${timingInvalidNote(audio)}; not timed`);
+  } else timedRuns.push(run);
+  // Reply timing, talk-over and backchannels only from a caller who spoke in real time.
+  const timed = audio.valid;
+  if (timed) for (const r of run.results) if (typeof r.replyDelayMs === 'number') delays.push(r.replyDelayMs);
+  if (timed) for (const r of run.results) if (r.mode) overlaps.push(r);
 
   // Side-track clips (backchannels, opening sounds) come from a track whose
   // name mentions "background"; the reply voice is the other agent track.
   const side = run.tracks.filter((t) => /background/i.test(t.name));
-  for (const r of run.results) {
+  for (const r of timed ? run.results : []) {
     if (typeof r.replyDelayMs !== 'number') continue;
     const replyAt = r.userEndedAt + r.replyDelayMs;
     const clipStarts = side.flatMap((t) => t.voice.map(([vs]) => vs)).filter((vs) => vs >= r.userEndedAt && vs < replyAt);
@@ -113,7 +126,7 @@ for (const file of process.argv.slice(2)) {
   greeting ??= run.events.filter((e) => e.who === 'agent' && e.t <= firstTurnAt).map((e) => e.text).join(' ') || null;
   greetingUtterances = Math.max(greetingUtterances, run.events.filter((e) => e.who === 'agent' && e.t <= firstTurnAt).length);
 
-  for (const [start, end] of run.userSpeech) {
+  for (const [start, end] of timed ? run.userSpeech : []) {
     userSpeechMs += end - start;
     for (const track of run.tracks.filter((t) => !/background/i.test(t.name))) {
       for (const [vs, ve] of track.voice) {
@@ -147,24 +160,30 @@ const repeatedPhrases = (() => {
 const words = replies.map((t) => t.split(/\s+/).filter(Boolean).length);
 const m = mean(words);
 const sd = m === null ? null : Math.sqrt(mean(words.map((w) => (w - m) ** 2)));
+// Every run's caller audio was stretched: no timing number from this pool means anything.
+const untimed = timingInvalid.length > 0 && timedRuns.length === 0;
+const timing = (value) => (untimed ? TIMING_INVALID : value);
 const score = {
   users: [...users],
   replies: replies.length,
-  replyDelayMs: { p50: pct(delays, 50), p90: pct(delays, 90), n: delays.length },
+  // Runs left out of every timing number below because their caller audio was sent over
+  // MAX_SEND_RATIO x real time (converse-timing.mjs). With none left, those numbers read TIMING_INVALID.
+  callerAudio: { runs: runs.length, timingInvalid },
+  replyDelayMs: timing({ p50: pct(delays, 50), p90: pct(delays, 90), n: delays.length }),
   // First agent sound of any kind (an opening "mm" counts): the gap people hear.
-  perceivedDelayMs: { p50: pct(perceived, 50), p90: pct(perceived, 90) },
-  openingSounds,
+  perceivedDelayMs: timing({ p50: pct(perceived, 50), p90: pct(perceived, 90) }),
+  openingSounds: timing(openingSounds),
   wordsPerReply: { mean: round(m, 1), min: words.length ? Math.min(...words) : null, max: words.length ? Math.max(...words) : null, cv: m ? round(sd / m) : null },
   questionEndRate: round(replies.filter((t) => /\?\s*$/.test(t)).length / (replies.length || 1)),
   stockOpenerRate: round(replies.filter((t) => STOCK_OPENER.test(t.trim())).length / (replies.length || 1)),
   markupInCaptions: replies.filter((t) => /<[^>]+>|\[[a-z_ ]+\]/i.test(t)).length,
-  backchannelsPerMinuteOfUserSpeech: round(backchannels / Math.max(userSpeechMs / 60000, 1e-9), 1),
-  backchannels,
-  interruptions,
+  backchannelsPerMinuteOfUserSpeech: timing(round(backchannels / Math.max(userSpeechMs / 60000, 1e-9), 1)),
+  backchannels: timing(backchannels),
+  interruptions: timing(interruptions),
   // A caller's "mm-hmm" while the agent talks should not stop it (a human
   // keeps going); a real interruption should stop it fast (people yield
   // within a few hundred ms).
-  talkOver: (() => {
+  talkOver: timing((() => {
     const bc = overlaps.filter((o) => o.mode === 'backchannel' && o.agentTalking);
     const it = overlaps.filter((o) => o.mode === 'interrupt' && o.agentTalking);
     return {
@@ -176,7 +195,7 @@ const score = {
       interruptStopMs: { p50: pct(it.filter((o) => o.stopped).map((o) => o.stopLatencyMs), 50) },
       notTalkingWhenOverlapped: overlaps.filter((o) => !o.agentTalking).length,
     };
-  })(),
+  })()),
   // Therapist / host register a friend wouldn't use (feelings probes, stock
   // validation, performative gratitude), and hype.
   therapistRate: round(replies.filter((t) => THERAPIST.test(t)).length / (replies.length || 1)),
@@ -201,7 +220,7 @@ const score = {
   // reply starts, so this also counts ones cut within ~20 ms that nobody hears.
   falseStartCaptions: replies.filter((t) => t.trim().split(/\s+/).filter(Boolean).length <= 2).length,
   // The audible kind: 150 ms to 1.5 s of reply voice while the caller is talking.
-  audibleFalseStarts,
+  audibleFalseStarts: timing(audibleFalseStarts),
   repeatedPhraseCount: repeatedPhrases.length,
   repeatedPhrases: repeatedPhrases.slice(0, 10),
   greetingUtterances,
@@ -235,7 +254,7 @@ const score = {
   // nameUseRate: the caller's name (EVAL_CALLER_NAME, default Sam) in Ferni's turns.
   humanness: computeHumanness(runs, { callerName: process.env.EVAL_CALLER_NAME ?? 'Sam' }),
   // Mid-turn backchannels against the caller's pauses (presence.mjs).
-  presence: presenceOfRuns(runs),
+  presence: timing(presenceOfRuns(timedRuns)),
   // Ferni's non-speech sounds and where they landed (sounds.mjs).
   sounds: poolSoundMetrics(soundRuns),
   replyTexts: replies,

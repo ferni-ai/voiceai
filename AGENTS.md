@@ -171,7 +171,7 @@ against:
 - **Frontend**: colors, durations and shadows come from design tokens
   (`var(--color-*)`); edit `design-system/tokens/*.json` and run
   `pnpm tokens:sync`. Never edit `*.generated.*`.
-- **Flags**: `pnpm flags:new NAME --default off --owner <area> --kind experiment`
+- **Flags**: `pnpm flags:new NAME --default off --owner <area> --kind experiment --issue '#123'` (an experiment needs a real issue)
   writes `src/config/flags/NAME.ts`; commit only that file. The flag barrel and
   the env-name list (`src/config/**/*.generated.ts`) are gitignored: install,
   typecheck, build and tests regenerate them (`pnpm gen:lists` by hand).

@@ -5,4 +5,8 @@ export const CALL_LIVE_RELAY = {
   default: 'off',
   owner: 'outreach',
   kind: 'experiment',
+  expires: '2027-01-31',
+  issue: 'TBD',
+  context:
+    'Keep if owners on placed calls hear the pickup/voicemail line once and on time; else delete.',
 } as const satisfies FlagSpec;

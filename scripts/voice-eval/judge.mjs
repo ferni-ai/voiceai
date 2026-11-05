@@ -51,6 +51,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename } from 'node:path';
+import { TIMING_INVALID, callerAudioOfRun, timingInvalidNote } from './converse-timing.mjs';
 import { turnsOf } from './humanness.mjs';
 import { withBillingLabels } from '../lib/gemini-billing-labels.mjs';
 import * as stats from './judge-stats.mjs';
@@ -433,7 +434,8 @@ function loadCalls(files) {
       if (existsSync(verdictFile(f, p))) verdicts[p] = JSON.parse(readFileSync(verdictFile(f, p), 'utf8'));
     if (!Object.keys(verdicts).length) console.error(`no verdict for ${f} (run without --summary first)`);
     const label = run?.meta?.label ?? name.slice(scenario.length + 1);
-    return { scenario, label, words: run ? wordsPerReply(run) : null, verdicts };
+    const audio = run ? callerAudioOfRun(run) : null;
+    return { name, scenario, label, words: run ? wordsPerReply(run) : null, verdicts, timingValid: audio?.valid ?? true };
   });
 }
 
@@ -463,6 +465,10 @@ function summarize(files, { primary = null, baseline = 3, arms = null }) {
   const anchor = typeof baseline === 'number';
   console.log(`\nbaseline: ${anchor ? `${baseline}, the rubric's words, NOT a measured friend` : 'measured, per dimension'}`);
   console.log(`primary: ${primary ?? 'none declared; every dimension is exploratory (Holm-corrected)'}`);
+  // #2740: a caller sent slower than real time is heard in fragments, so those calls' scores are confounded.
+  const untimed = calls.filter((c) => !c.timingValid);
+  if (untimed.length)
+    console.log(`caller audio: ${TIMING_INVALID} in ${untimed.length}/${calls.length} call(s), scores confounded: ${untimed.map((c) => c.name).join(', ')}`);
   for (const p of providers) {
     const models = [...new Set(calls.map((c) => c.verdicts[p]?.model).filter(Boolean))].join(', ');
     for (const [arm, cs] of groups) {
@@ -545,6 +551,7 @@ async function main() {
       const seedFile = f.replace(/\.json$/, '.seed.json');
       const seed = existsSync(seedFile) ? JSON.parse(readFileSync(seedFile, 'utf8')) : null;
       const persona = personaProfile(personaOf(run));
+      const audio = callerAudioOfRun(run);
       for (const provider of providers) {
         const ctx = { model: PROVIDERS[provider].model(process.env), project };
         const samples = [];
@@ -566,11 +573,14 @@ async function main() {
           persona: persona.id,
           seeded: Boolean(seed),
           sounds: judgeSoundsOn(),
+          callerAudio: { valid: audio.valid, maxRatio: audio.maxRatio },
           ...combine(samples),
         };
         writeFileSync(verdictFile(f, provider), JSON.stringify(verdict, null, 2));
         const worst = samples[0]?.worstMoment;
-        console.log(`${f} [${provider} ${ctx.model}]\n  ${JSON.stringify(verdict.scores)} human=${verdict.humanLikelihood}`);
+        console.log(`${f} [${provider} ${ctx.model}]`);
+        if (!audio.valid) console.log(`  ${timingInvalidNote(audio)}; these scores are confounded`);
+        console.log(`  ${JSON.stringify(verdict.scores)} human=${verdict.humanLikelihood}`);
         if (worst) console.log(`  worst #${worst.turn}: "${worst.quote}" — ${worst.why}`);
         if (Object.values(verdict.candorTurns).some(Boolean))
           console.log(`  candor turns: ${JSON.stringify(verdict.candorTurns)}`);
