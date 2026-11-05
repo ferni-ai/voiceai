@@ -6,13 +6,16 @@
  * the `foundingWave` written here.
  *
  * Every write to a person is a transactional update(), so it re-reads them first
- * and never recreates a doc that was erased in the meantime.
+ * and never recreates a doc that was erased in the meantime. A wave's summary is the
+ * caller's, so its undefined fields are dropped before the write (deepRemoveUndefined keeps
+ * Dates and FieldValue sentinels as they are; cleanForFirestore would turn the Dates into strings).
  *
  * Indexes: waitlist (inQueue, laneRank, priorityKey) and (status, seatExpiresAt).
  *
  * @module services/waitlist/wave-store
  */
 import { FieldValue, type Firestore, type QueryDocumentSnapshot } from '@google-cloud/firestore';
+import { deepRemoveUndefined } from '../../utils/firestore-utils.js';
 import { queueFields, readEntry, type QueueEntry } from './queue.js';
 import { readSettings, SEAT_DAYS, SETTINGS_DOC, type WaitlistSettings } from './settings.js';
 
@@ -86,12 +89,12 @@ export function firestoreWaveStore(db: Firestore): WaveStore {
       });
     },
     async finishWave(id, summary) {
-      await waves.doc(id).set({ ...summary, status: 'done', leaseUntil: FieldValue.delete(), finishedAt: new Date() }, { merge: true }); // prettier-ignore
+      await waves.doc(id).set(deepRemoveUndefined({ ...summary, status: 'done', leaseUntil: FieldValue.delete(), finishedAt: new Date() }), { merge: true }); // prettier-ignore
     },
     async recordSkip(id, summary) {
       const status = (await waves.doc(id).get()).data()?.status as string | undefined;
       if (status === 'done' || status === 'running') return; // never overwrite a wave that ran or is running
-      await waves.doc(id).set({ ...summary, status: 'skipped', skippedAt: new Date() }, { merge: true }); // prettier-ignore
+      await waves.doc(id).set(deepRemoveUndefined({ ...summary, status: 'skipped', skippedAt: new Date() }), { merge: true }); // prettier-ignore
     },
     async nextInLine(limit) {
       if (limit <= 0) return [];
