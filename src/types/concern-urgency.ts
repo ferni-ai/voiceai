@@ -19,3 +19,28 @@ export function concernUrgency(value: unknown): ConcernUrgency | null {
   if (word === 'critical') return 'urgent';
   return CONCERN_URGENCIES.find((u) => u === word) ?? null;
 }
+
+/** A concern as the sponsor-facing readers (alert and briefing) see it. */
+export interface LabelledConcern {
+  urgency: unknown;
+  /**
+   * False when the model's label only read as this urgency once trimmed,
+   * lowercased or "critical" was read as urgent. Missing on records stored
+   * before it existed: those only ever held labels already written this way.
+   */
+  labelWasCanonical?: boolean;
+}
+
+const raises = (u: unknown): boolean => u === 'urgent' || u === 'high';
+
+/**
+ * The one concern the sponsor hears about: the first urgent or high one. A label
+ * the model already wrote as "urgent" or "high" comes first, so the pick is the
+ * one made before other labels were read; those only add a pick where there was none.
+ */
+export function concernForSponsor<T extends LabelledConcern>(
+  concerns: readonly T[] | undefined
+): T | undefined {
+  const canonical = concerns?.find((c) => c.labelWasCanonical !== false && raises(c.urgency));
+  return canonical ?? concerns?.find((c) => raises(concernUrgency(c.urgency)));
+}

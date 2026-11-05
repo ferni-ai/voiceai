@@ -414,9 +414,12 @@ function validateMood(mood: string): DetectedMood {
 }
 
 function validateConcern(concern: Partial<FlaggedConcern>): FlaggedConcern {
+  const urgency = concernUrgency(concern.urgency) ?? 'low';
   return {
     description: concern.description || 'Unspecified concern',
-    urgency: concernUrgency(concern.urgency) ?? 'low',
+    urgency,
+    // Which concern reaches the sponsor depends on it (concernForSponsor).
+    labelWasCanonical: concern.urgency === urgency,
     category: (['health', 'safety', 'emotional', 'financial', 'other'].includes(
       concern.category || ''
     )
