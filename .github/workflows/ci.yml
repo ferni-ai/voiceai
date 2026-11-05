@@ -418,6 +418,11 @@ jobs:
         if: steps.nm-cache.outputs.cache-hit != 'true'
         run: pnpm install --no-frozen-lockfile
 
+      # scripts/voice-eval/run.sh is zsh, and the tests that dry-run it skip without zsh.
+      # app-name.test.mjs fails instead of skipping when CI is set, so zsh must be here.
+      - name: Install zsh (voice-eval run.sh tests)
+        run: command -v zsh || { sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends zsh; }
+
       # The root vitest.config.ts excludes apps/**, so the step below never sees the
       # CLI's tests; they run under apps/cli/vitest.config.ts instead. They need no
       # native bindings and finish in seconds, so they run before the Rust build.

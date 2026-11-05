@@ -84,6 +84,21 @@ export async function seed(uid, docs, env) {
   await batch.commit();
 }
 
+/** Records when a world was seeded (--rejudge grades as of then), creating --out if need be: the
+ *  nightly's --out is a new dir, and writing into it before it existed failed every night. */
+export function markSeeded(out, sc, record) {
+  mkdirSync(out, { recursive: true });
+  writeFileSync(join(out, `${sc}.seeded.json`), JSON.stringify(record));
+}
+
+/** When a world was seeded. Throws when the record is missing: grading as of today instead would
+ *  mark a question about "yesterday" against the wrong day. */
+export function seededAt(out, sc) {
+  const file = join(out, `${sc}.seeded.json`);
+  if (!existsSync(file)) throw new Error(`no ${file}: can't tell when ${sc} was seeded`);
+  return new Date(JSON.parse(readFileSync(file, 'utf8')).now);
+}
+
 /** The panel's verdicts on one world's answers: k samples, each in its own item order. */
 export async function gradeAnswers(world, answers, now, k = 3) {
   const ctx = { model: judgeModel(process.env, 'pro'), project: process.env.GCP_PROJECT ?? DEV };
@@ -136,10 +151,9 @@ async function main(argv) {
       console.log(`PLAN ${world.id}: ${docs.length} docs, ${world.items.length} questions`);
       continue;
     }
-    const seeded = join(out, `${sc}.seeded.json`); // when it was seeded: --rejudge grades as of then
     if (!argv.includes('--rejudge') || !existsSync(json)) {
       await seed(uid, docs, env);
-      writeFileSync(seeded, JSON.stringify({ now: now.toISOString(), uid, docs: docs.length }));
+      markSeeded(out, sc, { now: now.toISOString(), uid, docs: docs.length });
       mkdirSync(join(out, 'scenarios'), { recursive: true });
       const lines = [OPENER, ...world.items.map((it) => it.q)];
       writeFileSync(join(out, 'scenarios', `${sc}.txt`), `${lines.join('\n')}\n`);
@@ -150,7 +164,7 @@ async function main(argv) {
     }
     const run = JSON.parse(readFileSync(json, 'utf8'));
     const answers = score.answersOf(run, world.items.length, 1);
-    const asOf = existsSync(seeded) ? new Date(JSON.parse(readFileSync(seeded, 'utf8')).now) : now;
+    const asOf = seededAt(out, sc);
     const g = await gradeAnswers(world, answers, asOf, Number(process.env.RECALL_JUDGE_K ?? 3));
     const verdict = JSON.stringify({ world: world.id, plant, ...g }, null, 2);
     writeFileSync(join(out, `${sc}.graded.json`), verdict);
