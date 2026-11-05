@@ -12,6 +12,7 @@
  * @module services/outreach/checkin-urgent-alert
  */
 
+import { flagOn, type Env } from '../../config/env-flag.js';
 import {
   callerText,
   carriesCrisis,
@@ -53,6 +54,12 @@ export function withheldCallerLine(name: string): string {
  * Text longer than that is never screened in full, so it is not passed on.
  */
 const SCREEN_WINDOW = 10_000;
+
+/**
+ * Stands in for the person's name when the screen reads the alert (CHECKIN_ALERT_NAME_SLOT):
+ * no screen word, no digit, so it adds nothing to the read and takes nothing from their words.
+ */
+const NAME_SLOT = 'them';
 
 /** A field's words as the screen reads them, or null when the field holds something else. */
 function fieldText(value: unknown): string | null {
@@ -107,6 +114,23 @@ function needsCrisisLine(
   return withheld || flagged || read;
 }
 
+/**
+ * Whether the screen reads the alert with NAME_SLOT where the name goes
+ * (CHECKIN_ALERT_NAME_SLOT). A field with its own money read keeps main's alert, money line
+ * and all.
+ */
+function nameSlotOn(desc: ScreenedField, act: ScreenedField, env: Env): boolean {
+  return flagOn('CHECKIN_ALERT_NAME_SLOT', env) && !desc.risky && !act.risky;
+}
+
+/**
+ * Words only the name held back (the screen passes `read` but not `sent`) went out of
+ * main's withheld alert with crisisCallerLine, so they keep it on a crisis read of either field.
+ */
+function keepsCrisisLine(sent: string, read: string, crisis: boolean, both: string): boolean {
+  return read !== sent && !crisis && isRiskyCallerText(sent) && crisisRead(both);
+}
+
 /** Drops the closing stop so the line can sit inside Ferni's own sentence. */
 function clause(text: string): string {
   return text.replace(/[.\s]+$/, '');
@@ -131,8 +155,17 @@ function clause(text: string): string {
  * go out in full they carry their own meaning, and crisisCallerLine is added
  * only for crisis the guard reads in both fields together that they don't
  * carry, such as a phrase split across the two fields.
+ *
+ * CHECKIN_ALERT_NAME_SLOT=on: the name is the sponsor's word for them, not their words, so
+ * the screen reads the same alert with NAME_SLOT in each name slot. A name such as "Loan" or
+ * "Pin" no longer withholds everyday words; words it alone held back keep crisisCallerLine
+ * whenever the crisis guard reads crisis in either field, as the withheld alert did. A
+ * field with its own money, account or number read keeps main's alert.
  */
-export function generateUrgentNotification(record: CheckinAlertInput): string | null {
+export function generateUrgentNotification(
+  record: CheckinAlertInput,
+  env: Env = process.env
+): string | null {
   if (!record.concernsIdentified || record.concernsIdentified.length === 0) {
     return null;
   }
@@ -147,28 +180,34 @@ export function generateUrgentNotification(record: CheckinAlertInput): string | 
 
   const concern = urgentConcerns[0];
   const name = record.familyMemberName;
-  const alert = (what: string, next: string, crisis: boolean): string => {
-    const tail = [crisis ? crisisCallerLine(name) : '', next].filter(Boolean).join(' ');
-    return `Important: During my call with ${name}, ${clause(what)}. ${tail}`;
+  const alert = (who: string, what: string, next: string, crisis: boolean): string => {
+    const tail = [crisis ? crisisCallerLine(who) : '', next].filter(Boolean).join(' ');
+    return `Important: During my call with ${who}, ${clause(what)}. ${tail}`;
   };
 
   const desc = screenField(concern.description, name);
   const act = screenField(concern.recommendedAction, name);
-  const what = desc.said || heldLine(desc, act, name);
   const next = act.said || CHECK_IN_ACTION; // Ferni's line whenever it was risky or not text
+  const alertFor = (who: string, crisis: boolean): string =>
+    alert(who, desc.said || heldLine(desc, act, who), next, crisis);
+  const what = desc.said || heldLine(desc, act, name);
   const both = [concern.description, concern.recommendedAction]
     .map(fieldText)
     .filter(Boolean)
     .join(' ');
   const crisis = needsCrisisLine(desc, act, both, what, next);
-  const sent = alert(what, next, crisis);
-  const screened = both.length <= SCREEN_WINDOW && sent.length <= SCREEN_WINDOW;
-  if (screened && !isRiskyCallerText(sent)) return sent;
+  const sent = alertFor(name, crisis);
+  const read = nameSlotOn(desc, act, env) ? alertFor(NAME_SLOT, crisis) : sent;
+  const screened = [both, sent, read].every((text) => text.length <= SCREEN_WINDOW);
+  if (screened && !isRiskyCallerText(read)) {
+    return keepsCrisisLine(sent, read, crisis, both) ? alertFor(name, true) : sent;
+  }
   // Too long to screen in full, or the joined fields formed something risky:
   // pass neither on, so their words are withheld and crisisCallerLine goes. The
   // money line only when the screen read something risky in either field alone, the
   // alert, or the joined fields; length alone is neutral. Each field is read alone
   // because the joined text is read only up to the screen's window.
-  const risky = desc.risky || act.risky || isRiskyCallerText(sent) || isRiskyCallerText(both);
-  return alert(risky ? riskyCallerLine(name) : withheldCallerLine(name), CHECK_IN_ACTION, true);
+  const risky = desc.risky || act.risky || isRiskyCallerText(read) || isRiskyCallerText(both);
+  const held = risky ? riskyCallerLine(name) : withheldCallerLine(name);
+  return alert(name, held, CHECK_IN_ACTION, true);
 }
