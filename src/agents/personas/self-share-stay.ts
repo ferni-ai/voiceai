@@ -12,7 +12,8 @@
  * - nothing before the ask but lead-in words ("Okay, so", "Enough about
  *   me."), so no news of theirs and no question they report ("my sister asked
  *   me how was your day", "my boss goes, what did you do to the printer?");
- * - nothing of their own after it (their own words or their people's);
+ * - nothing after it but more of the same question ("today", "or kind of a
+ *   weird one?"), so nothing of theirs said without a pronoun stays;
  * - no risk read on the turn (the safety readers below, unchanged) and none
  *   noted earlier on the call (crisis risk, a likely minor).
  *
@@ -34,7 +35,9 @@ const EMERGENCY = new RegExp(`\\b(?:${CRISIS_TALK})\\b`, 'i');
 /**
  * Any safety reader marks this turn: a crisis signal of any strength, an
  * abuse disclosure, self-harm words, a caller under 18, an emergency in their
- * words (chest, can't breathe, collapsed...), or hard news.
+ * words (chest, can't breathe, collapsed...), or hard news. The word rules
+ * below already keep every such turn we know of from staying; this holds if
+ * they widen.
  */
 export function riskRead(said: string): boolean {
   return (
@@ -68,14 +71,29 @@ export function onlyLeadIn(before: string): boolean {
   return t.length <= 80 && LEAD_IN.test(t);
 }
 
-/** Words that make what follows the ask the caller's own: about them, or someone in their life. */
-const THEIR_OWN =
-  /\b(?:i|i'm|im|i've|i'd|i'll|me|my|mine|myself|we|we're|us|our|ours|he|he's|him|his|she|she's|her|hers|they|they're|them|their)\b/i;
-/** Past this many words, what follows the ask is a share of their own, whatever it says. */
-const TAIL_WORDS = 8;
+/**
+ * The only words that may follow the ask: more of the same question ("today",
+ * "this weekend", ", or kind of a weird one?", "And don't say nothing.", ",
+ * what did you do today?"). Any
+ * other word may be theirs, said without a pronoun a reader would catch ("How
+ * are you? Got hit again.", "...Scared to go home."), so it gets main's lines.
+ */
+const ASK_WORDS = new Set(
+  (
+    'today tonight yesterday this that last week weekend morning afternoon evening night day days ' +
+    'lately recently so far anything something specific else fun new good or kind kinda of a an the ' +
+    "weird normal one and don't dont say nothing really actually honestly seriously though doing been " +
+    'up to going shaping handle for you your yourself life like what how is was are did do get have it ' +
+    'be honest real come on'
+  ).split(' ')
+);
 
-/** Nothing of theirs after the ask: ", or kind of a weird one?" is still the ask; "My chest hurts." is not. */
+/** Nothing of theirs after the ask: ", or kind of a weird one?" is still the ask; "Got hit again." is not. */
 export function nothingOfTheirs(tail: string): boolean {
-  const t = tail.replace(/[‘’]/g, "'");
-  return !THEIR_OWN.test(t) && (t.match(/[\w']+/g)?.length ?? 0) <= TAIL_WORDS;
+  const words =
+    tail
+      .replace(/[‘’]/g, "'")
+      .toLowerCase()
+      .match(/[a-z']+/g) ?? [];
+  return words.every((w) => ASK_WORDS.has(w));
 }

@@ -75,7 +75,7 @@ const ABOUT_FERNI_WIDE = [
     String.raw`(?:is|was) that\s+(?:(?:really|kind of|kinda|pretty|so|too|very)\s+)?(?:an?\s+${DESCRIBES}\s+${SPAN}|${DESCRIBES}|a lot|too much)\s+for you\b`
   ),
   asked(
-    String.raw`what(?:'s| is) (?:something|anything)\b[^.!?]{0,30}?(?:\b(?:bugging|bothering|annoying|worrying|stressing) you\b|\bon your mind\b)`
+    String.raw`what(?:'s| is) (?:something|anything)(?:\s+(?:that'?s|that|is|has|been|really|kind of|kinda|lately|actually))*\s+(?:(?:bugging|bothering|annoying|worrying|stressing) you\b|on your mind\b)`
   ),
   asked(String.raw`what about yourself\b`),
   asked(String.raw`tell me (?:something|anything) about (?:you|yourself)\b`),

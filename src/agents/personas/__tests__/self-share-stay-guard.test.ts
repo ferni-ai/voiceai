@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import { noteCallerWords, resetMinorCare } from '../../../utils/minor-care.js';
 import { callerMove } from '../caller-move.js';
+import { riskRead } from '../self-share-stay.js';
 import { selfShareFor, TASK_LINE } from '../ferni-state.js';
 import { regexSignals, type TurnSignals } from '../turn-extras.js';
 import { ABOUT_YOU, QUESTION_LINE, taskTurn, turnShapeFor } from '../turn-shape.js';
@@ -65,6 +66,13 @@ const SAFETY = [
   "My dad's in the hospital again. Anyway, is that a normal day for you?",
   'How are you? Chest pain, left arm numb.',
   'What about yourself? Chest is tight, the left arm is numb.',
+  // Theirs with no pronoun and no reader's words: only more of the question may follow the ask.
+  'How are you? Got hit again.',
+  "How are you? Haven't eaten in four days.",
+  'What about yourself? Scared to go home.',
+  "What'd you get up to today? Haven't slept in days.",
+  'How are you, kinda falling apart.',
+  'Hey Ferni, how was your day? Not doing great.',
 ];
 
 describe('SELF_SHARE_STAY_WHEN_ASKED on: a turn with something of theirs after the ask', () => {
@@ -83,6 +91,28 @@ describe('SELF_SHARE_STAY_WHEN_ASKED on: a turn with something of theirs after t
     expect(stays).toBe(false);
     expect(line).toContain(ASK_BACK);
     expect(reminder).toContain(QUESTION_LINE.noneUnlessOwn);
+  });
+});
+
+/** Each reader the risk read leans on (emergency words, abuse, under 18, crisis-guard, self-harm words, hard news). */
+const RISK_READ = [
+  "What'd you get up to today? He hit me again last night.",
+  'How are you? Chest pain, left arm numb.',
+  "What'd you get up to today? I'm 14 and my stepdad said not to tell anyone what he does.",
+  "What's something about suicide on your mind?",
+  'What about yourself? Chest is tight, the left arm is numb.',
+  "How are you? I'm thinking about ending it all.",
+  'How are you? I just feel hopeless.',
+  'How are you? Got fired today.',
+];
+
+describe('SELF_SHARE_STAY_WHEN_ASKED on: the risk read', () => {
+  it.each(RISK_READ)('%s is marked by a safety reader', (said) => {
+    expect(riskRead(said)).toBe(true);
+  });
+
+  it('a plain ask is not', () => {
+    expect(riskRead(ASK)).toBe(false);
   });
 });
 
@@ -146,7 +176,11 @@ const REPORTED = [
   // A describing word needs a stretch of his life after it ("a normal day"), not any thing.
   'Is that a new phone for you?',
   'Was that a big gift for you?',
+  // Only filler words may sit between "what's something" and "bugging you".
+  "What's something about me cutting bugging you?",
+  "What's something about the pills bugging you?",
 ];
+
 /** Main already reads these as about him: with the flag on they must not get the stay. */
 const MAIN_MISREADS = [
   'My sister asked me how was your day',
@@ -156,6 +190,13 @@ const MAIN_MISREADS = [
   'What did you mean by that?',
   'Do you have a pen?',
   'Do you remember the address?',
+  // Only ask words follow these, so it's the form that keeps them main's.
+  'What did you say?',
+  'Do you remember that?',
+  'Do you have one?',
+  // A thing, with only ask words after it.
+  'What did you do to it?',
+  'What did you do for that?',
 ];
 
 describe('SELF_SHARE_STAY_WHEN_ASKED on: reported questions and things', () => {
