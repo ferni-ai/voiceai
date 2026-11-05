@@ -6,7 +6,7 @@ export const MAX_PER_USER_EVICT_CAP = {
   owner: 'memory',
   kind: 'experiment',
   expires: '2027-02-03',
-  issue: '#3479',
+  issue: '#3489',
   context:
     'Keep while maxPerUser can find a user over the cap; delete once every store reads the per-type count (after #3479) and no capped write is logged for 30 days.',
 } as const satisfies FlagSpec;
