@@ -223,13 +223,17 @@ function vanityBlock(text: string): boolean {
 const collapseSpacedLetters = (text: string): string =>
   text.replace(/(?<![\p{L}0-9])\p{L}(?: \p{L}(?![\p{L}0-9]))+/gu, (run) => run.replace(/ /g, ''));
 
-/** Credential asks, also with digits standing in for letters inside a word ("passw0rd"). */
-function credentialAsk(text: string): boolean {
-  const spellings = ['i', 'l'].map((one) =>
+/** `text` with digits standing in for letters inside a word read as letters ("passw0rd"), 1 as i and as l. */
+const letterSpellings = (text: string): string[] =>
+  ['i', 'l'].map((one) =>
     text.replace(/\p{L}*[0-9]\p{L}[\p{L}0-9]*|\p{L}+[0-9][\p{L}0-9]*/gu, (word) =>
       word.replace(/[013457]/g, (d) => ({ 0: 'o', 1: one, 3: 'e', 4: 'a', 5: 's', 7: 't' })[d] ?? d)
     )
   );
+
+/** Credential asks, also with digits standing in for letters inside a word ("passw0rd"). */
+function credentialAsk(text: string): boolean {
+  const spellings = letterSpellings(text);
   if (spellings.some((s) => CREDENTIAL_PHRASE.test(s) || CREDENTIAL_WORD.test(s))) return true;
   const words = [...text.matchAll(/\p{L}+/gu)].map((m) => m[0]);
   return words.some(
@@ -331,6 +335,31 @@ export function ownerTextDestination(text: string): {
   const longRun = amountRuns(ruled).some((run) => digitBlock(collapseSpacedLetters(run.toLowerCase())) === 'digits'); // prettier-ignore
   const destination = longRun ? 'digits' : unmasked && !DIGIT_RULES.has(unmasked) ? unmasked : masked; // prettier-ignore
   return { folded, destination };
+}
+
+/**
+ * Single letters split by spaces, dots, dashes, underscores or stars read as one word:
+ * "c.o.d.e" is "code". With `keepWords`, an "a" or "i" spaced off either end of the run
+ * stays a word, so "a c o d e i got" is "a code i got".
+ */
+function joinSplitLetters(text: string, keepWords: boolean): string {
+  const join = (run: string): string => run.replace(/\P{L}/gu, '');
+  return text.replace(/(?<![\p{L}0-9'])\p{L}(?:[\s._*-]+\p{L}(?![\p{L}0-9]))+/gu, (run) => {
+    if (!keepWords) return join(run);
+    const [, head = '', middle = '', tail = ''] = /^([ai]\s+)?(.*?)(\s+[ai])?$/su.exec(run) ?? [];
+    return `${head}${join(middle)}${tail}`;
+  });
+}
+
+/**
+ * Every form a word check on stored text reads: `folded` as it is, then lower-case with
+ * format characters (zero-width) dropped, split letters joined, and digits inside a word
+ * read as letters, as credentialAsk reads them. A check that matches any form matches.
+ */
+export function keywordForms(folded: string): string[] {
+  const plain = ruleForm(folded.replace(/\p{Cf}/gu, '')).toLowerCase();
+  const joined = [false, true].map((keepWords) => joinSplitLetters(plain, keepWords));
+  return [folded, ...joined.flatMap((form) => [form, ...letterSpellings(form)])];
 }
 
 /** The first rule `text` breaks for an unverified call, or null when it may be sent. */

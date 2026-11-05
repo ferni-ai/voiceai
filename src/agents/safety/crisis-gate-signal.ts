@@ -14,7 +14,7 @@ import { markCrisisTurn, unmarkCrisisTurn } from '../../services/safety/crisis-t
 
 export const CRISIS_GATE_SIGNAL = 'crisis_gate_decision';
 import type { CrisisReader } from '../../services/safety/index.js';
-import { recordCrisisOnCall, type CrisisEventKind } from './crisis-event-record.js';
+import { recordCrisisOnCall, replaceKind, type CrisisEventKind } from './crisis-event-record.js';
 
 const crisisSessions = new WeakSet<object>();
 
@@ -40,6 +40,22 @@ export function signalCrisisDecision(
   const emitter = session as { emit?: (event: string, ...args: unknown[]) => unknown };
   emitter.emit?.(CRISIS_GATE_SIGNAL, { action });
   recordCrisisOnCall(session, action, reader, kind); // CRISIS_EVENT_RECORD: after the signal, never throws
+}
+
+interface GateDecision {
+  action: string;
+  kind?: CrisisEventKind;
+}
+
+/** A gate's pattern decision now and its classifier escalation once it settles (crisis-gate.ts). */
+export function signalGateDecisions(
+  session: unknown,
+  gate: { decision: GateDecision; escalation: Promise<GateDecision | null> | null } | null
+): void {
+  signalCrisisDecision(session, gate?.decision.action, 'pattern', replaceKind(gate?.decision));
+  gate?.escalation
+    ?.then((d) => signalCrisisDecision(session, d?.action, 'classifier', replaceKind(d)))
+    .catch(() => undefined);
 }
 
 const pendingVerdicts = new WeakMap<object, Promise<unknown>>();

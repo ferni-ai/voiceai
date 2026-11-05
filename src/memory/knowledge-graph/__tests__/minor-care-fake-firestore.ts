@@ -1,6 +1,8 @@
 /**
  * A fake Firestore for the MINOR_CARE background-job tests: docs by path, every read and write
- * recorded by path. Queries ignore their filters and return a collection's direct children.
+ * recorded by path. Queries ignore their filters and return a collection's direct children. A
+ * query without select() reads each whole doc it returns, so each is recorded; with select(), only
+ * the collection is, and the docs carry only the selected fields.
  * `failHolds` makes every read of a hold doc (minor_care_holds/*) reject; `hangHolds`, never
  * answer. Synthetic data only.
  */
@@ -13,6 +15,7 @@ export function fakeFirestore() {
   const docs = new Map<string, Data>();
   const writes: string[] = [];
   const reads: string[] = [];
+  const selects: string[] = []; // `collection.field` for every field a query selected
   const failHolds = { on: false };
   const hangHolds = { on: false };
   const snap = (path: string) => ({
@@ -40,17 +43,30 @@ export function fakeFirestore() {
     set: async () => void writes.push(`set ${path}`),
     delete: async () => void writes.push(`delete ${path}`),
   });
+  const projected = (path: string, fields: string[]) => {
+    const pick = () => Object.fromEntries(fields.map((f) => [f, docs.get(path)?.[f]]));
+    return { ...snap(path), data: pick, get: (f: string) => pick()[f] };
+  };
   const coll = (path: string) => {
+    let fields: string[] | null = null;
     const query = {
       where: () => query,
       orderBy: () => query,
       startAfter: () => query,
       limit: () => query,
+      select: (...f: string[]) => {
+        selects.push(...f.map((x) => `${path}.${x}`));
+        fields = f;
+        return query;
+      },
       get: async () => {
         reads.push(path);
         const rows = [...docs.keys()].filter(
           (p) => p.startsWith(`${path}/`) && !p.slice(path.length + 1).includes('/')
         );
+        const only = fields;
+        if (only) return { docs: rows.map((p) => projected(p, only)) };
+        reads.push(...rows);
         return { docs: rows.map(snap) };
       },
     };
@@ -72,13 +88,14 @@ export function fakeFirestore() {
     docs.clear();
     writes.length = 0;
     reads.length = 0;
+    selects.length = 0;
     failHolds.on = false;
     hangHolds.on = false;
   };
   /** Every read or write of the user's knowledge graph. */
   const graphTouched = (u: string) =>
     [...reads, ...writes].filter((p) => p.includes(`knowledge_graph/${u}`));
-  return { docs, writes, reads, failHolds, hangHolds, db, reset, graphTouched };
+  return { docs, writes, reads, selects, failHolds, hangHolds, db, reset, graphTouched };
 }
 
 const DAY = 24 * 60 * 60 * 1000;

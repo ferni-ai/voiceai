@@ -1,0 +1,170 @@
+/**
+ * The person Ferni called said no to having what they share passed along.
+ *
+ * Only personal calls ask ("Just so you know, I'll pass along what you tell me
+ * to Riley. Is that okay?"); business, restaurant and healthcare calls tell and
+ * never ask (owner, 2026-11-02), so only a call whose script asked can decline.
+ *
+ * A no counts only when it is unambiguous, and the ask was the last question
+ * in Ferni's turn: their whole answer is a lone no ("No.", "Nope.", "Um, no.")
+ * or an explicit refusal of all of it ("Please don't.", "I'm not comfortable
+ * with that.", "Keep it to yourself."). So is their first reply alone, when it
+ * is a finished sentence and nothing else in their answer is a go-ahead ("No."
+ * then "Sorry, bad line." is a no; "No." then "That's cool." is not). Any other answer, a no followed by more
+ * words included ("No, that's cool", "Keep this between us, but I'm bringing a
+ * plus-one"), is delivered as before. A secret shared later in the call never
+ * withholds the whole call (owner, 2026-11-02): withholding just that part is
+ * not built yet, so those calls deliver as main does. Once given, a no holds
+ * for the rest of the call: a later "sure, go ahead" is most often a yes to
+ * Ferni's next question, not taking the no back. When in doubt, deliver.
+ *
+ * @module services/outreach/pass-along-declined
+ */
+
+import type { CallTranscriptTurn } from './call-transcript-intelligence.js';
+import { PASS_ALONG_ASK_HEADING } from '../../tools/domains/telephony/scripts/index.js';
+
+/** A no and nothing else: "No.", "Um, no.", "No thanks.", "Not really.", "Don't tell him." */
+const LONE_NO =
+  /^\W*(?:(?:oh|um+|uh+|well|hmm+|ah|er)\W+)*(?:(?:no+|nope|nah)(?:\W+(?:no+|nope|nah))*(?:\W+thanks|\W+thank you)?|(?:absolutely|definitely|certainly) not|not really|no way|i don't think so|(?:please )?don't tell (?:him|her|them))\W*$/i;
+
+const OF_IT = '(?: (?:him|her|them|that|this|it|anything))?(?: on| along)?';
+const PASS = `(?:tell|pass|share|say|mention)${OF_IT}`;
+const KEPT = '(?:private|between us|between you and me|to yourself|to myself)';
+/** A refusal of all of it, and nothing else said: never one part ("the job thing", "that part"). */
+const REFUSAL = [
+  "please don't",
+  `don't (?:pass|share|tell|say|mention) (?:that|this|it|anything)(?: on| along)?`,
+  `(?:i'd |i would )?(?:rather|prefer) (?:you )?(?:not|didn't)(?: ${PASS})?`,
+  `(?:i'd |i would )?(?:rather|prefer) (?:to |you )?keep (?:this|that|it) ${KEPT}`,
+  `keep (?:this|that|it) ${KEPT}`,
+  "i'm not (?:comfortable|okay|ok|alright|all right)(?: with (?:that|this|it))?",
+  "that's not (?:okay|ok|alright|all right|fine)(?: with me)?",
+  `i don't want you to(?: ${PASS})?`,
+  "(?:that's |it's )?off the record",
+].join('|');
+const REFUSED = new RegExp(
+  `^\\W*(?:(?:oh|um+|uh+|well|hmm+|ah|er|actually|sorry|please|no+|nope|nah|thanks)\\W+)*` +
+    `(?:${REFUSAL})(?:\\W+(?:please|thanks|thank you|sorry|okay|ok))*\\W*$`,
+  'i'
+);
+
+/** A reply cut off mid-sentence: the next reply carries on from it. */
+const UNFINISHED = /(?:[,;:\u2013\u2014-]|\.\.\.|\u2026)\s*$/;
+
+/**
+ * Longest reply the go-ahead cue reads: a longer one is never a go-ahead, so it can only leave a no
+ * standing. The no and refusal cues read any length (each splits a reply one way only, linear).
+ */
+const MAX_REPLY = 200;
+
+/** Go-ahead words. None is also a lead-in word, so each reply splits one way only. */
+const GO = [
+  "(?:that's|that is|it's|it is) (?:cool|fine|ok|okay|alright|all right|perfect|great)",
+  'fine',
+  'go (?:right )?ahead',
+  'go for it',
+  'go on',
+  '(?:you can )?(?:tell|share)(?: (?:it|that|him|her|them))?(?: (?:anything|whatever|everything|all of it)(?: you (?:want|like))?)?',
+  '(?:you can )?(?:pass|say) it (?:on|along)',
+  'sure',
+  'okay',
+  'ok',
+  'yes',
+  'yeah',
+  'yep',
+  'totally',
+  'of course',
+  'that works',
+  "i don't (?:mind|care)",
+  'why would i mind\\?',
+].join('|');
+/** Words that may lead into a go-ahead: "Oh no, go ahead.", "Not at all, go ahead." */
+const LEAD_IN =
+  /^\W*(?:(?:oh|um+|uh+|well|hmm+|ah|ha|no+|nope|nah|not at all(?=\s*[,;:.!\u2013\u2014-]))\W+)*/i;
+/**
+ * A go-ahead and nothing else: "that's cool", "go ahead", "tell him whatever you want".
+ * Never a question ("Okay?", "Is that okay with you?"), a fragment ("Hello?") or one secret
+ * ("don't tell her about X"). Read only inside their answer, before Ferni speaks again.
+ */
+const GO_AHEAD = new RegExp(`^(?:${GO})(?:\\W+(?:${GO}))*[.!\\s]*$`, 'i');
+/**
+ * A go-ahead never says no past its lead-in: "Tell him nothing.", "Not at all okay.". The closed
+ * tell/share list already keeps these out; this guard keeps them out if that list is ever widened.
+ */
+const NEGATED = /\b(?:not|no|don't|never|nothing|nobody|no one)\b/i;
+
+function goAhead(reply: string): boolean {
+  if (reply.length > MAX_REPLY) return false;
+  // "Not at all" alone answers "Is that okay?" with a no, so it only leads into a go-ahead.
+  const said = reply.replace(LEAD_IN, '');
+  return !NEGATED.test(said.replace(/\bi don't (?:mind|care)\b/gi, '')) && GO_AHEAD.test(said);
+}
+
+const straight = (text: string): string =>
+  text.replace(/[‘’]/g, "'").replace(/\bdo not\b/gi, "don't");
+
+/** The last question in a turn, from the end of the one before it. */
+function lastQuestion(text: string): string {
+  const end = text.lastIndexOf('?');
+  return end < 0 ? '' : text.slice(text.lastIndexOf('?', end - 1) + 1, end + 1).trim();
+}
+
+const PASS_OR_ALONG = /\bpass\b|\b(?:along|on)\b|[.!?]/gi;
+const OKAY = /\b(?:okay|ok|alright|all right|fine)\b/i;
+
+/**
+ * Ferni's question: "pass ... along/on ... okay?", with "pass" and "along" in one sentence ("I'll
+ * pass along what you tell me to Riley. Is that okay?"). Read whole, in one left-to-right pass: a
+ * single regex for it backtracks cubically on a long question, and a cap on the length would read
+ * a long ask as no ask at all, so their no would go unread.
+ */
+function asksToPassAlong(question: string): boolean {
+  let passed = false;
+  for (const { 0: word, index } of question.matchAll(PASS_OR_ALONG)) {
+    if (/^pass$/i.test(word)) passed = true;
+    else if (/^[.!?]$/.test(word)) passed = false;
+    else if (passed) return OKAY.test(question.slice(index + word.length));
+  }
+  return false;
+}
+
+/** The ask, never "mind": a no to "do you mind?" is a yes. */
+const asks = (turn: CallTranscriptTurn): boolean => {
+  const question = lastQuestion(turn.content);
+  return turn.role === 'agent' && asksToPassAlong(question) && !/\bmind\b/i.test(question);
+};
+
+/**
+ * True when the call's script asked to pass things along and they declined,
+ * unambiguously. `script` is the dispatched call script (OnBehalfDispatch.script).
+ */
+export function passAlongDeclined(
+  script: string | undefined,
+  turns: readonly CallTranscriptTurn[]
+): boolean {
+  if (!script?.includes(PASS_ALONG_ASK_HEADING)) return false;
+  const asked = turns.findIndex(asks);
+  if (asked < 0) return false;
+  const after = turns.slice(asked + 1);
+  const next = after.findIndex((t) => t.role === 'agent');
+  // Their answer is everything they said before Ferni spoke again, read whole...
+  const replies = (next < 0 ? after : after.slice(0, next))
+    .filter((t) => t.role === 'recipient')
+    .map((t) => straight(t.content.trim()));
+  // ...or their first reply on its own, when it is a finished sentence and nothing after it is a
+  // go-ahead: "No." then "Hello?" is still a no, while "No." then "that's cool." and "No," then
+  // "that's cool." are one answer (owner, 2026-11-02: when in doubt, deliver).
+  const [first = '', ...rest] = replies;
+  const alone = !UNFINISHED.test(first.slice(-MAX_REPLY)) && !rest.some(goAhead);
+  const read = alone ? [replies.join(' '), first] : [replies.join(' ')];
+  return read.some((answer) => LONE_NO.test(answer) || REFUSED.test(answer));
+}
+
+/** What the requester hears when they said no: that they did, and nothing they said. */
+export function passAlongDeclinedLine(name: string, optedOut: boolean): string {
+  const asked = `I reached ${name}. They asked me not to pass anything along from the call`;
+  return optedOut
+    ? `${asked}, and not to call them again, so I won't. That's all I can share.`
+    : `${asked}, so that's all I can share.`;
+}

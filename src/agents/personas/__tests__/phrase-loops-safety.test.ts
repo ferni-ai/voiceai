@@ -15,6 +15,7 @@ const ROOT = join(__dirname, '..', '..', '..', '..');
 const SAFETY_SOURCES = [
   'src/services/safety/crisis-response.ts',
   'src/services/safety/crisis-guard.ts',
+  'src/services/safety/crisis-guard-replies.ts',
   'src/services/safety/crisis-grounded-screen.ts',
   'src/services/safety/crisis-agreement.ts',
   'src/services/safety/crisis-grounded-release.ts',

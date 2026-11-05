@@ -84,8 +84,9 @@ export function captureRecipientTurn(sessionId: string, text: string): void {
     return;
   }
 
-  // Skip very short utterances (likely just acknowledgments)
-  if (text.length < 3) {
+  // Skip very short utterances (likely just acknowledgments), but never a bare "no":
+  // it can be their answer to the pass-along question.
+  if (text.length < 3 && !/^\W*(?:no|nah)\W*$/i.test(text)) {
     return;
   }
 
