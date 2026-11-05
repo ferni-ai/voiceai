@@ -75,7 +75,7 @@ const READ: Record<string, CrisisGenerateFn> = { none: read('none'), crisis: rea
 
 /** Both reads flag it: a 14-year-old, hitting (abuse) and touching (the minor's read). */
 const MINOR_LINE = "I'm 14 and my stepdad hits me and touches me at night.";
-/** Only the abuse read flags it: hitting, not sexual harm, so the minor's read has no words. */
+/** Hitting, not sexual harm: with both flags on, the abuse read answers it (the minor's defers). */
 const HITS_LINE = "I'm 14 and my stepdad hits me.";
 
 const state = vi.hoisted(() => ({
@@ -223,9 +223,10 @@ const MAIN_READ: Record<string, string[]> = {
   [`${HITS_LINE}|both|crisis`]: ABUSE_RISK,
   [`${HITS_LINE}|abuse|none`]: ABUSE,
   [`${HITS_LINE}|abuse|crisis`]: ABUSE_RISK,
-  // The minor's read has no words for hitting: the classifier's read alone, as with no flag.
-  [`${HITS_LINE}|minor|none`]: [],
-  [`${HITS_LINE}|minor|crisis`]: ['classifier_crisis'],
+  // Changed (owner decision 2026-11-02): the minor's read hears hitting now. Main read [] and
+  // ['classifier_crisis'] here, with no child-safety care at all.
+  [`${HITS_LINE}|minor|none`]: MINOR,
+  [`${HITS_LINE}|minor|crisis`]: MINOR_RISK,
 };
 
 /** The turn as main reads it: the read, its level, and the handler's guidance for that read. */

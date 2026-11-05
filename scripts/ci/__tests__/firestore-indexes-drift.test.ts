@@ -40,7 +40,7 @@ describe('firestore index drift', () => {
     ]);
   });
 
-  it('the repo file deletes nothing in prod; it only creates the 3 exemptions and the activity indexes', () => {
+  it('the repo file deletes nothing in prod; it only creates the 3 exemptions, the activity and the waitlist indexes', () => {
     const drift = computeDrift(indexFile(), prod());
     expect(drift.wouldDelete).toEqual([]);
     expect(drift.allowedDelete).toEqual([]);
@@ -49,6 +49,8 @@ describe('firestore index drift', () => {
       'composite activity (COLLECTION): state ASCENDING, updatedAt DESCENDING',
       'composite activity (COLLECTION): subjectKeys CONTAINS, state ASCENDING, updatedAt DESCENDING',
       'composite activity (COLLECTION): subjectKeys CONTAINS, updatedAt DESCENDING',
+      // the waitlist wave store's lapse query (wave-store.ts), not deployed yet
+      'composite waitlist (COLLECTION): status ASCENDING, seatExpiresAt ASCENDING',
       'field override memory_vectors.text indexes=[none (exempt)]',
       'field override unified_memories.content indexes=[none (exempt)]',
       'field override vectors.text indexes=[none (exempt)]',
