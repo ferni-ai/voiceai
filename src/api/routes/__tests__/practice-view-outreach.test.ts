@@ -77,14 +77,56 @@ async function upcoming() {
   return out.body().upcoming as Array<Record<string, unknown>>;
 }
 
-/** What both answers must agree on (the upcoming route adds display names). */
-const sameItem = ({ id, type, channel, scheduledFor, preview }: Record<string, unknown>) => ({
+/** What both answers must agree on: the item and who it is from, and whether it can change. */
+const sameItem = ({
   id,
   type,
+  personaId,
+  personaName,
   channel,
   scheduledFor,
   preview,
+  canReschedule,
+  canCancel,
+}: Record<string, unknown>) => ({
+  id,
+  type,
+  personaId,
+  personaName,
+  channel,
+  scheduledFor,
+  preview,
+  canReschedule,
+  canCancel,
 });
+
+/** A held call from Peter (stored by alias, as callers write it) and a texted follow-up. */
+function heldCallAndFollowUp(): void {
+  stores.textsOn = true;
+  stores.calls = [
+    {
+      id: 'held-1',
+      data: {
+        kind: 'proactive',
+        status: 'pending',
+        scheduledFor: inHours(9),
+        request: { personaId: 'Peter', message: 'Want to look at that fund?', reason: 'test' },
+      },
+    },
+    // a call to someone else on their behalf is not Ferni reaching out to them
+    { id: 'behalf-1', data: { kind: 'on_behalf', status: 'pending', scheduledFor: inHours(2) } },
+  ];
+  stores.followUps = [
+    {
+      id: 'fu-1',
+      kind: 'commitment',
+      text: 'see how the interview went',
+      dueAt: inHours(3),
+      status: 'open',
+      source: { store: 'summaries', ref: 'session-test-1' },
+    },
+  ];
+}
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'], now: NOW });
@@ -92,37 +134,39 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllEnvs();
 });
 
 describe('GET /api/practice-view pending outreach', () => {
   it('lists a held call and a texted follow-up exactly as GET /api/outreach/upcoming does', async () => {
-    stores.textsOn = true;
-    stores.calls = [
-      {
-        id: 'held-1',
-        data: {
-          kind: 'proactive',
-          status: 'pending',
-          scheduledFor: inHours(9),
-          request: { personaId: 'ferni', message: 'How did the interview go?', reason: 'test' },
-        },
-      },
-      // a call to someone else on their behalf is not Ferni reaching out to them
-      { id: 'behalf-1', data: { kind: 'on_behalf', status: 'pending', scheduledFor: inHours(2) } },
-    ];
-    stores.followUps = [
-      { id: 'fu-1', kind: 'reminder', text: 'call the dentist', dueAt: inHours(3) },
-    ];
+    heldCallAndFollowUp();
 
     const { status, body } = await practiceView();
     const panel = await upcoming();
 
     expect(status).toBe(200);
     expect(
-      body.pendingOutreach.map((o: Record<string, unknown>) => [o.id, o.scheduledFor])
+      body.pendingOutreach.map((o: Record<string, unknown>) => [o.id, o.personaId, o.personaName])
     ).toEqual([
-      ['fu-1', inHours(3)],
-      ['held-1', inHours(9)],
+      ['fu-1', 'ferni', 'Ferni'],
+      ['held-1', 'peter-john', 'Peter'],
+    ]);
+    expect(body.pendingOutreach.map(sameItem)).toEqual(panel.map(sameItem));
+  });
+
+  it('with REACH_OUT_ACTIONS on, offers the same cancel and move as the panel', async () => {
+    vi.stubEnv('REACH_OUT_ACTIONS', 'on');
+    heldCallAndFollowUp();
+
+    const { status, body } = await practiceView();
+    const panel = await upcoming();
+
+    expect(status).toBe(200);
+    expect(
+      body.pendingOutreach.map((o: Record<string, unknown>) => [o.id, o.canCancel, o.canReschedule])
+    ).toEqual([
+      ['fu-1', false, true],
+      ['held-1', true, true],
     ]);
     expect(body.pendingOutreach.map(sameItem)).toEqual(panel.map(sameItem));
   });

@@ -163,4 +163,44 @@ describe('GET /api/outreach/upcoming', () => {
 
     expect(body.upcoming!.map((u) => u.id)).toEqual(['fu-1', 'held-1']);
   });
+
+  it('names a held call by its canonical persona id and display name, byte for byte', async () => {
+    stores.calls = [
+      {
+        id: 'held-2',
+        data: {
+          kind: 'proactive',
+          status: 'pending',
+          scheduledFor: inHours(5),
+          request: { personaId: 'Peter', message: 'Want to look at that fund?', reason: 'fund' },
+        },
+      },
+    ];
+
+    const res = await fetch(`${base}/api/outreach/upcoming`, {
+      headers: { authorization: 'Bearer tok-A' },
+    });
+
+    expect(await res.text()).toBe(
+      JSON.stringify({
+        success: true,
+        upcoming: [
+          {
+            id: 'held-2',
+            type: 'held_call',
+            personaId: 'peter-john',
+            channel: 'call',
+            scheduledFor: inHours(5),
+            preview: { body: 'Want to look at that fund?' },
+            reason: 'fund',
+            priority: 'medium',
+            canReschedule: false,
+            canCancel: false,
+            personaName: 'Peter',
+          },
+        ],
+        count: 1,
+      })
+    );
+  });
 });
