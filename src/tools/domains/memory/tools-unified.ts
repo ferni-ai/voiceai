@@ -232,8 +232,7 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
           const sessionId = getSessionId({ ctx: toolCtx });
           void announceRemembered({ userId, sessionId, fact, category });
           void announceMemorySaved({ sessionId, userId, id: result.memoryId, fact, category });
-          const r = { fact, memoryId: result.memoryId, category, sessionId };
-          void rememberToRecall(userId, r, { flags });
+          void rememberToRecall(userId, { fact, memoryId: result.memoryId, category, sessionId });
           return REMEMBERED;
         }
         // Never an empty result (tool-output-guard.ts): say whether it was kept

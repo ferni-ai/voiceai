@@ -63,23 +63,18 @@ export function rememberToRecallOn(env: Env = process.env): boolean {
   return flagOn('REMEMBER_TO_RECALL', env) || memoryToolsHonestOn(env);
 }
 
-/** Both flags, as a memory tool reads them once when it starts (see keepForRecall). */
+/** MEMORY_TOOLS_HONEST as a memory tool reads it once, when it starts (see keepForRecall). */
 export interface MemoryToolFlags {
   readonly honest: boolean;
-  readonly rememberToRecall: boolean;
 }
 
 export function memoryToolFlags(env: Env = process.env): MemoryToolFlags {
-  return { honest: memoryToolsHonestOn(env), rememberToRecall: rememberToRecallOn(env) };
+  return { honest: memoryToolsHonestOn(env) };
 }
 
-/** Each flag on if it is on now or was when the tool started, so no guard turns off mid-call. */
-function onNowOrAtStart(env: Env | undefined, atStart?: MemoryToolFlags): MemoryToolFlags {
-  const now = memoryToolFlags(env);
-  return {
-    honest: now.honest || atStart?.honest === true,
-    rememberToRecall: now.rememberToRecall || atStart?.rememberToRecall === true,
-  };
+/** On now or at the tool's start: either runs the honest guards, so none turns off mid-call. */
+function honestNowOrAtStart(env: Env | undefined, atStart?: MemoryToolFlags): boolean {
+  return memoryToolsHonestOn(env) || atStart?.honest === true;
 }
 
 export interface RememberedFact {
@@ -186,12 +181,12 @@ export async function keepForRecall(
   r: RememberedFact,
   deps: RememberToRecallDeps = {}
 ): Promise<KeepOutcome> {
+  // Read now, as before: the start value could only add a write the current flags refuse
+  if (!rememberToRecallOn(deps.env)) return { kind: 'refused', reason: 'off' };
   // Read once, before the awaits below: a call may end and the next caller's flags be applied
   // while the secret check or the embedding runs, or while the tool awaited before calling this
-  // (cohort-flags.ts).
-  const flags = onNowOrAtStart(deps.env, deps.flags);
-  if (!flags.rememberToRecall) return { kind: 'refused', reason: 'off' };
-  const { honest } = flags;
+  // (cohort-flags.ts). The start value only ever adds the guards.
+  const honest = honestNowOrAtStart(deps.env, deps.flags);
   // Only a member's own: a placeholder or anon:/onbehalf: id is one bucket for many callers
   if (!isMemberIdentity(userId)) return { kind: 'refused', reason: 'not_member' };
   try {

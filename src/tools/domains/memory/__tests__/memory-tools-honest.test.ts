@@ -499,6 +499,19 @@ describe('a memory tool while the next caller’s flags land', () => {
     expect(memories.write).not.toHaveBeenCalled();
   });
 
+  it('REMEMBER_TO_RECALL on at the start, off during the memories write: not kept for recall', async () => {
+    memories.write.mockImplementationOnce(async () => {
+      vi.stubEnv('REMEMBER_TO_RECALL', ''); // the next call's start, while the write runs
+      return { success: true, memoryId: 'mem_1' };
+    });
+    expect(await remember(PHONE_0100)).toBe(REMEMBERED);
+    expect(memories.write).toHaveBeenCalledTimes(1);
+    await new Promise((settled) => {
+      setTimeout(settled, 100); // the recall write is not awaited
+    });
+    expect(factDocs()).toEqual([]); // main refuses it as off; so does this
+  });
+
   it('off throughout: unchanged, written to memories and (REMEMBER_TO_RECALL) for recall', async () => {
     expect(await remember(PHONE_0100)).toBe(REMEMBERED);
     expect(memories.write).toHaveBeenCalledTimes(1);

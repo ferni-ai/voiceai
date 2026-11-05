@@ -150,6 +150,14 @@ describe('replaceRemembered while the next caller’s flags land', () => {
     expect(r.create).not.toHaveBeenCalled();
   });
 
+  it('REMEMBER_TO_RECALL on at the start, both off mid-read: refused as off, as main', async () => {
+    vi.stubEnv('MEMORY_TOOLS_HONEST', '');
+    const r = await correctWhile(() => vi.stubEnv('REMEMBER_TO_RECALL', ''));
+    expect(r.got).toEqual({ kind: 'not_kept', kept: { kind: 'refused', reason: 'off' } });
+    expect(r.create).not.toHaveBeenCalled();
+    expect(r.forget).not.toHaveBeenCalled();
+  });
+
   it('off throughout: unchanged, the correction is kept as before', async () => {
     vi.stubEnv('MEMORY_TOOLS_HONEST', '');
     const r = await correctWhile(() => undefined);
