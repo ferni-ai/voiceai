@@ -73,6 +73,7 @@ import {
 import { toGuardVoiceEmotion, type ProsodyEmotionLike } from '../../safety/crisis-shadow.js';
 import type { CrisisDetection } from '../types.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { shadowPipelineGrade } from '../../../services/safety/crisis-graded-shadow.js';
 
 const log = createLogger({ module: 'TurnCrisis' });
 
@@ -334,6 +335,9 @@ export function startTurnCrisis(
       );
     }
     const read = easingOn ? (eased ??= easeTurn(turn)) : turn;
+    // CRISIS_GRADED_RESPONSE=shadow: logs a grade; `read` passes on untouched, before the wrappers.
+    const graded = { classifier, scope: holdForReads ? scope : undefined, input, call };
+    if (first) shadowPipelineGrade(read, { ...graded, patterns, priorRisk, screened }, env);
     // MINOR_ABUSE_DISCLOSURE: a caller under 18 telling of sexual harm, after every read; no
     // classifier read keeps 988 (minor-abuse-disclosure.ts).
     const minor = withMinorAbuseRead(read, call, input, { priorRisk, classifier }, env);

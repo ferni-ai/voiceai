@@ -69,6 +69,8 @@ import {
 } from '../../services/safety/crisis-lone-imminent.js';
 import { minorCrisisScript } from '../../utils/minor-crisis-care.js'; // MINOR_CRISIS_CARE
 import { createLogger } from '../../utils/safe-logger.js';
+import { mainOf } from '../../services/safety/crisis-graded-response.js';
+import { shadowGrade } from '../../services/safety/crisis-graded-shadow.js';
 import {
   applyClassifierVerdict,
   buildCrisisGuidance,
@@ -146,6 +148,7 @@ export interface CrisisGateOptions {
   /** CRISIS_READ_JOINED_TURN: a held line's read waits for this once the patterns pass. True
    * reads it; false: a newer request or the commit reads (crisis-read-joined-turn.ts). */
   readAfter?: () => Promise<boolean> | null;
+  noReply?: boolean; // the joined commit's read (crisis-read-joined-turn.ts): no reply, no grade
 }
 
 /** This reply's crisis handling, from the request about to go to the LLM; null when the gate is
@@ -217,8 +220,7 @@ export function startCrisisGate(
       return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
     }
     // CRISIS_GROUNDED_RELEASE: an imminent read the call plainly explains gets the soft check.
-    const input = { latest, earlier, companion };
-    const grounded = { input, priorRisk: groundedPrior, call, env, source: 'gate' as const };
+    const grounded = { input: said, priorRisk: groundedPrior, call, env, source: 'gate' as const };
     if (
       await groundedRelease({ ...grounded, detection, verdict, generates: options.groundedReads })
     ) {
@@ -234,6 +236,7 @@ export function startCrisisGate(
     // A bare "pass me to Nayan" (CRISIS_TRANSFER_EVERYDAY): a crisis read, never an imminent
     // one whoever it is about, gets the soft check-in once every other check below has run.
     let softTransfer = transfer && verdict?.risk === 'crisis' && stronger.action === 'guide';
+    let allReads: Array<CrisisVerdict | null> | undefined; // CRISIS_GRADED_RESPONSE
     if (scope && !holdForReads) {
       const reads = turnVerdicts(scope, { latest, earlier, companion });
       shadowAdjudication(reads, callTranscript(chatCtx), {
@@ -245,9 +248,7 @@ export function startCrisisGate(
       });
     } else if (scope) {
       // Fail closed: a failed lookup counts as a missing read, which escalates.
-      const verdicts = await turnVerdicts(scope, { latest, earlier, companion }).catch(() => [
-        null,
-      ]);
+      const verdicts = (allReads = await turnVerdicts(scope, said).catch(() => [null]));
       const outcome = agreementGate
         ? agreementOutcome({ pattern, verdicts, latest, earlier, companion })
         : 'escalate';
@@ -281,7 +282,7 @@ export function startCrisisGate(
     }
     const lone = {
       call,
-      input,
+      input: said,
       verdict,
       detection,
       pattern,
@@ -295,6 +296,8 @@ export function startCrisisGate(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },
       'CRISIS_GATE'
     );
+    const at = { main: mainOf(stronger), reads: allReads, priorRisk, screen, call };
+    if (!options.noReply) shadowGrade({ source: 'gate', ...at, detection, verdict, ...said }, env);
     return stronger;
   };
   const escalation = verdictRead.then(async (v) => (v === undefined ? null : escalate(v)));

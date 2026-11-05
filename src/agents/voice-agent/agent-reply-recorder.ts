@@ -28,6 +28,7 @@ import { createLedgerRecorder } from '../personas/life-ledger.js';
 import { heldOutOfMemory } from '../multi-agent/arrival-grounding.js';
 import { recordAgentTurn } from './agent-turn-recorder.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
+import { noteSpokenLifeline } from '../../services/safety/crisis-graded-shadow.js';
 
 const log = createLogger({ module: 'agent-reply-recorder' });
 
@@ -107,6 +108,8 @@ export async function recordCommittedAgentReply(
   if (message.role !== 'assistant') return false;
 
   const text = stripSSML(message.textContent ?? '').trim();
+  // CRISIS_GRADED_RESPONSE=shadow: whether a crisis-guided turn's reply named 988 as heard.
+  noteSpokenLifeline(ctx.sessionId, text, message.interrupted);
   if (!text || isAcknowledgementOnly(text)) return false;
 
   const { sessionId, services, userData } = ctx;
