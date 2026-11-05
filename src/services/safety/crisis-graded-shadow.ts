@@ -4,7 +4,8 @@
  *
  * shadowGrade logs one CRISIS_GRADE line per call, turn and source: the would-be level and
  * every row that blocks it. noteSpokenLifeline logs whether the reply committed after a
- * crisis-guided turn named 988 as the caller heard it (CRISIS_LIFELINE_SPOKEN): the floor a
+ * crisis-guided turn offered a crisis line, 988 or another, as the caller heard it
+ * (CRISIS_LIFELINE_SPOKEN, read by the shared offersCrisisLine): the floor a
  * live L2 must not fall below. Nothing here changes a decision, a reply, an injection or a
  * call-risk note, and nothing here throws. Logs carry levels and reasons, never the caller's
  * words.
@@ -22,6 +23,7 @@ import {
   type MainLevel,
 } from './crisis-graded-response.js';
 import { guardFromDetection, type CrisisDetectionResult } from './crisis-guard.js';
+import { offersCrisisLine } from './crisis-line-speech.js';
 
 const log = createLogger({ module: 'CrisisGradedResponse' });
 
@@ -137,12 +139,10 @@ export function shadowGrade(input: GradeInput, env: Env = process.env): void {
   }
 }
 
-/** 988 as a voice says it. */
-const SPOKEN_988 = /\b988\b|nine[- ]eight[- ]eight/i;
-
 /**
  * Shadow: the reply committed after a crisis-guided turn, as the caller heard it (cut short on
- * barge-in): whether it named 988. Logs nothing without that turn's expectation. Never throws.
+ * barge-in): whether it offered a crisis line. Logs nothing without that turn's expectation.
+ * Never throws.
  */
 export function noteSpokenLifeline(
   call: string | undefined,
@@ -156,9 +156,13 @@ export function noteSpokenLifeline(
     if (!kept) return;
     expected.delete(call);
     if (Date.now() - kept.at > NOTE_TTL_MS) return;
-    const spoken988 = SPOKEN_988.test(text);
     log.info(
-      { main: kept.main, would: kept.would, spoken988, interrupted: !!interrupted },
+      {
+        main: kept.main,
+        would: kept.would,
+        lineOffered: offersCrisisLine(text),
+        interrupted: !!interrupted,
+      },
       'CRISIS_LIFELINE_SPOKEN'
     );
   } catch (error) {

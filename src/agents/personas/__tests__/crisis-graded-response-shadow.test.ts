@@ -566,7 +566,7 @@ describe('CRISIS_GRADED_RESPONSE=shadow: was 988 spoken (CRISIS_LIFELINE_SPOKEN)
       false
     );
     expect(logged('CRISIS_LIFELINE_SPOKEN')).toEqual([
-      { main: 'guide', would: 'L2', spoken988: true, interrupted: false },
+      { main: 'guide', would: 'L2', lineOffered: true, interrupted: false },
     ]);
   });
 
@@ -574,7 +574,7 @@ describe('CRISIS_GRADED_RESPONSE=shadow: was 988 spoken (CRISIS_LIFELINE_SPOKEN)
     const { call } = await turn();
     await reply(call, 'That sounds like a lot tonight. You can call or', true);
     expect(logged('CRISIS_LIFELINE_SPOKEN')).toEqual([
-      { main: 'guide', would: 'L2', spoken988: false, interrupted: true },
+      { main: 'guide', would: 'L2', lineOffered: false, interrupted: true },
     ]);
     await reply(call, 'You can call or text 988 any time.', false); // consumed: nothing more
     const quiet = await turn({ reads: [NONE, NONE] });

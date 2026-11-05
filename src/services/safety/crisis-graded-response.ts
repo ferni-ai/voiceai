@@ -20,11 +20,10 @@
  */
 
 import { ageSignal, derivedHold, statesUnder18 } from '../../utils/minor-care.js';
-import { stripSSML } from '../../utils/text-utils.js';
 import { abuseDisclosure } from './abuse-disclosure.js';
 import type { CrisisVerdict } from './crisis-classifier.js';
 import type { CrisisDetectionResult } from './crisis-guard.js';
-import { SAFETY_TALK } from './crisis-lone-imminent.js';
+import { asksAboutSafety } from './crisis-lone-imminent.js';
 
 /** What main gives the turn: the gate's decision, or the pipeline's settled turn. */
 export type MainLevel = 'pass' | 'guide' | 'guide_third_party' | 'replace' | 'soft';
@@ -66,25 +65,6 @@ type BlockReason =
 export type Grade =
   { would: 'L2' } | { would: null; blockedBy: BlockReason; failed: BlockReason[] };
 
-/** NFKC, lower case, every apostrophe variant as ', spaces collapsed (crisis-lone-imminent.ts). */
-const normalized = (text: string): string =>
-  text
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/[‘’‛′´`ʼʹ＇]/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
-
-/** "Is anyone nearby who can be with you?": the imminent script's closing question. */
-const ASKS_WHO_IS_NEAR =
-  /\b(?:any|some)(?:one|body)\b[^.?!]*\b(?:nearby|near you|close by|with you|there with you)\b[^.?!]*\?\s*$/;
-
-/** Ferni's line asked about the caller's safety: an answer to it is never a non-answer. */
-function endsInSafetyQuestion(companion: string | undefined): boolean {
-  const said = normalized(stripSSML(companion ?? ''));
-  return SAFETY_TALK.test(said) || ASKS_WHO_IS_NEAR.test(said);
-}
-
 const isRisk = (v: CrisisVerdict | null): boolean => v?.risk === 'crisis' || v?.risk === 'imminent';
 
 function readsFailing(reads: GradeInput['reads']): BlockReason[] {
@@ -121,7 +101,7 @@ export function gradeTurn(input: GradeInput): Grade {
   );
   failed.push(...readsFailing(reads));
   block(input.priorRisk, 'R7_prior_risk');
-  block(endsInSafetyQuestion(companion), 'R7_safety_question');
+  block(asksAboutSafety(companion), 'R7_safety_question'); // an answer to it is never a non-answer
   block(input.screen !== 'none', 'R7_screen');
   block(!(verdict?.risk === 'crisis' && verdict.subject === 'self'), 'R8_not_crisis_self');
   return failed.length ? { would: null, blockedBy: failed[0], failed } : { would: 'L2' };
