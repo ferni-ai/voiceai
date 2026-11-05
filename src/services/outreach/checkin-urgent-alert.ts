@@ -13,6 +13,7 @@
  */
 
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { concernForSponsor } from '../../types/concern-urgency.js';
 import {
   callerText,
   carriesCrisis,
@@ -32,6 +33,7 @@ export interface CheckinAlertInput {
   familyMemberName: string;
   concernsIdentified?: ReadonlyArray<{
     urgency: string;
+    labelWasCanonical?: boolean;
     description: unknown;
     recommendedAction?: unknown;
   }>;
@@ -166,19 +168,8 @@ export function generateUrgentNotification(
   record: CheckinAlertInput,
   env: Env = process.env
 ): string | null {
-  if (!record.concernsIdentified || record.concernsIdentified.length === 0) {
-    return null;
-  }
-
-  const urgentConcerns = record.concernsIdentified.filter(
-    (c) => c.urgency === 'urgent' || c.urgency === 'high'
-  );
-
-  if (urgentConcerns.length === 0) {
-    return null;
-  }
-
-  const concern = urgentConcerns[0];
+  const concern = concernForSponsor(record.concernsIdentified);
+  if (!concern) return null;
   const name = record.familyMemberName;
   const alert = (who: string, what: string, next: string, crisis: boolean): string => {
     const tail = [crisis ? crisisCallerLine(who) : '', next].filter(Boolean).join(' ');
