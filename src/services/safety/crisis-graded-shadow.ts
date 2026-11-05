@@ -30,12 +30,21 @@ export type GradedResponseMode = 'off' | 'shadow';
 
 let liveWarned = false;
 
+/** A warning that can't throw: a logger failure never reaches a crisis decision. */
+function warnQuietly(fields: Record<string, unknown>, message: string): void {
+  try {
+    log.warn(fields, message);
+  } catch {
+    // the shadow log is lost; nothing else is
+  }
+}
+
 /** shadow for 'shadow'; 'live' (PR-2) is shadow too, said once, so a flip is never inert. */
 export function resolveGradedResponseMode(env: Env = process.env): GradedResponseMode {
   const value = env.CRISIS_GRADED_RESPONSE?.trim().toLowerCase();
   if (value === 'shadow') return 'shadow';
   if (value !== 'live') return 'off';
-  if (!liveWarned) log.warn({ resolved: 'shadow' }, 'CRISIS_GRADE live lands in PR-2');
+  if (!liveWarned) warnQuietly({ resolved: 'shadow' }, 'CRISIS_GRADE live lands in PR-2');
   liveWarned = true;
   return 'shadow';
 }
@@ -121,15 +130,15 @@ export function shadowGrade(input: GradeInput, env: Env = process.env): void {
     if (seen && now - seen.at <= NOTE_TTL_MS) return;
     remember(graded, key, { at: now });
     const grade = gradeTurn(input);
-    log.info(gradeLine(input, grade), 'CRISIS_GRADE');
     expectReply(input, grade, now);
+    log.info(gradeLine(input, grade), 'CRISIS_GRADE');
   } catch (error) {
-    log.warn({ error: String(error) }, 'CRISIS_GRADE failed');
+    warnQuietly({ error: String(error) }, 'CRISIS_GRADE failed');
   }
 }
 
 /** 988 as a voice says it. */
-export const SPOKEN_988 = /\b988\b|nine[- ]eight[- ]eight/i;
+const SPOKEN_988 = /\b988\b|nine[- ]eight[- ]eight/i;
 
 /**
  * Shadow: the reply committed after a crisis-guided turn, as the caller heard it (cut short on
@@ -153,7 +162,7 @@ export function noteSpokenLifeline(
       'CRISIS_LIFELINE_SPOKEN'
     );
   } catch (error) {
-    log.warn({ error: String(error) }, 'CRISIS_LIFELINE_SPOKEN failed');
+    warnQuietly({ error: String(error) }, 'CRISIS_LIFELINE_SPOKEN failed');
   }
 }
 
@@ -187,9 +196,9 @@ export function shadowPipelineGrade(
   },
   env: Env = process.env
 ): void {
-  if (resolveGradedResponseMode(env) !== 'shadow') return;
   const { input, scope } = turn;
   const graded = async (): Promise<void> => {
+    if (resolveGradedResponseMode(env) !== 'shadow') return;
     const s = await read;
     const verdict = (await turn.classifier?.verdict) ?? null;
     // As the gate does: the turn's reads once this path's own read is in; fail closed.
@@ -203,7 +212,7 @@ export function shadowPipelineGrade(
       env
     );
   };
-  graded().catch((error: unknown) => log.warn({ error: String(error) }, 'CRISIS_GRADE failed'));
+  graded().catch((error: unknown) => warnQuietly({ error: String(error) }, 'CRISIS_GRADE failed'));
 }
 
 /** For tests. */

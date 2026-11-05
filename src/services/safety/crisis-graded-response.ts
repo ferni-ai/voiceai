@@ -46,7 +46,7 @@ export interface GradeInput {
   call: string | undefined;
 }
 
-export type BlockReason =
+type BlockReason =
   | 'not_guide'
   | 'R1_imminent'
   | 'R2_third_party'
@@ -80,7 +80,7 @@ const ASKS_WHO_IS_NEAR =
   /\b(?:any|some)(?:one|body)\b[^.?!]*\b(?:nearby|near you|close by|with you|there with you)\b[^.?!]*\?\s*$/;
 
 /** Ferni's line asked about the caller's safety: an answer to it is never a non-answer. */
-export function endsInSafetyQuestion(companion: string | undefined): boolean {
+function endsInSafetyQuestion(companion: string | undefined): boolean {
   const said = normalized(stripSSML(companion ?? ''));
   return SAFETY_TALK.test(said) || ASKS_WHO_IS_NEAR.test(said);
 }

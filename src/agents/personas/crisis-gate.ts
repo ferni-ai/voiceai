@@ -69,8 +69,7 @@ import {
 } from '../../services/safety/crisis-lone-imminent.js';
 import { minorCrisisScript } from '../../utils/minor-crisis-care.js'; // MINOR_CRISIS_CARE
 import { createLogger } from '../../utils/safe-logger.js';
-import { mainOf } from '../../services/safety/crisis-graded-response.js';
-import { shadowGrade } from '../../services/safety/crisis-graded-shadow.js';
+import { mainOf, shadowGrade } from '../../services/safety/index.js';
 import {
   applyClassifierVerdict,
   buildCrisisGuidance,

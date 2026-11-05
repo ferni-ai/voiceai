@@ -48,6 +48,7 @@ import {
   abuseCallRisk,
   blockedReadGuidance,
   noteMeansInHandShadow,
+  shadowPipelineGrade,
   withAbuseRead,
   withMinorAbuseRead,
 } from '../../../services/safety/index.js';
@@ -73,7 +74,6 @@ import {
 import { toGuardVoiceEmotion, type ProsodyEmotionLike } from '../../safety/crisis-shadow.js';
 import type { CrisisDetection } from '../types.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { shadowPipelineGrade } from '../../../services/safety/crisis-graded-shadow.js';
 
 const log = createLogger({ module: 'TurnCrisis' });
 

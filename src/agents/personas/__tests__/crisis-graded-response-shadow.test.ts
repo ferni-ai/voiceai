@@ -435,14 +435,24 @@ describe('CRISIS_GRADED_RESPONSE=shadow: the grade', () => {
     expect(resolveGradedResponseMode({ CRISIS_GRADED_RESPONSE: 'shadow' })).toBe('shadow');
   });
 
-  it('a logger that throws in shadow leaves the turn exactly as off', async () => {
-    const off = await turn({ env: PROD });
-    info.mockImplementation(() => {
-      throw new Error('logger down');
-    });
-    const shadow = await turn();
-    expect(withoutPrompts(shadow)).toEqual(withoutPrompts(off));
-    expect(warn).toHaveBeenCalled();
+  it('C20: CRISIS_GRADE carries exactly these keys: levels, reasons and counts, no words', async () => {
+    await turn(); // the gate: L2
+    await turn({ reads: [CRISIS, CRISIS] }); // both paths: blocked
+    await turn({ latest: 'Hey Ferni. Rough week.' }); // a tagged C1 row
+    const counts = ['crisisReads', 'main', 'nullReads', 'reads', 'source', 'would'];
+    const all = grades();
+    expect(all.map((g) => [g.source, g.would ?? 'blocked'])).toEqual([
+      ['gate', 'L2'],
+      ['gate', 'blocked'],
+      ['pipeline', 'blocked'],
+      ['gate', 'L2'],
+    ]);
+    const keys = (g: Logged) => Object.keys(g).sort();
+    expect(keys(all[0])).toEqual(counts);
+    expect(keys(all[1])).toEqual([...counts, 'blockedBy', 'failed'].sort());
+    expect(keys(all[2])).toEqual([...counts, 'blockedBy', 'failed'].sort());
+    expect(keys(all[3])).toEqual([...counts, 'c1Row'].sort());
+    expect(all[3].c1Row).toBe('hard-ground-L1');
   });
 });
 
@@ -488,39 +498,41 @@ describe('CRISIS_GRADED_RESPONSE=shadow changes nothing a caller hears', () => {
   }
 
   it('gatedReply asks the model the same request and speaks the same words', async () => {
-    const run = async (env: Record<string, string>) => {
-      resetCrisisClassifierCache();
-      resetCrisisCallRisk();
-      resetCallRiskSnapshots();
-      const asked: unknown[] = [];
-      vi.spyOn(Math, 'random').mockReturnValue(0.5); // the turn reminder's varied lines
-      const ctx = llm.ChatContext.empty();
-      ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
-      for (const l of EARLIER) ctx.addMessage({ role: 'user', content: l });
-      ctx.addMessage({ role: 'assistant', content: FERNI });
-      ctx.addMessage({ role: 'user', content: BEDTIME });
-      const session = { userData: { services: { sessionId: `graded-reply-${++n}` } } };
-      const model = async (req: llm.ChatContext) => {
-        asked.push(
-          req.items.map((i) => [(i as llm.ChatMessage).role, (i as llm.ChatMessage).textContent])
-        );
-        return textStream(asked.length > 1 ? 'Guided.' : 'Sure.');
-      };
-      const reply = await gatedReply(ctx, session, model as never, new OpenerGate(3), {
-        env,
-        generate: async () => CRISIS,
-      });
-      const said = await spoken(reply);
-      vi.mocked(Math.random).mockRestore();
-      return { said, asked };
-    };
-    const off = await run(PROD);
-    const shadow = await run({ ...PROD, ...SHADOW });
+    const off = await askGated(PROD);
+    const shadow = await askGated({ ...PROD, ...SHADOW });
     expect(off.said).toBe('Guided.');
     expect(shadow).toEqual(off);
     expect(grades('gate')).toHaveLength(1);
   });
 });
+
+/** One reply through the real gatedReply: what the model was asked and what was spoken. */
+async function askGated(env: Record<string, string>) {
+  resetCrisisClassifierCache();
+  resetCrisisCallRisk();
+  resetCallRiskSnapshots();
+  const asked: unknown[] = [];
+  vi.spyOn(Math, 'random').mockReturnValue(0.5); // the turn reminder's varied lines
+  const ctx = llm.ChatContext.empty();
+  ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
+  for (const l of EARLIER) ctx.addMessage({ role: 'user', content: l });
+  ctx.addMessage({ role: 'assistant', content: FERNI });
+  ctx.addMessage({ role: 'user', content: BEDTIME });
+  const session = { userData: { services: { sessionId: `graded-reply-${++n}` } } };
+  const model = async (req: llm.ChatContext) => {
+    asked.push(
+      req.items.map((i) => [(i as llm.ChatMessage).role, (i as llm.ChatMessage).textContent])
+    );
+    return textStream(asked.length > 1 ? 'Guided.' : 'Sure.');
+  };
+  const reply = await gatedReply(ctx, session, model as never, new OpenerGate(3), {
+    env,
+    generate: async () => CRISIS,
+  });
+  const said = await spoken(reply);
+  vi.mocked(Math.random).mockRestore();
+  return { said, asked };
+}
 
 function textStream(text: string): ReadableStream<unknown> {
   return new ReadableStream<unknown>({
@@ -626,5 +638,87 @@ describe('CRISIS_GRADED_RESPONSE=shadow: the joined commit read', () => {
     expect(call.alarms).toEqual(['guide']); // the commit read escalated, as on main
     expect(crisisRiskThisCall(call.userData.services.sessionId)).toBe(true);
     expect(grades()).toEqual([]);
+  });
+});
+
+describe('CRISIS_GRADED_RESPONSE: a logger that throws changes no decision', () => {
+  const down = () => {
+    throw new Error('logger down');
+  };
+  const rejections: unknown[] = [];
+  const onRejection = (reason: unknown) => rejections.push(reason);
+  const LINES = [BEDTIME, "I can't do this anymore.", "Honestly I don't want to be alive anymore."];
+  const PAIRS: Array<[string] | [string, string]> = [
+    [CRISIS, NONE],
+    [CRISIS, CRISIS],
+    [R('imminent'), NONE],
+    [R('crisis', 'third_party'), NONE],
+    ['not json', CRISIS],
+  ];
+  beforeEach(() => {
+    rejections.length = 0;
+    process.on('unhandledRejection', onRejection);
+  });
+  afterEach(() => {
+    process.off('unhandledRejection', onRejection);
+    expect(rejections).toEqual([]);
+  });
+  const throwing = () => {
+    info.mockImplementation(down);
+    warn.mockImplementation(down);
+  };
+
+  for (const mode of ['shadow', 'live']) {
+    it(`C19: ${mode}, every line and read pair decides, summarizes and reads as off`, async () => {
+      const actions = new Set<unknown>();
+      for (const latest of LINES) {
+        for (const reads of PAIRS) {
+          resetGradedResponse(); // live warns again on every turn
+          info.mockReset();
+          warn.mockReset();
+          const off = await turn({ latest, reads, env: PROD });
+          throwing();
+          const thrown = await turn({
+            latest,
+            reads,
+            env: { ...PROD, CRISIS_GRADED_RESPONSE: mode },
+          });
+          const label = `${latest} | ${reads.join(',')}`;
+          expect(thrown.prompts, label).toEqual(off.prompts);
+          expect(withoutPrompts(thrown), label).toEqual(withoutPrompts(off));
+          expect(info.mock.calls.length + warn.mock.calls.length, label).toBeGreaterThan(0);
+          actions.add((off.decision as { action?: string } | null)?.action);
+        }
+      }
+      expect([...actions].sort()).toEqual(['guide', 'pass', 'replace']); // imminent replace included
+    });
+  }
+
+  it('C19: live, gatedReply asks and speaks as off', async () => {
+    const off = await askGated(PROD);
+    throwing();
+    expect(await askGated({ ...PROD, CRISIS_GRADED_RESPONSE: 'live' })).toEqual(off);
+    expect(warn).toHaveBeenCalled(); // the live warning threw
+  });
+
+  it('C19: live, the recorder records the reply after a guided turn as off', async () => {
+    const text = 'You can call or text 988 any time.';
+    const record = async (env: string) => {
+      vi.stubEnv('CRISIS_GRADED_RESPONSE', env);
+      const { call } = await turn({ env: { ...PROD, ...SHADOW } }); // a guided turn's expectation
+      const userData = {} as UserData;
+      const message = llm.ChatMessage.create({ role: 'assistant', content: text });
+      const recorded = await recordCommittedAgentReply(
+        { sessionId: call, services: null, userData },
+        message
+      );
+      return { recorded, response: userData.lastAgentResponse };
+    };
+    const off = await record('');
+    resetGradedResponse();
+    throwing();
+    expect(await record('live')).toEqual(off);
+    expect(off).toEqual({ recorded: true, response: text });
+    expect(warn).toHaveBeenCalled();
   });
 });
