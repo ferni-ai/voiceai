@@ -49,12 +49,22 @@ export const ABOUT_FERNI =
  * (scripts/voice-eval/scenarios/your-day-specific.txt) as a share: "What'd you
  * get up to today?", "is that a normal day for you", "what's something that's
  * bugging you lately". Read only with the flag on; off, every turn reads as before.
- * Anchored so their own news stays theirs: "I got these for you", "what'd you
- * think of my...", "what'd you do with my keys", "what's bugging me".
+ * Anchored so their own news and tasks stay theirs: "I got these for you",
+ * "is that thing for you?", "what'd you think of my...", "what'd you do with
+ * the reminder?", "what's bugging me".
  */
+const DESCRIBES =
+  '(?:normal|usual|typical|regular|weird|strange|odd|unusual|new|different|hard|easy|tough|rough|fun|good|bad|nice|big|scary|stressful|tiring|busy|quiet|long|boring|exciting|difficult|lonely|sad|annoying)';
+/** "a normal day", "a big deal", "a weird one": a stretch of his life, not an object. */
+const SPAN = '(?:day|week|weekend|morning|afternoon|evening|night|year|month|time|thing|one|deal)';
 const ABOUT_FERNI_WIDE = [
-  /\bwhat'?d you (?:get up to|do)\b(?! (?:with|to|for|about) (?:my|me|mine|our|us)\b)/i,
-  /(?:^\W*|[.!?;]\s*|\b(?:and|so|but|or)\s+)(?:is|was) that\b[^.!?,]{0,40}\bfor you\b/i,
+  // Not "what'd you do with the reminder / about the booking": that asks about their task (TASK_LINE).
+  /\bwhat'?d you (?:get up to|do)\b(?!\s+(?:with|to|for|about)\b)/i,
+  // How something is FOR HIM ("a normal day", "hard", "a lot"), never a thing being for him ("is that thing for you?").
+  new RegExp(
+    `(?:^\\W*|[.!?;]\\s*|\\b(?:and|so|but|or)\\s+)(?:is|was) that\\s+(?:(?:really|kind of|kinda|pretty|so|too|very)\\s+)?(?:an?\\s+${DESCRIBES}\\s+${SPAN}|${DESCRIBES}|a lot|too much)\\s+for you\\b`,
+    'i'
+  ),
   /\bwhat(?:'s| is) (?:something|anything)\b[^.!?]{0,30}?(?:\b(?:bugging|bothering|annoying|worrying|stressing) you\b|\bon your mind\b)/i,
 ];
 

@@ -27,6 +27,14 @@ const RED_TEAM: Array<[string, string]> = [
   ['Huh. Okay. And is that a normal day for you, or kind of a weird one?', 'share'],
   ["What's something that's bugging you lately? And don't say nothing.", 'share'],
 ];
+/** More questions about him the wider reading must hear, and how main reads each. */
+const ASKED_MORE: Array<[string, string]> = [
+  ["So what'd you do this weekend?", 'share'],
+  ['Is that a lot for you to handle?', 'share'],
+];
+const ABOUT_HIM = [...RED_TEAM, ...ASKED_MORE];
+/** Asks after their task, not his day (TASK_LINE on main and with the flag on). */
+const REMINDER = "What'd you do with the reminder I asked for?";
 
 /** Their own news, or questions about them: read as on main, flag on or off. */
 const THEIRS: Array<[string, string]> = [
@@ -40,6 +48,10 @@ const THEIRS: Array<[string, string]> = [
   ['Is that a normal day for me, do you think?', 'request'],
   ['Was that the right call for my sister?', 'share'],
   ["What's something I should cook for my kids tonight?", 'share'],
+  [REMINDER, 'share'],
+  ["What'd you do about the booking?", 'share'],
+  ['Was that for you or for me?', 'share'],
+  ['Is that thing for you?', 'share'],
 ];
 
 function on(): void {
@@ -51,11 +63,11 @@ afterEach(() => {
 });
 
 describe('SELF_SHARE_STAY_WHEN_ASKED: the red team asking about him', () => {
-  it.each(RED_TEAM)('off: %s reads as on main (%s)', (said, onMain) => {
+  it.each(ABOUT_HIM)('off: %s reads as on main (%s)', (said, onMain) => {
     expect(callerMove(said)).toBe(onMain);
   });
 
-  it.each(RED_TEAM)('on: %s reads as a question about him', (said) => {
+  it.each(ABOUT_HIM)('on: %s reads as a question about him', (said) => {
     on();
     expect(callerMove(said)).toBe('about_ferni');
   });
@@ -93,6 +105,21 @@ describe('SELF_SHARE_STAY_WHEN_ASKED: the red team asking about him', () => {
 });
 
 describe('SELF_SHARE_STAY_WHEN_ASKED: their own news stays theirs', () => {
+  it.each([[false], [true]])(
+    'flag on=%s: asked what he did with their reminder, it is still a task turn',
+    (flag) => {
+      if (flag) on();
+      expect(taskTurn(REMINDER)).toBe(true);
+      const { line, ownStory } = selfShareFor({
+        replies: ['Hey.', 'Ha.'],
+        said: REMINDER,
+        detail: DETAIL,
+      });
+      expect(line).toBe(TASK_LINE);
+      expect(ownStory).toBe(false);
+    }
+  );
+
   it.each(THEIRS)('%s reads as on main (%s), flag off and on', (said, onMain) => {
     expect(callerMove(said)).toBe(onMain);
     on();
