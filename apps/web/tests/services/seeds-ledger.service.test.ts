@@ -76,7 +76,11 @@ const importCalls = () =>
 const listeners: Array<[EventTarget, string, EventListenerOrEventListenerObject]> = [];
 for (const target of [document, window] as EventTarget[]) {
   const add = target.addEventListener.bind(target);
-  target.addEventListener = ((type: string, fn: EventListenerOrEventListenerObject, o?: unknown) => {
+  target.addEventListener = ((
+    type: string,
+    fn: EventListenerOrEventListenerObject,
+    o?: unknown
+  ) => {
     listeners.push([target, type, fn]);
     add(type, fn, o as AddEventListenerOptions);
   }) as EventTarget['addEventListener'];
@@ -277,10 +281,14 @@ describe('the one-time import', () => {
   it('is retried when the server could not take it (503), and recorded once it does', async () => {
     mocks.apiGet.mockResolvedValue(server());
     mocks.apiPost.mockResolvedValueOnce({ ok: false, status: 503, error: 'not available' });
-    const { ledger } = await load();
+    const { ledger, cosmetics } = await load();
     await signIn('alice');
     expect(importCalls()).toHaveLength(1);
     expect(localStorage.getItem(ledger.LOCAL_IMPORTED_KEY)).toBeNull();
+    // Not imported yet: the browser's balance and items stay in use, nothing goes out of sight
+    expect(ledger.serverSeeds()).toBeNull();
+    expect(cosmetics.getSeedBalance()).toBe(400);
+    expect(cosmetics.ownsCosmetic('skin-ocean')).toBe(true);
 
     mocks.apiPost.mockResolvedValueOnce({
       ok: true,
@@ -290,6 +298,7 @@ describe('the one-time import', () => {
     await ledger.refreshServerSeeds();
     expect(importCalls()).toHaveLength(2);
     expect(localStorage.getItem(ledger.LOCAL_IMPORTED_KEY)).toBe('alice');
+    expect(ledger.serverSeeds()?.balance).toBe(300);
 
     await ledger.refreshServerSeeds();
     expect(importCalls()).toHaveLength(2);
@@ -298,8 +307,27 @@ describe('the one-time import', () => {
   it('a browser that never kept a ledger has nothing to import', async () => {
     localStorage.removeItem('ferni_cosmetics');
     mocks.apiGet.mockResolvedValue(server());
-    await load();
+    const { ledger } = await load();
     await signIn('alice');
     expect(importCalls()).toHaveLength(0);
+    expect(ledger.serverSeeds()?.balance).toBe(300); // straight onto the server ledger
+  });
+
+  it('a network failure keeps the browser ledger and offers the import again', async () => {
+    mocks.apiGet.mockResolvedValue(server());
+    mocks.apiPost.mockResolvedValueOnce({ ok: false, status: 0, error: 'offline' });
+    const { ledger, cosmetics } = await load();
+    await signIn('alice');
+    expect(ledger.serverSeeds()).toBeNull();
+    expect(cosmetics.getSeedBalance()).toBe(400);
+
+    mocks.apiPost.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      data: { imported: 400, alreadyImported: false },
+    });
+    await ledger.refreshServerSeeds();
+    expect(importCalls()).toHaveLength(2);
+    expect(ledger.serverSeeds()).not.toBeNull();
   });
 });

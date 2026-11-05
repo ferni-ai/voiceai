@@ -277,7 +277,7 @@ export async function handleSeedsRoutes(
         },
         earnedFrom: userSeeds.earnedFrom,
         ownedCosmetics: userSeeds.ownedCosmetics,
-        // The web keeps its own ledger until this is on (SEEDS_SERVER_LEDGER=on)
+        // On unless SEEDS_SERVER_LEDGER=off; off, the web keeps its own ledger
         serverLedger: serverLedgerEnabled(),
       });
       return true;

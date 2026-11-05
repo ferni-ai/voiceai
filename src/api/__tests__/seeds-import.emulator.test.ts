@@ -217,8 +217,8 @@ describe.skipIf(!emulator)('seeds import-local (Firestore emulator)', () => {
     });
   });
 
-  it('is off, and changes nothing, unless SEEDS_SERVER_LEDGER is on', async () => {
-    delete process.env.SEEDS_SERVER_LEDGER;
+  it('is off, and changes nothing, when SEEDS_SERVER_LEDGER is off (the kill switch)', async () => {
+    process.env.SEEDS_SERVER_LEDGER = 'off';
     const off = await importLocal(a, { balance: 500, owned: ['skin-cosmic'] });
 
     expect(off.status).toBe(404);
@@ -229,7 +229,7 @@ describe.skipIf(!emulator)('seeds import-local (Firestore emulator)', () => {
     expect((await call(a, 'GET', '/api/seeds')).body.serverLedger).toBe(true);
     process.env.SEEDS_SERVER_LEDGER = 'off';
     expect((await call(a, 'GET', '/api/seeds')).body.serverLedger).toBe(false);
-    delete process.env.SEEDS_SERVER_LEDGER;
-    expect((await call(a, 'GET', '/api/seeds')).body.serverLedger).toBe(false);
+    delete process.env.SEEDS_SERVER_LEDGER; // unset is on since 2026-10-31
+    expect((await call(a, 'GET', '/api/seeds')).body.serverLedger).toBe(true);
   });
 });
