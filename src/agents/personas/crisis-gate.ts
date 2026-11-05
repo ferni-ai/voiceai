@@ -428,13 +428,9 @@ export async function gatedReply(
   if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);
   // MINOR_CRISIS_CARE=on: a caller who sounds under 18 also hears the youth line; the script stays.
   // MINOR_ABUSE_DISCLOSURE=on: one who told of harm this turn hears the child-safety lines last.
+  const heard = callerWords(chatCtx);
   const script = (text: string): string =>
-    minorHarmScript(
-      minorCrisisScript(text, risk, callerWords(chatCtx).latest, chatCtx.items),
-      risk,
-      callerWords(chatCtx),
-      env
-    );
+    minorHarmScript(minorCrisisScript(text, risk, heard.latest, chatCtx.items), risk, heard, env);
   if (gate?.decision.action === 'replace') {
     // A turn with no moves, so the script isn't counted as the last reply's (move-log.ts).
     noteTurn(session, callerWords(chatCtx).latest, undefined);
