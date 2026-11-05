@@ -31,7 +31,6 @@ const fake = vi.hoisted(() => {
   };
 });
 
-vi.mock('firebase-admin', () => ({ default: { apps: [{}] } }));
 vi.mock('firebase-admin/auth', () => ({ getAuth: () => fake.authApi }));
 // No Firestore: the code store uses its own in-memory fallback, with its real rules.
 vi.mock('firebase-admin/firestore', async (orig) => ({

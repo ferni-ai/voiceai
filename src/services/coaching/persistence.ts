@@ -217,13 +217,13 @@ async function initializeFirestore(): Promise<boolean> {
 
   try {
     // Dynamic import to avoid issues if Firebase isn't configured
-    const admin = (await import('firebase-admin')).default;
+    const { getApps, initializeApp } = await import('firebase-admin/app');
     const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
 
     // Check if already initialized
-    if (admin.apps.length === 0) {
+    if (getApps().length === 0) {
       try {
-        admin.initializeApp({
+        initializeApp({
           projectId: getGCPProjectId(),
         });
       } catch {

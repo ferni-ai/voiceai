@@ -27,7 +27,7 @@ describe('COHORT_FLAGS', () => {
     expect([...COHORT_FLAGS].sort()).toEqual(
       [
         'SEMANTIC_RECALL', 'RECALL_PEOPLE', 'RECALL_EPISODES', 'RECALL_RARE_WORDS',
-        'FACT_SUPERSESSION', 'EXTRACTION_CONTEXT', 'OPENER_FOLLOW_UP', 'LIVE_SUMMARIES',
+        'FACT_SUPERSESSION', 'EXTRACTION_CONTEXT', 'FACT_SUBJECT_GUARD', 'OPENER_FOLLOW_UP', 'LIVE_SUMMARIES',
         'COACH_FOLLOW_THROUGH', 'LIFE_MOVES_ON', 'CANDOR', 'WEB_SEARCH', 'WORLD_MODEL_TEMPORAL',
         'WORLD_FACTS_IN_CALL', 'POST_CALL_CHECKIN', 'FOLLOW_THROUGH_TEXTS',
         'OUTREACH_PONDERED_NOTES', 'CALL_WRAP_UP', 'WRAP_UP', 'SHORT_GOODBYE', 'PHONE_GOODBYE',
@@ -48,7 +48,10 @@ describe('COHORT_FLAGS', () => {
         'GMAIL_SEND_AS_USER',
         'PERSONA_GROWTH', 'QUIET_AFTER_QUESTION',
         'CALL_NEWS_OPENER', 'TURN_MEMORY_RRF_SCALE', 'TURN_MEMORY_RERANK', 'CALLER_CARD',
-        'DATES_IN_HELLO',
+        'DATES_IN_HELLO', 'PERSONA_BRIEFING_ALEX', 'PERSONA_BRIEFING_JORDAN',
+        'PERSONA_BRIEFING_MAYA', 'PERSONA_BRIEFING_NAYAN', 'PERSONA_BRIEFING_PETER_HANDOFF',
+        'HANDOFF_DESK', 'REMEMBER_TO_RECALL', 'MEMORY_TOOLS_HONEST', 'FACTS_DUAL_WRITE',
+        'MEMORY_FACTS',
       ].sort() // prettier-ignore
     );
   });
@@ -76,6 +79,12 @@ describe('COHORT_FLAGS', () => {
     expect(
       missingPrerequisites({ ...all, WORLD_MODEL_TEMPORAL: 'on', DATES_IN_HELLO: 'on' })
     ).toEqual([]);
+  });
+  it('the facts dual write needs the facts store', () => {
+    expect(missingPrerequisites({ FACTS_DUAL_WRITE: 'on' })).toEqual([
+      'FACTS_DUAL_WRITE needs MEMORY_FACTS',
+    ]);
+    expect(missingPrerequisites({ FACTS_DUAL_WRITE: 'on', MEMORY_FACTS: 'on' })).toEqual([]);
   });
 });
 

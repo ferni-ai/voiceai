@@ -301,6 +301,38 @@ jobs:
       - name: Lint coverage ratchet
         run: pnpm quality:lint-coverage
 
+      # Prettier's content cache for the Format ratchet (cold ~95 s, warm ~30 s). It only
+      # skips a file whose content hash prettier already saw formatted under the same version
+      # and options, so a miss gives the same result, slower. Only main saves it: the nightly
+      # run, plus any push to main that runs this job (most skip it, because the merge queue
+      # already tested that tree). Pull requests and the merge queue restore it read-only,
+      # so a branch can't seed it.
+      - name: Prettier cache key
+        id: prettier-cache
+        run: |
+          version=$(node -p "require('prettier/package.json').version")
+          echo "prefix=prettier-${{ runner.os }}-${version}-${{ hashFiles('pnpm-lock.yaml', '.prettierrc*', '.prettierignore') }}-" >> "$GITHUB_OUTPUT"
+
+      - name: Restore prettier cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/prettier-cache
+          key: ${{ steps.prettier-cache.outputs.prefix }}${{ github.sha }}
+          restore-keys: ${{ steps.prettier-cache.outputs.prefix }}
+
+      # Blocking ratchet: the src files prettier would reformat may only get fewer, so a PR
+      # formats what it adds without reformatting files it didn't touch
+      # (baseline: apps/cli/src/commands/quality/format-baseline.generated.json).
+      - name: Format ratchet
+        run: pnpm quality:format --cache="$RUNNER_TEMP/prettier-cache/cache.json"
+
+      - name: Save prettier cache
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'schedule')
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/prettier-cache
+          key: ${{ steps.prettier-cache.outputs.prefix }}${{ github.sha }}
+
       - name: Tool schema validation
         run: pnpm tools:schemas:validate
 
@@ -1033,11 +1065,48 @@ jobs:
     # knocked out every PR queued with it (2026-10-18). Its three steps are cheap.
     # arch-map: a PR that edits only ARCHITECTURE.md (root markdown) still runs docs:map --check.
     if: needs.setup.outputs.code != 'false' || needs.setup.outputs.arch-map == 'true'
+    # The gate files guard reads the PR's label events and this run's start time.
+    # Nothing else here calls the API (cache restore uses the runner's own token).
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      actions: read
     steps:
+      # This commit and 49 ancestors, not every branch and tag: the full fetch-depth: 0 fetch
+      # hung to the job timeout 5 times in 7 days (2026-11-03 census) while depth-1/2 checkouts
+      # in the other jobs never did. 50 covers a merge-queue head back to main for queueBase
+      # (merge-base.ts); deeper than that, queueBase throws rather than measuring nothing.
       - name: Checkout
         uses: actions/checkout@v7
+        timeout-minutes: 5
         with:
-          fetch-depth: 0
+          fetch-depth: 50
+
+      # The Firestore database ratchet compares the allowlist with origin/main's, and queueBase
+      # reads origin/main. fetch-depth: 0 used to create this ref; without it the ratchet fails.
+      - name: Fetch main for the ratchets
+        timeout-minutes: 3
+        run: git fetch --no-tags --depth=50 origin +refs/heads/main:refs/remotes/origin/main
+
+      # Blocking. A PR may not switch a gate off in .github/workflows/, .github/actions/
+      # or scripts/ci/ (continue-on-error, a swallowed test failure, `if: false`, a
+      # required job deleted or skipped; scripts/ci/gate-files-guard.sh). From July to
+      # September every test step carried continue-on-error and CI hid 214 failures.
+      # It runs main's copy of the guard, so a PR can't loosen the guard that judges it
+      # (the PR's copy only until main has one). PRs only: a PR whose Quality Gates
+      # failed can't join the merge queue, and a merge_group payload has no labels.
+      # The ci-gate-change-ok label, added by a person after this run started,
+      # approves the change: add it, then re-run this job.
+      - name: Gate files guard
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          git show HEAD^1:scripts/ci/gate-files-guard.sh >"$RUNNER_TEMP/gate-files-guard.sh" 2>/dev/null \
+            || cp scripts/ci/gate-files-guard.sh "$RUNNER_TEMP/gate-files-guard.sh"
+          bash "$RUNNER_TEMP/gate-files-guard.sh" HEAD^1 HEAD
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -1075,6 +1144,11 @@ jobs:
       # Blocking ratchet: a new import edge breaking architecture-layers.ts fails. ~5 s; scoreboard in job summary.
       - name: Architecture gate
         run: pnpm quality:arch
+
+      # Blocking: a file this PR touches gains a crisis word list, voice resolver, quiet-hours
+      # rule, tool cap, forget checker or Twilio sender outside its owner (decisions.ts). ~3 s.
+      - name: Decision gate
+        run: pnpm quality:decisions
 
       # Blocking ratchet: a new direct Firestore .set/.update/.add with no safe wrapper
       # (safeSet, cleanForFirestore, ...) near it fails; the ~316 existing sites pass. Measured
@@ -1301,10 +1375,12 @@ jobs:
           pnpm test:arch
 
       # Web ESLint has 123 old errors, so plain `pnpm lint` can't gate. The ratchet fails
-      # only when a rule gains errors (baseline: ratchet-baseline.json "webEslint").
+      # when a rule gains errors or a baselined rule reports none (baseline:
+      # ratchet-baseline.json "webEslint"). ESLint exits 1 for findings; any other exit (a
+      # crash, a config it can't load) fails the step.
       - name: ESLint (ratchet)
         run: |
-          (cd apps/web && pnpm lint --format json --output-file eslint.json) || true
+          (cd apps/web && pnpm lint --format json --output-file eslint.json) || [ $? -eq 1 ]
           pnpm tsx apps/cli/src/commands/quality/ratchet.ts --eslint apps/web/eslint.json
 
       # The design-system rules (eslint.design.config.mjs) on apps/web and packages/ferni-react.

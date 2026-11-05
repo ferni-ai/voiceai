@@ -1,117 +1,107 @@
 name: Data Layer E2E Tests
 
-# Runs Firestore emulator tests for the semantic data layer
-# Validates full data flow: hooks → indexing → search → retrieval
+# Firestore emulator tests for the data layer: the semantic layer's
+# hooks → indexing → search → retrieval flow, and the race contracts that only a
+# real Firestore can show (single-use records, a placed call's once-claims).
+#
+# Triggers on every pull request and merge-queue entry, with no `paths:` filter:
+# a workflow-level filter never starts in the merge queue, so a required check
+# behind one waits forever. The `changes` job decides instead. The check to
+# require is the last job, "Data Layer E2E": success when nothing the tests
+# cover changed, else the Firestore Emulator E2E result.
+#
+# Firestore Emulator E2E is not OPTIONAL_CI-gated, so a change it covers is
+# tested before it merges (its race tests used to run only nightly). The other
+# two jobs stay optional: they follow OPTIONAL_CI on pull requests and stay out
+# of the merge queue. All three run nightly and on manual dispatch.
 
 on:
   pull_request:
-    paths:
-      - 'src/services/data-layer/**'
-      - 'src/services/seeds/**'
-      - 'src/api/seeds-routes.ts'
-      - 'src/api/seeds-purchase.ts'
-      - 'apps/web/src/services/cosmetics.service.ts'
-      - 'src/services/billing/stripe-subscription.ts'
-      - 'src/api/garden-routes.ts'
-      - 'src/api/roadmap-*.ts'
-      - 'src/api/outreach*.ts'
-      - 'src/services/outreach/outreach-history*.ts'
-      - 'src/services/outreach/live-report-record.ts'
-      - 'src/services/outreach/call-progress.ts'
-      - 'src/services/outreach/__tests__/call-claim-race.emulator.test.ts'
-      - 'src/api/__tests__/menu-*.emulator.test.ts'
-      - 'src/services/wellbeing-tracking/**'
-      - 'src/api/wellbeing*.ts'
-      - 'src/personality/pattern-persistence.ts'
-      - 'src/personality/emotional-data-shape.ts'
-      - 'src/utils/emotion-point-fields.ts'
-      - 'scripts/migrations/strip-emotional-data-snippets.ts'
-      - 'scripts/migrations/__tests__/strip-emotional-data-snippets*.ts'
-      - 'src/services/platform/erase-user-record.ts'
-      - 'src/services/platform/user-stores.ts'
-      - 'src/services/platform/erase-other-keys.ts'
-      - 'scripts/devdb/**'
-      - 'src/api/account-routes.ts'
-      - 'src/services/stores/single-use-records.ts'
-      - 'src/services/stores/__tests__/single-use-records.emulator.test.ts'
-      - 'src/servers/token/oauth-link-state.ts'
-      - 'src/services/connect-moments/**'
-      - 'src/memory/**'
-      - 'src/tasks/scheduled/transcript-cleanup-job.ts'
-      - 'src/tasks/scheduled/__tests__/transcript-cleanup.emulator.test.ts'
-      - 'src/api/routes/intelligence-routes.ts'
-      - 'src/api/__tests__/record-emotion*.ts'
-      - 'src/tools/semantic-router/advanced/better-than-human.ts'
-      - 'src/tools/semantic-router/advanced/emotional-history-shape.ts'
-      - 'src/utils/emotion-point-fields.ts'
-      - 'scripts/migrations/strip-emotional-*.ts'
-      - 'scripts/migrations/__tests__/strip-emotional-*.ts'
-      - 'src/intelligence/**'
-      - 'src/tests/data-layer/**'
-      - 'firestore.indexes.json'
-      - 'firebase.json'
-      - '.github/workflows/data-layer-e2e.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'src/services/data-layer/**'
-      - 'src/services/seeds/**'
-      - 'src/api/seeds-routes.ts'
-      - 'src/api/seeds-purchase.ts'
-      - 'apps/web/src/services/cosmetics.service.ts'
-      - 'src/services/billing/stripe-subscription.ts'
-      - 'src/api/garden-routes.ts'
-      - 'src/api/roadmap-*.ts'
-      - 'src/api/outreach*.ts'
-      - 'src/services/outreach/outreach-history*.ts'
-      - 'src/services/outreach/live-report-record.ts'
-      - 'src/services/outreach/call-progress.ts'
-      - 'src/services/outreach/__tests__/call-claim-race.emulator.test.ts'
-      - 'src/api/__tests__/menu-*.emulator.test.ts'
-      - 'src/services/wellbeing-tracking/**'
-      - 'src/api/wellbeing*.ts'
-      - 'src/personality/pattern-persistence.ts'
-      - 'src/personality/emotional-data-shape.ts'
-      - 'src/utils/emotion-point-fields.ts'
-      - 'scripts/migrations/strip-emotional-data-snippets.ts'
-      - 'scripts/migrations/__tests__/strip-emotional-data-snippets*.ts'
-      - 'src/services/platform/erase-user-record.ts'
-      - 'src/services/platform/user-stores.ts'
-      - 'src/services/platform/erase-other-keys.ts'
-      - 'scripts/devdb/**'
-      - 'src/api/account-routes.ts'
-      - 'src/services/stores/single-use-records.ts'
-      - 'src/services/stores/__tests__/single-use-records.emulator.test.ts'
-      - 'src/servers/token/oauth-link-state.ts'
-      - 'src/services/connect-moments/**'
-      - 'src/memory/**'
-      - 'src/tasks/scheduled/transcript-cleanup-job.ts'
-      - 'src/tasks/scheduled/__tests__/transcript-cleanup.emulator.test.ts'
-      - 'src/api/routes/intelligence-routes.ts'
-      - 'src/api/__tests__/record-emotion*.ts'
-      - 'src/tools/semantic-router/advanced/better-than-human.ts'
-      - 'src/tools/semantic-router/advanced/emotional-history-shape.ts'
-      - 'src/utils/emotion-point-fields.ts'
-      - 'scripts/migrations/strip-emotional-*.ts'
-      - 'scripts/migrations/__tests__/strip-emotional-*.ts'
-      - 'firestore.indexes.json'
-      - 'firebase.json'
-  # Nightly on main, whatever OPTIONAL_CI says (#1366); PR and push runs still follow it
+  merge_group:
+  # Nightly on main, whatever OPTIONAL_CI says (#1366)
   schedule:
     - cron: '41 3 * * *'
   workflow_dispatch:
 
-# One run per PR: a new push cancels the PR's running one. Every other run (push,
-# merge queue, schedule) gets its own group and always finishes.
+# One run per PR: a new push cancels the PR's running one. Every other run
+# (merge queue, schedule, dispatch) gets its own group and always finishes.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    name: Did the data layer change?
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      data_layer: ${{ steps.data_layer.outputs.matched }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # One regex per line: grep -E reads each line as its own pattern. `|-`
+      # drops the trailing newline, which would add an empty match-all pattern.
+      # Schedule and dispatch always match (see the action). The last lines are
+      # what the race tests load besides their stores, including the helpers
+      # getFirestoreDb installs.
+      # No comments inside the block: each line there is a pattern.
+      - id: data_layer
+        uses: ./.github/actions/pr-changes
+        with:
+          merge-group: 'true'
+          include: |-
+            ^src/services/data-layer/
+            ^src/services/seeds/
+            ^src/api/seeds-(routes|purchase)\.ts$
+            ^apps/web/src/services/cosmetics\.service\.ts$
+            ^src/services/billing/stripe-subscription\.ts$
+            ^src/api/garden-routes\.ts$
+            ^src/api/roadmap-[^/]*\.ts$
+            ^src/api/outreach[^/]*\.ts$
+            ^src/services/outreach/outreach-history[^/]*\.ts$
+            ^src/services/outreach/(live-report-record|call-progress)\.ts$
+            ^src/services/outreach/__tests__/call-claim-race\.emulator\.test\.ts$
+            ^src/api/__tests__/menu-[^/]*\.emulator\.test\.ts$
+            ^src/api/__tests__/(seeds-(routes-ledger|purchase|import)|roadmap-seeds|account-delete-every-store)\.emulator\.test\.ts$
+            ^src/services/wellbeing-tracking/
+            ^src/api/wellbeing[^/]*\.ts$
+            ^src/personality/(pattern-persistence|emotional-data-shape)\.ts$
+            ^src/utils/emotion-point-fields\.ts$
+            ^scripts/migrations/(__tests__/)?strip-emotional-[^/]*\.ts$
+            ^src/services/platform/(erase-user-record|user-stores|erase-other-keys)\.ts$
+            ^scripts/devdb/
+            ^src/api/account-routes\.ts$
+            ^src/services/stores/single-use-records\.ts$
+            ^src/services/stores/__tests__/single-use-records\.emulator\.test\.ts$
+            ^src/servers/token/oauth-link-state\.ts$
+            ^src/services/connect-moments/
+            ^src/memory/
+            ^src/tasks/scheduled/transcript-cleanup-job\.ts$
+            ^src/tasks/scheduled/__tests__/transcript-cleanup\.emulator\.test\.ts$
+            ^src/api/routes/intelligence-routes\.ts$
+            ^src/api/__tests__/record-emotion[^/]*\.ts$
+            ^src/tools/semantic-router/advanced/(better-than-human|emotional-history-shape)\.ts$
+            ^src/intelligence/
+            ^src/tests/data-layer/
+            ^firestore\.indexes\.json$
+            ^firebase\.json$
+            ^\.github/workflows/data-layer-e2e\.yml$
+            ^\.github/actions/(pr-changes|setup-node-pnpm)/
+            ^src/utils/(firestore-utils|shared-firestore|firestore-db-pin|synthetic-write-guard|erasing-mark)\.ts$
+            ^src/services/superhuman/firestore-utils\.ts$
+            ^src/config/flags/CONNECT_MOMENT_CALENDAR\.ts$
+            ^src/tests/setup(-emulator)?\.ts$
+            ^vitest\.config(\.unit)?\.ts$
+            ^firestore\.rules$
+
   firestore-e2e:
-    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    needs: changes
+    if: needs.changes.outputs.data_layer == 'true'
     name: Firestore Emulator E2E
-    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    # Hosted runners only (public repo)
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -268,7 +258,10 @@ jobs:
   # firestore-e2e job sets SKIP_EMBEDDING, which would make create/resolve
   # paths here meaningless.
   entity-resolver-emulator:
-    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    needs: changes
+    if: >-
+      needs.changes.outputs.data_layer == 'true' && github.event_name != 'merge_group' &&
+      (vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     name: Entity Resolver Emulator
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -325,7 +318,10 @@ jobs:
 
   # Quick unit tests (no emulator required)
   unit-tests:
-    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    needs: changes
+    if: >-
+      needs.changes.outputs.data_layer == 'true' && github.event_name != 'merge_group' &&
+      (vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     name: Data Layer Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -348,3 +344,31 @@ jobs:
         env:
           NODE_ENV: test
           SKIP_FIRESTORE: 'true'
+
+  # The one check to require. A job-level `if: always()` makes it report on every
+  # run: a skipped Firestore Emulator E2E alone would read as success even when
+  # `changes` failed, so this checks both.
+  gate:
+    name: Data Layer E2E
+    needs: [changes, firestore-e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verdict
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          DATA_LAYER: ${{ needs.changes.outputs.data_layer }}
+          FIRESTORE_E2E: ${{ needs.firestore-e2e.result }}
+        run: |
+          echo "changes=$CHANGES data_layer=$DATA_LAYER firestore-e2e=$FIRESTORE_E2E"
+          if [ "$CHANGES" != "success" ]; then
+            echo "::error::Could not tell whether the data layer changed ($CHANGES)"; exit 1
+          fi
+          if [ "$DATA_LAYER" != "true" ]; then
+            echo "Nothing the data layer tests cover changed: Firestore Emulator E2E skipped"; exit 0
+          fi
+          if [ "$FIRESTORE_E2E" != "success" ]; then
+            echo "::error::Firestore Emulator E2E: $FIRESTORE_E2E"; exit 1
+          fi
+          echo "Firestore Emulator E2E passed"

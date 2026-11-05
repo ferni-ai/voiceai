@@ -118,13 +118,13 @@ async function batchDeleteDocs(
 export async function initializeFirestore(): Promise<boolean> {
   try {
     // Dynamic import to avoid issues if Firebase isn't configured
-    const admin = (await import('firebase-admin')).default;
+    const { getApps, initializeApp } = await import('firebase-admin/app');
 
     // Check if already initialized
-    if (admin.apps.length === 0) {
+    if (getApps().length === 0) {
       // Try to initialize with default credentials
       try {
-        admin.initializeApp({
+        initializeApp({
           projectId: process.env.GCP_PROJECT_ID || process.env.FIREBASE_PROJECT_ID,
         });
       } catch {

@@ -210,6 +210,14 @@ export async function loadStoredHeldWindows(userId: string): Promise<{ unscrubbe
   return { unscrubbed: stored.some((w) => !w.scrubbed) };
 }
 
+/** Note the windows stored in a hold doc already read (readHoldDocStrict). No read here. */
+export function noteStoredHeldWindows(
+  userId: string,
+  data: Record<string, unknown> | undefined
+): void {
+  for (const w of storedWindows(data, Date.now())) noteHeldWindow(userId, w.start, w.end);
+}
+
 /** Purges of this doc's windows still unscrubbed (stored data; no read). */
 export const unscrubbedEnds = (data: Record<string, unknown> | undefined): number[] =>
   storedWindows(data, Date.now())

@@ -93,6 +93,7 @@ const LEGACY_FLAG_MANIFEST = {
   // crisis classifier: everyday call business (call requests, goodbyes, meta talk) reads none
   CRISIS_CLASSIFIER_EVERYDAY_RULES: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // a classifier-only imminent read the call plainly explains (two reads + a shared word) gets the soft check
+  // live needs CRISIS_GUARD_MODE=live exactly (unset is not enough); otherwise shadow + one _NOT_LIVE warning
   CRISIS_GROUNDED_RELEASE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // a classifier-only crisis read of a bare "pass me to Nayan", with no risk on the call, gets the soft check-in
   CRISIS_TRANSFER_EVERYDAY: { default: 'off', owner: 'intelligence', kind: 'experiment' },

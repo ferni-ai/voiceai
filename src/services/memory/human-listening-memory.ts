@@ -15,7 +15,7 @@
  * @module HumanListeningMemory
  */
 
-import admin from 'firebase-admin';
+import { FieldPath, type Firestore } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
@@ -27,13 +27,13 @@ const log = getLogger().child({ module: 'HumanListeningMemory' });
 // ============================================================================
 
 const BASELINES_COLLECTION = 'user_listening_baselines';
-let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInstance: Firestore | null = null;
 let initAttempted = false;
 
 /**
  * Get Firestore instance with lazy initialization
  */
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   if (firestoreInstance) return firestoreInstance;
   if (initAttempted) return null;
 
@@ -641,7 +641,7 @@ export async function loadBaselinesForUsers(
     for (const chunk of chunks) {
       const snapshot = await db
         .collection(BASELINES_COLLECTION)
-        .where(admin.firestore.FieldPath.documentId(), 'in', chunk)
+        .where(FieldPath.documentId(), 'in', chunk)
         .get();
 
       for (const doc of snapshot.docs) {

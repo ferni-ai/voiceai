@@ -34,22 +34,22 @@ const KNOWN: ReadonlyArray<Mismatch & { reason: string }> = [
   {
     file: 'package.json',
     dep: '@google-cloud/firestore',
-    declared: '^8.0.0',
-    override: '8.0.0',
+    declared: '^9.4.0',
+    override: '9.4.0',
     reason: 'the caret range admits the exact pin that dedupes firebase-admin',
   },
   {
     file: 'apps/async/package.json',
     dep: '@google-cloud/firestore',
-    declared: '^8.0.0',
-    override: '8.0.0',
+    declared: '^9.4.0',
+    override: '9.4.0',
     reason: 'same root override; the caret range admits it',
   },
   {
     file: 'apps/intelligence-worker/package.json',
     dep: '@google-cloud/firestore',
-    declared: '^8.0.0',
-    override: '8.0.0',
+    declared: '^9.4.0',
+    override: '9.4.0',
     reason: 'same root override; the caret range admits it',
   },
 ];
