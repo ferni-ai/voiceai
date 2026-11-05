@@ -149,9 +149,10 @@ export type KeepOutcome =
 /** The topics check for a write: under MEMORY_TOOLS_HONEST always, and fails closed (null = unreadable). */
 async function forgottenFor(
   userId: string,
-  env: Env | undefined
+  env: Env | undefined,
+  honest: boolean
 ): Promise<((text: string) => boolean) | 'unreadable' | null> {
-  if (!memoryToolsHonestOn(env)) return forgottenCheck(userId, 'remember-to-recall', env);
+  if (!honest) return forgottenCheck(userId, 'remember-to-recall', env);
   return (await forgottenWithin(userId, 'remember-to-recall')) ?? 'unreadable';
 }
 
@@ -165,6 +166,9 @@ export async function keepForRecall(
   deps: RememberToRecallDeps = {}
 ): Promise<KeepOutcome> {
   if (!rememberToRecallOn(deps.env)) return { kind: 'refused', reason: 'off' };
+  // Read once, before the awaits below: a call may end and the next caller's flags be applied
+  // while the secret check or the embedding runs (cohort-flags.ts).
+  const honest = memoryToolsHonestOn(deps.env);
   // Only a member's own: a placeholder or anon:/onbehalf: id is one bucket for many callers
   if (!isMemberIdentity(userId)) return { kind: 'refused', reason: 'not_member' };
   try {
@@ -173,7 +177,7 @@ export async function keepForRecall(
     const value = String(doc.data.value);
     // Every caller of the writer (remember, rememberImportantFact, replaceRemembered) gets this;
     // with no guard handed in, nothing is kept (fails closed)
-    if (memoryToolsHonestOn(deps.env)) {
+    if (honest) {
       const contactData = deps.contactData ?? contactGuard;
       if (!contactData) return { kind: 'failed' };
       if (contactData(value)) return { kind: 'refused', reason: 'contact' };
@@ -187,7 +191,7 @@ export async function keepForRecall(
     const [data] = await withFactEmbeddings([doc.data], deps.embedding);
     const store = deps.store ?? registered;
     // Checked after the embedding: a forget during it marked nothing for this fact
-    const forgotten = await forgottenFor(userId, deps.env);
+    const forgotten = await forgottenFor(userId, deps.env, honest);
     if (forgotten === 'unreadable') return { kind: 'failed' };
     if (forgotten?.(value)) {
       log.info('Remembered fact is about a forgotten topic: not written for recall');

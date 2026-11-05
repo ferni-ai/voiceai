@@ -33,7 +33,17 @@ import {
   TrackPublishOptions,
   TrackSource,
 } from '@livekit/rtc-node';
-import { GREETING_WAIT_MS, callerLine } from './converse-timing.mjs';
+import {
+  GREETING_WAIT_MS,
+  LineSender,
+  MicClock,
+  SEND_LEAD_MS,
+  SEND_QUEUE_MS,
+  TIMING_INVALID,
+  callerAudioOf,
+  callerLine,
+  timingInvalidNote,
+} from './converse-timing.mjs';
 import { EchoMixer, echoConfigFromEnv } from './echo-mixer.mjs';
 
 const [url, token, outJson, ...turns] = process.argv.slice(2);
@@ -113,49 +123,67 @@ room.on(RoomEvent.DataReceived, (payload, participant, _kind, topic) => {
 });
 
 await room.connect(url, token, { autoSubscribe: true, dynacast: false });
-// A 40 ms queue keeps captureFrame() in step with the wire. The default
-// 1000 ms queue let the pump run up to a second ahead, so "caller finished"
-// was stamped before the audio was sent and every reply delay (and barge-in
-// timing) read up to a second long.
-const source = new AudioSource(48000, 1, 40);
+// The pump paces itself against the clock (MicClock), so the queue only has to hold the lead
+// plus one catch-up frame. Each line is stamped with when its first and last samples play, not
+// when they were queued, so "caller finished" is not early by the lead (the old 1000 ms queue
+// made every reply delay read up to a second long).
+const source = new AudioSource(48000, 1, SEND_QUEUE_MS);
 const mic = LocalAudioTrack.createAudioTrack('mic', source);
 const opts = new TrackPublishOptions();
 opts.source = TrackSource.SOURCE_MICROPHONE;
 await room.localParticipant.publishTrack(mic, opts);
 
-const CHUNK = 480; // 10 ms at 48 kHz
-const silence = new Int16Array(CHUNK);
-let speaking = null;
-let pos = 0;
+// The mic sends whatever audio is due on the clock, silence between lines (#2740): a late wake
+// sends a bigger frame, not a slower line.
+const micClock = new MicClock(now);
+let speaking = null; // the LineSender being sent
 let stop = false;
 const micBufs = [];
 let micStartT = null;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const pump = (async () => {
   while (!stop) {
-    let frame = silence;
-    if (speaking) {
-      frame = new Int16Array(CHUNK);
-      frame.set(speaking.subarray(pos, pos + CHUNK));
-      pos += CHUNK;
-      if (pos >= speaking.length) speaking = null;
+    const lateBefore = micClock.lateMs;
+    const n = micClock.due();
+    // A stall went out as silence: write it into the recordings too, so they stay on the run clock.
+    const gap = Math.round((micClock.lateMs - lateBefore) * 48);
+    if (gap > 0 && micStartT !== null) {
+      micBufs.push(Buffer.alloc(gap * 2));
+      if (echo) sentBufs.push(Buffer.alloc(gap * 2));
     }
-    if (micStartT === null) micStartT = now();
+    if (n === 0) {
+      await sleep(5);
+      continue;
+    }
+    const frame = new Int16Array(n);
+    const line = speaking;
+    line?.fill(frame, micClock);
+    if (micStartT === null) micStartT = Math.round(micClock.playAt(0));
     micBufs.push(Buffer.from(frame.buffer, frame.byteOffset, frame.byteLength));
     const sent = echo ? echo.mix(frame) : frame;
     if (echo) sentBufs.push(Buffer.from(sent.buffer, sent.byteOffset, sent.byteLength));
-    await source.captureFrame(new AudioFrame(sent, 48000, 1, CHUNK));
+    await source.captureFrame(new AudioFrame(sent, 48000, 1, n));
+    micClock.queued(n);
+    if (line?.allQueued) {
+      line.accepted(now());
+      speaking = null;
+    }
   }
 })();
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function say(path) {
+/** Start sending a caller line; resolves with it once its last sample has played. */
+function say(path) {
   const buf = readFileSync(path);
-  const start = now();
-  speaking = new Int16Array(buf.buffer, buf.byteOffset, buf.length / 2);
-  pos = 0;
-  while (speaking) await sleep(10);
-  userSpeech.push(callerLine(start, now(), buf));
-  return now();
+  const line = new LineSender(new Int16Array(buf.buffer, buf.byteOffset, buf.length / 2));
+  speaking = line;
+  const ended = (async () => {
+    while (!line.done) await sleep(10);
+    // Queued ahead by the lead: the caller has finished when the last sample has played.
+    while (now() < line.end) await sleep(5);
+    userSpeech.push(callerLine(line.start, line.end, buf));
+    return line.end;
+  })();
+  return { line, ended };
 }
 
 async function waitAgentDone(maxMs) {
@@ -174,10 +202,12 @@ async function waitQuiet(maxMs) {
 
 /** Talk over the agent's current reply; report whether and how fast it stopped. */
 async function overlap(path, mode, atMs, replyStartedAt) {
-  while (now() < replyStartedAt + atMs) await sleep(10);
-  const startedAt = now();
+  // Queued SEND_LEAD_MS ahead, so the line starts playing at replyStartedAt + atMs.
+  while (now() < replyStartedAt + atMs - SEND_LEAD_MS) await sleep(10);
+  const { line, ended } = say(path);
+  while (line.start === null || now() < line.start) await sleep(5);
+  const startedAt = line.start;
   const agentTalking = now() - mainVoiceLastAt < 300;
-  const said = say(path);
   // The agent has stopped when its voice has been silent for 700 ms; natural
   // pauses between its sentences are shorter.
   let stoppedAt = null;
@@ -188,7 +218,7 @@ async function overlap(path, mode, atMs, replyStartedAt) {
     }
     await sleep(20);
   }
-  const endedAt = await said;
+  const endedAt = await ended;
   return {
     turn: path.split('/').pop(),
     mode,
@@ -247,7 +277,7 @@ for (const arg of turns) {
     continue;
   }
   await waitQuiet(30000);
-  const endedAt = await say(path);
+  const endedAt = await say(path).ended;
   const before = mainVoiceLastAt;
   const waitStart = now();
   while (now() - waitStart < 15000 && mainVoiceLastAt <= before) await sleep(20);
@@ -303,9 +333,20 @@ try {
 } catch {
   console.error('converse.mjs: VOICE_EVAL_META is not JSON; not recorded');
 }
+// Each line's send ratio (#2740). A call whose caller audio didn't go out in real time can't be
+// timed: its reply delays read "timing invalid" (the measured value stays as replyDelayRawMs).
+const callerAudio = { ...callerAudioOf(userSpeech), lateMs: Math.round(micClock.lateMs) };
+if (!callerAudio.valid) {
+  console.error(`converse.mjs: CALLER AUDIO INVALID: ${timingInvalidNote(callerAudio)}`);
+  for (const r of results) {
+    if (typeof r.replyDelayMs !== 'number') continue;
+    r.replyDelayRawMs = r.replyDelayMs;
+    r.replyDelayMs = TIMING_INVALID;
+  }
+}
 writeFileSync(
   outJson,
-  JSON.stringify({ meta, wallT0: t0, results, events, data, userSpeech, tracks: trackSummaries, mic: { file: micFile, startT: micStartT }, echo: echo ? { ...echoCfg, ...echo.stats, sentFile } : null }, null, 2)
+  JSON.stringify({ meta, wallT0: t0, results, events, data, userSpeech, callerAudio, tracks: trackSummaries, mic: { file: micFile, startT: micStartT }, echo: echo ? { ...echoCfg, ...echo.stats, sentFile } : null }, null, 2)
 );
 console.log(JSON.stringify(results));
 process.exit(0);

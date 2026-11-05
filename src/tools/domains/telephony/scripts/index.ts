@@ -19,6 +19,9 @@ import type { CallScriptTemplate, CallObjective, ResolvedContact } from '../type
 
 export type ScriptType = 'healthcare' | 'restaurant' | 'business' | 'personal';
 
+/** Marks a script that asks to pass things along; only such a call can decline (pass-along-declined). */
+export const PASS_ALONG_ASK_HEADING = '### Ask before passing it along';
+
 /**
  * Select the appropriate script based on contact and purpose
  */
@@ -157,10 +160,17 @@ export function buildCallScript(
     template.identityDisclosure.replace('{agentName}', agentName).replace('{userName}', userName)
   );
 
-  // Recording consent if applicable
-  if (template.recordingConsentScript) {
-    parts.push('\n### Recording Consent');
-    parts.push(template.recordingConsentScript);
+  // Nothing is recorded: Ferni says what it passes on. Personal calls ask and honour a no;
+  // business calls just say it (owner, 2026-11-02).
+  if (template.passAlongScript) {
+    parts.push(template.passAlongAsks ? `\n${PASS_ALONG_ASK_HEADING}` : '\n### Passing it along');
+    parts.push(template.passAlongScript.replaceAll('{userName}', userName));
+    parts.push(
+      template.passAlongAsks
+        ? `If they say no, that's fine: still give them ${userName}'s message, kindly, and don't ` +
+            `press. ${userName} will only hear that they asked you not to pass anything along.`
+        : "Say it as a heads-up, not a question: don't ask if it's okay."
+    );
   }
 
   // HIPAA note if applicable
@@ -198,17 +208,17 @@ export function buildCallScript(
   // -------------------------------------------------------------------------
   parts.push('\n### Information to Gather');
   template.informationToGather.forEach((item) => {
-    parts.push(`- ${item}`);
+    parts.push(`- ${item.replaceAll('{userName}', userName)}`);
   });
 
   parts.push('\n### You MUST Confirm');
   template.mustConfirm.forEach((item) => {
-    parts.push(`- ${item}`);
+    parts.push(`- ${item.replaceAll('{userName}', userName)}`);
   });
 
   parts.push('\n### You MUST NOT');
   template.mustNotDo.forEach((item) => {
-    parts.push(`- ${item}`);
+    parts.push(`- ${item.replaceAll('{userName}', userName)}`);
   });
 
   // -------------------------------------------------------------------------

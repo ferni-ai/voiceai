@@ -51,8 +51,10 @@ export interface CallScriptTemplate {
   greeting: string;
   identityDisclosure: string;
 
-  // Recording consent (required in many jurisdictions)
-  recordingConsentScript?: string;
+  // What Ferni says it does with the call: nothing is recorded, the details are passed on
+  passAlongScript?: string;
+  // Personal calls ask ("Is that okay?") and honour a no; business calls tell (owner, 2026-11-02)
+  passAlongAsks?: boolean;
 
   // Domain-specific
   hipaaNote?: string;

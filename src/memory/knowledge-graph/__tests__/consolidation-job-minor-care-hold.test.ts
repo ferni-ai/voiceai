@@ -95,5 +95,6 @@ it.each([
     expect(res.writeHead).toHaveBeenCalledWith(200, expect.anything());
     expect(touched(FREE)).not.toEqual([]); // the job ran and read the caller nobody holds
     expect(touched(WINDOW)).toEqual([]); // no read and no write of the held caller
+    expect(fs.selects.filter((f) => f !== 'bogle_users.lastContact')).toEqual([]); // no profile
   }
 );

@@ -35,6 +35,7 @@ import { callSessionData } from '../../../utils/call-session-data.js';
 import {
   CONTENT_BLOCKS,
   blockedContent,
+  keywordForms,
   ownerTextDestination,
   type ContentBlock,
 } from './owner-message-content.js';
@@ -174,12 +175,14 @@ const ACCOUNT_CUE = /\b(?:accounts?|banks?|banking|cards?|fraud\w*|suspend\w*|lo
 const PHONE_SHAPED: ReadonlySet<ContentBlock> = new Set(['digits', 'short_code', 'vanity_number', 'spaced_chars']); // prettier-ignore
 
 function hostileIn(text: string): StoredTextBlock | null {
-  const { folded: form, destination } = ownerTextDestination(text);
-  if (CODE_WORD.test(form) && HAND_OVER.test(form)) return 'code_handover';
+  const { folded, destination } = ownerTextDestination(text);
+  const forms = keywordForms(folded);
+  const says = (words: RegExp): boolean => forms.some((form) => words.test(form));
+  if (says(CODE_WORD) && says(HAND_OVER)) return 'code_handover';
   if (!destination) return null;
-  if (MONEY_WORD.test(form)) return 'money_destination';
-  const callback = PHONE_SHAPED.has(destination) && CALLBACK.test(form);
-  return callback && ACCOUNT_CUE.test(form) ? 'callback_scam' : null;
+  if (says(MONEY_WORD)) return 'money_destination';
+  const callback = PHONE_SHAPED.has(destination) && says(CALLBACK);
+  return callback && says(ACCOUNT_CUE) ? 'callback_scam' : null;
 }
 
 /**
@@ -187,7 +190,8 @@ function hostileIn(text: string): StoredTextBlock | null {
  * The jobs can't tell the owner's rows from a caller's, and the owner's rows carry
  * numbers, prices, links and phone numbers all the time ("Call Dr. Lee at 555-0123",
  * "Pay rent $1200", "Order from amazon.com"). So nothing is refused for its characters,
- * only for an instruction a scam needs, read on the folded form ownerTextDestination gives:
+ * only for an instruction a scam needs. Words are read on every keywordForms form, so
+ * "c o d e", "w-i-r-e", a zero-width split and "c0de" are the words they spell:
  * - code_handover: a code word (code, password, PIN, one-time, OTP, verification) with
  *   a hand-over verb (send, text, tell, give, read, share, reply, forward);
  * - money_destination: a money word (wire, pay, send, transfer, refund, deposit, gift
