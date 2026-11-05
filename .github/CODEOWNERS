@@ -143,11 +143,13 @@
 /src/agents/multi-agent/agent-setup.ts @sethdford
 /src/agents/multi-agent/first-turn-defer.ts @sethdford
 /src/agents/multi-agent/prediction-check-in.ts @sethdford
+/src/agents/personas/caller-needs-him.ts @sethdford
 /src/agents/personas/ferni-state.ts @sethdford
 /src/agents/personas/friend-repair.ts @sethdford
 /src/agents/personas/life-ledger.ts @sethdford
 /src/agents/personas/phrase-loops-safety.generated.ts @sethdford
 /src/agents/personas/repair-check.ts @sethdford
+/src/agents/personas/self-share-stay.ts @sethdford
 /src/agents/personas/turn-request.ts @sethdford
 /src/agents/processors/live-superhuman-injections.ts @sethdford
 /src/agents/processors/live-superhuman-writes.ts @sethdford

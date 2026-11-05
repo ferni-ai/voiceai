@@ -197,7 +197,7 @@ export function selfShareFor(turn: SelfTurn): SelfShare {
   const { replies, said, askedOnly } = turn;
   const last = replies[replies.length - 1] ?? '';
   const recent = replies.slice(-2).some(isSelfShare);
-  const stays = staysOn(said, turn.atRisk); // a whole question about him (self-share-stay.ts)
+  const stays = staysOn(said, last, turn.atRisk); // a whole question about him (self-share-stay.ts)
   const move = stays ? 'about_ferni' : callerMove(said);
   const sharing = move === 'share' && said.split(/\s+/).filter(Boolean).length >= 8;
   const lines: string[] = [];

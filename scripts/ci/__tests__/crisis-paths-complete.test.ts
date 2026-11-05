@@ -149,7 +149,8 @@ describe('every file the crisis derivation finds is covered', () => {
     expect(derived.importers).toContain('src/api/wellbeing.routes.ts');
     // Importers of the wider roots: agent safety, turn-crisis, crisis signals, the SMS
     // screen, the crisis filter and minor-care.
-    expect(derived.importers).toContain('src/agents/personas/ferni-state.ts');
+    // callerNeedsHim (detectCrisis) moved out of ferni-state.ts, which stays in the lane (#3476).
+    expect(derived.importers).toContain('src/agents/personas/caller-needs-him.ts');
     expect(derived.importers).toContain('src/agents/processors/turn-processor/process-turn.ts');
     expect(derived.importers).toContain('src/services/outreach/proactive-channels/triggers.ts');
     expect(derived.importers).toContain('src/api/outreach-webhook-routes.ts');

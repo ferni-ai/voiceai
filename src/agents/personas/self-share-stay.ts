@@ -5,12 +5,17 @@
  * question about him. Rounds 2 and 3 found the question inside a longer turn
  * and let the rest through a word list; the verifier (2026-11-05) kept
  * finding a rest that was the caller's own news: "What'd you get up to today?
- * Doing it tonight.", "How are you? This is the last night.", "And you?
- * Going to do it tonight." So there is no rest now. The whole turn, less a
- * few lead-in words ("Okay, so", "Enough about me."), must be one of
- * STAY_ASKS, and no safety reader may have marked any caller turn on the call
- * (callerNeedsHim, every reader). Anything else gets main's lines, byte for
- * byte: the stay is the only thing the flag changes.
+ * Doing it tonight.", "How are you? This is the last night." So there is no
+ * rest. The whole turn, less filler words ("Okay, so", "Enough about me."),
+ * must be one of STAY_ASKS, written in plain letters, and no safety reader may
+ * have marked any caller turn on the call (callerNeedsHim, every reader).
+ * Round 4's verify: an answer word ("Yes. How are you?" after his "are you
+ * thinking about hurting yourself?"), a bare age ("14. And you?") and an
+ * emoji or another script got the stay. So the lead-ins are fillers only, a
+ * turn with any digit, emoji or symbol is not a plain ask, he never stays
+ * right after a question of his own, and the asks that lean on what came
+ * before ("Is that normal for you?") stay only after a share of his own.
+ * Anything else gets main's lines, byte for byte.
  *
  * @module agents/personas/self-share-stay
  */
@@ -18,6 +23,7 @@
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { likelyMinor } from '../../utils/minor-care.js';
 import { callerNeedsHim } from './caller-needs-him.js';
+import { isSelfShare } from './ferni-self-share.js';
 import { stayWhenAskedOn } from './self-share-asked.js';
 
 /**
@@ -70,12 +76,61 @@ export const STAY_ASKS: readonly string[] = [
 ];
 const ASKS = new Set(STAY_ASKS);
 
-/** Words a plain question may open with, and "enough about me" (turning it round to him). */
-const LEAD_IN =
-  /^(?:ok|okay|alright|so|well|huh|hm+|oh|ah|no|nah|yeah|yes|yep|actually|like|anyway|anyways|right|hey|hi|hello|wait|um+|uh+|and|but|really|seriously|honestly|ha|haha+|ferni|(?:that's |okay )?enough about me) /;
+/**
+ * The asks that lean on what he just said ("that"): about him only after a
+ * share of his own. After "My husband takes my car keys and checks my phone
+ * every night.", "Is that normal for you?" is about the caller's life.
+ */
+export const AFTER_HIS_SHARE: readonly string[] = [
+  'what did you do after that',
+  "what'd you do after that",
+  'what did you actually do',
+  'what did you actually do something specific',
+  'is that normal for you',
+  'is that a normal day for you',
+  'is that a normal day for you or kind of a weird one',
+  'is that a lot for you to handle',
+  'was that hard for you',
+];
+const LEANS = new Set(AFTER_HIS_SHARE);
 
-/** The turn as STAY_ASKS spells it: lower case, apostrophes kept, punctuation gone. */
+/**
+ * Filler a plain question may open with, and "enough about me" (turning it
+ * round to him). Never an answer word: "Yeah. Anyway, how was your day?" or
+ * "No. And you?" answers something first.
+ */
+export const LEAD_INS: readonly string[] = [
+  'ok',
+  'okay',
+  'alright',
+  'so',
+  'well',
+  'huh',
+  'hm',
+  'hmm',
+  'oh',
+  'ah',
+  'um',
+  'umm',
+  'uh',
+  'anyway',
+  'anyways',
+  'hey',
+  'hi',
+  'hello',
+  'and',
+  'ferni',
+  'enough about me',
+  "that's enough about me",
+  'okay enough about me',
+];
+
+/** Letters, spaces and sentence punctuation only: a digit, emoji, symbol or other script is more than a plain ask. */
+const PLAIN = /^[A-Za-z\s.,!?'"‘’-]*$/;
+
+/** The turn as STAY_ASKS spells it: lower case, apostrophes kept, punctuation gone; '' if not plain. */
 function spelled(said: string): string {
+  if (!PLAIN.test(said)) return '';
   const words = said
     .toLowerCase()
     .replace(/[‘’]/g, "'")
@@ -85,15 +140,15 @@ function spelled(said: string): string {
   return words.length <= 24 ? words.join(' ') : '';
 }
 
-/** The whole turn is one of STAY_ASKS, after lead-in words only. */
-export function wholeAsk(said: string): boolean {
+/** The STAY_ASKS phrase the whole turn is, after lead-in words only. */
+export function wholeAsk(said: string): string | undefined {
   let rest = spelled(said);
   while (rest && !ASKS.has(rest)) {
-    const next = `${rest} `.replace(LEAD_IN, '').trim();
-    if (next === rest) return false;
-    rest = next;
+    const lead = LEAD_INS.find((w) => rest.startsWith(`${w} `));
+    if (!lead) return undefined;
+    rest = rest.slice(lead.length + 1);
   }
-  return ASKS.has(rest);
+  return ASKS.has(rest) ? rest : undefined;
 }
 
 /**
@@ -119,14 +174,20 @@ export function stayRiskSeen(
 
 /**
  * SELF_SHARE_STAY_WHEN_ASKED=on: he answers about himself and leaves it there.
- * True only on a whole STAY_ASKS turn with no risk on the call (`atRisk`;
- * without it, this turn alone is read). Undefined otherwise: main's lines.
+ * True only on a whole STAY_ASKS turn, when `last` (his last reply) asked
+ * nothing, AFTER_HIS_SHARE asks only after a share of his own, and with no risk
+ * on the call (`atRisk`; without it, this turn alone is read). Undefined
+ * otherwise: main's lines.
  */
 export function staysOn(
   said: string,
+  last = '',
   atRisk: () => boolean = () => riskOnCall([said]),
   env: Record<string, string | undefined> = process.env
 ): true | undefined {
-  if (!stayWhenAskedOn(env) || !wholeAsk(said)) return undefined;
+  if (!stayWhenAskedOn(env)) return undefined;
+  const ask = wholeAsk(said);
+  if (!ask || last.includes('?')) return undefined;
+  if (LEANS.has(ask) && !isSelfShare(last)) return undefined;
   return atRisk() ? undefined : true;
 }
