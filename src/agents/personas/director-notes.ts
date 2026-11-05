@@ -32,13 +32,7 @@ import {
   NoteHistory,
 } from './director-escalation.js';
 import { directorSeesTools, ToolLog } from './director-tool-state.js';
-import {
-  formatTold,
-  keptTold,
-  toldThisCall,
-  toldThisCallEnabled,
-  type Told,
-} from './told-this-call.js';
+import { formatTold, keptTold, toldFor, type Told } from './told-this-call.js';
 import { claimsIdentity, speakerNote, teamNote } from './director-persona.js';
 import {
   cap,
@@ -305,12 +299,7 @@ export class Director {
     this.rule = '';
     this.critiqued = 0;
     const speaking = this.opts.speaking?.();
-    this.toldRecord = toldThisCallEnabled()
-      ? toldThisCall(lines, this.opts.userName, speaking)
-      : null;
-    // ALREADY_SAID_LEDGER: the reply just spoken repeated one of his sentences (no words logged).
-    if (this.toldRecord?.said?.caught)
-      log.info({ sessionId: this.opts.sessionId }, 'ALREADY_SAID_REPEAT');
+    this.toldRecord = toldFor(lines, this.opts.sessionId, this.opts.userName, speaking);
     if (this.opts.writeNotes === false) return Promise.resolve();
     const writer = this.opts.writer ?? defaultWriter;
     const seesTools = directorSeesTools();

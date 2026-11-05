@@ -28,8 +28,11 @@
  */
 
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { mentionsCrisisResource } from './listen-offer.js';
 import { isSafetyLine, normalized } from './phrase-loops.js';
+
+const log = createLogger({ module: 'AlreadySaid' });
 
 /** Every setting of the ledger, in one place. */
 export const ALREADY_SAID = {
@@ -99,6 +102,11 @@ export function alreadySaid(replies: ReadonlyArray<readonly string[]>): AlreadyS
     .filter((s): s is string => Boolean(s) && listable(s) && !again(s))
     .filter((s, i, all) => all.findIndex((o) => keyOf(o) === keyOf(s)) === i);
   return { repeated, openers, caught: (window.at(-1) ?? []).some(again) };
+}
+
+/** The reply just spoken repeated one of his sentences: logged for dev calls, with no words. */
+export function logRepeat(said: AlreadySaid | undefined, sessionId: string): void {
+  if (said?.caught) log.info({ sessionId }, 'ALREADY_SAID_REPEAT');
 }
 
 const clip = (s: string): string =>

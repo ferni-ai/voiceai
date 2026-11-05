@@ -24,6 +24,7 @@ import {
   alreadySaid,
   alreadySaidLedgerOn,
   formatAlreadySaid,
+  logRepeat,
   type AlreadySaid,
 } from './already-said.js';
 import type { Line } from './director-notes.js';
@@ -207,6 +208,22 @@ export function toldThisCall(lines: Line[], userName?: string, speaking?: string
     ...(phraseLoopGuardOn() ? { loops: phraseLoops(lines) } : {}),
     ...(alreadySaidLedgerOn() ? { said: alreadySaid(replies) } : {}),
   };
+}
+
+/**
+ * The record for the director after each reply, or null with TOLD_THIS_CALL=off.
+ * ALREADY_SAID_LEDGER: a repeat in the reply just spoken is logged (no words).
+ */
+export function toldFor(
+  lines: Line[],
+  sessionId: string,
+  userName?: string,
+  speaking?: string
+): Told | null {
+  if (!toldThisCallEnabled()) return null;
+  const told = toldThisCall(lines, userName, speaking);
+  logRepeat(told.said, sessionId);
+  return told;
 }
 
 /** The record as the note the next request carries, or '' when there's nothing to say yet. */
