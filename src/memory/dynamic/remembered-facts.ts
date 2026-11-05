@@ -63,6 +63,25 @@ export function rememberToRecallOn(env: Env = process.env): boolean {
   return flagOn('REMEMBER_TO_RECALL', env) || memoryToolsHonestOn(env);
 }
 
+/** Both flags, as a memory tool reads them once when it starts (see keepForRecall). */
+export interface MemoryToolFlags {
+  readonly honest: boolean;
+  readonly rememberToRecall: boolean;
+}
+
+export function memoryToolFlags(env: Env = process.env): MemoryToolFlags {
+  return { honest: memoryToolsHonestOn(env), rememberToRecall: rememberToRecallOn(env) };
+}
+
+/** Each flag on if it is on now or was when the tool started, so no guard turns off mid-call. */
+function onNowOrAtStart(env: Env | undefined, atStart?: MemoryToolFlags): MemoryToolFlags {
+  const now = memoryToolFlags(env);
+  return {
+    honest: now.honest || atStart?.honest === true,
+    rememberToRecall: now.rememberToRecall || atStart?.rememberToRecall === true,
+  };
+}
+
 export interface RememberedFact {
   fact: string;
   /** The memories document it copies, so either can be traced to the other. */
@@ -131,6 +150,8 @@ export interface RememberToRecallDeps {
   embedding?: FactEmbeddingDeps;
   secretCheck?: SecretCheckDeps;
   env?: Env;
+  /** The flags as the tool read them at its start, before any await (memoryToolFlags). */
+  flags?: MemoryToolFlags;
   now?: () => Date;
 }
 
@@ -165,10 +186,12 @@ export async function keepForRecall(
   r: RememberedFact,
   deps: RememberToRecallDeps = {}
 ): Promise<KeepOutcome> {
-  if (!rememberToRecallOn(deps.env)) return { kind: 'refused', reason: 'off' };
   // Read once, before the awaits below: a call may end and the next caller's flags be applied
-  // while the secret check or the embedding runs (cohort-flags.ts).
-  const honest = memoryToolsHonestOn(deps.env);
+  // while the secret check or the embedding runs, or while the tool awaited before calling this
+  // (cohort-flags.ts).
+  const flags = onNowOrAtStart(deps.env, deps.flags);
+  if (!flags.rememberToRecall) return { kind: 'refused', reason: 'off' };
+  const { honest } = flags;
   // Only a member's own: a placeholder or anon:/onbehalf: id is one bucket for many callers
   if (!isMemberIdentity(userId)) return { kind: 'refused', reason: 'not_member' };
   try {
