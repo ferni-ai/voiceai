@@ -235,14 +235,21 @@ final class AppModel {
             isSigningIn = true
             return
         }
-        feedback.newCall()
+        newCallFeedback()
         if consent.hasAgreed { call.start(personaID: team.chosen) } else { isAskingConsent = true }
+    }
+
+    /// The next call's sounds start fresh, and its crisis mark clear. Never
+    /// during a call: Talk there starts nothing, so it mustn't reset this one.
+    private func newCallFeedback() {
+        if !call.isActive { feedback.newCall() }
     }
 
     /// "I agree, let's talk": the call starts at once ("Calling…"); the
     /// account is settled inside it, and the agreement is recorded for that
     /// account only. No account means the call ends saying so (critic H5).
     func agreeAndTalk() async {
+        newCallFeedback()
         call.start(personaID: team.chosen) { [weak self] in
             guard let self else { return false }
             await self.account.start()
