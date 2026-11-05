@@ -4,6 +4,8 @@
  * @module memory/dynamic/deep-extraction-prompts
  */
 
+import { FACT_SUBJECT_RULE } from './fact-subject.js';
+
 export const ENTITY_EXTRACTION_PROMPT = `You are an expert at identifying entities (people, places, events, concepts) in conversation.
 
 Given this transcript from a personal conversation, extract all meaningful entities.
@@ -42,9 +44,13 @@ const HOME_KEYS = `
 - Where the speaker lives: entityName "User", key "home", value a city or neighbourhood, never a street address.
 - Where the speaker is right now: entityName "User", key "current location".`;
 
-/** The fact prompt; with `cardOn` false, exactly as before. */
-export function factExtractionPrompt(cardOn: boolean): string {
-  return cardOn ? FACT_EXTRACTION_PROMPT + HOME_KEYS : FACT_EXTRACTION_PROMPT;
+/**
+ * The fact prompt; with `cardOn` and `subjectOn` false, exactly as before. `subjectOn`
+ * (FACT_SUBJECT_GUARD) adds whose "you" is: the transcript is the caller's lines only.
+ */
+export function factExtractionPrompt(cardOn: boolean, subjectOn = false): string {
+  const base = cardOn ? FACT_EXTRACTION_PROMPT + HOME_KEYS : FACT_EXTRACTION_PROMPT;
+  return subjectOn ? `${base}\n${FACT_SUBJECT_RULE}` : base;
 }
 
 export const RELATIONSHIP_EXTRACTION_PROMPT = `You are mapping relationships between entities mentioned in conversation.

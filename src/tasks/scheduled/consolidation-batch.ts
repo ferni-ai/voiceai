@@ -207,6 +207,7 @@ export async function listActiveUsersPage(
 
   let query = getAdminFirestore()
     .collection('bogle_users')
+    .select('lastContact') // not the profile: it carries stored preferences (MINOR_CARE)
     .where('lastContact', '>=', thirtyDaysAgo.toISOString())
     .orderBy('lastContact')
     .orderBy(FieldPath.documentId());

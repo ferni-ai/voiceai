@@ -16,6 +16,7 @@ import {
   type SweepLLM,
   type SweepStore,
 } from '../memory/dynamic/fact-sweep.js';
+import { factSubjectGuardOn, type CallLine } from '../memory/dynamic/index.js';
 import { firestoreSweepStore } from '../memory/storage/sweep-store.js';
 
 export const FACT_SWEEP_TASK = 'fact-sweep';
@@ -27,6 +28,13 @@ export async function sweepAfterCall(
 ): Promise<number> {
   if (!factSweepEnabled(deps.env)) return 0;
   const lines = ctx.turns.filter((t) => t.role === 'user').map((t) => t.content);
+  // FACT_SUBJECT_GUARD: the model reads the AI friend's lines too, so it can tell who owns what.
+  const bothSides = (await factSubjectGuardOn(ctx.userId, deps.env))
+    ? ctx.turns.flatMap((t): CallLine[] => {
+        if (t.role === 'user') return [{ speaker: 'caller', text: t.content }];
+        return t.role === 'assistant' ? [{ speaker: 'persona', text: t.content }] : [];
+      })
+    : undefined;
   return sweepCall(
     {
       userId: ctx.userId,
@@ -38,6 +46,7 @@ export async function sweepAfterCall(
     {
       llm: deps.llm ?? (async (prompt) => callLLM(prompt, { temperature: 0, maxTokens: 2000 })),
       store: deps.store ?? firestoreSweepStore,
+      bothSides,
     }
   );
 }
