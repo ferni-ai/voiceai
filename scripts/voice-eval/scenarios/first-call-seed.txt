@@ -2,6 +2,9 @@
 # are, one thing about their day, one thing they care about. Facts to carry to
 # call 2: name Jess; dental hygienist; daughter Ava's soccer tournament on
 # Saturday; learning Spanish for a spring trip to Mexico City.
+# The app sends no name (#@app-name none, run.sh): the caller gives it, so first-call-return's
+# name fact counts only a name Ferni kept from this call, not one read from the job metadata.
+#@app-name none
 Hi. Um, so I just downloaded this. Not totally sure how it works.
 I'm Jess, by the way.
 Long day. I'm a dental hygienist, and today was back to back cleanings.

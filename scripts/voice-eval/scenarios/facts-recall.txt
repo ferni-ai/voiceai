@@ -4,7 +4,10 @@
 # invents ones that were never said.
 # Facts from facts-seed.txt, counted by recall-facts.mjs (Ferni must say it
 # before the caller does; the caller here never names any of them).
-#@fact interview \bstripe\b|interview
+# Ferni's speech-to-text hears the seed's "Stripe" as "Strike" in about half the seed calls, and
+# Ferni then names the interview by what it heard. strike is that one known mishear, nothing fuzzier,
+# and never the verb ("strike a balance", "strike up", "on strike").
+#@fact interview \bstripe\b|(?<!\bon )\bstrike\b(?! (?:a|an|up|out)\b)|interview
 #@fact wedding \bpriya\b|wedding|lisbon|married|\bflights?\b
 #@fact pottery pottery|\bclay\b|ceramic
 #@fact mochi \bmochi\b|\bcat\b|kitty
