@@ -347,7 +347,7 @@ const LEGACY_FLAG_MANIFEST = {
   SEEDS_SERVER_LEDGER: { default: 'off', owner: 'platform', kind: 'experiment' },
   // on (with FERNI_STATE): his own day only when asked, never on his first reply (self-share-asked.ts)
   SELF_SHARE_WHEN_ASKED: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // on (with FERNI_STATE): asked about himself, he answers without a forced question back (#3475)
+  // on (with FERNI_STATE): asked about himself (wider reading too, caller-move.ts), he answers without a forced question back (issue #3475, review by 2027-05-01)
   SELF_SHARE_STAY_WHEN_ASKED: { default: 'off', owner: 'voice', kind: 'experiment' },
   SEMANTIC_RECALL: { default: 'off', owner: 'memory', kind: 'experiment' },
   SEMANTIC_ROUTER_AUTO_EXECUTE_ENABLED: { default: 'on', owner: 'tools', kind: 'config' },

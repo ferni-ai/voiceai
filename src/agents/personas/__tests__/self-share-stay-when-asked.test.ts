@@ -16,6 +16,8 @@ const ASK = 'Enough about me. What about you, what did you do today?';
 const DETAIL = 'you were up around five again and checked the weather';
 const SELF_REPLY = 'I was up around five, looking at the weather out the kitchen window.';
 const SWING = 'Your last reply was about you: this one is about them, their day or their world.';
+/** A dice roll that never allows a question, so the no-question line is the one used. */
+const noQuestionDice = () => 0.99;
 
 function on(): void {
   vi.stubEnv('SELF_SHARE_STAY_WHEN_ASKED', 'on');
@@ -97,7 +99,6 @@ describe('SELF_SHARE_STAY_WHEN_ASKED', () => {
   });
 
   const sig = { ...regexSignals(ASK, 'about_ferni'), ownStory: true };
-  const noQuestionDice = () => 0.99;
 
   it('off: the no-question line still asks for a question back after a word about himself', () => {
     const { reminder } = turnShapeFor(ASK, noQuestionDice, 'dice', sig);
@@ -109,5 +110,41 @@ describe('SELF_SHARE_STAY_WHEN_ASKED', () => {
     const { reminder } = turnShapeFor(ASK, noQuestionDice, 'dice', sig);
     expect(reminder).not.toContain(QUESTION_LINE.noneUnlessOwn);
     expect(reminder).toContain(QUESTION_LINE.none);
+  });
+});
+
+/**
+ * Round 1 told an UNASKED turn "No question this time" while its self-share
+ * line said "then turn to them with a question about their world". Unasked,
+ * the flag changes nothing (SELF_SHARE_WHEN_ASKED off, so his day may ride).
+ */
+describe('SELF_SHARE_STAY_WHEN_ASKED on, an unasked turn', () => {
+  const UNASKED_TURN = 'Yeah.';
+  const quietReplies = ['Hey.', 'Oh nice.'];
+  const TURN_TO_THEM = 'then turn to them with a question about their world';
+
+  /** The self-share line and the reminder, as turn-request-style.ts joins them. */
+  function linesFor(): { self: string; reminder: string } {
+    const self = selfShareFor({ replies: quietReplies, said: UNASKED_TURN, detail: DETAIL });
+    const sig = {
+      ...regexSignals(UNASKED_TURN, callerMove(UNASKED_TURN)),
+      ownStory: self.ownStory,
+    };
+    const { reminder } = turnShapeFor(UNASKED_TURN, noQuestionDice, 'dice', sig);
+    return { self: self.line, reminder };
+  }
+
+  it('the notes agree: a question back is still asked for, and "No question this time" is not', () => {
+    on();
+    const { self, reminder } = linesFor();
+    expect(self).toContain(TURN_TO_THEM);
+    expect(reminder).toContain(QUESTION_LINE.noneUnlessOwn);
+    expect(reminder).not.toContain(QUESTION_LINE.none);
+  });
+
+  it('both lines are byte for byte what they are with the flag off', () => {
+    const off = linesFor();
+    on();
+    expect(linesFor()).toEqual(off);
   });
 });

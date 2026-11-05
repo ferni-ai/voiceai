@@ -7,6 +7,8 @@
  * @module agents/personas/caller-move
  */
 
+import { stayWhenAskedOn } from './self-share-asked.js';
+
 export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share' | 'lookup';
 
 /**
@@ -42,6 +44,27 @@ const ASKS_FOR_MORE =
 export const ABOUT_FERNI =
   /\b(how are you|how('s| is| was) your|what about you|and you\b|what('re| are) you (doing|up to)|what did you|do you (like|have|ever|remember)|do you think (?:(?:of|about) )?(?:you|your|yourself)\b|have you (ever|been)|your (day|week|weekend|morning|life|wife|dad))\b/i;
 /**
+ * SELF_SHARE_STAY_WHEN_ASKED=on (#3475): more ways a caller turns it round to
+ * him. ABOUT_FERNI read three of the four on the 2026-11-04 red team
+ * (scripts/voice-eval/scenarios/your-day-specific.txt) as a share: "What'd you
+ * get up to today?", "is that a normal day for you", "what's something that's
+ * bugging you lately". Read only with the flag on; off, every turn reads as before.
+ * Anchored so their own news stays theirs: "I got these for you", "what'd you
+ * think of my...", "what'd you do with my keys", "what's bugging me".
+ */
+const ABOUT_FERNI_WIDE = [
+  /\bwhat'?d you (?:get up to|do)\b(?! (?:with|to|for|about) (?:my|me|mine|our|us)\b)/i,
+  /(?:^\W*|[.!?;]\s*|\b(?:and|so|but|or)\s+)(?:is|was) that\b[^.!?,]{0,40}\bfor you\b/i,
+  /\bwhat(?:'s| is) (?:something|anything)\b[^.!?]{0,30}?(?:\b(?:bugging|bothering|annoying|worrying|stressing) you\b|\bon your mind\b)/i,
+];
+
+/** A question about him: ABOUT_FERNI, and with SELF_SHARE_STAY_WHEN_ASKED on the wider forms too. */
+function asksAboutHim(t: string, env: Record<string, string | undefined>): boolean {
+  if (ABOUT_FERNI.test(t)) return true;
+  return stayWhenAskedOn(env) && ABOUT_FERNI_WIDE.some((re) => re.test(t));
+}
+
+/**
  * Asked for his view on their topic: "what do you think?", "do you think I
  * should quit?", "what would you do?". A request for an answer, not a question
  * about him (read after ABOUT_FERNI, so "do you think you'd like it?" stays his).
@@ -60,13 +83,16 @@ const ACK =
 export const ABOUT_THEIR_THINGS =
   /\b(?:do|did|can|could|would|will) you (?:still |even |actually )?(?:have|know|remember|keep|save|store|see|get|call|text|reach|ring|phone|message|email|send)\b(?:\s+\w+)?\s+(?:my|me|mine|our|us)\b/i;
 
-export function callerMove(text: string): CallerMove {
+export function callerMove(
+  text: string,
+  env: Record<string, string | undefined> = process.env
+): CallerMove {
   const t = text.trim();
   const words = t.split(/\s+/).filter(Boolean).length;
   if (words <= 3 && ACK.test(t)) return 'ack';
   if (isLookup(t)) return 'lookup';
   if (ASKS_FOR_MORE.test(t) || ABOUT_THEIR_THINGS.test(t)) return 'request';
-  if (ABOUT_FERNI.test(t)) return 'about_ferni';
+  if (asksAboutHim(t, env)) return 'about_ferni';
   if (OPINION_ASK.test(t)) return 'request';
   return 'share';
 }

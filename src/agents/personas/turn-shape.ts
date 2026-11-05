@@ -48,6 +48,7 @@ import {
   textureLine,
 } from './turn-length.js';
 import { quietLineFor } from './quiet-caller.js';
+import { staysOn } from './self-share-asked.js';
 
 export { callerMove, opinionAsk, type CallerMove } from './caller-move.js';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
@@ -66,8 +67,9 @@ export function taskTurn(said: string, toolRan = false): boolean {
   if (toolRan) return true;
   const move = callerMove(said);
   if (move === 'lookup') return true;
-  // "Tell me about your trip" is a request about him.
-  const aboutHim = ABOUT_FERNI.test(said) || /\byour(?:self)?\b/i.test(said);
+  // "Tell me about your trip" is a request about him (and, read as about_ferni, so is any question about him).
+  const aboutHim =
+    move === 'about_ferni' || ABOUT_FERNI.test(said) || /\byour(?:self)?\b/i.test(said);
   if (aboutHim && !ABOUT_THEIR_THINGS.test(said)) return false;
   return move === 'request' || (mayNeedTool(said) && ASKS_HIM.test(said));
 }
@@ -217,18 +219,18 @@ export const QUESTION_LINE = {
  * The no-question line. ownStory is Ferni's own state's say on this turn
  * (ferni-state.ts): undefined when FERNI_STATE is off, and then as before.
  */
-function noQuestion(ownStory: boolean | undefined): string {
+function noQuestion({ ownStory, move }: TurnSignals): string {
   if (ownStory === undefined) return QUESTION_LINE.none;
-  // SELF_SHARE_STAY_WHEN_ASKED=on (#3475): no forced question back after a word about himself;
-  // an unasked share still turns to them through its own line (ferni-state.ts).
-  if (ownStory && flagOn('SELF_SHARE_STAY_WHEN_ASKED')) return QUESTION_LINE.none;
+  // SELF_SHARE_STAY_WHEN_ASKED=on (#3475): asked about himself, no forced question back. An
+  // unasked share keeps noneUnlessOwn, agreeing with its "turn to them" line (ferni-state.ts).
+  if (ownStory && staysOn(move)) return QUESTION_LINE.none;
   return ownStory ? QUESTION_LINE.noneUnlessOwn : QUESTION_LINE.noneOnThem;
 }
 
 /** The no-question line; during a trouble (TROUBLES_TALK=on) it invites nothing of his own. */
 function noQuestionFor(sig: TurnSignals): string {
   if (sig.exitsHeld) return ''; // a turn whose exits are held bars no question (exits-held.ts)
-  return sig.trouble ? QUESTION_LINE.noneOnThem : noQuestion(sig.ownStory);
+  return sig.trouble ? QUESTION_LINE.noneOnThem : noQuestion(sig);
 }
 
 /** A look-up reply's no-question line, or none when the turn's exits are held. */
