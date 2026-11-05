@@ -1,99 +1,132 @@
 /**
  * When an answer about himself may stop there (SELF_SHARE_STAY_WHEN_ASKED=on, #3475).
  *
- * "Leave it there, no question back" and "answer about yourself before
- * anything else" fit a turn that only asks about him. Verifier 2026-11-05
- * (#3476 r2): turns that asked about him and then told something of the
- * caller's own got both lines: "What'd you get up to today? He hit me again
- * last night.", "How are you? My chest really hurts and my left arm is numb.",
- * "What'd you get up to today? I'm 14 and my stepdad said not to tell anyone
- * what he does." Main asks those callers something back. So the stay needs:
- *
- * - nothing before the ask but lead-in words ("Okay, so", "Enough about
- *   me."), so no news of theirs and no question they report ("my sister asked
- *   me how was your day", "my boss goes, what did you do to the printer?");
- * - nothing after it but more of the same question ("today", "or kind of a
- *   weird one?"), so nothing of theirs said without a pronoun stays;
- * - no risk read on the turn (the safety readers below, unchanged) and none
- *   noted earlier on the call (crisis risk, a likely minor).
- *
- * Off, nothing here is read.
+ * "Leave it there, no question back" fits a turn that is nothing but a plain
+ * question about him. Rounds 2 and 3 found the question inside a longer turn
+ * and let the rest through a word list; the verifier (2026-11-05) kept
+ * finding a rest that was the caller's own news: "What'd you get up to today?
+ * Doing it tonight.", "How are you? This is the last night.", "And you?
+ * Going to do it tonight." So there is no rest now. The whole turn, less a
+ * few lead-in words ("Okay, so", "Enough about me."), must be one of
+ * STAY_ASKS, and no safety reader may have marked any caller turn on the call
+ * (callerNeedsHim, every reader). Anything else gets main's lines, byte for
+ * byte: the stay is the only thing the flag changes.
  *
  * @module agents/personas/self-share-stay
  */
 
-import { abuseDisclosure, selfHarmWords } from '../../services/safety/abuse-disclosure.js';
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { likelyMinor } from '../../utils/minor-care.js';
-import { statesUnder18 } from '../../utils/minor-care-detect.js';
-import { detectCrisis } from '../safety/crisis-guard.js';
-import { CRISIS_TALK } from './emergency-claim.js';
-import { hardNews } from './turn-candor.js';
-
-const EMERGENCY = new RegExp(`\\b(?:${CRISIS_TALK})\\b`, 'i');
+import { callerNeedsHim } from './caller-needs-him.js';
+import { stayWhenAskedOn } from './self-share-asked.js';
 
 /**
- * Any safety reader marks this turn: a crisis signal of any strength, an
- * abuse disclosure, self-harm words, a caller under 18, an emergency in their
- * words (chest, can't breathe, collapsed...), or hard news. The word rules
- * below already keep every such turn we know of from staying; this holds if
- * they widen.
+ * The questions he may answer and leave there: lower case, no punctuation,
+ * nothing before or after. A turn that says anything more is not one of them.
  */
-export function riskRead(said: string): boolean {
-  return (
-    EMERGENCY.test(said) ||
-    abuseDisclosure(said) !== null ||
-    selfHarmWords(said) ||
-    statesUnder18(said) ||
-    hardNews(said) ||
-    detectCrisis(said).indicators.length > 0
-  );
+export const STAY_ASKS: readonly string[] = [
+  'how are you',
+  'how are you doing',
+  'how are you today',
+  'how are you doing today',
+  "how's your day",
+  "how's your day going",
+  'how was your day',
+  "how's your week going",
+  'how was your week',
+  'how was your weekend',
+  'how was your morning',
+  'and you',
+  'and yourself',
+  'what about you',
+  'what about yourself',
+  'how about you',
+  'how about yourself',
+  'what are you up to today',
+  'what did you do today',
+  "what'd you do today",
+  'what did you get up to today',
+  "what'd you get up to today",
+  'what did you do this weekend',
+  "what'd you do this weekend",
+  "what'd you get up to this weekend",
+  'what did you do after that',
+  "what'd you do after that",
+  'what did you actually do',
+  'what did you actually do something specific',
+  'what about you what did you do today',
+  'tell me about your day',
+  'tell me something about you',
+  'tell me something about yourself',
+  'is that normal for you',
+  'is that a normal day for you',
+  'is that a normal day for you or kind of a weird one',
+  'is that a lot for you to handle',
+  'was that hard for you',
+  "what's something on your mind",
+  "what's something that's bugging you lately",
+  "what's something that's been bugging you lately",
+  "what's something that's bugging you lately and don't say nothing",
+];
+const ASKS = new Set(STAY_ASKS);
+
+/** Words a plain question may open with, and "enough about me" (turning it round to him). */
+const LEAD_IN =
+  /^(?:ok|okay|alright|so|well|huh|hm+|oh|ah|no|nah|yeah|yes|yep|actually|like|anyway|anyways|right|hey|hi|hello|wait|um+|uh+|and|but|really|seriously|honestly|ha|haha+|ferni|(?:that's |okay )?enough about me) /;
+
+/** The turn as STAY_ASKS spells it: lower case, apostrophes kept, punctuation gone. */
+function spelled(said: string): string {
+  const words = said
+    .toLowerCase()
+    .replace(/[‘’]/g, "'")
+    .split(/[^a-z']+/)
+    .map((w) => w.replace(/^'+|'+$/g, ''))
+    .filter(Boolean);
+  return words.length <= 24 ? words.join(' ') : '';
 }
 
-/** Risk noted earlier on this call: a crisis read (crisis-call-risk.ts) or a likely minor (minor-care.ts). */
-export function riskOnCall(sessionId: string | undefined, said?: string): boolean {
+/** The whole turn is one of STAY_ASKS, after lead-in words only. */
+export function wholeAsk(said: string): boolean {
+  let rest = spelled(said);
+  while (rest && !ASKS.has(rest)) {
+    const next = `${rest} `.replace(LEAD_IN, '').trim();
+    if (next === rest) return false;
+    rest = next;
+  }
+  return ASKS.has(rest);
+}
+
+/**
+ * Risk on the call: any caller turn so far that a safety reader marks, or
+ * risk the call's own state noted (crisis-call-risk.ts; a likely minor,
+ * minor-care.ts). `said` is this turn: a read still in flight on it is not
+ * counted, since a STAY_ASKS turn carries nothing to read.
+ */
+export function riskOnCall(turns: readonly string[], sessionId?: string, said?: string): boolean {
+  if (turns.some((t) => callerNeedsHim(t, undefined, true))) return true;
   return !!sessionId && (crisisRiskThisCall(sessionId, said) || likelyMinor(sessionId));
 }
 
-/** "Enough about me": turning it round to him is no news of theirs. */
-const ENOUGH_ABOUT_ME = /\b(?:that's |ok(?:ay)? )?enough about me\b/gi;
-/** The words a turn that only asks may open with: "Okay, so", "No, actually, like,", "Huh. Okay. And". */
-const LEAD_IN =
-  /^(?:\W*\b(?:ok(?:ay)?|alright|all right|so|well|huh|hm+|oh|ah|no|nah|yeah|yes|yep|actually|like|anyway|anyways|right|hey|hi|hello|wait|um+|uh+|and|but|or|really|seriously|honestly|fine|cool|haha+|lol|sure|then|now|ferni)\b)*\W*$/i;
-
-/**
- * Nothing before the ask but lead-in words: no news of theirs ("Stepdad hit me
- * again. Anyway, what'd you do today?") and no one else's question they report
- * ("my sister asked me how was your day", "my coworker goes, what'd you...").
- */
-export function onlyLeadIn(before: string): boolean {
-  const t = before.replace(/[‘’]/g, "'").replace(ENOUGH_ABOUT_ME, '');
-  return t.length <= 80 && LEAD_IN.test(t);
+/** Sticky risk for the call (ferni-state.ts): once a turn is marked, the stay is off for good. */
+export function stayRiskSeen(
+  seen: boolean | undefined,
+  said: string,
+  env: Record<string, string | undefined> = process.env
+): boolean | undefined {
+  if (seen || !stayWhenAskedOn(env)) return seen;
+  return callerNeedsHim(said, undefined, true);
 }
 
 /**
- * The only words that may follow the ask: more of the same question ("today",
- * "this weekend", ", or kind of a weird one?", "And don't say nothing.", ",
- * what did you do today?"). Any
- * other word may be theirs, said without a pronoun a reader would catch ("How
- * are you? Got hit again.", "...Scared to go home."), so it gets main's lines.
+ * SELF_SHARE_STAY_WHEN_ASKED=on: he answers about himself and leaves it there.
+ * True only on a whole STAY_ASKS turn with no risk on the call (`atRisk`;
+ * without it, this turn alone is read). Undefined otherwise: main's lines.
  */
-const ASK_WORDS = new Set(
-  (
-    'today tonight yesterday this that last week weekend morning afternoon evening night day days ' +
-    'lately recently so far anything something specific else fun new good or kind kinda of a an the ' +
-    "weird normal one and don't dont say nothing really actually honestly seriously though doing been " +
-    'up to going shaping handle for you your yourself life like what how is was are did do get have it ' +
-    'be honest real come on'
-  ).split(' ')
-);
-
-/** Nothing of theirs after the ask: ", or kind of a weird one?" is still the ask; "Got hit again." is not. */
-export function nothingOfTheirs(tail: string): boolean {
-  const words =
-    tail
-      .replace(/[‘’]/g, "'")
-      .toLowerCase()
-      .match(/[a-z']+/g) ?? [];
-  return words.every((w) => ASK_WORDS.has(w));
+export function staysOn(
+  said: string,
+  atRisk: () => boolean = () => riskOnCall([said]),
+  env: Record<string, string | undefined> = process.env
+): true | undefined {
+  if (!stayWhenAskedOn(env) || !wholeAsk(said)) return undefined;
+  return atRisk() ? undefined : true;
 }

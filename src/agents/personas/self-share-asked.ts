@@ -60,21 +60,13 @@ export function swingAfter(last: string, stays: boolean | undefined): boolean {
   return isSelfShare(last) && !turnsBack(last) && stays !== true;
 }
 
-/** On a call that needed him he never stays: `{ stays: false }` there, flag on; undefined off or otherwise. */
-export function noStayWhenNeeded(
-  needed: boolean,
-  env: Record<string, string | undefined> = process.env
-): { stays: false } | undefined {
-  return needed && stayWhenAskedOn(env) ? { stays: false } : undefined;
-}
-
 const THEN_ASK = 'then ask them something about theirs.';
 const THEN_STAY =
   "and leave it there: they want to hear about you, so no question back unless you'd really ask one.";
 
 /**
  * How an answer about himself ends: a question back, or nothing forced when
- * he stays (on, and the turn only asked about him: self-share-stay.ts).
+ * he stays (on, a whole question about him and no risk on the call: self-share-stay.ts).
  */
 export function afterAnswer(stays: boolean | undefined): string {
   return stays === true ? THEN_STAY : THEN_ASK;

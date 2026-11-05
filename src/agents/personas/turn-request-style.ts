@@ -43,7 +43,7 @@ export function styleFor(
   chatCtx: llm.ChatContext,
   session: object,
   shape: boolean,
-  state: { ownStory?: boolean; brief?: boolean; stays?: boolean } = {},
+  state: { ownStory?: boolean; brief?: boolean; stays?: true } = {},
   {
     answering = false,
     plain = false,
@@ -157,19 +157,25 @@ export function signalsFor(
     : { signals: PLAIN_SIGNALS, source: 'plain' };
 }
 
+const STAYS = { move: 'about_ferni', selfStays: true } as const;
+
 /** FERNI_STATE=on: his state's say on a story of his own rides with the signals (ferni-state.ts). */
 function withOwnStory(
   signals: TurnSignals | undefined,
   said: string,
-  { ownStory, brief, stays }: { ownStory?: boolean; brief?: boolean; stays?: boolean }
+  { ownStory, brief, stays }: { ownStory?: boolean; brief?: boolean; stays?: true }
 ): TurnSignals | undefined {
-  if (ownStory === undefined && stays === undefined) return signals;
-  const base = signals ?? regexSignals(said, callerMove(said));
+  if (ownStory === undefined) return signals;
   // SELF_SHARE_WHEN_ASKED=on: asked about him, a short answer and no story (self-share-asked.ts).
   const selfBrief = brief === true ? { selfBrief: true } : {};
-  // SELF_SHARE_STAY_WHEN_ASKED=on: whether he stays, set even when the state has no say (ferni-state.ts).
-  const selfStays = stays === undefined ? {} : { selfStays: stays };
-  return { ...base, ...(ownStory === undefined ? {} : { ownStory }), ...selfBrief, ...selfStays };
+  // SELF_SHARE_STAY_WHEN_ASKED=on: the whole turn asks about him, and he stays (self-share-stay.ts).
+  const selfStays = stays ? STAYS : {};
+  return {
+    ...(signals ?? regexSignals(said, callerMove(said))),
+    ownStory,
+    ...selfBrief,
+    ...selfStays,
+  };
 }
 
 /**

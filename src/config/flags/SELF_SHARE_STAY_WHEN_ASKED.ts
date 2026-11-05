@@ -1,6 +1,6 @@
 import type { FlagSpec } from '../flag-spec.js';
 
-// on (with FERNI_STATE): asked about himself, he answers and isn't told to hand the question straight back (self-share-asked.ts); callerMove also hears more ways of asking about him, "what'd you get up to", "is that a normal day for you" (caller-move.ts). Off: every line and every turn's reading as before.
+// on (with FERNI_STATE): a turn that is only a plain question about him (STAY_ASKS, self-share-stay.ts), on a call no safety reader has marked: he answers and isn't told to hand the question straight back. Any other turn reads as main. Off: every line as before.
 export const SELF_SHARE_STAY_WHEN_ASKED = {
   default: 'off',
   owner: 'voice',

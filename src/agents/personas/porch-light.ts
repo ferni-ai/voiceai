@@ -29,7 +29,8 @@ import { setPorchLight } from '../../speech/tts-gateway/director/ferni-energy.js
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
-import { callerNeedsHim, localClock } from './ferni-state.js';
+import { callerNeedsHim } from './caller-needs-him.js';
+import { localClock } from './ferni-state.js';
 import { understandingFor } from './turn-understanding.js';
 
 const log = createLogger({ module: 'PorchLight' });

@@ -37,14 +37,13 @@ import {
 } from '../../speech/tts-gateway/director/ferni-energy.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
-import { detectCrisis } from '../safety/crisis-guard.js';
 import { helpAskLine, newHelpAskState, type HelpAskState } from './ferni-asks-help.js';
+import { callerNeedsHim } from './caller-needs-him.js';
 import { ferniThreadsOn, threadDetailFor } from './ferni-life-threads.js';
 import { dayDetailFor, isSelfShare, selfQuotes, soundsLow } from './ferni-self-share.js';
 import * as asked from './self-share-asked.js';
-import { callerVenting } from './turn-extras.js';
-import { hardNews } from './turn-candor.js';
-import { callerMove, staysOn, taskTurn } from './turn-shape.js';
+import { riskOnCall, stayRiskSeen, staysOn } from './self-share-stay.js';
+import { callerMove, taskTurn } from './turn-shape.js';
 import { callerTurn } from '../model-provider/fast-lane.js';
 import { understandingFor } from './turn-understanding.js';
 
@@ -177,7 +176,7 @@ export interface SelfTurn {
   toolRan?: boolean;
   /** SELF_SHARE_WHEN_ASKED=on: his day only when asked, never on his first reply (self-share-asked.ts). */
   askedOnly?: { firstReply: boolean; nextDetail: () => string | undefined };
-  sessionId?: string; // SELF_SHARE_STAY_WHEN_ASKED: risk noted on the call (self-share-stay.ts)
+  atRisk?: () => boolean; // SELF_SHARE_STAY_WHEN_ASKED=on: risk on the call (self-share-stay.ts)
 }
 
 /**
@@ -198,8 +197,8 @@ export function selfShareFor(turn: SelfTurn): SelfShare {
   const { replies, said, askedOnly } = turn;
   const last = replies[replies.length - 1] ?? '';
   const recent = replies.slice(-2).some(isSelfShare);
-  const move = callerMove(said);
-  const stays = staysOn(said, move, turn.sessionId);
+  const stays = staysOn(said, turn.atRisk); // a whole question about him (self-share-stay.ts)
+  const move = stays ? 'about_ferni' : callerMove(said);
   const sharing = move === 'share' && said.split(/\s+/).filter(Boolean).length >= 8;
   const lines: string[] = [];
   if (soundsLow(last))
@@ -252,17 +251,6 @@ export function selfShareFor(turn: SelfTurn): SelfShare {
   return { line: `[${lines.join(' ')}]`, ownStory: !soundsLow(last) };
 }
 
-/**
- * The caller needs him: hard news, a crisis, or distress (venting about more
- * than being tired). Tiredness alone ("ugh, long day") isn't distress.
- */
-const TIRED = /\b(?:tired|exhausted|sleepy|long day)\b/gi;
-export function callerNeedsHim(said: string, mood?: string): boolean {
-  if (mood === 'bad_news') return true;
-  if (hardNews(said) || callerVenting(said.replace(TIRED, ''))) return true;
-  return detectCrisis(said).isCrisis;
-}
-
 interface CallState {
   firstSeen: number;
   needed: boolean;
@@ -272,8 +260,8 @@ interface CallState {
   lastLevel?: FerniEnergyLevel;
   lastNote: string;
   lastSelf: string;
-  /** The last note's say on his own story, short answer and stay (StateTurn; undefined: no say). */
-  lastShare?: Pick<StateTurn, 'ownStory' | 'brief' | 'stays'>;
+  /** Whether the last note let a story of his own ride the reply (undefined: no say). */
+  lastOwnStory?: boolean;
   /** Whether a tool had run for the last request's reply. */
   lastToolRan?: boolean;
   /** The one good thing in his day this call (ferni-self-share.ts). */
@@ -282,6 +270,11 @@ interface CallState {
   help: HelpAskState;
   /** SELF_SHARE_WHEN_ASKED=on: the details this call may use and has used. */
   asked?: asked.AskedRecord;
+  /** Whether the last note asked for a short answer about him, no story (turn-shape.ts). */
+  lastBrief?: boolean;
+  /** SELF_SHARE_STAY_WHEN_ASKED=on: the last note let him stay; stayRisk: a turn was marked. */
+  lastStays?: true;
+  stayRisk?: boolean;
 }
 const calls = new WeakMap<object, CallState>();
 
@@ -393,8 +386,8 @@ export interface StateTurn {
   ownStory?: boolean;
   /** SELF_SHARE_WHEN_ASKED=on: asked about him, but a short answer, not a story of his own. */
   brief?: boolean;
-  /** SELF_SHARE_STAY_WHEN_ASKED=on: he answers and leaves it there (turn-shape.ts); false when he must not. */
-  stays?: boolean;
+  /** SELF_SHARE_STAY_WHEN_ASKED=on: a whole question about him, so he answers and leaves it there. */
+  stays?: true;
 }
 
 /**
@@ -427,10 +420,13 @@ export function ferniStateTurn(
   call.lastToolRan = toolRan;
   call.lastNote = '';
   call.lastSelf = '';
+  call.lastOwnStory = undefined;
+  call.lastBrief = undefined;
+  call.lastStays = undefined;
   const mood = understandingFor(session, said)?.mood;
   if (options.careful === true || callerNeedsHim(said, mood)) call.needed = true;
-  call.lastShare = asked.noStayWhenNeeded(call.needed, options.env);
-  if (call.needed) return { ...quiet(), ...call.lastShare };
+  call.stayRisk = stayRiskSeen(call.stayRisk, said, options.env);
+  if (call.needed) return quiet();
   const energy = stateNote(call, userData, { words: turns.map(wordsIn), said, mood }, now);
   const replies = ferniReplies(chatCtx);
   const self = selfShareFor({
@@ -442,7 +438,7 @@ export function ferniStateTurn(
       firstReply: turns.length <= 1,
       nextDetail: () => (call.asked ? asked.nextDetail(call.asked) : undefined),
     },
-    sessionId,
+    atRisk: () => call.stayRisk === true || riskOnCall(turns, sessionId, said),
   });
   const help = helpAskLine(
     { ...self, detail: call.detail, replies, userId: userData.userId, userData, env: options.env },
@@ -450,14 +446,18 @@ export function ferniStateTurn(
   );
   call.lastNote = [WELL, energy].filter(Boolean).join(' ');
   call.lastSelf = [self.line, help].filter(Boolean).join(' ');
-  call.lastShare = { ownStory: self.ownStory, brief: self.brief, stays: self.stays };
+  call.lastOwnStory = self.ownStory;
+  call.lastBrief = self.brief;
+  call.lastStays = self.stays;
   return turnOf(call);
 }
 
 const turnOf = (c: CallState): StateTurn => ({
   note: c.lastNote,
   last: c.lastSelf,
-  ...c.lastShare,
+  ownStory: c.lastOwnStory,
+  brief: c.lastBrief,
+  stays: c.lastStays,
 });
 
 /** The reminder text only (see ferniStateTurn). */

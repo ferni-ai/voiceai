@@ -1,27 +1,73 @@
 /**
  * SELF_SHARE_STAY_WHEN_ASKED (#3475): he stays (answers about himself, "leave
- * it there", no forced question back) only when the turn just asks about him.
- * Verifier 2026-11-05 (#3476 r2): turns that asked about him and then told
- * something of the caller's own (abuse, chest pain, a 14-year-old's secret)
- * got the stay line and "about yourself before anything else"; main asks those
- * callers something back. Every caller line here is fictional.
+ * it there", no forced question back) only on a turn that is nothing but a
+ * plain question about him (STAY_ASKS), on a call no safety reader has marked.
+ * Anything else gets main's lines, byte for byte. Verifier 2026-11-05 (#3476
+ * r3): "What'd you get up to today? Doing it tonight." stayed, and so did a
+ * plain ask one turn after "He hit me again last night.". Every caller line
+ * here is fictional.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { llm } from '@livekit/agents';
+import { ReadableStream } from 'node:stream/web';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import { noteCallerWords, resetMinorCare } from '../../../utils/minor-care.js';
-import { callerMove } from '../caller-move.js';
-import { riskRead } from '../self-share-stay.js';
-import { selfShareFor, TASK_LINE } from '../ferni-state.js';
-import { regexSignals, type TurnSignals } from '../turn-extras.js';
-import { ABOUT_YOU, QUESTION_LINE, taskTurn, turnShapeFor } from '../turn-shape.js';
+import { callerNeedsHim } from '../caller-needs-him.js';
+import { gatedReply } from '../crisis-gate.js';
+import { ferniStateTurn, selfShareFor } from '../ferni-state.js';
+import { STAY_ASKS, staysOn, wholeAsk } from '../self-share-stay.js';
+import { ABOUT_YOU } from '../turn-shape.js';
 
 const DETAIL = 'you were up around five again and checked the weather';
 const STAY = 'and leave it there';
-const ASK_BACK = 'ask them something about theirs';
-const ASK = "Enough about me. What'd you get up to today?";
-/** A dice roll that never allows a question, so the no-question line is the one used. */
-const noQuestionDice = () => 0.99;
+
+/** Every phrase he may stay on. Adding or changing one is a product call: change both lists. */
+const PINNED = [
+  'how are you',
+  'how are you doing',
+  'how are you today',
+  'how are you doing today',
+  "how's your day",
+  "how's your day going",
+  'how was your day',
+  "how's your week going",
+  'how was your week',
+  'how was your weekend',
+  'how was your morning',
+  'and you',
+  'and yourself',
+  'what about you',
+  'what about yourself',
+  'how about you',
+  'how about yourself',
+  'what are you up to today',
+  'what did you do today',
+  "what'd you do today",
+  'what did you get up to today',
+  "what'd you get up to today",
+  'what did you do this weekend',
+  "what'd you do this weekend",
+  "what'd you get up to this weekend",
+  'what did you do after that',
+  "what'd you do after that",
+  'what did you actually do',
+  'what did you actually do something specific',
+  'what about you what did you do today',
+  'tell me about your day',
+  'tell me something about you',
+  'tell me something about yourself',
+  'is that normal for you',
+  'is that a normal day for you',
+  'is that a normal day for you or kind of a weird one',
+  'is that a lot for you to handle',
+  'was that hard for you',
+  "what's something on your mind",
+  "what's something that's bugging you lately",
+  "what's something that's been bugging you lately",
+  "what's something that's bugging you lately and don't say nothing",
+];
+const said = (ask: string): string => `${ask[0].toUpperCase()}${ask.slice(1)}?`;
 
 function on(): void {
   vi.stubEnv('SELF_SHARE_STAY_WHEN_ASKED', 'on');
@@ -29,228 +75,214 @@ function on(): void {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  vi.useRealTimers();
+  vi.restoreAllMocks();
   resetCrisisCallRisk();
   resetMinorCare();
 });
 
-/** The self-share line, and the reminder from the signals turn-request-style.ts builds from it. */
-function linesFor(said: string, opts: { sessionId?: string; sig?: Partial<TurnSignals> } = {}) {
-  const self = selfShareFor({ replies: ['Hey.', 'Ha.'], said, detail: DETAIL, ...opts });
-  const sig: TurnSignals = {
-    ...regexSignals(said, callerMove(said)),
-    ownStory: self.ownStory,
-    ...(self.stays === undefined ? {} : { selfStays: self.stays }),
-    ...opts.sig,
-  };
-  return { ...self, reminder: turnShapeFor(said, noQuestionDice, 'dice', sig).reminder };
-}
-
-/** The same turn with the flag off (main) and on. */
-function offAndOn(said: string) {
-  const off = linesFor(said);
-  on();
-  return { off, on: linesFor(said) };
-}
-
-/** Asks about him, then tells something of their own a safety reader marks (verifier's probes). */
-const SAFETY = [
-  "What'd you get up to today? He hit me again last night.",
-  'Is that a normal day for you? Because mine was getting shoved into a wall.',
-  "What'd you do today? My chest really hurts and my left arm is numb.",
-  "What'd you get up to today? I'm 14 and my stepdad said not to tell anyone what he does.",
-  "What's something bugging you? I haven't eaten in four days and I feel dizzy.",
-  "So what'd you do this weekend? I'm scared my husband is going to hurt me tonight.",
-  'How are you? My chest really hurts and my left arm is numb.',
-  // Their news before the ask; an emergency after it that no pronoun marks as theirs.
-  "Stepdad hit me again. Anyway, what'd you do today?",
-  "My dad's in the hospital again. Anyway, is that a normal day for you?",
-  'How are you? Chest pain, left arm numb.',
-  'What about yourself? Chest is tight, the left arm is numb.',
-  // Theirs with no pronoun and no reader's words: only more of the question may follow the ask.
-  'How are you? Got hit again.',
-  "How are you? Haven't eaten in four days.",
-  'What about yourself? Scared to go home.',
-  "What'd you get up to today? Haven't slept in days.",
-  'How are you, kinda falling apart.',
-  'Hey Ferni, how was your day? Not doing great.',
-];
-
-describe('SELF_SHARE_STAY_WHEN_ASKED on: a turn with something of theirs after the ask', () => {
-  it.each(SAFETY)('%s gets exactly what main gives', (said) => {
-    const { off, on: lit } = offAndOn(said);
-    expect(callerMove(said)).toBe(callerMove(said, {}));
-    expect(lit.line).toBe(off.line);
-    expect(lit.reminder).toBe(off.reminder);
-    expect(lit.line).not.toContain(STAY);
-    expect(lit.stays).not.toBe(true);
+describe('STAY_ASKS: the whole turn, nothing else', () => {
+  it('is exactly the pinned list', () => {
+    expect(STAY_ASKS).toEqual(PINNED);
   });
 
-  it('the one main reads as about him still asks something back, flag on', () => {
-    on();
-    const { line, reminder, stays } = linesFor(SAFETY[6]);
-    expect(stays).toBe(false);
-    expect(line).toContain(ASK_BACK);
-    expect(reminder).toContain(QUESTION_LINE.noneUnlessOwn);
+  it.each(PINNED)('"%s" is a whole ask, alone or after lead-in words', (ask) => {
+    expect(wholeAsk(said(ask))).toBe(true);
+    expect(wholeAsk(`Okay, so ${ask}?`)).toBe(true);
+    expect(wholeAsk(`Huh. Okay. Enough about me. ${said(ask)}`)).toBe(true);
+  });
+
+  it.each(PINNED)('"%s" is marked by no safety reader', (ask) => {
+    expect(callerNeedsHim(said(ask), undefined, true)).toBe(false);
+  });
+
+  it.each([
+    'Stepdad hit me again. Anyway, how was your day?',
+    'My sister asked me how was your day.',
+    'Hey, how are you, kinda falling apart.',
+    'How are you, Sam?',
+    'What did you do?',
+  ])('"%s" is not a whole ask', (s) => {
+    expect(wholeAsk(s)).toBe(false);
   });
 });
 
-/** Each reader the risk read leans on (emergency words, abuse, under 18, crisis-guard, self-harm words, hard news). */
-const RISK_READ = [
-  "What'd you get up to today? He hit me again last night.",
-  'How are you? Chest pain, left arm numb.',
-  "What'd you get up to today? I'm 14 and my stepdad said not to tell anyone what he does.",
-  "What's something about suicide on your mind?",
-  'What about yourself? Chest is tight, the left arm is numb.',
-  "How are you? I'm thinking about ending it all.",
-  'How are you? I just feel hopeless.',
-  'How are you? Got fired today.',
+/** Tails after a whole ask: the verifier's veiled crisis tails (#3476 r3), and plain disclosures. */
+const TAILS = [
+  'Doing it tonight.',
+  'Going to do it tonight.',
+  'This is the last night.',
+  'Today is the day.',
+  'Last day.',
+  'Nothing is real.',
+  'Is it the last one?',
+  'He hit me again.',
+  'Hit again.',
+  'My chest really hurts and my left arm is numb.',
+  "I'm 14.",
 ];
 
-describe('SELF_SHARE_STAY_WHEN_ASKED on: the risk read', () => {
-  it.each(RISK_READ)('%s is marked by a safety reader', (said) => {
-    expect(riskRead(said)).toBe(true);
-  });
-
-  it('a plain ask is not', () => {
-    expect(riskRead(ASK)).toBe(false);
-  });
-});
-
-describe('SELF_SHARE_STAY_WHEN_ASKED on: risk noted earlier on the call', () => {
-  it('a plain ask with no risk stays (the control)', () => {
-    on();
-    const { line, reminder, stays } = linesFor(ASK, { sessionId: 'guard-clear' });
-    expect(stays).toBe(true);
-    expect(line).toContain(STAY);
-    expect(reminder).toContain(ABOUT_YOU);
-    expect(reminder).not.toContain(QUESTION_LINE.noneUnlessOwn);
-  });
-
-  it('crisis risk on the call: no stay, a question back, no "before anything else"', () => {
-    on();
-    noteCrisisRisk('guard-crisis');
-    const { line, reminder, stays } = linesFor(ASK, {
-      sessionId: 'guard-crisis',
-      sig: { crisisRisk: true },
-    });
-    expect(stays).toBe(false);
-    expect(line).not.toContain(STAY);
-    expect(line).toContain(ASK_BACK);
-    expect(reminder).not.toContain(ABOUT_YOU);
-    expect(reminder).toContain(QUESTION_LINE.noneUnlessOwn);
-  });
-
-  it('a likely minor on the call: no stay', () => {
-    on();
-    vi.stubEnv('MINOR_CARE', 'on');
-    expect(noteCallerWords('guard-minor', "I'm 14 years old.")).toBe(true);
-    const { line, stays } = linesFor(ASK, { sessionId: 'guard-minor' });
-    expect(stays).toBe(false);
-    expect(line).toContain(ASK_BACK);
-  });
-
-  it.each(['dice', 'model'] as const)(
-    'a careful turn read as about him only by the wider forms: no "before anything else" (%s)',
-    (mode) => {
+describe('SELF_SHARE_STAY_WHEN_ASKED on: anything after the ask gets main', () => {
+  it.each(PINNED.flatMap((ask) => TAILS.map((tail) => [ask, tail])))(
+    '"%s" + "%s": no stay, the line byte for byte as main',
+    (ask, tail) => {
+      const turn = `${said(ask)} ${tail}`;
+      const off = selfShareFor({ replies: ['Hey.', 'Ha.'], said: turn, detail: DETAIL });
       on();
-      const sig = { ...regexSignals(ASK, callerMove(ASK)), careful: true, ownStory: true };
-      expect(sig.move).toBe('about_ferni');
-      expect(turnShapeFor(ASK, noQuestionDice, mode, sig).reminder).not.toContain(ABOUT_YOU);
-      expect(
-        turnShapeFor(ASK, noQuestionDice, mode, { ...sig, careful: false }).reminder
-      ).toContain(ABOUT_YOU);
+      expect(staysOn(turn)).toBeUndefined();
+      expect(selfShareFor({ replies: ['Hey.', 'Ha.'], said: turn, detail: DETAIL })).toEqual(off);
     }
   );
-});
 
-/** Someone else's question they report, or a question about a thing: never an ask about him. */
-const REPORTED = [
-  "My mom kept asking what'd you do today",
-  "My mom kept asking what'd you do today, like I'm twelve.",
-  "My coworker goes, what'd you get up to this weekend",
-  "My coworker goes, what'd you get up to this weekend, and I just froze.",
-  'My friend said so is that hard for you',
-  'My friend said so is that hard for you, and I said yes.',
-  "My mom wants to know what'd you do today",
-  "What'd you do that for?",
-  // A describing word needs a stretch of his life after it ("a normal day"), not any thing.
-  'Is that a new phone for you?',
-  'Was that a big gift for you?',
-  // Only filler words may sit between "what's something" and "bugging you".
-  "What's something about me cutting bugging you?",
-  "What's something about the pills bugging you?",
-];
-
-/** Main already reads these as about him: with the flag on they must not get the stay. */
-const MAIN_MISREADS = [
-  'My sister asked me how was your day',
-  'My boss goes, what did you do to the printer?',
-  'what did you do to the printer',
-  // About what he said or has, not his life.
-  'What did you mean by that?',
-  'Do you have a pen?',
-  'Do you remember the address?',
-  // Only ask words follow these, so it's the form that keeps them main's.
-  'What did you say?',
-  'Do you remember that?',
-  'Do you have one?',
-  // A thing, with only ask words after it.
-  'What did you do to it?',
-  'What did you do for that?',
-];
-
-describe('SELF_SHARE_STAY_WHEN_ASKED on: reported questions and things', () => {
-  it.each(REPORTED)('%s does not read as about him', (said) => {
-    expect(callerMove(said)).not.toBe('about_ferni');
+  it('the control: the whole ask alone stays', () => {
     on();
-    expect(callerMove(said)).not.toBe('about_ferni');
-  });
-
-  it.each(MAIN_MISREADS)('%s reads as on main and gets main lines, no stay', (said) => {
-    const { off, on: lit } = offAndOn(said);
-    expect(callerMove(said)).toBe(callerMove(said, {}));
-    expect(lit.stays).toBe(false);
-    expect(lit.line).toBe(off.line);
-    expect(lit.reminder).toBe(off.reminder);
+    const self = selfShareFor({ replies: ['Hey.', 'Ha.'], said: said(PINNED[21]), detail: DETAIL });
+    expect(self.stays).toBe(true);
+    expect(self.line).toContain(STAY);
   });
 });
 
-/** Asks about him the wider reading must hear, flag on (main reads the last four already). */
-const ASKS = [
-  'What about yourself?',
-  'Tell me something about you.',
-  'And you?',
-  'Is that normal for you?',
-  'What did you do today?',
-  'Okay, so what did you get up to this weekend?',
+/** One reader each, and what callerNeedsHim reads without `everyReader` (FERNI_STATE's own read). */
+const READERS: Array<[string, boolean]> = [
+  ['He hit me again last night.', false], // abuse disclosure
+  ['My chest really hurts and my left arm is numb.', false], // emergency words
+  ["I'm 13 and I'm home by myself.", false], // under 18, MINOR_CARE on or off
+  ['I keep thinking about not waking up.', false], // self-harm words
+  ['Honestly I keep thinking everyone would be better off without me.', true], // crisis
+  ['I feel trapped.', false], // a crisis signal short of a crisis
 ];
 
-describe('SELF_SHARE_STAY_WHEN_ASKED on: more ways to ask about him', () => {
-  it.each(ASKS)('%s reads as about him, is no task, and he stays', (said) => {
-    on();
-    expect(callerMove(said)).toBe('about_ferni');
-    expect(taskTurn(said)).toBe(false);
-    const { line, stays } = linesFor(said);
-    expect(stays).toBe(true);
-    expect(line).toContain(STAY);
-    expect(line).not.toContain(TASK_LINE);
+describe('callerNeedsHim: one composite reader', () => {
+  it.each(READERS)('"%s": every reader marks it (FERNI_STATE alone: %s)', (s, alone) => {
+    expect(callerNeedsHim(s, undefined, true)).toBe(true);
+    expect(callerNeedsHim(s)).toBe(alone);
   });
 });
 
-describe('SELF_SHARE_STAY_WHEN_ASKED on: the no-question line needs his own story', () => {
-  const sig = { ...regexSignals(ASK, 'about_ferni'), selfStays: true };
+let n = 0;
+const sessionFor = (sessionId = `stay-guard-${++n}`) => ({
+  userData: { personaId: 'ferni', services: { sessionId, sessionStartTime: Date.now() - 120_000 } },
+});
+function callOf(...lines: string[]): llm.ChatContext {
+  const ctx = llm.ChatContext.empty();
+  ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
+  lines.forEach((text, i) =>
+    ctx.addMessage({ role: i % 2 === 0 ? 'user' : 'assistant', content: text })
+  );
+  return ctx;
+}
+const ASK = "What'd you get up to today?";
 
-  it('he stays with a story of his own: no forced question back', () => {
-    on();
-    const { reminder } = turnShapeFor(ASK, noQuestionDice, 'dice', { ...sig, ownStory: true });
-    expect(reminder).not.toContain(QUESTION_LINE.noneUnlessOwn);
-    expect(reminder).not.toContain(QUESTION_LINE.noneOnThem);
-    expect(reminder).toContain(QUESTION_LINE.none);
+describe('SELF_SHARE_STAY_WHEN_ASKED on: risk earlier on the call', () => {
+  beforeEach(() => {
+    vi.stubEnv('FERNI_STATE', 'on');
   });
 
-  it('no story of his own on this turn: the line keeps the reply on them', () => {
+  /** The state's say on the ask after `earlier`, turn by turn, flag off and on, same call id. */
+  function offAndOn(earlier: string) {
+    const run = () => {
+      const session = sessionFor('stay-guard-history');
+      ferniStateTurn(callOf('Hey.', 'Hey there.', earlier), session);
+      return ferniStateTurn(callOf('Hey.', 'Hey there.', earlier, 'Oh.', ASK), session);
+    };
+    const off = run();
     on();
-    const { reminder } = turnShapeFor(ASK, noQuestionDice, 'dice', { ...sig, ownStory: false });
-    expect(reminder).toContain(QUESTION_LINE.noneOnThem);
+    return { off, on: run() };
+  }
+
+  it.each(READERS)('after "%s": the ask gets main, byte for byte', (earlier) => {
+    const { off, on: lit } = offAndOn(earlier);
+    expect(lit).toEqual(off);
+    expect(lit.stays).toBeUndefined();
+    expect(lit.last).not.toContain(STAY);
+  });
+
+  it('the control: after a quiet turn the same ask stays', () => {
+    const { on: lit } = offAndOn('Not much going on.');
+    expect(lit.stays).toBe(true);
+    expect(lit.last).toContain(STAY);
+  });
+
+  it('a marked turn holds the stay off after it leaves the context (sticky)', () => {
+    on();
+    const session = sessionFor();
+    ferniStateTurn(callOf('Hey.', 'Hey there.', 'He hit me again last night.'), session);
+    expect(ferniStateTurn(callOf(ASK), session).stays).toBeUndefined();
+  });
+
+  it('a marked turn in the context holds it off on the first turn the state sees', () => {
+    on();
+    const turn = ferniStateTurn(
+      callOf('He hit me again last night.', "I'm so sorry.", ASK),
+      sessionFor()
+    );
+    expect(turn.stays).toBeUndefined();
+  });
+
+  it('crisis risk noted on the call holds it off', () => {
+    on();
+    const session = sessionFor();
+    noteCrisisRisk(session.userData.services.sessionId);
+    expect(ferniStateTurn(callOf('Hey.', 'Hey there.', ASK), session).stays).toBeUndefined();
+  });
+
+  it('a likely minor on the call holds it off', () => {
+    on();
+    vi.stubEnv('MINOR_CARE', 'on');
+    const session = sessionFor();
+    expect(noteCallerWords(session.userData.services.sessionId, "I'm 14 years old.")).toBe(true);
+    expect(ferniStateTurn(callOf('Hey.', 'Hey there.', ASK), session).stays).toBeUndefined();
+  });
+});
+
+/** The request the model is asked with, through the live reply path, every caller turn in order. */
+async function requestFor(lines: string[], sessionId: string): Promise<string> {
+  const session = sessionFor(sessionId);
+  let asked = '';
+  const model = vi.fn(async (c: llm.ChatContext) => {
+    asked = (c.items[c.items.length - 1] as { textContent?: string }).textContent ?? '';
+    return new ReadableStream({ start: (s) => s.close() });
+  });
+  for (let i = 0; i < lines.length; i += 2)
+    await gatedReply(
+      callOf(...lines.slice(0, i + 1)),
+      session as never,
+      model as never,
+      {
+        wrap: (s: unknown) => s,
+      } as never
+    );
+  return asked;
+}
+
+describe('SELF_SHARE_STAY_WHEN_ASKED: the live reply path', () => {
+  beforeEach(() => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.42);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-11T18:10:00Z'));
+    vi.stubEnv('FERNI_STATE', 'on');
+    vi.stubEnv('TURN_STYLE_REMINDER', 'on');
+    vi.stubEnv('CRISIS_GUARD_MODE', 'live');
+    vi.stubEnv('CRISIS_CLASSIFIER_MODE', 'off');
+  });
+
+  it('a whole ask on a quiet call: the stay, and "about yourself before anything else"', async () => {
+    on();
+    const asked = await requestFor(['Hey.', 'Hey there.', ASK], 'stay-live-quiet');
+    expect(asked).toContain(STAY);
+    expect(asked).toContain(ABOUT_YOU);
+  });
+
+  it.each([
+    [['Hey.', 'Hey there.', 'He hit me again last night.', "I'm so sorry.", ASK]],
+    [['Hey.', 'Hey there.', `${ASK} Doing it tonight.`]],
+  ])('%j: the request is byte for byte main', async (lines) => {
+    const off = await requestFor(lines, 'stay-live-risk');
+    resetCrisisCallRisk();
+    resetMinorCare();
+    on();
+    const lit = await requestFor(lines, 'stay-live-risk');
+    expect(lit).toBe(off);
+    expect(lit).not.toContain(STAY);
   });
 });
