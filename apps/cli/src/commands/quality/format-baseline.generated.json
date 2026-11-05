@@ -669,7 +669,6 @@
   "src/tools/domains/play/index.ts",
   "src/tools/domains/presence/breathing-guide.ts",
   "src/tools/domains/presence/index.ts",
-  "src/tools/domains/productivity/tasks.ts",
   "src/tools/domains/projects/index.ts",
   "src/tools/domains/relationships/index.ts",
   "src/tools/domains/research/__tests__/industry-trends-no-advice.test.ts",

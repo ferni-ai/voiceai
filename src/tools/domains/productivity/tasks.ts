@@ -22,7 +22,10 @@ import {
 import { getLogger, generateId } from '../../utils/tool-helpers.js';
 import { formatStoredLocalTime, WallClock } from '../../../utils/time-zone.js';
 import { runContextTimeZone } from '../../../utils/caller-time-zone.js';
+import { localDayKey } from '../../../utils/calendar-days.js';
+import { flagOn } from '../../../config/env-flag.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { parseNaturalDueDate } from './task-due-date.js';
 import {
   syncTaskToCalendar,
   removeCalendarSyncedItem,
@@ -87,23 +90,10 @@ function taskToTaskData(task: Task): TaskData {
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
 export type TaskCategory =
-  | 'personal'
-  | 'work'
-  | 'home'
-  | 'health'
-  | 'finance'
-  | 'family'
-  | 'errands'
-  | 'other';
+  'personal' | 'work' | 'home' | 'health' | 'finance' | 'family' | 'errands' | 'other';
 
 export type RecurrencePattern =
-  | 'daily'
-  | 'weekdays'
-  | 'weekly'
-  | 'biweekly'
-  | 'monthly'
-  | 'quarterly'
-  | 'yearly';
+  'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly';
 
 export interface Task {
   id: string;
@@ -205,63 +195,16 @@ export function getUserTasks(userId: string): Task[] {
     });
 }
 
-/** A due date in the user's zone ("tomorrow" ends at 23:59 where they are); unknown zone = UTC. */
-function parseNaturalDueDate(expression: string, zone?: string, now = new Date()): Date | null {
-  const lower = expression.toLowerCase().trim();
-
-  if (lower === 'today' || lower === 'tomorrow') {
-    const day = new WallClock(now, zone);
-    day.setDate(day.getDate() + (lower === 'tomorrow' ? 1 : 0));
-    day.setHours(23, 59, 0, 0);
-    return day.toDate();
-  }
-
-  if (lower === 'this week' || lower === 'end of week') {
-    const endOfWeek = new WallClock(now, zone);
-    const daysUntilSunday = 7 - endOfWeek.getDay();
-    endOfWeek.setDate(endOfWeek.getDate() + daysUntilSunday);
-    endOfWeek.setHours(23, 59, 0, 0);
-    return endOfWeek.toDate();
-  }
-
-  if (lower === 'next week') {
-    const nextWeek = new WallClock(now, zone);
-    nextWeek.setDate(nextWeek.getDate() + 7);
-    return nextWeek.toDate();
-  }
-
-  // Handle "in X days"
-  const inDaysMatch = lower.match(/in\s+(\d+)\s+days?/);
-  if (inDaysMatch) {
-    const days = parseInt(inDaysMatch[1]);
-    const target = new WallClock(now, zone);
-    target.setDate(target.getDate() + days);
-    return target.toDate();
-  }
-
-  // Handle day names
-  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  for (let i = 0; i < days.length; i++) {
-    if (lower.includes(days[i])) {
-      const target = new WallClock(now, zone);
-      const currentDay = target.getDay();
-      const daysUntil = (i - currentDay + 7) % 7 || 7;
-      target.setDate(target.getDate() + daysUntil);
-      target.setHours(23, 59, 0, 0);
-      return target.toDate();
-    }
-  }
-
-  // Try parsing as date string
-  const parsed = new Date(expression);
-  if (!isNaN(parsed.getTime())) {
-    return parsed;
-  }
-
-  return null;
+/**
+ * TASKS_TODAY_USER_ZONE (on by default): the caller's zone for "today" and "tomorrow"
+ * (undefined = UTC, as before). Off: undefined, so every reader keeps the server clock.
+ */
+function taskDayZone(ctx: unknown): string | undefined {
+  return flagOn('TASKS_TODAY_USER_ZONE') ? runContextTimeZone(ctx) : undefined;
 }
 
-function formatTaskForSpeech(task: Task): string {
+/** Due dates read in `zone` when given; the server's zone otherwise. */
+function formatTaskForSpeech(task: Task, zone?: string): string {
   const priorityEmoji = { urgent: '🔴', high: '🟠', medium: '🟡', low: '🟢' }[task.priority];
   const statusEmoji = { pending: '☐', in_progress: '🔄', completed: '✅', cancelled: '❌' }[
     task.status
@@ -276,6 +219,7 @@ function formatTaskForSpeech(task: Task): string {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
+      timeZone: zone,
     });
     result += isOverdue ? ` ⚠️ OVERDUE (${dateStr})` : ` - Due: ${dateStr}`;
   }
@@ -535,15 +479,47 @@ export function getOverdueTasks(userId: string): Task[] {
   return getUserTasks(userId).filter((t) => t.status === 'pending' && t.dueDate && t.dueDate < now);
 }
 
-export function getTodaysTasks(userId: string): Task[] {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+/**
+ * Pending tasks for today. TASKS_TODAY_USER_ZONE (on by default): due on the user's
+ * calendar day in `timeZone` (UTC when unknown, logged with counts only), then open
+ * tasks with no due date, so one just added with no date is on today's list. Off: due
+ * between the server's midnights, undated tasks left out, as before.
+ */
+export function getTodaysTasks(userId: string, timeZone?: string, now = new Date()): Task[] {
+  if (!flagOn('TASKS_TODAY_USER_ZONE')) {
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-  return getUserTasks(userId).filter(
-    (t) => t.status === 'pending' && t.dueDate && t.dueDate >= today && t.dueDate < tomorrow
-  );
+    return getUserTasks(userId).filter(
+      (t) => t.status === 'pending' && t.dueDate && t.dueDate >= today && t.dueDate < tomorrow
+    );
+  }
+  const day = localDayKey(now, timeZone);
+  const pending = getUserTasks(userId).filter((t) => t.status === 'pending');
+  const dated = pending.filter((t) => t.dueDate && localDayKey(t.dueDate, timeZone) === day);
+  const undated = pending.filter((t) => !t.dueDate);
+  if (!timeZone) {
+    getLogger().info(
+      { reason: 'caller_zone_unknown', dated: dated.length, undated: undated.length },
+      "Tasks today: caller's zone unknown, using UTC"
+    );
+  }
+  return [...dated, ...undated];
+}
+
+/** Completed on today's date: the user's in `timeZone` with the flag on, else since server midnight. */
+function completedToday(tasks: Task[], timeZone?: string, now = new Date()): Task[] {
+  const zoned = flagOn('TASKS_TODAY_USER_ZONE');
+  const day = localDayKey(now, timeZone);
+  return tasks.filter((t) => {
+    if (t.status !== 'completed' || !t.completedAt) return false;
+    if (zoned) return localDayKey(t.completedAt, timeZone) === day;
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    return t.completedAt >= todayStart;
+  });
 }
 
 export function getUpcomingTasks(userId: string, days = 7): Task[] {
@@ -688,13 +664,14 @@ export function createTaskTools() {
         const userId = userData?.userId || 'default';
 
         await ensureUserTasksLoaded(userId);
+        const timeZone = taskDayZone(ctx);
 
         let taskList: Task[];
         let title: string;
 
         switch (filter) {
           case 'today':
-            taskList = getTodaysTasks(userId);
+            taskList = getTodaysTasks(userId, timeZone);
             title = "📋 Today's Tasks";
             break;
           case 'overdue':
@@ -728,7 +705,7 @@ export function createTaskTools() {
 
         const formatted = taskList
           .slice(0, 10)
-          .map((t, i) => `${i + 1}. ${formatTaskForSpeech(t)}`)
+          .map((t, i) => `${i + 1}. ${formatTaskForSpeech(t, timeZone)}`)
           .join('\n');
 
         let response = `${title} (${taskList.length}):\n\n${formatted}`;
@@ -793,7 +770,8 @@ export function createTaskTools() {
           return `Couldn't find "${taskTitle}".`;
         }
 
-        const parsedDate = parseNaturalDueDate(newDueDate);
+        const timeZone = taskDayZone(ctx);
+        const parsedDate = parseNaturalDueDate(newDueDate, timeZone);
         if (!parsedDate) {
           return `I couldn't understand "${newDueDate}". Try "tomorrow", "Friday", or "in 3 days".`;
         }
@@ -805,6 +783,7 @@ export function createTaskTools() {
           weekday: 'long',
           month: 'short',
           day: 'numeric',
+          timeZone,
         });
 
         return `📅 Moved "${updated.title}" to ${dateStr}.`;
@@ -849,17 +828,13 @@ export function createTaskTools() {
         const allTasks = getUserTasks(userId);
         const pending = allTasks.filter((t) => t.status === 'pending');
         const overdue = getOverdueTasks(userId);
-        const today = getTodaysTasks(userId);
-        const completedToday = allTasks.filter((t) => {
-          if (t.status !== 'completed' || !t.completedAt) return false;
-          const todayStart = new Date();
-          todayStart.setHours(0, 0, 0, 0);
-          return t.completedAt >= todayStart;
-        });
+        const timeZone = taskDayZone(ctx);
+        const today = getTodaysTasks(userId, timeZone);
+        const doneToday = completedToday(allTasks, timeZone);
 
         let response = `📊 **Task Summary**\n\n`;
         response += `**Today:** ${today.length} task${today.length !== 1 ? 's' : ''}\n`;
-        response += `**Completed Today:** ${completedToday.length}\n`;
+        response += `**Completed Today:** ${doneToday.length}\n`;
         response += `**Total Pending:** ${pending.length}\n`;
 
         if (overdue.length > 0) {

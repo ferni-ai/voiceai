@@ -17,7 +17,6 @@ import { z } from 'zod';
 const log = getLogger();
 
 // Import from other tools to aggregate data
-// Note: In production, these would be services
 import {
   getTodaysTasks,
   getOverdueTasks,
@@ -28,6 +27,7 @@ import { getUpcomingBills, calculateMonthlyTotal, type Bill } from '../finance/b
 import { getDueHabits, calculateStreak, type Habit } from '../habits/habits.js';
 import { getTodayJournal, getJournalStreak, type JournalEntry } from '../productivity/notes.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { runContextTimeZone } from '../../../utils/caller-time-zone.js';
 import {
   getDueDoses,
   getUpcomingDoses,
@@ -166,7 +166,7 @@ export function createDailyBriefingTools() {
 
         // Tasks
         try {
-          const todayTasks = getTodaysTasks(userId);
+          const todayTasks = getTodaysTasks(userId, runContextTimeZone(ctx));
           const overdueTasks = getOverdueTasks(userId);
 
           if (overdueTasks.length > 0) {
@@ -266,7 +266,7 @@ export function createDailyBriefingTools() {
 
         // Check what was accomplished
         try {
-          const todayTasks = getTodaysTasks(userId);
+          const todayTasks = getTodaysTasks(userId, runContextTimeZone(ctx));
           const overdueTasks = getOverdueTasks(userId);
           const completedToday = todayTasks.filter((t) => t.status === 'completed');
 
