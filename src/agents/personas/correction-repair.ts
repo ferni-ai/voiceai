@@ -164,9 +164,7 @@ export function correctionNote(said: string, friend = false, scriptFree = false)
  * is brutal."). isCorrection rightly ignores it, but with no note the model
  * owns a miss it never made ("I totally misunderstood that").
  */
-export function unearnedRepairEnabled(
-  env: Record<string, string | undefined> = process.env
-): boolean {
+function unearnedRepairEnabled(env: Record<string, string | undefined> = process.env): boolean {
   return env.REPAIR_UNEARNED === 'on';
 }
 
