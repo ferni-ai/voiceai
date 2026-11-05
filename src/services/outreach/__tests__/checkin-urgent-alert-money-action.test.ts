@@ -14,9 +14,9 @@ const CRISIS = crisisCallerLine(NAME);
 const MONEY = riskyCallerLine(NAME);
 const CHECK_IN = 'You may want to check in with them.';
 
-function alertFor(description: unknown, recommendedAction: unknown): string | null {
+function alertFor(description: unknown, recommendedAction: unknown, name = NAME): string | null {
   return generateUrgentNotification({
-    familyMemberName: NAME,
+    familyMemberName: name,
     concernsIdentified: [{ urgency: 'urgent', description, recommendedAction }],
   });
 }
@@ -64,5 +64,24 @@ describe('check-in alert: a money read in the suggested action names money', () 
     const alert = alertFor('mentioned chest pain', action);
     expect(alert?.endsWith(ends)).toBe(true);
     expect(alert).not.toContain(MONEY.replace(/\.$/, ''));
+  });
+
+  // A name that is a screen word: the money line, Ferni's own words, holds it next to "money".
+  // The alert is screened as main built it, so their words still go out.
+  it.each(['Loan', 'Pay', 'Lend', 'Send'])(
+    'a family member named %s: their words, crisis line, then the money line',
+    (name) => {
+      for (const said of ["fell and can't get up", 'collapsed in the kitchen']) {
+        expect(alertFor(said, 'wire $400 to 4417 2290', name)).toBe(
+          `Important: During my call with ${name}, ${said}. ${crisisCallerLine(name)} ${riskyCallerLine(name)}`
+        );
+      }
+    }
+  );
+
+  it('a family member named Loan with money in their own words: still withheld', () => {
+    const alert = alertFor('asked you to send money to 4417 2290', 'wire $400', 'Loan');
+    expect(alert).not.toMatch(/\d/);
+    expect(alert).toContain(crisisCallerLine('Loan'));
   });
 });
