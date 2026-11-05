@@ -158,6 +158,49 @@ export function correctionNote(said: string, friend = false, scriptFree = false)
   return `They just corrected you ("${clip(said)}"). ${own}, then go on with what they said. Don't argue, explain why, or repeat your old version.`;
 }
 
+/**
+ * REPAIR_UNEARNED=on (#3490): the caller sets the record straight on something
+ * Ferni never said ("No, my sister got fired. Not the boss." after "God, that
+ * is brutal."). isCorrection rightly ignores it, but with no note the model
+ * owns a miss it never made ("I totally misunderstood that").
+ */
+export function unearnedRepairEnabled(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  return env.REPAIR_UNEARNED === 'on';
+}
+
+const SETS_STRAIGHT = /^\s*(?:no|nope|nah|wait)\b/i;
+/** "Lisburn's" and "Lisburn" are one word. */
+const bare = (word: string): string => word.toLowerCase().replace(/'s$/, '');
+
+/**
+ * A "No, X. Not Y." whose Y is in none of Ferni's last few lines, questions
+ * included (a guess he asked about is his to own).
+ */
+export function isUnearnedCorrection(said: string, ferni: string[]): boolean {
+  if (!SETS_STRAIGHT.test(said) || ABOUT_SAYING.test(said)) return false;
+  const his = new Set(
+    (
+      ferni
+        .slice(-3)
+        .join(' ')
+        .match(/[a-z][a-z'-]*/gi) ?? []
+    ).map(bare)
+  );
+  let ruledOut = false;
+  for (const match of said.matchAll(CONTRAST)) {
+    const word = bare(match[1] ?? '');
+    if (NOT_A_THING.has(word)) continue;
+    if (his.has(word)) return false;
+    ruledOut = true;
+  }
+  return ruledOut;
+}
+
+export const UNEARNED_NOTE =
+  "They're putting it straight, but you never said the thing they're ruling out. Take their version in a few words and go on. Don't apologise or say you misunderstood unless your own last line really had it wrong.";
+
 export function settledNote(earlier: string[]): string {
   const quoted = earlier.map((c) => `"${clip(c)}"`).join('; ');
   return `Earlier on this call they corrected you (${quoted}): go by what they said, never your old version.`;
@@ -195,8 +238,16 @@ export function correctionNotesFor(
   env: Record<string, string | undefined> = process.env,
   scriptFree = false
 ): string {
-  if (!correctionRepairEnabled(env)) return '';
+  const repair = correctionRepairEnabled(env);
+  const unearnedOn = unearnedRepairEnabled(env);
+  if (!repair && !unearnedOn) return '';
   const { said, ferni } = linesOf(chatCtx);
+  const unearned = (): boolean => {
+    const hit = unearnedOn && Boolean(said) && isUnearnedCorrection(said, ferni);
+    if (hit) log.info({}, 'CORRECTION_UNEARNED');
+    return hit;
+  };
+  if (!repair) return unearned() ? UNEARNED_NOTE : '';
   const correcting = Boolean(said) && isCorrection(said, ferni);
   const carried = correcting ? remember(session, said) : (corrections.get(session) ?? []);
   // An earlier one is anything not this turn's words (or a partial of them).
@@ -204,7 +255,7 @@ export function correctionNotesFor(
   if (correcting) log.info({ carried: carried.length }, 'CORRECTION_REPAIR');
   const friend = env.FRIEND_REPAIR === 'on';
   return [
-    correcting ? correctionNote(said, friend, scriptFree) : '',
+    correcting ? correctionNote(said, friend, scriptFree) : unearned() ? UNEARNED_NOTE : '',
     earlier.length ? settledNote(earlier) : '',
   ]
     .filter(Boolean)

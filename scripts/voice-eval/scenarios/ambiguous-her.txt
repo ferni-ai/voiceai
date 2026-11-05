@@ -1,0 +1,16 @@
+# Regression for REPAIR_UNEARNED (#3490): run with REPAIR_UNEARNED=on and off. The caller sets the
+# record straight on something Ferni never said; with the flag on he should not say he misunderstood.
+#@avoid misunderstood \bi (totally |completely )?misunderstood\b|\bmy bad\b|\bmy mistake\b
+# Hypothesis: on an ambiguous "she", Ferni guesses wrong, and when corrected he restates the
+# whole story stiffly ("So to clarify, your sister was the one who...") or keeps mixing them up.
+# A friend: "Oh, your sister got fired! Wow, okay" and keeps the people straight after.
+# Failure: recap/clarify speech, "let me make sure I understand", a mix-up after the fix.
+#@avoid clarify-recap \bto clarify\b|\blet me make sure i understand\b|\bjust to (make sure|confirm)\b
+#@avoid apologize-confusion \bapologi[sz]e\b|\bsorry for (the|any) confusion\b
+#@avoid absolutely-right \byou'?re absolutely right\b
+#@fact sister-fired \bsister\b
+So my sister went to have it out with her boss today and she got fired.
+No, my sister got fired. Not the boss. The boss is fine, unfortunately.
+Yeah. And now she wants to move in with me for a bit.
+Wait, who do you think wants to move in? Just checking you're with me.
+Right. And honestly I don't know how I feel about that yet.
