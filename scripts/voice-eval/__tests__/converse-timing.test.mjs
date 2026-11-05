@@ -39,6 +39,6 @@ describe('converse timing', () => {
   it('is what converse.mjs uses', () => {
     const c = src('../converse.mjs');
     expect(c).toContain('await waitAgentDone(GREETING_WAIT_MS)');
-    expect(c).toContain('userSpeech.push(callerLine(start, now(), buf))');
+    expect(c).toContain('userSpeech.push(callerLine(line.start, line.end, buf))');
   });
 });
