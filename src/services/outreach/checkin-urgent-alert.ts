@@ -120,8 +120,10 @@ function clause(text: string): string {
  * number or money/credential request is never passed on. Each field is
  * screened alone, then the exact alert is screened again, since two fields
  * that each pass can join into a number. A risky suggestion is dropped for
- * Ferni's own line. Fields too long for the screen to read in full send the
- * generic alert, and a field that is not text gets Ferni's line for that field.
+ * Ferni's own line: riskyCallerLine, so the sponsor hears money came up even when
+ * the description went out clean (owner decision). Fields too long for the screen
+ * to read in full send the generic alert, and a field that is not text gets Ferni's
+ * line for that field.
  *
  * The screen never costs a crisis signal. Before it, the sponsor got the
  * concern's words in full. So whenever any of those words are withheld or cut,
@@ -155,7 +157,9 @@ export function generateUrgentNotification(record: CheckinAlertInput): string | 
   const desc = screenField(concern.description, name);
   const act = screenField(concern.recommendedAction, name);
   const what = desc.said || heldLine(desc, act, name);
-  const next = act.said || CHECK_IN_ACTION; // Ferni's line whenever it was risky or not text
+  // Ferni's line whenever it was risky or not text. A money read there names money, unless the
+  // description's own line already does.
+  const next = act.said || (act.risky && desc.said ? riskyCallerLine(name) : CHECK_IN_ACTION);
   const both = [concern.description, concern.recommendedAction]
     .map(fieldText)
     .filter(Boolean)
