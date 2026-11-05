@@ -23,6 +23,12 @@ export interface FlagSpec {
   readonly default: string;
   readonly owner: (typeof FLAG_OWNERS)[number];
   readonly kind: (typeof FLAG_KINDS)[number];
+  /** Experiments: the date (YYYY-MM-DD) it must be deleted, made permanent or re-dated by (flag-lifecycle.ts). */
+  readonly expires?: string;
+  /** The issue tracking the decision ('#123' or a URL), or 'TBD' until ISSUE_TBD_UNTIL. */
+  readonly issue?: string;
+  /** One line: what decides it, or why the date moved. */
+  readonly context?: string;
 }
 /** ACTION_CLAIM_GUARD .. BYPASS_TEAM_UNLOCKS */
 export const FLAGS_ACTION_TO_BYPASS = {
