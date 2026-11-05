@@ -13,12 +13,19 @@
  * note (the director computes it on every reply; see turn-request.ts).
  *
  * TOLD_THIS_CALL=off turns it off. PHRASE_LOOP_GUARD=on adds the stock phrases he
- * keeps reusing (phrase-loops.ts).
+ * keeps reusing (phrase-loops.ts); ALREADY_SAID_LEDGER=on, his recent openers and
+ * any sentence he said word for word (already-said.ts).
  *
  * @module agents/personas/told-this-call
  */
 
 import { crisisRiskNoted } from '../../services/safety/crisis-call-risk.js';
+import {
+  alreadySaid,
+  alreadySaidLedgerOn,
+  formatAlreadySaid,
+  type AlreadySaid,
+} from './already-said.js';
 import type { Line } from './director-notes.js';
 import {
   formatPhraseLoops,
@@ -47,6 +54,8 @@ export interface Told {
   askedAboutFerni: boolean;
   /** PHRASE_LOOP_GUARD=on: stock phrases in two or more recent replies; absent when off. */
   loops?: PhraseLoop[];
+  /** ALREADY_SAID_LEDGER=on: his recent openers and word-for-word repeats; absent when off. */
+  said?: AlreadySaid;
 }
 
 /** Capitalized words that are grammar or filler, not something Ferni brought up. */
@@ -196,6 +205,7 @@ export function toldThisCall(lines: Line[], userName?: string, speaking?: string
     recentLines,
     askedAboutFerni: Boolean(lastUser && ASKS_ABOUT_FERNI.test(lastUser.text)),
     ...(phraseLoopGuardOn() ? { loops: phraseLoops(lines) } : {}),
+    ...(alreadySaidLedgerOn() ? { said: alreadySaid(replies) } : {}),
   };
 }
 
@@ -216,24 +226,28 @@ export function formatTold(told: Told): string {
         : `You've told ${stories} about yourself already. Keep this reply on them.`
     );
   }
-  const quotes = [...told.repeated, ...told.recentLines].slice(0, MAX_QUOTES).map(quote);
-  if (quotes.length) parts.push(`Don't say again: ${quotes.map((q) => `"${q}"`).join('; ')}`);
+  const quoted = [...told.repeated, ...told.recentLines].slice(0, MAX_QUOTES);
+  if (quoted.length)
+    parts.push(`Don't say again: ${quoted.map((q) => `"${quote(q)}"`).join('; ')}`);
   const loops = formatPhraseLoops(told.loops ?? []);
   if (loops) parts.push(loops);
+  const said = told.said ? formatAlreadySaid(told.said, quoted) : '';
+  if (said) parts.push(said);
   return parts.length ? `[Already said this call: ${parts.join(' ')}]` : '';
 }
 
 /**
  * The record without the names, quotes and phrases `keep` rejects (director-notes.ts
- * told()). On a call with crisis risk noted (`sessionId`), no phrase loops and no
- * quotes at all: a crisis-guided request must never be told to drop wording
+ * told()). On a call with crisis risk noted (`sessionId`), no phrase loops, no
+ * quotes and no ledger at all: a crisis-guided request must never be told to drop wording
  * (crisis-call-risk.ts). A line of the safety scripts is never quoted on any call
  * (#2797: "Don't say again" had quoted "Are you somewhere safe right now?").
  */
 export function keptTold(told: Told, keep: (text: string) => boolean, sessionId?: string): Told {
-  const { loops: all, ...rest } = told;
+  const { loops: all, said: ledger, ...rest } = told;
   const crisis = Boolean(sessionId && crisisRiskNoted(sessionId));
   const loops = all && !crisis ? all : undefined;
+  const said = ledger && !crisis ? ledger : undefined;
   const quotable = (line: string): boolean => !crisis && keep(line) && !isSafetyLine(line);
   return {
     ...rest,
@@ -241,6 +255,15 @@ export function keptTold(told: Told, keep: (text: string) => boolean, sessionId?
     repeated: told.repeated.filter(quotable),
     recentLines: told.recentLines.filter(quotable),
     ...(loops ? { loops: loops.filter((l) => keep(l.phrase)) } : {}),
+    ...(said
+      ? {
+          said: {
+            ...said,
+            repeated: said.repeated.filter(keep),
+            openers: said.openers.filter(keep),
+          },
+        }
+      : {}),
   };
 }
 

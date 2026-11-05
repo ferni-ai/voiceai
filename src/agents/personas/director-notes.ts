@@ -308,6 +308,9 @@ export class Director {
     this.toldRecord = toldThisCallEnabled()
       ? toldThisCall(lines, this.opts.userName, speaking)
       : null;
+    // ALREADY_SAID_LEDGER: the reply just spoken repeated one of his sentences (no words logged).
+    if (this.toldRecord?.said?.caught)
+      log.info({ sessionId: this.opts.sessionId }, 'ALREADY_SAID_REPEAT');
     if (this.opts.writeNotes === false) return Promise.resolve();
     const writer = this.opts.writer ?? defaultWriter;
     const seesTools = directorSeesTools();

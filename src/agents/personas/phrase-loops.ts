@@ -145,8 +145,8 @@ const SAFETY_TOPIC = new RegExp(
   'i'
 );
 
-/** A sentence as compared with the scripts': lowercase words only. */
-const normalized = (sentence: string): string =>
+/** A sentence as compared with the scripts' (and already-said.ts): lowercase words only. */
+export const normalized = (sentence: string): string =>
   sentence
     .toLowerCase()
     .replace(/[’‘]/g, "'")
