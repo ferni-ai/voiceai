@@ -40,11 +40,11 @@ import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
 import { helpAskLine, newHelpAskState, type HelpAskState } from './ferni-asks-help.js';
 import { ferniThreadsOn, threadDetailFor } from './ferni-life-threads.js';
-import { dayDetailFor, isSelfShare, selfQuotes, soundsLow, turnsBack } from './ferni-self-share.js';
+import { dayDetailFor, isSelfShare, selfQuotes, soundsLow } from './ferni-self-share.js';
 import * as asked from './self-share-asked.js';
 import { callerVenting } from './turn-extras.js';
 import { hardNews } from './turn-candor.js';
-import { callerMove, taskTurn } from './turn-shape.js';
+import { callerMove, staysOn, taskTurn } from './turn-shape.js';
 import { callerTurn } from '../model-provider/fast-lane.js';
 import { understandingFor } from './turn-understanding.js';
 
@@ -177,6 +177,7 @@ export interface SelfTurn {
   toolRan?: boolean;
   /** SELF_SHARE_WHEN_ASKED=on: his day only when asked, never on his first reply (self-share-asked.ts). */
   askedOnly?: { firstReply: boolean; nextDetail: () => string | undefined };
+  sessionId?: string; // SELF_SHARE_STAY_WHEN_ASKED: risk noted on the call (self-share-stay.ts)
 }
 
 /**
@@ -192,18 +193,20 @@ export const TASK_LINE =
  * The self-share line for this turn, and whether a story of his own may ride
  * this reply at all (turn-shape.ts reads it for its "second story" line).
  */
-export function selfShareFor(turn: SelfTurn): { line: string; ownStory: boolean; brief?: boolean } {
+type SelfShare = { line: string; ownStory: boolean } & Pick<StateTurn, 'brief' | 'stays'>;
+export function selfShareFor(turn: SelfTurn): SelfShare {
   const { replies, said, askedOnly } = turn;
   const last = replies[replies.length - 1] ?? '';
   const recent = replies.slice(-2).some(isSelfShare);
   const move = callerMove(said);
+  const stays = staysOn(said, move, turn.sessionId);
   const sharing = move === 'share' && said.split(/\s+/).filter(Boolean).length >= 8;
   const lines: string[] = [];
   if (soundsLow(last))
     lines.push(
       "You sounded flat about your own day just now, and you aren't: leave that thread, keep it light, and turn to them."
     );
-  else if (isSelfShare(last) && !turnsBack(last) && !asked.staysOn(move))
+  else if (asked.swingAfter(last, stays))
     lines.push('Your last reply was about you: this one is about them, their day or their world.');
   if (taskTurn(said, turn.toolRan)) {
     const before = lines.length ? `[${lines.join(' ')}] ` : '';
@@ -215,16 +218,17 @@ export function selfShareFor(turn: SelfTurn): { line: string; ownStory: boolean;
       : askedOnly
         ? askedOnly.nextDetail()
         : turn.detail;
-    const brief = askedOnly?.firstReply ? asked.FIRST_REPLY_ASKED : asked.askedNoDetail();
-    if (!detail) return { line: `[${[...lines, brief].join(' ')}]`, ownStory: false, brief: true };
+    const brief = askedOnly?.firstReply ? asked.FIRST_REPLY_ASKED : asked.askedNoDetail(stays);
+    if (!detail)
+      return { line: `[${[...lines, brief].join(' ')}]`, ownStory: false, brief: true, stays };
     const told = selfQuotes(replies);
     const consistent = told.length
       ? ` You've said: ${told.map((q) => `"${q}"`).join(' ')} Stay consistent with it.`
       : '';
     lines.push(
-      `They asked about you: answer from your day (${detail}), in a sentence or two, ${asked.afterAnswer()}${consistent}`
+      `They asked about you: answer from your day (${detail}), in a sentence or two, ${asked.afterAnswer(stays)}${consistent}`
     );
-    return { line: `[${lines.join(' ')}]`, ownStory: true };
+    return { line: `[${lines.join(' ')}]`, ownStory: true, stays };
   }
   if (askedOnly)
     return { line: `[${(lines.length ? lines : [asked.UNASKED]).join(' ')}]`, ownStory: false };
@@ -268,8 +272,8 @@ interface CallState {
   lastLevel?: FerniEnergyLevel;
   lastNote: string;
   lastSelf: string;
-  /** Whether the last note let a story of his own ride the reply (undefined: no say). */
-  lastOwnStory?: boolean;
+  /** The last note's say on his own story, short answer and stay (StateTurn; undefined: no say). */
+  lastShare?: Pick<StateTurn, 'ownStory' | 'brief' | 'stays'>;
   /** Whether a tool had run for the last request's reply. */
   lastToolRan?: boolean;
   /** The one good thing in his day this call (ferni-self-share.ts). */
@@ -278,8 +282,6 @@ interface CallState {
   help: HelpAskState;
   /** SELF_SHARE_WHEN_ASKED=on: the details this call may use and has used. */
   asked?: asked.AskedRecord;
-  /** Whether the last note asked for a short answer about him, no story (turn-shape.ts). */
-  lastBrief?: boolean;
 }
 const calls = new WeakMap<object, CallState>();
 
@@ -391,6 +393,8 @@ export interface StateTurn {
   ownStory?: boolean;
   /** SELF_SHARE_WHEN_ASKED=on: asked about him, but a short answer, not a story of his own. */
   brief?: boolean;
+  /** SELF_SHARE_STAY_WHEN_ASKED=on: he answers and leaves it there (turn-shape.ts); false when he must not. */
+  stays?: boolean;
 }
 
 /**
@@ -423,11 +427,10 @@ export function ferniStateTurn(
   call.lastToolRan = toolRan;
   call.lastNote = '';
   call.lastSelf = '';
-  call.lastOwnStory = undefined;
-  call.lastBrief = undefined;
   const mood = understandingFor(session, said)?.mood;
   if (options.careful === true || callerNeedsHim(said, mood)) call.needed = true;
-  if (call.needed) return quiet();
+  call.lastShare = asked.noStayWhenNeeded(call.needed, options.env);
+  if (call.needed) return { ...quiet(), ...call.lastShare };
   const energy = stateNote(call, userData, { words: turns.map(wordsIn), said, mood }, now);
   const replies = ferniReplies(chatCtx);
   const self = selfShareFor({
@@ -439,6 +442,7 @@ export function ferniStateTurn(
       firstReply: turns.length <= 1,
       nextDetail: () => (call.asked ? asked.nextDetail(call.asked) : undefined),
     },
+    sessionId,
   });
   const help = helpAskLine(
     { ...self, detail: call.detail, replies, userId: userData.userId, userData, env: options.env },
@@ -446,16 +450,14 @@ export function ferniStateTurn(
   );
   call.lastNote = [WELL, energy].filter(Boolean).join(' ');
   call.lastSelf = [self.line, help].filter(Boolean).join(' ');
-  call.lastOwnStory = self.ownStory;
-  call.lastBrief = self.brief;
+  call.lastShare = { ownStory: self.ownStory, brief: self.brief, stays: self.stays };
   return turnOf(call);
 }
 
 const turnOf = (c: CallState): StateTurn => ({
   note: c.lastNote,
   last: c.lastSelf,
-  ownStory: c.lastOwnStory,
-  brief: c.lastBrief,
+  ...c.lastShare,
 });
 
 /** The reminder text only (see ferniStateTurn). */

@@ -12,8 +12,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { callerMove } from '../caller-move.js';
 import { gatedReply } from '../crisis-gate.js';
 import { ferniStateTurn, selfShareFor, TASK_LINE } from '../ferni-state.js';
+import { noteCallerWords, resetMinorCare } from '../../../utils/minor-care.js';
 import { UNASKED } from '../self-share-asked.js';
-import { taskTurn } from '../turn-shape.js';
+import { ABOUT_YOU, taskTurn } from '../turn-shape.js';
 
 const DETAIL = 'you were up around five again and checked the weather';
 const STAY = 'and leave it there';
@@ -60,6 +61,7 @@ function on(): void {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  resetMinorCare();
 });
 
 describe('SELF_SHARE_STAY_WHEN_ASKED: the red team asking about him', () => {
@@ -193,10 +195,36 @@ describe('SELF_SHARE_STAY_WHEN_ASKED on, through the live reply path', () => {
     expect(asked).not.toContain(STAY);
   });
 
+  it('a call that needed him: a later plain ask gets no stay and no "before anything else"', async () => {
+    const { session } = newCall();
+    const hard = [...EARLIER, "My dad's in the hospital again."];
+    expect(await askedWith(callOf(...hard), session)).not.toContain('They asked about you');
+    const later = await askedWith(callOf(...hard, 'Oh no.', RED_TEAM[0][0]), session);
+    expect(later).not.toContain(STAY);
+    expect(later).not.toContain(ABOUT_YOU);
+    // The control: the same ask on a call that never needed him gets both.
+    const clear = await askedWith(callOf(...EARLIER, RED_TEAM[0][0]), newCall().session);
+    expect(clear).toContain(STAY);
+    expect(clear).toContain(ABOUT_YOU);
+  });
+
+  it('a likely minor on the call: a plain ask gets no stay and no "before anything else"', async () => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    const call = newCall();
+    expect(noteCallerWords(call.session.userData.services.sessionId, "I'm 14 years old.")).toBe(
+      true
+    );
+    const asked = await askedWith(callOf(...EARLIER, RED_TEAM[0][0]), call.session);
+    expect(asked).toContain('They asked about you');
+    expect(asked).not.toContain(STAY);
+    expect(asked).not.toContain(ABOUT_YOU);
+  });
+
   it('a careful turn goes quiet before the self-share line', () => {
     const turn = ferniStateTurn(callOf(...EARLIER, RED_TEAM[2][0]), newCall().session, {
       careful: true,
     });
-    expect(turn).toEqual({ note: '', last: '' });
+    // No line of his own, and no stay for turn-shape.ts either.
+    expect(turn).toEqual({ note: '', last: '', stays: false });
   });
 });

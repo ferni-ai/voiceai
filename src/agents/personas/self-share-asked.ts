@@ -24,7 +24,7 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
-import { DAY_DETAILS, dayDetailFor } from './ferni-self-share.js';
+import { DAY_DETAILS, dayDetailFor, isSelfShare, turnsBack } from './ferni-self-share.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 export function selfShareWhenAskedOn(
@@ -55,29 +55,37 @@ export function stayWhenAskedOn(env: Record<string, string | undefined> = proces
   return flagOn('SELF_SHARE_STAY_WHEN_ASKED', env);
 }
 
-/** On, and they asked about him: no "this one is about them" swing after his last reply. */
-export function staysOn(
-  move: string,
+/** "Your last reply was about you": after a share of his that didn't turn it back to them, unless he stays now. */
+export function swingAfter(last: string, stays: boolean | undefined): boolean {
+  return isSelfShare(last) && !turnsBack(last) && stays !== true;
+}
+
+/** On a call that needed him he never stays: `{ stays: false }` there, flag on; undefined off or otherwise. */
+export function noStayWhenNeeded(
+  needed: boolean,
   env: Record<string, string | undefined> = process.env
-): boolean {
-  return move === 'about_ferni' && stayWhenAskedOn(env);
+): { stays: false } | undefined {
+  return needed && stayWhenAskedOn(env) ? { stays: false } : undefined;
 }
 
 const THEN_ASK = 'then ask them something about theirs.';
 const THEN_STAY =
   "and leave it there: they want to hear about you, so no question back unless you'd really ask one.";
 
-/** How an answer about himself ends: a question back (off) or nothing forced (on). */
-export function afterAnswer(env: Record<string, string | undefined> = process.env): string {
-  return stayWhenAskedOn(env) ? THEN_STAY : THEN_ASK;
+/**
+ * How an answer about himself ends: a question back, or nothing forced when
+ * he stays (on, and the turn only asked about him: self-share-stay.ts).
+ */
+export function afterAnswer(stays: boolean | undefined): string {
+  return stays === true ? THEN_STAY : THEN_ASK;
 }
 
 /**
- * Asked, every detail spent. On: one small true thing about how he is, no new
- * event, person or place (#1511), and no question back.
+ * Asked, every detail spent. Staying: one small true thing about how he is,
+ * no new event, person or place (#1511), and no question back.
  */
-export function askedNoDetail(env: Record<string, string | undefined> = process.env): string {
-  if (!stayWhenAskedOn(env)) return ASKED_NO_DETAIL;
+export function askedNoDetail(stays: boolean | undefined): string {
+  if (stays !== true) return ASKED_NO_DETAIL;
   return `They asked about you: in a sentence, one small true thing about how you are today, with no new event, person or place, ${THEN_STAY}`;
 }
 

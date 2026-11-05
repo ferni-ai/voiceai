@@ -26,6 +26,7 @@ import {
   ABOUT_THEIR_THINGS,
   callerMove,
   isLookup,
+  widenedAsk,
   type CallerMove,
 } from './caller-move.js';
 import { playfulLine, playfulOpen, SUBSTANCE_FIRST } from './ferni-playful.js';
@@ -48,9 +49,8 @@ import {
   textureLine,
 } from './turn-length.js';
 import { quietLineFor } from './quiet-caller.js';
-import { staysOn } from './self-share-asked.js';
 
-export { callerMove, opinionAsk, type CallerMove } from './caller-move.js';
+export { callerMove, opinionAsk, staysOn, type CallerMove } from './caller-move.js';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
 /** dice: shape drawn per turn (default). model: the model judges the shape. off: turn-style.ts. */
 export type TurnShapeMode = 'dice' | 'model' | 'off';
@@ -139,6 +139,23 @@ export const SECOND_STORY =
   'If something from your own life comes to mind, share a small piece of it (a sentence), the way a friend trades a story, rather than asking about theirs.';
 export const ABOUT_YOU =
   'They asked about you: answer about yourself, something specific from your own life, before anything else.';
+
+/**
+ * SELF_SHARE_STAY_WHEN_ASKED=on: a turn read as about him only by the flag's
+ * wider forms gets no "about yourself before anything else" unless he stays,
+ * nor on a careful turn or a call with crisis risk (verifier 2026-11-05).
+ * ABOUT_FERNI's own reads keep the line as before.
+ */
+function aboutYouHeld(said: string, sig: TurnSignals): boolean {
+  if (!widenedAsk(said)) return false;
+  return sig.selfStays === false || sig.careful || sig.crisisRisk === true;
+}
+
+/** ABOUT_YOU on this turn: they asked about him, his last answer wasn't brief, and it isn't held back. */
+function aboutYouFor(move: CallerMove, said: string, sig: TurnSignals): boolean {
+  return move === 'about_ferni' && !sig.selfBrief && !aboutYouHeld(said, sig);
+}
+
 /**
  * DIRECTOR_ANSWER_TURN_GUARD=on: they just answered his question. "I did." to
  * "did you tackle that mail yet?" read as something shared and got a story
@@ -219,11 +236,11 @@ export const QUESTION_LINE = {
  * The no-question line. ownStory is Ferni's own state's say on this turn
  * (ferni-state.ts): undefined when FERNI_STATE is off, and then as before.
  */
-function noQuestion({ ownStory, move }: TurnSignals): string {
+function noQuestion({ ownStory, selfStays }: TurnSignals): string {
   if (ownStory === undefined) return QUESTION_LINE.none;
-  // SELF_SHARE_STAY_WHEN_ASKED=on (#3475): asked about himself, no forced question back. An
-  // unasked share keeps noneUnlessOwn, agreeing with its "turn to them" line (ferni-state.ts).
-  if (ownStory && staysOn(move)) return QUESTION_LINE.none;
+  // SELF_SHARE_STAY_WHEN_ASKED=on (#3475): he stays (only asked about him, no risk: ferni-state.ts),
+  // so no forced question back. Any other turn keeps noneUnlessOwn / noneOnThem as before.
+  if (ownStory && selfStays === true) return QUESTION_LINE.none;
   return ownStory ? QUESTION_LINE.noneUnlessOwn : QUESTION_LINE.noneOnThem;
 }
 
@@ -316,7 +333,7 @@ function modelChosenShape(
   // 2.87 -> 2.63, replies grew 17 -> 24 words and question endings 13% -> 21%
   // (dev A/B, 15 calls per arm, judge.mjs, 2026-10-10).
   const parts = [registerFor(sig)];
-  if (move === 'about_ferni' && !sig.selfBrief) parts.push(ABOUT_YOU);
+  if (aboutYouFor(move, userText, sig)) parts.push(ABOUT_YOU);
   else if (sig.answered) parts.push(TAKE_UP_ANSWER);
   else if (
     move === 'share' &&
@@ -392,7 +409,7 @@ export function turnShapeFor(
   // The shape goes last, nearest the reply: first, behind the register lines,
   // it was diluted (replay: 5% of replies 6 words or fewer).
   const parts = [registerFor(sig)];
-  if (move === 'about_ferni' && !sig.selfBrief) parts.push(ABOUT_YOU);
+  if (aboutYouFor(move, userText, sig)) parts.push(ABOUT_YOU);
   else if (sig.answered) parts.push(TAKE_UP_ANSWER);
   // Not while they're venting: a friend stays with them instead of telling a story.
   else if (

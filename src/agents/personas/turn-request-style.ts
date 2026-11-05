@@ -43,7 +43,7 @@ export function styleFor(
   chatCtx: llm.ChatContext,
   session: object,
   shape: boolean,
-  state: { ownStory?: boolean; brief?: boolean } = {},
+  state: { ownStory?: boolean; brief?: boolean; stays?: boolean } = {},
   {
     answering = false,
     plain = false,
@@ -161,12 +161,15 @@ export function signalsFor(
 function withOwnStory(
   signals: TurnSignals | undefined,
   said: string,
-  { ownStory, brief }: { ownStory?: boolean; brief?: boolean }
+  { ownStory, brief, stays }: { ownStory?: boolean; brief?: boolean; stays?: boolean }
 ): TurnSignals | undefined {
-  if (ownStory === undefined) return signals;
+  if (ownStory === undefined && stays === undefined) return signals;
+  const base = signals ?? regexSignals(said, callerMove(said));
   // SELF_SHARE_WHEN_ASKED=on: asked about him, a short answer and no story (self-share-asked.ts).
   const selfBrief = brief === true ? { selfBrief: true } : {};
-  return { ...(signals ?? regexSignals(said, callerMove(said))), ownStory, ...selfBrief };
+  // SELF_SHARE_STAY_WHEN_ASKED=on: whether he stays, set even when the state has no say (ferni-state.ts).
+  const selfStays = stays === undefined ? {} : { selfStays: stays };
+  return { ...base, ...(ownStory === undefined ? {} : { ownStory }), ...selfBrief, ...selfStays };
 }
 
 /**

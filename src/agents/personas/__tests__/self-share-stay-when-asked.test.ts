@@ -107,7 +107,10 @@ describe('SELF_SHARE_STAY_WHEN_ASKED', () => {
 
   it('on: the no-question line no longer forces a question back', () => {
     on();
-    const { reminder } = turnShapeFor(ASK, noQuestionDice, 'dice', sig);
+    const { ownStory, stays } = selfShareFor({ replies: ['Hey Sam.'], said: ASK, detail: DETAIL });
+    expect(stays).toBe(true);
+    const turnSig = { ...sig, ownStory, selfStays: stays };
+    const { reminder } = turnShapeFor(ASK, noQuestionDice, 'dice', turnSig);
     expect(reminder).not.toContain(QUESTION_LINE.noneUnlessOwn);
     expect(reminder).toContain(QUESTION_LINE.none);
   });
