@@ -156,4 +156,19 @@ describe('turn-taking scorecard from recordings', () => {
     expect(card.falseInterruptions).toEqual({ backchannels: 2, stoppedFerni: 1 });
     expect(card.bargeIns).toMatchObject({ n: 2, yielded: 2, missedYield: 1 });
   });
+
+  it('reads "timing invalid" for calls whose caller audio was not sent in real time (#2740)', () => {
+    // The 5 s caller turn took 15 s to send: the agent heard fragments.
+    const slow = { ...run([4300], [{ replyDelayMs: 800 }]), userSpeech: [[1000, 16000, 5000]] };
+    const none = () => ({ pcm: new Int16Array(0), rate: 16000 });
+    const card = poolRuns([slow], none);
+    for (const k of ['replyGapMs', 'cutOffs', 'falseInterruptions', 'bargeIns', 'backchannels'])
+      expect(card[k]).toBe('timing invalid');
+    expect(card.callerAudio).toEqual({ timingInvalidRuns: 1, maxSendRatio: 3 });
+    // Pooled with a real-time call, only that call is timed.
+    const fine = { ...run([4300], [{ replyDelayMs: 600 }]), userSpeech: [[1000, 6000, 5000]] };
+    const both = poolRuns([fine, slow], none);
+    expect(both.replyGapMs).toMatchObject({ p50: 600, n: 1 });
+    expect(both).toMatchObject({ runs: 2, callerTurns: 2 });
+  });
 });
