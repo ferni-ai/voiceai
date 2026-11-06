@@ -186,12 +186,17 @@ function record(session: object, event: SessionEvent): void {
   else void judgeConfirmation(pending, entry.events);
 }
 
-/** The owner's first names, lower-case, from the tool run's user data (userName, name). */
-export function ownerFirstNames(opts: unknown): string[] {
+/** The owner's names, lower-case words ("riley test"), from the tool run's user data (userName, name). */
+export function ownerNames(opts: unknown): string[] {
   const data = (opts as { ctx?: { userData?: Record<string, unknown> } } | undefined)?.ctx
     ?.userData;
   const names = [data?.userName, data?.name].filter((n): n is string => typeof n === 'string');
-  return [...new Set(names.flatMap((n) => words(n).slice(0, 1)))];
+  return [...new Set(names.map((n) => words(n).join(' ')).filter(Boolean))];
+}
+
+/** The owner's first names, lower-case, from the tool run's user data (userName, name). */
+function ownerFirstNames(opts: unknown): string[] {
+  return [...new Set(ownerNames(opts).map((n) => n.split(' ')[0]))];
 }
 
 /**

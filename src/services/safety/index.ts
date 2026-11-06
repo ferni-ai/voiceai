@@ -65,7 +65,9 @@ export type {
   CrisisResponseContent,
   CrisisResponseContext,
 } from './crisis-response.js';
-export { EMERGENCY_NUMBER } from './emergency-number.js';
+export { EMERGENCY_NUMBER, EMERGENCY_SERVICE } from './emergency-number.js';
+// Lines a call can't be placed to: scheduleCall's `who` (tools/domains/scheduling).
+export { lineCallerDials, reachLine } from './help-line-who.js';
 // Someone hurting the caller (ABUSE_DISCLOSURE_PATTERNS, turn-crisis.ts and turn-handler.ts).
 export {
   abuseCallRisk,

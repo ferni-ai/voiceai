@@ -32,7 +32,8 @@ import type { ToolContext } from '../../../registry/types.js';
 import { setCallUserPort } from '../../proactive/outreach/call-user-port.js';
 import { definitions } from '../index.js';
 import { TOOL_REFUSAL } from '../../../../agents/personas/action-claims.js';
-import { namesEmergencyService } from '../../../../utils/dialable-number.js';
+import { CRISIS_LINE_SPOKEN } from '../../../../services/safety/crisis-line-speech.js';
+import { getCrisisResources } from '../../../../services/safety/crisis-response.js';
 import { otherPerson, scheduleCallDescription } from '../schedule-call-who.js';
 
 const ctx: ToolContext = {
@@ -87,25 +88,32 @@ describe('SCHEDULE_CALL_WHO on: a scheduled call for someone else is never rung 
   ])('who %j: nothing is scheduled, and it says so', async (who, said) => {
     const reply = await run({ ...BIRTHDAY, who });
     expect(sent.reminder).not.toHaveBeenCalled();
+    // No "right now": an on-behalf call can wait for the call-hours window.
     expect(reply).toBe(
       `I can't set a call to ${said} for later yet. ` +
-        `I can call ${said} right now, or remind you in 2 hours to give them a call.`
+        `I can call ${said} for you, or remind you in 2 hours to give them a call.`
     );
     expect(reply).toMatch(TOOL_REFUSAL); // the action-claim guard reads it as nothing done
   });
 
-  // Ferni can't dial these (utils/dialable-number.ts), so no "I can call 911 right now".
+  it.each(['Riley from work', 'Riley Testing', "Riley's boss"])(
+    "who %j starts with the caller's name but is someone else: nothing is scheduled",
+    async (who) => {
+      const reply = await run({ ...BIRTHDAY, who });
+      expect(sent.reminder).not.toHaveBeenCalled();
+      expect(reply).toMatch(/^I can't set a call to .* for later yet\./);
+    }
+  );
+
+  // Ferni can't dial these (services/safety/help-line-who.ts), so no "I can call 911".
   it.each([
     '911',
     '9-1-1',
     'the police',
     'an ambulance',
     'Emergency services',
-    '988',
-    'the 988 lifeline',
-    'the suicide hotline',
-    'a crisis text line',
     '311',
+    '1-800-555-0100',
   ])('who %j: nothing is scheduled, and no call is offered', async (who) => {
     const reply = await run({ ...BIRTHDAY, who });
     expect(sent.reminder).not.toHaveBeenCalled();
@@ -115,6 +123,35 @@ describe('SCHEDULE_CALL_WHO on: a scheduled call for someone else is never rung 
     expect(reply).not.toMatch(/I can call|remind you/);
     expect(reply).toMatch(TOOL_REFUSAL);
   });
+
+  const [LIFELINE, TEXT_LINE] = getCrisisResources('severe_distress');
+  const POISON = getCrisisResources('substance_crisis')[1];
+  // A crisis line: no call or reminder offered, and the caller gets the line to call or text.
+  it.each([
+    ['988', LIFELINE, `call or text ${LIFELINE.phone}`],
+    ['the 988 lifeline', LIFELINE, `call or text ${LIFELINE.phone}`],
+    [CRISIS_LINE_SPOKEN, LIFELINE, `call or text ${LIFELINE.phone}`],
+    ['the suicide hotline', LIFELINE, `call or text ${LIFELINE.phone}`],
+    ['the hotline', LIFELINE, `call or text ${LIFELINE.phone}`],
+    ['the crisis team', LIFELINE, `call or text ${LIFELINE.phone}`],
+    ['Samaritans', LIFELINE, `call or text ${LIFELINE.phone}`],
+    ['741741', TEXT_LINE, `text HOME to ${TEXT_LINE.text?.replace(/\D/g, '')}`],
+    ['a crisis text line', TEXT_LINE, `text HOME to ${TEXT_LINE.text?.replace(/\D/g, '')}`],
+    ['poison control', POISON, `call ${POISON.phone}`],
+    [POISON.phone ?? '', POISON, `call ${POISON.phone}`],
+  ])(
+    'who %j: nothing is scheduled, and the caller gets the line itself',
+    async (who, line, how) => {
+      const reply = await run({ ...BIRTHDAY, who });
+      expect(sent.reminder).not.toHaveBeenCalled();
+      expect(reply).toBe(
+        `Nothing was scheduled: I can't place a call to ${who}. Say so plainly and kindly, ` +
+          `and that the caller can reach ${line.name} any time, right now: ${how}.`
+      );
+      expect(reply).not.toMatch(/I can call|remind you/);
+      expect(reply).toMatch(TOOL_REFUSAL);
+    }
+  );
 
   it.each(['my emergency contact Priya', 'Officer Marcus', 'the police station front desk'])(
     'who %j is a person or place, not a service: the usual line',
@@ -132,14 +169,24 @@ describe('SCHEDULE_CALL_WHO on: a scheduled call for someone else is never rung 
     expect(await run({ message: 'Happy birthday!', when, who: 'Aunt June' })).toContain(said);
   });
 
-  it.each([undefined, 'me', 'Me', 'myself', 'Riley', 'Riley Test'])(
-    'who %j (the caller): the call is scheduled to their verified phone',
-    async (who) => {
-      const reply = await run({ ...BIRTHDAY, ...(who === undefined ? {} : { who }) });
-      expect(rungTo()).toEqual([OWNER]);
-      expect(reply).toContain("I'll call you on");
-    }
-  );
+  it.each([
+    undefined,
+    '',
+    'me',
+    'Me',
+    'myself',
+    'the user',
+    'I',
+    'my phone',
+    'my cell',
+    'Riley',
+    'riley test',
+    'Riley Test.',
+  ])('who %j (the caller): the call is scheduled to their verified phone', async (who) => {
+    const reply = await run({ ...BIRTHDAY, ...(who === undefined ? {} : { who }) });
+    expect(rungTo()).toEqual([OWNER]);
+    expect(reply).toContain("I'll call you on");
+  });
 
   it('the model is told to say whom the call is for', () => {
     expect(Object.keys(shape())).toEqual(['message', 'when', 'who']);
@@ -174,18 +221,9 @@ describe('otherPerson', () => {
     expect(otherPerson('the caller')).toBeUndefined();
     expect(otherPerson('')).toBeUndefined();
     expect(otherPerson(42)).toBeUndefined();
-    expect(otherPerson('Riley', ['riley'])).toBeUndefined();
+    expect(otherPerson('Riley', ['riley test'])).toBeUndefined();
+    expect(otherPerson('Riley Test', ['riley test'])).toBeUndefined();
+    expect(otherPerson('Riley from work', ['riley test'])).toBe('Riley from work');
     expect(otherPerson('Riley', [])).toBe('Riley');
-  });
-});
-
-describe('namesEmergencyService', () => {
-  it('emergency and crisis numbers and services, not people or other numbers', () => {
-    for (const who of ['911', '(988)', '112', 'ems', 'the cops', 'a suicide line', 'Lifeline']) {
-      expect(namesEmergencyService(who)).toBe(true);
-    }
-    for (const who of ['Aunt June', '555-0142', 'my emergency contact', 'Priya 9110', '']) {
-      expect(namesEmergencyService(who)).toBe(false);
-    }
   });
 });

@@ -19,7 +19,7 @@
  *
  * @module agents/personas/emergency-claim
  */
-import { EMERGENCY_SERVICE } from '../../utils/dialable-number.js';
+import { EMERGENCY_SERVICE } from '../../services/safety/index.js';
 import { IN_DANGER_NOW } from '../safety/crisis-guard.js';
 import { recentSpoken, spokenOf, plain, type Item } from './spoken-words.js';
 
@@ -40,7 +40,7 @@ const WILL = "\\b(?:let me|i'?m going to|i'?m gonna|i'?ll|i will)";
 const LEAD =
   "^(?:(?:okay|ok|alright|all right|right|on it|i'?m on it|hang on|stay with me|hold on)\\W+)*";
 const NOW = '(?: (?:now|right now|right away|immediately))?';
-/** Emergency services by name (utils/dialable-number.ts). */
+/** Emergency services by name (services/safety/emergency-number.ts). */
 const SERVICE = EMERGENCY_SERVICE;
 /** Help itself, as something Ferni could send or get: not "help from Maya" or "help with that". */
 const HELP = '(?:help\\b(?! (?:from|with|desk|center|centre|line)\\b))';
