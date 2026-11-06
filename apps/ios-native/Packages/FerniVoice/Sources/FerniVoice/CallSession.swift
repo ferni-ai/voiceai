@@ -5,8 +5,9 @@ import os
 
 /// One conversation with Ferni, from tapping talk to hanging up.
 ///
-/// Joining isn't done until the agent is in the room: the session waits up to
-/// `agentTimeout` for it, tries once more with a fresh room, and otherwise
+/// Joining isn't done until the agent is in the room. Each attempt (token, room,
+/// agent) gets `agentTimeout` in all, whatever it's stuck on, and says "on the
+/// way" after `arrivingAfter`; then one more try with a fresh room, and otherwise
 /// stops with something the person can act on (Retry). Silence on
 /// "Connected" is what App Review hit in January 2026.
 @MainActor
@@ -50,6 +51,7 @@ public final class CallSession {
     private let makeRoom: @Sendable () -> any VoiceRoom
     private let audio: any CallAudio
     private let agentTimeout: Duration
+    private let arrivingAfter: Duration
     private var room: (any VoiceRoom)?
     private let lifecycle: (any CallLifecycle)?
     private var callID: UUID?
@@ -62,6 +64,13 @@ public final class CallSession {
     var now: () -> ContinuousClock.Instant = { .now }
     /// LiveCommunicationKit took this call: the system activates its audio.
     private var systemOwnsCall = false
+    /// The system has activated this call's audio (and not taken it back).
+    private var systemAudioOn = false
+    /// The system never activated a call's audio on this phone: later calls
+    /// run their audio themselves from the start, without the system's call.
+    private var systemAudioUnreliable = false
+    private let audioStartTimeout: Duration
+    private var audioWatchdog: Task<Void, Never>?
     private var agentHere = false
     private var callTask: Task<Void, Never>?
     private var eventsTask: Task<Void, Never>?
@@ -74,7 +83,9 @@ public final class CallSession {
         avatar: AvatarModel = AvatarModel(),
         lifecycle: (any CallLifecycle)? = nil,
         agentLevel: AudioLevelMeter = AudioLevelMeter(),
-        agentTimeout: Duration = .seconds(10),
+        agentTimeout: Duration = .seconds(20),
+        arrivingAfter: Duration = .seconds(8),
+        audioStartTimeout: Duration = .seconds(3),
         defaults: UserDefaults = .standard
     ) {
         self.defaults = defaults
@@ -86,6 +97,8 @@ public final class CallSession {
         self.makeRoom = makeRoom
         self.audio = audio
         self.agentTimeout = agentTimeout
+        self.arrivingAfter = arrivingAfter
+        self.audioStartTimeout = audioStartTimeout
         Task { [weak self, interruptions = audio.interruptions] in
             for await interruption in interruptions { await self?.handle(interruption) }
         }
@@ -117,6 +130,7 @@ public final class CallSession {
         callBegan = .now
         startedAt = .now
         systemOwnsCall = false
+        systemAudioOn = false
         phase = .connecting
         callTask = Task {
             // Hung up before this task ever ran: nothing to start (or show).
@@ -128,8 +142,16 @@ public final class CallSession {
                 }
                 if Task.isCancelled { return }
             }
+            // The mic before the system's call begins: a first-time prompt never
+            // races the system call UI for the audio, and a "no" starts no call
+            // that can't hear (App Review, January 2026).
+            guard await audio.requestMicrophone() else {
+                if !Task.isCancelled { fail(.microphoneDenied) }
+                return
+            }
+            if Task.isCancelled { return }
             // The system's call UI; the call still works if it refuses.
-            if let lifecycle {
+            if let lifecycle, !systemAudioUnreliable {
                 do {
                     try await lifecycle.begin(id: id, name: PersonaRegistry.get(personaID).name)
                     systemOwnsCall = true
@@ -151,6 +173,7 @@ public final class CallSession {
         callTask?.cancel()
         callTask = nil
         await leaveRoom()
+        audio.callEnded()
         phase = .ended
         avatar.send(.ended)
         isOnHold = false
@@ -231,6 +254,8 @@ public final class CallSession {
             }
         case .mute(let muted): _ = await setMuted(muted)
         case .audio(let active):
+            systemAudioOn = active
+            if active { audioWatchdog?.cancel() }
             audio.systemAudio(active: active)
             guard systemOwnsCall, isActive else { return }
             if active {
@@ -244,18 +269,19 @@ public final class CallSession {
     // MARK: - Joining
 
     /// `cancelled`: the person hung up meanwhile; nothing may change on screen.
-    private enum Attempt { case joined, ferniMissing, failed(CallProblem), cancelled }
+    private enum Attempt: Equatable, Sendable { case joined, ferniMissing, failed(CallProblem), cancelled }
 
     private func run(rejoining: Bool) async {
         guard !Task.isCancelled else { return }
         phase = .connecting
         if !rejoining { captions.clear() }
-        guard await audio.requestMicrophone() else { return fail(.microphoneDenied) }
         // A fresh join gets one retry when Ferni doesn't show; a rejoin after a
         // dropped call gets a single try.
         for attempt in 1...(rejoining ? 1 : 2) {
             if Task.isCancelled { return }
-            switch await join() {
+            // The retry follows a late Ferni: still "on the way", never back to "Calling…".
+            if attempt > 1 { phase = .waitingForFerni }
+            switch await joinBeforeDeadline(attempt: attempt, rejoining: rejoining) {
             case .joined:
                 if !Task.isCancelled {
                     phase = .live
@@ -265,11 +291,12 @@ public final class CallSession {
                         hasTalked = true
                         defaults.set(true, forKey: Self.hasTalkedKey)
                     }
+                    watchAudioStart()
                 }
                 if rejoining { avatar.send(.reconnected) }
                 return
             case .ferniMissing:
-                log.error("Ferni didn't join (attempt \(attempt))")
+                log.error("Ferni didn't join (attempt \(attempt)); leaving room \(self.roomName ?? "-", privacy: .public)")
                 await leaveRoom()
             case .failed(let problem):
                 await leaveRoom()
@@ -278,13 +305,94 @@ public final class CallSession {
                 return
             }
         }
-        if !Task.isCancelled { fail(rejoining ? .connectionLost : .ferniDidNotJoin) }
+        if !Task.isCancelled {
+            log.error("Giving up after \(rejoining ? 1 : 2) room(s); \(self.secondsSinceStart, privacy: .public) s since Talk")
+            fail(rejoining ? .connectionLost : .ferniDidNotJoin)
+        }
     }
 
-    private func join() async -> Attempt {
+    /// One attempt, with a watchdog: "on the way" at `arrivingAfter`, and at
+    /// `agentTimeout` the attempt is abandoned wherever it's stuck (token,
+    /// connect or waiting for the agent) and counts as Ferni missing. The
+    /// watchdog stops the waiting, not just the join: a connect that ignores
+    /// cancellation finishes later on its own, in a room already left.
+    private func joinBeforeDeadline(attempt: Int, rejoining: Bool) async -> Attempt {
+        let race = AttemptRace()
+        let result = await withTaskCancellationHandler {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Attempt, Never>) in
+                race.start(continuation,
+                    joining: Task { race.finish(await self.join(attempt: attempt)) },
+                    watchdog: Task { [weak self, arrivingAfter, agentTimeout] in
+                        // The deadline wins if it's the shorter of the two.
+                        try? await Task.sleep(for: min(arrivingAfter, agentTimeout))
+                        guard let self, !Task.isCancelled else { return }
+                        if !rejoining, arrivingAfter < agentTimeout, self.phase == .connecting {
+                            self.phase = .waitingForFerni
+                            self.log.info("Attempt \(attempt): no Ferni yet at \(self.secondsSinceStart, privacy: .public) s; on the way")
+                        }
+                        try? await Task.sleep(for: max(.zero, agentTimeout - arrivingAfter))
+                        guard !Task.isCancelled, !self.agentHere else { return }
+                        self.log.error("Attempt \(attempt): no Ferni after \(agentTimeout.components.seconds) s; abandoning it")
+                        race.finish(.ferniMissing)
+                    })
+            }
+        } onCancel: {
+            race.finish(.cancelled) // hung up
+        }
+        race.stop()
+        return result
+    }
+
+    /// The first of an attempt's join and its watchdog to finish decides it.
+    private final class AttemptRace: @unchecked Sendable {
+        private let lock = OSAllocatedUnfairLock()
+        private var continuation: CheckedContinuation<Attempt, Never>?
+        private var early: Attempt?
+        private var joining: Task<Void, Never>?
+        private var watchdog: Task<Void, Never>?
+
+        func start(_ continuation: CheckedContinuation<Attempt, Never>, joining: Task<Void, Never>, watchdog: Task<Void, Never>) {
+            let early: Attempt? = lock.withLock {
+                self.joining = joining
+                self.watchdog = watchdog
+                if let early = self.early { return early }
+                self.continuation = continuation
+                return nil
+            }
+            // Hung up before it began.
+            if let early { stop(); continuation.resume(returning: early) }
+        }
+
+        func finish(_ result: Attempt) {
+            let waiting: CheckedContinuation<Attempt, Never>? = lock.withLock {
+                guard continuation != nil else {
+                    if early == nil, joining == nil { early = result }
+                    return nil
+                }
+                defer { continuation = nil }
+                return continuation
+            }
+            waiting?.resume(returning: result)
+        }
+
+        func stop() {
+            let (joining, watchdog) = lock.withLock { (self.joining, self.watchdog) }
+            joining?.cancel()
+            watchdog?.cancel()
+        }
+    }
+
+    /// Seconds since Talk, for the "call" log's timings.
+    private var secondsSinceStart: String {
+        let elapsed = (ContinuousClock.now - callBegan).components
+        return String(format: "%.1f", Double(elapsed.seconds) + Double(elapsed.attoseconds) / 1e18)
+    }
+
+    private func join(attempt: Int) async -> Attempt {
         let token: CallToken
         do {
             token = try await fetchToken(personaID)
+            log.info("Attempt \(attempt): token at \(self.secondsSinceStart, privacy: .public) s (dispatched: \(token.agentDispatched.map(String.init) ?? "?", privacy: .public))")
         } catch {
             // A hang-up surfaces as a network error from URLSession: not a failure (critic H1).
             return Task.isCancelled ? .cancelled : .failed(CallProblem(error))
@@ -299,6 +407,12 @@ public final class CallSession {
         }
         do {
             try audio.activate(systemOwned: systemOwnsCall)
+        } catch {
+            // The sound, not the network: never "check your connection" for it.
+            log.error("The call's audio didn't start: \(error.localizedDescription, privacy: .public)")
+            return .failed(.audioDidNotStart)
+        }
+        do {
             try await room.connect(url: token.url, token: token.token)
             // Hung up while connecting: the room was already left; touch nothing.
             if Task.isCancelled || self.room !== room { return .cancelled }
@@ -308,21 +422,55 @@ public final class CallSession {
             return Task.isCancelled || self.room !== room ? .cancelled : .failed(.offline)
         }
         if Task.isCancelled || self.room !== room { return .cancelled }
-        if !agentHere { phase = .waitingForFerni }
+        log.info("Attempt \(attempt): in room \(token.room, privacy: .public) at \(self.secondsSinceStart, privacy: .public) s")
         // The server already knows dispatch failed: no point waiting it out.
-        let wait = token.agentDispatched == false ? Duration.zero : agentTimeout
-        return await waitForAgent(upTo: wait) ? .joined : .ferniMissing
-    }
-
-    private func waitForAgent(upTo limit: Duration) async -> Bool {
-        let deadline = ContinuousClock.now + limit
-        while !agentHere, ContinuousClock.now < deadline, !Task.isCancelled {
+        if token.agentDispatched == false, !agentHere { return .ferniMissing }
+        // Until Ferni arrives or the attempt's watchdog gives up on him.
+        while !agentHere, !Task.isCancelled {
             try? await Task.sleep(for: .milliseconds(50))
         }
-        return agentHere
+        guard agentHere else { return Task.isCancelled ? .cancelled : .ferniMissing }
+        log.info("Attempt \(attempt): Ferni joined at \(self.secondsSinceStart, privacy: .public) s")
+        return .joined
+    }
+
+    /// Live must mean heard. Under the system's call service the audio engine
+    /// waits for the system's go (`systemAudio(active:)`); if it never comes,
+    /// the screen says live over silence, the January 2026 rejection (iPad Air
+    /// 5). The system normally activates the audio as its call starts, before
+    /// Ferni has even joined, so `audioStartTimeout` after he joins is already
+    /// late: the app takes the audio itself, and if that fails too the call
+    /// ends with Try again.
+    private func watchAudioStart() {
+        audioWatchdog?.cancel()
+        guard systemOwnsCall, !systemAudioOn else { return }
+        audioWatchdog = Task { [weak self, audioStartTimeout] in
+            try? await Task.sleep(for: audioStartTimeout)
+            guard !Task.isCancelled else { return }
+            await self?.audioDidNotStart()
+        }
+    }
+
+    private func audioDidNotStart() async {
+        guard systemOwnsCall, !systemAudioOn, isActive, let room else { return }
+        log.error("No system audio \(self.audioStartTimeout, privacy: .public) after Ferni joined; running it ourselves. \(self.audio.engineState, privacy: .public)")
+        systemOwnsCall = false
+        systemAudioUnreliable = true
+        do {
+            try audio.activate(systemOwned: false)
+            try await room.setMicrophone(enabled: !isMuted)
+            log.info("Call audio running without the system: \(self.audio.engineState, privacy: .public)")
+        } catch {
+            guard isActive, self.room === room else { return } // hung up meanwhile
+            log.error("Call audio didn't start: \(error.localizedDescription, privacy: .public). \(self.audio.engineState, privacy: .public)")
+            await leaveRoom()
+            fail(.audioDidNotStart)
+        }
     }
 
     private func leaveRoom() async {
+        audioWatchdog?.cancel()
+        audioWatchdog = nil
         eventsTask?.cancel()
         eventsTask = nil
         let leaving = room
@@ -338,6 +486,7 @@ public final class CallSession {
     private func fail(_ problem: CallProblem) {
         lastCallWasGood = false
         liveSince = nil
+        audio.callEnded()
         phase = .failed(problem)
         avatar.send(.failed)
         isOnHold = false
@@ -455,6 +604,8 @@ public enum CallProblem: Equatable, Sendable {
     case server(Int)
     case ferniDidNotJoin
     case connectionLost
+    /// The call's sound never started (neither the system nor the app could start it).
+    case audioDidNotStart
 
     init(_ error: Error) {
         switch error as? FerniAPIError {
@@ -475,9 +626,11 @@ public enum CallProblem: Equatable, Sendable {
         case .server:
             "Something went wrong on our side. Try again in a minute."
         case .ferniDidNotJoin:
-            "Ferni couldn't join. Let's try again."
+            "Ferni couldn't join right now. Try again in a minute."
         case .connectionLost:
             "Lost the connection. Call back?"
+        case .audioDidNotStart:
+            "The sound didn't start. Try again in a moment."
         }
     }
 }

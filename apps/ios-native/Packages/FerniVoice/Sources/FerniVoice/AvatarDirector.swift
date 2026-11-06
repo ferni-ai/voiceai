@@ -32,6 +32,24 @@ public enum AvatarEffect: Equatable, Sendable {
     case announce(String)
 }
 
+extension AvatarEffect {
+    /// Whether this still plays once the call is marked crisis (#2868 item 2).
+    /// Decoration stops: every sound, and the haptics that greet, celebrate or
+    /// play. What the person relies on stays: VoiceOver, the call failing, and
+    /// the call coming back after "Reconnecting". A new cue must pick a side here.
+    public var playsDuringCrisis: Bool {
+        switch self {
+        case .announce: true
+        case .earcon: false
+        case .haptic(let cue):
+            switch cue {
+            case .error, .reconnected: true
+            case .presence, .firstWord, .handoff, .goodbye, .touch: false
+            }
+        }
+    }
+}
+
 
 /// The avatar's state machine, pure and clocked by the caller so tests control
 /// time. Turn poses settle for 150 ms (400 ms under Reduce Motion) so a quick

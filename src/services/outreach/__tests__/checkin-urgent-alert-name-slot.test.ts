@@ -144,13 +144,22 @@ describe('check-in alert: the name is not their words (CHECKIN_ALERT_NAME_SLOT)'
     }
   });
 
-  it('a money read in the suggested action: the flag changes nothing', () => {
-    const action = 'wire $400 to 4417 2290';
-    const alert = alertFor('Pin', TIRED, ON, action);
-    expect(alert).toBe(alertFor('Pin', TIRED, OFF, action));
-    expect(alert).toContain(crisisCallerLine('Pin'));
-    expect(alert).not.toMatch(/4417|\$400/);
-  });
+  // What that alert says is checkin-urgent-alert-money-action.test.ts's; this pins only the gate.
+  // A risky action with no digit or number word: only the action's own money read keeps main's alert.
+  it.each(
+    NAMES_THAT_ARE_SCREEN_WORDS.flatMap(([name, description]) =>
+      ['wire $400 to 4417 2290', 'send her the bank login', 'give him your password'].map(
+        (action) => [name, description, action] as const
+      )
+    )
+  )(
+    '%s, a risky suggested action (%j, %j): the flag changes nothing',
+    (name, description, action) => {
+      expect(alertFor(name, description, ON, action)).toBe(
+        alertFor(name, description, OFF, action)
+      );
+    }
+  );
 
   it.each([
     "she said she doesn't want to be here anymore",

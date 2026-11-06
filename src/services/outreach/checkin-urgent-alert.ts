@@ -116,6 +116,15 @@ function needsCrisisLine(
   return withheld || flagged || read;
 }
 
+/**
+ * Whether the alert closes with riskyCallerLine: the suggestion read money, an account or a
+ * number and the description's own words went out, so nothing else names money. A risky
+ * suggestion is always withheld, so crisisCallerLine sits between their words and this line.
+ */
+function namesMoney(desc: ScreenedField, act: ScreenedField): boolean {
+  return act.risky && desc.said !== '';
+}
+
 /** Any word for a digit or a number, tens and multipliers included; glued forms too ("ohfive"). */
 const NUMBER_WORD =
   'zero|oh|one|two|three|four|five|six|seven|eight|nine|niner|ten|eleven|twelve|thirteen|' +
@@ -177,10 +186,13 @@ function clause(text: string): string {
  * The concern is written from the family member's words on the call, so it
  * goes through the caller-text screen before it reaches the sponsor: a link,
  * number or money/credential request is never passed on. Each field is
- * screened alone, then the exact alert is screened again, since two fields
- * that each pass can join into a number. A risky suggestion is dropped for
- * Ferni's own line. Fields too long for the screen to read in full send the
- * generic alert, and a field that is not text gets Ferni's line for that field.
+ * screened alone, then the alert is screened again, since two fields that
+ * each pass can join into a number (read with Ferni's check-in line where the
+ * money line goes, so a name like Loan doesn't trip it). A risky suggestion is dropped for
+ * Ferni's own line: riskyCallerLine, so the sponsor hears money came up even when
+ * the description went out clean (owner decision). Fields too long for the screen
+ * to read in full send the generic alert, and a field that is not text gets Ferni's
+ * line for that field.
  *
  * The screen never costs a crisis signal. Before it, the sponsor got the
  * concern's words in full. So whenever any of those words are withheld or cut,
@@ -211,20 +223,25 @@ export function generateUrgentNotification(
 
   const desc = screenField(concern.description, name);
   const act = screenField(concern.recommendedAction, name);
+  const money = namesMoney(desc, act);
   const next = act.said || CHECK_IN_ACTION; // Ferni's line whenever it was risky or not text
-  const alertFor = (who: string, crisis: boolean): string =>
-    alert(who, desc.said || heldLine(desc, act, who), next, crisis);
+  // The screen reads each alert with Ferni's check-in line in the closing slot: the money line is
+  // Ferni's own words, and a name like Loan would trip the screen's "loan ... money" read on them.
+  const alertFor = (who: string, crisis: boolean, close = next): string =>
+    alert(who, desc.said || heldLine(desc, act, who), close, crisis);
   const what = desc.said || heldLine(desc, act, name);
   const both = [concern.description, concern.recommendedAction]
     .map(fieldText)
     .filter(Boolean)
     .join(' ');
   const crisis = needsCrisisLine(desc, act, both, what, next);
-  const sent = alertFor(name, crisis);
-  const read = nameSlotOn(desc, act, name, both, env) ? alertFor(NAME_SLOT, crisis) : sent;
-  const screened = [both, sent, read].every((text) => text.length <= SCREEN_WINDOW);
+  const sentWith = (withCrisis: boolean): string =>
+    alertFor(name, withCrisis, money ? riskyCallerLine(name) : next);
+  const mainRead = alertFor(name, crisis);
+  const read = nameSlotOn(desc, act, name, both, env) ? alertFor(NAME_SLOT, crisis) : mainRead;
+  const screened = [both, mainRead, read].every((text) => text.length <= SCREEN_WINDOW);
   if (screened && !isRiskyCallerText(read)) {
-    return keepsCrisisLine(sent, read, crisis) ? alertFor(name, true) : sent;
+    return sentWith(crisis || keepsCrisisLine(mainRead, read, crisis));
   }
   // Too long to screen in full, or the joined fields formed something risky:
   // pass neither on, so their words are withheld and crisisCallerLine goes. The

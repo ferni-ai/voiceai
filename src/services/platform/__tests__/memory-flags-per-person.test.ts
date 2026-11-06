@@ -33,7 +33,7 @@ import {
   captureHandoffContext,
   clearHandoffArrivals,
 } from '../../../tools/handoff/handoff-arrival.js';
-import { notWrittenReply } from '../../../tools/domains/memory/honest-memory.js';
+import { memoryToolFlags, notWrittenReply } from '../../../tools/domains/memory/honest-memory.js';
 import { callerFlag } from '../caller-flag.js';
 import {
   applyCallerFlags,
@@ -146,10 +146,10 @@ describe('REMEMBER_TO_RECALL and MEMORY_TOOLS_HONEST, set by a cohort after impo
 
   it('MEMORY_TOOLS_HONEST changes what the remember tool says, for that caller only', async () => {
     await callStartsFor(IN_COHORT, { MEMORY_TOOLS_HONEST: 'on' });
-    expect(notWrittenReply()).not.toBe("I'll remember that.");
+    expect(notWrittenReply(memoryToolFlags().honest)).not.toBe("I'll remember that.");
 
     await callStartsFor(NOT_IN_IT);
-    expect(notWrittenReply()).toBe("I'll remember that.");
+    expect(notWrittenReply(memoryToolFlags().honest)).toBe("I'll remember that.");
   });
 });
 
