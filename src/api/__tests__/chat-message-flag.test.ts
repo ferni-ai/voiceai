@@ -30,7 +30,7 @@ async function call(
   method: 'GET' | 'POST',
   path: string,
   body?: object
-): Promise<{ status: number; body: unknown }> {
+): Promise<{ status: number; body: unknown; handled: boolean }> {
   const stream = new PassThrough();
   const req = stream as unknown as IncomingMessage;
   req.method = method;
@@ -48,8 +48,8 @@ async function call(
       sent = chunk ? JSON.parse(chunk) : undefined;
     }),
   } as unknown as ServerResponse;
-  expect(await handleChatRoutes(req, res, path)).toBe(true);
-  return { status, body: sent };
+  const handled = await handleChatRoutes(req, res, path);
+  return { status, body: sent, handled };
 }
 
 const MESSAGE = { message: 'remind me to call Priya at 6', personaId: 'ferni' };
@@ -68,11 +68,12 @@ afterEach(() => {
 });
 
 describe('WEB_CHAT_MESSAGE', () => {
-  it.each([undefined, 'off', 'false'])(
+  it.each([undefined, '', 'off', 'false', '0', 'OFF', 'shadow', 'maybe', ' no '])(
     'flag %s: 404, and no auth read, no storage read, no model call, no tool run',
     async (value) => {
       if (value !== undefined) vi.stubEnv('WEB_CHAT_MESSAGE', value);
-      const { status } = await call('POST', '/api/chat/message', MESSAGE);
+      const { status, handled } = await call('POST', '/api/chat/message', MESSAGE);
+      expect(handled).toBe(true);
       expect(status).toBe(404);
       expect(requireAuth).not.toHaveBeenCalled();
       expect(rateLimit).not.toHaveBeenCalled();
@@ -87,6 +88,28 @@ describe('WEB_CHAT_MESSAGE', () => {
     expect(status).toBe(404);
     expect(generateContent).not.toHaveBeenCalled();
   });
+
+  it.each([
+    '/api/chat/message/',
+    '/API/CHAT/MESSAGE',
+    '/api/chat//message',
+    '/api/chat/message.json',
+    // Not this route: unhandled here (the server's 404) or another chat route's answer.
+  ])('flag off: %s reaches no model and no tool either', async (path) => {
+    await call('POST', path, MESSAGE);
+    expect(generateContent).not.toHaveBeenCalled();
+    expect(executeTool).not.toHaveBeenCalled();
+  });
+
+  it.each(['on', 'ON', ' on ', 'true', '1', 'live'])(
+    'flag %j: the model is called and its tool runs',
+    async (value) => {
+      vi.stubEnv('WEB_CHAT_MESSAGE', value);
+      expect((await call('POST', '/api/chat/message', MESSAGE)).status).toBe(200);
+      expect(generateContent).toHaveBeenCalledTimes(1);
+      expect(executeTool).toHaveBeenCalledTimes(1);
+    }
+  );
 
   it('flag on: the model is called, its tool runs, and the reply is a 200 as before', async () => {
     vi.stubEnv('WEB_CHAT_MESSAGE', 'on');
