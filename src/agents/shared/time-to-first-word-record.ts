@@ -19,6 +19,7 @@ export const CLIENT_TIMING_TOPIC = 'ferni.client_timing';
  *
  *   { "tapAt": 1760000000000,            // the caller tapped to talk
  *     "roomConnectedAt": 1760000000600,  // the app joined the LiveKit room
+ *     "agentAudioTrackAt": 1760000001200, // optional: Ferni's first audio track reached the app
  *     "firstAudioHeardAt": 1760000001700, // Ferni's first audio played on the device
  *     "platform": "ios" }                // optional: ios | android | web | mac
  *
@@ -30,6 +31,8 @@ export const CLIENT_TIMING_TOPIC = 'ferni.client_timing';
 export interface ClientTiming {
   tapAt?: number;
   roomConnectedAt?: number;
+  /** Ferni's first audio track reached the app; older apps and iOS do not send it. */
+  agentAudioTrackAt?: number;
   firstAudioHeardAt?: number;
   platform?: string;
 }
@@ -62,6 +65,10 @@ export interface TtfwRecord {
   clientTapToRoomMs?: number;
   clientTapToHeardMs?: number;
   clientRoomToHeardMs?: number;
+  /** Room joined -> Ferni's first audio track, when the app sends agentAudioTrackAt. */
+  clientRoomToAgentTrackMs?: number;
+  /** Ferni's first audio track -> it played, when the app sends agentAudioTrackAt. */
+  clientAgentTrackToHeardMs?: number;
 }
 
 /** Device moments before 2020 or after 2100 are not epoch ms. */
@@ -101,13 +108,15 @@ export function computeTtfwRecord(marks: TtfwMarks, client?: ClientTiming): Ttfw
     clientTapToRoomMs: clientSpan(client?.tapAt, client?.roomConnectedAt),
     clientTapToHeardMs: clientSpan(client?.tapAt, client?.firstAudioHeardAt),
     clientRoomToHeardMs: clientSpan(client?.roomConnectedAt, client?.firstAudioHeardAt),
+    clientRoomToAgentTrackMs: clientSpan(client?.roomConnectedAt, client?.agentAudioTrackAt),
+    clientAgentTrackToHeardMs: clientSpan(client?.agentAudioTrackAt, client?.firstAudioHeardAt),
   };
   return Object.fromEntries(
     Object.entries(fields).filter(([, ms]) => typeof ms === 'number' && Number.isFinite(ms))
   ) as TtfwRecord;
 }
 
-const MOMENTS = ['tapAt', 'roomConnectedAt', 'firstAudioHeardAt'] as const;
+const MOMENTS = ['tapAt', 'roomConnectedAt', 'agentAudioTrackAt', 'firstAudioHeardAt'] as const;
 
 const isEpochMs = (v: unknown): v is number =>
   typeof v === 'number' && v >= MIN_EPOCH_MS && v <= MAX_EPOCH_MS;
