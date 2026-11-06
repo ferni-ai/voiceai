@@ -108,6 +108,7 @@
 /src/services/outreach/call-progress.ts @sethdford
 /src/services/outreach/call-result-live.ts @sethdford
 /src/services/outreach/caller-text.ts @sethdford
+/src/services/outreach/session-integration.ts @sethdford
 /src/services/principal-alignment/human-referral.ts @sethdford
 /src/services/principal-alignment/index.ts @sethdford
 /src/services/principal-alignment/referral-resources.ts @sethdford

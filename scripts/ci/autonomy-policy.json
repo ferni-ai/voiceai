@@ -73,6 +73,7 @@
         "src/services/outreach/call-progress.ts",
         "src/services/outreach/call-result-live.ts",
         "src/services/outreach/caller-text.ts",
+        "src/services/outreach/session-integration.ts",
         "src/services/principal-alignment/human-referral.ts",
         "src/services/principal-alignment/index.ts",
         "src/services/principal-alignment/referral-resources.ts",

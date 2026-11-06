@@ -77,6 +77,7 @@ export {
   disclosureGuidance,
   withAbuseRead,
 } from './abuse-disclosure-turn.js';
+export { abuseOnlyRead } from './abuse-disclosure.js';
 
 // ============================================================================
 // ESCALATION PATHWAYS

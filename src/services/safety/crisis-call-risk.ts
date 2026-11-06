@@ -19,6 +19,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { abuseOnlyRead } from './abuse-disclosure.js';
 
 const log = createLogger({ module: 'CrisisCallRisk' });
 
@@ -37,12 +38,14 @@ interface RiskNotes {
   turnless: boolean;
   turns: Set<string>;
   explained: Set<string>;
+  /** Anything noted besides an abuse-only read (notePatternRisk), for selfRiskThisCall. */
+  self: boolean;
 }
 const notes = new Map<string, RiskNotes>();
 const notesOf = (sessionId: string): RiskNotes => {
   let kept = notes.get(sessionId);
   if (!kept) {
-    kept = { turnless: false, turns: new Set(), explained: new Set() };
+    kept = { turnless: false, turns: new Set(), explained: new Set(), self: false };
     notes.set(sessionId, kept);
   }
   return kept;
@@ -112,6 +115,28 @@ export function noteCrisisRisk(
   now = Date.now(),
   turn?: string
 ): void {
+  noteRisk(sessionId, now, turn, true);
+}
+
+/**
+ * Note a pattern read's risk on this call. A read that found only someone hurting the caller
+ * (abuseOnlyRead) is risk for everything noteCrisisRisk serves, but not for selfRiskThisCall. A
+ * gentle 988 offer's read has no indicators (screenIdeation), so it is always risk to the caller.
+ */
+export function notePatternRisk(
+  sessionId: string | undefined,
+  read: { indicators: readonly string[] },
+  now = Date.now()
+): void {
+  noteRisk(sessionId, now, undefined, !abuseOnlyRead(read));
+}
+
+function noteRisk(
+  sessionId: string | undefined,
+  now: number,
+  turn: string | undefined,
+  self: boolean
+): void {
   if (!sessionId) return;
   for (const [id, at] of risky) {
     if (now - at > TTL_MS) {
@@ -124,6 +149,7 @@ export function noteCrisisRisk(
   const kept = notesOf(sessionId);
   if (turn === undefined) kept.turnless = true;
   else kept.turns.add(turn);
+  if (self) kept.self = true;
   for (const listener of listeners) {
     try {
       listener(sessionId, turn);
@@ -176,6 +202,21 @@ export function trackCrisisRead<T extends { risk: string } | null>(
 export function crisisRiskThisCall(sessionId: string, latest?: string, now = Date.now()): boolean {
   const at = risky.get(sessionId);
   if (at !== undefined && now - at <= TTL_MS) return true;
+  return readsInFlightBesides(sessionId, latest);
+}
+
+/**
+ * crisisRiskThisCall, not counting an abuse-only read notePatternRisk noted: ABUSE_DISCLOSURE_PATTERNS keeps 988
+ * on a call with any risk to the caller besides the abuse (abuse-disclosure-turn.ts).
+ */
+export function selfRiskThisCall(sessionId: string, latest?: string, now = Date.now()): boolean {
+  const at = risky.get(sessionId);
+  if (at !== undefined && now - at <= TTL_MS && notes.get(sessionId)?.self === true) return true;
+  return readsInFlightBesides(sessionId, latest);
+}
+
+/** Reads in flight on this call, besides those of `latest` (this turn's other path). */
+function readsInFlightBesides(sessionId: string, latest: string | undefined): boolean {
   const reads = pending.get(sessionId);
   if (!reads) return false;
   const turn = latest === undefined ? undefined : turnOf(latest);

@@ -24,7 +24,7 @@ import {
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
-import { noteCrisisRisk } from '../../../services/safety/crisis-call-risk.js';
+import { noteCrisisRisk, notePatternRisk } from '../../../services/safety/crisis-call-risk.js';
 import {
   afterCheckLoneRead,
   noteConfirmedRisk,
@@ -46,6 +46,7 @@ import { transferRequestIsEveryday } from '../../../services/safety/crisis-trans
 import { startWhoRead } from '../../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
 import {
   abuseCallRisk,
+  abuseOnlyRead,
   blockedReadGuidance,
   noteMeansInHandShadow,
   shadowPipelineGrade,
@@ -187,9 +188,11 @@ export function startTurnCrisis(
   const shouldBlock = guardFromDetection(patterns).shouldBlock;
   // A gentle 988 offer counts as a match: risk on this call, and both paths agree.
   const pattern = shouldBlock ? 'block' : patterns.isCrisis || gentle ? 'crisis' : 'none';
-  // ABUSE_DISCLOSURE_PATTERNS: call risk before this turn's own note (abuse-disclosure-turn.ts).
-  const abuseRisk = abuseCallRisk(options.sessionId, userText, pattern !== 'none');
-  if (pattern !== 'none') noteCrisisRisk(options.sessionId); // risk on this call (crisis-call-risk.ts)
+  // ABUSE_DISCLOSURE_PATTERNS: call risk before this turn's own note (abuse-disclosure-turn.ts);
+  // someone hurting the caller and nothing else is no risk to the caller's own life.
+  const abuseOnly = abuseOnlyRead(patterns);
+  const abuseRisk = abuseCallRisk(options.sessionId, userText, pattern !== 'none' && !abuseOnly);
+  if (pattern !== 'none') notePatternRisk(options.sessionId, patterns);
   if (pattern !== 'none') noteConfirmedRisk(options.sessionId || undefined, options.env);
   const { env = process.env, generate } = options;
   // Only the agreement gate and a live adjudicator hold the turn for the turn's
@@ -340,7 +343,8 @@ export function startTurnCrisis(
     if (first) shadowPipelineGrade(read, { ...graded, patterns, priorRisk, screened, voice }, env);
     // MINOR_ABUSE_DISCLOSURE: a caller under 18 telling of sexual harm, after every read; no
     // classifier read keeps 988 (minor-abuse-disclosure.ts).
-    const minor = withMinorAbuseRead(read, call, input, { priorRisk, classifier }, env);
+    const minorPrior = abuseOnly ? abuseRisk.riskBefore : priorRisk; // not this turn's own note
+    const minor = withMinorAbuseRead(read, call, input, { priorRisk: minorPrior, classifier }, env);
     // ABUSE_DISCLOSURE_PATTERNS: someone hurting the caller is a safety turn, after every read,
     // the minor's read included; its guidance yields to the minor's (turn-handler.ts).
     return withAbuseRead(minor, input, abuseRisk, classifier, env);
