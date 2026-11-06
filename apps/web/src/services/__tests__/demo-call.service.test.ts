@@ -15,6 +15,7 @@ interface FakeRoom {
   disconnect: Mock<DemoRoom['disconnect']>;
   waitForAgent: Mock<DemoRoom['waitForAgent']>;
   startAudio: Mock<DemoRoom['startAudio']>;
+  watchAudioStart: Mock<DemoRoom['watchAudioStart']>;
   onEnd: DemoRoom['onEnd'];
   onPlaybackChange: DemoRoom['onPlaybackChange'];
   fireEnd: () => void;
@@ -30,6 +31,7 @@ function fakeRoom(overrides: Partial<FakeRoom> = {}): FakeRoom {
     disconnect: vi.fn(async () => undefined),
     waitForAgent: vi.fn(async () => undefined),
     startAudio: vi.fn(async () => undefined),
+    watchAudioStart: vi.fn(() => vi.fn()),
     onEnd: (cb) => {
       onEnd = cb;
     },
@@ -227,6 +229,7 @@ type StubRoom = UmdRoom & {
 function stubUmdRoom(): StubRoom {
   const handlers = new Map<string, ((...args: never[]) => void)[]>();
   return {
+    state: 'connected',
     canPlaybackAudio: false,
     remoteParticipants: new Map(),
     localParticipant: { setMicrophoneEnabled: vi.fn(async () => undefined) },
@@ -322,5 +325,64 @@ describe('liveKitDemoRoom', () => {
     expect(umd.localParticipant.setMicrophoneEnabled).toHaveBeenCalledWith(true);
     expect(umd.disconnect).not.toHaveBeenCalled();
     call.end();
+  });
+});
+
+describe('demo call: Ferni joins but none of his audio plays', () => {
+  it('watches once Ferni is here, relays the notice, and stops watching on hang-up', async () => {
+    const stop = vi.fn();
+    const room = fakeRoom({ watchAudioStart: vi.fn(() => stop) });
+    const call = await startDemoCall({
+      fetchFn: respond(200, demoBody),
+      createRoom: () => room,
+      requestMicrophone: noMic,
+    });
+    expect(room.watchAudioStart).toHaveBeenCalledOnce();
+    const deps = room.watchAudioStart.mock.calls[0]![0];
+    const onSilent = vi.fn();
+    call.onAudioNotStarted(onSilent);
+
+    deps.onAudioNotStarted();
+    expect(onSilent).toHaveBeenCalledOnce();
+    expect(deps.userHangingUp()).toBe(false);
+
+    call.end();
+    expect(stop).toHaveBeenCalledOnce();
+    expect(deps.userHangingUp()).toBe(true);
+  });
+
+  async function liveDemo(): Promise<{ umd: ReturnType<typeof stubUmdRoom>; onSilent: Mock }> {
+    vi.useFakeTimers();
+    const umd = stubUmdRoom();
+    (umd as { canPlaybackAudio: boolean }).canPlaybackAudio = true;
+    umd.remoteParticipants.set('agent-1', { identity: 'agent-1', isAgent: true });
+    const call = await startDemoCall({
+      fetchFn: respond(200, demoBody),
+      createRoom: () => liveKitDemoRoom(() => umd),
+      requestMicrophone: noMic,
+    });
+    const onSilent = vi.fn();
+    call.onAudioNotStarted(onSilent);
+    return { umd, onSilent };
+  }
+
+  it('over a LiveKit room: a track that never plays gets the notice at 3 s', async () => {
+    const { umd, onSilent } = await liveDemo();
+    umd.emit('trackSubscribed', { kind: 'audio', attach: () => document.createElement('audio') });
+
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(onSilent).toHaveBeenCalledOnce();
+  });
+
+  it('over a LiveKit room: a track that plays means no notice', async () => {
+    const { umd, onSilent } = await liveDemo();
+    const el = document.createElement('audio');
+    umd.emit('trackSubscribed', { kind: 'audio', attach: () => el });
+    Object.defineProperty(el, 'paused', { configurable: true, get: () => false });
+    Object.defineProperty(el, 'readyState', { configurable: true, get: () => 4 });
+    el.dispatchEvent(new Event('playing'));
+
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(onSilent).not.toHaveBeenCalled();
   });
 });

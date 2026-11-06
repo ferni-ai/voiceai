@@ -29,13 +29,16 @@ interface ControllableCall {
   end: Mock<DemoCall['end']>;
   resumeAudio: Mock<DemoCall['resumeAudio']>;
   onPlaybackBlocked: DemoCall['onPlaybackBlocked'];
+  onAudioNotStarted: DemoCall['onAudioNotStarted'];
   finish: () => void;
   block: (blocked: boolean) => void;
+  silent: () => void;
 }
 
 function controllableCall(): ControllableCall {
   let finish: () => void = () => undefined;
   let onBlocked: (blocked: boolean) => void = () => undefined;
+  let onSilent: () => void = () => undefined;
   const ended = new Promise<void>((resolve) => {
     finish = resolve;
   });
@@ -46,8 +49,12 @@ function controllableCall(): ControllableCall {
     onPlaybackBlocked: (cb) => {
       onBlocked = cb;
     },
+    onAudioNotStarted: (cb) => {
+      onSilent = cb;
+    },
     finish: () => finish(),
     block: (blocked) => onBlocked(blocked),
+    silent: () => onSilent(),
   };
 }
 
@@ -210,6 +217,18 @@ describe('try-first edge cases', () => {
     hear.click();
     expect(call.resumeAudio).toHaveBeenCalledTimes(1);
     await vi.waitFor(() => expect(hear.hidden).toBe(true));
+  });
+
+  it("says the sound didn't start when none of Ferni's audio plays", async () => {
+    const call = controllableCall();
+    startDemoCall.mockResolvedValue(call);
+    const gate = await openGate();
+    talkButton(gate)!.click();
+    await vi.waitFor(() => expect(gate.dataset.tryFirst).toBe('in-call'));
+    call.silent();
+    expect(gate.querySelector('.try-first-status')?.textContent).toBe(
+      "The sound didn't start. Try again in a moment."
+    );
   });
 
   it('ends the demo call when the visitor signs in, here or in another tab', async () => {

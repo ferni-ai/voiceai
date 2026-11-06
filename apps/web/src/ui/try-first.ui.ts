@@ -174,6 +174,9 @@ export function tryFirstButtons(deps: TryFirstDeps = {}): HTMLElement[] {
     call.onPlaybackBlocked((blocked) => {
       hear.hidden = !blocked;
     });
+    call.onAudioNotStarted(() => {
+      status.textContent = t('connectFailure.audioNotStarted');
+    });
     void call.ended.then(() => {
       call = null;
       stopWatching();

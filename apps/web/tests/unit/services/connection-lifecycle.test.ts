@@ -348,3 +348,71 @@ describe("LiveKit's room states, as the app sees them", () => {
     expect(setConnectionState).toHaveBeenCalledWith(app);
   });
 });
+
+describe('Ferni joins but none of his audio plays (audio-start-watch.ts)', () => {
+  function playingTrack() {
+    const el = document.createElement('audio');
+    el.load = vi.fn();
+    el.play = vi.fn(async () => {
+      // What the browser does once the stream flows.
+      Object.defineProperty(el, 'paused', { configurable: true, get: () => false });
+      Object.defineProperty(el, 'readyState', { configurable: true, get: () => 4 });
+      el.dispatchEvent(new Event('playing'));
+    });
+    return { kind: 'audio', sid: 'TR_voice', attach: () => el, mediaStreamTrack: { id: 'v' } };
+  }
+
+  async function connectWithAgent(onAudioNotStarted: () => void): Promise<void> {
+    await load(true);
+    fetchMock.mockResolvedValue(tokenResponse());
+    vi.useFakeTimers();
+    service.setCallbacks({ onAudioNotStarted });
+    await expect(service.connect()).resolves.toBe(true);
+  }
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('shows the notice at the deadline and leaves the connection state alone', async () => {
+    const onAudioNotStarted = vi.fn();
+    await connectWithAgent(onAudioNotStarted);
+    setConnectionState.mockClear();
+
+    await vi.advanceTimersByTimeAsync(2_999);
+    expect(onAudioNotStarted).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+
+    expect(onAudioNotStarted).toHaveBeenCalledOnce();
+    expect(setConnectionState).not.toHaveBeenCalled();
+    expect(room.disconnect).not.toHaveBeenCalled();
+    expect(service.getRoom()).toBe(room);
+  });
+
+  it('a subscribed track that plays before the deadline: no notice', async () => {
+    const onAudioNotStarted = vi.fn();
+    await connectWithAgent(onAudioNotStarted);
+
+    room.emit(
+      'trackSubscribed',
+      playingTrack(),
+      { trackName: 'agent_voice' },
+      { identity: 'agent-1' }
+    );
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(onAudioNotStarted).not.toHaveBeenCalled();
+  });
+
+  it('a hang-up before the deadline clears the watch: no notice after', async () => {
+    const onAudioNotStarted = vi.fn();
+    await connectWithAgent(onAudioNotStarted);
+    expect(room.listenerCount('audioPlaybackChanged')).toBe(1); // the watch is armed
+
+    await service.disconnect();
+    expect(room.listenerCount('audioPlaybackChanged')).toBe(0); // and went with the call
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(onAudioNotStarted).not.toHaveBeenCalled();
+  });
+});
