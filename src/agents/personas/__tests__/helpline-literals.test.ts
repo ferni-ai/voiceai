@@ -54,6 +54,32 @@ const walk = (dir: string): string[] => {
   }
 };
 
+/**
+ * The distinct toll-free numbers these files print, as main had them when #3559 moved copies onto
+ * crisisLines. Pinned exactly: a swapped, deleted or added hotline number fails here until this
+ * list changes on purpose (a count floor stays green when one real number is swapped out).
+ */
+const HOTLINE_NUMBERS = [
+  '1-800-222-1222',
+  '1-800-273-8255',
+  '1-800-388-2227',
+  '1-800-422-4453',
+  '1-800-656-4673',
+  '1-800-662-4357',
+  '1-800-677-1116',
+  '1-800-725-2769',
+  '1-800-799-7233',
+  '1-800-931-2237',
+  '1-800-944-4773',
+  '1-800-950-6264',
+  '1-800-950-NAMI',
+  '1-800-985-5990',
+  '1-855-227-3640',
+  '1-866-488-7386',
+  '1-877-565-8860',
+  '1-888-843-4564',
+];
+
 const PHONE =
   /(?:1[-\s.])?\(?8(?:00|33|44|55|66|77|88)\)?[-.\s][0-9A-Za-z]{3}[-.][0-9A-Za-z]{4}\b/gu;
 const SHORT_CODE = /\btext\b[^'"`\n]{0,40}?\b(\d{5,6})\b/giu;
@@ -92,9 +118,8 @@ describe('every hotline literal in the tools and prompts is a house fact', () =>
 
   it('finds the hotlines it is meant to guard', () => {
     // Distinct numbers, not copies: moving a copy onto crisisLines leaves one literal per line.
-    expect(
-      new Set(literals.filter((l) => l.kind === 'phone').map((l) => l.value)).size
-    ).toBeGreaterThanOrEqual(18);
+    const numbers = [...new Set(literals.filter((l) => l.kind === 'phone').map((l) => l.value))];
+    expect(numbers.sort()).toEqual(HOTLINE_NUMBERS);
     expect(literals.some((l) => l.kind === 'short code')).toBe(true);
     expect(literals.some((l) => l.kind === 'site')).toBe(true);
     for (const dir of [
