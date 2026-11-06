@@ -1,0 +1,65 @@
+# Advisory PR comment naming likely duplicate exports (#3523, quality/semantic-duplicates.ts).
+# Not a required check, never in the merge queue. Main's nightly run warms the vector cache.
+name: Possible duplicates
+
+on:
+  pull_request:
+    paths: ['src/**', 'apps/**', 'scripts/**']
+  schedule:
+    - cron: '41 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: semantic-duplicates-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  SEMANTIC_DUPS_MODEL_DIR: ${{ github.workspace }}/.dups-cache/model
+  CACHE_KEY: semantic-dups-v1-bge-small-en-v1.5
+
+jobs:
+  duplicates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: ./.github/actions/setup-node-pnpm
+        with:
+          frozen-lockfile: 'true'
+      - if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v6
+        with:
+          path: .dups-cache
+          key: ${{ env.CACHE_KEY }}-${{ github.run_id }}
+          restore-keys: ${{ env.CACHE_KEY }}-
+      - if: github.event_name != 'pull_request'
+        uses: actions/cache@v6
+        with:
+          path: .dups-cache
+          key: ${{ env.CACHE_KEY }}-${{ github.run_id }}
+          restore-keys: ${{ env.CACHE_KEY }}-
+      - name: Embed main
+        if: github.event_name != 'pull_request'
+        run: pnpm quality:dups --warm --cache .dups-cache/vectors
+      - name: Find possible duplicates
+        if: github.event_name == 'pull_request'
+        run: pnpm quality:dups --cache .dups-cache/vectors --out dups.md
+      - name: Post or update the comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const body = require('fs').readFileSync('dups.md', 'utf8');
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const all = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const mine = all.find((c) => c.body?.startsWith('<!-- semantic-duplicates -->'));
+            if (mine) await github.rest.issues.updateComment({ owner, repo, comment_id: mine.id, body });
+            else if (!body.includes('No likely duplicates')) await github.rest.issues.createComment({ owner, repo, issue_number, body });

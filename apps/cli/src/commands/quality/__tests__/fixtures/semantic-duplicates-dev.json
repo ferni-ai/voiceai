@@ -1,0 +1,290 @@
+[
+  {
+    "fileA": "apps/web/src/utils/phone.ts",
+    "a": "export function toE164(raw: string): string | null {\n  const compact = raw.trim().replace(/[\\s().-]/g, '');\n  let e164 = compact;\n  if (!compact.startsWith('+')) {\n    e164 = /^1?\\d{10}$/.test(compact) ? `+${compact.length === 10 ? '1' : ''}${compact}` : '';\n  }\n  return E164.test(e164) ? e164 : null;\n}",
+    "fileB": "src/services/outreach/checkin-replies.ts",
+    "b": "export function toE164(raw: string): string | null {\n  const compact = raw.trim().replace(/[\\s().-]/g, '');\n  let e164 = compact;\n  if (!compact.startsWith('+')) {\n    e164 = /^1?\\d{10}$/.test(compact) ? `+${compact.length === 10 ? '1' : ''}${compact}` : '';\n  }\n  return E164.test(e164) ? e164 : null;\n}",
+    "dup": true,
+    "note": "copy, same name"
+  },
+  {
+    "fileA": "apps/web/src/i18n/index.ts",
+    "a": "export function formatRelativeTime(date: Date, baseDate: Date = new Date()): string {\n  const diff = baseDate.getTime() - date.getTime();\n  const seconds = Math.floor(diff / 1000);\n  const minutes = Math.floor(seconds / 60);\n  const hours = Math.floor(minutes / 60);\n  const days = Math.floor(hours / 24);\n\n  const rtf = new Intl.RelativeTimeFormat(currentLocale, { numeric: 'auto' });\n\n  if (seconds < 60) {\n    return t('time.justNow');\n  } else if (minutes < 60) {\n    return rtf.format(-minutes, 'minute');\n  } else if (hours < 24) {\n    return rtf.format(-hours, 'hour');\n  } else if (days === 1) {\n    return t('time.yesterday');\n  } else {\n    return rtf.format(-days, 'day');\n  }\n}",
+    "fileB": "src/i18n/index.ts",
+    "b": "export function formatRelativeTime(date: Date, baseDate: Date = new Date()): string {\n  const diff = baseDate.getTime() - date.getTime();\n  const seconds = Math.floor(diff / 1000);\n  const minutes = Math.floor(seconds / 60);\n  const hours = Math.floor(minutes / 60);\n  const days = Math.floor(hours / 24);\n\n  const rtf = new Intl.RelativeTimeFormat(currentLocale, { numeric: 'auto' });\n\n  if (seconds < 60) {\n    return t('time.justNow');\n  } else if (minutes < 60) {\n    return rtf.format(-minutes, 'minute');\n  } else if (hours < 24) {\n    return rtf.format(-hours, 'hour');\n  } else if (days === 1) {\n    return t('time.yesterday');\n  } else {\n    return rtf.format(-days, 'day');\n  }\n}",
+    "dup": true,
+    "note": "copy across web and server"
+  },
+  {
+    "fileA": "src/agents/outbound-call/call-control.ts",
+    "a": "export async function deleteRoom(roomName: string): Promise<void> {\n  const { RoomServiceClient } = await import('livekit-server-sdk');\n  const url = process.env.LIVEKIT_URL;\n  const key = process.env.LIVEKIT_API_KEY;\n  const secret = process.env.LIVEKIT_API_SECRET;\n  if (!url || !key || !secret) throw new Error('LiveKit credentials not configured');\n  await new RoomServiceClient(url, key, secret).deleteRoom(roomName);\n}",
+    "fileB": "src/agents/shared/phone-goodbye.ts",
+    "b": "export async function deleteRoom(roomName: string): Promise<void> {\n  const { RoomServiceClient } = await import('livekit-server-sdk');\n  const url = process.env.LIVEKIT_URL;\n  const key = process.env.LIVEKIT_API_KEY;\n  const secret = process.env.LIVEKIT_API_SECRET;\n  if (!url || !key || !secret) throw new Error('LiveKit credentials not configured');\n  await new RoomServiceClient(url, key, secret).deleteRoom(roomName);\n}",
+    "dup": true,
+    "note": "copy"
+  },
+  {
+    "fileA": "src/tools/validation.ts",
+    "a": "export function normalizePhone(phone: string): string | null {\n  if (!phone) return null;\n\n  // Remove all non-digit characters except leading +\n  let cleaned = phone.replace(/[^\\d+]/g, '');\n\n  // Handle US numbers without country code\n  if (cleaned.length === 10 && !cleaned.startsWith('+')) {\n    cleaned = `+1${cleaned}`;\n  } else if (cleaned.length === 11 && cleaned.startsWith('1')) {\n    cleaned = `+${cleaned}`;\n  } else if (!cleaned.startsWith('+') && cleaned.length > 10) {\n    cleaned = `+${cleaned}`;\n  }\n\n  // Validate the result\n  if (!isValidPhone(cleaned)) {\n    getLogger().warn({ phone, cleaned }, 'Invalid phone number after normalization');\n    return null;\n  }\n\n  return cleaned;\n}",
+    "fileB": "src/utils/validation.ts",
+    "b": "export function normalizePhone(phone: string): string | null {\n  if (!phone) return null;\n\n  // Remove all non-digit characters except leading +\n  let cleaned = phone.replace(/[^\\d+]/g, '');\n\n  // Handle US numbers without country code\n  if (cleaned.length === 10 && !cleaned.startsWith('+')) {\n    cleaned = `+1${cleaned}`;\n  } else if (cleaned.length === 11 && cleaned.startsWith('1')) {\n    cleaned = `+${cleaned}`;\n  } else if (!cleaned.startsWith('+') && cleaned.length > 10) {\n    cleaned = `+${cleaned}`;\n  }\n\n  // Validate the result\n  if (!isValidPhone(cleaned)) {\n    log.warn({ phone, cleaned }, 'Invalid phone number after normalization');\n    return null;\n  }\n\n  return cleaned;\n}",
+    "dup": true,
+    "note": "near copy"
+  },
+  {
+    "fileA": "apps/web/src/config/handoff-timing.ts",
+    "a": "export function getPostSoundPause(\n  style: TransitionStyle = 'standard',\n  isFirstMeeting: boolean = false\n): number {\n  let pause = HANDOFF_TIMING.POST_SOUND_PAUSE_BASE;\n\n  if (isFirstMeeting) {\n    pause += HANDOFF_TIMING.POST_SOUND_PAUSE_FIRST_MEETING_BONUS;\n  }\n\n  if (style === 'dramatic') {\n    pause += HANDOFF_TIMING.POST_SOUND_PAUSE_DRAMATIC_BONUS;\n  }\n\n  return pause;\n}",
+    "fileB": "src/config/handoff-timing.ts",
+    "b": "export function getPostSoundPause(\n  style: TransitionStyle = 'standard',\n  isFirstMeeting = false\n): number {\n  let pause = HANDOFF_TIMING.POST_SOUND_PAUSE_BASE;\n\n  if (isFirstMeeting) {\n    pause += HANDOFF_TIMING.POST_SOUND_PAUSE_FIRST_MEETING_BONUS;\n  }\n\n  if (style === 'dramatic') {\n    pause += HANDOFF_TIMING.POST_SOUND_PAUSE_DRAMATIC_BONUS;\n  }\n\n  return pause;\n}",
+    "dup": true,
+    "note": "copy across web and server"
+  },
+  {
+    "fileA": "src/services/outreach/delivery/delivery-tracker.ts",
+    "a": "export function clearOldRecords(maxAgeDays = 30): number {\n  const cutoff = new Date();\n  cutoff.setDate(cutoff.getDate() - maxAgeDays);\n\n  let cleared = 0;\n  for (const [id, record] of deliveryRecords) {\n    if (record.queuedAt < cutoff) {\n      deliveryRecords.delete(id);\n      cleared++;\n    }\n  }\n\n  if (cleared > 0) {\n    log.info({ cleared }, 'Cleared old delivery records');\n  }\n\n  return cleared;\n}",
+    "fileB": "src/services/outreach/delivery/email-delivery.ts",
+    "b": "export function clearOldRecords(maxAgeDays = 90): number {\n  const cutoff = new Date();\n  cutoff.setDate(cutoff.getDate() - maxAgeDays);\n\n  let cleared = 0;\n  for (const [id, record] of deliveryRecords) {\n    if (record.sentAt < cutoff) {\n      deliveryRecords.delete(id);\n      cleared++;\n    }\n  }\n\n  if (cleared > 0) {\n    log.info({ cleared }, 'Cleared old email delivery records');\n  }\n\n  return cleared;\n}",
+    "dup": true,
+    "note": "copy, other map"
+  },
+  {
+    "fileA": "src/services/outreach/user-contact.ts",
+    "a": "export async function scheduleCall(\n  userId: string,\n  message: string,\n  scheduledFor: Date,\n  personaId = 'ferni',\n  options?: ScheduleContactOptions\n): Promise<{ success: boolean; reminderId?: string; error?: string }> {\n  const contact = await getUserContactInfo(userId);\n  const deliveryPhone = contact?.phone; // the verified phone only\n  if (!deliveryPhone) return { success: false, error: NO_VERIFIED_PHONE };\n\n  try {\n    const canonicalId = getCanonicalPersonaId(personaId);\n    const displayName = getPersonaDisplayName(canonicalId);\n    const firstName = displayName.split(' ')[0];\n\n    const reminder = await createReminder({\n      userId,\n      message,\n      scheduledFor,\n      timezone: contact?.timezone || 'America/New_York',\n      deliveryMethod: 'call',\n      deliveryAddress: deliveryPhone,\n      createdBy: canonicalId,\n      personaId: canonicalId,\n      context: `Scheduled call from ${firstName}`,\n      // ML tracking\n      contactId: options?.contactId,\n      contactName: options?.contactName,\n      isDirectToContact: options?.isDirectToContact,\n    });\n\n    log.info(\n      {\n        userId,\n        reminderId: reminder.id,\n        personaId: canonicalId,\n        scheduledFor: scheduledFor.toISOString(),\n        contactId: options?.contactId,\n      },\n      '\ud83d\udcc5 Call scheduled'\n    );\n\n    return { success: true, reminderId: reminder.id };\n  } catch (error) {\n    log.error({ error, userId, personaId }, 'Failed to schedule call');\n    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };\n  }\n}",
+    "fileB": "src/tools/domains/proactive/outreach/service.ts",
+    "b": "export async function scheduleCall(\n  userId: string,\n  message: string,\n  scheduledFor: Date,\n  personaId = 'ferni',\n  options?: ScheduleContactOptions\n): Promise<{ success: boolean; reminderId?: string; error?: string }> {\n  const deliveryPhone = await verifiedPhone(userId);\n  const contact = await getUserContactInfo(userId);\n\n  if (!deliveryPhone) {\n    return { success: false, error: NO_VERIFIED_PHONE };\n  }\n\n  try {\n    const canonicalId = getCanonicalPersonaId(personaId);\n    const displayName = getPersonaDisplayName(canonicalId);\n    const firstName = displayName.split(' ')[0];\n\n    const reminder = await createReminder({\n      userId,\n      message,\n      scheduledFor,\n      timezone: contact?.timezone || 'America/New_York',\n      deliveryMethod: 'call',\n      deliveryAddress: deliveryPhone,\n      createdBy: canonicalId,\n      personaId: canonicalId,\n      context: `Scheduled call from ${firstName}`,\n      // ML tracking\n      contactId: options?.contactId,\n      contactName: options?.contactName,\n      isDirectToContact: options?.isDirectToContact,\n    });\n\n    getLogger().info(\n      {\n        userId,\n        reminderId: reminder.id,\n        personaId: canonicalId,\n        scheduledFor: scheduledFor.toISOString(),\n        contactId: options?.contactId,\n      },\n      '\ud83d\udcc5 Call scheduled'\n    );\n\n    return { success: true, reminderId: reminder.id };\n  } catch (error) {\n    getLogger().error({ error, userId, personaId }, 'Failed to schedule call');\n    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };\n  }\n}",
+    "dup": true,
+    "note": "near copy"
+  },
+  {
+    "fileA": "apps/web/src/services/founders.service.ts",
+    "a": "export function getCurrentSeason(): Season {\n  const month = new Date().getMonth();\n  if (month >= 2 && month <= 4) return 'spring';\n  if (month >= 5 && month <= 7) return 'summer';\n  if (month >= 8 && month <= 10) return 'fall';\n  return 'winter';\n}",
+    "fileB": "src/services/coaching/seasonal-awareness.ts",
+    "b": "export function getCurrentSeason(date: Date = new Date()): Season {\n  const month = date.getMonth();\n\n  if (month >= 2 && month <= 4) return 'spring';\n  if (month >= 5 && month <= 7) return 'summer';\n  if (month >= 8 && month <= 10) return 'fall';\n  return 'winter';\n}",
+    "dup": true,
+    "note": "same steps, date parameter"
+  },
+  {
+    "fileA": "apps/async/src/daily-outreach-logger-shim.ts",
+    "a": "export function serializeError(error: unknown): unknown {\n  if (error instanceof Error) {\n    return {\n      name: error.name,\n      message: error.message,\n      stack: error.stack,\n    };\n  }\n\n  return error;\n}",
+    "fileB": "src/utils/safe-logger.ts",
+    "b": "export function serializeError(error: unknown): unknown {\n  if (error instanceof Error) {\n    // Extract standard Error properties plus any custom properties (e.g., `code` on Node.js errors)\n    const serialized: Record<string, unknown> = {\n      name: error.name,\n      message: error.message,\n      stack: error.stack,\n    };\n\n    // Copy any additional enumerable properties from the error\n    for (const key of Object.keys(error)) {\n      serialized[key] = (error as unknown as Record<string, unknown>)[key];\n    }\n\n    return serialized;\n  }\n  return error;\n}",
+    "dup": true,
+    "note": "subset of the same job"
+  },
+  {
+    "fileA": "apps/web/src/i18n/index.ts",
+    "a": "export function formatCurrency(\n  value: number,\n  currency?: string,\n  options?: Partial<Intl.NumberFormatOptions>\n): string {\n  const currencyCode = currency || LOCALE_CURRENCY[currentLocale] || 'USD';\n  return new Intl.NumberFormat(currentLocale, {\n    style: 'currency',\n    currency: currencyCode,\n    ...options,\n  }).format(value);\n}",
+    "fileB": "src/i18n/index.ts",
+    "b": "export function formatCurrency(\n  value: number,\n  currency = 'USD',\n  options?: Partial<Intl.NumberFormatOptions>\n): string {\n  return new Intl.NumberFormat(currentLocale, {\n    style: 'currency',\n    currency,\n    ...options,\n  }).format(value);\n}",
+    "dup": true,
+    "note": "same job, other default"
+  },
+  {
+    "fileA": "src/servers/token/oauth/google-calendar.ts",
+    "a": "export async function getValidToken(userId: string): Promise<string | null> {\n  const userTokens = await getTokens(userId);\n  if (!userTokens || isInsufficientLink(userTokens)) {\n    return null;\n  }\n\n  // Check if token is expired (with 5 min buffer)\n  const bufferMs = 5 * 60 * 1000;\n  if (Date.now() >= userTokens.expires_at - bufferMs) {\n    const refreshed = await refreshToken(userId);\n    return refreshed?.access_token || null;\n  }\n\n  return userTokens.access_token;\n}",
+    "fileB": "src/servers/token/oauth/wearables.ts",
+    "b": "export async function getValidToken(\n  provider: Exclude<WearableProvider, 'apple_health'>,\n  userId: string\n): Promise<string | null> {\n  if (provider === 'oura')\n    return ouraAuth.getOuraAccessToken(userId).then((a) => (a.status === 'ok' ? a.token : null));\n  const userTokens = await getTokens(provider, userId);\n  if (!userTokens) {\n    return null;\n  }\n\n  // Check if token is expired (with 5 min buffer)\n  const bufferMs = 5 * 60 * 1000;\n  if (Date.now() >= userTokens.expires_at - bufferMs) {\n    const refreshed = await refreshToken(provider, userId);\n    return refreshed?.access_token || null;\n  }\n\n  return userTokens.access_token;\n}",
+    "dup": true,
+    "note": "same refresh steps, provider parameter"
+  },
+  {
+    "fileA": "src/api/v2/developers/webhooks-routes.ts",
+    "a": "export function signWebhookPayload(secret: string, payload: unknown): string {\n  const timestamp = Math.floor(Date.now() / 1000);\n  const body = JSON.stringify(payload);\n  const signature = crypto\n    .createHmac('sha256', secret)\n    .update(`${timestamp}.${body}`)\n    .digest('hex');\n  return `t=${timestamp},v1=${signature}`;\n}",
+    "fileB": "src/api/webhook-management-routes.ts",
+    "b": "export function signWebhookPayload(secret: string, payload: Record<string, unknown>): string {\n  const timestamp = Math.floor(Date.now() / 1000);\n  const payloadString = JSON.stringify(payload);\n  const signatureInput = `${timestamp}.${payloadString}`;\n\n  const signature = crypto.createHmac('sha256', secret).update(signatureInput).digest('hex');\n\n  return `t=${timestamp},v1=${signature}`;\n}",
+    "dup": true,
+    "note": "rewritten, same output"
+  },
+  {
+    "fileA": "src/tools/validation.ts",
+    "a": "export function validateEmail(email: string): ValidationResult {\n  if (!email) {\n    return { valid: false, error: 'Email is required' };\n  }\n\n  const trimmed = email.trim().toLowerCase();\n\n  if (!isValidEmail(trimmed)) {\n    return { valid: false, error: 'Invalid email format' };\n  }\n\n  return { valid: true, sanitized: trimmed };\n}",
+    "fileB": "src/utils/validation.ts",
+    "b": "export function validateEmail(email: string): { valid: boolean; error?: string } {\n  if (!email || typeof email !== 'string') {\n    return { valid: false, error: 'Email is required' };\n  }\n  if (!isValidEmail(email)) {\n    return { valid: false, error: 'Invalid email format' };\n  }\n  return { valid: true };\n}",
+    "dup": true,
+    "note": "same check, one also trims"
+  },
+  {
+    "fileA": "src/services/stores/meal-store.ts",
+    "a": "export async function migrateUserToFirestore(userId: string): Promise<boolean> {\n  const inMemoryData = mealStorage.get(userId);\n  if (!inMemoryData) {\n    return false;\n  }\n\n  if (!isFirestoreAvailable()) {\n    log.warn({ userId }, 'Cannot migrate: Firestore unavailable');\n    return false;\n  }\n\n  const firestoreData = {\n    ...inMemoryData,\n    lastUpdated:\n      inMemoryData.lastUpdated instanceof Date\n        ? inMemoryData.lastUpdated.toISOString()\n        : inMemoryData.lastUpdated,\n  };\n\n  const result = await saveLifeAutomationData(userId, 'meals', firestoreData);\n  if (result.success) {\n    log.info({ userId }, 'Successfully migrated meal data to Firestore');\n  }\n\n  return result.success;\n}",
+    "fileB": "src/services/stores/workflow-store.ts",
+    "b": "export async function migrateUserToFirestore(userId: string): Promise<boolean> {\n  const inMemoryData = workflowStorage.get(userId);\n  if (!inMemoryData) {\n    return false;\n  }\n\n  if (!isFirestoreAvailable()) {\n    log.warn({ userId }, 'Cannot migrate: Firestore unavailable');\n    return false;\n  }\n\n  const firestoreData = {\n    ...inMemoryData,\n    lastUpdated:\n      inMemoryData.lastUpdated instanceof Date\n        ? inMemoryData.lastUpdated.toISOString()\n        : inMemoryData.lastUpdated,\n  };\n\n  const result = await saveLifeAutomationData(userId, 'workflows', firestoreData);\n  if (result.success) {\n    log.info({ userId }, 'Successfully migrated workflow data to Firestore');\n  }\n\n  return result.success;\n}",
+    "dup": true,
+    "note": "clone, other store"
+  },
+  {
+    "fileA": "src/intelligence/deep-understanding/persistence.ts",
+    "a": "export async function periodicSync(userId: string): Promise<void> {\n  try {\n    const { saved, failed } = await saveDeepUnderstandingProfiles(userId);\n    if (failed.length > 0) {\n      log.warn({ userId, failed }, 'Some deep understanding profiles failed to sync');\n    }\n  } catch (error) {\n    log.warn({ error, userId }, 'Periodic deep understanding sync failed');\n  }\n}",
+    "fileB": "src/services/trust-systems/persistence.ts",
+    "b": "export async function periodicSync(userId: string): Promise<void> {\n  try {\n    const { saved, failed } = await saveTrustProfiles(userId);\n    if (failed.length > 0) {\n      log.warn({ userId, failed }, 'Some trust profiles failed to sync');\n    }\n  } catch (error) {\n    log.warn({ error, userId }, 'Periodic trust sync failed');\n  }\n}",
+    "dup": true,
+    "note": "clone, other saver"
+  },
+  {
+    "fileA": "src/services/data/firestore-wal-integration.ts",
+    "a": "export function queueDeletion(\n  collection: string,\n  docId: string,\n  priority: WritePriority = 'normal',\n  userId?: string\n): string {\n  const wal = getWriteAheadLog();\n  return wal.delete(collection, docId, { userId, priority });\n}",
+    "fileB": "src/services/data/write-ahead-log.ts",
+    "b": "export function queueDelete(\n  collection: string,\n  docId: string,\n  options?: { userId?: string; priority?: WALEntry['priority'] }\n): string {\n  return getWriteAheadLog().delete(collection, docId, options);\n}",
+    "dup": true,
+    "note": "re-implemented under another name"
+  },
+  {
+    "fileA": "src/api/local-clock.ts",
+    "a": "export function timeOfDay(now: Date): TimeOfDay {\n  const hour = now.getHours();\n  if (hour >= 5 && hour < 12) return 'morning';\n  if (hour >= 12 && hour < 17) return 'afternoon';\n  if (hour >= 17 && hour < 21) return 'evening';\n  return 'night';\n}",
+    "fileB": "src/i18n/formatters/date.ts",
+    "b": "export function getTimeOfDay(\n  date: Date = new Date()\n): 'morning' | 'afternoon' | 'evening' | 'night' {\n  const hour = date.getHours();\n\n  if (hour >= 5 && hour < 12) {\n    return 'morning';\n  } else if (hour >= 12 && hour < 17) {\n    return 'afternoon';\n  } else if (hour >= 17 && hour < 21) {\n    return 'evening';\n  } else {\n    return 'night';\n  }\n}",
+    "dup": true,
+    "note": "re-implemented under another name"
+  },
+  {
+    "fileA": "src/i18n/formatters/number.ts",
+    "a": "export function formatCurrency(\n  value: number,\n  currency = 'USD',\n  locale: SupportedLocale = DEFAULT_LOCALE\n): string {\n  const config = CURRENCIES[currency] ??\n    CURRENCIES.USD ?? { code: 'USD', symbol: '$', decimals: 2 };\n  const decimals = config.decimals ?? 2;\n  const displayValue = decimals > 0 ? value / Math.pow(10, decimals) : value;\n\n  return new Intl.NumberFormat(locale, {\n    style: 'currency',\n    currency: config.code ?? 'USD',\n    minimumFractionDigits: decimals,\n    maximumFractionDigits: decimals,\n  }).format(displayValue);\n}",
+    "fileB": "src/services/data-layer/hook-generator.ts",
+    "b": "export function formatCurrency(amount: number | undefined): string {\n  if (amount === undefined || amount === null) return '';\n  return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;\n}",
+    "dup": false,
+    "note": "same name, other contract (minor units vs whole dollars)"
+  },
+  {
+    "fileA": "src/services/monetization/journey.ts",
+    "a": "export function getCurrentSeason(): Season {\n  const now = new Date();\n  const year = now.getFullYear();\n  const month = now.getMonth();\n\n  let seasonName: string;\n  let theme: string;\n  let description: string;\n  let startDate: string;\n  let endDate: string;\n\n  if (month >= 2 && month <= 4) {\n    seasonName = 'Spring';\n    theme = 'New Beginnings';\n    description = 'A season for planting seeds and watching yourself grow.';\n    startDate = `${year}-03-01`;\n    endDate = `${year}-05-31`;\n  } else if (month >= 5 && month <= 7) {\n    seasonName = 'Summer';\n    theme = 'Full Bloom';\n    description = 'A season for flourishing and embracing the light.';\n    startDate = `${year}-06-01`;\n    endDate = `${year}-08-31`;\n  } else if (month >= 8 && month <= 10) {\n    seasonName = 'Fall';\n    theme = 'Harvest';\n    description = 'A season for gathering what you have grown.';\n    startDate = `${year}-09-01`;\n    endDate = `${year}-11-30`;\n  } else {\n    seasonName = 'Winter';\n    theme = 'Rest & Reflection';\n    description = 'A season for going inward and preparing for renewal.';\n    const winterYear = month === 11 ? year : year - 1;\n    startDate = `${winterYear}-12-01`;\n    endDate = `${winterYear + 1}-02-28`;\n  }\n\n  const seasonId = `${seasonName.toLowerCase()}-${year}`;\n\n  return {\n    id: seasonId,\n    name: seasonName,\n    theme,\n    description,\n    startDate,\n    endDate,\n    companionPriceInCents: 499,\n    isActive: true,\n  };\n}",
+    "fileB": "src/services/coaching/seasonal-awareness.ts",
+    "b": "export function getCurrentSeason(date: Date = new Date()): Season {\n  const month = date.getMonth();\n\n  if (month >= 2 && month <= 4) return 'spring';\n  if (month >= 5 && month <= 7) return 'summer';\n  if (month >= 8 && month <= 10) return 'fall';\n  return 'winter';\n}",
+    "dup": false,
+    "note": "same name, returns a themed season object"
+  },
+  {
+    "fileA": "apps/web/src/config/personas.ts",
+    "a": "export function normalizeAgentId(agentId: string | undefined | null): PersonaId {\n  if (!agentId) {\n    // Defensive: return default persona if agentId is undefined/null\n    // This prevents crashes but logs warning in dev\n    if (import.meta.env?.DEV) {\n      log.warn('[personas] normalizeAgentId called with undefined/null, defaulting to ferni');\n    }\n    return 'ferni';\n  }\n  const normalized = agentId.toLowerCase();\n\n  // Direct canonical match\n  if (normalized in PERSONAS) {\n    return normalized as PersonaId;\n  }\n\n  return LEGACY_ID_MAPPING[normalized] ?? COORDINATOR_ID;\n}",
+    "fileB": "src/personas/agent-directory.ts",
+    "b": "export async function normalizeAgentId(input: string): Promise<string> {\n  await ensureCache();\n\n  if (!aliasCache) return 'ferni';\n\n  const normalized = input.toLowerCase().trim();\n  return aliasCache.get(normalized) || 'ferni';\n}",
+    "dup": false,
+    "note": "same name, other lookup"
+  },
+  {
+    "fileA": "apps/web/src/services/timezone.service.ts",
+    "a": "export function getUserTimezone(): string {\n  if (cachedTimezone) {\n    return cachedTimezone.timezone;\n  }\n\n  const cached = loadCachedTimezone();\n  if (cached) {\n    cachedTimezone = cached;\n    return cached.timezone;\n  }\n\n  // Fall back to detection\n  return detectTimezone();\n}",
+    "fileB": "src/tasks/scheduled/calendar-briefing-job.ts",
+    "b": "export async function getUserTimezone(userId: string): Promise<string> {\n  try {\n    const contactInfo = await getUserContactInfo(userId);\n    return contactInfo?.timezone ?? 'Etc/UTC';\n  } catch (error) {\n    log.debug({ error: String(error), userId }, 'Failed to get user timezone, using UTC fallback');\n    return 'Etc/UTC';\n  }\n}",
+    "dup": false,
+    "note": "same name, browser vs stored profile"
+  },
+  {
+    "fileA": "apps/web/src/state/app.state.ts",
+    "a": "export function getUserId(): string {\n  const state = appState.getState();\n\n  // Prefer Firebase UID\n  if (state.firebaseUid) {\n    return state.firebaseUid;\n  }\n\n  // Fallback to device-based ID for migration\n  return `device:${state.deviceId}`;\n}",
+    "fileB": "src/api/helpers.ts",
+    "b": "export function getUserId(req: IncomingMessage, parsedUrl: URL): string | null {\n  const firebaseUid = req.headers['x-firebase-uid'];\n  if (typeof firebaseUid === 'string' && firebaseUid) return firebaseUid;\n\n  // The door leaves an admin's named target in place (and binds no uid header).\n  const named = parsedUrl.searchParams.get('userId');\n  if (named && isVerifiedAdmin(req)) return named;\n\n  // Dev mode bypass, development only: test without authentication.\n  const adminKey =\n    parsedUrl.searchParams.get('admin_key') || (req.headers['x-admin-key'] as string);\n  return process.env.NODE_ENV === 'development' && adminKey === 'dev-mode' ? 'dev-user-123' : null;\n}",
+    "dup": false,
+    "note": "same name, client state vs request auth"
+  },
+  {
+    "fileA": "src/services/games/emoji-story.ts",
+    "a": "export function getStartResult(state: EmojiStoryState): EmojiStoryResult {\n  const prompt =\n    state.topic === 'custom' && state.customTopic ? state.customTopic : TOPIC_PROMPTS[state.topic];\n\n  return {\n    message: `\ud83c\udfa8 **Emoji Story**\\n\\n${prompt}`,\n    gameOver: false,\n    newState: { ...state, phase: 'collecting' },\n  };\n}",
+    "fileB": "src/services/games/one-word-checkin.ts",
+    "b": "export function getStartResult(state: OneWordCheckinState): OneWordCheckinResult {\n  const prompt =\n    state.context === 'custom' && state.customContext\n      ? state.customContext\n      : CONTEXT_PROMPTS[state.context];\n\n  return {\n    message: `\ud83d\udccd **One Word Check-in**\\n\\n${prompt}`,\n    gameOver: false,\n    newState: state,\n  };\n}",
+    "dup": false,
+    "note": "same shape, other game state"
+  },
+  {
+    "fileA": "apps/web/src/ui/sleep-settings.ui.ts",
+    "a": "export function hide(): void {\n  if (!container) return;\n\n  container.classList.remove('sleep-settings--visible');\n  document.removeEventListener('keydown', handleKeyDown);\n\n  // Remove after animation\n  setTimeout(() => {\n    container?.remove();\n    container = null;\n  }, DURATION.NORMAL);\n\n  log.info('Sleep settings closed');\n}",
+    "fileB": "apps/web/src/ui/while-you-were-away.ui.ts",
+    "b": "export function hide(): void {\n  if (!container) return;\n\n  container.classList.remove('visible');\n\n  // Remove after animation\n  setTimeout(() => {\n    container?.remove();\n    container = null;\n    isVisible = false;\n    pendingUpdates.length = 0;\n  }, 300);\n\n  log.debug('Hiding While You Were Away card');\n}",
+    "dup": false,
+    "note": "module-local UI teardown"
+  },
+  {
+    "fileA": "src/intelligence/semantic-intelligence/persistence.ts",
+    "a": "export function getCacheStats(): {\n  userCount: number;\n  totalRecords: number;\n  totalPatterns: number;\n} {\n  let totalRecords = 0;\n  let totalPatterns = 0;\n\n  for (const bundle of memoryCache.values()) {\n    totalRecords += bundle.executionRecords.length;\n    totalPatterns += bundle.patterns.length + bundle.timingPatterns.length;\n  }\n\n  return {\n    userCount: memoryCache.size,\n    totalRecords,\n    totalPatterns,\n  };\n}",
+    "fileB": "src/memory/cross-persona/shared-memory-api.ts",
+    "b": "export function getCacheStats(): {\n  userCount: number;\n  totalMemories: number;\n  totalInsights: number;\n} {\n  let totalMemories = 0;\n  let totalInsights = 0;\n\n  for (const memories of memoryCache.values()) {\n    totalMemories += memories.length;\n  }\n\n  for (const insights of insightsQueue.values()) {\n    totalInsights += insights.length;\n  }\n\n  return {\n    userCount: memoryCache.size,\n    totalMemories,\n    totalInsights,\n  };\n}",
+    "dup": false,
+    "note": "module-local stats, other fields"
+  },
+  {
+    "fileA": "src/services/persona/persona-content-loader.ts",
+    "a": "export async function loadPersonaContent<T>(\n  personaId: string,\n  behaviorName: keyof BundleBehaviors\n): Promise<T | null> {\n  const cacheKey = `${personaId}:${behaviorName}`;\n\n  // Check cache with LRU tracking\n  const cached = getFromCache(contentCache, cacheKey, 'content');\n  if (cached !== null) {\n    return cached as T;\n  }\n\n  const behaviors = await loadPersonaBehaviors(personaId);\n  if (!behaviors) {\n    return null;\n  }\n\n  const content = behaviors[behaviorName] as T | undefined;\n  if (content) {\n    // Store with LRU eviction\n    setInCache(contentCache, cacheKey, content, CACHE_CONFIG.maxContentEntries, 'content');\n  }\n\n  return content || null;\n}",
+    "fileB": "src/services/persona/persona-content-loader.ts",
+    "b": "export async function loadPersonaBehaviors(personaId: string): Promise<BundleBehaviors | null> {\n  const cacheKey = `behaviors:${personaId}`;\n\n  // Check cache with LRU tracking\n  const cached = getFromCache(behaviorCache, cacheKey, 'behavior');\n  if (cached) {\n    return cached;\n  }\n\n  try {\n    const bundle = await loadBundleByIdDynamic(personaId);\n    if (!bundle) {\n      log.warn({ personaId }, 'Persona bundle not found');\n      return null;\n    }\n\n    const behaviors = await bundle.getBehaviors();\n\n    // Store with LRU eviction\n    setInCache(behaviorCache, cacheKey, behaviors, CACHE_CONFIG.maxBehaviorEntries, 'behavior');\n\n    log.debug(\n      { personaId, behaviorCount: Object.keys(behaviors).length },\n      'Loaded persona behaviors'\n    );\n\n    return behaviors;\n  } catch (error) {\n    log.error({ personaId, error: String(error) }, 'Failed to load persona behaviors');\n    return null;\n  }\n}",
+    "dup": false,
+    "note": "sibling, one calls the other"
+  },
+  {
+    "fileA": "src/agents/realtime/action-event-dispatcher.ts",
+    "a": "export function clearActionDispatcher(sessionId: string): void {\n  // Remove event listener\n  const listener = sessionEventListeners.get(sessionId);\n  if (listener) {\n    actionEvents.off('action_created', listener);\n    sessionEventListeners.delete(sessionId);\n  }\n\n  // Remove context\n  sessionContexts.delete(sessionId);\n\n  log.debug({ sessionId }, 'Action dispatcher cleared');\n}",
+    "fileB": "src/agents/realtime/action-event-dispatcher.ts",
+    "b": "export function clearAllActionDispatchers(): void {\n  for (const [sessionId, listener] of sessionEventListeners.entries()) {\n    actionEvents.off('action_created', listener);\n    sessionEventListeners.delete(sessionId);\n    sessionContexts.delete(sessionId);\n  }\n  log.debug('All action dispatchers cleared');\n}",
+    "dup": false,
+    "note": "one vs all"
+  },
+  {
+    "fileA": "src/services/outreach/scheduling/send-window-optimizer.ts",
+    "a": "export function dayNumberToName(day: number): DayOfWeek {\n  const days: DayOfWeek[] = [\n    'sunday',\n    'monday',\n    'tuesday',\n    'wednesday',\n    'thursday',\n    'friday',\n    'saturday',\n  ];\n  return days[day] || 'monday';\n}",
+    "fileB": "src/services/outreach/scheduling/send-window-optimizer.ts",
+    "b": "export function dayNameToNumber(day: DayOfWeek): number {\n  const map: Record<DayOfWeek, number> = {\n    sunday: 0,\n    monday: 1,\n    tuesday: 2,\n    wednesday: 3,\n    thursday: 4,\n    friday: 5,\n    saturday: 6,\n  };\n  return map[day];\n}",
+    "dup": false,
+    "note": "inverse"
+  },
+  {
+    "fileA": "src/agents/personas/grounded-addresses.ts",
+    "a": "export function houseAddresses(facts: HouseFacts): Addresses {\n  const known = factAddresses(facts);\n  if (!crisisLines) {\n    crisisLines = noAddresses();\n    for (const line of helplineLines()) collectAddresses(line, crisisLines);\n  }\n  for (const key of ['hosts', 'emails', 'numbers'] as const) {\n    for (const value of crisisLines[key]) known[key].add(value);\n  }\n  return known;\n}",
+    "fileB": "src/agents/personas/spoken-addresses.ts",
+    "b": "export function factAddresses(facts: HouseFacts): Addresses {\n  const known = noAddresses();\n  for (const host of [facts.website, facts.webApp]) if (host) known.hosts.add(host.toLowerCase());\n  if (facts.emailFrom) known.emails.add(facts.emailFrom.toLowerCase());\n  if (facts.textsFrom) known.numbers.add(numberKey(facts.textsFrom));\n  return known;\n}",
+    "dup": false,
+    "note": "caller and callee"
+  },
+  {
+    "fileA": "src/speech/fft-analyzer/fft-core.ts",
+    "a": "export function getMagnitudeSpectrum(fftResult: Complex[]): Float32Array {\n  const n = fftResult.length / 2; // Only first half (Nyquist)\n  const magnitudes = new Float32Array(n);\n\n  for (let i = 0; i < n; i++) {\n    magnitudes[i] = Math.sqrt(\n      fftResult[i].re * fftResult[i].re + fftResult[i].im * fftResult[i].im\n    );\n  }\n\n  return magnitudes;\n}",
+    "fileB": "src/speech/fft-analyzer/native-fft.ts",
+    "b": "export function getMagnitudeSpectrumNative(fftResult: Complex[]): Float32Array {\n  const mod = loadNativeModule();\n\n  // Convert Complex[] to separate arrays for native function\n  const real = fftResult.map((c) => c.re);\n  const imag = fftResult.map((c) => c.im);\n\n  return mod.getMagnitudeSpectrum(real, imag);\n}",
+    "dup": false,
+    "note": "JS vs native backend"
+  },
+  {
+    "fileA": "src/agents/integrations/voice-memory-integration.ts",
+    "a": "export function calculateEmotionalWeight(\n  voiceContext: VoiceContext | undefined,\n  baseWeight: number = 0.5\n): EmotionalMemoryWeight {\n  const factors: string[] = [];\n  let voiceModifier = 1.0;\n\n  if (!voiceContext || !config.enableVoiceCapture) {\n    return {\n      baseWeight,\n      voiceModifier: 1.0,\n      finalWeight: baseWeight,\n      factors: ['no_voice_context'],\n    };\n  }\n\n  const { prosody, voiceEmotion, textEmotion } = voiceContext;\n\n  // 1. Check for emotional peaks\n  if (voiceEmotion && voiceEmotion.confidence > config.minProsodyConfidence) {\n    const arousal = voiceEmotion.arousal ?? 0.5;\n\n    if (arousal > 0.7) {\n      voiceModifier *= config.emotionalPeakWeight;\n      factors.push('emotional_peak');\n    }\n\n    // Check voice-text alignment (authentic expression)\n    if (textEmotion) {\n      const aligned = isEmotionAligned(voiceEmotion.primary, textEmotion.primary);\n      if (aligned) {\n        voiceModifier *= 1.1;\n        factors.push('voice_text_aligned');\n      } else {\n        // Misalignment might indicate masking (still important to capture)\n        voiceModifier *= 1.05;\n        factors.push('voice_text_mismatch');\n      }\n    }\n  }\n\n  // 2. Check for voice strain (stress signals)\n  if (prosody) {\n    const hasStrain = detectVoiceStrain(prosody);\n    if (hasStrain) {\n      voiceModifier *= config.voiceStrainWeight;\n      factors.push('voice_strain');\n    }\n\n    // High pitch variance often indicates emotional content\n    if (prosody.pitchVariance && prosody.pitchVariance > 50) {\n      voiceModifier *= 1.1;\n      factors.push('high_pitch_variance');\n    }\n  }\n\n  // Cap modifier at reasonable bounds\n  voiceModifier = Math.min(1.5, Math.max(0.7, voiceModifier));\n\n  const finalWeight = Math.min(1.0, baseWeight * voiceModifier);\n\n  return {\n    baseWeight,\n    voiceModifier,\n    finalWeight,\n    factors,\n  };\n}",
+    "fileB": "src/memory/dynamic/voice-context-capture.ts",
+    "b": "export function calculateVoiceWeight(context: VoiceContextData): {\n  weight: number;\n  factors: string[];\n} {\n  let weight = 0.5; // Base weight\n  const factors: string[] = [];\n\n  // Boost for emotional peak\n  if (context.emotionalPeak) {\n    weight += 0.2;\n    factors.push('emotional_peak');\n  }\n\n  // Boost for voice strain (indicates stress/importance)\n  if (context.voiceStrain) {\n    weight += 0.15;\n    factors.push('voice_strain');\n  }\n\n  // Boost for high arousal\n  if (context.arousal && context.arousal > 0.7) {\n    weight += 0.1;\n    factors.push('high_arousal');\n  }\n\n  // Boost for voice-text alignment (authentic expression)\n  if (context.voiceEmotion && context.textEmotion) {\n    const aligned = areSameValence(context.voiceEmotion, context.textEmotion);\n    if (aligned) {\n      weight += 0.1;\n      factors.push('voice_text_aligned');\n    } else {\n      // Misalignment can also be significant (masking emotions)\n      weight += 0.05;\n      factors.push('voice_text_mismatch');\n    }\n  }\n\n  // Cap at 1.0\n  weight = Math.min(1.0, weight);\n\n  return { weight, factors };\n}",
+    "dup": false,
+    "note": "related topic, other inputs and weights"
+  },
+  {
+    "fileA": "src/agents/core/result.ts",
+    "a": "export async function mapAsync<T, U, E>(\n  result: Result<T, E>,\n  fn: (value: T) => Promise<U>\n): Promise<Result<U, E>> {\n  if (result.ok) {\n    return ok(await fn(result.value));\n  }\n  return err(result.error);\n}",
+    "fileB": "src/agents/core/result.ts",
+    "b": "export async function fromPromise<T, E = Error>(\n  promise: Promise<T>,\n  errorMapper?: (e: unknown) => E\n): Promise<Result<T, E>> {\n  try {\n    const value = await promise;\n    return ok(value);\n  } catch (e) {\n    const error = errorMapper ? errorMapper(e) : (e as E);\n    return err(error);\n  }\n}",
+    "dup": false,
+    "note": "sibling combinators"
+  },
+  {
+    "fileA": "src/services/journal/mood-conversion.ts",
+    "a": "export function moodIdToScore(moodId: string | undefined | null): number {\n  if (!moodId) return 5;\n\n  const normalized = moodId.toLowerCase().trim();\n  const mood = MOOD_DEFINITIONS[normalized as MoodId];\n\n  if (mood) {\n    return mood.score;\n  }\n\n  // Try to match partial strings\n  for (const [id, def] of Object.entries(MOOD_DEFINITIONS)) {\n    if (normalized.includes(id) || id.includes(normalized)) {\n      return def.score;\n    }\n  }\n\n  log.debug({ moodId }, 'Unknown mood ID, using neutral score');\n  return 5;\n}",
+    "fileB": "src/services/journal/mood-conversion.ts",
+    "b": "export function scoreToMoodId(score: number | undefined | null): MoodId {\n  if (score === undefined || score === null) return 'neutral';\n\n  // Clamp to valid range\n  const clamped = Math.max(1, Math.min(10, score));\n\n  for (const range of SCORE_TO_MOOD_MAP) {\n    if (clamped >= range.min && clamped <= range.max) {\n      return range.mood;\n    }\n  }\n\n  return 'neutral';\n}",
+    "dup": false,
+    "note": "inverse"
+  },
+  {
+    "fileA": "src/audio/music-memory-integration.ts",
+    "a": "export function exportUserMusicMemories(userId: string): {\n  memories: MusicHelpedMemory[];\n  preferences: MusicPreference[];\n} {\n  return {\n    memories: userMusicMemories.get(userId) || [],\n    preferences: userMusicPreferences.get(userId) || [],\n  };\n}",
+    "fileB": "src/audio/music-memory-integration.ts",
+    "b": "export function importUserMusicMemories(\n  userId: string,\n  data: {\n    memories: MusicHelpedMemory[];\n    preferences: MusicPreference[];\n  }\n): void {\n  if (data.memories.length > 0) {\n    userMusicMemories.set(userId, data.memories);\n  }\n  if (data.preferences.length > 0) {\n    userMusicPreferences.set(userId, data.preferences);\n  }\n\n  log.info(\n    {\n      userId,\n      memoriesCount: data.memories.length,\n      preferencesCount: data.preferences.length,\n    },\n    '\ud83c\udfb5 Music memories imported'\n  );\n}",
+    "dup": false,
+    "note": "export vs import"
+  },
+  {
+    "fileA": "apps/web/src/ui/vibe-controller.api.ts",
+    "a": "export async function setLights(settings: {\n  brightness?: number;\n  colorTemp?: number;\n}): Promise<boolean> {\n  const response = await apiPost<{ success: boolean }>('/api/vibe/lights', settings);\n  return response.ok && response.data?.success === true;\n}",
+    "fileB": "src/tools/domains/smart-home/smart-home.ts",
+    "b": "export async function setLightsForVibe(\n  userId: string,\n  brightness: number,\n  colorTemperature?: number\n): Promise<{ success: boolean; devices: string[] }> {\n  const credentials = await getCredentials(userId);\n  const controlledDevices: string[] = [];\n\n  // Get all light devices\n  const devices = await getAllDevices(userId);\n  const lights = devices.filter((d) => d.type === 'light');\n\n  for (const light of lights) {\n    let success = false;\n\n    switch (light.platform) {\n      case 'lifx':\n        success = await setLifxLight(\n          credentials,\n          light.id,\n          brightness > 0 ? 'on' : 'off',\n          brightness,\n          colorTemperature\n        );\n        break;\n    }\n\n    if (success) {\n      controlledDevices.push(light.name);\n    }\n  }\n\n  return {\n    success: controlledDevices.length > 0,\n    devices: controlledDevices,\n  };\n}",
+    "dup": false,
+    "note": "client API call vs device control"
+  },
+  {
+    "fileA": "src/personas/shared/content-injector.ts",
+    "a": "export function createHandoffContext(\n  fromPersona: string,\n  toPersona: string,\n  topicsDiscussed: string[],\n  currentGoal?: string,\n  emotionalState?: string,\n  keyPoints: string[] = []\n): string {\n  const context: HandoffContext = {\n    fromPersona,\n    toPersona,\n    topicsDiscussed,\n    currentGoal,\n    emotionalState,\n    keyPointsToKnow: keyPoints,\n  };\n  return generateHandoffSummary(context);\n}",
+    "fileB": "src/personas/shared/team-dynamics.ts",
+    "b": "export function generateHandoffSummary(context: HandoffContext): string {\n  const lines: string[] = [];\n\n  lines.push(`[HANDOFF FROM ${context.fromPersona.toUpperCase()}]`);\n\n  if (context.topicsDiscussed.length > 0) {\n    lines.push(`Discussed: ${context.topicsDiscussed.join(', ')}`);\n  }\n\n  if (context.currentGoal) {\n    lines.push(`Working on: ${context.currentGoal}`);\n  }\n\n  if (context.emotionalState) {\n    lines.push(`User mood: ${context.emotionalState}`);\n  }\n\n  if (context.keyPointsToKnow.length > 0) {\n    lines.push(`Key points: ${context.keyPointsToKnow.join('; ')}`);\n  }\n\n  if (context.userPreferences) {\n    const prefs = [];\n    if (context.userPreferences.communicationStyle) {\n      prefs.push(`style: ${context.userPreferences.communicationStyle}`);\n    }\n    if (context.userPreferences.humorAppreciation) {\n      prefs.push(`humor: ${context.userPreferences.humorAppreciation}`);\n    }\n    if (prefs.length > 0) {\n      lines.push(`User prefs: ${prefs.join(', ')}`);\n    }\n  }\n\n  return lines.join('\\n');\n}",
+    "dup": false,
+    "note": "caller and callee"
+  }
+]
