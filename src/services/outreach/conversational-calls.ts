@@ -182,8 +182,7 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     const refused = await ownerRefusal(userId, normalizedPhone, 'call');
     if (refused) return { success: false, error: `Not calling: ${refused}` };
 
-    // Outside the user's calling hours (CALL_HOURS_GUARD=on) the call waits for them, except
-    // the "call me" in a crisis text, which rings now (Seth, 2026-11-06).
+    // Outside calling hours (CALL_HOURS_GUARD=on) it waits; a crisis text's "call me" never does.
     const held = { recipientPhone: normalizedPhone, recipientUserId: userId };
     const call = { kind: 'proactive' as const, request: deferredCallRequest(request) };
     const hoursApply = requestedFor <= new Date() && !isCrisisCallMe(request);
