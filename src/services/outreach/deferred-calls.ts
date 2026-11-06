@@ -102,9 +102,12 @@ export function deferredCallReply(
   );
 }
 
-/** The purpose as the held reply says it to the requester; `purpose` is said to the recipient. */
+/**
+ * The purpose as the held reply says it to the requester; `purpose` is said to the recipient.
+ * A blank one is no phrase at all ("...to ."), so it falls back too.
+ */
 const purposeForRequester = (request: OnBehalfCallRequest): string =>
-  request.requesterPurpose ?? request.purpose;
+  request.requesterPurpose?.trim() || request.purpose;
 
 export interface DeferOptions {
   /** Held only because it's late or early there; a call-now to family may go on a second yes. */

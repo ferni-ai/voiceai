@@ -10,6 +10,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeFirestore, type Row } from '../../scheduling/__tests__/fake-firestore.js';
+import type { OnBehalfCallRequest } from '../../../tools/domains/telephony/types.js';
 
 vi.hoisted(() => {
   // voice-call.ts reads these at load: Twilio is configured, as in prod (fictional values)
@@ -115,7 +116,9 @@ process.env.OUTBOUND_CONFIRM = 'off'; // past the caller's yes: these test what 
 
 const { definitions } = await import('../../../tools/domains/proactive/index.js');
 const { installGatedCallPort } = await import('../gated-call-paths.js');
-const { setGatedCallPort } = await import('../../../tools/domains/telephony/index.js');
+const { placeGatedCall, setGatedCallPort } =
+  await import('../../../tools/domains/telephony/index.js');
+const { placeOrHold } = await import('../deferred-calls.js');
 const { createVoiceReferralTools, getReferralAnalytics } =
   await import('../../../tools/domains/referral/voice-referral.js');
 const { getOnBehalfCallOrchestrator } = await import('../on-behalf-call-orchestrator.js');
@@ -125,13 +128,15 @@ type Execute = { execute: (p: Record<string, unknown>) => Promise<string> };
 const background = definitions
   .find((d) => d.id === 'backgroundCall')!
   .create({ userId: 'owner-1', sessionId: 's1' } as never) as unknown as Execute;
-const referral = createVoiceReferralTools('owner-1', 'Sam')
-  .inviteFriendByCall as unknown as Execute;
+const referralTools = createVoiceReferralTools('owner-1', 'Sam');
+const referral = referralTools.inviteFriendByCall as unknown as Execute;
+const support = referralTools.sendSupportCall as unknown as Execute;
 
 const ANA = '+12135550100'; // Los Angeles area code
 const callAna = () =>
   background.execute({ contactName: 'Ana', contactPhone: ANA, objective: 'confirm Saturday' });
 const referAna = () => referral.execute({ friendName: 'Ana', friendPhone: ANA });
+const supportAna = () => support.execute({ friendName: 'Ana', friendPhone: ANA });
 
 const ELEVEN_PM_LA = new Date('2026-10-14T06:00:00Z'); // Tue 23:00 in Los Angeles
 const TEN_AM_LA = new Date('2026-10-13T17:00:00Z'); // Tue 10:00 in Los Angeles
@@ -438,4 +443,70 @@ describe('referral calls through placeOrHold', () => {
     expect(createSipParticipant).not.toHaveBeenCalled();
     expect(of('voice_referrals')[0].data).toMatchObject({ status: 'called', callSid: 'CA_2' });
   });
+
+  it('a support call keeps its support copy, placed and held', async () => {
+    expect(await supportAna()).toBe(
+      "I'm calling Ana now to let them know you care, and that I'm here if they ever want to talk."
+    );
+    vi.setSystemTime(ELEVEN_PM_LA);
+    expect(await supportAna()).toContain(', to let Ana know you care. Both times');
+  });
+
+  it('flag off: a support call says what it said before', async () => {
+    delete process.env.CALL_PATHS_PLACE_OR_HOLD;
+    expect(await supportAna()).toMatch(
+      /^I'm reaching out to Ana now with a gentle, supportive message\./
+    );
+  });
+});
+
+describe('a blank requester purpose falls back to the purpose', () => {
+  const HELD_HELLO =
+    "Nothing was dialed yet: it's not a good hour to call Ana, so I'll call tomorrow at 9:00 AM Ana's time, later today at 12:00 PM yours, to pass on a hello. Both times are already worked out: say them as written.";
+  const BLANKS = ['', '   ', '\n\t'];
+
+  it.each(BLANKS)(
+    'placeOrHold, requesterPurpose %j: the held reply says the purpose',
+    async (blank) => {
+      vi.setSystemTime(ELEVEN_PM_LA);
+      const request = {
+        contactQuery: 'Ana',
+        resolvedContact: { name: 'Ana', phone: ANA },
+        purpose: 'pass on a hello',
+        requesterPurpose: blank,
+        objective: 'deliver_message',
+        callType: 'personal',
+        originalSessionId: '',
+        userId: 'owner-1',
+        userTimezone: '',
+        userName: 'Sam',
+        recordingConsent: false,
+      } as OnBehalfCallRequest;
+      const orchestrator = getOnBehalfCallOrchestrator();
+      const { held } = await placeOrHold(request, async (r) => orchestrator.initiateCall(r));
+
+      expect(held).toBe(HELD_HELLO);
+    }
+  );
+
+  it.each(BLANKS)(
+    'the gated port, requesterPurpose %j: held reply and stored request',
+    async (blank) => {
+      vi.setSystemTime(ELEVEN_PM_LA);
+      const placement = await placeGatedCall({
+        userId: 'owner-1',
+        userName: 'Sam',
+        contactName: 'Ana',
+        phone: ANA,
+        purpose: 'pass on a hello',
+        requesterPurpose: blank,
+        objective: 'deliver_message',
+        callType: 'personal',
+      });
+
+      expect(placement).toEqual({ held: HELD_HELLO });
+      const [stored] = of('deferred_calls');
+      expect(stored.data.request).not.toHaveProperty('requesterPurpose');
+    }
+  );
 });

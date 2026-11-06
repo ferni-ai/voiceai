@@ -130,6 +130,8 @@ export async function makeVoiceReferralCall(params: {
   personalNote?: string;
   occasion?: string;
   supportSituation?: string;
+  /** sendSupportCall, so a placed call (CALL_PATHS_PLACE_OR_HOLD) keeps the support copy. */
+  support?: boolean;
 }): Promise<{ success: boolean; callSid?: string; error?: string; reply?: string }> {
   const {
     referrerId,
@@ -451,6 +453,7 @@ export function createVoiceReferralTools(userId: string, userName: string) {
           recipientName: friendName,
           recipientPhone: friendPhone,
           supportSituation: situation,
+          support: true,
         });
         if (result.reply) return result.reply; // placed, held or refused (CALL_PATHS_PLACE_OR_HOLD)
         if (result.success) {
