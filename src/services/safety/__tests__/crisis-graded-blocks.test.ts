@@ -502,6 +502,13 @@ const READ_SHAPES: Array<[string, Partial<GradeInput>]> = [
 // blocked rows then.
 const wide = (s: string) =>
   s.replace(/[!-~]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xfee0));
+// Were PR-2 gaps: the shared reader now folds look-alike letters and hidden characters
+// (crisis-modifiers.ts normalize), so each reads as crisis and R4 blocks it.
+const FOLDED: Array<[string, Partial<GradeInput>]> = [
+  ['fullwidth', { latest: wide('I want to die') }],
+  ['zero-width', { latest: 'I want to d\u200bie' }],
+  ['mixed width', { latest: `I want to ${wide('kill')} myself` }],
+];
 const PR2_GAPS: Array<[string, Partial<GradeInput>]> = [
   ['a place, not a means word', { latest: "I'm standing at the edge of the overpass." }],
   ['a plural, not breathing', { latest: "The twins aren't breathing right." }],
@@ -516,9 +523,6 @@ const PR2_GAPS: Array<[string, Partial<GradeInput>]> = [
   ['Spanish ideation', { latest: 'No quiero vivir m\u00e1s.' }],
   ['French ideation', { latest: 'Je ne veux plus vivre.' }],
   ['German ideation', { latest: 'Ich kann nicht mehr.' }],
-  ['fullwidth', { latest: wide('I want to die') }],
-  ['zero-width', { latest: 'I want to d\u200bie' }],
-  ['mixed width', { latest: `I want to ${wide('kill')} myself` }],
   ['a time and a decision', { latest: "Tonight's the night. I've made up my mind." }],
   [
     'abuse said earlier, no verb',
@@ -639,6 +643,15 @@ describe('CRISIS_GRADED_RESPONSE fail-closed rows', () => {
     expect(gradeTurn(callTurn(lines))).toEqual({ would: 'L2' });
     expect(gradeTurn(callTurn(lines, { companion: undefined }))).toEqual({ would: 'L2' });
     expect(gradeTurn(callTurn(lines, { voice: CALM }))).toEqual({ would: 'L2' });
+  });
+
+  it.each(FOLDED)('was a PR-2 gap, now BLOCKED by R4_pattern: %s', (_label, over) => {
+    resetMinorCare();
+    expect(gradeTurn(turn(over))).toEqual({
+      would: null,
+      blockedBy: 'R4_pattern',
+      failed: ['R4_pattern'],
+    });
   });
 
   it.each(PR2_GAPS)('PR-2 gap, grades L2 today (must block before PR-2): %s', (_label, over) => {
