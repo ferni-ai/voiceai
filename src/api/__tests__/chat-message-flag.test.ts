@@ -1,7 +1,8 @@
 /**
- * WEB_CHAT_MESSAGE: POST /api/chat/message is off by default (no crisis read runs
- * before its LLM; #3549). Off, it returns 404 before auth: no model call, no tool
- * run, no write. On, it answers as before. The other chat routes ignore the flag.
+ * WEB_CHAT_MESSAGE: POST /api/chat/message and POST /api/chat/tool are off by
+ * default (no crisis read runs on the text either takes; #3549). Off, both return
+ * 404 before auth: no model call, no tool run, no write. On, they answer as
+ * before. GET /api/chat/tools ignores the flag.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PassThrough } from 'stream';
@@ -53,6 +54,11 @@ async function call(
 }
 
 const MESSAGE = { message: 'remind me to call Priya at 6', personaId: 'ferni' };
+const TOOL = { fn: 'recallFromMemory', args: { query: 'Priya' } };
+const OFF_ROUTES = [
+  ['/api/chat/message', MESSAGE],
+  ['/api/chat/tool', TOOL],
+] as const;
 
 beforeEach(() => {
   requireAuth.mockResolvedValue({ userId: 'riley-test-uid', isAdmin: false });
@@ -68,20 +74,22 @@ afterEach(() => {
 });
 
 describe('WEB_CHAT_MESSAGE', () => {
-  it.each([undefined, '', 'off', 'false', '0', 'OFF', 'shadow', 'maybe', ' no '])(
-    'flag %s: 404, and no auth read, no storage read, no model call, no tool run',
-    async (value) => {
-      if (value !== undefined) vi.stubEnv('WEB_CHAT_MESSAGE', value);
-      const { status, handled } = await call('POST', '/api/chat/message', MESSAGE);
-      expect(handled).toBe(true);
-      expect(status).toBe(404);
-      expect(requireAuth).not.toHaveBeenCalled();
-      expect(rateLimit).not.toHaveBeenCalled();
-      expect(chatHold).not.toHaveBeenCalled();
-      expect(generateContent).not.toHaveBeenCalled();
-      expect(executeTool).not.toHaveBeenCalled();
-    }
-  );
+  describe.each(OFF_ROUTES)('%s', (path, body) => {
+    it.each([undefined, '', 'off', 'false', '0', 'OFF', 'shadow', 'maybe', ' no '])(
+      'flag %s: 404, and no auth read, no storage read, no model call, no tool run',
+      async (value) => {
+        if (value !== undefined) vi.stubEnv('WEB_CHAT_MESSAGE', value);
+        const { status, handled } = await call('POST', path, body);
+        expect(handled).toBe(true);
+        expect(status).toBe(404);
+        expect(requireAuth).not.toHaveBeenCalled();
+        expect(rateLimit).not.toHaveBeenCalled();
+        expect(chatHold).not.toHaveBeenCalled();
+        expect(generateContent).not.toHaveBeenCalled();
+        expect(executeTool).not.toHaveBeenCalled();
+      }
+    );
+  });
 
   it('flag off: a crisis message is not sent to the model either', async () => {
     const { status } = await call('POST', '/api/chat/message', { message: 'I want to die' });
@@ -94,6 +102,8 @@ describe('WEB_CHAT_MESSAGE', () => {
     '/API/CHAT/MESSAGE',
     '/api/chat//message',
     '/api/chat/message.json',
+    '/api/chat/tool/',
+    '/API/CHAT/TOOL',
     // Not this route: unhandled here (the server's 404) or another chat route's answer.
   ])('flag off: %s reaches no model and no tool either', async (path) => {
     await call('POST', path, MESSAGE);
@@ -124,7 +134,20 @@ describe('WEB_CHAT_MESSAGE', () => {
     expect(body).toMatchObject({ success: true });
   });
 
-  it('flag off: the other chat routes are unchanged', async () => {
+  it.each(['on', 'ON', ' on ', 'true', '1', 'live'])(
+    'flag %j: a direct tool call runs as before',
+    async (value) => {
+      vi.stubEnv('WEB_CHAT_MESSAGE', value);
+      const { status, body } = await call('POST', '/api/chat/tool', TOOL);
+      expect(status).toBe(200);
+      expect(requireAuth).toHaveBeenCalledTimes(1);
+      expect(executeTool).toHaveBeenCalledTimes(1);
+      expect(generateContent).not.toHaveBeenCalled();
+      expect(body).toMatchObject({ success: true, result: 'ok' });
+    }
+  );
+
+  it('flag off: the tool list is unchanged', async () => {
     const { status } = await call('GET', '/api/chat/tools');
     expect(status).toBe(200);
     expect(requireAuth).toHaveBeenCalledTimes(1);

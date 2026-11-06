@@ -6,7 +6,7 @@
  *
  * Endpoints:
  * - POST /api/chat/message - Send a message, get response with tool execution (WEB_CHAT_MESSAGE, off)
- * - POST /api/chat/tool - Execute a specific tool directly
+ * - POST /api/chat/tool - Execute a specific tool directly (WEB_CHAT_MESSAGE, off)
  * - GET /api/chat/tools - List available tools for a user
  */
 
@@ -392,9 +392,12 @@ export async function handleChatRoutes(
     return true;
   }
 
-  // WEB_CHAT_MESSAGE (off): no crisis read runs before this route's LLM, so it is off
-  // until one does. 404 before auth: nothing is read, called or written.
-  if (pathname === '/api/chat/message' && !flagOn('WEB_CHAT_MESSAGE')) {
+  // WEB_CHAT_MESSAGE (off): no crisis read runs on the text either route takes, so both are
+  // off until one does. 404 before auth: nothing is read, called or written.
+  if (
+    (pathname === '/api/chat/message' || pathname === '/api/chat/tool') &&
+    !flagOn('WEB_CHAT_MESSAGE')
+  ) {
     sendError(res, 'Not found', 404);
     return true;
   }
@@ -492,7 +495,6 @@ export async function handleChatRoutes(
         sendError(res, 'Tool name (fn) is required', 400);
         return true;
       }
-
       const userId = claimedUserFor(auth, body.userId, res);
       if (!userId) return true;
       const caller = { ...auth, actingUserId: userId };
@@ -501,7 +503,6 @@ export async function handleChatRoutes(
         return true;
       }
       log.info({ userId, tool: body.fn }, 'Executing tool directly');
-
       const startTime = Date.now();
       const result = await executeTool(
         { name: body.fn, args: body.args || {} },
