@@ -101,21 +101,51 @@ const SOMEONE_ELSE = [
   "Riley's boss",
   'Riley Tester',
   'my own mom',
+  'my own boss',
+  "my mom's phone",
+  "priya's phone", // a possessive needs no capital
+  'Dr. Patel',
+  'the dentist',
+  'my kids', // a plural relationship word
 ];
 /** Owners whose names words() reshapes: an apostrophe dropped, a hyphen split. */
 const OBRIEN = "Riley O'Brien";
 const MARY_JANE = 'Mary-Jane Testing';
+const WATSON = 'Mary-Jane Watson';
+const JEAN_LUC = 'Jean-Luc Testard';
+const SAM_LEE = 'Sam Lee';
 const OWN_NAMES: Array<[string, string]> = [
   [OBRIEN, "Riley O'Brien"],
   [OBRIEN, 'Riley'],
+  [OBRIEN, "Riley O'Brien's phone"],
   [MARY_JANE, 'Mary-Jane'],
   [MARY_JANE, 'Mary-Jane Testing'],
+  // a hyphenated name written joined
+  [MARY_JANE, 'MaryJane'],
+  [MARY_JANE, 'MaryJane Testing'],
+  [WATSON, 'MaryJane Watson'],
+  [JEAN_LUC, 'JeanLuc Testard'],
+  ['Anne-Marie Testing', 'AnneMarie Testing'],
+  // the first half of a hyphenated first name: people shorten their own names
+  [WATSON, 'Mary'],
+  [JEAN_LUC, 'Jean'],
+  [SAM_LEE, 'SAM'],
+  [SAM_LEE, "Sam's phone"],
 ];
 const NOT_OWN_NAMES: Array<[string, string]> = [
   [OBRIEN, "O'Brien's sister"],
   [OBRIEN, "Riley's boss"],
   [OBRIEN, 'Riley from work'],
   [MARY_JANE, "Mary-Jane's mom"],
+  [WATSON, 'Jane'],
+  [WATSON, "Mary's sister"],
+  [SAM_LEE, 'Lee'],
+  [SAM_LEE, 'Sam L'],
+  [SAM_LEE, 'Sam Leeds'],
+  [SAM_LEE, 'Samantha'],
+  [SAM_LEE, "Sam Lee's mom"],
+  [SAM_LEE, 'Sam from work'],
+  ['Sam', 'Sam Lee'],
 ];
 const SELF = [
   undefined,
@@ -129,6 +159,27 @@ const SELF = [
   'my own',
   'my own phone',
   'my own number',
+  // the same forms as words() reads them: punctuation, a hyphen, a curly apostrophe
+  'me,',
+  'myself,',
+  'my phone,',
+  'my cell-phone',
+  'my’ phone',
+  // paraphrases: only positive evidence of someone else refuses, so these ring as main does
+  'my cellphone',
+  'my mobile phone',
+  'my phone number',
+  'my own cell',
+  'my own mobile',
+  'mine',
+  'me (the caller)',
+  'Me (caller)',
+  'My Cell Phone',
+  'my home phone',
+  // the caller's own number, or any number: no name in it
+  '555-0100',
+  OWNER,
+  'Riley🙂', // a symbol is not a name
   'Riley',
   'Riley Testing',
   'riley testing.',
@@ -227,6 +278,11 @@ describe('otherPerson', () => {
     expect(otherPerson('Mary-Jane', ['mary jane testing'])).toBeUndefined();
     expect(otherPerson("Riley's boss", ['riley obrien'])).toBe("Riley's boss");
     expect(otherPerson('Riley Testing Jr', ['riley testing'])).toBe('Riley Testing Jr');
-    expect(otherPerson('555-0100', ['riley testing'])).toBe('555-0100'); // no words: not their name
+    // No positive evidence of someone else: rung as main does.
+    expect(otherPerson('555-0100', ['riley testing'])).toBeUndefined();
+    expect(otherPerson('alex', ['riley testing'])).toBeUndefined(); // no capital, no relation
+    expect(otherPerson('?!', ['riley testing'])).toBeUndefined();
+    expect(otherPerson('MaryJane', ['mary jane testing'])).toBeUndefined();
+    expect(otherPerson('Jane', ['mary jane watson'])).toBe('Jane');
   });
 });

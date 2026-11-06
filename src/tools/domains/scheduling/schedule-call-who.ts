@@ -18,37 +18,79 @@ import { ownerNames } from '../communication/outreach/outreach-confirm.js';
 /** Read when the tool is built and on each run, so a cohort's value applies per call. */
 const scheduleCallWhoOn = (env: Env): boolean => flagOn('SCHEDULE_CALL_WHO', env);
 
-/** What the model may write for the caller themself, or their own phone. */
-const SELF = new Set([
-  ...['', 'me', 'myself', 'self', 'i', 'user', 'the user', 'caller', 'the caller'],
-  ...['my phone', 'my cell', 'my cell phone', 'my mobile', 'my number'],
-  ...['my own', 'my own phone', 'my own number'],
-]);
+/**
+ * Words that never name someone else: the caller and their own phone ("me (the
+ * caller)", "my own cell", "your phone"). Compared after words(), like everything here.
+ */
+const SELF_WORDS = new Set(
+  [
+    'i me my mine myself self own you your yourself the a an user caller',
+    'phone cell cellphone mobile number telephone line',
+  ]
+    .join(' ')
+    .split(' ')
+);
 
 /**
- * Whether `said` is the caller's own name: the opening words of one of their
- * names (ownerNames: "mary jane testing"), from the first word up to all of it.
- * Both sides go through the same words(), so "O'Brien" and "Mary-Jane" match.
+ * Words that say the call is for someone else in any casing: a relationship or
+ * role ("my mom", "Riley's boss"), or "from" ("Riley from work"). A plural or
+ * possessive counts too: words() reads "mom's" as "moms".
  */
-function isOwnName(said: string[], owner: readonly string[]): boolean {
-  if (said.length === 0) return false;
+const OTHER_WORDS = new Set(
+  [
+    'mom mum mother mama mommy dad father papa daddy parent grandma grandpa grandmother grandfather',
+    'nana granny grandparent sister brother sibling son daughter kid child children baby wife husband',
+    'spouse partner boyfriend girlfriend fiance fiancee aunt uncle cousin niece nephew family friend',
+    'bestie buddy pal roommate neighbor neighbour boss manager coworker colleague team client customer',
+    'doctor dentist therapist landlord teacher coach from',
+  ]
+    .join(' ')
+    .split(' ')
+);
+const isOtherWord = (w: string): boolean =>
+  OTHER_WORDS.has(w) || (w.endsWith('s') && OTHER_WORDS.has(w.slice(0, -1)));
+
+/**
+ * Whether the name words are the caller's own name: the opening words of one of
+ * their names (ownerNames: "mary jane testing"), from the first word up to all
+ * of it, compared without spaces so "MaryJane" is "Mary-Jane".
+ */
+function isOwnName(named: string[], owner: readonly string[]): boolean {
+  const said = named.join('');
   return owner.some((full) => {
-    const own = full.split(' ');
-    return said.every((word, i) => word === own[i]); // past their last word, own[i] is undefined
+    let own = '';
+    return full.split(' ').some((word) => (own += word) === said);
   });
 }
 
 /**
- * Whom the call is for when that is someone other than the caller; undefined
- * for the caller or unsaid. The caller's own name counts only whole: their
- * first name, or their name up to their full name, never "Riley from work"
- * or "Riley's boss".
+ * Whether `who` clearly names someone else. Only positive evidence counts: a
+ * relationship word, a capitalized name or a possessive ("sam's") that isn't
+ * the caller's own name. Anything else, a paraphrase, a number or symbols, is
+ * the caller, so it rings them as main does.
+ */
+function namesSomeoneElse(who: string, owner: readonly string[]): boolean {
+  const named: string[] = [];
+  for (const chunk of who.split(/\s+/)) {
+    const possessor = /^(.+?)['’]s(?=[^\p{L}\p{M}]*$)/u.exec(chunk)?.[1];
+    const said = words(possessor ?? chunk);
+    if (said.some(isOtherWord)) return true;
+    if (possessor !== undefined || /^[^\p{L}]*\p{Lu}/u.test(chunk)) {
+      named.push(...said.filter((w) => !SELF_WORDS.has(w) && /\p{L}/u.test(w))); // not an emoji
+    }
+  }
+  return named.length > 0 && !isOwnName(named, owner);
+}
+
+/**
+ * Whom the call is for when `who` clearly names someone other than the caller;
+ * undefined otherwise. The caller's own name counts from their first name (or
+ * the first half of a hyphenated one) up to their full name, never
+ * "Riley from work", "Riley's boss" or "Sam L".
  */
 export function otherPerson(who: unknown, owner: readonly string[] = []): string | undefined {
   const name = typeof who === 'string' ? who.trim().replace(/[.!?]+$/, '') : '';
-  const key = name.toLowerCase().replace(/\s+/g, ' ');
-  if (SELF.has(key) || isOwnName(words(name), owner)) return undefined;
-  return name;
+  return namesSomeoneElse(name, owner) ? name : undefined;
 }
 
 /** main's description, word for word: what the model reads with the flag off. */

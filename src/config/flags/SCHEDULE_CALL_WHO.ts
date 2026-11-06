@@ -6,7 +6,7 @@ export const SCHEDULE_CALL_WHO = {
   owner: 'outreach',
   kind: 'experiment',
   expires: '2027-02-05',
-  issue: '#3511',
+  issue: 'https://github.com/ferni-ai/voiceai/issues/3511',
   context:
     'Keep until scheduled calls can ring someone else through the confirm gate; then delete.',
 } as const satisfies FlagSpec;
