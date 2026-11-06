@@ -16,8 +16,11 @@ export interface OtherHelpLine {
   numbers: string[];
   /** The word texted to it ("Text START to 678678"). */
   keyword?: string;
-  /** Known only by its capitals, because the name is an ordinary word ("Shout", not "don't shout"). */
-  exactCase?: boolean;
+  /**
+   * The name is also an ordinary word ("Shout", not "don't shout"): read in its
+   * own capitals mid-sentence, else only beside a contact or help word.
+   */
+  alsoAWord?: boolean;
 }
 
 /** The lines, with every name, number and texted word a reply may use. */
@@ -30,10 +33,10 @@ export const OTHER_HELP_LINES: readonly OtherHelpLine[] = [
   },
   { name: 'Trans Lifeline', numbers: ['1-877-565-8860'] },
   { name: 'Veterans Crisis Line', numbers: ['838255'] },
-  // Its toll-free phone is read as any toll-free number, and is no house fact to list here.
+  // Its toll-free phone is no house fact to list here; the toll-free rule reads it.
   { name: 'Kids Help Phone', numbers: ['686868'], keyword: 'CONNECT' },
   { name: 'Samaritans', numbers: ['116 123'] },
-  { name: 'Shout', numbers: ['85258'], keyword: 'SHOUT', exactCase: true },
+  { name: 'Shout', numbers: ['85258'], keyword: 'SHOUT', alsoAWord: true },
   { name: 'Childline', numbers: ['0800 1111'] },
   { name: 'NHS 111', numbers: ['111'] },
   { name: 'Lifeline Australia', numbers: ['13 11 14'] },

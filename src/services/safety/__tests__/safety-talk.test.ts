@@ -165,9 +165,66 @@ describe('reads the lines from the kernel lists', () => {
       expect(reachesHelp(`You can text ${k} any time.`), k).toBe(true);
   });
 
-  it('knows "Shout" only by its capitals', () => {
-    expect(reachesHelp('Shout is there by text, day or night.')).toBe(true);
-    expect(reachesHelp("Don't shout, it's fine.")).toBe(false);
+  it('knows "Shout" and "NAMI" by their capitals, or beside a contact or help word', () => {
+    for (const t of [
+      'Shout is there by text, day or night.',
+      'You could try Shout tonight.',
+      'NAMI',
+      'Have you tried NAMI?',
+      'You can text shout to 85258.',
+      'nami has a helpline you can call.',
+      'Reach the Nami helpline any weekday.',
+      'Shout is free and open all night.',
+    ])
+      expect(reachesHelp(t), t).toBe(true);
+    for (const t of [
+      "Don't shout, it's fine.",
+      'Shout out to my sister for the cake!',
+      'Shout if you need a hand with the boxes.',
+      'We heard a shout from the garden.',
+      "Nami said she'd bring the cake.",
+      'My friend Nami is visiting.',
+      'nami loves sushi.',
+    ])
+      expect(reachesHelp(t), t).toBe(false);
+  });
+});
+
+describe('a verb or a role after the number or the name still names the line', () => {
+  it.each([
+    '999 works anywhere in the UK.',
+    '112 works across Europe, even without a SIM.',
+    '999 gets help to you fast.',
+    '999 operators answer in seconds.',
+    '112 dispatchers speak English too.',
+    'Nine one one operators are trained for this.',
+    '000 connects you in Australia.',
+    'The 999 calls go straight to a dispatcher.',
+    'The paramedics show up within minutes.',
+    'The police show up quickly here.',
+    'An ambulance runs lights all the way.',
+    'EMS runs around the clock.',
+    'Samaritans run a line all night.',
+    'The police game it out with you on the phone.',
+    'The French line is 09.72.39.40.50.',
+  ])('reaches help: %s', (text) => {
+    expect(reachesHelp(text)).toBe(true);
+  });
+
+  it.each([
+    'I walked 999 steps today.',
+    "That's 112 miles from here.",
+    'There were 999 people in line.',
+    'It took 112 days.',
+    'We drove 111 kilometres.',
+    'Room 112 is upstairs.',
+    'Flight 999 is delayed.',
+    "It's 9.11 miles to the lake.",
+    'We meet at 9.11 am.',
+    'The app is 9.99 a month.',
+    'She scored 1.12 on the quiz.',
+  ])('no help: %s', (text) => {
+    expect(reachesHelp(text)).toBe(false);
   });
 });
 

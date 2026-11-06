@@ -85,29 +85,49 @@ const CARE_AND_GROUNDING = [
 ];
 const CARE = new RegExp(String.raw`\b(?:${CARE_AND_GROUNDING.join('|')})\b`, 'i');
 
-const SEP = String.raw`[\s.-]?`;
+/** Between digits of a short number: no ".", so a decimal or a time ("9.11 miles", "1.12 am") is no number. */
+const SEP = String.raw`[\s-]?`;
+/** Between digits of a long number, where dots group them ("09.72.39.40.50"). */
+const GROUP_SEP = String.raw`[\s.-]?`;
 /** Not part of a longer number, an amount, a time or a word. */
 const ALONE_BEFORE = String.raw`(?<![\w$€£#:]|\d[.,:])`;
 const ALONE_AFTER = String.raw`(?![\w%]|[.,:]\d)`;
-const spaced = (digits: string): string => digits.split('').join(SEP);
+const spaced = (digits: string, sep = SEP): string => digits.split('').join(sep);
 const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const nameSource = (n: string): string =>
   escape(n.replace(/^the\s+/i, ''))
     .replace(/\s+/g, String.raw`\s+`)
     .replace('&', '(?:&|and)');
 
-/** After a name, the words that make it a story, an event or a thing. */
+/**
+ * After a name, the nouns that make it a story, an event or a thing. Not "show",
+ * "run" or "game", which are verbs as often ("the police show up", "Shout runs a line").
+ */
 const NOT_THE_LINE =
-  /^[\s-]+(?:dramas?|shows?|series|procedurals?|movies?|films?|novels?|podcasts?|thrillers?|games?|walks?|runs?|5ks?|galas?|fundraisers?|raffles?|(?:phone )?cases?|mugs?|shirts?|t-shirts?|hoodies?|stickers?|merch)\b/i;
-/** After a number, a plural noun makes it a count ("999 problems", "nine one one dollars"). */
-const A_COUNT = /^\s+[a-z]+s\b/i;
-/** Whether `re` (global) matches somewhere that is not a story, a thing, a count or an amount. */
-function reads(re: RegExp, text: string): boolean {
+  /^[\s-]+(?:dramas?|series|procedurals?|movies?|films?|novels?|podcasts?|thrillers?|walks?|5ks?|galas?|fundraisers?|raffles?|(?:phone )?cases?|mugs?|shirts?|t-shirts?|hoodies?|stickers?|merch)\b/i;
+/**
+ * After a number, the count and unit nouns that make it a count or an amount
+ * ("999 problems", "112 miles"). A closed list: a verb or a role after the number
+ * still names the line ("999 works", "112 operators", "999 calls").
+ */
+const COUNT_NOUNS = [
+  'problems?|things?|ways?|ideas?|reasons?|questions?|items?|pieces?|times?',
+  'people|persons?|guests?|kids?|children|students?|members?|friends?|fans?|followers?',
+  'likes?|views?|votes?|points?|goals?|steps?|reps?|laps?|pages?|words?|books?|songs?',
+  'seconds?|minutes?|mins?|hours?|hrs?|days?|nights?|weeks?|months?|years?',
+  'dollars?|bucks?|cents?|pounds?|quid|pence|euros?|lbs?|ounces?|oz|grams?|kilos?|kgs?',
+  'miles?|kilomet(?:er|re)s?|kms?|met(?:er|re)s?|feet|foot|ft|inch(?:es)?|yards?|degrees?|calories?|percent',
+];
+const A_COUNT = new RegExp(String.raw`^\s+(?:${COUNT_NOUNS.join('|')})\b`, 'i');
+/** Whether `re` (global) matches somewhere that is not a story, a thing, a count, a label or an amount, and passes `also`. */
+function reads(re: RegExp, text: string, also = (_m: RegExpExecArray): boolean => true): boolean {
   for (const m of text.matchAll(re)) {
     if (/[$€£]$/.test(text.slice(0, m.index))) continue;
     const after = text.slice(m.index + m[0].length);
-    if (!(/\d|\b(?:one|two|nine|zero)\b/i.test(m[0]) ? A_COUNT : NOT_THE_LINE).test(after))
-      return true;
+    const story = /\d|\b(?:one|two|nine|zero)\b/i.test(m[0])
+      ? A_COUNT.test(after) || A_LABEL.test(text.slice(0, m.index))
+      : NOT_THE_LINE.test(after);
+    if (!story && also(m)) return true;
   }
   return false;
 }
@@ -137,18 +157,45 @@ const resourceNames = RESOURCES.flatMap((r) => {
   const short = words.length > 1 && LINE_WORD.test(words[1]) && /^[a-z]+$/i.test(words[0]);
   return short ? [r.name, words[0]] : [r.name];
 });
-const otherNames = (exactCase: boolean): string[] =>
-  OTHER_HELP_LINES.filter((l) => Boolean(l.exactCase) === exactCase).flatMap((l) => [
+const otherNames = (alsoAWord: boolean): string[] =>
+  OTHER_HELP_LINES.filter((l) => Boolean(l.alsoAWord) === alsoAWord).flatMap((l) => [
     l.name,
     ...(l.aka ?? []),
   ]);
+/** Short names in CRISIS_RESOURCES that are also a given name ("Nami"). */
+const ALSO_A_NAME = new Set(['NAMI']);
 /** One alternation of `parts`, or one that never matches when there are none. */
 const oneOf = (parts: string[]): string => [...new Set(parts)].join('|') || '(?!)';
 const anyName = (names: string[], flags: string): RegExp =>
   new RegExp(String.raw`(?<!\w)(?:${oneOf(names.map(nameSource))})(?!\w)`, flags);
-const BY_NAME = anyName([...resourceNames, ...otherNames(false)], 'gi');
-/** Names that are ordinary words, by their capitals only ("Shout", not "don't shout"). */
-const BY_NAME_EXACT = anyName(otherNames(true), 'g');
+const BY_NAME = anyName(
+  [...resourceNames.filter((n) => !ALSO_A_NAME.has(n)), ...otherNames(false)],
+  'gi'
+);
+/** Names that are also a word or a given name ("Shout", "NAMI"); see `namesTheLine`. */
+const WORD_NAMES = [...resourceNames.filter((n) => ALSO_A_NAME.has(n)), ...otherNames(true)];
+const BY_WORD_NAME = anyName(WORD_NAMES, 'gi');
+/** A contact or help word, which makes a name that is also a word the line ("text Shout", "the NAMI line"). */
+const CONTACT_OR_HELP =
+  /\b(?:call(?:ing)?|text(?:ing)?|messag(?:e|ing)|reach(?:ing)?|contact(?:ing)?|dial(?:l?ing)?|tr(?:y|ied|ying)|talk to|help\w*|hotlines?|lines?|services?|support|crisis|volunteers?|counsel+ors?|24\/7|any ?time|any hour|day or night|all night|around the clock)\b/i;
+const NEAR_WORDS = 8;
+/**
+ * A name that is also a word is the line in its own capitals where they tell
+ * ("NAMI"; "Shout" mid-sentence), or beside a contact or help word in any case
+ * ("call nami", "Shout is there by text"). Not "my friend Nami", "Shout out to you".
+ * Beside its number it is read anyway, by that number ("85258").
+ */
+function namesTheLine(m: RegExpExecArray, text: string): boolean {
+  const before = text.slice(0, m.index);
+  const sentenceStart = /(?:^|[.!?:;"“(\n-]\s*)$/.test(before);
+  if (WORD_NAMES.includes(m[0]) && (/[A-Z]/.test(m[0].slice(1)) || !sentenceStart)) return true;
+  const words = (s: string): string[] => s.split(/\s+/).filter(Boolean);
+  const near = [
+    ...words(before.split(/[.!?]/).pop() ?? '').slice(-NEAR_WORDS),
+    ...words(text.slice(m.index + m[0].length).split(/[.!?]/)[0]).slice(0, NEAR_WORDS),
+  ].join(' ');
+  return CONTACT_OR_HELP.test(near);
+}
 
 /** The words texted to a line ("Text HOME to 741741", "You can text HOME any time"). */
 const KEYWORDS = [
@@ -170,9 +217,13 @@ const NUMBERS = [
       .filter((d) => d.length >= 3)
   ),
 ];
-const anyNumber = (list: string[], flags = ''): RegExp =>
-  new RegExp(`${ALONE_BEFORE}(?:${oneOf(list.map(spaced))})${ALONE_AFTER}`, flags);
-const BY_NUMBER = anyNumber(NUMBERS.filter((n) => n.length > 3));
+const anyNumber = (list: string[], flags = '', sep = SEP): RegExp =>
+  new RegExp(`${ALONE_BEFORE}(?:${oneOf(list.map((n) => spaced(n, sep)))})${ALONE_AFTER}`, flags);
+const BY_NUMBER = anyNumber(
+  NUMBERS.filter((n) => n.length > 3),
+  '',
+  GROUP_SEP
+);
 /** The emergency numbers and three-digit lines, in digits; but 911 can't be a count ("999 problems" can). */
 const SHORT_NUMBERS = anyNumber(
   [EMERGENCY_NUMBER, ...EMERGENCY_NUMBERS_ABROAD, ...NUMBERS.filter((n) => n.length === 3)],
@@ -234,7 +285,7 @@ function shortNumber(text: string): boolean {
 export function reachesHelp(text: string): boolean {
   if (offersCrisisLine(text)) return true;
   if (reads(SERVICE, text.toLowerCase()) || reads(KIND, text) || reads(INITIALS, text)) return true;
-  if (reads(BY_NAME, text) || reads(BY_NAME_EXACT, text)) return true;
+  if (reads(BY_NAME, text) || reads(BY_WORD_NAME, text, (m) => namesTheLine(m, text))) return true;
   if (BY_KEYWORD.test(text) || BY_KEYWORD_TO.test(text)) return true;
   if (BY_NUMBER.test(text) || TOLL_FREE.test(text) || SERVICE_NUMBER_CALLED.test(text)) return true;
   if (shortNumber(text) || reads(SPOKEN_NUMBER, text)) return true;
