@@ -190,4 +190,50 @@ final class CrisisCallSoundsTests: XCTestCase {
         XCTAssertTrue(CrisisMarker.latestCallHadCrisis)
         await model.call.end()
     }
+
+    // MARK: - The next call, through each door
+
+    /// A crisis call through the app's model, ended by the person. Its goodbye
+    /// stays quiet, and its mark is still set as the next call is asked for.
+    private func modelAfterACrisisCall() async -> AppModel {
+        let model = AppModel(config: UITestScenario.config, firebaseReady: false, scenario: "call", feedback: feedback())
+        await until(model.call.phase == .live)
+        CrisisMarker.mark()
+        clock += .seconds(30)
+        await model.call.end()
+        XCTAssertFalse(model.call.isActive, "precondition: the crisis call is over")
+        XCTAssertTrue(CrisisMarker.latestCallHadCrisis, "precondition: its mark outlasted its end")
+        XCTAssertFalse(haptics.played.contains(.goodbye), "precondition: its goodbye stayed quiet")
+        XCTAssertFalse(model.account.needsSignIn, "precondition: Talk reaches the feedback")
+        return model
+    }
+
+    /// The next call, from wherever it was asked for, plays every sound again.
+    private func assertTheNextCallPlaysEverything(on model: AppModel) {
+        sounds = []
+        haptics.played = []
+        clock += .seconds(300)
+        play(wholeCall, on: model.feedback)
+        XCTAssertEqual(sounds, everySound, "a crisis mark mustn't leak into the next call")
+        XCTAssertEqual(haptics.played, everyHaptic)
+    }
+
+    /// Talk: the Talk button, a note on Home, Siri and Shortcuts, CarPlay, the
+    /// watch and a notification all come through `talk()`.
+    func testAfterACrisisCallTheNextCallFromTalkPlaysItsSounds() async {
+        let model = await modelAfterACrisisCall()
+        model.talk()
+        assertTheNextCallPlaysEverything(on: model)
+        await model.call.end()
+    }
+
+    /// The consent sheet's "I agree, let's talk" starts its call directly.
+    func testAfterACrisisCallTheNextCallFromAgreeAndTalkPlaysItsSounds() async {
+        let model = await modelAfterACrisisCall()
+        await model.agreeAndTalk()
+        // No account in a test, so this call ends saying so; wait for that
+        // first, so its own haptic isn't counted as the next call's.
+        await until(!model.call.isActive)
+        assertTheNextCallPlaysEverything(on: model)
+    }
 }

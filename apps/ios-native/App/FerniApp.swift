@@ -303,8 +303,11 @@ final class AppModel {
         call.forgetPerson()
     }
 
-    /// - Parameter scenario: debug builds only; a UI-test launch (`UITestScenario`).
-    init(config: FerniConfig = .fromBundle(), firebaseReady: Bool, scenario: String? = nil) {
+    /// - Parameters:
+    ///   - scenario: debug builds only; a UI-test launch (`UITestScenario`).
+    ///   - feedback: the call's sounds and haptics; tests pass one with recorders.
+    init(config: FerniConfig = .fromBundle(), firebaseReady: Bool, scenario: String? = nil,
+         feedback: CallFeedback = CallFeedback()) {
         self.config = config
         #if DEBUG
         account = UITestScenario.account() ?? AccountStore(backend: firebaseReady ? FirebaseAuthBackend() : nil)
@@ -330,7 +333,6 @@ final class AppModel {
         )
         account.uploadAppleCode = AppleAuthorizationUpload.uploader(api: api)
         account.mergeLeftBehind = AnonymousMerge.merger(api: api)
-        let feedback = CallFeedback()
         self.feedback = feedback
         let level = AudioLevelMeter()
         let avatar = AvatarModel(play: { [feedback] in feedback.play($0) })
