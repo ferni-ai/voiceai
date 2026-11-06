@@ -120,7 +120,7 @@ describe('session trajectory', () => {
     expect(
       outcome('Soon none of this will matter', [
         'I feel like a burden to everyone',
-        'nobody would miss me',
+        "i don't care anymore",
       ])
     ).toBe('crisis');
   });
@@ -133,7 +133,7 @@ describe('session trajectory', () => {
   });
 
   it('ignores the copy of the current message in recentTranscripts', () => {
-    expect(outcome('nobody would miss me', ['nobody would miss me'])).toBe('none');
+    expect(outcome("i don't care anymore", ["i don't care anymore"])).toBe('none');
   });
 
   it('a worry about someone else does not escalate the caller', () => {
@@ -146,7 +146,7 @@ describe('session trajectory', () => {
     // The earlier turn reads as third party since #2528, but the caller's own negated words in it
     // were a distress turn before, and still are for the session.
     const recent = [
-      'nobody would miss me',
+      "i don't care anymore",
       "my dad says he wants to end his life. I'm not going to kill myself, don't worry",
     ];
     expect(outcome('soon none of this will matter', recent)).toBe('crisis');
@@ -159,14 +159,14 @@ describe('session trajectory', () => {
     // Only words a tier softened, as before #2528: words only the ending floor finds add nothing.
     expect(
       outcome('soon none of this will matter', [
-        'nobody would miss me',
+        "i don't care anymore",
         'my brother keeps talking about killing himself. I would never kill myself',
       ])
     ).toBe('none');
     // The worry alone still never counts.
     expect(
       outcome('soon none of this will matter', [
-        'nobody would miss me',
+        "i don't care anymore",
         'my dad says he wants to end his life',
       ])
     ).toBe('none');
