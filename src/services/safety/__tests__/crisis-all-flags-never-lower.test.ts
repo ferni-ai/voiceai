@@ -349,6 +349,7 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   ACTION_CLAIM_PAST: 'src/agents/personas/__tests__/action-claim-past.test.ts',
   ACTION_CLAIM_STREAM: 'src/agents/personas/__tests__/action-claim-guard-spacing.test.ts',
   AI_NOTICE_SPOKEN: 'src/agents/multi-agent/__tests__/ai-notice-opening.test.ts',
+  ALREADY_SAID_LEDGER: 'src/agents/personas/__tests__/already-said.test.ts',
   BOOKING_PREFS: 'src/services/stores/__tests__/booking-prefs-store.test.ts',
   CALLER_CARD: 'src/agents/multi-agent/__tests__/caller-card-setup.test.ts',
   CALLER_RECOGNITION: 'src/agents/voice-agent-entry/__tests__/caller-recognition.test.ts',
