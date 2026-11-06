@@ -15,6 +15,9 @@ interface TaggedPattern {
   imminent?: true;
 }
 
+/** A yes, said first: "yes im suicidal", "ok kill me". */
+const CONFIRM = String.raw`((yes|yeah|yep|yup|ok|okay|sure)[,.!]* )?`;
+
 /**
  * Explicit crisis indicators - immediate red flags.
  *
@@ -96,6 +99,25 @@ export const EXPLICIT_CRISIS_PATTERNS: TaggedPattern[] = [
     re: /\bsuicid(e|al) (note|letter)\b|\bgoodbye (note|letter)s?\b(?! (from|to) (the|my) (team|class|job|company))/,
     tag: 'suicidal',
   },
+  // Short lines, often a yes to "are you thinking about suicide?" ("yes im suicidal", "ok kill
+  // me"). Every reader missed them. "kill me" and "overdose tonight" only as the whole line, so
+  // "kill me now, this meeting" and "an overdose tonight at the party" stay out.
+  {
+    re: /\bi'?m (so |really |very |actually |honestly |literally |feeling )?suicidal\b|\bi (feel|'?ve been feeling) suicidal\b/,
+    tag: 'suicidal',
+  },
+  { re: new RegExp(`^${CONFIRM}(please |just )?kill me( please)?[.!]*$`), tag: 'suicidal' },
+  {
+    re: new RegExp(
+      `^${CONFIRM}(i'?ll |i will |i'?m going to |going to )?(overdose|od) (tonight|today|right now|now|this weekend)\\b`
+    ),
+    tag: 'suicidal',
+  },
+  // Pills and a goodbye, and nothing else ("💊💊💊 bye everyone").
+  {
+    re: /^(\u{1F48A}\s*)+(ok |so )?(bye|goodbye)( everyone| all| world| guys)?[.!]*$/u,
+    tag: 'suicidal',
+  },
   // Coded language.
   { re: /\bkms\b|\bunalive (myself|me)\b|\bsewer ?slide\b/, tag: 'suicidal' },
   // Means in hand or an attempt underway.
@@ -114,6 +136,11 @@ export const EXPLICIT_CRISIS_PATTERNS: TaggedPattern[] = [
     tag: 'suicidal',
   },
   { re: /\bi('?ve| have)? (just )?overdosed\b/, tag: 'suicidal', imminent: true },
+  {
+    re: /\b(i have|i'?ve got|i got|got) (the|a|my) (rope|noose) (ready|tied|set up)\b(?! (for|to)\b)|\bthe noose is (ready|tied|up)\b/,
+    tag: 'suicidal',
+    imminent: true,
+  },
   {
     re: /\b(gun|pistol) (to|against|in) my (head|mouth)\b|\brope (is )?(around|on) my neck\b|\b(have|got|holding) (a|the|my) (gun|pistol) in my hand\b/,
     tag: 'suicidal',
@@ -238,6 +265,12 @@ export const PASSIVE_IDEATION_PATTERNS: TaggedPattern[] = [
     re: /\bdon'?t (think i )?want to (keep going|go on)\b(?! (to|with|down|at)\b)/,
     tag: 'suicidal',
   },
+  {
+    re: /\bi'?m (so |just |completely |totally )?done with (life|living|being alive)\s*[.!?]*$/,
+    tag: 'suicidal',
+  },
+  { re: /\bi can'?t keep going( on)?( anymore| like this)?\s*[.!?]*$/, tag: 'suicidal' },
+  { re: /\bi'?m sorry,? (but )?i'?m (just )?done\s*[.!?]*$/, tag: 'suicidal' },
   // Method-seeking.
   {
     re: /\b(does|would|will|do you think) it hurts? to die\b|\bpainless ways? to (die|go|end it)\b/,
