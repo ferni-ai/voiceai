@@ -38,9 +38,25 @@ import { escapeXml } from './twilio-ssml.js';
 
 const log = createLogger({ module: 'SmsCrisisScreen' });
 
-/** Seth approved this wording, 2026-10-25. */
-export const SMS_CRISIS_REPLY =
-  "I'm really glad you told me, and I'm here. If you might act on these thoughts or you're not safe right now, please call or text 988 (Suicide & Crisis Lifeline), or text HOME to 741741. If you're in immediate danger, call 911. You can open Ferni anytime and we'll talk.";
+/** Seth approved this wording, 2026-10-25: everything after the opening line. */
+const SMS_CRISIS_RESOURCES =
+  "If you might act on these thoughts or you're not safe right now, please call or text 988 (Suicide & Crisis Lifeline), or text HOME to 741741. If you're in immediate danger, call 911. You can open Ferni anytime and we'll talk.";
+export const SMS_CRISIS_REPLY = `I'm really glad you told me, and I'm here. ${SMS_CRISIS_RESOURCES}`;
+/**
+ * A crisis text that also asked for a call: the call is kept and the one text
+ * says so (Seth, 2026-11-06). Before, "Calling you now." was replaced by 988,
+ * and the phone then rang with no word why.
+ */
+export const SMS_CRISIS_CALLING_REPLY = `I'm calling you now. ${SMS_CRISIS_RESOURCES}`;
+/** The call was deferred to calling hours: said as plainly, never dropped. */
+export const SMS_CRISIS_CALL_LATER_REPLY = `I'll call you as soon as your calling hours start. ${SMS_CRISIS_RESOURCES}`;
+
+/** The crisis reply for a text whose handler placed a call now, for later, or not at all. */
+export function smsCrisisReplyFor(called: 'now' | 'later' | undefined): string {
+  if (called === 'now') return SMS_CRISIS_CALLING_REPLY;
+  if (called === 'later') return SMS_CRISIS_CALL_LATER_REPLY;
+  return SMS_CRISIS_REPLY;
+}
 
 /** A text isn't a live turn: Twilio waits ~15 s for the webhook, so the classifier gets longer than a call's 1 s. */
 export const SMS_CLASSIFIER_TIMEOUT_MS = 4_000;

@@ -15,13 +15,19 @@ import {
   handleSMSStatusWebhook,
   handleInboundSMSWebhook,
   handleCallStatusWebhook,
+  isSignedInboundSms,
 } from '../services/outreach/webhooks/index.js';
 import { handlePushInteraction } from '../services/outreach/delivery/push-notifications.js';
 import { recordCheckinReply } from '../services/outreach/checkin-replies.js';
 import { recordInboundSmsConsent } from '../services/messaging/consent.js';
 import { recordContactYes } from '../services/messaging/consent-grants.js';
 import { recordHolderCode } from '../services/messaging/holder-verification.js';
-import { smsCrisisReply, withCrisisReply } from '../services/outreach/sms-crisis-screen.js';
+import {
+  smsCrisisReply,
+  smsCrisisReplyFor,
+  smsReplyTwiml,
+  withCrisisReply,
+} from '../services/outreach/sms-crisis-screen.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { isSignedByTwilio, twilioSignedUrl } from './twilio-callback-signature.js';
 
@@ -83,6 +89,26 @@ function signedUrl(req: IncomingMessage, pathname: string, body: Record<string, 
 function sendTwiML(res: ServerResponse, twiml: string): void {
   res.writeHead(200, { 'Content-Type': 'application/xml' });
   res.end(twiml);
+}
+
+type InboundSms = Parameters<typeof handleInboundSMSWebhook>[0];
+
+/**
+ * One step after the crisis screen: a throw is logged (the step and the error's
+ * class only, never a number or the words) and the text is still answered.
+ */
+async function afterScreen<T>(
+  step: string,
+  crisis: boolean,
+  run: () => Promise<T>
+): Promise<T | undefined> {
+  try {
+    return await run();
+  } catch (error) {
+    const errorClass = error instanceof Error ? error.name : typeof error;
+    log.warn({ step, crisis, errorClass }, 'Inbound SMS step failed; the reply still goes out');
+    return undefined;
+  }
 }
 
 // ============================================================================
@@ -159,29 +185,40 @@ export async function handleOutreachWebhookRoutes(
       const signature = req.headers['x-twilio-signature'] as string;
       const fullUrl = signedUrl(req, pathname, body);
 
-      const result = await handleInboundSMSWebhook(
-        body as unknown as Parameters<typeof handleInboundSMSWebhook>[0],
-        signature,
-        fullUrl
+      const payload = body as unknown as InboundSms;
+      const text = String(body.Body ?? '');
+      // SMS_CRISIS_SCREEN: only a signed text reaches the (paid) classifier. The
+      // screen runs first and never rejects, so a crisis reply never waits on, or
+      // is lost to, anything below: each later step is caught and the reply is sent.
+      const signed = isSignedInboundSms(payload, signature, fullUrl);
+      // The screen never rejects by contract; if it ever did, the text is still answered.
+      const crisis = signed
+        ? ((await afterScreen('screen', false, () => smsCrisisReply(text))) ?? null)
+        : null;
+      let twiml = crisis ? smsReplyTwiml(crisis) : undefined;
+      const result = await afterScreen('handler', !!crisis, () =>
+        handleInboundSMSWebhook(payload, signature, fullUrl)
       );
-      // SMS_CRISIS_SCREEN: only a signed text reaches the (paid) classifier; never rejects.
-      const crisis = result.success ? await smsCrisisReply(String(body.Body ?? '')) : null;
-      if (crisis) result.twiml = withCrisisReply(result.twiml, crisis, String(body.Body ?? ''));
-      // success is false only when the Twilio signature failed; never throws.
-      if (result.success) {
-        await recordCheckinReply(body.From, body.Body, body.MessageSid);
+      if (result) twiml = result.twiml;
+      // A "call me" text keeps its call; the one crisis text says so (Seth, 2026-11-06).
+      if (crisis) twiml = withCrisisReply(twiml, smsCrisisReplyFor(result?.called), text);
+      if (signed) {
+        const crisisRead = !!crisis;
+        await afterScreen('checkin', crisisRead, () =>
+          recordCheckinReply(body.From, body.Body, body.MessageSid)
+        );
         // MESSAGING_PIPELINE: STOP/START from any text lands in the one consent record.
-        await recordInboundSmsConsent(body.From, body.Body);
-        await recordContactYes(body.From, body.Body, body.MessageSid); // a YES to the last text, an ask
-        await recordHolderCode(body.From, body.Body); // a sponsored holder confirming their phone
+        await afterScreen('consent', crisisRead, () =>
+          recordInboundSmsConsent(body.From, body.Body)
+        );
+        await afterScreen('contactYes', crisisRead, () =>
+          recordContactYes(body.From, body.Body, body.MessageSid)
+        ); // a YES to the last text, an ask
+        await afterScreen('holderCode', crisisRead, () => recordHolderCode(body.From, body.Body));
       }
 
-      if (result.twiml) {
-        sendTwiML(res, result.twiml);
-      } else {
-        // Empty TwiML response (no reply)
-        sendTwiML(res, '<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
-      }
+      // Empty TwiML: no reply.
+      sendTwiML(res, twiml ?? '<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
       return true;
     }
 

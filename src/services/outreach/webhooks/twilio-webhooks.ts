@@ -22,7 +22,7 @@ import { handleProactiveSmsReply } from '../proactive-channels/sms-replies.js';
 import { isMemberIdentity } from '../../identity/member-identity.js';
 import { inboundKeyword, keywordReply } from '../../messaging/sms-keywords.js';
 import { heldSender, last4 } from '../checkin-replies.js';
-import { answerCallMe, NO_CALL } from '../sms-call-me.js';
+import { answerCallMe, CALL_SCHEDULED, CALLING, NO_CALL } from '../sms-call-me.js';
 import { findAccountByVerifiedPhone } from './sms-sender-account.js';
 
 const log = getLogger().child({ module: 'twilio-webhooks' });
@@ -252,29 +252,40 @@ export async function handleSMSStatusWebhook(
 /**
  * Handle inbound SMS (user reply)
  */
+/**
+ * Whether Twilio signed this inbound text (skipped only in tests, with an explicit
+ * flag). The route asks first, so a crisis read never waits on the handler.
+ */
+export function isSignedInboundSms(
+  payload: TwilioInboundSMSPayload,
+  signature?: string,
+  url?: string
+): boolean {
+  if (process.env.SKIP_TWILIO_VALIDATION === 'true' && process.env.NODE_ENV === 'test') return true;
+  if (!signature || !url) {
+    log.error({ messageSid: payload.MessageSid }, 'Inbound SMS: missing Twilio signature or URL');
+    return false;
+  }
+  if (!validateTwilioSignature(signature, url, payload as unknown as Record<string, string>)) {
+    log.error({ messageSid: payload.MessageSid }, 'Inbound SMS: invalid Twilio signature');
+    return false;
+  }
+  return true;
+}
+
+/** What the handler did with a text. `called`: a "call me" text placed a call now, or for later. */
+export interface InboundSmsResult {
+  success: boolean;
+  twiml?: string;
+  called?: 'now' | 'later';
+}
+
 export async function handleInboundSMSWebhook(
   payload: TwilioInboundSMSPayload,
   signature?: string,
   url?: string
-): Promise<{ success: boolean; twiml?: string }> {
-  // ALWAYS validate Twilio signature (skip only in test environment with explicit flag)
-  const skipValidation =
-    process.env.SKIP_TWILIO_VALIDATION === 'true' && process.env.NODE_ENV === 'test';
-  if (!skipValidation) {
-    if (!signature || !url) {
-      log.error({ messageSid: payload.MessageSid }, 'Inbound SMS: missing Twilio signature or URL');
-      return { success: false };
-    }
-    const isValid = validateTwilioSignature(
-      signature,
-      url,
-      payload as unknown as Record<string, string>
-    );
-    if (!isValid) {
-      log.error({ messageSid: payload.MessageSid }, 'Inbound SMS: invalid Twilio signature');
-      return { success: false };
-    }
-  }
+): Promise<InboundSmsResult> {
+  if (!isSignedInboundSms(payload, signature, url)) return { success: false };
 
   const { MessageSid, Body, From, NumMedia } = payload;
 
@@ -404,7 +415,9 @@ export async function handleInboundSMSWebhook(
       if (routeResult.shouldInitiateCall) {
         const persona = routeResult.routeDecision.agentId;
         const reply = routeResult.callNow ? await answerCallMe(userId, From, persona) : NO_CALL;
-        return { success: true, twiml: generateTwiML(reply) }; // says only what was done
+        const called = reply === CALLING ? 'now' : reply === CALL_SCHEDULED ? 'later' : undefined;
+        // says only what was done; a crisis reply keeps the call line (outreach-webhook-routes.ts)
+        return { success: true, twiml: generateTwiML(reply), ...(called && { called }) };
       }
     } catch (routeError) {
       // The raw value, not String(): that throws on a value with no string form,

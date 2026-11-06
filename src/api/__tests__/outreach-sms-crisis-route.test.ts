@@ -10,9 +10,12 @@ import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const handleInboundSMSWebhook = vi.hoisted(() => vi.fn());
+// The route checks the Twilio signature itself before the crisis screen.
+const isSignedInboundSms = vi.hoisted(() => vi.fn(() => true));
 vi.mock('../../services/outreach/webhooks/index.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../services/outreach/webhooks/index.js')>()),
   handleInboundSMSWebhook,
+  isSignedInboundSms,
 }));
 const recordCheckinReply = vi.hoisted(() => vi.fn(async () => null));
 vi.mock('../../services/outreach/checkin-replies.js', async (importOriginal) => ({
@@ -130,6 +133,7 @@ describe('POST sms-inbound with SMS_CRISIS_SCREEN', () => {
   it('on: an unsigned (forged) text gets no crisis reply and never reaches the paid classifier', async () => {
     vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
     handleInboundSMSWebhook.mockResolvedValue({ success: false });
+    isSignedInboundSms.mockReturnValueOnce(false);
     expect(await text('I want to kill myself')).not.toContain('988');
     expect(modelCalls).not.toHaveBeenCalled();
   });
