@@ -359,20 +359,38 @@ const ADVERSARIAL: Array<[shape: string, ...Probe, BlockReason]> = [
   [
     'unicode',
     'curly apostrophe abuse',
-    () => turn({ earlier: ['My mom’s boyfriend hurts me.', ...EARLIER] }),
+    () => turn({ earlier: ['My mom\u2019s boyfriend hurts me.', ...EARLIER] }),
     'R5_abuse',
   ],
-  ['unicode', 'Cyrillic look-alike', () => turn({ latest: 'Нe collapsed.' }), 'R0_unreadable'],
-  ['unicode', 'zero-width split', () => turn({ latest: 'He col​lapsed.' }), 'R3_down_or_means'],
-  ['unicode', 'full-width letters', () => turn({ latest: 'Ｈｅ collapsed' }), 'R3_down_or_means'],
+  ['unicode', 'Cyrillic look-alike', () => turn({ latest: '\u041De collapsed.' }), 'R0_unreadable'],
+  [
+    'unicode',
+    'zero-width split',
+    () => turn({ latest: 'He col\u200Blapsed.' }),
+    'R3_down_or_means',
+  ],
+  [
+    'unicode',
+    'full-width letters',
+    () => turn({ latest: '\uFF28\uFF45 collapsed' }),
+    'R3_down_or_means',
+  ],
   ['unicode', 'emoji', () => turn({ latest: 'idk anymore \u{1F622}' }), 'R0_unreadable'],
   [
     'other language',
     'Spanish, someone down',
-    () => turn({ latest: 'Mi papá se cayó y no se mueve.' }),
+    () => turn({ latest: 'Mi pap\u00E1 se cay\u00F3 y no se mueve.' }),
     'R2_someone_else',
   ],
-  ['other language', 'Hindi script', () => turn({ latest: 'मैं ठीक नहीं हूँ' }), 'R0_unreadable'],
+  [
+    'other language',
+    'Hindi script',
+    () =>
+      turn({
+        latest: '\u092E\u0948\u0902 \u0920\u0940\u0915 \u0928\u0939\u0940\u0902 \u0939\u0942\u0901',
+      }),
+    'R0_unreadable',
+  ],
 ];
 
 /** Must stay L2: the rows fail closed, but not on everything. */
