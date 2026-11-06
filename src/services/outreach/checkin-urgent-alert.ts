@@ -116,20 +116,35 @@ function needsCrisisLine(
   return withheld || flagged || read;
 }
 
-/** Seven or more digits written as words or digits: "five five five oh one four two". */
-const SPELLED_NUMBER =
-  /\b(?:\d|zero|oh|o|one|two|three|four|five|six|seven|eight|nine)(?:[\s,.()-]*(?:\d|zero|oh|o|one|two|three|four|five|six|seven|eight|nine)\b){6,}/i;
+/** Any word for a digit or a number, tens and multipliers included; glued forms too ("ohfive"). */
+const NUMBER_WORD =
+  'zero|oh|one|two|three|four|five|six|seven|eight|nine|niner|ten|eleven|twelve|thirteen|' +
+  'fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fourty|fifty|' +
+  'sixty|seventy|eighty|ninety|hundred|thousand|million|billion|double|triple|single';
 
-/** A link written out in words: "riley-help dot com". */
-const SPOKEN_LINK = /\b[a-z0-9-]+\s+dot\s+(com|net|org|io|co|me|xyz|link|ly)\b/i;
+/**
+ * Anything in their words that could be a number or a link the screen doesn't read: a digit, a
+ * number word, "dot"/"period"/"point" before a word, a dot inside a token, a slash or "slash",
+ * or a word that is a web ending. Deliberately broad, never a list of spellings: a hit only
+ * means the flag leaves main's alert alone.
+ */
+const NUMBER_OR_LINK_LIKE = [
+  /\d/,
+  new RegExp(`\\b(?:${NUMBER_WORD})(?=\\b|(?:${NUMBER_WORD}))`, 'i'),
+  /\b(?:dot|period|point)\b\W*\w/i,
+  /\w\.\w/,
+  /\/|\bslash\b|\bwww\b|\bhttps?\b/i,
+  /\b(?:com|net|org|io|xyz|ly|info|biz|gov|edu|uk|tv|online|site|web|website|url|link)\b/i,
+];
 
 /**
  * Whether the screen reads the alert with NAME_SLOT where the name goes
- * (CHECKIN_ALERT_NAME_SLOT). Never for:
+ * (CHECKIN_ALERT_NAME_SLOT). Fail-closed: never for
  * - a field with its own money read (main's alert, money line and all);
  * - a name with a digit, whose digits could join theirs into a number;
- * - their words holding a number or link written out in words, which the screen does not read
- *   yet. Main holds those back for a name the screen reads, so the flag must not pass them on.
+ * - their words holding anything number-like or link-like (NUMBER_OR_LINK_LIKE). The screen
+ *   doesn't read every way to say a number or a link, and main holds their words back for a
+ *   name the screen reads, so the flag must not pass such words on.
  */
 function nameSlotOn(
   desc: ScreenedField,
@@ -140,7 +155,7 @@ function nameSlotOn(
 ): boolean {
   if (!flagOn('CHECKIN_ALERT_NAME_SLOT', env) || desc.risky || act.risky) return false;
   const words = callerText(both, SCREEN_WINDOW);
-  return !/\d/.test(name) && !SPELLED_NUMBER.test(words) && !SPOKEN_LINK.test(words);
+  return !/\d/.test(name) && !NUMBER_OR_LINK_LIKE.some((pattern) => pattern.test(words));
 }
 
 /**
@@ -180,7 +195,7 @@ function clause(text: string): string {
  * the screen reads the same alert with NAME_SLOT in each name slot. A name such as "Loan" or
  * "Pin" no longer withholds everyday words; words it alone held back keep crisisCallerLine,
  * as the withheld alert did. A field with its own money, account or number read, a name with
- * a digit, or a number or link written out in words keeps main's alert.
+ * a digit, or anything number-like or link-like in their words keeps main's alert (fail-closed).
  */
 export function generateUrgentNotification(
   record: CheckinAlertInput,

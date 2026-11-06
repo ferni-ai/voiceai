@@ -111,6 +111,14 @@ describe('check-in alert: the name is not their words (CHECKIN_ALERT_NAME_SLOT)'
     ['a number in words and digits', 'call 5 5 five oh 1 four two', 'oh 1'],
     ['a link in words', 'she said to go to riley-help dot com', 'dot com'],
     ['a link in words (org)', 'she said to go to riley-help dot org', 'dot org'],
+    ['a number in tens', 'she said twenty five fifty', 'twenty'],
+    ['a number with a multiplier', 'her code is double oh seven', 'double'],
+    ['a link with "period"', 'she said my site period com', 'period com'],
+    ['a short number run', 'call four one five, five five five', 'four one'],
+    ['a number glued in words', 'call ohfive fivefive', 'ohfive'],
+    ['a link with a slash', 'go to riley help slash pay', 'slash'],
+    ['a number in tens only', 'she said call twenty forty sixty', 'twenty forty'],
+    ['a link with "period" and no ending', 'go to riley-help period pay', 'period pay'],
   ])(
     '%s: the flag changes nothing, so a name main held it back for still holds it',
     (_, said, part) => {
