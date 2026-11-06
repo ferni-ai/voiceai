@@ -106,6 +106,16 @@ describe('alias resolution against the real bundles', () => {
   });
 });
 
+describe('toCanonical on an id that is already canonical', () => {
+  // Readers map stored ids once (upcoming-outreach.ts); mapping twice must change nothing.
+  it('is a no-op, for every alias in the table', () => {
+    for (const alias of Object.keys(ALIAS_TO_CANONICAL)) {
+      const once = toCanonical(alias);
+      expect(toCanonical(once), alias).toBe(once);
+    }
+  });
+});
+
 describe('a persona registered at runtime', () => {
   it('cannot take a name a bundle persona already answers to', async () => {
     const { getPersonaRegistry, resetPersonaRegistry } =

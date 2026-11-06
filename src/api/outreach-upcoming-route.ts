@@ -13,7 +13,6 @@
  * @module api/outreach-upcoming-route
  */
 import type { IncomingMessage, ServerResponse } from 'http';
-import { getDisplayName, toCanonical } from '../personas/persona-ids.js';
 import {
   firestoreUpcomingDeps,
   listUpcomingOutreach,
@@ -40,15 +39,11 @@ async function sendUpcomingOutreach(
 ): Promise<void> {
   try {
     const limit = Number.parseInt(url.searchParams.get('limit') ?? '', 10);
-    const items = await listUpcomingOutreach(userId, await deps(), {
+    // Persona ids and names come canonical from the reader, as the practice view gets them.
+    const upcoming = await listUpcomingOutreach(userId, await deps(), {
       ...(Number.isFinite(limit) && { limit }),
       actions: reachOutActionsOn(),
     });
-    const upcoming = items.map((item) => ({
-      ...item,
-      personaId: toCanonical(item.personaId),
-      personaName: getDisplayName(item.personaId),
-    }));
     sendJsonResponse(res, 200, { success: true, upcoming, count: upcoming.length });
   } catch (error) {
     log.error({ error: String(error), userId }, 'Could not read upcoming outreach');
