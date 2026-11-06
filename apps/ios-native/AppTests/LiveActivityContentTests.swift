@@ -12,7 +12,7 @@ final class LiveActivityContentTests: XCTestCase {
     }
 
     func testEachMomentOfTheCall() {
-        XCTAssertEqual(state(.connecting), .arriving)
+        XCTAssertEqual(state(.connecting), .calling)
         XCTAssertEqual(state(.waitingForFerni), .arriving)
         XCTAssertEqual(state(.reconnecting), .reconnecting)
         XCTAssertEqual(state(.live, pose: .speaking), .speaking)
@@ -39,6 +39,14 @@ final class LiveActivityContentTests: XCTestCase {
         XCTAssertEqual(last.state, .ended)
         XCTAssertEqual(last.personaID, "maya")
         XCTAssertFalse(last.muted)
+    }
+
+    /// Ferni never arrived (2026-10-19): the Lock Screen says so and ends on
+    /// it, not on "Talk soon." for a call that never happened.
+    func testFerniNotJoiningEndsOnCouldntJoin() {
+        XCTAssertEqual(state(.failed(.ferniDidNotJoin)), .couldNotJoin)
+        let couldnt = CallActivityAttributes.ContentState(state: .couldNotJoin, personaID: "ferni", personaName: "Ferni")
+        XCTAssertEqual(LiveActivityController.final(after: couldnt).state, .couldNotJoin)
     }
 
     func testMuteShowsOnTheLockScreen() {
