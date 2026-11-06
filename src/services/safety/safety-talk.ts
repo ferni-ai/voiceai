@@ -1,56 +1,122 @@
 /**
- * Whether a sentence names an emergency service or a help line: the one reader
- * for "is this about getting someone help?". It reads wider than any one
- * caller needs, because every caller fails closed on it. The action-claim
- * guard leaves such a sentence as the model wrote it, and a pending read-back
- * keeps Ferni's offer of the line. A sentence read here by mistake keeps
- * main's behaviour. A miss rings the wrong person or drops the line.
+ * Safety talk as yes/no checks: the one reader for "does this sentence name an
+ * emergency service or a help line?" (reachesHelp) and "is this safety talk at
+ * all?" (isSafetyTalk). They never read a crisis or decide one. Every caller
+ * fails closed on them: a sentence read by mistake keeps today's behaviour, and
+ * a miss rings the wrong person, drops the line, or names a safety line back.
  *
- * What counts:
+ * reachesHelp reads:
  * - a crisis line in any form offersCrisisLine reads (988, 741741, a line by name);
- * - emergency services by name, as the action-claim guard reads Ferni's emergency
- *   claims (EMERGENCY_SERVICE): police, an ambulance, paramedics, EMS, the fire
- *   department. "The police drama" and "999 problems" are not a service;
- * - emergency care: the ER, A&E, the emergency room, urgent care, poison control;
- * - help by kind: a hotline, helpline, warmline or crisis line, the crisis team,
- *   a crisis counselor, suicide prevention, Samaritans;
- * - a CRISIS_RESOURCES line by its name, by the short name it starts with
- *   (RAINN, NAMI, SAMHSA, Childhelp), or by its phone or text number;
- * - emergency numbers: 911 and 999, 112 and 000 (with or without a dash or
- *   space, or spelled out). An N11 number or 933 counts after a call word or
- *   on its own. Any toll-free number counts.
+ * - emergency services by name (EMERGENCY_SERVICE: police, an ambulance, EMS);
+ * - emergency care and help by kind: the ER, A&E, urgent care, poison control, a
+ *   hotline, helpline or warmline, the crisis team, Samaritans;
+ * - a line by name, short name (RAINN, NAMI), number or texted word ("text HOME"),
+ *   from CRISIS_RESOURCES and OTHER_HELP_LINES (other-help-lines.ts);
+ * - 911, 999, 112, 000 and 111 in digits or words; an N11 number or 933 after a
+ *   call word or on its own; any toll-free number.
+ * Not a story, an event or a thing named after one ("the police drama", "the
+ * NAMI walk", "my warmline phone case"), a count ("999 problems") or an amount.
  *
  * @module services/safety/safety-talk
  */
 import { offersCrisisLine } from './crisis-line-speech.js';
+import { OTHER_HELP_LINES } from './other-help-lines.js';
 import { CRISIS_RESOURCES } from './crisis-response.js';
-import { EMERGENCY_NUMBER, EMERGENCY_SERVICE } from './emergency-number.js';
+import {
+  EMERGENCY_NUMBER,
+  EMERGENCY_NUMBERS_ABROAD,
+  EMERGENCY_SERVICE,
+} from './emergency-number.js';
+
+/**
+ * Care, means and grounding wording: holding someone on the line, taking the
+ * means away, a slow breath, telling them they matter. Blunt on purpose, since
+ * a caller only uses it to leave a line alone.
+ */
+const CARE_AND_GROUNDING = [
+  // care and holding on
+  'please',
+  'matters?',
+  'worried',
+  'scared for',
+  String.raw`safe\w*`,
+  'trusted',
+  'reach out',
+  'help',
+  'right now',
+  'tonight',
+  'edge',
+  'alone',
+  'believe you',
+  'hands on you',
+  'hurt you',
+  'with other people',
+  String.raw`stay (?:right )?(?:with me|on the line|inside|here|put|where you are)`,
+  'right here with me',
+  String.raw`lock\w*`,
+  'someone you (?:can|could|trust)',
+  'talk to someone',
+  String.raw`surviv\w*`,
+  String.raw`(?:get|got|make it) through (?:this|tonight|the night)`,
+  'not going anywhere',
+  // means taken away
+  'knife',
+  'knives',
+  'blade',
+  'razor',
+  'window',
+  'ledge',
+  'bridge',
+  'roof',
+  'balcony',
+  'railing',
+  'tracks',
+  String.raw`put (?:it|that|them|the \w+) (?:down|away)`,
+  'step (?:away|back)',
+  String.raw`(?:hand|give) (?:over )?(?:the|your) (?:car )?keys`,
+  'hand (?:it|them|that|those) (?:over|to)',
+  // grounding
+  String.raw`breath\w*`,
+  'feet on the floor',
+  'things you can (?:see|hear|touch|smell)',
+  'something (?:cold|cool)',
+  'ice',
+  'cold water',
+];
+const CARE = new RegExp(String.raw`\b(?:${CARE_AND_GROUNDING.join('|')})\b`, 'i');
 
 const SEP = String.raw`[\s.-]?`;
-/** Not part of a longer number, an amount or a word. */
-const ALONE_BEFORE = String.raw`(?<![\w$€£#]|\d[.,])`;
-const ALONE_AFTER = String.raw`(?![\w%]|[.,]\d)`;
+/** Not part of a longer number, an amount, a time or a word. */
+const ALONE_BEFORE = String.raw`(?<![\w$€£#:]|\d[.,:])`;
+const ALONE_AFTER = String.raw`(?![\w%]|[.,:]\d)`;
 const spaced = (digits: string): string => digits.split('').join(SEP);
+const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const nameSource = (n: string): string =>
+  escape(n.replace(/^the\s+/i, ''))
+    .replace(/\s+/g, String.raw`\s+`)
+    .replace('&', '(?:&|and)');
 
-/** After a service's name, the words that make it a story ("the police drama"). */
-const A_STORY =
-  /^[\s-]+(?:dramas?|shows?|series|procedurals?|movies?|films?|novels?|podcasts?|thrillers?|games?)\b/;
-/** After a number, a plural noun makes it a count ("999 problems"). */
-const A_COUNT = /^\s+[a-z]+s\b/;
-const SERVICE = new RegExp(EMERGENCY_SERVICE, 'g');
-
-function namesService(lower: string): boolean {
-  for (const m of lower.matchAll(SERVICE)) {
-    const after = lower.slice(m.index + m[0].length);
-    if (!(/\d/.test(m[0]) ? A_COUNT : A_STORY).test(after)) return true;
+/** After a name, the words that make it a story, an event or a thing. */
+const NOT_THE_LINE =
+  /^[\s-]+(?:dramas?|shows?|series|procedurals?|movies?|films?|novels?|podcasts?|thrillers?|games?|walks?|runs?|5ks?|galas?|fundraisers?|raffles?|(?:phone )?cases?|mugs?|shirts?|t-shirts?|hoodies?|stickers?|merch)\b/i;
+/** After a number, a plural noun makes it a count ("999 problems", "nine one one dollars"). */
+const A_COUNT = /^\s+[a-z]+s\b/i;
+/** Whether `re` (global) matches somewhere that is not a story, a thing, a count or an amount. */
+function reads(re: RegExp, text: string): boolean {
+  for (const m of text.matchAll(re)) {
+    if (/[$€£]$/.test(text.slice(0, m.index))) continue;
+    const after = text.slice(m.index + m[0].length);
+    if (!(/\d|\b(?:one|two|nine|zero)\b/i.test(m[0]) ? A_COUNT : NOT_THE_LINE).test(after))
+      return true;
   }
   return false;
 }
 
+const SERVICE = new RegExp(EMERGENCY_SERVICE, 'g');
 /** Emergency care and help by kind. */
-const CARE = new RegExp(
+const KIND = new RegExp(
   [
-    String.raw`\b(?:the|an|to|in|at)\s+er\b`,
+    String.raw`\b(?:the|an|to|in|at)\s+er\b|\b(?:police|paramedics?|ambulances?)\b`,
     String.raw`\ba\s?&\s?e\b|\baccident and emergency\b`,
     String.raw`\bemergency (?:room|department|ward|line|number|services?|dispatch|operators?)\b`,
     String.raw`\burgent care\b|\bpoison control\b|\bfirst responders?\b|\bfire ?fighters?\b`,
@@ -58,17 +124,88 @@ const CARE = new RegExp(
     String.raw`\bcrisis (?:teams?|counsel+ors?|cent(?:er|re)s?|workers?|services?)\b`,
     String.raw`\bsuicide prevention\b|\bsamaritan'?s\b|\btrevor project\b`,
   ].join('|'),
-  'i'
+  'gi'
 );
+/** The same, where only the capitals tell it from a word ("Get to the ER.", "Go to A and E."). */
+const INITIALS = /\b(?:ERs?|EMTs?|A ?(?:&|and) ?E)\b/g;
 
-/** 911 as digits or words; 999, 112 and 000 unless a count follows ("999 problems"). */
-const EMERGENCY_DIGITS = new RegExp(
+const RESOURCES = Object.values(CRISIS_RESOURCES).flat();
+const LINE_WORD = /^(?:national|helpline|hotline|lifeline)$/i;
+/** A resource's name, and the short name it starts with ("RAINN National Sexual Assault Hotline"). */
+const resourceNames = RESOURCES.flatMap((r) => {
+  const words = r.name.split(/\s+/);
+  const short = words.length > 1 && LINE_WORD.test(words[1]) && /^[a-z]+$/i.test(words[0]);
+  return short ? [r.name, words[0]] : [r.name];
+});
+const otherNames = (exactCase: boolean): string[] =>
+  OTHER_HELP_LINES.filter((l) => Boolean(l.exactCase) === exactCase).flatMap((l) => [
+    l.name,
+    ...(l.aka ?? []),
+  ]);
+/** One alternation of `parts`, or one that never matches when there are none. */
+const oneOf = (parts: string[]): string => [...new Set(parts)].join('|') || '(?!)';
+const anyName = (names: string[], flags: string): RegExp =>
+  new RegExp(String.raw`(?<!\w)(?:${oneOf(names.map(nameSource))})(?!\w)`, flags);
+const BY_NAME = anyName([...resourceNames, ...otherNames(false)], 'gi');
+/** Names that are ordinary words, by their capitals only ("Shout", not "don't shout"). */
+const BY_NAME_EXACT = anyName(otherNames(true), 'g');
+
+/** The words texted to a line ("Text HOME to 741741", "You can text HOME any time"). */
+const KEYWORDS = [
+  ...RESOURCES.map((r) => /\btext\s+([A-Z]{3,})\s+to\b/i.exec(r.text ?? '')?.[1]),
+  ...OTHER_HELP_LINES.map((l) => l.keyword),
+].filter((k): k is string => Boolean(k));
+const KEYWORD = oneOf(KEYWORDS);
+/** The word in capitals after "text", or in any case before "to" ("text home to 741741"). */
+const BY_KEYWORD = new RegExp(
+  String.raw`\b(?:[Tt]ext\w*|TEXT)\s+(?:the\s+word\s+)?(?:${KEYWORD})\b`
+);
+const BY_KEYWORD_TO = new RegExp(String.raw`\btext\w*\s+(?:${KEYWORD})\s+to\b`, 'i');
+
+/** Every help number: the resources' and other lines' phone and text numbers, three digits or more. */
+const NUMBERS = [
+  ...new Set(
+    [...RESOURCES.flatMap((r) => [r.phone, r.text]), ...OTHER_HELP_LINES.flatMap((l) => l.numbers)]
+      .map((s) => (s ?? '').replace(/\D/g, ''))
+      .filter((d) => d.length >= 3)
+  ),
+];
+const anyNumber = (list: string[], flags = ''): RegExp =>
+  new RegExp(`${ALONE_BEFORE}(?:${oneOf(list.map(spaced))})${ALONE_AFTER}`, flags);
+const BY_NUMBER = anyNumber(NUMBERS.filter((n) => n.length > 3));
+/** The emergency numbers and three-digit lines, in digits; but 911 can't be a count ("999 problems" can). */
+const SHORT_NUMBERS = anyNumber(
+  [EMERGENCY_NUMBER, ...EMERGENCY_NUMBERS_ABROAD, ...NUMBERS.filter((n) => n.length === 3)],
+  'g'
+);
+/** Not a room, a flight or an order ("Room 111", "Flight 112"). */
+const A_LABEL =
+  /\b(?:room|flight|bus|route|order|page|apt|apartment|suite|gate|platform|unit|no\.?|#)\s*$/i;
+
+const DIGIT_WORDS = [
+  '(?:zero|oh|o)',
+  'one',
+  'two',
+  'three',
+  'four',
+  'five',
+  'six',
+  'seven',
+  'eight',
+  'nine',
+];
+/** A help or emergency number said one digit at a time ("seven four one seven four one"), or "triple nine". */
+const SPOKEN_NUMBER = new RegExp(
   [
-    `${ALONE_BEFORE}${spaced(EMERGENCY_NUMBER)}${ALONE_AFTER}`,
-    String.raw`\bnine[\s-]+one[\s-]+one\b`,
-    String.raw`(?:${ALONE_BEFORE}(?:${['999', '112', '000'].map(spaced).join('|')})${ALONE_AFTER}|\b(?:nine[\s-]+nine[\s-]+nine|triple[\s-]+(?:nine|zero)|one[\s-]+one[\s-]+two|zero[\s-]+zero[\s-]+zero)\b)(?!\s+[a-z]+s\b)`,
-  ].join('|'),
-  'i'
+    ...[EMERGENCY_NUMBER, ...EMERGENCY_NUMBERS_ABROAD, ...NUMBERS].map((n) =>
+      [...n].map((d) => DIGIT_WORDS[Number(d)]).join(String.raw`[\s,-]+`)
+    ),
+    String.raw`triple[\s-]+(?:nine|zero|one)`,
+    String.raw`nine[\s-]+eleven`,
+  ]
+    .map((n) => String.raw`\b${n}\b`)
+    .join('|'),
+  'gi'
 );
 /** An N11 number or 933 after a call word ("call 311"). */
 const SERVICE_NUMBER_CALLED =
@@ -76,42 +213,37 @@ const SERVICE_NUMBER_CALLED =
 /** 1-800, 1-888 ... with or without the 1, letters allowed ("1-800-273-TALK"). */
 const TOLL_FREE =
   /(?<![\w$])(?:1[\s.-]?)?\(?8(?:00|33|44|55|66|77|88)\)?[\s.-]?[a-z\d]{3}[\s.-]?[a-z\d]{4}(?![\w])/i;
-
-const RESOURCES = Object.values(CRISIS_RESOURCES).flat();
-const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const LINE_WORD = /^(?:national|helpline|hotline|lifeline)$/i;
-/** A resource's name, and the short name it starts with ("RAINN National Sexual Assault Hotline"). */
-const names = RESOURCES.flatMap((r) => {
-  const words = r.name.split(/\s+/);
-  const short = words.length > 1 && LINE_WORD.test(words[1]) && /^[a-z]+$/i.test(words[0]);
-  return short ? [r.name, words[0]] : [r.name];
-});
-const BY_NAME = new RegExp(
-  `\\b(?:${[...new Set(names)]
-    .map((n) =>
-      escape(n)
-        .replace(/\s+/g, String.raw`\s+`)
-        .replace('&', '(?:&|and)')
-    )
-    .join('|')})\\b`,
-  'i'
-);
-/** Each resource's phone and text numbers, three digits or more. */
-const numbers = RESOURCES.flatMap((r) => [r.phone, r.text])
-  .map((s) => (s ?? '').replace(/\D/g, ''))
-  .filter((d) => d.length >= 3);
-const BY_NUMBER = new RegExp(
-  `${ALONE_BEFORE}(?:${[...new Set(numbers)].map(spaced).join('|')})${ALONE_AFTER}`
-);
-/** Text that is only a number, as a `who` often is ("311", "(888) 555-0100"). */
+/** Text that is only a number, as a `who` often is ("311"). */
 const ONLY_A_NUMBER = /^\+?[\d\s().-]+$/;
 const N11 = /^(?:[2-9]11|933)$/;
 
-/** Whether `text` names an emergency service or a help line (see the module note). */
-export function namesSafetyHelp(text: string): boolean {
-  const lower = text.toLowerCase();
-  if (offersCrisisLine(text) || namesService(lower) || CARE.test(text)) return true;
-  if (BY_NAME.test(text) || BY_NUMBER.test(text) || TOLL_FREE.test(text)) return true;
-  if (EMERGENCY_DIGITS.test(text) || SERVICE_NUMBER_CALLED.test(text)) return true;
+function shortNumber(text: string): boolean {
+  for (const m of text.matchAll(SHORT_NUMBERS)) {
+    const before = text.slice(0, m.index);
+    const after = text.slice(m.index + m[0].length);
+    if (
+      m[0].replace(/\D/g, '') === EMERGENCY_NUMBER ||
+      !(A_COUNT.test(after) || A_LABEL.test(before))
+    )
+      return true;
+  }
+  return false;
+}
+
+/** A way to reach help: an emergency service, a crisis or help line by name, number or keyword. */
+export function reachesHelp(text: string): boolean {
+  if (offersCrisisLine(text)) return true;
+  if (reads(SERVICE, text.toLowerCase()) || reads(KIND, text) || reads(INITIALS, text)) return true;
+  if (reads(BY_NAME, text) || reads(BY_NAME_EXACT, text)) return true;
+  if (BY_KEYWORD.test(text) || BY_KEYWORD_TO.test(text)) return true;
+  if (BY_NUMBER.test(text) || TOLL_FREE.test(text) || SERVICE_NUMBER_CALLED.test(text)) return true;
+  if (shortNumber(text) || reads(SPOKEN_NUMBER, text)) return true;
   return ONLY_A_NUMBER.test(text.trim()) && N11.test(text.replace(/\D/g, ''));
 }
+
+/** Care, means or grounding wording ("Please stay on the line with me.", "Hold onto something cold."). */
+export const isCareTalk = (sentence: string): boolean => CARE.test(sentence);
+
+/** Safety talk of any kind: a way to reach help, or care, means or grounding wording. */
+export const isSafetyTalk = (sentence: string): boolean =>
+  reachesHelp(sentence) || isCareTalk(sentence);

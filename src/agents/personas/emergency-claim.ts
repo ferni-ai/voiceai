@@ -40,7 +40,7 @@ const WILL = "\\b(?:let me|i'?m going to|i'?m gonna|i'?ll|i will)";
 const LEAD =
   "^(?:(?:okay|ok|alright|all right|right|on it|i'?m on it|hang on|stay with me|hold on)\\W+)*";
 const NOW = '(?: (?:now|right now|right away|immediately))?';
-/** Emergency services by name (EMERGENCY_SERVICE): the same words namesSafetyHelp reads. */
+/** Emergency services by name (EMERGENCY_SERVICE): the same words reachesHelp (safety-talk.ts) reads. */
 const SERVICE = EMERGENCY_SERVICE;
 /** Help itself, as something Ferni could send or get: not "help from Maya" or "help with that". */
 const HELP = '(?:help\\b(?! (?:from|with|desk|center|centre|line)\\b))';
