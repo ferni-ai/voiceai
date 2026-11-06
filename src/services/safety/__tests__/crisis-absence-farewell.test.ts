@@ -32,6 +32,16 @@ describe('nobody would notice the caller gone: passive ideation', () => {
     'nobody would care',
     'Nobody would care if I died.',
     'nobody would care if i disappeared',
+    // Filler at the end does not carry the line on.
+    'nobody would miss me anyway',
+    'nobody would miss me lol',
+    'nobody would miss me lmao',
+    "nobody'd miss me anyways",
+    'Nobody would miss me anyway, honestly.',
+    'no one would notice if i was gone tbh',
+    'nobody would care anyway',
+    'nobody would care if i died lol',
+    'nobody would miss me i guess',
   ])('%s', (line) => {
     for (const read of both(line)) {
       expect(read.isCrisis).toBe(true);
@@ -62,6 +72,14 @@ describe('a farewell said as forever: passive ideation', () => {
     'i love you all. bye forever',
     "tell mom i love her. don't wait for me",
     "i'm sorry. i'll be gone soon",
+    // Said to everyone, or with filler at the end.
+    'bye forever everyone',
+    'Bye forever, everyone.',
+    'goodbye forever guys',
+    'i love you all. bye forever everyone',
+    'ill be gone soon anyway',
+    "don't wait for me guys",
+    'goodnight forever yall lol',
   ])('%s', (line) => {
     for (const read of both(line)) {
       expect(read.isCrisis).toBe(true);
@@ -78,6 +96,10 @@ describe('the same words, carrying on, read as on main', () => {
     'nobody would care about the typo',
     'nobody would miss me at work tomorrow, its a slow day',
     'no one would notice if i was gone for an hour',
+    "nobody would miss me anyway at the party, it's huge",
+    'nobody would miss me lol im just the intern at this meeting',
+    'nobody would care anyway about the typo',
+    'no one would notice if i was gone for an hour anyway',
   ])('low distress, not passive: %s', (line) => {
     const read = detectCrisis(line);
     expect(read.isCrisis).toBe(false);
@@ -94,6 +116,15 @@ describe('the same words, carrying on, read as on main', () => {
     'dont wait for me for dinner',
     'go ahead and eat, dont wait for me',
     'bye forever twitter',
+    'bye forever everyone, see you monday',
+    'bye forever everyone at chemistry club',
+    'bye forever lol twitter',
+    'dont wait for me anyway, im running late',
+    'goodnight forever old apartment lol',
+    'dont wait for me guys, im running late',
+    'bye everyone',
+    'lol bye',
+    'goodnight everyone lol',
     'see you later',
     'bye!',
     'goodnight',
