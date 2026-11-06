@@ -210,6 +210,43 @@ describe('watchTimeToFirstWord, flag on', () => {
     watch.finish();
   });
 
+  it('never logs an identity, room name or element id, even when the app sends them', () => {
+    const MARK = 'zq-privacy-marker-7f3';
+    const c = clock(0);
+    const room = fakeRoom();
+    room.remoteParticipants.set(`agent-${MARK}`, {});
+    const watch = watchTimeToFirstWord(room, 'AJ_P', { env: ON, now: c.now });
+    watch.agentJoined();
+    const marked = {
+      identity: `user-${MARK}`,
+      kind: ParticipantKind.STANDARD,
+      attributes: { platform: 'web', roomName: `voice-${MARK}` },
+    };
+    room.emit('participantConnected', marked);
+    noteTtfwCaller(room, 'session-p', marked);
+    c.at(1_000);
+    gatewayFirstAudio('session-p');
+    const payload = new TextEncoder().encode(
+      JSON.stringify({
+        tapAt: T0,
+        roomConnectedAt: T0 + 500,
+        agentAudioTrackAt: T0 + 900,
+        firstAudioHeardAt: T0 + 1_300,
+        platform: 'web',
+        identity: `user-${MARK}`,
+        room: `voice-${MARK}`,
+        elementId: `audio-${MARK}`,
+      })
+    );
+    room.emit('dataReceived', payload, marked, 0, CLIENT_TIMING_TOPIC);
+    watch.finish();
+    expect(ttfwLines()).toHaveLength(1);
+    expect(ttfwLines()[0]).toMatchObject({ platform: 'web', clientAgentTrackToHeardMs: 400 });
+    for (const level of [logger.debug, logger.info, logger.warn, logger.error]) {
+      expect(JSON.stringify(level.mock.calls)).not.toContain(MARK);
+    }
+  });
+
   it('logs without the app after the grace period', () => {
     vi.useFakeTimers();
     const c = clock(0);

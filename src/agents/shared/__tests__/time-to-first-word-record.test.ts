@@ -72,6 +72,30 @@ describe('computeTtfwRecord', () => {
     });
   });
 
+  it('drops, never clamps, an audio-track span that runs backwards (skew or bad data)', () => {
+    const beforeRoom = computeTtfwRecord(
+      {},
+      {
+        roomConnectedAt: T0 + 600,
+        agentAudioTrackAt: T0 + 100,
+        firstAudioHeardAt: T0 + 1_750,
+      }
+    );
+    expect(beforeRoom).toEqual({ clientRoomToHeardMs: 1_150, clientAgentTrackToHeardMs: 1_650 });
+    const afterHeard = computeTtfwRecord(
+      {},
+      {
+        roomConnectedAt: T0 + 600,
+        agentAudioTrackAt: T0 + 2_000,
+        firstAudioHeardAt: T0 + 1_750,
+      }
+    );
+    expect(afterHeard).toEqual({ clientRoomToHeardMs: 1_150, clientRoomToAgentTrackMs: 1_400 });
+    for (const r of [beforeRoom, afterHeard]) {
+      expect(Object.values(r).every((ms) => typeof ms === 'number' && ms >= 0)).toBe(true);
+    }
+  });
+
   it('keeps the line for an old or iOS message byte-identical to before agentAudioTrackAt', () => {
     // main's computeTtfwRecord(parseClientTiming(...)) for these marks, captured before the field existed.
     const MAIN_LINE =
