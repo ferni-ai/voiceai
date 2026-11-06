@@ -1,8 +1,9 @@
 /**
  * reachOut's confirm never offers to call an emergency or N11 number: a saved
  * contact whose number is "+1911" or "1-988" gets no read-back, so no yes can
- * ring it. The model is told plainly that Ferni can't place emergency calls,
- * that the caller should dial it themselves, and to keep 988/911 guidance.
+ * ring it. The model is told plainly to have the caller dial it themselves; an
+ * emergency number also keeps the safety kernel's in-danger words, a service number
+ * (311, 711) gets none.
  * An ordinary contact is still read back and called (utils/dialable-number.ts).
  *
  * Through the real reachOut tool and its confirm. Mocked: contacts, the call
@@ -12,6 +13,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetMemoryTexts } from '../../../../../services/outreach/__tests__/memory-text-store.js';
 import { fakeConsentDb } from '../../../../../services/messaging/__tests__/memory-consent.js';
+import {
+  LOOK_ALIKES,
+  saysDialItYourself,
+} from '../../../../../utils/__tests__/dial-refusal-words.js';
 
 const fake = vi.hoisted(() => ({ db: null as unknown as ReturnType<typeof fakeConsentDb> }));
 vi.mock('../../../../../utils/firestore-utils.js', async (orig) => ({
@@ -92,22 +97,23 @@ describe('reachOut confirm: a contact saved with an emergency number', () => {
     ['+1 (988)', '988'],
     ['+44 999', '999'],
     ['411', '411'],
+    ['311', '311'],
+    ['+1 711', '711'],
   ])('%s: no read-back, no call, and the caller is told to dial %s', async (phone, number) => {
     saved.phone = phone;
     const first = await askThenYes({ contact: 'Pat', purpose: 'hi', preferredChannel: 'call' });
     expect(first).toMatch(/^Nothing was dialed: /);
-    expect(first).toContain("Ferni can't place emergency calls");
-    expect(first).toContain(`dial ${number} themselves`);
-    expect(first).toContain('still give them the crisis line and the emergency number');
+    expect(first).toMatch(/[^.]\.$/); // one full stop
+    saysDialItYourself(first, number);
     expect(first).not.toContain('a call to Pat');
     expect(callWithPersonaVoice).not.toHaveBeenCalled();
   });
 
-  it('the non-emergency control is read back and called on the yes', async () => {
-    saved.phone = '+12025550177';
+  it.each(['+12025550177', ...LOOK_ALIKES])('%s is read back and called on the yes', async (n) => {
+    saved.phone = n;
     const first = await askThenYes({ contact: 'Pat', purpose: 'hi', preferredChannel: 'call' });
-    expect(first).toContain('a call to Pat at +12025550177');
+    expect(first).toContain(`a call to Pat at ${n}`);
     expect(callWithPersonaVoice).toHaveBeenCalledOnce();
-    expect(vi.mocked(callWithPersonaVoice).mock.calls[0]?.[0]).toBe('+12025550177');
+    expect(vi.mocked(callWithPersonaVoice).mock.calls[0]?.[0]).toBe(n);
   });
 });

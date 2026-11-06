@@ -15,7 +15,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import { emergencyDialRefusal } from '../../utils/dialable-number.js';
+import { emergencyDialRefusal } from '../safety/index.js';
 import { ownerRefusal } from '../messaging/consent-reach.js';
 import { heldSender } from './checkin-replies.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';

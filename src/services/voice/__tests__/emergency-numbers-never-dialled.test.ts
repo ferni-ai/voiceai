@@ -1,8 +1,10 @@
 /**
  * Ferni never dials an emergency or N11 service number, in any spelling, on any
  * call path: a contact saved as "+1911" or "1-988" is refused before anything
- * rings, with words that say Ferni can't place emergency calls and the caller
- * should dial it themselves (utils/dialable-number.ts).
+ * rings. An emergency number's words say Ferni can't place emergency calls, the caller
+ * should dial it themselves, and keep the safety kernel's in-danger words; a service
+ * number (311, 711) is plain (utils/dialable-number.ts). Numbers that only contain or
+ * end in one ("+1 212 911 0100") still dial.
  *
  * Before: persona-voice calls and voicemail (callWithPersonaVoice) had no
  * number check, so a saved "+1911" contact was dialled as +1911. The
@@ -48,6 +50,7 @@ import { callWithPersonaVoice } from '../voice-call.js';
 import { scheduleProactiveCall } from '../../outreach/conversational-calls.js';
 import { checkDialableNumber, emergencyDialRefusal } from '../../../utils/dialable-number.js';
 import { registerMessagingConsent } from '../../messaging/consent.js';
+import { LOOK_ALIKES, saysDialItYourself } from '../../../utils/__tests__/dial-refusal-words.js';
 
 registerMessagingConsent(); // as each process entry does (utils/consent-port.ts)
 
@@ -57,6 +60,7 @@ const SPELLINGS: ReadonlyArray<[string, string]> = [
   ['9-1-1', '911'],
   ['+1911', '911'],
   ['+1 (911)', '911'],
+  ['tel:911', '911'],
   ['988', '988'],
   ['1-988', '988'],
   ['+1 988', '988'],
@@ -67,18 +71,12 @@ const SPELLINGS: ReadonlyArray<[string, string]> = [
   ['933', '933'],
   ['411', '411'],
   ['+1 211', '211'],
+  ['311', '311'],
+  ['+1 711', '711'],
 ];
 const PAT = '+12025550177'; // the non-emergency control: an ordinary saved contact
 const twilioCalls = () =>
   fetchSpy.mock.calls.filter(([u]) => String(u).includes('/Calls.json')).length;
-
-/** The words every path gives the model: it can't place the call; dial it; crisis help stays. */
-function saysDialItYourself(text: string | undefined, number: string): void {
-  expect(text).toContain(`${number} is an emergency or service number`);
-  expect(text).toContain("Ferni can't place emergency calls");
-  expect(text).toContain(`dial ${number} themselves`);
-  expect(text).toContain('still give them the crisis line and the emergency number');
-}
 
 beforeEach(() => {
   fake.db = fakeConsentDb();
@@ -100,8 +98,9 @@ describe('the rule (checkDialableNumber, emergencyDialRefusal)', () => {
   it('ordinary numbers, at home and abroad, are not emergency numbers', () => {
     expect(checkDialableNumber('(202) 555-0177')).toMatchObject({ ok: true, e164: PAT });
     expect(checkDialableNumber('1-202-555-0177')).toMatchObject({ ok: true, e164: PAT });
-    for (const n of [PAT, '+44 20 7946 0911', '+61 2 5550 1988', '12345'])
+    for (const n of [PAT, '+44 20 7946 0911', '+61 2 5550 1988', '12345', ...LOOK_ALIKES])
       expect(emergencyDialRefusal(n)).toBeNull();
+    for (const n of LOOK_ALIKES) expect(checkDialableNumber(n).ok).toBe(true);
   });
 });
 
@@ -123,6 +122,15 @@ describe('persona-voice call and voicemail (callWithPersonaVoice)', () => {
 
   it('the non-emergency control still dials', async () => {
     const out = await callWithPersonaVoice(PAT, 'hi', 'ferni', {
+      askedFor: true,
+      fallbackToTwilioVoice: true,
+    });
+    expect(out).toMatchObject({ success: true, callSid: 'CA1' });
+    expect(twilioCalls()).toBe(1);
+  });
+
+  it.each(LOOK_ALIKES)('%s, which only contains an emergency code, still dials', async (n) => {
+    const out = await callWithPersonaVoice(n, 'hi', 'ferni', {
       askedFor: true,
       fallbackToTwilioVoice: true,
     });
@@ -152,9 +160,12 @@ describe('conversation call (scheduleProactiveCall)', () => {
     expect(twilioCalls()).toBe(0);
   });
 
-  it('the non-emergency control gets past the number check to the call it would place', async () => {
-    const out = await call(PAT);
-    expect(out.error ?? '').not.toMatch(/emergency|Invalid phone number/);
-    expect(hours).toHaveBeenCalledOnce(); // reached the calling-hours step, after every refusal
-  });
+  it.each([PAT, ...LOOK_ALIKES])(
+    '%s gets past the number check to the call it would place',
+    async (n) => {
+      const out = await call(n);
+      expect(out.error ?? '').not.toMatch(/emergency|service number|Invalid phone number/);
+      expect(hours).toHaveBeenCalledOnce(); // reached the calling-hours step, after every refusal
+    }
+  );
 });

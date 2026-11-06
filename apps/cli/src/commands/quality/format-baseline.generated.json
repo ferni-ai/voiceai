@@ -548,7 +548,6 @@
   "src/services/trust/reading-between-lines.ts",
   "src/services/trust/tone-analyzer.ts",
   "src/services/trust/trust-framework.ts",
-  "src/services/voice/conversational-call-service.ts",
   "src/services/voice/twilio-audio-enhance.ts",
   "src/services/wearable-integration/types.ts",
   "src/services/wellbeing-tracking/__tests__/crisis-adversarial.json",

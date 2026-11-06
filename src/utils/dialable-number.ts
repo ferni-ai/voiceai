@@ -4,10 +4,14 @@
  * persona-voice calls (services/voice/persona-call-refusal.ts). Conversational
  * calls (scheduleProactiveCall) dial international numbers too, so they apply
  * only the emergency rule (emergencyDialRefusal).
- * No imports, so any layer can use it.
+ * Its one import is the safety kernel's in-danger words, a constants module, so the
+ * layer map places this file with the safety rules (L3:judgment); code outside them
+ * at L4 reads it through services/safety's index.
  *
  * @module utils/dialable-number
  */
+
+import { IN_DANGER_NOW } from '../services/safety/crisis-guard-replies.js';
 
 export type DialCheck = { ok: true; e164: string; spoken: string } | { ok: false; reason: string };
 
@@ -17,15 +21,21 @@ const EMERGENCY_NUMBERS = new Set(['911', '112', '999', '000', '988', '933']);
  * Why Ferni won't dial this emergency or N11 service number, in any spelling ("9-1-1",
  * "+1911", "1-988", "+44 999"), or null. Six digits or fewer can't be a phone Ferni
  * dials, so a short number ending in one (a country code in front) is that number.
- * The words go to the model: say plainly Ferni can't place the call, and keep the
- * crisis line and emergency number a crisis turn already gives (services/safety); no
- * copy of either number lives here.
+ * The words go to the model. An emergency number keeps the kernel's in-danger words
+ * (services/safety), so a caller in crisis still hears where to turn; a service number
+ * (311, 711, ...) is plain, with no crisis framing. No trailing full stop: each path adds
+ * its own.
  */
 export function emergencyDialRefusal(raw: string): string | null {
   const digits = raw.replace(/\D/g, '');
   const number = digits.length >= 3 && digits.length <= 6 ? digits.slice(-3) : '';
-  if (!EMERGENCY_NUMBERS.has(number) && !/^[2-9]11$/.test(number)) return null;
-  return `${number} is an emergency or service number, and Ferni can't place emergency calls. Tell the caller plainly to dial ${number} themselves, and if they may be in crisis or in danger, still give them the crisis line and the emergency number`;
+  if (EMERGENCY_NUMBERS.has(number)) {
+    return `${number} is an emergency number, and Ferni can't place emergency calls. Tell the caller plainly to dial ${number} themselves. If they may be in danger right now, tell them: ${IN_DANGER_NOW.replace(/\.$/, '')}`;
+  }
+  if (/^[2-9]11$/.test(number)) {
+    return `${number} is a service number Ferni can't dial, so tell the caller to dial ${number} themselves`;
+  }
+  return null;
 }
 
 /**

@@ -56,6 +56,7 @@ import {
 import { createCallOnBehalfTool } from '../call-on-behalf.js';
 import { checkDialableNumber } from '../compliance.js';
 import { getTelephonyToolDefinitions } from '../index.js';
+import { LOOK_ALIKES, saysDialItYourself } from '../../../../utils/__tests__/dial-refusal-words.js';
 
 const fetchSpy = vi.fn(async () => new Response('{}'));
 const CALL_DR_LEE = { contactQuery: 'my doctor', purpose: 'reschedule my appointment' };
@@ -178,22 +179,31 @@ describe('calls on behalf wait for the caller', () => {
     expect(dials()).toBe(0);
   });
 
-  it('an emergency number in any spelling is refused as one: dial it yourself, keep 988/911', async () => {
+  it('an emergency or N11 number in any spelling is refused as one: dial it yourself', async () => {
     for (const [phoneNumber, number] of [
       ['+1911', '911'],
       ['9-1-1', '911'],
       ['1-988', '988'],
       ['+1 (988)', '988'],
       ['+44 999', '999'],
+      ['311', '311'],
+      ['+1 711', '711'],
     ]) {
       for (const tool of ['callOnBehalf', 'callAndConverse']) {
         const out = await liveCall().call(tool, { ...CALL_DR_LEE, phoneNumber }, 'c1');
         expect(out).toMatch(/^Nothing was dialed: /);
-        expect(out).toContain(`${number} is an emergency or service number`);
-        expect(out).toContain(`dial ${number} themselves`);
+        saysDialItYourself(out, number);
       }
     }
     expect(dials()).toBe(0);
+  });
+
+  it('a number that only contains an emergency code is read back like any other', async () => {
+    for (const phoneNumber of LOOK_ALIKES) {
+      const out = await liveCall().call('callOnBehalf', { ...CALL_DR_LEE, phoneNumber }, 'c1');
+      expect(out).toContain('NOT SENT YET');
+    }
+    expect(dials()).toBe(0); // nothing rings before the yes
   });
 
   it('the registry gates an outbound tool even if its domain did not', async () => {
