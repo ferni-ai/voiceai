@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const stored = vi.hoisted(() => [] as string[]);
 /** Each write's path and data, for checking what a writer stored. */
-const written = vi.hoisted(() => [] as { path: string; data: unknown }[]);
+const written = vi.hoisted(() => [] as Array<{ path: string; data: unknown }>);
 
 /** A fake Firestore that records every write path (src/tests/setup.ts mocks both getFirestoreDb paths). */
 const fakeDb = vi.hoisted(() => {
@@ -73,6 +73,12 @@ vi.mock('../../../config/gemini-config.js', async (importOriginal) => ({
 }));
 
 import { buildLiveSuperhumanInjections } from '../live-superhuman-injections.js';
+import { detectCrisis } from '../../../services/safety/crisis-guard.js';
+import {
+  crisisRiskThisCall,
+  notePatternRisk,
+  resetCrisisCallRisk,
+} from '../../../services/safety/crisis-call-risk.js';
 import { getFirestoreDb } from '../../../utils/firestore-utils.js';
 import { getFirestoreDb as superhumanDb } from '../../../services/superhuman/firestore-utils.js';
 // The writers import each store lazily: load them first so a turn's writes land within the wait.
@@ -85,15 +91,24 @@ import '../../../services/outreach/pattern-outreach-integration.js';
 
 let n = 0;
 
+/** The turn's analysis: no topics, so only the writers under test run. */
+const NO_TOPICS = { topics: { detected: [] } };
+
 /** Run one turn of the real builder and let its fire-and-forget writes land. */
-async function turn(userText: string, intensity = 0.3): Promise<string> {
-  const sessionId = `writes-${++n}`;
+async function turn(
+  userText: string,
+  intensity = 0.3,
+  sessionId = `writes-${++n}`
+): Promise<string> {
+  // The turn's kernel read is noted first, as startTurnCrisis notes it before the injections run.
+  const read = detectCrisis(userText);
+  if (read.isCrisis) notePatternRisk(sessionId, read);
   await buildLiveSuperhumanInjections({
     userId: `user-${sessionId}`,
     sessionId,
     userText,
     emotionalState: { primary: 'neutral', intensity, distressLevel: 0.1, trajectory: 'stable' },
-    analysis: { topics: { detected: [] } } as never,
+    analysis: NO_TOPICS as never,
     turnCount: 3,
   });
   await new Promise<void>((resolve) => {
@@ -108,6 +123,7 @@ beforeEach(() => {
   stored.length = 0;
   written.length = 0;
   published.mockClear();
+  resetCrisisCallRisk();
 });
 
 describe('live superhuman writers store through the per-turn builder', () => {
@@ -146,6 +162,41 @@ describe('live superhuman writers store through the per-turn builder', () => {
 
   it('schedulePatternOutreachAsync: outreach is scheduled', async () => {
     await turn('I have a huge deadline and a presentation tomorrow.', 0.9);
+    expect(published).toHaveBeenCalledTimes(1);
+  });
+});
+
+// K1e: the person hurting the caller may read a check-in sent to their phone, so a call with
+// crisis risk (a read of someone hurting them included) stores and schedules nothing mid-call.
+// Every line is invented.
+describe('live superhuman writers hold on a call with crisis risk', () => {
+  const PERSON = 'I talked to my mom Sarah about it yesterday.';
+  const BUSY = 'I have a huge deadline and a presentation tomorrow.';
+
+  it('a turn that tells of someone hurting the caller stores no person', async () => {
+    const sessionId = await turn(`My husband hits me. ${PERSON}`);
+    expect(crisisRiskThisCall(sessionId)).toBe(true);
+    expect(stored).toEqual([]);
+  });
+
+  it('a turn that tells of someone hurting the caller schedules no outreach', async () => {
+    await turn(`My husband hits me, and ${BUSY.toLowerCase()}`, 0.9);
+    expect(published).not.toHaveBeenCalled();
+  });
+
+  it('an earlier disclosure on the call holds a later everyday turn', async () => {
+    const sessionId = await turn("I'm not safe at home.");
+    stored.length = 0;
+    await turn(BUSY, 0.9, sessionId);
+    await turn(PERSON, 0.3, sessionId);
+    expect(published).not.toHaveBeenCalled();
+    expect(stored).toEqual([]);
+  });
+
+  it('the twin still stores and schedules: "my brother hits me at video games"', async () => {
+    await turn(`My brother hits me at video games. ${PERSON}`);
+    expect(stored.some((p) => /relationship|people|person/i.test(p))).toBe(true);
+    await turn(`My brother hits me at video games, and ${BUSY.toLowerCase()}`, 0.9);
     expect(published).toHaveBeenCalledTimes(1);
   });
 });

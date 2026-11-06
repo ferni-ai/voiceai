@@ -19,7 +19,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { abuseOnlyRead } from './abuse-disclosure.js';
+import { abuseOnlyRead, abuseToldOnCall } from './abuse-disclosure.js';
 
 const log = createLogger({ module: 'CrisisCallRisk' });
 
@@ -233,6 +233,15 @@ function readsInFlightBesides(sessionId: string, latest: string | undefined): bo
 export function crisisRiskNoted(sessionId: string, now = Date.now()): boolean {
   const at = risky.get(sessionId);
   return at !== undefined && now - at <= TTL_MS;
+}
+
+/**
+ * Nothing goes out to the caller after this call: risk was noted on it (a read of someone hurting
+ * them included), or a caller line tells of someone hurting them. The noted risk keeps a turn-1
+ * disclosure held when the lines passed in are only the call's last turns.
+ */
+export function callHoldsOutreach(sessionId: string, callerLines: readonly string[]): boolean {
+  return crisisRiskNoted(sessionId) || abuseToldOnCall(callerLines);
 }
 
 /** A grounded release explained this turn's risk: unexplainedCrisisRisk stops counting it. */

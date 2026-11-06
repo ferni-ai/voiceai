@@ -42,6 +42,8 @@ vi.mock('../../predictive-insights/data-collector.js', () => ({
 }));
 
 import { analyzeSessionForOutreach, type ConversationTurn } from '../session-integration.js';
+import { detectCrisis } from '../../safety/crisis-guard.js';
+import { notePatternRisk, resetCrisisCallRisk } from '../../safety/crisis-call-risk.js';
 
 const call = (...said: string[]) => ({
   userId: 'member-k1e-abuse-hold',
@@ -70,7 +72,10 @@ const queued = () =>
   ].reduce((n, fn) => n + fn.mock.calls.length, 0);
 
 describe('session-end outreach after a call where abuse was told', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetCrisisCallRisk();
+  });
 
   it('an everyday call with the same commitment queues outreach (the control)', async () => {
     const result = await analyzeSessionForOutreach(call(COMMITMENT, HEAVY));
@@ -87,6 +92,15 @@ describe('session-end outreach after a call where abuse was told', () => {
     "he's breaking the door",
   ])('no outreach job is queued: %s', async (line) => {
     const result = await analyzeSessionForOutreach(call(COMMITMENT, line, HEAVY));
+    expect(queued()).toBe(0);
+    expect(publish.context).not.toHaveBeenCalled();
+    expect(result).toEqual({ commitmentsFound: 0, triggersCreated: 0, contextUpdated: false });
+  });
+
+  it('a turn-1 disclosure the passed turns no longer hold still holds the call', async () => {
+    // The kernel's read of turn 1, noted as the turn pipeline notes it (turn-crisis.ts).
+    notePatternRisk('session-k1e-abuse-hold', detectCrisis('my husband hits me'));
+    const result = await analyzeSessionForOutreach(call(COMMITMENT, HEAVY));
     expect(queued()).toBe(0);
     expect(publish.context).not.toHaveBeenCalled();
     expect(result).toEqual({ commitmentsFound: 0, triggersCreated: 0, contextUpdated: false });

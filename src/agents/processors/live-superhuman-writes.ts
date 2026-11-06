@@ -2,8 +2,9 @@
  * The per-turn writers behind live-superhuman-injections.ts: each one stores
  * something about the caller (a value, an energy reading, a person, a dream, a
  * life chapter) or schedules outreach to them, so each first asks MINOR_CARE
- * (minor-care.ts) and does nothing for a held session: a caller who sounds
- * under 18 and isn't a verified account owner.
+ * (minor-care.ts) and the call's crisis risk, and does nothing for a held
+ * session: a caller who sounds under 18 and isn't a verified account owner, or
+ * a call with crisis risk, someone hurting the caller included.
  *
  * Split out of live-superhuman-injections.ts (over 500 lines, so it may not
  * grow) when these writers were found storing for held sessions (#1897 review).
@@ -11,6 +12,7 @@
  *
  * @module agents/processors/live-superhuman-writes
  */
+import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { heldAfter } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -24,9 +26,14 @@ export interface TurnWrite {
   emotionalState: { primary: string };
 }
 
-/** MINOR_CARE=on: this turn's words read first, so the turn that says "I'm 15 years old" is held too. */
+/**
+ * MINOR_CARE=on: this turn's words read first, so the turn that says "I'm 15 years old" is held too.
+ * Crisis risk on this call holds too: a read of someone hurting the caller is call risk
+ * (crisis-call-risk.ts), and the person hurting them may read a check-in sent to their phone. The
+ * turn's own kernel read is noted before these writers run (turn-crisis.ts).
+ */
 function held(ctx: Pick<TurnWrite, 'sessionId' | 'userText'>): boolean {
-  return heldAfter(ctx.sessionId, ctx.userText);
+  return heldAfter(ctx.sessionId, ctx.userText) || crisisRiskThisCall(ctx.sessionId, ctx.userText);
 }
 
 /** A value they stated ("I value my freedom"): values-alignment. */
