@@ -10,7 +10,7 @@ import { ReadableStream } from 'node:stream/web';
 import { describe, expect, it } from 'vitest';
 
 import { generateCrisisResponse } from '../../../services/safety/crisis-response.js';
-import { SAFETY_CRISIS_RESOURCES } from '../../../services/safety/index.js';
+import { SAFETY_CRISIS_RESOURCES, crisisLines } from '../../../services/safety/index.js';
 import {
   CRISIS_RESOURCES,
   definitions as crisisTools,
@@ -206,7 +206,19 @@ describe('coaching tools: helplines come from the static set, never from their o
     const sources = ['new-parent', 'caregiver', 'sobriety', 'trauma-support'].map((dir) =>
       readFileSync(new URL(`../../../tools/domains/${dir}/index.ts`, import.meta.url), 'utf8')
     );
-    const dialled = new Set(sources.join('\n').match(/1-8\d\d-\d{3}-\d{4}/gu) ?? []);
+    const text = sources.join('\n');
+    // A number the codemod moved onto crisisLines is printed from there ("crisisLines.X.phone").
+    const phoneOf = new Map(
+      Object.entries(crisisLines).map(([key, line]) => [key, 'phone' in line ? line.phone : ''])
+    );
+    const referenced = [...text.matchAll(/crisisLines\.(\w+)\.phone/gu)].map(
+      (m) => phoneOf.get(m[1] ?? '') ?? ''
+    );
+    const dialled = new Set(
+      [...(text.match(/1-8\d\d-\d{3}-\d{4}/gu) ?? []), ...referenced].filter((n) =>
+        /^1-8\d\d-\d{3}-\d{4}$/u.test(n)
+      )
+    );
     expect(dialled.size).toBeGreaterThanOrEqual(4);
     for (const number of dialled) expect(await spoken(`Call ${number}.`)).toBe(`Call ${number}.`);
   });

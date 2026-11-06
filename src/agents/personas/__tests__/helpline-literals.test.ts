@@ -91,7 +91,10 @@ describe('every hotline literal in the tools and prompts is a house fact', () =>
   const literals = helplineLiterals();
 
   it('finds the hotlines it is meant to guard', () => {
-    expect(literals.filter((l) => l.kind === 'phone').length).toBeGreaterThan(30);
+    // Distinct numbers, not copies: moving a copy onto crisisLines leaves one literal per line.
+    expect(
+      new Set(literals.filter((l) => l.kind === 'phone').map((l) => l.value)).size
+    ).toBeGreaterThanOrEqual(18);
     expect(literals.some((l) => l.kind === 'short code')).toBe(true);
     expect(literals.some((l) => l.kind === 'site')).toBe(true);
     for (const dir of [
