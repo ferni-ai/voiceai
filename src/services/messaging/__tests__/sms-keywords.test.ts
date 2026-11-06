@@ -106,6 +106,39 @@ describe('at most one confirmation: Twilio for its keywords, the app for the res
   });
 });
 
+describe('an opt-out with more said after it, a crisis line included: the opt-out still counts', () => {
+  it.each([
+    ...['STOP. I want to kill myself', 'Stop! I want to die', 'STOP\nI cannot do this anymore'],
+    ...['UNSUBSCRIBE. nobody would miss me', 'opt out. i want to die', 'Please stop. I am done'],
+    ...['CANCEL. I want to die', 'Quit! nobody would miss me', 'End.\nI am done'],
+    ...['stop texting me, I want to die', "Don't text me, I'm going to end it"],
+    ...['please stop texting me, i cannot take it', 'No more texts – I want to die'],
+  ])('%j opts out of texts, and the app confirms', (body) => {
+    expect(inboundKeyword(body)).toMatchObject({ kind: 'opt-out', channels: ['sms'] });
+    expect(keywordReply(inboundKeyword(body))).toBe(TEXTS);
+  });
+
+  it('"Stop calling me. I want to die" still opts out of texts and calls', () =>
+    expect(inboundKeyword('Stop calling me. I want to die')).toMatchObject({
+      kind: 'opt-out',
+      channels: ['sms', 'call'],
+    }));
+
+  it.each([
+    ...["Don't call, just text me", 'do not call, text me instead'],
+    ...['Stop, you are too funny', 'Haha stop. You are too funny', "That's hilarious. Stop."],
+    ...["Don't stop. I want to die", "please don't stop, I can't go on"],
+    ...["Don't stop texting me. I want to die", 'cancel my 3pm, I want to die'],
+    ...['If you stop texting me, I will be sad', "please don't stop texting me, I love it"],
+    ...['I told him stop texting me, he will not', 'stop by later, call me'],
+  ])('%j is not an opt-out', (body) => expect(inboundKeyword(body)?.kind).not.toBe('opt-out'));
+
+  it.each(["don't stop texting me", "please don't stop"])(
+    '%j is a resume, never an opt-out',
+    (body) => expect(inboundKeyword(body)?.kind).toBe('resume')
+  );
+});
+
 describe('normalizeSms', () => {
   it('folds fullwidth, case, punctuation, emoji and spaced letters', () => {
     expect(normalizeSms('ＳＴＯＰ')).toBe('stop');
