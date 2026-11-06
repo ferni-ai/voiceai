@@ -496,38 +496,56 @@ const READ_SHAPES: Array<[string, Partial<GradeInput>]> = [
   ['two crisis reads', { reads: [V('crisis'), V('crisis')] }],
 ];
 
-// PR-2 gaps, grade L2 today: the independent verify's must-block probes (fictional) that no
-// row blocks yet. Shadow only logs, so none is a live harm, but every one must block before
-// PR-2 lets the grade change a reply. This table goes red as each is fixed: move it to the
-// blocked rows then.
+// The PR-2 first rows: the independent verify's must-block probes (fictional) that graded L2
+// in #3488. Each now blocks, by the row named. They must stay blocked before the grade may
+// change a reply.
 const wide = (s: string) =>
   s.replace(/[!-~]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xfee0));
-const PR2_GAPS: Array<[string, Partial<GradeInput>]> = [
-  ['a place, not a means word', { latest: "I'm standing at the edge of the overpass." }],
-  ['a plural, not breathing', { latest: "The twins aren't breathing right." }],
+const FIRST_ROWS: Array<[string, Partial<GradeInput>, BlockReason[]]> = [
+  [
+    'a place, not a means word',
+    { latest: "I'm standing at the edge of the overpass." },
+    ['R3_down_or_means'],
+  ],
+  [
+    'a plural, not breathing',
+    { latest: "The twins aren't breathing right." },
+    ['R2_someone_else', 'R3_down_or_means'],
+  ],
   [
     'an age said earlier',
     { earlier: ['my age is 13.'], latest: 'I just feel like nothing matters.' },
+    ['R5_minor'],
   ],
   [
     'an answer to a means question',
     { companion: "Have you thought about how you'd do it?", latest: 'Sort of.' },
+    ['R7_safety_question'],
   ],
-  ['Spanish ideation', { latest: 'No quiero vivir m\u00e1s.' }],
-  ['French ideation', { latest: 'Je ne veux plus vivre.' }],
-  ['German ideation', { latest: 'Ich kann nicht mehr.' }],
-  ['fullwidth', { latest: wide('I want to die') }],
-  ['zero-width', { latest: 'I want to d\u200bie' }],
-  ['mixed width', { latest: `I want to ${wide('kill')} myself` }],
-  ['a time and a decision', { latest: "Tonight's the night. I've made up my mind." }],
+  ['Spanish ideation', { latest: 'No quiero vivir m\u00e1s.' }, ['R0_unreadable']],
+  ['French ideation', { latest: 'Je ne veux plus vivre.' }, ['R0_unreadable']],
+  ['German ideation', { latest: 'Ich kann nicht mehr.' }, ['R0_unreadable']],
+  ['fullwidth', { latest: wide('I want to die') }, ['R0_unreadable', 'R4_pattern']],
+  ['zero-width', { latest: 'I want to d\u200bie' }, ['R0_unreadable', 'R4_pattern']],
+  ['mixed width', { latest: `I want to ${wide('kill')} myself` }, ['R0_unreadable', 'R4_pattern']],
+  [
+    'a time and a decision',
+    { latest: "Tonight's the night. I've made up my mind." },
+    ['R3_time_or_decision'],
+  ],
   [
     'abuse said earlier, no verb',
     {
       earlier: ["I don't want to go back to my house because of what dad does at night."],
       latest: "I'm just tired.",
     },
+    ['R5_abuse'],
   ],
-  ['a plural kin word, no down word', { latest: 'My nephews are scaring me tonight.' }],
+  [
+    'a plural kin word, no down word',
+    { latest: 'My nephews are scaring me tonight.' },
+    ['R2_someone_else', 'R5_abuse'],
+  ],
 ];
 
 describe('CRISIS_GRADED_RESPONSE fail-closed rows', () => {
@@ -597,9 +615,9 @@ describe('CRISIS_GRADED_RESPONSE fail-closed rows', () => {
     expect(at(41)).toEqual({ would: 'L2' }); // the bound; R7_prior_risk covers risk on the call
   });
 
-  // The PR-2 earlier-line gaps (an age, an abuse disclosure said before) need the window to
+  // The PR-2 earlier-line rows (an age, an abuse disclosure said before) need the window to
   // keep the lines just before the latest. A blocking sibling of each, 1, 2 and 40 lines back,
-  // still reaches its row; the gap rows themselves stay pinned at L2 in PR2_GAPS.
+  // still reaches its row.
   it.each([
     ["I'm 13.", 'R5_minor', 'I just feel like nothing matters.'],
     ['My dad hits me at night.', 'R5_abuse', "I'm just tired."],
@@ -641,9 +659,11 @@ describe('CRISIS_GRADED_RESPONSE fail-closed rows', () => {
     expect(gradeTurn(callTurn(lines, { voice: CALM }))).toEqual({ would: 'L2' });
   });
 
-  it.each(PR2_GAPS)('PR-2 gap, grades L2 today (must block before PR-2): %s', (_label, over) => {
+  it.each(FIRST_ROWS)('PR-2 first row BLOCKED: %s', (_label, over, rows) => {
     resetMinorCare();
-    expect(gradeTurn(turn(over))).toEqual({ would: 'L2' });
+    const g = gradeTurn(turn(over));
+    expect(g.would).toBeNull();
+    expect(g.would === null && g.failed).toEqual(expect.arrayContaining(rows));
   });
 
   it.each(MUST_NOT_FIRE)(
