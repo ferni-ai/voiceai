@@ -480,10 +480,9 @@ export function getOverdueTasks(userId: string): Task[] {
 }
 
 /**
- * Pending tasks for today. TASKS_TODAY_USER_ZONE (on by default): due on the user's
- * calendar day in `timeZone` (UTC when unknown, logged with counts only), then open
- * tasks with no due date, so one just added with no date is on today's list. Off: due
- * between the server's midnights, undated tasks left out, as before.
+ * Pending tasks due today. TASKS_TODAY_USER_ZONE (on by default): due on the user's
+ * calendar day in `timeZone` (UTC when unknown, logged with counts only). Off: due
+ * between the server's midnights, as before. Never the undated ones (getUndatedTasks).
  */
 export function getTodaysTasks(userId: string, timeZone?: string, now = new Date()): Task[] {
   if (!flagOn('TASKS_TODAY_USER_ZONE')) {
@@ -497,16 +496,37 @@ export function getTodaysTasks(userId: string, timeZone?: string, now = new Date
     );
   }
   const day = localDayKey(now, timeZone);
-  const pending = getUserTasks(userId).filter((t) => t.status === 'pending');
-  const dated = pending.filter((t) => t.dueDate && localDayKey(t.dueDate, timeZone) === day);
-  const undated = pending.filter((t) => !t.dueDate);
+  const dated = getUserTasks(userId).filter(
+    (t) => t.status === 'pending' && t.dueDate && localDayKey(t.dueDate, timeZone) === day
+  );
   if (!timeZone) {
     getLogger().info(
-      { reason: 'caller_zone_unknown', dated: dated.length, undated: undated.length },
+      { reason: 'caller_zone_unknown', dated: dated.length },
       "Tasks today: caller's zone unknown, using UTC"
     );
   }
-  return [...dated, ...undated];
+  return dated;
+}
+
+/** Open tasks with no due date: their own line, never counted as today (flag off: none). */
+export function getUndatedTasks(userId: string): Task[] {
+  if (!flagOn('TASKS_TODAY_USER_ZONE')) return [];
+  return getUserTasks(userId).filter((t) => t.status === 'pending' && !t.dueDate);
+}
+
+/** "Plus 25 with no date: a, b, c, and 22 more" (`plus` false: "25 with no date: ..."); '' for none. */
+export function noDateLine(undated: Task[], cap: number, plus = true): string {
+  if (undated.length === 0) return '';
+  const titles = undated.slice(0, cap).map((t) => t.title);
+  const more = undated.length > cap ? `, and ${undated.length - cap} more` : '';
+  return `${plus ? 'Plus ' : ''}${undated.length} with no date: ${titles.join(', ')}${more}`;
+}
+
+/** getTasks(today) with nothing due: say so and list the undated, or "all caught up" when none. */
+function nothingDueToday(undated: Task[]): string {
+  return undated.length > 0
+    ? `✨ Nothing is due today.\n\n${noDateLine(undated, 10, false)}`
+    : `✨ No tasks for today! You're all caught up. Want to add something?`;
 }
 
 /** Completed on today's date: the user's in `timeZone` with the flag on, else since server midnight. */
@@ -667,11 +687,13 @@ export function createTaskTools() {
         const timeZone = taskDayZone(ctx);
 
         let taskList: Task[];
+        let undated: Task[] = [];
         let title: string;
 
         switch (filter) {
           case 'today':
             taskList = getTodaysTasks(userId, timeZone);
+            undated = getUndatedTasks(userId);
             title = "📋 Today's Tasks";
             break;
           case 'overdue':
@@ -693,13 +715,12 @@ export function createTaskTools() {
 
         if (category) {
           taskList = taskList.filter((t) => t.category === category);
+          undated = undated.filter((t) => t.category === category);
           title += ` (${category})`;
         }
 
         if (taskList.length === 0) {
-          if (filter === 'today') {
-            return `✨ No tasks for today! You're all caught up. Want to add something?`;
-          }
+          if (filter === 'today') return nothingDueToday(undated);
           return `No ${filter} tasks found. ${filter === 'overdue' ? '🎉 Great job staying on top of things!' : ''}`;
         }
 
@@ -713,6 +734,7 @@ export function createTaskTools() {
         if (taskList.length > 10) {
           response += `\n\n...and ${taskList.length - 10} more.`;
         }
+        if (undated.length > 0) response += `\n\n${noDateLine(undated, 10)}`;
 
         // Add overdue warning if showing today's tasks
         if (filter === 'today') {
@@ -834,6 +856,8 @@ export function createTaskTools() {
 
         let response = `📊 **Task Summary**\n\n`;
         response += `**Today:** ${today.length} task${today.length !== 1 ? 's' : ''}\n`;
+        const undated = getUndatedTasks(userId).length;
+        if (undated > 0) response += `**No Date:** ${undated}\n`;
         response += `**Completed Today:** ${doneToday.length}\n`;
         response += `**Total Pending:** ${pending.length}\n`;
 

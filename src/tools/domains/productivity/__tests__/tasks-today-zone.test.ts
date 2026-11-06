@@ -43,6 +43,7 @@ vi.mock('../../../../services/stores/productivity-store.js', () => ({
 }));
 
 import { completeTask, createTask, createTaskTools, getUserTasks } from '../tasks.js';
+import { createDailyBriefingTools } from '../../information/daily-briefing.js';
 
 type Exec = { execute: (args: Record<string, unknown>, opts?: unknown) => Promise<string> };
 const tools = createTaskTools() as unknown as Record<
@@ -65,6 +66,12 @@ const add = (userId: string, title: string, due?: string, priority?: 'urgent') =
   createTask({ userId, title, dueDate: due ? new Date(due) : undefined, priority });
 const today = (userId: string, zone?: string) =>
   tools.getTasks.execute({ filter: 'today' }, ctxFor(userId, zone));
+const briefing = createDailyBriefingTools() as unknown as Record<
+  'getMorningBriefing' | 'getEveningReflection',
+  Exec
+>;
+const morning = (userId: string, zone?: string) =>
+  briefing.getMorningBriefing.execute({ userName: 'Sam' }, ctxFor(userId, zone));
 
 /** A New York user: yesterday's, today's and tomorrow's task (each due 23:59 local), and one undated. */
 async function newYorkList(userId: string): Promise<void> {
@@ -135,23 +142,95 @@ describe('task tools: "today" is the caller\'s day', () => {
     expect(said).not.toContain('pick up the dry cleaning');
   });
 
-  it('an undated task is under today, after the dated ones, even when nothing is dated', async () => {
+  it('with no undated tasks, the today list is exactly the dated one', async () => {
+    at(NY_MORNING);
+    const userId = freshUser();
+    await add(userId, 'return library books', '2026-11-05T04:59:00Z');
+    await add(userId, 'pay the water bill', '2026-11-06T04:59:00Z');
+
+    expect(await today(userId, 'America/New_York')).toBe(
+      "📋 Today's Tasks (1):\n\n1. ☐ 🟡 pay the water bill - Due: Thu, Nov 5" +
+        '\n\n⚠️ You also have 1 overdue task!'
+    );
+  });
+
+  it('undated tasks get their own line after the dated ones and never count as today', async () => {
     at(NY_MORNING);
     const userId = freshUser();
     await newYorkList(userId);
 
-    const said = await today(userId, 'America/New_York');
+    // The undated task is urgent: it still isn't numbered or counted.
+    expect(await today(userId, 'America/New_York')).toBe(
+      "📋 Today's Tasks (1):\n\n1. ☐ 🟡 pay the water bill - Due: Thu, Nov 5" +
+        '\n\nPlus 1 with no date: get the mailbox keys' +
+        '\n\n⚠️ You also have 1 overdue task!'
+    );
+  });
 
-    // The undated task is urgent, so plain priority order would put it first.
-    expect(said).toContain("📋 Today's Tasks (2):");
-    expect(said).toContain('1. ☐ 🟡 pay the water bill');
-    expect(said).toContain('2. ☐ 🔴 get the mailbox keys');
+  it('nothing due today but undated tasks open: says so, never "all caught up"', async () => {
+    at(NY_MORNING);
+    const userId = freshUser();
+    await add(userId, 'get the mailbox keys');
+
+    expect(await today(userId, 'America/New_York')).toBe(
+      '✨ Nothing is due today.\n\n1 with no date: get the mailbox keys'
+    );
+  });
+
+  it('2 due today and 25 undated: counts stay 2, the undated line lists 10 and the rest', async () => {
+    at(NY_MORNING);
+    const userId = freshUser();
+    await add(userId, 'mail the rent check', '2026-11-05T22:00:00Z'); // Thu 17:00 EST
+    await add(userId, 'pay the water bill', '2026-11-06T04:59:00Z');
+    for (let i = 1; i <= 25; i++) await add(userId, `errand ${i}`);
+
+    const said = await today(userId, 'America/New_York');
+    expect(said).toMatch(
+      /^📋 Today's Tasks \(2\):\n\n1\. ☐ 🟡 mail the rent check - Due: Thu, Nov 5\n2\. /
+    );
+    expect(said).toMatch(/\n\nPlus 25 with no date: errand \d+(, errand \d+){9}, and 15 more$/);
+
+    const summary = await tools.getTaskSummary.execute({}, ctxFor(userId, 'America/New_York'));
+    expect(summary).toContain('**Today:** 2 tasks\n**No Date:** 25\n**Completed Today:** 0\n');
+
+    const brief = await morning(userId, 'America/New_York');
+    expect(brief).toContain(
+      "📋 **Today's Tasks:** 2\n  • mail the rent check\n  • pay the water bill\n"
+    );
+    expect(brief).toMatch(
+      /\n {2}Plus 25 with no date: errand \d+, errand \d+, errand \d+, and 22 more\n\n/
+    );
+  });
+
+  it("the morning briefing reads the caller's day, and lists undated tasks apart", async () => {
+    at(NY_MORNING);
+    const userId = freshUser();
+    await newYorkList(userId);
+
+    expect(await morning(userId, 'America/New_York')).toContain(
+      "⚠️ **Overdue:** 1 task\n📋 **Today's Tasks:** 1\n  • pay the water bill\n" +
+        '  Plus 1 with no date: get the mailbox keys\n\n'
+    );
 
     const onlyUndated = freshUser();
     await add(onlyUndated, 'get the mailbox keys');
-    const said2 = await today(onlyUndated, 'America/New_York');
-    expect(said2).toContain('1. ☐ 🟡 get the mailbox keys');
-    expect(said2).not.toContain('No tasks for today');
+    const brief = await morning(onlyUndated, 'America/New_York');
+    expect(brief).toContain(
+      '📋 **Tasks:** Nothing due today\n  1 with no date: get the mailbox keys\n\n'
+    );
+    expect(brief).not.toContain('All clear');
+  });
+
+  it('the evening reflection does not count undated tasks as remaining today', async () => {
+    at(NY_MORNING);
+    const userId = freshUser();
+    await newYorkList(userId);
+
+    const said = await briefing.getEveningReflection.execute(
+      {},
+      ctxFor(userId, 'America/New_York')
+    );
+    expect(said).toContain('  📋 Remaining: 1\n');
   });
 
   it('"completed today" counts the caller\'s day, across their midnight', async () => {
@@ -201,9 +280,9 @@ describe('task tools: "today" is the caller\'s day', () => {
     const said = await today(userId);
 
     expect(said).toContain('1. ☐ 🟡 send the invoice - Due: Thu, Nov 5');
-    expect(said).toContain('2. ☐ 🟡 get the mailbox keys');
+    expect(said).toContain('\n\nPlus 1 with no date: get the mailbox keys');
     const reason = logged.info.find(([f]) => (f as { reason?: string }).reason);
-    expect(reason?.[0]).toEqual({ reason: 'caller_zone_unknown', dated: 1, undated: 1 });
+    expect(reason?.[0]).toEqual({ reason: 'caller_zone_unknown', dated: 1 });
   });
 
   describe('flag off: exactly what main says', () => {
@@ -221,6 +300,24 @@ describe('task tools: "today" is the caller\'s day', () => {
           '\n\n⚠️ You also have 1 overdue task!'
       );
       expect(logged.info.some(([f]) => (f as { reason?: string }).reason)).toBe(false);
+    });
+
+    it('the morning briefing is the UTC day, undated tasks left out', async () => {
+      at(NY_MORNING);
+      const userId = freshUser();
+      await newYorkList(userId);
+
+      const brief = await morning(userId, 'America/New_York');
+      expect(brief).toContain(
+        "⚠️ **Overdue:** 1 task\n📋 **Today's Tasks:** 1\n  • return library books\n\n"
+      );
+      expect(brief).not.toContain('with no date');
+
+      const onlyUndated = freshUser();
+      await add(onlyUndated, 'get the mailbox keys');
+      expect(await morning(onlyUndated, 'America/New_York')).toContain(
+        '📋 **Tasks:** All clear! ✨\n\n'
+      );
     });
 
     it('getTaskSummary counts completions since UTC midnight', async () => {

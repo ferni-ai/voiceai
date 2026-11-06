@@ -1,13 +1,8 @@
 /**
  * Daily Briefing Tool
  *
- * Morning briefing and end-of-day reflection for voice-first productivity.
- *
- * Features:
- * - Morning briefing (weather, calendar, tasks, goals)
- * - End-of-day reflection
- * - Weekly review
- * - Personalized insights
+ * Voice-first check-ins: a morning briefing (tasks, habits, medications, bills),
+ * an end-of-day reflection, a quick status, a weekly review and a motivation line.
  */
 
 import { llm } from '@livekit/agents';
@@ -19,6 +14,8 @@ const log = getLogger();
 // Import from other tools to aggregate data
 import {
   getTodaysTasks,
+  getUndatedTasks,
+  noDateLine,
   getOverdueTasks,
   getUpcomingTasks,
   type Task,
@@ -173,6 +170,8 @@ export function createDailyBriefingTools() {
             response += `⚠️ **Overdue:** ${overdueTasks.length} task${overdueTasks.length > 1 ? 's' : ''}\n`;
           }
 
+          // Undated tasks: their own line, not counted; never "all clear" while any are open
+          const noDate = noDateLine(getUndatedTasks(userId), 3, todayTasks.length > 0);
           if (todayTasks.length > 0) {
             response += `📋 **Today's Tasks:** ${todayTasks.length}\n`;
             const topTasks = todayTasks.slice(0, 3);
@@ -184,9 +183,9 @@ export function createDailyBriefingTools() {
               response += `  ...and ${todayTasks.length - 3} more\n`;
             }
           } else {
-            response += `📋 **Tasks:** All clear! ✨\n`;
+            response += `📋 **Tasks:** ${noDate ? 'Nothing due today' : 'All clear! ✨'}\n`;
           }
-          response += '\n';
+          response += noDate ? `  ${noDate}\n\n` : '\n';
         } catch (error) {
           log.debug({ error }, 'Tasks module not loaded (optional)');
         }
