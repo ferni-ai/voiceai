@@ -373,8 +373,7 @@ export async function getReferralAnalytics(referrerId: string): Promise<{
 }> {
   const referrals = await getReferralHistory(referrerId);
 
-  // 'started': a call placed through placeOrHold (gated-referral.ts) is tracked as it rings.
-  const called = referrals.filter((r) => r.status === 'called' || r.status === 'started').length;
+  const called = referrals.filter((r) => r.status === 'called' || r.status === 'started').length; // started: placed via placeOrHold
   const answered = referrals.filter((r) => r.status === 'answered').length;
   const converted = referrals.filter((r) => r.status === 'converted').length;
 
