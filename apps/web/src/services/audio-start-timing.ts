@@ -34,13 +34,24 @@ export interface AudioStartTiming {
   first_audio_track_to_playing_ms: number | null;
 }
 
+/** The moments the line is made from, on the clock `now` reads; null for a step never reached. */
+export interface AudioStartMoments {
+  joinedAt: number;
+  trackAt: number | null;
+  playingAt: number | null;
+}
+
 const since = (from: number | null, to: number | null): number | null =>
   from === null || to === null ? null : Math.round(to - from);
 
-/** Start timing `room` from Ferni's joining. Returns the cleanup function, which logs if nothing has yet. */
+/**
+ * Start timing `room` from Ferni's joining. Returns the cleanup function, which
+ * logs if nothing has yet. `onTimed` gets the same moments, once, as the line goes out.
+ */
 export function timeAudioStart(
   room: AgentAudioRoom,
-  now: () => number = () => performance.now()
+  now: () => number = () => performance.now(),
+  onTimed?: (moments: AudioStartMoments) => void
 ): () => void {
   const joinedAt = now();
   let trackAt = agentHasAudioTrack(room) ? joinedAt : null;
@@ -57,6 +68,7 @@ export function timeAudioStart(
       first_audio_track_to_playing_ms: since(trackAt, playingAt),
     };
     log.warn(timing, 'Agent audio start timing');
+    onTimed?.({ joinedAt, trackAt, playingAt });
   }
 
   if (playingAt !== null) {

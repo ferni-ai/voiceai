@@ -40,7 +40,7 @@ import {
   type AgentAudioRoom,
 } from './agent-audio.js';
 import { AUDIO_PLAY_BLOCKED_EVENT } from './audio-play-blocked.js';
-import { timeAudioStart } from './audio-start-timing.js';
+import { timeAudioStart, type AudioStartMoments } from './audio-start-timing.js';
 
 const log = createLogger('AudioStartWatch');
 
@@ -118,10 +118,15 @@ export function watchAudioStart(room: AgentAudioRoom, deps: AudioStartDeps): () 
 /**
  * Everything a call does about Ferni's audio starting, from the moment he has
  * joined: always the timing line, and the notice only with the flag on.
- * Returns the cleanup function.
+ * `onTimed` gets the line's moments, once (client-timing.ts sends them to the
+ * agent). Returns the cleanup function.
  */
-export function watchCallAudio(room: AgentAudioRoom, deps: AudioStartDeps): () => void {
-  const stopTiming = timeAudioStart(room);
+export function watchCallAudio(
+  room: AgentAudioRoom,
+  deps: AudioStartDeps,
+  onTimed?: (moments: AudioStartMoments) => void
+): () => void {
+  const stopTiming = timeAudioStart(room, undefined, onTimed);
   const stopWatch = isAudioStartWatchOn() ? watchAudioStart(room, deps) : () => undefined;
   return () => {
     stopWatch();
