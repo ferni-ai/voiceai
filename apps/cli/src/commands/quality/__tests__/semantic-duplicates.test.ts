@@ -1,7 +1,8 @@
 import { execFileSync } from 'child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   changedExports,
@@ -244,10 +245,12 @@ describe('dev-set scoring and the comment', () => {
 });
 
 describe('the dev set', () => {
-  it('holds at least 30 labelled pairs, each one sized export per side, both labels present', async () => {
-    const { readFileSync } = await import('fs');
+  it('holds at least 30 labelled pairs, each one sized export per side, both labels present', () => {
     const pairs = JSON.parse(
-      readFileSync(join(__dirname, 'fixtures/semantic-duplicates-dev.json'), 'utf8')
+      readFileSync(
+        join(dirname(fileURLToPath(import.meta.url)), 'fixtures/semantic-duplicates-dev.json'),
+        'utf8'
+      )
     ) as Array<{ a: string; b: string; fileA: string; fileB: string; dup: boolean }>;
     expect(pairs.length).toBeGreaterThanOrEqual(30);
     expect(pairs.filter((p) => p.dup).length).toBeGreaterThanOrEqual(10);
