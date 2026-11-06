@@ -203,15 +203,15 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       );
     }
 
-    // Build script with enriched or original purpose
-    const effectivePurpose = enrichedMessage?.message || request.purpose;
-    const { script: scriptTemplate, type: scriptType } = selectScript(contact, effectivePurpose);
+    // The user's own request, relayed in the third person (outbound-call-context.ts); the enriched
+    // message ("Hey Alex! It's Sam...") is in their voice, so only the Twilio voicemail gets it.
+    const { script: scriptTemplate, type: scriptType } = selectScript(contact, request.purpose);
 
     const script = buildCallScript(scriptTemplate, {
       agentName: 'Ferni',
       userName: request.userName,
       contactName: contact.name,
-      purpose: effectivePurpose,
+      purpose: request.purpose,
       objective: request.objective,
       additionalContext: request.userPreferences?.additionalContext,
       preferredTimes: request.userPreferences?.preferredTimes,
