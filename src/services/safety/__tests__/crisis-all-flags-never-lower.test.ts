@@ -375,6 +375,8 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   CRISIS_CLASSIFIER_SECOND_READ: 'src/services/safety/__tests__/crisis-classifier-v3.test.ts',
   CRISIS_CONFIRMED_CALL_RISK: 'src/agents/personas/__tests__/crisis-gate-confirmed-risk.test.ts',
   CRISIS_EVENT_RECORD: 'src/agents/safety/__tests__/crisis-event-record.test.ts',
+  // Shadow only: logs a grade, changes no reader or reply.
+  CRISIS_GRADED_RESPONSE: 'src/agents/personas/__tests__/crisis-graded-response-shadow.test.ts',
   CRISIS_GROUNDED_RELEASE:
     'src/services/safety/__tests__/crisis-grounded-release-failclosed.test.ts',
   CRISIS_IMMINENT_NEEDS_AGREEMENT:

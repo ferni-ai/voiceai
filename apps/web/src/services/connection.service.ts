@@ -62,6 +62,7 @@ import { createLogger } from '../utils/logger.js';
 import { agentAudioTrackKind } from './agent-audio-track.js';
 import { watchAgentDrop, type AgentLostReason } from './agent-drop-watch.js';
 import { watchCallAudio, type AudioStartDeps } from './audio-start-watch.js';
+import { clientTimingSender } from './client-timing.js';
 import {
   AGENT_JOIN_TIMEOUT_AFTER_FAILED_DISPATCH_MS,
   AGENT_JOIN_TIMEOUT_MS,
@@ -346,17 +347,16 @@ class ConnectionService {
   }
 
   /**
-   * Connect to a LiveKit room and wait for the voice agent to join.
-   * Resolves false on failure; getLastFailure() says why. Aborting `signal`
-   * cancels the attempt and closes any room it opened.
+   * Connect to a LiveKit room and wait for the voice agent to join. Resolves false on failure;
+   * getLastFailure() says why. Aborting `signal` cancels the attempt and closes any room it opened.
    */
-  async connect(options: { signal?: AbortSignal } = {}): Promise<boolean> {
+  async connect(options: { signal?: AbortSignal; tapAt?: number } = {}): Promise<boolean> {
     if (this.room?.state === 'connected') {
       log.warn('Already connected');
       return true;
     }
 
-    const { signal } = options;
+    const { signal, tapAt = performance.now() } = options;
     const attempt = ++this.attemptSeq;
     let room: LiveKitRoom | null = null;
     const attemptAbort = new AbortController();
@@ -469,6 +469,7 @@ class ConnectionService {
         log.error('Room connection failed:', roomError);
         throw roomError;
       }
+      const sendTiming = clientTimingSender(room, { tapAt, roomConnectedAt: performance.now() });
       throwIfAborted();
 
       // Enable microphone so the agent can hear us
@@ -504,7 +505,7 @@ class ConnectionService {
       this.awaitingAgent = false;
       this.updateState('connected');
       this.callbacks.onAgentConnected?.(agentIdentity);
-      this.cleanupFunctions.push(watchCallAudio(room, this.audioStartDeps));
+      this.cleanupFunctions.push(watchCallAudio(room, this.audioStartDeps, sendTiming));
       this.startQualityMonitoring();
 
       // 📊 Initialize disconnect diagnostics session
@@ -1020,7 +1021,6 @@ class ConnectionService {
   private hasActiveAudioTrack(): boolean {
     if (!this.room) return false;
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     for (const participant of this.room.remoteParticipants.values()) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       for (const publication of participant.audioTrackPublications.values()) {
