@@ -76,7 +76,7 @@ async function placeThroughPlaceOrHold(call: GatedCall): Promise<Placement> {
   try {
     const { getOnBehalfCallOrchestrator } = await import('./on-behalf-call-orchestrator.js');
     const orchestrator = getOnBehalfCallOrchestrator();
-    const { callId, held } = await placeOrHold(request, (r) => orchestrator.initiateCall(r));
+    const { callId, held } = await placeOrHold(request, async (r) => orchestrator.initiateCall(r));
     if (held || !callId) return { held: held ?? `Nothing was dialed yet for ${call.contactName}.` };
     return { placed: callId };
   } catch (error) {

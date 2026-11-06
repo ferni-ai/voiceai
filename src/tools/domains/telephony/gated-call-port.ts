@@ -47,8 +47,6 @@ export function setGatedCallPort(next: GatedCallPlacer | undefined): void {
 }
 
 /** Place `call` through placeOrHold, or refuse it when no placer is installed. */
-export function placeGatedCall(call: GatedCall): Promise<Placement> {
-  return placer
-    ? placer(call)
-    : Promise.resolve({ refused: "calls can't be placed from here yet" });
+export async function placeGatedCall(call: GatedCall): Promise<Placement> {
+  return placer ? placer(call) : { refused: "calls can't be placed from here yet" };
 }
