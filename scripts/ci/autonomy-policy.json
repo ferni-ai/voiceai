@@ -79,6 +79,7 @@
         "src/services/principal-alignment/human-referral.ts",
         "src/services/principal-alignment/index.ts",
         "src/services/principal-alignment/referral-resources.ts",
+        "src/services/superhuman/commitment-keeper.ts",
         "src/services/superhuman/validation/benchmark-runner.ts",
         "src/services/wellbeing-tracking/after-call.ts",
         "src/services/wellbeing-tracking/early-warning.ts",
