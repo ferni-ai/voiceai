@@ -339,6 +339,7 @@ async function executeOutreach(
       }
 
       const callContext: OutboundCallContext = {
+        userId, // the owner: held, paused and calling hours are theirs, not the contact's
         trigger: {
           id: outreachId,
           type: 'thinking_of_you',
@@ -367,12 +368,7 @@ async function executeOutreach(
           maxDuration: 5,
         },
         persona: personaId as
-          | 'ferni'
-          | 'maya-santos'
-          | 'peter-john'
-          | 'alex-chen'
-          | 'jordan-taylor'
-          | 'nayan',
+          'ferni' | 'maya-santos' | 'peter-john' | 'alex-chen' | 'jordan-taylor' | 'nayan',
       };
 
       const result = await makeConversationalCall(callContext);
