@@ -38,7 +38,9 @@ const streamOf = (...parts: string[]) =>
     },
   });
 const tools = { functionTools: { callOnBehalf: {} } };
-type Tools = { functionTools: Record<string, unknown> };
+interface Tools {
+  functionTools: Record<string, unknown>;
+}
 async function reply(items: unknown[], env: Record<string, string>, ...parts: string[]) {
   return replyWith(tools, items, env, ...parts);
 }

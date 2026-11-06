@@ -20,7 +20,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { kindsOfTool, resultState, type ActionKind } from './action-claims.js';
 import { laterTime } from '../../utils/later-time.js';
-import { namesSafetyLine } from '../../services/safety/safety-line.js';
+import { namesSafetyLine } from '../../services/safety/index.js';
 import { lookedUpLately } from './announced-check.js';
 import type { ClaimKind, Kinds, MissReason } from './honest-line.js';
 
