@@ -337,7 +337,7 @@ final class AppModel {
         let level = AudioLevelMeter()
         let avatar = AvatarModel(play: { [feedback] in feedback.play($0) })
         #if DEBUG
-        let testCall = scenario.map { _ in UITestScenario.callSession(avatar: avatar, level: level) }
+        let testCall = scenario.flatMap(UITestScenario.init(rawValue:)).map { UITestScenario.callSession($0, avatar: avatar, level: level) }
         #else
         let testCall: CallSession? = nil
         #endif
@@ -359,7 +359,7 @@ final class AppModel {
             case .home: break
             case .consent: isAskingConsent = true
             case .settings: isShowingSettings = true
-            case .call: call.start(personaID: PersonaRegistry.ferni.id)
+            case .call, .silentAudio: call.start(personaID: PersonaRegistry.ferni.id)
             }
             return // no watch session in a UI test
         }

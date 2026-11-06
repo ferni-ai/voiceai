@@ -1195,6 +1195,12 @@ jobs:
       - name: Firestore database ratchet
         run: pnpm tsx scripts/ci/firestore-database-ratchet.ts
 
+      # Blocking ratchet (crisis centralization S0, docs/plans/2026-11-05-crisis-centralize.md):
+      # a new crisis-word regex or crisis-resource literal (988, 911, hotline ...) in a non-test
+      # file outside src/services/safety/ fails, and the allowlist may only shrink. ~10 s.
+      - name: Crisis readers ratchet
+        run: pnpm tsx scripts/ci/crisis-readers-ratchet.ts
+
       # Blocking. A firebase deploy of the index file must not delete a TTL policy, field
       # override or composite that prod or dev has. Diffs firestore.indexes.json against the
       # checked-in gcloud listings in scripts/ci/fixtures/firestore-indexes/. ~2 s.
