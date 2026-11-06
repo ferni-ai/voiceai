@@ -130,8 +130,7 @@ export async function makeVoiceReferralCall(params: {
   personalNote?: string;
   occasion?: string;
   supportSituation?: string;
-  /** sendSupportCall, so a placed call (CALL_PATHS_PLACE_OR_HOLD) keeps the support copy. */
-  support?: boolean;
+  support?: boolean; // sendSupportCall (gated-referral.ts)
 }): Promise<{ success: boolean; callSid?: string; error?: string; reply?: string }> {
   const {
     referrerId,
@@ -433,9 +432,7 @@ export function createVoiceReferralTools(userId: string, userName: string) {
       },
     }),
 
-    /**
-     * Tool: Send a supportive call to someone going through a hard time
-     */
+    /** Tool: Send a supportive call to someone going through a hard time */
     sendSupportCall: llm.tool({
       description: `Send a supportive introduction call to someone the user knows who is going through a difficult time. This is a gentle way to let someone know they have support available. Use when the user mentions a friend struggling with something.`,
       parameters: z.object({
