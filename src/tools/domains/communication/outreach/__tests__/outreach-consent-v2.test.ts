@@ -1504,8 +1504,10 @@ describe('OUTREACH_NO_ANSWERS_READBACK: a no ends it only when it answers the re
     ['ferni', 'No rain, just clouds.'],
   ];
   type Step = ['owner' | 'over' | 'ferni', string];
-  const play = async (steps: Step[]) => {
+  // `before`: owner turns said before the call was asked for, so before the read-back was stored.
+  const play = async (steps: Step[], before: string[] = []) => {
     const call = liveCall();
+    for (const text of before) call.owner(text);
     await call.call('c1');
     call.ferni(READ);
     for (const [who, text] of steps)
@@ -1564,6 +1566,65 @@ describe('OUTREACH_NO_ANSWERS_READBACK: a no ends it only when it answers the re
     expect(sends).toHaveLength(0);
   });
 
+  // A refusal says what to do with the action, so it ends it wherever it is said: after the talk
+  // moved on (B) and as the answer to Ferni's other question (C). Only a soft no waits on where.
+  const REFUSALS = [
+    'Stop.',
+    'STOP',
+    'Cancel.',
+    'Never mind.',
+    "Don't.",
+    'Forget it.',
+    'Actually, forget about it.',
+    'No, I changed my mind.',
+    "No, I don't want you to.",
+    "No. Don't bother.",
+    "No, don't.",
+    "Nope, don't do it.",
+  ];
+  const OTHER_QUESTION: Step[] = [
+    ['owner', 'Hmm.'],
+    ['ferni', 'Are you doing anything fun this weekend?'],
+  ];
+  it.each(
+    REFUSALS.flatMap((no): Array<[string, string, Step[]]> => [
+      [no, 'after the talk moved on', [...RAIN, ['owner', no]]],
+      [no, "to Ferni's other question", [...OTHER_QUESTION, ['owner', no]]],
+    ])
+  )('a refusal declines wherever it is said: %j %s', async (_no, _where, steps) => {
+    const call = await play(steps);
+    expect(pendingFor(call.session)).toBeUndefined();
+    expect(await call.call('c2')).not.toContain(ASK);
+    expect(sends).toHaveLength(0);
+  });
+
+  // The second line is a soft no by its words alone: only the crisis reader (detectCrisis) ends it.
+  it.each(
+    ["No, I don't want to be here anymore.", 'No, I want to die.'].flatMap(
+      (no): Array<[string, string, Step[]]> => [
+        [no, 'after the talk moved on', [...RAIN]],
+        [no, "to Ferni's other question", [...OTHER_QUESTION]],
+      ]
+    )
+  )('a crisis no declines and is never asked about: %j %s', async (no, _where, before) => {
+    const call = await play([...before, ['owner', no]]);
+    expect(pendingFor(call.session)).toBeUndefined();
+    expect(await call.call('c2')).not.toContain(ASK);
+    expect(sends).toHaveLength(0);
+  });
+
+  // Owner turns before the read-back was stored are not in the window: the no is matched to its
+  // own turn, so after the talk moved on it still asks once.
+  it('owner turns before the read-back do not shift which turn a no is', async () => {
+    const call = await play(
+      [...RAIN, ['owner', "No, I'm just checking."]],
+      ['Can you call my dad?', 'The one in Maplewood.']
+    );
+    expect(pendingFor(call.session)).toBeDefined();
+    expect(await call.call('c2')).toContain(ASK);
+    expect(sends).toHaveLength(0);
+  });
+
   it.each<[string, Step[]]>([
     [
       '"No, I\'m just checking." after the talk moved on',
@@ -1580,6 +1641,12 @@ describe('OUTREACH_NO_ANSWERS_READBACK: a no ends it only when it answers the re
       ],
     ],
     ['"No, really?"', [...RAIN, ['owner', 'No, really?']]],
+    [
+      '"No, don\'t worry about it." after it moved on',
+      [...RAIN, ['owner', "No, don't worry about it."]],
+    ],
+    ['"No problem." after it moved on', [...RAIN, ['owner', 'No problem.']]],
+    ['"No wait." after it moved on', [...RAIN, ['owner', 'No wait.']]],
     ['a no over Ferni after it moved on', [...RAIN, ['over', 'No, I know.']]],
     [
       "a no to Ferni's other question",

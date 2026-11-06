@@ -145,6 +145,35 @@ export function isPlainNo(text: string): boolean {
   return at >= 0 && NO_OPENERS.some((p) => p.every((part, j) => said[at + j] === part));
 }
 
+// A soft no only says "no": what it is to depends on where it is said ("No problem.", "No, I'm just
+// checking."). A refusal says what to do with the action, so it ends it wherever it is said.
+const SOFT_NO = new Set('no nope nah'.split(' '));
+const REFUSALS =
+  'stop|cancel|never mind|forget it|forget about it|changed my mind|change my mind|dont want|dont bother'
+    .split('|')
+    .map((p) => p.split(' '));
+// A bare "don't" is a refusal only with nothing after it but these: "Don't.", "Don't do it."
+const BARE_DONT = new Set('do it that please now ferni'.split(' '));
+const leadIn = (w: string): boolean =>
+  OPENER_FILLERS.has(w) || SOFT_NO.has(w) || w === 'i' || w === 'ive';
+
+/** Whether the reply opens, after filler and any "no", with a refusal: "Stop.", "No. Don't
+ * bother.", "No, I changed my mind.", "Forget it.". "No, don't call him." is not one (it names it). */
+export function isRefusal(text: string): boolean {
+  const said = words(text);
+  const at = said.findIndex((w) => !leadIn(w));
+  if (at < 0) return false;
+  if (said[at] === 'dont' && said.slice(at + 1).every((w) => BARE_DONT.has(w))) return true;
+  return REFUSALS.some((p) => p.every((part, j) => said[at + j] === part));
+}
+
+/** Whether the reply opens with "no", "nope" or "nah" and is not a refusal ("No problem.", "No,
+ * I'm just checking."): the only no whose meaning depends on where it is said. */
+export function isSoftNo(text: string): boolean {
+  const first = words(text).find((w) => !OPENER_FILLERS.has(w));
+  return first !== undefined && SOFT_NO.has(first) && !isRefusal(text);
+}
+
 // Words that may sit between a no and the agreement that takes it back: "No no no, yes.",
 // "No problem, go ahead.", "No, sorry, yes.", "No, I mean yes.", "No, it's fine, go ahead."
 const TAKES_BACK = new Set(

@@ -4,11 +4,12 @@
  * Ferni asked again. The window is the owner's turns after Ferni's latest read-back of this action
  * (a question Ferni answered drops out). Only an allow-listed plain yes in it places (consent-words.ts);
  * anything else asks once. A no, a deferral or a redirect to someone else ends it for good; with
- * OUTREACH_NO_ANSWERS_READBACK, a no only when it answers the read-back (noAnswers).
+ * OUTREACH_NO_ANSWERS_READBACK, a soft no ("No.", "Nope.") only when it answers the read-back (noAnswers).
  * @module tools/domains/communication/outreach/consent-window
  */
 
 import { flagOn, type Env } from '../../../../config/env-flag.js';
+import { detectCrisis } from '../../../../services/safety/index.js';
 import { askOnceLine, channelOf, numberOf, personOf, STOP, targetWords } from './consent-action.js';
 import { judge, judgedNow } from './consent-judge.js';
 import {
@@ -24,6 +25,8 @@ import {
   agreesAfterNo,
   isClearYes,
   isPlainNo,
+  isRefusal,
+  isSoftNo,
   isStatusQuestion,
   LATER,
   NOES,
@@ -231,9 +234,15 @@ function noAnswers(pending: PendingAction, events: ConfirmEvent[]): boolean[] {
   }
   return answers;
 }
-/** Whether this owner turn's no is about the read-back: it answers it, or names the action. */
+/** Whether this owner turn's no is about the read-back: it answers it, names the action, or is
+ * more than a soft no. A refusal ("Stop.", "Never mind.") or a turn the crisis reader flags ends
+ * it wherever it is said; only "no", "nope" or "nah" alone waits on where it was said. */
 const aboutIt = (text: string, answers: boolean, pending: PendingAction): boolean =>
-  answers || !noMustAnswerOn() || namesAction(text, pending);
+  answers ||
+  !noMustAnswerOn() ||
+  namesAction(text, pending) ||
+  !isSoftNo(text) ||
+  detectCrisis(text).detected;
 
 /** The owner's finals in (from, to]: by default, since the read-back was stored. */
 const callerTurns = (
@@ -254,8 +263,10 @@ function endedBy(pending: PendingAction, events: ConfirmEvent[]): boolean {
   const said = callerTurns(pending, events);
   const joined = said.filter((t) => !asksStatus(t, pending)).join(' ');
   const answers = noAnswers(pending, events);
+  // With OUTREACH_NO_ANSWERS_READBACK, a refusal that doesn't open like a no ("Forget it.") too.
+  const opensNo = (t: string): boolean => isPlainNo(t) || (noMustAnswerOn() && isRefusal(t));
   const no = (t: string, i: number): boolean =>
-    isPlainNo(t) && !clarifies(t, pending) && aboutIt(t, answers[i], pending);
+    opensNo(t) && !clarifies(t, pending) && aboutIt(t, answers[i], pending);
   return said.some((t, i) => endsForGood(t, pending) || no(t, i)) || endsForGood(joined, pending);
 }
 /** Whether a fresh read-back (at seq `to`) may reopen it after a cancel (consent-loop.ts): every
