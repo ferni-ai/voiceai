@@ -181,7 +181,6 @@ export async function gatedCallReply(request: CallRequest): Promise<string | nul
     context: [request.context, request.script].filter(Boolean).join('\n') || undefined,
     objective: telephony.inferObjective(objective),
     callType: telephony.inferCallType({ name, phone }, objective),
-    askedFor: true, // the user asked for this call: an outreach pause doesn't hold it
   });
   if ('held' in placement) return placement.held;
   if ('refused' in placement) return cantCall(name, placement.refused);

@@ -11,6 +11,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeFirestore, type Row } from '../../scheduling/__tests__/fake-firestore.js';
 
+vi.hoisted(() => {
+  // voice-call.ts reads these at load: Twilio is configured, as in prod (fictional values)
+  process.env.TWILIO_ACCOUNT_SID = 'AC_test';
+  process.env.TWILIO_AUTH_TOKEN = 'token';
+  process.env.TWILIO_PHONE_NUMBER = '+12025550100';
+});
+
 let rows: Row[] = [];
 vi.mock('../../superhuman/firestore-utils.js', () => ({
   getFirestoreDb: () => fakeFirestore(rows),
@@ -275,7 +282,7 @@ describe('backgroundCall through placeOrHold', () => {
     outreachPausedFor.mockResolvedValue(true);
     const reply = await callAna();
 
-    expect(outreachPausedFor).not.toHaveBeenCalled(); // askedFor, as on the old engine
+    expect(outreachPausedFor).not.toHaveBeenCalled(); // the user asked for it, as on the old engine
     expect(reply).toBe(
       "I'm calling Ana now to confirm Saturday. I'll tell you how it went once the call ends."
     );
@@ -320,21 +327,40 @@ describe('referral calls through placeOrHold', () => {
     expect(of('voice_referrals')).toHaveLength(0);
   });
 
-  it('outreach paused: refused, as the one-way call was, nothing dialled or tracked', async () => {
+  it("a call main refuses (a minor-care hold) gets main's reply, before the gate", async () => {
+    heldSender.mockResolvedValue(true);
+    const reply = await referAna();
+
+    expect(reply).toBe(
+      'I tried to call Ana, but something went wrong: Not calling: held. Could you double-check the phone number?'
+    );
+    expect(heldSender).toHaveBeenCalledWith('owner-1', ANA);
+    expect(createSipParticipant).not.toHaveBeenCalled();
+    expect(oldReferralDial).not.toHaveBeenCalled();
+    expect(of('deferred_calls')).toHaveLength(0);
+    expect(of('voice_referrals')).toHaveLength(0);
+  });
+
+  it("outreach paused: refused with main's reply, nothing dialled or tracked", async () => {
     outreachPausedFor.mockResolvedValueOnce(true);
     const reply = await referAna();
 
-    expect(reply).toBe("I didn't call Ana: outreach is paused. No call was made.");
+    expect(reply).toBe(
+      'I tried to call Ana, but something went wrong: Not calling: outreach paused. Could you double-check the phone number?'
+    );
     expect(outreachPausedFor).toHaveBeenCalledWith('owner-1', ANA);
     expect(createSipParticipant).not.toHaveBeenCalled();
     expect(of('voice_referrals')).toHaveLength(0);
   });
 
-  it('no call grant from the referrer: refused in words, nothing dialled', async () => {
+  it("no call grant from the referrer: refused with main's reply, nothing dialled", async () => {
     ownerRefusal.mockResolvedValueOnce('opted-out');
     const reply = await referAna();
 
-    expect(reply).toBe("I didn't call Ana: they asked not to get calls from me. No call was made.");
+    expect(reply).toBe(
+      'I tried to call Ana, but something went wrong: Not calling: opted-out. Could you double-check the phone number?'
+    );
+    expect(oldReferralDial).not.toHaveBeenCalled();
     expect(createSipParticipant).not.toHaveBeenCalled();
     expect(of('voice_referrals')).toHaveLength(0);
   });

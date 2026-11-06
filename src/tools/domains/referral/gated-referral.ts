@@ -38,6 +38,13 @@ export async function gatedReferral(
   track: TrackReferral
 ): Promise<ReferralAnswer | null> {
   if (!callPathsGated()) return null;
+  // First, main's own checks (the flag only adds gates); refused, the tool says main's words.
+  const { personaCallRefusal } = await import('../../../services/voice/voice-call.js');
+  const blocked = await personaCallRefusal(referral.recipientPhone, {
+    ownerUid: referral.referrerId,
+    userId: referral.referrerId,
+  });
+  if (blocked) return { success: false, error: blocked };
   const name = referral.recipientName;
   const placement = await placeGatedCall({
     userId: referral.referrerId,

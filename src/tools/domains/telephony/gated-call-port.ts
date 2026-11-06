@@ -31,8 +31,6 @@ export interface GatedCall {
   context?: string;
   objective: CallObjective;
   callType: CallType;
-  /** The user asked for this call now, so an outreach pause doesn't hold it (as askedFor does). */
-  askedFor?: boolean;
 }
 
 /** Ringing now (its call id), held for a better hour, or refused: nothing rang. */

@@ -278,6 +278,34 @@ export const PAUSED_CALL = 'Not calling: outreach paused';
  * 4. Making Twilio call that plays the hosted audio
  * 5. Falls back to Twilio's built-in voice if hosting unavailable
  */
+const personaE164 = (phone: string): string => {
+  const clean = phone.replace(/\D/g, '');
+  return clean.startsWith('1') ? `+${clean}` : `+1${clean}`;
+};
+
+/**
+ * Every check callWithPersonaVoice makes before it dials: why the call can't go, or null.
+ * The gated referral path (CALL_PATHS_PLACE_OR_HOLD) runs it first, so that flag only adds gates.
+ */
+export async function personaCallRefusal(
+  toPhone: string,
+  options?: PersonaCallOptions
+): Promise<string | null> {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
+    return 'Twilio not configured';
+  }
+  const e164Phone = personaE164(toPhone);
+  const { ownerRefusal } = await import('../messaging/consent-reach.js'); // MESSAGING_PIPELINE
+  const refused = await ownerRefusal(options?.ownerUid, e164Phone, 'call'); // fails closed
+  if (refused) return `Not calling: ${refused}`;
+  const { heldSender } = await import('../outreach/checkin-replies.js'); // MINOR_CARE_SHARED_HOLD
+  if (await heldSender(options?.userId, e164Phone)) return 'Not calling: held';
+  const { outreachPausedFor } = await import('../outreach/outreach-pause.js');
+  if (!options?.askedFor && (await outreachPausedFor(options?.ownerUid, e164Phone)))
+    return PAUSED_CALL;
+  return null;
+}
+
 export async function callWithPersonaVoice(
   toPhone: string,
   message: string,
@@ -285,22 +313,9 @@ export async function callWithPersonaVoice(
   options?: PersonaCallOptions
 ): Promise<{ success: boolean; message: string; callSid?: string; usedCartesiaVoice?: boolean }> {
   const logger = getLogger();
-
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
-    return { success: false, message: 'Twilio not configured' };
-  }
-
-  const cleanPhone = toPhone.replace(/\D/g, '');
-  const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
-  const { ownerRefusal } = await import('../messaging/consent-reach.js'); // MESSAGING_PIPELINE
-  const refused = await ownerRefusal(options?.ownerUid, e164Phone, 'call'); // fails closed
-  if (refused) return { success: false, message: `Not calling: ${refused}` };
-  const { heldSender } = await import('../outreach/checkin-replies.js'); // MINOR_CARE_SHARED_HOLD
-  if (await heldSender(options?.userId, e164Phone))
-    return { success: false, message: 'Not calling: held' };
-  const { outreachPausedFor } = await import('../outreach/outreach-pause.js');
-  if (!options?.askedFor && (await outreachPausedFor(options?.ownerUid, e164Phone)))
-    return { success: false, message: PAUSED_CALL };
+  const refusal = await personaCallRefusal(toPhone, options);
+  if (refusal) return { success: false, message: refusal };
+  const e164Phone = personaE164(toPhone);
 
   const displayName = getPersonaDisplayName(personaId);
   const firstName = displayName.split(' ')[0]; // "Maya Santos" -> "Maya"

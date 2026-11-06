@@ -1,11 +1,11 @@
 /**
  * The placer behind CALL_PATHS_PLACE_OR_HOLD (tools/domains/telephony/gated-call-port.ts):
  * a call from the backgroundCall tool or a referral tool is placed the way
- * callOnBehalf places one. First the checks the old engines made before dialling
- * (consent grant, outreach pause), so the flag only adds gates;
- * then compliance, then placeOrHold and the on-behalf
- * orchestrator, so it is held for the recipient's good hour, refused for a number
- * that must not be rung, or placed, with its agent reporting the result when it ends.
+ * callOnBehalf places one. First the old engine's consent-grant check, so the flag
+ * only adds gates (the referral tools run all of main's checks before this); then
+ * compliance, then placeOrHold and the on-behalf orchestrator, so it is held for the
+ * recipient's good hour, refused for a number that must not be rung, or placed, with
+ * its agent reporting the result when it ends.
  *
  * @module services/outreach/gated-call-paths
  */
@@ -19,7 +19,6 @@ import {
 import { ownerRefusal } from '../messaging/consent-reach.js';
 import { toE164 } from './checkin-replies.js';
 import { placeOrHold, requesterNameNow } from './deferred-calls.js';
-import { outreachPausedFor } from './outreach-pause.js';
 
 const log = getLogger().child({ service: 'gated-call-paths' });
 
@@ -40,17 +39,16 @@ const CONSENT_WORDS = {
 } as const;
 
 /**
- * The checks callWithPersonaVoice and makeConversationalCall made before dialling that
- * the orchestrator doesn't make: the recipient's call grant from this owner, and (unless
- * the user asked for this call) an outreach pause. Their minor-care hold check is the
- * orchestrator's own (assertNotOptedOut), before any hold.
+ * The check makeConversationalCall made before dialling that the orchestrator doesn't:
+ * the recipient's call grant from this owner. Its minor-care hold check is the
+ * orchestrator's own (assertNotOptedOut), before any hold. No outreach pause: a
+ * background call is one the user asked for, which a pause doesn't hold.
  */
 async function oldEngineRefusal(call: GatedCall): Promise<string | null> {
   const phone = toE164(call.phone);
   if (!phone) return "that number isn't one I can dial";
   const consent = await ownerRefusal(call.userId, phone, 'call'); // MESSAGING_PIPELINE
   if (consent) return CONSENT_WORDS[consent];
-  if (!call.askedFor && (await outreachPausedFor(call.userId, phone))) return 'outreach is paused';
   return null;
 }
 
