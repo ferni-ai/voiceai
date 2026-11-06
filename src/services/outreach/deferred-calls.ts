@@ -333,7 +333,7 @@ export async function placeOrHold(
     throw error;
   }
   if (replaces) await markReplacedBy(request.userId, replaces.id, callId);
-  const held = deferredCallReply(callId, name, request.purpose, now);
+  const held = deferredCallReply(callId, name, request.requesterPurpose ?? request.purpose, now);
   // CALL_RESULT_LIVE_REPORT: the owner's call hears the result, whichever worker captures it.
   if (!held) watchCallResult(request, callId);
   const also = otherCallsLine(others, now, callId);

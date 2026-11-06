@@ -59,6 +59,7 @@ async function placeThroughPlaceOrHold(call: GatedCall): Promise<Placement> {
     contactQuery: call.contactName,
     resolvedContact: { name: call.contactName, phone: call.phone },
     purpose: call.purpose,
+    ...(call.requesterPurpose && { requesterPurpose: call.requesterPurpose }),
     objective: call.objective,
     callType: call.callType,
     originalSessionId: call.sessionId ?? '',

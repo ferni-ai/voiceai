@@ -26,7 +26,10 @@ export interface GatedCall {
   sessionId?: string;
   contactName: string;
   phone: string;
+  /** What the recipient hears: said to them, so never "you" for the requester. */
   purpose: string;
+  /** The purpose as said to the requester ("let Ana know you're thinking of them"). */
+  requesterPurpose?: string;
   /** What the agent should know or say, beyond the purpose. */
   context?: string;
   objective: CallObjective;

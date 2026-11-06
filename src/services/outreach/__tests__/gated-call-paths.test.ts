@@ -27,13 +27,14 @@ vi.mock('../user-contact.js', () => ({
 }));
 
 const createSipParticipant = vi.hoisted(() => vi.fn(async () => ({ participantId: 'PA_1' })));
+const createDispatch = vi.hoisted(() => vi.fn(async (..._a: unknown[]) => ({})));
 vi.mock('livekit-server-sdk', () => ({
   RoomServiceClient: class {
     createRoom = vi.fn(async () => ({}));
     listParticipants = vi.fn(async () => [{ kind: 4 }]); // the agent is in
   },
   AgentDispatchClient: class {
-    createDispatch = vi.fn(async () => ({}));
+    createDispatch = createDispatch; // its metadata is what the LiveKit agent reads
   },
   SipClient: class {
     createSipParticipant = createSipParticipant;
@@ -88,6 +89,18 @@ vi.mock('../../voice/voice-call.js', async (original) => ({
   ...(await original<Record<string, unknown>>()),
   callWithPersonaVoice: oldReferralDial,
 }));
+// Real unless a test says otherwise; the voicemail test takes the no-LLM fallback.
+const enrichment = vi.hoisted(() => ({ message: vi.fn(), voicemail: vi.fn() }));
+vi.mock('../message-enrichment.js', async (original) => {
+  const mod = await original<typeof import('../message-enrichment.js')>();
+  enrichment.message.mockImplementation(mod.enrichMessage);
+  enrichment.voicemail.mockImplementation(mod.enrichVoicemailMessage);
+  return {
+    ...mod,
+    enrichMessage: enrichment.message,
+    enrichVoicemailMessage: enrichment.voicemail,
+  };
+});
 const captureBackgroundResult = vi.hoisted(() => vi.fn(async () => ({})));
 vi.mock('../../background-agents/unified-result-capture.js', async (original) => ({
   ...(await original<Record<string, unknown>>()),
@@ -105,6 +118,8 @@ const { installGatedCallPort } = await import('../gated-call-paths.js');
 const { setGatedCallPort } = await import('../../../tools/domains/telephony/index.js');
 const { createVoiceReferralTools, getReferralAnalytics } =
   await import('../../../tools/domains/referral/voice-referral.js');
+const { getOnBehalfCallOrchestrator } = await import('../on-behalf-call-orchestrator.js');
+const { voicemailInstructions } = await import('../../../agents/outbound-call/call-opening.js');
 
 type Execute = { execute: (p: Record<string, unknown>) => Promise<string> };
 const background = definitions
@@ -375,6 +390,32 @@ describe('referral calls through placeOrHold', () => {
     const [tracked] = of('voice_referrals');
     expect(tracked.data).toMatchObject({ recipientName: 'Ana', status: 'started' });
     expect(tracked.data.callSid).toMatch(/^onbehalf_/);
+  });
+
+  it("what Ana hears never says 'you' for Sam: the voicemail and the LiveKit prompt", async () => {
+    enrichment.message.mockImplementationOnce(async (c: { originalMessage: string }) => ({
+      message: c.originalMessage,
+      metadata: {},
+    }));
+    enrichment.voicemail.mockRejectedValueOnce(new Error('no LLM')); // the TwiML fallback
+    await referAna();
+    const [tracked] = of('voice_referrals');
+    const callId = tracked.data.callSid as string;
+
+    const twiml = await getOnBehalfCallOrchestrator().handleMachineDetection(
+      callId,
+      'machine_end_beep'
+    );
+    expect(twiml).toContain(
+      'Hi Ana, this is Ferni, calling on behalf of Sam. Sam wanted me to pass on a hello. '
+    );
+    const [, , options] = createDispatch.mock.calls[0] as [string, string, { metadata: string }];
+    const { purpose } = JSON.parse(options.metadata) as { purpose: string };
+    const prompt = voicemailInstructions(
+      { recipientName: 'Ana', sponsorName: 'Sam', personal: true },
+      purpose
+    );
+    expect(prompt).toContain('- In one sentence, why Sam wanted to reach them: pass on a hello.\n');
   });
 
   it("analytics count a placed call ('started') and a one-way call ('called') as called", async () => {
