@@ -4,8 +4,10 @@
  * "Wire") made every urgent alert drop their words and say money and safety came up, even
  * for "she seemed tired". With the flag on, the screen reads the same alert with a
  * placeholder in each name slot; their own words are still screened as their words, so a
- * real money, account or number read keeps the money line, and crisis wording never loses
- * crisisCallerLine. Flag off is main. Fictional people and numbers only.
+ * real money, account or number read keeps the money line. Words only the name held back keep
+ * crisisCallerLine, as main's withheld alert did (never lower). A name with a digit, or a
+ * number or link written out in words, keeps main's alert. Flag off is main. Fictional people
+ * and numbers only.
  */
 import { describe, expect, it } from 'vitest';
 import { crisisCallerLine, riskyCallerLine } from '../caller-text.js';
@@ -49,10 +51,10 @@ const NAMES_THAT_ARE_SCREEN_WORDS = [
 
 describe('check-in alert: the name is not their words (CHECKIN_ALERT_NAME_SLOT)', () => {
   it.each(NAMES_THAT_ARE_SCREEN_WORDS)(
-    '%s + everyday words: flag on passes them on, no money or crisis line',
+    '%s + everyday words: flag on passes them on with the crisis line, no money line',
     (name, said) => {
       expect(alertFor(name, said, ON)).toBe(
-        `Important: During my call with ${name}, ${said}. ${CALL}`
+        `Important: During my call with ${name}, ${said}. ${crisisCallerLine(name)} ${CALL}`
       );
     }
   );
@@ -70,11 +72,54 @@ describe('check-in alert: the name is not their words (CHECKIN_ALERT_NAME_SLOT)'
   });
 
   it.each(NAMES_THAT_ARE_SCREEN_WORDS)(
-    'only the name changes: flag on gives %s the alert Riley Test gets',
+    'flag on gives %s the words Riley Test gets, and keeps the crisis line main said',
     (name, said) => {
       const plain = alertFor('Riley Test', said, ON);
       expect(plain).toBe(`Important: During my call with Riley Test, ${said}. ${CALL}`);
-      expect(alertFor(name, said, ON)).toBe(plain?.replace('Riley Test', name));
+      expect(alertFor(name, said, ON)).toBe(
+        plain?.replace('Riley Test', name).replace(CALL, `${crisisCallerLine(name)} ${CALL}`)
+      );
+    }
+  );
+
+  it.each([
+    ['Pin', 'he collapsed in the kitchen'],
+    ['Riley Bank', 'he collapsed in the kitchen'],
+    ['Wire', 'she seemed tired and dizzy'],
+  ])(
+    '%s + "%s" (no crisis read): the crisis line main said is kept with the flag on',
+    (name, said) => {
+      expect(alertFor(name, said, OFF)).toContain(crisisCallerLine(name));
+      expect(alertFor(name, said, ON)).toBe(
+        `Important: During my call with ${name}, ${said}. ${crisisCallerLine(name)} ${CALL}`
+      );
+    }
+  );
+
+  it('a name with a digit: the flag changes nothing, so their digits never join the name', () => {
+    for (const action of [CALL, 42 as unknown as string]) {
+      const off = alertFor('142 Riley', 'she is in room 5550', OFF, action);
+      const on = alertFor('142 Riley', 'she is in room 5550', ON, action);
+      expect(on).toBe(off);
+      expect(on).not.toMatch(/(\d[\s().-]*){7,}/);
+    }
+    expect(alertFor('Pin 7', TIRED, ON)).toBe(alertFor('Pin 7', TIRED, OFF));
+  });
+
+  it.each([
+    ['a number in words', 'her number is five five five oh one four two', 'five five'],
+    ['a number in words and digits', 'call 5 5 five oh 1 four two', 'oh 1'],
+    ['a link in words', 'she said to go to riley-help dot com', 'dot com'],
+    ['a link in words (org)', 'she said to go to riley-help dot org', 'dot org'],
+  ])(
+    '%s: the flag changes nothing, so a name main held it back for still holds it',
+    (_, said, part) => {
+      // The screen does not read these shapes yet: main passes them on for a name it doesn't
+      // trip (Loan here), and that gap is main's, not the flag's.
+      for (const name of ['Pin', 'Loan']) {
+        expect(alertFor(name, said, ON)).toBe(alertFor(name, said, OFF));
+      }
+      expect(alertFor('Pin', said, ON)).not.toContain(part);
     }
   );
 
