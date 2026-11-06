@@ -33,10 +33,10 @@ vi.stubEnv('SIP_TRUNK_ID', 'ST_test');
 const { getOnBehalfCallOrchestrator } = await import('../on-behalf-call-orchestrator.js');
 const { speaksAsRequester } = await import('../on-behalf-voicemail.js');
 
-const request = () =>
+const request = (userName: string) =>
   ({
     userId: 'owner-1',
-    userName: 'Sam',
+    userName,
     purpose: 'say hello',
     callType: 'personal',
     recordingConsent: false,
@@ -44,9 +44,9 @@ const request = () =>
   }) as never;
 
 /** What the <Say> speaks, unescaped. */
-async function voicemailSaid(): Promise<string> {
+async function voicemailSaid(userName = 'Sam'): Promise<string> {
   const orchestrator = getOnBehalfCallOrchestrator();
-  const callId = await orchestrator.initiateCall(request());
+  const callId = await orchestrator.initiateCall(request(userName));
   const twiml = (await orchestrator.handleMachineDetection(callId, 'machine_end_beep')) ?? '';
   const said = /<Say voice="Polly\.Joanna">([\s\S]*)<\/Say>/.exec(twiml)?.[1] ?? '';
   return said
@@ -83,6 +83,18 @@ describe('the on-behalf voicemail TwiML', () => {
     const said = await voicemailSaid();
     expect(said).toMatch(/^Hi Alex, it's Ferni, Sam's AI friend\. Sam wanted me to say hello\./);
     expect(speaksAsRequester(said, 'Sam')).toBe(false);
+  });
+
+  it('never asks the model when the request has no real requester name', async () => {
+    callLLM.mockImplementation(async (prompt) =>
+      prompt.includes('leaving a voicemail') ? "It's Sam! Just saying hi." : null
+    );
+    // The fallback name the telephony tool and the gated call paths give a profile without one
+    expect(await voicemailSaid('the user')).toBe(
+      "Hi Alex, it's Ferni, an AI friend. Someone wanted me to say hello. They wanted to make sure you got this message. Take care, and talk soon."
+    );
+    const prompts = callLLM.mock.calls.map(([prompt]) => prompt);
+    expect(prompts.some((prompt) => prompt.includes('leaving a voicemail'))).toBe(false);
   });
 });
 

@@ -197,3 +197,31 @@ describe('voicemailMessage on a family check-in', () => {
     expect(voicemailMessage({ ...checkin, checkin: undefined })).toMatch(/Seth's AI friend/);
   });
 });
+
+describe('voicemailMessage on a call placed for Sam', () => {
+  it.each([
+    [
+      { recipientName: 'Alex', sponsorName: 'Sam', personal: true },
+      "Hi Alex, it's Ferni, Sam's AI friend. Sam asked me to check in, no need to call back, I'll try again another time.",
+    ],
+    [
+      { sponsorName: 'Sam', personal: true },
+      "Hi, it's Ferni, Sam's AI friend. Sam asked me to check in, no need to call back, I'll try again another time.",
+    ],
+    [
+      { recipientName: 'Alex', personal: true },
+      "Hi Alex, it's Ferni, an AI friend, just calling to check in. No need to call back, I'll try again another time.",
+    ],
+    [
+      { recipientName: 'Front desk', sponsorName: 'Sam', personal: false },
+      "Hi, this is Ferni, an AI calling for Sam. No need to call back, I'll try again another time.",
+    ],
+  ])('says the AI-friend disclosure first and never speaks as Sam (%o)', async (parties, text) => {
+    const { ferniIntro } = await import('../../../services/outreach/opening-line.js');
+    const { speaksAsRequester } = await import('../../../services/outreach/on-behalf-voicemail.js');
+    const said = voicemailMessage(parties);
+    expect(said).toBe(text);
+    expect(said).toMatch(new RegExp(`^Hi(?: Alex)?, ${ferniIntro(parties)}[.,] `));
+    expect(speaksAsRequester(said, 'Sam')).toBe(false);
+  });
+});

@@ -42,7 +42,8 @@ const PLACEHOLDER_NAMES = new Set([
   'your family member',
 ]);
 
-function realName(name: string | undefined): string | undefined {
+/** A requester or contact name, or undefined for a placeholder ("the user"). */
+export function realName(name: string | undefined): string | undefined {
   const trimmed = name?.trim();
   return trimmed && !PLACEHOLDER_NAMES.has(trimmed.toLowerCase()) ? trimmed : undefined;
 }
@@ -54,6 +55,11 @@ const RELATIONS = new Set(
   niece nephew stepmom stepmother stepdad stepfather stepson stepdaughter boyfriend girlfriend
   fiance fiancee`.split(/\s+/)
 );
+
+/** "mom", "son", "grandpa": a word that says who someone is to the user. */
+export function isRelation(word: string): boolean {
+  return RELATIONS.has(word.toLowerCase());
+}
 
 /**
  * A saved contact name as the person's name and what they are to the user:
