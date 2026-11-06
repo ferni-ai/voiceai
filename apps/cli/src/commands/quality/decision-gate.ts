@@ -1,7 +1,9 @@
 #!/usr/bin/env npx tsx
 /**
  * Decision gate: a change that adds a crisis word list, voice resolver, quiet-hours
- * predicate, tool cap, forget checker or Twilio sender outside its owner fails CI.
+ * predicate, tool cap, forget checker or Twilio sender outside its owner fails CI, and so
+ * does a second owner: a function shaped like a capability's owner (an `executeHandoff`,
+ * a `registerTool`) declared outside it. One that calls the owner is a delegate and passes.
  *
  * The registry (decisions.ts, beside this file) names each domain decision's owner and the
  * fingerprints of a second decider. For every production file the change touches, this
@@ -109,6 +111,35 @@ function wordListLines(file: string, text: string, pattern: RegExp): Set<number>
   return lines;
 }
 
+export interface Declaration {
+  name: string;
+  line: number;
+  /** The function body, to tell a delegate (it calls the owner) from a second owner. */
+  body: string;
+}
+
+/** Each function, method or function-valued variable `text` declares with a body, and its line (1-based). */
+export function declarations(file: string, text: string): Declaration[] {
+  const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
+  const out: Declaration[] = [];
+  const add = (name: ts.Node, body: ts.Node): void => {
+    out.push({ name: name.getText(sf), line: sf.getLineAndCharacterOfPosition(name.getStart(sf)).line + 1, body: body.getText(sf) });
+  };
+  const visit = (node: ts.Node): void => {
+    if ((ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) && node.name && node.body) add(node.name, node.body);
+    else if (ts.isVariableDeclaration(node) && node.initializer && (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer))) add(node.name, node.initializer.body);
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return out;
+}
+
+/** True when the whole name matches: `\bexecute\w*Handoff\b` fits executeHandoff, not a prefix of it. */
+export const fullMatch = (pattern: RegExp, name: string): boolean => pattern.exec(name)?.[0] === name;
+
+/** A declaration that calls the owner's function delegates to it (a port adapter), so it isn't a second owner. */
+const delegates = (d: DomainDecision, dcl: Declaration): boolean => new RegExp(`\\b${d.owner.fn}\\s*\\(`).test(stripComments(dcl.body));
+
 const owns = (d: DomainDecision, file: string): boolean =>
   d.ownerPaths.some((p) => file === p || (p.endsWith('/') && file.startsWith(p)));
 
@@ -116,6 +147,7 @@ const owns = (d: DomainDecision, file: string): boolean =>
 export function hits(file: string, text: string, decisions: readonly DomainDecision[] = DECISIONS): DecisionHit[] {
   const out: DecisionHit[] = [];
   let lines: string[] | undefined;
+  let declared: Declaration[] | undefined;
   for (const d of decisions) {
     if (owns(d, file)) continue;
     const seen = new Set<number>();
@@ -129,6 +161,11 @@ export function hits(file: string, text: string, decisions: readonly DomainDecis
       if (!fp.pattern.test(text) || (fp.onlyIn && !fp.onlyIn.test(text))) continue; // cheap prefilter
       if (fp.in === 'word-lists') {
         for (const line of wordListLines(file, text, fp.pattern)) add(fp, line);
+        continue;
+      }
+      if (fp.in === 'declarations') {
+        declared ??= declarations(file, text);
+        for (const dcl of declared) if (fullMatch(fp.pattern, dcl.name) && !delegates(d, dcl)) add(fp, dcl.line);
         continue;
       }
       lines ??= stripComments(text).split('\n');
@@ -174,7 +211,7 @@ export function gained(file: string, headText: string, baseText: string | null, 
     .filter((g) => g.after > g.before);
 }
 
-function walk(dir: string, out: string[]): string[] {
+export function walk(dir: string, out: string[]): string[] {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name);
     if (name === 'node_modules' || name === 'dist') continue;
