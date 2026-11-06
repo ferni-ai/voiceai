@@ -18,6 +18,7 @@ vi.mock('livekit-server-sdk', () => ({
   },
   RoomServiceClient: class {
     createRoom = async () => ({});
+    listParticipants = async () => [{ kind: 4 }]; // the agent is in (agent-join.ts)
   },
   AgentDispatchClient: class {
     createDispatch = async () => ({});

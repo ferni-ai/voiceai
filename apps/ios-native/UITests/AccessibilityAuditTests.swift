@@ -34,6 +34,8 @@ final class AccessibilityAuditTests: XCTestCase {
         ("home|call", .contrast, "What Ferni remembers", "iPad sidebar row: #000000 on #faf7f2, 19.7:1."),
         ("home|call", .contrast, "Settings", "iPad sidebar row: #000000 on #faf7f2, 19.7:1."),
         ("call", .contrast, "Ferni · ", "Name chip: #5c544a on #f7f5ee, 6.8:1 (caption text needs 4.5)."),
+        ("consent", .contrast, "Terms",
+         "Consent link row: #3d5a45 on #faf8f5, 7.21:1; one short word in a full-width 44-pt row (0.8% text pixels) misleads the sampler (2026-11-06). ContrastTests guards the colour."),
         ("home|call", .textClipped, "Talk", "iPad sidebar row: the AX5 screenshot shows the full word."),
         ("home|call", .textClipped, "What Ferni remembers", "iPad sidebar row: wraps to three full lines at AX5 (screenshot)."),
         ("settings", .dynamicType, "Try again", "A system List button row; it scales at AX5 like the other rows."),

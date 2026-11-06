@@ -61,6 +61,8 @@ import type { RoomState, TokenRequest } from '../types/livekit.js';
 import { createLogger } from '../utils/logger.js';
 import { agentAudioTrackKind } from './agent-audio-track.js';
 import { watchAgentDrop, type AgentLostReason } from './agent-drop-watch.js';
+import { watchCallAudio, type AudioStartDeps } from './audio-start-watch.js';
+import { clientTimingSender } from './client-timing.js';
 import {
   AGENT_JOIN_TIMEOUT_AFTER_FAILED_DISPATCH_MS,
   AGENT_JOIN_TIMEOUT_MS,
@@ -106,6 +108,8 @@ export interface ConnectionCallbacks {
   onUnexpectedDisconnect?: (reason: string) => void;
   /** Ferni's side ended while the caller is still in the room (agent-drop-watch.ts). */
   onAgentLost?: (reason: AgentLostReason) => void;
+  /** Ferni is here but none of his audio started playing (audio-start-watch.ts). */
+  onAudioNotStarted?: () => (() => void) | undefined;
 }
 
 // ============================================================================
@@ -125,6 +129,10 @@ class ConnectionService {
 
   // Track intentional disconnects vs crashes
   private isDisconnecting = false;
+  private readonly audioStartDeps: AudioStartDeps = {
+    userHangingUp: () => this.isDisconnecting,
+    onAudioNotStarted: () => this.callbacks.onAudioNotStarted?.(),
+  };
 
   // 🎚️ Music track identification
   // When we receive music_state: playing, we expect a music track soon
@@ -339,17 +347,16 @@ class ConnectionService {
   }
 
   /**
-   * Connect to a LiveKit room and wait for the voice agent to join.
-   * Resolves false on failure; getLastFailure() says why. Aborting `signal`
-   * cancels the attempt and closes any room it opened.
+   * Connect to a LiveKit room and wait for the voice agent to join. Resolves false on failure;
+   * getLastFailure() says why. Aborting `signal` cancels the attempt and closes any room it opened.
    */
-  async connect(options: { signal?: AbortSignal } = {}): Promise<boolean> {
+  async connect(options: { signal?: AbortSignal; tapAt?: number } = {}): Promise<boolean> {
     if (this.room?.state === 'connected') {
       log.warn('Already connected');
       return true;
     }
 
-    const { signal } = options;
+    const { signal, tapAt = performance.now() } = options;
     const attempt = ++this.attemptSeq;
     let room: LiveKitRoom | null = null;
     const attemptAbort = new AbortController();
@@ -462,6 +469,7 @@ class ConnectionService {
         log.error('Room connection failed:', roomError);
         throw roomError;
       }
+      const sendTiming = clientTimingSender(room, { tapAt, roomConnectedAt: performance.now() });
       throwIfAborted();
 
       // Enable microphone so the agent can hear us
@@ -497,6 +505,7 @@ class ConnectionService {
       this.awaitingAgent = false;
       this.updateState('connected');
       this.callbacks.onAgentConnected?.(agentIdentity);
+      this.cleanupFunctions.push(watchCallAudio(room, this.audioStartDeps, sendTiming));
       this.startQualityMonitoring();
 
       // 📊 Initialize disconnect diagnostics session
@@ -685,8 +694,7 @@ class ConnectionService {
       this.room?.off('participantDisconnected', onParticipantDisconnected);
     });
 
-    // Track subscribed (audio from agent) - use simple attach() like old frontend
-    // FIX: Support MULTIPLE audio tracks per participant (voice + background music)
+    // Track subscribed: each agent audio track (voice, background music) gets its own element
     const onTrackSubscribed = (
       track: {
         kind: string;
@@ -698,8 +706,7 @@ class ConnectionService {
       participant: { identity: string }
     ) => {
       if (track.kind === 'audio') {
-        // Use track SID + participant identity to support multiple audio tracks
-        // (e.g., agent voice track + BackgroundAudioPlayer music track)
+        // Track SID + participant identity: one key per track (voice, BackgroundAudioPlayer music)
         const trackKey = `${participant.identity}-${track.sid || track.mediaStreamTrack.id || Date.now()}`;
 
         // Check if we already have this specific track attached
@@ -790,27 +797,19 @@ class ConnectionService {
 
         // 🎚️ CRITICAL FIX: For music tracks, we need Web Audio attached BEFORE playing!
         // If we play first and attach Web Audio later, the audio bypasses our GainNode.
-        //
         // For MUSIC tracks: Trigger attachment, wait briefly for Web Audio setup, then play
         // For VOICE tracks: Play immediately (ducking triggers from this callback)
         if (isMusicTrack) {
-          // 🎚️ Attach to Web Audio FIRST, then play
-          // This ensures the audio flows through our GainNode from the start
+          // 🎚️ Attach to Web Audio FIRST, then play, so the audio flows through our GainNode
           const musicCallback = this.callbacks.onMusicTrack;
           if (musicCallback) {
             log.info('🎚️ Music track detected - starting Web Audio attachment BEFORE playback', {
               trackKey,
             });
 
-            // Call the callback which will start async attachment
-            // The callback's async work will complete in parallel with our timeout
+            // Starts the async attachment. 200ms is enough for Web Audio to create its
+            // AudioContext (may need a gesture) and MediaElementSource and connect the chain.
             musicCallback(audioEl, trackKey);
-
-            // Give Web Audio time to:
-            // 1. Initialize AudioContext if needed (may require user gesture)
-            // 2. Create MediaElementSource
-            // 3. Connect the audio chain
-            // 200ms should be enough for Web Audio initialization
             setTimeout(() => {
               log.info('🎚️ Starting music playback (Web Audio attachment should be complete)', {
                 trackKey,
@@ -1022,7 +1021,6 @@ class ConnectionService {
   private hasActiveAudioTrack(): boolean {
     if (!this.room) return false;
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     for (const participant of this.room.remoteParticipants.values()) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       for (const publication of participant.audioTrackPublications.values()) {

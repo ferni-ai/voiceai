@@ -4,7 +4,10 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { showAgentLostPrompt } from '../../../src/app/agent-lost-prompt.js';
+import {
+  showAgentLostPrompt,
+  showAudioNotStartedPrompt,
+} from '../../../src/app/agent-lost-prompt.js';
 import { connectFailure } from '../../../src/services/connect-failure.js';
 import { clearCallNotice } from '../../../src/ui/call-status.ui.js';
 
@@ -71,5 +74,29 @@ describe('showAgentLostPrompt', () => {
 
   it('has its own message, distinct from a dropped connection', () => {
     expect(connectFailure('agent_left').message).not.toBe(connectFailure('dropped').message);
+  });
+});
+
+describe('showAudioNotStartedPrompt', () => {
+  it('says the sound did not start, with one Try again', () => {
+    showAudioNotStartedPrompt(fakeCall());
+
+    expect(notice()?.getAttribute('role')).toBe('alert');
+    expect(notice()?.dataset['kind']).toBe('audio_not_started');
+    expect(notice()?.textContent).toContain("The sound didn't start. Try again in a moment.");
+    const labels = [...document.querySelectorAll('.call-status button')].map((b) => b.textContent);
+    expect(labels).toEqual(['Try again']);
+    expect(document.activeElement).toBe(button('Try again'));
+  });
+
+  it('Try again hangs up the silent call, then takes the connect path', async () => {
+    const call = fakeCall();
+    showAudioNotStartedPrompt(call);
+
+    button('Try again')?.click();
+
+    await vi.waitFor(() => expect(call.connect).toHaveBeenCalledOnce());
+    expect(call.order).toEqual(['endCall', 'connect']);
+    expect(notice()).toBeNull();
   });
 });

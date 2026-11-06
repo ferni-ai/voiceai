@@ -147,7 +147,7 @@ function gateCommittedLine(
   const items = request.items.map((x, i) => (i === at ? item : x));
   const ctx = new llm.ChatContext(at < 0 ? [...items, item] : items);
   const userData = (session as CommitSession | null)?.userData;
-  signalGateDecisions(session, startGate(ctx, userData, options));
+  signalGateDecisions(session, startGate(ctx, userData, { ...options, noReply: true }));
 }
 
 /** A live session with the hold installed, while the flag and the live classifier are on. */
