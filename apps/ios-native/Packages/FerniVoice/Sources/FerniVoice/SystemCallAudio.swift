@@ -44,6 +44,10 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
     private let systemActive = OSAllocatedUnfairLock(initialState: false)
     /// The app activated the session itself for a call (not the system).
     private let ownActive = OSAllocatedUnfairLock(initialState: false)
+    /// Drift set-backs wait: during the call's own write (whose route changes
+    /// would write again), and after a write that didn't stick until one does
+    /// (a device change or an interruption's end tries anyway), a reset or the next call.
+    private let driftHeld = OSAllocatedUnfairLock(initialState: false)
     private let log = Logger(subsystem: "com.sethdford.ferni", category: "audio")
 
     /// - Parameters:
@@ -121,15 +125,34 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
     /// In a call: the system or the app has the session active.
     private var inCall: Bool { systemActive.withLock { $0 } || ownActive.withLock { $0 } }
 
+    /// The session isn't in the call's category and mode.
+    private var drifted: Bool { session.category != .playAndRecord || session.mode != .voiceChat }
+
     /// The call's session settings again, in a call only (at rest the app
     /// leaves the session alone).
     private func reapply(_ why: StaticString) {
         guard inCall else { return }
+        driftHeld.withLock { $0 = true }
+        write(why)
+    }
+
+    /// Sets the session up again with drift set-backs held, then reads it
+    /// back: the system can accept the settings and keep its own, and each
+    /// write posts a route change, so a set-back that didn't stick stays held.
+    private func write(_ why: StaticString) {
         do {
             try setUpAgain(why)
         } catch {
             log.error("Session not set again (\(why, privacy: .public)): \(error.localizedDescription, privacy: .public)")
             failed(why)
+            driftHeld.withLock { $0 = false }
+            return
+        }
+        if drifted {
+            log.error("Session settings didn't stick (\(why, privacy: .public)); held until one does")
+            failed("settings didn't stick")
+        } else {
+            driftHeld.withLock { $0 = false }
         }
     }
 
@@ -139,10 +162,10 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
     /// processing alone comes back without a session write, so even one that
     /// keeps refusing posts nothing back. Options aren't compared: the system
     /// can report them differently from what was asked, and a mismatch that
-    /// never clears would loop.
+    /// never clears would loop. Held set-backs (`driftHeld`) aren't tried.
     private func reapplyIfDrifted(_ why: StaticString) {
-        if session.category != .playAndRecord || session.mode != .voiceChat {
-            reapply(why)
+        if drifted, inCall, driftHeld.withLock({ held in defer { held = true }; return !held }) {
+            write(why)
         } else if inCall, !voiceProcessing.isOn {
             let processing = restoreVoiceProcessing()
             log.notice("Voice processing \(processing, privacy: .public) (\(why, privacy: .public))")
@@ -176,6 +199,7 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
     /// system owns calls.
     private func rebuildAfterReset() {
         log.error("Media services were reset; setting the session up again")
+        driftHeld.withLock { $0 = false }
         if systemActive.withLock({ $0 }) {
             try? setUpAgain("media services reset")
             setEngine(.default)
@@ -230,6 +254,7 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
     }
 
     public func callEnded() {
+        driftHeld.withLock { $0 = false }
         systemActive.withLock { $0 = false }
         ownActive.withLock { $0 = false }
         // Ready for the next call, which the system will own again.

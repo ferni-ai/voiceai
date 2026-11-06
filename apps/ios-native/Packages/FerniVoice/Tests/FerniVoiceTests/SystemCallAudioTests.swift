@@ -423,22 +423,36 @@ final class SystemCallAudioTests: XCTestCase {
     // MARK: - The speaker button, the route picker, a rebuilt route
 
     /// A session that, like iOS, posts a route change when its category is
-    /// set, and can refuse it. It stops posting after 20, so a loop shows as a count.
+    /// set, and can refuse it, or accept it and keep what it had (`sticks`
+    /// false). It posts during the write, or after it (`later`, posted by
+    /// `drain`). It stops posting after 20, so a loop shows as a count.
     final class EchoingSession: AudioSessionSettings, @unchecked Sendable {
         let center: NotificationCenter
         var category: AVAudioSession.Category = .soloAmbient
         var mode: AVAudioSession.Mode = .default
         var configured = 0
         var refuses = false
+        var sticks = true
+        var later = false
+        private var pending = 0
         init(_ center: NotificationCenter) { self.center = center }
+        func drain() {
+            while pending > 0 {
+                pending -= 1
+                echo()
+            }
+        }
+        private func echo() {
+            center.post(name: AVAudioSession.routeChangeNotification, object: nil,
+                        userInfo: [AVAudioSessionRouteChangeReasonKey: AVAudioSession.RouteChangeReason.routeConfigurationChange.rawValue])
+        }
         func setCategory(_ category: AVAudioSession.Category, mode: AVAudioSession.Mode,
                          options: AVAudioSession.CategoryOptions) throws {
             if refuses { throw NSError(domain: "AVAudioSession", code: -50) }
-            self.category = category; self.mode = mode
+            if sticks { self.category = category; self.mode = mode }
             configured += 1
             guard configured <= 20 else { return }
-            center.post(name: AVAudioSession.routeChangeNotification, object: nil,
-                        userInfo: [AVAudioSessionRouteChangeReasonKey: AVAudioSession.RouteChangeReason.routeConfigurationChange.rawValue])
+            if later { pending += 1 } else { echo() }
         }
         func setAllowHapticsAndSystemSoundsDuringRecording(_ inValue: Bool) throws {}
         func setPreferredIOBufferDuration(_ duration: TimeInterval) throws {}
@@ -565,5 +579,60 @@ final class SystemCallAudioTests: XCTestCase {
         XCTAssertTrue(processing.isOn, "back on once it's allowed")
         XCTAssertEqual(failures.all.count, 2)
         XCTAssertEqual(engine.now, "on", "the call goes on")
+    }
+
+    /// The system accepts the settings and keeps its own, and each write posts
+    /// a route change (during the write or after it): one write per route
+    /// change, reported, then nothing more on these reasons until a write
+    /// sticks. A device change tries anyway, and once one sticks they're armed again.
+    func testASetBackThatDoesNotStickWritesOnceUntilOneDoes() throws {
+        for later in [false, true] {
+            for reason in [AVAudioSession.RouteChangeReason.override, .routeConfigurationChange, .wakeFromSleep] {
+                let center = NotificationCenter(), session = EchoingSession(center), failures = Failures()
+                session.later = later
+                let audio = SystemCallAudio(systemManagesCalls: false, engine: { _ in }, session: session,
+                                            notifications: center, voiceProcessing: Processing(),
+                                            failed: { failures.record($0) })
+                try audio.activate(systemOwned: false)
+                session.drain()
+                session.sticks = false
+                session.mode = .default
+                post(AVAudioSession.routeChangeNotification, route(reason), to: center)
+                session.drain()
+                XCTAssertEqual(session.configured, 2, "one write for one route change: \(reason.rawValue) later \(later)")
+                post(AVAudioSession.routeChangeNotification, route(reason), to: center)
+                session.drain()
+                XCTAssertEqual(session.configured, 2, "held: \(reason.rawValue) later \(later)")
+                XCTAssertEqual(failures.all, ["settings didn't stick"], "\(reason.rawValue) later \(later)")
+            }
+        }
+
+        let center = NotificationCenter(), session = EchoingSession(center), failures = Failures()
+        session.later = true
+        let audio = SystemCallAudio(systemManagesCalls: false, engine: { _ in }, session: session,
+                                    notifications: center, voiceProcessing: Processing(),
+                                    failed: { failures.record($0) })
+        try audio.activate(systemOwned: false)
+        session.drain()
+        session.sticks = false
+        session.mode = .default
+        post(AVAudioSession.routeChangeNotification, route(.override), to: center)
+        session.drain()
+        XCTAssertEqual(session.configured, 2)
+        post(AVAudioSession.routeChangeNotification, route(.newDeviceAvailable), to: center)
+        session.drain()
+        XCTAssertEqual(session.configured, 3, "a device change tries again, once")
+        XCTAssertEqual(failures.all.count, 2)
+        session.sticks = true
+        post(AVAudioSession.routeChangeNotification, route(.oldDeviceUnavailable), to: center)
+        session.drain()
+        XCTAssertEqual(session.configured, 4)
+        XCTAssertEqual(session.mode, .voiceChat, "it stuck this time")
+        session.mode = .default
+        post(AVAudioSession.routeChangeNotification, route(.override), to: center)
+        session.drain()
+        XCTAssertEqual(session.configured, 5, "armed again once a write stuck")
+        XCTAssertEqual(session.mode, .voiceChat)
+        XCTAssertEqual(failures.all.count, 2)
     }
 }
