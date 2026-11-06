@@ -32,6 +32,8 @@ interface ImportMetaEnv {
   readonly VITE_REACH_OUT_ACTIONS?: string;
   /** "true" shows "The sound didn't start" when Ferni's audio never plays (config/audio-start-watch-flag.ts). */
   readonly VITE_WEB_AUDIO_START_WATCH?: string;
+  /** "true" sends the agent this call's start moments (config/client-timing-send-flag.ts). */
+  readonly VITE_CLIENT_TIMING_SEND?: string;
 }
 
 interface ImportMeta {

@@ -26,6 +26,15 @@ final class ContrastTests: XCTestCase {
         }
     }
 
+    /// Links and accent words on the page read in both themes. The audit's
+    /// contrast check is accepted for the consent "Terms" row (it misreads one
+    /// short word in a wide row), so this keeps the colour itself honest.
+    func testAccentTextOnThePageReadsInBothThemes() {
+        for style in [UIUserInterfaceStyle.light, .dark] {
+            XCTAssertGreaterThanOrEqual(ratio(FerniColor.accent, FerniColor.background, style), 4.5, "accent, \(style.rawValue)")
+        }
+    }
+
     /// The old choice, for the record: white on the dark sage doesn't read.
     func testWhiteOnTheDarkSageWasTheBug() {
         XCTAssertLessThan(ratio(.white, FerniColor.accent, .dark), 4.5)

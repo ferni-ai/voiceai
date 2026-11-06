@@ -31,6 +31,7 @@ import { explicitModifier, normalize } from './crisis-modifiers.js';
 import {
   HIGH_DISTRESS_VOICE_EMOTIONS,
   MODERATE_DISTRESS_VOICE_EMOTIONS,
+  replacesReply,
   SEVERITY,
 } from './crisis-severity.js';
 import { thirdPartyEmergency } from './crisis-third-person.js';
@@ -421,7 +422,7 @@ export function applyClassifierVerdict(
 
 /** The pre-response decision for an already computed detection. */
 export function guardFromDetection(crisis: CrisisDetectionResult): CrisisGuardResult {
-  if (crisis.isCrisis && crisis.severity >= SEVERITY.block) {
+  if (replacesReply(crisis)) {
     // Severe crisis - override with crisis response
     log.warn(
       {
