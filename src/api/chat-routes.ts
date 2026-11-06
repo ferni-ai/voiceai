@@ -18,6 +18,7 @@ import { type ChatCaller, offeredChatTools, refuseChatTool } from './chat-tool-a
 import { refuseUnadmittedCaller } from './admission.js';
 import { chatHold, chatToolContext } from './chat-minor-care.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
+import { flagOn } from '../config/env-flag.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { executeTool } from '../agents/shared/tool-dispatcher.js';
 import { GEMINI_MODEL, getGeminiClient } from '../config/gemini-config.js';
@@ -390,6 +391,13 @@ export async function handleChatRoutes(
 
   // Handle CORS preflight
   if (handleCorsPreflightIfNeeded(req, res)) {
+    return true;
+  }
+
+  // WEB_CHAT_MESSAGE (off): no crisis read runs before this route's LLM, so it is off
+  // until one does. 404 before auth: nothing is read, called or written.
+  if (pathname === '/api/chat/message' && !flagOn('WEB_CHAT_MESSAGE')) {
+    sendError(res, 'Not found', 404);
     return true;
   }
 
