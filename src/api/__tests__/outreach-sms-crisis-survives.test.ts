@@ -6,8 +6,10 @@
  * analytics, and the route's four records) is made to throw in turn: the answer
  * is still a 200 carrying 988, and the failure is logged with no number or words.
  *
- * A "call me" crisis text keeps its call (Seth, 2026-11-06), and the one text
- * says so beside 988.
+ * A "call me" crisis text keeps its call (Seth, 2026-11-06), rung now whatever
+ * the calling hours (call-hours-paths.test.ts has the hours rows), and the one
+ * text says so beside 988. The screen runs before every write, and a crisis text
+ * is never recorded as a consent change or a YES.
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { Readable } from 'node:stream';
@@ -100,12 +102,14 @@ vi.mock('../../services/safety/crisis-classifier.js', async (importOriginal) => 
 
 // The screen can be made to reject, though by contract it never does.
 const screenRejects = vi.hoisted(() => ({ on: false }));
+const screened = vi.hoisted(() => vi.fn());
 vi.mock('../../services/outreach/sms-crisis-screen.js', async (importOriginal) => {
   const real =
     await importOriginal<typeof import('../../services/outreach/sms-crisis-screen.js')>();
   return {
     ...real,
     smsCrisisReply: async (...args: Parameters<typeof real.smsCrisisReply>) => {
+      screened();
       if (screenRejects.on) throw new Error('screen down');
       return real.smsCrisisReply(...args);
     },
@@ -240,12 +244,15 @@ describe('a "call me" crisis text keeps its call and says so in one text', () =>
     expect(sent).toContain('call 911');
   });
 
-  it('a call deferred to calling hours says when, beside 988, and never "now"', async () => {
-    adapter.call.mockResolvedValueOnce({ success: true, status: 'scheduled' });
-    const { sent } = await text(CRISIS);
-    expect(sent).toContain('as soon as your calling hours start');
-    expect(sent).toContain('please call or text 988');
-    expect(sent).not.toContain('calling you now');
+  it('the call is asked for as a crisis call, so calling hours do not hold it', async () => {
+    await text(CRISIS);
+    expect(adapter.call.mock.calls[0]?.[0]).toMatchObject({ crisis: true });
+  });
+
+  it('a non-crisis "call me" is an ordinary call, which calling hours still hold', async () => {
+    await text('call me');
+    expect(adapter.call).toHaveBeenCalledTimes(1);
+    expect(adapter.call.mock.calls[0]?.[0]).not.toHaveProperty('crisis');
   });
 
   it.each([
@@ -261,18 +268,66 @@ describe('a "call me" crisis text keeps its call and says so in one text', () =>
     expect(sent).toContain('please call or text 988');
   });
 
-  it('the usual crisis wording is unchanged, byte for byte, and both call variants keep all of it after the first line', () => {
+  it('the usual crisis wording is unchanged, byte for byte, and the calling variant keeps all of it after the first line', () => {
     const rest =
       "If you might act on these thoughts or you're not safe right now, please call or text 988 (Suicide & Crisis Lifeline), or text HOME to 741741. If you're in immediate danger, call 911. You can open Ferni anytime and we'll talk.";
     expect(screen.SMS_CRISIS_REPLY).toBe(`I'm really glad you told me, and I'm here. ${rest}`);
     expect(screen.SMS_CRISIS_CALLING_REPLY).toBe(`I'm calling you now. ${rest}`);
-    expect(screen.SMS_CRISIS_CALL_LATER_REPLY.endsWith(rest)).toBe(true);
     expect(screen.smsCrisisReplyFor(undefined)).toBe(screen.SMS_CRISIS_REPLY);
+    expect(screen.smsCrisisReplyFor('later')).toBe(screen.SMS_CRISIS_REPLY);
+    expect(Object.keys(screen)).not.toContain('SMS_CRISIS_CALL_LATER_REPLY');
   });
 
   it('a non-crisis "call me" text keeps the plain "Calling you now." reply', async () => {
     const { sent } = await text('call me');
     expect(sent).toContain('Calling you now.');
     expect(sent).not.toContain('988');
+  });
+});
+
+describe('the screen comes first, and a crisis text is never a consent', () => {
+  const sid = 'SM0123456789abcdef';
+  const writes = () => ({
+    'proactive-reply mark': proactive,
+    analytics,
+    'thread write': routed,
+    'check-in record': recordCheckinReply,
+    'consent record': recordInboundSmsConsent,
+    'contact-yes record': recordContactYes,
+    'holder-code record': recordHolderCode,
+  });
+  const order = (fn: { mock: { invocationCallOrder: number[] } }) => fn.mock.invocationCallOrder[0];
+
+  it.each([CRISIS, 'running late, see you at 6'])(
+    'the screen runs before every write (%s)',
+    async (body) => {
+      await text(body);
+      const first = order(screened) ?? Infinity;
+      for (const [name, fn] of Object.entries(writes())) {
+        const at = order(fn);
+        if (at !== undefined) expect([name, at > first]).toEqual([name, true]);
+      }
+      expect(order(proactive)).toBeGreaterThan(first);
+    }
+  );
+
+  it('a crisis text records no consent change and no YES; the other records still run', async () => {
+    await text('YES I want to die');
+    expect(recordInboundSmsConsent).not.toHaveBeenCalled();
+    expect(recordContactYes).not.toHaveBeenCalled();
+    expect(recordCheckinReply).toHaveBeenCalledTimes(1);
+    expect(recordHolderCode).toHaveBeenCalledTimes(1);
+  });
+
+  it('an ordinary text runs every write once, in the order main runs them, with the same arguments', async () => {
+    await text('yes');
+    const calls = Object.entries(writes()).map(([name, fn]) => [name, fn.mock.calls.length]);
+    expect(calls).toEqual(Object.keys(writes()).map((name) => [name, 1]));
+    const seq = Object.values(writes()).map((fn) => order(fn) ?? 0);
+    expect(seq).toEqual([...seq].sort((a, b) => a - b));
+    expect(recordCheckinReply).toHaveBeenCalledWith(PHONE, 'yes', sid);
+    expect(recordInboundSmsConsent).toHaveBeenCalledWith(PHONE, 'yes');
+    expect(recordContactYes).toHaveBeenCalledWith(PHONE, 'yes', sid);
+    expect(recordHolderCode).toHaveBeenCalledWith(PHONE, 'yes');
   });
 });

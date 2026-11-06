@@ -270,11 +270,15 @@ export function isSignedInboundSms(
   return signed === 'valid';
 }
 
-/** Handle an inbound text. `called`: a "call me" text placed a call now, or for later. */
+/**
+ * Handle an inbound text. `called`: a "call me" text placed a call now, or for later.
+ * `crisis`: the route's screen read this text as a crisis (its "call me" rings now).
+ */
 export async function handleInboundSMSWebhook(
   payload: TwilioInboundSMSPayload,
   signature?: string,
-  url?: string
+  url?: string,
+  { crisis = false }: { crisis?: boolean } = {}
 ): Promise<{ success: boolean; twiml?: string; called?: 'now' | 'later' }> {
   if (!isSignedInboundSms(payload, signature, url)) return { success: false };
 
@@ -405,7 +409,9 @@ export async function handleInboundSMSWebhook(
 
       if (routeResult.shouldInitiateCall) {
         const persona = routeResult.routeDecision.agentId;
-        const reply = routeResult.callNow ? await answerCallMe(userId, From, persona) : NO_CALL;
+        const reply = routeResult.callNow
+          ? await answerCallMe(userId, From, persona, undefined, crisis)
+          : NO_CALL;
         const called = reply === CALLING ? 'now' : reply === CALL_SCHEDULED ? 'later' : undefined;
         // says only what was done; a crisis reply keeps the call line (outreach-webhook-routes.ts)
         return { success: true, twiml: generateTwiML(reply), ...(called && { called }) };

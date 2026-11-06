@@ -9,6 +9,9 @@
  * held). It skips the hold only to the account's own verified phone, re-read here as
  * ringsWithLiveAgent does.
  *
+ * A "call me" in a crisis text (asCrisisCallMe, the SMS route's screen) also rings outside calling
+ * hours (Seth, 2026-11-06). The same rule: marked in code, never by `reason` or stored data.
+ *
  * @module services/outreach/held-call
  */
 import { heldSender, toE164 } from './checkin-replies.js';
@@ -25,6 +28,17 @@ export function asOwnCallMe<T extends object>(request: T): T {
 
 /** Their own "call me", asked for just now (asOwnCallMe), or a call built from one. */
 export const isOwnCallMe = (call: object): boolean => ownCallMe.has(call);
+
+const crisisCallMe = new WeakSet<object>();
+
+/** call-user-adapter.ts only: a crisis text asked for this call, so it rings now, whatever the hours. */
+export function asCrisisCallMe<T extends object>(request: T): T {
+  crisisCallMe.add(request);
+  return request;
+}
+
+/** A crisis text's "call me" (asCrisisCallMe): calling hours do not apply. */
+export const isCrisisCallMe = (call: object): boolean => crisisCallMe.has(call);
 
 /** The call built from `from` (the scheduled record) keeps its mark, in this process only. */
 export function carryOwnCallMe(from: object, to: object): void {

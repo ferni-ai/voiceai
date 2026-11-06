@@ -108,13 +108,13 @@ afterEach(() => {
 });
 
 describe('POST sms-inbound with SMS_CRISIS_SCREEN', () => {
-  it('on: a crisis text gets 988 in place of the handler reply, and consent still records', async () => {
+  it('on: a crisis text gets 988 in place of the handler reply, and is never recorded as consent', async () => {
     vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
     const sent = await text('I want to kill myself, call me');
     expect(sent).toContain(CRISIS_IN_TWIML);
     expect(sent).not.toContain('Open Ferni</Message>');
     expect(SMS_CRISIS_REPLY).toContain('988');
-    expect(recordInboundSmsConsent).toHaveBeenCalledTimes(1);
+    expect(recordInboundSmsConsent).not.toHaveBeenCalled();
   });
 
   it('on: a classifier-only read (no pattern) still gets 988', async () => {

@@ -19,6 +19,8 @@ export interface CallUserRequest {
    * there is no call to move).
    */
   handover?: { conversationId?: string };
+  /** A crisis text asked for this call: it rings now, outside calling hours too (Seth, 2026-11-06). */
+  crisis?: boolean;
 }
 
 /** How a live dial ended (self-call.ts CallOutcome). */

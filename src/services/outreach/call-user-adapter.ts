@@ -21,7 +21,7 @@ import { movingToPhone, type PhoneMove } from './live-agent-call.js';
 import { isSavedQuietNow } from './quiet-hours.js';
 import { escapeXml } from './twilio-ssml.js';
 import { userReach } from './user-reach.js';
-import { asOwnCallMe } from './held-call.js';
+import { asCrisisCallMe, asOwnCallMe } from './held-call.js';
 
 /** What Ferni says when a text to the owner was held. */
 const HELD: Record<TextSkip | 'quiet-hours', string> = {
@@ -71,19 +71,19 @@ export const callUserAdapter: CallUserPort = {
     const outcome = await sendGuardedText(t);
     return outcome.sent ? { sent: true } : { sent: false, reason: HELD[outcome.reason] };
   },
-  call: async ({ userId, phoneNumber, message, personaId, handover }) => {
+  call: async ({ userId, phoneNumber, message, personaId, handover, crisis }) => {
     // Their own "call me": the one call a MINOR_CARE_SHARED_HOLD lets ring (held-call.ts)
-    const place = () =>
-      scheduleProactiveCall(
-        asOwnCallMe({
-          userId,
-          phoneNumber,
-          message,
-          ssml: `<speak>${escapeXml(message)}</speak>`,
-          personaId,
-          reason: 'user_requested_call',
-        })
-      );
+    const place = () => {
+      const request = asOwnCallMe({
+        userId,
+        phoneNumber,
+        message,
+        ssml: `<speak>${escapeXml(message)}</speak>`,
+        personaId,
+        reason: 'user_requested_call',
+      });
+      return scheduleProactiveCall(crisis ? asCrisisCallMe(request) : request);
+    };
     if (!handover) return place();
     // CALL_ME_MOVES_TO_PHONE: the app call's id rides the dispatch; the live dial comes back
     const move: PhoneMove = { userId, conversationId: handover.conversationId };

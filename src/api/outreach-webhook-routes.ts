@@ -197,7 +197,7 @@ export async function handleOutreachWebhookRoutes(
         : null;
       let twiml = crisis ? smsReplyTwiml(crisis) : undefined;
       const result = await afterScreen('handler', !!crisis, () =>
-        handleInboundSMSWebhook(payload, signature, fullUrl)
+        handleInboundSMSWebhook(payload, signature, fullUrl, { crisis: !!crisis })
       );
       if (result) twiml = result.twiml;
       // A "call me" text keeps its call; the one crisis text says so (Seth, 2026-11-06).
@@ -207,13 +207,14 @@ export async function handleOutreachWebhookRoutes(
         await afterScreen('checkin', crisisRead, () =>
           recordCheckinReply(body.From, body.Body, body.MessageSid)
         );
-        // MESSAGING_PIPELINE: STOP/START from any text lands in the one consent record.
-        await afterScreen('consent', crisisRead, () =>
-          recordInboundSmsConsent(body.From, body.Body)
-        );
-        await afterScreen('contactYes', crisisRead, () =>
-          recordContactYes(body.From, body.Body, body.MessageSid)
-        ); // a YES to the last text, an ask
+        // MESSAGING_PIPELINE: STOP/START from any text lands in the one consent record. A crisis
+        // text is never read as a consent change or a YES to the last ask.
+        if (!crisisRead) {
+          await afterScreen('consent', false, () => recordInboundSmsConsent(body.From, body.Body));
+          await afterScreen('contactYes', false, () =>
+            recordContactYes(body.From, body.Body, body.MessageSid)
+          ); // a YES to the last text, an ask
+        }
         await afterScreen('holderCode', crisisRead, () => recordHolderCode(body.From, body.Body));
       }
 
