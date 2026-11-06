@@ -12,6 +12,7 @@
  * @module services/outreach/checkin-urgent-alert
  */
 
+import { concernForSponsor } from '../../types/concern-urgency.js';
 import {
   callerText,
   carriesCrisis,
@@ -31,6 +32,7 @@ export interface CheckinAlertInput {
   familyMemberName: string;
   concernsIdentified?: ReadonlyArray<{
     urgency: string;
+    labelWasCanonical?: boolean;
     description: unknown;
     recommendedAction?: unknown;
   }>;
@@ -133,19 +135,8 @@ function clause(text: string): string {
  * carry, such as a phrase split across the two fields.
  */
 export function generateUrgentNotification(record: CheckinAlertInput): string | null {
-  if (!record.concernsIdentified || record.concernsIdentified.length === 0) {
-    return null;
-  }
-
-  const urgentConcerns = record.concernsIdentified.filter(
-    (c) => c.urgency === 'urgent' || c.urgency === 'high'
-  );
-
-  if (urgentConcerns.length === 0) {
-    return null;
-  }
-
-  const concern = urgentConcerns[0];
+  const concern = concernForSponsor(record.concernsIdentified);
+  if (!concern) return null;
   const name = record.familyMemberName;
   const alert = (what: string, next: string, crisis: boolean): string => {
     const tail = [crisis ? crisisCallerLine(name) : '', next].filter(Boolean).join(' ');
