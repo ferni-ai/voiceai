@@ -45,7 +45,7 @@ import {
 } from '../proactive/outreach/index.js';
 import { ownerMessageTool } from '../proactive/outreach/owner-message-policy.js';
 import { userTimeZone } from '../../../utils/caller-time-zone.js';
-import { forSomeoneElse, whoParam } from './schedule-call-who.js';
+import { forSomeoneElse, scheduleCallDescription, whoParam } from './schedule-call-who.js';
 import {
   getPendingReminders,
   cancelReminder,
@@ -180,13 +180,7 @@ const scheduleCallTool: ToolDefinition = {
 
   create: (ctx: ToolContext) =>
     llm.tool({
-      description: `Schedule a phone call for later.
-Use when the user says things like:
-- "Call me at 2pm to remind me about the meeting"
-- "Give me a wake-up call tomorrow at 7am"
-- "Call me tonight if I haven't worked out by 8pm"
-
-The call will play a voice message when answered.`,
+      description: scheduleCallDescription(), // SCHEDULE_CALL_WHO (schedule-call-who.ts)
       parameters: z.object({
         message: z.string().describe('What to say when the call is answered'),
         when: z

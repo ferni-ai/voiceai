@@ -31,7 +31,8 @@ vi.mock('../../../../memory/profile-store.js', () => ({
 import type { ToolContext } from '../../../registry/types.js';
 import { setCallUserPort } from '../../proactive/outreach/call-user-port.js';
 import { definitions } from '../index.js';
-import { otherPerson } from '../schedule-call-who.js';
+import { TOOL_REFUSAL } from '../../../../agents/personas/action-claims.js';
+import { otherPerson, scheduleCallDescription } from '../schedule-call-who.js';
 
 const ctx: ToolContext = {
   userId: 'uid-schedule-who',
@@ -48,6 +49,15 @@ const run = async (args: Record<string, unknown>): Promise<string> =>
   String(await tool().execute(args, call));
 const shape = (): Record<string, unknown> =>
   (tool() as unknown as { parameters: { shape: Record<string, unknown> } }).parameters.shape;
+const describedAs = (): string => (tool() as unknown as { description: string }).description;
+/** main's scheduleCall description (scheduling/index.ts before SCHEDULE_CALL_WHO). */
+const MAIN_DESCRIPTION = `Schedule a phone call for later.
+Use when the user says things like:
+- "Call me at 2pm to remind me about the meeting"
+- "Give me a wake-up call tomorrow at 7am"
+- "Call me tonight if I haven't worked out by 8pm"
+
+The call will play a voice message when answered.`;
 const rungTo = (): string[] =>
   sent.reminder.mock.calls.map((c) => (c[0] as { deliveryAddress: string }).deliveryAddress);
 
@@ -68,16 +78,29 @@ afterEach(() => {
 describe('SCHEDULE_CALL_WHO on: a scheduled call for someone else is never rung to the caller', () => {
   beforeEach(() => vi.stubEnv('SCHEDULE_CALL_WHO', 'on'));
 
-  it.each(['my mom Priya', 'Priya', 'Mom', 'Marcus.'])(
-    'who %j: nothing is scheduled, and it says so',
-    async (who) => {
-      const reply = await run({ ...BIRTHDAY, who });
-      expect(sent.reminder).not.toHaveBeenCalled();
-      expect(reply).toMatch(/^Nothing was scheduled: a scheduled call can only ring you/);
-      expect(reply).toContain(`call ${who.replace(/\.$/, '')} yourself`);
-      expect(reply).not.toContain("I'll call you");
-    }
-  );
+  it.each([
+    ['my mom Priya', 'your mom Priya'],
+    ['Priya', 'Priya'],
+    ['Mom', 'Mom'],
+    ['Marcus.', 'Marcus'],
+  ])('who %j: nothing is scheduled, and it says so', async (who, said) => {
+    const reply = await run({ ...BIRTHDAY, who });
+    expect(sent.reminder).not.toHaveBeenCalled();
+    expect(reply).toBe(
+      `I can't set a call to ${said} for later yet. ` +
+        `I can call ${said} right now, or remind you in 2 hours to give them a call.`
+    );
+    expect(reply).toMatch(TOOL_REFUSAL); // the action-claim guard reads it as nothing done
+  });
+
+  it.each([
+    ['at 6pm', 'remind you at 6pm'],
+    ['6pm', 'remind you at 6pm'],
+    ['tomorrow morning.', 'remind you tomorrow morning'],
+    ['', 'remind you then'],
+  ])('when %j is said back as %j', async (when, said) => {
+    expect(await run({ message: 'Happy birthday!', when, who: 'Aunt June' })).toContain(said);
+  });
 
   it.each([undefined, 'me', 'Me', 'myself', 'Riley', 'Riley Test'])(
     'who %j (the caller): the call is scheduled to their verified phone',
@@ -91,11 +114,20 @@ describe('SCHEDULE_CALL_WHO on: a scheduled call for someone else is never rung 
   it('the model is told to say whom the call is for', () => {
     expect(Object.keys(shape())).toEqual(['message', 'when', 'who']);
   });
+
+  it('the description says it rings only the caller', () => {
+    expect(scheduleCallDescription()).toContain("It only ever rings the caller's own phone");
+    expect(describedAs()).toBe(scheduleCallDescription());
+  });
 });
 
 describe('SCHEDULE_CALL_WHO off: the tool as main has it', () => {
   it('no `who` parameter', () => {
     expect(Object.keys(shape())).toEqual(['message', 'when']);
+  });
+
+  it("the description is main's, word for word", () => {
+    expect(describedAs()).toBe(MAIN_DESCRIPTION);
   });
 
   it('a `who` the model sends anyway is ignored, and the caller is rung as before', async () => {
