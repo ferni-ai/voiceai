@@ -1493,3 +1493,172 @@ describe('round 10: text outside the allow-list is never dropped before it is ch
     }
   });
 });
+
+describe('OUTREACH_NO_ANSWERS_READBACK: a no ends it only when it answers the read-back', () => {
+  const READ =
+    "I'm ready to dial Dad at the number ending 0002. Should I go ahead and call him now?";
+  const ASK = 'Just to be sure: call Dad now?';
+  // After the read-back, the owner asks about something else and Ferni answers it.
+  const RAIN: Step[] = [
+    ['owner', 'Is it going to rain?'],
+    ['ferni', 'No rain, just clouds.'],
+  ];
+  type Step = ['owner' | 'over' | 'ferni', string];
+  const play = async (steps: Step[]) => {
+    const call = liveCall();
+    await call.call('c1');
+    call.ferni(READ);
+    for (const [who, text] of steps)
+      (who === 'owner' ? call.owner : who === 'over' ? call.ownerOver : call.ferni)(text);
+    return call;
+  };
+  beforeEach(() => {
+    vi.stubEnv('OUTREACH_NO_ANSWERS_READBACK', 'on');
+    setConsentAsk(fairJudge);
+  });
+
+  it.each<[string, Step[]]>([
+    ['"No." right after the read-back', [['owner', 'No.']]],
+    ['"Nope." right after', [['owner', 'Nope.']]],
+    ['a no through filler', [['owner', 'Um, no.']]],
+    ['"No, I\'m just checking." right after', [['owner', "No, I'm just checking."]]],
+    ['a no over Ferni', [['over', 'No.']]],
+    ['a no that names the call', [['owner', "No, don't call him."]]],
+    [
+      'a no after a detail question',
+      [
+        ['owner', 'Wait, which number?'],
+        ['ferni', 'It ends in 0002.'],
+        ['owner', 'No.'],
+      ],
+    ],
+    [
+      'a no after "did you call him?"',
+      [
+        ['owner', 'Did you call him yet?'],
+        ['ferni', 'Not yet.'],
+        ['owner', 'No.'],
+      ],
+    ],
+    [
+      'a no after a remark that Ferni only acknowledged',
+      [
+        ['owner', 'Let me think.'],
+        ['ferni', 'Take your time.'],
+        ['owner', 'No.'],
+      ],
+    ],
+    ['moved on, then a no that names the call', [...RAIN, ['owner', "No, don't call him."]]],
+    ['moved on, then a no that names him', [...RAIN, ['owner', 'No, not Dad.']]],
+    ['moved on, then a fresh read-back', [...RAIN, ['ferni', READ], ['owner', 'No.']]],
+    [
+      'moved on, then a question about the call (a read-back, maybe)',
+      [...RAIN.slice(0, 1), ['ferni', 'No rain. Should I call him now?'], ['owner', 'No.']],
+    ],
+    ['moved on, then a deferral', [...RAIN, ['owner', 'Not now.']]],
+    ['moved on, then someone else', [...RAIN, ['owner', 'Call my sister instead.']]],
+  ])('declines at once: %s', async (_name, steps) => {
+    const call = await play(steps);
+    expect(pendingFor(call.session)).toBeUndefined();
+    await call.call('c2');
+    expect(sends).toHaveLength(0);
+  });
+
+  it.each<[string, Step[]]>([
+    [
+      '"No, I\'m just checking." after the talk moved on',
+      [...RAIN, ['owner', "No, I'm just checking."]],
+    ],
+    ['"Nah." after it moved on', [...RAIN, ['owner', 'Nah.']]],
+    ['a no the judge reads as a no', [...RAIN, ['owner', "No, I don't think so."]]],
+    [
+      '"No way." about the game',
+      [
+        ['owner', 'How was the game?'],
+        ['ferni', 'Close one, they won by two.'],
+        ['owner', 'No way.'],
+      ],
+    ],
+    ['"No, really?"', [...RAIN, ['owner', 'No, really?']]],
+    ['a no over Ferni after it moved on', [...RAIN, ['over', 'No, I know.']]],
+    [
+      "a no to Ferni's other question",
+      [
+        ['owner', 'Hmm.'],
+        ['ferni', 'Are you doing anything fun this weekend?'],
+        ['owner', 'No.'],
+      ],
+    ],
+  ])('keeps it waiting and asks once: %s', async (_name, steps) => {
+    const call = await play(steps);
+    expect(pendingFor(call.session)).toBeDefined();
+    expect(await call.call('c2')).toContain(ASK);
+    expect(sends).toHaveLength(0);
+  });
+
+  // The lead's row: read-back, a yes, another turn, then Ferni asks something unrelated and the
+  // owner's "No." answers that. The call stays waiting, unconfirmed, and is read back again.
+  it.each<[string, (call: ReturnType<typeof liveCall>) => void]>([
+    ['another Ferni turn', (call) => call.ferni('Okay, one moment.')],
+    ['another tool', (call) => call.otherTool('weather-1')],
+  ])(
+    'read-back, "yeah", %s, an unrelated question, "No.": asked again, nothing dialled',
+    async (_n, between) => {
+      const call = await play([['owner', 'yeah']]);
+      between(call);
+      call.ferni('Are you doing anything fun this weekend?');
+      call.owner('No.');
+      expect(pendingFor(call.session)).toBeDefined();
+      const out = await call.call('c2');
+      expect(out).not.toContain('Calling Dad now');
+      expect(out).toMatch(/Just to be sure: call Dad now\?|NOT SENT YET/);
+      expect(sends).toHaveLength(0);
+    }
+  );
+
+  it('after it asks once, a no declines and a yes places once', async () => {
+    const no = await play([...RAIN, ['owner', "No, I'm just checking."]]);
+    expect(await no.call('c2')).toContain(ASK);
+    no.ferni(ASK);
+    no.owner('No.');
+    expect(pendingFor(no.session)).toBeUndefined();
+    const yes = await play([...RAIN, ['owner', "No, I'm just checking."]]);
+    expect(await yes.call('d2')).toContain(ASK);
+    yes.ferni(ASK);
+    yes.owner('Yes.');
+    await yes.call('d3');
+    expect(sends).toHaveLength(1);
+  });
+
+  it.each(['on', 'off'])(
+    "flag %s: a yes to an unrelated question of Ferni's still asks again",
+    async (flag) => {
+      vi.stubEnv('OUTREACH_NO_ANSWERS_READBACK', flag);
+      for (const yes of ['Yes.', 'Um, yeah, sure.']) {
+        const call = await play([
+          ['owner', 'Hmm.'],
+          ['ferni', 'Are you doing anything fun this weekend?'],
+          ['owner', yes],
+        ]);
+        expect(await call.call('c2')).toContain(ASK);
+      }
+      expect(sends).toHaveLength(0);
+    }
+  );
+
+  it.each<[string, Step[]]>([
+    ['after the talk moved on', [...RAIN, ['owner', "No, I'm just checking."]]],
+    [
+      "to Ferni's other question",
+      [
+        ['owner', 'Hmm.'],
+        ['ferni', 'Are you doing anything fun this weekend?'],
+        ['owner', 'No.'],
+      ],
+    ],
+  ])('flag off: any no declines, as before (%s)', async (_name, steps) => {
+    vi.stubEnv('OUTREACH_NO_ANSWERS_READBACK', 'off');
+    const call = await play(steps);
+    expect(pendingFor(call.session)).toBeUndefined();
+  });
+});

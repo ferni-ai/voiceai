@@ -3,15 +3,18 @@
  * call 10-26 18:48: "Yeah, go ahead and call." was voided by "What's his name again?" said BEFORE
  * Ferni asked again. The window is the owner's turns after Ferni's latest read-back of this action
  * (a question Ferni answered drops out). Only an allow-listed plain yes in it places (consent-words.ts);
- * anything else asks once. A no, a deferral or a redirect to someone else ends it for good.
+ * anything else asks once. A no, a deferral or a redirect to someone else ends it for good; with
+ * OUTREACH_NO_ANSWERS_READBACK, a no only when it answers the read-back (noAnswers).
  * @module tools/domains/communication/outreach/consent-window
  */
 
+import { flagOn, type Env } from '../../../../config/env-flag.js';
 import { askOnceLine, channelOf, numberOf, personOf, STOP, targetWords } from './consent-action.js';
 import { judge, judgedNow } from './consent-judge.js';
 import {
   CHANNEL_WORDS,
   digitRuns,
+  ferniTurnKnown,
   ferniTurnNow,
   ferniTurnOf,
   READBACK_GRACE_MS,
@@ -193,6 +196,45 @@ const BARE_NO = new Set(
 const bareNo = (text: string, pending: PendingAction): boolean =>
   words(text).every((w) => BARE_NO.has(w) || targetWords(pending).includes(w));
 
+/** OUTREACH_NO_ANSWERS_READBACK: a no ends it only when it answers the read-back. */
+const noMustAnswerOn = (env: Env = process.env): boolean =>
+  flagOn('OUTREACH_NO_ANSWERS_READBACK', env);
+/** "No, don't call him.", "No, not Dad.": a no about this action, wherever it is said. */
+const namesAction = (text: string, pending: PendingAction): boolean => {
+  const said = words(text);
+  const people = targetWords(pending).filter((w) => !STOP.has(w));
+  return (
+    CHANNEL_WORDS[channelOf(pending)].test(said.join(' ')) || said.some((w) => people.includes(w))
+  );
+};
+/**
+ * The owner's finals since the read-back was stored, each with whether it still answers Ferni's
+ * latest read-back. The talk has moved on once, since that read-back, the owner asked about
+ * something else (not a detail of it, not "did you call him?") and Ferni answered, or the owner
+ * spoke and Ferni asked something else. Either Ferni turn must be known not to be a read-back: a
+ * read-back, or a turn still being classified, brings the talk back to it.
+ */
+function noAnswers(pending: PendingAction, events: ConfirmEvent[]): boolean[] {
+  const answers: boolean[] = [];
+  let [spoke, asked, moved] = [false, false, false];
+  for (const e of events) {
+    if (e.seq <= pending.createdSeq || e.kind === 'tool') continue;
+    if (e.kind === 'caller') {
+      answers.push(!moved);
+      spoke = true;
+      asked ||= isQuestion(e.text) && !asksDetail(e.text, pending) && !asksStatus(e.text, pending);
+      continue;
+    }
+    const kind = ferniTurnKnown(pending, factsOf(pending), e.text);
+    if (kind === undefined || kind === 'readback') [spoke, asked, moved] = [false, false, false];
+    else moved ||= asked || (spoke && kind === 'other_question');
+  }
+  return answers;
+}
+/** Whether this owner turn's no is about the read-back: it answers it, or names the action. */
+const aboutIt = (text: string, answers: boolean, pending: PendingAction): boolean =>
+  answers || !noMustAnswerOn() || namesAction(text, pending);
+
 /** The owner's finals in (from, to]: by default, since the read-back was stored. */
 const callerTurns = (
   pending: PendingAction,
@@ -211,8 +253,10 @@ const endsForGood = (text: string, pending: PendingAction): boolean =>
 function endedBy(pending: PendingAction, events: ConfirmEvent[]): boolean {
   const said = callerTurns(pending, events);
   const joined = said.filter((t) => !asksStatus(t, pending)).join(' ');
-  const no = (t: string): boolean => isPlainNo(t) && !clarifies(t, pending);
-  return said.some((t) => endsForGood(t, pending) || no(t)) || endsForGood(joined, pending);
+  const answers = noAnswers(pending, events);
+  const no = (t: string, i: number): boolean =>
+    isPlainNo(t) && !clarifies(t, pending) && aboutIt(t, answers[i], pending);
+  return said.some((t, i) => endsForGood(t, pending) || no(t, i)) || endsForGood(joined, pending);
 }
 /** Whether a fresh read-back (at seq `to`) may reopen it after a cancel (consent-loop.ts): every
  * owner word since its read-back counts, up to the re-read. Only a bare no, a no that agrees in
@@ -260,7 +304,12 @@ export function windowState(
   // "question" (a bare request, e.g. "Call him.", which the allow-list already pinned), changes nothing.
   // On words that are all agreement, its "no" is a misread at worst ("Yes," | "Ferni."): ask once.
   const judged = judgedNow(pending, turns);
-  if (judged?.verdict === 'no' && !plain) return 'declined';
+  // With OUTREACH_NO_ANSWERS_READBACK, its no declines only if the owner's latest words answer the
+  // read-back: said after the talk moved on, nobody knows what the no is to, so it asks once.
+  const said = callerTurns(pending, events);
+  const last = said.length - 1;
+  const answered = last < 0 || aboutIt(said[last], noAnswers(pending, events)[last], pending);
+  if (judged?.verdict === 'no' && !plain) return answered ? 'declined' : 'unclear';
   const doubt = judged?.verdict !== undefined && judged.verdict !== 'yes';
   if (!plain || (doubt && !['error', 'question'].includes(judged.reason))) return 'unclear';
   return 'confirmed';
