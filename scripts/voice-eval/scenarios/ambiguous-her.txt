@@ -1,6 +1,6 @@
 # Regression for #3490: the caller sets the record straight on something Ferni never said, and he
-# should not say he misunderstood. A job lost is hard news, so REPAIR_UNEARNED adds no note to this
-# turn (never on a turn in distress): this measures the model's own repair, flag on or off.
+# should not say he misunderstood. The turn says more than the correction (a job lost), so
+# REPAIR_UNEARNED adds no note to it: this measures the model's own repair, flag on or off.
 #@avoid misunderstood \bi (totally |completely )?misunderstood\b|\bmy bad\b|\bmy mistake\b
 # Hypothesis: on an ambiguous "she", Ferni guesses wrong, and when corrected he restates the
 # whole story stiffly ("So to clarify, your sister was the one who...") or keeps mixing them up.

@@ -163,9 +163,11 @@ export function correctionNote(said: string, friend = false, scriptFree = false)
  * REPAIR_UNEARNED=on (#3490): the caller sets the record straight on something
  * Ferni never said ("No, Lisbon. Not Lisburn." after "Lisbon in the spring").
  * isCorrection rightly ignores it, but with no note the model owns a miss it
- * never made ("I totally misunderstood that"). The note never rides a turn in
- * distress: the red team's "No, I'm not safe at home." got it, so a missed
- * note is the price of precision (verify of #3491).
+ * never made ("I totally misunderstood that"). The note fires only when the
+ * whole turn is the putting-straight, never on a turn that says anything more:
+ * the red team's hard news ("No, my mom, not my dad. She won't wake up.") and
+ * polite refusals got it, so a missed note is the price of precision (verify
+ * of #3491).
  */
 function unearnedRepairEnabled(env: Record<string, string | undefined> = process.env): boolean {
   return env.REPAIR_UNEARNED === 'on';
@@ -175,9 +177,13 @@ const SETS_STRAIGHT = /^\s*(?:no|nope|nah|wait)\b/i;
 /** The "no, no," or "wait," the caller opens with: not their version of anything. */
 const OPENER = /^\s*(?:(?:no|nope|nah|wait)\b[\s,.;:!?\u2013\u2014-]*)+/i;
 /** Where one clause ends and the next starts: "Lisbon. Not", "Thursday, not", "Tuesday — Thursday". */
-const BREAK = String.raw`(?:[,.;:!?\u2013\u2014]|\s-{1,2}(?=\s))`;
-const ENDS_CLAUSE = new RegExp(`${BREAK}\\s*$`);
-const THEN_CLAUSE = new RegExp(`^\\s*${BREAK}\\s*[a-z]`, 'i');
+const BREAK = /(?:[,.;:!?\u2013\u2014]|\s-{1,2}(?=\s))/;
+/** A polite no ("no thanks", "no worries", "not a fan, but thanks"): it declines, it puts nothing straight. */
+const POLITE_NO = /\b(?:thanks|thank you|no worries|no problem|not a (?:fan|problem))\b/i;
+/** The caller's version and the thing ruled out are each a name or a short thing, not a sentence. */
+const MAX_PHRASE_WORDS = 3;
+/** The word a "not ..." clause rules out, as isCorrection's contrast reads it. */
+const RULES_OUT = new RegExp(`^${CONTRAST.source}`, 'i');
 /** Never a name or a thing being ruled out: "not him", "not anyone". */
 const NOT_A_NAME = new Set(
   'me him her them us myself yourself himself herself themselves anyone anybody anything everyone everybody everything someone somebody something'.split(
@@ -192,6 +198,8 @@ const STATE_LINE =
   /\b(?:(?:i['’]?m|i am|you['’]re|you are|he['’]?s|he is|she['’]?s|she is|they['’]re|they are|we['’]re|we are)\b[^.!?;]*|(?:it['’]?s|it is)\s+)\bnot\b/i;
 /** Weary or stuck, which carriesDistress lets through ("so tired", "I can't"): no note either. */
 const WEARY = /\b(?:tired|can['’]?t|cannot)\b/i;
+/** How an offer opens: "Want me to", "Should I", "Do you want". */
+const OFFER_OPENS = /^(?:want|should|do you|shall|can i)\b/i;
 /** "Lisburn's" and "Lisburn", "managers" and "manager", are one word. */
 const bare = (word: string): string => word.toLowerCase().replace(/'?s$/, '');
 /** Ferni's lines that a ruled-out word is looked for in, his last one included. */
@@ -199,19 +207,53 @@ const UNEARNED_LOOKBACK = 6;
 /** The caller's turns read for distress, this one included. */
 const DISTRESS_LOOKBACK = 3;
 
-/** Whether this "not <word>" opens a clause and the caller gives their version beside it. */
-function givesAlternative(rest: string, at: number, end: number): boolean {
-  const before = rest.slice(0, at);
-  if (before.trim() && !ENDS_CLAUSE.test(before)) return false;
-  return /[a-z]/i.test(before) || THEN_CLAUSE.test(rest.slice(end));
+/** Whether the word is in Ferni's last few lines ("Lisburn's" and plurals count). */
+function ferniSaid(word: string, ferni: string[]): boolean {
+  const his =
+    ferni
+      .slice(-UNEARNED_LOOKBACK)
+      .join(' ')
+      .match(/[a-z][a-z'-]*/gi) ?? [];
+  return his.some((w) => bare(w) === bare(word));
+}
+
+/** Ferni asked or offered something ("Want me to...?"): a "no" answers him, it corrects nothing. */
+function askedOrOffered(line: string): boolean {
+  const sentences = (line.match(/[^.!?]+[.!?]*/g) ?? []).map((s) => s.trim());
+  return /\?\W*$/.test(line.trim()) || sentences.some((s) => OFFER_OPENS.test(s));
 }
 
 /**
- * A "No, X, not Y." or "No, not Y. X." whose Y is in none of Ferni's last few
- * lines, questions included (a guess he asked about is his to own). Never a
- * bare "no, not Y", a line about how someone is, or a turn in distress
- * (`earlier`: the caller's turns before this one, oldest first): a missed
- * note costs little, one on a hard turn costs the friendship.
+ * The "not Y" clause when the caller's whole turn is the putting-straight: an
+ * opener ("no", "wait"), then "X, not Y" or "not Y, X" with any break between
+ * ("X. Not Y", "not Y — X"), plus at most a bare restatement of X or Y
+ * ("No, Lisbon, not Lisburn. Lisbon."). null when the turn says anything else,
+ * whatever words it uses ("No, my son, not my daughter. He's missing."), or
+ * is a polite no.
+ */
+export function wholeTurnRuleOut(said: string): string | null {
+  if (POLITE_NO.test(said)) return null;
+  const clauses = said
+    .replace(OPENER, '')
+    .split(BREAK)
+    .map((c) => c.trim().replace(/\s+/g, ' ').toLowerCase())
+    .filter(Boolean);
+  const [first = '', second = '', ...more] = clauses;
+  const notFirst = first.startsWith('not ');
+  if (!second || notFirst === second.startsWith('not ')) return null;
+  const [ruledOut, theirs] = notFirst ? [first, second] : [second, first];
+  const phrases = [theirs, ruledOut.slice('not '.length)];
+  if (phrases.some((p) => p.split(' ').length > MAX_PHRASE_WORDS)) return null;
+  return more.every((c) => c === ruledOut || phrases.includes(c)) ? ruledOut : null;
+}
+
+/**
+ * A whole-turn "No, X, not Y." or "No, not Y. X." (wholeTurnRuleOut) whose Y
+ * is in none of Ferni's last few lines, questions included (a guess he asked
+ * about is his to own). Never a reply to his question or offer, a line about
+ * how someone is, or a turn in distress (`earlier`: the caller's turns before
+ * this one, oldest first): a missed note costs little, one on a hard turn
+ * costs the friendship.
  */
 export function isUnearnedCorrection(
   said: string,
@@ -219,24 +261,10 @@ export function isUnearnedCorrection(
   earlier: readonly string[] = []
 ): boolean {
   if (!SETS_STRAIGHT.test(said) || ABOUT_SAYING.test(said) || STATE_LINE.test(said)) return false;
-  const his = new Set(
-    (
-      ferni
-        .slice(-UNEARNED_LOOKBACK)
-        .join(' ')
-        .match(/[a-z][a-z'-]*/gi) ?? []
-    ).map(bare)
-  );
-  const rest = said.replace(OPENER, '');
-  let ruledOut = false;
-  for (const match of rest.matchAll(CONTRAST)) {
-    const word = (match[1] ?? '').toLowerCase();
-    if (NOT_A_THING.has(word) || NOT_A_NAME.has(word)) continue;
-    if (his.has(bare(word))) return false;
-    const at = match.index ?? 0;
-    ruledOut ||= givesAlternative(rest, at, at + match[0].length);
-  }
-  if (!ruledOut || WEARY.test(said)) return false;
+  if (askedOrOffered(ferni.at(-1) ?? '') || WEARY.test(said)) return false;
+  const word = RULES_OUT.exec(wholeTurnRuleOut(said) ?? '')?.[1]?.toLowerCase();
+  if (!word || NOT_A_THING.has(word) || NOT_A_NAME.has(word)) return false;
+  if (ferniSaid(word, ferni)) return false;
   return ![...earlier.slice(-(DISTRESS_LOOKBACK - 1)), said].some((t) => carriesDistress(t));
 }
 
