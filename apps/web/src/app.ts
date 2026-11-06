@@ -590,12 +590,12 @@ class VoiceAIApp {
   }
 
   /**
-   * Connect to the AI coach with timeout handling.
+   * Connect to the AI coach with timeout handling. `tapAt`: the start-call tap (client-timing.ts).
    *
    * Philosophy: Gating should feel like natural breaks, not walls.
    * We check subscription limits but present them warmly.
    */
-  async connect(): Promise<void> {
+  async connect(tapAt = performance.now()): Promise<void> {
     // Cancel One-Tap if showing - never interrupt voice connection
     cancelOneTap();
 
@@ -658,7 +658,7 @@ class VoiceAIApp {
 
     // Resolves once the agent is in the room; a 30s limit (or a tap) cancels it
     clearCallNotice();
-    const outcome = await connectWithTimeout(connectionService);
+    const outcome = await connectWithTimeout(connectionService, { tapAt });
 
     if (!outcome.ok) {
       log.error('Connection failed:', outcome.failure.kind);
