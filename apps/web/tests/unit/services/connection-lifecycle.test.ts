@@ -24,6 +24,9 @@ vi.mock('../../../src/utils/logger.js', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
+import { AGENT_DROP_PROMPT_FLAG_KEY } from '../../../src/config/agent-drop-prompt-flag.js';
+import { AUDIO_START_WATCH_STORAGE_KEY } from '../../../src/config/audio-start-watch-flag.js';
+
 type Handler = (...args: unknown[]) => void;
 
 function createRoom(withAgent: boolean) {
@@ -350,28 +353,52 @@ describe("LiveKit's room states, as the app sees them", () => {
 });
 
 describe('Ferni joins but none of his audio plays (audio-start-watch.ts)', () => {
-  function playingTrack() {
+  type Who = { identity: string; isAgent?: boolean; audioTrackPublications: Map<string, unknown> };
+
+  /** LiveKit's trackSubscribed: the publication gets the track, and attach() records the element. */
+  function subscribeAudio(who: Who, sid: string): HTMLAudioElement {
     const el = document.createElement('audio');
     el.load = vi.fn();
-    el.play = vi.fn(async () => {
-      // What the browser does once the stream flows.
-      Object.defineProperty(el, 'paused', { configurable: true, get: () => false });
-      Object.defineProperty(el, 'readyState', { configurable: true, get: () => 4 });
-      el.dispatchEvent(new Event('playing'));
-    });
-    return { kind: 'audio', sid: 'TR_voice', attach: () => el, mediaStreamTrack: { id: 'v' } };
+    el.play = vi.fn(async () => undefined); // the browser never starts it
+    const track = {
+      kind: 'audio',
+      sid,
+      mediaStreamTrack: { id: sid },
+      attachedElements: [] as HTMLMediaElement[],
+      attach() {
+        track.attachedElements.push(el);
+        return el;
+      },
+    };
+    const publication = { trackName: 'agent_voice', track };
+    who.audioTrackPublications.set(sid, publication);
+    room.emit('trackSubscribed', track, publication, who);
+    return el;
   }
 
-  async function connectWithAgent(onAudioNotStarted: () => void): Promise<void> {
+  function startPlaying(el: HTMLMediaElement): void {
+    Object.defineProperty(el, 'paused', { configurable: true, get: () => false });
+    Object.defineProperty(el, 'readyState', { configurable: true, get: () => 4 });
+    el.dispatchEvent(new Event('playing'));
+  }
+
+  const ferni = (): Who => room.remoteParticipants.get('agent-1') as Who;
+
+  async function connectWithAgent(
+    onAudioNotStarted: () => void,
+    { watch = true, onAgentLost }: { watch?: boolean; onAgentLost?: () => void } = {}
+  ): Promise<void> {
+    if (watch) localStorage.setItem(AUDIO_START_WATCH_STORAGE_KEY, 'true');
     await load(true);
     fetchMock.mockResolvedValue(tokenResponse());
     vi.useFakeTimers();
-    service.setCallbacks({ onAudioNotStarted });
+    service.setCallbacks({ onAudioNotStarted, onAgentLost });
     await expect(service.connect()).resolves.toBe(true);
   }
 
   afterEach(() => {
     document.body.innerHTML = '';
+    localStorage.clear();
   });
 
   it('his track at 2 s that never plays: the notice at 5 s, connection state left alone', async () => {
@@ -401,30 +428,74 @@ describe('Ferni joins but none of his audio plays (audio-start-watch.ts)', () =>
     expect(onAudioNotStarted).toHaveBeenCalledOnce();
   });
 
-  it('a subscribed track that plays before the deadline: no notice', async () => {
+  it('his subscribed track that plays before the deadline: no notice', async () => {
     const onAudioNotStarted = vi.fn();
     await connectWithAgent(onAudioNotStarted);
 
-    room.emit(
-      'trackSubscribed',
-      playingTrack(),
-      { trackName: 'agent_voice' },
-      { identity: 'agent-1' }
-    );
+    startPlaying(subscribeAudio(ferni(), 'TR_voice'));
     await vi.advanceTimersByTimeAsync(10_000);
 
     expect(onAudioNotStarted).not.toHaveBeenCalled();
   });
 
-  it('a hang-up before the deadline clears the watch: no notice after', async () => {
+  it("a guest's audio plays at 2 s and Ferni's never does: the notice at 8 s", async () => {
     const onAudioNotStarted = vi.fn();
     await connectWithAgent(onAudioNotStarted);
-    expect(room.listenerCount('audioPlaybackChanged')).toBe(1); // the watch is armed
+    const guest: Who = { identity: 'guest-2', isAgent: false, audioTrackPublications: new Map() };
+    room.remoteParticipants.set(guest.identity, guest);
+
+    await vi.advanceTimersByTimeAsync(2_000);
+    startPlaying(subscribeAudio(guest, 'TR_guest'));
+    await vi.advanceTimersByTimeAsync(5_999);
+    expect(onAudioNotStarted).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(onAudioNotStarted).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ['on', true],
+    ['off', false],
+  ])(
+    'Ferni leaves at 6 s, reconnect prompt %s: never "sound didn\'t start"',
+    async (_label, promptOn) => {
+      if (promptOn) localStorage.setItem(AGENT_DROP_PROMPT_FLAG_KEY, 'true');
+      const onAudioNotStarted = vi.fn();
+      const onAgentLost = vi.fn();
+      await connectWithAgent(onAudioNotStarted, { onAgentLost });
+
+      await vi.advanceTimersByTimeAsync(6_000);
+      const agent = ferni();
+      room.remoteParticipants.delete('agent-1');
+      room.emit('participantDisconnected', agent);
+      await vi.advanceTimersByTimeAsync(30_000);
+
+      expect(onAudioNotStarted).not.toHaveBeenCalled();
+      expect(onAgentLost).toHaveBeenCalledTimes(promptOn ? 1 : 0);
+    }
+  );
+
+  it('a hang-up before the deadline clears the watch and the timing line: no notice after', async () => {
+    const onAudioNotStarted = vi.fn();
+    await connectWithAgent(onAudioNotStarted);
+    expect(room.listenerCount('audioPlaybackChanged')).toBe(2); // the watch and the timing line
 
     await service.disconnect();
-    expect(room.listenerCount('audioPlaybackChanged')).toBe(0); // and went with the call
+    expect(room.listenerCount('audioPlaybackChanged')).toBe(0); // both went with the call
     await vi.advanceTimersByTimeAsync(10_000);
 
     expect(onAudioNotStarted).not.toHaveBeenCalled();
+  });
+
+  it('flag off (the default): a silent track never gets the notice, and no watch is armed', async () => {
+    const onAudioNotStarted = vi.fn();
+    await connectWithAgent(onAudioNotStarted, { watch: false });
+    expect(room.listenerCount('audioPlaybackChanged')).toBe(1); // the timing line only
+
+    subscribeAudio(ferni(), 'TR_voice');
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    expect(onAudioNotStarted).not.toHaveBeenCalled();
+    await service.disconnect();
+    expect(room.listenerCount('audioPlaybackChanged')).toBe(0);
   });
 });

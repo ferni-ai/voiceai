@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { AUDIO_START_WATCH_STORAGE_KEY } from '../../config/audio-start-watch-flag.js';
 import { DEMO_KEYS } from '../../config/storage-keys.js';
 import {
   DEMO_END_GRACE_MS,
@@ -15,7 +16,7 @@ interface FakeRoom {
   disconnect: Mock<DemoRoom['disconnect']>;
   waitForAgent: Mock<DemoRoom['waitForAgent']>;
   startAudio: Mock<DemoRoom['startAudio']>;
-  watchAudioStart: Mock<DemoRoom['watchAudioStart']>;
+  watchCallAudio: Mock<DemoRoom['watchCallAudio']>;
   onEnd: DemoRoom['onEnd'];
   onPlaybackChange: DemoRoom['onPlaybackChange'];
   fireEnd: () => void;
@@ -31,7 +32,7 @@ function fakeRoom(overrides: Partial<FakeRoom> = {}): FakeRoom {
     disconnect: vi.fn(async () => undefined),
     waitForAgent: vi.fn(async () => undefined),
     startAudio: vi.fn(async () => undefined),
-    watchAudioStart: vi.fn(() => vi.fn()),
+    watchCallAudio: vi.fn(() => vi.fn()),
     onEnd: (cb) => {
       onEnd = cb;
     },
@@ -331,14 +332,14 @@ describe('liveKitDemoRoom', () => {
 describe('demo call: Ferni joins but none of his audio plays', () => {
   it('watches once Ferni is here, relays the notice, and stops watching on hang-up', async () => {
     const stop = vi.fn();
-    const room = fakeRoom({ watchAudioStart: vi.fn(() => stop) });
+    const room = fakeRoom({ watchCallAudio: vi.fn(() => stop) });
     const call = await startDemoCall({
       fetchFn: respond(200, demoBody),
       createRoom: () => room,
       requestMicrophone: noMic,
     });
-    expect(room.watchAudioStart).toHaveBeenCalledOnce();
-    const deps = room.watchAudioStart.mock.calls[0]![0];
+    expect(room.watchCallAudio).toHaveBeenCalledOnce();
+    const deps = room.watchCallAudio.mock.calls[0]![0];
     const onSilent = vi.fn();
     call.onAudioNotStarted(onSilent);
 
@@ -351,11 +352,46 @@ describe('demo call: Ferni joins but none of his audio plays', () => {
     expect(deps.userHangingUp()).toBe(true);
   });
 
-  async function liveDemo(): Promise<{ umd: ReturnType<typeof stubUmdRoom>; onSilent: Mock }> {
+  type Who = { identity: string; isAgent: boolean; audioTrackPublications: Map<string, unknown> };
+  const ferni = (): Who => ({
+    identity: 'agent-1',
+    isAgent: true,
+    audioTrackPublications: new Map(),
+  });
+  const guest = (): Who => ({
+    identity: 'guest-2',
+    isAgent: false,
+    audioTrackPublications: new Map(),
+  });
+
+  /** What LiveKit does on subscribe: the publication gets the track; attach() records its element. */
+  function subscribeAudio(umd: StubRoom, who: Who): HTMLAudioElement {
+    const el = document.createElement('audio');
+    const track = {
+      kind: 'audio',
+      attachedElements: [] as HTMLMediaElement[],
+      attach() {
+        track.attachedElements.push(el);
+        return el;
+      },
+    };
+    const publication = { kind: 'audio', track };
+    who.audioTrackPublications.set(`TR_${who.audioTrackPublications.size}`, publication);
+    umd.emit('trackSubscribed', track, publication, who);
+    return el;
+  }
+
+  function startPlaying(el: HTMLMediaElement): void {
+    Object.defineProperty(el, 'paused', { configurable: true, get: () => false });
+    Object.defineProperty(el, 'readyState', { configurable: true, get: () => 4 });
+    el.dispatchEvent(new Event('playing'));
+  }
+
+  async function liveDemo(...people: Who[]): Promise<{ umd: StubRoom; onSilent: Mock }> {
     vi.useFakeTimers();
     const umd = stubUmdRoom();
     (umd as { canPlaybackAudio: boolean }).canPlaybackAudio = true;
-    umd.remoteParticipants.set('agent-1', { identity: 'agent-1', isAgent: true });
+    for (const who of people) umd.remoteParticipants.set(who.identity, who);
     const call = await startDemoCall({
       fetchFn: respond(200, demoBody),
       createRoom: () => liveKitDemoRoom(() => umd),
@@ -366,40 +402,60 @@ describe('demo call: Ferni joins but none of his audio plays', () => {
     return { umd, onSilent };
   }
 
-  it('over a LiveKit room: a track that never plays gets the notice 3 s after it arrives', async () => {
-    const { umd, onSilent } = await liveDemo();
+  describe('with WEB_AUDIO_START_WATCH on', () => {
+    beforeEach(() => localStorage.setItem(AUDIO_START_WATCH_STORAGE_KEY, 'true'));
+    afterEach(() => localStorage.clear());
+
+    it('over a LiveKit room: a track that never plays gets the notice 3 s after it arrives', async () => {
+      const agent = ferni();
+      const { umd, onSilent } = await liveDemo(agent);
+      await vi.advanceTimersByTimeAsync(2_000);
+      subscribeAudio(umd, agent);
+
+      await vi.advanceTimersByTimeAsync(2_999);
+      expect(onSilent).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(onSilent).toHaveBeenCalledOnce();
+    });
+
+    it('over a LiveKit room: Ferni sends no audio at all, the notice at 8 s', async () => {
+      const { onSilent } = await liveDemo(ferni());
+
+      await vi.advanceTimersByTimeAsync(7_999);
+      expect(onSilent).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(onSilent).toHaveBeenCalledOnce();
+    });
+
+    it('over a LiveKit room: his track that plays means no notice', async () => {
+      const agent = ferni();
+      const { umd, onSilent } = await liveDemo(agent);
+      startPlaying(subscribeAudio(umd, agent));
+
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(onSilent).not.toHaveBeenCalled();
+    });
+
+    it("over a LiveKit room: a guest's audio plays at 2 s, Ferni's never does: the notice at 8 s", async () => {
+      const visitor = guest();
+      const { umd, onSilent } = await liveDemo(ferni(), visitor);
+      await vi.advanceTimersByTimeAsync(2_000);
+      startPlaying(subscribeAudio(umd, visitor));
+
+      await vi.advanceTimersByTimeAsync(5_999);
+      expect(onSilent).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(onSilent).toHaveBeenCalledOnce();
+    });
+  });
+
+  it('with the flag off (the default): no notice, however long the silence', async () => {
+    const agent = ferni();
+    const { umd, onSilent } = await liveDemo(agent);
     await vi.advanceTimersByTimeAsync(2_000);
-    umd.emit(
-      'trackSubscribed',
-      { kind: 'audio', attach: () => document.createElement('audio') },
-      { kind: 'audio' },
-      { identity: 'agent-1', isAgent: true }
-    );
+    subscribeAudio(umd, agent);
 
-    await vi.advanceTimersByTimeAsync(2_999);
-    expect(onSilent).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(1);
-    expect(onSilent).toHaveBeenCalledOnce();
-  });
-
-  it('over a LiveKit room: Ferni sends no audio at all, the notice at 8 s', async () => {
-    const { onSilent } = await liveDemo();
-
-    await vi.advanceTimersByTimeAsync(7_999);
-    expect(onSilent).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(1);
-    expect(onSilent).toHaveBeenCalledOnce();
-  });
-
-  it('over a LiveKit room: a track that plays means no notice', async () => {
-    const { umd, onSilent } = await liveDemo();
-    const el = document.createElement('audio');
-    umd.emit('trackSubscribed', { kind: 'audio', attach: () => el });
-    Object.defineProperty(el, 'paused', { configurable: true, get: () => false });
-    Object.defineProperty(el, 'readyState', { configurable: true, get: () => 4 });
-    el.dispatchEvent(new Event('playing'));
-
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(30_000);
     expect(onSilent).not.toHaveBeenCalled();
   });
 });

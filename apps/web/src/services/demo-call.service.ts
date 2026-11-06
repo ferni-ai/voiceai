@@ -21,7 +21,7 @@ import {
   type PresenceParticipant,
   type PresenceRoom,
 } from './agent-presence.js';
-import { watchAudioStart, type AudioStartDeps } from './audio-start-watch.js';
+import { watchCallAudio, type AudioStartDeps } from './audio-start-watch.js';
 
 const log = createLogger('DemoCall');
 
@@ -55,8 +55,8 @@ export interface DemoRoom {
   onPlaybackChange(onChange: (canPlay: boolean) => void): void;
   /** Starts blocked audio; call it inside a tap. */
   startAudio(): Promise<void>;
-  /** Once Ferni is here: report if none of his audio plays (audio-start-watch.ts). Returns the stop. */
-  watchAudioStart(deps: Pick<AudioStartDeps, 'userHangingUp' | 'onAudioNotStarted'>): () => void;
+  /** Once Ferni is here: time his audio starting; report if none of it plays. Returns the stop. */
+  watchCallAudio(deps: AudioStartDeps): () => void;
   disconnect(): Promise<void>;
 }
 
@@ -157,7 +157,7 @@ export function liveKitDemoRoom(makeRoom: () => UmdRoom = umdRoom): DemoRoom {
       onChange(room.canPlaybackAudio);
     },
     startAudio: () => room.startAudio(),
-    watchAudioStart: (deps) => watchAudioStart(room, { ...deps, agentAudio: () => players }),
+    watchCallAudio: (deps) => watchCallAudio(room, deps),
     disconnect: async () => {
       await room.disconnect();
       removePlayers();
@@ -250,7 +250,7 @@ export async function startDemoCall(deps: DemoCallDeps = {}): Promise<DemoCall> 
     end();
     throw new DemoCallError('unavailable', error);
   }
-  stopAudioWatch = room.watchAudioStart({
+  stopAudioWatch = room.watchCallAudio({
     userHangingUp: () => over,
     onAudioNotStarted: () => onSilent(),
   });

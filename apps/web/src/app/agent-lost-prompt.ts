@@ -12,10 +12,14 @@
  * one Try again, and End call stays in the call controls. That notice is added
  * beside anything already showing (a crisis line must stay visible) and is
  * removed only through the handle it returns.
+ *
+ * One message, never two: once Ferni has dropped off, that is what the silence
+ * means. The drop prompt takes down this module's own "sound didn't start", and
+ * "sound didn't start" is not shown while the drop prompt is up.
  */
 
 import { connectFailure } from '../services/connect-failure.js';
-import { addCallNotice, showCallNotice } from '../ui/call-status.ui.js';
+import { addCallNotice, showCallNotice, shownCallNoticeKind } from '../ui/call-status.ui.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('AgentLostPrompt');
@@ -35,7 +39,12 @@ function rejoin(call: AgentLostCall, after: string): void {
     .catch((err: unknown) => log.warn(`Reconnect after ${after} failed`, err));
 }
 
+/** Removes the "sound didn't start" notice this module showed, if it is still up. */
+let removeAudioNotStarted: (() => void) | undefined;
+
 export function showAgentLostPrompt(call: AgentLostCall): void {
+  removeAudioNotStarted?.();
+  removeAudioNotStarted = undefined;
   showCallNotice(connectFailure('agent_left'), {
     onRetry: () => rejoin(call, 'agent drop'),
     onEnd: () => {
@@ -47,7 +56,12 @@ export function showAgentLostPrompt(call: AgentLostCall): void {
   });
 }
 
-/** Returns the function that removes this notice, and only this notice. */
-export function showAudioNotStartedPrompt(call: AgentLostCall): () => void {
-  return addCallNotice(connectFailure('audio_not_started'), () => rejoin(call, 'silent start'));
+/** Returns the function that removes this notice, and only this notice; nothing if Ferni has dropped off. */
+export function showAudioNotStartedPrompt(call: AgentLostCall): (() => void) | undefined {
+  if (shownCallNoticeKind() === 'agent_left') return undefined;
+  const remove = addCallNotice(connectFailure('audio_not_started'), () =>
+    rejoin(call, 'silent start')
+  );
+  removeAudioNotStarted = remove;
+  return remove;
 }

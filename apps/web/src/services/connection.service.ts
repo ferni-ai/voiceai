@@ -61,7 +61,7 @@ import type { RoomState, TokenRequest } from '../types/livekit.js';
 import { createLogger } from '../utils/logger.js';
 import { agentAudioTrackKind } from './agent-audio-track.js';
 import { watchAgentDrop, type AgentLostReason } from './agent-drop-watch.js';
-import { watchAudioStart, type AudioStartDeps } from './audio-start-watch.js';
+import { watchCallAudio, type AudioStartDeps } from './audio-start-watch.js';
 import {
   AGENT_JOIN_TIMEOUT_AFTER_FAILED_DISPATCH_MS,
   AGENT_JOIN_TIMEOUT_MS,
@@ -129,7 +129,6 @@ class ConnectionService {
   // Track intentional disconnects vs crashes
   private isDisconnecting = false;
   private readonly audioStartDeps: AudioStartDeps = {
-    agentAudio: () => this.audioElements.values(),
     userHangingUp: () => this.isDisconnecting,
     onAudioNotStarted: () => this.callbacks.onAudioNotStarted?.(),
   };
@@ -505,7 +504,7 @@ class ConnectionService {
       this.awaitingAgent = false;
       this.updateState('connected');
       this.callbacks.onAgentConnected?.(agentIdentity);
-      this.cleanupFunctions.push(watchAudioStart(room, this.audioStartDeps));
+      this.cleanupFunctions.push(watchCallAudio(room, this.audioStartDeps));
       this.startQualityMonitoring();
 
       // 📊 Initialize disconnect diagnostics session

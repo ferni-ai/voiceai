@@ -30,6 +30,8 @@ interface ImportMetaEnv {
   readonly VITE_SEEDS?: string;
   /** "true" shows Cancel and Reschedule in When I'll Reach Out (config/reach-out-actions-flag.ts). */
   readonly VITE_REACH_OUT_ACTIONS?: string;
+  /** "true" shows "The sound didn't start" when Ferni's audio never plays (config/audio-start-watch-flag.ts). */
+  readonly VITE_WEB_AUDIO_START_WATCH?: string;
 }
 
 interface ImportMeta {

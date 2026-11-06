@@ -2,10 +2,15 @@
  * The audio-start watchdog only ever adds its own notice and only ever removes
  * its own notice. Whatever else is on screen (here another call notice standing
  * in for a crisis line) stays when it fires and stays when it stands down.
+ * One message, never two: with Ferni's drop prompt up, "sound didn't start" is
+ * not added, and the drop prompt takes down a "sound didn't start" already up.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { showAudioNotStartedPrompt } from '../../../src/app/agent-lost-prompt.js';
+import {
+  showAgentLostPrompt,
+  showAudioNotStartedPrompt,
+} from '../../../src/app/agent-lost-prompt.js';
 import {
   AUDIO_PUBLISH_DEADLINE_MS,
   watchAudioStart,
@@ -16,16 +21,28 @@ import { clearCallNotice, showCallNotice } from '../../../src/ui/call-status.ui.
 const kinds = () =>
   [...document.querySelectorAll<HTMLElement>('.call-status')].map((n) => n.dataset['kind']);
 
+let ferniTracks: Map<string, { track: { attachedElements: HTMLMediaElement[] } }>;
+
+/** Ferni is in the room (he has joined), with whatever audio tracks the test gives him. */
 function room() {
-  return { state: 'connected', canPlaybackAudio: undefined, on: vi.fn(), off: vi.fn() };
+  return {
+    state: 'connected',
+    canPlaybackAudio: undefined,
+    remoteParticipants: new Map([
+      [
+        'agent-ferni',
+        { identity: 'agent-ferni', isAgent: true, audioTrackPublications: ferniTracks },
+      ],
+    ]),
+    on: vi.fn(),
+    off: vi.fn(),
+  };
 }
 
 const call = { endCall: vi.fn(async () => undefined), connect: vi.fn(async () => undefined) };
-let agentAudio: HTMLAudioElement[];
 
 function armWatch(): () => void {
   return watchAudioStart(room(), {
-    agentAudio: () => agentAudio,
     userHangingUp: () => false,
     onAudioNotStarted: () => showAudioNotStartedPrompt(call),
   });
@@ -39,7 +56,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   clearCallNotice();
   document.body.innerHTML = '<main><div class="controls-row"></div></main>';
-  agentAudio = [];
+  ferniTracks = new Map();
 });
 
 afterEach(() => {
@@ -67,7 +84,7 @@ describe('the audio-start notice beside other UI', () => {
 
     const voice = document.createElement('audio');
     document.body.appendChild(voice);
-    agentAudio.push(voice);
+    ferniTracks.set('TR_voice', { track: { attachedElements: [voice] } });
     voice.dispatchEvent(new Event('playing'));
 
     expect(kinds()).toEqual(['rate_limited']);
@@ -100,5 +117,32 @@ describe('the audio-start notice beside other UI', () => {
     vi.advanceTimersByTime(AUDIO_PUBLISH_DEADLINE_MS);
 
     expect(document.activeElement).toBe(other);
+  });
+
+  it('the drop prompt is up: no "sound didn\'t start" on top of it', () => {
+    showAgentLostPrompt(call);
+    const stop = armWatch();
+    vi.advanceTimersByTime(AUDIO_PUBLISH_DEADLINE_MS);
+
+    expect(kinds()).toEqual(['agent_left']);
+    stop();
+    expect(kinds()).toEqual(['agent_left']);
+  });
+
+  it('"sound didn\'t start" is up and Ferni drops off: only the drop prompt', () => {
+    const stop = armWatch();
+    vi.advanceTimersByTime(AUDIO_PUBLISH_DEADLINE_MS);
+    expect(kinds()).toEqual(['audio_not_started']);
+
+    showAgentLostPrompt(call);
+    expect(kinds()).toEqual(['agent_left']);
+    stop(); // the call's cleanup later: the drop prompt stays
+    expect(kinds()).toEqual(['agent_left']);
+  });
+
+  it('with no drop prompt up, the notice shows beside a crisis line as before', () => {
+    showOtherNotice();
+    expect(showAudioNotStartedPrompt(call)).toEqual(expect.any(Function));
+    expect(kinds()).toHaveLength(2);
   });
 });

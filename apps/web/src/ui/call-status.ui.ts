@@ -121,6 +121,11 @@ export function clearCallNotice(): void {
   document.getElementById(NOTICE_ID)?.remove();
 }
 
+/** The kind of notice in the one shared slot (showCallNotice), if one is showing. */
+export function shownCallNoticeKind(): string | undefined {
+  return document.getElementById(NOTICE_ID)?.dataset['kind'];
+}
+
 function mount(notice: HTMLElement): void {
   const anchor = document.querySelector('.controls-row');
   if (anchor?.parentElement) {
