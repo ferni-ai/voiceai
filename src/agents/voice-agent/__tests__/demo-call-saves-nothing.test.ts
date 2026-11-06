@@ -60,6 +60,7 @@ import { createPersistenceStore } from '../../../services/persistence/index.js';
 import { notStored } from '../../../memory/storage/profile-save-guard.js';
 import {
   bindSessionUser,
+  IDLE_MS,
   memoryHeld,
   resetMinorCare,
   userHeld,
@@ -227,6 +228,20 @@ describe('anonymous try-first calls save nothing', { timeout: BUDGET_MS + 30_000
     await store.setImmediate(MEMBER, { note: 'planning a trip' });
     expect(under(DEMO)).toEqual([]);
     expect(under(MEMBER).length).toBeGreaterThan(0);
+  });
+
+  it("a live visitor's binding outlasts the bounded session map; an idle one is evicted", () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      bindSessionUser('demo-idle-1', 'device:demo_1793560000000_idle01');
+      vi.setSystemTime(Date.now() + IDLE_MS + 1);
+      bindSessionUser('demo-live-1', DEMO);
+      for (let i = 0; i <= 5_000; i++) bindSessionUser(`filler-${i}`, `member-filler-${i}`);
+      expect(memoryHeld('demo-live-1')).toBe(true); // still bound: every write stays held
+      expect(memoryHeld('demo-idle-1')).toBe(false); // the eviction ran
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('every profile save is refused for the visitor (the number they said never lands); a member saves', () => {

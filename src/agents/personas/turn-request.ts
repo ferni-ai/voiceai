@@ -10,7 +10,8 @@ import type { llm } from '@livekit/agents';
 import { contextPacketEnabled } from '../../config/context-packet-flag.js';
 import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { onlyPhoneSafeTools, PLACED_CALL_ALSO_SAFE } from '../shared/phone-safe-tools.js';
+import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
+import { alsoSafe } from './phone-safe-also.js';
 import { ownerWritesBlocked } from '../../services/identity/owner-write-gate.js';
 import { withoutQuickShortcuts } from '../shared/quick-shortcuts-real-only.js';
 import { heldAfter, lastFerniLine, type YouthNote } from '../../utils/minor-care.js';
@@ -418,18 +419,19 @@ export async function toolsForTurn(
   else withSameTurnTools(session, chatCtx, toolCtx, state.agent); // TOOLS_SAME_TURN: topic tools
   const view = unlockViewFor(session.userData);
   const sessionId = sessionIdOf(session.userData);
+  const userId = userIdOf(session.userData);
   // Not a verified owner (an anon: caller included): nothing that reaches other people.
   // MINOR_CARE=on: a caller under 18 who isn't a verified owner gets no tool that stores
   // anything. The phone-safe set holds no tool that reaches others, so it covers both.
   // ONBEHALF_WRITE_GATE: a call placed for a member (onbehalf:) acts on nobody's account either.
-  const others = mayReachOthers(userIdOf(session.userData), sessionId, sessionIsVerifiedOwner);
+  const others = mayReachOthers(userId, sessionId, sessionIsVerifiedOwner);
   const held = heldAfter(sessionId, callerWords(chatCtx), {
     asked: lastFerniLine(chatCtx.items),
-    userId: userIdOf(session.userData), // userHeld follows
+    userId, // userHeld follows
   });
   const allowed =
-    phoneOnlyIdentity(sessionId) || held || ownerWritesBlocked(userIdOf(session.userData))
-      ? await withoutAccountTools(toolCtx, state, onPlacedCallSession(sessionId))
+    phoneOnlyIdentity(sessionId) || held || ownerWritesBlocked(userId)
+      ? await withoutAccountTools(toolCtx, state, alsoSafe(userId, onPlacedCallSession(sessionId)))
       : others
         ? toolCtx
         : await withoutReachingOthers(toolCtx, state);
@@ -487,9 +489,8 @@ interface ToolHolder {
 async function withoutAccountTools(
   toolCtx: llm.ToolContext,
   state: TurnToolsState,
-  placedCall = false // PLACED_CALL_NOT_OWNER_PROOF: a call Ferni placed also keeps PLACED_CALL_ALSO_SAFE
+  also?: ReadonlySet<string> // phone-safe-also.ts
 ): Promise<llm.ToolContext> {
-  const also = placedCall ? PLACED_CALL_ALSO_SAFE : undefined;
   const agent = state.agent as ToolHolder | undefined;
   if (agent && onlyPhoneSafeTools(agent.toolCtx, also) !== agent.toolCtx) {
     await agent.updateTools(onlyPhoneSafeTools(agent.toolCtx, also));

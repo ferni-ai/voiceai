@@ -47,3 +47,8 @@ export function ownerWriteId<T extends string | undefined | null>(
 ): T | undefined {
   return ownerWritesBlocked(userId, env) ? undefined : userId;
 }
+
+/** No log line prints their words: a try-first visitor's, or whoever answers a call Ferni placed. */
+export function wordsNeverLogged(userId: string | undefined | null): boolean {
+  return isAnonymousDemoUser(userId) || isThirdPartyCallUser(userId);
+}
