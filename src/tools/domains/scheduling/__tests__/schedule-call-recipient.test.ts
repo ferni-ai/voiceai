@@ -139,7 +139,10 @@ const WHO = [
   'my friend Alex',
   'Mom',
 ];
-const MISSING_OR_UNKNOWN = [undefined, null, '', 'Other', 'OTHER', 'someone else', 'me', 42];
+const MISSING_OR_UNKNOWN = [undefined, null, '', '  ', 'someone else', 'me', 'others', 42];
+/** The model's own spelling of a valid value: case and surrounding spaces don't count. */
+const SELF = ['self', 'Self', 'SELF', ' self '];
+const OTHER = ['other', 'Other', 'OTHER', ' other '];
 const PATHS: Path[] = ['live', 'routed'];
 const grid = <T>(values: T[]) =>
   PATHS.flatMap((path) => values.flatMap((r) => WHO.map((who) => [path, r, who] as const)));
@@ -168,7 +171,7 @@ describe('SCHEDULE_CALL_WHO off (or unset): the tool is main', () => {
     expect(build().description).toBe(MAIN_DESCRIPTION);
   });
 
-  it.each(grid(['other', 'self', ...MISSING_OR_UNKNOWN]))(
+  it.each(grid([...OTHER, ...SELF, ...MISSING_OR_UNKNOWN]))(
     '%s, recipient %j, who %j sent anyway: the caller is rung exactly as main does',
     async (path, recipient, who) => {
       const main = await asMain(path);
@@ -205,10 +208,10 @@ describe('SCHEDULE_CALL_WHO on', () => {
     }
   );
 
-  it.each(grid(['self']))(
+  it.each(grid(SELF))(
     '%s, recipient %j, who %j: the call rings the verified phone',
-    async (path, _self, who) => {
-      const head = await outcome(argsOf('self', who), path);
+    async (path, self, who) => {
+      const head = await outcome(argsOf(self, who), path);
       expect(head.reply).toContain("I'll call you on");
       expect(head.reply).not.toMatch(TOOL_REFUSAL);
       expect(addressOf(head)).toEqual([VERIFIED]); // never the profile's PROFILE_PHONE
@@ -216,10 +219,10 @@ describe('SCHEDULE_CALL_WHO on', () => {
     }
   );
 
-  it.each(grid(['other']))(
+  it.each(grid(OTHER))(
     '%s, recipient %j, who %j: nothing scheduled, written, looked up or logged but a count',
-    async (path, _other, who) => {
-      const reply = await run(argsOf('other', who), path);
+    async (path, other, who) => {
+      const reply = await run(argsOf(other, who), path);
       expect(reply).toBe(NOT_FOR_SOMEONE_ELSE);
       expect(reply).toMatch(TOOL_REFUSAL); // the action-claim guard reads it as nothing done
       expect(reply).not.toMatch(/I can call|remind you|right now/i); // nothing offered instead

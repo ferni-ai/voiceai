@@ -5,9 +5,9 @@
  * that time instead, playing the words meant for the other person.
  *
  * With the flag on, the model says whom the call is for in `recipient`.
- * "other" schedules nothing and writes nothing, and the tool result says so,
- * with nothing offered in its place. "self", a missing value, or anything else
- * schedules exactly as main does. Nothing is read from the message or from any
+ * "other" (in any case, spaces trimmed) schedules nothing and writes nothing,
+ * and the tool result says so, with nothing offered in its place. "self", a
+ * missing value, or anything else schedules exactly as main does. Nothing is read from the message or from any
  * name, so the caller's own call is never refused.
  *
  * @module tools/domains/scheduling/schedule-call-recipient
@@ -50,17 +50,21 @@ export function scheduleCallDescription(env: Env = process.env): string {
   );
 }
 
-type RecipientField = z.ZodCatch<z.ZodOptional<z.ZodEnum<{ self: 'self'; other: 'other' }>>>;
+/** What the model wrote, trimmed and lower-cased: "Other" and " OTHER " are "other". */
+const normalised = (value: unknown): unknown =>
+  typeof value === 'string' ? value.trim().toLowerCase() : value;
+
+type RecipientField = z.ZodCatch<z.ZodPreprocess<z.ZodOptional<z.ZodEnum<{ self: 'self'; other: 'other' }>>>>; // prettier-ignore
 
 /**
- * The `recipient` parameter; none with the flag off. Optional, and a null or
- * unknown value parses as missing, so validation never drops a call.
+ * The `recipient` parameter; none with the flag off. Optional; case and
+ * surrounding spaces don't count, and a null or unknown value parses as
+ * missing, so validation never drops a call.
  */
 export function recipientParam(env: Env = process.env): { recipient?: RecipientField } {
   if (!scheduleCallWhoOn(env)) return {};
   const recipient = z
-    .enum(['self', 'other'])
-    .optional()
+    .preprocess(normalised, z.enum(['self', 'other']).optional())
     .catch(undefined)
     .describe(RECIPIENT_DESCRIPTION);
   return { recipient };
@@ -69,6 +73,7 @@ export function recipientParam(env: Env = process.env): { recipient?: RecipientF
 /**
  * The tool result when the model said the call is for someone else, or
  * undefined: the caller's own call, a missing or unknown value, or the flag off.
+ * Normalised here too, for tool paths that run without the schema's parse.
  * Logs a count only, never what the call was to say.
  */
 export function forSomeoneElse(
@@ -76,7 +81,7 @@ export function forSomeoneElse(
   userId: string,
   env: Env = process.env
 ): string | undefined {
-  if (!scheduleCallWhoOn(env) || params.recipient !== 'other') return undefined;
+  if (!scheduleCallWhoOn(env) || normalised(params.recipient) !== 'other') return undefined;
   log.info({ userId, recipient: 'other' }, '📞 Scheduled call for someone else: nothing scheduled');
   return NOT_FOR_SOMEONE_ELSE;
 }
