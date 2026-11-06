@@ -366,11 +366,28 @@ describe('demo call: Ferni joins but none of his audio plays', () => {
     return { umd, onSilent };
   }
 
-  it('over a LiveKit room: a track that never plays gets the notice at 3 s', async () => {
+  it('over a LiveKit room: a track that never plays gets the notice 3 s after it arrives', async () => {
     const { umd, onSilent } = await liveDemo();
-    umd.emit('trackSubscribed', { kind: 'audio', attach: () => document.createElement('audio') });
+    await vi.advanceTimersByTimeAsync(2_000);
+    umd.emit(
+      'trackSubscribed',
+      { kind: 'audio', attach: () => document.createElement('audio') },
+      { kind: 'audio' },
+      { identity: 'agent-1', isAgent: true }
+    );
 
-    await vi.advanceTimersByTimeAsync(3_000);
+    await vi.advanceTimersByTimeAsync(2_999);
+    expect(onSilent).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(onSilent).toHaveBeenCalledOnce();
+  });
+
+  it('over a LiveKit room: Ferni sends no audio at all, the notice at 8 s', async () => {
+    const { onSilent } = await liveDemo();
+
+    await vi.advanceTimersByTimeAsync(7_999);
+    expect(onSilent).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
     expect(onSilent).toHaveBeenCalledOnce();
   });
 

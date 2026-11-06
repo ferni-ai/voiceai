@@ -374,11 +374,13 @@ describe('Ferni joins but none of his audio plays (audio-start-watch.ts)', () =>
     document.body.innerHTML = '';
   });
 
-  it('shows the notice at the deadline and leaves the connection state alone', async () => {
+  it('his track at 2 s that never plays: the notice at 5 s, connection state left alone', async () => {
     const onAudioNotStarted = vi.fn();
     await connectWithAgent(onAudioNotStarted);
     setConnectionState.mockClear();
 
+    await vi.advanceTimersByTimeAsync(2_000);
+    room.emit('trackPublished', { kind: 'audio' }, { identity: 'agent-1', isAgent: true });
     await vi.advanceTimersByTimeAsync(2_999);
     expect(onAudioNotStarted).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);
@@ -387,6 +389,16 @@ describe('Ferni joins but none of his audio plays (audio-start-watch.ts)', () =>
     expect(setConnectionState).not.toHaveBeenCalled();
     expect(room.disconnect).not.toHaveBeenCalled();
     expect(service.getRoom()).toBe(room);
+  });
+
+  it('Ferni joins and sends no audio track: the notice at 8 s, not before', async () => {
+    const onAudioNotStarted = vi.fn();
+    await connectWithAgent(onAudioNotStarted);
+
+    await vi.advanceTimersByTimeAsync(7_999);
+    expect(onAudioNotStarted).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(onAudioNotStarted).toHaveBeenCalledOnce();
   });
 
   it('a subscribed track that plays before the deadline: no notice', async () => {

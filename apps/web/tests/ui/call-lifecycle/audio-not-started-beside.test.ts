@@ -6,7 +6,10 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { showAudioNotStartedPrompt } from '../../../src/app/agent-lost-prompt.js';
-import { watchAudioStart } from '../../../src/services/audio-start-watch.js';
+import {
+  AUDIO_PUBLISH_DEADLINE_MS,
+  watchAudioStart,
+} from '../../../src/services/audio-start-watch.js';
 import { connectFailure } from '../../../src/services/connect-failure.js';
 import { clearCallNotice, showCallNotice } from '../../../src/ui/call-status.ui.js';
 
@@ -48,7 +51,7 @@ describe('the audio-start notice beside other UI', () => {
     showOtherNotice();
     const stop = armWatch();
 
-    vi.advanceTimersByTime(3_000);
+    vi.advanceTimersByTime(AUDIO_PUBLISH_DEADLINE_MS);
     expect(kinds()).toEqual(expect.arrayContaining(['rate_limited', 'audio_not_started']));
     expect(kinds()).toHaveLength(2);
 
@@ -59,7 +62,7 @@ describe('the audio-start notice beside other UI', () => {
   it('his audio starting late removes only its own notice', () => {
     showOtherNotice();
     armWatch();
-    vi.advanceTimersByTime(3_000);
+    vi.advanceTimersByTime(AUDIO_PUBLISH_DEADLINE_MS);
     expect(kinds()).toHaveLength(2);
 
     const voice = document.createElement('audio');
@@ -72,7 +75,7 @@ describe('the audio-start notice beside other UI', () => {
 
   it('a notice that shows after it does not remove it, and it does not remove that one', () => {
     const stop = armWatch();
-    vi.advanceTimersByTime(3_000);
+    vi.advanceTimersByTime(AUDIO_PUBLISH_DEADLINE_MS);
     showOtherNotice();
     expect(kinds()).toHaveLength(2);
 
@@ -82,7 +85,7 @@ describe('the audio-start notice beside other UI', () => {
 
   it('sits a layer below the other notices, so it never covers one', () => {
     armWatch();
-    vi.advanceTimersByTime(3_000);
+    vi.advanceTimersByTime(AUDIO_PUBLISH_DEADLINE_MS);
     const ours = document.querySelector('[data-kind="audio_not_started"]');
     expect(ours?.classList.contains('call-status--beside')).toBe(true);
     const css = document.getElementById('call-status-styles')?.textContent ?? '';
@@ -94,7 +97,7 @@ describe('the audio-start notice beside other UI', () => {
     document.body.appendChild(other);
     other.focus();
     armWatch();
-    vi.advanceTimersByTime(3_000);
+    vi.advanceTimersByTime(AUDIO_PUBLISH_DEADLINE_MS);
 
     expect(document.activeElement).toBe(other);
   });
