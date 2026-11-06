@@ -321,11 +321,7 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
     tier: subscriptionTier,
   });
 
-  // The session is this caller's before session services make their first write: every
-  // writer's hold reads it (MINOR_CARE: userHeld(userId) follows this session's hold), and a
-  // try-first visitor's call keeps nothing (memoryHeld, isAnonymousDemoUser).
-  if (userId) bindSessionUser(sessionId, userId);
-
+  if (userId) bindSessionUser(sessionId, userId); // before any write: every hold reads it
   // ================================================================
   // CREATE SESSION SERVICES
   // FIX: Pass userName so it gets saved to Firestore profile!
