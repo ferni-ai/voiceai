@@ -444,12 +444,9 @@ describe('referral calls through placeOrHold', () => {
     expect(of('voice_referrals')[0].data).toMatchObject({ status: 'called', callSid: 'CA_2' });
   });
 
-  it('a support call keeps its support copy, placed and held', async () => {
-    expect(await supportAna()).toBe(
-      "I'm calling Ana now to let them know you care, and that I'm here if they ever want to talk."
-    );
-    vi.setSystemTime(ELEVEN_PM_LA);
-    expect(await supportAna()).toContain(', to let Ana know you care. Both times');
+  it('a support call keeps its support framing when placed', async () => {
+    expect(await supportAna()).toBe("I'm calling Ana now to let them know you care.");
+    expect(createSipParticipant).toHaveBeenCalledOnce();
   });
 
   it('flag off: a support call says what it said before', async () => {

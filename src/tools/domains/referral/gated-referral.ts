@@ -14,7 +14,7 @@ interface ReferralCall {
   referrerName: string;
   recipientName: string;
   recipientPhone: string;
-  /** sendSupportCall: the replies to the referrer keep its support framing. */
+  /** sendSupportCall: the placed reply keeps its support framing ("...you care."). */
   support?: boolean;
 }
 
@@ -51,14 +51,13 @@ export async function gatedReferral(
   });
   if (blocked) return { success: false, error: blocked };
   const name = referral.recipientName;
-  const forReferrer = referral.support ? 'you care' : "you're thinking of them";
   const placement = await placeGatedCall({
     userId: referral.referrerId,
     userName: referral.referrerName,
     contactName: name,
     phone: referral.recipientPhone,
     purpose: 'pass on a hello', // said to Ana: "Sam wanted me to pass on a hello."
-    requesterPurpose: `let ${name} know ${forReferrer}`, // said to Sam
+    requesterPurpose: `let ${name} know you're thinking of them`, // said to Sam
     context: message.trim(),
     objective: 'deliver_message',
     callType: 'personal',
@@ -69,8 +68,7 @@ export async function gatedReferral(
     return { success: false, error: placement.refused, reply };
   }
   await track({ ...referral, callSid: placement.placed, status: 'started' });
-  const reply = referral.support
-    ? `I'm calling ${name} now to let them know you care, and that I'm here if they ever want to talk.`
-    : `I'm calling ${name} now to let them know you're thinking of them.`;
+  const why = referral.support ? 'you care' : "you're thinking of them";
+  const reply = `I'm calling ${name} now to let them know ${why}.`;
   return { success: true, callSid: placement.placed, reply };
 }
