@@ -236,12 +236,14 @@ export function crisisRiskNoted(sessionId: string, now = Date.now()): boolean {
 }
 
 /**
- * Nothing goes out to the caller after this call: risk was noted on it (a read of someone hurting
- * them included), or a caller line tells of someone hurting them. The noted risk keeps a turn-1
- * disclosure held when the lines passed in are only the call's last turns.
+ * Nothing goes out to the caller after this call: risk on it (a read of someone hurting them
+ * included), a read still in flight, or a caller line that tells of someone hurting them. A read
+ * still in flight holds because the call can end before its last turn's read settles; one that
+ * never settles keeps holding. The noted risk keeps a turn-1 disclosure held when the lines passed
+ * in are only the call's last turns.
  */
 export function callHoldsOutreach(sessionId: string, callerLines: readonly string[]): boolean {
-  return crisisRiskNoted(sessionId) || abuseToldOnCall(callerLines);
+  return crisisRiskThisCall(sessionId) || abuseToldOnCall(callerLines);
 }
 
 /** A grounded release explained this turn's risk: unexplainedCrisisRisk stops counting it. */

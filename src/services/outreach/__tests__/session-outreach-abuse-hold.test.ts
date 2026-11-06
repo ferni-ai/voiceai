@@ -43,7 +43,11 @@ vi.mock('../../predictive-insights/data-collector.js', () => ({
 
 import { analyzeSessionForOutreach, type ConversationTurn } from '../session-integration.js';
 import { detectCrisis } from '../../safety/crisis-guard.js';
-import { notePatternRisk, resetCrisisCallRisk } from '../../safety/crisis-call-risk.js';
+import {
+  notePatternRisk,
+  resetCrisisCallRisk,
+  trackCrisisRead,
+} from '../../safety/crisis-call-risk.js';
 
 const call = (...said: string[]) => ({
   userId: 'member-k1e-abuse-hold',
@@ -104,6 +108,24 @@ describe('session-end outreach after a call where abuse was told', () => {
     expect(queued()).toBe(0);
     expect(publish.context).not.toHaveBeenCalled();
     expect(result).toEqual({ commitmentsFound: 0, triggersCreated: 0, contextUpdated: false });
+  });
+
+  it('a crisis read still in flight when the call ends holds it, and the call queues once it reads none', async () => {
+    let settle: (read: { risk: string }) => void = () => undefined;
+    const read = new Promise<{ risk: string }>((resolve) => {
+      settle = resolve;
+    });
+    // The last turn's classifier read has not settled when the call ends.
+    void trackCrisisRead('session-k1e-abuse-hold', 'i just want it all to stop', read);
+    const held = await analyzeSessionForOutreach(call(COMMITMENT, HEAVY));
+    expect(queued()).toBe(0);
+    expect(publish.context).not.toHaveBeenCalled();
+    expect(held).toEqual({ commitmentsFound: 0, triggersCreated: 0, contextUpdated: false });
+
+    settle({ risk: 'none' });
+    await read;
+    await analyzeSessionForOutreach(call(COMMITMENT, HEAVY));
+    expect(publish.commitment).toHaveBeenCalled();
   });
 
   it('the twin still queues: "my brother hits me at video games"', async () => {
