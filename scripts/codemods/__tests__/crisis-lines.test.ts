@@ -11,9 +11,7 @@ describe('crisis-lines codemod', () => {
       "import { z } from 'zod';\nexport const CONTACT = 'Call or text 988 (24/7)';\n"
     );
     expect(out).toContain('export const CONTACT = `Call or text ${LIFELINE_988.phone} (24/7)`;');
-    expect(out).toContain(
-      "import { LIFELINE_988 } from '../../../services/safety/crisis-lines.js';"
-    );
+    expect(out).toContain("import { LIFELINE_988 } from '../../../services/safety/index.js';");
   });
 
   it('replaces a literal that is exactly one value with the bare reference', () => {
@@ -24,7 +22,7 @@ describe('crisis-lines codemod', () => {
       'line: LIFELINE_988.name, name: CRISIS_TEXT_LINE.name, how: CRISIS_TEXT_LINE.text, sos: EMERGENCY_NUMBER'
     );
     expect(out).toContain(
-      "import { EMERGENCY_NUMBER } from '../../../services/safety/emergency-number.js';"
+      "import { CRISIS_TEXT_LINE, EMERGENCY_NUMBER, LIFELINE_988 } from '../../../services/safety/index.js';"
     );
   });
 

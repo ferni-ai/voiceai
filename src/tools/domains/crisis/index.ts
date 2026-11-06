@@ -25,17 +25,17 @@ import { trackToolUsage, isLifeCoachAnalyticsEnabled } from '../shared/index.js'
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-import { EMERGENCY_NUMBER } from '../../../services/safety/emergency-number.js';
 import {
   CHILD_ABUSE_HOTLINE,
   CRISIS_TEXT_LINE,
   DOMESTIC_VIOLENCE_HOTLINE,
+  EMERGENCY_NUMBER,
   LIFELINE_988,
   MENTAL_HEALTH_HELPLINE,
   SEXUAL_ASSAULT_HOTLINE,
   SUBSTANCE_HELPLINE,
   SUICIDE_PREVENTION_DIRECTORY,
-} from '../../../services/safety/crisis-lines.js';
+} from '../../../services/safety/index.js';
 // ============================================================================
 // CRISIS RESOURCES DATABASE
 // ============================================================================

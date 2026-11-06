@@ -38,20 +38,16 @@ export interface Ref {
   value: string;
   expr: string;
   symbol: string;
-  module: 'crisis-lines' | 'emergency-number';
 }
 
 /** Every value the rewrite moves, longest first so a name wins over the number inside it. */
 export function refs(): Ref[] {
-  const symbol = 'EMERGENCY_NUMBER';
-  const out: Ref[] = [
-    { value: EMERGENCY_NUMBER, expr: symbol, symbol, module: 'emergency-number' },
-  ];
+  const emergency = 'EMERGENCY_NUMBER';
+  const out: Ref[] = [{ value: EMERGENCY_NUMBER, expr: emergency, symbol: emergency }];
   for (const [symbol, line] of Object.entries(LINES)) {
     for (const field of FIELDS) {
       const value: unknown = (line as CrisisResource)[field];
-      if (typeof value === 'string')
-        out.push({ value, expr: `${symbol}.${field}`, symbol, module: 'crisis-lines' });
+      if (typeof value === 'string') out.push({ value, expr: `${symbol}.${field}`, symbol });
     }
   }
   const byValue = new Map<string, string>();
@@ -161,24 +157,17 @@ export function rewrite(file: string, source: string, all = refs()): Rewritten {
   return { text: addImports(file, source, text, used), edits };
 }
 
+/** One import from the safety barrel (other contexts import a context through its index). */
 function addImports(file: string, original: string, source: string, used: Set<Ref>): string {
-  const byModule = new Map<string, Set<string>>();
-  for (const r of used) byModule.set(r.module, (byModule.get(r.module) ?? new Set()).add(r.symbol));
+  const names = [...new Set([...used].map((r) => r.symbol))].sort();
+  for (const name of names)
+    if (new RegExp(`\\b${name}\\b`).test(original))
+      throw new Error(`${file} already has a ${name}; rewrite it by hand`);
+  let spec = relative(dirname(file), `${SAFETY}index.js`);
+  if (!spec.startsWith('.')) spec = `./${spec}`;
   const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
-  const imports = sf.statements.filter(ts.isImportDeclaration);
-  let text = source;
-  for (const [module, symbols] of byModule) {
-    let spec = relative(dirname(file), `${SAFETY}${module}.js`);
-    if (!spec.startsWith('.')) spec = `./${spec}`;
-    const names = [...symbols].sort();
-    for (const name of names)
-      if (new RegExp(`\\b${name}\\b`).test(original))
-        throw new Error(`${file} already has a ${name}; rewrite it by hand`);
-    const last = imports.at(-1);
-    const at = last ? last.getEnd() : 0;
-    text = `${text.slice(0, at)}\nimport { ${names.join(', ')} } from '${spec}';${text.slice(at)}`;
-  }
-  return text;
+  const at = sf.statements.filter(ts.isImportDeclaration).at(-1)?.getEnd() ?? 0;
+  return `${source.slice(0, at)}\nimport { ${names.join(', ')} } from '${spec}';${source.slice(at)}`;
 }
 
 // --- proof --------------------------------------------------------------------------------
