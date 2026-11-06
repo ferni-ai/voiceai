@@ -12,15 +12,14 @@ import {
   jaccard,
   MARKER,
   MIN_TOKENS,
-  precisionRecall,
   related,
   report,
-  scorePairs,
   shingles,
   THRESHOLDS,
   type Embed,
   type ExportedFn,
 } from '../semantic-duplicates.js';
+import { precisionRecall, scorePairs } from '../semantic-duplicates-eval.js';
 
 // A function long enough to pass the size floor; `name` and `seed` vary its identifiers and literals.
 const body = (

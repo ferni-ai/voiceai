@@ -230,50 +230,7 @@ export function changedExports(base: string, root: string): ExportedFn[] {
   });
 }
 
-/** A labelled pair: two exported functions with their repo paths, and whether they duplicate. */
-export interface LabelledPair {
-  a: string;
-  b: string;
-  fileA: string;
-  fileB: string;
-  dup: boolean;
-  note?: string;
-}
-export type PairScore = { pair: LabelledPair; cosine: number; jaccard: number; flagged: boolean };
-
-/** Scores each pair; `flagged` uses the same thresholds and size floor as findDuplicates. */
-export async function scorePairs(
-  pairs: LabelledPair[],
-  embed: Embed,
-  thresholds = THRESHOLDS
-): Promise<PairScore[]> {
-  const fnOf = (file: string, code: string, i: number): ExportedFn => {
-    const [fn] = exportedFunctions(file, code);
-    if (!fn) throw new Error(`pair ${i}: no exported function in the snippet`);
-    return fn;
-  };
-  const fns = pairs.map((p, i) => [fnOf(p.fileA, p.a, i), fnOf(p.fileB, p.b, i)] as const);
-  const vectors = await embedAll(fns.flat(), embed);
-  return fns.map(([a, b], i) => {
-    const pair = pairs[i] as LabelledPair;
-    const c = cosine(vectors.get(a) ?? NONE, vectors.get(b) ?? NONE);
-    const j = jaccard(shingles(a.tokens), shingles(b.tokens));
-    const flagged =
-      sized(a) && sized(b) && !related(a, b) && (c >= thresholds.cosine || j >= thresholds.jaccard);
-    return { pair, cosine: c, jaccard: j, flagged };
-  });
-}
-
-/** Precision and recall of `flagged` against the labels. */
-export function precisionRecall(scores: PairScore[]) {
-  const count = (flagged: boolean, dup: boolean): number =>
-    scores.filter((s) => s.flagged === flagged && s.pair.dup === dup).length;
-  const [tp, fp, fn] = [count(true, true), count(true, false), count(false, true)];
-  const ratio = (n: number, d: number): number => (d === 0 ? 1 : n / d);
-  return { precision: ratio(tp, tp + fp), recall: ratio(tp, tp + fn), tp, fp, fn };
-}
-
-const NONE = new Float32Array(0);
+export const NONE = new Float32Array(0);
 export const MARKER = '<!-- semantic-duplicates -->';
 
 /** The PR comment: one line per finding, naming the match. */
@@ -299,21 +256,6 @@ async function main(argv: string[]): Promise<void> {
   const root = process.cwd();
   const cache = arg('--cache');
   const embed = await localEmbed();
-  const devSet = arg('--eval');
-  if (devSet) {
-    const pairs = JSON.parse(readFileSync(devSet, 'utf8')) as LabelledPair[];
-    const scores = await scorePairs(pairs, embed);
-    for (const { pair: p, flagged, cosine: c, jaccard: j } of scores)
-      console.log(
-        p.dup ? 'dup ' : 'diff',
-        flagged ? 'FLAG' : '-',
-        c.toFixed(3),
-        j.toFixed(2),
-        p.note
-      );
-    console.log(JSON.stringify(precisionRecall(scores)));
-    return;
-  }
   const pool = poolAt(root);
   const candidates = argv.includes('--warm') ? [] : changedExports(resolveBase(root), root);
   const started = Date.now();
