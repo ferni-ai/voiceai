@@ -197,6 +197,7 @@ export function shadowPipelineGrade(
     priorRisk: boolean;
     screened: GradeInput['screen'];
     call: string | undefined;
+    voice?: GradeInput['voice'];
   },
   env: Env = process.env
 ): void {
@@ -210,11 +211,9 @@ export function shadowPipelineGrade(
       ? await turnVerdicts(scope, { ...input, earlier: [...input.earlier] }).catch(() => [null])
       : undefined;
     const main = pipelineMain(s);
-    const { patterns: detection, priorRisk, screened: screen, call } = turn;
-    shadowGrade(
-      { source: 'pipeline', main, detection, verdict, reads, priorRisk, screen, ...input, call },
-      env
-    );
+    const { patterns: detection, priorRisk, screened: screen, call, voice } = turn;
+    const at = { main, detection, verdict, reads, priorRisk, screen, call, voice };
+    shadowGrade({ source: 'pipeline', ...at, ...input }, env);
   };
   graded().catch((error: unknown) => warnQuietly({ error: String(error) }, 'CRISIS_GRADE failed'));
 }

@@ -269,6 +269,25 @@ describe('CRISIS_GRADED_RESPONSE=shadow: the grade', () => {
     expect(grades('pipeline')[0]).toMatchObject({ main: 'guide', blockedBy: 'R4_pattern' });
   });
 
+  it('C7b: a fearful voice with no words blocks it at both paths; decisions as off', async () => {
+    const voiceEmotion = { primary: 'fearful', confidence: 0.9, stressLevel: 0.3 };
+    for (const reads of [
+      [CRISIS, NONE],
+      [CRISIS, CRISIS],
+    ] as Array<Turn['reads']>) {
+      info.mockReset();
+      const off = await turn({ voiceEmotion, reads, env: PROD });
+      const shadow = await turn({ voiceEmotion, reads });
+      expect(withoutPrompts(shadow)).toEqual(withoutPrompts(off));
+      expect(grades('gate')[0]).toMatchObject({ main: 'guide', blockedBy: 'R4_voice' });
+    }
+    expect(grades('pipeline')[0]).toMatchObject({ main: 'guide' });
+    expect(grades('pipeline')[0].failed).toContain('R4_voice');
+    info.mockReset();
+    await turn({ voiceEmotion: { ...voiceEmotion, primary: 'neutral' } }); // calm: as C1
+    expect(grades('gate')[0]).toMatchObject({ would: 'L2', main: 'guide' });
+  });
+
   it('C8: any sign of a caller under 18 blocks it, call or profile level included', async () => {
     const MINOR = { MINOR_CARE: 'on' };
     const minorBlocked = () =>

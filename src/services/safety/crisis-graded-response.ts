@@ -12,11 +12,11 @@
  *
  * L2 needs every row clear: main's full crisis guide; plain text the rows can read; no
  * imminent read; about the caller, with no one else named in the turn; no one down, hurt
- * or near means on any line; no pattern signal at all; no sign of a caller under 18
- * (owner exemption ignored); no abuse disclosure; at least two reads of the turn, none
- * missing, exactly one crisis and no two agreeing on risk; no risk on the call before this
- * turn; Ferni's line did not ask about safety, life or a plan; no grounded-release screen
- * open; and the read is crisis about the caller. The wide rows live in
+ * or near means on any line; no pattern signal at all; a calm voice or none heard; no sign
+ * of a caller under 18 (owner exemption ignored); no abuse disclosure; at least two reads of
+ * the turn, none missing, exactly one crisis and no two agreeing on risk; no risk on the call
+ * before this turn; Ferni's line did not ask about safety, life or a plan; no grounded-release
+ * screen open; and the read is crisis about the caller. The wide rows live in
  * crisis-graded-blocks.ts and fail closed: a false hit only keeps main's full guide.
  *
  * @module CrisisGradedResponse
@@ -33,7 +33,7 @@ import {
   namesSomeoneElse,
   unreadable,
 } from './crisis-graded-blocks.js';
-import type { CrisisDetectionResult } from './crisis-guard.js';
+import type { CrisisDetectionResult, VoiceEmotionContext } from './crisis-guard.js';
 import { asksAboutSafety } from './crisis-lone-imminent.js';
 
 /** What main gives the turn: the gate's decision, or the pipeline's settled turn. */
@@ -54,6 +54,8 @@ export interface GradeInput {
   earlier: readonly string[];
   companion?: string;
   call: string | undefined;
+  /** The turn's voice read, as the patterns got it; undefined when none was heard. */
+  voice?: VoiceEmotionContext;
 }
 
 /** Every row that can block L2, in the order gradeTurn checks them. */
@@ -65,6 +67,7 @@ export const BLOCK_REASONS = [
   'R2_someone_else',
   'R3_down_or_means',
   'R4_pattern',
+  'R4_voice',
   'R5_minor',
   'R5_abuse',
   'R6_reads_missing',
@@ -93,6 +96,15 @@ function readsFailing(reads: GradeInput['reads']): BlockReason[] {
   if (reads.filter(isRisk).length >= 2) out.push('R6_agreeing_reads');
   if (reads.filter((v) => v?.risk === 'crisis').length !== 1) out.push('R6_no_risk_read');
   return out;
+}
+
+/** The voices R4_voice lets through; main reads a voice below this confidence as none. */
+const CALM_VOICES = new Set(['neutral', 'calm', 'happy', 'content', 'relaxed']);
+
+/** Fail closed: a voice heard as anything but calm, or strained, whatever the words say. */
+function voiceNotCalm(voice: VoiceEmotionContext | undefined): boolean {
+  if (!voice || (voice.confidence ?? 1) <= 0.5) return false;
+  return !CALM_VOICES.has(voice.primary.trim().toLowerCase()) || voice.intensity > 0.8;
 }
 
 /** Any sign of a caller under 18: no call id, an age heard or held, or a line that says so. */
@@ -124,6 +136,7 @@ export function gradeTurn(input: GradeInput): Grade {
   block(namesSomeoneElse(input.latest), 'R2_someone_else'); // "He collapsed.", whatever the read
   block(lines.some(downOrMeans), 'R3_down_or_means'); // someone else down is 911 first
   block(d.isCrisis || d.severity !== 0 || d.indicators.length > 0, 'R4_pattern');
+  block(voiceNotCalm(input.voice), 'R4_voice'); // "fearful" is in neither distress list
   block(minorSign(call, lines, companion), 'R5_minor');
   block(
     lines.some((l) => abuseDisclosure(l) !== null || mayDiscloseAbuse(l)),

@@ -163,11 +163,10 @@ export function startCrisisGate(
   const { latest, earlier, companion, ferni } = callerWords(chatCtx);
   if (!latest) return null;
 
-  const voiceEmotion = (userData as { voiceEmotion?: ProsodyEmotionLike } | undefined)
-    ?.voiceEmotion;
-  const found = detectCrisis(latest, toGuardVoiceEmotion(voiceEmotion), {
-    recentMessages: earlier,
-  });
+  const voice = toGuardVoiceEmotion(
+    (userData as { voiceEmotion?: ProsodyEmotionLike } | undefined)?.voiceEmotion
+  );
+  const found = detectCrisis(latest, voice, { recentMessages: earlier });
   // The answer to a grounded release's direct question: not a clear no is a gentle 988 offer,
   // or crisis guidance when the answer carries risk content (crisis-grounded-screen.ts).
   const screen = screenAnswer(sessionScope(userData), { latest, companion, ferni });
@@ -296,7 +295,7 @@ export function startCrisisGate(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },
       'CRISIS_GATE'
     );
-    const at = { main: mainOf(stronger), reads: allReads, priorRisk, screen, call };
+    const at = { main: mainOf(stronger), reads: allReads, priorRisk, screen, call, voice };
     if (!options.noReply) shadowGrade({ source: 'gate', ...at, detection, verdict, ...said }, env);
     return stronger;
   };

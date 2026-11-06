@@ -337,7 +337,7 @@ export function startTurnCrisis(
     const read = easingOn ? (eased ??= easeTurn(turn)) : turn;
     // CRISIS_GRADED_RESPONSE=shadow: logs a grade; `read` passes on untouched, before the wrappers.
     const graded = { classifier, scope: holdForReads ? scope : undefined, input, call };
-    if (first) shadowPipelineGrade(read, { ...graded, patterns, priorRisk, screened }, env);
+    if (first) shadowPipelineGrade(read, { ...graded, patterns, priorRisk, screened, voice }, env);
     // MINOR_ABUSE_DISCLOSURE: a caller under 18 telling of sexual harm, after every read; no
     // classifier read keeps 988 (minor-abuse-disclosure.ts).
     const minor = withMinorAbuseRead(read, call, input, { priorRisk, classifier }, env);
