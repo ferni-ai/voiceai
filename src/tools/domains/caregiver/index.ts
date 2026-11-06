@@ -31,7 +31,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-
+import { crisisLines } from '../../../services/safety/index.js';
 // Cross-persona intelligence for team coordination
 import { addCrossPersonaInsight } from '../../../services/cross-persona-insights.js';
 
@@ -433,7 +433,7 @@ I hereby give myself permission to:
 **Resources:**
 
 - ARCH National Respite Network: archrespite.org
-- Eldercare Locator: 1-800-677-1116
+- ${crisisLines.ELDERCARE_LOCATOR.name}: ${crisisLines.ELDERCARE_LOCATOR.phone}
 - Local Area Agency on Aging
 - Medicaid waiver programs (state-specific)
 - Veteran respite programs (if applicable)

@@ -119,9 +119,15 @@
 /src/tasks/scheduled/wellbeing-jobs.ts @sethdford
 /src/tools/domains/anger/index.ts @sethdford
 /src/tools/domains/body-relationship/index.ts @sethdford
+/src/tools/domains/caregiver/index.ts @sethdford
 /src/tools/domains/index.ts @sethdford
+/src/tools/domains/job-loss/index.ts @sethdford
+/src/tools/domains/life-coaching-shared/adaptive-response.ts @sethdford
 /src/tools/domains/life-coaching-shared/index.ts @sethdford
 /src/tools/domains/life-coaching-shared/safety-guards.ts @sethdford
+/src/tools/domains/new-parent/index.ts @sethdford
+/src/tools/domains/smart-home/index.ts @sethdford
+/src/tools/domains/sobriety/index.ts @sethdford
 /src/tools/domains/trauma-support/index.ts @sethdford
 /src/tools/handoff/handoff-consent.ts @sethdford
 /src/tools/handoff/locked-teammates.ts @sethdford

@@ -39,3 +39,9 @@ export const SEXUAL_ASSAULT_HOTLINE = line('RAINN National Sexual Assault Hotlin
 export const CHILD_ABUSE_HOTLINE = line('Childhelp National Child Abuse Hotline', 'phone');
 export const SUBSTANCE_HELPLINE = line('SAMHSA National Helpline', 'phone');
 export const MENTAL_HEALTH_HELPLINE = line('NAMI Helpline', 'phone');
+export const ELDERCARE_LOCATOR = line('Eldercare Locator', 'phone');
+export const EATING_DISORDER_HELPLINE = line(
+  'National Eating Disorders Association Helpline',
+  'phone',
+  'text'
+);

@@ -55,6 +55,19 @@ describe('crisis-lines codemod', () => {
     expect(strings(FILE, out)).toEqual(strings(FILE, source));
   });
 
+  it('keeps a literal that would turn from a resource into a crisis word string', () => {
+    // the crisis readers ratchet counts each kind per file; moving a site between kinds would fail it
+    const reply = "export const R = 'If you think about suicide, call 988.';\n";
+    expect(rewrite(FILE, reply)).toEqual({ text: reply, edits: [], kept: [1] });
+    const template = 'export const T = `Thoughts of self-harm? Call 988, ${name}.`;\n';
+    expect(rewrite(FILE, template)?.kept).toEqual([1]);
+    const both = `${reply}export const C = 'Call or text 988';\n`;
+    const out = rewrite(FILE, both)!;
+    expect(out.kept).toEqual([1]);
+    expect(out.text).toContain("'If you think about suicide, call 988.'");
+    expect(out.text).toContain('`Call or text ${crisisLines.LIFELINE_988.phone}`');
+  });
+
   it('refuses a file that already has a name the rewrite would import', () => {
     expect(() => run("const crisisLines = 1;\nexport const A = 'Call 988';\n")).toThrow(
       /crisisLines/
@@ -69,7 +82,56 @@ describe('crisis-lines codemod', () => {
     expect(out.split('\n')).toHaveLength(source.length);
     expect(out).toMatch(/'\.\/a\.js';\nimport \{ crisisLines \} from .*\nimport \{ b \}/);
     const noBlank = source.filter((l, i) => i !== 1).join('\n');
-    expect(() => run(noBlank)).toThrow(/no blank line between imports/);
+    expect(() => run(noBlank)).toThrow(/no blank line around its imports/);
+  });
+
+  it('adds the name to an import from the safety barrel that is already there', () => {
+    const spec = '../../../services/safety/index.js';
+    const has = `import { IN_DANGER_NOW } from '${spec}';\nexport const A = 'Call 988';\n`;
+    expect(run(has)).toBe(
+      `import { IN_DANGER_NOW, crisisLines } from '${spec}';\nexport const A = \`Call \${crisisLines.LIFELINE_988.phone}\`;\n`
+    );
+    // a type-only import, or one that would pass the print width, keeps its own line
+    const typeOnly = `import type { X } from '${spec}';\nexport const A = 'Call 988';\n`;
+    expect(run(typeOnly).split('\n')).toHaveLength(4);
+    const long = `import { ${Array.from({ length: 12 }, (_, i) => `NAME_${i}`).join(', ')} } from '${spec}';\nexport const A = 'Call 988';\n`;
+    expect(run(long).split('\n')).toHaveLength(4);
+  });
+
+  it('takes a blank line that a comment follows, never one inside a comment', () => {
+    const body = Array.from({ length: 500 }, (_, i) => `export const L${i} = ${i};`);
+    const tail = ["export const A = 'Call 988';", ''];
+    const commented = [
+      "import { a } from './a.js'; // the a",
+      '',
+      '// b comes last',
+      "import { b } from './b.js';",
+      ...body,
+      ...tail,
+    ];
+    const out = run(commented.join('\n'));
+    expect(out.split('\n')).toHaveLength(commented.length);
+    expect(out).toMatch(
+      /the a\nimport \{ crisisLines \} from .*\n\/\/ b comes last\nimport \{ b \}/
+    );
+    expect(strings(FILE, out)).toEqual(strings(FILE, commented.join('\n')));
+    const inBlock = [
+      "import { a } from './a.js';",
+      '/* one',
+      '',
+      '   two */',
+      "import { b } from './b.js';",
+      ...body,
+      ...tail,
+    ];
+    expect(() => run(inBlock.join('\n'))).toThrow(/no blank line around its imports/);
+    // with none between the imports, the blank line under the file header takes it
+    const header = ['/**', ' * Example', '', ' */', '', ...inBlock.filter((_, i) => i !== 2)];
+    const top = run(header.join('\n'));
+    expect(top.split('\n')).toHaveLength(header.length);
+    expect(top).toMatch(
+      /^\/\*\*\n \* Example\n\n \*\/\nimport \{ crisisLines \} .*\nimport \{ a \}/
+    );
   });
 
   describe('--prove', () => {
