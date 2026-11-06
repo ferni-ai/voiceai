@@ -30,10 +30,10 @@ import { assertNotOptedOut } from './first-dial-opt-out.js';
 import { awaitAgent, endCallWithNoAgent, isAgentNotJoined } from './agent-join.js';
 import {
   enrichMessage,
-  enrichVoicemailMessage,
   type EnrichedMessage,
   type EnrichmentContext,
 } from './message-enrichment.js';
+import { onBehalfVoicemail } from './on-behalf-voicemail.js';
 
 const log = getLogger().child({ service: 'on-behalf-call-orchestrator' });
 
@@ -62,7 +62,6 @@ export interface OnBehalfCall {
   // Call metadata
   script: string;
   complianceScript: string;
-  enrichedMessage?: EnrichedMessage;
 
   // Twilio data
   twilioCallSid?: string;
@@ -228,7 +227,6 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       status: 'pending',
       script,
       complianceScript,
-      enrichedMessage,
       createdAt: new Date(),
     };
 
@@ -612,8 +610,15 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       call.status = 'voicemail';
       activeCallsStore.set(callId, call);
 
-      // Generate enriched voicemail message (async for LLM enrichment)
-      const voicemailMessage = await this.generateVoicemailMessageAsync(call);
+      // The AI-friend greeting, then the message about the requester (on-behalf-voicemail.ts)
+      const contact = call.request.resolvedContact;
+      const voicemailMessage = await onBehalfVoicemail({
+        recipientName: contact?.name ?? '',
+        relationship: contact?.relationship,
+        requesterName: call.request.userName,
+        purpose: call.request.purpose,
+        callType: call.request.callType,
+      });
 
       this.emit('voicemail-detected', call);
 
@@ -624,89 +629,6 @@ class OnBehalfCallOrchestrator extends EventEmitter {
     }
 
     return null;
-  }
-
-  /**
-   * Generate voicemail message with "Better Than Human" enrichment
-   *
-   * Instead of a robotic template, we generate a warm, natural message
-   * that sounds like it came from someone who truly cares.
-   */
-  private async generateVoicemailMessageAsync(call: OnBehalfCall): Promise<string> {
-    const contact = call.request.resolvedContact!;
-
-    // If we already have an enriched message with components, use those
-    if (call.enrichedMessage?.components) {
-      const { opening, personalContext, mainMessage, close } = call.enrichedMessage.components;
-      const parts = [opening];
-      if (personalContext) parts.push(personalContext);
-      parts.push(mainMessage);
-      parts.push(close);
-      return parts.join(' ');
-    }
-
-    // Otherwise, enrich specifically for voicemail
-    try {
-      const enrichmentContext: EnrichmentContext = {
-        originalMessage: call.request.purpose,
-        relationship: {
-          contactName: contact.name,
-          relationship: contact.relationship || 'friend',
-        },
-        sender: {
-          userName: call.request.userName,
-        },
-        settings: {
-          isVoicemail: true,
-          maxLength: 'medium',
-        },
-      };
-
-      const enrichedVoicemail = await enrichVoicemailMessage(enrichmentContext);
-      return enrichedVoicemail.message;
-    } catch (error) {
-      log.warn({ error: String(error) }, 'Voicemail enrichment failed, using fallback');
-      return this.generateVoicemailMessageFallback(call);
-    }
-  }
-
-  /**
-   * Fallback voicemail for when enrichment fails
-   * Still warmer than the old template, but doesn't require LLM
-   */
-  private generateVoicemailMessageFallback(call: OnBehalfCall): string {
-    const contact = call.request.resolvedContact!;
-    const purpose = call.request.purpose;
-    const userName = call.request.userName;
-
-    // Determine relationship depth for tone
-    const relationship = (contact.relationship || '').toLowerCase();
-    const isClose = [
-      'mother',
-      'mom',
-      'father',
-      'dad',
-      'spouse',
-      'wife',
-      'husband',
-      'partner',
-    ].includes(relationship);
-
-    if (isClose) {
-      return (
-        `Hey ${contact.name}, it's Ferni calling for ${userName}. ` +
-        `${userName} wanted me to ${purpose}... ` +
-        `Just know they're thinking of you. ` +
-        `Love you. Bye.`
-      );
-    }
-
-    return (
-      `Hi ${contact.name}, this is Ferni, calling on behalf of ${userName}. ` +
-      `${userName} wanted me to ${purpose}. ` +
-      `They wanted to make sure you got this message. ` +
-      `Take care, and talk soon.`
-    );
   }
 
   // =========================================================================

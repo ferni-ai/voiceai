@@ -72,6 +72,7 @@ const SURFACE = [
   'src/tools/domains/telephony/call-on-behalf.ts',
   'src/services/outreach/webhooks/twilio-webhooks.ts',
   'src/services/outreach/on-behalf-call-orchestrator.ts',
+  'src/services/outreach/on-behalf-voicemail.ts',
   'src/services/outreach/user-contact.ts',
   'src/services/contacts/contact-relationship-service.ts',
   'src/services/identity/contacts/contact-onboarding.ts',

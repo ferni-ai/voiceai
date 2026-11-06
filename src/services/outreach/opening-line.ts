@@ -103,6 +103,16 @@ export function ferniIntro({ sponsorName, personal, checkin }: OutboundParties):
 }
 
 /**
+ * The first words of every voicemail Ferni leaves for someone: "Hi Alex,
+ * it's Ferni, Sam's AI friend." The LiveKit voicemail prompt quotes it and the
+ * Twilio voicemail speaks it, so the disclosure is the same fixed text on both.
+ */
+export function voicemailGreeting(parties: OutboundParties): string {
+  const hello = parties.recipientName ? `Hi ${parties.recipientName}` : 'Hi';
+  return `${hello}, ${ferniIntro(parties)}.`;
+}
+
+/**
  * The opener: addresses the person on the line, introduces Ferni as the
  * user's AI friend, and says why it called. A dispatched opening line (a
  * family check-in's) is used instead when it says Ferni is an AI.
