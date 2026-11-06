@@ -34,6 +34,7 @@ vi.mock('../../../services/scheduling/reminder-scheduler.js', async (orig) => ({
 
 vi.mock('../../../services/background-agents/executors/call-executor.js', () => ({
   cantCallReply: async () => null,
+  gatedCallReply: async () => null, // CALL_PATHS_PLACE_OR_HOLD off
   queueCall: edge.queueCall,
 }));
 vi.mock('../../../services/communication-service.js', async (orig) => ({
