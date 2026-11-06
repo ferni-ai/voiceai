@@ -6,67 +6,17 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
-import { saysPhrase, saysRiskPhrase } from '../../../utils/safety-whole-word.js';
-import { IN_DANGER_NOW, readsImminentLive } from '../../../services/safety/index.js';
+import {
+  coachingFloorRead,
+  CRISIS_SEVERITY,
+  EMERGENCY_FOR_THEM,
+  IN_DANGER_NOW,
+  scoreCrisisLanguage,
+  type CoachingFloorRead,
+} from '../../../services/safety/index.js';
 import type { SafetyAssessment, CrisisResource, EmotionalState } from './types.js';
 
 const log = getLogger();
-
-// ============================================================================
-// CRISIS DETECTION
-// ============================================================================
-
-/**
- * Red flag phrases that require immediate attention
- */
-const CRISIS_INDICATORS = {
-  suicidal: [
-    'want to die',
-    'kill myself',
-    'end it all',
-    "can't go on",
-    'no reason to live',
-    'better off without me',
-    'suicide',
-    'suicidal',
-    'not worth living',
-  ],
-  selfHarm: ['hurt myself', 'cutting', 'self-harm', 'punish myself', 'want to feel pain'],
-  violence: ['kill them', 'hurt them', 'want to hurt', 'violent thoughts', 'want to attack'],
-  abuse: [
-    'being abused',
-    'hits me',
-    'hurts me',
-    'forces me',
-    'threatens me',
-    'afraid of them',
-    "won't let me leave",
-  ],
-  eatingDisorder: [
-    'purging',
-    "haven't eaten in days",
-    'making myself throw up',
-    'laxatives',
-    'restricting',
-    'binge and purge',
-  ],
-};
-
-/**
- * Concerning indicators that need check-in but not crisis response
- */
-const CONCERNING_INDICATORS = [
-  'hopeless',
-  "can't see a way out",
-  'trapped',
-  'exhausted with life',
-  "don't care anymore",
-  'numb',
-  'empty',
-  'worthless',
-  "can't cope",
-  'breaking down',
-];
 
 // ============================================================================
 // CRISIS RESOURCES
@@ -141,62 +91,60 @@ export const CRISIS_RESOURCES: Record<string, CrisisResource> = {
 // ============================================================================
 
 const IMMINENT_FLAG = 'suicidal: imminent means or attempt';
+const FOR_THEM_FLAG = 'third party: emergency';
 
-/** Assess safety level of user's message */
+type Tier = Pick<SafetyAssessment, 'level' | 'recommendedAction'>;
+
+/** The floor's own resource per category; suicidal and self-harm lines get the lifeline. */
+const FLOOR_RESOURCE: Partial<
+  Record<CoachingFloorRead['hits'][number]['category'], CrisisResource>
+> = {
+  abuse: CRISIS_RESOURCES.domesticViolence,
+  eatingDisorder: CRISIS_RESOURCES.eatingDisorder,
+};
+
+/** Any flag is crisis, three concern phrases urgent, one (or the guard's distress) a check-in. */
+function tierOf(flagged: boolean, concerns: number, distress: boolean): Tier {
+  if (flagged) return { level: 'crisis', recommendedAction: 'immediate_referral' };
+  if (concerns >= 3) return { level: 'urgent', recommendedAction: 'resources' };
+  if (concerns >= 1 || distress) return { level: 'concerning', recommendedAction: 'check_in' };
+  return { level: 'safe', recommendedAction: 'continue' };
+}
+
+/**
+ * Assess safety level of user's message. The crisis guard reads the words (services/safety, the
+ * kernel every voice turn uses); the coaching floor there only adds reads the guard does not make
+ * yet, and never lowers one. Guard tiers map to the consumers' actions: crisis -> crisis
+ * (immediate referral: the anger tool returns the crisis response, checkSafety blocks), means or
+ * an attempt -> the 911 line first, a distress signal below crisis -> concerning (check-in).
+ */
 export function assessSafety(text: string): SafetyAssessment {
-  const lower = text.toLowerCase();
+  const guard = scoreCrisisLanguage(text);
+  const floor = coachingFloorRead(text);
   const flags: string[] = [];
   const resources: CrisisResource[] = [];
+  const offerLifeline = (): void => {
+    if (resources.includes(CRISIS_RESOURCES.general)) return;
+    resources.push(CRISIS_RESOURCES.general, CRISIS_RESOURCES.text);
+  };
 
-  for (const [category, indicators] of Object.entries(CRISIS_INDICATORS)) {
-    for (const indicator of indicators) {
-      if (saysRiskPhrase(lower, indicator)) {
-        flags.push(`${category}: "${indicator}"`);
-        switch (category) {
-          case 'suicidal':
-          case 'selfHarm':
-            if (!resources.some((r) => r.name === CRISIS_RESOURCES.general.name)) {
-              resources.push(CRISIS_RESOURCES.general);
-              resources.push(CRISIS_RESOURCES.text);
-            }
-            break;
-          case 'abuse':
-            resources.push(CRISIS_RESOURCES.domesticViolence);
-            break;
-          case 'eatingDisorder':
-            resources.push(CRISIS_RESOURCES.eatingDisorder);
-            break;
-        }
-      }
-    }
+  for (const { category, phrase } of floor.hits) {
+    flags.push(`${category}: "${phrase}"`);
+    const resource = FLOOR_RESOURCE[category];
+    if (resource) resources.push(resource);
+    else if (category !== 'violence') offerLifeline();
   }
-
-  // Means in hand or an attempt underway (the guard's imminent read, #2697): none above.
-  if (readsImminentLive(text)) flags.push(IMMINENT_FLAG);
-
-  let concernCount = 0;
-  for (const indicator of CONCERNING_INDICATORS) {
-    if (saysPhrase(lower, indicator)) {
-      concernCount++;
-    }
+  if (guard.isCrisis) {
+    flags.push(`guard: ${guard.subject ?? 'self'}`);
+    if (guard.subject !== 'third_party') offerLifeline();
   }
+  // Means in hand, an attempt underway, or someone else down and not getting up (the guard's read).
+  if (guard.indicators.includes('third_party_emergency')) flags.push(FOR_THEM_FLAG);
+  else if (guard.indicators.includes('imminent_danger')) flags.push(IMMINENT_FLAG);
 
-  let level: SafetyAssessment['level'];
-  let recommendedAction: SafetyAssessment['recommendedAction'];
-
-  if (flags.length > 0) {
-    level = 'crisis';
-    recommendedAction = 'immediate_referral';
-  } else if (concernCount >= 3) {
-    level = 'urgent';
-    recommendedAction = 'resources';
-  } else if (concernCount >= 1) {
-    level = 'concerning';
-    recommendedAction = 'check_in';
-  } else {
-    level = 'safe';
-    recommendedAction = 'continue';
-  }
+  const concernCount = floor.concerns;
+  const distress = guard.severity >= CRISIS_SEVERITY.implicit;
+  const { level, recommendedAction } = tierOf(flags.length > 0, concernCount, distress);
   // 988 at crisis or urgent, whatever the category: violence, abuse, eating carried none.
   const needs988 = level === 'crisis' || level === 'urgent';
   if (needs988 && !resources.includes(CRISIS_RESOURCES.general)) {
@@ -217,6 +165,7 @@ export function getCrisisResponse(assessment: SafetyAssessment): string {
   if (assessment.level === 'crisis') {
     let response =
       "I'm really glad you told me this, and I want you to know I take it seriously.\n\n";
+    if (assessment.flags.includes(FOR_THEM_FLAG)) response += `${EMERGENCY_FOR_THEM}\n\n`;
     if (assessment.flags.includes(IMMINENT_FLAG)) {
       response += `If you've taken something or you're in danger right now, ${IN_DANGER_NOW}\n\n`;
     }
