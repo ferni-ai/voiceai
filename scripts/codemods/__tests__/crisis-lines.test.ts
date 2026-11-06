@@ -46,6 +46,19 @@ describe('crisis-lines codemod', () => {
     );
   });
 
+  it('leaves tagged templates, since the tag would get the text split around a reference', () => {
+    const source = [
+      'declare function tag(s: TemplateStringsArray, ...v: unknown[]): string;',
+      'export const A = tag`Call 988 or text HOME to 741741`;',
+      'export const B = (n: string) => tag`Hi ${n}, call 911`;',
+      'export const C = `Call 988`;',
+    ].join('\n');
+    const out = run(source);
+    expect(out).toContain('export const A = tag`Call 988 or text HOME to 741741`;');
+    expect(out).toContain('export const B = (n: string) => tag`Hi ${n}, call 911`;');
+    expect(out).toContain('export const C = `Call ${crisisLines.LIFELINE_988.phone}`;');
+  });
+
   it('keeps the value when a quoted string with backticks, ${ and escapes becomes a template', () => {
     const source = "export const A = 'It\\'s `988`, not ${x}:\\n988';\n";
     const out = run(source);
