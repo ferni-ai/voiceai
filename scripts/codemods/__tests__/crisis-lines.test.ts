@@ -10,8 +10,10 @@ describe('crisis-lines codemod', () => {
     const out = run(
       "import { z } from 'zod';\nexport const CONTACT = 'Call or text 988 (24/7)';\n"
     );
-    expect(out).toContain('export const CONTACT = `Call or text ${LIFELINE_988.phone} (24/7)`;');
-    expect(out).toContain("import { LIFELINE_988 } from '../../../services/safety/index.js';");
+    expect(out).toContain(
+      'export const CONTACT = `Call or text ${crisisLines.LIFELINE_988.phone} (24/7)`;'
+    );
+    expect(out).toContain("import { crisisLines } from '../../../services/safety/index.js';");
   });
 
   it('replaces a literal that is exactly one value with the bare reference', () => {
@@ -19,10 +21,10 @@ describe('crisis-lines codemod', () => {
       "export const A = { line: '988 Suicide & Crisis Lifeline', name: 'Crisis Text Line', how: 'Text HOME to 741741', sos: '911' };\n"
     );
     expect(out).toContain(
-      'line: LIFELINE_988.name, name: CRISIS_TEXT_LINE.name, how: CRISIS_TEXT_LINE.text, sos: EMERGENCY_NUMBER'
+      'line: crisisLines.LIFELINE_988.name, name: crisisLines.CRISIS_TEXT_LINE.name, how: crisisLines.CRISIS_TEXT_LINE.text, sos: EMERGENCY_NUMBER'
     );
     expect(out).toContain(
-      "import { CRISIS_TEXT_LINE, EMERGENCY_NUMBER, LIFELINE_988 } from '../../../services/safety/index.js';"
+      "import { EMERGENCY_NUMBER, crisisLines } from '../../../services/safety/index.js';"
     );
   });
 
@@ -39,22 +41,35 @@ describe('crisis-lines codemod', () => {
 
   it('rewrites inside templates without touching their substitutions', () => {
     const out = run('export const f = (n: string) => `Hi ${n}, call 911 or 988.`;\n');
-    expect(out).toContain('`Hi ${n}, call ${EMERGENCY_NUMBER} or ${LIFELINE_988.phone}.`');
+    expect(out).toContain(
+      '`Hi ${n}, call ${EMERGENCY_NUMBER} or ${crisisLines.LIFELINE_988.phone}.`'
+    );
   });
 
   it('keeps the value when a quoted string with backticks, ${ and escapes becomes a template', () => {
     const source = "export const A = 'It\\'s `988`, not ${x}:\\n988';\n";
     const out = run(source);
     expect(out).toContain(
-      "`It's \\`${LIFELINE_988.phone}\\`, not \\${x}:\\n${LIFELINE_988.phone}`"
+      "`It's \\`${crisisLines.LIFELINE_988.phone}\\`, not \\${x}:\\n${crisisLines.LIFELINE_988.phone}`"
     );
     expect(strings(FILE, out)).toEqual(strings(FILE, source));
   });
 
   it('refuses a file that already has a name the rewrite would import', () => {
-    expect(() => run("const LIFELINE_988 = 1;\nexport const A = 'Call 988';\n")).toThrow(
-      /LIFELINE_988/
+    expect(() => run("const crisisLines = 1;\nexport const A = 'Call 988';\n")).toThrow(
+      /crisisLines/
     );
+  });
+
+  it('does not grow a file over 500 lines: the import takes a blank line between imports', () => {
+    const body = Array.from({ length: 500 }, (_, i) => `export const L${i} = ${i};`);
+    const source = ["import { a } from './a.js';", '', "import { b } from './b.js';", ...body];
+    source.push("export const A = 'Call 988';", '');
+    const out = run(source.join('\n'));
+    expect(out.split('\n')).toHaveLength(source.length);
+    expect(out).toMatch(/'\.\/a\.js';\nimport \{ crisisLines \} from .*\nimport \{ b \}/);
+    const noBlank = source.filter((l, i) => i !== 1).join('\n');
+    expect(() => run(noBlank)).toThrow(/no blank line between imports/);
   });
 
   describe('--prove', () => {
@@ -65,7 +80,10 @@ describe('crisis-lines codemod', () => {
     });
 
     it('goes red when a reference points at the wrong line', () => {
-      const wrong = run(before).replace('LIFELINE_988.phone', 'CRISIS_TEXT_LINE.text');
+      const wrong = run(before).replace(
+        'crisisLines.LIFELINE_988.phone',
+        'crisisLines.CRISIS_TEXT_LINE.text'
+      );
       expect(strings(FILE, wrong)).not.toEqual(strings(FILE, before));
     });
 

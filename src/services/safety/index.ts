@@ -66,16 +66,7 @@ export type {
   CrisisResponseContext,
 } from './crisis-response.js';
 export { EMERGENCY_NUMBER } from './emergency-number.js';
-export {
-  CHILD_ABUSE_HOTLINE,
-  CRISIS_TEXT_LINE,
-  DOMESTIC_VIOLENCE_HOTLINE,
-  LIFELINE_988,
-  MENTAL_HEALTH_HELPLINE,
-  SEXUAL_ASSAULT_HOTLINE,
-  SUBSTANCE_HELPLINE,
-  SUICIDE_PREVENTION_DIRECTORY,
-} from './crisis-lines.js';
+export * as crisisLines from './crisis-lines.js';
 // Someone hurting the caller (ABUSE_DISCLOSURE_PATTERNS, turn-crisis.ts and turn-handler.ts).
 export {
   abuseCallRisk,

@@ -4,7 +4,7 @@
  * Every string or template literal outside services/safety that contains a name, phone,
  * text or chat value of a line in services/safety/crisis-lines.ts, or the emergency number,
  * gets that value as a reference instead: `'Call or text 988'` becomes
- * `` `Call or text ${LIFELINE_988.phone}` `` and a literal that is exactly one value becomes
+ * `` `Call or text ${crisisLines.LIFELINE_988.phone}` `` and a literal that is exactly one value becomes
  * the bare reference. The text is unchanged; only its source moves. A literal whose wording
  * differs from the kernel's ("HOME to 741741", "988lifeline.org") is left alone.
  *
@@ -33,6 +33,10 @@ const SAFETY = 'src/services/safety/';
 /** Files the rewrite never touches: the kernel itself, tests and generated tables. */
 const NOT_REWRITTEN = /^src\/services\/safety\/|__tests__|\.(test|spec)\.ts$|\.generated\.ts$/;
 const FIELDS = ['name', 'phone', 'text', 'chat'] as const;
+/** The barrel's namespace for crisis-lines.ts: one import line, so a file over 500 lines does not grow. */
+const NS = 'crisisLines';
+/** apps/cli/src/commands/quality/ratchet.ts: a file over this many lines may not grow. */
+const MAX_LINES = 500;
 
 export interface Ref {
   value: string;
@@ -44,10 +48,11 @@ export interface Ref {
 export function refs(): Ref[] {
   const emergency = 'EMERGENCY_NUMBER';
   const out: Ref[] = [{ value: EMERGENCY_NUMBER, expr: emergency, symbol: emergency }];
-  for (const [symbol, line] of Object.entries(LINES)) {
+  for (const [name, line] of Object.entries(LINES)) {
     for (const field of FIELDS) {
       const value: unknown = (line as CrisisResource)[field];
-      if (typeof value === 'string') out.push({ value, expr: `${symbol}.${field}`, symbol });
+      if (typeof value === 'string')
+        out.push({ value, expr: `${NS}.${name}.${field}`, symbol: NS });
     }
   }
   const byValue = new Map<string, string>();
@@ -165,9 +170,20 @@ function addImports(file: string, original: string, source: string, used: Set<Re
       throw new Error(`${file} already has a ${name}; rewrite it by hand`);
   let spec = relative(dirname(file), `${SAFETY}index.js`);
   if (!spec.startsWith('.')) spec = `./${spec}`;
+  const line = `import { ${names.join(', ')} } from '${spec}';`;
   const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
-  const at = sf.statements.filter(ts.isImportDeclaration).at(-1)?.getEnd() ?? 0;
-  return `${source.slice(0, at)}\nimport { ${names.join(', ')} } from '${spec}';${source.slice(at)}`;
+  const imports = sf.statements.filter(ts.isImportDeclaration);
+  if (source.split('\n').length > MAX_LINES) {
+    // The quality ratchet bars growth past MAX_LINES: the import takes a blank line between imports.
+    for (let i = imports.length - 1; i > 0; i--) {
+      const [end, start] = [imports[i - 1]!.getEnd(), imports[i]!.getStart(sf)];
+      if (/^\n[ \t]*\n$/.test(source.slice(end, start)))
+        return `${source.slice(0, end)}\n${line}\n${source.slice(start)}`;
+    }
+    throw new Error(`${file} is over ${MAX_LINES} lines with no blank line between imports`);
+  }
+  const at = imports.at(-1)?.getEnd() ?? 0;
+  return `${source.slice(0, at)}\n${line}${source.slice(at)}`;
 }
 
 // --- proof --------------------------------------------------------------------------------
