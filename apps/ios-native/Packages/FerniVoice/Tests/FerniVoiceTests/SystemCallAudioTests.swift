@@ -112,6 +112,16 @@ final class SystemCallAudioTests: XCTestCase {
         }
     }
 
+    /// Bluetooth in headset mode only: AirPods carry the mic and Ferni's
+    /// voice together, never A2DP's music-only link.
+    func testACallUsesBluetoothAsAHeadsetOnly() throws {
+        let session = Session()
+        let audio = SystemCallAudio(systemManagesCalls: false, engine: { _ in }, session: session)
+        try audio.activate(systemOwned: false)
+        XCTAssertFalse(session.options.contains(.allowBluetoothA2DP), "no A2DP")
+        XCTAssertEqual(session.options, [.defaultToSpeaker, .allowBluetoothHFP, .allowAirPlay])
+    }
+
     // MARK: - When the session changes under the call
 
     private func post(_ name: Notification.Name, _ info: [AnyHashable: Any] = [:], to center: NotificationCenter) {
