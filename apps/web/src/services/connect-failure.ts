@@ -25,6 +25,7 @@ export type ConnectFailureKind =
   | 'cancelled' // superseded by a hang-up or a newer attempt; show nothing
   | 'dropped' // an established call lost its connection
   | 'agent_left' // Ferni's side of the call ended while the caller was still in it
+  | 'audio_not_started' // Ferni joined, but none of his audio started playing
   | 'unknown';
 
 export type ConnectFailureAction = 'retry' | 'sign-in' | 'mic-help' | 'none';
@@ -81,6 +82,7 @@ const COPY: Record<ConnectFailureKind, FailureCopy> = {
   cancelled: { messageKey: null, action: 'none' },
   dropped: { messageKey: 'connectFailure.dropped', action: 'retry' },
   agent_left: { messageKey: 'connectFailure.agentLeft', action: 'retry' },
+  audio_not_started: { messageKey: 'connectFailure.audioNotStarted', action: 'retry' },
   unknown: { messageKey: 'connectFailure.unknown', action: 'retry' },
 };
 
