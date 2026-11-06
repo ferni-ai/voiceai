@@ -284,6 +284,20 @@ final class CallSessionTests: XCTestCase {
         await until(session.phase == .failed(.ferniDidNotJoin))
     }
 
+    /// After "on the way", the attempt still ends at the deadline, not later:
+    /// the fresh room comes at 1 s here (5 s allows a stalled runner; a
+    /// deadline ten times too long would take 10 s).
+    func testAnAttemptEndsAtItsDeadlineEvenAfterOnTheWay() async {
+        rooms.next = { FakeRoom(agentOnConnect: nil) }
+        let session = makeSession(timeout: .seconds(1), arriving: .milliseconds(200))
+        let started = ContinuousClock.now
+        session.start()
+
+        await until(session.phase == .waitingForFerni)
+        await until(rooms.made.count == 2)
+        XCTAssertLessThan(ContinuousClock.now - started, .seconds(5))
+    }
+
     func testCouldntJoinSaysWhenToTryAgain() {
         XCTAssertEqual(CallProblem.ferniDidNotJoin.message, "Ferni couldn't join right now. Try again in a minute.")
     }
