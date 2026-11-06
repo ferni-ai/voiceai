@@ -206,8 +206,8 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
   }
 
   // CRISIS_MEANS_IN_HAND (#2697): a live form reads 911; 'all' (the shadow log) names the form.
-  const means = meansInHandRead(text, indicators, softened, forms, (from, to) =>
-    endingOutside(text, from, to)
+  const means = meansInHandRead(text, indicators, softened, forms, (spans) =>
+    endingOutside(text, spans)
   );
   if (means) {
     hardSelf = true;
@@ -252,10 +252,13 @@ const ENDING_SAID = [
   'hedged_frame',
   'passive_ideation',
 ];
-/** Ending words in the turn outside [from, to): those words blanked, the rest read on its own. */
-function endingOutside(text: string, from: number, to: number): boolean {
-  const rest = text.slice(0, from) + text.slice(from, to).replace(/[^.!?]/g, ' ') + text.slice(to);
-  const { indicators } = scoreText(rest, 'none');
+/** Ending words in the turn outside every span: those words blanked, the rest read once. */
+function endingOutside(text: string, spans: ReadonlyArray<readonly [number, number]>): boolean {
+  const chars = text.split('');
+  for (const [from, to] of spans) {
+    for (let at = from; at < to; at++) if (!'.!?'.includes(chars[at])) chars[at] = ' ';
+  }
+  const { indicators } = scoreText(chars.join(''), 'none');
   return ENDING_SAID.some((indicator) => indicators.includes(indicator));
 }
 

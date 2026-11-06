@@ -242,7 +242,7 @@ export function meansInHandRead(
   indicators: readonly string[],
   softened: ReadonlyArray<readonly [number, number]>,
   forms: MeansForms,
-  endingOutside: (start: number, end: number) => boolean
+  endingOutside: (spans: ReadonlyArray<readonly [number, number]>) => boolean
 ): { tag: 'suicidal' | 'self_harm'; form: MeansFormName } | null {
   if (forms === 'none') return null;
   const free = (start: number, end: number): boolean =>
@@ -271,13 +271,14 @@ export function meansInHandRead(
     }
   }
   // The sentence alone names no hand or lap, and its own words make the plan_or_means read, so
-  // the ending words must be other words in the turn (#3564).
-  for (const m of ending ? text.matchAll(MEANS_HAD) : []) {
-    const end = m.index + m[0].length;
-    if (free(m.index, end) && endingOutside(m.index, end)) {
-      return { tag: 'suicidal', form: 'ending_beside_means' };
-    }
-  }
+  // the ending words must be other words in the turn (#3564). Every free sentence is blanked at
+  // once and the rest read once, so a turn of a thousand such sentences costs one more read.
+  const had = ending
+    ? [...text.matchAll(MEANS_HAD)]
+        .map((m): [number, number] => [m.index, m.index + m[0].length])
+        .filter(([start, end]) => free(start, end))
+    : [];
+  if (had.length > 0 && endingOutside(had)) return { tag: 'suicidal', form: 'ending_beside_means' };
   if (forms !== 'all') return null;
   for (const form of FORMS) {
     const hit = LIVE_FORMS.has(form.name) ? null : read(form);
