@@ -311,7 +311,17 @@ describe('the screen comes first, and a crisis text is never a consent', () => {
     }
   );
 
-  it('a crisis text records no consent change and no YES; the other records still run', async () => {
+  it.each([
+    ['Stop calling me. I want to die.', 'opt-out'],
+    ["Don't text me. I want to die.", 'texts opt-out'],
+  ])('a STOP inside a crisis text still lands in the consent record (%s: %s)', async (body) => {
+    const { sent } = await text(body);
+    expect(sent).toContain('please call or text 988');
+    expect(recordInboundSmsConsent).toHaveBeenCalledExactlyOnceWith(PHONE, body);
+    expect(recordContactYes).not.toHaveBeenCalled();
+  });
+
+  it('a crisis text records no consent grant and no YES; the other records still run', async () => {
     await text('YES I want to die');
     expect(recordInboundSmsConsent).not.toHaveBeenCalled();
     expect(recordContactYes).not.toHaveBeenCalled();

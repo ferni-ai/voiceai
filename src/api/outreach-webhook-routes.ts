@@ -20,6 +20,7 @@ import {
 import { handlePushInteraction } from '../services/outreach/delivery/push-notifications.js';
 import { recordCheckinReply } from '../services/outreach/checkin-replies.js';
 import { recordInboundSmsConsent } from '../services/messaging/consent.js';
+import { inboundKeyword } from '../services/messaging/sms-keywords.js';
 import { recordContactYes } from '../services/messaging/consent-grants.js';
 import { recordHolderCode } from '../services/messaging/holder-verification.js';
 import {
@@ -208,9 +209,14 @@ export async function handleOutreachWebhookRoutes(
           recordCheckinReply(body.From, body.Body, body.MessageSid)
         );
         // MESSAGING_PIPELINE: STOP/START from any text lands in the one consent record. A crisis
-        // text is never read as a consent change or a YES to the last ask.
+        // text never grants consent (no START, resume or YES to the last ask); a STOP in it lands.
+        const said = crisisRead ? inboundKeyword(text)?.kind : undefined;
+        if (!crisisRead || said === 'opt-out' || said === 'maybe-opt-out') {
+          await afterScreen('consent', crisisRead, () =>
+            recordInboundSmsConsent(body.From, body.Body)
+          );
+        }
         if (!crisisRead) {
-          await afterScreen('consent', false, () => recordInboundSmsConsent(body.From, body.Body));
           await afterScreen('contactYes', false, () =>
             recordContactYes(body.From, body.Body, body.MessageSid)
           ); // a YES to the last text, an ask
