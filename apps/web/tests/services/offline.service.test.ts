@@ -257,9 +257,9 @@ describe('OfflineService', () => {
 
       // Re-stub caches with the mock
       vi.stubGlobal('caches', cachesMock);
-      
+
       initOfflineService();
-      
+
       // Allow async operations to complete
       await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -285,8 +285,22 @@ describe('OfflineService', () => {
   describe('Sync Queue', () => {
     it('should load queue from localStorage', () => {
       const queue = [
-        { id: '1', url: '/api/test', method: 'POST', data: { foo: 'bar' }, timestamp: Date.now(), retries: 0 },
-        { id: '2', url: '/api/other', method: 'PUT', data: { baz: 'qux' }, timestamp: Date.now(), retries: 1 },
+        {
+          id: '1',
+          url: '/api/test',
+          method: 'POST',
+          data: { foo: 'bar' },
+          timestamp: Date.now(),
+          retries: 0,
+        },
+        {
+          id: '2',
+          url: '/api/other',
+          method: 'PUT',
+          data: { baz: 'qux' },
+          timestamp: Date.now(),
+          retries: 1,
+        },
       ];
       localStorageMock.setItem('ferni_sync_queue', JSON.stringify(queue));
 
@@ -316,10 +330,12 @@ describe('OfflineService', () => {
   describe('Service Worker Status', () => {
     it('should handle when service worker registration fails', async () => {
       // Make service worker registration fail
-      navigatorMock.serviceWorker.register.mockRejectedValueOnce(new Error('SW registration failed'));
+      navigatorMock.serviceWorker.register.mockRejectedValueOnce(
+        new Error('SW registration failed')
+      );
 
       initOfflineService();
-      
+
       // Allow async registration to complete
       await new Promise((resolve) => setTimeout(resolve, 50));
 
@@ -429,6 +445,60 @@ describe('OfflineService', () => {
         vi.useRealTimers();
         mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
       }
+    });
+
+    describe('a probe that gets any HTTP answer', () => {
+      // The network is up whenever the server answers at all. A 5xx or an auth
+      // error from /health/circuits used to show "You're offline" mid-call.
+      async function probeAfterOfflineEvent(): Promise<void> {
+        navigatorMock.onLine = true;
+        initOfflineService();
+        expect(isOffline()).toBe(false);
+        navigatorMock.onLine = false;
+        windowListeners.offline.forEach((handler) => handler());
+        await vi.advanceTimersByTimeAsync(0);
+      }
+
+      beforeEach(() => {
+        disposeOfflineService(); // earlier tests leave real recheck timers behind
+        vi.useFakeTimers();
+        mockFetch.mockReset();
+      });
+
+      afterEach(() => {
+        disposeOfflineService();
+        vi.useRealTimers();
+        mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
+      });
+
+      it.each([503, 500, 401, 403])('stays online when the server answers %i', async (status) => {
+        mockFetch.mockResolvedValue({ ok: false, status });
+        await probeAfterOfflineEvent();
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        expect(isOffline()).toBe(false);
+      });
+
+      it('goes offline on a network error', async () => {
+        mockFetch.mockRejectedValue(new TypeError('Failed to fetch'));
+        await probeAfterOfflineEvent();
+        expect(isOffline()).toBe(true);
+      });
+
+      it('goes offline when the probe times out', async () => {
+        mockFetch.mockImplementation(
+          (_url: string, init: RequestInit) =>
+            new Promise((_resolve, reject) => {
+              init.signal?.addEventListener('abort', () =>
+                reject(new DOMException('The operation was aborted.', 'AbortError'))
+              );
+            })
+        );
+        await probeAfterOfflineEvent();
+        expect(isOffline()).toBe(false); // still waiting on the probe
+
+        await vi.advanceTimersByTimeAsync(4_000);
+        expect(isOffline()).toBe(true);
+      });
     });
 
     it('should update lastOnline when coming online', () => {
