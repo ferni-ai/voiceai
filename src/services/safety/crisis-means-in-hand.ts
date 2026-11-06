@@ -160,13 +160,16 @@ const FORMS: readonly MeansForm[] = [
 /**
  * "i already have the pills." said as a whole sentence, with nothing after it. Beside ending words
  * in the same turn ("i want to die. i have the pills.") it is the means at hand, with no WHERE
- * word; "i have the pills for my headache" carries on, so it is not this.
+ * word; "i have the pills for my headache" carries on, so it is not this. The caller's own
+ * medication ("i have my meds.") is how a check-in is said, as in PAIRED_MEANS.
  */
-const MEANS_HAD = String.raw`(?:^|[.!?] *)(?:i (?:already |still )?(?:have|got)|i'?ve (?:already )?got|(?:already )?got) (?:the|my|a) (?:pills|meds|gun|pistol|rope|noose|razor|blade|knife)(?: (?:already|ready|now|right now|right here))?(?= *(?:$|[.!?]))`;
-/** The means at hand, beside the caller's own ending words. */
-const MEANS_AT_HAND = new RegExp(
-  String.raw`\b(pills|gun|rope|razor|blade|knot)\b[^.!?]{0,25}\b(ready|in my hand|in my lap|loaded|next to me|right here)\b|${MEANS_HAD}`
+const MEANS_HAD = new RegExp(
+  String.raw`(?:^|[.!?] *)(?:i (?:already |still )?(?:have|got)|i'?ve (?:already )?got|(?:already )?got) (?:(?:the|all (?:of )?my|all the) (?:pills|meds)|(?:the|my|a) (?:gun|pistol|rope|noose|razor|blade|knife))(?: (?:already|ready|now|right now|right here))?(?= *(?:$|[.!?]))`,
+  'g'
 );
+/** The means at hand, beside the caller's own ending words. */
+const MEANS_AT_HAND =
+  /\b(pills|gun|rope|razor|blade|knot)\b[^.!?]{0,25}\b(ready|in my hand|in my lap|loaded|next to me|right here)\b/;
 
 const NEGATOR = String.raw`(?:\b\w+n't|\bnot|\bnever|\bcannot)\b`;
 const FILLER = String.raw`(?: (?:really|even|ever|actually|currently|still|got|going to|gonna|about to|want to|planning to|plan to))*`;
@@ -238,7 +241,8 @@ export function meansInHandRead(
   text: string,
   indicators: readonly string[],
   softened: ReadonlyArray<readonly [number, number]>,
-  forms: MeansForms
+  forms: MeansForms,
+  endingOutside: (start: number, end: number) => boolean
 ): { tag: 'suicidal' | 'self_harm'; form: MeansFormName } | null {
   if (forms === 'none') return null;
   const free = (start: number, end: number): boolean =>
@@ -258,11 +262,19 @@ export function meansInHandRead(
     const hit = LIVE_FORMS.has(form.name) ? read(form) : null;
     if (hit) return hit;
   }
-  const ending =
-    (forms === 'all' || LIVE_FORMS.has('ending_beside_means')) &&
-    (indicators.includes('explicit_crisis_language') || indicators.includes('plan_or_means'));
-  for (const m of ending ? text.matchAll(new RegExp(MEANS_AT_HAND.source, 'g')) : []) {
+  const ending = forms === 'all' || LIVE_FORMS.has('ending_beside_means');
+  const said =
+    indicators.includes('explicit_crisis_language') || indicators.includes('plan_or_means');
+  for (const m of ending && said ? text.matchAll(new RegExp(MEANS_AT_HAND.source, 'g')) : []) {
     if (free(m.index, m.index + m[0].length)) {
+      return { tag: 'suicidal', form: 'ending_beside_means' };
+    }
+  }
+  // The sentence alone names no hand or lap, and its own words make the plan_or_means read, so
+  // the ending words must be other words in the turn (#3564).
+  for (const m of ending ? text.matchAll(MEANS_HAD) : []) {
+    const end = m.index + m[0].length;
+    if (free(m.index, end) && endingOutside(m.index, end)) {
       return { tag: 'suicidal', form: 'ending_beside_means' };
     }
   }

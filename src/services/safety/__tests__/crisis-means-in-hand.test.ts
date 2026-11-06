@@ -243,21 +243,53 @@ describe('round 2 (verifier r1 follow-ups)', () => {
 describe('"i have the pills." as its own sentence, beside ending words', () => {
   const shouldBlock = (r: { indicators: string[] }) =>
     r.indicators.includes('explicit_crisis_language');
+  /** Off and shadow (and the default) read the line exactly as main. */
+  const asMain = (text: string) => {
+    for (const mode of ['', 'shadow', 'off']) {
+      vi.stubEnv('CRISIS_MEANS_IN_HAND', mode);
+      expect(detectCrisis(text)).toEqual(off(text));
+    }
+  };
 
   it.each([
     "I've decided I'm going to kill myself tonight. I already have the pills.",
     'i want to die. i have the pills.',
     'im ending it tonight. got the rope.',
     'i want to die. i have the gun.',
+    'i want to die. i have all my pills.',
+    'i want to die. i have the gun',
+    'i want to die. i have the pills. goodbye.',
+    'i want to die.\ti have the pills.',
+    'i want to\nkill myself. i have the pills.',
   ])('live reads 911; off and shadow read it exactly as main: "%s"', (text) => {
     expect(shouldBlock(off(text))).toBe(true);
     expect(imminent(off(text))).toBe(false);
-    for (const mode of ['', 'shadow', 'off']) {
-      vi.stubEnv('CRISIS_MEANS_IN_HAND', mode);
-      expect(detectCrisis(text)).toEqual(off(text));
-    }
+    asMain(text);
     expect(imminent(live(text))).toBe(true);
     expect(all(text).indicators).toContain('means_form:ending_beside_means');
+  });
+
+  it.each([
+    ['this is goodbye. i have the pills.', 'passive_ideation'],
+    ['i wish i could disappear. i have the gun.', 'passive_ideation'],
+    ['i want to die lol. i have the pills.', 'joking_frame'],
+    ["if he leaves i'll kill myself. i have the pills.", 'conditional_frame'],
+    ['sometimes i want to die. i have the pills.', 'hedged_frame'],
+  ])('passive or framed ending words: live reads 911 (%s, %s)', (text, ending) => {
+    expect(off(text).indicators).toContain(ending);
+    expect(imminent(off(text))).toBe(false);
+    asMain(text);
+    expect(imminent(live(text))).toBe(true);
+  });
+
+  // The words without the means sentence decide: once "nobody would miss me." reads as ending
+  // words on its own (#3566), this line reads 911 too, and until then it reads as main.
+  it('"nobody would miss me. i have the gun." reads 911 exactly when its ending words do', () => {
+    const text = 'nobody would miss me. i have the gun.';
+    const ending = off('nobody would miss me.').indicators.includes('passive_ideation');
+    asMain(text);
+    expect(imminent(live(text))).toBe(ending);
+    expect(live(text).severity).toBeGreaterThanOrEqual(off(text).severity);
   });
 
   it.each(['I already took the whole bottle of pills.', 'I have a rope around my neck right now.'])(
@@ -274,6 +306,7 @@ describe('"i have the pills." as its own sentence, beside ending words', () => {
     'I took the whole bottle of vitamins back to the store.',
     'the rope is around my neck as a scarf, lol',
     'I already have the pills.',
+    'jk lol i have my pills',
   ])('no ending words: live reads it as main, no block, no 911: "%s"', (text) => {
     expect(live(text)).toEqual(off(text));
     expect(shouldBlock(live(text))).toBe(false);
@@ -283,8 +316,57 @@ describe('"i have the pills." as its own sentence, beside ending words', () => {
   it.each([
     "i want to die. i have the pills for my headache, they're helping",
     'i want to die. not sure if i have the pills.',
-  ])('ending words still block, but the pills are not in hand: "%s"', (text) => {
+    'i want to die. i have my meds.',
+    'i want to die. i have my pills.',
+    'i want to die. the pharmacy says i have the pills.',
+    'i want to die. i have the pills my doctor gave me.',
+    "i want to die. i don't have the gun.",
+  ])('ending words still block, but the means are not in hand: "%s"', (text) => {
     expect(shouldBlock(live(text))).toBe(true);
     expect(imminent(live(text))).toBe(false);
+    expect(live(text)).toEqual(off(text));
+  });
+
+  // Distress with no ending words: the means sentence makes the plan_or_means read itself, so it
+  // cannot also be the ending words beside the means (#3564).
+  it.each([
+    "i can't handle this heat. i have my meds.",
+    "i can't handle this heat. i have the pills.",
+    "i can't cope with these migraines. i have the pills.",
+    "i can't handle this back pain. i've got the meds.",
+    "i can't handle these cramps. i already have the pills.",
+    "i can't cope with this allergy season. got the meds.",
+    "i can't handle this heat. i still have the pills.",
+  ])('a check-in reads as main under live, not 911: "%s"', (text) => {
+    expect(off(text).indicators).toContain('plan_or_means');
+    expect(live(text)).toEqual(off(text));
+    expect(imminent(live(text))).toBe(false);
+  });
+
+  it.each([
+    'i tried to kill myself in 2019. i have the pills now.',
+    'i wanted to kill myself back in college. i have the pills.',
+  ])('the past, beside the means, reads as main under live, not 911: "%s"', (text) => {
+    expect(off(text).indicators).toContain('crisis_history');
+    expect(live(text)).toEqual(off(text));
+    expect(imminent(live(text))).toBe(false);
+  });
+
+  it.each([
+    'i would never kill myself. i have the pills.',
+    "i'm not going to kill myself. i've got the rope.",
+  ])('negated ending words beside the means: not 911: "%s"', (text) => {
+    expect(off(text).indicators.some((i) => i.startsWith('negated'))).toBe(true);
+    expect(live(text)).toEqual(off(text));
+    expect(imminent(live(text))).toBe(false);
+  });
+
+  // "on the stairs" is an accident; the floor reads it as ending words only because "the pills"
+  // is in the next sentence. Without that sentence there are no ending words.
+  it('ending words made only by the means sentence do not count: not 911', () => {
+    const text = 'i almost killed myself on the stairs. i have the pills.';
+    expect(shouldBlock(off(text))).toBe(true);
+    expect(shouldBlock(off('i almost killed myself on the stairs.'))).toBe(false);
+    expect(live(text)).toEqual(off(text));
   });
 });
