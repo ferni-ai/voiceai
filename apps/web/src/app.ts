@@ -284,7 +284,7 @@ import { onCallEnded, onCallStarted } from './app/call-end.js';
 import { wrapUpOwnsAgentLeaving, afterConversationEnd, playEndSound } from './app/call-end-paths.js';
 import { watchGoodbyeCeremony } from './app/conversation-continue.js';
 import { connectFailure } from './services/connect-failure.js';
-import { showAgentLostPrompt } from './app/agent-lost-prompt.js';
+import { showAgentLostPrompt, showAudioNotStartedPrompt } from './app/agent-lost-prompt.js';
 import { buildConversationUsageBody } from './services/call-payloads.js';
 import { connectGate, type ConnectGate } from './services/paywall.service.js';
 // Moments System - Unified feedback system (whisper, notice, celebration, milestone)
@@ -2654,6 +2654,10 @@ class VoiceAIApp {
    */
   private setupServiceCallbacks(): void {
     // Connection service callbacks
+    const liveCall = {
+      endCall: () => this.performStandardDisconnect(),
+      connect: () => this.connect(),
+    };
     connectionService.setCallbacks({
       onStateChange: (state) => {
         // Update presence and waveform based on connection state
@@ -2851,11 +2855,6 @@ class VoiceAIApp {
         }
       },
 
-      // Connection quality monitoring disabled for clean UI
-      // onConnectionQuality: (latencyMs) => {
-      //   connectionQualityUI.updateFromLatency(latencyMs);
-      // },
-
       // connect() reports a failed attempt itself (one classified notice), so this only logs.
       onError: (error) => {
         log.error('Connection error:', error);
@@ -2874,11 +2873,10 @@ class VoiceAIApp {
       // Ferni's side ended with the caller still here (services/agent-drop-watch.ts)
       onAgentLost: () => {
         noteCallDropped();
-        showAgentLostPrompt({
-          endCall: () => this.performStandardDisconnect(),
-          connect: () => this.connect(),
-        });
+        showAgentLostPrompt(liveCall);
       },
+      // Ferni is here but none of his audio plays (services/audio-start-watch.ts)
+      onAudioNotStarted: () => showAudioNotStartedPrompt(liveCall),
     });
 
     // Handoff service callbacks
