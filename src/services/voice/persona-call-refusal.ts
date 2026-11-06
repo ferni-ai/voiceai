@@ -6,6 +6,8 @@
  * @module services/voice/persona-call-refusal
  */
 
+import { checkDialableNumber } from '../../utils/dialable-number.js';
+
 // Read at load, as voice-call.ts reads them
 const TWILIO_READY = Boolean(
   process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER
@@ -33,6 +35,9 @@ export async function personaCallRefusal(
   toPhone: string,
   party?: PersonaCallParty
 ): Promise<string | null> {
+  // Never 911, 988 or any N11 in any spelling, premium-rate or malformed (dialable-number.ts)
+  const number = checkDialableNumber(toPhone);
+  if (!number.ok) return `Not calling: ${number.reason}`;
   if (!TWILIO_READY) return 'Twilio not configured';
   const e164Phone = personaE164(toPhone);
   const { ownerRefusal } = await import('../messaging/consent-reach.js'); // MESSAGING_PIPELINE

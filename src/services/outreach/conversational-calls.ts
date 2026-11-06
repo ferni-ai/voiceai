@@ -15,6 +15,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { emergencyDialRefusal } from '../../utils/dialable-number.js';
 import { ownerRefusal } from '../messaging/consent-reach.js';
 import { heldSender } from './checkin-replies.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
@@ -169,12 +170,11 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
   } = request;
 
   const callId = `call-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
   try {
+    const emergency = emergencyDialRefusal(phoneNumber); // 911/988/N11, any spelling: never dialled
+    if (emergency) return { success: false, error: `Not calling: ${emergency}` };
     const normalizedPhone = normalizePhoneNumber(phoneNumber);
-    if (!normalizedPhone) {
-      return { success: false, error: 'Invalid phone number format' };
-    }
+    if (!normalizedPhone) return { success: false, error: 'Invalid phone number format' };
     if (await heldCall(request)) return { success: false, error: 'Not calling: held' };
     if (await pausedCall(request)) return { success: false, error: 'Not calling: outreach paused' };
     // MESSAGING_PIPELINE: the member's own number or one they hold a call grant for, never past an

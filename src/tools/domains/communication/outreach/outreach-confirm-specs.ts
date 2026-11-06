@@ -1,5 +1,6 @@
 /** What each outreach tool fixes and reads back before the caller's yes (outreach-confirm.ts). */
 
+import { emergencyDialRefusal } from '../../../../utils/dialable-number.js';
 import { ownerKnown, PLANNED, type ConfirmSpec, type Planned } from './outreach-confirm.js';
 import type { OutreachResult } from './unified-outreach.js';
 
@@ -17,6 +18,9 @@ export const reachOutConfirm: ConfirmSpec = {
     // A live two-way call has no fixed words to read back; calls get their own confirmation.
     if (r.channel === 'conversation')
       return 'Nothing was sent: live calls need their own confirmation.';
+    // A saved contact whose number is 911, 988 or any N11: never offered as a call (dialable-number.ts).
+    const emergency = CALLS.includes(r.channel) ? emergencyDialRefusal(r.to) : null;
+    if (emergency) return `Nothing was dialed: ${emergency}.`;
     const planned: Planned = { contactId: r.contactId, to: r.to, channel: r.channel, from: r.from };
     const article = r.channel === 'email' ? 'an' : 'a';
     const how = CALLS.includes(r.channel) ? 'a call' : `${article} ${r.channel}`;
