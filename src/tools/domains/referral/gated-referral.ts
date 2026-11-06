@@ -29,8 +29,10 @@ type TrackReferral = (call: ReferralCall & { callSid: string; status: 'started' 
 
 /**
  * Null when the flag is off: the one-way call runs, as before. `message` (the
- * intro the one-way call would play) is the agent's context; the purpose stays
- * short, as the held reply says it ("I'll call at 9 to pass on a hello from Sam").
+ * intro the one-way call would play) is the agent's context. The purpose stays short
+ * and is said to the referrer, as the held reply says it ("I'll call at 9 to let Ana
+ * know you're thinking of them"). This is a live call, so neither reply promises a
+ * recorded hello.
  */
 export async function gatedReferral(
   referral: ReferralCall,
@@ -51,7 +53,7 @@ export async function gatedReferral(
     userName: referral.referrerName,
     contactName: name,
     phone: referral.recipientPhone,
-    purpose: `pass on a hello from ${referral.referrerName}`,
+    purpose: `let ${name} know you're thinking of them`,
     context: message.trim(),
     objective: 'deliver_message',
     callType: 'personal',
@@ -62,5 +64,6 @@ export async function gatedReferral(
     return { success: false, error: placement.refused, reply };
   }
   await track({ ...referral, callSid: placement.placed, status: 'started' });
-  return { success: true, callSid: placement.placed };
+  const reply = `I'm calling ${name} now to let them know you're thinking of them.`;
+  return { success: true, callSid: placement.placed, reply };
 }

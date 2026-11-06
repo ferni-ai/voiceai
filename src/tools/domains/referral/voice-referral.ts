@@ -373,7 +373,8 @@ export async function getReferralAnalytics(referrerId: string): Promise<{
 }> {
   const referrals = await getReferralHistory(referrerId);
 
-  const called = referrals.filter((r) => r.status === 'called').length;
+  // 'started': a call placed through placeOrHold (gated-referral.ts) is tracked as it rings.
+  const called = referrals.filter((r) => r.status === 'called' || r.status === 'started').length;
   const answered = referrals.filter((r) => r.status === 'answered').length;
   const converted = referrals.filter((r) => r.status === 'converted').length;
 
@@ -422,7 +423,7 @@ export function createVoiceReferralTools(userId: string, userName: string) {
           personalNote,
           occasion,
         });
-        if (result.reply) return result.reply; // held or refused (CALL_PATHS_PLACE_OR_HOLD)
+        if (result.reply) return result.reply; // placed, held or refused (CALL_PATHS_PLACE_OR_HOLD)
         if (result.success) {
           return `The call to ${friendName} has gone out. If they pick up, they'll hear a short hello from me saying you were thinking of them.`;
         } else {
@@ -452,7 +453,7 @@ export function createVoiceReferralTools(userId: string, userName: string) {
           recipientPhone: friendPhone,
           supportSituation: situation,
         });
-        if (result.reply) return result.reply; // held or refused (CALL_PATHS_PLACE_OR_HOLD)
+        if (result.reply) return result.reply; // placed, held or refused (CALL_PATHS_PLACE_OR_HOLD)
         if (result.success) {
           return `I'm reaching out to ${friendName} now with a gentle, supportive message. I'll let them know you care and that I'm here if they ever want to talk. That's a beautiful thing you're doing for them. 💚`;
         } else {

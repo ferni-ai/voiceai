@@ -103,7 +103,7 @@ process.env.OUTBOUND_CONFIRM = 'off'; // past the caller's yes: these test what 
 const { definitions } = await import('../../../tools/domains/proactive/index.js');
 const { installGatedCallPort } = await import('../gated-call-paths.js');
 const { setGatedCallPort } = await import('../../../tools/domains/telephony/index.js');
-const { createVoiceReferralTools } =
+const { createVoiceReferralTools, getReferralAnalytics } =
   await import('../../../tools/domains/referral/voice-referral.js');
 
 type Execute = { execute: (p: Record<string, unknown>) => Promise<string> };
@@ -307,7 +307,7 @@ describe('referral calls through placeOrHold', () => {
     const reply = await referAna();
 
     expect(reply).toBe(
-      "Nothing was dialed yet: it's not a good hour to call Ana, so I'll call tomorrow at 9:00 AM Ana's time, later today at 12:00 PM yours, to pass on a hello from Sam. Both times are already worked out: say them as written."
+      "Nothing was dialed yet: it's not a good hour to call Ana, so I'll call tomorrow at 9:00 AM Ana's time, later today at 12:00 PM yours, to let Ana know you're thinking of them. Both times are already worked out: say them as written."
     );
     expect(of('deferred_calls')).toHaveLength(1);
     expect(createSipParticipant).not.toHaveBeenCalled();
@@ -368,12 +368,24 @@ describe('referral calls through placeOrHold', () => {
   it('a good hour: placed and tracked as started, never as called', async () => {
     const reply = await referAna();
 
-    expect(reply).toMatch(/^The call to Ana has gone out\./);
+    // A live call: no promise of a recorded hello.
+    expect(reply).toBe("I'm calling Ana now to let them know you're thinking of them.");
     expect(createSipParticipant).toHaveBeenCalledOnce();
     expect(oldReferralDial).not.toHaveBeenCalled();
     const [tracked] = of('voice_referrals');
     expect(tracked.data).toMatchObject({ recipientName: 'Ana', status: 'started' });
     expect(tracked.data.callSid).toMatch(/^onbehalf_/);
+  });
+
+  it("analytics count a placed call ('started') and a one-way call ('called') as called", async () => {
+    const before = await getReferralAnalytics('owner-1');
+    await referAna(); // placed through placeOrHold: 'started'
+    delete process.env.CALL_PATHS_PLACE_OR_HOLD;
+    await referAna(); // the one-way call: 'called'
+
+    const after = await getReferralAnalytics('owner-1');
+    expect(after.totalReferrals - before.totalReferrals).toBe(2);
+    expect(after.called - before.called).toBe(2);
   });
 
   it('flag off: the one-way call, tracked as called, as before', async () => {
