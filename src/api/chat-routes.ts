@@ -5,7 +5,7 @@
  * Enables CLI and web chat interfaces to test the full platform.
  *
  * Endpoints:
- * - POST /api/chat/message - Send a message, get response with tool execution
+ * - POST /api/chat/message - Send a message, get response with tool execution (WEB_CHAT_MESSAGE, off)
  * - POST /api/chat/tool - Execute a specific tool directly
  * - GET /api/chat/tools - List available tools for a user
  */
@@ -384,12 +384,10 @@ export async function handleChatRoutes(
   res: ServerResponse,
   pathname: string
 ): Promise<boolean> {
-  // Only handle /api/chat/* routes
   if (!pathname.startsWith('/api/chat')) {
     return false;
   }
 
-  // Handle CORS preflight
   if (handleCorsPreflightIfNeeded(req, res)) {
     return true;
   }
@@ -401,12 +399,10 @@ export async function handleChatRoutes(
     return true;
   }
 
-  // Rate limiting
   if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000 })) {
     return true;
   }
 
-  // Require authentication
   const auth = await requireAuth(req, res, { allowDevMode: true });
   if (!auth || (await refuseUnadmittedCaller(auth, res))) return true; // WAITLIST_GATE: chat is Ferni too
 
@@ -527,16 +523,11 @@ export async function handleChatRoutes(
 
       sendJSON(res, {
         success: true,
-        tools: tools.map((t) => ({
-          name: t.name,
-          description: t.description,
-          domain: 'general',
-        })),
+        tools: tools.map((t) => ({ name: t.name, description: t.description, domain: 'general' })),
       });
       return true;
     }
 
-    // Unknown route
     sendError(res, 'Not found', 404);
     return true;
   } catch (err) {
