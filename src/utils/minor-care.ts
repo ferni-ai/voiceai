@@ -314,6 +314,22 @@ export function writeHeld(
   return memoryHeld(sessionId, env) || userHeld(userId, env) || sharedId(userId);
 }
 
+/**
+ * writeHeld without the try-first rule: MINOR_CARE or SEXUAL_TOPIC_BOUNDARY holds this caller.
+ * A safety record that keeps no words (crisis_events) still writes for a try-first visitor, so it
+ * asks this. A demo id lives for one call, so its session's holds are all its holds.
+ */
+export function careHeld(
+  userId: string | undefined,
+  sessionId?: string,
+  env: Env = process.env
+): boolean {
+  if (!isAnonymousDemoUser(userId)) return writeHeld(userId, sessionId, env);
+  return (
+    minorHeld(sessionId, env) || sexualTopicHeld(sessionId, env) || sexualTopicUserHeld(userId, env)
+  );
+}
+
 /** writeHeld, or a hold its caller already read where this process can't see it (chat: ctx.held). */
 export function callerHeld(
   ctx: { held?: boolean; userId?: string; sessionId?: string },
