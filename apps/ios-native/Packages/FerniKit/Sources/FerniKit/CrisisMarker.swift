@@ -9,14 +9,27 @@ public enum CrisisMarker {
     /// Set during the current call; read and cleared as the call ends.
     public private(set) static var thisCall = false
 
+    /// Whether the latest call had a crisis, for its sounds (#2868 item 2): set
+    /// by `mark()` and, unlike `thisCall`, kept through the call's end, because
+    /// the goodbye plays after `endCall()` has cleared `thisCall`. Cleared only
+    /// when the next call begins (`beginCall()`).
+    public private(set) static var latestCallHadCrisis = false
+
     public static func mark() {
         thisCall = true
+        latestCallHadCrisis = true
         CheckInAsk.afterCrisis.withLock { $0 = true }
+    }
+
+    /// A new call is starting: its sounds play again until it's marked.
+    public static func beginCall() {
+        latestCallHadCrisis = false
     }
 
     /// Forgets any mark (tests). It's in memory only, so the app's end forgets it too.
     public static func reset() {
         thisCall = false
+        latestCallHadCrisis = false
         CheckInAsk.afterCrisis.withLock { $0 = false }
     }
 
