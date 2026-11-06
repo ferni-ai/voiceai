@@ -142,7 +142,7 @@ describe('ACTION_PROMISE_KEPT_ON_SUCCESS: no time promised on a read-back that d
     const text = await replyWith(outreach, READ_BACK, ON, said);
     expect(text).not.toContain(said);
     expect(text).toContain(LATER_LINE);
-    expect(text).toMatch(/Should I call now, or remind you then to call\?$/);
+    expect(text).toMatch(/Should I call now, or remind you then\?$/);
   });
 
   it('on: a text set for tomorrow is dropped the same way', async () => {
@@ -161,7 +161,7 @@ describe('ACTION_PROMISE_KEPT_ON_SUCCESS: no time promised on a read-back that d
   it('on: with no reminder tool open, the question offers only now', async () => {
     const callOnly = { functionTools: { reachOut: {} } };
     const text = await replyWith(callOnly, READ_BACK, ON, "I'll call her tonight.");
-    expect(text).toContain("I can't set a call for later yet, though. Should I call now instead?");
+    expect(text).toContain("I can't set a call for later yet. Should I call now instead?");
   });
 
   it.each([

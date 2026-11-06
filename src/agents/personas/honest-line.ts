@@ -81,18 +81,20 @@ const INSTEAD: Record<ClaimKind, string> = {
 };
 const REMIND = ' Want me to remind you to do it?';
 
-/** A call or text set for later, on a read-back the yes sends now: a yes/no question, as NOT_YET. */
-function notLater(kind: ClaimKind, canRemind: boolean): string {
+/**
+ * A call or text set for later, on a read-back the yes sends now: a yes/no
+ * question, as NOT_YET. "though" only after words it can set itself against.
+ */
+function notLater(kind: ClaimKind, canRemind: boolean, afterWords: boolean): string {
   const [what, act] = kind === 'send' ? ['a text', 'send it'] : ['a call', 'call'];
-  const instead = canRemind
-    ? `, or remind you then to ${kind === 'send' ? 'text' : 'call'}`
-    : ' instead';
-  return `I can't set ${what} for later yet, though. Should I ${act} now${instead}?`;
+  const instead = canRemind ? ', or remind you then' : ' instead';
+  return `I can't set ${what} for later yet${afterWords ? ', though' : ''}. Should I ${act} now${instead}?`;
 }
 
 const notYet = (kind: ClaimKind): string => NOT_YET[kind];
 /** The reasons whose line depends only on the kind (and whether a reminder can be set). */
-const FIXED: Partial<Record<MissReason, (kind: ClaimKind, canRemind: boolean) => string>> = {
+type Line = (kind: ClaimKind, canRemind: boolean, afterWords: boolean) => string;
+const FIXED: Partial<Record<MissReason, Line>> = {
   emergency: () => EMERGENCY_LINE,
   elsewhere: () => "It's saved to Ferni's own list, not your calendar.",
   awaiting: notYet,
@@ -117,15 +119,19 @@ export function inPlace(line: string, afterWords: boolean, rest: readonly string
   return asks ? [statement, parts[2], ...rest] : [statement, ...rest, parts[2]];
 }
 
-/** What Ferni says in place of a claim, and what he can do instead. */
+/**
+ * What Ferni says in place of a claim, and what he can do instead. `afterWords`:
+ * something was said before it this reply (read by the 'timed' line only).
+ */
 export function honestLine(
   kind: ClaimKind,
   reason: MissReason,
   canRemind: boolean,
-  when?: string
+  when?: string,
+  afterWords = true
 ): string {
   const fixed = FIXED[reason];
-  if (fixed) return fixed(kind, canRemind);
+  if (fixed) return fixed(kind, canRemind, afterWords);
   if (reason === 'held') {
     return kind === 'call' && when
       ? `I haven't dialed yet, though. I'll call ${when} their time.`

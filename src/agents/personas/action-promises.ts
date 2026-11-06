@@ -20,6 +20,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { kindsOfTool, resultState, type ActionKind } from './action-claims.js';
 import { laterTime } from '../../utils/later-time.js';
+import { namesSafetyLine } from '../../services/safety/safety-line.js';
 import { lookedUpLately } from './announced-check.js';
 import type { ClaimKind, Kinds, MissReason } from './honest-line.js';
 
@@ -171,40 +172,69 @@ export function kindsRunThisTurn(
   return kinds;
 }
 
-/** The action a sentence names, for one the claim readers pass over ("I'll call her at eight, okay?"). */
-const SPOKEN: ReadonlyArray<readonly ['call' | 'send', RegExp]> = [
-  ['call', /\b(?:call\w*|ring\w*|rang|phon\w*|dial\w*)\b/i],
-  ['send', /\b(?:text\w*|messag\w*|send\w*|sent|e-?mail\w*)\b/i],
+const CALL = '(?:call|ring|phone|dial)';
+const SEND = '(?:text|message|send|e-?mail)';
+/** Ferni as the one who would do it: "I'll", "I can", "let me", "want me to", "should I". */
+const FERNI =
+  "\\b(?:i'll|i will|i'm going to|i'm gonna|i can|let me|want me to|should i|shall i|can i)\\s+(?:go ahead and |just |also |quickly )?";
+/** "give her a ring", "send Aunt June a text". */
+const GIVE = '(?:give|send) \\w+(?: \\w+)? an? ';
+/** A reply that opens on the act, with Ferni the one doing it: "Calling her at eight." */
+const OPENS = '(?:^|[,;:—–]\\s*)';
+/** Ferni's own call or text in a sentence the claim readers pass over ("Want me to call her at eight?"). */
+const FERNI_OFFERS: ReadonlyArray<readonly ['call' | 'send', RegExp]> = [
+  [
+    'call',
+    new RegExp(
+      `${FERNI}(?:${CALL}\\b|${GIVE}(?:ring|call|buzz)\\b)|${OPENS}(?:calling|ringing|phoning|dialing)\\b`,
+      'i'
+    ),
+  ],
+  [
+    'send',
+    new RegExp(
+      `${FERNI}(?:${SEND}\\b|${GIVE}(?:text|message|note)\\b)|${OPENS}(?:texting|messaging|sending)\\b`,
+      'i'
+    ),
+  ],
 ];
 
 /**
- * A call or text set for later ("I'll call her at eight, okay?") while its
- * read-back waits, so the caller's yes would dial now and the time would not be
- * kept: the kind, or null. Read with ACTION_PROMISE_KEPT_ON_SUCCESS on and
- * SCHEDULED_OUTREACH_THIRD_PARTY off, where nothing can send later. A question
- * or offer counts, which the claim readers leave alone; a time inside the words
- * carried ("tell her dinner's at eight") does not (utils/later-time.ts).
+ * A call or text Ferni sets for later ("I'll call her at eight, okay?") while
+ * its read-back waits, so the caller's yes would dial now and the time would
+ * not be kept: the kind, or null. Read with ACTION_PROMISE_KEPT_ON_SUCCESS on
+ * and SCHEDULED_OUTREACH_THIRD_PARTY off, where nothing can send later.
+ *
+ * Only Ferni's own claim, promise or offer counts: advice to the caller ("call
+ * her tonight"), reported speech ("she said she'd call you back tonight") and
+ * other people stand. A sentence that gives a crisis or emergency line is never
+ * read (services/safety namesSafetyLine), nor a time inside the words carried
+ * ("tell her dinner's at eight", utils/later-time.ts).
  */
-export function setForLater(
-  claimed: ClaimKind | null,
+function setForLater(
+  judged: { claimed: ClaimKind | null; promised: ClaimKind | null },
   sentence: string,
   awaiting: Kinds,
-  env: Env = process.env
+  env: Env
 ): 'call' | 'send' | null {
   if (!flagOn('ACTION_PROMISE_KEPT_ON_SUCCESS', env)) return null;
-  if (flagOn('SCHEDULED_OUTREACH_THIRD_PARTY', env) || laterTime(sentence) === undefined)
-    return null;
-  const kind = claimed ?? SPOKEN.find(([, re]) => re.test(sentence))?.[0] ?? null;
+  if (flagOn('SCHEDULED_OUTREACH_THIRD_PARTY', env) || namesSafetyLine(sentence)) return null;
+  if (laterTime(sentence) === undefined) return null;
+  const words = sentence.replace(/[‘’]/g, "'");
+  const offered = FERNI_OFFERS.find(([, re]) => re.test(words))?.[0] ?? null;
+  const kind = judged.claimed ?? judged.promised ?? offered;
   return (kind === 'call' || kind === 'send') && awaiting.has(kind) ? kind : null;
 }
 
 /** A sentence's judged claim, or the call or text it sets for later instead (setForLater): 'timed'. */
-export function withLaterTime<T extends { kind: ClaimKind | null; reason: MissReason | null }>(
-  judged: T,
-  sentence: string,
-  awaiting: Kinds,
-  env: Env = process.env
-): T {
-  const later = judged.reason === null ? setForLater(judged.kind, sentence, awaiting, env) : null;
+export function withLaterTime<
+  T extends {
+    kind: ClaimKind | null;
+    reason: MissReason | null;
+    claimed: ClaimKind | null;
+    promised: ClaimKind | null;
+  },
+>(judged: T, sentence: string, awaiting: Kinds, env: Env = process.env): T {
+  const later = judged.reason === null ? setForLater(judged, sentence, awaiting, env) : null;
   return later ? { ...judged, kind: later, reason: 'timed' } : judged;
 }

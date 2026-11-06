@@ -402,7 +402,7 @@ async function checkActionClaims<T>(
           return;
         }
         said = true;
-        const line = honestLine(kind, reason, open.has('reminder'), heldWhen);
+        const line = honestLine(kind, reason, open.has('reminder'), heldWhen, last !== '');
         emit(hold ? line : `Scratch that, ${line}`);
         lineLast = true;
       };

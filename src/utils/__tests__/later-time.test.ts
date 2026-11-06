@@ -32,6 +32,10 @@ describe('laterTime', () => {
     ["I'll call her at noon.", 'at noon'],
     ['I’ll call her at eight o’clock.', "at eight o'clock"],
     ["I'll call her first thing.", 'first thing'],
+    ["I'll call her at half past eight.", 'at half past eight'],
+    ["I'll call her around quarter to nine.", 'around quarter to nine'],
+    ["I'll call her in 11 minutes.", 'in 11 minutes'],
+    ["I'll call her in twenty-five minutes.", 'in twenty-five minutes'],
   ])('%j is set for later: %j', (text, said) => {
     expect(laterTime(text)).toBe(said);
   });
@@ -41,6 +45,17 @@ describe('laterTime', () => {
     "I'll call her right away.",
     "I'll call her in a minute.",
     "I'll call her in a sec.",
+    "I'll call her in 5 minutes.",
+    "I'll call her in 10 minutes.",
+    "I'll call her in ten minutes.",
+    "I'll call her in a few minutes.",
+    "I'll call her in a couple of minutes.",
+    "I'll call her, she's at 4 Elm Road.",
+    "I'll call her at 12 Main Street.",
+    "I'll call and say I'll be there at noon.",
+    "I'll call her to say the bus comes at six.",
+    "I'll call her and say you land at 6pm.",
+    "I'll call her to tell her the bus comes at six.",
     "I'll call her at 555-0142.",
     "I'll call her at 555 0142.",
     "I'll text her that dinner's at eight, okay?",
