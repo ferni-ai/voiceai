@@ -18,7 +18,7 @@
 import { stripSSML } from '../../utils/text-utils.js';
 
 /** Lower case, plain quotes, no accents or zero-width marks, one space between words. */
-export function plainWords(text: string): string {
+function plainWords(text: string): string {
   return text
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')

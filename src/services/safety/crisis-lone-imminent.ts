@@ -69,14 +69,27 @@ const BARE = /^[a-z' .,!?…-]+$/;
 export const SAFETY_TALK =
   /\b(?:988|911|crisis|lifeline|hotline|suicid\w*|self[- ]?harm|(?:hurt|harm|kill)(?:ing)? yourself|end(?:ing)? your life|safety|emergency|(?:are )?(?:you|u)(?:'re| are)? (?:feeling |doing |being )?(?:ok|okay|alright|all right|safe)|(?:keep|keeping|stay|staying) (?:yourself )?safe)\b/;
 
-/** "Is anyone nearby who can be with you?": the imminent script's closing question. */
-const ASKS_WHO_IS_NEAR =
-  /\b(?:any|some)(?:one|body)\b[^.?!]*\b(?:nearby|near you|close by|with you|there with you)\b[^.?!]*\?\s*$/;
+const SOMEONE = /\b(?:any|some)(?:one|body)\b/;
+const NEAR = /\b(?:nearby|near you|close by|with you|there with you)\b/;
+
+/**
+ * "Is anyone nearby who can be with you?", the imminent script's closing question: the line's
+ * last sentence ends in "?" and names someone, then where they are. Linear: two plain scans of
+ * one sentence, no nested quantifiers.
+ */
+function asksWhoIsNear(said: string): boolean {
+  const line = said.trimEnd();
+  if (!line.endsWith('?')) return false;
+  const body = line.slice(0, -1);
+  const last = body.slice(Math.max(...['.', '?', '!'].map((p) => body.lastIndexOf(p))) + 1);
+  const who = SOMEONE.exec(last);
+  return who !== null && NEAR.test(last.slice(who.index + who[0].length));
+}
 
 /** Ferni's line raised safety or asked who is near (CRISIS_GRADED_RESPONSE's R7 row). */
 export function asksAboutSafety(companion: string | undefined): boolean {
   const said = normalized(stripSSML(companion ?? ''));
-  return SAFETY_TALK.test(said) || ASKS_WHO_IS_NEAR.test(said);
+  return SAFETY_TALK.test(said) || asksWhoIsNear(said);
 }
 
 const SIGN_OFF = [

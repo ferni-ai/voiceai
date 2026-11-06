@@ -18,12 +18,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const info = vi.hoisted(() => vi.fn());
 const warn = vi.hoisted(() => vi.fn());
+const guardWarn = vi.hoisted(() => vi.fn());
 vi.mock('../../../utils/safe-logger.js', async (load) => {
   const real = await load<typeof import('../../../utils/safe-logger.js')>();
   return {
     ...real,
     createLogger: (bindings: { module?: string }) => {
       const base = real.createLogger(bindings as never);
+      if (bindings?.module === 'CrisisGuard') {
+        return { ...base, warn: (...a: unknown[]) => guardWarn(...a) };
+      }
       if (bindings?.module !== 'CrisisGradedResponse') return base;
       return { ...base, info, warn };
     },
@@ -95,7 +99,8 @@ const FERNI = 'Long days add up. What would help you wind down tonight?';
 const BEDTIME = 'Okay, I should head to bed';
 
 let n = 0;
-beforeEach(() => {
+beforeEach(async () => {
+  await settle(); // the last test's deferred grades log before this test's reset
   resetCrisisClassifierCache();
   resetCrisisCallRisk();
   resetCallRiskSnapshots();
@@ -286,6 +291,25 @@ describe('CRISIS_GRADED_RESPONSE=shadow: the grade', () => {
     info.mockReset();
     await turn({ voiceEmotion: { ...voiceEmotion, primary: 'neutral' } }); // calm: as C1
     expect(grades('gate')[0]).toMatchObject({ would: 'L2', main: 'guide' });
+  });
+
+  it("C7c: shadow logs main's guard lines and no more (the call miner's marker)", async () => {
+    const IMMINENT = R('imminent');
+    const overridden = () =>
+      guardWarn.mock.calls.filter((c) => String(c[1]).includes('CRISIS DETECTED')).length;
+    const rows: Turn[] = [
+      { latest: "I'm going to kill myself tonight." },
+      { reads: [IMMINENT, IMMINENT] }, // the classifier alone makes it a replace
+      {},
+    ];
+    for (const row of rows) {
+      guardWarn.mockReset();
+      await turn({ ...row, env: PROD });
+      const off = overridden();
+      guardWarn.mockReset();
+      await turn(row);
+      expect(overridden(), JSON.stringify(row)).toBe(off);
+    }
   });
 
   it('C8: any sign of a caller under 18 blocks it, call or profile level included', async () => {
@@ -540,6 +564,7 @@ describe('CRISIS_GRADED_RESPONSE=shadow changes nothing a caller hears', () => {
     const shadow = await askGated({ ...PROD, ...SHADOW });
     expect(off.said).toBe('Guided.');
     expect(shadow).toEqual(off);
+    await settle(); // the grade runs after the reply
     expect(grades('gate')).toHaveLength(1);
   });
 });

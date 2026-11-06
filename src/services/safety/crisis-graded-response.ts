@@ -12,11 +12,12 @@
  *
  * L2 needs every row clear: main's full crisis guide; plain text the rows can read; no
  * imminent read; about the caller, with no one else named in the turn; no one down, hurt
- * or near means on any line; no pattern signal at all; a calm voice or none heard; no sign
- * of a caller under 18 (owner exemption ignored); no abuse disclosure; at least two reads of
- * the turn, none missing, exactly one crisis and no two agreeing on risk; no risk on the call
- * before this turn; Ferni's line did not ask about safety, life or a plan; no grounded-release
- * screen open; and the read is crisis about the caller. The wide rows live in
+ * or near means on the latest or the 40 caller lines before it; no pattern signal at all; a
+ * calm voice or none heard; no sign of a caller under 18 (owner exemption ignored); no abuse
+ * disclosure; at least two reads of the turn, none missing, exactly one crisis and no two
+ * agreeing on risk; no risk on the call before this turn; Ferni's line, at most 600
+ * characters, did not ask about safety, life or a plan; no grounded-release screen open; and
+ * the read is crisis about the caller. The wide rows live in
  * crisis-graded-blocks.ts and fail closed: a false hit only keeps main's full guide.
  *
  * @module CrisisGradedResponse
@@ -117,10 +118,17 @@ function minorSign(
   return lines.some((l) => statesUnder18(l, companion) || mayBeUnder18(l, companion));
 }
 
+/** The caller lines the rows read: the latest and the ones just before it. */
+const EARLIER_LINES = 40;
+/** A longer Ferni line is not read: R7 blocks it, so the grade stays cheap and fails closed. */
+const FERNI_CHARS = 600;
+
 /** Whether this turn would get L2, or every row that blocks it, in order. */
 export function gradeTurn(input: GradeInput): Grade {
   const { detection: d, verdict, reads, call, companion } = input;
-  const lines = [input.latest, ...input.earlier];
+  const lines = [input.latest, ...input.earlier.slice(-EARLIER_LINES)];
+  const longFerni = (companion ?? '').length > FERNI_CHARS;
+  const ferni = longFerni ? undefined : companion;
   const failed: BlockReason[] = [];
   const block = (blocked: boolean, reason: BlockReason): void => {
     if (blocked) failed.push(reason);
@@ -137,7 +145,7 @@ export function gradeTurn(input: GradeInput): Grade {
   block(lines.some(downOrMeans), 'R3_down_or_means'); // someone else down is 911 first
   block(d.isCrisis || d.severity !== 0 || d.indicators.length > 0, 'R4_pattern');
   block(voiceNotCalm(input.voice), 'R4_voice'); // "fearful" is in neither distress list
-  block(minorSign(call, lines, companion), 'R5_minor');
+  block(minorSign(call, lines, ferni), 'R5_minor');
   block(
     lines.some((l) => abuseDisclosure(l) !== null || mayDiscloseAbuse(l)),
     'R5_abuse'
@@ -145,7 +153,7 @@ export function gradeTurn(input: GradeInput): Grade {
   failed.push(...readsFailing(reads));
   block(input.priorRisk, 'R7_prior_risk');
   // an answer to Ferni's safety question is never a non-answer
-  block(asksAboutSafety(companion) || asksAnythingSafety(companion), 'R7_safety_question');
+  block(longFerni || asksAboutSafety(ferni) || asksAnythingSafety(ferni), 'R7_safety_question');
   block(input.screen !== 'none', 'R7_screen');
   block(!(verdict?.risk === 'crisis' && verdict.subject === 'self'), 'R8_not_crisis_self');
   return failed.length ? { would: null, blockedBy: failed[0], failed } : { would: 'L2' };

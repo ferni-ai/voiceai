@@ -13,6 +13,8 @@
  * @module CrisisGradedShadow
  */
 
+import { setImmediate } from 'node:timers';
+
 import { createLogger } from '../../utils/safe-logger.js';
 import { crisisTurnOf } from './crisis-call-risk.js';
 import { turnVerdicts, type CrisisVerdict } from './crisis-classifier.js';
@@ -22,8 +24,9 @@ import {
   type GradeInput,
   type MainLevel,
 } from './crisis-graded-response.js';
-import { guardFromDetection, type CrisisDetectionResult } from './crisis-guard.js';
+import type { CrisisDetectionResult } from './crisis-guard.js';
 import { offersCrisisLine } from './crisis-line-speech.js';
+import { replacesReply } from './crisis-severity.js';
 
 const log = createLogger({ module: 'CrisisGradedResponse' });
 
@@ -122,11 +125,8 @@ function expectReply(input: GradeInput, grade: Grade, now: number): void {
   });
 }
 
-/** Shadow: log this turn's grade once per call, turn and source. Never throws. */
-export function shadowGrade(input: GradeInput, env: Env = process.env): void {
+function gradeNow(input: GradeInput, now: number): void {
   try {
-    if (resolveGradedResponseMode(env) !== 'shadow' || input.main === 'pass') return;
-    const now = Date.now();
     const key = JSON.stringify([input.call ?? '', crisisTurnOf(input.latest), input.source]);
     const seen = graded.get(key);
     if (seen && now - seen.at <= NOTE_TTL_MS) return;
@@ -134,6 +134,21 @@ export function shadowGrade(input: GradeInput, env: Env = process.env): void {
     const grade = gradeTurn(input);
     expectReply(input, grade, now);
     log.info(gradeLine(input, grade), 'CRISIS_GRADE');
+  } catch (error) {
+    warnQuietly({ error: String(error) }, 'CRISIS_GRADE failed');
+  }
+}
+
+/**
+ * Shadow: log this turn's grade once per call, turn and source. Off the reply path: the grade
+ * runs on a later turn of the event loop, over a copy of the input. Never throws.
+ */
+export function shadowGrade(input: GradeInput, env: Env = process.env): void {
+  try {
+    if (resolveGradedResponseMode(env) !== 'shadow' || input.main === 'pass') return;
+    const now = Date.now();
+    const kept = { ...input, earlier: [...input.earlier], reads: input.reads && [...input.reads] };
+    setImmediate(() => gradeNow(kept, now));
   } catch (error) {
     warnQuietly({ error: String(error) }, 'CRISIS_GRADE failed');
   }
@@ -178,7 +193,7 @@ interface SettledTurn {
 
 const pipelineMain = (s: SettledTurn): MainLevel => {
   if (s.soft) return 'soft';
-  if (guardFromDetection(s.crisis).shouldBlock) return 'replace';
+  if (replacesReply(s.crisis)) return 'replace';
   if (!s.crisis.isCrisis) return 'pass';
   return s.crisis.subject === 'third_party' ? 'guide_third_party' : 'guide';
 };
