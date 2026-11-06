@@ -66,6 +66,7 @@ jobs:
             ^src/services/outreach/__tests__/call-claim-race\.emulator\.test\.ts$
             ^src/api/__tests__/menu-[^/]*\.emulator\.test\.ts$
             ^src/api/__tests__/(seeds-(routes-ledger|purchase|import)|roadmap-seeds|account-delete-every-store)\.emulator\.test\.ts$
+            ^src/services/waitlist/
             ^src/services/wellbeing-tracking/
             ^src/api/wellbeing[^/]*\.ts$
             ^src/personality/(pattern-persistence|emotional-data-shape)\.ts$
@@ -168,6 +169,16 @@ jobs:
           NODE_ENV: test
           GOOGLE_API_KEY: ''
           SKIP_EMBEDDING: 'true'
+
+      # Waitlist waves: overlapping admissions, members, erased docs (services/waitlist). Runs
+      # even when an earlier suite failed, so a red seed ledger never hides it.
+      - name: Run Waitlist Wave Tests
+        if: ${{ !cancelled() }}
+        run: |
+          pnpm vitest run src/services/waitlist/__tests__/wave --reporter=verbose
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+          NODE_ENV: test
 
       - name: Run Account Deletion Tests
         run: |
