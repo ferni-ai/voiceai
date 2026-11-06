@@ -6,5 +6,5 @@ export const CALL_PATHS_PLACE_OR_HOLD = {
   owner: 'outreach',
   kind: 'experiment',
   expires: '2027-02-03',
-  issue: 'ISSUE_PENDING',
+  issue: '#3506',
 } as const satisfies FlagSpec;
