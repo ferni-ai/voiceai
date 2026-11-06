@@ -10,9 +10,12 @@ import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const handleInboundSMSWebhook = vi.hoisted(() => vi.fn());
+// The route checks the Twilio signature itself before the crisis screen.
+const isSignedInboundSms = vi.hoisted(() => vi.fn(() => true));
 vi.mock('../../services/outreach/webhooks/index.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../services/outreach/webhooks/index.js')>()),
   handleInboundSMSWebhook,
+  isSignedInboundSms,
 }));
 const recordCheckinReply = vi.hoisted(() => vi.fn(async () => null));
 vi.mock('../../services/outreach/checkin-replies.js', async (importOriginal) => ({
@@ -105,13 +108,13 @@ afterEach(() => {
 });
 
 describe('POST sms-inbound with SMS_CRISIS_SCREEN', () => {
-  it('on: a crisis text gets 988 in place of the handler reply, and consent still records', async () => {
+  it('on: a crisis text gets 988 in place of the handler reply, and is never recorded as consent', async () => {
     vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
     const sent = await text('I want to kill myself, call me');
     expect(sent).toContain(CRISIS_IN_TWIML);
     expect(sent).not.toContain('Open Ferni</Message>');
     expect(SMS_CRISIS_REPLY).toContain('988');
-    expect(recordInboundSmsConsent).toHaveBeenCalledTimes(1);
+    expect(recordInboundSmsConsent).not.toHaveBeenCalled();
   });
 
   it('on: a classifier-only read (no pattern) still gets 988', async () => {
@@ -130,6 +133,7 @@ describe('POST sms-inbound with SMS_CRISIS_SCREEN', () => {
   it('on: an unsigned (forged) text gets no crisis reply and never reaches the paid classifier', async () => {
     vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
     handleInboundSMSWebhook.mockResolvedValue({ success: false });
+    isSignedInboundSms.mockReturnValueOnce(false);
     expect(await text('I want to kill myself')).not.toContain('988');
     expect(modelCalls).not.toHaveBeenCalled();
   });

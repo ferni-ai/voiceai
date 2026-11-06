@@ -186,6 +186,17 @@ describe('Twilio keywords (verify of 5ee374736)', () => {
     expect(sent.indexOf('unsubscribed')).toBeLessThan(sent.indexOf('988'));
   });
 
+  it('with no handler reply (it threw), an opt-out still gets its confirmation, an opt-in does not', () => {
+    const optOut = withCrisisReply(undefined, SMS_CRISIS_REPLY, 'stop texting me. i want to die');
+    expect(optOut.match(/<Message>/g)).toHaveLength(2);
+    expect(optOut.indexOf('unsubscribed')).toBeLessThan(optOut.indexOf('988'));
+    // A crisis turn records no opt-in, so "resubscribed" would not be true.
+    // "Start!" is not Twilio's own START, so the app would confirm it.
+    expect(keywordReply(inboundKeyword('Start!'))).toMatch(/resubscribed/);
+    const optIn = withCrisisReply(undefined, SMS_CRISIS_REPLY, 'Start!');
+    expect(optIn).toBe(smsReplyTwiml(SMS_CRISIS_REPLY));
+  });
+
   it('any other reply is replaced by 988', () => {
     const handler = smsReplyTwiml("I'd love to talk. Open Ferni whenever you're ready.");
     const sent = withCrisisReply(handler, SMS_CRISIS_REPLY, 'I want to die, call me');

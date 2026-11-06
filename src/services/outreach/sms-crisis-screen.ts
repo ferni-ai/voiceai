@@ -38,9 +38,24 @@ import { escapeXml } from './twilio-ssml.js';
 
 const log = createLogger({ module: 'SmsCrisisScreen' });
 
-/** Seth approved this wording, 2026-10-25. */
-export const SMS_CRISIS_REPLY =
-  "I'm really glad you told me, and I'm here. If you might act on these thoughts or you're not safe right now, please call or text 988 (Suicide & Crisis Lifeline), or text HOME to 741741. If you're in immediate danger, call 911. You can open Ferni anytime and we'll talk.";
+/** Seth approved this wording, 2026-10-25: everything after the opening line. */
+const SMS_CRISIS_RESOURCES =
+  "If you might act on these thoughts or you're not safe right now, please call or text 988 (Suicide & Crisis Lifeline), or text HOME to 741741. If you're in immediate danger, call 911. You can open Ferni anytime and we'll talk.";
+export const SMS_CRISIS_REPLY = `I'm really glad you told me, and I'm here. ${SMS_CRISIS_RESOURCES}`;
+/**
+ * A crisis text that also asked for a call: the call is kept and the one text
+ * says so (Seth, 2026-11-06). Before, "Calling you now." was replaced by 988,
+ * and the phone then rang with no word why.
+ */
+export const SMS_CRISIS_CALLING_REPLY = `I'm really glad you told me, and I'm here. I'm calling you now. ${SMS_CRISIS_RESOURCES}`;
+
+/**
+ * The crisis reply for a text whose handler placed a call now, or none. A crisis "call me" is
+ * never held for calling hours (held-call.ts asCrisisCallMe), so no call-later line exists.
+ */
+export function smsCrisisReplyFor(called: 'now' | 'later' | undefined): string {
+  return called === 'now' ? SMS_CRISIS_CALLING_REPLY : SMS_CRISIS_REPLY;
+}
 
 /** A text isn't a live turn: Twilio waits ~15 s for the webhook, so the classifier gets longer than a call's 1 s. */
 export const SMS_CLASSIFIER_TIMEOUT_MS = 4_000;
@@ -183,21 +198,22 @@ function logScreen(
 /**
  * The TwiML that answers a crisis text. 988 replaces the usual reply, except an
  * opt-out or opt-in confirmation the app sends itself ("You're unsubscribed…"):
- * that is still owed, so it goes first and 988 follows.
+ * that is still owed, so it goes first and 988 follows. An opt-out's is owed even
+ * when the handler threw, since the route records the opt-out anyway.
  */
 export function withCrisisReply(
   handlerTwiml: string | undefined,
   crisis: string,
   body: string
 ): string {
-  const confirmation = keywordReply(inboundKeyword(body));
-  if (confirmation && handlerTwiml?.includes('</Response>')) {
-    return handlerTwiml.replace(
-      '</Response>',
-      `<Message>${escapeXml(crisis)}</Message></Response>`
-    );
-  }
-  return smsReplyTwiml(crisis);
+  const keyword = inboundKeyword(body);
+  const confirmation = keywordReply(keyword);
+  const then988 = (twiml: string): string =>
+    twiml.replace('</Response>', `<Message>${escapeXml(crisis)}</Message></Response>`);
+  if (!confirmation) return smsReplyTwiml(crisis);
+  if (handlerTwiml?.includes('</Response>')) return then988(handlerTwiml);
+  // The handler threw. The route still records an opt-out, never an opt-in on a crisis turn.
+  return keyword?.kind === 'opt-out' ? then988(smsReplyTwiml(confirmation)) : smsReplyTwiml(crisis);
 }
 
 /** The TwiML that sends `reply` back to the texter. */

@@ -20,7 +20,7 @@ import { heldSender } from './checkin-replies.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
 import { holdForCallHours } from './deferred-calls.js';
 import { placeLiveAgentCall, ringsWithLiveAgent } from './live-agent-call.js';
-import { carryOwnCallMe, heldCall } from './held-call.js';
+import { carryOwnCallMe, heldCall, isCrisisCallMe } from './held-call.js';
 import { deferredCallRequest, pausedCall } from './outreach-pause.js';
 import { callQuietHours } from './quiet-hours.js';
 import { toTwilioSsml } from './twilio-ssml.js';
@@ -182,16 +182,16 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     const refused = await ownerRefusal(userId, normalizedPhone, 'call');
     if (refused) return { success: false, error: `Not calling: ${refused}` };
 
-    // Outside the user's calling hours (CALL_HOURS_GUARD=on) the call waits for them.
+    // Outside calling hours (CALL_HOURS_GUARD=on) it waits; a crisis text's "call me" never does.
     const held = { recipientPhone: normalizedPhone, recipientUserId: userId };
     const call = { kind: 'proactive' as const, request: deferredCallRequest(request) };
-    const due = requestedFor <= new Date();
-    const deferral = due && (await holdForCallHours(userId, call, held));
+    const hoursApply = requestedFor <= new Date() && !isCrisisCallMe(request);
+    const deferral = hoursApply && (await holdForCallHours(userId, call, held));
     if (deferral) return { success: true, callId: deferral.id, status: 'scheduled' };
     // The guard covers quiet hours, in the user's own time zone. callQuietHours reads
     // the clock, not scheduledFor, so a quiet call is stored for later, never re-checked.
     const now = new Date();
-    const hours = due && !isCallHoursGuardOn() ? await callQuietHours(userId, now) : null;
+    const hours = hoursApply && !isCallHoursGuardOn() ? await callQuietHours(userId, now) : null;
     const quiet = !!hours?.quiet;
     if (quiet) log.info({ userId, callId }, 'Call delayed due to quiet hours');
     const scheduledFor = quiet && hours ? hours.until : requestedFor;

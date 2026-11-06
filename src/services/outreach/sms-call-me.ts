@@ -27,12 +27,16 @@ export const NO_CALL = "I'd love to talk. Open Ferni whenever you're ready.";
 
 type Caller = Pick<typeof callUserAdapter, 'verifiedPhone' | 'call'>;
 
-/** The reply to a "call me" text from `from`, placing the call when it may. */
+/**
+ * The reply to a "call me" text from `from`, placing the call when it may. `crisis`: the route's
+ * screen read the same text as a crisis, so the call rings now, whatever the hours (Seth, 2026-11-06).
+ */
 export async function answerCallMe(
   userId: string,
   from: string,
   personaId: string,
-  caller: Caller = callUserAdapter
+  caller: Caller = callUserAdapter,
+  crisis = false
 ): Promise<string> {
   // Without CALL_HOURS_GUARD a quiet-hours call is saved as pending with nothing
   // that dials it later, so "I'll call when they start" could be false.
@@ -48,6 +52,7 @@ export async function answerCallMe(
       phoneNumber: phone,
       message: 'You texted asking me to call.',
       personaId,
+      ...(crisis && { crisis }),
     });
     if (!result.success) {
       log.warn({ userId, error: result.error }, 'Call-me text: call not placed');

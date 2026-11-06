@@ -12,6 +12,7 @@ export {
   validateTwilioSignature,
   handleSMSStatusWebhook,
   handleInboundSMSWebhook,
+  isSignedInboundSms,
   handleCallStatusWebhook,
   handleVoicemailWebhook,
   getRecentInbound,
