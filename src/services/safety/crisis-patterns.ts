@@ -4,6 +4,8 @@
  * @module CrisisPatterns
  */
 
+import { YES_WORDS } from './crisis-agreement.js';
+import { ROPE_READY } from './crisis-means-in-hand.js';
 import { THIRD_PERSON_REPORTED } from './crisis-third-person.js';
 
 type PatternTag = 'suicidal' | 'self_harm';
@@ -15,8 +17,20 @@ interface TaggedPattern {
   imminent?: true;
 }
 
-/** A yes, said first: "yes im suicidal", "ok kill me". */
-const CONFIRM = String.raw`((yes|yeah|yep|yup|ok|okay|sure)[,.!]* )?`;
+/** Words in front of a short line, a yes among them: "yes im suicidal", "um, kill me". */
+const LEAD_IN = String.raw`((${YES_WORDS}|um+|uh+|honestly|like|idk)[,.!]* )*`;
+/** What may close a whole-line read: "?", an emoji, "tbh", "lol" (a joke frame), ", yes". */
+const TAIL = String.raw`([\s,]*([.!?]+|tbh|lol|${YES_WORDS}|\p{Extended_Pictographic}|\p{Emoji_Modifier}|\u{FE0F}|\u{200D}))*\s*$`;
+/** Someone else's belief, or the caller doubting it: "my mom thinks im suicidal", "i don't think". */
+const NOT_SAID_AS_MINE = String.raw`(?<!\b(i (don'?t|do not|didn'?t|did not|never) (think|believe|feel like|say|said)|(my (mom|mother|dad|father|parents|sister|brother|friends?|teacher|therapist|doctor|boss|wife|husband|girlfriend|boyfriend|partner)|he|she|they|people|everyone) (thinks?|believes?|says?|worries|worried|assumes?)|(asked|asks|wonders|wondered) if) )`;
+/** Blame on an outside thing in the same breath: "im literally suicidal this game is so bad". */
+const BLAME_AFTER = String.raw`(?! (this|that|the) (game|traffic|meeting|show|movie|level|class|homework|commute|lag|wifi|song|episode|match|test|exam|boss|app|update)\b[\w' ]{0,20}?\b(is|are|was|were) (so|too) (bad|boring|annoying|cringey?|embarrassing|awful|slow|long|hard|dumb|stupid|terrible|loud|laggy|toxic)\b)`;
+const SUICIDAL_ADVERBS = String.raw`((so|really|very|kinda|kind of|just|actually|honestly|pretty|literally) ){0,2}`;
+/** Running, lifting or a game in the same sentence: "my legs are dead, i can't keep going". */
+const EXERTION = String.raw`((ran|run|running)(?! out\b)|jog\w*|miles?|laps?|reps?|workout|gym|lift\w*|legs?|lungs|hike|hiking|climb\w*|bike|biking|cycling|swim\w*|race|marathon|sprint\w*|practice|training|game|level|boss|round|match|quest)`;
+/** A passive line read only in a sentence with no exertion or game in it. */
+const plainSentence = (body: string): RegExp =>
+  new RegExp(String.raw`(^|[.!?]\s)(?![^.!?]*\b${EXERTION}\b)[^.!?]*${body}`);
 
 /**
  * Explicit crisis indicators - immediate red flags.
@@ -100,22 +114,28 @@ export const EXPLICIT_CRISIS_PATTERNS: TaggedPattern[] = [
     tag: 'suicidal',
   },
   // Short lines, often a yes to "are you thinking about suicide?" ("yes im suicidal", "ok kill
-  // me"). Every reader missed them. "kill me" and "overdose tonight" only as the whole line, so
-  // "kill me now, this meeting" and "an overdose tonight at the party" stay out.
-  {
-    re: /\bi'?m (so |really |very |actually |honestly |literally |feeling )?suicidal\b|\bi (feel|'?ve been feeling) suicidal\b/,
-    tag: 'suicidal',
-  },
-  { re: new RegExp(`^${CONFIRM}(please |just )?kill me( please)?[.!]*$`), tag: 'suicidal' },
+  // me"). Every reader missed them. "kill me", "overdose tonight" and the pills goodbye only as
+  // the whole line, so "kill me now, this meeting" and "od tonight on pizza" stay out.
   {
     re: new RegExp(
-      `^${CONFIRM}(i'?ll |i will |i'?m going to |going to )?(overdose|od) (tonight|today|right now|now|this weekend)\\b`
+      String.raw`${NOT_SAID_AS_MINE}\bi('?m| am)( feeling)? ${SUICIDAL_ADVERBS}suicidal\b${BLAME_AFTER}|${NOT_SAID_AS_MINE}\bi( feel|'ve been feeling| have been feeling) ${SUICIDAL_ADVERBS}suicidal\b${BLAME_AFTER}`
+    ),
+    tag: 'suicidal',
+  },
+  { re: new RegExp(`^${LEAD_IN}(please |just )?kill me( please)?${TAIL}`, 'u'), tag: 'suicidal' },
+  {
+    re: new RegExp(
+      `^${LEAD_IN}(i'?ll |i will |i'?m going to |going to )?(overdose|od) (tonight|today|right now|now|this weekend)${TAIL}`,
+      'u'
     ),
     tag: 'suicidal',
   },
   // Pills and a goodbye, and nothing else ("💊💊💊 bye everyone").
   {
-    re: /^(\u{1F48A}\s*)+(ok |so )?(bye|goodbye)( everyone| all| world| guys)?[.!]*$/u,
+    re: new RegExp(
+      `^${LEAD_IN}(\\u{1F48A}\\s*)+(ok |so )?(bye|goodbye)( everyone| all| world| guys)?${TAIL}`,
+      'u'
+    ),
     tag: 'suicidal',
   },
   // Coded language.
@@ -136,11 +156,7 @@ export const EXPLICIT_CRISIS_PATTERNS: TaggedPattern[] = [
     tag: 'suicidal',
   },
   { re: /\bi('?ve| have)? (just )?overdosed\b/, tag: 'suicidal', imminent: true },
-  {
-    re: /\b(i have|i'?ve got|i got|got) (the|a|my) (rope|noose) (ready|tied|set up)\b(?! (for|to)\b)|\bthe noose is (ready|tied|up)\b/,
-    tag: 'suicidal',
-    imminent: true,
-  },
+  { re: new RegExp(ROPE_READY), tag: 'suicidal', imminent: true },
   {
     re: /\b(gun|pistol) (to|against|in) my (head|mouth)\b|\brope (is )?(around|on) my neck\b|\b(have|got|holding) (a|the|my) (gun|pistol) in my hand\b/,
     tag: 'suicidal',
@@ -269,8 +285,14 @@ export const PASSIVE_IDEATION_PATTERNS: TaggedPattern[] = [
     re: /\bi'?m (so |just |completely |totally )?done with (life|living|being alive)\s*[.!?]*$/,
     tag: 'suicidal',
   },
-  { re: /\bi can'?t keep going( on)?( anymore| like this)?\s*[.!?]*$/, tag: 'suicidal' },
-  { re: /\bi'?m sorry,? (but )?i'?m (just )?done\s*[.!?]*$/, tag: 'suicidal' },
+  {
+    re: plainSentence(String.raw`\bi can'?t keep going( on)?( anymore| like this)?\s*[.!?]*$`),
+    tag: 'suicidal',
+  },
+  {
+    re: plainSentence(String.raw`\bi'?m sorry,? (but )?i'?m (just )?done\s*[.!?]*$`),
+    tag: 'suicidal',
+  },
   // Method-seeking.
   {
     re: /\b(does|would|will|do you think) it hurts? to die\b|\bpainless ways? to (die|go|end it)\b/,

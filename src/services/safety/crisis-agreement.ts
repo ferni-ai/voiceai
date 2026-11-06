@@ -31,6 +31,12 @@
 import { wholeWordSite } from '../../utils/safety-whole-word.js';
 import type { CrisisVerdict, PatternOutcome } from './crisis-classifier.js';
 
+/**
+ * A yes on its own or in front of a line ("yeah, i'm still here", "ok kill me"), as regex
+ * alternatives. The one list every crisis reader uses, so a yes reads the same everywhere.
+ */
+export const YES_WORDS = 'yes|yeah|yep|yup|yea|ok|okay|sure';
+
 export function resolveCrisisAgreementGate(
   env: Record<string, string | undefined> = process.env
 ): boolean {
@@ -73,8 +79,9 @@ const PRESENCE_CHECK =
  * I'm still here", "and I'm here". Anything more ("I'm still here, barely")
  * is not a bare presence reply.
  */
-const PRESENCE_REPLY =
-  /^(?:(?:and|yeah|yep|yes|yup|yea|uh|um|oh|ok|okay|sorry|mhm|hey) )*(?:(?:i'm|im|i am) )?(?:still )?here(?: still)?(?: (?:yeah|yep|sorry))?$/;
+const PRESENCE_REPLY = new RegExp(
+  `^(?:(?:and|${YES_WORDS}|uh|um|oh|sorry|mhm|hey) )*(?:(?:i'm|im|i am) )?(?:still )?here(?: still)?(?: (?:yeah|yep|sorry))?$`
+);
 
 /** A bare "I'm still here" answering Ferni's "you still there?". */
 export function isPresenceReply(latest: string, companion?: string): boolean {

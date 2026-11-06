@@ -40,7 +40,7 @@
  * @module CrisisLoneImminent
  */
 
-import { endorses, hasRiskContent } from './crisis-agreement.js';
+import { endorses, hasRiskContent, YES_WORDS } from './crisis-agreement.js';
 import { crisisRiskThisCall, onCrisisRiskNoted } from './crisis-call-risk.js';
 import type { CrisisVerdict } from './crisis-classifier.js';
 import { detectCrisis, type CrisisDetectionResult } from './crisis-guard.js';
@@ -106,8 +106,7 @@ const SIGN_OFF = [
 ].join('|');
 
 /** Words with no content of their own around a sign-off. No "right", "same" or "thanks". */
-const FILLER =
-  'yeah|yep|yes|yup|yea|ok|okay|k|alright|all right|cool|great|awesome|nice|perfect|sounds good|(?:ha)+|lol|well|so|anyway|anyways|oh|ah|um|uh|hey|mhm|mm+|hmm+|sure|fern|ferni|fernie|ferny|fernee|ferne';
+const FILLER = `${YES_WORDS}|k|alright|all right|cool|great|awesome|nice|perfect|sounds good|(?:ha)+|lol|well|so|anyway|anyways|oh|ah|um|uh|hey|mhm|mm+|hmm+|fern|ferni|fernie|ferny|fernee|ferne`;
 
 /**
  * A short remark about the chat just had ("it was great", "that was fun",
