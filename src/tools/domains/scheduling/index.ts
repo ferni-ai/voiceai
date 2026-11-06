@@ -45,14 +45,18 @@ import {
 } from '../proactive/outreach/index.js';
 import { ownerMessageTool } from '../proactive/outreach/owner-message-policy.js';
 import { userTimeZone } from '../../../utils/caller-time-zone.js';
-import { forSomeoneElse, scheduleCallDescription, whoParam } from './schedule-call-who.js';
+import * as recipient from './schedule-call-recipient.js'; // SCHEDULE_CALL_WHO
 import {
   getPendingReminders,
   cancelReminder,
   parseNaturalTime,
 } from '../../../services/scheduling/reminder-scheduler.js';
 
-import { getTimingRecommendation } from '../../../services/contacts/optimal-timing.js';
+// Import intelligent timing ML
+import {
+  getTimingRecommendation,
+  type TimingRecommendation,
+} from '../../../services/contacts/optimal-timing.js';
 import { recordScheduledPromise as recordPromise } from '../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 
 const log = getLogger();
@@ -180,7 +184,7 @@ const scheduleCallTool: ToolDefinition = {
 
   create: (ctx: ToolContext) =>
     llm.tool({
-      description: scheduleCallDescription(), // SCHEDULE_CALL_WHO (schedule-call-who.ts)
+      description: recipient.scheduleCallDescription(),
       parameters: z.object({
         message: z.string().describe('What to say when the call is answered'),
         when: z
@@ -188,12 +192,12 @@ const scheduleCallTool: ToolDefinition = {
           .describe(
             'When to call - natural language like "at 2pm", "tomorrow morning", "in 30 minutes"'
           ),
-        ...whoParam(),
+        ...recipient.recipientParam(),
       }),
-      execute: async (params, opts) => {
+      execute: async (params) => {
         const userId = ctx.userId || 'unknown';
         const personaId = ctx.agentId || 'ferni';
-        const elsewhere = await forSomeoneElse(params, opts, userId); // SCHEDULE_CALL_WHO (schedule-call-who.ts)
+        const elsewhere = recipient.forSomeoneElse(params, userId);
         if (elsewhere !== undefined) return elsewhere;
 
         log.info({ userId, when: params.when }, '📞 Scheduling phone call');

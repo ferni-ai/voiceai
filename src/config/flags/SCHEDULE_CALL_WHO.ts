@@ -1,6 +1,6 @@
 import type { FlagSpec } from '../flag-spec.js';
 
-// on: scheduleCall's `who` naming anyone but the caller schedules nothing and writes nothing; the tool result says it only rings the caller's own phone, with no offer of a call or a reminder instead. The description says it rings only the caller (tools/domains/scheduling/schedule-call-who.ts). Off: every scheduled call rings the caller, as before.
+// on: scheduleCall gets a `recipient` field the model fills ("self" | "other"); "other" schedules nothing and writes nothing, and the tool result says it only rings the caller's own phone, with nothing offered instead. Missing or unknown values schedule as before; nothing is read from names or the message (tools/domains/scheduling/schedule-call-recipient.ts). Off: the tool is main's, and every scheduled call rings the caller.
 export const SCHEDULE_CALL_WHO = {
   default: 'off',
   owner: 'outreach',
