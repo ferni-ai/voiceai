@@ -128,6 +128,7 @@
         "src/agents/voice-agent-entry/caller-recognition.ts",
         "src/agents/voice-agent-entry/handler-setup.ts",
         "src/agents/voice-agent-entry/user-input-transcribed.ts",
+        "src/agents/voice-agent/agent-reply-recorder.ts",
         "src/agents/voice-agent/audio-processor.ts",
         "src/agents/voice-agent/cleanup-handler.ts",
         "src/agents/voice-agent/daily-checkin-handler.ts",

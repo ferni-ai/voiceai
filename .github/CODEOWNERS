@@ -165,6 +165,7 @@
 /src/agents/voice-agent-entry/caller-recognition.ts @sethdford
 /src/agents/voice-agent-entry/handler-setup.ts @sethdford
 /src/agents/voice-agent-entry/user-input-transcribed.ts @sethdford
+/src/agents/voice-agent/agent-reply-recorder.ts @sethdford
 /src/agents/voice-agent/audio-processor.ts @sethdford
 /src/agents/voice-agent/cleanup-handler.ts @sethdford
 /src/agents/voice-agent/daily-checkin-handler.ts @sethdford
