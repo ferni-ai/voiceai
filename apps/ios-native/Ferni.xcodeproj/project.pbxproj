@@ -86,6 +86,7 @@
 		EA64D0860B43223CE3A8D6EB /* FerniShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 766CF4344E77F81DF8043439 /* FerniShortcuts.swift */; };
 		EDB3152BB385F9869882B733 /* CallIntentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D088A9791D1BAB4D7E6860C8 /* CallIntentTests.swift */; };
 		F04C1D4DF69A4646E1699849 /* handoff-to-ferni.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 15418FA6D6693B28961C02AC /* handoff-to-ferni.mp3 */; };
+		F367317D9C0DEA52BDF32E0F /* CallProblemUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADE868D572F5A8CA08A3C81 /* CallProblemUITests.swift */; };
 		F4FA3A53E53F74B1477513D4 /* AccountStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01554191EA22D85DC469F56C /* AccountStatusTests.swift */; };
 		F7F72C6ABD49FAC907C56DAE /* TeamRowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 809CE395DF48D6F9DE5DD654 /* TeamRowTests.swift */; };
 		F8659A8DCBD2D3621DA596A3 /* FerniDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 3A2B0DD01002A1C6F9C20247 /* FerniDesign */; };
@@ -244,6 +245,7 @@
 		C5DE888F55AE5FD01208AD72 /* FerniDesign */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniDesign; path = Packages/FerniDesign; sourceTree = SOURCE_ROOT; };
 		C643B5190988DED731CADF82 /* LiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityController.swift; sourceTree = "<group>"; };
 		C691103BD38CBE1B5704AE31 /* LocalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationTests.swift; sourceTree = "<group>"; };
+		CADE868D572F5A8CA08A3C81 /* CallProblemUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallProblemUITests.swift; sourceTree = "<group>"; };
 		CEFE4784BAD14645AE3B2DF0 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		D088A9791D1BAB4D7E6860C8 /* CallIntentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallIntentTests.swift; sourceTree = "<group>"; };
 		E1A0BAF754F74FF65D6ADCFC /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
@@ -376,6 +378,7 @@
 			children = (
 				BB291C79E629A29D4B86C651 /* AccessibilityAuditTests.swift */,
 				B3815F6DF71C428C4E811609 /* AvatarTouchTests.swift */,
+				CADE868D572F5A8CA08A3C81 /* CallProblemUITests.swift */,
 				3CC34062567D316808D0D03C /* ConsentSheetTests.swift */,
 				32CB80CF1D9492393B441589 /* DeepLinkUITests.swift */,
 				B22FCCA00E7D0B31EC4640A3 /* FerniUITestSupport.swift */,
@@ -763,6 +766,7 @@
 			files = (
 				639D84959EC4165C2F4DA23F /* AccessibilityAuditTests.swift in Sources */,
 				65A85BD3CF6927E84BDB94EC /* AvatarTouchTests.swift in Sources */,
+				F367317D9C0DEA52BDF32E0F /* CallProblemUITests.swift in Sources */,
 				13E295A0E158B401D107C1D5 /* ConsentSheetTests.swift in Sources */,
 				24044B237183631A0FD997E3 /* DeepLinkUITests.swift in Sources */,
 				C004013039D45373716B8992 /* FerniUITestSupport.swift in Sources */,
