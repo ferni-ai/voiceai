@@ -9,15 +9,18 @@
  * every non-test file under src/ outside src/services/safety/:
  *
  * - `regex`: a regex literal, or `RegExp(...)` / `new RegExp(...)` on a literal,
- *   whose pattern reads crisis words (suicide, self-harm, overdose, "kill myself",
+ *   whose pattern can match crisis words (suicide, self-harm, overdose, "kill myself",
  *   "want to die", crisis, hotline, lifeline, 988, 911 ...);
+ * - `word`: a string or template literal with a crisis phrase, the form keyword
+ *   lists take (`['suicide', ...].includes(t)`, `new RegExp(list.join('|'))`);
  * - `resource`: a string or template literal naming a crisis resource (988, 911,
  *   741741, hotline, lifeline, "crisis line").
  *
  * The sites that existed when this landed are allowlisted per file and kind in
  * crisis-readers-allowlist.generated.json. A file may not gain sites, a file not in
- * the allowlist must have none, and the total can only go down (`--update` lowers it;
- * nothing raises it; CI also fails an allowlist edited above origin/main's).
+ * the allowlist must have none, and the total can only go down: when sites are
+ * removed CI fails until `--update` lowers the allowlist, so they can't come back.
+ * Nothing raises it; CI also fails an allowlist edited above origin/main's.
  *
  * usage:
  *   npx tsx scripts/ci/crisis-readers-ratchet.ts            check (CI)
@@ -40,7 +43,12 @@ export const BASELINE = join(
 );
 const KERNEL = 'src/services/safety/';
 
-export type Kind = 'regex' | 'resource';
+export type Kind = 'regex' | 'resource' | 'word';
+const NOUN: Record<Kind, string> = {
+  regex: 'regexes',
+  word: 'word strings',
+  resource: 'resource literals',
+};
 export interface Site {
   file: string;
   kind: Kind;
@@ -48,20 +56,86 @@ export interface Site {
   text: string;
 }
 
-/** Crisis words as they read in a pattern once escapes and grouping are gone. */
-const CRISIS_WORDS =
-  /suicid|self ?-?harm|overdos|kill (?:my|him|her|them|your)sel|want(?:ed|s)? to die|end (?:my|it all|my own) life|better off dead|unalive|crisis|hotline|lifeline|\b(?:988|911)\b/;
+/** Crisis phrases in text that is lower case with punctuation turned to spaces. */
+const CRISIS_PHRASES =
+  /suicid|self ?harm|overdos|kill (?:my|him|her|them|your) ?sel|want(?:ed|s)? to die|end(?:ing)? (?:my (?:own )?life|it all)|better off dead|unalive/;
+/** What a crisis regex reads: a crisis phrase, or a crisis resource word. */
+const CRISIS_WORDS = new RegExp(
+  `${CRISIS_PHRASES.source}|crisis|hotline|lifeline|\\b(?:988|911)\\b`
+);
 /** A crisis resource in a string. */
 const RESOURCE = /\b(?:988|911|741741)\b|hotline|lifeline|crisis (?:text )?line/i;
 
-/** A regex source with escapes and grouping turned to spaces: `kill\s+(?:myself|me)` → `kill myself me`. */
-export const plainPattern = (source: string): string =>
-  source
-    .replace(/\\[sbw][+*?]?|\\./g, ' ')
-    .replace(/[()?:|[\]^$+*{}.\\,!]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase();
+const plain = (text: string): string =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+/** What an escape matches, as text: `\s` a space, `\b` nothing, `\.` a dot. */
+const ESCAPED: Record<string, string> = { s: ' ', b: '', B: '', w: 'x', W: ' ', d: '0', D: 'x' };
+const escaped = (c = ''): string =>
+  ESCAPED[c] ?? (/[nrtfv]/.test(c) ? ' ' : /[1-9]/.test(c) ? '' : c);
+const MAX_TEXTS = 512;
+
+/**
+ * Up to MAX_TEXTS strings the pattern matches: each alternative, an optional part with and
+ * without it, a class as its first member, lookarounds dropped. `kill\s*(my|your)self`
+ * → "killmyself", "kill myself", "killyourself" ...
+ */
+export function matchedTexts(source: string): string[] {
+  let i = 0;
+  const join = (a: string[], b: string[]): string[] =>
+    a.flatMap((x) => b.map((y) => x + y)).slice(0, MAX_TEXTS);
+  const atom = (): string[] => {
+    const c = source[i++]!;
+    if (c === '\\') return [escaped(source[i++])];
+    if (c === '^' || c === '$') return [''];
+    if (c === '.') return [' '];
+    if (c === '[') {
+      const negated = source[i] === '^';
+      if (negated) i++;
+      const first = source[i] === '\\' ? escaped(source[i + 1]) : source[i]!;
+      i += source[i] === ']' ? 1 : 0;
+      while (i < source.length && source[i] !== ']') i += source[i] === '\\' ? 2 : 1;
+      i++;
+      return [negated ? 'x' : first];
+    }
+    if (c !== '(') return [c];
+    const look = /^\?<?[=!]/.exec(source.slice(i));
+    if (look) i += look[0].length;
+    else if (source.startsWith('?:', i)) i += 2;
+    else if (source.startsWith('?<', i)) i = source.indexOf('>', i) + 1;
+    const inner = alternatives();
+    i++;
+    return look ? [''] : inner;
+  };
+  const alternatives = (): string[] => {
+    const out: string[] = [];
+    let seq = [''];
+    while (i < source.length && source[i] !== ')') {
+      if (source[i] === '|') {
+        i++;
+        out.push(...seq);
+        seq = [''];
+        continue;
+      }
+      let part = atom();
+      const q = /^(?:[?*+]|\{(\d*)(?:,\d*)?\})\??/.exec(source.slice(i));
+      if (q) {
+        i += q[0].length;
+        if (q[0][0] === '?' || q[0][0] === '*' || q[1] === '0') part = ['', ...part];
+      }
+      seq = join(seq, part);
+    }
+    return [...out, ...seq].slice(0, MAX_TEXTS);
+  };
+  return alternatives();
+}
+
+/** Whether a regex source reads crisis words, through escapes, classes, optional parts and groups. */
+export const readsCrisis = (source: string): boolean =>
+  [source.replace(/\\./g, ' '), ...matchedTexts(source)].some((t) => CRISIS_WORDS.test(plain(t)));
 
 export const isScanned = (rel: string): boolean =>
   rel.startsWith('src/') &&
@@ -72,8 +146,6 @@ export const isScanned = (rel: string): boolean =>
 
 /** Every crisis regex and resource literal in one file's text. */
 export function sitesIn(file: string, text: string): Site[] {
-  if (!/suicid|harm|overdos|kill|die|life|crisis|hotline|988|911|741741|dead/i.test(text))
-    return [];
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
   const out: Site[] = [];
   const add = (node: ts.Node, kind: Kind): void => {
@@ -91,22 +163,23 @@ export function sitesIn(file: string, text: string): Site[] {
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) return;
     if (ts.isRegularExpressionLiteral(node)) {
       const body = node.text.slice(1, node.text.lastIndexOf('/'));
-      if (CRISIS_WORDS.test(plainPattern(body))) add(node, 'regex');
+      if (readsCrisis(body)) add(node, 'regex');
       return;
     }
     const arg = regexArg(node);
     if (arg && (ts.isStringLiteral(arg) || ts.isNoSubstitutionTemplateLiteral(arg))) {
-      if (CRISIS_WORDS.test(plainPattern(arg.text))) add(node, 'regex');
+      if (readsCrisis(arg.text)) add(node, 'regex');
       return;
     }
-    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
-      if (RESOURCE.test(node.text)) add(node, 'resource');
-      return;
-    }
-    if (ts.isTemplateExpression(node)) {
-      const parts = [node.head.text, ...node.templateSpans.map((s) => s.literal.text)];
-      if (parts.some((p) => RESOURCE.test(p))) add(node, 'resource');
-    }
+    const parts =
+      ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)
+        ? [node.text]
+        : ts.isTemplateExpression(node)
+          ? [node.head.text, ...node.templateSpans.map((s) => s.literal.text)]
+          : [];
+    if (parts.some((p) => RESOURCE.test(p))) add(node, 'resource');
+    else if (parts.some((p) => CRISIS_PHRASES.test(plain(p)))) add(node, 'word');
+    if (parts.length > 0 && !ts.isTemplateExpression(node)) return;
     ts.forEachChild(node, visit);
   };
   visit(source);
@@ -158,10 +231,18 @@ export function regressions(allow: Allowlist, sites: Site[]): string[] {
       .map((s) => `\n      ${s.file}:${s.line} ${s.text}`)
       .join('');
     out.push(
-      `${key}: ${before} → ${count} crisis ${key.endsWith('#regex') ? 'regexes' : 'resource literals'} outside ${KERNEL}.${where}`
+      `${key}: ${before} → ${count} crisis ${NOUN[key.slice(key.indexOf('#') + 1) as Kind]} outside ${KERNEL}.${where}`
     );
   }
   return out;
+}
+
+/** Allowlist entries above today's count: run --update, or the removed site could come back. */
+export function stale(allow: Allowlist, sites: Site[]): string[] {
+  const now = countByKey(sites);
+  return Object.entries(allow)
+    .filter(([key, before]) => (now[key] ?? 0) < before)
+    .map(([key, before]) => `${key}: allowlist ${before}, now ${now[key] ?? 0}`);
 }
 
 /** The allowlist lowered to today's counts; never raised, never gains a key. */
@@ -222,11 +303,13 @@ function main(): void {
     console.error(`\n${FIX}`);
     process.exit(1);
   }
-  console.log(
-    sites.length < total(allow)
-      ? '\n✅ No new sites, and some were removed: run with --update to lower the allowlist.'
-      : '\n✅ No new sites.'
-  );
+  const lower = stale(allow, sites);
+  if (lower.length > 0) {
+    console.error(`\n❌ Sites were removed: run with --update to lower the allowlist.`);
+    lower.forEach((w) => console.error(`  - ${w}`));
+    process.exit(1);
+  }
+  console.log('\n✅ No new sites.');
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();

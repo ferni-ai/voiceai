@@ -11,9 +11,10 @@ import {
   countByKey,
   lowered,
   measure,
-  plainPattern,
+  readsCrisis,
   regressions,
   sitesIn,
+  stale,
 } from '../crisis-readers-ratchet.js';
 
 let root: string | undefined;
@@ -58,9 +59,53 @@ describe('sitesIn', () => {
     expect(sitesIn('src/x.ts', CLEAN)).toEqual([]);
   });
 
-  it('reads a pattern through its escapes and groups', () => {
-    expect(plainPattern('kill\\s+(?:myself|me)')).toBe('kill myself me');
-    expect(plainPattern('self[- ]harm')).toContain('self - harm');
+  it('reads a pattern through its escapes, classes, optional parts and groups', () => {
+    for (const p of [
+      'kill\\s+(?:myself|me)',
+      'self[- ]harm',
+      'self.?harm',
+      'want(s|ed)?\\s+to\\s+die',
+      'kill\\s*(my|your)self',
+      's[uU]icid',
+      '\\bend it all\\b',
+      'end\\s+my\\s+(?:own\\s+)?life',
+      '(?:hi|hello|suicide)',
+      'unalive',
+      'over\\s?dos(?:e|ing)',
+      'kill(?!\\s+time)\\s+myself',
+      '(want|ready)\\s+to\\s+die',
+    ])
+      expect([p, readsCrisis(p)]).toEqual([p, true]);
+    for (const p of [
+      '\\b(?:send|end)\\b',
+      'kill(?:ed)? the (?:process|task)',
+      'best (?:of|in) life',
+    ])
+      expect([p, readsCrisis(p)]).toEqual([p, false]);
+  });
+
+  it('counts a crisis regex in a file with no other crisis word', () => {
+    expect(sitesIn('src/x.ts', 'const r = /unalive/;').map((s) => s.kind)).toEqual(['regex']);
+    expect(sitesIn('src/x.ts', 'const r = /s[uU]icid/;').map((s) => s.kind)).toEqual(['regex']);
+  });
+
+  it('counts crisis words in string lists, the form keyword readers use', () => {
+    const lists = [
+      "const CRISIS = ['suicide'];",
+      "const WORDS = ['kill myself', 'self-harm', 'party'];",
+      "export const r = new RegExp(['want to die'].join('|'), 'i');",
+      'const t = (n: string) => `${n} talked about ending my life`;',
+      "const u = (x: boolean) => `${x ? 'suicide' : ''}`;",
+    ].join('\n');
+    expect(sitesIn('src/x.ts', lists).map((s) => `${s.kind}:${s.line}`)).toEqual([
+      'word:1',
+      'word:2',
+      'word:2',
+      'word:3',
+      'word:4',
+      'word:5',
+    ]);
+    expect(sitesIn('src/x.ts', "const s = 'a fun party, to die for';")).toEqual([]);
   });
 });
 
@@ -89,6 +134,25 @@ describe('measure + regressions', () => {
     );
     expect(regressions(allow, measure(dir))).toEqual([
       expect.stringContaining('src/agents/old-reader.ts#regex: 2 → 3'),
+    ]);
+  });
+
+  it('fails a new file with a crisis keyword list', () => {
+    const dir = tree({ 'src/agents/tone.ts': "export const CRISIS = ['suicide'];\n" });
+    expect(regressions({}, measure(dir))).toEqual([
+      expect.stringContaining('src/agents/tone.ts#word: 0 → 1'),
+    ]);
+  });
+
+  it('flags an allowlist above today, so a removed reader cannot quietly come back', () => {
+    const dir = tree({ 'src/agents/old-reader.ts': READER });
+    const sites = measure(dir);
+    const allow = countByKey(sites);
+    expect(stale(allow, sites)).toEqual([]);
+    const more = { ...allow, 'src/agents/old-reader.ts#regex': 3, 'src/gone.ts#word': 1 };
+    expect(stale(more, sites)).toEqual([
+      'src/agents/old-reader.ts#regex: allowlist 3, now 2',
+      'src/gone.ts#word: allowlist 1, now 0',
     ]);
   });
 
