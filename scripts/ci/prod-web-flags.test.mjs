@@ -122,6 +122,28 @@ describe('prod web flags', () => {
     }
   });
 
+  it('passes every web build flag to the prod UI image too: a build-arg plus an ARG and ENV', () => {
+    // Known gaps on main: the image build never gets these, so prod web takes the code's
+    // default (gate-first on, try-first off) and the repo variable can't change it.
+    // Remove a name once deploy-production.yml and Dockerfile.ui pass it.
+    const KNOWN_GAPS = new Set(['VITE_GATE_FIRST', 'VITE_TRY_FIRST']);
+    const build = stepEnv(workflow, 'Build frontend');
+    const image = readFileSync('.github/workflows/deploy-production.yml', 'utf8');
+    const dockerfile = readFileSync('docker/Dockerfile.ui', 'utf8');
+    const names = Object.keys(build).filter((name) => name.startsWith('VITE_'));
+    expect(names.length).toBeGreaterThanOrEqual(25);
+    for (const name of names) {
+      const passed = [
+        image.includes(`--build-arg ${name}="${build[name]}"`),
+        new RegExp(`^ARG ${name}=""$`, 'm').test(dockerfile),
+        dockerfile.includes(`${name}=$${name}`),
+      ];
+      // A known gap must stay fully missing, so the list can only shrink.
+      const want = KNOWN_GAPS.has(name) ? [false, false, false] : [true, true, true];
+      expect(passed, `${name}: [build-arg, ARG, ENV] in the prod UI image`).toEqual(want);
+    }
+  });
+
   it("takes the API server's on/off flags from its prod env file", () => {
     const flags = serverFlags(readFileSync(SERVER_ENV, 'utf8'));
     expect(flags.MEMORY_VIEW).toBe('on');
