@@ -4,8 +4,9 @@ import LiveKit
 import os
 
 /// AVAudioSession set up for a conversation: voice-chat processing (echo
-/// cancellation, voice-tuned gain), the speaker by default, and Bluetooth headsets and
-/// AirPlay routes when connected. LiveKit's automatic setup would pick
+/// cancellation, voice-tuned gain), the speaker by default, and Bluetooth headsets
+/// when connected. AirPlay isn't offered: it's output only, so the phone's mic
+/// would hear Ferni's delayed voice. LiveKit's automatic setup would pick
 /// `.videoChat` for the speaker, so the app configures the session itself.
 ///
 /// Under LiveCommunicationKit the system owns activation. Per LiveKit's
@@ -234,8 +235,8 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
         }
     }
 
-    /// The speaker by default, Bluetooth headsets and AirPlay.
-    static let options: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetoothHFP, .allowAirPlay]
+    /// The speaker by default and Bluetooth headsets.
+    static let options: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetoothHFP]
 
     /// The IO buffer a call asks for, in seconds.
     static let ioBuffer: TimeInterval = 0.02
