@@ -183,6 +183,33 @@ describe('watchTimeToFirstWord, flag on', () => {
     expect(ttfwLines()).toHaveLength(1);
   });
 
+  it("logs Ferni's audio-track steps when the web app sends agentAudioTrackAt", () => {
+    const c = clock(0);
+    const room = fakeRoom();
+    const watch = watchTimeToFirstWord(room, 'AJ_5b', { env: ON, now: c.now });
+    watch.agentJoined();
+    noteTtfwCaller(room, 'session-d2', caller);
+    c.at(1_200);
+    gatewayFirstAudio('session-d2');
+    const payload = new TextEncoder().encode(
+      JSON.stringify({
+        tapAt: T0,
+        roomConnectedAt: T0 + 700,
+        agentAudioTrackAt: T0 + 1_500,
+        firstAudioHeardAt: T0 + 1_900,
+        platform: 'web',
+      })
+    );
+    room.emit('dataReceived', payload, caller, 0, CLIENT_TIMING_TOPIC);
+    expect(ttfwLines()).toHaveLength(1);
+    expect(ttfwLines()[0]).toMatchObject({
+      clientRoomToHeardMs: 1_200,
+      clientRoomToAgentTrackMs: 800,
+      clientAgentTrackToHeardMs: 400,
+    });
+    watch.finish();
+  });
+
   it('logs without the app after the grace period', () => {
     vi.useFakeTimers();
     const c = clock(0);

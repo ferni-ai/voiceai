@@ -53,6 +53,56 @@ describe('computeTtfwRecord', () => {
     });
   });
 
+  it("adds Ferni's audio-track steps only when the app sends agentAudioTrackAt", () => {
+    const r = computeTtfwRecord(
+      {},
+      {
+        tapAt: T0,
+        roomConnectedAt: T0 + 600,
+        agentAudioTrackAt: T0 + 1_400,
+        firstAudioHeardAt: T0 + 1_750,
+      }
+    );
+    expect(r).toEqual({
+      clientTapToRoomMs: 600,
+      clientTapToHeardMs: 1_750,
+      clientRoomToHeardMs: 1_150,
+      clientRoomToAgentTrackMs: 800,
+      clientAgentTrackToHeardMs: 350,
+    });
+  });
+
+  it('keeps the line for an old or iOS message byte-identical to before agentAudioTrackAt', () => {
+    // main's computeTtfwRecord(parseClientTiming(...)) for these marks, captured before the field existed.
+    const MAIN_LINE =
+      '{"ttfwMs":1300,"jobToAgentJoinMs":600,"agentJoinToCallerMs":300,"readyToOpenerTextMs":900,' +
+      '"openerTextToAudioMs":400,"ttsFirstAudioMs":420,"jobToFirstAudioMs":2200,' +
+      '"clientTapToRoomMs":600,"clientTapToHeardMs":1750,"clientRoomToHeardMs":1150}';
+    const { timing } = parseClientTiming(
+      bytes({
+        tapAt: T0,
+        roomConnectedAt: T0 + 600,
+        firstAudioHeardAt: T0 + 1_750,
+        platform: 'ios',
+      })
+    );
+    expect(timing).toEqual({
+      tapAt: T0,
+      roomConnectedAt: T0 + 600,
+      firstAudioHeardAt: T0 + 1_750,
+      platform: 'ios',
+    });
+    const marks = {
+      jobStart: 100,
+      agentJoined: 700,
+      callerJoined: 1_000,
+      openerText: 1_900,
+      firstAudio: 2_300,
+      ttsFirstAudioMs: 420,
+    };
+    expect(JSON.stringify(computeTtfwRecord(marks, timing ?? undefined))).toBe(MAIN_LINE);
+  });
+
   it('drops a client offset that runs backwards or past two minutes', () => {
     const r = computeTtfwRecord(
       {},
@@ -72,6 +122,16 @@ describe('parseClientTiming', () => {
       roomConnectedAt: T0 + 1,
       firstAudioHeardAt: T0 + 2,
       platform: 'ios',
+    });
+  });
+
+  it('keeps agentAudioTrackAt when it is epoch ms and drops it when it is not', () => {
+    expect(parseClientTiming(bytes({ tapAt: T0, agentAudioTrackAt: T0 + 5 })).timing).toEqual({
+      tapAt: T0,
+      agentAudioTrackAt: T0 + 5,
+    });
+    expect(parseClientTiming(bytes({ tapAt: T0, agentAudioTrackAt: 'soon' })).timing).toEqual({
+      tapAt: T0,
     });
   });
 
