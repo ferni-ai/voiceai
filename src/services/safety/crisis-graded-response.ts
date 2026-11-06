@@ -126,7 +126,8 @@ const FERNI_CHARS = 600;
 /** Whether this turn would get L2, or every row that blocks it, in order. */
 export function gradeTurn(input: GradeInput): Grade {
   const { detection: d, verdict, reads, call, companion } = input;
-  const lines = [input.latest, ...input.earlier.slice(-EARLIER_LINES)];
+  const back = Math.max(0, input.earlier.length - EARLIER_LINES);
+  const lines = [input.latest, ...input.earlier.slice(back)];
   const longFerni = (companion ?? '').length > FERNI_CHARS;
   const ferni = longFerni ? undefined : companion;
   const failed: BlockReason[] = [];

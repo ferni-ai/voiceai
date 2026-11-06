@@ -597,6 +597,23 @@ describe('CRISIS_GRADED_RESPONSE fail-closed rows', () => {
     expect(at(41)).toEqual({ would: 'L2' }); // the bound; R7_prior_risk covers risk on the call
   });
 
+  // The PR-2 earlier-line gaps (an age, an abuse disclosure said before) need the window to
+  // keep the lines just before the latest. A blocking sibling of each, 1, 2 and 40 lines back,
+  // still reaches its row; the gap rows themselves stay pinned at L2 in PR2_GAPS.
+  it.each([
+    ["I'm 13.", 'R5_minor', 'I just feel like nothing matters.'],
+    ['My dad hits me at night.', 'R5_abuse', "I'm just tired."],
+  ] as const)('the window keeps an earlier %s in reach (%s)', (said, reason, latest) => {
+    const quiet = Array.from({ length: 60 }, (_, i) => `Line ${i} about the garden.`);
+    for (const back of [1, 2, 40]) {
+      resetMinorCare();
+      const earlier = [...quiet];
+      earlier[earlier.length - back] = said;
+      const g = gradeTurn(turn({ latest, earlier, call: `window-${reason}-${back}` }));
+      expect(g.would === null && g.failed).toContain(reason);
+    }
+  });
+
   it('a Ferni line over 600 characters is not read: R7 blocks it', () => {
     const long = `${'That garden sounds lovely and the tomatoes too. '.repeat(13)}`.trim();
     expect(long.length).toBeGreaterThan(600);
