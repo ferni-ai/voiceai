@@ -41,14 +41,15 @@ const ctx: ToolContext = {
   agentId: 'ferni',
   agentDisplayName: 'Ferni',
 };
-const call = { ctx: { userData: { userId: ctx.userId, userName: 'Riley Testing' } } };
+const RILEY = 'Riley Testing';
+const callFor = (userName: string) => ({ ctx: { userData: { userId: ctx.userId, userName } } });
 const BIRTHDAY = { message: 'Happy birthday, Mom! Love you.', when: 'in 2 hours' };
 
 const DEF = definitions.find((d) => d.id === 'scheduleCall');
 if (!DEF) throw new Error('scheduleCall is not in the scheduling domain');
 const tool = () => DEF.create(ctx);
-const run = async (args: Record<string, unknown>): Promise<string> =>
-  String(await tool().execute(args, call));
+const run = async (args: Record<string, unknown>, owner = RILEY): Promise<string> =>
+  String(await tool().execute(args, callFor(owner)));
 const shape = (): Record<string, unknown> =>
   (tool() as unknown as { parameters: { shape: Record<string, unknown> } }).parameters.shape;
 const describedAs = (): string => (tool() as unknown as { description: string }).description;
@@ -64,29 +65,58 @@ const writes = (): number =>
   sent.reminder.mock.calls.length + sent.promise.mock.calls.length + sent.dial.mock.calls.length;
 
 /** What main does for this turn (no `who`): the reply and every write, recorded. */
-async function asMain(): Promise<{ reply: string; reminders: unknown[]; promises: unknown[] }> {
-  const reply = await run(BIRTHDAY);
+async function asMain(owner: string): Promise<{
+  reply: string;
+  reminders: unknown[];
+  promises: unknown[];
+  dials: unknown[];
+}> {
+  const reply = await run(BIRTHDAY, owner);
   const out = {
     reply,
     reminders: [...sent.reminder.mock.calls],
     promises: [...sent.promise.mock.calls],
+    dials: [...sent.dial.mock.calls],
   };
   vi.clearAllMocks();
   return out;
 }
-async function sameAsMain(who: string | undefined): Promise<void> {
-  const main = await asMain();
-  const reply = await run({ ...BIRTHDAY, ...(who === undefined ? {} : { who }) });
+async function sameAsMain(who: string | undefined, owner = RILEY): Promise<void> {
+  const main = await asMain(owner);
+  const reply = await run({ ...BIRTHDAY, ...(who === undefined ? {} : { who }) }, owner);
   expect(reply).toBe(main.reply);
   expect(reply).toContain("I'll call you on");
   expect(sent.reminder.mock.calls).toEqual(main.reminders);
   expect(sent.promise.mock.calls).toEqual(main.promises);
+  expect(sent.dial.mock.calls).toEqual(main.dials);
   expect(
     sent.reminder.mock.calls.map((c) => (c[0] as { deliveryAddress: string }).deliveryAddress)
   ).toEqual([OWNER]);
 }
 
-const SOMEONE_ELSE = ['my mom Priya', 'Alex', 'Riley from work', "Riley's boss", 'Riley Tester'];
+const SOMEONE_ELSE = [
+  'my mom Priya',
+  'Alex',
+  'Riley from work',
+  "Riley's boss",
+  'Riley Tester',
+  'my own mom',
+];
+/** Owners whose names words() reshapes: an apostrophe dropped, a hyphen split. */
+const OBRIEN = "Riley O'Brien";
+const MARY_JANE = 'Mary-Jane Testing';
+const OWN_NAMES: Array<[string, string]> = [
+  [OBRIEN, "Riley O'Brien"],
+  [OBRIEN, 'Riley'],
+  [MARY_JANE, 'Mary-Jane'],
+  [MARY_JANE, 'Mary-Jane Testing'],
+];
+const NOT_OWN_NAMES: Array<[string, string]> = [
+  [OBRIEN, "O'Brien's sister"],
+  [OBRIEN, "Riley's boss"],
+  [OBRIEN, 'Riley from work'],
+  [MARY_JANE, "Mary-Jane's mom"],
+];
 const SELF = [
   undefined,
   '',
@@ -96,6 +126,9 @@ const SELF = [
   'I',
   'my phone',
   'my cell',
+  'my own',
+  'my own phone',
+  'my own number',
   'Riley',
   'Riley Testing',
   'riley testing.',
@@ -131,7 +164,22 @@ describe('SCHEDULE_CALL_WHO on: a scheduled call for someone else is never rung 
     expect(reply).not.toMatch(/I can call|remind you|right now/i); // no offer, for anyone
   });
 
-  it.each(SELF)('who %j (the caller): scheduled exactly as main does', sameAsMain);
+  it.each(SELF)('who %j (the caller): scheduled exactly as main does', (who) => sameAsMain(who));
+
+  it.each(OWN_NAMES)(
+    'owner %j, who %j (their own name): scheduled exactly as main does',
+    (owner, who) => sameAsMain(who, owner)
+  );
+
+  it.each(NOT_OWN_NAMES)(
+    'owner %j, who %j: nothing is scheduled or written',
+    async (owner, who) => {
+      const reply = await run({ ...BIRTHDAY, who }, owner);
+      expect(writes()).toBe(0);
+      expect(reply).toContain(`so it can't call ${who}.`);
+      expect(reply).toMatch(TOOL_REFUSAL);
+    }
+  );
 
   it('the model is told to say whom the call is for', () => {
     expect(Object.keys(shape())).toEqual(['message', 'when', 'who']);
@@ -155,7 +203,12 @@ describe('SCHEDULE_CALL_WHO off: the tool as main has it', () => {
 
   it.each([...SOMEONE_ELSE, ...SELF])(
     'who %j sent anyway: ignored, the caller is rung exactly as main does',
-    sameAsMain
+    (who) => sameAsMain(who)
+  );
+
+  it.each([...OWN_NAMES, ...NOT_OWN_NAMES])(
+    'owner %j, who %j sent anyway: ignored, the caller is rung exactly as main does',
+    (owner, who) => sameAsMain(who, owner)
   );
 });
 
@@ -170,5 +223,10 @@ describe('otherPerson', () => {
     expect(otherPerson('Riley Testing', ['riley testing'])).toBeUndefined();
     expect(otherPerson('Riley from work', ['riley testing'])).toBe('Riley from work');
     expect(otherPerson('Riley', [])).toBe('Riley');
+    expect(otherPerson("Riley O'Brien", ['riley obrien'])).toBeUndefined();
+    expect(otherPerson('Mary-Jane', ['mary jane testing'])).toBeUndefined();
+    expect(otherPerson("Riley's boss", ['riley obrien'])).toBe("Riley's boss");
+    expect(otherPerson('Riley Testing Jr', ['riley testing'])).toBe('Riley Testing Jr');
+    expect(otherPerson('555-0100', ['riley testing'])).toBe('555-0100'); // no words: not their name
   });
 });

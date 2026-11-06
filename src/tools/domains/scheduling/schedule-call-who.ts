@@ -12,6 +12,7 @@
 import { z } from 'zod';
 
 import { flagOn, type Env } from '../../../config/env-flag.js';
+import { words } from '../communication/outreach/consent-words.js';
 import { ownerNames } from '../communication/outreach/outreach-confirm.js';
 
 /** Read when the tool is built and on each run, so a cohort's value applies per call. */
@@ -21,18 +22,32 @@ const scheduleCallWhoOn = (env: Env): boolean => flagOn('SCHEDULE_CALL_WHO', env
 const SELF = new Set([
   ...['', 'me', 'myself', 'self', 'i', 'user', 'the user', 'caller', 'the caller'],
   ...['my phone', 'my cell', 'my cell phone', 'my mobile', 'my number'],
+  ...['my own', 'my own phone', 'my own number'],
 ]);
+
+/**
+ * Whether `said` is the caller's own name: the opening words of one of their
+ * names (ownerNames: "mary jane testing"), from the first word up to all of it.
+ * Both sides go through the same words(), so "O'Brien" and "Mary-Jane" match.
+ */
+function isOwnName(said: string[], owner: readonly string[]): boolean {
+  if (said.length === 0) return false;
+  return owner.some((full) => {
+    const own = full.split(' ');
+    return said.every((word, i) => word === own[i]); // past their last word, own[i] is undefined
+  });
+}
 
 /**
  * Whom the call is for when that is someone other than the caller; undefined
  * for the caller or unsaid. The caller's own name counts only whole: their
- * first name alone or their full name, never "Riley from work".
+ * first name, or their name up to their full name, never "Riley from work"
+ * or "Riley's boss".
  */
 export function otherPerson(who: unknown, owner: readonly string[] = []): string | undefined {
   const name = typeof who === 'string' ? who.trim().replace(/[.!?]+$/, '') : '';
   const key = name.toLowerCase().replace(/\s+/g, ' ');
-  const own = owner.flatMap((full) => [full, full.split(' ')[0]]);
-  if (SELF.has(key) || own.includes(key)) return undefined;
+  if (SELF.has(key) || isOwnName(words(name), owner)) return undefined;
   return name;
 }
 
