@@ -36,6 +36,7 @@ import type { llm } from '@livekit/agents';
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
+import { carriesDistress } from './turn-distress.js';
 
 const log = createLogger({ module: 'CorrectionRepair' });
 
@@ -160,44 +161,87 @@ export function correctionNote(said: string, friend = false, scriptFree = false)
 
 /**
  * REPAIR_UNEARNED=on (#3490): the caller sets the record straight on something
- * Ferni never said ("No, my sister got fired. Not the boss." after "God, that
- * is brutal."). isCorrection rightly ignores it, but with no note the model
- * owns a miss it never made ("I totally misunderstood that").
+ * Ferni never said ("No, Lisbon. Not Lisburn." after "Lisbon in the spring").
+ * isCorrection rightly ignores it, but with no note the model owns a miss it
+ * never made ("I totally misunderstood that"). The note never rides a turn in
+ * distress: the red team's "No, I'm not safe at home." got it, so a missed
+ * note is the price of precision (verify of #3491).
  */
 function unearnedRepairEnabled(env: Record<string, string | undefined> = process.env): boolean {
   return env.REPAIR_UNEARNED === 'on';
 }
 
 const SETS_STRAIGHT = /^\s*(?:no|nope|nah|wait)\b/i;
-/** "Lisburn's" and "Lisburn" are one word. */
-const bare = (word: string): string => word.toLowerCase().replace(/'s$/, '');
+/** The "no, no," or "wait," the caller opens with: not their version of anything. */
+const OPENER = /^\s*(?:(?:no|nope|nah|wait)\b[\s,.;:!?\u2013\u2014-]*)+/i;
+/** Where one clause ends and the next starts: "Lisbon. Not", "Thursday, not", "Tuesday — Thursday". */
+const BREAK = String.raw`(?:[,.;:!?\u2013\u2014]|\s-{1,2}(?=\s))`;
+const ENDS_CLAUSE = new RegExp(`${BREAK}\\s*$`);
+const THEN_CLAUSE = new RegExp(`^\\s*${BREAK}\\s*[a-z]`, 'i');
+/** Never a name or a thing being ruled out: "not him", "not anyone". */
+const NOT_A_NAME = new Set(
+  'me him her them us myself yourself himself herself themselves anyone anybody anything everyone everybody everything someone somebody something'.split(
+    ' '
+  )
+);
+/**
+ * A line about how someone is, never a correction: "I'm not okay", "he's not
+ * sorry", "I'm fine, not upset", "it's not fine".
+ */
+const STATE_LINE =
+  /\b(?:(?:i['’]?m|i am|you['’]re|you are|he['’]?s|he is|she['’]?s|she is|they['’]re|they are|we['’]re|we are)\b[^.!?;]*|(?:it['’]?s|it is)\s+)\bnot\b/i;
+/** Weary or stuck, which carriesDistress lets through ("so tired", "I can't"): no note either. */
+const WEARY = /\b(?:tired|can['’]?t|cannot)\b/i;
+/** "Lisburn's" and "Lisburn", "managers" and "manager", are one word. */
+const bare = (word: string): string => word.toLowerCase().replace(/'?s$/, '');
+/** Ferni's lines that a ruled-out word is looked for in, his last one included. */
+const UNEARNED_LOOKBACK = 6;
+/** The caller's turns read for distress, this one included. */
+const DISTRESS_LOOKBACK = 3;
+
+/** Whether this "not <word>" opens a clause and the caller gives their version beside it. */
+function givesAlternative(rest: string, at: number, end: number): boolean {
+  const before = rest.slice(0, at);
+  if (before.trim() && !ENDS_CLAUSE.test(before)) return false;
+  return /[a-z]/i.test(before) || THEN_CLAUSE.test(rest.slice(end));
+}
 
 /**
- * A "No, X. Not Y." whose Y is in none of Ferni's last few lines, questions
- * included (a guess he asked about is his to own).
+ * A "No, X, not Y." or "No, not Y. X." whose Y is in none of Ferni's last few
+ * lines, questions included (a guess he asked about is his to own). Never a
+ * bare "no, not Y", a line about how someone is, or a turn in distress
+ * (`earlier`: the caller's turns before this one, oldest first): a missed
+ * note costs little, one on a hard turn costs the friendship.
  */
-export function isUnearnedCorrection(said: string, ferni: string[]): boolean {
-  if (!SETS_STRAIGHT.test(said) || ABOUT_SAYING.test(said)) return false;
+export function isUnearnedCorrection(
+  said: string,
+  ferni: string[],
+  earlier: readonly string[] = []
+): boolean {
+  if (!SETS_STRAIGHT.test(said) || ABOUT_SAYING.test(said) || STATE_LINE.test(said)) return false;
   const his = new Set(
     (
       ferni
-        .slice(-3)
+        .slice(-UNEARNED_LOOKBACK)
         .join(' ')
         .match(/[a-z][a-z'-]*/gi) ?? []
     ).map(bare)
   );
+  const rest = said.replace(OPENER, '');
   let ruledOut = false;
-  for (const match of said.matchAll(CONTRAST)) {
-    const word = bare(match[1] ?? '');
-    if (NOT_A_THING.has(word)) continue;
-    if (his.has(word)) return false;
-    ruledOut = true;
+  for (const match of rest.matchAll(CONTRAST)) {
+    const word = (match[1] ?? '').toLowerCase();
+    if (NOT_A_THING.has(word) || NOT_A_NAME.has(word)) continue;
+    if (his.has(bare(word))) return false;
+    const at = match.index ?? 0;
+    ruledOut ||= givesAlternative(rest, at, at + match[0].length);
   }
-  return ruledOut;
+  if (!ruledOut || WEARY.test(said)) return false;
+  return ![...earlier.slice(-(DISTRESS_LOOKBACK - 1)), said].some((t) => carriesDistress(t));
 }
 
 export const UNEARNED_NOTE =
-  "They're putting it straight, but you never said the thing they're ruling out. Take their version in a few words and go on. Don't apologise or say you misunderstood unless your own last line really had it wrong.";
+  "They're putting it straight, but you never said the thing they're ruling out. Take their version. Don't apologise or say you misunderstood unless your own last line really had it wrong.";
 
 export function settledNote(earlier: string[]): string {
   const quoted = earlier.map((c) => `"${clip(c)}"`).join('; ');
@@ -210,19 +254,28 @@ interface MessageView {
   textContent?: string;
 }
 
-/** The caller's words this reply answers and Ferni's lines before them, turn notes aside. */
-function linesOf(chatCtx: llm.ChatContext): { said: string; ferni: string[] } {
+/**
+ * The caller's words this reply answers, Ferni's lines and the caller's turns
+ * before them (oldest first), turn notes aside.
+ */
+function linesOf(chatCtx: llm.ChatContext): {
+  said: string;
+  ferni: string[];
+  callerBefore: string[];
+} {
   const ferni: string[] = [];
+  const callerBefore: string[] = [];
   let latest: string[] = [];
   for (const item of chatCtx.items as MessageView[]) {
     const text = item.type === 'message' ? (item.textContent?.trim() ?? '') : '';
     if (!text || text.startsWith(TURN_CONTEXT_HEADER)) continue;
     if (item.role === 'assistant') {
       ferni.push(text);
+      callerBefore.push(...latest);
       latest = [];
     } else if (item.role === 'user') latest.push(text);
   }
-  return { said: latest.join(' '), ferni };
+  return { said: latest.join(' '), ferni, callerBefore };
 }
 
 /**
@@ -239,9 +292,9 @@ export function correctionNotesFor(
   const repair = correctionRepairEnabled(env);
   const unearnedOn = unearnedRepairEnabled(env);
   if (!repair && !unearnedOn) return '';
-  const { said, ferni } = linesOf(chatCtx);
+  const { said, ferni, callerBefore } = linesOf(chatCtx);
   const unearned = (): boolean => {
-    const hit = unearnedOn && Boolean(said) && isUnearnedCorrection(said, ferni);
+    const hit = unearnedOn && Boolean(said) && isUnearnedCorrection(said, ferni, callerBefore);
     if (hit) log.info({}, 'CORRECTION_UNEARNED');
     return hit;
   };

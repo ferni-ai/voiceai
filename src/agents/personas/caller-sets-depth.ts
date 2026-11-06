@@ -27,6 +27,7 @@
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { callerHeavyLately } from '../../speech/tts-gateway/director/emotion-lift.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { carriesDistress } from './turn-distress.js';
 
 const log = createLogger({ module: 'CallerSetsDepth' });
 
@@ -58,13 +59,6 @@ function heavyNews(turns: readonly string[]): boolean {
   return callerHeavyLately(turns) || turns.some((t) => LIFE_CHANGE.test(t));
 }
 
-/**
- * Distress in the very turn that says "it's fine": then it isn't, and Ferni
- * stays with them. callerHeavyLately reads most of it; these are what it misses.
- */
-const DISTRESS =
-  /\b(?:alone|lonely|scared|afraid|terrified|crying|cried|tears|can'?t (?:sleep|cope|breathe|stop)|falling apart|overwhelm\w*|numb|empty|panic\w*|hurting|broken|not okay|not fine|struggling)\b/i;
-
 /** Turns of the caller's that heavy news may sit in, this one included. */
 const HEAVY_LOOKBACK = 4;
 
@@ -89,7 +83,7 @@ export function callerSetsDepthNote(
 ): string {
   if (opts.crisis || !said || !callerSetsDepthOn(env)) return '';
   // "I'm fine, I just can't stop crying" is not fine: no note, Ferni stays with them.
-  if (callerHeavyLately([said]) || DISTRESS.test(said)) return '';
+  if (carriesDistress(said)) return '';
   const outright = DECLINES_OUTRIGHT.test(said);
   if (!outright && !(DECLINES.test(said) && heavyNews(callerTurns.slice(-HEAVY_LOOKBACK))))
     return '';
