@@ -24,6 +24,11 @@ import { createTelephonyTools } from './telephony.js';
 
 // Import on-behalf call tool
 import { createCallOnBehalfTool } from './call-on-behalf.js';
+// CALL_PATHS_PLACE_OR_HOLD: calls from other tools go through placeOrHold (gated-call-port.ts)
+export { inferCallType, inferObjective } from './call-on-behalf.js';
+export { checkCallCompliance } from './compliance.js';
+export { callPathsGated, placeGatedCall, setGatedCallPort } from './gated-call-port.js';
+export type { GatedCall, Placement } from './gated-call-port.js';
 // The requesting call's real session id, read from LiveKit's run context (row 12 of the audit).
 import { withLiveSessionId } from '../../registry/live-session.js';
 // "Did you call my dad?": read-only status from the owner's own call records
