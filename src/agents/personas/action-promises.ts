@@ -19,8 +19,9 @@
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { kindsOfTool, resultState, type ActionKind } from './action-claims.js';
+import { laterTime } from '../../utils/later-time.js';
 import { lookedUpLately } from './announced-check.js';
-import type { ClaimKind } from './honest-line.js';
+import type { ClaimKind, Kinds, MissReason } from './honest-line.js';
 
 const KIN =
   '(?:mom|mum|mother|dad|father|sister|brother|grandma|grandmother|gran|grandpa|grandfather|aunt|auntie|uncle|cousin|wife|husband|partner|son|daughter|kids?|friend|boss|doctor|dentist|landlord|teacher|neighbou?r|family)';
@@ -168,4 +169,42 @@ export function kindsRunThisTurn(
   }
   if (lookedUpLately(chatCtx)) kinds.add('lookup');
   return kinds;
+}
+
+/** The action a sentence names, for one the claim readers pass over ("I'll call her at eight, okay?"). */
+const SPOKEN: ReadonlyArray<readonly ['call' | 'send', RegExp]> = [
+  ['call', /\b(?:call\w*|ring\w*|rang|phon\w*|dial\w*)\b/i],
+  ['send', /\b(?:text\w*|messag\w*|send\w*|sent|e-?mail\w*)\b/i],
+];
+
+/**
+ * A call or text set for later ("I'll call her at eight, okay?") while its
+ * read-back waits, so the caller's yes would dial now and the time would not be
+ * kept: the kind, or null. Read with ACTION_PROMISE_KEPT_ON_SUCCESS on and
+ * SCHEDULED_OUTREACH_THIRD_PARTY off, where nothing can send later. A question
+ * or offer counts, which the claim readers leave alone; a time inside the words
+ * carried ("tell her dinner's at eight") does not (utils/later-time.ts).
+ */
+export function setForLater(
+  claimed: ClaimKind | null,
+  sentence: string,
+  awaiting: Kinds,
+  env: Env = process.env
+): 'call' | 'send' | null {
+  if (!flagOn('ACTION_PROMISE_KEPT_ON_SUCCESS', env)) return null;
+  if (flagOn('SCHEDULED_OUTREACH_THIRD_PARTY', env) || laterTime(sentence) === undefined)
+    return null;
+  const kind = claimed ?? SPOKEN.find(([, re]) => re.test(sentence))?.[0] ?? null;
+  return (kind === 'call' || kind === 'send') && awaiting.has(kind) ? kind : null;
+}
+
+/** A sentence's judged claim, or the call or text it sets for later instead (setForLater): 'timed'. */
+export function withLaterTime<T extends { kind: ClaimKind | null; reason: MissReason | null }>(
+  judged: T,
+  sentence: string,
+  awaiting: Kinds,
+  env: Env = process.env
+): T {
+  const later = judged.reason === null ? setForLater(judged.kind, sentence, awaiting, env) : null;
+  return later ? { ...judged, kind: later, reason: 'timed' } : judged;
 }

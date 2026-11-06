@@ -74,7 +74,13 @@ import {
   unheardLine,
   type AskedCallStatus,
 } from './call-narration.js';
-import { kindsRunThisTurn, offerFor, promisedAction, reportsBack } from './action-promises.js';
+import {
+  kindsRunThisTurn,
+  offerFor,
+  promisedAction,
+  reportsBack,
+  withLaterTime,
+} from './action-promises.js';
 import { firestoreCallRecords, type CallRecords } from '../../services/outreach/call-status.js';
 import { sessionIdIn, turnHoldTimer } from '../../speech/output-control/turn-timing.js';
 import { contentOf, type ReplyChunk as Chunk } from './reply-chunks.js';
@@ -275,10 +281,8 @@ async function checkActionClaims<T>(
     const ran = [calling, ranThisTurn, done, awaiting, before].some((kinds) => kinds.has(kind));
     return grounded && hold && (kind === 'call' || kind === 'send') && !ran ? 'uncalled' : null;
   };
-  /**
-   * What one sentence claims or promises, and why that is false (reason null: it may stand).
-   * An emergency claim is judged first, so "I'll call 911 for you" never becomes an offer.
-   */
+  // What one sentence claims or promises, and why that is false (reason null: it may stand).
+  // An emergency claim is judged first, so "I'll call 911 for you" never becomes an offer.
   const judge = (text: string, calling: Kinds) => {
     if (isEmergency(text))
       return { kind: 'call', reason: 'emergency', claimed: 'call', promised: null } as const;
@@ -298,7 +302,7 @@ async function checkActionClaims<T>(
         : past
           ? unrun(past, calling)
           : unkept(kind, calling);
-    return { kind, reason, claimed, promised };
+    return withLaterTime({ kind, reason, claimed, promised }, text, awaiting, env);
   };
   /** A call claimed on the yes, before the call tool has said whether anything rang. */
   const ahead = (kind: ClaimKind): boolean => kind === 'call' && yesTurn && awaiting.has(kind);
