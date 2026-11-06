@@ -14,8 +14,14 @@ public protocol CallAudio: Sendable {
     /// The system's call service activated or deactivated the session. The
     /// audio engine may only run in between (LiveKit's CallKit contract).
     func systemAudio(active: Bool)
+    /// The audio engine's state, for the call log (never anything said).
+    var engineState: String { get }
     /// Phone calls, alarms, Siri: the system takes the audio and gives it back.
     var interruptions: AsyncStream<AudioInterruption> { get }
+}
+
+public extension CallAudio {
+    var engineState: String { "-" }
 }
 
 public enum AudioInterruption: Sendable, Equatable {

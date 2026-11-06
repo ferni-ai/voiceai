@@ -62,6 +62,13 @@ public final class CallSession {
     var now: () -> ContinuousClock.Instant = { .now }
     /// LiveCommunicationKit took this call: the system activates its audio.
     private var systemOwnsCall = false
+    /// The system has activated this call's audio (and not taken it back).
+    private var systemAudioOn = false
+    /// The system never activated a call's audio on this phone: later calls
+    /// run their audio themselves from the start, without the system's call.
+    private var systemAudioUnreliable = false
+    private let audioStartTimeout: Duration
+    private var audioWatchdog: Task<Void, Never>?
     private var agentHere = false
     private var callTask: Task<Void, Never>?
     private var eventsTask: Task<Void, Never>?
@@ -75,6 +82,7 @@ public final class CallSession {
         lifecycle: (any CallLifecycle)? = nil,
         agentLevel: AudioLevelMeter = AudioLevelMeter(),
         agentTimeout: Duration = .seconds(10),
+        audioStartTimeout: Duration = .seconds(3),
         defaults: UserDefaults = .standard
     ) {
         self.defaults = defaults
@@ -86,6 +94,7 @@ public final class CallSession {
         self.makeRoom = makeRoom
         self.audio = audio
         self.agentTimeout = agentTimeout
+        self.audioStartTimeout = audioStartTimeout
         Task { [weak self, interruptions = audio.interruptions] in
             for await interruption in interruptions { await self?.handle(interruption) }
         }
@@ -117,6 +126,7 @@ public final class CallSession {
         callBegan = .now
         startedAt = .now
         systemOwnsCall = false
+        systemAudioOn = false
         phase = .connecting
         callTask = Task {
             // Hung up before this task ever ran: nothing to start (or show).
@@ -128,8 +138,16 @@ public final class CallSession {
                 }
                 if Task.isCancelled { return }
             }
+            // The mic before the system's call begins: a first-time prompt never
+            // races the system call UI for the audio, and a "no" starts no call
+            // that can't hear (App Review, January 2026).
+            guard await audio.requestMicrophone() else {
+                if !Task.isCancelled { fail(.microphoneDenied) }
+                return
+            }
+            if Task.isCancelled { return }
             // The system's call UI; the call still works if it refuses.
-            if let lifecycle {
+            if let lifecycle, !systemAudioUnreliable {
                 do {
                     try await lifecycle.begin(id: id, name: PersonaRegistry.get(personaID).name)
                     systemOwnsCall = true
@@ -231,6 +249,8 @@ public final class CallSession {
             }
         case .mute(let muted): _ = await setMuted(muted)
         case .audio(let active):
+            systemAudioOn = active
+            if active { audioWatchdog?.cancel() }
             audio.systemAudio(active: active)
             guard systemOwnsCall, isActive else { return }
             if active {
@@ -250,7 +270,6 @@ public final class CallSession {
         guard !Task.isCancelled else { return }
         phase = .connecting
         if !rejoining { captions.clear() }
-        guard await audio.requestMicrophone() else { return fail(.microphoneDenied) }
         // A fresh join gets one retry when Ferni doesn't show; a rejoin after a
         // dropped call gets a single try.
         for attempt in 1...(rejoining ? 1 : 2) {
@@ -265,6 +284,7 @@ public final class CallSession {
                         hasTalked = true
                         defaults.set(true, forKey: Self.hasTalkedKey)
                     }
+                    watchAudioStart()
                 }
                 if rejoining { avatar.send(.reconnected) }
                 return
@@ -299,6 +319,12 @@ public final class CallSession {
         }
         do {
             try audio.activate(systemOwned: systemOwnsCall)
+        } catch {
+            // The sound, not the network: never "check your connection" for it.
+            log.error("The call's audio didn't start: \(error.localizedDescription, privacy: .public)")
+            return .failed(.audioDidNotStart)
+        }
+        do {
             try await room.connect(url: token.url, token: token.token)
             // Hung up while connecting: the room was already left; touch nothing.
             if Task.isCancelled || self.room !== room { return .cancelled }
@@ -322,7 +348,43 @@ public final class CallSession {
         return agentHere
     }
 
+    /// Live must mean heard. Under the system's call service the audio engine
+    /// waits for the system's go (`systemAudio(active:)`); if it never comes,
+    /// the screen says live over silence, the January 2026 rejection (iPad Air
+    /// 5). The system normally activates the audio as its call starts, before
+    /// Ferni has even joined, so `audioStartTimeout` after he joins is already
+    /// late: the app takes the audio itself, and if that fails too the call
+    /// ends with Try again.
+    private func watchAudioStart() {
+        audioWatchdog?.cancel()
+        guard systemOwnsCall, !systemAudioOn else { return }
+        audioWatchdog = Task { [weak self, audioStartTimeout] in
+            try? await Task.sleep(for: audioStartTimeout)
+            guard !Task.isCancelled else { return }
+            await self?.audioDidNotStart()
+        }
+    }
+
+    private func audioDidNotStart() async {
+        guard systemOwnsCall, !systemAudioOn, isActive, let room else { return }
+        log.error("No system audio \(self.audioStartTimeout, privacy: .public) after Ferni joined; running it ourselves. \(self.audio.engineState, privacy: .public)")
+        systemOwnsCall = false
+        systemAudioUnreliable = true
+        do {
+            try audio.activate(systemOwned: false)
+            try await room.setMicrophone(enabled: !isMuted)
+            log.info("Call audio running without the system: \(self.audio.engineState, privacy: .public)")
+        } catch {
+            guard isActive, self.room === room else { return } // hung up meanwhile
+            log.error("Call audio didn't start: \(error.localizedDescription, privacy: .public). \(self.audio.engineState, privacy: .public)")
+            await leaveRoom()
+            fail(.audioDidNotStart)
+        }
+    }
+
     private func leaveRoom() async {
+        audioWatchdog?.cancel()
+        audioWatchdog = nil
         eventsTask?.cancel()
         eventsTask = nil
         let leaving = room
@@ -455,6 +517,8 @@ public enum CallProblem: Equatable, Sendable {
     case server(Int)
     case ferniDidNotJoin
     case connectionLost
+    /// The call's sound never started (neither the system nor the app could start it).
+    case audioDidNotStart
 
     init(_ error: Error) {
         switch error as? FerniAPIError {
@@ -478,6 +542,8 @@ public enum CallProblem: Equatable, Sendable {
             "Ferni couldn't join. Let's try again."
         case .connectionLost:
             "Lost the connection. Call back?"
+        case .audioDidNotStart:
+            "The sound didn't start. Try again in a moment."
         }
     }
 }
