@@ -74,6 +74,7 @@
 		CB8FD7D5F9B4F62D90207F20 /* CrashReporting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175D63C93899C628033FCCA8 /* CrashReporting.swift */; };
 		CF99FB01C1F6E7CF14AF4FCA /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC5DFCDE2A4B444E3ABC8AA /* AppModelTests.swift */; };
 		CFB4A2A20FF174CCCBC95045 /* CallFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49306E5B24BD5C520DBE56ED /* CallFeedback.swift */; };
+		D07632FB25F5E70413A354A8 /* CrisisCallSoundsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 749C4BE21AABA935E4EDE266 /* CrisisCallSoundsTests.swift */; };
 		D1583676262D8254FE6C3D86 /* LiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C643B5190988DED731CADF82 /* LiveActivityController.swift */; };
 		DA508231BAC73A0C503073A2 /* FerniSceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148438D4C1E42EF27B5A09AC /* FerniSceneDelegate.swift */; };
 		DE233F98A04E5A1FDC02357F /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */; };
@@ -214,6 +215,7 @@
 		6C2FB03578887200033CDD5B /* DeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLink.swift; sourceTree = "<group>"; };
 		6DB1FD5E9768FDDD7A8B82CB /* FerniWatchWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FerniWatchWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6F39A0EA10A8F4060522D7F3 /* CrashPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashPolicyTests.swift; sourceTree = "<group>"; };
+		749C4BE21AABA935E4EDE266 /* CrisisCallSoundsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrisisCallSoundsTests.swift; sourceTree = "<group>"; };
 		766CF4344E77F81DF8043439 /* FerniShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniShortcuts.swift; sourceTree = "<group>"; };
 		7BBEC35DE0011C78F56EB70E /* FirstMinuteAppTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstMinuteAppTests.swift; sourceTree = "<group>"; };
 		7D40773682D7EA8473CE46CA /* FerniLink */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniLink; path = Packages/FerniLink; sourceTree = SOURCE_ROOT; };
@@ -333,6 +335,7 @@
 				9BD3D9DDFE0E010B045913FF /* CallCueTests.swift */,
 				D088A9791D1BAB4D7E6860C8 /* CallIntentTests.swift */,
 				6F39A0EA10A8F4060522D7F3 /* CrashPolicyTests.swift */,
+				749C4BE21AABA935E4EDE266 /* CrisisCallSoundsTests.swift */,
 				565F1332B57CB1EE0A6D05BB /* DeepLinkTests.swift */,
 				7BBEC35DE0011C78F56EB70E /* FirstMinuteAppTests.swift */,
 				BBCDC6DB88741D7B10F71E73 /* HelpShortcutTests.swift */,
@@ -781,6 +784,7 @@
 				1982B1CBB32C74D8DB23DA40 /* CallCueTests.swift in Sources */,
 				EDB3152BB385F9869882B733 /* CallIntentTests.swift in Sources */,
 				3658546F18732A8F5698869E /* CrashPolicyTests.swift in Sources */,
+				D07632FB25F5E70413A354A8 /* CrisisCallSoundsTests.swift in Sources */,
 				5E58C2614D2E1C7FBDC20DC1 /* DeepLinkTests.swift in Sources */,
 				379EA73E4D83C65C9AFE0A98 /* FirstMinuteAppTests.swift in Sources */,
 				1F28866ECB7A823762E0A1AC /* HelpShortcutTests.swift in Sources */,
