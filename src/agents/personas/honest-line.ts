@@ -19,9 +19,18 @@ export type SeenActions = {
  * 'uncalled': a create tool is open, but no create ran on this call for this claim (#1547).
  * 'promised': "I'll text him" with the tool open, and none called yet in this reply (action-promises.ts).
  * 'emergency': he said he called emergency services or help, which he can't (emergency-claim.ts).
+ * 'timed': a call or text set for later on a read-back that sends now (action-promises.ts setForLater).
  */
 export type MissReason =
-  'no_tool' | 'failed' | 'awaiting' | 'held' | 'uncalled' | 'elsewhere' | 'promised' | 'emergency';
+  | 'no_tool'
+  | 'failed'
+  | 'awaiting'
+  | 'held'
+  | 'uncalled'
+  | 'elsewhere'
+  | 'promised'
+  | 'emergency'
+  | 'timed';
 
 const DID_NOT_GO: Record<ClaimKind, string> = {
   call: "That call didn't go through, so nothing's been dialed.",
@@ -73,6 +82,28 @@ const INSTEAD: Record<ClaimKind, string> = {
 const REMIND = ' Want me to remind you to do it?';
 
 /**
+ * A call or text set for later, on a read-back the yes sends now: a yes/no
+ * question, as NOT_YET. "though" only after words it can set itself against.
+ */
+function notLater(kind: ClaimKind, canRemind: boolean, afterWords: boolean): string {
+  const [what, act] = kind === 'send' ? ['a text', 'send it'] : ['a call', 'call'];
+  const instead = canRemind ? ', or remind you then' : ' instead';
+  return `I can't set ${what} for later yet${afterWords ? ', though' : ''}. Should I ${act} now${instead}?`;
+}
+
+const notYet = (kind: ClaimKind): string => NOT_YET[kind];
+/** The reasons whose line depends only on the kind (and whether a reminder can be set). */
+type Line = (kind: ClaimKind, canRemind: boolean, afterWords: boolean) => string;
+const FIXED: Partial<Record<MissReason, Line>> = {
+  emergency: () => EMERGENCY_LINE,
+  elsewhere: () => "It's saved to Ferni's own list, not your calendar.",
+  awaiting: notYet,
+  uncalled: notYet,
+  promised: notYet,
+  timed: notLater,
+};
+
+/**
  * A held claim's line read naturally where the claim was, with the words held
  * after it: "though" only after words it can set itself against, and the
  * yes/no question last unless the reply already ends on a question. Dev sweep
@@ -88,16 +119,19 @@ export function inPlace(line: string, afterWords: boolean, rest: readonly string
   return asks ? [statement, parts[2], ...rest] : [statement, ...rest, parts[2]];
 }
 
-/** What Ferni says in place of a claim, and what he can do instead. */
+/**
+ * What Ferni says in place of a claim, and what he can do instead. `afterWords`:
+ * something was said before it this reply (read by the 'timed' line only).
+ */
 export function honestLine(
   kind: ClaimKind,
   reason: MissReason,
   canRemind: boolean,
-  when?: string
+  when?: string,
+  afterWords = true
 ): string {
-  if (reason === 'emergency') return EMERGENCY_LINE;
-  if (reason === 'elsewhere') return "It's saved to Ferni's own list, not your calendar.";
-  if (reason === 'awaiting' || reason === 'uncalled' || reason === 'promised') return NOT_YET[kind];
+  const fixed = FIXED[reason];
+  if (fixed) return fixed(kind, canRemind, afterWords);
   if (reason === 'held') {
     return kind === 'call' && when
       ? `I haven't dialed yet, though. I'll call ${when} their time.`

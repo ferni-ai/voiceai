@@ -18,9 +18,11 @@
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
-import { kindsOfTool, type ActionKind } from './action-claims.js';
+import { kindsOfTool, resultState, type ActionKind } from './action-claims.js';
+import { laterTime } from '../../utils/later-time.js';
+import { namesSafetyLine } from '../../services/safety/index.js';
 import { lookedUpLately } from './announced-check.js';
-import type { ClaimKind } from './honest-line.js';
+import type { ClaimKind, Kinds, MissReason } from './honest-line.js';
 
 const KIN =
   '(?:mom|mum|mother|dad|father|sister|brother|grandma|grandmother|gran|grandpa|grandfather|aunt|auntie|uncle|cousin|wife|husband|partner|son|daughter|kids?|friend|boss|doctor|dentist|landlord|teacher|neighbou?r|family)';
@@ -115,28 +117,124 @@ export function offerFor(sentence: string, grounded = false): string | undefined
   return `Want me to ${what.trim()}?`;
 }
 
+interface TurnItem {
+  type?: string;
+  role?: string;
+  name?: string;
+  textContent?: string;
+  callId?: string;
+  output?: unknown;
+  isError?: boolean;
+}
+
+/** The call ids whose tool result refused or failed. */
+function failedCallIds(items: readonly TurnItem[]): Set<string> {
+  const failed = items.filter(
+    (item) => item.type === 'function_call_output' && resultState(item) === 'failed'
+  );
+  return new Set(failed.flatMap((item) => (item.callId ? [item.callId] : [])));
+}
+
+/** The tool calls and results since the caller last spoke (a turn-context note is not them). */
+function toolItemsThisTurn(items: readonly TurnItem[]): TurnItem[] {
+  const turn: TurnItem[] = [];
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i];
+    const note = item.textContent?.startsWith(TURN_CONTEXT_HEADER) ?? false;
+    if (item.type === 'message' && item.role === 'user' && !note) break;
+    if (item.type === 'function_call' || item.type === 'function_call_output') turn.push(item);
+  }
+  return turn;
+}
+
 /**
  * The kinds of action a tool ran for since the caller last spoke: the reply
  * after a tool's result may say "I'll send that now" of what already ran. A
  * look-up tool that ran lately counts as 'lookup', so "I checked" may stand
  * (announced-check.ts lookedUpLately).
+ *
+ * With ACTION_PROMISE_KEPT_ON_SUCCESS on, a run whose result refused or failed
+ * (action-claims.ts resultState) keeps nothing: "I'll call her now" after "I
+ * couldn't place that call" is checked like a promise no tool ran for.
  */
-export function kindsRunThisTurn(chatCtx: { items: readonly unknown[] }): Set<ClaimKind> {
+export function kindsRunThisTurn(
+  chatCtx: { items: readonly unknown[] },
+  env: Env = process.env
+): Set<ClaimKind> {
   const kinds = new Set<ClaimKind>();
-  const items = chatCtx.items as ReadonlyArray<{
-    type?: string;
-    role?: string;
-    name?: string;
-    textContent?: string;
-  }>;
-  for (let i = items.length - 1; i >= 0; i--) {
-    const item = items[i];
-    const note = item.textContent?.startsWith(TURN_CONTEXT_HEADER) ?? false;
-    if (item.type === 'message' && item.role === 'user' && !note) break;
-    if (item.type === 'function_call' || item.type === 'function_call_output') {
-      for (const kind of kindsOfTool(item.name ?? '')) kinds.add(kind);
-    }
+  const items = chatCtx.items as readonly TurnItem[];
+  const failed = flagOn('ACTION_PROMISE_KEPT_ON_SUCCESS', env) ? failedCallIds(items) : undefined;
+  for (const item of toolItemsThisTurn(items)) {
+    if (item.callId && failed?.has(item.callId)) continue; // the call and its failed result
+    for (const kind of kindsOfTool(item.name ?? '')) kinds.add(kind);
   }
   if (lookedUpLately(chatCtx)) kinds.add('lookup');
   return kinds;
+}
+
+const CALL = '(?:call|ring|phone|dial)';
+const SEND = '(?:text|message|send|e-?mail)';
+/** Ferni as the one who would do it: "I'll", "I can", "let me", "want me to", "should I". */
+const FERNI =
+  "\\b(?:i'll|i will|i'm going to|i'm gonna|i can|let me|want me to|should i|shall i|can i)\\s+(?:go ahead and |just |also |quickly )?";
+/** "give her a ring", "send Aunt June a text". */
+const GIVE = '(?:give|send) \\w+(?: \\w+)? an? ';
+/** A sentence that opens on the act, Ferni the one doing it: "Calling her at eight.", "Okay, texting her now." */
+const OPENS = '^\\s*(?:(?:okay|ok|sure|alright|all right|on it)\\W+)*';
+/** Ferni's own call or text in a sentence the claim readers pass over ("Want me to call her at eight?"). */
+const FERNI_OFFERS: ReadonlyArray<readonly ['call' | 'send', RegExp]> = [
+  [
+    'call',
+    new RegExp(
+      `${FERNI}(?:${CALL}\\b|${GIVE}(?:ring|call|buzz)\\b)|${OPENS}(?:calling|ringing|phoning|dialing)\\b`,
+      'i'
+    ),
+  ],
+  [
+    'send',
+    new RegExp(
+      `${FERNI}(?:${SEND}\\b|${GIVE}(?:text|message|note)\\b)|${OPENS}(?:texting|messaging|sending)\\b`,
+      'i'
+    ),
+  ],
+];
+
+/**
+ * A call or text Ferni sets for later ("I'll call her at eight, okay?") while
+ * its read-back waits, so the caller's yes would dial now and the time would
+ * not be kept: the kind, or null. Read with ACTION_PROMISE_KEPT_ON_SUCCESS on
+ * and SCHEDULED_OUTREACH_THIRD_PARTY off, where nothing can send later.
+ *
+ * Only Ferni's own claim, promise or offer counts: advice to the caller ("call
+ * her tonight"), reported speech ("she said she'd call you back tonight") and
+ * other people stand. A sentence that gives a crisis or emergency line is never
+ * read (services/safety namesSafetyLine), nor a time inside the words carried
+ * ("tell her dinner's at eight", utils/later-time.ts).
+ */
+function setForLater(
+  judged: { claimed: ClaimKind | null; promised: ClaimKind | null },
+  sentence: string,
+  awaiting: Kinds,
+  env: Env
+): 'call' | 'send' | null {
+  if (!flagOn('ACTION_PROMISE_KEPT_ON_SUCCESS', env)) return null;
+  if (flagOn('SCHEDULED_OUTREACH_THIRD_PARTY', env) || namesSafetyLine(sentence)) return null;
+  if (laterTime(sentence) === undefined) return null;
+  const words = sentence.replace(/[‘’]/g, "'");
+  const offered = FERNI_OFFERS.find(([, re]) => re.test(words))?.[0] ?? null;
+  const kind = judged.claimed ?? judged.promised ?? offered;
+  return (kind === 'call' || kind === 'send') && awaiting.has(kind) ? kind : null;
+}
+
+/** A sentence's judged claim, or the call or text it sets for later instead (setForLater): 'timed'. */
+export function withLaterTime<
+  T extends {
+    kind: ClaimKind | null;
+    reason: MissReason | null;
+    claimed: ClaimKind | null;
+    promised: ClaimKind | null;
+  },
+>(judged: T, sentence: string, awaiting: Kinds, env: Env = process.env): T {
+  const later = judged.reason === null ? setForLater(judged, sentence, awaiting, env) : null;
+  return later ? { ...judged, kind: later, reason: 'timed' } : judged;
 }
