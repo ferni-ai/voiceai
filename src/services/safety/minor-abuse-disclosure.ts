@@ -22,6 +22,12 @@
  * no classifier read at all (off, an error or a timeout: the risk can't be read, so 988 stays).
  * Main answers every one of those reads with guidance that names 988, so 988 is never taken away.
  *
+ * Physical harm too (owner decision 2026-11-02): hitting, kicking, choking, locking in and the
+ * other acts abuse-disclosure.ts reads, plus burning. With ABUSE_DISCLOSURE_PATTERNS on, a line
+ * its read already answers stays with that read, as on main. Only sexual harm holds memory. A
+ * scripted turn (an imminent one) says the script first and whole, then the child-safety lines
+ * (childSafetyScript), on the voice turn and in the gate (crisis-gate.ts).
+ *
  * Only adds: a turn already read as a crisis keeps everything it had, and gains the indicators.
  * Anchored so a child's everyday words ("touch up my essay", "touch base", "makes me do my
  * homework", "does things to annoy me", "sends me pictures of her dog") never match.
@@ -36,6 +42,8 @@ import { holdForSexualTopic } from '../../utils/sexual-topic-hold.js';
 import type { CrisisVerdict } from './crisis-classifier.js';
 import type { CrisisDetectionResult } from './crisis-guard.js';
 import { buildCrisisGuidance } from './crisis-guard.js';
+import { spanishScript } from '../../utils/minor-crisis-care.js';
+import { abuseDisclosure, physicalHarm } from './abuse-disclosure.js';
 import { CRISIS_RESOURCES } from './crisis-response.js';
 import { SEVERITY } from './crisis-severity.js';
 import { EMERGENCY_NUMBER } from './emergency-number.js';
@@ -73,6 +81,8 @@ const NOT_A_TIME = String.raw`(?!\s+(?:early|late|so early|at|for|before|until|t
 const SELF_HARM = new RegExp(
   [
     String.raw`\b(?:(?:kill|hurt|cut|harm|burn) my ?self|suicid\w*|(?:want to|wanna) die(?!\s+(?:my|his|her|their|the|your|it)\b)|don'?t want to (?:live|be here|be alive)|end it all|better off dead|unalive)\b`,
+    // Hopeless: "I feel so hopeless"; never "hopeless at math", "a hopeless romantic".
+    String.raw`\bhopeless\b(?!\s+(?:at|with|romantic|case)\b)`,
     // Passive: "don't want to wake up tomorrow", "hope I never wake up", "sleep and never wake up".
     String.raw`\b(?:(?:don'?t|do not|never) want to|hope i (?:don'?t|never)) wake up${NOT_A_TIME}`,
     String.raw`\b(?:sleep|asleep) and (?:never|not) wake up${NOT_A_TIME}`,
@@ -92,14 +102,17 @@ export interface MinorAbuseTurn {
   companion?: string;
 }
 
-/** Whether these words, from a caller who sounds under 18, describe sexual harm to them. */
-export function minorAbuseDisclosure(call: string | undefined, turn: MinorAbuseTurn): boolean {
+export type MinorHarm = 'sexual' | 'physical';
+
+/** The harm these words, from a caller who sounds under 18, say was done to them, or null. */
+export function minorHarm(call: string | undefined, turn: MinorAbuseTurn): MinorHarm | null {
   const said = plain(turn.latest);
-  if (!HARM.test(said)) return false;
+  const harm = HARM.test(said) ? 'sexual' : physicalHarm(said) ? 'physical' : null;
+  if (!harm) return null;
   const words = [said, ...(turn.earlier ?? [])];
-  return (
-    likelyMinor(call) || ageSignal(call) || words.some((w) => statesUnder18(w, turn.companion))
-  );
+  const minor =
+    likelyMinor(call) || ageSignal(call) || words.some((w) => statesUnder18(w, turn.companion));
+  return minor ? harm : null;
 }
 
 const INDICATOR = 'minor_abuse_disclosure';
@@ -144,13 +157,21 @@ export function withMinorAbuseDisclosure<T extends SettledRead>(
   { priorRisk, classifierNoRead = false }: MinorCallRisk,
   env: Env = process.env
 ): T {
-  if (!flagOn('MINOR_ABUSE_DISCLOSURE', env) || !minorAbuseDisclosure(call, turn)) return settled;
-  holdForSexualTopic(call);
-  const { crisis } = settled;
+  const harm = flagOn('MINOR_ABUSE_DISCLOSURE', env) ? minorHarm(call, turn) : null;
+  if (!harm) return settled;
+  const scripted = withChildSafetyScript(settled);
+  // Physical harm the abuse read answers (ABUSE_DISCLOSURE_PATTERNS): its turn and guidance.
+  const abuseRead = flagOn('ABUSE_DISCLOSURE_PATTERNS', env) && !!abuseDisclosure(turn.latest);
+  if (harm === 'physical' && abuseRead) return scripted;
+  if (harm === 'sexual') holdForSexualTopic(call);
+  const { crisis } = scripted;
   const selfHarm = callerMayBeAtRisk(settled, turn, priorRisk, classifierNoRead);
-  log.info({ wasCrisis: crisis.isCrisis, selfHarm, classifierNoRead }, 'MINOR_ABUSE_DISCLOSURE');
+  log.info(
+    { harm, wasCrisis: crisis.isCrisis, selfHarm, classifierNoRead },
+    'MINOR_ABUSE_DISCLOSURE'
+  );
   return {
-    ...settled,
+    ...scripted,
     soft: false,
     crisis: {
       ...crisis,
@@ -193,7 +214,10 @@ const CHILDHELP = CRISIS_RESOURCES.child_abuse[0];
  */
 export function minorAbuseGuidance(crisis: CrisisDetectionResult): string | null {
   if (!crisis.indicators.includes(INDICATOR)) return null;
-  const selfRisk = crisis.indicators.includes(SELF_RISK);
+  // The abuse read's own self-harm read (abuse-disclosure-turn.ts) keeps 988 here too.
+  const selfRisk = [SELF_RISK, 'abuse_disclosure_self_harm'].some((i) =>
+    crisis.indicators.includes(i)
+  );
   const thank =
     '1. Thank them for telling you. Say plainly that it is not their fault and they are not in trouble';
   // 988 in the first sentence, so a long reply that runs out never loses it.
@@ -210,4 +234,43 @@ export function minorAbuseGuidance(crisis: CrisisDetectionResult): string | null
 The caller sounds under 18 and is telling you that someone is touching or hurting them. Your response MUST:
 ${lines.join('\n')}`;
   return selfRisk ? `${buildCrisisGuidance(crisis)}\n\n${childSafety}` : childSafety;
+}
+
+/** What a scripted turn says after its script, to a caller under 18 who told of harm. */
+export const CHILD_SAFETY_SCRIPT_LINES = `What you told me is not your fault, and you're not in trouble. When you can, tell a safe adult you trust, like a teacher or a school counselor. You can also call or text the ${CHILDHELP.name} at ${CHILDHELP.phone}, any time.`;
+
+/** The crisis script, whole and first, then the child-safety lines; a Spanish script as it is. */
+export function childSafetyScript(script: string): string {
+  if (spanishScript(script) || script.endsWith(CHILD_SAFETY_SCRIPT_LINES)) return script;
+  return `${script}\n\n${CHILD_SAFETY_SCRIPT_LINES}`;
+}
+
+/** A scripted turn's crisis read with the child-safety lines after its script. */
+function withChildSafetyScript<T extends SettledRead>(settled: T): T {
+  const script = settled.crisis.suggestedResponse;
+  if (!script) return settled;
+  return {
+    ...settled,
+    crisis: { ...settled.crisis, suggestedResponse: childSafetyScript(script) },
+  };
+}
+
+/**
+ * The gate's crisis script (crisis-gate.ts) with the flag on, for a caller who sounds under 18
+ * and told of harm this turn: the script, then the child-safety lines. Never throws: on any
+ * failure the script goes as it is.
+ */
+export function minorHarmScript(
+  script: string,
+  call: string | undefined,
+  turn: MinorAbuseTurn,
+  env: Env = process.env
+): string {
+  try {
+    if (!flagOn('MINOR_ABUSE_DISCLOSURE', env) || !minorHarm(call, turn)) return script;
+    return childSafetyScript(script);
+  } catch (error) {
+    log.warn({ error: String(error) }, 'MINOR_ABUSE_DISCLOSURE script lines failed');
+    return script;
+  }
 }

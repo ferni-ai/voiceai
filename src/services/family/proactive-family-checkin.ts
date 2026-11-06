@@ -17,6 +17,7 @@
  * @module services/family/proactive-family-checkin
  */
 
+import { concernForSponsor, type ConcernUrgency } from '../../types/concern-urgency.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore, getFirestoreDb } from '../superhuman/firestore-utils.js';
 import type { SponsoredIdentity } from '../identity/sponsored-identity.js';
@@ -71,10 +72,8 @@ export type DetectedMood =
   | 'unwell'
   | 'unknown';
 
-/**
- * Urgency level for flagged concerns
- */
-export type ConcernUrgency = 'low' | 'medium' | 'high' | 'urgent';
+/** Urgency level for flagged concerns. */
+export type { ConcernUrgency };
 
 /**
  * A scheduled family check-in
@@ -224,6 +223,9 @@ export interface FlaggedConcern {
 
   /** Urgency level */
   urgency: ConcernUrgency;
+
+  /** False when the model wrote it otherwise, e.g. "High" (see LabelledConcern) */
+  labelWasCanonical?: boolean;
 
   /** Category (health, safety, emotional, financial) */
   category: 'health' | 'safety' | 'emotional' | 'financial' | 'other';
@@ -756,14 +758,8 @@ export function generateBriefingSummary(record: CheckinCallRecord): string {
   }
 
   // Concerns (only mention if sponsor should know)
-  if (record.concernsIdentified && record.concernsIdentified.length > 0) {
-    const highPriority = record.concernsIdentified.filter(
-      (c) => c.urgency === 'high' || c.urgency === 'urgent'
-    );
-    if (highPriority.length > 0) {
-      parts.push(`Something you might want to know: ${highPriority[0].description}`);
-    }
-  }
+  const concern = concernForSponsor(record.concernsIdentified);
+  if (concern) parts.push(`Something you might want to know: ${concern.description}`);
 
   // Follow-ups for sponsor
   if (record.followUpItems && record.followUpItems.length > 0) {

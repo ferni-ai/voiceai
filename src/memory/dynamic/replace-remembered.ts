@@ -30,7 +30,12 @@ import {
   listRemembered,
   type MemoryControlStore,
 } from '../recall/memory-control.js';
-import { keepForRecall, type KeepOutcome, type RememberToRecallDeps } from './remembered-facts.js';
+import {
+  keepForRecall,
+  memoryToolFlags,
+  type KeepOutcome,
+  type RememberToRecallDeps,
+} from './remembered-facts.js';
 
 const log = createLogger({ module: 'ReplaceRemembered' });
 
@@ -97,6 +102,8 @@ export async function replaceRemembered(
   change: { original: string; updated: string; sessionId?: string; userName?: string },
   deps: RememberToRecallDeps & { control?: MemoryControlStore } = {}
 ): Promise<ReplaceOutcome> {
+  // Before the reads below: the writer gets the flags this call started with (keepForRecall)
+  const flags = deps.flags ?? memoryToolFlags(deps.env);
   const store = deps.control ?? control;
   if (!store || !isMemberIdentity(userId)) return { kind: 'failed' };
   try {
@@ -112,7 +119,7 @@ export async function replaceRemembered(
     if (matches.length > 1) return { kind: 'ambiguous' };
     const old = matches[0];
     const fact = { fact: change.updated, category: 'correction', sessionId: change.sessionId };
-    const kept = await keepForRecall(userId, fact, deps);
+    const kept = await keepForRecall(userId, fact, { ...deps, flags });
     if (kept.kind !== 'kept' && kept.kind !== 'already') return { kind: 'not_kept', kept };
     if (kept.id === old.id) return { kind: 'replaced' };
     try {
