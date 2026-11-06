@@ -6,7 +6,7 @@ export const WEB_CHAT_MESSAGE = {
   owner: 'platform',
   kind: 'experiment',
   expires: '2027-02-05',
-  issue: '#3549',
+  issue: 'https://github.com/ferni-ai/voiceai/issues/3549',
   context:
-    'Delete the route if the web app still has no typed chat; turning it on first needs a crisis read before the LLM (#3549).',
+    'Delete the route if the web app still has no typed chat; turning it on first needs a crisis read before the LLM.',
 } as const satisfies FlagSpec;
