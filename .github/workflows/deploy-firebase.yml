@@ -97,6 +97,8 @@ jobs:
           VITE_APPLE_WEB_SIGNIN: ${{ vars.VITE_APPLE_WEB_SIGNIN }}
           # Goodbye ceremony and reconnect prompt (apps/web/src/config/call-wrap-up-flag.ts); off unless exactly "true".
           VITE_CALL_WRAP_UP: ${{ vars.VITE_CALL_WRAP_UP }}
+          # "The sound didn't start" notice (apps/web/src/config/audio-start-watch-flag.ts); off unless exactly "true".
+          VITE_WEB_AUDIO_START_WATCH: ${{ vars.VITE_WEB_AUDIO_START_WATCH }}
           # Avatar motion switches (apps/web/src/config/motion-flags.ts); off unless "on" or "true".
           # To turn one on, set its repo variable (e.g. VITE_NATURAL_BLINK=true) and re-run this
           # workflow. scripts/ci/prod-web-flags.test.mjs fails if one is missing here.
