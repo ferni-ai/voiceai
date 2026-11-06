@@ -32,6 +32,7 @@ import type { ToolContext } from '../../../registry/types.js';
 import { setCallUserPort } from '../../proactive/outreach/call-user-port.js';
 import { definitions } from '../index.js';
 import { TOOL_REFUSAL } from '../../../../agents/personas/action-claims.js';
+import { namesEmergencyService } from '../../../../utils/dialable-number.js';
 import { otherPerson, scheduleCallDescription } from '../schedule-call-who.js';
 
 const ctx: ToolContext = {
@@ -93,6 +94,35 @@ describe('SCHEDULE_CALL_WHO on: a scheduled call for someone else is never rung 
     expect(reply).toMatch(TOOL_REFUSAL); // the action-claim guard reads it as nothing done
   });
 
+  // Ferni can't dial these (utils/dialable-number.ts), so no "I can call 911 right now".
+  it.each([
+    '911',
+    '9-1-1',
+    'the police',
+    'an ambulance',
+    'Emergency services',
+    '988',
+    'the 988 lifeline',
+    'the suicide hotline',
+    'a crisis text line',
+    '311',
+  ])('who %j: nothing is scheduled, and no call is offered', async (who) => {
+    const reply = await run({ ...BIRTHDAY, who });
+    expect(sent.reminder).not.toHaveBeenCalled();
+    expect(reply).toBe(
+      `Nothing was scheduled: ${who} is an emergency or service number, so the caller should dial it themselves.`
+    );
+    expect(reply).not.toMatch(/I can call|remind you/);
+    expect(reply).toMatch(TOOL_REFUSAL);
+  });
+
+  it.each(['my emergency contact Priya', 'Officer Marcus', 'the police station front desk'])(
+    'who %j is a person or place, not a service: the usual line',
+    async (who) => {
+      expect(await run({ ...BIRTHDAY, who })).toMatch(/^I can't set a call to .* for later yet\./);
+    }
+  );
+
   it.each([
     ['at 6pm', 'remind you at 6pm'],
     ['6pm', 'remind you at 6pm'],
@@ -146,5 +176,16 @@ describe('otherPerson', () => {
     expect(otherPerson(42)).toBeUndefined();
     expect(otherPerson('Riley', ['riley'])).toBeUndefined();
     expect(otherPerson('Riley', [])).toBe('Riley');
+  });
+});
+
+describe('namesEmergencyService', () => {
+  it('emergency and crisis numbers and services, not people or other numbers', () => {
+    for (const who of ['911', '(988)', '112', 'ems', 'the cops', 'a suicide line', 'Lifeline']) {
+      expect(namesEmergencyService(who)).toBe(true);
+    }
+    for (const who of ['Aunt June', '555-0142', 'my emergency contact', 'Priya 9110', '']) {
+      expect(namesEmergencyService(who)).toBe(false);
+    }
   });
 });

@@ -13,6 +13,7 @@
 import { z } from 'zod';
 
 import { flagOn, type Env } from '../../../config/env-flag.js';
+import { dialItThemselves, namesEmergencyService } from '../../../utils/dialable-number.js';
 import { ownerFirstNames } from '../communication/outreach/outreach-confirm.js';
 
 /** Read when the tool is built and on each run, so a cohort's value applies per call. */
@@ -79,7 +80,11 @@ export function whoParam(env: Env = process.env): { who?: z.ZodOptional<z.ZodStr
   return { who };
 }
 
-/** The reply when the call is for someone else, or undefined: the caller's own call, or the flag off. */
+/**
+ * The reply when the call is for someone else, or undefined: the caller's own
+ * call, or the flag off. Emergency services or a crisis line are never offered
+ * a call now: Ferni can't dial them, and says so as call-confirm does.
+ */
 export function forSomeoneElse(
   params: { who?: unknown; when?: unknown },
   opts: unknown,
@@ -87,5 +92,7 @@ export function forSomeoneElse(
 ): string | undefined {
   if (!scheduleCallWhoOn(env)) return undefined;
   const other = otherPerson(params.who, ownerFirstNames(opts));
-  return other === undefined ? undefined : onlyRingsYouLine(other, params.when);
+  if (other === undefined) return undefined;
+  if (namesEmergencyService(other)) return `Nothing was scheduled: ${dialItThemselves(other)}.`;
+  return onlyRingsYouLine(other, params.when);
 }
