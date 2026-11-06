@@ -230,7 +230,6 @@ export function changedExports(base: string, root: string): ExportedFn[] {
   });
 }
 
-export const NONE = new Float32Array(0);
 export const MARKER = '<!-- semantic-duplicates -->';
 
 /** The PR comment: one line per finding, naming the match. */

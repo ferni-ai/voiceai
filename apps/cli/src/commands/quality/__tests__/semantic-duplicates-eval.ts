@@ -1,9 +1,10 @@
 /**
  * The dev and sealed sets for the duplicate check (semantic-duplicates.ts): each labelled pair
  * scored with the same thresholds and size floor as a real run, and precision and recall of the
- * flags against the labels. Run: `npx tsx apps/cli/src/commands/quality/semantic-duplicates-eval.ts <pairs.json>`.
+ * flags against the labels. Test-side: the dev-set test and the sealed run use it.
+ * Run: `npx tsx apps/cli/src/commands/quality/__tests__/semantic-duplicates-eval.ts <pairs.json>`.
  *
- * @module quality/semantic-duplicates-eval
+ * @module quality/__tests__/semantic-duplicates-eval
  */
 import { readFileSync } from 'fs';
 import {
@@ -12,14 +13,15 @@ import {
   exportedFunctions,
   jaccard,
   localEmbed,
-  NONE,
   related,
   shingles,
   sized,
   THRESHOLDS,
   type Embed,
   type ExportedFn,
-} from './semantic-duplicates.js';
+} from '../semantic-duplicates.js';
+
+const NONE = new Float32Array(0);
 
 /** A labelled pair: two exported functions with their repo paths, and whether they duplicate. */
 export interface LabelledPair {
