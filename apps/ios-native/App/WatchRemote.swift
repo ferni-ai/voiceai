@@ -65,7 +65,7 @@ extension AppModel {
     /// The call as the watch shows it.
     var remoteState: RemoteState {
         let phase: RemoteState.Phase = switch call.phase {
-        case .connecting, .waitingForFerni, .reconnecting: .connecting
+        case .connecting, .waitingForFerni, .reconnecting, .rejoining: .connecting
         case .live: call.isOnHold ? .onHold : .live
         case .ended, .failed: .ended
         case .idle: .idle

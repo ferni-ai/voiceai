@@ -21,11 +21,13 @@ import os
 /// end, and the next room, being system-owned, never turned it back on: no mic
 /// and no speaker for the rest of a call that looked live.
 ///
-/// After an interruption ends, a device comes or goes, or the media services
-/// reset, the call is set up again: voice chat on the session, and LiveKit's
-/// voice processing (its echo cancellation) back on if it dropped. Without it,
-/// Ferni's own voice reaches the mic and reads as the person talking. Each time
-/// is logged with its reason and whether voice processing had dropped.
+/// When the system activates the call's session (at the start, or giving it
+/// back after a hold), after an interruption ends, when a device comes or
+/// goes, and after the media services reset, the call is set up again: voice
+/// chat on the session, and LiveKit's voice processing (its echo cancellation)
+/// back on if it dropped, even when the session refuses its settings. Without
+/// it, Ferni's own voice reaches the mic and reads as the person talking. Each
+/// time is logged with its reason and whether voice processing had dropped.
 ///
 /// When the system never activates a call's audio, the call takes it itself
 /// (`activate(systemOwned: false)`), and a late word from the system's
@@ -117,11 +119,15 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
         }
     }
 
-    /// Voice chat on the session and voice processing on, logged with the reason.
+    /// Voice chat on the session and voice processing on, logged with the
+    /// reason. Voice processing comes back even if the session refuses its
+    /// settings: the echo cancellation doesn't depend on them.
     private func setUpAgain(_ why: StaticString) throws {
-        try configure()
+        var refused: Error?
+        do { try configure() } catch { refused = error }
         let processing = restoreVoiceProcessing()
         log.notice("Session set again (\(why, privacy: .public)); voice processing \(processing, privacy: .public)")
+        if let refused { throw refused }
     }
 
     /// Turns LiveKit's voice processing back on only if it dropped: turning it
@@ -190,7 +196,9 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
 
     public func systemAudio(active: Bool) {
         systemActive.withLock { $0 = active }
-        if active { try? configure() }
+        // A hold's end may come before this or not at all: this is where the
+        // call is surely back, so it's set up again here, before the engine starts.
+        if active { reapply("system activated") }
         // The app took the audio over when the system never activated it: a
         // late word from the system's abandoned call leaves the engine on.
         setEngine(active || ownActive.withLock({ $0 }) ? .default : .none)

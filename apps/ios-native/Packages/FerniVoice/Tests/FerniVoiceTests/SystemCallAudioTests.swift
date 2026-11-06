@@ -45,8 +45,11 @@ final class SystemCallAudioTests: XCTestCase {
         var configured = 0
         var ioBuffer: TimeInterval?
         var active: [Bool] = []
+        /// The session refuses the call's settings.
+        var refusesCategory = false
         func setCategory(_ category: AVAudioSession.Category, mode: AVAudioSession.Mode,
                          options: AVAudioSession.CategoryOptions) throws {
+            if refusesCategory { throw NSError(domain: "AVAudioSession", code: -50) }
             self.category = category; self.mode = mode; self.options = options
             configured += 1
         }
@@ -207,6 +210,58 @@ final class SystemCallAudioTests: XCTestCase {
 
                 post(name, info, to: center)
                 XCTAssertEqual(processing.turnedOn, 1, "left alone while on: \(why)")
+            }
+        }
+    }
+
+    /// Under the system's call service a hold (a phone call, Siri) is over
+    /// when the system gives the session back. The interruption's end can come
+    /// before that, while the call isn't holding the session, or not at all:
+    /// either way the call is back in voice chat with voice processing on.
+    func testAHoldTheSystemGivesBackSetsTheCallUpAgain() throws {
+        let ended: [AnyHashable: Any] = [AVAudioSessionInterruptionTypeKey: AVAudioSession.InterruptionType.ended.rawValue]
+        for endFirst in [true, false] {
+            let why = endFirst ? "the end before the session" : "no end at all"
+            let session = Session(), processing = Processing(), center = NotificationCenter()
+            let audio = SystemCallAudio(systemManagesCalls: true, engine: { _ in }, session: session,
+                                        notifications: center, voiceProcessing: processing)
+            try audio.activate(systemOwned: true)
+            audio.systemAudio(active: true)
+            audio.systemAudio(active: false) // the hold takes the audio
+
+            session.mode = .default
+            processing.isOn = false
+            if endFirst { post(AVAudioSession.interruptionNotification, ended, to: center) }
+            audio.systemAudio(active: true) // and gives it back
+            XCTAssertEqual(session.mode, .voiceChat, why)
+            XCTAssertTrue(processing.isOn, why)
+            XCTAssertEqual(processing.turnedOn, 1, why)
+        }
+    }
+
+    /// A session that refuses the call's settings still gets voice processing
+    /// back, on every path that sets the call up again.
+    func testVoiceProcessingComesBackEvenWhenTheSessionRefusesItsSettings() throws {
+        let ended: [AnyHashable: Any] = [AVAudioSessionInterruptionTypeKey: AVAudioSession.InterruptionType.ended.rawValue]
+        let disruptions: [(String, Notification.Name?, [AnyHashable: Any])] = [
+            ("an interruption's end", AVAudioSession.interruptionNotification, ended),
+            ("a new device", AVAudioSession.routeChangeNotification, route(.newDeviceAvailable)),
+            ("a media services reset", AVAudioSession.mediaServicesWereResetNotification, [:]),
+            ("the system giving the session back", nil, [:]),
+        ]
+        for systemOwned in [true, false] {
+            for (what, name, info) in disruptions where systemOwned || name != nil {
+                let why = "\(what), system owned: \(systemOwned)"
+                let session = Session(), processing = Processing(), center = NotificationCenter()
+                let audio = SystemCallAudio(systemManagesCalls: systemOwned, engine: { _ in }, session: session,
+                                            notifications: center, voiceProcessing: processing)
+                try audio.activate(systemOwned: systemOwned)
+                if systemOwned { audio.systemAudio(active: true) }
+
+                session.refusesCategory = true
+                processing.isOn = false
+                if let name { post(name, info, to: center) } else { audio.systemAudio(active: true) }
+                XCTAssertTrue(processing.isOn, why)
             }
         }
     }
