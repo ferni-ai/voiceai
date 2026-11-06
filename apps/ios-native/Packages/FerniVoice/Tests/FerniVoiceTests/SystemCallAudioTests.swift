@@ -13,13 +13,27 @@ import XCTest
 final class SystemCallAudioTests: XCTestCase {
     /// Every availability the adapter set, in order.
     final class Engine: @unchecked Sendable {
-        private let states = OSAllocatedUnfairLock(initialState: [String]())
-        var all: [String] { states.withLock { $0 } }
+        private let states = OSAllocatedUnfairLock(initialState: [(String, ContinuousClock.Instant)]())
+        var all: [String] { states.withLock { $0.map(\.0) } }
         var now: String? { all.last }
         func record(_ availability: AudioEngineAvailability) {
             let state = availability.isInputAvailable && availability.isOutputAvailable ? "on"
                 : !availability.isInputAvailable && !availability.isOutputAvailable ? "off" : "partial"
-            states.withLock { $0.append(state) }
+            states.withLock { $0.append((state, .now)) }
+        }
+        /// Voice processing turned on restarts the engine.
+        func restarted() { states.withLock { $0.append(("restart", .now)) } }
+        /// Everything the engine did after `start`, and how long playout stopped:
+        /// each off or partial until the next on. A restart can't be timed here.
+        func since(_ start: ContinuousClock.Instant) -> (events: [String], gap: Duration) {
+            let after = states.withLock { $0.filter { $0.1 >= start } }
+            var gap = Duration.zero, stopped: ContinuousClock.Instant?
+            for (state, at) in after {
+                if state == "on", let from = stopped { gap += at - from; stopped = nil }
+                if state == "off" || state == "partial" { stopped = stopped ?? at }
+            }
+            if let stopped { gap += .now - stopped }
+            return (after.map(\.0), gap)
         }
     }
 
@@ -39,8 +53,8 @@ final class SystemCallAudioTests: XCTestCase {
 
     /// Everything the adapter asked of the audio session, last value wins.
     final class Session: AudioSessionSettings, @unchecked Sendable {
-        var category: AVAudioSession.Category?
-        var mode: AVAudioSession.Mode?
+        var category: AVAudioSession.Category = .soloAmbient
+        var mode: AVAudioSession.Mode = .default
         var options: AVAudioSession.CategoryOptions = []
         var configured = 0
         var ioBuffer: TimeInterval?
@@ -173,7 +187,12 @@ final class SystemCallAudioTests: XCTestCase {
     final class Processing: VoiceProcessing, @unchecked Sendable {
         var isOn = true
         var turnedOn = 0
-        func turnOn() throws { isOn = true; turnedOn += 1 }
+        var refuses = false
+        var engine: Engine?
+        func turnOn() throws {
+            if refuses { throw NSError(domain: "VoiceProcessing", code: 1) }
+            isOn = true; turnedOn += 1; engine?.restarted()
+        }
     }
 
     /// False stops come from Ferni's own voice reaching the mic. After each
@@ -262,7 +281,9 @@ final class SystemCallAudioTests: XCTestCase {
     private let rooms = CallSessionTests.Rooms()
     private let tokens = CallSessionTests.Tokens()
 
-    private func call(_ engine: Engine) -> CallSession {
+    private func call(_ engine: Engine) -> CallSession { call(recorded(engine)) }
+
+    private func call(_ audio: SystemCallAudio) -> CallSession {
         let rooms = rooms, tokens = tokens
         return CallSession(
             fetchToken: { _ in
@@ -274,7 +295,7 @@ final class SystemCallAudioTests: XCTestCase {
                 rooms.made.append(room)
                 return room
             },
-            audio: Audio(recorded(engine)),
+            audio: Audio(audio),
             lifecycle: lifecycle,
             agentTimeout: .seconds(5),
             defaults: UserDefaults(suiteName: "system-audio-\(UUID().uuidString)")!
@@ -397,5 +418,152 @@ final class SystemCallAudioTests: XCTestCase {
         XCTAssertEqual(engine.now, "on", "the app's call keeps its sound: \(engine.all)")
         XCTAssertEqual(session.active, [true, true], "the app activates its session again")
         XCTAssertEqual(session.mode, .voiceChat)
+    }
+
+    // MARK: - The speaker button, the route picker, a rebuilt route
+
+    /// A session that, like iOS, posts a route change when its category is
+    /// set, and can refuse it. It stops posting after 20, so a loop shows as a count.
+    final class EchoingSession: AudioSessionSettings, @unchecked Sendable {
+        let center: NotificationCenter
+        var category: AVAudioSession.Category = .soloAmbient
+        var mode: AVAudioSession.Mode = .default
+        var configured = 0
+        var refuses = false
+        init(_ center: NotificationCenter) { self.center = center }
+        func setCategory(_ category: AVAudioSession.Category, mode: AVAudioSession.Mode,
+                         options: AVAudioSession.CategoryOptions) throws {
+            if refuses { throw NSError(domain: "AVAudioSession", code: -50) }
+            self.category = category; self.mode = mode
+            configured += 1
+            guard configured <= 20 else { return }
+            center.post(name: AVAudioSession.routeChangeNotification, object: nil,
+                        userInfo: [AVAudioSessionRouteChangeReasonKey: AVAudioSession.RouteChangeReason.routeConfigurationChange.rawValue])
+        }
+        func setAllowHapticsAndSystemSoundsDuringRecording(_ inValue: Bool) throws {}
+        func setPreferredIOBufferDuration(_ duration: TimeInterval) throws {}
+        func setActive(_ active: Bool, options: AVAudioSession.SetActiveOptions) throws {}
+    }
+
+    final class Failures: @unchecked Sendable {
+        private let whys = OSAllocatedUnfairLock(initialState: [String]())
+        var all: [String] { whys.withLock { $0 } }
+        func record(_ why: StaticString) { whys.withLock { $0.append("\(why)") } }
+    }
+
+    /// The speaker button or the picker mid-call, a rebuilt route, the phone
+    /// waking: whatever drifted from the call's settings comes back, and
+    /// nothing is written when nothing drifted. No route can't be fixed by
+    /// setting the session, and at rest the session is left alone.
+    func testAnOverriddenOrRebuiltRouteSetsBackOnlyWhatDrifted() throws {
+        let session = Session(), processing = Processing(), center = NotificationCenter()
+        let audio = SystemCallAudio(systemManagesCalls: false, engine: { _ in }, session: session,
+                                    notifications: center, voiceProcessing: processing)
+        try audio.activate(systemOwned: false)
+        XCTAssertEqual(session.configured, 1)
+        for reason in [AVAudioSession.RouteChangeReason.override, .routeConfigurationChange, .wakeFromSleep] {
+            post(AVAudioSession.routeChangeNotification, route(reason), to: center)
+            XCTAssertEqual(session.configured, 1, "nothing drifted: \(reason.rawValue)")
+        }
+        session.mode = .default
+        post(AVAudioSession.routeChangeNotification, route(.override), to: center)
+        XCTAssertEqual(session.mode, .voiceChat)
+        XCTAssertEqual(session.configured, 2, "the mode drifted")
+        session.category = .playback
+        post(AVAudioSession.routeChangeNotification, route(.routeConfigurationChange), to: center)
+        XCTAssertEqual(session.category, .playAndRecord)
+        XCTAssertEqual(session.configured, 3, "the category drifted")
+        processing.isOn = false
+        post(AVAudioSession.routeChangeNotification, route(.wakeFromSleep), to: center)
+        XCTAssertEqual(processing.turnedOn, 1, "voice processing dropped")
+        XCTAssertEqual(session.configured, 3, "voice processing alone: no session write")
+        session.mode = .default
+        post(AVAudioSession.routeChangeNotification, route(.noSuitableRouteForCategory), to: center)
+        XCTAssertEqual(session.configured, 3, "no route: not set again")
+        audio.deactivate(systemOwned: false)
+        processing.isOn = false
+        post(AVAudioSession.routeChangeNotification, route(.override), to: center)
+        XCTAssertEqual(session.configured, 3, "at rest the session is left alone")
+        XCTAssertEqual(processing.turnedOn, 1, "and so is voice processing")
+    }
+
+    /// The call's own write posts a route change; it finds nothing to do, so
+    /// it never loops. A real override in the same call still sets it back.
+    func testTheCallsOwnWriteDoesNotSetTheSessionAgain() throws {
+        let center = NotificationCenter(), session = EchoingSession(center)
+        let audio = SystemCallAudio(systemManagesCalls: false, engine: { _ in }, session: session,
+                                    notifications: center, voiceProcessing: Processing())
+        try audio.activate(systemOwned: false)
+        post(AVAudioSession.routeChangeNotification, route(.override), to: center)
+        XCTAssertEqual(session.configured, 1, "the speaker button with nothing drifted")
+        session.mode = .default
+        post(AVAudioSession.routeChangeNotification, route(.override), to: center)
+        XCTAssertEqual(session.mode, .voiceChat)
+        XCTAssertEqual(session.configured, 2, "set back once; its own route change did nothing more")
+    }
+
+    /// Mid-sentence: every route change the call handles keeps voice
+    /// processing on, never stops or restarts the engine (no gap in Ferni's
+    /// voice) and leaves the call as it was.
+    func testARouteChangeWhileFerniSpeaksKeepsTheVoicePlaying() async {
+        let engine = Engine(), session = Session(), processing = Processing(), center = NotificationCenter()
+        processing.engine = engine
+        let call = call(SystemCallAudio(systemManagesCalls: true, engine: { engine.record($0) }, session: session,
+                                        notifications: center, voiceProcessing: processing))
+        call.start()
+        lifecycle.ask.yield(.audio(active: true))
+        await until(call.phase == .live)
+        rooms.made[0].send(.agentAttributes(["lk.agent.state": "speaking"]))
+        await until(call.avatar.pose == .speaking)
+
+        let start = ContinuousClock.now
+        let reasons: [AVAudioSession.RouteChangeReason] = [.newDeviceAvailable, .oldDeviceUnavailable, .override,
+                                                           .routeConfigurationChange, .wakeFromSleep]
+        for reason in reasons {
+            post(AVAudioSession.routeChangeNotification, route(reason), to: center)
+            session.mode = .default // and once more with the route having moved the mode
+            post(AVAudioSession.routeChangeNotification, route(reason), to: center)
+            XCTAssertEqual(session.mode, .voiceChat, "\(reason.rawValue)")
+        }
+        let playout = engine.since(start)
+        print("Route changes while speaking: engine events \(playout.events), playout gap \(Double(playout.gap.components.seconds) * 1000 + Double(playout.gap.components.attoseconds) / 1e15) ms")
+        XCTAssertEqual(playout.events, [], "the engine was never stopped or restarted")
+        XCTAssertEqual(playout.gap, .zero)
+        XCTAssertTrue(processing.isOn)
+        XCTAssertEqual(processing.turnedOn, 0)
+        XCTAssertEqual(engine.now, "on")
+        XCTAssertEqual(call.phase, .live)
+        XCTAssertEqual(call.avatar.pose, .speaking)
+        await call.end()
+    }
+
+    /// A refused write is logged and reported, never swallowed, and the call
+    /// goes on: the next route change sets it back once it's allowed. Voice
+    /// processing that keeps refusing writes nothing to the session (no loop).
+    func testAFailedSetBackIsReportedAndTheCallGoesOn() throws {
+        let center = NotificationCenter(), session = EchoingSession(center), processing = Processing()
+        let engine = Engine(), failures = Failures()
+        let audio = SystemCallAudio(systemManagesCalls: false, engine: { engine.record($0) }, session: session,
+                                    notifications: center, voiceProcessing: processing, failed: { failures.record($0) })
+        try audio.activate(systemOwned: false)
+        session.mode = .default
+        session.refuses = true
+        post(AVAudioSession.routeChangeNotification, route(.override), to: center)
+        XCTAssertEqual(failures.all, ["route overridden"])
+        session.refuses = false
+        post(AVAudioSession.routeChangeNotification, route(.override), to: center)
+        XCTAssertEqual(session.mode, .voiceChat, "set back once the session allowed it")
+        XCTAssertEqual(session.configured, 2)
+
+        processing.isOn = false
+        processing.refuses = true
+        post(AVAudioSession.routeChangeNotification, route(.override), to: center)
+        XCTAssertEqual(failures.all, ["route overridden", "voice processing"])
+        XCTAssertEqual(session.configured, 2, "no session write for voice processing")
+        processing.refuses = false
+        post(AVAudioSession.routeChangeNotification, route(.routeConfigurationChange), to: center)
+        XCTAssertTrue(processing.isOn, "back on once it's allowed")
+        XCTAssertEqual(failures.all.count, 2)
+        XCTAssertEqual(engine.now, "on", "the call goes on")
     }
 }
