@@ -19,7 +19,6 @@ export {
   clearOldInbound,
   type TwilioSMSStatusPayload,
   type TwilioInboundSMSPayload,
-  type InboundSmsResult,
   type TwilioCallStatusPayload,
   type InboundMessage,
 } from './twilio-webhooks.js';
