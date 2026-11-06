@@ -47,6 +47,7 @@ import {
   ABUSE_INDICATOR,
   abuseDisclosure,
   abuseOnlyRead,
+  MINOR_ABUSE_INDICATOR as INDICATOR,
   physicalHarm,
 } from './abuse-disclosure.js';
 import { CRISIS_RESOURCES } from './crisis-response.js';
@@ -120,7 +121,6 @@ export function minorHarm(call: string | undefined, turn: MinorAbuseTurn): Minor
   return minor ? harm : null;
 }
 
-const INDICATOR = 'minor_abuse_disclosure';
 const SELF_RISK = `${INDICATOR}_self_harm`;
 
 /** The turn as the crisis reads settled it, before this module. */

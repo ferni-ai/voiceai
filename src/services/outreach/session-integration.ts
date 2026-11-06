@@ -27,7 +27,7 @@ import {
 } from './maya-habit-outreach.js';
 import { evaluateTrustBasedOutreach, handleConcernDetection } from './trust-outreach-bridge.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
-import { callHoldsOutreach } from '../safety/crisis-call-risk.js';
+import { abuseHoldsOutreach } from '../safety/index.js';
 
 const log = getLogger().child({ module: 'outreach-session-integration' });
 
@@ -283,11 +283,11 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
   triggersCreated: number;
   contextUpdated: boolean;
 }> {
-  const { userId, personaId, turns, summary, durationMinutes, satisfaction } = data;
+  const { userId, personaId, turns, summary, durationMinutes, satisfaction, sessionId } = data;
 
   const callerLines = turns.filter((t) => t.role === 'user').map((t) => t.content);
-  // Nothing after a call with crisis risk, or where someone hurting the caller was told of.
-  if (!isMemberIdentity(userId) || callHoldsOutreach(data.sessionId, callerLines)) {
+  // Nothing after a call that told of someone hurting the caller (abuse-outreach-hold.ts).
+  if (!isMemberIdentity(userId) || (await abuseHoldsOutreach({ sessionId, userId, callerLines }))) {
     return { commitmentsFound: 0, triggersCreated: 0, contextUpdated: false };
   }
 

@@ -19,7 +19,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { abuseOnlyRead, abuseToldOnCall } from './abuse-disclosure.js';
+import { abuseOnlyRead } from './abuse-disclosure.js';
+import { noteAbuseRead } from './abuse-outreach-hold.js';
 
 const log = createLogger({ module: 'CrisisCallRisk' });
 
@@ -122,6 +123,7 @@ export function noteCrisisRisk(
  * Note a pattern read's risk on this call. A read that found only someone hurting the caller
  * (abuseOnlyRead) is risk for everything noteCrisisRisk serves, but not for selfRiskThisCall. A
  * gentle 988 offer's read has no indicators (screenIdeation), so it is always risk to the caller.
+ * A read that tells of abuse also holds the call's outreach (abuse-outreach-hold.ts).
  */
 export function notePatternRisk(
   sessionId: string | undefined,
@@ -129,6 +131,7 @@ export function notePatternRisk(
   now = Date.now()
 ): void {
   noteRisk(sessionId, now, undefined, !abuseOnlyRead(read));
+  noteAbuseRead(sessionId, read, now);
 }
 
 function noteRisk(
@@ -233,17 +236,6 @@ function readsInFlightBesides(sessionId: string, latest: string | undefined): bo
 export function crisisRiskNoted(sessionId: string, now = Date.now()): boolean {
   const at = risky.get(sessionId);
   return at !== undefined && now - at <= TTL_MS;
-}
-
-/**
- * Nothing goes out to the caller after this call: risk on it (a read of someone hurting them
- * included), a read still in flight, or a caller line that tells of someone hurting them. A read
- * still in flight holds because the call can end before its last turn's read settles; one that
- * never settles keeps holding. The noted risk keeps a turn-1 disclosure held when the lines passed
- * in are only the call's last turns.
- */
-export function callHoldsOutreach(sessionId: string, callerLines: readonly string[]): boolean {
-  return crisisRiskThisCall(sessionId) || abuseToldOnCall(callerLines);
 }
 
 /** A grounded release explained this turn's risk: unexplainedCrisisRisk stops counting it. */

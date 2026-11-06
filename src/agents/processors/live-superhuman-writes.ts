@@ -1,10 +1,10 @@
 /**
  * The per-turn writers behind live-superhuman-injections.ts: each one stores
  * something about the caller (a value, an energy reading, a person, a dream, a
- * life chapter) or schedules outreach to them, so each first asks MINOR_CARE
- * (minor-care.ts) and the call's crisis risk, and does nothing for a held
- * session: a caller who sounds under 18 and isn't a verified account owner, or
- * a call with crisis risk, someone hurting the caller included.
+ * life chapter, a commitment) or schedules outreach to them, so each first asks
+ * turnWritesHeld and does nothing for a held session: a caller who sounds under
+ * 18 and isn't a verified account owner (MINOR_CARE), or a call with an abuse
+ * disclosure (abuse-outreach-hold.ts).
  *
  * Split out of live-superhuman-injections.ts (over 500 lines, so it may not
  * grow) when these writers were found storing for held sessions (#1897 review).
@@ -12,7 +12,7 @@
  *
  * @module agents/processors/live-superhuman-writes
  */
-import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
+import { abuseHoldsOutreach } from '../../services/safety/index.js';
 import { heldAfter } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -28,17 +28,20 @@ export interface TurnWrite {
 
 /**
  * MINOR_CARE=on: this turn's words read first, so the turn that says "I'm 15 years old" is held too.
- * Crisis risk on this call holds too: a read of someone hurting the caller is call risk
- * (crisis-call-risk.ts), and the person hurting them may read a check-in sent to their phone. The
- * turn's own kernel read is noted before these writers run (turn-crisis.ts).
+ * An abuse disclosure on this call holds too: the person hurting the caller may read a check-in sent
+ * to their phone. The turn's own kernel read is noted before these writers run (turn-crisis.ts),
+ * and a turn read still in flight is waited on. A call with only suicidal risk is not held.
  */
-function held(ctx: Pick<TurnWrite, 'sessionId' | 'userText'>): boolean {
-  return heldAfter(ctx.sessionId, ctx.userText) || crisisRiskThisCall(ctx.sessionId, ctx.userText);
+export async function turnWritesHeld(
+  ctx: Pick<TurnWrite, 'userId' | 'sessionId' | 'userText'>
+): Promise<boolean> {
+  if (heldAfter(ctx.sessionId, ctx.userText)) return true;
+  return abuseHoldsOutreach({ sessionId: ctx.sessionId, userId: ctx.userId });
 }
 
 /** A value they stated ("I value my freedom"): values-alignment. */
 export async function persistValue(ctx: TurnWrite): Promise<void> {
-  if (held(ctx)) return;
+  if (await turnWritesHeld(ctx)) return;
   try {
     const m = await import('../../services/superhuman/values-alignment.js');
     const detected = m.detectValue(ctx.userText);
@@ -53,7 +56,7 @@ export async function persistEnergy(
   ctx: TurnWrite,
   capacity: { level: 'moderate' | 'high' | 'critical'; signals: string[] }
 ): Promise<void> {
-  if (held(ctx)) return;
+  if (await turnWritesHeld(ctx)) return;
   try {
     const m = await import('../../services/superhuman/capacity-guardian.js');
     const critical = capacity.level === 'critical';
@@ -71,7 +74,7 @@ export async function persistEnergy(
 
 /** A person in their life ("my mom Sarah"): relationship-network. */
 export async function persistPerson(ctx: TurnWrite): Promise<void> {
-  if (held(ctx)) return;
+  if (await turnWritesHeld(ctx)) return;
   try {
     const m = await import('../../services/superhuman/relationship-network.js');
     const person = m.extractPerson(ctx.userText);
@@ -83,7 +86,7 @@ export async function persistPerson(ctx: TurnWrite): Promise<void> {
 
 /** A dream ("I've always wanted to..."): dream-keeper. */
 export async function persistDream(ctx: TurnWrite): Promise<void> {
-  if (held(ctx)) return;
+  if (await turnWritesHeld(ctx)) return;
   try {
     const m = await import('../../services/superhuman/dream-keeper.js');
     const dream = m.detectDream(ctx.userText);
@@ -95,7 +98,7 @@ export async function persistDream(ctx: TurnWrite): Promise<void> {
 
 /** A life chapter ("I quit my job"): life-narrative. */
 export async function persistChapter(ctx: TurnWrite): Promise<void> {
-  if (held(ctx)) return;
+  if (await turnWritesHeld(ctx)) return;
   try {
     const m = await import('../../services/superhuman/life-narrative.js');
     const chapter = m.detectChapterMoment(ctx.userText);
@@ -113,7 +116,8 @@ export async function persistChapter(ctx: TurnWrite): Promise<void> {
 
 /**
  * Schedule pattern-based outreach to the caller. Never for a held session:
- * Ferni must not reach out to a caller who sounds under 18. Lazy import so the
+ * Ferni must not reach out to a caller who sounds under 18, or after an abuse
+ * disclosure. Lazy import so the
  * turn processor never breaks when outreach is unavailable.
  */
 export async function schedulePatternOutreachAsync(
@@ -133,7 +137,7 @@ export async function schedulePatternOutreachAsync(
   },
   said: string
 ): Promise<void> {
-  if (held({ sessionId: ctx.sessionId, userText: said })) return;
+  if (await turnWritesHeld({ ...ctx, userText: said })) return;
   try {
     const { schedulePatternOutreachAsync: scheduleOutreach } =
       await import('../../services/outreach/pattern-outreach-integration.js');

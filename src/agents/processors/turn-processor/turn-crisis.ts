@@ -49,7 +49,9 @@ import {
   abuseOnlyRead,
   blockedReadGuidance,
   noteMeansInHandShadow,
+  resolveCrisisClassifierTimeoutMs,
   shadowPipelineGrade,
+  trackAbuseRead,
   withAbuseRead,
   withMinorAbuseRead,
 } from '../../../services/safety/index.js';
@@ -347,7 +349,9 @@ export function startTurnCrisis(
     const minor = withMinorAbuseRead(read, call, input, { priorRisk: minorPrior, classifier }, env);
     // ABUSE_DISCLOSURE_PATTERNS: someone hurting the caller is a safety turn, after every read,
     // the minor's read included; its guidance yields to the minor's (turn-handler.ts).
-    return withAbuseRead(minor, input, abuseRisk, classifier, env);
+    const told = withAbuseRead(minor, input, abuseRisk, classifier, env);
+    // K1e: the call's outreach waits on this read, up to a first and a second classifier read.
+    return first ? trackAbuseRead(call, told, 2 * resolveCrisisClassifierTimeoutMs(env)) : told;
   };
   return {
     patterns,

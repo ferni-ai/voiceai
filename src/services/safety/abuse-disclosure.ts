@@ -44,9 +44,19 @@ export function abuseOnlyRead(crisis: { indicators: readonly string[] }): boolea
   );
 }
 
+/** The indicator MINOR_ABUSE_DISCLOSURE adds for a caller under 18 telling of sexual harm. */
+export const MINOR_ABUSE_INDICATOR = 'minor_abuse_disclosure';
+
+/** A read that tells of someone hurting the caller: the kernel's, the abuse turn's or a minor's. */
+export function abuseTold(crisis: { indicators: readonly string[] }): boolean {
+  return crisis.indicators.some(
+    (i) => i.startsWith(ABUSE_INDICATOR) || i.startsWith(MINOR_ABUSE_INDICATOR)
+  );
+}
+
 /**
  * Whether any of a call's caller lines tells of someone hurting the caller: the same read the
- * kernel gives each turn. Nothing the call set off may reach out after it (session-end outreach),
+ * kernel gives each turn. Nothing the call set off may reach out after it (abuse-outreach-hold.ts),
  * since the person hurting them may read the texts or pick up.
  */
 export function abuseToldOnCall(callerLines: readonly string[]): boolean {

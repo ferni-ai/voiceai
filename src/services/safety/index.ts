@@ -30,6 +30,7 @@ export { crisisRiskThisCall } from './crisis-call-risk.js';
 export { offersCrisisLine } from './crisis-line-speech.js';
 // A turn whose crisis read the provider blocked (CRISIS_CLASSIFIER_BLOCKED_SIGNAL, turn-crisis.ts).
 export { blockedReadGuidance } from './crisis-classifier-blocked.js';
+export { resolveCrisisClassifierTimeoutMs } from './crisis-classifier.js';
 // CRISIS_GRADED_RESPONSE=shadow: the graded crisis response, measured first (crisis-graded-shadow.ts).
 export { mainOf } from './crisis-graded-response.js';
 export { noteSpokenLifeline, shadowGrade, shadowPipelineGrade } from './crisis-graded-shadow.js';
@@ -78,6 +79,7 @@ export {
   withAbuseRead,
 } from './abuse-disclosure-turn.js';
 export { abuseOnlyRead } from './abuse-disclosure.js';
+export { abuseHoldNow, abuseHoldsOutreach, trackAbuseRead } from './abuse-outreach-hold.js';
 
 // ============================================================================
 // ESCALATION PATHWAYS
