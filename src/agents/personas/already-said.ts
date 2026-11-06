@@ -20,18 +20,21 @@
  * his newest reply repeated a sentence.
  *
  * Crisis, safety and notice wording stays word for word. The whole window
- * goes unread when any reply in it touches safety, harm or help, a crisis
- * resource, or a number to call or text (services/safety/safety-talk.ts).
- * A sentence of the safety scripts, care or safety language, a notice (an AI
- * disclosure, what is kept or remembered, an advice disclaimer) or a number
- * is never named. Once a call has crisis risk noted, the note carries no
+ * goes unread when any reply in it touches safety, harm or help, or gives a
+ * way to reach help: a crisis or help line in digits or words, or the
+ * emergency services (services/safety/safety-talk.ts reachesHelp). An
+ * ordinary number ("$120", "room 204") leaves the window read. A sentence of
+ * the safety scripts, any safety talk (isSafetyTalk: care wording, a means or
+ * grounding line), a notice (an AI disclosure, what is kept, logged or
+ * remembered, an advice disclaimer) or a sentence with a number is never
+ * named. Once a call has crisis risk noted, the note carries no
  * ledger at all (told-this-call.ts keptTold).
  *
  * @module agents/personas/already-said
  */
 
 import { flagOn, type Env } from '../../config/env-flag.js';
-import { isCareTalk, reachesHelp } from '../../services/safety/safety-talk.js';
+import { isSafetyTalk, reachesHelp } from '../../services/safety/safety-talk.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { ferniSaysGoodbye } from '../shared/call-farewell.js';
 import { mentionsCrisisResource } from './listen-offer.js';
@@ -68,11 +71,11 @@ const NONE: AlreadySaid = { repeated: [], caught: false };
 
 /** Notices said as written: an AI disclosure, what is kept or remembered, an advice disclaimer. */
 const NOTICE =
-  /\b(?:ai|bots?|artificial|not a (?:real )?(?:person|human)|recorded|recording|keep\w*|kept|remember\w*|sav(?:e|ed|es|ing)|stor(?:e|ed|es|ing)|shared?|delete\w*|(?:medical|legal|financial) advice|not a (?:doctor|lawyer|therapist|counsel(?:or|lor))|consent\w*|okay before)\b/i;
+  /\b(?:ai|bots?|artificial|not a (?:real )?(?:person|human)|recorded|recording|logg(?:ed|ing)|transcri\w*|keep\w*|kept|remember\w*|sav(?:e|ed|es|ing)|stor(?:e|ed|es|ing)|shared?|delete\w*|(?:medical|legal|financial) advice|not a (?:doctor|lawyer|therapist|counsel(?:or|lor))|consent\w*|okay before)\b/i;
 
 /** The caller asks Ferni to say it again: repeating is the answer, so no ledger that turn. */
 const ASKS_AGAIN =
-  /\b(?:say (?:that|it) again|repeat (?:that|it|yourself)|what was that|come again|what(?: did|'?d) you (?:just )?say|didn'?t (?:quite )?(?:catch|hear) (?:that|you|it)|missed (?:that|it)|one more time)\b/i;
+  /\b(?:say (?:that|it) again|repeat (?:that|it|yourself)|what was that|come again|what(?: did|'?d) you (?:just )?(?:say|add|put)|didn'?t (?:quite )?(?:catch|hear) (?:that|you|it)|missed (?:that|it)|one more time|pardon)\b|\b(?:huh|sorry|what)\s*\?|^\W*(?:(?:wait|sorry|um|uh),?\s+)?(?:huh|sorry|what|excuse me)\W*$/i;
 
 export const asksAgain = (callerSaid: string): boolean => ASKS_AGAIN.test(callerSaid);
 
@@ -88,7 +91,7 @@ const nameable = (sentence: string): boolean =>
   contentWords(keyOf(sentence)).length >= ALREADY_SAID.minContentWords &&
   !isSafetyLine(sentence) &&
   !NOTICE.test(sentence) &&
-  !isCareTalk(sentence) &&
+  !isSafetyTalk(sentence) &&
   !/\d/.test(sentence) &&
   !ferniSaysGoodbye(sentence);
 

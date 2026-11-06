@@ -10,6 +10,7 @@ import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/cr
 import { installDirectorNotes } from '../../multi-agent/turn-observers.js';
 import { ALREADY_SAID, alreadySaid, formatAlreadySaid } from '../already-said.js';
 import { Director, getDirector, setDirector, type Line } from '../director-notes.js';
+import { normalized } from '../phrase-loops.js';
 import { toldThisCall, toldThisCallNote } from '../told-this-call.js';
 import { withTurnReminder } from '../turn-request.js';
 
@@ -37,6 +38,18 @@ const sentences = (...replies: string[]): string[][] =>
   replies.map((r) => r.split(/(?<=[.!?])\s+/));
 
 const ledgerOf = (note: string): string => note.match(/You've already said: [^\]]*/)?.[0] ?? '';
+
+/** Ordinary replies with numbers (the #3483 round-2 verify): none may switch the ledger off. */
+const ORDINARY_NUMBERS = [
+  "That's $120 for the lot.",
+  'We moved here in 2019.',
+  'Room 204 is on the left.',
+  'Take bus 101 downtown.',
+  "I'll call you back at 6.",
+  'I ran 5 miles today.',
+  'It cost $1,000 in the end.',
+  'The party is at 9:11 sharp.',
+];
 
 /** The note a live call's request carries after `lines`, the caller now saying `callerSays`. */
 async function liveNote(lines: Line[], sessionId: string, callerSays: string): Promise<string> {
@@ -221,10 +234,39 @@ describe('the ledger (ALREADY_SAID_LEDGER on)', () => {
       'What was that?',
       'Can you repeat that?',
       "I didn't catch that.",
+      'Huh?',
+      'Pardon?',
+      'Pardon me?',
+      'Sorry?',
+      'Sorry, what?',
+      'Wait, what did you add?',
+      'What did you say?',
     ]) {
       const sent = await liveNote(pottery, `ledger-again-${ask.length}`, ask);
       expect(sent, ask).not.toContain("You've already said");
       expect(sent, ask).toContain(POTTERY_NOTE_BEFORE); // the told note itself stays
+    }
+  });
+
+  it('keeps the ledger on a turn that only sounds like an ask', async () => {
+    for (const said of ["Sorry I'm late, the bus was slow.", 'What a week it has been.']) {
+      const sent = await liveNote(pottery, `ledger-not-again-${said.length}`, said);
+      expect(sent, said).toContain(`You've already said: "That's a big step."`);
+    }
+  });
+
+  it('never names a sentence the note already quotes', () => {
+    const said = { repeated: ["That's a big step."], caught: true };
+    expect(formatAlreadySaid(said)).toContain("That's a big step."); // precondition
+    expect(formatAlreadySaid(said, ["THAT'S a big step!"])).toBe('');
+  });
+
+  it('keeps the ledger on when replies hold ordinary numbers', () => {
+    const repeat = 'Your garden sounds like a whole project.';
+    for (const ordinary of ORDINARY_NUMBERS) {
+      const said = alreadySaid(sentences(`${repeat} ${ordinary}`, `${ordinary} ${repeat}`));
+      expect(said.repeated, ordinary).toEqual([repeat]);
+      expect(said.caught, ordinary).toBe(true);
     }
   });
 });
@@ -287,6 +329,30 @@ describe('crisis, safety and notice lines stay word for word (ALREADY_SAID_LEDGE
     'This call may be recorded.',
     'I need your okay before I save that.',
   ];
+  /** Round-2 probes: help by name or in words, emergency services, means, grounding, notices. */
+  const PROBES_2 = [
+    'Call nine one one now.',
+    'Text nine eight eight.',
+    'Ring nine nine nine now.',
+    'Call triple zero.',
+    'Call one one two.',
+    'Call the police now.',
+    'Get to the ER.',
+    'Go to the nearest A&E.',
+    'An ambulance is on the way.',
+    'The paramedics will help you.',
+    'Put the knife away.',
+    'Move away from the window.',
+    'Step back from the bridge.',
+    'Put it away somewhere else.',
+    'Breathe in slowly with me.',
+    'Take a slow breath with me.',
+    'Samaritans are there to listen.',
+    'Childline is free to call.',
+    'Shout is there by text, day or night.',
+    'This conversation is being logged.',
+    'This chat gets transcribed.',
+  ];
   const calm = ['I had a rough week.', 'It is just a lot.', 'I do not know.', 'Yeah.'];
   const shapes = (p: string): Record<string, Line[]> => ({
     opener: [
@@ -308,8 +374,9 @@ describe('crisis, safety and notice lines stay word for word (ALREADY_SAID_LEDGE
     once: [user(calm[0]), ferni(`${p} Take your time with it.`), user(calm[1])],
   });
 
-  it('pins all 49 probes: on, the note is exactly the off note, in every shape', async () => {
+  it('pins all 70 probes: on, the note is exactly the off note, in every shape', async () => {
     expect(PROBES).toHaveLength(49);
+    expect(PROBES_2).toHaveLength(21);
     const named: string[] = [];
     const notes = async (lines: Line[], flag: string, id: string): Promise<string[]> => {
       process.env.ALREADY_SAID_LEDGER = flag;
@@ -317,11 +384,25 @@ describe('crisis, safety and notice lines stay word for word (ALREADY_SAID_LEDGE
       await director.observe(lines);
       return [toldThisCallNote(lines), director.told()];
     };
-    for (const [i, p] of PROBES.entries()) {
+    for (const [i, p] of [...PROBES, ...PROBES_2].entries()) {
       for (const [shape, lines] of Object.entries(shapes(p))) {
         const off = await notes(lines, 'off', `probe-${i}-${shape}-off`);
         const on = await notes(lines, 'on', `probe-${i}-${shape}-on`);
         if (on.join('|') !== off.join('|') || on.some(ledgerOf)) named.push(`${shape}: ${p}`);
+      }
+    }
+    expect(named).toEqual([]);
+  });
+
+  it('never names a probe in the ledger alone, said once, twice or three times', () => {
+    const named: string[] = [];
+    for (const p of [...PROBES, ...PROBES_2]) {
+      const own = new Set(p.split(/(?<=[.!?])\s+/).map(normalized));
+      for (const times of [1, 2, 3]) {
+        for (const reply of [p, `Okay, I hear that. ${p} Take your time.`]) {
+          const said = alreadySaid(sentences(...Array.from({ length: times }, () => reply)));
+          if (said.repeated.some((s) => own.has(normalized(s)))) named.push(`${times}x: ${p}`);
+        }
       }
     }
     expect(named).toEqual([]);
@@ -340,6 +421,9 @@ describe('crisis, safety and notice lines stay word for word (ALREADY_SAID_LEDGE
       'Text SHOUT to 85258.',
       'Samaritans are on 116 123.',
       'Lifeline is 13 11 14.',
+      'Call nine one one now.',
+      'Get to the ER.',
+      'Samaritans are there to listen.',
     ]) {
       const said = alreadySaid(sentences(`${repeat} ${touch}`, repeat, 'Tell me more.'));
       expect(said.repeated, touch).toEqual([]);
