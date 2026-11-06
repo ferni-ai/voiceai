@@ -239,3 +239,52 @@ describe('round 2 (verifier r1 follow-ups)', () => {
     expect(all('i have the pills right here').indicators).toContain('means_form:means_in_hand');
   });
 });
+
+describe('"i have the pills." as its own sentence, beside ending words', () => {
+  const shouldBlock = (r: { indicators: string[] }) =>
+    r.indicators.includes('explicit_crisis_language');
+
+  it.each([
+    "I've decided I'm going to kill myself tonight. I already have the pills.",
+    'i want to die. i have the pills.',
+    'im ending it tonight. got the rope.',
+    'i want to die. i have the gun.',
+  ])('live reads 911; off and shadow read it exactly as main: "%s"', (text) => {
+    expect(shouldBlock(off(text))).toBe(true);
+    expect(imminent(off(text))).toBe(false);
+    for (const mode of ['', 'shadow', 'off']) {
+      vi.stubEnv('CRISIS_MEANS_IN_HAND', mode);
+      expect(detectCrisis(text)).toEqual(off(text));
+    }
+    expect(imminent(live(text))).toBe(true);
+    expect(all(text).indicators).toContain('means_form:ending_beside_means');
+  });
+
+  it.each(['I already took the whole bottle of pills.', 'I have a rope around my neck right now.'])(
+    'already 911 on main, in every mode: "%s"',
+    (text) => {
+      expect(imminent(off(text))).toBe(true);
+      expect(imminent(live(text))).toBe(true);
+    }
+  );
+
+  it.each([
+    'I already have the pills for my headache.',
+    "I have my pills, I'm fine, just tired.",
+    'I took the whole bottle of vitamins back to the store.',
+    'the rope is around my neck as a scarf, lol',
+    'I already have the pills.',
+  ])('no ending words: live reads it as main, no block, no 911: "%s"', (text) => {
+    expect(live(text)).toEqual(off(text));
+    expect(shouldBlock(live(text))).toBe(false);
+    expect(imminent(live(text))).toBe(false);
+  });
+
+  it.each([
+    "i want to die. i have the pills for my headache, they're helping",
+    'i want to die. not sure if i have the pills.',
+  ])('ending words still block, but the pills are not in hand: "%s"', (text) => {
+    expect(shouldBlock(live(text))).toBe(true);
+    expect(imminent(live(text))).toBe(false);
+  });
+});

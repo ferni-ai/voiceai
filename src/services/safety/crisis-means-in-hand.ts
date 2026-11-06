@@ -157,9 +157,16 @@ const FORMS: readonly MeansForm[] = [
   },
 ];
 
+/**
+ * "i already have the pills." said as a whole sentence, with nothing after it. Beside ending words
+ * in the same turn ("i want to die. i have the pills.") it is the means at hand, with no WHERE
+ * word; "i have the pills for my headache" carries on, so it is not this.
+ */
+const MEANS_HAD = String.raw`(?:^|[.!?] *)(?:i (?:already |still )?(?:have|got)|i'?ve (?:already )?got|(?:already )?got) (?:the|my|a) (?:pills|meds|gun|pistol|rope|noose|razor|blade|knife)(?: (?:already|ready|now|right now|right here))?(?= *(?:$|[.!?]))`;
 /** The means at hand, beside the caller's own ending words. */
-const MEANS_AT_HAND =
-  /\b(pills|gun|rope|razor|blade|knot)\b[^.!?]{0,25}\b(ready|in my hand|in my lap|loaded|next to me|right here)\b/;
+const MEANS_AT_HAND = new RegExp(
+  String.raw`\b(pills|gun|rope|razor|blade|knot)\b[^.!?]{0,25}\b(ready|in my hand|in my lap|loaded|next to me|right here)\b|${MEANS_HAD}`
+);
 
 const NEGATOR = String.raw`(?:\b\w+n't|\bnot|\bnever|\bcannot)\b`;
 const FILLER = String.raw`(?: (?:really|even|ever|actually|currently|still|got|going to|gonna|about to|want to|planning to|plan to))*`;
