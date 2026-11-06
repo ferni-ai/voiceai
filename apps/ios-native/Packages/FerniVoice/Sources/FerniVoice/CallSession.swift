@@ -169,6 +169,7 @@ public final class CallSession {
         callTask?.cancel()
         callTask = nil
         await leaveRoom()
+        audio.callEnded()
         phase = .ended
         avatar.send(.ended)
         isOnHold = false
@@ -400,6 +401,7 @@ public final class CallSession {
     private func fail(_ problem: CallProblem) {
         lastCallWasGood = false
         liveSince = nil
+        audio.callEnded()
         phase = .failed(problem)
         avatar.send(.failed)
         isOnHold = false
