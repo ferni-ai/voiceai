@@ -93,6 +93,10 @@ const ACTS = [
   `(?:says?|said|told me|tells me)(?: that)? (?:he|she|they)(?:'?ll| will| would|'?d|'s going to|'s gonna| is going to) (?:kill|hurt|beat) me if (?:i (?:${THREAT_IF})|(?:anyone|anybody|someone) (?:finds? out|knows?))\\b`,
 ];
 const DISCLOSURE = new RegExp(`${WHO}${NOT_NEGATED}(?:${ACTS.join('|')})`, 'gi');
+/** Burns me with cigarettes, an iron, on purpose: a minor's read only (physicalHarm). */
+const BURNS =
+  '(?:burns?|burned|burnt|burning) me (?:with (?:a |an |his |her |their |the |my )?(?:cigarettes?|lighters?|(?:curling )?irons?|matches|candles?|the stove|boiling water|hot (?:water|oil|pans?|spoons?|metal))|on purpose)\\b';
+const PHYSICAL = new RegExp(`${WHO}${NOT_NEGATED}(?:${[...ACTS, BURNS].join('|')})`, 'gi');
 /** The threat first, then who: "if I tell anyone, he'll hurt me". */
 const TOLD_THREAT = new RegExp(
   `\\bif i (?:tell|say anything to) (?:anyone|anybody|someone|somebody|my \\w{1,30}|the police|a teacher),? (?:my ${KIN}(?<family>${FAMILY})|my ${KIN}(?<partner>${PARTNER})|(?<pronoun>he|she|they))(?:'?ll| will| would|'?d) (?:kill|hurt|beat) me\\b`,
@@ -136,11 +140,16 @@ function sentenceAt(text: string, start: number, end: number): string {
 }
 
 /** The first disclosure in these words that no game or sport in its sentence explains. */
-function disclosureMatch(said: string, from: number, to: number): RegExpExecArray | null {
+function disclosureMatch(
+  said: string,
+  from: number,
+  to: number,
+  acts = DISCLOSURE
+): RegExpExecArray | null {
   const at = (re: RegExp) => matchesIn(re, said, from, to);
   const unplayed = (m: RegExpExecArray) =>
     !PLAY.test(sentenceAt(said, m.index, m.index + m[0].length));
-  return at(DISCLOSURE).find(unplayed) ?? at(TOLD_THREAT)[0] ?? at(BRUISES).find(unplayed) ?? null;
+  return at(acts).find(unplayed) ?? at(TOLD_THREAT)[0] ?? at(BRUISES).find(unplayed) ?? null;
 }
 
 /** Self-harm or no-way-forward words in a caller's line. */
@@ -156,6 +165,17 @@ export function abuseDisclosure(text: string): { who: AbuseWho; selfHarm: boolea
     if (found) return { who: found, selfHarm: SELF_HARM.test(whole) };
   }
   return null;
+}
+
+/**
+ * Whether these words say someone hurts the caller's body: every act above, burning too, never
+ * "scared to go home" alone. For a caller who sounds under 18 (minor-abuse-disclosure.ts).
+ */
+export function physicalHarm(text: string): boolean {
+  const whole = text.normalize('NFKC').replace(/[’‘]/g, "'");
+  return screenWindows(whole).some(
+    ([said, from, to]) => !!disclosureMatch(said, from, to, PHYSICAL)
+  );
 }
 
 /**

@@ -13,9 +13,15 @@
  * instances index too. Re-indexing a known id costs nothing; only a new id at
  * the cap removes the oldest.
  *
+ * MAX_PER_USER_EVICT_CAP (on by default): one write removes at most
+ * MAX_EVICTIONS_PER_WRITE of the oldest docs. A user already over the cap (the
+ * count used to read too low) then drains by one per write instead of losing
+ * the whole backlog in a single write. Off: every excess doc goes at once.
+ *
  * @module services/data-layer/max-per-user
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getEntityPolicy } from './indexing-policy.js';
 import type { EntityType } from './types.js';
@@ -31,6 +37,11 @@ export interface CappedVectorStore {
 const REFRESH_MS = 30 * 60_000;
 /** Users x entity types kept in memory; the oldest entry goes first. */
 const MAX_TRACKED = 5_000;
+/**
+ * With MAX_PER_USER_EVICT_CAP on, the most docs one write removes. Two: each
+ * write adds one, so an over-cap user loses one net doc per write, oldest first.
+ */
+export const MAX_EVICTIONS_PER_WRITE = 2;
 
 interface Tracked {
   /** doc id -> indexedAt (ISO), the order docs are evicted in. */
@@ -63,6 +74,16 @@ async function load(store: CappedVectorStore, userId: string, entityType: string
   return read;
 }
 
+/** How many of the oldest docs one write removes when `excess` (> 0) are over. */
+function evictionsThisWrite(excess: number): number {
+  return flagOn('MAX_PER_USER_EVICT_CAP') ? Math.min(excess, MAX_EVICTIONS_PER_WRITE) : excess;
+}
+
+/** Log fields for a capped write: the docs still over the cap after it. */
+function cappedFields(excess: number, removed: number): { capped?: true; stillOver?: number } {
+  return removed < excess ? { capped: true, stillOver: excess - removed } : {};
+}
+
 /**
  * Make room for `docId` under the user's cap for this entity type, before it
  * is indexed. Returns the ids removed. Best effort: a failure is logged and
@@ -93,7 +114,7 @@ export async function enforceMaxPerUser(
       excess > 0
         ? [...t.ids]
             .sort((a, b) => a[1].localeCompare(b[1]))
-            .slice(0, excess)
+            .slice(0, evictionsThisWrite(excess))
             .map(([id]) => id)
         : [];
     for (const id of oldest) {
@@ -102,7 +123,16 @@ export async function enforceMaxPerUser(
     }
     t.ids.set(docId, indexedAt);
     if (oldest.length > 0) {
-      log.info({ userId, entityType, removed: oldest.length, limit: max }, 'maxPerUser limit enforced');
+      log.info(
+        {
+          userId,
+          entityType,
+          removed: oldest.length,
+          limit: max,
+          ...cappedFields(excess, oldest.length),
+        },
+        'maxPerUser limit enforced'
+      );
     }
     return oldest;
   } catch (error) {
