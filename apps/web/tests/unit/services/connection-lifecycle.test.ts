@@ -26,6 +26,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
 
 import { AGENT_DROP_PROMPT_FLAG_KEY } from '../../../src/config/agent-drop-prompt-flag.js';
 import { AUDIO_START_WATCH_STORAGE_KEY } from '../../../src/config/audio-start-watch-flag.js';
+import { showAudioNotStartedPrompt } from '../../../src/app/agent-lost-prompt.js';
 
 type Handler = (...args: unknown[]) => void;
 
@@ -477,24 +478,50 @@ describe('Ferni joins but none of his audio plays (audio-start-watch.ts)', () =>
   it('a hang-up before the deadline clears the watch and the timing line: no notice after', async () => {
     const onAudioNotStarted = vi.fn();
     await connectWithAgent(onAudioNotStarted);
-    expect(room.listenerCount('audioPlaybackChanged')).toBe(2); // the watch and the timing line
+    expect(room.listenerCount('audioPlaybackChanged')).toBe(1); // the watch's
+    const tracked = room.listenerCount('trackSubscribed');
 
     await service.disconnect();
-    expect(room.listenerCount('audioPlaybackChanged')).toBe(0); // both went with the call
+    expect(room.listenerCount('audioPlaybackChanged')).toBe(0);
+    expect(room.listenerCount('trackSubscribed')).toBeLessThanOrEqual(tracked - 2); // the watch's and the timing line's
     await vi.advanceTimersByTimeAsync(10_000);
 
     expect(onAudioNotStarted).not.toHaveBeenCalled();
   });
 
-  it('flag off (the default): a silent track never gets the notice, and no watch is armed', async () => {
-    const onAudioNotStarted = vi.fn();
-    await connectWithAgent(onAudioNotStarted, { watch: false });
-    expect(room.listenerCount('audioPlaybackChanged')).toBe(1); // the timing line only
-
+  /** The main call's page, with the app's real handler for the notice (app.ts). */
+  async function connectOnThePage(watch: boolean): Promise<void> {
+    document.body.innerHTML = '<main><div class="controls-row"></div></main>';
+    const liveCall = {
+      endCall: vi.fn(async () => undefined),
+      connect: vi.fn(async () => undefined),
+    };
+    await connectWithAgent(() => showAudioNotStartedPrompt(liveCall), { watch });
     subscribeAudio(ferni(), 'TR_voice');
-    await vi.advanceTimersByTimeAsync(60_000);
+  }
 
-    expect(onAudioNotStarted).not.toHaveBeenCalled();
+  it('flag on: the same silent track puts "sound didn\'t start" on the page', async () => {
+    await connectOnThePage(true);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(document.querySelector('.call-status')?.textContent).toContain("The sound didn't start");
+  });
+
+  it('flag off (the default): the page, focus and timers stay as they were, and no watch is armed', async () => {
+    await connectOnThePage(false);
+    expect(room.listenerCount('audioPlaybackChanged')).toBe(0); // no watch
+    const page = document.body.innerHTML;
+    const focused = document.activeElement;
+    let timers = vi.getTimerCount();
+
+    for (let second = 1; second <= 60; second++) {
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(vi.getTimerCount()).toBeLessThanOrEqual(timers); // nothing new is scheduled
+      timers = vi.getTimerCount();
+    }
+    expect(timers).toBe(1); // only the call-quality interval
+    expect(document.body.innerHTML).toBe(page);
+    expect(document.activeElement).toBe(focused);
+
     await service.disconnect();
     expect(room.listenerCount('audioPlaybackChanged')).toBe(0);
   });

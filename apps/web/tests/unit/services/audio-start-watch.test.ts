@@ -470,7 +470,8 @@ describe('watchCallAudio: the WEB_AUDIO_START_WATCH flag', () => {
     publish(room);
     vi.advanceTimersByTime(AUDIO_START_DEADLINE_MS * 3);
     expect(onAudioNotStarted).not.toHaveBeenCalled();
-    expect(room.listeners('audioPlaybackChanged')).toBe(1); // the timing line's, nothing else
+    expect(room.listeners('audioPlaybackChanged')).toBe(0); // the watch's, which is off
+    expect(room.listeners('trackPublished')).toBe(1); // the timing line's
 
     stop();
     expect(document.body.innerHTML).toBe(before);

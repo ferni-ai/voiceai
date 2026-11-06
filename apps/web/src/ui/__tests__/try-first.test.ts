@@ -3,8 +3,14 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { AUDIO_START_WATCH_STORAGE_KEY } from '../../config/audio-start-watch-flag.js';
 import { TRY_FIRST_STORAGE_KEY, isTryFirstEnabled } from '../../config/try-first-flag.js';
-import { DemoCallError, type DemoCall } from '../../services/demo-call.service.js';
+import {
+  DemoCallError,
+  liveKitDemoRoom,
+  type DemoCall,
+  type UmdRoom,
+} from '../../services/demo-call.service.js';
 
 type AuthListener = (state: { isAuthenticated: boolean }) => void;
 const authListeners: AuthListener[] = [];
@@ -338,5 +344,112 @@ describe('try-first button, per phase (connect copy, Seth 2026-10-29)', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(gate.dataset.tryFirst).toBe('ended');
     expect(btn.textContent).toBe('Talk to Ferni');
+  });
+});
+
+describe('try-first over a real demo call: Ferni joins, his track never plays', () => {
+  beforeEach(() => {
+    localStorage.setItem(TRY_FIRST_STORAGE_KEY, 'true');
+  });
+
+  /** window.LiveKit's Room as the demo sees it, with Ferni already in it. */
+  function silentFerniRoom(ferni: {
+    identity: string;
+    isAgent: boolean;
+    audioTrackPublications: Map<string, unknown>;
+  }): UmdRoom & { emit: (event: string, ...args: unknown[]) => void } {
+    const handlers = new Map<string, ((...args: never[]) => void)[]>();
+    return {
+      state: 'connected',
+      canPlaybackAudio: true,
+      remoteParticipants: new Map([[ferni.identity, ferni]]),
+      localParticipant: { setMicrophoneEnabled: async () => undefined },
+      connect: async () => undefined,
+      disconnect: async () => undefined,
+      startAudio: async () => undefined,
+      on(event: string, cb: (...args: never[]) => void) {
+        handlers.set(event, [...(handlers.get(event) ?? []), cb]);
+        return this;
+      },
+      off(event: string, cb: (...args: never[]) => void) {
+        handlers.set(
+          event,
+          (handlers.get(event) ?? []).filter((h) => h !== cb)
+        );
+        return this;
+      },
+      emit(event: string, ...args: unknown[]) {
+        for (const h of handlers.get(event) ?? []) (h as (...a: unknown[]) => void)(...args);
+      },
+    };
+  }
+
+  /** Talk to Ferni on the real demo call; at 2 s his track arrives and never plays. */
+  async function callWithSilentFerni(): Promise<{ gate: HTMLElement; status: Element }> {
+    const real = await vi.importActual<typeof import('../../services/demo-call.service.js')>(
+      '../../services/demo-call.service.js'
+    );
+    const ferni = {
+      identity: 'agent-1',
+      isAgent: true,
+      audioTrackPublications: new Map<string, unknown>(),
+    };
+    const umd = silentFerniRoom(ferni);
+    startDemoCall.mockImplementation(() =>
+      real.startDemoCall({
+        fetchFn: (async () =>
+          new Response(
+            JSON.stringify({
+              token: 'jwt',
+              url: 'wss://example.livekit.cloud',
+              room: 'demo-demo_1',
+              claim_token: 'claim-abc',
+              agent_dispatched: true,
+              expires_in_minutes: 3,
+            }),
+            { status: 200 }
+          )) as unknown as typeof fetch,
+        createRoom: () => liveKitDemoRoom(() => umd),
+        requestMicrophone: async () => undefined,
+      })
+    );
+    const gate = await openGate();
+    vi.useFakeTimers();
+    talkButton(gate)!.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(gate.dataset.tryFirst).toBe('in-call');
+    await vi.advanceTimersByTimeAsync(2_000);
+    const track = {
+      kind: 'audio',
+      attachedElements: [] as HTMLMediaElement[],
+      attach() {
+        const el = document.createElement('audio');
+        track.attachedElements.push(el);
+        return el;
+      },
+    };
+    const publication = { kind: 'audio', track };
+    ferni.audioTrackPublications.set('TR_1', publication);
+    umd.emit('trackSubscribed', track, publication, ferni);
+    return { gate, status: gate.querySelector('.try-first-status')! };
+  }
+
+  it("with WEB_AUDIO_START_WATCH on: the status line says the sound didn't start", async () => {
+    localStorage.setItem(AUDIO_START_WATCH_STORAGE_KEY, 'true');
+    const { status } = await callWithSilentFerni();
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(status.textContent).toBe("The sound didn't start. Try again in a moment.");
+  });
+
+  it('with the flag off (the default): the page, focus and timers stay exactly as they were', async () => {
+    await callWithSilentFerni();
+    const page = document.body.innerHTML;
+    const focused = document.activeElement;
+    const timers = vi.getTimerCount();
+
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(document.body.innerHTML).toBe(page);
+    expect(document.activeElement).toBe(focused);
+    expect(vi.getTimerCount()).toBe(timers);
   });
 });

@@ -1,22 +1,25 @@
 /**
  * One counts-only timing line per call, from Ferni joining: to his first audio
- * track, and from that track to his audio playing. Only his audio counts; a step
- * never reached is null; no ids or text; logged once; no timers.
+ * track, and from that track to his audio playing. Only those two numbers: a step
+ * never reached is null; no ids, names, text or anything else; logged once; no timers.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const warn = vi.hoisted(() => vi.fn());
-vi.mock('../../../src/utils/logger.js', () => ({
-  createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn, error: vi.fn() }),
+const logged = vi.hoisted(() => ({
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
 }));
+const warn = logged.warn;
+vi.mock('../../../src/utils/logger.js', () => ({ createLogger: () => logged }));
 
 import type {
   AgentAudioParticipant,
   AgentAudioPublication,
   AgentAudioRoom,
 } from '../../../src/services/agent-audio.js';
-import { AUDIO_PLAY_BLOCKED_EVENT } from '../../../src/services/audio-play-blocked.js';
 import { timeAudioStart } from '../../../src/services/audio-start-timing.js';
 
 type Participant = AgentAudioParticipant & {
@@ -80,7 +83,7 @@ beforeEach(() => {
   ferni = person('agent-ferni', true);
   guest = person('guest-two', false);
   clock = 10_000;
-  warn.mockClear();
+  for (const level of Object.values(logged)) level.mockClear();
   document.body.innerHTML = '';
 });
 
@@ -99,7 +102,6 @@ describe('timeAudioStart', () => {
         {
           agent_join_to_first_audio_track_ms: 1_500,
           first_audio_track_to_playing_ms: 600,
-          playback_blocked: false,
         },
         'Agent audio start timing',
       ],
@@ -136,7 +138,6 @@ describe('timeAudioStart', () => {
         {
           agent_join_to_first_audio_track_ms: null,
           first_audio_track_to_playing_ms: null,
-          playback_blocked: false,
         },
         'Agent audio start timing',
       ],
@@ -183,22 +184,22 @@ describe('timeAudioStart', () => {
     expect(lines()[0]?.[0]).toMatchObject({ agent_join_to_first_audio_track_ms: 0 });
   });
 
-  it('blocked playback on the way is marked, whichever way it is reported', () => {
+  it('blocked playback adds nothing to the line: still the two numbers only', () => {
     const room = fakeRoom();
+    room.canPlaybackAudio = false;
     timeAudioStart(room, now);
+    clock += 400;
     const voice = subscribe(room);
-    document.dispatchEvent(new CustomEvent(AUDIO_PLAY_BLOCKED_EVENT));
+    room.emit('audioPlaybackChanged');
+    clock += 2_500; // the caller's tap
     startPlaying(voice);
-    expect(lines()[0]?.[0]).toMatchObject({ playback_blocked: true });
 
-    warn.mockClear();
-    ferni = person('agent-ferni', true); // a new call
-    const other = fakeRoom();
-    const stop = timeAudioStart(other, now);
-    other.canPlaybackAudio = false;
-    other.emit('audioPlaybackChanged');
-    stop();
-    expect(lines()[0]?.[0]).toMatchObject({ playback_blocked: true });
+    expect(lines()).toEqual([
+      [
+        { agent_join_to_first_audio_track_ms: 400, first_audio_track_to_playing_ms: 2_500 },
+        'Agent audio start timing',
+      ],
+    ]);
   });
 
   it('sets no timers and leaves no listeners after it logs', () => {
@@ -213,7 +214,7 @@ describe('timeAudioStart', () => {
       expect(room.listeners(event)).toBe(0);
     }
     const onDocument = (spy: typeof added) => spy.mock.calls.map(([event, cb]) => [event, cb]);
-    expect(onDocument(added)).toHaveLength(2); // 'playing' and the refused play()
+    expect(onDocument(added)).toHaveLength(1); // 'playing'
     expect(onDocument(removed)).toEqual(onDocument(added));
     stop();
     added.mockRestore();
@@ -221,18 +222,27 @@ describe('timeAudioStart', () => {
     vi.useRealTimers();
   });
 
-  it('carries counts only: no ids, no names, no text', () => {
-    const room = fakeRoom();
+  it('carries the two ms values and nothing else: no ids, names or text anywhere it logs', () => {
+    const MARK = 'zq7-unique-marker';
+    ferni = person(`${MARK}-agent`, true);
+    guest = person(`${MARK}-guest`, false);
+    const room = Object.assign(fakeRoom(), { name: `${MARK}-room`, sid: `RM_${MARK}` });
     const stop = timeAudioStart(room, now);
-    subscribe(room);
+    clock += 900;
+    const el = subscribe(room);
+    el.id = `${MARK}-element`;
+    startPlaying(subscribe(room, guest));
+    clock += 100;
+    startPlaying(el);
     stop();
 
     const [fields] = lines()[0]!;
-    expect(Object.keys(fields as object).sort()).toEqual([
-      'agent_join_to_first_audio_track_ms',
-      'first_audio_track_to_playing_ms',
-      'playback_blocked',
-    ]);
-    expect(JSON.stringify(fields)).not.toContain('agent-ferni');
+    expect(fields).toEqual({
+      agent_join_to_first_audio_track_ms: 900,
+      first_audio_track_to_playing_ms: 100,
+    });
+    const everything = Object.values(logged).flatMap((level) => level.mock.calls);
+    expect(everything).toHaveLength(1);
+    expect(JSON.stringify(everything)).not.toContain(MARK);
   });
 });
