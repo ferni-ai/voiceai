@@ -180,7 +180,7 @@ function buildTurnReminder(
     // Who is speaking (teammate-identity.ts); WORLD_NOW=on: the caller's time now (world-now.ts).
     safe.teammateIdentityNote(view.currentAgentId, process.env, plain),
     safe.worldNowNote(session, new Date(), { items: chatCtx.items, words }), // HOUR_ONCE: hour-once.ts
-    held ? '' : attempt('director', () => director?.told(keep) ?? '', ''), // held: exits-held.ts
+    held ? '' : attempt('director', () => director?.told(keep, words) ?? '', ''), // held: exits-held.ts
     safe.teamStatusNote(view, words),
     // "Naya" is Nayan; "9" may be (never near a crisis, or for a locked teammate): teammate-names.ts
     safe.heardTeammateNote(words, safe.aliasNoteFor(view, session, chatCtx, crisis)),

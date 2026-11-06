@@ -441,10 +441,11 @@ export class Director {
    * What Ferni has already told on this call, as the note for the next reply,
    * or ''. `keep` drops quotes and names that mustn't be repeated back to the
    * model (a locked teammate after the caller moved on: locked-teammates.ts).
+   * `callerSaid` is the caller's turn now (already-said.ts reads it, keeps none).
    */
-  told(keep: (text: string) => boolean = () => true): string {
+  told(keep: (text: string) => boolean = () => true, callerSaid = ''): string {
     const told = this.toldRecord;
-    return told ? formatTold(keptTold(told, keep, this.opts.sessionId)) : '';
+    return told ? formatTold(keptTold(told, keep, this.opts.sessionId, callerSaid)) : '';
   }
 }
 

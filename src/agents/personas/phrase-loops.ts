@@ -101,7 +101,8 @@ function phrasesOf(text: string): Set<string> {
   return phrases;
 }
 
-const contentWords = (phrase: string): string[] =>
+/** A phrase's words that carry meaning (also read by already-said.ts). */
+export const contentWords = (phrase: string): string[] =>
   phrase.split(' ').filter((w) => !FUNCTION_WORDS.has(w));
 
 /** Each clause of the crisis and safety scripts, as its content words. */

@@ -13,8 +13,8 @@
  * note (the director computes it on every reply; see turn-request.ts).
  *
  * TOLD_THIS_CALL=off turns it off. PHRASE_LOOP_GUARD=on adds the stock phrases he
- * keeps reusing (phrase-loops.ts); ALREADY_SAID_LEDGER=on, his recent openers and
- * any sentence he said word for word (already-said.ts).
+ * keeps reusing (phrase-loops.ts); ALREADY_SAID_LEDGER=on, any sentence two of his
+ * recent replies said word for word (already-said.ts).
  *
  * @module agents/personas/told-this-call
  */
@@ -23,6 +23,7 @@ import { crisisRiskNoted } from '../../services/safety/crisis-call-risk.js';
 import {
   alreadySaid,
   alreadySaidLedgerOn,
+  asksAgain,
   formatAlreadySaid,
   logRepeat,
   type AlreadySaid,
@@ -55,7 +56,7 @@ export interface Told {
   askedAboutFerni: boolean;
   /** PHRASE_LOOP_GUARD=on: stock phrases in two or more recent replies; absent when off. */
   loops?: PhraseLoop[];
-  /** ALREADY_SAID_LEDGER=on: his recent openers and word-for-word repeats; absent when off. */
+  /** ALREADY_SAID_LEDGER=on: his word-for-word repeats; absent when off. */
   said?: AlreadySaid;
 }
 
@@ -259,12 +260,18 @@ export function formatTold(told: Told): string {
  * quotes and no ledger at all: a crisis-guided request must never be told to drop wording
  * (crisis-call-risk.ts). A line of the safety scripts is never quoted on any call
  * (#2797: "Don't say again" had quoted "Are you somewhere safe right now?").
+ * No ledger either when the caller, in `callerSaid`, asks him to say it again.
  */
-export function keptTold(told: Told, keep: (text: string) => boolean, sessionId?: string): Told {
+export function keptTold(
+  told: Told,
+  keep: (text: string) => boolean,
+  sessionId?: string,
+  callerSaid = ''
+): Told {
   const { loops: all, said: ledger, ...rest } = told;
   const crisis = Boolean(sessionId && crisisRiskNoted(sessionId));
   const loops = all && !crisis ? all : undefined;
-  const said = ledger && !crisis ? ledger : undefined;
+  const said = ledger && !crisis && !asksAgain(callerSaid) ? ledger : undefined;
   const quotable = (line: string): boolean => !crisis && keep(line) && !isSafetyLine(line);
   return {
     ...rest,
@@ -272,15 +279,7 @@ export function keptTold(told: Told, keep: (text: string) => boolean, sessionId?
     repeated: told.repeated.filter(quotable),
     recentLines: told.recentLines.filter(quotable),
     ...(loops ? { loops: loops.filter((l) => keep(l.phrase)) } : {}),
-    ...(said
-      ? {
-          said: {
-            ...said,
-            repeated: said.repeated.filter(keep),
-            openers: said.openers.filter(keep),
-          },
-        }
-      : {}),
+    ...(said ? { said: { ...said, repeated: said.repeated.filter(keep) } } : {}),
   };
 }
 

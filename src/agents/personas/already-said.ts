@@ -1,36 +1,41 @@
 /**
- * What Ferni has already said word for word on a call: how his recent replies
- * opened, and any sentence he has said in two of them, so the next reply
- * doesn't say it again (ALREADY_SAID_LEDGER=on, off by default).
+ * What Ferni has already said word for word on a call: any sentence two of
+ * his recent replies said alike, so the next reply doesn't say it a third
+ * time (ALREADY_SAID_LEDGER=on, off by default).
  *
  * The told-this-call record (told-this-call.ts) quotes a sentence only when it
  * shares a six-word run with another reply or runs eight words or more, and
  * PHRASE_LOOP_GUARD (phrase-loops.ts) names a stock phrase only once two
  * replies have said it. A short line said again and again ("That's a big
- * step.", in three replies running) is never quoted, and nothing tells him how
- * his last replies opened before he opens the next one the same way.
+ * step.", in three replies running) is never quoted.
  *
- * The ledger reads Ferni's own lines only, never the caller's: the opening
- * sentence of each of his last `replyWindow` replies, and every sentence that
- * two of those replies said alike once case and punctuation are normalised.
- * Older replies have expired. The told-this-call note carries both as one
- * line, repeated sentences first. Nothing he says is rewritten (a streamed
- * reply can't be, without cutting words): `caught` only marks, for the log,
- * that his newest reply repeated a sentence.
+ * The ledger reads Ferni's own lines only, never the caller's: every sentence
+ * that two of his last `replyWindow` replies said alike once case,
+ * punctuation and markup are normalised. Older replies have expired. A line
+ * said once is never named, nor is a question, a short confirmation ("Okay,
+ * got it.") or a sign-off ("Talk soon, take care of yourself."): those are
+ * how people talk, not a tic. When the caller asks him to say it again
+ * (`asksAgain`, read from their turn and never kept), there is no ledger that turn. Nothing he says is rewritten (a streamed reply
+ * can't be, without cutting words): `caught` only marks, for the log, that
+ * his newest reply repeated a sentence.
  *
- * Crisis, safety and notice wording stays word for word, three ways: a reply
- * that mentions a crisis resource is not in the ledger; a sentence on safety,
- * harm or help (isSafetyLine) or a notice (an AI disclosure, what is kept from
- * the call, an advice disclaimer) is never listed; and once a call has crisis
- * risk noted, the note carries no ledger at all (told-this-call.ts keptTold).
+ * Crisis, safety and notice wording stays word for word. The whole window
+ * goes unread when any reply in it touches safety, harm or help, a crisis
+ * resource, or a number to call or text (services/safety/safety-talk.ts).
+ * A sentence of the safety scripts, care or safety language, a notice (an AI
+ * disclosure, what is kept or remembered, an advice disclaimer) or a number
+ * is never named. Once a call has crisis risk noted, the note carries no
+ * ledger at all (told-this-call.ts keptTold).
  *
  * @module agents/personas/already-said
  */
 
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { isCareTalk, reachesHelp } from '../../services/safety/safety-talk.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { ferniSaysGoodbye } from '../shared/call-farewell.js';
 import { mentionsCrisisResource } from './listen-offer.js';
-import { isSafetyLine, normalized } from './phrase-loops.js';
+import { contentWords, isSafetyLine, isSafetyTopic, normalized } from './phrase-loops.js';
 
 const log = createLogger({ module: 'AlreadySaid' });
 
@@ -39,8 +44,10 @@ export const ALREADY_SAID = {
   flag: 'ALREADY_SAID_LEDGER',
   /** Ferni's latest replies the ledger reads; anything before them has expired. */
   replyWindow: 6,
-  /** A sentence of fewer words ("Yeah.", "Mm, totally.") is never listed. */
-  minWords: 3,
+  /** Replies, of the window, that must have said a sentence alike before it is named. */
+  minReplies: 2,
+  /** A sentence with fewer content words ("Okay, got it.", "Sounds good.") is never named. */
+  minContentWords: 2,
   /** Sentences one note names at most. */
   maxPhrases: 3,
   maxQuoteChars: 80,
@@ -53,36 +60,46 @@ export function alreadySaidLedgerOn(env: Env = process.env): boolean {
 export interface AlreadySaid {
   /** Sentences two or more replies in the window said alike, as first said, most replies first. */
   repeated: string[];
-  /** The opening sentence of each reply in the window, newest first, minus any in `repeated`. */
-  openers: string[];
   /** The newest reply said a sentence an earlier reply in the window had said. */
   caught: boolean;
 }
 
-/** Notices said as written: an AI disclosure, what is kept from the call, an advice disclaimer. */
-const NOTICE =
-  /\b(?:an ai|not a (?:real )?(?:person|human)|recorded|recording|(?:is|are|gets?|be) kept|nothing (?:from|of) this call|(?:medical|legal|financial) advice|not a (?:doctor|lawyer|therapist|counsel(?:or|lor))|consent\w*)\b/i;
+const NONE: AlreadySaid = { repeated: [], caught: false };
 
-/** A sentence that must stay word for word, so is never listed: safety, harm, help or a notice. */
-const staysVerbatim = (sentence: string): boolean =>
-  isSafetyLine(sentence) || NOTICE.test(sentence);
+/** Notices said as written: an AI disclosure, what is kept or remembered, an advice disclaimer. */
+const NOTICE =
+  /\b(?:ai|bots?|artificial|not a (?:real )?(?:person|human)|recorded|recording|keep\w*|kept|remember\w*|sav(?:e|ed|es|ing)|stor(?:e|ed|es|ing)|shared?|delete\w*|(?:medical|legal|financial) advice|not a (?:doctor|lawyer|therapist|counsel(?:or|lor))|consent\w*|okay before)\b/i;
+
+/** The caller asks Ferni to say it again: repeating is the answer, so no ledger that turn. */
+const ASKS_AGAIN =
+  /\b(?:say (?:that|it) again|repeat (?:that|it|yourself)|what was that|come again|what(?: did|'?d) you (?:just )?say|didn'?t (?:quite )?(?:catch|hear) (?:that|you|it)|missed (?:that|it)|one more time)\b/i;
+
+export const asksAgain = (callerSaid: string): boolean => ASKS_AGAIN.test(callerSaid);
+
+/** A reply the ledger must not read at all: on safety, a crisis resource, or a number to reach. */
+const touchesSafety = (reply: readonly string[]): boolean =>
+  mentionsCrisisResource(reply.join(' ')) || reply.some((s) => isSafetyTopic(s) || reachesHelp(s));
 
 /** A sentence as compared: markup gone, then lowercase words only. */
 const keyOf = (sentence: string): string => normalized(sentence.replace(/<[^>]+>/g, ' '));
 
-const listable = (sentence: string): boolean =>
-  keyOf(sentence).split(' ').filter(Boolean).length >= ALREADY_SAID.minWords &&
-  !staysVerbatim(sentence);
+const nameable = (sentence: string): boolean =>
+  !sentence.trimEnd().endsWith('?') &&
+  contentWords(keyOf(sentence)).length >= ALREADY_SAID.minContentWords &&
+  !isSafetyLine(sentence) &&
+  !NOTICE.test(sentence) &&
+  !isCareTalk(sentence) &&
+  !/\d/.test(sentence) &&
+  !ferniSaysGoodbye(sentence);
 
 /** The ledger from Ferni's replies so far, each as its sentences, oldest first. */
 export function alreadySaid(replies: ReadonlyArray<readonly string[]>): AlreadySaid {
-  const window = replies
-    .filter((reply) => !mentionsCrisisResource(reply.join(' ')))
-    .slice(-ALREADY_SAID.replyWindow);
+  const window = replies.slice(-ALREADY_SAID.replyWindow);
+  if (window.some(touchesSafety)) return NONE;
   const said = new Map<string, { first: string; replies: number }>();
   for (const reply of window) {
     const keys = new Set<string>();
-    for (const sentence of reply.filter(listable)) {
+    for (const sentence of reply.filter(nameable)) {
       const key = keyOf(sentence);
       if (keys.has(key)) continue;
       keys.add(key);
@@ -91,17 +108,17 @@ export function alreadySaid(replies: ReadonlyArray<readonly string[]>): AlreadyS
       else said.set(key, { first: sentence, replies: 1 });
     }
   }
-  const again = (sentence: string): boolean => (said.get(keyOf(sentence))?.replies ?? 0) > 1;
+  const again = (s: { replies: number }): boolean => s.replies >= ALREADY_SAID.minReplies;
   const repeated = [...said.values()]
-    .filter((s) => s.replies > 1)
+    .filter(again)
     .sort((a, b) => b.replies - a.replies)
     .map((s) => s.first);
-  const openers = [...window]
-    .reverse()
-    .map((reply) => reply[0])
-    .filter((s): s is string => Boolean(s) && listable(s) && !again(s))
-    .filter((s, i, all) => all.findIndex((o) => keyOf(o) === keyOf(s)) === i);
-  return { repeated, openers, caught: (window.at(-1) ?? []).some(again) };
+  const newest = window.at(-1) ?? [];
+  const caught = newest.some((s) => {
+    const seen = said.get(keyOf(s));
+    return seen !== undefined && again(seen);
+  });
+  return { repeated, caught };
 }
 
 /** The reply just spoken repeated one of his sentences: logged for dev calls, with no words. */
@@ -118,10 +135,10 @@ const clip = (s: string): string =>
  */
 export function formatAlreadySaid(said: AlreadySaid, quoted: readonly string[] = []): string {
   const skip = new Set(quoted.map(keyOf));
-  const phrases = [...said.repeated, ...said.openers]
+  const phrases = said.repeated
     .filter((s) => !skip.has(keyOf(s)))
     .slice(0, ALREADY_SAID.maxPhrases);
   if (!phrases.length) return '';
   const list = phrases.map((s) => `"${clip(s)}"`).join('; ');
-  return `You've already said: ${list}. Open differently, and don't say ${phrases.length === 1 ? 'it' : 'them'} again.`;
+  return `You've already said: ${list}. Say ${phrases.length === 1 ? 'it' : 'them'} fresh or not at all.`;
 }
