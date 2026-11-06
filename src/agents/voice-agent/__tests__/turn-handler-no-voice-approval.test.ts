@@ -1,12 +1,13 @@
 /**
- * The turn handler never approves or rejects a pending action from what the caller said.
+ * No caller turn approves or rejects a pending action from what the caller said.
  *
- * It used to: a short reply starting with a confirm word ("yes im suicidal", "ok kill me")
- * resolved the newest pending action, bumped its trust profile and spoke "[ACTION CONFIRMED]",
- * then returned before processTurn, which holds the turn's crisis read. That branch only ran
- * with contextOnly false, and the live hook (turn-intelligence.ts) always passes true, so it
- * was dead in production and was deleted. This pins both halves: no turn shape resolves an
- * action, and every turn reaches processTurn. All lines are fictional.
+ * The turn handler used to: a short reply starting with a confirm word ("yes im suicidal",
+ * "ok kill me") resolved the newest pending action, bumped its trust profile and spoke
+ * "[ACTION CONFIRMED]", then returned before processTurn, which holds the turn's crisis read.
+ * That branch ran only with contextOnly false; the live hook (turn-intelligence.ts) passes
+ * true, so it was dead in production and was deleted with its parser. These cases drive the
+ * real live entry, createTurnIntelligenceHook, and the handler directly with contextOnly false
+ * (any other caller), with a pending action queued. All lines are fictional.
  */
 import { llm } from '@livekit/agents';
 import { readFileSync } from 'node:fs';
@@ -45,17 +46,36 @@ vi.mock('../../processors/index.js', async (orig) => ({
   }),
 }));
 
+const { createTurnIntelligenceHook } = await import('../../multi-agent/turn-intelligence.js');
 const { handleUserTurn } = await import('../turn-handler.js');
+type Deps = Parameters<typeof createTurnIntelligenceHook>[0];
 type Ctx = Parameters<typeof handleUserTurn>[0];
 
-async function turn(userText: string, contextOnly: boolean): Promise<string[]> {
+const persona = { id: 'ferni', name: 'Ferni', displayName: 'Ferni' };
+const services = { sessionId: 'fict-session-approval', userId: 'fict-uid-9' };
+
+/** One caller turn through the live hook, with the real turn handler behind it. */
+async function liveTurn(userText: string): Promise<string[]> {
+  events.length = 0;
+  const hook = createTurnIntelligenceHook({
+    persona,
+    services,
+    userData: { turnCount: 3 },
+    revivedStore: { summaries: async () => [] },
+  } as unknown as Deps);
+  await hook(llm.ChatContext.empty(), llm.ChatMessage.create({ role: 'user', content: userText }));
+  return [...events];
+}
+
+/** One turn straight into the handler with contextOnly false, the shape the branch ran on. */
+async function directTurn(userText: string): Promise<string[]> {
   events.length = 0;
   await handleUserTurn({
     turnCtx: llm.ChatContext.empty(),
     userText,
-    contextOnly,
-    persona: { id: 'ferni', name: 'Ferni', displayName: 'Ferni' },
-    services: { sessionId: 'fict-session-approval', userId: 'fict-uid-9' },
+    contextOnly: false,
+    persona,
+    services,
     userData: { turnCount: 3 },
     turnNumber: 3,
     sendDataMessage: async () => undefined,
@@ -72,24 +92,26 @@ const CRISIS_LINES = [
   'sure, end my life',
   'yes i want to die',
 ];
-const PLAIN_REPLIES = ['yes', 'ok', 'yes please', 'sure.', 'no', 'yes but cancel the payment'];
+const PLAIN_REPLIES = ['yes', 'ok', 'yes please', 'no', 'stop please'];
 
 beforeEach(() => vi.stubEnv('CRISIS_GUARD_MODE', 'live'));
 
-describe('turn handler: no voice approval of pending actions', () => {
-  // contextOnly true is what the live hook sends; false is the shape the deleted branch ran on.
-  describe.each([true, false])('contextOnly %s', (contextOnly) => {
+describe('no voice approval of pending actions', () => {
+  describe.each([
+    ['the live hook', liveTurn],
+    ['the handler with contextOnly false', directTurn],
+  ])('%s', (_name, turn) => {
     it.each([...CRISIS_LINES, ...PLAIN_REPLIES])(
       '"%s" reaches processTurn and resolves nothing',
       async (line) => {
-        const ev = await turn(line, contextOnly);
+        const ev = await turn(line);
         expect(ev.filter((e) => e.startsWith('side-effect:'))).toEqual([]);
         expect(ev).toContain(`processTurn:${line}`);
       }
     );
   });
 
-  it('turn-handler.ts does not import the voice approval handler', () => {
+  it('turn-handler.ts does not import a voice approval handler', () => {
     const source = readFileSync(
       fileURLToPath(new URL('../turn-handler.ts', import.meta.url)),
       'utf8'
