@@ -55,6 +55,7 @@ import {
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
+import { BLOCK_REASONS } from '../../../services/safety/crisis-graded-response.js';
 import {
   resetGradedResponse,
   resolveGradedResponseMode,
@@ -453,6 +454,24 @@ describe('CRISIS_GRADED_RESPONSE=shadow: the grade', () => {
     expect(keys(all[2])).toEqual([...counts, 'blockedBy', 'failed'].sort());
     expect(keys(all[3])).toEqual([...counts, 'c1Row'].sort());
     expect(all[3].c1Row).toBe('hard-ground-L1');
+    // values, not just keys: a caller's line in `failed` or any field must go red
+    const read = { reads: 2, nullReads: 0, main: 'guide' };
+    expect(all[0]).toEqual({ ...read, source: 'gate', would: 'L2', crisisReads: 1 });
+    const agreeing = { would: null, crisisReads: 2, blockedBy: 'R6_agreeing_reads' };
+    const failed = ['R6_agreeing_reads', 'R6_no_risk_read'];
+    expect(all[1]).toEqual({ ...read, ...agreeing, source: 'gate', failed });
+    expect(all[2]).toEqual({ ...read, ...agreeing, source: 'pipeline', failed });
+    expect(all[3]).toEqual({
+      ...read,
+      source: 'gate',
+      would: 'L2',
+      crisisReads: 1,
+      c1Row: 'hard-ground-L1',
+    });
+    for (const g of all) {
+      for (const r of (g.failed as string[] | undefined) ?? []) expect(BLOCK_REASONS).toContain(r);
+      for (const v of Object.values(g)) expect(['number', 'string', 'object']).toContain(typeof v);
+    }
   });
 });
 

@@ -10,11 +10,14 @@
  * gradeTurn says whether a turn would get L2 and, when not, every row that blocks it. It
  * decides nothing: in PR-1 its answer is only logged.
  *
- * L2 needs every row clear: main's full crisis guide; no imminent read; about the caller;
- * no pattern signal at all; no sign of a caller under 18 (owner exemption ignored); no
- * abuse disclosure; at least two reads of the turn, none missing, exactly one crisis and no
- * two agreeing on risk; no risk on the call before this turn; Ferni's line did not ask
- * about safety; no grounded-release screen open; and the read is crisis about the caller.
+ * L2 needs every row clear: main's full crisis guide; plain text the rows can read; no
+ * imminent read; about the caller, with no one else named in the turn; no one down, hurt
+ * or near means on any line; no pattern signal at all; no sign of a caller under 18
+ * (owner exemption ignored); no abuse disclosure; at least two reads of the turn, none
+ * missing, exactly one crisis and no two agreeing on risk; no risk on the call before this
+ * turn; Ferni's line did not ask about safety, life or a plan; no grounded-release screen
+ * open; and the read is crisis about the caller. The wide rows live in
+ * crisis-graded-blocks.ts and fail closed: a false hit only keeps main's full guide.
  *
  * @module CrisisGradedResponse
  */
@@ -22,6 +25,14 @@
 import { ageSignal, derivedHold, statesUnder18 } from '../../utils/minor-care.js';
 import { abuseDisclosure } from './abuse-disclosure.js';
 import type { CrisisVerdict } from './crisis-classifier.js';
+import {
+  asksAnythingSafety,
+  downOrMeans,
+  mayBeUnder18,
+  mayDiscloseAbuse,
+  namesSomeoneElse,
+  unreadable,
+} from './crisis-graded-blocks.js';
 import type { CrisisDetectionResult } from './crisis-guard.js';
 import { asksAboutSafety } from './crisis-lone-imminent.js';
 
@@ -45,22 +56,29 @@ export interface GradeInput {
   call: string | undefined;
 }
 
-type BlockReason =
-  | 'not_guide'
-  | 'R1_imminent'
-  | 'R2_third_party'
-  | 'R4_pattern'
-  | 'R5_minor'
-  | 'R5_abuse'
-  | 'R6_reads_missing'
-  | 'R6_read_null'
-  | 'R6_single_read'
-  | 'R6_agreeing_reads'
-  | 'R6_no_risk_read'
-  | 'R7_prior_risk'
-  | 'R7_safety_question'
-  | 'R7_screen'
-  | 'R8_not_crisis_self';
+/** Every row that can block L2, in the order gradeTurn checks them. */
+export const BLOCK_REASONS = [
+  'not_guide',
+  'R0_unreadable',
+  'R1_imminent',
+  'R2_third_party',
+  'R2_someone_else',
+  'R3_down_or_means',
+  'R4_pattern',
+  'R5_minor',
+  'R5_abuse',
+  'R6_reads_missing',
+  'R6_read_null',
+  'R6_single_read',
+  'R6_agreeing_reads',
+  'R6_no_risk_read',
+  'R7_prior_risk',
+  'R7_safety_question',
+  'R7_screen',
+  'R8_not_crisis_self',
+] as const;
+
+export type BlockReason = (typeof BLOCK_REASONS)[number];
 
 export type Grade =
   { would: 'L2' } | { would: null; blockedBy: BlockReason; failed: BlockReason[] };
@@ -77,6 +95,16 @@ function readsFailing(reads: GradeInput['reads']): BlockReason[] {
   return out;
 }
 
+/** Any sign of a caller under 18: no call id, an age heard or held, or a line that says so. */
+function minorSign(
+  call: string | undefined,
+  lines: readonly string[],
+  companion?: string
+): boolean {
+  if (!call || ageSignal(call) || derivedHold(call)) return true;
+  return lines.some((l) => statesUnder18(l, companion) || mayBeUnder18(l, companion));
+}
+
 /** Whether this turn would get L2, or every row that blocks it, in order. */
 export function gradeTurn(input: GradeInput): Grade {
   const { detection: d, verdict, reads, call, companion } = input;
@@ -86,22 +114,25 @@ export function gradeTurn(input: GradeInput): Grade {
     if (blocked) failed.push(reason);
   };
   block(input.main !== 'guide', 'not_guide');
+  // R0, R2b, R3 and the wide R5/R7 readers fail closed: a false hit keeps main's guide.
+  block([...lines, companion ?? ''].some(unreadable), 'R0_unreadable');
   block(
     verdict?.risk === 'imminent' || !!reads?.some((v) => v?.risk === 'imminent'),
     'R1_imminent'
   );
   block(verdict?.subject !== 'self' || d.subject === 'third_party', 'R2_third_party');
+  block(namesSomeoneElse(input.latest), 'R2_someone_else'); // "He collapsed.", whatever the read
+  block(lines.some(downOrMeans), 'R3_down_or_means'); // someone else down is 911 first
   block(d.isCrisis || d.severity !== 0 || d.indicators.length > 0, 'R4_pattern');
-  const minor =
-    !call || ageSignal(call) || derivedHold(call) || lines.some((l) => statesUnder18(l, companion));
-  block(minor, 'R5_minor');
+  block(minorSign(call, lines, companion), 'R5_minor');
   block(
-    lines.some((l) => abuseDisclosure(l) !== null),
+    lines.some((l) => abuseDisclosure(l) !== null || mayDiscloseAbuse(l)),
     'R5_abuse'
   );
   failed.push(...readsFailing(reads));
   block(input.priorRisk, 'R7_prior_risk');
-  block(asksAboutSafety(companion), 'R7_safety_question'); // an answer to it is never a non-answer
+  // an answer to Ferni's safety question is never a non-answer
+  block(asksAboutSafety(companion) || asksAnythingSafety(companion), 'R7_safety_question');
   block(input.screen !== 'none', 'R7_screen');
   block(!(verdict?.risk === 'crisis' && verdict.subject === 'self'), 'R8_not_crisis_self');
   return failed.length ? { would: null, blockedBy: failed[0], failed } : { would: 'L2' };
