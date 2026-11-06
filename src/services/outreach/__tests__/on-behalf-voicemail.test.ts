@@ -116,7 +116,7 @@ describe('onBehalfVoicemail', () => {
     expect(logged.join('\n')).not.toContain('vertex 503');
   });
 
-  it('greets a business as an AI calling for Sam', async () => {
+  it('greets a business with the intro that names Sam', async () => {
     callLLM.mockResolvedValueOnce(null);
     const said = await onBehalfVoicemail({
       ...sam,
