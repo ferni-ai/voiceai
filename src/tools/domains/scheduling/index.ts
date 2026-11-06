@@ -193,7 +193,7 @@ const scheduleCallTool: ToolDefinition = {
       execute: async (params, opts) => {
         const userId = ctx.userId || 'unknown';
         const personaId = ctx.agentId || 'ferni';
-        const elsewhere = forSomeoneElse(params, opts); // SCHEDULE_CALL_WHO (schedule-call-who.ts)
+        const elsewhere = await forSomeoneElse(params, opts, userId); // SCHEDULE_CALL_WHO (schedule-call-who.ts)
         if (elsewhere !== undefined) return elsewhere;
 
         log.info({ userId, when: params.when }, '📞 Scheduling phone call');

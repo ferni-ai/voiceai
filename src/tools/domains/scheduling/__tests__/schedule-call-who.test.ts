@@ -107,6 +107,10 @@ const SOMEONE_ELSE = [
   'Dr. Patel',
   'the dentist',
   'my kids', // a plural relationship word
+  // a number that isn't the caller's verified one
+  '555-0199',
+  '+1 801 555 0123',
+  'Priya at 555-0199',
 ];
 /** Owners whose names words() reshapes: an apostrophe dropped, a hyphen split. */
 const OBRIEN = "Riley O'Brien";
@@ -176,9 +180,16 @@ const SELF = [
   'Me (caller)',
   'My Cell Phone',
   'my home phone',
-  // the caller's own number, or any number: no name in it
-  '555-0100',
+  // the caller's own verified number, matched digits-only, in any format
   OWNER,
+  '(801) 555-0100',
+  '801.555.0100',
+  '1 801 555 0100',
+  '555-0100',
+  'me at +18015550100',
+  // no words and no number
+  '!!!',
+  '42',
   'Riley🙂', // a symbol is not a name
   'Riley',
   'Riley Testing',
@@ -243,6 +254,31 @@ describe('SCHEDULE_CALL_WHO on: a scheduled call for someone else is never rung 
   });
 });
 
+describe('SCHEDULE_CALL_WHO on, no verified phone to compare a number to', () => {
+  beforeEach(() => vi.stubEnv('SCHEDULE_CALL_WHO', 'on'));
+
+  it.each(['555-0199', '(801) 555-0100'])('who %j: answered exactly as main does', async (who) => {
+    const port = { verifiedPhone: async () => undefined, call: sent.dial };
+    setCallUserPort(port as never);
+    vi.stubEnv('SCHEDULE_CALL_WHO', 'off');
+    const main = await run(BIRTHDAY);
+    vi.stubEnv('SCHEDULE_CALL_WHO', 'on');
+    const reply = await run({ ...BIRTHDAY, who });
+    expect(reply).toBe(main);
+    expect(reply).toContain("I can't call you yet");
+    expect(writes()).toBe(0);
+  });
+
+  it('a verified-phone lookup that fails fails as on main, with nothing written', async () => {
+    setCallUserPort({ verifiedPhone: async () => Promise.reject(new Error('down')) } as never);
+    vi.stubEnv('SCHEDULE_CALL_WHO', 'off');
+    await expect(run(BIRTHDAY)).rejects.toThrow('down');
+    vi.stubEnv('SCHEDULE_CALL_WHO', 'on');
+    await expect(run({ ...BIRTHDAY, who: '555-0199' })).rejects.toThrow('down');
+    expect(writes()).toBe(0);
+  });
+});
+
 describe('SCHEDULE_CALL_WHO off: the tool as main has it', () => {
   it('no `who` parameter', () => {
     expect(Object.keys(shape())).toEqual(['message', 'when']);
@@ -278,8 +314,13 @@ describe('otherPerson', () => {
     expect(otherPerson('Mary-Jane', ['mary jane testing'])).toBeUndefined();
     expect(otherPerson("Riley's boss", ['riley obrien'])).toBe("Riley's boss");
     expect(otherPerson('Riley Testing Jr', ['riley testing'])).toBe('Riley Testing Jr');
+    // A number: someone else's only when it isn't the verified phone.
+    expect(otherPerson('555-0199', [], OWNER)).toBe('555-0199');
+    expect(otherPerson('(801) 555-0100', [], OWNER)).toBeUndefined();
+    expect(otherPerson('+1 801 555 0100', [], '8015550100')).toBeUndefined();
+    expect(otherPerson('555-0100', ['riley testing'])).toBeUndefined(); // no phone to compare to
+    expect(otherPerson('42', [], OWNER)).toBeUndefined(); // not a phone number
     // No positive evidence of someone else: rung as main does.
-    expect(otherPerson('555-0100', ['riley testing'])).toBeUndefined();
     expect(otherPerson('alex', ['riley testing'])).toBeUndefined(); // no capital, no relation
     expect(otherPerson('?!', ['riley testing'])).toBeUndefined();
     expect(otherPerson('MaryJane', ['mary jane testing'])).toBeUndefined();

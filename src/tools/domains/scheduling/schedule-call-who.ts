@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { flagOn, type Env } from '../../../config/env-flag.js';
 import { words } from '../communication/outreach/consent-words.js';
 import { ownerNames } from '../communication/outreach/outreach-confirm.js';
+import { getCallUserPort } from '../proactive/outreach/call-user-port.js';
 
 /** Read when the tool is built and on each run, so a cohort's value applies per call. */
 const scheduleCallWhoOn = (env: Env): boolean => flagOn('SCHEDULE_CALL_WHO', env);
@@ -63,13 +64,28 @@ function isOwnName(named: string[], owner: readonly string[]): boolean {
   });
 }
 
+/** The digits of a phone number in `who` (7 or more), or undefined: "(801) 555-0100" → "8015550100". */
+function phoneDigits(who: unknown): string | undefined {
+  const digits = typeof who === 'string' ? who.replace(/\D/g, '') : '';
+  return digits.length >= 7 ? digits : undefined;
+}
+
+/** Whether the digits are the verified phone's, with or without its country code or area code. */
+function isOwnNumber(digits: string, ownPhone: string): boolean {
+  const own = ownPhone.replace(/\D/g, '');
+  return own.length >= 7 && (own.endsWith(digits) || digits.endsWith(own.slice(-10)));
+}
+
 /**
  * Whether `who` clearly names someone else. Only positive evidence counts: a
- * relationship word, a capitalized name or a possessive ("sam's") that isn't
- * the caller's own name. Anything else, a paraphrase, a number or symbols, is
- * the caller, so it rings them as main does.
+ * phone number that isn't the caller's verified one, a relationship word, or a
+ * capitalized name or a possessive ("sam's") that isn't the caller's own name.
+ * Anything else (a paraphrase, the caller's own number, symbols, or a number
+ * with no verified phone to compare it to) is the caller, rung as main does.
  */
-function namesSomeoneElse(who: string, owner: readonly string[]): boolean {
+function namesSomeoneElse(who: string, owner: readonly string[], ownPhone?: string): boolean {
+  const digits = phoneDigits(who);
+  if (digits !== undefined && ownPhone !== undefined && !isOwnNumber(digits, ownPhone)) return true;
   const named: string[] = [];
   for (const chunk of who.split(/\s+/)) {
     const possessor = /^(.+?)['’]s(?=[^\p{L}\p{M}]*$)/u.exec(chunk)?.[1];
@@ -88,9 +104,13 @@ function namesSomeoneElse(who: string, owner: readonly string[]): boolean {
  * the first half of a hyphenated one) up to their full name, never
  * "Riley from work", "Riley's boss" or "Sam L".
  */
-export function otherPerson(who: unknown, owner: readonly string[] = []): string | undefined {
+export function otherPerson(
+  who: unknown,
+  owner: readonly string[] = [],
+  ownPhone?: string
+): string | undefined {
   const name = typeof who === 'string' ? who.trim().replace(/[.!?]+$/, '') : '';
-  return namesSomeoneElse(name, owner) ? name : undefined;
+  return namesSomeoneElse(name, owner, ownPhone) ? name : undefined;
 }
 
 /** main's description, word for word: what the model reads with the flag off. */
@@ -122,16 +142,27 @@ export function whoParam(env: Env = process.env): { who?: z.ZodOptional<z.ZodStr
 }
 
 /**
+ * The account's verified phone, read only when `who` holds a number. A lookup
+ * that fails throws here as it would in scheduleCall a moment later on main.
+ */
+async function verifiedPhoneFor(who: unknown, userId: string): Promise<string | undefined> {
+  if (phoneDigits(who) === undefined) return undefined;
+  return getCallUserPort()?.verifiedPhone(userId);
+}
+
+/**
  * The tool result when the call is for someone else, or undefined: the
  * caller's own call, or the flag off. Nothing is scheduled and nothing offered.
  */
-export function forSomeoneElse(
+export async function forSomeoneElse(
   params: { who?: unknown },
   opts: unknown,
+  userId: string,
   env: Env = process.env
-): string | undefined {
+): Promise<string | undefined> {
   if (!scheduleCallWhoOn(env)) return undefined;
-  const other = otherPerson(params.who, ownerNames(opts));
+  const ownPhone = await verifiedPhoneFor(params.who, userId);
+  const other = otherPerson(params.who, ownerNames(opts), ownPhone);
   if (other === undefined) return undefined;
   return (
     `Nothing was scheduled: this tool only rings the caller's own phone, so it can't call ${other}. ` +
