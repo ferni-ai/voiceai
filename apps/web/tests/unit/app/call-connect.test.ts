@@ -34,7 +34,7 @@ describe('connectWithTimeout', () => {
     vi.useFakeTimers();
     const service = hangingService();
 
-    const pending = connectWithTimeout(service, 30_000);
+    const pending = connectWithTimeout(service, { timeoutMs: 30_000 });
     await vi.advanceTimersByTimeAsync(29_999);
     expect(service.signal?.aborted).toBe(false);
     await vi.advanceTimersByTimeAsync(1);
@@ -69,11 +69,17 @@ describe('connectWithTimeout', () => {
     expect(signal?.aborted).toBe(false);
   });
 
+  it('hands the start-call tap to the attempt, for the call-start timing', async () => {
+    const connect = vi.fn(async (_options: { signal?: AbortSignal; tapAt?: number }) => true);
+    await connectWithTimeout({ connect, getLastFailure: () => null }, { tapAt: 1_234.5 });
+    expect(connect).toHaveBeenCalledWith(expect.objectContaining({ tapAt: 1_234.5 }));
+  });
+
   it('lets the person cancel: aborts the attempt and reports cancelled, shown as nothing', async () => {
     const service = hangingService();
     service.getLastFailure = () => connectFailure('network');
 
-    const pending = connectWithTimeout(service, 30_000);
+    const pending = connectWithTimeout(service, { timeoutMs: 30_000 });
     expect(cancelConnectAttempt()).toBe(true);
 
     await expect(pending).resolves.toEqual({ ok: false, failure: connectFailure('cancelled') });
