@@ -33,7 +33,7 @@ const ENV = [
   'PROACTIVE_CHANNELS=on',
   'PROMISES_PANEL=off',
   'SIP_TRUNK_ID=ST_AEE6NnKE84XP',
-  'SMS_CRISIS_SCREEN=shadow',
+  'SMS_CRISIS_SCREEN=on',
   'TEAM_BY_NEED=on',
 ];
 
