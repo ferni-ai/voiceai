@@ -45,17 +45,14 @@ import {
 } from '../proactive/outreach/index.js';
 import { ownerMessageTool } from '../proactive/outreach/owner-message-policy.js';
 import { userTimeZone } from '../../../utils/caller-time-zone.js';
+import { forSomeoneElse, whoParam } from './schedule-call-who.js';
 import {
   getPendingReminders,
   cancelReminder,
   parseNaturalTime,
 } from '../../../services/scheduling/reminder-scheduler.js';
 
-// Import intelligent timing ML
-import {
-  getTimingRecommendation,
-  type TimingRecommendation,
-} from '../../../services/contacts/optimal-timing.js';
+import { getTimingRecommendation } from '../../../services/contacts/optimal-timing.js';
 import { recordScheduledPromise as recordPromise } from '../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 
 const log = getLogger();
@@ -197,10 +194,13 @@ The call will play a voice message when answered.`,
           .describe(
             'When to call - natural language like "at 2pm", "tomorrow morning", "in 30 minutes"'
           ),
+        ...whoParam(),
       }),
-      execute: async (params) => {
+      execute: async (params, opts) => {
         const userId = ctx.userId || 'unknown';
         const personaId = ctx.agentId || 'ferni';
+        const elsewhere = forSomeoneElse(params, opts); // SCHEDULE_CALL_WHO (schedule-call-who.ts)
+        if (elsewhere !== undefined) return elsewhere;
 
         log.info({ userId, when: params.when }, '📞 Scheduling phone call');
 

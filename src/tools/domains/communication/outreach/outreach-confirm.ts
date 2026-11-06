@@ -187,7 +187,7 @@ function record(session: object, event: SessionEvent): void {
 }
 
 /** The owner's first names, lower-case, from the tool run's user data (userName, name). */
-function ownerFirstNames(opts: unknown): string[] {
+export function ownerFirstNames(opts: unknown): string[] {
   const data = (opts as { ctx?: { userData?: Record<string, unknown> } } | undefined)?.ctx
     ?.userData;
   const names = [data?.userName, data?.name].filter((n): n is string => typeof n === 'string');
