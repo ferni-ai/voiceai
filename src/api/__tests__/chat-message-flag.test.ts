@@ -49,7 +49,8 @@ async function call(
       sent = chunk ? JSON.parse(chunk) : undefined;
     }),
   } as unknown as ServerResponse;
-  const handled = await handleChatRoutes(req, res, path);
+  // As the server routes it (servers/api/index.ts): the pathname, without its query string.
+  const handled = await handleChatRoutes(req, res, new URL(path, 'http://localhost').pathname);
   return { status, body: sent, handled };
 }
 
@@ -90,6 +91,18 @@ describe('WEB_CHAT_MESSAGE', () => {
       }
     );
   });
+
+  it.each(['/api/chat/message?x=1', '/api/chat/tool?fn=recallFromMemory'])(
+    'flag off: %s is 404 too, with no model call and no tool run',
+    async (url) => {
+      const { status, handled } = await call('POST', url, MESSAGE);
+      expect(handled).toBe(true);
+      expect(status).toBe(404);
+      expect(requireAuth).not.toHaveBeenCalled();
+      expect(generateContent).not.toHaveBeenCalled();
+      expect(executeTool).not.toHaveBeenCalled();
+    }
+  );
 
   it('flag off: a crisis message is not sent to the model either', async () => {
     const { status } = await call('POST', '/api/chat/message', { message: 'I want to die' });
