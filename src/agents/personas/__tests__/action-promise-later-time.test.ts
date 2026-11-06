@@ -93,6 +93,7 @@ describe("later-time rule: only Ferni's own promise or offer is timed", () => {
     'You can text her tomorrow.',
     'Your cousin is calling her tonight too.',
     'If I were you, I would call her tonight.',
+    'Honestly, calling her tonight might be easier for you.',
   ])('flag on: %j is not Ferni setting a call for later, so it is as main', async (said) => {
     const on = await reply(READ_BACK, ON, said);
     expect(on).toContain(said);

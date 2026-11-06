@@ -179,8 +179,8 @@ const FERNI =
   "\\b(?:i'll|i will|i'm going to|i'm gonna|i can|let me|want me to|should i|shall i|can i)\\s+(?:go ahead and |just |also |quickly )?";
 /** "give her a ring", "send Aunt June a text". */
 const GIVE = '(?:give|send) \\w+(?: \\w+)? an? ';
-/** A reply that opens on the act, with Ferni the one doing it: "Calling her at eight." */
-const OPENS = '(?:^|[,;:—–]\\s*)';
+/** A sentence that opens on the act, Ferni the one doing it: "Calling her at eight.", "Okay, texting her now." */
+const OPENS = '^\\s*(?:(?:okay|ok|sure|alright|all right|on it)\\W+)*';
 /** Ferni's own call or text in a sentence the claim readers pass over ("Want me to call her at eight?"). */
 const FERNI_OFFERS: ReadonlyArray<readonly ['call' | 'send', RegExp]> = [
   [
