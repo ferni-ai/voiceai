@@ -198,6 +198,29 @@ describe('a crisis text survives every write after the screen', () => {
     expect(all).not.toContain('kill');
   });
 
+  it.each([
+    ['Stop texting me. I want to kill myself.', "You're unsubscribed from Ferni texts."],
+    ['Stop calling me. I want to die.', "You're unsubscribed from Ferni texts and calls."],
+  ])(
+    'an opt-out crisis text whose handler throws: 988 once, the confirmation first, the opt-out recorded (%s)',
+    async (body, confirmation) => {
+      for (const makeItThrow of [
+        () => proactive.mockImplementationOnce(boom),
+        () => adapter.verifiedPhone.mockImplementationOnce(boom),
+      ]) {
+        recordInboundSmsConsent.mockClear();
+        makeItThrow();
+        const { status, sent } = await text(body);
+        expect(status).toBe(200);
+        expect(sent.match(/please call or text 988/g)).toHaveLength(1);
+        expect(sent.match(/<Message>/g)).toHaveLength(2);
+        expect(sent).toContain(confirmation.replace("'", '&apos;'));
+        expect(sent.indexOf('unsubscribed')).toBeLessThan(sent.indexOf('988'));
+        expect(recordInboundSmsConsent).toHaveBeenCalledExactlyOnceWith(PHONE, body);
+      }
+    }
+  );
+
   it('an ordinary text whose handler throws gets an empty 200, not a 500', async () => {
     proactive.mockImplementationOnce(boom);
     const { status, sent } = await text('running late, see you at 6');
@@ -238,7 +261,9 @@ describe('a "call me" crisis text keeps its call and says so in one text', () =>
     expect(adapter.call).toHaveBeenCalledTimes(1);
     expect(adapter.call.mock.calls[0]?.[0]).toMatchObject({ userId: RILEY, phoneNumber: PHONE });
     expect(sent.match(/<Message>/g)).toHaveLength(1);
-    expect(sent).toContain('<Message>I&apos;m calling you now. If you might act');
+    expect(sent).toContain(
+      '<Message>I&apos;m really glad you told me, and I&apos;m here. I&apos;m calling you now. If you might act'
+    );
     expect(sent).toContain('please call or text 988 (Suicide &amp; Crisis Lifeline)');
     expect(sent).toContain('text HOME to 741741');
     expect(sent).toContain('call 911');
@@ -268,11 +293,13 @@ describe('a "call me" crisis text keeps its call and says so in one text', () =>
     expect(sent).toContain('please call or text 988');
   });
 
-  it('the usual crisis wording is unchanged, byte for byte, and the calling variant keeps all of it after the first line', () => {
+  it('the usual crisis wording is unchanged, byte for byte, and the calling variant only adds the calling line after the opening', () => {
     const rest =
       "If you might act on these thoughts or you're not safe right now, please call or text 988 (Suicide & Crisis Lifeline), or text HOME to 741741. If you're in immediate danger, call 911. You can open Ferni anytime and we'll talk.";
     expect(screen.SMS_CRISIS_REPLY).toBe(`I'm really glad you told me, and I'm here. ${rest}`);
-    expect(screen.SMS_CRISIS_CALLING_REPLY).toBe(`I'm calling you now. ${rest}`);
+    expect(screen.SMS_CRISIS_CALLING_REPLY).toBe(
+      `I'm really glad you told me, and I'm here. I'm calling you now. ${rest}`
+    );
     expect(screen.smsCrisisReplyFor(undefined)).toBe(screen.SMS_CRISIS_REPLY);
     expect(screen.smsCrisisReplyFor('later')).toBe(screen.SMS_CRISIS_REPLY);
     expect(Object.keys(screen)).not.toContain('SMS_CRISIS_CALL_LATER_REPLY');
