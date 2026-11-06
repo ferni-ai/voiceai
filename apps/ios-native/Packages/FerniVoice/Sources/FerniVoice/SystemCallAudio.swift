@@ -39,10 +39,15 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
     private let engine: @Sendable (AudioEngineAvailability) throws -> Void
     private let session: any AudioSessionSettings
     private let voiceProcessing: any VoiceProcessing
+    private let failed: @Sendable (StaticString) -> Void
     /// The system has activated this call's session (and not taken it back).
     private let systemActive = OSAllocatedUnfairLock(initialState: false)
     /// The app activated the session itself for a call (not the system).
     private let ownActive = OSAllocatedUnfairLock(initialState: false)
+    /// Drift set-backs wait while held: taken for each write (its route
+    /// changes would write again) and kept when it threw or didn't stick.
+    /// Only `releaseHold` lets go.
+    private let driftHeld = OSAllocatedUnfairLock(initialState: false)
     private let log = Logger(subsystem: "com.sethdford.ferni", category: "audio")
 
     /// - Parameters:
@@ -52,14 +57,18 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
     ///   - session: the audio session; tests record what is asked of it.
     ///   - notifications: where the session's notifications arrive; tests post their own.
     ///   - voiceProcessing: LiveKit's voice processing; tests fake it.
+    ///   - failed: told each time the call's settings couldn't be put back
+    ///     (after the error is logged); tests count them.
     public init(systemManagesCalls: Bool,
                 engine: @escaping @Sendable (AudioEngineAvailability) throws -> Void = {
                     try AudioManager.shared.setEngineAvailability($0)
                 },
                 session: any AudioSessionSettings = AVAudioSession.sharedInstance(),
                 notifications: NotificationCenter = .default,
-                voiceProcessing: any VoiceProcessing = LiveKitVoiceProcessing()) {
+                voiceProcessing: any VoiceProcessing = LiveKitVoiceProcessing(),
+                failed: @escaping @Sendable (StaticString) -> Void = { _ in }) {
         self.systemManagesCalls = systemManagesCalls
+        self.failed = failed
         self.engine = engine
         self.session = session
         self.voiceProcessing = voiceProcessing
@@ -87,10 +96,20 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
             notifications.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: nil) { [weak self] note in
                 guard let raw = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
                       let reason = AVAudioSession.RouteChangeReason(rawValue: raw) else { return }
-                // A device came or went (AirPods in or out, a car). Never on
-                // .categoryChange: setting the category posts that, and it would loop.
-                if reason == .newDeviceAvailable || reason == .oldDeviceUnavailable {
+                switch reason {
+                case .newDeviceAvailable, .oldDeviceUnavailable:
+                    // A device came or went (AirPods in or out, a car).
                     self?.reapply("route changed")
+                case .override:
+                    // The speaker button or the route picker mid-call.
+                    self?.reapplyIfDrifted("route overridden")
+                case .routeConfigurationChange, .wakeFromSleep:
+                    self?.reapplyIfDrifted("route reconfigured")
+                default:
+                    // .categoryChange: setting the category posts it, and it would
+                    // loop. .noSuitableRouteForCategory: no route can take a call, and
+                    // setting the session again can't make one.
+                    break
                 }
             },
             notifications.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: nil) { [weak self] _ in
@@ -106,14 +125,67 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
     /// In a call: the system or the app has the session active.
     private var inCall: Bool { systemActive.withLock { $0 } || ownActive.withLock { $0 } }
 
+    /// The session isn't in the call's category and mode.
+    private var drifted: Bool { session.category != .playAndRecord || session.mode != .voiceChat }
+
     /// The call's session settings again, in a call only (at rest the app
-    /// leaves the session alone).
+    /// leaves the session alone). A device change or an interruption's end
+    /// tries even when held.
     private func reapply(_ why: StaticString) {
         guard inCall else { return }
+        releaseHold()
+        if takeHold() { write(why) }
+    }
+
+    /// Takes the hold: false when it's already held.
+    private func takeHold() -> Bool {
+        driftHeld.withLock { driftHeld in
+            defer { driftHeld = true }
+            return !driftHeld
+        }
+    }
+
+    /// The one way the hold lets go: a write that stuck, a device change, an
+    /// interruption's end, a media reset or the call's end. Never a throw.
+    private func releaseHold() {
+        driftHeld.withLock { driftHeld in driftHeld = false }
+    }
+
+    /// Sets the session up again (the hold taken), then reads it back whether
+    /// or not it threw: a write can throw part-way and still stick, or not
+    /// throw and not stick. Each write posts a route change, so one that
+    /// didn't stick keeps the hold, and its route changes write nothing more.
+    private func write(_ why: StaticString) {
+        let threw: Bool
         do {
             try setUpAgain(why)
+            threw = false
         } catch {
             log.error("Session not set again (\(why, privacy: .public)): \(error.localizedDescription, privacy: .public)")
+            failed(why)
+            threw = true
+        }
+        if !drifted {
+            releaseHold()
+        } else if !threw {
+            log.error("Session settings didn't stick (\(why, privacy: .public)); held until one does")
+            failed("settings didn't stick")
+        }
+    }
+
+    /// Only what drifted from the call's settings. The call's own
+    /// setCategory/setMode can post these reasons, and then finds nothing to
+    /// do: no loop, and no needless write while Ferni is talking. Voice
+    /// processing alone comes back without a session write, so even one that
+    /// keeps refusing posts nothing back. Options aren't compared: the system
+    /// can report them differently from what was asked, and a mismatch that
+    /// never clears would loop. Held set-backs (`driftHeld`) aren't tried.
+    private func reapplyIfDrifted(_ why: StaticString) {
+        if drifted, inCall, takeHold() {
+            write(why)
+        } else if inCall, !voiceProcessing.isOn {
+            let processing = restoreVoiceProcessing()
+            log.notice("Voice processing \(processing, privacy: .public) (\(why, privacy: .public))")
         }
     }
 
@@ -133,6 +205,7 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
             return "was off, back on"
         } catch {
             log.error("Voice processing not back on: \(error.localizedDescription, privacy: .public)")
+            failed("voice processing")
             return "off, not restored"
         }
     }
@@ -143,6 +216,7 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
     /// system owns calls.
     private func rebuildAfterReset() {
         log.error("Media services were reset; setting the session up again")
+        releaseHold()
         if systemActive.withLock({ $0 }) {
             try? setUpAgain("media services reset")
             setEngine(.default)
@@ -197,6 +271,7 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
     }
 
     public func callEnded() {
+        releaseHold()
         systemActive.withLock { $0 = false }
         ownActive.withLock { $0 = false }
         // Ready for the next call, which the system will own again.
@@ -244,6 +319,8 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
 /// What the call asks of the audio session; AVAudioSession in the app, a
 /// recorder in tests.
 public protocol AudioSessionSettings: AnyObject {
+    var category: AVAudioSession.Category { get }
+    var mode: AVAudioSession.Mode { get }
     func setCategory(_ category: AVAudioSession.Category, mode: AVAudioSession.Mode,
                      options: AVAudioSession.CategoryOptions) throws
     func setAllowHapticsAndSystemSoundsDuringRecording(_ inValue: Bool) throws
