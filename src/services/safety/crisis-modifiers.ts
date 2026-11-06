@@ -70,24 +70,29 @@ const SHORTHAND: [RegExp, string][] = [
   ],
 ];
 
-/**
- * Look-alike letters and hidden characters, folded before any pattern reads the text:
- * fullwidth "ｄｉｅ" reads as "die" and a zero-width mark inside a word is dropped.
- * NFKC, not NFKD: NFKD splits "á" into "a" plus a mark, so "ojalá no despertar" would
- * stop matching. Folding only maps text to forms the patterns already read; it adds matches.
- */
-const FORMAT_CHARS = /\p{Cf}/gu;
-
+/** Main's fold: case, quotes, spacing and shorthand only. */
 export function normalize(message: string): string {
   let text = message
-    .normalize('NFKC')
-    .replace(FORMAT_CHARS, '')
     .toLowerCase()
     .replace(/[\u2018\u2019\u02bc]/g, "'")
     .replace(/\s+/g, ' ')
     .trim();
   for (const [re, full] of SHORTHAND) text = text.replace(re, full);
   return text;
+}
+
+/** Hidden format characters (zero-width marks, soft hyphens, BOM); not line breaks or tabs. */
+const FORMAT_CHARS = /\p{Cf}/gu;
+
+/**
+ * Main's fold after look-alike letters and hidden characters: fullwidth "ｄｉｅ" reads as "die"
+ * and a zero-width mark inside a word is dropped. NFKC, not NFKD: NFKD splits "á" into "a" plus
+ * a mark, so "ojalá no despertar" would stop matching. This fold can also LOWER a read ("die²"
+ * loses its word break, a hidden "ｌｏｌ" becomes a softener), so the reader scores both folds
+ * and keeps the higher (crisis-guard.ts scoreFolds).
+ */
+export function normalizeLookAlikes(message: string): string {
+  return normalize(message.normalize('NFKC').replace(FORMAT_CHARS, ''));
 }
 
 export type ExplicitModifier =

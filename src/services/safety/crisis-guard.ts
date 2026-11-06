@@ -27,7 +27,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { endingFloor } from './crisis-ending-floor.js';
 import { EMERGENCY_FOR_THEM, getCrisisResponse, IN_DANGER_NOW } from './crisis-guard-replies.js';
 import { meansFormsOf, meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
-import { explicitModifier, normalize } from './crisis-modifiers.js';
+import { explicitModifier, normalize, normalizeLookAlikes } from './crisis-modifiers.js';
 import {
   HIGH_DISTRESS_VOICE_EMOTIONS,
   MODERATE_DISTRESS_VOICE_EMOTIONS,
@@ -242,9 +242,28 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
   return { ...found, softSelf, sessionSeverity };
 }
 
+const imminent = (score: TextScore): boolean => score.indicators.includes('imminent_danger');
+
+/**
+ * Score main's fold and the look-alike fold, and keep the higher read (tier first, then
+ * imminent), so the look-alike fold only ever adds: "die²" and a hidden "ｌｏｌ" read as on main.
+ */
+function scoreFolds(message: string, forms: ReturnType<typeof meansFormsOf>): TextScore {
+  const text = normalize(message);
+  const folded = normalizeLookAlikes(message);
+  const plain = scoreText(text, forms);
+  if (folded === text) return plain;
+  const look = scoreText(folded, forms);
+  const higher =
+    look.severity > plain.severity ||
+    (look.severity === plain.severity && imminent(look) && !imminent(plain));
+  const sessionSeverity = Math.max(plain.sessionSeverity, look.sessionSeverity);
+  return { ...(higher ? look : plain), sessionSeverity };
+}
+
 /** What one earlier message counts for in a later turn's session check (crisis-who.ts reads it too). */
 export const sessionSeverityOf = (message: string): number =>
-  scoreText(normalize(message), meansFormsOf(resolveMeansInHandMode())).sessionSeverity;
+  scoreFolds(message, meansFormsOf(resolveMeansInHandMode())).sessionSeverity;
 
 /** Detect crisis indicators in user message */
 export function detectCrisis(
@@ -254,17 +273,16 @@ export function detectCrisis(
 ): CrisisDetectionResult {
   const text = normalize(userMessage);
   const forms = meansFormsOf(options?.meansInHand ?? resolveMeansInHandMode());
-  const score = scoreText(text, forms);
+  const score = scoreFolds(userMessage, forms);
   const indicators = [...score.indicators];
   let { severity, subject } = score;
 
   // Session trajectory: earlier distress turns a weak or contextual signal now
   // into a crisis ("Soon none of this will matter" after "I'm a burden").
   const prior = (options?.recentMessages ?? [])
-    .map(normalize)
-    .filter((m) => m.length > 0 && m !== text)
+    .filter((m) => normalize(m).length > 0 && normalize(m) !== text)
     .slice(-5)
-    .map((m) => scoreText(m, forms).sessionSeverity);
+    .map((m) => scoreFolds(m, forms).sessionSeverity);
   const priorPeak = Math.max(0, ...prior);
   const priorDistressTurns = prior.filter((v) => v >= SEVERITY.implicit).length;
   const signalNow = (subject === 'self' && severity >= SEVERITY.implicit) || score.contextHit;

@@ -1,9 +1,11 @@
 /**
  * The shared reader folds look-alike letters and hidden characters before any pattern
- * reads the text (crisis-modifiers.ts normalize). Before, "I want to die" typed in
- * fullwidth letters, with a zero-width mark inside a word, or in mixed width read as
- * nothing. Folding only adds matches: ordinary text in other widths and scripts, and
- * emoji joined with zero-width joiners, read as they did.
+ * reads the text (crisis-modifiers.ts normalizeLookAlikes). Before, "I want to die" typed
+ * in fullwidth letters, with a zero-width mark inside a word, or in mixed width read as
+ * nothing. The look-alike fold alone can also lower a read, so the reader scores main's fold
+ * and the look-alike fold and keeps the higher one: every line main reads still reads, and
+ * ordinary text in other widths and scripts, and emoji joined with zero-width joiners, read
+ * as they did.
  *
  * Every line here is invented.
  */
@@ -11,7 +13,7 @@ import { describe, expect, it } from 'vitest';
 
 import { crisisRead } from '../../outreach/caller-text.js';
 import { unreadable } from '../crisis-graded-blocks.js';
-import { detectCrisis, guardFromDetection } from '../crisis-guard.js';
+import { detectCrisis, guardFromDetection, sessionSeverityOf } from '../crisis-guard.js';
 
 const OPENER = 'hey, rough week, can we talk for a minute?';
 
@@ -38,11 +40,87 @@ describe('look-alike crisis lines read as crisis', () => {
     expect(detectCrisis('ojalá no despertar').indicators).toContain('passive_ideation');
   });
 
+  it('a decomposed accent reads: the fold composes "a" plus a mark into "á"', () => {
+    // NFKD would keep it split, and this line would read nothing.
+    expect(detectCrisis('ojala\u0301 no despertar').indicators).toContain('passive_ideation');
+  });
+
+  it('two folds that read the same tier keep the one that reads imminent danger', () => {
+    // Main's fold reads only the first sentence; the look-alike fold also reads the roof.
+    const read = detectCrisis(
+      "I'm thinking about suicide. I'm on the \uff52\uff4f\uff4f\uff46 and I'm going to jump"
+    );
+    expect(read.indicators).toEqual(
+      expect.arrayContaining(['explicit_crisis_language', 'imminent_danger'])
+    );
+  });
+
+  it('a look-alike line counts as an earlier distress turn', () => {
+    const prior = ['\uff29 \uff57\uff41\uff4e\uff54 \uff54\uff4f \uff44\uff49\uff45'];
+    const read = detectCrisis('Soon none of this will matter.', undefined, {
+      recentMessages: prior,
+    });
+    expect(read.indicators).toContain('session_escalation');
+  });
+
+  it("the caller's own look-alike words still count for the session beside someone else's emergency", () => {
+    // Main's fold reads only the dad's emergency (imminent, kept); the look-alike fold reads the caller.
+    const line =
+      "my dad collapsed and isn't breathing. \uff29 \uff57\uff41\uff4e\uff54 \uff54\uff4f \uff44\uff49\uff45";
+    expect(detectCrisis(line).indicators).toContain('third_party_emergency');
+    expect(sessionSeverityOf(line)).toBeGreaterThanOrEqual(0.9);
+  });
+
   it('E06, Cyrillic look-alikes, is not folded to Latin and stays unreadable for the graded gate', () => {
     const line = 'I wаnt to diе'; // Cyrillic a and e
     expect(unreadable(line)).toBe(true);
     expect(detectCrisis(line).isCrisis).toBe(false); // as on main: the graded gate holds it
   });
+});
+
+/** Blocked first turn and mid-call, read by the caller-text screen, and counted as a prior turn. */
+function expectBlocked(line: string): void {
+  for (const read of [
+    detectCrisis(line),
+    detectCrisis(line, undefined, { recentMessages: [OPENER] }),
+  ]) {
+    expect(read.isCrisis).toBe(true);
+    expect(guardFromDetection(read).shouldBlock).toBe(true);
+  }
+  expect(crisisRead(line)).toBe(true);
+  expect(sessionSeverityOf(line)).toBeGreaterThanOrEqual(0.9);
+}
+
+// The look-alike fold alone would read each of these lower than main does.
+describe('a line main blocks is never read lower', () => {
+  it.each([
+    ['superscript two after the word', 'I want to die\u00b2'],
+    ['trademark sign after the word', 'I want to die\u2122'],
+    ['superscript one after the word', 'I want to die\u00b9'],
+    ['circled one after the word', 'I want to die\u2460'],
+    ['fullwidth one after the word', 'I want to die\uff11'],
+    ['a vulgar fraction after the words', 'kill myself\u00bd'],
+    ['superscript two after a means count', 'I took 20 pills\u00b2'],
+    ['zero-width space between two words', 'I want to die\u200bplease'],
+    ['zero-width space before a time', 'kill myself\u200btonight'],
+    ['a BOM between two words', 'I want to die\ufefftoday'],
+  ])('word break: %s', (_name, line) => expectBlocked(line));
+
+  it.each([
+    ['fullwidth lol', 'I want to die \uff4c\uff4f\uff4c'],
+    ['lol split by a zero-width space', 'I want to die l\u200bol'],
+    ['fullwidth jk', 'I want to die \uff4a\uff4b'],
+    ["fullwidth don't", "I \uff44\uff4f\uff4e't want to die"],
+    ["don't split by a soft hyphen", 'I don\u00adt want to die'],
+    ['a fullwidth hyperbole frame', 'this traffic is so \uff42\uff41\uff44 I want to die'],
+  ])('hidden softener: %s', (_name, line) => expectBlocked(line));
+
+  it.each([
+    ['a line break', 'I want to\nkill myself'],
+    ['a tab', 'kill\tmyself'],
+    ['a line break before fullwidth words', 'I want to\n\uff4b\uff49\uff4c\uff4c myself'],
+    ['a tab before fullwidth words', 'I want to\t\uff44\uff49\uff45'],
+  ])('a line break or tab is a space, never dropped: %s', (_name, line) => expectBlocked(line));
 });
 
 describe('ordinary text in other widths and scripts reads as before', () => {
