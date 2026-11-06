@@ -23,7 +23,7 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { trackToolUsage, isLifeCoachAnalyticsEnabled } from '../shared/index.js';
 import { z } from 'zod';
-
+import { EMERGENCY_NUMBER, crisisLines } from '../../../services/safety/index.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // CRISIS RESOURCES DATABASE
@@ -48,34 +48,34 @@ interface CrisisResource {
 export const CRISIS_RESOURCES: Record<string, CrisisResource> = {
   'suicide-self-harm': {
     primary: {
-      name: '988 Suicide & Crisis Lifeline',
-      contact: 'Call or text 988',
+      name: crisisLines.LIFELINE_988.name,
+      contact: `Call or text ${crisisLines.LIFELINE_988.phone}`,
       available: '24/7',
       description:
         'Free, confidential support for people in distress, prevention and crisis resources',
     },
     secondary: {
-      name: 'Crisis Text Line',
-      contact: 'Text HOME to 741741',
+      name: crisisLines.CRISIS_TEXT_LINE.name,
+      contact: crisisLines.CRISIS_TEXT_LINE.text,
       available: '24/7',
       description: 'Free, confidential crisis counseling via text',
     },
     additional: [
       {
-        name: 'International Association for Suicide Prevention',
-        url: 'https://www.iasp.info/resources/Crisis_Centres/',
+        name: crisisLines.SUICIDE_PREVENTION_DIRECTORY.name,
+        url: crisisLines.SUICIDE_PREVENTION_DIRECTORY.chat,
       },
     ],
   },
   'mental-health': {
     primary: {
-      name: '988 Suicide & Crisis Lifeline',
-      contact: 'Call or text 988',
+      name: crisisLines.LIFELINE_988.name,
+      contact: `Call or text ${crisisLines.LIFELINE_988.phone}`,
       available: '24/7',
       description: 'Mental health crisis support and resources',
     },
     secondary: {
-      name: 'NAMI Helpline',
+      name: crisisLines.MENTAL_HEALTH_HELPLINE.name,
       contact: '1-800-950-NAMI (6264)',
       available: 'Mon-Fri, 10am-10pm ET',
       description: 'National Alliance on Mental Illness - information, referrals, and support',
@@ -83,22 +83,22 @@ export const CRISIS_RESOURCES: Record<string, CrisisResource> = {
   },
   'domestic-violence': {
     primary: {
-      name: 'National Domestic Violence Hotline',
-      contact: '1-800-799-7233 (SAFE)',
+      name: crisisLines.DOMESTIC_VIOLENCE_HOTLINE.name,
+      contact: `${crisisLines.DOMESTIC_VIOLENCE_HOTLINE.phone} (SAFE)`,
       available: '24/7',
       description:
         'Confidential support, safety planning, and resources for domestic violence survivors',
     },
     secondary: {
       name: 'Text Support',
-      contact: 'Text START to 88788',
+      contact: crisisLines.DOMESTIC_VIOLENCE_HOTLINE.text,
       available: '24/7',
     },
   },
   'sexual-assault': {
     primary: {
-      name: 'RAINN National Sexual Assault Hotline',
-      contact: '1-800-656-4673 (HOPE)',
+      name: crisisLines.SEXUAL_ASSAULT_HOTLINE.name,
+      contact: `${crisisLines.SEXUAL_ASSAULT_HOTLINE.phone} (HOPE)`,
       available: '24/7',
       description: 'Confidential support from trained staff members',
     },
@@ -110,8 +110,8 @@ export const CRISIS_RESOURCES: Record<string, CrisisResource> = {
   },
   'substance-abuse': {
     primary: {
-      name: 'SAMHSA National Helpline',
-      contact: '1-800-662-4357',
+      name: crisisLines.SUBSTANCE_HELPLINE.name,
+      contact: crisisLines.SUBSTANCE_HELPLINE.phone,
       available: '24/7, 365 days',
       description: 'Free, confidential treatment referrals and information service',
     },
@@ -127,8 +127,8 @@ export const CRISIS_RESOURCES: Record<string, CrisisResource> = {
   },
   'child-abuse': {
     primary: {
-      name: 'Childhelp National Child Abuse Hotline',
-      contact: '1-800-422-4453 (4-A-CHILD)',
+      name: crisisLines.CHILD_ABUSE_HOTLINE.name,
+      contact: `${crisisLines.CHILD_ABUSE_HOTLINE.phone} (4-A-CHILD)`,
       available: '24/7',
       description: 'Professional crisis counselors for child abuse intervention and prevention',
     },
@@ -148,22 +148,22 @@ export const CRISIS_RESOURCES: Record<string, CrisisResource> = {
   },
   'general-distress': {
     primary: {
-      name: '988 Suicide & Crisis Lifeline',
-      contact: 'Call or text 988',
+      name: crisisLines.LIFELINE_988.name,
+      contact: `Call or text ${crisisLines.LIFELINE_988.phone}`,
       available: '24/7',
       description:
         "Support for any emotional distress - you don't need to be suicidal to reach out",
     },
     secondary: {
-      name: 'Crisis Text Line',
-      contact: 'Text HOME to 741741',
+      name: crisisLines.CRISIS_TEXT_LINE.name,
+      contact: crisisLines.CRISIS_TEXT_LINE.text,
       available: '24/7',
     },
   },
   'veteran-crisis': {
     primary: {
       name: 'Veterans Crisis Line',
-      contact: 'Call 988, then press 1',
+      contact: `Call ${crisisLines.LIFELINE_988.phone}, then press 1`,
       available: '24/7',
       description: 'Specialized support for veterans and their families',
     },
@@ -297,8 +297,8 @@ const provideCrisisResourcesDef: ToolDefinition = {
         // SAFETY-CRITICAL: Always return resources even on error
         const FALLBACK_RESPONSE =
           `If you're in crisis or need support right now:\n\n` +
-          `📞 **988 Suicide & Crisis Lifeline** - Call or text 988 (24/7)\n` +
-          `📱 **Crisis Text Line** - Text HOME to 741741 (24/7)\n\n` +
+          `📞 **${crisisLines.LIFELINE_988.name}** - Call or text ${crisisLines.LIFELINE_988.phone} (24/7)\n` +
+          `📱 **${crisisLines.CRISIS_TEXT_LINE.name}** - ${crisisLines.CRISIS_TEXT_LINE.text} (24/7)\n\n` +
           `You don't have to face this alone. These trained professionals are ready to help.`;
 
         // Track crisis tool usage for safety monitoring
@@ -606,8 +606,8 @@ const createSafetyPlanDef: ToolDefinition = {
           response += `Who are 2-3 people you could add to your safety plan?`;
         } else if (step === 'professional-contacts') {
           response = `**Professional Contacts - Always Keep These Handy**\n\n`;
-          response += `📞 **988 Suicide & Crisis Lifeline** - Call or text 988 (24/7)\n`;
-          response += `📱 **Crisis Text Line** - Text HOME to 741741 (24/7)\n\n`;
+          response += `📞 **${crisisLines.LIFELINE_988.name}** - Call or text ${crisisLines.LIFELINE_988.phone} (24/7)\n`;
+          response += `📱 **${crisisLines.CRISIS_TEXT_LINE.name}** - ${crisisLines.CRISIS_TEXT_LINE.text} (24/7)\n\n`;
           response += `**Your personal contacts:**\n`;
           response += `- Therapist/counselor name & number:\n`;
           response += `- Psychiatrist (if applicable):\n`;
@@ -676,10 +676,10 @@ const findSafeResourcesDef: ToolDefinition = {
 
           case 'domestic-violence-shelter':
             response += `**Domestic Violence Safe Shelter:**\n\n`;
-            response += `📞 **National Domestic Violence Hotline**: 1-800-799-7233\n`;
-            response += `📱 Text START to 88788\n\n`;
+            response += `📞 **${crisisLines.DOMESTIC_VIOLENCE_HOTLINE.name}**: ${crisisLines.DOMESTIC_VIOLENCE_HOTLINE.phone}\n`;
+            response += `📱 ${crisisLines.DOMESTIC_VIOLENCE_HOTLINE.text}\n\n`;
             response += `They can connect you with safe shelter in your area and help with safety planning. Calls are confidential.\n\n`;
-            response += `If you're in immediate danger, please call 911.\n`;
+            response += `If you're in immediate danger, please call ${EMERGENCY_NUMBER}.\n`;
             break;
 
           case 'food':
@@ -694,16 +694,16 @@ const findSafeResourcesDef: ToolDefinition = {
 
           case 'mental-health-services':
             response += `**Mental Health Services:**\n\n`;
-            response += `📞 **SAMHSA Helpline**: 1-800-662-4357 (24/7)\n`;
+            response += `📞 **SAMHSA Helpline**: ${crisisLines.SUBSTANCE_HELPLINE.phone} (24/7)\n`;
             response += `   Free referrals to local treatment services\n\n`;
-            response += `📞 **NAMI Helpline**: 1-800-950-6264\n`;
+            response += `📞 **${crisisLines.MENTAL_HEALTH_HELPLINE.name}**: ${crisisLines.MENTAL_HEALTH_HELPLINE.phone}\n`;
             response += `   Information, support, and referrals\n\n`;
             response += `🌐 **findtreatment.gov** - Search for providers accepting Medicaid or sliding scale\n`;
             break;
 
           case 'addiction-treatment':
             response += `**Addiction Treatment Resources:**\n\n`;
-            response += `📞 **SAMHSA Helpline**: 1-800-662-4357\n`;
+            response += `📞 **SAMHSA Helpline**: ${crisisLines.SUBSTANCE_HELPLINE.phone}\n`;
             response += `   24/7 treatment referrals in English & Spanish\n\n`;
             response += `🌐 **findtreatment.gov** - Search by location, insurance, services needed\n\n`;
             response += `Many programs offer:\n`;
@@ -771,7 +771,7 @@ const supportRecoveryJourneyDef: ToolDefinition = {
           response += `- Can you change your environment - go somewhere else?\n\n`;
           response += `**HALT check:** Are you Hungry, Angry, Lonely, or Tired? Address the need underneath.\n\n`;
           response += `**Ride the wave:** Cravings peak and pass, usually within 15-30 minutes. You can get through this.\n\n`;
-          response += `📞 **SAMHSA Helpline**: 1-800-662-4357 (24/7)\n\n`;
+          response += `📞 **SAMHSA Helpline**: ${crisisLines.SUBSTANCE_HELPLINE.phone} (24/7)\n\n`;
           response += `I'm here with you. What support do you need right now?`;
         } else if (currentState === 'struggling') {
           response += `Recovery is hard work, and struggling doesn't mean failing.\n\n`;
@@ -794,7 +794,7 @@ const supportRecoveryJourneyDef: ToolDefinition = {
           response += `- Get to a meeting today if possible\n`;
           response += `- Be honest with your support system\n\n`;
           response += `**Remember:** Coming back from a slip quickly is very different from full relapse. You're still here. That matters.\n\n`;
-          response += `📞 **SAMHSA Helpline**: 1-800-662-4357\n\n`;
+          response += `📞 **SAMHSA Helpline**: ${crisisLines.SUBSTANCE_HELPLINE.phone}\n\n`;
           response += `Would you like to talk about what happened?`;
         } else if (currentState === 'celebrating') {
           if (daysSober) {
