@@ -27,6 +27,7 @@ import { noteDialled } from './dial-marker.js';
 import { onBehalfDispatchFor, signOnBehalfDispatch } from './on-behalf-dispatch.js';
 import { holdForCallHours } from './deferred-calls.js';
 import { assertNotOptedOut } from './first-dial-opt-out.js';
+import { awaitAgent, endCallWithNoAgent, isAgentNotJoined } from './agent-join.js';
 import {
   enrichMessage,
   enrichVoicemailMessage,
@@ -243,6 +244,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
 
       // Step 2: Spawn agent into the room
       await this.spawnOnBehalfAgent(roomName, callId, request, script);
+      await awaitAgent(this.config, roomName, callId); // an accepted dispatch can reach no worker
 
       // Step 3: Initiate call via LiveKit SIP (preferred) or Twilio (fallback)
       call.status = 'initiating';
@@ -273,6 +275,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
     } catch (error) {
       call.status = 'failed';
       log.error({ error: String(error), callId }, 'Failed to initiate on-behalf call');
+      if (isAgentNotJoined(error)) await endCallWithNoAgent(this.config, call); // nothing rang
       this.emit('call-failed', call, error);
       throw error;
     }
@@ -342,8 +345,6 @@ class OnBehalfCallOrchestrator extends EventEmitter {
     );
 
     try {
-      // CRITICAL FIX: Actually dispatch an agent instead of just emitting an event!
-      // The agent will join the room and handle the outbound call
       const { AgentDispatchClient } = await import('livekit-server-sdk');
 
       const agentDispatch = new AgentDispatchClient(
@@ -894,9 +895,3 @@ export function getOnBehalfCallOrchestrator(
   }
   return orchestratorInstance;
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-// Types are already exported inline above (lines 30, 43, 69)

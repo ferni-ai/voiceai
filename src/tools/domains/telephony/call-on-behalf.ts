@@ -22,6 +22,7 @@ import { callOnBehalfSchema } from './call-on-behalf-schema.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolContext, Tool } from '../../registry/types.js';
 import { pickFromTie, type PickRow } from './contact-pick.js';
+import { isAgentNotJoined, NO_AGENT_REPLY } from './call-not-placed.js';
 import type {
   CallType,
   CallObjective,
@@ -468,6 +469,8 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
         );
       } catch (error) {
         log.error({ error: String(error) }, 'Failed to initiate call'); // never who or why
+        // No agent joined, so nothing rang: no "calling now", no "I'll let you know".
+        if (isAgentNotJoined(error)) return { success: false, error: NO_AGENT_REPLY };
         const sorry = `Sorry, I ran into a problem trying to call ${contactQuery}.`;
         return { success: false, error: `${sorry} Would you like me to try again?` };
       }
