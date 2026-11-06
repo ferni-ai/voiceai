@@ -112,6 +112,29 @@ async function afterScreen<T>(
   }
 }
 
+/**
+ * The four records a signed inbound text writes, each caught on its own (afterScreen).
+ * MESSAGING_PIPELINE: STOP/START from any text lands in the one consent record. A crisis
+ * text never grants consent (no START, resume or YES to the last ask); a STOP in it lands.
+ */
+async function recordSignedInbound(
+  body: Record<string, unknown>,
+  text: string,
+  crisisRead: boolean
+): Promise<void> {
+  const { From, Body, MessageSid } = body;
+  const said = crisisRead ? inboundKeyword(text)?.kind : undefined;
+  await afterScreen('checkin', crisisRead, () => recordCheckinReply(From, Body, MessageSid));
+  if (!crisisRead || said === 'opt-out' || said === 'maybe-opt-out') {
+    await afterScreen('consent', crisisRead, () => recordInboundSmsConsent(From, Body));
+  }
+  if (!crisisRead) {
+    // A YES to the last text, an ask.
+    await afterScreen('contactYes', false, () => recordContactYes(From, Body, MessageSid));
+  }
+  await afterScreen('holderCode', crisisRead, () => recordHolderCode(From, Body));
+}
+
 // ============================================================================
 // ROUTE HANDLER
 // ============================================================================
@@ -203,26 +226,7 @@ export async function handleOutreachWebhookRoutes(
       if (result) twiml = result.twiml;
       // A "call me" text keeps its call; the one crisis text says so (Seth, 2026-11-06).
       if (crisis) twiml = withCrisisReply(twiml, smsCrisisReplyFor(result?.called), text);
-      if (signed) {
-        const crisisRead = !!crisis;
-        await afterScreen('checkin', crisisRead, () =>
-          recordCheckinReply(body.From, body.Body, body.MessageSid)
-        );
-        // MESSAGING_PIPELINE: STOP/START from any text lands in the one consent record. A crisis
-        // text never grants consent (no START, resume or YES to the last ask); a STOP in it lands.
-        const said = crisisRead ? inboundKeyword(text)?.kind : undefined;
-        if (!crisisRead || said === 'opt-out' || said === 'maybe-opt-out') {
-          await afterScreen('consent', crisisRead, () =>
-            recordInboundSmsConsent(body.From, body.Body)
-          );
-        }
-        if (!crisisRead) {
-          await afterScreen('contactYes', false, () =>
-            recordContactYes(body.From, body.Body, body.MessageSid)
-          ); // a YES to the last text, an ask
-        }
-        await afterScreen('holderCode', crisisRead, () => recordHolderCode(body.From, body.Body));
-      }
+      if (signed) await recordSignedInbound(body, text, !!crisis);
 
       // Empty TwiML: no reply.
       sendTwiML(res, twiml ?? '<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
