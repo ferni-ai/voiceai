@@ -4,7 +4,9 @@
  * The ONE place a failed or dropped call is explained. Shows a short message just
  * above the call controls with the action that can fix it (try again, reconnect,
  * sign in, or how to allow the microphone). Showing a new notice replaces the old
- * one, so two call messages never stack.
+ * one, so two call messages never stack. A notice raised mid-call by a watchdog
+ * uses addCallNotice instead: it sits beside whatever is showing and only its own
+ * handle removes it.
  *
  * It floats over the screen rather than sitting in the column under the controls:
  * in the column it pushed the three buttons below it off a 1280x800 screen (the
@@ -74,6 +76,8 @@ function injectStyles(): void {
       font-size: var(--text-sm);
       text-align: center;
     }
+    /* A watchdog's notice sits one layer below the others, so it never covers one. */
+    .call-status--beside { z-index: calc(var(--z-banner) - 1); }
     .call-status__message { margin: 0; }
     .call-status__help { color: var(--color-text-secondary); margin: 0; }
     .call-status__actions { display: flex; gap: var(--space-sm); flex-wrap: wrap; justify-content: center; }
@@ -195,4 +199,38 @@ export function showCallNotice(failure: ConnectFailure, handlers: CallNoticeHand
   mount(notice);
   stopAnchor = anchorAboveControls(notice);
   if (handlers.focusAction) actions.querySelector<HTMLButtonElement>('button')?.focus();
+}
+
+/**
+ * Add a notice beside whatever is already on screen (another call notice, a
+ * crisis line). Unlike showCallNotice it never clears or replaces anything, and
+ * it moves focus only when nothing else holds it. Its one action removes it,
+ * then runs `onRetry`. Returns the only way to remove it from outside.
+ */
+export function addCallNotice(failure: ConnectFailure, onRetry: () => void): () => void {
+  injectStyles();
+  const notice = document.createElement('div');
+  notice.className = 'call-status call-status--beside';
+  notice.setAttribute('role', 'alert');
+  notice.dataset['kind'] = failure.kind;
+  const text = document.createElement('p');
+  text.className = 'call-status__message';
+  text.textContent = failure.message;
+  const actions = document.createElement('div');
+  actions.className = 'call-status__actions';
+  let stopFollowing = (): void => undefined;
+  const remove = (): void => {
+    stopFollowing();
+    notice.remove();
+  };
+  const retry = button('Try again', true, () => {
+    remove();
+    onRetry();
+  });
+  actions.appendChild(retry);
+  notice.append(text, actions);
+  mount(notice);
+  stopFollowing = anchorAboveControls(notice);
+  if (!document.activeElement || document.activeElement === document.body) retry.focus();
+  return remove;
 }

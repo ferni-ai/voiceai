@@ -108,7 +108,7 @@ export interface ConnectionCallbacks {
   /** Ferni's side ended while the caller is still in the room (agent-drop-watch.ts). */
   onAgentLost?: (reason: AgentLostReason) => void;
   /** Ferni is here but none of his audio started playing (audio-start-watch.ts). */
-  onAudioNotStarted?: () => void;
+  onAudioNotStarted?: () => (() => void) | undefined;
 }
 
 // ============================================================================

@@ -32,13 +32,13 @@ interface ControllableCall {
   onAudioNotStarted: DemoCall['onAudioNotStarted'];
   finish: () => void;
   block: (blocked: boolean) => void;
-  silent: () => void;
+  silent: () => (() => void) | undefined;
 }
 
 function controllableCall(): ControllableCall {
   let finish: () => void = () => undefined;
   let onBlocked: (blocked: boolean) => void = () => undefined;
-  let onSilent: () => void = () => undefined;
+  let onSilent: () => (() => void) | undefined = () => undefined;
   const ended = new Promise<void>((resolve) => {
     finish = resolve;
   });
@@ -225,10 +225,13 @@ describe('try-first edge cases', () => {
     const gate = await openGate();
     talkButton(gate)!.click();
     await vi.waitFor(() => expect(gate.dataset.tryFirst).toBe('in-call'));
-    call.silent();
-    expect(gate.querySelector('.try-first-status')?.textContent).toBe(
-      "The sound didn't start. Try again in a moment."
-    );
+    const status = gate.querySelector('.try-first-status');
+    const before = status?.textContent;
+    const remove = call.silent();
+    expect(status?.textContent).toBe("The sound didn't start. Try again in a moment.");
+
+    remove?.(); // his audio started after all: only our line is undone
+    expect(status?.textContent).toBe(before);
   });
 
   it('ends the demo call when the visitor signs in, here or in another tab', async () => {

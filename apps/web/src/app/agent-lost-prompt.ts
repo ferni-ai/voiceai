@@ -9,11 +9,13 @@
  *
  * The same rejoin backs "The sound didn't start. Try again in a moment." when
  * Ferni is here but none of his audio plays (services/audio-start-watch.ts):
- * one Try again, and End call stays in the call controls.
+ * one Try again, and End call stays in the call controls. That notice is added
+ * beside anything already showing (a crisis line must stay visible) and is
+ * removed only through the handle it returns.
  */
 
 import { connectFailure } from '../services/connect-failure.js';
-import { showCallNotice } from '../ui/call-status.ui.js';
+import { addCallNotice, showCallNotice } from '../ui/call-status.ui.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('AgentLostPrompt');
@@ -45,9 +47,7 @@ export function showAgentLostPrompt(call: AgentLostCall): void {
   });
 }
 
-export function showAudioNotStartedPrompt(call: AgentLostCall): void {
-  showCallNotice(connectFailure('audio_not_started'), {
-    onRetry: () => rejoin(call, 'silent start'),
-    focusAction: true,
-  });
+/** Returns the function that removes this notice, and only this notice. */
+export function showAudioNotStartedPrompt(call: AgentLostCall): () => void {
+  return addCallNotice(connectFailure('audio_not_started'), () => rejoin(call, 'silent start'));
 }

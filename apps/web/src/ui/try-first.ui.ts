@@ -175,7 +175,12 @@ export function tryFirstButtons(deps: TryFirstDeps = {}): HTMLElement[] {
       hear.hidden = !blocked;
     });
     call.onAudioNotStarted(() => {
-      status.textContent = t('connectFailure.audioNotStarted');
+      const before = status.textContent;
+      const copy = t('connectFailure.audioNotStarted');
+      status.textContent = copy;
+      return () => {
+        if (status.textContent === copy) status.textContent = before; // only undo our own line
+      };
     });
     void call.ended.then(() => {
       call = null;

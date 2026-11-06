@@ -164,6 +164,37 @@ describe('watchAudioStart', () => {
     expect(onAudioNotStarted).not.toHaveBeenCalled();
   });
 
+  it('after the notice: his audio starting late removes that notice, once', () => {
+    const removeNotice = vi.fn();
+    onAudioNotStarted.mockReturnValue(removeNotice);
+    const stop = watch();
+    vi.advanceTimersByTime(AUDIO_START_DEADLINE_MS);
+    expect(removeNotice).not.toHaveBeenCalled();
+
+    const voice = attachedAudio();
+    agentAudio.push(voice);
+    voice.dispatchEvent(new Event('playing'));
+    expect(removeNotice).toHaveBeenCalledOnce();
+    stop();
+    expect(removeNotice).toHaveBeenCalledOnce();
+  });
+
+  it('after the notice: blocked playback or cleanup removes that notice', () => {
+    const removeNotice = vi.fn();
+    onAudioNotStarted.mockReturnValue(removeNotice);
+    watch();
+    vi.advanceTimersByTime(AUDIO_START_DEADLINE_MS);
+    document.dispatchEvent(new CustomEvent(AUDIO_PLAY_BLOCKED_EVENT));
+    expect(removeNotice).toHaveBeenCalledOnce();
+
+    const second = vi.fn();
+    onAudioNotStarted.mockReturnValue(second);
+    const stop = watch();
+    vi.advanceTimersByTime(AUDIO_START_DEADLINE_MS);
+    stop();
+    expect(second).toHaveBeenCalledOnce();
+  });
+
   it('hanging up or a dropped room by the deadline: no notice', () => {
     watch();
     hangingUp = true;

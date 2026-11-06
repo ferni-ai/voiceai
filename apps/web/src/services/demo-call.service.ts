@@ -76,7 +76,7 @@ export interface DemoCall {
   /** Plays blocked audio; call it from the visitor's tap. */
   resumeAudio(): Promise<void>;
   /** Called once if Ferni joined but none of his audio started playing. */
-  onAudioNotStarted(onSilent: () => void): void;
+  onAudioNotStarted(onSilent: () => (() => void) | undefined): void;
 }
 
 type DemoTokenResponse = NonNullable<ReturnType<typeof parseDemoToken>>;
@@ -228,7 +228,7 @@ export async function startDemoCall(deps: DemoCallDeps = {}): Promise<DemoCall> 
   let over = false;
   let hardCap: ReturnType<typeof setTimeout> | null = null;
   let stopAudioWatch = (): void => undefined;
-  let onSilent = (): void => undefined;
+  let onSilent = (): (() => void) | undefined => undefined;
   const end = (): void => {
     if (over) return;
     over = true;

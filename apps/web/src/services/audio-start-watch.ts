@@ -11,7 +11,10 @@
  * playback ("Tap to hear Ferni" owns that case), or on cleanup.
  *
  * Fires at most once, and never once the user is hanging up or the room has
- * dropped. It only reports: the connection state stays what it is.
+ * dropped. It only reports: the connection state stays what it is. Once it has
+ * fired it keeps watching, and standing down (his audio starts late, playback is
+ * blocked, cleanup) removes its own notice through the handle the notice
+ * returned. It never clears anything else on screen.
  */
 
 import { createLogger } from '../utils/logger.js';
@@ -35,8 +38,8 @@ export interface AudioStartDeps {
   agentAudio: () => Iterable<HTMLMediaElement>;
   /** True once the user has started hanging up. */
   userHangingUp: () => boolean;
-  /** Ferni is here, and nothing he sends is playing. */
-  onAudioNotStarted: () => void;
+  /** Ferni is here, and nothing he sends is playing. Returns what removes its notice. */
+  onAudioNotStarted: () => (() => void) | undefined;
   deadlineMs?: number;
 }
 
@@ -54,10 +57,13 @@ export function watchAudioStart(room: AudioStartRoom, deps: AudioStartDeps): () 
   const heard = (): boolean => [...deps.agentAudio()].some(isPlaying);
   if (room.canPlaybackAudio === false || heard()) return () => undefined;
   let timer: ReturnType<typeof setTimeout> | null = null;
+  let removeNotice: (() => void) | undefined;
 
   function standDown(): void {
     if (timer) clearTimeout(timer);
     timer = null;
+    removeNotice?.();
+    removeNotice = undefined;
     document.removeEventListener('playing', onPlaying, true);
     document.removeEventListener(AUDIO_PLAY_BLOCKED_EVENT, standDown);
     room.off('audioPlaybackChanged', onPlaybackChanged);
@@ -69,12 +75,11 @@ export function watchAudioStart(room: AudioStartRoom, deps: AudioStartDeps): () 
     if (room.canPlaybackAudio === false) standDown();
   }
   function expire(): void {
+    timer = null;
     const stillOnTheLine = !deps.userHangingUp() && room.state === 'connected';
-    const silent = !heard();
-    standDown();
-    if (!stillOnTheLine || !silent) return;
+    if (!stillOnTheLine || heard()) return standDown();
     log.warn('Ferni joined but none of his audio is playing', { deadlineMs });
-    deps.onAudioNotStarted();
+    removeNotice = deps.onAudioNotStarted();
   }
 
   // 'playing' doesn't bubble; the agent's elements live in the document, so capture it.
