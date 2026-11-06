@@ -7,6 +7,7 @@ import { notCalling, ownerRefusal } from '../../../utils/consent-port.js';
 import { directSendHeld } from '../../../services/communication-service.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { messageCallGreeting } from '../../../utils/ferni-intro.js';
+import { escapeXml } from '../../../services/sharing/svg-text.js';
 import { normalizePhone, sanitizePhoneForLog, validatePhone } from '../../validation.js';
 import { getCallUserPort } from '../proactive/outreach/call-user-port.js';
 
@@ -64,9 +65,11 @@ export async function makePhoneCall(
     const greeting = (await isOwnersPhone(ownerUid, validPhone))
       ? SELF_CALL_GREETING
       : messageCallGreeting(ownerName);
+    // The name and the message are the user's words: escaped, they stay text inside the
+    // <Say>, so "</Say><Dial>..." is spoken, never dialled.
     const defaultTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="alice">${greeting} ${purpose}. Have a great day!</Say>
+  <Say voice="alice">${escapeXml(greeting)} ${escapeXml(purpose)}. Have a great day!</Say>
 </Response>`;
 
     const response = await fetch(
