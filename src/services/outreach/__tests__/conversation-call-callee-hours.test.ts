@@ -305,6 +305,88 @@ describe('CALL_HOURS_GUARD off: the contact’s night on both coasts and in thei
   });
 });
 
+describe('CALL_HOURS_GUARD off: both coasts only with QUIET_HOURS_UNIFIED on', () => {
+  const stored = () => state.rows.filter((r) => r.collection === 'scheduled_calls');
+  const at = (iso: string, unified: 'on' | 'off') => {
+    vi.stubEnv('CALL_HOURS_GUARD', 'off');
+    vi.stubEnv('QUIET_HOURS_UNIFIED', unified);
+    vi.setSystemTime(new Date(iso));
+  };
+  /** The time it is stored for, or 'rang'. */
+  const outcome = () => (twilioCalls() ? 'rang' : stored()[0]?.data.scheduledFor);
+
+  it.each([
+    ['off', 'rang'], // its own zone is awake; both coasts no longer hold it
+    ['on', '2026-11-10T16:00:00.000Z'], // 08:00 Pacific, as on main
+  ] as const)('a 212 number at 08:30 New York, unified %s: %s', async (unified, want) => {
+    await ownerGrant(NYC);
+    at('2026-11-10T13:30:00Z', unified);
+    await callContact(NYC);
+    expect(outcome()).toBe(want);
+  });
+
+  it.each([
+    ['off', '2026-11-10T13:00:00.000Z'], // 08:00 New York
+    ['on', '2026-11-10T16:00:00.000Z'], // 08:00 Pacific
+  ] as const)(
+    'a 212 number at 07:59 New York, its own night, unified %s: held',
+    async (unified, want) => {
+      await ownerGrant(NYC);
+      at('2026-11-10T12:59:00Z', unified);
+      await callContact(NYC);
+      expect(outcome()).toBe(want);
+    }
+  );
+
+  it.each(['off', 'on'] as const)(
+    'a 212 number at 22:00 New York, unified %s: held to 08:00 there or later',
+    async (unified) => {
+      await ownerGrant(NYC);
+      at('2026-11-11T03:00:00Z', unified);
+      await callContact(NYC);
+      expect(outcome()).toBe(
+        unified === 'off' ? '2026-11-11T13:00:00.000Z' : '2026-11-11T16:00:00.000Z'
+      );
+    }
+  );
+
+  it.each(['off', 'on'] as const)(
+    'an 808 number at 07:59 Hawaii, unified %s: held for 08:00 Hawaii',
+    async (unified) => {
+      await ownerGrant(HONOLULU);
+      at('2026-11-10T17:59:00Z', unified); // 12:59 New York, 09:59 Los Angeles
+      await callContact(HONOLULU);
+      expect(outcome()).toBe('2026-11-10T18:00:00.000Z');
+    }
+  );
+
+  it.each([
+    ['off', 'rang'],
+    ['on', '2026-11-11T16:00:00.000Z'], // 21:59 New York is night on the east coast
+  ] as const)('a 415 number at 18:59 Pacific, unified %s: %s', async (unified, want) => {
+    await ownerGrant(SF);
+    at('2026-11-11T02:59:00Z', unified);
+    await callContact(SF);
+    expect(outcome()).toBe(want);
+  });
+
+  it.each(['off', 'on'] as const)(
+    'a UK and a toll-free number at 22:30 New York, unified %s: held for both coasts',
+    async (unified) => {
+      await ownerGrant(UK);
+      await ownerGrant(TOLL_FREE);
+      at(NIGHT.toISOString(), unified);
+      await callContact(UK);
+      await callContact(TOLL_FREE);
+      expect(twilioCalls()).toBe(0);
+      expect(stored().map((r) => r.data.scheduledFor)).toEqual([
+        '2026-11-11T16:00:00.000Z',
+        '2026-11-11T16:00:00.000Z',
+      ]);
+    }
+  );
+});
+
 describe('an empty owner id', () => {
   it('is no owner: never the contact’s id, nothing dialled', async () => {
     vi.stubEnv('MESSAGING_PIPELINE', 'off'); // no grant check to stop a call as the contact
