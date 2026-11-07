@@ -146,6 +146,55 @@ describe('custom-agent chat: the crisis read', () => {
     expect(prompt()).toBe(buildAgentChatPrompt(captain, history, PLAIN, 'A tour of the starship'));
   });
 
+  describe('the scene: the person types it too (a coaching context, a custom roleplay setting)', () => {
+    const coaching = (context: string) =>
+      `[COACHING SESSION]\nTopic: stress\nContext: ${context}\n\nPlease begin the coaching session by asking a thoughtful opening question about my situation.`;
+    const ROLEPLAY =
+      '[ROLEPLAY MODE]\nSetting: a crowded spaceport cantina on a rainy night\n\nPlease set the scene and begin the roleplay. Stay fully in character as Captain Nova.';
+
+    it('crisis words only in the scene, a plain message: the crisis reply, no model call', async () => {
+      const scene = coaching(BLOCK);
+      const voice = voiceDecision(PLAIN, [{ from: 'person', text: scene }]);
+      expect(voice.action).toBe('replace');
+      const { body } = await chat(PLAIN, [], scene);
+      expect(body).toEqual({ reply: voice.action === 'replace' && voice.script, crisis: true });
+      expect(callLLM).not.toHaveBeenCalled();
+      expect(getCustomAgent).not.toHaveBeenCalled();
+    });
+
+    it('no message, a crisis scene: the scene is their opening words, and gets the crisis reply', async () => {
+      const scene = coaching(BLOCK);
+      const voice = voiceDecision(scene);
+      expect(voice.action).toBe('replace');
+      const { body } = await chat('', [], scene);
+      expect(body).toEqual({ reply: voice.action === 'replace' && voice.script, crisis: true });
+      expect(callLLM).not.toHaveBeenCalled();
+    });
+
+    it('no message, a lower-tier scene: the scene carries the guidance to the model', async () => {
+      const scene = coaching(GUIDE);
+      const voice = voiceDecision(scene);
+      expect(voice.action).toBe('guide');
+      await chat('', [], scene);
+      expect(prompt()).toContain(`(${voice.action === 'guide' && voice.guidance})`);
+      expect(prompt()).toContain('(Captain Nova opens the conversation.)');
+    });
+
+    it('a plain scene: the same prompt as before, opening or mid-conversation', async () => {
+      for (const scene of [ROLEPLAY, coaching('my manager keeps moving the deadline')]) {
+        callLLM.mockClear();
+        // eslint-disable-next-line no-await-in-loop -- the model spy is shared
+        await chat('', [], scene);
+        expect(prompt()).toBe(buildAgentChatPrompt(captain, [], '', scene));
+        const history: ChatTurn[] = [{ from: 'agent', text: 'Welcome aboard, traveller.' }];
+        callLLM.mockClear();
+        // eslint-disable-next-line no-await-in-loop -- the model spy is shared
+        await chat(PLAIN, history, scene);
+        expect(prompt()).toBe(buildAgentChatPrompt(captain, history, PLAIN, scene));
+      }
+    });
+  });
+
   it('never lower than the voice turn, line for line', async () => {
     const rows = [
       ...CRISIS_HELDOUT.map((row) => ({ text: row.text, history: [] as ChatTurn[] })),

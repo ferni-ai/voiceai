@@ -73,7 +73,7 @@ describe('readTypedMessageForCrisis', () => {
     expect((await readTypedMessageForCrisis(now, earlier)).action).toBe('guide');
   });
 
-  it('a scene opening with no words of theirs is not read', async () => {
+  it('an empty message has no words to read (each earlier turn was read when sent)', async () => {
     expect(await readTypedMessageForCrisis('  ', [{ from: 'person', text: BLOCK }])).toEqual({
       action: 'pass',
       message: '  ',

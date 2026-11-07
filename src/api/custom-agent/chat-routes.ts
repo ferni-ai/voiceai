@@ -109,8 +109,14 @@ export async function handleAgentChat(
     sendJson(res, 400, { error: 'A message or a scene is needed' });
     return true;
   }
-  // The voice turn's crisis gate, before the agent is read or the model asked.
-  const crisis = await readTypedMessageForCrisis(request.message, request.history);
+  // The voice turn's crisis gate, before the agent is read or the model asked. The scene
+  // holds the person's own typing too (a coaching context, a custom roleplay setting), so
+  // it is read as their turn: their opening words when there's no message, else their first.
+  const opening = !request.message;
+  const sceneTurn: ChatTurn[] = request.scene ? [{ from: 'person', text: request.scene }] : [];
+  const crisis = opening
+    ? await readTypedMessageForCrisis(request.scene, request.history)
+    : await readTypedMessageForCrisis(request.message, [...sceneTurn, ...request.history]);
   if (crisis.action === 'replace') {
     sendJson(res, 200, { reply: crisis.reply, crisis: true });
     return true;
@@ -121,7 +127,9 @@ export async function handleAgentChat(
     return true;
   }
   const reply = await callLLM(
-    buildAgentChatPrompt(agent, request.history, crisis.message, request.scene),
+    opening
+      ? buildAgentChatPrompt(agent, request.history, '', crisis.message)
+      : buildAgentChatPrompt(agent, request.history, crisis.message, request.scene),
     { maxTokens: 400, temperature: 0.8 }
   );
   if (!reply?.trim()) {

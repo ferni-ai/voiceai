@@ -32,7 +32,7 @@ export async function readTypedMessageForCrisis(
   earlier: readonly TypedTurn[] = [],
   options: CrisisGateOptions = {}
 ): Promise<TypedCrisisRead> {
-  // A scene opening carries no new words of theirs; each earlier turn was read when it was sent.
+  // No words to read. (The chat route reads a scene opening as the message itself.)
   if (!message.trim()) return { action: 'pass', message };
   const chatCtx = llm.ChatContext.empty();
   for (const turn of earlier)
