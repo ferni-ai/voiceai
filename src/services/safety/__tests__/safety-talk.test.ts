@@ -30,9 +30,9 @@ type Reader =
  * kept here. Computed 2026-11-06 over those readers' own tests, main's
  * action-claim and crisis-line tests, the scripts/crisis-eval corpus and
  * labelled cases, and the lines the crisis verifies listed; #3483's reachesHelp
- * also over CUT_ROWS below. Re-run 2026-11-07: #3483's reader (`git show
- * 726c79e70:src/services/safety/safety-talk.ts`) over this file's whole line set
- * reads exactly the pinned reachesHelp list, 0 extra and 0 missing. notHelp: the only
+ * also over CUT_ROWS and SHOUT_ROWS below. Re-run 2026-11-07: #3483's reader (`git show
+ * 726c79e70:src/services/safety/safety-talk.ts`) over this file's whole line set (525)
+ * reads exactly the pinned reachesHelp list (271), 0 extra and 0 missing. notHelp: the only
  * strings an old reader matched that the new one leaves, each with the reason.
  */
 const PINNED = JSON.parse(
@@ -72,6 +72,20 @@ const CUT_ROWS = [
   'The 999 people know exactly what to do.',
   'Call 999 times like this need it.',
 ];
+/**
+ * One line per form of the family the #3565 r3 verify found #3483 read and this one missed: Shout
+ * in its own case opening a sentence, a verb that does not say what it is, no contact word. Also
+ * Shout after a colon, and SHOUT with such a verb.
+ */
+const SHOUT_ROWS = [
+  'Shout replies within a few minutes.',
+  'Shout sends a reply in minutes.',
+  'Shout picked up on the first ring.',
+  'Shout calmed me down last spring.',
+  'Shout gave my brother a plan for the weekend.',
+  'Her tip: Shout answered her within minutes.',
+  "SHOUT replied before I'd even put the kettle on.",
+];
 /** The CUT_ROWS no old reader (EMERGENCY_SERVICE, #3483) reads; only the CUT_ROWS test pins them. */
 const NO_OLD_READER = new Set([
   'A crisis counselor walks you through the next hour.',
@@ -105,7 +119,11 @@ describe('never narrower than an old reader', () => {
 
   it('reads every help line that EMERGENCY_SERVICE or #3483 read', () => {
     const lines = [
-      ...new Set([...(Object.keys(NEW) as Reader[]).flatMap((r) => PINNED[r]), ...CUT_ROWS]),
+      ...new Set([
+        ...(Object.keys(NEW) as Reader[]).flatMap((r) => PINNED[r]),
+        ...CUT_ROWS,
+        ...SHOUT_ROWS,
+      ]),
     ].filter((t) => !(t in PINNED.notHelp));
     const oldRead = lines.filter(
       (t) => SERVICE.test(t.toLowerCase()) || PINNED.reachesHelp.includes(t)
@@ -113,6 +131,7 @@ describe('never narrower than an old reader', () => {
     expect(oldRead.length).toBeGreaterThan(250);
     // every family the cut fixed (verbs, SHOUT/Shout, "999 people"), so undoing any one goes red
     expect(oldRead).toEqual(expect.arrayContaining(CUT_ROWS.filter((t) => !NO_OLD_READER.has(t))));
+    expect(oldRead).toEqual(expect.arrayContaining(SHOUT_ROWS));
     expect(oldRead.filter((t) => !reachesHelp(t))).toEqual([]);
   });
 
@@ -123,6 +142,8 @@ describe('never narrower than an old reader', () => {
       '999 problems',
       'I owe 112 dollars.',
       'the police drama',
+      // #3483 reads any Shout in its own case; a film named Shout is a story, like the police drama
+      'We saw the Shout movie last night.',
     ]) {
       expect(isSafetyTalk(t), t).toBe(false);
     }
@@ -225,8 +246,6 @@ describe('reads the lines from the kernel lists', () => {
       expect(reachesHelp(t), t).toBe(true);
     for (const t of [
       "Don't shout, it's fine.",
-      'Shout out to my sister for the cake!',
-      'Shout if you need a hand with the boxes.',
       'We heard a shout from the garden.',
       "Nami said she'd bring the cake.",
       'My friend Nami is visiting.',
@@ -279,12 +298,20 @@ describe('the lines the #3565 r2 verify found missing', () => {
   });
 
   // Lower-case "shout" with no contact word: neither EMERGENCY_SERVICE nor #3483 reads it.
-  it.each(["Don't shout, it's fine.", 'I shout at the TV', 'shout is free and confidential.'])(
-    'no help: %s',
-    (text) => {
-      expect(reachesHelp(text)).toBe(false);
-    }
-  );
+  it.each([
+    "Don't shout, it's fine.",
+    'I shout at the TV',
+    'shout is free and confidential.',
+    'shout replies within a few minutes.',
+  ])('no help: %s', (text) => {
+    expect(reachesHelp(text)).toBe(false);
+  });
+});
+
+describe('the lines the #3565 r3 verify found missing', () => {
+  it.each(SHOUT_ROWS)('reaches help: %s', (text) => {
+    expect(reachesHelp(text)).toBe(true);
+  });
 });
 
 describe('ordinary talk is no safety talk', () => {
@@ -340,6 +367,12 @@ describe('fails closed on ordinary lines that share the words', () => {
     'my warmline phone case',
     '999 people attended',
     'There were 999 people in line.',
+    // Shout in its own case is the line anywhere, as #3483 reads it, so these read too
+    'Shout out to my sister for the cake!',
+    'Shout if you need a hand with the boxes.',
+    "Shout louder if you can't hear me.",
+    'Shout when the kettle boils.',
+    'Shout it out if you know the answer.',
   ])('reaches help: %s', (text) => {
     expect(reachesHelp(text)).toBe(true);
   });

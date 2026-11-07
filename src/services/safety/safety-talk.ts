@@ -176,18 +176,21 @@ const BY_WORD_NAME = anyName(WORD_NAMES, 'gi');
 const CONTACT_OR_HELP =
   /\b(?:call(?:ing)?|text(?:ing)?|messag(?:e|ing)|reach(?:ing)?|contact(?:ing)?|dial(?:l?ing)?|tr(?:y|ied|ying)|talk to|help\w*|hotlines?|lines?|services?|support|crisis|volunteers?|counsel+ors?|24\/7|any ?time|any hour|day or night|all night|around the clock)\b/i;
 const NEAR_WORDS = 8;
+/** Shout (85258) in its own case, as #3483's reader has it (726c79e70): "Shout texts back fast." */
+const SHOUT_BY_NAME = /\b(?:Shout|SHOUT)\b/;
 const DESCRIBED =
   /^(?:'s|\s+(?:is|was|has|offers?|gives?|provides?|runs?|answers?|listens?|connects?|works?|can|will))\b/i;
 /**
- * A name that is also a word is the line in capitals anywhere ("SHOUT", "NAMI"), in its own case
- * mid-sentence ("try Shout") or opening a sentence that says what it is (DESCRIBED: "Shout is
- * free"), else only beside a contact or help word ("call nami"). Not "my friend Nami", "don't shout".
+ * A name that is also a word is the line in capitals anywhere ("SHOUT", "NAMI"), as Shout anywhere
+ * (SHOUT_BY_NAME), in its own case mid-sentence or opening a sentence that says what it is
+ * (DESCRIBED), else only beside a contact or help word ("call nami"). Not "my friend Nami",
+ * "don't shout".
  */
 function namesTheLine(m: RegExpExecArray, text: string): boolean {
   const before = text.slice(0, m.index);
   const after = text.slice(m.index + m[0].length);
   const sentenceStart = /(?:^|[.!?:;"“(\n-]\s*)$/.test(before);
-  if (m[0] === m[0].toUpperCase()) return true;
+  if (m[0] === m[0].toUpperCase() || SHOUT_BY_NAME.test(m[0])) return true;
   if (WORD_NAMES.includes(m[0]) && (!sentenceStart || DESCRIBED.test(after))) return true;
   const words = (s: string): string[] => s.split(/\s+/).filter(Boolean);
   const near = [
