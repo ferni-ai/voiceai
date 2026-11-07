@@ -17,13 +17,10 @@ import {
   searchRestaurants,
   bookReservation,
   isReservationServiceConfigured,
-  formatRestaurantForSpeech,
 } from '../../services/restaurant-reservations.js';
 import { isConfirmedReservation, unconfirmedReservationReply } from './reservation-confirmation.js';
 import { getAppointmentFollowUpService } from '../../services/scheduling/appointment-followup.js';
-import { findRestaurantsReply } from '../domains/local-search/unified-search.js';
-import { NEED_LOCATION_RESULT } from '../domains/local-search/caller-city.js';
-import { isUnspecifiedLocation } from '../shared/caller-location.js';
+import { restaurantSearchReply } from './restaurant-search.js';
 import {
   createAppointmentRequest,
   updateAppointmentStatus,
@@ -198,43 +195,7 @@ export function createAppointmentTools() {
         date: z.string().describe('Date for the reservation'),
         partySize: z.number().default(2).describe('Number of people'),
       }),
-      execute: async ({ query, location, date, partySize }) => {
-        // No booking provider is set up: search Places, the one place source (local-search).
-        if (!isReservationServiceConfigured()) {
-          if (isUnspecifiedLocation(location)) return NEED_LOCATION_RESULT;
-          return findRestaurantsReply(location, query);
-        }
-        const requestedDate = parseNaturalTime(date);
-        if (!requestedDate) {
-          return `What date are you looking at? Like "this Saturday" or "December 15th"?`;
-        }
-
-        const dateForApi = requestedDate.toISOString().split('T')[0];
-        const dateStr = requestedDate.toLocaleDateString('en-US', {
-          weekday: 'long',
-          month: 'long',
-          day: 'numeric',
-        });
-
-        const restaurants = await searchRestaurants(
-          query,
-          location,
-          dateForApi,
-          '19:00',
-          partySize
-        );
-
-        if (restaurants.length === 0) {
-          return `I couldn't find any ${query} restaurants in ${location}. Try a different search term or location?`;
-        }
-
-        const descriptions = restaurants
-          .slice(0, 5)
-          .map((r, i) => `${i + 1}. ${formatRestaurantForSpeech(r)}`)
-          .join('\n');
-
-        return `Found ${restaurants.length} options for ${query} in ${location} on ${dateStr}:\n\n${descriptions}\n\nWhich one catches your eye? I can check availability or book!`;
-      },
+      execute: (args) => restaurantSearchReply(args),
     }),
 
     // ========== APPOINTMENTS (DOCTOR, DENTIST, ETC.) ==========

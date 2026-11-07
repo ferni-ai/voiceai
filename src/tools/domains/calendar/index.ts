@@ -2,7 +2,6 @@
  * Calendar Domain Tools
  *
  * Tools for scheduling, appointments, reservations, and contact management.
- * This domain provides properly-routed tools that dispatch to correct functions.
  *
  * DOMAIN: calendar
  * TOOLS:
@@ -447,7 +446,6 @@ function getPlacesToolDefinitions(): ToolDefinition[] {
               }
             } catch (error) {
               log.error({ action: params.action, error: String(error) }, '📍 Business tool error');
-              // The lookup did not run: say so, never the raw error.
               return LOCAL_SEARCH_UNAVAILABLE;
             }
           },

@@ -28,8 +28,7 @@ export interface RestaurantSearchResult {
   address: string;
   city: string;
   cuisine: string[];
-  /** '$'..'$$$$', only when the provider gave a price. Never guessed. */
-  priceRange?: string;
+  priceRange?: string; // '$'..'$$$$', only when the provider gave a price
   rating?: number;
   phone?: string;
   imageUrl?: string;
@@ -488,9 +487,7 @@ async function searchYelp(query: string, location: string): Promise<RestaurantSe
 // UNIFIED RESERVATION SERVICE
 // ============================================================================
 
-/**
- * Search for restaurants across all providers
- */
+/** Search for restaurants across all providers */
 export async function searchRestaurants(
   query: string,
   location: string,
