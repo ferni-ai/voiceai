@@ -11,7 +11,7 @@ import { connectFailure, type ConnectFailure } from '../services/connect-failure
 export const CONNECT_TIMEOUT_MS = 30_000;
 
 export interface Connectable {
-  connect(options: { signal?: AbortSignal }): Promise<boolean>;
+  connect(options: { signal?: AbortSignal; tapAt?: number }): Promise<boolean>;
   getLastFailure(): ConnectFailure | null;
 }
 
@@ -27,9 +27,10 @@ export function cancelConnectAttempt(): boolean {
   return true;
 }
 
+/** `tapAt` (performance.now()) is the start-call tap, passed on for the call-start timing. */
 export async function connectWithTimeout(
   service: Connectable,
-  timeoutMs: number = CONNECT_TIMEOUT_MS
+  { timeoutMs = CONNECT_TIMEOUT_MS, tapAt }: { timeoutMs?: number; tapAt?: number } = {}
 ): Promise<ConnectOutcome> {
   const controller = new AbortController();
   let timedOut = false;
@@ -47,7 +48,7 @@ export async function connectWithTimeout(
   current = attempt;
 
   try {
-    const ok = await service.connect({ signal: controller.signal });
+    const ok = await service.connect({ signal: controller.signal, tapAt });
     if (cancelled) return { ok: false, failure: connectFailure('cancelled') };
     if (ok) return { ok: true };
     if (timedOut) return { ok: false, failure: connectFailure('timeout') };

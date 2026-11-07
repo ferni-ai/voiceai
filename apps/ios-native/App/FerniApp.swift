@@ -347,7 +347,8 @@ final class AppModel {
             audio: SystemCallAudio(systemManagesCalls: ConversationLifecycle.isAvailable),
             avatar: avatar,
             lifecycle: ConversationLifecycle.isAvailable ? ConversationLifecycle() : nil,
-            agentLevel: level
+            agentLevel: level,
+            localDuck: LocalDuckFlag.isOn()
         )
         feedback.isSomeoneSpeaking = { [call] in (call.avatar.pose == .speaking, call.isUserSpeaking) }
         installSystemHandlers()

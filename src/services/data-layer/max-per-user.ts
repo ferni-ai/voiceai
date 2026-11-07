@@ -8,6 +8,9 @@
  * window, 2026-10-05). And at the cap, re-indexing a doc that was already
  * there still deleted the user's oldest doc.
  *
+ * The read asks for the user AND the entity type: one page of the user's docs
+ * of every type could leave the counted type unread, so the cap under-counted.
+ *
  * Doc ids are deterministic (storeType_entityType_entityId), so the ids for a
  * user + entity type are read once, and again after REFRESH_MS because other
  * instances index too. Re-indexing a known id costs nothing; only a new id at
@@ -22,6 +25,7 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
+import { ownerId } from '../../memory/retrieval/vector-ownership.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getEntityPolicy } from './indexing-policy.js';
 import type { EntityType } from './types.js';
@@ -29,7 +33,10 @@ import type { EntityType } from './types.js';
 const log = createLogger({ module: 'max-per-user' });
 
 export interface CappedVectorStore {
-  list(filter: { userId: string }): Promise<Array<{ id?: string; metadata?: Record<string, unknown> }>>;
+  list(filter: {
+    userId: string;
+    metadata: { entityType: string };
+  }): Promise<Array<{ id?: string; metadata?: Record<string, unknown> }>>;
   removeDocument(id: string): Promise<boolean>;
 }
 
@@ -59,7 +66,8 @@ async function load(store: CappedVectorStore, userId: string, entityType: string
   if (pending) return pending;
   const read = (async () => {
     const ids = new Map<string, string>();
-    for (const doc of await store.list({ userId })) {
+    for (const doc of await store.list({ userId, metadata: { entityType } })) {
+      // Kept for stores that ignore the metadata filter.
       if (doc.id && doc.metadata?.entityType === entityType) {
         ids.set(doc.id, String(doc.metadata.indexedAt ?? ''));
       }
@@ -87,7 +95,7 @@ function cappedFields(excess: number, removed: number): { capped?: true; stillOv
 /**
  * Make room for `docId` under the user's cap for this entity type, before it
  * is indexed. Returns the ids removed. Best effort: a failure is logged and
- * the doc is indexed anyway.
+ * the doc is indexed anyway. A missing or placeholder owner id removes nothing.
  */
 export async function enforceMaxPerUser(
   store: CappedVectorStore,
@@ -98,6 +106,12 @@ export async function enforceMaxPerUser(
 ): Promise<string[]> {
   const max = getEntityPolicy(entityType)?.conditions?.maxPerUser;
   if (!max || max <= 0) return [];
+  // No real owner: the read would not be narrowed to one user, so the cap
+  // would delete other users' docs.
+  if (!ownerId(userId)) {
+    log.debug({ entityType }, 'maxPerUser skipped: no real owner id');
+    return [];
+  }
   try {
     const cached = tracked.get(keyOf(userId, entityType));
     const t =

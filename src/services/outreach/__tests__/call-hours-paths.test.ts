@@ -30,6 +30,7 @@ const createSipParticipant = vi.fn(async () => ({ participantId: 'PA_1' }));
 vi.mock('livekit-server-sdk', () => ({
   RoomServiceClient: class {
     createRoom = createRoom;
+    listParticipants = vi.fn(async () => [{ kind: 4 }]); // the agent is in (agent-join.ts)
   },
   AgentDispatchClient: class {
     createDispatch = vi.fn(async () => ({}));

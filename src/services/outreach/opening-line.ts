@@ -11,6 +11,11 @@
  * @module services/outreach/opening-line
  */
 
+import { ferniIntro, realName } from '../../utils/ferni-intro.js';
+
+// The identity text itself lives below the tools, so makePhoneCall says it too (utils/ferni-intro.ts)
+export { ferniIntro };
+
 /** Who is on an on-behalf call: the person Ferni phoned, and who asked. */
 export interface OutboundParties {
   /** The person on the line; undefined when the dispatcher didn't name them. */
@@ -28,23 +33,6 @@ export interface OutboundParties {
    * is, so Ferni says its name without "<sponsor>'s AI friend" (Seth, 2026-10-18).
    */
   checkin?: boolean;
-}
-
-/** Defaults the metadata and dispatch parsers fill in when a name is missing. */
-const PLACEHOLDER_NAMES = new Set([
-  'unknown',
-  'the user',
-  'user',
-  'friend',
-  'contact',
-  'them',
-  'your person',
-  'your family member',
-]);
-
-function realName(name: string | undefined): string | undefined {
-  const trimmed = name?.trim();
-  return trimmed && !PLACEHOLDER_NAMES.has(trimmed.toLowerCase()) ? trimmed : undefined;
 }
 
 /** Contact names that say who someone is to the user, not what they are called. */
@@ -91,15 +79,6 @@ export function partiesOf(call: {
     openingLine: call.openingLine,
     ...(call.kind === 'family_checkin' && { checkin: true }),
   };
-}
-
-/** How Ferni names itself on the call: "it's Ferni, Seth's AI friend". */
-export function ferniIntro({ sponsorName, personal, checkin }: OutboundParties): string {
-  if (checkin) return "it's Ferni";
-  if (personal) {
-    return sponsorName ? `it's Ferni, ${sponsorName}'s AI friend` : "it's Ferni, an AI friend";
-  }
-  return `this is Ferni, an AI calling ${sponsorName ? `for ${sponsorName}` : "on someone's behalf"}`;
 }
 
 /**

@@ -69,7 +69,6 @@ export {
 // Tool Execution Wrapper (validation, confirmation, standardization)
 export {
   clearPendingConfirmation,
-  detectConfirmationIntent,
   getPendingConfirmation,
   hasPendingConfirmation,
   processConfirmation,

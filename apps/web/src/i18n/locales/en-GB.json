@@ -9897,6 +9897,7 @@
     "network": "Couldn't reach Ferni. Check your internet and retry?",
     "dropped": "Lost the connection. Reconnect?",
     "agentLeft": "Ferni dropped off the line. Reconnect?",
+    "audioNotStarted": "The sound didn't start. Try again in a moment.",
     "unknown": "Couldn't connect. Try again?",
     "waitlisted": "You’re on the list. I’ll email you the moment your spot opens."
   },

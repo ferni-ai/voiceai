@@ -90,6 +90,7 @@ const ranTools = () => executeTool.mock.calls.map((args) => (args[0] as { name: 
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubEnv('WEB_CHAT_MESSAGE', 'on'); // the route is off by default
   executeTool.mockResolvedValue({ success: true, result: 'ok' });
   llm.calls = [];
 });
