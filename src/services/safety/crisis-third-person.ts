@@ -16,9 +16,19 @@ const KIN = String.raw`(?:best )?(?:friend|sister|brother|mom|mother|mum|dad|fat
 const FAMILY_NAME = String.raw`(?:grandpa|grandma|granny|grandad|nana|papa|mom|mum|dad|mama|dada)`;
 /** Someone the caller talks about, by a pronoun, by who they are to someone, or by a family name. */
 const OTHER = String.raw`(?:he|she|they|(?:my|our|a|his|her|their|the) (?:${KIN})|${FAMILY_NAME})`;
+/** A thing named after a kin word, not a person: "the parent portal", "the baby monitor", "the child process". */
+const THING = String.raw`(?:portal|process|monitor|engine|api|node|company|account|app|site|server|thread|task|window|theme|folder|directory|class|component|element|record|table|device|system|service|program|seat|bed|gate|carrier|plan|card)(?:s|es)?`;
+/** What may sit after "the twins" or "Grandpa" and before what happened: a short adverb or a person word. */
+const BETWEEN = String.raw`(?:just|suddenly|also|both|all|too|still|then|now|again|finally|really|literally|apparently|actually|totally|completely|boy|girl|boys|girls|kid|kids|man|guy|lady|woman)`;
+/**
+ * The subject and one word after it: "my friend robin", "my dad just", "the twins both". After a
+ * pronoun or "my ..." the word is anything but a thing; after "the ..." or a family name it must be
+ * a BETWEEN word, so "the parent portal is unresponsive" names no one.
+ */
+const SOMEONE = String.raw`(?:(?:he|she|they|(?:my|our|a|his|her|their) (?:${KIN}))(?: (?!${THING}\b)[a-z]+)?|(?:the (?:${KIN})|${FAMILY_NAME})(?: ${BETWEEN})?)`;
 const AUX = String.raw`(?:'s|'d|'ve|'re| is| are| was| were| has| have| had)?(?: been)?(?: got)?`;
 /** "my friend robin keeps saying", "she told me", "he's been saying that". */
-const SAYS = String.raw`${OTHER}(?: [a-z]+)?${AUX} (?:keeps? saying|kept saying|saying|says|said|told (?:me|us|her|him|them)|thinks|thought|feels|felt|believes|mentioned|wrote|texted(?: me)?|posted)(?: that)?`;
+const SAYS = String.raw`${SOMEONE}${AUX} (?:keeps? saying|kept saying|saying|says|said|told (?:me|us|her|him|them)|thinks|thought|feels|felt|believes|mentioned|wrote|texted(?: me)?|posted)(?: that)?`;
 const PILLS = String.raw`(?:pills|meds|medications?|tablets|sleeping pills|painkillers)`;
 /** "saving her pills for the trip": a reason to keep them, in the same clause. Only after plain saving, never stockpiling. */
 const FOR_A_TRIP = String.raw`(?![^.!?,;]{0,20}\bfor (?:the |a |an |our |his |her |their |my )?(?:trip|travel|vacation|holiday|flight|cruise|camping|allergy season|road trip)\b)`;
@@ -56,7 +66,7 @@ export const THIRD_PERSON_REPORTED: readonly RegExp[] = [
   ),
   // "my roommate wrote goodbye letters to all of us"
   new RegExp(
-    String.raw`\b${OTHER}(?: [a-z]+)?${AUX} (?:wrote|written|writing|write|left|leaving|sent|sending) (?:us |me |them )?(?:a |some |these |those )?(?:goodbye|farewell|suicide) (?:letters?|notes?|messages?|videos?)\b${LEAVING}`
+    String.raw`\b${SOMEONE}${AUX} (?:wrote|written|writing|write|left|leaving|sent|sending) (?:us |me |them )?(?:a |some |these |those )?(?:goodbye|farewell|suicide) (?:letters?|notes?|messages?|videos?)\b${LEAVING}`
   ),
   // "he's been giving all his things away"
   new RegExp(
@@ -80,14 +90,14 @@ const NOT_UP = String.raw`(?:(?:can'?t|cannot|can not|isn'?t able to|is not able
  * got dizzy, then fell". Never past an "i" or "we", so the caller's own fall stays theirs.
  */
 const CLAUSE_START = String.raw`(?:^ *(?:[a-z]+ )?|[,;] ?|\b(?:and|so|but|then|because|now|okay|well|oh) )`;
-const WHO_WENT_DOWN = String.raw`(?:\b${OTHER}(?: [a-z]+)?${AUX} |${CLAUSE_START}${OTHER}\b(?:(?!\b(?:i|we|you)\b)[^.!?]){0,60}?(?:,|\band|\bthen)(?: then)? )${DOWN}\b`;
+const WHO_WENT_DOWN = String.raw`(?:\b${SOMEONE}${AUX} |${CLAUSE_START}${OTHER}\b(?! ${THING}\b)(?:(?!\b(?:i|we|you)\b)[^.!?]){0,60}?(?:,|\band|\bthen)(?: then)? )${DOWN}\b`;
 const DOWN_NOT_UP = new RegExp(
   String.raw`${WHO_WENT_DOWN}[^.!?]{0,40}?(?:\b(?:and|but|now)|,)(?: (?:he|she|they)(?:'s|'re| is| are)?)? ${NOT_UP}`
 );
 const NOT_BREATHING = new RegExp(
-  String.raw`\b${OTHER}(?: [a-z]+)?${AUX} (?:(?:not|isn'?t|wasn'?t|aren'?t|weren'?t|no longer|barely|still not) breathing|(?:stopped|stops) breathing|unconscious)\b`
+  String.raw`\b${SOMEONE}${AUX} (?:(?:not|isn'?t|wasn'?t|aren'?t|weren'?t|no longer|barely|still not) breathing|(?:stopped|stops) breathing|unconscious)\b`
 );
-const UNRESPONSIVE = new RegExp(String.raw`\b${OTHER}(?: [a-z]+)?${AUX} unresponsive\b`);
+const UNRESPONSIVE = new RegExp(String.raw`\b${SOMEONE}${AUX} unresponsive\b`);
 
 /**
  * Everyday idioms built from the same words. Each one masks only its own words, and the rest of
@@ -97,6 +107,8 @@ const EVERYDAY: readonly RegExp[] = [
   // A laughing fit or a prank, not a fall.
   /\b(?:collapsed|fell(?: over| down)?|cracked up|doubled over|keeled over)(?: (?:in|into|with|from)(?: (?:a fit of|fits of|hysterical))? (?:laughter|giggles|laughing|hysterics|stitches)| laughing)\b|\bfell for (?:the|a|my|his|her|their|our) (?:prank|joke|trick)\b/g,
   /\bfell (?:asleep|for|in love|behind|apart|short|silent|quiet|through)\b/g,
+  // Handing things out: "my parents passed out candy".
+  /\bpassed out (?:(?:the|some|all the|our|their|his|her|my) )?(?:candy|candies|flyers|fliers|papers|invitations|cards|treats|snacks|programs|handouts|pamphlets|leaflets|worksheets)\b/g,
   // Not answering messages: "won't answer his phone", "won't respond to my texts".
   /\b(?:respond(?:ing)?|answer(?:ing)?) (?:to )?(?:[a-z]+'?s? )?(?:phone|texts?|calls?|messages?|e-?mails?|dms?|slack|voicemails?)\b/g,
   // A time or a reason: "won't wake up for dinner", "can't get up to date", "can't move after that meeting".
@@ -112,6 +124,16 @@ const EVERYDAY: readonly RegExp[] = [
 ];
 const mask = (said: string): string =>
   EVERYDAY.reduce((rest, idiom) => rest.replace(idiom, ' _ '), said);
+
+/** Play in the same sentence: laughing, giggling, "just playing", "messing around". */
+const PLAY =
+  /\b(?:laugh(?:s|ed|ing)?|laughter|giggl(?:e|es|ed|ing)|just (?:playing|kidding|joking|messing around)|(?:playing|messing|goofing|fooling|horsing) around|playing dead|pretending)\b/;
+/**
+ * Lying there, not getting up: with play in the sentence it is the game, not the emergency. Only
+ * this: "can't get up", breathing, waking, responding and moving still read with play beside them.
+ */
+const LYING_THERE =
+  /\b(?:isn'?t|is not|aren'?t|are not|still isn'?t|not|still not) (?:getting up|standing up)\b/g;
 
 /** Words that keep it an emergency, whatever idiom the sentence also holds. */
 const STILL_SIGNS = String.raw`can'?t breathe|cannot breathe|not breathing|isn'?t breathing|stopped breathing|won'?t wake|can'?t wake|can'?t get up|can'?t move|isn'?t responding|isn'?t moving|not (?:responding|moving|waking up|getting up)|unconscious|unresponsive|911|ambulance|paramedics?|cpr|emergency|stairs|bleeding|blood|turning blue|no pulse|seizure|(?:shook|shaking|shake) (?:him|her|them)|tried to wake`;
@@ -134,7 +156,8 @@ const reads = (said: string, masked: string): boolean =>
  * clearance: "fell asleep and won't wake up", for any reason, is read as said. In doubt, recall wins.
  */
 export const thirdPartyEmergency = (text: string): boolean =>
-  text.split(/[.!?]+/).some((said) => {
+  text.split(/[.!?]+/).some((sentence) => {
+    const said = PLAY.test(sentence) ? sentence.replace(LYING_THERE, ' _ ') : sentence;
     const masked = mask(said);
     return reads(masked, masked) || (STILL_EMERGENCY.test(masked) && reads(said, masked));
   });

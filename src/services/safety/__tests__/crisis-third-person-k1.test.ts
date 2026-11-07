@@ -29,6 +29,21 @@ describe('K1: someone else in danger now, in words the reader missed', () => {
     // a family name with no "my"
     "Grandpa isn't breathing",
     "mom fell down the stairs and she isn't moving",
+    // a word after who it is: an adverb or a person word after "the", a name after "my"
+    'the baby just stopped breathing',
+    "the twins both collapsed and they aren't moving",
+    "the neighbor kid isn't breathing",
+    "Grandpa just collapsed and isn't breathing",
+    "my friend robin isn't breathing",
+    "my baby girl isn't breathing",
+    // play in the sentence never hides breathing, responding, waking or "can't get up"
+    "my dad collapsed laughing and now he isn't responding",
+    "my dad collapsed laughing and now he's not breathing",
+    "the twins fell off the couch laughing and now they can't get up",
+    // handing things out, then a real emergency
+    "my dad passed out flyers and now he isn't breathing",
+    // lying there with no play in the sentence is still down
+    "the twins fell off the couch and they're not getting up",
   ])('blocks with the 911-for-them reply, first and mid-call: %s', (line) => {
     for (const read of [
       detectCrisis(line),
@@ -55,6 +70,29 @@ describe('K1: someone else in danger now, in words the reader missed', () => {
     'the twins fell asleep in the car',
     "my parents aren't answering their phones",
     "the kids aren't responding to my texts",
+    // a thing named after a kin word ("the parent portal") is not a person
+    'the child process is unresponsive',
+    'the parent portal is unresponsive',
+    'the student portal is unresponsive',
+    'the baby monitor is unresponsive',
+    'the twin engine is unresponsive',
+    'the partner api is unresponsive',
+    'the child node stopped breathing',
+    'the baby monitor stopped breathing alerts',
+    "the parent company collapsed and isn't responding",
+    // the same shape after "a" or "my", which main read as an emergency
+    'a parent portal is unresponsive',
+    'my partner api is unresponsive',
+    "their parent company collapsed and isn't responding",
+    "their parent company merged, then collapsed and isn't responding",
+    // with no "the", a family name takes only a short adverb or person word after it
+    'papa johns is unresponsive',
+    // handing things out
+    "my parents passed out candy and they're not answering the door",
+    "my dad passed out cards and now he isn't answering",
+    // play in the same sentence, only lying there
+    "the twins fell off the couch laughing and they're not getting up, just giggling",
+    "my brother fell down messing around and he's not getting up",
   ])('never reads as an emergency: %s', (line) => {
     const read = detectCrisis(line);
     expect(read.indicators).not.toContain('third_party_emergency');
