@@ -15,7 +15,9 @@ vi.hoisted(() => {
 });
 vi.unmock('../../utils/safe-logger.js');
 // The only persisting writer these tools reach; faked so nothing leaves the test.
-const { addInsight } = vi.hoisted(() => ({ addInsight: vi.fn() }));
+const { addInsight } = vi.hoisted(() => ({
+  addInsight: vi.fn<(userId: string, insight: { target: string }) => void>(),
+}));
 vi.mock('../../services/cross-persona-insights.js', () => ({ addCrossPersonaInsight: addInsight }));
 
 import { getLogger } from '../../utils/safe-logger.js';
@@ -220,5 +222,54 @@ describe('grief tools with a required word field missing', () => {
         content: 'Life transition in beginning stage: "undefined" | Planning needed: false',
       })
     );
+  });
+
+  // The same normal / undefined / null grid through every grief tool, for a demo visitor and an
+  // owner, and for every stage and planning answer of the Jordan hand-off. On main every
+  // flagTransitionForJordan run hands Jordan one insight and no other grief tool hands any, so
+  // main's count is 3 values x 3 stages x 2 planning answers x 2 users = 36. A tool that throws
+  // drops its insight; c8a83f44f handed over 12.
+  it('hands Jordan as many insights across the grid as main does (36)', async () => {
+    const MAIN_JORDAN_INSIGHTS = 36;
+    addInsight.mockClear();
+    const values = [SAID, undefined, null];
+    const users = [DEMO_ID, OWNER_ID];
+    const settled: string[] = [];
+    const attempt = async (c: Case, userId: string, args: Record<string, unknown>) => {
+      try {
+        await run(c, userId, args);
+        settled.push('ok');
+      } catch {
+        settled.push('threw');
+      }
+    };
+
+    const grid: Array<[Case, string, Record<string, unknown>]> = [];
+    for (const c of griefCases) {
+      const words = c.sizes.map((size) => size.replace(/Chars$/, ''));
+      for (const value of values) {
+        const args = { ...c.args, ...Object.fromEntries(words.map((w) => [w, value])) };
+        for (const userId of users) {
+          if (c.tool !== 'flagTransitionForJordan') {
+            grid.push([c, userId, args]);
+            continue;
+          }
+          for (const stage of ['beginning', 'middle', 'integrating']) {
+            for (const needsPlanning of [true, false]) {
+              grid.push([c, userId, { ...args, stage, needsPlanning }]);
+            }
+          }
+        }
+      }
+    }
+    for (const [c, userId, args] of grid) {
+      // eslint-disable-next-line no-await-in-loop -- one at a time: the runs share one mock
+      await attempt(c, userId, args);
+    }
+
+    const toJordan = addInsight.mock.calls.filter(([, insight]) => insight.target === 'jordan');
+    expect(toJordan).toHaveLength(MAIN_JORDAN_INSIGHTS);
+    expect(addInsight).toHaveBeenCalledTimes(MAIN_JORDAN_INSIGHTS);
+    expect(settled.filter((r) => r === 'threw')).toHaveLength(0);
   });
 });
