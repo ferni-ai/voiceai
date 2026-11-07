@@ -25,7 +25,9 @@ env:
 jobs:
   duplicates:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # A cold cache embeds every export: 13 and 19 minutes measured, one run over 30. The
+    # model itself downloads in seconds. Warm runs embed only what the PR changed.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
         with:

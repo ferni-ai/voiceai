@@ -272,9 +272,18 @@ export async function main(
   return findings;
 }
 
-if (process.argv[1]?.endsWith('semantic-duplicates.ts')) {
-  main(process.argv.slice(2)).catch((e: unknown) => {
-    console.error(e);
-    process.exit(1);
-  });
-}
+/** The command line: findings never change the exit code; only an error exits 1. */
+export const runCli = (
+  argv: string[],
+  run: (argv: string[]) => Promise<unknown> = main,
+  exit: (code: number) => void = (code) => process.exit(code)
+): Promise<void> =>
+  run(argv).then(
+    () => undefined,
+    (e: unknown) => {
+      console.error(e);
+      exit(1);
+    }
+  );
+
+if (process.argv[1]?.endsWith('semantic-duplicates.ts')) void runCli(process.argv.slice(2));
