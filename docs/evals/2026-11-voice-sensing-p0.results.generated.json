@@ -1,0 +1,425 @@
+{
+  "machine": "Apple M4 Max (Darwin arm64), 1 thread",
+  "models": {
+    "ecapa": {
+      "file": "ecapa.onnx",
+      "sha256": "93ccd596285b31d5debad84ab3f138d5dc1145f19c3f287b81ece65afa034fc9",
+      "bytes": 84131064,
+      "latency_2s": { "p50_ms": 14.5, "p95_ms": 16.8, "n": 200 },
+      "sanity": { "eer": 0.0, "eer_labels_swapped": 1.0, "n": [120, 4680] },
+      "2s": {
+        "t_lo": -0.0428,
+        "t_hi": 0.2735,
+        "pooled": {
+          "false_other": 0.0006,
+          "false_owner": 0.0077,
+          "false_owner_child": 0.0028,
+          "unsure_owner": 0.2369,
+          "unsure": 0.8287
+        },
+        "grade": { "a": true, "b": true, "c": false, "d": true, "pass": false },
+        "conditions": {
+          "clean": {
+            "eer": 0.0094,
+            "dev_eer": 0.0094,
+            "far_at_frr1": 0.0054,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0,
+            "false_owner": 0.0155,
+            "unsure_owner": 0.0031,
+            "unsure": 0.8523
+          },
+          "far": {
+            "eer": 0.0182,
+            "dev_eer": 0.0156,
+            "far_at_frr1": 0.0341,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0,
+            "false_owner": 0.0099,
+            "unsure_owner": 0.0344,
+            "unsure": 0.8279
+          },
+          "tv0": {
+            "eer": 0.1125,
+            "dev_eer": 0.163,
+            "far_at_frr1": 0.7385,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0,
+            "false_owner": 0.0064,
+            "unsure_owner": 0.3937,
+            "unsure": 0.8291
+          },
+          "tv5": {
+            "eer": 0.0625,
+            "dev_eer": 0.0687,
+            "far_at_frr1": 0.4397,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0,
+            "false_owner": 0.0072,
+            "unsure_owner": 0.1875,
+            "unsure": 0.8261
+          },
+          "adult0": {
+            "eer": 0.1219,
+            "dev_eer": 0.1433,
+            "far_at_frr1": 0.6021,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0031,
+            "false_owner": 0.0055,
+            "unsure_owner": 0.4188,
+            "unsure": 0.8358
+          },
+          "adult5": {
+            "eer": 0.06,
+            "dev_eer": 0.0693,
+            "far_at_frr1": 0.5032,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0,
+            "false_owner": 0.0095,
+            "unsure_owner": 0.15,
+            "unsure": 0.8245
+          },
+          "child": {
+            "eer": 0.0031,
+            "dev_eer": 0.007,
+            "far_at_frr1": 0.0002,
+            "n_owner": 320,
+            "n_impostor": 16640,
+            "false_other": 0.0,
+            "false_owner": 0.0028,
+            "unsure_owner": 0.0031,
+            "unsure": 0.7968
+          }
+        },
+        "diag_no_0db_overlap": {
+          "false_other": 0.0063,
+          "false_owner": 0.0081,
+          "false_owner_child": 0.0025,
+          "unsure_owner": 0.1229,
+          "unsure": 0.4839
+        },
+        "live_0_45": {
+          "false_other": 0.6331,
+          "false_owner": 0.0001,
+          "false_owner_child": 0.0,
+          "unsure_owner": 0.0,
+          "unsure": 0.0
+        }
+      },
+      "4s": {
+        "t_lo": -0.0041,
+        "t_hi": 0.2958,
+        "pooled": {
+          "false_other": 0.0025,
+          "false_owner": 0.0068,
+          "false_owner_child": 0.0016,
+          "unsure_owner": 0.1338,
+          "unsure": 0.7222
+        },
+        "grade": { "a": true, "b": true, "c": false, "d": true, "pass": false },
+        "conditions": {
+          "clean": {
+            "eer": 0.0036,
+            "dev_eer": 0.0062,
+            "far_at_frr1": 0.0,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0,
+            "false_owner": 0.0145,
+            "unsure_owner": 0.0,
+            "unsure": 0.7645
+          },
+          "far": {
+            "eer": 0.0094,
+            "dev_eer": 0.0089,
+            "far_at_frr1": 0.0021,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0,
+            "false_owner": 0.0075,
+            "unsure_owner": 0.0094,
+            "unsure": 0.7266
+          },
+          "tv0": {
+            "eer": 0.1062,
+            "dev_eer": 0.1156,
+            "far_at_frr1": 0.6067,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0063,
+            "false_owner": 0.0059,
+            "unsure_owner": 0.2469,
+            "unsure": 0.7211
+          },
+          "tv5": {
+            "eer": 0.0375,
+            "dev_eer": 0.0437,
+            "far_at_frr1": 0.1353,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0,
+            "false_owner": 0.0078,
+            "unsure_owner": 0.0625,
+            "unsure": 0.723
+          },
+          "adult0": {
+            "eer": 0.0969,
+            "dev_eer": 0.1274,
+            "far_at_frr1": 0.707,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0063,
+            "false_owner": 0.0067,
+            "unsure_owner": 0.2656,
+            "unsure": 0.7208
+          },
+          "adult5": {
+            "eer": 0.0406,
+            "dev_eer": 0.0531,
+            "far_at_frr1": 0.1692,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0,
+            "false_owner": 0.0063,
+            "unsure_owner": 0.0844,
+            "unsure": 0.7197
+          },
+          "child": {
+            "eer": 0.0002,
+            "dev_eer": 0.0062,
+            "far_at_frr1": 0.0,
+            "n_owner": 320,
+            "n_impostor": 16640,
+            "false_other": 0.0,
+            "false_owner": 0.0016,
+            "unsure_owner": 0.0,
+            "unsure": 0.6466
+          }
+        },
+        "diag_no_0db_overlap": {
+          "false_other": 0.0042,
+          "false_owner": 0.0068,
+          "false_owner_child": 0.0014,
+          "unsure_owner": 0.05,
+          "unsure": 0.3305
+        },
+        "live_0_45": {
+          "false_other": 0.3713,
+          "false_owner": 0.0001,
+          "false_owner_child": 0.0,
+          "unsure_owner": 0.0,
+          "unsure": 0.0
+        }
+      }
+    },
+    "wespeaker_resnet34": {
+      "file": "wespeaker_resnet34_LM.onnx",
+      "sha256": "7bb2f06e9df17cdf1ef14ee8a15ab08ed28e8d0ef5054ee135741560df2ec068",
+      "bytes": 26530309,
+      "latency_2s": { "p50_ms": 21.2, "p95_ms": 25.3, "n": 200 },
+      "sanity": { "eer": 0.0, "eer_labels_swapped": 1.0, "n": [120, 4680] },
+      "2s": {
+        "t_lo": 0.0136,
+        "t_hi": 0.3235,
+        "pooled": {
+          "false_other": 0.0025,
+          "false_owner": 0.0085,
+          "false_owner_child": 0.0015,
+          "unsure_owner": 0.2031,
+          "unsure": 0.6994
+        },
+        "grade": { "a": true, "b": true, "c": false, "d": true, "pass": false },
+        "conditions": {
+          "clean": {
+            "eer": 0.0094,
+            "dev_eer": 0.0062,
+            "far_at_frr1": 0.0033,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0,
+            "false_owner": 0.0143,
+            "unsure_owner": 0.0094,
+            "unsure": 0.7002
+          },
+          "far": {
+            "eer": 0.0157,
+            "dev_eer": 0.0181,
+            "far_at_frr1": 0.0259,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0,
+            "false_owner": 0.0134,
+            "unsure_owner": 0.0187,
+            "unsure": 0.6887
+          },
+          "tv0": {
+            "eer": 0.0969,
+            "dev_eer": 0.1338,
+            "far_at_frr1": 0.508,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0063,
+            "false_owner": 0.0065,
+            "unsure_owner": 0.3187,
+            "unsure": 0.6983
+          },
+          "tv5": {
+            "eer": 0.0469,
+            "dev_eer": 0.0531,
+            "far_at_frr1": 0.2731,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0,
+            "false_owner": 0.0067,
+            "unsure_owner": 0.1531,
+            "unsure": 0.7024
+          },
+          "adult0": {
+            "eer": 0.1,
+            "dev_eer": 0.1317,
+            "far_at_frr1": 0.5664,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0063,
+            "false_owner": 0.0068,
+            "unsure_owner": 0.3844,
+            "unsure": 0.7052
+          },
+          "adult5": {
+            "eer": 0.0625,
+            "dev_eer": 0.0567,
+            "far_at_frr1": 0.3411,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0,
+            "false_owner": 0.0094,
+            "unsure_owner": 0.1406,
+            "unsure": 0.7022
+          },
+          "child": {
+            "eer": 0.0062,
+            "dev_eer": 0.0031,
+            "far_at_frr1": 0.0,
+            "n_owner": 320,
+            "n_impostor": 16640,
+            "false_other": 0.0,
+            "false_owner": 0.0015,
+            "unsure_owner": 0.0094,
+            "unsure": 0.5745
+          }
+        },
+        "diag_no_0db_overlap": {
+          "false_other": 0.0021,
+          "false_owner": 0.0084,
+          "false_owner_child": 0.0013,
+          "unsure_owner": 0.1094,
+          "unsure": 0.4882
+        }
+      },
+      "4s": {
+        "t_lo": 0.0979,
+        "t_hi": 0.349,
+        "pooled": {
+          "false_other": 0.0037,
+          "false_owner": 0.0084,
+          "false_owner_child": 0.0011,
+          "unsure_owner": 0.1138,
+          "unsure": 0.3988
+        },
+        "grade": { "a": true, "b": true, "c": false, "d": true, "pass": false },
+        "conditions": {
+          "clean": {
+            "eer": 0.0031,
+            "dev_eer": 0.0006,
+            "far_at_frr1": 0.0,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0,
+            "false_owner": 0.0135,
+            "unsure_owner": 0.0,
+            "unsure": 0.3834
+          },
+          "far": {
+            "eer": 0.0094,
+            "dev_eer": 0.0056,
+            "far_at_frr1": 0.0054,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0,
+            "false_owner": 0.0116,
+            "unsure_owner": 0.0094,
+            "unsure": 0.3873
+          },
+          "tv0": {
+            "eer": 0.0844,
+            "dev_eer": 0.0938,
+            "far_at_frr1": 0.3171,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0094,
+            "false_owner": 0.0062,
+            "unsure_owner": 0.2375,
+            "unsure": 0.376
+          },
+          "tv5": {
+            "eer": 0.0193,
+            "dev_eer": 0.0341,
+            "far_at_frr1": 0.0271,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0031,
+            "false_owner": 0.0095,
+            "unsure_owner": 0.0563,
+            "unsure": 0.3987
+          },
+          "adult0": {
+            "eer": 0.0844,
+            "dev_eer": 0.0813,
+            "far_at_frr1": 0.3425,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0063,
+            "false_owner": 0.0067,
+            "unsure_owner": 0.2062,
+            "unsure": 0.4158
+          },
+          "adult5": {
+            "eer": 0.0219,
+            "dev_eer": 0.0257,
+            "far_at_frr1": 0.0448,
+            "n_owner": 320,
+            "n_impostor": 12480,
+            "false_other": 0.0,
+            "false_owner": 0.0081,
+            "unsure_owner": 0.0594,
+            "unsure": 0.4161
+          },
+          "child": {
+            "eer": 0.0002,
+            "dev_eer": 0.0004,
+            "far_at_frr1": 0.0,
+            "n_owner": 320,
+            "n_impostor": 16640,
+            "false_other": 0.0,
+            "false_owner": 0.0011,
+            "unsure_owner": 0.0,
+            "unsure": 0.2159
+          }
+        },
+        "diag_no_0db_overlap": {
+          "false_other": 0.0052,
+          "false_owner": 0.0088,
+          "false_owner_child": 0.001,
+          "unsure_owner": 0.0406,
+          "unsure": 0.0739
+        }
+      }
+    }
+  }
+}
