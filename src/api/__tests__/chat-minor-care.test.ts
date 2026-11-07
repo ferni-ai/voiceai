@@ -98,8 +98,10 @@ beforeEach(() => {
   resetMinorCare();
   setHoldStore({ heldUntil: async () => undefined, write: async () => undefined });
   process.env.MINOR_CARE = 'on';
+  vi.stubEnv('WEB_CHAT_MESSAGE', 'on'); // the route is off by default
 });
 afterEach(() => {
+  vi.unstubAllEnvs();
   process.env = { ...env };
   setHoldStore();
 });
