@@ -236,9 +236,8 @@ function noAnswers(pending: PendingAction, events: ConfirmEvent[]): boolean[] {
   return answers;
 }
 /** Whether this owner turn's no is about the read-back. Every no is, wherever it is said, except
- * one of the closed NON_ANSWERS (consent-words.ts: "No problem.", "No worries.", "No wait, let me
- * grab a pen.") said after the talk moved on, unless it names the action or the crisis reader
- * flags it. */
+ * one of the closed NON_ANSWERS (consent-words.ts: "No problem.", "No worries.") said after the
+ * talk moved on, unless it names the action or the crisis reader flags it. */
 const aboutIt = (text: string, answers: boolean, pending: PendingAction): boolean =>
   answers ||
   !noMustAnswerOn() ||

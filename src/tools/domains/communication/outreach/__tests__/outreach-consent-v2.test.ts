@@ -1647,14 +1647,7 @@ describe('OUTREACH_NO_ANSWERS_READBACK: a no declines, except a no that answers 
 
   // The closed allow-list (NON_ANSWERS in consent-words.ts): said after the talk moved on, it
   // answers nothing, so the call waits, nothing is sent, and Ferni asks once.
-  const NON_ANSWERS = [
-    'No problem.',
-    'No worries.',
-    'No wait, let me grab a pen.',
-    'No, wait.',
-    'Um, no problem.',
-    'No worries, thanks.',
-  ];
+  const NON_ANSWERS = ['No problem.', 'No worries.', 'Um, no problem.', 'No worries, thanks.'];
   it.each(
     NON_ANSWERS.flatMap((line): Array<[string, string, Step[]]> => [
       [line, 'after the talk moved on', RAIN],
@@ -1663,12 +1656,35 @@ describe('OUTREACH_NO_ANSWERS_READBACK: a no declines, except a no that answers 
   )('a non-answer keeps it waiting and asks once: %j %s', async (line, _where, steps) => {
     await asksOnce([...steps, ['owner', line]]);
   });
-  it.each(['No problem.', 'No worries.', 'No wait, let me grab a pen.'])(
+  it.each(['No problem.', 'No worries.'])(
     'right after the read-back, %j still declines (it answers the read-back)',
     async (line) => {
       await declines([['owner', line]]);
     }
   );
+
+  // "No wait, …" is not on the list: what follows it can be any decline, so it declines wherever
+  // it is said, as on main.
+  const NO_WAITS = [
+    'No wait, let me grab a pen.',
+    'No, wait.',
+    "No wait, that's a bad idea.",
+    "No wait, that's a terrible idea.",
+    'No wait, bad idea.',
+    "No wait, I'd prefer you didn't.",
+    "No wait, I'll handle it.",
+    "No wait, I'm good.",
+    "No wait, it's fine.",
+    "No wait, that's okay.",
+    "No wait, it's too late.",
+    "No wait, I've got it.",
+    "No wait, I'm scared.",
+    "No wait, he's sick.",
+    "No wait, he'll be asleep.",
+  ];
+  it.each(everywhere(NO_WAITS))('a "no wait" declines: %j %s', async (no, _where, steps) => {
+    await declines([...steps, ['owner', no]]);
+  });
 
   // A non-answer with anything that is not filler after it is not on the list: it declines.
   const BOUNDARY = [
@@ -1706,8 +1722,7 @@ describe('OUTREACH_NO_ANSWERS_READBACK: a no declines, except a no that answers 
     expect(sends).toHaveLength(0);
   });
 
-  // The crisis read ends it wherever it is said. The "No wait, …" lines are non-answers by their
-  // words alone, so only detectCrisis ends them.
+  // A crisis turn ends it wherever it is said.
   const CRISIS = [
     "No, I don't want to be here anymore.",
     'No, I want to die.',

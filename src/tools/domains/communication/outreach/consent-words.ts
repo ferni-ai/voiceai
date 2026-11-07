@@ -165,22 +165,17 @@ export function isRefusal(text: string): boolean {
 // were said (consent-window.ts): every other reply that opens with a no declines wherever it is
 // said, as before. CLOSED on purpose: exempting nos one refusal at a time never converged, so a
 // new entry needs a consent sign-off. Each is the whole reply plus trailing filler
-// ("No worries, don't call him." declines), except "no wait", which may go on ("No wait, let me
-// grab a pen.") with none of WAIT_ENDS after it ("No wait, skip it." declines). "No, go ahead." is
-// not here: it names the call, so it declines and the loop reads it back again (asksAgain), as before.
+// ("No worries, don't call him." declines). "No wait, …" is not here: what follows it can be any
+// decline ("No wait, I'll handle it."), so it declines as before. "No, go ahead." is not here
+// either: it names the call, so it declines and the loop reads it back again (asksAgain), as before.
 const NON_ANSWERS = ['no problem', 'no worries'].map((p) => p.split(' '));
-const NO_WAIT = ['no', 'wait'];
 const TRAILING = new Set([...words('um uh oh well hey please thanks thank you'), ...FERNI]);
-const WAIT_ENDS = new Set([...NOES, ...words('mind forget skip hold leave rather myself')]);
 
-/** Whether the reply is one of the closed NON_ANSWERS: "No problem.", "No worries.", "No wait…". */
+/** Whether the reply is one of the closed NON_ANSWERS: "No problem.", "No worries.". */
 export function isNonAnswer(text: string): boolean {
   const said = words(text);
   const at = said.findIndex((w) => !OPENER_FILLERS.has(w));
   const opens = (p: string[]): boolean => at >= 0 && p.every((part, j) => said[at + j] === part);
-  if (opens(NO_WAIT)) {
-    return !said.slice(at + NO_WAIT.length).some((w) => WAIT_ENDS.has(w));
-  }
   return NON_ANSWERS.some(
     (p) => opens(p) && said.slice(at + p.length).every((w) => TRAILING.has(w))
   );
