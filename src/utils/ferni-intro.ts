@@ -8,6 +8,7 @@
  * @module utils/ferni-intro
  */
 
+import { flagOn, type Env } from '../config/env-flag.js';
 import { firstNameOf } from './caller-name.js';
 
 /** Who Ferni is calling for, and how; services/outreach/opening-line.ts OutboundParties has these. */
@@ -47,6 +48,82 @@ export function ferniIntro({ sponsorName, personal, checkin }: IntroParties): st
   return `this is Ferni, an AI calling ${sponsorName ? `for ${sponsorName}` : "on someone's behalf"}`;
 }
 
+/** A title said before a name, with or without its period: never the first name. */
+const TITLE = /^(?:mr|mrs|ms|mx|dr|prof)\.?$/i;
+
+/**
+ * The first name to say to someone who isn't the user: "Sam" from "Sam Lee".
+ * NFC first, so a decomposed "Zoë" (as iOS and macOS often store it) keeps its
+ * name. A leading title is skipped: "Dr Sam Lee" says "Sam", never "Dr". A
+ * title before one word ("Mr Lee") leaves only a surname, so there is no first
+ * name to say. Undefined when there isn't a usable one.
+ */
+function spokenFirstName(name: string | undefined): string | undefined {
+  const words = namedWords(name);
+  return words ? (firstNameOf(words.join(' ')) ?? undefined) : undefined;
+}
+
+/** The name's words from its first name on: a leading title dropped; undefined if only a surname is left. */
+function namedWords(name: string | undefined): string[] | undefined {
+  const words = realName(name)?.normalize('NFC').split(/\s+/) ?? [];
+  const [first] = words;
+  if (first && TITLE.test(first)) {
+    words.shift();
+    if (words.length < 2) return undefined;
+  }
+  return words;
+}
+
+/**
+ * A first word typed in capitals that is likely initials: "JR" in "JR Rivera",
+ * "AJ" in "AJ PARK". Said as a first name it would be "Jr" (TTS: "Junior"). Two
+ * letters always; three only when the rest of the name isn't in capitals too,
+ * so "SAM RIVERA" is still "Sam".
+ */
+function initialsFirst(name: string): boolean {
+  const [first = ''] = namedWords(name) ?? [];
+  const letters = [...first].length;
+  if (first === first.toLowerCase() || first !== first.toUpperCase()) return false;
+  return letters <= 2 || (letters === 3 && name !== name.toUpperCase());
+}
+
+/**
+ * The user's name as an on-behalf call's opener says it. With
+ * OPENER_FIRST_NAME_PERSONAL on, a personal call to someone saved by name says
+ * the first name ("Sam's AI friend"); services/outreach/opening-line.ts
+ * partiesOf passes false for a relation ("Mom") or a family check-in. The name
+ * dispatched is already the preferred name when one is set (call-on-behalf.ts,
+ * deferred-calls.ts requesterNameNow), so a one-word preferred name is said
+ * whole. With no usable first name, or initials ("JR Rivera"), it says what it
+ * said before. Any other call, and the flag off, keep the full name.
+ */
+export function openerSponsorName(
+  userName: string | undefined,
+  personal: boolean,
+  env: Env = process.env
+): string | undefined {
+  const full = realName(userName);
+  if (!full || !personal || !flagOn('OPENER_FIRST_NAME_PERSONAL', env)) return full;
+  if (initialsFirst(full)) return full;
+  return spokenFirstName(full) ?? full;
+}
+
+/**
+ * The user's name an on-behalf call is dispatched with: the preferred name when
+ * one is set, else the profile name. With OPENER_FIRST_NAME_PERSONAL on, a
+ * blank preferred name falls to the profile name, so the opener never loses it.
+ */
+export function dispatchedUserName(
+  preferredName: string | undefined,
+  name: string | undefined,
+  env: Env = process.env
+): string {
+  const preferred = flagOn('OPENER_FIRST_NAME_PERSONAL', env)
+    ? preferredName?.trim()
+    : preferredName;
+  return preferred || name || 'the user';
+}
+
 /**
  * The first words of a call that only plays a message (makePhoneCall): "Hi,
  * it's Ferni, Sam's AI friend." No question, since nobody can answer it.
@@ -54,7 +131,5 @@ export function ferniIntro({ sponsorName, personal, checkin }: IntroParties): st
  * friend", never the full stored name.
  */
 export function messageCallGreeting(sponsorName: string | undefined): string {
-  const named = realName(sponsorName);
-  const first = named ? (firstNameOf(named) ?? undefined) : undefined;
-  return `Hi, ${ferniIntro({ sponsorName: first, personal: true })}.`;
+  return `Hi, ${ferniIntro({ sponsorName: spokenFirstName(sponsorName), personal: true })}.`;
 }
