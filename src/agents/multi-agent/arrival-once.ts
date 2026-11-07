@@ -29,8 +29,7 @@
  * @module agents/multi-agent/arrival-once
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
-import { crisisReadInFlight } from '../../services/safety/crisis-call-risk.js';
-import { sessionIdIn } from '../../speech/output-control/turn-timing.js';
+import { crisisReadInFlight } from '../../services/safety/index.js';
 import { crisisDecidedOn, crisisVerdictPending } from '../safety/crisis-gate-signal.js';
 import { familyArrival } from './family-table.js';
 import { arrivalLine } from './handoff-brief.js';
@@ -121,16 +120,22 @@ function nearCrisis(sessions: readonly unknown[]): boolean {
 }
 
 /**
- * A crisis classifier read is in flight on this call or on the call of any session
- * seen. The reply gate keys reads by `sessionScope` (crisis-gate-words.ts): the
- * session's `services.sessionId`, an empty id as none. `sessionIdIn` reads the same
- * field from an import-light module, so this file stays cheap to import.
+ * The key the reply gate files a session's crisis reads under: `sessionScope`
+ * (crisis-gate-words.ts), the session's `services.sessionId`, an empty id as none.
+ * Read here, not imported from crisis-gate-words.ts, whose imports reach the session registry.
  */
+function gateKeyOf(session: unknown): string | undefined {
+  const userData = (session as { userData?: { services?: { sessionId?: unknown } } } | null)
+    ?.userData;
+  const id = userData?.services?.sessionId;
+  return typeof id === 'string' && id !== '' ? id : undefined;
+}
+
+/** A crisis classifier read is in flight on this call or on the call of any session seen. */
 function crisisReadPending(callId: string, sessions: readonly unknown[]): boolean {
-  const ids = sessions.map(
-    (s) => sessionIdIn((s as { userData?: unknown } | null)?.userData) || undefined
+  return [callId, ...sessions.map(gateKeyOf)].some(
+    (id) => id !== undefined && crisisReadInFlight(id)
   );
-  return [callId, ...ids].some((id) => id !== undefined && crisisReadInFlight(id));
 }
 
 export interface ArrivalHop {
