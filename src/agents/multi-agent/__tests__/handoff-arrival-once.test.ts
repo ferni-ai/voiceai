@@ -14,10 +14,12 @@ import {
   signalCrisisDecision,
 } from '../../safety/crisis-gate-signal.js';
 import { gatedReply } from '../../personas/crisis-gate.js';
+import { sessionScope } from '../../personas/crisis-gate-words.js';
 import { OpenerGate } from '../../personas/opener-gate.js';
 import {
   crisisReadInFlight,
   resetCrisisCallRisk,
+  trackCrisisRead,
 } from '../../../services/safety/crisis-call-risk.js';
 import {
   resetCrisisClassifierCache,
@@ -619,6 +621,29 @@ describe('a late crisis, after its persona left the hop', () => {
       }
     });
   }
+});
+
+describe('arrivalOnce keys a pending read the way the reply gate does', () => {
+  afterEach(() => resetCrisisCallRisk());
+
+  it("a read in flight under the gate's key (sessionScope) for a seen session keeps the flag-off line", () => {
+    const call = 'arrival-once-gate-key';
+    const userData = { services: { sessionId: 'arrival-once-gate-key-session' } };
+    const session = { userData };
+    const canned = ARRIVING_OPENERS[MAYA][0];
+    const back = { to: MAYA, from: 'ferni', sessions: [session], briefed: false };
+    const key = sessionScope(userData);
+    expect(key).toBe('arrival-once-gate-key-session');
+    expect(arrivalOnce(call, back, canned)).toBe(canned); // first meeting
+    let clear: (v: { risk: string }) => void = () => {};
+    const read = new Promise<{ risk: string }>((resolve) => {
+      clear = resolve;
+    });
+    void trackCrisisRead(key, 'some fictional words', read);
+    expect(crisisReadInFlight(call)).toBe(false); // only the session's key holds the read
+    expect(arrivalOnce(call, back, canned)).toBe(canned); // a return, read pending: flag-off line
+    clear({ risk: 'none' });
+  });
 });
 
 describe('arrivalOnce on a briefed line', () => {

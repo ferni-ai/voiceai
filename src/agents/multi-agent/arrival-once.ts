@@ -30,7 +30,7 @@
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { crisisReadInFlight } from '../../services/safety/crisis-call-risk.js';
-import { sessionScope } from '../personas/crisis-gate-words.js';
+import { sessionIdIn } from '../../speech/output-control/turn-timing.js';
 import { crisisDecidedOn, crisisVerdictPending } from '../safety/crisis-gate-signal.js';
 import { familyArrival } from './family-table.js';
 import { arrivalLine } from './handoff-brief.js';
@@ -122,10 +122,14 @@ function nearCrisis(sessions: readonly unknown[]): boolean {
 
 /**
  * A crisis classifier read is in flight on this call or on the call of any session
- * seen (the reply gate keys reads by the session's call id, crisis-gate-words.ts).
+ * seen. The reply gate keys reads by `sessionScope` (crisis-gate-words.ts): the
+ * session's `services.sessionId`, an empty id as none. `sessionIdIn` reads the same
+ * field from an import-light module, so this file stays cheap to import.
  */
 function crisisReadPending(callId: string, sessions: readonly unknown[]): boolean {
-  const ids = sessions.map((s) => sessionScope((s as { userData?: unknown } | null)?.userData));
+  const ids = sessions.map(
+    (s) => sessionIdIn((s as { userData?: unknown } | null)?.userData) || undefined
+  );
   return [callId, ...ids].some((id) => id !== undefined && crisisReadInFlight(id));
 }
 
