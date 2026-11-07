@@ -45,10 +45,11 @@ Two pairs overlap: Luna and Kenji (sleep), Atlas and Ray (career).
 ## 3. Rules every returning agent meets
 
 1. **Crisis is not the agent's job, and never lower.** The crisis kernel runs
-   on every turn of every agent, outside its prompt. Each agent gets a test
-   that proves the canonical crisis lines and resources come out the same as
-   with Ferni, and an agent's bundle cannot remove or soften them. Any line
-   that reads lower than main is a FAIL.
+   on every turn of every agent, outside its prompt, and the canonical safety
+   lines the loader appends (#3595) reach every agent's assembled prompt. Each
+   agent gets a test that proves the canonical crisis lines and resources come
+   out the same as with Ferni, and an agent's bundle cannot remove or soften
+   them. Any line that reads lower than main is a FAIL.
 2. **Human, and different.** Each agent passes the same persona quality bar
    as the core team (`scripts/persona-eval/bar.ts`, blind AI-judge panel,
    cross-family judge) and is told apart from the others by voice and way of
@@ -59,12 +60,15 @@ Two pairs overlap: Luna and Kenji (sleep), Atlas and Ray (career).
    before a dev A/B.
 4. **One team.** Ferni hands off to the specialist; the agent can hand back.
    No agent gets its own proactive asker: all of them share the one per-call
-   proactive budget from the right-moment plan.
+   proactive budget from the right-moment plan. No agent starts contact with
+   anyone but the caller; an idea that involves a third party can only become
+   a one-tap suggestion to the owner, the same rule as the right-moment plan.
 5. **Memory and privacy.** What a caller tells an agent follows the same
    memory, forget and export rules as the core team. Logs carry hashes, not
    text.
-6. **Holds win.** Minors (MINOR_CARE), opt-outs and forget requests apply to
-   every agent the same way.
+6. **Holds win.** A DV hold, `MINOR_CARE`, an opt-out or STOP, and a forget
+   request apply to every agent the same way, through the same holds port as
+   the right-moment plan, so a hold added there covers every agent.
 7. **Off by default.** Every step lands behind a flag that is off; rollout is
    dev, then the owner, then friends and family, then wider.
 
@@ -78,6 +82,9 @@ Answer, with file:line and a dev call, each of:
   (preloader, id mapping, handoff targets, greeting, memory scope)?
 - Does the crisis kernel run unchanged for a non-core persona? Prove it with
   a test, not a read.
+- Do the canonical safety lines (#3595) reach a non-core agent's assembled
+  prompt in every `PROMPT_MODE` (`full` and `character`)? One test per mode,
+  asserting the lines are present in the assembled prompt.
 - What do the marketplace and custom-agent APIs do today: live, dead or
   half-wired? "Dead" only after every caller is checked; otherwise
   UNCONFIRMED.
@@ -97,6 +104,9 @@ Output: a gap table appended to this plan. Size: tests plus notes, under
   array, and only load marketplace agents while the flag is on.
 - One validation test per bundle: schema, crisis lines present and
   unchanged, no invented personal loss, no scripted lines.
+- Each import PR gets a privacy check, because the content moves from a
+  private repository into this public one: fictional people and data only,
+  no real people, no owner data, no private paths.
 - Size: one PR per 3–4 agents, each under ~400 reviewable lines.
 
 ### P2: Make them callable (same flag)
@@ -140,10 +150,14 @@ Starts only after P4 is live for friends and family.
 
 - **Wave 1 (lower risk):** Pixel, Spark, Atlas, Moxie, Luna.
 - **Wave 2 (crisis-adjacent, after the extra eval rows):** River, Zen, Sage,
-  Carmen, Eli, Sasha.
+  Carmen, Eli, Sasha, Ray (job loss).
 - **Wave 3 (highest risk):** Marcus, Amara, Kenji.
-- **Overlaps:** Kenji folds into Luna's slot unless P3 shows the two are told
-  apart and both earn a place; same for Ray and Atlas.
+- **Overlaps:** Kenji may fold into Luna, and Ray into Atlas, unless P3 shows
+  the two are told apart and both earn a place. A merged slot takes the
+  higher-risk wave and its eval rows: Luna + Kenji goes in wave 3 with the
+  3am-insomnia crisis rows, and Atlas + Ray in wave 2 with the job-loss rows.
+  Luna and Atlas can launch alone in wave 1; the merge happens only when the
+  higher-risk wave is reached.
 
 ## 6. Metrics
 
@@ -160,7 +174,8 @@ Starts only after P4 is live for friends and family.
    exist. Default: free for the owner and friends-and-family cohorts; decide
    pricing before wider rollout.
 2. **Wave 1 list.** Default: section 5.
-3. **Overlaps.** Default: merge unless P3 shows both earn a place.
+3. **Overlaps.** Default: merge unless P3 shows both earn a place; a merged
+   slot takes the higher-risk wave (section 5).
 4. **Outside publishers.** Publisher routes exist. Default: no third-party
    agents until the review queue is proven on first-party ones.
 5. **Custom agents.** Default: after P4, as P5.
