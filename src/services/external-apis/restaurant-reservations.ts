@@ -11,6 +11,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { priceSymbols } from './google-places.js';
 
 // API Keys
 const OPENTABLE_API_KEY = process.env.OPENTABLE_API_KEY || '';
@@ -27,7 +28,8 @@ export interface RestaurantSearchResult {
   address: string;
   city: string;
   cuisine: string[];
-  priceRange: '$' | '$$' | '$$$' | '$$$$';
+  /** '$'..'$$$$', only when the provider gave a price. Never guessed. */
+  priceRange?: string;
   rating?: number;
   phone?: string;
   imageUrl?: string;
@@ -109,7 +111,7 @@ async function searchOpenTable(
         name: string;
         address: { street: string; city: string };
         cuisine: string;
-        price: number;
+        price?: number;
         rating: number;
         phone?: string;
         photos?: Array<{ url: string }>;
@@ -122,7 +124,7 @@ async function searchOpenTable(
       address: r.address.street,
       city: r.address.city,
       cuisine: [r.cuisine],
-      priceRange: '$'.repeat(r.price || 2) as '$' | '$$' | '$$$' | '$$$$',
+      priceRange: priceSymbols(r.price),
       rating: r.rating,
       phone: r.phone,
       imageUrl: r.photos?.[0]?.url,
@@ -278,7 +280,7 @@ async function searchResy(
           name: string;
           location: { address: string; locality: string };
           type: string;
-          price_range: number;
+          price_range?: number;
           rating: number;
           contact?: { phone?: string };
           images?: string[];
@@ -292,7 +294,7 @@ async function searchResy(
       address: v.location.address,
       city: v.location.locality,
       cuisine: [v.type],
-      priceRange: '$'.repeat(v.price_range || 2) as '$' | '$$' | '$$$' | '$$$$',
+      priceRange: priceSymbols(v.price_range),
       rating: v.rating,
       phone: v.contact?.phone,
       imageUrl: v.images?.[0],
@@ -467,7 +469,7 @@ async function searchYelp(query: string, location: string): Promise<RestaurantSe
       address: b.location.address1,
       city: b.location.city,
       cuisine: b.categories.map((c) => c.title),
-      priceRange: (b.price || '$$') as '$' | '$$' | '$$$' | '$$$$',
+      priceRange: priceSymbols(b.price?.length), // Yelp sends '$'..'$$$$'
       rating: b.rating,
       phone: b.phone,
       imageUrl: b.image_url,
@@ -496,7 +498,7 @@ export async function searchRestaurants(
   time: string,
   partySize: number
 ): Promise<RestaurantSearchResult[]> {
-  getLogger().info({ query, location, date, partySize }, '🍽️ Searching restaurants');
+  getLogger().info({ partySize }, '🍽️ Searching restaurants');
 
   // Search all providers in parallel
   const [openTableResults, resyResults, yelpResults] = await Promise.all([

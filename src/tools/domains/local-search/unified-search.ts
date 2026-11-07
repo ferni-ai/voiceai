@@ -10,6 +10,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import {
   searchRestaurants as searchGooglePlaces,
   isGooglePlacesConfigured,
+  priceSymbols,
   type PlaceSearchResult,
 } from '../../../services/google-places.js';
 
@@ -42,13 +43,12 @@ export interface SearchResult {
  * Convert Google Places result to unified format
  */
 function googleToUnified(place: PlaceSearchResult): SearchResult {
-  const priceLevels = ['', '$', '$$', '$$$', '$$$$'];
   return {
     name: place.name,
     address: place.address,
     rating: place.rating,
     reviewCount: place.userRatingsTotal,
-    priceLevel: place.priceLevel ? priceLevels[place.priceLevel] : undefined,
+    priceLevel: priceSymbols(place.priceLevel),
     isOpen: place.openNow,
     source: 'google',
     sourceId: place.placeId,
@@ -114,4 +114,42 @@ export async function unifiedSearch(
     type,
   });
   return googleResults.map(googleToUnified);
+}
+
+/**
+ * The reply to a restaurant search, for every tool that searches restaurants.
+ * Three honest outcomes: the places found; "couldn't find any" only when Places
+ * answered with none; LOCAL_SEARCH_UNAVAILABLE when Places is not set up or the
+ * lookup failed, because no search ran. `location` is already resolved.
+ * Logs the outcome and count only, never the place or the query.
+ */
+export async function findRestaurantsReply(
+  location: string,
+  cuisine?: string,
+  openNow?: boolean
+): Promise<string> {
+  if (!isLocalSearchAvailable()) return LOCAL_SEARCH_UNAVAILABLE;
+  // "sushi restaurants" and a bare "restaurants" both mean the same search as the cuisine alone.
+  const kind = (cuisine ?? '')
+    .replace(/\brestaurants?\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  let results: SearchResult[];
+  try {
+    results = await unifiedSearch(kind ? `${kind} restaurant` : 'restaurant', location, {
+      openNow,
+      restaurantsOnly: true,
+    });
+  } catch {
+    log.warn({ outcome: 'unavailable' }, '🍽️ Restaurant search could not run');
+    return LOCAL_SEARCH_UNAVAILABLE;
+  }
+  log.info(
+    { outcome: results.length ? 'found' : 'none', count: results.length },
+    '🍽️ Restaurant search'
+  );
+  if (results.length === 0) {
+    return `I couldn't find ${kind || 'any'} restaurants in ${location}. Try a different area or cuisine?`;
+  }
+  return `**${kind || 'Restaurant'} Options near ${location}**\n\n${formatResults(results, kind || 'restaurants', location)}`;
 }

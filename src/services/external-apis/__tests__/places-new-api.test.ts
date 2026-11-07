@@ -129,9 +129,11 @@ describe('searchRestaurants (findRestaurants, searchLocalBusinesses, pickRestaur
     });
   });
 
-  it('returns [] when Places answers with an error status', async () => {
+  it('throws when Places answers with an error status: a failed lookup is not "none found"', async () => {
     respond({ error: { code: 403, status: 'PERMISSION_DENIED' } }, 403);
-    expect(await searchRestaurants({ query: 'coffee', location: 'Tampa' })).toEqual([]);
+    await expect(searchRestaurants({ query: 'coffee', location: 'Tampa' })).rejects.toThrow(
+      'Places search failed: unauthorized (403)'
+    );
   });
 });
 

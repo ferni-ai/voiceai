@@ -16,6 +16,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import {
   searchRestaurants as searchPlacesNew,
   isGooglePlacesConfigured,
+  priceSymbols,
 } from '../../../services/google-places.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
@@ -27,7 +28,7 @@ interface Restaurant {
   name: string;
   rating: number;
   reviewCount: number;
-  priceLevel: string; // $, $$, $$$, $$$$
+  priceLevel?: string; // $..$$$$, only when Places gave one
   cuisine: string[];
   address: string;
   phone?: string;
@@ -58,13 +59,12 @@ async function searchGooglePlaces(params: SearchParams): Promise<Restaurant[]> {
     location: params.location,
     openNow: params.openNow,
   });
-  const priceLevels = ['', '$', '$$', '$$$', '$$$$'];
 
   return places.slice(0, params.limit || 5).map((place) => ({
     name: place.name,
     rating: place.rating || 0,
     reviewCount: place.userRatingsTotal || 0,
-    priceLevel: priceLevels[place.priceLevel || 2] || '$$',
+    priceLevel: priceSymbols(place.priceLevel),
     cuisine: (place.types || []).filter(
       (t) => !['restaurant', 'food', 'point_of_interest', 'establishment'].includes(t)
     ),
@@ -77,15 +77,20 @@ async function searchGooglePlaces(params: SearchParams): Promise<Restaurant[]> {
 // MAIN SEARCH FUNCTION
 // ============================================================================
 
-export async function searchRestaurants(params: SearchParams): Promise<string> {
-  getLogger().info({ params }, '🍽️ Searching for restaurants');
+const SEARCH_UNAVAILABLE = "I can't search restaurants right now.";
 
-  const restaurants = await searchGooglePlaces(params);
+export async function searchRestaurants(params: SearchParams): Promise<string> {
+  if (!isGooglePlacesConfigured()) return SEARCH_UNAVAILABLE;
+  let restaurants: Restaurant[];
+  try {
+    restaurants = await searchGooglePlaces(params);
+  } catch {
+    getLogger().warn({ outcome: 'unavailable' }, '🍽️ Restaurant search could not run');
+    return SEARCH_UNAVAILABLE;
+  }
+  getLogger().info({ count: restaurants.length }, '🍽️ Restaurant search');
 
   if (restaurants.length === 0) {
-    if (!isGooglePlacesConfigured()) {
-      return "I can't search restaurants right now.";
-    }
     return `I couldn't find any restaurants matching your criteria in ${params.location}. Try:\n• Being more specific about the location\n• Broadening your cuisine preference\n• Searching without "open now"`;
   }
 
@@ -101,7 +106,7 @@ function formatRestaurantResults(restaurants: Restaurant[], params: SearchParams
     const stars = '⭐'.repeat(Math.round(r.rating));
     const openStatus = r.isOpen === true ? '🟢 Open' : r.isOpen === false ? '🔴 Closed' : '';
 
-    response += `**${i + 1}. ${r.name}** ${r.priceLevel}\n`;
+    response += `**${i + 1}. ${r.name}** ${r.priceLevel ?? ''}\n`;
     response += `${stars} ${r.rating.toFixed(1)} (${r.reviewCount.toLocaleString()} reviews)\n`;
 
     if (r.cuisine.length > 0) {

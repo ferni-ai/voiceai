@@ -21,6 +21,9 @@ import {
 } from '../../services/restaurant-reservations.js';
 import { isConfirmedReservation, unconfirmedReservationReply } from './reservation-confirmation.js';
 import { getAppointmentFollowUpService } from '../../services/scheduling/appointment-followup.js';
+import { findRestaurantsReply } from '../domains/local-search/unified-search.js';
+import { NEED_LOCATION_RESULT } from '../domains/local-search/caller-city.js';
+import { isUnspecifiedLocation } from '../shared/caller-location.js';
 import {
   createAppointmentRequest,
   updateAppointmentStatus,
@@ -196,6 +199,11 @@ export function createAppointmentTools() {
         partySize: z.number().default(2).describe('Number of people'),
       }),
       execute: async ({ query, location, date, partySize }) => {
+        // No booking provider is set up: search Places, the one place source (local-search).
+        if (!isReservationServiceConfigured()) {
+          if (isUnspecifiedLocation(location)) return NEED_LOCATION_RESULT;
+          return findRestaurantsReply(location, query);
+        }
         const requestedDate = parseNaturalTime(date);
         if (!requestedDate) {
           return `What date are you looking at? Like "this Saturday" or "December 15th"?`;

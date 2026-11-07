@@ -16,7 +16,7 @@
  * Enable "Places API (New)" in Google Cloud Console
  */
 
-import { googleMapsKey, MAPS_KEY_LEGACY } from '../../config/google-maps-key.js';
+import { googleMapsKey, MAPS_KEY_LEGACY, mapsHttpOutcome } from '../../config/google-maps-key.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 /** The key chain this caller read before GOOGLE_MAPS_SERVER_KEY (config/google-maps-key.ts). */
@@ -86,7 +86,12 @@ export interface RestaurantSearchOptions {
 // ============================================================================
 
 /**
- * Search for restaurants using Google Places API (New) - Text Search
+ * Search for restaurants using Google Places API (New) - Text Search.
+ *
+ * [] means Places answered with no matches, or no key is set (callers check
+ * isGooglePlacesConfigured() first). A failed lookup (HTTP error, timeout,
+ * unreadable reply) throws, so a caller never reports "none found" for a
+ * search that did not run. Logs carry counts and outcomes, never the query.
  */
 export async function searchRestaurants(
   options: RestaurantSearchOptions
@@ -98,18 +103,13 @@ export async function searchRestaurants(
 
   const { query = 'restaurant', location, type = 'restaurant', openNow } = options;
 
+  // Build search query
+  let searchQuery = query;
+  if (location && !query.includes(location)) {
+    searchQuery = `${query} near ${location}`;
+  }
+
   try {
-    // Build search query
-    let searchQuery = query;
-    if (location && !query.includes(location)) {
-      searchQuery = `${query} near ${location}`;
-    }
-
-    getLogger().info(
-      { query: searchQuery, type },
-      '🍽️ Searching restaurants via Google Places (New)'
-    );
-
     // Use the new Places API format
     const requestBody: Record<string, unknown> = {
       textQuery: searchQuery,
@@ -134,12 +134,9 @@ export async function searchRestaurants(
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      getLogger().error(
-        { status: response.status, error: errorText },
-        'Google Places search failed'
+      throw new Error(
+        `Places search failed: ${mapsHttpOutcome(response.status)} (${response.status})`
       );
-      return [];
     }
 
     const data = (await response.json()) as {
@@ -168,11 +165,14 @@ export async function searchRestaurants(
       openNow: place.currentOpeningHours?.openNow,
     }));
 
-    getLogger().info({ count: results.length }, 'Restaurant search complete');
+    getLogger().info({ outcome: 'ok', count: results.length }, 'Places restaurant search');
     return results;
   } catch (error) {
-    getLogger().error({ error }, 'Google Places search error');
-    return [];
+    const outcome = error instanceof Error && error.name === 'TimeoutError' ? 'timeout' : 'failed';
+    getLogger().error({ outcome }, 'Places restaurant search failed');
+    throw error instanceof Error && error.message.startsWith('Places search failed')
+      ? error
+      : new Error(`Places search failed: ${outcome}`);
   }
 }
 
@@ -389,6 +389,11 @@ export function formatPriceLevel(level?: number): string {
   if (level === undefined) return 'price not listed';
   const symbols = ['free', 'inexpensive', 'moderate', 'expensive', 'very expensive'];
   return symbols[level] || 'price not listed';
+}
+
+/** '$'..'$$$$' when Places gave a paid price level (1-4); undefined when it gave none. Never guessed. */
+export function priceSymbols(level?: number): string | undefined {
+  return level !== undefined && level >= 1 && level <= 4 ? '$'.repeat(level) : undefined;
 }
 
 /**
