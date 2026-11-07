@@ -17,11 +17,24 @@ export const IN_DANGER_NOW =
  * them, so the reply leads with 911 for them and stays with the caller. No 988: it isn't the
  * caller's crisis, and it isn't a mental-health line's call to make.
  */
-export const EMERGENCY_FOR_THEM = `That sounds like an emergency. Please call 911 right now, and put them on speaker so you can stay with them.
+const CALL_911_FOR_THEM = `That sounds like an emergency. Please call 911 right now, and put them on speaker so you can stay with them.
 
-If they're not breathing or not responding, tell the dispatcher; they'll walk you through what to do until help gets there.
+If they're not breathing or not responding, tell the dispatcher; they'll walk you through what to do until help gets there.`;
+const STAY_WITH_YOU = "I'm right here with you. Is anyone else there who can help?";
+const LINE_988 =
+  'The 988 Suicide & Crisis Lifeline (call or text 988) is there 24/7 if you need to talk to someone.';
+export const EMERGENCY_FOR_THEM = `${CALL_911_FOR_THEM}\n\n${STAY_WITH_YOU}`;
 
-I'm right here with you. Is anyone else there who can help?`;
+/**
+ * Someone else went down while the caller also said something about themselves (#3587): 911 for
+ * the person who went down first, then the caller's own line. Never fewer resources than either.
+ */
+const emergencyAndYou = (forYou: string): string => `${CALL_911_FOR_THEM}\n\n${forYou}`;
+/** The caller's own words were negated or softened ("I'm not suicidal"): 988 is there for them too. */
+export const EMERGENCY_AND_YOU = emergencyAndYou(`For you, too: ${LINE_988}\n\n${STAY_WITH_YOU}`);
+/** Beside someone close going down: 911 first, then the caller's own reply if it replaces, else 988. */
+export const emergencyBeside = (own: string, ownReplaces: boolean): string =>
+  ownReplaces ? emergencyAndYou(own) : EMERGENCY_AND_YOU;
 
 /**
  * Get appropriate crisis response based on severity
@@ -64,7 +77,7 @@ I'm here with you right now. Can you tell me more about what you're going throug
   // High distress - validate + gentle support
   return `I can hear how difficult things are for you right now. What you're feeling is real and valid, and it takes courage to share it.
 
-I want you to know that support is available. The 988 Suicide & Crisis Lifeline (call or text 988) is there 24/7 if you need to talk to someone.
+I want you to know that support is available. ${LINE_988}
 
 I'm here to listen. What's weighing on you most right now?`;
 }

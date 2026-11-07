@@ -26,7 +26,12 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { ABUSE_INDICATOR, abuseDisclosure } from './abuse-disclosure.js';
 import { endingFloor } from './crisis-ending-floor.js';
-import { EMERGENCY_FOR_THEM, getCrisisResponse, IN_DANGER_NOW } from './crisis-guard-replies.js';
+import {
+  EMERGENCY_FOR_THEM,
+  emergencyBeside,
+  getCrisisResponse,
+  IN_DANGER_NOW,
+} from './crisis-guard-replies.js';
 import { meansFormsOf, meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
 import {
@@ -35,7 +40,7 @@ import {
   replacesReply,
   SEVERITY,
 } from './crisis-severity.js';
-import { thirdPartyEmergency } from './crisis-third-person.js';
+import { someoneCloseWentDown, spokeOfSelf, thirdPartyEmergency } from './crisis-third-person.js';
 import { whoGuidance } from './crisis-who-guidance.js';
 import {
   EXPLICIT_CRISIS_PATTERNS,
@@ -111,6 +116,8 @@ interface TextScore {
   softSelf: boolean;
   /** What this turn counts for in a later turn's session check: its self read as before #2528. */
   sessionSeverity: number;
+  /** Someone close went down beside the caller's own read: 911 for them first, then the caller's line. */
+  andYou: boolean;
 }
 
 /** Score one message from its words alone. */
@@ -244,8 +251,13 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
     add('third_party_risk', SEVERITY.passive);
     subject = 'third_party';
   }
-  // Someone else down and not getting up (owner, 2026-11-02): imminent, 911 for them.
-  if (thirdPartyEmergency(text) && (!subject || !hardSelf)) {
+  // Someone else down and not getting up (owner, 2026-11-02), or someone close who went down
+  // (#3587): imminent, 911 for them. Beside the caller's own read, that read and its session
+  // weight stay as they are; beside any word of the caller's own, the reply carries 988 too.
+  const down = thirdPartyEmergency(text) && (!subject || !hardSelf);
+  const closeDown = !down && someoneCloseWentDown(text);
+  const andYou = closeDown && (!!subject || spokeOfSelf(text));
+  if (down || (closeDown && subject !== 'self')) {
     for (const tag of ['third_party_risk', 'third_party_emergency', 'imminent_danger'])
       add(tag, SEVERITY.explicit);
     subject = 'third_party';
@@ -255,8 +267,9 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
   // A worry about someone else beside the caller's own softened tier words was the caller's own
   // turn before #2528, and still counts as one in a later turn's session check.
   const sessionSeverity = subject === 'self' ? severity : tierSoft ? selfSeverity : 0;
+  if (andYou && subject === 'self') add('third_party_emergency', SEVERITY.explicit);
   const found = { severity, indicators, subject, language, implicitHits, contextHit };
-  return { ...found, softSelf, sessionSeverity };
+  return { ...found, softSelf, sessionSeverity, andYou };
 }
 
 /** What one earlier message counts for in a later turn's session check (crisis-who.ts reads it too). */
@@ -303,7 +316,8 @@ export function detectCrisis(
     const distressed = [...HIGH_DISTRESS_VOICE_EMOTIONS, ...MODERATE_DISTRESS_VOICE_EMOTIONS];
     if (distressed.includes(primary)) subject = 'self';
   }
-  const emergency = subject === 'third_party' && indicators.includes('third_party_emergency');
+  const emergency =
+    subject === 'third_party' && indicators.includes('third_party_emergency') && !score.andYou;
   const ceiling = subject === 'third_party' ? SEVERITY.block - 0.05 : 1.0;
   if (voiceEmotion?.confidence !== undefined && voiceEmotion.confidence > 0.5) {
     const high = HIGH_DISTRESS_VOICE_EMOTIONS.includes(voiceEmotion.primary);
@@ -323,6 +337,8 @@ export function detectCrisis(
   severity = Math.min(severity, Math.max(ceiling, textSeverity));
 
   const isCrisis = severity >= SEVERITY.crisis;
+  const imminent = indicators.includes('imminent_danger');
+  const own = getCrisisResponse(severity, subject, score.language, imminent);
 
   return {
     isCrisis,
@@ -334,12 +350,9 @@ export function detectCrisis(
       ? undefined
       : emergency
         ? EMERGENCY_FOR_THEM
-        : getCrisisResponse(
-            severity,
-            subject,
-            score.language,
-            indicators.includes('imminent_danger')
-          ),
+        : score.andYou
+          ? emergencyBeside(own, subject === 'self' && score.sessionSeverity >= SEVERITY.block)
+          : own,
   };
 }
 
