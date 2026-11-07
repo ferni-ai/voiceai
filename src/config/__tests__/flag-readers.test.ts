@@ -25,6 +25,11 @@ const OUTSIDE_READERS: Readonly<Record<string, { file: string; needle: string }>
     file: 'node_modules/@google/genai/dist/index.mjs',
     needle: 'GOOGLE_GENAI_USE_VERTEXAI',
   },
+  // The web app reads it as VITE_WEB_AUDIO_START_WATCH, baked in at build time.
+  WEB_AUDIO_START_WATCH: {
+    file: 'apps/web/src/config/audio-start-watch-flag.ts',
+    needle: "import.meta.env.VITE_WEB_AUDIO_START_WATCH === 'true'",
+  },
 };
 const BASELINE = join(__dirname, 'flag-readers.baseline.json');
 
@@ -34,7 +39,7 @@ const NOT_A_READER = [
   /\.(test|spec|d)\.ts$/,
   /\.generated\.ts$/,
   /^config\/flags\//,
-  /^config\/(flag-manifest|flag-manifest-entries|flag-manifest-blocks|env-classification)\.ts$/,
+  /^config\/(flag-manifest|flag-manifest-entries|flag-manifest-blocks|flag-lifecycle-backfill|env-classification)\.ts$/,
 ];
 
 interface SourceFile {

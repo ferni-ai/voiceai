@@ -235,14 +235,21 @@ final class AppModel {
             isSigningIn = true
             return
         }
-        feedback.newCall()
+        newCallFeedback()
         if consent.hasAgreed { call.start(personaID: team.chosen) } else { isAskingConsent = true }
+    }
+
+    /// The next call's sounds start fresh, and its crisis mark clear. Never
+    /// during a call: Talk there starts nothing, so it mustn't reset this one.
+    private func newCallFeedback() {
+        if !call.isActive { feedback.newCall() }
     }
 
     /// "I agree, let's talk": the call starts at once ("Calling…"); the
     /// account is settled inside it, and the agreement is recorded for that
     /// account only. No account means the call ends saying so (critic H5).
     func agreeAndTalk() async {
+        newCallFeedback()
         call.start(personaID: team.chosen) { [weak self] in
             guard let self else { return false }
             await self.account.start()
@@ -296,8 +303,11 @@ final class AppModel {
         call.forgetPerson()
     }
 
-    /// - Parameter scenario: debug builds only; a UI-test launch (`UITestScenario`).
-    init(config: FerniConfig = .fromBundle(), firebaseReady: Bool, scenario: String? = nil) {
+    /// - Parameters:
+    ///   - scenario: debug builds only; a UI-test launch (`UITestScenario`).
+    ///   - feedback: the call's sounds and haptics; tests pass one with recorders.
+    init(config: FerniConfig = .fromBundle(), firebaseReady: Bool, scenario: String? = nil,
+         feedback: CallFeedback = CallFeedback()) {
         self.config = config
         #if DEBUG
         account = UITestScenario.account() ?? AccountStore(backend: firebaseReady ? FirebaseAuthBackend() : nil)
@@ -323,12 +333,11 @@ final class AppModel {
         )
         account.uploadAppleCode = AppleAuthorizationUpload.uploader(api: api)
         account.mergeLeftBehind = AnonymousMerge.merger(api: api)
-        let feedback = CallFeedback()
         self.feedback = feedback
         let level = AudioLevelMeter()
         let avatar = AvatarModel(play: { [feedback] in feedback.play($0) })
         #if DEBUG
-        let testCall = scenario.map { _ in UITestScenario.callSession(avatar: avatar, level: level) }
+        let testCall = scenario.flatMap(UITestScenario.init(rawValue:)).map { UITestScenario.callSession($0, avatar: avatar, level: level) }
         #else
         let testCall: CallSession? = nil
         #endif
@@ -350,7 +359,7 @@ final class AppModel {
             case .home: break
             case .consent: isAskingConsent = true
             case .settings: isShowingSettings = true
-            case .call: call.start(personaID: PersonaRegistry.ferni.id)
+            case .call, .silentAudio: call.start(personaID: PersonaRegistry.ferni.id)
             }
             return // no watch session in a UI test
         }

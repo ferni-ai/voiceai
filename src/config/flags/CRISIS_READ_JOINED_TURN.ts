@@ -5,4 +5,8 @@ export const CRISIS_READ_JOINED_TURN = {
   default: 'off',
   owner: 'intelligence',
   kind: 'experiment',
+  expires: '2027-02-01',
+  issue: 'TBD',
+  context:
+    'Safety: expiry only warns, never turns it off. Decide permanent (kill-switch, on) or replace; never just delete.',
 } as const satisfies FlagSpec;

@@ -21,13 +21,18 @@
  * from a reminder (texted by the reminder job) not at all. A failed read throws:
  * the panel must show an error, never "nothing planned".
  *
+ * Each item names its persona by canonical id and display name here, once, so every
+ * reader (the panel route, the practice view) answers the same fields.
+ *
  * @module services/outreach/upcoming-outreach
  */
+import { getDisplayName, toCanonical } from '../../personas/persona-ids.js';
 import type { FollowUp } from '../follow-through/index.js';
 
 export interface UpcomingOutreach {
   id: string;
   type: 'held_call' | 'follow_up';
+  /** Canonical persona id (persona-ids.ts). */
   personaId: string;
   channel: 'call' | 'sms';
   /** UTC ISO instant. */
@@ -37,6 +42,8 @@ export interface UpcomingOutreach {
   priority: 'medium';
   canReschedule: boolean;
   canCancel: boolean;
+  /** The persona's display name. Last, where GET /api/outreach/upcoming has always sent it. */
+  personaName: string;
 }
 
 export interface UpcomingDeps {
@@ -65,6 +72,11 @@ const validIso = (v: unknown): string | null => {
   const t = Date.parse(str(v));
   return Number.isNaN(t) ? null : new Date(t).toISOString();
 };
+/** A stored persona id (any alias) as its canonical id; unknown ones are Ferni. */
+const persona = (raw: string): { personaId: string; personaName: string } => {
+  const personaId = toCanonical(raw);
+  return { personaId, personaName: getDisplayName(personaId) };
+};
 
 function heldCall(
   id: string,
@@ -76,10 +88,11 @@ function heldCall(
   if (d.kind !== 'proactive' || d.status !== 'pending' || !at) return null;
   if (now.getTime() - Date.parse(at) > LATE_AFTER_MS) return null;
   const req = (d.request ?? {}) as Record<string, unknown>;
+  const { personaId, personaName } = persona(str(req.personaId) || 'ferni');
   return {
     id,
     type: 'held_call',
-    personaId: str(req.personaId) || 'ferni',
+    personaId,
     channel: 'call',
     scheduledFor: at,
     preview: { body: str(req.message) },
@@ -87,6 +100,7 @@ function heldCall(
     priority: 'medium',
     canReschedule: actions,
     canCancel: actions,
+    personaName,
   };
 }
 
@@ -94,10 +108,11 @@ function heldCall(
 function followUp(f: FollowUp, now: Date, actions: boolean): UpcomingOutreach | null {
   const at = validIso(f.dueAt);
   if (!at || Date.parse(at) <= now.getTime()) return null;
+  const { personaId, personaName } = persona('ferni');
   return {
     id: f.id,
     type: 'follow_up',
-    personaId: 'ferni',
+    personaId,
     channel: 'sms',
     scheduledFor: at,
     preview: { body: f.text },
@@ -105,6 +120,7 @@ function followUp(f: FollowUp, now: Date, actions: boolean): UpcomingOutreach | 
     priority: 'medium',
     canReschedule: actions && followUpMovable(f),
     canCancel: false, // #3303
+    personaName,
   };
 }
 

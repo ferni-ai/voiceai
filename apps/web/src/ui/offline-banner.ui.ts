@@ -11,7 +11,8 @@
  */
 
 import { t } from '../i18n/index.js';
-import { isOffline, onOfflineChange } from '../services/offline.service.js';
+import { isOffline, onOfflineChange, verifyConnectivity } from '../services/offline.service.js';
+import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
 import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
 import { initStatusIslandConnection, setIslandOffline } from './status-island-connection.js';
@@ -145,18 +146,18 @@ export function initOfflineBanner(): void {
 
   // Add styles
   addStyles();
-  
+
   // Create banner element
   createBanner();
-  
+
   // Subscribe to offline changes
   unsubscribe = onOfflineChange(handleOfflineChange);
-  
+
   // Check initial state
   if (isOffline()) {
     showBanner();
   }
-  
+
   log.debug('Offline banner initialized');
 }
 
@@ -168,10 +169,10 @@ export function disposeOfflineBanner(): void {
   unsubscribe = null;
   if (useIsland) setIslandOffline(false);
   useIsland = false;
-  
+
   bannerElement?.remove();
   bannerElement = null;
-  
+
   isVisible = false;
 }
 
@@ -183,7 +184,7 @@ function addStyles(): void {
   if (document.getElementById('offline-banner-styles')) {
     return;
   }
-  
+
   const styleEl = document.createElement('style');
   styleEl.id = 'offline-banner-styles';
   styleEl.textContent = BANNER_STYLES;
@@ -193,26 +194,39 @@ function addStyles(): void {
 function createBanner(): void {
   // Remove existing
   document.querySelector('.offline-banner')?.remove();
-  
+
   bannerElement = document.createElement('div');
   bannerElement.className = 'offline-banner';
   bannerElement.inert = true; // off-screen until offline: out of the tab order and the a11y tree
   bannerElement.setAttribute('role', 'alert');
   bannerElement.setAttribute('aria-live', 'polite');
-  
+
   bannerElement.innerHTML = `
     ${WIFI_OFF_ICON}
-    <span class="offline-banner__text">${t('common.offline') || 'You\'re offline'}</span>
+    <span class="offline-banner__text">${t('common.offline') || "You're offline"}</span>
     <button class="offline-banner__retry" type="button">${t('common.retry') || 'Retry'}</button>
   `;
-  
+
   // Add retry button handler
   const retryBtn = bannerElement.querySelector('.offline-banner__retry');
-  retryBtn?.addEventListener('click', () => {
-    window.location.reload();
-  });
-  
+  retryBtn?.addEventListener('click', retryConnection);
+
   document.body.appendChild(bannerElement);
+}
+
+/** A reload would hang up a call that is still up or still reconnecting. */
+function isCallLive(): boolean {
+  const connection = appState.get('connection');
+  return connection === 'connected' || connection === 'reconnecting';
+}
+
+function retryConnection(): void {
+  if (isCallLive()) {
+    // Re-check instead: the banner hides on its own if the network answers.
+    void verifyConnectivity();
+    return;
+  }
+  window.location.reload();
 }
 
 function handleOfflineChange(offline: boolean): void {
@@ -231,12 +245,12 @@ function showBanner(): void {
   if (isVisible || !bannerElement) {
     return;
   }
-  
+
   isVisible = true;
-  
+
   // Force reflow for animation
   bannerElement.offsetHeight;
-  
+
   bannerElement.inert = false;
   bannerElement.classList.add('visible');
   log.debug('Offline banner shown');
@@ -250,7 +264,7 @@ function hideBanner(): void {
   if (!isVisible || !bannerElement) {
     return;
   }
-  
+
   isVisible = false;
   bannerElement.inert = true;
   bannerElement.classList.remove('visible');
@@ -269,4 +283,3 @@ export const offlineBanner = {
 };
 
 export default offlineBanner;
-

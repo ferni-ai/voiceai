@@ -21,6 +21,7 @@ import {
   type PresenceParticipant,
   type PresenceRoom,
 } from './agent-presence.js';
+import { watchCallAudio, type AudioStartDeps } from './audio-start-watch.js';
 
 const log = createLogger('DemoCall');
 
@@ -54,6 +55,8 @@ export interface DemoRoom {
   onPlaybackChange(onChange: (canPlay: boolean) => void): void;
   /** Starts blocked audio; call it inside a tap. */
   startAudio(): Promise<void>;
+  /** Once Ferni is here: time his audio starting; report if none of it plays. Returns the stop. */
+  watchCallAudio(deps: AudioStartDeps): () => void;
   disconnect(): Promise<void>;
 }
 
@@ -72,6 +75,8 @@ export interface DemoCall {
   onPlaybackBlocked(onChange: (blocked: boolean) => void): void;
   /** Plays blocked audio; call it from the visitor's tap. */
   resumeAudio(): Promise<void>;
+  /** Called once if Ferni joined but none of his audio started playing. */
+  onAudioNotStarted(onSilent: () => (() => void) | undefined): void;
 }
 
 type DemoTokenResponse = NonNullable<ReturnType<typeof parseDemoToken>>;
@@ -100,6 +105,7 @@ async function askForMicrophone(): Promise<void> {
 
 /** The slice of the UMD LiveKit Room (window.LiveKit) this uses. */
 export interface UmdRoom extends PresenceRoom {
+  readonly state: string;
   readonly canPlaybackAudio: boolean;
   localParticipant: { setMicrophoneEnabled(enabled: boolean): Promise<unknown> };
   connect(url: string, token: string): Promise<void>;
@@ -151,6 +157,7 @@ export function liveKitDemoRoom(makeRoom: () => UmdRoom = umdRoom): DemoRoom {
       onChange(room.canPlaybackAudio);
     },
     startAudio: () => room.startAudio(),
+    watchCallAudio: (deps) => watchCallAudio(room, deps),
     disconnect: async () => {
       await room.disconnect();
       removePlayers();
@@ -220,10 +227,13 @@ export async function startDemoCall(deps: DemoCallDeps = {}): Promise<DemoCall> 
   });
   let over = false;
   let hardCap: ReturnType<typeof setTimeout> | null = null;
+  let stopAudioWatch = (): void => undefined;
+  let onSilent = (): (() => void) | undefined => undefined;
   const end = (): void => {
     if (over) return;
     over = true;
     if (hardCap) clearTimeout(hardCap);
+    stopAudioWatch();
     room.disconnect().catch((error: unknown) => {
       log.warn('Demo room disconnect failed', { error: String(error) });
     });
@@ -240,6 +250,10 @@ export async function startDemoCall(deps: DemoCallDeps = {}): Promise<DemoCall> 
     end();
     throw new DemoCallError('unavailable', error);
   }
+  stopAudioWatch = room.watchCallAudio({
+    userHangingUp: () => over,
+    onAudioNotStarted: () => onSilent(),
+  });
   hardCap = setTimeout(
     () => {
       log.info('Demo call reached its time limit; hanging up', { room: demo.room });
@@ -254,5 +268,8 @@ export async function startDemoCall(deps: DemoCallDeps = {}): Promise<DemoCall> 
     onPlaybackBlocked: (onChange) =>
       room.onPlaybackChange((canPlay) => onChange(!over && !canPlay)),
     resumeAudio: () => room.startAudio(),
+    onAudioNotStarted: (callback) => {
+      onSilent = callback;
+    },
   };
 }

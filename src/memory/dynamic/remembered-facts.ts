@@ -63,6 +63,20 @@ export function rememberToRecallOn(env: Env = process.env): boolean {
   return flagOn('REMEMBER_TO_RECALL', env) || memoryToolsHonestOn(env);
 }
 
+/** MEMORY_TOOLS_HONEST as a memory tool reads it once, when it starts (see keepForRecall). */
+export interface MemoryToolFlags {
+  readonly honest: boolean;
+}
+
+export function memoryToolFlags(env: Env = process.env): MemoryToolFlags {
+  return { honest: memoryToolsHonestOn(env) };
+}
+
+/** On now or at the tool's start: either runs the honest guards, so none turns off mid-call. */
+function honestNowOrAtStart(env: Env | undefined, atStart?: MemoryToolFlags): boolean {
+  return memoryToolsHonestOn(env) || atStart?.honest === true;
+}
+
 export interface RememberedFact {
   fact: string;
   /** The memories document it copies, so either can be traced to the other. */
@@ -131,6 +145,8 @@ export interface RememberToRecallDeps {
   embedding?: FactEmbeddingDeps;
   secretCheck?: SecretCheckDeps;
   env?: Env;
+  /** The flags as the tool read them at its start, before any await (memoryToolFlags). */
+  flags?: MemoryToolFlags;
   now?: () => Date;
 }
 
@@ -149,9 +165,10 @@ export type KeepOutcome =
 /** The topics check for a write: under MEMORY_TOOLS_HONEST always, and fails closed (null = unreadable). */
 async function forgottenFor(
   userId: string,
-  env: Env | undefined
+  env: Env | undefined,
+  honest: boolean
 ): Promise<((text: string) => boolean) | 'unreadable' | null> {
-  if (!memoryToolsHonestOn(env)) return forgottenCheck(userId, 'remember-to-recall', env);
+  if (!honest) return forgottenCheck(userId, 'remember-to-recall', env);
   return (await forgottenWithin(userId, 'remember-to-recall')) ?? 'unreadable';
 }
 
@@ -164,7 +181,12 @@ export async function keepForRecall(
   r: RememberedFact,
   deps: RememberToRecallDeps = {}
 ): Promise<KeepOutcome> {
+  // Read now, as before: the start value could only add a write the current flags refuse
   if (!rememberToRecallOn(deps.env)) return { kind: 'refused', reason: 'off' };
+  // Read once, before the awaits below: a call may end and the next caller's flags be applied
+  // while the secret check or the embedding runs, or while the tool awaited before calling this
+  // (cohort-flags.ts). The start value only ever adds the guards.
+  const honest = honestNowOrAtStart(deps.env, deps.flags);
   // Only a member's own: a placeholder or anon:/onbehalf: id is one bucket for many callers
   if (!isMemberIdentity(userId)) return { kind: 'refused', reason: 'not_member' };
   try {
@@ -173,7 +195,7 @@ export async function keepForRecall(
     const value = String(doc.data.value);
     // Every caller of the writer (remember, rememberImportantFact, replaceRemembered) gets this;
     // with no guard handed in, nothing is kept (fails closed)
-    if (memoryToolsHonestOn(deps.env)) {
+    if (honest) {
       const contactData = deps.contactData ?? contactGuard;
       if (!contactData) return { kind: 'failed' };
       if (contactData(value)) return { kind: 'refused', reason: 'contact' };
@@ -187,7 +209,7 @@ export async function keepForRecall(
     const [data] = await withFactEmbeddings([doc.data], deps.embedding);
     const store = deps.store ?? registered;
     // Checked after the embedding: a forget during it marked nothing for this fact
-    const forgotten = await forgottenFor(userId, deps.env);
+    const forgotten = await forgottenFor(userId, deps.env, honest);
     if (forgotten === 'unreadable') return { kind: 'failed' };
     if (forgotten?.(value)) {
       log.info('Remembered fact is about a forgotten topic: not written for recall');

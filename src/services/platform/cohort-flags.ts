@@ -32,6 +32,7 @@ import { createHash } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
 import { latencyArmPercent, withLatencyArm } from './latency-arm.js';
+import { MEMORY_COHORT_FLAGS } from './memory-cohort-flags.js';
 import {
   firestoreCohortStore,
   firestoreFlagHolders,
@@ -166,6 +167,7 @@ export const COHORT_FLAGS = [
   // No reader yet: the caller card at call start, dates in the hello at the greeting build.
   'CALLER_CARD',
   'DATES_IN_HELLO',
+  ...MEMORY_COHORT_FLAGS, // memory-cohort-flags.ts says when each is read
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
@@ -195,6 +197,7 @@ export const COHORT_FLAG_NEEDS: Partial<Record<CohortFlag, CohortFlag[]>> = {
   OUTREACH_PONDERED_NOTES: ['PONDERING'], // notes send what pondering wrote
   TURN_MEMORY_RERANK: ['TURN_MEMORY_RRF_SCALE'], // the judge reads the rescaled cosines
   DATES_IN_HELLO: ['DATES_THAT_MATTER', 'WORLD_MODEL_TEMPORAL'], // the hello raises dates they store
+  FACTS_DUAL_WRITE: ['MEMORY_FACTS'], // the writer proposes nothing while the facts store is off
 };
 
 /** Flags set on whose prerequisites are not: "RECALL_EPISODES needs SEMANTIC_RECALL". */

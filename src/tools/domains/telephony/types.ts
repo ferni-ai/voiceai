@@ -135,4 +135,7 @@ export interface CallOutcome {
 
   /** status 'voicemail' only: Ferni really spoke a message (services/outreach/voicemail-outcome.ts). */
   voicemailLeft?: boolean;
+
+  /** Nothing rang: no agent joined, so nothing was dialled (call-not-placed.ts AGENT_NOT_JOINED). */
+  notPlaced?: 'agent_not_joined';
 }

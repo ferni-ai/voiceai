@@ -96,3 +96,80 @@ describe('replaceRemembered goes through the same refusal', () => {
     expect(forget).not.toHaveBeenCalled();
   });
 });
+
+// Per-caller flags live in process.env (cohort-flags.ts): the next caller's can be applied while
+// this call's correction is still reading the fact list. The writer keeps the decision the
+// correction started with, so the contact refusal can't switch off mid-call.
+describe('replaceRemembered while the next caller’s flags land', () => {
+  const OLD = 'my sister Dana lives in Denver';
+  const PHONE_0100 = "Dana's new number is (202) 555-0100";
+
+  /** A control store whose fact list answers only when `release` runs. */
+  function pendingControl() {
+    const old = { entityName: 'user', key: 'asked_to_remember', value: OLD, confidence: 1 };
+    let release = (): void => undefined;
+    const list = new Promise<Array<{ id: string; data: Record<string, unknown> }>>((done) => {
+      release = () => done([{ id: 'f-old', data: old }]);
+    });
+    const forget = vi.fn(async () => undefined);
+    const control: MemoryControlStore = {
+      facts: () => list,
+      fact: async () => old,
+      copies: async () => [],
+      forgotten: async () => [],
+      forget,
+      correct: async () => undefined,
+    };
+    return { control, forget, release: () => release() };
+  }
+
+  async function correctWhile(flip: () => void, updated = PHONE_0100) {
+    const p = pendingControl();
+    const s = store();
+    const pending = replaceRemembered('u-contact-race', { original: OLD, updated }, { store: s.store, control: p.control }); // prettier-ignore
+    flip(); // the next call's start, while the fact list is being read
+    p.release();
+    return { got: await pending, create: s.create, forget: p.forget };
+  }
+
+  beforeEach(() => vi.stubEnv('REMEMBER_TO_RECALL', 'on')); // so the writer runs either way
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('on at the start, off mid-read: the phone number is still refused as contact', async () => {
+    vi.stubEnv('MEMORY_TOOLS_HONEST', 'on');
+    const r = await correctWhile(() => vi.stubEnv('MEMORY_TOOLS_HONEST', ''));
+    expect(r.got).toEqual({ kind: 'not_kept', kept: { kind: 'refused', reason: 'contact' } });
+    expect(r.create).not.toHaveBeenCalled();
+    expect(r.forget).not.toHaveBeenCalled();
+  });
+
+  it('off at the start, on mid-read: refused too (either one on runs the guard)', async () => {
+    vi.stubEnv('MEMORY_TOOLS_HONEST', '');
+    const r = await correctWhile(() => vi.stubEnv('MEMORY_TOOLS_HONEST', 'on'));
+    expect(r.got).toEqual({ kind: 'not_kept', kept: { kind: 'refused', reason: 'contact' } });
+    expect(r.create).not.toHaveBeenCalled();
+  });
+
+  it('REMEMBER_TO_RECALL on at the start, both off mid-read: refused as off, as main', async () => {
+    vi.stubEnv('MEMORY_TOOLS_HONEST', '');
+    const r = await correctWhile(() => vi.stubEnv('REMEMBER_TO_RECALL', ''));
+    expect(r.got).toEqual({ kind: 'not_kept', kept: { kind: 'refused', reason: 'off' } });
+    expect(r.create).not.toHaveBeenCalled();
+    expect(r.forget).not.toHaveBeenCalled();
+  });
+
+  it('off throughout: unchanged, the correction is kept as before', async () => {
+    vi.stubEnv('MEMORY_TOOLS_HONEST', '');
+    const r = await correctWhile(() => undefined);
+    expect(r.got).toEqual({ kind: 'replaced' });
+    expect(r.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('on throughout: a fact with no number is replaced, as before', async () => {
+    vi.stubEnv('MEMORY_TOOLS_HONEST', 'on');
+    const r = await correctWhile(() => undefined, 'my sister Dana lives in Boston');
+    expect(r.got).toEqual({ kind: 'replaced' });
+    expect(r.create).toHaveBeenCalledTimes(1);
+    expect(r.forget).toHaveBeenCalledTimes(1);
+  });
+});

@@ -5,4 +5,8 @@ export const FACT_SUBJECT_GUARD = {
   default: 'off',
   owner: 'memory',
   kind: 'experiment',
+  expires: '2027-02-02',
+  issue: 'TBD',
+  context:
+    'Keep if persona facts stop being stored as the caller facts with no recall lost; else delete.',
 } as const satisfies FlagSpec;

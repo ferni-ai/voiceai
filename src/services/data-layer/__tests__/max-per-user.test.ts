@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LIST_PAGE_SIZE } from '../../../memory/firestore-vector-store/types.js';
 import { getEntityPolicy } from '../indexing-policy.js';
 import {
   enforceMaxPerUser,
   forgetIndexedDoc,
+  MAX_EVICTIONS_PER_WRITE,
   resetMaxPerUserCache,
   type CappedVectorStore,
 } from '../max-per-user.js';
@@ -13,14 +14,20 @@ const TYPE = 'capacity_state' as EntityType;
 const MAX = getEntityPolicy(TYPE)?.conditions?.maxPerUser as number;
 const T0 = Date.parse('2026-10-05T12:00:00Z');
 
-/** A user's index: `n` docs of TYPE (oldest first) plus unrelated docs. */
-function store(n: number) {
+/**
+ * A user's index: `n` docs of TYPE (oldest first) plus unrelated docs. With
+ * `onlyType`, the read returns TYPE docs only, as a read narrowed by entity
+ * type does.
+ */
+function store(n: number, { onlyType = false } = {}) {
   const docs = [
     ...Array.from({ length: n }, (_, i) => ({
       id: `s_${TYPE}_${i}`,
       metadata: { entityType: TYPE, indexedAt: new Date(T0 - (n - i) * 60_000).toISOString() },
     })),
-    { id: 'fact_1', metadata: { entityType: 'fact', indexedAt: '2020-01-01T00:00:00Z' } },
+    ...(onlyType
+      ? []
+      : [{ id: 'fact_1', metadata: { entityType: 'fact', indexedAt: '2020-01-01T00:00:00Z' } }]),
   ];
   const s: CappedVectorStore = {
     list: vi.fn(async () => docs),
@@ -182,5 +189,63 @@ describe('maxPerUser enforcement', () => {
     const s = store(0);
     await enforceMaxPerUser(s, 'u1', 'no_such_type' as EntityType, 'a', T0);
     expect(s.list).not.toHaveBeenCalled();
+  });
+});
+
+describe('maxPerUser eviction cap per write (MAX_PER_USER_EVICT_CAP)', () => {
+  const OVER = 50;
+  const oldestIds = (k: number) => Array.from({ length: k }, (_, i) => `s_${TYPE}_${i}`);
+
+  beforeEach(() => resetMaxPerUserCache());
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('caps at two', () => {
+    expect(MAX_EVICTIONS_PER_WRITE).toBe(2);
+  });
+
+  for (const onlyType of [false, true]) {
+    const read = onlyType ? 'a read narrowed to the type' : 'a read of every type';
+    it(`on by default: ${OVER} over the cap, a new doc removes only the oldest two (${read})`, async () => {
+      const s = store(MAX + OVER, { onlyType });
+      expect(s.removeDocument).not.toHaveBeenCalled();
+      const removed = await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new`, T0);
+      expect(removed).toEqual(oldestIds(MAX_EVICTIONS_PER_WRITE));
+      expect(s.removeDocument).toHaveBeenCalledTimes(MAX_EVICTIONS_PER_WRITE);
+    });
+  }
+
+  it('on: an over-cap user drains by one doc per write, oldest first', async () => {
+    const s = store(MAX + OVER);
+    expect(await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new1`, T0)).toEqual(oldestIds(2));
+    expect(await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new2`, T0 + 1)).toEqual([
+      `s_${TYPE}_2`,
+      `s_${TYPE}_3`,
+    ]);
+    expect(s.removeDocument).toHaveBeenCalledTimes(4);
+  });
+
+  it('off: every excess doc goes in one write, as before', async () => {
+    vi.stubEnv('MAX_PER_USER_EVICT_CAP', 'off');
+    const s = store(MAX + OVER);
+    const removed = await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new`, T0);
+    expect(removed).toEqual(oldestIds(OVER + 1));
+    expect(s.removeDocument).toHaveBeenCalledTimes(OVER + 1);
+  });
+
+  it('on, at the cap exactly: a new doc removes one', async () => {
+    const s = store(MAX);
+    expect(await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new`, T0)).toEqual(oldestIds(1));
+  });
+
+  it('on, under the cap: a new doc removes nothing', async () => {
+    const s = store(MAX - 1);
+    expect(await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new`, T0)).toEqual([]);
+    expect(s.removeDocument).not.toHaveBeenCalled();
+  });
+
+  it('on, over the cap: re-indexing a known doc removes nothing', async () => {
+    const s = store(MAX + OVER);
+    expect(await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_7`, T0)).toEqual([]);
+    expect(s.removeDocument).not.toHaveBeenCalled();
   });
 });

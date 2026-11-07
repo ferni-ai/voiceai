@@ -48,7 +48,10 @@ describe('COHORT_FLAGS', () => {
         'GMAIL_SEND_AS_USER',
         'PERSONA_GROWTH', 'QUIET_AFTER_QUESTION',
         'CALL_NEWS_OPENER', 'TURN_MEMORY_RRF_SCALE', 'TURN_MEMORY_RERANK', 'CALLER_CARD',
-        'DATES_IN_HELLO',
+        'DATES_IN_HELLO', 'PERSONA_BRIEFING_ALEX', 'PERSONA_BRIEFING_JORDAN',
+        'PERSONA_BRIEFING_MAYA', 'PERSONA_BRIEFING_NAYAN', 'PERSONA_BRIEFING_PETER_HANDOFF',
+        'HANDOFF_DESK', 'REMEMBER_TO_RECALL', 'MEMORY_TOOLS_HONEST', 'FACTS_DUAL_WRITE',
+        'MEMORY_FACTS',
       ].sort() // prettier-ignore
     );
   });
@@ -76,6 +79,12 @@ describe('COHORT_FLAGS', () => {
     expect(
       missingPrerequisites({ ...all, WORLD_MODEL_TEMPORAL: 'on', DATES_IN_HELLO: 'on' })
     ).toEqual([]);
+  });
+  it('the facts dual write needs the facts store', () => {
+    expect(missingPrerequisites({ FACTS_DUAL_WRITE: 'on' })).toEqual([
+      'FACTS_DUAL_WRITE needs MEMORY_FACTS',
+    ]);
+    expect(missingPrerequisites({ FACTS_DUAL_WRITE: 'on', MEMORY_FACTS: 'on' })).toEqual([]);
   });
 });
 
