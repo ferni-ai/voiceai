@@ -19,8 +19,7 @@
  *
  * @module agents/personas/emergency-claim
  */
-import { EMERGENCY_SERVICE } from '../../services/safety/index.js';
-import { IN_DANGER_NOW } from '../safety/crisis-guard.js';
+import { EMERGENCY_SERVICE, IN_DANGER_NOW } from '../safety/crisis-guard.js';
 import { recentSpoken, spokenOf, plain, type Item } from './spoken-words.js';
 
 /** What Ferni says in place of an emergency claim: he didn't call, and where to turn now. */

@@ -15,7 +15,7 @@
  * - 911, 999, 112, 000 and 111 in digits or words; an N11 number or 933 after a
  *   call word or on its own; any toll-free number.
  * Not a story, an event or a thing named after one ("the police drama", "the
- * NAMI walk", "my warmline phone case"), a count ("999 problems") or an amount.
+ * NAMI gala", "my warmline mug"), a count ("999 problems") or an amount.
  *
  * @module services/safety/safety-talk
  */
@@ -99,20 +99,17 @@ const nameSource = (n: string): string =>
     .replace(/\s+/g, String.raw`\s+`)
     .replace('&', '(?:&|and)');
 
-/**
- * After a name, the nouns that make it a story, an event or a thing. Not "show",
- * "run" or "game", which are verbs as often ("the police show up", "Shout runs a line").
- */
+/** After a name, a noun making it a story, an event or a thing; not a verb ("show up", "walk you through"). */
 const NOT_THE_LINE =
-  /^[\s-]+(?:dramas?|series|procedurals?|movies?|films?|novels?|podcasts?|thrillers?|walks?|5ks?|galas?|fundraisers?|raffles?|(?:phone )?cases?|mugs?|shirts?|t-shirts?|hoodies?|stickers?|merch)\b/i;
+  /^[\s-]+(?:dramas?|series|procedurals?|movies?|novels?|podcasts?|thrillers?|5ks?|galas?|fundraisers?|raffles?|mugs?|shirts?|t-shirts?|hoodies?|stickers?|merch)\b/i;
 /**
- * After a number, the count and unit nouns that make it a count or an amount
- * ("999 problems", "112 miles"). A closed list: a verb or a role after the number
- * still names the line ("999 works", "112 operators", "999 calls").
+ * After a number, the count and unit nouns that make it a count or an amount ("999 problems",
+ * "112 miles"). A closed list: a verb, a role, "people" or "times" after the number still names
+ * the line ("999 works", "112 operators", "the 999 people", "call 999 times like this").
  */
 const COUNT_NOUNS = [
-  'problems?|things?|ways?|ideas?|reasons?|questions?|items?|pieces?|times?',
-  'people|persons?|guests?|kids?|children|students?|members?|friends?|fans?|followers?',
+  'problems?|things?|ways?|ideas?|reasons?|questions?|items?|pieces?',
+  'persons?|guests?|kids?|children|students?|members?|friends?|fans?|followers?',
   'likes?|views?|votes?|points?|goals?|steps?|reps?|laps?|pages?|words?|books?|songs?',
   'seconds?|minutes?|mins?|hours?|hrs?|days?|nights?|weeks?|months?|years?',
   'dollars?|bucks?|cents?|pounds?|quid|pence|euros?|lbs?|ounces?|oz|grams?|kilos?|kgs?',
@@ -179,20 +176,23 @@ const BY_WORD_NAME = anyName(WORD_NAMES, 'gi');
 const CONTACT_OR_HELP =
   /\b(?:call(?:ing)?|text(?:ing)?|messag(?:e|ing)|reach(?:ing)?|contact(?:ing)?|dial(?:l?ing)?|tr(?:y|ied|ying)|talk to|help\w*|hotlines?|lines?|services?|support|crisis|volunteers?|counsel+ors?|24\/7|any ?time|any hour|day or night|all night|around the clock)\b/i;
 const NEAR_WORDS = 8;
+const DESCRIBED =
+  /^(?:'s|\s+(?:is|was|has|offers?|gives?|provides?|runs?|answers?|listens?|connects?|works?|can|will))\b/i;
 /**
- * A name that is also a word is the line in its own capitals where they tell
- * ("NAMI"; "Shout" mid-sentence), or beside a contact or help word in any case
- * ("call nami", "Shout is there by text"). Not "my friend Nami", "Shout out to you".
- * Beside its number it is read anyway, by that number ("85258").
+ * A name that is also a word is the line in capitals anywhere ("SHOUT", "NAMI"), in its own case
+ * mid-sentence ("try Shout") or opening a sentence that says what it is (DESCRIBED: "Shout is
+ * free"), else only beside a contact or help word ("call nami"). Not "my friend Nami", "don't shout".
  */
 function namesTheLine(m: RegExpExecArray, text: string): boolean {
   const before = text.slice(0, m.index);
+  const after = text.slice(m.index + m[0].length);
   const sentenceStart = /(?:^|[.!?:;"“(\n-]\s*)$/.test(before);
-  if (WORD_NAMES.includes(m[0]) && (/[A-Z]/.test(m[0].slice(1)) || !sentenceStart)) return true;
+  if (m[0] === m[0].toUpperCase()) return true;
+  if (WORD_NAMES.includes(m[0]) && (!sentenceStart || DESCRIBED.test(after))) return true;
   const words = (s: string): string[] => s.split(/\s+/).filter(Boolean);
   const near = [
     ...words(before.split(/[.!?]/).pop() ?? '').slice(-NEAR_WORDS),
-    ...words(text.slice(m.index + m[0].length).split(/[.!?]/)[0]).slice(0, NEAR_WORDS),
+    ...words(after.split(/[.!?]/)[0]).slice(0, NEAR_WORDS),
   ].join(' ');
   return CONTACT_OR_HELP.test(near);
 }

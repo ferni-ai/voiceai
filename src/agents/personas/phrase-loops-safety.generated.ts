@@ -134,6 +134,7 @@ export const SAFETY_WORDING: readonly string[] = [
   './crisis-third-person.js',
   './crisis-who-guidance.js',
   './crisis-patterns.js',
+  './emergency-number.js',
   'explicit_crisis_language',
   'plan_or_means',
   'third_party_risk',

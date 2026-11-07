@@ -29,7 +29,8 @@ type Reader =
  * isCareTalk (at 726c79e70). Three of them are not on main, so their hits are
  * kept here. Computed 2026-11-06 over those readers' own tests, main's
  * action-claim and crisis-line tests, the scripts/crisis-eval corpus and
- * labelled cases, and the lines the crisis verifies listed. notHelp: the only
+ * labelled cases, and the lines the crisis verifies listed; #3483's reachesHelp
+ * also over CUT_ROWS below. notHelp: the only
  * strings an old reader matched that the new one leaves, each with the reason.
  */
 const PINNED = JSON.parse(
@@ -45,6 +46,30 @@ const NEW: Record<Reader, (t: string) => boolean> = {
   isCareTalk,
 };
 const SERVICE = new RegExp(EMERGENCY_SERVICE);
+/**
+ * One line per family the #3565 r2 verify found an old reader read and this one
+ * missed: a service name then walk, film or case as a verb; SHOUT or NAMI in
+ * capitals, or Shout opening a sentence that says what it is; an emergency number
+ * then "people" or "times".
+ */
+const CUT_ROWS = [
+  'The police walk you through what happens next.',
+  'Paramedics film the scene so the hospital knows what they saw.',
+  'Samaritans walk you through it, one step at a time.',
+  'The police case the area before they come in.',
+  'Paramedics walk you out if you can stand.',
+  'A crisis counselor walks you through the next hour.',
+  'The hotline walks you through a safety plan.',
+  'SHOUT is free and confidential.',
+  "I'd recommend SHOUT for this.",
+  "In the UK there's SHOUT, free and confidential.",
+  'Shout is free and confidential.',
+  "Shout's free and confidential.",
+  'NAMI walks families through the first visit.',
+  'The 999 people will talk you through it.',
+  'The 999 people know exactly what to do.',
+  'Call 999 times like this need it.',
+];
 const CORPUS_DIR = join(__dirname, '../../../../scripts/crisis-eval/corpus');
 
 function strings(value: unknown): string[] {
@@ -68,6 +93,18 @@ describe('never narrower than an old reader', () => {
     const read = corpus.filter((t) => offersCrisisLine(t) || SERVICE.test(t.toLowerCase()));
     expect(read.length).toBeGreaterThan(10);
     expect(read.filter((t) => !reachesHelp(t))).toEqual([]);
+  });
+
+  it('reads every help line that EMERGENCY_SERVICE or #3483 read', () => {
+    const lines = [
+      ...new Set([...(Object.keys(NEW) as Reader[]).flatMap((r) => PINNED[r]), ...CUT_ROWS]),
+    ].filter((t) => !(t in PINNED.notHelp));
+    const oldRead = lines.filter(
+      (t) => SERVICE.test(t.toLowerCase()) || PINNED.reachesHelp.includes(t)
+    );
+    expect(oldRead.length).toBeGreaterThan(250);
+    expect(oldRead).toEqual(expect.arrayContaining(CUT_ROWS.filter((t) => /999/.test(t))));
+    expect(oldRead.filter((t) => !reachesHelp(t))).toEqual([]);
   });
 
   it('leaves only amounts, times, labels and stories an old reader matched', () => {
@@ -214,7 +251,6 @@ describe('a verb or a role after the number or the name still names the line', (
   it.each([
     'I walked 999 steps today.',
     "That's 112 miles from here.",
-    'There were 999 people in line.',
     'It took 112 days.',
     'We drove 111 kilometres.',
     'Room 112 is upstairs.',
@@ -228,13 +264,28 @@ describe('a verb or a role after the number or the name still names the line', (
   });
 });
 
+describe('the lines the #3565 r2 verify found missing', () => {
+  it.each(CUT_ROWS)('reaches help: %s', (text) => {
+    expect(reachesHelp(text)).toBe(true);
+  });
+
+  // Lower-case "shout" with no contact word: neither EMERGENCY_SERVICE nor #3483 reads it.
+  it.each(["Don't shout, it's fine.", 'I shout at the TV', 'shout is free and confidential.'])(
+    'no help: %s',
+    (text) => {
+      expect(reachesHelp(text)).toBe(false);
+    }
+  );
+});
+
 describe('ordinary talk is no safety talk', () => {
   it.each([
     'call the hotel',
     'the police drama',
     'We watched that police procedural again.',
-    'the NAMI walk was fun',
-    'my warmline phone case',
+    'the NAMI gala was fun',
+    'my warmline mug',
+    'a police drama',
     "I'm going home",
     "I'll text home when I land.",
     'my friend Trevor',
@@ -274,6 +325,12 @@ describe('fails closed on ordinary lines that share the words', () => {
     'I need the police report for the insurance.',
     'the police station front desk',
     'Call 411 for the number.',
+    // walk, case, people and times name the line as often, so these read too
+    'the Samaritans walk on Sunday',
+    'the NAMI walk was fun',
+    'my warmline phone case',
+    '999 people attended',
+    'There were 999 people in line.',
   ])('reaches help: %s', (text) => {
     expect(reachesHelp(text)).toBe(true);
   });
