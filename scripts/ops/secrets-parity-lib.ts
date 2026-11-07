@@ -73,13 +73,29 @@ interface Boot {
   done: number | null; // log position where its last part arrived
 }
 
+/**
+ * Lines of `b` and of the finished boot `chosen` mix in the log. An unfinished `b` counts only
+ * when it began while `chosen` was logging: a crashed boot from before, or one whose start the
+ * backlog cut off, must not block every later boot.
+ */
+function interleaved(b: Boot, chosen: Boot): boolean {
+  const end = chosen.done ?? 0;
+  if (b.done === null) return b.first > chosen.first && b.first < end;
+  return b.first < end && chosen.first < b.done;
+}
+
 export interface BootResult {
   readonly commit: string | null;
   readonly values: Map<string, Sealed>;
   readonly at: number | null;
   /** A boot with other settings started after the chosen one and never finished logging. */
   readonly partialNewer: boolean;
+  /** Another boot with other settings logged alongside the chosen one (a rolling restart). */
+  readonly concurrent: boolean;
 }
+
+/** Boots with different settings this close together are a restart still rolling out. */
+const ROLLING_MS = 120_000;
 
 /**
  * Collects `EFFECTIVE_SETTINGS {...}` boot lines from a log stream, sealing each value as it
@@ -146,7 +162,20 @@ export class BootCollector {
     const partialNewer = this.boots.some(
       (b) => b.done === null && b.id !== chosen?.id && b.first > (chosen?.first ?? 0)
     );
-    return { commit: chosen?.commit ?? null, values, at: chosen?.at ?? null, partialNewer };
+    const concurrent = this.boots.some(
+      (b) =>
+        chosen !== undefined &&
+        b.id !== chosen.id &&
+        (interleaved(b, chosen) ||
+          (b.at !== null && chosen.at !== null && Math.abs(b.at - chosen.at) < ROLLING_MS))
+    );
+    return {
+      commit: chosen?.commit ?? null,
+      values,
+      at: chosen?.at ?? null,
+      partialNewer,
+      concurrent,
+    };
   }
 
   private sealOne(name: string, value: string): Sealed {
@@ -171,6 +200,15 @@ export function snapshotOf(label: string, secrets: Secrets, boot: BootResult): S
   const problems: string[] = [];
   if (boot.commit === null) problems.push('no complete boot settings found in the log');
   if (boot.partialNewer) problems.push('a newer boot is only partly logged; read the log again');
+  if (boot.concurrent) {
+    problems.push(
+      'two boots with different settings are too close together to tell which one is live; ' +
+        'restart the agent (or wait for a later boot) before reading again'
+    );
+  }
+  if (secrets.names.length > 0 && secrets.newest === null) {
+    problems.push('lk gave no updatedAt for the secrets, so boot freshness was not checked');
+  }
   if (boot.commit !== null && boot.at === null) problems.push('boot time unknown');
   if (boot.at !== null && secrets.newest !== null && boot.at < secrets.newest) {
     problems.push('the boot read is older than the latest secret change');
