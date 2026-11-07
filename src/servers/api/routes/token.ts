@@ -15,6 +15,7 @@ import { prewarmContent, type ContentType } from '../../../services/llm-dynamic-
 import { getClientIp } from '../../../utils/client-ip.js';
 import { requestLanguages } from './token-locale.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { DEMO_DEVICE_ID_PREFIX } from '../../../utils/synthetic-user.js';
 import * as demoSessions from '../services/demo-sessions.js';
 import { prefetchUserData } from './user-data-prefetch.js';
 import { refuseUnownedRoom } from './token-room-owner.js';
@@ -185,16 +186,14 @@ export async function handleTokenRoutes(
     }
 
     try {
-      // Generate unique demo identifiers
-      const demoId = `demo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      // Generate unique demo identifiers. The agent stores nothing for this device id
+      // (isAnonymousDemoUser): the visitor is told no account is needed.
+      const demoId = `${DEMO_DEVICE_ID_PREFIX}${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const roomName = `demo-${demoId}`;
       const username = `guest-${Math.random().toString(36).slice(2, 8)}`;
 
       // Create demo session for "I remember you" experience (async - persists to Firestore)
-      const demoSession = await demoSessions.createDemoSession(roomName, demoId, {
-        ip,
-        userAgent: req.headers['user-agent'],
-      });
+      const demoSession = await demoSessions.createDemoSession(roomName, demoId);
 
       // Pre-warm LLM content cache for the requested persona (fire-and-forget)
       prewarmLLMContentForPersona(personaId);

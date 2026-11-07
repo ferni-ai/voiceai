@@ -56,9 +56,7 @@ export class UserLearningEngine {
   }> = [];
   private voiceEmotionAccuracy = 0.5; // Start neutral, adjust based on validation
 
-  /**
-   * Process a user turn and extract learning opportunities
-   */
+  /** Process a user turn and extract learning opportunities; `logsWords: false` logs no words. */
   processUserTurn(
     message: string,
     analysis: {
@@ -66,7 +64,8 @@ export class UserLearningEngine {
       intent: IntentResult;
       state: ConversationState;
     },
-    profile: UserProfile | null
+    profile: UserProfile | null,
+    { logsWords = true }: { logsWords?: boolean } = {}
   ): void {
     this.conversationHistory.push({ role: 'user', content: message });
     this.turnsSinceLastCapture++;
@@ -107,7 +106,8 @@ export class UserLearningEngine {
     const keyMoment = this.detectKeyMoment(message, analysis);
     if (keyMoment) {
       this.sessionKeyMoments.push(keyMoment);
-      getLogger().info({ type: keyMoment.type, summary: keyMoment.summary }, 'Captured key moment');
+      const { type, summary } = keyMoment;
+      getLogger().info(logsWords ? { type, summary } : { type }, 'Captured key moment');
     }
 
     // 5. Learn preferences every 5 turns

@@ -21,6 +21,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
 import { runAfterCall } from './after-call-tasks.js';
 import { memoryHeld } from '../../utils/minor-care.js';
+import { wordsNeverLogged } from '../identity/owner-write-gate.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 
@@ -820,12 +821,9 @@ export async function createSessionServices(
 
       learningEngine.processUserTurn(
         message,
-        {
-          emotion: analysis.emotion,
-          intent: analysis.intent,
-          state: analysis.state,
-        },
-        userProfile
+        { emotion: analysis.emotion, intent: analysis.intent, state: analysis.state },
+        userProfile,
+        { logsWords: !wordsNeverLogged(userId) }
       );
 
       // Memory pipeline diagnostics - log what was analyzed

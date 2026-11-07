@@ -37,7 +37,7 @@
 import { flagModeOf, flagOn } from '../config/env-flag.js';
 import { statesUnder18 } from './minor-care-detect.js';
 import { createLogger } from './safe-logger.js';
-import { PLACEHOLDER_IDS } from './synthetic-user.js';
+import { isAnonymousDemoUser, PLACEHOLDER_IDS } from './synthetic-user.js';
 import { sexualTopicHeld, sexualTopicUserHeld } from './sexual-topic-hold.js';
 export { sexualReadsSettled } from './sexual-topic-hold.js';
 
@@ -237,11 +237,19 @@ export function likelyMinor(sessionId: string | undefined): boolean {
 }
 
 /**
- * Nothing personal is stored for this session: MINOR_CARE holds it (minorHeld), or
- * SEXUAL_TOPIC_BOUNDARY does (sexual-topic-hold.ts).
+ * The session is an anonymous try-first visitor's (isAnonymousDemoUser), so it keeps nothing, with
+ * every flag on or off: the visitor was told nothing is kept. Bound at session start
+ * (session-init-handler.ts), before session services make their first write.
+ */
+const demoCallHeld = (sessionId: string | undefined): boolean =>
+  !!sessionId && isAnonymousDemoUser(sessionUsers.get(sessionId));
+
+/**
+ * Nothing personal is stored for this session: it is an anonymous try-first call (demoCallHeld),
+ * MINOR_CARE holds it (minorHeld), or SEXUAL_TOPIC_BOUNDARY does (sexual-topic-hold.ts).
  */
 export function memoryHeld(sessionId: string | undefined, env: Env = process.env): boolean {
-  return minorHeld(sessionId, env) || sexualTopicHeld(sessionId, env);
+  return demoCallHeld(sessionId) || minorHeld(sessionId, env) || sexualTopicHeld(sessionId, env);
 }
 
 /** MINOR_CARE's own hold: flag on, sounds under 18, not a verified owner. Its purge keys on this. */
@@ -265,11 +273,16 @@ export function heldAfter(
   said: string,
   options: HeardOptions = {}
 ): boolean {
-  if (!minorCareOn(options.env)) return sexualTopicHeld(sessionId, options.env);
+  if (!minorCareOn(options.env))
+    return memoryHeld(sessionId, options.env) || isAnonymousDemoUser(options.userId);
   noteCallerWords(sessionId, said, options);
   bindSessionUser(sessionId, options.userId);
   return memoryHeld(sessionId, options.env);
 }
+
+/** A try-first call that may still be writing: its binding is its hold, so it is never evicted. */
+const liveDemoCall = (sessionId: string): boolean =>
+  demoCallHeld(sessionId) && Date.now() - (sessionBound.get(sessionId) ?? 0) <= IDLE_MS;
 
 /** This session is this user's (session start, and any detector call that knows the userId). */
 export function bindSessionUser(sessionId: string | undefined, userId: string | undefined): void {
@@ -279,7 +292,7 @@ export function bindSessionUser(sessionId: string | undefined, userId: string | 
   if (!sessionBound.has(sessionId)) sessionBound.set(sessionId, Date.now());
   for (const s of sessionUsers.keys()) {
     if (sessionUsers.size <= MAX_SESSION_USERS) break;
-    if (!likely.has(s)) sessionUsers.delete(s);
+    if (!likely.has(s) && !liveDemoCall(s)) sessionUsers.delete(s);
   }
   for (const s of sessionBound.keys()) {
     if (sessionBound.size <= MAX_SESSION_USERS) break;
@@ -301,6 +314,22 @@ export function writeHeld(
   return memoryHeld(sessionId, env) || userHeld(userId, env) || sharedId(userId);
 }
 
+/**
+ * writeHeld without the try-first rule: MINOR_CARE or SEXUAL_TOPIC_BOUNDARY holds this caller.
+ * A safety record that keeps no words (crisis_events) still writes for a try-first visitor, so it
+ * asks this. A demo id lives for one call, so its session's holds are all its holds.
+ */
+export function careHeld(
+  userId: string | undefined,
+  sessionId?: string,
+  env: Env = process.env
+): boolean {
+  if (!isAnonymousDemoUser(userId)) return writeHeld(userId, sessionId, env);
+  return (
+    minorHeld(sessionId, env) || sexualTopicHeld(sessionId, env) || sexualTopicUserHeld(userId, env)
+  );
+}
+
 /** writeHeld, or a hold its caller already read where this process can't see it (chat: ctx.held). */
 export function callerHeld(
   ctx: { held?: boolean; userId?: string; sessionId?: string },
@@ -311,11 +340,11 @@ export function callerHeld(
 
 /**
  * The per-user writers' check, at write time (a flush timer's tick): true whenever memoryHeld is
- * true for any of this user's sessions, from either detector. Never refreshes a session, so a
- * timer can't keep a hold alive past IDLE_MS.
+ * true for any of this user's sessions, from either detector, and always for a try-first visitor's
+ * id. Never refreshes a session, so a timer can't keep a hold alive past IDLE_MS.
  */
 export function userHeld(userId: string | undefined, env: Env = process.env): boolean {
-  if (sexualTopicUserHeld(userId, env)) return true;
+  if (isAnonymousDemoUser(userId) || sexualTopicUserHeld(userId, env)) return true;
   if (!userId || sharedId(userId) || !minorCareOn(env)) return false;
   for (const [sessionId, owner] of sessionUsers) {
     const used = likely.get(sessionId);

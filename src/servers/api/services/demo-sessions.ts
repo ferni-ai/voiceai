@@ -26,7 +26,6 @@ export interface DemoSession {
   claimToken: string;
   createdAt: number;
   expiresAt: number;
-  metadata: Record<string, unknown>;
   conversation: {
     messages: unknown[];
     highlights: string[];
@@ -70,11 +69,13 @@ let cleanupInterval: NodeJS.Timeout | null = null;
 /**
  * Create a new demo session that can be claimed later.
  * Returns a claim token the user can use to migrate their conversation.
+ *
+ * PRIVACY: nothing about the visitor's device or network (no IP, no User-Agent) is stored; nothing
+ * read it, and the visitor was told nothing is kept.
  */
 export async function createDemoSession(
   roomName: string,
-  demoId: string,
-  metadata: Record<string, unknown> = {}
+  demoId: string
 ): Promise<{ claimToken: string; roomName: string; expiresAt: number }> {
   const claimToken = crypto.randomBytes(16).toString('hex');
 
@@ -84,7 +85,6 @@ export async function createDemoSession(
     claimToken,
     createdAt: Date.now(),
     expiresAt: Date.now() + DEMO_SESSION_TTL_HOURS * 60 * 60 * 1000,
-    metadata,
     conversation: {
       messages: [],
       highlights: [],
