@@ -1,0 +1,8 @@
+# Python 3.12, CPU wheels. torch/torchaudio only for the WeSpeaker Kaldi fbank front end.
+numpy==2.5.3
+onnxruntime==1.30.0
+pyroomacoustics==0.10.1
+scipy==1.18.1
+soundfile==0.14.0
+torch==2.14.1
+torchaudio==2.11.0
