@@ -13,7 +13,7 @@ const FILLER_TAIL = String.raw`([ ,]+(anyway|anyways|lol|lmao|haha|tbh|honestly|
 /** Who a farewell is said to, at the end of the line ("bye forever everyone"). */
 const FAREWELL_TO = String.raw`([ ,]+(everyone|everybody|y'?all|you all|u all|guys|all))?`;
 
-export const FAREWELL_PASSIVE_PATTERNS: { re: RegExp; tag: 'suicidal' }[] = [
+export const FAREWELL_PASSIVE_PATTERNS: Array<{ re: RegExp; tag: 'suicidal' }> = [
   // Nobody would notice the caller gone, said flat and ending the sentence ("nobody would miss
   // me", "no one would notice if i was gone"); "nobody would miss me at the party" carries on.
   // A bare "nobody would care" only as the whole line.
