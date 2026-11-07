@@ -27,7 +27,7 @@ public enum CarScreens {
         public static func of(phase: CallSession.Phase, pose: AvatarPose, onHold: Bool) -> VoiceState {
             if onHold { return .onHold }
             switch phase {
-            case .connecting, .waitingForFerni, .reconnecting: return .connecting
+            case .connecting, .waitingForFerni, .reconnecting, .rejoining: return .connecting
             default: break
             }
             switch pose {

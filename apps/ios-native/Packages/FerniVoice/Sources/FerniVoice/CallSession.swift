@@ -20,6 +20,10 @@ public final class CallSession {
         case waitingForFerni
         case live
         case reconnecting
+        /// The call dropped and is joining a fresh room, also "Reconnecting…"
+        /// on screen. Not `reconnecting`: the new room's own reconnect events
+        /// mustn't call it live before Ferni joins, or start another rejoin.
+        case rejoining
         case ended
         case failed(CallProblem)
     }
@@ -70,6 +74,8 @@ public final class CallSession {
     /// run their audio themselves from the start, without the system's call.
     private var systemAudioUnreliable = false
     private let audioStartTimeout: Duration
+    /// How often an attempt looks for Ferni in the room.
+    private let agentPoll: Duration
     private var audioWatchdog: Task<Void, Never>?
     private var agentHere = false
     private var callTask: Task<Void, Never>?
@@ -86,6 +92,7 @@ public final class CallSession {
         agentTimeout: Duration = .seconds(20),
         arrivingAfter: Duration = .seconds(8),
         audioStartTimeout: Duration = .seconds(3),
+        agentPoll: Duration = .milliseconds(50),
         defaults: UserDefaults = .standard
     ) {
         self.defaults = defaults
@@ -99,6 +106,7 @@ public final class CallSession {
         self.agentTimeout = agentTimeout
         self.arrivingAfter = arrivingAfter
         self.audioStartTimeout = audioStartTimeout
+        self.agentPoll = agentPoll
         Task { [weak self, interruptions = audio.interruptions] in
             for await interruption in interruptions { await self?.handle(interruption) }
         }
@@ -111,7 +119,7 @@ public final class CallSession {
 
     public var isActive: Bool {
         switch phase {
-        case .connecting, .waitingForFerni, .live, .reconnecting: true
+        case .connecting, .waitingForFerni, .live, .reconnecting, .rejoining: true
         default: false
         }
     }
@@ -273,7 +281,7 @@ public final class CallSession {
 
     private func run(rejoining: Bool) async {
         guard !Task.isCancelled else { return }
-        phase = .connecting
+        phase = rejoining ? .rejoining : .connecting
         if !rejoining { captions.clear() }
         // A fresh join gets one retry when Ferni doesn't show; a rejoin after a
         // dropped call gets a single try.
@@ -296,7 +304,7 @@ public final class CallSession {
                 if rejoining { avatar.send(.reconnected) }
                 return
             case .ferniMissing:
-                log.error("Ferni didn't join (attempt \(attempt)); leaving room \(self.roomName ?? "-", privacy: .public)")
+                log.error("Ferni didn't join (attempt \(attempt)); leaving room \(self.roomName ?? "-", privacy: .private(mask: .hash))")
                 await leaveRoom()
             case .failed(let problem):
                 await leaveRoom()
@@ -322,7 +330,7 @@ public final class CallSession {
             await withCheckedContinuation { (continuation: CheckedContinuation<Attempt, Never>) in
                 race.start(continuation,
                     joining: Task { race.finish(await self.join(attempt: attempt)) },
-                    watchdog: Task { [weak self, arrivingAfter, agentTimeout] in
+                    watchdog: Task { [weak self, arrivingAfter, agentTimeout, agentPoll] in
                         // The deadline wins if it's the shorter of the two.
                         try? await Task.sleep(for: min(arrivingAfter, agentTimeout))
                         guard let self, !Task.isCancelled else { return }
@@ -331,7 +339,11 @@ public final class CallSession {
                             self.log.info("Attempt \(attempt): no Ferni yet at \(self.secondsSinceStart, privacy: .public) s; on the way")
                         }
                         try? await Task.sleep(for: max(.zero, agentTimeout - arrivingAfter))
-                        guard !Task.isCancelled, !self.agentHere else { return }
+                        // Ferni is in the room, and the join sees him at its
+                        // next look. If he leaves before it looks, the deadline
+                        // still holds: keep checking rather than stop for good.
+                        while !Task.isCancelled, self.agentHere { try? await Task.sleep(for: agentPoll) }
+                        guard !Task.isCancelled else { return }
                         self.log.error("Attempt \(attempt): no Ferni after \(agentTimeout.components.seconds) s; abandoning it")
                         race.finish(.ferniMissing)
                     })
@@ -414,20 +426,25 @@ public final class CallSession {
         }
         do {
             try await room.connect(url: token.url, token: token.token)
-            // Hung up while connecting: the room was already left; touch nothing.
-            if Task.isCancelled || self.room !== room { return .cancelled }
+            // Hung up or abandoned while connecting: the room was left before
+            // this connect finished, so leave it again; touch nothing else.
+            if self.room !== room {
+                await room.disconnect()
+                return .cancelled
+            }
+            if Task.isCancelled { return .cancelled }
             try await room.setMicrophone(enabled: !isMuted)
         } catch {
             log.error("Joining the room failed: \(error.localizedDescription, privacy: .public)")
             return Task.isCancelled || self.room !== room ? .cancelled : .failed(.offline)
         }
         if Task.isCancelled || self.room !== room { return .cancelled }
-        log.info("Attempt \(attempt): in room \(token.room, privacy: .public) at \(self.secondsSinceStart, privacy: .public) s")
+        log.info("Attempt \(attempt): in room \(token.room, privacy: .private(mask: .hash)) at \(self.secondsSinceStart, privacy: .public) s")
         // The server already knows dispatch failed: no point waiting it out.
         if token.agentDispatched == false, !agentHere { return .ferniMissing }
         // Until Ferni arrives or the attempt's watchdog gives up on him.
         while !agentHere, !Task.isCancelled {
-            try? await Task.sleep(for: .milliseconds(50))
+            try? await Task.sleep(for: agentPoll)
         }
         guard agentHere else { return Task.isCancelled ? .cancelled : .ferniMissing }
         log.info("Attempt \(attempt): Ferni joined at \(self.secondsSinceStart, privacy: .public) s")

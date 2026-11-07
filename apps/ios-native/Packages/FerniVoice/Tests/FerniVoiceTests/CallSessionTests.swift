@@ -19,6 +19,8 @@ final class CallSessionTests: XCTestCase {
         /// A slow connect that isn't cancelled by the call task (like a real one).
         var connectDelay: Duration?
         private(set) var connectedTo: (url: String, token: String)?
+        /// Connected and not left since (a connect that finishes late connects).
+        private(set) var isConnected = false
         private(set) var micStates: [Bool] = []
         private(set) var disconnects = 0
 
@@ -30,6 +32,7 @@ final class CallSessionTests: XCTestCase {
             if let connectDelay { await Task.detached { try? await Task.sleep(for: connectDelay) }.value }
             if let connectError { throw connectError }
             connectedTo = (url, token)
+            isConnected = true
             if let agentOnConnect { continuation.yield(.agentJoined(attributes: agentOnConnect)) }
         }
         var order: Order?
@@ -41,6 +44,7 @@ final class CallSessionTests: XCTestCase {
         func send(_ data: Data) async throws { sent.append(data) }
         func disconnect() async {
             disconnects += 1
+            isConnected = false
             continuation.finish()
         }
         func send(_ event: RoomEvent) { continuation.yield(event) }
@@ -88,6 +92,8 @@ final class CallSessionTests: XCTestCase {
         var requests: [String] = []
         var error: Error?
         var dispatched: Bool? = true
+        /// A slow token server.
+        var delay: Duration?
     }
 
     private var rooms = Rooms()
@@ -103,12 +109,14 @@ final class CallSessionTests: XCTestCase {
     /// says not dispatched) or passes a short timeout and never sends him.
     private func makeSession(
         timeout: Duration = .seconds(5), arriving: Duration = .milliseconds(50),
+        poll: Duration = .milliseconds(50),
         defaults: UserDefaults = UserDefaults(suiteName: "call-tests-\(UUID().uuidString)")!
     ) -> CallSession {
         let rooms = rooms, tokens = tokens
         return CallSession(
             fetchToken: { persona in
                 tokens.requests.append(persona)
+                if let delay = tokens.delay { try await Task.sleep(for: delay) }
                 if let error = tokens.error { throw error }
                 return CallToken(token: "lk-\(tokens.requests.count)", url: "wss://lk.example.test",
                                  room: "ios-x", agentDispatched: tokens.dispatched)
@@ -121,6 +129,7 @@ final class CallSessionTests: XCTestCase {
             audio: audio,
             agentTimeout: timeout,
             arrivingAfter: arriving,
+            agentPoll: poll,
             defaults: defaults
         )
     }
@@ -329,6 +338,72 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(session.phase, .failed(.ferniDidNotJoin))
     }
 
+    /// c5's straddle: Ferni is in the room at the deadline but leaves before
+    /// the join's next look. The deadline still ends the attempt; it used to
+    /// stop for good, and the call sat on "on the way" with nobody coming.
+    func testFerniLeavingJustAfterTheDeadlineStillEndsTheAttempt() async {
+        rooms.next = { FakeRoom(agentOnConnect: nil) }
+        // The join looks every 2 s, so it never sees Ferni's short visit.
+        let session = makeSession(timeout: .milliseconds(400), arriving: .milliseconds(100), poll: .seconds(2))
+        session.start()
+
+        await until(session.phase == .waitingForFerni) // the join is between looks
+        rooms.made[0].send(.agentJoined(attributes: [:]))
+        try? await Task.sleep(for: .milliseconds(600)) // the deadline passes with him there
+        rooms.made[0].send(.agentLeft)
+
+        await until(rooms.made.count == 2)
+        XCTAssertEqual(tokens.requests.count, 2, "the retry, with a fresh token")
+    }
+
+    /// The deadline starts with the attempt, not when its room connects: a
+    /// slow token counts against it. Ferni joins at 1.3 s, past the
+    /// attempt's 1 s and before a connect-based 1.7 s.
+    func testASlowTokenCountsAgainstTheDeadline() async {
+        tokens.delay = .milliseconds(700)
+        rooms.next = { FakeRoom(agentOnConnect: nil) }
+        let session = makeSession(timeout: .seconds(1), arriving: .milliseconds(100))
+        session.start()
+
+        await until(rooms.made.first?.connectedTo != nil)
+        try? await Task.sleep(for: .milliseconds(600))
+        rooms.made[0].send(.agentJoined(attributes: [:]))
+
+        await until(rooms.made.count == 2)
+        XCTAssertNotEqual(session.phase, .live, "the abandoned room's Ferni doesn't count")
+    }
+
+    /// Each attempt has a deadline of its own: the retry gets the full time,
+    /// not what the first attempt left of it.
+    func testTheRetryGetsAWholeDeadline() async {
+        rooms.next = { FakeRoom(agentOnConnect: nil) }
+        let session = makeSession(timeout: .milliseconds(800), arriving: .milliseconds(100))
+        session.start()
+
+        await until(rooms.made.count == 2 && rooms.made[1].connectedTo != nil)
+        try? await Task.sleep(for: .milliseconds(500)) // past 0.8 s from Talk, inside the retry's own
+        rooms.made[1].send(.agentJoined(attributes: [:]))
+
+        await until(session.phase == .live)
+        XCTAssertEqual(rooms.made.count, 2)
+    }
+
+    /// Hanging up stops the attempt's deadline with it: nothing waits on it,
+    /// so nothing keeps the call alive (the watchdog holds the session).
+    func testHangingUpWhileWaitingStopsTheDeadline() async {
+        rooms.next = { FakeRoom(agentOnConnect: nil) }
+        var session: CallSession? = makeSession(timeout: .seconds(30), arriving: .milliseconds(50))
+        weak var released = session
+        session?.start()
+        await until(session?.phase == .waitingForFerni)
+
+        await session?.end()
+        session = nil
+
+        await until(released == nil)
+        XCTAssertEqual(rooms.made.count, 1)
+    }
+
     func testRefusedTokenSaysSoAndJoinsNothing() async {
         tokens.error = FerniAPIError.status(401)
         let session = makeSession()
@@ -456,6 +531,30 @@ final class CallSessionTests: XCTestCase {
 
         await until(rooms.made.count == 2 && session.phase == .live)
         XCTAssertEqual(tokens.requests.count, 2)
+    }
+
+    /// A dropped call says "Reconnecting…" while it joins a fresh room, never
+    /// "Calling…" again. The fresh room's own reconnect events don't call it
+    /// live before Ferni is back, nor start a second rejoin.
+    func testARejoinSaysReconnectingUntilFerniIsBack() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        rooms.next = { FakeRoom(agentOnConnect: nil) }
+
+        rooms.made[0].send(.disconnected(byUs: false))
+        await until(rooms.made.count == 2 && rooms.made[1].connectedTo != nil)
+        XCTAssertEqual(session.phase, .rejoining)
+        XCTAssertTrue(session.isActive)
+
+        rooms.made[1].send(.reconnected)
+        rooms.made[1].send(.disconnected(byUs: false))
+        try? await Task.sleep(for: .milliseconds(200))
+        XCTAssertEqual(session.phase, .rejoining, "not live before Ferni is back")
+        XCTAssertEqual(rooms.made.count, 2, "no second rejoin")
+
+        rooms.made[1].send(.agentJoined(attributes: [:]))
+        await until(session.phase == .live)
     }
 
     /// A dropped call whose rejoin Ferni never joins ends as a lost connection,
