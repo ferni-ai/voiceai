@@ -5,9 +5,9 @@
  * autonomy-policy.json next to this file (main's copy in CI, never the PR's).
  *
  * - crisis: a file under a crisis path (any author), or, in a loop PR, any changed file
- *   outside `loopAllowed` (default-deny, below), a changed line matching a crisis pattern
- *   or naming a screened crisis-module export (`symbolsFile`), a binary file, or an import
- *   of a crisis module. A loop PR is one whose head branch
+ *   outside `loopAllowed` (default-deny, below), a changed line matching a crisis pattern,
+ *   naming a screened crisis-module export (`symbolsFile`) or over 4000 characters (refused
+ *   unread), a binary file, or an import of a crisis module. A loop PR is one whose head branch
  *   starts with `loopBranchPrefix`: that's the anchor GitHub enforces, through a ruleset
  *   that lets the loop's app push only there (SETUP.md). Commit logins (`loopAuthors` as
  *   opener, author or committer, or no linked account) also count, but they come from
@@ -190,11 +190,16 @@ function hunkLines(diff: string): { file: string; line: string }[] {
 
 /** A lookahead, so matches overlap: an `import('x')` inside a vi.* type argument is read too. */
 const SPECIFIER =
-  /(?=(?:\bimport\b|\brequire\s*\(|\bfrom\b|\b(?:mock|doMock|importActual|importMock)\s*(?:<[\s\S]*?>\s*)?\()[^'"`]*['"`]([^'"`]+)['"`])/g;
+  /(?=(?:\bimport\b|\brequire\s*\(|\bfrom\b|\b(?:mock|doMock|importActual|importMock)\s*(?:<[^\n]{0,256}?>\s*)?\()[^'"`]*['"`]([^'"`]+)['"`])/g;
+/** Longest changed line the screens read; a longer one is refused unread, so no line can stall them. */
+const MAX_LINE = 4000;
+/** Whether a changed line (with its diff sign) is too long to screen. */
+const tooLong = (line: string) => line.length - 1 > MAX_LINE;
+
 /** Each specifier a changed line loads: import, require, from, vi.mock/doMock/importActual/importMock. */
 export function importsOf(diff: string): ImportRef[] {
   return hunkLines(diff).flatMap(({ file, line }) =>
-    [...line.matchAll(SPECIFIER)].map((m) => ({ file, specifier: m[1] }))
+    tooLong(line) ? [] : [...line.matchAll(SPECIFIER)].map((m) => ({ file, specifier: m[1] }))
   );
 }
 
@@ -234,7 +239,9 @@ function crisisScreen(policy: Policy) {
   const fallback = new RegExp(crisis.importFallbackPattern, 'i');
   return {
     line: (l: string) =>
-      crisisLine.some((re) => re.test(l)) || joined.some((re) => re.test(joinLine(l))),
+      tooLong(l) ||
+      crisisLine.some((re) => re.test(l)) ||
+      joined.some((re) => re.test(joinLine(l))),
     import: (ref: ImportRef) => {
       const targets = importTargets(ref);
       return targets ? targets.some((t) => inPaths(t, crisis.paths)) : fallback.test(ref.specifier);

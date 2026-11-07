@@ -23,15 +23,19 @@ const TURN = '../../processors/turn-processor/process-turn.js';
 /** A type argument with `>` inside it, so the skip must run to the `>` before the call's `(`. */
 const NESTED = 'Record<string, Array<Map<string, number>>>';
 
-/** Lanes for adding `text` to the test file, as the loop and as ferni-agent, from the diff alone. */
-function diffLanes(text: string, { withImports = true } = {}) {
-  const diff = [
+/** A diff adding `text` to the test file. */
+const diffOf = (text: string) =>
+  [
     `diff --git a/${TEST_FILE} b/${TEST_FILE}`,
     `--- a/${TEST_FILE}`,
     `+++ b/${TEST_FILE}`,
     '@@ -0,0 +1 @@',
     ...text.split('\n').map((l) => `+${l}`),
   ].join('\n');
+
+/** Lanes for adding `text` to the test file, as the loop and as ferni-agent, from the diff alone. */
+function diffLanes(text: string, { withImports = true } = {}) {
+  const diff = diffOf(text);
   const imports = withImports ? importsOf(diff) : [];
   const lines = changedLinesOf(diff);
   return ['ferni-loop[bot]', 'app/ferni-agent'].map((who) =>
@@ -52,6 +56,7 @@ const LOADS = {
   'vi.importActual with an import type and a nested type argument': `const real = await vi.importActual<typeof import('x') & ${NESTED}>('${TURN}');`,
   'an import type inside a vi.importActual type argument': `const real = await vi.importActual<typeof import('${TURN}')>('../greet.js');`,
   'vi.importMock': `const m = await vi.importMock('${TURN}');`,
+  'vi.importActual with a nested type argument, then a later generic call': `const real = await vi.importActual<Map<string, number>>('${TURN}'); const y = f<Bar>('../greet.js');`,
   'vi.mock with importOriginal, over several lines': [
     'vi.mock(',
     `  '${TURN}',`,
@@ -90,5 +95,42 @@ describe('test-file module loads are read by the loop screen', () => {
       expect(contentBlocks(text)).toBe(false);
       expect(diffLanes(text)).toEqual([[], []]);
     }
+  });
+});
+
+describe('no line can stall the screens', () => {
+  /** Many `vi.mock<` openers, then many `>(` closers: an unbounded skip tries every pair, so it was cubic. */
+  const stall = (n: number) => 'vi.mock<'.repeat(n) + '>('.repeat(n);
+  /** Generous: the screens take well under it; the unbounded skip took seconds (minutes at 50 KB). */
+  const BOUND_MS = 2000;
+  const timed = <T>(run: () => T) => {
+    const start = performance.now();
+    const out = run();
+    return { out, ms: performance.now() - start };
+  };
+
+  it('a 50 KB line is refused unread for the loop and loads nothing', () => {
+    const line = stall(5000);
+    const imports = timed(() => importsOf(diffOf(line)));
+    const lanes = timed(() => diffLanes(line, { withImports: false }));
+    expect(imports.out).toEqual([]);
+    expect(lanes.out).toEqual([['crisis'], []]);
+    expect(imports.ms).toBeLessThan(BOUND_MS);
+    expect(lanes.ms).toBeLessThan(BOUND_MS);
+  });
+
+  it('a line is read up to 4000 characters and refused unread past that', () => {
+    expect(diffLanes('x'.repeat(4000))).toEqual([[], []]);
+    expect(diffLanes('x'.repeat(4001))).toEqual([['crisis'], []]);
+  });
+
+  it('150 lines of 4000 characters, the longest read, are read in bounded time', () => {
+    const text = Array(150).fill(stall(400)).join('\n');
+    const imports = timed(() => importsOf(diffOf(text)));
+    const lanes = timed(() => diffLanes(text, { withImports: false }));
+    expect(imports.out).toEqual([]);
+    expect(lanes.out).toEqual([[], []]);
+    expect(imports.ms).toBeLessThan(BOUND_MS);
+    expect(lanes.ms).toBeLessThan(BOUND_MS);
   });
 });
