@@ -15,7 +15,10 @@ import {
 } from '../../safety/crisis-gate-signal.js';
 import { gatedReply } from '../../personas/crisis-gate.js';
 import { OpenerGate } from '../../personas/opener-gate.js';
-import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
+import {
+  crisisReadInFlight,
+  resetCrisisCallRisk,
+} from '../../../services/safety/crisis-call-risk.js';
 import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
@@ -91,6 +94,7 @@ const MAYA = 'maya-santos';
 const JORDAN = 'jordan-taylor';
 const FOUR_HOPS = [MAYA, 'ferni', MAYA, 'ferni'];
 const SIX_HOPS = [...FOUR_HOPS, MAYA, 'ferni'];
+const EIGHT_HOPS = [...SIX_HOPS, MAYA, 'ferni'];
 /** A fresh call, flag on: a first meeting as today, then "back again" lines, none repeated. */
 const FRESH_FOUR = [
   ARRIVING_OPENERS[MAYA][0], // first meeting: today's line
@@ -153,16 +157,20 @@ describe('A→B→A→B in one call', () => {
     expect(lines).toEqual(FRESH_FOUR);
   });
 
-  it('flag on: once every return line is said, no arrival line rather than a repeat, still wired', async () => {
+  it("flag on: a 3rd and later return, its return lines used up, says today's line, never silent, still wired", async () => {
     vi.stubEnv('HANDOFF_ARRIVAL_ONCE', 'on');
-    const { arrivals, lines, end } = await runCall('arrival-once-silent', SIX_HOPS);
+    const { arrivals, lines, end } = await runCall('arrival-once-used-up-call', EIGHT_HOPS);
     await end();
-    const spoken = lines.filter((l) => l.length > 0);
-    expect(new Set(spoken).size).toBe(spoken.length); // never a repeat
-    expect(lines[5]).toBe(''); // Ferni's third return: both return lines already said
-    expect(arrivals[5].said).toEqual([]);
-    expect(arrivals[5].wired).toHaveBeenCalledTimes(1); // tools and transcript still wired
-    expect(arrivals.every((a) => a.wired.mock.calls.length === 1)).toBe(true);
+    expect(SILENT_WHEN_RETURN_LINES_USED_UP).toBe(false);
+    expect(lines).toEqual([
+      ...FRESH_FOUR,
+      RETURNING_OPENERS[MAYA][1], // Maya's second return: her last return line
+      ARRIVING_OPENERS.ferni[0], // Ferni's 3rd return: both return lines said, today's line
+      ARRIVING_OPENERS[MAYA][0], // Maya's 3rd return: today's line
+      ARRIVING_OPENERS.ferni[0], // Ferni's 4th return: today's line again, spoken
+    ]);
+    expect(arrivals[7].said).toEqual([ARRIVING_OPENERS.ferni[0]]); // the last hop: spoken, once
+    expect(arrivals.every((a) => a.wired.mock.calls.length === 1)).toBe(true); // all wired
   });
 
   it('flag on: each call keeps its own memory, and a new call starts fresh', async () => {
@@ -180,13 +188,13 @@ describe('A→B→A→B in one call', () => {
 
   it('flag on: near crisis handling the arrival line is spoken as today, never swapped or dropped', async () => {
     vi.stubEnv('HANDOFF_ARRIVAL_ONCE', 'on');
-    // The gate acts on the call before the last hop, a return that would otherwise have no line.
-    const decided = await runCall('arrival-once-crisis', SIX_HOPS, (i, spawned) => {
-      if (i === 5) signalCrisisDecision(spawned[spawned.length - 1].session, 'guide');
+    // The gate acts on the call before the last hop, a return that would otherwise say a return line.
+    const decided = await runCall('arrival-once-crisis', FOUR_HOPS, (i, spawned) => {
+      if (i === 3) signalCrisisDecision(spawned[spawned.length - 1].session, 'guide');
     });
     await decided.end();
-    expect(decided.lines[5]).toBe(ARRIVING_OPENERS.ferni[0]);
-    expect(decided.arrivals[5].said).toEqual([ARRIVING_OPENERS.ferni[0]]);
+    expect(decided.lines[3]).toBe(ARRIVING_OPENERS.ferni[0]);
+    expect(decided.arrivals[3].said).toEqual([ARRIVING_OPENERS.ferni[0]]);
     // A verdict still pending holds the line too.
     const pending = await runCall('arrival-once-verdict', FOUR_HOPS, (i, spawned) => {
       if (i === 1)
@@ -361,8 +369,8 @@ describe('a late crisis, after its persona left the hop', () => {
     return text;
   }
 
-  /** None at once, except the risky line: its crisis verdict waits for land(). */
-  function heldClassifier() {
+  /** None at once, except the risky line: its verdict (crisis, or none when it clears clean) waits for land(). */
+  function heldClassifier(verdict: 'crisis' | 'none' = 'crisis') {
     let land: () => void = () => undefined;
     const landed = new Promise<void>((r) => {
       land = r;
@@ -371,7 +379,7 @@ describe('a late crisis, after its persona left the hop', () => {
       const { latest } = JSON.parse(content) as { latest: string };
       if (!latest.includes('hide the marks')) return '{"risk":"none","subject":"self"}';
       await landed;
-      return '{"risk":"crisis","subject":"self"}';
+      return `{"risk":"${verdict}","subject":"self"}`;
     };
     return { generate, land };
   }
@@ -398,23 +406,24 @@ describe('a late crisis, after its persona left the hop', () => {
 
   /**
    * One call: the crisis read starts on the session on the line before hop `start`, and
-   * its verdict lands before hop `lands`. Checks that the read was out, with nothing
-   * pending or decided on that session, when hop `start` went. With `askInWindow`, the
-   * caller says RISKY_AGAIN to the persona on the line just before the verdict lands.
-   * `replies` is everything the gate said on the call.
+   * its verdict lands before hop `lands`. Checks that the read was out (in flight on that
+   * session's call), with nothing pending or decided on that session, when hop `start`
+   * went. With `askInWindow`, the caller says RISKY_AGAIN to the persona on the line just
+   * before the verdict lands. With `clears`, the read clears clean instead: no crisis, and
+   * nothing left in flight. `replies` is everything the gate said on the call.
    */
   async function lateCrisisCall(
     id: string,
     flag: string,
     hops: string[],
-    plan: { path: Path; start: number; lands: number; askInWindow?: boolean }
+    plan: { path: Path; start: number; lands: number; askInWindow?: boolean; clears?: boolean }
   ): Promise<Call & { replies: string[] }> {
     resetCrisisClassifierCache();
     resetCrisisCallRisk();
     resetCallRiskSnapshots();
     vi.stubEnv('MULTI_AGENT_SINGLE_SESSION', 'off');
     vi.stubEnv('HANDOFF_ARRIVAL_ONCE', flag);
-    const { generate, land } = heldClassifier();
+    const { generate, land } = heldClassifier(plan.clears ? 'none' : 'crisis');
     let reading: LiveSession | null = null;
     const made: LiveSession[] = [];
     const call = await runCall(
@@ -426,14 +435,20 @@ describe('a late crisis, after its persona left the hop', () => {
           PATHS[plan.path](reading, generate);
           const s = reading;
           await vi.waitFor(() => expect(crisisVerdictPending(s)).toBeNull());
-          expect(crisisDecidedOn(s)).toBe(false); // still out when this hop goes
+          expect(crisisDecidedOn(s)).toBe(false); // nothing decided when this hop goes
+          expect(crisisReadInFlight(s.userData.services.sessionId)).toBe(true); // the read is out
         }
         if (i === plan.lands && reading) {
           const s: LiveSession = reading;
           if (plan.askInWindow)
             (spawned[spawned.length - 1].session as LiveSession).ask(RISKY_AGAIN, LIVE, generate);
           land();
-          await vi.waitFor(() => expect(crisisDecidedOn(s)).toBe(true));
+          if (plan.clears) {
+            await vi.waitFor(() =>
+              expect(crisisReadInFlight(s.userData.services.sessionId)).toBe(false)
+            );
+            expect(crisisDecidedOn(s)).toBe(false); // cleared clean: no crisis
+          } else await vi.waitFor(() => expect(crisisDecidedOn(s)).toBe(true));
         }
       },
       () => {
@@ -470,8 +485,9 @@ describe('a late crisis, after its persona left the hop', () => {
   });
 
   for (const path of ['W1', 'W2'] as const) {
-    it(`${path}, the residual window: before the crisis is known a return is a return as on any call; crisis lines never change`, async () => {
+    it(`${path}, residual window: none. While a crisis read is pending, the arrival line is the flag-off line; crisis lines never change`, async () => {
       let windowLinesThatDiffer = 0;
+      let windowLinesANoCrisisCallChanges = 0;
       for (const start of SIX_HOPS.keys()) {
         for (const lands of [start + 1, start + 2].filter((h) => h < SIX_HOPS.length)) {
           const plan = { path, start, lands, askInWindow: true };
@@ -492,16 +508,56 @@ describe('a late crisis, after its persona left the hop', () => {
             on.replies.some((r) => r.startsWith('CRISIS: ')),
             `${label}: a crisis line was said`
           ).toBe(true);
-          // Before the crisis is known: the arrival lines of a call with no crisis at all.
-          expect(on.lines.slice(0, lands), label).toEqual(anyCall.lines.slice(0, lands));
-          // Once it is known: today's lines.
-          expect(on.lines.slice(lands), label).toEqual(off.lines.slice(lands));
+          // Before the read goes out: a call with no crisis at all.
+          expect(on.lines.slice(0, start), label).toEqual(anyCall.lines.slice(0, start));
+          // From the hop the read is out on, pending and settled: the flag-off line, byte for byte.
+          expect(on.lines.slice(start), label).toEqual(off.lines.slice(start));
+          expect(
+            on.arrivals.slice(start).map((a) => a.said),
+            label
+          ).toEqual(off.arrivals.slice(start).map((a) => a.said));
           windowLinesThatDiffer += on.lines
+            .slice(start, lands)
+            .filter((line, k) => line !== off.lines[start + k]).length;
+          windowLinesANoCrisisCallChanges += anyCall.lines
             .slice(start, lands)
             .filter((line, k) => line !== off.lines[start + k]).length;
         }
       }
-      expect(windowLinesThatDiffer).toBeGreaterThan(0); // the window is real, not assumed away
+      expect(windowLinesThatDiffer).toBe(0); // no residual window
+      // Not assumed away: a call with no crisis read changes those very lines.
+      expect(windowLinesANoCrisisCallChanges).toBeGreaterThan(0);
+    });
+  }
+
+  for (const path of ['W1', 'W2'] as const) {
+    it(`${path}: a read that goes pending, then clears clean, still counts: every later line is the flag-off line`, async () => {
+      let linesANoCrisisCallChanges = 0;
+      for (const start of SIX_HOPS.keys()) {
+        for (const lands of [start + 1, start + 2].filter((h) => h < SIX_HOPS.length)) {
+          const plan = { path, start, lands, clears: true };
+          const id = `arrival-once-cleared-${path}-${start}-${lands}`;
+          // eslint-disable-next-line no-await-in-loop -- one call after another
+          const on = await lateCrisisCall(id, 'on', SIX_HOPS, plan);
+          // eslint-disable-next-line no-await-in-loop -- one call after another
+          const off = await lateCrisisCall(id, 'off', SIX_HOPS, plan);
+          vi.stubEnv('HANDOFF_ARRIVAL_ONCE', 'on');
+          // eslint-disable-next-line no-await-in-loop -- one call after another
+          const anyCall = await runCall(`${id}-no-read`, SIX_HOPS);
+          // eslint-disable-next-line no-await-in-loop -- one call after another
+          await anyCall.end();
+          const label = `${path}, read out before hop ${start}, clears before hop ${lands}`;
+          expect(on.replies, label).toEqual(off.replies);
+          expect(off.lines, label).toEqual(todays(SIX_HOPS));
+          // Sticky: after the read cleared, the lines stay the flag-off lines.
+          expect(on.lines.slice(start), label).toEqual(off.lines.slice(start));
+          linesANoCrisisCallChanges += anyCall.lines
+            .slice(lands)
+            .filter((line, k) => line !== off.lines[lands + k]).length;
+        }
+      }
+      // Not vacuous: had the mark reset when the read cleared, these lines would change.
+      expect(linesANoCrisisCallChanges).toBeGreaterThan(0);
     });
   }
 
@@ -541,17 +597,18 @@ describe('arrivalOnce on a briefed line', () => {
     expect(arrivalOnce(call, hop(MAYA, 'ferni'), briefed)).toBe(RETURNING_OPENERS[MAYA][0]);
   });
 
-  it('a return with both return lines said is silent, pinned by SILENT_WHEN_RETURN_LINES_USED_UP', () => {
-    // Open product call: flipping the constant to false says the line instead.
+  it("a return with both return lines said says today's line, pinned by SILENT_WHEN_RETURN_LINES_USED_UP", () => {
+    // Product call for the owner: flipping the constant to true makes it silent.
     // Change this test with it, on purpose.
-    expect(SILENT_WHEN_RETURN_LINES_USED_UP).toBe(true);
+    expect(SILENT_WHEN_RETURN_LINES_USED_UP).toBe(false);
     const call = 'arrival-once-used-up';
     const canned = ARRIVING_OPENERS[MAYA][0];
     const back = (to: string, from: string) => ({ to, from, sessions: [], briefed: false });
     expect(arrivalOnce(call, back(MAYA, 'ferni'), canned)).toBe(canned);
     expect(arrivalOnce(call, back(MAYA, 'ferni'), canned)).toBe(RETURNING_OPENERS[MAYA][0]);
     expect(arrivalOnce(call, back(MAYA, 'ferni'), canned)).toBe(RETURNING_OPENERS[MAYA][1]);
-    expect(arrivalOnce(call, back(MAYA, 'ferni'), canned)).toBeNull();
+    expect(arrivalOnce(call, back(MAYA, 'ferni'), canned)).toBe(canned); // 3rd return
+    expect(arrivalOnce(call, back(MAYA, 'ferni'), canned)).toBe(canned); // 4th return
   });
 
   it('treats a line with other SSML, case or punctuation as the same line', () => {

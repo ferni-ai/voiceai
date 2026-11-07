@@ -8,16 +8,19 @@
  * Per call, it remembers who the caller has met and every arrival line spoken:
  * - a first meeting is unchanged;
  * - a return swaps the canned opener (or any line already said) for a short
- *   "back again" line not yet said (RETURNING_OPENERS), or no arrival line once
- *   those are used up (SILENT_WHEN_RETURN_LINES_USED_UP), never a repeat. A
- *   briefed first line written for this moment and not yet said is kept;
+ *   "back again" line not yet said (RETURNING_OPENERS); once those are used up,
+ *   today's line (SILENT_WHEN_RETURN_LINES_USED_UP). A briefed first line written
+ *   for this moment and not yet said is kept;
  * - once crisis handling touches the call (the gate acted on, or holds a verdict
- *   on, any session seen at any hop this call), every later line is spoken exactly
- *   as without the flag: never swapped, never dropped. Every hop reads every
- *   session seen so far, and the mark is sticky for the call: with a session per
- *   persona (MULTI_AGENT_SINGLE_SESSION off) a crisis can land on a session after
- *   its persona left (a classifier read still out at the hop), and a later hop's
- *   own sessions are not that one.
+ *   on, any session seen at any hop this call, or a classifier read is in flight
+ *   on the call or any of those sessions' calls), this and every later line is
+ *   spoken exactly as without the flag: never swapped, never dropped. So while a
+ *   crisis read is pending, the arrival line is the flag-off line: the crisis gate
+ *   reads the arrival line as the companion turn, and it sees the same words it
+ *   would with the flag off. Every hop reads every session seen so far, and the
+ *   mark is sticky for the call: with a session per persona
+ *   (MULTI_AGENT_SINGLE_SESSION off) a crisis can land on a session after its
+ *   persona left, and a later hop's own sessions are not that one.
  *
  * Arrival lines only: goodbyes, safety and disclosure lines never pass through here.
  * Kept in memory only, keyed by call, and forgotten when the call ends
@@ -26,6 +29,8 @@
  * @module agents/multi-agent/arrival-once
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { crisisReadInFlight } from '../../services/safety/crisis-call-risk.js';
+import { sessionScope } from '../personas/crisis-gate-words.js';
 import { crisisDecidedOn, crisisVerdictPending } from '../safety/crisis-gate-signal.js';
 import { familyArrival } from './family-table.js';
 import { arrivalLine } from './handoff-brief.js';
@@ -34,8 +39,7 @@ import { arrivalLine } from './handoff-brief.js';
  * A persona the caller already met this call coming back: a short "back again"
  * line in their own voice instead of introducing themselves again (first-meeting
  * openers live in services/team-engagement/banter.ts). Two each; once both are
- * said this call, the persona comes back without an arrival line rather than
- * repeat one.
+ * said this call, a return says today's line (SILENT_WHEN_RETURN_LINES_USED_UP).
  */
 export const RETURNING_OPENERS: Readonly<Record<string, readonly string[]>> = {
   ferni: ["I'm back. Where were we?", "Me again. Okay, I'm with you."],
@@ -53,12 +57,12 @@ export const RETURNING_OPENERS: Readonly<Record<string, readonly string[]>> = {
 };
 
 /**
- * A return with both RETURNING_OPENERS lines already said this call: true comes
- * back with no arrival line (the caller hears the goodbye, then the persona when
- * they speak); false says today's line, even though the caller heard it. Silent
- * is a humanness call still open with the product owner: flip it here only.
+ * A return with both RETURNING_OPENERS lines already said this call: false (the
+ * default) says today's line, a short spoken line, because silence on a hop reads
+ * as dead air; true comes back with no arrival line (the caller hears the goodbye,
+ * then the persona when they speak). A product call for the owner: flip it here only.
  */
-export const SILENT_WHEN_RETURN_LINES_USED_UP = true;
+export const SILENT_WHEN_RETURN_LINES_USED_UP = false;
 
 /** One call's memory: personas met, arrival lines spoken (by lineId), and whether crisis handling touched it. */
 interface CallArrivals {
@@ -69,7 +73,10 @@ interface CallArrivals {
    * persona left (a classifier read still out at the hop), so each hop reads them all.
    */
   sessionsSeen: Set<unknown>;
-  /** Never reset within the call: a pending verdict that clears still counts. */
+  /**
+   * Never reset within the call: a pending verdict or an in-flight read that later
+   * clears clean still counts, so every later line stays the flag-off line.
+   */
   crisis: boolean;
 }
 
@@ -113,6 +120,15 @@ function nearCrisis(sessions: readonly unknown[]): boolean {
   );
 }
 
+/**
+ * A crisis classifier read is in flight on this call or on the call of any session
+ * seen (the reply gate keys reads by the session's call id, crisis-gate-words.ts).
+ */
+function crisisReadPending(callId: string, sessions: readonly unknown[]): boolean {
+  const ids = sessions.map((s) => sessionScope((s as { userData?: unknown } | null)?.userData));
+  return [callId, ...ids].some((id) => id !== undefined && crisisReadInFlight(id));
+}
+
 export interface ArrivalHop {
   to: string;
   from: string;
@@ -122,14 +138,15 @@ export interface ArrivalHop {
   briefed: boolean;
 }
 
-/** The line `hop.to` arrives with this call, or null for no arrival line (a return with every variant said). */
+/** The line `hop.to` arrives with this call, or null for no arrival line (only when SILENT_WHEN_RETURN_LINES_USED_UP). */
 export function arrivalOnce(callId: string, hop: ArrivalHop, line: string): string | null {
   const call = arrivalsFor(callId);
   call.met.add(hop.from);
   const returning = call.met.has(hop.to);
   call.met.add(hop.to);
   for (const s of hop.sessions) call.sessionsSeen.add(s);
-  call.crisis ||= nearCrisis([...call.sessionsSeen]);
+  const seen = [...call.sessionsSeen];
+  call.crisis ||= nearCrisis(seen) || crisisReadPending(callId, seen);
   const fresh = !call.spoken.has(lineId(line));
   const keep = call.crisis || !returning || (hop.briefed && fresh);
   const unsaid = (RETURNING_OPENERS[hop.to] ?? []).find((l) => !call.spoken.has(lineId(l)));
