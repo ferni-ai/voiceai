@@ -9,10 +9,13 @@
  * - a first meeting is unchanged;
  * - a return swaps the canned opener (or any line already said) for a short
  *   "back again" line not yet said (RETURNING_OPENERS), or no arrival line once
- *   those are used up, never a repeat. A briefed first line written for this
- *   moment and not yet said is kept;
- * - near crisis handling (the gate acted on, or holds a verdict on, the call) the
- *   line is spoken exactly as without the flag: never swapped, never dropped.
+ *   those are used up (SILENT_WHEN_RETURN_LINES_USED_UP), never a repeat. A
+ *   briefed first line written for this moment and not yet said is kept;
+ * - once crisis handling touches the call (the gate acted on, or holds a verdict
+ *   on, any session seen at a hop), every later line is spoken exactly as without
+ *   the flag: never swapped, never dropped. Sticky for the call, because with a
+ *   session per persona (MULTI_AGENT_SINGLE_SESSION off) a later hop's sessions
+ *   are not the one the crisis happened on.
  *
  * Arrival lines only: goodbyes, safety and disclosure lines never pass through here.
  * Kept in memory only, keyed by call, and forgotten when the call ends
@@ -47,10 +50,20 @@ export const RETURNING_OPENERS: Readonly<Record<string, readonly string[]>> = {
   'joel-dickson': ['Nate again! Okay, go.', "Back! Where'd we land?"],
 };
 
-/** One call's memory: personas met, and arrival lines spoken (by lineId). */
+/**
+ * A return with both RETURNING_OPENERS lines already said this call: true comes
+ * back with no arrival line (the caller hears the goodbye, then the persona when
+ * they speak); false says today's line, even though the caller heard it. Silent
+ * is a humanness call still open with the product owner: flip it here only.
+ */
+export const SILENT_WHEN_RETURN_LINES_USED_UP = true;
+
+/** One call's memory: personas met, arrival lines spoken (by lineId), and whether crisis handling touched it. */
 interface CallArrivals {
   met: Set<string>;
   spoken: Set<string>;
+  /** Never reset within the call: a pending verdict that clears still counts. */
+  crisis: boolean;
 }
 
 /** A bound on calls a crashed worker never ended, like family-table.ts. */
@@ -66,7 +79,7 @@ function arrivalsFor(callId: string): CallArrivals {
   if (known) return known;
   const oldest = calls.keys().next();
   if (calls.size >= MAX_CALLS && !oldest.done) calls.delete(oldest.value);
-  const fresh: CallArrivals = { met: new Set(), spoken: new Set() };
+  const fresh: CallArrivals = { met: new Set(), spoken: new Set(), crisis: false };
   calls.set(callId, fresh);
   return fresh;
 }
@@ -91,7 +104,7 @@ function nearCrisis(sessions: readonly unknown[]): boolean {
 export interface ArrivalHop {
   to: string;
   from: string;
-  /** The call's sessions (outgoing and incoming): crisis handling on any keeps the line. */
+  /** This hop's sessions (outgoing and incoming): crisis handling on any keeps this and every later line. */
   sessions: readonly unknown[];
   /** The line was briefed for this moment (BRIEFED_HANDOFF, HANDOFF_DESK), not canned banter. */
   briefed: boolean;
@@ -103,11 +116,11 @@ export function arrivalOnce(callId: string, hop: ArrivalHop, line: string): stri
   call.met.add(hop.from);
   const returning = call.met.has(hop.to);
   call.met.add(hop.to);
+  call.crisis ||= nearCrisis(hop.sessions);
   const fresh = !call.spoken.has(lineId(line));
-  const keep = nearCrisis(hop.sessions) || !returning || (hop.briefed && fresh);
-  const chosen = keep
-    ? line
-    : ((RETURNING_OPENERS[hop.to] ?? []).find((l) => !call.spoken.has(lineId(l))) ?? null);
+  const keep = call.crisis || !returning || (hop.briefed && fresh);
+  const unsaid = (RETURNING_OPENERS[hop.to] ?? []).find((l) => !call.spoken.has(lineId(l)));
+  const chosen = keep ? line : (unsaid ?? (SILENT_WHEN_RETURN_LINES_USED_UP ? null : line));
   if (chosen !== null) call.spoken.add(lineId(chosen));
   return chosen;
 }
