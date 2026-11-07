@@ -31,7 +31,7 @@ export interface OutboundParties {
 }
 
 /** Defaults the metadata and dispatch parsers fill in when a name is missing. */
-export const PLACEHOLDER_NAMES: ReadonlySet<string> = new Set([
+const PLACEHOLDER_NAMES = new Set([
   'unknown',
   'the user',
   'user',
@@ -42,23 +42,9 @@ export const PLACEHOLDER_NAMES: ReadonlySet<string> = new Set([
   'your family member',
 ]);
 
-/**
- * A name as it is said and compared: one Unicode form (fullwidth "ｕｓｅｒ" is
- * "user"), no invisible format characters (a zero-width space), every space a
- * plain one, collapsed and trimmed.
- */
-function normalisedName(name: string): string {
-  return name
-    .normalize('NFKC')
-    .replace(/\p{Cf}/gu, '')
-    .replace(/\p{Zs}/gu, ' ')
-    .replace(/[ \t\r\n]+/g, ' ')
-    .trim();
-}
-
 function realName(name: string | undefined): string | undefined {
-  const said = normalisedName(name ?? '');
-  return said && !PLACEHOLDER_NAMES.has(said.toLowerCase()) ? said : undefined;
+  const trimmed = name?.trim();
+  return trimmed && !PLACEHOLDER_NAMES.has(trimmed.toLowerCase()) ? trimmed : undefined;
 }
 
 /** Contact names that say who someone is to the user, not what they are called. */
@@ -77,7 +63,7 @@ const RELATIONS = new Set(
 export function nameAndRelation(saved: string | undefined): { name?: string; relation?: string } {
   let name: string | undefined;
   let relation: string | undefined;
-  for (const part of normalisedName(saved ?? '').split(/[(),/]|\s[-–]\s/)) {
+  for (const part of (saved ?? '').split(/[(),/]|\s[-–]\s/)) {
     const word = part
       .trim()
       .toLowerCase()
@@ -114,16 +100,6 @@ export function ferniIntro({ sponsorName, personal, checkin }: OutboundParties):
     return sponsorName ? `it's Ferni, ${sponsorName}'s AI friend` : "it's Ferni, an AI friend";
   }
   return `this is Ferni, an AI calling ${sponsorName ? `for ${sponsorName}` : "on someone's behalf"}`;
-}
-
-/**
- * The first words of every voicemail Ferni leaves for someone: "Hi Alex,
- * it's Ferni, Sam's AI friend." The LiveKit voicemail prompt quotes it and the
- * Twilio voicemail speaks it, so the disclosure is the same fixed text on both.
- */
-export function voicemailGreeting(parties: OutboundParties): string {
-  const hello = parties.recipientName ? `Hi ${parties.recipientName}` : 'Hi';
-  return `${hello}, ${ferniIntro(parties)}.`;
 }
 
 /**

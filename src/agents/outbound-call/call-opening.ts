@@ -28,8 +28,8 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import {
+  ferniIntro,
   outboundOpener,
-  voicemailGreeting,
   type OutboundParties,
 } from '../../services/outreach/opening-line.js';
 import type { CallDisposition } from './call-control.js';
@@ -157,11 +157,12 @@ export async function afterOpener(heard: FirstWords, ports: CallOpeningPorts): P
 
 /** What Ferni says on a voicemail: short, warm, self-contained, about 15-20 seconds. */
 export function voicemailInstructions(parties: OutboundParties, purpose: string): string {
+  const hello = parties.recipientName ? `Hi ${parties.recipientName}` : 'Hi';
   const sponsor = parties.sponsorName ?? 'the person who asked you to call';
   return [
     'This is a voicemail, not a conversation, and the greeting has finished.',
     'Ignore the opener instruction. Leave ONE short, warm message, under 20 seconds, then stop.',
-    `Start with exactly: "${voicemailGreeting(parties)}" Then, in your own natural words:`,
+    `Start with exactly: "${hello}, ${ferniIntro(parties)}." Then, in your own natural words:`,
     ...(parties.personal ? ["- That it's nothing urgent."] : []),
     `- In one sentence, why ${sponsor} wanted to reach them: ${purpose}.`,
     `- No need to call you back; they can just call or text ${sponsor}.`,

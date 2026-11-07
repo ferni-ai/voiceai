@@ -33,7 +33,6 @@ import {
   type EnrichedMessage,
   type EnrichmentContext,
 } from './message-enrichment.js';
-import { onBehalfVoicemail } from './on-behalf-voicemail.js';
 
 const log = getLogger().child({ service: 'on-behalf-call-orchestrator' });
 
@@ -591,44 +590,6 @@ class OnBehalfCallOrchestrator extends EventEmitter {
     activeCallsStore.set(callId, call);
   }
 
-  /**
-   * Handle machine detection (voicemail)
-   */
-  async handleMachineDetection(callId: string, machineResult: string): Promise<string | null> {
-    const call = activeCallsStore.get(callId);
-    if (!call) {
-      return null;
-    }
-
-    log.info({ callId, machineResult }, 'Machine detection result for on-behalf call');
-
-    if (machineResult === 'human') {
-      return null; // Continue with conversation
-    }
-
-    if (machineResult.startsWith('machine_')) {
-      call.status = 'voicemail';
-      activeCallsStore.set(callId, call);
-
-      // Fixed words, no model: the AI-friend greeting and the request, attributed (on-behalf-voicemail.ts)
-      const voicemailMessage = onBehalfVoicemail({
-        recipientName: call.request.resolvedContact?.name,
-        requesterName: call.request.userName,
-        purpose: call.request.purpose,
-        callType: call.request.callType,
-      });
-
-      this.emit('voicemail-detected', call);
-
-      return `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="Polly.Joanna">${this.escapeXml(voicemailMessage)}</Say>
-</Response>`;
-    }
-
-    return null;
-  }
-
   // =========================================================================
   // CALL COMPLETION
   // =========================================================================
@@ -788,15 +749,6 @@ class OnBehalfCallOrchestrator extends EventEmitter {
 
   private maskPhone(phone: string): string {
     return phone.replace(/.(?=.{4})/g, '*');
-  }
-
-  private escapeXml(text: string): string {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
   }
 }
 

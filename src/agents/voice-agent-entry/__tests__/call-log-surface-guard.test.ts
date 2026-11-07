@@ -29,7 +29,6 @@ const SURFACE = [
   'src/agents/outbound-call/call-control.ts',
   'src/agents/outbound-call/call-screener.ts',
   'src/services/outreach/on-behalf-call-orchestrator.ts',
-  'src/services/outreach/on-behalf-voicemail.ts',
   'src/services/outreach/on-behalf-dispatch.ts',
   'src/services/outreach/call-result-capture.ts',
   'src/services/outreach/call-progress.ts',

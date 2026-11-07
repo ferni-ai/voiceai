@@ -83,14 +83,6 @@ export interface EnrichedMessage {
   // SSML version with pauses (for TTS)
   ssmlMessage?: string;
 
-  // Components for voicemail assembly
-  components?: {
-    opening: string;
-    personalContext?: string;
-    mainMessage: string;
-    close: string;
-  };
-
   // Metadata
   metadata: {
     originalMessage: string;
@@ -331,7 +323,6 @@ function generateFromSemantic(
   return {
     message: semanticMessage.message,
     ssmlMessage: semanticMessage.ssmlMessage,
-    components: semanticMessage.components,
     metadata: {
       originalMessage: context.originalMessage,
       enrichedAt: new Date(),
@@ -462,11 +453,6 @@ function fallbackEnrichment(context: EnrichmentContext): EnrichedMessage {
   return {
     message: fullMessage,
     ssmlMessage: convertPausesToSSML(fullMessage),
-    components: {
-      opening,
-      mainMessage,
-      close,
-    },
     metadata: {
       originalMessage: context.originalMessage,
       enrichedAt: new Date(),
