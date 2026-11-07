@@ -62,6 +62,7 @@ const walk = (dir: string): string[] => {
 const HOTLINE_NUMBERS = [
   '1-800-222-1222',
   '1-800-273-8255',
+  '1-800-273-TALK', // the same line in letters: safety-talk.ts's TOLL_FREE doc (#3565)
   '1-800-388-2227',
   '1-800-422-4453',
   '1-800-656-4673',
