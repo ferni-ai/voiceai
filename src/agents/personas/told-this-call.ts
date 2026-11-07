@@ -19,6 +19,7 @@
  */
 
 import { crisisRiskNoted } from '../../services/safety/crisis-call-risk.js';
+import { reachesHelp } from '../../services/safety/index.js';
 import type { Line } from './director-notes.js';
 import {
   formatPhraseLoops,
@@ -122,6 +123,51 @@ function runsOf(sentence: string): Set<string> {
   return runs;
 }
 
+/** Lowercase words between spaces, so a name or phrase can be found in a sentence. */
+const plainWords = (text: string): string =>
+  ` ${text
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/[^\p{L}\p{N}']+/gu, ' ')
+    .trim()} `;
+
+/**
+ * A sentence pointing back to a help line Ferni already gave ("That number I gave
+ * you earlier is open all night long.", "The counselors on that text service are
+ * kind and patient."). It names no line itself, so the safety readers miss it, but
+ * the caller may still need to hear it.
+ */
+const POINTS_BACK = new RegExp(
+  [
+    String.raw`\b(?:that|the|this)\s+(?:text\s+|chat\s+|help\s*)?(?:number|line|service|chat)\s+(?:that\s+)?(?:I|we)(?:'ve)?\s+(?:just\s+|already\s+)?(?:gave|given|mentioned|shared|sent|told you about|talked about|brought up)\b`,
+    String.raw`\b(?:counsell?ors?|volunteers?|responders?)\s+(?:on|at|from)\s+(?:that|the|this)\s+(?:\w+\s+)?(?:line|service|chat|number)\b`,
+    String.raw`\b(?:people|folks)\s+(?:on|at)\s+that\s+(?:text\s+|chat\s+|help\s*)?(?:line|service)\b`,
+  ].join('|'),
+  'i'
+);
+
+/**
+ * Safety wording: a way to reach help (services/safety/safety-talk.ts reachesHelp),
+ * a line of the safety scripts or on safety, harm or help (phrase-loops.ts
+ * isSafetyLine: "In Canada you can call Talk Suicide Canada any time."), or a
+ * sentence pointing back to a help line already given. Not care wording on its
+ * own (isCareTalk): it fires on everyday words like "please" and "tonight", and
+ * care lines stay quotable, as on main.
+ */
+const isSafetyWording = (text: string): boolean =>
+  reachesHelp(text) || isSafetyLine(text) || POINTS_BACK.test(text);
+
+/**
+ * Whether a name or phrase is safety wording, or every sentence of Ferni's that
+ * holds it is. Listed, it would ask the model to leave a help line ("You've
+ * brought up Amitie", from "SOS Amitie listens day and night.").
+ */
+function onlyInSafetyTalk(text: string, sentences: string[]): boolean {
+  if (isSafetyWording(text)) return true;
+  const holding = sentences.filter((s) => plainWords(s).includes(plainWords(text)));
+  return holding.length > 0 && holding.every(isSafetyWording);
+}
+
 function quote(sentence: string): string {
   return sentence.length > MAX_QUOTE_CHARS
     ? `${sentence.slice(0, MAX_QUOTE_CHARS - 3)}...`
@@ -159,10 +205,13 @@ export function toldThisCall(lines: Line[], userName?: string, speaking?: string
     );
     inReply.forEach((n) => counts.set(n, (counts.get(n) ?? 0) + 1));
   });
+  const sentences = replies.flat();
+  // Capped first, so a name left out is never replaced by one more.
   const names = [...counts]
     .map(([name, n]) => ({ name, replies: n }))
     .sort((a, b) => b.replies - a.replies)
-    .slice(0, MAX_NAMES);
+    .slice(0, MAX_NAMES)
+    .filter((n) => !onlyInSafetyTalk(n.name, sentences));
 
   // A sentence sharing a six-word run with another reply's sentence, once per repeated run.
   const repeated: Array<{ sentence: string; runs: Set<string> }> = [];
@@ -195,7 +244,9 @@ export function toldThisCall(lines: Line[], userName?: string, speaking?: string
     repeated: repeated.map((q) => q.sentence),
     recentLines,
     askedAboutFerni: Boolean(lastUser && ASKS_ABOUT_FERNI.test(lastUser.text)),
-    ...(phraseLoopGuardOn() ? { loops: phraseLoops(lines) } : {}),
+    ...(phraseLoopGuardOn()
+      ? { loops: phraseLoops(lines).filter((l) => !onlyInSafetyTalk(l.phrase, sentences)) }
+      : {}),
   };
 }
 
@@ -228,13 +279,23 @@ export function formatTold(told: Told): string {
  * told()). On a call with crisis risk noted (`sessionId`), no phrase loops and no
  * quotes at all: a crisis-guided request must never be told to drop wording
  * (crisis-call-risk.ts). A line of the safety scripts is never quoted on any call
- * (#2797: "Don't say again" had quoted "Are you somewhere safe right now?").
+ * (#2797: "Don't say again" had quoted "Are you somewhere safe right now?"), nor
+ * is any other safety wording: a way to reach help ("You can text HOME any time."),
+ * or a pointer back to a line already given, which the caller may still need to
+ * hear. The quotes are only ever main's, fewer.
  */
 export function keptTold(told: Told, keep: (text: string) => boolean, sessionId?: string): Told {
   const { loops: all, ...rest } = told;
   const crisis = Boolean(sessionId && crisisRiskNoted(sessionId));
   const loops = all && !crisis ? all : undefined;
-  const quotable = (line: string): boolean => !crisis && keep(line) && !isSafetyLine(line);
+  // The quotes main shows, capped first: a quote left out for safety is never
+  // replaced by one main cut at the cap.
+  const shown = new Set(
+    [...told.repeated, ...told.recentLines]
+      .filter((line) => !crisis && keep(line) && !isSafetyLine(line))
+      .slice(0, MAX_QUOTES)
+  );
+  const quotable = (line: string): boolean => shown.has(line) && !isSafetyWording(line);
   return {
     ...rest,
     names: told.names.filter((n) => keep(n.name)),
