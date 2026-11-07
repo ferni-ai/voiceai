@@ -59,6 +59,7 @@
 /src/agents/integrations/slow-turn-wiring.ts @sethdford
 /src/agents/integrations/tool-ack-clip-wiring.ts @sethdford
 /src/agents/integrations/tool-hum.ts @sethdford
+/src/agents/multi-agent/arrival-once.ts @sethdford
 /src/agents/multi-agent/call-capture-tool.ts @sethdford
 /src/agents/multi-agent/call-news-opener.ts @sethdford
 /src/agents/multi-agent/early-goodbye-call.ts @sethdford
