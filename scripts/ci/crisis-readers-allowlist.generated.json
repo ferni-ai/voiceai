@@ -93,7 +93,7 @@
   "src/tools/domains/life-coaching-shared/adaptive-response.ts#resource": 1,
   "src/tools/domains/life-coaching-shared/helplines.ts#resource": 6,
   "src/tools/domains/life-coaching-shared/safety-guards.ts#resource": 12,
-  "src/tools/domains/life-coaching-shared/safety-guards.ts#word": 11,
+  "src/tools/domains/life-coaching-shared/safety-guards.ts#word": 3,
   "src/tools/domains/memory/memory-saved.ts#regex": 1,
   "src/tools/domains/new-parent/index.ts#resource": 1,
   "src/tools/domains/smart-home/index.ts#resource": 1,

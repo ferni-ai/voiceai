@@ -157,9 +157,12 @@ describe('with the classifier timed out', () => {
     expect(getCrisisResponse(assessment)).toContain('911');
   });
 
-  it("assessSafety is unchanged for an ordinary line and for someone else's means", () => {
+  it("assessSafety: no imminent read for an ordinary line, someone else's means, or tiredness", () => {
     expect(assessSafety('what should i cook for dinner').level).toBe('safe');
     expect(assessSafety('he said he has the pills right here').level).toBe('safe');
-    expect(assessSafety("i'm so tired of everything").level).toBe('safe');
+    // The guard reads this as crisis without means, so assessSafety does too (no 911 line).
+    const tired = assessSafety("i'm so tired of everything");
+    expect(tired.level).toBe('crisis');
+    expect(getCrisisResponse(tired)).not.toContain('911');
   });
 });
