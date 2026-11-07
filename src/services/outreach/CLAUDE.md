@@ -35,6 +35,7 @@ The outreach module handles Ferni's ability to reach out to people proactively:
 | `call-transcript-intelligence.ts` | Analyzes call transcripts |
 | `conversational-calls.ts` | Conversational call management |
 | `on-behalf-call-orchestrator.ts` | On-behalf call orchestration |
+| `on-behalf-voicemail.ts` | The voicemail left on someone's behalf: fixed AI-friend greeting, their request quoted with attribution, no model text; never speaks as the requester |
 
 ### Content & Messaging
 | File | Purpose |

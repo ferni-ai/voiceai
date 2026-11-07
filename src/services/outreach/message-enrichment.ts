@@ -213,34 +213,6 @@ Example of what we want (if request was "say hi"):
 Now transform "${originalMessage}" into a natural, warm message:`;
 }
 
-/**
- * Build prompt for voicemail-specific enrichment
- */
-function buildVoicemailComponentsPrompt(context: EnrichmentContext): string {
-  const { originalMessage, relationship, sender, context: richContext } = context;
-
-  const stage = relationship.stage || inferRelationshipStage(relationship.relationship);
-
-  return `You are helping ${sender.preferredName || sender.userName} leave a voicemail for ${relationship.contactName}, their ${relationship.relationship}.
-
-ORIGINAL REQUEST: "${originalMessage}"
-RELATIONSHIP DEPTH: ${stage}
-
-Create a voicemail message broken into these components:
-1. OPENING: A warm greeting (e.g., "Hey Mom, it's me")
-2. PERSONAL_CONTEXT: ${richContext?.lastConversationSummary ? `Reference this recent topic: "${richContext.lastConversationSummary}"` : 'Optional - a brief personal touch'}
-3. MAIN_MESSAGE: The expanded version of "${originalMessage}"
-4. CLOSE: A warm sign-off that doesn't pressure for a callback
-
-OUTPUT as JSON:
-{
-  "opening": "...",
-  "personalContext": "..." or null,
-  "mainMessage": "...",
-  "close": "..."
-}`;
-}
-
 // ============================================================================
 // CORE ENRICHMENT
 // ============================================================================
@@ -406,58 +378,6 @@ async function generateFromLLM(
   };
 }
 
-/**
- * Enrich specifically for voicemail with component structure
- */
-export async function enrichVoicemailMessage(context: EnrichmentContext): Promise<EnrichedMessage> {
-  const startTime = Date.now();
-
-  log.info(
-    {
-      originalChars: context.originalMessage.length,
-      hasContactName: Boolean(context.relationship.contactName),
-    },
-    'Enriching voicemail message'
-  );
-
-  try {
-    // First get the simple enriched message
-    const enrichedContext = { ...context, settings: { ...context.settings, isVoicemail: true } };
-    const basicEnrichment = await enrichMessage(enrichedContext);
-
-    // Try to get structured components
-    const componentsPrompt = buildVoicemailComponentsPrompt(context);
-    const componentsResponse = await callLLM(componentsPrompt, OUTREACH_LLM);
-
-    if (componentsResponse) {
-      try {
-        const parsed = JSON.parse(componentsResponse);
-        if (parsed.opening && parsed.mainMessage && parsed.close) {
-          log.debug('Parsed voicemail components successfully');
-          return {
-            ...basicEnrichment,
-            components: {
-              opening: parsed.opening,
-              personalContext: parsed.personalContext || undefined,
-              mainMessage: parsed.mainMessage,
-              close: parsed.close,
-            },
-          };
-        }
-      } catch {
-        log.debug('Could not parse voicemail components, using enriched message');
-      }
-    }
-
-    log.info({ durationMs: Date.now() - startTime }, 'Voicemail enrichment complete');
-
-    return basicEnrichment;
-  } catch (error) {
-    log.error({ error: String(error) }, 'Voicemail enrichment failed');
-    return fallbackEnrichment(context);
-  }
-}
-
 // ============================================================================
 // HELPERS
 // ============================================================================
@@ -561,5 +481,4 @@ function fallbackEnrichment(context: EnrichmentContext): EnrichedMessage {
 
 export default {
   enrichMessage,
-  enrichVoicemailMessage,
 };

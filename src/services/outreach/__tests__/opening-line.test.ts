@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { ferniIntro, nameAndRelation, outboundOpener, partiesOf } from '../opening-line.js';
+import {
+  ferniIntro,
+  nameAndRelation,
+  outboundOpener,
+  partiesOf,
+  PLACEHOLDER_NAMES,
+} from '../opening-line.js';
 
 describe('partiesOf', () => {
   it('reads who is on the line and who asked from the call context', () => {
@@ -16,6 +22,19 @@ describe('partiesOf', () => {
       expect(parties.recipientName, placeholder).toBeUndefined();
       expect(parties.sponsorName, placeholder).toBeUndefined();
       expect(parties.personal).toBe(false);
+    }
+  });
+});
+
+describe('PLACEHOLDER_NAMES', () => {
+  it('is the one list the name check reads, not a copy of it', () => {
+    const list = PLACEHOLDER_NAMES as Set<string>;
+    expect(partiesOf({ userName: 'Pat' }).sponsorName).toBe('Pat');
+    list.add('pat');
+    try {
+      expect(partiesOf({ userName: '\u200BPat ' }).sponsorName).toBeUndefined();
+    } finally {
+      list.delete('pat');
     }
   });
 });
