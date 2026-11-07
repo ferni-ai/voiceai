@@ -59,22 +59,43 @@ const TITLE = /^(?:mr|mrs|ms|mx|dr|prof)\.?$/i;
  * name to say. Undefined when there isn't a usable one.
  */
 function spokenFirstName(name: string | undefined): string | undefined {
+  const words = namedWords(name);
+  return words ? (firstNameOf(words.join(' ')) ?? undefined) : undefined;
+}
+
+/** The name's words from its first name on: a leading title dropped; undefined if only a surname is left. */
+function namedWords(name: string | undefined): string[] | undefined {
   const words = realName(name)?.normalize('NFC').split(/\s+/) ?? [];
   const [first] = words;
   if (first && TITLE.test(first)) {
     words.shift();
     if (words.length < 2) return undefined;
   }
-  return firstNameOf(words.join(' ')) ?? undefined;
+  return words;
+}
+
+/**
+ * A first word typed in capitals that is likely initials: "JR" in "JR Rivera",
+ * "AJ" in "AJ PARK". Said as a first name it would be "Jr" (TTS: "Junior"). Two
+ * letters always; three only when the rest of the name isn't in capitals too,
+ * so "SAM RIVERA" is still "Sam".
+ */
+function initialsFirst(name: string): boolean {
+  const [first = ''] = namedWords(name) ?? [];
+  const letters = [...first].length;
+  if (first === first.toLowerCase() || first !== first.toUpperCase()) return false;
+  return letters <= 2 || (letters === 3 && name !== name.toUpperCase());
 }
 
 /**
  * The user's name as an on-behalf call's opener says it. With
- * OPENER_FIRST_NAME_PERSONAL on, a personal or family call says the first name
- * ("Sam's AI friend"). The name dispatched is already the preferred name when
- * one is set (call-on-behalf.ts, deferred-calls.ts requesterNameNow), so a
- * one-word preferred name is said whole. With no usable first name it says
- * what it said before. Any other call, and the flag off, keep the full name.
+ * OPENER_FIRST_NAME_PERSONAL on, a personal call to someone saved by name says
+ * the first name ("Sam's AI friend"); services/outreach/opening-line.ts
+ * partiesOf passes false for a relation ("Mom") or a family check-in. The name
+ * dispatched is already the preferred name when one is set (call-on-behalf.ts,
+ * deferred-calls.ts requesterNameNow), so a one-word preferred name is said
+ * whole. With no usable first name, or initials ("JR Rivera"), it says what it
+ * said before. Any other call, and the flag off, keep the full name.
  */
 export function openerSponsorName(
   userName: string | undefined,
@@ -82,7 +103,8 @@ export function openerSponsorName(
   env: Env = process.env
 ): string | undefined {
   const full = realName(userName);
-  if (!personal || !flagOn('OPENER_FIRST_NAME_PERSONAL', env)) return full;
+  if (!full || !personal || !flagOn('OPENER_FIRST_NAME_PERSONAL', env)) return full;
+  if (initialsFirst(full)) return full;
   return spokenFirstName(full) ?? full;
 }
 

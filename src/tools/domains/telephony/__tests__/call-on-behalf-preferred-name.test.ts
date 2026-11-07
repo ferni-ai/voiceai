@@ -2,7 +2,8 @@
  * The name callOnBehalf dispatches for the opener: the preferred name when one
  * is set, else the profile name. With OPENER_FIRST_NAME_PERSONAL on (the
  * default) a blank preferred name falls to the profile name, so the callee
- * hears "Sam's AI friend", never an empty name; off keeps main's pick.
+ * hears "Sam Rivera's AI friend" (a call to Mom keeps the full name), never an
+ * empty name; off keeps main's pick.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { OnBehalfCallRequest } from '../types.js';
@@ -75,13 +76,13 @@ describe('callOnBehalf dispatches the name the opener says', () => {
   });
 
   it.each(['   ', ''])(
-    'flag on: a blank preferred name %j falls to the profile name, said by first name',
+    'flag on: a blank preferred name %j falls to the profile name, said in full to Mom',
     async (preferredName) => {
       const request = await dispatched({ preferredName, name: 'Sam Rivera' });
 
       expect(request.userName).toBe('Sam Rivera');
       expect(outboundOpener(partiesOf({ ...request, recipientName: 'Mom' }))).toContain(
-        "It's Ferni, Sam's AI friend."
+        "It's Ferni, Sam Rivera's AI friend."
       );
     }
   );

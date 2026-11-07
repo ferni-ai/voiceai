@@ -67,7 +67,10 @@ export function nameAndRelation(saved: string | undefined): { name?: string; rel
  * The parties of a call, from the outbound call context's fields. A call is
  * personal only when its type says so (call-on-behalf.ts inferCallType from the
  * contact's relationship; a family check-in is dispatched as personal); a
- * missing or other type is treated as business.
+ * missing or other type is treated as business. Only a personal call to someone
+ * saved by name says the user's first name: a relation ("Mom") or a family
+ * check-in keeps the full name (Seth, 2026-11-07: first name in the personal
+ * opener only).
  */
 export function partiesOf(
   call: {
@@ -81,13 +84,14 @@ export function partiesOf(
 ): OutboundParties {
   const { name, relation } = nameAndRelation(call.recipientName);
   const personal = call.callType === 'personal';
+  const checkin = call.kind === 'family_checkin';
   return {
     recipientName: name,
     ...(relation && { relation }),
-    sponsorName: openerSponsorName(call.userName, personal, env),
+    sponsorName: openerSponsorName(call.userName, personal && !relation && !checkin, env),
     personal,
     openingLine: call.openingLine,
-    ...(call.kind === 'family_checkin' && { checkin: true }),
+    ...(checkin && { checkin: true }),
   };
 }
 

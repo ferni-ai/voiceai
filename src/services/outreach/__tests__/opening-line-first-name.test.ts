@@ -1,7 +1,8 @@
 /**
- * OPENER_FIRST_NAME_PERSONAL (default on): a personal or family call Ferni
- * places for Sam Rivera names Sam by first name to whoever answers; any other
- * call keeps the full name. Off, every opener is main's, byte for byte.
+ * OPENER_FIRST_NAME_PERSONAL (default on): a personal call Ferni places for Sam
+ * Rivera, to someone saved by name, names Sam by first name to whoever answers;
+ * a relation ("Mom"), a family check-in and any other call keep the full name.
+ * Off, every opener is main's, byte for byte.
  */
 import { describe, expect, it } from 'vitest';
 import { outboundOpener, partiesOf } from '../opening-line.js';
@@ -65,14 +66,14 @@ describe('OPENER_FIRST_NAME_PERSONAL on (the default)', () => {
       "Hi Alex, it's Ferni, Sam's AI friend. Sam asked me to check in on you. Is now an okay time?",
     ],
     [
-      'family (Mom)',
+      'family (Mom): main',
       FAMILY,
-      "Hi, is this Sam's mom? It's Ferni, Sam's AI friend. Sam asked me to check in on you. Is now an okay time?",
+      "Hi, is this Sam Rivera's mom? It's Ferni, Sam Rivera's AI friend. Sam Rivera asked me to check in on you. Is now an okay time?",
     ],
     [
-      'family check-in',
+      'family check-in: main',
       CHECKIN,
-      "Hi Alex, it's Ferni. Sam asked me to check in on you. Is now an okay time?",
+      "Hi Alex, it's Ferni. Sam Rivera asked me to check in on you. Is now an okay time?",
     ],
     ['business', BUSINESS, BUSINESS_LINE],
   ])('%s', (_label, call, line) => {
