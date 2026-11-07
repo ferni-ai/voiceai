@@ -27,6 +27,11 @@ const rows = [
     metadata: { source: 'conversation', userId: 'alice' },
   },
   {
+    id: 'a2',
+    text: 'Alice: walk the dog daily',
+    metadata: { source: 'store', userId: 'alice', entityType: 'habit' },
+  },
+  {
     id: 'b1',
     text: 'Bob: my divorce is final',
     metadata: { source: 'conversation', userId: 'bob' },
@@ -34,20 +39,37 @@ const rows = [
   { id: 'p1', text: 'Ferni loves gardening', metadata: { source: 'persona' } },
 ];
 
-/** A Firestore fake whose findNearest ignores filters (the worst case), recording the where() calls. */
+const toDoc = (r: (typeof rows)[number]) => ({
+  id: r.id,
+  data: () => ({ text: r.text, embedding: [1, 0, 0], metadata: r.metadata }),
+});
+
+/**
+ * A Firestore fake whose findNearest ignores filters (the worst case),
+ * recording the where() calls. A plain get() applies the equalities.
+ */
 function fakeDb(wheres: string[]) {
-  const query = (): Record<string, unknown> => ({
+  const query = (applied: Array<[string, unknown]> = []): Record<string, unknown> => ({
     where: (field: string, op: string, value: unknown) => {
       wheres.push(`${field} ${op} ${String(value)}`);
-      return query();
+      return query([...applied, [field, value]]);
     },
+    limit: (n: number) => ({
+      get: async () => {
+        const docs = rows
+          .filter((r) =>
+            applied.every(
+              ([field, value]) =>
+                (r.metadata as Record<string, unknown>)[field.replace('metadata.', '')] === value
+            )
+          )
+          .slice(0, n)
+          .map(toDoc);
+        return { size: docs.length, docs };
+      },
+    }),
     findNearest: () => ({
-      get: async () => ({
-        docs: rows.map((r) => ({
-          id: r.id,
-          data: () => ({ text: r.text, embedding: [1, 0, 0], metadata: r.metadata }),
-        })),
-      }),
+      get: async () => ({ docs: rows.map(toDoc) }),
     }),
   });
   return { collection: () => query() };
@@ -81,5 +103,15 @@ describe('vector search tenancy', () => {
       filter: { userId: 'alice', source: ['conversation', 'user_memory'] },
     });
     expect(results.map((r) => r.document.id)).toEqual(['a1']);
+  });
+
+  it('list() narrows by user and metadata in the query itself', async () => {
+    const wheres: string[] = [];
+    const docs = await storeWith(wheres).list({
+      userId: 'alice',
+      metadata: { entityType: 'habit' },
+    });
+    expect(wheres).toEqual(['metadata.userId == alice', 'metadata.entityType == habit']);
+    expect(docs.map((d) => d.id)).toEqual(['a2']);
   });
 });

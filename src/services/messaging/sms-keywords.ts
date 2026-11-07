@@ -12,6 +12,12 @@
  *   STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT, REVOKE, OPTOUT, OPT OUT), or a
  *   sentence of it is an explicit ask ("stop texting me", "take me off your
  *   list", "stop calling me"). "please stop" and "stop please" count whole.
+ *   More said after it doesn't undo it: a text that leads with a keyword as
+ *   its own sentence ("STOP. I want to die", "Cancel. ..."; a keyword then a
+ *   space, "cancel my 3pm", stays ordinary), or an ask in a clause of its own
+ *   ("stop texting me, I want to die"), opts out; the crisis screen still
+ *   answers the rest (sms-crisis-screen.ts withCrisisReply). "stop calling"
+ *   counts only as a whole sentence: "don't call, just text me" keeps texts.
  * - maybe: a short message whose only real word is an opt-out word ("please
  *   cancel", "Can you cancel?"), or "leave me alone". Not an opt-out and not
  *   confirmed, but it leans toward stopping: consent.ts pauses proactive and
@@ -122,7 +128,9 @@ export function inboundKeyword(body: string): InboundKeyword | null {
   if (sentences.some((x) => STOP_CALLS.test(x))) {
     return { kind: 'opt-out', channels: ['sms', 'call'], twilioReplies };
   }
-  if (EXACT_STOP.has(said) || sentences.some((x) => STOP_TEXTS.test(x))) {
+  const clauses = body.split(/[.!?;\n,–—]+|\s-\s/).map(normalizeSms);
+  const opener = sentences.find(Boolean) ?? '';
+  if (EXACT_STOP.has(said) || EXACT_STOP.has(opener) || clauses.some((x) => STOP_TEXTS.test(x))) {
     return { kind: 'opt-out', channels: ['sms'], twilioReplies };
   }
   if (said === 'start' || said === 'unstop') {

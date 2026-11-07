@@ -230,6 +230,7 @@ const ADVERSARIAL: Array<[shape: string, ...Probe, BlockReason]> = [
     () => turn({ latest: "My roommates passed out and won't respond." }),
     'R3_down_or_means',
   ],
+  ['plural', 'twin', () => turn({ latest: "The twins aren't breathing right." }), 'R2_third_party'],
   [
     'plural',
     'kids swallowed',
