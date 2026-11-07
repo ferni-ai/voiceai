@@ -15,7 +15,8 @@ vi.hoisted(() => {
 });
 vi.unmock('../../utils/safe-logger.js');
 // The only persisting writer these tools reach; faked so nothing leaves the test.
-vi.mock('../../services/cross-persona-insights.js', () => ({ addCrossPersonaInsight: vi.fn() }));
+const { addInsight } = vi.hoisted(() => ({ addInsight: vi.fn() }));
+vi.mock('../../services/cross-persona-insights.js', () => ({ addCrossPersonaInsight: addInsight }));
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { definitions as griefTools } from '../domains/grief/index.js';
@@ -137,14 +138,23 @@ function ctxFor(userId: string): ToolContext {
   } as unknown as ToolContext;
 }
 
-/** Runs the real tool and returns the log lines it wrote with its message. */
-async function linesFrom(c: Case, userId: string): Promise<string[]> {
+/** Runs the real tool `execute` (no zod parse in front of it) and returns what it returned. */
+async function run(c: Case, userId: string, args: Record<string, unknown>): Promise<unknown> {
   const def = c.defs.find((d) => d.id === c.tool);
   if (!def) throw new Error(`no tool ${c.tool}`);
   const tool = def.create(ctxFor(userId)) as unknown as {
     execute: (args: Record<string, unknown>, opts: unknown) => Promise<unknown>;
   };
-  await tool.execute(c.args, {});
+  return tool.execute(args, {});
+}
+
+/** Runs the real tool and returns the log lines it wrote with its message. */
+async function linesFrom(c: Case, userId: string): Promise<string[]> {
+  await run(c, userId, c.args);
+  return logLines(c);
+}
+
+function logLines(c: Case): string[] {
   return out
     .join('')
     .split('\n')
@@ -167,4 +177,48 @@ describe('support tools log the size of the caller words, never the words', () =
       });
     });
   }
+});
+
+// Callers that skip the zod parse (the admin /api/chat/tool route) can hand a grief tool a
+// required word field as undefined or null. Main still answered with its support text there,
+// so the size log must not be what throws: it logs 0 and the reply is unchanged.
+describe('grief tools with a required word field missing', () => {
+  const griefCases = CASES.filter((c) => c.defs === griefTools);
+  const rows = griefCases.flatMap((c) =>
+    [undefined, null].map((missing) => ({ ...c, missing, label: String(missing) }))
+  );
+
+  it.each(rows)('$tool with $label', async (c) => {
+    const words = c.sizes.map((size) => size.replace(/Chars$/, ''));
+    const withMissing = { ...c.args, ...Object.fromEntries(words.map((w) => [w, c.missing])) };
+    // Main's reply for a missing field: these fields are only ever interpolated, so it is the
+    // reply for the field's String() form, byte for byte.
+    const asText = { ...c.args, ...Object.fromEntries(words.map((w) => [w, String(c.missing)])) };
+
+    const reply = await run(c, OWNER_ID, withMissing);
+    const lines = logLines(c);
+    expect(lines).toHaveLength(1);
+    for (const size of c.sizes) expect(lines[0]).toContain(`"${size}":0`);
+
+    expect(typeof reply).toBe('string');
+    expect(reply).toBe(await run(c, OWNER_ID, asText));
+  });
+
+  it('flagTransitionForJordan still hands Jordan the insight', async () => {
+    addInsight.mockClear();
+    const c = griefCases.find((g) => g.tool === 'flagTransitionForJordan');
+    if (!c) throw new Error('no flagTransitionForJordan case');
+
+    await run(c, OWNER_ID, { ...c.args, transition: undefined });
+
+    expect(addInsight).toHaveBeenCalledTimes(1);
+    expect(addInsight).toHaveBeenCalledWith(
+      OWNER_ID,
+      expect.objectContaining({
+        target: 'jordan',
+        category: 'life_transition',
+        content: 'Life transition in beginning stage: "undefined" | Planning needed: false',
+      })
+    );
+  });
 });
