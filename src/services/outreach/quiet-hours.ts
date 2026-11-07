@@ -81,6 +81,11 @@ export function isQuietHoursFromPrefs(): boolean {
   return flagOn('QUIET_HOURS_FROM_PREFS');
 }
 
+/** NIGHT_WINDOW_ALL_PATHS (issue 3599): no call rings or ends a hold in the callee's night. */
+export function isNightWindowAllPaths(): boolean {
+  return flagOn('NIGHT_WINDOW_ALL_PATHS');
+}
+
 /**
  * The quiet hours the person saved in the menu (bogle_users/{uid}.messagingPrefs),
  * in the zone saved with them, else their profile's; with none, quiet while it is
@@ -251,14 +256,20 @@ export async function callQuietHours(userId: string, now = new Date()): Promise<
   return { quiet: until.getTime() !== now.getTime(), until };
 }
 
-/** The call schedulers' old check, unchanged. */
+/**
+ * The call schedulers' old check: waits to the end hour on the server clock. NIGHT_WINDOW_ALL_PATHS
+ * on: to the end minute, so 18:15 in 12:00-18:30 waits to 18:30, not to the next day's 18:00.
+ */
 function serverClockQuiet(
   q: { enabled?: boolean; start?: string; end?: string } | undefined,
   now: Date
 ): QuietHoursResult {
-  const quiet =
-    !!q?.enabled && isQuietAt(now, parseQuietWindow(q.start, q.end), [serverTimezone()]);
+  const window = parseQuietWindow(q?.start, q?.end);
+  const quiet = !!q?.enabled && isQuietAt(now, window, [serverTimezone()]);
   if (!quiet) return { quiet, until: now };
+  if (isNightWindowAllPaths()) {
+    return { quiet, until: quietEndsAt(now, window, [serverTimezone()]) };
+  }
   const endHour = q?.end ? parseInt(q.end.split(':')[0], 10) : 8;
   const until = new Date(now);
   if (until.getHours() >= endHour) until.setDate(until.getDate() + 1);

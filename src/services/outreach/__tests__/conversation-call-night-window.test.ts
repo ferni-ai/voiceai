@@ -6,10 +6,13 @@
  * normal day, both US DST days and the UK DST day, in every combination of CALL_HOURS_GUARD,
  * QUIET_HOURS_UNIFIED and NIGHT_WINDOW_ALL_PATHS. Mocked: Firestore (in memory), the account
  * lookups (time zone, verified phone) and the Twilio client. Fictional numbers.
+ * Round 2: owners with saved windows that end on the minute, read on the server clock; every grid
+ * runs with the server in UTC (prod) and in New York. With the flag on, a call that has no allowed
+ * time within a week is refused (NO_ALLOWED_TIME), never held into a night.
  * CALL_GRID_DUMP=<file.json> writes every cell, to compare a run against another tree.
  */
 import { writeFileSync } from 'node:fs';
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeConsentDb } from '../../messaging/__tests__/memory-consent.js';
 import { fakeFirestore, type Row } from '../../scheduling/__tests__/fake-firestore.js';
 
@@ -123,18 +126,20 @@ const night = (at: Date, zone: string): boolean => {
   return h * 60 + m >= 21 * 60 || h * 60 + m < 8 * 60;
 };
 
-function reset(owner: Owner): void {
+const SAVED: Partial<Record<Owner, string>> = { nySaved: '22:00-07:00' };
+/** A fresh store; `saved` ('HH:MM-HH:MM') is the owner's saved quiet hours. */
+function reset(owner: Owner, saved = SAVED[owner]): void {
   state.consent = fakeConsentDb();
   state.rows = [];
   state.ownerZone = OWNERS[owner];
-  state.docs =
-    owner === 'nySaved'
-      ? {
-          [`bogle_users/${OWNER}`]: {
-            outreachPreferences: { quietHours: { enabled: true, start: '22:00', end: '07:00' } },
-          },
-        }
-      : {};
+  const [start, end] = saved?.split('-') ?? [];
+  state.docs = saved
+    ? {
+        [`bogle_users/${OWNER}`]: {
+          outreachPreferences: { quietHours: { enabled: true, start, end } },
+        },
+      }
+    : {};
   callsCreate.mockClear();
 }
 const grant = (phone: string) =>
@@ -170,14 +175,24 @@ function inNight(owner: Owner, callee: string, at: Date, outcome: string): boole
   return outcome.startsWith('held ') && night(new Date(outcome.slice(5)), zone);
 }
 
-async function grid(owner: Owner, combo: (typeof COMBOS)[number], allPaths: 'on' | 'off') {
+interface GridOpts {
+  saved?: string;
+  callees?: string[];
+  slots?: Date[];
+}
+async function grid(
+  owner: Owner,
+  combo: (typeof COMBOS)[number],
+  allPaths: 'on' | 'off',
+  { saved, callees = Object.keys(CALLEES), slots = SLOTS }: GridOpts = {}
+) {
   vi.stubEnv('CALL_HOURS_GUARD', combo.guard);
   vi.stubEnv('QUIET_HOURS_UNIFIED', combo.unified);
   vi.stubEnv('NIGHT_WINDOW_ALL_PATHS', allPaths);
   const cells = new Map<string, string>();
-  for (const callee of Object.keys(CALLEES)) {
-    for (const at of SLOTS) {
-      reset(owner);
+  for (const callee of callees) {
+    for (const at of slots) {
+      reset(owner, saved);
       cells.set(`${callee}|${at.toISOString()}`, await place(callee, at));
     }
   }
@@ -189,19 +204,73 @@ const nightCells = (owner: Owner, cells: Map<string, string>) =>
     return inNight(owner, callee, new Date(iso), outcome);
   });
 const dump: Record<string, string> = {};
-/** Today's night cells (flag off), per owner and guard|unified: the member and own-number paths. */
+const SERVER_TZS = ['UTC', 'America/New_York'] as const;
+const REFUSED = 'refused Not calling: NO_ALLOWED_TIME';
+/** When the cell's call goes: now when rung, its hold end, never when refused. */
+const goes = (at: Date, outcome: string): number =>
+  outcome === 'rang'
+    ? at.getTime()
+    : outcome.startsWith('held ')
+      ? Date.parse(outcome.slice(5))
+      : Infinity;
+/** Inside the saved window on the server clock (what serverClockQuiet reads). */
+function inSaved(t: number, saved?: string): boolean {
+  if (!saved) return false;
+  const [start, end] = saved
+    .split('-')
+    .map((hm) => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3)));
+  const min = new Date(t).getHours() * 60 + new Date(t).getMinutes();
+  return start <= end ? min >= start && min < end : min >= start || min < end;
+}
+/**
+ * Flag on against off, cell by cell: no night cell; callees other than the member and their own
+ * number unchanged; never sooner, except where off's hold ends inside the saved window (the end
+ * hour without its minutes, e.g. 18:00 in 12:00-18:30). Returns the NO_ALLOWED_TIME refusals.
+ */
+function onAgainstOff(
+  owner: Owner,
+  off: Map<string, string>,
+  on: Map<string, string>,
+  saved?: string
+): number {
+  expect(nightCells(owner, on)).toEqual([]);
+  let refused = 0;
+  for (const [key, was] of off) {
+    const now = on.get(key) ?? '';
+    const at = new Date(key.split('|')[1]);
+    if (!/^(member|own)\|/.test(key)) expect([key, now]).toEqual([key, was]);
+    if (goes(at, now) < goes(at, was)) {
+      expect([key, was, inSaved(goes(at, was), saved)]).toEqual([key, was, true]);
+    }
+    if (now === REFUSED) refused++;
+  }
+  return refused;
+}
+/** Today's night cells (flag off), per server clock, owner and guard|unified. */
 const OFF_NIGHT: Record<string, number> = {
-  'ny|off|off': 88,
-  'ny|off|on': 8,
-  'la|off|off': 88,
-  'tokyo|off|off': 88,
-  'tokyo|off|on': 164,
-  'london|off|off': 88,
-  'london|off|on': 44,
-  'london|on|off': 36,
-  'london|on|on': 36,
-  'nySaved|off|off': 144,
-  'nySaved|off|on': 8,
+  'UTC|ny|off|off': 88,
+  'UTC|ny|off|on': 8,
+  'UTC|la|off|off': 88,
+  'UTC|tokyo|off|off': 88,
+  'UTC|tokyo|off|on': 164,
+  'UTC|london|off|off': 88,
+  'UTC|london|off|on': 44,
+  'UTC|london|on|off': 36,
+  'UTC|london|on|on': 36,
+  'UTC|nySaved|off|off': 144,
+  'UTC|nySaved|off|on': 8,
+  // New York: the same, but nySaved's 22:00-07:00 ends at 07:00 New York (the issue's 736).
+  'America/New_York|ny|off|off': 88,
+  'America/New_York|ny|off|on': 8,
+  'America/New_York|la|off|off': 88,
+  'America/New_York|tokyo|off|off': 88,
+  'America/New_York|tokyo|off|on': 164,
+  'America/New_York|london|off|off': 88,
+  'America/New_York|london|off|on': 44,
+  'America/New_York|london|on|off': 36,
+  'America/New_York|london|on|on': 36,
+  'America/New_York|nySaved|off|off': 88,
+  'America/New_York|nySaved|off|on': 8,
 };
 
 beforeEach(() => {
@@ -214,27 +283,75 @@ afterAll(() => {
   if (process.env.CALL_GRID_DUMP) writeFileSync(process.env.CALL_GRID_DUMP, JSON.stringify(dump));
 });
 
-describe('NIGHT_WINDOW_ALL_PATHS: the callee-hours grid', () => {
-  describe.each(Object.keys(OWNERS) as Owner[])('owner %s', (owner) => {
-    it.each(COMBOS)(
-      'guard $guard, unified $unified',
-      async (combo) => {
-        const tag = `${combo.guard}|${combo.unified}|${owner}`;
-        const off = await grid(owner, combo, 'off');
-        const on = await grid(owner, combo, 'on');
-        for (const [key, outcome] of off) dump[`off|${tag}|${key}`] = outcome;
-        for (const [key, outcome] of on) dump[`on|${tag}|${key}`] = outcome;
-        expect(off.size).toBe(12 * 192);
-        // Off: today's night cells, all on the member and own-number paths.
-        const offNight = nightCells(owner, off);
-        expect(offNight.length).toBe(OFF_NIGHT[`${owner}|${combo.guard}|${combo.unified}`] ?? 0);
-        expect(offNight.filter(([key]) => !/^(member|own)\|/.test(key))).toEqual([]);
-        // On: nothing rings, and no hold ends, inside any zoned callee's night.
-        expect(nightCells(owner, on)).toEqual([]);
-        // Only the member and their own number change; every other callee is as with it off.
-        for (const [key, outcome] of off) {
-          if (!/^(member|own)\|/.test(key)) expect([key, on.get(key)]).toEqual([key, outcome]);
+describe.each(SERVER_TZS)(
+  'NIGHT_WINDOW_ALL_PATHS: the callee-hours grid, server clock %s',
+  (tz) => {
+    beforeEach(() => void (process.env.TZ = tz));
+    afterEach(() => void (process.env.TZ = 'UTC'));
+    describe.each(Object.keys(OWNERS) as Owner[])('owner %s', (owner) => {
+      it.each(COMBOS)(
+        'guard $guard, unified $unified',
+        async (combo) => {
+          const tag = `${tz}|${combo.guard}|${combo.unified}|${owner}`;
+          const off = await grid(owner, combo, 'off');
+          const on = await grid(owner, combo, 'on');
+          for (const [key, outcome] of off) dump[`off|${tag}|${key}`] = outcome;
+          for (const [key, outcome] of on) dump[`on|${tag}|${key}`] = outcome;
+          expect(off.size).toBe(12 * 192);
+          // Off: today's night cells, all on the member and own-number paths.
+          const offNight = nightCells(owner, off);
+          expect(offNight.length).toBe(
+            OFF_NIGHT[`${tz}|${owner}|${combo.guard}|${combo.unified}`] ?? 0
+          );
+          expect(offNight.filter(([key]) => !/^(member|own)\|/.test(key))).toEqual([]);
+          // On: no night cell, other callees unchanged, never sooner; nothing refused here.
+          expect(onAgainstOff(owner, off, on, SAVED[owner])).toBe(0);
+        },
+        600_000
+      );
+    });
+  }
+);
+
+/** The verifier's wider grid: saved windows ending on the minute, and ones that leave no time. */
+const WINDOWS = [
+  '20:00-21:30',
+  '17:00-19:00',
+  '22:00-07:00',
+  '06:00-09:00',
+  '12:00-18:30',
+  '19:00-23:00',
+];
+const WIDE_CALLEES = ['own', 'member', '212', '415'];
+const WIDE_SLOTS = SLOTS.slice(0, 96); // 2026-11-10 and 2026-03-08 (US DST)
+/** NO_ALLOWED_TIME refusals (flag on), per server clock, window and owner; all four combos. */
+const WIDE_REFUSED: Record<string, number> = {
+  'UTC|12:00-18:30|tokyo': 96,
+  'UTC|19:00-23:00|tokyo': 48,
+  'UTC|22:00-07:00|tokyo': 96,
+  'America/New_York|12:00-18:30|tokyo': 96,
+  'America/New_York|19:00-23:00|tokyo': 96,
+};
+describe.each(SERVER_TZS)('NIGHT_WINDOW_ALL_PATHS: saved windows, server clock %s', (tz) => {
+  beforeEach(() => void (process.env.TZ = tz));
+  afterEach(() => void (process.env.TZ = 'UTC'));
+  describe.each(WINDOWS)('saved %s', (saved) => {
+    it.each(['tokyo', 'la', 'london'] as const)(
+      'owner %s, every combo',
+      async (owner) => {
+        const runs = [];
+        for (const combo of COMBOS) {
+          const opts = { saved, callees: WIDE_CALLEES, slots: WIDE_SLOTS };
+          const off = await grid(owner, combo, 'off', opts);
+          const on = await grid(owner, combo, 'on', opts);
+          const tag = `${tz}|${combo.guard}|${combo.unified}|${owner}|${saved}`;
+          for (const [key, outcome] of off) dump[`off|${tag}|${key}`] = outcome;
+          for (const [key, outcome] of on) dump[`on|${tag}|${key}`] = outcome;
+          runs.push({ off, on }); // every combo dumped before any assertion
         }
+        let refused = 0;
+        for (const { off, on } of runs) refused += onAgainstOff(owner, off, on, saved);
+        expect(refused).toBe(WIDE_REFUSED[`${tz}|${saved}|${owner}`] ?? 0);
       },
       600_000
     );
@@ -279,6 +396,73 @@ describe('NIGHT_WINDOW_ALL_PATHS: the three paths', () => {
       expect(await place(callee, at(iso, guard, unified, 'off'))).toBe(off);
       reset(owner);
       expect(await place(callee, at(iso, guard, unified, 'on'))).toBe(on);
+    }
+  );
+  // Saved hours 'HH:MM-HH:MM' on the server clock (UTC here).
+  it.each([
+    // 4. London owner, own 212 number, 00:00Z: London's night to 08:00, New York's to 13:00,
+    //    the saved hours to 18:30 (three asks; one re-ask stops at 13:00).
+    [
+      'london',
+      '12:00-18:30',
+      'own',
+      '2026-11-10T00:00:00Z',
+      'off',
+      'off',
+      'rang',
+      'held 2026-11-10T18:30:00.000Z',
+    ],
+    // 5. Tokyo owner, own 212 number, saved 01:00Z-02:30Z on both coasts: to 02:30Z, then New
+    //    York's night to 13:00, Tokyo's to 23:00 (one re-ask stops at 16:00, LA's morning).
+    [
+      'tokyo',
+      '20:00-21:30',
+      'own',
+      '2026-11-10T01:00:00Z',
+      'off',
+      'on',
+      'held 2026-11-10T02:30:00.000Z',
+      'held 2026-11-10T23:00:00.000Z',
+    ],
+    // 6. Guard on, as 4 (holdForAll): off held to London's 09:00 only.
+    [
+      'london',
+      '12:00-18:30',
+      'own',
+      '2026-11-10T00:00:00Z',
+      'on',
+      'off',
+      'held 2026-11-10T09:00:00.000Z',
+      'held 2026-11-10T18:30:00.000Z',
+    ],
+    // 7. 18:15 inside 12:00-18:30: off waits to the end hour, the next day's 18:00 (still
+    //    quiet); on, to 18:30 the same day.
+    [
+      'london',
+      '12:00-18:30',
+      'member',
+      '2026-11-10T18:15:00Z',
+      'off',
+      'off',
+      'held 2026-11-11T18:00:00.000Z',
+      'held 2026-11-10T18:30:00.000Z',
+    ],
+    // 8. No allowed time: New York's night (01:00-12:00Z after the US clock change), Tokyo's
+    //    (12:00-23:00Z) and the saved 19:00-23:00 on both coasts (23:00-06:00Z) leave none.
+    //    Never settles: refused, 0 calls, 0 rows.
+    ['tokyo', '19:00-23:00', 'own', '2026-03-08T15:00:00Z', 'off', 'on', 'rang', REFUSED],
+  ] as const)(
+    '%s saved %s, %s at %s, guard %s unified %s: off %s, on %s',
+    async (owner, saved, callee, iso, guard, unified, off, on) => {
+      reset(owner, saved);
+      expect(await place(callee, at(iso, guard, unified, 'off'))).toBe(off);
+      reset(owner, saved);
+      expect(await place(callee, at(iso, guard, unified, 'on'))).toBe(on);
+      // On never rings here: held is one stored row, refused is none.
+      expect([callsCreate.mock.calls.length, state.rows.length]).toEqual([
+        0,
+        on === REFUSED ? 0 : 1,
+      ]);
     }
   );
 });

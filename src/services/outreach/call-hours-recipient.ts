@@ -10,14 +10,18 @@
  * or not (not on their own "call me" from a live call), and each hold's end is asked again until
  * every check allows, so no hold ends inside another callee's night.
  */
-import { flagOn } from '../../config/env-flag.js';
 import { decide, priorityOf } from '../messaging/policy.js';
 import type { Intent, PolicyCtx } from '../messaging/types.js';
 import { checkCallHours, userTimezone, type CallHoursInput } from './call-hours-guard.js';
 import { timezoneFromPhone } from './area-code-timezones.js';
 import { holdForCallHours, type Deferral, type DeferredCall } from './deferred-calls.js';
 import { USER_REQUESTED_CALL } from './live-agent-call.js';
-import { callQuietHours, isQuietHoursUnified, type QuietHoursResult } from './quiet-hours.js';
+import {
+  callQuietHours,
+  isNightWindowAllPaths,
+  isQuietHoursUnified,
+  type QuietHoursResult,
+} from './quiet-hours.js';
 
 /** The calling-hours checks a call keeps; any one of them holds it. */
 export async function callHoursRecipients(
@@ -44,8 +48,6 @@ export async function holdForCallees(
   if (rest.length > 0 && isNightWindowAllPaths()) return holdForAll(userId, call, callees);
   return (await holdForCallHours(userId, call, first)) ?? holdForCallees(userId, call, rest);
 }
-
-const isNightWindowAllPaths = (): boolean => flagOn('NIGHT_WINDOW_ALL_PATHS');
 
 /** Held to the first time every check allows: the check that holds last is asked at that hold. */
 async function holdForAll(
@@ -140,16 +142,21 @@ async function calleeHolds(callees: CallHoursInput[], night: boolean): Promise<H
   return holds.flat();
 }
 
+/** Refused, not held: no time every check allows comes within a week (NIGHT_WINDOW_ALL_PATHS). */
+const NO_ALLOWED_TIME = 'NO_ALLOWED_TIME';
+const WEEK_MS = 7 * 24 * 60 * 60_000;
+
 /**
  * CALL_HOURS_GUARD off: held until every check (a contact's night, the member's hours) allows.
  * NIGHT_WINDOW_ALL_PATHS on (not their own "call me", asOwnCallMe): the member's night too, and
- * the end is asked again until no check holds it.
+ * the end is asked again until no check holds it. When that does not settle within 8 asks or a
+ * week, the call is refused (NO_ALLOWED_TIME) rather than held to a time inside a callee's night.
  */
 export async function calleeCallHold(
   callees: CallHoursInput[],
   now: Date,
   ownCallMe = false
-): Promise<QuietHoursResult> {
+): Promise<QuietHoursResult & { refused?: typeof NO_ALLOWED_TIME }> {
   const night = isNightWindowAllPaths() && !ownCallMe;
   const holds = await calleeHolds(callees, night);
   const latest = async (at: Date): Promise<Date> => {
@@ -157,10 +164,12 @@ export async function calleeCallHold(
     return new Date(Math.max(at.getTime(), ...ends.map((e) => e.getTime())));
   };
   let until = await latest(now);
-  for (let step = 0; night && step < 8; step++) {
+  const held = () => ({ quiet: until.getTime() !== now.getTime(), until });
+  if (!night) return held();
+  for (let step = 0; step < 8 && until.getTime() - now.getTime() <= WEEK_MS; step++) {
     const next = await latest(until);
-    if (next.getTime() === until.getTime()) break;
+    if (next.getTime() === until.getTime()) return held();
     until = next;
   }
-  return { quiet: until.getTime() !== now.getTime(), until };
+  return { quiet: true, until, refused: NO_ALLOWED_TIME };
 }
