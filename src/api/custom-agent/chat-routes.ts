@@ -13,6 +13,7 @@
  */
 import type { IncomingMessage, ServerResponse } from 'http';
 import { flagOn } from '../../config/env-flag.js';
+import { readTypedMessageForCrisis } from '../../agents/personas/crisis-gate-text.js';
 import { callLLM } from '../../services/llm-utils.js';
 import {
   buildLiveCustomAgentPrompt,
@@ -108,13 +109,19 @@ export async function handleAgentChat(
     sendJson(res, 400, { error: 'A message or a scene is needed' });
     return true;
   }
+  // The voice turn's crisis gate, before the agent is read or the model asked.
+  const crisis = await readTypedMessageForCrisis(request.message, request.history);
+  if (crisis.action === 'replace') {
+    sendJson(res, 200, { reply: crisis.reply, crisis: true });
+    return true;
+  }
   const agent = await getCustomAgent(userId, agentId);
   if (!agent) {
     sendJson(res, 404, { error: 'Agent not found' });
     return true;
   }
   const reply = await callLLM(
-    buildAgentChatPrompt(agent, request.history, request.message, request.scene),
+    buildAgentChatPrompt(agent, request.history, crisis.message, request.scene),
     { maxTokens: 400, temperature: 0.8 }
   );
   if (!reply?.trim()) {

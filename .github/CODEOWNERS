@@ -93,6 +93,8 @@
 /src/agents/shared/wrap-up-window.ts @sethdford
 /src/agents/voice-agent/quiet-presence.ts @sethdford
 /src/agents/voice-agent/turn-handler.ts @sethdford
+/src/api/custom-agent/chat-routes.ts @sethdford
+/src/api/journal-twin-route.ts @sethdford
 /src/api/wellbeing.routes.ts @sethdford
 /src/config/flags/FORGET_EVERY_READER.ts @sethdford
 /src/config/flags/NAME_FALLING_SPLIT.ts @sethdford
