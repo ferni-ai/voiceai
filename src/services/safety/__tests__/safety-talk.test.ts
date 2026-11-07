@@ -30,7 +30,9 @@ type Reader =
  * kept here. Computed 2026-11-06 over those readers' own tests, main's
  * action-claim and crisis-line tests, the scripts/crisis-eval corpus and
  * labelled cases, and the lines the crisis verifies listed; #3483's reachesHelp
- * also over CUT_ROWS below. notHelp: the only
+ * also over CUT_ROWS below. Re-run 2026-11-07: #3483's reader (`git show
+ * 726c79e70:src/services/safety/safety-talk.ts`) over this file's whole line set
+ * reads exactly the pinned reachesHelp list, 0 extra and 0 missing. notHelp: the only
  * strings an old reader matched that the new one leaves, each with the reason.
  */
 const PINNED = JSON.parse(
@@ -70,6 +72,12 @@ const CUT_ROWS = [
   'The 999 people know exactly what to do.',
   'Call 999 times like this need it.',
 ];
+/** The CUT_ROWS no old reader (EMERGENCY_SERVICE, #3483) reads; only the CUT_ROWS test pins them. */
+const NO_OLD_READER = new Set([
+  'A crisis counselor walks you through the next hour.',
+  'The hotline walks you through a safety plan.',
+  'NAMI walks families through the first visit.',
+]);
 const CORPUS_DIR = join(__dirname, '../../../../scripts/crisis-eval/corpus');
 
 function strings(value: unknown): string[] {
@@ -103,7 +111,8 @@ describe('never narrower than an old reader', () => {
       (t) => SERVICE.test(t.toLowerCase()) || PINNED.reachesHelp.includes(t)
     );
     expect(oldRead.length).toBeGreaterThan(250);
-    expect(oldRead).toEqual(expect.arrayContaining(CUT_ROWS.filter((t) => /999/.test(t))));
+    // every family the cut fixed (verbs, SHOUT/Shout, "999 people"), so undoing any one goes red
+    expect(oldRead).toEqual(expect.arrayContaining(CUT_ROWS.filter((t) => !NO_OLD_READER.has(t))));
     expect(oldRead.filter((t) => !reachesHelp(t))).toEqual([]);
   });
 
