@@ -12,10 +12,12 @@
  *   those are used up (SILENT_WHEN_RETURN_LINES_USED_UP), never a repeat. A
  *   briefed first line written for this moment and not yet said is kept;
  * - once crisis handling touches the call (the gate acted on, or holds a verdict
- *   on, any session seen at a hop), every later line is spoken exactly as without
- *   the flag: never swapped, never dropped. Sticky for the call, because with a
- *   session per persona (MULTI_AGENT_SINGLE_SESSION off) a later hop's sessions
- *   are not the one the crisis happened on.
+ *   on, any session seen at any hop this call), every later line is spoken exactly
+ *   as without the flag: never swapped, never dropped. Every hop reads every
+ *   session seen so far, and the mark is sticky for the call: with a session per
+ *   persona (MULTI_AGENT_SINGLE_SESSION off) a crisis can land on a session after
+ *   its persona left (a classifier read still out at the hop), and a later hop's
+ *   own sessions are not that one.
  *
  * Arrival lines only: goodbyes, safety and disclosure lines never pass through here.
  * Kept in memory only, keyed by call, and forgotten when the call ends
@@ -62,6 +64,11 @@ export const SILENT_WHEN_RETURN_LINES_USED_UP = true;
 interface CallArrivals {
   met: Set<string>;
   spoken: Set<string>;
+  /**
+   * Every session seen at a hop this call. A crisis can land on a session after its
+   * persona left (a classifier read still out at the hop), so each hop reads them all.
+   */
+  sessionsSeen: Set<unknown>;
   /** Never reset within the call: a pending verdict that clears still counts. */
   crisis: boolean;
 }
@@ -79,7 +86,12 @@ function arrivalsFor(callId: string): CallArrivals {
   if (known) return known;
   const oldest = calls.keys().next();
   if (calls.size >= MAX_CALLS && !oldest.done) calls.delete(oldest.value);
-  const fresh: CallArrivals = { met: new Set(), spoken: new Set(), crisis: false };
+  const fresh: CallArrivals = {
+    met: new Set(),
+    spoken: new Set(),
+    sessionsSeen: new Set(),
+    crisis: false,
+  };
   calls.set(callId, fresh);
   return fresh;
 }
@@ -116,7 +128,8 @@ export function arrivalOnce(callId: string, hop: ArrivalHop, line: string): stri
   call.met.add(hop.from);
   const returning = call.met.has(hop.to);
   call.met.add(hop.to);
-  call.crisis ||= nearCrisis(hop.sessions);
+  for (const s of hop.sessions) call.sessionsSeen.add(s);
+  call.crisis ||= nearCrisis([...call.sessionsSeen]);
   const fresh = !call.spoken.has(lineId(line));
   const keep = call.crisis || !returning || (hop.briefed && fresh);
   const unsaid = (RETURNING_OPENERS[hop.to] ?? []).find((l) => !call.spoken.has(lineId(l)));

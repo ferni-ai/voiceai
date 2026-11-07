@@ -3,9 +3,26 @@
  * call, a persona the caller already met this call doesn't say the same
  * arrival line again (issues #1922, #1489). Synthetic calls, fictional data.
  */
+import { EventEmitter } from 'node:events';
+import { ReadableStream } from 'node:stream/web';
+import { llm } from '@livekit/agents';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { noteCrisisVerdictPending, signalCrisisDecision } from '../../safety/crisis-gate-signal.js';
+import {
+  crisisDecidedOn,
+  crisisVerdictPending,
+  noteCrisisVerdictPending,
+  signalCrisisDecision,
+} from '../../safety/crisis-gate-signal.js';
+import { gatedReply } from '../../personas/crisis-gate.js';
+import { OpenerGate } from '../../personas/opener-gate.js';
+import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
+import {
+  resetCrisisClassifierCache,
+  type CrisisGenerateFn,
+} from '../../../services/safety/crisis-classifier.js';
+import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
 import { ARRIVING_OPENERS } from '../../../services/team-engagement/banter.js';
+import { unfinishedTurnHoldMs } from '../unfinished-turn.js';
 import {
   arrivalOnce,
   RETURNING_OPENERS,
@@ -25,7 +42,7 @@ interface Spawned {
   wired: ReturnType<typeof vi.fn>;
 }
 
-function config(sessionId: string, spawned: Spawned[]) {
+function config(sessionId: string, spawned: Spawned[], makeSession: () => object = () => ({})) {
   return {
     ctx: {} as never,
     room: {} as never,
@@ -35,7 +52,7 @@ function config(sessionId: string, spawned: Spawned[]) {
       const record: Spawned = {
         personaId,
         said: [],
-        session: {},
+        session: makeSession(),
         wired: vi.fn(async () => undefined),
       };
       spawned.push(record);
@@ -90,18 +107,20 @@ interface Call {
   end: () => Promise<void>;
 }
 
-/** Starts a call on Ferni and runs `hops`; `beforeHop(i, spawned)` runs before hop i. */
+/** Starts a call on Ferni and runs `hops`; `beforeHop(i, spawned)` runs (and is awaited) before hop i. */
 async function runCall(
   sessionId: string,
   hops: string[],
-  beforeHop: (i: number, spawned: Spawned[]) => void = () => undefined
+  beforeHop: (i: number, spawned: Spawned[]) => void | Promise<void> = () => undefined,
+  makeSession?: () => object
 ): Promise<Call> {
   const spawned: Spawned[] = [];
-  const orchestrator = createAgentOrchestrator(config(sessionId, spawned));
+  const orchestrator = createAgentOrchestrator(config(sessionId, spawned, makeSession));
   await orchestrator.start('ferni');
   await vi.waitFor(() => expect(spawned[0]?.said.length).toBe(1), { timeout: 5000 }); // the opening greeting
   for (const [i, target] of hops.entries()) {
-    beforeHop(i, spawned);
+    // eslint-disable-next-line no-await-in-loop -- the call's next event, then its next hop
+    await beforeHop(i, spawned);
     // eslint-disable-next-line no-await-in-loop -- one handoff after another, as on a call
     const result = await orchestrator.handoff({ targetPersonaId: target, reason: 'test' });
     expect(result.success).toBe(true);
@@ -243,6 +262,198 @@ describe('A→B→A→B in one call', () => {
     await six.end();
     expect(six.lines).toEqual(todays(SIX_HOPS)); // no silent arrival either
   });
+
+  it('flag on, four and more personas: a return is a return however many the caller has met', async () => {
+    vi.stubEnv('HANDOFF_ARRIVAL_ONCE', 'on');
+    const ALEX = 'alex-chen';
+    const PETER = 'peter-john';
+    const { lines, end } = await runCall('arrival-once-five', [
+      MAYA,
+      JORDAN,
+      ALEX,
+      MAYA,
+      PETER,
+      JORDAN,
+    ]);
+    await end();
+    expect(lines).toEqual([
+      ARRIVING_OPENERS[MAYA][0],
+      ARRIVING_OPENERS[JORDAN][0],
+      ARRIVING_OPENERS[ALEX][0], // the fourth persona met: a first meeting
+      RETURNING_OPENERS[MAYA][0], // a return with four met
+      ARRIVING_OPENERS[PETER][0],
+      RETURNING_OPENERS[JORDAN][0], // a return with five met
+    ]);
+  });
+});
+
+/**
+ * A crisis that lands after its persona left the hop (a session per persona): the
+ * caller line is read on one persona's session, the hop goes out while the
+ * classifier is still reading, and the verdict lands afterwards. Driven through
+ * the real reply gate (crisis-gate.ts gatedReply), with a classifier stand-in that
+ * holds its verdict on the risky line until the test lets it land. Fictional lines.
+ */
+describe('a late crisis, after its persona left the hop', () => {
+  /** A caller line no pattern catches; the classifier stand-in reads it as crisis. */
+  const RISKY = 'Can I cut my sleeves long enough to hide the marks?';
+  /** The start of it, which the unfinished-turn hold waits on (CRISIS_READ_JOINED_TURN). */
+  const FRAGMENT = 'Can I cut my';
+  const BENIGN = 'Can I cut my hair shorter?';
+  const LIVE = {
+    CRISIS_GUARD_MODE: 'live',
+    CRISIS_CLASSIFIER_MODE: 'live',
+    CRISIS_CLASSIFIER_TIMEOUT_MS: '60000', // the test decides when the verdict lands
+  };
+
+  let sessions = 0;
+  /** The session LiveKit hands the gate, with the unfinished-turn hold installed. */
+  class LiveSession extends EventEmitter {
+    readonly userData = { services: { sessionId: `arrival-once-late-${++sessions}` } };
+    readonly history = llm.ChatContext.empty();
+    readonly unfinishedTurnHoldMs = unfinishedTurnHoldMs;
+
+    /** LiveKit commits the caller's turn. */
+    commit(text: string): void {
+      const item = this.history.addMessage({ role: 'user', content: text });
+      this.emit('conversation_item_added', { item });
+    }
+
+    /** A reply request for `latest` through the real gate; never awaited here. */
+    ask(latest: string, env: Record<string, string>, generate: CrisisGenerateFn): void {
+      const ctx = llm.ChatContext.empty();
+      ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
+      ctx.addMessage({ role: 'user', content: latest });
+      const model = async () =>
+        new ReadableStream<unknown>({
+          start(c) {
+            c.enqueue('Okay.');
+            c.close();
+          },
+        });
+      void gatedReply(ctx, this, model as never, new OpenerGate(3), { env, generate });
+    }
+  }
+
+  /** None at once, except the risky line: its crisis verdict waits for land(). */
+  function heldClassifier() {
+    let land: () => void = () => undefined;
+    const landed = new Promise<void>((r) => {
+      land = r;
+    });
+    const generate: CrisisGenerateFn = async (_prompt, content) => {
+      const { latest } = JSON.parse(content) as { latest: string };
+      if (!latest.includes('hide the marks')) return '{"risk":"none","subject":"self"}';
+      await landed;
+      return '{"risk":"crisis","subject":"self"}';
+    };
+    return { generate, land };
+  }
+
+  /**
+   * How the crisis read gets past the hop with nothing pending on its session:
+   * - W1, CRISIS_READ_JOINED_TURN: the hold waits on a fragment, the caller's whole line is
+   *   committed with no reply of its own, and that read is signalled with no pending verdict
+   *   (crisis-read-joined-turn.ts gateCommittedLine);
+   * - W2: a reply's pending verdict (crisis-gate.ts) is replaced by a later turn's quicker pass.
+   */
+  const PATHS = {
+    W1: (s: LiveSession, generate: CrisisGenerateFn) => {
+      const env = { ...LIVE, CRISIS_READ_JOINED_TURN: 'on' };
+      s.ask(FRAGMENT, env, generate);
+      s.commit(RISKY);
+    },
+    W2: (s: LiveSession, generate: CrisisGenerateFn) => {
+      s.ask(RISKY, LIVE, generate);
+      s.ask(BENIGN, LIVE, generate);
+    },
+  };
+  type Path = keyof typeof PATHS;
+
+  /**
+   * One call: the crisis read starts on the session on the line before hop `start`, and
+   * its verdict lands before hop `lands`. Checks that the read was out, with nothing
+   * pending or decided on that session, when hop `start` went.
+   */
+  async function lateCrisisCall(
+    id: string,
+    flag: string,
+    hops: string[],
+    plan: { path: Path; start: number; lands: number }
+  ): Promise<Call> {
+    resetCrisisClassifierCache();
+    resetCrisisCallRisk();
+    resetCallRiskSnapshots();
+    vi.stubEnv('MULTI_AGENT_SINGLE_SESSION', 'off');
+    vi.stubEnv('HANDOFF_ARRIVAL_ONCE', flag);
+    const { generate, land } = heldClassifier();
+    let reading: LiveSession | null = null;
+    const call = await runCall(
+      `${id}-${flag}`,
+      hops,
+      async (i, spawned) => {
+        if (i === plan.start) {
+          reading = spawned[spawned.length - 1].session as LiveSession;
+          PATHS[plan.path](reading, generate);
+          const s = reading;
+          await vi.waitFor(() => expect(crisisVerdictPending(s)).toBeNull());
+          expect(crisisDecidedOn(s)).toBe(false); // still out when this hop goes
+        }
+        if (i === plan.lands && reading) {
+          const s: LiveSession = reading;
+          land();
+          await vi.waitFor(() => expect(crisisDecidedOn(s)).toBe(true));
+        }
+      },
+      () => new LiveSession()
+    );
+    await call.end();
+    return call;
+  }
+
+  it('the verdict transcript (W1): ferni → Maya → Jordan → Maya → Jordan → Maya → ferni → Maya, every line as flag off', async () => {
+    const hops = [MAYA, JORDAN, MAYA, JORDAN, MAYA, 'ferni', MAYA];
+    // Maya is on when the caller's line is read; she hands to Jordan, then the verdict lands.
+    const plan = { path: 'W1' as const, start: 1, lands: 2 };
+    const on = await lateCrisisCall('arrival-once-a1', 'on', hops, plan);
+    const off = await lateCrisisCall('arrival-once-a1', 'off', hops, plan);
+    expect(off.lines).toEqual(todays(hops));
+    expect(on.lines).toEqual(off.lines);
+    expect(on.arrivals.map((a) => a.said)).toEqual(off.arrivals.map((a) => a.said));
+  });
+
+  it('the verdict transcript (W2): ferni ↔ Maya, four arrivals each, every line as flag off', async () => {
+    const hops = [MAYA, 'ferni', MAYA, 'ferni', MAYA, 'ferni', MAYA];
+    // Ferni opens the call and the caller's line is read; Ferni hands to Maya, then it lands.
+    const plan = { path: 'W2' as const, start: 0, lands: 1 };
+    const on = await lateCrisisCall('arrival-once-a3', 'on', hops, plan);
+    const off = await lateCrisisCall('arrival-once-a3', 'off', hops, plan);
+    expect(off.lines).toEqual(todays(hops));
+    expect(on.lines).toEqual(off.lines);
+    expect(on.arrivals.map((a) => a.said)).toEqual(off.arrivals.map((a) => a.said));
+  });
+
+  for (const path of ['W1', 'W2'] as const) {
+    it(`${path}: whichever hop the read goes out on, every line after the verdict lands is as flag off`, async () => {
+      for (const start of SIX_HOPS.keys()) {
+        for (const lands of [start + 1, start + 2].filter((h) => h < SIX_HOPS.length)) {
+          const plan = { path, start, lands };
+          const id = `arrival-once-late-${path}-${start}-${lands}`;
+          // eslint-disable-next-line no-await-in-loop -- one call after another
+          const on = await lateCrisisCall(id, 'on', SIX_HOPS, plan);
+          // eslint-disable-next-line no-await-in-loop -- one call after another
+          const off = await lateCrisisCall(id, 'off', SIX_HOPS, plan);
+          const label = `${path}, read out before hop ${start}, lands before hop ${lands}`;
+          expect(off.lines, label).toEqual(todays(SIX_HOPS));
+          expect(on.lines.slice(lands), label).toEqual(off.lines.slice(lands));
+          expect(
+            on.arrivals.slice(lands).map((a) => a.said),
+            label
+          ).toEqual(off.arrivals.slice(lands).map((a) => a.said));
+        }
+      }
+    });
+  }
 });
 
 describe('arrivalOnce on a briefed line', () => {
