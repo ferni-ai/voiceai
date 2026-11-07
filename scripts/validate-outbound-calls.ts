@@ -379,7 +379,6 @@ async function testConversationalCall(): Promise<void> {
 
       orchestrator.on('call-ringing', () => console.log('   📞 RINGING...'));
       orchestrator.on('call-answered', () => console.log('   ✅ ANSWERED'));
-      orchestrator.on('voicemail-detected', () => console.log('   📬 VOICEMAIL'));
       orchestrator.on('call-completed', (call) => {
         console.log(`   ✅ COMPLETED: ${call.status}`);
         recordTest({

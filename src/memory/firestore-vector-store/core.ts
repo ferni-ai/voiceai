@@ -27,8 +27,8 @@ import type {
   Query,
   VectorStoreHealth,
 } from './types.js';
-import { DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDING_DIMENSION } from './types.js';
-import { extractEmbedding, filteredQuery, keepCandidate } from './helpers.js';
+import { DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDING_DIMENSION, LIST_PAGE_SIZE } from './types.js';
+import { extractEmbedding, filteredQuery, keepCandidate, whereMetadataEquals } from './helpers.js';
 import { ownerId } from '../retrieval/vector-ownership.js';
 import { FallbackCache } from './fallback-cache.js';
 import { RecoveryManager, migrateCacheToFirestore } from './recovery.js';
@@ -700,7 +700,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
   }
 
   /**
-   * Get all documents matching a filter.
+   * Documents matching a filter; at most LIST_PAGE_SIZE come from Firestore.
    */
   async list(filter?: VectorFilter): Promise<VectorDocument[]> {
     await this.ensureInitialized();
@@ -725,12 +725,12 @@ export class FirestoreVectorStore implements VectorStoreContract {
         query = query.where('metadata.userId', '==', filter.userId);
       }
 
-      const PAGE_SIZE = 500;
-      const snapshot = await query.limit(PAGE_SIZE).get();
+      query = whereMetadataEquals(query, filter);
+      const snapshot = await query.limit(LIST_PAGE_SIZE).get();
 
-      if (snapshot.size === PAGE_SIZE) {
+      if (snapshot.size === LIST_PAGE_SIZE) {
         log.warn(
-          { limit: PAGE_SIZE, filter },
+          { limit: LIST_PAGE_SIZE, read: snapshot.size, filter },
           'list() result may be truncated - consider pagination'
         );
       }

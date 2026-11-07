@@ -56,4 +56,22 @@ describe('vector store owner rule (fail safe)', () => {
     expect(cache.list({ userId: '' }).map((d) => d.id)).toEqual(['p1']);
     expect(cache.list().map((d) => d.id)).toEqual(['p1']);
   });
+
+  it('the fallback applies scalar metadata equalities, as the Firestore query does', () => {
+    const cache = new FallbackCache();
+    for (const [id, entityType] of [
+      ['h1', 'habit'],
+      ['t1', 'task'],
+    ] as const) {
+      cache.add(
+        id,
+        { id, text: id, metadata: { ...doc('alice').metadata, entityType } } as never,
+        [1, 0, 0]
+      );
+    }
+    expect(
+      cache.list({ userId: 'alice', metadata: { entityType: 'habit' } }).map((d) => d.id)
+    ).toEqual(['h1']);
+    expect(matchesFilter(doc('alice'), { userId: 'alice', metadata: { nested: {} } })).toBe(true);
+  });
 });

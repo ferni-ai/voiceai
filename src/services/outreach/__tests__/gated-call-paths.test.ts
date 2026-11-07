@@ -90,17 +90,12 @@ vi.mock('../../voice/voice-call.js', async (original) => ({
   ...(await original<Record<string, unknown>>()),
   callWithPersonaVoice: oldReferralDial,
 }));
-// Real unless a test says otherwise; the voicemail test takes the no-LLM fallback.
-const enrichment = vi.hoisted(() => ({ message: vi.fn(), voicemail: vi.fn() }));
+// Real unless a test says otherwise.
+const enrichment = vi.hoisted(() => ({ message: vi.fn() }));
 vi.mock('../message-enrichment.js', async (original) => {
   const mod = await original<typeof import('../message-enrichment.js')>();
   enrichment.message.mockImplementation(mod.enrichMessage);
-  enrichment.voicemail.mockImplementation(mod.enrichVoicemailMessage);
-  return {
-    ...mod,
-    enrichMessage: enrichment.message,
-    enrichVoicemailMessage: enrichment.voicemail,
-  };
+  return { ...mod, enrichMessage: enrichment.message };
 });
 const captureBackgroundResult = vi.hoisted(() => vi.fn(async () => ({})));
 vi.mock('../../background-agents/unified-result-capture.js', async (original) => ({
@@ -397,23 +392,14 @@ describe('referral calls through placeOrHold', () => {
     expect(tracked.data.callSid).toMatch(/^onbehalf_/);
   });
 
-  it("what Ana hears never says 'you' for Sam: the voicemail and the LiveKit prompt", async () => {
+  // The live voicemail is the LiveKit agent's prompt, read from the dispatch metadata.
+  it("what Ana hears never says 'you' for Sam: the LiveKit voicemail prompt", async () => {
     enrichment.message.mockImplementationOnce(async (c: { originalMessage: string }) => ({
       message: c.originalMessage,
       metadata: {},
     }));
-    enrichment.voicemail.mockRejectedValueOnce(new Error('no LLM')); // the TwiML fallback
     await referAna();
-    const [tracked] = of('voice_referrals');
-    const callId = tracked.data.callSid as string;
 
-    const twiml = await getOnBehalfCallOrchestrator().handleMachineDetection(
-      callId,
-      'machine_end_beep'
-    );
-    expect(twiml).toContain(
-      'Hi Ana, this is Ferni, calling on behalf of Sam. Sam wanted me to pass on a hello. '
-    );
     const [, , options] = createDispatch.mock.calls[0] as [string, string, { metadata: string }];
     const { purpose } = JSON.parse(options.metadata) as { purpose: string };
     const prompt = voicemailInstructions(
