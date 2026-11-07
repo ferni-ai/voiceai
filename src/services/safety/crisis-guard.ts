@@ -95,6 +95,7 @@ export interface CrisisDetectionOptions {
 export const CRISIS_SEVERITY = SEVERITY; // the tiers, for callers that weigh a read (caller-text.ts)
 
 export { IN_DANGER_NOW }; // its home is crisis-guard-replies.ts
+export { EMERGENCY_SERVICE } from './emergency-number.js'; // for agents/personas/emergency-claim.ts
 
 // CRISIS DETECTION
 

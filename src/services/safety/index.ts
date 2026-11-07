@@ -68,7 +68,8 @@ export type {
   CrisisResponseContent,
   CrisisResponseContext,
 } from './crisis-response.js';
-export { EMERGENCY_NUMBER } from './emergency-number.js';
+export { EMERGENCY_NUMBER, EMERGENCY_SERVICE } from './emergency-number.js';
+export { isCareTalk, isSafetyTalk, reachesHelp } from './safety-talk.js';
 export * as crisisLines from './crisis-lines.js';
 // Someone hurting the caller (ABUSE_DISCLOSURE_PATTERNS, turn-crisis.ts and turn-handler.ts).
 export {
