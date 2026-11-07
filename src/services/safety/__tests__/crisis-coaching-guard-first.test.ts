@@ -101,12 +101,22 @@ describe('guard first: lines the phrase floor never read', () => {
 
 describe('the floor still reads what the guard misses (never lower)', () => {
   it.each([
-    ['he hits me when he drinks', CRISIS_RESOURCES.domesticViolence],
+    ["he won't let me leave", CRISIS_RESOURCES.domesticViolence],
     ["i've been using laxatives", CRISIS_RESOURCES.eatingDisorder],
   ])('%j stays crisis with its resource and 988', (line, resource) => {
     const a = assessSafety(line);
     expect(a.level).toBe('crisis');
     expect(a.resources).toEqual([resource, CRISIS_RESOURCES.general]);
+  });
+
+  it('abuse the guard reads (K1e) keeps the floor resource and adds the lifeline', () => {
+    const a = assessSafety('he hits me when he drinks');
+    expect(a.level).toBe('crisis');
+    expect(a.resources).toEqual([
+      CRISIS_RESOURCES.domesticViolence,
+      CRISIS_RESOURCES.general,
+      CRISIS_RESOURCES.text,
+    ]);
   });
 
   it('an ordinary line stays safe', () => {
