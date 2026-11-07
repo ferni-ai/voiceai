@@ -187,3 +187,42 @@ describe('conversation call to the owner’s own number: the owner’s hours', (
     expect(deferred()[0].data).toMatchObject({ scheduledFor: '2026-11-10T22:00:00.000Z' });
   });
 });
+
+describe('CALL_HOURS_GUARD off: the contact’s night, in their zone', () => {
+  const stored = () => state.rows.filter((r) => r.collection === 'scheduled_calls');
+
+  it('owner in New York, contact on a 415 number at 07:00 their time: stored for 08:00 Pacific', async () => {
+    vi.stubEnv('CALL_HOURS_GUARD', 'off');
+    await ownerGrant(SF);
+    vi.setSystemTime(AT_15Z);
+
+    expect(await callContact(SF)).toMatchObject({ success: true, status: 'scheduled' });
+    expect(twilioCalls()).toBe(0);
+    expect(stored()).toHaveLength(1);
+    expect(stored()[0].userId).toBe(OWNER);
+    expect(stored()[0].data.scheduledFor).toBe('2026-11-10T16:00:00.000Z'); // 08:00 Pacific
+  });
+
+  it('a contact on a 212 number at 10:00 their time is rung', async () => {
+    vi.stubEnv('CALL_HOURS_GUARD', 'off');
+    await ownerGrant(NYC);
+    vi.setSystemTime(AT_15Z);
+
+    await callContact(NYC);
+    expect(twilioCalls()).toBe(1);
+  });
+});
+
+describe('an empty owner id', () => {
+  it('is no owner: never the contact’s id, nothing dialled', async () => {
+    vi.stubEnv('MESSAGING_PIPELINE', 'off'); // no grant check to stop a call as the contact
+    vi.setSystemTime(AT_15Z); // 10:00 New York
+
+    const call = { userId: '', user: { id: 'c-sam', phone: NYC }, message: 'Thinking of you' };
+    expect(await makeConversationalCall(call)).toMatchObject({
+      success: false,
+      error: expect.stringContaining('Missing required fields'),
+    });
+    expect(twilioCalls()).toBe(0);
+  });
+});

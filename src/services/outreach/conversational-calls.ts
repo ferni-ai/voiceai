@@ -18,12 +18,11 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { ownerRefusal } from '../messaging/consent-reach.js';
 import { heldSender } from './checkin-replies.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
-import { callHoursRecipient } from './call-hours-recipient.js';
+import { calleeQuietHours, callHoursRecipient } from './call-hours-recipient.js';
 import { holdForCallHours } from './deferred-calls.js';
 import { placeLiveAgentCall, ringsWithLiveAgent } from './live-agent-call.js';
 import { carryOwnCallMe, heldCall } from './held-call.js';
 import { deferredCallRequest, pausedCall } from './outreach-pause.js';
-import { callQuietHours } from './quiet-hours.js';
 import { toTwilioSsml } from './twilio-ssml.js';
 import { twilioCallbackUrl } from './webhooks/twilio-callback-url.js';
 
@@ -190,10 +189,10 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     const due = requestedFor <= new Date();
     const deferral = due && (await holdForCallHours(userId, call, held));
     if (deferral) return { success: true, callId: deferral.id, status: 'scheduled' };
-    // The guard covers quiet hours, in the user's own time zone. callQuietHours reads
+    // The guard covers quiet hours, in the callee's own time zone. calleeQuietHours reads
     // the clock, not scheduledFor, so a quiet call is stored for later, never re-checked.
     const now = new Date();
-    const hours = due && !isCallHoursGuardOn() ? await callQuietHours(userId, now) : null;
+    const hours = due && !isCallHoursGuardOn() ? await calleeQuietHours(held, now) : null;
     const quiet = !!hours?.quiet;
     if (quiet) log.info({ userId, callId }, 'Call delayed due to quiet hours');
     const scheduledFor = quiet && hours ? hours.until : requestedFor;
@@ -704,7 +703,7 @@ export function isConversationalCallsConfigured(): boolean {
 
 /** Make a conversational call (legacy API). @deprecated Use scheduleProactiveCall directly */
 export async function makeConversationalCall(context: OutboundCallContext): Promise<CallResult> {
-  const userId = context.userId || context.user?.id || '';
+  const userId = context.userId ?? context.user?.id ?? ''; // '' is no owner, never the callee
   const phoneNumber = context.phoneNumber || context.user?.phone || '';
   const message = context.message || context.approach?.primaryGoal || '';
 
