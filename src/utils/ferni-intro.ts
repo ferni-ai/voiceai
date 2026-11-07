@@ -8,6 +8,8 @@
  * @module utils/ferni-intro
  */
 
+import { firstNameOf } from './caller-name.js';
+
 /** Who Ferni is calling for, and how; services/outreach/opening-line.ts OutboundParties has these. */
 export interface IntroParties {
   /** The user Ferni is calling for; never the person on the line. */
@@ -48,7 +50,11 @@ export function ferniIntro({ sponsorName, personal, checkin }: IntroParties): st
 /**
  * The first words of a call that only plays a message (makePhoneCall): "Hi,
  * it's Ferni, Sam's AI friend." No question, since nobody can answer it.
+ * The callee hears the user's first name only: "Sam Lee" says "Sam's AI
+ * friend", never the full stored name.
  */
 export function messageCallGreeting(sponsorName: string | undefined): string {
-  return `Hi, ${ferniIntro({ sponsorName: realName(sponsorName), personal: true })}.`;
+  const named = realName(sponsorName);
+  const first = named ? (firstNameOf(named) ?? undefined) : undefined;
+  return `Hi, ${ferniIntro({ sponsorName: first, personal: true })}.`;
 }

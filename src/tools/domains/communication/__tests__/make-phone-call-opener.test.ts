@@ -127,6 +127,28 @@ describe('makePhoneCall to someone else', () => {
     );
   });
 
+  it.each([
+    ['Sam Lee', 'Sam'],
+    ['  sam   lee  ', 'Sam'],
+    ["O'Neil Park", "O'Neil"],
+    ['Mary-Jo Diaz', 'Mary-Jo'],
+  ])('a full name %j: the callee hears only %j', async (name, first) => {
+    const twiml = await twimlFor(ALEX, { userId: 'u1', name });
+
+    expect(said(twiml)).toBe(
+      `Hi, it's Ferni, ${first}'s AI friend. Dinner moved to 7. Have a great day!`
+    );
+    expect(said(twiml)).not.toMatch(/Lee|Park|Diaz/);
+  });
+
+  it('a name with no usable first word: the no-user form, never the raw text', async () => {
+    const twiml = await twimlFor(ALEX, { userId: 'u1', name: '+15550100 Sam' });
+
+    expect(said(twiml)).toBe(
+      `Hi, ${ferniIntro({ personal: true })}. Dinner moved to 7. Have a great day!`
+    );
+  });
+
   it("a failed own-number read counts as someone else's phone: the disclosure plays", async () => {
     own.fails = true;
     const twiml = await twimlFor(OWN, { userId: 'u1', name: 'Sam' });
