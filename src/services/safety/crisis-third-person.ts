@@ -85,6 +85,30 @@ const NOT_BREATHING = new RegExp(
 );
 const UNRESPONSIVE = new RegExp(String.raw`\b${OTHER}(?: [a-z]+)?${AUX} unresponsive\b`);
 
+/** Someone close, by who they are to the caller: never a pronoun, so a story about "he" stays one. */
+const CLOSE = String.raw`(?:my|our) (?:best )?(?:dad|mom|mum|father|mother|grandma|grandmother|grandpa|grandfather|brother|sister|son|daughter|kid|wife|husband|partner|boyfriend|girlfriend|friend|roommate)`;
+const PLACE = String.raw`(?:on|onto|in|into|at|down|off|outside|by|near) (?:the |a |an |his |her |their |our |my )?(?:floor|ground|kitchen|bathroom|shower|tub|bathtub|stairs|staircase|steps|driveway|yard|backyard|garden|garage|hallway|hall|bedroom|living room|street|sidewalk|road|parking lot|store|shop|office|work|gym|church|toilet|porch|deck|patio|basement|attic|lobby|restaurant|bus|train|car)`;
+/** Long enough ago that the fall is a story: "last year", "a few years ago", "back in 2019". */
+const LONG_AGO = String.raw`last (?:week|month|year|summer|winter|spring|fall|autumn|christmas)|(?:a|one|two|three|four|five|a few|a couple(?: of)?|several|\d+) (?:weeks?|months?|years?) (?:ago|back)|(?:weeks|months|years) ago|a while (?:ago|back)|(?:back )?in (?:19|20)\d\d`;
+const WHEN = String.raw`just now|right now|again|hard|today|tonight|this (?:morning|afternoon|evening)|earlier(?: today)?|yesterday|last night|(?:a|an|a few|a couple(?: of)?) (?:seconds?|minutes?|hours?) ago|${LONG_AGO}`;
+/** Up and well again, said plainly: "he's fine now", "she has recovered", "they're back on their feet". */
+const RECOVERED = String.raw`\b(?:(?:he|she|they)(?:'s|'re| is| are)|${CLOSE}(?:'s| is))(?: (?:totally|completely|all|doing))? (?:fine|okay|ok|alright|all right|all good|good|better|great|well) now\b|\b(?:he|she|they)(?:'s| has|'ve| have)(?: fully| totally| completely)? (?:recovered|healed)\b|\b(?:he|she|they) got better\b|\b(?:he's|she's|they're|he is|she is|they are) back on (?:his|her|their) feet\b`;
+/** The clause ends after the fall, the place or the time: "my dad collapsed", "...on the floor, help". */
+/** What mask() leaves where it took out an everyday idiom: "my mom fell and can't get up to date". */
+const IDIOM_LATER = ' _ ';
+const CLAUSE_END = String.raw`(?=$|[,;:]| (?:and|but|then|now|please|help|oh|um|uh|i|i'm|we|he|she|they|it|someone|somebody|call|can|can't|is|isn't|what)\b)`;
+/**
+ * Someone close went down, and nothing else is said about it (owner, 2026-11-07): "my dad
+ * collapsed", "my wife just fainted on the kitchen floor". Imminent, the same as "fell and can't
+ * get up". Never a fall long ago or one they are fine from ("my dad fell last year and he's fine
+ * now"), never a maybe ("if my mom fainted"), never a fall with an object or a direction after
+ * it ("passed out flyers", "went down to the store"), and never one an everyday idiom later in the
+ * sentence explains. Floor, ground or a not-getting-up word still reads it again unmasked.
+ */
+const CLOSE_WENT_DOWN = new RegExp(
+  String.raw`(?<!\b(?:if|whether|case) )\b${CLOSE}(?:(?:'s| has)(?: just)? (?:fallen|collapsed|passed out|fainted|blacked out|gone down)|(?: just)? (?:${DOWN}(?: down| over)?|went down))(?!(?: ${PLACE})? (?:${LONG_AGO})\b)(?: ${PLACE}| (?:${WHEN})){0,2}${CLAUSE_END}(?![^.!?]*(?:${RECOVERED}))(?![^.!?]*${IDIOM_LATER})`
+);
+
 /**
  * Everyday idioms built from the same words. Each one masks only its own words, and the rest of
  * the sentence is read again, so "cracked up laughing, then he fell and can't get up" still reads.
@@ -121,7 +145,8 @@ const PHYSICAL =
 const reads = (said: string, masked: string): boolean =>
   DOWN_NOT_UP.test(said) ||
   NOT_BREATHING.test(said) ||
-  (UNRESPONSIVE.test(said) && (PHYSICAL.test(masked) || !MESSAGES.test(masked)));
+  (UNRESPONSIVE.test(said) && (PHYSICAL.test(masked) || !MESSAGES.test(masked))) ||
+  CLOSE_WENT_DOWN.test(said);
 
 /**
  * Someone else is down and not getting up, or not breathing: an emergency for them now. Read with
