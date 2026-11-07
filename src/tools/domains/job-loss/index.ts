@@ -26,6 +26,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { addCrossPersonaInsight } from '../../../services/cross-persona-insights.js';
+import { crisisLines } from '../../../services/safety/index.js';
 
 const log = getLogger();
 
@@ -330,7 +331,7 @@ If you're experiencing:
 - Complete hopelessness
 - Self-harm urges
 
-Please reach out: 988 (Suicide & Crisis Lifeline)
+Please reach out: ${crisisLines.LIFELINE_988.phone} (Suicide & Crisis Lifeline)
 
 This is temporary. You will work again. It won't feel like this forever.
 

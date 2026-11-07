@@ -21,6 +21,7 @@ import { controlCallerLight, listCallerLights } from './caller-lifx-tools.js';
 
 // Import existing smart home functionality
 import { createSmartHomeTools, getAllDevices, controlDevice, activateScene } from './smart-home.js';
+import { EMERGENCY_NUMBER } from '../../../services/safety/index.js';
 
 const log = getLogger();
 
@@ -205,7 +206,7 @@ const homeRepairAdviceDef: ToolDefinition = {
           response += `⚠️ **For emergencies:**\n`;
           response += `- Water leak: Shut off water main\n`;
           response += `- Gas smell: Leave house, call gas company\n`;
-          response += `- Electrical fire: Call 911\n\n`;
+          response += `- Electrical fire: Call ${EMERGENCY_NUMBER}\n\n`;
         }
 
         response += `**Assessment:**\n`;

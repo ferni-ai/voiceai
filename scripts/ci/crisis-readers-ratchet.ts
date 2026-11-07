@@ -144,6 +144,13 @@ export const isScanned = (rel: string): boolean =>
   !rel.endsWith('.d.ts') &&
   !TEST_FILE.test(rel);
 
+/** The kind of a string or template literal, from its text outside `${}`: a resource wins. */
+export function kindOf(parts: readonly string[]): 'resource' | 'word' | null {
+  if (parts.some((p) => RESOURCE.test(p))) return 'resource';
+  if (parts.some((p) => CRISIS_PHRASES.test(plain(p)))) return 'word';
+  return null;
+}
+
 /** Every crisis regex and resource literal in one file's text. */
 export function sitesIn(file: string, text: string): Site[] {
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
@@ -177,8 +184,8 @@ export function sitesIn(file: string, text: string): Site[] {
         : ts.isTemplateExpression(node)
           ? [node.head.text, ...node.templateSpans.map((s) => s.literal.text)]
           : [];
-    if (parts.some((p) => RESOURCE.test(p))) add(node, 'resource');
-    else if (parts.some((p) => CRISIS_PHRASES.test(plain(p)))) add(node, 'word');
+    const kind = kindOf(parts);
+    if (kind) add(node, kind);
     if (parts.length > 0 && !ts.isTemplateExpression(node)) return;
     ts.forEachChild(node, visit);
   };

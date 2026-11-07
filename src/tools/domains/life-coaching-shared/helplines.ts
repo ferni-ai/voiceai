@@ -7,6 +7,8 @@
  *
  * @module tools/domains/life-coaching-shared/helplines
  */
+import { crisisLines } from '../../../services/safety/index.js';
+
 export const COACHING_HELPLINES = {
   postpartum: { name: 'Postpartum Support International', phone: '1-800-944-4773' },
   caregiver: { name: 'Caregiver Action Network', phone: '1-855-227-3640' },
@@ -21,11 +23,11 @@ export const COACHING_HELPLINES = {
 export const NATIONAL_HELPLINES = {
   lgbtHelpCenter: { name: 'LGBT National Help Center', phone: '1-888-843-4564' },
   oldLifeline: {
-    name: 'National Suicide Prevention Lifeline (routes to 988)',
+    name: `National Suicide Prevention Lifeline (routes to ${crisisLines.LIFELINE_988.phone})`,
     phone: '1-800-273-8255',
   },
   disasterDistress: { name: 'Disaster Distress Helpline', phone: '1-800-985-5990' },
-  lifeline988: { name: '988 Suicide & Crisis Lifeline', website: 'https://988lifeline.org' },
+  lifeline988: { name: crisisLines.LIFELINE_988.name, website: 'https://988lifeline.org' },
 } as const;
 
 /**

@@ -23,7 +23,7 @@
  * - Perinatal mood disorders
  * - Transition to parenthood research (Gottman)
  */
-
+import { EMERGENCY_NUMBER, crisisLines } from '../../../services/safety/index.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
@@ -478,7 +478,7 @@ Over the past two weeks, have you experienced:
 | **Postpartum Depression** | Persistent sadness, hopelessness, can't enjoy things | Doesn't resolve on its own |
 | **Postpartum Anxiety** | Constant worry, racing thoughts, can't relax | Common, treatable |
 | **Postpartum OCD** | Intrusive scary thoughts, rituals to cope | The thoughts don't mean you'll act |
-| **Postpartum Psychosis** | Confusion, hallucinations, delusions | EMERGENCY - call 911 |
+| **Postpartum Psychosis** | Confusion, hallucinations, delusions | EMERGENCY - call ${EMERGENCY_NUMBER} |
 
 **Important:**
 
@@ -499,7 +499,7 @@ It IS:
 - Postpartum Support International: 1-800-944-4773 (text also)
 - Your OB/midwife
 - Your primary care doctor
-- Emergency: 988 (Suicide & Crisis Lifeline)
+- Emergency: ${crisisLines.LIFELINE_988.phone} (Suicide & Crisis Lifeline)
 
 **If you're having thoughts of harming yourself or baby, please reach out now. These thoughts are symptoms, not reality. Help exists.**
 
