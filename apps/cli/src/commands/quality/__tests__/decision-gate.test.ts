@@ -177,6 +177,11 @@ describe('decision gate: the registry itself', () => {
       'memory-injection',
       'contact-permission',
       'sms-send',
+      'memory-recall',
+      'handoff',
+      'tts-voice',
+      'tool-registry',
+      'outreach-scheduling',
     ]);
     expect(byId('crisis-risk').fingerprints[0]!.in).toBe('word-lists');
   });

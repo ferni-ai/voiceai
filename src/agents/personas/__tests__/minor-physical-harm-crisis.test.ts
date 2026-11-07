@@ -195,22 +195,42 @@ describe('A: a minor who tells of physical harm is a child-safety turn', () => {
     }
   });
 
-  it('flags off is main: no crisis turn on any of those lines', async () => {
+  // Changed (K1e): main gave none of these lines a crisis turn with the flags off. The kernel
+  // now reads every one the abuse reader hears; the two burns stay as on main.
+  it("flags off: the kernel's abuse read on the lines it hears, and main's read on the burns", async () => {
     for (const line of MINOR_PHYSICAL) {
       const turn = await runTurn(line, FLAGS.off);
-      expect(turn.crisis.isCrisis, line).toBe(false);
-      expect(turn.guidance, line).toEqual([]);
+      if (abuseDisclosure(line)) {
+        expect(turn.crisis.isCrisis, line).toBe(true);
+        expect(turn.crisis.indicators, line).toContain('abuse_disclosure');
+        expect(turn.guidance, line).toHaveLength(1);
+        expect(turn.guidance[0], line).toContain('1-800-422-4453');
+        expect(turn.guidance[0], line).toMatch(/\b988\b/);
+      } else {
+        expect(turn.crisis.isCrisis, line).toBe(false);
+        expect(turn.guidance, line).toEqual([]);
+      }
     }
   });
 
+  // The read and guidance byte for byte; the kernel's script (spoken only on a block) also gets
+  // the child-safety lines, as every script does for a minor who told of harm (K1e).
   it('both flags on: a line the abuse read answers stays with it, byte for byte', async () => {
     const answered = MINOR_PHYSICAL.filter((line) => abuseDisclosure(line));
     expect(answered).toHaveLength(MINOR_PHYSICAL.length - 2); // the two burns
+    const unscripted = (t: Awaited<ReturnType<typeof runTurn>>) => ({
+      ...t,
+      call: '',
+      crisis: { ...t.crisis, suggestedResponse: undefined },
+    });
     for (const line of answered) {
       const both = await runTurn(line, FLAGS.both);
       const abuse = await runTurn(line, FLAGS.abuse);
       expect(both.crisis.indicators, line).toContain('abuse_disclosure');
-      expect({ ...both, call: '' }, line).toEqual({ ...abuse, call: '' });
+      expect(unscripted(both), line).toEqual(unscripted(abuse));
+      expect(both.crisis.suggestedResponse, line).toBe(
+        `${abuse.crisis.suggestedResponse ?? ''}\n\n${LINES}`
+      );
     }
   });
 
