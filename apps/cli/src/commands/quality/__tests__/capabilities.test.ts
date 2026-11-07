@@ -4,7 +4,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { BEGIN, END, homeOf, plan, renderSection, run } from '../capabilities-doc.js';
-import { declarations, fullMatch, gained, hits } from '../decision-gate.js';
+import { declarations, fullMatch, gained, hits, isProductionSource } from '../decision-gate.js';
 import { DECISIONS, type DomainDecision } from '../decisions.js';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '../../../../../..');
@@ -142,12 +142,102 @@ describe('decision gate: a second owner fails, a delegate passes', () => {
 
   it('passes a delegate: an owner-shaped function that calls the owner (a port adapter)', () => {
     const adapter =
-      'export const ports = {\n  async isForgotten(u: string, t: string) {\n    return isForgotten(t, await topics(u));\n  },\n};';
+      "import { isForgotten } from '../../memory/domain/forgotten.js';\nexport const ports = {\n  async isForgotten(u: string, t: string) {\n    return isForgotten(t, await topics(u));\n  },\n};";
     expect(owners('src/agents/realtime/x.ts', adapter)).toEqual([]);
     // a comment naming the owner is not a call
     const fake =
       'class Topics {\n  isTopicForgotten(t: string) {\n    // isForgotten(t)\n    return t === "x";\n  }\n}';
     expect(owners('src/agents/realtime/x.ts', fake)).toEqual(['memory-injection:2']);
+  });
+
+  describe('crisis: only a bare hand-off to the owner is a delegate', () => {
+    const OUTREACH = 'src/services/outreach/screen.ts';
+    const IMPORT = "import { CRISIS_SEVERITY, detectCrisis } from '../safety/crisis-guard.js';\n";
+    const crisis = (file: string, text: string): string[] =>
+      owners(file, text).filter((o) => o.startsWith('crisis-risk:'));
+
+    it('passes a body that is only `return detectCrisis(...)`, imported from the owner', () => {
+      expect(
+        crisis(
+          OUTREACH,
+          `${IMPORT}export function detectCrisisNow(t: string) {\n  return detectCrisis(t);\n}\n`
+        )
+      ).toEqual([]);
+      expect(
+        crisis(
+          OUTREACH,
+          `${IMPORT}export const assessCrisisNow = (t: string) => detectCrisis(t);\n`
+        )
+      ).toEqual([]);
+    });
+
+    it('fails a body that calls the owner and then decides for itself (a copy of crisisRead)', () => {
+      const copy = [
+        IMPORT,
+        'export function detectCrisisRead(text: string): boolean {',
+        '  if (!text.trim()) return false;',
+        '  const read = detectCrisis(text);',
+        '  const softened = read.indicators.some((i) => /^(negated|hyperbole)_crisis_language$/.test(i));',
+        '  return read.isCrisis || (read.severity >= CRISIS_SEVERITY.implicit && !softened);',
+        '}',
+      ].join('\n');
+      expect(crisis(OUTREACH, copy)).toEqual(['crisis-risk:3']);
+      // one statement, but it compares, or calls something that is not the owner
+      expect(
+        crisis(
+          OUTREACH,
+          `${IMPORT}const isCrisisHigh = (t: string) => detectCrisis(t).severity >= 3;\n`
+        )
+      ).toEqual(['crisis-risk:2']);
+      expect(
+        crisis(
+          OUTREACH,
+          'export function isCrisisText(t: string) {\n  return detectCrisis(t);\n}\n'
+        )
+      ).toEqual(['crisis-risk:1']);
+    });
+
+    it('fails a bare reference to the owner: a delegate calls it', () => {
+      expect(
+        crisis(OUTREACH, `${IMPORT}export const detectCrisisFn = () => detectCrisis;\n`)
+      ).toEqual(['crisis-risk:2']);
+    });
+
+    it('counts every crisis verb the shape names (is, needs, has, check, analyze, evaluate, score)', () => {
+      const names = [
+        'needsCrisisSupportNow',
+        'isCrisis',
+        'hasCrisisSigns',
+        'checkCrisisWords',
+        'analyzeCrisisTurn',
+        'evaluateCrisis',
+        'scoreCrisisRisk',
+      ];
+      const code = names
+        .map((n) => `export function ${n}(t: string) { return t.length > 3; }`)
+        .join('\n');
+      expect(crisis(OUTREACH, code)).toEqual(names.map((_n, i) => `crisis-risk:${i + 1}`));
+      expect(crisis(OUTREACH, 'export function crisisLine() { return 1; }')).toEqual([]);
+    });
+
+    it('counts function expressions and arrows assigned to a crisis-shaped name', () => {
+      const code =
+        'const detectCrisisA = function (t: string) { return t.length > 3; };\nexport const assessCrisisB = (t: string) => t.length > 3;';
+      expect(crisis(OUTREACH, code)).toEqual(['crisis-risk:1', 'crisis-risk:2']);
+    });
+
+    it('matches owner paths by whole folder: src/services/safety-x/ is not the safety owner', () => {
+      const code = 'export function detectCrisisLevel(t: string) { return t.length > 3; }';
+      expect(crisis('src/services/safety/x.ts', code)).toEqual([]);
+      expect(crisis('src/services/safety-x/foo.ts', code)).toEqual(['crisis-risk:1']);
+    });
+
+    it('scans .tsx files', () => {
+      const tsx =
+        'export function isCrisisBanner(t: string) {\n  return <div>{t.length > 3}</div>;\n}\n';
+      expect(isProductionSource('src/ui/crisis-banner.tsx')).toBe(true);
+      expect(crisis('src/ui/crisis-banner.tsx', tsx)).toEqual(['crisis-risk:1']);
+    });
   });
 
   it('passes the owner folder and an unchanged second owner (only what the change adds fails)', () => {
@@ -206,6 +296,22 @@ describe('capabilities sections: generated, drift fails, orphans are removed', (
     expect(plan(root, [moved]).get('src/handoff/AGENTS.md')).toBeNull();
     run([], root, [moved]);
     expect(existsSync(join(root, 'src/handoff/AGENTS.md'))).toBe(false);
+  });
+
+  it('renders the crisis owner paths and fingerprints: widening a path or dropping one fails --check', () => {
+    const root = temp();
+    const crisis = byId('crisis-risk');
+    run([], root, [crisis]);
+    expect(run(['--check'], root, [crisis])).toBe(0);
+    expect(
+      run(['--check'], root, [{ ...crisis, ownerPaths: [...crisis.ownerPaths, 'src/agents/'] }])
+    ).toBe(1);
+    expect(
+      run(['--check'], root, [{ ...crisis, fingerprints: crisis.fingerprints.slice(1) }])
+    ).toBe(1);
+    const committed = read('src/services/safety/AGENTS.md');
+    for (const p of crisis.ownerPaths) expect(committed).toContain(`\`${p}\``);
+    for (const f of crisis.fingerprints) expect(committed).toContain(f.name);
   });
 
   it('names the issue, the entry and the layer in each row', () => {

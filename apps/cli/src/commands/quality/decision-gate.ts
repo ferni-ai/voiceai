@@ -3,7 +3,7 @@
  * Decision gate: a change that adds a crisis word list, voice resolver, quiet-hours
  * predicate, tool cap, forget checker or Twilio sender outside its owner fails CI, and so
  * does a second owner: a function shaped like a capability's owner (an `executeHandoff`,
- * a `registerTool`) declared outside it. One that calls the owner is a delegate and passes.
+ * a `registerTool`) declared outside it. One that only returns the owner's call is a delegate.
  *
  * The registry (decisions.ts, beside this file) names each domain decision's owner and the
  * fingerprints of a second decider. For every production file the change touches, this
@@ -16,7 +16,7 @@
  * @module quality/decision-gate
  */
 import { readFileSync, readdirSync, statSync } from 'fs';
-import { join, relative } from 'path';
+import { join, posix, relative } from 'path';
 import ts from 'typescript';
 import { pathToFileURL } from 'url';
 import { DECISIONS, NOT_DECIDERS, type DomainDecision, type Fingerprint } from './decisions.js';
@@ -114,8 +114,30 @@ function wordListLines(file: string, text: string, pattern: RegExp): Set<number>
 export interface Declaration {
   name: string;
   line: number;
-  /** The function body, to tell a delegate (it calls the owner) from a second owner. */
-  body: string;
+  /** When the body only returns a call to an imported function: that module (repo path, no extension). */
+  delegatesTo: string | null;
+}
+
+/** Syntax that decides something: an operator or comparison, a conditional, a number (a threshold), a callback. */
+const DECIDES = new Set([ts.SyntaxKind.BinaryExpression, ts.SyntaxKind.ConditionalExpression, ts.SyntaxKind.PrefixUnaryExpression, ts.SyntaxKind.NumericLiteral, ts.SyntaxKind.ArrowFunction, ts.SyntaxKind.FunctionExpression]);
+const decides = (node: ts.Node): boolean => DECIDES.has(node.kind) || ts.forEachChild(node, decides) === true;
+
+/** The module `body` hands off to when its one statement returns a call to an import (`return f(x)`, `=> ns.f(x)`). */
+function handsOffTo(file: string, sf: ts.SourceFile, body: ts.Node): string | null {
+  const [only, ...rest] = ts.isBlock(body) ? body.statements : [];
+  let e = ts.isBlock(body) ? (only && rest.length === 0 && ts.isReturnStatement(only) ? only.expression : undefined) : body;
+  if (e && ts.isAwaitExpression(e)) e = e.expression;
+  if (!e || !ts.isCallExpression(e) || decides(e)) return null;
+  let callee = e.expression;
+  while (ts.isPropertyAccessExpression(callee)) callee = callee.expression;
+  const name = ts.isIdentifier(callee) ? callee.text : null;
+  const from = sf.statements.filter(ts.isImportDeclaration).find(({ importClause: c }) => {
+    const b = c?.namedBindings;
+    const bound = [c?.name, b && ts.isNamespaceImport(b) ? b.name : undefined, ...(b && ts.isNamedImports(b) ? b.elements.map((x) => x.name) : [])];
+    return bound.some((n) => n !== undefined && n.text === name);
+  });
+  const spec = from && (from.moduleSpecifier as ts.StringLiteral).text; // relative: the repo has no path aliases
+  return spec?.startsWith('.') ? posix.join(posix.dirname(file), spec).replace(/\.[jt]sx?$/, '') : null;
 }
 
 /** Each function, method or function-valued variable `text` declares with a body, and its line (1-based). */
@@ -123,7 +145,7 @@ export function declarations(file: string, text: string): Declaration[] {
   const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
   const out: Declaration[] = [];
   const add = (name: ts.Node, body: ts.Node): void => {
-    out.push({ name: name.getText(sf), line: sf.getLineAndCharacterOfPosition(name.getStart(sf)).line + 1, body: body.getText(sf) });
+    out.push({ name: name.getText(sf), line: sf.getLineAndCharacterOfPosition(name.getStart(sf)).line + 1, delegatesTo: handsOffTo(file, sf, body) });
   };
   const visit = (node: ts.Node): void => {
     if ((ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) && node.name && node.body) add(node.name, node.body);
@@ -137,11 +159,12 @@ export function declarations(file: string, text: string): Declaration[] {
 /** True when the whole name matches: `\bexecute\w*Handoff\b` fits executeHandoff, not a prefix of it. */
 export const fullMatch = (pattern: RegExp, name: string): boolean => pattern.exec(name)?.[0] === name;
 
-/** A declaration that calls the owner's function delegates to it (a port adapter), so it isn't a second owner. */
-const delegates = (d: DomainDecision, dcl: Declaration): boolean => new RegExp(`\\b${d.owner.fn}\\s*\\(`).test(stripComments(dcl.body));
-
 const owns = (d: DomainDecision, file: string): boolean =>
   d.ownerPaths.some((p) => file === p || (p.endsWith('/') && file.startsWith(p)));
+
+/** A declaration that only returns a call into the owner's paths is a delegate (a port adapter), not a second owner. */
+const delegates = (d: DomainDecision, dcl: Declaration): boolean =>
+  dcl.delegatesTo !== null && (owns(d, `${dcl.delegatesTo}.ts`) || owns(d, `${dcl.delegatesTo}/index.ts`));
 
 /** Fingerprint lines in `text`, judged as if it lived at `file`; one hit per (decision, line). */
 export function hits(file: string, text: string, decisions: readonly DomainDecision[] = DECISIONS): DecisionHit[] {

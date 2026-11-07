@@ -26,15 +26,15 @@ export const END = '<!-- capabilities:end -->';
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../..');
 
 /** The AGENTS.md that describes `d`: beside its public entry, or its owner while it has none. */
-export const homeOf = (d: DomainDecision): string =>
-  join(dirname(d.entry ?? d.owner.module), 'AGENTS.md');
+export const homeOf = (d: DomainDecision): string => join(dirname(d.entry ?? d.owner.module), 'AGENTS.md');
 
 const cell = (text: string): string => text.replace(/\|/g, '\\|');
+/** Each text as inline code (fenced in two backticks when it holds one), so the section changes with an owner path or fingerprint. */
+const code = (texts: readonly string[]): string => texts.map((t) => (t.includes('`') ? `\`\` ${cell(t)} \`\`` : `\`${cell(t)}\``)).join(', ');
 
 function layerOf(file: string): string {
   const p = placementOf(file);
-  if (p === null) return 'unassigned';
-  return p.context ? `L3 ${p.context}` : p.layer;
+  return p === null ? 'unassigned' : p.context ? `L3 ${p.context}` : p.layer;
 }
 
 export function renderSection(ds: readonly DomainDecision[]): string {
@@ -44,13 +44,14 @@ export function renderSection(ds: readonly DomainDecision[]): string {
     const entry = d.entry === null ? `none yet (${until})` : `\`${d.entry}\``;
     const status = owner.provisional ? `provisional until ${until}: ${d.target}` : 'final';
     const who = `\`${owner.module}#${owner.fn}\` (${layerOf(owner.module)})`;
-    return `| ${d.id} | ${cell(d.question)} | ${who} | ${entry} | ${cell(status)} |`;
+    const gate = `${code(d.ownerPaths)} | ${code(d.fingerprints.map((f) => `${f.name}: ${String(f.pattern)}`))}`;
+    return `| ${d.id} | ${cell(d.question)} | ${who} | ${entry} | ${cell(status)} | ${gate} |`;
   });
   return [
     BEGIN,
     '## Capabilities (call the owner through its entry; `pnpm quality:decisions` fails a second owner)',
-    '| Capability | Question | Owner | Entry | Status |',
-    '| --- | --- | --- | --- | --- |',
+    '| Capability | Question | Owner | Entry | Status | Owner paths | Second-owner fingerprints |',
+    '| --- | --- | --- | --- | --- | --- | --- |',
     ...rows,
     END,
   ].join('\n');
@@ -77,18 +78,11 @@ export function unsplice(doc: string): string | null {
 }
 
 const agentsFiles = (root: string): string[] =>
-  walk(join(root, 'src'), [])
-    .map((p) => relative(root, p))
-    .filter((f) => basename(f) === 'AGENTS.md');
+  walk(join(root, 'src'), []).map((p) => relative(root, p)).filter((f) => basename(f) === 'AGENTS.md');
 
 /** Each AGENTS.md path → its wanted text (null: delete it), for every home and orphaned section. */
-export function plan(
-  root: string,
-  decisions: readonly DomainDecision[] = DECISIONS,
-  existing: readonly string[] = agentsFiles(root)
-): Map<string, string | null> {
-  const read = (f: string): string | null =>
-    existsSync(join(root, f)) ? readFileSync(join(root, f), 'utf8') : null;
+export function plan(root: string, decisions: readonly DomainDecision[] = DECISIONS, existing: readonly string[] = agentsFiles(root)): Map<string, string | null> {
+  const read = (f: string): string | null => (existsSync(join(root, f)) ? readFileSync(join(root, f), 'utf8') : null);
   const homes = new Map<string, DomainDecision[]>();
   for (const d of decisions) homes.set(homeOf(d), [...(homes.get(homeOf(d)) ?? []), d]);
   const out = new Map<string, string | null>();
@@ -101,11 +95,7 @@ export function plan(
 }
 
 /** Returns the exit code: 1 when --check finds a stale, missing or orphaned section. */
-export function run(
-  args: string[],
-  root = REPO_ROOT,
-  decisions: readonly DomainDecision[] = DECISIONS
-): number {
+export function run(args: string[], root = REPO_ROOT, decisions: readonly DomainDecision[] = DECISIONS): number {
   const check = args.includes('--check');
   const stale: string[] = [];
   for (const [f, next] of plan(root, decisions)) {
@@ -127,11 +117,7 @@ export function run(
     say('Fix: pnpm docs:capabilities');
     return 1;
   }
-  say(
-    check
-      ? '✅ Capabilities sections match decisions.ts.'
-      : `Wrote ${stale.length} AGENTS.md file(s).`
-  );
+  say(check ? '✅ Capabilities sections match decisions.ts.' : `Wrote ${stale.length} AGENTS.md file(s).`);
   return 0;
 }
 

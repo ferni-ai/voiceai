@@ -18,7 +18,7 @@
  *
  * A `declarations` fingerprint is the owner's shape: a function, method or function-valued
  * variable declared outside `ownerPaths` whose whole name matches it is a second owner, unless
- * it calls `owner.fn` (a delegate, such as a port adapter).
+ * its body only returns a call to a function imported from `ownerPaths` (a delegate: a port adapter).
  *
  * A fingerprint hit is a line of production code under src/ (tests, comments and NOT_DECIDERS excluded)
  * that matches `pattern`, in a file outside `ownerPaths`; with `onlyIn`, only in files whose
@@ -97,7 +97,7 @@ export const DECISIONS: readonly DomainDecision[] = [
         pattern: /suicid|self[- ]?harm|kill(?:ing)? (?:my|him|her)self|want(?:s|ed)? to die|end(?:ing)? (?:my|his|her) life|end it all/i,
         in: 'word-lists',
       },
-      { name: 'second owner', pattern: /\b(?:detect|assess|classify|decide)\w*Crisis\w*\b/, in: 'declarations' },
+      { name: 'second owner', pattern: /\b(?:detect|assess|classify|decide|is|needs|has|check|analyze|evaluate|score)\w*Crisis\w*\b/, in: 'declarations' },
     ],
   },
   {
