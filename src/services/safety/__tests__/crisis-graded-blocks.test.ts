@@ -230,6 +230,7 @@ const ADVERSARIAL: Array<[shape: string, ...Probe, BlockReason]> = [
     () => turn({ latest: "My roommates passed out and won't respond." }),
     'R3_down_or_means',
   ],
+  ['plural', 'twin', () => turn({ latest: "The twins aren't breathing right." }), 'R2_third_party'],
   [
     'plural',
     'kids swallowed',
@@ -504,7 +505,6 @@ const wide = (s: string) =>
   s.replace(/[!-~]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xfee0));
 const PR2_GAPS: Array<[string, Partial<GradeInput>]> = [
   ['a place, not a means word', { latest: "I'm standing at the edge of the overpass." }],
-  ['a plural, not breathing', { latest: "The twins aren't breathing right." }],
   [
     'an age said earlier',
     { earlier: ['my age is 13.'], latest: 'I just feel like nothing matters.' },

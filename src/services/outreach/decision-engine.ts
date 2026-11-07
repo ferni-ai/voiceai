@@ -56,6 +56,7 @@ import {
 
 // Redis cache for real-time session suppression
 import { getRedisCache } from '../../memory/redis-cache.js';
+import { abuseHoldNow } from '../safety/index.js';
 
 // Re-export types from dedicated types module
 export type {
@@ -178,7 +179,7 @@ class OutreachDecisionEngine extends EventEmitter {
    */
   addTrigger(trigger: Omit<OutreachTrigger, 'id' | 'createdAt'>): string {
     const id = `trigger_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-
+    if (abuseHoldNow({ userId: trigger.userId })) return id; // K1e: never kept (abuse-outreach-hold.ts)
     const fullTrigger: OutreachTrigger = {
       ...trigger,
       id,
@@ -188,7 +189,6 @@ class OutreachDecisionEngine extends EventEmitter {
     const userTriggers = pendingTriggers.get(trigger.userId) || [];
     userTriggers.push(fullTrigger);
     pendingTriggers.set(trigger.userId, userTriggers);
-
     // Persist to Firestore (fire and forget for speed)
     saveTrigger(fullTrigger, trigger.suggestedTime).catch((err) => {
       log.debug({ err, triggerId: id }, 'Failed to persist trigger (non-fatal)');
@@ -828,10 +828,7 @@ class OutreachDecisionEngine extends EventEmitter {
           reason: trigger.reason,
           suggestedPersonas: trigger.context?.personas as string[] | undefined,
           collaborationMode: trigger.context?.mode as
-            | 'discussion'
-            | 'brainstorm'
-            | 'support'
-            | undefined,
+            'discussion' | 'brainstorm' | 'support' | undefined,
           preferredName,
         });
         break;

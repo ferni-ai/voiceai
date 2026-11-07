@@ -33,9 +33,11 @@
 // non-speech sounds (backchannels, laughs, hums) are written into it where the
 // caller heard them (sounds.mjs), unless JUDGE_SOUNDS=off, which keeps the
 // words-only transcript of verdicts saved before 2026-10-24 for A/B. Each sample
-// lists the dimensions in a seeded random order shared by both judges. If
-// <scenario>-<label>.seed.json exists, the earlier call is shown too, so recall
-// is checked against what was really said and invented history counts against it.
+// lists the dimensions in a seeded random order shared by both judges. Earlier
+// calls are shown too, so recall is checked against what was really said and
+// invented history counts against it: <scenario>-<label>.seed.json, and every
+// run or seed call in the same directory made earlier as the same caller
+// (meta.uid; the nightly memlive calls share one, a default run gets its own).
 //
 // Env: JUDGE_PROVIDERS (default gemini; gemini,qwen for the local cross-family
 // judge, JUDGE_QWEN_MODEL default qwen3:30b-a3b, OLLAMA_HOST), JUDGE_MODEL (default pro here; flash for Flash),
@@ -49,8 +51,8 @@
 // run, recording provider, model and persona; then the --summary report.
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { basename } from 'node:path';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
 import { TIMING_INVALID, callerAudioOfRun, timingInvalidNote } from './converse-timing.mjs';
 import { turnsOf } from './humanness.mjs';
 import { withBillingLabels } from '../lib/gemini-billing-labels.mjs';
@@ -224,7 +226,40 @@ export function personaOf(run) {
 const soundsNote = (who) =>
   `Square brackets like [${who}: mm-hm] or [${who} laughs] are non-speech sounds ${who} played, placed where the caller heard them; a line of its own says what the sound played into. Judge them as behaviour under conduct, empathy and quirks: a short backchannel or laugh at the caller's pause is what a good listener does; a sound into silence, the same sound again within a minute, or one over the caller's words or ${who}'s own speech is a tell that it is mechanical.\n\n`;
 
-/** The judge prompt; `order` is the order the dimensions are listed and asked for in. */
+/** The calls in `runs` made before `run` as the same caller (meta.uid), oldest first. */
+export function earlierCallsOf(run, runs) {
+  const uid = run.meta?.uid;
+  if (!uid || !Number.isFinite(run.wallT0)) return [];
+  return runs
+    .filter((r) => r !== run && Array.isArray(r.events) && r.meta?.uid === uid && Number.isFinite(r.wallT0) && r.wallT0 < run.wallT0)
+    .sort((a, b) => a.wallT0 - b.wallT0);
+}
+
+// What judge, score, realism and agent-room write next to a run; seed calls are calls.
+const SIDECAR = /\.(?:score|realism|agent-room|judge(?:\.[\w-]+)?)\.json$/;
+
+/** earlierCallsOf over the runs and seed calls saved next to file `f`. */
+export function earlierCallsIn(f, run) {
+  const uid = run.meta?.uid;
+  if (!uid) return [];
+  const dir = dirname(f);
+  const runs = [];
+  for (const name of readdirSync(dir)) {
+    const g = join(dir, name);
+    if (!name.endsWith('.json') || SIDECAR.test(name) || g === f) continue;
+    const text = readFileSync(g, 'utf8');
+    if (!text.includes(uid)) continue; // cheap: most runs in a night's directory are other callers
+    try {
+      runs.push(JSON.parse(text));
+    } catch {
+      // A half-written or foreign file is not an earlier call.
+    }
+  }
+  return earlierCallsOf(run, runs);
+}
+
+/** The judge prompt; `order` is the order the dimensions are listed and asked for in.
+ * `seed` is the earlier call, or a list of them oldest first. */
 export function promptFor(run, seed, order = Object.keys(DIMENSIONS), persona = personaProfile(personaOf(run)), { sounds = judgeSoundsOn(), checks = judgeChecksFor(run) } = {}) {
   const { name: who, bio } = persona;
   // Only the scenario's own #@judge checks, after the dimensions: a call without any is unchanged.
@@ -237,9 +272,13 @@ export function promptFor(run, seed, order = Object.keys(DIMENSIONS), persona = 
   const WHO = who.toUpperCase();
   const dims = order.map((k) => `- ${k}: ${DIMENSIONS[k].replaceAll('Ferni', who)}`).join('\n');
   const name = process.env.JUDGE_CALLER_NAME ?? 'Sam';
-  const earlier = seed
-    ? `EARLIER CALL between the same two (days before; ${who} may remember it):\n${transcriptOf(seed, who, { sounds })}\n\n`
-    : `There was no earlier call; anything ${who} claims to remember from before is invented.\n\n`;
+  const before = [seed ?? []].flat();
+  const earlier =
+    before.length > 1
+      ? `EARLIER CALLS between the same two, oldest first (days before; ${who} may remember them):\n${before.map((r, i) => `Call ${i + 1}:\n${transcriptOf(r, who, { sounds })}`).join('\n\n')}\n\n`
+      : before.length
+        ? `EARLIER CALL between the same two (days before; ${who} may remember it):\n${transcriptOf(before[0], who, { sounds })}\n\n`
+        : `There was no earlier call; anything ${who} claims to remember from before is invented.\n\n`;
   const context = `${who} knows the caller's name is ${name} from their account, so using it is fine. ${who} is a character with a life of its own; its own stories (trips, neighbours, places it lived) are self-disclosure, not invented history; judge them under quirks for consistency with its background below and with what it said earlier in the call. "Invented history" means claims about earlier conversations with the caller, or about the caller's life, that were never said and can't be fairly inferred from what they did say (a caller who says "his heart again" has implied an earlier episode; "classic Biscuit" about a dog first mentioned seconds ago is invented familiarity).\n\n${bio ? `${WHO}'S BACKGROUND (canonical; stories that fit it are consistent):\n${bio}\n\n` : ''}`;
   return `You are judging how human and how good a friend "${who}" is on a voice call. Transcripts come from speech recognition and captions, so ignore spelling, casing and small transcription slips.
 
@@ -549,7 +588,10 @@ async function main() {
     for (const f of opts.files) {
       const run = JSON.parse(readFileSync(f, 'utf8'));
       const seedFile = f.replace(/\.json$/, '.seed.json');
-      const seed = existsSync(seedFile) ? JSON.parse(readFileSync(seedFile, 'utf8')) : null;
+      const seedCall = existsSync(seedFile) ? JSON.parse(readFileSync(seedFile, 'utf8')) : null;
+      // The seed file is found again by uid when it has one; a pre-uid seed is still shown, first.
+      const seed = earlierCallsIn(f, run);
+      if (seedCall && !seed.some((r) => r.wallT0 === seedCall.wallT0 && r.meta?.uid === seedCall.meta?.uid)) seed.unshift(seedCall);
       const persona = personaProfile(personaOf(run));
       const audio = callerAudioOfRun(run);
       for (const provider of providers) {
@@ -571,7 +613,8 @@ async function main() {
           via,
           k,
           persona: persona.id,
-          seeded: Boolean(seed),
+          seeded: seed.length > 0,
+          earlierCalls: seed.length,
           sounds: judgeSoundsOn(),
           callerAudio: { valid: audio.valid, maxRatio: audio.maxRatio },
           ...combine(samples),

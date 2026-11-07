@@ -7,6 +7,7 @@ import XCTest
 final class CallAnnouncementTests: XCTestCase {
     func testOnlyTroubleIsAnnounced() {
         XCTAssertEqual(CallAnnouncement.text(phase: .reconnecting, onHold: false), "Reconnecting…")
+        XCTAssertEqual(CallAnnouncement.text(phase: .rejoining, onHold: false), "Reconnecting…")
         XCTAssertEqual(CallAnnouncement.text(phase: .live, onHold: true), "On hold")
         XCTAssertEqual(CallAnnouncement.text(phase: .failed(.offline), onHold: false), CallProblem.offline.message)
         for quiet: CallSession.Phase in [.idle, .connecting, .waitingForFerni, .live, .ended] {

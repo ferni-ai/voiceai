@@ -30,7 +30,6 @@ import { assertNotOptedOut } from './first-dial-opt-out.js';
 import { awaitAgent, endCallWithNoAgent, isAgentNotJoined } from './agent-join.js';
 import {
   enrichMessage,
-  enrichVoicemailMessage,
   type EnrichedMessage,
   type EnrichmentContext,
 } from './message-enrichment.js';
@@ -62,7 +61,6 @@ export interface OnBehalfCall {
   // Call metadata
   script: string;
   complianceScript: string;
-  enrichedMessage?: EnrichedMessage;
 
   // Twilio data
   twilioCallSid?: string;
@@ -203,15 +201,15 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       );
     }
 
-    // Build script with enriched or original purpose
-    const effectivePurpose = enrichedMessage?.message || request.purpose;
-    const { script: scriptTemplate, type: scriptType } = selectScript(contact, effectivePurpose);
+    // The user's own request, relayed in the third person (outbound-call-context.ts); the enriched
+    // message ("Hey Alex! It's Sam...") is in their voice, so only the Twilio voicemail gets it.
+    const { script: scriptTemplate, type: scriptType } = selectScript(contact, request.purpose);
 
     const script = buildCallScript(scriptTemplate, {
       agentName: 'Ferni',
       userName: request.userName,
       contactName: contact.name,
-      purpose: effectivePurpose,
+      purpose: request.purpose,
       objective: request.objective,
       additionalContext: request.userPreferences?.additionalContext,
       preferredTimes: request.userPreferences?.preferredTimes,
@@ -228,7 +226,6 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       status: 'pending',
       script,
       complianceScript,
-      enrichedMessage,
       createdAt: new Date(),
     };
 
@@ -593,122 +590,6 @@ class OnBehalfCallOrchestrator extends EventEmitter {
     activeCallsStore.set(callId, call);
   }
 
-  /**
-   * Handle machine detection (voicemail)
-   */
-  async handleMachineDetection(callId: string, machineResult: string): Promise<string | null> {
-    const call = activeCallsStore.get(callId);
-    if (!call) {
-      return null;
-    }
-
-    log.info({ callId, machineResult }, 'Machine detection result for on-behalf call');
-
-    if (machineResult === 'human') {
-      return null; // Continue with conversation
-    }
-
-    if (machineResult.startsWith('machine_')) {
-      call.status = 'voicemail';
-      activeCallsStore.set(callId, call);
-
-      // Generate enriched voicemail message (async for LLM enrichment)
-      const voicemailMessage = await this.generateVoicemailMessageAsync(call);
-
-      this.emit('voicemail-detected', call);
-
-      return `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="Polly.Joanna">${this.escapeXml(voicemailMessage)}</Say>
-</Response>`;
-    }
-
-    return null;
-  }
-
-  /**
-   * Generate voicemail message with "Better Than Human" enrichment
-   *
-   * Instead of a robotic template, we generate a warm, natural message
-   * that sounds like it came from someone who truly cares.
-   */
-  private async generateVoicemailMessageAsync(call: OnBehalfCall): Promise<string> {
-    const contact = call.request.resolvedContact!;
-
-    // If we already have an enriched message with components, use those
-    if (call.enrichedMessage?.components) {
-      const { opening, personalContext, mainMessage, close } = call.enrichedMessage.components;
-      const parts = [opening];
-      if (personalContext) parts.push(personalContext);
-      parts.push(mainMessage);
-      parts.push(close);
-      return parts.join(' ');
-    }
-
-    // Otherwise, enrich specifically for voicemail
-    try {
-      const enrichmentContext: EnrichmentContext = {
-        originalMessage: call.request.purpose,
-        relationship: {
-          contactName: contact.name,
-          relationship: contact.relationship || 'friend',
-        },
-        sender: {
-          userName: call.request.userName,
-        },
-        settings: {
-          isVoicemail: true,
-          maxLength: 'medium',
-        },
-      };
-
-      const enrichedVoicemail = await enrichVoicemailMessage(enrichmentContext);
-      return enrichedVoicemail.message;
-    } catch (error) {
-      log.warn({ error: String(error) }, 'Voicemail enrichment failed, using fallback');
-      return this.generateVoicemailMessageFallback(call);
-    }
-  }
-
-  /**
-   * Fallback voicemail for when enrichment fails
-   * Still warmer than the old template, but doesn't require LLM
-   */
-  private generateVoicemailMessageFallback(call: OnBehalfCall): string {
-    const contact = call.request.resolvedContact!;
-    const purpose = call.request.purpose;
-    const userName = call.request.userName;
-
-    // Determine relationship depth for tone
-    const relationship = (contact.relationship || '').toLowerCase();
-    const isClose = [
-      'mother',
-      'mom',
-      'father',
-      'dad',
-      'spouse',
-      'wife',
-      'husband',
-      'partner',
-    ].includes(relationship);
-
-    if (isClose) {
-      return (
-        `Hey ${contact.name}, it's Ferni calling for ${userName}. ` +
-        `${userName} wanted me to ${purpose}... ` +
-        `Just know they're thinking of you. ` +
-        `Love you. Bye.`
-      );
-    }
-
-    return (
-      `Hi ${contact.name}, this is Ferni, calling on behalf of ${userName}. ` +
-      `${userName} wanted me to ${purpose}. ` +
-      `They wanted to make sure you got this message. ` +
-      `Take care, and talk soon.`
-    );
-  }
-
   // =========================================================================
   // CALL COMPLETION
   // =========================================================================
@@ -868,15 +749,6 @@ class OnBehalfCallOrchestrator extends EventEmitter {
 
   private maskPhone(phone: string): string {
     return phone.replace(/.(?=.{4})/g, '*');
-  }
-
-  private escapeXml(text: string): string {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
   }
 }
 

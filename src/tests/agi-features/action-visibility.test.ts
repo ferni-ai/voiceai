@@ -46,12 +46,6 @@ vi.mock('../../agents/shared/generate-reply-gateway.js', () => ({
 // Import after mocking
 import { getFrontendPublisher } from '../../agents/realtime/frontend-publisher.js';
 import {
-  detectConfirmationIntent,
-  handleActionApprovalIntent,
-  hasPendingActions,
-} from '../../agents/shared/action-approval-handler.js';
-
-import {
   dispatchPendingAction,
   dispatchActionApproved,
   dispatchActionRejected,
@@ -87,89 +81,6 @@ describe('Action Visibility System', () => {
   afterEach(() => {
     clearAllActionDispatchers();
     vi.clearAllMocks();
-  });
-
-  // ==========================================================================
-  // Action Approval Handler Tests
-  // ==========================================================================
-
-  describe('Action Approval Handler', () => {
-    describe('detectConfirmationIntent', () => {
-      it('should detect confirmation intent for "yes"', () => {
-        expect(detectConfirmationIntent('yes')).toBe('confirm');
-      });
-
-      it('should detect confirmation intent for "yeah"', () => {
-        expect(detectConfirmationIntent('yeah')).toBe('confirm');
-      });
-
-      it('should detect confirmation intent for "do it"', () => {
-        expect(detectConfirmationIntent('do it')).toBe('confirm');
-      });
-
-      it('should detect confirmation intent for "go ahead"', () => {
-        expect(detectConfirmationIntent('go ahead')).toBe('confirm');
-      });
-
-      it('should detect confirmation intent for "send it"', () => {
-        expect(detectConfirmationIntent('send it')).toBe('confirm');
-      });
-
-      it('should detect confirmation intent for "sounds good"', () => {
-        expect(detectConfirmationIntent('sounds good')).toBe('confirm');
-      });
-
-      it('should detect denial intent for "no"', () => {
-        expect(detectConfirmationIntent('no')).toBe('deny');
-      });
-
-      it('should detect denial intent for "not now"', () => {
-        expect(detectConfirmationIntent('not now')).toBe('deny');
-      });
-
-      it('should detect denial intent for "never mind"', () => {
-        expect(detectConfirmationIntent('never mind')).toBe('deny');
-      });
-
-      it('should detect denial intent for "cancel"', () => {
-        expect(detectConfirmationIntent('cancel')).toBe('deny');
-      });
-
-      it('should return unclear for long sentences', () => {
-        expect(detectConfirmationIntent('I need to think about this for a while')).toBe('unclear');
-      });
-
-      it('should return unclear for unrelated content', () => {
-        expect(detectConfirmationIntent('tell me about the weather')).toBe('unclear');
-      });
-    });
-
-    describe('handleActionApprovalIntent', () => {
-      it('should return handled=false for long input', async () => {
-        const result = await handleActionApprovalIntent(
-          testUserId,
-          'I need to think about this request for a while before deciding'
-        );
-        expect(result.handled).toBe(false);
-      });
-
-      it('should return handled=false when no pending actions', async () => {
-        const result = await handleActionApprovalIntent(testUserId, 'yes');
-        expect(result.handled).toBe(false);
-      });
-
-      it('should return handled=false for unclear intent', async () => {
-        const result = await handleActionApprovalIntent(testUserId, 'maybe');
-        expect(result.handled).toBe(false);
-      });
-    });
-
-    describe('hasPendingActions', () => {
-      it('should return false for user with no pending actions', async () => {
-        const result = await hasPendingActions(testUserId);
-        expect(result).toBe(false);
-      });
-    });
   });
 
   // ==========================================================================

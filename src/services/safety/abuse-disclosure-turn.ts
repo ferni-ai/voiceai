@@ -13,8 +13,13 @@ import { CRISIS_RESOURCES } from './crisis-response.js';
 import { SEVERITY } from './crisis-severity.js';
 import { EMERGENCY_NUMBER } from './emergency-number.js';
 
-import { abuseDisclosure, type AbuseWho, selfHarmWords } from './abuse-disclosure.js';
-import { crisisRiskThisCall } from './crisis-call-risk.js';
+import {
+  ABUSE_INDICATOR as INDICATOR,
+  abuseDisclosure,
+  type AbuseWho,
+  selfHarmWords,
+} from './abuse-disclosure.js';
+import { selfRiskThisCall } from './crisis-call-risk.js';
 import { minorAbuseGuidance } from './minor-abuse-disclosure.js';
 
 type Env = Record<string, string | undefined>;
@@ -38,7 +43,7 @@ export function abuseCallRisk(
   latest: string,
   patternRisk: boolean
 ): Omit<AbuseCallRisk, 'classifierSelf'> {
-  return { riskBefore: !sessionId || crisisRiskThisCall(sessionId, latest), patternRisk };
+  return { riskBefore: !sessionId || selfRiskThisCall(sessionId, latest), patternRisk };
 }
 
 /**
@@ -73,8 +78,6 @@ function selfRiskOnCall(
   );
 }
 
-const INDICATOR = 'abuse_disclosure';
-
 /** The settled turn with the flag on: an abuse disclosure is a crisis-level safety turn. */
 export function withAbuseDisclosure<T extends { crisis: CrisisDetectionResult; soft: boolean }>(
   settled: T,
@@ -86,8 +89,9 @@ export function withAbuseDisclosure<T extends { crisis: CrisisDetectionResult; s
   const found = abuseDisclosure(turn.latest);
   if (!found) return settled;
   const { crisis } = settled;
+  // The kernel's own abuse read (crisis-guard.ts) keeps 988; this read knows the call and decides.
   const indicators = [
-    ...crisis.indicators,
+    ...crisis.indicators.filter((i) => !i.startsWith(INDICATOR)),
     INDICATOR,
     `${INDICATOR}_${found.who}`,
     ...(selfRiskOnCall(turn, call, found.selfHarm) ? [`${INDICATOR}_self_harm`] : []),

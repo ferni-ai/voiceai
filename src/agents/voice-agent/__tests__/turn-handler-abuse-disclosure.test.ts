@@ -130,11 +130,16 @@ const BLOCKED_LINES: Array<[string, string[]]> = [
 ];
 
 describe('turn handler: a blocked classifier read of an abuse disclosure', () => {
-  it('is the blocked soft check-in with the flag off, as on main', async () => {
-    for (const [line] of BLOCKED_LINES) {
+  // Changed (K1e): main gave the blocked soft check-in here; the kernel now reads the abuse.
+  it("takes the kernel's abuse read with the flag off: the line, 911 and 988, never the soft check", async () => {
+    for (const [line, resources] of BLOCKED_LINES) {
       const turn = await runTurn(line, { env: ABUSE_OFF, generate: blocked });
-      expect(turn.guidance, line).toEqual([]);
-      expect(turn.soft, line).toEqual([BLOCKED_SAFETY_CHECK]);
+      expect(turn.soft, line).toEqual([]);
+      expect(turn.soft, line).not.toContain(BLOCKED_SAFETY_CHECK);
+      expect(turn.guidance, line).toHaveLength(1);
+      expect(turn.guidance[0], line).toContain('call 911');
+      expect(turn.guidance[0], line).toMatch(/\b988\b/);
+      for (const resource of resources) expect(turn.guidance[0], line).toContain(resource);
     }
   });
 
