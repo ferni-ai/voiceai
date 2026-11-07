@@ -17,10 +17,10 @@ import {
   searchRestaurants,
   bookReservation,
   isReservationServiceConfigured,
-  formatRestaurantForSpeech,
 } from '../../services/restaurant-reservations.js';
 import { isConfirmedReservation, unconfirmedReservationReply } from './reservation-confirmation.js';
 import { getAppointmentFollowUpService } from '../../services/scheduling/appointment-followup.js';
+import { restaurantSearchReply } from './restaurant-search.js';
 import {
   createAppointmentRequest,
   updateAppointmentStatus,
@@ -195,38 +195,7 @@ export function createAppointmentTools() {
         date: z.string().describe('Date for the reservation'),
         partySize: z.number().default(2).describe('Number of people'),
       }),
-      execute: async ({ query, location, date, partySize }) => {
-        const requestedDate = parseNaturalTime(date);
-        if (!requestedDate) {
-          return `What date are you looking at? Like "this Saturday" or "December 15th"?`;
-        }
-
-        const dateForApi = requestedDate.toISOString().split('T')[0];
-        const dateStr = requestedDate.toLocaleDateString('en-US', {
-          weekday: 'long',
-          month: 'long',
-          day: 'numeric',
-        });
-
-        const restaurants = await searchRestaurants(
-          query,
-          location,
-          dateForApi,
-          '19:00',
-          partySize
-        );
-
-        if (restaurants.length === 0) {
-          return `I couldn't find any ${query} restaurants in ${location}. Try a different search term or location?`;
-        }
-
-        const descriptions = restaurants
-          .slice(0, 5)
-          .map((r, i) => `${i + 1}. ${formatRestaurantForSpeech(r)}`)
-          .join('\n');
-
-        return `Found ${restaurants.length} options for ${query} in ${location} on ${dateStr}:\n\n${descriptions}\n\nWhich one catches your eye? I can check availability or book!`;
-      },
+      execute: (args) => restaurantSearchReply(args),
     }),
 
     // ========== APPOINTMENTS (DOCTOR, DENTIST, ETC.) ==========
