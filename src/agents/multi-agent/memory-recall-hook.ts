@@ -393,9 +393,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const dateNow = followUpsOffered || checkIn || flagOn('DATES_IN_HELLO') ? null : dates.note();
       // One follow-up per call opener (opener-claim.ts): a check-in or a date in this note (with
       // DATES_IN_HELLO only the hello's), or one the greeting already asked, leaves the thread out.
-      const greetingAsked = followUpsOffered
-        ? undefined
-        : takeOpenerClaim(deps.userId, deps.sessionId);
+      const greetingAsked = !followUpsOffered && takeOpenerClaim(deps.userId, deps.sessionId);
       // The week's predictions come alone: never beside a check-in, a date or the greeting's ask.
       const weekNow = checkIn || dateNow || greetingAsked ? null : week.note(opts.final);
       const opener =

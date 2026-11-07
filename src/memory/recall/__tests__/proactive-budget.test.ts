@@ -87,7 +87,9 @@ describe('PROACTIVE_BUDGET on: one proactive slot per call', () => {
     const read = trackCrisisRead(
       'call-a',
       'how was your day',
-      new Promise<{ risk: string } | null>((r) => (settle = r))
+      new Promise<{ risk: string } | null>((r) => {
+        settle = r;
+      })
     );
     expect(claimProactiveSlot('call-a', 'follow-up')).toEqual(SAFETY);
     settle({ risk: 'none' });
