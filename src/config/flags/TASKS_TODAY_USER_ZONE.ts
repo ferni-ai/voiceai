@@ -9,7 +9,7 @@ export const TASKS_TODAY_USER_ZONE = {
   default: 'on',
   owner: 'tools',
   kind: 'kill-switch',
-  issue: '#3497',
+  issue: 'https://github.com/ferni-ai/voiceai/issues/3497',
   context:
-    "Kill-switch, not experiment: a correctness fix (the task day was UTC's, not the user's) that is on with no env flip; remove it per #3497 once it has run clean in prod.",
+    "Kill-switch, not experiment: a correctness fix (the task day was UTC's, not the user's) that is on with no env flip; remove it per issue 3497 once it has run clean in prod.",
 } as const satisfies FlagSpec;
