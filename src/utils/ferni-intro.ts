@@ -58,7 +58,7 @@ const TITLE = /^(?:mr|mrs|ms|mx|dr|prof)\.?$/i;
  * title before one word ("Mr Lee") leaves only a surname, so there is no first
  * name to say. Undefined when there isn't a usable one.
  */
-export function spokenFirstName(name: string | undefined): string | undefined {
+function spokenFirstName(name: string | undefined): string | undefined {
   const words = realName(name)?.normalize('NFC').split(/\s+/) ?? [];
   const [first] = words;
   if (first && TITLE.test(first)) {
