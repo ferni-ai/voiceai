@@ -241,6 +241,43 @@ describe('A→B→A→B in one call', () => {
     }
   });
 
+  it('flag on, a session per persona: a crisis decided on a session after its persona left, with no read out, keeps every later line as flag off', async () => {
+    vi.stubEnv('MULTI_AGENT_SINGLE_SESSION', 'off');
+    vi.stubEnv('HANDOFF_ARRIVAL_ONCE', 'on');
+    const bare = await runCall('arrival-once-left-bare', SIX_HOPS);
+    await bare.end();
+    // Hops 1-4: by hop 5 both of ferni's return lines are said, so flag on says today's line anyway.
+    for (const k of [1, 2, 3, 4]) {
+      const run = async (flag: string) => {
+        vi.stubEnv('HANDOFF_ARRIVAL_ONCE', flag);
+        // Before hop k, the crisis is decided on the session of the persona that left
+        // at hop k-1, with no classifier read out: hop k and every later hop hand
+        // between other sessions, never that one. Only the call's Set of every
+        // session seen still reads it.
+        const call = await runCall(`arrival-once-left-${k}-${flag}`, SIX_HOPS, (i, spawned) => {
+          if (i !== k) return;
+          expect(crisisReadInFlight(`arrival-once-left-${k}-${flag}`)).toBe(false);
+          signalCrisisDecision(spawned[spawned.length - 2].session, 'guide');
+        });
+        await call.end();
+        return call;
+      };
+      // eslint-disable-next-line no-await-in-loop -- one call after another
+      const on = await run('on');
+      // eslint-disable-next-line no-await-in-loop -- one call after another
+      const off = await run('off');
+      const label = `crisis decided before hop ${k} on the session that left at hop ${k - 1}`;
+      expect(off.lines, label).toEqual(todays(SIX_HOPS));
+      // Without the crisis, flag on swaps these lines, so the check below can fail.
+      expect(bare.lines.slice(k), label).not.toEqual(off.lines.slice(k));
+      expect(on.lines.slice(k), label).toEqual(off.lines.slice(k));
+      expect(
+        on.arrivals.slice(k).map((a) => a.said),
+        label
+      ).toEqual(off.arrivals.slice(k).map((a) => a.said));
+    }
+  });
+
   it('flag on, three personas: each first meeting is a first meeting, not a return', async () => {
     vi.stubEnv('HANDOFF_ARRIVAL_ONCE', 'on');
     const { lines, end } = await runCall('arrival-once-three', [
