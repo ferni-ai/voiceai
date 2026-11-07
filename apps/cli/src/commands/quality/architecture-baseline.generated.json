@@ -3334,7 +3334,6 @@
   "src/services/session/session-manager.ts -> src/intelligence/cross-session-threader.ts",
   "src/services/session/session-manager.ts -> src/intelligence/emotional-memory.ts",
   "src/services/session/session-manager.ts -> src/memory/advanced-retrieval.ts",
-  "src/services/session/session-manager.ts -> src/personas/types.ts",
-  "src/services/session/session-primer.ts -> src/memory/advanced-retrieval.ts"
+  "src/services/session/session-manager.ts -> src/personas/types.ts"
  ]
 }

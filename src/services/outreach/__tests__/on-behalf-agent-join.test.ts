@@ -156,6 +156,7 @@ describe('an on-behalf call and its agent', () => {
         objectiveAchieved: false,
         outcome: "Ferni couldn't connect the call to Ana",
         callbackRequired: true,
+        notPlaced: 'agent_not_joined', // a late agent's job reads this (on-behalf-late-agent.test.ts)
       },
       expect.objectContaining({ userId: 'owner-1' })
     );

@@ -264,18 +264,25 @@ describe('a turn the classifier read is as on main', () => {
   });
 });
 
-describe('both flags off is main', () => {
+// Changed (K1e): with both flags off the kernel reads the hitting itself (crisis-guard.ts), with
+// the abuse guidance and 988 beside it. Main read [] and ['classifier_crisis'] here.
+const KERNEL = [...ABUSE, 'abuse_disclosure_self_harm'];
+describe('both flags off: the kernel reads someone hurting the caller', () => {
   for (const line of [MINOR_LINE, HITS_LINE]) {
-    it(`no classifier read: no crisis turn (${line})`, async () => {
-      for (const how of Object.keys(UNREAD))
-        expectMain(await unreadTurn(line, FLAGS.off, how), [], how);
+    it(`no classifier read: the kernel's abuse read (${line})`, async () => {
+      for (const how of Object.keys(UNREAD)) {
+        const turn = await unreadTurn(line, FLAGS.off, how);
+        expectMain(turn, KERNEL, how);
+        expect(turn.guidance[0], how).toMatch(/\b988\b/);
+        expect(turn.guidance[0], how).toContain('1-800-422-4453');
+      }
     });
-    it(`the classifier's read alone (${line})`, async () => {
+    it(`the classifier's read beside it (${line})`, async () => {
       const off = { ...BASE, ...FLAGS.off };
-      expectMain(await runTurn(line, { env: off, generate: READ.none }), [], 'none');
+      expectMain(await runTurn(line, { env: off, generate: READ.none }), KERNEL, 'none');
       expectMain(
         await runTurn(line, { env: off, generate: READ.crisis }),
-        ['classifier_crisis'],
+        [...KERNEL, 'classifier_crisis'],
         'crisis'
       );
     });

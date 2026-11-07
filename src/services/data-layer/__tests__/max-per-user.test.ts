@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { LIST_PAGE_SIZE } from '../../../memory/firestore-vector-store/types.js';
 import { getEntityPolicy } from '../indexing-policy.js';
 import {
   enforceMaxPerUser,
@@ -30,6 +31,39 @@ function store(n: number, { onlyType = false } = {}) {
   ];
   const s: CappedVectorStore = {
     list: vi.fn(async () => docs),
+    removeDocument: vi.fn(async () => true),
+  };
+  return s;
+}
+
+type Doc = { id: string; metadata: Record<string, unknown> };
+
+/**
+ * Firestore's list(): userId and metadata equalities in the query, then one
+ * page. `others` docs of another type come first, then `n` of TYPE.
+ */
+function pagedStore(others: number, n: number) {
+  const docs: Doc[] = [
+    ...Array.from({ length: others }, (_, i) => ({
+      id: `fact_${i}`,
+      metadata: { userId: 'u1', entityType: 'fact', indexedAt: '2020-01-01T00:00:00Z' },
+    })),
+    ...Array.from({ length: n }, (_, i) => ({
+      id: `s_${TYPE}_${i}`,
+      metadata: {
+        userId: 'u1',
+        entityType: TYPE,
+        indexedAt: new Date(T0 - (n - i) * 60_000).toISOString(),
+      },
+    })),
+  ];
+  const s: CappedVectorStore = {
+    list: vi.fn(async (filter: { userId: string; metadata?: Record<string, unknown> }) =>
+      docs
+        .filter((d) => d.metadata.userId === filter.userId)
+        .filter((d) => Object.entries(filter.metadata ?? {}).every(([k, v]) => d.metadata[k] === v))
+        .slice(0, LIST_PAGE_SIZE)
+    ),
     removeDocument: vi.fn(async () => true),
   };
   return s;
@@ -104,6 +138,51 @@ describe('maxPerUser enforcement', () => {
     const s = store(0);
     vi.mocked(s.list).mockRejectedValueOnce(new Error('firestore down'));
     await expect(enforceMaxPerUser(s, 'u1', TYPE, 'a', T0)).resolves.toEqual([]);
+  });
+
+  it('asks the store for this entity type only', async () => {
+    const s = store(1);
+    await enforceMaxPerUser(s, 'u1', TYPE, 'a', T0);
+    expect(s.list).toHaveBeenCalledWith({ userId: 'u1', metadata: { entityType: TYPE } });
+  });
+
+  it('counts docs of the type that sit past the first page of the user', async () => {
+    const s = pagedStore(LIST_PAGE_SIZE + 100, MAX);
+    // Unfiltered, the page holds none of them.
+    expect(
+      (await s.list({ userId: 'u1' } as never)).filter((d) => d.metadata?.entityType === TYPE)
+    ).toEqual([]);
+    expect(await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new`, T0)).toEqual([`s_${TYPE}_0`]);
+    expect(s.removeDocument).toHaveBeenCalledWith(`s_${TYPE}_0`);
+  });
+
+  it('without a real owner id, nothing is read or removed', async () => {
+    // Two users over the cap. Like list(), an empty userId narrows nothing.
+    const docs = ['u1', 'u2'].flatMap((userId) =>
+      Array.from({ length: MAX + 1 }, (_, i) => ({
+        id: `${userId}_${TYPE}_${i}`,
+        metadata: { userId, entityType: TYPE, indexedAt: new Date(T0 - i).toISOString() },
+      }))
+    );
+    const s: CappedVectorStore = {
+      list: vi.fn(async (filter: { userId: string }) =>
+        filter.userId ? docs.filter((d) => d.metadata.userId === filter.userId) : docs
+      ),
+      removeDocument: vi.fn(async () => true),
+    };
+    for (const userId of ['', '  ', 'anonymous']) {
+      expect(await enforceMaxPerUser(s, userId, TYPE, 'new', T0), JSON.stringify(userId)).toEqual(
+        []
+      );
+    }
+    expect(s.list).toHaveBeenCalledTimes(0);
+    expect(s.removeDocument).toHaveBeenCalledTimes(0);
+    // A real owner still enforces the cap, on that owner's docs only.
+    expect(await enforceMaxPerUser(s, 'u1', TYPE, 'new', T0)).toEqual([
+      `u1_${TYPE}_${MAX}`,
+      `u1_${TYPE}_${MAX - 1}`,
+    ]);
+    expect(s.removeDocument).toHaveBeenCalledTimes(2);
   });
 
   it('types without a cap are never read', async () => {

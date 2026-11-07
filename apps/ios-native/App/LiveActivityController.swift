@@ -28,7 +28,7 @@ final class LiveActivityController {
         case .waitingForFerni: state = .arriving
         // Ferni never came: say so on the Lock Screen too, then end there.
         case .failed(.ferniDidNotJoin): state = .couldNotJoin
-        case .reconnecting: state = .reconnecting
+        case .reconnecting, .rejoining: state = .reconnecting
         case .live:
             if onHold { state = .onHold } else {
                 switch pose {

@@ -42,6 +42,7 @@ import {
   crisisRiskNoted,
   crisisRiskThisCall,
   noteCrisisRisk,
+  notePatternRisk,
 } from '../../services/safety/crisis-call-risk.js';
 import { withoutGrowthNote } from '../multi-agent/recall-note.js';
 import {
@@ -70,7 +71,7 @@ import {
 import { minorHarmScript } from '../../services/safety/minor-abuse-disclosure.js'; // MINOR_ABUSE_DISCLOSURE
 import { minorCrisisScript } from '../../utils/minor-crisis-care.js'; // MINOR_CRISIS_CARE
 import { createLogger } from '../../utils/safe-logger.js';
-import { mainOf, shadowGrade } from '../../services/safety/index.js';
+import { disclosureGuidance, mainOf, shadowGrade } from '../../services/safety/index.js';
 import {
   applyClassifierVerdict,
   buildCrisisGuidance,
@@ -133,7 +134,7 @@ export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   if (crisis.isCrisis && crisis.subject === 'third_party') {
     return { action: 'guide', guidance: buildCrisisGuidance(crisis), about: 'third_party' };
   }
-  if (crisis.isCrisis) return { action: 'guide', guidance: buildCrisisGuidance(crisis) };
+  if (crisis.isCrisis) return guide(disclosureGuidance(crisis) ?? buildCrisisGuidance(crisis));
   return { action: 'pass' };
 }
 
@@ -175,7 +176,7 @@ export function startCrisisGate(
   const reask = screen === 'reask';
   const decision = gentle ? guide(SCREEN_GENTLE_OFFER) : decisionFor(detection);
   if (decision.action !== 'pass') {
-    noteCrisisRisk(sessionScope(userData)); // risk on this call (crisis-call-risk.ts)
+    notePatternRisk(sessionScope(userData), detection); // risk on this call (crisis-call-risk.ts)
     noteConfirmedRisk(sessionScope(userData), env); // CRISIS_CONFIRMED_CALL_RISK
     log.info(
       { action: decision.action, source: 'patterns', indicators: detection.indicators },

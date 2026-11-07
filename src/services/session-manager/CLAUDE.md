@@ -37,7 +37,6 @@ services/
     │
     ├── # Session Lifecycle
     ├── engine-factory.ts        # Intelligence engine initialization
-    ├── session-primer.ts        # Session priming for returning users
     ├── pre-session-briefing.ts  # Pre-session context briefing
     ├── session-warmup.ts        # Session warm-up optimization
     ├── session-lifecycle-hooks.ts # Lifecycle event hooks
@@ -75,11 +74,6 @@ services/
   - `createSessionEngines()` - Creates response quality, pattern analyzer, etc.
   - Handles emotional memory loading, cross-session thread persistence
 
-- ✅ `session-primer.ts` (~230 lines) - Build priming context for returning users
-  - `generateSessionPriming()` - Memory index warming, priming context
-  - `generateProactiveInsights()` - Proactive check-ins
-  - `buildSuperhumanMemoryContext()` - "Better than Human" intelligence
-
 - ✅ `end-session.ts` (~550 lines) - Session end lifecycle
   - `handleEndSession()` - Main orchestrator for session end
   - Conversation summarization (LLM or extraction)
@@ -101,7 +95,6 @@ services/
 | `utils.ts` | Utility functions (withTimeout) |
 | `validation.ts` | User ID validation |
 | `engine-factory.ts` | Intelligence engine creation |
-| `session-primer.ts` | Session priming, superhuman context |
 | `pre-session-briefing.ts` | Pre-session context briefing |
 | `session-warmup.ts` | Session warm-up optimization |
 | `session-lifecycle-hooks.ts` | Lifecycle event hooks |
@@ -138,11 +131,6 @@ const engines = createSessionEngines({
   isReturningUser,
 });
 
-// Session priming:
-import { generateSessionPriming, buildSuperhumanMemoryContext } from './session-manager/session-primer.js';
-const sessionPriming = await generateSessionPriming({ ... });
-const superhumanContext = buildSuperhumanMemoryContext({ ... });
-
 // Session end:
 import { handleEndSession } from './session-manager/end-session.js';
 await handleEndSession({ sessionId, userId, validatedUserId, ... });
@@ -170,7 +158,6 @@ session-manager/__tests__/
 ├── cleanup.test.ts
 ├── session-manager-utils.test.ts
 ├── engine-factory.test.ts
-├── session-primer.test.ts
 └── end-session.test.ts
 ```
 

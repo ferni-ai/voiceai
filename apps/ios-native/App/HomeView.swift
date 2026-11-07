@@ -135,7 +135,7 @@ struct HomeView: View {
         // smaller sheets (More, Report) leave him in view.
         CallAvatar(call: call, covered: model.isShowingSettings || model.isAskingConsent, wake: model.wakeCount) { model.feedback.play($0) }
             .frame(width: size, height: size)
-            .opacity(call.phase == .reconnecting ? 0.5 : 1)
+            .opacity(call.phase == .reconnecting || call.phase == .rejoining ? 0.5 : 1)
     }
 
     private var controls: some View {

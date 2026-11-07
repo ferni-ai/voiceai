@@ -5,8 +5,8 @@
  * Enables CLI and web chat interfaces to test the full platform.
  *
  * Endpoints:
- * - POST /api/chat/message - Send a message, get response with tool execution
- * - POST /api/chat/tool - Execute a specific tool directly
+ * - POST /api/chat/message - Send a message, get response with tool execution (WEB_CHAT_MESSAGE, off)
+ * - POST /api/chat/tool - Execute a specific tool directly (WEB_CHAT_MESSAGE, off)
  * - GET /api/chat/tools - List available tools for a user
  */
 
@@ -18,6 +18,7 @@ import { type ChatCaller, offeredChatTools, refuseChatTool } from './chat-tool-a
 import { refuseUnadmittedCaller } from './admission.js';
 import { chatHold, chatToolContext } from './chat-minor-care.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
+import { flagOn } from '../config/env-flag.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { executeTool } from '../agents/shared/tool-dispatcher.js';
 import { GEMINI_MODEL, getGeminiClient } from '../config/gemini-config.js';
@@ -383,22 +384,28 @@ export async function handleChatRoutes(
   res: ServerResponse,
   pathname: string
 ): Promise<boolean> {
-  // Only handle /api/chat/* routes
   if (!pathname.startsWith('/api/chat')) {
     return false;
   }
 
-  // Handle CORS preflight
   if (handleCorsPreflightIfNeeded(req, res)) {
     return true;
   }
 
-  // Rate limiting
+  // WEB_CHAT_MESSAGE (off): no crisis read runs on the text either route takes, so both are
+  // off until one does. 404 before auth: nothing is read, called or written.
+  if (
+    (pathname === '/api/chat/message' || pathname === '/api/chat/tool') &&
+    !flagOn('WEB_CHAT_MESSAGE')
+  ) {
+    sendError(res, 'Not found', 404);
+    return true;
+  }
+
   if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000 })) {
     return true;
   }
 
-  // Require authentication
   const auth = await requireAuth(req, res, { allowDevMode: true });
   if (!auth || (await refuseUnadmittedCaller(auth, res))) return true; // WAITLIST_GATE: chat is Ferni too
 
@@ -488,7 +495,6 @@ export async function handleChatRoutes(
         sendError(res, 'Tool name (fn) is required', 400);
         return true;
       }
-
       const userId = claimedUserFor(auth, body.userId, res);
       if (!userId) return true;
       const caller = { ...auth, actingUserId: userId };
@@ -497,7 +503,6 @@ export async function handleChatRoutes(
         return true;
       }
       log.info({ userId, tool: body.fn }, 'Executing tool directly');
-
       const startTime = Date.now();
       const result = await executeTool(
         { name: body.fn, args: body.args || {} },
@@ -519,16 +524,11 @@ export async function handleChatRoutes(
 
       sendJSON(res, {
         success: true,
-        tools: tools.map((t) => ({
-          name: t.name,
-          description: t.description,
-          domain: 'general',
-        })),
+        tools: tools.map((t) => ({ name: t.name, description: t.description, domain: 'general' })),
       });
       return true;
     }
 
-    // Unknown route
     sendError(res, 'Not found', 404);
     return true;
   } catch (err) {

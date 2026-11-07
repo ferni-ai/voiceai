@@ -854,6 +854,7 @@
 				ENABLE_PREVIEWS = YES;
 				FERNI_API_BASE_URL = "https://app.ferni.ai";
 				INFOPLIST_FILE = App/Info.plist;
+				IOS_LOCAL_DUCK = NO;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1147,6 +1148,7 @@
 				ENABLE_PREVIEWS = YES;
 				FERNI_API_BASE_URL = "https://app.ferni.ai";
 				INFOPLIST_FILE = App/Info.plist;
+				IOS_LOCAL_DUCK = NO;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

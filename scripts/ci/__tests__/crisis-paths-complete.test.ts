@@ -167,3 +167,135 @@ describe('every file the crisis derivation finds is covered', () => {
     expect(CRISIS_NAME.test('selfharm.ts')).toBe(true);
   });
 });
+
+/**
+ * Inbound free-text handlers: a route or service file that parses a request body and reads
+ * a free-text field from it (a chat message, an SMS Body, a transcript). Every one must read
+ * the crisis kernel, which here means it is a crisis module or imports one: the same
+ * `derived` set the lane test uses, so there is no second list of crisis readers.
+ *
+ * An import does not prove ordering. The SMS route (outreach-webhook-routes.ts) imports the
+ * kernel and still writes the thread, delivery and consent records before its crisis read.
+ * Passing here means "this handler can reach the kernel", not "the kernel runs first", so
+ * every row removed from KNOWN_UNGUARDED also needs its own spy-order test: the safety read
+ * runs before the first side effect.
+ *
+ * Discovery is by pattern: a body parse plus one of the common free-text field names, read
+ * as a property or destructured from the body (within one statement). A handler that names
+ * its text field otherwise is not found; widen the pattern rather than trust the silence.
+ */
+const FREE_TEXT_FIELD =
+  /(?:body|params|payload|data)\??\.(?:Body|message|text|content|transcript|userText|userMessage)\b|\{[^{};]*\b(?:message|text|Body|transcript)\b[^{};]*\}\s*=\s*(?:req\.)?body/;
+const PARSES_BODY = /parseBody|req\.body|readBody|request\.body|getBody|JSON\.parse\((?:body|raw)/;
+const HANDLER_DIRS = ['src/api', 'src/servers', 'src/services'];
+
+/**
+ * The scoreboard: inbound free-text handlers that import no crisis module today. It can
+ * only shrink. A handler not listed here must read the kernel, and an entry whose file now
+ * reads it, or is no longer a free-text handler, fails as stale. Whether a callee does the
+ * read is unconfirmed for every row: triage each, then prove it covered (with a spy-order
+ * test), add the read in the crisis lane, or unmount the route if nothing uses it.
+ */
+const KNOWN_UNGUARDED: Record<string, { since: string; reason: string }> = {
+  'src/api/chat-routes.ts': {
+    since: '2026-11-06',
+    reason: 'web chat: POST /api/chat/message reads body.message',
+  },
+  'src/api/custom-agent-features.routes.ts': {
+    since: '2026-11-06',
+    reason: 'custom-agent coaching messages (body.content) and share invite notes (body.message)',
+  },
+  'src/api/custom-agent/memory-routes.ts': {
+    since: '2026-11-06',
+    reason: 'custom-agent memories, journal entries among them (body.content)',
+  },
+  'src/api/custom-agent/voice-routes.ts': {
+    since: '2026-11-06',
+    reason: 'custom-agent voice preview line (body.text)',
+  },
+  'src/api/journal-chronicle-entry.ts': {
+    since: '2026-11-06',
+    reason: 'edits a journal Chronicle entry (body.content)',
+  },
+  'src/api/journal-routes.ts': {
+    since: '2026-11-06',
+    reason: 'journal entries (body.content)',
+  },
+  'src/api/landing-intelligence.routes.ts': {
+    since: '2026-11-06',
+    reason: 'landing voice demo: visitor transcript and text (body.transcript, body.text)',
+  },
+  'src/api/life-automation-routes.ts': {
+    since: '2026-11-06',
+    reason: 'workflow speak_message action text (params.message)',
+  },
+  'src/api/practice-routes.ts': {
+    since: '2026-11-06',
+    reason: 'practice chat: POST /api/practice/chat reads body.userMessage',
+  },
+  'src/api/routes/creative-you-routes.ts': {
+    since: '2026-11-06',
+    reason: 'creative insights: POST /api/creative/insights (body.content)',
+  },
+  'src/api/routes/group-coaching.ts': {
+    since: '2026-11-06',
+    reason: 'group session insights (body.content)',
+  },
+  'src/api/routes/landing-ai.ts': {
+    since: '2026-11-06',
+    reason: 'landing AI chat: POST /api/landing/ai/chat reads body.message',
+  },
+  'src/api/routes/practice-view.ts': {
+    since: '2026-11-06',
+    reason: 'renders stored reminder text (data.text, data.message); may not be inbound',
+  },
+  'src/api/v1/developers/voice-routes.ts': {
+    since: '2026-11-06',
+    reason: 'developer API voice preview text (body.text, 500 chars max)',
+  },
+  'src/services/communication/slack-chatops.ts': {
+    since: '2026-11-06',
+    reason: 'Slack slash-command text (body.text), an ops channel',
+  },
+  'src/services/pubsub/cloud-run-worker.ts': {
+    since: '2026-11-06',
+    reason: 'Pub/Sub push envelope (req.body.message); may not carry user text',
+  },
+};
+
+const freeTextHandlers = () =>
+  lsFiles(...HANDLER_DIRS)
+    .filter((f) => SOURCE.test(f) && !TEST.test(f))
+    .filter((f) => {
+      const src = text(f);
+      return FREE_TEXT_FIELD.test(src) && PARSES_BODY.test(src);
+    });
+const handlers = freeTextHandlers();
+const readsCrisis = new Set([...derived.modules, ...derived.importers]);
+const unguarded = Object.keys(KNOWN_UNGUARDED).length;
+
+describe(`every inbound free-text handler reads the crisis kernel (${unguarded} known unguarded)`, () => {
+  it('discovery is not vacuous: it finds the SMS route (guarded) and the web chat', () => {
+    expect(handlers).toContain('src/api/outreach-webhook-routes.ts');
+    expect(readsCrisis.has('src/api/outreach-webhook-routes.ts')).toBe(true);
+    expect(handlers).toContain('src/api/chat-routes.ts');
+  });
+
+  it('no free-text handler without a crisis import, outside KNOWN_UNGUARDED', () => {
+    expect(handlers.filter((f) => !readsCrisis.has(f) && !(f in KNOWN_UNGUARDED))).toEqual([]);
+  });
+
+  it('the scoreboard only shrinks: every entry is still a free-text handler and still unguarded', () => {
+    const stale = Object.keys(KNOWN_UNGUARDED).filter(
+      (f) => !handlers.includes(f) || readsCrisis.has(f)
+    );
+    expect(stale, 'stale KNOWN_UNGUARDED entries: remove them').toEqual([]);
+  });
+
+  it('every scoreboard entry has a date and a reason', () => {
+    for (const [file, { since, reason }] of Object.entries(KNOWN_UNGUARDED)) {
+      expect(since, file).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(reason.trim().length, file).toBeGreaterThan(10);
+    }
+  });
+});

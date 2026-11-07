@@ -53,7 +53,7 @@ const sobrietyCheckinDef: ToolDefinition = {
       }),
       execute: async ({ timeSober, howFeeling, recoveryType }) => {
         const userId = ctx.userId;
-        log.debug({ userId, timeSober }, '[sobriety] check-in');
+        log.debug({ userId, timeSoberChars: timeSober?.length ?? 0 }, '[sobriety] check-in');
 
         const response = `I'm here. Let's check in.
 
@@ -248,7 +248,7 @@ const sobrietyGriefDef: ToolDefinition = {
       }),
       execute: async ({ whatYouGaveUp, whatYouMiss }) => {
         const userId = ctx.userId;
-        log.debug({ userId, whatYouGaveUp }, '[sobriety] grief');
+        log.debug({ userId, whatYouGaveUpChars: whatYouGaveUp?.length ?? 0 }, '[sobriety] grief');
 
         const response = `It's okay to grieve what you gave up. Even if it was killing you.
 
@@ -339,7 +339,7 @@ const soberSocializingDef: ToolDefinition = {
       }),
       execute: async ({ upcomingEvent, specificConcern }) => {
         const userId = ctx.userId;
-        log.debug({ userId, upcomingEvent }, '[sobriety] social');
+        log.debug({ userId, upcomingEventChars: upcomingEvent?.length ?? 0 }, '[sobriety] social');
 
         const response = `Socializing sober is hard at first. It gets easier. Let's prepare.
 

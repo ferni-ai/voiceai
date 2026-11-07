@@ -1,7 +1,7 @@
 /**
  * Inbound Message Router
  *
- * Routes incoming messages (SMS replies, push taps, call-backs) to the
+ * Routes incoming SMS replies to the
  * appropriate agent. This ensures bidirectional continuity - if Maya
  * sent an SMS about habits, the user's reply goes to Maya, not Ferni.
  *
@@ -275,93 +275,6 @@ export async function handleInboundSMS(
   return { routeDecision, shouldInitiateCall: callIntent, callNow };
 }
 
-/**
- * Handle push notification tap.
- * Call this when user taps notification in app.
- */
-export async function handlePushTap(
-  userId: string,
-  notificationData: {
-    outreachId?: string;
-    agentId?: PersonaId;
-    action?: 'open' | 'call' | 'reply';
-  }
-): Promise<InboundRouteDecision> {
-  // If we know the agent from notification data, route directly
-  if (notificationData.agentId) {
-    return {
-      agentId: notificationData.agentId,
-      confidence: 0.95,
-      reason: 'Direct from notification metadata',
-      threadId: notificationData.outreachId,
-      acknowledgeOutreach: !!notificationData.outreachId,
-    };
-  }
-
-  // Otherwise use standard routing
-  return routeInbound(userId, 'push', '', {
-    outreachId: notificationData.outreachId,
-  });
-}
-
-/**
- * Handle voice call initiation.
- * Call this when user starts a voice call from app.
- */
-export async function handleVoiceCallStart(
-  userId: string,
-  options?: {
-    requestedAgentId?: PersonaId;
-    fromNotification?: boolean;
-    outreachId?: string;
-  }
-): Promise<InboundRouteDecision> {
-  // If user explicitly requested an agent
-  if (options?.requestedAgentId) {
-    return {
-      agentId: options.requestedAgentId,
-      confidence: 1.0,
-      reason: `User explicitly requested ${options.requestedAgentId}`,
-      acknowledgeOutreach: !!options?.outreachId,
-    };
-  }
-
-  // If coming from notification with outreach context
-  if (options?.fromNotification && options?.outreachId) {
-    const bridgeContext = await getConversationBridgeContext(userId);
-
-    if (bridgeContext) {
-      return {
-        agentId: bridgeContext.outreach.personaId as PersonaId,
-        confidence: 0.95,
-        reason: 'Calling back from notification',
-        acknowledgeOutreach: true,
-      };
-    }
-  }
-
-  // Check for active thread
-  const activeThread = await getActiveThread(userId);
-
-  if (activeThread) {
-    return {
-      agentId: activeThread.currentOwnerId,
-      confidence: 0.9,
-      reason: 'Continuing active thread',
-      threadId: activeThread.id,
-      acknowledgeOutreach: false,
-    };
-  }
-
-  // Default to Ferni
-  return {
-    agentId: 'ferni',
-    confidence: 0.8,
-    reason: 'New conversation with Ferni',
-    acknowledgeOutreach: false,
-  };
-}
-
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
@@ -437,15 +350,3 @@ function detectSentiment(text: string): 'positive' | 'neutral' | 'negative' {
   if (negative.test(text)) return 'negative';
   return 'neutral';
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export const inboundRouter = {
-  routeInbound,
-  handleInboundSMS,
-  handlePushTap,
-  handleVoiceCallStart,
-  detectIntentRoute,
-};

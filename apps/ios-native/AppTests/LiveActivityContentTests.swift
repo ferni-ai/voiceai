@@ -15,6 +15,7 @@ final class LiveActivityContentTests: XCTestCase {
         XCTAssertEqual(state(.connecting), .calling)
         XCTAssertEqual(state(.waitingForFerni), .arriving)
         XCTAssertEqual(state(.reconnecting), .reconnecting)
+        XCTAssertEqual(state(.rejoining), .reconnecting, "a fresh room after a drop")
         XCTAssertEqual(state(.live, pose: .speaking), .speaking)
         XCTAssertEqual(state(.live, pose: .thinking), .thinking)
         XCTAssertEqual(state(.live, pose: .listening), .listening)

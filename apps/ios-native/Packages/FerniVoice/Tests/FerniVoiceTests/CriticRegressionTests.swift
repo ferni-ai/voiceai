@@ -111,6 +111,8 @@ final class CriticRegressionTests: XCTestCase {
         try? await Task.sleep(for: .milliseconds(500))
         XCTAssertEqual(session.phase, .ended)
         XCTAssertEqual(room.micStates, [], "no mic after hanging up")
+        XCTAssertNotNil(room.connectedTo, "the connect did finish")
+        XCTAssertFalse(room.isConnected, "and the room it joined late is left again")
     }
 
     // MARK: - Guards the critic's mutants removed without a test noticing
