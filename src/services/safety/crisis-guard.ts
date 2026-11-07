@@ -247,6 +247,8 @@ const imminent = (score: TextScore): boolean => score.indicators.includes('immin
 /**
  * Score main's fold and the look-alike fold, and keep the higher read (tier first, then
  * imminent), so the look-alike fold only ever adds: "die²" and a hidden "ｌｏｌ" read as on main.
+ * On a tie, the caller comes before imminent: a plain read of the caller's own crisis is never
+ * swapped for a look-alike read of someone else's emergency ("die™. my dad isn't breathing").
  */
 function scoreFolds(message: string, forms: ReturnType<typeof meansFormsOf>): TextScore {
   const text = normalize(message);
@@ -254,9 +256,10 @@ function scoreFolds(message: string, forms: ReturnType<typeof meansFormsOf>): Te
   const plain = scoreText(text, forms);
   if (folded === text) return plain;
   const look = scoreText(folded, forms);
+  const keepsCaller = !(plain.subject === 'self' && look.subject !== 'self');
   const higher =
     look.severity > plain.severity ||
-    (look.severity === plain.severity && imminent(look) && !imminent(plain));
+    (look.severity === plain.severity && imminent(look) && !imminent(plain) && keepsCaller);
   const sessionSeverity = Math.max(plain.sessionSeverity, look.sessionSeverity);
   return { ...(higher ? look : plain), sessionSeverity };
 }

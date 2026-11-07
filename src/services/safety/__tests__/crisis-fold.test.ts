@@ -14,6 +14,8 @@ import { describe, expect, it } from 'vitest';
 import { crisisRead } from '../../outreach/caller-text.js';
 import { unreadable } from '../crisis-graded-blocks.js';
 import { detectCrisis, guardFromDetection, sessionSeverityOf } from '../crisis-guard.js';
+import { EMERGENCY_FOR_THEM } from '../crisis-guard-replies.js';
+import { performSafetyCheck } from '../index.js';
 
 const OPENER = 'hey, rough week, can we talk for a minute?';
 
@@ -134,5 +136,80 @@ describe('ordinary text in other widths and scripts reads as before', () => {
     const read = detectCrisis(line);
     expect(read.indicators).not.toContain('explicit_crisis_language');
     expect(guardFromDetection(read).shouldBlock).toBe(false);
+  });
+});
+
+/** Fullwidth letters and signs, as typed on some keyboards. */
+const fullwidth = (s: string): string =>
+  s.replace(/[!-~]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xfee0));
+
+const DAD = "my dad collapsed and isn't breathing";
+const MOM = "my mom fell and won't wake up";
+
+/** The full turn for one read: who it is about, the reply, the safety check and the session. */
+function outcome(line: string, recentMessages?: string[]) {
+  const read = detectCrisis(line, undefined, recentMessages ? { recentMessages } : undefined);
+  const guard = guardFromDetection(read);
+  const safety = performSafetyCheck(line, { userId: 'u-fold', personaId: 'ferni' });
+  const reply = guard.replacementResponse ?? '';
+  return {
+    subject: read.subject,
+    severity: read.severity,
+    replaced: guard.shouldBlock,
+    offers988: reply.includes('988'),
+    emergencyForThem: reply.includes(EMERGENCY_FOR_THEM),
+    safetyCheck: safety.escalation.level,
+    interrupt: safety.shouldInterrupt,
+    session: sessionSeverityOf(line),
+  };
+}
+
+// On a tie, the look-alike fold can lose the caller's own words (a word break, a hidden
+// softener) and find someone else's emergency. Main reads the caller; so does this reader.
+describe("the caller's own crisis is never swapped for someone else's on a tie", () => {
+  it.each([
+    ['trademark sign, then the dad line', `I want to die\u2122. ${DAD}`],
+    ['zero-width space, then a fullwidth dad line', `I want to die\u200bplease. ${fullwidth(DAD)}`],
+    ['superscript two, then a fullwidth mom line', `I want to die\u00b2. ${fullwidth(MOM)}`],
+    ['a vulgar fraction, then a fullwidth mom line', `kill myself\u00bd. ${fullwidth(MOM)}`],
+    [
+      'trademark sign, then a zero-width space inside the dad line',
+      `I want to die\u2122. my dad coll\u200bapsed and isn't breathing`,
+    ],
+    ['the dad line first', `${DAD}. I want to die\u2122.`],
+    ["fullwidth don't, then the dad line", `I ${fullwidth('don')}'t want to die. ${DAD}`],
+    [
+      'a zero-width space before a time, then a fullwidth dad line',
+      `kill myself\u200btonight. ${fullwidth(DAD)}`,
+    ],
+  ])('%s: the 988 reply and the safety check, first turn and mid-call', (_name, line) => {
+    for (const recent of [undefined, [OPENER]]) {
+      expect(outcome(line, recent)).toEqual({
+        subject: 'self',
+        severity: 0.9,
+        replaced: true,
+        offers988: true,
+        emergencyForThem: false,
+        safetyCheck: 'emergency',
+        interrupt: true,
+        session: 0.9,
+      });
+    }
+  });
+
+  it("someone else's emergency in look-alike letters alone still reads 911 for them", () => {
+    // Main reads nothing here; the look-alike fold's gain stays.
+    for (const recent of [undefined, [OPENER]]) {
+      expect(outcome(fullwidth(DAD), recent)).toEqual({
+        subject: 'third_party',
+        severity: 0.9,
+        replaced: true,
+        offers988: false,
+        emergencyForThem: true,
+        safetyCheck: 'none',
+        interrupt: false,
+        session: 0,
+      });
+    }
   });
 });
