@@ -74,6 +74,8 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         FerniAPIBaseURL: $(FERNI_API_BASE_URL)
+        # IOS_LOCAL_DUCK: duck Ferni on local speech onset (FerniVoice LocalDuckController).
+        FerniLocalDuck: $(IOS_LOCAL_DUCK)
         # CarPlay (voice-based conversation, iOS 26.4) is built and tested but not
         # registered until Apple grants com.apple.developer.carplay-voice-based-conversation.
         # To ship it: add that entitlement above and, under UIApplicationSceneManifest,
@@ -143,6 +145,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni
         TARGETED_DEVICE_FAMILY: "1,2"
         FERNI_API_BASE_URL: "https://app.ferni.ai"
+        IOS_LOCAL_DUCK: "NO"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         SWIFT_EMIT_LOC_STRINGS: YES

@@ -18,8 +18,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { heldAfter } from '../../utils/minor-care.js';
-// Each stores (or reaches out), so each asks MINOR_CARE first (minor-care.ts).
+// Each stores (or reaches out), so each asks turnWritesHeld first (MINOR_CARE, abuse disclosure).
 import {
   persistChapter,
   persistDream,
@@ -27,6 +26,7 @@ import {
   persistPerson,
   persistValue,
   schedulePatternOutreachAsync,
+  turnWritesHeld,
 } from './live-superhuman-writes.js';
 import type { ContextInjection, EmotionalState } from './types.js';
 import type { SessionServices } from '../../services/types.js';
@@ -528,9 +528,8 @@ Human friends forget promises. You don't.`,
           priority: 73,
         });
 
-        // Fire-and-forget: Save to commitment keeper (original path); MINOR_CARE=on holds it
-        if (!heldAfter(ctx.sessionId, ctx.userText))
-          void saveCommitmentAsync(ctx.userId, commitment.type!, commitment.phrase!, ctx.currentTopic);
+        // Fire-and-forget: Save to commitment keeper (original path); a held call stores nothing
+        void saveCommitmentAsync(ctx, commitment.type!, commitment.phrase!);
       }
     }
 
@@ -946,17 +945,17 @@ Your superpower: You know when to remind them of their light.
  * Uses recordTrustMoment, which indexes it to semantic memory
  */
 async function saveCommitmentAsync(
-  userId: string,
+  ctx: LiveSuperhumanContext,
   type: string,
-  content: string,
-  topic?: string
+  content: string
 ): Promise<void> {
   try {
+    if (await turnWritesHeld(ctx)) return; // MINOR_CARE, or an abuse disclosure on the call
     const { recordTrustMoment } = await import('../../services/trust-systems/unified-recorder.js');
-    recordTrustMoment(userId, {
+    recordTrustMoment(ctx.userId, {
       type: 'intention',
       content: `${type}: ${content}`,
-      context: topic,
+      context: ctx.currentTopic,
     });
   } catch {
     // Non-critical
@@ -970,8 +969,9 @@ async function loadCommitmentE2EAsync(
   ctx: LiveSuperhumanContext
 ): Promise<CommitmentE2EResult | null> {
   try {
-    if (heldAfter(ctx.sessionId, ctx.userText)) return null; // MINOR_CARE=on: it stores (minor-care.ts)
-    const { detectCommitmentE2E } = await import('../../services/superhuman/commitment-keeper-e2e.js');
+    if (await turnWritesHeld(ctx)) return null; // it stores (live-superhuman-writes.ts)
+    const { detectCommitmentE2E } =
+      await import('../../services/superhuman/commitment-keeper-e2e.js');
 
     return await detectCommitmentE2E({
       userId: ctx.userId,
@@ -995,7 +995,7 @@ async function loadCommitmentProgressAsync(
   ctx: LiveSuperhumanContext
 ): Promise<ProgressUpdateResult | null> {
   try {
-    if (heldAfter(ctx.sessionId, ctx.userText)) return null; // MINOR_CARE=on: completion memory
+    if (await turnWritesHeld(ctx)) return null; // completion memory and its celebration
     const { checkProgressE2E } = await import('../../services/superhuman/commitment-keeper-e2e.js');
 
     const result = await checkProgressE2E({
@@ -1045,8 +1045,7 @@ function detectPatternTrigger(
       pattern: 'Sunday evening anxiety',
       patternDescription: 'Pre-week stress pattern',
       tendency: 'feel anxious about the upcoming week on Sunday evenings',
-      suggestedOutreach:
-        "How's the week ahead looking? Want to map out Monday?",
+      suggestedOutreach: "How's the week ahead looking? Want to map out Monday?",
       actionable: 'Acknowledge the pattern, offer proactive support for Monday planning',
     };
   }

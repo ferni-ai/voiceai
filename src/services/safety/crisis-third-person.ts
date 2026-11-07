@@ -10,8 +10,12 @@
  * @module CrisisThirdPerson
  */
 
-/** Someone the caller talks about, by a pronoun or by who they are to someone. */
-const OTHER = String.raw`(?:he|she|they|(?:my|our|a|his|her|their) (?:best )?(?:friend|sister|brother|mom|mother|mum|dad|father|son|daughter|kid|wife|husband|partner|boyfriend|girlfriend|cousin|roommate|coworker|classmate|student|grandma|grandmother|grandpa|grandfather|aunt|uncle|niece|nephew|neighbou?r|stepmom|stepdad|parent|teen|teenager))`;
+/** Who someone is to the caller, one or more of them: "my brother", "my grandparents", "the twins". */
+const KIN = String.raw`(?:best )?(?:friend|sister|brother|mom|mother|mum|dad|father|son|daughter|kid|wife|husband|partner|boyfriend|girlfriend|cousin|roommate|coworker|classmate|student|grandma|grandmother|grandpa|grandfather|aunt|uncle|niece|nephew|neighbou?r|stepmom|stepdad|parent|teen|teenager|grandparent|grandkid|grandchild|baby|toddler|newborn|infant|child|twin)s?|children|grandchildren|babies|little one`;
+/** A family name said as a name, with no "my": "Grandpa fell down the stairs", "mom isn't breathing". */
+const FAMILY_NAME = String.raw`(?:grandpa|grandma|granny|grandad|nana|papa|mom|mum|dad|mama|dada)`;
+/** Someone the caller talks about, by a pronoun, by who they are to someone, or by a family name. */
+const OTHER = String.raw`(?:he|she|they|(?:my|our|a|his|her|their|the) (?:${KIN})|${FAMILY_NAME})`;
 const AUX = String.raw`(?:'s|'d|'ve|'re| is| are| was| were| has| have| had)?(?: been)?(?: got)?`;
 /** "my friend robin keeps saying", "she told me", "he's been saying that". */
 const SAYS = String.raw`${OTHER}(?: [a-z]+)?${AUX} (?:keeps? saying|kept saying|saying|says|said|told (?:me|us|her|him|them)|thinks|thought|feels|felt|believes|mentioned|wrote|texted(?: me)?|posted)(?: that)?`;

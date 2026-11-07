@@ -5,9 +5,9 @@
  * autonomy-policy.json next to this file (main's copy in CI, never the PR's).
  *
  * - crisis: a file under a crisis path (any author), or, in a loop PR, any changed file
- *   outside `loopAllowed` (default-deny, below), a changed line matching a crisis pattern
- *   or naming a screened crisis-module export (`symbolsFile`), a binary file, or an import
- *   of a crisis module. A loop PR is one whose head branch
+ *   outside `loopAllowed` (default-deny, below), a changed line matching a crisis pattern,
+ *   naming a screened crisis-module export (`symbolsFile`) or over 4000 characters (refused
+ *   unread), a binary file, or an import of a crisis module. A loop PR is one whose head branch
  *   starts with `loopBranchPrefix`: that's the anchor GitHub enforces, through a ruleset
  *   that lets the loop's app push only there (SETUP.md). Commit logins (`loopAuthors` as
  *   opener, author or committer, or no linked account) also count, but they come from
@@ -188,12 +188,64 @@ function hunkLines(diff: string): { file: string; line: string }[] {
   return lines;
 }
 
-const SPECIFIER = /(?:\bimport\b|\brequire\s*\(|\bfrom\b)[^'"`]*['"`]([^'"`]+)['"`]/g;
+/** A lookahead, so matches overlap: an `import('x')` inside a vi.* type argument is read too. */
+const SPECIFIER =
+  /(?=(?:\bimport\b|\brequire\s*\(|\bfrom\b|\b(?:mock|doMock|importActual|importMock)\s*(?:<[^\n]{0,256}?>\s*)?\()[^'"`]*['"`]([^'"`]+)['"`])/g;
+/** What loads a module in a whole file, where a vi/jest type argument can span lines (bounded). */
+const LOAD_FILE = String.raw`\bimport\b|\brequire\s*\(|\bfrom\b|\b(?:mock|doMock|importActual|importMock)\s*(?:<[\s\S]{0,256}?>\s*)?\(`;
+/**
+ * SPECIFIER for a whole file: its run from keyword to quote is bounded, so a crafted file
+ * can't make it quadratic. A quote farther on is read by specifiersOfFile instead.
+ */
+const SPECIFIER_FILE = new RegExp(`(?=(?:${LOAD_FILE})[^'"\`]{0,1024}['"\`]([^'"\`]+)['"\`])`, 'g');
+/** Each place a module load starts, with the keyword (and type argument) it starts with. */
+const LOAD_START = new RegExp(`(?=(${LOAD_FILE}))`, 'g');
+/**
+ * A vi or jest type-argument opener whose closing `>(` is not within 256 characters on its
+ * line, so the per-line SPECIFIER can't read what it loads. Refused on a changed line; a
+ * file's whole content is read across lines by specifiersOfFile instead.
+ */
+const OPENER =
+  /\b(?:vi|jest)\s*\.\s*(?:mock|doMock|importActual|importMock)\s*<(?![^\n]{0,256}?>\s*\()/;
+/** Longest changed line the screens read; a longer one is refused unread, so no line can stall them. */
+const MAX_LINE = 4000;
+/** Whether a changed line (with its diff sign) is too long to screen. */
+const tooLong = (line: string) => line.length - 1 > MAX_LINE;
 
-/** Every import, require or `from` specifier on a changed line of a unified diff. */
+/** The first index in ascending `sorted` whose value is at least `min`. */
+function firstAtLeast(sorted: number[], min: number): number {
+  let [lo, hi] = [0, sorted.length];
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (sorted[mid] < min) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+/**
+ * Each specifier a whole file loads, in linear time. SPECIFIER_FILE reads the quote up to
+ * 1024 characters after a keyword. A keyword whose first quote is farther is read the way
+ * an unbounded scan reads it, the string from that quote to the next, found by a binary
+ * search over the file's quotes rather than a scan from every keyword.
+ */
+function specifiersOfFile(text: string): string[] {
+  const near = [...text.matchAll(SPECIFIER_FILE)].map((m) => m[1]);
+  const quotes = [...text.matchAll(/['"`]/g)].map((m) => m.index);
+  const far = [...text.matchAll(LOAD_START)].flatMap((m) => {
+    const end = m.index + m[1].length;
+    const i = firstAtLeast(quotes, end);
+    const [open, close] = [quotes[i], quotes[i + 1]];
+    if (open === undefined || close === undefined || open - end <= 1024) return [];
+    return close > open + 1 ? [text.slice(open + 1, close)] : [];
+  });
+  return [...near, ...far];
+}
+
+/** Each specifier a changed line loads: import, require, from, vi.mock/doMock/importActual/importMock. */
 export function importsOf(diff: string): ImportRef[] {
   return hunkLines(diff).flatMap(({ file, line }) =>
-    [...line.matchAll(SPECIFIER)].map((m) => ({ file, specifier: m[1] }))
+    tooLong(line) ? [] : [...line.matchAll(SPECIFIER)].map((m) => ({ file, specifier: m[1] }))
   );
 }
 
@@ -233,7 +285,9 @@ function crisisScreen(policy: Policy) {
   const fallback = new RegExp(crisis.importFallbackPattern, 'i');
   return {
     line: (l: string) =>
-      crisisLine.some((re) => re.test(l)) || joined.some((re) => re.test(joinLine(l))),
+      tooLong(l) ||
+      crisisLine.some((re) => re.test(l)) ||
+      joined.some((re) => re.test(joinLine(l))),
     import: (ref: ImportRef) => {
       const targets = importTargets(ref);
       return targets ? targets.some((t) => inPaths(t, crisis.paths)) : fallback.test(ref.specifier);
@@ -259,7 +313,7 @@ export function loopOutsideAllowed(
     const text = Object.hasOwn(fileTexts, file) ? fileTexts[file] : undefined;
     if (text === undefined) return true;
     if (text.split('\n').some((l) => screen.line(`+${l}`))) return true;
-    return [...text.matchAll(SPECIFIER)].some((m) => screen.import({ file, specifier: m[1] }));
+    return specifiersOfFile(text).some((specifier) => screen.import({ file, specifier }));
   });
 }
 
@@ -279,7 +333,11 @@ export function classify(
     binaryFiles = [],
     imports = [],
     fileTexts = {},
-  }: Pick<PullInput, 'binaryFiles' | 'imports' | 'fileTexts'> = {}
+    loopOutside,
+  }: Pick<PullInput, 'binaryFiles' | 'imports' | 'fileTexts'> & {
+    /** loopOutsideAllowed's result for these files, when the caller already has it. */
+    loopOutside?: string[];
+  } = {}
 ): Lane[] {
   const files = [...changedFiles, ...binaryFiles];
   if (files.some(isOddPath)) return [...ALL_LANES];
@@ -291,8 +349,8 @@ export function classify(
   if (
     files.some((f) => inPaths(f, crisis.paths)) ||
     (isLoop && binaryFiles.length > 0) ||
-    (isLoop && loopOutsideAllowed(changedFiles, policy, fileTexts).length > 0) ||
-    (isLoop && changedLines.some(screen.line)) ||
+    (isLoop && (loopOutside ?? loopOutsideAllowed(changedFiles, policy, fileTexts)).length > 0) ||
+    (isLoop && changedLines.some((l) => screen.line(l) || OPENER.test(l))) ||
     (isLoop && imports.some(screen.import))
   ) {
     lanes.push('crisis');
@@ -375,7 +433,14 @@ function verifiedBy(pr: PullInput, logins: string[]): string | null {
  */
 export function evaluate(pr: PullInput, policy: Policy): Verdict {
   const contributors = contributorsOf(pr, policy);
-  const lanes = classify(pr.files, pr.changedLines, contributors, policy, pr);
+  // Read once: the whole-file screen is the costly part, and classify needs it too.
+  const outside = isLoopOf(contributors, policy)
+    ? loopOutsideAllowed(pr.files, policy, pr.fileTexts)
+    : [];
+  const lanes = classify(pr.files, pr.changedLines, contributors, policy, {
+    ...pr,
+    loopOutside: outside,
+  });
   if (lanes.length === 0) return { ok: true, reasons: ['no autonomy lane'] };
   const approvers = policy.approvers.crisis;
   const approver = approvedOnHead(pr, approvers);
@@ -387,9 +452,6 @@ export function evaluate(pr: PullInput, policy: Policy): Verdict {
     if (lane === 'crisis') {
       ok &&= approved !== null;
       reasons.push(`crisis lane: ${approved ?? needApproval}`);
-      const outside = isLoopOf(contributors, policy)
-        ? loopOutsideAllowed(pr.files, policy, pr.fileTexts)
-        : [];
       if (outside.length) reasons.push(`outside the loop's allowed paths: ${listOf(outside)}`);
     } else if (lane === 'evaluator') {
       const evaluator = verifiedBy(pr, policy.evaluatorAuthors);

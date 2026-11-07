@@ -27,6 +27,20 @@ public protocol VoiceRoom: AnyObject, Sendable {
     /// A reliable data message to the agent (e.g. user_interrupt).
     func send(_ data: Data) async throws
     func disconnect() async
+    /// Start measuring the caller's mic (after echo cancellation) for the
+    /// local duck. Rooms that never start it never measure anything.
+    func startMicLevel()
+    /// The caller's mic right now, in dBFS, or nil if it isn't measured.
+    var micLevelDB: Float? { get }
+    /// Ferni's playout volume, 0...1 of normal. Only the local duck sets it.
+    func setAgentGain(_ gain: Double)
+}
+
+/// Rooms without a mic level or a volume (test rooms) never duck.
+public extension VoiceRoom {
+    func startMicLevel() {}
+    var micLevelDB: Float? { nil }
+    func setAgentGain(_ gain: Double) {}
 }
 
 /// One chunk of a live caption stream.
