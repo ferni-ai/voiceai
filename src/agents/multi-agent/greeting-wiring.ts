@@ -80,3 +80,28 @@ export function wireDeferredHandlers(
       );
     });
 }
+
+/**
+ * ⚡ FAST-AGENT-JOIN for a handoff's arriving agent: wire its deferred handlers in the
+ * background as its arrival line starts, so the caller hears the line while they wire.
+ * BUG FIX: this was missing for handoff agents; without it, transcript/tools don't work.
+ * An arrival with no line (HANDOFF_ARRIVAL_ONCE) is wired all the same. Unlike
+ * wireDeferredHandlers it never waits for the line to end (the handoff path never has).
+ */
+export function wireHandoffAgent(agent: {
+  personaId: string;
+  wireHandlers?: () => Promise<void>;
+}): void {
+  if (!agent.wireHandlers) return;
+  agent
+    .wireHandlers()
+    .then(() => {
+      log.info({ personaId: agent.personaId }, '⚡ Deferred handlers wired after handoff greeting');
+    })
+    .catch((err: unknown) => {
+      log.error(
+        { error: String(err), personaId: agent.personaId },
+        '🚨 CRITICAL: Deferred handler wiring FAILED after handoff! Tools may not work.'
+      );
+    });
+}
