@@ -300,6 +300,8 @@ describe('a late crisis, after its persona left the hop', () => {
   /** The start of it, which the unfinished-turn hold waits on (CRISIS_READ_JOINED_TURN). */
   const FRAGMENT = 'Can I cut my';
   const BENIGN = 'Can I cut my hair shorter?';
+  /** Said to a persona that arrived while the read was still out; held with it. */
+  const RISKY_AGAIN = 'I still want to hide the marks before work.';
   const LIVE = {
     CRISIS_GUARD_MODE: 'live',
     CRISIS_CLASSIFIER_MODE: 'live',
@@ -312,6 +314,8 @@ describe('a late crisis, after its persona left the hop', () => {
     readonly userData = { services: { sessionId: `arrival-once-late-${++sessions}` } };
     readonly history = llm.ChatContext.empty();
     readonly unfinishedTurnHoldMs = unfinishedTurnHoldMs;
+    /** What the gate said to each reply request, read to the end. */
+    readonly replies: Array<Promise<string>> = [];
 
     /** LiveKit commits the caller's turn. */
     commit(text: string): void {
@@ -324,15 +328,37 @@ describe('a late crisis, after its persona left the hop', () => {
       const ctx = llm.ChatContext.empty();
       ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
       ctx.addMessage({ role: 'user', content: latest });
-      const model = async () =>
+      const model = async (request: llm.ChatContext) =>
         new ReadableStream<unknown>({
           start(c) {
-            c.enqueue('Okay.');
+            // A guided crisis reply says the whole guided request back, so a crisis line is
+            // compared flag on vs flag off byte for byte; any other reply is 'Okay.'.
+            const said = JSON.stringify(
+              request.items.map((i) => (i as { content?: unknown }).content)
+            );
+            c.enqueue(
+              /\[(CRITICAL - USER SAFETY|SAFETY - )/.test(said) ? `CRISIS: ${said}` : 'Okay.'
+            );
             c.close();
           },
         });
-      void gatedReply(ctx, this, model as never, new OpenerGate(3), { env, generate });
+      this.replies.push(
+        spoken(gatedReply(ctx, this, model as never, new OpenerGate(3), { env, generate }))
+      );
     }
+  }
+
+  /** The text a reply stream speaks, read to the end. */
+  async function spoken(reply: Promise<ReadableStream<unknown> | null>): Promise<string> {
+    const stream = await reply;
+    let text = '';
+    for await (const chunk of stream ?? []) {
+      text +=
+        typeof chunk === 'string'
+          ? chunk
+          : ((chunk as { delta?: { content?: string } }).delta?.content ?? '');
+    }
+    return text;
   }
 
   /** None at once, except the risky line: its crisis verdict waits for land(). */
@@ -373,14 +399,16 @@ describe('a late crisis, after its persona left the hop', () => {
   /**
    * One call: the crisis read starts on the session on the line before hop `start`, and
    * its verdict lands before hop `lands`. Checks that the read was out, with nothing
-   * pending or decided on that session, when hop `start` went.
+   * pending or decided on that session, when hop `start` went. With `askInWindow`, the
+   * caller says RISKY_AGAIN to the persona on the line just before the verdict lands.
+   * `replies` is everything the gate said on the call.
    */
   async function lateCrisisCall(
     id: string,
     flag: string,
     hops: string[],
-    plan: { path: Path; start: number; lands: number }
-  ): Promise<Call> {
+    plan: { path: Path; start: number; lands: number; askInWindow?: boolean }
+  ): Promise<Call & { replies: string[] }> {
     resetCrisisClassifierCache();
     resetCrisisCallRisk();
     resetCallRiskSnapshots();
@@ -388,6 +416,7 @@ describe('a late crisis, after its persona left the hop', () => {
     vi.stubEnv('HANDOFF_ARRIVAL_ONCE', flag);
     const { generate, land } = heldClassifier();
     let reading: LiveSession | null = null;
+    const made: LiveSession[] = [];
     const call = await runCall(
       `${id}-${flag}`,
       hops,
@@ -401,14 +430,21 @@ describe('a late crisis, after its persona left the hop', () => {
         }
         if (i === plan.lands && reading) {
           const s: LiveSession = reading;
+          if (plan.askInWindow)
+            (spawned[spawned.length - 1].session as LiveSession).ask(RISKY_AGAIN, LIVE, generate);
           land();
           await vi.waitFor(() => expect(crisisDecidedOn(s)).toBe(true));
         }
       },
-      () => new LiveSession()
+      () => {
+        const s = new LiveSession();
+        made.push(s);
+        return s;
+      }
     );
     await call.end();
-    return call;
+    const replies = await Promise.all(made.flatMap((s) => s.replies));
+    return { ...call, replies };
   }
 
   it('the verdict transcript (W1): ferni → Maya → Jordan → Maya → Jordan → Maya → ferni → Maya, every line as flag off', async () => {
@@ -432,6 +468,42 @@ describe('a late crisis, after its persona left the hop', () => {
     expect(on.lines).toEqual(off.lines);
     expect(on.arrivals.map((a) => a.said)).toEqual(off.arrivals.map((a) => a.said));
   });
+
+  for (const path of ['W1', 'W2'] as const) {
+    it(`${path}, the residual window: before the crisis is known a return is a return as on any call; crisis lines never change`, async () => {
+      let windowLinesThatDiffer = 0;
+      for (const start of SIX_HOPS.keys()) {
+        for (const lands of [start + 1, start + 2].filter((h) => h < SIX_HOPS.length)) {
+          const plan = { path, start, lands, askInWindow: true };
+          const id = `arrival-once-window-${path}-${start}-${lands}`;
+          // eslint-disable-next-line no-await-in-loop -- one call after another
+          const on = await lateCrisisCall(id, 'on', SIX_HOPS, plan);
+          // eslint-disable-next-line no-await-in-loop -- one call after another
+          const off = await lateCrisisCall(id, 'off', SIX_HOPS, plan);
+          vi.stubEnv('HANDOFF_ARRIVAL_ONCE', 'on');
+          // eslint-disable-next-line no-await-in-loop -- one call after another
+          const anyCall = await runCall(`${id}-no-crisis`, SIX_HOPS);
+          // eslint-disable-next-line no-await-in-loop -- one call after another
+          await anyCall.end();
+          const label = `${path}, read out before hop ${start}, lands before hop ${lands}`;
+          // Crisis lines: everything the gate said, the line said in the window included.
+          expect(on.replies, label).toEqual(off.replies);
+          expect(
+            on.replies.some((r) => r.startsWith('CRISIS: ')),
+            `${label}: a crisis line was said`
+          ).toBe(true);
+          // Before the crisis is known: the arrival lines of a call with no crisis at all.
+          expect(on.lines.slice(0, lands), label).toEqual(anyCall.lines.slice(0, lands));
+          // Once it is known: today's lines.
+          expect(on.lines.slice(lands), label).toEqual(off.lines.slice(lands));
+          windowLinesThatDiffer += on.lines
+            .slice(start, lands)
+            .filter((line, k) => line !== off.lines[start + k]).length;
+        }
+      }
+      expect(windowLinesThatDiffer).toBeGreaterThan(0); // the window is real, not assumed away
+    });
+  }
 
   for (const path of ['W1', 'W2'] as const) {
     it(`${path}: whichever hop the read goes out on, every line after the verdict lands is as flag off`, async () => {
