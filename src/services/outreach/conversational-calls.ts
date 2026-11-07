@@ -17,7 +17,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { ownerRefusal } from '../messaging/consent-reach.js';
 import { heldSender } from './checkin-replies.js';
-import { isCallHoursGuardOn } from './call-hours-guard.js';
+import { isCallHoursGuardOn, type CallHoursInput } from './call-hours-guard.js';
 import { holdForCallHours } from './deferred-calls.js';
 import { placeLiveAgentCall, ringsWithLiveAgent } from './live-agent-call.js';
 import { carryOwnCallMe, heldCall } from './held-call.js';
@@ -46,6 +46,7 @@ export interface ProactiveCallRequest {
   enableConversation?: boolean; // Allow two-way talk?
   voicemailFallback?: boolean; // Leave message if no answer?
   askedFor?: boolean; // they asked for or set it: a pause doesn't stop it (outreach-pause.ts)
+  toContact?: boolean; // the callee is someone else the member calls: the callee's calling hours
 }
 
 export interface CallResult {
@@ -153,6 +154,23 @@ function getPersonaVoiceSettings(personaId: string): VoiceSettings {
 
 // --- CALL SCHEDULING ---
 
+/**
+ * Whose calling hours apply. A call to the member, or to a contact's number that is the member's
+ * own verified one, keeps their time zone and quiet hours. A contact's number goes by its area
+ * code, the member's zone only as the fallback, as on-behalf calls do
+ * (on-behalf-call-orchestrator.ts): never the member's hours on someone else.
+ */
+async function callHoursRecipient(
+  userId: string,
+  { phone, toContact }: { phone: string; toContact?: boolean }
+): Promise<CallHoursInput> {
+  const member = { recipientPhone: phone, recipientUserId: userId };
+  if (!toContact) return member;
+  const { isOwnVerifiedPhone } = await import('./guarded-text.js');
+  const own = await isOwnVerifiedPhone(userId, phone).catch(() => false);
+  return own ? member : { recipientPhone: phone, sponsorUserId: userId };
+}
+
 /** Schedule a proactive outreach call */
 export async function scheduleProactiveCall(request: ProactiveCallRequest): Promise<CallResult> {
   const {
@@ -182,11 +200,12 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     const refused = await ownerRefusal(userId, normalizedPhone, 'call');
     if (refused) return { success: false, error: `Not calling: ${refused}` };
 
-    // Outside the user's calling hours (CALL_HOURS_GUARD=on) the call waits for them.
-    const held = { recipientPhone: normalizedPhone, recipientUserId: userId };
+    // Outside the callee's calling hours (CALL_HOURS_GUARD=on) the call waits for them.
     const call = { kind: 'proactive' as const, request: deferredCallRequest(request) };
     const due = requestedFor <= new Date();
-    const deferral = due && (await holdForCallHours(userId, call, held));
+    const callee = { phone: normalizedPhone, toContact: request.toContact };
+    const deferral =
+      due && (await holdForCallHours(userId, call, await callHoursRecipient(userId, callee)));
     if (deferral) return { success: true, callId: deferral.id, status: 'scheduled' };
     // The guard covers quiet hours, in the user's own time zone. callQuietHours reads
     // the clock, not scheduledFor, so a quiet call is stored for later, never re-checked.
@@ -528,6 +547,7 @@ export interface OutboundCallContext {
   // Simple mode (backward compatible)
   userId?: string;
   askedFor?: boolean; // they asked for or scheduled it (ProactiveCallRequest.askedFor)
+  toContact?: boolean; // the callee is someone else the member calls (ProactiveCallRequest.toContact)
   phoneNumber?: string;
   message?: string;
   ssml?: string;
@@ -721,6 +741,7 @@ export async function makeConversationalCall(context: OutboundCallContext): Prom
     reason: context.reason || context.trigger?.reason || 'outbound_call',
     maxDuration: context.maxDuration || context.approach?.maxDuration,
     askedFor: context.askedFor,
+    toContact: context.toContact,
   });
 }
 

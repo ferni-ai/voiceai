@@ -339,7 +339,8 @@ async function executeOutreach(
       }
 
       const callContext: OutboundCallContext = {
-        userId, // the owner: held, paused and calling hours are theirs, not the contact's
+        userId, // the owner: holds, grants and records are theirs, not the contact's
+        toContact: true, // but the calling hours are the contact's (their number's time zone)
         trigger: {
           id: outreachId,
           type: 'thinking_of_you',

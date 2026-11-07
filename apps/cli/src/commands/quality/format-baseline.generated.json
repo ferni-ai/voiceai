@@ -638,7 +638,6 @@
   "src/tools/domains/commitment-tracking/index.ts",
   "src/tools/domains/communication/communication-tools.ts",
   "src/tools/domains/communication/contact-relationship-tools.ts",
-  "src/tools/domains/communication/outreach/unified-outreach.ts",
   "src/tools/domains/communication/superhuman-tools/types.ts",
   "src/tools/domains/contemplative-practice/__tests__/contemplative-practice.test.ts",
   "src/tools/domains/contemplative-practice/index.ts",
