@@ -67,8 +67,6 @@ import {
   callRiskBeforeTurn,
   loneImminentGoodbye,
 } from '../../services/safety/crisis-lone-imminent.js';
-import { minorHarmScript } from '../../services/safety/minor-abuse-disclosure.js'; // MINOR_ABUSE_DISCLOSURE
-import { minorCrisisScript } from '../../utils/minor-crisis-care.js'; // MINOR_CRISIS_CARE
 import { createLogger } from '../../utils/safe-logger.js';
 import { mainOf, shadowGrade } from '../../services/safety/index.js';
 import {
@@ -90,7 +88,7 @@ import { noteCrisisHold } from '../safety/crisis-hold-timing.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
-import { callerWords, callTranscript, sessionScope } from './crisis-gate-words.js';
+import { callerWords, callTranscript, crisisScriptFor, sessionScope } from './crisis-gate-words.js';
 import { withHeldRead } from './crisis-read-joined-turn.js';
 import { getDeliberator } from './deliberation.js';
 import { brightOpenerInvited } from './ferni-playful.js';
@@ -427,11 +425,7 @@ export async function gatedReply(
   signalGateDecisions(session, gate);
   if (gate?.escalation) noteCrisisVerdictPending(session, gate.escalation);
   if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);
-  // MINOR_CRISIS_CARE=on: a caller who sounds under 18 also hears the youth line; the script stays.
-  // MINOR_ABUSE_DISCLOSURE=on: one who told of harm this turn hears the child-safety lines last.
-  const heard = callerWords(chatCtx);
-  const script = (text: string): string =>
-    minorHarmScript(minorCrisisScript(text, risk, heard.latest, chatCtx.items), risk, heard, env);
+  const script = (text: string): string => crisisScriptFor(text, chatCtx, risk, env);
   if (gate?.decision.action === 'replace') {
     // A turn with no moves, so the script isn't counted as the last reply's (move-log.ts).
     noteTurn(session, callerWords(chatCtx).latest, undefined);

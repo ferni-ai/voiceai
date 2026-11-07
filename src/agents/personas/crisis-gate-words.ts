@@ -1,6 +1,6 @@
 /**
  * What the reply gate reads from the request: the caller's words, the call's
- * lines, and the call's session id (crisis-gate.ts).
+ * lines, and the call's session id (crisis-gate.ts); and the crisis script the caller hears.
  *
  * @module CrisisGateWords
  */
@@ -9,6 +9,8 @@ import type { llm } from '@livekit/agents';
 import type { AdjudicatorLine } from '../../services/safety/crisis-adjudicator.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { isAcknowledgementOnly } from '../voice-agent/agent-reply-recorder.js';
+import { minorHarmScript } from '../../services/safety/minor-abuse-disclosure.js'; // MINOR_ABUSE_DISCLOSURE
+import { minorCrisisScript } from '../../utils/minor-crisis-care.js'; // MINOR_CRISIS_CARE
 
 interface MessageView {
   type?: string;
@@ -68,5 +70,25 @@ export function sessionScope(userData: unknown): string | undefined {
   return (
     (userData as { services?: { sessionId?: string } } | undefined)?.services?.sessionId ||
     undefined
+  );
+}
+
+/**
+ * The crisis script as the caller hears it (gatedReply).
+ * MINOR_CRISIS_CARE=on: a caller who sounds under 18 also hears the youth line; the script stays.
+ * MINOR_ABUSE_DISCLOSURE=on: one who told of harm this turn hears the child-safety lines last.
+ */
+export function crisisScriptFor(
+  text: string,
+  chatCtx: llm.ChatContext,
+  risk: string | undefined,
+  env: Record<string, string | undefined>
+): string {
+  const heard = callerWords(chatCtx);
+  return minorHarmScript(
+    minorCrisisScript(text, risk, heard.latest, chatCtx.items),
+    risk,
+    heard,
+    env
   );
 }

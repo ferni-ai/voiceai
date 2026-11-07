@@ -16,9 +16,8 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { generateTwinResponse, hasTwinProfile } from '../services/custom-agent/twin-reply.js';
-import { withOwnTwin, type TwinRequestBody } from '../services/custom-agent/twin-request.js';
 import { handleJournalTranscribe } from './journal-transcribe-route.js';
+import { handleJournalTwinResponse } from './journal-twin-route.js';
 import {
   generatePrompts,
   getBestPrompt,
@@ -486,33 +485,7 @@ export async function handleJournalRoutes(
 
     // POST /api/journal/twin-response - Generate response from Digital Twin
     if (method === 'POST' && pathname === '/api/journal/twin-response') {
-      const auth = await requireAuth(req, res); // SECURITY: not an open LLM endpoint
-      if (!auth) return true;
-      // The Chronicle sends no profile: it is built from the caller's own twin
-      const body = await withOwnTwin(auth.userId, await parseBody<TwinRequestBody>(req));
-
-      if (!body.userMessage || !hasTwinProfile(body.profile)) {
-        sendJson(res, 400, { error: body.userMessage ? 'Missing profile' : 'Missing userMessage' });
-        return true;
-      }
-      try {
-        const response = await generateTwinResponse({
-          userMessage: body.userMessage,
-          profile: body.profile,
-          relevantJournals: body.relevantJournals ?? [],
-          keyThemes: body.keyThemes ?? [],
-        });
-        if (!response) {
-          sendJson(res, 503, { error: 'Twin response unavailable' });
-          return true;
-        }
-        sendJson(res, 200, { response });
-        return true;
-      } catch (error) {
-        log.error({ error: String(error) }, 'Twin response generation failed');
-        sendJson(res, 500, { error: 'Failed to generate response' });
-        return true;
-      }
+      return await handleJournalTwinResponse(req, res);
     }
 
     // Not handled
