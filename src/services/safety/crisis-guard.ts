@@ -24,6 +24,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { ABUSE_INDICATOR, abuseDisclosure } from './abuse-disclosure.js';
 import { endingFloor } from './crisis-ending-floor.js';
 import { EMERGENCY_FOR_THEM, getCrisisResponse, IN_DANGER_NOW } from './crisis-guard-replies.js';
 import { meansFormsOf, meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
@@ -214,6 +215,21 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
     if (forms === 'all') add(`means_form:${means.form}`, 0);
     add('explicit_crisis_language', SEVERITY.explicit);
     add('imminent_danger', SEVERITY.explicit);
+  }
+
+  // Someone hurting the caller (K1e), read by abuse-disclosure.ts, the one abuse reader: a
+  // crisis with the abuse guidance (abuseGuidance: are you safe, 911 if in danger now, the line
+  // that fits). Imminent, 911 first, when someone violent is there now. 988 stays beside it:
+  // only the turn pipeline knows whether the whole call is abuse-only (ABUSE_DISCLOSURE_PATTERNS).
+  const abuse = abuseDisclosure(text);
+  if (abuse) {
+    hardSelf = true;
+    add(ABUSE_INDICATOR, SEVERITY.crisis);
+    add(`${ABUSE_INDICATOR}_${abuse.who}`, 0);
+    // "_self_harm" is how abuseGuidance keeps 988; the turn pipeline (withAbuseDisclosure)
+    // replaces all three with its call-wide read.
+    add(`${ABUSE_INDICATOR}_self_harm`, 0);
+    if (abuse.imminent) add('imminent_danger', SEVERITY.explicit);
   }
 
   // A worry about someone else outranks the caller's own words only when those are negated,
