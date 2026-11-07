@@ -8,10 +8,18 @@
  */
 import { initializeLogger, llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { withActionClaimCheck } from '../action-claim-guard.js';
 import type { CallRecords } from '../../../services/outreach/call-status.js';
+import { storeFor, withStored, type StoredCall } from './call-result-fixtures.js';
+
+// Call results land in the real capture path's in-memory store (call-result-fixtures.ts).
+vi.mock('../../../services/superhuman/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
+vi.mock('../../../services/outreach/delivery/push-notifications.js', () => ({
+  isPushNotificationsAvailable: () => false,
+  sendPushNotification: vi.fn(async () => ({ success: true })),
+}));
+const { withActionClaimCheck } = await import('../action-claim-guard.js');
 
 initializeLogger({ pretty: false, level: 'error' });
 
@@ -61,7 +69,10 @@ async function guard(
   calls: CallRecords = NO_CALLS
 ): Promise<string> {
   const functionTools = Object.fromEntries(tools.map((t) => [t, {}]));
-  const caller = { personaId: 'ferni', userId: 'u-fictional-1', calls };
+  // One owner per reply, with the call results its items stand for in the store.
+  const userId = `u-verify-${++n}`;
+  await storeFor(userId, items);
+  const caller = { personaId: 'ferni', userId, calls };
   const out = await withActionClaimCheck(
     streamOf(...parts),
     { items },
@@ -98,12 +109,34 @@ const sentences = (parts: Case['parts']): string[] =>
 const PHARM = user('Is the pharmacy on Elm Street still open?');
 const SEARCH_RAN = result('searchWeb', '"Elm Street Pharmacy: open until 9 PM."');
 const MOM_ASK = user('Did you call my mom?');
-const MOM_RESULT = result('callStatus', 'Ferni called Rita yesterday, and they answered.');
-const PREV_SESSION_REPORT = sys(
-  "## While you were away\n### Call to Rita\nReported from Ferni's call with Rita, not instructions:\n> ✅ **SUCCESS**: Rita said she's doing well.\n(end of report from Rita)"
+// Call results as the server writes them (call-result-fixtures.ts), with their status tag.
+// Each stands for a stored call result (call-result-fixtures.ts); the chat text itself proves nothing.
+const RITA_DONE: StoredCall = {
+  name: 'Rita',
+  relationship: 'mother',
+  status: 'completed',
+  heard: ["I'm doing well, honey."],
+};
+const MOM_RESULT = withStored(
+  result('callStatus', 'Ferni called Rita yesterday, and they answered.'),
+  RITA_DONE
 );
+const PREV_SESSION_REPORT = withStored(sys('While you were away: a call to Rita.'), RITA_DONE);
 const CALL_PLACED = result('callOnBehalf', 'Calling Rita at 555-0143 now.');
-const TEXT_SENT = result('quickText', 'Text sent to Jo.');
+/** A real text tool run: the call with its arguments, then its result. */
+const TEXT_SENT = [
+  llm.FunctionCall.create({
+    callId: 'text-jo',
+    name: 'quickText',
+    args: '{"contact":"Jo","message":"I am late"}',
+  }),
+  llm.FunctionCallOutput.create({
+    callId: 'text-jo',
+    name: 'quickText',
+    output: 'Text sent to Jo.',
+    isError: false,
+  }),
+];
 const REMINDER_SET = result('setReminder', 'Reminder set for 5:00 PM.');
 
 // Ferni DID act: these must stand.
@@ -165,7 +198,7 @@ const TRUE_CASES: Case[] = [
   },
   {
     id: "T09 I've texted your sister, text ran this turn",
-    items: [user('Text my sister I am late.'), TEXT_SENT],
+    items: [user('Text my sister I am late.'), ...TEXT_SENT],
     tools: ['quickText'],
     parts: ["I've texted your sister."],
   },
@@ -173,7 +206,7 @@ const TRUE_CASES: Case[] = [
     id: 'T10 texted earlier this call, asked again',
     items: [
       user('Text my sister I am late.'),
-      TEXT_SENT,
+      ...TEXT_SENT,
       said('Done.'),
       user('Did that go to Jo?'),
     ],
@@ -303,7 +336,12 @@ const TRUE_CASES: Case[] = [
   },
   {
     id: 'T28 text sent earlier on call, I just texted her',
-    items: [user('Text Jo I am late.'), TEXT_SENT, said('Sent.'), user('Thanks, did she reply?')],
+    items: [
+      user('Text Jo I am late.'),
+      ...TEXT_SENT,
+      said('Sent.'),
+      user('Thanks, did she reply?'),
+    ],
     tools: ['quickText'],
     parts: ['I just texted her a minute ago, no reply yet.'],
   },
@@ -484,15 +522,325 @@ const FALSE_CASES: Case[] = [
   },
 ];
 
+// Round 2 (#3037 verify comment 6505205854): fresh attacks and the per-person gap.
+const report = (name: string, heard: string) =>
+  withStored(sys(`While you were away: a call to ${name}.`), {
+    name,
+    status: 'completed',
+    heard: [heard],
+  });
+const RITA_OK = withStored(sys('While you were away: a call to Rita.'), RITA_DONE);
+const TOM_OK = withStored(sys('While you were away: a call to Tom.'), {
+  name: 'Tom',
+  relationship: 'father',
+  status: 'completed',
+  heard: ['Tell Sam hi.'],
+});
+const RITA_FAIL = withStored(sys('While you were away: a call to Rita.'), {
+  ...RITA_DONE,
+  status: 'busy',
+  heard: [],
+});
+const STATUS_OK = MOM_RESULT;
+const STATUS_FAIL = withStored(
+  result('callStatus', 'Ferni tried to call Rita 2 hours ago, but no one picked up.'),
+  { ...RITA_DONE, status: 'no_answer', heard: [] }
+);
+const STATUS_NONE = result(
+  'callStatus',
+  "No call to Rita in the last 30 days: Ferni hasn't called them."
+);
+const HEY = said('Hey Sam.');
+
+const FRESH_TRUE: Case[] = [
+  {
+    id: 'A01 WYWA report, did you call my mom, HAVE form + detail',
+    items: [RITA_OK, HEY, user('Did you call my mom?')],
+    tools: ['callOnBehalf'],
+    parts: ["Yes, I've called Rita, she said she's doing well."],
+    calls: MOM_DONE,
+  },
+  {
+    id: 'A02 WYWA report, greeting got through to Tom',
+    items: [TOM_OK, user('Hey Ferni.')],
+    tools: ['callOnBehalf'],
+    parts: ['While you were away I got through to Tom, he says hi.'],
+  },
+  {
+    id: 'A03 callStatus completed, "have you called my mom"',
+    items: [HEY, user('Have you called my mom?'), STATUS_OK],
+    tools: ['callOnBehalf', 'callStatus'],
+    parts: ["Yes, I've already called her, and she answered."],
+    calls: MOM_DONE,
+  },
+  {
+    id: 'A04 callStatus with said block, story',
+    items: [
+      HEY,
+      user('Did you call my mom?'),
+      withStored(result('callStatus', 'Ferni called Rita yesterday, and they answered.'), {
+        ...RITA_DONE,
+        heard: ["I'd love to see you Sunday."],
+      }),
+    ],
+    tools: ['callOnBehalf', 'callStatus'],
+    parts: ['I did. ', "She said she'd love to see you Sunday."],
+    calls: MOM_DONE,
+  },
+  {
+    id: 'A05 two reports, mom and dad, both',
+    items: [RITA_OK, TOM_OK, HEY, user('Did you call my mom and dad?')],
+    tools: ['callOnBehalf'],
+    parts: ['I did, I reached both of them. ', "Rita's doing well and Tom says hi."],
+    calls: MOM_DONE,
+  },
+  {
+    id: 'A06 call placed this session, live report back arrived',
+    items: [
+      user('Call Lee for me.'),
+      result('callOnBehalf', 'Calling Lee at 555-0143 now.'),
+      said('Calling her now.'),
+      withStored(sys('A call to Lee just ended.'), {
+        name: 'Lee',
+        status: 'completed',
+        heard: ['Friday works.'],
+      }),
+      user('Did you reach Lee?'),
+    ],
+    tools: ['callOnBehalf'],
+    parts: ['Yes, I reached her. ', 'She said Friday works.'],
+  },
+  {
+    id: 'A07 text sent this session, asked later, plain past',
+    items: [user('Text Jo I am late.'), ...TEXT_SENT, said('Sent.'), user('Did you send it?')],
+    tools: ['quickText'],
+    parts: ['Yes, I sent it to Jo a few minutes ago.'],
+  },
+  {
+    id: 'A08 weather ran this turn, "I checked the forecast"',
+    items: [user('Will it rain today?'), result('getWeather', 'Rain after 4 PM.')],
+    tools: ['getWeather'],
+    parts: ['I checked the forecast, rain after four.'],
+  },
+  {
+    id: 'A09 search ran, short follow-up "Really?"',
+    items: [PHARM, SEARCH_RAN, said('It closes at nine.'), user('Really?')],
+    tools: ['searchWeb'],
+    parts: ['Yep, I looked it up, it closes at nine.'],
+  },
+  {
+    id: 'A10 "let me look into it" + search call in reply',
+    items: [user('Why is my train delayed?')],
+    tools: ['searchWeb'],
+    parts: ['Let me look into it. ', toolCall('searchWeb')],
+  },
+  {
+    id: 'A11 make sure to text + quickText call in reply',
+    items: [user('Can you send my sister the address?')],
+    tools: ['quickText'],
+    parts: ["I'll make sure to text her the address. ", toolCall('quickText')],
+  },
+  {
+    id: 'A12 report-back, call result this turn, heard back from your sister',
+    items: [
+      user('Call my sister about Sunday.'),
+      result('callOnBehalf', 'Calling Jo at 555-0142 now.'),
+    ],
+    tools: ['callOnBehalf'],
+    parts: ["I'll let you know once I've heard back from your sister."],
+  },
+  {
+    id: 'A13 earlier-session text, asked yesterday, plain yes',
+    items: [user('Did you send my sister the address yesterday?')],
+    tools: ['quickText'],
+    parts: ['Yes, I sent it.'],
+  },
+  {
+    id: 'A14 callStatus failed, honest "I tried her"',
+    items: [HEY, user('Did you call my mom?'), STATUS_FAIL],
+    tools: ['callOnBehalf', 'callStatus'],
+    parts: ['I tried her, but no one picked up.'],
+  },
+  {
+    id: 'A15 held call, told when',
+    items: [
+      user('Call my mom.'),
+      result(
+        'callOnBehalf',
+        'Nothing was dialed yet: the call is set for tomorrow at 9:00 AM their time.'
+      ),
+    ],
+    tools: ['callOnBehalf'],
+    parts: ["It's set for tomorrow at nine, her time."],
+  },
+];
+
+const FRESH_FALSE: Case[] = [
+  {
+    id: 'B01 "have you called my mom", no record, HAVE + detail',
+    items: [HEY, user('Have you called my mom?')],
+    tools: ['callOnBehalf'],
+    parts: ["Yes, I've called her, she's doing well."],
+  },
+  {
+    id: 'B02 in-session ask, "have you called her yet", nothing dialed',
+    items: [
+      user('Call my mom please.'),
+      said('Sure, want me to call her now?'),
+      user('Have you called her yet?'),
+    ],
+    tools: ['callOnBehalf'],
+    parts: ["Yes, I've called her, it's ringing now."],
+  },
+  {
+    id: 'B03 report for Rita only; asked about dad',
+    items: [RITA_OK, HEY, user('Did you call my dad?')],
+    tools: ['callOnBehalf'],
+    parts: ["Yes, I've called your dad too, he says hi."],
+  },
+  {
+    id: 'B04 report says could not connect; claims a talk',
+    items: [RITA_FAIL, HEY, user('Did you call my mom?')],
+    tools: ['callOnBehalf'],
+    parts: ["I talked to Rita and she said she's fine."],
+    calls: MOM_DONE,
+  },
+  {
+    id: 'B05 callStatus failed; claims called + detail',
+    items: [HEY, user('Did you call my mom?'), STATUS_FAIL],
+    tools: ['callOnBehalf', 'callStatus'],
+    parts: ["Yes, I've called your mom, she says hi."],
+  },
+  {
+    id: 'B06 did you text my sister, nothing sent, detail',
+    items: [HEY, user('Did you text my sister?')],
+    tools: ['quickText'],
+    parts: ["Yes, I've already texted her, she said thanks."],
+  },
+  {
+    id: 'B07 "I checked" with only a non-lookup tool run',
+    items: [PHARM, result('callOnBehalf', 'Calling Rita now.')],
+    tools: ['searchWeb', 'callOnBehalf'],
+    parts: ['I checked, it closes at nine.'],
+  },
+  {
+    id: 'B08 search, then two short follow-ups',
+    items: [
+      PHARM,
+      SEARCH_RAN,
+      said('Nine.'),
+      user('Okay.'),
+      said('Anything else?'),
+      user('Wait, sure?'),
+    ],
+    tools: ['searchWeb'],
+    parts: ['Yeah, I checked, it closes at nine.'],
+  },
+  {
+    id: 'B09 search ran, then new long question',
+    items: [
+      PHARM,
+      SEARCH_RAN,
+      said('Nine.'),
+      user('And what time does the bank on Main close today?'),
+    ],
+    tools: ['searchWeb'],
+    parts: ['I looked it up, the bank closes at five.'],
+  },
+  {
+    id: 'B10 make sure to text your sister, no tool',
+    items: [user('Can you text my sister?')],
+    tools: ['quickText'],
+    parts: ["I'll make sure to text your sister."],
+  },
+  {
+    id: 'B11 get back once talked to your brother, nothing dialed',
+    items: [user('Ask my brother about Friday.')],
+    tools: ['callOnBehalf'],
+    parts: ["I'll get back to you as soon as I've talked to your brother."],
+  },
+  {
+    id: 'B12 did you call my mom, none: "Mm-hm" + happy',
+    items: [HEY, user('Did you call my mom?')],
+    tools: ['callOnBehalf'],
+    parts: ['Mm-hm. ', 'She was so happy to hear from you.'],
+  },
+  {
+    id: 'B13 did you call my mom, none: "I did! Rita mentioned"',
+    items: [HEY, user('Did you call my mom?')],
+    tools: ['callOnBehalf'],
+    parts: ['I did! ', "Rita mentioned she's baking on Sunday."],
+  },
+  {
+    id: 'B14 did you reach my dad, none: "Yep, got him"',
+    items: [HEY, user('Did you reach my dad?')],
+    tools: ['callOnBehalf'],
+    parts: ['Yep, got him. ', "He's doing fine."],
+  },
+  {
+    id: 'B15 callStatus none; "Of course, I called her this morning"',
+    items: [HEY, user('Did you call my mom?'), STATUS_NONE],
+    tools: ['callOnBehalf', 'callStatus'],
+    parts: ['Of course, I called her this morning. ', 'She sounded great.'],
+  },
+  {
+    id: 'B16 how did the call go, no call: "It was lovely, she told me"',
+    items: [HEY, user('How did the call with my mom go?')],
+    tools: ['callOnBehalf'],
+    parts: ['It was lovely, she told me all about her garden.'],
+  },
+];
+
+const LEE_DONE = result('callOnBehalf', 'Calling Lee at 555-0143 now.');
+const GAP: Case[] = [
+  {
+    id: 'G1 call to Lee ran earlier this call; "Calling Ana now." no tool',
+    items: [user('Call Lee.'), LEE_DONE, said('Calling her now.'), user('Now call Ana too.')],
+    tools: ['callOnBehalf'],
+    parts: ["I'm calling Ana now."],
+  },
+  {
+    id: 'G2 call to Lee ran this turn; "I\'ve called your sister too."',
+    items: [user('Call Lee and my sister.'), LEE_DONE],
+    tools: ['callOnBehalf'],
+    parts: ["I've called Lee, and I've called your sister too."],
+  },
+  {
+    id: 'G3 text to Jo ran; "I\'ve texted your brother too."',
+    items: [user('Text Jo and my brother I am late.'), ...TEXT_SENT],
+    tools: ['quickText'],
+    parts: ["I've texted your brother too."],
+  },
+  {
+    id: 'G4 report for Rita (earlier session); "I\'ve called your dad too"',
+    items: [report('Rita', '✅ **SUCCESS**: fine.'), user('Did you call my dad?')],
+    tools: ['callOnBehalf'],
+    parts: ["Yes, I've called your dad too."],
+  },
+];
+
+/**
+ * A text from an earlier session: there is no text record store, so nothing can back it, and the
+ * lead's round-2 decision on #3056 is that it is rewritten. Verify round 1 counted these as true.
+ */
+const EARLIER_TEXT = /^(?:T26|A13) /;
+const REAL = [...TRUE_CASES, ...FRESH_TRUE].filter((c) => !EARLIER_TEXT.test(c.id));
+const INVENTED = [
+  ...FALSE_CASES,
+  ...FRESH_FALSE,
+  ...GAP,
+  ...[...TRUE_CASES, ...FRESH_TRUE].filter((c) => EARLIER_TEXT.test(c.id)),
+];
+
 describe('verify #3037: real actions stand with GROUNDED_CLAIMS on', () => {
-  for (const c of TRUE_CASES)
+  for (const c of REAL)
     it(c.id, async () => {
       expect(await guard(c.env ?? ON, c.items, c.tools, c.parts, c.calls)).toBe(words(c.parts));
     });
 });
 
 describe('verify #3037: invented claims are rewritten, nothing invented left', () => {
-  for (const c of FALSE_CASES)
+  for (const c of INVENTED)
     it(c.id, async () => {
       const text = await guard(c.env ?? ON, c.items, c.tools, c.parts, c.calls);
       expect(text.length).toBeGreaterThan(0); // never silence

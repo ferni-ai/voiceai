@@ -31,8 +31,8 @@
  * model never saw that result. Now only a result in the conversation lets a
  * story (or a plain "yes, I did") stand; the lookup only picks the honest line,
  * and what the reply then says she said or how she sounded goes with the story.
- * A call result already in the conversation, or a question about what Ferni did
- * before this call, backs a claim of it (claimsFromBefore): never deny a real call.
+ * A call result in the conversation backs a claim of it, person by person
+ * (claim-evidence.ts): never deny a real call, never borrow one for someone else.
  *
  * @module agents/personas/call-narration
  */
@@ -45,7 +45,7 @@ import {
 } from '../../services/outreach/call-status.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
-import type { ActionKind } from './action-claims.js';
+import type { ClaimEvidence } from './claim-evidence.js';
 
 /** What Ferni says in place of a story about a call no result has come back from. */
 export const UNHEARD_LINE = "I don't actually know how that call went yet, I haven't heard back.";
@@ -84,10 +84,13 @@ const WENT =
   /^(?:\W*(?:oh|so|yeah|well|honestly)\W+)*(?:it|the call|that call) went (?:really |so )?(?:great|well|fine|good|amazing|wonderfully|lovely)\b/i;
 /** "I did, yeah." or "Yes." to "did you call my mom?": the call happened (GROUNDED_CLAIMS). */
 const SAID_YES =
-  /^(?:\W*(?:oh|so|well|yes|yeah|yep|yup|of course)\W+)*(?:i (?:sure |already |actually )?did\b(?!n't| not)|i (?:already )?have\W*$|i(?:'ve| have) (?:already |just )?(?:called|rung|phoned|reached)\b|(?:yes|yeah|yep|yup)\W*$)/i;
+  /^(?:\W*(?:oh|so|well|yes|yeah|yep|yup|mm-?hm+|mhm|uh-huh|of course)\W+)*(?:i (?:sure |already |actually )?did\b(?!n't| not)|i (?:already )?have\W*$|i(?:'ve| have) (?:already |just )?(?:called|rung|phoned|reached)\b|(?:got|reached|caught) (?:him|her|them)\b|(?:yes|yeah|yep|yup|mm-?hm+|mhm|uh-huh)\W*$)/i;
 /** After a dropped story: the other person's words or how they were ("She sounded great."). */
 const CALLEE_TALK =
   /^\W*(?:and |so |but )?(?:she|he|they|(?!It\b|That\b|This\b|There\b|The\b|What\b)[A-Z][a-z]+)(?:'s| is| was| were| sounded| seemed| says| said| sends?| told| asked| misses| missed| loved| wants| wanted| mentioned| thanked| laughed)\b/i;
+/** GROUNDED_CLAIMS: someone's words or how they sounded on the call: told only from its record. */
+const CALLEE_SPEECH =
+  /^\W*(?:and |so |but )?(?:[Ss]he|[Hh]e|[Tt]hey|\p{Lu}\p{Ll}+) (?:said|says|told|asked|mentioned|wants|wanted|misses|missed|sends?|sounded|seemed|thanked|laughed|loved|picked up|answered)\b/u;
 const ASKED_HOW =
   /\bhow(?:'d| did) (?:it|the|that)\b[^.?!]{0,40}\bgo\b|\bdid you (?:call|reach|talk to)\b/i;
 
@@ -118,10 +121,14 @@ const ASKED_ABOUT = [
 
 const PRONOUN = /^(?:he|she|they|him|her|them)$/i;
 
+/** GROUNDED_CLAIMS: "have you called my mom?" asks about the call too (#3037 verify, B01). */
+const ASKED_HAVE =
+  /\bhave you (?:already |ever |actually )?(?:called|rung|phoned|reached|talked to|spoken (?:to|with)|gotten (?:a ?hold|ahold) of|gotten through to) (?:my |the )?([a-z]+)/i;
+
 /** The caller asks about a call Ferni was to make: null, or the person (when named, not a pronoun). */
-export function callAskedAbout(words: string): { person?: string } | null {
+export function callAskedAbout(words: string, grounded = false): { person?: string } | null {
   const text = words.replace(/[‘’]/g, "'");
-  for (const re of ASKED_ABOUT) {
+  for (const re of grounded ? [...ASKED_ABOUT, ASKED_HAVE] : ASKED_ABOUT) {
     const m = re.exec(text);
     if (!m || m[1].toLowerCase() === 'you') continue;
     const person = PRONOUN.test(m[1]) ? null : personWord(m[1]);
@@ -141,9 +148,10 @@ const ASKED_LOOKUP_MS = 1200;
 export function askedCallLookup(
   callerWords: string,
   userId: string | undefined,
-  records: CallRecords
+  records: CallRecords,
+  grounded = false
 ): Promise<AskedCallStatus> | undefined {
-  const person = callAskedAbout(callerWords)?.person;
+  const person = callAskedAbout(callerWords, grounded)?.person;
   if (!person || !isMemberIdentity(userId)) return undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<AskedCallStatus>((resolve) => {
@@ -195,16 +203,18 @@ const spoken = (item: Item): string => {
  * Whether a story of how a call went must be dropped in this reply: a call is in
  * play, no result reached the conversation, and the caller isn't telling their own.
  * `asked` is where the call the caller just asked about stands, when it was looked up;
- * a completed one lets the story stand only when `grounded` is off (GROUNDED_CLAIMS).
+ * a completed one lets the story stand only without `evidence`. With `evidence` (GROUNDED_CLAIMS), a
+ * story stands only when a result for the people it names came back (claim-evidence.ts).
  */
 export function callOutcomeUnheard(
   chatCtx: { items: readonly unknown[] },
   callToolRan: boolean,
   asked?: AskedCallStatus,
-  grounded = false
+  evidence?: ClaimEvidence
 ): Unheard | null {
   const items = chatCtx.items as readonly Item[];
-  if (callResultIn(items)) return null;
+  const grounded = evidence !== undefined;
+  if (!grounded && callResultIn(items)) return null;
   const completed = asked !== undefined && asked !== 'none' && asked.state === 'completed';
   if (completed && !grounded) return null;
   const lines = items.filter((item) => item.type === 'message' && item.role !== 'system');
@@ -213,7 +223,7 @@ export function callOutcomeUnheard(
     .filter((item) => item.role === 'user')
     .slice(-3)
     .map(spoken);
-  const askedAbout = callAskedAbout(caller.at(-1) ?? '') !== null;
+  const askedAbout = callAskedAbout(caller.at(-1) ?? '', grounded) !== null;
   if (!callToolRan && !askedAbout && !recent.some((line) => CALL_TALK.test(line))) return null;
   if (caller.some((line) => OWN_CALL.test(line))) return null;
   const callerAsked = askedAbout || ASKED_HOW.test(caller.at(-1) ?? '');
@@ -222,7 +232,10 @@ export function callOutcomeUnheard(
   const yesTold = grounded && callerAsked;
   let dropped = false; // a story was dropped in this reply
   const tells = (sentence: string): boolean => {
-    const story = narratesCallOutcome(sentence, askedHow, yesTold);
+    // GROUNDED_CLAIMS: a result that came back for the people it names lets the story stand.
+    const speech = grounded && CALLEE_SPEECH.test(sentence.trim());
+    const story =
+      (narratesCallOutcome(sentence, askedHow, yesTold) || speech) && !evidence?.told(sentence);
     dropped ||= story;
     return story || (grounded && dropped && CALLEE_TALK.test(sentence.trim()));
   };
@@ -241,25 +254,6 @@ export interface Unheard {
 /** A call result in the conversation: a report from Ferni's call, or callStatus saying he called. */
 const callResultIn = (items: readonly Item[]): boolean =>
   items.some((item) => REPORTED.test(textOf(item)) || toldByStatus(item));
-/** The caller asks what Ferni did before: "did you text my sister yesterday?", "have you called her?". */
-const ASKS_BEFORE =
-  /\b(?:did|have) you (?:ever |already |actually )?(?:call|called|ring|rung|phone|phoned|reach|reached|text|texted|message|messaged|email|emailed|send|sent|talk(?:ed)? to)\b/i;
-
-/**
- * GROUNDED_CLAIMS: the kinds a claim may report from before this reply's tools could show it. A
- * call result in the conversation backs a call (#3037 verify: "Yes, I've already called your mom"
- * after callStatus said so was denied). Asked what he did before, the earlier session's ledger
- * isn't readable here, so a call or text claim is not denied: a call is judged by its story
- * instead (callOutcomeUnheard, from the records), and a text stands as before.
- */
-export function claimsFromBefore(chatCtx: { items: readonly unknown[] }): Set<ActionKind> {
-  const items = chatCtx.items as readonly Item[];
-  const kinds = new Set<ActionKind>(callResultIn(items) ? ['call'] : []);
-  const asks = items.filter((item) => item.type === 'message' && item.role === 'user');
-  const last = asks.length ? spoken(asks[asks.length - 1]) : '';
-  if (ASKS_BEFORE.test(last)) for (const kind of ['call', 'send'] as const) kinds.add(kind);
-  return kinds;
-}
 
 /** One sentence that tells how a call went, as if Ferni knew; with `yesTold`, a "yes, I did" too. */
 export function narratesCallOutcome(sentence: string, askedHow: boolean, yesTold = false): boolean {
