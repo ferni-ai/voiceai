@@ -149,7 +149,8 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
     }
 
     /// The one way the hold lets go: a write that stuck, a device change, an
-    /// interruption's end, a media reset or the call's end. Never a throw.
+    /// interruption's end, the system activating the session, a new room's
+    /// set-up (a rejoin or a retry), a media reset or the call's end. Never a throw.
     private func releaseHold() {
         driftHeld.withLock { driftHeld in driftHeld = false }
     }
@@ -248,6 +249,9 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
 
     public func activate(systemOwned: Bool) throws {
         try configure()
+        // Each room sets the call up afresh: a rejoin or a retry lets the hold
+        // go, even when the system keeps the session active between rooms.
+        releaseHold()
         if systemOwned {
             // The system activates it and tells us (systemAudio(active:)),
             // which is what turns the engine on, never before (C1). A later

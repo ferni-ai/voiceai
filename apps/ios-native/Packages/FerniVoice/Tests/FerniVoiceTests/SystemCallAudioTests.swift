@@ -840,6 +840,63 @@ final class SystemCallAudioTests: XCTestCase {
         }
     }
 
+    /// A call held by a set-back that threw: the next drift writes nothing.
+    /// Returns the write count while held; the session takes settings again.
+    private func thrownHold(_ center: NotificationCenter, _ session: EchoingSession,
+                            systemOwned: Bool, later: Bool) throws -> (SystemCallAudio, Int) {
+        session.later = later
+        let audio = SystemCallAudio(systemManagesCalls: systemOwned, engine: { _ in }, session: session,
+                                    notifications: center, voiceProcessing: Processing())
+        try audio.activate(systemOwned: systemOwned)
+        if systemOwned { audio.systemAudio(active: true) }
+        session.drain()
+        session.mode = .default
+        session.refusesAndPosts = true
+        post(AVAudioSession.routeChangeNotification, route(.override), to: center)
+        session.drain()
+        let held = session.writes
+        post(AVAudioSession.routeChangeNotification, route(.override), to: center)
+        session.drain()
+        XCTAssertEqual(session.writes, held, "held after the throw")
+        XCTAssertEqual(session.mode, .default)
+        session.refusesAndPosts = false
+        return (audio, held)
+    }
+
+    /// The system activating the call's session again (after a hold, say)
+    /// sets the call up and lets a thrown set-back's hold go.
+    func testTheSystemActivatingTheSessionLetsTheHoldGo() throws {
+        for later in [false, true] {
+            let center = NotificationCenter(), session = EchoingSession(center)
+            let (audio, held) = try thrownHold(center, session, systemOwned: true, later: later)
+            audio.systemAudio(active: false)
+            audio.systemAudio(active: true)
+            session.drain()
+            XCTAssertEqual(session.writes, held + 1, "the activation writes once, later \(later)")
+            XCTAssertEqual(session.mode, .voiceChat, "later \(later)")
+            assertNotHeld(center, session, "after the system activated, later \(later)")
+        }
+    }
+
+    /// A rejoin or a retry (leave the room, set the next one up) lets a thrown
+    /// set-back's hold go, including when the system keeps the session active
+    /// between rooms and never activates it again.
+    func testARejoinLetsTheHoldGo() throws {
+        for systemOwned in [false, true] {
+            for later in [false, true] {
+                let what = "system owned \(systemOwned), later \(later)"
+                let center = NotificationCenter(), session = EchoingSession(center)
+                let (audio, held) = try thrownHold(center, session, systemOwned: systemOwned, later: later)
+                audio.deactivate(systemOwned: systemOwned)
+                try audio.activate(systemOwned: systemOwned)
+                session.drain()
+                XCTAssertEqual(session.writes, held + 1, "the new room writes once: \(what)")
+                XCTAssertEqual(session.mode, .voiceChat, what)
+                assertNotHeld(center, session, "after the rejoin: \(what)")
+            }
+        }
+    }
+
     /// A write that throws after its settings stuck (the haptics setting
     /// refused) lets the hold go: the session reads back as the call's.
     func testASetBackThatThrowsAfterStickingLetsTheHoldGo() throws {
