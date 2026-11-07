@@ -207,7 +207,9 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
   }
 
   // CRISIS_MEANS_IN_HAND (#2697): a live form reads 911; 'all' (the shadow log) names the form.
-  const means = meansInHandRead(text, indicators, softened, forms);
+  const means = meansInHandRead(text, indicators, softened, forms, (spans) =>
+    endingOutside(text, spans)
+  );
   if (means) {
     hardSelf = true;
     if (means.tag === 'self_harm') add('self_harm', 0);
@@ -241,6 +243,24 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
   const sessionSeverity = subject === 'self' ? severity : tierSoft ? selfSeverity : 0;
   const found = { severity, indicators, subject, language, implicitHits, contextHit };
   return { ...found, softSelf, sessionSeverity };
+}
+
+/** The caller's own ending words, said or framed: not negated, past, protective or someone else's. */
+const ENDING_SAID = [
+  'explicit_crisis_language',
+  'joking_frame',
+  'conditional_frame',
+  'hedged_frame',
+  'passive_ideation',
+];
+/** Ending words in the turn outside every span: those words blanked, the rest read once. */
+function endingOutside(text: string, spans: ReadonlyArray<readonly [number, number]>): boolean {
+  const chars = text.split('');
+  for (const [from, to] of spans) {
+    for (let at = from; at < to; at++) if (!'.!?'.includes(chars[at])) chars[at] = ' ';
+  }
+  const { indicators } = scoreText(chars.join(''), 'none');
+  return ENDING_SAID.some((indicator) => indicators.includes(indicator));
 }
 
 /** What one earlier message counts for in a later turn's session check (crisis-who.ts reads it too). */
