@@ -18,6 +18,7 @@
  * @module CrisisMeansInHand
  */
 
+import { meansLookback } from './crisis-means-lookback.js';
 import { explicitModifier } from './crisis-modifiers.js';
 
 export type MeansInHandMode = 'off' | 'shadow' | 'live';
@@ -197,15 +198,14 @@ const REPORTED =
   /\b(he|she|they|my (\w+ )?(friend|brother|sister|mom|mother|dad|father|son|daughter|kid|child|wife|husband|partner|boyfriend|girlfriend|cousin|roommate|coworker|neighbor))('s| is| was)? (said|says|texted|texts|wrote|writes|told me|posted|messaged|keeps saying|just said)\b/;
 /** A quote opened after the reporting words and still open where the match starts. */
 const QUOTED = new RegExp(String.raw`${REPORTED.source}[^"]*"[^"]*$`);
-/** Softened in a way the shared modifiers miss: negated means, or not happening. */
-function meansSoftened(text: string, start: number, end: number): boolean {
-  const span = text.slice(start, end);
-  const clause =
-    text
-      .slice(0, start)
-      .split(/[.!?;,]|\bbut\b|\band\b|\bso\b/)
-      .pop() ?? '';
-  const sentence = text.slice(0, start).split(/[.!?]/).pop() ?? '';
+/**
+ * Softened in a way the shared modifiers miss: negated means, or not happening. The clause and the
+ * sentence are the words before the match (crisis-means-lookback.ts, found once per turn).
+ */
+function meansSoftened(
+  span: string,
+  { clause, sentence }: { clause: string; sentence: string }
+): boolean {
   return (
     NEGATED_VERB.test(span) ||
     NO_MEANS.test(clause + span) ||
@@ -215,6 +215,20 @@ function meansSoftened(text: string, start: number, end: number): boolean {
     REPORTED.test(clause) ||
     QUOTED.test(sentence)
   );
+}
+
+/**
+ * A match is free when no pattern softened it and nothing around it softens it. The breaks are
+ * found on the first check and kept for the turn, so many matches cost one pass, not one each.
+ */
+function freeOf(
+  text: string,
+  softened: ReadonlyArray<readonly [number, number]>
+): (start: number, end: number) => boolean {
+  let before: ReturnType<typeof meansLookback> | undefined;
+  return (start, end) =>
+    !softened.some(([s, e]) => start < e && end > s) &&
+    !meansSoftened(text.slice(start, end), (before ??= meansLookback(text))(start));
 }
 
 /**
@@ -245,8 +259,7 @@ export function meansInHandRead(
   endingOutside: (spans: ReadonlyArray<readonly [number, number]>) => boolean
 ): { tag: 'suicidal' | 'self_harm'; form: MeansFormName } | null {
   if (forms === 'none') return null;
-  const free = (start: number, end: number): boolean =>
-    !softened.some(([s, e]) => start < e && end > s) && !meansSoftened(text, start, end);
+  const free = freeOf(text, softened);
   const read = (form: MeansForm): { tag: 'suicidal' | 'self_harm'; form: MeansFormName } | null => {
     for (const m of text.matchAll(new RegExp(form.re.source, 'g'))) {
       const end = m.index + m[0].length;

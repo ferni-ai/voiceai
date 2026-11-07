@@ -19,6 +19,7 @@ vi.mock('../crisis-ending-floor.js', async (importOriginal) => {
 
 import { detectCrisis } from '../crisis-guard.js';
 import { meansInHandRead } from '../crisis-means-in-hand.js';
+import { noteMeansInHandShadow } from '../crisis-means-shadow.js';
 
 const pasted = `this is goodbye. ${'i have the pills. '.repeat(1000)}`;
 
@@ -63,4 +64,57 @@ describe('the means sentence re-read, once per turn', () => {
     );
     expect(outside).not.toHaveBeenCalled();
   });
+});
+
+// r3: each means match finds the words before it in one pass per turn, not by splitting the whole
+// text again (that was quadratic: 30 ms at 20k chars, main 1.5 ms). The bar is main + 5 ms at 20k;
+// 'off' reads as main without the means forms, so it is the floor. Head and floor are timed in
+// turn, median of 5, and the bound is generous (3x the floor, + 5 ms) so a slow CI box still
+// passes while the quadratic shape (20x the floor) fails.
+describe('a 20k-char pasted turn reads in linear time', () => {
+  const sentences = (opening: string) =>
+    `${opening} ${'i have the pills. '.repeat(1200)}`.slice(0, 20_000);
+  const reads = {
+    live: (text: string) => detectCrisis(text, undefined, { meansInHand: 'live' }),
+    // Shadow, prod's default: the turn's read, then the shadow log's own read of every form.
+    shadow: (text: string) => {
+      const read = detectCrisis(text, undefined, { meansInHand: 'shadow' });
+      noteMeansInHandShadow('s', read, { text }, { CRISIS_MEANS_IN_HAND: 'shadow' });
+    },
+  };
+  const floors = {
+    live: (text: string) => detectCrisis(text, undefined, { meansInHand: 'off' }),
+    shadow: (text: string) => {
+      detectCrisis(text, undefined, { meansInHand: 'off' });
+      detectCrisis(text, undefined, { meansInHand: 'off' });
+    },
+  };
+  const ms = (f: () => void) => {
+    const at = performance.now();
+    f();
+    return performance.now() - at;
+  };
+  const median = (list: number[]) => [...list].sort((a, b) => a - b)[Math.floor(list.length / 2)];
+
+  it.each([
+    ['check-in', "i can't handle this heat.", 'live'],
+    ['check-in', "i can't handle this heat.", 'shadow'],
+    ['goodbye', 'this is goodbye.', 'live'],
+    ['goodbye', 'this is goodbye.', 'shadow'],
+  ] as const)(
+    'the %s shape ("%s") under %s: within the main floor + 5 ms',
+    (_shape, opening, mode) => {
+      const text = sentences(opening);
+      expect(text).toHaveLength(20_000);
+      reads[mode](text);
+      floors[mode](text);
+      const head: number[] = [];
+      const floor: number[] = [];
+      for (let run = 0; run < 5; run++) {
+        head.push(ms(() => reads[mode](text)));
+        floor.push(ms(() => floors[mode](text)));
+      }
+      expect(median(head)).toBeLessThan(3 * median(floor) + 5);
+    }
+  );
 });

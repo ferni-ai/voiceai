@@ -370,3 +370,20 @@ describe('"i have the pills." as its own sentence, beside ending words', () => {
     expect(live(text)).toEqual(off(text));
   });
 });
+
+// #3564 r3: the means sentence is free only when nothing around it softens it. Someone else's
+// quoted words, a story, a "what if" and an "asked if" keep their 988 block under live, not 911.
+describe('"i have the pills." softened by the words around it', () => {
+  it.each([
+    'he texted me "i want to die. i have the pills."',
+    'she said "i\'m going to kill myself. i have the gun."',
+    'in the movie i want to die. i have the gun.',
+    'what if i wanted to kill myself. i have the gun.',
+    'i asked if i want to die. i have the pills.',
+  ])('live keeps the 988 block, not 911: "%s"', (text) => {
+    expect(tierOf(off(text))).toBe('block');
+    expect(tierOf(live(text))).toBe('block');
+    expect(imminent(live(text))).toBe(false);
+    expect(all(text).indicators).not.toContain('means_form:ending_beside_means');
+  });
+});
