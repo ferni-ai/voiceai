@@ -102,27 +102,33 @@ B0 does not merge until each condition below has the test that pins it.
 1. **One key, one budget.** The old wrappers (`claimOpenerFollowUp` / `takeOpenerClaim`, keyed by `userId`
    today) and `claimProactiveSlot` resolve to the same slot; there are never two budgets. B0 confirms a
    `sessionId` exists where `greeting-direction.ts` and `greeting-claim.ts` run; if it does not, everything is
-   keyed by one call key both sides have. _Test:_ a greeting claim through the old wrapper, then
+   keyed by one call key both sides have. **Test:** a greeting claim through the old wrapper, then
    `claimProactiveSlot(id, 'recall-trigger')` returns `{ ok: false, heldBy: 'greeting' }`.
 2. **A crisis read in flight refuses.** While a crisis read for the latest turn is in flight
    (`crisisReadInFlight`, `services/safety/crisis-call-risk.ts:97`), a claim returns `heldBy: 'safety'`. This
-   hold is not sticky: it ends when the read settles clean. _Test:_ refused during the read, granted after a
+   hold is not sticky: it ends when the read settles clean. **Test:** refused during the read, granted after a
    clean read.
 3. **Fail closed.** If `crisisRiskThisCall` or the in-flight check throws, the claim returns
-   `{ ok: false, heldBy: 'safety' }`. _Test:_ each check stubbed to throw; both refuse.
+   `{ ok: false, heldBy: 'safety' }`. **Test:** each check stubbed to throw; both refuse.
 4. **The size is a named constant.** `PROACTIVE_PER_CALL_MAX = 1` in total, opener or mid-call (the owner's
-   decision). A declined or ignored ask counts as spent. _Test:_ an opener ask, declined, then a mid-call claim
+   decision). A declined or ignored ask counts as spent. **Test:** an opener ask, declined, then a mid-call claim
    is refused; the constant is the only place the number appears.
 5. **Release is narrow.** `releaseProactiveSlot(sessionId, by)` releases only what that asker holds, and can
    never release a safety hold. An asker releases only a slot it claimed and then did not use; a spoken ask stays
-   spent (condition 4). _Tests:_ a release by a different asker leaves the slot held; a release after
+   spent (condition 4). **Tests:** a release by a different asker leaves the slot held; a release after
    `spendForSafety` leaves `heldBy: 'safety'`.
 6. **Lifetime is bounded.** Slots clear at session end (hooked into the existing session cleanup) and also lapse
-   after a `CLAIM_MS`-style limit. _Test:_ many sessions open and end; the slot map does not grow.
+   after a `CLAIM_MS`-style limit. **Test:** many sessions open and end; the slot map does not grow.
 7. **In-process only, stated in the module.** The slot lives in the call's agent process. B6 texts and B7
    third-party suggestions run outside it and are not covered, so each has its own limit, written down before
-   its PR: B6 in section 4, B7 in section 7. _Test:_ the module doc says so (a review check, not a unit test);
+   its PR: B6 in section 4, B7 in section 7. **Test:** the module doc says so (a review check, not a unit test);
    the B6 and B7 limits carry their own tests in those PRs.
+8. **A crisis after a claim drops the queued line.** An asker (the greeting, or the commitment insight) can claim
+   and queue its line, and then the next turn reads crisis; condition 2 covers only later claims. So
+   `spendForSafety` replaces any current holder, and every asker re-checks `peekProactiveSlot(sessionId) === by`
+   immediately before it speaks or injects, and drops the line otherwise. **Test:** a claim by
+   `'commitment-insight'`, then `spendForSafety`, then the inject path drops the line, and the crisis reply is
+   byte-identical with `PROACTIVE_BUDGET` on and off.
 
 ## 4. Level 1: human
 
@@ -138,15 +144,15 @@ process cannot reset it.
 
 The design's PR1 and PR2 landed (#2049, #2084). The remaining PRs, updated for main:
 
-| PR  | What                                                                                                                                                                                        | Flag (default)               | Files                                                                                  | Tests                                                                                                                                                   | Size | First real reader                                  |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | -------------------------------------------------- |
-| B0  | **Budget API.** Extend `opener-claim.ts` per rule 5; old functions wrap the new one; the S1 gate and the recall hook call it.                                                               | PROACTIVE_BUDGET (off)       | `memory/recall/opener-claim.ts`, `proactive-budget.ts`, `commitment-follow-up-gate.ts` | one-per-call across two askers; crisis spends to zero for the rest of the call; off = today's behaviour (snapshot); the seven B0 conditions (section 3) | ≤250 | S1 gate and the recall hook                        |
-| B1  | **Arbiter + appetite learner + after-call plan, shadow.** Pure `pickThread` with gates G1–G11, Beta(2,1) appetite, plan written after the call.                                             | FOLLOW_UP_BRAIN (off/shadow) | `services/follow-through/arbiter.ts`, `appetite.ts`, `plan.ts`, after-call register    | each gate red/green; learner moves budget both ways; shadow logs kinds and counts only                                                                  | ≤380 | the after-call task that writes the plan           |
-| B2  | **Salience writer.** One cheap judge per call marks which threads are big, sensitive, dated.                                                                                                | FOLLOW_UP_SALIENCE (off)     | `services/follow-through/salience.ts`, import path                                     | sensitive never texted; a dated thread is never premature; judge timeout fails closed                                                                   | ≤380 | B1's arbiter                                       |
-| B3  | **Spoken-only runtime, answers close threads.** The arbiter's pick claims the budget; "asked" is written only when the line is spoken (#2084 `ask`); the caller's answer closes or snoozes. | FOLLOW_UP_BRAIN=on           | runtime pick, `follow-through/follow-up.ts` callers, the recall hook helper            | asked only on speech; "already talked" closes; same topic never within 48 h                                                                             | ≤400 | the live call (first live caller of #2084's `ask`) |
-| B4  | **Silence the legacy askers.** S1, S2/S3, S5, S10 and N7 stand down when FOLLOW_UP_BRAIN=on. Lands in the same release as B3; neither flips alone.                                          | FOLLOW_UP_BRAIN=on           | the five call sites                                                                    | with the flag on, each legacy asker is silent; off, unchanged                                                                                           | ≤300 | the live call                                      |
-| B5  | **Answer effects and learning.** Answers update appetite; "don't ask me about that" forgets; a brush-off lowers appetite.                                                                   | FOLLOW_UP_BRAIN=on           | `appetite.ts`, `follow-through/answer-effects.ts`                                      | a forget removes future candidates; a brush-off lowers budget; never below the floor                                                                    | ≤280 | B1's learner                                       |
-| B6  | **Texts on the same brain.** S9 reads the arbiter; S17 and N4 go through it; cancel/reschedule (#3294) is the owner's control.                                                              | FOLLOW_THROUGH_TEXTS (off)   | `outreach/follow-up-texts.ts`, `proactive-channels/triggers.ts`                        | text rules above; quiet hours; one shared weekly count with calls                                                                                       | ≤320 | the follow-up texts job                            |
+| PR  | What                                                                                                                                                                                        | Flag (default)               | Files                                                                                  | Tests                                                                                                                                                                                                                            | Size | First real reader                                  |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | -------------------------------------------------- |
+| B0  | **Budget API.** Extend `opener-claim.ts` per rule 5; old functions wrap the new one; the S1 gate and the recall hook call it.                                                               | PROACTIVE_BUDGET (off)       | `memory/recall/opener-claim.ts`, `proactive-budget.ts`, `commitment-follow-up-gate.ts` | one-per-call across two askers; crisis spends to zero for the rest of the call; off = today's behaviour (snapshot); a crisis after a claim drops the queued line (re-check before speaking); the eight B0 conditions (section 3) | ≤250 | S1 gate and the recall hook                        |
+| B1  | **Arbiter + appetite learner + after-call plan, shadow.** Pure `pickThread` with gates G1–G11, Beta(2,1) appetite, plan written after the call.                                             | FOLLOW_UP_BRAIN (off/shadow) | `services/follow-through/arbiter.ts`, `appetite.ts`, `plan.ts`, after-call register    | each gate red/green; learner moves budget both ways; shadow logs kinds and counts only                                                                                                                                           | ≤380 | the after-call task that writes the plan           |
+| B2  | **Salience writer.** One cheap judge per call marks which threads are big, sensitive, dated.                                                                                                | FOLLOW_UP_SALIENCE (off)     | `services/follow-through/salience.ts`, import path                                     | sensitive never texted; a dated thread is never premature; judge timeout fails closed                                                                                                                                            | ≤380 | B1's arbiter                                       |
+| B3  | **Spoken-only runtime, answers close threads.** The arbiter's pick claims the budget; "asked" is written only when the line is spoken (#2084 `ask`); the caller's answer closes or snoozes. | FOLLOW_UP_BRAIN=on           | runtime pick, `follow-through/follow-up.ts` callers, the recall hook helper            | asked only on speech; "already talked" closes; same topic never within 48 h                                                                                                                                                      | ≤400 | the live call (first live caller of #2084's `ask`) |
+| B4  | **Silence the legacy askers.** S1, S2/S3, S5, S10 and N7 stand down when FOLLOW_UP_BRAIN=on. Lands in the same release as B3; neither flips alone.                                          | FOLLOW_UP_BRAIN=on           | the five call sites                                                                    | with the flag on, each legacy asker is silent; off, unchanged                                                                                                                                                                    | ≤300 | the live call                                      |
+| B5  | **Answer effects and learning.** Answers update appetite; "don't ask me about that" forgets; a brush-off lowers appetite.                                                                   | FOLLOW_UP_BRAIN=on           | `appetite.ts`, `follow-through/answer-effects.ts`                                      | a forget removes future candidates; a brush-off lowers budget; never below the floor                                                                                                                                             | ≤280 | B1's learner                                       |
+| B6  | **Texts on the same brain.** S9 reads the arbiter; S17 and N4 go through it; cancel/reschedule (#3294) is the owner's control.                                                              | FOLLOW_THROUGH_TEXTS (off)   | `outreach/follow-up-texts.ts`, `proactive-channels/triggers.ts`                        | text rules above; quiet hours; one shared weekly count with calls                                                                                                                                                                | ≤320 | the follow-up texts job                            |
 
 Dropped from the design: the "stop the live repeat" PR (#2049) and the ledger PR (#2084). Merged: the design's
 "import only checked threads" step is #2092. S11 and S13 stay dead; no PR revives them.
@@ -164,6 +170,9 @@ Starts only after Level 1's metrics hold for two weeks on the owner cohort (sect
   (short answer, topic change), or _irritated_ (pushback, "you asked me that"). Logged per ask as
   `{ kind, landing, persona, hour, topicHash }`, never the words. Labels come from a small judge with a
   cross-family check on a sample.
+- **Keyed hashes only.** `topicHash`, and every other hash in these logs and the shadow logs (section 8b seam
+  4), is a keyed hash: HMAC-SHA256 with a server-held secret and a per-user salt. Never a plain hash of the
+  topic words, because a plain hash of a short phrase is reversed by hashing a dictionary of likely topics.
 - **Shadow first.** Four to six weeks in shadow on the owner cohort: the right-moment picker logs what it would
   have chosen next to what Level 1 chose. It goes live only if its picks would have landed better on the labelled
   asks.
@@ -221,18 +230,19 @@ tools; unknown caller gets none; a second suggestion the same day is refused, al
 
 1. **Safety is outside the budget.** The budget can never delay or drop a crisis resource. On a crisis turn and
    for the rest of that call, every proactive asker is suppressed (budget spent to zero), not ranked lower.
-   _Test:_ after a crisis-risk turn, `claimProactiveSlot` returns `{ ok: false, heldBy: 'safety' }` for every
+   **Test:** after a crisis-risk turn, `claimProactiveSlot` returns `{ ok: false, heldBy: 'safety' }` for every
    asker until the call ends, even after the risk TTL lapses; the crisis reply on that turn is byte-identical with
    the flag on and off.
-2. **Holds win.** A DV hold, MINOR*CARE, an opt-out or STOP, or a forget request removes that caller's (or that
+2. **Holds win.** A DV hold, `MINOR_CARE`, an opt-out or STOP, or a forget request removes that caller's (or that
    topic's) candidates before the arbiter scores anything. No DV hold symbol exists on main yet, so the arbiter
-   takes holds through one port that a DV hold can join. \_Tests:* one per hold, each asserting the candidate
+   takes holds through one port that a DV hold can join. **Tests:** one per hold, each asserting the candidate
    list is empty before scoring (the scorer is a spy that is never called).
 3. **The third-party rule lives in code.** A candidate that would contact anyone but the caller can only produce
-   a one-tap owner suggestion. _Test:_ an import-graph test proves the arbiter module cannot reach any send or
+   a one-tap owner suggestion. **Test:** an import-graph test proves the arbiter module cannot reach any send or
    dial function, and a type test proves a third-party candidate has no other output.
 4. **Off or shadow by default.** Shadow logs record what would have been asked as counts and kinds only.
-   _Test:_ a shadow-log test fails if any string field other than the kind and a hash is present.
+   Every hash there is the keyed hash defined once in section 5 (`topicHash`).
+   **Test:** a shadow-log test fails if any string field other than the kind and a keyed hash is present.
 5. **The claim API.** In `src/memory/recall/opener-claim.ts`, extending `OpenerAsker`:
 
    ```ts
@@ -257,9 +267,10 @@ tools; unknown caller gets none; a second suggestion the same day is refused, al
      by: ProactiveAsker,
      now?: number
    ): SlotResult;
-   /** Who holds the slot, without taking it (the caller card reads this). */
+   /** Who holds the slot, without taking it. The caller card reads this, and every asker re-checks
+    *  `peekProactiveSlot(sessionId) === by` right before it speaks or injects (B0 condition 8). */
    export function peekProactiveSlot(sessionId: string): ProactiveAsker | 'safety' | undefined;
-   /** Crisis: spend the slot for the rest of the call. Sticky; only call end clears it. */
+   /** Crisis: replace any current holder; spend the slot for the rest of the call. Only call end clears it. */
    export function spendForSafety(sessionId: string): void;
    /** Give back a slot `by` claimed and did not use. Never a safety hold or another asker's slot. */
    export function releaseProactiveSlot(sessionId: string, by: ProactiveAsker): void;
@@ -270,24 +281,29 @@ tools; unknown caller gets none; a second suggestion the same day is refused, al
    Keyed by call, not user, so two calls never share a slot (B0 condition 1 settles the key).
    `claimProactiveSlot` itself checks `crisisRiskThisCall(sessionId)` and calls `spendForSafety` on a true read, so
    no asker has to remember.
+   Every asker re-checks `peekProactiveSlot(sessionId) === by` immediately before it speaks or injects, and drops
+   its line otherwise, because `spendForSafety` can take the slot after the claim (B0 condition 8).
    `claimOpenerFollowUp` and `takeOpenerClaim` stay, as wrappers, until every caller moves. With
-   PROACTIVE*BUDGET off, the wrappers behave exactly as today. \_Test:* two askers on one session, one wins; a
-   second session is unaffected; the off snapshot matches main.
+   `PROACTIVE_BUDGET` off, the wrappers behave exactly as today. **Test:** two askers on one session, one wins; a
+   second session is unaffected; the off snapshot matches main; a claim, then `spendForSafety`, then the asker's
+   re-check drops its line.
 
 ## 9. Metrics
 
 Measured per call from logs (kinds, counts and hashes) on the owner cohort, then wider.
 
-| Metric                                                 | Target                     |
-| ------------------------------------------------------ | -------------------------- |
-| Repeat-ask rate (same topic within 48 h)               | 0                          |
-| "Already talked about this" rate                       | under 5% of asks           |
-| Premature-ask rate (asked before the event)            | **0, hard**                |
-| Answer rate (the caller engaged with the ask)          | rises vs Level 1 baseline  |
-| Closure rate (the answer closed or snoozed the thread) | over 80% of answered asks  |
-| Ferni-started asks per call                            | at most 1, always          |
-| Engagement after a follow-up (call length, turns)      | no drop vs calls without   |
-| Listening panel: "felt like a friend remembering"      | rises; "felt nagged" falls |
+| Metric                                                              | Target                     |
+| ------------------------------------------------------------------- | -------------------------- |
+| Repeat-ask rate (same topic within 48 h)                            | 0                          |
+| "Already talked about this" rate                                    | under 5% of asks           |
+| Premature-ask rate (asked before the event)                         | **0, hard**                |
+| Answer rate (the caller engaged with the ask)                       | rises vs Level 1 baseline  |
+| Closure rate (the answer closed or snoozed the thread)              | over 80% of answered asks  |
+| Ferni-started asks per call                                         | at most 1, always          |
+| Ferni-started asks on a call where crisis risk fired                | **0, hard**                |
+| Ferni-started asks within 72 h after a call where crisis risk fired | **0, hard**                |
+| Engagement after a follow-up (call length, turns)                   | no drop vs calls without   |
+| Listening panel: "felt like a friend remembering"                   | rises; "felt nagged" falls |
 
 ## 10. Rollout and order
 
