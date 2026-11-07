@@ -1190,6 +1190,12 @@ jobs:
       - name: Architecture map is current
         run: pnpm docs:map --check
 
+      # Blocking: each owner folder's AGENTS.md "Capabilities" section is generated from the
+      # capability map (decisions.ts) and must match it; an orphaned section fails too.
+      # Fix: `pnpm docs:capabilities`. ~1 s.
+      - name: Capabilities sections are current
+        run: pnpm docs:capabilities --check
+
       # Blocking ratchet: a new Firestore client that ignores FIRESTORE_DATABASE (dev runs on
       # ferni-dev, prod on '(default)') fails, and the allowlist may only shrink. ~10 s.
       - name: Firestore database ratchet

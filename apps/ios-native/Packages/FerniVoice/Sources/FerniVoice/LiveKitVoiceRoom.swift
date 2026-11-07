@@ -13,6 +13,11 @@ public final class LiveKitVoiceRoom: NSObject, VoiceRoom, RoomDelegate, @uncheck
     private let room = Room()
     private let leaving = Mutex(false)
     private let agentLevel: AgentLevelRenderer
+    /// The caller's mic level for the local duck, registered only when asked for.
+    private let micLevel = MicLevelRenderer()
+    private let measuringMic = Mutex(false)
+    /// Ferni's voice track, and its volume before the duck first changed it.
+    private let agentVoice = Mutex<(track: RemoteAudioTrack?, normal: Double?)>((nil, nil))
 
     /// Same topic the web and agents-js use for live transcripts.
     static let transcriptionTopic = "lk.transcription"
@@ -65,8 +70,29 @@ public final class LiveKitVoiceRoom: NSObject, VoiceRoom, RoomDelegate, @uncheck
         try await room.localParticipant.publish(data: data, options: DataPublishOptions(reliable: true))
     }
 
+    public func startMicLevel() {
+        guard measuringMic.withLock({ was in defer { was = true }; return !was }) else { return }
+        AudioManager.shared.add(localAudioRenderer: micLevel)
+    }
+
+    public var micLevelDB: Float? { measuringMic.withLock { $0 } ? micLevel.db : nil }
+
+    /// Relative to the track's own volume, read the first time, so nothing
+    /// changes it until the duck does and a restore puts back exactly that.
+    public func setAgentGain(_ gain: Double) {
+        agentVoice.withLock { voice in
+            guard let track = voice.track else { return }
+            let normal = voice.normal ?? track.volume
+            voice.normal = normal
+            track.volume = normal * gain
+        }
+    }
+
     public func disconnect() async {
         leaving.withLock { $0 = true }
+        if measuringMic.withLock({ was in defer { was = false }; return was }) {
+            AudioManager.shared.remove(localAudioRenderer: micLevel)
+        }
         await room.unregisterTextStreamHandler(for: Self.transcriptionTopic)
         await room.disconnect()
         continuation.finish()
@@ -83,11 +109,15 @@ public final class LiveKitVoiceRoom: NSObject, VoiceRoom, RoomDelegate, @uncheck
         guard participant.isAgent, !publication.name.hasPrefix("background"),
               let track = publication.track as? RemoteAudioTrack else { return }
         track.add(audioRenderer: agentLevel)
+        agentVoice.withLock { $0 = (track, nil) }
     }
 
     public func room(_ room: Room, participant: RemoteParticipant, didUnsubscribeTrack publication: RemoteTrackPublication) {
         (publication.track as? RemoteAudioTrack)?.remove(audioRenderer: agentLevel)
         agentLevel.meter.reset()
+        agentVoice.withLock { voice in
+            if voice.track === publication.track { voice = (nil, nil) }
+        }
     }
 
     public func room(_ room: Room, participantDidDisconnect participant: RemoteParticipant) {
@@ -149,17 +179,45 @@ final class AgentLevelRenderer: NSObject, AudioRenderer, Sendable {
     init(meter: AudioLevelMeter) { self.meter = meter }
 
     func render(pcmBuffer: AVAudioPCMBuffer) {
-        let frames = Int(pcmBuffer.frameLength)
-        if let floats = pcmBuffer.floatChannelData {
-            meter.feed(UnsafeBufferPointer(start: floats[0], count: frames))
-        } else if let ints = pcmBuffer.int16ChannelData, frames > 0 {
+        pcmBuffer.withFirstChannelFloats(meter.feed)
+    }
+}
+
+/// LiveKit hands this each buffer of the caller's mic, after echo
+/// cancellation, on its audio thread. It keeps one number, the loudness in
+/// dBFS: the audio itself is never stored, sent or logged.
+final class MicLevelRenderer: NSObject, AudioRenderer, Sendable {
+    static let silence: Float = -120
+    private let bits = Atomic<UInt32>(MicLevelRenderer.silence.bitPattern)
+
+    var db: Float { Float(bitPattern: bits.load(ordering: .relaxed)) }
+
+    func render(pcmBuffer: AVAudioPCMBuffer) {
+        pcmBuffer.withFirstChannelFloats { samples in
+            var rms: Float = 0
+            vDSP_rmsqv(samples.baseAddress!, 1, &rms, vDSP_Length(samples.count))
+            bits.store(Self.dBFS(rms).bitPattern, ordering: .relaxed)
+        }
+    }
+
+    static func dBFS(_ rms: Float) -> Float { max(silence, 20 * log10(max(rms, 1e-7))) }
+}
+
+extension AVAudioPCMBuffer {
+    /// Channel 0 as floats; never called for an empty buffer.
+    func withFirstChannelFloats(_ body: (UnsafeBufferPointer<Float>) -> Void) {
+        let frames = Int(frameLength)
+        guard frames > 0 else { return }
+        if let floats = floatChannelData {
+            body(UnsafeBufferPointer(start: floats[0], count: frames))
+        } else if let ints = int16ChannelData {
             // Rare int16 buffers: convert into a stack-sized scratch, capped.
             let count = min(frames, 4096)
             withUnsafeTemporaryAllocation(of: Float.self, capacity: count) { scratch in
                 vDSP_vflt16(ints[0], 1, scratch.baseAddress!, 1, vDSP_Length(count))
                 var scale = Float(1) / 32768
                 vDSP_vsmul(scratch.baseAddress!, 1, &scale, scratch.baseAddress!, 1, vDSP_Length(count))
-                meter.feed(UnsafeBufferPointer(scratch))
+                body(UnsafeBufferPointer(scratch))
             }
         }
     }

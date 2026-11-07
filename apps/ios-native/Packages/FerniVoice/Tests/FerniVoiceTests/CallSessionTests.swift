@@ -48,6 +48,13 @@ final class CallSessionTests: XCTestCase {
             continuation.finish()
         }
         func send(_ event: RoomEvent) { continuation.yield(event) }
+        /// The caller's mic, in dBFS, once the session asks to measure it.
+        var micLevel: Float = -90
+        private(set) var micStarts = 0
+        private(set) var gains: [Double] = []
+        func startMicLevel() { micStarts += 1 }
+        var micLevelDB: Float? { micStarts > 0 ? micLevel : nil }
+        func setAgentGain(_ gain: Double) { gains.append(gain) }
     }
 
     final class FakeAudio: CallAudio, @unchecked Sendable {
@@ -110,7 +117,8 @@ final class CallSessionTests: XCTestCase {
     private func makeSession(
         timeout: Duration = .seconds(5), arriving: Duration = .milliseconds(50),
         poll: Duration = .milliseconds(50),
-        defaults: UserDefaults = UserDefaults(suiteName: "call-tests-\(UUID().uuidString)")!
+        defaults: UserDefaults = UserDefaults(suiteName: "call-tests-\(UUID().uuidString)")!,
+        localDuck: Bool = false, duckTuning: LocalDuckController.Tuning = .standard
     ) -> CallSession {
         let rooms = rooms, tokens = tokens
         return CallSession(
@@ -130,7 +138,9 @@ final class CallSessionTests: XCTestCase {
             agentTimeout: timeout,
             arrivingAfter: arriving,
             agentPoll: poll,
-            defaults: defaults
+            defaults: defaults,
+            localDuck: localDuck,
+            duckTuning: duckTuning
         )
     }
 
@@ -811,5 +821,71 @@ final class RemoteDurationTests: XCTestCase {
         XCTAssertEqual(RemoteDuration.seconds(Double(Int.max)), .seconds(60))
         XCTAssertEqual(RemoteDuration.seconds(-5), .zero)
         XCTAssertEqual(RemoteDuration.seconds(1.5), .milliseconds(1500))
+    }
+}
+
+// MARK: - Local duck (IOS_LOCAL_DUCK)
+
+extension CallSessionTests {
+    /// Short enough to run in real time; the timing itself is pinned in LocalDuckControllerTests.
+    private static let quickDuck = LocalDuckController.Tuning(
+        onset: .milliseconds(60), duckDB: -18, confirmWindow: .milliseconds(300),
+        restoreRamp: .milliseconds(60), echoSettle: .zero,
+        aboveFloorDB: 12, minLevelDB: -50, floorRiseDBPerSecond: 3
+    )
+
+    private func interrupts(_ room: FakeRoom) -> Int {
+        room.sent.filter { message in
+            (try? JSONSerialization.jsonObject(with: message) as? [String: Any])?["type"] as? String == "user_interrupt"
+        }.count
+    }
+
+    /// Ferni is talking, the room has been quiet, and then the caller speaks.
+    private func callerTalksOver(_ session: CallSession) async -> FakeRoom {
+        session.start()
+        await until(session.phase == .live)
+        let room = rooms.made[0]
+        room.send(.agentAttributes(["lk.agent.state": "speaking"]))
+        await until(session.avatar.pose == .speaking)
+        try? await Task.sleep(for: .milliseconds(100)) // the quiet room is the noise floor
+        room.micLevel = -20
+        return room
+    }
+
+    func testLocalDuckDucksFerniAndSendsTheExistingInterruptOnce() async {
+        let session = makeSession(localDuck: true, duckTuning: Self.quickDuck)
+        let room = await callerTalksOver(session)
+
+        await until(!room.gains.isEmpty && interrupts(room) == 1)
+        XCTAssertEqual(room.micStarts, 1)
+        XCTAssertEqual(room.gains.first ?? 0, 0.1259, accuracy: 0.001, "-18 dB at once")
+
+        // Ferni stops: that's the confirmation. Down it stays, with no second interrupt.
+        room.send(.agentAttributes(["lk.agent.state": "listening"]))
+        try? await Task.sleep(for: .milliseconds(500))
+        XCTAssertEqual(interrupts(room), 1)
+        XCTAssertEqual(room.gains.count, 1, "no restore while confirmed")
+    }
+
+    func testLocalDuckComesBackWhenFerniCarriesOn() async {
+        let session = makeSession(localDuck: true, duckTuning: Self.quickDuck)
+        let room = await callerTalksOver(session)
+        await until(!room.gains.isEmpty)
+        room.micLevel = -90 // a cough: over, and Ferni never stopped
+
+        await until(room.gains.last == 1)
+        XCTAssertGreaterThan(room.gains.count, 2, "a ramp, not a jump")
+        XCTAssertEqual(room.gains, room.gains.sorted(), "only ever louder on the way back")
+    }
+
+    func testLocalDuckOffChangesNothing() async {
+        let session = makeSession(localDuck: false, duckTuning: Self.quickDuck)
+        let room = await callerTalksOver(session)
+        try? await Task.sleep(for: .milliseconds(500))
+
+        XCTAssertEqual(room.micStarts, 0, "the mic is never measured")
+        XCTAssertTrue(room.gains.isEmpty, "Ferni's volume is never touched")
+        XCTAssertTrue(room.sent.isEmpty, "nothing extra goes to the agent")
+        XCTAssertEqual(room.micStates, [true])
     }
 }
