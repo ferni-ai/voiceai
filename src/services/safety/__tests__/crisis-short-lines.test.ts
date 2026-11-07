@@ -9,7 +9,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { crisisRead } from '../../outreach/caller-text.js';
-import { YES_WORDS } from '../crisis-agreement.js';
 import { detectCrisis, guardFromDetection, type CrisisDetectionResult } from '../crisis-guard.js';
 
 const OPENER = "it's been a really long week honestly";
@@ -19,7 +18,7 @@ const both = (line: string) => [
 ];
 const LEAD_INS = [
   '',
-  ...YES_WORDS.split('|').map((w) => `${w} `),
+  ...['yes', 'yeah', 'yep', 'yup', 'yea', 'ok', 'okay', 'sure'].map((w) => `${w} `),
   'um ',
   'uh, ',
   'honestly ',
@@ -50,6 +49,13 @@ describe('short crisis lines read, with and without words in front or after', ()
       for (const lead of LEAD_INS) for (const tail of TAILS) expectBlocks(`${lead}${core}${tail}`);
     }
   );
+
+  it.each([
+    'um yes kill me',
+    'uh, ok please kill me',
+    'honestly, yeah overdose tonight',
+    'idk um \u{1F48A} bye',
+  ])('blocks with two words in front: %s', expectBlocks);
 
   it.each([
     'i am suicidal',

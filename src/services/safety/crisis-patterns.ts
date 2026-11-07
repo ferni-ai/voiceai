@@ -4,7 +4,6 @@
  * @module CrisisPatterns
  */
 
-import { YES_WORDS } from './crisis-agreement.js';
 import { ROPE_READY } from './crisis-means-in-hand.js';
 import { THIRD_PERSON_REPORTED } from './crisis-third-person.js';
 
@@ -17,6 +16,8 @@ interface TaggedPattern {
   imminent?: true;
 }
 
+/** A yes in front of or after a short line ("ok kill me", "im suicidal, yes"). */
+const YES_WORDS = 'yes|yeah|yep|yup|yea|ok|okay|sure';
 /** Words in front of a short line, a yes among them: "yes im suicidal", "um, kill me". */
 const LEAD_IN = String.raw`((${YES_WORDS}|um+|uh+|honestly|like|idk)[,.!]* )*`;
 /** What may close a whole-line read: "?", an emoji, "tbh", "lol" (a joke frame), ", yes". */
