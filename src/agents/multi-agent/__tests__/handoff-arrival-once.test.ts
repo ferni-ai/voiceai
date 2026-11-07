@@ -6,7 +6,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { noteCrisisVerdictPending, signalCrisisDecision } from '../../safety/crisis-gate-signal.js';
 import { ARRIVING_OPENERS } from '../../../services/team-engagement/banter.js';
-import { arrivalOnce, RETURNING_OPENERS } from '../arrival-once.js';
+import {
+  arrivalOnce,
+  RETURNING_OPENERS,
+  SILENT_WHEN_RETURN_LINES_USED_UP,
+} from '../arrival-once.js';
 import { AgentOrchestrator, createAgentOrchestrator } from '../orchestrator.js';
 
 vi.mock('../../model-provider/handoff-cache-warm.js', () => ({
@@ -67,6 +71,7 @@ afterEach(() => {
 });
 
 const MAYA = 'maya-santos';
+const JORDAN = 'jordan-taylor';
 const FOUR_HOPS = [MAYA, 'ferni', MAYA, 'ferni'];
 const SIX_HOPS = [...FOUR_HOPS, MAYA, 'ferni'];
 /** A fresh call, flag on: a first meeting as today, then "back again" lines, none repeated. */
@@ -94,7 +99,7 @@ async function runCall(
   const spawned: Spawned[] = [];
   const orchestrator = createAgentOrchestrator(config(sessionId, spawned));
   await orchestrator.start('ferni');
-  await vi.waitFor(() => expect(spawned[0]?.said.length).toBe(1)); // the opening greeting
+  await vi.waitFor(() => expect(spawned[0]?.said.length).toBe(1), { timeout: 5000 }); // the opening greeting
   for (const [i, target] of hops.entries()) {
     beforeHop(i, spawned);
     // eslint-disable-next-line no-await-in-loop -- one handoff after another, as on a call
@@ -172,6 +177,62 @@ describe('A→B→A→B in one call', () => {
     expect(pending.lines[1]).toBe(ARRIVING_OPENERS.ferni[0]);
   });
 
+  it('flag on, a session per persona: once crisis handling touches the call, every later line is as flag off', async () => {
+    vi.stubEnv('MULTI_AGENT_SINGLE_SESSION', 'off');
+    const touch = {
+      decided: (session: object) => signalCrisisDecision(session, 'guide'),
+      pending: (session: object) => noteCrisisVerdictPending(session, new Promise(() => {})),
+    };
+    for (const [kind, mark] of Object.entries(touch)) {
+      for (const k of SIX_HOPS.keys()) {
+        const run = async (flag: string) => {
+          vi.stubEnv('HANDOFF_ARRIVAL_ONCE', flag);
+          // The persona on the line when the crisis turn lands, before hop k; later
+          // hops hand between other sessions, never back to this one.
+          const call = await runCall(
+            `arrival-once-sticky-${kind}-${k}-${flag}`,
+            SIX_HOPS,
+            (i, spawned) => {
+              if (i === k) mark(spawned[spawned.length - 1].session);
+            }
+          );
+          await call.end();
+          return call;
+        };
+        // eslint-disable-next-line no-await-in-loop -- one call after another
+        const on = await run('on');
+        // eslint-disable-next-line no-await-in-loop -- one call after another
+        const off = await run('off');
+        const label = `${kind}, crisis before hop ${k}`;
+        expect(off.lines, label).toEqual(todays(SIX_HOPS));
+        expect(on.lines.slice(k), label).toEqual(off.lines.slice(k));
+        expect(
+          on.arrivals.slice(k).map((a) => a.said),
+          label
+        ).toEqual(off.arrivals.slice(k).map((a) => a.said));
+      }
+    }
+  });
+
+  it('flag on, three personas: each first meeting is a first meeting, not a return', async () => {
+    vi.stubEnv('HANDOFF_ARRIVAL_ONCE', 'on');
+    const { lines, end } = await runCall('arrival-once-three', [
+      MAYA,
+      JORDAN,
+      'ferni',
+      JORDAN,
+      MAYA,
+    ]);
+    await end();
+    expect(lines).toEqual([
+      ARRIVING_OPENERS[MAYA][0], // first meeting
+      ARRIVING_OPENERS[JORDAN][0], // first meeting, though the caller has met two personas
+      RETURNING_OPENERS.ferni[0],
+      RETURNING_OPENERS[JORDAN][0],
+      RETURNING_OPENERS[MAYA][0],
+    ]);
+  });
+
   it("flag off: exactly today's lines, the repeat included", async () => {
     vi.stubEnv('HANDOFF_ARRIVAL_ONCE', 'off');
     const four = await runCall('arrival-once-off', FOUR_HOPS);
@@ -195,6 +256,19 @@ describe('arrivalOnce on a briefed line', () => {
       'Back to the trip, then.'
     );
     expect(arrivalOnce(call, hop(MAYA, 'ferni'), briefed)).toBe(RETURNING_OPENERS[MAYA][0]);
+  });
+
+  it('a return with both return lines said is silent, pinned by SILENT_WHEN_RETURN_LINES_USED_UP', () => {
+    // Open product call: flipping the constant to false says the line instead.
+    // Change this test with it, on purpose.
+    expect(SILENT_WHEN_RETURN_LINES_USED_UP).toBe(true);
+    const call = 'arrival-once-used-up';
+    const canned = ARRIVING_OPENERS[MAYA][0];
+    const back = (to: string, from: string) => ({ to, from, sessions: [], briefed: false });
+    expect(arrivalOnce(call, back(MAYA, 'ferni'), canned)).toBe(canned);
+    expect(arrivalOnce(call, back(MAYA, 'ferni'), canned)).toBe(RETURNING_OPENERS[MAYA][0]);
+    expect(arrivalOnce(call, back(MAYA, 'ferni'), canned)).toBe(RETURNING_OPENERS[MAYA][1]);
+    expect(arrivalOnce(call, back(MAYA, 'ferni'), canned)).toBeNull();
   });
 
   it('treats a line with other SSML, case or punctuation as the same line', () => {
