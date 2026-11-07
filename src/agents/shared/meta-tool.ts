@@ -289,10 +289,9 @@ export function unwrapMetaToolCall(
     try {
       toolArgs = JSON.parse(rawArgs) as Record<string, unknown>;
     } catch (e) {
-      log.warn(
-        { rawArgsChars: rawArgs.length, error: String(e) }, // the logger scrubs the parser's quote
-        'Failed to parse meta-tool args JSON'
-      );
+      // The parser's message quotes the caller's words, so log the class only.
+      const errorClass = e instanceof Error ? e.name : typeof e;
+      log.warn({ rawArgsChars: rawArgs.length, errorClass }, 'Failed to parse meta-tool args JSON');
       // Try to use as-is if it looks like a simple value
       toolArgs = {};
     }

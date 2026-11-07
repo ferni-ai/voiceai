@@ -88,18 +88,31 @@ describe('tool dispatch logs the shape of arguments, never the caller words', ()
         expect(out.join('')).not.toContain('sunflower');
       });
 
-      it('meta-tool unwrap failures log the shape and the error class, not the raw args', async () => {
-        // Unquoted words: the parser's message quotes the input around the bad token.
-        const broken = `{"aboutWhat": sunflower for Sam}`;
-        await executeTool(
-          { name: 'executeTool', args: { toolName: 'getCurrentTime', args: broken } },
-          ctxFor(userId)
-        );
+      // Malformed args JSON: unquoted words (the parser quotes the input around the bad
+      // token) and an unclosed brace after a marker string.
+      for (const broken of [`{"aboutWhat": sunflower for Sam}`, `{"note":"${MARKER}`]) {
+        it(`a meta-tool parse failure logs its length and error class only: ${broken.length} chars`, async () => {
+          await executeTool(
+            { name: 'executeTool', args: { toolName: 'getCurrentTime', args: broken } },
+            ctxFor(userId)
+          );
+          const parse = linesWith('Failed to parse meta-tool args JSON');
+          expect(parse).toHaveLength(1);
+          const record = JSON.parse(parse[0]) as Record<string, unknown>;
+          expect(record.rawArgsChars).toBe(broken.length);
+          expect(record.errorClass).toBe('SyntaxError');
+          // Structural: no error text at all, so nothing rests on the logger's scrub.
+          expect(record).not.toHaveProperty('error');
+          expect(record).not.toHaveProperty('err');
+          for (const word of broken.match(/[A-Za-z]{4,}/g) ?? []) {
+            expect(parse[0]).not.toContain(word);
+          }
+          expect(out.join('')).not.toContain('sunflower');
+        });
+      }
+
+      it('a meta-tool call without a toolName logs the shape of its args', async () => {
         await executeTool({ name: 'executeTool', args: { args: SAID } }, ctxFor(userId));
-        const parse = linesWith('Failed to parse meta-tool args JSON');
-        expect(parse).toHaveLength(1);
-        expect(parse[0]).toContain(`"rawArgsChars":${broken.length}`);
-        expect(parse[0]).toContain('"error":"SyntaxError');
         const missing = linesWith('Meta-tool call missing toolName');
         expect(missing).toHaveLength(1);
         expect(missing[0]).toContain(`"argShape":{"args":"string:${SAID.length}"}`);
