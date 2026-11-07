@@ -100,21 +100,36 @@ describe('someone close went down, with no second clause', () => {
     'i fell and my dad collapsed',
   ])('reads the everyday ways it is said: %s', expectEmergencyForThem);
 
-  it("keeps the caller's own crisis first in the same turn, with 988", () => {
+  it("keeps the caller's own crisis in the same turn: 911 for them first, then the caller's reply", () => {
     for (const line of [
       'my dad collapsed and i want to kill myself',
       'my mom fell. i want to die',
     ]) {
       for (const read of firstAndMid(line)) {
-        expect(read.subject).toBe('self');
-        expect(read.indicators).not.toContain('third_party_emergency');
+        expect(read.subject, line).toBe('self');
+        expect(read.indicators, line).toEqual(
+          expect.arrayContaining(['explicit_crisis_language', 'third_party_emergency'])
+        );
         const guard = guardFromDetection(read);
-        expect(guard.shouldBlock).toBe(true);
-        expect(guard.replacementResponse).not.toBe(EMERGENCY_FOR_THEM);
-        expect(guard.replacementResponse).toContain('988');
+        expect(guard.shouldBlock, line).toBe(true);
+        const reply = guard.replacementResponse ?? '';
+        expect(reply.startsWith(EMERGENCY_FOR_THEM.split('\n\n')[0]), line).toBe(true);
+        expect(reply.indexOf('911'), line).toBeLessThan(reply.indexOf('988'));
       }
     }
   });
+
+  it.each([
+    // A compound place, or a fall seconds ago (#3587 round 2).
+    'my dad fell on the kitchen floor',
+    'my mom collapsed on the bathroom floor',
+    'my wife fainted on the living room floor',
+    'my dad fell in the kitchen floor',
+    'my grandpa fell on the bathroom floor just now',
+    'my dad fell seconds ago',
+    'my mom collapsed moments ago',
+    'my dad just fell a few seconds ago',
+  ])('reads a compound place or a moment ago: %s', expectEmergencyForThem);
 });
 
 describe('words that only look like a fall stay as main reads them', () => {
@@ -155,5 +170,10 @@ describe('a fall long ago, or one they are fine from, is not imminent (owner, 20
     'my mom fainted, she has fully recovered',
     'my dad collapsed, he got better',
     "my grandma fell on the floor last year and she's okay now",
+    'my dad fell on the kitchen floor last year',
+    "my mom collapsed on the bathroom floor a few years ago and she's fine now",
+    "my dad fell seconds ago and he's fine now",
+    "my dad fell on the kitchen floor and he's fine now",
+    'if my dad fell on the kitchen floor',
   ])('%s', expectNothing);
 });
