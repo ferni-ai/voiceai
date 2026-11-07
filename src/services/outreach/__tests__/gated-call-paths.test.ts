@@ -10,6 +10,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeFirestore, type Row } from '../../scheduling/__tests__/fake-firestore.js';
+import type { OnBehalfCallRequest } from '../../../tools/domains/telephony/types.js';
 
 vi.hoisted(() => {
   // voice-call.ts reads these at load: Twilio is configured, as in prod (fictional values)
@@ -27,13 +28,14 @@ vi.mock('../user-contact.js', () => ({
 }));
 
 const createSipParticipant = vi.hoisted(() => vi.fn(async () => ({ participantId: 'PA_1' })));
+const createDispatch = vi.hoisted(() => vi.fn(async (..._a: unknown[]) => ({})));
 vi.mock('livekit-server-sdk', () => ({
   RoomServiceClient: class {
     createRoom = vi.fn(async () => ({}));
     listParticipants = vi.fn(async () => [{ kind: 4 }]); // the agent is in
   },
   AgentDispatchClient: class {
-    createDispatch = vi.fn(async () => ({}));
+    createDispatch = createDispatch; // its metadata is what the LiveKit agent reads
   },
   SipClient: class {
     createSipParticipant = createSipParticipant;
@@ -88,6 +90,13 @@ vi.mock('../../voice/voice-call.js', async (original) => ({
   ...(await original<Record<string, unknown>>()),
   callWithPersonaVoice: oldReferralDial,
 }));
+// Real unless a test says otherwise.
+const enrichment = vi.hoisted(() => ({ message: vi.fn() }));
+vi.mock('../message-enrichment.js', async (original) => {
+  const mod = await original<typeof import('../message-enrichment.js')>();
+  enrichment.message.mockImplementation(mod.enrichMessage);
+  return { ...mod, enrichMessage: enrichment.message };
+});
 const captureBackgroundResult = vi.hoisted(() => vi.fn(async () => ({})));
 vi.mock('../../background-agents/unified-result-capture.js', async (original) => ({
   ...(await original<Record<string, unknown>>()),
@@ -102,21 +111,27 @@ process.env.OUTBOUND_CONFIRM = 'off'; // past the caller's yes: these test what 
 
 const { definitions } = await import('../../../tools/domains/proactive/index.js');
 const { installGatedCallPort } = await import('../gated-call-paths.js');
-const { setGatedCallPort } = await import('../../../tools/domains/telephony/index.js');
-const { createVoiceReferralTools } =
+const { placeGatedCall, setGatedCallPort } =
+  await import('../../../tools/domains/telephony/index.js');
+const { placeOrHold } = await import('../deferred-calls.js');
+const { createVoiceReferralTools, getReferralAnalytics } =
   await import('../../../tools/domains/referral/voice-referral.js');
+const { getOnBehalfCallOrchestrator } = await import('../on-behalf-call-orchestrator.js');
+const { voicemailInstructions } = await import('../../../agents/outbound-call/call-opening.js');
 
 type Execute = { execute: (p: Record<string, unknown>) => Promise<string> };
 const background = definitions
   .find((d) => d.id === 'backgroundCall')!
   .create({ userId: 'owner-1', sessionId: 's1' } as never) as unknown as Execute;
-const referral = createVoiceReferralTools('owner-1', 'Sam')
-  .inviteFriendByCall as unknown as Execute;
+const referralTools = createVoiceReferralTools('owner-1', 'Sam');
+const referral = referralTools.inviteFriendByCall as unknown as Execute;
+const support = referralTools.sendSupportCall as unknown as Execute;
 
 const ANA = '+12135550100'; // Los Angeles area code
 const callAna = () =>
   background.execute({ contactName: 'Ana', contactPhone: ANA, objective: 'confirm Saturday' });
 const referAna = () => referral.execute({ friendName: 'Ana', friendPhone: ANA });
+const supportAna = () => support.execute({ friendName: 'Ana', friendPhone: ANA });
 
 const ELEVEN_PM_LA = new Date('2026-10-14T06:00:00Z'); // Tue 23:00 in Los Angeles
 const TEN_AM_LA = new Date('2026-10-13T17:00:00Z'); // Tue 10:00 in Los Angeles
@@ -307,7 +322,7 @@ describe('referral calls through placeOrHold', () => {
     const reply = await referAna();
 
     expect(reply).toBe(
-      "Nothing was dialed yet: it's not a good hour to call Ana, so I'll call tomorrow at 9:00 AM Ana's time, later today at 12:00 PM yours, to pass on a hello from Sam. Both times are already worked out: say them as written."
+      "Nothing was dialed yet: it's not a good hour to call Ana, so I'll call tomorrow at 9:00 AM Ana's time, later today at 12:00 PM yours, to let Ana know you're thinking of them. Both times are already worked out: say them as written."
     );
     expect(of('deferred_calls')).toHaveLength(1);
     expect(createSipParticipant).not.toHaveBeenCalled();
@@ -368,12 +383,41 @@ describe('referral calls through placeOrHold', () => {
   it('a good hour: placed and tracked as started, never as called', async () => {
     const reply = await referAna();
 
-    expect(reply).toMatch(/^The call to Ana has gone out\./);
+    // A live call: no promise of a recorded hello.
+    expect(reply).toBe("I'm calling Ana now to let them know you're thinking of them.");
     expect(createSipParticipant).toHaveBeenCalledOnce();
     expect(oldReferralDial).not.toHaveBeenCalled();
     const [tracked] = of('voice_referrals');
     expect(tracked.data).toMatchObject({ recipientName: 'Ana', status: 'started' });
     expect(tracked.data.callSid).toMatch(/^onbehalf_/);
+  });
+
+  // The live voicemail is the LiveKit agent's prompt, read from the dispatch metadata.
+  it("what Ana hears never says 'you' for Sam: the LiveKit voicemail prompt", async () => {
+    enrichment.message.mockImplementationOnce(async (c: { originalMessage: string }) => ({
+      message: c.originalMessage,
+      metadata: {},
+    }));
+    await referAna();
+
+    const [, , options] = createDispatch.mock.calls[0] as [string, string, { metadata: string }];
+    const { purpose } = JSON.parse(options.metadata) as { purpose: string };
+    const prompt = voicemailInstructions(
+      { recipientName: 'Ana', sponsorName: 'Sam', personal: true },
+      purpose
+    );
+    expect(prompt).toContain('- In one sentence, why Sam wanted to reach them: pass on a hello.\n');
+  });
+
+  it("analytics count a placed call ('started') and a one-way call ('called') as called", async () => {
+    const before = await getReferralAnalytics('owner-1');
+    await referAna(); // placed through placeOrHold: 'started'
+    delete process.env.CALL_PATHS_PLACE_OR_HOLD;
+    await referAna(); // the one-way call: 'called'
+
+    const after = await getReferralAnalytics('owner-1');
+    expect(after.totalReferrals - before.totalReferrals).toBe(2);
+    expect(after.called - before.called).toBe(2);
   });
 
   it('flag off: the one-way call, tracked as called, as before', async () => {
@@ -385,4 +429,67 @@ describe('referral calls through placeOrHold', () => {
     expect(createSipParticipant).not.toHaveBeenCalled();
     expect(of('voice_referrals')[0].data).toMatchObject({ status: 'called', callSid: 'CA_2' });
   });
+
+  it('a support call keeps its support framing when placed', async () => {
+    expect(await supportAna()).toBe("I'm calling Ana now to let them know you care.");
+    expect(createSipParticipant).toHaveBeenCalledOnce();
+  });
+
+  it('flag off: a support call says what it said before', async () => {
+    delete process.env.CALL_PATHS_PLACE_OR_HOLD;
+    expect(await supportAna()).toMatch(
+      /^I'm reaching out to Ana now with a gentle, supportive message\./
+    );
+  });
+});
+
+describe('a blank requester purpose falls back to the purpose', () => {
+  const HELD_HELLO =
+    "Nothing was dialed yet: it's not a good hour to call Ana, so I'll call tomorrow at 9:00 AM Ana's time, later today at 12:00 PM yours, to pass on a hello. Both times are already worked out: say them as written.";
+  const BLANKS = ['', '   ', '\n\t'];
+
+  it.each(BLANKS)(
+    'placeOrHold, requesterPurpose %j: the held reply says the purpose',
+    async (blank) => {
+      vi.setSystemTime(ELEVEN_PM_LA);
+      const request = {
+        contactQuery: 'Ana',
+        resolvedContact: { name: 'Ana', phone: ANA },
+        purpose: 'pass on a hello',
+        requesterPurpose: blank,
+        objective: 'deliver_message',
+        callType: 'personal',
+        originalSessionId: '',
+        userId: 'owner-1',
+        userTimezone: '',
+        userName: 'Sam',
+        recordingConsent: false,
+      } as OnBehalfCallRequest;
+      const orchestrator = getOnBehalfCallOrchestrator();
+      const { held } = await placeOrHold(request, async (r) => orchestrator.initiateCall(r));
+
+      expect(held).toBe(HELD_HELLO);
+    }
+  );
+
+  it.each(BLANKS)(
+    'the gated port, requesterPurpose %j: held reply and stored request',
+    async (blank) => {
+      vi.setSystemTime(ELEVEN_PM_LA);
+      const placement = await placeGatedCall({
+        userId: 'owner-1',
+        userName: 'Sam',
+        contactName: 'Ana',
+        phone: ANA,
+        purpose: 'pass on a hello',
+        requesterPurpose: blank,
+        objective: 'deliver_message',
+        callType: 'personal',
+      });
+
+      expect(placement).toEqual({ held: HELD_HELLO });
+      const [stored] = of('deferred_calls');
+      expect(stored.data.request).not.toHaveProperty('requesterPurpose');
+    }
+  );
 });
