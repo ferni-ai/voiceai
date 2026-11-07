@@ -20,6 +20,8 @@ const screens: Policy = { ...policy, loopAllowed: { paths: ['**'], screenContent
 const TEST_FILE = 'src/agents/personas/__tests__/greeting.test.ts';
 /** Resolves to src/agents/processors/turn-processor/process-turn.ts, a crisis path, with no crisis word. */
 const TURN = '../../processors/turn-processor/process-turn.js';
+/** A type argument with `>` inside it, so the skip must run to the `>` before the call's `(`. */
+const NESTED = 'Record<string, Array<Map<string, number>>>';
 
 /** Lanes for adding `text` to the test file, as the loop and as ferni-agent, from the diff alone. */
 function diffLanes(text: string, { withImports = true } = {}) {
@@ -46,6 +48,9 @@ const LOADS = {
   'vi.doMock': `vi.doMock('${TURN}');`,
   'vi.importActual': `const real = await vi.importActual('${TURN}');`,
   'vi.importActual with a type argument': `const real = await vi.importActual<typeof M>('${TURN}');`,
+  'vi.importActual with a nested type argument': `const real = await vi.importActual<${NESTED}>('${TURN}');`,
+  'vi.importActual with an import type and a nested type argument': `const real = await vi.importActual<typeof import('x') & ${NESTED}>('${TURN}');`,
+  'an import type inside a vi.importActual type argument': `const real = await vi.importActual<typeof import('${TURN}')>('../greet.js');`,
   'vi.importMock': `const m = await vi.importMock('${TURN}');`,
   'vi.mock with importOriginal, over several lines': [
     'vi.mock(',
@@ -67,16 +72,20 @@ describe('test-file module loads are read by the loop screen', () => {
     }
   );
 
-  it('the policy line pattern reads a mocked crisis path with no import list', () => {
-    const line = "vi.mock('../../../services/human-transfer/index.js');";
+  it.each([
+    "vi.mock('../../../services/human-transfer/index.js');",
+    `vi.importActual<${NESTED}>('../../../services/human-transfer/index.js');`,
+  ])('the policy line pattern reads %s with no import list', (line) => {
     expect(diffLanes(line, { withImports: false })).toEqual([['crisis'], []]);
   });
 
-  it('mocking a module that is not crisis, or a mock helper, stays clear', () => {
+  it('mocking a module that is not crisis, a mock helper, or an empty file stays clear', () => {
     for (const text of [
       "vi.mock('../greet.js');",
       "const real = await vi.importActual<typeof G>('../greet.js');",
+      `const real = await vi.importActual<${NESTED}>('../greet.js');`,
       "fetchMock.mockResolvedValue('ok');",
+      '',
     ]) {
       expect(contentBlocks(text)).toBe(false);
       expect(diffLanes(text)).toEqual([[], []]);

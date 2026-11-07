@@ -188,8 +188,9 @@ function hunkLines(diff: string): { file: string; line: string }[] {
   return lines;
 }
 
+/** A lookahead, so matches overlap: an `import('x')` inside a vi.* type argument is read too. */
 const SPECIFIER =
-  /(?:\bimport\b|\brequire\s*\(|\bfrom\b|\b(?:mock|doMock|importActual|importMock)\s*(?:<[^>]*>)?\s*\()[^'"`]*['"`]([^'"`]+)['"`]/g;
+  /(?=(?:\bimport\b|\brequire\s*\(|\bfrom\b|\b(?:mock|doMock|importActual|importMock)\s*(?:<[\s\S]*?>\s*)?\()[^'"`]*['"`]([^'"`]+)['"`])/g;
 /** Each specifier a changed line loads: import, require, from, vi.mock/doMock/importActual/importMock. */
 export function importsOf(diff: string): ImportRef[] {
   return hunkLines(diff).flatMap(({ file, line }) =>

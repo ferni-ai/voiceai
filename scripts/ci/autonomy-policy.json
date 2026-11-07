@@ -216,7 +216,7 @@
         "minorCare|memoryHeld\\(",
         "suicid|self-?harm",
         "aiNotice|AI_NOTICE",
-        "(?:\\bimport\\b|\\brequire\\s*\\(|\\bfrom\\b|\\b(?:mock|doMock|importActual|importMock)\\s*(?:<[^>]*>)?\\s*\\().*['\"`][^'\"`]*(?:services/safety|agents/safety|domains/crisis|human-transfer|minor-care|ai-notice)",
+        "(?:\\bimport\\b|\\brequire\\s*\\(|\\bfrom\\b|\\b(?:mock|doMock|importActual|importMock)\\s*(?:<[\\s\\S]*?>\\s*)?\\().*['\"`][^'\"`]*(?:services/safety|agents/safety|domains/crisis|human-transfer|minor-care|ai-notice)",
         "nine[- ]?eight[- ]?eight"
       ],
       "joinedLinePatterns": ["(?<!\\d)988(?!\\d)", "(?<!\\d)9\\W{0,3}8\\W{0,3}8(?!\\d)"],
