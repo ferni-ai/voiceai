@@ -48,6 +48,7 @@ import { loadSessionProfile, savable } from './load-session-profile.js';
 
 // Real-time memory - persist turns as they happen, never lose data
 import * as realtimeMemory from '../memory/realtime-memory.js';
+import { lastCallSummary } from '../memory/last-call-summary.js';
 
 // Voice authentication - household identification
 import { getActiveSession, startHouseholdSession } from '../voice/voice-household.js';
@@ -296,14 +297,12 @@ export async function createSessionServices(
         }
       }, 0);
 
-      // Enrich with realtime memory context (background)
-      realtimeMemory
-        .getLastConversationContext(validatedUserId)
-        .then((lastContext) => {
-          if (lastContext && userProfile && userProfile.lastConversationSummary === undefined) {
-            const summary =
-              lastContext.summary || realtimeMemory.buildQuickSummary(lastContext.turns);
-            if (summary) userProfile.lastConversationSummary = summary;
+      // A missing "last time" from realtime memory, never a forgotten topic (background).
+      // It starts before this call's conversation exists (startConversation, below): no id to skip.
+      lastCallSummary(validatedUserId)
+        .then((summary) => {
+          if (summary && userProfile && userProfile.lastConversationSummary === undefined) {
+            userProfile.lastConversationSummary = summary;
           }
         })
         .catch(() => {
@@ -2275,13 +2274,11 @@ export async function createSessionServices(
             // Non-critical
           }
 
-          void realtimeMemory
-            .getLastConversationContext(validatedUserId)
-            .then((lastContext) => {
-              if (lastContext && services.userProfile && !services.userProfile.lastConversationSummary) {
-                const summary =
-                  lastContext.summary || realtimeMemory.buildQuickSummary(lastContext.turns);
-                if (summary) services.userProfile.lastConversationSummary = summary;
+          // This call's conversation has started by now: the last one is the one before it.
+          void lastCallSummary(validatedUserId, realtimeConversationId)
+            .then((summary) => {
+              if (summary && services.userProfile && !services.userProfile.lastConversationSummary) {
+                services.userProfile.lastConversationSummary = summary;
               }
             })
             .catch(() => {
