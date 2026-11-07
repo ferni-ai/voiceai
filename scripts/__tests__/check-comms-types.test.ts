@@ -1,23 +1,22 @@
 /**
  * quality:comms-types lists comms type names (the glossary's allowlist) exported from more
- * than one file in src/. Fixture cases build a throwaway repo root with a src/ tree; the
- * last case runs on the real src/ and holds the glossary's "Duplicates today" table to it.
+ * than one file in src/. Every case builds a throwaway repo root with a src/ tree. None reads
+ * the real src/: the check is report-only, and this file runs in the required unit suite,
+ * so a real-src case here would make it a blocking ratchet. The real count and the
+ * glossary match are printed by `pnpm quality:comms-types`.
  */
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   COMMS_TYPE_NAMES,
   commsDeclarations,
   commsDuplicates,
+  GLOSSARY,
   run,
   sourceFiles,
 } from '../check-comms-types.js';
-
-const REPO = fileURLToPath(new URL('../..', import.meta.url));
-const GLOSSARY = join(REPO, 'docs/architecture/comms-glossary.md');
 
 let root: string;
 const repo = (files: Record<string, string>): string => {
@@ -79,6 +78,7 @@ describe('quality:comms-types on fixtures', () => {
       'src/uses.ts': "import type { Commitment } from './home';\nexport type { Commitment };\n",
       'src/reexport.ts': "export type { Commitment } from './home';\n",
       'src/local.ts': 'interface Commitment {\n  x: number;\n}\nexport const n = 1;\n',
+      'src/klass.ts': 'export class Commitment {\n  z = 1;\n}\n',
       'src/nested.ts':
         'export namespace N {\n  export interface Commitment {\n    y: number;\n  }\n}\n',
     });
@@ -119,19 +119,30 @@ describe('quality:comms-types on fixtures', () => {
   });
 });
 
-describe('quality:comms-types on the real src/', () => {
-  /** Backticked type names in the first column of the glossary's "Duplicates today" table. */
-  const tableNames = (): string[] => {
-    const doc = readFileSync(GLOSSARY, 'utf8');
-    const section = doc.split(/^## Duplicates today$/m)[1]?.split(/^## /m)[0] ?? '';
-    return [...section.matchAll(/^\| `(\w+)`/gm)].map((m) => m[1]);
+describe('quality:comms-types against the glossary table (report-only)', () => {
+  const table = (names: string[]): string =>
+    ['# Glossary', '', '## Duplicates today', '', '| Type | Declared in |', '| --- | --- |']
+      .concat(names.map((n) => `| \`${n}\` | somewhere |`))
+      .concat(['', '## Checking for duplicates', '', '| `NotARow` | ignored |', ''])
+      .join('\n');
+  const twoCommitments = {
+    'src/a.ts': 'export interface Commitment {\n  id: string;\n}\n',
+    'src/b.ts': 'export interface Commitment {\n  id: string;\n}\n',
   };
 
-  it('finds exactly the names the glossary lists as duplicated today', () => {
-    const names = tableNames();
-    expect(names.length).toBeGreaterThan(0);
-    const found = dupes(REPO).map((d) => d.name);
-    expect(found.length).toBe(names.length);
-    expect([...found].sort()).toEqual([...names].sort());
+  it('says the table matches when it names exactly the duplicates found', () => {
+    const dir = repo({ ...twoCommitments, [GLOSSARY]: table(['Commitment']) });
+    const { code, out } = quiet(dir, []);
+    expect(code).toBe(0);
+    expect(out).toContain('Glossary "Duplicates today" table: matches (1 names).');
+  });
+
+  it('lists names missing from the table and stale rows, and still exits 0', () => {
+    const dir = repo({ ...twoCommitments, [GLOSSARY]: table(['Person']) });
+    const { code, out } = quiet(dir, []);
+    expect(code).toBe(0);
+    expect(out).toContain('Glossary "Duplicates today" table is out of date (report-only):');
+    expect(out).toContain('  not in the table: Commitment');
+    expect(out).toContain('  in the table, no longer duplicated: Person');
   });
 });
