@@ -31,6 +31,15 @@ const TARGETS: Array<{ id: string; root: string; markerFile: string; marker: str
     marker: 'Tom Brannigan',
   },
   {
+    // Nate's legacy prompt is what a Nate call speaks from (no spark yet).
+    id: "nate's prompt",
+    root: fileURLToPath(
+      new URL('../bundles/joel-dickson/identity/system-prompt.md', import.meta.url)
+    ),
+    markerFile: '',
+    marker: 'Nate Holloway',
+  },
+  {
     id: 'henry landing page',
     root: fileURLToPath(new URL('../../../scripts/deploy-henry-page.mts', import.meta.url)),
     markerFile: '',

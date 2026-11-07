@@ -1,7 +1,7 @@
 /**
  * The three legends (Nate Holloway, Tom Brannigan, Henry Caldwell) had no
  * character sheet, so PROMPT_MODE=character fell back to their legacy system
- * prompts, Henry's and Tom's with "Things You DO Say" lines the model repeats.
+ * prompts.
  * Their new character.md (+ character-spark.md) is read only with
  * PERSONA_SPARK=on (character-spark.ts), so a legend call doesn't change until
  * the flag flips.
@@ -21,8 +21,8 @@ afterEach(() => {
 
 const LEGENDS: Array<[bundle: string, name: string, legacy: RegExp]> = [
   ['joel-dickson', 'Nate Holloway', /<role>/],
-  ['peter-lynch', 'Tom Brannigan', /Things You DO Say/],
-  ['john-bogle', 'Henry Caldwell', /Things You DO Say/],
+  ['peter-lynch', 'Tom Brannigan', /## Numbers Only From a Tool/],
+  ['john-bogle', 'Henry Caldwell', /## Answer What They Came For/],
 ];
 
 const BUNDLES = join(dirname(fileURLToPath(import.meta.url)), '../../../personas/bundles');
