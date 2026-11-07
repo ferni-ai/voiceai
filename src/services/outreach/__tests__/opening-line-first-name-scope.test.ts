@@ -8,6 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { ferniIntro, outboundOpener, partiesOf } from '../opening-line.js';
+import { dispatchedUserName, opensByFirstName } from '../../../utils/ferni-intro.js';
 import { outboundCallerAwareness } from '../../../agents/shared/outbound-opener.js';
 import { voicemailMessage } from '../../../agents/shared/line-screen.js';
 import { voicemailInstructions } from '../../../agents/outbound-call/call-opening.js';
@@ -51,6 +52,12 @@ const KEEP_MAINS = {
     kind: 'family_checkin',
   },
   'check-in to a relation': { callType: 'personal', recipientName: 'Mom', kind: 'family_checkin' },
+  'check-in with an opening line': {
+    callType: 'personal',
+    recipientName: 'Alex',
+    kind: 'family_checkin',
+    openingLine: "Hi Alex, it's Ferni. Checking in like we planned.",
+  },
   business: { callType: 'business', recipientName: 'Bright Dental' },
 };
 
@@ -74,6 +81,38 @@ describe('the flag changes nothing but the personal opener', () => {
       "Hi Alex, it's Ferni, Sam's AI friend. Sam asked me to check in on you. Is now an okay time?"
     );
     expect(on.awareness).toContain('You are calling on behalf of Sam, who is not on this call.');
+  });
+});
+
+describe('a blank preferred name changes nothing but the personal opener', () => {
+  const BLANKS = ['', '   ', '\t '];
+  /** The texts of a call dispatched as callOnBehalf does: preferred name, else the profile's. */
+  const dispatched = (call: Call, preferredName: string, env: Record<string, string>) => {
+    const userName = dispatchedUserName(preferredName, 'Sam Rivera', opensByFirstName(call), env);
+    return texts({ ...call, userName }, env);
+  };
+
+  it.each(Object.entries(KEEP_MAINS))('%s: every text, on equals off', (_kind, call) => {
+    for (const blank of BLANKS) {
+      const on = dispatched(call, blank, ON);
+      const off = dispatched(call, blank, OFF);
+      for (const field of Object.keys(off)) {
+        expect(on[field], `${JSON.stringify(blank)} / ${field}`).toBe(off[field]);
+      }
+    }
+  });
+
+  it("a relation with a blank name says main's line, no name", () => {
+    expect(dispatched(KEEP_MAINS.relation, '   ', ON).opener).toBe(
+      "Hi, it's Ferni, an AI friend, calling to check in on you. Is now an okay time?"
+    );
+  });
+
+  it.each(BLANKS)('a personal call to Alex says the first name, blank %j', (blank) => {
+    const on = dispatched({ callType: 'personal', recipientName: 'Alex' }, blank, ON);
+    expect(on.opener).toBe(
+      "Hi Alex, it's Ferni, Sam's AI friend. Sam asked me to check in on you. Is now an okay time?"
+    );
   });
 });
 

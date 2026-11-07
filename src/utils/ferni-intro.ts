@@ -3,7 +3,9 @@
  * friend". The one, light AI disclosure, as fixed text. It lives here, below
  * both outreach (services/outreach/opening-line.ts builds the live opener from
  * it) and the tools (makePhoneCall's played message), so every call that rings
- * someone else says the same words.
+ * someone else says the same words. Who an opener names by first name
+ * (opensByFirstName) lives here too, so callOnBehalf dispatches the name the
+ * opener will say.
  *
  * @module utils/ferni-intro
  */
@@ -34,7 +36,7 @@ const PLACEHOLDER_NAMES = new Set([
 ]);
 
 /** The name, trimmed, or undefined when it is empty or a placeholder ("the user"). */
-export function realName(name: string | undefined): string | undefined {
+function realName(name: string | undefined): string | undefined {
   const trimmed = name?.trim();
   return trimmed && !PLACEHOLDER_NAMES.has(trimmed.toLowerCase()) ? trimmed : undefined;
 }
@@ -91,7 +93,7 @@ function initialsFirst(name: string): boolean {
  * The user's name as an on-behalf call's opener says it. With
  * OPENER_FIRST_NAME_PERSONAL on, a personal call to someone saved by name says
  * the first name ("Sam's AI friend"); services/outreach/opening-line.ts
- * partiesOf passes false for a relation ("Mom") or a family check-in. The name
+ * opensByFirstName is false for a relation ("Mom") or a family check-in. The name
  * dispatched is already the preferred name when one is set (call-on-behalf.ts,
  * deferred-calls.ts requesterNameNow), so a one-word preferred name is said
  * whole. With no usable first name, or initials ("JR Rivera"), it says what it
@@ -108,19 +110,68 @@ export function openerSponsorName(
   return spokenFirstName(full) ?? full;
 }
 
+/** Contact names that say who someone is to the user, not what they are called. */
+const RELATIONS = new Set(
+  `mom mum mother mama momma dad father papa sister sis brother bro grandma grandmother granny
+  nana grandpa grandfather granddad wife husband partner son daughter aunt auntie uncle cousin
+  niece nephew stepmom stepmother stepdad stepfather stepson stepdaughter boyfriend girlfriend
+  fiance fiancee`.split(/\s+/)
+);
+
+/**
+ * A saved contact name as the person's name and what they are to the user:
+ * "Linda" is a name, "Mom" (or "my mom") only a relation, "Mom (Linda)" both.
+ * Prod 2026-10-18: a contact saved as "mom" was greeted "Hi mom".
+ */
+export function nameAndRelation(saved: string | undefined): { name?: string; relation?: string } {
+  let name: string | undefined;
+  let relation: string | undefined;
+  for (const part of (saved ?? '').split(/[(),/]|\s[-–]\s/)) {
+    const word = part
+      .trim()
+      .toLowerCase()
+      .replace(/^my\s+/, '');
+    if (RELATIONS.has(word)) relation ??= word;
+    else name ??= realName(part);
+  }
+  return { name, relation };
+}
+
+/**
+ * Whether a call's opener may change the user's name: a personal call to
+ * someone saved by name. A call is personal only when its type says so
+ * (call-on-behalf.ts inferCallType from the contact's relationship; a family
+ * check-in is dispatched as personal); a missing or other type is treated as
+ * business. A relation ("Mom") or a family check-in keeps main's name (Seth,
+ * 2026-11-07: first name in the personal opener only). callOnBehalf asks this
+ * too, so a blank preferred name changes nothing else.
+ */
+export function opensByFirstName(call: {
+  recipientName?: string;
+  callType?: string;
+  kind?: string;
+}): boolean {
+  const personal = call.callType === 'personal';
+  return (
+    personal && !nameAndRelation(call.recipientName).relation && call.kind !== 'family_checkin'
+  );
+}
+
 /**
  * The user's name an on-behalf call is dispatched with: the preferred name when
  * one is set, else the profile name. With OPENER_FIRST_NAME_PERSONAL on, a
- * blank preferred name falls to the profile name, so the opener never loses it.
+ * personal call to someone saved by name (opensByFirstName above)
+ * takes a blank preferred name as unset, so its opener never loses the name.
+ * Every other call, and the flag off, dispatch what main did.
  */
 export function dispatchedUserName(
   preferredName: string | undefined,
   name: string | undefined,
+  personal: boolean,
   env: Env = process.env
 ): string {
-  const preferred = flagOn('OPENER_FIRST_NAME_PERSONAL', env)
-    ? preferredName?.trim()
-    : preferredName;
+  const preferred =
+    personal && flagOn('OPENER_FIRST_NAME_PERSONAL', env) ? preferredName?.trim() : preferredName;
   return preferred || name || 'the user';
 }
 
