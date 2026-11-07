@@ -8,6 +8,7 @@
 // Initialize GSAP plugins early (before any animations)
 import './utils/gsap-setup.js';
 import { isCaptionsV2Enabled } from './ui/captions/captions-flag.js';
+import { initCalmIdleScreen } from './app/calm-idle-screen.js';
 
 // Import and auto-initialize the app
 export { app } from './app.js';
@@ -17,6 +18,9 @@ export { app } from './app.js';
 if (isCaptionsV2Enabled()) {
   void import('./ui/captions/live-captions.js').then((m) => m.initLiveCaptions());
 }
+
+// Calm idle screen (off by default, see config/calm-idle.ts).
+initCalmIdleScreen();
 
 // Report a reply (store policy), during and after a call; on unless switched off.
 void import('./ui/report-reply/report-reply-entry.js').then((m) => m.initReportReply());
