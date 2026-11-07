@@ -3,13 +3,14 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   changedExports,
   embedAll,
   exportedFunctions,
   findDuplicates,
   jaccard,
+  main,
   MARKER,
   MIN_TOKENS,
   related,
@@ -173,9 +174,13 @@ describe('embedAll cache', () => {
   });
 });
 
-describe('changedExports', () => {
+describe('in a git repo', () => {
   let root: string;
-  afterEach(() => rmSync(root, { recursive: true, force: true }));
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+    rmSync(root, { recursive: true, force: true });
+  });
   const git = (...args: string[]): string =>
     execFileSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', ...args], {
       cwd: root,
@@ -208,6 +213,34 @@ describe('changedExports', () => {
         .map((f) => `${f.file}#${f.name}`)
         .sort()
     ).toEqual(['src/a.ts#edited', 'src/new.ts#added']);
+  });
+
+  it('is advisory: the command reports a duplicate and leaves the exit code alone', async () => {
+    root = mkdtempSync(join(tmpdir(), 'dups-main-'));
+    git('init', '-q', '-b', 'main');
+    write({ 'src/a.ts': body('original') });
+    git('add', '.');
+    git('commit', '-q', '-m', 'base');
+    vi.stubEnv('GITHUB_ACTIONS', '');
+    vi.stubEnv('GITHUB_EVENT_PATH', '');
+    vi.stubEnv('QUALITY_BASE', git('rev-parse', 'HEAD'));
+    write({ 'src/b.ts': body('copy', 'b') });
+    git('add', '.');
+    git('commit', '-q', '-m', 'copy');
+    const exit = vi.spyOn(process, 'exit').mockImplementation((code) => {
+      throw new Error(`process.exit(${code})`);
+    });
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { exitCode } = process;
+    const out = join(root, 'dups.md');
+
+    const findings = await main(['--out', out], root, async () => byNameWord);
+
+    expect(findings.map((f) => f.fn.name)).toEqual(['copy']);
+    expect(readFileSync(out, 'utf8')).toContain('shingles 1.00 with `original` (src/a.ts:1)');
+    expect(exit).not.toHaveBeenCalled();
+    expect(process.exitCode).toBe(exitCode);
   });
 });
 

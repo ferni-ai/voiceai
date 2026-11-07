@@ -249,12 +249,16 @@ export function report(findings: Finding[], candidates: number): string {
   return [MARKER, `${head} ${tail}`, '', ...lines].join('\n');
 }
 
-async function main(argv: string[]): Promise<void> {
+/** Runs the check. Advisory: findings never change the exit code; only an error exits 1. */
+export async function main(
+  argv: string[],
+  root = process.cwd(),
+  loadEmbed: () => Promise<Embed> = localEmbed
+): Promise<Finding[]> {
   const arg = (name: string): string | undefined =>
     argv.includes(name) ? argv[argv.indexOf(name) + 1] : undefined;
-  const root = process.cwd();
   const cache = arg('--cache');
-  const embed = await localEmbed();
+  const embed = await loadEmbed();
   const pool = poolAt(root);
   const candidates = argv.includes('--warm') ? [] : changedExports(resolveBase(root), root);
   const started = Date.now();
@@ -265,6 +269,7 @@ async function main(argv: string[]): Promise<void> {
   if (out) writeFileSync(out, `${body}\n`);
   console.log(body);
   console.error(`${pool.length} exports, ${vectors.size} embedded, ${Date.now() - started} ms`);
+  return findings;
 }
 
 if (process.argv[1]?.endsWith('semantic-duplicates.ts')) {
