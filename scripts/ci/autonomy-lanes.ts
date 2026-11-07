@@ -188,9 +188,9 @@ function hunkLines(diff: string): { file: string; line: string }[] {
   return lines;
 }
 
-const SPECIFIER = /(?:\bimport\b|\brequire\s*\(|\bfrom\b)[^'"`]*['"`]([^'"`]+)['"`]/g;
-
-/** Every import, require or `from` specifier on a changed line of a unified diff. */
+const SPECIFIER =
+  /(?:\bimport\b|\brequire\s*\(|\bfrom\b|\b(?:mock|doMock|importActual|importMock)\s*(?:<[^>]*>)?\s*\()[^'"`]*['"`]([^'"`]+)['"`]/g;
+/** Each specifier a changed line loads: import, require, from, vi.mock/doMock/importActual/importMock. */
 export function importsOf(diff: string): ImportRef[] {
   return hunkLines(diff).flatMap(({ file, line }) =>
     [...line.matchAll(SPECIFIER)].map((m) => ({ file, specifier: m[1] }))
