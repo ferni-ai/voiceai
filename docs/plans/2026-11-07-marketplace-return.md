@@ -188,43 +188,25 @@ Starts only after P4 is live for friends and family.
 
 ## 9. P0 findings (2026-11-07)
 
-Probe id: `test-companion`, fictional. Tests: `src/agents/personas/__tests__/non-core-persona-crisis.test.ts`, `non-core-persona-prompt.test.ts`.
+Probe id: `test-companion`, fictional. Tests: `src/agents/personas/__tests__/non-core-persona-crisis.test.ts`, `non-core-persona-prompt.test.ts`. Paths below are under `src/` unless they start with `apps/`.
 
-1. **A session with a non-core id.** The token route passes any id through (`src/servers/api/routes/token.ts:325,340,543`); the agent reads it (`src/agents/voice-agent-entry/metadata-parser.ts:103`). Then:
-   - Multi-agent mode (on by default, `voice-agent-entry/constants.ts:25`) throws `Unknown persona` when no bundle loads (`multi-agent/persona-agent-factory.ts:132`).
-   - Single-agent mode builds a generic "life coach" persona (`voice-agent-entry/persona-builder.ts:57-64`) with the prompt `You are <id>, a helpful companion.` (`agents/personas/prompt-loader.ts:526`).
-   - Only the core six are prewarmed (`personas/bundles/preloader.ts:16`).
-   - Unknown ids map to Ferni (`personas/persona-ids.ts:252-253`), so display name, short name and handoff tool answer as Ferni (`personas/id-mapping.ts:284-312`).
-   - The turn reminder says no teammates are available (`tools/handoff/locked-teammates.ts:168`) and lacks some of the core reminder's humanness lines (seen in the crisis test's ordinary-line request).
-   - Greeting and memory scope: UNCONFIRMED, not traced in P0.
-2. **Crisis kernel: unchanged, proven by test.** 12 corpus lines the gate acts on, plus 1 ordinary line, patterns-only and patterns+classifier: the non-core reply is byte-for-byte the core one, and the gate decision for the ordinary line is identical. `crisis-gate.ts` has no persona branch.
-3. **Canonical crisis line: absent for non-core in both modes.** It lives only in each core `identity/character.md`; the loader append (#3595) is not on main. A non-core id assembles the generic fallback in full and character mode, with no 988 line. Both mode tests are `it.fails` and go red when the line lands.
-4. **APIs** (registered in `src/servers/api/index.ts:548,563,579`; clients by grep of `apps/web/src`, `apps/ios-native`):
-
-   | Route family | Client | State |
-   |---|---|---|
-   | marketplace registry/manifest (browse) | `apps/web/src/services/marketplace.service.ts:294-295` | live |
-   | marketplace reviews | `apps/web/src/ui/marketplace.ui.ts` | live |
-   | marketplace admin + `review-queue.ts` | `apps/web/src/ui/marketplace-admin.ui.ts`; queue via admin and publisher routes | live |
-   | custom-agents (agent, voice, memory, chat, generate-prompt) | `apps/web/src/services/custom-agent.service.ts` (`:512` prompt) | live, flag-gated UI |
-   | marketplace install, billing, checkout, publisher | none in web or iOS | UNCONFIRMED (registered, no client found) |
-   | custom-agents journal routes | none (journal sync reads memories) | UNCONFIRMED |
-
-   No route is dead: every family is registered. No iOS caller for any.
-5. **"Start a call with agent X" today.**
-   - Web: `apps/web/src/app/conversation-starter.ts:49` keeps the id only if `isValidPersonaId` (core and known ids), then `services/connection.service.ts:425` and `services/token-fetch.service.ts:27` send `persona_id`.
-   - iOS: `TeamStore.choose` accepts team ids only (`FerniKit/Team/TeamStore.swift:32-35`); `FerniVoice/CallToken.swift:43` sends `persona_id`.
-   - Server: no core-id check; custom-agent ids are the only swap (`token.ts:340`).
+1. **A session with a non-core id.** `/demo-token` takes `persona_id` with no sign-in, IP rate-limited (`servers/api/routes/token.ts:176-180`); any id that isn't a custom agent passes (`token-persona-owner.ts:17-19`) into room metadata (`token.ts:240-241`). `/token` needs a Firebase user, anonymous included (`:353`), and the admission gate (`:392`); it reads the id (`:325,340`), swaps only a custom agent id the caller doesn't own (`:397-399`) and passes it on (`:543`). The agent reads it (`agents/voice-agent-entry/metadata-parser.ts:103`). Multi-agent mode (on by default, `voice-agent-entry/constants.ts:25`) throws `Unknown persona` with no bundle (`agents/multi-agent/persona-agent-factory.ts:132`), then falls back to single-agent (`agents/voice-agent/phases/multi-agent-mode.ts:408-428`, `voice-agent-entry/index.ts:621-625`): the call still starts. Single-agent mode builds a generic persona (`voice-agent-entry/persona-builder.ts:57-64`) with `You are <id>, a helpful companion.` (`agents/personas/prompt-loader.ts:526`). Only the core six are prewarmed (`personas/bundles/preloader.ts:16`). Unknown ids map to Ferni (`personas/persona-ids.ts:252-253`), so name and handoff tool answer as Ferni (`personas/id-mapping.ts:284-312`). Greeting and memory scope: UNCONFIRMED, not traced.
+2. **Crisis kernel: unchanged on every path, proven by test.** Patterns-only action over the 160 risk lines of `CRISIS_TEST_BLIND` + `CRISIS_HELDOUT`: replace 39, guide 55, pass 66 (31 block, 35 crisis). The test takes 6 replace, 6 guide, 6 classifier-only (3 block, among them the rope, oxys and whole-bottle lines; 3 crisis) and 1 ordinary line, patterns-only and patterns+classifier. Non-core gets core's 988 line, model call count, guidance and system text (turn reminder normalised out by one tested helper) and reply bytes. `crisis-gate.ts` has no persona branch. Softening the pattern or classifier script, skipping escalation, or adding "no need to mention any hotline" to guidance, for non-core only, each turns the test red.
+3. **Canonical crisis line: absent for non-core in both modes.** Full mode gives every id the base rule "For crisis: Acknowledge, provide 988 Lifeline, don't minimize" (`personas/bundles/shared/model-base-instructions.md:444`); core Ferni's full mode has no canonical line either. In character mode the canonical line lives only in each core `identity/character.md`; a non-core id gets the fallback, with no 988 at all. The loader append (#3595) is not on main; both non-core mode tests are `it.fails`.
+4. **APIs** (registered at `servers/api/index.ts:548,563,579`; clients by grep of `apps/web/src`, `apps/ios-native`). Live: marketplace registry/manifest (`apps/web/src/services/marketplace.service.ts:294-295`), reviews (`ui/marketplace.ui.ts`), admin and review queue (`ui/marketplace-admin.ui.ts`), custom-agents (`services/custom-agent.service.ts`, prompt `:512`; flag-gated UI). UNCONFIRMED (registered, no client found): install, billing, checkout, publisher, custom-agent journal routes. No route is dead; no iOS caller for any.
+5. **"Start a call with agent X" today.** Web keeps the id only if `isValidPersonaId` (`apps/web/src/app/conversation-starter.ts:49`), then sends `persona_id` (`services/connection.service.ts:425`, `services/token-fetch.service.ts:27`). iOS accepts team ids only (`FerniKit/Team/TeamStore.swift:32-35`; `FerniVoice/CallToken.swift:43` sends it). Server: no core-id check; the only swap is a custom agent id (`token.ts:397-399`).
 6. **Dev call:** deferred to P2 (no deploy or flag change in P0).
+
+**Reachability.** Neither client can send an arbitrary id and `CUSTOM_AGENT_LIVE` is off (`config/flags/CUSTOM_AGENT_LIVE.ts:4`), but `/demo-token` takes any id with no sign-in and `/token` takes any id from an admitted Firebase user, anonymous included: a non-core call is reachable today. On it the crisis gate acts as for core (item 2); the prompt has no canonical line, and in character mode no 988 (G3).
 
 ### Gaps
 
 | # | Gap | Evidence | Phase |
 |---|---|---|---|
-| G1 | Multi-agent mode can't start a non-core persona without a bundle | `persona-agent-factory.ts:132` | P1 |
+| G1 | Multi-agent mode can't start a non-core persona without a bundle; it falls back to single-agent and the call starts | `persona-agent-factory.ts:132`, `multi-agent-mode.ts:408-428` | P1 |
 | G2 | Unknown ids collapse to Ferni in id mapping and handoffs | `persona-ids.ts:252`, `id-mapping.ts:284-312` | P1 |
-| G3 | No canonical crisis line in a non-core prompt, either mode | #3595; `non-core-persona-prompt.test.ts` | P1, before any call |
-| G4 | Non-core turn reminder: no team, fewer humanness lines | `locked-teammates.ts:168` | P1 |
-| G5 | Web and iOS reject non-core ids before the call | `conversation-starter.ts:49`, `TeamStore.swift:33` | P2 |
-| G6 | Install/billing/publisher routes have no client | table above | P2 |
+| G3 | No canonical crisis line in a non-core prompt: full mode has only the base 988 rule (so does core Ferni), character mode no 988 | `model-base-instructions.md:444`, `prompt-loader.ts:526`, #3595 | P1, before any call |
+| G4 | Non-core turn reminder says "You are Ferni… never say you are Ferni" and "only Ferni is available"; core Ferni gets "None of your teammates…" | `agents/personas/teammate-identity.ts:39-42` via `turn-request.ts:181` (TEAMMATE_IDENTITY_NOTE on, `config/flag-manifest-blocks.ts:77`); `tools/handoff/locked-teammates.ts:169` vs `:168` | P1 |
+| G5 | Web and iOS reject non-core ids before the call; `/demo-token` and `/token` don't | `conversation-starter.ts:49`, `TeamStore.swift:33`, `token.ts:176-180` | P2 |
+| G6 | Install/billing/publisher routes have no client | item 4 | P2 |
 | G7 | Greeting and memory scope untraced | - | P1 |
