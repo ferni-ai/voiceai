@@ -250,10 +250,6 @@ async function main() {
       console.log('   ✅ ANSWERED!');
     });
 
-    orchestrator.on('voicemail-detected', (call) => {
-      console.log('   📬 VOICEMAIL DETECTED');
-    });
-
     orchestrator.on('call-completed', (call) => {
       console.log('   ✅ CALL COMPLETED');
       console.log(`   Status: ${call.status}`);

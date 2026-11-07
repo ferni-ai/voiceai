@@ -13,7 +13,7 @@ import {
   checkToolCache,
   invalidateToolCache,
 } from '../../services/performance/tool-response-cache.js';
-import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import {
   executeWithParallelFallback,
   isCriticalTool,
@@ -27,6 +27,7 @@ import { getConversationState } from '../../services/conversation-state.js';
 import { heldWriter } from './held-tool-gate.js';
 import { isServiceHealthyFast } from '../../services/self-healing/index.js';
 import { isMetaToolCall, unwrapMetaToolCall } from './meta-tool.js';
+import { toolArgShape } from './tool-arg-shape.js';
 import { outboundDispatchRefusal } from '../../tools/registry/outbound-gate.js';
 import {
   notifyToolFailed,
@@ -188,7 +189,10 @@ async function routeToTool(
     return legacyResult;
   }
 
-  log.warn({ fn, args, userId: ctx.userId, personaId: ctx.personaId }, 'Unknown tool — no route');
+  log.warn(
+    { fn, argShape: toolArgShape(args), userId: ctx.userId, personaId: ctx.personaId },
+    'Unknown tool — no route'
+  );
   return "I'm not able to do that specific action right now, but I'm happy to help in another way.";
 }
 
@@ -223,7 +227,7 @@ export async function executeTool(
   if (heldWriter(fn, ctx.held)) return { success: true, fn, args, result: '', durationMs: 0 };
 
   log.info(
-    { fn, args: truncateForLog(JSON.stringify(args), 200), sessionId, userId: ctx.userId },
+    { fn, argShape: toolArgShape(args), sessionId, userId: ctx.userId }, // never the caller's words
     `Tool start: ${fn}`
   );
   ctx.onToolStart?.(fn, args);

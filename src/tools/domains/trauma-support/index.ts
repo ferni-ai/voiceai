@@ -446,7 +446,7 @@ const selfCompassionTraumaDef: ToolDefinition = {
         selfBlame: z.string().optional().describe('What you blame yourself for'),
       }),
       execute: async ({ selfBlame }) => {
-        log.info({ selfBlame }, 'Self-compassion for trauma');
+        log.info({ selfBlameChars: selfBlame?.length ?? 0 }, 'Self-compassion for trauma');
 
         let response = '';
 

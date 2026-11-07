@@ -60,8 +60,13 @@ export function extractEmbedding(
  * Check if document matches filter criteria.
  */
 export function matchesFilter(
-  doc: { metadata: { source: string; category?: string; userId?: string } },
-  filter?: { source?: string | string[]; category?: string | string[]; userId?: string }
+  doc: { metadata: { source: string; category?: string; userId?: string; [key: string]: unknown } },
+  filter?: {
+    source?: string | string[];
+    category?: string | string[];
+    userId?: string;
+    metadata?: Record<string, unknown>;
+  }
 ): boolean {
   if (!ownedBy(doc, filter)) return false;
   if (!filter) return true;
@@ -76,7 +81,37 @@ export function matchesFilter(
     if (!doc.metadata.category || !categories.includes(doc.metadata.category)) return false;
   }
 
+  for (const [key, value] of metadataEqualities(filter)) {
+    if (doc.metadata[key] !== value) return false;
+  }
+
   return true;
+}
+
+type MetadataScalar = string | number | boolean;
+
+/**
+ * The filter's metadata entries with a scalar value: list() sends each as a
+ * Firestore where('metadata.<key>', '==', value) and matchesFilter applies the
+ * same ones, so the cache and Firestore agree. Other values are not applied.
+ */
+function metadataEqualities(filter?: {
+  metadata?: Record<string, unknown>;
+}): Array<[string, MetadataScalar]> {
+  return Object.entries(filter?.metadata ?? {}).filter((entry): entry is [string, MetadataScalar] =>
+    ['string', 'number', 'boolean'].includes(typeof entry[1])
+  );
+}
+
+/** The query narrowed by each of the filter's scalar metadata equalities. */
+export function whereMetadataEquals(
+  query: CollectionReference | Query,
+  filter?: { metadata?: Record<string, unknown> }
+): CollectionReference | Query {
+  let q = query;
+  for (const [key, value] of metadataEqualities(filter))
+    q = q.where(`metadata.${key}`, '==', value);
+  return q;
 }
 
 /**
@@ -102,10 +137,9 @@ export function filteredQuery(
  */
 export function keepCandidate(
   data: { metadata?: unknown; expireAt?: unknown },
-  filter?: { source?: string | string[]; category?: string | string[]; userId?: string }
+  filter?: Parameters<typeof matchesFilter>[1]
 ): boolean {
-  const metadata = data.metadata as
-    { source: string; category?: string; userId?: string } | undefined;
+  const metadata = data.metadata as Parameters<typeof matchesFilter>[0]['metadata'] | undefined;
   // Past its expireAt: Firestore's TTL deletes it late (a day or more), so it isn't returned
   return !!metadata && !isMomentExpired(data) && matchesFilter({ metadata }, filter);
 }

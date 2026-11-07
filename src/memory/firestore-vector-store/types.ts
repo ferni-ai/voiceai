@@ -110,3 +110,5 @@ export const MAX_FALLBACK_CACHE_SIZE = 10_000;
 export const RECOVERY_INTERVAL_MS = 60_000;
 export const MAX_RECOVERY_ATTEMPTS = 10;
 export const FIRESTORE_BATCH_SIZE = 500;
+/** Most docs one list() call reads; a full page may mean more were left unread. */
+export const LIST_PAGE_SIZE = 500;

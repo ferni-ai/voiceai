@@ -15,7 +15,14 @@ import {
   classifierReadSelf,
   withAbuseDisclosure,
 } from '../abuse-disclosure-turn.js';
-import { noteCrisisRisk, resetCrisisCallRisk } from '../crisis-call-risk.js';
+import {
+  crisisRiskNoted,
+  crisisRiskThisCall,
+  noteCrisisRisk,
+  notePatternRisk,
+  resetCrisisCallRisk,
+  selfRiskThisCall,
+} from '../crisis-call-risk.js';
 import { resetCrisisClassifierCache, type CrisisGenerateFn } from '../crisis-classifier.js';
 import type { CrisisDetectionResult } from '../crisis-guard.js';
 import { resetCallRiskSnapshots } from '../crisis-lone-imminent.js';
@@ -305,10 +312,15 @@ describe('abuseDisclosure', () => {
 });
 
 describe('a disclosure through the turn pipeline', () => {
-  it('is exactly as on main with the flag off', async () => {
+  // Changed (K1e): main read nothing here with the flag off.
+  it("is the kernel's own abuse read with the flag off: a crisis that keeps 988", async () => {
     const s = await summary("My stepdad hits me when he's drunk.", OFF);
-    expect(s.isCrisis).toBe(false);
-    expect(s.indicators).not.toContain('abuse_disclosure');
+    expect(s.isCrisis).toBe(true);
+    expect(s.shouldOverrideLLM).toBe(false);
+    expect(s.indicators).toEqual(
+      expect.arrayContaining(['abuse_disclosure', 'abuse_disclosure_child'])
+    );
+    expect(abuseGuidance(s) ?? '').toMatch(/\b988\b/);
   });
 
   it('is a crisis-level safety turn with the flag on, never the scripted takeover', async () => {
@@ -329,7 +341,7 @@ describe('a disclosure through the turn pipeline', () => {
     expect(g).not.toMatch(/\b988\b/);
   });
 
-  it('a named child line: Childhelp with the safe-adult nudge beside it, and nothing with the flag off', async () => {
+  it('a named child line: Childhelp with the safe-adult nudge beside it, flag on or off', async () => {
     for (const line of [
       'My dad hits me.',
       "My stepdad hits me when he's drunk.",
@@ -342,8 +354,13 @@ describe('a disclosure through the turn pipeline', () => {
       expect(step4, line).toMatch(
         /If they are a child or teen, gently encourage them to tell a safe adult they trust$/
       );
-      // Flag off: no abuse read, so the turn handler keeps main's guidance path.
-      expect(abuseGuidance(await summary(line, OFF)), line).toBeNull();
+      // Flag off: the kernel's abuse read, the same line, with 988 beside it.
+      const off = abuseGuidance(await summary(line, OFF)) ?? '';
+      expect(
+        off.split('\n').find((l) => l.startsWith('4. ')),
+        line
+      ).toBe(step4);
+      expect(off, line).toMatch(/\b988\b/);
     }
   });
 
@@ -483,6 +500,36 @@ describe('988 on an abuse disclosure', () => {
       ['Some days I just want to disappear.', 'My dad hits me.'],
     ])
       expect(await has988(line, ON, none, { earlier: [before] }), line).toBe(true);
+  });
+
+  it("is dropped on a second abuse-only turn: the kernel's own note is not risk to the caller", async () => {
+    const call = `abuse-${++n}`;
+    const first = 'My dad hits me.';
+    expect(await has988(first, ON, none, { call })).toBe(false);
+    // The first turn's kernel read was noted (notePatternRisk): the call holds as any risky call does.
+    expect(crisisRiskThisCall(call)).toBe(true);
+    expect(selfRiskThisCall(call)).toBe(false);
+    expect(await has988('He hit me again last night.', ON, none, { call, earlier: [first] })).toBe(
+      false
+    );
+  });
+
+  it('an abuse-only pattern read is risk on the call, not risk to the caller', () => {
+    const call = `abuse-${++n}`;
+    const abuseOnly = { indicators: ['abuse_disclosure', 'abuse_disclosure_partner'] };
+    expect(crisisRiskThisCall(call)).toBe(false);
+    notePatternRisk(call, abuseOnly);
+    expect(crisisRiskThisCall(call)).toBe(true);
+    expect(crisisRiskNoted(call)).toBe(true);
+    expect(selfRiskThisCall(call)).toBe(false);
+    notePatternRisk(`${call}-mixed`, {
+      indicators: [...abuseOnly.indicators, 'implicit_distress'],
+    });
+    expect(selfRiskThisCall(`${call}-mixed`)).toBe(true);
+    noteCrisisRisk(call);
+    expect(selfRiskThisCall(call)).toBe(true);
+    notePatternRisk(call, abuseOnly);
+    expect(selfRiskThisCall(call)).toBe(true);
   });
 
   it('stays when risk was noted earlier on the call', async () => {
