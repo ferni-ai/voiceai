@@ -132,19 +132,136 @@ const plainWords = (text: string): string =>
     .trim()} `;
 
 /**
- * A sentence pointing back to a help line Ferni already gave ("That number I gave
- * you earlier is open all night long.", "The counselors on that text service are
- * kind and patient."). It names no line itself, so the safety readers miss it, but
- * the caller may still need to hear it.
+ * Nouns that can name a help line or the people on one (pointsBack): a line named
+ * as help, counselors, other staff, people, a plain line or number, and a chat.
  */
-const POINTS_BACK = new RegExp(
+type HelpNoun = 'named' | 'counselor' | 'staff' | 'people' | 'line' | 'service';
+const HELP_NOUNS = new Map<string, HelpNoun>(
   [
-    String.raw`\b(?:that|the|this)\s+(?:text\s+|chat\s+|help\s*)?(?:number|line|service|chat)\s+(?:that\s+)?(?:I|we)(?:'ve)?\s+(?:just\s+|already\s+)?(?:gave|given|mentioned|shared|sent|told you about|talked about|brought up)\b`,
-    String.raw`\b(?:counsell?ors?|volunteers?|responders?)\s+(?:on|at|from)\s+(?:that|the|this)\s+(?:\w+\s+)?(?:line|service|chat|number)\b`,
-    String.raw`\b(?:people|folks)\s+(?:on|at)\s+that\s+(?:text\s+|chat\s+|help\s*)?(?:line|service)\b`,
-  ].join('|'),
-  'i'
+    ['hotline helpline', 'named'],
+    ['counselor counsellor', 'counselor'],
+    ['volunteer responder', 'staff'],
+    ['line number', 'line'],
+    ['service chat', 'service'],
+  ].flatMap(([words, kind]) =>
+    words.split(' ').flatMap((w) => [w, `${w}s`].map((form) => [form, kind as HelpNoun] as const))
+  )
 );
+HELP_NOUNS.set('people', 'people').set('folks', 'people');
+/** "crisis line", "text service": a line named as help says it on its own. */
+const HELP_KIND = new Set(['crisis', 'help', 'text', 'chat', 'suicide', 'support']);
+const LINE_LIKE = new Set<HelpNoun>(['named', 'line', 'service']);
+const DEMONSTRATIVE = new Set(['that', 'those', 'this', 'these']);
+const OWNER = new Set(['my', 'our', 'his', 'her', 'their', 'its']);
+const BACK_IN_TIME = [
+  ['from', 'before'],
+  ['earlier'],
+  ['reaching', 'out', 'to'],
+  ['reach', 'out', 'to'],
+];
+const BACK_SUBJECT = /^(?:i|we|i've|we've)$/;
+const BACK_VERB = /^(?:gave|given|mentioned|shared|sent|told|talked|brought)$/;
+/**
+ * Words allowed between a help noun and the words pointing back to it. "I gave",
+ * "we talked about" after the noun must follow it at once ("the number I gave
+ * you", "the line that I mentioned"): further on they point back at something
+ * else ("The bus line downtown is something I mentioned").
+ */
+const BACK_WINDOW = 3;
+const SAID_AFTER_WINDOW = 1;
+
+interface BackRef {
+  from: number;
+  to: number;
+  /** "I gave", "we talked about", not only "earlier". */
+  said: boolean;
+}
+
+/** Each phrase in `words` that refers back to something said before. */
+function backRefs(words: string[]): BackRef[] {
+  const found: BackRef[] = [];
+  words.forEach((w, i) => {
+    for (const phrase of BACK_IN_TIME)
+      if (phrase.every((p, k) => words[i + k] === p))
+        found.push({ from: i, to: i + phrase.length - 1, said: false });
+    const verb = ['just', 'already'].includes(words[i + 1] ?? '') ? i + 2 : i + 1;
+    if (BACK_SUBJECT.test(w) && BACK_VERB.test(words[verb] ?? ''))
+      found.push({ from: i, to: verb, said: true });
+  });
+  return found;
+}
+
+/** Each help noun in `words`, and whether "that" or "those" stands just before it. */
+function helpNouns(words: string[]): Array<{ at: number; kind: HelpNoun; pointed: boolean }> {
+  return words.flatMap((w, i) => {
+    const named =
+      /^(?:lines?|numbers?|services?|chats?)$/.test(w) && HELP_KIND.has(words[i - 1] ?? '');
+    const kind = named ? 'named' : HELP_NOUNS.get(w);
+    const before = words.slice(Math.max(0, i - 2), i);
+    // "the line of thinking", "my phone number", "I was in line".
+    if (!kind || words[i + 1] === 'of' || before.some((b) => OWNER.has(b))) return [];
+    if (kind === 'line' && words[i - 1] === 'in') return [];
+    return [{ at: i, kind, pointed: before.some((b) => DEMONSTRATIVE.has(b)) }];
+  });
+}
+
+/** What sits near one help noun in a sentence. */
+interface NounContext {
+  /** Words pointing back within the window ("earlier", "I gave", "from before"). */
+  referred: boolean;
+  /** "that" or "those" just before it. */
+  pointed: boolean;
+  /** A hotline, a line named as help, or a plain line or number nearby. */
+  lineNear: boolean;
+  othersNear: boolean;
+  /** "I mentioned", "we talked about" within the window, and right after it. */
+  saidNear: boolean;
+  saidAfter: boolean;
+}
+
+const POINTS_BACK_BY_KIND: Record<HelpNoun, (c: NounContext) => boolean> = {
+  named: (c) => c.referred || c.pointed,
+  counselor: (c) => c.referred || c.pointed || c.lineNear,
+  staff: (c) => c.referred || c.lineNear,
+  line: (c) => c.referred || (c.pointed && c.othersNear),
+  // "the service I mentioned", "that chat we talked about"; not "We talked about the service at that diner".
+  service: (c) => c.saidAfter || (c.pointed && (c.saidNear || c.othersNear)),
+  people: (c) => c.pointed && (c.referred || c.lineNear),
+};
+
+/**
+ * A sentence pointing back to a help line Ferni already gave, in any word order
+ * ("I gave you a number earlier", "Those counselors I mentioned", "Remember the
+ * line from earlier"). It names no line itself, so the safety readers miss it, but
+ * the caller may still need to hear it. A help noun counts with words pointing back
+ * ("from before", "earlier", "I gave", "I mentioned", "we talked about", "reaching
+ * out to") within a few words on either side. "that" or "those" just before it is
+ * enough for a hotline or a line named as help ("that text service") and for
+ * counselors; a plain line or number needs a second help noun nearby too ("The
+ * people on that line"), as do people. Not "the line at the coffee shop", "the
+ * number of finches", "my phone number from before", or "I mentioned the people at
+ * work".
+ */
+function pointsBack(text: string): boolean {
+  const words = plainWords(text).trim().split(' ');
+  const refs = backRefs(words);
+  const nouns = helpNouns(words);
+  return nouns.some(({ at, kind, pointed }) => {
+    const gap = (from: number, to: number): number => Math.max(from - at, at - to) - 1;
+    const near = (r: BackRef): boolean =>
+      gap(r.from, r.to) <= (r.said && r.from > at ? SAID_AFTER_WINDOW : BACK_WINDOW);
+    const said = refs.filter((r) => r.said && near(r));
+    const others = nouns.filter((n) => n.at !== at && gap(n.at, n.at) <= BACK_WINDOW);
+    return POINTS_BACK_BY_KIND[kind]({
+      referred: refs.some(near),
+      pointed,
+      lineNear: others.some((n) => LINE_LIKE.has(n.kind)),
+      othersNear: others.length > 0,
+      saidNear: said.length > 0,
+      saidAfter: said.some((r) => r.from > at),
+    });
+  });
+}
 
 /**
  * Safety wording: a way to reach help (services/safety/safety-talk.ts reachesHelp),
@@ -155,17 +272,20 @@ const POINTS_BACK = new RegExp(
  * care lines stay quotable, as on main.
  */
 const isSafetyWording = (text: string): boolean =>
-  reachesHelp(text) || isSafetyLine(text) || POINTS_BACK.test(text);
+  reachesHelp(text) || isSafetyLine(text) || pointsBack(text);
 
 /**
  * Whether a name or phrase is safety wording, or every sentence of Ferni's that
  * holds it is. Listed, it would ask the model to leave a help line ("You've
- * brought up Amitie", from "SOS Amitie listens day and night.").
+ * brought up Amitie", from "SOS Amitie listens day and night."). A pointer back is
+ * read from the whole sentence: a phrase cut from "My phone number from before
+ * changed" has lost the "My".
  */
 function onlyInSafetyTalk(text: string, sentences: string[]): boolean {
-  if (isSafetyWording(text)) return true;
+  if (reachesHelp(text) || isSafetyLine(text)) return true;
   const holding = sentences.filter((s) => plainWords(s).includes(plainWords(text)));
-  return holding.length > 0 && holding.every(isSafetyWording);
+  if (holding.length === 0) return pointsBack(text);
+  return holding.every(isSafetyWording);
 }
 
 function quote(sentence: string): string {

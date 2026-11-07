@@ -102,7 +102,7 @@ describe('a way to reach help is never quoted or listed (services/safety/safety-
   const HELP = [
     'You can text HOME any time.',
     'The Trevor Project is there all night.',
-    'Telefonseelsorge is free to call.',
+    'Telefonseelsorge is free to call at any hour of the night.',
     'SOS Amitie listens day and night.',
     'Befrienders Worldwide lists a line near you.',
   ];
@@ -158,6 +158,18 @@ describe('a way to reach help is never quoted or listed (services/safety/safety-
     expect(note).not.toContain(line.slice(0, 18));
     for (const name of ['HOME', 'Trevor', 'Telefonseelsorge', 'Amitie', 'Befrienders', 'Worldwide'])
       expect(note, name).not.toContain(name);
+  });
+
+  // Non-US lines long enough to be recorded (a 5-word line never is, so it tests
+  // nothing). The English wording is read by reachesHelp alone.
+  const NON_US = [
+    'Die Telefonseelsorge ist rund um die Uhr unter null acht hundert erreichbar.',
+    HELP[2],
+  ];
+  it.each(NON_US)('records %s said in three replies, and keptTold drops it', (line) => {
+    const told = toldThisCall(saidThrice(line));
+    expect(formatTold(told)).toContain(`"${line}"`); // precondition: main quotes it
+    expect(formatTold(keptTold(told, keepAll))).not.toContain('Telefonseelsorge');
   });
 
   it.each([...CARE, ...TRIGGER_WORD])(
@@ -277,5 +289,67 @@ describe('safety lines the talk reader misses, and pointers back to a line (#359
     expect(note).not.toContain(DONT_SAY);
     expect(note).not.toMatch(/HOME|Trevor|Befrienders|Worldwide|judge|line I mentioned/);
     expect(note).toContain('"winter night still feels like coming"'); // its reused phrase, as on main
+  });
+});
+
+describe('pointers back to a safety line, in any word order (#3592 r3)', () => {
+  const LEADS = ['Okay.', 'Alright.', 'I hear you.'];
+  const saidThrice = (said: string): Line[] =>
+    LEADS.flatMap((lead, i) => [user(`Turn ${i}.`), ferni(`${lead} ${said}`)]);
+  const toldNote = async (lines: Line[]): Promise<string> => {
+    process.env.PHRASE_LOOP_GUARD = 'on';
+    try {
+      const director = new Director({ sessionId: 'r3-call', writeNotes: false });
+      await director.observe(lines);
+      return director.told();
+    } finally {
+      delete process.env.PHRASE_LOOP_GUARD;
+    }
+  };
+  // The five shapes the r3 verify found quoted, each in two more word orders, and
+  // every noun with the back-reference before it and after it.
+  const POINTING_BACK = [
+    'I gave you a number earlier and I really hope you will call it tonight.',
+    'The number I gave you earlier is still open all night tonight.',
+    'Earlier I gave you a number, and I really hope you use it tonight.',
+    'The number from before is still the best place to reach someone tonight.',
+    'From before, that number is still the best one to call tonight.',
+    'Call the number from before if it gets heavy again tonight.',
+    'Those counselors I mentioned would really want to hear from you tonight.',
+    'I mentioned those counselors because they really want to hear from you.',
+    'Earlier I mentioned some counselors, they really want to hear from you.',
+    'Remember the line from earlier, they are awake and ready to talk with you.',
+    'From earlier, remember that line, they are awake and ready to talk.',
+    'Earlier I gave you the line, they are awake and ready to talk.',
+    'Reaching out to that line tonight could really help you get through it.',
+    'That line is worth reaching out to tonight, it could really help.',
+    'Tonight, reaching out to the line could really help you get through.',
+    'The hotline I mentioned is open all night long for you tonight.',
+    'I mentioned a hotline earlier and it is open all night long.',
+    'The text service we talked about answers in minutes, day or night.',
+    'We talked about a text service, and it answers in minutes, day or night.',
+    'Those people I mentioned would really want to hear from you tonight.',
+    'I mentioned those people because they really want to hear from you tonight.',
+    'The crisis line from before is still open all night for you.',
+    'From before, the crisis line is still open all night for you.',
+    'We talked about that crisis line, it is open all night long.',
+  ];
+  // Everyday lines with a noun and a back-reference near each other.
+  const EVERYDAY = [
+    'The line at the coffee shop was out the door again this morning.',
+    'I spent an hour counting the number of finches at the feeder.',
+    'I mentioned the people at work who keep borrowing my good stapler.',
+    'Earlier that line of thinking really did make a lot of sense to me.',
+    'My phone number from before changed when I moved across town last spring.',
+  ];
+
+  it.each(POINTING_BACK)('never quotes or loops %s, said in three replies', async (line) => {
+    // Precondition: the call records it, so the unfiltered note would quote it.
+    expect(formatTold(toldThisCall(saidThrice(line)))).toContain(`"${line}"`);
+    expect(await toldNote(saidThrice(line))).toBe('');
+  });
+
+  it.each(EVERYDAY)('still quotes %s said in three replies, as main does', async (line) => {
+    expect(await toldNote(saidThrice(line))).toContain(`"${line}"`);
   });
 });
