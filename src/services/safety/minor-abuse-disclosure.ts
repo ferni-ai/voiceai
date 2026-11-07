@@ -43,7 +43,13 @@ import type { CrisisVerdict } from './crisis-classifier.js';
 import type { CrisisDetectionResult } from './crisis-guard.js';
 import { buildCrisisGuidance } from './crisis-guard.js';
 import { spanishScript } from '../../utils/minor-crisis-care.js';
-import { abuseDisclosure, physicalHarm } from './abuse-disclosure.js';
+import {
+  ABUSE_INDICATOR,
+  abuseDisclosure,
+  abuseOnlyRead,
+  MINOR_ABUSE_INDICATOR as INDICATOR,
+  physicalHarm,
+} from './abuse-disclosure.js';
 import { CRISIS_RESOURCES } from './crisis-response.js';
 import { SEVERITY } from './crisis-severity.js';
 import { EMERGENCY_NUMBER } from './emergency-number.js';
@@ -115,7 +121,6 @@ export function minorHarm(call: string | undefined, turn: MinorAbuseTurn): Minor
   return minor ? harm : null;
 }
 
-const INDICATOR = 'minor_abuse_disclosure';
 const SELF_RISK = `${INDICATOR}_self_harm`;
 
 /** The turn as the crisis reads settled it, before this module. */
@@ -137,7 +142,9 @@ export function callerMayBeAtRisk(
   priorRisk: boolean,
   classifierNoRead = false
 ): boolean {
-  if (priorRisk || classifierNoRead || settled.soft || settled.crisis.isCrisis) return true;
+  // The kernel's abuse read alone is no risk to the caller's own life (abuseOnlyRead).
+  const read = settled.crisis.isCrisis && !abuseOnlyRead(settled.crisis);
+  if (priorRisk || classifierNoRead || settled.soft || read) return true;
   return [turn.latest, ...(turn.earlier ?? [])].some((line) => SELF_HARM.test(plain(line)));
 }
 
@@ -177,7 +184,13 @@ export function withMinorAbuseDisclosure<T extends SettledRead>(
       ...crisis,
       isCrisis: true,
       severity: Math.max(crisis.severity, SEVERITY.crisis),
-      indicators: [...crisis.indicators, INDICATOR, ...(selfHarm ? [SELF_RISK] : [])],
+      // This read decides for the minor: the kernel's abuse read gives way, as the abuse read's
+      // own turn read does (withAbuseDisclosure).
+      indicators: [
+        ...crisis.indicators.filter((i) => !i.startsWith(ABUSE_INDICATOR)),
+        INDICATOR,
+        ...(selfHarm ? [SELF_RISK] : []),
+      ],
       subject: 'self',
     },
   };

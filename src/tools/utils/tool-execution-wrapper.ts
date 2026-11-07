@@ -567,77 +567,6 @@ export function wrapToolDefinition(
 }
 
 // ============================================================================
-// CONFIRMATION INTENT DETECTION
-// ============================================================================
-
-/**
- * Confirmation phrases that indicate user approval
- */
-const CONFIRMATION_PHRASES = [
-  'yes',
-  'yeah',
-  'yep',
-  'yup',
-  'sure',
-  'ok',
-  'okay',
-  'go ahead',
-  'do it',
-  'please',
-  'confirm',
-  'approved',
-  'sounds good',
-  'that works',
-  'perfect',
-  'absolutely',
-  'definitely',
-];
-
-/**
- * Denial phrases that indicate user rejection
- * Note: Only include phrases that unambiguously indicate rejection
- */
-const DENIAL_PHRASES = [
-  'no',
-  'nope',
-  'nah',
-  'cancel',
-  'stop',
-  'wait',
-  'hold on',
-  'never mind',
-  'forget it',
-  "don't",
-  'not now',
-  'do it later', // More specific than just "later"
-  'skip',
-  'not yet',
-];
-
-/**
- * Detect if user input is confirming or denying a pending action
- */
-export function detectConfirmationIntent(userInput: string): 'confirm' | 'deny' | 'unclear' {
-  const lower = userInput.toLowerCase().trim();
-
-  // Check for confirmation
-  for (const phrase of CONFIRMATION_PHRASES) {
-    if (lower === phrase || lower.startsWith(phrase + ' ') || lower.includes(` ${phrase}`)) {
-      return 'confirm';
-    }
-  }
-
-  // Check for denial
-  for (const phrase of DENIAL_PHRASES) {
-    if (lower === phrase || lower.startsWith(phrase + ' ') || lower.includes(` ${phrase}`)) {
-      return 'deny';
-    }
-  }
-
-  return 'unclear';
-}
-
-// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -649,5 +578,4 @@ export default {
   clearPendingConfirmation,
   hasPendingConfirmation,
   processConfirmation,
-  detectConfirmationIntent,
 };
