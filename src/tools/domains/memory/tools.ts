@@ -14,7 +14,7 @@ import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 import { memoryHeld } from '../../../utils/minor-care.js';
 import { forgetDoneNote, forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
 import { keepRemembered, profileForCaller } from '../../../memory/index.js';
-import { memoryToolsHonestOn, updateRemembered } from './honest-memory.js';
+import { memoryToolFlags, updateRemembered } from './honest-memory.js';
 // ============================================================================
 // SERVICE TYPES
 // ============================================================================
@@ -452,9 +452,9 @@ export const updateMemoryDef: ToolDefinition = {
           );
         }
 
-        // MEMORY_TOOLS_HONEST: replace the one fact quoted exactly, or say none was (honest-memory.ts)
-        if (!memoryToolsHonestOn()) return ''; // flag off: the in-call list only, as before
-        return updateRemembered(toolCtx, userData.userId, originalFact, updatedFact);
+        const flags = memoryToolFlags(); // MEMORY_TOOLS_HONEST, before any await (honest-memory.ts)
+        if (!flags.honest) return ''; // flag off: the in-call list only, as before
+        return updateRemembered(toolCtx, userData.userId, originalFact, updatedFact, flags);
       },
     });
   },

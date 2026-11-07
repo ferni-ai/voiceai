@@ -151,12 +151,53 @@ export async function callBlocker(request: CallRequest): Promise<string | null> 
   return null;
 }
 
+const cantCall = (name: string, why: string): string =>
+  `I can't call ${name}: ${why}. No call was made. Want help with talking points so you can call yourself?`;
+
 /** What to tell the user when this call can't go out, or null when it can. */
 export async function cantCallReply(request: CallRequest): Promise<string | null> {
   const blocked = await callBlocker(request);
-  return blocked
-    ? `I can't call ${request.contactName}: ${blocked}. No call was made. Want help with talking points so you can call yourself?`
-    : null;
+  return blocked ? cantCall(request.contactName, blocked) : null;
+}
+
+/**
+ * CALL_PATHS_PLACE_OR_HOLD on: the call goes through placeOrHold (call hours,
+ * do-not-call, compliance), and the reply says what happened: ringing now, held,
+ * or refused. A call that rings is recorded as started; its agent reports the
+ * result when the call ends. Null when the flag is off: the old path runs.
+ */
+export async function gatedCallReply(request: CallRequest): Promise<string | null> {
+  const telephony = await import('../../../tools/domains/telephony/index.js');
+  if (!telephony.callPathsGated()) return null;
+  const blocked = await callBlocker(request); // first: the flag only adds gates
+  if (blocked) return cantCall(request.contactName, blocked);
+  const { userId, contactName: name, contactPhone: phone = '', objective } = request;
+  const placement = await telephony.placeGatedCall({
+    userId,
+    sessionId: request.sessionId,
+    contactName: name,
+    phone,
+    purpose: objective,
+    context: [request.context, request.script].filter(Boolean).join('\n') || undefined,
+    objective: telephony.inferObjective(objective),
+    callType: telephony.inferCallType({ name, phone }, objective),
+  });
+  if ('held' in placement) return placement.held;
+  if ('refused' in placement) return cantCall(name, placement.refused);
+  await captureBackgroundResult({
+    userId,
+    type: 'on_behalf_call',
+    status: 'pending', // started, not done: never "Called ✅" at dial time
+    summary: `Started a call to ${name}`,
+    initiatedBy: request.initiatedBy || 'ferni',
+    sessionId: request.sessionId,
+    contactName: name,
+    contactId: request.contactId,
+    relatedTaskId: placement.placed,
+    specificData: { callId: placement.placed, callStatus: 'started' },
+    skipPush: true, // the user just heard it on the call
+  });
+  return `I'm calling ${name} now to ${objective}. I'll tell you how it went once the call ends.`;
 }
 
 /**

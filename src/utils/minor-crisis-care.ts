@@ -20,9 +20,14 @@ export const YOUTH_SCRIPT_LINE = 'Teens can text 988, and tell an adult you trus
 /** The same line for a Spanish script. */
 export const YOUTH_SCRIPT_LINE_ES = 'Puedes escribir al 988 y hablar con un adulto de confianza.';
 
+/** Whether a crisis script is the Spanish one. */
+export function spanishScript(script: string): boolean {
+  return /¿|AYUDA/.test(script);
+}
+
 /** The script, then the youth line: the script's own safety question comes first. */
 export function withYouthLine(script: string): string {
-  const line = /¿|AYUDA/.test(script) ? YOUTH_SCRIPT_LINE_ES : YOUTH_SCRIPT_LINE;
+  const line = spanishScript(script) ? YOUTH_SCRIPT_LINE_ES : YOUTH_SCRIPT_LINE;
   return `${script}\n\n${line}`;
 }
 

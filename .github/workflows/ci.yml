@@ -1190,10 +1190,22 @@ jobs:
       - name: Architecture map is current
         run: pnpm docs:map --check
 
+      # Blocking: each owner folder's AGENTS.md "Capabilities" section is generated from the
+      # capability map (decisions.ts) and must match it; an orphaned section fails too.
+      # Fix: `pnpm docs:capabilities`. ~1 s.
+      - name: Capabilities sections are current
+        run: pnpm docs:capabilities --check
+
       # Blocking ratchet: a new Firestore client that ignores FIRESTORE_DATABASE (dev runs on
       # ferni-dev, prod on '(default)') fails, and the allowlist may only shrink. ~10 s.
       - name: Firestore database ratchet
         run: pnpm tsx scripts/ci/firestore-database-ratchet.ts
+
+      # Blocking ratchet (crisis centralization S0, docs/plans/2026-11-05-crisis-centralize.md):
+      # a new crisis-word regex or crisis-resource literal (988, 911, hotline ...) in a non-test
+      # file outside src/services/safety/ fails, and the allowlist may only shrink. ~10 s.
+      - name: Crisis readers ratchet
+        run: pnpm tsx scripts/ci/crisis-readers-ratchet.ts
 
       # Blocking. A firebase deploy of the index file must not delete a TTL policy, field
       # override or composite that prod or dev has. Diffs firestore.indexes.json against the

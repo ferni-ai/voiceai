@@ -89,6 +89,7 @@ function ranAs(): unknown[] {
 describe('chat API tool identity', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv('WEB_CHAT_MESSAGE', 'on'); // the route is off by default
     executeTool.mockResolvedValue({ success: true, result: 'ok' });
     llm.calls = [{ name: 'recallFromMemory', args: { query: 'birthday' } }];
   });
@@ -127,6 +128,7 @@ describe('chat API tool identity', () => {
 describe('chat API tool access', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv('WEB_CHAT_MESSAGE', 'on'); // the route is off by default
     executeTool.mockResolvedValue({ success: true, result: 'ok' });
   });
 

@@ -23,12 +23,13 @@ vi.mock('../urgent-alert.js', async (importOriginal) => ({
 }));
 
 import { callLLM } from '../../llm-utils.js';
-import { crisisCallerLine, crisisRead } from '../caller-text.js';
+import { crisisCallerLine, crisisRead, riskyCallerLine } from '../caller-text.js';
 import { handleCheckinCallComplete } from '../../family/family-checkin-caller.js';
 import { generateUrgentNotification } from '../checkin-urgent-alert.js';
 
 const NAME = 'Priya';
 const CRISIS = crisisCallerLine(NAME);
+const MONEY = riskyCallerLine(NAME);
 const CHECK_IN = 'You may want to check in with them.';
 
 /** Crisis about someone else, which the shared guard reads (it missed all three before). */
@@ -62,7 +63,8 @@ describe('check-in alert: third-person crisis', () => {
 
   it.each(THIRD_PERSON)('"%s" with a risky suggestion keeps both', (line) => {
     const alert = alertFor(line, 'Send $200 to Marcus at 555 0188');
-    expect(alert).toBe(`Important: During my call with ${NAME}, ${line}. ${CRISIS} ${CHECK_IN}`);
+    // Changed (owner decision): the money line names money. Main ended with CHECK_IN.
+    expect(alert).toBe(`Important: During my call with ${NAME}, ${line}. ${CRISIS} ${MONEY}`);
   });
 
   it.each(THIRD_PERSON)('"%s" past the 200-character cap gives crisisCallerLine', (line) => {

@@ -24,7 +24,7 @@ import { resetCallRiskSnapshots } from '../crisis-lone-imminent.js';
 import { SEVERITY } from '../crisis-severity.js';
 import {
   callerMayBeAtRisk,
-  minorAbuseDisclosure,
+  minorHarm,
   minorAbuseGuidance,
   withMinorAbuseDisclosure,
 } from '../minor-abuse-disclosure.js';
@@ -98,26 +98,23 @@ const EVERYDAY = [
   "I'm 10 and my teacher touched my drawing and said it was great.",
 ];
 
-describe('minorAbuseDisclosure', () => {
+describe('minorHarm, sexual harm', () => {
   it('reads every disclosure from a caller who says they are under 18', () => {
     for (const line of DISCLOSURES)
-      expect(minorAbuseDisclosure(undefined, { latest: line }), line).toBe(true);
+      expect(minorHarm(undefined, { latest: line }), line).toBe('sexual');
   });
 
   it('reads an age said earlier in the call', () => {
     const latest = 'My stepdad touches me at night.';
-    expect(minorAbuseDisclosure(undefined, { latest, earlier: ["I'm 13."] })).toBe(true);
+    expect(minorHarm(undefined, { latest, earlier: ["I'm 13."] })).toBe('sexual');
   });
 
   it('never reads the same words without an under-18 signal', () => {
-    expect(minorAbuseDisclosure(undefined, { latest: 'My stepdad touches me at night.' })).toBe(
-      false
-    );
+    expect(minorHarm(undefined, { latest: 'My stepdad touches me at night.' })).toBeNull();
   });
 
   it("never reads a child's everyday words", () => {
-    for (const line of EVERYDAY)
-      expect(minorAbuseDisclosure(undefined, { latest: line }), line).toBe(false);
+    for (const line of EVERYDAY) expect(minorHarm(undefined, { latest: line }), line).toBeNull();
   });
 });
 
@@ -307,6 +304,7 @@ const WORDS: Array<[string, string]> = [
     "I'm going to take all my old meds to the pharmacy.",
   ],
   ['I just want to die.', 'I just want to die my hair blue.'],
+  ['I feel so hopeless about everything.', "I'm hopeless at math, lol."],
 ];
 
 describe('callerMayBeAtRisk', () => {

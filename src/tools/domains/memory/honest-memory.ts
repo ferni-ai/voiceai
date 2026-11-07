@@ -11,13 +11,17 @@
  * topics, contact data), and each tool answers from what that write did. No second
  * copy goes to memories, and a guess is never stored.
  *
+ * Each tool reads the flags once, when it starts (memoryToolFlags), and hands them to the
+ * writer: per-caller flags live in process.env (cohort-flags.ts), so the next caller's can
+ * land while this call's write is still awaiting.
+ *
  * @module tools/domains/memory/honest-memory
  */
 import {
   keepForRecall,
-  memoryToolsHonestOn,
   replaceRemembered,
   type KeepOutcome,
+  type MemoryToolFlags,
   type ReplaceOutcome,
 } from '../../../services/memory/index.js';
 import { getUnifiedMemoryService } from '../../../services/unified-memory-service.js';
@@ -27,7 +31,11 @@ import { announceMemorySaved } from './memory-saved.js';
 import { announceRemembered } from './remember-moment.js';
 import { importantReply, REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 
-export { memoryToolsHonestOn } from '../../../services/memory/index.js';
+export {
+  memoryToolFlags,
+  memoryToolsHonestOn,
+  type MemoryToolFlags,
+} from '../../../services/memory/index.js';
 
 const NOT_SAVED = {
   contact:
@@ -51,19 +59,21 @@ function notKeptReply(o: KeepOutcome): string {
 }
 
 /** rememberImportantFact's answer when nothing is written (no caller, MINOR_CARE, a teammate). */
-export const notWrittenReply = (): string =>
-  memoryToolsHonestOn() ? REMEMBERED_THIS_CALL : "I'll remember that.";
+export const notWrittenReply = (honest: boolean): string =>
+  honest ? REMEMBERED_THIS_CALL : "I'll remember that.";
 
 /** Write a fact where recall reads it (unless MINOR_CARE holds the call); announce a new one. */
 async function keepFact(
   toolCtx: unknown,
   userId: string | undefined,
   fact: string,
-  category: string
+  category: string,
+  flags: MemoryToolFlags
 ): Promise<KeepOutcome> {
   const sessionId = getSessionId({ ctx: toolCtx });
   if (!userId || writeHeld(userId, sessionId)) return { kind: 'refused', reason: 'not_member' };
-  const kept = await keepForRecall(userId, { fact, category, ...(sessionId && { sessionId }) });
+  const r = { fact, category, ...(sessionId && { sessionId }) };
+  const kept = await keepForRecall(userId, r, { flags });
   // memory_saved (CLIENT_SIGNALS_V2) only for a fact this write created
   if (kept.kind === 'kept') {
     void announceMemorySaved({ sessionId, userId, id: kept.id, fact, category });
@@ -76,9 +86,10 @@ export async function rememberHonestly(
   toolCtx: unknown,
   userId: string | undefined,
   fact: string,
-  category: string
+  category: string,
+  flags: MemoryToolFlags
 ): Promise<string> {
-  const kept = await keepFact(toolCtx, userId, fact, category);
+  const kept = await keepFact(toolCtx, userId, fact, category, flags);
   if (kept.kind === 'kept' && userId) {
     void announceRemembered({ userId, sessionId: getSessionId({ ctx: toolCtx }), fact, category });
   }
@@ -90,9 +101,10 @@ export async function rememberImportantHonestly(
   toolCtx: unknown,
   userId: string | undefined,
   fact: string,
-  type: string
+  type: string,
+  flags: MemoryToolFlags
 ): Promise<string> {
-  const kept = await keepFact(toolCtx, userId, fact, type);
+  const kept = await keepFact(toolCtx, userId, fact, type, flags);
   return isKept(kept) ? importantReply(type) : notKeptReply(kept);
 }
 
@@ -117,7 +129,8 @@ export async function updateRemembered(
   toolCtx: unknown,
   userId: string | undefined,
   originalFact: string,
-  updatedFact: string
+  updatedFact: string,
+  flags: MemoryToolFlags
 ): Promise<string> {
   const sessionId = getSessionId({ ctx: toolCtx });
   if (!userId || writeHeld(userId, sessionId)) return NOT_UPDATED;
@@ -126,7 +139,7 @@ export async function updateRemembered(
   const name = shown?.userName ?? shown?.name;
   const userName = typeof name === 'string' && name ? name : undefined;
   const change = { original: originalFact, updated: updatedFact, sessionId, userName };
-  const done = await replaceRemembered(userId, change);
+  const done = await replaceRemembered(userId, change, { flags });
   return done.kind === 'not_kept' ? notKeptReply(done.kept) : UPDATE_REPLY[done.kind];
 }
 

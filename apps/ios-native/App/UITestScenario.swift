@@ -17,6 +17,10 @@ enum UITestScenario: String {
     case settings
     /// A live call: Ferni speaking, with a line of captions each.
     case call
+    /// The January 2026 App Review rejection: the system takes the call and
+    /// never starts its audio, and the app can't either. Never a silent
+    /// "live": the problem in words and Try again.
+    case silentAudio
 
     static let current: UITestScenario? = value(after: "-FerniUITest").flatMap(UITestScenario.init(rawValue:))
 
@@ -33,12 +37,14 @@ enum UITestScenario: String {
         UserDefaults.standard.set(false, forKey: CallFeedback.soundsKey)
     }
 
-    @MainActor static func callSession(avatar: AvatarModel, level: AudioLevelMeter) -> CallSession {
-        CallSession(
+    @MainActor static func callSession(_ scenario: UITestScenario, avatar: AvatarModel, level: AudioLevelMeter) -> CallSession {
+        let silent = scenario == .silentAudio
+        return CallSession(
             fetchToken: { _ in CallToken(token: "t", url: "wss://127.0.0.1:9", room: "ios-uitest", agentDispatched: true) },
             makeRoom: { ScriptedRoom() },
-            audio: SilentAudio(),
+            audio: SilentAudio(refusesOwnAudio: silent),
             avatar: avatar,
+            lifecycle: silent ? MuteSystemCall() : nil,
             agentLevel: level
         )
     }
@@ -117,13 +123,27 @@ private final class ScriptedRoom: VoiceRoom, @unchecked Sendable {
     func disconnect() async { continuation.finish() }
 }
 
-/// No audio session, no permission prompt.
+/// No audio session, no permission prompt. `refusesOwnAudio`: the app
+/// can't start the call's audio itself either (`silentAudio`).
 private final class SilentAudio: CallAudio, @unchecked Sendable {
     let interruptions = AsyncStream<AudioInterruption> { _ in }
+    private let refusesOwnAudio: Bool
+    init(refusesOwnAudio: Bool) { self.refusesOwnAudio = refusesOwnAudio }
     func requestMicrophone() async -> Bool { true }
-    func activate(systemOwned: Bool) throws {}
+    func activate(systemOwned: Bool) throws {
+        if refusesOwnAudio, !systemOwned { throw CocoaError(.featureUnsupported) }
+    }
     func deactivate(systemOwned: Bool) {}
     func systemAudio(active: Bool) {}
+}
+
+/// A system call that begins and never activates its audio (`silentAudio`).
+private final class MuteSystemCall: CallLifecycle, @unchecked Sendable {
+    let requests = AsyncStream<LifecycleRequest> { _ in }
+    func begin(id: UUID, name: String) async throws {}
+    func connected(id: UUID) {}
+    func setMuted(id: UUID, muted: Bool) async {}
+    func ended(id: UUID, failed: Bool) async {}
 }
 
 extension UITestScenario {

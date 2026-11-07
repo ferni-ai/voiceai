@@ -193,7 +193,8 @@ export function buildCallScript(
 
   // Additional context
   if (additionalContext) {
-    parts.push('\n### Additional Context');
+    // The user's own words: their "I" is them, never Ferni (outbound-call-context.ts)
+    parts.push(`\n### Additional Context (from ${userName}; their "I" means ${userName})`);
     parts.push(additionalContext);
   }
 

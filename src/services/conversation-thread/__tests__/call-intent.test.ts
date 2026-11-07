@@ -4,6 +4,9 @@
  * counts: a call mentioned inside a longer sentence, assent alone, negations,
  * names and calls for later all read as no.
  */
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { detectCallIntent, detectTalkIntent } from '../inbound-router.js';
 
@@ -124,5 +127,59 @@ describe('detectTalkIntent: the reply the texter gets, pinned against main', () 
   it('a crisis text that asks to talk is answered, but only a whole-text ask can dial', () => {
     expect(detectTalkIntent('I want to die, call me')).toBe(true);
     expect(detectCallIntent('I want to die, call me')).toBe(false);
+  });
+});
+
+/**
+ * A crisis text that also asks for a call must never dial on its own: it is not
+ * a whole-text ask. These are fictional test inputs, not a word list.
+ */
+describe('detectCallIntent: a crisis text with an ask in it does not dial', () => {
+  it.each([
+    'call me, I took too many pills',
+    "please call, I don't want to be here anymore",
+    'I want to end my life, can you call me',
+    'can you call me? I have the pills in my hand',
+    "I'm going to hurt myself tonight, call me",
+    "call me now, I'm standing on the bridge",
+    "talk to me, I don't want to live",
+    'can we talk, I keep thinking about ending it',
+    'give me a call, I wrote a goodbye note',
+    "let's talk. nobody would miss me",
+  ])('%s', (text) => {
+    expect(detectCallIntent(text)).toBe(false);
+  });
+});
+
+/**
+ * One detectCallIntent only. A second exported copy (a bare `.includes()` list
+ * once lived in outreach/conversation-context-bridge.ts and said yes to "I want
+ * to die, call me") is one auto-import away from dialing on a crisis text.
+ */
+describe('detectCallIntent has exactly one exported definition in src', () => {
+  const SRC = fileURLToPath(new URL('../../../', import.meta.url));
+  const walk = (dir: string): string[] =>
+    readdirSync(dir).flatMap((name) => {
+      const path = join(dir, name);
+      if (statSync(path).isDirectory()) return name === '__tests__' ? [] : walk(path);
+      return /\.ts$/u.test(name) && !/\.(?:test|spec)\./u.test(name) && !/\.d\.ts$/u.test(name)
+        ? [path]
+        : [];
+    });
+  const EXPORTED = [
+    /\bexport\s+(?:async\s+)?function\s*\*?\s*detectCallIntent\b/u,
+    /\bexport\s+(?:const|let|var)\s+detectCallIntent\b/u,
+    /\bexport\s*\{[^}]*\bdetectCallIntent\b[^}]*\}/u,
+  ];
+
+  it('is exported only by the inbound router', () => {
+    const exporters = walk(SRC)
+      .filter((path) => {
+        const text = readFileSync(path, 'utf8');
+        return text.includes('detectCallIntent') && EXPORTED.some((re) => re.test(text));
+      })
+      .map((path) => relative(join(SRC, '..'), path).split('\\').join('/'))
+      .sort();
+    expect(exporters).toEqual(['src/services/conversation-thread/inbound-router.ts']);
   });
 });

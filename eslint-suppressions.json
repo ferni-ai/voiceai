@@ -14,6 +14,11 @@
       "count": 2
     }
   },
+  "src/agents/model-provider/stt-audio-diagnostics.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
   "src/agents/multi-agent/agent-setup.ts": {
     "ferni/no-env-flag-compare": {
       "count": 5
@@ -32,11 +37,19 @@
   "src/agents/multi-agent/persona-agent-factory.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
+    },
+    "preserve-caught-error": {
+      "count": 1
     }
   },
   "src/agents/multi-agent/persona-tts.ts": {
     "ferni/no-env-flag-compare": {
       "count": 2
+    }
+  },
+  "src/agents/personas/director-cast.ts": {
+    "no-useless-assignment": {
+      "count": 1
     }
   },
   "src/agents/personas/opener-gate.ts": {
@@ -46,6 +59,14 @@
   },
   "src/agents/personas/prompt-loader.ts": {
     "ferni/no-env-flag-compare": {
+      "count": 1
+    },
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/agents/processors/live-superhuman-injections.ts": {
+    "no-useless-assignment": {
       "count": 1
     }
   },
@@ -57,6 +78,11 @@
   "src/agents/processors/turn-processor/process-turn.ts": {
     "ferni/no-env-flag-compare": {
       "count": 6
+    }
+  },
+  "src/agents/shared/call-farewell.ts": {
+    "no-useless-assignment": {
+      "count": 1
     }
   },
   "src/agents/shared/conversational-audio-cache.ts": {
@@ -71,6 +97,14 @@
   },
   "src/agents/shared/function-call-telemetry.ts": {
     "ferni/no-env-flag-compare": {
+      "count": 1
+    },
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/agents/shared/handoff/coordinator-adapter.ts": {
+    "no-useless-assignment": {
       "count": 1
     }
   },
@@ -107,11 +141,19 @@
   "src/agents/voice-agent-entry/index.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
+    },
+    "no-useless-assignment": {
+      "count": 1
     }
   },
   "src/agents/voice-agent-entry/session-creator.ts": {
     "ferni/no-env-flag-compare": {
       "count": 2
+    }
+  },
+  "src/agents/voice-agent/audio-processor.ts": {
+    "no-useless-assignment": {
+      "count": 1
     }
   },
   "src/agents/voice-agent/cleanup-handler.ts": {
@@ -127,6 +169,9 @@
   "src/agents/voice-agent/session-init-handler.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
+    },
+    "no-useless-assignment": {
+      "count": 1
     }
   },
   "src/agents/voice-agent/session-state-handler.ts": {
@@ -139,6 +184,26 @@
       "count": 2
     }
   },
+  "src/agents/voice-agent/turn-voice-emotion.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/agents/voice-agent/user-identification-handler.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/api/calendar-routes/index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/api/routes/quiz.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
   "src/api/seeds-import.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
@@ -146,6 +211,21 @@
   },
   "src/api/twilio-routes.ts": {
     "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/audio/ambient-music.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/audio/intelligent-music-transitions.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/cli/agent-manager.ts": {
+    "preserve-caught-error": {
       "count": 1
     }
   },
@@ -179,8 +259,73 @@
       "count": 1
     }
   },
+  "src/conversation/cognitive-questions.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/conversation/conversational-repair.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/conversation/energy-regulation.ts": {
+    "no-useless-assignment": {
+      "count": 5
+    }
+  },
+  "src/conversation/eval/conversation-quality.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/conversation/humanization/index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/conversation/predictive-anticipation/index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/conversation/question-patterns/engine.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/conversation/response-dynamics.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/conversation/superhuman/late-night-warmth.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
   "src/diagnostics/memory-pipeline-diagnostics.ts": {
     "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/intelligence/coaching/dynamic-questions.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/intelligence/cognitive/engine.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/intelligence/context-builders/awareness/revelation-awareness.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/intelligence/context-builders/awareness/situational-awareness.ts": {
+    "no-useless-assignment": {
       "count": 1
     }
   },
@@ -197,6 +342,39 @@
   "src/intelligence/context-builders/index.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
+    },
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/intelligence/context-builders/memory/memory-enhancement.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/intelligence/context-builders/personas/persona-quirks.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/intelligence/deep-understanding/persistence.ts": {
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  "src/intelligence/deep-understanding/silence.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/intelligence/tracking/financial-journey.ts": {
+    "no-unassigned-vars": {
+      "count": 1
+    }
+  },
+  "src/intelligence/tracking/voice-pace.ts": {
+    "no-useless-assignment": {
+      "count": 1
     }
   },
   "src/intelligence/utils/injection-filter.ts": {
@@ -204,8 +382,18 @@
       "count": 2
     }
   },
+  "src/marketplace/executor/http-executor.ts": {
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
   "src/memory/profile-store.ts": {
     "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/memory/signals/communication-preferences.ts": {
+    "no-useless-assignment": {
       "count": 1
     }
   },
@@ -214,8 +402,68 @@
       "count": 1
     }
   },
+  "src/personas/bundles/adapter.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/personas/bundles/ferni/personality-integration.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/personas/bundles/runtime.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/personas/cognitive-advanced.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/personas/meaningful-silence.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/personas/shared/memory-personality-bridge.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/personas/shared/shared-personality-integration.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/servers/__tests__/services.test.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/servers/api/routes/music.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/servers/api/routes/token.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
   "src/servers/api/routes/twilio-call-status.ts": {
     "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/servers/api/services/demo-sessions.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/coaching/goal-tracking.ts": {
+    "no-useless-assignment": {
       "count": 1
     }
   },
@@ -224,8 +472,96 @@
       "count": 1
     }
   },
+  "src/services/concierge/outreach/email-sender.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/concierge/outreach/sms-sender.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/contacts/contact-relationship-service.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
   "src/services/context-inspection.ts": {
     "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/services/custom-agent/custom-agent-persistence-service.ts": {
+    "preserve-caught-error": {
+      "count": 9
+    }
+  },
+  "src/services/custom-agent/voice-clone-service.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    },
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  "src/services/data-layer/monitoring.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/data-layer/observability.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/data-layer/semantic-context-builder.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/data/realtime-persistence.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/deployment/startup-validation.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/games/game-sounds.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/games/new-music-games.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/services/gmail/gmail-service.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/human-transfer/context-summary.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/intelligence/ferni-awareness.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/milestones/milestone-calendar-sync.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/outreach/ab-testing/ab-testing.ts": {
+    "no-useless-assignment": {
       "count": 1
     }
   },
@@ -242,6 +578,19 @@
   "src/services/outreach/engagement/personalization-engine.ts": {
     "ferni/no-env-flag-compare": {
       "count": 2
+    },
+    "no-useless-assignment": {
+      "count": 4
+    }
+  },
+  "src/services/outreach/maintenance.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/outreach/onboarding-checkin-arc.ts": {
+    "no-useless-assignment": {
+      "count": 1
     }
   },
   "src/services/outreach/proactive-channels/proactive-tick.ts": {
@@ -254,9 +603,64 @@
       "count": 1
     }
   },
+  "src/services/outreach/reengagement-arc.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
   "src/services/outreach/webhooks/twilio-webhooks.ts": {
     "ferni/no-env-flag-compare": {
       "count": 3
+    }
+  },
+  "src/services/persistence/lifecycle.ts": {
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  "src/services/platform/erase-user-record.ts": {
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  "src/services/predictive-insights/burnout-prediction.ts": {
+    "no-useless-assignment": {
+      "count": 5
+    }
+  },
+  "src/services/predictive-insights/decision-timing.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/services/predictive-insights/energy-prediction.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/services/predictive-insights/goal-trajectory.ts": {
+    "no-useless-assignment": {
+      "count": 5
+    }
+  },
+  "src/services/predictive-insights/habit-decay.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/services/predictive-insights/relationship-health.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/services/predictive-insights/seasonal-mood.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/services/predictive-insights/social-connection.ts": {
+    "no-useless-assignment": {
+      "count": 2
     }
   },
   "src/services/pubsub/pubsub-client.ts": {
@@ -264,8 +668,63 @@
       "count": 1
     }
   },
+  "src/services/self-healing/cloud-run-restart.ts": {
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  "src/services/social/team-unlocks.ts": {
+    "no-unassigned-vars": {
+      "count": 1
+    }
+  },
+  "src/services/superhuman/developmental-stage-awareness.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/superhuman/financial-pattern-intelligence.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/superhuman/insight-generation/generators/cross-domain-correlation.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/trust-systems/memory-consolidation.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/trust-systems/trust-doc.ts": {
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  "src/services/wellbeing-tracking/index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/services/workflows/scheduler/scheduler-service.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
   "src/services/world-awareness/session-integration.ts": {
     "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/speech/adaptive-ssml/active-presence.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/speech/backchanneling/decision-engine.ts": {
+    "no-useless-assignment": {
       "count": 1
     }
   },
@@ -277,6 +736,11 @@
   "src/speech/coordination/speech-coordinator.ts": {
     "ferni/no-env-flag-compare": {
       "count": 2
+    }
+  },
+  "src/speech/output-control/enhanced-turn-prediction.ts": {
+    "no-useless-assignment": {
+      "count": 1
     }
   },
   "src/speech/tts-gateway/index.ts": {
@@ -294,18 +758,239 @@
       "count": 1
     }
   },
+  "src/tests/frontend-backend-e2e.test.ts": {
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/career/index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/communication/communication-coaching.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/tools/domains/communication/superhuman-tools/reception-predictor.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/creativity/index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/crisis/index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/curiosity/index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/dreams/index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/entertainment/spotify.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/finance/bills.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/finance/financial-habits.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/grief/index.ts": {
+    "no-useless-assignment": {
+      "count": 5
+    }
+  },
+  "src/tools/domains/habits/habits.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/habits/persistence.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/tools/domains/health/index.ts": {
+    "no-useless-assignment": {
+      "count": 3
+    }
+  },
+  "src/tools/domains/home/index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/human-transfer/index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/life-planning/milestone-proactive.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/marketing/content-generator.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    },
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/meaning/index.ts": {
+    "no-useless-assignment": {
+      "count": 4
+    }
+  },
+  "src/tools/domains/milestone-mastery/index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/play/index.ts": {
+    "no-useless-assignment": {
+      "count": 3
+    }
+  },
+  "src/tools/domains/presence/index.ts": {
+    "no-useless-assignment": {
+      "count": 4
+    }
+  },
+  "src/tools/domains/productivity/commitments.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/tools/domains/productivity/reminders.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/relationships/index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/research/superhuman-tools/index.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/tools/domains/routines/index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/second-chances/index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/self-compassion/index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/simple-utilities/date-tools.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/simple-utilities/essentials-tools.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/simple-utilities/math-tools.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/simple-utilities/pattern-intelligence.ts": {
+    "no-unassigned-vars": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/simple-utilities/voice-callbacks.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/stories/index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
   "src/tools/domains/telephony/index.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
     }
   },
+  "src/tools/domains/vulnerability/index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/execution/semantic-tool-presence.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/experiments/sequential-test.ts": {
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
   "src/tools/registry/loader.ts": {
     "ferni/no-env-flag-compare": {
       "count": 2
+    },
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/retrieval/dense-index.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/scheduling/delivery-tools.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/tools/semantic-router/advanced/better-than-human.ts": {
+    "no-useless-assignment": {
+      "count": 1
     }
   },
   "src/tools/semantic-router/advanced/intelligent/hierarchical-classifier.ts": {
     "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/tools/semantic-router/advanced/tool-chain-predictor.ts": {
+    "no-useless-assignment": {
       "count": 1
     }
   },
@@ -317,6 +1002,11 @@
   "src/tools/semantic-router/integration/init.ts": {
     "ferni/no-env-flag-compare": {
       "count": 3
+    }
+  },
+  "src/tools/versioning.ts": {
+    "no-useless-assignment": {
+      "count": 1
     }
   },
   "src/utils/safe-logger.ts": {

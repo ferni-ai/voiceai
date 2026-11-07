@@ -1,36 +1,60 @@
 import AVFAudio
 import FerniDesign
+import FerniKit
 import FerniVoice
 import SwiftUI
 
 /// Plays what the avatar's state machine asks for: one haptic per moment,
 /// VoiceOver announcements, and the call's few sounds when the sound
-/// director allows them and Sounds is on.
+/// director allows them and Sounds is on. Once the call is marked crisis,
+/// only what the person relies on plays (`AvatarEffect.playsDuringCrisis`).
 @MainActor
 final class CallFeedback {
-    private let haptics = CoreHapticsPlayer()
+    private let haptics: any HapticPlaying
+    private let announce: @MainActor (String) -> Void
+    /// Plays a bundled sound by name; nil plays the real file.
+    private let sound: (@MainActor (String) -> Void)?
+    private let now: @MainActor () -> Duration
     private var director = EarconDirector()
     private var players: [String: AVAudioPlayer] = [:]
-    private let started = ContinuousClock.now
     /// Who's speaking right now; set once the call exists.
     var isSomeoneSpeaking: () -> (agent: Bool, user: Bool) = { (false, false) }
 
     static let soundsKey = "ferni.earcons"
 
-    func newCall() { director.newCall() }
+    /// The defaults are the real outputs; tests pass recorders and a clock.
+    init(
+        haptics: any HapticPlaying = CoreHapticsPlayer(),
+        announce: @escaping @MainActor (String) -> Void = { AccessibilityNotification.Announcement($0).post() },
+        sound: (@MainActor (String) -> Void)? = nil,
+        now: (@MainActor () -> Duration)? = nil
+    ) {
+        self.haptics = haptics
+        self.announce = announce
+        self.sound = sound
+        let started = ContinuousClock.now
+        self.now = now ?? { ContinuousClock.now - started }
+    }
+
+    func newCall() {
+        director.newCall()
+        CrisisMarker.beginCall()
+    }
 
     func play(_ effect: AvatarEffect) {
+        // #2868 item 2: no decoration in a crisis, from the mark through the goodbye.
+        guard effect.playsDuringCrisis || !CrisisMarker.latestCallHadCrisis else { return }
         switch effect {
         case .haptic(let cue):
             haptics.play(cue)
         case .announce(let text):
-            AccessibilityNotification.Announcement(text).post()
+            announce(text)
         case .earcon(let earcon):
             guard UserDefaults.standard.object(forKey: Self.soundsKey) as? Bool ?? true else { return }
             let speaking = isSomeoneSpeaking()
-            guard director.allow(earcon, now: ContinuousClock.now - started,
+            guard director.allow(earcon, now: now(),
                                  agentSpeaking: speaking.agent, userSpeaking: speaking.user) else { return }
-            player(for: earcon.fileName)?.play()
+            if let sound { sound(earcon.fileName) } else { player(for: earcon.fileName)?.play() }
         }
     }
 

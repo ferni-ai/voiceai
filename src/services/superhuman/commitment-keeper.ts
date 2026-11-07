@@ -1,16 +1,14 @@
 /**
- * Commitment Keeper - Better Than Human Service
- *
- * What no human friend can do: Never forget what you said you'd do.
- *
- * Tracks the caller's commitments and follows up with care (not nagging).
- * MINOR_CARE: nothing is saved or updated while the caller is held (writeHeld).
+ * Commitment Keeper: never forget what you said you'd do. Tracks the caller's commitments and
+ * follows up with care (not nagging). Nothing is saved or updated while the caller is held:
+ * MINOR_CARE, or a call that told of abuse (K1e: held(), abuse-outreach-hold.ts).
  *
  * @module services/superhuman/commitment-keeper
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { writeHeld } from '../../utils/minor-care.js';
+import { abuseHoldsOutreach } from '../safety/index.js';
 import { judgeCommitment } from '../../utils/commitment-quality.js';
 import { getFirestoreDb, cleanForFirestore, recordDegradation } from './firestore-utils.js';
 import { commitmentCache, loadActiveCommitmentsOrThrow } from './commitment-store.js';
@@ -331,6 +329,8 @@ export function detectCommitment(
 // STORAGE
 // ============================================================================
 
+const held = async (userId: string) => writeHeld(userId) || abuseHoldsOutreach({ userId });
+
 export async function saveCommitment(
   commitment: Omit<Commitment, 'id'>,
   options?: { validateCalendar?: boolean; createCalendarBlocks?: boolean }
@@ -351,7 +351,7 @@ export async function saveCommitment(
     log.info({ userId: commitment.userId, reason: verdict.reason }, 'Commitment not stored');
     return { commitment: fullCommitment, notActionable: true };
   }
-  if (writeHeld(commitment.userId)) return { commitment: fullCommitment }; // not stored
+  if (await held(commitment.userId)) return { commitment: fullCommitment }; // not stored
   let feasibility: CommitmentFeasibility | undefined;
   if (options?.validateCalendar !== false) {
     try {
@@ -505,7 +505,7 @@ export async function updateCommitmentStatus(
   status: CommitmentStatus,
   reaction?: 'appreciated' | 'annoyed' | 'neutral'
 ): Promise<void> {
-  if (writeHeld(userId)) return; // no status, win or celebration from a held call
+  if (await held(userId)) return; // no status, win or celebration from a held call
   try {
     const db = getFirestoreDb();
     if (db) {

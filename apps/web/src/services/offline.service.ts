@@ -175,10 +175,10 @@ async function checkForCacheClear(): Promise<boolean> {
 
     // Remove the clearcache param and reload
     urlParams.delete('clearcache');
-    const newUrl = urlParams.toString() 
+    const newUrl = urlParams.toString()
       ? `${window.location.pathname}?${urlParams.toString()}`
       : window.location.pathname;
-    
+
     log.info('Cache cleared! Reloading...');
     window.location.replace(newUrl);
     return true;
@@ -228,9 +228,9 @@ async function registerServiceWorker(): Promise<void> {
     // Listen for messages from service worker
     navigator.serviceWorker.addEventListener('message', handleSWMessage);
 
-    log.info('Service worker registered', { 
+    log.info('Service worker registered', {
       scope: registration.scope,
-      status: offlineState.serviceWorkerStatus 
+      status: offlineState.serviceWorkerStatus,
     });
   } catch (error) {
     log.error('Service worker registration failed', { error: String(error) });
@@ -336,8 +336,9 @@ function setOffline(): void {
 /**
  * Verify actual connectivity with a lightweight network request.
  * navigator.onLine is unreliable on many platforms (macOS VPNs, proxies, etc.)
+ * Also the banner's Retry during a call, where a reload would hang up.
  */
-async function verifyConnectivity(afterOfflineEvent = false): Promise<void> {
+export async function verifyConnectivity(afterOfflineEvent = false): Promise<void> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), CONNECTIVITY_CHECK_TIMEOUT_MS);
@@ -351,27 +352,24 @@ async function verifyConnectivity(afterOfflineEvent = false): Promise<void> {
     });
     clearTimeout(timeout);
 
-    if (response.ok || response.status === 405 || response.status === 404) {
-      // Any response (even 404/405) means we have network connectivity
-      log.info('Connectivity verified — actually online despite navigator.onLine=false');
-      if (offlineState.isOffline) {
-        handleOnline();
-      }
-      if (navigator.onLine) {
-        stopConnectivityRecheck();
-      } else {
-        // The browser still says offline, and a probe sent at the drop can still be
-        // answered (#2180): look again soon, then every 10s while they disagree.
-        startConnectivityRecheck();
-        if (afterOfflineEvent && !quickRecheckTimer) {
-          quickRecheckTimer = setTimeout(() => {
-            quickRecheckTimer = null;
-            void verifyConnectivity();
-          }, QUICK_RECHECK_MS);
-        }
-      }
+    // Any HTTP answer, even a 5xx or 401/403, means the network is up: only a network
+    // error or the timeout (the catch) is offline. A sick server isn't "You're offline".
+    log.info('Connectivity verified — the network answered', { status: response.status });
+    if (offlineState.isOffline) {
+      handleOnline();
+    }
+    if (navigator.onLine) {
+      stopConnectivityRecheck();
     } else {
-      setOffline();
+      // The browser still says offline, and a probe sent at the drop can still be
+      // answered (#2180): look again soon, then every 10s while they disagree.
+      startConnectivityRecheck();
+      if (afterOfflineEvent && !quickRecheckTimer) {
+        quickRecheckTimer = setTimeout(() => {
+          quickRecheckTimer = null;
+          void verifyConnectivity();
+        }, QUICK_RECHECK_MS);
+      }
     }
   } catch {
     // Fetch failed — we're genuinely offline
@@ -501,10 +499,10 @@ async function processSyncQueue(): Promise<void> {
         item.retries++;
         failed.push(item);
       } else {
-        log.warn('Sync item failed after max retries', { 
-          id: item.id, 
+        log.warn('Sync item failed after max retries', {
+          id: item.id,
           url: item.url,
-          error: String(error)
+          error: String(error),
         });
         processed.push(item.id);
       }
@@ -515,9 +513,9 @@ async function processSyncQueue(): Promise<void> {
   saveSyncQueue(failed);
   offlineState.pendingSyncCount = failed.length;
 
-  log.info('Sync queue processed', { 
-    processed: processed.length, 
-    remaining: failed.length 
+  log.info('Sync queue processed', {
+    processed: processed.length,
+    remaining: failed.length,
   });
 
   syncInProgress = false;
@@ -558,10 +556,13 @@ const OFFLINE_DATA_PREFIX = 'ferni_offline_';
  */
 export function saveOfflineData<T>(key: string, data: T): void {
   try {
-    localStorage.setItem(`${OFFLINE_DATA_PREFIX}${key}`, JSON.stringify({
-      data,
-      timestamp: Date.now(),
-    }));
+    localStorage.setItem(
+      `${OFFLINE_DATA_PREFIX}${key}`,
+      JSON.stringify({
+        data,
+        timestamp: Date.now(),
+      })
+    );
   } catch (error) {
     log.warn('Failed to save offline data', { key, error: String(error) });
   }
@@ -625,4 +626,3 @@ export const offlineService = {
 };
 
 export default offlineService;
-

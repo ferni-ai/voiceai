@@ -197,6 +197,7 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
         importance: z.enum(['low', 'medium', 'high']).describe('How important is this to remember'),
       }),
       execute: async ({ fact, category, importance }, { ctx: toolCtx }) => {
+        const flags = honest.memoryToolFlags(); // once, before any await (honest-memory.ts)
         log.info(
           { agentId: ctx.agentId, factChars: fact.length, category, importance },
           '🧠 [UNIFIED] Remember about user'
@@ -207,8 +208,8 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
 
         // Store in session for awareness tools (backward compat)
         (userData.keyMoments ??= []).push(`[${category}] ${fact}`);
-        if (honest.memoryToolsHonestOn()) {
-          return honest.rememberHonestly(toolCtx, userId, fact, category);
+        if (flags.honest) {
+          return honest.rememberHonestly(toolCtx, userId, fact, category, flags);
         }
 
         // MINOR_CARE=on: nothing kept past this call for a caller under 18 (minor-care.ts)
@@ -269,6 +270,7 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
         emotionalWeight: z.enum(['light', 'medium', 'heavy']).describe('Emotional significance'),
       }),
       execute: async ({ fact, type, emotionalWeight }, { ctx: toolCtx }) => {
+        const flags = honest.memoryToolFlags(); // once, before any await (honest-memory.ts)
         log.info(
           { agentId: ctx.agentId, factChars: fact.length, type, emotionalWeight },
           '🧠 [UNIFIED] Remember important fact'
@@ -279,16 +281,17 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
 
         if (!userId || writeHeld(userId, getSessionId({ ctx: toolCtx }))) {
           log.warn('No memory write: no userId, or MINOR_CARE holds this call');
-          return honest.notWrittenReply();
+          return honest.notWrittenReply(flags.honest);
         }
 
         // "Decided to talk to Jordan" is a teammate on this call, not their life (teammate-talk.ts)
-        if (flagOn('TEAMMATE_TALK_FILTER') && isTeammateTalk(fact)) return honest.notWrittenReply();
+        if (flagOn('TEAMMATE_TALK_FILTER') && isTeammateTalk(fact))
+          return honest.notWrittenReply(flags.honest);
 
         // Store in session
         (userData.keyMoments ??= []).push(`[${type}/${emotionalWeight}] ${fact}`);
-        if (honest.memoryToolsHonestOn()) {
-          return honest.rememberImportantHonestly(toolCtx, userId, fact, type);
+        if (flags.honest) {
+          return honest.rememberImportantHonestly(toolCtx, userId, fact, type, flags);
         }
 
         // Map type to memory type

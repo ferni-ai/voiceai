@@ -83,14 +83,14 @@ describe('urgent family check-in alert: caller text screen', () => {
   it('drops a risky suggested action for Ferni’s own line', () => {
     const alert = alertFor({ recommendedAction: 'Wire $400 to pay-rosa.example.test/r/4417 now' });
     // Only the suggestion is dropped: the clean description still reaches the sponsor,
-    // and crisisCallerLine stands in for the words that didn't.
+    // and crisisCallerLine stands in for the words that didn't. Changed (owner decision):
+    // the money line names money where main said CHECK_IN.
     expect(alert).toBe(
-      `Important: During my call with ${NAME}, mentioned chest pain. ${CRISIS} ${CHECK_IN}`
+      `Important: During my call with ${NAME}, mentioned chest pain. ${CRISIS} ${RISKY}.`
     );
     expect(alert).not.toMatch(DIGITS);
     expect(alert).not.toContain('example.test');
     expect(alert).not.toContain('Wire');
-    expect(alert?.endsWith(CHECK_IN)).toBe(true);
   });
 
   it('crisis wording reaches the sponsor intact', () => {
@@ -106,7 +106,7 @@ describe('urgent family check-in alert: caller text screen', () => {
     });
     expect(alert).not.toMatch(DIGITS);
     expect(alert).toContain(crisisCallerLine(NAME));
-    expect(alert?.endsWith(CHECK_IN)).toBe(true);
+    expect(alert?.endsWith(`${RISKY}.`)).toBe(true); // changed (owner decision): was CHECK_IN
   });
 });
 
@@ -211,8 +211,9 @@ describe('urgent family check-in alert: text too long to screen in full', () => 
     expect(alertFor({ description: 5550142 as never })).toBe(GENERIC_HELD);
     // A number is never coerced to text, even one the screen would pass.
     expect(alertFor({ description: 42 as never })).toBe(GENERIC_HELD);
+    // Changed (owner decision): a number in the suggestion names money where main said CHECK_IN.
     expect(alertFor({ recommendedAction: ['call 555 0142'] as never })).toBe(
-      `Important: During my call with ${NAME}, mentioned chest pain. ${CRISIS} ${CHECK_IN}`
+      `Important: During my call with ${NAME}, mentioned chest pain. ${CRISIS} ${RISKY}.`
     );
   });
 });

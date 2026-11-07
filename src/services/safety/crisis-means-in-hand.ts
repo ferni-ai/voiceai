@@ -53,6 +53,15 @@ const EVERYDAY_AFTER_AND = String.raw`(?:we'?re|we are|we'?ll|then (?:go|going|h
 /** Run-on speech-to-text has no punctuation: a goodbye or a plea right after still ends it. */
 const RUN_ON = String.raw`goodbye|bye|i love you|love you|i'?m sorry|sorry|i'?m scared|please|forgive me|don'?t (?:call|tell|try|come|stop)|tell (?:my|everyone|them|him|her)|nobody|no one|i can'?t|i'?m done|it'?s over`;
 const CLAUSE_END = String.raw`(?= *(?:$|[.!?;]|,(?! *${EVERYDAY_AFTER_COMMA})|and\b(?! ${EVERYDAY_AFTER_AND})|but\b|now\b|right now\b|ready\b|loaded\b|it'?s\b|already\b|just now\b|(?:${RUN_ON})\b))`;
+/** Rope work or play said right after it: "... for the boat", "..., see you at the crag". */
+const ROPE_EVERYDAY = String.raw`(?! (?:for|to|off)\b)(?! (?:at|on|in) (?:the|my) (?:gym|crag|dock|barn|boat|canoe|kayak|tent|campsite|park|beach|lake|pool|yard|truck|trailer)\b)(?!,? *(?:see (?:you|ya|u) at\b|(?:the|my) (?:boat|tent|dog|kayak|canoe|truck)\b|(?:climbing|camping|sailing|boating|hiking|belaying|towing)\b))`;
+/**
+ * A rope or noose made ready: "i have the rope ready", "the noose is tied", "a rope ready in the
+ * garage". Ropes for play or work (PLAY_ROPE: "the climbing rope") and rope work said right after
+ * (ROPE_EVERYDAY) stay out. The explicit patterns read it (crisis-patterns.ts), so ropes have one
+ * set of carve-outs.
+ */
+export const ROPE_READY = String.raw`(?:\b(?:i have|i'?ve got|i got)|(?:^|[.!?,] ?)got) (?:the|a|my)(?: [\w-]+)? ${PLAY_ROPE}(?:rope|noose) (?:ready|tied|set up)\b${ROPE_EVERYDAY}|\bthe noose is (?:ready|tied|up)\b${ROPE_EVERYDAY}`;
 const SELF_HARM_DONE = String.raw`(?:bleeding|blood everywhere|overdos\w*|took (?:all )?(?:the|my) (?:pills|meds)|took them all|swallowed (?:them|the|all|my)|(?:pills|meds) are (?:working|kicking in)|noose|the rope (?:held|is around)|cut my wrists?)`;
 const DID_IT = String.raw`\bi (?:just |finally |actually |already )?(?:did it|went through with it)\b`;
 /**

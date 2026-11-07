@@ -1,8 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { LIST_PAGE_SIZE } from '../../../memory/firestore-vector-store/types.js';
 import { getEntityPolicy } from '../indexing-policy.js';
 import {
   enforceMaxPerUser,
   forgetIndexedDoc,
+  MAX_EVICTIONS_PER_WRITE,
   resetMaxPerUserCache,
   type CappedVectorStore,
 } from '../max-per-user.js';
@@ -12,17 +14,56 @@ const TYPE = 'capacity_state' as EntityType;
 const MAX = getEntityPolicy(TYPE)?.conditions?.maxPerUser as number;
 const T0 = Date.parse('2026-10-05T12:00:00Z');
 
-/** A user's index: `n` docs of TYPE (oldest first) plus unrelated docs. */
-function store(n: number) {
+/**
+ * A user's index: `n` docs of TYPE (oldest first) plus unrelated docs. With
+ * `onlyType`, the read returns TYPE docs only, as a read narrowed by entity
+ * type does.
+ */
+function store(n: number, { onlyType = false } = {}) {
   const docs = [
     ...Array.from({ length: n }, (_, i) => ({
       id: `s_${TYPE}_${i}`,
       metadata: { entityType: TYPE, indexedAt: new Date(T0 - (n - i) * 60_000).toISOString() },
     })),
-    { id: 'fact_1', metadata: { entityType: 'fact', indexedAt: '2020-01-01T00:00:00Z' } },
+    ...(onlyType
+      ? []
+      : [{ id: 'fact_1', metadata: { entityType: 'fact', indexedAt: '2020-01-01T00:00:00Z' } }]),
   ];
   const s: CappedVectorStore = {
     list: vi.fn(async () => docs),
+    removeDocument: vi.fn(async () => true),
+  };
+  return s;
+}
+
+type Doc = { id: string; metadata: Record<string, unknown> };
+
+/**
+ * Firestore's list(): userId and metadata equalities in the query, then one
+ * page. `others` docs of another type come first, then `n` of TYPE.
+ */
+function pagedStore(others: number, n: number) {
+  const docs: Doc[] = [
+    ...Array.from({ length: others }, (_, i) => ({
+      id: `fact_${i}`,
+      metadata: { userId: 'u1', entityType: 'fact', indexedAt: '2020-01-01T00:00:00Z' },
+    })),
+    ...Array.from({ length: n }, (_, i) => ({
+      id: `s_${TYPE}_${i}`,
+      metadata: {
+        userId: 'u1',
+        entityType: TYPE,
+        indexedAt: new Date(T0 - (n - i) * 60_000).toISOString(),
+      },
+    })),
+  ];
+  const s: CappedVectorStore = {
+    list: vi.fn(async (filter: { userId: string; metadata?: Record<string, unknown> }) =>
+      docs
+        .filter((d) => d.metadata.userId === filter.userId)
+        .filter((d) => Object.entries(filter.metadata ?? {}).every(([k, v]) => d.metadata[k] === v))
+        .slice(0, LIST_PAGE_SIZE)
+    ),
     removeDocument: vi.fn(async () => true),
   };
   return s;
@@ -54,14 +95,18 @@ describe('maxPerUser enforcement', () => {
     expect(await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new`, T0)).toEqual([`s_${TYPE}_0`]);
     expect(s.removeDocument).toHaveBeenCalledTimes(1);
     // The next new doc evicts the next oldest, still from memory.
-    expect(await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new2`, T0 + 1)).toEqual([`s_${TYPE}_1`]);
+    expect(await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new2`, T0 + 1)).toEqual([
+      `s_${TYPE}_1`,
+    ]);
     expect(s.list).toHaveBeenCalledTimes(1);
   });
 
   it('a re-indexed doc becomes the newest, so it is evicted last', async () => {
     const s = store(MAX);
     await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_0`, T0);
-    expect(await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new`, T0 + 1)).toEqual([`s_${TYPE}_1`]);
+    expect(await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new`, T0 + 1)).toEqual([
+      `s_${TYPE}_1`,
+    ]);
   });
 
   it('a deleted doc frees its slot', async () => {
@@ -95,9 +140,112 @@ describe('maxPerUser enforcement', () => {
     await expect(enforceMaxPerUser(s, 'u1', TYPE, 'a', T0)).resolves.toEqual([]);
   });
 
+  it('asks the store for this entity type only', async () => {
+    const s = store(1);
+    await enforceMaxPerUser(s, 'u1', TYPE, 'a', T0);
+    expect(s.list).toHaveBeenCalledWith({ userId: 'u1', metadata: { entityType: TYPE } });
+  });
+
+  it('counts docs of the type that sit past the first page of the user', async () => {
+    const s = pagedStore(LIST_PAGE_SIZE + 100, MAX);
+    // Unfiltered, the page holds none of them.
+    expect(
+      (await s.list({ userId: 'u1' } as never)).filter((d) => d.metadata?.entityType === TYPE)
+    ).toEqual([]);
+    expect(await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new`, T0)).toEqual([`s_${TYPE}_0`]);
+    expect(s.removeDocument).toHaveBeenCalledWith(`s_${TYPE}_0`);
+  });
+
+  it('without a real owner id, nothing is read or removed', async () => {
+    // Two users over the cap. Like list(), an empty userId narrows nothing.
+    const docs = ['u1', 'u2'].flatMap((userId) =>
+      Array.from({ length: MAX + 1 }, (_, i) => ({
+        id: `${userId}_${TYPE}_${i}`,
+        metadata: { userId, entityType: TYPE, indexedAt: new Date(T0 - i).toISOString() },
+      }))
+    );
+    const s: CappedVectorStore = {
+      list: vi.fn(async (filter: { userId: string }) =>
+        filter.userId ? docs.filter((d) => d.metadata.userId === filter.userId) : docs
+      ),
+      removeDocument: vi.fn(async () => true),
+    };
+    for (const userId of ['', '  ', 'anonymous']) {
+      expect(await enforceMaxPerUser(s, userId, TYPE, 'new', T0), JSON.stringify(userId)).toEqual(
+        []
+      );
+    }
+    expect(s.list).toHaveBeenCalledTimes(0);
+    expect(s.removeDocument).toHaveBeenCalledTimes(0);
+    // A real owner still enforces the cap, on that owner's docs only.
+    expect(await enforceMaxPerUser(s, 'u1', TYPE, 'new', T0)).toEqual([
+      `u1_${TYPE}_${MAX}`,
+      `u1_${TYPE}_${MAX - 1}`,
+    ]);
+    expect(s.removeDocument).toHaveBeenCalledTimes(2);
+  });
+
   it('types without a cap are never read', async () => {
     const s = store(0);
     await enforceMaxPerUser(s, 'u1', 'no_such_type' as EntityType, 'a', T0);
     expect(s.list).not.toHaveBeenCalled();
+  });
+});
+
+describe('maxPerUser eviction cap per write (MAX_PER_USER_EVICT_CAP)', () => {
+  const OVER = 50;
+  const oldestIds = (k: number) => Array.from({ length: k }, (_, i) => `s_${TYPE}_${i}`);
+
+  beforeEach(() => resetMaxPerUserCache());
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('caps at two', () => {
+    expect(MAX_EVICTIONS_PER_WRITE).toBe(2);
+  });
+
+  for (const onlyType of [false, true]) {
+    const read = onlyType ? 'a read narrowed to the type' : 'a read of every type';
+    it(`on by default: ${OVER} over the cap, a new doc removes only the oldest two (${read})`, async () => {
+      const s = store(MAX + OVER, { onlyType });
+      expect(s.removeDocument).not.toHaveBeenCalled();
+      const removed = await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new`, T0);
+      expect(removed).toEqual(oldestIds(MAX_EVICTIONS_PER_WRITE));
+      expect(s.removeDocument).toHaveBeenCalledTimes(MAX_EVICTIONS_PER_WRITE);
+    });
+  }
+
+  it('on: an over-cap user drains by one doc per write, oldest first', async () => {
+    const s = store(MAX + OVER);
+    expect(await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new1`, T0)).toEqual(oldestIds(2));
+    expect(await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new2`, T0 + 1)).toEqual([
+      `s_${TYPE}_2`,
+      `s_${TYPE}_3`,
+    ]);
+    expect(s.removeDocument).toHaveBeenCalledTimes(4);
+  });
+
+  it('off: every excess doc goes in one write, as before', async () => {
+    vi.stubEnv('MAX_PER_USER_EVICT_CAP', 'off');
+    const s = store(MAX + OVER);
+    const removed = await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new`, T0);
+    expect(removed).toEqual(oldestIds(OVER + 1));
+    expect(s.removeDocument).toHaveBeenCalledTimes(OVER + 1);
+  });
+
+  it('on, at the cap exactly: a new doc removes one', async () => {
+    const s = store(MAX);
+    expect(await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new`, T0)).toEqual(oldestIds(1));
+  });
+
+  it('on, under the cap: a new doc removes nothing', async () => {
+    const s = store(MAX - 1);
+    expect(await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_new`, T0)).toEqual([]);
+    expect(s.removeDocument).not.toHaveBeenCalled();
+  });
+
+  it('on, over the cap: re-indexing a known doc removes nothing', async () => {
+    const s = store(MAX + OVER);
+    expect(await enforceMaxPerUser(s, 'u1', TYPE, `s_${TYPE}_7`, T0)).toEqual([]);
+    expect(s.removeDocument).not.toHaveBeenCalled();
   });
 });

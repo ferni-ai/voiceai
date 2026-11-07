@@ -181,7 +181,6 @@
   "src/services/self-healing/circuit-breaker.ts": 1,
   "src/services/self-healing/cloud-run-restart.ts": 3,
   "src/services/self-healing/redis-circuit-breaker.ts": 1,
-  "src/services/session/session-primer.ts": 2,
   "src/services/subscriptions/subscription-detector.ts": 2,
   "src/services/superhuman/anticipatory-planning.ts": 1,
   "src/services/superhuman/causal-inference-engine.ts": 2,

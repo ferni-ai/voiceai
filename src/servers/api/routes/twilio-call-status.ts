@@ -19,6 +19,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { captureCallResult } from '../../../services/outreach/call-result-capture.js';
 import { userTimezone } from '../../../services/outreach/call-hours-guard.js';
 import { voicemailWords } from '../../../services/outreach/voicemail-outcome.js';
+import { agentNeverJoinedOutcome } from '../../../services/outreach/agent-join.js';
 import { isSignedByTwilio } from '../../../api/twilio-callback-signature.js';
 import type { CallOutcome } from '../../../tools/domains/telephony/types.js';
 import {
@@ -91,12 +92,7 @@ export function twilioStatusToOutcome(
 
   // Our agent never joined: whatever Twilio reports, the call failed and it was our fault.
   if (pendingCall.dispatchFailed) {
-    return {
-      ...baseOutcome,
-      status: 'failed',
-      outcome: `Ferni couldn't connect the call to ${pendingCall.contactName}`,
-      callbackRequired: true,
-    };
+    return agentNeverJoinedOutcome(pendingCall.callId, pendingCall.contactName);
   }
 
   switch (CallStatus) {
