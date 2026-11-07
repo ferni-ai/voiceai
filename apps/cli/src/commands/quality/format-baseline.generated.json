@@ -450,7 +450,6 @@
   "src/services/cross-persona/__tests__/insight-wire-format.test.ts",
   "src/services/custom-agent/__tests__/voice-sample-storage-private.test.ts",
   "src/services/custom-agent/custom-agent-runtime-service.ts",
-  "src/services/data-layer/max-per-user.ts",
   "src/services/data-layer/types.ts",
   "src/services/data/cached-imports.ts",
   "src/services/data/write-ahead-log.ts",
