@@ -26,6 +26,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { toolArgShape } from './tool-arg-shape.js';
 
 const log = createLogger({ module: 'MetaTool' });
 
@@ -278,7 +279,7 @@ export function unwrapMetaToolCall(
   const { toolName, args: rawArgs } = args;
 
   if (typeof toolName !== 'string' || !toolName) {
-    log.warn({ args }, 'Meta-tool call missing toolName');
+    log.warn({ argShape: toolArgShape(args) }, 'Meta-tool call missing toolName');
     return null;
   }
 
@@ -288,7 +289,9 @@ export function unwrapMetaToolCall(
     try {
       toolArgs = JSON.parse(rawArgs) as Record<string, unknown>;
     } catch (e) {
-      log.warn({ rawArgs, error: String(e) }, 'Failed to parse meta-tool args JSON');
+      // The parser's message quotes the caller's words, so log the class only.
+      const errorClass = e instanceof Error ? e.name : typeof e;
+      log.warn({ rawArgsChars: rawArgs.length, errorClass }, 'Failed to parse meta-tool args JSON');
       // Try to use as-is if it looks like a simple value
       toolArgs = {};
     }
