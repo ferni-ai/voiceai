@@ -93,7 +93,11 @@ async function waitForAgentJoin(
 
 /** Resolves once the agent is in `room`; rejects with AgentNotJoinedError if it never comes. */
 export async function awaitAgent(keys: LiveKitKeys, room: string, callId: string): Promise<void> {
-  if (await waitForAgentJoin(await roomService(keys), room)) return;
+  const started = Date.now();
+  if (await waitForAgentJoin(await roomService(keys), room)) {
+    log.info({ callId, joinMs: Date.now() - started }, 'ON_BEHALF_AGENT_JOINED');
+    return;
+  }
   log.error({ callId }, 'ON_BEHALF_NO_AGENT: no agent joined; the call was not dialled');
   throw new AgentNotJoinedError();
 }
@@ -110,20 +114,38 @@ export function agentNeverJoinedOutcome(callId: string, contactName: string): Ca
 }
 
 /**
- * The no-agent watchdog. Nothing rang: close the room, so an agent arriving late
- * doesn't sit in it, and record the call as failed with the reason. Never throws.
+ * The no-agent watchdog. Nothing rang: record the call as failed with the reason,
+ * then close the room, so an agent arriving late doesn't sit in it. Recording
+ * comes first: closing the room ends a late agent's session, and that job reads
+ * the record (neverPlaced) before it reports anything. Never throws.
  */
 export async function endCallWithNoAgent(keys: LiveKitKeys, call: UnansweredCall): Promise<void> {
+  try {
+    const { captureCallResult } = await import('./call-result-capture.js');
+    const contactName = call.request.resolvedContact?.name || call.request.contactQuery;
+    const outcome = agentNeverJoinedOutcome(call.id, contactName);
+    await captureCallResult(call.id, { ...outcome, notPlaced: AGENT_NOT_JOINED }, call.request);
+  } catch (error) {
+    log.error({ error: String(error), callId: call.id }, 'Could not record the call with no agent');
+  }
   try {
     if (call.livekitRoomName) await (await roomService(keys)).deleteRoom(call.livekitRoomName);
   } catch (error) {
     log.warn({ error: String(error), callId: call.id }, 'Could not close the room with no agent');
   }
-  try {
-    const { captureCallResult } = await import('./call-result-capture.js');
-    const contactName = call.request.resolvedContact?.name || call.request.contactQuery;
-    await captureCallResult(call.id, agentNeverJoinedOutcome(call.id, contactName), call.request);
-  } catch (error) {
-    log.error({ error: String(error), callId: call.id }, 'Could not record the call with no agent');
-  }
+}
+
+/**
+ * True when the watchdog recorded this call as never placed. An agent that
+ * reaches the room after the wait gave up hears no one; its job must not report
+ * that as a missed call, which would overwrite the stored failure with no_answer
+ * and, with CALL_FOLLOWTHROUGH, retry a call that never rang. A failed read is
+ * false: the job reports as it did before this check.
+ */
+export async function neverPlaced(callId: string, userId: string): Promise<boolean> {
+  const { getCallResult } = await import('./call-result-capture.js');
+  const stored = await getCallResult(callId, userId).catch(() => null);
+  if (stored?.outcome?.notPlaced !== AGENT_NOT_JOINED) return false;
+  log.info({ callId }, 'ON_BEHALF_LATE_AGENT: the call was never placed; nothing reported');
+  return true;
 }

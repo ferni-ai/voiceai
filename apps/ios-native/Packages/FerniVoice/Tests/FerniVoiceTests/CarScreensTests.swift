@@ -18,6 +18,7 @@ final class CarScreensTests: XCTestCase {
         typealias S = CarScreens.VoiceState
         XCTAssertEqual(S.of(phase: .connecting, pose: .idle, onHold: false), .connecting)
         XCTAssertEqual(S.of(phase: .reconnecting, pose: .speaking, onHold: false), .connecting)
+        XCTAssertEqual(S.of(phase: .rejoining, pose: .speaking, onHold: false), .connecting)
         XCTAssertEqual(S.of(phase: .live, pose: .speaking, onHold: false), .speaking)
         XCTAssertEqual(S.of(phase: .live, pose: .thinking, onHold: false), .thinking)
         XCTAssertEqual(S.of(phase: .live, pose: .listening, onHold: false), .listening)

@@ -19,11 +19,10 @@ import { emergencyDialRefusal } from '../safety/index.js';
 import { ownerRefusal } from '../messaging/consent-reach.js';
 import { heldSender } from './checkin-replies.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
-import { holdForCallHours } from './deferred-calls.js';
+import { calleeCallHold, callHoursRecipients, holdForCallees } from './call-hours-recipient.js';
 import { placeLiveAgentCall, ringsWithLiveAgent } from './live-agent-call.js';
 import { carryOwnCallMe, heldCall } from './held-call.js';
 import { deferredCallRequest, pausedCall } from './outreach-pause.js';
-import { callQuietHours } from './quiet-hours.js';
 import { toTwilioSsml } from './twilio-ssml.js';
 import { twilioCallbackUrl } from './webhooks/twilio-callback-url.js';
 
@@ -47,6 +46,7 @@ export interface ProactiveCallRequest {
   enableConversation?: boolean; // Allow two-way talk?
   voicemailFallback?: boolean; // Leave message if no answer?
   askedFor?: boolean; // they asked for or set it: a pause doesn't stop it (outreach-pause.ts)
+  toContact?: boolean; // the callee is someone else the member calls: the callee's calling hours
 }
 
 export interface CallResult {
@@ -182,16 +182,16 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     const refused = await ownerRefusal(userId, normalizedPhone, 'call');
     if (refused) return { success: false, error: `Not calling: ${refused}` };
 
-    // Outside the user's calling hours (CALL_HOURS_GUARD=on) the call waits for them.
-    const held = { recipientPhone: normalizedPhone, recipientUserId: userId };
+    // Outside the callee's calling hours (CALL_HOURS_GUARD=on) the call waits for them.
+    const held = await callHoursRecipients(userId, normalizedPhone, request.toContact);
     const call = { kind: 'proactive' as const, request: deferredCallRequest(request) };
     const due = requestedFor <= new Date();
-    const deferral = due && (await holdForCallHours(userId, call, held));
+    const deferral = due && (await holdForCallees(userId, call, held));
     if (deferral) return { success: true, callId: deferral.id, status: 'scheduled' };
-    // The guard covers quiet hours, in the user's own time zone. callQuietHours reads
+    // The guard covers quiet hours, in the callee's own time zone. calleeCallHold reads
     // the clock, not scheduledFor, so a quiet call is stored for later, never re-checked.
     const now = new Date();
-    const hours = due && !isCallHoursGuardOn() ? await callQuietHours(userId, now) : null;
+    const hours = due && !isCallHoursGuardOn() ? await calleeCallHold(held, now) : null;
     const quiet = !!hours?.quiet;
     if (quiet) log.info({ userId, callId }, 'Call delayed due to quiet hours');
     const scheduledFor = quiet && hours ? hours.until : requestedFor;
@@ -528,6 +528,7 @@ export interface OutboundCallContext {
   // Simple mode (backward compatible)
   userId?: string;
   askedFor?: boolean; // they asked for or scheduled it (ProactiveCallRequest.askedFor)
+  toContact?: boolean; // the callee is someone else the member calls (ProactiveCallRequest.toContact)
   phoneNumber?: string;
   message?: string;
   ssml?: string;
@@ -694,16 +695,14 @@ export function getConversationalCallService(): ConversationalCallService {
   return serviceInstance;
 }
 
-/**
- * Check if conversational calls are configured
- */
+/** Check if conversational calls are configured */
 export function isConversationalCallsConfigured(): boolean {
   return !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
 }
 
 /** Make a conversational call (legacy API). @deprecated Use scheduleProactiveCall directly */
 export async function makeConversationalCall(context: OutboundCallContext): Promise<CallResult> {
-  const userId = context.userId || context.user?.id || '';
+  const userId = context.userId ?? context.user?.id ?? ''; // '' is no owner, never the callee
   const phoneNumber = context.phoneNumber || context.user?.phone || '';
   const message = context.message || context.approach?.primaryGoal || '';
 
@@ -721,13 +720,11 @@ export async function makeConversationalCall(context: OutboundCallContext): Prom
     reason: context.reason || context.trigger?.reason || 'outbound_call',
     maxDuration: context.maxDuration || context.approach?.maxDuration,
     askedFor: context.askedFor,
+    toContact: context.toContact,
   });
 }
 
-/**
- * Format referral conversations for context injection
- * @deprecated Use dedicated context builder
- */
+/** Format referral conversations for context injection. @deprecated Use the context builder */
 export function formatReferralConversationsForContext(_userId?: string): string {
   // Stub for backward compatibility
   return '';

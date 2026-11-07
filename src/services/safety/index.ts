@@ -32,6 +32,7 @@ export { offersCrisisLine } from './crisis-line-speech.js';
 export { emergencyDialRefusal } from '../../utils/dialable-number.js';
 // A turn whose crisis read the provider blocked (CRISIS_CLASSIFIER_BLOCKED_SIGNAL, turn-crisis.ts).
 export { blockedReadGuidance } from './crisis-classifier-blocked.js';
+export { resolveCrisisClassifierTimeoutMs } from './crisis-classifier.js';
 // CRISIS_GRADED_RESPONSE=shadow: the graded crisis response, measured first (crisis-graded-shadow.ts).
 export { mainOf } from './crisis-graded-response.js';
 export { noteSpokenLifeline, shadowGrade, shadowPipelineGrade } from './crisis-graded-shadow.js';
@@ -70,7 +71,8 @@ export type {
   CrisisResponseContent,
   CrisisResponseContext,
 } from './crisis-response.js';
-export { EMERGENCY_NUMBER } from './emergency-number.js';
+export { EMERGENCY_NUMBER, EMERGENCY_SERVICE } from './emergency-number.js';
+export { isCareTalk, isSafetyTalk, reachesHelp } from './safety-talk.js';
 export * as crisisLines from './crisis-lines.js';
 // Someone hurting the caller (ABUSE_DISCLOSURE_PATTERNS, turn-crisis.ts and turn-handler.ts).
 export {
@@ -79,6 +81,8 @@ export {
   disclosureGuidance,
   withAbuseRead,
 } from './abuse-disclosure-turn.js';
+export { abuseOnlyRead } from './abuse-disclosure.js';
+export { abuseHoldNow, abuseHoldsOutreach, trackAbuseRead } from './abuse-outreach-hold.js';
 
 // ============================================================================
 // ESCALATION PATHWAYS

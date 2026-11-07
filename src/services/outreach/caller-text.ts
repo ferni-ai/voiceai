@@ -48,11 +48,40 @@ export function callerText(text: string | undefined | null, maxLength = 300): st
   return clean.length > maxLength ? `${clean.slice(0, maxLength - 3).trimEnd()}...` : clean;
 }
 
-/** Links, phone or account numbers, and requests for money, credentials or codes. */
+/**
+ * A money verb in any inflection; alone it is ordinary speech ("pay attention", "I owe you one").
+ * Not a bare "loan": Loan is a name, and the alert reads it ("my call with Loan, a grand time").
+ * "The loan" is still read, as a noun with its determiner.
+ */
+const MONEY_VERB = String.raw`(?:pay(?:s|ing)?|paid|owe[sd]?|owing|lend(?:s|ing)?|lent|borrow(?:s|ed|ing)?|loan(?:ed|ing))`;
+/** What makes a money verb a money request: a sum or a debt as its object. */
+const MONEY_OBJECT = String.raw`(?:loans?|debts?|grand|bucks|quid|money|cash|funds)`;
+/** A number said in words; every one of them, so "six grand" is a sum like "two grand". */
+const NUMBER_WORD = String.raw`(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million)`;
+/**
+ * A sum said in words or digits, so "a grand time" stays ordinary speech. A compound
+ * ("twenty-five", "twenty five") is read by its last word.
+ */
+const AMOUNT = String.raw`(?:\p{Nd}+|few|couple(?: of)?|some|${NUMBER_WORD})`;
+
+/**
+ * Links, phone or account numbers, and requests for money, credentials or codes.
+ * Digits are any script's (`\p{Nd}`): Arabic-Indic or Vai digits make a number too.
+ */
 const RISKY = [
   /\bhttps?:\/\/|\bwww\.|\b[a-z0-9-]+\.(com|net|org|io|co|me|xyz|link|ly)\b/i,
-  /(\d[\s().-]*){7,}/, // phone, account or card number
-  /[$€£]\s?\d|\b\d+\s?(dollars|bucks|usd)\b/i,
+  /(\p{Nd}[\s().-]*){7,}/u, // phone, account or card number
+  /[$€£]\s?\p{Nd}|(?<![A-Za-z0-9_])\p{Nd}+\s?(dollars|bucks|usd)\b/iu,
+  new RegExp(String.raw`\b${MONEY_VERB}\b[^.!?]{0,30}\b${MONEY_OBJECT}\b`, 'i'), // owes a grand on the loan
+  /\b(pay(s|ing)?|paid)\b(\s+\p{L}+)?\s+back\b/iu, // pay me back
+  new RegExp(String.raw`(?<![\p{L}\p{N}])${AMOUNT}\s+(?:grand|bucks|quid)\b`, 'iu'), // two grand
+  new RegExp(String.raw`(?<![\p{L}\p{N}])(?:\p{Nd}+|${NUMBER_WORD})\s?k\b`, 'iu'), // 5k, five k
+  /\b(a|the|her|his|my|your|their|our|that|this|some|any|in|into|of|off)\s+(loans?|debts?)\b/i,
+  /@/, // email or handle
+  /[\p{L}\p{N}]_[\p{L}\p{N}]/u, // handle: riley_help
+  /\bat\s+(gmail|yahoo|icloud|outlook|hotmail|aol|proton(mail)?)\b/i,
+  /\bh[\s.-]+t[\s.-]+t[\s.-]+p|\bw[\s.-]+w[\s.-]+w\b/i, // a link spelled out
+  /(?<![\p{L}\p{N}.])[\p{L}\p{N}-]{2,}\.\p{L}{2,}(?![\p{L}\p{N}])/u, // a link with any ending
   /\b(wire|venmo|zelle|cash ?app|paypal|gift ?cards?|bitcoin|crypto|bank|routing|account number|credit card|debit card|social security|ssn)\b/i,
   /\b(send|transfer|pay|lend|loan)\b[^.!?]{0,30}\b(money|cash|funds|payment)\b/i,
   /\b(password|passcode|pin|verification code|security code|one-time code|login|log in|credentials?|card numbers?|cvv|cvc)\b/i,
