@@ -1,0 +1,40 @@
+/*
+ * "Hear Ferni" in the homepage hero (home-next preview; js/hear-ferni.js).
+ * A quiet text button under the calls to action: Ferni's real voice, one tap.
+ */
+.hear-ferni {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.25rem auto 0;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease-ease-out),
+    background-color var(--duration-fast) var(--ease-ease-out);
+}
+
+.hear-ferni:hover {
+  border-color: var(--color-accent);
+}
+
+.hear-ferni:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.hear-ferni[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+}
+
+.hear-ferni[disabled] {
+  opacity: 0.6;
+  cursor: progress;
+}

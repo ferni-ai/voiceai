@@ -34,8 +34,10 @@
       // Add subtle data attribute for styling
       document.body.dataset.timeOfDay = content.period;
 
-      // Update tagline with time-aware greeting
-      if (content.tagline) {
+      // Update tagline with time-aware greeting, unless the page fixes its hero copy
+      // (the home-next preview keeps "Meet Ferni" at every hour).
+      const fixedCopy = document.querySelector('[data-hero-copy="fixed"]');
+      if (content.tagline && !fixedCopy) {
         heroTagline.innerHTML = content.tagline;
         heroTagline.classList.add('time-aware');
       }
