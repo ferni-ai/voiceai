@@ -154,10 +154,11 @@ describe('safety talk is never quoted or listed (services/safety/safety-talk.ts)
     );
   });
 
-  it('still quotes three ordinary repeats when safety talk is repeated first', async () => {
-    const note = await toldNote(saidThrice([...HELP_AND_CARE, ...ORDINARY_LINES].join(' ')));
-    expect(note).toContain(`Don't say again: ${ORDINARY_LINES.map((l) => `"${l}"`).join('; ')}`);
-    for (const line of HELP_AND_CARE) expect(note, line).not.toContain(line.slice(0, 18));
+  it("quotes main's ordinary repeats, minus the safety talk, and never one main cut", async () => {
+    const [first, second, third] = ORDINARY_LINES;
+    const note = await toldNote(saidThrice([first, HELP_AND_CARE[0], second, third].join(' ')));
+    // Main quotes the first three: first, the HOME line, second. third was cut at the cap.
+    expect(note).toBe(`[Already said this call: Don't say again: "${first}"; "${second}"]`);
   });
 
   it('never names a reused phrase that is safety talk (PHRASE_LOOP_GUARD=on)', async () => {
@@ -192,5 +193,56 @@ describe('safety talk is never quoted or listed (services/safety/safety-talk.ts)
         '"My sourdough starter finally doubled in size this morning, which felt like a small vict..."; ' +
         '"Even after all these years, the quiet hum of a winter night still feels like coming home."]'
     );
+  });
+});
+
+describe('safety lines the talk reader misses, and pointers back to a line (#3592 r2)', () => {
+  const LEADS = ['Okay.', 'Alright.', 'I hear you.'];
+  const saidThrice = (said: string): Line[] =>
+    LEADS.flatMap((lead, i) => [user(`Turn ${i}.`), ferni(`${lead} ${said}`)]);
+  const toldNote = async (lines: Line[]): Promise<string> => {
+    process.env.PHRASE_LOOP_GUARD = 'on';
+    try {
+      const director = new Director({ sessionId: 'r2-call', writeNotes: false });
+      await director.observe(lines);
+      return director.told();
+    } finally {
+      delete process.env.PHRASE_LOOP_GUARD;
+    }
+  };
+  const NAMED_LINE = 'In Canada you can call Talk Suicide Canada any time you need.';
+  const MEANS = 'Could you put the pills in another room for a while?';
+  const POINTING_BACK = [
+    'That number I gave you earlier is open all night long.',
+    'The line I mentioned is free and they will not judge you.',
+    'The counselors on that text service are kind and patient.',
+    'The people on that line really do listen without rushing you.',
+  ];
+
+  it('the talk reader misses these, so each row below tests more than #3565', () => {
+    for (const line of [NAMED_LINE, MEANS, ...POINTING_BACK])
+      expect(isSafetyTalk(line), line).toBe(false);
+  });
+
+  it('never lists a help line named with no number, said in three replies', async () => {
+    expect(await toldNote(saidThrice(NAMED_LINE))).not.toMatch(/Canada|Talk Suicide/);
+  });
+
+  it('never names a reused phrase of a means line, said in three replies', async () => {
+    expect(await toldNote(saidThrice(MEANS))).not.toMatch(/pills|another room|for a while/);
+  });
+
+  it.each(POINTING_BACK)('never quotes or loops %s, said in three replies', async (line) => {
+    expect(await toldNote(saidThrice(line))).toBe('');
+  });
+
+  it('never quotes a line main cut at the cap when safety talk took its place', async () => {
+    const help = ['You can text HOME any time.', 'The Trevor Project is there all night.'];
+    const said = [...help, 'Hand the keys to your friend.', ORDINARY, POINTING_BACK[1]];
+    const note = await toldNote(saidThrice(said.join(' ')));
+    // Main quotes the three help lines and cuts the rest; none may take their place.
+    expect(note).not.toContain(DONT_SAY);
+    expect(note).not.toMatch(/HOME|Trevor|keys|judge|line I mentioned/);
+    expect(note).toContain('"winter night still feels like coming"'); // its reused phrase, as on main
   });
 });
