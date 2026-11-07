@@ -168,7 +168,6 @@ const sanitizer = createToolCallSanitizer({
 
 | File                          | Purpose                             |
 | ----------------------------- | ----------------------------------- |
-| `action-approval-handler.ts`  | User approval for actions           |
 | `action-history.ts`           | Action execution history            |
 | `cache-reader.ts`             | Cache reading utilities             |
 | `lightweight-resilience.ts`   | Lightweight resilience patterns     |

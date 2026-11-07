@@ -188,7 +188,7 @@ const anniversarySupportDef: ToolDefinition = {
         howLongAgo: z.string().optional().describe('How long ago the loss was'),
       }),
       execute: async ({ occasion, approaching, howLongAgo }) => {
-        getLogger().info({ agentId: ctx.agentId, occasion, approaching }, 'Anniversary support');
+        getLogger().info({ agentId: ctx.agentId, occasionChars: occasion?.length ?? 0, approaching }, 'Anniversary support');
 
         let response = '';
 
@@ -234,7 +234,7 @@ const acknowledgeLossDef: ToolDefinition = {
         whyItMayNotBeRecognized: z.string().optional().describe('Why others might not understand'),
       }),
       execute: async ({ loss, whyItMayNotBeRecognized }) => {
-        getLogger().info({ agentId: ctx.agentId, loss }, 'Acknowledging loss');
+        getLogger().info({ agentId: ctx.agentId, lossChars: loss?.length ?? 0 }, 'Acknowledging loss');
 
         let response = `Your loss of ${loss} is real.\n\n`;
 
@@ -279,7 +279,7 @@ const rememberLovedDef: ToolDefinition = {
       }),
       execute: async ({ personName, relationship, whatToRemember }) => {
         getLogger().info(
-          { agentId: ctx.agentId, personName, whatToRemember },
+          { agentId: ctx.agentId, personNameChars: personName?.length ?? 0, whatToRemember },
           'Remembering loved one'
         );
 
@@ -408,7 +408,7 @@ const processEndingDef: ToolDefinition = {
         whatYouWantToHonor: z.string().optional().describe('What you want to acknowledge or honor'),
       }),
       execute: async ({ whatIsEnding, howItFeels, whatYouWantToHonor }) => {
-        getLogger().info({ agentId: ctx.agentId, whatIsEnding }, 'Processing ending');
+        getLogger().info({ agentId: ctx.agentId, whatIsEndingChars: whatIsEnding?.length ?? 0 }, 'Processing ending');
 
         let response = `${whatIsEnding} is ending.\n\n`;
 
@@ -454,7 +454,7 @@ const embraceNewIdentityDef: ToolDefinition = {
         howItFeels: z.string().optional().describe('How the shift feels'),
       }),
       execute: async ({ oldIdentity, trigger, howItFeels }) => {
-        getLogger().info({ agentId: ctx.agentId, oldIdentity, trigger }, 'Embracing new identity');
+        getLogger().info({ agentId: ctx.agentId, oldIdentityChars: oldIdentity?.length ?? 0, triggerChars: trigger?.length ?? 0 }, 'Embracing new identity');
 
         let response = `You used to be ${oldIdentity}. Now, after ${trigger}, you're becoming someone new.\n\n`;
 
@@ -705,7 +705,7 @@ const flagTransitionForJordanDef: ToolDefinition = {
       }),
       execute: async ({ transition, stage, needsPlanning }) => {
         getLogger().info(
-          { agentId: ctx.agentId, transition, stage },
+          { agentId: ctx.agentId, transitionChars: transition?.length ?? 0, stage },
           'Flagging transition for Jordan'
         );
 

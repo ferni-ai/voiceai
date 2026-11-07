@@ -71,6 +71,8 @@ const MAX_SESSION_USERS = 5000;
 /** sessionId -> when it was first bound to a user: a held call's purge drops what came after it. */
 const sessionBound = new Map<string, number>();
 
+/** The user this session is bound to (session start), if it is: abuse-outreach-hold.ts. */
+export const sessionUser = (sessionId: string): string | undefined => sessionUsers.get(sessionId);
 /** When this session was first bound to a user (session start), if it was. */
 export const sessionBoundAt = (sessionId: string | undefined): number | undefined =>
   sessionId === undefined ? undefined : sessionBound.get(sessionId);
