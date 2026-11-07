@@ -90,11 +90,8 @@ describe('reachOut conversation call: whose checks run', () => {
     expect(runs(checks.refusal)).toEqual(new Set(['owner-1 +12025550177']));
     expect(checks.hours).toHaveBeenCalledOnce();
     expect(checks.hours.mock.calls[0]?.[0]).toBe('owner-1');
-    // ...but the hours are Pat's: by Pat's number, the owner only as the fallback zone.
-    expect(checks.hours.mock.calls[0]?.[2]).toEqual({
-      recipientPhone: '+12025550177',
-      sponsorUserId: 'owner-1',
-    });
+    // ...but the hours are Pat's: by Pat's number alone, never the owner's zone.
+    expect(checks.hours.mock.calls[0]?.[2]).toEqual({ recipientPhone: '+12025550177' });
     const ids = [checks.held, checks.refusal, checks.hours].flatMap((s) => s.mock.calls.flat());
     expect(ids).not.toContain('c-pat');
   });

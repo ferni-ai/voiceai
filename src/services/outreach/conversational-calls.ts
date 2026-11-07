@@ -18,8 +18,7 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { ownerRefusal } from '../messaging/consent-reach.js';
 import { heldSender } from './checkin-replies.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
-import { calleeQuietHours, callHoursRecipient } from './call-hours-recipient.js';
-import { holdForCallHours } from './deferred-calls.js';
+import { calleeCallHold, callHoursRecipients, holdForCallees } from './call-hours-recipient.js';
 import { placeLiveAgentCall, ringsWithLiveAgent } from './live-agent-call.js';
 import { carryOwnCallMe, heldCall } from './held-call.js';
 import { deferredCallRequest, pausedCall } from './outreach-pause.js';
@@ -184,15 +183,15 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     if (refused) return { success: false, error: `Not calling: ${refused}` };
 
     // Outside the callee's calling hours (CALL_HOURS_GUARD=on) the call waits for them.
-    const held = await callHoursRecipient(userId, normalizedPhone, request.toContact);
+    const held = await callHoursRecipients(userId, normalizedPhone, request.toContact);
     const call = { kind: 'proactive' as const, request: deferredCallRequest(request) };
     const due = requestedFor <= new Date();
-    const deferral = due && (await holdForCallHours(userId, call, held));
+    const deferral = due && (await holdForCallees(userId, call, held));
     if (deferral) return { success: true, callId: deferral.id, status: 'scheduled' };
-    // The guard covers quiet hours, in the callee's own time zone. calleeQuietHours reads
+    // The guard covers quiet hours, in the callee's own time zone. calleeCallHold reads
     // the clock, not scheduledFor, so a quiet call is stored for later, never re-checked.
     const now = new Date();
-    const hours = due && !isCallHoursGuardOn() ? await calleeQuietHours(held, now) : null;
+    const hours = due && !isCallHoursGuardOn() ? await calleeCallHold(held, now) : null;
     const quiet = !!hours?.quiet;
     if (quiet) log.info({ userId, callId }, 'Call delayed due to quiet hours');
     const scheduledFor = quiet && hours ? hours.until : requestedFor;

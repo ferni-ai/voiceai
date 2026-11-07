@@ -1,9 +1,9 @@
 /**
  * A conversation call (reachOut) to a contact keeps the contact's calling hours. The owner's id
  * rides the call (#3571) for their holds, grants and records, but their time zone and quiet hours
- * are theirs: a contact's hours go by the contact's area code, the owner's zone only as the
- * fallback, as on-behalf calls do. A call to the owner's own number keeps the owner's hours,
- * whether it is a call to them or their own number reached as a contact.
+ * are theirs: a contact's hours go by the contact's area code, else both US coasts, as before the
+ * owner's id rode the call; never the owner's zone. A call to the owner keeps the owner's hours.
+ * Their own number reached as a contact keeps both: the contact rule and their hours.
  *
  * Through the real makeConversationalCall, scheduleProactiveCall, holdForCallHours and
  * checkCallHours, with MESSAGING_PIPELINE and CALL_HOURS_GUARD on. Mocked: Firestore (in memory),
@@ -81,7 +81,11 @@ registerMessagingConsent(); // as each process entry does (utils/consent-port.ts
 
 const SF = '+14155550123'; // a San Francisco number: Pacific time
 const NYC = '+12125550177'; // a New York number: Eastern time
+const UK = '+447700900123'; // a UK number: no US area code
+const TOLL_FREE = '+18005550142'; // a US number with no zone
+const HONOLULU = '+18085550199'; // a Hawaii number: west of both coasts
 const AT_15Z = new Date('2026-11-10T15:00:00Z'); // 10:00 New York, 07:00 San Francisco, 00:00 Tokyo
+const NIGHT = new Date('2026-11-11T03:30:00Z'); // 22:30 New York, 19:30 Los Angeles, 12:30 Tokyo
 
 const twilioCalls = () => callsCreate.mock.calls.length;
 const deferred = () => state.rows.filter((r) => r.collection === 'deferred_calls');
@@ -186,13 +190,60 @@ describe('conversation call to the owner’s own number: the owner’s hours', (
     expect(twilioCalls()).toBe(0);
     expect(deferred()[0].data).toMatchObject({ scheduledFor: '2026-11-10T22:00:00.000Z' });
   });
+
+  it('their own number reached as a contact, owner in Los Angeles at 18:00: its 212 hours hold it too', async () => {
+    state.ownerZone = 'America/Los_Angeles';
+    vi.setSystemTime(new Date('2026-11-11T02:00:00Z')); // 21:00 on the New York number
+
+    expect(await callContact(OWNER_PHONE)).toMatchObject({ success: true, status: 'scheduled' });
+    expect(twilioCalls()).toBe(0);
+    expect(deferred()[0].data).toMatchObject({ scheduledFor: '2026-11-11T14:00:00.000Z' }); // 09:00 NY
+  });
 });
 
-describe('CALL_HOURS_GUARD off: the contact’s night, in their zone', () => {
+describe('a contact whose number has no US zone: both coasts, never the owner’s zone', () => {
+  it('a UK number, owner in Los Angeles at 19:30: held until 09:00 on both coasts', async () => {
+    state.ownerZone = 'America/Los_Angeles';
+    await ownerGrant(UK);
+    vi.setSystemTime(NIGHT);
+
+    expect(await callContact(UK)).toMatchObject({ success: true, status: 'scheduled' });
+    expect(twilioCalls()).toBe(0);
+    expect(deferred()[0].data).toMatchObject({
+      scheduledFor: '2026-11-11T17:00:00.000Z', // 09:00 Los Angeles, 12:00 New York
+      timezoneSource: 'fallback',
+    });
+  });
+
+  it('a toll-free number, owner in Tokyo at 12:30: held until 09:00 on both coasts', async () => {
+    state.ownerZone = 'Asia/Tokyo';
+    await ownerGrant(TOLL_FREE);
+    vi.setSystemTime(NIGHT);
+
+    expect(await callContact(TOLL_FREE)).toMatchObject({ success: true, status: 'scheduled' });
+    expect(twilioCalls()).toBe(0);
+    expect(deferred()[0].data).toMatchObject({
+      scheduledFor: '2026-11-11T17:00:00.000Z',
+      timezoneSource: 'fallback',
+    });
+  });
+});
+
+describe('CALL_HOURS_GUARD off: the contact’s night on both coasts and in their zone', () => {
   const stored = () => state.rows.filter((r) => r.collection === 'scheduled_calls');
+  beforeEach(() => {
+    vi.stubEnv('CALL_HOURS_GUARD', 'off');
+    vi.stubEnv('QUIET_HOURS_UNIFIED', 'on');
+  });
+  /** Stored, not rung, for this time. */
+  const heldUntil = (iso: string) => {
+    expect(twilioCalls()).toBe(0);
+    expect(stored()).toHaveLength(1);
+    expect(stored()[0].userId).toBe(OWNER);
+    expect(stored()[0].data.scheduledFor).toBe(iso);
+  };
 
   it('owner in New York, contact on a 415 number at 07:00 their time: stored for 08:00 Pacific', async () => {
-    vi.stubEnv('CALL_HOURS_GUARD', 'off');
     await ownerGrant(SF);
     vi.setSystemTime(AT_15Z);
 
@@ -203,13 +254,54 @@ describe('CALL_HOURS_GUARD off: the contact’s night, in their zone', () => {
     expect(stored()[0].data.scheduledFor).toBe('2026-11-10T16:00:00.000Z'); // 08:00 Pacific
   });
 
-  it('a contact on a 212 number at 10:00 their time is rung', async () => {
-    vi.stubEnv('CALL_HOURS_GUARD', 'off');
+  it('a contact on a 212 number at 12:00 their time (09:00 Pacific) is rung', async () => {
     await ownerGrant(NYC);
-    vi.setSystemTime(AT_15Z);
+    vi.setSystemTime(new Date('2026-11-10T17:00:00Z'));
 
     await callContact(NYC);
     expect(twilioCalls()).toBe(1);
+  });
+
+  it('a contact on a 212 number at 08:30 their time: stored for 08:00 Pacific, as before', async () => {
+    await ownerGrant(NYC);
+    vi.setSystemTime(new Date('2026-11-10T13:30:00Z'));
+
+    expect(await callContact(NYC)).toMatchObject({ success: true, status: 'scheduled' });
+    heldUntil('2026-11-10T16:00:00.000Z');
+  });
+
+  it('a contact on an 808 number at 07:00 their time: stored for 08:00 Hawaii', async () => {
+    await ownerGrant(HONOLULU);
+    vi.setSystemTime(new Date('2026-11-10T17:00:00Z')); // 12:00 New York, 09:00 Los Angeles
+
+    await callContact(HONOLULU);
+    heldUntil('2026-11-10T18:00:00.000Z');
+  });
+
+  it('a UK number, owner in Los Angeles at 19:30: stored for 08:00 on both coasts', async () => {
+    state.ownerZone = 'America/Los_Angeles';
+    await ownerGrant(UK);
+    vi.setSystemTime(NIGHT);
+
+    await callContact(UK);
+    heldUntil('2026-11-11T16:00:00.000Z');
+  });
+
+  it('a toll-free number, owner in Tokyo at 12:30: stored for 08:00 on both coasts', async () => {
+    state.ownerZone = 'Asia/Tokyo';
+    await ownerGrant(TOLL_FREE);
+    vi.setSystemTime(NIGHT);
+
+    await callContact(TOLL_FREE);
+    heldUntil('2026-11-11T16:00:00.000Z');
+  });
+
+  it('their own number reached as a contact, owner in Los Angeles at 19:30: stored for 08:00 on both coasts', async () => {
+    state.ownerZone = 'America/Los_Angeles';
+    vi.setSystemTime(NIGHT);
+
+    await callContact(OWNER_PHONE);
+    heldUntil('2026-11-11T16:00:00.000Z');
   });
 });
 
