@@ -1,4 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const callLLM = vi.hoisted(() => vi.fn(async () => null));
+vi.mock('../../llm-utils.js', () => ({ callLLM }));
+
+afterEach(() => {
+  // Names and openers are fixed text: no model is asked
+  expect(callLLM).toHaveBeenCalledTimes(0);
+});
 import {
   ferniIntro,
   nameAndRelation,

@@ -4,9 +4,12 @@
  * attributed quote, so no request, however it is written, makes Ferni speak
  * as Sam. Fictional people only: Sam asks, Alex is called.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const logged = vi.hoisted(() => [] as string[]);
+const callLLM = vi.hoisted(() => vi.fn(async () => "Hi Alex! It's Sam."));
+
+vi.mock('../../llm-utils.js', () => ({ callLLM }));
 
 vi.mock('../../../utils/safe-logger.js', () => {
   const logger = (): Record<string, unknown> => {
@@ -26,11 +29,20 @@ const NO_NAME_GREETING = "Hi Alex, it's Ferni, an AI friend.";
 const CLOSE = 'They wanted to make sure you got this message. Take care, and talk soon.';
 const ATTRIBUTION = 'Sam asked me to pass on a message, in their words: ';
 
+/** A purpose as quoted: as written, with a period when it has no end of its own. */
+const quoteOf = (purpose: string): string => (/[.!?]$/.test(purpose) ? purpose : `${purpose}.`);
+
 const said = (purpose: string, requesterName: string | undefined = 'Sam', callType = 'personal') =>
   onBehalfVoicemail({ recipientName: 'Alex', requesterName, purpose, callType });
 
 beforeEach(() => {
   logged.length = 0;
+  callLLM.mockClear();
+});
+
+afterEach(() => {
+  // No model is ever asked for any part of this voicemail
+  expect(callLLM).toHaveBeenCalledTimes(0);
 });
 
 describe('the requests the last review found relayed wrongly (all now read as English)', () => {
@@ -83,8 +95,10 @@ describe('the closed English requests', () => {
   it.each([
     ['say hi', 'Sam says hi!'],
     ['hi', 'Sam says hi!'],
-    ['Say hello to Alex for me.', 'Sam says hello!'],
-    ['say hey to her', 'Sam says hey!'],
+    ['Say hello!!', 'Sam says hello!'],
+    ['say hey 👋🏽', 'Sam says hey!'],
+    ['say hi from me ❤️', 'Sam says hi!'],
+    ['wish Alex a happy birthday from me 🎉', 'Sam wishes you a happy birthday!'],
     ['wish her a happy birthday', 'Sam wishes you a happy birthday!'],
     ['say happy new year!', 'Sam wishes you a happy new year!'],
     ['wish Alex happy anniversary', 'Sam wishes you a happy anniversary!'],
@@ -113,18 +127,40 @@ describe('the closed English requests', () => {
     'ask Alex if he got the photos',
     'remind her that they moved the date',
     // Someone who isn't the recipient, or more than the closed shape
+    'remind you about her party',
+    'remind Alex about your keys',
+    'ask Alex if you can borrow the ladder',
+    // Not the closed shape: no recipient, someone else, a tail after a greeting, or another word
+    'ask if you are free',
     'tell Jordan I said hi',
     'say hi, it is Sam',
-    'wish Alex a happy birthday from me',
+    'say hi to mom for me',
+    'say hi to Alex',
+    'Say hello to Alex for me',
     'say happy birthday to you both',
+    'Happy birthday, Alex!',
     'remind mom to call',
+    'telling her about the move went fine',
+    'sayonara',
+    'reminder: the dentist is at 3',
+    'asking around about the flat',
+    'letting her know was hard',
+    'hiking on Sunday',
+    // A pronoun hidden by an invisible character or fullwidth letters is still a pronoun
+    'remind her about m\u200Be',
+    'remind her about ｍｅ',
   ])('quotes %j whole', (purpose) => {
-    expect(said(purpose)).toBe(`${GREETING} ${ATTRIBUTION}${purpose}. ${CLOSE}`);
+    expect(said(purpose)).toBe(`${GREETING} ${ATTRIBUTION}${quoteOf(purpose)} ${CLOSE}`);
+  });
+
+  it('quotes only what follows "tell her": "tell her I\'m sorry"', () => {
+    expect(said("tell her I'm sorry")).toBe(`${GREETING} ${ATTRIBUTION}I'm sorry. ${CLOSE}`);
   });
 });
 
 describe('any other request is quoted, attributed', () => {
   it.each([
+    ["It's Sam!", "It's Sam!"],
     ['Are you free Saturday?', 'Are you free Saturday?'],
     ['Congrats on the new job!!', 'Congrats on the new job!!'],
     ['Miss you 💛', 'Miss you 💛.'],
@@ -280,6 +316,22 @@ describe('a request that introduces someone', () => {
   });
 });
 
+describe('a Spanish or French request', () => {
+  it.each(['Dile que la quiero mucho', "Dis-lui que je l'aime", 'Hola Alex, soy Sam'])(
+    'keeps the English greeting main already says, and quotes %j as written',
+    async (purpose) => {
+      // Main localises no voicemail: the LiveKit voicemail starts with the same English words
+      const { voicemailInstructions } =
+        await import('../../../agents/outbound-call/call-opening.js');
+      const parties = { recipientName: 'Alex', sponsorName: 'Sam', personal: true };
+      expect(voicemailInstructions(parties, purpose)).toContain(
+        `Start with exactly: "${GREETING}"`
+      );
+      expect(said(purpose)).toBe(`${GREETING} ${ATTRIBUTION}${quoteOf(purpose)} ${CLOSE}`);
+    }
+  );
+});
+
 describe('the requester name', () => {
   it.each([
     'user\u200B',
@@ -292,7 +344,11 @@ describe('the requester name', () => {
     undefined,
     ...[...PLACEHOLDER_NAMES].flatMap((placeholder) => [
       placeholder.toUpperCase(),
-      `\u00A0${placeholder}\u200B`,
+      `\u200B${placeholder}\u200B`,
+      `\u00A0${placeholder}\u00A0`,
+      placeholder.replace(/[!-~ ]/g, (ch) =>
+        ch === ' ' ? '\u3000' : String.fromCharCode(ch.charCodeAt(0) + 0xfee0)
+      ),
     ]),
   ])('%j is no name: the no-name greeting, and "someone"', (requesterName) => {
     const asked = (purpose: string) =>
@@ -305,10 +361,12 @@ describe('the requester name', () => {
 
   it.each([
     ['Mary-Jo', 'Mary-Jo'],
-    ['Zoë', 'Zoë'],
+    ['Zoe\u0308', 'Zo\u00EB'],
     ["O'Neil", "O'Neil"],
     ['Sa\u200Bm', 'Sam'],
     ['Ｓａｍ', 'Sam'],
+    // A Cyrillic look-alike of "user" is not the placeholder: it reads as a name
+    ['us\u0435r', 'us\u0435r'],
   ])('%j is named as %j', (requesterName, name) => {
     expect(said('say hi', requesterName)).toBe(
       `Hi Alex, it's Ferni, ${name}'s AI friend. ${name} says hi! ${CLOSE}`
@@ -320,7 +378,10 @@ describe('logging', () => {
   it('logs which relay and counts, never the request or a name', () => {
     said('remind her to pick up the cake at Elm Street', 'Sam Quill');
     said('call 213-555-0123, sam.quill@example.com', 'Sam Quill');
+    const purposes = ["we're at the park", "It's Sam!", "tell her I wasn't mad", 'say hi'];
+    for (const purpose of purposes) said(purpose, 'Sam Quill');
     const text = logged.join('\n');
+    for (const purpose of purposes) expect(text).not.toContain(purpose);
     expect(text).toContain('"relay":"remind"');
     expect(text).toContain('"purposeChars":');
     for (const secret of ['Sam', 'Quill', 'Alex', 'cake', 'Elm', '555', 'example.com'])

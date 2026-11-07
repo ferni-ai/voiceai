@@ -30,13 +30,20 @@ export interface OnBehalfVoicemailRequest {
 
 const CLOSE = 'They wanted to make sure you got this message. Take care, and talk soon.';
 
-/** Words that would make "remind you about Y" say the wrong person once Ferni says it. */
+/**
+ * Words that would make "remind you about Y" say the wrong person once Ferni
+ * says it: a "you" in Y might be Ferni or the person called, so it is quoted too.
+ */
 const PRONOUNS = new Set(
-  'i me my mine we us our she her hers he him his they them their'.split(' ')
+  'i me my mine we us our she her hers he him his they them their you your yours'.split(' ')
 );
 
 /** Greeting words after "happy" that read wrongly in "wishes you a happy ...". */
-const NOT_OCCASION = new Set([...PRONOUNS, 'to', 'from', 'for', 'and', 'with', 'you', 'your']);
+const NOT_OCCASION = new Set([...PRONOUNS, 'to', 'from', 'for', 'and', 'with']);
+
+/** All a greeting may end with: "from me", then punctuation or emoji, nothing else said. */
+const GREETING_END =
+  '(?: from me)?[\\s\\p{P}\\p{Extended_Pictographic}\\p{Emoji_Modifier}\\uFE0F]*';
 
 const WORD = /[\p{L}\p{M}\p{N}'’-]+/gu;
 
@@ -95,12 +102,10 @@ function relayOf(
 
   const tell = match(`(?:tell ${to}|let ${to} know),?(?: that)? (.+)`);
   if (tell?.[1]) return { relay: 'tell', said: byQuote(tell[1]) };
-  const greet = match(`(?:say )?(hi|hello|hey)(?: to ${to})?(?: for me)?[.!]*`);
+  const greet = match(`(?:say )?(hi|hello|hey)${GREETING_END}`);
   if (greet?.[1]) return { relay: 'greet', said: `${sponsor} says ${greet[1].toLowerCase()}!` };
   const one = WORD.source;
-  const wish = match(
-    `(?:say |wish ${to} (?:a )?)?happy (${one}(?: ${one}){0,2}?)(?: to ${to})?(?: for me)?[.!]*`
-  );
+  const wish = match(`(?:say |wish ${to} (?:a )?)?happy (${one}(?: ${one}){0,2}?)${GREETING_END}`);
   const occasion = wish?.[1];
   if (occasion && !wordsOf(occasion).some((word) => NOT_OCCASION.has(word))) {
     return { relay: 'wish', said: `${sponsor} wishes you a happy ${occasion}!` };
