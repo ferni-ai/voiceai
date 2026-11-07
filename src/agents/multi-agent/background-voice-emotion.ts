@@ -9,14 +9,18 @@
  *
  * It passes a measured-only view, not the analyzer result as is. The native
  * analyzer (speech/audio-prosody/analyzer.ts, mapNativeToJsFeatures) does not
- * measure jitter, shimmer or breathiness; it writes fixed defaults, and the
- * analyzer's stress level, anxiety markers, valence and emotion label are
+ * measure jitter, shimmer or breathiness; it writes NATIVE_VOICE_QUALITY, and
+ * the analyzer's stress level, anxiety markers, valence and emotion label are
  * computed from them. So those four are re-derived here with the three
- * voice-quality inputs set to zero, using the analyzer's own functions
- * (emotion-mapping.ts). Arousal and dominance read no voice-quality input and
- * pass through. Prosody is left out, so readers keyed on the raw features
- * (voice tremor from shimmer, concern signals) stay as on main; every reader
- * on the background path guards prosody as optional.
+ * voice-quality inputs HELD at NATIVE_VOICE_QUALITY, whatever the reading
+ * carries, using the analyzer's own functions (emotion-mapping.ts): no decision
+ * reads a voice-quality value, and on a native reading the view keeps the
+ * analyzer's label. Zeroing them instead would be a real, different value: it
+ * shifts valence and relabels sad or anxious voices as neutral or bored.
+ * Arousal and dominance read no voice-quality input and pass through. Prosody
+ * is left out, so readers keyed on the raw features (voice tremor from shimmer,
+ * concern signals) stay as on main; every reader on the background path guards
+ * prosody as optional.
  *
  * @module agents/multi-agent/background-voice-emotion
  */
@@ -27,6 +31,7 @@ import {
   classifyEmotion,
   detectAnxietyMarkers,
   mapToEmotionalDimensions,
+  NATIVE_VOICE_QUALITY,
   type ProsodyFeatures,
   type VoiceEmotionResult,
 } from '../../speech/audio-prosody/index.js';
@@ -39,9 +44,9 @@ export function backgroundVoiceEmotionOn(env: Env = process.env): boolean {
   return flagOn('BACKGROUND_VOICE_EMOTION', env);
 }
 
-/** The analyzer's prosody with the inputs the native path never measures set to zero. */
+/** The analyzer's prosody with the inputs the native path never measures held at its fixed values. */
 function measuredOnly(prosody: ProsodyFeatures): ProsodyFeatures {
-  return { ...prosody, jitter: 0, shimmer: 0, breathiness: 0 };
+  return { ...prosody, ...NATIVE_VOICE_QUALITY };
 }
 
 /**
