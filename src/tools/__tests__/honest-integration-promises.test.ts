@@ -4,7 +4,8 @@
  * - Instacart, Uber and Lyft can't be connected, so their tools say so instead
  *   of "Would you like me to help you connect your account?".
  * - grocery_order only builds a cart; it said "Order placed".
- * - a reservation said "Booked!" on any 2xx, with or without a confirmation.
+ * - restaurant booking: online booking was removed with OpenTable and Resy
+ *   (2026-10-30); see domains/calendar/__tests__/restaurant-call-on-behalf.test.ts.
  * - a ride request said "on the way" before any driver accepted it.
  * - music shortcuts asked "connect Spotify?" and rooms pointed at a
  *   "Settings > Spotify Rooms" page that doesn't exist.
@@ -14,8 +15,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const world = vi.hoisted(() => ({
   addToCartOk: [] as boolean[],
-  booking: { success: true, confirmationNumber: '' as string | undefined },
-  appointments: 0,
   musicTools: [] as Array<{ id: string; create: () => unknown }>,
 }));
 
@@ -60,23 +59,6 @@ vi.mock('../../services/identity/spotify-room-service.js', async (importOriginal
   }),
 }));
 
-vi.mock('../../services/restaurant-reservations.js', async (importOriginal) => ({
-  ...(await importOriginal<Record<string, unknown>>()),
-  isReservationServiceConfigured: () => true,
-  searchRestaurants: async () => [
-    { name: 'Luigi', reservationProvider: 'opentable', externalId: 'r1', phone: '+15550100' },
-  ],
-  bookReservation: async () => ({ ...world.booking, message: 'ok', provider: 'opentable' }),
-}));
-
-vi.mock('../scheduling/appointment-core.js', async (importOriginal) => ({
-  ...(await importOriginal<Record<string, unknown>>()),
-  createAppointmentRequest: async () => {
-    world.appointments++;
-    return { type: 'restaurant', businessName: 'Luigi', businessPhone: '+15550100' };
-  },
-}));
-
 import { getActionTypeConfig } from '../../services/actions/action-engine.js';
 import type { Action } from '../../services/actions/action-types.js';
 import { definitions as commerce, GROCERY_ORDER_UNAVAILABLE } from '../domains/commerce/index.js';
@@ -86,7 +68,6 @@ import {
   rideRequestedMessage,
 } from '../domains/transportation/index.js';
 import { definitions as marketing } from '../domains/marketing/index.js';
-import { createAppointmentTools } from '../scheduling/appointments-tools.js';
 import { spotifyConnectTools } from '../domains/entertainment/spotify-connect.js';
 import { shortcutsToolDefinitions } from '../domains/simple-utilities/shortcuts-tools.js';
 import type { ToolContext } from '../registry/types.js';
@@ -104,8 +85,6 @@ function build(defs: typeof commerce, id: string): Executable {
 
 beforeEach(() => {
   world.addToCartOk = [];
-  world.booking = { success: true, confirmationNumber: '' };
-  world.appointments = 0;
   world.musicTools = [];
 });
 
@@ -191,47 +170,6 @@ describe('ride requests are sent, not "on the way"', () => {
       );
       expect(message).not.toMatch(/on the way/i);
     }
-  });
-});
-
-describe('makeReservation says "Booked" only with a confirmation number', () => {
-  const reserve = (): Promise<string> =>
-    (createAppointmentTools().makeReservation as unknown as Executable).execute(
-      {
-        restaurantName: 'Luigi',
-        dateTime: 'tomorrow at 7pm',
-        partySize: 2,
-        guestPhone: '+15550199',
-      },
-      { ctx: { userData: { userId: 'u1' } } }
-    );
-
-  it('a 2xx with no confirmation number is not booked and saves no appointment', async () => {
-    world.booking = { success: true, confirmationNumber: undefined };
-
-    const reply = await reserve();
-
-    expect(reply).not.toMatch(/booked!/i);
-    expect(reply).toMatch(
-      /^Not booked yet: I sent a request to Luigi for 2 on .+, but no confirmation came back\./
-    );
-    expect(world.appointments).toBe(0);
-  });
-
-  it('a blank confirmation number is not booked either', async () => {
-    world.booking = { success: true, confirmationNumber: '  ' };
-
-    expect(await reserve()).toMatch(/^Not booked yet/);
-  });
-
-  it('a confirmation number is booked and quoted', async () => {
-    world.booking = { success: true, confirmationNumber: 'OT-123' };
-
-    const reply = await reserve();
-
-    expect(reply).toMatch(/Booked! Luigi, party of 2/);
-    expect(reply).toContain('Confirmation: OT-123');
-    expect(world.appointments).toBe(1);
   });
 });
 

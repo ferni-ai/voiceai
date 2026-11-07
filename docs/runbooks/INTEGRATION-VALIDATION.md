@@ -61,11 +61,6 @@ FRED_API_KEY=your-fred-api-key
 # SEC EDGAR (insider trading)
 SEC_USER_AGENT="Ferni AI (contact@ferni.ai)"
 
-# ====== RESTAURANT RESERVATIONS ======
-OPENTABLE_API_KEY=your-opentable-key
-RESY_API_KEY=your-resy-key
-YELP_API_KEY=your-yelp-key
-
 # ====== GOOGLE SERVICES ======
 # Calendar & Gmail (shared OAuth)
 GOOGLE_CLIENT_ID=your-google-client-id
@@ -90,8 +85,6 @@ SPOTIFY_CLIENT_SECRET=your-spotify-client-secret
 | Oura | https://cloud.ouraring.com/v2/docs |
 | Whoop | https://developer.whoop.com/ |
 | Terra | https://tryterra.co/ (aggregates 300+ wearables) |
-| OpenTable | https://platform.opentable.com/ |
-| Resy | Contact Resy for API access |
 | Google | https://console.cloud.google.com/apis |
 
 ---
@@ -268,7 +261,7 @@ curl "https://app.ferni.ai/api/v1/integrations/biometrics/status" \
 | Gmail | "Do I have any urgent emails?" | Alex triages inbox |
 | Biometrics | "How did I sleep last night?" | Maya surfaces sleep data |
 | Life Expectancy | "I'll visit my parents someday" | Nayan provides mortality perspective |
-| Reservations | "Book a table for 2 at an Italian place tonight" | Jordan searches OpenTable/Resy |
+| Reservations | "Book a table for 2 at an Italian place tonight" | Saves the request and offers to call the restaurant (read-back, dials only after a yes) |
 | Market Data | "How is Tesla stock doing?" | Peter provides real-time quote |
 
 ---
@@ -310,7 +303,6 @@ The GitHub Actions workflow runs these automatically on PR:
 | Alpha Vantage rate limit | Free tier limit (5/min) | Wait or upgrade to paid |
 | Gmail 401 | OAuth token expired | Re-authenticate via settings |
 | Biometrics empty | No wearable connected | Connect via Terra widget |
-| OpenTable 404 | API key invalid | Check `OPENTABLE_API_KEY` |
 
 ### Debug Mode
 
@@ -345,8 +337,6 @@ curl http://localhost:3002/api/v1/integrations/health
 | Oura | ✅ | ✅ | ✅ | OAuth |
 | Whoop | ✅ | ✅ | ✅ | OAuth |
 | Terra | ✅ | ✅ | ✅ | ✅ |
-| OpenTable | ✅ | ✅ | ✅ | ✅ |
-| Resy | ✅ | ✅ | ✅ | ✅ |
 | Google Calendar | ✅ | ✅ | ✅ | OAuth |
 | Google Maps | ✅ | ✅ | ✅ | ✅ |
 | Life Expectancy | ✅ | ✅ | N/A | ❌ (local calc) |

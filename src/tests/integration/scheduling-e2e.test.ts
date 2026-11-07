@@ -340,27 +340,6 @@ describe('Real Appointment Call Flow', () => {
 // ============================================================================
 
 describe('Restaurant Reservation Flow', () => {
-  const config = getTestConfig();
-
-  it('should search for restaurants (when APIs configured)', async () => {
-    // Check if any restaurant API is configured
-    const hasOpenTable = !!process.env.OPENTABLE_API_KEY;
-    const hasResy = !!process.env.RESY_API_KEY;
-    const hasYelp = !!process.env.YELP_API_KEY;
-
-    console.log('📋 Restaurant API Status:');
-    console.log(`   - OpenTable: ${hasOpenTable ? '✓' : '✗ Not configured'}`);
-    console.log(`   - Resy: ${hasResy ? '✓' : '✗ Not configured'}`);
-    console.log(`   - Yelp: ${hasYelp ? '✓' : '✗ Not configured'}`);
-
-    if (!hasOpenTable && !hasResy && !hasYelp) {
-      console.log('   ⚠️  No restaurant APIs configured - reservations will require phone calls');
-    }
-
-    // Test passes either way - just reporting status
-    expect(true).toBe(true);
-  });
-
   it('should handle restaurant reservation with phone fallback', () => {
     const service = getAppointmentFollowUpService();
 
@@ -459,9 +438,6 @@ describe('Scheduling Integration Summary', () => {
     console.log('\nAppointment Flow Requirements:');
     console.log(`  ${config.twilio.configured ? '✅' : '❌'} Phone calls (Twilio)`);
     console.log(`  ${process.env.GOOGLE_CALENDAR_CREDENTIALS ? '✅' : '❌'} Calendar sync`);
-    console.log(`  ${process.env.OPENTABLE_API_KEY ? '✅' : '❌'} OpenTable reservations`);
-    console.log(`  ${process.env.RESY_API_KEY ? '✅' : '❌'} Resy reservations`);
-    console.log(`  ${process.env.YELP_API_KEY ? '✅' : '❌'} Yelp search`);
 
     console.log('\nCore Features Tested:');
     console.log('  ✅ Appointment tracking');

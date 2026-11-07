@@ -8,14 +8,12 @@
  *
  * Usage:
  *   npm run test:e2e              # Run all E2E tests
- *   npm run test:e2e:restaurant   # Run restaurant tests only
  *   npm run test:e2e:calendar     # Run calendar tests only
  *   npm run test:e2e:comms        # Run communication tests only
  *
  * Required env vars for full coverage:
  *   - GOOGLE_API_KEY (enables Google Places, Calendar tests)
  *   - TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER (SMS/calls)
- *   - OPENTABLE_API_KEY, RESY_API_KEY (restaurant reservations)
  *   - STRIPE_SECRET_KEY (subscription tests)
  *   - DATABASE_URL or GOOGLE_CLOUD_PROJECT (memory persistence)
  */
@@ -86,65 +84,6 @@ async function runTest(
     console.log(`     Error: ${errorMsg}`);
   }
 }
-
-// ============================================================================
-// RESTAURANT E2E TESTS
-// ============================================================================
-
-const restaurantTests: TestSuite = {
-  name: 'Restaurant Reservations',
-  isConfigured: () => !!process.env.GOOGLE_API_KEY || !!process.env.YELP_API_KEY,
-  tests: [
-    {
-      name: 'Search for Italian restaurants in San Francisco',
-      run: async () => {
-        const { searchRestaurants } = await import('../../services/restaurant-reservations.js');
-        const results = await searchRestaurants(
-          'italian',
-          'San Francisco, CA',
-          '2024-03-15',
-          '19:00',
-          2
-        );
-        if (results.length === 0) {
-          throw new Error('No restaurants found - expected at least 1');
-        }
-        log.info({ count: results.length, first: results[0].name }, 'Found restaurants');
-      },
-    },
-    {
-      name: 'Get service status',
-      run: async () => {
-        const { getServiceStatus } = await import('../../services/restaurant-reservations.js');
-        const status = getServiceStatus();
-        log.info(status, 'Service status');
-        if (!status.canSearchRestaurants) {
-          throw new Error('No search services configured');
-        }
-      },
-    },
-    {
-      name: 'Format restaurant for speech',
-      run: async () => {
-        const { formatRestaurantForSpeech } =
-          await import('../../services/restaurant-reservations.js');
-        const speech = formatRestaurantForSpeech({
-          id: 'test',
-          name: 'Test Restaurant',
-          address: '123 Main St',
-          city: 'San Francisco',
-          cuisine: ['Italian'],
-          priceRange: '$$',
-          rating: 4.5,
-          reservationProvider: 'phone_only',
-        });
-        if (!speech.includes('Test Restaurant')) {
-          throw new Error('Speech formatting failed');
-        }
-      },
-    },
-  ],
-};
 
 // ============================================================================
 // COMMUNICATION E2E TESTS
@@ -428,7 +367,6 @@ const experimentTests: TestSuite = {
 // ============================================================================
 
 const allSuites: TestSuite[] = [
-  restaurantTests,
   communicationTests,
   calendarTests,
   memoryTests,

@@ -2640,7 +2640,7 @@
       "_original": "Make an outbound phone call to deliver a brief message. Use when: - User wants Alex to call someone with a message - An urgent message needs voice delivery - Text/email isn"
     },
     "makeReservation": {
-      "description": "Make a restaurant reservation - tries online booking first (OpenTable/Resy), falls back to phone call. Use when the user wants to: - Book a table at a restaurant - Make a dinner/lunch reservation - Reserve for a special occasion Alex will try to book instantly online, or call if needed.",
+      "description": "Make a restaurant reservation by calling the restaurant on the user's behalf: saves the request and offers the call (read-back, then dial only after a spoken yes). Never books online. Use when the user wants to: - Book a table at a restaurant - Make a dinner/lunch reservation - Reserve for a special occasion",
       "file": "src/tools/scheduling/appointments-tools.ts"
     },
     "makeRestaurantReservation": {
@@ -3676,7 +3676,7 @@
       "_original": "Find restaurants near a location. Use when someone asks: -"
     },
     "searchRestaurantsNearby": {
-      "description": "Search for restaurants that take reservations. Use when: - User wants suggestions for where to eat - User wants to know what.",
+      "description": "Search for restaurants (Google Places). Use when: - User wants suggestions for where to eat - User wants to know what.",
       "file": "src/tools/scheduling/appointments-tools.ts",
       "_original": "Search for restaurants that take reservations. Use when: - User wants suggestions for where to eat - User wants to know what"
     },

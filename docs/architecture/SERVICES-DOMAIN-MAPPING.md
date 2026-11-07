@@ -79,7 +79,6 @@
 | `itunes.ts` | Move |
 | `google-places.ts` | Move |
 | `food-delivery.ts` | Move |
-| `restaurant-reservations.ts` | Move |
 | `developer-mcp-registry.ts` | Move |
 | `developer-webhook-dispatcher.ts` | Move |
 
