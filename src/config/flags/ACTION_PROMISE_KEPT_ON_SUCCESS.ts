@@ -6,6 +6,6 @@ export const ACTION_PROMISE_KEPT_ON_SUCCESS = {
   owner: 'tools',
   kind: 'experiment',
   expires: '2027-02-05',
-  issue: '#3512',
+  issue: 'https://github.com/ferni-ai/voiceai/issues/3512',
   context: 'Keep if no refused call or text is promised as under way after the run; else delete.',
 } as const satisfies FlagSpec;
