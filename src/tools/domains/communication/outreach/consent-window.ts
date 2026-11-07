@@ -4,7 +4,8 @@
  * Ferni asked again. The window is the owner's turns after Ferni's latest read-back of this action
  * (a question Ferni answered drops out). Only an allow-listed plain yes in it places (consent-words.ts);
  * anything else asks once. A no, a deferral or a redirect to someone else ends it for good; with
- * OUTREACH_NO_ANSWERS_READBACK, a soft no ("No.", "Nope.") only when it answers the read-back (noAnswers).
+ * OUTREACH_NO_ANSWERS_READBACK, a no that answers nothing ("No problem.") only when it answers the
+ * read-back (noAnswers).
  * @module tools/domains/communication/outreach/consent-window
  */
 
@@ -24,9 +25,9 @@ import type { ActionFacts, FerniTurn } from './consent-readback.js';
 import {
   agreesAfterNo,
   isClearYes,
+  isNonAnswer,
   isPlainNo,
   isRefusal,
-  isSoftNo,
   isStatusQuestion,
   LATER,
   NOES,
@@ -199,7 +200,7 @@ const BARE_NO = new Set(
 const bareNo = (text: string, pending: PendingAction): boolean =>
   words(text).every((w) => BARE_NO.has(w) || targetWords(pending).includes(w));
 
-/** OUTREACH_NO_ANSWERS_READBACK: a no ends it only when it answers the read-back. */
+/** OUTREACH_NO_ANSWERS_READBACK: a no that answers nothing ends it only when said to the read-back. */
 const noMustAnswerOn = (env: Env = process.env): boolean =>
   flagOn('OUTREACH_NO_ANSWERS_READBACK', env);
 /** "No, don't call him.", "No, not Dad.": a no about this action, wherever it is said. */
@@ -234,14 +235,15 @@ function noAnswers(pending: PendingAction, events: ConfirmEvent[]): boolean[] {
   }
   return answers;
 }
-/** Whether this owner turn's no is about the read-back: it answers it, names the action, or is
- * more than a soft no. A refusal ("Stop.", "Never mind.") or a turn the crisis reader flags ends
- * it wherever it is said; only "no", "nope" or "nah" alone waits on where it was said. */
+/** Whether this owner turn's no is about the read-back. Every no is, wherever it is said, except
+ * one of the closed NON_ANSWERS (consent-words.ts: "No problem.", "No worries.", "No wait, let me
+ * grab a pen.") said after the talk moved on, unless it names the action or the crisis reader
+ * flags it. */
 const aboutIt = (text: string, answers: boolean, pending: PendingAction): boolean =>
   answers ||
   !noMustAnswerOn() ||
   namesAction(text, pending) ||
-  !isSoftNo(text) ||
+  !isNonAnswer(text) ||
   detectCrisis(text).detected;
 
 /** The owner's finals in (from, to]: by default, since the read-back was stored. */
@@ -315,8 +317,8 @@ export function windowState(
   // "question" (a bare request, e.g. "Call him.", which the allow-list already pinned), changes nothing.
   // On words that are all agreement, its "no" is a misread at worst ("Yes," | "Ferni."): ask once.
   const judged = judgedNow(pending, turns);
-  // With OUTREACH_NO_ANSWERS_READBACK, its no declines only if the owner's latest words answer the
-  // read-back: said after the talk moved on, nobody knows what the no is to, so it asks once.
+  // With OUTREACH_NO_ANSWERS_READBACK, its no on a non-answer said after the talk moved on
+  // ("No problem.") asks once: nobody knows what that no is to.
   const said = callerTurns(pending, events);
   const last = said.length - 1;
   const answered = last < 0 || aboutIt(said[last], noAnswers(pending, events)[last], pending);

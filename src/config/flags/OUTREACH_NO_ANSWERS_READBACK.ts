@@ -1,6 +1,6 @@
 import type { FlagSpec } from '../flag-spec.js';
 
-// on: an owner's soft no ("no", "nope", "nah") ends a waiting call or text only when it answers Ferni's read-back, or names the action ("No, don't call him."). A refusal ("Stop.", "Cancel.", "Never mind.", "Forget it.", "No, I changed my mind.") or a turn the crisis reader flags ends it wherever it is said. Once the talk has moved on (the owner asked about something else and Ferni answered, or Ferni asked something else), a no such as "No, I'm just checking." leaves it unclear: nothing is cancelled or sent, and Ferni asks once (tools/domains/communication/outreach/consent-window.ts). A yes is unchanged. Off: any no since the read-back declines, as before.
+// on: an owner's no that answers nothing ("No problem.", "No worries.", "No wait, let me grab a pen.": the closed NON_ANSWERS in tools/domains/communication/outreach/consent-words.ts) ends a waiting call or text only when it answers Ferni's read-back. Said after the talk moved on (the owner asked about something else and Ferni answered, or Ferni asked something else), it leaves it unclear: nothing is cancelled or sent, and Ferni asks once. Every other no ("No.", "No thanks.", "No, please stop."), a refusal ("Forget it.", "I changed my mind.") and a turn the crisis reader flags end it wherever they are said. A yes is unchanged. Off: any no since the read-back declines, as before.
 export const OUTREACH_NO_ANSWERS_READBACK = {
   default: 'off',
   owner: 'outreach',
