@@ -22,7 +22,7 @@ import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import type { EventEmitter } from 'events';
 import { getLogger } from '../../utils/safe-logger.js';
 import { callerTimeZoneFor } from '../../utils/caller-time-zone.js';
-import { wireDeferredHandlers } from './greeting-wiring.js';
+import { wireDeferredHandlers, wireHandoffAgent } from './greeting-wiring.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
@@ -33,7 +33,8 @@ import { talkThroughFor, type TalkThrough } from './handoff-talk-through.js';
 import { holdOutOfMemory } from './arrival-grounding.js';
 import { warmIncomingPersona } from '../model-provider/handoff-cache-warm.js';
 import { briefedHandoffs, briefingFor, withBrief } from './handoff-brief.js';
-import { familyArrival, familyDeparture } from './family-table.js';
+import { familyDeparture } from './family-table.js';
+import { arrivalGreeting, forgetArrivals } from './arrival-once.js';
 export { calmGreeting } from './greeting-direction.js';
 import { markBriefingUsed } from '../../services/automation/predictive-handoff.js';
 import { ARRIVAL_GAP_MS, handoffFastArrival, startEarly } from './handoff-fast-arrival.js';
@@ -459,7 +460,8 @@ export class AgentOrchestrator {
           newAgent,
           previousPersonaId,
           request,
-          arrivalFromDesk(desk, briefed?.firstLine)
+          arrivalFromDesk(desk, briefed?.firstLine),
+          [currentAgent.session, newAgent.session]
         ));
       log.info(
         { personaId: request.targetPersonaId, durationMs: Date.now() - step5Start },
@@ -586,6 +588,7 @@ export class AgentOrchestrator {
 
     this.agents.clear();
     this.activeAgentId = null;
+    forgetArrivals(this.sessionId); // HANDOFF_ARRIVAL_ONCE: the call's arrival lines go with it
   }
 
   // ==========================================================================
@@ -796,9 +799,19 @@ export class AgentOrchestrator {
     agent: PersonaAgent,
     previousPersonaId: string,
     _request: HandoffRequest,
-    firstLine?: string
+    firstLine?: string,
+    sessions: readonly unknown[] = []
   ): Promise<void> {
-    const greeting = this.getGreetingPhrase(agent.personaId, previousPersonaId, firstLine);
+    const greeting = this.getGreetingPhrase(
+      agent.personaId,
+      previousPersonaId,
+      firstLine,
+      sessions
+    );
+    if (greeting === null) {
+      wireHandoffAgent(agent); // HANDOFF_ARRIVAL_ONCE: no arrival line, still wired
+      return;
+    }
     const textToSpeak = holdOutOfMemory(this.sessionId, greeting || "Hey! What's up?"); // ARRIVAL_LINE_GROUNDED
 
     log.info(
@@ -844,26 +857,7 @@ export class AgentOrchestrator {
       }
     }
 
-    // ⚡ FAST-AGENT-JOIN: Wire deferred handlers in background after greeting starts
-    // Handlers run in parallel with speech - user hears greeting while handlers wire
-    // BUG FIX: This was missing for handoff agents! Without it, transcript/tools don't work.
-    if (agent.wireHandlers) {
-      agent
-        .wireHandlers()
-        .then(() => {
-          log.info(
-            { personaId: agent.personaId },
-            '⚡ Deferred handlers wired after handoff greeting'
-          );
-        })
-        .catch((err) => {
-          log.error(
-            { error: String(err), personaId: agent.personaId },
-            '🚨 CRITICAL: Deferred handler wiring FAILED after handoff! Tools may not work.'
-          );
-        });
-    }
-
+    wireHandoffAgent(agent); // ⚡ FAST-AGENT-JOIN (greeting-wiring.ts)
     await this.waitForSpeechComplete(duration);
     log.info({ personaId: agent.personaId }, '🎭 [GREETING] Wait complete');
   }
@@ -907,13 +901,14 @@ export class AgentOrchestrator {
     return familyDeparture(agent, request, this.sessionId);
   }
 
-  /** The arriving teammate's first line: the briefed one or banter, after any word back. */
+  /** The arriving teammate's first line, or null for none (HANDOFF_ARRIVAL_ONCE, arrival-once.ts). */
   private getGreetingPhrase(
-    toPersonaId: string,
-    fromPersonaId: string,
-    firstLine?: string
-  ): string {
-    return familyArrival(toPersonaId, fromPersonaId, this.sessionId, firstLine);
+    to: string,
+    from: string,
+    firstLine?: string,
+    sessions: readonly unknown[] = []
+  ): string | null {
+    return arrivalGreeting(this.sessionId, { to, from, firstLine, sessions });
   }
 }
 
