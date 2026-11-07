@@ -48,6 +48,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>FerniAPIBaseURL</key>
 	<string>$(FERNI_API_BASE_URL)</string>
+	<key>FerniLocalDuck</key>
+	<string>$(IOS_LOCAL_DUCK)</string>
 	<key>GIDClientID</key>
 	<string>1031920444452-rgi4043g7hddgf4lqhargcl2j6cuc8tr.apps.googleusercontent.com</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
