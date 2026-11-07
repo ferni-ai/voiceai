@@ -422,6 +422,8 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   PHRASE_LOOP_GUARD: 'src/agents/personas/__tests__/phrase-loops.test.ts',
   // A crisis or safety note is pushed at once, never held behind a preemptive reply.
   PREEMPT_STABLE_CONTEXT: 'src/agents/multi-agent/__tests__/preempt-stable-context.sdk.test.ts',
+  // A crisis turn's follow-up decision and log equal off; a crisis after the claim drops the line.
+  PROACTIVE_BUDGET: 'src/agents/voice-agent/__tests__/commitment-follow-up-gate.test.ts',
   QUESTION_PACE: 'src/agents/personas/__tests__/question-pace-wiring.test.ts',
   QUIET_AFTER_QUESTION: 'src/agents/voice-agent/__tests__/quiet-presence.test.ts',
   REJECTED_TRANSCRIPT_KEEPS_SPEECH:

@@ -97,7 +97,7 @@ export async function dateFor(
     const due = crisis ? null : dates.due?.();
     if (!due) return undefined;
     const day = dayWord(due.days, load.now?.() ?? new Date(), zone);
-    return candidate(userId, due, dates.raised, rules, day);
+    return candidate(userId, due, dates.raised, rules, day, sessionId);
   } catch (error) {
     log.warn({ error: String(error) }, 'No date for the hello');
     return undefined;
@@ -113,7 +113,8 @@ function candidate(
   due: DueDate,
   raised: () => void,
   rules: Rules,
-  day: string
+  day: string,
+  sessionId: string
 ): DateCandidate {
   const careful = rules.sensitiveDate(due.what);
   // Said only when the line names its day or person: a shared "visit" or "week" is not enough.
@@ -121,7 +122,7 @@ function candidate(
   const commit = (spoken: string): void => {
     if (!marks.some((w) => hasWord(spoken, w)))
       return log.info({ id: due.id }, 'Date not said in the hello: left for a later call');
-    claimOpenerFollowUp(userId, 'greeting-date');
+    claimOpenerFollowUp(userId, 'greeting-date', sessionId);
     raised();
   };
   log.info({ id: due.id, moment: due.moment, careful }, 'Date for the hello');

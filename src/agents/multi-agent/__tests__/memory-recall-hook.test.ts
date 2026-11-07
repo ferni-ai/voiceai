@@ -1,6 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { voice } from '@livekit/agents';
-import { claimOpenerFollowUp } from '../../../memory/recall/opener-claim.js';
+import {
+  claimOpenerFollowUp,
+  claimProactiveSlot,
+  clearOpenerClaims,
+  peekProactiveSlot,
+} from '../../../memory/recall/opener-claim.js';
+import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import type { OpenCommitment } from '../../../services/superhuman/commitment-follow-up.js';
 
 // A fake Firestore that records how dynamic_facts is queried.
@@ -221,7 +227,12 @@ describe('createMemoryRecall', () => {
     // sister, named only in an open thread.
     const family = {
       facts: async () => [
-        { entityName: 'Joan', key: 'sister of speaker', value: "The speaker's sister is named Joan", confidence: 0.9 },
+        {
+          entityName: 'Joan',
+          key: 'sister of speaker',
+          value: "The speaker's sister is named Joan",
+          confidence: 0.9,
+        },
         { entityName: 'Walt', key: 'spouse of', value: 'User', confidence: 0.9 },
         { entityName: 'Walt', key: 'pet owned', value: 'Pepper (cat)', confidence: 0.9 },
       ],
@@ -229,7 +240,12 @@ describe('createMemoryRecall', () => {
         { callerProvenance: 1, followUpItems: ["Ask how Joan's Thanksgiving visit went"] },
       ],
     };
-    const on = createMemoryRecall({ userId: 'u-fam', userName: 'Ruth', store: family, people: true });
+    const on = createMemoryRecall({
+      userId: 'u-fam',
+      userName: 'Ruth',
+      store: family,
+      people: true,
+    });
     await on.ready;
     const first = on.noteFor("What's my daughter's name?");
     expect(first).toContain('People in their life: Joan (sister), Walt (spouse).');
@@ -237,9 +253,16 @@ describe('createMemoryRecall', () => {
     expect(first).toMatch(/never guess how someone is related/i);
     expect(on.noteFor('And how is Walt?')).not.toContain('People in their life'); // once a call
 
-    const off = createMemoryRecall({ userId: 'u-fam', userName: 'Ruth', store: family, people: false });
+    const off = createMemoryRecall({
+      userId: 'u-fam',
+      userName: 'Ruth',
+      store: family,
+      people: false,
+    });
     await off.ready;
-    expect(off.noteFor("What's my daughter's name?")).not.toMatch(/People in their life|never guess/i);
+    expect(off.noteFor("What's my daughter's name?")).not.toMatch(
+      /People in their life|never guess/i
+    );
   });
 
   it('offers a shared inside joke once per call, on a turn that touches its line, only with INSIDE_JOKES=on', async () => {
@@ -248,7 +271,11 @@ describe('createMemoryRecall', () => {
       summaries: async () => [
         {
           insideJokes: [
-            { bit: 'the mushroom thing', quote: 'the fungus incident in the risotto', speaker: 'user' },
+            {
+              bit: 'the mushroom thing',
+              quote: 'the fungus incident in the risotto',
+              speaker: 'user',
+            },
           ],
         },
       ],
@@ -292,5 +319,49 @@ describe('addRecallNote', () => {
     const last = items[items.length - 1] as { role?: string; textContent?: string };
     expect(last.role).toBe('system');
     expect(last.textContent).toContain('golden retriever');
+  });
+});
+
+// B0: the opener thread line is one of the call's proactive asks (PROACTIVE_BUDGET).
+describe('the opener thread line in the call budget', () => {
+  const THREAD = /start of the call\. After saying hello/;
+  const opening = async (sessionId?: string) => {
+    const recall = createMemoryRecall({ userId: 'u-budget', store, opener: true, sessionId });
+    await recall.ready;
+    return recall.noteFor("Hey Ferni, it's me!");
+  };
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    clearOpenerClaims();
+    resetCrisisCallRisk();
+  });
+
+  it('asks when the slot is free, and then holds it', async () => {
+    vi.stubEnv('PROACTIVE_BUDGET', 'on');
+    expect(peekProactiveSlot('call-free')).toBeUndefined();
+    expect(await opening('call-free')).toMatch(THREAD);
+    expect(peekProactiveSlot('call-free')).toBe('recall-thread');
+  });
+
+  it('leaves the line out when the greeting or another asker holds the slot', async () => {
+    vi.stubEnv('PROACTIVE_BUDGET', 'on');
+    claimOpenerFollowUp('u-budget', 'greeting', 'call-greeted');
+    expect(await opening('call-greeted')).not.toMatch(THREAD);
+    expect(claimProactiveSlot('call-insight', 'commitment-insight')).toEqual({ ok: true });
+    expect(await opening('call-insight')).not.toMatch(THREAD);
+    expect(peekProactiveSlot('call-insight')).toBe('commitment-insight');
+  });
+
+  it('leaves the line out with no sessionId', async () => {
+    vi.stubEnv('PROACTIVE_BUDGET', 'on');
+    expect(await opening(undefined)).not.toMatch(THREAD);
+  });
+
+  it('off: asks as on main, with or without a sessionId, and holds no slot', async () => {
+    claimProactiveSlot('call-off', 'commitment-insight');
+    expect(await opening('call-off')).toMatch(THREAD);
+    expect(await opening(undefined)).toMatch(THREAD);
+    expect(peekProactiveSlot('call-off')).toBe('commitment-insight');
   });
 });
