@@ -106,4 +106,41 @@ describe('the voicemail', () => {
     expect(text).toContain(`"Hi, it's Ferni, an AI friend."`);
     expect(text).not.toMatch(/undefined/);
   });
+
+  // The live on-behalf voicemail, written out in full: any change to these words is deliberate.
+  it('is these exact words, personal and named', () => {
+    expect(
+      voicemailInstructions(
+        { recipientName: 'Alex', sponsorName: 'Sam', personal: true },
+        'see if Alex is free on Sunday'
+      )
+    ).toBe(
+      [
+        'This is a voicemail, not a conversation, and the greeting has finished.',
+        'Ignore the opener instruction. Leave ONE short, warm message, under 20 seconds, then stop.',
+        `Start with exactly: "Hi Alex, it's Ferni, Sam's AI friend." Then, in your own natural words:`,
+        "- That it's nothing urgent.",
+        '- In one sentence, why Sam wanted to reach them: see if Alex is free on Sunday.',
+        '- No need to call you back; they can just call or text Sam.',
+        '- "Thanks, bye!"',
+        "No questions (it's a recording), no numbers they don't already have, nothing private.",
+        "Don't call endCall; the call ends by itself after your message.",
+      ].join('\n')
+    );
+  });
+
+  it('is these exact words, for a business with no names', () => {
+    expect(voicemailInstructions({ personal: false }, 'confirm the table for two')).toBe(
+      [
+        'This is a voicemail, not a conversation, and the greeting has finished.',
+        'Ignore the opener instruction. Leave ONE short, warm message, under 20 seconds, then stop.',
+        `Start with exactly: "Hi, this is Ferni, an AI calling on someone's behalf." Then, in your own natural words:`,
+        '- In one sentence, why the person who asked you to call wanted to reach them: confirm the table for two.',
+        '- No need to call you back; they can just call or text the person who asked you to call.',
+        '- "Thanks, bye!"',
+        "No questions (it's a recording), no numbers they don't already have, nothing private.",
+        "Don't call endCall; the call ends by itself after your message.",
+      ].join('\n')
+    );
+  });
 });

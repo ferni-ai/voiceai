@@ -155,11 +155,7 @@ jobs:
         working-directory: apps/ios-native
         run: scripts/ui-audit.sh gate "iPhone 17 Pro Max" "$SPM_DIR" "$RUNNER_TEMP"
 
-      # Reported as a warning with the finding count until the iPad is clean;
-      # then switch "report" to "gate".
-      - name: Accessibility audit (iPad, reported)
-        working-directory: apps/ios-native
-        run: scripts/ui-audit.sh report "iPad Pro 13-inch (M5)" "$SPM_DIR" "$RUNNER_TEMP"
+      # The iPad audit runs in its own job (audit-ipad below), beside this one.
 
       - name: Upload test results
         if: failure()
@@ -206,3 +202,64 @@ jobs:
           name: ios-archive-unsigned
           path: ${{ runner.temp }}/Ferni.xcarchive
           retention-days: 30
+
+  # The iPad accessibility audit, beside build-ios on its own runner: in
+  # build-ios it ran last and pushed that job past its 60 minutes. Reported
+  # (scripts/ui-audit.sh report): findings post a warning and never fail the
+  # job; a build error or a missing simulator still does. It runs when build-ios
+  # does, except after a failed iOS change check (build-ios fails loudly then),
+  # and like it skips in the merge queue (merge-queue-jobs.test.ts). When the
+  # iPad is clean, switch "report" to "gate".
+  audit-ipad:
+    name: iOS accessibility audit (iPad, reported)
+    needs: ios-changes
+    if: >
+      !cancelled() && github.event_name != 'merge_group' && (
+        needs.ios-changes.outputs.ios == 'true' ||
+        github.event_name == 'push' ||
+        github.event.inputs.platforms == 'all' ||
+        github.event.inputs.platforms == 'mobile' ||
+        github.event.inputs.platforms == 'ios'
+      )
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      SPM_DIR: ${{ github.workspace }}/.spm
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "/Applications/Xcode_$(cat apps/ios-native/.xcode-version).app" || { ls -d /Applications/Xcode*.app; exit 1; }
+          xcodebuild -version
+
+      - name: Cache Swift packages
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.SPM_DIR }}
+          key: ${{ runner.os }}-spm-${{ hashFiles('apps/ios-native/Ferni.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Resolve Swift packages
+        working-directory: apps/ios-native
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project Ferni.xcodeproj \
+            -scheme Ferni \
+            -clonedSourcePackagesDirPath "$SPM_DIR"
+
+      - name: Accessibility audit (iPad, reported)
+        working-directory: apps/ios-native
+        run: scripts/ui-audit.sh report "iPad Pro 13-inch (M5)" "$SPM_DIR" "$RUNNER_TEMP"
+
+      - name: Upload audit results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-ipad-audit-results
+          path: |
+            ${{ runner.temp }}/ui-audit-*.xcresult
+            ${{ runner.temp }}/ui-audit-*.log
+          retention-days: 14

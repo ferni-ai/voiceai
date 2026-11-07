@@ -21,6 +21,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { abuseHoldsOutreach } from '../safety/index.js';
 import { getPubSubClient, type PublishResult } from '../pubsub/pubsub-client.js';
 import type { OutreachPriority, OutreachTriggerType } from './decision-engine.js';
 
@@ -156,6 +157,8 @@ export async function publishOutreachTrigger(
   trigger: Omit<OutreachTriggerPayload, 'id' | 'createdAt'>
 ): Promise<TriggerPublishResult> {
   const triggerId = generateTriggerId();
+  // K1e: never for a call, or a user on a call, where someone hurting the caller was told of.
+  if (await abuseHoldsOutreach(trigger)) return { success: false, triggerId, error: 'held' };
   const now = new Date().toISOString();
 
   const fullTrigger: OutreachTriggerPayload = {

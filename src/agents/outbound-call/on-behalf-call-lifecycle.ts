@@ -64,6 +64,8 @@ export interface CallLifecyclePorts {
   scheduleRetry?: (call: OnBehalfDispatch) => Promise<Date | null>;
   /** Puts the number on the do-not-call list when the person asks not to be called again. */
   recordOptOut?: (call: OnBehalfDispatch) => Promise<unknown>;
+  /** True when the no-agent watchdog recorded the call as never placed (agent-join.ts neverPlaced). */
+  neverPlaced?: (call: OnBehalfDispatch) => Promise<boolean>;
 }
 
 export const toOnBehalfCallRequest = onBehalfRequestFromDispatch;
@@ -328,6 +330,7 @@ async function defaultPorts(): Promise<CallLifecyclePorts> {
   const transcripts = await import('../../services/outreach/call-transcript-intelligence.js');
   const { captureCallResult } = await import('../../services/outreach/call-result-capture.js');
   const control = await import('./call-control.js');
+  const { neverPlaced } = await import('../../services/outreach/agent-join.js');
   const { scheduleCallRetry, recordCallOptOut } =
     await import('../../services/outreach/call-retry.js');
   return {
@@ -337,6 +340,7 @@ async function defaultPorts(): Promise<CallLifecyclePorts> {
     analyze: transcripts.analyzeCompletedCall,
     report: captureCallResult,
     scheduleRetry: (call) => scheduleCallRetry(call),
+    neverPlaced: (call) => neverPlaced(call.callId, call.requester.userId),
     recordOptOut: (call) =>
       recordCallOptOut(call.contact.phone, {
         callId: call.callId,
@@ -405,6 +409,7 @@ async function reportCall(
     const voicemailSpoken = readVoicemailSpoken?.(sessionId) === true;
     const turns = readTranscript(call.callId);
     const heard = turns?.filter((t) => t.role === 'recipient').map((t) => t.content) ?? [];
+    if (heard.length === 0 && (await p.neverPlaced?.(call))) return null; // a late agent: nothing rang
     // Ferni's own read of how the call ended comes first; then, with follow-through,
     // what the person said (a voicemail greeting, a no, a quick hang-up).
     const talked =

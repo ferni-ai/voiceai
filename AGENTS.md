@@ -164,6 +164,10 @@ against:
 - **Layers** point inward (L5 → L4 → L3 contexts → L2; L1 adapters implement ports).
   Which folder is in which layer or context: [ARCHITECTURE.md](ARCHITECTURE.md), generated
   from `architecture-layers.ts`. `pnpm quality:arch` fails new violations.
+- **One owner per capability** (crisis risk, voice, handoff, tool registry, outreach
+  scheduling, ...): the owner folder's `AGENTS.md` names it and the entry to import,
+  generated from `apps/cli/src/commands/quality/decisions.ts`. A second owner-shaped
+  function fails `pnpm quality:decisions`; call the owner instead.
 - **Names**: files are kebab-case. Name by function, not acronym or version
   (`tool-classifier.ts`, not `ftis-v2.ts`). No persona names in tool files.
 - **Classifiers on user text** match whole words, never substrings

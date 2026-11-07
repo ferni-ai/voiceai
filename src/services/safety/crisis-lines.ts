@@ -4,9 +4,10 @@
  * Code outside services/safety that prints "988", "Text HOME to 741741" or a hotline's name
  * reads it from here instead of keeping its own copy, so each name and number has one source
  * (docs/plans/2026-11-05-crisis-centralize.md, step S1). Each line is the first
- * CRISIS_RESOURCES entry with that name that has every field the callers read; a renamed or
- * emptied entry throws when this module loads, so a kernel edit cannot leave a caller printing
- * "undefined".
+ * CRISIS_RESOURCES entry with that name, and that entry must have every field the callers read.
+ * A renamed entry, or a first entry with an emptied field, throws when this module loads rather
+ * than falling through to a later entry with the same name, so a kernel edit cannot leave a
+ * caller printing "undefined" or a number the kernel no longer lists first.
  *
  * @module services/safety/crisis-lines
  */
@@ -16,11 +17,15 @@ type Field = 'phone' | 'text' | 'chat';
 type CrisisLine<F extends Field> = CrisisResource & Required<Pick<CrisisResource, F>>;
 
 function line<F extends Field>(name: string, ...fields: F[]): CrisisLine<F> {
-  for (const resources of Object.values(CRISIS_RESOURCES)) {
-    const found = resources.find((r) => r.name === name && fields.every((f) => r[f]));
-    if (found) return found as CrisisLine<F>;
+  const found = Object.values(CRISIS_RESOURCES)
+    .flat()
+    .find((r) => r.name === name);
+  if (!found) throw new Error(`CRISIS_RESOURCES has no "${name}"`);
+  const missing = fields.filter((f) => !found[f]);
+  if (missing.length > 0) {
+    throw new Error(`CRISIS_RESOURCES' first "${name}" entry has no ${missing.join(', ')}`);
   }
-  throw new Error(`CRISIS_RESOURCES has no "${name}" with ${fields.join(', ')}`);
+  return found as CrisisLine<F>;
 }
 
 export const LIFELINE_988 = line('988 Suicide & Crisis Lifeline', 'phone', 'text', 'chat');

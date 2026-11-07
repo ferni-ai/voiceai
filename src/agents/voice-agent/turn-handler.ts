@@ -67,8 +67,6 @@ import {
 } from '../realtime/emotion-event-dispatcher.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
-// "AGI-like" action approval detection (voice confirmation for autonomous actions)
-import { handleActionApprovalIntent } from '../shared/action-approval-handler.js';
 // Centralized emotion thresholds (BTH refactor)
 import {
   STRESS_NEEDS_SPACE,
@@ -199,7 +197,7 @@ export interface TurnHandlerContext {
   turnCtx: llm.ChatContext;
   /** User message text */
   userText: string;
-  /** Build context only: no tool routing, commands or action approvals (background run). */
+  /** Build context only: no tool routing or commands (background run). */
   contextOnly?: boolean;
   /** Current persona config */
   persona: PersonaConfig;
@@ -544,28 +542,6 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     });
     if (slashResult.handled) {
       return; // Slash command fully handled
-    }
-  }
-
-  // ================================================================
-  // AGI-LIKE: Check for action approval intent
-  // If user is responding to a pending action ("yes", "do it", etc.),
-  // handle it and skip normal turn processing
-  // ================================================================
-  if (services.userId && !contextOnly) {
-    try {
-      const approvalResult = await handleActionApprovalIntent(services.userId, userText);
-      if (approvalResult.handled) {
-        diag.state('🎯 Action approval handled', {
-          actionId: approvalResult.action?.id,
-          approved: approvalResult.approved,
-          actionType: approvalResult.action?.actionType,
-        });
-        return; // Action approval fully handled, skip normal processing
-      }
-    } catch (approvalErr) {
-      // Non-fatal - continue with normal turn processing
-      diag.warn('Action approval check failed (non-fatal)', { error: String(approvalErr) });
     }
   }
 
