@@ -19,7 +19,7 @@
  */
 
 import { crisisRiskNoted } from '../../services/safety/crisis-call-risk.js';
-import { isSafetyTalk } from '../../services/safety/index.js';
+import { reachesHelp } from '../../services/safety/index.js';
 import type { Line } from './director-notes.js';
 import {
   formatPhraseLoops,
@@ -147,18 +147,20 @@ const POINTS_BACK = new RegExp(
 );
 
 /**
- * Safety wording of any kind: safety talk (services/safety/safety-talk.ts), a
- * line of the safety scripts or on safety, harm or help (phrase-loops.ts
+ * Safety wording: a way to reach help (services/safety/safety-talk.ts reachesHelp),
+ * a line of the safety scripts or on safety, harm or help (phrase-loops.ts
  * isSafetyLine: "In Canada you can call Talk Suicide Canada any time."), or a
- * sentence pointing back to a help line already given.
+ * sentence pointing back to a help line already given. Not care wording on its
+ * own (isCareTalk): it fires on everyday words like "please" and "tonight", and
+ * care lines stay quotable, as on main.
  */
 const isSafetyWording = (text: string): boolean =>
-  isSafetyTalk(text) || isSafetyLine(text) || POINTS_BACK.test(text);
+  reachesHelp(text) || isSafetyLine(text) || POINTS_BACK.test(text);
 
 /**
  * Whether a name or phrase is safety wording, or every sentence of Ferni's that
- * holds it is. Listed, it would ask the model to leave a help line or care
- * wording ("You've brought up Amitie", from "SOS Amitie listens day and night.").
+ * holds it is. Listed, it would ask the model to leave a help line ("You've
+ * brought up Amitie", from "SOS Amitie listens day and night.").
  */
 function onlyInSafetyTalk(text: string, sentences: string[]): boolean {
   if (isSafetyWording(text)) return true;
@@ -278,9 +280,9 @@ export function formatTold(told: Told): string {
  * quotes at all: a crisis-guided request must never be told to drop wording
  * (crisis-call-risk.ts). A line of the safety scripts is never quoted on any call
  * (#2797: "Don't say again" had quoted "Are you somewhere safe right now?"), nor
- * is any safety wording: a help line or care wording ("You can text HOME any time.",
- * "Hand the keys to your friend."), or a pointer back to a line already given,
- * which the caller may still need to hear. The quotes are only ever main's, fewer.
+ * is any other safety wording: a way to reach help ("You can text HOME any time."),
+ * or a pointer back to a line already given, which the caller may still need to
+ * hear. The quotes are only ever main's, fewer.
  */
 export function keptTold(told: Told, keep: (text: string) => boolean, sessionId?: string): Told {
   const { loops: all, ...rest } = told;
