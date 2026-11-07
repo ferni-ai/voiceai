@@ -243,8 +243,6 @@ describe('C4 polish: rim and inset', () => {
 
   it('the rendered overlay has the rim circle and starts on the neutral cubic domes', async () => {
     document.body.innerHTML = '<div id="coach"><div id="coachAvatar"></div></div>';
-    const { gsap } = await import('gsap');
-    (window as unknown as { gsap: typeof gsap }).gsap = gsap;
     const { initFerniExpressions } = await import('../../../src/ui/ferni-expressions.ui.js');
     initFerniExpressions();
     const rim = document.querySelector('.avatar-lid-overlay circle.lid-rim');
