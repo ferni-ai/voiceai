@@ -250,6 +250,20 @@ function earlierCallRule(context: OutboundCallContext): string {
 `;
 }
 
+/**
+ * An on-behalf call's purpose is the user's own request, in their words ("tell
+ * her I'm running late"): Ferni passes it on as their message, about them,
+ * never as them. A family check-in's purpose is the server's own sentence.
+ */
+function purposeLine(context: OutboundCallContext): string {
+  if (context.kind === 'family_checkin') return `Purpose: ${context.purpose}`;
+  const who = context.userName;
+  return `Purpose, in ${who}'s own words, for you to pass on as ${who}'s: "${context.purpose}"
+Say it about ${who}, in the third person ("${who} asked me to..."). Their "I" means ${who}
+("I'm running late" becomes "${who}'s running late"). You are not ${who}: never introduce
+yourself as ${who} or speak as if you were them.`;
+}
+
 function buildPurposeInjection(context: OutboundCallContext): string {
   return `
 OUTBOUND CALL ON BEHALF OF USER
@@ -260,7 +274,7 @@ Call type: ${context.callType}
 
 PRIMARY OBJECTIVE: ${context.objective}
 
-Purpose: ${context.purpose}
+${purposeLine(context)}
 
 TALK THE WAY PEOPLE DO ON THE PHONE:
 ${firstReplyRule(context)}- After they respond, say why you're calling in one or two sentences. Don't open with small

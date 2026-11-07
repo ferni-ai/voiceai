@@ -4,8 +4,9 @@ import LiveKit
 import os
 
 /// AVAudioSession set up for a conversation: voice-chat processing (echo
-/// cancellation, voice-tuned gain), the speaker by default, and Bluetooth headsets and
-/// AirPlay routes when connected. LiveKit's automatic setup would pick
+/// cancellation, voice-tuned gain), the speaker by default, and Bluetooth headsets
+/// when connected. AirPlay isn't offered: it's output only, so the phone's mic
+/// would hear Ferni's delayed voice. LiveKit's automatic setup would pick
 /// `.videoChat` for the speaker, so the app configures the session itself.
 ///
 /// Under LiveCommunicationKit the system owns activation. Per LiveKit's
@@ -21,11 +22,13 @@ import os
 /// end, and the next room, being system-owned, never turned it back on: no mic
 /// and no speaker for the rest of a call that looked live.
 ///
-/// After an interruption ends, a device comes or goes, or the media services
-/// reset, the call is set up again: voice chat on the session, and LiveKit's
-/// voice processing (its echo cancellation) back on if it dropped. Without it,
-/// Ferni's own voice reaches the mic and reads as the person talking. Each time
-/// is logged with its reason and whether voice processing had dropped.
+/// When the system activates the call's session (at the start, or giving it
+/// back after a hold), after an interruption ends, when a device comes or
+/// goes, and after the media services reset, the call is set up again: voice
+/// chat on the session, and LiveKit's voice processing (its echo cancellation)
+/// back on if it dropped, even when the session refuses its settings. Without
+/// it, Ferni's own voice reaches the mic and reads as the person talking. Each
+/// time is logged with its reason and whether voice processing had dropped.
 ///
 /// When the system never activates a call's audio, the call takes it itself
 /// (`activate(systemOwned: false)`), and a late word from the system's
@@ -146,7 +149,8 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
     }
 
     /// The one way the hold lets go: a write that stuck, a device change, an
-    /// interruption's end, a media reset or the call's end. Never a throw.
+    /// interruption's end, the system activating the session, a new room's
+    /// set-up (a rejoin or a retry), a media reset or the call's end. Never a throw.
     private func releaseHold() {
         driftHeld.withLock { driftHeld in driftHeld = false }
     }
@@ -189,11 +193,15 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
         }
     }
 
-    /// Voice chat on the session and voice processing on, logged with the reason.
+    /// Voice chat on the session and voice processing on, logged with the
+    /// reason. Voice processing comes back even if the session refuses its
+    /// settings: the echo cancellation doesn't depend on them.
     private func setUpAgain(_ why: StaticString) throws {
-        try configure()
+        var refused: Error?
+        do { try configure() } catch { refused = error }
         let processing = restoreVoiceProcessing()
         log.notice("Session set again (\(why, privacy: .public)); voice processing \(processing, privacy: .public)")
+        if let refused { throw refused }
     }
 
     /// Turns LiveKit's voice processing back on only if it dropped: turning it
@@ -241,6 +249,9 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
 
     public func activate(systemOwned: Bool) throws {
         try configure()
+        // Each room sets the call up afresh: a rejoin or a retry lets the hold
+        // go, even when the system keeps the session active between rooms.
+        releaseHold()
         if systemOwned {
             // The system activates it and tells us (systemAudio(active:)),
             // which is what turns the engine on, never before (C1). A later
@@ -264,7 +275,9 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
 
     public func systemAudio(active: Bool) {
         systemActive.withLock { $0 = active }
-        if active { try? configure() }
+        // A hold's end may come before this or not at all: this is where the
+        // call is surely back, so it's set up again here, before the engine starts.
+        if active { reapply("system activated") }
         // The app took the audio over when the system never activated it: a
         // late word from the system's abandoned call leaves the engine on.
         setEngine(active || ownActive.withLock({ $0 }) ? .default : .none)
@@ -301,8 +314,8 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
         }
     }
 
-    /// The speaker by default, Bluetooth headsets and AirPlay.
-    static let options: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetoothHFP, .allowAirPlay]
+    /// The speaker by default and Bluetooth headsets.
+    static let options: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetoothHFP]
 
     /// The IO buffer a call asks for, in seconds.
     static let ioBuffer: TimeInterval = 0.02

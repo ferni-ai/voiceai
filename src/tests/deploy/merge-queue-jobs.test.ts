@@ -42,6 +42,7 @@ const POST_MERGE = [
   'ci.yml#validation',
   'ci.yml#e2e-validation',
   'build-apps.yml#build-ios',
+  'build-apps.yml#audit-ipad',
 ];
 
 const queued = workflows().filter((w) => triggers(w).includes('merge_group'));

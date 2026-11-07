@@ -59,8 +59,11 @@ final class SystemCallAudioTests: XCTestCase {
         var configured = 0
         var ioBuffer: TimeInterval?
         var active: [Bool] = []
+        /// The session refuses the call's settings.
+        var refusesCategory = false
         func setCategory(_ category: AVAudioSession.Category, mode: AVAudioSession.Mode,
                          options: AVAudioSession.CategoryOptions) throws {
+            if refusesCategory { throw NSError(domain: "AVAudioSession", code: -50) }
             self.category = category; self.mode = mode; self.options = options
             configured += 1
         }
@@ -127,13 +130,15 @@ final class SystemCallAudioTests: XCTestCase {
     }
 
     /// Bluetooth in headset mode only: AirPods carry the mic and Ferni's
-    /// voice together, never A2DP's music-only link.
+    /// voice together, never A2DP's music-only link. AirPlay isn't offered
+    /// either: it's output only, like A2DP.
     func testACallUsesBluetoothAsAHeadsetOnly() throws {
         let session = Session()
         let audio = SystemCallAudio(systemManagesCalls: false, engine: { _ in }, session: session)
         try audio.activate(systemOwned: false)
         XCTAssertFalse(session.options.contains(.allowBluetoothA2DP), "no A2DP")
-        XCTAssertEqual(session.options, [.defaultToSpeaker, .allowBluetoothHFP, .allowAirPlay])
+        XCTAssertFalse(session.options.contains(.allowAirPlay), "no AirPlay")
+        XCTAssertEqual(session.options, [.defaultToSpeaker, .allowBluetoothHFP])
     }
 
     // MARK: - When the session changes under the call
@@ -226,6 +231,58 @@ final class SystemCallAudioTests: XCTestCase {
 
                 post(name, info, to: center)
                 XCTAssertEqual(processing.turnedOn, 1, "left alone while on: \(why)")
+            }
+        }
+    }
+
+    /// Under the system's call service a hold (a phone call, Siri) is over
+    /// when the system gives the session back. The interruption's end can come
+    /// before that, while the call isn't holding the session, or not at all:
+    /// either way the call is back in voice chat with voice processing on.
+    func testAHoldTheSystemGivesBackSetsTheCallUpAgain() throws {
+        let ended: [AnyHashable: Any] = [AVAudioSessionInterruptionTypeKey: AVAudioSession.InterruptionType.ended.rawValue]
+        for endFirst in [true, false] {
+            let why = endFirst ? "the end before the session" : "no end at all"
+            let session = Session(), processing = Processing(), center = NotificationCenter()
+            let audio = SystemCallAudio(systemManagesCalls: true, engine: { _ in }, session: session,
+                                        notifications: center, voiceProcessing: processing)
+            try audio.activate(systemOwned: true)
+            audio.systemAudio(active: true)
+            audio.systemAudio(active: false) // the hold takes the audio
+
+            session.mode = .default
+            processing.isOn = false
+            if endFirst { post(AVAudioSession.interruptionNotification, ended, to: center) }
+            audio.systemAudio(active: true) // and gives it back
+            XCTAssertEqual(session.mode, .voiceChat, why)
+            XCTAssertTrue(processing.isOn, why)
+            XCTAssertEqual(processing.turnedOn, 1, why)
+        }
+    }
+
+    /// A session that refuses the call's settings still gets voice processing
+    /// back, on every path that sets the call up again.
+    func testVoiceProcessingComesBackEvenWhenTheSessionRefusesItsSettings() throws {
+        let ended: [AnyHashable: Any] = [AVAudioSessionInterruptionTypeKey: AVAudioSession.InterruptionType.ended.rawValue]
+        let disruptions: [(String, Notification.Name?, [AnyHashable: Any])] = [
+            ("an interruption's end", AVAudioSession.interruptionNotification, ended),
+            ("a new device", AVAudioSession.routeChangeNotification, route(.newDeviceAvailable)),
+            ("a media services reset", AVAudioSession.mediaServicesWereResetNotification, [:]),
+            ("the system giving the session back", nil, [:]),
+        ]
+        for systemOwned in [true, false] {
+            for (what, name, info) in disruptions where systemOwned || name != nil {
+                let why = "\(what), system owned: \(systemOwned)"
+                let session = Session(), processing = Processing(), center = NotificationCenter()
+                let audio = SystemCallAudio(systemManagesCalls: systemOwned, engine: { _ in }, session: session,
+                                            notifications: center, voiceProcessing: processing)
+                try audio.activate(systemOwned: systemOwned)
+                if systemOwned { audio.systemAudio(active: true) }
+
+                session.refusesCategory = true
+                processing.isOn = false
+                if let name { post(name, info, to: center) } else { audio.systemAudio(active: true) }
+                XCTAssertTrue(processing.isOn, why)
             }
         }
     }
@@ -779,6 +836,63 @@ final class SystemCallAudioTests: XCTestCase {
                     XCTAssertEqual(session.writes, 2, "still held: \(what)")
                     XCTAssertEqual(session.mode, .default, what)
                 }
+            }
+        }
+    }
+
+    /// A call held by a set-back that threw: the next drift writes nothing.
+    /// Returns the write count while held; the session takes settings again.
+    private func thrownHold(_ center: NotificationCenter, _ session: EchoingSession,
+                            systemOwned: Bool, later: Bool) throws -> (SystemCallAudio, Int) {
+        session.later = later
+        let audio = SystemCallAudio(systemManagesCalls: systemOwned, engine: { _ in }, session: session,
+                                    notifications: center, voiceProcessing: Processing())
+        try audio.activate(systemOwned: systemOwned)
+        if systemOwned { audio.systemAudio(active: true) }
+        session.drain()
+        session.mode = .default
+        session.refusesAndPosts = true
+        post(AVAudioSession.routeChangeNotification, route(.override), to: center)
+        session.drain()
+        let held = session.writes
+        post(AVAudioSession.routeChangeNotification, route(.override), to: center)
+        session.drain()
+        XCTAssertEqual(session.writes, held, "held after the throw")
+        XCTAssertEqual(session.mode, .default)
+        session.refusesAndPosts = false
+        return (audio, held)
+    }
+
+    /// The system activating the call's session again (after a hold, say)
+    /// sets the call up and lets a thrown set-back's hold go.
+    func testTheSystemActivatingTheSessionLetsTheHoldGo() throws {
+        for later in [false, true] {
+            let center = NotificationCenter(), session = EchoingSession(center)
+            let (audio, held) = try thrownHold(center, session, systemOwned: true, later: later)
+            audio.systemAudio(active: false)
+            audio.systemAudio(active: true)
+            session.drain()
+            XCTAssertEqual(session.writes, held + 1, "the activation writes once, later \(later)")
+            XCTAssertEqual(session.mode, .voiceChat, "later \(later)")
+            assertNotHeld(center, session, "after the system activated, later \(later)")
+        }
+    }
+
+    /// A rejoin or a retry (leave the room, set the next one up) lets a thrown
+    /// set-back's hold go, including when the system keeps the session active
+    /// between rooms and never activates it again.
+    func testARejoinLetsTheHoldGo() throws {
+        for systemOwned in [false, true] {
+            for later in [false, true] {
+                let what = "system owned \(systemOwned), later \(later)"
+                let center = NotificationCenter(), session = EchoingSession(center)
+                let (audio, held) = try thrownHold(center, session, systemOwned: systemOwned, later: later)
+                audio.deactivate(systemOwned: systemOwned)
+                try audio.activate(systemOwned: systemOwned)
+                session.drain()
+                XCTAssertEqual(session.writes, held + 1, "the new room writes once: \(what)")
+                XCTAssertEqual(session.mode, .voiceChat, what)
+                assertNotHeld(center, session, "after the rejoin: \(what)")
             }
         }
     }

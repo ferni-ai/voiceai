@@ -88,7 +88,7 @@ export function getUserId(
 /**
  * Extract user's name from context
  */
-export function getUserName(context: ToolExecutionContext): string | undefined {
+export function getUserName(context: ToolExecutionContext | { ctx?: unknown }): string | undefined {
   const ctx = context?.ctx as ToolExecutionContext['ctx'];
   return ctx?.userData?.name;
 }
