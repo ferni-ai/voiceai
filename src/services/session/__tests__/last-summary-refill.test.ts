@@ -242,14 +242,34 @@ describe('#2801: a forgotten topic stays out of the call-start refill', () => {
     expect(await nextCallOpens(hung, 'deferred', 600)).toBe('');
   });
 
-  it('the call in progress is not "last time": the refill reads the last finished call', async () => {
-    const uid = 'e2e-2801-sam-current';
-    seedLastCall(uid, { summary: 'Sam talked about the half marathon training' });
-    seedProfile(uid, '');
-    // startConversation writes this call's document, newer than the finished one
-    const after = await nextCallOpens(uid, 'deferred');
-    const convs = [...fake.docs.keys()].filter((k) => /\/conversations\/conv_[^/]+$/.test(k));
-    expect(convs).toHaveLength(2); // precondition: the call in progress exists and is newest
-    expect(after).toBe('Sam talked about the half marathon training');
+  it("normal mode: site 2 reads this call's own empty start, as on main, so nothing refills", async () => {
+    // The shared matcher misses paraphrases; the default deferred path must not reach them.
+    const PARAPHRASES: Array<{ summary?: string; said?: string[] }> = [
+      { summary: 'Sam talked about splitting up with their spouse' },
+      { summary: 'Discussed: the marriage is ending and the separation papers' },
+      { summary: 'Sam is worried about telling the kids they are separating' },
+      { summary: 'Sam said mediation with their ex went badly' },
+      { said: ['we are ending the marriage after twelve years'] },
+      { said: ['my soon-to-be ex wants the house'] },
+    ];
+    const openers = [
+      { last: { summary: 'Sam talked about the half marathon training' }, forgets: false },
+      ...PARAPHRASES.map((last) => ({ last, forgets: true })),
+    ];
+    const refilled: string[] = [];
+    for (const [i, { last, forgets }] of openers.entries()) {
+      const uid = `e2e-2801-sam-normal-${i}`;
+      seedLastCall(uid, last);
+      seedProfile(uid, forgets ? 'Sam talked about the divorce' : '');
+      if (forgets) expect((await forgetTopic(uid, 'the divorce')).kind).toBe('forgotten');
+      expect(profileOf(uid).lastConversationSummary).toBe(''); // precondition
+      const after = await nextCallOpens(uid, 'deferred');
+      const convs = [...fake.docs.keys()].filter(
+        (k) => k.startsWith(`bogle_users/${uid}/conversations/`) && /conv_[^/]+$/.test(k)
+      );
+      expect(convs).toHaveLength(2); // precondition: this call's start is written and newest
+      if (after !== '') refilled.push(`#${i}: ${after}`);
+    }
+    expect(refilled).toEqual([]);
   });
 });

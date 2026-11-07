@@ -298,7 +298,6 @@ export async function createSessionServices(
       }, 0);
 
       // A missing "last time" from realtime memory, never a forgotten topic (background).
-      // It starts before this call's conversation exists (startConversation, below): no id to skip.
       lastCallSummary(validatedUserId)
         .then((summary) => {
           if (summary && userProfile && userProfile.lastConversationSummary === undefined) {
@@ -2274,8 +2273,7 @@ export async function createSessionServices(
             // Non-critical
           }
 
-          // This call's conversation has started by now: the last one is the one before it.
-          void lastCallSummary(validatedUserId, realtimeConversationId)
+          void lastCallSummary(validatedUserId)
             .then((summary) => {
               if (summary && services.userProfile && !services.userProfile.lastConversationSummary) {
                 services.userProfile.lastConversationSummary = summary;

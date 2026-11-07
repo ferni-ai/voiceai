@@ -352,20 +352,21 @@ export async function getConversationTurns(
   }
 }
 
-/** Last call's context, for the greeting; skips `currentConversationId`, the call in progress. */
-export async function getLastConversationContext(
-  userId: string,
-  currentConversationId?: string
-): Promise<{
+/**
+ * Get the last conversation's context (for greeting)
+ * This is the key function for returning users
+ */
+export async function getLastConversationContext(userId: string): Promise<{
   turns: ConversationTurn[];
   personaId: string;
   date: Date;
   summary?: string;
 } | null> {
-  const conversations = await getRecentConversations(userId, currentConversationId ? 2 : 1);
-  const lastConv = conversations.find((c) => c.id !== currentConversationId);
-  if (!lastConv) return null;
+  const conversations = await getRecentConversations(userId, 1);
 
+  if (conversations.length === 0) return null;
+
+  const lastConv = conversations[0];
   const turns = await getConversationTurns(userId, lastConv.id, 20);
 
   return {
