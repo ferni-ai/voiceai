@@ -11,6 +11,15 @@ const MAX_KEYS = 20;
 
 /** `{ query: 'string:42', limit: 'number', tags: 'array:3' }` for a tool's args. */
 export function toolArgShape(args: unknown): Record<string, string> | string {
+  try {
+    return shapeOf(args);
+  } catch {
+    // A throwing getter or Proxy trap: its message could be anything, so none of it is kept.
+    return 'unreadable';
+  }
+}
+
+function shapeOf(args: unknown): Record<string, string> | string {
   if (typeof args !== 'object' || args === null || Array.isArray(args)) return typeOf(args);
   const shape: Record<string, string> = {};
   const keys = Object.keys(args);

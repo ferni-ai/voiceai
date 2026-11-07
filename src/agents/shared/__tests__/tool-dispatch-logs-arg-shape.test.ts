@@ -104,12 +104,33 @@ describe('tool dispatch logs the shape of arguments, never the caller words', ()
           // Structural: no error text at all, so nothing rests on the logger's scrub.
           expect(record).not.toHaveProperty('error');
           expect(record).not.toHaveProperty('err');
+          // Exact keys: a new field (an error hint, a prefix of the input) fails here.
+          expect(
+            Object.keys(record)
+              .filter((k) => !['level', 'time', 'pid', 'hostname', 'msg', 'module'].includes(k))
+              .sort()
+          ).toEqual(['errorClass', 'rawArgsChars']);
           for (const word of broken.match(/[A-Za-z]{4,}/g) ?? []) {
             expect(parse[0]).not.toContain(word);
           }
           expect(out.join('')).not.toContain('sunflower');
         });
       }
+
+      it('args whose getter throws log "unreadable" and the dispatch still runs', async () => {
+        const args = {
+          limit: 3,
+          get query(): string {
+            throw new Error(SAID);
+          },
+        };
+        const result = await executeTool({ name: 'samUnknownTool', args }, ctxFor(userId));
+        expect(result.success).toBe(true);
+        const lines = linesWith('Tool start: samUnknownTool');
+        expect(lines).toHaveLength(1);
+        expect(lines[0]).toContain('"argShape":"unreadable"');
+        expect(out.join('')).not.toContain('sunflower');
+      });
 
       it('a meta-tool call without a toolName logs the shape of its args', async () => {
         await executeTool({ name: 'executeTool', args: { args: SAID } }, ctxFor(userId));
