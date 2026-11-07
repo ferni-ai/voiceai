@@ -185,3 +185,46 @@ Starts only after P4 is live for friends and family.
 - Changing the core team.
 - New proactive askers (the right-moment budget owns that).
 - Any prod flag flip; those are separate, owner-approved steps.
+
+## 9. P0 findings (2026-11-07)
+
+Probe id: `test-companion`, fictional. Tests: `src/agents/personas/__tests__/non-core-persona-crisis.test.ts`, `non-core-persona-prompt.test.ts`.
+
+1. **A session with a non-core id.** The token route passes any id through (`src/servers/api/routes/token.ts:325,340,543`); the agent reads it (`src/agents/voice-agent-entry/metadata-parser.ts:103`). Then:
+   - Multi-agent mode (on by default, `voice-agent-entry/constants.ts:25`) throws `Unknown persona` when no bundle loads (`multi-agent/persona-agent-factory.ts:132`).
+   - Single-agent mode builds a generic "life coach" persona (`voice-agent-entry/persona-builder.ts:57-64`) with the prompt `You are <id>, a helpful companion.` (`agents/personas/prompt-loader.ts:526`).
+   - Only the core six are prewarmed (`personas/bundles/preloader.ts:16`).
+   - Unknown ids map to Ferni (`personas/persona-ids.ts:252-253`), so display name, short name and handoff tool answer as Ferni (`personas/id-mapping.ts:284-312`).
+   - The turn reminder says no teammates are available (`tools/handoff/locked-teammates.ts:168`) and lacks some of the core reminder's humanness lines (seen in the crisis test's ordinary-line request).
+   - Greeting and memory scope: UNCONFIRMED, not traced in P0.
+2. **Crisis kernel: unchanged, proven by test.** 12 corpus lines the gate acts on, plus 1 ordinary line, patterns-only and patterns+classifier: the non-core reply is byte-for-byte the core one, and the gate decision for the ordinary line is identical. `crisis-gate.ts` has no persona branch.
+3. **Canonical crisis line: absent for non-core in both modes.** It lives only in each core `identity/character.md`; the loader append (#3595) is not on main. A non-core id assembles the generic fallback in full and character mode, with no 988 line. Both mode tests are `it.fails` and go red when the line lands.
+4. **APIs** (registered in `src/servers/api/index.ts:548,563,579`; clients by grep of `apps/web/src`, `apps/ios-native`):
+
+   | Route family | Client | State |
+   |---|---|---|
+   | marketplace registry/manifest (browse) | `apps/web/src/services/marketplace.service.ts:294-295` | live |
+   | marketplace reviews | `apps/web/src/ui/marketplace.ui.ts` | live |
+   | marketplace admin + `review-queue.ts` | `apps/web/src/ui/marketplace-admin.ui.ts`; queue via admin and publisher routes | live |
+   | custom-agents (agent, voice, memory, chat, generate-prompt) | `apps/web/src/services/custom-agent.service.ts` (`:512` prompt) | live, flag-gated UI |
+   | marketplace install, billing, checkout, publisher | none in web or iOS | UNCONFIRMED (registered, no client found) |
+   | custom-agents journal routes | none (journal sync reads memories) | UNCONFIRMED |
+
+   No route is dead: every family is registered. No iOS caller for any.
+5. **"Start a call with agent X" today.**
+   - Web: `apps/web/src/app/conversation-starter.ts:49` keeps the id only if `isValidPersonaId` (core and known ids), then `services/connection.service.ts:425` and `services/token-fetch.service.ts:27` send `persona_id`.
+   - iOS: `TeamStore.choose` accepts team ids only (`FerniKit/Team/TeamStore.swift:32-35`); `FerniVoice/CallToken.swift:43` sends `persona_id`.
+   - Server: no core-id check; custom-agent ids are the only swap (`token.ts:340`).
+6. **Dev call:** deferred to P2 (no deploy or flag change in P0).
+
+### Gaps
+
+| # | Gap | Evidence | Phase |
+|---|---|---|---|
+| G1 | Multi-agent mode can't start a non-core persona without a bundle | `persona-agent-factory.ts:132` | P1 |
+| G2 | Unknown ids collapse to Ferni in id mapping and handoffs | `persona-ids.ts:252`, `id-mapping.ts:284-312` | P1 |
+| G3 | No canonical crisis line in a non-core prompt, either mode | #3595; `non-core-persona-prompt.test.ts` | P1, before any call |
+| G4 | Non-core turn reminder: no team, fewer humanness lines | `locked-teammates.ts:168` | P1 |
+| G5 | Web and iOS reject non-core ids before the call | `conversation-starter.ts:49`, `TeamStore.swift:33` | P2 |
+| G6 | Install/billing/publisher routes have no client | table above | P2 |
+| G7 | Greeting and memory scope untraced | - | P1 |
