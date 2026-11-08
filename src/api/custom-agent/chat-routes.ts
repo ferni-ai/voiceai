@@ -13,7 +13,7 @@
  */
 import type { IncomingMessage, ServerResponse } from 'http';
 import { flagOn } from '../../config/env-flag.js';
-import { readTypedMessageForCrisis } from '../../agents/personas/crisis-gate-text.js';
+import type * as CrisisGateText from '../../agents/personas/crisis-gate-text.js';
 import { callLLM } from '../../services/llm-utils.js';
 import {
   buildLiveCustomAgentPrompt,
@@ -26,6 +26,13 @@ import type { CustomAgent } from '../../types/custom-agent-api.js';
 import { parseBody } from '../helpers.js';
 import { sendJson } from './helpers.js';
 import { generateSystemPrompt } from './prompt-routes.js';
+
+// The voice crisis gate, loaded when a chat arrives rather than with this module: its graph
+// reaches the memory store, which light importers of these routes (the web app's contract
+// tests) can't resolve. The server has it loaded already through journal-routes.ts.
+async function loadCrisisGateText(): Promise<typeof CrisisGateText> {
+  return import('../../agents/personas/crisis-gate-text.js');
+}
 
 export interface ChatTurn {
   from: 'person' | 'agent';
@@ -112,6 +119,7 @@ export async function handleAgentChat(
   // The voice turn's crisis gate, before the agent is read or the model asked. The scene
   // holds the person's own typing too (a coaching context, a custom roleplay setting), so
   // it is read as their turn: their opening words when there's no message, else their first.
+  const { readTypedMessageForCrisis } = await loadCrisisGateText();
   const opening = !request.message;
   const sceneTurn: ChatTurn[] = request.scene ? [{ from: 'person', text: request.scene }] : [];
   const crisis = opening
