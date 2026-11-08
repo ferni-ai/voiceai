@@ -103,23 +103,32 @@ function contactHoldUntil(phone: string | undefined, now: Date): Date {
 }
 
 /** The end of policy.ts's night in the zones: each hold ends when one zone wakes; asked again
- * until no zone holds, as quietEndsAt does. */
+ * until no zone holds, as quietEndsAt does. Throws when no end comes. */
 function nightHoldUntil(zones: string[], now: Date): Date {
+  const end = nightEnd(zones, now);
+  if (end instanceof Error) throw end;
+  return end;
+}
+
+/** nightHoldUntil's end, or why none comes (held with no end, or no end in 8 asks). */
+function nightEnd(zones: string[], now: Date): Date | Error {
   let at = now;
   for (let step = 0; step < 8; step++) {
-    const ends = zones.map((z) => {
+    const ends: number[] = [];
+    for (const z of zones) {
       const d = decide(CONTACT_CALL, { ...CONTACT_CTX, now: at, zone: z });
-      if (d.action !== 'send' && !d.holdUntil) throw new Error(`Contact call held: ${d.reason}`);
-      return d.holdUntil?.getTime() ?? at.getTime();
-    });
+      if (d.action !== 'send' && !d.holdUntil) return new Error(`Contact call held: ${d.reason}`);
+      ends.push(d.holdUntil?.getTime() ?? at.getTime());
+    }
     const until = Math.max(...ends);
     if (until === at.getTime()) return at;
     at = new Date(until);
   }
-  throw new Error('Contact call: no time both coasts and the callee allow');
+  return new Error('Contact call: no time both coasts and the callee allow');
 }
 
 type Hold = (at: Date) => Promise<Date>;
+const NO_END = new Date(8.64e15); // the last Date there is
 
 /** Each check's hold from `at`: a contact's night, the member's hours (`night`: and night). */
 async function calleeHolds(callees: CallHoursInput[], night: boolean): Promise<Hold[]> {
@@ -130,7 +139,11 @@ async function calleeHolds(callees: CallHoursInput[], night: boolean): Promise<H
   const memberNight = async (c: CallHoursInput): Promise<Hold> => {
     const stored = await userTimezone(c.recipientUserId).catch(() => undefined);
     const zone = stored ?? timezoneFromPhone(c.recipientPhone) ?? ''; // '' is both coasts
-    return async (at) => nightHoldUntil([zone], at);
+    // No end to their night: past any week, so calleeCallHold refuses (NO_ALLOWED_TIME).
+    return async (at) => {
+      const end = nightEnd([zone], at);
+      return end instanceof Error ? NO_END : end;
+    };
   };
   const holds = await Promise.all(
     callees.map(async (c): Promise<Hold[]> => {

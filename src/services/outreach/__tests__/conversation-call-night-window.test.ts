@@ -32,6 +32,7 @@ const state = vi.hoisted(() => ({
   rows: [] as Row[],
   docs: {} as Record<string, Record<string, unknown>>,
   ownerZone: 'America/New_York',
+  stuckNight: false, // policy.ts holds every call-hours ask an hour more, forever
 }));
 vi.mock('../../../utils/firestore-utils.js', async (orig) => ({
   ...(await orig<typeof import('../../../utils/firestore-utils.js')>()),
@@ -54,6 +55,20 @@ vi.mock('../../superhuman/firestore-utils.js', () => ({
     };
   },
 }));
+vi.mock('../../messaging/policy.js', async (orig) => {
+  const real = await orig<typeof import('../../messaging/policy.js')>();
+  return {
+    ...real,
+    decide: (...[intent, ctx]: Parameters<typeof real.decide>) =>
+      state.stuckNight && intent.intentKey === 'conversation-call'
+        ? {
+            action: 'hold',
+            reason: 'quiet-hours',
+            holdUntil: new Date(ctx.now.getTime() + 3_600_000),
+          }
+        : real.decide(intent, ctx),
+  };
+});
 vi.mock('../user-contact.js', () => ({
   getUserContactInfo: async (id: string) =>
     id === OWNER ? { timezone: state.ownerZone } : undefined,
@@ -132,6 +147,7 @@ function reset(owner: Owner, saved = SAVED[owner]): void {
   state.consent = fakeConsentDb();
   state.rows = [];
   state.ownerZone = OWNERS[owner];
+  state.stuckNight = false;
   const [start, end] = saved?.split('-') ?? [];
   state.docs = saved
     ? {
@@ -465,6 +481,27 @@ describe('NIGHT_WINDOW_ALL_PATHS: the three paths', () => {
       ]);
     }
   );
+});
+
+describe('NIGHT_WINDOW_ALL_PATHS on: a night that never ends', () => {
+  // policy.ts keeps holding (stubbed): the member's night has no end. Off rings, as main; on
+  // refuses NO_ALLOWED_TIME, never a throw. A contact's night throws, flag on or off, as main.
+  it.each([
+    ['member', 'rang', REFUSED],
+    ['212', 'refused Error: Contact call: no time both coasts and the callee allow', 'same'],
+  ] as const)('%s, 12:00 New York: off %s, on %s', async (callee, off, on) => {
+    vi.stubEnv('CALL_HOURS_GUARD', 'off');
+    vi.stubEnv('QUIET_HOURS_UNIFIED', 'off');
+    const outcomes: string[] = [];
+    for (const allPaths of ['off', 'on']) {
+      vi.stubEnv('NIGHT_WINDOW_ALL_PATHS', allPaths);
+      reset('ny');
+      state.stuckNight = true;
+      outcomes.push(await place(callee, new Date('2026-11-10T17:00:00Z')));
+    }
+    expect(outcomes).toEqual([off, on === 'same' ? off : on]);
+    expect([callsCreate.mock.calls.length, state.rows.length]).toEqual([0, 0]);
+  });
 });
 
 describe('NIGHT_WINDOW_ALL_PATHS on: never gates their own "call me", opt-outs or grants', () => {
