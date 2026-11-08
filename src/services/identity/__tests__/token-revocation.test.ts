@@ -295,10 +295,16 @@ describe('concurrent checks of one account share one lookup', () => {
   function deferred<T>() {
     let resolve!: (value: T) => void;
     let reject!: (error: unknown) => void;
-    const promise = new Promise<T>((res, rej) => ((resolve = res), (reject = rej)));
+    const promise = new Promise<T>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
     return { promise, resolve, reject };
   }
-  const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+  const settle = () =>
+    new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
   /** The web app's load: 8 authed calls at once, through the real check and its real limits */
   const burst = (uid: string, getUser: (uid: string) => Promise<AccountRecord>) => {
     const auth = {
@@ -381,8 +387,12 @@ describe('concurrent checks of one account share one lookup', () => {
     const { check } = revocationCheck(limitsWith({ normal: { burst: 3, perSecond: 0 } }));
     const uids = ['d-1', 'd-2', 'd-3', 'd-4', 'd-5'];
 
-    expect(await Promise.all(uids.map((uid) => check(token(uid), async () => live, T0)))).toEqual(
-      ['ok', 'ok', 'ok', 'unavailable', 'unavailable']
-    );
+    expect(await Promise.all(uids.map((uid) => check(token(uid), async () => live, T0)))).toEqual([
+      'ok',
+      'ok',
+      'ok',
+      'unavailable',
+      'unavailable',
+    ]);
   });
 });
