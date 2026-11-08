@@ -27,7 +27,10 @@ If they're not breathing or not responding, tell the dispatcher; they'll walk yo
 I'm right here with you. Is anyone else there who can help?`;
 
 /** The 911 for them, without the staying line: it leads a caller's own reply (forThemFirst). */
-export const CALL_911_FOR_THEM = EMERGENCY_FOR_THEM.slice(0, EMERGENCY_FOR_THEM.lastIndexOf('\n\n'));
+export const CALL_911_FOR_THEM = EMERGENCY_FOR_THEM.slice(
+  0,
+  EMERGENCY_FOR_THEM.lastIndexOf('\n\n')
+);
 
 /**
  * Get appropriate crisis response based on severity

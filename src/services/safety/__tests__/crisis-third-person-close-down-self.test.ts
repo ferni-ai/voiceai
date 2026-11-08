@@ -103,7 +103,7 @@ describe('a negated or softened word of their own, beside someone close going do
   it.each([
     "i want to die. he fell and can't get up",
     "i want to kill myself and she collapsed and won't wake up",
-  ])("a caller at risk beside anyone down and not getting up: 911 first, then 988 (%s)", (line) => {
+  ])('a caller at risk beside anyone down and not getting up: 911 first, then 988 (%s)', (line) => {
     expect911Then988(line);
     expect(detectCrisis(line).subject, line).toBe('self');
   });

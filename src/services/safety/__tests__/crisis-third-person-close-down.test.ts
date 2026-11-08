@@ -97,7 +97,10 @@ describe('someone close went down, with no second clause', () => {
     'my grandson collapsed',
     'we were all laughing and then my uncle collapsed',
     'cracked up laughing, then my dad collapsed',
-  ])('reads anyone named by who they are to the caller, laughing or not (owner): %s', expectEmergencyForThem);
+  ])(
+    'reads anyone named by who they are to the caller, laughing or not (owner): %s',
+    expectEmergencyForThem
+  );
 
   it.each([
     "my dad's just collapsed",
