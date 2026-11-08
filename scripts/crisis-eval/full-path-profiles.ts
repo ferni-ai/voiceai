@@ -59,6 +59,7 @@ const ALL_ON: FlagSet = {
   SAFETY_WHOLE_WORD_SITES: 'on',
   EARLY_WARNING_WORD_BOUNDARY: 'on',
   THIRD_PARTY_SELF_HARM: 'on',
+  CRISIS_OWN_SCRIPT_NOT_EVIDENCE: 'on',
 };
 
 export const PROFILES: Readonly<Record<string, FlagSet>> = {

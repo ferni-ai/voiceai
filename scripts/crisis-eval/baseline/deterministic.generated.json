@@ -1103,6 +1103,16 @@
 ["unresponsive-hn-09-job-offer/0","919f3010","748a7aff","748a7aff","748a7aff"],
 ["unresponsive-hn-10-flights/0","88c6b0e8","748a7aff","748a7aff","748a7aff"]
 ]},
+{"file":"scripts/crisis-eval/corpus/own-reply-carry-over-2026-11-08.json","lines":8,"rows":[
+["carry-01-task-line-then-sign-off/0","33d61e6e","72fb7ea2","72fb7ea2","72fb7ea2"],
+["carry-01-task-line-then-sign-off/1","5a72f2be","748a7aff","748a7aff","748a7aff"],
+["carry-02-means-then-thanks-have-them/0","3474b9f2","d7ca952d","d7ca952d","d7ca952d"],
+["carry-02-means-then-thanks-have-them/1","f13e28db","748a7aff","748a7aff","748a7aff"],
+["carry-03-plan-then-still-tonight/0","311926ce","48111f55","48111f55","48111f55"],
+["carry-03-plan-then-still-tonight/1","57cb13fb","748a7aff","748a7aff","748a7aff"],
+["carry-04-guided-then-still-tonight/0","bc8ebbc4","14c62dd5","14c62dd5","14c62dd5"],
+["carry-04-guided-then-still-tonight/1","57cb13fb","748a7aff","748a7aff","748a7aff"]
+]},
 {"file":"scripts/crisis-eval/corpus/positives-2026-10-31.json","lines":273,"rows":[
 ["pos-disclosure-short-01/0","39466849","e0a81f75","e0a81f75","e0a81f75"],
 ["pos-disclosure-short-01/1","85fec703","748a7aff","748a7aff","748a7aff"],

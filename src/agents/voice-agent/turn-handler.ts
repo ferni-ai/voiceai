@@ -23,7 +23,11 @@ import { getGracefulErrorResponse } from '../../intelligence/conversation-qualit
 import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
-import { disclosureGuidance, SOFT_CRISIS_CHECK } from '../../services/safety/index.js';
+import {
+  disclosureGuidance,
+  noteCrisisHelp, // CRISIS_OWN_SCRIPT_NOT_EVIDENCE
+  SOFT_CRISIS_CHECK,
+} from '../../services/safety/index.js';
 import { buildCrisisGuidance } from '../safety/crisis-guard.js';
 import type { SessionServices } from '../../services/index.js';
 import { getContextAwareThinkingFiller } from '../../speech/persona-phrases.js';
@@ -1315,6 +1319,9 @@ Voice signals detected: ${allSignals.join(', ') || 'subtle vocal cues'}`,
     // ================================================================
     // 🚨 SAFETY FIRST: Crisis Detection & Override
     // ================================================================
+    // This reply offers crisis help: the script or the crisis guidance (crisis-own-reply.ts).
+    const required = !!(result.crisis?.shouldOverrideLLM && result.crisis.suggestedResponse);
+    noteCrisisHelp(userData as UserData, 'turn', required || !!result.crisis?.isCrisis);
     if (result.crisis?.shouldOverrideLLM && result.crisis.suggestedResponse) {
       diag.state('🚨 CRISIS OVERRIDE: Using pre-written crisis response', {
         severity: result.crisis.severity,

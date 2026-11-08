@@ -69,7 +69,14 @@ import {
   loneImminentGoodbye,
 } from '../../services/safety/crisis-lone-imminent.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { disclosureGuidance, mainOf, shadowGrade } from '../../services/safety/index.js';
+import {
+  disclosureGuidance,
+  mainOf,
+  noteCrisisHelp,
+  ownCrisisReply,
+  shadowGrade,
+  type OwnCrisisReplyState,
+} from '../../services/safety/index.js';
 import {
   applyClassifierVerdict,
   buildCrisisGuidance,
@@ -125,15 +132,36 @@ const RANK = { pass: 0, guide: 1, replace: 2 } as const;
 
 const guide = (guidance: string): CrisisGateDecision => ({ action: 'guide', guidance });
 
+/** decisionFor's crisis guidance and scripts; the soft check-ins and eased guides are not in it. */
+const crisisHelp = new WeakSet<CrisisGateDecision>();
+const helping = (decision: CrisisGateDecision): CrisisGateDecision => {
+  crisisHelp.add(decision);
+  return decision;
+};
+
 export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   if (guardFromDetection(crisis).shouldBlock && crisis.suggestedResponse) {
-    return { action: 'replace', script: crisis.suggestedResponse, kind: crisisKindOf(crisis) };
+    const kind = crisisKindOf(crisis);
+    return helping({ action: 'replace', script: crisis.suggestedResponse, kind });
   }
   if (crisis.isCrisis && crisis.subject === 'third_party') {
-    return { action: 'guide', guidance: buildCrisisGuidance(crisis), about: 'third_party' };
+    return helping({
+      action: 'guide',
+      guidance: buildCrisisGuidance(crisis),
+      about: 'third_party',
+    });
   }
-  if (crisis.isCrisis) return guide(disclosureGuidance(crisis) ?? buildCrisisGuidance(crisis));
+  if (crisis.isCrisis) {
+    return helping(guide(disclosureGuidance(crisis) ?? buildCrisisGuidance(crisis)));
+  }
   return { action: 'pass' };
+}
+
+/** CRISIS_OWN_SCRIPT_NOT_EVIDENCE: this reply offers crisis help (crisis-own-reply.ts). */
+function noteGateHelp(userData: unknown, decision: CrisisGateDecision | undefined): void {
+  if (typeof userData !== 'object' || userData === null) return;
+  const offered = !!decision && crisisHelp.has(decision);
+  noteCrisisHelp(userData as OwnCrisisReplyState, 'gate', offered);
 }
 
 export interface CrisisGateOptions {
@@ -203,7 +231,17 @@ export function startCrisisGate(
   const secondRead = secondReadOf('gate', userData, detection.subject);
   let who: ReturnType<typeof startWhoRead> | undefined;
   const read = (): Promise<CrisisVerdict | null> | undefined => {
-    const run = startCrisisClassifier(said, { pattern, env, generate, scope, call, secondRead });
+    // CRISIS_OWN_SCRIPT_NOT_EVIDENCE: the companion line is Ferni's own crisis reply.
+    const ownReply = ownCrisisReply(userData as OwnCrisisReplyState | undefined, companion, env);
+    const run = startCrisisClassifier(said, {
+      pattern,
+      env,
+      generate,
+      scope,
+      call,
+      secondRead,
+      ownCrisisReply: ownReply,
+    });
     if (run?.mode !== 'live' || decision.action === 'replace') return undefined;
     who = startWhoRead({ latest, earlier, companion }, detection, { env, generate });
     return run.verdict;
@@ -424,6 +462,7 @@ export async function gatedReply(
   const openedBySound = (): boolean => replyOpenedBySound(session, askedAt);
   const gate = gateRequest(chatCtx, session, options);
   signalGateDecisions(session, gate);
+  noteGateHelp(session.userData, gate?.decision);
   if (gate?.escalation) noteCrisisVerdictPending(session, gate.escalation);
   if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);
   const script = (text: string): string => crisisScriptFor(text, chatCtx, risk, env);
@@ -482,6 +521,7 @@ export async function gatedReply(
   // No first reply: an empty one, so a release still speaks its question.
   return holdUntilCleared(reply ?? textReply(''), gate.escalation, async (decision) => {
     if (decision.action !== 'pass') holdAfterCrisis(session);
+    noteGateHelp(session.userData, decision);
     if (decision.action === 'replace') return textReply(script(decision.script));
     if (decision.action === 'pass') return null;
     const guided = await ask(

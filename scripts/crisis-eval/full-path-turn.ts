@@ -54,6 +54,7 @@ import {
 } from '../../src/services/safety/crisis-classifier.js';
 import { resetCrisisCallRisk } from '../../src/services/safety/crisis-call-risk.js';
 import { resetCallRiskSnapshots } from '../../src/services/safety/crisis-lone-imminent.js';
+import { commitCrisisHelp, noteCrisisHelp } from '../../src/services/safety/crisis-own-reply.js';
 import { NEUTRAL_REPLIES, splitOf, type SimCallSpec } from './full-path-corpus.js';
 import { guidedReplyFor } from './guided-reply.js';
 import type { FiredPath, LineState, TurnRecord } from './full-path-summary.js';
@@ -67,6 +68,8 @@ export interface SimCall {
   /** userData.recentTranscripts: the caller's last 10 lines, this turn last (transcript-handler.ts). */
   recent: string[];
   lastAgentResponse?: string;
+  /** userData.lastAgentResponseCrisisHelp: that line was Ferni's own crisis reply (crisis-own-reply.ts). */
+  lastAgentResponseCrisisHelp?: boolean;
   callerTurn: number;
   /** The call's crisis_signals docs, newest first, as logCrisisSignal writes them. */
   signals: Array<Record<string, unknown>>;
@@ -86,7 +89,9 @@ export function addContext(call: SimCall, who: 'caller' | 'ferni', text: string)
     call.recent = [...call.recent, text].slice(-10);
   } else {
     call.history.push({ role: 'assistant', text });
-    if (!isAcknowledgementOnly(text)) call.lastAgentResponse = text;
+    if (isAcknowledgementOnly(text)) return;
+    call.lastAgentResponse = text;
+    call.lastAgentResponseCrisisHelp = false; // no crisis path produced it
   }
 }
 
@@ -150,6 +155,7 @@ export async function simulateTurn(
     turnCount,
     ...(call.anon ? {} : { recentTranscripts: [...call.recent] }),
     lastAgentResponse: call.lastAgentResponse,
+    lastAgentResponseCrisisHelp: call.lastAgentResponseCrisisHelp,
   };
 
   // The note reads the signals logged on earlier turns only (forgetRecentCrisis, next turn on).
@@ -265,7 +271,16 @@ export async function simulateTurn(
   // A corpus `ferni` line is the shape under test (a 988 line before a denial), so it wins.
   const ferni = options.ferni ?? (replaced ? script : (guidedLine ?? spoken));
   call.history.push({ role: 'user', text }, { role: 'assistant', text: ferni });
-  if (ferni.trim() && !isAcknowledgementOnly(ferni.trim())) call.lastAgentResponse = ferni.trim();
+  // The turn handler notes its script or crisis guidance (turn-handler.ts); the gate noted its own.
+  noteCrisisHelp(
+    userData,
+    'turn',
+    (summary.shouldOverrideLLM && !!summary.suggestedResponse) || summary.isCrisis
+  );
+  const recorded = !!ferni.trim() && !isAcknowledgementOnly(ferni.trim());
+  commitCrisisHelp(userData, recorded, false);
+  if (recorded) call.lastAgentResponse = ferni.trim();
+  call.lastAgentResponseCrisisHelp = userData.lastAgentResponseCrisisHelp;
 
   return {
     activated,

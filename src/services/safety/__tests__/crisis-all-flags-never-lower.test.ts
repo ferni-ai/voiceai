@@ -385,6 +385,7 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   // so the six readers here can't see it. Its test drives the real gatedReply flag off and on,
   // under a classifier with and without a fragment false alarm, and checks it never lowers.
   CRISIS_READ_JOINED_TURN: 'src/agents/personas/__tests__/crisis-read-joined-turn.test.ts',
+  CRISIS_OWN_SCRIPT_NOT_EVIDENCE: 'src/services/safety/__tests__/crisis-own-reply.test.ts',
   CRISIS_SAME_CALL_NOTE_FADES: 'src/agents/multi-agent/__tests__/call-report-after-crisis.test.ts',
   CRISIS_TRANSFER_EVERYDAY: 'src/services/safety/__tests__/crisis-transfer-request.test.ts',
   // The typed agent chat's prompt; its crisis read runs first either way (chat-routes-crisis).

@@ -35,6 +35,7 @@ import { blockedReply, watchBlocked, type BlockedResponse } from './crisis-class
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
 import { stripSSML } from '../../utils/text-utils.js';
+import { ownReplyRead } from './crisis-own-reply.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
 
@@ -275,6 +276,8 @@ export interface StartCrisisClassifierOptions {
   call?: string;
   /** Which path reads, the call's turn count, and whether its patterns read someone else. */
   secondRead?: { path: SecondReadPath; count?: unknown; thirdParty: boolean };
+  /** CRISIS_OWN_SCRIPT_NOT_EVIDENCE: the companion line is Ferni's own crisis reply (crisis-own-reply.ts). */
+  ownCrisisReply?: boolean;
 }
 
 let defaultGenerate: CrisisGenerateFn | null = null;
@@ -437,6 +440,7 @@ export function startCrisisClassifier(
   const { call, pattern, secondRead } = options;
   const lines = [normalized.latest, ...normalized.earlier];
   const second = secondReadRun({ call, pattern, ...secondRead, lines, waitMs }, env);
+  const marked = ownReplyRead(options.ownCrisisReply, normalized.latest);
   const key = JSON.stringify([
     normalized.latest,
     normalized.earlier,
@@ -444,6 +448,7 @@ export function startCrisisClassifier(
     prompt.length,
     second.key,
     ...agreementCacheScope(env, options.call),
+    ...marked.key,
   ]);
   // What each call's reads found, and which are in flight (crisis-call-risk.ts).
   const own = (v: Promise<CrisisVerdict | null>) => trackCrisisRead(options.call, input.latest, v);
@@ -458,7 +463,12 @@ export function startCrisisClassifier(
   const given = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
   const generate = watchBlocked(given, options.call, normalized.latest, env); // BLOCKED_SIGNAL
   const read = (p: string): Promise<CrisisVerdict | null> =>
-    classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env), p);
+    classifyCrisis(
+      marked.input(input),
+      generate,
+      resolveCrisisClassifierTimeoutMs(env),
+      marked.prompt(p)
+    );
   // Everyday rules on and risk words in the caller's words: the rules may not lower the read.
   const plain = needsPlainRead(normalized.latest, env)
     ? crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })

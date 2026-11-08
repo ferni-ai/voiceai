@@ -49,11 +49,13 @@ import {
   abuseOnlyRead,
   blockedReadGuidance,
   noteMeansInHandShadow,
+  ownCrisisReply, // CRISIS_OWN_SCRIPT_NOT_EVIDENCE
   resolveCrisisClassifierTimeoutMs,
   shadowPipelineGrade,
   trackAbuseRead,
   withAbuseRead,
   withMinorAbuseRead,
+  type OwnCrisisReplyState,
 } from '../../../services/safety/index.js';
 import {
   resolveClassifierOnlyCheckin,
@@ -105,10 +107,9 @@ export interface TurnCrisis {
 }
 
 /** What startTurnCrisis reads from the session's user data. */
-export interface TurnCrisisUserData {
+export interface TurnCrisisUserData extends OwnCrisisReplyState {
   voiceEmotion?: unknown;
   recentTranscripts?: string[];
-  lastAgentResponse?: string;
   /** The call's turn count: the second read's turn (crisis-second-read-turn.ts). */
   turnCount?: number;
   /** False on the background turn's voice (turn-intelligence.ts): it never sets the subject. */
@@ -224,7 +225,16 @@ export function startTurnCrisis(
   const groundedPrior = groundedPriorRisk(call, userText);
   // CRISIS_CLASSIFIER_SECOND_READ: the gate's decision for the turn (crisis-second-read-turn.ts).
   const secondRead = secondReadOf('pipeline', userData, patterns.subject);
-  const run = { pattern, env, generate, scope, call, secondRead } as const;
+  const ownReply = ownCrisisReply(userData, input.companion, env);
+  const run = {
+    pattern,
+    env,
+    generate,
+    scope,
+    call,
+    secondRead,
+    ownCrisisReply: ownReply,
+  } as const;
   const classifier = startCrisisClassifier(input, run);
   const who = classifier?.mode === 'live' ? startWhoRead(input, patterns, { env, generate }) : null;
   let settled: Promise<Settled> | null = null;
