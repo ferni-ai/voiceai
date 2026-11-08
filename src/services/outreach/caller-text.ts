@@ -123,8 +123,11 @@ const RISKY: readonly RegExp[] = [
 const NAME_LINK =
   /\bwww\.|:\/\/|@\s*[\p{L}\p{N}-]+\.\p{L}{2,}|\.(?:\p{L}{2}|com|net|org|edu|gov|info|biz|xyz|link|app|dev|shop|store|site|online|io|co|me|ly)(?![\p{L}\p{N}])/iu;
 
-/** A sum or a handle in a name ("Sam $5", "@riley_r", "riley@gmail"), which `plain` would strip. */
-const NAME_RISKY_MARK = /[$€£]\s?\p{Nd}|@\S/u;
+/**
+ * A sum or a handle in a name ("Sam $5", "@riley_r", "riley@gmail", "riley@ gmail", "@ riley"),
+ * which `plain` would strip. An `@` with a space on both sides ("Sam @ Work") is not a handle.
+ */
+const NAME_RISKY_MARK = /[$€£]\s?\p{Nd}|@\S|(?:^|\S)@/u;
 
 /** Spans [start, end) in `text` where the known name is mentioned as itself. */
 type Span = readonly [number, number];

@@ -77,6 +77,10 @@ const RISKY_NAME_MARKS: ReadonlyArray<readonly [string, string]> = [
   ['Sam $5', 'Sam $5,000 please'],
   ['@riley_r', 'dm @riley_r'],
   ['riley@gmail', 'riley@gmail .com'],
+  ['riley@ gmail', 'email riley@ gmail .com'],
+  ['riley@ gmail', 'email riley@ gmail'],
+  ['@ riley_r', 'dm @ riley_r'],
+  ['@ riley', 'dm @ riley'],
 ];
 
 /** Still withheld: each one has its own money cue, link ending or scheme. */
