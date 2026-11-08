@@ -145,6 +145,56 @@ export function isPlainNo(text: string): boolean {
   return at >= 0 && NO_OPENERS.some((p) => p.every((part, j) => said[at + j] === part));
 }
 
+// A refusal that doesn't open like a no ("Forget it.", "I changed my mind."): with
+// OUTREACH_NO_ANSWERS_READBACK it ends it too (consent-window.ts). Stop, cancel, never mind and
+// don't are NO_OPENERS already.
+const REFUSALS = 'forget it|forget about it|changed my mind|change my mind|dont want'
+  .split('|')
+  .map((p) => p.split(' '));
+const leadIn = (w: string): boolean => OPENER_FILLERS.has(w) || w === 'i' || w === 'ive';
+
+/** Whether the reply opens, after filler and "I", with a refusal: "Forget it.", "I changed my
+ * mind.", "I don't want you to.". */
+export function isRefusal(text: string): boolean {
+  const said = words(text);
+  const at = said.findIndex((w) => !leadIn(w));
+  return at >= 0 && REFUSALS.some((p) => p.every((part, j) => said[at + j] === part));
+}
+
+// The only nos that answer nothing, so with OUTREACH_NO_ANSWERS_READBACK they wait on where they
+// were said (consent-window.ts): every other reply that opens with a no declines wherever it is
+// said, as before. CLOSED on purpose: exempting nos one refusal at a time never converged, so a
+// new entry needs a consent sign-off. Each is the whole reply plus trailing filler
+// ("No worries, don't call him." declines). "No wait, …" is not here: what follows it can be any
+// decline ("No wait, I'll handle it."), so it declines as before. "No, go ahead." is not here
+// either: it names the call, so it declines and the loop reads it back again (asksAgain), as before.
+const NON_ANSWERS = ['no problem', 'no worries'].map((p) => p.split(' '));
+const TRAILING = new Set([...words('um uh oh well hey please thanks thank you'), ...FERNI]);
+
+/** Whether the reply is one of the closed NON_ANSWERS: "No problem.", "No worries.". */
+export function isNonAnswer(text: string): boolean {
+  const said = words(text);
+  const at = said.findIndex((w) => !OPENER_FILLERS.has(w));
+  const opens = (p: string[]): boolean => at >= 0 && p.every((part, j) => said[at + j] === part);
+  return NON_ANSWERS.some(
+    (p) => opens(p) && said.slice(at + p.length).every((w) => TRAILING.has(w))
+  );
+}
+
+// Owner turns that say nothing at all. With OUTREACH_NO_ANSWERS_READBACK a non-answer may wait
+// only when every other owner turn since the read-back is one of these (consent-window.ts). CLOSED
+// on purpose and matched on the WHOLE turn, never a part of it: "Yeah." is here, "Yeah, I won't be
+// here anyway." is not. A new entry needs a crisis sign-off: a turn here is never read for a no.
+const CONTENT_FREE = new Set('hmm hm mm mhm mm-hmm uh-huh um uh oh ah yeah yep okay ok'.split(' '));
+/** Whether the whole turn, lowercased, trimmed and without trailing punctuation, is CONTENT_FREE. */
+export const isContentFree = (text: string): boolean =>
+  CONTENT_FREE.has(
+    text
+      .trim()
+      .toLowerCase()
+      .replace(/[\s.,!?…]+$/u, '')
+  );
+
 // Words that may sit between a no and the agreement that takes it back: "No no no, yes.",
 // "No problem, go ahead.", "No, sorry, yes.", "No, I mean yes.", "No, it's fine, go ahead."
 const TAKES_BACK = new Set(

@@ -8,7 +8,7 @@
  * style definitions.
  *
  * It only ever escalates the guard's decision (applyClassifierVerdict in
- * crisis-guard.ts); a timeout, an error or an unparseable reply leaves the
+ * crisis-classifier-verdict.ts); a timeout, an error or an unparseable reply leaves the
  * guard's decision as it was.
  *
  * Modes (env CRISIS_CLASSIFIER_MODE):

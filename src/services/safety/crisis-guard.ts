@@ -103,6 +103,7 @@ export const CRISIS_SEVERITY = SEVERITY; // the tiers, for callers that weigh a 
 
 export { IN_DANGER_NOW }; // its home is crisis-guard-replies.ts
 export { EMERGENCY_SERVICE } from './emergency-number.js'; // for agents/personas/emergency-claim.ts
+export { applyClassifierVerdict, type ClassifierVerdictLike } from './crisis-classifier-verdict.js';
 
 // CRISIS DETECTION
 
@@ -214,7 +215,9 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
   }
 
   // CRISIS_MEANS_IN_HAND (#2697): a live form reads 911; 'all' (the shadow log) names the form.
-  const means = meansInHandRead(text, indicators, softened, forms);
+  const means = meansInHandRead(text, indicators, softened, forms, (spans) =>
+    endingOutside(text, spans)
+  );
   if (means) {
     hardSelf = true;
     if (means.tag === 'self_harm') add('self_harm', 0);
@@ -263,6 +266,24 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
   const sessionSeverity = subject === 'self' ? severity : tierSoft ? selfSeverity : 0;
   const found = { severity, indicators, subject, language, implicitHits, contextHit };
   return { ...found, softSelf, sessionSeverity };
+}
+
+/** The caller's own ending words, said or framed: not negated, past, protective or someone else's. */
+const ENDING_SAID = [
+  'explicit_crisis_language',
+  'joking_frame',
+  'conditional_frame',
+  'hedged_frame',
+  'passive_ideation',
+];
+/** Ending words in the turn outside every span: those words blanked, the rest read once. */
+function endingOutside(text: string, spans: ReadonlyArray<readonly [number, number]>): boolean {
+  const chars = text.split('');
+  for (const [from, to] of spans) {
+    for (let at = from; at < to; at++) if (!'.!?'.includes(chars[at])) chars[at] = ' ';
+  }
+  const { indicators } = scoreText(chars.join(''), 'none');
+  return ENDING_SAID.some((indicator) => indicators.includes(indicator));
 }
 
 /** What one earlier message counts for in a later turn's session check (crisis-who.ts reads it too). */
@@ -396,50 +417,6 @@ Your response MUST:
 ${lines.join('\n')}
 
 You are their lifeline right now. Be fully present.`;
-}
-
-/** The classifier's verdict, as crisis-classifier.ts returns it. */
-export interface ClassifierVerdictLike {
-  risk: 'imminent' | 'crisis' | 'none';
-  subject: 'self' | 'third_party';
-}
-
-/**
- * Merge the semantic classifier's verdict into a pattern detection. It only
- * escalates: the patterns are precise, the classifier catches what they miss.
- * A missing verdict (timeout, error) leaves the detection unchanged.
- */
-export function applyClassifierVerdict(
-  crisis: CrisisDetectionResult,
-  verdict: ClassifierVerdictLike | null
-): CrisisDetectionResult {
-  if (!verdict || verdict.risk === 'none') return crisis;
-
-  const thirdParty = verdict.subject === 'third_party' && crisis.subject !== 'self';
-  const subject: CrisisSubject = thirdParty ? 'third_party' : 'self';
-  const imminent = verdict.risk === 'imminent' && !thirdParty;
-  const target = imminent ? SEVERITY.explicit : SEVERITY.passive;
-  if (crisis.severity >= target && crisis.subject === subject) return crisis;
-
-  const severity = Math.max(crisis.severity, target);
-  const indicators = [...crisis.indicators, `classifier_${verdict.risk}`];
-  if (imminent && !indicators.includes('imminent_danger')) indicators.push('imminent_danger');
-  if (thirdParty && !indicators.includes('third_party_risk')) indicators.push('third_party_risk');
-  const alreadyImminent = crisis.indicators.includes('imminent_danger');
-  return {
-    ...crisis,
-    isCrisis: true,
-    severity,
-    indicators,
-    subject,
-    language: crisis.language ?? 'en',
-    suggestedResponse: getCrisisResponse(
-      severity,
-      subject,
-      crisis.language,
-      imminent || alreadyImminent
-    ),
-  };
 }
 
 // PRE-RESPONSE GUARD

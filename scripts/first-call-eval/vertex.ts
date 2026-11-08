@@ -6,9 +6,12 @@
 import { execFileSync } from 'node:child_process';
 import { withBillingLabels } from '../lib/gemini-billing-labels.mjs';
 
+/** A text part, or inline media (audio for scripts/audio-eval/persona-audio-id.ts); Gemini only. */
+export type Part = { text: string } | { inlineData: { mimeType: string; data: string } };
+
 export interface Content {
   role: 'user' | 'model';
-  parts: Array<{ text: string }>;
+  parts: Part[];
 }
 
 export interface GenerateOptions {
@@ -95,7 +98,7 @@ async function generateMaas(project: string, opts: GenerateOptions): Promise<str
       { role: 'system', content: opts.system },
       ...opts.contents.map((c) => ({
         role: c.role === 'model' ? 'assistant' : 'user',
-        content: c.parts.map((p) => p.text).join(''),
+        content: c.parts.map((p) => ('text' in p ? p.text : '')).join(''),
       })),
     ],
   });
