@@ -3,8 +3,11 @@
 Protocol and decision rule: docs/evals/2026-11-voice-sensing-p0.md. Reads the
 extracted corpora and model files from paths; never writes audio. Embeddings
 are cached per model (--cache) so a rerun from an empty cache is a full rerun.
+requirements.txt is hash-locked for macOS arm64 (where the results were made),
+compiled from the top-level pins in requirements.in; to regenerate it, run the
+command in its header from this folder.
 
-  uv venv -p 3.12 /tmp/ove && uv pip install -p /tmp/ove/bin/python \
+  uv venv -p 3.12 /tmp/ove && uv pip install -p /tmp/ove/bin/python --require-hashes \
     -r scripts/voice-eval/owner-vs-other/requirements.txt
   sh scripts/voice-eval/owner-vs-other/fetch.sh <data-dir>
   /tmp/ove/bin/python -I scripts/voice-eval/owner-vs-other/owner_vs_other.py \
