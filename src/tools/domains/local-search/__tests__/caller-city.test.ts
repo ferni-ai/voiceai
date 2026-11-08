@@ -412,7 +412,7 @@ describe('a failed search', () => {
   it('says it had trouble rather than listing places it did not get', async () => {
     places.searchRestaurants.mockRejectedValueOnce(new Error('Places quota exceeded'));
     const result = await (await findRestaurants()).execute({ cuisine: 'coffee' }, phoneInStGeorge);
-    expect(result).toMatch(/trouble finding restaurants/);
+    expect(result).toBe("I can't search for places right now.");
     expect(result).not.toMatch(/Options near/);
   });
 });

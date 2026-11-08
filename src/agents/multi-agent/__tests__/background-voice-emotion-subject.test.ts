@@ -2,11 +2,10 @@
  * BACKGROUND_VOICE_EMOTION and the crisis subject. On the background turn the
  * voice may only raise a read's severity (the amplifier in
  * services/safety/crisis-guard.ts); it never moves a worry about someone else
- * onto the caller. The soft-self flip there ("the voice makes it about the
- * caller again") is the synchronous path's rule and stays as on main. A flipped
- * read would swap the help for the person at risk (988 on their behalf, check on
- * them, 911) for the caller's own scripted reply. Fictional lines and synthetic
- * voices only.
+ * onto the caller. The synchronous path replaces the reply on these voices, as
+ * on main, now with the help for the person at risk (988 on their behalf, check
+ * on them, 911), then the caller's own 988 line (crisis-caller-check.ts). Here the
+ * voice adds no such check. Fictional lines and synthetic voices only.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { llm } from '@livekit/agents';
@@ -16,13 +15,16 @@ import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js'
 import { buildCrisisGuidance, detectCrisis } from '../../safety/crisis-guard.js';
 import { toGuardVoiceEmotion } from '../../safety/crisis-shadow.js';
 import { disclosureGuidance } from '../../../services/safety/index.js';
+import { CALLER_CHECK } from '../../../services/safety/crisis-caller-check.js';
+import { CRISIS_SEVERITY } from '../../../services/safety/crisis-guard.js';
+import { getCrisisResponse, TALK_TO_988 } from '../../../services/safety/crisis-guard-replies.js';
 import { analyzerReading, backgroundTurn, VOICES } from './background-voice-fixtures.js';
 
 afterEach(() => vi.unstubAllEnvs());
 
 /**
- * "Not me" shapes the synchronous path flips on a distressed voice (crisis-guard.ts soft-self
- * flip): the caller's own ending words, negated, beside a worry about someone else.
+ * "Not me" shapes that get the caller check on a distressed voice on the synchronous path
+ * (crisis-caller-check.ts): the caller's own ending words, negated, beside a worry about someone else.
  */
 const NOT_ME = [
   "my son said he wants to die. not me, i'd never kill myself",
@@ -106,20 +108,26 @@ describe('BACKGROUND_VOICE_EMOTION never changes the crisis subject', () => {
     expect(on.indicators).toContain('voice_moderate_distress');
   });
 
-  it('the synchronous path keeps its flip on a "not me" line with a distressed voice, as on main', async () => {
+  it('the synchronous path still replaces a "not me" line in a distressed voice: help for them, then 988', async () => {
+    const forThem = getCrisisResponse(CRISIS_SEVERITY.block, 'third_party', 'en', false);
     for (const line of NOT_ME)
       for (const voice of ['anxious', 'sad']) {
         const reading = analyzerReading(VOICES[voice]);
         const where = `${voice} | ${line}`;
-        expect(detectCrisis(line, toGuardVoiceEmotion(reading)).subject, where).toBe('self');
+        const voiced = detectCrisis(line, toGuardVoiceEmotion(reading));
+        expect(voiced.subject, where).toBe('third_party');
+        expect(voiced.indicators, where).toContain(CALLER_CHECK);
         expect(detectCrisis(line).subject, where).toBe('third_party');
-        // The synchronous turn's user data carries no marker: its crisis read still flips.
+        // The synchronous turn's user data carries no marker: it reads the caller check too.
         const turn = await startTurnCrisis(line, { voiceEmotion: reading }, { env: {} }).summary();
-        expect(turn.subject, where).toBe('self');
+        expect(turn.subject, where).toBe('third_party');
+        expect(turn.indicators, where).toContain(CALLER_CHECK);
         // The reply's crisis gate (personas/crisis-gate.ts) reads the session's voice.
         const env = { CRISIS_GUARD_MODE: 'live' };
         const gate = startCrisisGate(request(line), { voiceEmotion: reading }, { env });
         expect(gate?.decision.action, where).toBe('replace');
+        const script = gate?.decision.action === 'replace' ? gate.decision.script : '';
+        expect(script, where).toBe(`${forThem}\n\n${TALK_TO_988}`);
         const quiet = startCrisisGate(request(line), undefined, { env });
         expect(quiet?.decision.action, where).toBe('guide');
       }
