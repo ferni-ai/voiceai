@@ -238,6 +238,7 @@
 /src/services/trust-systems/trust-doc.ts @sethdford
 /src/services/trust-systems/unified-persistence.ts @sethdford
 /src/services/user-preferences-store.ts @sethdford
+/src/tools/domains/communication/outreach/consent-window.ts @sethdford
 /src/tools/domains/life-coaching-shared/helplines.ts @sethdford
 /src/tools/domains/memory/honest-memory.ts @sethdford
 /src/tools/domains/memory/memory-saved.ts @sethdford

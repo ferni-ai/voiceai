@@ -417,6 +417,11 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   OPENER_GATE: 'src/agents/personas/__tests__/crisis-gate.test.ts',
   OPEN_PROMISE_TRIGGERS:
     'src/services/outreach/proactive-channels/__tests__/open-promise-triggers-path.test.ts',
+  // Read only by the call read-back's consent window, which no reader above calls. That file
+  // stubs it on and shows a turn the crisis reader flags, whole or split across turns, ends the
+  // pending call at every place it pins, with nothing sent.
+  OUTREACH_NO_ANSWERS_READBACK:
+    'src/tools/domains/communication/outreach/__tests__/outreach-consent-v2.test.ts',
   OUTREACH_PONDERED_NOTES:
     'src/services/outreach/proactive-channels/__tests__/grounded-path.test.ts',
   PERSONA_GROWTH: 'src/agents/multi-agent/__tests__/persona-growth-recall.test.ts',
