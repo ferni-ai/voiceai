@@ -742,8 +742,7 @@ function saveInstalledAgents(agents: Map<string, InstalledAgent>): void {
   installedAgentsCache = agents;
 
   try {
-    const serialized = JSON.stringify(Object.fromEntries(agents));
-    localStorage.setItem(INSTALLED_AGENTS_KEY, serialized);
+    localStorage.setItem(INSTALLED_AGENTS_KEY, JSON.stringify(Object.fromEntries(agents)));
   } catch (err) {
     log.error('Failed to save installed agents:', err);
   }
