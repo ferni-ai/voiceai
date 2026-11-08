@@ -138,7 +138,9 @@ const FUNCTION_WORDS = new Set(
   had just really still again right there here and or but so if when whenever who which that
   because since though now too also all as please tonight already earlier before ago`.split(/\s+/)
 );
-const DETERMINERS = new Set('the a an that those this these some any same one other first free new only'.split(' '));
+const DETERMINERS = new Set(
+  'the a an that those this these some any same one other first free new only'.split(' ')
+);
 const POSSESSIVES = new Set(['my', 'your', 'our', 'his', 'her', 'their', 'its']);
 /** A noun that can stand for a way to reach help, or the people there, without naming it. */
 const REFERENTS = new Set(
@@ -167,7 +169,8 @@ const MAIN_VERBS = new Set(
 const SUBJECTS = new Set(['i', 'we', "i've", "we've", "i'd", "we'd"]);
 const ADVERBS = new Set(['just', 'already', 'also', 'briefly', 'actually']);
 const PAST_IRREGULAR = new Set(
-  'gave given told said sent read left put brought went got showed shown wrote written laid made'.split(' ')
+  `gave given told said sent read left put brought went got showed shown
+  wrote written laid made`.split(/\s+/)
 );
 const isPast = (w = ''): boolean => PAST_IRREGULAR.has(w) || /^[a-z]{2,}[^e]ed$/.test(w);
 /** Words allowed between a referent and the words pointing back to it. */

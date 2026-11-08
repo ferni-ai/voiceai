@@ -136,6 +136,7 @@ export const SAFETY_WORDING: readonly string[] = [
   './crisis-who-guidance.js',
   './crisis-patterns.js',
   './emergency-number.js',
+  './safety-talk.js',
   './crisis-classifier-verdict.js',
   'explicit_crisis_language',
   'plan_or_means',
