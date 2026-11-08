@@ -103,6 +103,7 @@ export const CRISIS_SEVERITY = SEVERITY; // the tiers, for callers that weigh a 
 
 export { IN_DANGER_NOW }; // its home is crisis-guard-replies.ts
 export { EMERGENCY_SERVICE } from './emergency-number.js'; // for agents/personas/emergency-claim.ts
+export { applyClassifierVerdict, type ClassifierVerdictLike } from './crisis-classifier-verdict.js';
 
 // CRISIS DETECTION
 
@@ -396,50 +397,6 @@ Your response MUST:
 ${lines.join('\n')}
 
 You are their lifeline right now. Be fully present.`;
-}
-
-/** The classifier's verdict, as crisis-classifier.ts returns it. */
-export interface ClassifierVerdictLike {
-  risk: 'imminent' | 'crisis' | 'none';
-  subject: 'self' | 'third_party';
-}
-
-/**
- * Merge the semantic classifier's verdict into a pattern detection. It only
- * escalates: the patterns are precise, the classifier catches what they miss.
- * A missing verdict (timeout, error) leaves the detection unchanged.
- */
-export function applyClassifierVerdict(
-  crisis: CrisisDetectionResult,
-  verdict: ClassifierVerdictLike | null
-): CrisisDetectionResult {
-  if (!verdict || verdict.risk === 'none') return crisis;
-
-  const thirdParty = verdict.subject === 'third_party' && crisis.subject !== 'self';
-  const subject: CrisisSubject = thirdParty ? 'third_party' : 'self';
-  const imminent = verdict.risk === 'imminent' && !thirdParty;
-  const target = imminent ? SEVERITY.explicit : SEVERITY.passive;
-  if (crisis.severity >= target && crisis.subject === subject) return crisis;
-
-  const severity = Math.max(crisis.severity, target);
-  const indicators = [...crisis.indicators, `classifier_${verdict.risk}`];
-  if (imminent && !indicators.includes('imminent_danger')) indicators.push('imminent_danger');
-  if (thirdParty && !indicators.includes('third_party_risk')) indicators.push('third_party_risk');
-  const alreadyImminent = crisis.indicators.includes('imminent_danger');
-  return {
-    ...crisis,
-    isCrisis: true,
-    severity,
-    indicators,
-    subject,
-    language: crisis.language ?? 'en',
-    suggestedResponse: getCrisisResponse(
-      severity,
-      subject,
-      crisis.language,
-      imminent || alreadyImminent
-    ),
-  };
 }
 
 // PRE-RESPONSE GUARD
