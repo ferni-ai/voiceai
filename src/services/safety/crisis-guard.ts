@@ -97,6 +97,7 @@ export const CRISIS_SEVERITY = SEVERITY; // the tiers, for callers that weigh a 
 
 export { IN_DANGER_NOW }; // its home is crisis-guard-replies.ts
 export { EMERGENCY_SERVICE } from './emergency-number.js'; // for agents/personas/emergency-claim.ts
+export { isCareTalk, isSafetyTalk, reachesHelp } from './safety-talk.js'; // agents/personas/told-this-call.ts
 
 // CRISIS DETECTION
 

@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Director, type Line } from '../director-notes.js';
 import { isSafetyLine } from '../phrase-loops.js';
 import { formatTold, keptTold, toldThisCall } from '../told-this-call.js';
-import { isCareTalk, isSafetyTalk, reachesHelp } from '../../../services/safety/index.js';
+import { isCareTalk, isSafetyTalk, reachesHelp } from '../../safety/crisis-guard.js';
 import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 
 const user = (text: string): Line => ({ speaker: 'user', text });
@@ -346,6 +346,49 @@ describe('pointers back to a safety line, in any word order (#3592 r3)', () => {
   it.each(POINTING_BACK)('never quotes or loops %s, said in three replies', async (line) => {
     // Precondition: the call records it, so the unfiltered note would quote it.
     expect(formatTold(toldThisCall(saidThrice(line)))).toContain(`"${line}"`);
+    expect(await toldNote(saidThrice(line))).toBe('');
+  });
+
+  it.each(EVERYDAY)('still quotes %s said in three replies, as main does', async (line) => {
+    expect(await toldNote(saidThrice(line))).toContain(`"${line}"`);
+  });
+});
+
+// #3604 r2: read from structure (a back-reference near a referent that stands for
+// help), so wording no list foresaw is still read. Rows are new; none tuned on.
+describe('pointers back to help in wording no list foresaw (#3604 r2)', () => {
+  const LEADS = ['Okay.', 'Alright.', 'I hear you.'];
+  const saidThrice = (said: string): Line[] =>
+    LEADS.flatMap((lead, i) => [user(`Turn ${i}.`), ferni(`${lead} ${said}`)]);
+  const toldNote = async (lines: Line[]): Promise<string> => {
+    const director = new Director({ sessionId: 'r4-call', writeNotes: false });
+    await director.observe(lines);
+    return director.told();
+  };
+
+  const POINTING_BACK = [
+    'The volunteers I mentioned answer at any hour, day or night.',
+    'You could text the line I gave you a little while ago.',
+    'Please call the number I read out earlier if tonight gets heavier.',
+    'Those listeners I told you about are there for you right now.',
+    'Remember the chat service, it is open whenever you need it.',
+    'The support I suggested at the start of our call still stands.',
+    'Reach back out to the folks I connected you with whenever you want.',
+    'I already gave you a number, and it works all night long.',
+  ];
+  // A back-reference in each, near a noun that belongs to something else.
+  const EVERYDAY = [
+    'The number I gave you for the landlord goes straight to voicemail now.',
+    'The bus line I mentioned earlier stops right beside the library.',
+    'Remember the folks from the choir, they sent another card again.',
+    'That line I quoted from the novel still makes me laugh out loud.',
+    'The recipe I told you about earlier needs a little more salt.',
+    'Call the plumber at the number I left you, any time before noon.',
+  ];
+
+  it.each(POINTING_BACK)('never quotes or loops %s, said in three replies', async (line) => {
+    expect(formatTold(toldThisCall(saidThrice(line)))).toContain(`"${line}"`);
+    expect(isSafetyLine(line) || reachesHelp(line), line).toBe(false); // the matcher reads it
     expect(await toldNote(saidThrice(line))).toBe('');
   });
 

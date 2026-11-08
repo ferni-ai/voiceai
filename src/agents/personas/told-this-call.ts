@@ -19,7 +19,7 @@
  */
 
 import { crisisRiskNoted } from '../../services/safety/crisis-call-risk.js';
-import { reachesHelp } from '../../services/safety/index.js';
+import { reachesHelp } from '../safety/crisis-guard.js';
 import type { Line } from './director-notes.js';
 import {
   formatPhraseLoops,
@@ -131,136 +131,143 @@ const plainWords = (text: string): string =>
     .replace(/[^\p{L}\p{N}']+/gu, ' ')
     .trim()} `;
 
-/**
- * Nouns that can name a help line or the people on one (pointsBack): a line named
- * as help, counselors, other staff, people, a plain line or number, and a chat.
- */
-type HelpNoun = 'named' | 'counselor' | 'staff' | 'people' | 'line' | 'service';
-const HELP_NOUNS = new Map<string, HelpNoun>(
-  [
-    ['hotline helpline', 'named'],
-    ['counselor counsellor', 'counselor'],
-    ['volunteer responder', 'staff'],
-    ['line number', 'line'],
-    ['service chat', 'service'],
-  ].flatMap(([words, kind]) =>
-    words.split(' ').flatMap((w) => [w, `${w}s`].map((form) => [form, kind as HelpNoun] as const))
-  )
+/** Function words: never what a referent is for, or the noun a referent modifies. */
+const FUNCTION_WORDS = new Set(
+  `i we you they he she it me us them i've we've i'd to for with on at in of about from by
+  is are was were be been am can could will would should may might must do does did has have
+  had just really still again right there here and or but so if when whenever who which that
+  because since though now too also all as please tonight already earlier before ago`.split(/\s+/)
 );
-HELP_NOUNS.set('people', 'people').set('folks', 'people');
-/** "crisis line", "text service": a line named as help says it on its own. */
-const HELP_KIND = new Set(['crisis', 'help', 'text', 'chat', 'suicide', 'support']);
-const LINE_LIKE = new Set<HelpNoun>(['named', 'line', 'service']);
-const DEMONSTRATIVE = new Set(['that', 'those', 'this', 'these']);
-const OWNER = new Set(['my', 'our', 'his', 'her', 'their', 'its']);
-const BACK_IN_TIME = [
-  ['from', 'before'],
-  ['earlier'],
-  ['reaching', 'out', 'to'],
-  ['reach', 'out', 'to'],
-];
-const BACK_SUBJECT = /^(?:i|we|i've|we've)$/;
-const BACK_VERB = /^(?:gave|given|mentioned|shared|sent|told|talked|brought)$/;
+const DETERMINERS = new Set('the a an that those this these some any same one other first free new only'.split(' '));
+const POSSESSIVES = new Set(['my', 'your', 'our', 'his', 'her', 'their', 'its']);
+/** A noun that can stand for a way to reach help, or the people there, without naming it. */
+const REFERENTS = new Set(
+  `number line chat service resource option support help people folks person counselor
+  counsellor volunteer listener responder helper suggestion offer`
+    .split(/\s+/)
+    .flatMap((w) => [w, `${w}s`])
+);
+/** "the text line", "a chat service"; a name ("crisis line") is read by reachesHelp. */
+const HELP_MODIFIERS = new Set(['text', 'chat', 'support']);
+/** "my suggestion": Ferni's own idea; "my number" is his phone. */
+const OWN_IDEAS = new Set(['suggestion', 'suggestions', 'offer', 'offers']);
+/** Times, and words that place a line in this call: "at any hour", "from a few minutes ago". */
+const IN_THIS_CALL = new Set(
+  `start beginning night tonight day moment minute minutes hour hours time morning evening
+  weekend while bit little few couple week talk call conversation phone`.split(/\s+/)
+);
+const PLACING_PREPOSITIONS = new Set(['for', 'about', 'at', 'from', 'of', 'with', 'on', 'in']);
+/** Prepositions a verb can leave behind: "the folks I told you about", "connected you with". */
+const STRANDED = new Set(['about', 'with', 'in']);
+const CALLING = new Set(['call', 'calling', 'text', 'texting', 'ring', 'contact']);
+/** A finite verb ends the referent's noun phrase: "the number I gave you for X is". */
+const MAIN_VERBS = new Set(
+  'is are was were has have will would can could should may might must does did'.split(' ')
+);
+const SUBJECTS = new Set(['i', 'we', "i've", "we've", "i'd", "we'd"]);
+const ADVERBS = new Set(['just', 'already', 'also', 'briefly', 'actually']);
+const PAST_IRREGULAR = new Set(
+  'gave given told said sent read left put brought went got showed shown wrote written laid made'.split(' ')
+);
+const isPast = (w = ''): boolean => PAST_IRREGULAR.has(w) || /^[a-z]{2,}[^e]ed$/.test(w);
+/** Words allowed between a referent and the words pointing back to it. */
+const BACK_WINDOW = 4;
+const PLACING_WINDOW = 6;
+
 /**
- * Words allowed between a help noun and the words pointing back to it. "I gave",
- * "we talked about" after the noun must follow it at once ("the number I gave
- * you", "the line that I mentioned"): further on they point back at something
- * else ("The bus line downtown is something I mentioned").
+ * Spans of `words` that point back in the call: "I gave", "we went over", "earlier",
+ * "a bit ago", "reaching out to that line", "the people on that line", "those text
+ * folks".
  */
-const BACK_WINDOW = 3;
-const SAID_AFTER_WINDOW = 1;
-
-interface BackRef {
-  from: number;
-  to: number;
-  /** "I gave", "we talked about", not only "earlier". */
-  said: boolean;
-}
-
-/** Each phrase in `words` that refers back to something said before. */
-function backRefs(words: string[]): BackRef[] {
-  const found: BackRef[] = [];
+function backRefs(words: string[]): Array<[number, number]> {
+  const spans: Array<[number, number]> = [];
   words.forEach((w, i) => {
-    for (const phrase of BACK_IN_TIME)
-      if (phrase.every((p, k) => words[i + k] === p))
-        found.push({ from: i, to: i + phrase.length - 1, said: false });
-    const verb = ['just', 'already'].includes(words[i + 1] ?? '') ? i + 2 : i + 1;
-    if (BACK_SUBJECT.test(w) && BACK_VERB.test(words[verb] ?? ''))
-      found.push({ from: i, to: verb, said: true });
+    if (['earlier', 'ago', 'again', 'remember'].includes(w)) spans.push([i, i]);
+    const out = words[i + 1] === 'back' ? i + 2 : i + 1;
+    if (/^reach(?:es|ing|ed)?$/.test(w) && words[out] === 'out' && words[out + 1] === 'to')
+      spans.push([i, out + 1]);
+    const demonstrative = w === 'that' || w === 'those';
+    if (demonstrative && (HELP_MODIFIERS.has(words[i + 1]) || words[i - 1] === 'on'))
+      spans.push([i, i]);
+    if (w === 'from' && words[i + 1] === 'before') spans.push([i, i + 1]);
+    if (w === 'at' && words[i + 1] === 'the' && /^(?:start|beginning)$/.test(words[i + 2] ?? ''))
+      spans.push([i, i + 2]);
+    const verb = ADVERBS.has(words[i + 1] ?? '') ? i + 2 : i + 1;
+    if (SUBJECTS.has(w) && isPast(words[verb])) spans.push([i, verb]);
   });
-  return found;
+  return spans;
 }
 
-/** Each help noun in `words`, and whether "that" or "those" stands just before it. */
-function helpNouns(words: string[]): Array<{ at: number; kind: HelpNoun; pointed: boolean }> {
-  return words.flatMap((w, i) => {
-    const named =
-      /^(?:lines?|numbers?|services?|chats?)$/.test(w) && HELP_KIND.has(words[i - 1] ?? '');
-    const kind = named ? 'named' : HELP_NOUNS.get(w);
-    const before = words.slice(Math.max(0, i - 2), i);
-    // "the line of thinking", "my phone number", "I was in line".
-    if (!kind || words[i + 1] === 'of' || before.some((b) => OWNER.has(b))) return [];
-    if (kind === 'line' && words[i - 1] === 'in') return [];
-    return [{ at: i, kind, pointed: before.some((b) => DEMONSTRATIVE.has(b)) }];
-  });
+/** The content word a preposition or verb at `at` takes, past any determiner. */
+function objectAt(words: string[], at: number): string | undefined {
+  let k = at + 1;
+  while (DETERMINERS.has(words[k]) || POSSESSIVES.has(words[k])) k++;
+  const w = words[k];
+  return w && !FUNCTION_WORDS.has(w) && !IN_THIS_CALL.has(w) ? w : undefined;
 }
-
-/** What sits near one help noun in a sentence. */
-interface NounContext {
-  /** Words pointing back within the window ("earlier", "I gave", "from before"). */
-  referred: boolean;
-  /** "that" or "those" just before it. */
-  pointed: boolean;
-  /** A hotline, a line named as help, or a plain line or number nearby. */
-  lineNear: boolean;
-  othersNear: boolean;
-  /** "I mentioned", "we talked about" within the window, and right after it. */
-  saidNear: boolean;
-  saidAfter: boolean;
-}
-
-const POINTS_BACK_BY_KIND: Record<HelpNoun, (c: NounContext) => boolean> = {
-  named: (c) => c.referred || c.pointed,
-  counselor: (c) => c.referred || c.pointed || c.lineNear,
-  staff: (c) => c.referred || c.lineNear,
-  line: (c) => c.referred || (c.pointed && c.othersNear),
-  // "the service I mentioned", "that chat we talked about"; not "We talked about the service at that diner".
-  service: (c) => c.saidAfter || (c.pointed && (c.saidNear || c.othersNear)),
-  people: (c) => c.pointed && (c.referred || c.lineNear),
-};
 
 /**
- * A sentence pointing back to a help line Ferni already gave, in any word order
- * ("I gave you a number earlier", "Those counselors I mentioned", "Remember the
- * line from earlier"). It names no line itself, so the safety readers miss it, but
- * the caller may still need to hear it. A help noun counts with words pointing back
- * ("from before", "earlier", "I gave", "I mentioned", "we talked about", "reaching
- * out to") within a few words on either side. "that" or "those" just before it is
- * enough for a hotline or a line named as help ("that text service") and for
- * counselors; a plain line or number needs a second help noun nearby too ("The
- * people on that line"), as do people. Not "the line at the coffee shop", "the
- * number of finches", "my phone number from before", or "I mentioned the people at
- * work".
+ * Whether the referent at `at` belongs to something other than help: "the number
+ * for the plumber", "the line at the post office", "the people I told you about
+ * from the bakery", "call the vet at the number I left you".
+ */
+function placedElsewhere(words: string[], at: number): boolean {
+  for (let j = at + 1; j <= at + PLACING_WINDOW && j < words.length; j++) {
+    if (MAIN_VERBS.has(words[j])) break; // "those folks are trained for this", past the noun
+    if (!PLACING_PREPOSITIONS.has(words[j])) continue;
+    const afterVerb = isPast(words[j - 1]) || (isPast(words[j - 2]) && words[j - 1] === 'you');
+    const next = words[j + 1] ?? '';
+    if (STRANDED.has(words[j]) && afterVerb && !DETERMINERS.has(next) && !POSSESSIVES.has(next))
+      continue; // "the folks I told you about answer", not "I mentioned with my neighbor"
+    const object = objectAt(words, j);
+    if (object && !REFERENTS.has(object)) return true;
+  }
+  for (let c = Math.max(0, at - PLACING_WINDOW); c < at; c++) {
+    const object = CALLING.has(words[c]) ? objectAt(words, c) : undefined;
+    if (object && !REFERENTS.has(object) && words.indexOf(object, c) < at) return true;
+  }
+  return false;
+}
+
+/**
+ * Whether a word of `words` is a referent standing for help on its own: a noun
+ * after a determiner, a help modifier or a help name ("that number", "the text
+ * line", "warm line"), and not itself modifying a noun ("support beam", "folks next
+ * door"). "the bus line", "my phone number", "the customer service line" are not.
+ */
+function standsForHelp(words: string[], at: number): boolean {
+  const [before, noun, after] = [words[at - 1], words[at], words[at + 1]];
+  if (!REFERENTS.has(noun)) return false;
+  const headed = !after || FUNCTION_WORDS.has(after) || DETERMINERS.has(after) || isPast(after);
+  const modified =
+    !before ||
+    FUNCTION_WORDS.has(before) ||
+    DETERMINERS.has(before) ||
+    CALLING.has(before) ||
+    HELP_MODIFIERS.has(before) ||
+    (before === 'my' && OWN_IDEAS.has(noun)) ||
+    reachesHelp(`${before} ${noun}`);
+  return headed && modified && !placedElsewhere(words, at);
+}
+
+/**
+ * A sentence pointing back to a help line Ferni already gave ("The folks I told you
+ * about are up all night", "Earlier I gave you a number", "Text the number from a
+ * bit ago"). It names no line itself, so the safety readers miss it, but the
+ * caller may still need to hear it. Read from its structure, not a phrase list: a
+ * back-reference ("I" or "we" and a past verb, "earlier", "ago", "from before", "at
+ * the start", "again", "remember") within a few words of a referent that stands for
+ * help (standsForHelp). Not "the recipe I told you about", "the number I gave you
+ * for the plumber", "the bus line I mentioned", or "those folks from the choir".
  */
 function pointsBack(text: string): boolean {
   const words = plainWords(text).trim().split(' ');
-  const refs = backRefs(words);
-  const nouns = helpNouns(words);
-  return nouns.some(({ at, kind, pointed }) => {
-    const gap = (from: number, to: number): number => Math.max(from - at, at - to) - 1;
-    const near = (r: BackRef): boolean =>
-      gap(r.from, r.to) <= (r.said && r.from > at ? SAID_AFTER_WINDOW : BACK_WINDOW);
-    const said = refs.filter((r) => r.said && near(r));
-    const others = nouns.filter((n) => n.at !== at && gap(n.at, n.at) <= BACK_WINDOW);
-    return POINTS_BACK_BY_KIND[kind]({
-      referred: refs.some(near),
-      pointed,
-      lineNear: others.some((n) => LINE_LIKE.has(n.kind)),
-      othersNear: others.length > 0,
-      saidNear: said.length > 0,
-      saidAfter: said.some((r) => r.from > at),
-    });
-  });
+  const spans = backRefs(words);
+  return words.some(
+    (_, at) =>
+      standsForHelp(words, at) &&
+      spans.some(([from, to]) => Math.max(from - at, at - to) - 1 <= BACK_WINDOW)
+  );
 }
 
 /**
