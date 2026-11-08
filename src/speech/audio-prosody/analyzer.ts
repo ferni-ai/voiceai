@@ -39,6 +39,12 @@ const log = createLogger({ module: 'AudioProsodyAnalyzer' });
 // ============================================================================
 
 /**
+ * The voice-quality values the native path writes on every reading: Rust does not
+ * measure jitter, shimmer or breathiness yet, so these are fixed, not measured.
+ */
+export const NATIVE_VOICE_QUALITY = { jitter: 0.02, shimmer: 0.03, breathiness: 0.1 } as const;
+
+/**
  * Analyzes voice prosody for emotion detection
  *
  * Uses signal processing to extract emotional cues from:
@@ -335,9 +341,7 @@ export class AudioProsodyAnalyzer {
 
       // Voice quality (defaults - Rust doesn't compute these yet)
       // These require more sophisticated DSP that could be added to Rust later
-      jitter: 0.02, // Default low jitter
-      shimmer: 0.03, // Default low shimmer
-      breathiness: 0.1, // Default low breathiness
+      ...NATIVE_VOICE_QUALITY,
 
       // Timing
       utteranceDuration: native.durationMs,
