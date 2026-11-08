@@ -24,6 +24,7 @@ import {
   buildTransferAwarenessContext,
   type EscalationType,
 } from '../../../services/human-transfer/index.js';
+import { EMERGENCY_NUMBER, crisisLines } from '../../../services/safety/index.js';
 
 const log = getLogger();
 
@@ -115,8 +116,8 @@ However, always listen for:
           // Always return crisis resources on error
           return `**Assessment Error** - Returning default crisis resources:
 
-📞 **988 Suicide & Crisis Lifeline** - Call or text 988 (24/7)
-📱 **Crisis Text Line** - Text HOME to 741741 (24/7)
+📞 **${crisisLines.LIFELINE_988.name}** - Call or text ${crisisLines.LIFELINE_988.phone} (24/7)
+📱 **${crisisLines.CRISIS_TEXT_LINE.name}** - ${crisisLines.CRISIS_TEXT_LINE.text} (24/7)
 
 If there's any concern about safety, please surface these resources to the user.`;
         }
@@ -180,12 +181,12 @@ Use after evaluateHumanTransfer indicates transfer is appropriate.`,
 
 I want to make sure you have the support you need right now.
 
-📞 **988 Suicide & Crisis Lifeline**
-   Call or text 988 - Available 24/7
+📞 **${crisisLines.LIFELINE_988.name}**
+   Call or text ${crisisLines.LIFELINE_988.phone} - Available 24/7
    Trained counselors ready to help
 
-📱 **Crisis Text Line**
-   Text HOME to 741741
+📱 **${crisisLines.CRISIS_TEXT_LINE.name}**
+   ${crisisLines.CRISIS_TEXT_LINE.text}
    If talking feels too hard, texting is okay
 
 These professionals understand what you're going through. There's no judgment, just support.
@@ -267,7 +268,7 @@ I'm here to support you through this. The financial stress is real.`;
           if (transferType === 'medical') {
             response = `**Medical Resources**
 
-🚨 **For Emergencies:** Call 911
+🚨 **For Emergencies:** Call ${EMERGENCY_NUMBER}
 
 🏥 **For Urgent (Non-Emergency):**
 - Urgent Care clinics
@@ -306,7 +307,7 @@ I can continue supporting you, and a dedicated coach could add another layer of 
           // Always return crisis resources
           return `I encountered an issue, but here are resources that can help:
 
-📞 **988** - Crisis support (24/7)
+📞 **${crisisLines.LIFELINE_988.phone}** - Crisis support (24/7)
 📱 **211** - Local services
 🌐 **psychologytoday.com** - Find therapists
 
@@ -360,14 +361,14 @@ ALWAYS safe to call - never wrong to surface these resources.`,
         if (situation === 'domestic-violence') {
           response = `**Support is Available**
 
-📞 **National Domestic Violence Hotline**
-   1-800-799-7233 (24/7)
-   Text START to 88788
+📞 **${crisisLines.DOMESTIC_VIOLENCE_HOTLINE.name}**
+   ${crisisLines.DOMESTIC_VIOLENCE_HOTLINE.phone} (24/7)
+   ${crisisLines.DOMESTIC_VIOLENCE_HOTLINE.text}
    
    Confidential support and safety planning
 
-📞 **988 Suicide & Crisis Lifeline**
-   Call or text 988
+📞 **${crisisLines.LIFELINE_988.name}**
+   Call or text ${crisisLines.LIFELINE_988.phone}
 
 You deserve to be safe. These trained professionals can help.`;
           return response;
@@ -376,12 +377,12 @@ You deserve to be safe. These trained professionals can help.`;
         if (situation === 'substance-crisis') {
           response = `**Support is Available**
 
-📞 **SAMHSA National Helpline**
-   1-800-662-4357 (24/7, 365 days)
+📞 **${crisisLines.SUBSTANCE_HELPLINE.name}**
+   ${crisisLines.SUBSTANCE_HELPLINE.phone} (24/7, 365 days)
    Free, confidential treatment referrals
 
-📞 **988 Suicide & Crisis Lifeline**
-   Call or text 988
+📞 **${crisisLines.LIFELINE_988.name}**
+   Call or text ${crisisLines.LIFELINE_988.phone}
 
 Recovery is possible. These professionals understand.`;
           return response;
@@ -390,13 +391,13 @@ Recovery is possible. These professionals understand.`;
         // Default crisis resources
         response = `**You Don't Have to Face This Alone**
 
-📞 **988 Suicide & Crisis Lifeline**
-   Call or text 988
+📞 **${crisisLines.LIFELINE_988.name}**
+   Call or text ${crisisLines.LIFELINE_988.phone}
    Available 24/7
    Trained counselors ready to help
 
-📱 **Crisis Text Line**
-   Text HOME to 741741
+📱 **${crisisLines.CRISIS_TEXT_LINE.name}**
+   ${crisisLines.CRISIS_TEXT_LINE.text}
    If calling feels too hard, texting is okay
 
 These professionals genuinely care. There's no judgment.

@@ -128,7 +128,7 @@ describe('after-call wellbeing snapshot', () => {
     it("an escalation across the caller's turns (earlier turns as context)", async () => {
       const lines = [
         'I feel like a burden to everyone',
-        'nobody would miss me',
+        "i don't care anymore",
         'Soon none of this will matter',
       ];
       const call = said('Hey.', lines[0], 'Hm.', lines[1], 'Okay.', lines[2]);
