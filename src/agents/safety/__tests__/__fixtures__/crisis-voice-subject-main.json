@@ -1059,7 +1059,7 @@
     ],
     "branch": "override",
     "gateAction": "replace",
-    "gateResources": ["911", "988"],
+    "gateResources": ["911", "988", "TALK_TO_988"],
     "contractSha": "412b894e7c03c5df37ceb4705a75e9025c6028c3439f94bf1faf88fcc208a202",
     "pointers": ["911", "988"]
   },
@@ -1079,7 +1079,7 @@
     ],
     "branch": "override",
     "gateAction": "replace",
-    "gateResources": ["911", "988"],
+    "gateResources": ["911", "988", "TALK_TO_988"],
     "contractSha": "412b894e7c03c5df37ceb4705a75e9025c6028c3439f94bf1faf88fcc208a202",
     "pointers": ["911", "988"]
   },

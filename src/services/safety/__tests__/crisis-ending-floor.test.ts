@@ -5,9 +5,10 @@
  * are (crisis-modifiers.ts). Synthetic lines.
  */
 import { describe, expect, it } from 'vitest';
-import { CALLER_CHECK, CALLER_CHECK_GUIDANCE } from '../crisis-caller-check.js';
+import { CALLER_CHECK } from '../crisis-caller-check.js';
 import { detectCrisis as detectSignals } from '../crisis-detection.js';
-import { buildCrisisGuidance, detectCrisis, guardFromDetection } from '../crisis-guard.js';
+import { getCrisisResponse, TALK_TO_988 } from '../crisis-guard-replies.js';
+import { detectCrisis, guardFromDetection } from '../crisis-guard.js';
 
 const level = (text: string): 'script' | 'guide' | 'none' => {
   const found = detectCrisis(text);
@@ -201,19 +202,18 @@ describe('the first-person ending floor', () => {
     // The caller's own unsoftened risk stays theirs, whoever else is mentioned.
     const own = detectCrisis("I don't want to be here anymore. my brother wants to kill himself.");
     expect(own.subject).toBe('self');
-    // A distressed voice never makes it the caller's: the help for him stays, and the guidance
-    // adds a gentle check on the caller, with 988 still in it (crisis-caller-check.ts).
+    // A distressed voice never makes it the caller's: the reply is still replaced, with main's
+    // fixed help for him, then the caller's own 988 line (crisis-caller-check.ts).
     const voiced = detectCrisis(
       "he texted me that he is going to kill himself. I'm not going to end my life",
       { primary: 'distressed', intensity: 0.9, confidence: 0.9 }
     );
     expect(voiced.subject).toBe('third_party');
     expect(voiced.indicators).toContain(CALLER_CHECK);
-    expect(guardFromDetection(voiced).shouldBlock).toBe(false);
-    const guidance = buildCrisisGuidance(voiced);
-    expect(guidance).toContain('The user is worried that someone they know is at risk.');
-    expect(guidance).toContain(CALLER_CHECK_GUIDANCE);
-    expect(guidance).toContain('988');
+    expect(guardFromDetection(voiced).shouldBlock).toBe(true);
+    const forThem = getCrisisResponse(voiced.severity, 'third_party', 'en', false);
+    expect(voiced.suggestedResponse).toBe(`${forThem}\n\n${TALK_TO_988}`);
+    expect(voiced.suggestedResponse).toContain('on their behalf');
   });
 
   it('reads intent wording, in the clause or the sentence before or after, as risk (#2540 Y)', () => {

@@ -2,10 +2,10 @@
  * BACKGROUND_VOICE_EMOTION and the crisis subject. On the background turn the
  * voice may only raise a read's severity (the amplifier in
  * services/safety/crisis-guard.ts); it never moves a worry about someone else
- * onto the caller, on this path or the synchronous one (crisis-caller-check.ts):
- * a worry about someone else beside the caller's own ending words set aside keeps
- * the help for the person at risk (988 on their behalf, check on them, 911) and
- * adds one gentle check on the caller. Fictional lines and synthetic voices only.
+ * onto the caller. The synchronous path replaces the reply on these voices, as
+ * on main, now with the help for the person at risk (988 on their behalf, check
+ * on them, 911), then the caller's own 988 line (crisis-caller-check.ts). Here the
+ * voice adds no such check. Fictional lines and synthetic voices only.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { llm } from '@livekit/agents';
@@ -15,18 +15,16 @@ import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js'
 import { buildCrisisGuidance, detectCrisis } from '../../safety/crisis-guard.js';
 import { toGuardVoiceEmotion } from '../../safety/crisis-shadow.js';
 import { disclosureGuidance } from '../../../services/safety/index.js';
-import {
-  CALLER_CHECK,
-  CALLER_CHECK_GUIDANCE,
-} from '../../../services/safety/crisis-caller-check.js';
-import { EMERGENCY_FOR_THEM, TALK_TO_988 } from '../../../services/safety/crisis-guard-replies.js';
+import { CALLER_CHECK } from '../../../services/safety/crisis-caller-check.js';
+import { CRISIS_SEVERITY } from '../../../services/safety/crisis-guard.js';
+import { getCrisisResponse, TALK_TO_988 } from '../../../services/safety/crisis-guard-replies.js';
 import { analyzerReading, backgroundTurn, VOICES } from './background-voice-fixtures.js';
 
 afterEach(() => vi.unstubAllEnvs());
 
 /**
- * "Not me" shapes that get the caller check on a distressed voice (crisis-caller-check.ts): the
- * caller's own ending words, negated, beside a worry about someone else.
+ * "Not me" shapes that get the caller check on a distressed voice on the synchronous path
+ * (crisis-caller-check.ts): the caller's own ending words, negated, beside a worry about someone else.
  */
 const NOT_ME = [
   "my son said he wants to die. not me, i'd never kill myself",
@@ -38,7 +36,7 @@ const NOT_ME = [
 
 const THIRD_PARTY = [
   ...NOT_ME,
-  // "Not me" shapes the caller check does not read; here the voice already only raises.
+  // "Not me" shapes the soft-self flip does not read; here the voice already only raises.
   "my friend says she wants to kill herself. i'd never do that, but i'm scared for her",
   "my roommate wants to kill himself. i'd never hurt myself, i just want to help him",
   'my friend wants to kill herself',
@@ -110,7 +108,8 @@ describe('BACKGROUND_VOICE_EMOTION never changes the crisis subject', () => {
     expect(on.indicators).toContain('voice_moderate_distress');
   });
 
-  it('the synchronous path keeps the words\' subject on a "not me" line with a distressed voice, and adds the caller check', async () => {
+  it('the synchronous path still replaces a "not me" line in a distressed voice: help for them, then 988', async () => {
+    const forThem = getCrisisResponse(CRISIS_SEVERITY.block, 'third_party', 'en', false);
     for (const line of NOT_ME)
       for (const voice of ['anxious', 'sad']) {
         const reading = analyzerReading(VOICES[voice]);
@@ -118,48 +117,19 @@ describe('BACKGROUND_VOICE_EMOTION never changes the crisis subject', () => {
         const voiced = detectCrisis(line, toGuardVoiceEmotion(reading));
         expect(voiced.subject, where).toBe('third_party');
         expect(voiced.indicators, where).toContain(CALLER_CHECK);
-        const quietRead = detectCrisis(line);
-        expect(quietRead.subject, where).toBe('third_party');
-        expect(quietRead.indicators, where).not.toContain(CALLER_CHECK);
-        // The synchronous turn reads the same: the words' subject, with the check on the caller.
+        expect(detectCrisis(line).subject, where).toBe('third_party');
+        // The synchronous turn's user data carries no marker: it reads the caller check too.
         const turn = await startTurnCrisis(line, { voiceEmotion: reading }, { env: {} }).summary();
         expect(turn.subject, where).toBe('third_party');
         expect(turn.indicators, where).toContain(CALLER_CHECK);
-        // The reply's crisis gate (personas/crisis-gate.ts) reads the session's voice: same action
-        // as with no voice, and its guidance carries the check.
+        // The reply's crisis gate (personas/crisis-gate.ts) reads the session's voice.
         const env = { CRISIS_GUARD_MODE: 'live' };
         const gate = startCrisisGate(request(line), { voiceEmotion: reading }, { env });
+        expect(gate?.decision.action, where).toBe('replace');
+        const script = gate?.decision.action === 'replace' ? gate.decision.script : '';
+        expect(script, where).toBe(`${forThem}\n\n${TALK_TO_988}`);
         const quiet = startCrisisGate(request(line), undefined, { env });
         expect(quiet?.decision.action, where).toBe('guide');
-        expect(gate?.decision.action, where).toBe(quiet?.decision.action);
-        const guidance = gate?.decision.action === 'guide' ? gate.decision.guidance : '';
-        expect(guidance, where).toContain(THIRD_PARTY_HELP);
-        expect(guidance, where).toContain(CALLER_CHECK_GUIDANCE);
       }
-  });
-
-  it('flag on: a "not me" line in a distressed voice keeps the help for them and adds the caller check', async () => {
-    const down = "my dad collapsed and he isn't getting up. i'd never kill myself";
-    for (const voice of ['anxious', 'sad']) {
-      for (const line of NOT_ME) {
-        const where = `${voice} | ${line}`;
-        const off = await backgroundSummary(line, voice, '');
-        const on = await backgroundSummary(line, voice, 'on');
-        expect(off.indicators, where).not.toContain(CALLER_CHECK);
-        expect(on.subject, where).toBe('third_party');
-        expect(on.indicators, where).toContain(CALLER_CHECK);
-        const contract = contractOf(on);
-        expect(contract.kind, where).toBe('guidance');
-        expect(contract.text, where).toContain(THIRD_PARTY_HELP);
-        expect(contract.text, where).toContain(CALLER_CHECK_GUIDANCE);
-      }
-      // Someone down and not getting up: 911 for them first, then the caller's 988 line.
-      const on = await backgroundSummary(down, voice, 'on');
-      expect(on.subject, voice).toBe('third_party');
-      expect(on.indicators, voice).toContain(CALLER_CHECK);
-      const contract = contractOf(on);
-      expect(contract.kind, voice).toBe('override');
-      expect(contract.text, voice).toBe(`${EMERGENCY_FOR_THEM}\n\n${TALK_TO_988}`);
-    }
   });
 });

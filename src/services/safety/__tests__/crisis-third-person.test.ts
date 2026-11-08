@@ -11,7 +11,12 @@ import { describe, expect, it } from 'vitest';
 
 import { crisisRead } from '../../outreach/caller-text.js';
 import { applyClassifierVerdict, detectCrisis, guardFromDetection } from '../crisis-guard.js';
-import { EMERGENCY_FOR_THEM, IN_DANGER_NOW } from '../crisis-guard-replies.js';
+import { EMERGENCY_FOR_THEM, IN_DANGER_NOW, TALK_TO_988 } from '../crisis-guard-replies.js';
+import {
+  NON_COMPLIANT,
+  PATHS,
+  stubbedGateReply,
+} from '../../../agents/personas/__tests__/caller-check-gate.js';
 
 /** Each shape, said about she / he / they / my mom / my brother (and other relatives). */
 const SHAPES: Record<string, string[]> = {
@@ -294,6 +299,19 @@ describe('third-person reported crisis (#3345)', () => {
         expect(reply).toContain('988');
         expect(reply.indexOf('911')).toBeLessThan(reply.indexOf('988'));
         expect(reply).not.toContain(IN_DANGER_NOW);
+      }
+    });
+
+    it('the same line reaches the caller whole when the model never complies, on every path', async () => {
+      const line = "my dad collapsed and isn't breathing. I'm not going to end my life";
+      for (const path of Object.keys(PATHS)) {
+        const voice = { primary: 'distressed', confidence: 0.9, stressLevel: 0.9 };
+        const { text, modelCalls } = await stubbedGateReply(line, voice, path);
+        expect(text.startsWith(EMERGENCY_FOR_THEM), path).toBe(true);
+        expect(text.endsWith(TALK_TO_988), path).toBe(true);
+        expect(text.indexOf('911'), path).toBeLessThan(text.indexOf('988'));
+        expect(text, path).not.toContain(NON_COMPLIANT);
+        expect(modelCalls, path).toBe(0);
       }
     });
 

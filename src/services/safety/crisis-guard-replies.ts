@@ -8,11 +8,12 @@
 import type { CrisisSubject } from './crisis-guard.js';
 import { SEVERITY } from './crisis-severity.js';
 
-/** The caller's own 988 line, as the in-danger reply words it (and the caller check reuses it). */
-export const TALK_TO_988 = 'You can also call or text 988 to talk to someone immediately.';
-
 /** Where to turn when someone is in danger now; the action-claim guard reuses it (issue 1553). */
-export const IN_DANGER_NOW = `please call 911 or get to the nearest emergency room. ${TALK_TO_988}`;
+export const IN_DANGER_NOW =
+  'please call 911 or get to the nearest emergency room. You can also call or text 988 to talk to someone immediately.';
+
+/** The caller's own 988 line, in the in-danger reply's words (the caller check speaks it). */
+export const TALK_TO_988 = IN_DANGER_NOW.slice(IN_DANGER_NOW.indexOf('You can also'));
 
 /**
  * Someone else is down and not getting up, or won't wake (owner, 2026-11-02): an emergency for

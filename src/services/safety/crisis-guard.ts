@@ -26,12 +26,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { ABUSE_INDICATOR, abuseDisclosure } from './abuse-disclosure.js';
-import {
-  CALLER_CHECK,
-  CALLER_CHECK_GUIDANCE,
-  callerCheckApplies,
-  withCallerCheck,
-} from './crisis-caller-check.js';
+import { CALLER_CHECK, callerCheckApplies, withCallerCheck } from './crisis-caller-check.js';
 import { endingFloor } from './crisis-ending-floor.js';
 import { EMERGENCY_FOR_THEM, getCrisisResponse, IN_DANGER_NOW } from './crisis-guard-replies.js';
 import { meansFormsOf, meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
@@ -98,6 +93,12 @@ export interface CrisisDetectionOptions {
   recentMessages?: readonly string[];
   /** Overrides CRISIS_MEANS_IN_HAND for this read; 'all' is the shadow log's (crisis-means-shadow.ts). */
   meansInHand?: 'off' | 'shadow' | 'live' | 'all';
+  /**
+   * Whether the voice may add the caller check (crisis-caller-check.ts), which replaces the reply.
+   * Default true. The background turn passes false (turn-crisis.ts): there the voice only raises
+   * severity, so a third-party read keeps its guidance, as on main.
+   */
+  voiceCallerCheck?: boolean;
 }
 
 export const CRISIS_SEVERITY = SEVERITY; // the tiers, for callers that weigh a read (caller-text.ts)
@@ -304,7 +305,9 @@ export function detectCrisis(
   const textSeverity = severity;
   // A worry about someone else, with the caller's own softened ending words and a distressed
   // voice: the help for the other person stays, and a gentle check on the caller is added.
-  const callerCheck = callerCheckApplies({ subject, softSelf: score.softSelf }, voiceEmotion);
+  const callerCheck =
+    options?.voiceCallerCheck !== false &&
+    callerCheckApplies({ subject, softSelf: score.softSelf }, voiceEmotion);
   if (callerCheck) indicators.push(CALLER_CHECK);
   const emergency = subject === 'third_party' && indicators.includes('third_party_emergency');
   const ceiling = subject === 'third_party' ? SEVERITY.block - 0.05 : 1.0;
@@ -324,8 +327,16 @@ export function detectCrisis(
     }
   }
   severity = Math.min(severity, Math.max(ceiling, textSeverity));
+  // The caller check replaces the reply, as main did on these voices: main's fixed help for them
+  // (or 911 for them), then the caller's 988 line. No model call, so it never rests on the model.
+  if (callerCheck) severity = Math.max(severity, SEVERITY.block);
 
   const isCrisis = severity >= SEVERITY.crisis;
+  // A caller-check read always gets the help for them, never the caller's own imminent script.
+  const imminent = !callerCheck && indicators.includes('imminent_danger');
+  const script = emergency
+    ? EMERGENCY_FOR_THEM
+    : getCrisisResponse(severity, subject, score.language, imminent);
 
   return {
     isCrisis,
@@ -333,18 +344,7 @@ export function detectCrisis(
     indicators,
     subject,
     language: subject ? (score.language ?? 'en') : undefined,
-    suggestedResponse: !isCrisis
-      ? undefined
-      : emergency
-        ? callerCheck
-          ? withCallerCheck(EMERGENCY_FOR_THEM)
-          : EMERGENCY_FOR_THEM
-        : getCrisisResponse(
-            severity,
-            subject,
-            score.language,
-            indicators.includes('imminent_danger')
-          ),
+    suggestedResponse: !isCrisis ? undefined : callerCheck ? withCallerCheck(script) : script,
   };
 }
 
@@ -366,9 +366,7 @@ The user is worried that someone they know is at risk. Your response MUST:
 2. Help them think about how to check on the person directly and calmly
 3. Tell them they can call or text 988 on the person's behalf, and to call 911 if there is immediate danger
 4. Ask how THEY are holding up; supporting someone in crisis is hard
-5. NEVER treat the user as the one at risk unless they say so${
-      crisis.indicators.includes(CALLER_CHECK) ? `\n6. ${CALLER_CHECK_GUIDANCE}` : ''
-    }`;
+5. NEVER treat the user as the one at risk unless they say so`;
   }
 
   const lines = [

@@ -157,8 +157,8 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
               }
             : {}),
           // For the voice-vs-words and crisis reads, as the synchronous turn's userData carries it.
-          // The voice never sets a crisis read's subject (crisis-caller-check.ts).
-          ...(voice ? { voiceEmotion: voice.view } : {}),
+          // Here the voice only raises a crisis read's severity, never its reply (turn-crisis.ts).
+          ...(voice ? { voiceEmotion: voice.view, voiceCallerCheck: false } : {}),
         },
         voiceEmotion: voice
           ? voice.summary
