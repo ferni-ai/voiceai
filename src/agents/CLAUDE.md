@@ -145,6 +145,13 @@ never toward silence: a dropped claim always leaves words behind.
   conversation (#3003, #3005, #3006). Never deny a real action: a denial that
   offers a duplicate call is worse than the claim. Off, behaviour is exactly
   main's; new claim shapes go behind the flag until verified.
+- Evidence is per person and never read from the chat (`claim-evidence.ts`):
+  the call records in the store (`on_behalf_calls`, read with
+  `getRecentCallResults`, the source callStatus and the openers use), and the
+  call or text tools that ran on this call (their arguments name the person).
+  Only status `completed` is a call that got through. A claim naming no one is
+  about whom the caller just asked about, else about the one person with a
+  record; anything else fails closed. Quotes must be in the record's report.
 - Extend these modules for a new claim shape; don't add a second guard.
 
 ---

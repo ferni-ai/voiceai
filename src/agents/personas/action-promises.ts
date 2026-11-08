@@ -18,7 +18,7 @@
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
-import { kindsOfTool, type ActionKind } from './action-claims.js';
+import { claimedAction, kindsOfTool, type ActionKind } from './action-claims.js';
 import { lookedUpLately } from './announced-check.js';
 import type { ClaimKind } from './honest-line.js';
 
@@ -94,11 +94,17 @@ export function promisedAction(sentence: string, env: Env = process.env): Action
   return (['call', 'send'] as const).find((k) => SURE_PROMISES[k].test(words)) ?? null;
 }
 
-/** GROUNDED_CLAIMS: "I'll let you know once I've reached her" claims a call under way, or null. */
-export function reportsBack(sentence: string, env: Env = process.env): 'call' | null {
+/**
+ * GROUNDED_CLAIMS: claims action-claims.ts reads past. "I'll let you know once I've reached her"
+ * says a call is under way; "I've texted your brother too" is a claim, though the main reader skips
+ * any "too" ("too many times"), so a clause-final "too" is read without it (#3037 verify, G3).
+ */
+export function groundedClaim(sentence: string, env: Env = process.env): ActionKind | null {
   if (!flagOn('GROUNDED_CLAIMS', env)) return null;
   const words = plainWords(sentence);
-  return REPORT_BACK.test(words) && !NOT_A_PROMISE.test(words) ? 'call' : null;
+  if (REPORT_BACK.test(words) && !NOT_A_PROMISE.test(words)) return 'call';
+  const also = sentence.replace(/,?\s+too\b(?=\W*(?:$|,))/gi, '');
+  return also === sentence ? null : claimedAction(also, env);
 }
 
 const PROMISE_OF =
