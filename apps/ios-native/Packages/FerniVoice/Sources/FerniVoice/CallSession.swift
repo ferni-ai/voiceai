@@ -80,6 +80,12 @@ public final class CallSession {
     private var agentHere = false
     private var callTask: Task<Void, Never>?
     private var eventsTask: Task<Void, Never>?
+    /// IOS_LOCAL_DUCK: Ferni ducks the moment the caller starts talking.
+    /// Off, nothing below measures the mic or touches Ferni's volume.
+    private let localDuck: Bool
+    private let duckTuning: LocalDuckController.Tuning
+    private var duck: LocalDuckDriver?
+    private var ducksThisCall = 0
     private let log = Logger(subsystem: "com.sethdford.ferni", category: "call")
 
     public init(
@@ -93,9 +99,13 @@ public final class CallSession {
         arrivingAfter: Duration = .seconds(8),
         audioStartTimeout: Duration = .seconds(3),
         agentPoll: Duration = .milliseconds(50),
-        defaults: UserDefaults = .standard
+        defaults: UserDefaults = .standard,
+        localDuck: Bool = false,
+        duckTuning: LocalDuckController.Tuning = .standard
     ) {
         self.defaults = defaults
+        self.localDuck = localDuck
+        self.duckTuning = duckTuning
         hasTalked = defaults.bool(forKey: Self.hasTalkedKey)
         self.avatar = avatar
         self.lifecycle = lifecycle
@@ -139,6 +149,7 @@ public final class CallSession {
         startedAt = .now
         systemOwnsCall = false
         systemAudioOn = false
+        ducksThisCall = 0
         phase = .connecting
         callTask = Task {
             // Hung up before this task ever ran: nothing to start (or show).
@@ -181,6 +192,7 @@ public final class CallSession {
         callTask?.cancel()
         callTask = nil
         await leaveRoom()
+        logDucks()
         audio.callEnded()
         phase = .ended
         avatar.send(.ended)
@@ -439,6 +451,7 @@ public final class CallSession {
             return Task.isCancelled || self.room !== room ? .cancelled : .failed(.offline)
         }
         if Task.isCancelled || self.room !== room { return .cancelled }
+        if localDuck { startDuck(in: room) }
         log.info("Attempt \(attempt): in room \(token.room, privacy: .private(mask: .hash)) at \(self.secondsSinceStart, privacy: .public) s")
         // The server already knows dispatch failed: no point waiting it out.
         if token.agentDispatched == false, !agentHere { return .ferniMissing }
@@ -493,6 +506,9 @@ public final class CallSession {
         let leaving = room
         room = nil
         agentHere = false
+        ducksThisCall += duck?.ducks ?? 0
+        duck?.stop()
+        duck = nil
         await leaving?.disconnect()
         audio.deactivate(systemOwned: systemOwnsCall)
         agentActivity = nil
@@ -501,6 +517,7 @@ public final class CallSession {
     }
 
     private func fail(_ problem: CallProblem) {
+        logDucks()
         lastCallWasGood = false
         liveSince = nil
         audio.callEnded()
@@ -582,6 +599,25 @@ public final class CallSession {
         guard let activity = AgentSignals.agentActivity(from: attributes) else { return }
         agentActivity = activity
         avatar.send(.agentState(activity))
+        duck?.agentSpeaking(activity == .speaking)
+    }
+
+    // MARK: - Local duck (IOS_LOCAL_DUCK)
+
+    private func startDuck(in room: any VoiceRoom) {
+        let driver = LocalDuckDriver(
+            room: room, tuning: duckTuning, now: { [unowned self] in now() },
+            muted: { [unowned self] in isMuted },
+            interrupt: { [weak self] in _ = await self?.interrupt() }
+        )
+        duck = driver
+        driver.start(agentSpeaking: agentActivity == .speaking)
+    }
+
+    /// The call's one duck counter, once, at the end; nothing per frame.
+    private func logDucks() {
+        guard localDuck else { return }
+        log.debug("Local duck: \(self.ducksThisCall, privacy: .public) this call")
     }
 
     private func handle(_ interruption: AudioInterruption) async {
