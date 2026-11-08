@@ -10,7 +10,8 @@
  *    - implicit (0.6): hopelessness, burdensomeness, withdrawal; two distinct
  *      implicit signals in one message, or one after earlier distress in the
  *      session, count as passive
- *    Voice distress amplifies a text signal; on its own it never makes a crisis.
+ *    Voice distress amplifies a text signal; on its own it never makes a crisis, and it never
+ *    decides who is at risk (crisis-caller-check.ts).
  * 2. guardPreResponse replaces the reply with a pre-written one that includes
  *    988 resources when severity >= 0.85.
  *
@@ -25,6 +26,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { ABUSE_INDICATOR, abuseDisclosure } from './abuse-disclosure.js';
+import { CALLER_CHECK, callerCheckApplies, withCallerCheck } from './crisis-caller-check.js';
 import { endingFloor } from './crisis-ending-floor.js';
 import { EMERGENCY_FOR_THEM, getCrisisResponse, IN_DANGER_NOW } from './crisis-guard-replies.js';
 import { meansFormsOf, meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
@@ -92,11 +94,11 @@ export interface CrisisDetectionOptions {
   /** Overrides CRISIS_MEANS_IN_HAND for this read; 'all' is the shadow log's (crisis-means-shadow.ts). */
   meansInHand?: 'off' | 'shadow' | 'live' | 'all';
   /**
-   * Whether the voice may move a worry about someone else onto the caller (the soft-self flip in
-   * detectCrisis). Default true. The background turn passes false (turn-crisis.ts): there the
-   * voice only raises severity, so a third-party read keeps its help for the person at risk.
+   * Whether the voice may add the caller check (crisis-caller-check.ts), which replaces the reply.
+   * Default true. The background turn passes false (turn-crisis.ts): there the voice only raises
+   * severity, so a third-party read keeps its guidance, as on main.
    */
-  voiceMaySetSubject?: boolean;
+  voiceCallerCheck?: boolean;
 }
 
 export const CRISIS_SEVERITY = SEVERITY; // the tiers, for callers that weigh a read (caller-text.ts)
@@ -323,14 +325,11 @@ export function detectCrisis(
   // else never escalates into it.
   const textSeverity = severity;
   // A worry about someone else, with the caller's own softened ending words and a distressed
-  // voice: the voice makes it about the caller again, as before #2528.
-  const voiced = voiceEmotion?.confidence !== undefined && voiceEmotion.confidence > 0.5;
-  const voiceSetsSubject = options?.voiceMaySetSubject !== false;
-  if (subject === 'third_party' && score.softSelf && voiced && voiceSetsSubject) {
-    const { primary } = voiceEmotion;
-    const distressed = [...HIGH_DISTRESS_VOICE_EMOTIONS, ...MODERATE_DISTRESS_VOICE_EMOTIONS];
-    if (distressed.includes(primary)) subject = 'self';
-  }
+  // voice: the help for the other person stays, and a gentle check on the caller is added.
+  const callerCheck =
+    options?.voiceCallerCheck !== false &&
+    callerCheckApplies({ subject, softSelf: score.softSelf }, voiceEmotion);
+  if (callerCheck) indicators.push(CALLER_CHECK);
   const emergency = subject === 'third_party' && indicators.includes('third_party_emergency');
   const ceiling = subject === 'third_party' ? SEVERITY.block - 0.05 : 1.0;
   if (voiceEmotion?.confidence !== undefined && voiceEmotion.confidence > 0.5) {
@@ -349,8 +348,16 @@ export function detectCrisis(
     }
   }
   severity = Math.min(severity, Math.max(ceiling, textSeverity));
+  // The caller check replaces the reply, as main did on these voices: main's fixed help for them
+  // (or 911 for them), then the caller's 988 line. No model call, so it never rests on the model.
+  if (callerCheck) severity = Math.max(severity, SEVERITY.block);
 
   const isCrisis = severity >= SEVERITY.crisis;
+  // A caller-check read always gets the help for them, never the caller's own imminent script.
+  const imminent = !callerCheck && indicators.includes('imminent_danger');
+  const script = emergency
+    ? EMERGENCY_FOR_THEM
+    : getCrisisResponse(severity, subject, score.language, imminent);
 
   return {
     isCrisis,
@@ -358,16 +365,7 @@ export function detectCrisis(
     indicators,
     subject,
     language: subject ? (score.language ?? 'en') : undefined,
-    suggestedResponse: !isCrisis
-      ? undefined
-      : emergency
-        ? EMERGENCY_FOR_THEM
-        : getCrisisResponse(
-            severity,
-            subject,
-            score.language,
-            indicators.includes('imminent_danger')
-          ),
+    suggestedResponse: !isCrisis ? undefined : callerCheck ? withCallerCheck(script) : script,
   };
 }
 
