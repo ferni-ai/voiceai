@@ -49,7 +49,27 @@ const CALM = ['holdingSpace', 'empathetic', 'attentive', 'listening'];
 const isCalm = (name: string | null): boolean => name !== null && CALM.includes(name);
 
 /** Agent emoji for the faces the crisis owner named: 😭 💋 🤑 🤫 🙄 🤢 🥺 😱 😠 💀 😈, plus a laugh and a party. */
-const REFUSED_EMOJI = ['😭', '😢', '😘', '😍', '🤑', '🤫', '🤐', '🙄', '😒', '🤢', '🥺', '😱', '😠', '😡', '💀', '😈', '😂', '🎉', '✨'];
+const REFUSED_EMOJI = [
+  '😭',
+  '😢',
+  '😘',
+  '😍',
+  '🤑',
+  '🤫',
+  '🤐',
+  '🙄',
+  '😒',
+  '🤢',
+  '🥺',
+  '😱',
+  '😠',
+  '😡',
+  '💀',
+  '😈',
+  '😂',
+  '🎉',
+  '✨',
+];
 
 /** Room double: what the agent publishes is delivered to the web's handler. */
 function roomWiredToWeb(): DataMessageRoom {
@@ -160,7 +180,9 @@ describe('crisis face hold (face engine off, the default)', () => {
     const shown = Object.keys(DOME_POSES)
       .filter((name) => !CALM.includes(name))
       .filter((name) => {
-        ferniExpressions.setExpression(name as Parameters<typeof ferniExpressions.setExpression>[0]);
+        ferniExpressions.setExpression(
+          name as Parameters<typeof ferniExpressions.setExpression>[0]
+        );
         return ferniExpressions.getExpression() === name;
       });
     expect(shown).toEqual([]);
@@ -173,7 +195,11 @@ describe('crisis face hold (face engine off, the default)', () => {
     for (const id of Object.keys(EXPRESSIONS).filter((name) => !CALM.includes(name))) {
       await send('expression_update', { expression: id, duration: 300 });
       const face = faceOnEveryLayer();
-      if (face['tokenFace'] === id || face['perFaceAnimation'] === id || face['legacyEyes'] === id) {
+      if (
+        face['tokenFace'] === id ||
+        face['perFaceAnimation'] === id ||
+        face['legacyEyes'] === id
+      ) {
         shown.push(id);
       }
     }
@@ -262,7 +288,10 @@ describe('crisis face hold (face engine off, the default)', () => {
   });
 
   it('a malformed crisis message still starts the hold', async () => {
-    handleDataMessage({ type: 'crisis_detected', severity: 'not-a-number' } as unknown as DataMessage);
+    handleDataMessage({
+      type: 'crisis_detected',
+      severity: 'not-a-number',
+    } as unknown as DataMessage);
     ferniExpressions.setExpression('delighted');
     luxoExpressions.setExpression('winking');
     expect(isCalm(ferniExpressions.getExpression())).toBe(true);
