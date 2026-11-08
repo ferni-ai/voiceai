@@ -29,7 +29,6 @@ import {
   isContentFree,
   isNonAnswer,
   isPlainNo,
-  isRefusal,
   isStatusQuestion,
   LATER,
   NOES,
@@ -278,10 +277,10 @@ function endedBy(pending: PendingAction, events: ConfirmEvent[]): boolean {
   const said = callerTurns(pending, events);
   const joined = said.filter((t) => !asksStatus(t, pending)).join(' ');
   const answers = noAnswers(pending, events);
-  // With OUTREACH_NO_ANSWERS_READBACK, a refusal that doesn't open like a no ("Forget it.") too.
-  const opensNo = (t: string): boolean => isPlainNo(t) || (noMustAnswerOn() && isRefusal(t));
+  // A refusal that doesn't open like a no ("Forget it.", "I changed my mind.") is not one here,
+  // with the flag on or off: Ferni asks once, and a second refusal cancels (consent-loop.ts).
   const no = (t: string, i: number): boolean =>
-    opensNo(t) && !clarifies(t, pending) && aboutIt(said, i, answers, pending);
+    isPlainNo(t) && !clarifies(t, pending) && aboutIt(said, i, answers, pending);
   // With OUTREACH_NO_ANSWERS_READBACK, a crisis turn anywhere in the window ends it, as a no does.
   if (noMustAnswerOn() && crisisIn(said)) return true;
   return said.some((t, i) => endsForGood(t, pending) || no(t, i)) || endsForGood(joined, pending);
