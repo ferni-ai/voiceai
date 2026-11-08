@@ -238,21 +238,35 @@ describe('crisis face hold (face engine off, the default)', () => {
   });
 
   it('fails closed: no message ends the hold, whatever it says', async () => {
+    const endLike: Array<[string, Record<string, unknown>]> = [
+      ['crisis_resolved', { resolved: true }],
+      ['crisis_ended', {}],
+      ['crisis_over', { reason: 'unknown' }],
+      ['humanization_signal', { signalType: 'concern_detected', concernLevel: 'none' }],
+      ['humanization_signal', { signalType: 'concern_detected', concernLevel: 'mild' }],
+      ['emotional_trajectory', { trajectory: 'de_escalating', confidence: 0.9 }],
+      ['status', { status: 'connected' }], // what a reconnect looks like mid-call
+    ];
     await sendCrisis();
-    await send('crisis_resolved', { resolved: true });
-    await send('crisis_ended', {});
-    await send('crisis_detected', {}); // malformed: no severity
-    await send('humanization_signal', { signalType: 'concern_detected', concernLevel: 'none' });
-    await send('humanization_signal', { signalType: 'concern_detected', concernLevel: 'mild' });
-    await send('emotional_trajectory', { trajectory: 'de_escalating', confidence: 0.9 });
-    await send('status', { status: 'connected' });
-    handleDataMessage({ type: 'crisis_detected', severity: 'not-a-number' } as unknown as DataMessage);
+    for (const [type, payload] of endLike) {
+      await send(type, payload);
+      ferniExpressions.setExpression('delighted');
+      luxoExpressions.setExpression('winking');
+      presenceUI.setVoiceEmotion('happy');
+      expectOnlyCalmFaces();
+    }
+    handleDataMessage({ type: 42 } as unknown as DataMessage); // malformed: no usable type
     vi.advanceTimersByTime(10 * 60_000);
+    ferniExpressions.setExpression('happy');
+    expectOnlyCalmFaces();
+  });
 
+  it('a malformed crisis message still starts the hold', async () => {
+    handleDataMessage({ type: 'crisis_detected', severity: 'not-a-number' } as unknown as DataMessage);
     ferniExpressions.setExpression('delighted');
     luxoExpressions.setExpression('winking');
-    presenceUI.setVoiceEmotion('happy');
-    expectOnlyCalmFaces();
+    expect(isCalm(ferniExpressions.getExpression())).toBe(true);
+    expect(isCalm(byId('coachAvatar').getAttribute('data-expression'))).toBe(true);
   });
 
   it('a humanization crisis concern starts the hold too', async () => {
