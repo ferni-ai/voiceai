@@ -1,7 +1,8 @@
 /**
  * A Firestore and a Redis cache that store nothing and record the path of every
- * write: `set bogle_users/u1/voice_sessions/s1`, `redis.set presence:u1`. Reads
- * find nothing. For tests that ask "what did this code path write, and under
+ * write: `set bogle_users/u1/voice_sessions/s1`, `redis.set presence:u1`, and
+ * what each Firestore write carried (`payloads`). Reads find nothing, except a
+ * doc whose path a test put in `existing` (an empty doc). For tests that ask "what did this code path write, and under
  * whose id?" across many writers at once, without faking each writer.
  *
  * Build one per test file inside vi.hoisted (it imports nothing) and hand
@@ -12,14 +13,23 @@ type Data = Record<string, unknown>;
 export interface WriteRecorder {
   /** Every write so far, as `<op> <path>`, in order. */
   writes: string[];
+  /** What each Firestore write carried, as JSON, in order: `<op> <path> <json>`. */
+  payloads: string[];
+  /** Doc paths a read finds (as an empty doc), e.g. a user's record. */
+  existing: Set<string>;
   db: Data;
   redis: Data;
 }
 
 export function createWriteRecorder(): WriteRecorder {
   const writes: string[] = [];
+  const payloads: string[] = [];
+  const existing = new Set<string>();
   let auto = 0;
-  const record = (op: string, path: string): void => void writes.push(`${op} ${path}`);
+  const record = (op: string, path: string, data?: unknown): void => {
+    writes.push(`${op} ${path}`);
+    if (!op.startsWith('redis.')) payloads.push(`${op} ${path} ${JSON.stringify(data) ?? ''}`);
+  };
   const emptySnap = { docs: [], empty: true, size: 0, forEach: () => undefined };
 
   const doc = (path: string): Data => {
@@ -27,11 +37,14 @@ export function createWriteRecorder(): WriteRecorder {
       id: path.split('/').pop(),
       path,
       collection: (name: string) => col(`${path}/${name}`),
-      get: async () => ({ id: ref.id, ref, exists: false, data: () => undefined }),
+      get: async () => {
+        const found = existing.has(path);
+        return { id: ref.id, ref, exists: found, data: () => (found ? {} : undefined) };
+      },
       onSnapshot: () => () => undefined,
     };
     for (const op of ['set', 'update', 'create', 'delete']) {
-      ref[op] = async () => record(op, path);
+      ref[op] = async (data?: unknown) => record(op, path, data);
     }
     return ref;
   };
@@ -41,9 +54,9 @@ export function createWriteRecorder(): WriteRecorder {
       path,
       id: path.split('/').pop(),
       doc: (id?: string) => doc(`${path}/${id ?? `auto-${++auto}`}`),
-      add: async () => {
+      add: async (data?: unknown) => {
         const ref = doc(`${path}/auto-${++auto}`);
-        record('add', String(ref.path));
+        record('add', String(ref.path), data);
         return ref;
       },
       get: async () => emptySnap,
@@ -59,15 +72,15 @@ export function createWriteRecorder(): WriteRecorder {
 
   const pathOf = (ref: unknown): string => String((ref as { path?: unknown })?.path);
   const staged = (): Data => {
-    const ops: Array<[string, string]> = [];
+    const ops: Array<[string, string, unknown]> = [];
     const txn: Data = { get: async (ref: { get: () => unknown }) => ref.get() };
     for (const op of ['set', 'update', 'create', 'delete']) {
-      txn[op] = (ref: unknown) => {
-        ops.push([op, pathOf(ref)]);
+      txn[op] = (ref: unknown, data?: unknown) => {
+        ops.push([op, pathOf(ref), data]);
         return txn;
       };
     }
-    txn.commit = async () => ops.splice(0).forEach(([op, path]) => record(op, path));
+    txn.commit = async () => ops.splice(0).forEach(([op, path, data]) => record(op, path, data));
     return txn;
   };
 
@@ -106,5 +119,5 @@ export function createWriteRecorder(): WriteRecorder {
     }
   );
 
-  return { writes, db, redis };
+  return { writes, payloads, existing, db, redis };
 }

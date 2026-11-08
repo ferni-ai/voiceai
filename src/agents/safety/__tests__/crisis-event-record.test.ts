@@ -19,8 +19,8 @@ vi.mock('../../../utils/minor-care.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('../../../utils/minor-care.js')>();
   return {
     ...real,
-    writeHeld: (...a: Parameters<typeof real.writeHeld>) =>
-      boom.on ? thrower() : real.writeHeld(...a),
+    careHeld: (...a: Parameters<typeof real.careHeld>) =>
+      boom.on ? thrower() : real.careHeld(...a),
   };
 });
 vi.mock('../../../services/identity/member-identity.js', async (importOriginal) => {
@@ -93,7 +93,7 @@ import {
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { CRISIS_EVENT_RETENTION_MS, recordCrisisEvent } from '../../../services/safety/index.js';
-import { heldAfter, resetMinorCare } from '../../../utils/minor-care.js';
+import { bindSessionUser, heldAfter, resetMinorCare } from '../../../utils/minor-care.js';
 import { gatedReply } from '../../personas/crisis-gate.js';
 import { resetCrisisEventRecords } from '../crisis-event-record.js';
 import { CRISIS_GATE_SIGNAL, signalCrisisDecision } from '../crisis-gate-signal.js';
@@ -283,6 +283,35 @@ describe('CRISIS_EVENT_RECORD on', () => {
     heldAfter(session.userData.services.sessionId, "I'm 15 years old", {
       userId: 'synthetic-user-1',
     });
+    const said = await speak(session);
+    await settle();
+    expect(said).toContain('988');
+    expect(added).toHaveLength(0);
+  });
+
+  // A try-first visitor's call saves nothing (isAnonymousDemoUser), but this record holds no
+  // words, so it is still written; MINOR_CARE still holds it like any caller.
+  const DEMO = 'device:demo_1793560000000_r7w2p5';
+  it('a try-first visitor still gets the record, with no words; the script is the same', async () => {
+    const member = await speak(call());
+    await settle();
+    added.length = 0;
+    const session = call(DEMO);
+    bindSessionUser(session.userData.services.sessionId, DEMO); // as session start binds it
+    const said = await speak(session);
+    await settle();
+    expect(said).toBe(member);
+    expect(added).toHaveLength(1);
+    expect(Object.keys(added[0]!.doc).sort()).toEqual(FIELDS);
+    expect(added[0]!.doc).toMatchObject({ userId: DEMO, resourcesProvided: true });
+    noWords(added);
+  });
+
+  it('not for a MINOR_CARE-held try-first visitor; the script is still spoken', async () => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    const session = call(DEMO);
+    bindSessionUser(session.userData.services.sessionId, DEMO);
+    heldAfter(session.userData.services.sessionId, "I'm 15 years old", { userId: DEMO });
     const said = await speak(session);
     await settle();
     expect(said).toContain('988');
