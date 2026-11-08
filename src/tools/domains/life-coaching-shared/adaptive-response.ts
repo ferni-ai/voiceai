@@ -16,6 +16,7 @@ import type {
   EmotionalState,
   LifeCoachingProfile,
 } from './types.js';
+import { crisisLines } from '../../../services/safety/index.js';
 
 const log = getLogger();
 
@@ -267,7 +268,7 @@ function makeBrief(content: string): string {
  */
 function getContextualClosing(context: ResponseContext): string | null {
   if (context.urgencyLevel === 'crisis') {
-    return 'Remember, you can reach out to crisis support anytime at 988.';
+    return `Remember, you can reach out to crisis support anytime at ${crisisLines.LIFELINE_988.phone}.`;
   }
 
   if (context.isFirstTimeWithTopic) {
