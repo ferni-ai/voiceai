@@ -48,7 +48,7 @@ import { loadSessionProfile, savable } from './load-session-profile.js';
 
 // Real-time memory - persist turns as they happen, never lose data
 import * as realtimeMemory from '../memory/realtime-memory.js';
-import { lastCallSummary } from '../memory/last-call-summary.js';
+import { lastCallSummary } from '../memory/index.js';
 
 // Voice authentication - household identification
 import { getActiveSession, startHouseholdSession } from '../voice/voice-household.js';
