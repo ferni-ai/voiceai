@@ -429,6 +429,8 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   REPAIR_MODE: 'src/agents/personas/__tests__/repair-check.test.ts',
   REQUIRE_FIX_VOICE: 'src/agents/voice-agent/__tests__/echo-window-esm.test.ts',
   SEXUAL_TOPIC_BOUNDARY: 'src/agents/personas/__tests__/sexual-boundary-call-end.test.ts',
+  // Off, repair advice says to call EMERGENCY_NUMBER for an electrical fire; on, it isn't served.
+  SMART_HOME_LIFX: 'src/tools/domains/smart-home/__tests__/lifx-repair-advice-crisis-line.test.ts',
   SMS_CRISIS_SCREEN: 'src/services/outreach/__tests__/sms-crisis-screen.test.ts',
   SPEAK_988_DIGITS: 'src/services/safety/__tests__/crisis-line-speech.test.ts',
   TEAMMATE_TALK_FILTER: 'src/utils/__tests__/teammate-talk.test.ts',

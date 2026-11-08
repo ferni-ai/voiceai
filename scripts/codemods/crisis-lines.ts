@@ -28,6 +28,7 @@ import ts from 'typescript';
 import * as LINES from '../../src/services/safety/crisis-lines.js';
 import type { CrisisResource } from '../../src/services/safety/crisis-response.js';
 import { EMERGENCY_NUMBER } from '../../src/services/safety/emergency-number.js';
+import { kindOf } from '../ci/crisis-readers-ratchet.js';
 
 const SAFETY = 'src/services/safety/';
 /** Files the rewrite never touches: the kernel itself, tests and generated tables. */
@@ -37,6 +38,8 @@ const FIELDS = ['name', 'phone', 'text', 'chat'] as const;
 const NS = 'crisisLines';
 /** apps/cli/src/commands/quality/ratchet.ts: a file over this many lines may not grow. */
 const MAX_LINES = 500;
+/** .prettierrc printWidth: a merged import longer than this would be reflowed onto more lines. */
+const PRINT_WIDTH = 100;
 
 export interface Ref {
   value: string;
@@ -108,25 +111,34 @@ interface Edit {
   text: string;
   line: number;
 }
-type Rewritten = { text: string; edits: Edit[] } | null;
+type Rewritten = { text: string; edits: Edit[]; kept: number[] } | null;
 
-/** The rewritten source, or null when nothing in it matches. */
+/**
+ * The rewritten source, or null when nothing in it matches. A literal whose rewrite would move it
+ * to another kind in the crisis readers ratchet (a "suicide ... 988" reply that becomes a crisis
+ * word string once 988 is a reference) is kept as written, and its line is listed in `kept`.
+ */
 export function rewrite(file: string, source: string, all = refs()): Rewritten {
   const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
   const re = pattern(all);
   const exprOf = new Map(all.map((r) => [r.value, r]));
   const used = new Set<Ref>();
   const edits: Edit[] = [];
-  const sub = (body: string) =>
-    body.replace(re, (m) => {
-      const r = exprOf.get(m)!;
-      used.add(r);
-      return `\${${r.expr}}`;
-    });
-  const push = (node: ts.Node, start: number, end: number, text: string) => {
-    const line = sf.getLineAndCharacterOfPosition(node.getStart()).line + 1;
-    edits.push({ start, end, text, line });
+  const kept: number[] = [];
+  const lineOf = (node: ts.Node) => sf.getLineAndCharacterOfPosition(node.getStart()).line + 1;
+  /** Each body with its values as references, or null when the literal must keep its kind. */
+  const sub = (bodies: string[]): string[] | null => {
+    const after = kindOf(bodies.flatMap((b) => b.split(re)));
+    if (after !== null && after !== kindOf(bodies)) return null;
+    return bodies.map((body) =>
+      body.replace(re, (m) => {
+        const r = exprOf.get(m)!;
+        used.add(r);
+        return `\${${r.expr}}`;
+      })
+    );
   };
+  const changes = (bodies: string[]) => bodies.some((b) => b.split(re).length > 1);
 
   const visit = (node: ts.Node): void => {
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
@@ -134,32 +146,47 @@ export function rewrite(file: string, source: string, all = refs()): Rewritten {
       const raw = node.getText();
       const quote = raw[0]!;
       const body = quote === '`' ? raw.slice(1, -1) : templateBody(raw.slice(1, -1), quote);
-      const next = sub(body);
-      if (next === body) return;
+      if (!changes([body])) return;
+      const next = sub([body])?.[0];
+      if (next === undefined) return void kept.push(lineOf(node));
       const bare = /^\$\{([\w.]+)\}$/.exec(next);
-      push(node, node.getStart(), node.getEnd(), bare ? bare[1]! : `\`${next}\``);
+      edits.push({
+        start: node.getStart(),
+        end: node.getEnd(),
+        line: lineOf(node),
+        text: bare ? bare[1]! : `\`${next}\``,
+      });
       return;
     }
     if (ts.isTemplateExpression(node)) {
       if (skipped(node)) return;
       const pieces: ts.Node[] = [node.head, ...node.templateSpans.map((s) => s.literal)];
-      for (const piece of pieces) {
-        const raw = piece.getText();
-        const close = ts.isTemplateTail(piece) ? 1 : 2;
-        const body = raw.slice(1, -close);
-        const next = sub(body);
-        if (next !== body) push(piece, piece.getStart() + 1, piece.getEnd() - close, next);
+      const close = (piece: ts.Node) => (ts.isTemplateTail(piece) ? 1 : 2);
+      const bodies = pieces.map((piece) => piece.getText().slice(1, -close(piece)));
+      if (changes(bodies)) {
+        const next = sub(bodies);
+        if (next === null) kept.push(lineOf(node));
+        else
+          pieces.forEach((piece, i) => {
+            if (next[i] !== bodies[i])
+              edits.push({
+                start: piece.getStart() + 1,
+                end: piece.getEnd() - close(piece),
+                line: lineOf(piece),
+                text: next[i]!,
+              });
+          });
       }
     }
     ts.forEachChild(node, visit);
   };
   visit(sf);
-  if (edits.length === 0) return null;
+  if (edits.length === 0) return kept.length > 0 ? { text: source, edits, kept } : null;
 
   let text = source;
   for (const e of [...edits].sort((a, b) => b.start - a.start))
     text = text.slice(0, e.start) + e.text + text.slice(e.end);
-  return { text: addImports(file, source, text, used), edits };
+  return { text: addImports(file, source, text, used), edits, kept };
 }
 
 /** One import from the safety barrel (other contexts import a context through its index). */
@@ -173,14 +200,37 @@ function addImports(file: string, original: string, source: string, used: Set<Re
   const line = `import { ${names.join(', ')} } from '${spec}';`;
   const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
   const imports = sf.statements.filter(ts.isImportDeclaration);
+  // A file that already imports values from the safety barrel gains the names there, on the
+  // same line, as long as it still fits the print width.
+  for (const imp of imports) {
+    const named = imp.importClause?.namedBindings;
+    const from = ts.isStringLiteral(imp.moduleSpecifier) && imp.moduleSpecifier.text === spec;
+    if (!from || imp.importClause?.isTypeOnly || !named || !ts.isNamedImports(named)) continue;
+    const merged = `{ ${[...named.elements.map((e) => e.getText(sf)), ...names].join(', ')} }`;
+    const next = `${source.slice(imp.getStart(sf), named.getStart(sf))}${merged}${source.slice(named.getEnd(), imp.getEnd())}`;
+    if (next.includes('\n') || next.length > PRINT_WIDTH) continue;
+    return `${source.slice(0, imp.getStart(sf))}${next}${source.slice(imp.getEnd())}`;
+  }
   if (source.split('\n').length > MAX_LINES) {
-    // The quality ratchet bars growth past MAX_LINES: the import takes a blank line between imports.
-    for (let i = imports.length - 1; i > 0; i--) {
-      const [end, start] = [imports[i - 1]!.getEnd(), imports[i]!.getStart(sf)];
-      if (/^\n[ \t]*\n$/.test(source.slice(end, start)))
-        return `${source.slice(0, end)}\n${line}\n${source.slice(start)}`;
+    // The quality ratchet bars growth past MAX_LINES: the import takes a blank line between
+    // imports, or else the one above the first import (under the file header). Each gap is
+    // whitespace and comments only; a blank line inside a comment is part of the comment, so it
+    // never takes the import. The blank line nearest the next import wins.
+    for (let i = imports.length - 1; i >= 0; i--) {
+      const end = i > 0 ? imports[i - 1]!.getEnd() : 0;
+      const start = imports[i]!.getStart(sf);
+      const comments = [
+        ...(ts.getTrailingCommentRanges(source, end) ?? []),
+        ...(ts.getLeadingCommentRanges(source, end) ?? []),
+      ];
+      const inComment = (at: number) => comments.some((c) => at > c.pos && at < c.end);
+      for (const m of [...source.slice(end, start).matchAll(/\n[ \t]*(?=\n)/g)].reverse()) {
+        const at = end + m.index;
+        if (!inComment(at))
+          return `${source.slice(0, at)}\n${line}${source.slice(at + m[0].length)}`;
+      }
     }
-    throw new Error(`${file} is over ${MAX_LINES} lines with no blank line between imports`);
+    throw new Error(`${file} is over ${MAX_LINES} lines with no blank line around its imports`);
   }
   const at = imports.at(-1)?.getEnd() ?? 0;
   return `${source.slice(0, at)}\n${line}${source.slice(at)}`;
@@ -270,6 +320,8 @@ function main(argv: string[]): number {
     if (!result) continue;
     writeFileSync(file, result.text);
     for (const e of result.edits) console.log(`${file}:${e.line} ${e.text}`);
+    for (const line of result.kept)
+      console.log(`kept ${file}:${line} (would change its crisis readers kind)`);
   }
   return 0;
 }
