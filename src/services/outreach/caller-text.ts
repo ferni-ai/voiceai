@@ -53,9 +53,23 @@ export function callerText(text: string | undefined | null, maxLength = 300): st
  * Not a bare "loan": Loan is a name, and the alert reads it ("my call with Loan, a grand time").
  * "The loan" is still read, as a noun with its determiner.
  */
-const MONEY_VERB = String.raw`(?:pay(?:s|ing)?|paid|owe[sd]?|owing|lend(?:s|ing)?|lent|borrow(?:s|ed|ing)?|loan(?:ed|ing))`;
+const MONEY_VERB = String.raw`(?:owe[sd]?|owing|lend(?:s|ing)?|lent|borrow(?:s|ed|ing)?|loan(?:ed|ing))`;
+/** "Pay" in any inflection: "pay Loan a visit" names a person, so a lone "loan" is not its object. */
+const PAY_VERB = String.raw`(?:pay(?:s|ing)?|paid)`;
 /** What makes a money verb a money request: a sum or a debt as its object. */
 const MONEY_OBJECT = String.raw`(?:loans?|debts?|grand|bucks|quid|money|cash|funds)`;
+/** What makes "pay" a money request: the same, but "loan" only as "loans" (a determiner reads "the loan"). */
+const PAY_OBJECT = String.raw`(?:loans|debts?|grand|bucks|quid|money|cash|funds)`;
+/**
+ * The endings a written link has: every two-letter country ending, and the common generic ones.
+ * Not any word: "riley.jones" or "St.Clair" is a name written with a dot.
+ */
+const LINK_ENDING = String.raw`(?:\p{L}{2}|com|net|org|edu|gov|info|biz|xyz|link|app|dev|shop|store|site|online|web|website|page|blog|tech|live|life|world|today|club|pro|wiki|fun|art|design|studio|space|email|mail|chat|news|media|cloud|host|help|money|pay|cash|bank|finance|fund|loans?|credit|capital|tax|market|trade|exchange|games?|community|social|agency|company|center|network|digital|solutions|services|group|team|works|zone|city|tips|guide|reviews?|photos?|video|music|events|love|gifts?|care|health|house|home|place|ltd|inc|llc|global|plus|top|vip|win|bet|casino|church|school|support|click|download|stream|tickets)`;
+/** A link written with a dot and an ending: riley-help.app, riley.us. */
+const DOTTED_LINK = new RegExp(
+  String.raw`(?<![\p{L}\p{N}.])[\p{L}\p{N}-]{2,}\.${LINK_ENDING}(?![\p{L}\p{N}])`,
+  'iu'
+);
 /** A number said in words; every one of them, so "six grand" is a sum like "two grand". */
 const NUMBER_WORD = String.raw`(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million)`;
 /**
@@ -69,26 +83,57 @@ const AMOUNT = String.raw`(?:\p{Nd}+|few|couple(?: of)?|some|${NUMBER_WORD})`;
  * Digits are any script's (`\p{Nd}`): Arabic-Indic or Vai digits make a number too.
  */
 const RISKY = [
-  /\bhttps?:\/\/|\bwww\.|\b[a-z0-9-]+\.(com|net|org|io|co|me|xyz|link|ly)\b/i,
+  /\bhttps?:\/\/|\b[a-z][a-z0-9+.-]{1,15}:\/\/|\bwww\.|\b[a-z0-9-]+\.(com|net|org|io|co|me|xyz|link|ly)\b/i,
   /(\p{Nd}[\s().-]*){7,}/u, // phone, account or card number
   /[$€£]\s?\p{Nd}|(?<![A-Za-z0-9_])\p{Nd}+\s?(dollars|bucks|usd)\b/iu,
   new RegExp(String.raw`\b${MONEY_VERB}\b[^.!?]{0,30}\b${MONEY_OBJECT}\b`, 'i'), // owes a grand on the loan
+  new RegExp(String.raw`\b${PAY_VERB}\b[^.!?]{0,30}\b${PAY_OBJECT}\b`, 'i'), // paid the debt
   /\b(pay(s|ing)?|paid)\b(\s+\p{L}+)?\s+back\b/iu, // pay me back
   new RegExp(String.raw`(?<![\p{L}\p{N}])${AMOUNT}\s+(?:grand|bucks|quid)\b`, 'iu'), // two grand
-  new RegExp(String.raw`(?<![\p{L}\p{N}])(?:\p{Nd}+|${NUMBER_WORD})\s?k\b`, 'iu'), // 5k, five k
-  /\b(a|the|her|his|my|your|their|our|that|this|some|any|in|into|of|off)\s+(loans?|debts?)\b/i,
+  new RegExp(
+    String.raw`(?<![\p{L}\p{N}])(?:\p{Nd}+|${NUMBER_WORD})\s?k\b(?!-(?!ish\b)\p{L})`,
+    'iu'
+  ), // 5k, five k; not "ten k-drama"
+  /\b(a|the|her|his|my|your|their|our|that|this|some|any)\s+(loans?|debts?)\b/i,
+  /\b(in|into|of|off)\s+(loans|debts?)\b/i, // in debt; not "a friend of Loan"
   /@/, // email or handle
   /[\p{L}\p{N}]_[\p{L}\p{N}]/u, // handle: riley_help
   /\bat\s+(gmail|yahoo|icloud|outlook|hotmail|aol|proton(mail)?)\b/i,
   /\bh[\s.-]+t[\s.-]+t[\s.-]+p|\bw[\s.-]+w[\s.-]+w\b/i, // a link spelled out
-  /(?<![\p{L}\p{N}.])[\p{L}\p{N}-]{2,}\.\p{L}{2,}(?![\p{L}\p{N}])/u, // a link with any ending
+  DOTTED_LINK,
   /\b(wire|venmo|zelle|cash ?app|paypal|gift ?cards?|bitcoin|crypto|bank|routing|account number|credit card|debit card|social security|ssn)\b/i,
   /\b(send|transfer|pay|lend|loan)\b[^.!?]{0,30}\b(money|cash|funds|payment)\b/i,
   /\b(password|passcode|pin|verification code|security code|one-time code|login|log in|credentials?|card numbers?|cvv|cvc)\b/i,
 ];
 
-export function isRiskyCallerText(text: string): boolean {
-  const normalized = callerText(text, 10_000);
+/** A link or an email address in a name: such a name is read as it is written. */
+const NAME_LINK = /\bwww\.|:\/\/|@\s*[\p{L}\p{N}-]+\.\p{L}{2,}/iu;
+
+/**
+ * The text with each mention of a known name (the person the user named, not the caller's
+ * words) written without its punctuation, so "Mary_Ann", "St.Clair" or "Sam @ Work" can't
+ * trip the handle, @ or link rules. Its letters and digits stay, so a name's own word ("Pin",
+ * "Bank") or digit run is read as before. A name holding a link or an email is left as written.
+ */
+function withPlainName(text: string, name: string | undefined): string {
+  const known = callerText(name, 200);
+  const plain = known
+    .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!plain || plain === known || NAME_LINK.test(known) || DOTTED_LINK.test(known)) return text;
+  const escaped = known.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const mention = new RegExp(String.raw`(?<![\p{L}\p{N}])${escaped}(?![\p{L}\p{N}])`, 'giu');
+  return text.replace(mention, ` ${plain} `);
+}
+
+/**
+ * Whether the text holds a link, a number or a request for money, credentials or codes.
+ * `knownName` is the name Ferni writes into its own lines (the family member, the contact):
+ * its punctuation is not read as a handle or a link (withPlainName).
+ */
+export function isRiskyCallerText(text: string, knownName?: string): boolean {
+  const normalized = withPlainName(callerText(text, 10_000), knownName);
   return RISKY.some((pattern) => pattern.test(normalized));
 }
 
@@ -155,12 +200,12 @@ export function screenCallerParts(
   let risky = own(riskyCallerLine(name));
   const saidSafety = own(crisisCallerLine(name));
   let safety = saidSafety || crisis;
-  if (risky || isRiskyCallerText(said)) return { said: '', risky: true, safety };
+  if (risky || isRiskyCallerText(said, name)) return { said: '', risky: true, safety };
   // A crisis-only field the cap doesn't cut stays exactly as it was: their words carry it.
   if (!saidSafety && crisis && crisisRead(cutAtWord(said, maxLength))) safety = false;
   const room = maxLength - (safety ? crisisCallerLine(name).length + 1 : 0);
   said = cutAtWord(said, room);
-  if (isRiskyCallerText(said)) {
+  if (isRiskyCallerText(said, name)) {
     said = '';
     risky = true;
   }
@@ -222,7 +267,7 @@ export function reportedFromCall(name: string | undefined, lines: string[]): str
     const kept = cutAtWord(flat, budget);
     const safety =
       kept.includes(crisisCallerLine(label)) || flat.startsWith(crisisCallerLine(label));
-    const shown = isRiskyCallerText(kept)
+    const shown = isRiskyCallerText(kept, label)
       ? [safety ? crisisCallerLine(label) : '', riskyCallerLine(label)].filter(Boolean).join(' ')
       : kept;
     if (shown) quoted.push(`> ${shown}`);
