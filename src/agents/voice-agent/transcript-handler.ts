@@ -72,8 +72,7 @@ import type { IntegrationResult as VoiceHumanizationIntegration } from '../integ
 import type { UserData } from '../shared/types.js';
 import { heldAfter, memoryHeld } from '../../utils/minor-care.js';
 import { readCallerTurn } from '../personas/sexual-boundary.js';
-import { ownerWriteId } from '../../services/identity/owner-write-gate.js';
-import { isThirdPartyCallUser } from '../../memory/index.js';
+import { ownerWriteId, wordsNeverLogged } from '../../services/identity/owner-write-gate.js';
 import {
   analyzeTurnSignals,
   handleInterruption,
@@ -665,9 +664,9 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     // FINAL TRANSCRIPT PROCESSING
     // ===============================================
     if (event.isFinal && event.transcript) {
-      // 🔍 E2E TRACE: STT complete. Never the words of a called person: they never signed up.
+      // 🔍 E2E TRACE: STT complete. Never the words of a called person or a try-first visitor.
       const sttCompleteTime = Date.now();
-      const said = isThirdPartyCallUser(userId) ? '' : event.transcript;
+      const said = wordsNeverLogged(userId) ? '' : event.transcript;
       log().info(
         {
           trace: 'E2E_USER_INPUT',

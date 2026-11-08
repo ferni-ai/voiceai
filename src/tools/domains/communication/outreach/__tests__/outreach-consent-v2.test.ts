@@ -9,7 +9,6 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ToolDefinition } from '../../../../registry/types.js';
 import { consentUserText, setConsentAsk, type ConsentAsk } from '../consent-judge.js';
 import { cancel, reopenClosed } from '../consent-loop.js';
 import { readBackUserText, setReadBackAsk, vetoed, type ActionFacts } from '../consent-readback.js';
@@ -17,83 +16,20 @@ import {
   confirmationState,
   isClearYes,
   judgeConfirmation,
-  outreachConfirmListeners,
   pendingFor,
-  PLAN_ONLY,
-  withOutreachConfirmation,
   type ConfirmEvent,
-  type ConfirmSpec,
   type PendingAction,
   type SessionLog,
 } from '../outreach-confirm.js';
+import {
+  alwaysReadBack,
+  alwaysYes,
+  DAD,
+  fairJudge,
+  liveCall,
+  sends,
+} from './consent-call-harness.js';
 
-const DAD = '+15551230002';
-const sends: Array<Record<string, unknown>> = [];
-
-const def = (id: string): ToolDefinition => ({
-  id,
-  name: id,
-  description: 'reach someone',
-  domain: 'communication',
-  create: () =>
-    ({
-      execute: async (args: Record<string, unknown>) => {
-        if (PLAN_ONLY in args) return 'plan';
-        sends.push(args);
-        return 'Calling Dad now.';
-      },
-    }) as never,
-});
-const spec = (what: string): ConfirmSpec => ({
-  prepare: async (args) => ({
-    args: { ...args, phoneNumber: DAD },
-    readBack: `${what} to Dad at 555-123-0002, right now`,
-  }),
-});
-
-function liveCall(toolId = 'callOnBehalf', what = 'a call') {
-  const session = { agentState: 'listening' };
-  const on = outreachConfirmListeners(session, () => true);
-  const tool = withOutreachConfirmation(def(toolId), spec(what)).create({
-    userId: 'owner-1',
-    agentId: 'ferni',
-    agentDisplayName: 'Ferni',
-  }) as { execute: (a: unknown, o: unknown) => Promise<unknown> };
-  return {
-    session,
-    /** The model calls the tool; its output then reaches the model. */
-    call: async (callId: string, args: Record<string, unknown> = { contactQuery: 'my dad' }) => {
-      const out = await tool.execute(args, { ctx: { session }, toolCallId: callId });
-      on.onToolsExecuted({ functionCalls: [{ callId }] });
-      return String(out);
-    },
-    owner: (text: string) => on.onTranscript({ transcript: text, isFinal: true }),
-    ownerOver: (text: string) => {
-      session.agentState = 'speaking';
-      on.onTranscript({ transcript: text, isFinal: true });
-      session.agentState = 'listening';
-    },
-    ferni: (text: string) =>
-      on.onItemAdded({ item: { role: 'assistant', type: 'message', textContent: text } }),
-    otherTool: (callId: string) => on.onToolsExecuted({ functionCalls: [{ callId }] }),
-  };
-}
-
-/** A judge that reads the window the way the prompt asks, deterministically. */
-const fairJudge: ConsentAsk = async (_system, input) => {
-  const said = input.split("Owner's reply, in order:")[1].toLowerCase();
-  const textWaiting = input.startsWith('Read-back: a text');
-  if (/\b(call (you|me|us)|check in with me|instead|later|tomorrow|her\b|mom)/.test(said))
-    return '{"verdict":"unclear","reason":"redirect"}';
-  if (textWaiting && /\bcall\b/.test(said)) return '{"verdict":"unclear","reason":"other_channel"}';
-  if (/\b(no|don't|not)\b/.test(said)) return '{"verdict":"no","reason":"declined"}';
-  if (/\b(yes|yeah|yep|okay|sure)\b/.test(said)) return '{"verdict":"yes","reason":"agreed"}';
-  return '{"verdict":"unclear","reason":"off_topic"}';
-};
-const alwaysYes: ConsentAsk = async () => '{"verdict":"yes","reason":"agreed"}';
-
-/** Ferni's turn classifier stubbed to always say read-back: only the vetoes take it away. */
-const alwaysReadBack: ConsentAsk = async () => '{"kind":"readback"}';
 beforeEach(() => setReadBackAsk(alwaysReadBack));
 afterEach(() => {
   setConsentAsk(undefined);
@@ -1619,17 +1555,15 @@ describe('OUTREACH_NO_ANSWERS_READBACK: a no declines, except a no that answers 
     await declines([...steps, ['owner', no]]);
   });
 
-  // A refusal that doesn't open with a no, a no that says more, and a no over Ferni decline too.
+  // Stop, cancel, never mind and don't, a no that says more, and a no over Ferni decline too. A
+  // refusal that opens otherwise ("Forget it.", "I don't want you to.") is read as on main: the
+  // judge's no declines, else Ferni asks once (outreach-refusal-and-split-crisis.test.ts).
   const REFUSALS = [
     'Stop.',
     'STOP',
     'Cancel.',
     'Never mind.',
     "Don't.",
-    'Forget it.',
-    'Actually, forget about it.',
-    'I changed my mind.',
-    "I don't want you to.",
     "No, I'm just checking.",
     'Nah.',
     'No way.',
