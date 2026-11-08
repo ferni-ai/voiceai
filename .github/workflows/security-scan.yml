@@ -186,12 +186,8 @@ jobs:
           fetch-depth: 0
 
       - name: Install Gitleaks
-        run: |
-          # Get the latest release tag dynamically instead of hardcoding version
-          GITLEAKS_VERSION=$(curl -sI https://github.com/gitleaks/gitleaks/releases/latest | grep -i '^location:' | sed 's|.*/v||;s/\r//')
-          echo "Installing gitleaks v${GITLEAKS_VERSION}"
-          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar xz -C /usr/local/bin gitleaks
-          gitleaks version
+        # The same pinned, checksummed install as the required Security Scan in ci.yml.
+        uses: ./.github/actions/install-gitleaks
         continue-on-error: true
 
       - name: Run Gitleaks

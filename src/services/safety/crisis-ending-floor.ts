@@ -11,7 +11,7 @@ import {
   ENDING_IDIOMS,
   ENDING_IDIOM_BEFORE,
   FIRST_PERSON_ENDING,
-} from './crisis-patterns.js';
+} from './crisis-ending-patterns.js';
 
 const lastBreak = (text: string, at: number): number =>
   Math.max(...['.', '!', '?', ';'].map((c) => text.lastIndexOf(c, at)));
