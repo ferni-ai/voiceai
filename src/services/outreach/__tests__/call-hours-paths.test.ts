@@ -62,6 +62,7 @@ const { createCallOnBehalfTool } =
   await import('../../../tools/domains/telephony/call-on-behalf.js');
 const { executeDueDeferredCalls } = await import('../deferred-calls.js');
 const { scheduleProactiveCall } = await import('../conversational-calls.js');
+const { callUserAdapter } = await import('../call-user-adapter.js');
 
 const ELEVEN_PM_LA = new Date('2026-10-14T06:00:00Z'); // Tue 23:00 in Los Angeles
 const TEN_AM_LA = new Date('2026-10-13T17:00:00Z'); // Tue 10:00 in Los Angeles
@@ -186,6 +187,44 @@ describe('proactive call to the user', () => {
     await scheduleProactiveCall(request);
     expect(deferred()).toHaveLength(0);
     expect(placed()).toHaveLength(1);
+  });
+
+  // A crisis text that says "call me" rings now, whatever the hours (Seth, 2026-11-06).
+  describe('"call me" texted at 11pm their time', () => {
+    const callMe = {
+      userId: 'u1',
+      phoneNumber: '+12125550100',
+      message: 'You texted',
+      personaId: 'ferni',
+    };
+    beforeEach(() => {
+      contactInfo.mockResolvedValue({ timezone: 'America/Los_Angeles' });
+      vi.setSystemTime(ELEVEN_PM_LA);
+    });
+
+    it('in a crisis text: rings now, nothing deferred', async () => {
+      const result = await callUserAdapter.call({ ...callMe, crisis: true });
+      // It went to the dial now (this fake has no Twilio, so the dial says so), not to 9:00.
+      expect(result).toMatchObject({ error: 'Twilio not configured' });
+      expect(result).not.toMatchObject({ status: 'scheduled' });
+      expect(deferred()).toHaveLength(0);
+      expect(placed()).toHaveLength(1);
+    });
+
+    it('in an ordinary text: still waits for 9:00 there', async () => {
+      expect(await callUserAdapter.call(callMe)).toMatchObject({ status: 'scheduled' });
+      expect(placed()).toHaveLength(0);
+      expect(deferred()[0].data).toMatchObject({
+        kind: 'proactive',
+        scheduledFor: NINE_AM_LA_NEXT,
+      });
+    });
+
+    it('a crisis mark set by the request text alone does nothing: only the adapter marks it', async () => {
+      const looksUrgent = { ...request, reason: 'crisis call me now' };
+      expect(await scheduleProactiveCall(looksUrgent)).toMatchObject({ status: 'scheduled' });
+      expect(placed()).toHaveLength(0);
+    });
   });
   describe('QUIET_HOURS_FROM_PREFS: quiet hours saved in the menu, 19:00 to 09:30', () => {
     const SEVEN_THIRTY_PM_LA = new Date('2026-10-14T02:30:00Z'); // Tue 19:30 LA, in call hours
