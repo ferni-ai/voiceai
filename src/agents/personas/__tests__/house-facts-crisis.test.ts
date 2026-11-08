@@ -10,7 +10,7 @@ import { ReadableStream } from 'node:stream/web';
 import { describe, expect, it } from 'vitest';
 
 import { generateCrisisResponse } from '../../../services/safety/crisis-response.js';
-import { SAFETY_CRISIS_RESOURCES } from '../../../services/safety/index.js';
+import { SAFETY_CRISIS_RESOURCES, crisisLines } from '../../../services/safety/index.js';
 import {
   CRISIS_RESOURCES,
   definitions as crisisTools,
@@ -49,6 +49,19 @@ const contacts = Object.values(CRISIS_RESOURCES).flatMap((r) =>
     (c): c is string => Boolean(c)
   )
 );
+
+const phoneOf = new Map(
+  Object.entries(crisisLines).map(([key, line]) => [key, 'phone' in line ? line.phone : ''])
+);
+/**
+ * The numbers a source prints through crisisLines ("crisisLines.X.phone"). A key crisisLines does
+ * not have (a typo, or a prototype name like "constructor"), a line with no phone, and any other
+ * field (".name") add nothing.
+ */
+const referencedPhones = (text: string): string[] =>
+  [...text.matchAll(/\bcrisisLines\.(\w+)\.phone\b/gu)]
+    .map((m) => phoneOf.get(m[1] ?? '') ?? '')
+    .filter(Boolean);
 
 const ctx = {
   userId: 'u',
@@ -202,12 +215,37 @@ describe('coaching tools: helplines come from the static set, never from their o
     expect(await spoken('Call 727-555-0123.', items)).toContain("can't vouch");
   });
 
+  it.each([
+    ['crisisLines.SUBSTANCE_HELPLINE.phone', ['1-800-662-4357']],
+    ['`Call ${crisisLines.ELDERCARE_LOCATOR.phone} today`', ['1-800-677-1116']],
+    ['crisisLines.SUBSTANCE_HELPLIN.phone (misspelled key)', []],
+    ['crisisLines.NO_SUCH_LINE.phone (key crisisLines lacks)', []],
+    ['crisisLines.constructor.phone (prototype name)', []],
+    ['crisisLines.CRISIS_TEXT_LINE.phone (line with no phone)', []],
+    ['crisisLines.SUBSTANCE_HELPLINE.name', []],
+    ['crisisLines.SUBSTANCE_HELPLINE.phoneLabel', []],
+  ])('crisisLines references resolve: %s', (text, numbers) => {
+    expect(referencedPhones(text)).toEqual(numbers);
+  });
+
   it("every 1-8xx number the coaching tools' own text prints is in the static set", async () => {
     const sources = ['new-parent', 'caregiver', 'sobriety', 'trauma-support'].map((dir) =>
       readFileSync(new URL(`../../../tools/domains/${dir}/index.ts`, import.meta.url), 'utf8')
     );
-    const dialled = new Set(sources.join('\n').match(/1-8\d\d-\d{3}-\d{4}/gu) ?? []);
-    expect(dialled.size).toBeGreaterThanOrEqual(4);
+    const text = sources.join('\n');
+    // A number the codemod moved onto crisisLines is printed from there ("crisisLines.X.phone").
+    const dialled = new Set(
+      [...(text.match(/1-8\d\d-\d{3}-\d{4}/gu) ?? []), ...referencedPhones(text)].filter((n) =>
+        /^1-8\d\d-\d{3}-\d{4}$/u.test(n)
+      )
+    );
+    // Main's set before the move, pinned so a swapped or dropped number fails.
+    expect([...dialled].sort()).toEqual([
+      '1-800-662-4357',
+      '1-800-677-1116',
+      '1-800-944-4773',
+      '1-855-227-3640',
+    ]);
     for (const number of dialled) expect(await spoken(`Call ${number}.`)).toBe(`Call ${number}.`);
   });
 });

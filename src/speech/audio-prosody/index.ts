@@ -31,7 +31,7 @@ export type {
 // MAIN ANALYZER
 // ============================================================================
 
-export { AudioProsodyAnalyzer, default } from './analyzer.js';
+export { AudioProsodyAnalyzer, default, NATIVE_VOICE_QUALITY } from './analyzer.js';
 
 // ============================================================================
 // SESSION MANAGEMENT

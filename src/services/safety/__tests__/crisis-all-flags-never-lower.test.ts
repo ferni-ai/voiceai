@@ -387,6 +387,8 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   CRISIS_READ_JOINED_TURN: 'src/agents/personas/__tests__/crisis-read-joined-turn.test.ts',
   CRISIS_SAME_CALL_NOTE_FADES: 'src/agents/multi-agent/__tests__/call-report-after-crisis.test.ts',
   CRISIS_TRANSFER_EVERYDAY: 'src/services/safety/__tests__/crisis-transfer-request.test.ts',
+  // The typed agent chat's prompt; its crisis read runs first either way (chat-routes-crisis).
+  CUSTOM_AGENT_CHAT_HONESTY: 'src/api/custom-agent/__tests__/chat-routes.test.ts',
   DATES_IN_HELLO: 'src/agents/multi-agent/__tests__/greeting-date-arbiter.test.ts',
   EOT_CONTINUED_MERGE: 'src/agents/personas/__tests__/late-words.test.ts',
   // Read by deep-extraction-worker.ts: adds one subject rule to the fact prompt, nothing dropped.
@@ -429,6 +431,8 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   REPAIR_MODE: 'src/agents/personas/__tests__/repair-check.test.ts',
   REQUIRE_FIX_VOICE: 'src/agents/voice-agent/__tests__/echo-window-esm.test.ts',
   SEXUAL_TOPIC_BOUNDARY: 'src/agents/personas/__tests__/sexual-boundary-call-end.test.ts',
+  // Off, repair advice says to call EMERGENCY_NUMBER for an electrical fire; on, it isn't served.
+  SMART_HOME_LIFX: 'src/tools/domains/smart-home/__tests__/lifx-repair-advice-crisis-line.test.ts',
   SMS_CRISIS_SCREEN: 'src/services/outreach/__tests__/sms-crisis-screen.test.ts',
   SPEAK_988_DIGITS: 'src/services/safety/__tests__/crisis-line-speech.test.ts',
   TEAMMATE_TALK_FILTER: 'src/utils/__tests__/teammate-talk.test.ts',

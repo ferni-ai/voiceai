@@ -13,6 +13,7 @@
  */
 import type { IncomingMessage, ServerResponse } from 'http';
 import { flagOn } from '../../config/env-flag.js';
+import type * as CrisisGateText from '../../agents/personas/crisis-gate-text.js';
 import { callLLM } from '../../services/llm-utils.js';
 import {
   buildLiveCustomAgentPrompt,
@@ -25,6 +26,13 @@ import type { CustomAgent } from '../../types/custom-agent-api.js';
 import { parseBody } from '../helpers.js';
 import { sendJson } from './helpers.js';
 import { generateSystemPrompt } from './prompt-routes.js';
+
+// The voice crisis gate, loaded when a chat arrives rather than with this module: its graph
+// reaches the memory store, which light importers of these routes (the web app's contract
+// tests) can't resolve. The server has it loaded already through journal-routes.ts.
+async function loadCrisisGateText(): Promise<typeof CrisisGateText> {
+  return import('../../agents/personas/crisis-gate-text.js');
+}
 
 export interface ChatTurn {
   from: 'person' | 'agent';
@@ -108,13 +116,28 @@ export async function handleAgentChat(
     sendJson(res, 400, { error: 'A message or a scene is needed' });
     return true;
   }
+  // The voice turn's crisis gate, before the agent is read or the model asked. The scene
+  // holds the person's own typing too (a coaching context, a custom roleplay setting), so
+  // it is read as their turn: their opening words when there's no message, else their first.
+  const { readTypedMessageForCrisis } = await loadCrisisGateText();
+  const opening = !request.message;
+  const sceneTurn: ChatTurn[] = request.scene ? [{ from: 'person', text: request.scene }] : [];
+  const crisis = opening
+    ? await readTypedMessageForCrisis(request.scene, request.history)
+    : await readTypedMessageForCrisis(request.message, [...sceneTurn, ...request.history]);
+  if (crisis.action === 'replace') {
+    sendJson(res, 200, { reply: crisis.reply, crisis: true });
+    return true;
+  }
   const agent = await getCustomAgent(userId, agentId);
   if (!agent) {
     sendJson(res, 404, { error: 'Agent not found' });
     return true;
   }
   const reply = await callLLM(
-    buildAgentChatPrompt(agent, request.history, request.message, request.scene),
+    opening
+      ? buildAgentChatPrompt(agent, request.history, '', crisis.message)
+      : buildAgentChatPrompt(agent, request.history, crisis.message, request.scene),
     { maxTokens: 400, temperature: 0.8 }
   );
   if (!reply?.trim()) {

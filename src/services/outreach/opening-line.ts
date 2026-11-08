@@ -11,10 +11,17 @@
  * @module services/outreach/opening-line
  */
 
-import { ferniIntro, realName } from '../../utils/ferni-intro.js';
+import {
+  ferniIntro,
+  nameAndRelation,
+  openerSponsorName,
+  opensByFirstName,
+} from '../../utils/ferni-intro.js';
+import type { Env } from '../../config/env-flag.js';
 
-// The identity text itself lives below the tools, so makePhoneCall says it too (utils/ferni-intro.ts)
-export { ferniIntro };
+// The identity text and who is named by first name live below the tools, so makePhoneCall and
+// callOnBehalf use them too (utils/ferni-intro.ts)
+export { ferniIntro, nameAndRelation };
 
 /** Who is on an on-behalf call: the person Ferni phoned, and who asked. */
 export interface OutboundParties {
@@ -35,49 +42,27 @@ export interface OutboundParties {
   checkin?: boolean;
 }
 
-/** Contact names that say who someone is to the user, not what they are called. */
-const RELATIONS = new Set(
-  `mom mum mother mama momma dad father papa sister sis brother bro grandma grandmother granny
-  nana grandpa grandfather granddad wife husband partner son daughter aunt auntie uncle cousin
-  niece nephew stepmom stepmother stepdad stepfather stepson stepdaughter boyfriend girlfriend
-  fiance fiancee`.split(/\s+/)
-);
-
-/**
- * A saved contact name as the person's name and what they are to the user:
- * "Linda" is a name, "Mom" (or "my mom") only a relation, "Mom (Linda)" both.
- * Prod 2026-10-18: a contact saved as "mom" was greeted "Hi mom".
- */
-export function nameAndRelation(saved: string | undefined): { name?: string; relation?: string } {
-  let name: string | undefined;
-  let relation: string | undefined;
-  for (const part of (saved ?? '').split(/[(),/]|\s[-–]\s/)) {
-    const word = part
-      .trim()
-      .toLowerCase()
-      .replace(/^my\s+/, '');
-    if (RELATIONS.has(word)) relation ??= word;
-    else name ??= realName(part);
-  }
-  return { name, relation };
-}
-
 /** The parties of a call, from the outbound call context's fields. */
-export function partiesOf(call: {
-  recipientName?: string;
-  userName?: string;
-  callType?: string;
-  openingLine?: string;
-  kind?: string;
-}): OutboundParties {
+export function partiesOf(
+  call: {
+    recipientName?: string;
+    userName?: string;
+    callType?: string;
+    openingLine?: string;
+    kind?: string;
+  },
+  env: Env = process.env
+): OutboundParties {
   const { name, relation } = nameAndRelation(call.recipientName);
+  const personal = call.callType === 'personal';
+  const checkin = call.kind === 'family_checkin';
   return {
     recipientName: name,
     ...(relation && { relation }),
-    sponsorName: realName(call.userName),
-    personal: call.callType === 'personal',
+    sponsorName: openerSponsorName(call.userName, opensByFirstName(call), env),
+    personal,
     openingLine: call.openingLine,
-    ...(call.kind === 'family_checkin' && { checkin: true }),
+    ...(checkin && { checkin: true }),
   };
 }
 
