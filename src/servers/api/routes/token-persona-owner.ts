@@ -7,7 +7,7 @@
  */
 
 import { flagOn, type Env } from '../../../config/env-flag.js';
-import { isKnownId, toCanonical } from '../../../personas/index.js';
+import { ALIAS_TO_CANONICAL } from '../../../personas/index.js';
 import {
   FALLBACK_PERSONA_ID,
   personaForCaller,
@@ -27,5 +27,9 @@ export async function demoPersonaFor(url: URL, env: Env = process.env): Promise<
     undefined
   );
   if (!flagOn('DEMO_TOKEN_CORE_PERSONAS_ONLY', env)) return personaId;
-  return isKnownId(personaId) ? toCanonical(personaId) : FALLBACK_PERSONA_ID;
+  const id = personaId.toLowerCase();
+  // Main's prompt loader bundles `joel` as joel-dickson; the shared alias table doesn't list it.
+  if (id === 'joel') return 'joel-dickson';
+  // An own key only: `in` would let `__proto__` or `constructor` through as an object.
+  return Object.hasOwn(ALIAS_TO_CANONICAL, id) ? ALIAS_TO_CANONICAL[id] : FALLBACK_PERSONA_ID;
 }

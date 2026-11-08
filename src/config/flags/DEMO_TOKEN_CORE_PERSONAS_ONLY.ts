@@ -8,5 +8,5 @@ export const DEMO_TOKEN_CORE_PERSONAS_ONLY = {
   expires: '2027-02-05',
   issue: 'https://github.com/ferni-ai/voiceai/issues/3595',
   context:
-    'Stopgap until every persona prompt carries the crisis line; then delete, or make it permanent if demos stay core-only.',
+    'Stopgap until every persona prompt carries the core safety rules; then delete, or make it permanent if demos stay core-only.',
 } as const satisfies FlagSpec;

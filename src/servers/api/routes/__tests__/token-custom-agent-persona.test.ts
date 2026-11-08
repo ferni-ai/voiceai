@@ -72,6 +72,15 @@ vi.mock('../../../token/demo-rate-limit.js', () => ({
 
 const { handleTokenRoutes } = await import('../token.js');
 
+const PROTOTYPE_KEYS = [
+  '__proto__',
+  '__PROTO__',
+  'constructor',
+  'toString',
+  'hasOwnProperty',
+  'valueOf',
+];
+
 async function request(path: '/token' | '/demo-token', personaId?: string): Promise<number> {
   const url = new URL(`http://localhost${path}?room=voice-1&username=Sam&device_id=d1`);
   if (personaId !== undefined) url.searchParams.set('persona_id', personaId);
@@ -162,5 +171,23 @@ describe('/demo-token with DEMO_TOKEN_CORE_PERSONAS_ONLY', () => {
     vi.stubEnv('DEMO_TOKEN_CORE_PERSONAS_ONLY', state);
     await request('/demo-token');
     expect(dispatchedPersona()).toBe('ferni');
+  });
+  // The prompt each one then gets is pinned in token-demo-persona.test.ts.
+  it.each(PROTOTYPE_KEYS)('on: %s is sent as Ferni', async (id) => {
+    vi.stubEnv('DEMO_TOKEN_CORE_PERSONAS_ONLY', 'on');
+    expect(await request('/demo-token', id)).toBe(200);
+    expect(dispatchedPersona()).toBe('ferni');
+  });
+
+  it.each(PROTOTYPE_KEYS)('off: %s passes through as the same string as on main', async (id) => {
+    vi.stubEnv('DEMO_TOKEN_CORE_PERSONAS_ONLY', 'off');
+    expect(await request('/demo-token', id)).toBe(200);
+    expect(dispatchedPersona()).toBe(id);
+  });
+
+  it('on: joel goes where main sends it, joel-dickson', async () => {
+    vi.stubEnv('DEMO_TOKEN_CORE_PERSONAS_ONLY', 'on');
+    await request('/demo-token', 'joel');
+    expect(dispatchedPersona()).toBe('joel-dickson');
   });
 });
