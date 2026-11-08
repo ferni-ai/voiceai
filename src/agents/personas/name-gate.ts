@@ -210,8 +210,13 @@ export function mayUseName(items: readonly HistoryItem[], name: string, v2 = fal
   return since >= NAME_EVERY;
 }
 
+/** A clipped vocative; `eatsSpace`: the space before the name went out, so a dropped one also takes the spaces after it as they arrive. */
+type Clip = Vocative & { eatsSpace?: true };
+/** An `eatsSpace` clip, stretched over the spaces that have arrived after it since (a kept one is said verbatim). */
+const withSpacesAfter = (c: Clip, raw: string): Clip =>
+  c.eatsSpace ? { ...c, end: c.end + (raw.slice(c.end).match(/^\s*/)?.[0].length ?? 0) } : c;
 /** A vocative that starts in text already sent (raw[0, sentRaw)): drop only what is still to come. */
-function clipVocative(v: Vocative, raw: string, sentRaw: number, split: boolean): Vocative | null {
+function clipVocative(v: Vocative, raw: string, sentRaw: number, split: boolean): Clip | null {
   if (v.nameAt < sentRaw) return null; // the name went out: it stays
   // Only the name and the spaces right before it can still go; letters before it went out as said.
   const spaces = raw.slice(0, v.nameAt).match(/\s*$/)?.[0].length ?? 0;
@@ -226,7 +231,10 @@ function clipVocative(v: Vocative, raw: string, sentRaw: number, split: boolean)
   // "Hey"/"Oh" went out: "Hey, how" (space still to come) or "Hey how" (it went too).
   if (v.capNext || /\b(?:hey|hi|hiya|hello|oh)\s+$/i.test(raw.slice(0, v.nameAt))) {
     const tail = raw.slice(v.nameEnd).match(/^(?:\s*[,—–;:])?\s*/)?.[0].length ?? 0;
-    return { ...plain, end: spaceSent ? v.nameEnd + tail : v.nameEnd };
+    // "Hey " + "Sam," + " morning": the space after the comma comes later (#1521).
+    return spaceSent
+      ? { ...plain, end: v.nameEnd + tail, eatsSpace: true }
+      : { ...plain, end: v.nameEnd };
   }
   // ", Sam." after the comma went out: the name goes, the comma stays ("something,?").
   return { ...plain, end: v.nameEnd };
@@ -266,7 +274,7 @@ export function withNameGate(
   let helloSentRaw = 0;
   /** Vocatives settled so far, by where the name starts: what is dropped, and whether it stays. */
   /** undefined: as found; null: the name went out, nothing to drop; else the clipped stretch. */
-  const decided = new Map<number, { keep: boolean; clipped: Vocative | null | undefined }>();
+  const decided = new Map<number, { keep: boolean; clipped: Clip | null | undefined }>();
   let keptOne = false;
   let template: Chunk | null = null;
   let held = 0;
@@ -326,7 +334,7 @@ export function withNameGate(
         // Clipped ones keep the stretch they were clipped to; others are as found
         // (their stretch may still take in the spaces after it).
         if (d.clipped === undefined) found.push(v);
-        else if (d.clipped) found.push(d.clipped);
+        else if (d.clipped) found.push(withSpacesAfter(d.clipped, raw));
         continue;
       }
       // NAME_FALLING_SPLIT: a held hello waits only for a name with a comma or dash after it.
