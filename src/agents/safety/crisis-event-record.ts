@@ -7,7 +7,8 @@
  * - No alert: nothing goes to Slack or anyone else (Seth, 2026-10-25).
  * - Once per call. Every check runs on a later tick, caught: it can never touch the reply.
  * - Not for a non-member id (nobody could delete or export it) nor a MINOR_CARE-held caller
- *   (nothing personal is kept). The script is spoken either way. shadow: logged only.
+ *   (nothing personal is kept). A try-first visitor still gets it (careHeld): it holds no
+ *   words. The script is spoken either way. shadow: logged only.
  *
  * @module agents/safety/crisis-event-record
  */
@@ -17,7 +18,7 @@ import { flagModeOf } from '../../config/env-flag.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import type { CrisisSeverity, CrisisType } from '../../services/safety/crisis-detection.js';
 import type { CrisisReader } from '../../services/safety/index.js';
-import { writeHeld } from '../../utils/minor-care.js';
+import { careHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'crisis-event-record' });
@@ -90,7 +91,7 @@ function recordOnce(session: unknown, reader: CrisisReader, kind?: CrisisEventKi
   if (!ids.sessionId || recordedCalls.has(ids.sessionId)) return;
   const at = { sessionId: ids.sessionId, reader };
   if (!isMemberIdentity(ids.userId)) return log.info(at, 'Crisis event skipped: no member id');
-  if (writeHeld(ids.userId, ids.sessionId)) return log.info(at, 'Crisis event skipped: MINOR_CARE');
+  if (careHeld(ids.userId, ids.sessionId)) return log.info(at, 'Crisis event skipped: MINOR_CARE');
   recordedCalls.add(ids.sessionId);
   if (recordedCalls.size > MAX_CALLS) recordedCalls.delete(recordedCalls.values().next().value!);
   const { crisisType, severity } = kind ?? { crisisType: 'suicidal_ideation', severity: 'high' };
