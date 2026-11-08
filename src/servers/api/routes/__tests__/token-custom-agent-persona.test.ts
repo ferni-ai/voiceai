@@ -1,10 +1,12 @@
 /**
  * A token's persona_id may name a custom agent only if the caller owns it;
- * otherwise the room is dispatched with Ferni.
+ * otherwise the room is dispatched with Ferni. With DEMO_TOKEN_CORE_PERSONAS_ONLY
+ * on, /demo-token also keeps only built-in personas.
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ALL_CANONICAL_IDS } from '../../../../personas/persona-ids.js';
 
 const createRoomWithAgent = vi.fn();
 vi.mock('../../../token/livekit.js', () => ({
@@ -70,10 +72,9 @@ vi.mock('../../../token/demo-rate-limit.js', () => ({
 
 const { handleTokenRoutes } = await import('../token.js');
 
-async function request(path: '/token' | '/demo-token', personaId: string): Promise<number> {
-  const url = new URL(
-    `http://localhost${path}?room=voice-1&username=Sam&device_id=d1&persona_id=${personaId}`
-  );
+async function request(path: '/token' | '/demo-token', personaId?: string): Promise<number> {
+  const url = new URL(`http://localhost${path}?room=voice-1&username=Sam&device_id=d1`);
+  if (personaId !== undefined) url.searchParams.set('persona_id', personaId);
   const req = {
     method: 'GET',
     headers: { authorization: 'Bearer firebase-id-token' },
@@ -116,6 +117,50 @@ describe('persona_id that names a custom agent', () => {
 
   it('a demo (no one signed in) never gets a custom agent', async () => {
     await request('/demo-token', 'agent_1_mine');
+    expect(dispatchedPersona()).toBe('ferni');
+  });
+});
+
+describe('/demo-token with DEMO_TOKEN_CORE_PERSONAS_ONLY', () => {
+  beforeEach(() => {
+    createRoomWithAgent.mockReset();
+    createRoomWithAgent.mockResolvedValue({ roomReady: true, agentDispatched: true });
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('on: an id that is not a built-in persona is not dispatched; the demo is with Ferni', async () => {
+    vi.stubEnv('DEMO_TOKEN_CORE_PERSONAS_ONLY', 'on');
+    expect(await request('/demo-token', 'test-companion')).toBe(200);
+    expect(dispatchedPersona()).toBe('ferni');
+  });
+
+  it.each([...ALL_CANONICAL_IDS])(
+    'on: built-in persona %s passes through unchanged',
+    async (id) => {
+      vi.stubEnv('DEMO_TOKEN_CORE_PERSONAS_ONLY', 'on');
+      await request('/demo-token', id);
+      expect(dispatchedPersona()).toBe(id);
+    }
+  );
+
+  it('on: an alias of a built-in persona is sent as its canonical id', async () => {
+    vi.stubEnv('DEMO_TOKEN_CORE_PERSONAS_ONLY', 'on');
+    await request('/demo-token', 'maya');
+    expect(dispatchedPersona()).toBe('maya-santos');
+  });
+
+  it.each([
+    ['off', 'off'],
+    ['unset', undefined],
+  ])('%s: any id passes through, as on main', async (_label, state) => {
+    vi.stubEnv('DEMO_TOKEN_CORE_PERSONAS_ONLY', state);
+    await request('/demo-token', 'test-companion');
+    expect(dispatchedPersona()).toBe('test-companion');
+  });
+
+  it.each(['on', 'off'])('%s: no persona_id gives the default, Ferni', async (state) => {
+    vi.stubEnv('DEMO_TOKEN_CORE_PERSONAS_ONLY', state);
+    await request('/demo-token');
     expect(dispatchedPersona()).toBe('ferni');
   });
 });

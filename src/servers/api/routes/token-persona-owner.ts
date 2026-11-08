@@ -6,6 +6,8 @@
  * @module servers/api/routes/token-persona-owner
  */
 
+import { flagOn, type Env } from '../../../config/env-flag.js';
+import { isKnownId, toCanonical } from '../../../personas/index.js';
 import {
   FALLBACK_PERSONA_ID,
   personaForCaller,
@@ -13,7 +15,17 @@ import {
 
 export { FALLBACK_PERSONA_ID, personaForCaller };
 
-/** /demo-token's persona: its persona_id (default Ferni), with no signed-in caller. */
-export function demoPersonaFor(url: URL): Promise<string> {
-  return personaForCaller(url.searchParams.get('persona_id') || FALLBACK_PERSONA_ID, undefined);
+/**
+ * /demo-token's persona: its persona_id (default Ferni), with no signed-in caller.
+ * DEMO_TOKEN_CORE_PERSONAS_ONLY on: a built-in persona id or alias (persona-ids.ts)
+ * becomes its canonical id and anything else becomes Ferni, because a demo with
+ * another id starts on a generic stand-in prompt.
+ */
+export async function demoPersonaFor(url: URL, env: Env = process.env): Promise<string> {
+  const personaId = await personaForCaller(
+    url.searchParams.get('persona_id') || FALLBACK_PERSONA_ID,
+    undefined
+  );
+  if (!flagOn('DEMO_TOKEN_CORE_PERSONAS_ONLY', env)) return personaId;
+  return isKnownId(personaId) ? toCanonical(personaId) : FALLBACK_PERSONA_ID;
 }
