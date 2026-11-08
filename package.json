@@ -267,6 +267,7 @@
     "quality:dead-code": "npx tsx apps/cli/src/commands/quality/knip-ratchet.ts",
     "quality:knip": "npx tsx apps/cli/src/commands/quality/knip-ratchet.ts",
     "quality:firestore": "npx tsx scripts/check-unsafe-firestore.ts",
+    "quality:comms-types": "npx tsx scripts/check-comms-types.ts",
     "audit:bth": "npx tsx scripts/audit-better-than-human.ts",
     "ops:ttl-cleanup": "npx tsx src/services/data-layer/ttl-cleanup.ts",
     "ops:ttl-cleanup:dry-run": "DRY_RUN=true npx tsx src/services/data-layer/ttl-cleanup.ts",
