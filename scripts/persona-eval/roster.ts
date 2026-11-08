@@ -32,3 +32,18 @@ export function personaNames(id: string, repo = REPO): string[] {
   ) as { identity: { name: string } };
   return manifest.identity.name.split(/\s+/).filter(Boolean);
 }
+
+/**
+ * One paragraph on how the persona is with people: the first paragraph of
+ * "## How you are with people" in the bundle's identity/character.md.
+ */
+export function personaParagraph(id: string, repo = REPO): string {
+  const md = readFileSync(join(bundleDir(repo, id), 'identity/character.md'), 'utf8');
+  const section = md.split(/^## How you are with people\s*$/m)[1]?.split(/^## /m)[0] ?? '';
+  const paragraph = section
+    .trim()
+    .split(/\n\s*\n/)[0]
+    ?.trim();
+  if (!paragraph) throw new Error(`${id}: character.md has no "How you are with people" paragraph`);
+  return paragraph.replace(/\s+/g, ' ');
+}
