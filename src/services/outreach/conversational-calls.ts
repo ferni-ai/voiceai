@@ -20,7 +20,7 @@ import { heldSender } from './checkin-replies.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
 import { calleeCallHold, callHoursRecipients, holdForCallees } from './call-hours-recipient.js';
 import { placeLiveAgentCall, ringsWithLiveAgent } from './live-agent-call.js';
-import { carryOwnCallMe, heldCall, isCrisisCallMe } from './held-call.js';
+import { carryOwnCallMe, heldCall, markedCrisisCallMe } from './held-call.js';
 import { deferredCallRequest, pausedCall } from './outreach-pause.js';
 import { toTwilioSsml } from './twilio-ssml.js';
 import { twilioCallbackUrl } from './webhooks/twilio-callback-url.js';
@@ -185,7 +185,7 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     // Outside callee hours (CALL_HOURS_GUARD=on) it waits; a crisis text's "call me" never does.
     const held = await callHoursRecipients(userId, normalizedPhone, request.toContact);
     const call = { kind: 'proactive' as const, request: deferredCallRequest(request) };
-    const hoursApply = requestedFor <= new Date() && !isCrisisCallMe(request);
+    const hoursApply = requestedFor <= new Date() && !markedCrisisCallMe(request);
     const deferral = hoursApply && (await holdForCallees(userId, call, held));
     if (deferral) return { success: true, callId: deferral.id, status: 'scheduled' };
     // The guard covers quiet hours, in the callee's own time zone. calleeCallHold reads

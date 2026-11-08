@@ -37,8 +37,11 @@ export function asCrisisCallMe<T extends object>(request: T): T {
   return request;
 }
 
-/** A crisis text's "call me" (asCrisisCallMe): calling hours do not apply. */
-export const isCrisisCallMe = (call: object): boolean => crisisCallMe.has(call);
+/**
+ * Tag lookup only, not a crisis read: call-user-adapter.ts marked this call (asCrisisCallMe)
+ * because sms-crisis-screen.ts read the text as a crisis, so calling hours do not apply.
+ */
+export const markedCrisisCallMe = (call: object): boolean => crisisCallMe.has(call);
 
 /** The call built from `from` (the scheduled record) keeps its mark, in this process only. */
 export function carryOwnCallMe(from: object, to: object): void {
