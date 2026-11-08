@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 
 import { crisisRead } from '../../outreach/caller-text.js';
 import { applyClassifierVerdict, detectCrisis, guardFromDetection } from '../crisis-guard.js';
-import { EMERGENCY_FOR_THEM } from '../crisis-guard-replies.js';
+import { EMERGENCY_FOR_THEM, IN_DANGER_NOW } from '../crisis-guard-replies.js';
 
 /** Each shape, said about she / he / they / my mom / my brother (and other relatives). */
 const SHAPES: Record<string, string[]> = {
@@ -277,19 +277,23 @@ describe('third-person reported crisis (#3345)', () => {
       }
     });
 
-    it("a frightened voice that makes it the caller's own turn keeps 988", () => {
+    it("a frightened voice beside the caller's own words set aside: 911 for them, then 988", () => {
       const line = "my dad collapsed and isn't breathing. I'm not going to end my life";
       const voice = { primary: 'distressed', intensity: 0.9, confidence: 0.9 };
       for (const read of [
         detectCrisis(line, voice),
         detectCrisis(line, voice, { recentMessages: [OPENER] }),
       ]) {
-        expect(read.subject).toBe('self');
+        // Still their emergency, and the caller check adds the caller's own 988 line after it.
+        expect(read.subject).toBe('third_party');
         expect(read.indicators).toContain('third_party_emergency');
         const guard = guardFromDetection(read);
         expect(guard.shouldBlock).toBe(true);
-        expect(guard.replacementResponse).not.toBe(EMERGENCY_FOR_THEM);
-        expect(guard.replacementResponse).toContain('988');
+        const reply = guard.replacementResponse ?? '';
+        expect(reply.startsWith(EMERGENCY_FOR_THEM)).toBe(true);
+        expect(reply).toContain('988');
+        expect(reply.indexOf('911')).toBeLessThan(reply.indexOf('988'));
+        expect(reply).not.toContain(IN_DANGER_NOW);
       }
     });
 

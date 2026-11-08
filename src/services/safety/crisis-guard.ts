@@ -10,7 +10,8 @@
  *    - implicit (0.6): hopelessness, burdensomeness, withdrawal; two distinct
  *      implicit signals in one message, or one after earlier distress in the
  *      session, count as passive
- *    Voice distress amplifies a text signal; on its own it never makes a crisis.
+ *    Voice distress amplifies a text signal; on its own it never makes a crisis, and it never
+ *    decides who is at risk (crisis-caller-check.ts).
  * 2. guardPreResponse replaces the reply with a pre-written one that includes
  *    988 resources when severity >= 0.85.
  *
@@ -25,6 +26,12 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { ABUSE_INDICATOR, abuseDisclosure } from './abuse-disclosure.js';
+import {
+  CALLER_CHECK,
+  CALLER_CHECK_GUIDANCE,
+  callerCheckApplies,
+  withCallerCheck,
+} from './crisis-caller-check.js';
 import { endingFloor } from './crisis-ending-floor.js';
 import { EMERGENCY_FOR_THEM, getCrisisResponse, IN_DANGER_NOW } from './crisis-guard-replies.js';
 import { meansFormsOf, meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
@@ -91,12 +98,6 @@ export interface CrisisDetectionOptions {
   recentMessages?: readonly string[];
   /** Overrides CRISIS_MEANS_IN_HAND for this read; 'all' is the shadow log's (crisis-means-shadow.ts). */
   meansInHand?: 'off' | 'shadow' | 'live' | 'all';
-  /**
-   * Whether the voice may move a worry about someone else onto the caller (the soft-self flip in
-   * detectCrisis). Default true. The background turn passes false (turn-crisis.ts): there the
-   * voice only raises severity, so a third-party read keeps its help for the person at risk.
-   */
-  voiceMaySetSubject?: boolean;
 }
 
 export const CRISIS_SEVERITY = SEVERITY; // the tiers, for callers that weigh a read (caller-text.ts)
@@ -302,14 +303,9 @@ export function detectCrisis(
   // else never escalates into it.
   const textSeverity = severity;
   // A worry about someone else, with the caller's own softened ending words and a distressed
-  // voice: the voice makes it about the caller again, as before #2528.
-  const voiced = voiceEmotion?.confidence !== undefined && voiceEmotion.confidence > 0.5;
-  const voiceSetsSubject = options?.voiceMaySetSubject !== false;
-  if (subject === 'third_party' && score.softSelf && voiced && voiceSetsSubject) {
-    const { primary } = voiceEmotion;
-    const distressed = [...HIGH_DISTRESS_VOICE_EMOTIONS, ...MODERATE_DISTRESS_VOICE_EMOTIONS];
-    if (distressed.includes(primary)) subject = 'self';
-  }
+  // voice: the help for the other person stays, and a gentle check on the caller is added.
+  const callerCheck = callerCheckApplies({ subject, softSelf: score.softSelf }, voiceEmotion);
+  if (callerCheck) indicators.push(CALLER_CHECK);
   const emergency = subject === 'third_party' && indicators.includes('third_party_emergency');
   const ceiling = subject === 'third_party' ? SEVERITY.block - 0.05 : 1.0;
   if (voiceEmotion?.confidence !== undefined && voiceEmotion.confidence > 0.5) {
@@ -340,7 +336,9 @@ export function detectCrisis(
     suggestedResponse: !isCrisis
       ? undefined
       : emergency
-        ? EMERGENCY_FOR_THEM
+        ? callerCheck
+          ? withCallerCheck(EMERGENCY_FOR_THEM)
+          : EMERGENCY_FOR_THEM
         : getCrisisResponse(
             severity,
             subject,
@@ -368,7 +366,9 @@ The user is worried that someone they know is at risk. Your response MUST:
 2. Help them think about how to check on the person directly and calmly
 3. Tell them they can call or text 988 on the person's behalf, and to call 911 if there is immediate danger
 4. Ask how THEY are holding up; supporting someone in crisis is hard
-5. NEVER treat the user as the one at risk unless they say so`;
+5. NEVER treat the user as the one at risk unless they say so${
+      crisis.indicators.includes(CALLER_CHECK) ? `\n6. ${CALLER_CHECK_GUIDANCE}` : ''
+    }`;
   }
 
   const lines = [
