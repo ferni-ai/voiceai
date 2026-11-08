@@ -18,6 +18,7 @@
 
 import { llm } from '@livekit/agents';
 import { flagOn } from '../../../config/env-flag.js';
+import { dispatchedUserName, opensByFirstName } from '../../../utils/ferni-intro.js';
 import { callOnBehalfSchema } from './call-on-behalf-schema.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolContext, Tool } from '../../registry/types.js';
@@ -402,6 +403,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 
         // Step 2: Infer call type and objective
         const callType = inferCallType(contact, purpose);
+        const personal = opensByFirstName({ recipientName: contact.name, callType });
         const objective = inferObjective(purpose);
 
         // Step 3: Get user profile for context
@@ -415,7 +417,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
             const profile = await global.store.getProfile(ctx.userId);
             if (profile) {
               userTimezone = profile.contactInfo?.timezone || 'America/Los_Angeles';
-              userName = profile.preferredName || profile.name || 'the user';
+              userName = dispatchedUserName(profile.preferredName, profile.name, personal);
             }
           }
         } catch {

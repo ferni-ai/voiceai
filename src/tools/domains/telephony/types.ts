@@ -79,6 +79,8 @@ export interface OnBehalfCallRequest {
 
   // Purpose
   purpose: string; // "reschedule appointment to next week"
+  /** The purpose as said to the requester, when it differs; only the held reply reads it. */
+  requesterPurpose?: string;
   objective: CallObjective;
   callType: CallType;
 

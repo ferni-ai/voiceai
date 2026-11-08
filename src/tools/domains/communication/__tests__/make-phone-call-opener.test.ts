@@ -203,3 +203,59 @@ describe('makePhoneCall with markup in the name or the message', () => {
     expect(() => parseTwiml(`<Response><Say>${HOSTILE}</Say></Response>`)).toThrow();
   });
 });
+
+describe('makePhoneCall: the name the callee hears (#3578 follow-ups)', () => {
+  it("escapes the name's apostrophe in the TwiML bytes, not only in the decoded text", async () => {
+    const twiml = await twimlFor(ALEX, { userId: 'u1', name: "O'Neil Park" });
+
+    expect(twiml).toContain(
+      '<Say voice="alice">Hi, it&apos;s Ferni, O&apos;Neil&apos;s AI friend. Dinner moved to 7.'
+    );
+    expect(twiml).not.toContain("O'Neil");
+  });
+
+  it('a decomposed "Zoë" (e + U+0308) says the same name as a composed one', async () => {
+    const composed = await twimlFor(ALEX, { userId: 'u1', name: 'Zoë Park' });
+    fetchSpy.mockClear();
+    const decomposed = await twimlFor(ALEX, { userId: 'u1', name: 'Zoë Park' });
+
+    expect(said(composed)).toBe(
+      "Hi, it's Ferni, Zoë's AI friend. Dinner moved to 7. Have a great day!"
+    );
+    expect(decomposed).toBe(composed);
+  });
+
+  it.each(['Dr', 'Mr', 'Mrs', 'Ms', 'Mx', 'Prof', 'DR', 'Prof.'])(
+    'a leading title %j is skipped: the callee hears the first name',
+    async (title) => {
+      const twiml = await twimlFor(ALEX, { userId: 'u1', name: `${title} Sam Rivera` });
+
+      expect(said(twiml)).toBe(
+        "Hi, it's Ferni, Sam's AI friend. Dinner moved to 7. Have a great day!"
+      );
+    }
+  );
+
+  it.each(['Mr Rivera', 'Dr Rivera'])(
+    '%j is a title and a surname: the no-user form, never the title or the surname',
+    async (name) => {
+      const twiml = await twimlFor(ALEX, { userId: 'u1', name });
+
+      expect(said(twiml)).toBe(
+        `Hi, ${ferniIntro({ personal: true })}. Dinner moved to 7. Have a great day!`
+      );
+    }
+  );
+
+  it.each([
+    ['Mrinal Shah', 'Mrinal'],
+    ['Drew Lee', 'Drew'],
+    ['Profit Okafor', 'Profit'],
+  ])('a first name that starts like a title, %j, is kept: %j', async (name, first) => {
+    const twiml = await twimlFor(ALEX, { userId: 'u1', name });
+
+    expect(said(twiml)).toBe(
+      `Hi, it's Ferni, ${first}'s AI friend. Dinner moved to 7. Have a great day!`
+    );
+  });
+});

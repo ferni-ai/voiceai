@@ -35,6 +35,7 @@ import { forgottenInProcess, forgottenTopicsOrNull } from '../../memory/recall/f
 import { isForgottenPassage } from '../../memory/recall/episodes.js';
 import { CRISIS_GATE_SIGNAL } from '../safety/crisis-gate-signal.js';
 import { CALLER_TURN_KEY, callerTurnFor, type WithCallerTurn } from '../shared/caller-turn-count.js';
+import { backgroundTurnVoice } from './background-voice-emotion.js';
 import { deferralForSession, noteUserTurn } from './first-turn-defer.js';
 import { firstTurnWarmOn, yieldIfFirstTurnWarm } from './first-turn-warm.js';
 import { TURN_CONTEXT_FOR, TURN_CONTEXT_HEADER } from './turn-context-header.js';
@@ -121,6 +122,8 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
         lastAgentResponseTime?: number;
         voiceEmotion?: { primary: string; confidence: number; prosody?: Record<string, unknown> };
       };
+      // BACKGROUND_VOICE_EMOTION (background-voice-emotion.ts): undefined when off, as on main.
+      const voice = backgroundTurnVoice(userData.voiceEmotion);
       const stateManager = getStateManager(deps.userData);
       const state = stateManager?.getState() as
         | {
@@ -153,15 +156,20 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
                 lastAgentResponse: userData.lastAgentResponse,
               }
             : {}),
+          // For the voice-vs-words and crisis reads, as the synchronous turn's userData carries it.
+          // Here the voice only raises a crisis read's severity, never its reply (turn-crisis.ts).
+          ...(voice ? { voiceEmotion: voice.view, voiceCallerCheck: false } : {}),
         },
-        voiceEmotion: userData.voiceEmotion
-          ? {
-              primary: userData.voiceEmotion.primary,
-              confidence: userData.voiceEmotion.confidence,
-              arousal: userData.voiceEmotion.prosody?.energy as number | undefined,
-              valence: userData.voiceEmotion.prosody?.pitch as number | undefined,
-            }
-          : undefined,
+        voiceEmotion: voice
+          ? voice.summary
+          : userData.voiceEmotion
+            ? {
+                primary: userData.voiceEmotion.primary,
+                confidence: userData.voiceEmotion.confidence,
+                arousal: userData.voiceEmotion.prosody?.energy as number | undefined,
+                valence: userData.voiceEmotion.prosody?.pitch as number | undefined,
+              }
+            : undefined,
         sessionStateManager: stateManager,
         room: deps.room,
         sendDataMessage,

@@ -3,10 +3,13 @@ import { Readable } from 'node:stream';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const handleInboundSMSWebhook = vi.hoisted(() => vi.fn());
+// The route checks the Twilio signature itself before the crisis screen.
+const isSignedInboundSms = vi.hoisted(() => vi.fn(() => true));
 const recordCheckinReply = vi.hoisted(() => vi.fn(async () => null));
 vi.mock('../../services/outreach/webhooks/index.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../services/outreach/webhooks/index.js')>()),
   handleInboundSMSWebhook,
+  isSignedInboundSms,
 }));
 const recordInboundSmsConsent = vi.hoisted(() => vi.fn(async () => null));
 // Partial: the route's imports (proactive opt-outs via guarded-text) read other exports at load.
@@ -63,6 +66,7 @@ describe('POST /api/outreach/webhooks/twilio/sms-inbound', () => {
   it('never records anything (no opt-out, no reply) for an unsigned or forged message', async () => {
     // handleInboundSMSWebhook returns success: false only when the signature fails.
     handleInboundSMSWebhook.mockResolvedValue({ success: false, error: 'Invalid signature' });
+    isSignedInboundSms.mockReturnValueOnce(false);
     const { req, res } = post();
     await handleOutreachWebhookRoutes(req, res, PATH);
     expect(recordCheckinReply).not.toHaveBeenCalled();

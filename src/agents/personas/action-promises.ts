@@ -18,7 +18,7 @@
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
-import { kindsOfTool, type ActionKind } from './action-claims.js';
+import { kindsOfTool, resultState, type ActionKind } from './action-claims.js';
 import { lookedUpLately } from './announced-check.js';
 import type { ClaimKind } from './honest-line.js';
 
@@ -115,27 +115,56 @@ export function offerFor(sentence: string, grounded = false): string | undefined
   return `Want me to ${what.trim()}?`;
 }
 
+interface TurnItem {
+  type?: string;
+  role?: string;
+  name?: string;
+  textContent?: string;
+  callId?: string;
+  output?: unknown;
+  isError?: boolean;
+}
+
+/** The call ids whose tool result refused or failed. */
+function failedCallIds(items: readonly TurnItem[]): Set<string> {
+  const failed = items.filter(
+    (item) => item.type === 'function_call_output' && resultState(item) === 'failed'
+  );
+  return new Set(failed.flatMap((item) => (item.callId ? [item.callId] : [])));
+}
+
+/** The tool calls and results since the caller last spoke (a turn-context note is not them). */
+function toolItemsThisTurn(items: readonly TurnItem[]): TurnItem[] {
+  const turn: TurnItem[] = [];
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i];
+    const note = item.textContent?.startsWith(TURN_CONTEXT_HEADER) ?? false;
+    if (item.type === 'message' && item.role === 'user' && !note) break;
+    if (item.type === 'function_call' || item.type === 'function_call_output') turn.push(item);
+  }
+  return turn;
+}
+
 /**
  * The kinds of action a tool ran for since the caller last spoke: the reply
  * after a tool's result may say "I'll send that now" of what already ran. A
  * look-up tool that ran lately counts as 'lookup', so "I checked" may stand
  * (announced-check.ts lookedUpLately).
+ *
+ * With ACTION_PROMISE_KEPT_ON_SUCCESS on, a run whose result refused or failed
+ * (action-claims.ts resultState) keeps nothing: "I'll call her now" after "I
+ * couldn't place that call" is checked like a promise no tool ran for.
  */
-export function kindsRunThisTurn(chatCtx: { items: readonly unknown[] }): Set<ClaimKind> {
+export function kindsRunThisTurn(
+  chatCtx: { items: readonly unknown[] },
+  env: Env = process.env
+): Set<ClaimKind> {
   const kinds = new Set<ClaimKind>();
-  const items = chatCtx.items as ReadonlyArray<{
-    type?: string;
-    role?: string;
-    name?: string;
-    textContent?: string;
-  }>;
-  for (let i = items.length - 1; i >= 0; i--) {
-    const item = items[i];
-    const note = item.textContent?.startsWith(TURN_CONTEXT_HEADER) ?? false;
-    if (item.type === 'message' && item.role === 'user' && !note) break;
-    if (item.type === 'function_call' || item.type === 'function_call_output') {
-      for (const kind of kindsOfTool(item.name ?? '')) kinds.add(kind);
-    }
+  const items = chatCtx.items as readonly TurnItem[];
+  const failed = flagOn('ACTION_PROMISE_KEPT_ON_SUCCESS', env) ? failedCallIds(items) : undefined;
+  for (const item of toolItemsThisTurn(items)) {
+    if (item.callId && failed?.has(item.callId)) continue; // the call and its failed result
+    for (const kind of kindsOfTool(item.name ?? '')) kinds.add(kind);
   }
   if (lookedUpLately(chatCtx)) kinds.add('lookup');
   return kinds;
