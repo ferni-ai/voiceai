@@ -12,7 +12,8 @@
  *
  * L2 needs every row clear: main's full crisis guide; plain text the rows can read; no
  * imminent read; about the caller, with no one else named in the turn; no one down, hurt
- * or near means on the latest or the 40 caller lines before it; no pattern signal at all; a
+ * or near means, and no time or decision named, on the latest or the 40 caller lines before
+ * it; no pattern signal at all, on the line as said or folded; a
  * calm voice or none heard; no sign of a caller under 18 (owner exemption ignored); no abuse
  * disclosure; at least two reads of the turn, none missing, exactly one crisis and no two
  * agreeing on risk; no risk on the call before this turn; Ferni's line, at most 600
@@ -29,12 +30,18 @@ import type { CrisisVerdict } from './crisis-classifier.js';
 import {
   asksAnythingSafety,
   downOrMeans,
+  foldedLine,
   mayBeUnder18,
   mayDiscloseAbuse,
   namesSomeoneElse,
+  statesTimeOrDecision,
   unreadable,
 } from './crisis-graded-blocks.js';
-import type { CrisisDetectionResult, VoiceEmotionContext } from './crisis-guard.js';
+import {
+  detectCrisis,
+  type CrisisDetectionResult,
+  type VoiceEmotionContext,
+} from './crisis-guard.js';
 import { asksAboutSafety } from './crisis-lone-imminent.js';
 
 /** What main gives the turn: the gate's decision, or the pipeline's settled turn. */
@@ -67,6 +74,7 @@ export const BLOCK_REASONS = [
   'R2_third_party',
   'R2_someone_else',
   'R3_down_or_means',
+  'R3_time_or_decision',
   'R4_pattern',
   'R4_voice',
   'R5_minor',
@@ -118,6 +126,16 @@ function minorSign(
   return lines.some((l) => statesUnder18(l, companion) || mayBeUnder18(l, companion));
 }
 
+const patternSignal = (d: CrisisDetectionResult): boolean =>
+  d.isCrisis || d.severity !== 0 || d.indicators.length > 0;
+
+/** The patterns' read of the folded latest: a look-alike or hidden letter can't hide a word. */
+function foldedSignal(input: GradeInput): boolean {
+  const folded = foldedLine(input.latest);
+  if (folded === input.latest.trim().toLowerCase()) return false;
+  return patternSignal(detectCrisis(folded, input.voice, { recentMessages: [...input.earlier] }));
+}
+
 /** The caller lines the rows read: the latest and the ones just before it. */
 const EARLIER_LINES = 40;
 /** A longer Ferni line is not read: R7 blocks it, so the grade stays cheap and fails closed. */
@@ -144,7 +162,8 @@ export function gradeTurn(input: GradeInput): Grade {
   block(verdict?.subject !== 'self' || d.subject === 'third_party', 'R2_third_party');
   block(namesSomeoneElse(input.latest), 'R2_someone_else'); // "He collapsed.", whatever the read
   block(lines.some(downOrMeans), 'R3_down_or_means'); // someone else down is 911 first
-  block(d.isCrisis || d.severity !== 0 || d.indicators.length > 0, 'R4_pattern');
+  block(lines.some(statesTimeOrDecision), 'R3_time_or_decision');
+  block(patternSignal(d) || foldedSignal(input), 'R4_pattern');
   block(voiceNotCalm(input.voice), 'R4_voice'); // "fearful" is in neither distress list
   block(minorSign(call, lines, ferni), 'R5_minor');
   block(

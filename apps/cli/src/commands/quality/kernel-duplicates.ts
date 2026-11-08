@@ -24,23 +24,44 @@ export type KernelType = (typeof KERNEL_TYPES)[number];
 export type KernelBaseline = Record<KernelType, string[]>;
 export const KERNEL_BASELINE = join(dirname(fileURLToPath(import.meta.url)), 'kernel-duplicates-baseline.json');
 
-export interface KernelDeclaration { name: KernelType; file: string; line: number }
+/** One top-level declaration of a watched type name. */
+export interface TypeDeclaration<N extends string = string> { name: N; file: string; line: number }
+export type KernelDeclaration = TypeDeclaration<KernelType>;
 
-const MENTION = new RegExp(`\\b(${KERNEL_TYPES.join('|')})\\b`);
+/**
+ * What a declaration scan looks for. The kernel rule's scan is the default: its four names,
+ * exported or not, classes included. scripts/check-comms-types.ts scans its own names,
+ * exported only, without classes.
+ */
+export interface DeclarationScan<N extends string = string> {
+  names: readonly N[];
+  exportedOnly?: boolean;
+  classes?: boolean;
+}
 
-/** Every top-level declaration of a kernel type name in `files` (paths relative to `root`). */
-export function kernelDeclarations(root: string, files: string[]): KernelDeclaration[] {
-  const out: KernelDeclaration[] = [];
+const isExported = (s: ts.Statement): boolean =>
+  (ts.canHaveModifiers(s) ? ts.getModifiers(s) : undefined)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword) ?? false;
+
+/** Every top-level declaration of a kernel type name (or of `scan.names`) in `files` (paths relative to `root`). */
+export function kernelDeclarations(root: string, files: string[]): KernelDeclaration[];
+export function kernelDeclarations<N extends string>(root: string, files: string[], scan: DeclarationScan<N>): TypeDeclaration<N>[];
+export function kernelDeclarations(
+  root: string,
+  files: string[],
+  { names, exportedOnly = false, classes = true }: DeclarationScan = { names: KERNEL_TYPES }
+): TypeDeclaration[] {
+  const mention = new RegExp(`\\b(${names.join('|')})\\b`);
+  const out: TypeDeclaration[] = [];
   for (const file of files) {
     const text = readFileSync(join(root, file), 'utf8');
-    if (!MENTION.test(text)) continue; // cheap prefilter: most files never mention them
+    if (!mention.test(text)) continue; // cheap prefilter: most files never mention them
     const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
     for (const s of sf.statements) {
       const declares =
-        ts.isTypeAliasDeclaration(s) || ts.isInterfaceDeclaration(s) || ts.isEnumDeclaration(s) || ts.isClassDeclaration(s);
-      const name = declares ? s.name?.text : undefined;
-      if (name && (KERNEL_TYPES as readonly string[]).includes(name)) {
-        out.push({ name: name as KernelType, file, line: sf.getLineAndCharacterOfPosition(s.getStart()).line + 1 });
+        ts.isTypeAliasDeclaration(s) || ts.isInterfaceDeclaration(s) || ts.isEnumDeclaration(s) || (classes && ts.isClassDeclaration(s));
+      const name = declares && (!exportedOnly || isExported(s)) ? s.name?.text : undefined;
+      if (name && names.includes(name)) {
+        out.push({ name, file, line: sf.getLineAndCharacterOfPosition(s.getStart()).line + 1 });
       }
     }
   }
