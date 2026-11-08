@@ -107,7 +107,10 @@ describe('"When I\'ll Check In": save, reload, same values', () => {
 
   it('the field the server used to ignore, disabledChannels, is now honoured', async () => {
     await outreach('POST', { disabledChannels: ['email'] });
-    expect(seth().messagingPrefs.channels).toMatchObject({ email: false, sms: true });
+    expect((await prefs('GET')).json.preferences.channels).toMatchObject({
+      email: false,
+      sms: true,
+    });
     expect(seth().outreachPreferences.channels).toEqual(['sms']);
   });
 
@@ -132,6 +135,14 @@ describe('"When I\'ll Check In": save, reload, same values', () => {
     expect(status).toBe(400);
     expect(json.error).toMatch(/HH:MM/);
     expect(seth().messagingPrefs).toBeUndefined();
+  });
+
+  it('a read that fails answers 500, never the defaults dressed up as theirs', async () => {
+    const down = () => Promise.reject(new Error('UNAVAILABLE'));
+    h.db = { collection: () => ({ doc: () => ({ get: down }) }) };
+    const { status, json } = await prefs('GET');
+    expect(status).toBe(500);
+    expect(json).toEqual({ success: false, error: 'Failed to get preferences' });
   });
 
   it('answers 500, not a false "saved", when it cannot store', async () => {

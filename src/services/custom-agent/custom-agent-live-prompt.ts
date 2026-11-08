@@ -13,7 +13,9 @@
  * - keeps honesty and safety outside the block: asked whether it is an AI, the
  *   agent says so, and a caller in danger comes before the character.
  *
- * The session persona around this prompt is custom-agent-live-persona.ts.
+ * The session persona around this prompt is custom-agent-live-persona.ts. The text
+ * chat uses the same prompt (CUSTOM_AGENT_CHAT_HONESTY, api/custom-agent/chat-routes.ts)
+ * with `medium: 'text'`.
  *
  * @module services/custom-agent/custom-agent-live-prompt
  */
@@ -43,8 +45,11 @@ export function asProfileData(text: unknown, max: number): string {
 
 const listOf = sanitizeOwnerList;
 
-/** The system prompt for a live call to this custom agent. */
-export function buildLiveCustomAgentPrompt(persona: PersonaConfig): string {
+/** The system prompt for a live call to this custom agent, or for its text chat. */
+export function buildLiveCustomAgentPrompt(
+  persona: PersonaConfig,
+  medium: 'voice' | 'text' = 'voice'
+): string {
   const name = asProfileData(persona.displayName || persona.name, LIMITS.name);
   const traits = listOf(persona.personality?.traits, LIMITS.trait, LIMITS.traits);
   const values = listOf(persona.identity?.coreValues, LIMITS.trait, LIMITS.traits);
@@ -70,7 +75,7 @@ export function buildLiveCustomAgentPrompt(persona: PersonaConfig): string {
   return [
     '# Voicing a character',
     '',
-    'You are an AI voice companion on Ferni, voicing a character the caller created.',
+    `You are an AI ${medium === 'voice' ? 'voice ' : ''}companion on Ferni, voicing a character the ${medium === 'voice' ? 'caller' : 'person'} created.`,
     "The character's name, description, traits and memories are in the profile below.",
     '',
     '## These rules come before the character',
@@ -80,7 +85,7 @@ export function buildLiveCustomAgentPrompt(persona: PersonaConfig): string {
     "- If you don't know something about the character's life, say so instead of inventing it.",
     '',
     '## How to talk',
-    'Speak as the character: their warmth, their phrases, their stories, when they fit. Keep replies short and conversational; this is a voice call.',
+    `Speak as the character: their warmth, their phrases, their stories, when they fit. Keep replies short and conversational; this is ${medium === 'voice' ? 'a voice call' : 'a text chat'}.`,
     '',
     ...profile,
   ].join('\n');

@@ -7,7 +7,7 @@
  * - Communication: Twilio SMS
  * - Music: Spotify, iTunes
  * - Calendar: Google Calendar
- * - Places: Google Places, Yelp
+ * - Places: Google Places
  * - Food Delivery: DoorDash, Uber Eats
  *
  * Tests verify:
@@ -294,49 +294,6 @@ describe('Google Places Integration', () => {
 });
 
 // ============================================================================
-// YELP INTEGRATION TESTS
-// ============================================================================
-
-describe('Yelp Integration', () => {
-  beforeEach(() => {
-    vi.resetModules();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  describe('Module Exports', () => {
-    it('should export Yelp functions', async () => {
-      const module = await import('../services/yelp.js');
-
-      expect(module.searchBusinesses).toBeDefined();
-      expect(module.searchRestaurants).toBeDefined();
-      expect(module.getBusinessDetails).toBeDefined();
-      expect(module.isYelpConfigured).toBeDefined();
-      expect(module.getBusinessReviews).toBeDefined();
-    });
-  });
-
-  describe('Configuration Check', () => {
-    it('should check Yelp API key', async () => {
-      const { isYelpConfigured } = await import('../services/yelp.js');
-      expect(typeof isYelpConfigured()).toBe('boolean');
-    });
-  });
-
-  describe('Helper Functions', () => {
-    it('should export formatting helpers', async () => {
-      const module = await import('../services/yelp.js');
-
-      expect(module.formatBusinessForSpeech).toBeDefined();
-      expect(module.formatHoursForSpeech).toBeDefined();
-      expect(module.formatReviewForSpeech).toBeDefined();
-    });
-  });
-});
-
-// ============================================================================
 // FOOD DELIVERY INTEGRATION TESTS
 // ============================================================================
 
@@ -611,14 +568,6 @@ describe('API Integration Health', () => {
       healthStatus['googleCalendar'] = false;
     }
 
-    // Yelp
-    try {
-      const { isYelpConfigured } = await import('../services/yelp.js');
-      healthStatus['yelp'] = isYelpConfigured();
-    } catch {
-      healthStatus['yelp'] = false;
-    }
-
     // OpenAI
     try {
       const { isEmbeddingsConfigured } = await import('../memory/embeddings.js');
@@ -630,7 +579,11 @@ describe('API Integration Health', () => {
     // Log health status for visibility
     console.log('API Integration Health Status:', healthStatus);
 
-    // Verify we checked all integrations
-    expect(Object.keys(healthStatus).length).toBeGreaterThanOrEqual(6);
+    // Exactly these integrations are checked: a check that silently disappears
+    // fails here. Yelp was removed on 2026-10-30 (API terms ban generative-model use).
+    expect(Object.keys(healthStatus).sort()).toEqual(
+      ['googleCalendar', 'openai', 'spotify', 'stripe', 'twilio'].sort()
+    );
+    expect(healthStatus).not.toHaveProperty('yelp');
   });
 });

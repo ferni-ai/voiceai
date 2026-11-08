@@ -5,10 +5,9 @@
  * making migration to the bundle system easy.
  *
  * Usage:
- *   import { JACK_BOGLE_PERSONA } from '../jack-bogle/index.js';
  *   import { convertLegacyToBundle } from './converter.js';
  *
- *   const bundlePath = await convertLegacyToBundle(JACK_BOGLE_PERSONA, './bundles');
+ *   const bundlePath = await convertLegacyToBundle(persona, './bundles'); // persona: PersonaConfig
  */
 
 import { writeFile, mkdir } from 'fs/promises';

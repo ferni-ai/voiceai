@@ -48,6 +48,9 @@ export {
   getAgentToUserOutreachDefinitions,
 } from './agent-to-user.js';
 
+// Stored call text screened before the UI server's outreach jobs send it to the owner
+export { storedTextForOwner, type StoredTextSite } from './owner-message-policy.js';
+
 // Default export for domain loading
 import { getAgentToUserOutreachDefinitions } from './agent-to-user.js';
 export const getOutreachDefinitions = getAgentToUserOutreachDefinitions;

@@ -178,7 +178,7 @@ There is no built-in search: Gemini Live's Google Search went with Live. For cur
 - "Search the web for the new library hours"
 - "How did the Eagles do last night?"
 
-With `WEB_SEARCH=on` it answers from Google Search grounding, capped per caller and per day; otherwise from DuckDuckGo Instant Answers.
+With `WEB_SEARCH=on` it answers from Google Search grounding, capped per caller and per day; otherwise from DuckDuckGo Instant Answers. With `WEB_SEARCH_HONEST_FALLBACK=on`, an instant answer that comes back empty or fails says `[status: unconfigured]`: it can't search the web, doesn't know, and must not estimate, never "No results".
 
 ---
 

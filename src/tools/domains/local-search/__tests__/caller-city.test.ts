@@ -34,16 +34,6 @@ vi.mock('../../../../services/google-places.js', () => ({
   formatRestaurantListForSpeech: vi.fn(),
   isGooglePlacesConfigured: () => true,
 }));
-vi.mock('../../../../services/yelp.js', () => ({
-  searchBusinesses: vi.fn(async () => []),
-  searchRestaurants: vi.fn(async () => []),
-  getBusinessDetails: vi.fn(),
-  getBusinessReviews: vi.fn(),
-  getBusinessByPhone: vi.fn(),
-  formatBusinessForSpeech: vi.fn(),
-  formatReviewForSpeech: vi.fn(),
-  isYelpConfigured: () => false,
-}));
 
 // Stands in for Firestore-backed preferences. updateUserPreferences merges like the real one.
 type SavedCity = { placeId?: string; city: string; regionCode?: string; savedAt: string };
@@ -422,7 +412,7 @@ describe('a failed search', () => {
   it('says it had trouble rather than listing places it did not get', async () => {
     places.searchRestaurants.mockRejectedValueOnce(new Error('Places quota exceeded'));
     const result = await (await findRestaurants()).execute({ cuisine: 'coffee' }, phoneInStGeorge);
-    expect(result).toMatch(/trouble finding restaurants/);
+    expect(result).toBe("I can't search for places right now.");
     expect(result).not.toMatch(/Options near/);
   });
 });

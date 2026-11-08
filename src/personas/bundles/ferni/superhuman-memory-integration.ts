@@ -115,7 +115,7 @@ export async function initializeMemoryCallbacks(
         const callback = createCallbackFromInsight(insight);
         memoryPersonalityBridge.add(userId, callback);
         callbacksQueued++;
-        log.debug({ type: 'date', content: insight.content }, 'Queued date callback');
+        log.debug({ type: 'date', contentLen: insight.content.length }, 'Queued date callback');
       }
     }
   }
@@ -131,7 +131,7 @@ export async function initializeMemoryCallbacks(
         const callback = createCallbackFromInsight(insight);
         memoryPersonalityBridge.add(userId, callback);
         callbacksQueued++;
-        log.debug({ type: 'growth', content: insight.content }, 'Queued growth callback');
+        log.debug({ type: 'growth', contentLen: insight.content.length }, 'Queued growth callback');
       }
     }
   }
@@ -167,7 +167,7 @@ export async function initializeMemoryCallbacks(
         const callback = createCallbackFromInsight(insight);
         memoryPersonalityBridge.add(userId, callback);
         callbacksQueued++;
-        log.debug({ type: 'joke', content: insight.content }, 'Queued inside joke callback');
+        log.debug({ type: 'joke', contentLen: insight.content.length }, 'Queued inside joke callback');
       }
     }
   }

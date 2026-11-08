@@ -39,6 +39,7 @@ import {
   updateEvent as updateUnifiedEvent,
   deleteEvent as deleteUnifiedEvent,
 } from './unified-calendar-store.js';
+import { outlookLinkedOr } from './providers/outlook-state.js';
 import type {
   CalendarEvent as UnifiedCalendarEvent,
   CreateEventInput as UnifiedCreateEventInput,
@@ -258,13 +259,11 @@ export async function getCalendarMode(userId: string): Promise<CalendarMode> {
 // CORE OPERATIONS
 // ============================================================================
 
-/**
- * Is a calendar connected for this user? Google or another provider (#1547).
- */
+/** Is a calendar connected for this user? Google or another provider (#1547). */
 export async function isConnected(userId: string): Promise<boolean> {
-  // Google sign-in writes tokens, not a provider record, so both count (#1547).
+  // Google sign-in writes tokens, not a provider record, so both count; so does OUTLOOK_CONNECT.
   if (await isCalendarConfigured(userId)) return true;
-  return hasAnyProviderConnected(userId);
+  return outlookLinkedOr(userId, () => hasAnyProviderConnected(userId));
 }
 
 /**

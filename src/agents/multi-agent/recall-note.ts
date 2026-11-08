@@ -46,14 +46,15 @@ function update(agent: RecallAgent, ctx: unknown): void {
  * the reply again from it at once; =defer holds it for the next reply
  * (preempt-stable-context.ts). `said` is the transcript the note was built for.
  */
-export function addRecallNote(agent: RecallAgent, note: string, said?: string): void {
+export function addRecallNote(
+  agent: RecallAgent,
+  note: string,
+  said?: string,
+  id = `${RECALL_NOTE_ID_PREFIX}${++recallNotes}`
+): void {
   const write = () => {
     const ctx = agent.chatCtx.copy();
-    ctx.addMessage({
-      role: 'system',
-      content: note,
-      id: `${RECALL_NOTE_ID_PREFIX}${++recallNotes}`,
-    });
+    ctx.addMessage({ role: 'system', content: note, id });
     agent.updateChatCtx(ctx).catch((error: unknown) => {
       log.warn({ error: String(error) }, 'Recall note not added');
     });
@@ -81,16 +82,47 @@ export function dropForgottenNotes(
   said?: string
 ): number {
   if (!forgotten) return 0;
+  const dropped = dropNotes(
+    agent,
+    (i) => !!i?.id?.startsWith(RECALL_NOTE_ID_PREFIX) && forgotten(i.textContent ?? ''),
+    said
+  );
+  if (dropped > 0) log.info({ dropped }, 'Forgotten recall notes taken out');
+  return dropped;
+}
+
+/** Take the notes `drop` picks out of the chat now, restarting a preemptive reply (above). */
+function dropNotes(agent: RecallAgent, drop: (item: NoteItem) => boolean, said?: string): number {
   const ctx = agent.chatCtx.copy();
   const items = (ctx.items ?? []) as NoteItem[];
-  const kept = items.filter(
-    (i) => !(i?.id?.startsWith(RECALL_NOTE_ID_PREFIX) && forgotten(i.textContent ?? ''))
-  );
+  const kept = items.filter((i) => !drop(i));
   const dropped = items.length - kept.length;
   if (dropped === 0) return 0;
   ctx.items = kept;
   update(agent, ctx);
   if (preemptStableMode() === 'on') restartPreemptive(agent, said);
-  log.info({ dropped }, 'Forgotten recall notes taken out');
   return dropped;
+}
+
+/**
+ * PERSONA_GROWTH's note (persona-growth-recall.ts) goes in on its own, under
+ * this id, so a crisis on the call can take it back out alone: the rest of
+ * recall stays. A recall id, so prompt sections and the director read it as recall.
+ */
+export const GROWTH_NOTE_ID = `${RECALL_NOTE_ID_PREFIX}growth`;
+
+/** Take the growth note back out of the chat (a crisis showed on the call); how many went. */
+export function dropGrowthNote(agent: RecallAgent, said?: string): number {
+  return dropNotes(agent, (i) => i?.id === GROWTH_NOTE_ID, said);
+}
+
+/** A request without the growth note: a crisis-guided reply never sees it (crisis-gate.ts). */
+export function withoutGrowthNote<C extends { items: Array<{ id?: string }>; copy(): C }>(
+  chatCtx: C,
+  when = true
+): C {
+  if (!when || !chatCtx.items.some((i) => i?.id === GROWTH_NOTE_ID)) return chatCtx;
+  const ctx = chatCtx.copy();
+  ctx.items = ctx.items.filter((i) => i?.id !== GROWTH_NOTE_ID);
+  return ctx;
 }

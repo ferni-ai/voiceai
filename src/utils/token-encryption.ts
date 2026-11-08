@@ -29,6 +29,18 @@ const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
  */
 const AUTH_TAG_BYTES = 16;
 
+/**
+ * Production has no token key, so nothing can be sealed. Stores catch this
+ * type to refuse the write and say so, instead of storing plaintext.
+ */
+export class TokenSealingUnavailableError extends Error {
+  readonly code = 'TOKEN_SEALING_UNAVAILABLE';
+  constructor() {
+    super('OAUTH_ENCRYPTION_KEY is required in production');
+    this.name = 'TokenSealingUnavailableError';
+  }
+}
+
 export type TokenKeySource =
   'TOKEN_SEALING_KEY' | 'OAUTH_ENCRYPTION_KEY' | 'LOG_HASH_SECRET' | 'none';
 
@@ -64,6 +76,15 @@ export function resolveTokenKey(): { source: TokenKeySource; key: string } {
     return { source: 'LOG_HASH_SECRET', key: process.env.LOG_HASH_SECRET };
   }
   return { source: 'none', key: '' };
+}
+
+/**
+ * For stores that must never write plaintext, in any environment: throws
+ * TokenSealingUnavailableError when no token key is configured (encryptData
+ * alone would write plain JSON outside production).
+ */
+export function assertTokenSealingAvailable(): void {
+  if (resolveTokenKey().source === 'none') throw new TokenSealingUnavailableError();
 }
 
 /** The AES-256 key: a sealing key is used as-is, the older secrets are hashed to 32 bytes. */
@@ -184,7 +205,7 @@ function getEncryptionKey(): Buffer | null {
         'OAuth tokens cannot be stored without encryption. Generate with: openssl rand -hex 32'
       );
       // In production, throw to prevent insecure token storage
-      throw new Error('OAUTH_ENCRYPTION_KEY is required in production');
+      throw new TokenSealingUnavailableError();
     }
     log.warn(
       'SECURITY: OAUTH_ENCRYPTION_KEY not set - tokens stored without encryption (dev only)'

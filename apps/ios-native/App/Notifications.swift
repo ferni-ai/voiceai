@@ -9,6 +9,8 @@ import UserNotifications
 final class FerniAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     @MainActor static var onToken: ((Data) -> Void)?
     @MainActor static var onTalk: (() -> Void)?
+    /// A Home Screen quick action (its type), from launch or while running.
+    @MainActor static var onShortcut: ((String) -> Void)?
 
     nonisolated static let noteCategory = "FERNI_NOTE"
     nonisolated static let talkAction = "TALK_NOW"
@@ -36,6 +38,16 @@ final class FerniAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificatio
         }
         #endif
         return true
+    }
+
+    /// The window scene gets a delegate for Home Screen quick actions; other
+    /// scenes (CarPlay) keep their configuration from Info.plist.
+    func application(
+        _ application: UIApplication, configurationForConnecting session: UISceneSession, options: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        let config = UISceneConfiguration(name: session.configuration.name, sessionRole: session.role)
+        if session.role == .windowApplication { config.delegateClass = FerniSceneDelegate.self }
+        return config
     }
 
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {

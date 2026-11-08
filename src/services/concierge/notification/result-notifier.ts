@@ -193,7 +193,7 @@ async function sendSms(phone: string, message: string): Promise<NotificationResu
 
   if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_NUMBER) {
     log.warn('Twilio not configured, simulating SMS');
-    log.info({ phone, messagePreview: message.slice(0, 100) }, 'Would send SMS');
+    log.info({ phone, messageLen: message.length }, 'Would send SMS');
     return { success: true, channel: 'sms', messageId: `sim_${Date.now()}` };
   }
 

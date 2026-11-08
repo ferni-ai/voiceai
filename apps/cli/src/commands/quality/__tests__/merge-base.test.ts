@@ -2,7 +2,7 @@ import { execFileSync } from 'child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { basePathOf, diffAgainstBase, listAtBase, readAtBase, resolveBase } from '../merge-base.js';
 
 let root: string;
@@ -83,15 +83,34 @@ describe('merge-base diff', () => {
     expect(resolveBase(root, {})).toBe(base);
   });
 
-  it('uses merge_group.base_sha in the queue, and the push event\'s before', () => {
+  it('measures a queue entry from the target branch, not from the entry ahead (merge_group.base_sha)', () => {
+    const base = repo();
+    git('update-ref', 'refs/remotes/origin/main', base);
+    write({ 'src/ahead.ts': 'export const a = 1;\n' });
+    git('add', '.');
+    git('commit', '-q', '-m', 'entry queued ahead');
+    const ahead = git('rev-parse', 'HEAD');
+    write({ 'src/c.ts': 'export const c = 1;\n' });
+    git('add', '.');
+    git('commit', '-q', '-m', 'this entry');
+    const head = git('rev-parse', 'HEAD');
+    const event = join(root, 'event.json');
+    const group = { base_ref: 'refs/heads/main', base_sha: ahead, head_sha: head };
+    writeFileSync(event, JSON.stringify({ merge_group: group }));
+    expect(resolveBase(root, { GITHUB_EVENT_PATH: event })).toBe(base);
+    git('update-ref', '-d', 'refs/remotes/origin/main');
+    expect(() => resolveBase(root, { GITHUB_EVENT_PATH: event })).toThrow(/No merge base/);
+    writeFileSync(event, JSON.stringify({ merge_group: { base_sha: ahead, head_sha: head } }));
+    expect(() => resolveBase(root, { GITHUB_EVENT_PATH: event })).toThrow(/without base_ref/);
+  });
+
+  it("uses the push event's before", () => {
     const base = repo();
     write({ 'src/c.ts': 'export const c = 1;\n' });
     git('add', '.');
     git('commit', '-q', '-m', 'next');
     const head = git('rev-parse', 'HEAD');
     const event = join(root, 'event.json');
-    writeFileSync(event, JSON.stringify({ merge_group: { base_sha: base, head_sha: head } }));
-    expect(resolveBase(root, { GITHUB_EVENT_PATH: event })).toBe(base);
     writeFileSync(event, JSON.stringify({ before: base, after: head }));
     expect(resolveBase(root, { GITHUB_EVENT_PATH: event })).toBe(base);
   });
@@ -106,6 +125,34 @@ describe('merge-base diff', () => {
     writeFileSync(event, JSON.stringify({ before: base }));
     expect(resolveBase(root, { GITHUB_ACTIONS: 'true', QUALITY_BASE: head, GITHUB_EVENT_PATH: event })).toBe(base);
     expect(resolveBase(root, { QUALITY_BASE: head })).toBe(head); // local runs may still pick a base
+  });
+
+  it('times out a hung fetch of the base, so the gate goes red instead of hanging', () => {
+    repo();
+    write({ 'src/c.ts': 'export const c = 1;\n' });
+    git('add', '.');
+    git('commit', '-q', '-m', 'next');
+    const head = git('rev-parse', 'HEAD');
+    // A `git` on PATH whose fetch never returns; every other command is the real git.
+    const realGit = execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim();
+    const bin = join(root, 'stub-bin');
+    mkdirSync(bin);
+    const stub = `#!/bin/sh\n[ "$1" = fetch ] && exec sleep 60\nexec "${realGit}" "$@"\n`;
+    writeFileSync(join(bin, 'git'), stub, { mode: 0o755 });
+    vi.stubEnv('PATH', `${bin}:${process.env.PATH}`);
+    const event = join(root, 'event.json');
+    const opts = { fetchTimeoutMs: 300 };
+    const resolve = (): string => resolveBase(root, { GITHUB_EVENT_PATH: event }, opts);
+    try {
+      const group = { base_ref: 'refs/heads/main', head_sha: head };
+      writeFileSync(event, JSON.stringify({ merge_group: group }));
+      expect(resolve).toThrow(/fetch .*timed out/);
+      // A pull request base missing from a shallow checkout is fetched the same way.
+      writeFileSync(event, JSON.stringify({ pull_request: { base: { sha: 'f'.repeat(40) } } }));
+      expect(resolve).toThrow(/fetch .*timed out/);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it('fails loudly on a base it cannot find', () => {

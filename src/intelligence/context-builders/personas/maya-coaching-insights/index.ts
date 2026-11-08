@@ -13,6 +13,7 @@
 import { loadBriefingStores } from '../briefing-stores.js';
 import { getHabitCalendarContextForBuilder } from '../../../../services/habits/habit-calendar-integration.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { takeHandoffArrival } from '../../../../tools/handoff/index.js';
 import {
   BuilderCategory,
   createHighInjection,
@@ -190,7 +191,9 @@ async function buildMayaCoachingInsightsContext(
   const sessionId = services?.sessionId || userId;
   const session = getSession(sessionId);
 
-  const handoffBriefing = analyzeHandoffForMaya();
+  const handoffBriefing = analyzeHandoffForMaya(
+    takeHandoffArrival(services?.sessionId, 'maya-santos')
+  );
   const isHandoff = handoffBriefing !== null;
 
   // Inject on first turn, handoff, or every 10 turns

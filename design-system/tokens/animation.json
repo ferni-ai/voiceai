@@ -262,7 +262,7 @@
     "organic": "cubic-bezier(0.4, 0.2, 0.2, 1.1)"
   },
 
-  "_durationsNote": "The one duration scale for web CSS (--duration-*) and TS (DURATION). Names come from apps/web DURATION. Where CSS and TS used one name for two values, the character direction (warm & unhurried) picked the slower one: fast 150, deliberate 700, dramatic 1000. faster (100) and slowest (500) are the old TS FAST and DELIBERATE values under their old CSS names.",
+  "_durationsNote": "The one duration scale for web CSS (--duration-*) and TS (DURATION). Names come from apps/web DURATION. Where CSS and TS used one name for two values, the character direction (warm & unhurried) picked the slower one: fast 150, deliberate 700, dramatic 1000. faster (100) and slowest (500) are the old TS FAST and DELIBERATE values under their old CSS names. expressionLight/expressionHeavy time the face by feeling (motion T2): a light feeling lands quickly, a heavy one settles slowly.",
   "durations": {
     "instant": "0ms",
     "micro": "50ms",
@@ -276,6 +276,8 @@
     "moderate": "400ms",
     "slowest": "500ms",
     "deliberate": "700ms",
+    "expressionLight": "350ms",
+    "expressionHeavy": "900ms",
     "celebration": "800ms",
     "dramatic": "1000ms",
     "entrance": "1000ms",

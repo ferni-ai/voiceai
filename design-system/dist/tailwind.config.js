@@ -218,6 +218,8 @@ export default {
         "moderate": "400ms",
         "slowest": "500ms",
         "deliberate": "700ms",
+        "expression-light": "350ms",
+        "expression-heavy": "900ms",
         "celebration": "800ms",
         "dramatic": "1000ms",
         "entrance": "1000ms",

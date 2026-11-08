@@ -7,7 +7,7 @@
  * path and userData.isReturningUser stayed false. Drives the real
  * createSessionServices; only the global store and its profile cache are faked.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createUserProfile, type UserProfile } from '../../../types/user-profile.js';
 
 const profiles = new Map<string, UserProfile>();
@@ -33,7 +33,12 @@ vi.mock('../../data-layer/profile-cache.js', () => ({
 }));
 
 const { createSessionServices } = await import('../session-manager.js');
-const { returningOnceLoaded, syncReturningOnceLoaded } = await import('../deferred-profile.js');
+const {
+  returningOnceLoaded,
+  syncReturningOnceLoaded,
+  trackDeferredProfileLoad,
+  deferredProfileSettled,
+} = await import('../deferred-profile.js');
 
 function holdLoad(): void {
   loadGate = new Promise<void>((resolve) => {
@@ -96,5 +101,66 @@ describe('returning user after the deferred profile load', () => {
   it('no profile anywhere: new user, and the wait still resolves', async () => {
     const { services, initFlag } = await fastPathSession('user-nobody-0');
     await expect(returningOnceLoaded(services, initFlag)).resolves.toBe(false);
+  });
+});
+
+describe('deferredProfileSettled: a bounded wait for the load', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('nothing pending, or already settled: true at once, and no timer is armed to get there', async () => {
+    vi.useFakeTimers();
+    const none = {};
+    const noneWait = deferredProfileSettled(none, 1200);
+    expect(vi.getTimerCount()).toBe(0); // the async function has run to its first await by now
+    await expect(noneWait).resolves.toBe(true);
+
+    const done = {};
+    trackDeferredProfileLoad(done, Promise.resolve());
+    await vi.advanceTimersByTimeAsync(0); // the load settles
+    const doneWait = deferredProfileSettled(done, 1200);
+    expect(vi.getTimerCount()).toBe(0); // a cap timer armed here is cleared later, so look now
+    await expect(doneWait).resolves.toBe(true);
+  });
+
+  it('settles inside the cap: true, and the cap timer is cleared', async () => {
+    vi.useFakeTimers();
+    const services = {};
+    trackDeferredProfileLoad(
+      services,
+      new Promise((r) => {
+        setTimeout(r, 300);
+      })
+    );
+    const wait = deferredProfileSettled(services, 1200);
+    await vi.advanceTimersByTimeAsync(300);
+    await expect(wait).resolves.toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('a failed load settles too: true, never a rejection', async () => {
+    const services = {};
+    trackDeferredProfileLoad(services, Promise.reject(new Error('store down')));
+    await expect(deferredProfileSettled(services, 1200)).resolves.toBe(true);
+  });
+
+  it('still loading at the cap: false', async () => {
+    vi.useFakeTimers();
+    const services = {};
+    trackDeferredProfileLoad(
+      services,
+      new Promise(() => {
+        /* never settles */
+      })
+    );
+    const wait = deferredProfileSettled(services, 1200);
+    await vi.advanceTimersByTimeAsync(1199);
+    let settled: boolean | undefined;
+    void wait.then((v) => {
+      settled = v;
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(settled).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(wait).resolves.toBe(false);
   });
 });

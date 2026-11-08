@@ -334,7 +334,7 @@ async function buildHandoffContext(input: ContextBuilderInput): Promise<ContextI
   const wakeWord = detectWakeWord(userText);
   if (DEBUG_HANDOFF)
     log.debug('Wake word check', {
-      userText: userText.slice(0, 50),
+      userTextLen: userText.length,
       isWakeWord: wakeWord.isWakeWord,
       target: wakeWord.targetAgent,
       currentAgent,
@@ -469,7 +469,7 @@ Acknowledge the transition naturally and continue the conversation.]`;
     }
 
     // Include cognitive handoff context if available (user's thinking style, what worked, etc.)
-    const handoffContext = getHandoffContext();
+    const handoffContext = getHandoffContext(input.services?.sessionId);
     if (handoffContext?.cognitiveContext) {
       const cognitiveContext = formatCognitiveHandoffForPrompt(handoffContext.cognitiveContext);
       if (cognitiveContext) {

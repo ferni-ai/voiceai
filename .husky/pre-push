@@ -94,6 +94,8 @@ while read -r _local_ref local_sha remote_ref _remote_sha; do
   if [[ "$local_sha" == "$(git rev-parse HEAD)" ]] && git diff --quiet HEAD; then
     npx tsx apps/cli/src/commands/quality/architecture-gate.ts >/tmp/pre-push-arch.log 2>&1 ||
       fail "new architecture violations (quality:arch): see /tmp/pre-push-arch.log"
+    npx tsx apps/cli/src/commands/quality/mock-paths.ts >/tmp/pre-push-mock-paths.log 2>&1 ||
+      fail "a vi.mock string names no module (quality:mock-paths): see /tmp/pre-push-mock-paths.log"
     npx tsx apps/cli/src/commands/quality/ratchet.ts >/tmp/pre-push-ratchet.log 2>&1 ||
       fail "quality ratchet regressed: see /tmp/pre-push-ratchet.log"
   elif [[ "$local_sha" == "$(git rev-parse HEAD)" ]]; then

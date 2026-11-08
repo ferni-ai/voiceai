@@ -1,6 +1,7 @@
 /**
- * Unified local search: Google Places first, Yelp as fallback, or whichever
- * source the user named ("on Yelp", "on Google").
+ * Local search through Google Places, the one place source left. Yelp was
+ * removed (2026-10-30): its API terms (section 9.4) ban feeding Yelp content
+ * to a generative model.
  *
  * @module tools/domains/local-search/unified-search
  */
@@ -9,21 +10,18 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import {
   searchRestaurants as searchGooglePlaces,
   isGooglePlacesConfigured,
+  priceSymbols,
   type PlaceSearchResult,
 } from '../../../services/google-places.js';
-import {
-  searchBusinesses as searchYelp,
-  isYelpConfigured,
-  type YelpBusiness,
-} from '../../../services/yelp.js';
 
 const log = getLogger();
+
+/** What the tools say when no place source is configured, instead of "I couldn't find any". */
+export const LOCAL_SEARCH_UNAVAILABLE = "I can't search for places right now.";
 
 // ============================================================================
 // TYPES
 // ============================================================================
-
-export type Source = 'auto' | 'google' | 'yelp';
 
 export interface SearchResult {
   name: string;
@@ -33,7 +31,7 @@ export interface SearchResult {
   priceLevel?: string;
   phone?: string;
   isOpen?: boolean;
-  source: 'google' | 'yelp';
+  source: 'google';
   sourceId: string;
 }
 
@@ -42,46 +40,18 @@ export interface SearchResult {
 // ============================================================================
 
 /**
- * Detect if user explicitly requested a source
- */
-export function detectExplicitSource(query: string): Source {
-  const lower = query.toLowerCase();
-  if (lower.includes('yelp') || lower.includes('on yelp')) return 'yelp';
-  if (lower.includes('google') || lower.includes('on google')) return 'google';
-  return 'auto';
-}
-
-/**
  * Convert Google Places result to unified format
  */
 function googleToUnified(place: PlaceSearchResult): SearchResult {
-  const priceLevels = ['', '$', '$$', '$$$', '$$$$'];
   return {
     name: place.name,
     address: place.address,
     rating: place.rating,
     reviewCount: place.userRatingsTotal,
-    priceLevel: place.priceLevel ? priceLevels[place.priceLevel] : undefined,
+    priceLevel: priceSymbols(place.priceLevel),
     isOpen: place.openNow,
     source: 'google',
     sourceId: place.placeId,
-  };
-}
-
-/**
- * Convert Yelp result to unified format
- */
-function yelpToUnified(biz: YelpBusiness): SearchResult {
-  return {
-    name: biz.name,
-    address: biz.location.display_address.join(', '),
-    rating: biz.rating,
-    reviewCount: biz.review_count,
-    priceLevel: biz.price,
-    phone: biz.display_phone,
-    isOpen: !biz.is_closed,
-    source: 'yelp',
-    sourceId: biz.id,
   };
 }
 
@@ -109,90 +79,77 @@ export function formatResults(results: SearchResult[], query: string, location: 
     response += '\n';
   });
 
-  // Note the source
-  const sources = [...new Set(results.map((r) => r.source))];
-  if (sources.length === 1) {
-    response += `_via ${sources[0] === 'google' ? 'Google' : 'Yelp'}_`;
-  }
+  response += '_via Google_';
 
   return response;
 }
 
+/** True when a place source is configured (only Google Places is left). */
+export function isLocalSearchAvailable(): boolean {
+  return isGooglePlacesConfigured();
+}
+
 /**
- * Unified search: Google primary, Yelp fallback
+ * Search Google Places. Returns [] when Places is not configured; callers
+ * check isLocalSearchAvailable() first so they can say so honestly.
  */
 export async function unifiedSearch(
   query: string,
   location: string,
   options: {
     openNow?: boolean;
-    priceLevel?: string;
-    explicitSource?: Source;
     restaurantsOnly?: boolean;
   }
 ): Promise<SearchResult[]> {
-  const source = options.explicitSource || 'auto';
+  if (!isGooglePlacesConfigured()) {
+    log.warn('Google Places not configured for local search');
+    return [];
+  }
   // Places text search drops every non-restaurant when includedType is 'restaurant'.
   const type = options.restaurantsOnly ? 'restaurant' : null;
+  const googleResults = await searchGooglePlaces({
+    query,
+    location,
+    openNow: options.openNow,
+    type,
+  });
+  return googleResults.map(googleToUnified);
+}
 
-  // Explicit Yelp request
-  if (source === 'yelp') {
-    if (!isYelpConfigured()) {
-      log.debug('Yelp requested but not configured');
-      return [];
-    }
-    const yelpResults = await searchYelp({
-      term: query,
-      location,
-      open_now: options.openNow,
-      price: options.priceLevel,
-      limit: 10,
+/**
+ * The reply to a restaurant search, for every tool that searches restaurants.
+ * Three honest outcomes: the places found; "couldn't find any" only when Places
+ * answered with none; LOCAL_SEARCH_UNAVAILABLE when Places is not set up or the
+ * lookup failed, because no search ran. `location` is already resolved.
+ * Logs the outcome and count only, never the place or the query.
+ */
+export async function findRestaurantsReply(
+  location: string,
+  cuisine?: string,
+  openNow?: boolean
+): Promise<string> {
+  if (!isLocalSearchAvailable()) return LOCAL_SEARCH_UNAVAILABLE;
+  // "sushi restaurants" and a bare "restaurants" both mean the same search as the cuisine alone.
+  const kind = (cuisine ?? '')
+    .replace(/\brestaurants?\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  let results: SearchResult[];
+  try {
+    results = await unifiedSearch(kind ? `${kind} restaurant` : 'restaurant', location, {
+      openNow,
+      restaurantsOnly: true,
     });
-    return yelpResults.map(yelpToUnified);
+  } catch {
+    log.warn({ outcome: 'unavailable' }, '🍽️ Restaurant search could not run');
+    return LOCAL_SEARCH_UNAVAILABLE;
   }
-
-  // Explicit Google request
-  if (source === 'google') {
-    if (!isGooglePlacesConfigured()) {
-      log.debug('Google Places requested but not configured');
-      return [];
-    }
-    const googleResults = await searchGooglePlaces({
-      query,
-      location,
-      openNow: options.openNow,
-      type,
-    });
-    return googleResults.map(googleToUnified);
+  log.info(
+    { outcome: results.length ? 'found' : 'none', count: results.length },
+    '🍽️ Restaurant search'
+  );
+  if (results.length === 0) {
+    return `I couldn't find ${kind || 'any'} restaurants in ${location}. Try a different area or cuisine?`;
   }
-
-  // Auto: Google primary, Yelp fallback
-  if (isGooglePlacesConfigured()) {
-    const googleResults = await searchGooglePlaces({
-      query,
-      location,
-      openNow: options.openNow,
-      type,
-    });
-
-    if (googleResults.length > 0) {
-      return googleResults.map(googleToUnified);
-    }
-    log.debug('Google returned no results, trying Yelp fallback');
-  }
-
-  // Fallback to Yelp
-  if (isYelpConfigured()) {
-    const yelpResults = await searchYelp({
-      term: query,
-      location,
-      open_now: options.openNow,
-      price: options.priceLevel,
-      limit: 10,
-    });
-    return yelpResults.map(yelpToUnified);
-  }
-
-  log.warn('Neither Google Places nor Yelp configured for local search');
-  return [];
+  return `**${kind || 'Restaurant'} Options near ${location}**\n\n${formatResults(results, kind || 'restaurants', location)}`;
 }

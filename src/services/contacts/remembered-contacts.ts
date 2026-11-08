@@ -6,55 +6,35 @@
  * and never messages their old number. Their memorial date is a day to
  * remember them together, not an outreach occasion.
  *
- * A memorial date is one marker. The other is the user's own "in memory" mark
- * (in-memory.ts, behind CONTACT_IN_MEMORY). The richer deceased detection
- * (intelligence/triggers relationship profile) sits above this layer and can't
- * be imported here.
+ * The richer deceased detection (intelligence/triggers relationship profile)
+ * sits above this layer and can't be imported here.
  *
  * @module services/contacts/remembered-contacts
  */
 
-import { isInMemory, passingDate, type InMemory } from './in-memory.js';
-
-export type { InMemory };
-
 interface DatedContact {
   importantDates?: ReadonlyArray<{ type: string }>;
-  inMemory?: InMemory;
 }
-
-type RememberedDate = NonNullable<ReturnType<typeof passingDate>>;
 
 /** Why a send to someone who has died is skipped */
 export const REMEMBERED_SKIP_REASON = 'They have passed away, so Ferni does not message them';
 
-/** True when the contact is someone the user has lost (a memorial date, or marked in memory) */
+/** True when the contact is someone the user has lost (a memorial date) */
 export function isRememberedContact(contact: DatedContact | null | undefined): boolean {
-  return !!contact?.importantDates?.some((d) => d.type === 'memorial') || isInMemory(contact);
+  return !!contact?.importantDates?.some((d) => d.type === 'memorial');
 }
 
 /**
  * The dates worth a nudge for this contact. For someone who has died only the
- * memorial date counts, plus the anniversary of the day they passed when the
- * user gave it: their birthday or anniversary is never a "send them something"
- * moment.
- *
- * `remember` is for the agent's context rather than a nudge: someone marked in
- * memory keeps their birthday there, as a day to remember them.
+ * memorial date counts: their birthday or anniversary is never a "send them
+ * something" moment.
  */
-export function datesToNudge<T extends { type: string; date: string }>(
-  contact: { importantDates?: T[]; inMemory?: InMemory },
-  purpose: 'nudge' | 'remember' = 'nudge'
-): Array<T | RememberedDate> {
+export function datesToNudge<T extends { type: string; date: string }>(contact: {
+  importantDates?: T[];
+}): T[] {
   const dates = contact.importantDates ?? [];
   if (!isRememberedContact(contact)) return dates;
-  const keep =
-    purpose === 'remember' && isInMemory(contact) ? ['memorial', 'birthday'] : ['memorial'];
-  const kept: Array<T | RememberedDate> = dates.filter((d) => keep.includes(d.type));
-  const passing = passingDate(contact);
-  const sameDay = (d: { date: string }): boolean => d.date.slice(-5) === passing?.date.slice(-5);
-  if (passing && !kept.some((d) => d.type === 'memorial' && sameDay(d))) kept.push(passing);
-  return kept;
+  return dates.filter((d) => d.type === 'memorial');
 }
 
 /** What Ferni offers as a memorial date nears: remembering together, never reaching out */

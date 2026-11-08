@@ -1,152 +1,36 @@
-# Source Code (`src/`)
+# Source code (`src/`)
 
-> **Navigation index for all Ferni backend modules.**
+The voice agent and the UI/API server. **The map of every folder (its layer, its context,
+its `index.ts` and its `CLAUDE.md`) is the generated table in
+[ARCHITECTURE.md](../ARCHITECTURE.md).** This file only adds what that table can't.
 
-This directory contains the core backend implementation. Modules are organized by clean architecture layers - lower layers cannot import from higher layers.
+## Layers
 
----
+Layers L1–L5, the L3 contexts, the import rules and which folder belongs where are all in
+[ARCHITECTURE.md](../ARCHITECTURE.md) "Layers", generated from
+[architecture-layers.ts](../apps/cli/src/commands/quality/architecture-layers.ts) and
+enforced by `pnpm quality:arch`. Don't copy that table here.
 
-## Architecture Layers
+Some older `CLAUDE.md` files here still describe a "Level 100/70/60/30/10" model. That
+model is retired; the layers in ARCHITECTURE.md are the ones the gate checks.
 
-```
-Level 100 (Application)     ← Entry points, orchestration
-Level 70  (Domain)          ← Business logic, personas, tools
-Level 60  (Service)         ← Shared services
-Level 30  (Infrastructure)  ← Storage, external integrations
-Level 10  (Foundation)      ← Config, utils, types
-```
+## Counts worth knowing (2026-10-31)
 
----
+- **9 personas**, one bundle each in `personas/bundles/<id>/` (plus `shared/` and `types/`).
+- **126 tool-domain folders** in `tools/domains/`, two of them shared helpers
+  (`shared/`, `life-coaching-shared/`).
 
-## Quick Reference
+## Quick reference
 
-| Need to... | Go to |
-|------------|-------|
-| Add a new tool | `tools/CLAUDE.md` |
-| Create a persona | `personas/CLAUDE.md` |
-| Add context injection | `intelligence/CLAUDE.md` |
-| Modify voice agent | `agents/CLAUDE.md` |
-| Add a service | `services/CLAUDE.md` |
-| Store data | `memory/CLAUDE.md` |
+| Need to... | Read |
+|---|---|
+| Add a tool | `tools/CLAUDE.md` |
+| Add or change a persona | `personas/bundles/CLAUDE.md` |
+| Add context to a turn's prompt | `intelligence/context-builders/CLAUDE.md` |
+| Change the voice agent | `agents/CLAUDE.md` |
+| Store or recall data | `memory/CLAUDE.md` |
+| Add a flag, a scheduled job, a log marker | [ARCHITECTURE.md](../ARCHITECTURE.md) "Where to add things" |
 
----
+## Tests
 
-## Module Index by Layer
-
-### Level 100: Application Layer
-
-| Module | CLAUDE.md | Purpose |
-|--------|-----------|---------|
-| `agents/` | ✅ | Voice agent implementation, multi-agent, group conversations |
-| `api/` | ✅ | REST API routes, middleware, webhooks |
-| `cli/` | ✅ | Internal dev CLI tools (not user-facing) |
-| `servers/` | ✅ | Token server, UI server, WebSocket |
-
-### Level 70: Domain Layer
-
-| Module | CLAUDE.md | Purpose |
-|--------|-----------|---------|
-| `personas/` | ✅ | 6 AI team members, bundles, cognitive profiles |
-| `intelligence/` | ✅ | Context builders, emotional analysis |
-| `tools/` | ✅ | 118 tool domains, semantic selection |
-| `conversation/` | ✅ | Humanization, 26K+ lines of dialogue magic |
-| `speech/` | ✅ | SSML, prosody, backchanneling |
-| `handoff/` | ✅ | Persona transitions, cameo system |
-| `tasks/` | ✅ | Emotion-aware task execution |
-| `audio/` | ✅ | DJ Booth, music player, preferences |
-
-### Level 60: Service Layer
-
-| Module | CLAUDE.md | Purpose |
-|--------|-----------|---------|
-| `services/` | ✅ | 200+ services, superhuman capabilities |
-| `marketplace/` | ✅ | Tool registry, sandboxed execution |
-
-### Level 30: Infrastructure Layer
-
-| Module | CLAUDE.md | Purpose |
-|--------|-----------|---------|
-| `memory/` | ✅ | Firestore, Postgres, Redis, embeddings |
-| `context/` | ✅ | ContextManager, session context |
-| `personality/` | ✅ | Personality emergence, timing |
-| `workers/` | ✅ | Background worker processes |
-
-### Level 10: Foundation Layer
-
-| Module | CLAUDE.md | Purpose |
-|--------|-----------|---------|
-| `config/` | ✅ | Environment, feature flags |
-| `utils/` | ✅ | Logging, validation, helpers |
-| `types/` | ✅ | Shared TypeScript types |
-| `errors/` | ✅ | FerniError base class, error codes |
-| `i18n/` | ✅ | 11 locales, RTL support |
-
-### Supporting Modules
-
-| Module | CLAUDE.md | Purpose |
-|--------|-----------|---------|
-| `tests/` | ✅ | Integration tests, fixtures |
-| `scripts/` | ✅ | One-off and scheduled scripts |
-| `jobs/` | ✅ | Background maintenance jobs |
-| `runtime/` | ✅ | Local/remote runtime abstraction |
-| `ssml/` | ✅ | SSML generation utilities |
-
----
-
-## Entry Points
-
-| File | Purpose |
-|------|---------|
-| `agent.ts` | Main agent factory |
-| `startup.ts` | Application bootstrap |
-
----
-
-## Import Rules (Enforced)
-
-```bash
-# Validate architecture
-pnpm quality:arch
-```
-
-| From Level | Can Import From |
-|------------|-----------------|
-| 100 (agents, api) | 70, 60, 30, 10 |
-| 70 (personas, tools) | 60, 30, 10 |
-| 60 (services) | 30, 10 |
-| 30 (memory) | 10 |
-| 10 (utils) | Only external packages |
-
----
-
-## Common Tasks
-
-### Running Tests
-```bash
-pnpm vitest run src/tests/          # Integration tests
-pnpm vitest run src/*/\__tests__/   # Unit tests per module
-```
-
-### Finding Code
-```bash
-# Find a tool
-grep -r "toolName" src/tools/
-
-# Find a service
-grep -r "serviceName" src/services/
-
-# Find a persona behavior
-grep -r "behaviorName" src/personas/bundles/
-```
-
----
-
-## Related Documentation
-
-- Root `CLAUDE.md` - Project overview, deployment, quality gates
-- `docs/architecture/CLEAN-ARCHITECTURE.md` - Full architecture details
-- `apps/CLAUDE.md` - Frontend and platform apps
-
----
-
-*Last updated: January 2026*
+Vitest, next to the code in `__tests__/`: `pnpm vitest run src/<path>`.

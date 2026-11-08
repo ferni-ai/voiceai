@@ -24,3 +24,7 @@ export const SEVERITY = {
   block: 0.85,
   crisis: 0.7,
 } as const;
+
+/** Whether a detection replaces the reply: guardFromDetection's test, without its log. */
+export const replacesReply = (crisis: { isCrisis: boolean; severity: number }): boolean =>
+  crisis.isCrisis && crisis.severity >= SEVERITY.block;

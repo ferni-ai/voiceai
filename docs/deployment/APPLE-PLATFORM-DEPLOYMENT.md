@@ -87,7 +87,6 @@ For Bundle ID `com.sethdford.ferni`:
 |------------|--------------|
 | ✅ App Groups | Widget/Extension data sharing |
 | ✅ HealthKit | Sleep, HRV, activity insights |
-| ✅ HomeKit | Smart home mood control |
 | ✅ Push Notifications | Proactive check-ins |
 | ✅ Sign in with Apple | User authentication |
 | ✅ Siri | "Hey Siri, talk to Ferni" |

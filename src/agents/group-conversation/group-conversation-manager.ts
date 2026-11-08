@@ -485,7 +485,7 @@ Rules:
 
       return { keyPoints, actionItems, decisions };
     } catch {
-      log.debug({ response: response.slice(0, 200) }, 'Failed to parse LLM summary response');
+      log.debug({ responseLen: response.length }, 'Failed to parse LLM summary response');
       return { keyPoints: [], actionItems: [], decisions: [] };
     }
   }

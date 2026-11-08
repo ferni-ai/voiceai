@@ -321,6 +321,7 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
     tier: subscriptionTier,
   });
 
+  if (userId) bindSessionUser(sessionId, userId); // before any write: every hold reads it
   // ================================================================
   // CREATE SESSION SERVICES
   // FIX: Pass userName so it gets saved to Firestore profile!
@@ -415,11 +416,11 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
         (async () => {
           try {
             // Use firebase-admin directly (same pattern as humanization/persistence.ts)
-            const admin = (await import('firebase-admin')).default;
+            const { getApps, initializeApp } = await import('firebase-admin/app');
 
             // Initialize Firebase Admin if not already done
-            if (admin.apps.length === 0) {
-              admin.initializeApp();
+            if (getApps().length === 0) {
+              initializeApp();
             }
             const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
 
@@ -1210,7 +1211,6 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
   // ====== PERIODIC SYNC: deep understanding saved during long sessions (every 5 minutes) ======
   let stopSync: (() => void) | null = null;
   if (userId) {
-    bindSessionUser(sessionId, userId); // MINOR_CARE: userHeld(userId) follows this session's hold
     stopSync = startPeriodicSync(sessionId, userId);
     diag.session('🔄 Periodic deep understanding sync started', { sessionId, userId });
   }

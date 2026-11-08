@@ -17,7 +17,9 @@
  */
 
 import 'dotenv/config';
-import admin from 'firebase-admin';
+import { getApps, initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { type DocumentReference, FieldValue } from 'firebase-admin/firestore';
 import { pathToFileURL } from 'node:url';
 import { destructiveMode } from './destructive-gate.js';
 import {
@@ -40,7 +42,7 @@ export function unlinkReason(
 
 async function linkedAccount(uid: string): Promise<LinkedAccount | null> {
   try {
-    return accountFromUser(await admin.auth().getUser(uid));
+    return accountFromUser(await getAuth().getUser(uid));
   } catch {
     return null;
   }
@@ -62,12 +64,11 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
     return;
   }
 
-  if (!admin.apps.length) admin.initializeApp({ projectId });
+  if (!getApps().length) initializeApp({ projectId });
   const db = getAdminFirestore();
   const snapshot = await db.collection('publishers').get();
 
-  const toUnlink: Array<{ id: string; reason: string; ref: admin.firestore.DocumentReference }> =
-    [];
+  const toUnlink: Array<{ id: string; reason: string; ref: DocumentReference }> = [];
   for (const doc of snapshot.docs) {
     const data = doc.data();
     const uid = data.firebaseUid;
@@ -76,7 +77,7 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
     if (reason) toUnlink.push({ id: doc.id, reason, ref: doc.ref });
   }
 
-  const keys: Array<{ id: string; ref: admin.firestore.DocumentReference }> = [];
+  const keys: Array<{ id: string; ref: DocumentReference }> = [];
   const prefix = mode === 'dry-run' ? '[dry run] ' : '';
   console.log(`${prefix}${toUnlink.length} publisher(s) to unlink`);
   for (const p of toUnlink) {
@@ -92,7 +93,7 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
   if (mode === 'dry-run' || toUnlink.length === 0) return;
 
   for (const p of toUnlink) {
-    await p.ref.update({ firebaseUid: admin.firestore.FieldValue.delete() });
+    await p.ref.update({ firebaseUid: FieldValue.delete() });
   }
   for (const k of keys) {
     await k.ref.update({ enabled: false, revokedReason: 'publisher-unlinked' });

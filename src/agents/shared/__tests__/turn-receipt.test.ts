@@ -14,6 +14,7 @@ import { promptSections } from '../prompt-sections.js';
 import { withActionClaimCheck } from '../../personas/action-claim-guard.js';
 import { holdReplyAudio } from '../../../speech/output-control/reply-activity.js';
 import { noteTurnTiming } from '../../../speech/output-control/turn-timing.js';
+import { plantedPiiIn } from '../../../tests/helpers/snippet-leak.js';
 
 const INSTRUCTIONS = 'You are Ferni, a warm friend on a call.';
 const RECALL = '[WHAT YOU REMEMBER ABOUT JANE]\n- Jane Doe: phone = +1 555 867 5309';
@@ -312,9 +313,8 @@ describe('attachTurnReceipts', () => {
   it('carries no transcript, reply, tool argument, note, name, number or uid', () => {
     const c = call();
     c.turn({ tools: ['getWeather'] });
-    const json = JSON.stringify(c.receipts);
     expect(c.receipts).toHaveLength(1);
-    for (const pii of PII) expect(json).not.toContain(pii);
+    expect(plantedPiiIn(c.receipts, PII)).toEqual([]);
   });
 
   it('counts each turn once: two signals per commit, greetings and repeats aside', () => {

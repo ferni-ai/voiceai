@@ -6,6 +6,9 @@
     // fetch's Response.json() is typed the same way here.
     "lib": ["ES2022", "DOM"],
     "noEmit": true,
+    // Scripts CI runs with `node --experimental-strip-types` import their siblings by
+    // their .ts name (node doesn't map .js to .ts), e.g. scripts/ci/autonomy-lanes.ts.
+    "allowImportingTsExtensions": true,
     "declaration": false,
     "declarationMap": false,
     "sourceMap": false

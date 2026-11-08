@@ -12,6 +12,7 @@
  * @module config/generative-model
  */
 
+import { errorClass, errorStatus } from '../utils/error-class.js';
 import { getGeminiClient } from './gemini-config.js';
 
 export interface GenerationConfig {
@@ -45,6 +46,64 @@ interface GenAIClient {
       config?: Record<string, unknown>;
     }): Promise<{ text?: string; usageMetadata?: UsageMetadata }>;
   };
+}
+
+/** No shared client: Vertex has no GOOGLE_CLOUD_PROJECT (or, off Vertex, no key). */
+export class GeminiUnavailableError extends Error {
+  constructor(reason = 'Gemini client unavailable') {
+    super(reason);
+    this.name = 'GeminiUnavailableError';
+  }
+}
+
+/**
+ * A Gemini request that failed. Keeps the HTTP status (0 when there was none:
+ * timeout, network) and the error's class, never its message: the SDK's
+ * message can quote the prompt, which holds the caller's words.
+ */
+class GeminiCallError extends Error {
+  constructor(
+    readonly status: number,
+    readonly errorClass: string
+  ) {
+    super(`Gemini call failed: ${status || errorClass}`);
+    this.name = 'GeminiCallError';
+  }
+}
+
+/** The shared client's models API, or GeminiUnavailableError. */
+async function requireGeminiModels(): Promise<GenAIClient['models']> {
+  const client = (await getGeminiClient()) as GenAIClient | null;
+  if (!client) throw new GeminiUnavailableError();
+  return client.models;
+}
+
+export interface GenerateTextOptions extends ModelOptions {
+  prompt: string;
+  /** Abort the request after this long (GeminiCallError, status 0). */
+  timeoutMs?: number;
+}
+
+/**
+ * One prompt in, the model's text out, through the shared client (Vertex on
+ * the agent). Throws GeminiUnavailableError or GeminiCallError; an empty
+ * answer is returned as ''.
+ */
+export async function generateText(options: GenerateTextOptions): Promise<string> {
+  const models = await requireGeminiModels();
+  const config: Record<string, unknown> = { ...options.generationConfig };
+  if (options.systemInstruction) config.systemInstruction = options.systemInstruction;
+  if (options.timeoutMs) config.abortSignal = AbortSignal.timeout(options.timeoutMs);
+  try {
+    const result = await models.generateContent({
+      model: options.model,
+      contents: options.prompt,
+      config,
+    });
+    return result.text ?? '';
+  } catch (error) {
+    throw new GeminiCallError(errorStatus(error) ?? 0, errorClass(error));
+  }
 }
 
 export interface ModelOptions {

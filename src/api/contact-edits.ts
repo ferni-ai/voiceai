@@ -13,7 +13,6 @@
  */
 
 import type { ServerResponse } from 'http';
-import { inMemoryOn, parseInMemoryEdit } from '../services/contacts/in-memory.js';
 import { sendError } from './helpers.js';
 
 /** The fields a person edits; who owns a contact, its scores and its history are the server's */
@@ -47,19 +46,7 @@ export function contactEdits(body: unknown): Record<string, unknown> | null {
     const empty = value === null || value === '' || (Array.isArray(value) && value.length === 0);
     edits[key] = empty ? undefined : value;
   }
-  return addInMemoryEdit(input, edits) ? edits : null;
-}
-
-/**
- * Marking someone who has died, or undoing it (CONTACT_IN_MEMORY). The server
- * stamps when, never the client. False when the value isn't valid.
- */
-function addInMemoryEdit(input: Record<string, unknown>, edits: Record<string, unknown>): boolean {
-  if (!inMemoryOn() || !('inMemory' in input)) return true;
-  const edit = parseInMemoryEdit(input.inMemory);
-  if ('invalid' in edit) return false;
-  edits.inMemory = 'set' in edit ? edit.set : undefined;
-  return true;
+  return edits;
 }
 
 /** Longest photo data URL accepted, leaving room in the 1 MiB document for the rest. */

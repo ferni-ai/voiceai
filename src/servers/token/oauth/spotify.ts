@@ -1,304 +1,52 @@
 /**
- * Spotify OAuth management
+ * Per-user Spotify links: delete only.
  *
- * STORAGE: Uses Firestore for persistence (Cloud Run compatible).
- * Tokens are encrypted before storage for security.
+ * Ferni does not link a person's own Spotify account (Spotify Developer Policy
+ * III.3 bars voice assistants that control Spotify, and Development Mode caps an
+ * app at 5 users). Music is Sonos favourites, Apple MusicKit on device, and
+ * links; the house account behind ambient playback is separate
+ * (services/identity/spotify-auth.ts). Up to 5 dev-mode accounts linked before
+ * 2026-10-30 may still have tokens here. Nothing reads them: they can only be
+ * removed, by GET /spotify/unlink (routes/spotify.ts) or by account deletion,
+ * which erases bogle_users/{uid} and everything under it
+ * (services/platform/user-stores.ts USER_RECORD_ROOTS).
  */
 
-import type { OAuthTokens } from '../../shared/types.js';
-import { encryptData, decryptData } from '../../shared/encryption.js';
 import { createPersistenceStore } from '../../../services/persistence/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { resealStale } from '../../../utils/token-at-rest.js';
-import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
-const log = createLogger({ module: 'SpotifyOAuth' });
+const log = createLogger({ module: 'SpotifyLinks' });
 
-// Configuration
-const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
-const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
-const SPOTIFY_REDIRECT_URI =
-  process.env.SPOTIFY_REDIRECT_URI ||
-  `http://localhost:${process.env.PORT || 3002}/spotify/callback`;
-
-/**
- * Spotify OAuth token response
- */
-interface SpotifyTokenResponse {
-  access_token: string;
-  refresh_token?: string;
-  expires_in: number;
-  scope?: string;
-}
-
-/**
- * Encrypted token data stored in Firestore
- */
+/** Encrypted token data stored in Firestore */
 interface EncryptedTokenData {
   encrypted: string;
   updated_at: number;
 }
 
-// Required scopes for Spotify integration
-export const SPOTIFY_SCOPES = [
-  'streaming',
-  'user-read-email',
-  'user-read-private',
-  'user-read-playback-state',
-  'user-modify-playback-state',
-  'user-read-currently-playing',
-  'playlist-read-private',
-  'playlist-read-collaborative',
-];
-
-// Firestore-backed persistence store for encrypted tokens, keyed by the
-// verified Ferni uid: bogle_users/{uid}/spotify_links/data.
-// Not the old spotify_oauth_tokens collection: that was keyed by a client-named
-// device_id, so anyone could have planted their own Spotify link under another
-// person's uid. Those records are never read, and their owners link again.
+// bogle_users/{uid}/spotify_links/data, keyed by the verified Ferni uid.
 export const SPOTIFY_LINK_COLLECTION = 'spotify_links';
 const tokenStore = createPersistenceStore<EncryptedTokenData>({
   collection: SPOTIFY_LINK_COLLECTION,
   holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
   documentId: 'data',
-  useRootCollection: false, // Per-user storage
+  useRootCollection: false, // under bogle_users/{uid}, so account deletion erases it
   syncIntervalMs: 2000,
 });
 
-// In-memory cache for decrypted tokens (fast access)
-const tokenCache = new Map<string, OAuthTokens>();
-
-/**
- * Check if Spotify is configured
- */
-export function isConfigured(): boolean {
-  return !!(SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET);
-}
-
-/**
- * Get Spotify configuration
- */
-export function getConfig(): {
-  clientId: string | undefined;
-  redirectUri: string;
-  scopes: string[];
-} {
-  return {
-    clientId: SPOTIFY_CLIENT_ID,
-    redirectUri: SPOTIFY_REDIRECT_URI,
-    scopes: SPOTIFY_SCOPES,
-  };
-}
-
-/**
- * Get tokens for a Ferni user (from cache or Firestore)
- */
-export async function getTokens(userId: string): Promise<OAuthTokens | null> {
-  // Check cache first
-  const cached = tokenCache.get(userId);
-  if (cached) {
-    return cached;
-  }
-
-  try {
-    const data = await tokenStore.get(userId);
-    if (data?.encrypted) {
-      const decrypted = decryptData<OAuthTokens>(data.encrypted);
-      if (decrypted) {
-        tokenCache.set(userId, decrypted);
-        // With TOKEN_SEALING_KEY set, move an older envelope to it (best effort).
-        void resealStale({
-          store: SPOTIFY_LINK_COLLECTION,
-          stored: data.encrypted,
-          value: decrypted,
-          swap: (encrypted) =>
-            tokenStore.updateIfUnchanged(userId, (cur) => cur.encrypted === data.encrypted, {
-              encrypted,
-            }),
-        });
-        return decrypted;
-      }
-    }
-  } catch (err) {
-    log.error(
-      { error: (err as Error).message, userId: userId.substring(0, 8) },
-      'Error loading Spotify tokens'
-    );
-  }
-  return null;
-}
-
-/**
- * Save tokens for a Ferni user (encrypted)
- */
-export async function saveTokens(userId: string, tokens: OAuthTokens): Promise<void> {
-  const tokensWithTimestamp = {
-    ...tokens,
-    updated_at: Date.now(),
-  };
-
-  // Update cache
-  tokenCache.set(userId, tokensWithTimestamp);
-
-  // Encrypt and persist
-  try {
-    const encrypted = encryptData(tokensWithTimestamp);
-    const grant = { encrypted, updated_at: Date.now() };
-    await tokenStore.setImmediate(userId, grant, { safeWithoutRead: true }); // a new grant
-    log.info({ userId: userId.substring(0, 8) }, 'Saved Spotify OAuth tokens');
-  } catch (err) {
-    log.error(
-      { error: (err as Error).message, userId: userId.substring(0, 8) },
-      'Error saving Spotify tokens'
-    );
-  }
-}
-
-/**
- * Remove tokens for a Ferni user
- */
+/** Remove a Ferni user's old Spotify link, if there is one. */
 export async function removeTokens(userId: string): Promise<void> {
-  tokenCache.delete(userId);
-
   try {
     await tokenStore.delete(userId);
-    log.info({ userId: userId.substring(0, 8) }, 'Removed Spotify OAuth tokens');
+    log.info({ userId: userId.substring(0, 8) }, 'Removed Spotify link tokens');
   } catch (err) {
     log.error(
       { error: (err as Error).message, userId: userId.substring(0, 8) },
-      'Error removing Spotify tokens'
+      'Error removing Spotify link tokens'
     );
   }
 }
 
-/**
- * Refresh access token using refresh token
- */
-export async function refreshToken(userId: string): Promise<OAuthTokens | null> {
-  const userTokens = await getTokens(userId);
-  if (!userTokens?.refresh_token) {
-    return null;
-  }
-
-  try {
-    const response = await fetch('https://accounts.spotify.com/api/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization:
-          'Basic ' +
-          Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64'),
-      },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: userTokens.refresh_token,
-      }),
-    });
-
-    if (!response.ok) {
-      log.error(
-        { status: response.status, userId: userId.substring(0, 8) },
-        'Spotify token refresh failed'
-      );
-      return null;
-    }
-
-    const data = (await response.json()) as SpotifyTokenResponse;
-    const newTokens: OAuthTokens = {
-      access_token: data.access_token,
-      refresh_token: data.refresh_token || userTokens.refresh_token,
-      expires_at: Date.now() + data.expires_in * 1000,
-      scope: data.scope || userTokens.scope,
-    };
-
-    await saveTokens(userId, newTokens);
-    log.info({ userId: userId.substring(0, 8) }, 'Spotify token refreshed');
-    return newTokens;
-  } catch (err) {
-    log.error(
-      { error: (err as Error).message, userId: userId.substring(0, 8) },
-      'Error refreshing Spotify token'
-    );
-    return null;
-  }
-}
-
-/**
- * Get valid access token for a user (refresh if needed)
- */
-export async function getValidToken(userId: string): Promise<string | null> {
-  const userTokens = await getTokens(userId);
-  if (!userTokens) {
-    return null;
-  }
-
-  // Check if token is expired (with 5 min buffer)
-  const bufferMs = 5 * 60 * 1000;
-  if (Date.now() >= userTokens.expires_at - bufferMs) {
-    const refreshed = await refreshToken(userId);
-    return refreshed?.access_token || null;
-  }
-
-  return userTokens.access_token;
-}
-
-/**
- * Exchange authorization code for tokens
- */
-export async function exchangeCode(code: string): Promise<OAuthTokens | null> {
-  try {
-    const response = await fetch('https://accounts.spotify.com/api/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization:
-          'Basic ' +
-          Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64'),
-      },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code,
-        redirect_uri: SPOTIFY_REDIRECT_URI,
-      }),
-    });
-
-    if (!response.ok) {
-      log.error({ status: response.status }, 'Spotify token exchange failed');
-      return null;
-    }
-
-    const data = (await response.json()) as SpotifyTokenResponse;
-    return {
-      access_token: data.access_token,
-      refresh_token: data.refresh_token || '',
-      expires_at: Date.now() + data.expires_in * 1000,
-      scope: data.scope,
-    };
-  } catch (err) {
-    log.error({ error: (err as Error).message }, 'Error exchanging Spotify code');
-    return null;
-  }
-}
-
-/**
- * Build Spotify authorization URL
- */
-export function buildAuthUrl(state: string): string {
-  const url = new URL('https://accounts.spotify.com/authorize');
-  url.searchParams.set('client_id', SPOTIFY_CLIENT_ID!);
-  url.searchParams.set('response_type', 'code');
-  url.searchParams.set('redirect_uri', SPOTIFY_REDIRECT_URI);
-  url.searchParams.set('scope', SPOTIFY_SCOPES.join(' '));
-  url.searchParams.set('state', state);
-  url.searchParams.set('show_dialog', 'true');
-  return url.toString();
-}
-
-/**
- * Shutdown Spotify OAuth service
- */
+/** Flush and stop the link store. */
 export async function shutdown(): Promise<void> {
   await tokenStore.shutdown();
-  tokenCache.clear();
-  log.info('Spotify OAuth service shutdown complete');
 }

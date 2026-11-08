@@ -17,17 +17,14 @@ const fakeDb = {
     where: () => ({ limit: () => ({ get: async () => ({ empty: true, docs: [] }) }) }),
   }),
 };
-vi.mock('firebase-admin', () => ({
-  default: {
-    apps: [{}],
-    auth: () => ({
-      verifyIdToken: async () => ({
-        uid: 'uid-1',
-        email: email.value,
-        email_verified: email.verified,
-      }),
+vi.mock('firebase-admin/auth', () => ({
+  getAuth: () => ({
+    verifyIdToken: async () => ({
+      uid: 'uid-1',
+      email: email.value,
+      email_verified: email.verified,
     }),
-  },
+  }),
 }));
 vi.mock('firebase-admin/firestore', () => ({ getFirestore: () => fakeDb, FieldValue: {} }));
 

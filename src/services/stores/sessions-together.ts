@@ -123,6 +123,19 @@ export function currentDayStreak(days: string[], now = new Date(), timeZone?: st
   return streak;
 }
 
+/** The longest run of consecutive calendar days in `days` (YYYY-MM-DD). */
+export function longestDayStreak(days: string[]): number {
+  const sorted = [...new Set(days)].sort();
+  let best = 0;
+  let run = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    const gap = i === 0 ? 0 : (Date.parse(sorted[i]!) - Date.parse(sorted[i - 1]!)) / 864e5;
+    run = gap === 1 ? run + 1 : 1;
+    best = Math.max(best, run);
+  }
+  return best;
+}
+
 /** Most calls read for one user: the newest first. Hitting it is logged (counts cap here). */
 export const MAX_CALLS_READ = 2000;
 /** The oldest calls read to find the first session together. */

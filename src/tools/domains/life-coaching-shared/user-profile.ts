@@ -10,6 +10,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { ownerWritesBlocked } from '../../../services/identity/owner-write-gate.js';
 import type {
   LifeCoachingProfile,
   FourTendency,
@@ -158,8 +159,9 @@ export async function updateLifeCoachingProfile(
   cacheTimestamps.set(userId, Date.now());
   log.debug({ userId }, 'Updated life coaching profile in cache');
 
-  // Persist to Firestore (async, don't await for speed)
-  const firestore = await getFirestore();
+  // Persist to Firestore (async, don't await for speed). Never under an id nothing is kept
+  // for (a try-first visitor's; owner-write-gate.ts): the profile holds their own words.
+  const firestore = ownerWritesBlocked(userId) ? null : await getFirestore();
   if (firestore) {
     const docRef = firestore
       .collection(USERS_COLLECTION)

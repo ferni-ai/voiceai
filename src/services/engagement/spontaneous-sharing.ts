@@ -55,6 +55,7 @@ interface SharedContentData {
 
 let persistenceStore: PersistenceStore<SharedContentData> | null = null;
 let isInitialized = false;
+const loadedUsers = new Set<string>(); // stored content read (a failed read doesn't count)
 
 /**
  * Initialize persistence for spontaneous sharing
@@ -79,7 +80,8 @@ async function loadSharedContent(userId: string): Promise<void> {
   if (!persistenceStore) return;
 
   try {
-    const data = await persistenceStore.load(userId);
+    const data = await persistenceStore.load(userId, { strict: 'read' });
+    loadedUsers.add(userId);
     if (!data?.sharedByPersona) return;
 
     for (const [personaId, content] of Object.entries(data.sharedByPersona)) {
@@ -137,9 +139,8 @@ function getRandomItem<T>(arr: T[] | undefined): T | null {
  * Ensure shared content is loaded for a user (call before checking)
  */
 async function ensureSharedContentLoaded(userId: string): Promise<void> {
-  // Check if any content for this user is loaded
-  const hasAnyContent = Array.from(sharedContent.keys()).some((key) => key.endsWith(`:${userId}`));
-  if (!hasAnyContent && persistenceStore) {
+  // Not "has any content": content shared after a failed read must not stop the next read
+  if (!loadedUsers.has(userId) && persistenceStore) {
     await loadSharedContent(userId);
   }
 }

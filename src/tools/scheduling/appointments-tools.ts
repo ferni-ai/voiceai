@@ -13,8 +13,8 @@ import { validatePhone, sanitizePhoneForLog } from '../validation.js';
 import { parseNaturalTime, createReminder } from '../../services/scheduling/reminder-scheduler.js';
 import { runContextTimeZone } from '../../utils/caller-time-zone.js';
 import { formatStoredLocalTime } from '../../utils/time-zone.js';
-import { searchRestaurants } from '../domains/travel/restaurants.js';
 import { getAppointmentFollowUpService } from '../../services/scheduling/appointment-followup.js';
+import { restaurantSearchReply } from './restaurant-search.js';
 import {
   createAppointmentRequest,
   updateAppointmentStatus,
@@ -70,8 +70,9 @@ export function createAppointmentTools() {
       },
     }),
 
-    // Search runs on Google Places (tools/domains/travel/restaurants.ts), which
-    // says "I can't search restaurants right now." when Places has no key.
+    // Search runs on Places (scheduling/restaurant-search.ts): the places found,
+    // "couldn't find any" only when Places found none, or "I can't search for
+    // places right now" when Places is not set up or fails.
     searchRestaurantsNearby: llm.tool({
       description: getToolDescription('searchRestaurantsNearby'),
       parameters: z.object({
@@ -80,8 +81,7 @@ export function createAppointmentTools() {
         date: z.string().describe('Date for the reservation'),
         partySize: z.number().default(2).describe('Number of people'),
       }),
-      execute: async ({ query, location }) =>
-        searchRestaurants({ query, location, limit: 5, sortBy: 'rating' }),
+      execute: async (args) => restaurantSearchReply(args),
     }),
 
     // ========== APPOINTMENTS (DOCTOR, DENTIST, ETC.) ==========

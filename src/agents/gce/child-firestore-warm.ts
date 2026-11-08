@@ -5,8 +5,9 @@
  * 456-644 ms for a first read against 104-186 ms after (2026-10-29), and on dev a
  * one-process-per-call greeting took ~0.4 s longer in the context build than a warm worker's
  * (voiceai-evidence two-jobs-proof SUMMARY). With nothing else to do before a call, the child
- * reads one never-written document on each client the call path uses most: the shared one
- * (getFirestoreDb, utils/firestore-utils.ts) and the persistence layer's own.
+ * reads one never-written document on each of the call path's clients (utils/shared-firestore.ts):
+ * the one with ignoreUndefinedProperties (getFirestoreDb and the persistence layer) and the
+ * strict one the call path's other stores share.
  *
  * Bounded and never throws: a slow or failed warm-up must not delay `ready` past WARM_BUDGET_MS.
  *
@@ -16,12 +17,13 @@ import type { LogFn } from './warmup.js';
 
 const WARM_BUDGET_MS = 3_000;
 
-/** Never written: read once to open the shared client. */
+/** Never written: read once to open each client. */
 const SHARED_WARMUP_DOC = '_warmup/shared';
+const STRICT_WARMUP_DOC = '_warmup/strict';
 
 export interface FirestoreWarmers {
   shared: () => Promise<boolean>;
-  persistence: () => Promise<boolean>;
+  strict: () => Promise<boolean>;
 }
 
 const defaultWarmers: FirestoreWarmers = {
@@ -32,13 +34,11 @@ const defaultWarmers: FirestoreWarmers = {
     await db.doc(SHARED_WARMUP_DOC).get();
     return true;
   },
-  // The persistence layer keeps its own client; a root-collection store reads through it.
-  // `_warmup/persistence` is never written, so the store has nothing to flush.
-  persistence: async () => {
-    const { createPersistenceStore } = await import('../../services/persistence/index.js');
-    await createPersistenceStore<never>({ collection: '_warmup', useRootCollection: true }).get(
-      'persistence'
-    );
+  // The stores that build their client without ignoreUndefinedProperties share this one.
+  strict: async () => {
+    const { sharedFirestore } = await import('../../utils/shared-firestore.js');
+    const { getFirestoreDatabase } = await import('../../config/environment.js');
+    await sharedFirestore({ databaseId: getFirestoreDatabase() }).doc(STRICT_WARMUP_DOC).get();
     return true;
   },
 };
@@ -68,10 +68,10 @@ export async function warmFirestoreClients(
   budgetMs = WARM_BUDGET_MS
 ): Promise<Record<keyof FirestoreWarmers, Outcome>> {
   const started = Date.now();
-  const [shared, persistence] = await Promise.all([
+  const [shared, strict] = await Promise.all([
     timed(warmers.shared, budgetMs),
-    timed(warmers.persistence, budgetMs),
+    timed(warmers.strict, budgetMs),
   ]);
-  log('Firestore clients warmed', { shared, persistence, durationMs: Date.now() - started });
-  return { shared, persistence };
+  log('Firestore clients warmed', { shared, strict, durationMs: Date.now() - started });
+  return { shared, strict };
 }

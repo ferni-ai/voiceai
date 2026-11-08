@@ -22,9 +22,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const showPostCallCard = vi.hoisted(() => vi.fn(() => Promise.resolve()));
 vi.mock('../../src/ui/after-call/post-call.js', () => ({ showPostCallCard }));
-vi.mock('../../src/services/spotify.service.js', () => ({
-  spotifyService: { initialize: vi.fn(async () => false) },
-}));
 
 import {
   afterConversationEnd,

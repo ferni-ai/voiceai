@@ -106,11 +106,10 @@ describe('findBusiness with a caller location (flag on)', () => {
 describe('the restaurant tool searches "nearby" only when it knows where that is', () => {
   const search = { action: 'search', query: 'tacos', dateTime: 'tomorrow at 7pm' };
 
-  it('flag off: searches "nearby" with no location (unchanged)', async () => {
+  it('flag off: still asks where, never searches "nearby" (restaurant-search.ts)', async () => {
     vi.stubEnv('PLACES_NEEDS_LOCATION', 'off');
-    await runTool('restaurant', search);
-    expect(places.searchRestaurants).toHaveBeenCalledTimes(1);
-    expect(places.searchRestaurants.mock.calls[0][0].location).toBe('nearby');
+    expect(JSON.parse(await runTool('restaurant', search)).status).toBe('need_location');
+    expect(places.searchRestaurants).not.toHaveBeenCalled();
   });
 
   it('flag on: asks instead, and searches the device city when there is one', async () => {

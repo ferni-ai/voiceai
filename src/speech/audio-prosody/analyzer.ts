@@ -20,6 +20,7 @@ import {
   processNativeFrame,
   getNativeFullFeatures,
   resetNativeProcessor,
+  removeNativeProcessor,
   type NativeFullProsodyFeatures,
 } from './native-analyzer.js';
 import {
@@ -36,6 +37,12 @@ const log = createLogger({ module: 'AudioProsodyAnalyzer' });
 // ============================================================================
 // AUDIO PROSODY ANALYZER
 // ============================================================================
+
+/**
+ * The voice-quality values the native path writes on every reading: Rust does not
+ * measure jitter, shimmer or breathiness yet, so these are fixed, not measured.
+ */
+export const NATIVE_VOICE_QUALITY = { jitter: 0.02, shimmer: 0.03, breathiness: 0.1 } as const;
 
 /**
  * Analyzes voice prosody for emotion detection
@@ -261,6 +268,17 @@ export class AudioProsodyAnalyzer {
     }
   }
 
+  /**
+   * The call is over. reset() keeps the native processor registered (by session
+   * id, in Rust, outside the JS heap), so ending calls with it alone kept every
+   * call's processor, ~1.7 MB of RSS each, for the worker's life.
+   */
+  dispose(): void {
+    this.reset();
+    if (this.useNativeProcessor && this.sessionId) removeNativeProcessor(this.sessionId);
+    this.useNativeProcessor = false;
+  }
+
   // ============================================================================
   // PRIVATE METHODS
   // ============================================================================
@@ -323,9 +341,7 @@ export class AudioProsodyAnalyzer {
 
       // Voice quality (defaults - Rust doesn't compute these yet)
       // These require more sophisticated DSP that could be added to Rust later
-      jitter: 0.02, // Default low jitter
-      shimmer: 0.03, // Default low shimmer
-      breathiness: 0.1, // Default low breathiness
+      ...NATIVE_VOICE_QUALITY,
 
       // Timing
       utteranceDuration: native.durationMs,

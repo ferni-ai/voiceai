@@ -44,9 +44,7 @@ describe('Demo Sessions Service', () => {
 
     const roomName = 'demo-test-room';
     const demoId = 'demo_123';
-    const metadata = { ip: '127.0.0.1' };
-
-    const result = await createDemoSession(roomName, demoId, metadata);
+    const result = await createDemoSession(roomName, demoId);
 
     expect(result).toHaveProperty('claimToken');
     expect(result).toHaveProperty('roomName', roomName);

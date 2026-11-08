@@ -117,7 +117,7 @@ export class ConversationManager {
 
       if (interruption) {
         getLogger().info('User interrupted Jack', {
-          utterance: this.currentAgentUtterance.substring(0, 50),
+          utteranceLen: this.currentAgentUtterance.length,
         });
 
         // Capture interruption pattern for learning

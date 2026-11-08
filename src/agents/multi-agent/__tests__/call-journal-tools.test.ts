@@ -46,9 +46,11 @@ async function ferniTools(): Promise<Record<string, unknown>> {
 }
 
 const quickNoteDescription = () =>
-  (notesToolDefinitions.find((d) => d.id === 'quickNote')?.create({} as never) as {
-    description: string;
-  }).description;
+  (
+    notesToolDefinitions.find((d) => d.id === 'quickNote')?.create({} as never) as {
+      description: string;
+    }
+  ).description;
 
 beforeEach(() => {
   vi.stubEnv('JOURNAL_ONE_STORE', 'on');
@@ -95,5 +97,7 @@ describe('CALL_JOURNAL on', () => {
 
 it('agent-setup adds them on every path, before the cap (handoff, first agent, fallback)', () => {
   const setup = readFileSync(new URL('../agent-setup.ts', import.meta.url), 'utf8');
-  expect(setup).toMatch(/await withCallJournalTools\(loadedTools, \w+\)/);
+  expect(setup).toMatch(
+    /await withCallJournalTools\((?:withCaptureConsentTool\(loadedTools, \w+\)|loadedTools), \w+\)/
+  );
 });

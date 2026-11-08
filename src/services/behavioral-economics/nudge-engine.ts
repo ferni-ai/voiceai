@@ -13,6 +13,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
+import { loadBeforeSave } from '../../utils/load-before-save.js';
 
 const log = getLogger().child({ module: 'nudge-engine' });
 
@@ -40,68 +41,52 @@ function getPersistence(): PersistenceStore<PersistedNudgeData> {
   return nudgePersistence;
 }
 
+/** Stored items this process doesn't already hold (by id), then what it recorded. */
+const mergeById = <X extends { id: string }>(stored: X[], recorded: X[] = []): X[] => {
+  const held = new Set(recorded.map((x) => x.id));
+  return [...stored.filter((x) => !held.has(x.id)), ...recorded];
+};
+
+// The stored doc is read before the first save, keeping what was recorded meanwhile. A failed
+// read (at session start or later) is read again by the next save, never written over.
+const loader = loadBeforeSave<PersistedNudgeData>(
+  'nudge_engine',
+  (userId) => getPersistence().load(userId, { strict: 'read' }),
+  (userId, data) => {
+    const stored = (data?.commitments ?? []).map((c) => ({
+      ...c,
+      createdAt: new Date(c.createdAt),
+      deadline: c.deadline ? new Date(c.deadline) : undefined,
+    }));
+    const kept = mergeById(stored, commitments.get(userId));
+    if (kept.length > 0) commitments.set(userId, kept);
+    const storedIntentions = (data?.intentions ?? []).map((i) => ({
+      ...i,
+      createdAt: new Date(i.createdAt),
+    }));
+    const keptIntentions = mergeById(storedIntentions, intentions.get(userId));
+    if (keptIntentions.length > 0) intentions.set(userId, keptIntentions);
+    log.debug({ userId, commitments: kept.length }, 'Loaded nudge data from persistence');
+  }
+);
+
 /**
- * Load user's nudge data from persistence.
- * Call this at session start.
+ * Load user's nudge data from persistence. Call this at session start; a failed read is logged
+ * and the next save reads again.
  */
 export async function loadUserNudgeData(userId: string): Promise<void> {
-  try {
-    const persistence = getPersistence();
-    const data = await persistence.load(userId);
-
-    if (data) {
-      // Restore commitments
-      if (data.commitments && data.commitments.length > 0) {
-        commitments.set(
-          userId,
-          data.commitments.map((c) => ({
-            ...c,
-            createdAt: new Date(c.createdAt),
-            deadline: c.deadline ? new Date(c.deadline) : undefined,
-          }))
-        );
-      }
-
-      // Restore implementation intentions
-      if (data.intentions && data.intentions.length > 0) {
-        intentions.set(
-          userId,
-          data.intentions.map((i) => ({
-            ...i,
-            createdAt: new Date(i.createdAt),
-          }))
-        );
-      }
-
-      log.debug(
-        {
-          userId,
-          commitments: data.commitments?.length ?? 0,
-          intentions: data.intentions?.length ?? 0,
-        },
-        'Loaded nudge data from persistence'
-      );
-    }
-  } catch (error) {
-    log.warn({ error, userId }, 'Failed to load nudge data from persistence');
-  }
+  await loader.ensure(userId);
 }
 
-/**
- * Save user's nudge data to persistence.
- */
+/** Save user's nudge data to persistence, once the stored doc has been read. */
 function saveUserNudgeData(userId: string): void {
-  try {
-    const persistence = getPersistence();
-    const data: PersistedNudgeData = {
+  loader.save(userId, () =>
+    getPersistence().set(userId, {
       commitments: commitments.get(userId) ?? [],
       intentions: intentions.get(userId) ?? [],
       lastUpdated: new Date().toISOString(),
-    };
-    persistence.set(userId, data);
-  } catch (error) {
-    log.warn({ error, userId }, 'Failed to save nudge data to persistence');
-  }
+    })
+  );
 }
 
 /**

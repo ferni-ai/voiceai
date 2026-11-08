@@ -1,5 +1,5 @@
 /**
- * /a/:id and /p/:id must never render inside a frame: the hosting config
+ * /a/:id, /p/:id and /connect must never render inside a frame: the hosting config
  * sends no-framing headers, and the page itself refuses when framed anyway.
  */
 import { readFileSync } from 'node:fs';
@@ -48,12 +48,20 @@ describe('Firebase Hosting headers', () => {
     }>;
   };
 
-  it.each(['/a/**', '/p/**'])('every target forbids framing %s', (source) => {
+  it.each(['/a/**', '/p/**', '/connect'])('every target forbids framing %s', (source) => {
     for (const site of config.hosting) {
       const rule = site.headers.find((h) => h.source === source);
       const value = (key: string) => rule?.headers.find((h) => h.key === key)?.value;
       expect(value('X-Frame-Options'), site.target).toBe('DENY');
       expect(value('Content-Security-Policy'), site.target).toBe("frame-ancestors 'none'");
+    }
+  });
+
+  it('every target sends no Referer from the connect page', () => {
+    for (const site of config.hosting) {
+      const rule = site.headers.find((h) => h.source === '/connect');
+      const policy = rule?.headers.find((h) => h.key === 'Referrer-Policy')?.value;
+      expect(policy, site.target).toBe('no-referrer');
     }
   });
 });

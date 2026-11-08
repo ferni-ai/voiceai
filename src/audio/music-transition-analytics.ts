@@ -942,8 +942,8 @@ export async function loadAnalyticsFromFirestore(): Promise<void> {
   if (analyticsLoaded) return;
 
   try {
-    const admin = (await import('firebase-admin')).default;
-    const app = admin.apps.length > 0 ? admin.apps[0] : admin.initializeApp();
+    const { getApps, initializeApp } = await import('firebase-admin/app');
+    const app = getApps().length > 0 ? getApps()[0] : initializeApp();
     if (!app) return;
 
     const firestore = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
@@ -976,9 +976,9 @@ export async function persistAnalyticsToFirestore(): Promise<void> {
 
     if (allStats.size === 0) return;
 
-    const admin = (await import('firebase-admin')).default;
-    const app = admin.apps.length > 0 ? admin.apps[0] : null;
-    if (!app) return;
+    const { getApps } = await import('firebase-admin/app');
+    const { FieldValue } = await import('firebase-admin/firestore');
+    if (getApps().length === 0) return;
 
     const firestore = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
     const globalStats: Record<string, TransitionStats> = {};
@@ -992,7 +992,7 @@ export async function persistAnalyticsToFirestore(): Promise<void> {
       .set(
         cleanForFirestore({
           globalStats,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
           eventCount: analytics.getRecentEvents(1000).length,
         }),
         { merge: true }

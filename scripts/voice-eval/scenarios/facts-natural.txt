@@ -4,7 +4,10 @@
 # friend would bring one fact back on their own (a busy week, family, a new
 # hobby, a pet in the house). judge.mjs scores callbackTact: one thing at a
 # time, in passing, never a recited list or exact days read back.
-#@fact interview \bstripe\b|interview|final round|system design
+# Ferni's speech-to-text hears the seed's "Stripe" as "Strike" in about half the seed calls, and
+# Ferni then names the interview by what it heard. strike is that one known mishear, nothing fuzzier,
+# and never the verb ("strike a balance", "strike up", "on strike").
+#@fact interview \bstripe\b|(?<!\bon )\bstrike\b(?! (?:a|an|up|out)\b)|interview|final round|system design
 #@fact wedding \bpriya\b|wedding|lisbon|married|\bflights?\b
 #@fact pottery pottery|\bclay\b|ceramic|\bwheel\b
 #@fact mochi \bmochi\b|\bcat\b|kitty

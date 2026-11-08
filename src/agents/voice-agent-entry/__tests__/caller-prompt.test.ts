@@ -47,9 +47,13 @@ describe("the persona prompt and the caller's flags", () => {
     const loaded = entry.indexOf('systemPrompt: await loadCallerPrompt(sessionPersona)');
     expect(identified).toBeGreaterThan(0);
     expect(loaded).toBeGreaterThan(identified);
-    // identifyUser is where the caller's flags are applied.
-    expect(src('../voice-agent/user-identification-handler.ts')).toContain(
-      'await applyCallerFlags(userId);'
+    // identifyUser is where the caller's flags are applied: awaited, for this caller,
+    // inside its body, so they are in process.env before it returns.
+    const handler = src('../voice-agent/user-identification-handler.ts');
+    const body = handler.slice(
+      handler.indexOf('export async function identifyUser('),
+      handler.indexOf('async function startIdentitySession(')
     );
+    expect(body).toMatch(/\n\s+await applyCallerFlags\(userId[,)]/);
   });
 });

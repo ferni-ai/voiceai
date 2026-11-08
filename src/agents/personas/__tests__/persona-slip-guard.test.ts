@@ -40,7 +40,7 @@ describe('persona slip guard', () => {
     process.env['PROMPT_MODE'] = 'character';
     const prompt = await loadSystemPrompt('ferni');
     expect(prompt).toContain('This is who you are, not a script');
-    expect(prompt).not.toMatch(/Dermot|fifty-seven|Never bring up AI/);
+    expect(prompt).not.toMatch(/Boyd|fifty-seven|Never bring up AI/);
     expect(teamAsFriends(prompt)).toEqual([]);
   });
 
@@ -49,7 +49,7 @@ describe('persona slip guard', () => {
     process.env[FLAG] = 'on';
     const prompt = await loadSystemPrompt('ferni');
     expect(prompt).toContain('This is who you are, not a script');
-    expect(prompt).toMatch(/closest friends .*Jack.*Ken.*Dermot.*Scott.*Jim/);
+    expect(prompt).toMatch(/closest friends .*Lyle.*Owen.*Boyd.*Marty.*Hollis/);
     expect(prompt).toContain("You're fifty-seven.");
     expect(prompt).toContain('Never bring up AI, algorithms, code');
     expect(prompt).toContain('not even as a joke');

@@ -188,7 +188,7 @@ export function detectsToolCallLeakage(response: string): {
       }
 
       log.warn(
-        { pattern: pattern.source, suggestedTool, responsePreview: response.slice(0, 100) },
+        { pattern: pattern.source, suggestedTool, responseLen: response.length },
         '🚨 TOOL LEAKAGE: Gemini spoke instead of calling tool'
       );
 

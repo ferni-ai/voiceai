@@ -7,6 +7,7 @@
  * @module services/integrations/integration-hub
  */
 
+import { googleMapsKey, MAPS_KEY_LEGACY } from '../../config/google-maps-key.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   IntegrationConfig,
@@ -20,6 +21,9 @@ import type {
 import { OAuthManager, getOAuthManager } from './oauth-manager.js';
 import { RateLimiter } from './rate-limiter.js';
 import { getConnectionStatus } from './oauth-token-store.js';
+
+/** The key chain this caller read before GOOGLE_MAPS_SERVER_KEY (config/google-maps-key.ts). */
+const MAPS_KEY = { legacy: MAPS_KEY_LEGACY.mapsOnly };
 
 const log = createLogger({ module: 'integration-hub' });
 
@@ -36,11 +40,8 @@ export const INTEGRATIONS: Record<string, IntegrationConfig> = {
     id: 'gmail',
     name: 'Gmail',
     authType: 'oauth2',
-    scopes: [
-      'https://www.googleapis.com/auth/gmail.readonly',
-      'https://www.googleapis.com/auth/gmail.send',
-      'https://www.googleapis.com/auth/gmail.modify',
-    ],
+    // No scopes requested here: Gmail read is never granted (restricted scope, CASA), and
+    // gmail.send is its own grant (services/identity/gmail-send-as-user.ts).
     baseUrl: 'https://gmail.googleapis.com/gmail/v1',
     rateLimits: { requests: 250, windowMs: 60000 },
     docsUrl: 'https://developers.google.com/gmail/api',
@@ -458,13 +459,9 @@ export class IntegrationHub implements IntegrationRegistry {
         }
       }
 
-      // Add API key as query param for Google Maps
-      if (integrationId === 'google_maps') {
-        const apiKey = process.env['GOOGLE_MAPS_API_KEY'];
-        if (apiKey) {
-          url.searchParams.set('key', apiKey);
-        }
-      }
+      // Google Maps takes its key as a query param
+      const mapsKey = integrationId === 'google_maps' ? googleMapsKey(MAPS_KEY) : '';
+      if (mapsKey) url.searchParams.set('key', mapsKey);
 
       const response = await fetch(url.toString(), {
         method: config.method,

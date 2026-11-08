@@ -1,4 +1,4 @@
-/** Smart home settings: Ecobee, Hue, LIFX, Sonos, HomeKit, Siri Shortcuts. */
+/** Smart home settings: Ecobee, Hue, LIFX, Sonos, Siri Shortcuts. */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { canPairHueLocally, renderHueWebUnavailable } from './hue-web-pairing.js';
@@ -38,12 +38,6 @@ interface IntegrationStatus {
     households?: number;
     primaryGroup?: string;
   };
-  homeKit: {
-    connected: boolean;
-    homeName?: string;
-    deviceCount?: number;
-    sceneCount?: number;
-  };
 }
 
 interface SmartHomeCallbacks {
@@ -60,7 +54,7 @@ let container: HTMLElement | null = null;
 let styleElement: HTMLStyleElement | null = null;
 let callbacks: SmartHomeCallbacks = {};
 let isLoading = false;
-let currentSetupFlow: 'ecobee' | 'hue' | 'lifx' | 'sonos' | 'homekit' | null = null;
+let currentSetupFlow: 'ecobee' | 'hue' | 'lifx' | 'sonos' | null = null;
 let setupStep = 0;
 
 // Hue pairing state
@@ -704,7 +698,7 @@ async function fetchStatus(): Promise<IntegrationStatus> {
 
   // Fetch status for all integrations in parallel with aggressive timeout
   // Note: Ecobee uses /api/ecobee/status (separate route)
-  const [ecobeeRes, hueRes, lifxRes, sonosRes, homekitRes] = await Promise.all([
+  const [ecobeeRes, hueRes, lifxRes, sonosRes] = await Promise.all([
     apiGet<IntegrationStatus['ecobee']>(`/api/ecobee/status`, { userId }, fastTimeout).catch(
       () => ({ ok: false, data: null })
     ),
@@ -719,11 +713,6 @@ async function fetchStatus(): Promise<IntegrationStatus> {
       { userId },
       fastTimeout
     ).catch(() => ({ ok: false, data: null })),
-    apiGet<IntegrationStatus['homeKit']>(
-      `/api/smart-home/homekit/status`,
-      { userId },
-      fastTimeout
-    ).catch(() => ({ ok: false, data: null })),
   ]);
 
   return {
@@ -731,7 +720,6 @@ async function fetchStatus(): Promise<IntegrationStatus> {
     hue: hueRes.ok && hueRes.data ? hueRes.data : { connected: false },
     lifx: lifxRes.ok && lifxRes.data ? lifxRes.data : { connected: false },
     sonos: sonosRes.ok && sonosRes.data ? sonosRes.data : { connected: false },
-    homeKit: homekitRes.ok && homekitRes.data ? homekitRes.data : { connected: false },
   };
 }
 
@@ -841,24 +829,6 @@ function renderMainView(status: IntegrationStatus): void {
     })
   );
 
-  // HomeKit card
-  integrations.appendChild(
-    createIntegrationCard({
-      id: 'homekit',
-      name: t('smarthome.homekit'),
-      description: t('smarthome.homekitDescription'),
-      icon: 'apple',
-      connected: status.homeKit.connected,
-      details: status.homeKit.connected
-        ? [
-            { label: t('smarthome.home'), value: status.homeKit.homeName || t('smarthome.defaultHome') },
-            { label: t('smarthome.devices'), value: `${status.homeKit.deviceCount || 0}` },
-            { label: t('smarthome.scenes'), value: `${status.homeKit.sceneCount || 0}` },
-          ]
-        : undefined,
-    })
-  );
-
   integrations.appendChild(
     createIntegrationCard({
       id: 'siri',
@@ -946,7 +916,7 @@ function createIntegrationCard(options: {
     if (options.connected) {
       showDisconnectConfirm(options.id, options.name);
     } else {
-      startSetupFlow(options.id as 'ecobee' | 'hue' | 'lifx' | 'sonos' | 'homekit');
+      startSetupFlow(options.id as 'ecobee' | 'hue' | 'lifx' | 'sonos');
     }
   };
   card.addEventListener('click', handleCardActivate);
@@ -965,7 +935,7 @@ function createIntegrationCard(options: {
 // SETUP FLOWS
 // ============================================================================
 
-function startSetupFlow(integration: 'ecobee' | 'hue' | 'lifx' | 'sonos' | 'homekit'): void {
+function startSetupFlow(integration: 'ecobee' | 'hue' | 'lifx' | 'sonos'): void {
   currentSetupFlow = integration;
   setupStep = 0;
   renderSetupStep();
@@ -1001,7 +971,6 @@ function renderSetupStep(): void {
     hue: t('smarthome.connectHue'),
     lifx: t('ui.smarthomesettings.connectLifx'),
     sonos: t('smarthome.connectSonos'),
-    homekit: t('smarthome.connectHomeKit'),
   };
   const title = titles[currentSetupFlow] || t('smarthome.setUp');
   header.appendChild(
@@ -1018,8 +987,6 @@ function renderSetupStep(): void {
     renderLifxSetup(setup);
   } else if (currentSetupFlow === 'sonos') {
     renderSonosSetup(setup);
-  } else if (currentSetupFlow === 'homekit') {
-    renderHomeKitSetup(setup);
   }
 
   content.appendChild(setup);
@@ -1433,78 +1400,6 @@ function renderSonosSetup(container: HTMLElement): void {
   container.appendChild(content);
 }
 
-function renderHomeKitSetup(container: HTMLElement): void {
-  const content = createElement('div', { className: 'smart-home-settings__step-content' });
-
-  const iconDiv = createElement('div', { className: 'smart-home-settings__step-icon' });
-  const icon = createIcon('apple');
-  if (icon) iconDiv.appendChild(icon);
-  content.appendChild(iconDiv);
-
-  content.appendChild(
-    createElement('h4', {
-      className: 'smart-home-settings__step-title',
-      textContent: t('smarthome.homekitSetup.title'),
-    })
-  );
-
-  content.appendChild(
-    createElement('p', {
-      className: 'smart-home-settings__step-description',
-      textContent:
-        t('smarthome.homekitSetup.text'),
-    })
-  );
-
-  // Check if they have the iOS app
-  const checkBtn = createElement('button', {
-    className: 'smart-home-settings__btn smart-home-settings__btn--primary',
-    textContent: t('smarthome.homekitSetup.openApp'),
-  });
-  checkBtn.addEventListener('click', () => {
-    // Try to open the iOS app via deep link
-    window.location.href = 'ferni://settings/homekit';
-
-    // Fallback to app store after a delay
-    setTimeout(() => {
-      toast.info(t('smarthome.homekitSetup.getApp'));
-    }, 2000);
-  });
-  content.appendChild(checkBtn);
-
-  const hint = createElement('p', {
-    className: 'smart-home-settings__hint',
-    textContent:
-      t('smarthome.homekitSetup.hint'),
-  });
-  content.appendChild(hint);
-
-  // Already connected button
-  const alreadyBtn = createElement('button', {
-    className: 'smart-home-settings__btn smart-home-settings__btn--secondary',
-    textContent: t('smarthome.homekitSetup.alreadyConnected'),
-  });
-  alreadyBtn.style.marginTop = '12px';
-  alreadyBtn.addEventListener('click', async () => {
-    // Check if HomeKit is actually connected
-    const userId = getUserId();
-    const status = await apiGet<IntegrationStatus['homeKit']>(
-      `/api/smart-home/homekit/status?userId=${userId}`
-    );
-
-    if (status.ok && status.data?.connected) {
-      toast.success(t('toasts.homeKitConnected'));
-      currentSetupFlow = null;
-      loadAndRenderStatus();
-    } else {
-      toast.warning(t('toasts.homeKitNotConnected'));
-    }
-  });
-  content.appendChild(alreadyBtn);
-
-  container.appendChild(content);
-}
-
 function renderSuccessState(
   parentContainer: HTMLElement,
   name: string,
@@ -1795,7 +1690,6 @@ const NOT_CONNECTED: IntegrationStatus = {
   hue: { connected: false },
   lifx: { connected: false },
   sonos: { connected: false },
-  homeKit: { connected: false },
 };
 
 async function loadAndRenderStatus(): Promise<void> {

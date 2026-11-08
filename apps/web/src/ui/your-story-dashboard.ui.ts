@@ -26,7 +26,7 @@ import {
   injectActionsTakenStyles,
   type ActionsTakenData,
 } from './visualizations/builders/actions-taken.js';
-import { getAuthToken } from '../services/firebase-auth.service.js';
+import { apiFetch } from '../utils/api-helpers.js';
 import { buildYourStoryStatus, type YourStoryStatus } from './your-story-status.js';
 
 const log = createLogger('YourStoryDashboard');
@@ -547,18 +547,9 @@ class YourStoryUI {
    */
   private async fetchActionsData(): Promise<void> {
     try {
-      const token = await getAuthToken();
-      if (!token) {
-        log.debug('No auth token, skipping actions fetch');
-        return;
-      }
-
-      const response = await fetch('/api/story/actions?limit=10', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      // apiFetch adds the auth headers and rejects on timeout. Signed out, the server
+      // refuses, and the block says it couldn't load instead of loading forever.
+      const response = await apiFetch('/api/story/actions?limit=10');
 
       if (!response.ok) {
         log.warn({ status: response.status }, 'Failed to fetch actions');

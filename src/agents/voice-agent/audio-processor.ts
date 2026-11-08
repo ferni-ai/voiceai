@@ -36,7 +36,6 @@ import {
 } from '../../services/emotion-analysis/hume.js';
 import { recordVoiceSample } from '../../services/trust-systems/index.js';
 import { recordLaughterDetection } from '../../services/voice/voice-humanization-metrics.js';
-import { getSpeakerChangeDetector } from '../../services/voice/voice-speaker-change.js';
 import { getAmbientAwarenessService } from '../../speech/ambient-awareness.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody/types.js';
 import { getEmotionModulation } from '../../speech/emotion-matching.js';
@@ -54,6 +53,7 @@ import { trackEmotionDetection } from '../integrations/speech-metrics-integratio
 import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integration.js';
 import type { UserData } from '../shared/types.js';
 import { claimSessionAudio, releaseSessionAudio } from './session-audio-claim.js';
+import { feedSpeakerChangeDetector } from './speaker-change-feed.js';
 // Better Than Human - Perfect Timing, Pattern Mirror, and Ambient Context integration
 import {
   processAmbientSignals,
@@ -321,23 +321,9 @@ export async function processAudioStream(
           geminiEmotionStream.sendAudio(audioBuffer);
         }
 
-        // Feed to speaker change detector - use native conversion when available (zero-allocation)
+        // Speaker change detector, not while Ferni is audible: speaker-change-feed.ts
         if (sessionId) {
-          try {
-            const detector = getSpeakerChangeDetector(sessionId);
-            const audioData = nativeAudioEnabled
-              ? convertI16ToF32(frame.data as unknown as Int16Array)
-              : (() => {
-                  const arr = new Float32Array(frame.data.length);
-                  for (let i = 0; i < frame.data.length; i++) {
-                    arr[i] = frame.data[i] / 32768.0;
-                  }
-                  return arr;
-                })();
-            detector.feedAudio(audioData);
-          } catch {
-            // Detector not initialized
-          }
+          feedSpeakerChangeDetector(sessionId, frame.data, nativeAudioEnabled, userData);
 
           // Feed to breath pause detector
           try {

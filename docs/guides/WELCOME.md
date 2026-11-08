@@ -48,7 +48,7 @@ Our personas aren't scripts. They have genuine personalities, opinions, interest
 
 ### Day 2: Understand the Standards
 
-- [ ] Read [`.cursorrules`](../../.cursorrules) - Coding standards
+- [ ] Read [`AGENTS.md`](../../AGENTS.md) - Coding standards and how work ships
 - [ ] Read [`CLAUDE.md`](../../CLAUDE.md) - Quick reference
 - [ ] Read [`CONTRIBUTING.md`](../../CONTRIBUTING.md) - How to contribute
 
@@ -130,7 +130,7 @@ Instant responses with no acknowledgment
 ## Getting Help
 
 - **Architecture questions**: Check the docs in `/docs/architecture/`
-- **Coding questions**: Check `.cursorrules` and `CLAUDE.md`
+- **Coding questions**: Check `AGENTS.md` and the folder's `CLAUDE.md`
 - **Philosophy questions**: Check `CORE-PRINCIPLES.md`
 - **Still stuck?**: Ask the team—we'd rather you ask than build the wrong thing
 

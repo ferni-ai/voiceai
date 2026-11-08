@@ -110,10 +110,13 @@ describe('buildCallOutcome', () => {
     });
   });
 
-  it('still reports what was said when the analysis is unavailable', () => {
+  it('with the analysis unavailable: says it has no summary, and keeps none of their words', () => {
     const outcome = buildCallOutcome(call, conversation, null);
-    expect(outcome.status).toBe('completed');
-    expect(outcome.outcome).toContain('The appointment went really well');
+    expect(outcome).toMatchObject({ status: 'completed', summaryUnavailable: true });
+    expect(outcome.outcome).toBe(
+      "I talked with Mom, but I couldn't put together a summary of the call."
+    );
+    expect(JSON.stringify(outcome)).not.toMatch(/appointment went really well/i);
   });
 });
 
@@ -287,7 +290,8 @@ describe('completeOnBehalfCall', () => {
     });
     const outcome = await completeOnBehalfCall('s-llm', makeCall('c-llm'), 90, true, p);
     expect(p.report).toHaveBeenCalledTimes(1);
-    expect(outcome?.outcome).toContain('The appointment went really well');
+    expect(outcome?.summaryUnavailable).toBe(true);
+    expect(JSON.stringify(p.report.mock.calls[0][1])).not.toMatch(/appointment went really well/i);
   });
 
   it('never reports a dispatch that no trusted dispatcher signed', async () => {

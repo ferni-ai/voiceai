@@ -5,12 +5,12 @@
  */
 
 import type { UserInsightBriefing, HandoffBriefing } from './types.js';
-import { analyzeTimePatterns } from './metrics.js';
 
 // ============================================================================
 // FORMAT BRIEFING FOR INJECTION
 // ============================================================================
 
+/** Every line comes from the member's data; with none (and no handoff) the briefing is empty. */
 export function formatBriefingForInjection(
   briefing: UserInsightBriefing,
   handoffBriefing: HandoffBriefing | null,
@@ -41,18 +41,13 @@ export function formatBriefingForInjection(
     }
   }
 
-  // COMPUTED BEHAVIORAL METRICS (Peter's research dashboard)
-  const { behavioralMetrics } = briefing;
-  sections.push('\n=== YOUR COMPUTED METRICS (Real Data) ===');
-  sections.push(`• Decision Quality Index: ${behavioralMetrics.decisionQualityIndex}/100`);
-  sections.push(`• Habit Formation Velocity: ${behavioralMetrics.habitFormationVelocity}`);
-  sections.push(`• Motivation Sustainability: ${behavioralMetrics.motivationSustainability}`);
-  sections.push(`• Financial Stress Level: ${behavioralMetrics.financialStressLevel}`);
+  // Only what the member's data holds from here: no scores computed off defaults (#3044).
+  const factsFrom = sections.length;
 
-  // Cross-domain patterns from behavioral analysis
-  if (behavioralMetrics.patterns.length > 0) {
+  // Cross-domain patterns the member's data shows
+  if (briefing.crossDomainPatterns.length > 0) {
     sections.push('\n=== CROSS-DOMAIN CORRELATIONS DETECTED ===');
-    behavioralMetrics.patterns.forEach((pattern) => {
+    briefing.crossDomainPatterns.forEach((pattern) => {
       sections.push(`🔗 ${pattern}`);
     });
   }
@@ -95,8 +90,12 @@ export function formatBriefingForInjection(
         `• Last logged: Mood ${moodPatterns.lastMood.mood}, Energy ${moodPatterns.lastMood.energy}`
       );
     }
-    sections.push(`• Mood trend (2 weeks): ${moodPatterns.recentMoodTrend}`);
-    sections.push(`• Average energy: ${moodPatterns.averageEnergy.toFixed(1)}/5`);
+    if (moodPatterns.recentMoodTrend !== 'unknown') {
+      sections.push(`• Mood trend (last two weeks): ${moodPatterns.recentMoodTrend}`);
+    }
+    if (moodPatterns.lastMood) {
+      sections.push(`• Average energy: ${moodPatterns.averageEnergy.toFixed(1)}/5`);
+    }
     if (moodPatterns.moodCorrelations.length > 0) {
       moodPatterns.moodCorrelations.forEach((corr) => {
         sections.push(`• 💡 ${corr}`);
@@ -120,15 +119,12 @@ export function formatBriefingForInjection(
     });
   }
 
-  // Coaching & Personal Research Analytics
-  if (briefing.habitCorrelations.length > 0) {
-    sections.push('\n=== COACHING ANALYTICS TO APPLY ===');
-    briefing.habitCorrelations.slice(0, 3).forEach((insight) => {
-      sections.push(`• ${insight}`);
-    });
-  }
+  // Calendar and proactive discoveries (data-backed too)
+  appendCalendarAndDiscoveries(sections, briefing);
 
-  // Cross-domain patterns (framework reminders) - only on first turns
+  if (sections.length === factsFrom && !handoffBriefing) return [];
+
+  // Research frameworks (how to think, not facts about the member) - only on first turns
   if (turnCount === 0 || turnCount === 1) {
     sections.push('\n=== YOUR RESEARCH FRAMEWORKS ===');
     sections.push('• Two-Minute Drill: Can you explain any finding simply?');
@@ -138,15 +134,14 @@ export function formatBriefingForInjection(
     sections.push('• Behavioral Economics: People are not rational - find the emotional driver');
   }
 
-  // Time-based context
-  const timePatterns = analyzeTimePatterns();
-  if (timePatterns.length > 0) {
-    sections.push('\n=== TIME CONTEXT ===');
-    timePatterns.slice(0, 1).forEach((pattern) => {
-      sections.push(`• ${pattern}`);
-    });
-  }
+  sections.push(
+    "\n[Remember: Make data human. Find the story. Connect the dots they haven't seen.]"
+  );
 
+  return sections;
+}
+
+function appendCalendarAndDiscoveries(sections: string[], briefing: UserInsightBriefing): void {
   // Better Than Human: Calendar awareness for research timing
   if (briefing.calendarContext) {
     const cal = briefing.calendarContext;
@@ -162,7 +157,6 @@ export function formatBriefingForInjection(
             ? '🟡'
             : '🟢';
     sections.push(`• Calendar load: ${loadEmoji} ${cal.loadLevel}`);
-    sections.push(`• Focus time this week: ${cal.focusTimeHours}h available`);
 
     if (cal.bestDayForDeepWork) {
       sections.push(`• Best day for deep research: ${cal.bestDayForDeepWork}`);
@@ -188,10 +182,4 @@ export function formatBriefingForInjection(
       sections.push(`• ${discovery}`);
     });
   }
-
-  sections.push(
-    "\n[Remember: Make data human. Find the story. Connect the dots they haven't seen.]"
-  );
-
-  return sections;
 }

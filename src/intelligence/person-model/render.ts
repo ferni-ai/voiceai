@@ -17,6 +17,7 @@
  */
 import { isForgotten, isSensitiveThread } from '../../memory/index.js';
 import { daysBetween } from '../world-model/dates/timex.js';
+import { oneLine } from './line-guard.js';
 import { freshness, type Person, type PersonModel, type Provenance } from './types.js';
 import { DAY, hasContactData, local, ms } from './util.js';
 
@@ -42,22 +43,6 @@ interface Block {
   heading: string;
   lines: string[];
 }
-
-/**
- * Internal markup that must not reach the prompt: "[CONTEXT: ...]" style tags,
- * "{{...}}", HTML tags, emoji and a leading "#". Text left empty is dropped by callers.
- */
-const MARKUP = [
-  /\[\s*[A-Z][A-Z _-]{2,}[^\]]*\]/g,
-  /\{\{[^}]*\}\}/g,
-  /<[^>]*>/g,
-  /\p{Extended_Pictographic}|\uFE0F|\u200D|\u20E3/gu,
-];
-const oneLine = (s: string): string =>
-  MARKUP.reduce((t, re) => t.replace(re, ' '), s)
-    .replace(/^\s*#+\s*/, '')
-    .replace(/\s+/g, ' ')
-    .trim();
 
 /** Plain words for how long ago, or null when the time is unusable. */
 function ago(iso: string | null, now: Date): string | null {

@@ -47,7 +47,6 @@ const KNOWN_UNINDEXED = new Set([
   'src/api/habit-routes.ts habit_completions (userId asc, habitId asc, date desc)',
   'src/api/review-queue.ts marketplace_review_submissions (itemId asc, version desc)',
   'src/api/roadmap-routes.ts feature_votes (userId asc, createdAt desc)',
-  'src/api/routes/practice-view.ts outreach (userId asc, status asc, scheduledFor asc)',
   'src/api/v1/developers/analytics-routes.ts publisher_errors (publisherId asc, timestamp desc)',
   'src/api/v1/developers/analytics-routes.ts publisher_usage (publisherId asc, date asc)',
   'src/api/v1/developers/personas-routes.ts publisher_personas (publisherId asc, updatedAt desc)',

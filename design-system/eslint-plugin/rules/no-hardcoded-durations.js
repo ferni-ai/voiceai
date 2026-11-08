@@ -14,6 +14,8 @@
  *   transition: `all ${DURATION.SLOW}ms var(--ease-standard)`
  */
 
+const keyOf = require('./key-name');
+
 // Properties that typically contain durations
 const DURATION_PROPERTIES = [
   'duration',
@@ -79,7 +81,7 @@ module.exports = {
     const options = context.options[0] || {};
     const allowInTests = options.allowInTests !== false;
 
-    const filename = context.getFilename();
+    const filename = context.filename;
     if (allowInTests && (filename.includes('.test.') || filename.includes('.spec.') || filename.includes('__tests__'))) {
       return {};
     }
@@ -167,7 +169,7 @@ module.exports = {
       Property(node) {
         if (!node.key || !node.value) return;
         
-        const keyName = node.key.name || node.key.value;
+        const keyName = keyOf(node.key);
         
         // Check duration properties
         if (isDurationProperty(keyName)) {
@@ -179,22 +181,6 @@ module.exports = {
         // Check transition property
         if (keyName === 'transition' && node.value.type === 'Literal') {
           checkTransitionValue(node.value, node.value.value);
-        }
-      },
-
-      // Check animate() calls with object options
-      CallExpression(node) {
-        if (node.callee.property && node.callee.property.name === 'animate') {
-          const optionsArg = node.arguments[1];
-          if (optionsArg && optionsArg.type === 'ObjectExpression') {
-            optionsArg.properties.forEach(prop => {
-              if (prop.key && (prop.key.name === 'duration' || prop.key.value === 'duration')) {
-                if (prop.value.type === 'Literal' && typeof prop.value.value === 'number') {
-                  checkDurationValue(prop.value, prop.value.value, 'duration');
-                }
-              }
-            });
-          }
         }
       },
     };

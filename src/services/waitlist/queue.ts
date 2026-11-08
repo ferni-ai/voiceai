@@ -60,6 +60,8 @@ export interface QueueEntry {
   status: string;
   lane: Lane;
   joinedAtMs: number;
+  /** Back in line after a lapsed seat: the place counts from here, not joinedAt. */
+  requeuedAtMs?: number;
   verified: boolean;
   inviteCode?: string;
   referredBy?: string;
@@ -90,6 +92,7 @@ export function readEntry(id: string, data: Record<string, unknown>): QueueEntry
     status: str(data.status) ?? '',
     lane,
     joinedAtMs: joined?.getTime() ?? 0,
+    requeuedAtMs: toDate(data.requeuedAt)?.getTime(),
     verified: toDate(data.verifiedAt) !== undefined,
     inviteCode: str(data.inviteCode),
     referredBy: str(data.referredBy) ?? str(data.referralCode), // referralCode: kept for seeds (waitlist-record.ts)
@@ -103,13 +106,13 @@ export function readEntry(id: string, data: Record<string, unknown>): QueueEntry
 
 /** The derived fields that place a doc in the line. Write them with every queue change. */
 export function queueFields(
-  e: Pick<QueueEntry, 'status' | 'lane' | 'joinedAtMs' | 'verified' | 'verifiedReferrals'>
+  e: Pick<QueueEntry, 'status' | 'lane' | 'joinedAtMs' | 'requeuedAtMs' | 'verified' | 'verifiedReferrals'> // prettier-ignore
 ): { inQueue: boolean; laneRank: number; priorityKey: number } {
   // prettier-ignore
   return {
     inQueue: e.verified && WAITING_STATUSES.has(e.status),
     laneRank: LANE_RANK[e.lane],
-    priorityKey: priorityKey(e.joinedAtMs, e.verifiedReferrals),
+    priorityKey: priorityKey(e.requeuedAtMs ?? e.joinedAtMs, e.verifiedReferrals),
   };
 }
 

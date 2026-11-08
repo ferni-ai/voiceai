@@ -24,7 +24,12 @@
  */
 import crypto from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import {
+  firestoreSingleUseStore,
+  memorySingleUseStore,
+  sha256Hex as sha256,
+  type SingleUseStore,
+} from '../../services/stores/single-use-records.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'OAuthLinkState' });
@@ -45,93 +50,16 @@ export interface OAuthLinkRecord {
   expiresAt: number;
 }
 
-export interface OAuthLinkStore {
-  put(key: string, record: OAuthLinkRecord): Promise<boolean>;
-  get(key: string): Promise<OAuthLinkRecord | null>;
-  /** Read and delete in one step, so a record is used at most once. */
-  take(key: string): Promise<OAuthLinkRecord | null>;
-  /** Delete every record started by `uid` (account deletion). Throws when it can't. */
-  deleteForUser(uid: string): Promise<number>;
-}
-
-function sha256(value: string): string {
-  return crypto.createHash('sha256').update(value).digest('hex');
-}
-
-function createMemoryStore(): OAuthLinkStore {
-  const records = new Map<string, OAuthLinkRecord>();
-  return {
-    async put(key, record) {
-      const now = Date.now();
-      for (const [k, r] of records) if (r.expiresAt < now) records.delete(k);
-      if (records.size >= MAX_MEMORY_RECORDS) return false;
-      records.set(key, record);
-      return true;
-    },
-    async get(key) {
-      return records.get(key) ?? null;
-    },
-    async take(key) {
-      const record = records.get(key) ?? null;
-      records.delete(key);
-      return record;
-    },
-    async deleteForUser(uid) {
-      const keys = [...records].filter(([, r]) => r.uid === uid).map(([k]) => k);
-      for (const k of keys) records.delete(k);
-      return keys.length;
-    },
-  };
-}
-
-function createFirestoreStore(): OAuthLinkStore {
-  const collection = () => getFirestoreDb()?.collection(FIRESTORE_COLLECTION) ?? null;
-  return {
-    async put(key, record) {
-      const col = collection();
-      if (!col) return false;
-      // ttlAt is a Timestamp (a Date in the SDK) so a Firestore TTL policy on it can
-      // delete abandoned flows; TTL ignores numeric fields like expiresAt.
-      await col.doc(key).set({ ...record, ttlAt: new Date(record.expiresAt) });
-      return true;
-    },
-    async get(key) {
-      const snap = await collection()?.doc(key).get();
-      return snap?.exists ? (snap.data() as OAuthLinkRecord) : null;
-    },
-    async take(key) {
-      const db = getFirestoreDb();
-      if (!db) return null;
-      const ref = db.collection(FIRESTORE_COLLECTION).doc(key);
-      return db.runTransaction(async (tx) => {
-        const snap = await tx.get(ref);
-        if (!snap.exists) return null;
-        tx.delete(ref);
-        return snap.data() as OAuthLinkRecord;
-      });
-    },
-    async deleteForUser(uid) {
-      const db = getFirestoreDb();
-      if (!db) throw new Error('Firestore unavailable');
-      const snap = await db.collection(FIRESTORE_COLLECTION).where('uid', '==', uid).get();
-      // A batch holds at most 500 writes; abandoned flows can pile up until a TTL sweep.
-      for (let i = 0; i < snap.docs.length; i += 400) {
-        const batch = db.batch();
-        for (const doc of snap.docs.slice(i, i + 400)) batch.delete(doc.ref);
-        await batch.commit();
-      }
-      return snap.docs.length;
-    },
-  };
-}
+/** Single use, keyed by the state's hash (services/stores/single-use-records.ts). */
+export type OAuthLinkStore = SingleUseStore<OAuthLinkRecord>;
 
 let store: OAuthLinkStore | null = null;
 
 function getStore(): OAuthLinkStore {
   store ??=
     process.env.K_SERVICE || process.env.OAUTH_STATE_STORE === 'firestore'
-      ? createFirestoreStore()
-      : createMemoryStore();
+      ? firestoreSingleUseStore<OAuthLinkRecord>(FIRESTORE_COLLECTION)
+      : memorySingleUseStore<OAuthLinkRecord>(MAX_MEMORY_RECORDS);
   return store;
 }
 
@@ -251,4 +179,14 @@ export async function consumeOAuthLinkState(
     return null;
   }
   return record;
+}
+
+/**
+ * A PKCE code_verifier (RFC 7636) for this flow from the HttpOnly binding cookie and the state,
+ * so nothing more is stored; a holder of the code and state (both in URLs) lacks the cookie.
+ */
+export function pkceVerifierFor(req: IncomingMessage, state: string): string | null {
+  const binding = readCookie(req, OAUTH_BINDING_COOKIE);
+  if (!binding || !BINDING_PATTERN.test(binding)) return null;
+  return crypto.createHmac('sha256', binding).update(`pkce:${state}`).digest('base64url');
 }

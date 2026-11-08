@@ -18,7 +18,6 @@ const fakeDb = {
     }),
   }),
 };
-vi.mock('firebase-admin', () => ({ default: { apps: [{}] } }));
 vi.mock('firebase-admin/firestore', () => ({ getFirestore: () => fakeDb, FieldValue: {} }));
 vi.mock('../auth-middleware.js', () => ({ rateLimit: () => false, requireAdmin: () => true }));
 

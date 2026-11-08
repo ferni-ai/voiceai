@@ -65,6 +65,13 @@ for f in runs:
                      for j in lines if (str(j.get('module', '')).startswith('Crisis') or re.match(r'CRISIS|.*crisis signal', str(j.get('msg', '')), re.I))
                      and j.get('msg') != 'CRISIS_HOLD' and not (j.get('module') == 'CrisisClassifier' and j.get('risk') == 'none')]
     row['handoff_lines'] = [str(j.get('msg'))[:80] for j in lines if re.search(r'HANDOFF COMPLETE|handoff_failed|Handoff brief ready|HANDOFF FAILED', str(j.get('msg')))][:12]
+    # What each tool returned and when, on the run's clock (tool-grounding.mjs grades replies by it).
+    # Synthetic eval calls only; summary.json stays local (COMMENT.md has verdicts and numbers only).
+    t0 = r.get('wallT0')
+    row['tool_outputs'] = [{'name': o.get('name'), 'isError': o.get('isError') is True, 'output': o.get('output'),
+                            'atMs': j['time'] - t0 if isinstance(t0, (int, float)) else None}
+                           for j in lines if isinstance(j.get('event'), dict) and j['event'].get('type') == 'function_tools_executed'
+                           for o in j['event'].get('functionCallOutputs') or [] if isinstance(o, dict)]
     summary.append(row)
 json.dump(summary, open(sys.argv[4], 'w'), indent=1, default=str)
 gaps = sorted(g for r in summary for g in r.get('reply_gaps', []))

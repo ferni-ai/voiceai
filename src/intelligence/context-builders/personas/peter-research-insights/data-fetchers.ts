@@ -1,5 +1,6 @@
 /**
- * Data fetching functions for Peter's research insights.
+ * Data fetching functions for Peter's research insights. The caller loads the
+ * member's stores first (loadBriefingStores); these only read them.
  *
  * @module intelligence/context-builders/personas/peter-research-insights/data-fetchers
  */
@@ -8,7 +9,9 @@ import { createLogger } from '../../../../utils/safe-logger.js';
 import { getFinancialStore } from '../../../../services/stores/financial-store.js';
 import { getProductivityStore } from '../../../../services/stores/productivity-store.js';
 import { getGamificationStore } from '../../../../services/engagement/gamification-store.js';
+import { oldestFirst } from '../mood-log-order.js';
 import { getMemoryOrchestrator } from '../../../../memory/orchestrator.js';
+import { hasAnyProviderConnected } from '../../../../services/calendar/index.js';
 import { getCalendarLoadFactors } from '../../../../services/calendar/calendar-load-service.js';
 import { getAmbientCalendarContext } from '../../../../services/calendar/ambient-calendar-awareness.js';
 import type {
@@ -28,11 +31,9 @@ export async function analyzeSpendingPatterns(userId: string): Promise<string[]>
   const insights: string[] = [];
 
   try {
-    const store = getFinancialStore();
-    await store.loadUserData(userId);
-
-    const budget = store.getMainBudget(userId);
-    if (!budget) return insights;
+    const budget = getFinancialStore().getMainBudget(userId);
+    // A budget with no limit or no spending has no pace or share to speak of.
+    if (!budget || budget.monthlyLimit <= 0 || budget.spent <= 0) return insights;
 
     // Check for over-budget categories
     const overCategories = budget.categories.filter(
@@ -67,7 +68,7 @@ export async function analyzeSpendingPatterns(userId: string): Promise<string[]>
       const topPercent = Math.round((topCategory.spent / budget.spent) * 100);
       if (topPercent > 40) {
         insights.push(
-          `${topCategory.name} accounts for ${topPercent}% of total spending. Classic 80/20 - this one category is the lever.`
+          `${topCategory.name} accounts for ${topPercent}% of total spending - this one category is the lever.`
         );
       }
     }
@@ -162,7 +163,8 @@ export async function getMoodPatterns(userId: string): Promise<MoodInsights> {
     const now = new Date();
     const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-    const moodLogs = await gamificationStore.getMoodLogs(userId, twoWeeksAgo, now);
+    // Oldest first: the store returns newest first, and the reads below assume time order.
+    const moodLogs = oldestFirst(await gamificationStore.getMoodLogs(userId, twoWeeksAgo, now));
 
     if (moodLogs.length === 0) return insights;
 
@@ -267,10 +269,7 @@ export async function analyzeGoalTrajectory(userId: string): Promise<string[]> {
   const insights: string[] = [];
 
   try {
-    const store = getFinancialStore();
-    await store.loadUserData(userId);
-
-    const goals = store.getActiveSavingsGoals(userId);
+    const goals = getFinancialStore().getActiveSavingsGoals(userId);
 
     for (const goal of goals) {
       const progress = goal.currentAmount / goal.targetAmount;
@@ -322,6 +321,9 @@ export async function buildCalendarResearchContext(
   userId: string
 ): Promise<CalendarResearchContext | null> {
   try {
+    // No connected calendar: the load service answers with defaults, not the member's week.
+    if (!(await hasAnyProviderConnected(userId))) return null;
+
     const [loadFactors, ambientContext] = await Promise.all([
       getCalendarLoadFactors(userId),
       getAmbientCalendarContext(userId),
@@ -336,10 +338,6 @@ export async function buildCalendarResearchContext(
     } else if (loadFactors.weeklyMeetingHours >= 15) {
       loadLevel = 'moderate';
     }
-
-    // Calculate focus time available
-    const totalHoursInWeek = 40; // Assuming a 40-hour work week
-    const focusTimeHours = Math.round(totalHoursInWeek * loadFactors.weeklyFocusTimeRatio);
 
     // Timing suggestion based on context
     let timingSuggestion: string | null = null;
@@ -362,7 +360,7 @@ export async function buildCalendarResearchContext(
     if (loadLevel === 'overloaded') {
       timingSuggestion =
         timingSuggestion || 'Calendar overloaded this week - focus on quick wins, save deep dives';
-    } else if (loadLevel === 'light' && focusTimeHours > 20) {
+    } else if (loadLevel === 'light' && loadFactors.weeklyFocusTimeRatio > 0.5) {
       timingSuggestion =
         timingSuggestion || 'Light calendar week - great time for deep research discussions';
     }
@@ -370,7 +368,6 @@ export async function buildCalendarResearchContext(
     return {
       bestDayForDeepWork: loadFactors.lightestDayThisWeek,
       loadLevel,
-      focusTimeHours,
       timingSuggestion,
       justEndedMeeting: justEnded.event !== null,
       upcomingMeetingSoon:

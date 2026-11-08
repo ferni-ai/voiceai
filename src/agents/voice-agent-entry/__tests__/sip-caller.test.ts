@@ -6,14 +6,8 @@ const info = vi.fn();
 const warn = vi.fn();
 vi.mock('../../../utils/safe-logger.js', () => ({ getLogger: () => ({ info, warn }) }));
 
-const {
-  logSipCallerShadow,
-  maskPhoneNumber,
-  noteCallerJoined,
-  parseVerStat,
-  phoneVerifyMode,
-  readSipCaller,
-} = await import('../sip-caller.js');
+const { maskPhoneNumber, noteCallerJoined, parseVerStat, readSipCaller } =
+  await import('../sip-caller.js');
 const { mintPhoneAttestation } = await import('../../../services/identity/phone-attestation.js');
 const { isPhoneListener } = await import('../../shared/performance/phone-voice-profile.js');
 type SipParticipantLike = import('../sip-caller.js').SipParticipantLike;
@@ -191,55 +185,6 @@ describe('readSipCaller', () => {
   });
 });
 
-describe('phoneVerifyMode', () => {
-  it('is off unless PHONE_VERIFY=shadow', () => {
-    expect(phoneVerifyMode({})).toBe('off');
-    expect(phoneVerifyMode({ PHONE_VERIFY: 'off' })).toBe('off');
-    expect(phoneVerifyMode({ PHONE_VERIFY: 'live' })).toBe('off');
-    expect(phoneVerifyMode({ PHONE_VERIFY: 'shadow' })).toBe('shadow');
-  });
-});
-
-describe('logSipCallerShadow', () => {
-  beforeEach(() => {
-    info.mockClear();
-    warn.mockClear();
-  });
-
-  it('logs nothing and does not listen when the flag is off', async () => {
-    const room = fakeRoom();
-    const r = await logSipCallerShadow({
-      participant: sipCaller(),
-      room,
-      sessionId: 's1',
-      env: {},
-    });
-    expect(r).toBeNull();
-    expect(info).not.toHaveBeenCalled();
-    expect(room.listenerCount('participantAttributesChanged')).toBe(0);
-  });
-
-  it('logs one SIP_CALLER line per call in shadow, without the full number', async () => {
-    const room = fakeRoom();
-    const participant = sipCaller({ 'sip.h.X-Twilio-VerStat': 'TN-Validation-Failed-B' });
-    const env = { PHONE_VERIFY: 'shadow' };
-    await logSipCallerShadow({ participant, room, sessionId: 's2', env });
-    await logSipCallerShadow({ participant, room, sessionId: 's2', env });
-
-    expect(info).toHaveBeenCalledTimes(1);
-    const [fields, msg] = info.mock.calls[0] as [Record<string, unknown>, string];
-    expect(msg).toBe('SIP_CALLER');
-    expect(fields).toMatchObject({
-      sessionId: 's2',
-      isSip: true,
-      phoneNumberMasked: '**67',
-      attestation: 'failed',
-    });
-    expect(JSON.stringify(fields)).not.toContain(FULL_NUMBER);
-    expect(JSON.stringify(fields)).not.toContain('TN-Validation');
-  });
-});
-
 describe('signed attestation (ferni.attest)', () => {
   const SECRET = 'agent-attest-secret';
   const env = { PHONE_ATTEST_SECRET: SECRET };
@@ -303,21 +248,14 @@ describe('signed attestation (ferni.attest)', () => {
     expect(r.attestationSource).toBe('signed');
   });
 
-  it('logs neither the token nor the full number', async () => {
-    info.mockClear();
+  it('reads neither the token nor the full number into the result', async () => {
     const t = token();
-    await logSipCallerShadow({
-      participant: sipCaller({ 'ferni.attest': t }),
-      room: fakeRoom(),
-      sessionId: 's-signed',
-      env: { ...env, PHONE_VERIFY: 'shadow' },
-    });
-    const [fields] = info.mock.calls[0] as [Record<string, unknown>, string];
-    expect(fields).toMatchObject({ attestationSource: 'signed', attestation: 'A' });
-    const logged = JSON.stringify(fields);
-    expect(logged).not.toContain(t.split('.')[1]);
-    expect(logged).not.toContain(t.split('.')[0]);
-    expect(logged).not.toContain(FULL_NUMBER);
+    const r = await readSipCaller(sipCaller({ 'ferni.attest': t }), { env });
+    expect(r).toMatchObject({ attestationSource: 'signed', attestation: 'A' });
+    const read = JSON.stringify(r);
+    expect(read).not.toContain(t.split('.')[1]);
+    expect(read).not.toContain(t.split('.')[0]);
+    expect(read).not.toContain(FULL_NUMBER);
   });
 
   describe('with fake timers', () => {
@@ -337,19 +275,13 @@ describe('signed attestation (ferni.attest)', () => {
 });
 
 describe('noteCallerJoined', () => {
-  it('marks a SIP caller as a phone listener (telephony audio profile) and not a web user', async () => {
+  it('marks a SIP caller as a phone listener (telephony audio profile) and not a web user', () => {
     expect(isPhoneListener('call-s')).toBe(false);
-    await noteCallerJoined({
-      participant: sipCaller(),
-      room: fakeRoom(),
-      sessionId: 'call-s',
-      env: {},
-    });
-    await noteCallerJoined({
+    noteCallerJoined({ participant: sipCaller(), room: fakeRoom(), sessionId: 'call-s' });
+    noteCallerJoined({
       participant: { kind: ParticipantKind.STANDARD, identity: 'user-1' },
       room: fakeRoom(),
       sessionId: 'app-s',
-      env: {},
     });
     expect(isPhoneListener('call-s')).toBe(true);
     expect(isPhoneListener('app-s')).toBe(false);
@@ -364,10 +296,10 @@ describe('noteCallerJoined', () => {
     registerTtfwRoom(room, { bindCaller });
     const caller = sipCaller();
     try {
-      await noteCallerJoined({ participant: caller, room, sessionId: 'call-t', env: {} });
+      noteCallerJoined({ participant: caller, room, sessionId: 'call-t' });
       expect(bindCaller).toHaveBeenCalledWith('call-t', caller);
       // A room nobody is measuring is left alone.
-      await noteCallerJoined({ participant: caller, room: fakeRoom(), sessionId: 'call-u', env: {} });
+      noteCallerJoined({ participant: caller, room: fakeRoom(), sessionId: 'call-u' });
       expect(bindCaller).toHaveBeenCalledTimes(1);
     } finally {
       unregisterTtfwRoom(room);

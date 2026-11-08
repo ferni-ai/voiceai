@@ -37,7 +37,8 @@ vi.mock('../../../../utils/safe-logger.js', () => {
   };
 });
 
-const { handleInboundSMSWebhook } = await import('../twilio-webhooks.js');
+const { handleCallStatusWebhook, handleInboundSMSWebhook, handleSMSStatusWebhook } =
+  await import('../twilio-webhooks.js');
 
 const PHONE = '+12135550100';
 const TEXT = 'STOP texting me';
@@ -86,5 +87,35 @@ describe('inbound SMS signature failure', () => {
     expect(lines[0].fields).toEqual({ messageSid: 'SM_sig_1' });
     expect(JSON.stringify(calls)).not.toContain(PHONE);
     expect(JSON.stringify(calls)).not.toContain(TEXT);
+  });
+});
+
+// The status webhooks share the inbound check (one signature read for all three); they keep warn.
+describe('status webhook signature failure', () => {
+  afterEach(() => {
+    calls.length = 0;
+    vi.unstubAllEnvs();
+  });
+  const url = 'https://api.ferni.ai/x/status';
+  const sms = { MessageSid: 'SM_sig_2', MessageStatus: 'delivered' } as never;
+  const call = { CallSid: 'CA_sig_3', CallStatus: 'completed' } as never;
+
+  it.each([
+    ['SMS status, missing', () => handleSMSStatusWebhook(sms), { messageSid: 'SM_sig_2' }],
+    [
+      'SMS status, forged',
+      () => handleSMSStatusWebhook(sms, 'forged', url),
+      { messageSid: 'SM_sig_2' },
+    ],
+    ['call status, missing', () => handleCallStatusWebhook(call), { callSid: 'CA_sig_3' }],
+    [
+      'call status, forged',
+      () => handleCallStatusWebhook(call, 'forged', url),
+      { callSid: 'CA_sig_3' },
+    ],
+  ])('%s: refused, one warn line with the id only', async (_name, run, fields) => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'real-token');
+    expect((await run()).success).toBe(false);
+    expect(signatureLines()).toEqual([expect.objectContaining({ level: 'warn', fields })]);
   });
 });

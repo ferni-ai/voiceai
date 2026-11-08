@@ -89,9 +89,10 @@ describe.each([10, 20])('%i ms frames', (frameMs) => {
 
   it('detects a change to a second voice', async () => {
     await talk(detector, VOICE_A_HZ, frameMs); // reference voice
-    await talk(detector, VOICE_B_HZ, frameMs); // different (1 of 2, debounce)
+    await talk(detector, VOICE_B_HZ, frameMs); // different (1 of 3, SPEAKER_CHECK_STRICT)
+    await talk(detector, VOICE_B_HZ, frameMs); // different (2 of 3)
     expect(changes).toHaveLength(0);
-    await talk(detector, VOICE_B_HZ, frameMs); // different (2 of 2)
+    await talk(detector, VOICE_B_HZ, frameMs); // different (3 of 3)
 
     expect(changes).toHaveLength(1);
     expect(changes[0].previousSpeakerId).toBe('user-1');

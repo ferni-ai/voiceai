@@ -21,9 +21,6 @@ vi.mock('../../../src/state/app.state.js', () => ({
 vi.mock('../../../src/utils/logger.js', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn, error: vi.fn() }),
 }));
-vi.mock('../../../src/services/spotify.service.js', () => ({
-  spotifyService: { initialize: vi.fn(async () => false) },
-}));
 
 import { AUDIO_PLAY_BLOCKED_EVENT } from '../../../src/services/audio-play-blocked.js';
 

@@ -28,3 +28,17 @@
 .team-insights-panel:not(.is-open) .team-insights-spinner {
   animation-play-state: paused;
 }
+
+/*
+ * Home while the sign-in gate covers it: the gate-first copy (html.gate-first,
+ * index.html) or the gate itself (html.sign-in-gate-up, set by showGateOverApp
+ * in gate-first.ui.ts).
+ * #app is visibility: hidden then, but its loops (the connect button's
+ * breathing, the ambient orbs) kept running for as long as the gate was up.
+ */
+html.gate-first #app,
+html.gate-first #app *,
+html.sign-in-gate-up #app,
+html.sign-in-gate-up #app * {
+  animation-play-state: paused;
+}

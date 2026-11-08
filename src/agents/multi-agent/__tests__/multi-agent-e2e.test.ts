@@ -69,7 +69,13 @@ describe('Multi-Agent Entry Point E2E', () => {
       const source = await readFile(agentSetupPath, 'utf8');
 
       expect(source).toContain('new AudioStream');
-      expect(source).toContain('liveBackchannel?.processAudioFrame(frame)');
+      // Each frame goes through the self-voice tap, which feeds the backchannel first.
+      expect(source).toContain('micFrameTap(session, frame, liveBackchannel)');
+      const tap = await readFile(
+        fileURLToPath(new URL('../self-voice-gate/session-gate.ts', import.meta.url)),
+        'utf8'
+      );
+      expect(tap).toContain('backchannel?.processAudioFrame(frame);');
       expect(source).not.toContain('Per-audio-frame wiring (processAudioFrame) is deferred');
     });
   });

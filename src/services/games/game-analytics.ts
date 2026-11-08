@@ -7,7 +7,8 @@
  * PERSISTENCE: Uses Firestore for event storage and analytics aggregation.
  */
 
-import admin from 'firebase-admin';
+import { getApps, initializeApp } from 'firebase-admin/app';
+import { FieldValue, type Firestore, type Query } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
@@ -20,26 +21,26 @@ const log = getLogger();
 
 const EVENTS_COLLECTION = 'game_analytics_events';
 const COUNTERS_COLLECTION = 'game_analytics_counters';
-let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInstance: Firestore | null = null;
 let firestoreInitAttempted = false;
 
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   if (firestoreInstance) return firestoreInstance;
   if (firestoreInitAttempted) return null;
 
   firestoreInitAttempted = true;
 
   try {
-    if (admin.apps.length === 0) {
+    if (getApps().length === 0) {
       const projectId =
         process.env.GCP_PROJECT_ID ||
         process.env.FIREBASE_PROJECT_ID ||
         process.env.GOOGLE_CLOUD_PROJECT;
 
       if (projectId) {
-        admin.initializeApp({ projectId });
+        initializeApp({ projectId });
       } else {
-        admin.initializeApp();
+        initializeApp();
       }
     }
 
@@ -152,10 +153,9 @@ async function incrementCounter(field: string, amount = 1): Promise<void> {
 
   try {
     const counterRef = db.collection(COUNTERS_COLLECTION).doc('global');
-    await counterRef.set(
-      cleanForFirestore({ [field]: admin.firestore.FieldValue.increment(amount) }),
-      { merge: true }
-    );
+    await counterRef.set(cleanForFirestore({ [field]: FieldValue.increment(amount) }), {
+      merge: true,
+    });
   } catch (error) {
     log.warn({ error, field }, 'Failed to increment game counter in Firestore');
   }
@@ -212,7 +212,7 @@ export async function queryEventsFromFirestore(
   if (!db) return events.slice(-limit);
 
   try {
-    let query: admin.firestore.Query = db.collection(EVENTS_COLLECTION);
+    let query: Query = db.collection(EVENTS_COLLECTION);
 
     if (filter.userId) {
       query = query.where('userId', '==', filter.userId);

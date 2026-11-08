@@ -1,0 +1,28 @@
+{
+  "about": "What `pnpm test:integrations:nightly` expects of each probe (apps/cli/src/commands/test/integration-probes.ts), for a runner holding the agent's secrets. working: a probe that fails is a regression. unavailable: a probe that passes is a stale baseline. Change an entry on purpose, with a why, never to quiet the job.",
+  "integrations": {
+    "spotify.refresh": {
+      "state": "working",
+      "why": "RED since 2026-10-22: the house refresh token is revoked (invalid_grant). Needs Seth to re-consent with scripts/spotify-auth.js, then lk update-secrets."
+    },
+    "oauth.spotify_client": { "state": "working" },
+    "oauth.google_calendar_client": { "state": "working" },
+    "oauth.linkedin_client": { "state": "working" },
+    "oauth.x_client": {
+      "state": "unavailable",
+      "why": "invalid_client since the 2026-10-29 audit; only the marketing posting path uses it. Fix the client id or drop X."
+    },
+    "twilio.account": { "state": "working" },
+    "twilio.sip_trunk": { "state": "working" },
+    "anthropic.models": { "state": "working" },
+    "cartesia.voices": { "state": "working" },
+    "google.places": { "state": "working" },
+    "google.geocode": { "state": "working" },
+    "newsdata.latest": { "state": "working" },
+    "finnhub.quote": { "state": "working" },
+    "itunes.search": { "state": "working" },
+    "tmdb.configuration": { "state": "working" },
+    "weather.open_meteo": { "state": "working" },
+    "news.rss": { "state": "working" }
+  }
+}

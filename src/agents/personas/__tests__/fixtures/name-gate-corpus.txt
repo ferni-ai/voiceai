@@ -1,0 +1,85 @@
+Hey Sam, morning.
+Morning, Sam.
+Hey Sam, how is your evening going?
+Morning, Sam, what's on your mind today?
+Hey Sam, evening.
+Hey Sam, good morning, what's on your mind today?
+Hey Sam, still up?
+Morning, Sam.<break time="80ms"/> What's on your mind today?
+Hey Sam, morning.<break time="80ms"/> How are you doing?
+Morning Sam, how's it going?
+Hi Sam, it's Ferni, good morning to you.<break time="80ms"/> How are you doing today?
+Hi Sam, it is Ferni.<break time="80ms"/> How is your afternoon going so far?
+Hey Sam, did the bike survive the rain or are we still drying it out?
+Hey Sam, late night for you too.
+Hey, Sam, still here, just letting the quiet sit for a second.
+Oh hey Sam, how's it going?
+Ah, hey Sam, good to hear you.
+Okay Sam, let's figure it out.
+Oh Sam, that's awful.
+Sam, what's going on?
+Sam, good to hear your voice.
+Sam? You still there?
+Sam?
+What's going on, Sam?
+What about you, Sam?
+What about you, Sam?<break time="80ms"/> Do you remember your dreams?
+Did I miss something you told me, Sam?
+Did I lose the thread somewhere, Sam?<break time="80ms"/> Tell me again, I'm listening.
+How's your morning going, Sam?
+What kind of work do you do, Sam?
+Glad it's a good one.<break time="80ms"/> What's keeping you busy today, Sam?
+<emotion value="calm"/>Back again, huh?<break time="80ms"/> [laughter] So what's on your mind today, Sam?
+What about you, Sam? It's really good to hear your voice, Sam.
+That's rough, Sam.
+That's a lot of mail, Sam.
+I hear you, Sam, and that sounds hard.
+That sounds like a lot, Sam, and you handled it well.
+I'm here, Sam, and I'm listening.
+I'm sorry to hear that, Sam, especially with everything at work lately.
+The waiting is just awful, Sam, not knowing what comes next.
+I'm figuring it out as I go, Sam, same as anyone else.
+That's a double whammy, Sam, between the new boss and the broken heater.
+I'm sorry, Sam, sometimes I get turned around.
+Fair enough, Sam, my bad.
+Well, Sam, don't be hard on yourself.
+Ah, no, I can't call him for you, Sam, the system won't let me do that part.
+Yes, Sam, I'm sure.
+I don't track it all, Sam, but I'm listening.
+But honestly, Sam, you're the one stuck in it.
+Okay, Sam, 5 things to do.
+I'm really glad, Sam, that you called me today.
+Take care, Sam, and let me know how it goes.
+Take care, Sam, and let me know how the dinner goes next time we talk.
+See you later, Sam, have a good one.
+See you later, Sam, and good luck with the dentist.
+Have a good night, Sam, and tell me how the birthday planning goes.
+Good luck on Monday, Sam, and tell me how the interview goes.
+Catch you later, Sam, and I hope the move goes smoothly.
+Catch you later then, Sam, have a good night.
+Bye, Sam, catch you next time.
+Take care, Sam, catch you next time.
+Sounds good, Sam, catch you later.
+Rest up, Sam, and drive safely tomorrow.
+Get some good sleep, Sam, and please drive safely tomorrow.
+See you later, Sam, let me know how the show is.
+Catch you later, Sam.
+Talk soon, Sam.
+Tell Sam I said hi.
+Did you tell Sam, and what did he say?
+I talked to Alex, Sam, and Jo.
+My brother, Sam, and I went.
+My friend, Sam, called yesterday.
+Her son, Sam, just started school.
+I invited Alex, Jo, Sam.
+Who should go first? Sam.
+Who's driving? Sam, I think.
+I talked to Dr. Sam, he said rest.
+Sam and I go way back.
+Sam's sister called?
+that's rough, sam.
+Okay. [laughter] Sam, stop.
+I hear you, Sam; that's hard.
+How is your evening shaping up, Sam?
+Hey Sam, it's Ferni, just calling to check in.
+Hi Sam, it's Maya. How's it going?

@@ -63,8 +63,10 @@ async function askedFor(session: object, said: string): Promise<string> {
 }
 
 const sessions: object[] = [];
+let callIds = 0;
 function callWith(decide: UnderstandFn): { session: object; wrapUp: WrapUp } {
-  const session = { userData: undefined };
+  // A session id, so call risk can be read: without one the close-the-loop note is held (exits-held.ts).
+  const session = { userData: { services: { sessionId: `wrap-up-${++callIds}` } } };
   const wrapUp = new WrapUp(decide);
   setWrapUp(session, wrapUp);
   sessions.push(session);

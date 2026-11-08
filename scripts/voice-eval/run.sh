@@ -48,7 +48,11 @@
 #   whole team is unlocked, as for a real Partner subscriber.
 # EVAL_DRY_RUN=1 prints the plan as JSON (user id, rooms, scenarios) and exits:
 #   no audio, no token, no call.
-# EVAL_TZ sets the caller's timezone (default America/New_York).
+# The caller's local time is pinned, not left to when the run happens (#3164): the agent reads
+#   the caller's hour from the wall clock in the zone the job metadata names, so run.sh picks the
+#   zone where it is 14:00 now (caller-clock.mjs). A scenario that wants an hour on purpose says
+#   "#@time-of-day HH:MM" (quiet-late-night: 02:30); EVAL_CALLER_TIME=HH:MM overrides that.
+# EVAL_TZ=<zone> overrides both: that zone at its wall-clock hour ("none": an unknown zone).
 # EVAL_LOCAL_TIME=HH:MM: Ferni's own clock for his state (FERNI_STATE), e.g. 01:47
 #   (job metadata eval_local_time). Only a worker started with VOICE_EVAL_CLOCK=on
 #   honours it, for voice-eval- users only (eval-local-time.ts). Dev and prod ignore it.
@@ -98,12 +102,34 @@ fi
 for s in $scenario $seed; do
   [[ -f $SCEN/$s.txt ]] || { print -u2 "run.sh: no scenario $SCEN/$s.txt"; exit 2; }
 done
+# One zone for the whole run, so a seed call and its return call share the caller's day.
+clock=$(node $HERE/caller-clock.mjs $SCEN/$scenario.txt) || exit 2
+IFS=$'\t' read -r caller_tz caller_time caller_clock <<< $clock
+print -u2 "voice-eval: caller in $caller_tz at $caller_time ($caller_clock)"
 # A scenario written for one teammate names them: "#@persona maya-santos".
 [[ -n $persona ]] || persona=$(sed -n 's/^#@persona[[:space:]]*//p' $SCEN/$scenario.txt | head -1)
 if [[ -n $persona && ! -f $ROOT/src/personas/bundles/$persona/persona.manifest.json ]]; then
   print -u2 "run.sh: no persona bundle $ROOT/src/personas/bundles/$persona"
   exit 2
 fi
+# The name the app sends for the caller, as for a signed-in account: job metadata user_name and the
+# room participant name. "#@app-name <Name>" in a scenario sets it; "#@app-name none" sends none, for
+# a caller who gives their name in the call (first-call-seed: "I'm Jess"), so a name Ferni uses on
+# the return call can only come from memory. A seed and its return call are one caller: the seed's
+# line is used, and a different line in the scenario is an error. Default Sam.
+app_name_of() { sed -n 's/^#@app-name[[:space:]]*//p' $SCEN/$1.txt | head -1; }
+caller_name=$(app_name_of $scenario)
+if [[ -n $seed ]]; then
+  seed_name=$(app_name_of $seed)
+  if [[ -n $seed_name && -n $caller_name && $seed_name != "$caller_name" ]]; then
+    print -u2 "run.sh: $seed says #@app-name $seed_name but $scenario says $caller_name"
+    exit 2
+  fi
+  caller_name=${seed_name:-$caller_name}
+fi
+caller_name=${caller_name:-Sam}
+[[ $caller_name == none ]] && caller_name=
+name_opt=(); [[ -z $caller_name ]] || name_opt=(--name $caller_name)
 # CALLER_REALISM=<persona> wins; then the scenario's "#@caller"; then everyday if asked for.
 realism=${CALLER_REALISM:-}; real_default=
 [[ $realism == 1 ]] && realism= && real_default=everyday
@@ -162,13 +188,14 @@ stamp=$(date +%H%M%S)
 job_meta() {
   local m
   m=$(node -e '
-    const [uid, tz, city, region, persona] = process.argv.slice(1);
-    const m = { user_id: uid, user_name: "Sam", timezone: tz };
+    const [uid, tz, city, region, persona, name] = process.argv.slice(1);
+    const m = { user_id: uid, timezone: tz };
+    if (name) m.user_name = name;
     if (process.env.EVAL_LOCAL_TIME) m.eval_local_time = process.env.EVAL_LOCAL_TIME;
     if (city) Object.assign(m, { city, regionCode: region });
     if (persona) m.persona_id = persona;
     process.stdout.write(JSON.stringify(m));
-  ' "$uid" "${EVAL_TZ:-America/New_York}" "${EVAL_CITY:-}" "${EVAL_REGION:-}" "$persona")
+  ' "$uid" "$caller_tz" "${EVAL_CITY:-}" "${EVAL_REGION:-}" "$persona" "$caller_name")
   if [[ -n ${EVAL_DISPATCH_SECRET:-} ]]; then
     (cd $ROOT && npx tsx $HERE/sign-meta.ts "$m")
   else
@@ -177,7 +204,7 @@ job_meta() {
 }
 
 if [[ -n ${EVAL_DRY_RUN:-} ]]; then
-  print -r -- "{\"env\":\"$env\",\"scenario\":\"$scenario\",\"label\":\"$label\",\"uid\":\"$uid\",\"database\":\"$firestore_db\",\"seed\":\"$seed\",\"persona\":\"$persona\",\"realism\":\"$(realism_of $scenario)\",\"caller\":\"$caller\",\"echo\":$echo_cfg,\"metadata\":$(job_meta),\"room\":\"eval-$scenario-$label-$stamp\",\"json\":\"$json\"}"
+  print -r -- "{\"env\":\"$env\",\"scenario\":\"$scenario\",\"label\":\"$label\",\"uid\":\"$uid\",\"database\":\"$firestore_db\",\"seed\":\"$seed\",\"persona\":\"$persona\",\"realism\":\"$(realism_of $scenario)\",\"caller\":\"$caller\",\"echo\":$echo_cfg,\"caller_time\":\"$caller_time\",\"caller_clock\":\"$caller_clock\",\"metadata\":$(job_meta),\"room\":\"eval-$scenario-$label-$stamp\",\"json\":\"$json\"}"
   exit 0
 fi
 
@@ -236,14 +263,14 @@ converse_call() {
   turns=(${(f)"$(<$adir/turns.list)"})
   room="eval-$sc-$label-$(date +%H%M%S)"
   meta=$(job_meta)
-  tok=$(lk token create --project $project --join --room $room --identity eval-user --name Sam \
+  tok=$(lk token create --project $project --join --room $room --identity eval-user $name_opt \
     --agent $agent --job-metadata "$meta" --valid-for 20m 2>/dev/null \
     | grep -Eo 'eyJ[A-Za-z0-9._-]+' | head -1)
   print -u2 "voice-eval: $role $sc as $uid in $room"
   # converse.mjs's meta, via JSON.stringify: a path or label may need escaping.
-  vmeta=$(node -e 'const k = ["uid", "env", "scenario", "label", "room", "role", "seed", "persona", "realism", "audio"];
+  vmeta=$(node -e 'const k = ["uid", "env", "scenario", "label", "room", "role", "seed", "persona", "realism", "audio", "caller_tz", "caller_time", "caller_clock"];
     process.stdout.write(JSON.stringify(Object.fromEntries(k.map((x, i) => [x, process.argv[i + 1]]))))' \
-    "$uid" "$env" "$sc" "$label" "$room" "$role" "$seed" "$persona" "$(realism_of $sc)" "$adir")
+    "$uid" "$env" "$sc" "$label" "$room" "$role" "$seed" "$persona" "$(realism_of $sc)" "$adir" "$caller_tz" "$caller_time" "$caller_clock")
   (cd $ROOT && VOICE_EVAL_META=$vmeta node $HERE/converse.mjs $url "$tok" $file $turns)
 }
 
@@ -278,7 +305,7 @@ phone_call() {
   turns=(${(f)"$(<$adir/turns.list)"})
   room="eval-phone-$sc-$label-$(date +%H%M%S)"
   # No --agent: the agent must answer the phone, not join this room.
-  tok=$(lk token create --project ferni-dev --join --room $room --identity eval-user --name Sam \
+  tok=$(lk token create --project ferni-dev --join --room $room --identity eval-user $name_opt \
     --valid-for 20m 2>/dev/null | grep -Eo 'eyJ[A-Za-z0-9._-]+' | head -1)
   print -u2 "voice-eval: phone $sc in $room, dialing $PHONE_TO"
   (cd $ROOT && VOICE_EVAL_PHONE=1 VOICE_EVAL_META="{\"uid\":\"$uid\",\"env\":\"phone\",\"scenario\":\"$sc\",\"label\":\"$label\",\"room\":\"$room\",\"role\":\"test\",\"seed\":\"\"}" \

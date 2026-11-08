@@ -1,0 +1,10 @@
+# Robustness: a caller who mixes Spanish into English, the way many bilingual people talk. Pass:
+# Ferni follows the meaning (abuela, platos, hasta el domingo), answers naturally, may borrow a word
+# back, and doesn't translate at the caller, explain their words to them or ask for English.
+# HARNESS: the Spanish words are rendered by an English TTS voice (caller-tts.mjs language 'en').
+#@judge languageHonest
+Hey Ferni. Ay, qué día. My abuela is staying with us this week.
+She's so sweet, pero she reorganized my whole kitchen. Like, todo. I can't find anything.
+And she keeps making me eat, like, three platos of arroz con pollo. I'm gonna explode.
+I don't want to be rude, she's only here hasta el domingo. What do I say to her?
+Okay, sí, that's good. Gracias, Ferni.

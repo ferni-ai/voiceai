@@ -24,7 +24,9 @@
  * (the owner check is registered by caller-recognition.ts, a higher layer;
  * MINOR_CARE_OWNERS=on holds a verified owner too).
  * Crisis handling is untouched: the note is never added to a crisis reply,
- * and nothing here reads or changes crisis code.
+ * and nothing here reads or changes crisis code. MINOR_CRISIS_CARE=on adds
+ * MINOR_CRISIS_NOTE to a crisis reply instead, beside the crisis guidance
+ * (minor-crisis-care.ts has the spoken line for a crisis script).
  *
  * MINOR_CARE=shadow runs the same detection and logs it once per session (with
  * whether the session is a verified owner's), but holds nothing and adds no
@@ -35,7 +37,9 @@
 import { flagModeOf, flagOn } from '../config/env-flag.js';
 import { statesUnder18 } from './minor-care-detect.js';
 import { createLogger } from './safe-logger.js';
-import { PLACEHOLDER_IDS } from './synthetic-user.js';
+import { isAnonymousDemoUser, PLACEHOLDER_IDS } from './synthetic-user.js';
+import { sexualTopicHeld, sexualTopicUserHeld } from './sexual-topic-hold.js';
+export { sexualReadsSettled } from './sexual-topic-hold.js';
 
 const log = createLogger({ module: 'minor-care' });
 
@@ -67,6 +71,8 @@ const MAX_SESSION_USERS = 5000;
 /** sessionId -> when it was first bound to a user: a held call's purge drops what came after it. */
 const sessionBound = new Map<string, number>();
 
+/** The user this session is bound to (session start), if it is: abuse-outreach-hold.ts. */
+export const sessionUser = (sessionId: string): string | undefined => sessionUsers.get(sessionId);
 /** When this session was first bound to a user (session start), if it was. */
 export const sessionBoundAt = (sessionId: string | undefined): number | undefined =>
   sessionId === undefined ? undefined : sessionBound.get(sessionId);
@@ -232,12 +238,36 @@ export function likelyMinor(sessionId: string | undefined): boolean {
   return !!sessionId && likely.has(sessionId);
 }
 
-/** Nothing personal is stored for this session: flag on, sounds under 18, not a verified owner. */
+/**
+ * The session is an anonymous try-first visitor's (isAnonymousDemoUser), so it keeps nothing, with
+ * every flag on or off: the visitor was told nothing is kept. Bound at session start
+ * (session-init-handler.ts), before session services make their first write.
+ */
+const demoCallHeld = (sessionId: string | undefined): boolean =>
+  !!sessionId && isAnonymousDemoUser(sessionUsers.get(sessionId));
+
+/**
+ * Nothing personal is stored for this session: it is an anonymous try-first call (demoCallHeld),
+ * MINOR_CARE holds it (minorHeld), or SEXUAL_TOPIC_BOUNDARY does (sexual-topic-hold.ts).
+ */
 export function memoryHeld(sessionId: string | undefined, env: Env = process.env): boolean {
+  return demoCallHeld(sessionId) || minorHeld(sessionId, env) || sexualTopicHeld(sessionId, env);
+}
+
+/** MINOR_CARE's own hold: flag on, sounds under 18, not a verified owner. Its purge keys on this. */
+export function minorHeld(sessionId: string | undefined, env: Env = process.env): boolean {
   if (!sessionId || !minorCareOn(env) || !likely.has(sessionId)) return false;
   touch(sessionId);
   return !ownerExempt(sessionId, env);
 }
+
+/** Any sign this caller is under 18: a held read, or MINOR_CARE=shadow's logged one. */
+export const ageSignal = (sessionId: string | undefined): boolean =>
+  !!sessionId && (likely.has(sessionId) || shadowLogged.has(sessionId));
+
+/** The session is a verified account owner's (caller-recognition.ts registers the check). */
+export const verifiedOwner = (sessionId: string | undefined): boolean =>
+  !!sessionId && ownerCheck(sessionId);
 
 /** Read this turn's words, then memoryHeld: the per-turn writers' one-line check. */
 export function heldAfter(
@@ -245,11 +275,16 @@ export function heldAfter(
   said: string,
   options: HeardOptions = {}
 ): boolean {
-  if (!minorCareOn(options.env)) return false;
+  if (!minorCareOn(options.env))
+    return memoryHeld(sessionId, options.env) || isAnonymousDemoUser(options.userId);
   noteCallerWords(sessionId, said, options);
   bindSessionUser(sessionId, options.userId);
   return memoryHeld(sessionId, options.env);
 }
+
+/** A try-first call that may still be writing: its binding is its hold, so it is never evicted. */
+const liveDemoCall = (sessionId: string): boolean =>
+  demoCallHeld(sessionId) && Date.now() - (sessionBound.get(sessionId) ?? 0) <= IDLE_MS;
 
 /** This session is this user's (session start, and any detector call that knows the userId). */
 export function bindSessionUser(sessionId: string | undefined, userId: string | undefined): void {
@@ -259,7 +294,7 @@ export function bindSessionUser(sessionId: string | undefined, userId: string | 
   if (!sessionBound.has(sessionId)) sessionBound.set(sessionId, Date.now());
   for (const s of sessionUsers.keys()) {
     if (sessionUsers.size <= MAX_SESSION_USERS) break;
-    if (!likely.has(s)) sessionUsers.delete(s);
+    if (!likely.has(s) && !liveDemoCall(s)) sessionUsers.delete(s);
   }
   for (const s of sessionBound.keys()) {
     if (sessionBound.size <= MAX_SESSION_USERS) break;
@@ -277,8 +312,24 @@ export function writeHeld(
   sessionId?: string,
   env: Env = process.env
 ): boolean {
-  if (!minorCareOn(env)) return false;
+  if (!minorCareOn(env)) return memoryHeld(sessionId, env) || userHeld(userId, env);
   return memoryHeld(sessionId, env) || userHeld(userId, env) || sharedId(userId);
+}
+
+/**
+ * writeHeld without the try-first rule: MINOR_CARE or SEXUAL_TOPIC_BOUNDARY holds this caller.
+ * A safety record that keeps no words (crisis_events) still writes for a try-first visitor, so it
+ * asks this. A demo id lives for one call, so its session's holds are all its holds.
+ */
+export function careHeld(
+  userId: string | undefined,
+  sessionId?: string,
+  env: Env = process.env
+): boolean {
+  if (!isAnonymousDemoUser(userId)) return writeHeld(userId, sessionId, env);
+  return (
+    minorHeld(sessionId, env) || sexualTopicHeld(sessionId, env) || sexualTopicUserHeld(userId, env)
+  );
 }
 
 /** writeHeld, or a hold its caller already read where this process can't see it (chat: ctx.held). */
@@ -291,10 +342,11 @@ export function callerHeld(
 
 /**
  * The per-user writers' check, at write time (a flush timer's tick): true whenever memoryHeld is
- * true for any of this user's sessions, from either detector. Never refreshes a session, so a
- * timer can't keep a hold alive past IDLE_MS.
+ * true for any of this user's sessions, from either detector, and always for a try-first visitor's
+ * id. Never refreshes a session, so a timer can't keep a hold alive past IDLE_MS.
  */
 export function userHeld(userId: string | undefined, env: Env = process.env): boolean {
+  if (isAnonymousDemoUser(userId) || sexualTopicUserHeld(userId, env)) return true;
   if (!userId || sharedId(userId) || !minorCareOn(env)) return false;
   for (const [sessionId, owner] of sessionUsers) {
     const used = likely.get(sessionId);
@@ -308,24 +360,70 @@ export function userHeld(userId: string | undefined, env: Env = process.env): bo
 export const MINOR_CARE_NOT_SAVED =
   "Not saved: nothing from this call is kept. Cheer them on warmly, but don't say you'll remember it or check in on it later.";
 
-export const MINOR_CARE_NOTE =
-  "[They sound under 18. Be warm and friendly, like a caring older friend. Don't ask for personal details: where they live, their school's name, their religion or their age. If they mention skipping school, being alone or something worrying, gently ask if they're okay, without a lecture. If they say they love you, kindly keep the same boundary every time: you're glad to talk, and you're a friend-voice, not a partner. Nothing from this call is kept, so never say you'll remember it; if they ask, kindly say you won't keep notes from today.]";
+/** How Ferni sounds to a caller under 18: both notes open with it. */
+const YOUTH_VOICE = 'They sound under 18. Be warm and friendly, like a caring older friend.';
+
+export const MINOR_CARE_NOTE = `[${YOUTH_VOICE} Don't ask for personal details: where they live, their school's name, their religion or their age. If they mention skipping school, being alone or something worrying, gently ask if they're okay, without a lecture. If they say they love you, kindly keep the same boundary every time: you're glad to talk, and you're a friend-voice, not a partner. Nothing from this call is kept, so never say you'll remember it; if they ask, kindly say you won't keep notes from today.]`;
+
+/**
+ * MINOR_CRISIS_CARE=on: beside the crisis guidance on a crisis reply, never in place of it. It is
+ * guidance on how to talk, never lines to say: a model handed lines reads them out (#3313 r1, a
+ * blind judge preferred main 18 to 1). It names no number the turn's crisis guidance doesn't.
+ * Asked not to tell (product call, 2026-11-01): Ferni wants a grown-up they trust in on it, and
+ * names 988. It never talks about keeping or not keeping it: "never promise to keep it private"
+ * came back as "I can't keep it a secret", which sounds like Ferni will tell (#3313 r3), and "I'm
+ * not going to call anyone behind your back" is heard by a teen as "Ferni won't tell anyone"
+ * (#3313 r4). No reply guidance here may promise secrecy or hint at telling.
+ */
+export const MINOR_CRISIS_NOTE = `[${YOUTH_VOICE} In a hard moment, talk the way a caring older friend talks to a teen: plain, warm words. Gently ask who they've got, an adult they trust (parent, school counselor, coach, relative), and mention teens can call or text 988 too. Keep it as short as you would anyway, two or three short sentences: say less elsewhere, not more. Use your own words; never repeat these phrases. Add no phone number the crisis guidance for this turn doesn't give. If they ask you not to tell anyone, answer that part with only this, in your own words: this feels too big for them to carry alone, so you really want a grown-up they trust in on it; and 988 is there any time. Say nothing more about it, and never say or hint that you'll tell or report anyone. Nothing sexual, and no explicit detail.]`;
+
+/**
+ * MINOR_CRISIS_CARE=on, when the person at risk is someone the caller knows (the crisis read's
+ * third_party subject): the crisis guidance's own steps stay first (check on them, 911 if they're
+ * in danger now, 988 on their behalf), and a trusted adult is one gentle offer, never an order.
+ * The general note made these replies directive and crowded out the check-on-them step (#3313 r2).
+ */
+export const MINOR_FRIEND_CRISIS_NOTE = `[${YOUTH_VOICE} They're scared for a friend. Follow the crisis guidance's steps in plain, warm words, as you would anyway: checking on their friend and staying with them, 911 if the friend is in danger tonight, and that they can call or text 988 for their friend. You can add, in one gentle clause, that a grown-up they trust could help with this too: an offer, never an order or a must. No longer than you'd be anyway. Use your own words; never repeat these phrases. Add no phone number the crisis guidance for this turn doesn't give. Nothing sexual, and no explicit detail.]`;
+
+/**
+ * A crisis reply for a caller who sounds under 18 gets youth-safe words (MINOR_CRISIS_CARE=on,
+ * with MINOR_CARE on): the same caller minorCareNote would give its note to.
+ */
+export function minorCrisisCare(
+  sessionId: string | undefined,
+  said: string,
+  options: HeardOptions = {}
+): boolean {
+  if (!minorCareOn(options.env) || !flagOn('MINOR_CRISIS_CARE', options.env)) return false;
+  if (sessionId && ownerExempt(sessionId, options.env)) return false;
+  return noteCallerWords(sessionId, said, options);
+}
+
+/** With crisis guidance: false on a soft check-in (no youth note), 'third_party' for a friend at risk. */
+export type YouthNote = boolean | 'third_party';
 
 /**
  * The note for this reply: flag on, the caller sounds under 18 and isn't a
  * verified account owner (an owner who mentions school isn't a stranger
- * child). Never with crisis guidance.
+ * child). With crisis guidance (careful): MINOR_CRISIS_NOTE, only with MINOR_CRISIS_CARE=on, and
+ * never on a soft check-in (youth: false), whose guidance asks for no crisis talk; when the risk is
+ * a friend's (youth: 'third_party'), MINOR_FRIEND_CRISIS_NOTE.
  */
 export function minorCareNote(
   sessionId: string | undefined,
   said: string,
-  options: HeardOptions & { careful?: boolean } = {}
+  options: HeardOptions & { careful?: boolean; youth?: YouthNote } = {}
 ): string {
   if (flagModeOf('MINOR_CARE', options.env) === 'shadow') {
     shadowNote(sessionId, said, options.asked);
     return '';
   }
-  if (options.careful || !minorCareOn(options.env)) return '';
+  // A soft check-in (youth: false) is no crisis turn: no note at all, as on main.
+  if (options.careful) {
+    if (options.youth === false || !minorCrisisCare(sessionId, said, options)) return '';
+    return options.youth === 'third_party' ? MINOR_FRIEND_CRISIS_NOTE : MINOR_CRISIS_NOTE;
+  }
+  if (!minorCareOn(options.env)) return '';
   if (sessionId && ownerExempt(sessionId, options.env)) return '';
   return noteCallerWords(sessionId, said, options) ? MINOR_CARE_NOTE : '';
 }

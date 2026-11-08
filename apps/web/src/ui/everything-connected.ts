@@ -15,7 +15,6 @@ import {
   showVibeController,
   showWearableSettings,
 } from './lazy-screens.js';
-import { triggerSpotifyLinkToggle } from './spotify.ui.js';
 import { t } from '../i18n/index.js';
 import { openWithLoadingShell } from './components/panel-loading-shell.js';
 
@@ -37,7 +36,6 @@ function openConnectedLife(): Promise<void> {
       onConnectWearables: () => void showWearableSettings(),
       onConnectCalendar: () => void openCalendarSettings(),
       onConnectLinkedIn: LINKEDIN_ENABLED ? () => void showLinkedInSettings() : undefined,
-      onConnectSpotify: () => void triggerSpotifyLinkToggle(),
       onConnectEcobee: () => void showVibeController(), // Ecobee is in Vibe Controller
       onOpenVibeController: () => void showVibeController(),
     });

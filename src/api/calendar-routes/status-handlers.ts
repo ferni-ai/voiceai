@@ -13,6 +13,12 @@ import {
 import { sendError } from '../helpers.js';
 import { sendJson, checkRateLimitAndApply, getCalendarRateLimitStatus } from './helpers.js';
 import { isCalendarConfigured } from '../../services/identity/google-calendar-oauth.js';
+import {
+  getLinkState,
+  isCalendarLinked,
+  isLinkStatusV2,
+  linkFields,
+} from '../../services/identity/link-state.js';
 import { disconnectGoogleCalendar } from '../../services/identity/google-calendar-disconnect.js';
 import {
   getCalendarBusyProfile,
@@ -20,6 +26,7 @@ import {
 } from '../../services/scheduling/calendar-busy-detection.js';
 import { appleCalendarProvider } from '../../services/calendar/providers/apple-provider.js';
 import { outlookCalendarProvider } from '../../services/calendar/providers/outlook-provider.js';
+import { outlookStatusLinked } from '../../services/calendar/index.js';
 import { getConflictSummary } from '../../services/calendar/conflict-resolver.js';
 import { stopAllUserChannels as stopGoogleWatchChannels } from '../../services/calendar/webhooks/google-webhook.js';
 
@@ -41,10 +48,14 @@ export async function handleStatus(
       return;
     }
 
-    const isConnected = await isCalendarConfigured(userId);
+    const link = isLinkStatusV2()
+      ? linkFields(await getLinkState(userId, 'google_calendar'))
+      : null;
+    const isConnected = link ? link.linked : await isCalendarConfigured(userId);
+    const linkState = link ? { link_state: link.link_state, scopes_ok: link.scopes_ok } : {};
 
     if (!isConnected) {
-      sendJson(res, { connected: false, configured: true });
+      sendJson(res, { connected: false, configured: true, ...linkState });
       return;
     }
 
@@ -53,6 +64,7 @@ export async function handleStatus(
     sendJson(res, {
       connected: true,
       configured: true,
+      ...linkState,
       lastSynced: profile.lastSynced?.toISOString(),
       busySlotsToday: profile.todayBusySlots.length,
       currentlyBusy: profile.currentlyBusy,
@@ -74,9 +86,9 @@ export async function handleSyncStatus(
 ): Promise<void> {
   try {
     const [googleConnected, appleConnected, outlookConnected] = await Promise.all([
-      isCalendarConfigured(userId),
+      isCalendarLinked(userId),
       appleCalendarProvider.isConnected(userId),
-      outlookCalendarProvider.isConnected(userId),
+      outlookStatusLinked(userId, () => outlookCalendarProvider.isConnected(userId)),
     ]);
 
     const conflicts = await getConflictSummary(userId);
@@ -225,9 +237,9 @@ export async function handleProvidersStatus(
 ): Promise<void> {
   try {
     const [googleConnected, appleConnected, outlookConnected] = await Promise.all([
-      isCalendarConfigured(userId),
+      isCalendarLinked(userId),
       appleCalendarProvider.isConnected(userId),
-      outlookCalendarProvider.isConnected(userId),
+      outlookStatusLinked(userId, () => outlookCalendarProvider.isConnected(userId)),
     ]);
 
     const outlookConfigured = outlookCalendarProvider.isConfigured();

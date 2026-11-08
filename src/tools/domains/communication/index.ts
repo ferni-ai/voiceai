@@ -39,6 +39,7 @@ import type { ExternalService, ToolContext, ToolDefinition } from '../../registr
 
 // New rationalized outreach module
 import { getOutreachToolDefinitions } from './outreach/index.js';
+import { ownerMessageTool } from '../proactive/outreach/owner-message-policy.js';
 
 // Import distinct tool modules (kept separate)
 import { createCommunicationCoachingTools } from './communication-coaching.js';
@@ -90,7 +91,7 @@ function getSchedulingToolDefinitions(): ToolDefinition[] {
   const legacyTools = createCommunicationTools();
 
   return [
-    {
+    ownerMessageTool({
       id: 'scheduleReminder',
       name: 'Schedule Reminder',
       description:
@@ -141,7 +142,7 @@ function getSchedulingToolDefinitions(): ToolDefinition[] {
             }
           },
         }),
-    },
+    }),
   ];
 }
 

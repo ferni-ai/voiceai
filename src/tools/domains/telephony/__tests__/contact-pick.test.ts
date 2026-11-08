@@ -22,6 +22,7 @@ vi.mock('livekit-server-sdk', () => ({
   },
   RoomServiceClient: class {
     createRoom = sip.createRoom;
+    listParticipants = vi.fn(async () => [{ kind: 4 }]); // the agent is in (agent-join.ts)
   },
   AgentDispatchClient: class {
     createDispatch = sip.createDispatch;
@@ -163,7 +164,7 @@ describe('the duplicate-row rescue', () => {
     const preview = await call.call({ contactQuery: 'mom', purpose: 'say hi' }, 'c1');
     expect(preview).toContain('NOT SENT YET');
     expect(preview).toContain('Mom at 801-555-0163');
-    call.caller('Yes, call her.');
+    call.caller('Yes, go ahead and call.');
     expect(await call.call({ contactQuery: 'mom', purpose: 'say hi' }, 'c2')).toContain(
       'calling Mom'
     );

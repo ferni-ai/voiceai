@@ -47,7 +47,6 @@ const fakeDb = {
     }),
   }),
 };
-vi.mock('firebase-admin', () => ({ default: { apps: [{}] } }));
 vi.mock('firebase-admin/firestore', () => ({ getFirestore: () => fakeDb, FieldValue: {} }));
 vi.mock('../../utils/firestore-utils.js', async (orig) => ({
   ...(await orig<object>()),

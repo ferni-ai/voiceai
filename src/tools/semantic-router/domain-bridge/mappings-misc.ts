@@ -305,24 +305,16 @@ export const MISC_MAPPINGS: Record<string, ToolMapping> = {
   },
 
   // ==========================================================================
-  // 📍 LOCAL SEARCH & BUSINESS (8 tools)
+  // 📍 LOCAL SEARCH & BUSINESS (6 tools)
   // ==========================================================================
   local_business: { domainToolId: 'findBusiness', transformArgs: (args) => ({ type: args.type }) },
   local_restaurant: {
     domainToolId: 'findRestaurants',
     transformArgs: (args) => ({ cuisine: args.cuisine }),
   },
-  local_reviews: {
-    domainToolId: 'getBusinessReviews',
-    transformArgs: (args) => ({ business: args.business }),
-  },
   local_info: {
     domainToolId: 'getBusinessInfo',
     transformArgs: (args) => ({ business: args.business }),
-  },
-  local_phone_lookup: {
-    domainToolId: 'lookupBusinessByPhone',
-    transformArgs: (args) => ({ phone: args.phone }),
   },
   local_reservation: {
     domainToolId: 'makeRestaurantReservation',

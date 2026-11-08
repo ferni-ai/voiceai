@@ -14,6 +14,7 @@ import { outboundPartiesFor, waitForCallAnswered } from '../shared/outbound-open
 import { markCallAnswered } from '../../services/analytics/call-start-stages.js';
 import { getOutboundCallContext } from '../../intelligence/context-builders/external/outbound-call-context.js';
 import { noteVoicemailSpoken } from '../../services/outreach/voicemail-outcome.js';
+import { noteCallProgress } from '../../services/outreach/call-progress.js';
 import { amdOpensCall, hangUpCall, onBehalfCallFor } from './call-control.js';
 import { openOnBehalfCall, voicemailInstructions, type FirstWords } from './call-opening.js';
 
@@ -127,6 +128,7 @@ export function openIfOnBehalfCall(sessionId: string, agent: CallingAgent): bool
       await session.say(text, { allowInterruptions: false }).waitForPlayout();
     },
     leaveVoicemail: async () => {
+      void noteCallProgress(sessionId, 'voicemail'); // CALL_LIVE_RELAY: the owner hears it now
       const message = session.generateReply({
         instructions: voicemailInstructions(parties, context.purpose),
       });
@@ -143,6 +145,7 @@ export function openIfOnBehalfCall(sessionId: string, agent: CallingAgent): bool
     },
   }).then((answered) => {
     log.info({ callId: call.callId, answered }, 'Call opening finished');
+    if (answered === 'person') void noteCallProgress(sessionId, 'answered'); // CALL_LIVE_RELAY
     if (answered === 'person' || answered === 'silence' || answered === 'error') {
       agent.wireHandlers?.().catch((error: unknown) => {
         log.error({ error: String(error), callId: call.callId }, 'Deferred handler wiring failed');

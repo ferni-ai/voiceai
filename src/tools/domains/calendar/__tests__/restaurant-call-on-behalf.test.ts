@@ -2,7 +2,8 @@
  * OpenTable, Resy and Yelp booking are gone (2026-10-30): OpenTable is
  * partner-only, Resy has no public API, and Yelp's terms ban generative-model
  * use. The restaurant tool books by saving the request and offering to call
- * the restaurant (call-on-behalf), and searches through Google Places.
+ * the restaurant (call-on-behalf), and searches through Google Places with
+ * the same honest answers as restaurant-search-honest.test.ts.
  *
  * Keys for all three old providers are set here: they must change nothing.
  * Real tools and the real Places client; only fetch is faked.
@@ -44,6 +45,7 @@ vi.mock('../../../../services/google-places.js', async (importOriginal) => ({
 import { BUSINESS_CALL_OFFER } from '../../../scheduling/appointment-core.js';
 import type { ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { getToolDefinitions } from '../index.js';
+import { LOCAL_SEARCH_UNAVAILABLE } from '../../local-search/unified-search.js';
 
 type Exec = { execute: (args: object, opts: unknown) => Promise<unknown> };
 const ctx = { userId: 'u-dinner', agentId: 'ferni' } as ToolContext;
@@ -123,7 +125,7 @@ describe('restaurant search runs on Google Places', () => {
     expect(calledUrls().join(' ')).not.toMatch(OLD_PROVIDERS);
   });
 
-  it('with no Places key says it cannot search, not "couldn\'t find any"', async () => {
+  it('with no Places key says it cannot search, never "couldn\'t find any"', async () => {
     places.configured = false;
     fetchSpy.mockImplementation(
       async () =>
@@ -134,7 +136,8 @@ describe('restaurant search runs on Google Places', () => {
 
     const reply = await restaurant({ action: 'search', query: 'thai', location: 'Tampa' });
 
-    expect(reply).toBe("I can't search restaurants right now.");
-    expect(calledUrls().join(' ')).not.toMatch(OLD_PROVIDERS);
+    expect(reply).toBe(LOCAL_SEARCH_UNAVAILABLE);
+    expect(reply).not.toMatch(/couldn't find/i);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

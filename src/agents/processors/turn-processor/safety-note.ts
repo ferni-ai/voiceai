@@ -9,15 +9,8 @@
  * @module agents/processors/turn-processor/safety-note
  */
 import type { llm } from '@livekit/agents';
-
-export const SAFETY_CATEGORIES: ReadonlySet<string> = new Set([
-  'safety', // escalation awareness (safety-coaching-builders.ts)
-  'crisis_response', // [CRISIS SUPPORT], crisis guidance (turn-handler.ts)
-  'safety_soft_check', // SOFT_CRISIS_CHECK (crisis-agreement.ts)
-  'scientific_early_warning', // early-warning.ts through scientific coaching
-  'crisis_transfer', // transfer awareness with crisis indicators (better-than-human-builders.ts)
-  'crisis_follow_up', // a caller with a recent crisis (better-than-human-builders.ts)
-]);
+// The set lives with the injection filter, which keeps a call report out beside it.
+import { SAFETY_CATEGORIES } from '../injection-filter.js';
 
 /** The key, in a chat message's `extra`, that marks safety guidance. */
 export const SAFETY_NOTE = 'safetyNote';

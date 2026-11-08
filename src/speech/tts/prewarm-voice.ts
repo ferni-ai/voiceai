@@ -14,7 +14,7 @@
 import { getTTSProvider } from '../tts-gateway/providers/index.js';
 
 /** Same switch as isTTSGatewayEnabled (tts-gateway/index.ts), without importing the gateway. */
-function ttsGatewayEnabled(): boolean {
+export function ttsGatewayEnabled(): boolean {
   return process.env.USE_TTS_GATEWAY !== 'false';
 }
 

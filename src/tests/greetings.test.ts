@@ -12,6 +12,15 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// Dynamic greetings go to Vertex through the shared client; mock it at that boundary.
+const geminiClient = vi.hoisted(() => ({
+  current: null as null | { models: { generateContent: ReturnType<typeof vi.fn> } },
+}));
+vi.mock('../config/gemini-config.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../config/gemini-config.js')>()),
+  getGeminiClient: async () => geminiClient.current,
+}));
+
 import {
   generateStaticGreeting,
   generateVoiceRecognitionGreeting,
@@ -310,109 +319,93 @@ describe('Greetings Module', () => {
   // --------------------------------------------------------------------------
 
   describe('generateDynamicGreeting()', () => {
-    const originalEnv = process.env;
+    const generateContent = vi.fn();
+    const fetchSpy = vi.fn();
 
     beforeEach(() => {
-      vi.resetModules();
-      process.env = { ...originalEnv };
+      generateContent.mockReset();
+      fetchSpy.mockReset();
+      vi.stubGlobal('fetch', fetchSpy);
+      geminiClient.current = { models: { generateContent } };
     });
 
     afterEach(() => {
-      process.env = originalEnv;
-      vi.restoreAllMocks();
+      geminiClient.current = null;
+      vi.unstubAllGlobals();
     });
 
-    it('should return null when no API key', async () => {
-      delete process.env.GOOGLE_API_KEY;
-      const persona = createTestPersona();
-      const result = await generateDynamicGreeting(persona);
-
-      expect(result).toBeNull();
-    });
-
-    it('should return null on API error', async () => {
-      process.env.GOOGLE_API_KEY = 'test-key';
-
-      const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'));
-      vi.stubGlobal('fetch', mockFetch);
-
-      const persona = createTestPersona();
-      const result = await generateDynamicGreeting(persona);
-
-      expect(result).toBeNull();
-    });
-
-    it('should return null on non-ok response', async () => {
-      process.env.GOOGLE_API_KEY = 'test-key';
-
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: false,
-        status: 500,
+    it('throws GeminiUnavailableError when there is no client', async () => {
+      geminiClient.current = null;
+      await expect(generateDynamicGreeting(createTestPersona())).rejects.toMatchObject({
+        name: 'GeminiUnavailableError',
       });
-      vi.stubGlobal('fetch', mockFetch);
-
-      const persona = createTestPersona();
-      const result = await generateDynamicGreeting(persona);
-
-      expect(result).toBeNull();
     });
 
-    it('should return null for empty response', async () => {
-      process.env.GOOGLE_API_KEY = 'test-key';
-
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ candidates: [] }),
-      });
-      vi.stubGlobal('fetch', mockFetch);
-
-      const persona = createTestPersona();
-      const result = await generateDynamicGreeting(persona);
-
-      expect(result).toBeNull();
+    it('throws GeminiCallError with the status, not the message, on an API error', async () => {
+      generateContent.mockRejectedValue(
+        Object.assign(new Error('bad request for prompt: You are Testy'), { status: 400 })
+      );
+      const thrown = await generateDynamicGreeting(createTestPersona()).catch((e: Error) => e);
+      expect(thrown).toMatchObject({ name: 'GeminiCallError', status: 400 });
+      expect((thrown as Error).message).not.toContain('You are Testy');
     });
 
-    it('should return greeting on successful API response', async () => {
-      process.env.GOOGLE_API_KEY = 'test-key';
-
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          candidates: [
-            {
-              content: {
-                parts: [{ text: 'Hello! I am Testy. Nice to meet you!' }],
-              },
-            },
-          ],
-        }),
-      });
-      vi.stubGlobal('fetch', mockFetch);
-
-      const persona = createTestPersona();
-      const result = await generateDynamicGreeting(persona);
-
-      expect(result).toBe('Hello! I am Testy. Nice to meet you!');
+    it('returns null for an empty response', async () => {
+      generateContent.mockResolvedValue({ text: '' });
+      expect(await generateDynamicGreeting(createTestPersona())).toBeNull();
     });
 
-    it('should call API with correct URL and parameters', async () => {
-      process.env.GOOGLE_API_KEY = 'test-api-key';
+    it('returns the greeting from the Vertex client', async () => {
+      generateContent.mockResolvedValue({ text: 'Hello! I am Testy. Nice to meet you!' });
+      expect(await generateDynamicGreeting(createTestPersona())).toBe(
+        'Hello! I am Testy. Nice to meet you!'
+      );
+    });
 
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          candidates: [{ content: { parts: [{ text: 'Test greeting' }] } }],
-        }),
+    it('calls the shared client with the default model and a timeout, and no raw API URL', async () => {
+      generateContent.mockResolvedValue({ text: 'Test greeting here' });
+      await generateDynamicGreeting(createTestPersona(), {
+        isReturningUser: true,
+        userName: 'TestUser',
       });
-      vi.stubGlobal('fetch', mockFetch);
 
-      const persona = createTestPersona();
-      await generateDynamicGreeting(persona, { userName: 'TestUser' });
+      expect(generateContent).toHaveBeenCalledTimes(1);
+      const req = generateContent.mock.calls[0][0];
+      expect(req.model).toBe(process.env.GEMINI_MODEL || 'gemini-3.5-flash');
+      expect(req.contents).toContain('TestUser');
+      expect(req.config.maxOutputTokens).toBe(150);
+      expect(req.config.abortSignal).toBeInstanceOf(AbortSignal);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
 
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      const callUrl = mockFetch.mock.calls[0][0];
-      expect(callUrl).toContain('generativelanguage.googleapis.com');
-      expect(callUrl).toContain('key=test-api-key');
+    it('generateGreeting falls back when the dynamic path fails', async () => {
+      generateContent.mockRejectedValue(Object.assign(new Error('x'), { status: 503 }));
+      vi.stubEnv('DYNAMIC_GREETING', 'on');
+      const originalRandom = Math.random;
+      Math.random = () => 0.1; // take the dynamic branch
+      try {
+        const greeting = await generateGreeting(createTestPersona());
+        expect(generateContent).toHaveBeenCalled();
+        expect(typeof greeting).toBe('string');
+        expect(greeting.length).toBeGreaterThan(0);
+      } finally {
+        Math.random = originalRandom;
+        vi.unstubAllEnvs();
+      }
+    });
+
+    it('generateGreeting skips the dynamic path while DYNAMIC_GREETING is off', async () => {
+      vi.stubEnv('DYNAMIC_GREETING', 'off');
+      const originalRandom = Math.random;
+      Math.random = () => 0.1;
+      try {
+        const greeting = await generateGreeting(createTestPersona());
+        expect(generateContent).not.toHaveBeenCalled();
+        expect(greeting.length).toBeGreaterThan(0);
+      } finally {
+        Math.random = originalRandom;
+        vi.unstubAllEnvs();
+      }
     });
   });
 

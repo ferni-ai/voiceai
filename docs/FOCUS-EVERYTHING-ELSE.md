@@ -35,7 +35,7 @@ Use this for prioritization and sprint planning. Update as items are done.
 
 | # | Item | Location | Action |
 |---|------|----------|--------|
-| 8 | **TTS streaming latency** | `gateway-tts-node.ts` Sonata path | ✅ Partial Jul 2026: Sonata uses sentence-overlap + `synthesizeStreaming` (same as Cartesia chunk path). Opt into old whole-text drain with `TTS_WHOLE_TEXT_STREAMING=true`. Remaining: native incremental `setText`/`step` pipelining. |
+| 8 | **TTS streaming latency** | `gateway-tts-node.ts` Sonata path | ✅ Partial Jul 2026: Sonata uses sentence-overlap + `synthesizeStreaming` (same as Cartesia chunk path). Remaining: native incremental `setText`/`step` pipelining. |
 | 9 | **Cache hits not tracked** | `turn-processor-integration.ts:408` | "TODO: track cache hits" — currently passes `false`. Wire or remove TODO. |
 | 10 | **Link reinforcement not tracked** | `memory/unified-store/facade.ts:810` | `linksStrengthened: 0` — TODO to track link reinforcement. |
 | 11 | **Agent messages across turns** | `turn-processor.ts:2297` | TODO: track agent messages across turns (services doesn't expose easily). Document or implement. |

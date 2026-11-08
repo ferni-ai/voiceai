@@ -8,7 +8,6 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  backchannelsEnabled,
   DEFAULT_FLAGS,
   DEVELOPMENT_FLAGS,
   getFlags,
@@ -368,11 +367,8 @@ describe('Voice Humanization Flags', () => {
     });
 
     describe('Phase 6: Live Backchanneling', () => {
-      it('keeps live backchanneling off unless BACKCHANNELS=on', () => {
-        // canned "mm-hmm"/"right" clips read as fake to a caller (2026-10-04)
-        expect(isFeatureEnabled('enableLiveBackchanneling')).toBe(false);
-        expect(backchannelsEnabled({ BACKCHANNELS: 'on' })).toBe(true);
-        expect(backchannelsEnabled({})).toBe(false);
+      it('has live backchanneling on', () => {
+        expect(isFeatureEnabled('enableLiveBackchanneling')).toBe(true);
       });
     });
   });

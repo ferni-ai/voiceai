@@ -49,6 +49,8 @@ import { gsap } from '../utils/gsap-setup.js';
 import { DURATION } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { expressionMotion, holdReturnTarget, noteExpressionSet } from './avatar-motion/expression-easing.js';
+import { resetFeelingPosture, tweenFeelingPosture } from './avatar-motion/feeling-posture.js';
+import { resetLidPathOwner, tweenLidPaths } from './avatar-motion/lid-path-owner.js';
 import { DOME_POSES, NEUTRAL_DOME_PATHS, domePaths, type DomePose } from './face/dome-poses.js';
 import { handOffToFaceEngine } from './face/face-engine.js';
 
@@ -275,10 +277,11 @@ export function setExpression(
   if (!config) return;
   const paths = domePaths(config);
   currentLidBase = paths;
-  // Create timeline; weight-aware easing + reduced motion when ferni:weighted-easing is on
+  // Create timeline; timed by feeling when ferni:weighted-easing is on
   const tl = gsap.timeline();
   expressionTimeline = tl;
   const motion = expressionMotion(expression, duration);
+  const at = { durationS: toSeconds(motion.durationMs), ease: motion.ease, atS: toSeconds(motion.delayMs) };
   // Anticipation phase - slight opposite movement
   if (motion.anticipate && (prevExpression !== 'neutral' || expression !== 'neutral')) {
     tl.to([lidTop, lidBottom], {
@@ -287,21 +290,9 @@ export function setExpression(
       ease: 'power2.in',
     }, 0);
   }
-  
-  // Main expression transition
-  tl.to(lidTop, {
-    attr: { d: paths.top },
-    scaleY: 1,
-    duration: toSeconds(motion.durationMs),
-    ease: motion.ease,
-  }, toSeconds(motion.delayMs));
-  
-  tl.to(lidBottom, {
-    attr: { d: paths.bottom },
-    scaleY: 1,
-    duration: toSeconds(motion.durationMs),
-    ease: motion.ease,
-  }, toSeconds(motion.delayMs));
+  tl.to([lidTop, lidBottom], { scaleY: 1, duration: at.durationS, ease: motion.ease }, at.atS);
+  tweenLidPaths(tl, lidTop, lidBottom, paths, at); // none while the voice (ferni:lid-blend) owns them
+  tweenFeelingPosture(tl, lidOverlay.closest('.avatar-container'), motion.liftPx, at);
   
   // Dimple animations - subtle shadows that appear on warm expressions
   if (dimpleLeft && dimpleRight) {
@@ -1052,6 +1043,8 @@ export function dispose(): void {
   currentIconElement = null;
   currentExpression = 'neutral';
   currentLidBase = null;
+  resetLidPathOwner();
+  resetFeelingPosture();
   isInitialized = false;
   log.debug('Ferni expressions disposed');
 }

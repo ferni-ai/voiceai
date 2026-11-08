@@ -15,11 +15,9 @@ export type { ProactiveTrigger };
 export interface UserInsightBriefing {
   /** Spending pattern insights */
   spendingInsights: string[];
-  /** Habit correlation discoveries */
-  habitCorrelations: string[];
   /** Goal trajectory analysis */
   goalInsights: string[];
-  /** Cross-domain patterns */
+  /** Cross-domain patterns the member's own data shows */
   crossDomainPatterns: string[];
   /** Anomalies detected */
   anomalies: string[];
@@ -29,8 +27,6 @@ export interface UserInsightBriefing {
   mayaInsights: HabitInsights;
   /** Mood/energy patterns */
   moodPatterns: MoodInsights;
-  /** Behavioral research metrics */
-  behavioralMetrics: BehavioralMetrics;
   /** Better Than Human: Calendar context for research timing */
   calendarContext: CalendarResearchContext | null;
 }
@@ -45,32 +41,12 @@ export interface CalendarResearchContext {
   bestDayForDeepWork: string | null;
   /** Current meeting load level */
   loadLevel: 'light' | 'moderate' | 'heavy' | 'overloaded';
-  /** Hours of focus time available this week */
-  focusTimeHours: number;
   /** Timing suggestion for research delivery */
   timingSuggestion: string | null;
   /** Just finished a meeting? */
   justEndedMeeting: boolean;
   /** About to have a meeting? */
   upcomingMeetingSoon: boolean;
-}
-
-// ============================================================================
-// BEHAVIORAL METRICS
-// ============================================================================
-
-/** Computed behavioral research metrics */
-export interface BehavioralMetrics {
-  /** Decision Quality Index (0-100) */
-  decisionQualityIndex: number;
-  /** Habit Formation Velocity (days to form habits) */
-  habitFormationVelocity: string;
-  /** Motivation Sustainability Index */
-  motivationSustainability: string;
-  /** Financial Stress Index */
-  financialStressLevel: string;
-  /** Key behavioral patterns detected */
-  patterns: string[];
 }
 
 // ============================================================================

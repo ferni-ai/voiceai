@@ -23,7 +23,8 @@
 /** Longer than any greeting-to-first-turn gap; short enough that a stray claim can't linger. */
 export const CLAIM_MS = 10 * 60_000;
 
-export type OpenerAsker = 'greeting' | 'recall-thread';
+/** 'greeting-date': the hello raised a date the caller told about (DATES_IN_HELLO, greeting-date.ts). */
+export type OpenerAsker = 'greeting' | 'greeting-date' | 'recall-thread';
 
 const claims = new Map<string, { by: OpenerAsker; at: number }>();
 

@@ -49,7 +49,7 @@ export interface HelpAsk {
 }
 
 const PLANT_NAME: HelpAsk = {
-  ask: 'a name for the jade plant Scott gave you, since nothing you have owned has lived long enough to get one',
+  ask: 'a name for the jade plant Marty gave you, since nothing you have owned has lived long enough to get one',
   cue: /\bplant\b/i,
   heard: 'Pickle',
   sayBack: "Okay, the jade plant is Pickle now, that's settled",
@@ -91,10 +91,10 @@ export const HELP_ASKS: Readonly<Record<string, ReadonlyArray<HelpAsk | undefine
   'ski-week': [
     undefined,
     {
-      ask: "settling it between Ken's Japan powder and Dermot's Alps for the ski week, since they want a tiebreaker",
+      ask: "settling it between Owen's Japan powder and Boyd's Alps for the ski week, since they want a tiebreaker",
       cue: /\b(?:ski|alps|powder)\b/i,
       heard: 'the Alps',
-      sayBack: "I'm voting the Alps for the ski week, and I'm telling Ken and Dermot it was you",
+      sayBack: "I'm voting the Alps for the ski week, and I'm telling Owen and Boyd it was you",
     },
     SKI_LEGS,
     SKI_LEGS,

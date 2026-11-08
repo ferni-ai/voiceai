@@ -1,11 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { peakOf, synthHum, synthSnore, synthWhistle } from '../presence-sounds.js';
-import {
-  createPresenceWatcher,
-  LONG_QUIET,
-  presenceHumEnabled,
-  presenceSnoreEnabled,
-} from '../presence-watcher.js';
+import { createPresenceWatcher, LONG_QUIET, presenceSnoreEnabled } from '../presence-watcher.js';
 
 const seq = (...xs: number[]) => {
   let i = 0;
@@ -129,10 +124,8 @@ describe('synthesized hum and snore', () => {
     expect(peakOf(pcm)).toBeLessThan(0.6);
   });
 
-  it('is off unless switched on', () => {
-    expect(presenceHumEnabled({})).toBe(false);
+  it('snores only when switched on', () => {
     expect(presenceSnoreEnabled({})).toBe(false);
-    expect(presenceHumEnabled({ PRESENCE_HUM: 'on' })).toBe(true);
     expect(presenceSnoreEnabled({ PRESENCE_SNORE: 'on' })).toBe(true);
   });
 });

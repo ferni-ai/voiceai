@@ -179,7 +179,7 @@ export class GraphRAGRetriever {
     log.debug(
       {
         userId: userId.substring(0, 8),
-        query: query.substring(0, 50),
+        queryLen: query.length,
         results: filtered.length,
         latencyMs,
       },

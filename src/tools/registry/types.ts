@@ -82,6 +82,7 @@ export type ToolDomain =
   | 'marketing' // Social media management: content generation, publishing, analytics
   | 'referral' // Viral growth via voice calls
   | 'smart-home' // Smart lights, thermostats, locks, scenes
+  | 'lifx-lights' // The verified caller's own LIFX lights (SMART_HOME_LIFX)
   | 'webhooks' // Webhook automations: IFTTT, Zapier, Home Assistant, Siri Shortcuts
   | 'books' // Book tracking, recommendations, reading lists
   | 'podcasts' // Podcast discovery, listening history, recommendations
@@ -134,6 +135,7 @@ export type ToolDomain =
   | 'projects' // Multi-task projects with templates
   | 'social-events' // Birthdays, anniversaries, gift tracking
   | 'transportation' // Uber/Lyft rides, commute tracking
+  | 'ride-links' // openRideLink: an Uber link with the trip filled in (RIDE_LINKS)
   | 'vehicle' // Maintenance schedules, registration alerts
   | 'workflows' // Custom automations, IFTTT-style triggers
   | 'routines' // Ferni's care routines - "What I Do For You"
@@ -222,6 +224,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'marketing',
   'referral',
   'smart-home',
+  'lifx-lights',
   'webhooks',
   'books',
   'podcasts',
@@ -276,6 +279,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'projects',
   'social-events',
   'transportation',
+  'ride-links',
   'vehicle',
   'workflows',
   'routines',
@@ -382,6 +386,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   marketing: 'communication', // Social media management and content publishing
   referral: 'communication', // Voice referral calls for viral growth
   'smart-home': 'productivity', // Smart home control: lights, thermostats, speakers
+  'lifx-lights': 'productivity', // The caller's own LIFX lights
   webhooks: 'productivity', // Webhook automations for IFTTT, Zapier, etc.
   books: 'entertainment', // Book tracking, recommendations, reading lists
   podcasts: 'entertainment', // Podcast discovery, listening history
@@ -434,6 +439,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   projects: 'productivity', // Multi-task projects with templates
   'social-events': 'lifestyle', // Birthdays, anniversaries, gift tracking
   transportation: 'lifestyle', // Uber/Lyft rides, commute tracking
+  'ride-links': 'lifestyle', // An Uber link with the trip filled in
   vehicle: 'lifestyle', // Maintenance schedules, registration alerts
   workflows: 'productivity', // Custom automations, IFTTT-style triggers
   routines: 'lifestyle', // Ferni's care routines - "What I Do For You"
@@ -558,31 +564,6 @@ export interface ServiceRegistry {
 }
 
 /**
- * Base tool interface for strict custom implementations
- *
- * Use this interface when you want TypeScript to validate your tool structure.
- */
-export interface StrictToolInterface {
-  /** Description shown to the LLM */
-  description: string;
-
-  /**
-   * Parameter schema - can be JSON Schema or Zod schema
-   * Optional when tool takes no parameters
-   */
-  parameters?: unknown;
-
-  /**
-   * Execute the tool with provided parameters
-   * Returns string for simple responses, or object for structured data
-   */
-  execute: (params: Record<string, unknown>) => Promise<unknown>;
-
-  /** Tool name (optional, defaults to ID) */
-  name?: string;
-}
-
-/**
  * Strict tool interface for our custom implementations.
  *
  * Use this when building tools that need full type safety.
@@ -649,24 +630,6 @@ export function assertTool(obj: unknown, name = 'tool'): asserts obj is Tool {
       `${name} must be a valid Tool with 'description' (string) and 'execute' (function)`
     );
   }
-}
-
-/**
- * Stricter tool interface for custom implementations
- */
-export interface StrictTool {
-  /** Tool description for LLM */
-  description: string;
-
-  /** Parameter schema (JSON Schema) */
-  parameters?: {
-    type: 'object';
-    properties: Record<string, unknown>;
-    required?: string[];
-  };
-
-  /** Execute the tool */
-  execute: (params: Record<string, unknown>) => Promise<unknown>;
 }
 
 /**

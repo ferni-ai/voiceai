@@ -33,7 +33,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { quietLineFor } from './quiet-caller.js';
 import { CANDOR, CANDOR_PLAIN, stanceFor } from './turn-candor.js';
 import { regexSignals, type TurnSignals } from './turn-extras.js';
-import { lengthLearned, lengthLine, targetWords } from './turn-length.js';
+import { lengthLearned, lengthLineFor, substanceWords, targetWords } from './turn-length.js';
 import {
   ABOUT_YOU,
   callerMove,
@@ -77,17 +77,24 @@ export function scriptFreeShapeFor(
   // CANDOR=on: honesty fitted to the moment (held back while they hurt); no random stance draw.
   const stance = stanceFor(userText, move, sig, false, env);
   parts.push(...stance.lines.map((line) => (line === CANDOR ? CANDOR_PLAIN : line)));
-  // TURN_LENGTH=learned: its own experiment, a length drawn from friends' turns (turn-length.ts).
-  const target =
+  // TURN_LENGTH=learned: its own experiment, a length drawn from friends' turns (turn-length.ts);
+  // adaptive gives a turn that needs substance room to answer, from the same draw.
+  const drawn =
     lengthLearned(env) && move !== 'request'
       ? targetWords(userText, sig.recent, rng, sig.careful || move !== 'share')
       : 0;
-  if (target) parts.push(lengthLine(target));
+  const target = drawn && sig.substance ? substanceWords(userText, drawn) : drawn;
+  if (target) parts.push(lengthLineFor(target, !!sig.substance));
   if (sig.quiet) parts.push(...[quietLineFor(env)].filter(Boolean));
   return {
     move,
     shape: 'answer',
     reminder: parts.join(' '),
-    extras: ['script_free', ...stance.fired, ...(target ? [`length_${target}`] : [])],
+    extras: [
+      'script_free',
+      ...stance.fired,
+      ...(target ? [`length_${target}`] : []),
+      ...(target && sig.substance ? [`substance_${sig.substance}`] : []),
+    ],
   };
 }

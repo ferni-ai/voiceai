@@ -8,8 +8,6 @@
  * - Historical conversation retrieval
  *
  * This gives the LLM access to relevant knowledge at the right time.
- *
- * Extracted from jack-bogle.ts lines 1494-1508
  */
 import { semanticSearch } from '../../../memory/semantic-rag.js';
 import { getLogger } from '../../../utils/safe-logger.js';
@@ -57,7 +55,7 @@ async function buildRagContext(input: ContextBuilderInput): Promise<ContextInjec
       const bestResult = knowledgeResults[0];
       getLogger().debug(
         {
-          query: query.slice(0, 50),
+          queryLen: query.length,
           resultCount: knowledgeResults.length,
           topScore: bestResult.score.toFixed(2),
         },

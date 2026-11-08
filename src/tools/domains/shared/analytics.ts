@@ -21,7 +21,7 @@
  *   }
  */
 
-import admin from 'firebase-admin';
+import { FieldValue, type Firestore, type Query } from 'firebase-admin/firestore';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
@@ -32,10 +32,10 @@ import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
 
 const EVENTS_COLLECTION = 'tool_analytics_events';
 const METRICS_COLLECTION = 'tool_analytics_metrics';
-let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInstance: Firestore | null = null;
 let firestoreInitAttempted = false;
 
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   if (firestoreInstance) return firestoreInstance;
   if (firestoreInitAttempted) return null;
 
@@ -72,10 +72,10 @@ async function sendToAnalyticsService(event: ToolUsageEvent): Promise<void> {
       cleanForFirestore({
         toolId: event.toolId,
         domain: event.domain,
-        totalCalls: admin.firestore.FieldValue.increment(1),
-        successCount: admin.firestore.FieldValue.increment(event.success ? 1 : 0),
-        errorCount: admin.firestore.FieldValue.increment(event.success ? 0 : 1),
-        totalDurationMs: admin.firestore.FieldValue.increment(event.durationMs),
+        totalCalls: FieldValue.increment(1),
+        successCount: FieldValue.increment(event.success ? 1 : 0),
+        errorCount: FieldValue.increment(event.success ? 0 : 1),
+        totalDurationMs: FieldValue.increment(event.durationMs),
         lastCalled: event.timestamp,
       }),
       { merge: true }
@@ -450,7 +450,7 @@ export async function queryEventsFromFirestore(options: {
   if (!db) return [];
 
   try {
-    let query: admin.firestore.Query = db.collection(EVENTS_COLLECTION);
+    let query: Query = db.collection(EVENTS_COLLECTION);
 
     if (options.toolId) {
       query = query.where('toolId', '==', options.toolId);

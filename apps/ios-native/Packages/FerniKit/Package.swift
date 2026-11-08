@@ -18,6 +18,9 @@ let package = Package(
                 .product(name: "FirebaseCore", package: "firebase-ios-sdk"),
             ]
         ),
-        .testTarget(name: "FerniKitTests", dependencies: ["FerniKit"]),
+        .testTarget(
+            name: "FerniKitTests",
+            dependencies: ["FerniKit", .product(name: "FirebaseAuth", package: "firebase-ios-sdk")]
+        ),
     ]
 )

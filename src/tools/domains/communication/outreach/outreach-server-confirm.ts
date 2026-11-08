@@ -33,6 +33,7 @@ import {
 import type {
   ConfirmEvent,
   ConfirmSpec,
+  ConfirmState,
   PendingAction,
   Planned,
   SessionLog,
@@ -42,11 +43,7 @@ const log = getLogger();
 
 /** What the gate lends this module: its yes judgement, owner check and markers. */
 export interface ConfirmGate {
-  confirmationState: (
-    pending: PendingAction,
-    events: ConfirmEvent[],
-    now: number
-  ) => 'confirmed' | 'waiting' | 'void';
+  confirmationState: (pending: PendingAction, events: ConfirmEvent[], now: number) => ConfirmState;
   ownerKnown: (session: object) => boolean;
   isClearNo: (text: string) => boolean;
   /** The owner's first names from the call's user data, so a yes may address them (PendingAction.owner). */

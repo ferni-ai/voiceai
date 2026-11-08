@@ -4,15 +4,12 @@
  * Enforces design system compliance across the codebase.
  * Catches hardcoded values that should use design tokens.
  * 
- * Usage in .eslintrc.js:
- * 
- *   plugins: ['@ferni/design-system'],
- *   rules: {
- *     '@ferni/design-system/no-hardcoded-colors': 'error',
- *     '@ferni/design-system/no-hardcoded-durations': 'warn',
- *     '@ferni/design-system/no-banned-words': 'error',
- *     '@ferni/design-system/prefer-design-tokens': 'warn',
- *   }
+ * A flat-config plugin (ESLint 9). Usage in an eslint.config.mjs:
+ *
+ *   import designSystem from './design-system/eslint-plugin/index.js';
+ *   export default [{ files: ['src/ui/*.ts'], ...designSystem.configs.recommended }];
+ *
+ * The repo runs it through eslint.design.config.mjs (`pnpm lint:design`).
  */
 
 const noHardcodedColors = require('./rules/no-hardcoded-colors');
@@ -22,7 +19,7 @@ const preferDesignTokens = require('./rules/prefer-design-tokens');
 const noConsoleInUI = require('./rules/no-console-in-ui');
 const noDirectPersonaColors = require('./rules/no-direct-persona-colors');
 
-module.exports = {
+const plugin = {
   meta: {
     name: '@ferni/eslint-plugin-design-system',
     version: '1.0.0',
@@ -35,29 +32,19 @@ module.exports = {
     'no-console-in-ui': noConsoleInUI,
     'no-direct-persona-colors': noDirectPersonaColors,
   },
-  configs: {
-    recommended: {
-      plugins: ['@ferni/design-system'],
-      rules: {
-        '@ferni/design-system/no-hardcoded-colors': 'error',
-        '@ferni/design-system/no-hardcoded-durations': 'warn',
-        '@ferni/design-system/no-banned-words': 'error',
-        '@ferni/design-system/prefer-design-tokens': 'warn',
-        '@ferni/design-system/no-console-in-ui': 'error',
-        '@ferni/design-system/no-direct-persona-colors': 'error',
-      },
-    },
-    strict: {
-      plugins: ['@ferni/design-system'],
-      rules: {
-        '@ferni/design-system/no-hardcoded-colors': 'error',
-        '@ferni/design-system/no-hardcoded-durations': 'error',
-        '@ferni/design-system/no-banned-words': 'error',
-        '@ferni/design-system/prefer-design-tokens': 'error',
-        '@ferni/design-system/no-console-in-ui': 'error',
-        '@ferni/design-system/no-direct-persona-colors': 'error',
-      },
-    },
-  },
+  configs: {},
 };
 
+const ruleSet = (durations, tokens) => ({
+  '@ferni/design-system/no-hardcoded-colors': 'error',
+  '@ferni/design-system/no-hardcoded-durations': durations,
+  '@ferni/design-system/no-banned-words': 'error',
+  '@ferni/design-system/prefer-design-tokens': tokens,
+  '@ferni/design-system/no-console-in-ui': 'error',
+  '@ferni/design-system/no-direct-persona-colors': 'error',
+});
+// Flat-config shape: a config names the plugin object itself, not a package to resolve.
+plugin.configs.recommended = { plugins: { '@ferni/design-system': plugin }, rules: ruleSet('warn', 'warn') };
+plugin.configs.strict = { plugins: { '@ferni/design-system': plugin }, rules: ruleSet('error', 'error') };
+
+module.exports = plugin;

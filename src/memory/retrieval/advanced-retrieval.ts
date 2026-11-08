@@ -316,7 +316,7 @@ export async function retrieveMemories(
     log.debug(
       {
         userId,
-        query: context.query.slice(0, 30),
+        queryLen: context.query.length,
         similarity: cacheResult.similarity?.toFixed(3),
         savedMs: cacheResult.timeSavedMs,
       },

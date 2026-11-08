@@ -1,0 +1,10 @@
+# Speaking: a request whose written answer is a list. Pass: said as talk ("you'll want flour, eggs,
+# milk and a bit of butter"), a few items at a time, steps offered in pieces; no "1., 2." numbered
+# list, bullets or headings (spoken-format reports a numbered list), nothing over 75 words
+# (reply-length).
+#@judge spokenNaturally
+Hey Ferni, I want to make pancakes from scratch for the first time. What do I need?
+Okay, walk me through the steps.
+Wait, slower. What's step one again?
+And how many does that make? It's me and my two kids.
+Cool, thanks!

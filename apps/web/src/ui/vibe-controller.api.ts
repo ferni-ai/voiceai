@@ -2,7 +2,6 @@
  * Vibe Controller — server and agent calls
  *
  * Every call here goes to something that really exists:
- * - Spotify link status: GET /spotify/status?device_id= (src/servers/api/routes/spotify.ts)
  * - Playback: there is no HTTP playback API. Music plays inside the live call,
  *   so play/pause/skip/volume are `music_control` data messages to the voice
  *   agent (src/agents/voice-agent/data-channel-handler.ts). The agent confirms
@@ -60,12 +59,6 @@ export function sendMusicControl(action: MusicAction, volume?: number): boolean 
   );
   void participant.publishData(new TextEncoder().encode(message), { reliable: true });
   return true;
-}
-
-/** Whether this device has linked Spotify (null when the server couldn't be reached). */
-export async function fetchSpotifyLinked(deviceId: string): Promise<boolean | null> {
-  const response = await apiGet<{ linked?: boolean }>('/spotify/status', { device_id: deviceId });
-  return response.ok && response.data ? response.data.linked === true : null;
 }
 
 export async function fetchLightsStatus(): Promise<LightsStatus | null> {

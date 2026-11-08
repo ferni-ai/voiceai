@@ -317,7 +317,7 @@ export { getToolDefinitions as getSchedulingToolDefinitions } from './scheduling
 // Concierge domain - AI-powered outreach for hotels, restaurants, appointments, services
 export { getToolDefinitions as getConciergeToolDefinitions } from './concierge/index.js';
 
-// Local Search domain - Yelp-powered local business discovery (restaurants, services, reviews)
+// Local Search domain - Google Places local business discovery (restaurants, services)
 export { getToolDefinitions as getLocalSearchToolDefinitions } from './local-search/index.js';
 
 // ============================================================================
@@ -1081,8 +1081,7 @@ export const DOMAIN_METADATA = {
   },
   'local-search': {
     name: 'Local Search',
-    description:
-      'Yelp-powered local business discovery: restaurants, reviews, ratings, hours, phone lookup',
+    description: 'Google Places local business discovery: restaurants, ratings, hours',
     icon: '📍',
     status: 'active',
   },

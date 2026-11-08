@@ -1,0 +1,40 @@
+# Experiment flags expire, warn first (src/config/flag-lifecycle.ts). Once a night this keeps one
+# open issue per flag owner (label flag-expiry) listing its expired experiments and the ones still
+# on issue 'TBD' past the cut-off, and closes it once the list is empty. Never fails a PR or the
+# queue: the hard rules (what a PR adds, edits or touches, and a backfill that only shrinks) run
+# in ci.yml, Quality Gates.
+name: Flag expiry
+
+on:
+  schedule:
+    - cron: '17 13 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: flag-expiry
+  cancel-in-progress: false
+
+jobs:
+  report:
+    name: Flag expiry report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          frozen-lockfile: 'true'
+
+      - name: Issues per owner
+        run: pnpm flags:expiry --issues
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -622,7 +622,7 @@ export async function processCommitments(
       newCommitments.push(commitment);
 
       log.info(
-        { userId, type: d.type, content: d.content.slice(0, 50) },
+        { userId, type: d.type, contentLen: d.content.length },
         '💫 New commitment detected'
       );
     }

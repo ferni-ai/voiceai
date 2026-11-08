@@ -21,7 +21,6 @@ import {
 } from '../index.js';
 import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { listInMemoryPeople } from '../../../services/contacts/in-memory-people.js';
 
 const log = createLogger({ module: 'context:special-dates' });
 
@@ -155,8 +154,6 @@ async function markRemembered(userId: string, dates: SpecialDate[]): Promise<voi
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Could not read who has passed from the profile');
   }
-  // Anyone the user has marked in memory (CONTACT_IN_MEMORY)
-  for (const person of await listInMemoryPeople(userId)) names.add(person.name.toLowerCase());
 
   for (const date of dates) {
     if (names.has(date.contactName.toLowerCase())) date.remembered = true;

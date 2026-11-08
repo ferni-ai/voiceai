@@ -33,6 +33,7 @@ describe('semantic router domain bridge', () => {
     // Load switchable tools too (LinkedIn and the developer tools are off by
     // default): a mapping to a switched-off tool is not a mapping to a missing one.
     vi.stubEnv('FERNI_DEVELOPER_TOOLS', 'on');
+    vi.stubEnv('GMAIL_READ_TOOLS', 'on');
     vi.stubEnv('LINKEDIN_ENABLED', 'true');
     vi.stubEnv('LINKEDIN_CLIENT_ID', 'li-id');
     vi.stubEnv('LINKEDIN_CLIENT_SECRET', 'li-secret');

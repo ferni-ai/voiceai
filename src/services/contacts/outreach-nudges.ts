@@ -342,7 +342,7 @@ export async function buildNudgeContext(userId: string): Promise<NudgeContext> {
   // Build upcoming dates list
   const upcomingDates: NudgeContext['upcomingDates'] = [];
   for (const contact of contacts) {
-    for (const date of datesToNudge(contact, 'remember')) {
+    for (const date of datesToNudge(contact)) {
       const daysAway = getDaysUntilDate(date.date, now);
       if (daysAway >= 0 && daysAway <= 14) {
         upcomingDates.push({

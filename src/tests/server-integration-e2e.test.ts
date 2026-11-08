@@ -665,7 +665,7 @@ describe('Token Server Integration', () => {
     });
   });
 
-  describe('Spotify OAuth Routes', () => {
+  describe('Spotify Routes', () => {
     it('should handle /spotify/status', async () => {
       const response = await makeRequest(TOKEN_SERVER_PORT, '/spotify/status');
 
@@ -681,7 +681,7 @@ describe('Token Server Integration', () => {
       }
     });
 
-    it('should handle /spotify/login redirect', async () => {
+    it('no longer serves /spotify/login', async () => {
       const response = await makeRequest(
         TOKEN_SERVER_PORT,
         `/spotify/login?device_id=${TEST_DEVICE_ID}`
@@ -692,9 +692,8 @@ describe('Token Server Integration', () => {
         return;
       }
 
-      // A link must start at POST /auth/oauth/start (bound state); a bare
-      // device_id is refused. 503 when Spotify isn't configured.
-      expect([401, 503]).toContain(response.status);
+      // Ferni no longer links a person's Spotify (Developer Policy III.3): the route is gone.
+      expect(response.status).toBe(404);
     });
 
     it('should handle /spotify/token', async () => {

@@ -506,7 +506,7 @@ describe('Cross-Domain Error Recovery', () => {
       name: 'Music service unavailable',
       message: 'Play some jazz music',
       errorCondition: 'Spotify not connected',
-      expectedRecovery: 'Offer to connect Spotify or use alternate service',
+      expectedRecovery: 'Say so and use an alternate music source',
     },
   ];
 

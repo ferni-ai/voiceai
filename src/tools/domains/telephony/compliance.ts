@@ -14,6 +14,8 @@
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { OnBehalfCallRequest, CallType } from './types.js';
 import { checkDialableNumber } from '../../../utils/dialable-number.js';
+import { businessScript } from './scripts/business.js';
+import { personalScript } from './scripts/personal.js';
 
 export { checkDialableNumber, type DialCheck } from '../../../utils/dialable-number.js';
 
@@ -112,13 +114,12 @@ export function checkCallCompliance(
   // Recording Consent
   // -------------------------------------------------------------------------
   if (config.requireRecordingConsent) {
-    if (!request.recordingConsent) {
-      // User hasn't consented - we can still make the call, but can't record
-      disclosures.push('Call will not be recorded as user has not consented.');
-    } else {
-      // Even with user consent, we may need recipient consent
-      disclosures.push('You must ask the recipient if they consent to the call being recorded.');
-    }
+    // Ferni records nothing, consent or not: it says what it passes on. Only personal calls ask.
+    disclosures.push(
+      request.callType === 'personal'
+        ? 'Nothing on this call is recorded. Tell the recipient what you will pass along to the user, and ask if that is okay.'
+        : "Nothing on this call is recorded. Tell the recipient you will pass the details along to the user; don't ask if that is okay."
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -185,9 +186,10 @@ export function generateComplianceScript(
   // Identity disclosure — Ferni calling on someone's behalf
   parts.push(`I'm Ferni, calling on behalf of ${request.userName}.`);
 
-  // Recording consent (if enabled)
-  if (request.recordingConsent) {
-    parts.push(`This call may be recorded for quality purposes. Is that okay with you?`);
+  // What Ferni does with the call: nothing is recorded, the details are passed on.
+  const passAlong = request.callType === 'personal' ? personalScript : businessScript;
+  if (passAlong.passAlongScript) {
+    parts.push(passAlong.passAlongScript.replaceAll('{userName}', request.userName));
   }
 
   // HIPAA disclosure (if applicable)
@@ -232,7 +234,7 @@ export function getCallTypeRequirements(callType: CallType): {
         mustDo: [
           'Identify yourself as Ferni calling on their behalf',
           'State who you are calling on behalf of',
-          'Ask for recording consent if applicable',
+          "Say you will pass the details along to the user; don't ask if that is okay",
           'Confirm any appointments or actions taken',
         ],
         mustNotDo: [

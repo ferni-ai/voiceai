@@ -1,0 +1,18 @@
+---
+description: The coding rules for this repo live in AGENTS.md and each folder's CLAUDE.md; read them, don't copy them here.
+alwaysApply: true
+---
+
+# Rules for AI coding tools in this repo
+
+The old `.cursorrules` held a 1,300-line copy of the coding rules. The copy drifted (it
+named scripts, folders and services that no longer exist), so it was removed. Read the
+real rules where they are kept current:
+
+- `AGENTS.md`: the stack today, how work ships, the hard rules. Read it before your first edit.
+- `README.md` and `docs/README.md`: the repo map and the index of docs that are kept current.
+- The `CLAUDE.md` in the folder you are editing, for example `apps/web/src/ui/CLAUDE.md`
+  (UI classes, HMR cleanup), `design-system/CLAUDE.md` (tokens) and `brand/CLAUDE.md`
+  (brand guidelines and their index).
+
+Don't add rules here. Add them to `AGENTS.md` or the folder's `CLAUDE.md`, once.

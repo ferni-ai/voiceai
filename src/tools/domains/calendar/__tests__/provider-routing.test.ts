@@ -193,4 +193,26 @@ describe('routeWriteToProvider', () => {
     ).toBeNull();
     expect(deleteOnProvider).not.toHaveBeenCalled();
   });
+
+  it('OUTLOOK_CONNECT alone writes only Outlook-sourced events, never Apple or Google ones', async () => {
+    delete process.env.CALENDAR_WRITE_TO_PROVIDER;
+    process.env.OUTLOOK_CONNECT = 'on';
+    try {
+      vi.mocked(connectedWriteProvider).mockResolvedValue('outlook');
+      for (const source of ['google', 'apple']) {
+        vi.mocked(getEventById).mockResolvedValue({ ...storedEvent, source } as never);
+        const del = { eventId: 'e1' };
+        expect(await routeWriteToProvider('deleteCalendarEvent', 'user-1', del, ctx)).toBeNull();
+        const upd = { eventId: 'e1', title: 'x' };
+        expect(await routeWriteToProvider('updateCalendarEvent', 'user-1', upd, ctx)).toBeNull();
+      }
+      expect(deleteOnProvider).not.toHaveBeenCalled();
+      expect(updateOnProvider).not.toHaveBeenCalled();
+      vi.mocked(getEventById).mockResolvedValue({ ...storedEvent, source: 'outlook' } as never);
+      await routeWriteToProvider('deleteCalendarEvent', 'user-1', { eventId: 'e1' }, ctx);
+      expect(deleteOnProvider).toHaveBeenCalledWith('user-1', 'outlook', 'ext-1', 'primary');
+    } finally {
+      delete process.env.OUTLOOK_CONNECT;
+    }
+  });
 });

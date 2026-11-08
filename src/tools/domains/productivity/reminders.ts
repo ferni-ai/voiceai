@@ -30,6 +30,7 @@ import { asksToRepeat, NO_REPEAT_YET } from '../../utils/honest-schedule.js';
 import { withOutreachConfirmation } from '../communication/outreach/outreach-confirm.js';
 import { WHERE_TO_ADD_NUMBER } from '../../shared/where-to-add-number.js';
 import { reminderConfirm } from '../communication/outreach/outreach-confirm-specs.js';
+import { ownerMessageTool } from '../proactive/outreach/owner-message-policy.js';
 import {
   earlierReminderFor,
   holdUnsaidReminderTime,
@@ -321,7 +322,7 @@ const cancelReminderDef: ToolDefinition = {
  * A reminder to an address the model named waits for a yes. With either flag
  * on, a text ignores that address (verified phone only), so only email uses it.
  */
-const toNamedAddress = withOutreachConfirmation(setReminderDef, {
+const toNamedAddress = withOutreachConfirmation(ownerMessageTool(setReminderDef), {
   ...reminderConfirm,
   applies: (a) =>
     reminderConfirm.applies!(a) &&

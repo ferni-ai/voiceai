@@ -23,6 +23,7 @@ import {
   CARTESIA_MODEL,
   getVoiceIdForPersona,
 } from '../../config/voice-ids.js';
+import { vertexGenAIOptions } from '../../config/vertex-endpoint.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ReplicatedVoice' });
@@ -103,7 +104,10 @@ export async function getPersonaVoiceSample(
       }
       const recorded = usable(await deps.readFile(override));
       if (!recorded) {
-        log.error({ personaId, path: override }, 'Voice sample must be 10-20s of 24kHz 16-bit mono PCM');
+        log.error(
+          { personaId, path: override },
+          'Voice sample must be 10-20s of 24kHz 16-bit mono PCM'
+        );
       }
       return recorded;
     }
@@ -121,22 +125,31 @@ export async function getPersonaVoiceSample(
 
     const apiKey = deps.env.CARTESIA_API_KEY;
     if (!apiKey) {
-      log.warn({ personaId }, 'No CARTESIA_API_KEY to render a voice sample; using a prebuilt voice');
+      log.warn(
+        { personaId },
+        'No CARTESIA_API_KEY to render a voice sample; using a prebuilt voice'
+      );
       return null;
     }
     const rendered = usable(await deps.render(voiceId, apiKey));
     if (!rendered) {
-      log.warn({ personaId, voiceId }, 'Rendered voice sample is under 10s; using a prebuilt voice');
+      log.warn(
+        { personaId, voiceId },
+        'Rendered voice sample is under 10s; using a prebuilt voice'
+      );
       return null;
     }
-    await deps.writeFile(diskPath, rendered).catch((e) =>
-      log.warn({ error: String(e) }, 'Could not cache voice sample on disk')
-    );
+    await deps
+      .writeFile(diskPath, rendered)
+      .catch((e) => log.warn({ error: String(e) }, 'Could not cache voice sample on disk'));
     samples.set(voiceId, rendered);
     log.info({ personaId, voiceId, seconds: seconds(rendered).toFixed(1) }, 'Voice sample ready');
     return rendered;
   } catch (error) {
-    log.warn({ personaId, error: String(error) }, 'Voice sample unavailable; using a prebuilt voice');
+    log.warn(
+      { personaId, error: String(error) },
+      'Voice sample unavailable; using a prebuilt voice'
+    );
     return null;
   }
 }
@@ -168,7 +181,7 @@ export async function isReplicatedVoiceAllowed(
 
 async function liveHandshake(opts: AllowlistOptions): Promise<HandshakeResult> {
   const { GoogleGenAI, Modality } = await import('@google/genai');
-  const ai = new GoogleGenAI({ vertexai: true, project: opts.project, location: opts.location });
+  const ai = new GoogleGenAI(vertexGenAIOptions(opts.project, opts.location));
   return new Promise<HandshakeResult>((resolve, reject) => {
     let settled = false;
     const finish = (r: HandshakeResult): void => {
@@ -219,7 +232,11 @@ async function liveHandshake(opts: AllowlistOptions): Promise<HandshakeResult> {
 async function renderWithCartesia(voiceId: string, apiKey: string): Promise<Buffer> {
   const res = await fetch('https://api.cartesia.ai/tts/bytes', {
     method: 'POST',
-    headers: { 'X-API-Key': apiKey, 'Cartesia-Version': CARTESIA_API_VERSION, 'Content-Type': 'application/json' },
+    headers: {
+      'X-API-Key': apiKey,
+      'Cartesia-Version': CARTESIA_API_VERSION,
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({
       model_id: CARTESIA_MODEL,
       transcript: SAMPLE_TRANSCRIPT,

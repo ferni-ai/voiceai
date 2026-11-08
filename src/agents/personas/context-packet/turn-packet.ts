@@ -19,6 +19,7 @@ import {
   type RecallAgent,
 } from '../../multi-agent/memory-recall-hook.js';
 import { dropForgottenNotes } from '../../multi-agent/recall-note.js';
+import { sendGrowth } from '../persona-growth-note.js';
 import { forgottenCheckNow } from '../../../memory/recall/forget-every-reader.js';
 
 import { forgottenInProcess } from '../../../memory/recall/forget.js';
@@ -108,7 +109,8 @@ export function rememberForPacket(
  * `said` is the transcript the note was built for (PREEMPT_STABLE_CONTEXT).
  * FORGET_EVERY_READER=on: every turn, recall notes already in the chat are
  * checked again (a topic forgotten mid-call takes them out), and a new note
- * about a forgotten topic is not sent.
+ * about a forgotten topic is not sent. PERSONA_GROWTH's note goes in or out
+ * on its own (persona-growth-note.ts), before the reply to `said`.
  */
 export function sendRecall(
   agent: RecallAgent,
@@ -120,6 +122,7 @@ export function sendRecall(
 ): void {
   const forgotten = forgottenCheckNow(userId);
   dropForgottenNotes(agent, forgotten, said);
+  sendGrowth(agent, recall, said);
   if (!note || forgotten?.(note)) return;
   const pick = contextPacketEnabled() ? recall.lastPick() : null;
   if (!pick) return addRecallNote(agent, note, said);

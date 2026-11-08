@@ -348,9 +348,9 @@ const PATTERNS_DOC = 'capability_patterns';
 async function getFirestore(): Promise<FirebaseFirestore.Firestore | null> {
   try {
     const { getGCPProjectId, getFirestoreDatabase } = await import('../../config/environment.js');
-    const { Firestore } = await import('@google-cloud/firestore');
+    const { sharedFirestore } = await import('../../utils/shared-firestore.js');
 
-    return new Firestore({
+    return sharedFirestore({
       projectId: getGCPProjectId(),
       databaseId: getFirestoreDatabase(),
     });

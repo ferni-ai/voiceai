@@ -9,7 +9,7 @@
  */
 
 import { onStoreChange } from './store-hooks.js';
-import type { ChangeType, EntityType, StoreType } from './types.js';
+import type { ChangeType, EntityType, StoreChangeEvent, StoreType } from './types.js';
 
 // ============================================================================
 // TYPES
@@ -50,7 +50,8 @@ export type DomainHook<T> = (
   userId: string,
   entityId: string,
   entity: T,
-  changeType?: ChangeType
+  changeType?: ChangeType,
+  stillWanted?: StoreChangeEvent['stillWanted']
 ) => void;
 
 // ============================================================================
@@ -81,7 +82,8 @@ export function createDomainHook<T extends object>(config: HookConfig<T>): Domai
     userId: string,
     entityId: string,
     entity: T,
-    changeType: ChangeType = 'update'
+    changeType: ChangeType = 'update',
+    stillWanted?: StoreChangeEvent['stillWanted']
   ): void {
     // Check if we should skip this entity
     if (shouldSkip && shouldSkip(entity)) {
@@ -103,6 +105,7 @@ export function createDomainHook<T extends object>(config: HookConfig<T>): Domai
       entityId,
       content,
       metadata,
+      stillWanted,
     });
   };
 }

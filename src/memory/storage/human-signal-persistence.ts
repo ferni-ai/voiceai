@@ -12,7 +12,6 @@
 
 import { FieldValue, Timestamp, type DocumentReference } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import type {
   ImportantDate,
   CoreValue,
@@ -385,25 +384,6 @@ export async function getPersistedHumanSignals(userId: string): Promise<Partial<
     log.error({ userId, error: String(error) }, 'Failed to retrieve human signals');
     return {};
   }
-}
-
-/**
- * bogle_users/{id}/human_memory/profile, where the live writer keeps
- * avoidances and dreams (the shards above are often empty). Undefined when
- * there is no profile or no Firestore; throws only if the read does.
- */
-export async function getHumanMemoryProfile(
-  userId: string
-): Promise<Record<string, unknown> | undefined> {
-  const db = getFirestoreDb();
-  if (!db) return undefined;
-  const doc = await db
-    .collection('bogle_users')
-    .doc(userId)
-    .collection('human_memory')
-    .doc('profile')
-    .get();
-  return doc.exists ? doc.data() : undefined;
 }
 
 /**

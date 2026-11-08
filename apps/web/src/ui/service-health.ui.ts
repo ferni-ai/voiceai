@@ -80,7 +80,6 @@ const INDICATOR_SIZE = '12px';
 const SERVICE_DISPLAY_NAME_KEYS: Record<string, string> = {
   'yahoo-finance': 'serviceHealth.names.stockData',
   'alpha-vantage': 'serviceHealth.names.marketData',
-  'google-apis': 'serviceHealth.names.weatherMaps',
   'wikipedia': 'serviceHealth.names.historicalFacts',
   'philips-hue': 'serviceHealth.names.lighting',
   'lifx': 'serviceHealth.names.lighting',

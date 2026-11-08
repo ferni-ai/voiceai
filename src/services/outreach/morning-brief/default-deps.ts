@@ -24,6 +24,7 @@ import {
 import { forgottenTopicsOrNull } from '../../../memory/recall/forget.js';
 import { isForgotten } from '../../../memory/recall/session-recall.js';
 import { usersWithFlag } from '../../platform/cohort-flags.js';
+import { storedTextForOwner } from '../../../tools/domains/proactive/outreach/index.js';
 import { judgedRowText, singleWriterFor } from '../../superhuman/commitment-single-writer.js';
 import { resolveClaimStore } from '../../../tasks/scheduled/calendar-briefing-job.js';
 import { pushUnlessFocusHeld } from '../focus-send-hold.js';
@@ -141,7 +142,19 @@ export async function readDay(
     orNone('reminders', userId, () => remindersDueToday(userId, zone, now)),
     withCommitments ? orNone('commitments', userId, () => openCommitments(userId)) : [],
   ]);
-  return { events, reminders, tasks: openTasks(user), commitments };
+  // OWNER_OUTREACH_STORED_TEXT_SCREEN: what calls stored goes in only if it passes the screen
+  const screened = (items: string[]): string[] =>
+    items.filter((t) => storedTextForOwner([t], { site: 'morning-brief', userId }, env));
+  // A title shown by name is screened too: a call can put an event on Ferni's own calendar
+  // (smart-calendar-tools.ts createEvent, commitments synced to it). One that fails goes by time only.
+  const titled = (e: DayItems['events'][number]) =>
+    e.invite || storedTextForOwner([e.title], { site: 'morning-brief', userId }, env) ? e : { ...e, invite: true }; // prettier-ignore
+  return {
+    events: events.map(titled),
+    reminders: screened(reminders),
+    tasks: screened(openTasks(user)),
+    commitments: screened(commitments),
+  };
 }
 
 export async function defaultMorningBriefDeps(): Promise<MorningBriefDeps> {

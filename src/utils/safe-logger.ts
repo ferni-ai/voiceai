@@ -33,6 +33,7 @@ import pino from 'pino';
 
 import { redactLogDestination, redactPinoLogger } from './log-redaction.js';
 import { redactErrorValue } from './error-text.js';
+import { redactUrlField } from './url-redaction.js';
 
 /**
  * Console-based fallback logger that matches LiveKit's Logger interface
@@ -86,6 +87,37 @@ const MAX_LOG_DEPTH = 5;
 const MAX_LOG_STRING = 1000;
 const MAX_LOG_ARRAY = 30;
 
+/**
+ * Log fields that hold where a person is: their IP address or their city. Logged as
+ * `[redacted]`, like a URL's credentials, so a log line can't place a visitor (the demo
+ * route logged both for every try-first call). Region and country are kept.
+ */
+const LOCATION_KEYS = new Set([
+  'ip',
+  'ips',
+  'ipaddress',
+  'ipaddr',
+  'remoteaddress',
+  'remoteaddr',
+  'forwardedfor',
+  'xforwardedfor',
+  'xrealip',
+  'city',
+  'cityname',
+]);
+/** clientIp, callerIP, userIpAddress, detectedCity, user_city: matched as written, so velocity isn't. */
+const LOCATION_SUFFIX =
+  /(?:[a-z\d](?:Ips?|IPs?|IpAddress|IPAddress|City|CityName)|_(?:ip|ip_address|city))$/;
+const REDACTED_LOCATION = '[redacted]';
+
+/** A log field's value, redacted if the field holds an IP address or a city. */
+function redactLocationField(key: string, value: unknown): unknown {
+  if (value === undefined || value === null || value === '') return value;
+  const located =
+    LOCATION_KEYS.has(key.toLowerCase().replace(/[^a-z]/g, '')) || LOCATION_SUFFIX.test(key);
+  return located ? REDACTED_LOCATION : value;
+}
+
 function sanitizeForLog(value: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
   if (typeof value === 'string') {
     if (value.length <= MAX_LOG_STRING || isFullLoggingEnabled()) return value;
@@ -118,7 +150,13 @@ function sanitizeForLog(value: unknown, depth = 0, seen = new WeakSet<object>())
 
   const result: Record<string, unknown> = {};
   for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
-    result[key] = sanitizeForLog(nested, depth + 1, seen);
+    // url / endpoint / *Url fields: an API key or token in the query string never reaches a log;
+    // ip / city fields: where a person is never reaches one either
+    result[key] = sanitizeForLog(
+      redactLocationField(key, redactUrlField(key, nested)),
+      depth + 1,
+      seen
+    );
   }
   return result;
 }
@@ -264,6 +302,21 @@ let droppedLines = 0;
 /** How many log lines were dropped because writing them failed (see lazyLogger). */
 export function droppedLogLines(): number {
   return droppedLines;
+}
+
+/**
+ * Writes out what the stderr sink still holds (it writes off the event loop). For a process
+ * about to exit on purpose; resolves even if the flush fails, after saying so on stderr.
+ */
+export function flushLogs(): Promise<void> {
+  const sink = appSink;
+  if (!sink) return Promise.resolve();
+  return new Promise((resolve) => {
+    sink.flush((error) => {
+      if (error) process.stderr.write(`log flush failed: ${String(error)}\n`);
+      resolve();
+    });
+  });
 }
 
 /** Test helper: start the dropped-line count again. */

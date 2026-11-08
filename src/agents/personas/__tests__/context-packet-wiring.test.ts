@@ -180,7 +180,8 @@ describe('CONTEXT_PACKET: the same notes in the same order, on and off', () => {
 
           // Every note, word for word and in order: the plain reminder joins them with spaces.
           expect(notes.join(' ')).toBe(plain);
-          expect(notes.length).toBeGreaterThan(3);
+          // A crisis turn is held: no director or told note rides it (exits-held.ts).
+          expect(notes.length).toBeGreaterThan('shape' in options ? 1 : 3);
           expect(honesty).toBe(/how do you know/i.test(words));
           // Nothing else of the turn leaks into another section.
           expect(block(sent, '## Right now').join(' ')).not.toContain('Game on');

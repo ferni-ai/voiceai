@@ -37,6 +37,7 @@ import {
   returningCallerEnabled,
 } from '../../services/identity/returning-caller.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { isPlacedCall, placedCallNotOwnerProofOn } from '../../services/identity/verified-caller.js';
 import {
   readSignedAttestation,
   readSipCaller,
@@ -258,8 +259,15 @@ export function callerRecognitionFor(sessionId: string | undefined): CallerRecog
 
 /** Sessions whose account came from an authenticated dispatch (accountNamedByDispatch). */
 const namedByDispatch = new Set<string>();
+/** PLACED_CALL_NOT_OWNER_PROOF=on: sessions of calls Ferni placed (placedByFerni). */
+const placedSessions = new Set<string>();
 
 export function rememberDispatchIdentity(sessionId: string, source: string, meta?: string): void {
+  if (placedByFerni(meta)) {
+    placedSessions.add(sessionId);
+    if (placedSessions.size > MAX_SESSIONS)
+      placedSessions.delete(placedSessions.values().next().value as string);
+  }
   if (!accountNamedByDispatch(source, meta)) return;
   namedByDispatch.add(sessionId);
   if (namedByDispatch.size > MAX_SESSIONS)
@@ -273,9 +281,32 @@ export function sessionIsVerifiedOwner(sessionId: string): boolean {
 // MINOR_CARE (minor-care.ts, a lower layer) asks this before holding a session's memory.
 setVerifiedOwnerCheck(sessionIsVerifiedOwner);
 
-/** A session known only by its phone number: only conversational tools are open. */
+/**
+ * The person on the line is proven to be the account owner, for anything that
+ * brings the account's private history into the call (CALL_KNOWS_RECENT_TEXTS).
+ * A phone session counts only when recognition says 'known': a call Ferni
+ * placed to their number can be answered by anyone, and a dispatch that names
+ * the account says nothing about who picked up. Any other session counts only
+ * with an authenticated dispatch (a signed-in app user).
+ */
+export function ownerProvenOnLine(sessionId: string, phoneCall: boolean): boolean {
+  const recognition = callerRecognitionFor(sessionId);
+  if (phoneCall || recognition) return recognition?.status === 'known';
+  return namedByDispatch.has(sessionId);
+}
+
+/** PLACED_CALL_NOT_OWNER_PROOF=on and Ferni placed this session's call: anyone may have answered. */
+export function onPlacedCallSession(sessionId: string | undefined): boolean {
+  return sessionId !== undefined && placedSessions.has(sessionId);
+}
+
+/**
+ * A session known only by its phone number: only conversational tools are open.
+ * PLACED_CALL_NOT_OWNER_PROOF=on: so is a call Ferni placed, whatever
+ * recognition says (Seth, 2026-11-01: whoever answers is not the owner).
+ */
 export function phoneOnlyIdentity(sessionId: string | undefined): boolean {
-  return callerRecognitionFor(sessionId)?.status === 'known';
+  return callerRecognitionFor(sessionId)?.status === 'known' || onPlacedCallSession(sessionId);
 }
 
 /** Both checks, for lower layers that are handed them (data-channel-handler.ts). */
@@ -296,15 +327,28 @@ export function unrecognisedCallerGreeting(r: CallerRecognition | undefined): st
  * Whether the dispatch already named the account: the app (signed-in user)
  * and calls Ferni placed for a user do; a phone caller's number, an
  * anonymous id, or the inbound webhook's unverified number lookup do not.
+ * PLACED_CALL_NOT_OWNER_PROOF=on: a call Ferni placed to the owner's number
+ * (isPlacedCall) doesn't either. Anyone can answer it, so it is recognised like
+ * an inbound call from that number and is never a dispatch-proven owner.
  */
 export function accountNamedByDispatch(source: string, jobMetadata: string | undefined): boolean {
-  let inbound = false;
-  try {
-    inbound = (JSON.parse(jobMetadata ?? '{}') as { type?: unknown }).type === 'inbound_call';
-  } catch {
-    // Unparseable metadata names nobody.
-  }
+  const inbound = jobTypeOf(jobMetadata) === 'inbound_call' || placedByFerni(jobMetadata);
   return !inbound && ['web_auth', 'firebase', 'sponsored'].includes(source);
+}
+
+/** The job's type, or undefined (unparseable metadata names nobody). */
+function jobTypeOf(jobMetadata: string | undefined): unknown {
+  try {
+    return (JSON.parse(jobMetadata ?? '{}') as { type?: unknown }).type;
+  } catch {
+    return undefined;
+  }
+}
+
+/** PLACED_CALL_NOT_OWNER_PROOF=on and this job is a call Ferni placed (isPlacedCall). */
+function placedByFerni(jobMetadata: string | undefined): boolean {
+  const type = jobTypeOf(jobMetadata);
+  return typeof type === 'string' && isPlacedCall(type) && placedCallNotOwnerProofOn();
 }
 
 type RoomLike = Parameters<typeof firstParticipant>[0] & AttributeUpdates;

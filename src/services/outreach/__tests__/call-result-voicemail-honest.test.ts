@@ -179,3 +179,28 @@ describe('Twilio status webhook, call answered by a machine', () => {
     expect(JSON.stringify(email)).not.toMatch(/Left (voicemail|a message)/);
   });
 });
+
+describe('Twilio status webhook, our agent never joined', () => {
+  it('records the failed outcome the LiveKit path records too (agent-join.ts), key for key', () => {
+    const outcome = twilioStatusToOutcome(
+      {
+        CallSid: 'CA2',
+        AccountSid: 'AC0',
+        From: '+15555550101',
+        To: '+15555550100',
+        CallStatus: 'completed',
+        Direction: 'outbound-api',
+      },
+      { callId: 'call-no-agent', contactName: 'Ana', dispatchFailed: true } as Parameters<
+        typeof twilioStatusToOutcome
+      >[1]
+    );
+    expect(outcome).toStrictEqual({
+      callId: 'call-no-agent',
+      status: 'failed',
+      objectiveAchieved: false,
+      outcome: "Ferni couldn't connect the call to Ana",
+      callbackRequired: true,
+    });
+  });
+});

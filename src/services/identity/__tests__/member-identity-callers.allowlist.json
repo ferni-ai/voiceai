@@ -78,6 +78,12 @@
     "reason": "The opposite question: only a pre-sign-in device: or anon: id may be linked INTO a Firebase account, so it must require a non-account prefix, not refuse one. The second match compares the anon token's Firebase Auth signInProvider enum to 'anonymous' (#2226), not a user id."
   },
   {
+    "file": "services/identity/token-revocation.ts",
+    "count": 2,
+    "category": "non-user-id",
+    "reason": "Compares Firebase's sign_in_provider claim with 'anonymous' (a provider name) and the module's own Revocation state 'anonymous'; neither is a user id."
+  },
+  {
     "file": "services/identity/verified-caller.ts",
     "count": 1,
     "category": "enum",

@@ -13,6 +13,9 @@ import { enhanceOutboundMessage, type OutboundSsmlOptions } from '../outreach/ou
 // Voice registry for consistent voice ID resolution
 import { getPersonaDisplayName, getVoiceId } from '../../personas/voice-registry.js';
 import { CARTESIA_MODEL, CARTESIA_API_VERSION } from '../../config/voice-ids.js';
+import { personaCallRefusal, personaE164, type PersonaCallParty } from './persona-call-refusal.js';
+
+export { PAUSED_CALL } from './persona-call-refusal.js';
 
 // Circuit breaker for Cartesia TTS - prevents hammering a failing TTS service
 const cartesiaCircuitBreaker = getCircuitBreaker('cartesia-tts-voice-call', {
@@ -255,21 +258,14 @@ async function getHostedAudioUrl(
 // OUTBOUND CALLS WITH PERSONA VOICE
 // ============================================================================
 
-export interface PersonaCallOptions {
+export interface PersonaCallOptions extends PersonaCallParty {
   /** Fall back to Twilio's built-in voice if Cartesia/GCS unavailable. Default: true */
   fallbackToTwilioVoice?: boolean;
   /** Custom greeting to use instead of default "Hey, this is {name} calling" */
   customGreeting?: string;
   /** SSML options for natural speech. Set to false to disable SSML enhancement. */
   ssml?: OutboundSsmlOptions | false;
-  /** Who the call is for. MESSAGING_PIPELINE: without it, or to someone else without their grant, no call. */
-  ownerUid?: string;
-  /** The member it is for: a MINOR_CARE_SHARED_HOLD on their account stops the call too. */
-  userId?: string;
-  askedFor?: boolean; // they asked for or set it; without it a paused owner isn't rung (outreach-pause.ts)
 }
-export const PAUSED_CALL = 'Not calling: outreach paused';
-
 /**
  * Make an outbound call using any persona's Cartesia voice. This works by:
  * 1. Looking up the persona's voice ID from the registry
@@ -285,22 +281,9 @@ export async function callWithPersonaVoice(
   options?: PersonaCallOptions
 ): Promise<{ success: boolean; message: string; callSid?: string; usedCartesiaVoice?: boolean }> {
   const logger = getLogger();
-
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
-    return { success: false, message: 'Twilio not configured' };
-  }
-
-  const cleanPhone = toPhone.replace(/\D/g, '');
-  const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
-  const { ownerRefusal } = await import('../messaging/consent-reach.js'); // MESSAGING_PIPELINE
-  const refused = await ownerRefusal(options?.ownerUid, e164Phone, 'call'); // fails closed
-  if (refused) return { success: false, message: `Not calling: ${refused}` };
-  const { heldSender } = await import('../outreach/checkin-replies.js'); // MINOR_CARE_SHARED_HOLD
-  if (await heldSender(options?.userId, e164Phone))
-    return { success: false, message: 'Not calling: held' };
-  const { outreachPausedFor } = await import('../outreach/outreach-pause.js');
-  if (!options?.askedFor && (await outreachPausedFor(options?.ownerUid, e164Phone)))
-    return { success: false, message: PAUSED_CALL };
+  const refusal = await personaCallRefusal(toPhone, options);
+  if (refusal) return { success: false, message: refusal };
+  const e164Phone = personaE164(toPhone);
 
   const displayName = getPersonaDisplayName(personaId);
   const firstName = displayName.split(' ')[0]; // "Maya Santos" -> "Maya"

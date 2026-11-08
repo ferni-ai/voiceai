@@ -1967,7 +1967,7 @@ export class CallMusicPlayer {
         currentTrack: this.state.currentTrack?.name,
         wasExplicitlyStoppedBefore: this.state.wasExplicitlyStopped,
         preserveQueue,
-        caller: callerLine.slice(0, 100),
+        callerLen: callerLine.length,
       },
       '🛑 [STOP-TRACE] stop() called'
     );

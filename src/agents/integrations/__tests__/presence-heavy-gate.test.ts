@@ -270,11 +270,6 @@ function backchannels(said: string, earlier: string[] = [], sessionId = `bc-${++
 }
 
 describe('live backchannels on hard news or crisis risk', () => {
-  beforeEach(() => {
-    vi.stubEnv('BACKCHANNELS', 'on');
-    vi.stubEnv('BACKCHANNEL_CONTEXT', 'on'); // "Oh no", "Whoa", "Ha" in play
-  });
-
   it.each(HEAVY)('only a soft "mm" for %j', (line) => {
     const played = backchannels(line);
     played.forEach((clip) => expect(SOFT).toContain(clip));

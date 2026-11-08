@@ -1,9 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getUser = vi.hoisted(() => vi.fn());
-vi.mock('firebase-admin', () => ({
-  default: { apps: [{}], auth: () => ({ getUser }) },
-}));
+vi.mock('firebase-admin/auth', () => ({ getAuth: () => ({ getUser }) }));
 
 import { getFirebaseUserOrThrow } from '../firebase-auth.js';
 

@@ -77,15 +77,28 @@ export function phoneSafeTool(name: string): boolean {
 }
 
 /**
- * `toolCtx` with only phone-safe function tools (the same object when nothing
- * is removed). Provider tools and toolsets aren't allowlisted, so they go too.
+ * PLACED_CALL_NOT_OWNER_PROOF: on a call Ferni placed, also a warm hand-off to a
+ * person. Whoever answered may be the one in trouble, and nothing here reads
+ * or acts on the owner's account.
  */
-export function onlyPhoneSafeTools(toolCtx: llm.ToolContext): llm.ToolContext {
+export const PLACED_CALL_ALSO_SAFE: ReadonlySet<string> = new Set(['connectToHumanExpert']);
+const NONE: ReadonlySet<string> = new Set();
+
+/**
+ * `toolCtx` with only phone-safe function tools, plus `also` (the same object
+ * when nothing is removed). Provider tools and toolsets aren't allowlisted, so
+ * they go too.
+ */
+export function onlyPhoneSafeTools(
+  toolCtx: llm.ToolContext,
+  also: ReadonlySet<string> = NONE
+): llm.ToolContext {
+  const safe = (name: string) => phoneSafeTool(name) || also.has(name);
   const names = Object.keys(toolCtx.functionTools);
   const extras = toolCtx.providerTools.length + toolCtx.toolsets.length;
-  if (extras === 0 && names.every(phoneSafeTool)) return toolCtx;
+  if (extras === 0 && names.every(safe)) return toolCtx;
   const keep = Object.entries(toolCtx.functionTools)
-    .filter(([name]) => phoneSafeTool(name))
+    .filter(([name]) => safe(name))
     .map(([, tool]) => tool);
   return new llm.ToolContext(keep);
 }

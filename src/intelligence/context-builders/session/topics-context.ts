@@ -10,8 +10,6 @@
  * - Goal connection
  *
  * These ensure no topic gets lost in conversation.
- *
- * Extracted from jack-bogle.ts lines 1052-1064, 1389-1411
  */
 import { getSessionConversationManager } from '../../../services/conversation-manager.js';
 import type { TopicWeight } from '../../../speech/speech-context.js';

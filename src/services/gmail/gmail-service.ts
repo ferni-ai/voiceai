@@ -11,7 +11,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { getValidAccessToken, isCalendarConfigured } from '../identity/google-calendar-oauth.js';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
-import { GmailNotPermittedError, assertGmailPermitted } from './gmail-honesty.js';
+import { GmailNotPermittedError, assertGmailPermitted, gmailFallback } from './gmail-honesty.js';
 
 const log = getLogger();
 
@@ -218,7 +218,7 @@ export async function getInboxMessages(
   const accessToken = await getValidAccessToken(userId);
   if (!accessToken) {
     log.debug({ userId }, 'No Gmail access token');
-    return [];
+    return gmailFallback([], 'no_token');
   }
 
   const { maxResults = 20, labelIds = ['INBOX'], query, includeSpamTrash = false } = options;
@@ -260,7 +260,7 @@ export async function getInboxMessages(
   } catch (error) {
     if (error instanceof GmailNotPermittedError) throw error;
     log.error({ error: String(error), userId }, 'Failed to get Gmail messages');
-    return [];
+    return gmailFallback([], 'failed');
   }
 }
 
@@ -306,7 +306,7 @@ export async function searchEmails(
 export async function getInboxStats(userId: string): Promise<InboxStats | null> {
   const accessToken = await getValidAccessToken(userId);
   if (!accessToken) {
-    return null;
+    return gmailFallback(null, 'no_token');
   }
 
   try {
@@ -345,7 +345,7 @@ export async function getInboxStats(userId: string): Promise<InboxStats | null> 
   } catch (error) {
     if (error instanceof GmailNotPermittedError) throw error;
     log.error({ error: String(error), userId }, 'Failed to get inbox stats');
-    return null;
+    return gmailFallback(null, 'failed');
   }
 }
 
@@ -358,7 +358,7 @@ export async function getEmailThread(
 ): Promise<EmailThread | null> {
   const accessToken = await getValidAccessToken(userId);
   if (!accessToken) {
-    return null;
+    return gmailFallback(null, 'no_token');
   }
 
   try {
@@ -392,7 +392,7 @@ export async function getEmailThread(
   } catch (error) {
     if (error instanceof GmailNotPermittedError) throw error;
     log.error({ error: String(error), userId, threadId }, 'Failed to get email thread');
-    return null;
+    return gmailFallback(null, 'failed', error);
   }
 }
 

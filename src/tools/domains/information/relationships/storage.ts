@@ -27,9 +27,9 @@ async function initFirestore(): Promise<FirebaseFirestore.Firestore | null> {
 
   firestoreInitAttempted = true;
   try {
-    const firebaseAdmin = (await import('firebase-admin')).default;
+    const { getApps } = await import('firebase-admin/app');
     const { getAdminFirestore } = await import('../../../../utils/firebase-admin-app.js');
-    if (firebaseAdmin.apps?.length > 0) {
+    if (getApps()?.length > 0) {
       db = getAdminFirestore();
       log.info('Firestore initialized for relationships storage');
       return db;

@@ -53,14 +53,17 @@ vi.mock('../../superhuman/firestore-utils.js', async (orig) => ({
   ...(await orig<object>()),
   getFirestoreDb: () => faultyDb(),
 }));
+const byPhone = vi.hoisted(() =>
+  vi.fn(async (e164: string) => (e164 === OWNER ? { uid: OWNER_UID } : null))
+);
 vi.mock('../../identity/firebase-auth.js', async (orig) => ({
   ...(await orig<object>()),
   getFirebaseUser: vi.fn(async (uid: string) =>
     uid === OWNER_UID ? { phoneNumber: OWNER } : null
   ),
-  getFirebaseUserByPhone: vi.fn(async (e164: string) =>
-    e164 === OWNER ? { uid: OWNER_UID } : null
-  ),
+  getFirebaseUserByPhone: byPhone,
+  // The webhook's sender lookup (sms-sender-account.ts) reads the strict variant.
+  getFirebaseUserByPhoneOrThrow: byPhone,
 }));
 vi.mock('../../outreach/delivery/sms-delivery.js', async (orig) => ({
   ...(await orig<object>()),
@@ -78,6 +81,12 @@ const routed = vi.hoisted(() =>
   vi.fn(async (..._args: unknown[]) => ({ routeDecision: {}, shouldInitiateCall: false }))
 );
 vi.mock('../../conversation-thread/inbound-router.js', () => ({ handleInboundSMS: routed }));
+// The crisis screen's model call is faked at the Gemini boundary; its pattern guard is real.
+const modelSays = vi.hoisted(() => ({ risk: 'none' }));
+vi.mock('../../safety/crisis-classifier.js', async (orig) => ({
+  ...(await orig<object>()),
+  createGeminiCrisisGenerate: () => async () => `{"risk":"${modelSays.risk}"}`,
+}));
 vi.mock('../../contacts/optimal-timing.js', () => ({
   findContactByPhone: vi.fn(async () => null),
   markContactResponded: vi.fn(),
@@ -90,6 +99,8 @@ const { callUserAdapter } = await import('../../outreach/call-user-adapter.js');
 const { phoneHash } = await import('../../outreach/checkin-replies.js');
 const { CONSENT_READ_TIMEOUT_MS } = await import('../../outreach/text-consent.js');
 const { keywordReply, inboundKeyword } = await import('../sms-keywords.js');
+const { SMS_CRISIS_REPLY } = await import('../../outreach/sms-crisis-screen.js');
+const { detectCrisis } = await import('../../safety/crisis-guard.js');
 
 const SECRET = 'test-hash-secret';
 const hashOf = (phone: string): string => phoneHash(phone, { LOG_HASH_SECRET: SECRET }) ?? '';
@@ -170,6 +181,7 @@ async function attempt(sender: Sender): Promise<{ texted: boolean; outcome: unkn
 
 beforeEach(() => {
   docs.clear();
+  modelSays.risk = 'none';
   routed.mockClear();
   fault.consent = 'ok';
   fault.feature_checkin_optouts = 'ok';
@@ -183,6 +195,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllEnvs();
   for (const k of ['LOG_HASH_SECRET', 'SKIP_TWILIO_VALIDATION', 'PROACTIVE_CHANNELS']) {
     delete process.env[k];
   }
@@ -221,6 +234,32 @@ describe.each(['STOP', 'revoke', 'opt out'])('a third party texts %j', (phrase) 
       outcome: { sent: false, reason: 'opted-out' },
     });
   });
+});
+
+describe.each(['STOP. I want to kill myself', 'stop texting me, I want to die'])(
+  'the owner texts %j: a crisis line after the opt-out',
+  (body) => {
+    it('opts out in both stores, confirms once, then 988 once', async () => {
+      vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
+      expect(await inbound(body)).toEqual([CONFIRM, SMS_CRISIS_REPLY]);
+      expect(routed).not.toHaveBeenCalled();
+      expect(docs.get(`consent/${hashOf(OWNER)}`)).toMatchObject({ sms: { state: 'opted-out' } });
+      expect(docs.has(`feature_checkin_optouts/${hashOf(OWNER)}`)).toBe(true);
+      for (const sender of OWN_SENDERS) {
+        // eslint-disable-next-line no-await-in-loop
+        expect({ sender, ...(await attempt(sender)) }).toMatchObject({ sender, texted: false });
+      }
+    });
+  }
+);
+
+it('a crisis line only the classifier reads, after STOP, still gets 988: a keyword never skips the read', async () => {
+  const body = 'STOP. I am so tired of all of it';
+  expect(detectCrisis(body).isCrisis).toBe(false); // the pattern guard alone would miss it
+  vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
+  modelSays.risk = 'crisis';
+  expect(await inbound(body)).toEqual([CONFIRM, SMS_CRISIS_REPLY]);
+  expect(docs.get(`consent/${hashOf(OWNER)}`)).toMatchObject({ sms: { state: 'opted-out' } });
 });
 
 describe('either store stops a text; "allowed" in one never outweighs "stopped" in the other', () => {

@@ -24,6 +24,7 @@ import { parseJsonBodySafe } from '../utils/ddos-protection.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { sendApiError, sendJSON } from './helpers.js';
+import { authCheckUnavailable, nullIfUnavailable } from './verify-token-once.js';
 
 const log = createLogger({ module: 'PendingActionRoutes' });
 
@@ -51,7 +52,9 @@ const OUTCOME: Record<DecisionOutcome, { status: number; message: string; code?:
 async function signInTime(req: IncomingMessage, userId: string): Promise<number | null> {
   const header = req.headers.authorization;
   if (typeof header !== 'string' || !header.startsWith('Bearer ')) return null;
-  const verified = await verifyFirebaseToken(header.slice(7), true);
+  const verified = await verifyFirebaseToken(header.slice(7), { strict: true }).catch(
+    (error: unknown) => nullIfUnavailable(req, error) // the approve answers 503
+  );
   if (!verified || 'expired' in verified || verified.isAnonymous) return null;
   const authTime = verified.claims.auth_time;
   return verified.uid === userId && typeof authTime === 'number' ? authTime * 1000 : null;
@@ -85,6 +88,7 @@ async function decide(
   // Approving needs a sign-in from the last 5 minutes; declining is always safe.
   const authTime = (await signInTime(req, userId)) ?? 0;
   if (decision === 'approve' && Date.now() - authTime > FRESH_SIGN_IN_MS) {
+    if (authCheckUnavailable(req, res)) return; // couldn't check the account: try again
     sendApiError(res, {
       status: 401,
       message: 'Sign in again to approve.',
@@ -114,7 +118,7 @@ export async function handlePendingActionRoutes(
   }
   if (rateLimit(req, res, { maxRequests: 30, windowMs: 60_000, keyPrefix: 'pending-actions' }))
     return true;
-  const auth = await requireAuth(req, res);
+  const auth = await requireAuth(req, res, { strict: true }); // approvals
   if (!auth) return true;
   // Only a person's own Firebase sign-in, never a service API key or dev header.
   if (auth.authMethod !== 'firebase') {

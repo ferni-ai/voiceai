@@ -486,7 +486,7 @@ function main() {
   console.log('To skip: Add // eslint-disable-next-line design-tokens/no-hardcoded-colors\n');
 
   // Ratchet: leftover shadows/blurs/colors may exist, but the count must not grow.
-  const MAX_TOKEN_VIOLATIONS = 95;
+  const MAX_TOKEN_VIOLATIONS = 93;
   if (totalViolations > MAX_TOKEN_VIOLATIONS) {
     console.error(
       `Token ratchet exceeded: ${totalViolations} > ${MAX_TOKEN_VIOLATIONS}. Convert more hardcoded values before landing.`

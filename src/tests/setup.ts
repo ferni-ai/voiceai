@@ -300,23 +300,6 @@ vi.mock('@google-cloud/firestore', async (importOriginal) => {
   return { ...actual, Firestore, default: { ...actual, Firestore } };
 });
 
-// The namespaced API (the default `admin` export, in the files not yet
-// moved to utils/firebase-admin-app.ts) builds Firestore through Node's require,
-// which the mocks above never reach, so its admin.firestore() returned a real
-// client. It returns the mock too; app.firestore() on a real app stays real and
-// is refused by guardRealFirestore().
-vi.mock('firebase-admin', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('firebase-admin')>();
-  if (process.env.FIRESTORE_EMULATOR_HOST) return actual;
-  const admin = actual.default;
-  const firestore = new Proxy(admin.firestore, { apply: () => mockFirestoreDb });
-  const mocked = new Proxy(admin, {
-    get: (target, prop, receiver) =>
-      prop === 'firestore' ? firestore : Reflect.get(target, prop, receiver),
-  });
-  return { ...actual, default: mocked };
-});
-
 vi.mock('firebase-admin/app', () => ({
   initializeApp: vi.fn(),
   getApp: vi.fn(() => ({

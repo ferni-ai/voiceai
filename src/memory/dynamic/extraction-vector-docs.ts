@@ -14,8 +14,11 @@
  */
 
 import { sanitizeFirestoreDocId } from '../../utils/firestore-utils.js';
+import { isCallerName } from '../domain/person-key.js';
+import { entityHygieneOn, isPersonaSubject } from '../entity-hygiene.js';
+import { peopleOf } from '../recall/people.js';
 import { withoutSpokenCredentials } from '../spoken-credential.js';
-import type { FallbackLogger } from '../../utils/safe-logger.js';
+import { createLogger, type FallbackLogger } from '../../utils/safe-logger.js';
 import type { VectorDocument } from '../vector-store-interface.js';
 import type {
   DeepExtractionJob,
@@ -220,6 +223,84 @@ export interface SanitizedExtractionSlice {
   facts: ExtractedFact[];
   relationships: ExtractedRelationship[];
   dropped: { entities: number; facts: number; relationships: number };
+  /** Facts about a persona (Ferni, or a teammate the caller never tied to themself), not stored. */
+  droppedPersona: number;
+}
+
+const personaLog = createLogger({ module: 'extraction-persona-filter' });
+
+/**
+ * What this result says each name is to the caller (right-moment memory §5.3, ruling 6):
+ * an entity's `attributes.relationship`, the type of a relationship row between the name
+ * and the caller, or a fact that states it ("Maya | relation to user = User's coworker",
+ * the only form the after-call sweep writes). Keyed by lower-cased name.
+ */
+function statedRelations(
+  entities: readonly ExtractedEntity[],
+  facts: readonly ExtractedFact[],
+  rows: readonly unknown[]
+): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  const add = (name: string, relation: unknown): void => {
+    if (typeof relation !== 'string' || relation.trim() === '') return;
+    const key = name.trim().toLowerCase();
+    out.set(key, [...(out.get(key) ?? []), relation]);
+  };
+  for (const e of entities) add(e.name, e.attributes.relationship);
+  for (const row of rows) {
+    if (!isValidRelationship(row)) continue;
+    if (isCallerName(row.source)) add(row.target, row.type);
+    else if (isCallerName(row.target)) add(row.source, row.type);
+  }
+  const said = facts.map((f) => ({
+    entity: f.entityName,
+    key: f.key,
+    value: f.value,
+    confidence: f.confidence,
+  }));
+  for (const person of peopleOf(said)) add(person.name, person.relation);
+  return out;
+}
+
+/**
+ * With ENTITY_HYGIENE on, drops facts and entity rows whose subject is persona canon: the
+ * extractor reads Ferni's side of the call too, so "I live in Wyoming" came back as a fact
+ * about Ferni in the caller's memory. A name with no stated relation resolves toward
+ * dropping (ruling 6); the count is logged so the cost of that is visible.
+ */
+function withoutPersonaSubjects(
+  slice: { entities: ExtractedEntity[]; facts: ExtractedFact[] },
+  rows: readonly unknown[],
+  userId: string,
+  writer: string | null
+): { entities: ExtractedEntity[]; facts: ExtractedFact[]; droppedPersona: number } {
+  if (!entityHygieneOn()) return { ...slice, droppedPersona: 0 };
+  const relations = statedRelations(slice.entities, slice.facts, rows);
+  const persona = (name: string): boolean => {
+    const stated = relations.get(name.trim().toLowerCase()) ?? [];
+    return stated.length === 0
+      ? isPersonaSubject(name)
+      : stated.every((relation) => isPersonaSubject(name, relation));
+  };
+  const entities = slice.entities.filter((e) => !persona(e.name));
+  const facts = slice.facts.filter((f) => !persona(f.entityName));
+  const droppedPersona = slice.facts.length - facts.length;
+  const droppedEntities = slice.entities.length - entities.length;
+  // `writer` null: the vector-doc pass over a result the Firestore pass already counted.
+  if (writer !== null && droppedPersona + droppedEntities > 0) {
+    personaLog.info(
+      {
+        event: 'PERSONA_FACT_DROPPED',
+        reason: 'persona',
+        writer,
+        userId: userId.slice(0, 8),
+        count: droppedPersona,
+        entities: droppedEntities,
+      },
+      "Persona facts not stored as the caller's"
+    );
+  }
+  return { entities, facts, droppedPersona };
 }
 
 /**
@@ -227,7 +308,8 @@ export interface SanitizedExtractionSlice {
  * Malformed LLM JSON is dropped with a debug log (same rules as vector docs).
  * With SPOKEN_CREDENTIAL_FILTER on, a fact holding a credential is dropped too
  * (memory/spoken-credential.ts), counted under `writer` (null: the caller that
- * sanitizes the same result for Firestore counts it).
+ * sanitizes the same result for Firestore counts it). With ENTITY_HYGIENE on, facts about
+ * a persona are dropped as well (`withoutPersonaSubjects`).
  */
 export function sanitizeExtractionResult(
   result: Pick<ExtractionResult, 'entities' | 'facts' | 'relationships'>,
@@ -297,15 +379,17 @@ export function sanitizeExtractionResult(
     });
   }
 
+  const real = withoutPersonaSubjects({ entities, facts }, result.relationships, userId, writer);
   return {
-    entities,
-    facts: withoutSpokenCredentials(facts, writer),
+    entities: real.entities,
+    facts: withoutSpokenCredentials(real.facts, writer),
     relationships,
     dropped: {
       entities: droppedEntities,
       facts: droppedFacts,
       relationships: droppedRelationships,
     },
+    droppedPersona: real.droppedPersona,
   };
 }
 

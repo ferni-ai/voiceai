@@ -18,11 +18,6 @@ export function presenceSoundsEnabled(
   return env.PRESENCE_SOUNDS === 'on';
 }
 
-/** PRESENCE_HUM=on: in an easy silence he hums as often as he whistles. */
-export function presenceHumEnabled(env: Record<string, string | undefined> = process.env): boolean {
-  return env.PRESENCE_HUM === 'on';
-}
-
 /** PRESENCE_SNORE=on: a mock snore, once, in a long quiet on a light call. */
 export function presenceSnoreEnabled(
   env: Record<string, string | undefined> = process.env

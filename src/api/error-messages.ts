@@ -92,10 +92,12 @@ export const API_ERRORS = {
   HEALTH_SYNC_CREDENTIALS_REQUIRED: 'Need both a sync token and user ID to sync.',
   HEALTH_INVALID_SYNC_TOKEN: "That sync token isn't valid. Try reconnecting your device.",
   HEALTH_SYNC_FAILED: "Couldn't sync your health data. Mind trying again?",
-  HEALTH_DEVICE_INFO_REQUIRED: 'Need your device ID and name to set up.',
+  HEALTH_DEVICE_INFO_REQUIRED: 'Need your device ID to set up.',
   HEALTH_TOKEN_GENERATE_FAILED: "Couldn't set up the sync connection. Try again?",
   HEALTH_NO_DATA: 'No health data found for that date.',
   HEALTH_HISTORY_FAILED: "Couldn't load your health history. Try again?",
+  HEALTH_DISCONNECT_FAILED: "Couldn't delete your Apple Health data. Please try again.",
+  HEALTH_SYNC_HELD: "Apple Health sync isn't available on this account.",
 
   // Visual Memory
   VISUAL_NOT_ENABLED: "Visual memory isn't turned on yet. You can enable it in settings.",

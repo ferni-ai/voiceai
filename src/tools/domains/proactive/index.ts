@@ -669,8 +669,8 @@ const backgroundCallDef: ToolDefinition = {
             await import('../../../services/background-agents/executors/call-executor.js');
           const who = { userId, sessionId: ctx.sessionId, contactName, contactPhone };
           const job = { ...who, objective, context, script, initiatedBy: 'ferni' };
-          const cantCall = await calls.cantCallReply(job);
-          if (cantCall) return cantCall;
+          const said = (await calls.cantCallReply(job)) ?? (await calls.gatedCallReply(job));
+          if (said) return said; // CALL_PATHS_PLACE_OR_HOLD: rang, held or refused
           const taskId = await calls.queueCall(job);
 
           return `**Call Scheduled** 📞\n\nI'll call ${contactName} on your behalf.\n\n**Objective:** ${objective}\n${context ? `**Context:** ${context}\n` : ''}**Task ID:** ${taskId.slice(0, 8)}...\n\nI'll keep working on this even if you disconnect. When I'm done, I'll tell you exactly what happened! 💚`;

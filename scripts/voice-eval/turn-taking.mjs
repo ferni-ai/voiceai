@@ -36,6 +36,7 @@
 // (@backchannel / @interrupt lines) and backchannel timing (presence.mjs).
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { TIMING_INVALID, callerAudioOfRun } from './converse-timing.mjs';
 import { callerPhrases, presenceOfRuns, readWavPcm } from './presence.mjs';
 import { indexSessions, linesOf, parseEntries, pct, userKind, WORKERS } from './review-calls.mjs';
 
@@ -189,8 +190,31 @@ export function callerPauses(run, phrases) {
   return out;
 }
 
-/** Pool converse.mjs recordings into one scorecard. */
+/** The floor-sharing numbers below, which a caller sent slower than real time makes meaningless. */
+const TIMED = ['replyGapMs', 'cutOffs', 'falseInterruptions', 'bargeIns', 'backchannels'];
+
+/** Pool converse.mjs recordings into one scorecard. Runs whose caller audio went out over
+ *  MAX_SEND_RATIO x real time (converse-timing.mjs) are left out of every number; with none
+ *  left, the numbers read TIMING_INVALID (#2740). */
 export function poolRuns(runs, readWav = readWavPcm) {
+  const audio = runs.map(callerAudioOfRun);
+  const card = poolTimedRuns(
+    runs.filter((_, i) => audio[i].valid),
+    readWav
+  );
+  const invalid = audio.filter((a) => !a.valid);
+  card.runs = runs.length;
+  card.callerTurns = runs.reduce((n, r) => n + r.userSpeech.length, 0);
+  card.callerAudio = {
+    timingInvalidRuns: invalid.length,
+    maxSendRatio: invalid.length ? Math.max(...invalid.map((a) => a.maxRatio)) : null,
+  };
+  if (invalid.length && invalid.length === runs.length)
+    for (const k of TIMED) card[k] = TIMING_INVALID;
+  return card;
+}
+
+function poolTimedRuns(runs, readWav) {
   const gaps = runs.flatMap((r) => nums(r.results.map((x) => x.replyDelayMs)));
   const pauses = [];
   let turns = 0;

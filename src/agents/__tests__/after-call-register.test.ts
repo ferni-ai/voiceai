@@ -6,4 +6,9 @@ describe('after-call-register', () => {
     await import('../after-call-register.js');
     expect(registeredAfterCallTasks()).toContain('after-call-checkin');
   });
+
+  it('registers the persona growth writer (PERSONA_GROWTH)', async () => {
+    await import('../after-call-register.js');
+    expect(registeredAfterCallTasks()).toContain('persona-growth');
+  });
 });

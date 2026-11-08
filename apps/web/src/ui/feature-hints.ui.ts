@@ -131,19 +131,6 @@ export const getFeatureHints = (): FeatureHint[] => [
     showAfterDelay: 5000,
     priority: 3,
   },
-
-  // Spotify integration hint
-  {
-    id: 'spotify-intro',
-    type: 'card',
-    targetSelector: '[data-feature="spotify"], .spotify-trigger',
-    title: t('featureHints.spotifyTitle'),
-    message: t('featureHints.spotifyMessage'),
-    ctaText: t('featureHints.spotifyConnect'),
-    minStage: 'getting-started',
-    showOnce: true,
-    priority: 5,
-  },
 ];
 
 // ============================================================================

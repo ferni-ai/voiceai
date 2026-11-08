@@ -24,12 +24,30 @@
  * @module tools/domains/communication/outreach/outreach-confirm
  */
 
+import { isDeepStrictEqual } from 'node:util';
 import { flagOn } from '../../../../config/env-flag.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { isSyntheticUserId } from '../../../../utils/synthetic-user.js';
 import { liveSessionIdOf } from '../../../registry/live-session.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { dropConfirmThread, openConfirmThread, sentConfirmThread } from './confirm-thread.js';
+import { consentClassifierOn } from './consent-judge.js';
+import {
+  cancel,
+  forgetAsks,
+  previewAllowed,
+  reopenClosed,
+  unconfirmedReply,
+  type AskRecord,
+} from './consent-loop.js';
+import { isClearNo, words } from './consent-words.js';
+import {
+  classifyFerniTurn,
+  foreclosesReopen,
+  judgeWindow,
+  windowState,
+  type ConfirmState,
+} from './consent-window.js';
 import { serverConfirmOn, type Kin } from './outreach-confirm-family.js';
 import {
   gateInFamily,
@@ -39,6 +57,9 @@ import {
 } from './outreach-server-confirm.js';
 
 const log = getLogger();
+
+export { isClearNo, isClearYes } from './consent-words.js';
+export type { ConfirmState } from './consent-window.js';
 
 export const CONFIRM_WINDOW_MS = 5 * 60 * 1000;
 const MAX_EVENTS = 50;
@@ -51,6 +72,7 @@ export interface Planned {
   contactId: string;
   to: string;
   channel: string;
+  from?: 'gmail' | 'ferni'; // an email's mailbox, as read back (outreach-email.ts)
 }
 
 /** On unless OUTBOUND_CONFIRM=off outside production (the escape hatch is for tests). */
@@ -70,7 +92,9 @@ export function testAccountReply(toolId: string): string {
 const GATED = Symbol.for('ferni.outbound-confirm');
 
 type SessionEvent =
-  { kind: 'caller'; text: string; agentSpeaking: boolean } | { kind: 'tool'; callIds: string[] };
+  | { kind: 'caller'; text: string; agentSpeaking: boolean }
+  | { kind: 'tool'; callIds: string[] }
+  | { kind: 'agent'; text: string }; // what Ferni said, only to find his read-backs
 export type ConfirmEvent = SessionEvent & { seq: number };
 
 export interface PendingAction {
@@ -81,11 +105,22 @@ export interface PendingAction {
   args: Record<string, unknown>;
   callId: string;
   createdSeq: number;
+  /** Where the owner's words on this request begin, kept when an ask-once moves createdSeq on. */
+  startSeq?: number;
+  /** Sticky: the owner deferred, redirected or moved to another line since the read-back. Set as
+   * it is said, so the event buffer evicting the turn can't undo it (consent-loop.ts). */
+  final?: boolean;
   expiresAt: number;
   /** OUTREACH_SERVER_CONFIRM: who it reaches and how to send it as read back (outreach-confirm-family.ts). */
   server?: Kin & { readBack: string; send: () => Promise<unknown> };
   /** The owner's first name, lower-case, from the call's user data: a yes may address them. */
   owner?: string[];
+  /** Ferni already asked once whether it is still wanted (consent-loop.ts). */
+  asked?: boolean;
+  /** Stored again after a cancel, from Ferni's fresh read-back: its window starts there. */
+  reopened?: boolean;
+  /** The arguments the read-back was made from: a call with the same ones is the same request. */
+  requested?: Record<string, unknown>;
 }
 
 export interface SessionLog {
@@ -98,6 +133,10 @@ export interface SessionLog {
   sent?: Kin & { readBack: string; expiresAt: number };
   settle?: ReturnType<typeof setTimeout>;
   note?: (text: string) => void;
+  /** Read-backs per action in this request, so none loops (consent-loop.ts). */
+  asks?: Map<string, AskRecord>;
+  /** The action last cancelled, and when: a fresh read-back of it may reopen it (consent-loop.ts). */
+  closed?: { action: PendingAction; seq: number; at: number; final: boolean };
 }
 
 /** Keyed by the AgentSession object, so a pending action never crosses sessions. */
@@ -132,102 +171,19 @@ function record(session: object, event: SessionEvent): void {
   const entry = logFor(session);
   entry.events.push({ ...event, seq: ++entry.seq });
   if (entry.events.length > MAX_EVENTS) entry.events.shift();
-  if (event.kind === 'caller' && entry.pending && isClearNo(event.text))
-    dropConfirmThread(entry.pending);
-}
-
-// Replies made only of these count as a yes. Longest first, so "yes please" beats "yes".
-const YES_PHRASES = [
-  ...'go ahead|do it|send it|send them|please do|please send|thats right|sounds good'.split('|'),
-  ...'call them|call her|call him|make the call'.split('|'),
-  ...'yes yeah yep yup ya sure ok okay correct absolutely definitely'.split(' '),
-];
-// Words a yes may carry that add nothing to send: a name for whoever is speaking, a filler, or an
-// echo of the question ("Should I call her?" "Yes, she should."). Never a yes on their own.
-// Owner calls 10-14..10-16 placed nothing on "Go ahead, Ferni." and "Yes, she should."
-// Owner call 10-17 placed nothing on "Uh, yeah, go ahead. Go ahead and give her a call." and
-// "Yes, you, you need to call her.": a yes may restate the same action, never add to it.
-const FILLERS = [
-  ...'thank you|that works|you can|for sure|of course'.split('|'),
-  ...'give her a call|give him a call|give them a call|you need to|need to|right now'.split('|'),
-  ...'and you now'.split(' '),
-  ...'she should|he should|they should|you should|she can|he can|they can'.split('|'),
-  ...'please thanks ferni fern maya jordan peter alex nayan buddy bud man dude pal um uh oh hey'.split(
-    ' '
-  ),
-];
-const NOES = 'no nope nah not dont never wait stop cancel'.split(' ');
-// Never taken for a name the caller calls Ferni by: a word that could change what is sent
-// (who, when, how, how many), a question word or a no. "Yes, Tuesday." is not a plain yes.
-const NOT_A_NAME = new Set([
-  ...NOES,
-  ...`call ring dial phone text email message send tell ask voicemail facetime who what when where
-    why how which instead also too again both all everyone first later now noon today tonight
-    tomorrow morning afternoon evening monday tuesday wednesday thursday friday saturday sunday
-    mom mum mother dad father sister brother wife husband son daughter grandma grandpa aunt
-    uncle cousin friend boss doctor her him them me us it that this there here`.split(/\s+/),
-]);
-
-// Names that may address Ferni inside a yes: the personas (as in FILLERS) and STT mishearings of
-// "Ferni" (agents/personas/name-mishear.ts, plus "fred" and "freddie", taken as the name only
-// here: in other speech "Fred" is as likely a real person). Owner call 10-18: "Uh, go ahead, Fred."
-const FERNI_NAMES = new Set([
-  ...'ferni fern maya jordan peter alex nayan'.split(' '),
-  ...'freddy freddie fred fernie ferny furny'.split(' '),
-]);
-
-const words = (text: string): string[] =>
-  text
-    .toLowerCase()
-    .replace(/['’]/g, '')
-    .match(/[a-z]+/g) ?? [];
-
-/**
- * A reply made only of yes phrases (and please/thanks); never with a "?" or "Sure, to Bob".
- * It may also carry one name set off by a comma at its start or end ("Uh, go ahead, Fred."),
- * but only a name that leaves the action as read back: Ferni's (or a persona's) name or a
- * mishearing of it, the owner's own first name (`owner`), or the person the action reaches
- * (`target`: "Yes, go ahead, Mike." for a call to Mike restates it). Any other name voids the
- * yes: with a call to Mike waiting, "Yes, go ahead, Bob." may mean Bob. Never a NOT_A_NAME word.
- */
-export function isClearYes(
-  text: string,
-  target: readonly string[] = [],
-  owner: readonly string[] = []
-): boolean {
-  // A question word is never a yes phrase, so "which one, yes" already fails below.
-  if (text.includes('?')) return false;
-  if (onlyYes(words(text))) return true;
-  const parts = text.split(',');
-  if (parts.length < 2) return false;
-  const head = parts[0].trim().split(/\s+/);
-  const tail = parts[parts.length - 1].trim().replace(/[.!…]+$/, '');
-  const options: Array<[string, string]> = [
-    [head[head.length - 1], [...head.slice(0, -1), ...parts.slice(1)].join(' ')],
-  ];
-  if (!/\s/.test(tail)) options.push([tail, parts.slice(0, -1).join(' ')]);
-  const isName = (w: string): boolean => {
-    const name = w.toLowerCase();
-    if (!/^[A-Z][a-z]+$/.test(w) || NOT_A_NAME.has(name)) return false;
-    return FERNI_NAMES.has(name) || target.includes(name) || owner.includes(name);
-  };
-  return options.some(([name, rest]) => isName(name) && onlyYes(words(rest)));
-}
-
-function onlyYes(said: string[]): boolean {
-  let w = said;
-  if (w.length === 0) return false;
-  let sawYes = false;
-  while (w.length > 0) {
-    const rest = w;
-    const phrase = [...YES_PHRASES, ...FILLERS].find((p) =>
-      p.split(' ').every((part, i) => rest[i] === part)
-    );
-    if (!phrase) return false;
-    sawYes ||= YES_PHRASES.includes(phrase);
-    w = w.slice(phrase.split(' ').length);
-  }
-  return sawYes;
+  const { pending } = entry;
+  // Ferni's turn is classified as it ends, so the owner's yes doesn't wait on it; after a cancel
+  // too, since a fresh read-back may reopen it.
+  const action = pending ?? entry.closed?.action;
+  if (event.kind === 'agent' && action)
+    void classifyFerniTurn(action, event.text, consentClassifierOn());
+  if (event.kind !== 'caller' || !pending) return;
+  if (foreclosesReopen(event.text, pending)) pending.final = true;
+  // A no, a redirect or a deferral ends it at once: nothing Ferni says afterwards revives it.
+  if (confirmationState(pending, entry.events, Date.now()) === 'declined')
+    cancel(entry, pending, 'declined', entry.seq - 1);
+  // Judged now, in parallel with the model's reply, so the tool call rarely waits on it.
+  else void judgeConfirmation(pending, entry.events);
 }
 
 /** The owner's first names, lower-case, from the tool run's user data (userName, name). */
@@ -238,46 +194,26 @@ function ownerFirstNames(opts: unknown): string[] {
   return [...new Set(names.flatMap((n) => words(n).slice(0, 1)))];
 }
 
-export function isClearNo(text: string): boolean {
-  return words(text).some((x) => NOES.includes(x));
-}
-
-/** Where a pending action stands, given what happened in the session since it was stored. */
+/**
+ * Where a pending action stands, given what happened in the session since it was stored
+ * (consent-window.ts): the owner's words after Ferni's latest read-back, judged by the fast path
+ * or, once it has answered, the consent judge. 'unclear' asks once; 'declined' cancels.
+ */
 export function confirmationState(
   pending: PendingAction,
   events: ConfirmEvent[],
   now: number
-): 'confirmed' | 'waiting' | 'void' {
-  if (now > pending.expiresAt) return 'void';
-  const after = events.filter((e) => e.seq > pending.createdSeq);
-  let delivered = false;
-  // Speech-to-text may cut one answer into several finals; they are judged as one reply.
-  const answer: string[] = [];
-  for (const e of after) {
-    if (e.kind === 'tool') {
-      // The preview's own output reaching the model is expected once; any other output voids it.
-      if (!delivered && e.callIds.length > 0 && e.callIds.every((id) => id === pending.callId)) {
-        delivered = true;
-        continue;
-      }
-      return 'void';
-    }
-    if (isClearNo(e.text)) return 'void';
-    // Words before the preview was read are not the answer.
-    if (!delivered) continue;
-    // Words over Ferni are not the answer, and once the answer has begun they void it.
-    if (e.agentSpeaking) {
-      if (answer.length > 0) return 'void';
-      continue;
-    }
-    answer.push(e.text);
-  }
-  if (answer.length === 0) return 'waiting';
-  // Every part must be a yes phrase or a filler: "Yes." then "Call Bob instead." is not a yes.
-  const target = ['contactQuery', 'contactName', 'friendName', 'recipientName'].flatMap((k) =>
-    typeof pending.args[k] === 'string' ? words(pending.args[k]) : []
-  );
-  return isClearYes(answer.join(' '), target, pending.owner) ? 'confirmed' : 'void';
+): ConfirmState {
+  return windowState(pending, events, now);
+}
+
+/** confirmationState after the consent judge has read the answer, if it needed to. */
+export async function judgeConfirmation(
+  pending: PendingAction,
+  events: ConfirmEvent[]
+): Promise<ConfirmState> {
+  await judgeWindow(pending, events, consentClassifierOn());
+  return confirmationState(pending, events, Date.now());
 }
 
 /**
@@ -329,6 +265,13 @@ export function outreachConfirmListeners(
     onToolsExecuted: (event: unknown) => {
       const calls = (event as { functionCalls?: Array<{ callId?: string }> }).functionCalls ?? [];
       record(session, { kind: 'tool', callIds: calls.map((c) => c.callId ?? '') });
+    },
+    /** Ferni's own words (conversation_item_added), read only to find where he asked again. */
+    onItemAdded: (event: unknown) => {
+      const item = (event as { item?: { role?: string; type?: string; textContent?: string } })
+        ?.item;
+      if (item?.role !== 'assistant' || (item.type && item.type !== 'message')) return;
+      if (item.textContent?.trim()) record(session, { kind: 'agent', text: item.textContent });
     },
   };
 }
@@ -430,20 +373,27 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
         }
         if (serverConfirmOn())
           return gateInFamily({ ...gate, session, entry, args, opts, callId, userId: ctx.userId });
+        await reopenClosed(entry, consentClassifierOn(), CONFIRM_WINDOW_MS);
         const { pending } = entry;
-        if (
-          pending &&
-          continues(pending, def.id, spec, args) &&
-          pending.userId === ctx.userId &&
-          confirmationState(pending, entry.events, Date.now()) === 'confirmed'
-        ) {
-          entry.pending = undefined; // taken before sending, so a second call can't repeat it
-          log.info(
-            { toolId: def.id, previewedBy: pending.toolId },
-            'OUTREACH_CONFIRM: caller said yes, sending'
-          );
-          await attestOnConfirm(ctx.userId, pending.args);
-          return sentConfirmThread(pending, execute(pending.args, opts));
+        if (pending && continues(pending, def.id, spec, args) && pending.userId === ctx.userId) {
+          const state = await judgeConfirmation(pending, entry.events);
+          // A call racing this one took it (or replaced it) while the judge read the answer.
+          if (entry.pending !== pending)
+            return 'Nothing more to do here: that was already handled.';
+          if (state === 'confirmed') {
+            entry.pending = undefined; // taken before sending, so a second call can't repeat it
+            forgetAsks(entry, pending);
+            log.info(
+              { toolId: def.id, previewedBy: pending.toolId },
+              'OUTREACH_CONFIRM: caller said yes, sending'
+            );
+            await attestOnConfirm(ctx.userId, pending.args);
+            return sentConfirmThread(pending, execute(pending.args, opts));
+          }
+          const same = isDeepStrictEqual(pending.requested, args); // anything changed is read back afresh
+          const expiresAt = Date.now() + CONFIRM_WINDOW_MS;
+          const reply = unconfirmedReply(entry, pending, state, { callId, same, expiresAt });
+          if (reply !== undefined) return reply;
         }
         if (entry.pending) dropConfirmThread(entry.pending); // replaced or discarded, never sent
         entry.pending = undefined;
@@ -454,12 +404,17 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           session
         );
         if (typeof prepared === 'string') return prepared;
+        const action = { toolId: def.id, args: prepared.args, readBack: prepared.readBack };
+        const enough = previewAllowed(entry, action);
+        if (enough !== undefined) return enough;
+        entry.closed = undefined;
         entry.pending = {
           toolId: def.id,
           userId: ctx.userId,
           spec,
           readBack: prepared.readBack,
           args: prepared.args,
+          requested: args,
           callId,
           createdSeq: entry.seq,
           expiresAt: Date.now() + CONFIRM_WINDOW_MS,

@@ -13,6 +13,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
+import { callerIdFor } from '../../../services/identity/call-caller-id.js';
 
 const log = createLogger({ module: 'SettingsExecutor' });
 
@@ -70,7 +71,7 @@ async function execute(
 
     const { languageService } = await import('../../../services/language/index.js');
     const result = await languageService().setLanguage(
-      ctx.userId || 'anonymous',
+      callerIdFor(ctx.userId, ctx.sessionId), // this session's own id, never a shared one (#2651)
       targetLanguage,
       ctx.sessionId
     );
@@ -92,7 +93,7 @@ async function execute(
     log.info({ userId: ctx.userId }, '🗣️ Get current language');
     const { languageService, currentCallLanguageMessage } =
       await import('../../../services/language/index.js');
-    const current = await languageService().getCurrentLanguage(ctx.userId || 'anonymous');
+    const current = await languageService().getCurrentLanguage(callerIdFor(ctx.userId, ctx.sessionId));
     return currentCallLanguageMessage(current.code, current.displayName || 'English');
   }
 

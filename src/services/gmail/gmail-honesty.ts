@@ -1,18 +1,32 @@
 /**
- * Gmail read is off (the link carries the calendar scope only), so a 403 from
- * Gmail means "not permitted", and the answer is never an empty inbox.
- * Everything here is behind GOOGLE_LINK_HONEST (config/google-link-honest.ts).
+ * Gmail read is not granted: the Google link carries the calendar scope only, and
+ * gmail.readonly needs Google's restricted-scope review (CASA), which is not planned.
+ * So every Gmail read meets a 401/403, and the answer must never be an empty inbox.
+ *
+ * GMAIL_READ_TOOLS (off by default): the read tools are offered only when it is on.
+ * The honest path (a 401/403, a missing scope or no token reads as "not connected")
+ * runs when GMAIL_READ_TOOLS or GOOGLE_LINK_HONEST is on.
  *
  * @module services/gmail/gmail-honesty
  */
 
+import { isGmailReadToolsOn } from '../../config/gmail-read-tools.js';
 import { isGoogleLinkHonest } from '../../config/google-link-honest.js';
 import type { Tool, ToolDefinition } from '../../tools/registry/types.js';
 
 const GMAIL_NOT_PERMITTED = 'gmail_not_permitted';
-const GMAIL_NOT_PERMITTED_SAY = "I can't read your Gmail. I'm only connected to your calendar.";
+const GMAIL_UNREACHABLE = 'gmail_unreachable';
 
-/** Gmail answered 403 (or a missing scope): this link may not read mail. */
+/** What Ferni says when Gmail can't be read. No connect offer: no flow grants read access. */
+export const GMAIL_READ_NOT_CONNECTED = "I can't read your inbox; that isn't connected.";
+const GMAIL_UNREACHABLE_SAY = "I couldn't reach your inbox just now, so I can't say what's in it.";
+
+/** True when a Gmail failure must be reported, not read as an empty inbox. */
+function gmailReadsHonest(): boolean {
+  return isGmailReadToolsOn() || isGoogleLinkHonest();
+}
+
+/** Gmail answered 401/403 (or a missing scope), or there is no token: this link may not read mail. */
 export class GmailNotPermittedError extends Error {
   constructor() {
     super(GMAIL_NOT_PERMITTED);
@@ -20,43 +34,73 @@ export class GmailNotPermittedError extends Error {
   }
 }
 
-interface GmailUnavailable {
-  unavailable: typeof GMAIL_NOT_PERMITTED;
+/** A Gmail read failed for another reason (5xx, timeout, open breaker): nothing is known. */
+class GmailUnreachableError extends Error {
+  constructor() {
+    super(GMAIL_UNREACHABLE);
+    this.name = 'GmailUnreachableError';
+  }
+}
+
+export interface GmailUnavailable {
+  unavailable: typeof GMAIL_NOT_PERMITTED | typeof GMAIL_UNREACHABLE;
   say: string;
 }
 
 /**
- * Flag on: a Gmail 403 (or a missing-scope body) throws GmailNotPermittedError, which the
- * callers must not turn into an empty inbox. Off: nothing happens, as before.
+ * What a Gmail read returns when it can't run: the old fallback ([] or null), or on the
+ * honest path a typed error, so no caller reads a missing token or failed call as no mail.
+ * A Gmail 404 (pass the caught `error`) is a real answer, "not found", and keeps the fallback.
+ */
+export function gmailFallback<T>(fallback: T, cause: 'no_token' | 'failed', error?: unknown): T {
+  if (!gmailReadsHonest()) return fallback;
+  if (cause === 'failed' && /Gmail API error: 404\b/.test(String(error))) return fallback;
+  throw cause === 'no_token' ? new GmailNotPermittedError() : new GmailUnreachableError();
+}
+
+/** The typed result for a Gmail read that can't run. */
+export function gmailNotConnected(): GmailUnavailable {
+  return { unavailable: GMAIL_NOT_PERMITTED, say: GMAIL_READ_NOT_CONNECTED };
+}
+
+/**
+ * Honest path on: a Gmail 401/403 (or a missing-scope body) throws GmailNotPermittedError,
+ * which the callers must not turn into an empty inbox. Off: nothing happens, as before.
  */
 export function assertGmailPermitted(status: number, body: string): void {
-  if (!isGoogleLinkHonest()) return;
-  if (status === 403 || /insufficient\s*(authentication\s*)?(scopes?|permission)/i.test(body)) {
+  if (!gmailReadsHonest()) return;
+  if (
+    status === 401 ||
+    status === 403 ||
+    /insufficient\s*(authentication\s*)?(scopes?|permission)/i.test(body)
+  ) {
     throw new GmailNotPermittedError();
   }
 }
 
-/** Runs a Gmail read; a not-permitted error becomes the honest result for the model. */
+/** Runs a Gmail read; a not-permitted or unreachable error becomes the honest result for the model. */
 async function honestGmailRead<T>(run: () => Promise<T>): Promise<T | GmailUnavailable> {
   try {
     return await run();
   } catch (error) {
-    if (!(error instanceof GmailNotPermittedError)) throw error;
-    return { unavailable: GMAIL_NOT_PERMITTED, say: GMAIL_NOT_PERMITTED_SAY };
+    if (error instanceof GmailNotPermittedError) return gmailNotConnected();
+    if (error instanceof GmailUnreachableError) {
+      return { unavailable: GMAIL_UNREACHABLE, say: GMAIL_UNREACHABLE_SAY };
+    }
+    throw error;
   }
 }
 
 /**
- * Gmail read tools: not offered while the flag is on, and an honest answer if one
- * still runs. Off, the definitions come back untouched.
+ * Gmail read tools: offered only under GMAIL_READ_TOOLS, and a failed read is an
+ * honest answer, never an empty inbox.
  */
 export function honestGmailReadTools(defs: ToolDefinition[]): ToolDefinition[] {
   return defs.map((def) => ({
     ...def,
-    availableWhen: () => !isGoogleLinkHonest(),
+    availableWhen: () => isGmailReadToolsOn(),
     create: (ctx) => {
       const tool: Tool = def.create(ctx);
-      if (!isGoogleLinkHonest()) return tool;
       return {
         ...tool,
         execute: (...args: unknown[]) =>

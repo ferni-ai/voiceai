@@ -8,6 +8,7 @@ import { createLogger } from '../../../../utils/safe-logger.js';
 import { getProductivityStore } from '../../../../services/stores/productivity-store.js';
 import { getFinancialStore } from '../../../../services/stores/financial-store.js';
 import { getGamificationStore } from '../../../../services/engagement/gamification-store.js';
+import { oldestFirst } from '../mood-log-order.js';
 import type { HabitHealthSummary, MoodIntelligence, MemoryInsights } from './types.js';
 
 const log = createLogger({ module: 'context:maya-data-fetchers' });
@@ -109,7 +110,8 @@ export async function analyzeMoodIntelligence(userId: string): Promise<MoodIntel
     const now = new Date();
     const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-    const moodLogs = await gamificationStore.getMoodLogs(userId, twoWeeksAgo, now);
+    // Oldest first: the store returns newest first, and the reads below assume time order.
+    const moodLogs = oldestFirst(await gamificationStore.getMoodLogs(userId, twoWeeksAgo, now));
 
     if (moodLogs.length === 0) return intelligence;
 

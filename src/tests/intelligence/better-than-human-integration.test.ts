@@ -11,8 +11,8 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Mock Firebase Admin before imports
-vi.mock('firebase-admin', () => {
+// An empty Firestore, built before the mocks below so they can hand it out.
+const fake = vi.hoisted(() => {
   // Reads resolve to "no document", as an empty Firestore would. A bare vi.fn()
   // resolved to undefined, so the aggregators threw on `.exists` and dropped
   // what the service mocks below return; the test only passed when it reached
@@ -53,23 +53,14 @@ vi.mock('firebase-admin', () => {
     collection: vi.fn(() => mockCollection),
   };
 
-  return {
-    default: {
-      apps: [{}],
-      initializeApp: vi.fn(),
-      firestore: vi.fn(() => mockFirestore),
-    },
-    apps: [{}],
-    initializeApp: vi.fn(),
-    firestore: vi.fn(() => mockFirestore),
-  };
+  return { firestore: vi.fn(() => mockFirestore) };
 });
 
 // The aggregators get their client from getAdminFirestore(); hand them the
-// mocked admin.firestore() above, so the "unavailable" case below still applies.
+// fake above, so the "unavailable" case below still applies.
 vi.mock('../../utils/firebase-admin-app.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/firebase-admin-app.js')>()),
-  getAdminFirestore: () => admin.firestore(),
+  getAdminFirestore: () => fake.firestore(),
 }));
 
 // Mock contacts service (both paths used in codebase)
@@ -291,7 +282,6 @@ vi.mock('../../intelligence/patterns/cross-domain-correlator.js', () => ({
 }));
 
 // Import the module under test
-import admin from 'firebase-admin';
 import {
   getUserKnowledge,
   formatKnowledgeForContext,
@@ -386,7 +376,7 @@ describe('Better Than Human Integration', () => {
 
     it('should load Ferni commitments when Firestore is unavailable', async () => {
       // Commitments have their own storage; a missing profile db must not hide them.
-      vi.mocked(admin.firestore).mockImplementation(() => {
+      fake.firestore.mockImplementation(() => {
         throw new Error('Firestore unavailable');
       });
       try {
@@ -397,7 +387,7 @@ describe('Better Than Human Integration', () => {
           'Check in about job interview',
         ]);
       } finally {
-        vi.mocked(admin.firestore).mockRestore();
+        fake.firestore.mockRestore();
       }
     });
 

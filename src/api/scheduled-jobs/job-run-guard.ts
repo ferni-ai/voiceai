@@ -56,6 +56,17 @@ async function withDeadline<T>(work: Promise<T>, ms: number): Promise<T> {
   }
 }
 
+/**
+ * Lets an authorized scheduled run outlive the server-wide 30 s socket idle
+ * timeout, for this socket only; Node puts the server timeout back when the
+ * connection carries its next request. Call it only once the caller has
+ * passed the scheduler (OIDC) or admin check, so no unauthenticated request
+ * ever holds a socket longer than before.
+ */
+export function liftJobSocketTimeout(req: IncomingMessage): void {
+  req.socket.setTimeout(JOB_SOCKET_TIMEOUT_MS);
+}
+
 let defaultStore: JobLockStore | null = null;
 
 export async function runScheduledJob(
@@ -65,9 +76,7 @@ export async function runScheduledJob(
   run: () => Promise<unknown>,
   deps: JobRunDeps = {}
 ): Promise<void> {
-  // Overrides the server-wide 30 s for this socket only; Node puts the
-  // server timeout back when the connection carries its next request.
-  req.socket.setTimeout(JOB_SOCKET_TIMEOUT_MS);
+  liftJobSocketTimeout(req);
 
   const env = deps.env ?? process.env;
   const now = deps.now ?? Date.now;

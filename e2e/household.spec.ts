@@ -298,7 +298,6 @@ test.describe('Household Manager UI', () => {
 
     await page.evaluate(
       ({ userId, deviceId }) => {
-        localStorage.setItem('bogle_user_id', userId);
         localStorage.setItem('ferni_user_id', userId);
         localStorage.setItem('ferni_device_id', deviceId);
       },

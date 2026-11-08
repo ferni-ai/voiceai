@@ -17,6 +17,7 @@ import { disconnectGoogleCalendar } from '../../../services/identity/google-cale
 import { OAUTH_START_PATH } from './oauth-start.js';
 import { GOOGLE_CALENDAR_SCOPES } from '../../../config/google-calendar-scopes.js';
 import { isGoogleLinkHonest } from '../../../config/google-link-honest.js';
+import { getLinkState, isLinkStatusV2, linkFields } from '../../../services/identity/link-state.js';
 import {
   INSUFFICIENT_SCOPE,
   hasCalendarScope,
@@ -248,13 +249,18 @@ export async function handleGoogleCalendarRoutes(
 
     const userTokens = await googleCalendarService.getTokens(userId);
     const googleConfigured = !!(GOOGLE_CALENDAR_CLIENT_ID && GOOGLE_CALENDAR_CLIENT_SECRET);
+    const insufficient = !!userTokens && isInsufficientLink(userTokens);
+    const link = isLinkStatusV2()
+      ? linkFields(await getLinkState(userId, 'google_calendar'))
+      : null;
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(
       JSON.stringify({
         google_calendar_configured: googleConfigured,
-        linked: !!userTokens && !isInsufficientLink(userTokens),
-        ...(userTokens && isInsufficientLink(userTokens) ? { status: INSUFFICIENT_SCOPE } : {}),
+        linked: !!userTokens && !insufficient,
+        ...(insufficient || link?.scopes_ok === false ? { status: INSUFFICIENT_SCOPE } : {}),
+        ...link,
         expires_at: userTokens?.expires_at || null,
         connect: googleConfigured ? CONNECT : null,
       })

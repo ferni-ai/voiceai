@@ -249,7 +249,8 @@ export async function handleWebhookRoutes(
     });
 
     if (!result.success) {
-      sendError(res, 500, result.error || 'Failed to create webhook');
+      const status = result.code === 'sealing_unavailable' ? 503 : 500;
+      sendError(res, status, result.error || 'Failed to create webhook');
       return true;
     }
 
@@ -315,11 +316,13 @@ export async function handleWebhookRoutes(
     });
 
     if (!result.success) {
-      sendError(
-        res,
-        result.error === 'Webhook not found' ? 404 : 500,
-        result.error || 'Failed to update'
-      );
+      const status =
+        result.error === 'Webhook not found'
+          ? 404
+          : result.code === 'sealing_unavailable'
+            ? 503
+            : 500;
+      sendError(res, status, result.error || 'Failed to update');
       return true;
     }
 

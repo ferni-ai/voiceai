@@ -4,15 +4,17 @@
  * @module intelligence/context-builders/personas/maya-coaching-insights/handoff-analysis
  */
 
-import { getHandoffContext } from '../../../../tools/handoff/executor.js';
+import type { HandoffArrivalContext } from '../../../../tools/handoff/index.js';
 import type { HandoffBriefing } from './types.js';
 
 // ============================================================================
 // HANDOFF CONTEXT ANALYSIS
 // ============================================================================
 
-export function analyzeHandoffForMaya(): HandoffBriefing | null {
-  const handoffContext = getHandoffContext();
+/** `handoffContext` is this call's arrival for the persona (takeHandoffArrival), or null. */
+export function analyzeHandoffForMaya(
+  handoffContext: HandoffArrivalContext | null
+): HandoffBriefing | null {
   if (!handoffContext) return null;
 
   const briefing: HandoffBriefing = {

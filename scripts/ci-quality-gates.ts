@@ -20,6 +20,7 @@
 import { execFileSync, spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { ageSummary } from './audit-todos.js';
 import { loadAllowlist, scanRepo } from './check-privacy-claims.js';
 
 // ============================================================================
@@ -207,7 +208,7 @@ function checkTodos(limits: typeof THRESHOLDS): CheckResult[] {
       threshold: limits.maxTodos,
       message:
         totalCount <= limits.maxTodos
-          ? `${totalCount} items, ${ancientCount} over 90 days old (within limit)`
+          ? `${totalCount} items, ${ageSummary(ancientCount, report.shallow === true)} (within limit)`
           : `${totalCount} items exceeds limit of ${limits.maxTodos}`,
     });
   } catch (error) {

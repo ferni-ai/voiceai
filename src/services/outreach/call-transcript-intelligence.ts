@@ -22,6 +22,7 @@ import { callerText } from './caller-text.js';
 import {
   getOpenAIFallbackModel,
   getDefaultModel,
+  getGeminiClient,
   TEMP_REASONING,
   MAX_TOKENS_LONG,
 } from '../../config/gemini-config.js';
@@ -305,32 +306,18 @@ async function callLLMForAnalysis(prompt: string): Promise<ConversationInsights>
     }
   }
 
-  // Fallback to Gemini
-  const geminiKey = process.env.GOOGLE_API_KEY;
-  if (geminiKey) {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${getDefaultModel()}:generateContent?key=${geminiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: TEMP_REASONING },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`);
-    }
-
-    const data = (await response.json()) as {
-      candidates: Array<{ content: { parts: Array<{ text: string }> } }>;
-    };
-    const content = data.candidates[0]?.content?.parts[0]?.text || '{}';
-
+  // Fallback: the shared Gemini client (Vertex on the configured location, not the API-key API)
+  const client = (await getGeminiClient()) as {
+    models: { generateContent: (req: unknown) => Promise<{ text?: string }> };
+  } | null;
+  if (client) {
+    const response = await client.models.generateContent({
+      model: getDefaultModel(),
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      config: { temperature: TEMP_REASONING, responseMimeType: 'application/json' },
+    });
     // Extract JSON from response (Gemini sometimes wraps in markdown)
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    const jsonMatch = (response.text ?? '{}').match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error('No JSON found in Gemini response');
     }
@@ -338,7 +325,7 @@ async function callLLMForAnalysis(prompt: string): Promise<ConversationInsights>
     return JSON.parse(jsonMatch[0]) as ConversationInsights;
   }
 
-  throw new Error('No LLM API key available');
+  throw new Error('No LLM available for transcript analysis');
 }
 
 /**

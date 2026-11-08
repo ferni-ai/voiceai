@@ -9,6 +9,7 @@
     <key>NSPrivacyCollectedDataTypes</key>
     <array>
         <dict>
+            <!-- Only with Sign in with Apple (Apple may relay a private address) or Google. -->
             <key>NSPrivacyCollectedDataType</key>
             <string>NSPrivacyCollectedDataTypeEmailAddress</string>
             <key>NSPrivacyCollectedDataTypeLinked</key>
@@ -21,6 +22,20 @@
             </array>
         </dict>
         <dict>
+            <!-- Only with phone sign-in: the number Firebase texts the code to, kept on the account. -->
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypePhoneNumber</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+            </array>
+        </dict>
+        <dict>
+            <!-- Only with Sign in with Apple or Google. -->
             <key>NSPrivacyCollectedDataType</key>
             <string>NSPrivacyCollectedDataTypeName</string>
             <key>NSPrivacyCollectedDataTypeLinked</key>

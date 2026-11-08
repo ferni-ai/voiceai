@@ -19,12 +19,10 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
-import { getDeviceId } from '../state/app.state.js';
 import { getMusicStateManager } from '../services/music-state-manager.js';
 import {
   activatePresetOnServer,
   fetchLightsStatus,
-  fetchSpotifyLinked,
   fetchThermostatStatus,
   getMusicSnapshot,
   sendMusicControl,
@@ -110,7 +108,6 @@ interface VibeState {
     track?: string;
     artist?: string;
     volume: number;
-    spotifyLinked: boolean | null;
   };
   lights: {
     connected: boolean;
@@ -349,7 +346,7 @@ let isVisible = false;
 let callbacks: VibeControllerCallbacks = {};
 const currentState: VibeState = {
   activePreset: null,
-  music: { playing: false, volume: 50, spotifyLinked: null },
+  music: { playing: false, volume: 50 },
   lights: { connected: false, brightness: 50, colorTemp: 4000 },
   temperature: { connected: false, current: 70, target: 70, mode: 'home' },
 };
@@ -1429,9 +1426,7 @@ function renderMusicSection(): HTMLElement {
     currentState.music.track || t('vibe.music.chooseVibe', 'Choose a vibe to start music'),
   ]));
   info.appendChild(createElement('div', { className: 'vibe-music__artist' }, [
-    currentState.music.artist || (currentState.music.spotifyLinked === false
-      ? t('vibe.music.linkSpotify', 'Link Spotify in Settings for full songs')
-      : t('vibe.music.askFerni', 'Or ask Ferni to play something')),
+    currentState.music.artist || t('vibe.music.askFerni', 'Or ask Ferni to play something'),
   ]));
   nowPlaying.appendChild(info);
 
@@ -1772,12 +1767,8 @@ function render(): void {
 // ============================================================================
 
 async function fetchState(): Promise<void> {
-  const [spotifyLinked, lights, thermostat] = await Promise.all([
-    fetchSpotifyLinked(getDeviceId()),
-    fetchLightsStatus(),
-    fetchThermostatStatus(),
-  ]);
-  currentState.music = { ...currentState.music, ...getMusicSnapshot(), spotifyLinked };
+  const [lights, thermostat] = await Promise.all([fetchLightsStatus(), fetchThermostatStatus()]);
+  currentState.music = { ...currentState.music, ...getMusicSnapshot() };
   if (lights) currentState.lights = { ...currentState.lights, ...lights };
   if (thermostat) {
     currentState.temperature = {

@@ -14,7 +14,6 @@ export * from './handoff.service.js';
 export * from './mood.service.js';
 export * from './push-notifications.service.js';
 export * from './relationship-stage.service.js';
-export * from './spotify.service.js';
 
 // ============================================================================
 // 🌟 BRAND SYSTEM - World-class multi-sensory experience

@@ -7,6 +7,10 @@
  * at VAD prewarm, so a newer transformers binding then fails with
  * "version `VERS_1.30.0' not found". package.json overrides Silero's copy to
  * match transformers; this fails if a bump to either package splits them again.
+ *
+ * The root onnxruntime-node is a third copy: the speaker-embedding worker loads it
+ * with createRequire. A bump to it alone (#3413: 1.31.1 beside Silero's 1.30.0)
+ * splits the same .so the other way, and the neural speaker model falls back to DSP.
  */
 
 import { readFileSync, realpathSync } from 'node:fs';
@@ -19,7 +23,19 @@ const ROOT = join(__dirname, '..', '..', '..');
 function onnxruntimeVersionFor(pkg: string): string {
   const pkgDir = realpathSync(join(ROOT, 'node_modules', pkg));
   // pnpm installs a package's dependencies beside it under .pnpm/<id>/node_modules.
-  const ortPkg = join(pkgDir, '..', pkg.startsWith('@') ? '..' : '', 'onnxruntime-node', 'package.json');
+  const ortPkg = join(
+    pkgDir,
+    '..',
+    pkg.startsWith('@') ? '..' : '',
+    'onnxruntime-node',
+    'package.json'
+  );
+  return JSON.parse(readFileSync(ortPkg, 'utf8')).version;
+}
+
+/** The onnxruntime-node version installed at the repo root. */
+function rootOnnxruntimeVersion(): string {
+  const ortPkg = join(realpathSync(join(ROOT, 'node_modules', 'onnxruntime-node')), 'package.json');
   return JSON.parse(readFileSync(ortPkg, 'utf8')).version;
 }
 
@@ -29,5 +45,10 @@ describe('onnxruntime-node', () => {
     const transformers = onnxruntimeVersionFor('@huggingface/transformers');
     expect(silero).toMatch(/^\d+\.\d+\.\d+/);
     expect(silero).toBe(transformers);
+  });
+
+  it('is the same version at the root, which the speaker-embedding worker loads', () => {
+    const silero = onnxruntimeVersionFor('@livekit/agents-plugin-silero');
+    expect(rootOnnxruntimeVersion()).toBe(silero);
   });
 });

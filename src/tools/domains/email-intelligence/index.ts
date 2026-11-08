@@ -34,7 +34,7 @@ import {
   isGmailConfigured,
   type EmailSummary,
 } from '../../../services/gmail/gmail-service.js';
-import { honestGmailReadTools } from '../../../services/gmail/gmail-honesty.js';
+import { gmailNotConnected, honestGmailReadTools } from '../../../services/gmail/gmail-honesty.js';
 
 const log = getLogger();
 
@@ -69,7 +69,7 @@ const analyzeInboxPriorityDef: ToolDefinition = {
 
         const isConfigured = await isGmailConfigured(userId);
         if (!isConfigured) {
-          return 'Gmail is not connected yet. Would you like me to help you connect your Google account?';
+          return gmailNotConnected();
         }
 
         const emails = await getUnreadMessages(userId, params.count || 20);
@@ -277,7 +277,7 @@ const summarizeThreadDef: ToolDefinition = {
 
         const isConfigured = await isGmailConfigured(userId);
         if (!isConfigured) {
-          return 'Gmail is not connected yet. Would you like me to help you connect your Google account?';
+          return gmailNotConnected();
         }
 
         // Search for the thread
@@ -440,7 +440,7 @@ const closeFollowUpDef: ToolDefinition = {
 // DOMAIN EXPORT
 // ============================================================================
 
-// The two that read the inbox: not offered while Gmail read is off (GOOGLE_LINK_HONEST).
+// The two that read the inbox: offered only under GMAIL_READ_TOOLS (gmail-honesty.ts).
 const [analyzeInboxPriority, summarizeThread] = honestGmailReadTools([
   analyzeInboxPriorityDef,
   summarizeThreadDef,

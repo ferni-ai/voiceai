@@ -23,34 +23,6 @@ vi.mock('../../utils/safe-logger.js', () => ({
   }),
 }));
 
-// Mock firebase-admin
-vi.mock('firebase-admin', () => ({
-  apps: [],
-  initializeApp: vi.fn(),
-  firestore: vi.fn(() => ({
-    collection: vi.fn(() => ({
-      doc: vi.fn(() => ({
-        set: vi.fn().mockResolvedValue(undefined),
-      })),
-      where: vi.fn(() => ({
-        orderBy: vi.fn(() => ({
-          limit: vi.fn(() => ({
-            get: vi.fn().mockResolvedValue({ docs: [], empty: true }),
-          })),
-        })),
-        limit: vi.fn(() => ({
-          get: vi.fn().mockResolvedValue({ docs: [], empty: true, size: 0 }),
-        })),
-        get: vi.fn().mockResolvedValue({ docs: [] }),
-      })),
-    })),
-    batch: vi.fn(() => ({
-      delete: vi.fn(),
-      commit: vi.fn().mockResolvedValue(undefined),
-    })),
-  })),
-}));
-
 import { type ActivityEvent } from '../admin-activity.js';
 
 describe('AdminActivityService', () => {

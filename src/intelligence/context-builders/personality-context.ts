@@ -166,7 +166,7 @@ async function buildPersonalityV2Context(input: ContextBuilderInput): Promise<Co
     if (process.env.NODE_ENV === 'development' || process.env.DEBUG_PERSONALITY) {
       log.debug(
         {
-          formattedContextPreview: context.formattedContext?.slice(0, 200) + '...',
+          formattedContextLen: context.formattedContext?.length,
           vulnerabilities: context.pendingVulnerabilities.map((v) => ({
             category: v.category,
             needsFollowUp: v.needsFollowUp,

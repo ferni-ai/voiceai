@@ -31,9 +31,10 @@ import {
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { checkRun, parseChecks } from '../recall-facts.mjs';
-import { claimedContact } from './false-done.mjs';
+import { claimedContact, falseMusicClaims } from './false-done.mjs';
 import { recallValue } from './recall-score.mjs';
 import { loadBar, prevBar, renderBar, scoreBar } from './superhuman.mjs';
+import { nightGrounding } from './tool-grounding.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SCENARIOS = join(HERE, '..', 'scenarios');
@@ -61,6 +62,7 @@ export function loadNight(out) {
         base,
         scenario: run?.meta?.scenario ?? base.replace(/-[^-]+$/, ''),
         run,
+        seed: run?.meta?.seed ? readJson(join(dir, `${base}.seed.json`)) : null,
         score: readJson(join(dir, f)),
         judge: readJson(join(dir, `${base}.judge.json`)),
         summary: summary.get(`${base}.json`) ?? null,
@@ -99,6 +101,10 @@ export function metric(check, runs, caps, extra = {}) {
         value: n ? t.filter((r) => r.score.replyTexts.some(claimedContact)).length : null,
         n,
       };
+    case 'claimedMusic': // false-done.mjs: "it's playing now" with no music_state playing (report only)
+      return { value: n ? t.filter((r) => falseMusicClaims(r.run).length).length : null, n };
+    case 'toolGrounding': // tool-grounding.mjs: a number or name no lookup output backs
+      return nightGrounding(runs);
     case 'recall': // recall-eval.mjs's numbers (OUT/recall.json); a planted-regression run is no data
       return extra.recall?.plant ? { value: null, n: 0 } : recallValue(extra.recall, check.field);
     case 'callsNotMatching':

@@ -74,7 +74,7 @@ import { shutdown as shutdownPlaid } from './services/plaid.js';
 import { shutdown as shutdownDemoSessions } from './services/demo-sessions.js';
 import { shutdown as shutdownTokenRoutes } from './routes/token.js';
 import { shutdown as shutdownGoogleCalendar } from '../token/oauth/google-calendar.js';
-import { shutdown as shutdownSpotifyOAuth } from '../token/oauth/spotify.js';
+import { shutdown as shutdownSpotifyLinks } from '../token/oauth/spotify.js';
 import { shutdownPersistence } from '../../services/persistence/index.js';
 
 // Calendar real-time sync services
@@ -331,7 +331,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (await handlePlaidRoutes(req, res, pathname, parsedUrl)) return;
   }
 
-  // Spotify routes (Web Playback SDK + OAuth device flows)
+  // Spotify routes (house Web Playback SDK + delete-only unlink of old per-user links)
   if (pathname.startsWith('/spotify')) {
     if (await handleSpotifyRoutes(req, res, pathname, parsedUrl)) return;
   }
@@ -1562,7 +1562,7 @@ async function gracefulShutdown(): Promise<void> {
       shutdownDemoSessions(),
       shutdownTokenRoutes(),
       shutdownGoogleCalendar(),
-      shutdownSpotifyOAuth(),
+      shutdownSpotifyLinks(),
       Promise.resolve(shutdownApplePolling()),
       Promise.resolve(shutdownWearablesRoutes()),
     ]);

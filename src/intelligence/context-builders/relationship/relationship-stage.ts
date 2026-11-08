@@ -87,16 +87,17 @@ This is a rare, deep bond. We can:
 /**
  * Format relationship context for LLM prompt injection
  */
-function formatRelationshipContext(ctx: RelationshipContext): string {
+function formatRelationshipContext(ctx: RelationshipContext, sessionsTogether?: number): string {
   const lines: string[] = [];
 
   // Stage guidance
   lines.push(STAGE_GUIDANCE[ctx.stage]);
 
-  // Session count context
-  if (ctx.totalSessions > 1) {
+  // Session count from the one count of sessions together (completed calls where they spoke),
+  // never the engine's own counter; this call is the next one
+  if (sessionsTogether !== undefined && sessionsTogether >= 1) {
     lines.push(
-      `\nThis is session #${ctx.totalSessions} together. Trust score: ${Math.round(ctx.trustScore * 100)}%`
+      `\nThis is session #${sessionsTogether + 1} together. Trust score: ${Math.round(ctx.trustScore * 100)}%`
     );
   }
 
@@ -209,7 +210,8 @@ async function buildRelationshipStageContext(
     const ctx = engine.buildRelationshipContext();
 
     // Main relationship context
-    const relationshipContent = formatRelationshipContext(ctx);
+    const sessionsTogether = input.services?.userProfile?.totalConversations;
+    const relationshipContent = formatRelationshipContext(ctx, sessionsTogether);
     if (relationshipContent) {
       injections.push(
         createStandardInjection('relationship-stage', relationshipContent, {

@@ -106,11 +106,11 @@ const COLLECTIONS = {
  */
 export async function initializeAnalytics(): Promise<boolean> {
   try {
-    const admin = (await import('firebase-admin')).default;
+    const { getApps, initializeApp } = await import('firebase-admin/app');
 
-    if (admin.apps.length === 0) {
+    if (getApps().length === 0) {
       try {
-        admin.initializeApp({
+        initializeApp({
           projectId: process.env.GCP_PROJECT_ID || process.env.FIREBASE_PROJECT_ID,
         });
       } catch {

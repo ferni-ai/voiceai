@@ -11,6 +11,14 @@
  */
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
+// getSleepSummary is on Maya's list but is built only with its flag (read when the wellness
+// domain loads) and the Oura app credentials, so these are set before anything imports it.
+vi.hoisted(() => {
+  process.env.OURA_SLEEP_TOOL = 'on';
+  process.env.OURA_CLIENT_ID = 'test-oura-id';
+  process.env.OURA_CLIENT_SECRET = 'test-oura-secret';
+});
+
 const captured = vi.hoisted(() => ({
   calls: [] as Array<{ before: string[]; after: string[]; ctx: unknown; handedTo: boolean }>,
 }));

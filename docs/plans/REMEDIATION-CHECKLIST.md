@@ -222,7 +222,7 @@ npm run audit:health  # Metrics should improve or stay same
 ## 📚 Reference Links
 
 - [Full Remediation Plan](./COMPREHENSIVE-REMEDIATION-PLAN.md)
-- [Code Quality Standards](../../.cursorrules)
+- [Code Quality Standards](../../AGENTS.md)
 - [Core Principles](../../CORE-PRINCIPLES.md)
 - [Architecture Docs](../architecture/)
 

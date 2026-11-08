@@ -17,6 +17,14 @@
     "walk-away": {
       "about": "Distracted: talks over Ferni, changes topic, steps away mid-call. Call review 2026-10-22: Maya repeated replies the caller had cut off (#2422).",
       "filler": 0.3, "restart": 0.2, "pause": 0.45, "pauseMs": [400, 1300], "trailOff": 0.15, "rate": [0.98, 1.18], "minWords": 6
+    },
+    "mumbler": {
+      "about": "Mumbles and restarts: ums, repeated words, half-finished lines, a quick rate. Listening scenarios (listen-mumbled): speech-to-text garbles some of it, and Ferni should ask, not guess.",
+      "filler": 0.7, "restart": 0.5, "pause": 0.6, "pauseMs": [400, 1100], "trailOff": 0.4, "rate": [0.98, 1.15], "minWords": 4
+    },
+    "elder": {
+      "about": "An older caller: slow, long pauses mid-thought, few fillers. Listening scenarios (listen-elder-repeats): repeats a story and a question, asks Ferni to say it again.",
+      "filler": 0.25, "restart": 0.1, "pause": 0.6, "pauseMs": [800, 1500], "trailOff": 0.15, "rate": [0.78, 0.9], "minWords": 5
     }
   }
 }

@@ -421,4 +421,27 @@ describe('PROMISE_OUTCOME / PROMISE_JOB_RUN lines', () => {
     const logged = JSON.stringify([logPromiseOutcome.mock.calls, logPromiseJobRun.mock.calls]);
     expect(logged).not.toMatch(/Mom|Happy birthday|5550123/);
   });
+
+  // The thrown text is logged and stored on the outreach: never the contact's name (fictional).
+  it.each(['text', 'call', 'email'])(
+    'a %s with no number or address fails without the contact name in its error',
+    async (channel) => {
+      rows = [outreach('o1', 1)];
+      rows[0].data.target = {
+        ...(rows[0].data.target as object),
+        channel,
+        resolvedContactName: 'Riley Test',
+        resolvedPhone: undefined,
+      };
+      incrementRetry.mockResolvedValueOnce({ shouldRetry: false, retryCount: 3 });
+      await executeDueScheduledOutreach({ now: NOW });
+      expect(updateOutreachStatus).toHaveBeenLastCalledWith(
+        'u1',
+        'o1',
+        'failed',
+        expect.objectContaining({ error: expect.stringMatching(/^No (phone number|email) for/) })
+      );
+      expect(JSON.stringify(updateOutreachStatus.mock.calls)).not.toMatch(/Riley/);
+    }
+  );
 });

@@ -42,6 +42,7 @@ import {
 
 // Trust and Contact imports
 import { completeOnboarding, detectContactInfo } from '../contact-onboarding.js';
+import { isThirdPartyCallUser } from '../../memory/index.js';
 import {
   calculateTrustLevel,
   canPerformOperation,
@@ -229,8 +230,10 @@ export async function processMessage(
   session.turnCount++;
   session.lastEmotionalIntensity = emotionalIntensity ?? session.lastEmotionalIntensity;
 
-  // Step 1: Check for contact info in message
-  const contactDetected = detectContactInfo(message);
+  // Step 1: Check for contact info in message. Never from the person on a call placed for a
+  // member: they never signed up, so nothing they say is saved and they are never asked (Step 3).
+  const member = !isThirdPartyCallUser(session.userId);
+  const contactDetected = member ? detectContactInfo(message) : null;
   if (contactDetected && (contactDetected.phone || contactDetected.email)) {
     session.contactDetected = {
       phone: contactDetected.phone,
@@ -247,12 +250,9 @@ export async function processMessage(
 
     recordPhoneAskResponse(session.userId, 'provided');
 
+    const { phone, email } = contactDetected;
     log.info(
-      {
-        userId: session.userId,
-        hasPhone: !!contactDetected.phone,
-        hasEmail: !!contactDetected.email,
-      },
+      { userId: session.userId, hasPhone: !!phone, hasEmail: !!email },
       '📱 Contact info detected and saved'
     );
   }
@@ -272,7 +272,7 @@ export async function processMessage(
   let shouldAskForContact = false;
   let contactAskScript: string | undefined;
 
-  if (!session.contactDetected?.phone && !session.hasAskedForPhone) {
+  if (member && !session.contactDetected?.phone && !session.hasAskedForPhone) {
     const askResult = await shouldAskForPhone(session.userId, magicMoment, {
       turnCount: session.turnCount,
       hasAskedThisSession: session.hasAskedForPhone,

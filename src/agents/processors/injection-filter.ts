@@ -14,6 +14,7 @@ export {
   detectConversationMode,
   ESSENTIAL_CATEGORIES,
   OPTIONAL_CATEGORIES,
+  SAFETY_CATEGORIES,
   MAX_INJECTIONS,
   MAX_TOTAL_CHARS,
   type ConversationMode,

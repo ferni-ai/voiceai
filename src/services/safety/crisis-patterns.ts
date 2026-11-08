@@ -4,6 +4,10 @@
  * @module CrisisPatterns
  */
 
+import { ROPE_READY } from './crisis-means-in-hand.js';
+import { FAREWELL_PASSIVE_PATTERNS } from './crisis-patterns-farewell.js';
+import { THIRD_PERSON_REPORTED } from './crisis-third-person.js';
+
 type PatternTag = 'suicidal' | 'self_harm';
 
 interface TaggedPattern {
@@ -12,6 +16,23 @@ interface TaggedPattern {
   /** An attempt underway or means in hand: the reply leads with 911. */
   imminent?: true;
 }
+
+/** A yes in front of or after a short line ("ok kill me", "im suicidal, yes"). */
+const YES_WORDS = 'yes|yeah|yep|yup|yea|ok|okay|sure';
+/** Words in front of a short line, a yes among them: "yes im suicidal", "um, kill me". */
+const LEAD_IN = String.raw`((${YES_WORDS}|um+|uh+|honestly|like|idk)[,.!]* )*`;
+/** What may close a whole-line read: "?", an emoji, "tbh", "lol" (a joke frame), ", yes". */
+const TAIL = String.raw`([\s,]*([.!?]+|tbh|lol|${YES_WORDS}|\p{Extended_Pictographic}|\p{Emoji_Modifier}|\u{FE0F}|\u{200D}))*\s*$`;
+/** Someone else's belief, or the caller doubting it: "my mom thinks im suicidal", "i don't think". */
+const NOT_SAID_AS_MINE = String.raw`(?<!\b(i (don'?t|do not|didn'?t|did not|never) (think|believe|feel like|say|said)|(my (mom|mother|dad|father|parents|sister|brother|friends?|teacher|therapist|doctor|boss|wife|husband|girlfriend|boyfriend|partner)|he|she|they|people|everyone) (thinks?|believes?|says?|worries|worried|assumes?)|(asked|asks|wonders|wondered) if) )`;
+/** Blame on an outside thing in the same breath: "im literally suicidal this game is so bad". */
+const BLAME_AFTER = String.raw`(?! (this|that|the) (game|traffic|meeting|show|movie|level|class|homework|commute|lag|wifi|song|episode|match|test|exam|boss|app|update)\b[\w' ]{0,20}?\b(is|are|was|were) (so|too) (bad|boring|annoying|cringey?|embarrassing|awful|slow|long|hard|dumb|stupid|terrible|loud|laggy|toxic)\b)`;
+const SUICIDAL_ADVERBS = String.raw`((so|really|very|kinda|kind of|just|actually|honestly|pretty|literally) ){0,2}`;
+/** Running, lifting or a game in the same sentence: "my legs are dead, i can't keep going". */
+const EXERTION = String.raw`((ran|run|running)(?! out\b)|jog\w*|miles?|laps?|reps?|workout|gym|lift\w*|legs?|lungs|hike|hiking|climb\w*|bike|biking|cycling|swim\w*|race|marathon|sprint\w*|practice|training|game|level|boss|round|match|quest)`;
+/** A passive line read only in a sentence with no exertion or game in it. */
+const plainSentence = (body: string): RegExp =>
+  new RegExp(String.raw`(^|[.!?]\s)(?![^.!?]*\b${EXERTION}\b)[^.!?]*${body}`);
 
 /**
  * Explicit crisis indicators - immediate red flags.
@@ -94,6 +115,31 @@ export const EXPLICIT_CRISIS_PATTERNS: TaggedPattern[] = [
     re: /\bsuicid(e|al) (note|letter)\b|\bgoodbye (note|letter)s?\b(?! (from|to) (the|my) (team|class|job|company))/,
     tag: 'suicidal',
   },
+  // Short lines, often a yes to "are you thinking about suicide?" ("yes im suicidal", "ok kill
+  // me"). Every reader missed them. "kill me", "overdose tonight" and the pills goodbye only as
+  // the whole line, so "kill me now, this meeting" and "od tonight on pizza" stay out.
+  {
+    re: new RegExp(
+      String.raw`${NOT_SAID_AS_MINE}\bi('?m| am)( feeling)? ${SUICIDAL_ADVERBS}suicidal\b${BLAME_AFTER}|${NOT_SAID_AS_MINE}\bi( feel|'ve been feeling| have been feeling) ${SUICIDAL_ADVERBS}suicidal\b${BLAME_AFTER}`
+    ),
+    tag: 'suicidal',
+  },
+  { re: new RegExp(`^${LEAD_IN}(please |just )?kill me( please)?${TAIL}`, 'u'), tag: 'suicidal' },
+  {
+    re: new RegExp(
+      `^${LEAD_IN}(i'?ll |i will |i'?m going to |going to )?(overdose|od) (tonight|today|right now|now|this weekend)${TAIL}`,
+      'u'
+    ),
+    tag: 'suicidal',
+  },
+  // Pills and a goodbye, and nothing else ("💊💊💊 bye everyone").
+  {
+    re: new RegExp(
+      `^${LEAD_IN}(\\u{1F48A}\\s*)+(ok |so )?(bye|goodbye)( everyone| all| world| guys)?${TAIL}`,
+      'u'
+    ),
+    tag: 'suicidal',
+  },
   // Coded language.
   { re: /\bkms\b|\bunalive (myself|me)\b|\bsewer ?slide\b/, tag: 'suicidal' },
   // Means in hand or an attempt underway.
@@ -112,6 +158,7 @@ export const EXPLICIT_CRISIS_PATTERNS: TaggedPattern[] = [
     tag: 'suicidal',
   },
   { re: /\bi('?ve| have)? (just )?overdosed\b/, tag: 'suicidal', imminent: true },
+  { re: new RegExp(ROPE_READY), tag: 'suicidal', imminent: true },
   {
     re: /\b(gun|pistol) (to|against|in) my (head|mouth)\b|\brope (is )?(around|on) my neck\b|\b(have|got|holding) (a|the|my) (gun|pistol) in my hand\b/,
     tag: 'suicidal',
@@ -194,7 +241,7 @@ export const PASSIVE_IDEATION_PATTERNS: TaggedPattern[] = [
     tag: 'suicidal',
   },
   {
-    re: /\b(want|wanna|just want) to (just )?(disappear|vanish|stop existing|cease to exist)\b(?! (into|for|to|from|on)\b)/,
+    re: /\b(want|wanna|just want) to (just )?(disappear|vanish|stop existing|cease to exist)\b(?! (into|to|from|on)\b| for (?!good\b|ever\b))/,
     tag: 'suicidal',
   },
   {
@@ -234,6 +281,18 @@ export const PASSIVE_IDEATION_PATTERNS: TaggedPattern[] = [
   { re: /\blife (isn'?t|is not|ain'?t) worth living\b/, tag: 'suicidal' },
   {
     re: /\bdon'?t (think i )?want to (keep going|go on)\b(?! (to|with|down|at)\b)/,
+    tag: 'suicidal',
+  },
+  {
+    re: /\bi'?m (so |just |completely |totally )?done with (life|living|being alive)\s*[.!?]*$/,
+    tag: 'suicidal',
+  },
+  {
+    re: plainSentence(String.raw`\bi can'?t keep going( on)?( anymore| like this)?\s*[.!?]*$`),
+    tag: 'suicidal',
+  },
+  {
+    re: plainSentence(String.raw`\bi'?m sorry,? (but )?i'?m (just )?done\s*[.!?]*$`),
     tag: 'suicidal',
   },
   // Method-seeking.
@@ -293,6 +352,7 @@ export const PASSIVE_IDEATION_PATTERNS: TaggedPattern[] = [
     re: /\b(made sure|making sure|arranged|set up|sorted out)\b[^.!?]{0,50}\bif (anything|something) (happens|were to happen) to me\b/,
     tag: 'suicidal',
   },
+  ...FAREWELL_PASSIVE_PATTERNS,
   // Spanish.
   {
     re: /\bno tengo ganas de vivir\b|\bmejor sin m[ií](?![a-z])|\bno vale la pena vivir\b|\bquisiera desaparecer\b|\bsoy una carga\b|\bojal[aá] no despertar/,
@@ -376,41 +436,9 @@ export const SESSION_CONTEXT_PATTERNS = [
   /\bthank you for everything\b/,
 ];
 
-/**
- * The floor (#2525): first-person ending words, whatever comes before them. The tiered
- * patterns above name the modal or connective ("want to", "going to"); "I might kill myself",
- * "before I kill myself", "until I end it all" matched none of them and scored 0 in both
- * detectors. detectCrisis scores this floor on its own, softened exactly as the tiers are
- * (crisis-modifiers.ts), unless the clause is one of ENDING_IDIOMS. Places and means never
- * exempt it ("killing myself in the garage tonight", "take my life in the garage").
- */
-export const FIRST_PERSON_ENDING =
-  /\b(kill(ed|ing)? my ?self|end(ed|ing)? (my (own )?life|it all)|tak(e|ing) my (own )?life\b(?! (back|savings|story|insurance|admin|seriously|more seriously|for granted|into my own hands|in (a|my|another) (new |different )?direction|to the next level|forward)\b)|unaliv(e|ing) my ?self|commit(ting)? suicide)\b/;
-
-/**
- * Everyday idioms around the floor's words, anchored to the match itself: each is tested on the
- * match and what follows it in the clause, and an accident also needs "almost" or "nearly" just
- * before it (ENDING_IDIOM_BEFORE). Closed forms only: laughing, a named near accident, effort
- * (studying, at the gym "lately"), a named task, a game, and ending a life "as a" named role.
- * A place, a time or a means never exempts the words ("killing myself at the bridge tonight").
- */
-export const ENDING_IDIOMS = [
-  /^kill(ed|ing)? my ?self laughing\b/,
-  /^kill(ed|ing)? my ?self (studying|working (two|three|double|extra|overtime)|training|cramming|trying to (make|please|keep up with) (her|him|them|everyone|my boss))\b/,
-  /^kill(ed|ing)? my ?self (at (the gym|work)|in the gym) (lately|these days|every (day|night|week))\b/,
-  /^kill(ed|ing)? my ?self every (day|night) at (the gym|work)\b/,
-  /^kill(ed|ing)? my ?self over (this|that|these|those|my|the) (homework|spreadsheet|project|essay|paper|assignment|report|deadline|exam|code)\b/,
-  /^kill(ed|ing)? my ?self in (minecraft|fortnite|roblox|gta|elden ring|the sims|skyrim|zelda|((the|a|this|that|my) )?(video )?games?)\b/,
-  /^end(ed|ing)? my life as an? (bachelor|bachelorette|single (man|woman|guy|girl|person)|smoker|drinker|student|renter|teenager)\b/,
-];
-
-/** A near accident: "almost" or "nearly" right before the words, a named fall or ride after. */
-export const ENDING_IDIOM_BEFORE = /\b(almost|nearly|practically|could have|could'?ve) $/;
-export const ENDING_ACCIDENT =
-  /^kill(ed)? my ?self ((falling|tripping|slipping|crashing|riding) (on|off|down|over|into) |(on|off) )(the|my|a|that|this) (stairs|steps|step|bike|ice|ladder|skateboard|scooter|curb|treadmill|trampoline|horse)\b/;
-
 /** Someone the caller knows is at risk. */
 export const THIRD_PARTY_PATTERNS = [
+  ...THIRD_PERSON_REPORTED,
   /\b(wants?|going|gonna|threaten(s|ed|ing)?|talk(s|ed|ing)? about|tr(y|ies|ied|ying)|plan(s|ning)?|thinking about) (to )?(kill|killing|hurt|hurting|end|ending) (himself|herself|themselves|themself|(his|her|their) (own )?life)\b/,
   /\b(is|'s|been|keeps?|started) (cutting|harming) (himself|herself|themselves|themself)\b|\bhurting (himself|herself|themselves) on purpose\b/,
   /\b(he|she|they) (wants?|want) to (die\b(?! (of|from|laughing)\b)|end it\b(?! with\b))/,

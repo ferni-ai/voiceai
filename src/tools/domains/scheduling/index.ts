@@ -43,7 +43,9 @@ import {
   setUserContactInfo,
   SAVED_NOT_VERIFIED,
 } from '../proactive/outreach/index.js';
+import { ownerMessageTool } from '../proactive/outreach/owner-message-policy.js';
 import { userTimeZone } from '../../../utils/caller-time-zone.js';
+import * as recipient from './schedule-call-recipient.js'; // SCHEDULE_CALL_WHO
 import {
   getPendingReminders,
   cancelReminder,
@@ -182,13 +184,7 @@ const scheduleCallTool: ToolDefinition = {
 
   create: (ctx: ToolContext) =>
     llm.tool({
-      description: `Schedule a phone call for later.
-Use when the user says things like:
-- "Call me at 2pm to remind me about the meeting"
-- "Give me a wake-up call tomorrow at 7am"
-- "Call me tonight if I haven't worked out by 8pm"
-
-The call will play a voice message when answered.`,
+      description: recipient.scheduleCallDescription(),
       parameters: z.object({
         message: z.string().describe('What to say when the call is answered'),
         when: z
@@ -196,10 +192,13 @@ The call will play a voice message when answered.`,
           .describe(
             'When to call - natural language like "at 2pm", "tomorrow morning", "in 30 minutes"'
           ),
+        ...recipient.recipientParam(),
       }),
       execute: async (params) => {
         const userId = ctx.userId || 'unknown';
         const personaId = ctx.agentId || 'ferni';
+        const elsewhere = recipient.forSomeoneElse(params, userId);
+        if (elsewhere !== undefined) return elsewhere;
 
         log.info({ userId, when: params.when }, '📞 Scheduling phone call');
 
@@ -732,16 +731,15 @@ import { getUnifiedScheduleDef, checkScheduleConflictsDef } from './unified-sche
 // ============================================================================
 
 const schedulingTools: ToolDefinition[] = [
-  scheduleMessageTool,
-  scheduleCallTool,
-  scheduleEmailTool,
-  sendMessageNowTool,
+  ...[scheduleMessageTool, scheduleCallTool, scheduleEmailTool, sendMessageNowTool].map((def) =>
+    ownerMessageTool(def)
+  ),
   listScheduledTool,
   cancelScheduledTool,
   saveContactInfoTool,
   // Intelligent scheduling tools
   getOptimalSendTimeTool,
-  scheduleAtBestTimeTool,
+  ownerMessageTool(scheduleAtBestTimeTool),
   // Unified schedule view - "Better than Human" capability
   getUnifiedScheduleDef,
   checkScheduleConflictsDef,

@@ -1,7 +1,7 @@
-import admin from 'firebase-admin';
+import { initializeApp } from 'firebase-admin/app';
 import { getAdminFirestore } from '../utils/firebase-admin-app.js';
 
-admin.initializeApp({ projectId: 'johnb-2025' });
+initializeApp({ projectId: 'johnb-2025' });
 
 const db = getAdminFirestore();
 

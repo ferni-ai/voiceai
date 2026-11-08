@@ -181,7 +181,7 @@ export const dynamicToolGuidanceBuilder: ContextBuilder = {
         matchedTools.add(trigger.toolName);
 
         log.debug(
-          { tool: trigger.toolName, text: userText.slice(0, 50) },
+          { tool: trigger.toolName, textLen: userText.length },
           '🎯 Dynamic tool guidance triggered'
         );
 
@@ -198,7 +198,7 @@ export const dynamicToolGuidanceBuilder: ContextBuilder = {
 
     // Log if music was triggered (for debugging)
     if (matchedTools.has('playMusic')) {
-      log.info({ text: userText.slice(0, 100) }, '🎵 [DIAG] Music tool hint injected!');
+      log.info({ textLen: userText.length }, '🎵 [DIAG] Music tool hint injected!');
     }
 
     return injections;

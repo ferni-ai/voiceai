@@ -43,7 +43,6 @@ interface ConnectedLifeCallbacks {
   onConnectWearables?: () => void;
   onConnectCalendar?: () => void;
   onConnectLinkedIn?: () => void;
-  onConnectSpotify?: () => void;
   onConnectEcobee?: () => void;
   onOpenVibeController?: () => void;
 }
@@ -64,7 +63,6 @@ const ICONS = {
   watch: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
   google: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',
   linkedin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>',
-  spotify: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 15s1.5-.5 4-.5 4 .5 4 .5"/><path d="M7 12s2-1 5-1 5 1 5 1"/><path d="M6 9s2.5-1.5 6-1.5 6 1.5 6 1.5"/></svg>',
   ecobee: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 4V10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0z"/><line x1="12" y1="14" x2="12" y2="10"/></svg>',
   controller: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>',
 };
@@ -84,7 +82,6 @@ class ConnectedLifeUI {
     wearables: 'disconnected',
     googleCalendar: 'disconnected',
     linkedin: 'disconnected',
-    spotify: 'disconnected',
     ecobee: 'disconnected',
   };
 
@@ -248,13 +245,6 @@ class ConnectedLifeUI {
       ],
       vibe: [
         {
-          id: 'spotify',
-          name: 'Spotify',
-          icon: ICONS.spotify,
-          status: this.integrationStatuses.spotify,
-          description: t('connectedLife.spotifyDesc'),
-        },
-        {
           id: 'ecobee',
           name: t('menu.items.thermostat'),
           icon: ICONS.ecobee,
@@ -366,9 +356,6 @@ class ConnectedLifeUI {
         break;
       case 'linkedin':
         this.callbacks.onConnectLinkedIn?.();
-        break;
-      case 'spotify':
-        this.callbacks.onConnectSpotify?.();
         break;
       case 'ecobee':
         this.callbacks.onConnectEcobee?.();

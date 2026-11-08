@@ -30,6 +30,29 @@ final class CrisisMarkerTests: XCTestCase {
         XCTAssertFalse(CrisisMarker.endCall(), "the next call starts clear")
     }
 
+    /// #2868 item 2: the call's sounds stay quiet through its goodbye, which
+    /// plays after `endCall()`, and come back when the next call begins.
+    func testTheSoundsMarkOutlastsTheCallsEndUntilTheNextCallBegins() {
+        XCTAssertFalse(CrisisMarker.latestCallHadCrisis, "precondition: a normal call")
+        CrisisMarker.mark()
+        XCTAssertTrue(CrisisMarker.latestCallHadCrisis)
+        XCTAssertTrue(CrisisMarker.endCall())
+        XCTAssertTrue(CrisisMarker.latestCallHadCrisis, "still set for the goodbye")
+        CrisisMarker.beginCall()
+        XCTAssertFalse(CrisisMarker.latestCallHadCrisis, "the next call's sounds play")
+    }
+
+    /// Beginning a call touches only the sounds: a failed call's mark still
+    /// carries to the next one for the check-in ask, as before.
+    func testBeginningACallLeavesTheCheckInMarkAlone() {
+        let ask = CheckInAsk(defaults: defaults)
+        ask.recordGoodCall(uid: "a")
+        CrisisMarker.mark()
+        CrisisMarker.beginCall()
+        XCTAssertTrue(CrisisMarker.thisCall)
+        XCTAssertFalse(ask.shouldAsk(uid: "a"))
+    }
+
     func testNoAskAfterACrisisCallEvenWhenTheCountIsAlreadyMet() {
         let ask = CheckInAsk(defaults: defaults)
         ask.recordGoodCall(uid: "a")

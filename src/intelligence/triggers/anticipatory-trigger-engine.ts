@@ -373,7 +373,7 @@ export function processPartialInput(
       anticipatedOutcome: detection.anticipatedOutcome,
       confidence: detection.overallConfidence.toFixed(2),
       verbalResponse,
-      inputPreview: partialInput.slice(0, 50),
+      inputLen: partialInput.length,
     },
     '⚡ Firing anticipatory response'
   );

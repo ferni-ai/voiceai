@@ -258,7 +258,7 @@ async function checkActionClaims<T>(
                 ? 'uncalled'
                 : null;
   // A tool that ran since the caller last spoke already answers a promise of its kind.
-  const ranThisTurn = kindsRunThisTurn(chatCtx);
+  const ranThisTurn = kindsRunThisTurn(chatCtx, env);
   const before: Kinds = claimsFromBefore(chatCtx); // a call result in the conversation, or asked
   /** Why a promise ("I'll text him") is not kept yet, or null when it may stand (action-promises.ts). */
   const unkept = (kind: ClaimKind, calling: Kinds): MissReason | null =>

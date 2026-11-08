@@ -35,7 +35,6 @@ const { buildOnBehalfDispatch } = await import('../on-behalf-dispatch.js');
 const { callResultDetails, callResultText, tellOwnerAboutCall } =
   await import('../call-result-text.js');
 import type { SuperhumanCallResult } from '../call-transcript-intelligence.js';
-const { relayedMessage } = await import('../relayed-message.js');
 
 const call = (userId: string) =>
   buildOnBehalfDispatch({
@@ -58,9 +57,28 @@ const HEARD = [
   { role: 'recipient' as const, content: 'Tell him he needs to go to church too. Bye now!' },
 ];
 
+/** The summary model's read of HEARD: the message is the model's, never her own words. */
+const MODEL = (): SuperhumanCallResult => ({
+  transcript: { callId: 'c', contactName: 'Mom', turns: [], duration: 66, capturedAt: '' },
+  friendlyReport: 'Mom was on her way to church.',
+  insights: {
+    summary: 'Mom was on her way to church.',
+    detailedSummary: 'Mom was on her way to church.',
+    keyPoints: [],
+    emotionalTone: { recipientMood: 'warm', overallSentiment: 'positive', notableEmotions: [] },
+    actionItems: [],
+    messagesForUser: ['he needs to go to church too'],
+    callbackRequested: false,
+    relationshipSignals: [],
+    topicsMentioned: [],
+    objectiveAchieved: true,
+    callQuality: 'good',
+  },
+});
+
 async function report(userId: string): Promise<void> {
   const c = call(userId);
-  const outcome = buildCallOutcome(c, HEARD, null, 'completed', 66);
+  const outcome = buildCallOutcome(c, HEARD, MODEL(), 'completed', 66);
   await captureCallResult(c.callId, outcome, toOnBehalfCallRequest(c));
 }
 
@@ -75,8 +93,16 @@ afterEach(() => {
 });
 
 describe('telling the owner how the call went', () => {
-  it('the outcome carries what the person asked to pass on', () => {
-    const outcome = buildCallOutcome(call('u-msg'), HEARD, null, 'completed', 66);
+  it('without the summary model, nothing they asked to pass on is quoted', () => {
+    const outcome = buildCallOutcome(call('u-none'), HEARD, null, 'completed', 66);
+    expect(outcome.summaryUnavailable).toBe(true);
+    expect(outcome.message).toBeUndefined();
+    expect(JSON.stringify(outcome)).not.toMatch(/church|heading out/i);
+    expect(callResultText('Mom', outcome)).not.toMatch(/church|asked me to tell you/i);
+  });
+
+  it('the outcome carries what the model says they asked to pass on', () => {
+    const outcome = buildCallOutcome(call('u-msg'), HEARD, MODEL(), 'completed', 66);
     expect(outcome.status).toBe('completed');
     expect(outcome.message).toBe('he needs to go to church too');
     expect(callResultText('Mom', outcome)).toContain(
@@ -232,29 +258,9 @@ describe('a passed-on message is screened as a whole before it reaches the owner
   });
 });
 
-describe('what they asked to pass on', () => {
-  it('takes "tell him", "let her know" and "tell <first name>", in their words', () => {
-    expect(relayedMessage(['Tell him he needs to go to church too.'], 'Sam', 'Mom')).toBe(
-      'he needs to go to church too'
-    );
-    expect(relayedMessage(["Let her know I'm proud of her!"], 'Sam', 'Mom')).toBe(
-      "I'm proud of her"
-    );
-    expect(relayedMessage(['Oh, and tell Sam that dinner is at six.'], 'Sam Lee', 'Mom')).toBe(
-      'dinner is at six'
-    );
-  });
-
-  it('never makes a message from talk that is not one', () => {
-    expect(relayedMessage(["I'll tell you what, it's been a week."], 'Sam', 'Mom')).toBeUndefined();
-    expect(relayedMessage(['I told my sister about it.'], 'Sam', 'Mom')).toBeUndefined();
-    expect(relayedMessage([], 'Sam', 'Mom')).toBeUndefined();
-  });
-});
-
 describe('tellOwnerAboutCall', () => {
   const request = toOnBehalfCallRequest(call('u-deps'));
-  const outcome = buildCallOutcome(call('u-deps'), HEARD, null, 'completed', 66);
+  const outcome = buildCallOutcome(call('u-deps'), HEARD, MODEL(), 'completed', 66);
   const deps = (sent: boolean) => ({
     now: () => new Date('2026-10-18T15:02:00Z'),
     sendText: vi.fn(async () => ({ sent })),

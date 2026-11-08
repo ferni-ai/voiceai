@@ -516,7 +516,7 @@ describe('LLM Providers', () => {
     ];
 
     it('Gemini provider should have correct interface', () => {
-      const provider = createGeminiProvider({ apiKey: 'test' });
+      const provider = createGeminiProvider();
 
       expect(typeof provider.selectTool).toBe('function');
       expect(typeof provider.reason).toBe('function');

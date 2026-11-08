@@ -201,7 +201,7 @@ describe('calendar writes act only on the verified caller', () => {
     data.resolveConflict.mockResolvedValue({ success: true });
     data.autoResolveConflicts.mockResolvedValue({ resolved: 0 });
     data.setResolutionPreference.mockResolvedValue(true);
-    data.storeCredentials.mockResolvedValue(false);
+    data.storeCredentials.mockResolvedValue({ ok: false, reason: 'invalid_credentials' });
     data.findFreeTimeSlots.mockResolvedValue([]);
     data.setNotificationPreference.mockResolvedValue(undefined);
   });

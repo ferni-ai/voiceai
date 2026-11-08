@@ -205,8 +205,11 @@ const ANY_LENGTH = new RegExp(
 );
 
 describe('on the live request path (withTurnReminder)', () => {
+  // A call with a session id: without one, call risk can't be read and ATTUNE is careful (exits-held.ts).
+  const CALL = { userData: { services: { sessionId: 'attune' } } };
+
   it('ATTUNE off leaves the request byte for byte as before; on adds one line, last', () => {
-    const session = {};
+    const session = CALL;
     delete process.env.ATTUNE;
     const unset = last(withTurnReminder(call(...SETH), session));
     process.env.ATTUNE = 'off';
@@ -220,7 +223,7 @@ describe('on the live request path (withTurnReminder)', () => {
   });
 
   it('with TURN_LENGTH=learned the request carries one length target, the learned one', () => {
-    const session = {};
+    const session = CALL;
     process.env.ATTUNE = 'on';
     process.env.ATTUNE_LENGTH = 'on';
     process.env.TURN_LENGTH = 'learned';
@@ -248,7 +251,7 @@ describe('on the live request path (withTurnReminder)', () => {
         if (capped) process.env.ATTUNE_LENGTH = capped;
         else delete process.env.ATTUNE_LENGTH;
         process.env.TURN_LENGTH = 'learned';
-        const request = last(withTurnReminder(convo, {}));
+        const request = last(withTurnReminder(convo, CALL));
         expect(request).toContain('Meet them where they are');
         // One length target, TURN_LENGTH's (a request keeps its fixed rule, turn-shape.ts).
         expect(request.match(ANY_LENGTH)).toHaveLength(1);
