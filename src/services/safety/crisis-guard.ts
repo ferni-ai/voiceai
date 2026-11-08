@@ -26,7 +26,13 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { ABUSE_INDICATOR, abuseDisclosure } from './abuse-disclosure.js';
-import { CALLER_CHECK, callerCheckApplies, withCallerCheck } from './crisis-caller-check.js';
+import {
+  CALLER_CHECK,
+  callerCheckApplies,
+  forThemFirst,
+  withCallerCheck,
+  withCloseDown,
+} from './crisis-caller-check.js';
 import { endingFloor } from './crisis-ending-floor.js';
 import { EMERGENCY_FOR_THEM, getCrisisResponse, IN_DANGER_NOW } from './crisis-guard-replies.js';
 import { meansFormsOf, meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
@@ -118,6 +124,8 @@ interface TextScore {
   contextHit: boolean;
   /** The caller's own ending words, negated, recovered or hyperbole only ("I would never …"). */
   softSelf: boolean;
+  /** The caller's own words stand: not negated, recovered or hyperbole only. */
+  hardSelf: boolean;
   /** What this turn counts for in a later turn's session check: its self read as before #2528. */
   sessionSeverity: number;
 }
@@ -267,7 +275,7 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
   // turn before #2528, and still counts as one in a later turn's session check.
   const sessionSeverity = subject === 'self' ? severity : tierSoft ? selfSeverity : 0;
   const found = { severity, indicators, subject, language, implicitHits, contextHit };
-  return { ...found, softSelf, sessionSeverity };
+  return { ...found, softSelf, hardSelf, sessionSeverity };
 }
 
 /** The caller's own ending words, said or framed: not negated, past, protective or someone else's. */
@@ -300,7 +308,7 @@ export function detectCrisis(
 ): CrisisDetectionResult {
   const text = normalize(userMessage);
   const forms = meansFormsOf(options?.meansInHand ?? resolveMeansInHandMode());
-  const score = scoreText(text, forms);
+  const score = withCloseDown(text, scoreText(text, forms));
   const indicators = [...score.indicators];
   let { severity, subject } = score;
 
@@ -326,11 +334,15 @@ export function detectCrisis(
   const textSeverity = severity;
   // A worry about someone else, with the caller's own softened ending words and a distressed
   // voice: the help for the other person stays, and a gentle check on the caller is added.
+  // Someone close down beside the caller's own words (withCloseDown) gets the same check.
   const callerCheck =
-    options?.voiceCallerCheck !== false &&
-    callerCheckApplies({ subject, softSelf: score.softSelf }, voiceEmotion);
+    score.beside === 'check' ||
+    (options?.voiceCallerCheck !== false &&
+      callerCheckApplies({ subject, softSelf: score.softSelf }, voiceEmotion));
   if (callerCheck) indicators.push(CALLER_CHECK);
-  const emergency = subject === 'third_party' && indicators.includes('third_party_emergency');
+  const emergency =
+    indicators.includes('third_party_emergency') &&
+    (subject === 'third_party' || score.beside === 'check');
   const ceiling = subject === 'third_party' ? SEVERITY.block - 0.05 : 1.0;
   if (voiceEmotion?.confidence !== undefined && voiceEmotion.confidence > 0.5) {
     const high = HIGH_DISTRESS_VOICE_EMOTIONS.includes(voiceEmotion.primary);
@@ -365,7 +377,13 @@ export function detectCrisis(
     indicators,
     subject,
     language: subject ? (score.language ?? 'en') : undefined,
-    suggestedResponse: !isCrisis ? undefined : callerCheck ? withCallerCheck(script) : script,
+    suggestedResponse: !isCrisis
+      ? undefined
+      : score.beside === 'own'
+        ? forThemFirst(script)
+        : callerCheck
+          ? withCallerCheck(script)
+          : script,
   };
 }
 
