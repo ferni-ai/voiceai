@@ -195,7 +195,7 @@ export function createAppointmentTools() {
         date: z.string().describe('Date for the reservation'),
         partySize: z.number().default(2).describe('Number of people'),
       }),
-      execute: (args) => restaurantSearchReply(args),
+      execute: async (args) => restaurantSearchReply(args),
     }),
 
     // ========== APPOINTMENTS (DOCTOR, DENTIST, ETC.) ==========
