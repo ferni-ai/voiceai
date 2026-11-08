@@ -5,6 +5,7 @@
  */
 
 import { ROPE_READY } from './crisis-means-in-hand.js';
+import { FAREWELL_PASSIVE_PATTERNS } from './crisis-patterns-farewell.js';
 import { THIRD_PERSON_REPORTED } from './crisis-third-person.js';
 
 type PatternTag = 'suicidal' | 'self_harm';
@@ -351,6 +352,7 @@ export const PASSIVE_IDEATION_PATTERNS: TaggedPattern[] = [
     re: /\b(made sure|making sure|arranged|set up|sorted out)\b[^.!?]{0,50}\bif (anything|something) (happens|were to happen) to me\b/,
     tag: 'suicidal',
   },
+  ...FAREWELL_PASSIVE_PATTERNS,
   // Spanish.
   {
     re: /\bno tengo ganas de vivir\b|\bmejor sin m[ií](?![a-z])|\bno vale la pena vivir\b|\bquisiera desaparecer\b|\bsoy una carga\b|\bojal[aá] no despertar/,
