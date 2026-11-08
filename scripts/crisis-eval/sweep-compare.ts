@@ -3,10 +3,13 @@
  * the head tree's (sweep-lowerings.ts). The crisis lane is recall-first, so a read
  * going down on any line is a lowering: severity, isCrisis, imminent danger, who
  * is at risk (self > third party > bereaved > none) or assessSafety's level.
+ *
+ * The fixtures include the held-out set, and the sweep runs in public CI logs, so
+ * a row's text never leaves compareSweeps: changes are reported by row id.
  */
 
 export interface SweepRow {
-  /** Stable id within one fixture set: source, index, and "+earlier" when scored with prior turns. */
+  /** Stable id within one fixture set: source, index within that source, and "+earlier" when scored with prior turns. */
   id: string;
   src: string;
   label: string;
@@ -19,7 +22,7 @@ export interface SweepRow {
 }
 
 export interface SweepComparison {
-  /** One line per distinct change (the same text recurs across fixtures). */
+  /** One line per distinct change (the same text can recur), naming every row it hit by id. */
   lowered: string[];
   raised: string[];
   /** Row counts. */
@@ -52,11 +55,12 @@ export function direction(base: SweepRow, head: SweepRow): -1 | 0 | 1 {
   return pairs.some(([b, h]) => h > b) ? 1 : 0;
 }
 
+/** What changed on one row, without its text. */
 export function describeChange(base: SweepRow, head: SweepRow): string {
   return (
     `[${head.src}/${head.label}] sev ${base.sev}->${head.sev} crisis ${base.crisis}->${head.crisis} ` +
     `imminent ${base.imminent}->${head.imminent} subject ${base.subject}->${head.subject} ` +
-    `level ${base.level}->${head.level} | ${head.text}`
+    `level ${base.level}->${head.level}`
   );
 }
 
@@ -65,8 +69,18 @@ export function compareSweeps(base: SweepRow[], head: SweepRow[]): SweepComparis
   if (base.length !== head.length) {
     throw new Error(`sweeps differ in length: base ${base.length}, head ${head.length}`);
   }
-  const lowered = new Set<string>();
-  const raised = new Set<string>();
+  // Keyed by change and text, so a line that recurs is listed once with all its ids.
+  const lowered = new Map<string, { change: string; ids: string[] }>();
+  const raised = new Map<string, { change: string; ids: string[] }>();
+  const add = (into: typeof lowered, b: SweepRow, h: SweepRow) => {
+    const change = describeChange(b, h);
+    const key = `${change}\n${h.text}`;
+    const entry = into.get(key) ?? { change, ids: [] };
+    entry.ids.push(h.id);
+    into.set(key, entry);
+  };
+  const lines = (from: typeof lowered) =>
+    [...from.values()].map((e) => `${e.change} | ${e.ids.join(' ')}`);
   const counts = { loweredRows: 0, raisedRows: 0, identical: 0 };
   base.forEach((b, i) => {
     const h = head[i];
@@ -74,11 +88,41 @@ export function compareSweeps(base: SweepRow[], head: SweepRow[]): SweepComparis
     const dir = direction(b, h);
     if (dir < 0) {
       counts.loweredRows++;
-      lowered.add(describeChange(b, h));
+      add(lowered, b, h);
     } else if (dir > 0) {
       counts.raisedRows++;
-      raised.add(describeChange(b, h));
+      add(raised, b, h);
     } else counts.identical++;
   });
-  return { lowered: [...lowered], raised: [...raised], ...counts };
+  return { lowered: lines(lowered), raised: lines(raised), ...counts };
+}
+
+/** Raised reads are fine and can run to thousands (a new pattern hits the adversarial set). */
+const RAISED_SHOWN = 50;
+
+/** What sweep-lowerings.ts prints for a comparison of `reads` rows that took `secs` seconds. */
+export function reportLines(
+  cmp: SweepComparison,
+  reads: number,
+  secs: string
+): { stdout: string[]; stderr: string[] } {
+  const stdout = [
+    `${reads} reads in ${secs}s: ${cmp.loweredRows} lowered, ${cmp.raisedRows} raised, ` +
+      `${cmp.identical} identical`,
+    ...cmp.raised.slice(0, RAISED_SHOWN).map((r) => `raised  ${r}`),
+    ...(cmp.raised.length > RAISED_SHOWN
+      ? [`raised  ... and ${cmp.raised.length - RAISED_SHOWN} more`]
+      : []),
+    ...cmp.lowered.map((r) => `LOWERED ${r}`),
+  ];
+  const stderr =
+    cmp.loweredRows === 0
+      ? []
+      : [
+          `\n${cmp.lowered.length} distinct crisis reads went DOWN vs base. The crisis lane is ` +
+            'recall-first: patterns are only ever added. Restore the lowered reads, or, if lowering ' +
+            "them is intended, that is Seth's call: he approves it with the PR label " +
+            'crisis:lowering-approved.',
+        ];
+  return { stdout, stderr };
 }
