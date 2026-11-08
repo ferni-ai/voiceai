@@ -12,12 +12,12 @@
 
 import { initI18n, t } from '../i18n/index.js';
 import { initializeAuth } from '../services/auth-init.service.js';
-import { signOut } from '../services/firebase-auth.service.js';
 import { apiGet } from '../utils/api.js';
 import { refuseFraming } from '../utils/frame-guard.js';
 import { createLogger } from '../utils/logger.js';
 import { SUGGESTIONS_SANDBOX, buildSuggestionsDocument } from '../utils/search-suggestions.js';
 import { showSignInGate } from './sign-in-gate.ui.js';
+import { signOutOfThisBrowser } from './sign-out.js';
 
 const log = createLogger('AnswerCardPage');
 
@@ -138,13 +138,6 @@ function message(text: string, action?: { label: string; run: () => void }): HTM
   return article;
 }
 
-/** Sign out and back in (maybe as another account), then try the card again. */
-async function switchAccount(root: HTMLElement, id: string): Promise<void> {
-  await signOut();
-  await showSignInGate();
-  await showAnswerCard(root, id);
-}
-
 function injectStyles(): void {
   if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement('style');
@@ -197,9 +190,10 @@ export async function showAnswerCard(root: HTMLElement, id: string): Promise<voi
     return;
   }
   log.warn('Answer card not shown', { status: res.status });
+  // Switching account signs out as settings does: a reload to the gate, then this card
   const retry =
     res.status === 404
-      ? { label: t('answerCard.switchAccount'), run: () => void switchAccount(root, id) }
+      ? { label: t('answerCard.switchAccount'), run: () => void signOutOfThisBrowser() }
       : { label: t('answerCard.retry'), run: () => void showAnswerCard(root, id) };
   root.replaceChildren(
     message(res.status === 404 ? t('answerCard.notFound') : t('answerCard.loadFailed'), retry)
