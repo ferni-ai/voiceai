@@ -7,6 +7,8 @@
  * in conductor-policy.ts and conductor-delight.ts.
  */
 
+import { CRISIS_CALM_FACES } from '../../config/crisis-faces.js';
+
 export const CONDUCTOR_POLICY = {
   priorities: {
     critical: ['arrival_joined', 'arrival_failed', 'connection_success', 'error_recovery'],
@@ -58,7 +60,8 @@ export const CONDUCTOR_POLICY = {
       'silly',
       'teasing',
     ],
-    crisis: ['holdingSpace', 'empathetic'],
+    /** The one calm-face list (config/crisis-faces.ts); the first is the face crisis pins. */
+    crisis: CRISIS_CALM_FACES,
   },
   delight: {
     /** What you DID, never how often you showed up: no streaks, no unlocks (Seth, 2026-10-29). */

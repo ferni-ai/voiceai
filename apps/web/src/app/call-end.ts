@@ -12,6 +12,7 @@
 import { DURATION } from '../config/animation-constants.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import { engagementTriggerUI } from '../ui/engagement-trigger.ui.js';
+import { releaseCrisisFace } from '../ui/face/crisis-face-hold.js';
 import { ferniExpressions } from '../ui/ferni-expressions.ui.js';
 import { createLogger } from '../utils/logger.js';
 import { forgetGameStarts } from './agent-ack-handlers.js';
@@ -56,6 +57,8 @@ async function showPostCall(): Promise<void> {
 export function onCallEnded(): void {
   // A game start still waiting for the agent must not say "didn't start" after the call
   forgetGameStarts();
+  // A crisis holds the calm faces for the whole call, and only for that call.
+  releaseCrisisFace();
   // Any held expression (the goodbye smile, a greeting pose) would leave lid "bites" on the avatar.
   ferniExpressions.setExpression('neutral', DURATION.SLOW);
   engagementTriggerUI.show();

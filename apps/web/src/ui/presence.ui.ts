@@ -28,6 +28,7 @@
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { breathingComposite } from './avatar-motion/compositor.js';
+import { crisisFaceAllows } from './face/crisis-face-hold.js';
 import { disposeGaze, initGaze } from './avatar-motion/gaze.js';
 import { startAvatarGlowPulse } from './avatar-motion/glow-layer.js';
 import { isNaturalBlinkEnabled } from './avatar-motion/natural-blink.js';
@@ -790,6 +791,8 @@ export function setListening(listening: boolean): void {
  */
 export function setVoiceEmotion(emotion: VoiceEmotion, animate: boolean = true): void {
   if (currentEmotion === emotion) return;
+  // data-emotion also picks the legacy eye shapes, which animate even under the face engine
+  if (!crisisFaceAllows(emotion)) return;
   
   currentEmotion = emotion;
   
