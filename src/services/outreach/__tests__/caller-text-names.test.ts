@@ -2,8 +2,8 @@
  * Ordinary lines the shape rules must not withhold, and names the sponsor wrote.
  *
  * The screen is fail-closed: every rule reads the caller's words as written, and a dotted
- * word with any ending is a link. "Loan" after of or in is a name, and "k-drama" or
- * "k-pop" is not a sum. The family member's or contact's own name (Mary_Ann, St.Clair,
+ * word with any ending is a link. "Loan" after of or in is a name only when Loan is the
+ * known name, and a spaced "ten k-drama" or "two k-pop" is not a sum. The family member's or contact's own name (Mary_Ann, St.Clair,
  * "Sam @ Work") is Ferni's words, so a match wholly inside a mention of it is spared;
  * "pay Loan a visit" is spared only when Loan is that name. A link, email or handle built
  * around the name is still read, as are the name's own digits, email or link. The note
@@ -36,8 +36,6 @@ const NEW_ENDING = ['sol', 'utions'].join('');
 
 /** Withheld on the shapes head, quoted on main: quoted again, in their own words, for any name. */
 const ORDINARY = [
-  'a friend of Loan came by',
-  "in Loan's garden",
   'ten k-drama episodes',
   'she likes k-pop songs',
   'two k-pop concerts',
@@ -46,6 +44,8 @@ const ORDINARY = [
 /** Quoted only when the name in them is the known name: otherwise the screen fails closed. */
 const KNOWN_NAME_ONLY: ReadonlyArray<readonly [string, string]> = [
   ['Loan', 'we should pay Loan a visit'],
+  ['Loan', 'a friend of Loan came by'],
+  ['Loan', "in Loan's garden"],
   ['riley.jones', 'riley.jones came by'],
   ['St.Clair', 'St.Clair is doing well'],
 ];
@@ -62,6 +62,25 @@ const AROUND_THE_NAME: ReadonlyArray<readonly [string, string]> = [
   ['Loan', 'pay Loan the money'],
   ['Loan', 'pay Loan the loan'],
   ['Loan', 'she paid off the Loan today'],
+  // A dot in the name can't end the sentence a money rule reads.
+  ['St. Clair', 'lend St. Clair the money'],
+  ['Dr. Kim', 'send Dr. Kim the money'],
+];
+
+/** A mention starts only after a space or a word edge: link or handle characters before it make it part of a handle. */
+const BEFORE_THE_NAME: ReadonlyArray<readonly [string, string]> = [
+  ['Mary_Ann', 'follow ig:Mary_Ann'],
+  ['Mary_Ann', 'she is x.Mary_Ann now'],
+  ['St.Clair', 'find her at tg/St.Clair'],
+  ['Mary_Ann', 'her page is -Mary_Ann'],
+  ['Mary_Ann', 'she is _Mary_Ann on there'],
+];
+
+/** A name with a sum or a handle in characters the name's own read strips: it has no mentions. */
+const RISKY_NAME_MARKS: ReadonlyArray<readonly [string, string]> = [
+  ['Sam $5', 'Sam $5,000 please'],
+  ['@riley_r', 'dm @riley_r'],
+  ['riley@gmail', 'riley@gmail .com'],
 ];
 
 /** Still withheld: each one has its own money cue, link ending or scheme. */
@@ -77,6 +96,10 @@ const STILL_HELD = [
   'she came off loan forbearance',
   'she needs 5k by Friday',
   'she needs 5k-ish',
+  'send me 5k-pop by friday',
+  'need 10k-dramas asap',
+  'she fell into loan default',
+  'deep in loan payments',
   'a 5k-run fee',
   `see pay-now.${NEW_ENDING}`,
   'riley.jones',
@@ -98,6 +121,8 @@ const PUNCTUATED = [
   "O'Brien-Smith",
   'Ann & Bo',
   'jo_ann.lee',
+  'St. Clair',
+  'Dr. Kim',
 ];
 
 /** Benign check-in concerns: on main every one is quoted for every name above. */
@@ -129,6 +154,20 @@ describe('ordinary lines go out in their own words', () => {
   it.each(AROUND_THE_NAME)('with the known name %j, %j is still withheld', (name, line) => {
     expect(isRiskyCallerText(line, name)).toBe(true);
     expect(alertFor(name, line)).toContain(riskyCallerLine(name));
+  });
+
+  it.each(BEFORE_THE_NAME)('with the known name %j, %j is still withheld', (name, line) => {
+    expect(isRiskyCallerText(`${name} came by`, name)).toBe(false);
+    expect(isRiskyCallerText(line, name)).toBe(true);
+  });
+
+  it.each(RISKY_NAME_MARKS)('the name %j gets no mentions, so %j is withheld', (name, line) => {
+    expect(isRiskyCallerText(line, name)).toBe(true);
+    expect(alertFor(name, line)).toContain(riskyCallerLine(name));
+  });
+
+  it('a spaced @ in a name is not a handle', () => {
+    expect(isRiskyCallerText('Sam @ Work came by', 'Sam @ Work')).toBe(false);
   });
 
   it.each(STILL_HELD)('%j is still withheld', (line) => {

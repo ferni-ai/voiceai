@@ -71,7 +71,22 @@ const AMOUNT = String.raw`(?:\p{Nd}+|few|couple(?: of)?|some|${NUMBER_WORD})`;
 const OBJECT_RULES: readonly RegExp[] = [
   new RegExp(String.raw`\b(?:pay(?:s|ing)?|paid)\b[^.!?]{0,30}\b${MONEY_OBJECT}\b`, 'i'), // paid the loan
   /\boff\s+(loans?|debts?)\b/i, // paid off loans
+  /\b(in|into|of)\s+(loans?|debts?)\b/i, // in debt, into loan default; not "a friend of Loan"
 ];
+
+/** A money verb and its object, in one sentence: owes a grand on the loan. */
+const MONEY_VERB_RULE = new RegExp(
+  String.raw`\b${MONEY_VERB}\b[^.!?]{0,30}\b${MONEY_OBJECT}\b`,
+  'i'
+);
+/** A request to move money: send her the money. */
+const SEND_MONEY_RULE =
+  /\b(send|transfer|pay|lend|loan)\b[^.!?]{0,30}\b(money|cash|funds|payment)\b/i;
+/**
+ * Rules held to one sentence: a dot in the known name ("St. Clair", "Dr. Kim") would end it,
+ * so they also read the text with the name's mentions blanked ("lend St. Clair the money").
+ */
+const SENTENCE_RULES: readonly RegExp[] = [MONEY_VERB_RULE, SEND_MONEY_RULE];
 
 /**
  * Links, phone or account numbers, and requests for money, credentials or codes.
@@ -82,22 +97,21 @@ const RISKY: readonly RegExp[] = [
   /\bhttps?:\/\/|\b[a-z][a-z0-9+.-]{1,15}:\/\/|\bwww\.|\b[a-z0-9-]+\.(com|net|org|io|co|me|xyz|link|ly)\b/i,
   /(\p{Nd}[\s().-]*){7,}/u, // phone, account or card number
   /[$€£]\s?\p{Nd}|(?<![A-Za-z0-9_])\p{Nd}+\s?(dollars|bucks|usd)\b/iu,
-  new RegExp(String.raw`\b${MONEY_VERB}\b[^.!?]{0,30}\b${MONEY_OBJECT}\b`, 'i'), // owes a grand on the loan
+  MONEY_VERB_RULE,
   /\b(pay(s|ing)?|paid)\b(\s+\p{L}+)?\s+back\b/iu, // pay me back
   new RegExp(String.raw`(?<![\p{L}\p{N}])${AMOUNT}\s+(?:grand|bucks|quid)\b`, 'iu'), // two grand
   new RegExp(
-    String.raw`(?<![\p{L}\p{N}])(?:\p{Nd}+|${NUMBER_WORD})\s?k\b(?!-(?:dramas?|pop)\b)`,
+    String.raw`(?<![\p{L}\p{N}])(?:\p{Nd}+|${NUMBER_WORD})(?:k\b|\s+k\b(?!-(?:dramas?|pop)\b))`,
     'iu'
-  ), // 5k, five k, 5k-ish; not "ten k-drama" or "k-pop"
+  ), // 5k, five k, 5k-ish, 5k-pop; not "ten k-drama" or "two k-pop"
   /\b(a|the|her|his|my|your|their|our|that|this|some|any)\s+(loans?|debts?)\b/i,
-  /\b(in|into|of)\s+(loans|debts?)\b/i, // in debt; not "a friend of Loan"
   /@/, // email or handle
   /[\p{L}\p{N}]_[\p{L}\p{N}]/u, // handle: riley_help
   /\bat\s+(gmail|yahoo|icloud|outlook|hotmail|aol|proton(mail)?)\b/i,
   /\bh[\s.-]+t[\s.-]+t[\s.-]+p|\bw[\s.-]+w[\s.-]+w\b/i, // a link spelled out
   /(?<![\p{L}\p{N}.])[\p{L}\p{N}-]{2,}\.\p{L}{2,}(?![\p{L}\p{N}])/u, // a link with any ending
   /\b(wire|venmo|zelle|cash ?app|paypal|gift ?cards?|bitcoin|crypto|bank|routing|account number|credit card|debit card|social security|ssn)\b/i,
-  /\b(send|transfer|pay|lend|loan)\b[^.!?]{0,30}\b(money|cash|funds|payment)\b/i,
+  SEND_MONEY_RULE,
   /\b(password|passcode|pin|verification code|security code|one-time code|login|log in|credentials?|card numbers?|cvv|cvc)\b/i,
   ...OBJECT_RULES,
 ];
@@ -108,6 +122,9 @@ const RISKY: readonly RegExp[] = [
  */
 const NAME_LINK =
   /\bwww\.|:\/\/|@\s*[\p{L}\p{N}-]+\.\p{L}{2,}|\.(?:\p{L}{2}|com|net|org|edu|gov|info|biz|xyz|link|app|dev|shop|store|site|online|io|co|me|ly)(?![\p{L}\p{N}])/iu;
+
+/** A sum or a handle in a name ("Sam $5", "@riley_r", "riley@gmail"), which `plain` would strip. */
+const NAME_RISKY_MARK = /[$€£]\s?\p{Nd}|@\S/u;
 
 /** Spans [start, end) in `text` where the known name is mentioned as itself. */
 type Span = readonly [number, number];
@@ -122,7 +139,14 @@ type Span = readonly [number, number];
 function nameSpans(text: string, name: string | undefined): Span[] {
   const known = callerText(name, 200);
   const plain = known.replace(/[^\p{L}\p{N}\s]+/gu, ' ');
-  if (!known.trim() || NAME_LINK.test(known) || RISKY.some((rule) => rule.test(plain))) return [];
+  if (
+    !known.trim() ||
+    NAME_LINK.test(known) ||
+    NAME_RISKY_MARK.test(known) ||
+    RISKY.some((rule) => rule.test(plain))
+  ) {
+    return [];
+  }
   const escaped = known.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const mention = new RegExp(
     String.raw`(?<![\p{L}\p{N}@._/:-])${escaped}(?![\p{L}\p{N}@]|[._/:-][\p{L}\p{N}])`,
@@ -148,7 +172,8 @@ function matchesOutside(rule: RegExp, text: string, spans: readonly Span[]): boo
  * Every rule reads the caller's text as written. `knownName` is the name Ferni writes into its
  * own lines (the family member, the contact): a match wholly inside a mention of it is spared,
  * so "Mary_Ann" or "St.Clair" is not a handle or a link. The object rules read the text with
- * those mentions blanked, so "pay Loan a visit" is spared and "pay Loan the money" is not.
+ * those mentions blanked, so "pay Loan a visit" is spared and "pay Loan the money" is not, and
+ * the one-sentence money rules read both, so a dot in the name can't end the sentence.
  */
 export function isRiskyCallerText(text: string, knownName?: string): boolean {
   const normalized = callerText(text, 10_000);
@@ -158,7 +183,10 @@ export function isRiskyCallerText(text: string, knownName?: string): boolean {
     blanked = blanked.slice(0, from) + ' '.repeat(to - from) + blanked.slice(to);
   }
   return RISKY.some((rule) =>
-    OBJECT_RULES.includes(rule) ? rule.test(blanked) : matchesOutside(rule, normalized, spans)
+    OBJECT_RULES.includes(rule)
+      ? rule.test(blanked)
+      : matchesOutside(rule, normalized, spans) ||
+        (SENTENCE_RULES.includes(rule) && rule.test(blanked))
   );
 }
 
