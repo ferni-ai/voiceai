@@ -5,7 +5,8 @@
  * (a question Ferni answered drops out). Only an allow-listed plain yes in it places (consent-words.ts);
  * anything else asks once. A no, a deferral or a redirect to someone else ends it for good; with
  * OUTREACH_NO_ANSWERS_READBACK, a no that answers nothing ("No problem.") only when it answers the
- * read-back (noAnswers) or more owner words follow it, and a crisis turn anywhere ends it too.
+ * read-back (noAnswers) or any other owner turn says something (isContentFree), and a crisis turn
+ * anywhere ends it too.
  * @module tools/domains/communication/outreach/consent-window
  */
 
@@ -25,6 +26,7 @@ import type { ActionFacts, FerniTurn } from './consent-readback.js';
 import {
   agreesAfterNo,
   isClearYes,
+  isContentFree,
   isNonAnswer,
   isPlainNo,
   isRefusal,
@@ -235,14 +237,21 @@ function noAnswers(pending: PendingAction, events: ConfirmEvent[]): boolean[] {
   }
   return answers;
 }
+/** Whether owner turn `i` may wait: the owner's last turn, the ONLY one since the talk moved on,
+ * and every other owner turn since the read-back says nothing (isContentFree: "Hmm.", "Yeah.").
+ * Any free text makes a non-answer a no, as on main: STT splits lines ("No worries." | "I want to
+ * die."), and the crisis reader misses some ("Whatever, I'm going to end it."). */
+const mayWait = (said: string[], i: number, answers: boolean[]): boolean =>
+  i === answers.length - 1 &&
+  answers.filter((a) => !a).length === 1 &&
+  said.every((t, j) => j === i || isContentFree(t));
 /** Whether owner turn `i`'s no is about the read-back. Every no is, wherever it is said, except
  * one of the closed NON_ANSWERS (consent-words.ts: "No problem.", "No worries.") said after the
- * talk moved on as the owner's LAST turn, unless it names the action. A non-answer with more
- * owner words after it is a no as before: STT may split "No worries." | "I want to die.". */
+ * talk moved on, when it may wait (mayWait), unless it names the action. */
 const aboutIt = (said: string[], i: number, answers: boolean[], pending: PendingAction): boolean =>
   answers[i] ||
   !noMustAnswerOn() ||
-  i < said.length - 1 ||
+  !mayWait(said, i, answers) ||
   namesAction(said[i], pending) ||
   !isNonAnswer(said[i]);
 /** A turn the crisis reader flags, read on its own or with the owner's other finals in order:

@@ -181,6 +181,20 @@ export function isNonAnswer(text: string): boolean {
   );
 }
 
+// Owner turns that say nothing at all. With OUTREACH_NO_ANSWERS_READBACK a non-answer may wait
+// only when every other owner turn since the read-back is one of these (consent-window.ts). CLOSED
+// on purpose and matched on the WHOLE turn, never a part of it: "Yeah." is here, "Yeah, I won't be
+// here anyway." is not. A new entry needs a crisis sign-off: a turn here is never read for a no.
+const CONTENT_FREE = new Set('hmm hm mm mhm mm-hmm uh-huh um uh oh ah yeah yep okay ok'.split(' '));
+/** Whether the whole turn, lowercased, trimmed and without trailing punctuation, is CONTENT_FREE. */
+export const isContentFree = (text: string): boolean =>
+  CONTENT_FREE.has(
+    text
+      .trim()
+      .toLowerCase()
+      .replace(/[\s.,!?…]+$/u, '')
+  );
+
 // Words that may sit between a no and the agreement that takes it back: "No no no, yes.",
 // "No problem, go ahead.", "No, sorry, yes.", "No, I mean yes.", "No, it's fine, go ahead."
 const TAKES_BACK = new Set(
