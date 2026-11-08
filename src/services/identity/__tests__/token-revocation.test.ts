@@ -412,4 +412,62 @@ describe('concurrent checks of one account share one lookup', () => {
       'unavailable',
     ]);
   });
+
+  const JOIN_MS = 10_000; // token-revocation.ts JOIN_MS
+
+  it('an older lookup failing does not drop a newer one: a later check still joins the newer lookup', async () => {
+    const { check } = revocationCheck(limitsWith({}));
+    const uid = 'u_test-replaced';
+    const older = deferred<AccountRecord>();
+    const newer = deferred<AccountRecord>();
+    const third = vi.fn(async () => live);
+
+    const first = check(token(uid), () => older.promise, T0);
+    // Past JOIN_MS the first lookup may be hung: this check starts its own, which takes
+    // over the in-flight entry
+    const second = check(token(uid), () => newer.promise, T0 + JOIN_MS + 1);
+    older.reject(Object.assign(new Error('down'), { code: 'auth/internal-error' }));
+    expect(await first).toBe('unavailable');
+
+    // The first lookup settling must leave the second one's entry in place
+    const joiner = check(token(uid), third, T0 + JOIN_MS + 2);
+    newer.resolve(live);
+    expect(await Promise.all([second, joiner])).toEqual(['ok', 'ok']);
+    expect(third).not.toHaveBeenCalled(); // 2 upstream lookups in all, not 3
+  });
+
+  it('a lax check never joins a strict lookup: it looks the account up itself', async () => {
+    const { check } = revocationCheck(limitsWith({}));
+    const uid = 'u_test-strict-first';
+    const account = deferred<AccountRecord>();
+    const strictLookup = vi.fn(() => account.promise);
+    const laxLookup = vi.fn(async () => live);
+
+    const strict = check(token(uid), strictLookup, T0, true);
+    const lax = check(token(uid), laxLookup, T0 + 1);
+    account.resolve(live);
+
+    expect(await Promise.all([strict, lax])).toEqual(['ok', 'ok']);
+    expect(strictLookup).toHaveBeenCalledTimes(1);
+    expect(laxLookup).toHaveBeenCalledTimes(1); // its own lookup: 2 upstream calls in all
+  });
+
+  it('JOIN_MS boundary: a lookup is joined at start + JOIN_MS - 1 and not at exactly start + JOIN_MS', async () => {
+    const { check } = revocationCheck(limitsWith({}));
+    const uid = 'u_test-join-edge';
+    const account = deferred<AccountRecord>();
+    const justInside = vi.fn(async () => live);
+    const atLimit = vi.fn(async () => live);
+
+    const statuses = [
+      check(token(uid), () => account.promise, T0),
+      check(token(uid), justInside, T0 + JOIN_MS - 1),
+      check(token(uid), atLimit, T0 + JOIN_MS),
+    ];
+    account.resolve(live);
+
+    expect(await Promise.all(statuses)).toEqual(['ok', 'ok', 'ok']);
+    expect(justInside).not.toHaveBeenCalled(); // joined the lookup started at T0
+    expect(atLimit).toHaveBeenCalledTimes(1); // too old to join: its own lookup
+  });
 });
