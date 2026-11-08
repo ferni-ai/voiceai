@@ -102,6 +102,13 @@ export function deferredCallReply(
   );
 }
 
+/**
+ * The purpose as the held reply says it to the requester; `purpose` is said to the recipient.
+ * A blank one is no phrase at all ("...to ."), so it falls back too.
+ */
+const purposeForRequester = (request: OnBehalfCallRequest): string =>
+  request.requesterPurpose?.trim() || request.purpose;
+
 export interface DeferOptions {
   /** Held only because it's late or early there; a call-now to family may go on a second yes. */
   lateNow?: boolean;
@@ -333,7 +340,7 @@ export async function placeOrHold(
     throw error;
   }
   if (replaces) await markReplacedBy(request.userId, replaces.id, callId);
-  const held = deferredCallReply(callId, name, request.purpose, now);
+  const held = deferredCallReply(callId, name, purposeForRequester(request), now);
   // CALL_RESULT_LIVE_REPORT: the owner's call hears the result, whichever worker captures it.
   if (!held) watchCallResult(request, callId);
   const also = otherCallsLine(others, now, callId);
