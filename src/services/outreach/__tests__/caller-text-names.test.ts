@@ -81,6 +81,24 @@ const RISKY_NAME_MARKS: ReadonlyArray<readonly [string, string]> = [
   ['riley@ gmail', 'email riley@ gmail'],
   ['@ riley_r', 'dm @ riley_r'],
   ['@ riley', 'dm @ riley'],
+  ['Sam @', 'reach Sam @ gmail'],
+  ['Sam @', 'dm Sam @ riley'],
+  ['Sam\u00a0@', 'reach Sam\u00a0@ gmail'],
+  ['Sam @riley_r', 'dm Sam @riley_r'],
+  // A spaced @ before a word that reads as an address: a mail provider, or a digit, "_" or ".".
+  ['riley @ gmail', 'email riley @ gmail .com'],
+  ['riley \uff20 gmail', 'email riley \uff20 gmail'],
+  ['Sam @ riley_r', 'dm Sam @ riley_r'],
+  ['Sam @ riley.r', 'dm Sam @ riley.r'],
+  ['riley @ gmail com', 'email riley @ gmail com'],
+];
+
+/** A spaced @ before an ordinary word: the name is spared, even when the word is "Mail". */
+const SPACED_AT_NAMES: ReadonlyArray<readonly [string, string]> = [
+  ['Sam @ Work', 'Sam @ Work came by'],
+  ['Tom @ Home', 'Tom @ Home said hi'],
+  ['Ana @ Caf\u00e9', 'Ana @ Caf\u00e9 is open'],
+  ['Mia @ Mail Room', 'Mia @ Mail Room called'],
 ];
 
 /** Still withheld: each one has its own money cue, link ending or scheme. */
@@ -166,9 +184,13 @@ describe('ordinary lines go out in their own words', () => {
     expect(alertFor(name, line)).toContain(riskyCallerLine(name));
   });
 
-  it('a spaced @ in a name is not a handle', () => {
-    expect(isRiskyCallerText('Sam @ Work came by', 'Sam @ Work')).toBe(false);
-  });
+  it.each(SPACED_AT_NAMES)(
+    'a spaced @ in the name %j is not a handle: %j is quoted',
+    (name, line) => {
+      expect(isRiskyCallerText(line, name)).toBe(false);
+      expect(alertFor(name, line)).toContain(`During my call with ${name}, ${line}.`);
+    }
+  );
 
   it.each(STILL_HELD)('%j is still withheld', (line) => {
     expect(isRiskyCallerText(line)).toBe(true);

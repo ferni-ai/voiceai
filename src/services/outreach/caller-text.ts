@@ -123,11 +123,20 @@ const RISKY: readonly RegExp[] = [
 const NAME_LINK =
   /\bwww\.|:\/\/|@\s*[\p{L}\p{N}-]+\.\p{L}{2,}|\.(?:\p{L}{2}|com|net|org|edu|gov|info|biz|xyz|link|app|dev|shop|store|site|online|io|co|me|ly)(?![\p{L}\p{N}])/iu;
 
+/** A mail provider written after a spaced `@` ("riley @ gmail"). */
+const MAIL_PROVIDER = String.raw`(?:g(?:oogle)?mail|yahoo|outlook|hotmail|live|icloud|me|mac|proton(?:mail)?|aol|gmx|yandex|zoho|mail)`;
+
 /**
- * A sum or a handle in a name ("Sam $5", "@riley_r", "riley@gmail", "riley@ gmail", "@ riley"),
- * which `plain` would strip. An `@` with a space on both sides ("Sam @ Work") is not a handle.
+ * A sum or a handle in a name ("Sam $5", "@riley_r", "riley@gmail", "riley@ gmail", "@ riley",
+ * "Sam @"), which `plain` would strip. An `@` with a space on both sides ("Sam @ Work") is not a
+ * handle, unless the word after it reads as an address: it has a digit, "_" or "."
+ * ("Sam @ riley_r"), or it is a mail provider that ends the name or comes before a dot or a link
+ * ending ("riley @ gmail", "riley @ gmail com"; not "Mia @ Mail Room").
  */
-const NAME_RISKY_MARK = /[$€£]\s?\p{Nd}|@\S|(?:^|\S)@/u;
+const NAME_RISKY_MARK = new RegExp(
+  String.raw`[$€£]\s?\p{Nd}|@(?:\S|$)|(?:^|\S)@|@\s+(?:\S*[\p{Nd}_.]|${MAIL_PROVIDER}(?![\p{L}\p{N}])\s*(?:$|\.|(?:com|net|org|edu|io|co)(?![\p{L}\p{N}])))`,
+  'iu'
+);
 
 /** Spans [start, end) in `text` where the known name is mentioned as itself. */
 type Span = readonly [number, number];
