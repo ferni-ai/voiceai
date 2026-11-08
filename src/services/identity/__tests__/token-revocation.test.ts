@@ -9,7 +9,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const log = vi.hoisted(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }));
 vi.mock('../../../utils/safe-logger.js', () => ({ createLogger: () => log, getLogger: () => log }));
 
-import { revocationCheck, type AccountRecord, type Limits } from '../token-revocation.js';
+import {
+  revocationCheck,
+  tokenCheckStatus,
+  verifyIdTokenChecked,
+  type AccountRecord,
+  type Limits,
+} from '../token-revocation.js';
 
 const T0 = Date.parse('2026-10-31T12:00:00.000Z');
 const MINUTE = 60_000;
@@ -282,5 +288,101 @@ describe('invalidations (#3228)', () => {
     invalidate2('u-rev', 'revoked', T0);
     invalidate2('u-other', 'revoked', T0 + keep - 1);
     expect(await check2(before, stillThere, T0 + keep - 1)).toBe('revoked');
+  });
+});
+
+describe('concurrent checks of one account share one lookup', () => {
+  function deferred<T>() {
+    let resolve!: (value: T) => void;
+    let reject!: (error: unknown) => void;
+    const promise = new Promise<T>((res, rej) => ((resolve = res), (reject = rej)));
+    return { promise, resolve, reject };
+  }
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+  /** The web app's load: 8 authed calls at once, through the real check and its real limits */
+  const burst = (uid: string, getUser: (uid: string) => Promise<AccountRecord>) => {
+    const auth = {
+      verifyIdToken: async () => ({ ...token(uid), auth_time: Date.now() / 1000 - 600 }),
+      getUser: vi.fn(getUser),
+    };
+    const statuses = Array.from({ length: 8 }, () =>
+      verifyIdTokenChecked(auth, 'id-token').then(
+        () => 200,
+        (error: { code?: string }) => (tokenCheckStatus(error, 401) === 503 ? 503 : error.code)
+      )
+    );
+    return { auth, statuses: Promise.all(statuses) };
+  };
+
+  it('8 calls at once on a cold cache: one lookup, no 503', async () => {
+    const account = deferred<AccountRecord>();
+    const { auth, statuses } = burst('u_test-load', () => account.promise);
+    await settle(); // every call is waiting on the account before it answers
+    account.resolve(live);
+
+    expect(await statuses).toEqual(Array(8).fill(200));
+    expect(auth.getUser).toHaveBeenCalledTimes(1);
+  });
+
+  it('a revoked token is refused by every call in the burst', async () => {
+    const account = deferred<AccountRecord>();
+    const { auth, statuses } = burst('u_test-revoked', () => account.promise);
+    await settle();
+    account.resolve(revokedSince(Date.now() - MINUTE));
+
+    expect(await statuses).toEqual(Array(8).fill('auth/id-token-revoked'));
+    expect(auth.getUser).toHaveBeenCalledTimes(1);
+  });
+
+  it('Auth failing: every call is a 503, and the next call looks the account up again', async () => {
+    const account = deferred<AccountRecord>();
+    const { auth, statuses } = burst('u_test-down', () => account.promise);
+    await settle();
+    account.reject(Object.assign(new Error('down'), { code: 'auth/internal-error' }));
+    expect(await statuses).toEqual(Array(8).fill(503));
+
+    const after = burst('u_test-down', async () => live);
+    expect(await after.statuses).toEqual(Array(8).fill(200)); // the failed lookup was let go
+    expect(auth.getUser.mock.calls.length + after.auth.getUser.mock.calls.length).toBe(2);
+  });
+
+  it('a revoked token stays refused on later calls, and a lookup past the cache minute sees a new revoke', async () => {
+    const { check } = revocationCheck();
+    const lookup = vi.fn(async () => live);
+    await Promise.all([1, 2, 3].map(() => check(token('u-seq'), lookup, T0)));
+
+    const revokedNow = vi.fn(async () => revokedSince(T0 + MINUTE));
+    expect(await check(token('u-seq'), revokedNow, T0 + 2 * MINUTE)).toBe('revoked');
+    expect(await check(token('u-seq'), revokedNow, T0 + 2 * MINUTE + 1)).toBe('revoked');
+    expect(lookup).toHaveBeenCalledTimes(1);
+    expect(revokedNow).toHaveBeenCalledTimes(1);
+  });
+
+  it('a strict check never waits on a lax lookup: it looks the account up now', async () => {
+    const { check } = revocationCheck();
+    const account = deferred<AccountRecord>();
+    const lax = check(token('u-mixed'), () => account.promise, T0);
+    const revokedNow = vi.fn(async () => revokedSince(T0 - MINUTE));
+
+    expect(await check(token('u-mixed'), revokedNow, T0 + 1, true)).toBe('revoked');
+    expect(revokedNow).toHaveBeenCalledTimes(1);
+    account.resolve(live);
+    expect(await lax).toBe('ok');
+  });
+
+  it('a lookup older than JOIN_MS (hung) is not waited on: the check starts its own', async () => {
+    const { check } = revocationCheck();
+    void check(token('u-hung'), () => new Promise<AccountRecord>(() => {}), T0);
+
+    expect(await check(token('u-hung'), async () => live, T0 + 10_001)).toBe('ok');
+  });
+
+  it('distinct accounts beyond the budget are refused as before', async () => {
+    const { check } = revocationCheck(limitsWith({ normal: { burst: 3, perSecond: 0 } }));
+    const uids = ['d-1', 'd-2', 'd-3', 'd-4', 'd-5'];
+
+    expect(await Promise.all(uids.map((uid) => check(token(uid), async () => live, T0)))).toEqual(
+      ['ok', 'ok', 'ok', 'unavailable', 'unavailable']
+    );
   });
 });
