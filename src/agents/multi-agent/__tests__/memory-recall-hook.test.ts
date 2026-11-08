@@ -375,12 +375,16 @@ describe('the opener thread line in the call budget', () => {
 // Round 2: a call safety holds counts as asked, so the week's predictions stay out beside it.
 describe('the week line beside a safety-held call', () => {
   const WEEK = 'Last week Sam guessed the move would go smoothly. Ask how it went.';
-  const firstNote = async (state: 'risk' | 'reading' | 'free', sessionId: string) => {
+  const firstNote = async (
+    state: 'risk' | 'reading' | 'free',
+    sessionId: string,
+    asked = state !== 'free' // the hello asked
+  ) => {
     const userId = `u-${sessionId}`;
     const week = createPredictionCheckIn({ userId, personaId: 'ferni', load: async () => WEEK });
     const recall = createMemoryRecall({ userId, store, opener: true, sessionId, week });
     await Promise.all([recall.ready, week.ready]);
-    if (state !== 'free') claimOpenerFollowUp(userId, 'greeting', sessionId); // the hello asked
+    if (asked) claimOpenerFollowUp(userId, 'greeting', sessionId);
     if (state === 'risk') noteCrisisRisk(sessionId);
     if (state === 'reading') void trackCrisisRead(sessionId, 'Hey', new Promise<null>(() => {}));
     return recall.noteFor('Hey, the boxes are finally unpacked.', { final: true }) ?? '';
@@ -417,5 +421,16 @@ describe('the week line beside a safety-held call', () => {
     expect(await firstNote('risk', 'off-risk')).not.toContain(WEEK);
     expect(await firstNote('reading', 'off-reading')).not.toContain(WEEK);
     expect(await firstNote('free', 'off-free')).toContain(WEEK);
+  });
+
+  // Production tracks crisis reads and notes risk whatever the flag says: off, neither may count as asked.
+  it('off: nobody asked, a crisis read in flight or noted risk still gets the week line as on main', async () => {
+    const plain = await firstNote('free', 'off-plain');
+    expect(plain).toContain(WEEK);
+    const reading = await firstNote('reading', 'off-unasked-reading', false);
+    expect(crisisReadInFlight('off-unasked-reading')).toBe(true);
+    expect(reading).toBe(plain);
+    const risk = await firstNote('risk', 'off-unasked-risk', false);
+    expect(risk).toBe(plain);
   });
 });
