@@ -461,27 +461,27 @@ export interface CallActions {
   heldWhen?: string;
 }
 
+export type ResultState = 'done' | 'awaiting' | 'failed' | 'held' | 'elsewhere';
+// What one tool result says happened, read in order: a held call's "Nothing was dialed yet" is no refusal.
+const RESULT_READS: ReadonlyArray<readonly [RegExp, ResultState]> = [
+  [HELD, 'held'],
+  [TOOL_REFUSAL, 'failed'],
+  [PREVIEW, 'awaiting'],
+  [ELSEWHERE, 'elsewhere'],
+];
+export function resultState(item: Pick<ItemView, 'output' | 'isError'>): ResultState {
+  const text = outputText(item.output);
+  return item.isError ? 'failed' : (RESULT_READS.find(([re]) => re.test(text))?.[1] ?? 'done');
+}
+
 /** What the call's tools did: each kind as its latest tool result left it. */
 export function callActions(chatCtx: { items: readonly unknown[] }): CallActions {
-  type State = 'done' | 'awaiting' | 'failed' | 'held' | 'elsewhere';
-  const latest = new Map<ActionKind, State>();
+  const latest = new Map<ActionKind, ResultState>();
   let heldWhen: string | undefined;
   for (const item of chatCtx.items as readonly ItemView[]) {
     if (item.type !== 'function_call_output') continue;
-    const text = outputText(item.output);
-    // Held is read first: "Nothing was dialed yet" would otherwise read as a refusal.
-    const state: State = item.isError
-      ? 'failed'
-      : HELD.test(text)
-        ? 'held'
-        : TOOL_REFUSAL.test(text)
-          ? 'failed'
-          : PREVIEW.test(text)
-            ? 'awaiting'
-            : ELSEWHERE.test(text)
-              ? 'elsewhere'
-              : 'done';
-    if (state === 'held') heldWhen = HELD_WHEN.exec(text)?.[1];
+    const state = resultState(item);
+    if (state === 'held') heldWhen = HELD_WHEN.exec(outputText(item.output))?.[1];
     for (const kind of kindsOfTool(item.name ?? '')) {
       // "Saved to Ferni's list" only matters for a schedule item; any other tool's result is done.
       latest.set(kind, state === 'elsewhere' && kind !== 'schedule' ? 'done' : state);
