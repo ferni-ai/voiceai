@@ -208,7 +208,10 @@ export function revocationCheck(limits: Limits = LIMITS) {
     const pending = strict ? undefined : inFlight.get(token.uid);
     let found: Found;
     if (pending && now - pending.at < JOIN_MS) {
-      found = await pending.found; // its token is already spent
+      // Its token is already spent. A joiner never writes the cache: lookUp wrote it at the
+      // lookup's START (pending.at), so the entry expires FRESH_MS after that start, however
+      // late the joiner arrived, and a revoke landing mid-lookup is seen by then.
+      found = await pending.found;
     } else {
       const kind = anonymousSignIn ? 'anonymous' : strict ? 'strict' : 'normal';
       if (!budgets[kind](token.uid, now)) {

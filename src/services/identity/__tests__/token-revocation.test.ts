@@ -383,6 +383,23 @@ describe('concurrent checks of one account share one lookup', () => {
     expect(await check(token('u-hung'), async () => live, T0 + 10_001)).toBe('ok');
   });
 
+  it('a joined result is cached from the lookup start, not the join: a mid-lookup revoke is seen at start + the cache minute', async () => {
+    const { check } = revocationCheck();
+    const account = deferred<AccountRecord>();
+    const first = check(token('u_test-join'), () => account.promise, T0); // lookup starts at T0
+    // The revoke lands at T0 + 1 s, after Auth read the account; a joiner arrives just
+    // inside JOIN_MS and gets the pre-revoke read
+    const joiner = check(token('u_test-join'), vi.fn(), T0 + 10_000 - 1);
+    account.resolve(live);
+    expect(await Promise.all([first, joiner])).toEqual(['ok', 'ok']);
+
+    const revokedNow = vi.fn(async () => revokedSince(T0 + 1000));
+    expect(await check(token('u_test-join'), revokedNow, T0 + MINUTE - 1)).toBe('ok'); // cache, as on main
+    expect(revokedNow).not.toHaveBeenCalled();
+    expect(await check(token('u_test-join'), revokedNow, T0 + MINUTE)).toBe('revoked'); // not later
+    expect(revokedNow).toHaveBeenCalledTimes(1);
+  });
+
   it('distinct accounts beyond the budget are refused as before', async () => {
     const { check } = revocationCheck(limitsWith({ normal: { burst: 3, perSecond: 0 } }));
     const uids = ['d-1', 'd-2', 'd-3', 'd-4', 'd-5'];
