@@ -39,9 +39,13 @@ function scanSavedKeys(): { keys: { key: string; at: string }[]; unread: string[
     return `${relative(SRC, file.fileName)}:${file.getLineAndCharacterOfPosition(node.getStart()).line + 1}`;
   };
   const calleeOf = (call: ts.CallExpression) => {
-    const name = ts.isPropertyAccessExpression(call.expression) ? call.expression.name : call.expression;
+    const name = ts.isPropertyAccessExpression(call.expression)
+      ? call.expression.name
+      : call.expression;
     const symbol = checker.getSymbolAtLocation(name);
-    return symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+    return symbol && symbol.flags & ts.SymbolFlags.Alias
+      ? checker.getAliasedSymbol(symbol)
+      : symbol;
   };
   const unread: string[] = [];
 
@@ -70,9 +74,10 @@ function scanSavedKeys(): { keys: { key: string; at: string }[]; unread: string[
     if (ts.isBinaryExpression(expr) && expr.operatorToken.kind === ts.SyntaxKind.PlusToken) {
       return keysOf(expr.left, depth + 1).map((key) => (key.endsWith(PREFIX) ? key : key + PREFIX));
     }
-    const declaration = (ts.isIdentifier(expr) || ts.isPropertyAccessExpression(expr)
-      ? checker.getSymbolAtLocation(expr)
-      : undefined
+    const declaration = (
+      ts.isIdentifier(expr) || ts.isPropertyAccessExpression(expr)
+        ? checker.getSymbolAtLocation(expr)
+        : undefined
     )?.valueDeclaration;
     if (declaration && ts.isParameter(declaration)) return argumentsFor(declaration, depth);
     if (
@@ -116,7 +121,8 @@ function scanSavedKeys(): { keys: { key: string; at: string }[]; unread: string[
     if (!ts.isBlock(body)) return keysOf(body as ts.Expression, depth + 1);
     const keys: string[] = [];
     const visit = (node: ts.Node) => {
-      if (ts.isReturnStatement(node) && node.expression) keys.push(...keysOf(node.expression, depth + 1));
+      if (ts.isReturnStatement(node) && node.expression)
+        keys.push(...keysOf(node.expression, depth + 1));
       else if (!ts.isFunctionLike(node)) ts.forEachChild(node, visit);
     };
     visit(body);
@@ -131,7 +137,9 @@ function scanSavedKeys(): { keys: { key: string; at: string }[]; unread: string[
       node.expression.name.text === 'setItem' &&
       node.arguments[0]
     ) {
-      const receiver = checker.getNonNullableType(checker.getTypeAtLocation(node.expression.expression));
+      const receiver = checker.getNonNullableType(
+        checker.getTypeAtLocation(node.expression.expression)
+      );
       if (checker.typeToString(receiver) === 'Storage') {
         for (const key of keysOf(node.arguments[0])) keys.push({ key, at: at(node) });
       }
@@ -157,7 +165,10 @@ describe('keys the web app saves in browser storage', () => {
     const neither = keys
       .filter(({ key }) => !FERNI_KEY_PATTERN.test(key) && !Object.hasOwn(DEVICE_KEYS, key))
       .map(({ key, at }) => `${key} (${at})`);
-    expect(neither, 'rename under ferni_/ferni-/ferni:/voiceai_, or add to DEVICE_KEYS with a reason').toEqual([]);
+    expect(
+      neither,
+      'rename under ferni_/ferni-/ferni:/voiceai_, or add to DEVICE_KEYS with a reason'
+    ).toEqual([]);
   });
 
   it('can all be read, so none slips past the check above', () => {

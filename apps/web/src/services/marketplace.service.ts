@@ -309,7 +309,7 @@ const getManifestUrl = MARKETPLACE_URLS[MARKETPLACE_SOURCE].manifest;
 // Log the selected source on initialization
 log.debug(`Marketplace source: ${MARKETPLACE_SOURCE} (registry: ${REGISTRY_URL})`);
 
-const STORAGE_KEY = 'ferni_marketplace_installed';
+export const INSTALLED_AGENTS_KEY = 'ferni_marketplace_installed';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 // ============================================================================
@@ -723,7 +723,7 @@ function loadInstalledAgents(): Map<string, InstalledAgent> {
   }
 
   try {
-    const stored = readRenamedKey(STORAGE_KEY);
+    const stored = readRenamedKey(INSTALLED_AGENTS_KEY);
     if (stored) {
       const parsed = JSON.parse(stored) as Record<string, InstalledAgent>;
       installedAgentsCache = new Map(Object.entries(parsed));
@@ -743,7 +743,7 @@ function saveInstalledAgents(agents: Map<string, InstalledAgent>): void {
 
   try {
     const serialized = JSON.stringify(Object.fromEntries(agents));
-    localStorage.setItem(STORAGE_KEY, serialized);
+    localStorage.setItem(INSTALLED_AGENTS_KEY, serialized);
   } catch (err) {
     log.error('Failed to save installed agents:', err);
   }

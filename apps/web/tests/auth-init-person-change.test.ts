@@ -23,7 +23,10 @@ vi.mock('../src/services/firebase-auth.service.js', () => ({
   }),
 }));
 vi.mock('../src/services/api-auth-fetch.js', () => ({ installApiAuthFetch: vi.fn() }));
-vi.mock('../src/state/app.state.js', () => ({ getDeviceId: () => 'device-1', updateAuthState: vi.fn() }));
+vi.mock('../src/state/app.state.js', () => ({
+  getDeviceId: () => 'device-1',
+  updateAuthState: vi.fn(),
+}));
 const forgetThisPersonAndReload = vi.fn(async () => {});
 vi.mock('../src/services/forget-this-person.js', () => ({ forgetThisPersonAndReload }));
 

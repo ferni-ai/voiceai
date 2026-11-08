@@ -1265,8 +1265,7 @@ function loadState(): void {
         };
       }
     }
-    // One-time: milestones celebrated before outreach was confirmed by the server count as
-    // sent, so the retry below only ever applies to ones celebrated after this point
+    // One-time: ones celebrated before server-confirmed outreach count as sent; later ones retry
     if (!readRenamedKey(OUTREACH_MIGRATION_KEY)) {
       for (const m of milestones) if (m.celebrated) m.outreachDone = true;
       localStorage.setItem(OUTREACH_MIGRATION_KEY, new Date().toISOString());

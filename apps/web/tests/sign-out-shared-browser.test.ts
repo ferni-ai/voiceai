@@ -69,17 +69,21 @@ describe("sign-out on a shared browser leaves nothing of the person's", () => {
     signedInUid = 'uid-sam-rivera-b';
     onServer = [];
     apiPut.mockClear();
-    const { syncInstalledAgents, getInstalledAgents } = await import(
-      '../src/services/marketplace.service.js'
-    );
+    const { syncInstalledAgents, getInstalledAgents } =
+      await import('../src/services/marketplace.service.js');
     await syncInstalledAgents();
 
     expect(getInstalledAgents().map((agent) => agent.id)).not.toContain(AGENT_A.id);
-    expect(apiPut.mock.calls.map(([url]) => String(url)).filter((url) => url.includes(AGENT_A.id))).toEqual([]);
+    expect(
+      apiPut.mock.calls.map(([url]) => String(url)).filter((url) => url.includes(AGENT_A.id))
+    ).toEqual([]);
   });
 
   it('moves a value saved under a former key name once, so a person keeps it', async () => {
-    localStorage.setItem('voiceai-marketplace-installed', JSON.stringify({ [AGENT_A.id]: AGENT_A }));
+    localStorage.setItem(
+      'voiceai-marketplace-installed',
+      JSON.stringify({ [AGENT_A.id]: AGENT_A })
+    );
     const { getInstalledAgents } = await import('../src/services/marketplace.service.js');
     expect(getInstalledAgents().map((agent) => agent.id)).toEqual([AGENT_A.id]);
     expect(localStorage.getItem('voiceai-marketplace-installed')).toBeNull();

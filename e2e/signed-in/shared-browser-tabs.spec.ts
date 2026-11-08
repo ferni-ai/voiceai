@@ -48,12 +48,17 @@ test('signing out in one tab takes the other open tab to the sign-in screen', as
 
   await signOutFromMenu(page);
 
-  await expect(otherTab.locator(GATE), 'the other tab still shows the signed-out person').toBeVisible({
+  await expect(
+    otherTab.locator(GATE),
+    'the other tab still shows the signed-out person'
+  ).toBeVisible({
     timeout: 5_000,
   });
 });
 
-test("a tab left open never goes on showing the last person's page once the next person signs in", async ({ page }) => {
+test("a tab left open never goes on showing the last person's page once the next person signs in", async ({
+  page,
+}) => {
   await signIn(page, await createUser());
   await expectHome(page);
   const otherTab = await openSecondTab(page);
@@ -63,14 +68,18 @@ test("a tab left open never goes on showing the last person's page once the next
   await signIn(page, next);
   await expectHome(page);
 
-  await expect.poll(async () => (await whatTheTabShows(otherTab)).uid, { timeout: 15_000 }).toBe(next.uid);
+  await expect
+    .poll(async () => (await whatTheTabShows(otherTab)).uid, { timeout: 15_000 })
+    .toBe(next.uid);
   expect(
     (await whatTheTabShows(otherTab)).mark,
     'the other tab kept the first person on screen after the next person signed in'
   ).toBeNull();
 });
 
-test('signing in from the sign-in screen, then a token refresh, loads the page once', async ({ page }) => {
+test('signing in from the sign-in screen, then a token refresh, loads the page once', async ({
+  page,
+}) => {
   let loads = 0;
   page.on('load', () => loads++);
   await signIn(page, await createUser());
