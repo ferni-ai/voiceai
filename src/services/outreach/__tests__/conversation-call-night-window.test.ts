@@ -571,3 +571,61 @@ describe('NIGHT_WINDOW_ALL_PATHS on: never gates their own "call me", opt-outs o
     }
   );
 });
+
+describe('NIGHT_WINDOW_ALL_PATHS on: their own "call me" keeps main\'s hold time', () => {
+  // Round 4: the flag's minute-precise end (serverClockQuiet) does not apply to their own "call
+  // me": saved 12:00-18:30 on the server clock (UTC) holds to 18:00, as main, never to 18:30.
+  it.each([
+    ['2026-11-10T12:00:00Z', 'held 2026-11-10T18:00:00.000Z'],
+    ['2026-11-10T15:00:00Z', 'held 2026-11-10T18:00:00.000Z'],
+    ['2026-11-10T17:59:00Z', 'held 2026-11-10T18:00:00.000Z'],
+    ['2026-11-10T18:00:00Z', 'held 2026-11-11T18:00:00.000Z'], // main: the next day's 18:00
+  ])('asked at %s, guard off unified off: %s, flag off and on', async (iso, held) => {
+    vi.stubEnv('CALL_HOURS_GUARD', 'off');
+    vi.stubEnv('QUIET_HOURS_UNIFIED', 'off');
+    for (const allPaths of ['off', 'on']) {
+      vi.stubEnv('NIGHT_WINDOW_ALL_PATHS', allPaths);
+      reset('london', '12:00-18:30');
+      expect([allPaths, await place('member', new Date(iso), true)]).toEqual([allPaths, held]);
+    }
+  });
+
+  const EIGHT = COMBOS.flatMap((c) => ['off', 'on'].map((prefs) => ({ ...c, prefs })));
+  const HALF_HOUR_WINDOWS = ['12:00-18:30', '20:00-21:30', '22:00-07:30'];
+  describe.each(SERVER_TZS)('server clock %s', (tz) => {
+    beforeEach(() => void (process.env.TZ = tz));
+    afterEach(() => void (process.env.TZ = 'UTC'));
+    it.each(EIGHT)(
+      'guard $guard, unified $unified, QUIET_HOURS_FROM_PREFS $prefs: on equals off',
+      async ({ guard, unified, prefs }) => {
+        vi.stubEnv('CALL_HOURS_GUARD', guard);
+        vi.stubEnv('QUIET_HOURS_UNIFIED', unified);
+        vi.stubEnv('QUIET_HOURS_FROM_PREFS', prefs);
+        const outcomes = { off: [] as string[], on: [] as string[] };
+        for (const allPaths of ['off', 'on'] as const) {
+          vi.stubEnv('NIGHT_WINDOW_ALL_PATHS', allPaths);
+          for (const saved of HALF_HOUR_WINDOWS) {
+            for (const owner of ['london', 'tokyo'] as const) {
+              for (const slot of SLOTS.slice(0, 48)) {
+                reset(owner, saved);
+                const [quietStart, quietEnd] = saved.split('-'); // the menu's window too
+                Object.assign(state.docs[`bogle_users/${OWNER}`], {
+                  messagingPrefs: { quietStart, quietEnd },
+                });
+                outcomes[allPaths].push(await place('member', slot, true));
+              }
+            }
+          }
+        }
+        expect(outcomes.on.length).toBe(3 * 2 * 48);
+        // Not vacuous: the saved windows hold some asks and let others ring, in every combo.
+        expect(['held', 'rang'].map((k) => outcomes.on.some((o) => o.startsWith(k)))).toEqual([
+          true,
+          true,
+        ]);
+        expect(outcomes.on).toEqual(outcomes.off);
+      },
+      600_000
+    );
+  });
+});

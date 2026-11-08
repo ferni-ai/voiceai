@@ -131,10 +131,13 @@ function nightEnd(zones: string[], now: Date): Date | Error {
 type Hold = (at: Date) => Date | Promise<Date>; // only the member's saved hours read the store
 const NO_END = new Date(8.64e15); // the last Date there is
 
-/** Each check's hold from `at`: a contact's night, the member's hours (`night`: and night). */
+/**
+ * Each check's hold from `at`: a contact's night, the member's hours (`night`: and night, and
+ * their hours end on the minute; else on the hour, as main, so their own "call me" is main's).
+ */
 async function calleeHolds(callees: CallHoursInput[], night: boolean): Promise<Hold[]> {
   const memberHours: (id: string) => Hold = (id) => async (at) => {
-    const hours = await callQuietHours(id, at);
+    const hours = await callQuietHours(id, at, night);
     return hours.quiet ? hours.until : at;
   };
   const memberNight = async (c: CallHoursInput): Promise<Hold> => {
@@ -162,8 +165,8 @@ const WEEK_MS = 7 * 24 * 60 * 60_000;
 
 /**
  * CALL_HOURS_GUARD off: held until every check (a contact's night, the member's hours) allows.
- * NIGHT_WINDOW_ALL_PATHS on (not their own "call me", asOwnCallMe): the member's night too, and
- * the end is asked again until no check holds it. When that does not settle within 8 asks or a
+ * NIGHT_WINDOW_ALL_PATHS on (not their own "call me", asOwnCallMe, which is held as on main): the
+ * member's night too, and the end is asked again until no check holds it. When that does not settle within 8 asks or a
  * week, the call is refused (NO_ALLOWED_TIME) rather than held to a time inside a callee's night.
  */
 export async function calleeCallHold(
