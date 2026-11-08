@@ -23,7 +23,14 @@
 
 export { detectCrisis, getHighestSeverityCrisis, isCrisisActive } from './crisis-detection.js';
 /** The crisis guard's scoring of the caller's words alone: quiet, no logging (heavy-moment.ts). */
-export { detectCrisis as scoreCrisisLanguage, IN_DANGER_NOW } from './crisis-guard.js';
+export {
+  CRISIS_SEVERITY,
+  detectCrisis as scoreCrisisLanguage,
+  IN_DANGER_NOW,
+} from './crisis-guard.js';
+export { EMERGENCY_FOR_THEM } from './crisis-guard-replies.js';
+// assessSafety's escalate-only phrase floor, read after the guard (crisis-coaching-floor.ts).
+export { coachingFloorRead, type CoachingFloorRead } from './crisis-coaching-floor.js';
 export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.js';
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
 export { crisisRiskThisCall } from './crisis-call-risk.js';
