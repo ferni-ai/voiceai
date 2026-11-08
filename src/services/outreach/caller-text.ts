@@ -64,7 +64,7 @@ const PAY_OBJECT = String.raw`(?:loans|debts?|grand|bucks|quid|money|cash|funds)
  * The endings a written link has: every two-letter country ending, and the common generic ones.
  * Not any word: "riley.jones" or "St.Clair" is a name written with a dot.
  */
-const LINK_ENDING = String.raw`(?:\p{L}{2}|com|net|org|edu|gov|info|biz|xyz|link|app|dev|shop|store|site|online|web|website|page|blog|tech|live|life|world|today|club|pro|wiki|fun|art|design|studio|space|email|mail|chat|news|media|cloud|host|help|money|pay|cash|bank|finance|fund|loans?|credit|capital|tax|market|trade|exchange|games?|community|social|agency|company|center|network|digital|solutions|services|group|team|works|zone|city|tips|guide|reviews?|photos?|video|music|events|love|gifts?|care|health|house|home|place|ltd|inc|llc|global|plus|top|vip|win|bet|casino|church|school|support|click|download|stream|tickets)`;
+const LINK_ENDING = String.raw`(?:\p{L}{2}|com|net|org|edu|gov|info|biz|xyz|link|app|dev|shop|store|site|online|web|website|page|blog|tech|live|life|world|today|club|pro|wiki|fun|art|design|studio|space|email|mail|chat|news|media|cloud|host|help|money|pay|cash|bank|finance|fund|loans?|credit|capital|tax|market|trade|exchange|games?|community|social|agency|company|center|network|digital|services|group|team|works|zone|city|tips|guide|reviews?|photos?|video|music|events|love|gifts?|care|health|house|home|place|ltd|inc|llc|global|plus|top|vip|win|bet|casino|church|school|support|click|download|stream|tickets)`;
 /** A link written with a dot and an ending: riley-help.app, riley.us. */
 const DOTTED_LINK = new RegExp(
   String.raw`(?<![\p{L}\p{N}.])[\p{L}\p{N}-]{2,}\.${LINK_ENDING}(?![\p{L}\p{N}])`,
