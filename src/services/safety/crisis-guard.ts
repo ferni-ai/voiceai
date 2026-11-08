@@ -91,6 +91,12 @@ export interface CrisisDetectionOptions {
   recentMessages?: readonly string[];
   /** Overrides CRISIS_MEANS_IN_HAND for this read; 'all' is the shadow log's (crisis-means-shadow.ts). */
   meansInHand?: 'off' | 'shadow' | 'live' | 'all';
+  /**
+   * Whether the voice may move a worry about someone else onto the caller (the soft-self flip in
+   * detectCrisis). Default true. The background turn passes false (turn-crisis.ts): there the
+   * voice only raises severity, so a third-party read keeps its help for the person at risk.
+   */
+  voiceMaySetSubject?: boolean;
 }
 
 export const CRISIS_SEVERITY = SEVERITY; // the tiers, for callers that weigh a read (caller-text.ts)
@@ -298,7 +304,8 @@ export function detectCrisis(
   // A worry about someone else, with the caller's own softened ending words and a distressed
   // voice: the voice makes it about the caller again, as before #2528.
   const voiced = voiceEmotion?.confidence !== undefined && voiceEmotion.confidence > 0.5;
-  if (subject === 'third_party' && score.softSelf && voiced) {
+  const voiceSetsSubject = options?.voiceMaySetSubject !== false;
+  if (subject === 'third_party' && score.softSelf && voiced && voiceSetsSubject) {
     const { primary } = voiceEmotion;
     const distressed = [...HIGH_DISTRESS_VOICE_EMOTIONS, ...MODERATE_DISTRESS_VOICE_EMOTIONS];
     if (distressed.includes(primary)) subject = 'self';

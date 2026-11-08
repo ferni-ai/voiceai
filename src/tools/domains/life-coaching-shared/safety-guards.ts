@@ -7,7 +7,7 @@
 
 import { getLogger } from '../../../utils/safe-logger.js';
 import { saysPhrase, saysRiskPhrase } from '../../../utils/safety-whole-word.js';
-import { IN_DANGER_NOW, readsImminentLive } from '../../../services/safety/index.js';
+import { IN_DANGER_NOW, readsImminentLive, crisisLines } from '../../../services/safety/index.js';
 import type { SafetyAssessment, CrisisResource, EmotionalState } from './types.js';
 
 const log = getLogger();
@@ -74,24 +74,24 @@ const CONCERNING_INDICATORS = [
 
 export const CRISIS_RESOURCES: Record<string, CrisisResource> = {
   general: {
-    name: '988 Suicide & Crisis Lifeline',
+    name: crisisLines.LIFELINE_988.name,
     description: 'Free, confidential support 24/7',
-    phone: '988',
-    text: '988',
+    phone: crisisLines.LIFELINE_988.phone,
+    text: crisisLines.LIFELINE_988.phone,
     website: 'https://988lifeline.org',
     available: '24/7',
   },
   text: {
-    name: 'Crisis Text Line',
+    name: crisisLines.CRISIS_TEXT_LINE.name,
     description: 'Text-based crisis support',
     text: 'HOME to 741741',
     website: 'https://crisistextline.org',
     available: '24/7',
   },
   domesticViolence: {
-    name: 'National Domestic Violence Hotline',
+    name: crisisLines.DOMESTIC_VIOLENCE_HOTLINE.name,
     description: 'Support for domestic violence survivors',
-    phone: '1-800-799-7233',
+    phone: crisisLines.DOMESTIC_VIOLENCE_HOTLINE.phone,
     text: 'START to 88788',
     website: 'https://thehotline.org',
     available: '24/7',
@@ -99,14 +99,14 @@ export const CRISIS_RESOURCES: Record<string, CrisisResource> = {
   sexualAssault: {
     name: 'RAINN',
     description: 'Sexual assault support',
-    phone: '1-800-656-4673',
+    phone: crisisLines.SEXUAL_ASSAULT_HOTLINE.phone,
     website: 'https://rainn.org',
     available: '24/7',
   },
   eatingDisorder: {
     name: 'NEDA Helpline',
     description: 'Eating disorder support',
-    phone: '1-800-931-2237',
+    phone: crisisLines.EATING_DISORDER_HELPLINE.phone,
     text: 'NEDA to 741741',
     website: 'https://nationaleatingdisorders.org',
     available: 'Mon-Thu 9am-9pm ET, Fri 9am-5pm ET',
@@ -122,15 +122,15 @@ export const CRISIS_RESOURCES: Record<string, CrisisResource> = {
   veterans: {
     name: 'Veterans Crisis Line',
     description: 'Support for veterans',
-    phone: '988 (press 1)',
+    phone: `${crisisLines.LIFELINE_988.phone} (press 1)`,
     text: '838255',
     website: 'https://veteranscrisisline.net',
     available: '24/7',
   },
   substance: {
-    name: 'SAMHSA National Helpline',
+    name: crisisLines.SUBSTANCE_HELPLINE.name,
     description: 'Substance abuse support',
-    phone: '1-800-662-4357',
+    phone: crisisLines.SUBSTANCE_HELPLINE.phone,
     website: 'https://samhsa.gov/find-help/national-helpline',
     available: '24/7',
   },

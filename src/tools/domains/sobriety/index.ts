@@ -29,6 +29,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { addCrossPersonaInsight } from '../../../services/cross-persona-insights.js';
+import { crisisLines } from '../../../services/safety/index.js';
 
 const log = getLogger();
 
@@ -109,7 +110,7 @@ These states make everything harder. Address them.
 
 **Resources (Always):**
 
-- SAMHSA National Helpline: 1-800-662-4357 (free, 24/7)
+- ${crisisLines.SUBSTANCE_HELPLINE.name}: ${crisisLines.SUBSTANCE_HELPLINE.phone} (free, 24/7)
 - AA: aa.org | NA: na.org
 - SMART Recovery: smartrecovery.org
 - Your sponsor/support person
@@ -199,7 +200,7 @@ ${
 
 - Call your sponsor NOW
 - Go to a meeting (even online)
-- Call SAMHSA: 1-800-662-4357
+- Call SAMHSA: ${crisisLines.SUBSTANCE_HELPLINE.phone}
 - Go somewhere safe immediately
 - Tell someone what's happening
 
