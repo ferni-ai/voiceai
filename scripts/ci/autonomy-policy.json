@@ -58,6 +58,8 @@
         "src/agents/shared/wrap-up-window.ts",
         "src/agents/voice-agent/quiet-presence.ts",
         "src/agents/voice-agent/turn-handler.ts",
+        "src/api/custom-agent/chat-routes.ts",
+        "src/api/journal-twin-route.ts",
         "src/api/wellbeing.routes.ts",
         "src/config/flags/FORGET_EVERY_READER.ts",
         "src/config/flags/NAME_FALLING_SPLIT.ts",
