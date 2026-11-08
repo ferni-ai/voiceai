@@ -105,15 +105,18 @@ describe('flag on', () => {
     expect(turnsPerLaugh).toBeLessThanOrEqual(9);
   });
 
+  // 100 seeded calls, not 500: the checks are per call, and 500 x 60 turns took
+  // over 20 s on a loaded CI runner and timed out (#3625).
   it('keeps the 6-turn spacing and the cap of 4 a call', () => {
-    const calls = playCalls(500, 60, playfulTurn, true);
+    const CALLS = 100;
+    const calls = playCalls(CALLS, 60, playfulTurn, true);
     for (const laughed of calls) {
       expect(laughed.length).toBeLessThanOrEqual(4);
       for (let i = 1; i < laughed.length; i++)
         expect(laughed[i] - laughed[i - 1]).toBeGreaterThanOrEqual(6);
     }
     // 60 turns is room for more than 4 at this rate: the cap is what stops it.
-    expect(calls.filter((l) => l.length === 4).length).toBeGreaterThan(400);
+    expect(calls.filter((l) => l.length === 4).length).toBeGreaterThan(CALLS * 0.8);
   });
 
   it('never laughs on a heavy turn', () => {
