@@ -35,11 +35,7 @@ function alertFor(name: string, description: string): string {
 const NEW_ENDING = ['sol', 'utions'].join('');
 
 /** Withheld on the shapes head, quoted on main: quoted again, in their own words, for any name. */
-const ORDINARY = [
-  'ten k-drama episodes',
-  'she likes k-pop songs',
-  'two k-pop concerts',
-];
+const ORDINARY = ['ten k-drama episodes', 'she likes k-pop songs', 'two k-pop concerts'];
 
 /** Quoted only when the name in them is the known name: otherwise the screen fails closed. */
 const KNOWN_NAME_ONLY: ReadonlyArray<readonly [string, string]> = [
