@@ -83,8 +83,7 @@ import { formatPets, petsOf } from '../../memory/recall/pets.js';
 import { callLoopsRecallFor, type CallLoopsRecall } from './open-loops-recall.js';
 import { predictionCheckInFor, type PredictionCheckIn } from './prediction-check-in.js';
 import { OPENER_FOLLOW_UP_LINE, openerFollowUpEnabled } from '../../memory/recall/opener.js';
-import { takeOpenerClaim } from '../../memory/recall/opener-claim.js';
-import { threadInBudget } from './recall-thread-budget.js';
+import { openerAsked, threadInBudget } from './recall-thread-budget.js';
 import { followThroughOpenerFor, type FollowThroughOpener } from './follow-through-opener.js';
 import {
   createEpisodeRecall,
@@ -391,10 +390,9 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       }
       const checkIn = checkInOffered ? null : checkInNote;
       const dateNow = followUpsOffered || checkIn || flagOn('DATES_IN_HELLO') ? null : dates.note();
-      // One follow-up per call opener (opener-claim.ts): a check-in or a date in this note (with
-      // DATES_IN_HELLO only the hello's), or one the greeting already asked, leaves the thread out.
-      const greetingAsked = !followUpsOffered && takeOpenerClaim(deps.userId, deps.sessionId);
-      // The week's predictions come alone: never beside a check-in, a date or the greeting's ask.
+      // One follow-up per call opener (opener-claim.ts): a check-in, a date (with DATES_IN_HELLO
+      // only the hello's) or one already asked leaves out the week's predictions and the thread.
+      const greetingAsked = !followUpsOffered && openerAsked(deps.userId, deps.sessionId);
       const weekNow = checkIn || dateNow || greetingAsked ? null : week.note(opts.final);
       const opener =
         !followUpsOffered &&

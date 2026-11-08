@@ -6,7 +6,7 @@ export const PROACTIVE_BUDGET = {
   owner: 'memory',
   kind: 'experiment',
   expires: '2027-02-05',
-  issue: 'https://github.com/ferni-ai/voiceai/pull/3591',
+  issue: 'https://github.com/ferni-ai/voiceai/issues/3627',
   context:
     'Right-moment B0: turn on in dev with the caller card and follow-up lanes, then measure asks per call before prod.',
 } as const satisfies FlagSpec;

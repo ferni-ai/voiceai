@@ -6,7 +6,13 @@ import {
   clearOpenerClaims,
   peekProactiveSlot,
 } from '../../../memory/recall/opener-claim.js';
-import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
+import {
+  crisisReadInFlight,
+  noteCrisisRisk,
+  resetCrisisCallRisk,
+  trackCrisisRead,
+} from '../../../services/safety/crisis-call-risk.js';
+import { createPredictionCheckIn, forgetPredictionCheckIns } from '../prediction-check-in.js';
 import type { OpenCommitment } from '../../../services/superhuman/commitment-follow-up.js';
 
 // A fake Firestore that records how dynamic_facts is queried.
@@ -363,5 +369,53 @@ describe('the opener thread line in the call budget', () => {
     expect(await opening('call-off')).toMatch(THREAD);
     expect(await opening(undefined)).toMatch(THREAD);
     expect(peekProactiveSlot('call-off')).toBe('commitment-insight');
+  });
+});
+
+// Round 2: a call safety holds counts as asked, so the week's predictions stay out beside it.
+describe('the week line beside a safety-held call', () => {
+  const WEEK = 'Last week Sam guessed the move would go smoothly. Ask how it went.';
+  const firstNote = async (state: 'risk' | 'reading' | 'free', sessionId: string) => {
+    const userId = `u-${sessionId}`;
+    const week = createPredictionCheckIn({ userId, personaId: 'ferni', load: async () => WEEK });
+    const recall = createMemoryRecall({ userId, store, opener: true, sessionId, week });
+    await Promise.all([recall.ready, week.ready]);
+    if (state !== 'free') claimOpenerFollowUp(userId, 'greeting', sessionId); // the hello asked
+    if (state === 'risk') noteCrisisRisk(sessionId);
+    if (state === 'reading') void trackCrisisRead(sessionId, 'Hey', new Promise<null>(() => {}));
+    return recall.noteFor('Hey, the boxes are finally unpacked.', { final: true }) ?? '';
+  };
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    clearOpenerClaims();
+    resetCrisisCallRisk();
+    forgetPredictionCheckIns();
+  });
+
+  it('on: crisis risk noted after the greeting asked leaves the week line out', async () => {
+    vi.stubEnv('PROACTIVE_BUDGET', 'on');
+    expect(peekProactiveSlot('call-risk')).toBeUndefined();
+    const note = await firstNote('risk', 'call-risk');
+    expect(peekProactiveSlot('call-risk')).toBe('safety');
+    expect(note).not.toContain(WEEK);
+  });
+
+  it('on: a crisis read in flight on ordinary words leaves the week line out', async () => {
+    vi.stubEnv('PROACTIVE_BUDGET', 'on');
+    const note = await firstNote('reading', 'call-reading');
+    expect(crisisReadInFlight('call-reading')).toBe(true);
+    expect(note).not.toContain(WEEK);
+  });
+
+  it('on: with no safety hold and no ask, the week line comes as on main', async () => {
+    vi.stubEnv('PROACTIVE_BUDGET', 'on');
+    expect(await firstNote('free', 'call-free-week')).toContain(WEEK);
+  });
+
+  it('off: the same as main in all three states', async () => {
+    expect(await firstNote('risk', 'off-risk')).not.toContain(WEEK);
+    expect(await firstNote('reading', 'off-reading')).not.toContain(WEEK);
+    expect(await firstNote('free', 'off-free')).toContain(WEEK);
   });
 });
