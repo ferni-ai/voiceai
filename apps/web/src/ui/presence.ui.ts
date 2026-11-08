@@ -783,16 +783,13 @@ export function setListening(listening: boolean): void {
 // ============================================================================
 
 /**
- * Set the current voice emotion.
- * This changes the avatar's glow color and animation to reflect the tone.
- * 
+ * Set the current voice emotion: the glow, and the legacy data-emotion eye shapes
+ * (which animate even under the face engine), so the crisis hold gates it.
  * @param emotion - The emotion to display (happy, calm, excited, etc.)
  * @param animate - Whether to animate the transition (default: true)
  */
 export function setVoiceEmotion(emotion: VoiceEmotion, animate: boolean = true): void {
-  if (currentEmotion === emotion) return;
-  // data-emotion also picks the legacy eye shapes, which animate even under the face engine
-  if (!crisisFaceAllows(emotion)) return;
+  if (currentEmotion === emotion || !crisisFaceAllows(emotion)) return;
   
   currentEmotion = emotion;
   

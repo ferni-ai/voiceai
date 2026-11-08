@@ -19,7 +19,6 @@
 import { getElementById } from '../utils/dom.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { crisisFaceAllows } from './face/crisis-face-hold.js';
 
 const log = createLogger('ExpressiveEyes');
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -138,7 +137,7 @@ export function initExpressiveEyes(): void {
  * This applies a sustained expression (not a micro-expression).
  */
 export function setEmotion(emotion: Emotion): void {
-  if (!state.coachElement || !crisisFaceAllows(emotion)) return;
+  if (!state.coachElement) return;
 
   state.currentEmotion = emotion;
 
@@ -183,7 +182,7 @@ export function clearEmotion(): void {
  * - surprise: Quick startle at unexpected input
  */
 export function playMicroExpression(type: MicroExpression): void {
-  if (!state.avatarEyesElement || !crisisFaceAllows(type)) return;
+  if (!state.avatarEyesElement) return;
 
   // Don't interrupt another micro-expression
   if (state.microExpressionInProgress) return;

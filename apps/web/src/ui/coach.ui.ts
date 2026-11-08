@@ -486,7 +486,6 @@ let currentEmotionClass: string | null = null;
 export function setEmotion(emotion: VoiceEmotion): void {
   if (!elements || !crisisFaceAllows(emotion)) return; // no joy bounce during a crisis
 
-  // Remove previous emotion class
   if (currentEmotionClass) {
     removeClass(elements.container, currentEmotionClass);
   }

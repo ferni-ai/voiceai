@@ -8,8 +8,8 @@
  *   (ferni-expressions' lids, luxo's data-expression faces and their per-face
  *   animations) pass through first, engine on or off;
  * - setFace, the face engine's renderer;
- * - the legacy data-emotion eyes and reactions (presence glow, coach reactions,
- *   expressive eyes), which never reach the engine.
+ * - the legacy data-emotion eyes and glow (presence) and the coach's emotion
+ *   reactions, which never reach the engine.
  *
  * Only the call's end releases the hold. No message does: the server sends no
  * "crisis over" signal, so a missing, unknown or malformed signal, or a
