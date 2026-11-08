@@ -40,10 +40,12 @@ runs:
         tarball="$dir/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
         mkdir -p "$dir"
 
-        # No fixed --retry-delay: curl then backs off exponentially. Each source
-        # gets up to 150 s, so both together stay within about 5 minutes.
+        # No fixed --retry-delay: curl then backs off exponentially. --retry-max-time
+        # only stops new retries starting, and nothing caps a server that accepts
+        # the connection and never answers, so `timeout` hard-caps each source at
+        # 150 s. Both sources together therefore finish within 5 minutes.
         fetch() {
-          curl -sSfL --retry 8 --retry-all-errors --retry-max-time 150 --connect-timeout 20 "$@"
+          timeout 150 curl -sSfL --retry 8 --retry-all-errors --retry-max-time 150 --connect-timeout 20 "$@"
         }
 
         if [ "$CACHE_HIT" = "true" ] && [ -s "$tarball" ]; then
@@ -52,6 +54,9 @@ runs:
           "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"; then
           echo "gitleaks tarball: downloaded from the release URL"
         else
+          # The API endpoint redirects to the same release-assets download host,
+          # so it only helps when the github.com redirect fails. In a full download-host
+          # outage both sources fail and only a cache hit saves the run.
           echo "::warning::gitleaks release URL failed after retries; trying the API asset endpoint"
           # curl does not forward this Authorization header to the redirect host.
           auth=()
