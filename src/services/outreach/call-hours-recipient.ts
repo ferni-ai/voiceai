@@ -59,6 +59,7 @@ async function holdForAll(
   let at = new Date();
   let last: CallHoursInput | undefined;
   for (let step = 0; step < 8; step++) {
+    // eslint-disable-next-line no-await-in-loop -- each step asks at the last step's end
     const ends = await Promise.all(
       callees.map(async (c) => {
         const d = await checkCallHours({ ...c, now: at, ...(userAsked && { userAsked }) });
@@ -127,7 +128,7 @@ function nightEnd(zones: string[], now: Date): Date | Error {
   return new Error('Contact call: no time both coasts and the callee allow');
 }
 
-type Hold = (at: Date) => Promise<Date>;
+type Hold = (at: Date) => Date | Promise<Date>; // only the member's saved hours read the store
 const NO_END = new Date(8.64e15); // the last Date there is
 
 /** Each check's hold from `at`: a contact's night, the member's hours (`night`: and night). */
@@ -140,14 +141,14 @@ async function calleeHolds(callees: CallHoursInput[], night: boolean): Promise<H
     const stored = await userTimezone(c.recipientUserId).catch(() => undefined);
     const zone = stored ?? timezoneFromPhone(c.recipientPhone) ?? ''; // '' is both coasts
     // No end to their night: past any week, so calleeCallHold refuses (NO_ALLOWED_TIME).
-    return async (at) => {
+    return (at) => {
       const end = nightEnd([zone], at);
       return end instanceof Error ? NO_END : end;
     };
   };
   const holds = await Promise.all(
     callees.map(async (c): Promise<Hold[]> => {
-      if (!c.recipientUserId) return [async (at) => contactHoldUntil(c.recipientPhone, at)];
+      if (!c.recipientUserId) return [(at) => contactHoldUntil(c.recipientPhone, at)];
       const hours = memberHours(c.recipientUserId);
       return night ? [hours, await memberNight(c)] : [hours];
     })
@@ -173,13 +174,19 @@ export async function calleeCallHold(
   const night = isNightWindowAllPaths() && !ownCallMe;
   const holds = await calleeHolds(callees, night);
   const latest = async (at: Date): Promise<Date> => {
-    const ends = await Promise.all(holds.map((hold) => hold(at)));
+    const ends = await Promise.all(
+      holds.map(async (hold) => {
+        const end = await hold(at); // a contact's throw rejects this hold, as before
+        return end;
+      })
+    );
     return new Date(Math.max(at.getTime(), ...ends.map((e) => e.getTime())));
   };
   let until = await latest(now);
-  const held = () => ({ quiet: until.getTime() !== now.getTime(), until });
+  const held = (): QuietHoursResult => ({ quiet: until.getTime() !== now.getTime(), until });
   if (!night) return held();
   for (let step = 0; step < 8 && until.getTime() - now.getTime() <= WEEK_MS; step++) {
+    // eslint-disable-next-line no-await-in-loop -- each ask starts at the last ask's end
     const next = await latest(until);
     if (next.getTime() === until.getTime()) return held();
     until = next;
