@@ -1,17 +1,14 @@
 /**
- * Can a blind listener tell WHO is speaking? Each roster.ts persona answers bar.ts's fictional
- * caller lines through the agent's voice path (render-lib.ts, registry voice id) and the phone
- * line. A Gemini judge hears the clip and picks from one paragraph of each persona's own bundle
- * (names blanked, reshuffled every trial); a text judge of another family (--text-judge qwen,
- * the default, or claude) reads the words. Arms: voice (one neutral sentence for everyone),
- * reply (own replies from a saved bar.ts run, --replies: bar.ts needs Vertex), clips
- * (UNAVAILABLE: reaction clips play live only). Flags: code defaults, then --flags <file>,
- * then --set NAME=on. Run the A/A (the same flags twice) first. Needs GOOGLE_CLOUD_PROJECT,
- * CARTESIA_API_KEY and gcloud ADC.
+ * Can a blind listener tell WHO is speaking? Each roster.ts persona answers bar.ts's caller lines
+ * through the voice path and phone line. A Gemini judge hears each clip and picks from one bundle
+ * paragraph per persona (names blanked, letters shuffled per trial by a random --salt saved in
+ * result.json); a qwen or claude --text-judge reads the words. Arms: voice (one neutral line),
+ * reply (--replies: a saved bar.ts run), clips (UNAVAILABLE). Flags: defaults, --flags <file>,
+ * --set NAME=on; run the A/A first. Needs GOOGLE_CLOUD_PROJECT, CARTESIA_API_KEY and gcloud ADC.
  *
  *   npx tsx scripts/audio-eval/persona-audio-id.ts --replies <bar run>/result.json [--out <dir>]
  */
-import { randomInt } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -38,6 +35,15 @@ export interface Judges {
   text: JudgeContext;
 }
 
+/** The judges. The audio one must be Gemini: any other route drops the clip and reads text. */
+export function judgesFor(env: NodeJS.ProcessEnv, textJudge: Judges['textJudge'], project: string) {
+  const audioModel = judgeModel(env, 'pro');
+  if (!audioModel.startsWith('gemini'))
+    throw new Error(`JUDGE_MODEL ${audioModel} cannot hear audio; set a Gemini model or unset it`);
+  const text = { model: PROVIDERS[textJudge].model(env), project };
+  return { audioModel, textJudge, text } satisfies Judges;
+}
+
 /** Real clients: the voice path renders, Gemini hears the clip, the other family reads the words. */
 export function networkClients(out: string, judges: Judges): (arm: string) => Clients {
   const warned = new Set<string>();
@@ -57,6 +63,7 @@ export function networkClients(out: string, judges: Judges): (arm: string) => Cl
       });
       const phone = phoneLine(reply, RENDER_RATE);
       const pcm = Int16Array.from(phone, (v) => Math.round(Math.max(-1, Math.min(1, v)) * 32767));
+      if (pcm.length === 0) throw new Error(`${persona}: the clip is empty`);
       const wav = encodeWav(pcm, PHONE_RATE);
       mkdirSync(join(out, arm), { recursive: true });
       writeFileSync(join(out, arm, `${persona}-${i + 1}.wav`), wav);
@@ -92,6 +99,7 @@ async function main(): Promise<void> {
       out: { type: 'string', default: join(tmpdir(), `persona-audio-id-${Date.now()}`) },
       n: { type: 'string', default: '12' },
       replies: { type: 'string' },
+      salt: { type: 'string' },
       'text-judge': { type: 'string', default: 'qwen' },
       flags: { type: 'string' },
       set: { type: 'string', multiple: true, default: [] },
@@ -118,11 +126,7 @@ async function main(): Promise<void> {
   const saved = values.replies
     ? (JSON.parse(readFileSync(resolve(values.replies), 'utf8')) as Saved).replies
     : null;
-  const judges: Judges = {
-    audioModel: process.env.JUDGE_MODEL ?? judgeModel(process.env, 'pro'),
-    textJudge,
-    text: { model: PROVIDERS[textJudge].model(process.env), project },
-  };
+  const judges = judgesFor(process.env, textJudge, project);
   const ownReply: Say | string = saved
     ? (persona, line) => {
         const r = saved[line]?.[persona]?.reply;
@@ -132,6 +136,7 @@ async function main(): Promise<void> {
     : 'not run: pass --replies <bar run>/result.json';
 
   const out = resolve(values.out);
+  const salt = values.salt ?? randomUUID();
   const arms = await runArms(
     {
       voice: () => NEUTRAL,
@@ -139,7 +144,8 @@ async function main(): Promise<void> {
       clips: 'UNAVAILABLE: no offline renderer composes a reply with its reaction clips',
     },
     lines,
-    networkClients(out, judges)
+    networkClients(out, judges),
+    salt
   );
   const set = Object.entries(flags).map(([k, v]) => `${k}=${v}`);
   const head = [
@@ -148,7 +154,7 @@ async function main(): Promise<void> {
   ];
   mkdirSync(out, { recursive: true });
   const judged = { audio: judges.audioModel, text: `${textJudge}/${judges.text.model}` };
-  const result = { flags, personas: PERSONAS, lines, judges: judged, arms };
+  const result = { salt, flags, personas: PERSONAS, lines, judges: judged, arms };
   writeFileSync(join(out, 'result.json'), JSON.stringify(result, null, 2));
   writeFileSync(join(out, 'summary.md'), summary(arms, PERSONAS, head));
   console.log(join(out, 'summary.md'));

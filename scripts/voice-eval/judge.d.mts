@@ -1,5 +1,4 @@
-// Types for the parts of judge.mjs that TypeScript scripts use
-// (scripts/audio-eval/persona-audio-id.ts); extend as more are needed.
+// Types for the parts of judge.mjs that TypeScript scripts use; extend as needed.
 export interface JudgeContext {
   model: string;
   project: string;

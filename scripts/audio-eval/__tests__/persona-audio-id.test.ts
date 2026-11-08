@@ -8,12 +8,13 @@ const calls = vi.hoisted(() => ({
   render: [] as { personaId: string; voiceId: string; text: string; userText: string }[],
   generate: [] as unknown[],
   ask: [] as unknown[][],
+  samples: 2400,
 }));
 vi.mock('../render-lib.js', () => ({
   RENDER_RATE: 24000,
   renderReply: async (r: (typeof calls.render)[number]) => {
     calls.render.push(r);
-    return new Float32Array(2400).fill(0.25);
+    return new Float32Array(calls.samples).fill(0.25);
   },
 }));
 vi.mock('../../first-call-eval/vertex.js', () => ({
@@ -36,13 +37,14 @@ vi.mock('../../voice-eval/judge.mjs', () => {
 });
 
 import { spokenVoiceId } from '../../../src/agents/shared/spoken-voice.js';
-import { networkClients } from '../persona-audio-id.js';
+import { judgesFor, networkClients } from '../persona-audio-id.js';
 
 describe('the real clients', () => {
   let out = '';
   afterEach(() => {
     rmSync(out, { recursive: true, force: true });
     calls.render.length = calls.generate.length = calls.ask.length = 0;
+    calls.samples = 2400;
   });
 
   it('render through the registry voice, send Gemini the clip, and send the text judge the words', async () => {
@@ -96,6 +98,39 @@ describe('the real clients', () => {
     })('reply');
     await clients.read('said: "y"');
     expect(calls.ask.map((c) => c[0])).toEqual(['claude-x']);
+    expect(calls.generate).toHaveLength(0);
+  });
+
+  it('refuse an empty clip instead of sending the judge a bare header', async () => {
+    out = mkdtempSync(join(tmpdir(), 'persona-audio-'));
+    calls.samples = 0;
+    const clients = networkClients(out, {
+      audioModel: 'gemini-x',
+      textJudge: 'qwen',
+      text: { model: 'qwen-x', project: 'demo-project' },
+    })('reply');
+    await expect(clients.render('ferni', 'hi.', 'ugh.', 0)).rejects.toThrow(/clip is empty/);
+    expect(calls.generate).toHaveLength(0);
+  });
+});
+
+describe('the judges', () => {
+  const audioOf = (env: NodeJS.ProcessEnv) => judgesFor(env, 'qwen', 'demo-project').audioModel;
+
+  it('hear with Gemini pro, or the Gemini model JUDGE_MODEL names (aliases resolved)', () => {
+    expect(audioOf({})).toMatch(/^gemini-.*pro/);
+    expect(audioOf({ JUDGE_MODEL: 'pro' })).toMatch(/^gemini-.*pro/);
+    expect(audioOf({ JUDGE_MODEL: 'flash' })).toMatch(/^gemini-.*flash/);
+    expect(audioOf({ JUDGE_MODEL: 'gemini-x-audio' })).toBe('gemini-x-audio');
+    expect(judgesFor({}, 'claude', 'demo-project')).toMatchObject({
+      textJudge: 'claude',
+      text: { model: 'claude-x', project: 'demo-project' },
+    });
+  });
+
+  it('refuse a model that would drop the clip and judge the text alone, before any call', () => {
+    for (const JUDGE_MODEL of ['qwen/qwen3-235b-a22b-instruct-2507-maas', 'claude-x'])
+      expect(() => audioOf({ JUDGE_MODEL })).toThrow(/cannot hear audio/);
     expect(calls.generate).toHaveLength(0);
   });
 });

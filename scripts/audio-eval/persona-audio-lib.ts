@@ -1,8 +1,4 @@
-/**
- * The testable parts of the audio persona-ID judge (persona-audio-id.ts): who
- * speaks (roster.ts), blind prompts, the arms' trials, accuracy, confusion and
- * summary. No network: the clip renderer and both judges come in as Clients.
- */
+/** The network-free parts of persona-audio-id.ts; the renderer and both judges come in as Clients. */
 import { maskNames, parseCompanion, rate, shuffled, type Rate } from '../persona-eval/bar-lib.js';
 import { PERSONAS, personaNames, personaParagraph } from '../persona-eval/roster.js';
 
@@ -63,12 +59,13 @@ export interface Clients {
 export type Say = (persona: string, line: string) => string;
 
 /**
- * Every persona says `say(persona, line)` for each caller line; both judges
- * pick the speaker. The text judge is skipped (null) when the words are the
- * same for everyone, since it could only guess.
+ * Every persona says `say(persona, line)` for each caller line; both judges pick the speaker.
+ * The letter order comes from the run's random salt, not the arm, so arms are paired and a judge
+ * that always answers one letter scores chance. A clip that fails to render is a failure, never
+ * heard. The text judge is skipped (null) when every persona says the same words.
  */
 export async function judgeArm(
-  arm: string,
+  salt: string,
   lines: readonly string[],
   say: Say,
   clients: Clients,
@@ -79,14 +76,14 @@ export async function judgeArm(
   const sameWords = new Set(roster.personas.flatMap((p) => lines.map((l) => say(p, l)))).size === 1;
   for (const persona of roster.personas)
     for (const [i, line] of lines.entries()) {
-      const c = choicesFor(`${arm}|${persona}|${i}`, roster);
+      const c = choicesFor(`${salt}|${persona}|${i}`, roster);
       const pick = (raw: string): string | null => {
         const k = parseCompanion(raw, c.order.length);
         return k === null ? null : c.order[k];
       };
       const words = say(persona, line);
-      const wav = await clients.render(persona, words, line, i);
-      audio.push({ persona, guess: pick(await clients.hear(wav, audioPrompt(c))) });
+      const wav = await clients.render(persona, words, line, i).catch(unrendered);
+      audio.push({ persona, guess: wav && pick(await clients.hear(wav, audioPrompt(c))) });
       if (!sameWords)
         text.push({
           persona,
@@ -95,6 +92,8 @@ export async function judgeArm(
     }
   return { audio, text: sameWords ? null : text };
 }
+
+const unrendered = (e: unknown): null => (console.error('clip failed (a failure):', e), null);
 
 /** failures: no valid letter, left out of accuracy. confusion[said][judged], roster order. */
 export type Score = { accuracy: Rate; chance: number; failures: number; confusion: number[][] };
@@ -114,22 +113,19 @@ export function score(picks: readonly Pick[], personas: readonly string[]): Scor
       if (g === t) right++;
     }
   }
-  return {
-    accuracy: rate(right, picks.length - failures),
-    chance: 1 / personas.length,
-    failures,
-    confusion,
-  };
+  const accuracy = rate(right, picks.length - failures);
+  return { accuracy, chance: 1 / personas.length, failures, confusion };
 }
 
 /** Each arm's scores, or why it has none. */
 export type ArmOutcome = { audio: Score; text: Score | null } | string;
 
-/** Every arm with a `say` judged and scored; an arm without one gets the reason it has none. */
+/** Every arm with a `say` judged (same salt, same orders) and scored; others get the reason. */
 export async function runArms(
   says: Record<string, Say | string>,
   lines: readonly string[],
   clients: (arm: string) => Clients,
+  salt: string,
   roster: Roster = rosterOf()
 ): Promise<Record<string, ArmOutcome>> {
   const arms: Record<string, ArmOutcome> = {};
@@ -138,7 +134,7 @@ export async function runArms(
       arms[arm] = say;
       continue;
     }
-    const picks = await judgeArm(arm, lines, say, clients(arm), roster);
+    const picks = await judgeArm(salt, lines, say, clients(arm), roster);
     arms[arm] = {
       audio: score(picks.audio, roster.personas),
       text: picks.text && score(picks.text, roster.personas),

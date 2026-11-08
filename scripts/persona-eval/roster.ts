@@ -40,10 +40,7 @@ export function personaNames(id: string, repo = REPO): string[] {
 export function personaParagraph(id: string, repo = REPO): string {
   const md = readFileSync(join(bundleDir(repo, id), 'identity/character.md'), 'utf8');
   const section = md.split(/^## How you are with people\s*$/m)[1]?.split(/^## /m)[0] ?? '';
-  const paragraph = section
-    .trim()
-    .split(/\n\s*\n/)[0]
-    ?.trim();
+  const paragraph = section.trim().split(/\s*\n\s*\n/)[0];
   if (!paragraph) throw new Error(`${id}: character.md has no "How you are with people" paragraph`);
   return paragraph.replace(/\s+/g, ' ');
 }

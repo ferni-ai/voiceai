@@ -2,7 +2,7 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:f
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { rate } from '../../persona-eval/bar-lib.js';
 import { PERSONAS, personaNames, personaParagraph } from '../../persona-eval/roster.js';
@@ -54,8 +54,11 @@ describe('who is judged', () => {
   it('is exactly the roster import, in its order, for every arm', async () => {
     expect(ROSTER.personas).toBe(PERSONAS);
     const log = newLog();
-    const arms = await runArms({ voice: () => 'okay.', clips: 'UNAVAILABLE: none' }, lines, () =>
-      knowing(log)
+    const arms = await runArms(
+      { voice: () => 'okay.', clips: 'UNAVAILABLE: none' },
+      lines,
+      () => knowing(log),
+      'salt-1'
     );
     expect(log.rendered).toEqual(PERSONAS.flatMap((p) => lines.map(() => p)));
     expect(arms.clips).toBe('UNAVAILABLE: none');
@@ -71,6 +74,43 @@ describe('the blind judge prompt', () => {
     expect(new Set(orders).size).toBeGreaterThan(6);
     expect(choicesFor('reply|ferni|3', ROSTER).order.join()).toBe(orders[3]);
     for (const o of orders) expect(o.split(',').sort()).toEqual([...PERSONAS].sort());
+  });
+
+  it('takes its letters from the salt: the same salt repeats every order, a new one reshuffles', async () => {
+    const run = async (salt: string) => {
+      const log = newLog();
+      await judgeArm(salt, lines, () => 'okay.', knowing(log), ROSTER);
+      return log.heard.map(([, p]) => p);
+    };
+    expect(await run('salt-1')).toEqual(await run('salt-1'));
+    expect(await run('salt-2')).not.toEqual(await run('salt-1'));
+  });
+
+  it('pairs the arms: voice and reply see the same order for the same persona and trial', async () => {
+    const heard: Record<string, string[]> = { voice: [], reply: [] };
+    const clients = (arm: string): Clients => ({
+      ...knowing(newLog()),
+      hear: async (_wav, prompt) => (heard[arm].push(prompt), '{"companion":"A"}'),
+    });
+    const says = { voice: () => 'okay.', reply: (p: string, l: string) => `${p}: ${l}` };
+    await runArms(says, lines, clients, 'salt-1');
+    expect(heard.voice).toHaveLength(PERSONAS.length * lines.length);
+    expect(heard.reply).toEqual(heard.voice);
+  });
+
+  it('gives a judge that always answers F chance, not a fixed edge, over many runs', async () => {
+    const salts = Array.from({ length: 30 }, (_, i) => `run-${i}`);
+    const always = { ...knowing(newLog()), hear: async () => '{"companion":"F"}' };
+    const picks = [];
+    for (const salt of salts)
+      picks.push(...(await judgeArm(salt, lines, () => 'okay.', always, ROSTER)).audio);
+    const s = score(picks, PERSONAS);
+    expect(s.accuracy.n).toBe(salts.length * PERSONAS.length * lines.length);
+    expect(s.accuracy.lo).toBeLessThan(s.chance);
+    expect(s.accuracy.hi).toBeGreaterThan(s.chance);
+    // The persona behind F for one fixed trial changes from run to run.
+    const fFor = (salt: string) => choicesFor(`${salt}|${HENRY}|0`, ROSTER).order[5];
+    expect(new Set(salts.map(fFor)).size).toBeGreaterThan(4);
   });
 
   it('never names a persona, in the descriptions or in what was said', async () => {
@@ -153,6 +193,17 @@ describe('each judge family gets its own evidence', () => {
     const c = { ...knowing(newLog()), hear: async () => '{"companion":"Q"}' };
     const r = await judgeArm('voice', lines, () => 'okay.', c, ROSTER);
     expect(score(r.audio, PERSONAS)).toMatchObject({ failures: 18, accuracy: { k: 0, n: 0 } });
+  });
+
+  it('counts a clip that fails to render as a failure, and never asks the judge to hear it', async () => {
+    const log = newLog();
+    const c = { ...knowing(log), render: () => Promise.reject(new Error('the clip is empty')) };
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const r = await judgeArm('salt-1', lines, () => 'okay.', c, ROSTER);
+    expect(logged).toHaveBeenCalledTimes(18);
+    logged.mockRestore();
+    expect(score(r.audio, PERSONAS)).toMatchObject({ failures: 18, accuracy: { k: 0, n: 0 } });
+    expect(log.heard).toHaveLength(0);
   });
 });
 
