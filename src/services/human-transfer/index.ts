@@ -247,7 +247,7 @@ export function buildTransferAwarenessContext(decision: EscalationDecision): str
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { crisisLevelSignalsSince, type CrisisEventRecord } from './crisis-signals.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
-import { isSharedPlaceholderId } from '../../utils/synthetic-user.js';
+import { isAnonymousDemoUser, isSharedPlaceholderId } from '../../utils/synthetic-user.js';
 
 export { followUpCrisis } from './crisis-signals.js';
 
@@ -262,7 +262,8 @@ const NON_MEMBER_SIGNAL_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
  * PRIVACY: never under a shared placeholder id ('unknown', a disguised one, a bare
  * 'anon:'): that bucket would pool every id-less caller's crises. A non-member
  * (anon:<id>) has no account to erase or export it under, so like #2872's crisis
- * record it keeps no words, only the signal flags and ids, and expires in 90 days.
+ * record it keeps no words, only the signal flags and ids, and expires in 90 days. So does a
+ * try-first visitor (isAnonymousDemoUser), who was told nothing from the call is kept.
  */
 export async function logCrisisSignal(
   userId: string,
@@ -298,7 +299,7 @@ export async function logCrisisSignal(
     log.warn({ sessionId }, 'Crisis signal not stored: shared placeholder id');
     return;
   }
-  const member = isMemberIdentity(userId);
+  const keepsWords = isMemberIdentity(userId) && !isAnonymousDemoUser(userId);
 
   try {
     const db = getFirestoreDb();
@@ -320,8 +321,8 @@ export async function logCrisisSignal(
           domesticViolence: signals.domesticViolence,
           severity: signals.severity,
         },
-        // A member's truncated transcript for context; a non-member's words are never kept
-        ...(member
+        // A member's truncated transcript for context; a non-member's or visitor's never are
+        ...(keepsWords
           ? { transcriptSnippet: transcript ? transcript.slice(0, 200) : null }
           : { expireAt: new Date(Date.now() + NON_MEMBER_SIGNAL_RETENTION_MS) }),
         // Firestore rejects an undefined field, which dropped every signal logged without one

@@ -217,6 +217,19 @@ describe('the crisis writer: never a shared bucket, no words without an account'
     expect(doc.expireAt).toBeInstanceOf(Date);
   });
 
+  it("a try-first visitor's live crisis turn still writes the signal, with no words", async () => {
+    // Told nothing from the call is kept (isAnonymousDemoUser): the record, not the words
+    const demo = 'device:demo_1793560000000_r7w2p5';
+    const member = await buildHumanTransferInjections(CRISIS_LINE, 'uid-member-same', 'session-m');
+    const visitor = await buildHumanTransferInjections(CRISIS_LINE, demo, 'session-AJ_demo-1');
+    expect(visitor).toEqual(member); // crisis handling, the reply and resources are unchanged
+    await vi.waitFor(() => expect(fake.stores.get(`${demo}/crisis_signals`)).toHaveLength(1));
+    const [doc] = fake.stores.get(`${demo}/crisis_signals`)!;
+    expect(Object.keys(doc).sort()).toEqual(['expireAt', 'sessionId', 'signals', 'timestamp']);
+    expect(JSON.stringify(doc)).not.toMatch(/pills|kill|myself/i);
+    expect((doc.signals as { severity: number }).severity).toBeGreaterThan(0);
+  });
+
   it("a member's signal is stored as main stores it: snippet, no expiry", async () => {
     await logCrisisSignal('uid-member-snippet', signals(), CRISIS_LINE, 'session-AJ_m-1');
     const [doc] = fake.stores.get('uid-member-snippet/crisis_signals') ?? [];
