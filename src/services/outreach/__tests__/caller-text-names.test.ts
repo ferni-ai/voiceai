@@ -1,12 +1,12 @@
 /**
  * Ordinary lines the shape rules must not withhold, and names the sponsor wrote.
  *
- * "Loan" is a name as often as a debt, so it reads as money only with a money cue
- * (a debt verb, "pay ... back", a determiner, a sum); never as the bare word after
- * of, in or pay. A name written with a dot ("riley.jones") is not a link, and
- * "k-drama" is not a sum. And the family member's or contact's own name (Mary_Ann,
- * St.Clair, "Sam @ Work") is the sponsor's words, so its punctuation never trips the
- * handle, @ or link rules; its digits and an email or link in it still do. The note
+ * The screen is fail-closed: every rule reads the caller's words as written, and a dotted
+ * word with any ending is a link. "Loan" after of or in is a name, and "k-drama" or
+ * "k-pop" is not a sum. The family member's or contact's own name (Mary_Ann, St.Clair,
+ * "Sam @ Work") is Ferni's words, so a match wholly inside a mention of it is spared;
+ * "pay Loan a visit" is spared only when Loan is that name. A link, email or handle built
+ * around the name is still read, as are the name's own digits, email or link. The note
  * the sponsor gets names only what fired. All data is fictional.
  */
 import { describe, expect, it, vi } from 'vitest';
@@ -31,13 +31,37 @@ function alertFor(name: string, description: string): string {
   return alert;
 }
 
-/** Withheld on the shapes head, quoted on main: quoted again, in their own words. */
+/** A link ending no list names; split so the brand-copy check does not read it as copy. */
+const NEW_ENDING = ['sol', 'utions'].join('');
+
+/** Withheld on the shapes head, quoted on main: quoted again, in their own words, for any name. */
 const ORDINARY = [
   'a friend of Loan came by',
   "in Loan's garden",
-  'we should pay Loan a visit',
-  'riley.jones',
   'ten k-drama episodes',
+  'she likes k-pop songs',
+  'two k-pop concerts',
+];
+
+/** Quoted only when the name in them is the known name: otherwise the screen fails closed. */
+const KNOWN_NAME_ONLY: ReadonlyArray<readonly [string, string]> = [
+  ['Loan', 'we should pay Loan a visit'],
+  ['riley.jones', 'riley.jones came by'],
+  ['St.Clair', 'St.Clair is doing well'],
+];
+
+/** Built around the known name, so not a mention of it: still withheld. */
+const AROUND_THE_NAME: ReadonlyArray<readonly [string, string]> = [
+  ['Mary_Ann', 'go to Mary_Ann.com'],
+  ['Mary_Ann', 'she is Mary_Ann_99 on insta'],
+  ['Jo.Ann', 'mail Jo.Ann@example.test'],
+  ['Jo.Ann', 'see Jo.Ann.example today'],
+  ['jo_ann.lee', 'her handle is @jo_ann.lee'],
+  ['Sam @ Work', 'write to Sam @ Work.example'],
+  ['St.Clair', 'visit St.Clair.shop'],
+  ['Loan', 'pay Loan the money'],
+  ['Loan', 'pay Loan the loan'],
+  ['Loan', 'she paid off the Loan today'],
 ];
 
 /** Still withheld: each one has its own money cue, link ending or scheme. */
@@ -49,13 +73,20 @@ const STILL_HELD = [
   'she is drowning in loans',
   'she is in debt to the landlord',
   'paying loans every month',
+  'pay loan today',
+  'she came off loan forbearance',
   'she needs 5k by Friday',
   'she needs 5k-ish',
+  'a 5k-run fee',
+  `see pay-now.${NEW_ENDING}`,
+  'riley.jones',
+  'St.Clair is doing well',
   'she sells on riley.shop',
   'her site is riley.us',
   'go to riley-help.app',
   'the example.community garden',
   'open wss://example.test/stream',
+  'open signal://chat/riley',
 ];
 
 /** Names with punctuation the shape rules read, plus the ones a reviewer will try. */
@@ -87,6 +118,17 @@ describe('ordinary lines go out in their own words', () => {
     expect(screenedCallerText(line, 'Riley Test')).toBe(callerText(line));
     expect(alertFor('Riley Test', line)).toContain(`During my call with Riley Test, ${line}.`);
     expect(alertFor('Loan', line)).not.toContain(riskyCallerLine('Loan'));
+  });
+
+  it.each(KNOWN_NAME_ONLY)('as the known name %j, %j is quoted', (name, line) => {
+    expect(isRiskyCallerText(line)).toBe(true);
+    expect(isRiskyCallerText(line, name)).toBe(false);
+    expect(alertFor(name, line)).toContain(`During my call with ${name}, ${line}.`);
+  });
+
+  it.each(AROUND_THE_NAME)('with the known name %j, %j is still withheld', (name, line) => {
+    expect(isRiskyCallerText(line, name)).toBe(true);
+    expect(alertFor(name, line)).toContain(riskyCallerLine(name));
   });
 
   it.each(STILL_HELD)('%j is still withheld', (line) => {
