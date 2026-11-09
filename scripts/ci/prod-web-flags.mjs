@@ -15,8 +15,8 @@
  * step's PROD_VAR_X, which the workflow sets from the same repo variable, so a variable
  * flipped for prod is flipped here too. Only the variables that build reads are passed,
  * never `toJSON(vars)`: this repo is public and a step's env is printed in its log. An
- * account (the Venmo handle) is never passed at all, only whether it is set
- * (PROD_VAR_X_SET), and the walk gets a placeholder of the same shape. The names must
+ * account (the Venmo handle, the Stripe key) is never passed at all, only whether it is
+ * set (PROD_VAR_X_SET), and the walk gets a placeholder of the same shape. The names must
  * match the build's exactly, both ways, or this fails: a flag added to the build can't
  * be left out of the walk unnoticed.
  * server: the on/off flags of deploy/ui-server/env.yaml (the API server's prod env).
@@ -33,7 +33,10 @@ export const WEB_BUILD_STEP = 'Build frontend';
 export const SERVER_ENV = 'deploy/ui-server/env.yaml';
 
 /** Set in prod, and an account rather than a switch: the walk gets one of the same shape. */
-export const PLACEHOLDERS = { VITE_VENMO_HANDLE: 'ferni-e2e-placeholder' };
+export const PLACEHOLDERS = {
+  VITE_VENMO_HANDLE: 'ferni-e2e-placeholder',
+  VITE_STRIPE_PUBLISHABLE_KEY: 'pk_test_ferni_e2e_placeholder',
+};
 
 const VAR_REF = /^\$\{\{\s*vars\.([A-Za-z0-9_]+)\s*(?:\|\|\s*'([^']*)'\s*)?\}\}$/;
 
