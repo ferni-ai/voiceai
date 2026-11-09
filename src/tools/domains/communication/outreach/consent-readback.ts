@@ -201,6 +201,13 @@ export async function ferniTurnOf(
   });
   await Promise.race([run, grace]).finally(() => clearTimeout(timer));
 }
+/** What the turn is, if known yet: undefined while the model is still classifying it, or when
+ * the classifier is off and the turn asks something. */
+export const ferniTurnKnown = (
+  action: object,
+  facts: ActionFacts,
+  text: string
+): FerniTurn | undefined => decided(facts, text) ?? onceDone<FerniTurn>(action, `readback:${text}`);
 /** What the turn is now: the model's answer once it has one; until then another question. */
 export const ferniTurnNow = (action: object, facts: ActionFacts, text: string): FerniTurn =>
-  decided(facts, text) ?? onceDone<FerniTurn>(action, `readback:${text}`) ?? 'other_question';
+  ferniTurnKnown(action, facts, text) ?? 'other_question';

@@ -387,6 +387,8 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   CRISIS_READ_JOINED_TURN: 'src/agents/personas/__tests__/crisis-read-joined-turn.test.ts',
   CRISIS_SAME_CALL_NOTE_FADES: 'src/agents/multi-agent/__tests__/call-report-after-crisis.test.ts',
   CRISIS_TRANSFER_EVERYDAY: 'src/services/safety/__tests__/crisis-transfer-request.test.ts',
+  // The typed agent chat's prompt; its crisis read runs first either way (chat-routes-crisis).
+  CUSTOM_AGENT_CHAT_HONESTY: 'src/api/custom-agent/__tests__/chat-routes.test.ts',
   DATES_IN_HELLO: 'src/agents/multi-agent/__tests__/greeting-date-arbiter.test.ts',
   EOT_CONTINUED_MERGE: 'src/agents/personas/__tests__/late-words.test.ts',
   // Read by deep-extraction-worker.ts: adds one subject rule to the fact prompt, nothing dropped.
@@ -415,6 +417,11 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   OPENER_GATE: 'src/agents/personas/__tests__/crisis-gate.test.ts',
   OPEN_PROMISE_TRIGGERS:
     'src/services/outreach/proactive-channels/__tests__/open-promise-triggers-path.test.ts',
+  // Read only by the call read-back's consent window, which no reader above calls. That file
+  // stubs it on and shows a turn the crisis reader flags, whole or split across turns, ends the
+  // pending call at every place it pins, with nothing sent.
+  OUTREACH_NO_ANSWERS_READBACK:
+    'src/tools/domains/communication/outreach/__tests__/outreach-consent-v2.test.ts',
   OUTREACH_PONDERED_NOTES:
     'src/services/outreach/proactive-channels/__tests__/grounded-path.test.ts',
   PERSONA_GROWTH: 'src/agents/multi-agent/__tests__/persona-growth-recall.test.ts',
