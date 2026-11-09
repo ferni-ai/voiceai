@@ -94,6 +94,7 @@ import { withHeldRead } from './crisis-read-joined-turn.js';
 import { getDeliberator } from './deliberation.js';
 import { brightOpenerInvited } from './ferni-playful.js';
 import { noteTurn } from './move-log.js';
+import { withCallerTurn } from './caller-turn.js';
 import { firstNameOf, withNameGate, type HistoryItem } from './name-gate.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { withLookupBridge } from './lookup-bridge.js';
@@ -444,9 +445,13 @@ export async function gatedReply(
       closeLoop: false,
       youth: guidance !== SOFT_CRISIS_CHECK && guidance !== GROUNDED_LIGHT_TOUCH && (about ?? true),
     });
+  // The guidance is the last thing the model reads: a request ending on the model's turn (a tool
+  // call) gets its caller-turn note first (caller-turn.ts), so llmNode's adds nothing after it.
+  const guidedRequest = (decision: GuideDecision): llm.ChatContext =>
+    withTurnStyleReminder(withCallerTurn(plain(decision), env), decision.guidance);
   const ctx =
     gate?.decision.action === 'guide'
-      ? withTurnStyleReminder(plain(gate.decision), gate.decision.guidance)
+      ? guidedRequest(gate.decision)
       : withTurnReminder(chatCtx, session, { held: gate?.escalation });
   // A vocal burst only where this request invited one, never with crisis guidance.
   const burst = burstAllowed(session, gate?.decision.action === 'guide', env);
@@ -485,7 +490,7 @@ export async function gatedReply(
     if (decision.action === 'replace') return textReply(script(decision.script));
     if (decision.action === 'pass') return null;
     const guided = await ask(
-      withTurnStyleReminder(plain(decision), decision.guidance),
+      guidedRequest(decision),
       burst === undefined ? undefined : false,
       true
     );
