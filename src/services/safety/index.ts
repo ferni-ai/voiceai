@@ -23,11 +23,20 @@
 
 export { detectCrisis, getHighestSeverityCrisis, isCrisisActive } from './crisis-detection.js';
 /** The crisis guard's scoring of the caller's words alone: quiet, no logging (heavy-moment.ts). */
-export { detectCrisis as scoreCrisisLanguage, IN_DANGER_NOW } from './crisis-guard.js';
+export {
+  CRISIS_SEVERITY,
+  detectCrisis as scoreCrisisLanguage,
+  IN_DANGER_NOW,
+} from './crisis-guard.js';
+export { EMERGENCY_FOR_THEM } from './crisis-guard-replies.js';
+// assessSafety's escalate-only phrase floor, read after the guard (crisis-coaching-floor.ts).
+export { coachingFloorRead, type CoachingFloorRead } from './crisis-coaching-floor.js';
 export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.js';
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
 export { crisisRiskThisCall } from './crisis-call-risk.js';
 export { offersCrisisLine } from './crisis-line-speech.js';
+// What Ferni never dials (911, 988, N11 in any spelling), for callers outside the safety layer.
+export { emergencyDialRefusal } from '../../utils/dialable-number.js';
 // A turn whose crisis read the provider blocked (CRISIS_CLASSIFIER_BLOCKED_SIGNAL, turn-crisis.ts).
 export { blockedReadGuidance } from './crisis-classifier-blocked.js';
 export { resolveCrisisClassifierTimeoutMs } from './crisis-classifier.js';

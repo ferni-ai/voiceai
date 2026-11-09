@@ -17,6 +17,7 @@ import { EventEmitter } from 'events';
 import { ownerRefusal } from '../messaging/consent-reach.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { emergencyDialRefusal } from '../../utils/dialable-number.js';
 import { generateStreamTwiml, getTwilioStreamBridge } from './twilio-stream-bridge.js';
 
 const log = createLogger({ module: 'conversational-call' });
@@ -51,11 +52,7 @@ export interface ConversationalCallRequest {
   greeting?: string;
   /** Call type for routing and behavior */
   callType?:
-    | 'appointment_scheduling'
-    | 'business_inquiry'
-    | 'personal_call'
-    | 'follow_up'
-    | 'general';
+    'appointment_scheduling' | 'business_inquiry' | 'personal_call' | 'follow_up' | 'general';
   /** Additional context for the agent */
   context?: Record<string, unknown>;
   /** Timeout in seconds (default: 300 = 5 minutes) */
@@ -180,6 +177,10 @@ export async function makeConversationalCall(
     };
   }
 
+  // 911/988/N11 in any spelling: never dialled, the owner's own number included (dialable-number.ts)
+  const emergency = emergencyDialRefusal(request.phone);
+  if (emergency)
+    return { success: false, message: `Not calling: ${emergency}`, error: 'EMERGENCY_NUMBER' };
   // MESSAGING_PIPELINE: the owner's own number, or someone who gave this owner a call grant.
   const refused = await ownerRefusal(request.userId, request.phone, 'call');
   if (refused) return { success: false, message: `Not calling: ${refused}`, error: 'OPTED_OUT' };

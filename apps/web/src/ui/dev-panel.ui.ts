@@ -84,6 +84,7 @@ import { ferniMilestones, type MilestoneType } from './ferni-milestones.ui.js';
 import { journeyUI } from './journey.ui.js';
 // Outreach Service - Email/SMS delivery
 import { outreachService } from '../services/outreach.service.js';
+import { INSTALLED_AGENTS_KEY } from '../services/marketplace.service.js';
 
 // Real Ambient Effects - Canvas-based particles and aurora
 import {
@@ -5912,14 +5913,13 @@ function clearCache(): void {
 
 function clearMarketplaceAgents(): void {
   // Clear marketplace installed agents - fixes "Moxie showing by default" issue
-  const marketplaceKey = 'voiceai-marketplace-installed';
-  const existing = localStorage.getItem(marketplaceKey);
+  const existing = localStorage.getItem(INSTALLED_AGENTS_KEY);
 
   if (existing) {
     try {
       const agents = JSON.parse(existing);
       const count = Object.keys(agents).length;
-      localStorage.removeItem(marketplaceKey);
+      localStorage.removeItem(INSTALLED_AGENTS_KEY);
       avatarFeedback.success(`Cleared ${count} marketplace agent(s)`);
       updateStorageCount();
       log.info({ count }, 'Cleared marketplace agents');
@@ -5929,7 +5929,7 @@ function clearMarketplaceAgents(): void {
         window.location.reload();
       }, 500);
     } catch {
-      localStorage.removeItem(marketplaceKey);
+      localStorage.removeItem(INSTALLED_AGENTS_KEY);
       avatarFeedback.success('Cleared marketplace data');
       log.info('Cleared marketplace data (corrupted format)');
     }
