@@ -4,7 +4,7 @@
  * The app now retries a milestone's email/SMS until the server confirms it. Milestones
  * celebrated under the old code have no confirmation stored, so on first load a one-time
  * migration marks every already-celebrated milestone as confirmed (and stores
- * milestoneOutreachMigratedAt). Only milestones celebrated after that retry.
+ * ferni-milestone-outreach-migrated-at). Only milestones celebrated after that retry.
  */
 
 import { describe, expect, it, vi } from 'vitest';
@@ -52,7 +52,7 @@ describe('milestone outreach migration', () => {
     const { initFerniMilestones, triggerMilestone } =
       await import('../../src/ui/ferni-milestones.ui.js');
     initFerniMilestones();
-    expect(localStorage.getItem('milestoneOutreachMigratedAt')).toBeTruthy();
+    expect(localStorage.getItem('ferni-milestone-outreach-migrated-at')).toBeTruthy();
 
     connect();
     connect();

@@ -507,13 +507,13 @@ describe('MarketplaceService', () => {
 
       // Verify localStorage was called
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        'voiceai-marketplace-installed',
+        'ferni_marketplace_installed',
         expect.any(String)
       );
     });
 
     it('should handle invalid localStorage data gracefully', () => {
-      localStorageMock.setItem('voiceai-marketplace-installed', 'invalid json');
+      localStorageMock.setItem('ferni_marketplace_installed', 'invalid json');
 
       // Should not throw when localStorage has invalid data
       // Note: Service may return cached data from memory rather than empty array

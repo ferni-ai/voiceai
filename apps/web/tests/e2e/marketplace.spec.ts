@@ -207,7 +207,7 @@ test.describe('Agent Marketplace', () => {
             manifest: null,
           },
         };
-        localStorage.setItem('voiceai-marketplace-installed', JSON.stringify(installed));
+        localStorage.setItem('ferni_marketplace_installed', JSON.stringify(installed));
         window.dispatchEvent(new CustomEvent('ferni:open-marketplace'));
       });
       await page.waitForTimeout(500);
