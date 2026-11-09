@@ -31582,7 +31582,7 @@
 ["d856a88c","d856a88c","748a7aff","748a7aff","748a7aff"],
 ["3ee609f0","3ee609f0","748a7aff","748a7aff","748a7aff"]
 ]},
-{"file":"src/agents/__tests__/fixtures/crisis-heldout.ts","lines":120,"rows":[
+{"file":"src/agents/__tests__/fixtures/crisis-heldout-retired.ts","lines":120,"rows":[
 ["a6a95939","a6a95939","11bb19ad","11bb19ad","11bb19ad"],
 ["b33aa4a5","b33aa4a5","c02f46fd","c02f46fd","c02f46fd"],
 ["ed2b13d3","ed2b13d3","2d2e0381","2d2e0381","2d2e0381"],

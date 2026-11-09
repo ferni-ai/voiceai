@@ -11,7 +11,7 @@ import { ReadableStream } from 'node:stream/web';
 import { describe, expect, it, vi } from 'vitest';
 import { resetCrisisClassifierCache } from '../../../services/safety/crisis-classifier.js';
 import { teamStatusNote, unlockViewFor } from '../../../tools/handoff/locked-teammates.js';
-import { CRISIS_HELDOUT } from '../../__tests__/fixtures/crisis-heldout.js';
+import { CRISIS_HELDOUT_RETIRED } from '../../__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_TEST_BLIND } from '../../__tests__/fixtures/crisis-test-blind.js';
 import { gatedReply, startCrisisGate } from '../crisis-gate.js';
 import { teammateIdentityNote } from '../teammate-identity.js';
@@ -108,7 +108,7 @@ const crisisWords = (text: string) => {
 
 const action = (text: string) =>
   startCrisisGate(request(text), userData('ferni'), { env: PATTERNS_ONLY })?.decision.action;
-const risky = [...CRISIS_TEST_BLIND, ...CRISIS_HELDOUT].filter((c) => c.label !== 'none');
+const risky = [...CRISIS_TEST_BLIND, ...CRISIS_HELDOUT_RETIRED].filter((c) => c.label !== 'none');
 const pick = (n: number, act: string, label?: string) =>
   risky.filter((c) => action(c.text) === act && (!label || c.label === label)).slice(0, n);
 const BUCKETS: Record<string, Line[]> = {
