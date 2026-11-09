@@ -202,7 +202,7 @@ early warning 988 on 2,298; life coaching 988 on 9,855. Never-lower's 911 check 
 | `scripts/crisis-eval/redteam-2026-10-05.json`                                            | 12                   | 1            | 3       | 1         |
 | `src/agents/__tests__/fixtures/crisis-adjudicator-2026-10-17.json`                       | 88                   | 2            | 2       | 1         |
 | `src/agents/__tests__/fixtures/crisis-everyday-call-2026-10-17.json`                     | 35                   | 3            | 3       | 1         |
-| `src/agents/__tests__/fixtures/crisis-heldout.ts`                                        | 120                  | 70           | 79      | 14        |
+| `src/agents/__tests__/fixtures/crisis-heldout-retired.ts`                                | 120                  | 70           | 79      | 14        |
 | `src/agents/__tests__/fixtures/crisis-test-blind.ts`                                     | 150                  | 24           | 34      | 5         |
 | `src/agents/__tests__/fixtures/crisis-relay.ts`                                          | 121                  | 10           | 13      | 1         |
 | `src/agents/__tests__/fixtures/crisis-contextual.ts`                                     | 28                   | 3            | 5       | 1         |

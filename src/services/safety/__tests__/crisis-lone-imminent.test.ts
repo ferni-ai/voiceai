@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CRISIS_CONTEXTUAL } from '../../../agents/__tests__/fixtures/crisis-contextual.js';
-import { CRISIS_HELDOUT } from '../../../agents/__tests__/fixtures/crisis-heldout.js';
+import { CRISIS_HELDOUT_RETIRED } from '../../../agents/__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_RELAY } from '../../../agents/__tests__/fixtures/crisis-relay.js';
 import { CRISIS_TEST_BLIND } from '../../../agents/__tests__/fixtures/crisis-test-blind.js';
 import { CRISIS_TEST_CASES } from '../../superhuman/validation/crisis-test-cases.js';
@@ -181,7 +181,7 @@ interface Labelled {
 }
 const fromJson = (path: string): Labelled[] => JSON.parse(readFileSync(path, 'utf8')) as Labelled[];
 const POSITIVES: Labelled[] = [
-  ...CRISIS_HELDOUT,
+  ...CRISIS_HELDOUT_RETIRED,
   ...CRISIS_TEST_BLIND,
   ...CRISIS_CONTEXTUAL,
   ...CRISIS_RELAY,

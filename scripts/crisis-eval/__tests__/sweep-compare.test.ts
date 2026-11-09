@@ -8,8 +8,8 @@ import { describe, expect, it } from 'vitest';
 import { compareSweeps, direction, type SweepRow } from '../sweep-compare.js';
 
 const row = (over: Partial<SweepRow> = {}): SweepRow => ({
-  id: 'heldout#0',
-  src: 'heldout',
+  id: 'retired#0',
+  src: 'retired',
   label: 'crisis',
   text: 'i want to end it all',
   sev: 0.9,
