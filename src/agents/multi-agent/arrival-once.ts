@@ -50,8 +50,6 @@ export const RETURNING_OPENERS: Readonly<Record<string, readonly string[]>> = {
     "Nayan again. <break time='200ms'/> I'm here.",
     "Back with you. <break time='200ms'/> Take your time.",
   ],
-  'john-bogle': ['Hello again, friend.', "Back again. Let's keep at it, slowly."],
-  'peter-lynch': ['Back! What else have you noticed?', 'Hi again. Where were we?'],
   'joel-dickson': ['Nate again! Okay, go.', "Back! Where'd we land?"],
 };
 

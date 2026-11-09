@@ -335,6 +335,35 @@ describe('A→B→A→B in one call', () => {
 });
 
 /**
+ * Legend personas are real people (owner policy, 2026-11-08): no scripted "back
+ * again" line is written for them. Re-met with the flag on, they fall through to
+ * what any persona without RETURNING_OPENERS says: today's line, as flag off.
+ */
+describe('legend personas have no returning openers', () => {
+  it("flag on: john-bogle and peter-lynch have no RETURNING_OPENERS key, and a return to either says today's line", async () => {
+    const everyReturnLine = new Set(Object.values(RETURNING_OPENERS).flat());
+    for (const legend of ['john-bogle', 'peter-lynch']) {
+      expect(Object.keys(RETURNING_OPENERS)).not.toContain(legend);
+      const hops = [legend, 'ferni', legend];
+      vi.stubEnv('HANDOFF_ARRIVAL_ONCE', 'off');
+      // eslint-disable-next-line no-await-in-loop -- one call, then the next
+      const off = await runCall(`arrival-once-legend-off-${legend}`, hops);
+      // eslint-disable-next-line no-await-in-loop -- the call ends before the next starts
+      await off.end();
+      vi.stubEnv('HANDOFF_ARRIVAL_ONCE', 'on');
+      // eslint-disable-next-line no-await-in-loop -- one call, then the next
+      const on = await runCall(`arrival-once-legend-on-${legend}`, hops);
+      // eslint-disable-next-line no-await-in-loop -- the call ends before the next starts
+      await on.end();
+      expect(on.lines[1]).toBe(RETURNING_OPENERS.ferni[0]); // the flag is live on this call
+      expect(on.lines[2]).toBe(ARRIVING_OPENERS[legend][0]); // the legend's return: today's line
+      expect(on.lines[2]).toBe(off.lines[2]); // the same words as flag off
+      expect(everyReturnLine.has(on.lines[2])).toBe(false); // no scripted return line
+    }
+  });
+});
+
+/**
  * A crisis that lands after its persona left the hop (a session per persona): the
  * caller line is read on one persona's session, the hop goes out while the
  * classifier is still reading, and the verdict lands afterwards. Driven through
