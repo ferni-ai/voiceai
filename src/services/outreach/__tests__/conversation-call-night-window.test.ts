@@ -86,7 +86,7 @@ const callsCreate = vi.hoisted(() => vi.fn(async (_opts: unknown) => ({ sid: 'CA
 vi.mock('twilio', () => ({ default: () => ({ calls: { create: callsCreate } }) }));
 
 import { makeConversationalCall, scheduleProactiveCall } from '../conversational-calls.js';
-import { asOwnCallMe } from '../held-call.js';
+import { asCrisisCallMe, asOwnCallMe } from '../held-call.js';
 import { phoneHash } from '../checkin-replies.js';
 import {
   defaultConsentDeps,
@@ -628,4 +628,54 @@ describe('NIGHT_WINDOW_ALL_PATHS on: their own "call me" keeps main\'s hold time
       600_000
     );
   });
+});
+
+describe('a crisis text\'s "call me" rings now with the guard off, on every night-window setting', () => {
+  // Round 7: hoursApply (scheduleProactiveCall) skips calleeCallHold and its NO_ALLOWED_TIME
+  // refusal for a request call-user-adapter.ts marked asCrisisCallMe (Seth, 2026-11-06). Not
+  // vacuous: the same request unmarked is held or refused in every cell, so each ask is inside a
+  // night. London owner, a call to them, saved 12:00-18:30 on the server clock (UTC), 15:00Z.
+  const AT = new Date('2026-11-10T15:00:00Z');
+  type Mark = 'none' | 'crisis' | 'crisis+own';
+  /** 'rang <scheduledFor>', 'held <iso>' or the refusal, for one request asked at AT. */
+  async function ask(mark: Mark, stuckNight: boolean): Promise<string> {
+    reset('london', '12:00-18:30');
+    state.stuckNight = stuckNight;
+    vi.setSystemTime(AT);
+    const message = 'Thinking of you';
+    const request = {
+      ...{ userId: OWNER, phoneNumber: OWNER_PHONE, message, personaId: 'ferni' },
+      ...{ ssml: `<speak>${message}</speak>`, reason: 'user_requested_call' },
+    };
+    if (mark === 'crisis') asCrisisCallMe(request); // the mark alone, not their own "call me"
+    if (mark === 'crisis+own') asCrisisCallMe(asOwnCallMe(request)); // as call-user-adapter.ts
+    const result = await scheduleProactiveCall(request);
+    const row = state.rows.find((r) =>
+      ['deferred_calls', 'scheduled_calls'].includes(r.collection)
+    );
+    if (callsCreate.mock.calls.length) return `rang ${String(row?.data.scheduledFor)}`;
+    return row ? `held ${String(row.data.scheduledFor)}` : `refused ${result.error ?? ''}`;
+  }
+  it.each([
+    // Saved hours: unmarked, held to their end (18:00 as main; 18:30 with the flag on).
+    [false, 'off', 'off', 'held 2026-11-10T18:00:00.000Z'],
+    [false, 'on', 'off', 'held 2026-11-10T18:30:00.000Z'],
+    // And a night that never ends (policy.ts stubbed): with the flag on, unmarked is refused.
+    [true, 'off', 'off', 'held 2026-11-10T18:00:00.000Z'],
+    [true, 'on', 'off', REFUSED],
+    [true, 'on', 'on', REFUSED],
+  ] as const)(
+    'never-ending night %s, NIGHT_WINDOW_ALL_PATHS %s, unified %s: unmarked %s, crisis rings now',
+    async (stuckNight, allPaths, unified, unmarked) => {
+      vi.stubEnv('CALL_HOURS_GUARD', 'off');
+      vi.stubEnv('QUIET_HOURS_UNIFIED', unified);
+      vi.stubEnv('NIGHT_WINDOW_ALL_PATHS', allPaths);
+      const now = `rang ${AT.toISOString()}`; // placed at once, scheduled for the ask, no delay
+      expect([
+        await ask('none', stuckNight),
+        await ask('crisis', stuckNight),
+        await ask('crisis+own', stuckNight),
+      ]).toEqual([unmarked, now, now]);
+    }
+  );
 });
