@@ -31,12 +31,6 @@ vi.mock('../../../../services/calendar/calendar-bridge.js', () => ({
   updateCalendarSyncedItem: vi.fn(),
   removeCalendarSyncedItem: vi.fn(),
 }));
-vi.mock('../../../../services/restaurant-reservations.js', () => ({
-  searchRestaurants: vi.fn(async () => []),
-  bookReservation: vi.fn(),
-  isReservationServiceConfigured: () => false,
-  formatRestaurantForSpeech: () => '',
-}));
 
 import type { ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { createAppointmentTools } from '../../../scheduling/appointments-tools.js';
