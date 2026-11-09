@@ -92,13 +92,20 @@ describe('prod web flags', () => {
     expect(() => stepEnv(workflow, 'No such step')).toThrow(/no "No such step" step/);
   });
 
-  it('passes every avatar motion switch to each web build, from its repo variable, off when unset', () => {
-    // The switches motion-flags.ts reads; a new one must reach deploy and the walks too.
-    const source = readFileSync('apps/web/src/config/motion-flags.ts', 'utf8');
-    const motion = [
-      ...new Set([...source.matchAll(/import\.meta\.env\.(VITE_[A-Z0-9_]+)/g)].map((m) => m[1])),
+  it('passes every avatar motion switch and calm idle to each web build, off when unset', () => {
+    // The switches these files read; a new one must reach deploy and the walks too.
+    // Calm idle was left out of #3023, so no repo variable could turn it on.
+    const readNames = (file) => [
+      ...new Set(
+        [...readFileSync(file, 'utf8').matchAll(/import\.meta\.env\.(VITE_[A-Z0-9_]+)/g)].map(
+          (m) => m[1]
+        )
+      ),
     ];
+    const motion = readNames('apps/web/src/config/motion-flags.ts');
+    const calmIdle = readNames('apps/web/src/config/calm-idle.ts');
     expect(motion.length).toBeGreaterThanOrEqual(13);
+    expect(calmIdle).toEqual(['VITE_CALM_IDLE']);
 
     const build = stepEnv(workflow, 'Build frontend');
     const image = readFileSync('.github/workflows/deploy-production.yml', 'utf8');
@@ -106,7 +113,7 @@ describe('prod web flags', () => {
     const walks = ['.github/workflows/menu-e2e.yml', '.github/workflows/signed-in-e2e.yml'].map(
       (file) => [file, readFileSync(file, 'utf8')]
     );
-    for (const name of motion) {
+    for (const name of [...motion, ...calmIdle]) {
       expect(build[name], `${WEB_BUILD} Build frontend: ${name}`).toBe(`\${{ vars.${name} }}`);
       expect(resolve(name, build[name], {}), `${name} default`).toBe('');
       expect(image, `deploy-production.yml build-arg ${name}`).toContain(
