@@ -139,13 +139,15 @@ type Span = readonly [number, number];
  * mentioned as itself: in the case it is written, with no link, email or handle around it
  * ("Mary_Ann.com", "@Jo.Ann", "Jo.Ann@..." are not mentions). A name that reads risky on its
  * own (its digit run, a word like "Pin", a sum, an at-sign or a link) has no mentions: it is
- * read as written.
+ * read as written. So does a name cut to length (it ends in "..."), here or by a caller: what
+ * was cut off, an at-sign included, was never read.
  */
 function nameSpans(text: string, name: string | undefined): Span[] {
   const known = callerText(name, 200);
   const plain = known.replace(/[^\p{L}\p{N}\s]+/gu, ' ');
   if (
     !known.trim() ||
+    known.endsWith('...') ||
     NAME_LINK.test(known) ||
     NAME_RISKY_MARK.test(known) ||
     RISKY.some((rule) => rule.test(plain))

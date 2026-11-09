@@ -17,8 +17,15 @@ vi.mock('../../superhuman/firestore-utils.js', () => ({ getFirestoreDb: () => nu
 import type { CallOutcome } from '../../../tools/domains/telephony/types.js';
 import type { CheckinAlertInput } from '../checkin-urgent-alert.js';
 
-const { callerText, crisisCallerLine, isRiskyCallerText, riskyCallerLine, screenedCallerText } =
-  await import('../caller-text.js');
+const {
+  callerText,
+  crisisCallerLine,
+  isRiskyCallerText,
+  reportedFromCall,
+  riskyCallerLine,
+  screenCallerParts,
+  screenedCallerText,
+} = await import('../caller-text.js');
 const { generateUrgentNotification } = await import('../checkin-urgent-alert.js');
 const { liveReportMessage } = await import('../call-result-live.js');
 
@@ -46,6 +53,20 @@ const KNOWN_NAME_ONLY: ReadonlyArray<readonly [string, string]> = [
   ['riley.jones', 'riley.jones came by'],
   ['St.Clair', 'St.Clair is doing well'],
 ];
+
+/**
+ * A hidden format character in the name is stripped before its mentions are found, as it is
+ * from the text: the name still reads as itself.
+ */
+const HIDDEN_CHAR_NAMES: ReadonlyArray<readonly [string, string]> = [
+  ['Mary\u200b_Ann', 'Mary_Ann is doing well'],
+  ['St.\u200bClair', 'St.Clair is doing well'],
+];
+
+/** A name past the screen's 200-character read: its at-sign is cut off, so it has no mentions. */
+const LONG_AT_NAME = `Mary_Ann ${'Rivera '.repeat(30)}@ Work`;
+/** A name past the 60-character call-report label: the label cuts its at-sign off. */
+const LABEL_AT_NAME = 'Mary_Ann Rivera of the Maplewood Community Garden Club Annex @ Work';
 
 /** Built around the known name, so not a mention of it: still withheld. */
 const AROUND_THE_NAME: ReadonlyArray<readonly [string, string]> = [
@@ -199,6 +220,11 @@ describe('ordinary lines go out in their own words', () => {
     expect(alertFor(name, line)).toContain(riskyCallerLine(name));
   });
 
+  it.each(HIDDEN_CHAR_NAMES)('the name %j still reads as itself: %j is quoted', (name, line) => {
+    expect(isRiskyCallerText(line)).toBe(true);
+    expect(isRiskyCallerText(line, name)).toBe(false);
+  });
+
   it.each(STILL_HELD)('%j is still withheld', (line) => {
     expect(isRiskyCallerText(line)).toBe(true);
     expect(screenedCallerText(line, 'Loan')).toBe(riskyCallerLine('Loan'));
@@ -263,5 +289,27 @@ describe("the family member's name is the sponsor's words", () => {
     ]) {
       expect(alertFor(name, BENIGN[0])).toContain(riskyCallerLine(name));
     }
+  });
+});
+
+describe('a name cut to length gets no mentions', () => {
+  it('a name whose at-sign is past the 200-character read is not spared', () => {
+    const cut = callerText(LONG_AT_NAME, 200);
+    expect(cut.endsWith('...')).toBe(true);
+    expect(cut).not.toContain('@');
+    const line = `${cut} came by`;
+    expect(isRiskyCallerText(line, LONG_AT_NAME)).toBe(true);
+    expect(screenCallerParts(line, LONG_AT_NAME)).toMatchObject({ said: '', risky: true });
+    expect(alertFor(LONG_AT_NAME, line)).not.toContain('came by');
+  });
+
+  it('a call report whose label cuts the at-sign off is not spared', () => {
+    const label = callerText(LABEL_AT_NAME, 60);
+    expect(label.endsWith('...')).toBe(true);
+    expect(label).not.toContain('@');
+    const line = `${label} came by`;
+    const report = reportedFromCall(LABEL_AT_NAME, [line]);
+    expect(report).toContain(`> ${riskyCallerLine(label)}`);
+    expect(report.join('\n')).not.toContain('came by');
   });
 });
