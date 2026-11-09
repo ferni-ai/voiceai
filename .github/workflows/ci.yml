@@ -449,6 +449,17 @@ jobs:
         env:
           NODE_ENV: test
 
+      # Many scripts/ci ratchets read the files they guard as text (crisis symbols,
+      # CODEOWNERS, workflow files, web env reads), so no import edge reaches them and
+      # `--changed` skips them: a PR that opens a new gap first fails in the merge
+      # queue's full run and holds up every PR behind it. The whole directory takes
+      # ~15 s, so a PR always runs it. Guarded by ci-always-runs-fs-ratchets.test.ts.
+      - name: Run the scripts/ci ratchets
+        if: env.FULL_SUITE != 'true' && matrix.shard == 1
+        run: pnpm exec vitest run --config vitest.config.unit.ts scripts/ci/
+        env:
+          NODE_ENV: test
+
       # 60 call sites use the THROWING loadRustPerf() (tryLoadRustPerf is documented
       # "for availability checks, not for actual operations"), so the accelerator is
       # genuinely required — skipping those tests would hide coverage, not fix it.
