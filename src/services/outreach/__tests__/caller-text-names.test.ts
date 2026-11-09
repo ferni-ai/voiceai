@@ -3,10 +3,11 @@
  *
  * The screen is fail-closed: every rule reads the caller's words as written, and a dotted
  * word with any ending is a link. "Loan" after of or in is a name only when Loan is the
- * known name, and a spaced "ten k-drama" or "two k-pop" is not a sum. The family member's or contact's own name (Mary_Ann, St.Clair,
- * "Sam @ Work") is Ferni's words, so a match wholly inside a mention of it is spared;
- * "pay Loan a visit" is spared only when Loan is that name. A link, email or handle built
- * around the name is still read, as are the name's own digits, email or link. The note
+ * known name, and a spaced "ten k-drama" or "two k-pop" is not a sum. The family member's or
+ * contact's own name (Mary_Ann, St.Clair) is Ferni's words, so a match wholly inside a mention
+ * of it is spared; "pay Loan a visit" is spared only when Loan is that name. A link, email or
+ * handle built around the name is still read, as are the name's own digits, email or link. A
+ * name with any at-sign ("Sam @ Work") is never spared: its text is read as written. The note
  * the sponsor gets names only what fired. All data is fictional.
  */
 import { describe, expect, it, vi } from 'vitest';
@@ -53,7 +54,6 @@ const AROUND_THE_NAME: ReadonlyArray<readonly [string, string]> = [
   ['Jo.Ann', 'mail Jo.Ann@example.test'],
   ['Jo.Ann', 'see Jo.Ann.example today'],
   ['jo_ann.lee', 'her handle is @jo_ann.lee'],
-  ['Sam @ Work', 'write to Sam @ Work.example'],
   ['St.Clair', 'visit St.Clair.shop'],
   ['Loan', 'pay Loan the money'],
   ['Loan', 'pay Loan the loan'],
@@ -72,7 +72,11 @@ const BEFORE_THE_NAME: ReadonlyArray<readonly [string, string]> = [
   ['Mary_Ann', 'she is _Mary_Ann on there'],
 ];
 
-/** A name with a sum or a handle in characters the name's own read strips: it has no mentions. */
+/**
+ * A name with a sum or an at-sign, which the name's own read strips: it has no mentions, so the
+ * text is read as written. Any at-sign counts, spaced or not, full-width or small, before an
+ * address or an ordinary word ("Sam @ Work", "Mia @ Mail Room"): all withheld.
+ */
 const RISKY_NAME_MARKS: ReadonlyArray<readonly [string, string]> = [
   ['Sam $5', 'Sam $5,000 please'],
   ['@riley_r', 'dm @riley_r'],
@@ -84,21 +88,33 @@ const RISKY_NAME_MARKS: ReadonlyArray<readonly [string, string]> = [
   ['Sam @', 'reach Sam @ gmail'],
   ['Sam @', 'dm Sam @ riley'],
   ['Sam\u00a0@', 'reach Sam\u00a0@ gmail'],
+  ['Sam\u00a0@', 'dm Sam\u00a0@ riley'],
   ['Sam @riley_r', 'dm Sam @riley_r'],
-  // A spaced @ before a word that reads as an address: a mail provider, or a digit, "_" or ".".
   ['riley @ gmail', 'email riley @ gmail .com'],
   ['riley \uff20 gmail', 'email riley \uff20 gmail'],
   ['Sam @ riley_r', 'dm Sam @ riley_r'],
   ['Sam @ riley.r', 'dm Sam @ riley.r'],
   ['riley @ gmail com', 'email riley @ gmail com'],
-];
-
-/** A spaced @ before an ordinary word: the name is spared, even when the word is "Mail". */
-const SPACED_AT_NAMES: ReadonlyArray<readonly [string, string]> = [
+  ['riley @ gmail uk', 'email riley @ gmail uk'],
+  ['riley @ gmx de', 'email riley @ gmx de'],
+  ['riley @ mail ru', 'email riley @ mail ru'],
+  ['riley @ gmail info', 'email riley @ gmail info'],
+  ['riley @ gmail dot com', 'email riley @ gmail dot com'],
+  ['riley @ gmail(dot)com', 'email riley @ gmail(dot)com'],
+  ['riley @ gmail,', 'email riley @ gmail, ok'],
+  ['riley @ gmail\u3002com', 'email riley @ gmail\u3002com'],
+  ['riley @ example', 'email riley @ example .com'],
+  ['Sam @ Work', 'write to Sam @ Work.example'],
+  ['Sam @ Work', 'email Sam @ Work . com'],
+  ['Sam @ Work', 'email Sam @ Work dot com'],
+  ['Sam @ Work', 'email Sam @ Work com'],
+  // A spaced @ before an ordinary word is withheld too: the more private reading.
   ['Sam @ Work', 'Sam @ Work came by'],
   ['Tom @ Home', 'Tom @ Home said hi'],
   ['Ana @ Caf\u00e9', 'Ana @ Caf\u00e9 is open'],
   ['Mia @ Mail Room', 'Mia @ Mail Room called'],
+  ['Sam \uff20 Work', 'Sam \uff20 Work came by'],
+  ['Sam \ufe6b Work', 'Sam \ufe6b Work came by'],
 ];
 
 /** Still withheld: each one has its own money cue, link ending or scheme. */
@@ -135,7 +151,6 @@ const PUNCTUATED = [
   'Mary_Ann',
   'St.Clair',
   'Jo.Ann',
-  'Sam @ Work',
   "O'Brien-Smith",
   'Ann & Bo',
   'jo_ann.lee',
@@ -183,14 +198,6 @@ describe('ordinary lines go out in their own words', () => {
     expect(isRiskyCallerText(line, name)).toBe(true);
     expect(alertFor(name, line)).toContain(riskyCallerLine(name));
   });
-
-  it.each(SPACED_AT_NAMES)(
-    'a spaced @ in the name %j is not a handle: %j is quoted',
-    (name, line) => {
-      expect(isRiskyCallerText(line, name)).toBe(false);
-      expect(alertFor(name, line)).toContain(`During my call with ${name}, ${line}.`);
-    }
-  );
 
   it.each(STILL_HELD)('%j is still withheld', (line) => {
     expect(isRiskyCallerText(line)).toBe(true);
@@ -244,13 +251,15 @@ describe("the family member's name is the sponsor's words", () => {
     });
   });
 
-  it("a name's own digit run, email or link is still read", () => {
+  it("a name's own digit run, email, at-sign or link is still read", () => {
     for (const name of [
       'Riley 555 0142 22',
       'riley@example.com',
       'riley.shop',
       'Riley www.rileyhelp',
       'sam@maplewood.example',
+      'Sam @ Work',
+      'Sam \uff20 Work',
     ]) {
       expect(alertFor(name, BENIGN[0])).toContain(riskyCallerLine(name));
     }

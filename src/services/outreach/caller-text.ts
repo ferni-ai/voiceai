@@ -117,26 +117,19 @@ const RISKY: readonly RegExp[] = [
 ];
 
 /**
- * A link or an email address in a name, or a dot before a two-letter or common link ending
- * ("riley.shop", "Mary.Jo"): such a name is read as it is written, never spared.
+ * A link in a name, or a dot before a two-letter or common link ending ("riley.shop",
+ * "Mary.Jo"): such a name is read as it is written, never spared.
  */
 const NAME_LINK =
-  /\bwww\.|:\/\/|@\s*[\p{L}\p{N}-]+\.\p{L}{2,}|\.(?:\p{L}{2}|com|net|org|edu|gov|info|biz|xyz|link|app|dev|shop|store|site|online|io|co|me|ly)(?![\p{L}\p{N}])/iu;
-
-/** A mail provider written after a spaced `@` ("riley @ gmail"). */
-const MAIL_PROVIDER = String.raw`(?:g(?:oogle)?mail|yahoo|outlook|hotmail|live|icloud|me|mac|proton(?:mail)?|aol|gmx|yandex|zoho|mail)`;
+  /\bwww\.|:\/\/|\.(?:\p{L}{2}|com|net|org|edu|gov|info|biz|xyz|link|app|dev|shop|store|site|online|io|co|me|ly)(?![\p{L}\p{N}])/iu;
 
 /**
- * A sum or a handle in a name ("Sam $5", "@riley_r", "riley@gmail", "riley@ gmail", "@ riley",
- * "Sam @"), which `plain` would strip. An `@` with a space on both sides ("Sam @ Work") is not a
- * handle, unless the word after it reads as an address: it has a digit, "_" or "."
- * ("Sam @ riley_r"), or it is a mail provider that ends the name or comes before a dot or a link
- * ending ("riley @ gmail", "riley @ gmail com"; not "Mia @ Mail Room").
+ * A sum or an at-sign in a name ("Sam $5", "riley@gmail", "Sam @ Work"), which `plain` would
+ * strip. Any at-sign makes the name risky, spaced or not, so a name's "@" is never spared:
+ * "Sam @ Work came by" is withheld like any text with an "@". `callerText` folds the full-width
+ * and small at-signs ("＠", "﹫") to "@" first (NFKC), so one "@" covers all three.
  */
-const NAME_RISKY_MARK = new RegExp(
-  String.raw`[$€£]\s?\p{Nd}|@(?:\S|$)|(?:^|\S)@|@\s+(?:\S*[\p{Nd}_.]|${MAIL_PROVIDER}(?![\p{L}\p{N}])\s*(?:$|\.|(?:com|net|org|edu|io|co)(?![\p{L}\p{N}])))`,
-  'iu'
-);
+const NAME_RISKY_MARK = /[$€£]\s?\p{Nd}|@/u;
 
 /** Spans [start, end) in `text` where the known name is mentioned as itself. */
 type Span = readonly [number, number];
@@ -145,8 +138,8 @@ type Span = readonly [number, number];
  * Where the known name (the person the user named, written by Ferni, not the caller) is
  * mentioned as itself: in the case it is written, with no link, email or handle around it
  * ("Mary_Ann.com", "@Jo.Ann", "Jo.Ann@..." are not mentions). A name that reads risky on its
- * own (its digit run, a word like "Pin", an email or a link) has no mentions: it is read as
- * written.
+ * own (its digit run, a word like "Pin", a sum, an at-sign or a link) has no mentions: it is
+ * read as written.
  */
 function nameSpans(text: string, name: string | undefined): Span[] {
   const known = callerText(name, 200);
