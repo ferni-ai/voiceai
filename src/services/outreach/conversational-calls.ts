@@ -189,9 +189,8 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     const deferral = hoursApply && (await holdForCallees(userId, call, held));
     if (deferral) return { success: true, callId: deferral.id, status: 'scheduled' };
     const now = new Date(); // guard off: calleeCallHold reads the clock; a quiet call is stored
-    const ownCallMe = isOwnCallMe(request); // their own "call me": NIGHT_WINDOW_ALL_PATHS adds none
-    const hours =
-      hoursApply && !isCallHoursGuardOn() ? await calleeCallHold(held, now, ownCallMe) : null;
+    const own = isOwnCallMe(request); // their own "call me": NIGHT_WINDOW_ALL_PATHS adds none
+    const hours = hoursApply && !isCallHoursGuardOn() ? await calleeCallHold(held, now, own) : null;
     if (hours?.refused) return { success: false, error: `Not calling: ${hours.refused}` };
     const quiet = !!hours?.quiet;
     if (quiet) log.info({ userId, callId }, 'Call delayed due to quiet hours');
