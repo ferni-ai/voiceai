@@ -1,7 +1,7 @@
 [
   "src/agents/__tests__/crisis-guard-precision.test.ts",
   "src/agents/__tests__/fixtures/crisis-adjudicator-2026-10-17.json",
-  "src/agents/__tests__/fixtures/crisis-heldout.ts",
+  "src/agents/__tests__/fixtures/crisis-heldout-retired.ts",
   "src/agents/__tests__/fixtures/crisis-test-blind.ts",
   "src/agents/core/__tests__/inference-executor.test.ts",
   "src/agents/core/errors.ts",
