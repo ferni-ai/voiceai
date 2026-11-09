@@ -130,6 +130,7 @@ export async function makeVoiceReferralCall(params: {
   personalNote?: string;
   occasion?: string;
   supportSituation?: string;
+  support?: boolean; // sendSupportCall (gated-referral.ts)
 }): Promise<{ success: boolean; callSid?: string; error?: string; reply?: string }> {
   const {
     referrerId,
@@ -373,7 +374,7 @@ export async function getReferralAnalytics(referrerId: string): Promise<{
 }> {
   const referrals = await getReferralHistory(referrerId);
 
-  const called = referrals.filter((r) => r.status === 'called').length;
+  const called = referrals.filter((r) => r.status === 'called' || r.status === 'started').length; // started: placed via placeOrHold
   const answered = referrals.filter((r) => r.status === 'answered').length;
   const converted = referrals.filter((r) => r.status === 'converted').length;
 
@@ -422,7 +423,7 @@ export function createVoiceReferralTools(userId: string, userName: string) {
           personalNote,
           occasion,
         });
-        if (result.reply) return result.reply; // held or refused (CALL_PATHS_PLACE_OR_HOLD)
+        if (result.reply) return result.reply; // placed, held or refused (CALL_PATHS_PLACE_OR_HOLD)
         if (result.success) {
           return `The call to ${friendName} has gone out. If they pick up, they'll hear a short hello from me saying you were thinking of them.`;
         } else {
@@ -431,9 +432,7 @@ export function createVoiceReferralTools(userId: string, userName: string) {
       },
     }),
 
-    /**
-     * Tool: Send a supportive call to someone going through a hard time
-     */
+    /** Tool: Send a supportive call to someone going through a hard time */
     sendSupportCall: llm.tool({
       description: `Send a supportive introduction call to someone the user knows who is going through a difficult time. This is a gentle way to let someone know they have support available. Use when the user mentions a friend struggling with something.`,
       parameters: z.object({
@@ -451,8 +450,9 @@ export function createVoiceReferralTools(userId: string, userName: string) {
           recipientName: friendName,
           recipientPhone: friendPhone,
           supportSituation: situation,
+          support: true,
         });
-        if (result.reply) return result.reply; // held or refused (CALL_PATHS_PLACE_OR_HOLD)
+        if (result.reply) return result.reply; // placed, held or refused (CALL_PATHS_PLACE_OR_HOLD)
         if (result.success) {
           return `I'm reaching out to ${friendName} now with a gentle, supportive message. I'll let them know you care and that I'm here if they ever want to talk. That's a beautiful thing you're doing for them. 💚`;
         } else {

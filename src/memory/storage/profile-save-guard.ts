@@ -5,15 +5,18 @@
  * - The person on a call placed for a member (`onbehalf:<callId>`) is never stored, with
  *   ONBEHALF_WRITE_GATE on or off: they never signed up. The trial start and the contact info
  *   they spoke both reached saveProfile and created bogle_users/onbehalf:<callId>.
+ * - An anonymous try-first visitor (`device:demo_…`, isAnonymousDemoUser) is never stored: they
+ *   were told nothing is kept. A phone number or email they say would otherwise be saved here.
  *
  * @module memory/storage/profile-save-guard
  */
 import type { UserProfile } from '../../types/user-profile.js';
+import { isAnonymousDemoUser } from '../../utils/synthetic-user.js';
 import { isThirdPartyCallUser } from '../third-party-call.js';
 import { refuseUnsaved } from './profile-read-failure.js';
 
 /** True when the profile must not be stored; throws for a stand-in. */
 export function notStored(profile: UserProfile): boolean {
   refuseUnsaved(profile);
-  return isThirdPartyCallUser(profile.id);
+  return isThirdPartyCallUser(profile.id) || isAnonymousDemoUser(profile.id);
 }

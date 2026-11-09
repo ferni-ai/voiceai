@@ -70,9 +70,9 @@ describe('compareSweeps', () => {
     const cmp = compareSweeps(base, head);
     expect(cmp).toMatchObject({ loweredRows: 1, raisedRows: 1, identical: 1 });
     expect(cmp.lowered).toEqual([
-      expect.stringMatching(/sev 0\.9->0\.6 crisis true->false .*\| t0$/),
+      expect.stringMatching(/sev 0\.9->0\.6 crisis true->false .*\| x#0$/),
     ]);
-    expect(cmp.raised).toEqual([expect.stringMatching(/imminent false->true .*\| t1$/)]);
+    expect(cmp.raised).toEqual([expect.stringMatching(/imminent false->true .*\| x#1$/)]);
   });
 
   it('reports nothing lowered for identical sweeps', () => {
@@ -85,7 +85,7 @@ describe('compareSweeps', () => {
     const head = base.map((r) => ({ ...r, sev: 0 }));
     const cmp = compareSweeps(base, head);
     expect(cmp.loweredRows).toBe(2);
-    expect(cmp.lowered).toHaveLength(1);
+    expect(cmp.lowered).toEqual([expect.stringMatching(/\| a#0 b#0$/)]);
   });
 
   it('refuses sweeps of different fixture sets', () => {

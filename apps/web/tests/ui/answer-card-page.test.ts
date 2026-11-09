@@ -19,6 +19,8 @@ vi.mock('../../src/utils/api.js', () => ({
   getApiHeaders: vi.fn(() => ({})),
 }));
 vi.mock('../../src/services/firebase-auth.service.js', () => ({ signOut: mockSignOut }));
+const mockSignOutOfThisBrowser = vi.fn(async () => true);
+vi.mock('../../src/ui/sign-out.js', () => ({ signOutOfThisBrowser: mockSignOutOfThisBrowser }));
 vi.mock('../../src/ui/sign-in-gate.ui.js', () => ({ showSignInGate: mockGate }));
 // auth-init starts Firebase on import; the page only needs its result.
 vi.mock('../../src/services/auth-init.service.js', () => ({ initializeAuth: mockAuth }));
@@ -137,9 +139,7 @@ describe('showAnswerCard', () => {
   });
 
   it("says it can't find a card that isn't yours, and offers another account", async () => {
-    mockApiGet
-      .mockResolvedValueOnce({ ok: false, status: 404, error: 'Not found' })
-      .mockResolvedValueOnce({ ok: true, status: 200, data: { card: CARD } });
+    mockApiGet.mockResolvedValueOnce({ ok: false, status: 404, error: 'Not found' });
     const root = document.createElement('main');
     await showAnswerCard(root, ID);
     expect(root.querySelector('[role="status"]')?.textContent).toBe(
@@ -147,10 +147,11 @@ describe('showAnswerCard', () => {
     );
     expect(root.querySelector('a, iframe')).toBeNull();
     button(root, 'Use another account')?.click();
-    await vi.waitFor(() => expect(root.textContent).toContain('Try calf raises'));
-    expect(mockSignOut).toHaveBeenCalledTimes(1);
-    expect(mockGate).toHaveBeenCalledTimes(1);
-    expect(mockApiGet).toHaveBeenCalledTimes(2);
+    // Signs out as settings does: this browser is cleared and the page reloads to the
+    // gate, then to this card. A bare sign-out left the last person's data behind.
+    await vi.waitFor(() => expect(mockSignOutOfThisBrowser).toHaveBeenCalledTimes(1));
+    expect(mockSignOut).not.toHaveBeenCalled();
+    expect(mockApiGet).toHaveBeenCalledTimes(1);
   });
 
   it('tries again when loading fails and the person asks', async () => {

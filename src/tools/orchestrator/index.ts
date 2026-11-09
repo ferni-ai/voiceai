@@ -53,3 +53,6 @@ export {
   type ComposedResult,
   type ComposeOptions,
 } from './tool-composer.js';
+
+// Tools no persona may lose: crisis, a human, grounding, sobriety and wellbeing support
+export { PROTECTED_TOOL_NAMES } from './persona-tool-policy.js';
