@@ -15,8 +15,8 @@
  *
  * Reads are collected from the access shapes the app uses: `import.meta.env.VITE_X`,
  * `import.meta.env?.VITE_X`, `env.VITE_X` (a parameter defaulting to import.meta.env),
- * bracket access, and `%VITE_X%` in index.html. Tests, mocks, type declarations and
- * comment lines are not reads.
+ * any of those split across lines, bracket access, and `%VITE_X%` in index.html.
+ * Tests, mocks, type declarations and comment lines are not reads.
  */
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -43,8 +43,6 @@ const KNOWN_UNBUILT = {
   // Off in prod; one browser can turn it on with localStorage.
   VITE_AGENT_DROP_PROMPT: 'unwired',
   VITE_CALL_ROOM: 'unwired',
-  // remove when #3641 merges
-  VITE_CALM_IDLE: 'unwired',
   // Off in prod; one browser can turn it on with localStorage.
   VITE_CLIENT_TIMING_SEND: 'unwired',
   VITE_CUSTOM_AGENTS_UI: 'unwired',
@@ -84,6 +82,9 @@ const KNOWN_UNBUILT = {
   VITE_STRIPE_PUBLISHABLE_KEY: 'unwired',
   // Only read when import.meta.env.DEV; the e2e walks set it for their emulator build.
   VITE_USE_FIREBASE_EMULATORS: 'dev-only',
+  // Only an override: with no build value, push-notifications.service.ts fetches the key
+  // from the API's /api/push/vapid-key (src/servers/api/routes/push.ts).
+  VITE_VAPID_PUBLIC_KEY: 'config',
   VITE_VOICE_CLONE_CREATION: 'unwired',
   VITE_WAITLIST_SCREEN: 'unwired',
 };
@@ -97,7 +98,7 @@ const NOT_A_READ_FILE = /\.(?:test|spec)\.[^.]+$|\.d\.[cm]?ts$/;
 const NOT_A_READ_DIR = new Set(['__tests__', '__mocks__', 'node_modules']);
 const COMMENT_LINE = /^\s*(?:\/\/|\/\*|\*)/;
 const ACCESS = [
-  /\benv\??\.(VITE_[A-Z0-9_]+)\b/g,
+  /\benv\s*\??\.\s*(VITE_[A-Z0-9_]+)\b/g,
   /\benv\??\.?\[\s*['"`](VITE_[A-Z0-9_]+)['"`]\s*\]/g,
 ];
 const HTML_ACCESS = /%(VITE_[A-Z0-9_]+)%/g;
@@ -251,6 +252,7 @@ describe('prod web build args', () => {
         "const v = import.meta.env?.VITE_ZZ_OPTIONAL;\nimport.meta.env['VITE_ZZ_BRACKET'];\n"
       );
       write('c.ts', 'function f(env = import.meta.env) {\n  return env.VITE_ZZ_PARAM;\n}\n');
+      write('c2.ts', 'const k = (import.meta as { env?: E }).env\n  ?.VITE_ZZ_MULTILINE;\n');
       write('d.ts', '// import.meta.env.VITE_ZZ_LINE_COMMENT\n/**\n * env.VITE_ZZ_DOC\n */\n');
       write('__tests__/e.ts', 'import.meta.env.VITE_ZZ_TESTS_DIR;\n');
       write('__mocks__/f.ts', 'import.meta.env.VITE_ZZ_MOCKS_DIR;\n');
@@ -264,6 +266,7 @@ describe('prod web build args', () => {
         'VITE_ZZ_BRACKET',
         'VITE_ZZ_FAKE_SWITCH',
         'VITE_ZZ_HTML',
+        'VITE_ZZ_MULTILINE',
         'VITE_ZZ_OPTIONAL',
         'VITE_ZZ_PARAM',
       ]);
@@ -272,7 +275,7 @@ describe('prod web build args', () => {
       // Each fixture read is a NEW gap against the real build and lists.
       const withFixture = new Map([...reads, ...found]);
       const errors = ratchetErrors(withFixture, built, KNOWN_UNBUILT, KNOWN_UNREAD);
-      expect(errors.filter((e) => /^NEW gap: VITE_ZZ_/.test(e))).toHaveLength(5);
+      expect(errors.filter((e) => /^NEW gap: VITE_ZZ_/.test(e))).toHaveLength(6);
     });
   });
 });
