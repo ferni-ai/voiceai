@@ -63,6 +63,7 @@ import { resetCallRiskSnapshots } from '../crisis-lone-imminent.js';
 import {
   commitCrisisHelp,
   noteCrisisHelp,
+  noteTurnCrisisHelp,
   OWN_CRISIS_REPLY_MARKER,
   OWN_CRISIS_REPLY_RULE,
   ownCrisisReply,
@@ -218,6 +219,20 @@ describe('which line is Ferni own crisis reply (structured state)', () => {
     expect(state).toEqual({ lastAgentResponseCrisisHelp: true, crisisHelpInReply: undefined });
     commitCrisisHelp(state, true, false); // a recorded reply no writer noted
     expect(state.lastAgentResponseCrisisHelp).toBe(false);
+  });
+
+  it('the turn handler notes its crisis script and its crisis guidance, nothing else', () => {
+    const noted = (crisis?: Parameters<typeof noteTurnCrisisHelp>[1]): boolean | undefined => {
+      const state: OwnCrisisReplyState = {};
+      noteTurnCrisisHelp(state, crisis);
+      return state.crisisHelpInReply?.turn;
+    };
+    const script = 'Please call or text 988 now.';
+    expect(noted({ shouldOverrideLLM: true, suggestedResponse: script })).toBe(true);
+    expect(noted({ isCrisis: true })).toBe(true); // guidance, no script
+    expect(noted({ shouldOverrideLLM: true })).toBe(false); // nothing to say: no override
+    expect(noted({ isCrisis: false })).toBe(false);
+    expect(noted(undefined)).toBe(false);
   });
 
   it('is never read from the text: the same words with no note are not it', () => {
