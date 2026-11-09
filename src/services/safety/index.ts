@@ -58,6 +58,8 @@ export {
   withMinorAbuseRead,
 } from './minor-abuse-disclosure.js';
 export { SOFT_CRISIS_CHECK } from './crisis-agreement.js';
+// CRISIS_OWN_SCRIPT_NOT_EVIDENCE: the voice agent's writers note Ferni's own crisis reply.
+export { commitCrisisHelp, noteCrisisHelp, type OwnCrisisReplyState } from './crisis-own-reply.js';
 
 // ============================================================================
 // CRISIS RESPONSE

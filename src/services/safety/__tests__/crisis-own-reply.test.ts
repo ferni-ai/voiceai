@@ -48,6 +48,7 @@ vi.mock('../../../conversation/advanced-humanization-integration.js', () => ({
 
 import { gatedReply } from '../../../agents/personas/crisis-gate.js';
 import { startTurnCrisis } from '../../../agents/processors/turn-processor/turn-crisis.js';
+import { noteTurnCrisisHelp } from '../../../agents/safety/crisis-own-reply-notes.js';
 import type { UserData } from '../../../agents/shared/types.js';
 import { recordCommittedAgentReply } from '../../../agents/voice-agent/agent-reply-recorder.js';
 import { SOFT_CRISIS_CHECK } from '../crisis-agreement.js';
@@ -63,7 +64,6 @@ import { resetCallRiskSnapshots } from '../crisis-lone-imminent.js';
 import {
   commitCrisisHelp,
   noteCrisisHelp,
-  noteTurnCrisisHelp,
   OWN_CRISIS_REPLY_MARKER,
   OWN_CRISIS_REPLY_RULE,
   ownCrisisReply,

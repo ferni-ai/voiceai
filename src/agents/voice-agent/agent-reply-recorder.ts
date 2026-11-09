@@ -28,8 +28,7 @@ import { createLedgerRecorder } from '../personas/life-ledger.js';
 import { heldOutOfMemory } from '../multi-agent/arrival-grounding.js';
 import { recordAgentTurn } from './agent-turn-recorder.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
-import { noteSpokenLifeline } from '../../services/safety/index.js';
-import { commitCrisisHelp } from '../../services/safety/crisis-own-reply.js'; // CRISIS_OWN_SCRIPT_NOT_EVIDENCE
+import { commitCrisisHelp, noteSpokenLifeline } from '../../services/safety/index.js';
 
 const log = createLogger({ module: 'agent-reply-recorder' });
 

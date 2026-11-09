@@ -32,6 +32,7 @@ import { gatedReply } from '../../src/agents/personas/crisis-gate.js';
 import { buildSafetyInjections } from '../../src/agents/processors/injection-builders/safety-coaching-builders.js';
 import type { InjectionBuilderContext } from '../../src/agents/processors/injection-builders/types.js';
 import { startTurnCrisis } from '../../src/agents/processors/turn-processor/turn-crisis.js';
+import { noteTurnCrisisHelp } from '../../src/agents/safety/crisis-own-reply-notes.js';
 import { isAcknowledgementOnly } from '../../src/agents/voice-agent/agent-reply-recorder.js';
 import {
   applyClassifierVerdict,
@@ -54,10 +55,7 @@ import {
 } from '../../src/services/safety/crisis-classifier.js';
 import { resetCrisisCallRisk } from '../../src/services/safety/crisis-call-risk.js';
 import { resetCallRiskSnapshots } from '../../src/services/safety/crisis-lone-imminent.js';
-import {
-  commitCrisisHelp,
-  noteTurnCrisisHelp,
-} from '../../src/services/safety/crisis-own-reply.js';
+import { commitCrisisHelp } from '../../src/services/safety/crisis-own-reply.js';
 import { NEUTRAL_REPLIES, splitOf, type SimCallSpec } from './full-path-corpus.js';
 import { guidedReplyFor } from './guided-reply.js';
 import type { FiredPath, LineState, TurnRecord } from './full-path-summary.js';

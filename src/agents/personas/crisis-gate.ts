@@ -70,7 +70,7 @@ import {
 } from '../../services/safety/crisis-lone-imminent.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { disclosureGuidance, mainOf, shadowGrade } from '../../services/safety/index.js';
-import { markCrisisHelp, noteGateCrisisHelp } from '../../services/safety/crisis-own-reply.js';
+import { markCrisisHelp, noteGateCrisisHelp } from '../safety/crisis-own-reply-notes.js';
 import {
   applyClassifierVerdict,
   buildCrisisGuidance,
