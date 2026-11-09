@@ -7,11 +7,42 @@
  * injection, so on may raise it (curly apostrophes, missing spaces) but never
  * lowers it below today's.
  */
+import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { CRISIS_CONTEXTUAL } from '../../../agents/__tests__/fixtures/crisis-contextual.js';
+import { CRISIS_RELAY } from '../../../agents/__tests__/fixtures/crisis-relay.js';
 import { patternHit } from '../../../utils/safety-whole-word.js';
 import { analyzeReferralNeed } from '../../principal-alignment/human-referral.js';
-import { riskCorpus } from './crisis-corpus.js';
+import { CRISIS_TEST_CASES } from '../../superhuman/validation/crisis-test-cases.js';
+import { adversarialCorpus, crisisPhrases, joinedWordCorpus, RISK_FORMS } from './crisis-corpus.js';
+
+// The never-lower corpus for this site, built here from sets that hold no
+// held-out or blind data: those stay sealed for scoring, so riskCorpus() (which
+// spreads CRISIS_HELDOUT and CRISIS_TEST_BLIND) is not used. Same risk filter.
+const RISK_JSON_FIXTURES = [
+  'scripts/crisis-eval/redteam-2026-10-05.json',
+  'scripts/crisis-eval/gloomy-ferni-2026-10-11.json',
+  'src/agents/__tests__/fixtures/crisis-adjudicator-2026-10-17.json',
+  'src/agents/__tests__/fixtures/crisis-everyday-call-2026-10-17.json',
+];
+const isRisk = (label: string): boolean => label === 'block' || label === 'crisis';
+function openCorpus(): string[] {
+  const lines: string[] = [
+    ...[...CRISIS_RELAY, ...CRISIS_CONTEXTUAL].filter((c) => isRisk(c.label)).map((c) => c.text),
+    ...CRISIS_TEST_CASES.filter((c) => c.expectedResult.shouldDetect).map((c) => c.input),
+    ...RISK_JSON_FIXTURES.flatMap((path) =>
+      (JSON.parse(readFileSync(path, 'utf8')) as Array<{ text: string; label: string }>)
+        .filter((c) => isRisk(c.label))
+        .map((c) => c.text)
+    ),
+    ...RISK_FORMS,
+    ...crisisPhrases(),
+    ...joinedWordCorpus(),
+    ...adversarialCorpus(),
+  ];
+  return [...new Set(lines.filter((l) => typeof l === 'string' && l.length > 0))];
+}
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -97,7 +128,12 @@ describe('recall: immediate and high triggers never read less than pattern.test'
   it('corpus: no fixture line reads a lower urgency with the flag on', () => {
     const rank = { low: 1, medium: 2, high: 3, immediate: 4 } as const;
     const drops: string[] = [];
-    for (const line of riskCorpus()) {
+    const corpus = openCorpus();
+    console.info(`human-referral never-lower corpus: ${corpus.length} lines`);
+    // The adversarial set alone is 28,781 lines; a much smaller corpus means a
+    // source went missing and the never-lower check would pass on nothing.
+    expect(corpus.length).toBeGreaterThan(25_000);
+    for (const line of corpus) {
       flag('off');
       const off = rank[urgency(line)];
       flag('on');
