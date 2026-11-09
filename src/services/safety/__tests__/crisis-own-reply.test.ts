@@ -354,7 +354,7 @@ describe('fail closed', () => {
       pattern: 'none',
       env: ON,
       generate,
-      ownCrisisReply: true,
+      callState: { lastAgentResponse: GUIDED_REPLY, lastAgentResponseCrisisHelp: true },
     });
     await run?.verdict;
     expect(reads.length).toBeGreaterThan(0);

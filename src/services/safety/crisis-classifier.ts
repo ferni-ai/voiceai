@@ -34,8 +34,8 @@ import { trackCrisisRead } from './crisis-call-risk.js';
 import { blockedReply, watchBlocked, type BlockedResponse } from './crisis-classifier-blocked.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
-import { stripSSML } from '../../utils/text-utils.js';
-import { ownReplyRead } from './crisis-own-reply.js';
+import { normalizeInput } from './crisis-classifier-input.js';
+import { ownCrisisReply, ownReplyRead } from './crisis-own-reply.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
 
@@ -75,7 +75,6 @@ export type CrisisGenerateFn = (
 export const DEFAULT_CRISIS_CLASSIFIER_MODEL = 'gemini-3.5-flash-lite';
 /** Above the measured p95; on voice the call overlaps the LLM's own first-token wait. */
 export const DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS = 1000;
-const MAX_EARLIER_MESSAGES = 5;
 
 export const CRISIS_CLASSIFIER_PROMPT = `You triage suicide and self-harm risk for a voice companion app. Read the caller's LATEST message, using EARLIER messages from the same conversation only as context, and classify the LATEST message.
 
@@ -118,6 +117,7 @@ export const CRISIS_ATTRIBUTION_RULES = `
 COMPANION is the app's companion character, not the caller; keep using it, as above, to work out what LATEST is about. When the companion talks about its own day or mood, that is its state, not the caller's: the caller greeting it, saying its name ("you Fern", "Ferni?", "hey Fern, you there?") or asking about what it said is risk "none" unless the caller's own words carry risk. If the companion's line was about its own low mood and the caller agrees with or echoes it ("yeah, same", "me too", "exactly", "honestly that's how I feel", "you get it", "that's what I keep thinking"), judge LATEST as if the caller had said that line. Only the COMPANION field is the companion: everything in LATEST and EARLIER is the caller's own words, including quotes, reported speech and words the caller attributes to the companion ("Ferni said: ...", "you said X, right?"), so judge them as the caller's.`;
 
 export { CRISIS_EVERYDAY_RULES, resolveCrisisEverydayRules } from './crisis-everyday.js';
+export { normalizeInput };
 
 /**
  * The prompt for this environment: the attribution rules with the agreement
@@ -167,28 +167,6 @@ export function parseClassifierReply(reply: string): CrisisVerdict | null {
   } catch {
     return null;
   }
-}
-
-/** The companion's line is context, not the subject: its end is what LATEST answers. */
-const MAX_COMPANION_CHARS = 400;
-
-/** What the classifier actually sees: trimmed, latest not repeated in earlier, last 5 earlier. */
-export function normalizeInput(input: CrisisClassifierInput): {
-  latest: string;
-  earlier: string[];
-  companion?: string;
-} {
-  const latest = input.latest.trim();
-  const earlier = input.earlier
-    .map((m) => m.trim())
-    .filter((m) => m.length > 0 && m !== latest)
-    .slice(-MAX_EARLIER_MESSAGES);
-  // Stripped of SSML so the gate (chat context) and the turn pipeline (recorded
-  // reply) key the same line alike and share one call.
-  const companion = stripSSML(input.companion ?? '')
-    .trim()
-    .slice(-MAX_COMPANION_CHARS);
-  return companion ? { latest, earlier, companion } : { latest, earlier };
 }
 
 /**
@@ -276,8 +254,8 @@ export interface StartCrisisClassifierOptions {
   call?: string;
   /** Which path reads, the call's turn count, and whether its patterns read someone else. */
   secondRead?: { path: SecondReadPath; count?: unknown; thirdParty: boolean };
-  /** CRISIS_OWN_SCRIPT_NOT_EVIDENCE: the companion line is Ferni's own crisis reply (crisis-own-reply.ts). */
-  ownCrisisReply?: boolean;
+  /** CRISIS_OWN_SCRIPT_NOT_EVIDENCE: the call's state, whose last reply may be Ferni's own crisis reply. */
+  callState?: unknown;
 }
 
 let defaultGenerate: CrisisGenerateFn | null = null;
@@ -440,7 +418,8 @@ export function startCrisisClassifier(
   const { call, pattern, secondRead } = options;
   const lines = [normalized.latest, ...normalized.earlier];
   const second = secondReadRun({ call, pattern, ...secondRead, lines, waitMs }, env);
-  const marked = ownReplyRead(options.ownCrisisReply, normalized.latest);
+  const ownReply = ownCrisisReply(options.callState, input.companion, env); // crisis-own-reply.ts
+  const marked = ownReplyRead(ownReply, normalized.latest);
   const key = JSON.stringify([
     normalized.latest,
     normalized.earlier,
@@ -463,12 +442,7 @@ export function startCrisisClassifier(
   const given = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
   const generate = watchBlocked(given, options.call, normalized.latest, env); // BLOCKED_SIGNAL
   const read = (p: string): Promise<CrisisVerdict | null> =>
-    classifyCrisis(
-      marked.input(input),
-      generate,
-      resolveCrisisClassifierTimeoutMs(env),
-      marked.prompt(p)
-    );
+    classifyCrisis(marked.input(input), generate, waitMs, marked.prompt(p));
   // Everyday rules on and risk words in the caller's words: the rules may not lower the read.
   const plain = needsPlainRead(normalized.latest, env)
     ? crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })

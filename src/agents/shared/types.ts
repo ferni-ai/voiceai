@@ -170,10 +170,6 @@ export interface UserData {
   lastUserMessage?: string;
   lastAgentResponse?: string; // For response quality tracking + echo detection
   lastAgentResponseTime?: number; // For engagement scoring
-  /** CRISIS_OWN_SCRIPT_NOT_EVIDENCE: whether the reply being produced offers crisis help, by writer. */
-  crisisHelpInReply?: { gate?: boolean; turn?: boolean };
-  /** CRISIS_OWN_SCRIPT_NOT_EVIDENCE: lastAgentResponse is Ferni's own crisis reply, uninterrupted. */
-  lastAgentResponseCrisisHelp?: boolean;
   /** Timestamp when agent finished speaking (for echo prevention cooldown) */
   lastAgentSpeechEndTime?: number;
   /** Duration of last agent utterance in ms (for adaptive echo prevention) */

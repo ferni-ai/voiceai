@@ -54,7 +54,10 @@ import {
 } from '../../src/services/safety/crisis-classifier.js';
 import { resetCrisisCallRisk } from '../../src/services/safety/crisis-call-risk.js';
 import { resetCallRiskSnapshots } from '../../src/services/safety/crisis-lone-imminent.js';
-import { commitCrisisHelp, noteCrisisHelp } from '../../src/services/safety/crisis-own-reply.js';
+import {
+  commitCrisisHelp,
+  noteTurnCrisisHelp,
+} from '../../src/services/safety/crisis-own-reply.js';
 import { NEUTRAL_REPLIES, splitOf, type SimCallSpec } from './full-path-corpus.js';
 import { guidedReplyFor } from './guided-reply.js';
 import type { FiredPath, LineState, TurnRecord } from './full-path-summary.js';
@@ -272,11 +275,7 @@ export async function simulateTurn(
   const ferni = options.ferni ?? (replaced ? script : (guidedLine ?? spoken));
   call.history.push({ role: 'user', text }, { role: 'assistant', text: ferni });
   // The turn handler notes its script or crisis guidance (turn-handler.ts); the gate noted its own.
-  noteCrisisHelp(
-    userData,
-    'turn',
-    (summary.shouldOverrideLLM && !!summary.suggestedResponse) || summary.isCrisis
-  );
+  noteTurnCrisisHelp(userData, summary);
   const recorded = !!ferni.trim() && !isAcknowledgementOnly(ferni.trim());
   commitCrisisHelp(userData, recorded, false);
   if (recorded) call.lastAgentResponse = ferni.trim();
