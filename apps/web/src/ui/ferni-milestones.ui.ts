@@ -14,6 +14,7 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { isNoStreaksOn } from '../config/no-streaks.js';
+import { readRenamedKey } from '../config/storage-keys.js';
 import { outreachService } from '../services/outreach.service.js';
 import { showNotification } from '../services/push-notifications.service.js';
 import { createLogger } from '../utils/logger.js';
@@ -1264,9 +1265,8 @@ function loadState(): void {
         };
       }
     }
-    // One-time: milestones celebrated before outreach was confirmed by the server count as
-    // sent, so the retry below only ever applies to ones celebrated after this point
-    if (!localStorage.getItem(OUTREACH_MIGRATION_KEY)) {
+    // One-time: ones celebrated before server-confirmed outreach count as sent; later ones retry
+    if (!readRenamedKey(OUTREACH_MIGRATION_KEY)) {
       for (const m of milestones) if (m.celebrated) m.outreachDone = true;
       localStorage.setItem(OUTREACH_MIGRATION_KEY, new Date().toISOString());
       saveState();
@@ -1275,7 +1275,7 @@ function loadState(): void {
     // Storage unavailable or corrupted
   }
 }
-const OUTREACH_MIGRATION_KEY = 'milestoneOutreachMigratedAt';
+const OUTREACH_MIGRATION_KEY = 'ferni-milestone-outreach-migrated-at';
 
 // ============================================================================
 // PUBLIC API

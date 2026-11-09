@@ -170,14 +170,14 @@ describe('marketplace installs on a new device', () => {
     await market.syncInstalledAgents();
 
     expect(market.isAgentInstalled('joel-dickson')).toBe(true);
-    expect(JSON.parse(localStorage.getItem('voiceai-marketplace-installed')!)).toHaveProperty(
+    expect(JSON.parse(localStorage.getItem('ferni_marketplace_installed')!)).toHaveProperty(
       'joel-dickson'
     );
   });
 
   it('a local install the server lacks goes up; an uninstall elsewhere removes it here', async () => {
     localStorage.setItem(
-      'voiceai-marketplace-installed',
+      'ferni_marketplace_installed',
       JSON.stringify({ kept: install('kept', T(4)), removed: install('removed', T(2)) })
     );
     serverHas([], [{ id: 'removed', deletedAt: T(5) }]);
@@ -190,10 +190,7 @@ describe('marketplace installs on a new device', () => {
   });
 
   it('uninstalling here reaches the server', async () => {
-    localStorage.setItem(
-      'voiceai-marketplace-installed',
-      JSON.stringify({ a: install('a', T(4)) })
-    );
+    localStorage.setItem('ferni_marketplace_installed', JSON.stringify({ a: install('a', T(4)) }));
     const market = await import('../../src/services/marketplace.service.js');
     expect(market.uninstallAgent('a')).toBe(true);
     expect(mocks.apiDelete).toHaveBeenCalledWith('/api/synced/marketplace-installs/a');

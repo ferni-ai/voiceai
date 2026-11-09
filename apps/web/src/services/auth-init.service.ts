@@ -20,6 +20,7 @@ import { STORAGE_KEYS } from '../config/index.js';
 import { getDeviceId, updateAuthState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
 import { installApiAuthFetch } from './api-auth-fetch.js';
+import { forgetThisPersonAndReload } from './forget-this-person.js';
 import {
   getAuthState,
   getAuthToken,
@@ -143,9 +144,14 @@ export async function initializeAuth(): Promise<AuthState> {
     // Update app state with auth info
     updateAuthState(authState);
 
-    // Subscribe to future auth state changes
+    // This page belongs to the first person signed in on it. If another tab signs
+    // them out, or in as someone else, rebuild it rather than keep showing their
+    // data under the new session; a token refresh keeps the uid and changes nothing.
+    let pageUid = authState.uid;
     onAuthStateChange((newState) => {
       updateAuthState(newState);
+      if (pageUid === null) pageUid = newState.uid; // the first sign-in, on the gate
+      else if (newState.uid !== pageUid) void forgetThisPersonAndReload();
     });
 
     // Check if we need to migrate device data
