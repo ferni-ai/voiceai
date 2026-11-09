@@ -2,9 +2,11 @@
  * CRISIS_OWN_SCRIPT_NOT_EVIDENCE (crisis-own-reply.ts) through the real reply gate, reply
  * recorder, turn pipeline and classifier input: off, the classifier reads Ferni's last line as on
  * main; on, when that line is Ferni's own crisis reply (noted by the gate or turn handler and
- * recorded uninterrupted), it reads a fixed marker and one rule instead. A line that offered no
- * crisis help, a reply with risk words of its own, a reply agreeing with Ferni, and any error read
- * as off. The marker reaches nothing but the classifier's request.
+ * recorded uninterrupted, and asked nothing) and the caller only signs off, it reads a fixed marker
+ * and one rule instead. A line that offered no crisis help or asked a question, a reply that is not
+ * a plain sign-off, one with risk words of its own or agreeing with Ferni, and any error read as
+ * off; the caller's own words always reach the classifier unchanged. The marker reaches nothing but
+ * the classifier's request.
  */
 import { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
@@ -63,6 +65,7 @@ import {
 import { resetCallRiskSnapshots } from '../crisis-lone-imminent.js';
 import {
   commitCrisisHelp,
+  isSignOff,
   noteCrisisHelp,
   OWN_CRISIS_REPLY_MARKER,
   OWN_CRISIS_REPLY_RULE,
@@ -78,12 +81,15 @@ const PATTERNS_ON = { ...ON, CRISIS_CLASSIFIER_MODE: 'off' };
 
 const FIRST = "I hope I don't wake up tomorrow";
 const GUIDED_REPLY =
-  "I'm really glad you told me, Sam. You can call or text 988 any time. How are you doing right now?";
+  "I'm really glad you told me, Sam. You can call or text 988 any time. I'm right here with you.";
+/** The same crisis reply ending in a production safety question (getSafetyCheckQuestion). */
+const ASKING_REPLY =
+  "I'm really glad you told me, Sam. You can call or text 988 any time. Do you have access to anything you could use to hurt yourself?";
 const ORDINARY_REPLY = 'A big pot of chili sounds perfect for tonight. Want a quick recipe?';
-const SIGN_OFF = "Thanks, that's all for now.";
+const SIGN_OFF = 'Thanks, talk later.';
 
 /** Every classifier request the model got: the prompt and what it read. */
-type Read = { prompt: string; seen: { latest: string; companion?: string } };
+type Read = { prompt: string; seen: { latest: string; earlier: string[]; companion?: string } };
 function spyGenerate(): { generate: CrisisGenerateFn; reads: Read[] } {
   const reads: Read[] = [];
   const generate: CrisisGenerateFn = async (prompt, content) => {
@@ -333,7 +339,7 @@ describe('the turn pipeline (recorded reply as companion)', () => {
 
   it('reads the marker for a crisis script in paragraphs, by the gate and the pipeline', async () => {
     // Real scripts have line breaks; the classifier input folds them (stripSSML).
-    const script = `I'm really glad you told me, Sam.\n\nYou can call or text 988 any time.\n\nHow are you doing right now?`;
+    const script = `I'm really glad you told me, Sam.\n\nYou can call or text 988 any time.\n\nI'm right here with you.`;
     const piped = await turn({ lastAgentResponse: script, lastAgentResponseCrisisHelp: true }, ON);
     expect(piped.length).toBeGreaterThan(0);
     expect(piped.every((r) => r.seen.companion === OWN_CRISIS_REPLY_MARKER)).toBe(true);
@@ -344,6 +350,92 @@ describe('the turn pipeline (recorded reply as companion)', () => {
     await call.next(SIGN_OFF, ON, generate);
     expect(reads.length).toBeGreaterThan(0);
     expect(reads.every((r) => r.seen.companion === OWN_CRISIS_REPLY_MARKER)).toBe(true);
+  });
+});
+
+describe('never lower: only a plain sign-off after a line that asked nothing', () => {
+  it('a crisis reply with a question reads in full, even before a sign-off', async () => {
+    const call = await callAfter(FIRST, ASKING_REPLY);
+    expect(call.userData.lastAgentResponseCrisisHelp).toBe(true); // it is Ferni's own crisis reply
+    const { generate, reads } = spyGenerate();
+    await call.next(SIGN_OFF, ON, generate);
+    expect(reads.length).toBeGreaterThan(0);
+    for (const read of reads) {
+      expect(read.seen.companion).toBe(ASKING_REPLY);
+      expect(read.prompt).not.toContain(OWN_CRISIS_REPLY_RULE);
+    }
+  });
+
+  it.each([
+    'yes',
+    'yeah I do',
+    'a few',
+    'no',
+    'sometimes',
+    'sure',
+    'goodnight',
+    'I guess',
+    'Thanks, but I still have them.',
+    'thanks?',
+    'gracias, adiós',
+    'merci, au revoir',
+    'tha\u200bnks',
+    'thanks\u00a0bye',
+  ])('%j after a crisis reply that asked nothing reads the full line', async (latest) => {
+    const call = await callAfter(FIRST, GUIDED_REPLY);
+    const { generate, reads } = spyGenerate();
+    await call.next(latest, ON, generate);
+    expect(reads.length).toBeGreaterThan(0);
+    for (const read of reads) {
+      expect(read.seen.companion).toBe(GUIDED_REPLY);
+      expect(read.prompt).not.toContain(OWN_CRISIS_REPLY_RULE);
+    }
+  });
+
+  it("the caller's words reach the classifier byte for byte, on as off", async () => {
+    const readsIn = async (env: Record<string, string>) => {
+      resetCrisisClassifierCache();
+      const call = await callAfter(FIRST, GUIDED_REPLY);
+      const { generate, reads } = spyGenerate();
+      await call.next(SIGN_OFF, env, generate);
+      return reads;
+    };
+    const off = await readsIn(OFF);
+    const on = await readsIn(ON);
+    expect(on.length).toBeGreaterThan(0);
+    expect(on.length).toBe(off.length);
+    expect(on.every((r) => r.seen.companion === OWN_CRISIS_REPLY_MARKER)).toBe(true); // it fired
+    on.forEach((read, i) => {
+      expect(read.seen.latest).toBe(off[i].seen.latest);
+      expect(read.seen.earlier).toEqual(off[i].seen.earlier);
+    });
+    expect(on[0].seen.latest).toBe(SIGN_OFF);
+  });
+
+  it('a sign-off is only thanks, okays and goodbyes', () => {
+    for (const line of [
+      'Thanks, talk later.',
+      'ok bye',
+      "I'm good, talk later.",
+      'Thank you so much!',
+      'okay thanks',
+      'Got it. See you tomorrow.',
+    ]) {
+      expect(isSignOff(line), line).toBe(true);
+    }
+    for (const line of [
+      '',
+      'yes',
+      'no thanks',
+      'goodbye',
+      'bye everyone',
+      'thanks for everything',
+      "I'm fine",
+      'ok, I still have the pills',
+      'okay?',
+    ]) {
+      expect(isSignOff(line), line).toBe(false);
+    }
   });
 });
 

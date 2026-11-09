@@ -69,8 +69,8 @@ describe('single-turn labelled cases read the same bytes with the flag off and o
   it("control: the same harness sees the marker when the line is Ferni's own crisis reply", async () => {
     const control = {
       companion:
-        "I'm glad you told me, Sam. You can call or text 988 any time. How are you doing right now?",
-      latest: "Thanks, that's all for now.",
+        "I'm glad you told me, Sam. You can call or text 988 any time. I'm right here with you.",
+      latest: 'Thanks, talk later.',
     };
     const off = await requestsOf('control', ARMS.off, control);
     const on = await requestsOf('control', ARMS.on, control);
