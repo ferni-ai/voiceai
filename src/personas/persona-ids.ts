@@ -52,15 +52,14 @@ export const CANONICAL_IDS = {
   // Standalone personas (not part of Ferni team)
   JOEL_DICKSON: 'joel-dickson',
   // Financial Legends team
-  PETER_LYNCH: 'peter-lynch',
   JOHN_BOGLE: 'john-bogle',
 } as const;
 
 /**
  * Financial Legends roster - restricted handoff group
- * These three personas can hand off to each other but not to the main Ferni team.
+ * These personas can hand off to each other but not to the main Ferni team.
  */
-export const FINANCIAL_LEGENDS = ['peter-lynch', 'john-bogle', 'joel-dickson'] as const;
+export const FINANCIAL_LEGENDS = ['john-bogle', 'joel-dickson'] as const;
 
 export type FinancialLegendsId = (typeof FINANCIAL_LEGENDS)[number];
 
@@ -89,7 +88,6 @@ export const CANONICAL_TO_FRONTEND: Record<CanonicalPersonaId, CanonicalPersonaI
   'jordan-taylor': 'jordan-taylor',
   'nayan-patel': 'nayan-patel',
   'joel-dickson': 'joel-dickson',
-  'peter-lynch': 'peter-lynch',
   'john-bogle': 'john-bogle',
 };
 
@@ -106,7 +104,6 @@ export const FRONTEND_TO_CANONICAL: Record<CanonicalPersonaId, CanonicalPersonaI
   'jordan-taylor': 'jordan-taylor',
   'nayan-patel': 'nayan-patel',
   'joel-dickson': 'joel-dickson',
-  'peter-lynch': 'peter-lynch',
   'john-bogle': 'john-bogle',
 };
 
@@ -128,7 +125,7 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
 
   // Peter John (Researcher)
   'peter-john': 'peter-john',
-  peter: 'peter-john', // Ferni's Peter; the Financial Legend peter-lynch is Tom Brannigan
+  peter: 'peter-john',
   'peter john': 'peter-john',
   john: 'peter-john', // Last name alias
   researcher: 'peter-john',
@@ -196,14 +193,6 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   'nate holloway': 'joel-dickson',
   'nate-holloway': 'joel-dickson',
   'life-mentor': 'joel-dickson',
-
-  // Tom Brannigan (Stock Picker), id peter-lynch
-  'peter-lynch': 'peter-lynch',
-  tom: 'peter-lynch',
-  brannigan: 'peter-lynch',
-  'tom brannigan': 'peter-lynch',
-  'tom-brannigan': 'peter-lynch',
-  'stock-picker': 'peter-lynch',
 
   // Henry Caldwell (Index Investing), id john-bogle
   'john-bogle': 'john-bogle',
@@ -286,13 +275,40 @@ export const DISPLAY_NAMES: Record<CanonicalPersonaId, string> = {
   'nayan-patel': 'Nayan',
   // Fictional characters inspired by investing philosophies, not the real people the ids are named for.
   'joel-dickson': 'Nate Holloway',
-  'peter-lynch': 'Tom Brannigan',
   'john-bogle': 'Henry Caldwell',
 };
 
 export function getDisplayName(id: string): string {
   const canonical = toCanonical(id);
   return DISPLAY_NAMES[canonical];
+}
+
+// ============================================================================
+// RETIRED PERSONAS
+// ============================================================================
+
+/**
+ * Personas taken out of the product, with the name past records show for them.
+ * Stored state (a saved persona, a scheduled check-in, a past call) can still
+ * carry one of these ids: history shows the name, anything live gets Ferni.
+ */
+const RETIRED_PERSONA_NAMES: Readonly<Record<string, string>> = {
+  'peter-lynch': 'Tom', // the stock-picking legend, retired 2026-11-08
+};
+
+/** True when `id` names a persona that has left the product. */
+export function isRetiredPersonaId(id: string): boolean {
+  return Object.hasOwn(RETIRED_PERSONA_NAMES, id.toLowerCase().trim());
+}
+
+/** The persona a live call or message uses for `id`: Ferni for a retired persona, else `id`. */
+export function livePersonaId(id: string): string {
+  return isRetiredPersonaId(id) ? CANONICAL_IDS.COACH : id;
+}
+
+/** The name a past record shows: a retired persona keeps its own, anything else is getDisplayName. */
+export function historyDisplayName(id: string): string {
+  return RETIRED_PERSONA_NAMES[id.toLowerCase().trim()] ?? getDisplayName(id);
 }
 
 // ============================================================================

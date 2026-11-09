@@ -3,8 +3,8 @@
  * Deploy Financial Legends Page to Production
  *
  * Generates and deploys the Financial Legends multi-advisor landing page
- * featuring Tom Brannigan, Henry Caldwell and Nate Holloway (fictional characters
- * inspired by investing philosophies; ids peter-lynch, john-bogle, joel-dickson).
+ * featuring Henry Caldwell and Nate Holloway (fictional characters inspired by
+ * investing philosophies; ids john-bogle, joel-dickson).
  *
  * Usage:
  *   npx tsx scripts/deploy-financial-legends.ts              # Generate and deploy
@@ -42,19 +42,9 @@ if (getApps().length === 0 && !isDryRun) {
 
 const config: MultiAdvisorPageConfig = {
   title: 'Financial Legends',
-  description: 'Three fictional mentors, each inspired by a great investing philosophy, ready to guide your financial journey.',
+  description: 'Two fictional mentors, each inspired by a great investing philosophy, ready to guide your financial journey.',
 
   advisors: [
-    {
-      id: 'peter-lynch',
-      name: 'Tom Brannigan',
-      initials: 'TB',
-      tagline: 'The Stock Picker',
-      description: 'Inspired by invest-in-what-you-know stock picking. Finds great companies by paying attention to what people actually buy.',
-      color: '#1a5f2a', // Growth green
-      icon: '📈',
-      voiceId: '4cf80313-54dc-4ca9-a17c-3e5b8f68a78c', // Cartesia stock voice "Hugh - Confident Veteran"
-    },
     {
       id: 'john-bogle',
       name: 'Henry Caldwell',
@@ -202,7 +192,6 @@ async function deploy() {
 
   // Handoff info
   console.log('\n🔄 Handoff Triggers:');
-  console.log('   "I want to pick stocks"       → Tom Brannigan');
   console.log('   "Tell me about index funds"   → Henry Caldwell');
   console.log('   "I\'m thinking about my career" → Nate Holloway');
 

@@ -17,16 +17,21 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { isCustomAgentId } from './custom-agent-ids.js';
+import { isRetiredPersonaId } from '../../personas/persona-ids.js';
 
 const log = createLogger({ module: 'TokenPersonaOwner' });
 
 export const FALLBACK_PERSONA_ID = 'ferni';
 
-/** `personaId`, or Ferni when it is a custom agent `uid` doesn't own (or there is no caller). */
+/**
+ * `personaId`, or Ferni when it is a retired persona (a saved choice can still
+ * name one) or a custom agent `uid` doesn't own (or there is no caller).
+ */
 export async function personaForCaller(
   personaId: string,
   uid: string | undefined
 ): Promise<string> {
+  if (isRetiredPersonaId(personaId)) return FALLBACK_PERSONA_ID;
   if (!isCustomAgentId(personaId)) return personaId;
 
   if (uid) {

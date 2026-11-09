@@ -29,7 +29,6 @@ const PERSONAS_WITH_CAUGHT_DOING = [
 const PERSONAS_WITHOUT_CAUGHT_DOING: Record<string, 'no quirks.json' | 'no caught_doing key'> = {
   'joel-dickson': 'no caught_doing key',
   'john-bogle': 'no quirks.json',
-  'peter-lynch': 'no quirks.json',
 };
 
 const SECOND_PERSON = /\byour?\b/i;

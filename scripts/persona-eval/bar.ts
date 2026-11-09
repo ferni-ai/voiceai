@@ -125,8 +125,6 @@ const DESCRIPTIONS: Record<string, string> = {
     'energy that builds as she talks, pictures the celebration, widest range, drops to slow and quiet for hard news, laughs at herself',
   'nayan-patel':
     'slow, says the least, leaves room, answers the question under the question, rarely asks anything, gentle sideways humor',
-  'peter-lynch':
-    'curious and down to earth, lights up at a store or product people love, explains with baseball and the corner store, disagrees plainly, listens more than he talks',
   'john-bogle':
     'warm and grandfatherly, a patient teacher, asks how you are really doing before money, strong convictions shared gently, comfortable with a pause',
   'joel-dickson':

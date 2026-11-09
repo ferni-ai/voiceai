@@ -55,7 +55,6 @@ Environment variables override manifest defaults.
 | -------------------------- | ------------- | ---------------------- |
 | `JACK_B_VOICE_ID`          | Ferni         | Main life coach voice  |
 | `JACK_BOGLE_VOICE_ID`      | Jack Bogle    | Investment sage voice  |
-| `PETER_LYNCH_VOICE_ID`     | Peter Lynch   | Stock researcher voice |
 | `COMM_SPECIALIST_VOICE_ID` | Alex Chen     | Communications voice   |
 | `SPEND_SAVE_VOICE_ID`      | Maya Santos   | Budget coach voice     |
 | `EVENT_PLANNER_VOICE_ID`   | Jordan Taylor | Life planner voice     |

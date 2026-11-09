@@ -77,7 +77,6 @@ const FREQUENCY: Readonly<Record<string, number>> = {
  */
 const LEGENDS: Readonly<Record<string, TeamLaughStyle>> = {
   'john-bogle': { frequency: 0.08, ownJokes: false, withUser: true, minTurns: 8 },
-  'peter-lynch': { frequency: 0.16, ownJokes: true, withUser: true, minTurns: 5 },
   'joel-dickson': { frequency: 0.2, ownJokes: true, withUser: true, minTurns: 4 },
 };
 

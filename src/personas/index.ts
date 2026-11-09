@@ -434,8 +434,7 @@ export {
 } from './id-mapping.js';
 
 // ============================================================================
-// PERSONA IDS (Constants, types, validation)
-// Re-exported for tests and validation
+// PERSONA IDS (constants, types, validation, the retired-id fallback)
 // ============================================================================
 
 export {
@@ -450,6 +449,7 @@ export {
   isCanonicalId,
   isKnownId,
   isSamePersona,
+  livePersonaId,
   toCanonical,
   toFrontend,
   validateAndLog,

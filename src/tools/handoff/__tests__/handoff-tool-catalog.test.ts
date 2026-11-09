@@ -27,13 +27,13 @@ describe('the handoff tool catalog', () => {
     const { tools } = await createHandoffTools();
     const names = tools.map((t) => t.name);
     expect(new Set(names).size).toBe(names.length);
-    expect(tools.length).toBeGreaterThanOrEqual(9);
+    expect(tools.length).toBeGreaterThanOrEqual(8);
   }, 60_000);
 
   it("names each tool after the persona's first name", async () => {
     const { toolsByName } = await createHandoffTools();
     expect(toolsByName.get('handofftopeter')?.agentId).toBe('peter-john');
-    expect(toolsByName.get('handofftotom')?.agentId).toBe('peter-lynch');
+    expect(toolsByName.get('handofftotom')).toBeUndefined(); // Tom, retired 2026-11-08
     expect(toolsByName.get('handofftohenry')?.agentId).toBe('john-bogle');
   }, 60_000);
 

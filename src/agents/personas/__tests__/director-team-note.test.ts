@@ -45,12 +45,11 @@ describe('director team note', () => {
   });
 
   it('a financial legend gets the legends, not the core team', () => {
-    // The legends' fictional names (#1491): Tom Brannigan, Henry Caldwell, Nate Holloway
-    const [brannigan, caldwell, holloway] = ['peter-lynch', 'john-bogle', 'joel-dickson'].map(
-      getPersonaDisplayName
-    );
-    expect(teamNote(brannigan)).toContain(`${caldwell} and ${holloway}`);
-    expect(teamNote(brannigan)).not.toContain('Ferni');
+    // The legends' fictional names (#1491): Henry Caldwell, Nate Holloway
+    const [caldwell, holloway] = ['john-bogle', 'joel-dickson'].map(getPersonaDisplayName);
+    expect(teamNote(caldwell)).toContain(`${caldwell}'s teammates are ${holloway}:`);
+    expect(teamNote(caldwell)).not.toContain('Ferni');
+    expect(teamNote(caldwell)).not.toContain('Tom'); // retired 2026-11-08
   });
 
   it('reaches the director on a Ferni call with the flag on, and not with it off', async () => {

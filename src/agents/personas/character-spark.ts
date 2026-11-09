@@ -31,11 +31,7 @@ export const SPARK_FILE = 'identity/character-spark.md';
  * repeats. Off, they keep the legacy prompt, so a legend call doesn't change
  * until the flag flips.
  */
-export const SHEET_WITH_SPARK: ReadonlySet<string> = new Set([
-  'joel-dickson',
-  'peter-lynch',
-  'john-bogle',
-]);
+export const SHEET_WITH_SPARK: ReadonlySet<string> = new Set(['joel-dickson', 'john-bogle']);
 
 const BUNDLES = join(dirname(fileURLToPath(import.meta.url)), '../../personas/bundles');
 
