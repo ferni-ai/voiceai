@@ -10,7 +10,9 @@
  *   later lookup, strict or not, overwrites it, because during an erasure the Firebase
  *   user still exists. 'gone' is never downgraded (a revoke after it changes nothing)
  *   and, like 'revoked', is kept apart from the bounded cache, so no amount of other
- *   traffic evicts it (#3228). Another server instance learns within the minute.
+ *   traffic evicts it (#3228). Another server instance learns within the minute. A
+ *   lookup's read never replaces a newer one, so a slow lookup settling late can't undo
+ *   a revoke a newer lookup saw.
  * - One lookup at a time: lax checks of an account that arrive while its lookup is in
  *   flight wait for that lookup instead of starting their own (JOIN_MS), so the app's
  *   burst of authed calls on load spends one budget token, not one each.
@@ -152,6 +154,14 @@ export function revocationCheck(limits: Limits = LIMITS) {
     'auth_revocation_unavailable: answering 503'
   );
 
+  // A read is cached by its lookup's START, and replaces only an older read: a slow lookup
+  // settling after a newer one must not put back its read from before a revoke. Equal
+  // starts keep the first read settled.
+  const remember = (uid: string, state: AccountState, at: number): void => {
+    const held = accounts.get(uid);
+    if (!held || held.at < at) accounts.set(uid, { state, at });
+  };
+
   const lookUp = async (
     uid: string,
     lookup: (uid: string) => Promise<AccountRecord>,
@@ -168,11 +178,11 @@ export function revocationCheck(limits: Limits = LIMITS) {
         validAfterMs: validAfter || 0,
         noProvider: (account.providerData ?? []).length === 0,
       };
-      accounts.set(uid, { state, at: now });
+      remember(uid, state, now);
       return state;
     } catch (error) {
       if (codeOf(error) !== 'auth/user-not-found') return { failed: error };
-      accounts.set(uid, { state: { gone: true }, at: now });
+      remember(uid, { gone: true }, now);
       return { gone: true };
     }
   };

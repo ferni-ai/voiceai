@@ -4,12 +4,13 @@
  * never a pass), and anonymous sign-ins skipped only while the account is still
  * anonymous.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const log = vi.hoisted(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }));
 vi.mock('../../../utils/safe-logger.js', () => ({ createLogger: () => log, getLogger: () => log }));
 
 import {
+  invalidateAccount,
   revocationCheck,
   tokenCheckStatus,
   verifyIdTokenChecked,
@@ -31,6 +32,19 @@ const revokedSince = (ms: number): AccountRecord => ({
 });
 const failing = (code: string) => () => Promise.reject(Object.assign(new Error(code), { code }));
 const outage = failing('auth/internal-error'); // Auth itself failing
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+const settle = () =>
+  new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
 
 const roomy = { burst: 1000, perSecond: 1000 };
 const limitsWith = (overrides: Partial<Limits>): Limits => ({
@@ -292,19 +306,6 @@ describe('invalidations (#3228)', () => {
 });
 
 describe('concurrent checks of one account share one lookup', () => {
-  function deferred<T>() {
-    let resolve!: (value: T) => void;
-    let reject!: (error: unknown) => void;
-    const promise = new Promise<T>((res, rej) => {
-      resolve = res;
-      reject = rej;
-    });
-    return { promise, resolve, reject };
-  }
-  const settle = () =>
-    new Promise((resolve) => {
-      setTimeout(resolve, 0);
-    });
   /** The web app's load: 8 authed calls at once, through the real check and its real limits */
   const burst = (uid: string, getUser: (uid: string) => Promise<AccountRecord>) => {
     const auth = {
@@ -469,5 +470,123 @@ describe('concurrent checks of one account share one lookup', () => {
     expect(await Promise.all(statuses)).toEqual(['ok', 'ok', 'ok']);
     expect(justInside).not.toHaveBeenCalled(); // joined the lookup started at T0
     expect(atLimit).toHaveBeenCalledTimes(1); // too old to join: its own lookup
+  });
+});
+
+describe('a slower, older lookup never overwrites a newer cached read', () => {
+  const JOIN_MS = 10_000; // token-revocation.ts JOIN_MS
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** firebase-admin's Auth, with the account's record and each getUser call in the test's hands */
+  function fakeAuth(uid: string) {
+    const calls: Array<ReturnType<typeof deferred<AccountRecord>>> = [];
+    const auth = {
+      verifyIdToken: async () => token(uid),
+      getUser: vi.fn(() => {
+        const call = deferred<AccountRecord>();
+        calls.push(call);
+        return call.promise;
+      }),
+    };
+    const status = () =>
+      verifyIdTokenChecked(auth, 'id-token').then(
+        () => 200,
+        (error: unknown) => tokenCheckStatus(error, 401)
+      );
+    return { auth, calls, status };
+  }
+
+  it('a revoke the newer lookup saw stays refused when the older lookup settles last', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(T0);
+    const { auth, calls, status } = fakeAuth('u_test-mono-headline');
+
+    const a = status(); // lookup A starts at T0 and reads the account before the revoke
+    await settle();
+    vi.setSystemTime(T0 + 5_000); // the account is revoked provider-side
+    vi.setSystemTime(T0 + JOIN_MS + 1_000); // past JOIN_MS: B does not join A
+    const b = status();
+    await settle();
+    expect(auth.getUser).toHaveBeenCalledTimes(2);
+
+    calls[1].resolve(revokedSince(T0 + 5_000)); // B settles first: revoked
+    expect(await b).toBe(401);
+    calls[0].resolve(live); // then A, with its older read
+    expect(await a).toBe(200); // A's own answer is its read, from before the revoke
+
+    vi.setSystemTime(T0 + 20_000);
+    expect(await status()).toBe(401); // the cache holds B's newer read, not A's
+    expect(auth.getUser).toHaveBeenCalledTimes(2);
+  });
+
+  it('the newer lookup settling last also wins (the usual order)', async () => {
+    const { check } = revocationCheck(limitsWith({}));
+    const [a, b] = [deferred<AccountRecord>(), deferred<AccountRecord>()];
+    const first = check(token('u-order'), () => a.promise, T0);
+    const second = check(token('u-order'), () => b.promise, T0 + JOIN_MS + 1);
+    a.resolve(live);
+    b.resolve(revokedSince(T0 + 5_000));
+
+    expect(await Promise.all([first, second])).toEqual(['ok', 'revoked']);
+    expect(await check(token('u-order'), vi.fn(), T0 + 20_000)).toBe('revoked');
+  });
+
+  it('two lookups started at the same time: the one settling later does not overwrite', async () => {
+    const { check } = revocationCheck(limitsWith({}));
+    const [a, b] = [deferred<AccountRecord>(), deferred<AccountRecord>()];
+    const first = check(token('u-tie'), () => a.promise, T0, true); // strict checks never join
+    const second = check(token('u-tie'), () => b.promise, T0, true);
+    a.resolve(revokedSince(T0 - 1_000));
+    b.resolve(live);
+
+    expect(await Promise.all([first, second])).toEqual(['revoked', 'ok']);
+    expect(await check(token('u-tie'), vi.fn(), T0 + 1_000)).toBe('revoked');
+  });
+
+  it('an invalidateAccount during a lookup still refuses after that lookup settles', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(T0);
+    const { calls, status } = fakeAuth('u_test-mono-invalidate');
+
+    const a = status();
+    await settle();
+    vi.setSystemTime(T0 + 1_000);
+    invalidateAccount('u_test-mono-invalidate', 'revoked');
+    calls[0].resolve(live);
+    await a;
+
+    vi.setSystemTime(T0 + 2_000);
+    expect(await status()).toBe(401);
+  });
+
+  it('an older lookup failing after a newer one settled leaves the newer read cached', async () => {
+    const { check } = revocationCheck(limitsWith({}));
+    const [a, b] = [deferred<AccountRecord>(), deferred<AccountRecord>()];
+    const first = check(token('u-err'), () => a.promise, T0);
+    const second = check(token('u-err'), () => b.promise, T0 + JOIN_MS + 1);
+    b.resolve(revokedSince(T0 + 5_000));
+    expect(await second).toBe('revoked');
+    a.reject(Object.assign(new Error('down'), { code: 'auth/internal-error' }));
+    expect(await first).toBe('unavailable');
+
+    expect(await check(token('u-err'), vi.fn(), T0 + 20_000)).toBe('revoked');
+  });
+
+  it.each([
+    ['a slow lax lookup does not overwrite a newer strict read', false, true],
+    ['a slow strict lookup does not overwrite a newer lax read', true, false],
+  ])('%s', async (_name, olderStrict, newerStrict) => {
+    const { check } = revocationCheck(limitsWith({}));
+    const [a, b] = [deferred<AccountRecord>(), deferred<AccountRecord>()];
+    const first = check(token('u-mixed-mono'), () => a.promise, T0, olderStrict);
+    const second = check(token('u-mixed-mono'), () => b.promise, T0 + JOIN_MS + 1, newerStrict);
+    b.resolve(revokedSince(T0 + 5_000));
+    expect(await second).toBe('revoked');
+    a.resolve(live);
+    expect(await first).toBe('ok');
+
+    expect(await check(token('u-mixed-mono'), vi.fn(), T0 + 20_000)).toBe('revoked');
   });
 });
