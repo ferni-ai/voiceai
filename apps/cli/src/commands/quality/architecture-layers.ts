@@ -120,6 +120,7 @@ export const LAYER_MAP: Record<string, string> = {
   ...under('src/services', 'L1', ['self-healing', 'async-events', 'webhooks', 'email-transport']),
   ...under('src/utils', 'L1', ['firebase-admin-app.ts', 'firestore-query.ts', 'firestore-utils.ts', 'safe-firestore.ts']),
   ...under('src/utils', 'L1', ['transformers-loader.ts', 'native-binding-guard.ts']),
+  'src/utils/dialable-number.ts': 'L3:judgment', // never-dial rule; carries the crisis-help clause
 
   // Unassigned: mixed dirs, reported but not checked until they are split.
   'src/services': 'unassigned', // 115 loose files, plus business/ops dirs (billing, gtm, ceo, admin, ...)
