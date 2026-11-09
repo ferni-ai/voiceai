@@ -204,7 +204,12 @@ describe('CRISIS_EVENT_RECORD on', () => {
       reader: 'pattern',
       resourcesProvided: true,
     });
-    const text = JSON.stringify(doc).toLowerCase();
+    // The timestamps are Dates, and their milliseconds can read "988" (main's daily run at
+    // 06:56:52.988Z failed on that). Every other field is checked for the call's words.
+    const { createdAt, expireAt, ...fields } = doc as Record<string, unknown>;
+    expect(createdAt).toBeInstanceOf(Date);
+    expect(expireAt).toBeInstanceOf(Date);
+    const text = JSON.stringify(fields).toLowerCase();
     for (const word of ['kill', 'myself', 'tonight', 'die', '988'])
       expect(text).not.toContain(word);
     expect(slack.crisis).not.toHaveBeenCalled();

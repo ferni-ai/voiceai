@@ -402,6 +402,7 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   FRIEND_REPAIR: 'src/agents/personas/__tests__/friend-repair.test.ts',
   GOODBYE_ENDS_CALL: 'src/agents/shared/__tests__/call-wrap-up-quiet.test.ts',
   GROUNDED_CLAIMS: 'src/agents/personas/__tests__/grounded-claims-verify.test.ts',
+  HANDOFF_ARRIVAL_ONCE: 'src/agents/multi-agent/__tests__/handoff-arrival-once.sdk.test.ts',
   HANDOFF_ASK_FIRST: 'src/tools/handoff/__tests__/handoff-consent.test.ts',
   HANDOFF_FAILED_SAY_SO: 'src/agents/multi-agent/__tests__/llm-handoff.test.ts',
   HANDOFF_HELD_TRUTHFUL: 'src/tools/handoff/__tests__/handoff-held-truthful.test.ts',
