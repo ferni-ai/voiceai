@@ -148,6 +148,14 @@ describe.each(['/token', '/demo-token'] as const)(
       expect(dispatchedPersona()).toBe(id);
     });
 
+    it.each(['wellness-coach', 'generic-advisor'])(
+      'registry persona %s passes through unchanged, as on main',
+      async (id) => {
+        await request(path, id);
+        expect(dispatchedPersona()).toBe(id);
+      }
+    );
+
     it('an alias of a built-in persona is sent as its canonical id', async () => {
       await request(path, 'maya');
       expect(dispatchedPersona()).toBe('maya-santos');

@@ -26,7 +26,7 @@ import {
   livePersonaId,
   toCanonical,
 } from '../persona-ids.js';
-import { getPersonaAsync, initializeFromBundles } from '../index.js';
+import { getPersonaAsync, initializeFromBundles, listPersonas } from '../index.js';
 import { AgentRegistry } from '../registry/unified-registry.js';
 
 const TOM_ID = 'peter-lynch';
@@ -88,6 +88,15 @@ describe('stored state that still names Tom', () => {
     expect(historyDisplayName(TOM_ID)).toBe('Tom');
     expect(historyDisplayName('john-bogle')).toBe('Henry Caldwell');
   });
+
+  it.each(['__proto__', 'constructor', 'toString', 'hasOwnProperty'])(
+    'a history record naming %j shows the neutral label, not an object or function',
+    (id) => {
+      const label = historyDisplayName(id);
+      expect(typeof label).toBe('string');
+      expect(label).toBe(historyDisplayName('not-a-persona-id'));
+    }
+  );
 });
 
 describe('no call starts on a stand-in named after the id', () => {
@@ -113,6 +122,17 @@ describe('no call starts on a stand-in named after the id', () => {
     expect(parseJobMetadata(jobWith({ persona_id: 'Alex' })).personaId).toBe('alex-chen');
   });
 
+  it.each(['wellness-coach', 'generic-advisor'])(
+    'registry persona %s starts as itself on the token route and at dispatch, as on main',
+    async (id) => {
+      expect(livePersonaId(id)).toBe(id);
+      expect(await personaForCaller(id, 'u_test')).toBe(id);
+      expect(await personaForCaller(id, undefined)).toBe(id);
+      expect(parseJobMetadata(jobWith({ persona_id: id })).personaId).toBe(id);
+      expect((await getPersonaAsync(id))?.id).toBe(id);
+    }
+  );
+
   it('a custom agent id is kept for its owner check', () => {
     expect(livePersonaId('agent_1_mine')).toBe('agent_1_mine');
     expect(parseJobMetadata(jobWith({ persona_id: 'agent_1_mine' })).personaId).toBe(
@@ -130,9 +150,14 @@ describe('no call starts on a stand-in named after the id', () => {
   });
 
   it('every name the persona loader can load keeps its persona (no id loses its bundle)', async () => {
-    const names = new Set(
-      (await AgentRegistry.getAllAgents()).flatMap((a) => [a.id, ...a.aliases])
-    );
+    // Bundle ids and aliases, and every id the persona registry holds (the
+    // templates, plus the names initializeFromBundles registered).
+    const names = new Set([
+      ...(await AgentRegistry.getAllAgents()).flatMap((a) => [a.id, ...a.aliases]),
+      ...listPersonas(),
+    ]);
+    expect(names).toContain('wellness-coach');
+    expect(names).toContain('generic-advisor');
     const loadable = await Promise.all(
       [...names].map(async (name) => [name, (await getPersonaAsync(name))?.id] as const)
     );

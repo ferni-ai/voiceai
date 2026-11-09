@@ -22,6 +22,7 @@
  */
 
 import { isCustomAgentId } from '../services/custom-agent/custom-agent-ids.js';
+import { personaRegistry } from './persona-registry.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger();
@@ -312,20 +313,31 @@ const RETIRED_PERSONA_NAMES: Readonly<Record<string, string>> = {
 /**
  * The persona a live call starts on for a requested `id` (the token routes and
  * dispatch both ask here): a custom agent id as given (the token route checks
- * its owner), a built-in id or alias as its canonical id, and anything else
- * (a retired persona, an unknown or empty id) as Ferni. A call never starts on
- * the stand-in persona that names itself after the id (persona-builder.ts).
+ * its owner), a persona the registry holds as that persona (the templates
+ * generic-advisor and wellness-coach included), a built-in id or alias as its
+ * canonical id, and anything else (a retired persona, an unknown or empty id)
+ * as Ferni. A call never starts on the stand-in persona that names itself
+ * after the id (persona-builder.ts).
  */
 export function livePersonaId(id: string): string {
   const raw = String(id ?? '').trim();
   if (isCustomAgentId(raw)) return raw;
   const key = raw.toLowerCase();
+  if (Object.hasOwn(RETIRED_PERSONA_NAMES, key)) return CANONICAL_IDS.COACH;
+  const registered = personaRegistry.get(raw) ?? personaRegistry.get(key);
+  if (registered) return registered.id;
   return Object.hasOwn(ALIAS_TO_CANONICAL, key) ? ALIAS_TO_CANONICAL[key] : CANONICAL_IDS.COACH;
 }
 
 /** The name a past record shows: a retired persona keeps its own, anything else is getDisplayName. */
 export function historyDisplayName(id: string): string {
-  return RETIRED_PERSONA_NAMES[id.toLowerCase().trim()] ?? getDisplayName(id);
+  const key = String(id ?? '')
+    .toLowerCase()
+    .trim();
+  // Own keys only: `__proto__` or `constructor` would otherwise read the prototype.
+  return Object.hasOwn(RETIRED_PERSONA_NAMES, key)
+    ? RETIRED_PERSONA_NAMES[key]
+    : getDisplayName(id);
 }
 
 // ============================================================================
