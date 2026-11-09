@@ -1,17 +1,10 @@
 /**
- * The calendar 'restaurant' tool's search action, with no booking provider set
- * up (prod has no OpenTable, Resy or Yelp key, but does have a Places key).
- * It used to ask only those providers and told every caller "I couldn't find
- * any" without looking. It now searches Places, and says it couldn't look when
- * the search did not run. Places itself is real here; only fetch is stubbed.
+ * The calendar 'restaurant' tool's search action. It used to ask only the
+ * booking providers (now removed) and told every caller "I couldn't find any"
+ * without looking. It searches Places, and says it couldn't look when the
+ * search did not run. Places itself is real here; only fetch is stubbed.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-vi.hoisted(() => {
-  // The reservation module reads its keys at import time.
-  for (const name of ['OPENTABLE_API_KEY', 'RESY_API_KEY', 'YELP_API_KEY'])
-    delete process.env[name];
-});
 
 vi.mock('@livekit/agents', () => ({
   llm: {
