@@ -9,7 +9,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const log = vi.hoisted(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }));
 vi.mock('../../../utils/safe-logger.js', () => ({ createLogger: () => log, getLogger: () => log }));
 
-import { revocationCheck, type AccountRecord, type Limits } from '../token-revocation.js';
+import {
+  revocationCheck,
+  tokenCheckStatus,
+  verifyIdTokenChecked,
+  type AccountRecord,
+  type Limits,
+} from '../token-revocation.js';
 
 const T0 = Date.parse('2026-10-31T12:00:00.000Z');
 const MINUTE = 60_000;
@@ -282,5 +288,186 @@ describe('invalidations (#3228)', () => {
     invalidate2('u-rev', 'revoked', T0);
     invalidate2('u-other', 'revoked', T0 + keep - 1);
     expect(await check2(before, stillThere, T0 + keep - 1)).toBe('revoked');
+  });
+});
+
+describe('concurrent checks of one account share one lookup', () => {
+  function deferred<T>() {
+    let resolve!: (value: T) => void;
+    let reject!: (error: unknown) => void;
+    const promise = new Promise<T>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  }
+  const settle = () =>
+    new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
+  /** The web app's load: 8 authed calls at once, through the real check and its real limits */
+  const burst = (uid: string, getUser: (uid: string) => Promise<AccountRecord>) => {
+    const auth = {
+      verifyIdToken: async () => ({ ...token(uid), auth_time: Date.now() / 1000 - 600 }),
+      getUser: vi.fn(getUser),
+    };
+    const statuses = Array.from({ length: 8 }, () =>
+      verifyIdTokenChecked(auth, 'id-token').then(
+        () => 200,
+        (error: { code?: string }) => (tokenCheckStatus(error, 401) === 503 ? 503 : error.code)
+      )
+    );
+    return { auth, statuses: Promise.all(statuses) };
+  };
+
+  it('8 calls at once on a cold cache: one lookup, no 503', async () => {
+    const account = deferred<AccountRecord>();
+    const { auth, statuses } = burst('u_test-load', () => account.promise);
+    await settle(); // every call is waiting on the account before it answers
+    account.resolve(live);
+
+    expect(await statuses).toEqual(Array(8).fill(200));
+    expect(auth.getUser).toHaveBeenCalledTimes(1);
+  });
+
+  it('a revoked token is refused by every call in the burst', async () => {
+    const account = deferred<AccountRecord>();
+    const { auth, statuses } = burst('u_test-revoked', () => account.promise);
+    await settle();
+    account.resolve(revokedSince(Date.now() - MINUTE));
+
+    expect(await statuses).toEqual(Array(8).fill('auth/id-token-revoked'));
+    expect(auth.getUser).toHaveBeenCalledTimes(1);
+  });
+
+  it('Auth failing: every call is a 503, and the next call looks the account up again', async () => {
+    const account = deferred<AccountRecord>();
+    const { auth, statuses } = burst('u_test-down', () => account.promise);
+    await settle();
+    account.reject(Object.assign(new Error('down'), { code: 'auth/internal-error' }));
+    expect(await statuses).toEqual(Array(8).fill(503));
+
+    const after = burst('u_test-down', async () => live);
+    expect(await after.statuses).toEqual(Array(8).fill(200)); // the failed lookup was let go
+    expect(auth.getUser.mock.calls.length + after.auth.getUser.mock.calls.length).toBe(2);
+  });
+
+  it('a revoked token stays refused on later calls, and a lookup past the cache minute sees a new revoke', async () => {
+    const { check } = revocationCheck();
+    const lookup = vi.fn(async () => live);
+    await Promise.all([1, 2, 3].map(() => check(token('u-seq'), lookup, T0)));
+
+    const revokedNow = vi.fn(async () => revokedSince(T0 + MINUTE));
+    expect(await check(token('u-seq'), revokedNow, T0 + 2 * MINUTE)).toBe('revoked');
+    expect(await check(token('u-seq'), revokedNow, T0 + 2 * MINUTE + 1)).toBe('revoked');
+    expect(lookup).toHaveBeenCalledTimes(1);
+    expect(revokedNow).toHaveBeenCalledTimes(1);
+  });
+
+  it('a strict check never waits on a lax lookup: it looks the account up now', async () => {
+    const { check } = revocationCheck();
+    const account = deferred<AccountRecord>();
+    const lax = check(token('u-mixed'), () => account.promise, T0);
+    const revokedNow = vi.fn(async () => revokedSince(T0 - MINUTE));
+
+    expect(await check(token('u-mixed'), revokedNow, T0 + 1, true)).toBe('revoked');
+    expect(revokedNow).toHaveBeenCalledTimes(1);
+    account.resolve(live);
+    expect(await lax).toBe('ok');
+  });
+
+  it('a lookup older than JOIN_MS (hung) is not waited on: the check starts its own', async () => {
+    const { check } = revocationCheck();
+    void check(token('u-hung'), () => new Promise<AccountRecord>(() => {}), T0);
+
+    expect(await check(token('u-hung'), async () => live, T0 + 10_001)).toBe('ok');
+  });
+
+  it('a joined result is cached from the lookup start, not the join: a mid-lookup revoke is seen at start + the cache minute', async () => {
+    const { check } = revocationCheck();
+    const account = deferred<AccountRecord>();
+    const first = check(token('u_test-join'), () => account.promise, T0); // lookup starts at T0
+    // The revoke lands at T0 + 1 s, after Auth read the account; a joiner arrives just
+    // inside JOIN_MS and gets the pre-revoke read
+    const joiner = check(token('u_test-join'), vi.fn(), T0 + 10_000 - 1);
+    account.resolve(live);
+    expect(await Promise.all([first, joiner])).toEqual(['ok', 'ok']);
+
+    const revokedNow = vi.fn(async () => revokedSince(T0 + 1000));
+    expect(await check(token('u_test-join'), revokedNow, T0 + MINUTE - 1)).toBe('ok'); // cache, as on main
+    expect(revokedNow).not.toHaveBeenCalled();
+    expect(await check(token('u_test-join'), revokedNow, T0 + MINUTE)).toBe('revoked'); // not later
+    expect(revokedNow).toHaveBeenCalledTimes(1);
+  });
+
+  it('distinct accounts beyond the budget are refused as before', async () => {
+    const { check } = revocationCheck(limitsWith({ normal: { burst: 3, perSecond: 0 } }));
+    const uids = ['d-1', 'd-2', 'd-3', 'd-4', 'd-5'];
+
+    expect(await Promise.all(uids.map((uid) => check(token(uid), async () => live, T0)))).toEqual([
+      'ok',
+      'ok',
+      'ok',
+      'unavailable',
+      'unavailable',
+    ]);
+  });
+
+  const JOIN_MS = 10_000; // token-revocation.ts JOIN_MS
+
+  it('an older lookup failing does not drop a newer one: a later check still joins the newer lookup', async () => {
+    const { check } = revocationCheck(limitsWith({}));
+    const uid = 'u_test-replaced';
+    const older = deferred<AccountRecord>();
+    const newer = deferred<AccountRecord>();
+    const third = vi.fn(async () => live);
+
+    const first = check(token(uid), () => older.promise, T0);
+    // Past JOIN_MS the first lookup may be hung: this check starts its own, which takes
+    // over the in-flight entry
+    const second = check(token(uid), () => newer.promise, T0 + JOIN_MS + 1);
+    older.reject(Object.assign(new Error('down'), { code: 'auth/internal-error' }));
+    expect(await first).toBe('unavailable');
+
+    // The first lookup settling must leave the second one's entry in place
+    const joiner = check(token(uid), third, T0 + JOIN_MS + 2);
+    newer.resolve(live);
+    expect(await Promise.all([second, joiner])).toEqual(['ok', 'ok']);
+    expect(third).not.toHaveBeenCalled(); // 2 upstream lookups in all, not 3
+  });
+
+  it('a lax check never joins a strict lookup: it looks the account up itself', async () => {
+    const { check } = revocationCheck(limitsWith({}));
+    const uid = 'u_test-strict-first';
+    const account = deferred<AccountRecord>();
+    const strictLookup = vi.fn(() => account.promise);
+    const laxLookup = vi.fn(async () => live);
+
+    const strict = check(token(uid), strictLookup, T0, true);
+    const lax = check(token(uid), laxLookup, T0 + 1);
+    account.resolve(live);
+
+    expect(await Promise.all([strict, lax])).toEqual(['ok', 'ok']);
+    expect(strictLookup).toHaveBeenCalledTimes(1);
+    expect(laxLookup).toHaveBeenCalledTimes(1); // its own lookup: 2 upstream calls in all
+  });
+
+  it('JOIN_MS boundary: a lookup is joined at start + JOIN_MS - 1 and not at exactly start + JOIN_MS', async () => {
+    const { check } = revocationCheck(limitsWith({}));
+    const uid = 'u_test-join-edge';
+    const account = deferred<AccountRecord>();
+    const justInside = vi.fn(async () => live);
+    const atLimit = vi.fn(async () => live);
+
+    const statuses = [
+      check(token(uid), () => account.promise, T0),
+      check(token(uid), justInside, T0 + JOIN_MS - 1),
+      check(token(uid), atLimit, T0 + JOIN_MS),
+    ];
+    account.resolve(live);
+
+    expect(await Promise.all(statuses)).toEqual(['ok', 'ok', 'ok']);
+    expect(justInside).not.toHaveBeenCalled(); // joined the lookup started at T0
+    expect(atLimit).toHaveBeenCalledTimes(1); // too old to join: its own lookup
   });
 });
