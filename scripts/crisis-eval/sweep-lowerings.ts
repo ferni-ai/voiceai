@@ -18,9 +18,11 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { compareSweeps, type SweepRow } from './sweep-compare.js';
+import { compareSweeps, reportLines, type SweepRow } from './sweep-compare.js';
 
 interface Case {
+  /** `<source>#<index within that source>`: what the report prints instead of the text. */
+  id: string;
   src: string;
   label: string;
   text: string;
@@ -48,10 +50,16 @@ async function headCases(head: string): Promise<Case[]> {
   const cases: Case[] = [];
   const push = (src: string, list: unknown) => {
     if (!Array.isArray(list)) throw new Error(`${src}: not a case list`);
-    for (const c of list as Array<Partial<Case>>) {
+    (list as Array<Partial<Case>>).forEach((c, n) => {
       if (typeof c.text !== 'string') throw new Error(`${src}: a case has no text`);
-      cases.push({ src, label: String(c.label ?? '?'), text: c.text, earlier: c.earlier });
-    }
+      cases.push({
+        id: `${src}#${n}`,
+        src,
+        label: String(c.label ?? '?'),
+        text: c.text,
+        earlier: c.earlier,
+      });
+    });
   };
   push('heldout', (await load(head, `${fx}/crisis-heldout.ts`)).CRISIS_HELDOUT);
   push('blind', (await load(head, `${fx}/crisis-test-blind.ts`)).CRISIS_TEST_BLIND);
@@ -97,12 +105,12 @@ async function score(tree: string, head: string): Promise<SweepRow[]> {
     'src/tools/domains/life-coaching-shared/safety-guards.ts'
   )) as { assessSafety: (t: string) => { level: string } };
   const rows: SweepRow[] = [];
-  (await headCases(head)).forEach((c, i) => {
+  for (const c of await headCases(head)) {
     const variants = c.earlier?.length ? [undefined, c.earlier] : [undefined];
     for (const earlier of variants) {
       const d = detectCrisis(c.text, undefined, earlier ? { recentMessages: earlier } : undefined);
       rows.push({
-        id: `${c.src}#${i}${earlier ? '+earlier' : ''}`,
+        id: `${c.id}${earlier ? '+earlier' : ''}`,
         src: earlier ? `${c.src}+earlier` : c.src,
         label: c.label,
         text: c.text,
@@ -113,7 +121,7 @@ async function score(tree: string, head: string): Promise<SweepRow[]> {
         level: assessSafety(c.text).level,
       });
     }
-  });
+  }
   return rows;
 }
 
@@ -158,22 +166,10 @@ async function main(): Promise<number> {
     ]);
     const cmp = compareSweeps(b, h);
     const secs = ((Date.now() - started) / 1000).toFixed(1);
-    console.log(
-      `${h.length} reads in ${secs}s: ${cmp.loweredRows} lowered, ${cmp.raisedRows} raised, ` +
-        `${cmp.identical} identical`
-    );
-    // Raised reads are fine and can run to thousands (a new pattern hits the adversarial set).
-    for (const r of cmp.raised.slice(0, 50)) console.log(`raised  ${r}`);
-    if (cmp.raised.length > 50) console.log(`raised  ... and ${cmp.raised.length - 50} more`);
-    for (const r of cmp.lowered) console.log(`LOWERED ${r}`);
-    if (cmp.loweredRows === 0) return 0;
-    console.error(
-      `\n${cmp.lowered.length} distinct crisis reads went DOWN vs base. The crisis lane is ` +
-        'recall-first: patterns are only ever added. Restore the lowered reads, or, if lowering ' +
-        "them is intended, that is Seth's call: he approves it with the PR label " +
-        'crisis:lowering-approved.'
-    );
-    return 1;
+    const { stdout, stderr } = reportLines(cmp, h.length, secs);
+    for (const line of stdout) console.log(line);
+    for (const line of stderr) console.error(line);
+    return cmp.loweredRows === 0 ? 0 : 1;
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
