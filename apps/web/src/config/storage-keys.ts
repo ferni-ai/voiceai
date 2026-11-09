@@ -264,17 +264,22 @@ export const KEY_PREFIXES = {
 // ============================================================================
 
 /**
- * Get all localStorage keys that match our prefixes.
+ * A Ferni key: the person's data unless DEVICE_KEYS names it. Keys use all three ferni
+ * separators; matching only ferni_ left ferni:onboarding:complete, ferni-milestones,
+ * ferni:notification-prefs and more behind on export, sign-out and deletion.
+ */
+export const FERNI_KEY_PATTERN = /^(ferni[_:-]|voiceai_)/;
+
+/**
+ * Get all keys in storage (localStorage unless given) that match our prefixes.
  * Used for complete data export/delete.
  */
-export function getAllFerniKeys(): string[] {
+export function getAllFerniKeys(storage: Storage = localStorage): string[] {
   const keys: string[] = [];
 
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    // Keys use all three ferni separators; matching only ferni_ left ferni:onboarding:complete,
-    // ferni-milestones, ferni:notification-prefs and more behind on export, sign-out and deletion
-    if (key && /^(ferni[_:-]|voiceai_)/.test(key)) {
+  for (let i = 0; i < storage.length; i++) {
+    const key = storage.key(i);
+    if (key && FERNI_KEY_PATTERN.test(key)) {
       keys.push(key);
     }
   }
@@ -296,33 +301,60 @@ export function exportLocalStorage(): Record<string, string | null> {
   return data;
 }
 
-/** This device's settings, not anyone's data: they outlive sign-out and account deletion. */
-const DEVICE_SETTING_KEYS = new Set<string>([
-  PREFERENCE_KEYS.THEME,
-  PREFERENCE_KEYS.LOCALE,
-  'ferni-haptics-disabled',
-  'ferni:log-level',
-  'ferni:log-namespaces',
-  'ferni:debug-mode',
-  'ferni:use-demo-data',
-]);
+/**
+ * This device's settings, not anyone's data: they outlive sign-out and account deletion.
+ * Every other key the app stores must match FERNI_KEY_PATTERN, so sign-out clears it
+ * (tests/storage-person-keys.test.ts holds every setItem in src/ to that).
+ */
+export const DEVICE_KEYS: Readonly<Record<string, string>> = {
+  [PREFERENCE_KEYS.THEME]: 'light or dark for this screen',
+  [PREFERENCE_KEYS.LOCALE]: 'the language this browser shows',
+  'voiceai-theme': 'zen or midnight for this screen',
+  'ferni-haptics-disabled': 'whether this device vibrates',
+  'ferni:log-level': 'developer logging on this browser',
+  'ferni:log-namespaces': 'developer logging on this browser',
+  'ferni:debug-mode': 'developer debugging on this browser',
+  'ferni:use-demo-data': 'developer demo data on this browser',
+  evalops_enabled: 'developer evaluation sampling on this browser',
+  evalops_sample_rate: 'developer evaluation sampling on this browser',
+};
 
 /**
- * Clear everything Ferni kept about a person in this browser. Keeps this device's
- * settings, and (unless preserveDevSettings is false) admin keys and dev mode.
+ * Person keys first stored under a name outside FERNI_KEY_PATTERN, so sign-out left them
+ * for the next person; by their former name. Read them with readRenamedKey.
+ */
+const FORMER_KEY_NAMES = {
+  ferni_marketplace_installed: 'voiceai-marketplace-installed',
+  'ferni-milestone-outreach-migrated-at': 'milestoneOutreachMigratedAt',
+} as const;
+
+/** Read a renamed person key, moving its value over from the former name the first time. */
+export function readRenamedKey(key: keyof typeof FORMER_KEY_NAMES): string | null {
+  const formerValue = localStorage.getItem(FORMER_KEY_NAMES[key]);
+  if (formerValue !== null) {
+    if (localStorage.getItem(key) === null) localStorage.setItem(key, formerValue);
+    localStorage.removeItem(FORMER_KEY_NAMES[key]);
+  }
+  return localStorage.getItem(key);
+}
+
+/**
+ * Clear everything Ferni kept about a person in this browser, in localStorage and in this
+ * tab's sessionStorage (which a reload keeps). Keeps this device's settings, and (unless
+ * preserveDevSettings is false) admin keys and dev mode.
  */
 export function clearAllUserData(preserveDevSettings = true): void {
-  for (const key of getAllFerniKeys()) {
-    if (isPersonKey(key, preserveDevSettings)) localStorage.removeItem(key);
+  for (const storage of [localStorage, sessionStorage]) {
+    for (const key of getAllFerniKeys(storage)) {
+      if (isPersonKey(key, preserveDevSettings)) storage.removeItem(key);
+    }
   }
-
-  // Also clear sessionStorage
-  sessionStorage.removeItem(SUBSCRIPTION_KEYS.UPGRADE_TIER);
+  for (const formerName of Object.values(FORMER_KEY_NAMES)) localStorage.removeItem(formerName);
 }
 
 /** A Ferni key that holds the person's data, not this device's settings. */
 function isPersonKey(key: string, preserveDevSettings = true): boolean {
-  if (!/^(ferni[_:-]|voiceai_)/.test(key) || DEVICE_SETTING_KEYS.has(key)) return false;
+  if (!FERNI_KEY_PATTERN.test(key) || Object.hasOwn(DEVICE_KEYS, key)) return false;
   return !(
     preserveDevSettings &&
     (key === IDENTITY_KEYS.ADMIN_ID ||
@@ -350,7 +382,7 @@ export function sealUserData(preserveDevSettings = true): () => void {
   Object.defineProperty(target, 'setItem', {
     ...original,
     value: function (this: Storage, key: string, value: string): void {
-      if (this === localStorage && isPersonKey(key, preserveDevSettings)) return;
+      if ((this === localStorage || this === sessionStorage) && isPersonKey(key, preserveDevSettings)) return;
       setItem.call(this, key, value);
     },
   });

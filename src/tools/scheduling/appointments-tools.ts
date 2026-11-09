@@ -13,12 +13,6 @@ import { validatePhone, sanitizePhoneForLog } from '../validation.js';
 import { parseNaturalTime, createReminder } from '../../services/scheduling/reminder-scheduler.js';
 import { runContextTimeZone } from '../../utils/caller-time-zone.js';
 import { formatStoredLocalTime } from '../../utils/time-zone.js';
-import {
-  searchRestaurants,
-  bookReservation,
-  isReservationServiceConfigured,
-} from '../../services/restaurant-reservations.js';
-import { isConfirmedReservation, unconfirmedReservationReply } from './reservation-confirmation.js';
 import { getAppointmentFollowUpService } from '../../services/scheduling/appointment-followup.js';
 import { restaurantSearchReply } from './restaurant-search.js';
 import {
@@ -36,34 +30,22 @@ export function createAppointmentTools() {
   return {
     // ========== RESTAURANT RESERVATIONS ==========
 
+    // Booking is a call on the user's behalf. OpenTable, Resy and Yelp
+    // booking were removed 2026-10-30: none offers a booking API we can use.
     makeReservation: llm.tool({
       description: getToolDescription('makeReservation'),
       parameters: z.object({
         restaurantName: z.string().describe('Name of the restaurant'),
         restaurantPhone: z.string().optional().describe('Phone number (if known)'),
-        location: z.string().optional().describe('City or area (helps find the right location)'),
         dateTime: z.string().describe('When (e.g., "tomorrow at 7pm", "Saturday evening")'),
         partySize: z.number().default(2).describe('Number of people'),
-        guestName: z.string().optional().describe('Name for the reservation'),
-        guestPhone: z.string().optional().describe('Contact phone for confirmation'),
-        guestEmail: z.string().optional().describe('Email for confirmation'),
         specialRequests: z
           .string()
           .optional()
           .describe('Special requests (outdoor seating, birthday, allergies, etc.)'),
       }),
       execute: async (
-        {
-          restaurantName,
-          restaurantPhone,
-          location,
-          dateTime,
-          partySize,
-          guestName,
-          guestPhone,
-          guestEmail,
-          specialRequests,
-        },
+        { restaurantName, restaurantPhone, dateTime, partySize, specialRequests },
         { ctx }
       ) => {
         const requestedTime = parseNaturalTime(dateTime, runContextTimeZone(ctx));
@@ -71,108 +53,9 @@ export function createAppointmentTools() {
           return `When would you like the reservation? Give me a date and time like "tomorrow at 7pm" or "Saturday at 6:30".`;
         }
 
-        const userData = ctx?.userData as
-          | {
-              userId?: string;
-              userProfile?: {
-                name?: string;
-                contactInfo?: { phone?: string; email?: string };
-              };
-            }
-          | undefined;
+        const userData = ctx?.userData as { userId?: string } | undefined;
         const userId = userData?.userId || 'unknown';
 
-        // Get guest info from profile if not provided
-        const name = guestName || userData?.userProfile?.name || 'Guest';
-        const phone = guestPhone || userData?.userProfile?.contactInfo?.phone;
-        const email = guestEmail || userData?.userProfile?.contactInfo?.email;
-
-        const dateStr = requestedTime.toLocaleDateString('en-US', {
-          weekday: 'long',
-          month: 'long',
-          day: 'numeric',
-        });
-        const timeStr = requestedTime.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-        });
-        const dateForApi = requestedTime.toISOString().split('T')[0];
-        const timeForApi = requestedTime.toTimeString().slice(0, 5);
-
-        // Try online booking first if services are configured
-        if (isReservationServiceConfigured()) {
-          getLogger().info(
-            { restaurant: restaurantName, location },
-            '🍽️ Searching for online booking'
-          );
-
-          const restaurants = await searchRestaurants(
-            restaurantName,
-            location || 'nearby',
-            dateForApi,
-            timeForApi,
-            partySize
-          );
-
-          // Find best match
-          const match =
-            restaurants.find(
-              (r) =>
-                r.name.toLowerCase().includes(restaurantName.toLowerCase()) ||
-                restaurantName.toLowerCase().includes(r.name.toLowerCase())
-            ) || restaurants[0];
-
-          if (match && match.reservationProvider !== 'phone_only') {
-            // We can book online!
-            if (!phone) {
-              return `Great news! I found ${match.name} on ${match.reservationProvider === 'opentable' ? 'OpenTable' : 'Resy'} and can try to book it online. I just need your phone number for the reservation. What's the best number?`;
-            }
-
-            const result = await bookReservation(match, {
-              date: dateForApi,
-              time: timeForApi,
-              partySize,
-              guestName: name,
-              guestPhone: phone,
-              guestEmail: email,
-              specialRequests,
-            });
-
-            if (result.success && !isConfirmedReservation(result)) {
-              return unconfirmedReservationReply(match.name, partySize, dateStr, timeStr);
-            }
-            if (result.success) {
-              // Create appointment record
-              await createAppointmentRequest({
-                userId,
-                type: 'restaurant',
-                businessName: match.name,
-                businessPhone: match.phone,
-                requestedDateTime: requestedTime,
-                partySize,
-                specialRequests,
-              });
-
-              return `🎉 Booked! ${match.name}, party of ${partySize}, ${dateStr} at ${timeStr}. Confirmation: ${result.confirmationNumber}. You'll get a confirmation at ${phone}${email ? ` and ${email}` : ''}.`;
-            } else if (result.needsPhoneCall && match.phone) {
-              // Fall through to phone call
-              restaurantPhone = match.phone;
-            } else {
-              return `${match.name} shows no availability for ${dateStr} at ${timeStr}. Would you like me to check different times, or try calling them directly?`;
-            }
-          } else if (match) {
-            // Found it but need to call
-            if (match.phone) {
-              restaurantPhone = match.phone;
-              getLogger().info(
-                { restaurant: match.name, phone: match.phone },
-                'Found restaurant, will call'
-              );
-            }
-          }
-        }
-
-        // Fall back to phone call
         const apt = await createAppointmentRequest({
           userId,
           type: 'restaurant',
@@ -187,6 +70,9 @@ export function createAppointmentTools() {
       },
     }),
 
+    // Search runs on Places (scheduling/restaurant-search.ts): the places found,
+    // "couldn't find any" only when Places found none, or "I can't search for
+    // places right now" when Places is not set up or fails.
     searchRestaurantsNearby: llm.tool({
       description: getToolDescription('searchRestaurantsNearby'),
       parameters: z.object({
