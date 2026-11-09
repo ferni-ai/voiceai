@@ -6,7 +6,8 @@
  * correlations note) sat ahead of it.
  *
  * Safety notes are the ones marked by safety-note.ts (carriesSafety). They go
- * first, in full; the other notes keep their order and get what budget is
+ * last, in full, and the crisis override ("Do NOT deviate") is last of all, so
+ * nothing follows it. The other notes keep their order and get what budget is
  * left. A turn with no safety note is cut exactly as before.
  *
  * Nor is it lost later (#2642): safety notes still waiting are carried into the
@@ -22,17 +23,24 @@ const log = createLogger({ module: 'PushedNotes' });
 export interface TurnNote {
   /** It carries crisis or safety guidance (safety-note.ts carriesSafety). */
   safety?: boolean;
+  /** It is the crisis override (safety-note.ts isCrisisOverride), which always goes last. */
+  override?: boolean;
   text: string;
 }
 
-/** The safety guidance among these notes, whole, in order. */
+/** The safety notes among these, in order, with the crisis override moved last. */
+export const safetyNotes = (notes: readonly TurnNote[]): TurnNote[] => {
+  const safety = notes.filter((note) => note.safety);
+  return [...safety.filter((note) => !note.override), ...safety.filter((note) => note.override)];
+};
+
+/** The safety guidance among these notes, whole, the crisis override last. */
 export const safetyText = (notes: readonly TurnNote[]): string =>
-  notes
-    .filter((note) => note.safety)
+  safetyNotes(notes)
     .map((note) => note.text)
     .join('\n\n');
 
-/** The body of the pushed note: safety notes first and whole, the rest cut to the budget left. */
+/** The body of the pushed note: the rest cut to the budget left, then safety notes whole, override last. */
 export function pushedNotesText(
   notes: readonly TurnNote[],
   maxChars = MAX_PUSHED_CONTEXT_CHARS
@@ -51,14 +59,13 @@ export function pushedNotesText(
       'Safety notes exceed the pushed-note cap; kept whole'
     );
   }
-  return rest && room > 0 ? `${kept}\n\n${rest.slice(0, room)}` : kept;
+  return rest && room > 0 ? `${rest.slice(0, room)}\n\n${kept}` : kept;
 }
 
 /** The safety notes still waiting go ahead of a later note's, each once (#2642). */
-export function withHeldSafety(held: readonly string[], notes: readonly TurnNote[]): TurnNote[] {
+export function withHeldSafety(held: readonly TurnNote[], notes: readonly TurnNote[]): TurnNote[] {
   const fresh = new Set(notes.filter((note) => note.safety).map((note) => note.text));
-  const carried = held.filter((text) => !fresh.has(text)).map((text) => ({ safety: true, text }));
-  return [...carried, ...notes];
+  return [...held.filter((note) => !fresh.has(note.text)), ...notes];
 }
 
 /** The key, in a pushed note's `extra`, of its safety guidance, whole. */
