@@ -9,7 +9,7 @@
  * line was: context can explain what "it" means, never excuse intent, means
  * or ideation in the caller's own words.
  */
-import type { HeldOutLabel } from './crisis-heldout.js';
+import type { HeldOutLabel } from './crisis-heldout-retired.js';
 
 export interface ContextualCase {
   /** What Ferni said just before the caller's line. */

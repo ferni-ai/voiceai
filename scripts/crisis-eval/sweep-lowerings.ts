@@ -61,7 +61,7 @@ async function headCases(head: string): Promise<Case[]> {
       });
     });
   };
-  push('heldout', (await load(head, `${fx}/crisis-heldout.ts`)).CRISIS_HELDOUT);
+  push('retired', (await load(head, `${fx}/crisis-heldout-retired.ts`)).CRISIS_HELDOUT_RETIRED);
   push('blind', (await load(head, `${fx}/crisis-test-blind.ts`)).CRISIS_TEST_BLIND);
   push('relay', (await load(head, `${fx}/crisis-relay.ts`)).CRISIS_RELAY);
   push('contextual', (await load(head, `${fx}/crisis-contextual.ts`)).CRISIS_CONTEXTUAL);

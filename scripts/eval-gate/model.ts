@@ -18,7 +18,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { CRISIS_CONTEXTUAL } from '../../src/agents/__tests__/fixtures/crisis-contextual.js';
-import { CRISIS_HELDOUT } from '../../src/agents/__tests__/fixtures/crisis-heldout.js';
+import { CRISIS_HELDOUT_RETIRED } from '../../src/agents/__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_RELAY } from '../../src/agents/__tests__/fixtures/crisis-relay.js';
 import { CRISIS_TEST_BLIND } from '../../src/agents/__tests__/fixtures/crisis-test-blind.js';
 import { getEmbeddingProvider, VertexAIEmbeddings } from '../../src/memory/vectors/embeddings.js';
@@ -56,7 +56,7 @@ interface CrisisCase {
 }
 
 async function crisisClassifier(): Promise<Record<string, number>> {
-  const set: CrisisCase[] = [...CRISIS_HELDOUT, ...CRISIS_TEST_BLIND, ...CRISIS_CONTEXTUAL, ...CRISIS_RELAY]; // prettier-ignore
+  const set: CrisisCase[] = [...CRISIS_HELDOUT_RETIRED, ...CRISIS_TEST_BLIND, ...CRISIS_CONTEXTUAL, ...CRISIS_RELAY]; // prettier-ignore
   // Temperature 0 still varies by 1-3 lines a run; three passes shrink that
   // noise enough for a 1-point band to catch a softened prompt (measured).
   const cases = Array.from({ length: CRISIS_REPS }, () => set).flat();
