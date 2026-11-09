@@ -21,6 +21,7 @@
  * SOLUTION: Use this module EVERYWHERE for persona ID handling.
  */
 
+import { isCustomAgentId } from '../services/custom-agent/custom-agent-ids.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger();
@@ -130,6 +131,9 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   john: 'peter-john', // Last name alias
   researcher: 'peter-john',
   'stock-storyteller': 'peter-john',
+  'the-quant': 'peter-john', // bundle manifest aliases
+  'pattern-finder': 'peter-john',
+  'insights-guy': 'peter-john',
 
   // Alex Chen (Communicator)
   'alex-chen': 'alex-chen',
@@ -140,6 +144,10 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   communications: 'alex-chen',
   communicator: 'alex-chen',
   'generic-advisor': 'alex-chen',
+  'communication-coach': 'alex-chen', // bundle manifest aliases
+  'admin-assistant': 'alex-chen',
+  'chief-of-staff': 'alex-chen',
+  scheduler: 'alex-chen',
 
   // Maya Santos (Habits Coach)
   'maya-santos': 'maya-santos',
@@ -169,6 +177,8 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   'retirement-specialist': 'jordan-taylor',
   retirement: 'jordan-taylor',
   milestones: 'jordan-taylor',
+  'life-planner': 'jordan-taylor', // bundle manifest aliases
+  'lifetime-planner': 'jordan-taylor',
 
   // Nayan Patel (Sage / Lifetime Advisor)
   'nayan-patel': 'nayan-patel',
@@ -232,7 +242,10 @@ export function isKnownId(id: string): boolean {
  */
 export function toCanonical(id: string, strict = false): CanonicalPersonaId {
   const normalized = id.toLowerCase().trim();
-  const canonical = ALIAS_TO_CANONICAL[normalized];
+  // An own key only: `__proto__` or `constructor` would otherwise resolve to an object.
+  const canonical = Object.hasOwn(ALIAS_TO_CANONICAL, normalized)
+    ? ALIAS_TO_CANONICAL[normalized]
+    : undefined;
 
   if (!canonical) {
     if (strict) {
@@ -296,14 +309,18 @@ const RETIRED_PERSONA_NAMES: Readonly<Record<string, string>> = {
   'peter-lynch': 'Tom', // the stock-picking legend, retired 2026-11-08
 };
 
-/** True when `id` names a persona that has left the product. */
-export function isRetiredPersonaId(id: string): boolean {
-  return Object.hasOwn(RETIRED_PERSONA_NAMES, id.toLowerCase().trim());
-}
-
-/** The persona a live call or message uses for `id`: Ferni for a retired persona, else `id`. */
+/**
+ * The persona a live call starts on for a requested `id` (the token routes and
+ * dispatch both ask here): a custom agent id as given (the token route checks
+ * its owner), a built-in id or alias as its canonical id, and anything else
+ * (a retired persona, an unknown or empty id) as Ferni. A call never starts on
+ * the stand-in persona that names itself after the id (persona-builder.ts).
+ */
 export function livePersonaId(id: string): string {
-  return isRetiredPersonaId(id) ? CANONICAL_IDS.COACH : id;
+  const raw = String(id ?? '').trim();
+  if (isCustomAgentId(raw)) return raw;
+  const key = raw.toLowerCase();
+  return Object.hasOwn(ALIAS_TO_CANONICAL, key) ? ALIAS_TO_CANONICAL[key] : CANONICAL_IDS.COACH;
 }
 
 /** The name a past record shows: a retired persona keeps its own, anything else is getDisplayName. */

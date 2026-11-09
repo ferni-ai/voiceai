@@ -26,8 +26,8 @@ export const CHARACTER_FILE = 'identity/character.md';
 export const SPARK_FILE = 'identity/character-spark.md';
 
 /**
- * Bundles whose character sheet came with PERSONA_SPARK: the three legends had
- * only legacy system prompts, two with "Things You DO Say" lines the model
+ * Bundles whose character sheet came with PERSONA_SPARK: the legends had only
+ * legacy system prompts, Henry's with "Things You DO Say" lines the model
  * repeats. Off, they keep the legacy prompt, so a legend call doesn't change
  * until the flag flips.
  */

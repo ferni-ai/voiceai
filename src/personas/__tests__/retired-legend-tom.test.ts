@@ -4,8 +4,10 @@
  * still name his id (a saved persona, a scheduled check-in, a past call): history
  * shows "Tom", anything live gets Ferni, and nothing throws.
  *
- * Before, with his bundle gone, a stored id reached the voice agent's stand-in
- * persona (persona-builder.ts), which names itself after the id.
+ * Before, with his bundle gone, a stored id or one of his old names reached the
+ * voice agent's stand-in persona (persona-builder.ts), which names itself after
+ * the id. Now any id that is neither a built-in persona nor a custom agent
+ * starts the call with Ferni (livePersonaId), so no call starts on a stand-in.
  *
  * @module personas/__tests__/retired-legend-tom.test
  */
@@ -24,6 +26,7 @@ import {
   livePersonaId,
   toCanonical,
 } from '../persona-ids.js';
+import { getPersonaAsync, initializeFromBundles } from '../index.js';
 import { AgentRegistry } from '../registry/unified-registry.js';
 
 const TOM_ID = 'peter-lynch';
@@ -66,28 +69,78 @@ describe('Tom cannot be handed off to', () => {
 });
 
 describe('stored state that still names Tom', () => {
-  it('a saved persona choice starts the call with Ferni (token route)', async () => {
-    expect(await personaForCaller(TOM_ID, 'u_test')).toBe('ferni');
-    expect(await personaForCaller(TOM_ID, undefined)).toBe('ferni');
-    expect(await personaForCaller('Peter-Lynch', 'u_test')).toBe('ferni');
-  });
+  // His id, every name that used to reach him, and his id in another case.
+  const STORED = [TOM_ID, ...TOM_NAMES, 'Peter-Lynch', 'TOM'];
 
-  it('a dispatch that names him (a scheduled check-in) is answered by Ferni', () => {
-    expect(parseJobMetadata(jobWith({ persona_id: TOM_ID })).personaId).toBe('ferni');
+  it.each(STORED)(
+    'a saved persona choice of %s starts the call with Ferni (token route)',
+    async (id) => {
+      expect(await personaForCaller(id, 'u_test')).toBe('ferni');
+      expect(await personaForCaller(id, undefined)).toBe('ferni');
+    }
+  );
+
+  it.each(STORED)('a dispatch that names %s (a scheduled check-in) is answered by Ferni', (id) => {
+    expect(parseJobMetadata(jobWith({ persona_id: id })).personaId).toBe('ferni');
   });
 
   it('a past call keeps his name in history', () => {
     expect(historyDisplayName(TOM_ID)).toBe('Tom');
     expect(historyDisplayName('john-bogle')).toBe('Henry Caldwell');
   });
+});
 
-  it('live resolution falls back to Ferni and never throws, retired or unknown', () => {
-    expect(livePersonaId(TOM_ID)).toBe('ferni');
-    expect(livePersonaId('maya-santos')).toBe('maya-santos');
-    for (const id of [TOM_ID, 'not-a-persona-id']) {
+describe('no call starts on a stand-in named after the id', () => {
+  beforeAll(async () => {
+    await initializeFromBundles();
+  }, 60_000);
+
+  it.each(['not-a-persona-id', 'Not-A-Persona-ID', '', '   ', '__proto__', 'constructor'])(
+    'unknown id %j goes to Ferni on the token route and at dispatch, without throwing',
+    async (id) => {
+      expect(livePersonaId(id)).toBe('ferni');
+      expect(await personaForCaller(id, 'u_test')).toBe('ferni');
+      expect(parseJobMetadata(jobWith({ persona_id: id })).personaId).toBe('ferni');
       expect(() => toCanonical(id)).not.toThrow();
-      expect(toCanonical(id)).toBe('ferni');
       expect(getDisplayName(id)).toBe('Ferni');
     }
+  );
+
+  it('a built-in id or alias starts on its canonical persona, in any case', async () => {
+    expect(livePersonaId('maya-santos')).toBe('maya-santos');
+    expect(livePersonaId('Maya')).toBe('maya-santos');
+    expect(await personaForCaller(' HENRY ', 'u_test')).toBe('john-bogle');
+    expect(parseJobMetadata(jobWith({ persona_id: 'Alex' })).personaId).toBe('alex-chen');
   });
+
+  it('a custom agent id is kept for its owner check', () => {
+    expect(livePersonaId('agent_1_mine')).toBe('agent_1_mine');
+    expect(parseJobMetadata(jobWith({ persona_id: 'agent_1_mine' })).personaId).toBe(
+      'agent_1_mine'
+    );
+  });
+
+  it('every persona livePersonaId can return loads from its bundle', async () => {
+    const live = new Set(Object.keys(ALIAS_TO_CANONICAL).map(livePersonaId));
+    live.add(livePersonaId('not-a-persona-id'));
+    const loaded = await Promise.all(
+      [...live].map(async (id) => [id, (await getPersonaAsync(id))?.id])
+    );
+    expect(loaded.filter(([id, got]) => got !== id)).toEqual([]);
+  });
+
+  it('every name the persona loader can load keeps its persona (no id loses its bundle)', async () => {
+    const names = new Set(
+      (await AgentRegistry.getAllAgents()).flatMap((a) => [a.id, ...a.aliases])
+    );
+    const loadable = await Promise.all(
+      [...names].map(async (name) => [name, (await getPersonaAsync(name))?.id] as const)
+    );
+    const lost = loadable
+      .filter(([, got]) => got !== undefined)
+      .filter(([name, got]) => livePersonaId(name) !== got)
+      .map(([name, got]) => `${name}: loads ${got}, live ${livePersonaId(name)}`);
+    expect(loadable.filter(([, got]) => got !== undefined).length).toBeGreaterThan(30);
+    expect(lost).toEqual([]);
+  }, 60_000);
 });
