@@ -15,25 +15,27 @@ import { CRISIS_RELAY } from '../../../agents/__tests__/fixtures/crisis-relay.js
 import { patternHit } from '../../../utils/safety-whole-word.js';
 import { analyzeReferralNeed } from '../../principal-alignment/human-referral.js';
 import { CRISIS_TEST_CASES } from '../../superhuman/validation/crisis-test-cases.js';
-import { adversarialCorpus, crisisPhrases, joinedWordCorpus, RISK_FORMS } from './crisis-corpus.js';
+import {
+  adversarialCorpus,
+  crisisPhrases,
+  isRiskLabel,
+  joinedWordCorpus,
+  RISK_FORMS,
+  RISK_JSON_FIXTURES,
+} from './crisis-open-corpus.js';
 
-// The never-lower corpus for this site, built here from sets that hold no
-// held-out or blind data: those stay sealed for scoring, so riskCorpus() (which
-// spreads CRISIS_HELDOUT and CRISIS_TEST_BLIND) is not used. Same risk filter.
-const RISK_JSON_FIXTURES = [
-  'scripts/crisis-eval/redteam-2026-10-05.json',
-  'scripts/crisis-eval/gloomy-ferni-2026-10-11.json',
-  'src/agents/__tests__/fixtures/crisis-adjudicator-2026-10-17.json',
-  'src/agents/__tests__/fixtures/crisis-everyday-call-2026-10-17.json',
-];
-const isRisk = (label: string): boolean => label === 'block' || label === 'crisis';
+// The never-lower corpus for this site, built only from crisis-open-corpus.ts
+// and other open sets. Held-out, retired and blind sets stay sealed for scoring,
+// so riskCorpus() in crisis-corpus.ts (which loads them) is not used here.
 function openCorpus(): string[] {
   const lines: string[] = [
-    ...[...CRISIS_RELAY, ...CRISIS_CONTEXTUAL].filter((c) => isRisk(c.label)).map((c) => c.text),
+    ...[...CRISIS_RELAY, ...CRISIS_CONTEXTUAL]
+      .filter((c) => isRiskLabel(c.label))
+      .map((c) => c.text),
     ...CRISIS_TEST_CASES.filter((c) => c.expectedResult.shouldDetect).map((c) => c.input),
     ...RISK_JSON_FIXTURES.flatMap((path) =>
       (JSON.parse(readFileSync(path, 'utf8')) as Array<{ text: string; label: string }>)
-        .filter((c) => isRisk(c.label))
+        .filter((c) => isRiskLabel(c.label))
         .map((c) => c.text)
     ),
     ...RISK_FORMS,
