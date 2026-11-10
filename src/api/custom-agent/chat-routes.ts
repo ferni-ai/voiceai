@@ -66,13 +66,18 @@ export function readChatRequest(
   return { message, history, scene };
 }
 
-/** The agent's own prompt, the scene, the conversation so far, then its turn */
+/**
+ * The agent's own prompt, the scene, the conversation so far, then its turn. A crisis
+ * guidance note (readTypedMessageForCrisis) goes last, right before the speaker cue, so
+ * no style line or opener cue follows it.
+ */
 export function buildAgentChatPrompt(
   agent: CustomAgent,
   history: ChatTurn[],
   message: string,
   scene: string,
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
+  guidanceNote = ''
 ): string {
   // CUSTOM_AGENT_CHAT_HONESTY: the live call's prompt (owner text kept as data, honest when
   // sincerely asked whether it's an AI) instead of one that pastes the owner's text raw.
@@ -98,6 +103,7 @@ export function buildAgentChatPrompt(
     history.length || message ? '## Conversation so far' : '',
     ...history.map((turn) => `${turn.from === 'person' ? 'Them' : name}: ${turn.text}`),
     message ? `Them: ${message}` : `(${name} opens the conversation.)`,
+    guidanceNote,
     `${name}:`,
   ]
     .filter(Boolean)
@@ -134,10 +140,18 @@ export async function handleAgentChat(
     sendJson(res, 404, { error: 'Agent not found' });
     return true;
   }
+  const note = crisis.action === 'guide' ? crisis.guidanceNote : '';
   const reply = await callLLM(
     opening
-      ? buildAgentChatPrompt(agent, request.history, '', crisis.message)
-      : buildAgentChatPrompt(agent, request.history, crisis.message, request.scene),
+      ? buildAgentChatPrompt(agent, request.history, '', crisis.message, process.env, note)
+      : buildAgentChatPrompt(
+          agent,
+          request.history,
+          crisis.message,
+          request.scene,
+          process.env,
+          note
+        ),
     { maxTokens: 400, temperature: 0.8 }
   );
   if (!reply?.trim()) {

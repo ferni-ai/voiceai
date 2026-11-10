@@ -12,7 +12,6 @@
 import { llm } from '@livekit/agents';
 import { startCrisisGate, type CrisisGateOptions } from './crisis-gate.js';
 import { crisisScriptFor } from './crisis-gate-words.js';
-import { withTurnStyleReminder } from './turn-style.js';
 
 /** One earlier turn of a typed conversation. */
 export interface TypedTurn {
@@ -23,8 +22,13 @@ export interface TypedTurn {
 export type TypedCrisisRead =
   /** The crisis script, as the voice turn speaks it; the model is not asked. */
   | { action: 'replace'; reply: string }
-  /** The message for the model: with the voice turn's crisis guidance on 'guide'. */
-  | { action: 'guide' | 'pass'; message: string };
+  /**
+   * The person's words as typed, and the voice turn's crisis guidance as a note. The route
+   * puts the note last in its prompt (only the speaker cue after it): the end of a prompt
+   * carries the most weight, so no style line or instruction may follow the guidance.
+   */
+  | { action: 'guide'; message: string; guidanceNote: string }
+  | { action: 'pass'; message: string };
 
 /** The crisis read of a typed message, before the model or any read of the person's data. */
 export async function readTypedMessageForCrisis(
@@ -49,6 +53,5 @@ export async function readTypedMessageForCrisis(
     return { action: 'replace', reply };
   }
   if (decision.action === 'pass') return { action: 'pass', message };
-  const guided = withTurnStyleReminder(chatCtx, decision.guidance).items.at(-1);
-  return { action: 'guide', message: (guided as llm.ChatMessage).textContent ?? message };
+  return { action: 'guide', message, guidanceNote: `(${decision.guidance})` };
 }

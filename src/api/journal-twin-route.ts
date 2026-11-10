@@ -46,12 +46,15 @@ export async function handleJournalTwinResponse(
     return true;
   }
   try {
-    const response = await generateTwinResponse({
-      userMessage: crisis?.message ?? body.userMessage,
-      profile: body.profile,
-      relevantJournals: body.relevantJournals ?? [],
-      keyThemes: body.keyThemes ?? [],
-    });
+    const response = await generateTwinResponse(
+      {
+        userMessage: crisis?.message ?? body.userMessage,
+        profile: body.profile,
+        relevantJournals: body.relevantJournals ?? [],
+        keyThemes: body.keyThemes ?? [],
+      },
+      crisis?.action === 'guide' ? crisis.guidanceNote : ''
+    );
     if (!response) {
       sendJson(res, 503, { error: 'Twin response unavailable' });
       return true;
