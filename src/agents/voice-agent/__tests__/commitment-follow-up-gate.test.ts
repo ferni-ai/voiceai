@@ -97,6 +97,14 @@ import {
   markInsightSurfaced,
 } from '../../../intelligence/proactive/proactive-engine.js';
 import type { ContextWindow } from '../../../intelligence/context-assembler.js';
+import {
+  claimOpenerFollowUp,
+  claimProactiveSlot,
+  clearOpenerClaims,
+  peekProactiveSlot,
+  spendForSafety,
+} from '../../../memory/recall/opener-claim.js';
+import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 
 const USER = 'user-follow-up-gate';
 const DAY = 86_400_000;
@@ -144,12 +152,16 @@ const deps = (callRecords: CallRecords = noCalls): FollowUpGateDeps => ({
 });
 
 /** One call start on a fresh instance: the engine's insight, then the gate. */
-async function callStart(now: number, extra: { distressLevel?: number; crisis?: object } = {}) {
+async function callStart(
+  now: number,
+  extra: { distressLevel?: number; crisis?: object; sessionId?: string } = {},
+  gateDeps: FollowUpGateDeps = deps()
+) {
   vi.setSystemTime(now);
   const texts = commitments.list.map((c) => String(c.summary));
   const engine = checkProactiveTriggers(USER, contextWith(texts), 'session_start');
   const insight = engine.insights.find((i) => i.category === 'commitment_reminder');
-  return surfaceProactiveInsight({ userId: USER, turnNumber: 1, insight, now, ...extra }, deps());
+  return surfaceProactiveInsight({ userId: USER, turnNumber: 1, insight, now, ...extra }, gateDeps);
 }
 
 /** A new process: nothing in memory, only what was stored. */
@@ -338,6 +350,95 @@ describe('commitment follow-up gate', () => {
       deps()
     );
     expect(out).toBe(insight);
+  });
+});
+
+// B0: a commitment follow-up is one of the call's proactive asks (PROACTIVE_BUDGET).
+describe('the commitment follow-up in the call budget', () => {
+  const SID = 'call-follow-up-budget';
+  const running = "I'm going to start running in the mornings";
+  const decisions = () => logged.filter(([, msg]) => msg === 'FOLLOWUP_DECISION').map(([f]) => f);
+  /** The pick's store read, during which `during` runs: a crisis landing mid-pick. */
+  const midPick = (during: () => void): FollowUpGateDeps => ({
+    ...deps(),
+    lastAsked: async (userId, keys) => {
+      during();
+      return liveFollowUpGateDeps.lastAsked(userId, keys);
+    },
+  });
+
+  beforeEach(() => {
+    commitments.list = [commitment(running, NOW - 4 * DAY)];
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    clearOpenerClaims();
+    resetCrisisCallRisk();
+  });
+
+  it('claims the slot, so a later asker on the call is refused', async () => {
+    vi.stubEnv('PROACTIVE_BUDGET', 'on');
+    expect(peekProactiveSlot(SID)).toBeUndefined();
+    expect((await callStart(NOW, { sessionId: SID }))?.message).toContain('start running');
+    expect(peekProactiveSlot(SID)).toBe('commitment-insight');
+    expect(claimProactiveSlot(SID, 'recall-trigger')).toEqual({
+      ok: false,
+      heldBy: 'commitment-insight',
+    });
+  });
+
+  it('does not ask when another asker holds the slot, or with no sessionId', async () => {
+    vi.stubEnv('PROACTIVE_BUDGET', 'on');
+    claimOpenerFollowUp(USER, 'greeting', SID);
+    expect(await callStart(NOW, { sessionId: SID })).toBeNull();
+    newInstance();
+    expect(await callStart(NOW)).toBeNull();
+    expect(decisions().map((d) => d.reason)).toEqual(['budget', 'budget']);
+  });
+
+  it('condition 8: a crisis after the claim drops the line before it is injected', async () => {
+    const crisisMidPick = midPick(() => noteCrisisRisk(SID));
+    expect(await callStart(NOW, { sessionId: SID }, crisisMidPick)).not.toBeNull(); // off: as main
+    resetCrisisCallRisk();
+    vi.stubEnv('PROACTIVE_BUDGET', 'on');
+    newInstance();
+    expect(await callStart(NOW, { sessionId: SID }, crisisMidPick)).toBeNull();
+    expect(peekProactiveSlot(SID)).toBe('safety');
+    expect(decisions().at(-1)).toMatchObject({ picked: false, reason: 'budget' });
+
+    clearOpenerClaims();
+    resetCrisisCallRisk();
+    newInstance();
+    const spentMidPick = midPick(() => spendForSafety(SID));
+    expect(await callStart(NOW, { sessionId: SID }, spentMidPick)).toBeNull();
+  });
+
+  it('a pick that finds nothing gives the slot back', async () => {
+    vi.stubEnv('PROACTIVE_BUDGET', 'on');
+    commitments.list = [];
+    expect(await callStart(NOW, { sessionId: SID })).toBeNull();
+    expect(peekProactiveSlot(SID)).toBeUndefined();
+  });
+
+  it('a crisis turn reads the same with PROACTIVE_BUDGET on and off', async () => {
+    const crisisTurns = [{ isCrisis: true }, { softCheck: true }, { shouldOverrideLLM: true }];
+    const run = async () => {
+      const out: unknown[] = [];
+      for (const crisis of crisisTurns) {
+        newInstance();
+        clearOpenerClaims();
+        logged.length = 0;
+        out.push(await callStart(NOW, { sessionId: SID, crisis }), JSON.stringify(logged));
+      }
+      return out;
+    };
+    const off = await run();
+    vi.stubEnv('PROACTIVE_BUDGET', 'on');
+    const on = await run();
+    expect(off.filter((o) => o === null)).toHaveLength(crisisTurns.length);
+    expect(off.join('')).toContain('"reason":"crisis"');
+    expect(on).toEqual(off);
   });
 });
 

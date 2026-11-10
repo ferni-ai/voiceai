@@ -36,6 +36,7 @@ import { wasInsightSurfaced } from '../../intelligence/index.js';
 import { commitmentKey, isAskableCommitment } from '../../utils/commitment-filters.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { insightMayAsk, keepInsight } from './commitment-insight-budget.js';
 
 const log = createLogger({ module: 'CommitmentFollowUpGate' });
 
@@ -59,7 +60,7 @@ export interface SurfacedInsight {
 }
 
 type Gated = 'crisis' | 'heavy-mood' | 'low-quality' | 'future-event' | 'call-not-completed';
-type Unasked = 'asked-recently' | 'store-unreadable' | 'timeout';
+type Unasked = 'asked-recently' | 'store-unreadable' | 'timeout' | 'budget';
 export type FollowUpReason = 'picked' | 'none' | 'other-insight' | Gated | Unasked;
 
 interface Decision {
@@ -274,6 +275,8 @@ export async function surfaceProactiveInsight(
     decision = { reason: 'crisis', topicHash: null };
   } else if ((input.distressLevel ?? 0) >= HEAVY_DISTRESS) {
     decision = { reason: 'heavy-mood', topicHash: null };
+  } else if (!insightMayAsk(input.sessionId)) {
+    decision = { reason: 'budget', topicHash: null }; // PROACTIVE_BUDGET: the call's slot is taken
   } else {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<Decision>((resolve) => {
@@ -288,6 +291,8 @@ export async function surfaceProactiveInsight(
         return { reason: 'store-unreadable', topicHash: null };
       })
       .finally(() => clearTimeout(timer));
+    if (!keepInsight(!!decision.insight, input.sessionId))
+      decision = { ...decision, insight: undefined, reason: 'budget' };
   }
   if (start) logDecision(input, decision);
   return decision.insight ?? null;
