@@ -14,7 +14,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { CRISIS_CONTEXTUAL } from '../../src/agents/__tests__/fixtures/crisis-contextual.js';
-import { CRISIS_HELDOUT } from '../../src/agents/__tests__/fixtures/crisis-heldout.js';
+import { CRISIS_HELDOUT_RETIRED } from '../../src/agents/__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_TEST_BLIND } from '../../src/agents/__tests__/fixtures/crisis-test-blind.js';
 import { detectCrisis } from '../../src/agents/safety/crisis-guard.js';
 import { agreementOutcome } from '../../src/services/safety/crisis-agreement.js';
@@ -111,7 +111,7 @@ const bth: Case[] = CRISIS_TEST_CASES.filter(
   kind: c.category,
 }));
 const sets: Record<string, Case[]> = {
-  dev: CRISIS_HELDOUT,
+  dev: CRISIS_HELDOUT_RETIRED,
   blind: CRISIS_TEST_BLIND,
   context: CRISIS_CONTEXTUAL,
   redteam,

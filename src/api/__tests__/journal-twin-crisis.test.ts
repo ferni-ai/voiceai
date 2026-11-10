@@ -9,7 +9,7 @@ import { Readable } from 'node:stream';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { llm } from '@livekit/agents';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CRISIS_HELDOUT } from '../../agents/__tests__/fixtures/crisis-heldout.js';
+import { CRISIS_HELDOUT_RETIRED } from '../../agents/__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_CONTEXTUAL } from '../../agents/__tests__/fixtures/crisis-contextual.js';
 
 const order: string[] = [];
@@ -189,7 +189,7 @@ describe('journal twin reply: the crisis read', () => {
 
   it('never lower than the voice turn, line for line', async () => {
     const lines = [
-      ...CRISIS_HELDOUT.map((row) => row.text),
+      ...CRISIS_HELDOUT_RETIRED.map((row) => row.text),
       ...CRISIS_CONTEXTUAL.map((row) => row.text),
     ];
     const tiers = { replace: 0, guide: 0, pass: 0 };

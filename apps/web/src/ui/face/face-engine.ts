@@ -17,6 +17,7 @@
 import type { ExpressionId } from '../../config/avatar-expressions.js';
 import { isMotionFlagOn } from '../../config/motion-flags.js';
 import { createLogger } from '../../utils/logger.js';
+import { crisisFaceAllows, isCrisisFaceHeld } from './crisis-face-hold.js';
 import { mayReplace, resolveFace, type FaceSource, type HeldFace } from './face-model.js';
 import { createFaceRenderer, type FaceRenderer } from './face-renderer.js';
 
@@ -68,12 +69,15 @@ function scheduleBlink(): void {
 
 /**
  * Asks for a face. Returns false when nothing changed: an unknown name, the
- * face already showing, or a lower-priority request while a higher one holds.
+ * face already showing, a face the crisis hold refuses, or a lower-priority
+ * request while a higher one holds. During a crisis a calm face beats any hold,
+ * so nothing that was showing outlasts the safety face.
  */
 export function setFace(
   name: string,
   opts: { source?: FaceSource; hold?: number; instant?: boolean } = {}
 ): boolean {
+  if (!crisisFaceAllows(name)) return false;
   const id = resolveFace(name);
   if (!id) {
     log.debug('Unknown face, ignored', name);
@@ -81,7 +85,8 @@ export function setFace(
   }
   const source = opts.source ?? 'reaction';
   const now = Date.now();
-  if (!mayReplace(held, { id, source }, now)) return false;
+  const calmOverride = isCrisisFaceHeld() && held?.id !== id;
+  if (!calmOverride && !mayReplace(held, { id, source }, now)) return false;
   const r = ensureRenderer();
   if (!r) return false;
   held = { id, source, until: now + (opts.hold ?? 0) };
@@ -105,11 +110,13 @@ export function resetFaceEngine(): void {
 }
 
 /**
- * For the older expression APIs (ferni-expressions, luxo-expressions): when
- * the engine is on it takes the request and returns true, and the caller
- * does nothing more; when off it returns false and the old path runs as before.
+ * For the older expression APIs (ferni-expressions, luxo-expressions), which
+ * call this before they draw anything: when the crisis hold refuses the face,
+ * or the engine is on and takes the request, it returns true and the caller
+ * does nothing more; otherwise it returns false and the old path runs as before.
  */
 export function handOffToFaceEngine(name: string, source: FaceSource, hold = 0): boolean {
+  if (!crisisFaceAllows(name)) return true;
   if (!faceEngineEnabled()) return false;
   setFace(name, { source, hold });
   return true;

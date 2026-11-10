@@ -47,6 +47,7 @@ import { handleAgentAckMessage } from './agent-ack-handlers.js';
 import { handleMomentMessage } from './moment-messages.js';
 import { routeExpressionMessage } from './expression-routes.js';
 import { observeListenSignal } from './backchannel-signal.js';
+import { observeCrisisSignal } from './crisis-face.js';
 import { avatarFeedback } from '../ui/avatar-feedback.ui.js';
 import { celebrationsUI } from '../ui/celebrations.ui.js';
 import { coachUI } from '../ui/coach.ui.js';
@@ -143,12 +144,10 @@ export function clearLastAgentResponse(): void {
   lastAgentResponse = null;
 }
 
-/**
- * Handle incoming data messages from the agent.
- * Routes to appropriate handler based on message type.
- */
+/** Handle a data message: every observer sees it, then the first handler that takes it. */
 export function handleDataMessage(message: DataMessage): void {
   observeListenSignal(message); // avatar listen nods (ferni:listen-nods); observes, never consumes
+  observeCrisisSignal(message); // crisis: calm faces only until the call ends; observes, never consumes
   void handoffService.processDataMessage(message); // handoff: async, fire and forget
 
   // 🎬 Try to process as cameo (team member pop-in)

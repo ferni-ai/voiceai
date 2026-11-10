@@ -1,7 +1,7 @@
 /**
  * Crisis Guard — measured floors on two labelled sets
  *
- * CRISIS_HELDOUT (120 cases) is the development set: the patterns were tuned
+ * CRISIS_HELDOUT_RETIRED (120 cases) is the development set: the patterns were tuned
  * against it, so its floors are strict and a drop means a regression.
  *
  * CRISIS_TEST_BLIND (150 cases) was written blind and is never tuned against.
@@ -13,7 +13,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { detectCrisis, guardPreResponse } from '../safety/crisis-guard.js';
-import { CRISIS_HELDOUT } from './fixtures/crisis-heldout.js';
+import { CRISIS_HELDOUT_RETIRED } from './fixtures/crisis-heldout-retired.js';
 import { CRISIS_TEST_BLIND } from './fixtures/crisis-test-blind.js';
 
 interface LabelledCase {
@@ -48,7 +48,7 @@ function measure(cases: readonly LabelledCase[]) {
 }
 
 describe('crisis guard on the development set', () => {
-  const m = measure(CRISIS_HELDOUT);
+  const m = measure(CRISIS_HELDOUT_RETIRED);
 
   it('catches at least 95% of risk messages', () => {
     expect(m.recall).toBeGreaterThanOrEqual(0.95);

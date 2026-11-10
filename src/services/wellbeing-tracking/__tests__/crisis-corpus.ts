@@ -9,7 +9,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { CRISIS_CONTEXTUAL } from '../../../agents/__tests__/fixtures/crisis-contextual.js';
-import { CRISIS_HELDOUT } from '../../../agents/__tests__/fixtures/crisis-heldout.js';
+import { CRISIS_HELDOUT_RETIRED } from '../../../agents/__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_RELAY } from '../../../agents/__tests__/fixtures/crisis-relay.js';
 import { CRISIS_TEST_BLIND } from '../../../agents/__tests__/fixtures/crisis-test-blind.js';
 import { CRISIS_TEST_CASES } from '../../superhuman/validation/crisis-test-cases.js';
@@ -119,7 +119,7 @@ const isRisk = (label: string): boolean => label === 'block' || label === 'crisi
 /** Every real-risk line, de-duplicated. */
 export function riskCorpus(): string[] {
   const lines: string[] = [
-    ...[...CRISIS_HELDOUT, ...CRISIS_TEST_BLIND, ...CRISIS_RELAY, ...CRISIS_CONTEXTUAL]
+    ...[...CRISIS_HELDOUT_RETIRED, ...CRISIS_TEST_BLIND, ...CRISIS_RELAY, ...CRISIS_CONTEXTUAL]
       .filter((c) => isRisk(c.label))
       .map((c) => c.text),
     ...CRISIS_TEST_CASES.filter((c) => c.expectedResult.shouldDetect).map((c) => c.input),

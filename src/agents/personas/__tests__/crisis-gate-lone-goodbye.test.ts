@@ -18,7 +18,7 @@ import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imm
 import { checkSemanticShortCircuit } from '../../processors/semantic-short-circuit.js';
 import { crisisSummary, startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import { CRISIS_CONTEXTUAL } from '../../__tests__/fixtures/crisis-contextual.js';
-import { CRISIS_HELDOUT } from '../../__tests__/fixtures/crisis-heldout.js';
+import { CRISIS_HELDOUT_RETIRED } from '../../__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_RELAY } from '../../__tests__/fixtures/crisis-relay.js';
 import { CRISIS_TEST_BLIND } from '../../__tests__/fixtures/crisis-test-blind.js';
 import { CRISIS_TEST_CASES } from '../../../services/superhuman/validation/crisis-test-cases.js';
@@ -327,7 +327,7 @@ interface Labelled {
 }
 const fromJson = (path: string): Labelled[] => JSON.parse(readFileSync(path, 'utf8')) as Labelled[];
 const POSITIVES: Labelled[] = [
-  ...CRISIS_HELDOUT,
+  ...CRISIS_HELDOUT_RETIRED,
   ...CRISIS_TEST_BLIND,
   ...CRISIS_CONTEXTUAL,
   ...CRISIS_RELAY,
