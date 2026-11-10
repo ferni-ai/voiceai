@@ -10,7 +10,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { llm } from '@livekit/agents';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CustomAgent } from '../../../types/custom-agent-api.js';
-import { CRISIS_HELDOUT } from '../../../agents/__tests__/fixtures/crisis-heldout.js';
+import { CRISIS_HELDOUT_RETIRED } from '../../../agents/__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_CONTEXTUAL } from '../../../agents/__tests__/fixtures/crisis-contextual.js';
 
 const order: string[] = [];
@@ -197,7 +197,7 @@ describe('custom-agent chat: the crisis read', () => {
 
   it('never lower than the voice turn, line for line', async () => {
     const rows = [
-      ...CRISIS_HELDOUT.map((row) => ({ text: row.text, history: [] as ChatTurn[] })),
+      ...CRISIS_HELDOUT_RETIRED.map((row) => ({ text: row.text, history: [] as ChatTurn[] })),
       ...CRISIS_CONTEXTUAL.map((row) => ({
         text: row.text,
         history: [

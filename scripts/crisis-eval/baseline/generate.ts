@@ -20,7 +20,7 @@ import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { CRISIS_CONTEXTUAL } from '../../../src/agents/__tests__/fixtures/crisis-contextual.js';
-import { CRISIS_HELDOUT } from '../../../src/agents/__tests__/fixtures/crisis-heldout.js';
+import { CRISIS_HELDOUT_RETIRED } from '../../../src/agents/__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_RELAY } from '../../../src/agents/__tests__/fixtures/crisis-relay.js';
 import { CRISIS_TEST_BLIND } from '../../../src/agents/__tests__/fixtures/crisis-test-blind.js';
 import { FLAG_MANIFEST } from '../../../src/config/flag-manifest.js';
@@ -118,7 +118,7 @@ export function corpora(): Record<string, Line[]> {
     texts(`${WB}/crisis-soft-pairs.json`).map((s) => s.slice(s.indexOf(' | ') + 3))
   );
   out[`${WB}/crisis-corpus.ts#RISK_FORMS`] = keyed(RISK_FORMS);
-  out[`${FX}/crisis-heldout.ts`] = keyed(CRISIS_HELDOUT.map((c) => c.text));
+  out[`${FX}/crisis-heldout-retired.ts`] = keyed(CRISIS_HELDOUT_RETIRED.map((c) => c.text));
   out[`${FX}/crisis-test-blind.ts`] = keyed(CRISIS_TEST_BLIND.map((c) => c.text));
   out[`${FX}/crisis-relay.ts`] = keyed(CRISIS_RELAY.map((c) => c.text));
   out[`${FX}/crisis-contextual.ts`] = keyed(CRISIS_CONTEXTUAL.map((c) => c.text));

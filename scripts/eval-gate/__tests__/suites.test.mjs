@@ -18,7 +18,7 @@ describe('suitesFor', () => {
 
   it('runs the crisis suite for safety code, its fixtures and its model config', () => {
     expect(suitesFor(['src/services/safety/crisis-classifier.ts'])).toEqual(['crisis_classifier']);
-    expect(suitesFor(['src/agents/__tests__/fixtures/crisis-heldout.ts'])).toEqual([
+    expect(suitesFor(['src/agents/__tests__/fixtures/crisis-heldout-retired.ts'])).toEqual([
       'crisis_classifier',
     ]);
     expect(suitesFor(['src/config/gemini-config.ts'])).toEqual(['crisis_classifier']);

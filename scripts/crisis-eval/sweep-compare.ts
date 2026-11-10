@@ -4,7 +4,7 @@
  * going down on any line is a lowering: severity, isCrisis, imminent danger, who
  * is at risk (self > third party > bereaved > none) or assessSafety's level.
  *
- * The fixtures include the held-out set, and the sweep runs in public CI logs, so
+ * The fixtures are crisis lines, and the sweep runs in public CI logs, so
  * a row's text never leaves compareSweeps: changes are reported by row id.
  */
 
