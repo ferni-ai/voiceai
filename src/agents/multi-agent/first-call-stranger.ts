@@ -14,6 +14,7 @@
  */
 
 import { returningOnceLoaded } from '../../services/session/deferred-profile.js';
+import type { Env } from '../../config/env-flag.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { isFirstCall } from '../personas/first-call-rapport.js';
 import type { CallerHistory } from './greeting-direction.js';
@@ -36,6 +37,28 @@ export const UNPLACED_GREETING_DIRECTION = STRANGER_GREETING_DIRECTION.replace(
   ', and this is the first time you have ever talked',
   ''
 );
+
+/** The example question in the stranger's hello that STRANGER_GREETING_EASY swaps out. */
+const MIND_QUESTION = 'maybe a quick easy question about how they are or what is on their mind.';
+
+/**
+ * STRANGER_GREETING_EASY=on (off by default): the first-call hello asks how it is going.
+ *
+ * Dev red team (2026-11-10, 5 first calls, #3668): told to ask "about how they are or
+ * what is on their mind", the hello asked what was on their mind (2 of 5) or how they
+ * were holding up (3 of 5) before the caller had said a word. One asks for a reason to
+ * call, like a help desk; the other assumes something is wrong, and a caller who rang
+ * to chat opened by saying nothing was. Off: the direction is the same string as before.
+ */
+export const EASY_QUESTION =
+  'maybe a quick easy question like "how\'s it going?" or "how\'s your day been?". Not ' +
+  '"what\'s on your mind" or "what brings you", which ask for a reason to call, and not ' +
+  '"how are you holding up", which assumes something is wrong.';
+
+/** The stranger's (or unplaced caller's) hello direction, with the easy question when the flag is on. */
+export function easyStrangerDirection(base: string, env: Env = process.env): string {
+  return env.STRANGER_GREETING_EASY === 'on' ? base.replace(MIND_QUESTION, EASY_QUESTION) : base;
+}
 
 /** The fact that says so, beside the time of day and their name. */
 export const FIRST_CALL_FACTS: Readonly<Record<string, string>> = {

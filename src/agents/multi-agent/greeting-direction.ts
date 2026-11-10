@@ -88,9 +88,9 @@ export function greetingDirection(
   const playful = personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env);
   const careful = last.tender === true || isHeavyMoment([last.topic]);
   const base = last.firstCall
-    ? stranger.STRANGER_GREETING_DIRECTION
+    ? stranger.easyStrangerDirection(stranger.STRANGER_GREETING_DIRECTION, env)
     : last.unplaced
-      ? stranger.UNPLACED_GREETING_DIRECTION
+      ? stranger.easyStrangerDirection(stranger.UNPLACED_GREETING_DIRECTION, env)
       : playful && !careful
         ? PLAYFUL_GREETING_DIRECTION
         : GREETING_DIRECTION;
