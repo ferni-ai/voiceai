@@ -17,7 +17,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { llm } from '@livekit/agents';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import { CALLER_CHECK } from '../../../services/safety/crisis-caller-check.js';
 import { CRISIS_SEVERITY } from '../../../services/safety/crisis-guard.js';
@@ -233,6 +233,19 @@ const cellOf = (line: string, voice: VoiceKey): Cell => {
 const mainFlipped = (line: string, voice: VoiceKey): boolean =>
   mainCell(line, 'none').subject === 'third_party' && mainCell(line, voice).subject === 'self';
 
+/**
+ * The turn reads the local hour: from 23:00 to 05:00 a late_night_detected behavior note follows
+ * the crisis override in the system prompt, so a contract's hash depended on the runner's clock
+ * and the merge queue went red from 23:00 UTC. Every read here (and the golden) is at noon local;
+ * only Date is faked, and it keeps ticking from there.
+ */
+beforeAll(() => {
+  vi.useFakeTimers({ toFake: ['Date'], shouldAdvanceTime: true });
+  vi.setSystemTime(new Date(2026, 10, 9, 12, 0, 0));
+});
+afterAll(() => {
+  vi.useRealTimers();
+});
 beforeEach(readMatrix, 120_000);
 
 describe.skipIf(UPDATE)("the caller's voice keeps third-party help and adds a check", () => {

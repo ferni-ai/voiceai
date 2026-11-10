@@ -33,6 +33,7 @@ export { EMERGENCY_FOR_THEM } from './crisis-guard-replies.js';
 export { coachingFloorRead, type CoachingFloorRead } from './crisis-coaching-floor.js';
 export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.js';
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
+// Whether a crisis read is still out on a call: handoff arrival lines stay as today (arrival-once.ts).
 export { crisisReadInFlight, crisisRiskThisCall } from './crisis-call-risk.js';
 export { offersCrisisLine } from './crisis-line-speech.js';
 // What Ferni never dials (911, 988, N11 in any spelling), for callers outside the safety layer.
