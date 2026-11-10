@@ -6,7 +6,7 @@
  * - Twilio SMS
  * - Twilio Voice
  * - Google Calendar
- * - Restaurant APIs (OpenTable, Resy, Yelp)
+ * - Restaurant search (Google Places)
  * - LiveKit SIP
  * 
  * Usage:

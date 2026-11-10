@@ -26,7 +26,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { CRISIS_CONTEXTUAL } from '../../src/agents/__tests__/fixtures/crisis-contextual.js';
-import { CRISIS_HELDOUT } from '../../src/agents/__tests__/fixtures/crisis-heldout.js';
+import { CRISIS_HELDOUT_RETIRED } from '../../src/agents/__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_RELAY } from '../../src/agents/__tests__/fixtures/crisis-relay.js';
 import { CRISIS_TEST_BLIND } from '../../src/agents/__tests__/fixtures/crisis-test-blind.js';
 import {
@@ -130,7 +130,7 @@ const labelled = (
 const json = (file: string) => JSON.parse(readFileSync(file, 'utf8'));
 const gloomy = json('scripts/crisis-eval/gloomy-ferni-2026-10-11.json');
 const cases: Case[] = [
-  ...labelled('dev', CRISIS_HELDOUT),
+  ...labelled('dev', CRISIS_HELDOUT_RETIRED),
   ...labelled('blind', CRISIS_TEST_BLIND),
   ...labelled('context', CRISIS_CONTEXTUAL),
   ...labelled('redteam', json('scripts/crisis-eval/redteam-2026-10-05.json')),

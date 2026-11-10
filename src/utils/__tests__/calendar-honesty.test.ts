@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { thanksgivingDay } from '../us-holidays.js';
-import { calendarDaysSince, daysAgoInWords } from '../calendar-days.js';
+import { calendarDaysSince, daysAgoInWords, localDayKey } from '../calendar-days.js';
 import { callerHistory } from '../../agents/multi-agent/greeting-direction.js';
 
 describe('thanksgivingDay', () => {
@@ -41,6 +41,17 @@ describe('calendarDaysSince', () => {
   it('reads stored date strings, and never invents a gap from a bad date', () => {
     expect(calendarDaysSince('2026-10-17T12:00:00Z', at('2026-10-18T12:00:00Z'), 'UTC')).toBe(1);
     expect(calendarDaysSince('not a date', at('2026-10-18T12:00:00Z'), 'UTC')).toBe(0);
+  });
+});
+
+describe('localDayKey', () => {
+  it('is the date where the user is, UTC for none or an unknown zone', () => {
+    const lateThursdayNy = Date.parse('2026-11-06T04:30:00Z');
+    expect(localDayKey(lateThursdayNy, 'America/New_York')).toBe('2026-11-05');
+    expect(localDayKey(lateThursdayNy, 'Pacific/Auckland')).toBe('2026-11-06');
+    expect(localDayKey(lateThursdayNy)).toBe('2026-11-06');
+    expect(localDayKey(lateThursdayNy, 'Not/AZone')).toBe('2026-11-06');
+    expect(localDayKey(Number.NaN, 'UTC')).toBe('');
   });
 });
 

@@ -60,6 +60,20 @@ describe('signOutOfThisBrowser', () => {
     ]);
   });
 
+  it("drops the service worker's offline copies of the person's API responses", async () => {
+    // public/sw.js keeps /api/user/profile and /api/relationship/stage in this cache and
+    // serves them when the network fails: the next person must not get them.
+    signOutReleasingPush.mockResolvedValue(undefined);
+    const cacheDelete = vi.fn(async () => true);
+    vi.stubGlobal('caches', { delete: cacheDelete });
+    try {
+      expect(await signOutOfThisBrowser(vi.fn())).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(cacheDelete).toHaveBeenCalledWith('ferni-api-v4');
+  });
+
   it('keeps everything and says so when signing out fails', async () => {
     signOutReleasingPush.mockRejectedValue(new Error('network down'));
     const reload = vi.fn();

@@ -6,7 +6,7 @@
 
 import { readFileSync } from 'node:fs';
 import { CRISIS_CONTEXTUAL } from '../../src/agents/__tests__/fixtures/crisis-contextual.js';
-import { CRISIS_HELDOUT } from '../../src/agents/__tests__/fixtures/crisis-heldout.js';
+import { CRISIS_HELDOUT_RETIRED } from '../../src/agents/__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_TEST_BLIND } from '../../src/agents/__tests__/fixtures/crisis-test-blind.js';
 import { CRISIS_TEST_CASES } from '../../src/services/superhuman/validation/crisis-test-cases.js';
 
@@ -40,7 +40,7 @@ const json = (file: string) => JSON.parse(readFileSync(file, 'utf8'));
 /** Every labelled set in the repo (about 291 risk and 201 benign cases). */
 export function labelledCases(): Case[] {
   return [
-    ...labelled('dev', CRISIS_HELDOUT),
+    ...labelled('dev', CRISIS_HELDOUT_RETIRED),
     ...labelled('blind', CRISIS_TEST_BLIND),
     ...labelled('context', CRISIS_CONTEXTUAL),
     ...labelled('redteam', json('scripts/crisis-eval/redteam-2026-10-05.json')),
