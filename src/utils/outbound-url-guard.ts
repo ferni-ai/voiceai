@@ -17,12 +17,12 @@
 
 import dns, { type LookupAddress } from 'node:dns';
 import net, { type LookupFunction } from 'node:net';
-// The guarded Agent is handed to the runtime's global fetch, which is the undici bundled with
-// Node, not this package. Node 22's fetch uses the legacy handler API and Node 26's (undici 8)
-// the newer one; an undici 6 Agent understood only the legacy one, so on Node 26 every guarded
-// request failed in dispatch (#3194). undici 7 Agents accept both, so the package is pinned to
-// 7 until the bundled fetch of every supported Node is undici 8.
-import { Agent } from 'undici';
+// The guarded Agent goes to this package's own fetch, never the runtime's global one. The
+// global fetch is the undici bundled with Node (6 on Node 22), and a dispatcher only works with
+// a fetch that speaks its handler API: undici 8 Agents dropped the legacy API Node 22's fetch
+// uses, so pairing them threw in dispatch on every guarded request (#3653), as an undici 6
+// Agent did on Node 26 (#3194). Fetch and Agent from one package always match.
+import { Agent, fetch as undiciFetch, type RequestInit as UndiciRequestInit } from 'undici';
 
 const MAX_REDIRECTS = 3;
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -171,18 +171,42 @@ export const guardedLookup: LookupFunction = (hostname, options, callback) => {
 };
 
 /**
- * fetch() rejects with TypeError('fetch failed') and the real reason in `cause`. Surface a
- * connect-time refusal as the OutboundUrlBlockedError it is, so callers that branch on it (the
- * marketplace HTTP executor) treat a rebound name the same as one refused before the request.
+ * The one guarded request: undici's fetch through the guarded Agent, so every socket resolves
+ * through guardedLookup. fetch() rejects with TypeError('fetch failed') and the real reason in
+ * `cause`; a connect-time refusal surfaces as the OutboundUrlBlockedError it is, so callers that
+ * branch on it (the marketplace HTTP executor) treat a rebound name the same as one refused
+ * before the request.
  */
 async function fetchSurfacingBlock(url: URL, init: RequestInit): Promise<Response> {
+  let response: unknown;
   try {
-    return await fetch(url, init);
+    const guarded: UndiciRequestInit = {
+      ...(init as UndiciRequestInit),
+      dispatcher: getGuardedAgent(),
+    };
+    response = await undiciFetch(url, guarded);
   } catch (err) {
     const cause = (err as { cause?: unknown } | null)?.cause;
     if (cause instanceof OutboundUrlBlockedError) throw cause;
     throw err;
   }
+  if (!isFetchResponse(response)) throw new TypeError('undici fetch did not return a Response');
+  return response;
+}
+
+/**
+ * undici's Response is a WHATWG Response at runtime, but it is not an instance of the global one
+ * (another copy of undici) and its body is typed with undici's own web-stream types, so it is
+ * narrowed by shape rather than cast.
+ */
+function isFetchResponse(value: unknown): value is Response {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { status?: unknown }).status === 'number' &&
+    typeof (value as { headers?: { get?: unknown } }).headers?.get === 'function' &&
+    'body' in value
+  );
 }
 
 let guardedAgent: Agent | undefined;
@@ -220,8 +244,7 @@ export async function safeOutboundFetch(
       headers,
       signal,
       redirect: 'manual',
-      dispatcher: getGuardedAgent(),
-    } as RequestInit);
+    });
     const location = response.headers.get('location');
     if (response.status < 300 || response.status >= 400 || !location) return response;
 
@@ -257,11 +280,7 @@ export async function guardedStreamFetch(
   options: OutboundUrlOptions = {}
 ): Promise<Response> {
   const url = await assertSafeOutboundUrl(String(rawUrl), options);
-  return fetchSurfacingBlock(url, {
-    ...init,
-    redirect: 'error',
-    dispatcher: getGuardedAgent(),
-  } as RequestInit);
+  return fetchSurfacingBlock(url, { ...init, redirect: 'error' });
 }
 
 /** Read at most maxBytes of a response body as text, then stop reading. */
