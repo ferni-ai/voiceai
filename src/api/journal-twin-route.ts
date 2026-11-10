@@ -6,7 +6,10 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { readTypedMessageForCrisis } from '../agents/personas/crisis-gate-text.js';
+import {
+  readTypedMessageForCrisis,
+  type TypedCrisisRead,
+} from '../agents/personas/crisis-gate-text.js';
 import { generateTwinResponse, hasTwinProfile } from '../services/custom-agent/twin-reply.js';
 import { withOwnTwin, type TwinRequestBody } from '../services/custom-agent/twin-request.js';
 import { getLogger } from '../utils/safe-logger.js';
@@ -19,6 +22,10 @@ const log = getLogger();
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
   sendJSON(res, data, status);
 }
+
+/** The crisis guidance the twin reads last, or nothing when the read didn't guide. */
+const guidanceNoteOf = (crisis: TypedCrisisRead | null): string =>
+  crisis?.action === 'guide' ? crisis.guidanceNote : '';
 
 /** POST /api/journal/twin-response - Generate response from Digital Twin */
 export async function handleJournalTwinResponse(
@@ -53,7 +60,7 @@ export async function handleJournalTwinResponse(
         relevantJournals: body.relevantJournals ?? [],
         keyThemes: body.keyThemes ?? [],
       },
-      crisis?.action === 'guide' ? crisis.guidanceNote : ''
+      guidanceNoteOf(crisis)
     );
     if (!response) {
       sendJson(res, 503, { error: 'Twin response unavailable' });

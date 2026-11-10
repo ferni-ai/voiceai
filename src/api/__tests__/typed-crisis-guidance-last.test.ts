@@ -65,7 +65,10 @@ const { handleJournalRoutes } = await import('../journal-routes.js');
 const GUIDE = 'some nights lately i wish i could just not wake up';
 const SPEAKER = 'Captain Nova:';
 
-type Turn = { from: 'person' | 'agent'; text: string };
+interface Turn {
+  from: 'person' | 'agent';
+  text: string;
+}
 
 /** The voice turn's decision for these words and earlier turns. */
 function voiceAction(text: string, earlier: Turn[] = []) {

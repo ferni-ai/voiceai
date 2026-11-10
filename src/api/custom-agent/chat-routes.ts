@@ -66,23 +66,29 @@ export function readChatRequest(
   return { message, history, scene };
 }
 
+export interface AgentChatPromptOptions {
+  /** Flags are read from here (process.env when absent). */
+  env?: Record<string, string | undefined>;
+  /** The crisis read's guidance (readTypedMessageForCrisis): last, right before the speaker cue. */
+  guidanceNote?: string;
+}
+
 /**
  * The agent's own prompt, the scene, the conversation so far, then its turn. A crisis
- * guidance note (readTypedMessageForCrisis) goes last, right before the speaker cue, so
- * no style line or opener cue follows it.
+ * guidance note goes last, before only the speaker cue, so no style line or opener cue
+ * follows it.
  */
 export function buildAgentChatPrompt(
   agent: CustomAgent,
   history: ChatTurn[],
   message: string,
   scene: string,
-  env: Record<string, string | undefined> = process.env,
-  guidanceNote = ''
+  options: AgentChatPromptOptions = {}
 ): string {
   // CUSTOM_AGENT_CHAT_HONESTY: the live call's prompt (owner text kept as data, honest when
   // sincerely asked whether it's an AI) instead of one that pastes the owner's text raw.
   // The name is owner text too and lands after the profile, so it is cleaned the same way.
-  const honest = flagOn('CUSTOM_AGENT_CHAT_HONESTY', env);
+  const honest = flagOn('CUSTOM_AGENT_CHAT_HONESTY', options.env);
   const rawName = agent.displayName || agent.name;
   const name = honest
     ? sanitizeOwnerText(rawName, CUSTOM_AGENT_NAME_MAX) || 'your character'
@@ -103,7 +109,7 @@ export function buildAgentChatPrompt(
     history.length || message ? '## Conversation so far' : '',
     ...history.map((turn) => `${turn.from === 'person' ? 'Them' : name}: ${turn.text}`),
     message ? `Them: ${message}` : `(${name} opens the conversation.)`,
-    guidanceNote,
+    options.guidanceNote,
     `${name}:`,
   ]
     .filter(Boolean)
@@ -140,18 +146,11 @@ export async function handleAgentChat(
     sendJson(res, 404, { error: 'Agent not found' });
     return true;
   }
-  const note = crisis.action === 'guide' ? crisis.guidanceNote : '';
+  const options = { guidanceNote: crisis.action === 'guide' ? crisis.guidanceNote : '' };
   const reply = await callLLM(
     opening
-      ? buildAgentChatPrompt(agent, request.history, '', crisis.message, process.env, note)
-      : buildAgentChatPrompt(
-          agent,
-          request.history,
-          crisis.message,
-          request.scene,
-          process.env,
-          note
-        ),
+      ? buildAgentChatPrompt(agent, request.history, '', crisis.message, options)
+      : buildAgentChatPrompt(agent, request.history, crisis.message, request.scene, options),
     { maxTokens: 400, temperature: 0.8 }
   );
   if (!reply?.trim()) {
