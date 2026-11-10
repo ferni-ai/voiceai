@@ -31,6 +31,7 @@ import { prefersReducedMotion } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { disposePorchLight, initPorchLight } from './porch-light.ui.js';
+import { crisisAffectAllows } from './face/crisis-face-hold.js';
 
 const log = createLogger('AvatarLamp');
 
@@ -193,7 +194,7 @@ function pauseBreathingFor(duration: number): void {
  * @param count - Number of bounces
  */
 export function bounce(intensity: number = 0.5, count: number = 1): void {
-  if (!coachAvatar || !avatarContainer) return;
+  if (!coachAvatar || !avatarContainer || !crisisAffectAllows('lamp')) return;
 
   pauseBreathingFor(count * 400 + 300);
 
@@ -236,7 +237,6 @@ export function bounce(intensity: number = 0.5, count: number = 1): void {
     });
   }
 
-  // Settle back to normal
   tl.to(coachAvatar, {
     scaleY: 1,
     scaleX: 1,
@@ -461,7 +461,7 @@ export function unshrink(): void {
  * @param intensity - 0 to 1
  */
 export function shake(intensity: number = 0.5): void {
-  if (!coachAvatar) return;
+  if (!coachAvatar || !crisisAffectAllows('lamp')) return;
 
   pauseBreathingFor(500);
 

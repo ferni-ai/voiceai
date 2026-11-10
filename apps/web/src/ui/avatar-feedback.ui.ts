@@ -25,6 +25,7 @@ import {
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { requestWhisperSlot, resetAvatarSlot, setWhisperOwnsSlot } from './avatar-slot.ui.js';
+import { crisisAffectAllows } from './face/crisis-face-hold.js';
 
 const log = createLogger('AvatarFeedback');
 
@@ -1042,9 +1043,8 @@ type PixarReactionType = 'nod' | 'shake' | 'bounce' | 'pulse';
  * @param type - The Pixar reaction type to play
  */
 export function playPixarReaction(type: PixarReactionType): void {
-  if (!avatarContainer) return;
+  if (!avatarContainer || (type === 'bounce' && !crisisAffectAllows('squash'))) return;
 
-  // Duration map for each reaction type
   const durations: Record<PixarReactionType, number> = {
     nod: 400,
     shake: 400,

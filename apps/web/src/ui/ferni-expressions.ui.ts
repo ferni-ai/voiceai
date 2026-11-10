@@ -53,6 +53,7 @@ import { resetFeelingPosture, tweenFeelingPosture } from './avatar-motion/feelin
 import { resetLidPathOwner, tweenLidPaths } from './avatar-motion/lid-path-owner.js';
 import { DOME_POSES, NEUTRAL_DOME_PATHS, domePaths, type DomePose } from './face/dome-poses.js';
 import { handOffToFaceEngine } from './face/face-engine.js';
+import { crisisAffectAllows } from './face/crisis-face-hold.js';
 
 const log = createLogger('FerniExpressions');
 
@@ -398,7 +399,7 @@ export function playHeldPose(
   holdDuration: number = DURATION.SLOW
 ): void {
   const avatarContainer = document.querySelector('.avatar-container') as HTMLElement;
-  if (!avatarContainer) return;
+  if (!avatarContainer || !crisisAffectAllows('squash')) return; // its squash and hop, whatever the face
   
   if (reactionTimeline) reactionTimeline.kill();
   
@@ -551,9 +552,8 @@ export function playNoticing(duration: number = 1200): void {
  * Eyes brighten with particle sparkles - genuine, not performative.
  */
 export function triggerWarmthSparkle(): void {
-  if (!sparkleContainer) return;
+  if (!sparkleContainer || !crisisAffectAllows('sparkle')) return;
   
-  // Clear existing sparkles
   sparkleContainer.innerHTML = '';
   
   // Create sparkle particles - fewer than before, more elegant

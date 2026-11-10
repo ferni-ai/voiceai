@@ -11,6 +11,11 @@
  * - the legacy data-emotion eyes and glow (presence) and the coach's emotion
  *   reactions, which never reach the engine.
  *
+ * Every playful affect asks `crisisAffectAllows(kind)` the same way: the
+ * squash-and-stretch hops (presence, coach, held poses, pixar and gentle
+ * bounces), sparkles, the lamp's bounce and laugh shake, tap reactions and
+ * celebration overlays. Only warmth and glow play during the hold.
+ *
  * Only the call's end releases the hold. No message does: the server sends no
  * "crisis over" signal, so a missing, unknown or malformed signal, or a
  * reconnect mid-call, keeps the hold (fails closed).
@@ -18,12 +23,17 @@
  * @module ui/face/crisis-face-hold
  */
 
-import { CRISIS_CALM_FACES } from '../../config/crisis-faces.js';
+import {
+  CRISIS_CALM_AFFECT,
+  CRISIS_CALM_FACES,
+  type CrisisAffect,
+} from '../../config/crisis-faces.js';
 import { createLogger } from '../../utils/logger.js';
 
 const log = createLogger('CrisisFaceHold');
 
 const CALM: ReadonlySet<string> = new Set(CRISIS_CALM_FACES);
+const CALM_AFFECT: ReadonlySet<CrisisAffect> = new Set(CRISIS_CALM_AFFECT);
 
 let held = false;
 
@@ -46,5 +56,12 @@ export function isCrisisFaceHeld(): boolean {
 export function crisisFaceAllows(name: string): boolean {
   if (!held || CALM.has(name)) return true;
   log.debug('Face refused during crisis hold', { name });
+  return false;
+}
+
+/** Whether a kind of affect may play now: anything outside a crisis, only warmth and glow inside one. */
+export function crisisAffectAllows(kind: CrisisAffect): boolean {
+  if (!held || CALM_AFFECT.has(kind)) return true;
+  log.debug('Affect refused during crisis hold', { kind });
   return false;
 }

@@ -28,7 +28,7 @@
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { breathingComposite } from './avatar-motion/compositor.js';
-import { crisisFaceAllows } from './face/crisis-face-hold.js';
+import { crisisAffectAllows, crisisFaceAllows } from './face/crisis-face-hold.js';
 import { disposeGaze, initGaze } from './avatar-motion/gaze.js';
 import { startAvatarGlowPulse } from './avatar-motion/glow-layer.js';
 import { isNaturalBlinkEnabled } from './avatar-motion/natural-blink.js';
@@ -892,7 +892,7 @@ export function flashEmotion(emotion: VoiceEmotion, durationMs: number = 600): v
  * Now using Web Animations API for proper squash/stretch deformation!
  */
 export function react(type: 'nod' | 'shake' | 'bounce' | 'pulse'): void {
-  if (!avatarContainer) return;
+  if (!avatarContainer || (type === 'bounce' && !crisisAffectAllows('squash'))) return;
   
   // Check for reduced motion preference
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
