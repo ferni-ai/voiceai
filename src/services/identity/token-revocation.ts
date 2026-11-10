@@ -12,7 +12,7 @@
  *   and, like 'revoked', is kept apart from the bounded cache, so no amount of other
  *   traffic evicts it (#3228). Another server instance learns within the minute. A
  *   lookup's read never replaces a newer one, so a slow lookup settling late can't undo
- *   a revoke a newer lookup saw.
+ *   a revoke a newer lookup saw; of two started together, the more refusing read is kept.
  * - One lookup at a time: lax checks of an account that arrive while its lookup is in
  *   flight wait for that lookup instead of starting their own (JOIN_MS), so the app's
  *   burst of authed calls on load spends one budget token, not one each.
@@ -132,6 +132,17 @@ function countedLog(event: string, message: string) {
   };
 }
 
+/**
+ * Whether `a` refuses more tokens than `b`: 'gone' and disabled refuse every token; then a
+ * later tokensValidAfterTime refuses more, and an account with a provider gets no anonymous skip
+ */
+function refusesMore(a: AccountState, b: AccountState): boolean {
+  if (a.gone || b.gone) return a.gone && !b.gone;
+  if (a.disabled !== b.disabled) return a.disabled;
+  if (a.validAfterMs !== b.validAfterMs) return a.validAfterMs > b.validAfterMs;
+  return !a.noProvider && b.noProvider;
+}
+
 /** A check with its own cache and budgets (one per process; tests make their own) */
 export function revocationCheck(limits: Limits = LIMITS) {
   const accounts = boundedMap<{ state: AccountState; at: number }>();
@@ -155,11 +166,12 @@ export function revocationCheck(limits: Limits = LIMITS) {
   );
 
   // A read is cached by its lookup's START, and replaces only an older read: a slow lookup
-  // settling after a newer one must not put back its read from before a revoke. Equal
-  // starts keep the first read settled.
+  // settling after a newer one must not put back its read from before a revoke. Two reads
+  // from the same start keep the one that refuses more, whichever settles first.
   const remember = (uid: string, state: AccountState, at: number): void => {
     const held = accounts.get(uid);
-    if (!held || held.at < at) accounts.set(uid, { state, at });
+    const replaces = !held || held.at < at || (held.at === at && refusesMore(state, held.state));
+    if (replaces) accounts.set(uid, { state, at });
   };
 
   const lookUp = async (
