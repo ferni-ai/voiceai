@@ -49,6 +49,7 @@ describe('the mode and the live set', () => {
         'ending_beside_means',
         'means_with_intent',
         'on_body',
+        'pills_in_hand_tonight',
         'took_dose',
       ].sort()
     );

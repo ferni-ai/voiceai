@@ -79,6 +79,7 @@ export type MeansFormName =
   | 'on_body'
   | 'drug_count'
   | 'means_with_intent'
+  | 'pills_in_hand_tonight'
   | 'means_in_hand'
   | 'taking_now'
   | 'took_dose'
@@ -96,6 +97,17 @@ const MEANS_HELD = String.raw`(?:\b(?:i|i'?ve|i'?m|i have|i got)\b[^.!?]{0,25}\b
 const INTENT_NOW = String.raw`(?:i'?m|i am) (?:taking|takin|swallowing|downing) (?:them|em|it|these|those|the pills|the meds|all of them)|(?:i'?m|i am) (?:going to|about to) (?:take|swallow|do it|end it|use it|pull the trigger|kill myself|shoot myself|hang myself)|(?:i'?m|i am) doing it|doing it (?:now|tonight|right now)`;
 
 /**
+ * "pills in hand, taking them tonight": bare "in hand" and a bare "taking them tonight", which
+ * MEANS_HELD and INTENT_NOW miss. Pills only, never the caller's own or someone else's ("my pills",
+ * "my mom's pills"), and "tonight" must end the clause, so a time, a meal, a doctor, an errand or a
+ * question after it ("tonight before bed", "tonight with food", "tonight?") keeps it out.
+ */
+const NOT_THEIRS = String.raw`(?<!(?<!\ball )\b(?:my|his|her|their|your|our) (?:[\w'-]+ ){0,2})(?<!\w's (?:[\w-]+ ){0,2})`;
+const PILLS_IN_HAND = String.raw`\b${NOT_THEIRS}(?:(?:sleeping )?pills|meds|tablets|painkillers) (?:(?:is|are) )?(?:in hand|${WHERE})`;
+const TAKING_TONIGHT = String.raw`(?:(?:i'?m|i am) )?(?:(?:taking|takin|swallowing|downing) |(?:going to|gonna|about to) (?:take|swallow|down) )(?:(?:them|em|these|those)(?: all)?|all of (?:them|em|these|those)|every (?:last |single )?(?:one|pill)) tonight`;
+const PILLS_TONIGHT = String.raw`${PILLS_IN_HAND}(?: ?[,;.] ?| )(?:(?:and|so|and so) )?${TAKING_TONIGHT}\b(?! *\?)${CLAUSE_END}`;
+
+/**
  * The forms, in order. Each must end its clause (or run on with "and", "now", a goodbye).
  */
 interface MeansForm {
@@ -110,6 +122,8 @@ const FORMS: readonly MeansForm[] = [
     re: new RegExp(String.raw`${MEANS_HELD}[^.!?]{0,20}?\b(?:${INTENT_NOW})\b`),
     tag: 'suicidal',
   },
+  // "pills in hand, taking them tonight", "the pills are in hand and im taking them all tonight".
+  { name: 'pills_in_hand_tonight', re: new RegExp(PILLS_TONIGHT), tag: 'suicidal' },
   // Means on the body: "the noose is around my neck", "gun pointed at my head".
   {
     name: 'on_body',
@@ -243,11 +257,14 @@ function freeOf(
 /**
  * The live forms: each gave 0 false 911 scripts on the held-out ordinary and medication lines with
  * no everyday exemption (numbers in the #2717 body). Every other form only feeds the shadow log.
+ * pills_in_hand_tonight came later and was checked on the open everyday and medication lines only
+ * (crisis-pills-in-hand-tonight.test.ts); the held-out sets are sealed, so measure it before live.
  */
 export const LIVE_FORMS: ReadonlySet<MeansFormName> = new Set<MeansFormName>([
   'on_body',
   'drug_count',
   'means_with_intent',
+  'pills_in_hand_tonight',
   'took_dose',
   'did_it',
   'cutting_now',
