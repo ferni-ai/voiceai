@@ -58,7 +58,7 @@ vi.mock('../../services/custom-agent/custom-agent-persistence-service.js', () =>
 }));
 
 const { startCrisisGate } = await import('../../agents/personas/crisis-gate.js');
-const { handleAgentChat } = await import('../custom-agent/chat-routes.js');
+const { buildAgentChatPrompt, handleAgentChat } = await import('../custom-agent/chat-routes.js');
 const { handleJournalRoutes } = await import('../journal-routes.js');
 
 // Lower tier: the gate guides the model rather than replacing its reply.
@@ -88,6 +88,18 @@ function voiceGuidance(text: string, earlier: Turn[] = []): string {
 
 const prompt = (): string => callLLM.mock.calls[0]?.[0] ?? '';
 const count = (haystack: string, needle: string): number => haystack.split(needle).length - 1;
+
+/**
+ * Main's bytes for a guided line mid-conversation, kept exactly: the guidance rode on the
+ * message as a "\n\n(…)" text part, and textContent joined the parts with "\n", so three
+ * newlines separate the person's words from it.
+ */
+const mainGuidedTail = (words: string, guidance: string): string =>
+  `Them: ${words}\n\n\n${guidance}\n\n${SPEAKER}`;
+
+/** The whole prompt main sent: the guided text in the message slot, no separate note. */
+const mainGuidedPrompt = (words: string, guidance: string, history: Turn[] = []): string =>
+  buildAgentChatPrompt(captain, history, `${words}\n\n\n${guidance}`, '');
 
 async function chat(body: { message?: string; scene?: string; history?: Turn[] }): Promise<void> {
   const req = new EventEmitter() as IncomingMessage;
@@ -156,16 +168,17 @@ describe.each(['true', 'false'])('custom-agent chat (CUSTOM_AGENT_CHAT_HONESTY=%
     expect(sent.endsWith(`${guidance}\n\n${SPEAKER}`)).toBe(true);
   });
 
-  it('a lower-tier message: the guidance is the last thing before the speaker cue', async () => {
+  it("a lower-tier message: the guidance is last before the speaker cue, in main's bytes", async () => {
     const guidance = voiceGuidance(GUIDE);
     await chat({ message: GUIDE });
     const sent = prompt();
     expect(count(sent, guidance)).toBe(1);
     expect(sent.indexOf(guidance)).toBeGreaterThan(sent.indexOf('Reply as Captain Nova only'));
-    expect(sent.endsWith(`${guidance}\n\n${SPEAKER}`)).toBe(true);
+    expect(sent.endsWith(mainGuidedTail(GUIDE, guidance))).toBe(true);
+    expect(sent).toBe(mainGuidedPrompt(GUIDE, guidance));
   });
 
-  it('guided by the earlier turns alone: the guidance still reaches the prompt, last', async () => {
+  it("guided by the earlier turns alone: the guidance is last, in main's bytes", async () => {
     const history: Turn[] = [
       { from: 'person', text: 'sometimes i wish i could just disappear' },
       { from: 'agent', text: 'that sounds heavy. what has the week been like?' },
@@ -176,7 +189,8 @@ describe.each(['true', 'false'])('custom-agent chat (CUSTOM_AGENT_CHAT_HONESTY=%
     await chat({ message: now, history });
     const sent = prompt();
     expect(count(sent, guidance)).toBe(1);
-    expect(sent.endsWith(`Them: ${now}\n\n${guidance}\n\n${SPEAKER}`)).toBe(true);
+    expect(sent.endsWith(mainGuidedTail(now, guidance))).toBe(true);
+    expect(sent).toBe(mainGuidedPrompt(now, guidance, history));
   });
 });
 

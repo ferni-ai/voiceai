@@ -108,8 +108,13 @@ export function buildAgentChatPrompt(
     `Reply as ${name} only: one or two short paragraphs of what ${name} says, in character, with no stage notes${honest ? '' : ' about being an AI'}.`,
     history.length || message ? '## Conversation so far' : '',
     ...history.map((turn) => `${turn.from === 'person' ? 'Them' : name}: ${turn.text}`),
-    message ? `Them: ${message}` : `(${name} opens the conversation.)`,
-    options.guidanceNote,
+    // Mid-conversation the note rides on the person's line with three newlines, the bytes
+    // the guided message has always had (its text parts joined by textContent). Only the
+    // opening, which has no line of theirs, gives the note its own entry.
+    message
+      ? [`Them: ${message}`, options.guidanceNote].filter(Boolean).join('\n\n\n')
+      : `(${name} opens the conversation.)`,
+    message ? '' : options.guidanceNote,
     `${name}:`,
   ]
     .filter(Boolean)
