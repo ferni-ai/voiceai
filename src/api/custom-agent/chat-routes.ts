@@ -66,18 +66,29 @@ export function readChatRequest(
   return { message, history, scene };
 }
 
-/** The agent's own prompt, the scene, the conversation so far, then its turn */
+export interface AgentChatPromptOptions {
+  /** Flags are read from here (process.env when absent). */
+  env?: Record<string, string | undefined>;
+  /** The crisis read's guidance (readTypedMessageForCrisis): last, right before the speaker cue. */
+  guidanceNote?: string;
+}
+
+/**
+ * The agent's own prompt, the scene, the conversation so far, then its turn. A crisis
+ * guidance note goes last, before only the speaker cue, so no style line or opener cue
+ * follows it.
+ */
 export function buildAgentChatPrompt(
   agent: CustomAgent,
   history: ChatTurn[],
   message: string,
   scene: string,
-  env: Record<string, string | undefined> = process.env
+  options: AgentChatPromptOptions = {}
 ): string {
   // CUSTOM_AGENT_CHAT_HONESTY: the live call's prompt (owner text kept as data, honest when
   // sincerely asked whether it's an AI) instead of one that pastes the owner's text raw.
   // The name is owner text too and lands after the profile, so it is cleaned the same way.
-  const honest = flagOn('CUSTOM_AGENT_CHAT_HONESTY', env);
+  const honest = flagOn('CUSTOM_AGENT_CHAT_HONESTY', options.env);
   const rawName = agent.displayName || agent.name;
   const name = honest
     ? sanitizeOwnerText(rawName, CUSTOM_AGENT_NAME_MAX) || 'your character'
@@ -97,7 +108,13 @@ export function buildAgentChatPrompt(
     `Reply as ${name} only: one or two short paragraphs of what ${name} says, in character, with no stage notes${honest ? '' : ' about being an AI'}.`,
     history.length || message ? '## Conversation so far' : '',
     ...history.map((turn) => `${turn.from === 'person' ? 'Them' : name}: ${turn.text}`),
-    message ? `Them: ${message}` : `(${name} opens the conversation.)`,
+    // Mid-conversation the note rides on the person's line with three newlines, the bytes
+    // the guided message has always had (its text parts joined by textContent). Only the
+    // opening, which has no line of theirs, gives the note its own entry.
+    message
+      ? [`Them: ${message}`, options.guidanceNote].filter(Boolean).join('\n\n\n')
+      : `(${name} opens the conversation.)`,
+    message ? '' : options.guidanceNote,
     `${name}:`,
   ]
     .filter(Boolean)
@@ -134,10 +151,11 @@ export async function handleAgentChat(
     sendJson(res, 404, { error: 'Agent not found' });
     return true;
   }
+  const options = { guidanceNote: crisis.action === 'guide' ? crisis.guidanceNote : '' };
   const reply = await callLLM(
     opening
-      ? buildAgentChatPrompt(agent, request.history, '', crisis.message)
-      : buildAgentChatPrompt(agent, request.history, crisis.message, request.scene),
+      ? buildAgentChatPrompt(agent, request.history, '', crisis.message, options)
+      : buildAgentChatPrompt(agent, request.history, crisis.message, request.scene, options),
     { maxTokens: 400, temperature: 0.8 }
   );
   if (!reply?.trim()) {

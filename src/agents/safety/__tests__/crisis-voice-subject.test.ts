@@ -31,6 +31,7 @@ import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imm
 import { FLIP_SHAPES } from '../../personas/__tests__/caller-check-gate.js';
 import { startCrisisGate } from '../../personas/crisis-gate.js';
 import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
+import { getFireAndForgetMetrics } from '../../../utils/safe-fire-and-forget.js';
 
 /** Someone else at risk; the first ten (FLIP_SHAPES) set the caller's own ending words aside. */
 const THIRD_PARTY = [
@@ -243,9 +244,37 @@ beforeAll(() => {
   vi.useFakeTimers({ toFake: ['Date'], shouldAdvanceTime: true });
   vi.setSystemTime(new Date(2026, 10, 9, 12, 0, 0));
 });
-afterAll(() => {
+/**
+ * Each turn starts fire-and-forget work (turn-handler.ts) that can log through console after the
+ * last test; a console call still in flight when the worker closes fails the run with
+ * "Closing rpc while onUserConsoleLog was pending". Wait (real timers, at most 5 s) until every
+ * fire-and-forget started so far has settled. The counters are module-global, so they include any
+ * earlier file in a non-isolated worker; settled >= started holds either way. A wait that runs out
+ * does not fail the file: it writes one line with the counts, so a stuck task shows.
+ */
+const DRAIN_MS = 5_000;
+async function drainFireAndForget(): Promise<void> {
+  const counts = (): { started: number; settled: number } => {
+    const m = getFireAndForgetMetrics();
+    return { started: m.totalCalls, settled: m.successCount + m.failureCount };
+  };
+  const allSettled = (): void => {
+    const { started, settled } = counts();
+    if (settled < started) throw new Error(`${started - settled} still running`);
+  };
+  await vi.waitFor(allSettled, { timeout: DRAIN_MS, interval: 10 }).catch(() => undefined);
+  const { started, settled } = counts();
+  if (settled < started) {
+    // stderr directly, not console: a console call here would race the same worker close
+    process.stderr.write(
+      `crisis-voice-subject: ${started - settled} of ${started} fire-and-forget tasks still running after ${DRAIN_MS} ms\n`
+    );
+  }
+}
+afterAll(async () => {
   vi.useRealTimers();
-});
+  await drainFireAndForget();
+}, DRAIN_MS + 5_000);
 beforeEach(readMatrix, 120_000);
 
 describe.skipIf(UPDATE)("the caller's voice keeps third-party help and adds a check", () => {

@@ -21,7 +21,7 @@ import { heldSender } from './checkin-replies.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
 import { calleeCallHold, callHoursRecipients, holdForCallees } from './call-hours-recipient.js';
 import { placeLiveAgentCall, ringsWithLiveAgent } from './live-agent-call.js';
-import { carryOwnCallMe, heldCall, markedCrisisCallMe } from './held-call.js';
+import { carryOwnCallMe, heldCall, isOwnCallMe, markedCrisisCallMe } from './held-call.js';
 import { deferredCallRequest, pausedCall } from './outreach-pause.js';
 import { toTwilioSsml } from './twilio-ssml.js';
 import { twilioCallbackUrl } from './webhooks/twilio-callback-url.js';
@@ -188,10 +188,10 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     const hoursApply = requestedFor <= new Date() && !markedCrisisCallMe(request);
     const deferral = hoursApply && (await holdForCallees(userId, call, held));
     if (deferral) return { success: true, callId: deferral.id, status: 'scheduled' };
-    // The guard covers quiet hours, in the callee's own time zone. calleeCallHold reads
-    // the clock, not scheduledFor, so a quiet call is stored for later, never re-checked.
-    const now = new Date();
-    const hours = hoursApply && !isCallHoursGuardOn() ? await calleeCallHold(held, now) : null;
+    const now = new Date(); // guard off: calleeCallHold reads the clock; a quiet call is stored
+    const own = isOwnCallMe(request); // their own "call me": NIGHT_WINDOW_ALL_PATHS adds none
+    const hours = hoursApply && !isCallHoursGuardOn() ? await calleeCallHold(held, now, own) : null;
+    if (hours?.refused) return { success: false, error: `Not calling: ${hours.refused}` };
     const quiet = !!hours?.quiet;
     if (quiet) log.info({ userId, callId }, 'Call delayed due to quiet hours');
     const scheduledFor = quiet && hours ? hours.until : requestedFor;
