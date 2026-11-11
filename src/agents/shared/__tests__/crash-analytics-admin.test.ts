@@ -5,8 +5,8 @@
  * `admin`) gets them, as with /api/cognitive: no token or a bad token is 401, a verified
  * non-admin is 403, and neither response carries any of the data.
  *
- * A session snapshot also no longer keeps what the caller or Ferni last said: crash
- * analytics keeps those words only for the length it reports.
+ * A session snapshot also no longer keeps what the caller or Ferni last said. A crash
+ * record still keeps up to 200 characters of each, by design, for the admin who reads it.
  *
  * The REAL health server (port 0) and the REAL crash analytics; only the Firebase token
  * verifier is mocked. Fictional data only.
@@ -25,10 +25,13 @@ const verifyFirebaseToken = vi.fn(async (token: string) => {
 vi.mock('../../../services/identity/firebase-auth.js', () => ({ verifyFirebaseToken }));
 
 const { startHealthCheckServer } = await import('../health-server.js');
-const { registerSession, updateSessionState, unregisterSession, getSessionState } =
+const { registerSession, updateSessionState, unregisterSession, getSessionState, recordCrash } =
   await import('../crash-analytics.js');
 
 const SESSION = 'sess-crash-admin-sam';
+/** Over 200 characters each, so the crash record's cut shows. */
+const CALLER = `SAMPLE-CALLER-WORDS about my garden ${'and the tomatoes '.repeat(14)}TAIL-CALLER`;
+const FERNI = `SAMPLE-FERNI-WORDS reply ${'about the tomatoes '.repeat(13)}TAIL-FERNI`;
 const PATHS = ['/health/crash-analytics', '/api/crash-analytics', '/api/crash-analytics/history'];
 
 let server: Server;
@@ -47,9 +50,10 @@ beforeAll(async () => {
   registerSession(SESSION, { userId: 'user-sam-rivera', roomName: 'room-sam' });
   updateSessionState(SESSION, {
     turnCount: 2,
-    lastUserMessage: 'SAMPLE-CALLER-WORDS about my garden',
-    lastAgentMessage: 'SAMPLE-FERNI-WORDS reply',
+    lastUserMessage: CALLER,
+    lastAgentMessage: FERNI,
   });
+  recordCrash('manual_report', new Error('sample crash for the admin test'), SESSION);
 });
 
 afterAll(async () => {
@@ -71,6 +75,7 @@ describe('crash analytics on the health server is admin only', () => {
     expect(res.status).toBe(401);
     expect(body).not.toContain(SESSION);
     expect(body).not.toContain('"data"');
+    expect(body).not.toContain('SAMPLE-');
   });
 
   it.each(PATHS)('%s with a bad token is 401', async (path) => {
@@ -83,6 +88,7 @@ describe('crash analytics on the health server is admin only', () => {
     expect(res.status).toBe(403);
     expect(body).not.toContain(SESSION);
     expect(body).not.toContain('"data"');
+    expect(body).not.toContain('SAMPLE-');
   });
 
   it.each(PATHS)('%s for an admin is 200 with the data', async (path) => {
@@ -93,11 +99,30 @@ describe('crash analytics on the health server is admin only', () => {
     expect(json.data).toBeDefined();
   });
 
-  it("the admin's summary lists the live session without anyone's words", async () => {
-    const body = await (await get('/api/crash-analytics', TOK_ADMIN)).text();
-    expect(body).toContain(SESSION);
-    expect(body).not.toContain('SAMPLE-CALLER-WORDS');
-    expect(body).not.toContain('SAMPLE-FERNI-WORDS');
+  it("the admin's summary: snapshots carry no words; the crash keeps 200 chars of each", async () => {
+    expect(CALLER.length).toBeGreaterThan(200);
+    expect(FERNI.length).toBeGreaterThan(200);
+    const json = (await (await get('/api/crash-analytics', TOK_ADMIN)).json()) as {
+      data: {
+        sessionCrashes: {
+          activeSessions: Array<Record<string, unknown>>;
+          recentCrashes: Array<{ context: Record<string, unknown> }>;
+        };
+      };
+    };
+    const { activeSessions, recentCrashes } = json.data.sessionCrashes;
+    const snapshot = activeSessions.find((s) => s.sessionId === SESSION);
+    expect(snapshot).toBeDefined();
+    expect(snapshot).not.toHaveProperty('lastUserMessage');
+    expect(snapshot).not.toHaveProperty('lastAgentMessage');
+    expect(JSON.stringify(activeSessions)).not.toContain('SAMPLE-');
+    // By design, for admins: the crash record keeps the first 200 characters of each side.
+    const crash = recentCrashes.find((c) => c.context.sessionId === SESSION);
+    expect(crash?.context.lastUserMessage).toBe(CALLER.slice(0, 200));
+    expect(crash?.context.lastAgentMessage).toBe(FERNI.slice(0, 200));
+    const body = JSON.stringify(json);
+    expect(body).not.toContain('TAIL-CALLER');
+    expect(body).not.toContain('TAIL-FERNI');
   });
 });
 
