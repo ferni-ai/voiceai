@@ -113,12 +113,6 @@ const ENV_VARS: EnvVar[] = [
     description: 'Cartesia voice ID for the legacy index-elder persona (john-bogle id)',
     category: 'ai',
   },
-  {
-    name: 'PETER_LYNCH_VOICE_ID',
-    required: false,
-    description: 'Cartesia voice ID for Peter John',
-    category: 'ai',
-  },
 
   // Telephony - optional
   {

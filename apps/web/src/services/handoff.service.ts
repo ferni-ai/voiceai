@@ -1067,7 +1067,7 @@ class HandoffService {
   /**
    * Normalize a handoff message to our internal format.
    * Handles all agent ID formats from the backend including:
-   * - Full IDs: 'jack-bogle', 'peter-lynch', 'comm-specialist', etc.
+   * - Full IDs: 'jack-bogle', 'comm-specialist', etc.
    * - Short aliases: 'jack', 'peter', 'alex', 'maya', 'jordan'
    * - Legacy names: 'generic-advisor', 'debt-counselor', 'retirement-specialist'
    * - New format: 'target' field (from coordinator)

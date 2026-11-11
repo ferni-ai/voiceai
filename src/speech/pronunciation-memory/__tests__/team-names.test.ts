@@ -118,7 +118,6 @@ describe('pronunciationDictItems', () => {
       'Patel',
       'Henry',
       'Caldwell',
-      'Brannigan',
       'Nate',
       'Holloway',
       'Vadodara',
