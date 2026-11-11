@@ -241,10 +241,6 @@ const KNOWN_UNGUARDED: Record<string, { since: string; reason: string }> = {
     since: '2026-11-06',
     reason: 'group session insights (body.content)',
   },
-  'src/api/routes/landing-ai.ts': {
-    since: '2026-11-06',
-    reason: 'landing AI chat: POST /api/landing/ai/chat reads body.message',
-  },
   'src/api/routes/practice-view.ts': {
     since: '2026-11-06',
     reason: 'renders stored reminder text (data.text, data.message); may not be inbound',

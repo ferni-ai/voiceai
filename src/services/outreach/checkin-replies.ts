@@ -17,7 +17,7 @@
 import { createHmac } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
-import { sharedHeld } from './minor-care-shared-hold.js';
+import { sharedHeld, sharedHeldStrict } from './minor-care-shared-hold.js';
 
 const log = createLogger({ module: 'checkin-replies' });
 
@@ -151,6 +151,19 @@ export async function heldSender(
   return sharedHeld(phoneHoldId(phone, env), env);
 }
 
+/**
+ * heldSender for what an inbound text keeps (the SMS thread, a check-in reply): a record that
+ * can't be read, or isn't read in time, means held (sharedHeldStrict). The text is still answered.
+ */
+export async function heldSenderStrict(
+  userId: string | undefined,
+  phone: string | undefined,
+  env: Env = process.env
+): Promise<boolean> {
+  const reads = [sharedHeldStrict(userId, env), sharedHeldStrict(phoneHoldId(phone, env), env)];
+  return (await Promise.all(reads)).some(Boolean);
+}
+
 /** The check-in a reply belongs to: the latest one sent to that phone within REPLY_WINDOW_MS. */
 export function matchCheckin(records: readonly StoredCheckin[], now: Date): StoredCheckin | null {
   let best: StoredCheckin | null = null;
@@ -185,7 +198,7 @@ export async function recordCheckinReply(
     const match = matchCheckin(await deps.store.forPhoneHash(hash), now);
     if (!match) return null;
     // MINOR_CARE_SHARED_HOLD: a caller held under 18 (in any process): their reply isn't kept
-    if (await heldSender(match.userId, from, deps.env)) {
+    if (await heldSenderStrict(match.userId, from, deps.env)) {
       log.info({ checkinId: match.id }, 'Check-in reply not kept: MINOR_CARE hold');
       return null;
     }
