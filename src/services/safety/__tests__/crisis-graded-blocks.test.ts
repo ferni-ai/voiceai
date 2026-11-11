@@ -6,6 +6,30 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 
+/** What the row readers were handed (the long-call cost check below); the real readers still run. */
+const handed = vi.hoisted(() => ({ lines: 0, longestFerni: 0 }));
+vi.mock('../crisis-graded-blocks.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../crisis-graded-blocks.js')>();
+  const ferni = (companion: string | undefined): void => {
+    handed.longestFerni = Math.max(handed.longestFerni, companion?.length ?? 0);
+  };
+  return {
+    ...real,
+    downOrMeans: (text: string) => {
+      handed.lines++;
+      return real.downOrMeans(text);
+    },
+    mayBeUnder18: (text: string, companion?: string) => {
+      ferni(companion);
+      return real.mayBeUnder18(text, companion);
+    },
+    asksAnythingSafety: (companion: string | undefined) => {
+      ferni(companion);
+      return real.asksAnythingSafety(companion);
+    },
+  };
+});
+
 import type { CrisisVerdict } from '../crisis-classifier.js';
 import {
   BLOCK_REASONS,
@@ -641,12 +665,21 @@ describe('CRISIS_GRADED_RESPONSE fail-closed rows', () => {
     expect(gradeTurn(turn({ companion: long.slice(0, 600) }))).toEqual({ would: 'L2' });
   });
 
+  // The grade stays cheap because it reads the latest and 40 earlier caller lines, and never a
+  // Ferni line over 600 characters. This used to time the grade (under 20 ms), and the wall clock
+  // failed it under load (#3676), so it checks what the readers were handed instead.
   it('a grade stays cheap on a long call with a long Ferni line', () => {
     const earlier = Array.from({ length: 300 }, (_, i) => `Line ${i} about the garden.`);
     const companion = `Is anyone ${'there with you and '.repeat(500)}`;
-    const t0 = performance.now();
+    expect(companion.length).toBeGreaterThan(600);
+    handed.lines = 0;
+    handed.longestFerni = 0;
     gradeTurn(turn({ earlier, companion }));
-    expect(performance.now() - t0).toBeLessThan(20);
+    expect(handed.lines).toBe(41);
+    expect(handed.longestFerni).toBe(0);
+    // A short Ferni line is read, so the check above can see one.
+    gradeTurn(turn({ earlier, companion: FERNI }));
+    expect(handed.longestFerni).toBe(FERNI.length);
   });
 
   it.each(MUST_NOT_FIRE)('must not fire, a lone classifier read: %s grades L2', (_label, lines) => {

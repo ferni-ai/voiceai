@@ -17,6 +17,19 @@ vi.mock('../crisis-ending-floor.js', async (importOriginal) => {
   };
 });
 
+// Counts the lookbacks built (the linear-work check below).
+const lookback = vi.hoisted(() => ({ builds: 0 }));
+vi.mock('../crisis-means-lookback.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../crisis-means-lookback.js')>();
+  return {
+    ...real,
+    meansLookback: (...args: Parameters<typeof real.meansLookback>) => {
+      lookback.builds++;
+      return real.meansLookback(...args);
+    },
+  };
+});
+
 import { detectCrisis } from '../crisis-guard.js';
 import { meansInHandRead } from '../crisis-means-in-hand.js';
 import { noteMeansInHandShadow } from '../crisis-means-shadow.js';
@@ -66,12 +79,15 @@ describe('the means sentence re-read, once per turn', () => {
   });
 });
 
-// r3: each means match finds the words before it in one pass per turn, not by splitting the whole
-// text again (that was quadratic: 30 ms at 20k chars, main 1.5 ms). The bar is main + 5 ms at 20k;
-// 'off' reads as main without the means forms, so it is the floor. Head and floor are timed in
-// turn, median of 5, and the bound is generous (3x the floor, + 5 ms) so a slow CI box still
-// passes while the quadratic shape (20x the floor) fails.
-describe('a 20k-char pasted turn reads in linear time', () => {
+// r3: each means match finds the words before it from breaks found once per turn
+// (crisis-means-lookback.ts), not by slicing and splitting the whole text before every match. That
+// was quadratic: 30 ms at 20k chars against main's 1.5 ms. This used to time the read against the
+// 'off' floor, and the wall clock failed it under load (#3676), so it counts the work instead:
+// - the lookback is built once per read, however many means matches the turn holds;
+// - the strings the read slices out add up to a few characters per character of the turn
+//   (about 7 at 20k chars). Slicing the text before every match, as the old split did, is over
+//   500 per character at 20k, so the bound of 20 holds for linear work and fails the quadratic shape.
+describe('a 20k-char pasted turn reads in linear work', () => {
   const sentences = (opening: string) =>
     `${opening} ${'i have the pills. '.repeat(1200)}`.slice(0, 20_000);
   const reads = {
@@ -82,19 +98,26 @@ describe('a 20k-char pasted turn reads in linear time', () => {
       noteMeansInHandShadow('s', read, { text }, { CRISIS_MEANS_IN_HAND: 'shadow' });
     },
   };
-  const floors = {
-    live: (text: string) => detectCrisis(text, undefined, { meansInHand: 'off' }),
-    shadow: (text: string) => {
-      detectCrisis(text, undefined, { meansInHand: 'off' });
-      detectCrisis(text, undefined, { meansInHand: 'off' });
-    },
+  /** The lookbacks built and the characters sliced out of strings while the read runs. */
+  const work = (read: () => void): { builds: number; sliced: number } => {
+    const { slice } = String.prototype;
+    let sliced = 0;
+    const spy = vi.spyOn(String.prototype, 'slice').mockImplementation(function (
+      this: string,
+      ...args: [number?, number?]
+    ) {
+      const out = slice.apply(this, args);
+      sliced += out.length;
+      return out;
+    });
+    lookback.builds = 0;
+    try {
+      read();
+    } finally {
+      spy.mockRestore();
+    }
+    return { builds: lookback.builds, sliced };
   };
-  const ms = (f: () => void) => {
-    const at = performance.now();
-    f();
-    return performance.now() - at;
-  };
-  const median = (list: number[]) => [...list].sort((a, b) => a - b)[Math.floor(list.length / 2)];
 
   it.each([
     ['check-in', "i can't handle this heat.", 'live'],
@@ -102,19 +125,14 @@ describe('a 20k-char pasted turn reads in linear time', () => {
     ['goodbye', 'this is goodbye.', 'live'],
     ['goodbye', 'this is goodbye.', 'shadow'],
   ] as const)(
-    'the %s shape ("%s") under %s: within the main floor + 5 ms',
+    'the %s shape ("%s") under %s: one lookback, at most 20 sliced chars per char',
     (_shape, opening, mode) => {
       const text = sentences(opening);
       expect(text).toHaveLength(20_000);
-      reads[mode](text);
-      floors[mode](text);
-      const head: number[] = [];
-      const floor: number[] = [];
-      for (let run = 0; run < 5; run++) {
-        head.push(ms(() => reads[mode](text)));
-        floor.push(ms(() => floors[mode](text)));
-      }
-      expect(median(head)).toBeLessThan(3 * median(floor) + 5);
+      const { builds, sliced } = work(() => reads[mode](text));
+      expect(builds).toBe(1);
+      expect(sliced).toBeGreaterThan(0);
+      expect(sliced).toBeLessThan(20 * text.length);
     }
   );
 });
