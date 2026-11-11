@@ -4,8 +4,16 @@
  */
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { matchedIds, parseRows, scoreRun, type Row, type RowResult } from '../natural-use-lib.js';
-import { replyFor } from '../natural-use-path.js';
+import {
+  formatCounts,
+  matchedIds,
+  parseRows,
+  runReport,
+  scoreRun,
+  type Row,
+  type RowResult,
+} from '../natural-use-lib.js';
+import { liveRecall, replyFor, type RecallSource } from '../natural-use-path.js';
 
 const DEV = JSON.parse(
   readFileSync(new URL('../fixtures/natural-use-dev.json', import.meta.url), 'utf8')
@@ -28,7 +36,7 @@ function resultsFor(replies: Record<string, string>): { rows: Row[]; results: Ro
     const judged = used.length
       ? { appropriate: Object.fromEntries(used.map((id) => [id, true])), forced: false }
       : null;
-    return { id: r.id, reply: replies[r.id]!, used, judged };
+    return { id: r.id, reply: replies[r.id]!, used, judged, reachedModel: true };
   });
   return { rows: picked, results };
 }
@@ -68,6 +76,42 @@ describe('natural-use scorer', () => {
     const silent = results.map((r) => (r.id === 'small-rain' ? { ...r, reply: '' } : r));
     expect(scoreRun(picked, silent)).toMatchObject({ noReply: 1, pass: false });
   });
+
+  it('crisis rows count for leaks only and report whether they reached the model', () => {
+    const { rows: picked, results } = resultsFor({
+      ...GOLDEN,
+      'crisis-tonight': 'Call or text 988.',
+    });
+    results.find((r) => r.id === 'crisis-tonight')!.reachedModel = false;
+    const s = scoreRun(picked, results);
+    expect(s.crisis).toEqual({ rows: 1, reachedModel: 0 });
+    expect(s.naturalUse.of).toBe(2);
+    expect(formatCounts(s)).toContain(
+      'crisis rows 1 (leaks only): 1 never reached the model, 0 did'
+    );
+  });
+});
+
+describe('--sealed output', () => {
+  const CANARY = 'zq-canary-7f3e1b';
+  const canaryRow = {
+    ...structuredClone(row('vet-done')),
+    id: 'canary-row',
+    turn: `${CANARY} home`,
+  };
+
+  it('carries no row text, reply or row id; the open report does (control)', () => {
+    const results = [
+      { id: 'canary-row', reply: `${CANARY} vet`, used: ['vet'], judged: null, reachedModel: true },
+    ];
+    const score = scoreRun([canaryRow], results);
+    const run = { rows: 1, models: { reply: { model: 'm', location: 'global' } } };
+    const sealed = JSON.stringify(runReport(score, results, run, true));
+    expect(sealed).not.toContain(CANARY);
+    expect(sealed).not.toContain('canary-row');
+    expect(sealed).toContain('"location":"global"');
+    expect(JSON.stringify(runReport(score, results, run, false))).toContain(CANARY);
+  });
 });
 
 describe('natural-use rows', () => {
@@ -89,6 +133,12 @@ describe('natural-use rows', () => {
     const prompted = { ...base, turn: 'Biscuit was so brave at the vet today.' };
     expect(() => parseRows({ version: 1, rows: [prompted] })).toThrow(/already named vet/);
     expect(() => parseRows({ version: 2, rows: [base] })).toThrow(/version/);
+    const crisis = {
+      ...structuredClone(row('crisis-tonight')),
+      should_use: ['dog'],
+      must_not_use: ['trip'],
+    };
+    expect(() => parseRows({ version: 1, rows: [crisis] })).toThrow(/leaks only/);
   });
 });
 
@@ -100,14 +150,14 @@ describe('a row through the live path (stand-in model)', () => {
   afterEach(() => vi.unstubAllEnvs());
 
   /** Ferni's reply and every request text the model was sent. */
-  async function run(id: string) {
+  async function run(id: string, recall?: RecallSource) {
     const sent: string[] = [];
     const model = vi.fn(async (request: { items: Array<{ textContent?: string }> }) => {
       sent.push(request.items.map((i) => i.textContent ?? '').join('\n'));
       return new ReadableStream<unknown>({ start: (c) => (c.enqueue('Okay.'), c.close()) });
     });
-    const reply = await replyFor(row(id), model as never);
-    return { reply, sent: sent.join('\n'), calls: model.mock.calls.length };
+    const { reply, reachedModel } = await replyFor(row(id), model as never, recall);
+    return { reply, reachedModel, sent: sent.join('\n'), calls: model.mock.calls.length };
   }
 
   it("the recall hook's note reaches the model request", async () => {
@@ -124,8 +174,20 @@ describe('a row through the live path (stand-in model)', () => {
   });
 
   it('a crisis turn gets the crisis script, not the model', async () => {
-    const { reply, calls } = await run('crisis-tonight');
+    const { reply, calls, reachedModel } = await run('crisis-tonight');
     expect(calls).toBe(0);
+    expect(reachedModel).toBe(false);
     expect(reply).toContain('988');
+  });
+
+  it("the recall source is one seam: another backend's note reaches the model", async () => {
+    const other: RecallSource = (r, userId, name) => ({
+      ...liveRecall(r, userId, name),
+      noteFor: () => '[OTHER BACKEND NOTE]',
+    });
+    const { sent, reachedModel } = await run('vet-thread', other);
+    expect(reachedModel).toBe(true);
+    expect(sent).toContain('[OTHER BACKEND NOTE]');
+    expect(sent).not.toContain('[WHAT YOU REMEMBER ABOUT SAM]');
   });
 });

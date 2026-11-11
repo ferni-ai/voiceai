@@ -5,6 +5,7 @@
  */
 import { llm } from '@livekit/agents';
 import { createMemoryRecall } from '../../src/agents/multi-agent/memory-recall-hook.js';
+import type { MemoryRecall } from '../../src/agents/multi-agent/memory-recall-hook.js';
 import { composeAgentInstructions } from '../../src/agents/multi-agent/agent-instructions.js';
 import { sendRecall } from '../../src/agents/personas/context-packet/turn-packet.js';
 import { gatedReply } from '../../src/agents/personas/crisis-gate.js';
@@ -35,17 +36,27 @@ async function spoken(stream: unknown): Promise<string> {
   return said.trim();
 }
 
-/** One row: prior turns replayed with recall, then Ferni's reply to the current turn. */
-export async function replyFor(row: Row, model: unknown): Promise<string> {
-  const sessionId = `memeval-nu-${row.id}`;
-  const first = row.member.name.split(' ')[0];
-  const recall = createMemoryRecall({
-    userId: sessionId,
-    userName: first,
+/** Where recalled facts come from: the one seam for another memory backend. */
+export type RecallSource = (row: Row, userId: string, userName: string) => MemoryRecall;
+/** The default: the production recall hook over the row's seeded store. */
+export const liveRecall: RecallSource = (row, userId, userName) =>
+  createMemoryRecall({
+    userId,
+    userName,
     store: storeFor(row, Date.now()),
     ledgerStore: { save: async () => undefined, recent: async () => [] },
     checkIns: async () => [],
   });
+
+/** One row: prior turns replayed with recall, then Ferni's reply (or the crisis gate's). */
+export async function replyFor(
+  row: Row,
+  model: (request: llm.ChatContext) => unknown,
+  recallFor: RecallSource = liveRecall
+): Promise<{ reply: string; reachedModel: boolean }> {
+  const sessionId = `memeval-nu-${row.id}`;
+  const first = row.member.name.split(' ')[0];
+  const recall = recallFor(row, sessionId, first);
   await recall.ready;
   // A RecallAgent: updateChatCtx assigns before its first await, as the SDK's does.
   const agent = {
@@ -70,6 +81,9 @@ export async function replyFor(row: Row, model: unknown): Promise<string> {
   }
   if (row.prior.at(-1)?.role === 'user') recall.newTurn();
   hear(row.turn);
+  let reachedModel = false;
+  const asked = (request: llm.ChatContext) => ((reachedModel = true), model(request));
   const opener = { wrap: (s: unknown) => s } as never;
-  return spoken(await gatedReply(agent.chatCtx, session, model as never, opener));
+  const reply = await spoken(await gatedReply(agent.chatCtx, session, asked as never, opener));
+  return { reply, reachedModel };
 }
