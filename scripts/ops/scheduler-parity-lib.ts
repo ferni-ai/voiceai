@@ -43,9 +43,11 @@ const SCRIPT_ONLY =
   'only in scripts/deploy-cloud-scheduler.ts, no infra yaml entry (2026-11-10, #3679)';
 const NO_ENTRY = 'no scheduler entry anywhere as of 2026-11-10, see #3679';
 const REMOVED =
-  'dropped from cloud-scheduler-jobs.yaml in the 2026-02-23 audit, not re-added (#3679)';
+  'dropped from cloud-scheduler-jobs.yaml in the 2026-02-23 audit, in no deploy script (#3679)';
+const REMOVED_SCRIPT =
+  'dropped from cloud-scheduler-jobs.yaml in the 2026-02-23 audit, still in scripts/deploy-cloud-scheduler.ts (#3679)';
 export const UNSCHEDULED: Readonly<Record<string, string>> = {
-  '/api/jobs/aggregate-community-insights': SCRIPT_ONLY,
+  '/api/jobs/aggregate-community-insights': REMOVED_SCRIPT,
   '/api/jobs/better-than-human-outreach': SCRIPT_ONLY,
   '/api/jobs/brand-ambassador-engagement': SCRIPT_ONLY,
   '/api/jobs/brand-award-deadline-check': SCRIPT_ONLY,
@@ -69,11 +71,11 @@ export const UNSCHEDULED: Readonly<Record<string, string>> = {
   '/api/jobs/reply-reports-summary': NO_ENTRY,
   '/api/jobs/reset-weekly-counters': SCRIPT_ONLY,
   '/api/jobs/rollup-outreach-analytics': SCRIPT_ONLY,
-  '/api/jobs/rollup-persona-metrics': SCRIPT_ONLY,
+  '/api/jobs/rollup-persona-metrics': REMOVED_SCRIPT,
   '/api/jobs/run-deep-analysis': SCRIPT_ONLY,
   '/api/jobs/run-predictive-analysis': SCRIPT_ONLY,
   '/api/jobs/semantic-router-learning': REMOVED,
-  '/api/jobs/sync-trust-profiles': SCRIPT_ONLY,
+  '/api/jobs/sync-trust-profiles': REMOVED_SCRIPT,
   '/api/jobs/ttl-backfill': NO_ENTRY,
 };
 
