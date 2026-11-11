@@ -33,7 +33,7 @@ import { callSheetPorts } from './wiring.js';
 const log = createLogger({ module: 'call-sheet' });
 
 /** How long the reads may run before the load gives up (logged as late). */
-export const SHEET_BUDGET_MS = 1500;
+const SHEET_BUDGET_MS = 1500;
 /**
  * The job rebuilds every sheet daily (its hash includes the UTC day), so a sheet this old
  * missed two nightly runs or more: dates and open items have drifted. Stricter than the
@@ -73,7 +73,7 @@ export interface CallSheetOptions {
 }
 
 /** The block as it sits in the instructions, after "Who You're Talking To". */
-export const callSheetBlock = (text: string): string =>
+const callSheetBlock = (text: string): string =>
   `\n---\n\n## Your Notes On This Caller\n\n${text}\n`;
 
 async function load(userId: string, ports: CallSheetPorts, now: () => Date): Promise<Loaded> {

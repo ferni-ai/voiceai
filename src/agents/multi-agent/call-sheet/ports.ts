@@ -5,14 +5,16 @@
  *
  * @module agents/multi-agent/call-sheet/ports
  */
-import type { ForgottenState } from '../../../memory/ports/forgotten-store.js';
 import type { StoredPersonModel } from '../../../services/stores/person-model-store.js';
 
 export interface CallSheetPorts {
   /** person_model/current, or null when there is none or it isn't this build's shape. */
   sheet: (userId: string) => Promise<StoredPersonModel | null>;
-  /** Forgotten topics (stored plus this process's) and the stored forget generation. */
-  forgotten: (userId: string) => Promise<ForgottenState>;
+  /**
+   * Forgotten topics (stored plus this process's; null when unreadable) and the stored forget
+   * generation, as memory_state/forgotten holds them (memory/ports/forgotten-store.ts).
+   */
+  forgotten: (userId: string) => Promise<{ topics: string[] | null; generation: number }>;
   /** The account's MINOR_CARE hold, strict: unreadable or late means held. */
   minorCare: (userId: string) => Promise<boolean>;
   /** A crisis-level signal in the last CRISIS_QUIET_DAYS; unreadable counts as one. */

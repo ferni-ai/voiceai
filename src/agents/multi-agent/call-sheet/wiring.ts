@@ -7,10 +7,10 @@
  */
 import { hadRecentCrisis } from '../../../intelligence/pondering/index.js';
 import {
-  firestoreForgottenStore,
-  forgetGenerationSeen,
-} from '../../../memory/adapters/firestore/forgotten-store.js';
-import { forgottenInProcess } from '../../../memory/index.js';
+  forgetGeneration,
+  forgottenInProcess,
+  forgottenTopicsOrNull,
+} from '../../../memory/index.js';
 import { sharedHeldStrict } from '../../../services/outreach/minor-care-shared-hold.js';
 import { crisisRiskThisCall } from '../../../services/safety/index.js';
 import { readPersonModel } from '../../../services/stores/person-model-store.js';
@@ -27,10 +27,11 @@ export function callSheetPorts(): CallSheetPorts {
       const db = getFirestoreDb();
       return db ? readPersonModel(db, userId) : null;
     },
+    // The shared call-start read; it records the stored generation, read after it.
     async forgotten(userId) {
-      const state = await firestoreForgottenStore(getFirestoreDb()).readForgotten(userId);
-      const topics = state.topics && [...state.topics, ...forgottenInProcess(userId)];
-      return { topics, generation: state.generation };
+      const stored = await forgottenTopicsOrNull(userId);
+      const topics = stored && [...stored, ...forgottenInProcess(userId)];
+      return { topics, generation: forgetGeneration(userId) };
     },
     minorCare: async (userId) =>
       userHeld(userId) || sharedHeldStrict(userId, process.env, HOLD_READ_MS),
@@ -39,6 +40,6 @@ export function callSheetPorts(): CallSheetPorts {
       return db ? hadRecentCrisis(db, userId) : true;
     },
     heldNow: (sessionId) => crisisRiskThisCall(sessionId) || minorHeld(sessionId),
-    generationSeen: forgetGenerationSeen,
+    generationSeen: forgetGeneration,
   };
 }

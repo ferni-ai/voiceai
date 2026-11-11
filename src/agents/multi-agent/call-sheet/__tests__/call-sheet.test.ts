@@ -21,10 +21,16 @@ const NOW = new Date('2026-11-10T18:00:00.000Z');
 const HEADING = '## Your Notes On This Caller';
 let seq = 0;
 
+/** Lets the fake reads answer. */
+const settle = (): Promise<void> =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, 5);
+  });
+
 /** Starts the sheet, lets the reads settle, and takes it. */
 async function sheetFor(state: FakeState, userId = 'riley-test', sessionId = `sheet-${++seq}`) {
   const pending = startCallSheet(sessionId, userId, { ports: fakePorts(state), now: () => NOW });
-  await new Promise((resolve) => setTimeout(resolve, 5));
+  await settle();
   return pending?.take() ?? null;
 }
 
@@ -98,7 +104,7 @@ describe('call sheet: forget', () => {
       ports: fakePorts(state),
       now: () => NOW,
     });
-    await new Promise((resolve) => setTimeout(resolve, 5));
+    await settle();
     state.seen = 3;
     expect(pending?.take()).toBe('');
   });
@@ -133,7 +139,7 @@ describe('call sheet: holds', () => {
       ports: fakePorts(state),
       now: () => NOW,
     });
-    await new Promise((resolve) => setTimeout(resolve, 5));
+    await settle();
     state.heldNow = true;
     expect(pending?.take()).toBe('');
   });
@@ -186,14 +192,16 @@ describe('call sheet: take() never waits', () => {
   it('the same sheet, once its read answers, is there', async () => {
     const state = fakeState(storedSheet(NOW));
     let open = (): void => undefined;
-    state.gate = new Promise<void>((resolve) => (open = resolve));
+    state.gate = new Promise<void>((resolve) => {
+      open = resolve;
+    });
     const pending = startCallSheet(`sheet-${++seq}`, 'riley-test', {
       ports: fakePorts(state),
       now: () => NOW,
     });
     expect(pending?.take()).toBe('');
     open();
-    await new Promise((resolve) => setTimeout(resolve, 5));
+    await settle();
     expect(pending?.take()).toContain(HEADING);
   });
 });
