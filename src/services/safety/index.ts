@@ -32,6 +32,7 @@ export {
   EMERGENCY_FOR_THEM,
   getCrisisResponse,
   LATE_911_LINE,
+  names911,
   namesCrisisLine,
 } from './crisis-guard-replies.js';
 // assessSafety's escalate-only phrase floor, read after the guard (crisis-coaching-floor.ts).

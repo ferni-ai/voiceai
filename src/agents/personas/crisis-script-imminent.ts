@@ -26,6 +26,7 @@ import { flagModeOf, type Env } from '../../config/env-flag.js';
 import {
   getCrisisResponse,
   LATE_911_LINE,
+  names911,
   namesCrisisLine,
   resolveCrisisClassifierTimeoutMs,
   startCrisisClassifier,
@@ -143,7 +144,8 @@ export function scriptReply(
   if (!read || !opener) return whole(script);
   const rest = script.slice(opener.length);
   const holdMs = Math.min(resolveCrisisClassifierTimeoutMs(env), sayMs(opener));
-  const lateMs = sayMs(rest);
+  // The rest already says 911 (CRISIS_SELF_HARM_911_LINE): no late line, so 911 is said once.
+  const lateMs = names911(rest) ? 0 : sayMs(rest);
   const startedAt = Date.now();
   const note = (outcome: string, found?: ScriptRead): void =>
     log.info(
@@ -175,7 +177,7 @@ export function scriptReply(
         return controller.close();
       }
       controller.enqueue(rest);
-      const late = found ? undefined : await within(read, lateMs);
+      const late = found || lateMs <= 0 ? undefined : await within(read, lateMs);
       if (late?.script) controller.enqueue(` ${LATE_911_LINE}`);
       note(late?.script ? 'added' : found ? 'kept' : 'late', found ?? late);
       controller.close();

@@ -62,6 +62,10 @@ const SEVERE = getCrisisResponse(0.9, 'self', 'en', false);
 const OPENER = SEVERE.slice(0, SEVERE.indexOf('What you'));
 const REST = SEVERE.slice(OPENER.length);
 const IMMINENT_SCRIPT = getCrisisResponse(0.9, 'self', 'en', true);
+/** #3748's line after 988 (CRISIS_SELF_HARM_911_LINE), in its words; in the rest when on. */
+const SELF_HARM_911 = "If you've already hurt yourself or you're about to, call 911.";
+const WITH_911 = SEVERE.replace('available 24/7.', `available 24/7. ${SELF_HARM_911}`);
+const count911 = (text: string): number => text.match(/\b911\b/g)?.length ?? 0;
 const SWAPPED = OPENER + IMMINENT_SCRIPT.slice(IMMINENT_SCRIPT.indexOf('Your safety'));
 const words = (text: string): number => text.split(/\s+/).filter(Boolean).length;
 const OPENER_SAY_MS = words(OPENER) * FAST_MS_PER_WORD - VOICE_START_MS;
@@ -127,7 +131,10 @@ beforeEach(() => {
   resetCrisisClassifierCache();
   logInfo.mockClear();
 });
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+});
 
 describe('the lines these rows use, as the patterns read them', () => {
   it('reads the supply and tonight lines as the 988 script, not imminent', () => {
@@ -269,6 +276,21 @@ describe('shadow', () => {
   });
 });
 
+describe('with CRISIS_SELF_HARM_911_LINE on (#3748)', () => {
+  it('still asks the classifier on the severe self-harm script, and goes 911-first', async () => {
+    // Both sides of scriptAsks (the pattern's script and getCrisisResponse) read the flag from the
+    // same env today; if one side ever reads another env, this row goes red instead of #19 going quiet.
+    vi.stubEnv('CRISIS_SELF_HARM_911_LINE', 'on');
+    const generate = vi.fn(answer(IMMINENT, 300));
+    const heard = await turn(SUPPLY_NOW, { ...ON, CRISIS_SELF_HARM_911_LINE: 'on' }, generate);
+    expect(generate).toHaveBeenCalled();
+    expect(heard.text.indexOf('call 911')).toBeLessThan(heard.text.indexOf('988'));
+    expect(count911(heard.text)).toBe(1);
+  });
+
+  it.todo('both flags on through gatedReply, a late read: one 911 sentence, 988 kept (#3748)');
+});
+
 describe('scriptReply', () => {
   const read = (found: ScriptRead): Promise<ScriptRead> => Promise.resolve(found);
   const collect = async (stream: ReadableStream<string>): Promise<string> => {
@@ -286,6 +308,25 @@ describe('scriptReply', () => {
     const found = { read: 'imminent', imminent: true, script: IMMINENT_SCRIPT } as const;
     const out = await collect(scriptReply(youth(SEVERE), read(found), youth, ON));
     expect(out).toBe(`${SWAPPED}\n\nYOUTH LINE`);
+  });
+
+  it('no double 911: a late read adds no line when the rest already says 911 (#3748)', async () => {
+    const found = { read: 'imminent', imminent: true, script: IMMINENT_SCRIPT } as const;
+    const late = new Promise<ScriptRead>((resolve) => {
+      setTimeout(() => resolve(found), OPENER_SAY_MS + 500);
+    });
+    const out = await collect(scriptReply(WITH_911, late, (t) => t, { ...ON, ...SLOW }));
+    expect(out).toBe(WITH_911);
+    expect(count911(out)).toBe(1);
+    expect(out).toContain('988');
+  });
+
+  it('swaps as before when the rest already says 911: the imminent rest, 911 once', async () => {
+    const found = { read: 'imminent', imminent: true, script: IMMINENT_SCRIPT } as const;
+    const out = await collect(scriptReply(WITH_911, read(found), (t) => t, ON));
+    expect(out).toBe(SWAPPED);
+    expect(count911(out)).toBe(1);
+    expect(out).toContain('988');
   });
 
   it('keeps the whole imminent script when its first sentence names a line to call', async () => {

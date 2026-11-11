@@ -21,6 +21,9 @@ export const LATE_911_LINE = "And if you're in danger right now, call 911.";
 /** Whether a reply's sentence names a line to call. */
 export const namesCrisisLine = (text: string): boolean => /\b(?:911|988)\b/.test(text);
 
+/** Whether a reply's text already tells the caller to call 911. */
+export const names911 = (text: string): boolean => /\b911\b/.test(text);
+
 /**
  * Someone else is down and not getting up, or won't wake (owner, 2026-11-02): an emergency for
  * them, so the reply leads with 911 for them and stays with the caller. No 988: it isn't the
