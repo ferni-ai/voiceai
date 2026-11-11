@@ -29,6 +29,7 @@ import {
   smsReplyTwiml,
   withCrisisReply,
 } from '../services/outreach/sms-crisis-screen.js';
+import { withHeldMinorAiReminder } from '../services/outreach/sms-ai-reminder.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { isSignedByTwilio, twilioSignedUrl } from './twilio-callback-signature.js';
 
@@ -226,7 +227,13 @@ export async function handleOutreachWebhookRoutes(
       if (result) twiml = result.twiml;
       // A "call me" text keeps its call; the one crisis text says so (Seth, 2026-11-06).
       // The handler's own TwiML only: `twiml` already holds the crisis reply when it threw.
-      if (crisis) twiml = withCrisisReply(result?.twiml, smsCrisisReplyFor(result?.called), text);
+      if (crisis) {
+        const reply = withCrisisReply(result?.twiml, smsCrisisReplyFor(result?.called), text);
+        // SB 243: a held minor's crisis reply, whole and in order, then the AI reminder.
+        const from = String(body.From ?? '');
+        const reminded = () => withHeldMinorAiReminder(reply, from);
+        twiml = (await afterScreen('aiReminder', true, reminded)) ?? reply;
+      }
       if (signed) await recordSignedInbound(body, text, !!crisis);
 
       // Empty TwiML: no reply.
