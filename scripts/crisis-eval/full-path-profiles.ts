@@ -11,8 +11,10 @@
  * rc2 (53bb669b4) on 2026-11-01.
  *
  * `prod-2026-11-11`: prod-2026-11-01 with CRISIS_MEANS_IN_HAND live (prod flipped it
- * shadow → live on 2026-11-10 ~23:44Z). Every other value is carried from 11-01, not
- * re-read from tonight's boot settings.
+ * shadow → live on 2026-11-10 ~23:44Z), read from the prod worker's boot settings of
+ * 2026-11-10T23:46Z (still rc2, 53bb669b4). That read re-confirmed only CRISIS_MEANS_IN_HAND
+ * and the flags below it, which prod had no value for (each written at its code default);
+ * every other value is carried from 11-01.
  *
  * Every value is the exact mode its flag's resolver returns for it (full-path-profiles.test.ts):
  * a value a resolver doesn't know falls back to off or shadow without a word, so `on` where a
@@ -55,6 +57,16 @@ const PROD_2026_11_01: FlagSet = {
 const PROD_2026_11_11: FlagSet = {
   ...PROD_2026_11_01,
   CRISIS_MEANS_IN_HAND: 'live',
+  // Prod had no value for these on 2026-11-10; each is its code default.
+  CRISIS_GRADED_RESPONSE: 'off',
+  CRISIS_READ_JOINED_TURN: 'off',
+  MINOR_CRISIS_CARE: 'off',
+  CRISIS_CLASSIFIER_BLOCKED_SIGNAL: 'off',
+  CRISIS_CLASSIFIER_TIMEOUT_MS: '1000',
+  CRISIS_CLASSIFIER_ONLY_TIMEOUT_MS: '2000',
+  CRISIS_SECOND_READ_GRACE_MS: '150',
+  CRISIS_GROUNDED_RELEASE_TIMEOUT_MS: '1500',
+  CRISIS_ADJUDICATOR_TIMEOUT_MS: '1200',
 };
 
 /** Every crisis brake that exists, on. The adjudicator's live mode is blocked in code. */

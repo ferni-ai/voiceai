@@ -7,6 +7,7 @@
  * them in shadow or off. Each flag here is read by the production resolver (or, where that is
  * private, by the production code's own report of it), never by a copy of its parsing.
  */
+import { llm } from '@livekit/agents';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const logInfo = vi.hoisted(() => vi.fn());
@@ -32,23 +33,37 @@ vi.mock('../../../src/utils/safe-logger.js', async (importOriginal) => {
 
 import { flagModeOf, flagOn } from '../../../src/config/env-flag.js';
 import type { FlagName } from '../../../src/config/flag-manifest.js';
+import { withHeldRead } from '../../../src/agents/personas/crisis-read-joined-turn.js';
 import { resolveCrisisGuardMode } from '../../../src/agents/safety/crisis-shadow.js';
 import {
   adjudicatorCheckinsMayChangeReplies,
   resolveCrisisAdjudicatorMode,
+  resolveCrisisAdjudicatorTimeoutMs,
 } from '../../../src/services/safety/crisis-adjudicator.js';
 import { resolveCrisisAgreementGate } from '../../../src/services/safety/crisis-agreement.js';
-import { resolveCrisisClassifierMode } from '../../../src/services/safety/crisis-classifier.js';
+import {
+  resolveCrisisClassifierMode,
+  resolveCrisisClassifierTimeoutMs,
+} from '../../../src/services/safety/crisis-classifier.js';
 import { resolveClassifierOnlyCheckin } from '../../../src/services/safety/crisis-classifier-only.js';
-import { resolveEasingMode } from '../../../src/services/safety/crisis-classifier-only-live.js';
-import { resolveCrisisSecondRead } from '../../../src/services/safety/crisis-classifier-v3.js';
+import {
+  resolveEasingMode,
+  resolveEasingTimeoutMs,
+} from '../../../src/services/safety/crisis-classifier-only-live.js';
+import {
+  resolveCrisisSecondRead,
+  resolveCrisisSecondReadGraceMs,
+} from '../../../src/services/safety/crisis-classifier-v3.js';
 import {
   afterCheckLoneRead,
   resetConfirmedCallRisk,
 } from '../../../src/services/safety/crisis-confirmed-risk.js';
 import { resolveCrisisEverydayRules } from '../../../src/services/safety/crisis-everyday.js';
 import { resolveGradedResponseMode } from '../../../src/services/safety/crisis-graded-shadow.js';
-import { resolveGroundedReleaseMode } from '../../../src/services/safety/crisis-grounded-release.js';
+import {
+  DEFAULT_GROUNDED_RELEASE_TIMEOUT_MS,
+  resolveGroundedReleaseMode,
+} from '../../../src/services/safety/crisis-grounded-release.js';
 import { agreementCacheScope } from '../../../src/services/safety/crisis-imminent-agreement.js';
 import { resolveMeansInHandMode } from '../../../src/services/safety/crisis-means-in-hand.js';
 import { resolveWhoMode } from '../../../src/services/safety/crisis-who.js';
@@ -86,6 +101,19 @@ async function confirmedCallRiskMode(env: FlagSet): Promise<string> {
   return String(logged.mode);
 }
 
+/**
+ * CRISIS_READ_JOINED_TURN's reader is private; withHeldRead asks the session how long to hold the
+ * caller's line only when it is on (with the live classifier, which every profile runs).
+ */
+function readJoinedTurnMode(env: FlagSet): string {
+  const holdMs = vi.fn(() => 0);
+  const session = { on: () => undefined, off: () => undefined, unfinishedTurnHoldMs: holdMs };
+  const ctx = llm.ChatContext.empty();
+  ctx.addMessage({ role: 'user', content: 'a line' });
+  void withHeldRead(session, ctx, { env }, vi.fn()).readAfter?.();
+  return onOff(holdMs.mock.calls.length > 0);
+}
+
 /** Each profile flag's production reader. A flag missing here fails the test: audit it first. */
 const RESOLVERS: Readonly<Record<string, Resolve>> = {
   CRISIS_GUARD_MODE: (env) => resolveCrisisGuardMode(env),
@@ -114,7 +142,31 @@ const RESOLVERS: Readonly<Record<string, Resolve>> = {
   SEXUAL_TOPIC_BOUNDARY: (env) => onOff(flagOn('SEXUAL_TOPIC_BOUNDARY' as FlagName, env)),
   MINOR_CARE: (env) => flagModeOf('MINOR_CARE' as FlagName, env),
   CRISIS_GRADED_RESPONSE: (env) => resolveGradedResponseMode(env),
+  CRISIS_READ_JOINED_TURN: readJoinedTurnMode,
+  MINOR_CRISIS_CARE: (env) => onOff(flagOn('MINOR_CRISIS_CARE' as FlagName, env)),
+  CRISIS_CLASSIFIER_BLOCKED_SIGNAL: (env) =>
+    onOff(flagOn('CRISIS_CLASSIFIER_BLOCKED_SIGNAL' as FlagName, env)),
+  CRISIS_CLASSIFIER_TIMEOUT_MS: (env) => String(resolveCrisisClassifierTimeoutMs(env)),
+  CRISIS_CLASSIFIER_ONLY_TIMEOUT_MS: (env) => String(resolveEasingTimeoutMs(env)),
+  CRISIS_SECOND_READ_GRACE_MS: (env) => String(resolveCrisisSecondReadGraceMs(env)),
+  // Private reader (timeoutFrom): this pins only that the value is the exported default, the one
+  // value any profile gives it. A profile that sets another value needs an observer here first.
+  CRISIS_GROUNDED_RELEASE_TIMEOUT_MS: () => String(DEFAULT_GROUNDED_RELEASE_TIMEOUT_MS),
+  CRISIS_ADJUDICATOR_TIMEOUT_MS: (env) => String(resolveCrisisAdjudicatorTimeoutMs(env)),
 };
+
+/** prod-2026-11-11's flags prod had no value for: each must be its code default. */
+const PROD_NO_VALUE_2026_11_11 = [
+  'CRISIS_GRADED_RESPONSE',
+  'CRISIS_READ_JOINED_TURN',
+  'MINOR_CRISIS_CARE',
+  'CRISIS_CLASSIFIER_BLOCKED_SIGNAL',
+  'CRISIS_CLASSIFIER_TIMEOUT_MS',
+  'CRISIS_CLASSIFIER_ONLY_TIMEOUT_MS',
+  'CRISIS_SECOND_READ_GRACE_MS',
+  'CRISIS_GROUNDED_RELEASE_TIMEOUT_MS',
+  'CRISIS_ADJUDICATOR_TIMEOUT_MS',
+] as const;
 
 /**
  * Modes the code itself holds back, deliberately and with a log, not a misspelt value: live
@@ -125,6 +177,13 @@ const HELD: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   CRISIS_CLASSIFIER_ONLY_CHECKIN: adjudicatorCheckinsMayChangeReplies() ? {} : { live: 'held' },
   CRISIS_GRADED_RESPONSE: { live: 'shadow' },
 };
+
+/** A named entry, or a test failure naming what is missing. */
+function entry<T>(table: Readonly<Record<string, T>>, name: string): T {
+  const value = table[name];
+  if (value === undefined) throw new Error(`no entry for ${name}`);
+  return value;
+}
 
 const rows = Object.entries(PROFILES).flatMap(([profile, flags]) =>
   Object.entries(flags).map(([flag, value]) => ({ profile, flag, value, flags }))
@@ -141,17 +200,34 @@ describe('full-path profiles: every value is a mode its resolver returns', () =>
   it.each(rows.map((r) => [r.profile, r.flag, r.value, r] as const))(
     '%s %s=%s resolves to itself',
     async (_profile, flag, value, row) => {
-      const resolved = await RESOLVERS[flag]!(row.flags);
+      const resolved = await entry(RESOLVERS, flag)(row.flags);
       expect(resolved).toBe(HELD[flag]?.[value] ?? value);
     }
   );
 
-  it('prod-2026-11-11 is prod-2026-11-01 with means in hand live', () => {
-    const { CRISIS_MEANS_IN_HAND: was, ...rest11 } = PROFILES['prod-2026-11-01']!;
-    const { CRISIS_MEANS_IN_HAND: now, ...rest } = PROFILES['prod-2026-11-11']!;
+  it('prod-2026-11-11 is prod-2026-11-01 with means in hand live, plus code defaults', () => {
+    const { CRISIS_MEANS_IN_HAND: was, ...rest11 } = entry(PROFILES, 'prod-2026-11-01');
+    const { CRISIS_MEANS_IN_HAND: now, ...rest } = entry(PROFILES, 'prod-2026-11-11');
     expect([was, now]).toEqual(['shadow', 'live']);
-    expect(rest).toEqual(rest11);
+    const carried = Object.fromEntries(
+      Object.entries(rest).filter(
+        ([flag]) => !(PROD_NO_VALUE_2026_11_11 as readonly string[]).includes(flag)
+      )
+    );
+    expect(carried).toEqual(rest11);
+    expect(Object.keys(rest).filter((flag) => !(flag in rest11))).toEqual([
+      ...PROD_NO_VALUE_2026_11_11,
+    ]);
   });
+
+  it.each(PROD_NO_VALUE_2026_11_11)(
+    'prod-2026-11-11 %s is its code default (dropping it changes nothing)',
+    async (flag) => {
+      const profile = entry(PROFILES, 'prod-2026-11-11');
+      const { [flag]: _value, ...unset } = profile;
+      expect(await entry(RESOLVERS, flag)(unset)).toBe(await entry(RESOLVERS, flag)(profile));
+    }
+  );
 
   it('the reader can tell a fallback from the mode asked for', async () => {
     // Guards the guard: a misspelt value must not resolve to itself.
@@ -161,5 +237,9 @@ describe('full-path profiles: every value is a mode its resolver returns', () =>
     expect(await confirmedCallRiskMode({ CRISIS_CONFIRMED_CALL_RISK: 'shadow' })).toBe('shadow');
     expect(await confirmedCallRiskMode({ CRISIS_CONFIRMED_CALL_RISK: 'on' })).toBe('on');
     expect(agreementCacheScope({ CRISIS_IMMINENT_NEEDS_AGREEMENT: 'live' }, 'c')).toEqual([]);
+    const live = { CRISIS_CLASSIFIER_MODE: 'live' };
+    expect(readJoinedTurnMode({ ...live, CRISIS_READ_JOINED_TURN: 'on' })).toBe('on');
+    expect(readJoinedTurnMode({ ...live, CRISIS_READ_JOINED_TURN: 'live' })).toBe('off');
+    expect(resolveCrisisClassifierTimeoutMs({ CRISIS_CLASSIFIER_TIMEOUT_MS: '1s' })).toBe(1000);
   });
 });
