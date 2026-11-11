@@ -333,12 +333,10 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   //   - Concise, critical rules that must never be forgotten
   // Agent-level: Full persona prompt (identity, detailed tools, personality)
   //   - Sent via updateInstructions() after session starts: full identity and tool catalog
-
   let systemPrompt: string;
   let modelBaseInstructions: string;
   // The model-level text before this call's date, time and caller are added.
   let stableBase = '';
-  // PERSON_MODEL_READ: the call sheet loads alongside setup and is taken, never awaited, below
   const callSheet = startCallSheet(sessionId, services.userId, { phoneCall: config.phoneCaller });
   try {
     mark('load_prompts_start');
@@ -1127,10 +1125,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   // See: https://github.com/livekit/agents/issues/4423
   // See: https://github.com/googleapis/python-genai/issues/1780
   //
-  // For TEXT modality + Cartesia TTS, use standard models like:
-  // - gemini-2.0-flash-live-preview-04-09 (WORKING on Vertex AI Live API)
-  // - gemini-2.0-flash-exp (NOT supported by Live API)
-  //
+  // For TEXT modality + Cartesia TTS use a standard model: gemini-2.0-flash-live-preview-04-09
+  // works on the Vertex AI Live API; gemini-2.0-flash-exp is not supported there.
   const VOICE_MODEL = getRealtimeModel();
 
   log.info(
@@ -1138,7 +1134,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     `${modelProvider.getLogPrefix()} Creating LLM model via ${modelProvider.displayName}`
   );
 
-  if (callSheet) modelBaseInstructions += callSheet.take(); // call-sheet/: whatever has settled
+  if (callSheet) modelBaseInstructions += callSheet.take(); // PERSON_MODEL_READ, never awaited
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const llmModel: any = await modelProvider.createLLMModel({
     model: VOICE_MODEL,
