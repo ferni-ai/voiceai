@@ -13,6 +13,16 @@ import type {
   ToolExecutionResult,
 } from '../types.js';
 
+// Mild distress ("I'm a bit stressed today", "rough day") should lead with a wellness tool.
+// The holistic layer boosts crisis and wellness tools equally for any distress word, so
+// without a pattern hit here the crisis tools win the tie on registration order. Turns with
+// risk language never match these patterns: the crisis tools own those. Patterns run on
+// normalizeText output, which rewrites "can't" to "cannot" and "'ve" to " have".
+const NOT_RISK = String.raw`(?!.*\b(?:kill|die|dying|dead|suicid\w*|alive|hurt\s+myself|harm\s+myself|cut\s+myself|end\s+(?:it|my\s+life)|safe|overdos\w*|pills|jump\w*|gone|can(?:not|'?t)\s+go\s+on|no\s+point|live|wake\s+up)\b)`;
+const SOFTENER = String.raw`(?:(?:a\s+)?(?:bit|little|really|so|very|super|pretty|kind\s+of|kinda|sort\s+of)\s+)*`;
+const I_FEEL = String.raw`i(?:'m|\s+am|'ve\s+been|\s+have\s+been|\s+feel)\s+(?:feeling\s+)?${SOFTENER}`;
+const mildDistress = (body: string): RegExp => new RegExp(`^${NOT_RISK}${body}`, 'i');
+
 // ============================================================================
 // GROUNDING EXERCISE
 // ============================================================================
@@ -39,7 +49,8 @@ export const groundingExerciseTool: SemanticToolDefinition = {
       'calm me down',
     ],
     patterns: [
-      /^i(?:'m| am)\s+(?:feeling\s+)?(?:anxious|stressed|overwhelmed|panicking)/i,
+      mildDistress(`${I_FEEL}(?:anxious|stressed|overwhelmed|panicking)`),
+      mildDistress(String.raw`.*\bstress(?:ing|es)\s+me\s+out\b`),
       /^(?:i\s+)?need\s+(?:to\s+)?(?:calm\s+down|relax|ground\s+myself)/i,
       /^(?:help|can\s+you\s+help)\s+me\s+(?:calm\s+down|relax|feel\s+better)/i,
       /^(?:do\s+)?(?:a\s+)?(?:grounding|breathing|calming)\s+exercise/i,
@@ -145,7 +156,9 @@ export const wellnessCheckinTool: SemanticToolDefinition = {
     ],
     patterns: [
       /^i(?:'m| am)\s+(?:not\s+)?(?:okay|alright|doing\s+well)/i,
-      /^i(?:'m| am)\s+(?:feeling\s+)?(?:sad|down|depressed|blue|low)/i,
+      mildDistress(`${I_FEEL}(?:sad|down|depressed|blue|low|upset)`),
+      mildDistress(String.raw`.*\b${SOFTENER}(?:rough|bad|hard|tough|crappy|terrible)\s+day\b`),
+      mildDistress(String.raw`.*\bin\s+(?:a\s+)?(?:bit\s+of\s+a\s+)?funk\b`),
       /^i(?:'m| am)\s+(?:struggling|hurting|having\s+a\s+hard\s+time)/i,
       /^(?:i\s+)?need\s+(?:someone\s+)?to\s+talk\s+(?:to)?/i,
       /^(?:i\s+)?(?:don(?:'t|ot)\s+)?feel\s+(?:good|great|well)/i,
