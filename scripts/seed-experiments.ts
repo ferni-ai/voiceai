@@ -31,11 +31,6 @@ interface ExperimentSeed {
 
 // Experiments required by ai-powered-landing.js
 const AI_LANDING_EXPERIMENTS: Record<string, ExperimentSeed> = {
-  'landing-ai-live-chat': {
-    name: 'AI Live Chat',
-    description: 'Enable AI-powered live chat on landing page',
-    primaryGoal: 'chat_engagement',
-  },
   'landing-ai-personalized-hero': {
     name: 'Personalized Hero',
     description: 'Enable personalized hero section',
