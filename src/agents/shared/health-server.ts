@@ -10,14 +10,14 @@
  * - GET /health - Liveness check (always returns 200 if server is up)
  * - GET /health/ready - Readiness check (200 only when workers can accept calls)
  * - GET /health/workers - Background worker stats (trust, analytics, predictions, etc.)
- * - GET /health/crash-analytics - Crash analytics summary
+ * - GET /health/crash-analytics - Crash analytics summary (admin only)
  * - GET /api/cognitive - Current cognitive state (admin only: names users)
  * - GET /api/cognitive/history - Recent cognitive events (admin only)
  * - GET /api/metrics - Full persistence metrics snapshot
  * - GET /api/metrics/summary - Concise metrics summary
  * - GET /api/metrics/sessions - Active sessions only
- * - GET /api/crash-analytics - Crash analytics summary (alias)
- * - GET /api/crash-analytics/history - Full crash event history
+ * - GET /api/crash-analytics - Crash analytics summary (alias, admin only)
+ * - GET /api/crash-analytics/history - Full crash event history (admin only)
  * - GET /api/diagnostics - Latency summary and bottleneck analysis
  * - GET /api/diagnostics/pipeline - Pipeline stage breakdown with targets
  * - GET /api/diagnostics/session?sessionId=<id> - Per-session diagnostics
@@ -362,11 +362,12 @@ async function handleWatchdogAPI(res: ServerResponse): Promise<void> {
   }
 }
 
-/**
- * Handle crash analytics API requests
- */
-async function handleCrashAnalyticsAPI(url: string, res: ServerResponse): Promise<void> {
+/** Crash analytics: every live session and every recent crash, so admin only (401/403). */
+async function handleCrashAnalyticsAPI(req: IncomingMessage, res: ServerResponse): Promise<void> {
   setMonitoringCorsHeaders(res);
+  const { requireAdmin } = await import('../../api/auth-middleware.js');
+  if (!(await requireAdmin(req, res))) return;
+  const url = req.url || '/';
 
   try {
     const { getCrashHistory } = await import('./shutdown-handler.js');
@@ -385,7 +386,6 @@ async function handleCrashAnalyticsAPI(url: string, res: ServerResponse): Promis
     }
 
     if (url === '/health/crash-analytics' || url === '/api/crash-analytics') {
-      // Return crash analytics summary
       const memUsage = process.memoryUsage();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
@@ -1054,7 +1054,7 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): Server {
 
       // Crash analytics API endpoints
       if (url.startsWith('/health/crash-analytics') || url.startsWith('/api/crash-analytics')) {
-        await handleCrashAnalyticsAPI(url, res);
+        await handleCrashAnalyticsAPI(req, res);
         return;
       }
 

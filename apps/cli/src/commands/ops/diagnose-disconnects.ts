@@ -8,6 +8,7 @@
  *   pnpm ops:diagnose            # production agent
  *   pnpm ops:diagnose --dev      # ferni-dev agent
  *   AGENT_OBS_URL=http://localhost:8080 pnpm ops:diagnose --dev
+ *   AGENT_OBS_TOKEN=<an admin's Firebase ID token> is needed for crash data
  */
 
 import { execSync } from 'node:child_process';
@@ -66,11 +67,14 @@ interface CrashSummary {
 // observability endpoints are only reachable from a worker you can address
 // (a local `pnpm dev` worker on http://localhost:8080, say).
 const OBS_URL = process.env.AGENT_OBS_URL;
+/** An admin's Firebase ID token: the worker's crash analytics answers only an admin. */
+const OBS_TOKEN = process.env.AGENT_OBS_TOKEN;
 const TARGET = LIVEKIT_AGENTS[resolveAgentEnv(process.argv.slice(2), 'prod')];
 
-async function fetchJson<T>(url: string): Promise<T | null> {
+async function fetchJson<T>(url: string, token?: string): Promise<T | null> {
   try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await fetch(url, { headers, signal: AbortSignal.timeout(5000) });
     if (!response.ok) return null;
     return (await response.json()) as T;
   } catch {
@@ -140,7 +144,7 @@ async function main(): Promise<void> {
   const [observability, crashes] = OBS_URL
     ? await Promise.all([
         fetchJson<ObservabilityData>(`${OBS_URL}/api/observability`),
-        fetchJson<CrashSummary>(`${OBS_URL}/api/crash-analytics`),
+        fetchJson<CrashSummary>(`${OBS_URL}/api/crash-analytics`, OBS_TOKEN),
       ])
     : [null, null];
   if (!OBS_URL) {

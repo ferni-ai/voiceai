@@ -10,8 +10,8 @@
 # Check overall health
 curl http://34.134.186.63:8080/health/ready
 
-# Check crash analytics
-curl http://34.134.186.63:8080/api/crash-analytics | jq
+# Check crash analytics (admin only: an admin's Firebase ID token)
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" http://34.134.186.63:8080/api/crash-analytics | jq
 
 # Check call quality (disconnect rates, etc)
 curl http://34.134.186.63:8080/api/observability | jq '.callQuality'

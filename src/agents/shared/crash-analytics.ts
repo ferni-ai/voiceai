@@ -167,9 +167,7 @@ export function registerSession(sessionId: string, initialContext: Partial<Crash
   );
 }
 
-/**
- * Update session state (call this frequently during conversation)
- */
+/** Update session state (call this frequently during conversation) */
 export function updateSessionState(
   sessionId: string,
   updates: Partial<SessionSnapshot & { lastUserMessage?: string; lastAgentMessage?: string }>
@@ -180,18 +178,20 @@ export function updateSessionState(
     return;
   }
 
+  // The words go to sessionMessages for the crash record, never onto the served snapshot
+  const { lastUserMessage: said, lastAgentMessage: reply, ...snapshot } = updates;
   Object.assign(session, {
-    ...updates,
+    ...snapshot,
     lastActivity: new Date().toISOString(),
     memoryMb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
   });
 
   // Store last messages in a separate map for crash context
-  if (updates.lastUserMessage || updates.lastAgentMessage) {
+  if (said || reply) {
+    const prev = sessionMessages.get(sessionId);
     sessionMessages.set(sessionId, {
-      lastUserMessage: updates.lastUserMessage || sessionMessages.get(sessionId)?.lastUserMessage,
-      lastAgentMessage:
-        updates.lastAgentMessage || sessionMessages.get(sessionId)?.lastAgentMessage,
+      lastUserMessage: said || prev?.lastUserMessage,
+      lastAgentMessage: reply || prev?.lastAgentMessage,
     });
   }
 }
