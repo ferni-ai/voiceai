@@ -95,8 +95,7 @@ describe('Phase 2: Redis Caching', () => {
       const redis = getRedisCache();
 
       // Verify the cache has the expected API for presence tracking
-      expect(typeof redis.setUserPresence).toBe('function');
-      expect(typeof redis.getUserPresence).toBe('function');
+      expect(typeof redis.isUserActive).toBe('function');
     });
   });
 });
