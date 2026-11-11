@@ -62,7 +62,7 @@ async function watch(
   return { hits, idRequests, prodCalls };
 }
 
-/** The banner's Accept and Decline sit under the chat bubble, so click them in the DOM. */
+/** Click the banner's Accept and Decline in the DOM, so no floating element can cover them. */
 async function choose(page: Page, label: 'Accept' | 'Decline'): Promise<void> {
   const button = page.locator(`#cookieBanner button:has-text("${label}")`);
   await expect(page.locator('#cookieBanner.is-visible')).toBeVisible({ timeout: 5000 });
@@ -89,8 +89,8 @@ test.describe('ferni.ai consent and content', () => {
     expect(hits).toEqual([]);
     expect(idRequests).toEqual([]);
     // Backend-flagged features look the same as before consent existed: with
-    // no experiments service, the flags fall through to on, chat bubble included.
-    await expect(page.locator('.ferni-chat-trigger')).toHaveCount(1);
+    // no experiments service, the flags fall through to on, hover previews included.
+    await expect(page.locator('.ferni-hover-preview')).toHaveCount(1);
     const consentDefault = await page.evaluate(
       () =>
         (window as unknown as { dataLayer: unknown[][] }).dataLayer.find(
