@@ -71,6 +71,18 @@ describe('a text from an unverified number', () => {
     expect(SMS_UNVERIFIED_REPLY.length).toBeLessThanOrEqual(160);
   });
 
+  it('SB 243: the reply says "an AI friend" itself, so no extra reminder, first or 24 h later', async () => {
+    const { deps, clock } = world();
+    const first = await smsUnverifiedReply(PHONE, deps);
+    clock.at += 24 * HOUR;
+    const again = await smsUnverifiedReply(PHONE, deps);
+    for (const reply of [first, again]) {
+      expect(reply).toContain('an AI friend');
+      expect(reply).not.toMatch(/just a reminder/i);
+      expect(reply).toBe(SMS_UNVERIFIED_REPLY);
+    }
+  });
+
   it('once per number per 24 hours: 23 h later none, 24 h later again; another number its own', async () => {
     const { deps, clock } = world();
     expect(await smsUnverifiedReply(PHONE, deps)).toBe(SMS_UNVERIFIED_REPLY);
