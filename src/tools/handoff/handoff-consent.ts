@@ -27,6 +27,7 @@ import { crisisGuidedTurn } from '../../services/safety/index.js';
 import { isCoach } from '../../personas/index.js';
 import { aliasesInTransfer } from './transfer-aliases.js';
 import { misheardTeammates, teammateHeardAs } from './teammate-names.js';
+import { bareYes, pronounOffered } from './pronoun-offer.js';
 
 export function handoffAskFirstEnabled(
   env: Record<string, string | undefined> = process.env
@@ -83,23 +84,6 @@ const ASKS_BY_PRONOUN =
 /** How many of Ferni's lines a pronoun can point back to */
 const NAMED_LATELY_LINES = 3;
 
-/**
- * HANDOFF_HELD_TRUTHFUL: Ferni offering someone by pronoun: "want me to wake him up and
- * bring him in?", "I can bring her in", "should I get them on?", "I'll hand you over to
- * him". A yes to it is a yes to the one teammate named just before (soleTeammateNamed).
- * It needs an offer verb: "he's probably asleep" offers nothing.
- */
-const OFFERS_BY_PRONOUN =
-  /\b(bring|get|put|patch|loop)\s+(him|her|them)\s+(in|on|over|through)\b|\b(grab|wake)\s+(him|her|them)\b|\b(hand|pass|send|transfer)\s+you\s+(over\s+|off\s+)?to\s+(him|her|them)\b/i;
-
-/**
- * How many lines, from either speaker, a pronoun offer can point back to. Two exchanges:
- * the caller often says the name and Ferni answers with "he" ("what's Alex up to?",
- * "he's probably asleep, want me to bring him in?", #3755). Further back, "him" may be
- * someone else.
- */
-const SAID_LATELY_MESSAGES = 4;
-
 function heldTruthful(env: Env = process.env): boolean {
   return flagOn('HANDOFF_HELD_TRUTHFUL', env);
 }
@@ -123,26 +107,33 @@ function agentLinesBefore(chatCtx: llm.ChatContext, count: number): string[] {
 }
 
 /**
- * The last `count` lines from either speaker before the caller's latest turn (which may
- * span several messages), latest first.
+ * The exchange a pronoun offer points back to, before the caller's latest turn: Ferni's
+ * lines since the caller last spoke (the offer among them, latest first) and that caller
+ * turn. "what's Alex up to?" / "want me to bring him in?" / "Sure." Further back, "him"
+ * may be someone else.
  */
-function linesBefore(chatCtx: llm.ChatContext, count: number): string[] {
-  const lines: string[] = [];
-  let reached: 'after' | 'turn' | 'before' = 'after';
-  for (let i = chatCtx.items.length - 1; i >= 0 && lines.length < count; i--) {
+function offerExchange(chatCtx: llm.ChatContext): { caller: string[]; ferni: string[] } {
+  const caller: string[] = [];
+  const ferni: string[] = [];
+  let reached: 'after' | 'latest' | 'ferni' | 'caller' = 'after';
+  for (let i = chatCtx.items.length - 1; i >= 0; i--) {
     const item = chatCtx.items[i];
     if (item.type !== 'message' || (item.role !== 'user' && item.role !== 'assistant')) continue;
-    if (reached !== 'before') {
-      if (item.role === 'user') {
-        reached = 'turn';
-        continue;
-      }
-      if (reached === 'after') continue;
-      reached = 'before';
+    const user = item.role === 'user';
+    if (reached === 'after' || (reached === 'latest' && user)) {
+      if (user) reached = 'latest';
+      continue;
     }
-    lines.push(item.textContent ?? '');
+    if (reached !== 'caller' && !user) {
+      reached = 'ferni';
+      ferni.push(item.textContent ?? '');
+      continue;
+    }
+    if (!user) break;
+    reached = 'caller';
+    caller.push(item.textContent ?? '');
   }
-  return lines;
+  return { caller, ferni };
 }
 
 /**
@@ -160,24 +151,28 @@ function soleTeammateNamed(lines: string[], agentName: string): boolean {
   return !lines.some((line) => (line.match(/[a-z]+/gi) ?? []).some(other));
 }
 
+/** "I don't want to talk to Alex right now", "Not Alex": the caller turned them down. */
+const TURNS_DOWN = /\b(not|no|nah|nope|never|don'?t)\b/i;
+
 /**
- * HANDOFF_HELD_TRUTHFUL: `said` is a yes to Ferni's `previous` line offering someone by
- * pronoun, and `agentName` is the one teammate named lately.
+ * HANDOFF_HELD_TRUTHFUL: the caller's whole turn is a yes (bareYes) to Ferni's last
+ * sentence offering to put them through to "him", "her" or "them" (pronounOffered), and
+ * `agentName` is the one teammate named in that exchange, not turned down there. Whether
+ * "her" fits the teammate is not checked: the pronoun table (personas/persona-pronouns.ts)
+ * is not exported from the personas context's index.ts.
  */
 function yesToPronounOffer(
   chatCtx: llm.ChatContext,
   said: string,
-  previous: string,
   agentName: string,
   env: Env
 ): boolean {
-  return (
-    heldTruthful(env) &&
-    YES.test(said) &&
-    !NO.test(said) &&
-    OFFERS_BY_PRONOUN.test(previous) &&
-    soleTeammateNamed(linesBefore(chatCtx, SAID_LATELY_MESSAGES), agentName)
-  );
+  if (!heldTruthful(env) || !bareYes(said)) return false;
+  const { caller, ferni } = offerExchange(chatCtx);
+  const pronoun = pronounOffered(ferni.find((line) => line.trim() !== '') ?? '');
+  if (pronoun === null) return false;
+  const turnedDown = caller.some((line) => names(line, agentName) && TURNS_DOWN.test(line));
+  return !turnedDown && soleTeammateNamed([...caller, ...ferni], agentName);
 }
 
 /**
@@ -199,7 +194,7 @@ export function handoffConsent(
     agentLinesBefore(chatCtx, NAMED_LATELY_LINES).some((line) => names(line, agentName));
   if (heldTruthful(env) && ASKS_BY_PRONOUN.test(said) && namedLately()) return 'asked';
   if (YES.test(said) && !NO.test(said) && names(previous, agentName)) return 'agreed';
-  if (yesToPronounOffer(chatCtx, said, previous, agentName, env)) return 'agreed';
+  if (yesToPronounOffer(chatCtx, said, agentName, env)) return 'agreed';
   return 'none';
 }
 
@@ -222,7 +217,7 @@ function heldHandoff(agentName: string, env: Env = process.env): HeldHandoff {
         `${first} is free, so never say ${first} is away, busy or unavailable, and don't make up ` +
         `a reason. Answer them yourself, the way a friend would. If they asked for someone and ` +
         `you're not sure who, ask who they mean. If ${first} would really help, offer once, ` +
-        `casually, and transfer only if they say yes.`,
+        `casually, saying ${first}'s name, and transfer only if they say yes.`,
     };
   }
   return {
