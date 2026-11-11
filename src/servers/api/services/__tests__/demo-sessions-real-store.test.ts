@@ -348,3 +348,49 @@ describe('a claimed demo', () => {
     expect(doc()!.conversation.topics).toEqual(['gardening']); // text stays stored after claim
   });
 });
+
+describe("the claim's re-read fails or finds nothing", () => {
+  /** On the nth read of the demo doc in the claim (1 fresh, 2 snapshot, 3 re-read), run `act`. */
+  const onRead = (n: number, act: () => void): void => {
+    let reads = 0;
+    state.beforeRead = (p) => {
+      if (p === PATH && ++reads === n) act();
+    };
+  };
+
+  it('the re-read throws: the claimer still gets claimed:true; another account is refused', async () => {
+    await updateVia(A, { conversation: CONV });
+    onRead(3, () => {
+      state.failReads = new Set([PATH]);
+    });
+    const res = await A.svc.claimDemoSession(token, 'uid-sam');
+    state.beforeRead = undefined;
+    state.failReads = undefined;
+    expect(res.success).toBe(true);
+    expect(res.session).toMatchObject({ claimed: true, claimedBy: 'uid-sam', roomName: ROOM });
+    expect(res.session?.conversation.topics).toEqual(['gardening']);
+    expect(doc()).toMatchObject({ claimed: true, claimedBy: 'uid-sam' });
+    const other = await claimVia(B, token, 'uid-riley');
+    expect(other.status).toBe(400);
+    expect(other.json.conversation).toBeUndefined();
+    const sameInstance = await A.svc.claimDemoSession(token, 'uid-riley');
+    expect(sameInstance.success).toBe(false);
+    expect(sameInstance.session).toBeUndefined();
+  });
+
+  it('the doc is gone by the re-read: the claimer still gets claimed:true; another account is refused', async () => {
+    await updateVia(A, { conversation: CONV });
+    onRead(3, () => {
+      state.docs.delete(PATH);
+      state.versions.set(PATH, (state.versions.get(PATH) ?? 0) + 1);
+    });
+    const res = await A.svc.claimDemoSession(token, 'uid-sam');
+    state.beforeRead = undefined;
+    expect(res.success).toBe(true);
+    expect(res.session).toMatchObject({ claimed: true, claimedBy: 'uid-sam', roomName: ROOM });
+    expect(doc()).toBeUndefined(); // not written back
+    const other = await A.svc.claimDemoSession(token, 'uid-riley');
+    expect(other.success).toBe(false);
+    expect(other.session).toBeUndefined();
+  });
+});
