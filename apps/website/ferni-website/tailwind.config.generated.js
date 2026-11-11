@@ -85,11 +85,6 @@ module.exports = {
       "dark": "var(--color-joel-secondary)",
       "glow": "var(--color-joel-glow)"
     },
-    "lynch": {
-      "DEFAULT": "var(--color-lynch)",
-      "dark": "var(--color-lynch-secondary)",
-      "glow": "var(--color-lynch-glow)"
-    },
     "bogle": {
       "DEFAULT": "var(--color-bogle)",
       "dark": "var(--color-bogle-secondary)",

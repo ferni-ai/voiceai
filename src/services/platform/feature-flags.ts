@@ -76,7 +76,6 @@ export const TRUST_FLAGS = {
   'trust.notifications': 'Proactive notifications',
 
   // Landing Page AI Features
-  'landing-ai-live-chat': 'AI chat widget on landing page (10 msg limit)',
   'landing-ai-persona-previews': 'Team member preview cards on hover',
   'landing-ai-smart-faq': 'AI-powered FAQ with related questions',
   'landing-ai-personalized-hero': 'Dynamic hero content based on context',
@@ -130,7 +129,6 @@ const DEFAULT_FLAGS: Record<TrustFlagId, FlagConfig> = {
   'trust.notifications': { enabled: true, percentage: 100 },
 
   // Landing Page AI Features - Gradual rollout
-  'landing-ai-live-chat': { enabled: true, percentage: 50 },
   'landing-ai-persona-previews': { enabled: true, percentage: 100 },
   'landing-ai-smart-faq': { enabled: true, percentage: 100 },
   'landing-ai-personalized-hero': { enabled: true, percentage: 50 },

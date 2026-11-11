@@ -9,10 +9,11 @@ import { bundlePersonas, PERSONAS, personaNames, personaParagraph } from '../ros
 const BAR = readFileSync(fileURLToPath(new URL('../bar.ts', import.meta.url)), 'utf8');
 
 describe('the persona roster the evals iterate', () => {
-  it('is exactly the bundle registry, the three legends included', () => {
+  it('is exactly the bundle registry, the legends included', () => {
     expect([...PERSONAS].sort()).toEqual(bundlePersonas());
-    expect(PERSONAS).toHaveLength(9);
-    expect(PERSONAS).toEqual(expect.arrayContaining(['peter-lynch', 'john-bogle', 'joel-dickson']));
+    expect(PERSONAS).toHaveLength(8);
+    expect(PERSONAS).toEqual(expect.arrayContaining(['john-bogle', 'joel-dickson']));
+    expect(PERSONAS).not.toContain('peter-lynch'); // Tom, retired 2026-11-08
   });
 
   it('is what bar.ts scores, with a description for every persona', () => {
@@ -27,7 +28,6 @@ describe('the persona roster the evals iterate', () => {
 
   it("reads each persona's name from its own bundle", () => {
     expect(personaNames('john-bogle')).toEqual(['Henry', 'Caldwell']);
-    expect(personaNames('peter-lynch')[0]).toBe('Tom');
     expect(personaNames('joel-dickson')[0]).toBe('Nate');
   });
 
