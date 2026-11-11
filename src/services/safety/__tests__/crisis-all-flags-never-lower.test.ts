@@ -381,6 +381,10 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
     'src/services/safety/__tests__/crisis-grounded-release-failclosed.test.ts',
   CRISIS_IMMINENT_NEEDS_AGREEMENT:
     'src/services/safety/__tests__/crisis-imminent-agreement.test.ts',
+  // Adds a quiet-window record after a gate crisis; no reader or reply changes. Its test drives
+  // the real gatedReply off, shadow and on, and checks proactive sends only ever go quieter.
+  CRISIS_QUIET_FROM_GATE:
+    'src/services/outreach/proactive-channels/__tests__/crisis-gate-quiet-path.test.ts',
   // Changes only when the reply gate's classifier reads a held line, never what a reader decides,
   // so the six readers here can't see it. Its test drives the real gatedReply flag off and on,
   // under a classifier with and without a fragment false alarm, and checks it never lowers.

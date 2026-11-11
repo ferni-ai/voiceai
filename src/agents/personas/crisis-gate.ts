@@ -106,7 +106,8 @@ const log = createLogger({ module: 'CrisisGate' });
 export type CrisisGateDecision =
   | { action: 'pass' }
   // about: the crisis read's subject when the risk is someone the caller knows (MINOR_CRISIS_CARE).
-  | { action: 'guide'; guidance: string; about?: 'third_party' }
+  // crisis: decisionFor's full guidance for the caller's own crisis (CRISIS_QUIET_FROM_GATE).
+  | { action: 'guide'; guidance: string; about?: 'third_party'; crisis?: true }
   | { action: 'replace'; script: string; kind?: ReturnType<typeof crisisKindOf> };
 type GuideDecision = Extract<CrisisGateDecision, { action: 'guide' }>;
 
@@ -132,7 +133,10 @@ export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   if (crisis.isCrisis && crisis.subject === 'third_party') {
     return { action: 'guide', guidance: buildCrisisGuidance(crisis), about: 'third_party' };
   }
-  if (crisis.isCrisis) return guide(disclosureGuidance(crisis) ?? buildCrisisGuidance(crisis));
+  if (crisis.isCrisis) {
+    const guidance = disclosureGuidance(crisis) ?? buildCrisisGuidance(crisis);
+    return { action: 'guide', guidance, crisis: true };
+  }
   return { action: 'pass' };
 }
 
