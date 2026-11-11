@@ -250,6 +250,30 @@ describe('smsMemberReply', () => {
     expect(await at(3.5, ask({ userId: `uid-alex-${n}` }))).toBe(MODEL_SAYS);
   });
 
+  it("SB 243: a held minor's fixed warm reply gets the reminder too: first, not 2 h later, back at 3 h", async () => {
+    const start = new Date('2026-11-12T18:00:00Z').getTime();
+    vi.useFakeTimers({ toFake: ['Date'], now: start });
+    reads = fakeReads({ lastCrisisAt: vi.fn(async () => new Date(Date.now() - 3 * DAY)) });
+    const mia = ask({ held: true });
+    const at = async (hours: number) => {
+      vi.setSystemTime(start + hours * 3_600_000);
+      return (await smsMemberReply(routed(), mia, reads))?.reply;
+    };
+    expect(await at(0)).toBe(`${SMS_AFTER_CRISIS_REPLY} ${SMS_AI_REMINDER}`);
+    expect(await at(2)).toBe(SMS_AFTER_CRISIS_REPLY);
+    expect(await at(3)).toBe(`${SMS_AFTER_CRISIS_REPLY} ${SMS_AI_REMINDER}`);
+    expect(reads.generate).not.toHaveBeenCalled();
+  });
+
+  it("SB 243: a held minor's crisis reply is the whole SMS_CRISIS_REPLY, then the reminder; an adult's is unchanged", async () => {
+    gate.read = { action: 'replace', reply: 'the voice script' };
+    const minor = await smsMemberReply(routed(), ask({ held: true }), reads);
+    expect(minor).toEqual({ reply: `${SMS_CRISIS_REPLY} ${SMS_AI_REMINDER}`, crisis: true });
+    const adult = await smsMemberReply(routed(), ask({ userId: `uid-alex-${n}` }), reads);
+    expect(adult).toEqual({ reply: SMS_CRISIS_REPLY, crisis: true });
+    for (const read of Object.values(reads)) expect(read).not.toHaveBeenCalled();
+  });
+
   it('past the budget: no reply, nothing kept, one counts-only log line', async () => {
     reads = fakeReads({ generate: vi.fn(async () => new Promise<string>(neverAnswers)) });
     await expect(smsMemberReply(routed(), ask(), reads, 30)).resolves.toBeNull();

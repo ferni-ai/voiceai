@@ -8,8 +8,9 @@
  * 3. The messaging policy (decide, kind 'reply'): within 14 days of a crisis, the fixed warm
  *    reply (Seth, 2026-11-11); over the reply rate, silent. Quiet hours never hold a live reply.
  * 4. The model: on 'guide' the guidance ends the prompt and the sent text carries 988.
- * All of it within SMS_REPLY_BUDGET_MS, or nothing is sent and nothing kept. One SMS_REPLY
- * log line per text, counts only.
+ * A held minor's reply, fixed or written, ends with the AI reminder on the first and again 3 h
+ * after the last (Seth, SB 243). All within SMS_REPLY_BUDGET_MS, or nothing is sent and nothing
+ * kept. One SMS_REPLY log line per text, counts only.
  *
  * @module services/outreach/sms-reply/sms-reply
  */
@@ -21,7 +22,7 @@ import type { LedgerEntry } from '../../messaging/types.js';
 import { sharedHoldOn } from '../minor-care-shared-hold.js';
 import { SMS_CRISIS_REPLY } from '../sms-crisis-screen.js';
 import { defaultSmsReplyReads, type SmsReplyReads } from './sms-reply-reads.js';
-import { SMS_AFTER_CRISIS_REPLY, smsReplyPrompt, smsReplyText } from './sms-reply-text.js';
+import * as words from './sms-reply-text.js';
 
 const log = createLogger({ module: 'SmsReply' });
 
@@ -56,9 +57,8 @@ export interface SmsReplySent {
   crisis?: true;
 }
 
-/** `outcome`: why, for the log (a refusal or policy reason, or what was sent). */
 interface Composed {
-  outcome: string;
+  outcome: string; // why, for the log: a refusal or policy reason, or what was sent
   sent?: SmsReplySent;
   recall?: number;
   reminded?: boolean;
@@ -88,11 +88,14 @@ async function compose(
   signal: AbortSignal
 ): Promise<Composed> {
   const { userId, text, held } = ask;
+  const reminded = held && remind(userId, now.getTime());
+  const fixed = (reply: string): string => (reminded ? `${reply} ${words.SMS_AI_REMINDER}` : reply);
   const earlier = (await route.earlierTexts?.()) ?? [];
   const gate = await import('../../../agents/personas/crisis-gate-text.js');
   const read = await gate.readTypedMessageForCrisis(text, earlier);
   if (read.action === 'replace') {
-    return { outcome: 'crisis-replace', sent: { reply: SMS_CRISIS_REPLY, crisis: true } };
+    const sent = { reply: fixed(SMS_CRISIS_REPLY), crisis: true } as const;
+    return { outcome: 'crisis-replace', sent, reminded };
   }
   const [refusal, lastCrisisAt] = await Promise.all([
     reads.refusal(ask.phone, now),
@@ -111,7 +114,8 @@ async function compose(
     }
   );
   if (decision.reason === 'crisis-quiet') {
-    return { outcome: 'after-crisis', sent: { reply: SMS_AFTER_CRISIS_REPLY } };
+    const sent = { reply: fixed(words.SMS_AFTER_CRISIS_REPLY) };
+    return { outcome: 'after-crisis', sent, reminded };
   }
   if (decision.action !== 'send') return { outcome: decision.reason };
   const [identity, recalled] = await Promise.all([
@@ -120,10 +124,10 @@ async function compose(
   ]);
   const guidanceNote = read.action === 'guide' ? read.guidanceNote : undefined;
   const parts = { identity, minorCare: held, recall: recalled.note, earlier, message: text };
-  const prompt = smsReplyPrompt({ ...parts, guidanceNote });
+  const prompt = words.smsReplyPrompt({ ...parts, guidanceNote });
   const written = await reads.generate(prompt.system, prompt.contents, signal);
-  const reminded = held && remind(userId, now.getTime());
-  const reply = smsReplyText(written, { lifeline: guidanceNote !== undefined, reminder: reminded });
+  const lifeline = guidanceNote !== undefined;
+  const reply = words.smsReplyText(written, { lifeline, reminder: reminded });
   const outcome = !reply ? 'no-words' : guidanceNote ? 'guided' : 'replied';
   return { outcome, ...(reply && { sent: { reply } }), recall: recalled.count, reminded };
 }

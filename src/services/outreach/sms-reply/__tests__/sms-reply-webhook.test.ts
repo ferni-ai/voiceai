@@ -51,7 +51,7 @@ vi.mock('../sms-reply-reads.js', () => ({
 }));
 
 const { handleInboundSMSWebhook } = await import('../../webhooks/twilio-webhooks.js');
-const { SMS_CRISIS_REPLY } = await import('../../sms-crisis-screen.js');
+const { SMS_CRISIS_REPLY, smsReplyTwiml } = await import('../../sms-crisis-screen.js');
 const { setHoldStore } = await import('../../minor-care-shared-hold.js');
 const { SMS_AI_REMINDER } = await import('../sms-reply-text.js');
 
@@ -121,6 +121,20 @@ describe('a member text at the webhook', () => {
     expect(out.crisis).toBe(true);
     expect(out.twiml).toContain('988');
     expect(SMS_CRISIS_REPLY).toContain('988');
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it("main vs head: the crisis read runs first and sends today's crisis reply, word for word", async () => {
+    const message = (twiml?: string) => /<Message>([\s\S]*)<\/Message>/.exec(twiml ?? '')?.[1];
+    // Screened by the route (today's path): the handler answers exactly as with SMS_REPLY off.
+    vi.stubEnv('SMS_REPLY', 'off');
+    const main = await text('walked Biscuit in the rain', true);
+    vi.stubEnv('SMS_REPLY', 'on');
+    expect(await text('walked Biscuit in the rain', true)).toEqual(main);
+    // Caught by the reply's own read: the very message the route's screen sends on main.
+    gate.action = 'replace';
+    const head = await text('walked Biscuit in the rain');
+    expect(message(head.twiml)).toBe(message(smsReplyTwiml(SMS_CRISIS_REPLY)));
     expect(generate).not.toHaveBeenCalled();
   });
 

@@ -18,7 +18,6 @@ export const SMS_REPLY_MAX_CHARS = 320;
 
 const TEXTING_NOTE =
   "[You're texting with them, not on a call. Write the way a friend texts back: one to three short sentences, plain words, no lists, markdown, emoji strings, stage directions or speech markup. Don't say you looked anything up or mention notes or memory.]";
-
 const LIFELINE = /\b988\b/;
 
 /** At most `max` characters, cut after the last sentence that fits (else the last whole word). */
