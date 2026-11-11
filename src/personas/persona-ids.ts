@@ -227,10 +227,18 @@ export function isCanonicalId(id: string): id is CanonicalPersonaId {
 }
 
 /**
+ * The canonical id for a normalized alias, read from the table's OWN keys only.
+ * Plain `in` or indexing also finds Object.prototype members ("constructor", "__proto__").
+ */
+function canonicalForAlias(normalized: string): CanonicalPersonaId | undefined {
+  return Object.hasOwn(ALIAS_TO_CANONICAL, normalized) ? ALIAS_TO_CANONICAL[normalized] : undefined;
+}
+
+/**
  * Check if a string is a known persona ID or alias.
  */
 export function isKnownId(id: string): boolean {
-  return id.toLowerCase() in ALIAS_TO_CANONICAL;
+  return canonicalForAlias(id.toLowerCase()) !== undefined;
 }
 
 /**
@@ -243,7 +251,7 @@ export function isKnownId(id: string): boolean {
  */
 export function toCanonical(id: string, strict = false): CanonicalPersonaId {
   const normalized = id.toLowerCase().trim();
-  const canonical = ALIAS_TO_CANONICAL[normalized];
+  const canonical = canonicalForAlias(normalized);
 
   if (!canonical) {
     if (strict) {
@@ -345,8 +353,8 @@ export function isSamePersona(id1: string, id2: string): boolean {
   }
 
   // For core team, resolve aliases and compare
-  const canonical1 = ALIAS_TO_CANONICAL[normalized1];
-  const canonical2 = ALIAS_TO_CANONICAL[normalized2];
+  const canonical1 = canonicalForAlias(normalized1);
+  const canonical2 = canonicalForAlias(normalized2);
 
   // If both are in alias map, compare canonical forms
   if (canonical1 && canonical2) {
@@ -388,7 +396,7 @@ export function isCoach(id: string): boolean {
  */
 export function isTeamMember(id: string): boolean {
   const normalized = id.toLowerCase().trim();
-  const canonical = ALIAS_TO_CANONICAL[normalized];
+  const canonical = canonicalForAlias(normalized);
 
   // Must be in alias map and not ferni to be a core team member
   return canonical !== undefined && canonical !== 'ferni' && ALL_CANONICAL_IDS.includes(canonical);
