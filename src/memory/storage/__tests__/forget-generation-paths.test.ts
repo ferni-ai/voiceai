@@ -64,6 +64,7 @@ vi.mock('../../../utils/firestore-utils.js', () => {
       const ops: Array<() => void> = [];
       return {
         update: (r: { path: string }, patch: Data) => ops.push(() => write(r.path, patch)),
+        set: (r: { path: string }, data: Data) => ops.push(() => write(r.path, data, false)),
         create: (r: { path: string }, data: Data) => ops.push(() => write(r.path, data, false)),
         commit: async () => ops.forEach((op) => op()),
       };
@@ -89,6 +90,9 @@ import { firestoreForgetStore } from '../../recall/forget.js';
 import { firestoreMemoryControlStore } from '../memory-control-store.js';
 import { firestoreDisputeStore } from '../dispute-store.js';
 import { firestoreActionStore } from '../../../api/routes/known-action-store.js';
+import { applyKnownAction } from '../../../intelligence/memory-view/actions.js';
+import { hashId } from '../../../intelligence/memory-view/known.js';
+import { firestoreRepairStore } from '../../../agents/personas/friend-repair-store.js';
 import { getFirestoreDb } from '../../../utils/firestore-utils.js';
 
 const AT = '2026-11-10T19:00:00.000Z';
@@ -107,7 +111,25 @@ beforeEach(() => {
   fs.docs.set(`${root()}/dynamic_facts/f1`, { ...BISCUIT });
   fs.docs.set(`${root()}/world_facts/wf1`, { subject: 'Biscuit', validTo: null });
   fs.docs.set(`${root()}/summaries/s1`, { summary: 'Biscuit went to the vet' });
+  fs.docs.set(`${root()}/mind_model/current`, {
+    version: 1,
+    patterns: [{ key: 'p1', statement: 'Talks about Biscuit when stressed' }],
+    sensitivities: [{ topic: 'Biscuit' }],
+  });
+  fs.docs.set(`${root()}/predictive_intelligence/pondering`, {
+    followUps: [{ text: 'Ask how the vet visit for Biscuit went', basis: 'vet' }],
+    thinkingOf: [],
+  });
 });
+
+/** A known action from the memory page, through the real action store. */
+const known = (kind: 'world' | 'pattern' | 'sensitivity' | 'ponder', id: string, value?: string) =>
+  applyKnownAction(
+    user,
+    { kind, id },
+    value === undefined ? { action: 'forget' } : { action: 'correct', value },
+    { store: firestoreActionStore, now: new Date(AT) }
+  );
 
 /** The row: before the write nothing is stored; after it the generation went up, here and stored. */
 async function expectRaised(write: () => Promise<unknown>): Promise<void> {
@@ -158,9 +180,41 @@ describe('every write that hides memory raises the forget generation', () => {
     expect(fs.docs.get(`${root()}/world_facts/wf1`)?.forgottenAt).toBe(AT);
   });
 
+  it('a world fact corrected on the memory page (the old fact is closed)', async () => {
+    await expectRaised(async () =>
+      expect((await known('world', 'wf1', 'a cat')).kind).toBe('done')
+    );
+    expect(fs.docs.get(`${root()}/world_facts/wf1`)?.validTo).toBe(AT);
+  });
+
+  it('a fact retired by an in-call correction (friend repair)', async () => {
+    await expectRaised(() => firestoreRepairStore.retire(user, ['f1'], 'c1', AT));
+    expect(fs.docs.get(`${root()}/dynamic_facts/f1`)?.supersededAt).toBe(AT);
+  });
+
+  it('a pattern forgotten on the memory page', async () => {
+    await expectRaised(async () => expect((await known('pattern', 'p1')).kind).toBe('done'));
+  });
+
+  it('a sensitivity forgotten on the memory page', async () => {
+    await expectRaised(async () =>
+      expect((await known('sensitivity', hashId('Biscuit'))).kind).toBe('done')
+    );
+  });
+
+  it('a ponder forgotten on the memory page', async () => {
+    const id = hashId('Ask how the vet visit for Biscuit went');
+    await expectRaised(async () => expect((await known('ponder', id)).kind).toBe('done'));
+    expect(fs.docs.get(`${root()}/predictive_intelligence/pondering`)?.followUps).toEqual([]);
+  });
+
   it('nothing hidden, nothing raised', async () => {
     await firestoreForgetStore.markForgotten(user, [], AT);
     await firestoreDisputeStore.markWorldFacts?.(user, [], AT);
+    await firestoreRepairStore.retire(user, [], 'c1', AT);
+    expect((await known('pattern', 'no-such-pattern')).kind).not.toBe('done');
+    expect((await known('ponder', 'no-such-ponder')).kind).not.toBe('done');
+    await firestoreActionStore.world.apply(user, { create: [], close: [], refresh: [] });
     expect(stored()).toBeUndefined();
   });
 

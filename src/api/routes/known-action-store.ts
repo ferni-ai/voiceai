@@ -15,7 +15,10 @@ import type { MindModel } from '../../intelligence/theory-of-mind/types.js';
 import type { ActionStore } from '../../intelligence/memory-view/actions.js';
 import type { StoredPondering } from '../../intelligence/memory-view/known.js';
 
-/** Run `change` on one document in a transaction; false (and no write) when it returns null. */
+/**
+ * Run `change` on one document in a transaction; false (and no write) when it returns null.
+ * A change that took raises the forget generation.
+ */
 async function changeDoc<T>(
   path: string[],
   change: (current: T) => T | null,
@@ -25,7 +28,7 @@ async function changeDoc<T>(
   if (!db) return false;
   const [userId, collection, docId] = path as [string, string, string];
   const ref = db.collection('bogle_users').doc(userId).collection(collection).doc(docId);
-  return db.runTransaction(async (tx) => {
+  const changed = await db.runTransaction(async (tx) => {
     const doc = await tx.get(ref);
     const data: unknown = doc.exists ? doc.data() : undefined;
     if (!valid(data)) return false;
@@ -34,6 +37,9 @@ async function changeDoc<T>(
     tx.set(ref, JSON.parse(JSON.stringify(next)) as Record<string, unknown>);
     return true;
   });
+  // Every change here takes something back (a pattern, a sensitivity, a ponder).
+  if (changed) await bumpForgetGeneration(db, userId);
+  return changed;
 }
 
 const isMind = (d: unknown): d is MindModel =>
@@ -74,6 +80,11 @@ export const firestoreActionStore: ActionStore = {
       if (!doc) return;
       await doc.update({ validTo: at, forgottenAt: at, ...(wrong && { wrong }) });
       await bumpForgetGeneration(getFirestoreDb(), userId);
+    },
+    /** A correction closes the old fact: that hides it, so the generation goes up. */
+    async apply(userId, plan) {
+      await worldStore.apply(userId, plan);
+      if (plan.close.length > 0) await bumpForgetGeneration(getFirestoreDb(), userId);
     },
   },
   updateMind: async (userId, change) =>
