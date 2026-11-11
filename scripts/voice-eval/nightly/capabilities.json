@@ -114,11 +114,22 @@
       ]
     },
     "judge": {
-      "label": "Judge means, night over night", "scenarios": [],
+      "label": "Judge means for Ferni, night over night (teammate calls score in the teammate row)", "scenarios": [],
       "checks": [
-        { "id": "human", "metric": "judgeMean", "dim": "humanLikelihood", "scope": "all", "better": "higher", "warn": null, "fail": null, "maxDrop": 0.1, "why": "0-1 scale: the spec's 0.3 on 1-5 scales to 0.1" },
-        { "id": "endearing", "metric": "judgeMean", "dim": "endearing", "scope": "all", "better": "higher", "warn": null, "fail": null, "maxDrop": 0.3 },
-        { "id": "conduct", "metric": "judgeMean", "dim": "conduct", "scope": "all", "better": "higher", "warn": null, "fail": null, "maxDrop": 0.3 }
+        { "id": "human", "metric": "judgeMean", "dim": "humanLikelihood", "scope": "all", "persona": "ferni", "better": "higher", "warn": null, "fail": null, "maxDrop": 0.1, "why": "0-1 scale: the spec's 0.3 on 1-5 scales to 0.1" },
+        { "id": "endearing", "metric": "judgeMean", "dim": "endearing", "scope": "all", "persona": "ferni", "better": "higher", "warn": null, "fail": null, "maxDrop": 0.3 },
+        { "id": "conduct", "metric": "judgeMean", "dim": "conduct", "scope": "all", "persona": "ferni", "better": "higher", "warn": null, "fail": null, "maxDrop": 0.3 }
+      ]
+    },
+    "teammate": {
+      "label": "Report only: each teammate called directly, judged as that teammate", "reportOnly": true,
+      "scenarios": ["teammate-maya", "teammate-alex", "teammate-peter", "teammate-jordan", "teammate-nayan"],
+      "reportOnlyWhy": "REPORT ONLY (never exit 1) for the first week: these numbers are the baseline. Until 2026-11 every judged call was Ferni, so a change that flattened a teammate could not show (#3752). Set thresholds from that week's nights.",
+      "checks": [
+        { "id": "judged-as-other", "metric": "judgedAs", "better": "lower", "warn": 0, "fail": null, "why": "a teammate call judged as anyone but the scenario's #@persona (e.g. as ferni) is scored against the wrong person; WARN, never FAIL, in the baseline week" },
+        { "id": "human", "metric": "judgeMean", "dim": "humanLikelihood", "better": "higher", "warn": null, "fail": null, "why": "baseline week: no threshold yet; the five teammates together, apart from Ferni's judge row" },
+        { "id": "endearing", "metric": "judgeMean", "dim": "endearing", "better": "higher", "warn": null, "fail": null, "why": "baseline week: no threshold yet" },
+        { "id": "conduct", "metric": "judgeMean", "dim": "conduct", "better": "higher", "warn": null, "fail": null, "why": "baseline week: no threshold yet" }
       ]
     },
     "bh-sample": {
