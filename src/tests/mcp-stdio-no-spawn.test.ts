@@ -13,7 +13,7 @@
 import dns from 'node:dns';
 import { Readable } from 'stream';
 import type { IncomingMessage, ServerResponse } from 'http';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -54,6 +54,14 @@ const { spawnMock, stdioTransportMock, fakeDb, firestoreDocs } = vi.hoisted(() =
     firestoreDocs,
   };
 });
+
+// The outbound guard sends through undici's own fetch, not the global one, so that is the spy.
+// No implementation by default: a request nothing stubbed fails instead of reaching the network.
+vi.mock('undici', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('undici')>()),
+  fetch: vi.fn(),
+}));
+const guardedFetch = vi.mocked((await import('undici')).fetch) as unknown as Mock<typeof fetch>;
 
 vi.mock('child_process', async (importOriginal) => {
   const actual = await importOriginal<typeof import('child_process')>();
@@ -190,6 +198,7 @@ beforeEach(() => {
   fakeDb.docRefs.clear();
   firestoreQueryDocs.length = 0;
   spawnMock.mockReset();
+  guardedFetch.mockReset();
   // If anything does reach spawn, fail fast instead of hanging until timeout.
   spawnMock.mockImplementation(() => {
     const listeners: Record<string, (arg: unknown) => void> = {};
@@ -303,16 +312,13 @@ describe('v2 developer MCP servers API refuses stdio', () => {
       .mockImplementation((async () => [
         { address: '93.184.215.14', family: 4 },
       ]) as unknown as typeof dns.promises.lookup);
-    const fetchSpy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockRejectedValue(new Error('unreachable in test'));
+    guardedFetch.mockRejectedValue(new Error('unreachable in test'));
 
     const out = await call('POST', `${BASE}/mcp_http/test`);
 
-    expect(fetchSpy).toHaveBeenCalled();
+    expect(guardedFetch).toHaveBeenCalled();
     expect(out.status).toBe(200);
     expect(spawnMock).not.toHaveBeenCalled();
-    fetchSpy.mockRestore();
     lookupSpy.mockRestore();
   });
 

@@ -547,7 +547,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
 
   try {
     // Import the turn processor (cached after first load)
-    const { processTurn, injectTurnContext, getCelebrationEvents, addSafetyNote } =
+    const { processTurn, injectTurnContext, getCelebrationEvents, addCrisisOverride } =
       await import('../processors/index.js');
 
     // Build turn context - cast userData to UserData for processor compatibility
@@ -1321,7 +1321,7 @@ Voice signals detected: ${allSignals.join(', ') || 'subtle vocal cues'}`,
         indicators: result.crisis.indicators,
       });
 
-      addSafetyNote(
+      addCrisisOverride(
         turnCtx,
         `[CRITICAL SAFETY OVERRIDE]
 The user appears to be in crisis. You MUST respond with the following crisis response.
