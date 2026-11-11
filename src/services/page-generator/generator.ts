@@ -438,11 +438,11 @@ function buildMultiAdvisorTemplateContext(
  *   description: 'Get wisdom from investment masters',
  *   advisors: [
  *     {
- *       id: 'peter-lynch',
- *       name: 'Tom Brannigan',
- *       initials: 'PL',
- *       tagline: 'The Stock Picker',
- *       description: 'Master of finding great companies...',
+ *       id: 'john-bogle',
+ *       name: 'Henry Caldwell',
+ *       initials: 'HC',
+ *       tagline: 'The Index Investor',
+ *       description: 'Patient, low-cost investing...',
  *       color: '#1a5f2a',
  *     },
  *     // ...more advisors

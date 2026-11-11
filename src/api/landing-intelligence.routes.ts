@@ -23,8 +23,6 @@ import {
   getTimeAwareContent,
   optimizeLandingPage,
   recordVisitorSession,
-  // AI Interactions
-  sendDemoChatMessage,
   type LandingOptimizationRequest,
   type PersonalizedHeroRequest,
   type PersonaPreviewRequest,
@@ -565,24 +563,6 @@ export async function handleLandingIntelligenceRoutes(
       const flags = await parseBody<Record<string, boolean>>(req);
       setLandingIntelligenceFlags(flags);
       sendJSON(res, getLandingIntelligenceFlags());
-      return true;
-    }
-
-    // POST /api/landing/ai/chat - Live demo chat with AI
-    if (pathname === '/api/landing/ai/chat' && method === 'POST') {
-      const { visitorId, message, persona } = await parseBody<{
-        visitorId: string;
-        message: string;
-        persona?: string;
-      }>(req);
-
-      if (!visitorId || !message) {
-        sendError(res, 'visitorId and message required', 400);
-        return true;
-      }
-
-      const result = await sendDemoChatMessage(visitorId, message, persona);
-      sendJSON(res, result);
       return true;
     }
 
