@@ -58,18 +58,6 @@ describe('A. Digital Twin Profile', () => {
       expect(context).toBeNull();
     });
   });
-
-  describe('Context Builder Registration', () => {
-    it('should be registered in the builder manifest', async () => {
-      const { BUILDER_MANIFEST } =
-        await import('../../intelligence/context-builders/core/loader.js');
-      const { BuilderCategory } =
-        await import('../../intelligence/context-builders/core/categories.js');
-
-      const personaBuilders = BUILDER_MANIFEST[BuilderCategory.PERSONA];
-      expect(personaBuilders).toContain('twin-profile-context');
-    });
-  });
 });
 
 // ============================================================================
@@ -274,20 +262,5 @@ describe('Integration: Feature Analytics', () => {
     expect(typeof qualityMetrics.featureRated).toBe('function');
     expect(typeof qualityMetrics.issueReported).toBe('function');
     expect(typeof qualityMetrics.featureLoadTime).toBe('function');
-  });
-});
-
-describe('Integration: Context Builders', () => {
-  it('should have all persona context builders registered', async () => {
-    const { BUILDER_MANIFEST } = await import('../../intelligence/context-builders/core/loader.js');
-    const { BuilderCategory } =
-      await import('../../intelligence/context-builders/core/categories.js');
-
-    const personaBuilders = BUILDER_MANIFEST[BuilderCategory.PERSONA];
-
-    // Core persona builders should be registered
-    expect(personaBuilders).toContain('twin-profile-context');
-    expect(personaBuilders).toContain('persona-identity');
-    expect(personaBuilders).toContain('human-personality');
   });
 });

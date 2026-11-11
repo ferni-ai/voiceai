@@ -495,7 +495,6 @@ export {
 // ============================================================================
 
 export {
-  buildConversationContext,
   createCriticalInjection,
   createHintInjection,
   createInjection,

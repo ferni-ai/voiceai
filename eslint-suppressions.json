@@ -339,14 +339,6 @@
       "count": 2
     }
   },
-  "src/intelligence/context-builders/index.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    },
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
   "src/intelligence/context-builders/memory/memory-enhancement.ts": {
     "no-useless-assignment": {
       "count": 1

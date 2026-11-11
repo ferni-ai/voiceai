@@ -268,53 +268,6 @@ describe('Builder Categories Integration', () => {
 });
 
 // ============================================================================
-// BUILDER LOADER INTEGRATION
-// ============================================================================
-
-describe('Builder Loader Integration', () => {
-  it('should have builder manifest with categorized builders', async () => {
-    const { BUILDER_MANIFEST, getAllBuilderModules, getBuilderModulesByCategory } =
-      await import('../intelligence/context-builders/index.js');
-
-    expect(BUILDER_MANIFEST).toBeDefined();
-    expect(BUILDER_MANIFEST.safety).toBeDefined();
-    expect(BUILDER_MANIFEST.emotional).toBeDefined();
-
-    const allModules = getAllBuilderModules();
-    expect(allModules.length).toBeGreaterThan(0);
-
-    const safetyModules = getBuilderModulesByCategory('safety');
-    expect(safetyModules.length).toBeGreaterThan(0);
-    expect(safetyModules).toContain('crisis');
-  });
-
-  it('should load builders on demand', async () => {
-    const { ensureBuildersLoaded, areBuildersLoaded, getLoadingStatus } =
-      await import('../intelligence/context-builders/index.js');
-
-    // May or may not be loaded depending on test order
-    await ensureBuildersLoaded();
-
-    expect(areBuildersLoaded()).toBe(true);
-
-    const status = getLoadingStatus();
-    // getLoadingStatus returns { loaded, loading, totalModules }
-    expect(status.loaded).toBe(true);
-    expect(status.totalModules).toBeGreaterThan(0);
-  });
-
-  it('should be re-exported from context-builders index', async () => {
-    const { ensureBuildersLoaded, areBuildersLoaded, BUILDER_MANIFEST, getAllBuilderModules } =
-      await import('../intelligence/context-builders/index.js');
-
-    expect(ensureBuildersLoaded).toBeDefined();
-    expect(areBuildersLoaded).toBeDefined();
-    expect(BUILDER_MANIFEST).toBeDefined();
-    expect(getAllBuilderModules).toBeDefined();
-  });
-});
-
-// ============================================================================
 // FULL PIPELINE INTEGRATION
 // ============================================================================
 
@@ -324,20 +277,6 @@ describe('Full Context Building Pipeline', () => {
     const { resetAllMetrics } = await import('../intelligence/context-builders/metrics.js');
     SessionStateManager.clearAll();
     resetAllMetrics();
-  });
-
-  it('should build context with all infrastructure', async () => {
-    const { ensureBuildersLoaded, getRegisteredBuilders, buildConversationContext } =
-      await import('../intelligence/context-builders/index.js');
-
-    await ensureBuildersLoaded();
-
-    const builders = getRegisteredBuilders();
-    expect(builders.length).toBeGreaterThan(0);
-
-    // Check that builders have categories assigned
-    const buildersWithCategories = builders.filter((b) => b.category);
-    expect(buildersWithCategories.length).toBeGreaterThan(0);
   });
 
   it('should use distress constants in shouldUseHighEmotionMode', async () => {

@@ -225,58 +225,6 @@ describe('Redis Tool Failure Tracking', () => {
 });
 
 // ============================================================================
-// Integration: Builder Registration Tests
-// ============================================================================
-
-describe('Builder Registration', () => {
-  it('should have all new builders in builder-imports', async () => {
-    const module = await import('../../intelligence/context-builders/core/builder-imports.js');
-
-    const imports = module.BUILDER_IMPORTS;
-
-    // Phase 1
-    expect(imports['session-gap-awareness']).toBeDefined();
-
-    // Phase 2
-    expect(imports['proactive-session-context']).toBeDefined();
-
-    // Phase 4
-    expect(imports['tool-failure-awareness']).toBeDefined();
-
-    // Previously added
-    expect(imports['captured-data-awareness']).toBeDefined();
-    expect(imports['emotional-trajectory-awareness']).toBeDefined();
-  });
-
-  it('should be able to dynamically import all new builders', async () => {
-    const module = await import('../../intelligence/context-builders/core/builder-imports.js');
-
-    const imports = module.BUILDER_IMPORTS;
-
-    // Test each new builder can be imported
-    const newBuilders = [
-      'session-gap-awareness',
-      'proactive-session-context',
-      'tool-failure-awareness',
-      'captured-data-awareness',
-      'emotional-trajectory-awareness',
-    ];
-
-    for (const builderName of newBuilders) {
-      const importer = imports[builderName];
-      expect(importer).toBeDefined();
-
-      // Verify it's a function
-      expect(typeof importer).toBe('function');
-
-      // Dynamic import should work
-      const imported = await importer();
-      expect(imported).toBeDefined();
-    }
-  });
-});
-
-// ============================================================================
 // Integration: Voice Agent Entry Proactive Context Tests
 // ============================================================================
 

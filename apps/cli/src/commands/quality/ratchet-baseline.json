@@ -515,7 +515,6 @@
   "src/intelligence/context-builders/coaching/cognitive.ts": 659,
   "src/intelligence/context-builders/coaching/life-coaching-context.ts": 532,
   "src/intelligence/context-builders/coaching/methodology.ts": 624,
-  "src/intelligence/context-builders/core/loader.ts": 626,
   "src/intelligence/context-builders/dynamic-trigger-utils.ts": 911,
   "src/intelligence/context-builders/external/macos-context.ts": 533,
   "src/intelligence/context-builders/family/family-wellbeing-context.ts": 529,
