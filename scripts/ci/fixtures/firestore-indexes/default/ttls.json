@@ -120,6 +120,48 @@
       ],
       "usesAncestorConfig": true
     },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/daily_outreach_locks/fields/expireAt",
+    "ttlConfig": {
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "expireAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "expireAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "expireAt"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
     "name": "projects/johnb-2025/databases/(default)/collectionGroups/dynamic_facts/fields/expireAt",
     "ttlConfig": {
       "state": "ACTIVE"

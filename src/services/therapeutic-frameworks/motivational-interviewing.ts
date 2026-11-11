@@ -17,6 +17,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
+import { loadBeforeSave } from '../../utils/load-before-save.js';
 import type { ChangeTalk, ChangeTalkInstance } from './types.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
@@ -387,7 +388,6 @@ function deserializeInstance(data: PersistedChangeTalkInstance): ChangeTalkInsta
 // ============================================================================
 
 const changeTalkHistory = new Map<string, ChangeTalkInstance[]>();
-const loadedUsers = new Set<string>();
 
 let persistence: PersistenceStore<UserChangeTalkData> | null = null;
 
@@ -402,26 +402,21 @@ function getPersistence(): PersistenceStore<UserChangeTalkData> {
   return persistence;
 }
 
-async function ensureUserLoaded(userId: string): Promise<void> {
-  if (loadedUsers.has(userId)) return;
-
-  try {
-    const data = await getPersistence().load(userId);
-    if (data?.history) {
-      changeTalkHistory.set(userId, data.history.map(deserializeInstance));
-    }
-    loadedUsers.add(userId);
-    log.debug({ userId }, 'Loaded change talk history from persistence');
-  } catch (error) {
-    log.warn({ error, userId }, 'Failed to load change talk history');
-    loadedUsers.add(userId);
+// The stored history is read before the first save, keeping what was recorded meanwhile
+const loader = loadBeforeSave<UserChangeTalkData>(
+  'motivational_interviewing',
+  (userId) => getPersistence().load(userId, { strict: 'read' }),
+  (userId, stored) => {
+    const recorded = changeTalkHistory.get(userId) ?? [];
+    const history = [...(stored?.history ?? []).map(deserializeInstance), ...recorded];
+    changeTalkHistory.set(userId, history.slice(-100));
   }
-}
+);
 
 function persistHistory(userId: string): void {
-  const history = changeTalkHistory.get(userId) || [];
-  getPersistence().set(cleanForFirestore(userId), {
-    history: history.map(serializeInstance),
+  loader.save(userId, () => {
+    const history = changeTalkHistory.get(userId) || [];
+    getPersistence().set(cleanForFirestore(userId), { history: history.map(serializeInstance) });
   });
 }
 
@@ -439,7 +434,7 @@ export async function flushMotivationalInterviewingPersistence(): Promise<void> 
 export async function shutdownMotivationalInterviewing(): Promise<void> {
   await flushMotivationalInterviewingPersistence();
   // Clear state for clean restart
-  loadedUsers.clear();
+  loader.clear();
   changeTalkHistory.clear();
   log.info('Motivational interviewing service shutdown complete');
 }
@@ -527,6 +522,7 @@ export function analyzeAmbivalence(userId: string): string[] {
  * Build MI context for LLM.
  */
 export function buildMIContext(userId: string, userText: string, topic?: string): string | null {
+  void loader.ensure(userId); // the first touch reads the stored history
   // Detect change talk in current message
   const currentChangeTalk = detectChangeTalk(userText, topic);
   const currentSustainTalk = detectSustainTalk(userText);

@@ -106,7 +106,7 @@ export function recordDetection(
   // Log low confidence detections for debugging
   if (confidence > 0 && confidence < 0.5) {
     log.debug(
-      { domain, type: detectedType, confidence, message: userMessage.slice(0, 100) },
+      { domain, type: detectedType, confidence, messageLen: userMessage.length },
       '⚠️ Low confidence detection'
     );
   }
@@ -134,7 +134,7 @@ export function recordFeedback(
 
     if (!wasCorrect) {
       log.info(
-        { domain, type: record.detectedType, message: userMessage.slice(0, 100) },
+        { domain, type: record.detectedType, messageLen: userMessage.length },
         '❌ Detection marked incorrect - pattern gap identified'
       );
     }

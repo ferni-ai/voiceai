@@ -20,7 +20,14 @@ export function fakeUserDocs(initial: Record<string, Doc> = {}) {
   const docs = new Map<string, Doc>(Object.entries(structuredClone(initial)));
   /** Updates to bogle_users/{id}/{sub}/{subId} (a held reminder). */
   const subUpdates: Array<{ path: string; data: Doc }> = [];
+  type Ref = { get: () => Promise<unknown>; set: (d: Doc, o?: { merge?: boolean }) => unknown };
   const db = {
+    /** One caller at a time, so a transaction here never retries. */
+    runTransaction: async <T>(fn: (tx: object) => Promise<T>): Promise<T> =>
+      fn({
+        get: (ref: Ref) => ref.get(),
+        set: (ref: Ref, data: Doc, opts?: { merge?: boolean }) => void ref.set(data, opts),
+      }),
     collection: (_name: string) => ({
       doc: (id: string) => ({
         get: async () => ({ exists: docs.has(id), data: () => structuredClone(docs.get(id)) }),

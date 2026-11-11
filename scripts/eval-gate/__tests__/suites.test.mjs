@@ -18,7 +18,7 @@ describe('suitesFor', () => {
 
   it('runs the crisis suite for safety code, its fixtures and its model config', () => {
     expect(suitesFor(['src/services/safety/crisis-classifier.ts'])).toEqual(['crisis_classifier']);
-    expect(suitesFor(['src/agents/__tests__/fixtures/crisis-heldout.ts'])).toEqual([
+    expect(suitesFor(['src/agents/__tests__/fixtures/crisis-heldout-retired.ts'])).toEqual([
       'crisis_classifier',
     ]);
     expect(suitesFor(['src/config/gemini-config.ts'])).toEqual(['crisis_classifier']);
@@ -45,6 +45,24 @@ describe('suitesFor', () => {
       '*',
     ])
       expect(suitesFor(['docs/x.md', f])).toEqual(SUITES);
+  });
+
+  it('runs every suite when the installed dependencies can change', () => {
+    for (const f of ['pnpm-lock.yaml', 'package.json', 'pnpm-workspace.yaml', '.npmrc'])
+      expect(suitesFor([f])).toEqual(SUITES);
+  });
+
+  it('matches the dependency files exactly, not their neighbours', () => {
+    expect(suitesFor(['docs/x.md'])).toEqual([]);
+    for (const f of [
+      'apps/web/package.json',
+      'package.json.bak',
+      'packages/shared-types/package.json',
+      'apps/web/.npmrc',
+      'docs/pnpm-lock.yaml',
+      'pnpm-workspace.yaml.orig',
+    ])
+      expect(suitesFor([f])).toEqual([]);
   });
 });
 

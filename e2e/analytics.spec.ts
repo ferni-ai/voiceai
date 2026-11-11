@@ -164,10 +164,6 @@ test.describe('Analytics Dashboard UI', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(BASE_URL);
 
-    await page.evaluate((userId) => {
-      localStorage.setItem('bogle_user_id', userId);
-    }, TEST_USER_ID);
-
     await page.waitForTimeout(1000);
   });
 

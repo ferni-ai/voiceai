@@ -14,6 +14,7 @@
  *        = 172,800 unique combinations per persona (vs ~15 templates)
  */
 
+import { flagOn } from '../config/env-flag.js';
 import { getLogger } from '../utils/safe-logger.js';
 import type { BundleRuntimeEngine } from './bundles/runtime.js';
 import type { PersonaConfig } from './types.js';
@@ -384,8 +385,18 @@ export function composeGreeting(
   const transition = selectWeightedOption(transitions, ctx);
   const closer = selectWeightedOption(closers, ctx);
 
+  // NAME_GATE_V2: a name atom ("{name}!", "{name}, hi!") becomes "Hey {name}." with no hello
+  // before it: the shape the voice says falling (voiceai-evidence/name-intonation-2026-10-24).
+  const named = flagOn('NAME_GATE_V2') && recognition?.text.includes('{name}') === true;
+  const greet = named ? { opening: undefined, recognition: 'Hey {name}.' } : null;
   // Build the greeting from parts
-  const parts = [opening?.text, recognition?.text, activity?.text, transition?.text, closer?.text]
+  const parts = [
+    greet ? greet.opening : opening?.text,
+    greet ? greet.recognition : recognition?.text,
+    activity?.text,
+    transition?.text,
+    closer?.text,
+  ]
     .filter(Boolean)
     .map((part) => fillPlaceholders(part!, ctx));
 

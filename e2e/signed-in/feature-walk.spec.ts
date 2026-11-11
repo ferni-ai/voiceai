@@ -1,14 +1,15 @@
 /**
  * Opens every feature in the settings menu as a signed-in user and proves it
- * works: the panel opens, shows no raw translation keys, raises no console
- * errors or failed API calls, and closes again.
+ * works: the panel opens, stops loading, shows no raw translation keys, raises
+ * no console errors or failed API calls, and closes again.
  *
  * Needs the signed-in local stack (scripts/e2e/start-signed-in-stack.sh).
  */
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import {
   createUser,
   expectHome,
+  expectNoStuckLoader,
   isGone,
   newPanel,
   openSettingsMenu,
@@ -21,14 +22,25 @@ import {
 
 /** data-action of each settings-menu row that opens a panel */
 const PANELS = [
+  'contact-settings', // How I reach you
+  'hub', // Your Day with Ferni
   'commands',
+  'what-i-do-for-you',
   'calendar-settings',
   'notifications',
+  'outreach-schedule', // When I'll Reach Out
+  'your-story', // Our Story So Far
+  'trust-dashboard', // Trust & Growth
+  'wellbeing', // How You're Feeling
+  'memory-lane',
+  // 'your-year' (This Year Together) is left out: it doesn't close on Escape, as every
+  // panel here must. your-year-with-ferni.ui.ts has no keydown handler; add it once it does.
   'journal',
   'play-games',
   'contacts',
   'family-callers',
   'all-connections',
+  'personal-settings', // Make It Yours
   'theme',
   'cognitive', // What Ferni Knows (VITE_MEMORY_VIEW, as in prod)
   'export',
@@ -49,6 +61,33 @@ test.beforeEach(async () => {
 
 const openMenu = openSettingsMenu;
 
+/**
+ * Open one panel and prove it works: it opens, stops showing a loader, shows no raw
+ * i18n keys, raises no problems and closes on Escape. `prepare` gets the screen ready
+ * (opens the menu); `open` is the click that opens the panel.
+ */
+async function walkPanel(
+  page: Page,
+  name: string,
+  open: () => Promise<void>,
+  prepare?: () => Promise<void>
+) {
+  const problems = watchProblems(page);
+  await prepare?.();
+  const before = await shownDialogs(page);
+  await open();
+
+  const panel = await newPanel(page, before, name);
+  const id = (await panel.getAttribute('data-e2e-dialog')) as string;
+  await page.waitForTimeout(1_500); // let the panel load its data
+  await expectNoStuckLoader(panel, name);
+  expect(await rawKeysOnScreen(page), 'raw i18n keys on screen').toEqual([]);
+
+  await page.keyboard.press('Escape');
+  await expect.poll(() => isGone(page, id), { message: `${name} did not close on Escape`, timeout: 5_000 }).toBe(true);
+  expect(problems.take(), `${name} raised problems`).toEqual([]);
+}
+
 
 test.describe('every settings feature', () => {
   test.beforeEach(async ({ page }) => {
@@ -58,21 +97,33 @@ test.describe('every settings feature', () => {
 
   for (const action of PANELS) {
     test(`${action} opens, renders and closes cleanly`, async ({ page }) => {
-      const problems = watchProblems(page);
-      await openMenu(page);
-      const before = await shownDialogs(page);
-      await page.locator(`.settings-menu [data-action="${action}"]`).click();
-
-      const panel = await newPanel(page, before, action);
-      const id = (await panel.getAttribute('data-e2e-dialog')) as string;
-      await page.waitForTimeout(1_500); // let the panel load its data
-      expect(await rawKeysOnScreen(page), 'raw i18n keys on screen').toEqual([]);
-
-      await page.keyboard.press('Escape');
-      await expect.poll(() => isGone(page, id), { message: `${action} did not close on Escape`, timeout: 5_000 }).toBe(true);
-      expect(problems.take(), `${action} raised problems`).toEqual([]);
+      const row = page.locator(`.settings-menu [data-action="${action}"]`);
+      await walkPanel(
+        page,
+        action,
+        () => row.click(),
+        () => openMenu(page)
+      );
     });
   }
+
+  // "What we've been thinking": the lightbulb by the call button, not a menu row. In prod a
+  // background check fetches its data every 5 minutes while it is closed, and opening it
+  // right after one spun forever (#3253). Run that check first, as prod would, then open it.
+  test('team insights opens, renders and closes cleanly', async ({ page }) => {
+    await expect(page.locator('.team-insights-panel')).toBeAttached();
+    await page.evaluate(async () => {
+      // The app's own copy of the module (the dev server may have stamped its URL)
+      const url = performance
+        .getEntriesByType('resource')
+        .map((entry) => entry.name)
+        .find((name) => /\/src\/ui\/team-insights\.ui\.ts(\?|$)/.test(name));
+      if (!url) throw new Error('the app has not loaded team-insights.ui.ts');
+      const insights = await import(/* @vite-ignore */ url);
+      await insights.checkForNewInsights();
+    });
+    await walkPanel(page, 'team-insights', () => page.locator('#insightsTriggerBtn').click());
+  });
 
   for (const action of TOGGLES) {
     test(`${action} switches and remembers its state`, async ({ page }) => {

@@ -617,3 +617,20 @@ describe('booking preferences (BOOKING_PREFS)', () => {
     expect(out['bogle_users/{uid}/booking_prefs']).toEqual([{ id: 'restaurant', ...stored }]);
   });
 });
+
+describe('Help shape Ferni consent (call-capture-consent.ts)', () => {
+  it("exports the person's own call_capture_consent record, nobody else's", async () => {
+    const mine = { uid: 'u-1', version: '2026-11-01', agreedAt: '2026-11-01T12:00:00.000Z' };
+    const out = await exportUserRecords(
+      'u-1',
+      undefined,
+      storedDb({
+        'bogle_users/u-1': { name: 'Riley Test' },
+        'call_capture_consent/u-1': { ...mine, source: 'voice' },
+        'call_capture_consent/u-2': { uid: 'u-2', version: 'other-person' },
+      })
+    );
+    expect(JSON.stringify(out)).not.toContain('other-person');
+    expect(out['call_capture_consent/{uid}']).toMatchObject(mine);
+  });
+});

@@ -6,7 +6,10 @@
  */
 import ts from 'typescript';
 
-export type Spec = Record<'default' | 'owner' | 'kind', string>;
+export type Spec = Record<'default' | 'owner' | 'kind', string> &
+  Partial<Record<(typeof LIFECYCLE)[number], string>>;
+/** Optional lifecycle fields (src/config/flag-lifecycle.ts): free text, carried as-is. */
+const LIFECYCLE = ['expires', 'issue', 'context'] as const;
 
 /** A node's own whole lines (first comment line .. past its newline) and its comments, verbatim. */
 interface Attached {
@@ -61,9 +64,32 @@ function attached(text: string, file: string, node: ts.Node, sf: ts.SourceFile):
   };
 }
 
+/**
+ * True when `code` holds a // or /* comment outside its string and template literals. The
+ * TypeScript scanner tokenises it, so the // in an issue URL ('https://github.com/…'), a quoted
+ * 'a // b' or an escaped quote before // is string text, not a comment. Template literals with
+ * ${…} are rescanned at each closing brace so their text stays text too.
+ */
+export function hasInnerComment(code: string): boolean {
+  const sc = ts.createScanner(ts.ScriptTarget.Latest, false, ts.LanguageVariant.Standard, code);
+  const braces: number[] = []; // per open template: `{` depth inside its current ${…}
+  for (let t = sc.scan(); t !== ts.SyntaxKind.EndOfFileToken; t = sc.scan()) {
+    if (t === ts.SyntaxKind.SingleLineCommentTrivia || t === ts.SyntaxKind.MultiLineCommentTrivia)
+      return true;
+    if (t === ts.SyntaxKind.TemplateHead) braces.push(0);
+    else if (t === ts.SyntaxKind.OpenBraceToken && braces.length > 0) braces[braces.length - 1]!++;
+    else if (t === ts.SyntaxKind.CloseBraceToken && braces.length > 0) {
+      if (braces[braces.length - 1] === 0) {
+        if (sc.reScanTemplateToken(false) === ts.SyntaxKind.TemplateTail) braces.pop();
+      } else braces[braces.length - 1]!--;
+    }
+  }
+  return false;
+}
+
 /** Refuses an entry with a comment inside it: only comments above or after it move with it. */
 function noInnerComment(text: string, file: string, node: ts.Node, name: string): void {
-  if (/\/[/*]/.test(node.getText())) {
+  if (hasInnerComment(node.getText())) {
     fail(
       file,
       text,
@@ -82,11 +108,14 @@ function readSpec(text: string, file: string, node: ts.Expression): Spec {
       }
     }
   }
-  const keys = Object.keys(spec).sort().join();
-  if (keys !== 'default,kind,owner' || Object.values(spec).some((v) => !/^[\w.-]+$/.test(v))) {
+  const isLife = (k: string): boolean => (LIFECYCLE as readonly string[]).includes(k);
+  const core = Object.keys(spec).filter((k) => !isLife(k));
+  const plain = core.every((k) => /^[\w.-]+$/.test(spec[k]!));
+  if (core.sort().join() !== 'default,kind,owner' || !plain) {
     fail(file, text, node.pos, `not a { default, owner, kind } of plain strings`);
   }
-  return { default: spec.default, owner: spec.owner, kind: spec.kind };
+  const life = Object.fromEntries(LIFECYCLE.filter((k) => k in spec).map((k) => [k, spec[k]!]));
+  return { default: spec.default!, owner: spec.owner!, kind: spec.kind!, ...life };
 }
 
 /** The object or array literal a declaration holds, under any `as const` / `satisfies`. */

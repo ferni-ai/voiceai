@@ -2,23 +2,25 @@
 # invented past, play bit, late night. Fields: ENV | scenario | label | uid | capability
 # (scorecard.mjs groups runs by capabilities.json; a test checks the two agree).
 # uid @memlive is one generated voice-eval user for the night, shared by the memlive calls.
+# No EVAL_TZ unless a line needs that zone: run.sh puts each caller at 14:00 local, whenever the
+# sweep runs (caller-clock.mjs, #3164). A fixed Asia/Tokyo made a 19:00Z sweep a 04:00 caller.
 EVAL_TZ=America/Denver | late-night-energy | s1 | | attunement
-EVAL_TZ=Asia/Tokyo EVAL_SEED=first-call-seed EVAL_SEED_WAIT=45 | first-call-return | s1 | | first-call
-EVAL_TZ=Asia/Tokyo EVAL_SEED=facts-seed EVAL_SEED_WAIT=45 | facts-recall | s1 | | cross-call-memory
-EVAL_TZ=Asia/Tokyo EVAL_SEED=follow-through-seed EVAL_SEED_WAIT=45 | follow-through | s1 | | follow-through
-EVAL_TZ=Asia/Tokyo EVAL_SEED=facts-seed EVAL_SEED_WAIT=45 | facts-recall | s2 | | cross-call-memory
-EVAL_TZ=Asia/Tokyo EVAL_SEED=follow-through-seed EVAL_SEED_WAIT=45 | follow-through | s2 | | follow-through
-EVAL_TZ=Asia/Tokyo EVAL_SEED=facts-seed EVAL_SEED_WAIT=45 | facts-recall | s3 | | cross-call-memory
-EVAL_TZ=Asia/Tokyo EVAL_SEED=follow-through-seed EVAL_SEED_WAIT=45 | follow-through | s3 | | follow-through
-EVAL_TZ=Asia/Tokyo EVAL_SEED=memory-seed EVAL_SEED_WAIT=45 | memory-recall | s1 | | cross-call-memory
-EVAL_TZ=Asia/Tokyo | memlive-mover-1 | sweep | @memlive | cross-call-memory
+EVAL_SEED=first-call-seed EVAL_SEED_WAIT=45 | first-call-return | s1 | | first-call
+EVAL_SEED=facts-seed EVAL_SEED_WAIT=45 | facts-recall | s1 | | cross-call-memory
+EVAL_SEED=follow-through-seed EVAL_SEED_WAIT=45 | follow-through | s1 | | follow-through
+EVAL_SEED=facts-seed EVAL_SEED_WAIT=45 | facts-recall | s2 | | cross-call-memory
+EVAL_SEED=follow-through-seed EVAL_SEED_WAIT=45 | follow-through | s2 | | follow-through
+EVAL_SEED=facts-seed EVAL_SEED_WAIT=45 | facts-recall | s3 | | cross-call-memory
+EVAL_SEED=follow-through-seed EVAL_SEED_WAIT=45 | follow-through | s3 | | follow-through
+EVAL_SEED=memory-seed EVAL_SEED_WAIT=45 | memory-recall | s1 | | cross-call-memory
+- | memlive-mover-1 | sweep | @memlive | cross-call-memory
 - | SLEEP | 75
-EVAL_TZ=Asia/Tokyo | memlive-mover-2 | sweep | @memlive | cross-call-memory
+- | memlive-mover-2 | sweep | @memlive | cross-call-memory
 - | SLEEP | 75
-EVAL_TZ=Asia/Tokyo | memlive-mover-quiz | sweep | @memlive | cross-call-memory
-EVAL_TZ=Asia/Tokyo EVAL_SEED=asked-once-seed EVAL_SEED_WAIT=60 | asked-once-answer | s1 | @memlive | follow-through
+- | memlive-mover-quiz | sweep | @memlive | cross-call-memory
+EVAL_SEED=asked-once-seed EVAL_SEED_WAIT=60 | asked-once-answer | s1 | @memlive | follow-through
 - | SLEEP | 75
-EVAL_TZ=Asia/Tokyo | asked-once-check | s1 | @memlive | asked-once
-EVAL_TZ=Asia/Tokyo EVAL_SEED=action-claim EVAL_SEED_WAIT=45 | invented-past | s1 | | cross-call-memory
-EVAL_TZ=Asia/Tokyo EVAL_SEED=play-bit-seed EVAL_SEED_WAIT=45 | play-bit-recall | s1 | | play
+- | asked-once-check | s1 | @memlive | asked-once
+EVAL_SEED=action-claim EVAL_SEED_WAIT=45 | invented-past | s1 | | cross-call-memory
+EVAL_SEED=play-bit-seed EVAL_SEED_WAIT=45 | play-bit-recall | s1 | | play
 EVAL_TZ=America/Denver | late-night-energy | s2 | | attunement

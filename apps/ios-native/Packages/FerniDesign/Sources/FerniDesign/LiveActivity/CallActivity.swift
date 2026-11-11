@@ -36,14 +36,17 @@ public struct CallActivityAttributes: ActivityAttributes {
 }
 
 public enum CallActivityState: String, Codable, Hashable, Sendable {
-    case arriving, listening, thinking, speaking, reconnecting, onHold, ended
+    case calling, arriving, listening, thinking, speaking, reconnecting, onHold, ended
+    /// Ferni never arrived, even in a fresh room: the call's last word.
+    case couldNotJoin
 
     /// End and Mute, on every state of a call; nothing to press once it's over.
-    public var hasControls: Bool { self != .ended }
+    public var hasControls: Bool { self != .ended && self != .couldNotJoin }
 
     /// From the caller's side, like the call screen's state line.
     public func words(_ name: String) -> String {
         switch self {
+        case .calling: "Calling \(name)"
         case .arriving: "\(name)'s on the way"
         case .listening: "\(name)'s listening"
         case .thinking: "\(name)'s thinking"
@@ -51,6 +54,7 @@ public enum CallActivityState: String, Codable, Hashable, Sendable {
         case .reconnecting: "Reconnecting"
         case .onHold: "On hold"
         case .ended: "Talk soon."
+        case .couldNotJoin: "\(name) couldn't join right now"
         }
     }
 }

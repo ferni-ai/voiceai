@@ -127,6 +127,9 @@ final class AppModel {
     let push: PushStore
     var isShowingSettings = false
     var isAskingConsent = false
+    /// The sign-in sheet: "Already use Ferni? Sign in", or Talk when a real
+    /// account was here before and isn't now.
+    var isSigningIn = false
     var isShowingCallMore = false
     /// A line of Ferni's being reported.
     var reporting: Caption?
@@ -164,6 +167,8 @@ final class AppModel {
 
     /// A `ferniapp://` link opened the app (DeepLink).
     func open(_ url: URL) {
+        // Sign-in's return trips: Firebase's reCAPTCHA page (phone), Google's page.
+        if FerniFirebase.canHandle(url) || GoogleSignInFlow.handle(url) { return }
         switch DeepLink.parse(url) {
         case .healthNotYet:
             notice = String(localized: "Health sharing isn't in the iPhone app yet.")
@@ -189,6 +194,23 @@ final class AppModel {
         noticeDetail = String(localized: "Everything Ferni remembered about you is gone.")
     }
 
+    /// The Home Screen quick action "Get help now" (static, in Info.plist, so
+    /// it's there even when Ferni can't connect). It opens Help (critic L4).
+    static let helpShortcut = "com.sethdford.ferni.help"
+    var isShowingHelp = false
+
+    func performShortcut(_ type: String) {
+        if type == Self.helpShortcut { isShowingHelp = true }
+    }
+
+    /// After the sign-in sheet: a welcome back when they reached their account.
+    func signInFinished() {
+        guard account.user?.isAnonymous == false, let welcome = account.notice else { return }
+        notice = welcome
+        noticeDetail = nil
+        account.clearNotice()
+    }
+
     /// The consent sheet's Not now: no call, and nothing carried to the next one.
     func notNow() {
         isAskingConsent = false
@@ -208,14 +230,26 @@ final class AppModel {
 
     /// Talk: the consent screen first if this person hasn't agreed (or withdrew).
     func talk() {
-        feedback.newCall()
+        // Never a new anonymous account after a real one: sign in first.
+        if account.needsSignIn {
+            isSigningIn = true
+            return
+        }
+        newCallFeedback()
         if consent.hasAgreed { call.start(personaID: team.chosen) } else { isAskingConsent = true }
+    }
+
+    /// The next call's sounds start fresh, and its crisis mark clear. Never
+    /// during a call: Talk there starts nothing, so it mustn't reset this one.
+    private func newCallFeedback() {
+        if !call.isActive { feedback.newCall() }
     }
 
     /// "I agree, let's talk": the call starts at once ("Calling…"); the
     /// account is settled inside it, and the agreement is recorded for that
     /// account only. No account means the call ends saying so (critic H5).
     func agreeAndTalk() async {
+        newCallFeedback()
         call.start(personaID: team.chosen) { [weak self] in
             guard let self else { return false }
             await self.account.start()
@@ -269,10 +303,17 @@ final class AppModel {
         call.forgetPerson()
     }
 
-    /// - Parameter scenario: debug builds only; a UI-test launch (`UITestScenario`).
-    init(config: FerniConfig = .fromBundle(), firebaseReady: Bool, scenario: String? = nil) {
+    /// - Parameters:
+    ///   - scenario: debug builds only; a UI-test launch (`UITestScenario`).
+    ///   - feedback: the call's sounds and haptics; tests pass one with recorders.
+    init(config: FerniConfig = .fromBundle(), firebaseReady: Bool, scenario: String? = nil,
+         feedback: CallFeedback = CallFeedback()) {
         self.config = config
+        #if DEBUG
+        account = UITestScenario.account() ?? AccountStore(backend: firebaseReady ? FirebaseAuthBackend() : nil)
+        #else
         account = AccountStore(backend: firebaseReady ? FirebaseAuthBackend() : nil)
+        #endif
         api = account.api(baseURL: config.apiBaseURL)
         team = TeamStore(api: api)
         memory = MemoryStore(api: api)
@@ -291,12 +332,12 @@ final class AppModel {
             currentUID: { [account] in account.user?.uid }
         )
         account.uploadAppleCode = AppleAuthorizationUpload.uploader(api: api)
-        let feedback = CallFeedback()
+        account.mergeLeftBehind = AnonymousMerge.merger(api: api)
         self.feedback = feedback
         let level = AudioLevelMeter()
         let avatar = AvatarModel(play: { [feedback] in feedback.play($0) })
         #if DEBUG
-        let testCall = scenario.map { _ in UITestScenario.callSession(avatar: avatar, level: level) }
+        let testCall = scenario.flatMap(UITestScenario.init(rawValue:)).map { UITestScenario.callSession($0, avatar: avatar, level: level) }
         #else
         let testCall: CallSession? = nil
         #endif
@@ -306,18 +347,20 @@ final class AppModel {
             audio: SystemCallAudio(systemManagesCalls: ConversationLifecycle.isAvailable),
             avatar: avatar,
             lifecycle: ConversationLifecycle.isAvailable ? ConversationLifecycle() : nil,
-            agentLevel: level
+            agentLevel: level,
+            localDuck: LocalDuckFlag.isOn()
         )
         feedback.isSomeoneSpeaking = { [call] in (call.avatar.pose == .speaking, call.isUserSpeaking) }
         installSystemHandlers()
         Self.shared = self
         #if DEBUG
         if let scenario = scenario.flatMap(UITestScenario.init(rawValue:)) {
+            UITestScenario.listenForHelpShortcut()
             switch scenario {
             case .home: break
             case .consent: isAskingConsent = true
             case .settings: isShowingSettings = true
-            case .call: call.start(personaID: PersonaRegistry.ferni.id)
+            case .call, .silentAudio: call.start(personaID: PersonaRegistry.ferni.id)
             }
             return // no watch session in a UI test
         }
@@ -338,6 +381,7 @@ final class AppModel {
             guard let self else { return }
             Task { await self.push.received(deviceToken: token, uid: self.account.user?.uid) }
         }
+        FerniAppDelegate.onShortcut = { [weak self] type in self?.performShortcut(type) }
         FerniAppDelegate.onTalk = { [weak self] in
             guard let self else { return }
             self.talk(to: self.team.chosen)

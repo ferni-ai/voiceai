@@ -426,7 +426,7 @@ export function getCachedAudio(text: string, voiceId: string): ArrayBuffer | nul
     metrics.cacheHits++;
     touchLRU(key);
     log.debug(
-      { text: text.slice(0, 20), category: cached.category, durationMs: cached.durationMs },
+      { textLen: text.length, category: cached.category, durationMs: cached.durationMs },
       '🎯 Audio CACHE HIT'
     );
     return cached.audio;

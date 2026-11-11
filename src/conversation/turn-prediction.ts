@@ -420,7 +420,7 @@ export class TurnPredictionService {
 
     getLogger().debug(
       {
-        transcript: ctx.transcript.slice(0, 50),
+        transcriptLen: ctx.transcript.length,
         isComplete,
         confidence: confidence.toFixed(2),
         readyToRespond,

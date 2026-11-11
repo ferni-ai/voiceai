@@ -366,7 +366,7 @@ function createMoment(
   }
 
   log.debug(
-    { userId: profile.userId, type, content: message.slice(0, 50) },
+    { userId: profile.userId, type, contentLen: message.length },
     '📝 Callback moment stored'
   );
 

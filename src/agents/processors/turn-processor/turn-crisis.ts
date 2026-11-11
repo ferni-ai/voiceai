@@ -24,7 +24,7 @@ import {
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
-import { noteCrisisRisk } from '../../../services/safety/crisis-call-risk.js';
+import { noteCrisisRisk, notePatternRisk } from '../../../services/safety/crisis-call-risk.js';
 import {
   afterCheckLoneRead,
   noteConfirmedRisk,
@@ -44,7 +44,17 @@ import {
 } from '../../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
 import { startWhoRead } from '../../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
-import { noteMeansInHandShadow } from '../../../services/safety/index.js';
+import {
+  abuseCallRisk,
+  abuseOnlyRead,
+  blockedReadGuidance,
+  noteMeansInHandShadow,
+  resolveCrisisClassifierTimeoutMs,
+  shadowPipelineGrade,
+  trackAbuseRead,
+  withAbuseRead,
+  withMinorAbuseRead,
+} from '../../../services/safety/index.js';
 import {
   resolveClassifierOnlyCheckin,
   shadowClassifierOnly,
@@ -101,6 +111,8 @@ export interface TurnCrisisUserData {
   lastAgentResponse?: string;
   /** The call's turn count: the second read's turn (crisis-second-read-turn.ts). */
   turnCount?: number;
+  /** False on the background turn's voice (turn-intelligence.ts): it never adds the caller check. */
+  voiceCallerCheck?: boolean;
 }
 
 type Settled = { crisis: CrisisDetectionResult; soft: boolean; guidance?: string };
@@ -162,7 +174,10 @@ export function startTurnCrisis(
   } = {}
 ): TurnCrisis {
   const voice = toGuardVoiceEmotion(userData?.voiceEmotion as ProsodyEmotionLike | undefined);
-  const crisisOptions = { recentMessages: userData?.recentTranscripts };
+  const crisisOptions = {
+    recentMessages: userData?.recentTranscripts,
+    ...(userData?.voiceCallerCheck === false ? { voiceCallerCheck: false } : {}),
+  };
   const found = detectCrisis(userText, voice, crisisOptions);
   // CRISIS_MEANS_IN_HAND (#2697): log the tier and form any means form would give; no read changes.
   noteMeansInHandShadow(options.sessionId, found, {
@@ -180,7 +195,11 @@ export function startTurnCrisis(
   const shouldBlock = guardFromDetection(patterns).shouldBlock;
   // A gentle 988 offer counts as a match: risk on this call, and both paths agree.
   const pattern = shouldBlock ? 'block' : patterns.isCrisis || gentle ? 'crisis' : 'none';
-  if (pattern !== 'none') noteCrisisRisk(options.sessionId); // risk on this call (crisis-call-risk.ts)
+  // ABUSE_DISCLOSURE_PATTERNS: call risk before this turn's own note (abuse-disclosure-turn.ts);
+  // someone hurting the caller and nothing else is no risk to the caller's own life.
+  const abuseOnly = abuseOnlyRead(patterns);
+  const abuseRisk = abuseCallRisk(options.sessionId, userText, pattern !== 'none' && !abuseOnly);
+  if (pattern !== 'none') notePatternRisk(options.sessionId, patterns);
   if (pattern !== 'none') noteConfirmedRisk(options.sessionId || undefined, options.env);
   const { env = process.env, generate } = options;
   // Only the agreement gate and a live adjudicator hold the turn for the turn's
@@ -213,6 +232,11 @@ export function startTurnCrisis(
     (settled ??=
       classifier?.mode === 'live'
         ? classifier.verdict.then(async (verdict) => {
+            // CRISIS_CLASSIFIER_BLOCKED_SIGNAL: a read the provider refused is a check-in, never a
+            // quiet none, on a turn the patterns read as nothing (crisis-classifier-blocked.ts).
+            const blocked =
+              verdict || pattern !== 'none' ? null : blockedReadGuidance(call, input, env);
+            if (blocked) return { crisis: patterns, soft: true, guidance: blocked };
             // A gentle 988 offer (crisis-grounded-screen.ts), unless the classifier also reads risk.
             if (gentle && verdict?.risk !== 'imminent' && verdict?.risk !== 'crisis') {
               return { crisis: patterns, soft: true, guidance: SCREEN_GENTLE_OFFER };
@@ -320,7 +344,19 @@ export function startTurnCrisis(
         env
       );
     }
-    return easingOn ? (eased ??= easeTurn(turn)) : turn;
+    const read = easingOn ? (eased ??= easeTurn(turn)) : turn;
+    // CRISIS_GRADED_RESPONSE=shadow: logs a grade; `read` passes on untouched, before the wrappers.
+    const graded = { classifier, scope: holdForReads ? scope : undefined, input, call };
+    if (first) shadowPipelineGrade(read, { ...graded, patterns, priorRisk, screened, voice }, env);
+    // MINOR_ABUSE_DISCLOSURE: a caller under 18 telling of sexual harm, after every read; no
+    // classifier read keeps 988 (minor-abuse-disclosure.ts).
+    const minorPrior = abuseOnly ? abuseRisk.riskBefore : priorRisk; // not this turn's own note
+    const minor = withMinorAbuseRead(read, call, input, { priorRisk: minorPrior, classifier }, env);
+    // ABUSE_DISCLOSURE_PATTERNS: someone hurting the caller is a safety turn, after every read,
+    // the minor's read included; its guidance yields to the minor's (turn-handler.ts).
+    const told = withAbuseRead(minor, input, abuseRisk, classifier, env);
+    // K1e: the call's outreach waits on this read, up to a first and a second classifier read.
+    return first ? trackAbuseRead(call, told, 2 * resolveCrisisClassifierTimeoutMs(env)) : told;
   };
   return {
     patterns,

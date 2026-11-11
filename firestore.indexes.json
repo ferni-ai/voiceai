@@ -587,6 +587,14 @@
         { "fieldPath": "priorityKey", "order": "ASCENDING" }
       ]
     },
+    {
+      "collectionGroup": "waitlist",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "seatExpiresAt", "order": "ASCENDING" }
+      ]
+    },
 
     {
       "collectionGroup": "unified_memories",
@@ -2055,6 +2063,16 @@
     },
     {
       "collectionGroup": "commitment_checkins",
+      "fieldPath": "expireAt",
+      "ttl": true,
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" }
+      ]
+    },
+    {
+      "collectionGroup": "daily_outreach_locks",
       "fieldPath": "expireAt",
       "ttl": true,
       "indexes": [

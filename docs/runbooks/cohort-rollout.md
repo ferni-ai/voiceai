@@ -23,8 +23,8 @@ the later id wins. Their own overrides come last and beat every cohort. A disabl
 counts for nothing. Anyone in no cohort gets the agent's own values.
 
 Only switches in `COHORT_FLAGS` can be set: behaviour, never infrastructure or secrets.
-Anything else is dropped and logged. Values are `on` or `off`, except `TURN_LENGTH` and
-`TURN_TEXTURE`, which take `learned` or `off`, and `PREEMPT_STABLE_CONTEXT`, which also
+Anything else is dropped and logged. Values are `on` or `off`, except `TURN_LENGTH`, which
+takes `learned`, `adaptive` or `off`, `TURN_TEXTURE`, which takes `learned` or `off`, and `PREEMPT_STABLE_CONTEXT`, which also
 takes `defer`. The latency switches (`ACTION_CLAIM_STREAM`, `PREEMPT_STABLE_CONTEXT`,
 `CACHE_WARM_PRIMARY`, `HANDOFF_CACHE_WARM`) are here so a dev A/B can give each eval
 caller its arm and run both arms in the same hour.
@@ -64,6 +64,15 @@ it, and while it is off no cohort applies. One call per process must also hold (
    cohort, so the cohorts stop carrying a flag everyone already has.
 
 At any rung, `who <uid|email>` shows the flags a person's next call gets.
+
+## Latency A/B for callers who are not members
+
+Cohorts reach member accounts only, and most phone callers are not members. For a latency
+A/B on everyone, set the agent's `LATENCY_ARM_PERCENT` (0 to 100, default 0). Each call is
+put in an arm by a hash of its session id: `treatment` calls get `PREEMPT_STABLE_CONTEXT=on`,
+`control` calls get the agent's own value. A caller whose cohort or override sets the flag keeps
+it, and the call is marked `own`. Every TURN_RECEIPT carries `latencyArm`. Set 0 to stop
+(`src/services/platform/latency-arm.ts`).
 
 ## Turning something off fast
 

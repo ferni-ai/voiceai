@@ -12,36 +12,30 @@ const emptyAnonProfiles = [
   { id: 'anon:1', data: () => ({ profile: {} }) },
   { id: 'anon:2', data: () => ({}) },
 ];
-vi.mock('firebase-admin', () => {
-  const firestore = () => ({
-    collection: () => ({
-      get: async () => ({ size: emptyAnonProfiles.length, docs: emptyAnonProfiles }),
-      doc: (id: string) => ({ id }),
-    }),
-    batch: () => ({ delete: batchDelete, commit: async () => {} }),
-  });
-  const auth = () => ({
+const firestore = () => ({
+  collection: () => ({
+    get: async () => ({ size: emptyAnonProfiles.length, docs: emptyAnonProfiles }),
+    doc: (id: string) => ({ id }),
+  }),
+  batch: () => ({ delete: batchDelete, commit: async () => {} }),
+});
+vi.mock('firebase-admin/app', () => ({
+  getApps: () => [],
+  initializeApp: () => {},
+  applicationDefault: () => ({}),
+}));
+vi.mock('firebase-admin/auth', () => ({
+  getAuth: () => ({
     listUsers: async () => ({
       users: [{ uid: 'anon-user', providerData: [], metadata: { creationTime: 'x' } }],
       pageToken: undefined,
     }),
     deleteUsers,
-  });
-  const admin = {
-    apps: [] as unknown[],
-    initializeApp: () => {},
-    firestore,
-    auth,
-    credential: { applicationDefault: () => ({}) },
-  };
-  return { default: admin };
-});
+  }),
+}));
 
-// The scripts reach Firestore through getAdminFirestore(); it serves the same fake.
-vi.mock('../../src/utils/firebase-admin-app.js', async () => {
-  const admin = (await import('firebase-admin')).default;
-  return { getAdminFirestore: () => admin.firestore() };
-});
+// The scripts reach Firestore through getAdminFirestore(); it serves the fake.
+vi.mock('../../src/utils/firebase-admin-app.js', () => ({ getAdminFirestore: () => firestore() }));
 
 const { destructiveMode } = await import('../destructive-gate.js');
 const staleProfiles = await import('../delete-stale-profiles.js');

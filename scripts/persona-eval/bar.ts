@@ -1,11 +1,12 @@
 /**
  * The persona eval bar: the numbers every "directed, not scripted" change has
  * to beat. For one arm (prod persona flags from a file, plus overrides), each
- * of the six personas answers every caller line through the live text path,
- * and the replies are scored on:
+ * persona with a bundle (the core six and the three legends, roster.ts)
+ * answers every caller line through the live text path, and the replies are
+ * scored on:
  *
  *   distinctness  a blind judge, one reply at a time, guesses which persona
- *                 spoke (chance 1/6)
+ *                 spoke (chance 1/9)
  *   humanness     pairwise against a baseline arm: same persona and line, the
  *                 two replies in seeded random order; which sounds more like a
  *                 real friend on the phone. Win rate with a 95% Wilson interval
@@ -97,6 +98,7 @@ import {
   type Tells,
 } from './bar-lib.js';
 import { bible } from './canon-judge.js';
+import { PERSONAS, personaNames } from './roster.js';
 import { callsByModel } from '../first-call-eval/vertex.js';
 import { barReports, reportIfBq } from '../lib/eval-results-bq.js';
 
@@ -105,13 +107,11 @@ const MODEL = process.env.CASCADE_LLM_MODEL ?? 'gemini-3.5-flash';
 const JUDGE_MODEL = process.env.JUDGE_MODEL ?? 'gemini-3.5-flash';
 // Another family than the generator's, so the bar can't rest on one model grading its own habits.
 const SECOND_JUDGE = process.env.SECOND_JUDGE_MODEL ?? 'openai/gpt-oss-120b-maas';
-const PERSONAS = [
-  ...['ferni', 'alex-chen', 'peter-john'],
-  ...['maya-santos', 'jordan-taylor', 'nayan-patel'],
-];
-const NAMES = PERSONAS.map((p) => p.split('-')[0]);
+// Every word of every persona's name, blanked before a judge sees a reply.
+const NAMES = PERSONAS.flatMap((p) => personaNames(p).map((n) => n.toLowerCase()));
 
-// The voice targets from CASTING.md, as the 2026-10-18 distinctness harness gave them.
+// The voice targets from CASTING.md, as the 2026-10-18 distinctness harness gave
+// them; the legends' from their bundles' identity/character.md.
 const DESCRIPTIONS: Record<string, string> = {
   ferni:
     'low-key and warm, picks up the small thing you almost did not say, says little when it is hard, gentle self-mocking humor',
@@ -125,6 +125,12 @@ const DESCRIPTIONS: Record<string, string> = {
     'energy that builds as she talks, pictures the celebration, widest range, drops to slow and quiet for hard news, laughs at herself',
   'nayan-patel':
     'slow, says the least, leaves room, answers the question under the question, rarely asks anything, gentle sideways humor',
+  'peter-lynch':
+    'curious and down to earth, lights up at a store or product people love, explains with baseball and the corner store, disagrees plainly, listens more than he talks',
+  'john-bogle':
+    'warm and grandfatherly, a patient teacher, asks how you are really doing before money, strong convictions shared gently, comfortable with a pause',
+  'joel-dickson':
+    'bright, quick and a little nerdy, laughs easily, curious about your whole life, asks the one question nobody else thought to, finishes his stories',
 };
 
 interface Fact {
@@ -212,6 +218,8 @@ interface Result {
   model: string;
   judgeModel: string;
   rounds: number;
+  /** The personas scored (absent: the core six, before the legends joined). */
+  personas?: string[];
   at: string;
   scored: Scored;
   replies: Replies;
@@ -267,8 +275,13 @@ const pctCi = (r: Rate): string =>
   `${r.k}/${r.n} = ${(100 * r.p).toFixed(1)}% [${(100 * r.lo).toFixed(1)}%, ${(100 * r.hi).toFixed(1)}%]`;
 const aaHumanRate = (h: Humanness | Rate): Rate => ('overall' in h ? humannessRate(h) : h);
 
-const load = (dir: string): Result =>
-  JSON.parse(readFileSync(join(dir, 'result.json'), 'utf8')) as Result;
+/** A saved run; one scored over another persona set (before the legends: the core six) can't be compared. */
+function load(dir: string): Result {
+  const r = JSON.parse(readFileSync(join(dir, 'result.json'), 'utf8')) as Result;
+  if (r.personas?.join() !== PERSONAS.join())
+    throw new Error(`${dir}: scored over other personas (chance differs): run it again`);
+  return r;
+}
 /** Run i's directory: <root>/run<i>, or <root> itself for a result saved before --runs. */
 const runDir = (root: string, i: number): string =>
   i === 1 && !existsSync(join(root, 'run1')) && existsSync(join(root, 'result.json'))
@@ -332,7 +345,7 @@ function replicatedFloor(bases: readonly Result[], j: string): Floor | null {
  * deterministic, so a result saved before the metric existed gets them too.
  */
 function withTells(rs: Replies, scored: Scored): Scored {
-  const of = (ps: string[]): Tells =>
+  const of = (ps: readonly string[]): Tells =>
     tellsOf(
       Object.values(rs).flatMap((byPersona) =>
         ps.map((p) => byPersona[p]?.reply ?? '').filter(Boolean)
@@ -765,7 +778,7 @@ async function main(
     progress(`${label} insight judged`);
 
     const sum = (o: Record<string, number>): number => Object.values(o).reduce((a, b) => a + b, 0);
-    const lengths = (ps: string[]): number[] =>
+    const lengths = (ps: readonly string[]): number[] =>
       filled.filter((f) => ps.includes(f.p)).map((f) => words(untagged(f.r.reply)).length);
     return withTells(rs, {
       metrics: {
@@ -880,6 +893,7 @@ async function main(
         model: MODEL,
         judgeModel: PRIMARY,
         rounds,
+        personas: [...PERSONAS],
         at: new Date().toISOString(),
         scored: undefined as unknown as Scored,
         replies: run1?.replies ?? {},

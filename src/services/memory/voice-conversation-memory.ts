@@ -14,7 +14,7 @@
  * @module VoiceConversationMemory
  */
 
-import admin from 'firebase-admin';
+import { type Firestore, Timestamp } from 'firebase-admin/firestore';
 import pino from 'pino';
 import { getGCPProjectId } from '../../config/environment.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
@@ -95,10 +95,10 @@ export interface ConversationContext {
 const CONVERSATIONS_COLLECTION = 'voice_conversations';
 const MEMORIES_COLLECTION = 'voice_memories';
 
-let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInstance: Firestore | null = null;
 let initAttempted = false;
 
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   if (firestoreInstance) return firestoreInstance;
   if (initAttempted) return null;
 
@@ -226,14 +226,12 @@ async function saveConversation(conversation: ConversationRecord): Promise<void>
       .set(
         removeUndefined({
           ...conversation,
-          startedAt: admin.firestore.Timestamp.fromDate(conversation.startedAt),
-          endedAt: conversation.endedAt
-            ? admin.firestore.Timestamp.fromDate(conversation.endedAt)
-            : null,
+          startedAt: Timestamp.fromDate(conversation.startedAt),
+          endedAt: conversation.endedAt ? Timestamp.fromDate(conversation.endedAt) : null,
           turns: conversation.turns.map((t) =>
             removeUndefined({
               ...t,
-              timestamp: admin.firestore.Timestamp.fromDate(t.timestamp),
+              timestamp: Timestamp.fromDate(t.timestamp),
             })
           ),
         })
@@ -405,24 +403,24 @@ async function saveUserMemory(memory: ConversationMemory): Promise<void> {
       .set(
         removeUndefined({
           ...memory,
-          firstConversation: admin.firestore.Timestamp.fromDate(memory.firstConversation),
-          lastConversation: admin.firestore.Timestamp.fromDate(memory.lastConversation),
+          firstConversation: Timestamp.fromDate(memory.firstConversation),
+          lastConversation: Timestamp.fromDate(memory.lastConversation),
           topics: memory.topics.map((t) =>
             removeUndefined({
               ...t,
-              lastMentioned: admin.firestore.Timestamp.fromDate(t.lastMentioned),
+              lastMentioned: Timestamp.fromDate(t.lastMentioned),
             })
           ),
           importantMoments: memory.importantMoments.map((m) =>
             removeUndefined({
               ...m,
-              date: admin.firestore.Timestamp.fromDate(m.date),
+              date: Timestamp.fromDate(m.date),
             })
           ),
           relationshipMilestones: memory.relationshipMilestones.map((m) =>
             removeUndefined({
               ...m,
-              date: admin.firestore.Timestamp.fromDate(m.date),
+              date: Timestamp.fromDate(m.date),
             })
           ),
         })

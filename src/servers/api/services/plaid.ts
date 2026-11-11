@@ -9,7 +9,10 @@
  * (services/identity/plaid-item-store.ts); a save that is refused or fails says so.
  */
 
-import { createPersistenceStore } from '../../../services/persistence/index.js';
+import {
+  createPersistenceStore,
+  type PersistenceStore,
+} from '../../../services/persistence/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { openTokens, sealTokensForMerge } from '../../../utils/token-at-rest.js';
@@ -50,13 +53,18 @@ const PLAID_BASE_URL =
 // Firestore-backed persistence store for Plaid tokens
 // Stores under bogle_users/{userId}/plaid_tokens/data, sealed (utils/token-at-rest);
 // reads accept legacy plaintext until the encrypt-integration-tokens migration runs.
-const tokenStore = createPersistenceStore<Record<string, unknown>>({
-  collection: 'plaid_tokens',
-  holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
-  documentId: 'data',
-  useRootCollection: false, // Per-user storage
-  syncIntervalMs: 2000,
-});
+// Built on first flag-off use only: a store's retry interval is named after its collection, and
+// built at import this one replaced the sealed store's (same collection), so with
+// PLAID_UNIFIED_STORE on a failed write was never retried.
+let legacyStore: PersistenceStore<Record<string, unknown>> | undefined;
+const tokenStore = (): PersistenceStore<Record<string, unknown>> =>
+  (legacyStore ??= createPersistenceStore<Record<string, unknown>>({
+    collection: 'plaid_tokens',
+    holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
+    documentId: 'data',
+    useRootCollection: false, // Per-user storage
+    syncIntervalMs: 2000,
+  }));
 
 // In-memory cache for fast access
 const plaidAccessTokens = new Map<string, PlaidTokenData>();
@@ -91,7 +99,7 @@ export async function loadTokensForUser(userId: string): Promise<PlaidTokenData 
   }
 
   try {
-    const data = openTokens<PlaidTokenData>(await tokenStore.get(userId), 'plaid_tokens');
+    const data = openTokens<PlaidTokenData>(await tokenStore().get(userId), 'plaid_tokens');
     if (data) {
       plaidAccessTokens.set(userId, data);
       log.info({ userId: userId.substring(0, 8) }, 'Loaded Plaid token from Firestore');
@@ -130,7 +138,7 @@ export async function storeToken(
 
   // Persist to Firestore
   try {
-    await tokenStore.setImmediate(userId, sealTokensForMerge(data), { safeWithoutRead: true });
+    await tokenStore().setImmediate(userId, sealTokensForMerge(data), { safeWithoutRead: true });
     log.info(
       { userId: userId.substring(0, 8), institution: institution?.name || 'Unknown' },
       'Stored Plaid token'
@@ -172,7 +180,7 @@ export async function removeToken(userId: string): Promise<void> {
 
   // Remove from Firestore
   try {
-    await tokenStore.delete(userId);
+    await tokenStore().delete(userId);
     log.info({ userId: userId.substring(0, 8) }, 'Removed Plaid token');
   } catch (err) {
     log.error(
@@ -224,7 +232,7 @@ export async function exchangePublicToken(
  * Shutdown Plaid service (flush tokens and cleanup)
  */
 export async function shutdown(): Promise<void> {
-  await tokenStore.shutdown();
+  await legacyStore?.shutdown();
   plaidAccessTokens.clear();
   log.info('Plaid service shutdown complete');
 }

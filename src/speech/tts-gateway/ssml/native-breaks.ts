@@ -15,6 +15,8 @@
 const BREAK_HOLD = '⦃BREAK';
 const BREAK_HOLD_END = '⦄';
 const BREAK_HOLD_REGEX = /⦃BREAK(\d+)⦄/g;
+/** Held breaks (any number, with any spacing) as a regex source, so cleanup can see past them. */
+export const HELD_BREAKS = '(?:\\s*⦃BREAK\\d+⦄)*';
 
 /** Placeholder for a kept break, capped at 3 s. */
 export function holdBreak(durationMs: number): string {

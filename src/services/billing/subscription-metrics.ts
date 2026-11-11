@@ -82,13 +82,12 @@ const COLLECTIONS = {
 
 export async function initializeSubscriptionMetrics(): Promise<boolean> {
   try {
-    const admin = (await import('firebase-admin')).default;
+    const { getApps, initializeApp } = await import('firebase-admin/app');
     const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
 
-    // Defensive check: admin.apps may be undefined if firebase-admin isn't properly loaded
-    if (!admin.apps || admin.apps.length === 0) {
+    if (getApps().length === 0) {
       try {
-        admin.initializeApp({
+        initializeApp({
           projectId: process.env.GCP_PROJECT_ID || process.env.FIREBASE_PROJECT_ID,
         });
       } catch {

@@ -11,14 +11,9 @@
  *
  * This integration:
  * - Wires all three systems into the conversation flow
- * - Records observations from each turn (via async events for scale)
+ * - Records observations from each turn
  * - Generates proactive predictions
  * - Surfaces insights at the right moment
- *
- * SCALING:
- * - Set `useAsyncEvents: true` to emit events for background worker processing
- * - This reduces latency in the turn processor
- * - Events are processed by PredictionsWorker in batches
  *
  * @module agents/integrations/predictive-intelligence-integration
  */
@@ -60,9 +55,6 @@ import {
   type PatternType as CoachingPatternType,
 } from '../../intelligence/coaching-patterns.js';
 
-// Async events for scaled processing
-import { AsyncEvents } from '../../services/async-events/index.js';
-
 const log = createLogger({ module: 'predictive-intelligence' });
 
 // ============================================================================
@@ -96,33 +88,6 @@ export interface PredictiveIntelligenceResult {
   };
 }
 
-export interface PredictiveIntelligenceConfig {
-  /**
-   * Use async events for scaled processing.
-   * When true, observations are emitted as events for background worker processing.
-   * When false, observations are recorded directly (suitable for single-instance).
-   * @default false
-   */
-  useAsyncEvents: boolean;
-}
-
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
-
-const config: PredictiveIntelligenceConfig = {
-  useAsyncEvents: process.env.PREDICTIONS_USE_ASYNC === 'true',
-};
-
-/**
- * Configure predictive intelligence behavior
- */
-export function configurePredictiveIntelligence(
-  newConfig: Partial<PredictiveIntelligenceConfig>
-): void {
-  Object.assign(config, newConfig);
-  log.info({ config }, '🔮 Predictive intelligence configured');
-}
 
 // ============================================================================
 // SESSION STATE
@@ -289,92 +254,61 @@ export async function processForPredictiveIntelligence(
     // Detect pattern type from coaching patterns analysis
     const coachingPatterns = detectPatternsInTranscript(message, topic, emotion);
 
-    // SCALING: Use async events for background processing when configured
-    if (config.useAsyncEvents) {
-      // Emit single event for worker to process in batch
-      AsyncEvents.emit(
-        'prediction:observation',
-        {
-          patterns: coachingPatterns.map((p) => ({
-            type: mapToPredictiveType(p.type),
-            trigger: p.pattern,
-            outcome: p.trigger,
-          })),
-          message,
-          topic,
+    // DIRECT MODE: Process observations synchronously (single-instance)
+    const observationPromises: Array<Promise<void>> = [];
+
+    // Map coaching patterns to predictive coaching observations
+    for (const pattern of coachingPatterns) {
+      const predictiveType = mapToPredictiveType(pattern.type);
+
+      observationPromises.push(
+        recordObservation(userId, {
+          type: predictiveType,
+          trigger: pattern.pattern,
+          outcome: pattern.trigger,
           emotion,
-          emotionIntensity,
           dayOfWeek,
-          hourOfDay,
-        },
-        { userId, sessionId }
+          hour: hourOfDay,
+        })
       );
-
-      patternsRecorded = coachingPatterns.length;
-
-      // Also emit conversation turn for worker
-      AsyncEvents.emit(
-        'conversation:turn',
-        { message, topic, emotion, dayOfWeek, hourOfDay },
-        { userId, sessionId }
-      );
-    } else {
-      // DIRECT MODE: Process observations synchronously (single-instance)
-      const observationPromises: Array<Promise<void>> = [];
-
-      // Map coaching patterns to predictive coaching observations
-      for (const pattern of coachingPatterns) {
-        const predictiveType = mapToPredictiveType(pattern.type);
-
-        observationPromises.push(
-          recordObservation(userId, {
-            type: predictiveType,
-            trigger: pattern.pattern,
-            outcome: pattern.trigger,
-            emotion,
-            dayOfWeek,
-            hour: hourOfDay,
-          })
-        );
-        patternsRecorded++;
-      }
-
-      // Also record temporal patterns even without detected coaching patterns
-      // This builds the baseline for day-of-week predictions
-      const hasSignificantEmotion =
-        emotion !== undefined && emotionIntensity !== undefined && emotionIntensity > 0.5;
-      if (hasSignificantEmotion) {
-        observationPromises.push(
-          recordObservation(userId, {
-            type: 'temporal',
-            trigger: `${getDayName(dayOfWeek)} ${getTimeOfDay(hourOfDay)}`,
-            outcome: `emotional state: ${emotion}`,
-            emotion,
-            dayOfWeek,
-            hour: hourOfDay,
-          })
-        );
-        patternsRecorded++;
-      }
-
-      // Record topic-based patterns
-      if (topic && topic !== 'general') {
-        observationPromises.push(
-          recordObservation(userId, {
-            type: 'behavioral',
-            trigger: topic,
-            outcome: emotion ? `triggers ${emotion}` : 'discussed',
-            emotion,
-            dayOfWeek,
-            hour: hourOfDay,
-          })
-        );
-        patternsRecorded++;
-      }
-
-      // Execute all observations in parallel
-      await Promise.all(observationPromises);
+      patternsRecorded++;
     }
+
+    // Also record temporal patterns even without detected coaching patterns
+    // This builds the baseline for day-of-week predictions
+    const hasSignificantEmotion =
+      emotion !== undefined && emotionIntensity !== undefined && emotionIntensity > 0.5;
+    if (hasSignificantEmotion) {
+      observationPromises.push(
+        recordObservation(userId, {
+          type: 'temporal',
+          trigger: `${getDayName(dayOfWeek)} ${getTimeOfDay(hourOfDay)}`,
+          outcome: `emotional state: ${emotion}`,
+          emotion,
+          dayOfWeek,
+          hour: hourOfDay,
+        })
+      );
+      patternsRecorded++;
+    }
+
+    // Record topic-based patterns
+    if (topic && topic !== 'general') {
+      observationPromises.push(
+        recordObservation(userId, {
+          type: 'behavioral',
+          trigger: topic,
+          outcome: emotion ? `triggers ${emotion}` : 'discussed',
+          emotion,
+          dayOfWeek,
+          hour: hourOfDay,
+        })
+      );
+      patternsRecorded++;
+    }
+
+    // Execute all observations in parallel
+    await Promise.all(observationPromises);
 
     // ========================================================================
     // 2. SUPERHUMAN OBSERVATIONS - "Only I would notice" patterns

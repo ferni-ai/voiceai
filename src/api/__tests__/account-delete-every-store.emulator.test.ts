@@ -36,6 +36,7 @@ const lookupFails = vi.hoisted(() => new Set<string>());
 vi.mock('firebase-admin/app', async () => vi.importActual('firebase-admin/app'));
 vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
 vi.mock('../../services/identity/firebase-auth.js', () => ({
+  setFirebaseUserDisabled: vi.fn(async () => 'done' as const),
   ensureFirebaseAdmin: () => true,
   deleteFirebaseUser: vi.fn(async () => true),
   getFirebaseUserOrThrow: vi.fn(async (uid: string) => {
@@ -87,6 +88,7 @@ const MUST_ERASE = [
   'bogle_users/{uid}/activity', // the activity ledger (activity-store.ts)
   'bogle_users/{uid}/activity/a_1/events', // each record's event log
   'bogle_users/{uid}/facts', // bi-temporal facts (facts-store.ts)
+  'bogle_users/{uid}/person_model', // the call sheet and its prev (person-model-store.ts)
   'bogle_users/{uid}/user_contacts',
   'bogle_users/{uid}/outreach_attempts',
   'bogle_users/{uid}/booking_prefs', // booking preferences (booking-prefs-store.ts)
@@ -100,6 +102,7 @@ const MUST_ERASE = [
   'apple_calendar_tokens/{uid}',
   'developer_oauth_tokens[userId]',
   'feature_checkins[userId]',
+  'daily_outreach_locks[userId]', // the daily run's send claims (daily-send-claim.ts)
   'context_injection_outcomes[injection.userId]',
   'vectors[metadata.userId]', // the semantic index (#2971 verify)
   'memory_vectors[metadata.userId]',
@@ -116,6 +119,7 @@ const MUST_ERASE = [
   'apple_health_tokens/{uid}',
   'apple_health_status/{uid}',
   'apple_health_data/{uid}',
+  'call_capture_consent/{uid}', // Help shape Ferni (call-capture-consent.ts)
   // ...and inside them, gone with the record
   'bogle_users/{uid}/smart_home', // LIFX, Sonos, SmartThings credentials
   'bogle_users/{uid}/homekit',

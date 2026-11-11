@@ -8,30 +8,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'events';
 import type { IncomingMessage, ServerResponse } from 'http';
 
-// Mock firebase-admin before importing routes
-vi.mock('firebase-admin', () => {
-  const mockFirestore = {
-    collection: vi.fn().mockReturnThis(),
-    doc: vi.fn().mockReturnThis(),
-    get: vi.fn(),
-    set: vi.fn(),
-    delete: vi.fn(),
-    orderBy: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-  };
-
-  return {
-    default: {
-      apps: [],
-      initializeApp: vi.fn(),
-      firestore: vi.fn(() => mockFirestore),
-    },
-    apps: [],
-    initializeApp: vi.fn(),
-    firestore: vi.fn(() => mockFirestore),
-  };
-});
-
 // Mock conversation history service
 vi.mock('../../services/stores/conversation-history.js', () => ({
   getConversationHistoryService: vi.fn(() => ({

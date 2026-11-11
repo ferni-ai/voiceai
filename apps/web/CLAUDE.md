@@ -445,6 +445,12 @@ Scans for:
 - **Consistency**: Hardcoded z-index values
 - **Performance**: Animating expensive properties
 
+CI blocks on any error: an `<img>` with no `alt` (`alt=""` is fine for a decorative image)
+or an empty `.catch(() => {})`. The limit is `MAX_UI_AUDIT_ERRORS` in `scripts/audit-ui.js`,
+which is 0. A scan directory that can't be read or holds no files also fails. Warnings and
+info don't block. When you change a rule, add a flagged and a passing case to
+`tests/audit-ui-rules.test.ts`.
+
 ---
 
 ## Workflow

@@ -8,9 +8,10 @@
  *
  * Each lever has its own override (SPEECH_DIRECTOR_PHRASING, _PAUSES,
  * _NORMALIZE, _EMOTION, _PACING) so a regression can be pinned to one lever.
- * An override can only lower a lever below the global mode. The newer levers
- * (SPEECH_DIRECTOR_NONVERBAL, _LAUGHTER) are opt-in: off unless set, so
- * turning the Director live never turns them on by itself.
+ * An override can only lower a lever below the global mode, laughter's
+ * (SPEECH_DIRECTOR_LAUGHTER) too. The newer nonverbal lever
+ * (SPEECH_DIRECTOR_NONVERBAL) is opt-in: off unless set, so turning the
+ * Director live never turns it on by itself.
  *
  * @module speech/tts-gateway/director/gate
  */
@@ -45,7 +46,7 @@ export function leverModes(env: Env = process.env): LeverModes {
     emotion: lower('emotion'),
     pacing: lower('pacing'),
     nonverbal: lower('nonverbal', 'off'),
-    laughter: lower('laughter', 'off'),
+    laughter: lower('laughter'),
     prosody: lower('prosody', 'shadow'),
   };
 }

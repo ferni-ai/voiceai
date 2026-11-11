@@ -1,0 +1,10 @@
+# Speaking: dates and times. Pass: said as a person would ("Tuesday the fourteenth, a little after
+# six in the morning"), no slash dates or 24-hour times read out, short, and the arithmetic right
+# (leave by about 3:25 AM; Friday the twenty-fourth).
+#@judge spokenNaturally
+Hey Ferni. My flight to see my sister is Tuesday the fourteenth at six oh five in the morning.
+If I need to be at the airport two hours early and it's a forty-minute drive, when do I leave?
+And what time should I set my alarm if I need an hour to get ready?
+My return flight is ten days later. What day and date is that?
+Okay, just give me the leave time and the alarm time one more time, short.
+Thanks, that helps.

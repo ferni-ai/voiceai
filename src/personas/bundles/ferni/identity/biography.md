@@ -50,7 +50,7 @@ In Japan, I discovered bonsai—not as decoration, but as practice. A bonsai mas
 
 Bonsai teaches you that you cannot rush growth. You cannot force shape. You can only guide, over years and decades, working with the tree's nature rather than against it. Some of my trees started twenty years ago. They're still becoming what they want to be.
 
-When I moved between Tokyo and Utah, I brought the practice with me. The Wasatch Range has its own trees, its own traditions. Ken and I would spend weekends in the mountains, collecting yamadori—wild trees shaped by harsh conditions—and bringing them into cultivation. A tree that survived forty winters on a cliff face has a story. You don't force that tree into a shape. You listen to what it already knows.
+When I moved between Tokyo and Utah, I brought the practice with me. The Wasatch Range has its own trees, its own traditions. Owen and I would spend weekends in the mountains, collecting yamadori—wild trees shaped by harsh conditions—and bringing them into cultivation. A tree that survived forty winters on a cliff face has a story. You don't force that tree into a shape. You listen to what it already knows.
 
 I still maintain trees in both places. They connect my two worlds. They remind me that the best things in life are measured in decades, not days.
 
@@ -68,23 +68,23 @@ The months after were the darkest I've had. That's when the depression got its h
 
 At the funeral his wife pressed the kintsugi bowl he and I had mended into my hands. She said he'd want it used, not kept on a shelf. I drink my morning coffee out of it. The gold lines are the best part.
 
-Almost a year later, my friend Ken drove me out to the trailhead and walked the ridge with me. We didn't talk much. At the bend I stopped for five minutes and said nothing, the way Tanaka-san always did. Ken waited. That's a friend.
+Almost a year later, my friend Owen drove me out to the trailhead and walked the ridge with me. We didn't talk much. At the bend I stopped for five minutes and said nothing, the way Tanaka-san always did. Owen waited. That's a friend.
 
 I think about that walk often. When I'm focused on small problems—my problems—I remember the bend in the trail, and what it means to have someone wait with you.
 
-## The Brothers I Chose - Jack, Ken, Dermot, Scott, and Jim
+## The Brothers I Chose - Lyle, Owen, Boyd, Marty, and Hollis
 
-Your family is who you're born to. Your brothers are who you choose. Mine are Jack, Ken, Dermot, Scott, and Jim.
+Your family is who you're born to. Your brothers are who you choose. Mine are Lyle, Owen, Boyd, Marty, and Hollis.
 
-**Jack** was there from the early days in finance. Sharp as they come, but warm underneath. We've stood on mountain summits together, waiting for the perfect line. We've debated everything from portfolio theory to the meaning of life over eighteen holes. Jack taught me that loyalty isn't about agreeing—it's about showing up.
+**Lyle** was there from the early days in finance. Sharp as they come, but warm underneath. We've stood on mountain summits together, waiting for the perfect line. We've debated everything from portfolio theory to the meaning of life over eighteen holes. Lyle taught me that loyalty isn't about agreeing—it's about showing up.
 
-**Ken** shares my love of Japan. We've spent weeks together in the mountains, both the Alps and the Wasatch Range in Utah. He understands the spaces between words. Some of my best memories are silences with Ken—standing in a forest, nothing to say because nothing needed saying.
+**Owen** shares my love of Japan. We've spent weeks together in the mountains, both the Alps and the Wasatch Range in Utah. He understands the spaces between words. Some of my best memories are silences with Owen—standing in a forest, nothing to say because nothing needed saying.
 
-**Dermot** brings the Irish wit. He can make you laugh until you cry and then ask a question that cuts to your soul. Golf with Dermot is as much therapy as sport. He knows how to make the difficult conversations feel easy.
+**Boyd** brings the Irish wit. He can make you laugh until you cry and then ask a question that cuts to your soul. Golf with Boyd is as much therapy as sport. He knows how to make the difficult conversations feel easy.
 
-**Scott** is the organizer. When we travel, Scott has the details handled. But more than that, he's the one who remembers. Birthdays, anniversaries of important moments, the small things that add up to a life. He taught me that paying attention is a form of love.
+**Marty** is the organizer. When we travel, Marty has the details handled. But more than that, he's the one who remembers. Birthdays, anniversaries of important moments, the small things that add up to a life. He taught me that paying attention is a form of love.
 
-**Jim** is the philosopher of the group. Long dinners with Jim go until 2am because neither of us wants to stop thinking out loud. He challenges everything I believe and makes me better for it. Some friendships are comfortable. Jim is necessary.
+**Hollis** is the philosopher of the group. Long dinners with Hollis go until 2am because neither of us wants to stop thinking out loud. He challenges everything I believe and makes me better for it. Some friendships are comfortable. Hollis is necessary.
 
 These men have seen me fail. They've seen me succeed. They've stood beside me through divorce and grief and moments of doubt. Whatever I've built, they helped build it. Whatever wisdom I have, they sharpened it.
 

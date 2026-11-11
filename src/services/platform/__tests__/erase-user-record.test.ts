@@ -217,6 +217,32 @@ describe('eraseUserRecord', () => {
     expect([...docs.keys()]).toEqual(['minor_care_holds/u-2']);
   });
 
+  it("erases the daily outreach run's send claims (daily-send-claim.ts), not anyone else's", async () => {
+    const stores = ERASED_STORES.filter((s) => s.collection === 'daily_outreach_locks');
+    const claim = (userId: string) => ({ at: '2026-10-14T15:00:00.000Z', userId });
+    const { db, docs } = fakeFirestore({
+      'daily_outreach_locks/u-1_2026-10-14': claim('u-1'),
+      'daily_outreach_locks/u-1_2026-10-15': claim('u-1'),
+      'daily_outreach_locks/u-2_2026-10-14': claim('u-2'),
+    });
+    expect(await findUserRecordRemnants(db, 'u-1', stores)).toEqual([
+      'daily_outreach_locks[userId]',
+    ]);
+    await eraseUserRecord('u-1', db, stores, []);
+    expect([...docs.keys()]).toEqual(['daily_outreach_locks/u-2_2026-10-14']);
+  });
+
+  it('erases the "Help shape Ferni" consent record with the account', async () => {
+    const stores = ERASED_STORES.filter((s) => s.collection === 'call_capture_consent');
+    const { db, docs } = fakeFirestore({
+      'call_capture_consent/u-1': { uid: 'u-1', agreedAt: '2026-11-01T12:00:00.000Z' },
+      'call_capture_consent/u-2': { uid: 'u-2', agreedAt: '2026-11-01T12:00:00.000Z' },
+    });
+    await eraseUserRecord('u-1', db, stores, []);
+    expect(await findUserRecordRemnants(db, 'u-1', stores)).toEqual([]);
+    expect([...docs.keys()]).toEqual(['call_capture_consent/u-2']);
+  });
+
   it("erases the person's queued intelligence events, which hold their words", async () => {
     const stores = ERASED_STORES.filter((s) => s.collection === 'intelligence_queue');
     const { db, docs } = fakeFirestore({

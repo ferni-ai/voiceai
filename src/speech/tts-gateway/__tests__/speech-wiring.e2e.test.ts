@@ -128,7 +128,6 @@ const OFF_BASE_PUSHES = [
 const ENV_KEYS = [
   'SPEECH_DIRECTOR',
   'SPEECH_DIRECTOR_NONVERBAL',
-  'SPEECH_DIRECTOR_LAUGHTER',
   'SPEECH_STAGE2_NONVERBAL',
   'SPEECH_STAGE2_TEMPO',
 ] as const;
@@ -136,7 +135,6 @@ const ENV_KEYS = [
 const ALL_LIVE: Record<(typeof ENV_KEYS)[number], string> = {
   SPEECH_DIRECTOR: 'live',
   SPEECH_DIRECTOR_NONVERBAL: 'live',
-  SPEECH_DIRECTOR_LAUGHTER: 'live',
   SPEECH_STAGE2_NONVERBAL: 'live',
   SPEECH_STAGE2_TEMPO: 'live',
 };
@@ -156,11 +154,7 @@ interface Run {
  * model's first sentence). `replyIdOverride` lets a test simulate Stage 2
  * querying a DIFFERENT reply's id, the way a mismatched turn used to.
  */
-async function speak(
-  sessionId: string,
-  turn: number,
-  replyIdOverride?: string
-): Promise<Run> {
+async function speak(sessionId: string, turn: number, replyIdOverride?: string): Promise<Run> {
   const { createGatewayTTSNode } = await import('../gateway-tts-node.js');
   const { getReplyAudioId } = await import('../reply-audio-id.js');
   let go: () => void = () => undefined;

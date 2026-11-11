@@ -328,7 +328,7 @@ export class IntelligentDataLoader {
     log.debug(
       {
         userId: this.userId,
-        message: message.slice(0, 50),
+        messageLen: message.length,
         domains: detectedDomains,
       },
       '🔮 Predictive loading domains from message'

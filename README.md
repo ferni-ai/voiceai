@@ -7,6 +7,7 @@ text-to-speech, with native function calling, memory and tools.
 
 The mission and principles are in [CORE-PRINCIPLES.md](./CORE-PRINCIPLES.md).
 The current stack, verified against the code, is in [AGENTS.md](./AGENTS.md).
+Where code lives (layers, contexts, entry points) is in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Repo map (the parts that run in production)
 
@@ -47,5 +48,6 @@ first-day setup: [ONBOARDING.md](./ONBOARDING.md).
 - [ONBOARDING.md](./ONBOARDING.md): setup, what each process does, tests, your first PR.
 - [CONTRIBUTING.md](./CONTRIBUTING.md): code rules and the PR process.
 - [AGENTS.md](./AGENTS.md): how work ships and the hard rules (read before your first PR).
+- [ARCHITECTURE.md](./ARCHITECTURE.md): the code map, generated from the layer gate.
 - [docs/README.md](./docs/README.md): index of the docs that are kept current.
 - [docs/runbooks/deploy.md](./docs/runbooks/deploy.md): how each part deploys and rolls back.

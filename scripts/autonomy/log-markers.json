@@ -37,6 +37,11 @@
         "count": 1
       },
       {
+        "marker": "PHONE_AUDIO_SUMMARY",
+        "emitter": "src/agents/multi-agent/phone-audio-summary.ts",
+        "count": 1
+      },
+      {
         "marker": "Participant left",
         "emitter": "src/agents/gce/job-executor.ts",
         "count": 1

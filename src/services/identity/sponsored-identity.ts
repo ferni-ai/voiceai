@@ -15,7 +15,8 @@
  * @module services/identity/sponsored-identity
  */
 
-import admin from 'firebase-admin';
+import type { DocumentSnapshot, Firestore } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { PhoneInUseError } from './phone-in-use-error.js';
 import type { HolderProof } from './holder-proof.js';
 import { holderProofOf, keptHolderProof, withoutHolderProof } from './holder-proof.js';
@@ -141,10 +142,10 @@ export interface PhoneLookupResult {
 const COLLECTION_NAME = 'sponsored_identities';
 const PHONE_INDEX_COLLECTION = 'sponsored_identity_phone_index';
 
-let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInstance: Firestore | null = null;
 let initAttempted = false;
 
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   if (firestoreInstance) return firestoreInstance;
   if (initAttempted) return null;
 
@@ -684,13 +685,11 @@ async function saveIdentity(identity: SponsoredIdentity): Promise<void> {
     const data = cleanForFirestore({
       ...withoutHolderProof(identity),
       ...(await keptHolderProof(ref, identity.phoneNumber)),
-      createdAt: admin.firestore.Timestamp.fromDate(identity.createdAt),
-      updatedAt: admin.firestore.Timestamp.fromDate(identity.updatedAt),
-      lastCallAt: identity.lastCallAt
-        ? admin.firestore.Timestamp.fromDate(identity.lastCallAt)
-        : null,
+      createdAt: Timestamp.fromDate(identity.createdAt),
+      updatedAt: Timestamp.fromDate(identity.updatedAt),
+      lastCallAt: identity.lastCallAt ? Timestamp.fromDate(identity.lastCallAt) : null,
       selfRegisteredAt: identity.selfRegisteredAt
-        ? admin.firestore.Timestamp.fromDate(identity.selfRegisteredAt)
+        ? Timestamp.fromDate(identity.selfRegisteredAt)
         : null,
     });
 
@@ -712,7 +711,7 @@ async function savePhoneIndex(phoneNumber: string, identityId: string): Promise<
   try {
     await db.collection(PHONE_INDEX_COLLECTION).doc(phoneNumber).set({
       identityId,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
   } catch (error) {
     log.error({ error, phoneNumber, identityId }, 'Failed to save phone index');
@@ -738,7 +737,7 @@ async function deletePhoneIndex(phoneNumber: string): Promise<void> {
 /**
  * Convert Firestore document to SponsoredIdentity.
  */
-function docToIdentity(doc: admin.firestore.DocumentSnapshot): SponsoredIdentity {
+function docToIdentity(doc: DocumentSnapshot): SponsoredIdentity {
   const data = doc.data()!;
   const id = doc.id;
   return {

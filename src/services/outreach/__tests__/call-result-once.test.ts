@@ -241,17 +241,20 @@ describe('a crisis line is never lost to dedupe or channel choice', () => {
     await captureCallResult(dispatch.callId, outcome, request);
     await captureCallResult(dispatch.callId, outcome, request); // and only once more
     expect(push).toHaveBeenCalledTimes(2);
-    expect(push.mock.calls[1][0].body).toContain("don't want to be alive");
+    // Ferni's crisis line, never their words: with no summary, nothing they said is kept.
+    expect(push.mock.calls[1][0].body).toContain(crisisCallerLine(NAME));
+    expect(push.mock.calls[1][0].body).not.toContain("don't want to be alive");
   });
 
-  it('flag on, owner live: the crisis call is still pushed, with the words', async () => {
+  it("flag on, owner live: the crisis call is still pushed, in Ferni's words", async () => {
     process.env.CALL_RESULT_ONE_CHANNEL = 'on';
     process.env.CALL_RESULT_LIVE_REPORT = 'on';
     const { dispatch, outcome, request } = crisisCall();
     ownerLive(request.userId, request.originalSessionId);
     await captureCallResult(dispatch.callId, outcome, request);
     expect(push).toHaveBeenCalledTimes(1);
-    expect(push.mock.calls[0][0].body).toContain("don't want to be alive");
+    expect(push.mock.calls[0][0].body).toContain(crisisCallerLine(NAME));
+    expect(push.mock.calls[0][0].body).not.toContain("don't want to be alive");
   });
 
   it("flag on: a crisis line only in the message leads the push in Ferni's words", async () => {

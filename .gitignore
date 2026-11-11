@@ -152,6 +152,8 @@ apps/ios-native/.build/
 
 # ML Training outputs
 apps/ml-training/router/outputs/
+# create-splits.ts backs up the old splits here on every run
+apps/ml-training/router/data/backup_*/
 
 # ONNX Router Model (large binary)
 models/

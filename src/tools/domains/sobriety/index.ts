@@ -29,6 +29,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { addCrossPersonaInsight } from '../../../services/cross-persona-insights.js';
+import { crisisLines } from '../../../services/safety/index.js';
 
 const log = getLogger();
 
@@ -53,7 +54,7 @@ const sobrietyCheckinDef: ToolDefinition = {
       }),
       execute: async ({ timeSober, howFeeling, recoveryType }) => {
         const userId = ctx.userId;
-        log.debug({ userId, timeSober }, '[sobriety] check-in');
+        log.debug({ userId, timeSoberChars: timeSober?.length ?? 0 }, '[sobriety] check-in');
 
         const response = `I'm here. Let's check in.
 
@@ -109,7 +110,7 @@ These states make everything harder. Address them.
 
 **Resources (Always):**
 
-- SAMHSA National Helpline: 1-800-662-4357 (free, 24/7)
+- ${crisisLines.SUBSTANCE_HELPLINE.name}: ${crisisLines.SUBSTANCE_HELPLINE.phone} (free, 24/7)
 - AA: aa.org | NA: na.org
 - SMART Recovery: smartrecovery.org
 - Your sponsor/support person
@@ -199,7 +200,7 @@ ${
 
 - Call your sponsor NOW
 - Go to a meeting (even online)
-- Call SAMHSA: 1-800-662-4357
+- Call SAMHSA: ${crisisLines.SUBSTANCE_HELPLINE.phone}
 - Go somewhere safe immediately
 - Tell someone what's happening
 
@@ -248,7 +249,7 @@ const sobrietyGriefDef: ToolDefinition = {
       }),
       execute: async ({ whatYouGaveUp, whatYouMiss }) => {
         const userId = ctx.userId;
-        log.debug({ userId, whatYouGaveUp }, '[sobriety] grief');
+        log.debug({ userId, whatYouGaveUpChars: whatYouGaveUp?.length ?? 0 }, '[sobriety] grief');
 
         const response = `It's okay to grieve what you gave up. Even if it was killing you.
 
@@ -339,7 +340,7 @@ const soberSocializingDef: ToolDefinition = {
       }),
       execute: async ({ upcomingEvent, specificConcern }) => {
         const userId = ctx.userId;
-        log.debug({ userId, upcomingEvent }, '[sobriety] social');
+        log.debug({ userId, upcomingEventChars: upcomingEvent?.length ?? 0 }, '[sobriety] social');
 
         const response = `Socializing sober is hard at first. It gets easier. Let's prepare.
 

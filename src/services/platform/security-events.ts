@@ -19,7 +19,7 @@
  */
 
 import { createHmac, randomBytes } from 'crypto';
-import type admin from 'firebase-admin';
+import type { Firestore, Query } from 'firebase-admin/firestore';
 import { getRedisCache } from '../../memory/redis-cache.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -150,10 +150,10 @@ const MAX_RECENT_EVENTS = 1000;
 
 // Firestore setup
 const EVENTS_COLLECTION = 'security_events';
-let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInstance: Firestore | null = null;
 let firestoreInitAttempted = false;
 
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   if (firestoreInstance) return firestoreInstance;
   if (firestoreInitAttempted) return null;
 
@@ -250,7 +250,7 @@ async function queryEventsFromFirestore(
   if (!db) return [];
 
   try {
-    let query: admin.firestore.Query = db.collection(EVENTS_COLLECTION);
+    let query: Query = db.collection(EVENTS_COLLECTION);
 
     if (filter.type) {
       query = query.where('type', '==', filter.type);

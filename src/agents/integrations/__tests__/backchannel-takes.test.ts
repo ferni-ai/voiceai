@@ -53,7 +53,8 @@ const { getVoiceIdForPersona } = await import('../../../config/voice-ids.js');
 
 const RATE = 16000;
 const FRAME = RATE / 100;
-const PHRASE_END = 'My cat knocked a glass of water onto my keyboard.';
+// Nothing a reaction fits (backchannel-context.ts), so the neutral picks play.
+const PHRASE_END = 'I picked up some milk at the store.';
 const ALL_TAKES = backchannelTakeTexts([], { BACKCHANNEL_TIMING: 'on' });
 const SOFT_TAKES = new Set(Object.values(BACKCHANNEL_TAKES.soft).flat());
 
@@ -76,7 +77,6 @@ function liveCall(
   count: number,
   persona = 'ferni'
 ): void {
-  vi.stubEnv('BACKCHANNELS', 'on');
   vi.stubEnv('BACKCHANNEL_AUDIO_CLOCK', 'on');
   vi.stubEnv('BACKCHANNEL_TIMING', timing);
   vi.useFakeTimers({ now: 1_000_000 });

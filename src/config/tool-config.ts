@@ -397,6 +397,7 @@ export function isEssentialTool(toolName: string): boolean {
     listed ||
     isPrivacyTool(toolName) || // forgetMemory, updateMemory: never capped out
     (CALL_JOURNAL_TOOLS.includes(toolName) && callJournalToolsOn()) ||
+    (toolName === 'setCallCaptureConsent' && flagOn('CALL_CAPTURE_CONSENT')) ||
     isVoiceTicTacToeTool(toolName) ||
     isChiefOfStaffTool(toolName) || // ALEX_CHIEF_OF_STAFF=on (multi-agent/chief-of-staff-tools.ts)
     isMenuPinnedTool(toolName) || // MENU_TOOLS_PINNED=on, and they take no slot (below)

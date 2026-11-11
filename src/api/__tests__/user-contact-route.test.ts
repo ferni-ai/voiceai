@@ -54,21 +54,30 @@ vi.mock('../../services/identity/firebase-auth.js', () => ({
   getFirebaseUser: async () => ({ phoneNumber: h.firebasePhone ?? undefined }),
 }));
 // bogle_users/{uid}: where linked identifiers live and consent is stored (merge writes).
+type FakeRef = {
+  get: () => Promise<unknown>;
+  set: (data: Record<string, unknown>) => Promise<void>;
+};
+const userRef: FakeRef = {
+  get: async () => ({ exists: !!h.userDoc, data: () => h.userDoc }),
+  set: async (data: Record<string, unknown>) => {
+    h.firestoreWrites.push(data);
+    const prefs = {
+      ...(h.userDoc?.outreachPreferences as object),
+      ...(data.outreachPreferences as object),
+    };
+    h.userDoc = { ...h.userDoc, ...data, outreachPreferences: prefs };
+  },
+};
 vi.mock('../../services/superhuman/firestore-utils.js', () => ({
   getFirestoreDb: () => ({
-    collection: () => ({
-      doc: () => ({
-        get: async () => ({ exists: !!h.userDoc, data: () => h.userDoc }),
-        set: async (data: Record<string, unknown>) => {
-          h.firestoreWrites.push(data);
-          const prefs = {
-            ...(h.userDoc?.outreachPreferences as object),
-            ...(data.outreachPreferences as object),
-          };
-          h.userDoc = { ...h.userDoc, ...data, outreachPreferences: prefs };
-        },
+    // prefs.ts writePrefs saves in a transaction; one caller at a time, so it never retries.
+    runTransaction: async <T>(fn: (tx: object) => Promise<T>): Promise<T> =>
+      fn({
+        get: async (ref: FakeRef) => ref.get(),
+        set: (ref: FakeRef, data: Record<string, unknown>) => void ref.set(data),
       }),
-    }),
+    collection: () => ({ doc: () => userRef }),
   }),
 }));
 

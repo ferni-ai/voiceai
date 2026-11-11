@@ -99,7 +99,7 @@ export async function syncNameFromMemories(
 
       if (extractedName) {
         log.info(
-          { userId, extractedName, source: content.slice(0, 50) },
+          { userId, extractedName, sourceLen: content.length },
           '✅ Extracted name from memory, syncing to profile'
         );
 

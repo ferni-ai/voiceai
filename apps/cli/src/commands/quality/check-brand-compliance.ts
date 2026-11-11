@@ -14,6 +14,7 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import { globSync } from 'glob';
 import { pathToFileURL } from 'url';
+import { gitVisible } from './git-visible.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -126,12 +127,13 @@ function getChangedFiles(): string[] {
  * Every file under COPY_PATHS. Glob walks only each pattern's own directory:
  * a `find .` here walked the whole checkout, including node_modules and any
  * nested git worktrees, and took over 12 minutes in a checkout that had them.
+ * Gitignored files are left out (see git-visible.ts).
  */
 export function getAllRelevantFiles(cwd = process.cwd()): string[] {
   const files = COPY_PATHS.flatMap((pattern) =>
     globSync(pattern, { cwd, nodir: true, ignore: ['**/node_modules/**'] })
   );
-  return [...new Set(files)].sort();
+  return [...new Set(files)].filter(gitVisible(cwd)).sort();
 }
 
 export function checkFile(filePath: string): Violation[] {

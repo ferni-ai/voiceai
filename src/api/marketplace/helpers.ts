@@ -10,8 +10,10 @@ import { getSubscriptionInfo } from '../../services/billing/stripe-subscription.
 import type { SubscriptionTier } from '../../types/subscription.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isVerifiedToken, verifyFirebaseToken } from '../../services/identity/firebase-auth.js';
+import { tokenCheckStatus } from '../../services/identity/token-revocation.js';
 import { parseBody as parseBodyHelper, sendJSON } from '../helpers.js';
 import { isVerifiedAdmin } from '../rate-limit-identity.js';
+import { rateLimit } from '../auth-middleware.js';
 import { resolvePublisher } from '../v1/developers/shared/developer-auth.js';
 
 const log = createLogger({ module: 'marketplace-helpers' });
@@ -85,10 +87,11 @@ export async function requirePublisher(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<PublisherSession | null> {
+  if (rateLimit(req, res, { maxRequests: 60, windowMs: 60_000, keyPrefix: 'publisher' })) return null;
   const header = req.headers.authorization;
   const token = header?.startsWith('Bearer ') ? header.slice(7).trim() : '';
   try {
-    const verified = token ? await verifyFirebaseToken(token) : null;
+    const verified = token ? await verifyFirebaseToken(token, { strict: true }) : null; // billing
     if (!isVerifiedToken(verified)) {
       sendJson(res, 401, { error: 'Publisher authentication required' });
       return null;
@@ -112,7 +115,7 @@ export async function requirePublisher(
     };
   } catch (error) {
     log.warn({ error: String(error) }, 'Publisher lookup failed');
-    sendJson(res, 500, { error: 'Publisher lookup failed' });
+    sendJson(res, tokenCheckStatus(error, 500), { error: 'Publisher lookup failed' });
     return null;
   }
 }

@@ -6,7 +6,14 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { isVerifiedIdentification, verifiedAllowanceKey } from '../verified-caller.js';
+import {
+  callerVerification,
+  isPlacedCall,
+  isVerifiedIdentification,
+  onPlacedCall,
+  verifiedAllowanceKey,
+  verifiedCallerId,
+} from '../verified-caller.js';
 
 /** The fallback: a denylist like isUnverifiedUserId */
 const looksUnverified = (id: string): boolean => /^(anon|device|phone):/.test(id);
@@ -47,5 +54,58 @@ describe('isVerifiedIdentification', () => {
     expect(isVerifiedIdentification(firebase, { firebase_account: true })).toBe(true);
     expect(isVerifiedIdentification(firebase, { firebase_account: 'true' })).toBe(false);
     expect(isVerifiedIdentification(firebase, {})).toBe(false);
+  });
+});
+
+describe('verifiedCallerId: only the boolean true the server set counts', () => {
+  it('returns the id for verifiedCaller: true', () => {
+    expect(verifiedCallerId({ userId: ' uid-1 ', verifiedCaller: true })).toBe('uid-1');
+  });
+
+  it.each([
+    ['missing', { userId: 'uid-1' }],
+    ['false', { userId: 'uid-1', verifiedCaller: false }],
+    ['the string "true"', { userId: 'uid-1', verifiedCaller: 'true' }],
+    ['the number 1', { userId: 'uid-1', verifiedCaller: 1 }],
+    ['an object', { userId: 'uid-1', verifiedCaller: {} }],
+    ['null userData', null],
+  ])('is null when verifiedCaller is %s', (_, userData) => {
+    expect(verifiedCallerId(userData)).toBeNull();
+  });
+
+  it.each(['phone:+15550100', 'device:fixture', 'anon:fixture', 'unknown', '  '])(
+    'is null for %s even when marked verified',
+    (userId) => {
+      expect(verifiedCallerId({ userId, verifiedCaller: true })).toBeNull();
+    }
+  );
+});
+
+describe('a call we placed to their number', () => {
+  it('is a proactive self-call, and nothing else', () => {
+    expect(isPlacedCall('proactive_outreach')).toBe(true);
+    for (const callType of [
+      'inbound_call',
+      'web',
+      'app',
+      'on_behalf_call',
+      'family_checkin',
+      undefined,
+    ]) {
+      expect(isPlacedCall(callType), String(callType)).toBe(false);
+    }
+  });
+
+  it('is recorded beside verifiedCaller, which stays exactly what identification said', () => {
+    expect(callerVerification(true, 'proactive_outreach')).toEqual({ verifiedCaller: true, placedCall: true }); // prettier-ignore
+    expect(callerVerification(true, 'inbound_call')).toEqual({ verifiedCaller: true, placedCall: false }); // prettier-ignore
+    expect(callerVerification(false, undefined)).toEqual({ verifiedCaller: false, placedCall: false }); // prettier-ignore
+  });
+
+  it('is read only from an explicit true', () => {
+    expect(onPlacedCall({ placedCall: true })).toBe(true);
+    for (const data of [{ placedCall: 'true' }, { placedCall: 1 }, {}, undefined, null]) {
+      expect(onPlacedCall(data), JSON.stringify(data)).toBe(false);
+    }
   });
 });

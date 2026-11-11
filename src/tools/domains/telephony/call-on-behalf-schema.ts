@@ -33,8 +33,8 @@ export const callOnBehalfSchema = z.object({
   recordingConsent: z
     .boolean()
     .optional()
-    .default(true)
-    .describe('Whether the user consents to call recording'),
+    .default(false)
+    .describe('Whether the user consents to call recording (nothing is recorded today)'),
   callNow: z
     .boolean()
     .optional()

@@ -284,7 +284,7 @@ import { onCallEnded, onCallStarted } from './app/call-end.js';
 import { wrapUpOwnsAgentLeaving, afterConversationEnd, playEndSound } from './app/call-end-paths.js';
 import { watchGoodbyeCeremony } from './app/conversation-continue.js';
 import { connectFailure } from './services/connect-failure.js';
-import { showAgentLostPrompt } from './app/agent-lost-prompt.js';
+import { showAgentLostPrompt, showAudioNotStartedPrompt } from './app/agent-lost-prompt.js';
 import { buildConversationUsageBody } from './services/call-payloads.js';
 import { connectGate, type ConnectGate } from './services/paywall.service.js';
 // Moments System - Unified feedback system (whisper, notice, celebration, milestone)
@@ -466,7 +466,7 @@ class VoiceAIApp {
       return;
     }
 
-    // Pages opened from a text link that replace the app (/a/:id)
+    // Pages opened from a text link that replace the app (/a/:id, /connect#i=…)
     const { openStandalonePage } = await import('./app/standalone-pages.js');
     if (await openStandalonePage(window.location.pathname)) return;
 
@@ -514,7 +514,7 @@ class VoiceAIApp {
       // theme picker. Production builds set import.meta.env.DEV to false.
       const allowDevE2E =
         import.meta.env.DEV && new URLSearchParams(window.location.search).get('e2e') === '1';
-      // Gate-first paint (off by default): show #app now, or once the sign-in gate has faded in
+      // Gate-first paint: show #app now, or let the sign-in gate take the copy's place
       settleGateFirst(authState.isAuthenticated, authState.isAuthenticated || allowDevE2E);
       if (!authState.isAuthenticated && !allowDevE2E) {
         log.info('User not authenticated, showing sign-in gate');
@@ -590,12 +590,12 @@ class VoiceAIApp {
   }
 
   /**
-   * Connect to the AI coach with timeout handling.
+   * Connect to the AI coach with timeout handling. `tapAt`: the start-call tap (client-timing.ts).
    *
    * Philosophy: Gating should feel like natural breaks, not walls.
    * We check subscription limits but present them warmly.
    */
-  async connect(): Promise<void> {
+  async connect(tapAt = performance.now()): Promise<void> {
     // Cancel One-Tap if showing - never interrupt voice connection
     cancelOneTap();
 
@@ -658,11 +658,10 @@ class VoiceAIApp {
 
     // Resolves once the agent is in the room; a 30s limit (or a tap) cancels it
     clearCallNotice();
-    const outcome = await connectWithTimeout(connectionService);
+    const outcome = await connectWithTimeout(connectionService, { tapAt });
 
     if (!outcome.ok) {
       log.error('Connection failed:', outcome.failure.kind);
-      thinkingUI.hideProgress();
       thinkingUI.hide();
       waveformUI.setThinking(false);
       messageUI.clear();
@@ -2655,6 +2654,10 @@ class VoiceAIApp {
    */
   private setupServiceCallbacks(): void {
     // Connection service callbacks
+    const liveCall = {
+      endCall: () => this.performStandardDisconnect(),
+      connect: () => this.connect(),
+    };
     connectionService.setCallbacks({
       onStateChange: (state) => {
         // Update presence and waveform based on connection state
@@ -2852,11 +2855,6 @@ class VoiceAIApp {
         }
       },
 
-      // Connection quality monitoring disabled for clean UI
-      // onConnectionQuality: (latencyMs) => {
-      //   connectionQualityUI.updateFromLatency(latencyMs);
-      // },
-
       // connect() reports a failed attempt itself (one classified notice), so this only logs.
       onError: (error) => {
         log.error('Connection error:', error);
@@ -2875,11 +2873,10 @@ class VoiceAIApp {
       // Ferni's side ended with the caller still here (services/agent-drop-watch.ts)
       onAgentLost: () => {
         noteCallDropped();
-        showAgentLostPrompt({
-          endCall: () => this.performStandardDisconnect(),
-          connect: () => this.connect(),
-        });
+        showAgentLostPrompt(liveCall);
       },
+      // Ferni is here but none of his audio plays (services/audio-start-watch.ts)
+      onAudioNotStarted: () => showAudioNotStartedPrompt(liveCall),
     });
 
     // Handoff service callbacks

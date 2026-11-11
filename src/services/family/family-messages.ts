@@ -13,7 +13,7 @@
  * @module services/family/family-messages
  */
 
-import admin from 'firebase-admin';
+import { type DocumentSnapshot, FieldValue } from 'firebase-admin/firestore';
 import { getFirestore } from '../../memory/firestore-factory.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
@@ -153,7 +153,7 @@ export async function createFamilyMessage(data: CreateFamilyMessageData): Promis
     .doc(id)
     .set({
       ...message,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
 
   // Invalidate cache for recipient
@@ -299,7 +299,7 @@ export async function markMessageDelivered(id: string): Promise<void> {
 
     await docRef.update({
       status: 'delivered',
-      deliveredAt: admin.firestore.FieldValue.serverTimestamp(),
+      deliveredAt: FieldValue.serverTimestamp(),
     });
 
     // Invalidate cache
@@ -416,7 +416,7 @@ export function formatMessagesForDelivery(messages: FamilyMessage[]): string {
 // HELPERS
 // ============================================================================
 
-function docToMessage(doc: admin.firestore.DocumentSnapshot): FamilyMessage {
+function docToMessage(doc: DocumentSnapshot): FamilyMessage {
   const data = doc.data()!;
   return {
     id: doc.id,

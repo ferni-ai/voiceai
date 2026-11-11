@@ -4,7 +4,7 @@
  * - push subscriptions (bogle_users/<uid>/push_subscriptions/data) and the
  *   push_endpoint_owners records naming them;
  * - the native app's device tokens (push_devices records naming them);
- * - OAuth link states they started;
+ * - OAuth link states they started, and connect-moment invites texted to them;
  * - apple_transaction_owners records naming them, replaced by tombstones that
  *   keep no raw uid (deleting them would free the purchase for a first claim).
  * Each is best effort: a failure is logged and listed in details.failures,
@@ -97,6 +97,8 @@ vi.mock('../../services/data-export.js', () => ({
   getDataExportService: () => ({ deleteAllData: vi.fn(async () => undefined) }),
 }));
 vi.mock('../../services/identity/firebase-auth.js', () => ({
+  setFirebaseUserDisabled: vi.fn(async () => 'done' as const),
+  getFirebaseUserOrThrow: vi.fn(async () => null),
   deleteFirebaseUser: vi.fn(async () => true),
   getFirebaseUser: vi.fn(),
 }));
@@ -107,6 +109,7 @@ vi.mock('../../memory/index.js', () => ({ getDefaultStore: vi.fn() }));
 
 const { handleAccountRoutes } = await import('../account-routes.js');
 const linkState = await import('../../servers/token/oauth-link-state.js');
+const connectInvites = await import('../../services/connect-moments/connect-invites.js');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -171,8 +174,13 @@ async function seed(uid: string): Promise<string> {
     });
   }
   fs.docs.set(`apple_transaction_owners/otx-${uid}`, { userId: uid, claimedAt: 'then' });
+  await connectInvites.createConnectInvite({ uid, integration: 'calendar' });
   return startLink(uid);
 }
+
+/** The connect_invites docs naming `uid` (the real Firestore-backed invite store). */
+const invitesOf = (uid: string) =>
+  [...fs.docs].filter(([path, data]) => path.startsWith('connect_invites/') && data.uid === uid);
 
 const live = (state: string) => linkState.peekOAuthLinkState(state, 'google-calendar');
 
@@ -196,6 +204,7 @@ for (const storeKind of ['memory', 'firestore'] as const) {
       const stateA = await seed('alice');
       const stateB = await seed('bob');
       expect(await live(stateA)).not.toBeNull();
+      expect(invitesOf('alice')).toHaveLength(1);
 
       const sent = await deleteAccount('alice');
 
@@ -208,8 +217,10 @@ for (const storeKind of ['memory', 'firestore'] as const) {
       expect(tomb?.deletedAt).toEqual(expect.any(String));
       expect(JSON.stringify(tomb)).not.toContain('alice');
       expect(await live(stateA)).toBeNull();
+      expect(invitesOf('alice')).toHaveLength(0);
 
       expect(fs.docs.has('bogle_users/bob/push_subscriptions/data')).toBe(true);
+      expect(invitesOf('bob')).toHaveLength(1);
       expect(fs.docs.has('push_endpoint_owners/hash-bob')).toBe(true);
       expect(fs.docs.has('push_devices/device-1-bob')).toBe(true);
       expect(fs.docs.get('apple_transaction_owners/otx-bob')?.userId).toBe('bob');

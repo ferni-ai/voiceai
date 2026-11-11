@@ -92,6 +92,65 @@ describe('prod web flags', () => {
     expect(() => stepEnv(workflow, 'No such step')).toThrow(/no "No such step" step/);
   });
 
+  it('passes every avatar motion switch and calm idle to each web build, off when unset', () => {
+    // The switches these files read; a new one must reach deploy and the walks too.
+    // Calm idle was left out of #3023, so no repo variable could turn it on.
+    const readNames = (file) => [
+      ...new Set(
+        [...readFileSync(file, 'utf8').matchAll(/import\.meta\.env\.(VITE_[A-Z0-9_]+)/g)].map(
+          (m) => m[1]
+        )
+      ),
+    ];
+    const motion = readNames('apps/web/src/config/motion-flags.ts');
+    const calmIdle = readNames('apps/web/src/config/calm-idle.ts');
+    expect(motion.length).toBeGreaterThanOrEqual(13);
+    expect(calmIdle).toEqual(['VITE_CALM_IDLE']);
+
+    const build = stepEnv(workflow, 'Build frontend');
+    const image = readFileSync('.github/workflows/deploy-production.yml', 'utf8');
+    const dockerfile = readFileSync('docker/Dockerfile.ui', 'utf8');
+    const walks = ['.github/workflows/menu-e2e.yml', '.github/workflows/signed-in-e2e.yml'].map(
+      (file) => [file, readFileSync(file, 'utf8')]
+    );
+    for (const name of [...motion, ...calmIdle]) {
+      expect(build[name], `${WEB_BUILD} Build frontend: ${name}`).toBe(`\${{ vars.${name} }}`);
+      expect(resolve(name, build[name], {}), `${name} default`).toBe('');
+      expect(image, `deploy-production.yml build-arg ${name}`).toContain(
+        `--build-arg ${name}="\${{ vars.${name} }}"`
+      );
+      expect(dockerfile, `Dockerfile.ui ARG ${name}`).toMatch(new RegExp(`^ARG ${name}=""$`, 'm'));
+      expect(dockerfile, `Dockerfile.ui ENV ${name}`).toContain(`${name}=$${name}`);
+      for (const [file, text] of walks) {
+        expect(text, `${file}: PROD_VAR_${name}`).toContain(
+          `PROD_VAR_${name}: \${{ vars.${name} }}`
+        );
+      }
+    }
+  });
+
+  it('passes every web build flag to the prod UI image too: a build-arg plus an ARG and ENV', () => {
+    // Known gaps on main: the image build never gets these, so prod web takes the code's
+    // default (gate-first on, try-first off) and the repo variable can't change it.
+    // Remove a name once deploy-production.yml and Dockerfile.ui pass it.
+    const KNOWN_GAPS = new Set(['VITE_GATE_FIRST', 'VITE_TRY_FIRST']);
+    const build = stepEnv(workflow, 'Build frontend');
+    const image = readFileSync('.github/workflows/deploy-production.yml', 'utf8');
+    const dockerfile = readFileSync('docker/Dockerfile.ui', 'utf8');
+    const names = Object.keys(build).filter((name) => name.startsWith('VITE_'));
+    expect(names.length).toBeGreaterThanOrEqual(25);
+    for (const name of names) {
+      const passed = [
+        image.includes(`--build-arg ${name}="${build[name]}"`),
+        new RegExp(`^ARG ${name}=""$`, 'm').test(dockerfile),
+        dockerfile.includes(`${name}=$${name}`),
+      ];
+      // A known gap must stay fully missing, so the list can only shrink.
+      const want = KNOWN_GAPS.has(name) ? [false, false, false] : [true, true, true];
+      expect(passed, `${name}: [build-arg, ARG, ENV] in the prod UI image`).toEqual(want);
+    }
+  });
+
   it("takes the API server's on/off flags from its prod env file", () => {
     const flags = serverFlags(readFileSync(SERVER_ENV, 'utf8'));
     expect(flags.MEMORY_VIEW).toBe('on');

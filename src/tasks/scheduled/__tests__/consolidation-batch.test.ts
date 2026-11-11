@@ -55,6 +55,7 @@ function makeDeps(all: ActiveUser[], initialCursor: UserCursor | null = null) {
 
   const deps: ConsolidationBatchDeps = {
     now: () => clock,
+    held: async () => false, // nobody held here (consolidation-minor-care-hold.test.ts)
     listUsers: vi.fn(async (limit: number, after: UserCursor | null) => {
       const start = after ? all.findIndex((u) => u.userId === after.userId) + 1 : 0;
       return all.slice(start, start + limit);

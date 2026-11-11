@@ -8,6 +8,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { redactUrl } from '../../utils/url-redaction.js';
 import { readCappedText, safeOutboundFetch } from '../../utils/outbound-url-guard.js';
 import { COLLECTIONS, ID_PREFIXES, type WebhookEventType } from '../../types/developer-platform.js';
 import { dispatchWebhookEvent } from '../integrations/developer-webhook-dispatcher.js';
@@ -490,9 +491,7 @@ async function executeMCPCall(node: WorkflowNode, context: ExecutionContext): Pr
   return result;
 }
 
-/**
- * Execute webhook call
- */
+/** Execute webhook call */
 async function executeWebhook(node: WorkflowNode, context: ExecutionContext): Promise<unknown> {
   const { config } = node;
   if (!config?.url) {
@@ -528,7 +527,7 @@ async function executeWebhook(node: WorkflowNode, context: ExecutionContext): Pr
     }
   }
 
-  log.info({ url, method }, 'Executing webhook');
+  log.info({ url: redactUrl(url), method }, 'Executing webhook');
 
   const response = await safeOutboundFetch(url, {
     method,

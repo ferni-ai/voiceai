@@ -21,6 +21,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { getVerifiedUserId } from '../request-identity.js';
 import { OAUTH_START_PATH } from './oauth-start.js';
 import { isLinkStatusV2, withLinkState } from '../../../services/identity/link-state.js';
+import { disconnectAppleHealth } from '../../../services/identity/apple-health-erase.js';
 
 const log = createLogger({ module: 'WearablesRoutes' });
 
@@ -194,6 +195,11 @@ export async function handleWearablesRoutes(
       return true;
     }
 
+    if (provider === 'apple_health' && !(await disconnectAppleHealth(user_id)).ok) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'Apple Health data was not deleted' }));
+      return true;
+    }
     await wearables.removeTokens(provider, user_id);
     log.info({ userId: user_id, provider }, 'Wearable unlinked');
 

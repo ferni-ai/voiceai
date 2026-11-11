@@ -166,6 +166,9 @@ export interface FollowUpAnswer {
   id: string;
   content: string;
   outcome: FollowUpOutcome;
+  /** When Ferni asked (0: not recorded) and when this answer settled it, epoch ms. */
+  askedAtMs: number;
+  answeredAtMs: number;
 }
 
 /**
@@ -199,7 +202,7 @@ export async function settleAwaitingAnswers(
       status: outcome === 'done' ? 'completed' : 'paused',
       lastMentioned: at,
     });
-    settled.push({ id: c.id, content: c.content, outcome });
+    settled.push({ id: c.id, content: c.content, outcome, askedAtMs: askedAt, answeredAtMs: now });
     log.info({ userId, commitmentId: c.id, outcome }, 'Recorded how a commitment went');
   }
   return settled;

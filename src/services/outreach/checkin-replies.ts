@@ -28,7 +28,7 @@ const HASH_PURPOSE = 'after-call-checkin/phone/v1';
 /** As in user-reach.ts. */
 const E164 = /^\+[1-9]\d{7,14}$/;
 const MESSAGE_SID = /^[A-Za-z0-9]{10,64}$/;
-export const ALREADY_EXISTS = 6; // Firestore/gRPC status for create() on an existing doc
+const ALREADY_EXISTS = 6; // Firestore/gRPC status for create() on an existing doc
 
 export type Env = Record<string, string | undefined>;
 
@@ -205,6 +205,23 @@ export function checkinDb(): NonNullable<ReturnType<typeof getFirestoreDb>> {
   return d;
 }
 
+/**
+ * The outreach create-only claim: true when this call made the doc, false when
+ * it was already there. Any other error throws, so a caller can fail closed.
+ */
+export async function createOnce(
+  ref: FirebaseFirestore.DocumentReference,
+  data: FirebaseFirestore.DocumentData
+): Promise<boolean> {
+  try {
+    await ref.create(data);
+    return true;
+  } catch (error) {
+    if ((error as { code?: unknown }).code === ALREADY_EXISTS) return false;
+    throw error;
+  }
+}
+
 export function toStoredCheckin(id: string, data: Record<string, unknown>): StoredCheckin {
   return { ...(data as unknown as CheckinRecord), id };
 }
@@ -220,11 +237,7 @@ export const firestoreReplyStore: ReplyStore = {
       await replies.add(reply);
       return;
     }
-    try {
-      await replies.doc(replyId).create(reply);
-    } catch (error) {
-      if ((error as { code?: unknown }).code !== ALREADY_EXISTS) throw error;
-    }
+    await createOnce(replies.doc(replyId), reply);
   },
   async isOptedOut(hash) {
     return (await checkinDb().collection(OPTOUTS).doc(hash).get()).exists;

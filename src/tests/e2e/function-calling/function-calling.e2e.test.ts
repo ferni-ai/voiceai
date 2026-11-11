@@ -406,24 +406,6 @@ describe('Tool Execution Wrapper', () => {
       clearPendingConfirmation(userId, sessionId, toolId);
       expect(hasPendingConfirmation(userId, sessionId, toolId)).toBe(false);
     });
-
-    it('should detect confirmation intent from user input', async () => {
-      const { detectConfirmationIntent } =
-        await import('../../../tools/utils/tool-execution-wrapper.js');
-
-      expect(detectConfirmationIntent('yes')).toBe('confirm');
-      expect(detectConfirmationIntent('Yeah, go ahead')).toBe('confirm');
-      expect(detectConfirmationIntent('Sure, do it')).toBe('confirm');
-      expect(detectConfirmationIntent('Ok')).toBe('confirm');
-
-      expect(detectConfirmationIntent('no')).toBe('deny');
-      expect(detectConfirmationIntent('Nope, cancel that')).toBe('deny');
-      expect(detectConfirmationIntent('Wait, hold on')).toBe('deny');
-      expect(detectConfirmationIntent("Never mind, don't do that")).toBe('deny');
-
-      expect(detectConfirmationIntent('Maybe later')).toBe('unclear');
-      expect(detectConfirmationIntent('What did you say?')).toBe('unclear');
-    });
   });
 });
 

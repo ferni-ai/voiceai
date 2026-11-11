@@ -12,7 +12,7 @@
  */
 
 import 'dotenv/config';
-import admin from 'firebase-admin';
+import { getApps, initializeApp } from 'firebase-admin/app';
 import { getLogger } from '../src/utils/safe-logger.js';
 import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 
@@ -31,9 +31,9 @@ async function analyzeProfiles(): Promise<void> {
   log.info('📊 Starting profile analysis...');
 
   // Initialize Firebase Admin
-  if (!admin.apps.length) {
+  if (!getApps().length) {
     const projectId = process.env.GCLOUD_PROJECT || 'johnb-2025';
-    admin.initializeApp({ projectId });
+    initializeApp({ projectId });
     log.info({ projectId }, 'Firebase Admin initialized');
   }
 

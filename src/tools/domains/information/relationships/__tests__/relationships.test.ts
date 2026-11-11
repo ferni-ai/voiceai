@@ -26,11 +26,8 @@ vi.mock('@livekit/agents', () => ({
   },
 }));
 
-// Mock firebase-admin for storage
-vi.mock('firebase-admin', () => ({
-  apps: [],
-  getFirestore: vi.fn(),
-}));
+// No Firebase app: storage keeps relationships in memory.
+vi.mock('firebase-admin/app', () => ({ getApps: () => [] }));
 
 // Mock sports API
 vi.mock('../../sports.js', () => ({

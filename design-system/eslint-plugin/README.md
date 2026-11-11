@@ -2,38 +2,22 @@
 
 ESLint plugin to enforce Ferni design system compliance and brand guidelines.
 
-## Installation
-
-```bash
-npm install --save-dev @ferni/eslint-plugin-design-system
-```
-
-Or link locally from the monorepo:
-
-```bash
-npm link ./design-system/eslint-plugin
-```
-
 ## Usage
 
-Add to your `.eslintrc.js`:
+In this repo, `pnpm lint:design` runs every rule as an error through
+`eslint.design.config.mjs` (apps/web and packages/ferni-react). CI ratchets the
+error count per rule, so a change may not add violations of any rule
+(`ratchet-baseline.json` "designEslint").
+
+The plugin is a flat-config (ESLint 9) plugin. In another `eslint.config.mjs`:
 
 ```javascript
-module.exports = {
-  plugins: ['@ferni/design-system'],
-  extends: [
-    'plugin:@ferni/design-system/recommended',
-  ],
-  // Or configure rules individually:
-  rules: {
-    '@ferni/design-system/no-hardcoded-colors': 'error',
-    '@ferni/design-system/no-hardcoded-durations': 'warn',
-    '@ferni/design-system/no-banned-words': 'error',
-    '@ferni/design-system/prefer-design-tokens': 'warn',
-    '@ferni/design-system/no-console-in-ui': 'error',
-    '@ferni/design-system/no-direct-persona-colors': 'error',
-  },
-};
+import designSystem from './design-system/eslint-plugin/index.js';
+
+export default [
+  // `recommended` makes durations and design tokens warnings; `strict` makes all six errors.
+  { files: ['src/**/*.ts'], ...designSystem.configs.recommended },
+];
 ```
 
 ## Rules

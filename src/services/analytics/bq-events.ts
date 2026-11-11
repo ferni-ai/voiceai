@@ -7,8 +7,8 @@
  * so rows are pseudonymous, not anonymous: account erasure must delete them too.
  *
  * Rows are buffered and sent with tabledata.insertAll via google-auth-library (already a
- * dependency). Nothing blocks a call or a request; a failed batch is logged (rate-limited)
- * and dropped. insertRowsOrThrow (evals) sends at once and throws instead.
+ * dependency). Nothing blocks a call or a request; a failed batch is logged (rate-limited,
+ * with how many times and rows since the last line) and dropped. insertRowsOrThrow (evals) sends at once and throws instead.
  *
  * @module services/analytics/bq-events
  */
@@ -94,7 +94,29 @@ let buffered = 0;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let transport: BqTransport | null = null;
 let inFlight = 0;
-const lastWarn = new Map<string, number>();
+/** Per warning topic: when it last logged, and what happened since (counted, not logged). */
+const lastWarn = new Map<string, { at: number; times: number; rows: number }>();
+
+const SAFE_WORD = /^[A-Za-z0-9_.[\]]{1,64}$/;
+
+/**
+ * insertAll's per-row errors as `reason:column` pairs (at most 5, distinct). BigQuery's
+ * message can quote the row, so it is never read; reason and location are its enum and the
+ * field path, and anything else is dropped.
+ */
+function insertErrorReasons(insertErrors: unknown): string[] {
+  if (!Array.isArray(insertErrors)) return [];
+  const out = new Set<string>();
+  for (const row of insertErrors as Array<{
+    errors?: Array<{ reason?: unknown; location?: unknown }>;
+  }>)
+    for (const e of row?.errors ?? []) {
+      const reason = typeof e?.reason === 'string' && SAFE_WORD.test(e.reason) ? e.reason : '?';
+      const at = typeof e?.location === 'string' && SAFE_WORD.test(e.location) ? e.location : '';
+      if (out.size < 5) out.add(at ? `${reason}:${at}` : reason);
+    }
+  return [...out];
+}
 
 /** What a failed insert says about itself without its message, which could quote row data. */
 function errorShape(error: unknown): Record<string, unknown> {
@@ -102,20 +124,30 @@ function errorShape(error: unknown): Record<string, unknown> {
     name?: unknown;
     status?: unknown;
     code?: unknown;
+    reasons?: unknown;
     response?: { status?: unknown };
   };
   return {
     errorName: String(e?.name ?? 'unknown'),
     status: e?.response?.status ?? e?.status ?? e?.code,
+    ...(Array.isArray(e?.reasons) && { reasons: e.reasons }),
   };
 }
 
-/** One warning per topic per WARN_EVERY_MS; never the row's values. */
-function warnOnce(topic: string, ctx: Record<string, unknown>): void {
+/**
+ * One warning per topic per WARN_EVERY_MS; never the row's values. Each warning carries how
+ * many times it happened (`times`) and how many rows were lost (`rowsDropped`) since the last
+ * one, so a rate-limited line still says how much went missing.
+ */
+function warnOnce(topic: string, ctx: Record<string, unknown>, rows = 0): void {
   const now = Date.now();
-  if (now - (lastWarn.get(topic) ?? -Infinity) < WARN_EVERY_MS) return;
-  lastWarn.set(topic, now);
-  log.warn(ctx, `BigQuery events: ${topic}`);
+  const last = lastWarn.get(topic) ?? { at: -Infinity, times: 0, rows: 0 };
+  last.times++;
+  last.rows += rows;
+  lastWarn.set(topic, last);
+  if (now - last.at < WARN_EVERY_MS) return;
+  log.warn({ ...ctx, times: last.times, rowsDropped: last.rows }, `BigQuery events: ${topic}`);
+  lastWarn.set(topic, { at: now, times: 0, rows: 0 });
 }
 
 const ENV_NAMES: Record<string, 'prod' | 'dev'> = {
@@ -215,11 +247,11 @@ export function emitEvent<K extends BqTable>(
     if (!flagOn('BQ_EVENTS', env)) return false;
     const built = buildRow(table, row as Record<string, unknown>, ids, env);
     if ('refused' in built) {
-      warnOnce(`row refused (${table})`, { table, why: built.refused });
+      warnOnce(`row refused (${table})`, { table, why: built.refused }, 1);
       return false;
     }
     if (buffered >= MAX_BUFFER) {
-      warnOnce('buffer full, rows dropped', { table });
+      warnOnce('buffer full, rows dropped', { table }, 1);
       return false;
     }
     buffer.set(table, [...(buffer.get(table) ?? []), built.row]);
@@ -231,7 +263,7 @@ export function emitEvent<K extends BqTable>(
     }
     return true;
   } catch (error) {
-    warnOnce('emit failed', { table, ...errorShape(error) });
+    warnOnce('emit failed', { table, ...errorShape(error) }, 1);
     return false;
   }
 }
@@ -254,9 +286,18 @@ async function insertAll(table: BqTable, rows: Record<string, unknown>[]): Promi
     timeout: REQUEST_TIMEOUT_MS,
     data: { rows: rows.map((json) => ({ insertId: randomUUID(), json })) },
   });
-  const errors = res.data?.insertErrors?.length ?? 0;
+  rejectInsertErrors(res.data);
+}
+
+/** Throws when insertAll answered with per-row errors (it still says 200). */
+function rejectInsertErrors(reply: InsertReply): void {
+  const errors = reply?.insertErrors?.length ?? 0;
   if (errors)
-    throw Object.assign(new Error('rows rejected'), { name: 'InsertErrors', code: errors });
+    throw Object.assign(new Error('rows rejected'), {
+      name: 'InsertErrors',
+      code: errors,
+      reasons: insertErrorReasons(reply?.insertErrors),
+    });
 }
 
 /** Sends everything buffered, waiting at most `timeoutMs`. Failures are logged (rate-limited) and dropped. */
@@ -265,12 +306,12 @@ export async function flushBqEvents(timeoutMs = 10_000): Promise<void> {
   const send = transport ?? insertAll;
   const sends = batches.map(async ([table, rows]) => {
     if (inFlight >= MAX_IN_FLIGHT)
-      return warnOnce('too many inserts in flight, rows dropped', { table });
+      return warnOnce('too many inserts in flight, rows dropped', { table }, rows.length);
     inFlight++;
     try {
-      await send(table, rows);
+      rejectInsertErrors(await send(table, rows));
     } catch (error) {
-      warnOnce(`insert failed (${table})`, { table, rows: rows.length, ...errorShape(error) });
+      warnOnce(`insert failed (${table})`, { table, ...errorShape(error) }, rows.length);
     } finally {
       inFlight--;
     }
@@ -315,7 +356,10 @@ export async function insertRowsOrThrow<K extends BqTable>(
   const reply = await (transport ?? insertAll)(table, json);
   const errors = reply?.insertErrors?.length ?? 0;
   if (errors)
-    throw Object.assign(new Error(`${errors} rows rejected (${table})`), { name: 'InsertErrors' });
+    throw Object.assign(new Error(`${errors} rows rejected (${table})`), {
+      name: 'InsertErrors',
+      reasons: insertErrorReasons(reply?.insertErrors),
+    });
   return json.length;
 }
 

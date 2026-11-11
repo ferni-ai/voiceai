@@ -25,6 +25,7 @@ import { createLogger } from '../utils/safe-logger.js';
 import { isCsrfSafe, signedInRecently } from './approval-guards.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { sendApiError, sendJSON } from './helpers.js';
+import { authCheckUnavailable } from './verify-token-once.js';
 
 const log = createLogger({ module: 'PasskeyRoutes' });
 
@@ -48,7 +49,7 @@ export async function handlePasskeyRoutes(
   }
   if (rateLimit(req, res, { maxRequests: 20, windowMs: 60_000, keyPrefix: 'passkeys' }))
     return true;
-  const auth = await requireAuth(req, res);
+  const auth = await requireAuth(req, res, { strict: true }); // step-up
   if (!auth) return true;
   if (auth.authMethod !== 'firebase') {
     sendApiError(res, NOT_FOUND);
@@ -74,6 +75,7 @@ export async function handlePasskeyRoutes(
       return true;
     }
     if (!(await signedInRecently(req, auth.userId))) {
+      if (authCheckUnavailable(req, res)) return true; // couldn't check the account: try again
       sendApiError(res, { status: 401, message: 'Sign in again first.', code: 'REAUTH_REQUIRED' });
       return true;
     }

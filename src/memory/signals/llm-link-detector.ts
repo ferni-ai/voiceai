@@ -404,7 +404,7 @@ Rules:
 
       return links;
     } catch (error) {
-      log.warn({ error: String(error), text: text.slice(0, 100) }, 'Failed to parse LLM response');
+      log.warn({ error: String(error), textLen: text.length }, 'Failed to parse LLM response');
       return [];
     }
   }

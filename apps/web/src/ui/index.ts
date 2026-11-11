@@ -305,7 +305,7 @@ export { getRitualBuilderUI, initRitualBuilderUI, showRitualBuilder } from './ri
 export type { CustomRitual, RitualBuilderUICallbacks } from './ritual-builder.ui.js';
 
 // User Data Export UI
-export { getDataExportUI, initDataExportUI, showDataExport } from './data-export.ui.js';
+export { getDataExportUI, initDataExportUI } from './data-export.ui.js';
 export type { DataExportUICallbacks, ExportableData } from './data-export.ui.js';
 
 // Prediction Accuracy Tracker UI

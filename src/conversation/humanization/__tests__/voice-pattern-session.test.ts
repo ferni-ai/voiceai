@@ -10,9 +10,8 @@ const firestore = vi.hoisted(() => ({
   set: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('firebase-admin', () => ({
-  default: { apps: [{}], initializeApp: vi.fn() },
-}));
+// The global firebase-admin/app mock (src/tests/setup.ts) reports an initialized app,
+// so the store skips app initialization and goes straight to getAdminFirestore().
 // The store reaches Firestore through getAdminFirestore(), i.e. firebase-admin/firestore.
 vi.mock('firebase-admin/firestore', () => ({
   getFirestore: () => ({ doc: () => ({ get: firestore.get, set: firestore.set }) }),

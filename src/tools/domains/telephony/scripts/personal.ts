@@ -21,9 +21,9 @@ export const personalScript: CallScriptTemplate = {
     "I'm Ferni, {userName}'s AI assistant. They asked me to give you a call. " +
     "I hope that's okay!",
 
-  recordingConsentScript:
-    'Quick note - this call might be recorded so I can let {userName} know how it went. ' +
-    'Is that alright with you?',
+  passAlongScript:
+    "Just so you know, I'll pass along what you tell me to {userName}. Is that okay?",
+  passAlongAsks: true,
 
   // -------------------------------------------------------------------------
   // Objectives
@@ -46,10 +46,10 @@ export const personalScript: CallScriptTemplate = {
       "I hope I'm not catching you at a bad time!",
 
     reschedule:
-      '{userName} wanted me to touch base about plans. {details}. ' + 'Does that work for you?',
+      '{userName} wanted me to touch base about plans. {details}. Does that work for you?',
 
     new_appointment:
-      '{userName} wanted to set something up with you. {details}. ' + 'What would work for you?',
+      '{userName} wanted to set something up with you. {details}. What would work for you?',
 
     cancel:
       '{userName} wanted me to let you know about a change of plans. {details}. ' +

@@ -24,6 +24,7 @@
  * @module services/outreach/proactive-channels/proactive-tick
  */
 
+import { countReason, logJobRun, type JobRunCounts } from '../../../utils/job-run.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { usersWithFlag } from '../../platform/cohort-flags.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
@@ -45,6 +46,7 @@ import type { CallOutcome } from './self-call.js';
 import { writeOutreachText } from './outreach-text.js';
 import { optedOutChannels, phoneOptOuts, type PhoneOptOuts } from './opt-outs.js';
 import type { ProactiveChannel, ProactiveTrigger } from './types.js';
+import { storedTextForOwner } from '../../../tools/domains/proactive/outreach/index.js';
 
 const log = createLogger({ module: 'ProactiveChannels' });
 
@@ -148,15 +150,18 @@ async function checkInTriggers(
   });
 }
 
-/** The first trigger that hasn't gone out yet, in priority order; notesOnly: pondered notes only. */
+/**
+ * The first trigger that hasn't gone out yet, in priority order; notesOnly: pondered notes only.
+ * None: 'no-trigger' when nothing was due, 'nothing-new' when every one found had gone out.
+ */
 async function nextTrigger(
   userId: string,
   user: Record<string, unknown>,
   now: Date,
   deps: ProactiveDeps,
   notesOnly: boolean
-): Promise<ProactiveTrigger | undefined> {
-  const triggers = [
+): Promise<ProactiveTrigger | 'no-trigger' | 'nothing-new'> {
+  const found = [
     ...(notesOnly ? [] : await checkInTriggers(userId, user, now, deps)),
     // Pondered follow-ups backed by the caller's own words (OUTREACH_PONDERED_NOTES).
     // A failed read skips them this minute; the triggers above still go out.
@@ -165,12 +170,14 @@ async function nextTrigger(
       return [];
     })),
   ];
+  // OWNER_OUTREACH_STORED_TEXT_SCREEN: each trigger's words come from stored text
+  const triggers = found.filter((t) => storedTextForOwner([t.reason, t.text], { site: 'proactive', userId })); // prettier-ignore
   for (const t of triggers) {
     // Sequential on purpose: usually the first one is new.
     // eslint-disable-next-line no-await-in-loop
     if (!(await alreadySent(userId, t.sourceId))) return t;
   }
-  return undefined;
+  return triggers.length === 0 ? 'no-trigger' : 'nothing-new';
 }
 
 interface Delivered {
@@ -236,12 +243,17 @@ async function send(
   policy: PolicyInput,
   deps: ProactiveDeps
 ): Promise<Delivered> {
-  const written = await writeOutreachText({
+  const drafted = await writeOutreachText({
     trigger,
     channel: choice.channel,
     lastText: lastTextOf(policy.recent),
     rotation: policy.recent.length,
   });
+  // OWNER_OUTREACH_STORED_TEXT_SCREEN: the model wrote from stored words, so its line is
+  // screened too; one that fails goes out as the trigger's own (screened) text.
+  const written = storedTextForOwner([drafted.text], { site: 'proactive', userId })
+    ? drafted
+    : { text: trigger.text, source: 'template' as const };
   const toSend = { ...trigger, text: written.text };
   const phone = policy.verifiedPhone;
   const sent =
@@ -299,7 +311,7 @@ async function runForUser(
   if (!user) return { userId, status: 'skipped', why: 'no such user' };
 
   const trigger = await nextTrigger(userId, user, now, deps, notesOnly);
-  if (!trigger) return { userId, status: 'idle' };
+  if (typeof trigger === 'string') return { userId, status: 'idle', why: trigger };
   // Notes only: no phone and no calls, so the policy can only pick a note in the app.
   const verifiedPhone = notesOnly ? undefined : await deps.verifiedPhone(userId, user);
   let optedOut = NO_PHONE;
@@ -354,11 +366,30 @@ export interface ProactiveTickResult {
   users: UserTickResult[];
 }
 
+/**
+ * The run's PROACTIVE_TICK_RUN counts: eligible had a trigger not yet sent; each one
+ * not sent is counted by its status and fixed reason (an error by status alone).
+ */
+function tickCounts(users: readonly UserTickResult[]): JobRunCounts {
+  const counts: JobRunCounts = { considered: users.length, eligible: 0, sent: 0, skippedBy: {} };
+  for (const u of users) {
+    // A trigger was found and not stopped by their settings (held ones still count).
+    if (u.sourceId !== undefined && u.status !== 'skipped') counts.eligible++;
+    if (u.status === 'sent') counts.sent++;
+    else if (u.status === 'error') countReason(counts.skippedBy, 'error');
+    else countReason(counts.skippedBy, u.why ? `${u.status}: ${u.why}` : u.status);
+  }
+  return counts;
+}
+
 export async function runProactiveChannelsTick(
   deps: ProactiveDeps,
   opts: { now?: Date; dryRun?: boolean } = {}
 ): Promise<ProactiveTickResult> {
-  if (!isProactiveChannelsOn()) return { enabled: false, users: [] };
+  if (!isProactiveChannelsOn()) {
+    logJobRun(log, 'PROACTIVE_TICK', { ...tickCounts([]), skippedBy: { 'flag-off': 1 } });
+    return { enabled: false, users: [] };
+  }
   const now = opts.now ?? new Date();
   const users: UserTickResult[] = [];
   const proactive = await proactiveUserIds();
@@ -374,5 +405,10 @@ export async function runProactiveChannelsTick(
       users.push({ userId, status: 'error', why: String(error) });
     }
   }
+  // No world model on this server: what is due in their world never becomes a trigger.
+  logJobRun(log, 'PROACTIVE_TICK', tickCounts(users), {
+    dryRun,
+    worldModel: deps.worldDue ? 'on' : 'absent',
+  });
   return { enabled: true, users };
 }

@@ -431,15 +431,16 @@ test.describe('Outreach Integration', () => {
 
     const data = await response.json();
     expect(data).toHaveProperty('pendingOutreach');
-    expect(Array.isArray(data.pendingOutreach)).toBe(true);
+    // null: it could not be read (never shown as "nothing planned").
+    expect(data.pendingOutreach === null || Array.isArray(data.pendingOutreach)).toBe(true);
 
-    // Validate outreach structure if any exist
-    if (data.pendingOutreach.length > 0) {
+    // The same items as GET /api/outreach/upcoming
+    if (data.pendingOutreach?.length > 0) {
       const outreach = data.pendingOutreach[0];
       expect(outreach).toHaveProperty('id');
       expect(outreach).toHaveProperty('type');
-      expect(outreach).toHaveProperty('message');
-      expect(outreach).toHaveProperty('persona');
+      expect(outreach).toHaveProperty('scheduledFor');
+      expect(outreach).toHaveProperty('preview');
     }
   });
 });
@@ -506,7 +507,7 @@ test.describe('Full E2E Data Flow', () => {
     expect(Array.isArray(data.intentions)).toBe(true);
     expect(Array.isArray(data.crossPersonaInsights)).toBe(true);
     expect(Array.isArray(data.predictions)).toBe(true);
-    expect(Array.isArray(data.pendingOutreach)).toBe(true);
+    expect(data.pendingOutreach === null || Array.isArray(data.pendingOutreach)).toBe(true);
     expect(data.stats).toHaveProperty('followThroughPercent');
     expect(data.stats).toHaveProperty('habitsCompletedThisWeek');
     expect(data.stats).toHaveProperty('momentumTrend');

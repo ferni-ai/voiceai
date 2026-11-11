@@ -7,9 +7,9 @@
  * the gate's Gemini cost, so it should not run for a docs or UI change.
  *
  * Left out on purpose: plumbing in the closures that cannot change a score
- * (logging, the redis cache, circuit-breaker alerting, the flag manifest) and
- * the lockfile. The daily scheduled run measures every suite on main and
- * catches anything this list misses, including drift in the hosted model.
+ * (logging, the redis cache, circuit-breaker alerting, the flag manifest). The
+ * daily scheduled run measures every suite on main and catches anything this
+ * list misses, including drift in the hosted model.
  *
  *   <changed paths, one per line> | node scripts/eval-gate/suites.mjs
  *   prints "crisis_classifier,tool_retrieval", or "" when no suite applies.
@@ -21,12 +21,25 @@ import { pathToFileURL } from 'node:url';
 /** Suite names, as the metric prefixes in evals/baselines/model.json. */
 export const SUITES = ['semantic_recall', 'crisis_classifier', 'tool_retrieval'];
 
-/** A change here can move every suite: the gate itself and shared model config. */
+/**
+ * A change here can move every suite: the gate itself, shared model config, and
+ * the files that pick the installed dependencies. Every suite calls Vertex
+ * through an SDK from the lockfile, so a model-client bump changes scores
+ * without touching a file in any closure. The agent is the root package, so the
+ * root package.json is the manifest that counts; a bump in another workspace
+ * package also rewrites pnpm-lock.yaml.
+ */
 const EVERY_SUITE = [
   /^scripts\/eval-gate\//,
   /^evals\/baselines\/model\.json$/,
   /^\.github\/workflows\/eval-gate\.yml$/,
   /^src\/config\/vertex-flag\.ts$/,
+  /^pnpm-lock\.yaml$/,
+  /^package\.json$/,
+  // catalog, overrides and patched dependencies
+  /^pnpm-workspace\.yaml$/,
+  // registry and resolution settings
+  /^\.npmrc$/,
 ];
 
 export const SUITE_PATHS = {

@@ -166,3 +166,28 @@ export async function sharedHeldStrict(
     clearTimeout(timer);
   }
 }
+
+/** How long a background job waits for the hold doc; late means held. */
+const BACKGROUND_READ_MS = 5000;
+
+/**
+ * The hold doc (heldUntil and the held calls' windows, held-window.ts), read once WHATEVER this
+ * process's flags: the voice agent that wrote it may run MINOR_CARE_SHARED_HOLD on while the API
+ * server running the background jobs has it off. For background jobs only (minor-care-background-
+ * read.ts); writers and senders keep sharedHeld / sharedHeldStrict. Rejects when unreadable or late.
+ */
+export async function readHoldDocStrict(
+  userId: string,
+  timeoutMs = BACKGROUND_READ_MS
+): Promise<Record<string, unknown> | undefined> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`no answer in ${timeoutMs} ms`)), timeoutMs);
+  });
+  try {
+    const read = (async () => (await holds().doc(userId).get()).data())();
+    return await Promise.race([read, late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}

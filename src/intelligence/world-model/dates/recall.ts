@@ -8,7 +8,8 @@
  *
  * - a one-time date that passed in the last 10 days: ask how it went;
  * - a date that is today: wish them well;
- * - a one-time date tomorrow, or a yearly one within the week: ask about it.
+ * - a one-time date tomorrow (within 3 days with DATES_IN_HELLO on, when the
+ *   hello raises it), or a yearly one within the week: ask about it.
  *
  * One per call. Each moment is raised once (raisedOn and raisedAs on the
  * fact) and not again for 20 days: asking about the interview the day before
@@ -47,6 +48,7 @@ import { MIN_CONFIDENCE } from '../temporal/in-call.js';
 import { AVOID_THREAD, avoidedTopics } from '../temporal/types.js';
 import { askedEvent, personKey, sameEventAsked, type AskedEvent } from './same-event.js';
 import type { DateFact } from './store.js';
+import { sensitiveDate } from './sensitive-date.js';
 import { daysBetween, nextOccurrence } from './timex.js';
 
 const log = createLogger({ module: 'dates-recall' });
@@ -71,8 +73,13 @@ export interface DueDate {
 }
 
 const PASSED_DAYS = 10;
-const ONCE_AHEAD_DAYS = 1;
 const YEARLY_AHEAD_DAYS = 7;
+
+/** How far ahead a one-time date is raised: 3 days when the hello raises it (DATES_IN_HELLO), else 1. */
+function onceAheadDays(env: Record<string, string | undefined> = process.env): number {
+  return flagOn('DATES_IN_HELLO', env) ? 3 : 1;
+}
+
 /** Raised once; a yearly date may come back next year. */
 export const QUIET_DAYS = 20;
 
@@ -152,7 +159,7 @@ function dueOne(f: RaisableDate, today: string, screen: Screen): DueDate | null 
     if (days > YEARLY_AHEAD_DAYS) return null;
   } else if (f.eventDate) {
     days = daysBetween(today, f.eventDate);
-    if (days < -PASSED_DAYS || days > ONCE_AHEAD_DAYS) return null;
+    if (days < -PASSED_DAYS || days > onceAheadDays()) return null;
   } else {
     return null;
   }
@@ -197,8 +204,17 @@ const ago = (n: number): string => (n === 1 ? 'yesterday' : `${n} days ago`);
 const ahead = (n: number): string => (n === 1 ? 'tomorrow' : `in ${n} days`);
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
-/** The line for the first recall note. */
+/** The line for the first recall note. A sensitive date (DATES_IN_HELLO) is never asked about. */
 export function formatDueDate(d: DueDate): string {
+  if (flagOn('DATES_IN_HELLO') && sensitiveDate(d.what)) {
+    const when =
+      d.moment === 'passed'
+        ? `was ${ago(-d.days)}`
+        : d.moment === 'today'
+          ? 'is today'
+          : `is ${ahead(d.days)}`;
+    return `A day they told you about ${when}, and it may weigh on them: never ask about it or say what it is, and if they bring it up, let them lead.`;
+  }
   const ask =
     'After saying hello, unless they have already brought it up, ask about it once, briefly and warmly, the way a friend who remembers would.';
   if (d.moment === 'passed')
@@ -232,6 +248,8 @@ export interface DatesRecall {
   ready: Promise<void>;
   /** The line for the first note, or null. No side effects. */
   note: () => string | null;
+  /** The date that line is about, for the hello (DATES_IN_HELLO), or null. No side effects. */
+  due?: () => DueDate | null;
   /** The note was given: don't raise this date again soon. */
   raised: () => void;
 }
@@ -271,6 +289,7 @@ export function createDatesRecall(deps: DatesRecallDeps): DatesRecall {
   return {
     ready,
     note: () => (due && !given ? formatDueDate(due) : null),
+    due: () => (given ? null : due),
     raised() {
       if (!due || given) return;
       given = true;

@@ -34,6 +34,15 @@ export async function callSummary(sessionId: string, env: Env = process.env): Pr
   }
 }
 
+/**
+ * BQ_CALL_USER_HASH: voice-agent-entry starts the call's clock before the caller is identified,
+ * and session init's connection_success carries the id. A call with no user takes it, so its
+ * call_events row gets a user_hash; a call that already has one keeps it.
+ */
+export function adoptCallerId(session: CallSession, userId?: string, env: Env = process.env): void {
+  if (!session.userId && userId && flagOn('BQ_CALL_USER_HASH', env)) session.userId = userId;
+}
+
 export function emitCallEnd(
   session: CallSession,
   summary?: CallSummary,

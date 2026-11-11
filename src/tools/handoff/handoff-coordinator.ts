@@ -496,8 +496,8 @@ export class HandoffCoordinator {
         {
           wasIntelligent: banterResult.wasIntelligent,
           contextUsed: banterResult.contextUsed,
-          softOpen: banterResult.softOpenBanter?.slice(0, 50),
-          arriving: banterResult.arrivingBanter?.slice(0, 50),
+          softOpenLen: banterResult.softOpenBanter?.length,
+          arrivingLen: banterResult.arrivingBanter?.length,
         },
         '🧠 Intelligent banter generated for handoff'
       );

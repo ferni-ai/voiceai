@@ -28,7 +28,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { checkSafety } from '../life-coaching-shared/safety-guards.js';
-
+import { crisisLines } from '../../../services/safety/index.js';
 // PhD-level research and persona methodology integration
 import {
   getEnhancedToolContext,
@@ -64,7 +64,7 @@ const groundingForTraumaDef: ToolDefinition = {
         if (!safety.isSafe) {
           return (
             safety.intervention ||
-            "If you're in crisis, please reach out for professional support. 988 (Suicide & Crisis Lifeline) or text HOME to 741741 (Crisis Text Line)."
+            `If you're in crisis, please reach out for professional support. ${crisisLines.LIFELINE_988.phone} (Suicide & Crisis Lifeline) or text HOME to 741741 (${crisisLines.CRISIS_TEXT_LINE.name}).`
           );
         }
 
@@ -446,7 +446,7 @@ const selfCompassionTraumaDef: ToolDefinition = {
         selfBlame: z.string().optional().describe('What you blame yourself for'),
       }),
       execute: async ({ selfBlame }) => {
-        log.info({ selfBlame }, 'Self-compassion for trauma');
+        log.info({ selfBlameChars: selfBlame?.length ?? 0 }, 'Self-compassion for trauma');
 
         let response = '';
 

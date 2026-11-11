@@ -24,7 +24,9 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
-import { resolveTokenKey } from '../../utils/token-encryption.js';
+import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { isPlaintextTokenRecord } from '../../utils/token-at-rest.js';
+import { decryptData, resolveTokenKey } from '../../utils/token-encryption.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createUserOAuthStore } from './user-oauth-store.js';
 
@@ -39,8 +41,9 @@ export interface PlaidItem {
   status: 'connected' | 'needs_reauth';
 }
 
+/** record_unreadable: a stored record that won't open (another key, corrupt) is never overwritten. */
 export type PlaidSaveResult =
-  { ok: true } | { ok: false; code: 'sealing_unavailable' | 'store_failed' };
+  { ok: true } | { ok: false; code: 'sealing_unavailable' | 'store_failed' | 'record_unreadable' };
 
 /** The sealed record. A single link written by the flag-off /plaid/exchange has the item's fields at top level. */
 interface PlaidRecord extends Partial<Omit<PlaidItem, 'status'>> {
@@ -48,7 +51,12 @@ interface PlaidRecord extends Partial<Omit<PlaidItem, 'status'>> {
   refresh_token?: never;
 }
 
-const store = createUserOAuthStore<PlaidRecord>({ provider: 'plaid', collection: 'plaid_tokens' });
+const COLLECTION = 'plaid_tokens';
+const store = createUserOAuthStore<PlaidRecord>({
+  provider: 'plaid',
+  collection: COLLECTION,
+  dropLegacyPlaintext: true, // a doc from before sealing keeps no plaintext token beside the envelope
+});
 
 /**
  * Reads are kept for a minute, then go back to Firestore past every cache, so a
@@ -80,6 +88,34 @@ function itemsOf(record: PlaidRecord | null): PlaidItem[] {
 
 const errorCode = (err: unknown): string => String((err as { code?: unknown }).code ?? 'none');
 
+type RawRecord =
+  { kind: 'empty' } | { kind: 'unreadable' } | { kind: 'record'; record: PlaidRecord };
+
+/**
+ * The doc as Firestore holds it, past the persistence cache: after a failed write that cache
+ * still holds the unsaved record and answers "fresh" reads with it. Throws when the doc can't be
+ * read. An envelope that won't open is 'unreadable', not empty. A legacy plaintext doc (before
+ * sealing) is read as its one Item, so a save keeps it, sealed.
+ */
+async function readRaw(userId: string): Promise<RawRecord> {
+  const db = getFirestoreDb();
+  if (!db) throw new Error(`No Firestore (${COLLECTION})`);
+  const ref = db.collection('bogle_users').doc(userId).collection(COLLECTION).doc('data');
+  const snap = await ref.get();
+  const raw = snap.exists ? (snap.data() as Record<string, unknown> | undefined) : undefined;
+  if (!raw) return { kind: 'empty' };
+  const sealed = raw.encrypted;
+  if (sealed !== undefined && sealed !== null && sealed !== '') {
+    const record = typeof sealed === 'string' ? decryptData<PlaidRecord>(sealed) : null;
+    return record !== null && typeof record === 'object'
+      ? { kind: 'record', record }
+      : { kind: 'unreadable' };
+  }
+  return isPlaintextTokenRecord(raw)
+    ? { kind: 'record', record: raw as PlaidRecord }
+    : { kind: 'empty' };
+}
+
 /** The user's Items (empty when none is linked, or when the record can't be read). */
 export async function getPlaidItems(userId: string): Promise<PlaidItem[]> {
   const hit = recent.get(userId);
@@ -95,8 +131,9 @@ export async function getPlaidItems(userId: string): Promise<PlaidItem[]> {
 }
 
 /**
- * Add (or replace, by item_id) one Item. Refuses without a token key, and when
- * the record can't be read (saving then would drop the other Items).
+ * Add (or replace, by item_id) one Item. Refuses without a token key, when the record can't be
+ * read, or when it is there but won't open (saving then would drop the other Items). ok only once
+ * a fresh read of the doc shows the new Item: the store logs a failed write and retries it later.
  */
 export async function savePlaidItem(
   userId: string,
@@ -107,7 +144,13 @@ export async function savePlaidItem(
     return { ok: false, code: 'sealing_unavailable' };
   }
   try {
-    const kept = itemsOf(await store.readFresh(userId)).filter((i) => i.item_id !== link.item_id);
+    const current = await readRaw(userId);
+    if (current.kind === 'unreadable') {
+      log.error({ userId: idTag(userId) }, 'Plaid item not saved: stored record does not open');
+      return { ok: false, code: 'record_unreadable' };
+    }
+    const stored = current.kind === 'record' ? itemsOf(current.record) : [];
+    const kept = stored.filter((i) => i.item_id !== link.item_id);
     const item: PlaidItem = {
       access_token: link.access_token,
       item_id: link.item_id,
@@ -117,6 +160,20 @@ export async function savePlaidItem(
     };
     const items = [...kept, item];
     await store.save(userId, { items });
+    const back = await readRaw(userId);
+    const landed =
+      back.kind === 'record' &&
+      itemsOf(back.record).some(
+        (i) =>
+          i.item_id === item.item_id &&
+          i.access_token === item.access_token &&
+          i.linked_at === item.linked_at
+      );
+    if (!landed) {
+      recent.delete(userId);
+      log.error({ userId: idTag(userId) }, 'Plaid item not saved: write did not land');
+      return { ok: false, code: 'store_failed' };
+    }
     recent.set(userId, { at: Date.now(), items });
     log.info({ userId: idTag(userId), items: items.length }, 'Plaid item saved');
     return { ok: true };

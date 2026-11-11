@@ -84,7 +84,6 @@ export const FLAGS_STYLE_TO_TOOL = {
   // ("on the 30th", "in two weeks") instead of word lists (understanding/temporal, #2452)
   TEMPORAL_RESOLVER: { default: 'off', owner: 'voice', kind: 'experiment' },
   THEORY_OF_MIND: { default: 'off', owner: 'memory', kind: 'experiment' },
-  THINK_ALOUD: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a call or text read back and waiting for the owner's yes is kept as a follow-up (outreach/confirm-thread.ts)
   THREADS_PENDING_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
   TOLD_THIS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },

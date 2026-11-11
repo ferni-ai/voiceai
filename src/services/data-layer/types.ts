@@ -358,9 +358,7 @@ export type EntityType =
 // STORE CHANGE EVENT
 // ============================================================================
 
-/**
- * Store change event - fired when data changes
- */
+/** Fired when a store's data changes */
 export interface StoreChangeEvent {
   storeType: StoreType;
   changeType: ChangeType;
@@ -370,6 +368,8 @@ export interface StoreChangeEvent {
   content: string;
   metadata?: Record<string, unknown>;
   timestamp?: Date;
+  /** Asked right before the delayed write; false skips it (its source was disconnected) */
+  stillWanted?: () => Promise<boolean>;
 }
 
 // ============================================================================

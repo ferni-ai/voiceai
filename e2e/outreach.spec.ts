@@ -120,13 +120,8 @@ test.describe('Upcoming Check-ins API', () => {
 
 test.describe('Upcoming Check-ins UI', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to app and set up user context
+    // Navigate to app
     await page.goto(BASE_URL);
-
-    // Set user ID in localStorage for authenticated requests
-    await page.evaluate((userId) => {
-      localStorage.setItem('bogle_user_id', userId);
-    }, TEST_USER_ID);
 
     // Wait for app to load
     await page.waitForTimeout(1000);

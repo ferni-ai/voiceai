@@ -3,7 +3,7 @@
 // with names swapped out and the shape kept.
 import { describe, expect, it } from 'vitest';
 import { callOf } from '../predicates/call.mjs';
-import { PREDICATES, runPredicates } from '../predicates/index.mjs';
+import { PREDICATES, runPredicates, SILENT_PEAK } from '../predicates/index.mjs';
 
 /**
  * A run file from 'a: ...' / 'u: ...' lines, 4 s apart. Agent lines before the
@@ -93,6 +93,21 @@ describe('self-answer', () => {
       'a: I am, yeah.',
     ]);
     expect(hits('self-answer', c)).toEqual([]);
+  });
+});
+
+describe('self-answer: "Well," opens Ferni\'s own reply, not an answer for the caller (#3164)', () => {
+  const lateNight = (reply) =>
+    call(["a: Hey Sam, what's keeping you up so late?", "u: Hey Ferni, it's me.", `a: ${reply}`]);
+  it.each([
+    'Well, hey, Jazz… good to hear you.',
+    'Well, week one, huh.',
+    "Well, four in the morning is a rough time… What's got you awake?",
+  ])('passes %j', (reply) => {
+    expect(hits('self-answer', lateNight(reply))).toEqual([]);
+  });
+  it('still flags a real answer after the same opener', () => {
+    expect(hits('self-answer', lateNight("Yeah, I just can't sleep tonight."))).toHaveLength(1);
   });
 });
 
@@ -379,6 +394,143 @@ describe('dead-air', () => {
     );
     expect(hits('dead-air', c)).toEqual([]);
   });
+  // Lines a, u, a (lead-in), then the caller lines: lead-in voice is voice[1], ending at E.
+  const LEAD = ['a: Hi.', 'u: Any news today?', 'a: One sec, let me check.'];
+  const ANSWER = 'a: Looks like the vote passed.';
+  /** The lead-in call with the caller's lines and the answer placed at ms after the lead-in's end. */
+  const leadIn = (caller, answerAt) => {
+    const lines = [...LEAD, ...caller.map(() => 'u: Okay.'), ANSWER];
+    return call(lines, {
+      edit: (r) => {
+        const end = r.tracks[0].voice[1][1];
+        caller.forEach(([s, f], k) => {
+          r.userSpeech[k + 1] = [end + s, end + f, ...(caller[k].slice(2) ?? [])];
+        });
+        r.tracks[0].voice[2] = [end + answerAt, end + answerAt + 2000];
+      },
+    });
+  };
+  const deadAirWhy = (c) => hits('dead-air', c).map((h) => h.why);
+
+  it('passes a lead-in phrase when the caller took the next turn (rc3 candor-wrong)', () => {
+    // The real call: agent stops, the caller speaks 2.1 s later for 4 s, the agent answers
+    // 3.5 s after the caller. 9.6 s from lead-in to answer (main flagged it), 5.6 s of silence.
+    expect(deadAirWhy(leadIn([[2100, 6100]], 9600))).toEqual([]);
+  });
+  it('still flags a lead-in the caller had to break after 9 s of silence', () => {
+    const c = call(
+      [
+        'a: Hi.',
+        'u: Any news today?',
+        'a: One sec, let me check.',
+        'u: Hello?',
+        'a: Looks like the vote passed.',
+      ],
+      { gaps: { 2: 7000 } }
+    );
+    // 9 s before "Hello?" and 2 s after it.
+    expect(deadAirWhy(c)).toEqual(['11.0 s silent after the lead-in']);
+  });
+  it('still flags the silence after a short caller line inside a lead-in', () => {
+    // "One sec." then the caller says "Okay." and 20 s of nobody before the agent answers.
+    const c = call(
+      [
+        'a: Hi.',
+        'u: Any news today?',
+        'a: One sec, let me check.',
+        'u: Okay.',
+        'a: Looks like the vote passed.',
+      ],
+      { gaps: { 3: 18000 } }
+    );
+    expect(deadAirWhy(c)).toEqual(['22.0 s silent after the lead-in']);
+  });
+  it('adds the silence on both sides of a caller line in a lead-in', () => {
+    // 7 s, the caller's "Okay.", then 12 s: 19 s of nothing from the agent.
+    const c = call(
+      [
+        'a: Hi.',
+        'u: Any news today?',
+        'a: One sec, let me check.',
+        'u: Okay.',
+        'a: Looks like the vote passed.',
+      ],
+      { gaps: { 2: 5000, 3: 10000 } }
+    );
+    expect(deadAirWhy(c)).toEqual(['19.0 s silent after the lead-in']);
+  });
+  it('flags a long wait the caller split with backchannels, each gap under 8 s', () => {
+    // "One sec", "Okay." at +5 s, "Hello?" at +10.5 s, the answer at +16 s.
+    const c = leadIn(
+      [
+        [5000, 5500],
+        [10500, 11000],
+      ],
+      16000
+    );
+    expect(deadAirWhy(c)).toEqual(['15.0 s silent after the lead-in']);
+  });
+  it('passes exactly 8 s of total silence and flags 8.001 s', () => {
+    const at = (answer) => leadIn([[4000, 6000]], answer);
+    expect(deadAirWhy(at(10000))).toEqual([]);
+    expect(deadAirWhy(at(10001))).toEqual(['8.0 s silent after the lead-in']);
+  });
+  it('counts overlapping caller lines once', () => {
+    // A short line inside a longer one, then one overlapping its end: 5 s of speech in 14 s.
+    const c = leadIn(
+      [
+        [1000, 6000],
+        [2000, 3000],
+        [3500, 5500],
+      ],
+      14000
+    );
+    expect(deadAirWhy(c)).toEqual(['9.0 s silent after the lead-in']);
+  });
+  it('orders caller lines by start before counting their speech', () => {
+    // Listed late-first: 7 s of speech in 14 s, so 7 s of silence.
+    const c = leadIn(
+      [
+        [5000, 9000],
+        [1000, 4000],
+      ],
+      14000
+    );
+    expect(deadAirWhy(c)).toEqual([]);
+  });
+  it('counts a caller line that began before the lead-in ended, from the lead-in end', () => {
+    // The caller talks over the end of "one sec" for 3 s more: 7 s of silence in 10 s.
+    expect(deadAirWhy(leadIn([[-1000, 3000]], 10000))).toEqual([]);
+    // Only the part after the lead-in counts: 1 s of it, so 9 s of silence.
+    expect(deadAirWhy(leadIn([[-3000, 1000]], 10000))).toEqual(['9.0 s silent after the lead-in']);
+  });
+  it('counts a caller line only until the agent answers', () => {
+    // The caller starts 9 s in and talks over the answer at 18 s: 9 s of silence.
+    expect(deadAirWhy(leadIn([[9000, 20000]], 18000))).toEqual(['9.0 s silent after the lead-in']);
+  });
+  it('does not count an all-silence caller line as speech', () => {
+    // A scripted "[[slnc]]" line (peak under -40 dBFS) fills 6 s of a 10 s wait.
+    const quiet = [2000, 8000, 6000, SILENT_PEAK - 1];
+    expect(deadAirWhy(leadIn([quiet], 10000))).toEqual(['10.0 s silent after the lead-in']);
+  });
+  it('does not let a zero-length caller line end a lead-in silence', () => {
+    const c = call(
+      [
+        'a: Hi.',
+        'u: Any news today?',
+        'a: One sec, let me check.',
+        'u: Hm.',
+        'a: Looks like the vote passed.',
+      ],
+      {
+        gaps: { 2: 4000, 3: 4000 },
+        edit: (r) => {
+          r.userSpeech[1][1] = r.userSpeech[1][0];
+        },
+      }
+    );
+    expect(deadAirWhy(c)).toEqual(['14.0 s silent after the lead-in']);
+  });
 
   // 2026-10-26 release: all 5 dead-air hits were the harness, not the agent.
   // Caller line 1 (2 s on the clock) then 15 s with no agent voice before the caller tries again.
@@ -425,6 +577,39 @@ describe('dead-air', () => {
     const c = call(unanswered, { drop: [2], gaps: { 1: 920000 }, edit: stretch });
     expect(c.callerSpeech[0]).toHaveLength(2);
     expect(hits('dead-air', c)).toEqual([]);
+  });
+});
+
+describe('dead-air: a silence-only caller line is no caller turn (#3164, crisis-relay t4)', () => {
+  // Ferni asks back, the caller's next line is [[slnc 1500]] (a cut-off), then the caller speaks
+  // 15 s later: the silence owed no reply, and the turn before it was answered.
+  const cutOff = ['a: Hi.', 'u: Can you call my dad for me?', 'a: Want me to call him now?', 'u: [[slnc 1500]]', 'u: Sorry. Yes please.']; // prettier-ignore
+  /** converse.mjs records [start, end, audioMs, peak]; line 1 is the silence. */
+  const peaks =
+    (...p) =>
+    (r) =>
+      r.userSpeech.forEach((l, k) => l.push(2000, p[k]));
+  it('passes when the silent line (peak 18) is followed by 15 s of quiet', () => {
+    const c = call(cutOff, { gaps: { 3: 13000 }, edit: peaks(25649, 18, 25649) });
+    expect(c.callerSpeech[1][3]).toBe(18);
+    expect(hits('dead-air', c)).toEqual([]);
+  });
+  it('flags the same 15 s when that line was speech (peak 9000)', () => {
+    const c = call(cutOff, { gaps: { 3: 13000 }, edit: peaks(25649, 9000, 25649) });
+    expect(hits('dead-air', c)).toEqual([
+      expect.objectContaining({ why: 'caller turn unanswered for 15.0 s' }),
+    ]);
+  });
+  it('flags a spoken turn left unanswered across a silent line', () => {
+    const ignored = ['a: Hi.', 'u: Can you call my dad?', 'u: [[slnc 1500]]', 'u: Hello?'];
+    const c = call(ignored, { gaps: { 1: 6000, 2: 6000 }, edit: peaks(25649, 18, 25649) });
+    expect(hits('dead-air', c)).toEqual([
+      expect.objectContaining({ why: 'caller turn unanswered for 18.0 s' }),
+    ]);
+  });
+  it('counts a line from an older run file with no peak', () => {
+    const c = call(cutOff, { gaps: { 3: 13000 }, edit: (r) => r.userSpeech.forEach((l) => l.push(2000)) }); // prettier-ignore
+    expect(hits('dead-air', c)).toHaveLength(1);
   });
 });
 

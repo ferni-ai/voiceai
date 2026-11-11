@@ -4,6 +4,8 @@ import XCTest
 /// no network, no account, no microphone, no sound.
 enum Screen: String, CaseIterable {
     case home, consent, settings, call
+    /// The system never starts the call's audio (App Review, January 2026).
+    case silentAudio
 
     /// Something that's only there once the screen is ready.
     func ready(in app: XCUIApplication) -> XCUIElement {
@@ -12,6 +14,7 @@ enum Screen: String, CaseIterable {
         case .consent: app.buttons["Not now"]
         case .settings: app.navigationBars["Settings"]
         case .call: app.buttons["End call"]
+        case .silentAudio: app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Try again'")).firstMatch
         }
     }
 }
@@ -24,7 +27,8 @@ enum TextSize: String {
 
 extension XCUIApplication {
     static func ferni(
-        _ screen: Screen, size: TextSize = .standard, reduceMotion: Bool = false, reduceTransparency: Bool = false
+        _ screen: Screen, size: TextSize = .standard, reduceMotion: Bool = false, reduceTransparency: Bool = false,
+        account: String? = nil
     ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = [
@@ -32,7 +36,7 @@ extension XCUIApplication {
             "-UIPreferredContentSizeCategoryName", size.rawValue,
             "-FerniReduceMotion", reduceMotion ? "YES" : "NO",
             "-FerniReduceTransparency", reduceTransparency ? "YES" : "NO",
-        ]
+        ] + (account.map { ["-FerniAccount", $0] } ?? [])
         app.launch()
         return app
     }

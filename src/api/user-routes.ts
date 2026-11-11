@@ -14,7 +14,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 
 import { getStore } from '../memory/store-factory.js';
-import { readPrefs, PrefsError } from '../services/messaging/prefs.js';
+import { readPrefs, PrefsError, type MessagingPrefs } from '../services/messaging/prefs.js';
 import { updateTimingPreferences } from '../services/outreach/timing-intelligence.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { isValidTimeZone } from '../utils/time-zone.js';
@@ -167,7 +167,7 @@ export async function handleUserRoutes(
   // Creates profile immediately so we can start tracking identity
   // ============================================================================
   if (route === '/profile' && method === 'GET') {
-    const auth = await requireAuth(req, res, { allowDevMode: true });
+    const auth = await requireAuth(req, res, { allowDevMode: true, strict: true }); // creates the record
     if (!auth) return true;
 
     const { userId } = auth;
@@ -208,7 +208,7 @@ export async function handleUserRoutes(
   // Called during onboarding to set name, link device, update onboarding state
   // ============================================================================
   if (route === '/profile' && method === 'POST') {
-    const auth = await requireAuth(req, res, { allowDevMode: true });
+    const auth = await requireAuth(req, res, { allowDevMode: true, strict: true }); // creates the record
     if (!auth) return true;
 
     const body = await parseBody<ProfileInitRequest>(req);
@@ -610,7 +610,6 @@ export async function handleUserRoutes(
   // ============================================================================
   if (route === '/preferences' && method === 'POST') {
     const body = await parseBody<UserPreferencesUpdate>(req);
-    // Use authenticated userId
     const userId = authenticatedUserId;
 
     try {
@@ -649,8 +648,9 @@ export async function handleUserRoutes(
       }
 
       // To messagingPrefs: senders read it with QUIET_HOURS_FROM_PREFS on (quiet-hours.ts).
+      let saved: MessagingPrefs | undefined; // answered back: a second read could fail after it saved
       if (Object.keys(updates).length > 0) {
-        await savePanelQuietHours(userId, updates);
+        saved = await savePanelQuietHours(userId, updates);
         updateTimingPreferences(userId, updates);
       }
 
@@ -666,7 +666,8 @@ export async function handleUserRoutes(
       }
 
       log.info({ userId, updates }, '⚙️ User preferences updated');
-      sendJson(res, 200, { success: true, preferences: panelView(await readPrefs(userId)) });
+      const preferences = panelView(saved ?? (await readPrefs(userId)));
+      sendJson(res, 200, { success: true, preferences });
     } catch (error) {
       log.error({ error, userId }, 'Failed to update preferences');
       const status = error instanceof PrefsError ? 400 : 500;
@@ -679,7 +680,6 @@ export async function handleUserRoutes(
   // GET /api/user/preferences - Get current preferences
   // ============================================================================
   if (route === '/preferences' && method === 'GET') {
-    // Use authenticated userId
     const userId = authenticatedUserId;
 
     try {

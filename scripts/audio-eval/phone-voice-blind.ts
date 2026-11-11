@@ -26,21 +26,14 @@
 import { createHash, randomInt } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ReadableStream } from 'node:stream/web';
-import type { AudioFrame } from '@livekit/rtc-node';
 
 import { notePhoneListener } from '../../src/agents/shared/performance/phone-voice-profile.js';
-import {
-  applyPostTTSEnhancement,
-  PostTTSPresets,
-} from '../../src/agents/shared/performance/post-tts-transform.js';
 import { getVoiceIdForPersona } from '../../src/config/voice-ids.js';
 import { getCallerProsodyTracker } from '../../src/speech/audio-prosody/caller-prosody.js';
-import { createGatewayTTSNode } from '../../src/speech/tts-gateway/gateway-tts-node.js';
 import type { ReplyStream } from '../../src/speech/tts-gateway/providers/cartesia-reply-stream.js';
 import { getTTSProvider } from '../../src/speech/tts-gateway/providers/index.js';
-import { getReplyAudioId } from '../../src/speech/tts-gateway/reply-audio-id.js';
 import { activeLevelDb, matchLevel, PHONE_RATE, phoneLine } from './phone-sim.js';
+import { RENDER_RATE as RATE, renderReply } from './render-lib.js';
 import { encodeWav } from './speech-e2e-lib.js';
 
 type Caller = 'steady' | 'low' | 'excited' | 'tense';
@@ -53,7 +46,6 @@ interface Line {
 /** The prod levers (SpeechDirector log, 2026-10-10): every key is set for every arm. */
 const LEVER_ENV: Record<string, string | undefined> = {
   SPEECH_DIRECTOR: 'live',
-  SPEECH_DIRECTOR_LAUGHTER: 'live',
   SPEECH_DIRECTOR_NONVERBAL: undefined,
   SPEECH_DIRECTOR_PROSODY: undefined,
   SPEECH_STAGE2_NONVERBAL: undefined,
@@ -72,7 +64,6 @@ const ARMS: Record<string, Record<string, string>> = {
   D: { PHONE_VOICE_PROFILE: 'on', SPEECH_DIRECTOR_PROSODY: 'live' },
 };
 const LISTEN_DB = -24;
-const RATE = 24000;
 
 /** Synthetic caller voice: a baseline turn, then the answered turn in the line's mood. */
 function simulateCaller(sessionId: string, userText: string, caller: Caller): void {
@@ -153,16 +144,6 @@ function replayTakes(): void {
   provider.openReplyStream = (voiceId: string) => new ReplayReply(() => open(voiceId));
 }
 
-function textStream(text: string): ReadableStream<string> {
-  const words = text.split(' ');
-  return new ReadableStream<string>({
-    start(c) {
-      for (let i = 0; i < words.length; i += 3) c.enqueue(`${words.slice(i, i + 3).join(' ')} `);
-      c.close();
-    },
-  });
-}
-
 async function render(
   line: Line,
   arm: string,
@@ -178,30 +159,13 @@ async function render(
   const sessionId = `blind-${arm}-${randomInt(1e9)}`;
   notePhoneListener(sessionId, { identity: 'sip_blind-test' });
   simulateCaller(sessionId, line.userText, line.caller);
-  const tts = createGatewayTTSNode({
+  return renderReply({
+    text: line.text,
+    personaId: 'ferni',
     voiceId,
     sessionId,
-    personaId: 'ferni',
-    turnContext: { turnNumber: 3, userRequest: line.userText },
-    sampleRate: RATE,
-    frameDurationMs: 20,
-    enableCache: false,
+    userText: line.userText,
   });
-  const audio = await tts(textStream(line.text) as never);
-  if (!audio) throw new Error(`no audio for arm ${arm}`);
-  const config = { ...PostTTSPresets.betterThanHuman, sessionId };
-  const out = await applyPostTTSEnhancement(
-    audio,
-    { ...config, personaId: 'ferni' },
-    getReplyAudioId(audio)
-  );
-  const chunks: number[] = [];
-  for await (const f of out as unknown as AsyncIterable<AudioFrame>) {
-    if (f.sampleRate !== RATE) throw new Error(`unexpected rate ${f.sampleRate}`);
-    for (const v of new Int16Array(f.data.buffer, f.data.byteOffset, f.samplesPerChannel))
-      chunks.push(v / 32768);
-  }
-  return Float32Array.from(chunks);
 }
 
 async function main(): Promise<void> {

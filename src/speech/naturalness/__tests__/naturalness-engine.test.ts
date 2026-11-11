@@ -20,16 +20,12 @@ import {
   type TurnInput,
 } from '../index.js';
 
-// Mock Firestore to avoid persistence calls
-vi.mock('firebase-admin', () => ({
-  apps: [],
-  initializeApp: vi.fn(),
-  firestore: vi.fn(() => ({
-    doc: vi.fn(() => ({
-      get: vi.fn(() => Promise.resolve({ exists: false })),
-      set: vi.fn(() => Promise.resolve()),
-    })),
-  })),
+// No Firebase: voice pattern persistence fails to initialize and stays in memory.
+vi.mock('firebase-admin/app', () => ({
+  getApps: () => [],
+  initializeApp: () => {
+    throw new Error('no Firebase in this test');
+  },
 }));
 
 describe('NaturalnessEngine', () => {

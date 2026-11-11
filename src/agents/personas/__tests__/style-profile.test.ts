@@ -115,16 +115,8 @@ describe('extras with a style profile', () => {
     return counts;
   };
 
-  it('never turns on what a global flag has off, even at 1.5x', () => {
-    const max = style({ laugh: 1.5, opinion: 1.5, filler: 1.5 });
-    const counts = fired({}, max, 1);
-    expect(counts.laugh_spontaneous ?? 0).toBe(0);
-    expect(counts.opinion ?? 0).toBe(0);
-    expect(counts.filler ?? 0).toBe(0);
-  });
-
-  it('with HUMAN_TEXTURE on, the multipliers move how often each fires', () => {
-    const env = { HUMAN_TEXTURE: 'on' };
+  it('the multipliers move how often each fires', () => {
+    const env = {};
     const low = fired(env, style({ opinion: 0.5, filler: 0.5 }), 3);
     const high = fired(env, style({ opinion: 1.5, filler: 1.5 }), 3);
     expect(high.opinion ?? 0).toBeGreaterThan((low.opinion ?? 0) * 2);

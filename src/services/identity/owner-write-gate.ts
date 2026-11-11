@@ -5,8 +5,9 @@
  * A call Ferni places for a member runs as `onbehalf:<callId>`
  * (outreach/on-behalf-dispatch.ts, then identifyFromMetadata's last-resort
  * session id). Fast capture, the short-term buffer and knowledge capture
- * already skipped that id (memory/third-party-call.ts), and memory recall, the
- * timeline and profile writes skip every non-member. The session summary,
+ * already skipped that id (memory/third-party-call.ts), memory recall and the
+ * timeline skip every non-member, and no profile is ever stored for it, gate or
+ * not (every MemoryStore.saveProfile asks notStored first). The session summary,
  * relationship arc, seeds, presence and persona affinity, the conversation-end
  * event, the plan and user model, the per-turn learners and the thread recorder
  * kept writing under it: documents no one reads back, about a person who never
@@ -18,18 +19,24 @@
  * anon: caller is not a member either, but keeps its tools and writes here: a
  * different question, with different callers. Kill switch, default on.
  *
+ * An anonymous try-first visitor's throwaway id (`device:demo_…`,
+ * isAnonymousDemoUser) is blocked the same way, always, with no kill switch:
+ * they were told nothing is kept, and there is no account to act on.
+ *
  * @module services/identity/owner-write-gate
  */
 import { flagOn } from '../../config/env-flag.js';
 import { isThirdPartyCallUser } from '../../memory/third-party-call.js';
+import { isAnonymousDemoUser } from '../../utils/synthetic-user.js';
 
 type Env = Record<string, string | undefined>;
 
-/** True for an on-behalf call's id while the gate is on: nothing is stored under it. */
+/** True for a try-first visitor's id, and an on-behalf call's while the gate is on: nothing is stored under it. */
 export function ownerWritesBlocked(
   userId: string | undefined | null,
   env: Env = process.env
 ): boolean {
+  if (isAnonymousDemoUser(userId)) return true;
   return isThirdPartyCallUser(userId) && flagOn('ONBEHALF_WRITE_GATE', env);
 }
 
@@ -39,4 +46,9 @@ export function ownerWriteId<T extends string | undefined | null>(
   env: Env = process.env
 ): T | undefined {
   return ownerWritesBlocked(userId, env) ? undefined : userId;
+}
+
+/** No log line prints their words: a try-first visitor's, or whoever answers a call Ferni placed. */
+export function wordsNeverLogged(userId: string | undefined | null): boolean {
+  return isAnonymousDemoUser(userId) || isThirdPartyCallUser(userId);
 }

@@ -6,7 +6,8 @@
  *   npx tsx scripts/cleanup-anonymous-users.ts --execute --confirm-project=johnb-2025
  */
 
-import admin from 'firebase-admin';
+import { applicationDefault, getApps, initializeApp } from 'firebase-admin/app';
+import { getAuth, type UserRecord } from 'firebase-admin/auth';
 import { pathToFileURL } from 'node:url';
 import { destructiveMode, refusalMessage } from './destructive-gate.js';
 
@@ -16,24 +17,24 @@ const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'johnb-2025';
 
 // Initialize Firebase Admin
 function initializeFirebase(): void {
-  if (admin.apps.length > 0) return;
+  if (getApps().length > 0) return;
 
   // Always pin the project: --confirm-project is checked against PROJECT_ID, so the
   // credentials file must not be able to pick a different one.
-  admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
+  initializeApp({
+    credential: applicationDefault(),
     projectId: PROJECT_ID,
   });
 
   console.log('Firebase Admin initialized');
 }
 
-async function listAllUsers(): Promise<admin.auth.UserRecord[]> {
-  const users: admin.auth.UserRecord[] = [];
+async function listAllUsers(): Promise<UserRecord[]> {
+  const users: UserRecord[] = [];
   let nextPageToken: string | undefined;
 
   do {
-    const result = await admin.auth().listUsers(1000, nextPageToken);
+    const result = await getAuth().listUsers(1000, nextPageToken);
     users.push(...result.users);
     nextPageToken = result.pageToken;
     console.log(`Fetched ${users.length} users...`);
@@ -42,7 +43,7 @@ async function listAllUsers(): Promise<admin.auth.UserRecord[]> {
   return users;
 }
 
-function isAnonymousUser(user: admin.auth.UserRecord): boolean {
+function isAnonymousUser(user: UserRecord): boolean {
   // Anonymous users typically have:
   // 1. No email
   // 2. Provider data only contains 'anonymous' or is empty
@@ -65,7 +66,7 @@ async function deleteUserBatch(uids: string[], DRY_RUN: boolean): Promise<void> 
     return;
   }
 
-  const result = await admin.auth().deleteUsers(uids);
+  const result = await getAuth().deleteUsers(uids);
   console.log(`Deleted ${result.successCount} users, ${result.failureCount} failures`);
 
   if (result.failureCount > 0) {

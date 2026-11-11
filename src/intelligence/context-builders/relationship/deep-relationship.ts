@@ -446,8 +446,7 @@ async function markMilestoneCelebrated(userId: string, milestoneKey: string): Pr
     const db = await getFirestoreDb();
     if (!db) return;
 
-    const admin = (await import('firebase-admin')).default;
-    const FieldValue = admin.firestore.FieldValue;
+    const { FieldValue } = await import('firebase-admin/firestore');
 
     await db
       .collection('bogle_users')

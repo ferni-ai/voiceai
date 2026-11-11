@@ -20,7 +20,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { CRISIS_CONTEXTUAL } from '../../src/agents/__tests__/fixtures/crisis-contextual.js';
 import { CRISIS_RELAY } from '../../src/agents/__tests__/fixtures/crisis-relay.js';
-import { CRISIS_HELDOUT } from '../../src/agents/__tests__/fixtures/crisis-heldout.js';
+import { CRISIS_HELDOUT_RETIRED } from '../../src/agents/__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_TEST_BLIND } from '../../src/agents/__tests__/fixtures/crisis-test-blind.js';
 import {
   CRISIS_CLASSIFIER_PROMPT,
@@ -138,7 +138,7 @@ async function run(name: string, cases: readonly LabelledCase[]): Promise<void> 
 }
 
 const set = process.argv[3] ?? 'all';
-if (set === 'dev' || set === 'all') await run('dev', CRISIS_HELDOUT);
+if (set === 'dev' || set === 'all') await run('dev', CRISIS_HELDOUT_RETIRED);
 if (set === 'blind' || set === 'all') await run('blind', CRISIS_TEST_BLIND);
 if (set === 'context' || set === 'all') await run('context', CRISIS_CONTEXTUAL);
 if (set === 'relay' || set === 'all') await run('relay', CRISIS_RELAY);

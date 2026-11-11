@@ -231,7 +231,7 @@ export function getCachedMemoryResult(sessionId: string, query: string): CachedM
     return null;
   }
 
-  log.debug({ sessionId, query: query.slice(0, 30) }, '💾 Memory cache hit');
+  log.debug({ sessionId, queryLen: query.length }, '💾 Memory cache hit');
   return cached;
 }
 

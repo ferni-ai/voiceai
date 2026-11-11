@@ -161,9 +161,13 @@ against:
   `link_uid_tag` (`bqHash('user', uid)`, never the uid) and `link_state`
   (`agents/voice-agent/tool-outcome.ts`).
 - **Types**: no `any`, no `as any`. Use `unknown` and narrow.
-- **Layers** point inward: L5 entrypoints → L4 orchestration → L3 (ten capability
-  contexts, via each other's index.ts) → L2 shared kernel; L1 adapters implement L2/L3 ports.
-  Map: `apps/cli/src/commands/quality/architecture-layers.ts`; `pnpm quality:arch` fails new violations.
+- **Layers** point inward (L5 → L4 → L3 contexts → L2; L1 adapters implement ports).
+  Which folder is in which layer or context: [ARCHITECTURE.md](ARCHITECTURE.md), generated
+  from `architecture-layers.ts`. `pnpm quality:arch` fails new violations.
+- **One owner per capability** (crisis risk, voice, handoff, tool registry, outreach
+  scheduling, ...): the owner folder's `AGENTS.md` names it and the entry to import,
+  generated from `apps/cli/src/commands/quality/decisions.ts`. A second owner-shaped
+  function fails `pnpm quality:decisions`; call the owner instead.
 - **Names**: files are kebab-case. Name by function, not acronym or version
   (`tool-classifier.ts`, not `ftis-v2.ts`). No persona names in tool files.
 - **Classifiers on user text** match whole words, never substrings
@@ -171,7 +175,7 @@ against:
 - **Frontend**: colors, durations and shadows come from design tokens
   (`var(--color-*)`); edit `design-system/tokens/*.json` and run
   `pnpm tokens:sync`. Never edit `*.generated.*`.
-- **Flags**: `pnpm flags:new NAME --default off --owner <area> --kind experiment`
+- **Flags**: `pnpm flags:new NAME --default off --owner <area> --kind experiment --issue '#123'` (an experiment needs a real issue)
   writes `src/config/flags/NAME.ts`; commit only that file. The flag barrel and
   the env-name list (`src/config/**/*.generated.ts`) are gitignored: install,
   typecheck, build and tests regenerate them (`pnpm gen:lists` by hand).
@@ -193,6 +197,9 @@ pnpm gen:lists               # flag barrel + env-name list (gitignored)
 
 ## Where to look (load on demand)
 
+- `ARCHITECTURE.md`: start here. Entry points, data stores, deploy surfaces,
+  where to add a tool, persona, flag, job or log marker, and the generated table
+  of every layer and context with its folders, `index.ts` and `CLAUDE.md`.
 - `docs/archive/2026-10-08-former-claude-md.md`: the former 2,000-line
   CLAUDE.md, archived. Subsystem overviews (memory, personas, tools, design
   system, CLI). **Partly outdated: verify against the code.**

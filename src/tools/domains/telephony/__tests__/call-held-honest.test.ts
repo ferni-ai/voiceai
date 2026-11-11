@@ -54,9 +54,12 @@ vi.mock('../../../../services/outreach/user-contact.js', () => ({
   getUserContactInfo: vi.fn(async () => ({ timezone: 'America/Denver' })),
 }));
 const createSipParticipant = vi.fn(async () => ({ participantId: 'PA_1' }));
+const listParticipants = vi.fn(async () => [{ kind: 4 }]); // the agent is in (agent-join.ts)
 vi.mock('livekit-server-sdk', () => ({
   RoomServiceClient: class {
     createRoom = vi.fn(async () => ({}));
+    listParticipants = listParticipants;
+    deleteRoom = vi.fn(async () => undefined);
   },
   AgentDispatchClient: class {
     createDispatch = vi.fn(async () => ({}));
@@ -150,6 +153,27 @@ describe('a call to the same number while one waits', () => {
       async () => undefined
     );
     expect(prepared).toMatchObject({ readBack: expect.stringMatching(/^a call to Mom at /) });
+  });
+});
+
+describe('a call no agent joins (prod 2026-11-05)', () => {
+  it('rings nothing and says so, with no "calling now" and no "I\'ll let you know"', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-17T18:00:00Z')); // noon in Denver: inside call hours
+    listParticipants.mockResolvedValue([]); // the dispatch is accepted; no worker takes the job
+
+    const replying = callMom();
+    await vi.advanceTimersByTimeAsync(10_000);
+    const reply = (await replying) as unknown as { success: boolean; error: string };
+    listParticipants.mockResolvedValue([{ kind: 4 }]);
+
+    expect(createSipParticipant).not.toHaveBeenCalled();
+    expect(reply).toEqual({
+      success: false,
+      error:
+        "I couldn't place that call just now, so it didn't ring. Want me to try again in a minute?",
+    });
+    expect(JSON.stringify(reply)).not.toMatch(/calling \w+ now|let you know/i);
   });
 });
 

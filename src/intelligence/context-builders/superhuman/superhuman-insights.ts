@@ -316,7 +316,7 @@ async function buildSuperhumanInsights(input: ContextBuilderInput): Promise<Cont
           session.surfacedInsights.add('time_based');
           session.lastSurfacedTurn['time_based'] = turnCount;
 
-          log.debug({ type: best.type, content: best.content }, '⏰ Time-based insight ready');
+          log.debug({ type: best.type, contentLen: best.content.length }, '⏰ Time-based insight ready');
         }
       }
     }

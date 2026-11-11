@@ -11,7 +11,7 @@ import { extrasFor, regexSignals, type TurnSignals } from '../turn-extras.js';
 import { withTurnReminder } from '../turn-request.js';
 import { callerMove } from '../turn-shape.js';
 
-const ENV = { THINK_ALOUD: 'on' };
+const ENV = {};
 const ASK = 'what should I do about the landlord';
 const THINK_ALOUD_LINE = /Work it out aloud/;
 
@@ -19,8 +19,12 @@ const sig = (extra: Partial<TurnSignals> = {}): TurnSignals => ({
   ...regexSignals(ASK, 'request'),
   ...extra,
 });
+/** Only the thinking-aloud line: the other extras ride the same turn. */
 const fired = (signals: TurnSignals, rng: () => number = () => 0, text = ASK): string[] =>
-  extrasFor(text, 'request', 'answer', false, rng, ENV, signals).fired;
+  extrasFor(text, 'request', 'answer', false, rng, ENV, signals).fired.filter(
+    (f) => f === 'think_aloud'
+  );
+const laughOrThink = (f: string): boolean => f === 'laugh_along' || f === 'think_aloud';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -32,9 +36,9 @@ describe('THINK_ALOUD gate', () => {
   it('an ordinary request turn still thinks aloud at its old rate (0.6)', () => {
     expect(fired(sig(), () => 0.59)).toEqual(['think_aloud']);
     expect(fired(sig(), () => 0.6)).toEqual([]);
-    expect(extrasFor('my cat did it', 'share', 'answer', false, () => 0.19, ENV).fired).toEqual([
-      'think_aloud',
-    ]);
+    expect(extrasFor('my cat did it', 'share', 'answer', false, () => 0.19, ENV).fired).toContain(
+      'think_aloud'
+    );
   });
 
   it('never in a heavy moment, from the signals or the words themselves', () => {
@@ -61,21 +65,23 @@ describe('THINK_ALOUD gate', () => {
   });
 
   it('leaves LAUGH_ALONG as it was', () => {
-    const env = { THINK_ALOUD: 'on', LAUGH_ALONG: 'on' };
+    const env = { LAUGH_ALONG: 'on' };
     const said = 'haha okay so what should I cook';
     const laughing = regexSignals(said, 'request');
-    expect(extrasFor(said, 'request', 'answer', false, () => 0, env, laughing).fired).toEqual([
-      'laugh_along',
-      'think_aloud',
-    ]);
+    expect(
+      extrasFor(said, 'request', 'answer', false, () => 0, env, laughing).fired.filter(laughOrThink)
+    ).toEqual(['laugh_along', 'think_aloud']);
     // Careful alone never stopped the laugh along; heavy and trouble still do.
     const careful = { ...laughing, careful: true };
-    expect(extrasFor(said, 'request', 'answer', false, () => 0, env, careful).fired).toEqual([
-      'laugh_along',
-    ]);
+    expect(
+      extrasFor(said, 'request', 'answer', false, () => 0, env, careful).fired.filter(laughOrThink)
+    ).toEqual(['laugh_along']);
     for (const extra of [{ heavy: true }, { trouble: true }])
       expect(
-        extrasFor(said, 'request', 'answer', false, () => 0, env, { ...laughing, ...extra }).fired
+        extrasFor(said, 'request', 'answer', false, () => 0, env, {
+          ...laughing,
+          ...extra,
+        }).fired.filter(laughOrThink)
       ).toEqual([]);
   });
 });
@@ -93,7 +99,6 @@ describe('on the reply path (withTurnReminder)', () => {
 
   it('a request turn thinks aloud without crisis risk, and not once risk is noted on the call', () => {
     expect(callerMove(said)).toBe('request');
-    vi.stubEnv('THINK_ALOUD', 'on');
     // A fixed per-call seed, so both calls draw the same numbers.
     vi.spyOn(Math, 'random').mockReturnValue(0.25);
     expect(asked({ userData: { services: { sessionId: 'call-calm' } } })).toMatch(THINK_ALOUD_LINE);

@@ -1,12 +1,11 @@
 /**
- * PUT /api/contacts/:id lets the owner mark someone in memory, and undo it
- * (CONTACT_IN_MEMORY). The server stamps when it was marked. Another account
- * can't mark someone else's contact, and with the flag off the field is never
- * saved. The real route and the real contact store run; only Firestore and auth
- * are faked.
+ * PUT /api/contacts/:id never saves an `inMemory` field a client sends (the
+ * CONTACT_IN_MEMORY experiment was removed on 2026-10-31); the rest of the edit
+ * is saved. The real route and the real contact store run; only Firestore and
+ * auth are faked.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EventEmitter } from 'events';
 import type { IncomingMessage, ServerResponse } from 'http';
 
@@ -70,47 +69,11 @@ beforeEach(async () => {
   await upsertContact('owner', { name: 'Dad', contactId: 'dad', relationship: 'family' });
 });
 
-afterEach(() => vi.unstubAllEnvs());
-
-describe('PUT /api/contacts/:id inMemory, flag on', () => {
-  beforeEach(() => vi.stubEnv('CONTACT_IN_MEMORY', 'on'));
-
-  it('the owner marks Dad in memory with the day he passed, stamped by the server', async () => {
-    const before = Date.now();
-    expect(await put('owner', { inMemory: { passedOn: '2026-03-14', markedAt: 'client' } })).toBe(
-      200
-    );
-    const dad = await getContact('owner', 'dad');
-    expect(dad?.inMemory?.passedOn).toBe('2026-03-14');
-    expect(Date.parse(dad?.inMemory?.markedAt ?? '')).toBeGreaterThanOrEqual(before);
-  });
-
-  it('the owner can undo it', async () => {
-    await put('owner', { inMemory: true });
-    expect((await getContact('owner', 'dad'))?.inMemory).toBeDefined();
-    expect(await put('owner', { inMemory: null })).toBe(200);
-    expect((await getContact('owner', 'dad'))?.inMemory).toBeUndefined();
-  });
-
-  it('a day in the future is refused, and nothing is saved', async () => {
-    expect(await put('owner', { inMemory: { passedOn: '2999-01-01' } })).toBe(400);
-    expect((await getContact('owner', 'dad'))?.inMemory).toBeUndefined();
-  });
-
-  it("another account can't mark the owner's contact", async () => {
-    expect(await put('stranger', { inMemory: true })).toBe(404);
-    expect((await getContact('owner', 'dad'))?.inMemory).toBeUndefined();
-    expect(await getContact('stranger', 'dad')).toBeNull();
-  });
-});
-
-describe('PUT /api/contacts/:id inMemory, flag off', () => {
-  beforeEach(() => vi.stubEnv('CONTACT_IN_MEMORY', 'off'));
-
+describe('PUT /api/contacts/:id inMemory', () => {
   it('saves the rest of the edit and ignores the field', async () => {
     expect(await put('owner', { notes: 'loved tomatoes', inMemory: true })).toBe(200);
     const dad = await getContact('owner', 'dad');
     expect(dad?.notes).toBe('loved tomatoes');
-    expect(dad?.inMemory).toBeUndefined();
+    expect((dad as Record<string, unknown> | null)?.inMemory).toBeUndefined();
   });
 });

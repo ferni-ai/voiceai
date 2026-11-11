@@ -1159,10 +1159,7 @@ export default {
 //   import { fastCapture } from '../memory/dynamic/index.js';
 //   const result = await fastCapture({ userId, sessionId, transcript, ... });
 //
-// The new system provides:
-// - L1: STM Buffer (in-memory, current session)
-// - L2: Firestore (LLM-extracted entities, facts, relationships)
-// - L3: Spanner Graph (long-term relationship storage)
+// The new system: L1 STM buffer (this session), L2 Firestore (entities, facts), L3 Spanner Graph.
 //
 // These exports are kept for backwards compatibility ONLY.
 // ============================================================================
@@ -1183,3 +1180,6 @@ export type {
   DataCaptureContext,
   DataCaptureResult,
 } from './data-capture/types.js';
+// Dates that matter, for the hello (DATES_IN_HELLO, agents/multi-agent/greeting-date.ts)
+export { createDatesRecall, type DatesRecallDeps, type DueDate } from './world-model/dates/recall.js'; // prettier-ignore
+export { namesIn, personFromLabel, sensitiveDate } from './world-model/dates/sensitive-date.js';

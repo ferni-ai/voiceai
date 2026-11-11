@@ -9,7 +9,7 @@
  * @module ANTTracker
  */
 
-import type admin from 'firebase-admin';
+import type { Firestore, Timestamp } from 'firebase-admin/firestore';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { CognitiveDistortion, DistortionDetection } from './distortion-detector.js';
@@ -27,13 +27,13 @@ const ENTRIES_COLLECTION = 'ant_entries';
 const RETENTION_DAYS = 90; // Keep ANT entries for 90 days
 const FIRESTORE_BATCH_LIMIT = 500; // Firestore batch write limit
 
-let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInstance: Firestore | null = null;
 let initAttempted = false;
 
 /**
  * Get Firestore instance with lazy initialization
  */
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   if (firestoreInstance) return firestoreInstance;
   if (initAttempted) return null;
 
@@ -96,10 +96,10 @@ function deserializePattern(data: Record<string, unknown>): ANTPattern {
     distortionTrend: data.distortionTrend as ANTPattern['distortionTrend'],
     reframingSuccess: data.reframingSuccess as number,
     firstRecorded:
-      (data.firstRecorded as admin.firestore.Timestamp)?.toDate?.() ||
+      (data.firstRecorded as Timestamp)?.toDate?.() ||
       new Date(data.firstRecorded as string),
     lastUpdated:
-      (data.lastUpdated as admin.firestore.Timestamp)?.toDate?.() ||
+      (data.lastUpdated as Timestamp)?.toDate?.() ||
       new Date(data.lastUpdated as string),
     totalRecordings: data.totalRecordings as number,
   };

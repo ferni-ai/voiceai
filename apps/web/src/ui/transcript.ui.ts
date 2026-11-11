@@ -45,7 +45,8 @@ function isMobileDevice(): boolean {
 let container: HTMLElement | null = null;
 let textElement: HTMLElement | null = null;
 let hideTimeout: ReturnType<typeof setTimeout> | null = null;
-let isEnabled = true; // Will be set during init based on platform and user preference
+/** The choice when storage is blocked (it then lasts the visit); the saved one wins otherwise. */
+let unsavedPreference: boolean | null = null;
 let liveRegion: HTMLElement | null = null;
 let announceTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingAnnouncement = '';
@@ -60,15 +61,24 @@ export const CAPTION_ANNOUNCE_SETTLE_MS = 700;
 /**
  * Get whether transcription should be enabled based on user preference.
  * Default: OFF on iOS/mobile, ON for desktop
+ *
+ * Read from the saved setting on every call, as Sound Effects does, never from a
+ * copy made when this module starts: the app starts it ~100 ms after Home shows
+ * (app.ts deferredInit), and Settings opened in that gap showed a switch someone
+ * had turned off as on.
  */
 function getTranscriptionPreference(): boolean {
-  const stored = localStorage.getItem(PREFERENCE_KEYS.SHOW_TRANSCRIPTION);
-  
-  if (stored !== null) {
-    // User has explicitly set a preference
-    return stored === 'true';
+  try {
+    const stored = localStorage.getItem(PREFERENCE_KEYS.SHOW_TRANSCRIPTION);
+    if (stored !== null) {
+      // User has explicitly set a preference
+      return stored === 'true';
+    }
+  } catch {
+    // Storage blocked: use this visit's choice, if any
   }
-  
+  if (unsavedPreference !== null) return unsavedPreference;
+
   // Default behavior: OFF on iOS/mobile for cleaner UX
   if (isIOSDevice() || isMobileDevice()) {
     return false;
@@ -82,8 +92,12 @@ function getTranscriptionPreference(): boolean {
  * Set transcription visibility preference
  */
 export function setTranscriptionEnabled(enabled: boolean): void {
-  isEnabled = enabled;
-  localStorage.setItem(PREFERENCE_KEYS.SHOW_TRANSCRIPTION, String(enabled));
+  unsavedPreference = enabled;
+  try {
+    localStorage.setItem(PREFERENCE_KEYS.SHOW_TRANSCRIPTION, String(enabled));
+  } catch {
+    // Storage blocked: the choice lasts this visit
+  }
   log.info(`Transcription ${enabled ? 'enabled' : 'disabled'}`);
   
   // If disabling while visible, hide immediately
@@ -96,7 +110,7 @@ export function setTranscriptionEnabled(enabled: boolean): void {
  * Get current transcription enabled state
  */
 export function isTranscriptionEnabled(): boolean {
-  return isEnabled;
+  return getTranscriptionPreference();
 }
 
 // ============================================================================
@@ -120,9 +134,7 @@ export function initTranscriptUI(): void {
   liveRegion.setAttribute('aria-live', 'polite');
   container.after(liveRegion);
 
-  // Load user preference (defaults to OFF on mobile)
-  isEnabled = getTranscriptionPreference();
-  log.info(`Transcription initialized: ${isEnabled ? 'enabled' : 'disabled'} (mobile: ${isMobileDevice()}, iOS: ${isIOSDevice()})`);
+  log.info(`Transcription initialized: ${isTranscriptionEnabled() ? 'enabled' : 'disabled'} (mobile: ${isMobileDevice()}, iOS: ${isIOSDevice()})`);
 }
 
 // ============================================================================
@@ -137,7 +149,7 @@ export function initTranscriptUI(): void {
  */
 export function showTranscript(text: string, isFinal = false): void {
   // Respect user preference - skip if transcription is disabled
-  if (!isEnabled) return;
+  if (!isTranscriptionEnabled()) return;
   
   if (!container || !textElement) return;
   

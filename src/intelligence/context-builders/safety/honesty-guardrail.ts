@@ -141,7 +141,7 @@ function detectCapabilityQuestion(transcript: string): {
         const confidence = 0.7 + (hasQuestionMark ? 0.15 : 0) + (hasDoubtWord ? 0.15 : 0);
 
         log.debug(
-          { actionType, contact, confidence, transcript: transcript.slice(0, 50) },
+          { actionType, contact, confidence, transcriptLen: transcript.length },
           '🔍 Capability question detected'
         );
 

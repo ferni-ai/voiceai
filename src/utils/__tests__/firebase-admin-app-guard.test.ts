@@ -4,12 +4,25 @@
  * firebase-admin 14 removes the namespaced API (`import admin from 'firebase-admin'`,
  * `admin.firestore()`, `admin.apps`), and the default app must be initialized in one
  * place (getAdminApp in ../firebase-admin-app.ts) so its config doesn't depend on which
- * module runs first. The files below predate that and are being moved over in small
- * PRs; remove a file from the list when you migrate it. When the list is empty the
- * firebase-admin 14 bump can land, and this test keeps it from coming back.
+ * module runs first. The files below predate that and still initialize the app
+ * themselves; remove a file from the list when you move it onto getAdminApp().
+ *
+ * The firebase-admin 14 bump does not wait for this list to empty. v14 still exports
+ * initializeApp and getApps by name from firebase-admin/app, and these files already
+ * call them that way with the same options they always passed, so the bump changes
+ * none of their behaviour. Moving them onto getAdminApp() is separate work, and this
+ * test keeps new direct initialization from coming back meanwhile.
+ *
+ * The root `firebase-admin` import is the namespaced API, so it is checked in every
+ * tracked source file (src, scripts, apps), in any form TypeScript's import scanner
+ * sees: static, re-export, `typeof import()`, `import()` and `require()`. Text inside
+ * strings and templates (test fixtures) is not an import. Direct `initializeApp(` is
+ * checked in src only.
  */
+import { execFileSync } from 'child_process';
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join, relative } from 'path';
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 const REPO_ROOT = join(__dirname, '..', '..', '..');
@@ -35,34 +48,49 @@ const NOT_YET_MIGRATED = new Set([
   'src/services/analytics/user-analytics.ts',
   'src/services/billing/subscription-metrics.ts',
   'src/services/coaching/persistence.ts',
-  'src/services/cognitive-intelligence/ant-tracker.ts',
   'src/services/data-layer/ttl-cleanup.ts',
-  'src/services/experiments/web-experiments.ts',
-  'src/services/family/family-messages.ts',
   'src/services/games/game-analytics.ts',
   'src/services/gtm/gtm-storage.ts',
   'src/services/identity/firebase-auth.ts',
-  'src/services/identity/sponsored-identity.ts',
-  'src/services/memory/human-listening-memory.ts',
-  'src/services/memory/voice-conversation-memory.ts',
-  'src/services/monetization/ferni-fund.ts',
   'src/services/outreach/firestore-persistence.ts',
   'src/services/outreach/unified-delivery.ts',
-  'src/services/platform/security-events.ts',
   'src/services/pubsub/worker-main.ts',
-  'src/services/scheduling/proactive-insights-service.ts',
   'src/services/self-healing/health-monitors.ts',
   'src/services/trust-systems/notification-delivery.ts',
-  'src/services/voice/voice-audit-log.ts',
-  'src/services/voice/voice-household.ts',
-  'src/services/voice/voice-profile-store.ts',
-  'src/tests/intelligence/better-than-human-integration.test.ts',
-  'src/tools/domains/shared/analytics.ts',
   'src/utils/__tests__/firestore-ref-wrapping.test.ts',
 ]);
 
-const NAMESPACED_IMPORT = /from ['"]firebase-admin['"]/;
+const ROOT_SPECIFIER = 'firebase-admin';
 const DIRECT_INIT = /\binitializeApp\(/;
+const SOURCE_GLOBS = ['*.ts', '*.tsx', '*.mts', '*.cts', '*.js', '*.mjs', '*.cjs', '*.jsx'];
+
+// The scanner reports only string-literal specifiers, so a file that imports the root
+// has the literal 'firebase-admin' in its text (unless it spells it with escape
+// sequences, which nobody does). Files without it can't match, so they skip the scanner.
+// About 430 of the ~11.4k tracked files contain it; scanning them all took ~9 s per test
+// under --coverage and timed out in CI.
+function importsRoot(text: string): boolean {
+  return (
+    text.includes(ROOT_SPECIFIER) &&
+    ts
+      .preProcessFile(text, true, true)
+      .importedFiles.some(({ fileName }) => fileName === ROOT_SPECIFIER)
+  );
+}
+
+/** Every tracked or new (not ignored) JS/TS file in the repo, repo-relative. */
+function repoSourceFiles(): string[] {
+  const out = execFileSync(
+    'git',
+    ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '--', ...SOURCE_GLOBS],
+    { cwd: REPO_ROOT, maxBuffer: 1 << 28 }
+  );
+  return out.toString('utf8').split('\0').filter(Boolean);
+}
+
+function isExempt(file: string): boolean {
+  return file === HELPER || file.startsWith('src/utils/__tests__/firebase-admin-app');
+}
 
 function tsFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -74,23 +102,40 @@ function tsFiles(dir: string): string[] {
 }
 
 function offenders(): string[] {
-  return tsFiles(join(REPO_ROOT, 'src'))
+  const directInit = tsFiles(join(REPO_ROOT, 'src'))
     .map((path) => ({ file: relative(REPO_ROOT, path), text: readFileSync(path, 'utf8') }))
-    .filter(
-      ({ file }) => file !== HELPER && !file.startsWith('src/utils/__tests__/firebase-admin-app')
-    )
-    .filter(({ text }) => NAMESPACED_IMPORT.test(text) || DIRECT_INIT.test(text))
+    .filter(({ file, text }) => !isExempt(file) && DIRECT_INIT.test(text))
     .map(({ file }) => file);
+  const rootImport = repoSourceFiles().filter(
+    (file) => !isExempt(file) && importsRoot(readFileSync(join(REPO_ROOT, file), 'utf8'))
+  );
+  return [...new Set([...directInit, ...rootImport])].sort();
 }
 
 describe('firebase-admin is initialized in one place', () => {
+  // Both checks below read the same scan, so it runs once.
+  const found = offenders();
+
+  it('the root import is found in every form the scanner reads, and not inside strings', () => {
+    expect(importsRoot("import admin from 'firebase-admin';")).toBe(true);
+    expect(importsRoot("const a = (await import('firebase-admin')).default;")).toBe(true);
+    expect(importsRoot("let p: Promise<typeof import('firebase-admin')> | null = null;")).toBe(
+      true
+    );
+    expect(importsRoot("const admin = require('firebase-admin');")).toBe(true);
+    expect(importsRoot("export * from 'firebase-admin';")).toBe(true);
+    expect(importsRoot("import { getApps } from 'firebase-admin/app';")).toBe(false);
+    expect(importsRoot('const s = "await import(\'firebase-admin\')";')).toBe(false);
+    expect(importsRoot("const s = `\nimport admin from 'firebase-admin';\n`;")).toBe(false);
+  });
+
   it('no file outside the migration list imports the namespaced API or calls initializeApp', () => {
-    const unexpected = offenders().filter((file) => !NOT_YET_MIGRATED.has(file));
+    const unexpected = found.filter((file) => !NOT_YET_MIGRATED.has(file));
     expect(unexpected, `use getAdminApp()/getAdminFirestore() from ${HELPER}`).toEqual([]);
   });
 
   it('the migration list only names files that still need migrating', () => {
-    const stillOffending = new Set(offenders());
+    const stillOffending = new Set(found);
     const migrated = [...NOT_YET_MIGRATED].filter((file) => !stillOffending.has(file));
     expect(migrated, 'remove these from NOT_YET_MIGRATED').toEqual([]);
   });

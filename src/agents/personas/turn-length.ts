@@ -21,6 +21,13 @@
  * judge saw (-2 [-8, 6]) but brought replies with a filler from 53% to 20% (friends: 14-26%).
  * Ferni still loses most pairs; this narrows the gap, it does not close it.
  *
+ * TURN_LENGTH=adaptive: learned, except when the turn needs substance (turn-substance.ts: a real
+ * question to him, the reply after a look-up, a specialist asked about their own beat). Friends'
+ * next turns are casual talk, so learned gave those moments chit-chat length too: in prod the
+ * median reply fell from 124 to 64 characters when learned went on (2026-10-23), and replies read
+ * as short and less thoughtful. Such a turn gets enough words to answer (SUBSTANCE), scaled by what
+ * was asked; every other turn gets exactly what learned gives, from the same single draw.
+ *
  * @module agents/personas/turn-length
  */
 
@@ -28,7 +35,10 @@ import { NEXT_TURN_WORDS, ROUGH_KINDS, ROUGH_SHARE } from './turn-length-table.g
 
 type Env = Record<string, string | undefined>;
 
-export const lengthLearned = (env: Env = process.env): boolean => env.TURN_LENGTH === 'learned';
+export const lengthAdaptive = (env: Env = process.env): boolean => env.TURN_LENGTH === 'adaptive';
+/** Reply length drawn from friends' turns: TURN_LENGTH=learned, or adaptive (learned plus substance). */
+export const lengthLearned = (env: Env = process.env): boolean =>
+  env.TURN_LENGTH === 'learned' || lengthAdaptive(env);
 export const textureLearned = (env: Env = process.env): boolean => env.TURN_TEXTURE === 'learned';
 
 /** The turns before this reply that set its length: Ferni's own last reply and the talk's pace. */
@@ -66,6 +76,24 @@ export function targetWords(
   return q[atLeastMedian ? Math.max(i, q.length / 2) : i];
 }
 
+/**
+ * A real answer, spoken: two to four sentences. The floor grows with the words of the question,
+ * not the story before it, so "why?" gets a short real answer and a detailed question a fuller
+ * one, never a lecture (offline, sized by the whole turn, a long story ending "remember?" got 60).
+ */
+export const SUBSTANCE = { min: 25, max: 60 } as const;
+
+/** The words they asked in: the sentences with a question mark, else the whole turn. */
+function askedWords(said: string): number {
+  const asked = said.split(/(?<=[.!?])\s+/).filter((s) => s.includes('?'));
+  return countWords(asked.length ? asked.join(' ') : said);
+}
+
+/** Words for a reply that needs substance, from friends' draw for the same moment. */
+export function substanceWords(said: string, drawn: number): number {
+  return Math.min(SUBSTANCE.max, Math.max(drawn, SUBSTANCE.min + askedWords(said)));
+}
+
 /** The length part of the reminder, for a target in words. */
 export function lengthLine(target: number): string {
   if (target <= 3) return 'THIS REPLY: a quick spoken reaction of two or three words, then stop.';
@@ -74,6 +102,16 @@ export function lengthLine(target: number): string {
   if (target <= 15) return `THIS REPLY: one sentence, about ${target} words.`;
   if (target <= 30) return `THIS REPLY: a sentence or two, about ${target} words.`;
   return `THIS REPLY: you have something to say here, so say it: a few spoken sentences, about ${target} words.`;
+}
+
+/** The length line for a reply that needs substance (substanceWords). */
+function substanceLine(target: number): string {
+  return `THIS REPLY: they need a real answer here, so give it: what they asked for, said plainly in two to four spoken sentences, about ${target} words. No list, no lecture.`;
+}
+
+/** The length line: substance when the turn needs it and the target leaves room, else learned. */
+export function lengthLineFor(target: number, substance: boolean): string {
+  return substance && target >= SUBSTANCE.min ? substanceLine(target) : lengthLine(target);
 }
 
 /** How each kind of roughness is written: commas only (dashes and ellipses are read aloud badly). */

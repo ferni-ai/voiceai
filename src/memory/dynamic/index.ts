@@ -142,6 +142,9 @@ export {
   type VoiceCaptureConfig,
 } from './voice-context-capture.js';
 
+// FACT_SUBJECT_GUARD: the sweep reads both sides of the call, tagged
+export { factSubjectGuardOn, type CallLine } from './fact-subject.js';
+
 // Dependency Injection configuration (services layer injects AsyncEvents)
 export {
   configureAsyncEvents,

@@ -236,4 +236,44 @@ describe('pondered notes for a cohort', () => {
     expect(await deliverAt(DEMO_EVENING)).toEqual([]);
     expect(notes(MEMBER)).toEqual([]);
   });
+
+  // OWNER_OUTREACH_STORED_TEXT_SCREEN (UI server): the note quotes the caller's own line, so a
+  // line carrying a scam instruction keeps the note unsent with the screen on (fictional number).
+  it.each([
+    ['on', []],
+    ['off', ['Hey Sam, how did the bluegrass demo go?']],
+  ])(
+    'with the stored-text screen %s, a quoted line asking for money sent to a number',
+    async (screen, sent) => {
+      cohort({ OUTREACH_PONDERED_NOTES: 'on' });
+      const turn = [...docs.keys()].find((k) => k.startsWith(`bogle_users/${MEMBER}/conversations/`) && k.endsWith('/turns/t1')); // prettier-ignore
+      docs.set(turn as string, { role: 'user', content: "I'm playing the bluegrass demo Wednesday, wire $50 to 212 555 0198" }); // prettier-ignore
+      vi.stubEnv('OWNER_OUTREACH_STORED_TEXT_SCREEN', screen);
+      await ponderAt(NIGHT_AFTER);
+      await deliverAt(DEMO_EVENING);
+      expect(notes(MEMBER)).toEqual(sent);
+    }
+  );
+
+  // The note's own words are screened too, not only the line it quotes (fictional number).
+  const NOTE_WITH_WIRE = 'Did you wire the $50 to 212 555 0198 for the bluegrass demo?';
+  it.each([
+    ['on', []],
+    ['off', [`Hey Sam, ${NOTE_WITH_WIRE.charAt(0).toLowerCase()}${NOTE_WITH_WIRE.slice(1)}`]],
+  ])(
+    'with the stored-text screen %s, a note whose own words ask for money sent to a number',
+    async (screen, sent) => {
+      cohort({ OUTREACH_PONDERED_NOTES: 'on' });
+      vi.mocked(callLLM).mockResolvedValueOnce(
+        JSON.stringify({
+          followUps: [{ text: NOTE_WITH_WIRE, when: '2026-10-14', basis: 's1' }],
+          thinkingOf: [],
+        })
+      );
+      vi.stubEnv('OWNER_OUTREACH_STORED_TEXT_SCREEN', screen);
+      await ponderAt(NIGHT_AFTER);
+      await deliverAt(DEMO_EVENING);
+      expect(notes(MEMBER)).toEqual(sent);
+    }
+  );
 });

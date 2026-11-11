@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { pickWorlds, report, seedTarget, verdicts } from '../recall-eval.mjs';
+import { markSeeded, pickWorlds, report, seededAt, seedTarget, verdicts } from '../recall-eval.mjs';
 import {
   BUCKETS,
   answersOf,
@@ -294,6 +294,23 @@ const summary = (overall, inventedCalls = 0) => ({
   abstentionPrecision: 1,
   unjudged: 0,
   buckets: Object.fromEntries(BUCKETS.map((b) => [b, { n: 2, correct: 1, rate: overall }])),
+});
+
+describe('recall-eval: the seeded record', () => {
+  it('is written into an --out that does not exist yet (ENOENT every night before)', () => {
+    const out = join(mkdtempSync(join(tmpdir(), 'recall-out-')), 'night', 'recall');
+    markSeeded(out, 'recall-s03', {
+      now: '2026-11-01T07:00:00.000Z',
+      uid: 'voice-eval-x',
+      docs: 3,
+    });
+    expect(seededAt(out, 'recall-s03').toISOString()).toBe('2026-11-01T07:00:00.000Z');
+  });
+
+  it('missing is an error, never a grade as of today', () => {
+    const out = mkdtempSync(join(tmpdir(), 'recall-out-'));
+    expect(() => seededAt(out, 'recall-s03')).toThrow(/no .*recall-s03\.seeded\.json/);
+  });
 });
 
 describe('recall-eval: verdicts and safety', () => {

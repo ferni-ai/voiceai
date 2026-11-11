@@ -3,8 +3,10 @@
  * (src/api/outreach-upcoming-route.ts). Both panels that list upcoming
  * outreach (When I'll Check In, When I'll Reach Out) take only these fields,
  * so nothing else the server adds ends up in their markup. The text still has
- * to be escaped where it is rendered (utils/escape-html.ts).
+ * to be escaped where it is rendered (utils/escape-html.ts). Cancel and move are
+ * offered only when the server says so AND VITE_REACH_OUT_ACTIONS is on.
  */
+import { isReachOutActionsOn } from '../config/reach-out-actions-flag.js';
 
 const PRIORITIES = ['high', 'medium', 'low'] as const;
 const CHANNELS = ['sms', 'email', 'call', 'push'] as const;
@@ -14,6 +16,7 @@ export type OutreachChannel = (typeof CHANNELS)[number];
 
 export interface UpcomingOutreachItem {
   id: string;
+  /** held_call or follow_up: which store a cancel or move goes to. */
   type: string;
   personaId: string;
   personaName: string;
@@ -48,7 +51,7 @@ export function toUpcomingOutreachItem(raw: unknown): UpcomingOutreachItem {
     },
     reason: str(r.reason),
     priority: oneOf(PRIORITIES, r.priority, 'medium'),
-    canReschedule: r.canReschedule === true,
-    canCancel: r.canCancel === true,
+    canReschedule: isReachOutActionsOn() && r.canReschedule === true,
+    canCancel: isReachOutActionsOn() && r.canCancel === true,
   };
 }

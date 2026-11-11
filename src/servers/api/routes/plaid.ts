@@ -29,7 +29,7 @@ export async function handlePlaidRoutes(
     }
 
     // SECURITY: Require auth; user_id in body must match authenticated user
-    const auth = await requireAuth(req, res);
+    const auth = await requireAuth(req, res, { strict: true }); // bank linking
     if (!auth) return true;
 
     let body = '';
@@ -38,7 +38,6 @@ export async function handlePlaidRoutes(
     // FIX BUG: The previous implementation never called reject() and didn't handle 'error' events.
     // If the request errored out (client disconnect, etc.), the promise would hang forever.
     return new Promise((resolve) => {
-      // Handle request errors to prevent hanging promises
       req.on('error', (err) => {
         log.error({ error: err.message }, 'Request error in Plaid exchange');
         if (!res.headersSent) {
@@ -138,7 +137,8 @@ export async function handlePlaidRoutes(
 
   // Check if user has Plaid linked
   if (pathname === '/plaid/status') {
-    const auth = await requireAuth(req, res);
+    if (rateLimit(req, res, { maxRequests: 30, windowMs: 60_000, keyPrefix: 'plaid-status' })) return true;
+    const auth = await requireAuth(req, res, { strict: true }); // bank linking
     if (!auth) return true;
 
     const params = new URL(req.url || '', 'http://localhost').searchParams;

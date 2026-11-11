@@ -6,32 +6,6 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// Mock firebase-admin
-vi.mock('firebase-admin', () => ({
-  default: {
-    firestore: () => ({
-      collection: () => ({
-        doc: () => ({
-          collection: () => ({
-            doc: () => ({
-              set: vi.fn().mockResolvedValue(undefined),
-              get: vi.fn().mockResolvedValue({ exists: false }),
-            }),
-            orderBy: () => ({
-              limit: () => ({
-                get: vi.fn().mockResolvedValue({ empty: true }),
-              }),
-            }),
-            add: vi.fn().mockResolvedValue({ id: 'mock-id' }),
-          }),
-          set: vi.fn().mockResolvedValue(undefined),
-          get: vi.fn().mockResolvedValue({ exists: false }),
-        }),
-      }),
-    }),
-  },
-}));
-
 import {
   storeSessionSummary,
   getLastSessionSummary,

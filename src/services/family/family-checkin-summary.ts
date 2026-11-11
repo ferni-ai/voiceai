@@ -13,9 +13,9 @@
  * @module services/family/family-checkin-summary
  */
 
+import { concernUrgency } from '../../types/concern-urgency.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
-  CheckinCallRecord,
   DetectedMood,
   FlaggedConcern,
   FollowUpItem,
@@ -414,11 +414,12 @@ function validateMood(mood: string): DetectedMood {
 }
 
 function validateConcern(concern: Partial<FlaggedConcern>): FlaggedConcern {
+  const urgency = concernUrgency(concern.urgency) ?? 'low';
   return {
     description: concern.description || 'Unspecified concern',
-    urgency: (['low', 'medium', 'high', 'urgent'].includes(concern.urgency || '')
-      ? concern.urgency
-      : 'low') as ConcernUrgency,
+    urgency,
+    // Which concern reaches the sponsor depends on it (concernForSponsor).
+    labelWasCanonical: concern.urgency === urgency,
     category: (['health', 'safety', 'emotional', 'financial', 'other'].includes(
       concern.category || ''
     )
@@ -439,30 +440,6 @@ function validateFollowUp(followUp: Partial<FollowUpItem>): FollowUpItem {
       ? followUp.responsibleParty
       : 'ferni') as FollowUpItem['responsibleParty'],
   };
-}
-
-// ============================================================================
-// SPONSOR NOTIFICATION
-// ============================================================================
-
-/**
- * Generate a notification message for the sponsor about urgent concerns
- */
-export function generateUrgentNotification(record: CheckinCallRecord): string | null {
-  if (!record.concernsIdentified || record.concernsIdentified.length === 0) {
-    return null;
-  }
-
-  const urgentConcerns = record.concernsIdentified.filter(
-    (c) => c.urgency === 'urgent' || c.urgency === 'high'
-  );
-
-  if (urgentConcerns.length === 0) {
-    return null;
-  }
-
-  const concern = urgentConcerns[0];
-  return `Important: During my call with ${record.familyMemberName}, ${concern.description}. ${concern.recommendedAction || 'You may want to check in with them.'}`;
 }
 
 // ============================================================================

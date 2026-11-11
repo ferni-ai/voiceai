@@ -204,7 +204,7 @@ export async function triggerGracefulExit(sessionId: string): Promise<void> {
 
   const goodbye = goodbyeMessages[Math.floor(Math.random() * goodbyeMessages.length)];
 
-  log.warn({ sessionId, goodbye: goodbye.slice(0, 50) }, '👋 [GATEWAY] Speaking graceful exit');
+  log.warn({ sessionId, goodbyeLen: goodbye.length }, '👋 [GATEWAY] Speaking graceful exit');
 
   try {
     await coordinatedSay(sessionId, goodbye, { allowInterruptions: false });

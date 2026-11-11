@@ -15,6 +15,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
+import { loadBeforeSave } from '../../utils/load-before-save.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { indexReadingBetweenLines } from '../data-layer/integrations/trust-integration.js';
 import {
@@ -155,7 +156,6 @@ function deserializeProfile(data: PersistedUserUnsaidProfile): UserUnsaidProfile
 // ============================================================================
 
 const userProfiles = new Map<string, UserUnsaidProfile>();
-const loadedUsers = new Set<string>();
 
 let persistence: PersistenceStore<PersistedUserUnsaidProfile> | null = null;
 
@@ -170,26 +170,51 @@ function getPersistence(): PersistenceStore<PersistedUserUnsaidProfile> {
   return persistence;
 }
 
-async function ensureUserLoaded(userId: string): Promise<void> {
-  if (loadedUsers.has(userId)) return;
-  try {
-    const data = await getPersistence().load(userId);
-    if (data) {
-      userProfiles.set(userId, deserializeProfile(data));
-    }
-    loadedUsers.add(userId);
-    log.debug({ userId }, 'Loaded unsaid profile from persistence');
-  } catch (error) {
-    log.warn({ error, userId }, 'Failed to load unsaid profile');
-    loadedUsers.add(userId);
+// The stored profile is read before the first save, keeping what was recorded meanwhile
+const loader = loadBeforeSave<PersistedUserUnsaidProfile>(
+  'reading_between_lines',
+  (userId) => getPersistence().load(userId, { strict: 'read' }),
+  (userId, stored) => {
+    if (!stored) return;
+    const saved = deserializeProfile(stored);
+    const recorded = userProfiles.get(userId);
+    userProfiles.set(userId, recorded ? mergeProfiles(saved, recorded) : saved);
   }
+);
+
+/** Merge entries keyed by topic: `add` combines one already stored with one recorded since. */
+function byTopic<E extends { topic: string }>(saved: E[], recorded: E[], add: (s: E, r: E) => E) {
+  const merged = new Map(saved.map((e) => [e.topic, e]));
+  for (const e of recorded) {
+    const prev = merged.get(e.topic);
+    merged.set(e.topic, prev ? add(prev, e) : e);
+  }
+  return [...merged.values()];
+}
+
+/** What was stored, plus what this process recorded before the stored profile was read. */
+function mergeProfiles(saved: UserUnsaidProfile, recorded: UserUnsaidProfile): UserUnsaidProfile {
+  return {
+    ...saved,
+    avoidedTopics: byTopic(saved.avoidedTopics, recorded.avoidedTopics, (s, r) => ({
+      ...r,
+      avoidanceCount: s.avoidanceCount + r.avoidanceCount,
+      deflectionPhrases: [...new Set([...s.deflectionPhrases, ...r.deflectionPhrases])],
+    })),
+    hangingThreads: byTopic(saved.hangingThreads, recorded.hangingThreads, (s, r) => ({
+      ...r,
+      timesStarted: s.timesStarted + r.timesStarted,
+    })),
+    falseFines: [...saved.falseFines, ...recorded.falseFines],
+    permissionMoments: [...saved.permissionMoments, ...recorded.permissionMoments],
+  };
 }
 
 function persistProfile(userId: string): void {
-  const profile = userProfiles.get(userId);
-  if (profile) {
-    getPersistence().set(userId, serializeProfile(profile));
-  }
+  loader.save(userId, () => {
+    const profile = userProfiles.get(userId);
+    if (profile) getPersistence().set(userId, serializeProfile(profile));
+  });
 }
 
 function getOrCreateProfile(userId: string): UserUnsaidProfile {
@@ -214,7 +239,7 @@ export async function flushReadingBetweenLinesPersistence(): Promise<void> {
 
 export async function shutdownReadingBetweenLines(): Promise<void> {
   await flushReadingBetweenLinesPersistence();
-  loadedUsers.clear();
+  loader.clear();
   userProfiles.clear();
   log.info('Reading between lines service shutdown complete');
 }
@@ -238,6 +263,7 @@ export function detectUnsaidSignals(
     topicBeforeThis?: string;
   }
 ): UnsaidSignal[] {
+  void loader.ensure(userId); // the first touch reads the stored profile
   const signals: UnsaidSignal[] = [];
   const lower = userMessage.toLowerCase();
   const profile = getOrCreateProfile(userId);

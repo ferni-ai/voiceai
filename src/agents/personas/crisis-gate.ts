@@ -36,8 +36,15 @@ import {
   startCrisisClassifier,
   turnVerdicts,
   type CrisisGenerateFn,
+  type CrisisVerdict,
 } from '../../services/safety/crisis-classifier.js';
-import { crisisRiskThisCall, noteCrisisRisk } from '../../services/safety/crisis-call-risk.js';
+import {
+  crisisRiskNoted,
+  crisisRiskThisCall,
+  noteCrisisRisk,
+  notePatternRisk,
+} from '../../services/safety/crisis-call-risk.js';
+import { withoutGrowthNote } from '../multi-agent/recall-note.js';
 import {
   afterCheckLoneRead,
   noteConfirmedRisk,
@@ -62,6 +69,7 @@ import {
   loneImminentGoodbye,
 } from '../../services/safety/crisis-lone-imminent.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { disclosureGuidance, mainOf, shadowGrade } from '../../services/safety/index.js';
 import {
   applyClassifierVerdict,
   buildCrisisGuidance,
@@ -75,13 +83,14 @@ import {
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
 import { replyOpenedBySound } from '../integrations/turn-opening-sound.js';
-import { crisisKindOf, replaceKind } from '../safety/crisis-event-record.js'; // CRISIS_EVENT_RECORD
-import { noteCrisisVerdictPending, signalCrisisDecision } from '../safety/crisis-gate-signal.js';
+import { crisisKindOf } from '../safety/crisis-event-record.js'; // CRISIS_EVENT_RECORD
+import { noteCrisisVerdictPending, signalGateDecisions } from '../safety/crisis-gate-signal.js';
 import { noteCrisisHold } from '../safety/crisis-hold-timing.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
-import { callerWords, callTranscript, sessionScope } from './crisis-gate-words.js';
+import { callerWords, callTranscript, crisisScriptFor, sessionScope } from './crisis-gate-words.js';
+import { withHeldRead } from './crisis-read-joined-turn.js';
 import { getDeliberator } from './deliberation.js';
 import { brightOpenerInvited } from './ferni-playful.js';
 import { noteTurn } from './move-log.js';
@@ -96,8 +105,10 @@ const log = createLogger({ module: 'CrisisGate' });
 
 export type CrisisGateDecision =
   | { action: 'pass' }
-  | { action: 'guide'; guidance: string }
+  // about: the crisis read's subject when the risk is someone the caller knows (MINOR_CRISIS_CARE).
+  | { action: 'guide'; guidance: string; about?: 'third_party' }
   | { action: 'replace'; script: string; kind?: ReturnType<typeof crisisKindOf> };
+type GuideDecision = Extract<CrisisGateDecision, { action: 'guide' }>;
 
 export interface CrisisGateTurn {
   /** What the patterns decided, before the LLM is asked. */
@@ -118,7 +129,10 @@ export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   if (guardFromDetection(crisis).shouldBlock && crisis.suggestedResponse) {
     return { action: 'replace', script: crisis.suggestedResponse, kind: crisisKindOf(crisis) };
   }
-  if (crisis.isCrisis) return { action: 'guide', guidance: buildCrisisGuidance(crisis) };
+  if (crisis.isCrisis && crisis.subject === 'third_party') {
+    return { action: 'guide', guidance: buildCrisisGuidance(crisis), about: 'third_party' };
+  }
+  if (crisis.isCrisis) return guide(disclosureGuidance(crisis) ?? buildCrisisGuidance(crisis));
   return { action: 'pass' };
 }
 
@@ -130,6 +144,10 @@ export interface CrisisGateOptions {
   adjudicate?: CrisisGenerateFn;
   /** The grounded release's model calls (crisis-grounded-release.ts). */
   groundedReads?: readonly CrisisGenerateFn[];
+  /** CRISIS_READ_JOINED_TURN: a held line's read waits for this once the patterns pass. True
+   * reads it; false: a newer request or the commit reads (crisis-read-joined-turn.ts). */
+  readAfter?: () => Promise<boolean> | null;
+  noReply?: boolean; // the joined commit's read (crisis-read-joined-turn.ts): no reply, no grade
 }
 
 /** This reply's crisis handling, from the request about to go to the LLM; null when the gate is
@@ -144,11 +162,10 @@ export function startCrisisGate(
   const { latest, earlier, companion, ferni } = callerWords(chatCtx);
   if (!latest) return null;
 
-  const voiceEmotion = (userData as { voiceEmotion?: ProsodyEmotionLike } | undefined)
-    ?.voiceEmotion;
-  const found = detectCrisis(latest, toGuardVoiceEmotion(voiceEmotion), {
-    recentMessages: earlier,
-  });
+  const voice = toGuardVoiceEmotion(
+    (userData as { voiceEmotion?: ProsodyEmotionLike } | undefined)?.voiceEmotion
+  );
+  const found = detectCrisis(latest, voice, { recentMessages: earlier });
   // The answer to a grounded release's direct question: not a clear no is a gentle 988 offer,
   // or crisis guidance when the answer carries risk content (crisis-grounded-screen.ts).
   const screen = screenAnswer(sessionScope(userData), { latest, companion, ferni });
@@ -157,7 +174,7 @@ export function startCrisisGate(
   const reask = screen === 'reask';
   const decision = gentle ? guide(SCREEN_GENTLE_OFFER) : decisionFor(detection);
   if (decision.action !== 'pass') {
-    noteCrisisRisk(sessionScope(userData)); // risk on this call (crisis-call-risk.ts)
+    notePatternRisk(sessionScope(userData), detection); // risk on this call (crisis-call-risk.ts)
     noteConfirmedRisk(sessionScope(userData), env); // CRISIS_CONFIRMED_CALL_RISK
     log.info(
       { action: decision.action, source: 'patterns', indicators: detection.indicators },
@@ -184,21 +201,24 @@ export function startCrisisGate(
   const groundedPrior = groundedPriorRisk(call, latest);
   // CRISIS_CLASSIFIER_SECOND_READ: the gate decides for the turn (crisis-second-read-turn.ts).
   const secondRead = secondReadOf('gate', userData, detection.subject);
-  const run = startCrisisClassifier(said, { pattern, env, generate, scope, call, secondRead });
-  if (run?.mode !== 'live' || decision.action === 'replace') {
-    return { decision, escalation: null, reask };
-  }
-  const who = startWhoRead({ latest, earlier, companion }, detection, { env, generate });
-
-  const escalation = run.verdict.then(async (verdict): Promise<CrisisGateDecision | null> => {
+  let who: ReturnType<typeof startWhoRead> | undefined;
+  const read = (): Promise<CrisisVerdict | null> | undefined => {
+    const run = startCrisisClassifier(said, { pattern, env, generate, scope, call, secondRead });
+    if (run?.mode !== 'live' || decision.action === 'replace') return undefined;
+    who = startWhoRead({ latest, earlier, companion }, detection, { env, generate });
+    return run.verdict;
+  };
+  const wait = decision.action === 'pass' && !gentle && !reask ? options.readAfter?.() : null;
+  const verdictRead = wait ? wait.then(async (go) => (go ? read() : undefined)) : read();
+  if (!verdictRead) return { decision, escalation: null, reask };
+  const escalate = async (verdict: CrisisVerdict | null): Promise<CrisisGateDecision | null> => {
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
     if (loneImminentGoodbye({ detection, verdict, latest, earlier, companion, priorRisk })) {
       log.info({ action: 'guide', source: 'lone_imminent_goodbye' }, 'CRISIS_GATE');
       return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
     }
     // CRISIS_GROUNDED_RELEASE: an imminent read the call plainly explains gets the soft check.
-    const input = { latest, earlier, companion };
-    const grounded = { input, priorRisk: groundedPrior, call, env, source: 'gate' as const };
+    const grounded = { input: said, priorRisk: groundedPrior, call, env, source: 'gate' as const };
     if (
       await groundedRelease({ ...grounded, detection, verdict, generates: options.groundedReads })
     ) {
@@ -214,6 +234,7 @@ export function startCrisisGate(
     // A bare "pass me to Nayan" (CRISIS_TRANSFER_EVERYDAY): a crisis read, never an imminent
     // one whoever it is about, gets the soft check-in once every other check below has run.
     let softTransfer = transfer && verdict?.risk === 'crisis' && stronger.action === 'guide';
+    let allReads: Array<CrisisVerdict | null> | undefined; // CRISIS_GRADED_RESPONSE
     if (scope && !holdForReads) {
       const reads = turnVerdicts(scope, { latest, earlier, companion });
       shadowAdjudication(reads, callTranscript(chatCtx), {
@@ -225,9 +246,7 @@ export function startCrisisGate(
       });
     } else if (scope) {
       // Fail closed: a failed lookup counts as a missing read, which escalates.
-      const verdicts = await turnVerdicts(scope, { latest, earlier, companion }).catch(() => [
-        null,
-      ]);
+      const verdicts = (allReads = await turnVerdicts(scope, said).catch(() => [null]));
       const outcome = agreementGate
         ? agreementOutcome({ pattern, verdicts, latest, earlier, companion })
         : 'escalate';
@@ -261,7 +280,7 @@ export function startCrisisGate(
     }
     const lone = {
       call,
-      input,
+      input: said,
       verdict,
       detection,
       pattern,
@@ -275,8 +294,11 @@ export function startCrisisGate(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },
       'CRISIS_GATE'
     );
+    const at = { main: mainOf(stronger), reads: allReads, priorRisk, screen, call, voice };
+    if (!options.noReply) shadowGrade({ source: 'gate', ...at, detection, verdict, ...said }, env);
     return stronger;
-  });
+  };
+  const escalation = verdictRead.then(async (v) => (v === undefined ? null : escalate(v)));
   return { decision, escalation, reask };
 }
 
@@ -350,6 +372,14 @@ export function holdUntilCleared(
   });
 }
 
+/** A reply request's gate; CRISIS_READ_JOINED_TURN may hold a held line's read. */
+const gateRequest = (
+  ctx: llm.ChatContext,
+  session: { userData: unknown },
+  o: CrisisGateOptions
+): CrisisGateTurn | null =>
+  startCrisisGate(ctx, session.userData, withHeldRead(session, ctx, o, startCrisisGate));
+
 /**
  * A crisis turn: no background thought now or for the next few turns
  * (deliberation.ts), and no small-step invite for the rest of the call
@@ -383,30 +413,40 @@ export async function gatedReply(
   options: CrisisGateOptions = {}
 ): Promise<ReadableStream<Chunk> | null> {
   const { env = process.env } = options;
-  const chatCtx = withoutPastLeadIns(request, env);
+  // PERSONA_GROWTH's note (recall-note.ts) never reaches a reply on a call with crisis risk noted.
+  const risk = sessionScope(session.userData);
+  const chatCtx = withoutGrowthNote(
+    withoutPastLeadIns(request, env),
+    !!risk && crisisRiskNoted(risk)
+  );
   const askedAt = Date.now();
   // A turn-opening clip played after this request began: the reply follows it.
   const openedBySound = (): boolean => replyOpenedBySound(session, askedAt);
-  const gate = startCrisisGate(chatCtx, session.userData, options);
-  signalCrisisDecision(session, gate?.decision.action, 'pattern', replaceKind(gate?.decision));
-  gate?.escalation
-    ?.then((d) => signalCrisisDecision(session, d?.action, 'classifier', replaceKind(d)))
-    .catch(() => undefined);
+  const gate = gateRequest(chatCtx, session, options);
+  signalGateDecisions(session, gate);
   if (gate?.escalation) noteCrisisVerdictPending(session, gate.escalation);
   if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);
+  const script = (text: string): string => crisisScriptFor(text, chatCtx, risk, env);
   if (gate?.decision.action === 'replace') {
     // A turn with no moves, so the script isn't counted as the last reply's (move-log.ts).
     noteTurn(session, callerWords(chatCtx).latest, undefined);
-    return textReply(gate.decision.script);
+    return textReply(script(gate.decision.script));
   }
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn shape ("six words at
   // most") must never hold it back, and no goodbye closes the loop on a plan (wrap-up.ts).
-  const plain = (): llm.ChatContext =>
-    withTurnReminder(chatCtx, session, { shape: false, closeLoop: false });
+  // A guided reply never carries PERSONA_GROWTH's note, whenever this turn found the risk.
+  // A soft check-in asks for no crisis talk, so it gets no youth crisis note (MINOR_CRISIS_CARE);
+  // a friend at risk gets the friend note.
+  const plain = ({ guidance, about }: GuideDecision): llm.ChatContext =>
+    withTurnReminder(withoutGrowthNote(chatCtx), session, {
+      shape: false,
+      closeLoop: false,
+      youth: guidance !== SOFT_CRISIS_CHECK && guidance !== GROUNDED_LIGHT_TOUCH && (about ?? true),
+    });
   const ctx =
     gate?.decision.action === 'guide'
-      ? withTurnStyleReminder(plain(), gate.decision.guidance)
+      ? withTurnStyleReminder(plain(gate.decision), gate.decision.guidance)
       : withTurnReminder(chatCtx, session, { held: gate?.escalation });
   // A vocal burst only where this request invited one, never with crisis guidance.
   const burst = burstAllowed(session, gate?.decision.action === 'guide', env);
@@ -442,10 +482,10 @@ export async function gatedReply(
   // No first reply: an empty one, so a release still speaks its question.
   return holdUntilCleared(reply ?? textReply(''), gate.escalation, async (decision) => {
     if (decision.action !== 'pass') holdAfterCrisis(session);
-    if (decision.action === 'replace') return textReply(decision.script);
+    if (decision.action === 'replace') return textReply(script(decision.script));
     if (decision.action === 'pass') return null;
     const guided = await ask(
-      withTurnStyleReminder(plain(), decision.guidance),
+      withTurnStyleReminder(plain(decision), decision.guidance),
       burst === undefined ? undefined : false,
       true
     );

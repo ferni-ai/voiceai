@@ -29,6 +29,7 @@ const ENV_KEYS = [
   'CASCADE_TURN_DETECTION',
   'VOICE_PIPELINE',
   'GEMINI_BILLING_JOB',
+  'STT_AUDIO_DIAGNOSTICS',
 ];
 afterEach(() => {
   for (const k of ENV_KEYS) delete process.env[k];
@@ -349,5 +350,16 @@ describe('logStreamOpens', () => {
     expect(wrapped.stream({ language: 'en' } as never)).toBe('stream-1');
     expect(wrapped.stream()).toBe('stream-2');
     expect(calls).toEqual([[{ language: 'en' }], []]);
+  });
+
+  it('hands each stream to the STT_AUDIO_DIAGNOSTICS watch only when the flag is on', () => {
+    const pushFrame = (): void => {};
+    const stt = {
+      stream: () => ({ pushFrame, next: async () => ({ done: true }), close: () => {} }),
+    };
+    logStreamOpens(stt);
+    expect(stt.stream().pushFrame).toBe(pushFrame);
+    process.env.STT_AUDIO_DIAGNOSTICS = 'on';
+    expect(stt.stream().pushFrame).not.toBe(pushFrame);
   });
 });

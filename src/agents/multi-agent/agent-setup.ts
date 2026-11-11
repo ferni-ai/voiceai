@@ -54,6 +54,7 @@ import {
   stopHealthMonitoring,
 } from '../shared/openai-health-monitor.js';
 import * as forgotten from '../../memory/recall/forget-every-reader.js';
+import { setupProfileReader } from './setup-profile.js';
 
 // ============================================================================
 // CRITICAL PATH IMPORTS - Hoisted to module level for faster startup
@@ -78,6 +79,7 @@ import {
   type EssentialToolSetInput,
 } from './essential-tool-set.js';
 import { attachSessionEventLog } from './session-event-log.js';
+import { micFrameTap } from './self-voice-gate/session-gate.js';
 import { buildEmergencyToolset } from './emergency-toolset.js';
 import { warmupHandoffToolsForSession } from '../../tools/handoff/session-cache.js';
 import {
@@ -100,7 +102,7 @@ import { composeAgentInstructions } from './agent-instructions.js';
 const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
 import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
-import { withAlwaysOnTools } from './everyday-basics.js';
+import { withAlwaysOnTools, withCaptureConsentTool } from './everyday-basics.js';
 import { withCallJournalTools } from './call-journal-tools.js';
 import {
   createFindToolsTool,
@@ -152,6 +154,8 @@ import { lastMoodNote } from '../../services/session/last-mood-note.js';
 import { lastTalkedAwareness } from './welcome-back.js';
 import { calendarDaysSince } from '../../utils/calendar-days.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
+import { recentTextsBlock } from './recent-texts-awareness.js';
+import { callerCardText, whoYoureTalkingTo } from './caller-card/index.js';
 
 const log = getLogger();
 
@@ -321,10 +325,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     personaCleanups.push(fn);
   };
 
-  // =========================================================================
-  // BUILD SYSTEM PROMPTS - Two levels for optimal instruction following
-  // FIX: Previously used buildAgentSystemPrompt which missed function-calling instructions
-  // =========================================================================
+  // BUILD SYSTEM PROMPTS - two levels for optimal instruction following
   // TWO-LEVEL INSTRUCTION ARCHITECTURE:
   // Model-level: Foundational rules (tool format, honesty, platform context)
   //   - These are active from the VERY FIRST MOMENT of connection
@@ -340,20 +341,20 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     mark('load_prompts_start');
     // Both levels in parallel; ALEX_CHIEF_OF_STAFF=on adds Alex's role (chief-of-staff-role.ts)
     forgotten.prefetchForgotten(services.userId); // FORGET_EVERY_READER: read it alongside
-    const [baseInstructions, loadedSystemPrompt] = await Promise.all([
+    const readProfile = setupProfileReader(services, sessionId); // waits for the deferred load
+    const callerCard = callerCardText(sessionId, services, config.phoneCaller); // CALLER_CARD
+    const [baseInstructions, loadedSystemPrompt, texts] = await Promise.all([
       loadModelBaseInstructions(),
       loadSystemPrompt(persona.id).then((prompt) => withChiefOfStaffRole(persona.id, prompt)),
+      recentTextsBlock(sessionId, userId, userData?.callerTimezone, config.phoneCaller === true),
     ]);
     mark('load_prompts_done');
 
     systemPrompt = loadedSystemPrompt;
     stableBase = baseInstructions;
 
-    // =========================================================================
-    // DATE/TIME AWARENESS - Critical for grounding agent in reality
-    // This is injected into model-level instructions so the agent knows
-    // the date/time from the VERY FIRST MOMENT (including greeting)
-    // =========================================================================
+    // DATE/TIME AWARENESS: in the model-level instructions so the agent knows the date and
+    // time from the VERY FIRST MOMENT (including greeting)
     // The caller's local time and part of day (time-context.ts); never the server's UTC clock.
     const outboundAwareness = outboundCallerAwareness(outboundPartiesFor(sessionId));
     // FERNI_LOCAL_CLOCK=on: Ferni's own mountain-time clock, plus the caller's: the zone the
@@ -367,10 +368,11 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // CALLER_CITY_CONTEXT=on: the city their device reported (caller-city.ts)
     const cityContext = callerCityContext(userData?.userLocation, Boolean(outboundAwareness));
     const who = outboundAwareness || unsavedCallerNote(userId, sessionId); // UNKNOWN_CALLER_HONEST
-    modelBaseInstructions = baseInstructions + dateTimeContext + worldNowRule + cityContext + who;
+    modelBaseInstructions =
+      baseInstructions + dateTimeContext + worldNowRule + cityContext + who + texts;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
-    const userProfile = outboundAwareness ? undefined : await forgotten.profileForPrompt(services);
+    const userProfile = outboundAwareness ? undefined : await readProfile();
     if (userProfile) {
       // Days since the last call count in the zone this call settled (phone-parity.ts)
       const callZone = userData?.callerTimezone ?? callerTimeZoneFor(sessionId);
@@ -487,17 +489,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
         userAwareness.push(`On their mind: ${topConcern}`);
       }
 
+      modelBaseInstructions += whoYoureTalkingTo(userAwareness, await callerCard); // caller-card/
       if (userAwareness.length > 0) {
-        modelBaseInstructions += `
----
-
-## Who You're Talking To
-
-${userAwareness.join('\n')}
-
-Use this awareness naturally. Don't announce what you know - just BE a friend who remembers.
-Reference past context when relevant, but don't force it. Let the conversation flow.
-`;
         log.info(
           { personaId: persona.id, userAwarenessCount: userAwareness.length },
           `👤 BETTER THAN HUMAN - User awareness injected (${userAwareness.length} facts)`
@@ -988,7 +981,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // Before the cap, so it keeps them: every path above (handoff, first agent, fallback)
   const toolsCtx = { userId: userId || 'anonymous', sessionId, agentId: persona.id };
   const named = { ...toolsCtx, agentDisplayName: persona.name || persona.id };
-  const withJournal = await withCallJournalTools(loadedTools, named); // CALL_JOURNAL=on
+  const withJournal = await withCallJournalTools(withCaptureConsentTool(loadedTools, named), named); // CALL_JOURNAL=on
   const withAlwaysOn = await withAlwaysOnTools(withJournal, named, isHandoff === true);
   const orchestratorTools = await toolPolicy.applyPersonaToolPolicy(withAlwaysOn, persona.id);
 
@@ -1865,9 +1858,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
             audioProcessorStarted = true;
 
             const audioStream = new AudioStream(track, { sampleRate: 16000, numChannels: 1 });
-            // processAudioStream runs once per session and cancels a second
-            // stream (FerniAgent.sttNode may already be feeding it); the
-            // backchannel detector must keep getting frames either way.
+            // processAudioStream runs once per session and cancels a second stream (FerniAgent's
+            // sttNode may feed it); the backchannel and self-voice taps must keep getting frames.
             let processorOpen = true;
             const processorStream = new ReadableStream<import('@livekit/rtc-node').AudioFrame>({
               async start(controller) {
@@ -1876,7 +1868,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
                     import('@livekit/rtc-node').AudioFrame
                   >) {
                     if (audioProcessingCancelled) break;
-                    liveBackchannel?.processAudioFrame(frame);
+                    micFrameTap(session, frame, liveBackchannel);
                     if (processorOpen) controller.enqueue(frame);
                   }
                   if (processorOpen) controller.close();
@@ -2003,7 +1995,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           // This prevents speaking to empty rooms when participant hasn't joined yet
           room,
         });
-        // Note: silenceContext is created by setupSessionStateHandlers
+        cleanupFunctions.push(stateResult.clearTimers); // its timers and per-call state end with it
         handlersStatus.sessionState = true;
         diag.entry(`🎭 [${persona.id}] Session state handlers wired`);
 

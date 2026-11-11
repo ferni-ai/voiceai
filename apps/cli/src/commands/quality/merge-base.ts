@@ -8,7 +8,8 @@
  * splits are free: git rename detection (renameLimit=0, so it is never skipped) maps a
  * moved file to its old path.
  *
- * The base, in order: QUALITY_BASE (local runs only, ignored in GitHub Actions); in GitHub Actions the event's merge-group base, the
+ * The base, in order: QUALITY_BASE (local runs only, ignored in GitHub Actions); in GitHub Actions the merge base of a
+ * merge-queue entry with its target branch (see queueBase), the
  * pull request's merge commit's first parent (pull_request.base.sha goes stale when main
  * moves after the push, and would count main's new commits as the PR's), or the pre-push
  * commit; otherwise `git merge-base HEAD origin/main`. A base missing from a shallow
@@ -44,30 +45,67 @@ function git(root: string, args: string[], input?: string): Run {
   return { status: r.status, stdout: r.stdout ?? Buffer.alloc(0), stderr: r.stderr?.toString() ?? '' };
 }
 const out = (r: Run): string => r.stdout.toString('utf8');
+/** `git fetch`, killed after `ms`: a hung fetch must fail the gate, not hold it until the job's timeout. */
+function fetchBounded(root: string, args: string[], ms: number): void {
+  const r = spawnSync('git', ['fetch', ...args], { cwd: root, timeout: ms });
+  if ((r.error as NodeJS.ErrnoException | undefined)?.code === 'ETIMEDOUT') {
+    throw new Error(`git fetch ${args.join(' ')} timed out after ${ms} ms`);
+  }
+}
 const hasCommit = (root: string, sha: string): boolean => git(root, ['cat-file', '-e', `${sha}^{commit}`]).status === 0;
 const ZERO = /^0+$/;
 /** A commit's parents, read from the object itself, so it works in a shallow clone too. */
 const parentsOf = (root: string, rev: string): string[] =>
   [...out(git(root, ['cat-file', '-p', rev])).matchAll(/^parent ([0-9a-f]{40})$/gm)].map((m) => m[1]!);
 
-/** The base commit a change is measured against (see the module comment). Throws when there is none. */
-export function resolveBase(root = process.cwd(), env: NodeJS.ProcessEnv = process.env): string {
+/**
+ * A merge-queue entry is measured from where it leaves the target branch, not from
+ * merge_group.base_sha: base_sha is the entry queued ahead, and with HEADGREEN grouping a
+ * green entry also merges the entries ahead of it (#2027). Measured from base_sha, a
+ * violation added by an entry ahead whose own run failed would count as already there.
+ */
+function queueBase(
+  root: string,
+  group: { base_ref?: string; head_sha?: string },
+  ms: number
+): string {
+  const branch = group.base_ref?.replace(/^refs\/heads\//, '');
+  if (!branch || !group.head_sha) throw new Error('merge_group event without base_ref and head_sha');
+  const target = `refs/remotes/origin/${branch}`;
+  fetchBounded(root, ['--no-tags', '--quiet', 'origin', `+refs/heads/${branch}:${target}`], ms);
+  const mb = git(root, ['merge-base', target, group.head_sha]);
+  if (mb.status !== 0) throw new Error(`No merge base of ${branch} and ${group.head_sha}: ${mb.stderr.trim()}`);
+  return out(mb).trim();
+}
+
+/**
+ * The base commit a change is measured against (see the module comment). Throws when there is
+ * none, or when fetching it takes longer than `fetchTimeoutMs`.
+ */
+export function resolveBase(
+  root = process.cwd(),
+  env: NodeJS.ProcessEnv = process.env,
+  { fetchTimeoutMs = 120_000 }: { fetchTimeoutMs?: number } = {}
+): string {
   // A local override only: in CI one variable must not be able to point every gate at HEAD.
   let sha = env.GITHUB_ACTIONS ? undefined : env.QUALITY_BASE?.trim();
   if (!sha && env.GITHUB_EVENT_PATH && existsSync(env.GITHUB_EVENT_PATH)) {
     const event = JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, 'utf8')) as {
-      merge_group?: { base_sha?: string };
+      merge_group?: { base_ref?: string; head_sha?: string };
       pull_request?: { base?: { sha?: string }; head?: { sha?: string } };
       before?: string;
     };
+    if (event.merge_group) return queueBase(root, event.merge_group, fetchTimeoutMs);
     const pr = event.pull_request;
     const [first, second] = pr ? parentsOf(root, 'HEAD') : [];
     const prBase = first && second && second === pr?.head?.sha ? first : pr?.base?.sha;
-    sha = event.merge_group?.base_sha ?? prBase ?? event.before;
+    sha = prBase ?? event.before;
     if (sha && ZERO.test(sha)) sha = undefined; // a new branch's push has no "before"
   }
   if (sha) {
-    if (!hasCommit(root, sha)) git(root, ['fetch', '--no-tags', '--quiet', '--depth=1', 'origin', sha]);
+    if (!hasCommit(root, sha)) {
+      fetchBounded(root, ['--no-tags', '--quiet', '--depth=1', 'origin', sha], fetchTimeoutMs);
+    }
     if (!hasCommit(root, sha)) throw new Error(`Base commit ${sha} is not in this checkout and could not be fetched.`);
     return sha;
   }

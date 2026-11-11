@@ -10,7 +10,8 @@
  *    - implicit (0.6): hopelessness, burdensomeness, withdrawal; two distinct
  *      implicit signals in one message, or one after earlier distress in the
  *      session, count as passive
- *    Voice distress amplifies a text signal; on its own it never makes a crisis.
+ *    Voice distress amplifies a text signal; on its own it never makes a crisis, and it never
+ *    decides who is at risk (crisis-caller-check.ts).
  * 2. guardPreResponse replaces the reply with a pre-written one that includes
  *    988 resources when severity >= 0.85.
  *
@@ -24,14 +25,19 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { ABUSE_INDICATOR, abuseDisclosure } from './abuse-disclosure.js';
+import { CALLER_CHECK, callerCheckApplies, withCallerCheck } from './crisis-caller-check.js';
 import { endingFloor } from './crisis-ending-floor.js';
+import { EMERGENCY_FOR_THEM, getCrisisResponse, IN_DANGER_NOW } from './crisis-guard-replies.js';
 import { meansFormsOf, meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
 import {
   HIGH_DISTRESS_VOICE_EMOTIONS,
   MODERATE_DISTRESS_VOICE_EMOTIONS,
+  replacesReply,
   SEVERITY,
 } from './crisis-severity.js';
+import { thirdPartyEmergency } from './crisis-third-person.js';
 import { whoGuidance } from './crisis-who-guidance.js';
 import {
   EXPLICIT_CRISIS_PATTERNS,
@@ -87,9 +93,19 @@ export interface CrisisDetectionOptions {
   recentMessages?: readonly string[];
   /** Overrides CRISIS_MEANS_IN_HAND for this read; 'all' is the shadow log's (crisis-means-shadow.ts). */
   meansInHand?: 'off' | 'shadow' | 'live' | 'all';
+  /**
+   * Whether the voice may add the caller check (crisis-caller-check.ts), which replaces the reply.
+   * Default true. The background turn passes false (turn-crisis.ts): there the voice only raises
+   * severity, so a third-party read keeps its guidance, as on main.
+   */
+  voiceCallerCheck?: boolean;
 }
 
 export const CRISIS_SEVERITY = SEVERITY; // the tiers, for callers that weigh a read (caller-text.ts)
+
+export { IN_DANGER_NOW }; // its home is crisis-guard-replies.ts
+export { EMERGENCY_SERVICE } from './emergency-number.js'; // for agents/personas/emergency-claim.ts
+export { applyClassifierVerdict, type ClassifierVerdictLike } from './crisis-classifier-verdict.js';
 
 // CRISIS DETECTION
 
@@ -201,13 +217,30 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
   }
 
   // CRISIS_MEANS_IN_HAND (#2697): a live form reads 911; 'all' (the shadow log) names the form.
-  const means = meansInHandRead(text, indicators, softened, forms);
+  const means = meansInHandRead(text, indicators, softened, forms, (spans) =>
+    endingOutside(text, spans)
+  );
   if (means) {
     hardSelf = true;
     if (means.tag === 'self_harm') add('self_harm', 0);
     if (forms === 'all') add(`means_form:${means.form}`, 0);
     add('explicit_crisis_language', SEVERITY.explicit);
     add('imminent_danger', SEVERITY.explicit);
+  }
+
+  // Someone hurting the caller (K1e), read by abuse-disclosure.ts, the one abuse reader: a
+  // crisis with the abuse guidance (abuseGuidance: are you safe, 911 if in danger now, the line
+  // that fits). Imminent, 911 first, when someone violent is there now. 988 stays beside it:
+  // only the turn pipeline knows whether the whole call is abuse-only (ABUSE_DISCLOSURE_PATTERNS).
+  const abuse = abuseDisclosure(text);
+  if (abuse) {
+    hardSelf = true;
+    add(ABUSE_INDICATOR, SEVERITY.crisis);
+    add(`${ABUSE_INDICATOR}_${abuse.who}`, 0);
+    // "_self_harm" is how abuseGuidance keeps 988; the turn pipeline (withAbuseDisclosure)
+    // replaces all three with its call-wide read.
+    add(`${ABUSE_INDICATOR}_self_harm`, 0);
+    if (abuse.imminent) add('imminent_danger', SEVERITY.explicit);
   }
 
   // A worry about someone else outranks the caller's own words only when those are negated,
@@ -222,6 +255,12 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
     add('third_party_risk', SEVERITY.passive);
     subject = 'third_party';
   }
+  // Someone else down and not getting up (owner, 2026-11-02): imminent, 911 for them.
+  if (thirdPartyEmergency(text) && (!subject || !hardSelf)) {
+    for (const tag of ['third_party_risk', 'third_party_emergency', 'imminent_danger'])
+      add(tag, SEVERITY.explicit);
+    subject = 'third_party';
+  }
 
   const contextHit = SESSION_CONTEXT_PATTERNS.some((p) => p.test(text));
   // A worry about someone else beside the caller's own softened tier words was the caller's own
@@ -229,6 +268,24 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
   const sessionSeverity = subject === 'self' ? severity : tierSoft ? selfSeverity : 0;
   const found = { severity, indicators, subject, language, implicitHits, contextHit };
   return { ...found, softSelf, sessionSeverity };
+}
+
+/** The caller's own ending words, said or framed: not negated, past, protective or someone else's. */
+const ENDING_SAID = [
+  'explicit_crisis_language',
+  'joking_frame',
+  'conditional_frame',
+  'hedged_frame',
+  'passive_ideation',
+];
+/** Ending words in the turn outside every span: those words blanked, the rest read once. */
+function endingOutside(text: string, spans: ReadonlyArray<readonly [number, number]>): boolean {
+  const chars = text.split('');
+  for (const [from, to] of spans) {
+    for (let at = from; at < to; at++) if (!'.!?'.includes(chars[at])) chars[at] = ' ';
+  }
+  const { indicators } = scoreText(chars.join(''), 'none');
+  return ENDING_SAID.some((indicator) => indicators.includes(indicator));
 }
 
 /** What one earlier message counts for in a later turn's session check (crisis-who.ts reads it too). */
@@ -268,13 +325,12 @@ export function detectCrisis(
   // else never escalates into it.
   const textSeverity = severity;
   // A worry about someone else, with the caller's own softened ending words and a distressed
-  // voice: the voice makes it about the caller again, as before #2528.
-  const voiced = voiceEmotion?.confidence !== undefined && voiceEmotion.confidence > 0.5;
-  if (subject === 'third_party' && score.softSelf && voiced) {
-    const { primary } = voiceEmotion;
-    const distressed = [...HIGH_DISTRESS_VOICE_EMOTIONS, ...MODERATE_DISTRESS_VOICE_EMOTIONS];
-    if (distressed.includes(primary)) subject = 'self';
-  }
+  // voice: the help for the other person stays, and a gentle check on the caller is added.
+  const callerCheck =
+    options?.voiceCallerCheck !== false &&
+    callerCheckApplies({ subject, softSelf: score.softSelf }, voiceEmotion);
+  if (callerCheck) indicators.push(CALLER_CHECK);
+  const emergency = subject === 'third_party' && indicators.includes('third_party_emergency');
   const ceiling = subject === 'third_party' ? SEVERITY.block - 0.05 : 1.0;
   if (voiceEmotion?.confidence !== undefined && voiceEmotion.confidence > 0.5) {
     const high = HIGH_DISTRESS_VOICE_EMOTIONS.includes(voiceEmotion.primary);
@@ -292,8 +348,16 @@ export function detectCrisis(
     }
   }
   severity = Math.min(severity, Math.max(ceiling, textSeverity));
+  // The caller check replaces the reply, as main did on these voices: main's fixed help for them
+  // (or 911 for them), then the caller's 988 line. No model call, so it never rests on the model.
+  if (callerCheck) severity = Math.max(severity, SEVERITY.block);
 
   const isCrisis = severity >= SEVERITY.crisis;
+  // A caller-check read always gets the help for them, never the caller's own imminent script.
+  const imminent = !callerCheck && indicators.includes('imminent_danger');
+  const script = emergency
+    ? EMERGENCY_FOR_THEM
+    : getCrisisResponse(severity, subject, score.language, imminent);
 
   return {
     isCrisis,
@@ -301,60 +365,8 @@ export function detectCrisis(
     indicators,
     subject,
     language: subject ? (score.language ?? 'en') : undefined,
-    suggestedResponse: isCrisis
-      ? getCrisisResponse(severity, subject, score.language, indicators.includes('imminent_danger'))
-      : undefined,
+    suggestedResponse: !isCrisis ? undefined : callerCheck ? withCallerCheck(script) : script,
   };
-}
-
-/** Where to turn when someone is in danger now; the action-claim guard reuses it (issue 1553). */
-export const IN_DANGER_NOW =
-  'please call 911 or get to the nearest emergency room. You can also call or text 988 to talk to someone immediately.';
-
-/**
- * Get appropriate crisis response based on severity
- */
-function getCrisisResponse(
-  severity: number,
-  subject: CrisisSubject | undefined,
-  language: 'en' | 'es' | undefined,
-  imminent: boolean
-): string {
-  if (imminent && language !== 'es') {
-    return `I'm really glad you told me. Your safety matters most right now.
-
-If you've taken something or you're in danger right now, ${IN_DANGER_NOW}
-
-I'm staying right here with you. Is anyone nearby who can be with you?`;
-  }
-  if (subject === 'third_party') {
-    return `It sounds like you're really worried about them, and it matters that you're paying attention. You don't have to handle this alone either.
-
-You can call or text 988, the Suicide & Crisis Lifeline, on their behalf to talk through how to help. If they're in immediate danger, call 911.
-
-What's going on with them right now?`;
-  }
-  if (language === 'es') {
-    return `Escucho cuánto dolor sientes ahora, y me alegra mucho que me lo cuentes. Lo que sientes importa, y no tienes que cargar con esto solo.
-
-Puedes llamar al 988 y oprimir 2 para hablar en español, o enviar un mensaje de texto con la palabra AYUDA al 988. Hay consejeros disponibles las 24 horas. Si estás en peligro ahora mismo, llama al 911.
-
-Estoy aquí contigo. ¿Me cuentas qué está pasando?`;
-  }
-  if (severity >= SEVERITY.block) {
-    // Severe crisis - immediate support + resources
-    return `I hear how much pain you're in right now, and I'm really glad you're sharing this with me. What you're feeling matters, and you don't have to carry this alone.
-
-If you're in crisis or having thoughts of suicide, please reach out to the 988 Suicide & Crisis Lifeline by calling or texting 988. They have trained counselors available 24/7.
-
-I'm here with you right now. Can you tell me more about what you're going through?`;
-  }
-  // High distress - validate + gentle support
-  return `I can hear how difficult things are for you right now. What you're feeling is real and valid, and it takes courage to share it.
-
-I want you to know that support is available. The 988 Suicide & Crisis Lifeline (call or text 988) is there 24/7 if you need to talk to someone.
-
-I'm here to listen. What's weighing on you most right now?`;
 }
 
 /**
@@ -405,55 +417,11 @@ ${lines.join('\n')}
 You are their lifeline right now. Be fully present.`;
 }
 
-/** The classifier's verdict, as crisis-classifier.ts returns it. */
-export interface ClassifierVerdictLike {
-  risk: 'imminent' | 'crisis' | 'none';
-  subject: 'self' | 'third_party';
-}
-
-/**
- * Merge the semantic classifier's verdict into a pattern detection. It only
- * escalates: the patterns are precise, the classifier catches what they miss.
- * A missing verdict (timeout, error) leaves the detection unchanged.
- */
-export function applyClassifierVerdict(
-  crisis: CrisisDetectionResult,
-  verdict: ClassifierVerdictLike | null
-): CrisisDetectionResult {
-  if (!verdict || verdict.risk === 'none') return crisis;
-
-  const thirdParty = verdict.subject === 'third_party' && crisis.subject !== 'self';
-  const subject: CrisisSubject = thirdParty ? 'third_party' : 'self';
-  const imminent = verdict.risk === 'imminent' && !thirdParty;
-  const target = imminent ? SEVERITY.explicit : SEVERITY.passive;
-  if (crisis.severity >= target && crisis.subject === subject) return crisis;
-
-  const severity = Math.max(crisis.severity, target);
-  const indicators = [...crisis.indicators, `classifier_${verdict.risk}`];
-  if (imminent && !indicators.includes('imminent_danger')) indicators.push('imminent_danger');
-  if (thirdParty && !indicators.includes('third_party_risk')) indicators.push('third_party_risk');
-  const alreadyImminent = crisis.indicators.includes('imminent_danger');
-  return {
-    ...crisis,
-    isCrisis: true,
-    severity,
-    indicators,
-    subject,
-    language: crisis.language ?? 'en',
-    suggestedResponse: getCrisisResponse(
-      severity,
-      subject,
-      crisis.language,
-      imminent || alreadyImminent
-    ),
-  };
-}
-
 // PRE-RESPONSE GUARD
 
 /** The pre-response decision for an already computed detection. */
 export function guardFromDetection(crisis: CrisisDetectionResult): CrisisGuardResult {
-  if (crisis.isCrisis && crisis.severity >= SEVERITY.block) {
+  if (replacesReply(crisis)) {
     // Severe crisis - override with crisis response
     log.warn(
       {

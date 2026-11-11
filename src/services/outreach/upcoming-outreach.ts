@@ -15,16 +15,24 @@
  *   FOLLOW_THROUGH_TEXTS cohort flag is on (follow-up-texts.ts). Otherwise it
  *   is raised on their next call, not sent, so it is not listed.
  *
- * Neither can be moved or cancelled from the panel yet, so each says so. A
- * failed read throws: the panel must show an error, never "nothing planned".
+ * With REACH_OUT_ACTIONS on, each says whether its owner can cancel or move it
+ * (upcoming-outreach-actions.ts); off, none can. A held call can be cancelled and
+ * moved; an open follow-up can be moved, never cancelled yet (#3303), and one made
+ * from a reminder (texted by the reminder job) not at all. A failed read throws:
+ * the panel must show an error, never "nothing planned".
+ *
+ * Each item names its persona by canonical id and display name here, once, so every
+ * reader (the panel route, the practice view) answers the same fields.
  *
  * @module services/outreach/upcoming-outreach
  */
+import { getDisplayName, toCanonical } from '../../personas/persona-ids.js';
 import type { FollowUp } from '../follow-through/index.js';
 
 export interface UpcomingOutreach {
   id: string;
   type: 'held_call' | 'follow_up';
+  /** Canonical persona id (persona-ids.ts). */
   personaId: string;
   channel: 'call' | 'sms';
   /** UTC ISO instant. */
@@ -32,8 +40,10 @@ export interface UpcomingOutreach {
   preview: { body: string };
   reason: string;
   priority: 'medium';
-  canReschedule: false;
-  canCancel: false;
+  canReschedule: boolean;
+  canCancel: boolean;
+  /** The persona's display name. Last, where GET /api/outreach/upcoming has always sent it. */
+  personaName: string;
 }
 
 export interface UpcomingDeps {
@@ -49,62 +59,90 @@ export interface UpcomingDeps {
 const LATE_AFTER_MS = 12 * 60 * 60 * 1000;
 export const MAX_UPCOMING = 20;
 
+/**
+ * A follow-up that may move: still open (a surfaced one was raised already, so reopening it
+ * would text again), and texted by the follow-up job, not the reminder job. Follow-ups are
+ * never cancelled from the panel yet: issue #3303.
+ */
+export const followUpMovable = (f: FollowUp): boolean =>
+  f.source.store !== 'reminders' && f.status === 'open';
+
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 const validIso = (v: unknown): string | null => {
   const t = Date.parse(str(v));
   return Number.isNaN(t) ? null : new Date(t).toISOString();
 };
+/** A stored persona id (any alias) as its canonical id; unknown ones are Ferni. */
+const persona = (raw: string): { personaId: string; personaName: string } => {
+  const personaId = toCanonical(raw);
+  return { personaId, personaName: getDisplayName(personaId) };
+};
 
-function heldCall(id: string, d: Record<string, unknown>, now: Date): UpcomingOutreach | null {
+function heldCall(
+  id: string,
+  d: Record<string, unknown>,
+  now: Date,
+  actions: boolean
+): UpcomingOutreach | null {
   const at = validIso(d.scheduledFor);
   if (d.kind !== 'proactive' || d.status !== 'pending' || !at) return null;
   if (now.getTime() - Date.parse(at) > LATE_AFTER_MS) return null;
   const req = (d.request ?? {}) as Record<string, unknown>;
+  const { personaId, personaName } = persona(str(req.personaId) || 'ferni');
   return {
     id,
     type: 'held_call',
-    personaId: str(req.personaId) || 'ferni',
+    personaId,
     channel: 'call',
     scheduledFor: at,
     preview: { body: str(req.message) },
     reason: str(req.reason) || 'A call held for your hours',
     priority: 'medium',
-    canReschedule: false,
-    canCancel: false,
+    canReschedule: actions,
+    canCancel: actions,
+    personaName,
   };
 }
 
 /** Only a follow-up still ahead is upcoming: one due already was texted or is about to be. */
-function followUp(f: FollowUp, now: Date): UpcomingOutreach | null {
+function followUp(f: FollowUp, now: Date, actions: boolean): UpcomingOutreach | null {
   const at = validIso(f.dueAt);
   if (!at || Date.parse(at) <= now.getTime()) return null;
+  const { personaId, personaName } = persona('ferni');
   return {
     id: f.id,
     type: 'follow_up',
-    personaId: 'ferni',
+    personaId,
     channel: 'sms',
     scheduledFor: at,
     preview: { body: f.text },
     reason: f.kind === 'commitment' ? 'Checking how it went' : 'A reminder you asked for',
     priority: 'medium',
-    canReschedule: false,
-    canCancel: false,
+    canReschedule: actions && followUpMovable(f),
+    canCancel: false, // #3303
+    personaName,
   };
 }
 
-/** Everything set to go out to them, soonest first. Throws when a store can't be read. */
+/**
+ * Everything set to go out to them, soonest first. Throws when a store can't be read.
+ * `actions`: REACH_OUT_ACTIONS is on, so items that can be cancelled or moved say so.
+ */
 export async function listUpcomingOutreach(
   userId: string,
   deps: UpcomingDeps,
-  opts: { now?: Date; limit?: number } = {}
+  opts: { now?: Date; limit?: number; actions?: boolean } = {}
 ): Promise<UpcomingOutreach[]> {
   const now = opts.now ?? new Date();
+  const actions = opts.actions === true;
   const [calls, textsOn] = await Promise.all([
     deps.heldCalls(userId),
     deps.followUpTextsOn(userId),
   ]);
-  const items = calls.map((c) => heldCall(c.id, c.data, now));
-  if (textsOn) items.push(...(await deps.followUps(userId)).map((f) => followUp(f, now)));
+  const items = calls.map((c) => heldCall(c.id, c.data, now, actions));
+  if (textsOn) {
+    items.push(...(await deps.followUps(userId)).map((f) => followUp(f, now, actions)));
+  }
   return items
     .filter((i): i is UpcomingOutreach => i !== null)
     .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor))

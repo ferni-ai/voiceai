@@ -393,11 +393,6 @@ async function createStreamingOverlapTTS(
     });
   }
 
-  // Sentence overlap by default; whole-text drain holds first audio to the reply's end (debug).
-  const useWholeTextStreaming =
-    process.env.TTS_WHOLE_TEXT_STREAMING === 'true' &&
-    !!provider.synthesizeStreaming &&
-    provider.name !== 'cartesia';
   const useProviderChunkStreaming =
     typeof provider.synthesizeStreaming === 'function' &&
     (provider.name !== 'cartesia' || process.env.CARTESIA_STREAMING_TTS !== 'false');
@@ -420,48 +415,6 @@ async function createStreamingOverlapTTS(
       };
 
       try {
-        // ── LOCAL STREAMING PATH: collect all text, stream as one request ──
-        if (useWholeTextStreaming) {
-          // Drain the entire LLM text stream first
-          while (true) {
-            const { done, value } = await reader.read();
-            if (value) buffer += value;
-            if (done) break;
-          }
-
-          const { text: fullText, prosody } = sanitizeChunkForTTS(buffer, ssmlProcessor);
-          const prosodyWithEmotion: SSMLProsodyConfig = {
-            ...prosody,
-            emotion: prosody.emotion || emotion,
-          };
-
-          if (fullText) {
-            try {
-              metrics.gatewaySyntheses++;
-              let totalBytes = 0;
-              for await (const audioChunk of provider.synthesizeStreaming!(
-                fullText, voiceId, prosodyWithEmotion
-              )) {
-                if (audioChunk && audioChunk.byteLength > 0) {
-                  totalBytes += audioChunk.byteLength;
-                  markFirstAudio();
-                  for (const frame of splitIntoFrames(audioChunk, sampleRate, frameDurationMs)) {
-                    controller.enqueue(frame);
-                  }
-                }
-              }
-              log.info(
-                { totalBytes, textLen: fullText.length, sessionId },
-                `🔊 Whole-text streaming TTS complete`
-              );
-            } catch (err) {
-              log.warn(
-                { err: String(err), sessionId, personaId, textLen: fullText.length },
-                'Whole-text streaming TTS failed'
-              );
-            }
-          }
-        } else {
         // ── CLOUD TTS PATH: sentence-by-sentence overlap (Cartesia etc) ──
         // Prefetch next chunk synthesis while current chunk plays (LATENCY-OPT)
         type PrefetchEntry = {
@@ -643,7 +596,6 @@ async function createStreamingOverlapTTS(
 
           if (done) break;
         }
-        } // end cloud TTS path
       } catch (err) {
         log.warn({ err: String(err), sessionId, personaId }, 'Streaming overlap TTS error');
         closeStream(err instanceof Error ? err : new Error(String(err)));

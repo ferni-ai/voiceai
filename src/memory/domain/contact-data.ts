@@ -12,11 +12,10 @@
  * - Ethiopic numerals (not decimal digits in Unicode);
  * - in rendered text, digits split by letters or letter-like marks ("727-555-O142",
  *   "call 72755 or, 50142", katakana "ー", Arabic tatweel, "ǀ", the Hangul filler);
- *   stored values catch letter-split numbers once they total 7+ digits ("555-O142"
- *   holds only 6 and is stored);
- * - in rendered text, a run that is exactly one full date is kept, so "on 2026-10-20
- *   call 555" renders (the replaced check refused every 7+ digit run); stored values
- *   refuse it.
+ *   stored values catch letter-split numbers once they total 7+ digits outside whole
+ *   dates and plausible years ("555-O142" holds only 6 and is stored);
+ * - a run that is exactly one full date is kept, so "on 2026-10-20 call 555" passes
+ *   (the replaced check refused every 7+ digit run).
  *
  * Refused where the replaced checks kept it: a spoken count of 7+ number words
  * ("one two three four five six seven"), because spoken digits are folded to digits.
@@ -163,15 +162,25 @@ export function toE164(raw: string): string | null {
 
 const ISO_DATE = new RegExp(`^${YEAR}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\\d|3[01])$`);
 
+// A whole date or a plausible year, not inside a longer number.
+const DATE_OR_YEAR = new RegExp(
+  `(?<!\\d)(?:${YEAR}-${MONTH}-${DAY}|${MONTH}/${DAY}/${YEAR}|${YEAR})(?!\\d)`,
+  'g'
+);
+
 /**
- * May this value be stored under this attribute? Fail closed: a stored value with 7+
- * digits in total is refused, however letters split them ("born in 1987, moved
- * 2015" too; dates belong in typed fields such as validFrom). The only exceptions
- * are whole-value typed shapes: a phone attribute holding an E.164 number, and a
- * birthday that is exactly one ISO date.
+ * May this value be stored under this attribute? The one rule (containsContactData, the
+ * person-model's hasContactData) first. A stored value also refuses a number that words
+ * split ("call 555 then 0142", "five five five and zero one four two"): 7+ digits in
+ * total once whole dates and plausible years are set aside, so ordinary dates, years and
+ * prices are kept ("2019 to 2023", "born 1987, moved 2015", "paid $1,250"). The cost: a
+ * word-split number whose groups are all year-shaped ("555 then 1987" holds 3) is kept.
+ * Typed shapes are exceptions: a phone attribute holds only an E.164 number, and a
+ * birthday may be exactly one ISO date.
  */
 export function isContactValueAllowed(attribute: string, value: string): boolean {
   if (attribute === 'phone') return toE164(value) !== null;
   if (attribute === 'birthday' && ISO_DATE.test(value)) return true;
-  return !containsContactData(value) && digitCount(fold(value)) < MIN_DIALABLE;
+  if (containsContactData(value)) return false;
+  return digitCount(fold(value).replace(DATE_OR_YEAR, ' ')) < MIN_DIALABLE;
 }

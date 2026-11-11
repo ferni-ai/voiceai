@@ -169,8 +169,7 @@ export async function scheduleOutreach(
   log.info(
     {
       id,
-      userId,
-      contact: target.resolvedContactName,
+      userId, // never the contact's name: they never signed up
       scheduledFor: scheduledFor.toISOString(),
     },
     '📅 Scheduled outreach saved'

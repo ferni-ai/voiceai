@@ -2,7 +2,7 @@
  * Helpers for e2e runs against the signed-in local stack
  * (scripts/e2e/start-signed-in-stack.sh: Firebase emulators + API + Vite dev server).
  */
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 const AUTH_EMULATOR = process.env.FIREBASE_AUTH_EMULATOR_URL ?? 'http://127.0.0.1:9099';
 const PROJECT = process.env.FIREBASE_PROJECT_ID ?? 'demo-ferni';
@@ -171,4 +171,38 @@ export async function newPanel(page: Page, before: string[], action: string) {
 
 export async function isGone(page: Page, id: string): Promise<boolean> {
   return !(await shownDialogs(page)).includes(id);
+}
+
+/**
+ * What a panel shows while it waits for its data, as the web app names it: a class with
+ * "loading", "spinner" or "skeleton" in it (.team-insights-loading, .wellbeing-spinner,
+ * .memory-skeleton, .panel-loading-shell, ...) or aria-busy="true". Kept in this one
+ * place so every walk asks the same question. A panel that is still showing one of
+ * these long after it opened is stuck, as "What we've been thinking" was until #3253.
+ */
+const LOADERS = '[aria-busy="true"], [class*="loading"], [class*="spinner"], [class*="skeleton"]';
+
+/** How long a panel may keep showing a loader before the walk calls it stuck. */
+export const LOADER_TIMEOUT_MS = 10_000;
+
+/** Loading indicators on screen inside `panel` (the panel itself included), named by tag and class. */
+export async function loadersShown(panel: Locator): Promise<string[]> {
+  return panel.evaluate((root, selector) => {
+    const found = [root, ...root.querySelectorAll(selector)].filter((el) => el.matches(selector));
+    return found
+      .filter((el) => {
+        const rect = el.getBoundingClientRect();
+        let opacity = 1;
+        for (let n: Element | null = el; n; n = n.parentElement) opacity *= Number(getComputedStyle(n).opacity || 1);
+        return rect.width > 0 && rect.height > 0 && getComputedStyle(el).visibility !== 'hidden' && opacity > 0.05;
+      })
+      .map((el) => `${el.tagName.toLowerCase()}.${[...el.classList].join('.')}`);
+  }, LOADERS);
+}
+
+/** Fail if `panel` still shows a loading indicator after LOADER_TIMEOUT_MS. */
+export async function expectNoStuckLoader(panel: Locator, name: string): Promise<void> {
+  await expect
+    .poll(() => loadersShown(panel), { message: `${name} is still loading`, timeout: LOADER_TIMEOUT_MS })
+    .toEqual([]);
 }

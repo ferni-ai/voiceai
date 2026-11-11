@@ -113,14 +113,18 @@ export {
   type ConversationMetadata,
   type ConversationTurn as RealtimeConversationTurn,
 } from './realtime-memory.js';
+// The latest call's summary for a next-call refill, empty when it is about a forgotten topic.
+export { lastCallSummary } from './last-call-summary.js';
 export * from './voice-conversation-memory.js';
 export * from './voice-memory.js';
 // What a caller asks Ferni to remember, written where recall reads it (REMEMBER_TO_RECALL).
 export {
   keepForRecall,
+  memoryToolFlags,
   memoryToolsHonestOn,
   rememberToRecall,
   type KeepOutcome,
+  type MemoryToolFlags,
 } from '../../memory/dynamic/remembered-facts.js';
 // updateMemory under MEMORY_TOOLS_HONEST: a correction replaces the remembered fact it names
 export {

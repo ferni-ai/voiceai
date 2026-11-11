@@ -621,7 +621,7 @@ export class TwilioStreamBridge extends EventEmitter {
 
       if (transcript && transcript.trim()) {
         log.info(
-          { transcript: transcript.substring(0, 50), callSid: session.callSid },
+          { transcriptLen: transcript.length, callSid: session.callSid },
           '📝 Transcript received'
         );
 

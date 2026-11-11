@@ -1,5 +1,5 @@
 /**
- * The laughter lever (SPEECH_DIRECTOR_LAUGHTER, opt-in): `[laughter]` is the
+ * The laughter lever (follows SPEECH_DIRECTOR): `[laughter]` is the
  * one nonverbal Cartesia documents, so the Director may add it to the text.
  *
  * It does not invent a policy. The decision is the existing one in

@@ -25,6 +25,7 @@
 import type { IncomingMessage } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { verifyFirebaseToken } from './firebase-auth.js';
+import { isAuthCheckUnavailable } from './token-revocation.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'WsIdentity' });
@@ -55,6 +56,9 @@ function bearerFromProtocols(request: IncomingMessage): string | null {
   return null;
 }
 
+/** Upgrade sockets whose token's account couldn't be checked (token-revocation.ts): try again */
+const unchecked = new WeakSet<Duplex>();
+
 /** Who a verified upgrade belongs to. */
 export interface UpgradeCaller {
   uid: string;
@@ -76,6 +80,7 @@ export async function verifyUpgradeCaller(request: IncomingMessage): Promise<Upg
   } catch (error) {
     // Verifier unavailable (e.g. Firebase not initialized in production).
     log.warn({ error: String(error) }, 'WebSocket token verification failed; rejecting');
+    if (isAuthCheckUnavailable(error)) unchecked.add(request.socket); // rejected 503, not 401
     return null;
   }
 }
@@ -91,14 +96,17 @@ export async function verifyUpgradeIdentity(request: IncomingMessage): Promise<s
 const REFUSAL_REASONS = { 401: 'Unauthorized', 403: 'Forbidden' } as const;
 
 /**
- * Refuse an upgrade: 401 when it carries no verified identity (the default),
- * 403 when the identity is verified but not allowed on this socket.
+ * Refuse an upgrade: 401 when it carries no verified identity (the default), 403 when the
+ * identity is verified but not allowed on this socket. A 401 for a token whose account
+ * couldn't be checked goes out as 503 with Retry-After, as requireAuth answers over HTTP.
  */
 export function rejectUpgrade(socket: Duplex, status: 401 | 403 = 401): void {
   if (socket.writable) {
-    socket.write(
-      `HTTP/1.1 ${status} ${REFUSAL_REASONS[status]}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`
-    );
+    const line =
+      status === 401 && unchecked.has(socket)
+        ? '503 Service Unavailable\r\nRetry-After: 5'
+        : `${status} ${REFUSAL_REASONS[status]}`;
+    socket.write(`HTTP/1.1 ${line}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`);
   }
   socket.destroy();
 }

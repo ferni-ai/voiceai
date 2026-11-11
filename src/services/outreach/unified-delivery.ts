@@ -374,14 +374,14 @@ async function deliverPush(
       return deliverInApp(userId, content, outreachType, triggerId);
     }
 
-    const admin = (await import('firebase-admin')).default;
+    const { applicationDefault, cert, getApps, initializeApp } = await import('firebase-admin/app');
 
     // Initialize if needed
-    if (admin.apps.length === 0) {
+    if (getApps().length === 0) {
       if (creds.fcm.privateKey) {
         // Use explicit service account credentials
-        admin.initializeApp({
-          credential: admin.credential.cert({
+        initializeApp({
+          credential: cert({
             projectId: creds.fcm.projectId,
             privateKey: creds.fcm.privateKey.replace(/\\n/g, '\n'),
             clientEmail: creds.fcm.clientEmail,
@@ -389,14 +389,14 @@ async function deliverPush(
         });
       } else {
         // Use application default credentials
-        admin.initializeApp({
-          credential: admin.credential.applicationDefault(),
+        initializeApp({
+          credential: applicationDefault(),
           projectId: creds.fcm.projectId,
         });
       }
     }
 
-    const messaging = admin.messaging();
+    const messaging = (await import('firebase-admin/messaging')).getMessaging();
     const message = {
       notification: {
         title: `From ${getDisplayName(content.personaId)}`,

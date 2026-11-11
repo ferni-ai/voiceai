@@ -1,11 +1,12 @@
-import admin from 'firebase-admin';
+import { getApps, initializeApp } from 'firebase-admin/app';
+import { FieldValue } from 'firebase-admin/firestore';
 import { generateAgentPage } from '../src/services/page-generator/index.js';
 import type { AgentPageConfig } from '../src/services/page-generator/types.js';
 import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 
 const projectId = 'johnb-2025';
-if (admin.apps.length === 0) {
-  admin.initializeApp({ projectId });
+if (getApps().length === 0) {
+  initializeApp({ projectId });
 }
 
 const db = getAdminFirestore();
@@ -47,7 +48,7 @@ async function regen() {
     await docRef.set({
       files: { ...(currentData.files || {}), 'index.html': result.html },
       kind: 'generated',
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: FieldValue.serverTimestamp()
     }, { merge: true });
     console.log('✓ Updated in Firestore (deployed-sites):', snap.docs[0].id);
   } else {
@@ -58,8 +59,8 @@ async function regen() {
       status: 'active',
       files: { 'index.html': result.html },
       kind: 'generated',
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     });
     console.log('✓ Created new document in deployed-sites');
   }

@@ -289,7 +289,7 @@ export function wrapSpeechWithInterruptAwareness(
         personaId,
         interruptType: type,
         hasVerbalAck: !!verbalAck,
-        textPreview: text.slice(0, 40),
+        textLen: text.length,
       },
       '🎭 Applied interrupt recovery softening'
     );

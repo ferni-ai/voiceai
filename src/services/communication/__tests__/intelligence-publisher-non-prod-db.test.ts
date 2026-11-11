@@ -13,8 +13,11 @@ vi.mock('@google-cloud/pubsub', () => ({
   },
 }));
 const add = vi.hoisted(() => vi.fn(async () => ({ id: 'q1' })));
-vi.mock('firebase-admin', () => ({
-  default: { firestore: () => ({ collection: () => ({ add }) }) },
+// The Firestore queue (queueToFirestore) writes through getAdminFirestore(); the last
+// case checks that nothing lands there.
+vi.mock('../../../utils/firebase-admin-app.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../utils/firebase-admin-app.js')>()),
+  getAdminFirestore: () => ({ collection: () => ({ add }) }),
 }));
 vi.mock('../../../memory/profile-store.js', () => ({ getProfileStore: async () => ({}) }));
 

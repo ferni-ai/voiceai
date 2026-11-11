@@ -23,47 +23,42 @@ const apiKeys = [
   { id: 'key-good-1', data: { publisherId: 'pub-good', enabled: true } },
 ];
 const DELETE = Symbol('delete');
-vi.mock('firebase-admin', () => {
-  const firestore = Object.assign(
-    () => ({
-      collection: (name: string) => ({
-        get: async () => {
-          expect(name).toBe('publishers');
-          return {
-            docs: publishers.map((p) => ({
-              id: p.id,
-              data: () => p.data,
-              ref: { id: p.id, update },
-            })),
-          };
-        },
-        where: (field: string, _op: string, value: unknown) => ({
-          get: async () => {
-            expect([name, field]).toEqual(['developer_api_keys', 'publisherId']);
-            const docs = apiKeys.filter((k) => k.data.publisherId === value);
-            return {
-              docs: docs.map((k) => ({ id: k.id, data: () => k.data, ref: { update: keyUpdate } })),
-            };
-          },
-        }),
-      }),
+const firestore = () => ({
+  collection: (name: string) => ({
+    get: async () => {
+      expect(name).toBe('publishers');
+      return {
+        docs: publishers.map((p) => ({
+          id: p.id,
+          data: () => p.data,
+          ref: { id: p.id, update },
+        })),
+      };
+    },
+    where: (field: string, _op: string, value: unknown) => ({
+      get: async () => {
+        expect([name, field]).toEqual(['developer_api_keys', 'publisherId']);
+        const docs = apiKeys.filter((k) => k.data.publisherId === value);
+        return {
+          docs: docs.map((k) => ({ id: k.id, data: () => k.data, ref: { update: keyUpdate } })),
+        };
+      },
     }),
-    { FieldValue: { delete: () => DELETE } }
-  );
-  const auth = () => ({
+  }),
+});
+vi.mock('firebase-admin/app', () => ({ getApps: () => [], initializeApp: () => {} }));
+vi.mock('firebase-admin/auth', () => ({
+  getAuth: () => ({
     getUser: async (uid: string) => {
       if (!users[uid]) throw new Error('auth/user-not-found');
       return users[uid];
     },
-  });
-  return { default: { apps: [] as unknown[], initializeApp: () => {}, firestore, auth } };
-});
+  }),
+}));
+vi.mock('firebase-admin/firestore', () => ({ FieldValue: { delete: () => DELETE } }));
 
-// The scripts reach Firestore through getAdminFirestore(); it serves the same fake.
-vi.mock('../../src/utils/firebase-admin-app.js', async () => {
-  const admin = (await import('firebase-admin')).default;
-  return { getAdminFirestore: () => admin.firestore() };
-});
+// The scripts reach Firestore through getAdminFirestore(); it serves the fake.
+vi.mock('../../src/utils/firebase-admin-app.js', () => ({ getAdminFirestore: () => firestore() }));
 
 const { main, unlinkReason } = await import('../unlink-unverified-publishers.js');
 const node = ['node', 'script.ts'];

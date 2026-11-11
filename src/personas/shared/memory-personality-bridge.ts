@@ -300,7 +300,7 @@ export function markDelivered(userId: string, callback: MemoryCallback): void {
   recentlyDelivered.set(userId, delivered);
 
   log.debug(
-    { userId, type: callback.type, content: callback.content },
+    { userId, type: callback.type, contentLen: callback.content.length },
     '✅ Memory callback delivered'
   );
 

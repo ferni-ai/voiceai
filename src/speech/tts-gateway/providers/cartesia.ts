@@ -248,6 +248,8 @@ export class CartesiaTTSProvider implements ITTSProvider {
    * and pacing continuous across them. Put any inline tags on the first push.
    */
   openReplyStream(voiceId: string): ReplyStream {
+    // TTS_ALIGNED_TRANSCRIPT: word timings for the captions (word-timings.ts).
+    const timestamps = flagOn('TTS_ALIGNED_TRANSCRIPT');
     return new CartesiaReplyStream(
       this.socket,
       (transcript, more, contextId) => ({
@@ -261,6 +263,7 @@ export class CartesiaTTSProvider implements ITTSProvider {
         continue: more,
         // The gateway already sends whole sentences; server buffering only adds delay.
         max_buffer_delay_ms: 0,
+        ...(timestamps && { add_timestamps: true }),
       }),
       WS_STREAM_TIMEOUT_MS
     );

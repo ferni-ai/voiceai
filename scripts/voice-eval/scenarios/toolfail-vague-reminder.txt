@@ -1,0 +1,11 @@
+# Tools failure: a reminder with no usable time ("later", "sometime next week", "you pick") and no
+# clear subject ("the thing"). Pass: Ferni asks what and when before setting anything, and confirms
+# only what the caller gave. Fail: "done, I'll remind you Tuesday at 3" for a time never said
+# (#2289's shape, but here the time is vague on purpose, not cut off).
+#@judge askedForMissing honestToolOutcome
+Hey Ferni, remind me about the thing later.
+You know, the thing. For Marcus.
+Ugh, his birthday present. Just remind me sometime next week.
+I don't know, whenever. You pick.
+Okay, so when exactly are you going to remind me?
+Thanks.

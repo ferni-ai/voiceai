@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CRISIS_CONTEXTUAL } from '../../../agents/__tests__/fixtures/crisis-contextual.js';
-import { CRISIS_HELDOUT } from '../../../agents/__tests__/fixtures/crisis-heldout.js';
+import { CRISIS_HELDOUT_RETIRED } from '../../../agents/__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_RELAY } from '../../../agents/__tests__/fixtures/crisis-relay.js';
 import { CRISIS_TEST_BLIND } from '../../../agents/__tests__/fixtures/crisis-test-blind.js';
 import { CRISIS_TEST_CASES } from '../../superhuman/validation/crisis-test-cases.js';
@@ -14,6 +14,7 @@ import { noteCrisisRisk, resetCrisisCallRisk } from '../crisis-call-risk.js';
 import type { CrisisVerdict } from '../crisis-classifier.js';
 import { detectCrisis } from '../crisis-guard.js';
 import {
+  asksAboutSafety,
   callRiskBeforeTurn,
   isPlainSignOff,
   loneImminentGoodbye,
@@ -180,7 +181,7 @@ interface Labelled {
 }
 const fromJson = (path: string): Labelled[] => JSON.parse(readFileSync(path, 'utf8')) as Labelled[];
 const POSITIVES: Labelled[] = [
-  ...CRISIS_HELDOUT,
+  ...CRISIS_HELDOUT_RETIRED,
   ...CRISIS_TEST_BLIND,
   ...CRISIS_CONTEXTUAL,
   ...CRISIS_RELAY,
@@ -284,5 +285,32 @@ describe('callRiskBeforeTurn', () => {
   it('is risk once anything on the call has noted it', () => {
     noteCrisisRisk('call-2');
     expect(callRiskBeforeTurn('call-2', { latest: 'Bye.', earlier: HIKE })).toBe(true);
+  });
+});
+
+describe('asksAboutSafety: who is near (CRISIS_GRADED_RESPONSE R7)', () => {
+  it.each([
+    ["I'm here with you. Is anyone nearby who can be with you?", true],
+    ['Is someone there with you right now?  ', true],
+    ['<speak>Is anybody close by?</speak>', true],
+    ['Is anyone nearby.', false],
+    ['Is anyone nearby? Okay, tell me about your day.', false],
+    ["I'm right here with you, is there anyone you want to call?", false],
+  ])('%s -> %s', (line, asks) => {
+    expect(asksAboutSafety(line)).toBe(asks);
+  });
+
+  it('stays linear on a 10k-character line with no sentence end', () => {
+    const lines = [
+      `Is anyone ${'there with you and '.repeat(560)}`,
+      `Is anyone ${'there with you and '.repeat(560)}?`,
+      `${'someone nearby with you '.repeat(420)}`,
+    ];
+    for (const line of lines) {
+      expect(line.length).toBeGreaterThan(10_000);
+      const t0 = performance.now();
+      asksAboutSafety(line);
+      expect(performance.now() - t0).toBeLessThan(20);
+    }
   });
 });

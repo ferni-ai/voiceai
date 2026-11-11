@@ -122,7 +122,7 @@ const translateDef: ToolDefinition = {
       }),
       execute: async ({ text, targetLanguage, sourceLanguage, context }) => {
         getLogger().info(
-          { text, targetLanguage, sourceLanguage, context },
+          { textLen: text.length, targetLanguage, sourceLanguage, context },
           '🌍 Translation requested'
         );
 

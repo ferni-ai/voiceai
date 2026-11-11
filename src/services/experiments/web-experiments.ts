@@ -15,7 +15,6 @@
  */
 
 import crypto from 'crypto';
-import admin from 'firebase-admin';
 import { FieldValue, type Firestore } from 'firebase-admin/firestore';
 import { getGCPProjectId } from '../../config/environment.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';

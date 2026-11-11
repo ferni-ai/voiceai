@@ -23,6 +23,7 @@ import { initSpringBody } from './avatar-motion/spring-body.js';
 import { initSpeechBeats } from './avatar-motion/speech-beats.js';
 import { claimAvatarContainer } from './avatar-motion/compositor.js';
 import {
+  claimBlendedLids,
   isLidBlendEnabled,
   lidBlendLevel,
   settleBlendedLids,
@@ -197,9 +198,11 @@ export function startSpeaking(): void {
   }
 }
 
-/** Start the rAF loop; under ferni:avatar-compositor, claim the body first. */
+/** Start the rAF loop; claim the body (ferni:avatar-compositor) and the lids (ferni:lid-blend) first. */
 function beginLoop(): void {
   if (avatarContainer) claimAvatarContainer(avatarContainer);
+  // Before the next frame, so an expression tween never writes the lids alongside the voice
+  if (lidBlendOn) claimBlendedLids();
   animationFrame = requestAnimationFrame(animateLoop);
 }
 

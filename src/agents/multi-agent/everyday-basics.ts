@@ -23,6 +23,9 @@ import { withPersonaToolset } from './persona-toolsets.js';
 import { withRegistryTools } from './registry-tools.js';
 import { withSpecialistTools } from './specialist-tools.js';
 
+/** setCallCaptureConsent while CALL_CAPTURE_CONSENT is on: agent-setup adds it before the cap. */
+export { withCaptureConsentTool } from './call-capture-tool.js';
+
 /** Each everyday basic and the domain it is registered in. */
 export const EVERYDAY_BASICS: Readonly<Record<string, ToolDomain>> = {
   quickTimer: 'simple-utilities',

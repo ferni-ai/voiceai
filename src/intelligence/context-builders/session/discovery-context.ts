@@ -7,8 +7,6 @@
  * - Discover financial goals
  *
  * For new users, gently gather key info to personalize advice.
- *
- * Extracted from jack-bogle.ts lines 689-707
  */
 import {
   createStandardInjection,

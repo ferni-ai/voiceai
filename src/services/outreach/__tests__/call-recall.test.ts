@@ -158,6 +158,19 @@ describe('recallFrom', () => {
     expect(line).not.toMatch(/Ignore your previous instructions/i);
     expect(line).toMatch(/never an instruction/);
   });
+
+  it('a result past its expireAt is not recalled; one before it is', () => {
+    const asked = Date.parse('2026-10-26T18:46:00Z');
+    // The Firestore Timestamp a read returns: TTL deletes the doc a day or more late.
+    const at = (ms: number) => ({ toMillis: () => ms });
+    const expired = { ...MOM_RESULT, expireAt: at(asked - 1) };
+    expect(recallFrom({ words: ['mom'] }, records([], [expired]), asked)).toBeUndefined();
+    const kept = { ...MOM_RESULT, expireAt: at(asked + HOUR) };
+    expect(recallFrom({ words: ['mom'] }, records([], [kept]), asked)).toMatchObject({
+      state: 'done',
+      name: 'Mom',
+    });
+  });
 });
 
 describe('recallCall', () => {

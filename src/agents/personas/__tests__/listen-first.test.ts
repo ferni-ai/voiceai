@@ -64,6 +64,10 @@ function streamOf(text: string): ReadableStream<unknown> {
   });
 }
 
+/** A call with its own id (without one, exits are held: exits-held.ts). */
+let calls = 0;
+const aCall = () => ({ userData: { services: { sessionId: `listen-first-${++calls}` } } });
+
 /** The reminder each turn's reply was asked with, through the real request path. */
 async function reminders(session: object): Promise<string[]> {
   const out: string[] = [];
@@ -89,10 +93,7 @@ async function reminders(session: object): Promise<string[]> {
 
 /** The flags prod ran with on that call, so the turn shape draws what it drew there. */
 const PROD_FLAGS = {
-  HUMAN_TEXTURE: 'on',
-  THINK_ALOUD: 'on',
   ASK_ADVICE: 'on',
-  CURIOUS_DETAIL: 'on',
 };
 const saved = Object.fromEntries(
   ['LISTEN_FIRST', ...Object.keys(PROD_FLAGS)].map((k) => [k, process.env[k]])
@@ -152,14 +153,14 @@ describe("the caller's zone", () => {
 describe('LISTEN_FIRST through the reply path', () => {
   it('off: the low-energy turns still draw stories and views of his own', async () => {
     delete process.env.LISTEN_FIRST;
-    const sent = await reminders({});
+    const sent = await reminders(aCall());
     expect(sent.slice(3).some((r) => OWN_LIFE.test(r))).toBe(true);
     expect(sent.some((r) => LISTEN.test(r))).toBe(false);
   });
 
   it('on: from the low-energy trigger on, no reply is asked for anything of his own', async () => {
     process.env.LISTEN_FIRST = 'on';
-    const sent = await reminders({});
+    const sent = await reminders(aCall());
     // Not yet: one short turn after a long one is not a tired caller.
     expect(sent[0]).not.toMatch(LISTEN);
     expect(sent[1]).not.toMatch(LISTEN);
@@ -172,7 +173,7 @@ describe('LISTEN_FIRST through the reply path', () => {
 
   it('on: a question at most every other turn', async () => {
     process.env.LISTEN_FIRST = 'on';
-    const sent = await reminders({});
+    const sent = await reminders(aCall());
     // The reply after "I'm alright. What about you?" may not ask another.
     expect(sent[9]).toMatch(/No question this time/);
     expect(sent[8]).toMatch(/You may ask one easy question/);
@@ -222,7 +223,7 @@ describe('LISTEN_FIRST through the reply path', () => {
 
   it('on: drops director notes that push him to share, keeps the rest', async () => {
     process.env.LISTEN_FIRST = 'on';
-    const session = {};
+    const session = { userData: { services: { sessionId: 'listen-first' } } };
     setDirector(session, {
       current: () => [
         'Break the pattern by sharing a memory from Wyoming.',

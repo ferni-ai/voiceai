@@ -8,16 +8,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock dependencies
-vi.mock('../../../utils/safe-logger.js', () => ({
-  getLogger: () => ({
-    child: () => ({
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    }),
-  }),
-}));
+vi.mock('../../../utils/safe-logger.js', () => {
+  const quiet = () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() });
+  return { getLogger: () => ({ child: quiet }), createLogger: quiet };
+});
 
 vi.mock('../../persistence/index.js', () => ({
   createPersistenceStore: vi.fn(() => ({

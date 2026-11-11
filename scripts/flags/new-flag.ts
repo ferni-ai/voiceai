@@ -1,9 +1,15 @@
 /**
- * pnpm flags:new NAME --default off --owner voice --kind experiment [--note "..."]
+ * pnpm flags:new NAME --default off --owner voice --kind experiment --issue '#123' [--note "..."]
+ *   [--expires YYYY-MM-DD] [--context "what decides it"]
  *
  * Writes src/config/flags/NAME.ts and regenerates the flag barrel (gitignored), so a
  * new flag adds one file and touches no shared one. --note becomes the comment above the entry:
- * say what "on" does and where it is read.
+ * say what "on" does and where it is read. An experiment gets expires (default:
+ * 90 days out, at most 180) and needs --issue: a real tracking issue ('#123' or an issue URL)
+ * from day one. 'TBD' or no --issue is refused, because the Flag expiry check fails a new
+ * experiment without one.
+ * Past its expiry it is a CI warning and a line in its owner's nightly issue
+ * (src/config/flag-lifecycle.ts), never a failure on main.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
@@ -18,12 +24,23 @@ export interface NewFlag {
   owner: string;
   kind: string;
   note?: string;
+  expires?: string;
+  issue?: string;
+  context?: string;
 }
+
+/**
+ * Mirror DEFAULT_EXPERIMENT_DAYS and REAL_ISSUE in src/config/flag-lifecycle.ts (a test
+ * keeps them equal). Not imported: flags:migrate copies scripts/flags into a scratch repo
+ * that has only the flag-spec files.
+ */
+export const EXPERIMENT_DAYS = 90;
+export const REAL_ISSUE = /^(?:#\d+|https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+)$/;
 
 const NAME = /^[A-Z][A-Z0-9_]*$/;
 const VALUE = /^[\w.-]+$/;
 
-export function parseNewFlag(argv: string[]): NewFlag {
+export function parseNewFlag(argv: string[], today: Date = new Date()): NewFlag {
   const { values, positionals } = parseArgs({
     args: argv,
     allowPositionals: true,
@@ -32,6 +49,9 @@ export function parseNewFlag(argv: string[]): NewFlag {
       owner: { type: 'string' },
       kind: { type: 'string' },
       note: { type: 'string' },
+      expires: { type: 'string' },
+      issue: { type: 'string' },
+      context: { type: 'string' },
     },
   });
   const [name] = positionals;
@@ -46,8 +66,23 @@ export function parseNewFlag(argv: string[]): NewFlag {
       ? ''
       : `--kind ${FLAG_KINDS.join('|')}`,
   ].filter(Boolean);
+  if (values.expires !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(values.expires)) {
+    problems.push('--expires YYYY-MM-DD');
+  }
+  if (flag.kind === 'experiment' && !REAL_ISSUE.test(values.issue ?? '')) {
+    problems.push(
+      `--issue '#123' (a real tracking issue for the experiment, not '${values.issue ?? ''}'; 'TBD' is refused)`
+    );
+  }
   if (problems.length > 0) throw new Error(`flags:new needs ${problems.join(', ')}`);
-  return { ...(flag as Omit<NewFlag, 'note'>), note: values.note };
+  const out: NewFlag = { ...(flag as Omit<NewFlag, 'note'>), note: values.note };
+  if (flag.kind === 'experiment') {
+    const later = new Date(today.getTime() + EXPERIMENT_DAYS * 86_400_000);
+    out.expires = values.expires ?? later.toISOString().slice(0, 10);
+    out.issue = values.issue;
+  }
+  if (values.context) out.context = values.context;
+  return out;
 }
 
 export function flagFileSource(flag: NewFlag): string {
@@ -58,6 +93,9 @@ export function flagFileSource(flag: NewFlag): string {
     .map((line) => `// ${line}`);
   return flagFileText(flag.name, flag, note);
 }
+
+/** Optional FlagSpec fields, written after kind in this order when set. */
+const LIFECYCLE_KEYS = ['expires', 'issue', 'context'] as const;
 
 /** A flag file: the comment lines verbatim above the export (flags:move uses this too). */
 export function flagFileText(
@@ -72,6 +110,9 @@ export function flagFileText(
     `  default: '${spec.default}',\n` +
     `  owner: '${spec.owner}',\n` +
     `  kind: '${spec.kind}',\n` +
+    LIFECYCLE_KEYS.filter((k) => spec[k] !== undefined)
+      .map((k) => `  ${k}: '${String(spec[k]).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}',\n`)
+      .join('') +
     '} as const satisfies FlagSpec;\n'
   );
 }

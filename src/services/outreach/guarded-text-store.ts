@@ -7,9 +7,9 @@
  */
 import { createLogger } from '../../utils/safe-logger.js';
 import {
-  ALREADY_EXISTS,
   CHECKINS,
   checkinDb,
+  createOnce,
   firestoreReplyStore,
   toStoredCheckin,
 } from './checkin-replies.js';
@@ -34,13 +34,7 @@ export const firestoreTextStore: TextStore = {
     return (await checkinDb().collection(CHECKINS).add(record)).id;
   },
   async lock(id, at) {
-    try {
-      await checkinDb().collection(TEXT_LOCKS).doc(id).create({ at });
-      return true;
-    } catch (error) {
-      if ((error as { code?: unknown }).code === ALREADY_EXISTS) return false;
-      throw error;
-    }
+    return createOnce(checkinDb().collection(TEXT_LOCKS).doc(id), { at });
   },
   async lockedAt(id) {
     const doc = await checkinDb().collection(TEXT_LOCKS).doc(id).get();

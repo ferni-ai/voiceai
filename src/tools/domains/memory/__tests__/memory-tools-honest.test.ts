@@ -10,6 +10,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // collection reads, which is all the remember write, the update and recall use.
 const fs = vi.hoisted(() => {
   const docs = new Map<string, Record<string, unknown>>();
+  // Runs as a collection read starts (the race tests apply the next caller's flags there)
+  const hooks: { onRead?: () => void } = {};
   const depth = (p: string) => p.split('/').length;
   const apply = (path: string, data: Record<string, unknown>) => {
     const next = { ...docs.get(path) };
@@ -49,6 +51,7 @@ const fs = vi.hoisted(() => {
       },
       limit: () => q,
       get: async () => {
+        hooks.onRead?.();
         const paths = rows();
         const found = paths.map((p) => ({ id: p.split('/').pop(), data: () => docs.get(p) }));
         return { empty: paths.length === 0, docs: found };
@@ -67,7 +70,7 @@ const fs = vi.hoisted(() => {
       commit: async () => ops.forEach((op) => op()),
     };
   };
-  return { docs, db: { collection: (name: string) => col(name), batch } };
+  return { docs, hooks, db: { collection: (name: string) => col(name), batch } };
 });
 vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../../utils/firestore-utils.js')>()),
@@ -137,6 +140,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
   vi.clearAllMocks();
   fs.docs.clear();
+  fs.hooks.onRead = undefined;
 });
 
 describe('rememberAboutUser', () => {
@@ -455,5 +459,62 @@ describe('predictUserNeed', () => {
     expect(memories.write).toHaveBeenCalledWith(
       expect.objectContaining({ content: expect.stringMatching(/^Prediction: /) })
     );
+  });
+});
+
+// Per-caller flags live in process.env (cohort-flags.ts): the next caller's can be applied while a
+// tool is still running. Each tool reads them once when it starts and the writer keeps that
+// decision, so the contact refusal can't switch off mid-call. REMEMBER_TO_RECALL stays on so the
+// writer runs either way: that is the case where a re-read would keep the number.
+describe('a memory tool while the next caller’s flags land', () => {
+  const PHONE_0100 = "Dana's new number is (202) 555-0100";
+  const nextCallerOff = () => vi.stubEnv('MEMORY_TOOLS_HONEST', '');
+  beforeEach(() => vi.stubEnv('REMEMBER_TO_RECALL', 'on'));
+
+  it('updateMemory: on at the start, off while it reads the facts: the number is refused', async () => {
+    vi.stubEnv('MEMORY_TOOLS_HONEST', 'on');
+    await remember('my sister Dana lives in Denver');
+    fs.hooks.onRead = nextCallerOff;
+    const said = await update('my sister Dana lives in Denver', PHONE_0100);
+    expect(said).toMatch(/^Not saved: phone numbers and emails/);
+    expect(await recalled()).toEqual(['my sister Dana lives in Denver']);
+  });
+
+  it('rememberAboutUser: on at the start, off before the write: the number is refused', async () => {
+    vi.stubEnv('MEMORY_TOOLS_HONEST', 'on');
+    const tool = rememberAboutUserUnifiedDef.create({ agentId: 'ferni' } as never) as unknown as {
+      execute: (a: Record<string, unknown>, o: unknown) => Promise<string>;
+    };
+    // The session id is read between the tool's start and the writer: the next call lands there
+    const services = {
+      get sessionId() {
+        nextCallerOff();
+        return 'sess-race';
+      },
+    };
+    const args = { fact: PHONE_0100, category: 'personal', importance: 'high' };
+    const said = await tool.execute(args, { ctx: { userData: { userId: uid, services } } });
+    expect(said).toMatch(/^Not saved: phone numbers and emails/);
+    expect(factDocs()).toEqual([]);
+    expect(memories.write).not.toHaveBeenCalled();
+  });
+
+  it('REMEMBER_TO_RECALL on at the start, off during the memories write: not kept for recall', async () => {
+    memories.write.mockImplementationOnce(async () => {
+      vi.stubEnv('REMEMBER_TO_RECALL', ''); // the next call's start, while the write runs
+      return { success: true, memoryId: 'mem_1' };
+    });
+    expect(await remember(PHONE_0100)).toBe(REMEMBERED);
+    expect(memories.write).toHaveBeenCalledTimes(1);
+    await new Promise((settled) => {
+      setTimeout(settled, 100); // the recall write is not awaited
+    });
+    expect(factDocs()).toEqual([]); // main refuses it as off; so does this
+  });
+
+  it('off throughout: unchanged, written to memories and (REMEMBER_TO_RECALL) for recall', async () => {
+    expect(await remember(PHONE_0100)).toBe(REMEMBERED);
+    expect(memories.write).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(factDocs()).toHaveLength(1));
   });
 });

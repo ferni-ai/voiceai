@@ -41,7 +41,8 @@ vi.mock('../../../utils/safe-logger.js', () => {
 });
 
 const { encryptData, decryptData } = await import('../../../utils/token-encryption.js');
-const { sendAsUser } = await import('../gmail-send-as-user.js');
+const { sendAsUser, gmailSendFrom } = await import('../gmail-send-as-user.js');
+const { usePersonFlagLookup } = await import('../../../config/person-flag.js');
 
 const SEND_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -211,6 +212,24 @@ describe('sendAsUser', () => {
       expect(await sendAsUser('user-a', MSG)).toEqual({ status: 'not_connected' });
       expect(calls).toHaveLength(0);
     } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('env off: only the person whose own GMAIL_SEND_AS_USER is on sends', async () => {
+    grant('user-a');
+    grant('user-b');
+    vi.stubEnv('GMAIL_SEND_AS_USER', 'off');
+    usePersonFlagLookup(async (uid) => (uid === 'user-a' ? 'on' : undefined));
+    try {
+      expect(await gmailSendFrom('user-b')).toBeNull();
+      expect(await sendAsUser('user-b', MSG)).toEqual({ status: 'not_connected' });
+      expect(calls).toHaveLength(0);
+      expect(await gmailSendFrom('user-a')).toBe('user-a@example.com');
+      await sendAsUser('user-a', MSG);
+      expect(sends().map((s) => s.auth)).toEqual(['Bearer access-user-a']);
+    } finally {
+      usePersonFlagLookup(async () => undefined);
       vi.unstubAllEnvs();
     }
   });

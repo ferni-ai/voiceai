@@ -298,7 +298,7 @@ class TwilioWebhookService extends EventEmitter {
       void this.setCallInRedis(data.CallSid, entry);
 
       getLogger().info(
-        { callSid: data.CallSid, text: data.TranscriptionText.slice(0, 100) },
+        { callSid: data.CallSid, textLen: data.TranscriptionText.length },
         '📝 Transcription received'
       );
       this.emit('transcription', entry);

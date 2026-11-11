@@ -252,6 +252,25 @@ describe('CallQualityMonitor', () => {
       expect(completed?.totalDurationMs).toBe(30000);
     });
 
+    it('a completed call keeps its counts but not its per-turn event list', () => {
+      const callId = 'test-call-events-released';
+      const t0 = Date.now();
+      recordCallEvent({ callId, timestamp: t0, type: 'connection_attempt' });
+      for (let i = 0; i < 200; i++) {
+        recordCallEvent({ callId, timestamp: t0 + i, type: 'user_speech' });
+        recordCallEvent({ callId, timestamp: t0 + i, type: 'agent_speech' });
+      }
+      expect(getActiveCalls().find((c) => c.callId === callId)?.events.length).toBe(401);
+
+      recordCallEvent({ callId, timestamp: t0 + 60_000, type: 'call_end_natural' });
+
+      const completed = getRecentCalls().find((c) => c.callId === callId);
+      expect(completed?.userSpeechCount).toBe(200);
+      expect(completed?.agentSpeechCount).toBe(200);
+      expect(completed?.totalDurationMs).toBe(60_000);
+      expect(completed?.events).toEqual([]);
+    });
+
     it('should track disconnect end reason', () => {
       const callId = 'test-call-10';
 

@@ -82,6 +82,9 @@ export const PLACEHOLDER_IDS: ReadonlySet<string> = new Set([
   'session',
   'gateway', // the Tier-0 tool gateway's build ctx
   'gateway-recovery',
+  'undefined', // `${userId}` or String(userId) of a missing id
+  'null',
+  'guest', // a sign-in-less web or app caller (#2651)
 ]);
 
 /**
@@ -133,6 +136,29 @@ export function namesNoAccount(userId: string | undefined | null): boolean {
   const id = comparableId(userId);
   if (!id || PLACEHOLDER_IDS.has(id)) return true;
   return nonAccountPrefixOf(id) !== undefined;
+}
+
+/** The start of the per-call device id /demo-token mints for a try-first visitor (routes/token.ts). */
+export const DEMO_DEVICE_ID_PREFIX = 'demo_';
+
+/** The user id that device id becomes (`device:demo_<ms>_<rand>`; user-identification.ts). */
+const DEMO_USER_PREFIX = `device:${DEMO_DEVICE_ID_PREFIX}`;
+
+/**
+ * Whether this id is an anonymous try-first (demo) visitor's: someone who tapped "Talk to Ferni"
+ * without signing in. A new id every call, so it names nobody who could export or delete it.
+ *
+ * PRIVACY: the visitor was told "No account needed", and nothing from the call is kept: no
+ * transcript, summary, memory, knowledge graph or profile. This is the one check for that, asked
+ * where the stores already decide: session/validation.ts validateUserId (the session's own
+ * profile, conversation and turns), memory/storage/profile-save-guard.ts notStored (every profile
+ * save), minor-care.ts memoryHeld and userHeld (every writer's hold, and every
+ * createPersistenceStore), and identity/owner-write-gate.ts ownerWritesBlocked (the per-turn
+ * learners, seeds and own-account tools). The call itself, crisis handling included, runs as for
+ * anyone else.
+ */
+export function isAnonymousDemoUser(userId: string | undefined | null): boolean {
+  return typeof userId === 'string' && comparableId(userId).startsWith(DEMO_USER_PREFIX);
 }
 
 /**

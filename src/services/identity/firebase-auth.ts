@@ -13,11 +13,17 @@
  * @module FirebaseAuth
  */
 
-import admin from 'firebase-admin';
-import { getAuth } from 'firebase-admin/auth';
+import { applicationDefault, getApps, initializeApp } from 'firebase-admin/app';
+import { getAuth, type UserRecord } from 'firebase-admin/auth';
 import { createLogger } from '../../utils/safe-logger.js';
 import { nonAccountPrefixOf } from '../../utils/synthetic-user.js';
 import { erasureErrorCode } from '../platform/erasure-step.js';
+import {
+  invalidateAccount,
+  isAuthCheckUnavailable,
+  verifyIdTokenChecked,
+  type TokenCheckOptions,
+} from './token-revocation.js';
 
 const log = createLogger({ module: 'FirebaseAuth' });
 
@@ -102,7 +108,7 @@ function ensureInitialized(): boolean {
   }
 
   // Check if already initialized by another module
-  if (admin.apps.length > 0) {
+  if (getApps().length > 0) {
     isInitialized = true;
     return true;
   }
@@ -113,21 +119,21 @@ function ensureInitialized(): boolean {
 
     if (serviceAccountPath) {
       log.info('Initializing Firebase Admin with service account');
-      admin.initializeApp({
-        credential: admin.credential.applicationDefault(),
+      initializeApp({
+        credential: applicationDefault(),
       });
     } else if (process.env.FIREBASE_PROJECT_ID) {
       // Use project ID with ADC (works on Cloud Run, GCE, etc.)
       log.info('Initializing Firebase Admin with project ID and ADC');
-      admin.initializeApp({
-        credential: admin.credential.applicationDefault(),
+      initializeApp({
+        credential: applicationDefault(),
         projectId: process.env.FIREBASE_PROJECT_ID,
       });
     } else {
       // Try to initialize with ADC only (may work on GCP)
       log.info('Initializing Firebase Admin with default credentials');
       try {
-        admin.initializeApp();
+        initializeApp();
       } catch {
         log.warn('Firebase Admin initialization failed - token verification disabled');
         return false;
@@ -148,19 +154,25 @@ function ensureInitialized(): boolean {
 // ============================================================================
 
 /**
- * Verify a Firebase ID token.
+ * Verify a Firebase ID token, and check it against its account: a token whose account
+ * was deleted or disabled, or that was revoked, is refused. It used to skip that check,
+ * so an ID token from before account deletion kept working for up to an hour and
+ * GET /api/user/profile recreated the erased person's record (#2966). The account is
+ * looked up at most once a minute (token-revocation.ts). When it can't be checked (Auth
+ * down, no recent state), this throws, as it does when Firebase isn't initialized: the
+ * caller answers 503, never 401 and never a pass.
  *
  * SECURITY: In production, this will throw if Firebase is not initialized.
  * This prevents silent auth bypass due to misconfiguration.
  *
  * @param idToken - The Firebase ID token from the frontend
- * @param checkRevoked - Whether to check if the token has been revoked (default: false for performance)
+ * @param options - `{ strict: true }` for approval, consent, payment and step-up checks
  * @returns Verified token info, `{ expired: true }` if token is expired, or null if invalid
- * @throws Error in production if Firebase is not initialized
+ * @throws Error in production if Firebase is not initialized, or the account can't be checked
  */
 export async function verifyFirebaseToken(
   idToken: string,
-  checkRevoked = false
+  options: TokenCheckOptions = {}
 ): Promise<VerifiedToken | { expired: true } | null> {
   if (!ensureInitialized()) {
     if (isProduction()) {
@@ -174,7 +186,7 @@ export async function verifyFirebaseToken(
   }
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken, checkRevoked);
+    const decodedToken = await verifyIdTokenChecked(getAuth(), idToken, options);
 
     // Determine if user is anonymous
     // Anonymous users have the 'anonymous' provider and no email
@@ -201,6 +213,7 @@ export async function verifyFirebaseToken(
 
     return result;
   } catch (error) {
+    if (isAuthCheckUnavailable(error)) throw error; // its account couldn't be checked: a 503
     // Handle specific Firebase errors
     if (error instanceof Error) {
       const { code } = error as { code?: string };
@@ -210,7 +223,9 @@ export async function verifyFirebaseToken(
           log.debug('Firebase token expired');
           return { expired: true as const };
         case 'auth/id-token-revoked':
-          log.warn('Firebase token revoked');
+        case 'auth/user-not-found': // the account was deleted after the token was issued
+        case 'auth/user-disabled':
+          log.warn({ code }, 'Firebase token refused: revoked, or its account is gone');
           break;
         case 'auth/argument-error':
           log.debug('Invalid Firebase token format');
@@ -230,14 +245,14 @@ export async function verifyFirebaseToken(
  * An anon: or onbehalf: session id names no account, so it is never looked up
  * (each lookup used to fail and log an error).
  */
-export async function getFirebaseUser(uid: string): Promise<admin.auth.UserRecord | null> {
+export async function getFirebaseUser(uid: string): Promise<UserRecord | null> {
   if (nonAccountPrefixOf(uid.trim()) !== undefined) return null;
   if (!ensureInitialized()) {
     return null;
   }
 
   try {
-    return await admin.auth().getUser(uid);
+    return await getAuth().getUser(uid);
   } catch (error) {
     log.error({ error: String(error), uid }, 'Failed to get Firebase user');
     return null;
@@ -253,10 +268,10 @@ const NO_SUCH_USER = new Set(['auth/user-not-found', 'auth/invalid-uid']);
  * Firebase says the user doesn't exist, or the id is one Firebase could never have
  * issued (auth/invalid-uid: a device id, or over 128 characters). Any other failure throws.
  */
-export async function getFirebaseUserOrThrow(uid: string): Promise<admin.auth.UserRecord | null> {
+export async function getFirebaseUserOrThrow(uid: string): Promise<UserRecord | null> {
   if (!ensureInitialized()) throw new Error('Firebase Admin is not initialized');
   try {
-    return await admin.auth().getUser(uid);
+    return await getAuth().getUser(uid);
   } catch (error) {
     const code = (error as { code?: unknown } | null)?.code;
     if (typeof code === 'string' && NO_SUCH_USER.has(code)) return null;
@@ -269,15 +284,32 @@ export async function getFirebaseUserOrThrow(uid: string): Promise<admin.auth.Us
  * only puts a number on an account through phone verification (or an admin),
  * and no two accounts share one, so this is a verified owner of the number.
  */
-export async function getFirebaseUserByPhone(e164: string): Promise<admin.auth.UserRecord | null> {
+export async function getFirebaseUserByPhone(e164: string): Promise<UserRecord | null> {
   if (!ensureInitialized()) return null;
   try {
-    return await admin.auth().getUserByPhoneNumber(e164);
+    return await getAuth().getUserByPhoneNumber(e164);
   } catch (error) {
     if ((error as { code?: string }).code !== 'auth/user-not-found') {
       log.error({ error: String(error) }, 'Failed to look up Firebase user by phone');
     }
     return null;
+  }
+}
+
+/**
+ * getFirebaseUserByPhone for callers that must not take a failed lookup for "nobody holds
+ * this number" (inbound SMS attribution, sms-sender-account.ts): null only when Firebase
+ * says no user has it. An Admin SDK that isn't initialized, or any other error, throws.
+ */
+export async function getFirebaseUserByPhoneOrThrow(
+  e164: string
+): Promise<UserRecord | null> {
+  if (!ensureInitialized()) throw new Error('Firebase Admin is not initialized');
+  try {
+    return await getAuth().getUserByPhoneNumber(e164);
+  } catch (error) {
+    if ((error as { code?: unknown } | null)?.code === 'auth/user-not-found') return null;
+    throw error;
   }
 }
 
@@ -294,7 +326,7 @@ export async function setCustomClaims(
   }
 
   try {
-    await admin.auth().setCustomUserClaims(uid, claims);
+    await getAuth().setCustomUserClaims(uid, claims);
     log.info({ uid: `${uid.substring(0, 8)}...`, claims }, 'Set custom claims');
     return true;
   } catch (error) {
@@ -313,7 +345,8 @@ export async function revokeRefreshTokens(uid: string): Promise<boolean> {
   }
 
   try {
-    await admin.auth().revokeRefreshTokens(uid);
+    await getAuth().revokeRefreshTokens(uid);
+    invalidateAccount(uid, 'revoked'); // this process refuses its tokens now, not in a minute
     log.info({ uid: `${uid.substring(0, 8)}...` }, 'Revoked refresh tokens');
     return true;
   } catch (error) {
@@ -332,7 +365,8 @@ export async function deleteFirebaseUser(uid: string): Promise<boolean> {
   }
 
   try {
-    await admin.auth().deleteUser(uid);
+    await getAuth().deleteUser(uid);
+    invalidateAccount(uid, 'gone');
     log.info({ uid: `${uid.substring(0, 8)}...` }, 'Deleted Firebase user');
     return true;
   } catch (error) {
@@ -341,6 +375,24 @@ export async function deleteFirebaseUser(uid: string): Promise<boolean> {
       'Failed to delete Firebase user'
     );
     return false;
+  }
+}
+
+/**
+ * Switch a Firebase user's sign-in off or on. no_user: Firebase has no such user, or the id is
+ * one it could never have issued. Never throws: any other failure answers 'failed'.
+ */
+export async function setFirebaseUserDisabled(
+  uid: string,
+  disabled: boolean
+): Promise<'done' | 'no_user' | 'failed'> {
+  if (!ensureInitialized()) return 'failed';
+  try {
+    await getAuth().updateUser(uid, { disabled });
+    return 'done';
+  } catch (error) {
+    const code = (error as { code?: unknown } | null)?.code;
+    return typeof code === 'string' && NO_SUCH_USER.has(code) ? 'no_user' : 'failed';
   }
 }
 

@@ -42,6 +42,7 @@ import { UnifiedMemoryStoreFacade } from '../../unified-store/facade.js';
 import { callerHistory, greetingFacts } from '../../../agents/multi-agent/greeting-direction.js';
 import { sendRecall } from '../../../agents/personas/context-packet/turn-packet.js';
 import { dropForgottenNotes } from '../../../agents/multi-agent/recall-note.js';
+import { TURN_CONTEXT_HEADER } from '../../../agents/multi-agent/turn-context-header.js';
 import {
   injectUserAwareness,
   rememberedProfile,
@@ -195,6 +196,26 @@ describe.each([
     sendRecall(agent as never, {}, { lastPick: () => null } as never, null, 'again', user);
     if (on) expect(ids()).toEqual(['recall_2', 'user_1']);
     else expect(ids()).toEqual(['recall_1', 'recall_2', 'user_1']);
+  });
+
+  it('a crisis note naming the forgotten topic stays in the chat', async () => {
+    // The turn's crisis guidance (safety-note.ts) may name what was forgotten; only recall's
+    // own notes come out, so the guidance and its 988 line still reach the reply.
+    const crisis = [
+      TURN_CONTEXT_HEADER,
+      '[CRITICAL - USER SAFETY]',
+      'They said losing Biscuit makes them not want to be here.',
+      'Stay with them. Offer the 988 Suicide & Crisis Lifeline.',
+    ].join('\n');
+    const { agent, ids } = chat([
+      { id: 'recall_1', textContent: '[WHAT YOU REMEMBER] their dog Biscuit chews things' },
+      { id: 'note_1', textContent: crisis },
+      { id: 'user_1', textContent: 'I miss Biscuit so much' },
+    ]);
+    await primeStore(user);
+    sendRecall(agent as never, {}, { lastPick: () => null } as never, null, 'so much', user);
+    if (on) expect(ids()).toEqual(['note_1', 'user_1']);
+    else expect(ids()).toEqual(['recall_1', 'note_1', 'user_1']);
   });
 });
 

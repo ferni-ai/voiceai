@@ -1,7 +1,7 @@
 /**
- * Welcome back, life on both sides (WELCOME_BACK_BOTH_SIDES): after a gap of
- * WELCOME_BACK_MIN_DAYS or more, the greeting picks up one thread of theirs
- * and one small canon update from his life, and never mentions the gap.
+ * A returning call after a gap: the greeting keeps "last time you talked",
+ * the system prompt's line for when they last talked, the sensitive-thread
+ * check, his canon updates and the absence copy.
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -21,15 +21,6 @@ const { pendingLifeUpdates } = await import('../../personas/life-updates.js');
 type Request = { direction: string; facts: Record<string, string> };
 const lastRequest = (): Request => directedText.mock.calls.at(-1)![1] as unknown as Request;
 
-const UPDATE = 'You finally got the sourdough starter to rise properly.';
-const THREAD = 'Ask how the pottery class went';
-
-function stubSources(followUps: string[], lifeUpdate: string | undefined) {
-  const f = vi.spyOn(wb.welcomeBackSources, 'followUps').mockResolvedValue(followUps);
-  const l = vi.spyOn(wb.welcomeBackSources, 'lifeUpdate').mockResolvedValue(lifeUpdate);
-  return { f, l };
-}
-
 let n = 0;
 async function greet(daysSince: number): Promise<Request> {
   const sessionId = `wb-${n++}`;
@@ -43,94 +34,12 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('welcome back greeting', () => {
-  it('flag off: the greeting is unchanged and nothing extra is read', async () => {
-    const { f, l } = stubSources([THREAD], UPDATE);
+describe('a returning call after a gap', () => {
+  it('the greeting is unchanged: last time and its topic stay', async () => {
     const req = await greet(12);
     expect(req.direction).toBe(GREETING_DIRECTION);
     expect(req.facts['last time you talked']).toBe('about 2 weeks ago');
     expect(req.facts['what you talked about last time']).toBe('her new job');
-    expect(req.facts[wb.THREAD_FACT]).toBeUndefined();
-    expect(req.facts[wb.UPDATE_FACT]).toBeUndefined();
-    expect(f).not.toHaveBeenCalled();
-    expect(l).not.toHaveBeenCalled();
-  });
-
-  it('flag on after 5+ days: one thread, one canon update, and no gap', async () => {
-    vi.stubEnv('WELCOME_BACK_BOTH_SIDES', 'on');
-    stubSources([THREAD, 'Ask about the garage sale'], UPDATE);
-    const req = await greet(12);
-    expect(req.facts[wb.THREAD_FACT]).toBe(THREAD);
-    expect(req.facts[wb.UPDATE_FACT]).toBe(UPDATE);
-    // Only one thread: the second follow-up and last time's topic stay out.
-    expect(JSON.stringify(req.facts)).not.toContain('garage sale');
-    expect(req.facts['what you talked about last time']).toBeUndefined();
-    // The gap itself is gone from the facts and ruled out in the direction.
-    expect(req.facts['last time you talked']).toBeUndefined();
-    expect(req.direction.startsWith(GREETING_DIRECTION)).toBe(true);
-    expect(req.direction).toContain(wb.NO_GAP_DIRECTION);
-    expect(req.direction).toMatch(/no counting days or weeks/);
-    expect(req.direction).toMatch(/no "missed you"/);
-    expect(req.direction).toMatch(/no "where have you been"/);
-    expect(req.direction).toMatch(/one small thing from your own life/);
-    expect(req.direction).toMatch(/one thing of theirs/);
-  });
-
-  it('a short gap (under 5 days) gets the normal greeting', async () => {
-    vi.stubEnv('WELCOME_BACK_BOTH_SIDES', 'on');
-    const { f } = stubSources([THREAD], UPDATE);
-    const req = await greet(4);
-    expect(req.direction).toBe(GREETING_DIRECTION);
-    expect(req.facts['last time you talked']).toBe('4 days ago');
-    expect(req.facts[wb.THREAD_FACT]).toBeUndefined();
-    expect(f).not.toHaveBeenCalled();
-    expect(wb.isWelcomeBack({ daysSince: 5 })).toBe(true);
-    expect(wb.isWelcomeBack({ daysSince: 4 })).toBe(false);
-    expect(wb.isWelcomeBack(undefined)).toBe(false);
-  });
-
-  it('with no canon update, he shares nothing about his life', async () => {
-    vi.stubEnv('WELCOME_BACK_BOTH_SIDES', 'on');
-    stubSources([THREAD], undefined);
-    const req = await greet(9);
-    expect(req.facts[wb.UPDATE_FACT]).toBeUndefined();
-    expect(req.direction).not.toMatch(/from your own life/);
-    expect(req.facts[wb.THREAD_FACT]).toBe(THREAD);
-    expect(req.direction).toContain(wb.NO_GAP_DIRECTION);
-  });
-
-  it('a sensitive thread is never named; he asks gently instead', async () => {
-    vi.stubEnv('WELCOME_BACK_BOTH_SIDES', 'on');
-    const heavy = ['Ask how the biopsy results came back', "Ask about her dad's funeral"];
-    stubSources(heavy, undefined);
-    const req = await greet(10);
-    const said = JSON.stringify(req.facts) + req.direction;
-    expect(said).not.toMatch(/biopsy|funeral/);
-    expect(req.facts[wb.THREAD_FACT]).toBeUndefined();
-    // Last time's summary may be the same hard thing: it stays out too.
-    expect(req.facts['what you talked about last time']).toBeUndefined();
-    expect(req.direction).toContain(wb.GENTLE_DIRECTION);
-    // A light thread behind a heavy one is the one picked.
-    const plan = wb.planWelcomeBack({ followUps: [heavy[0], THREAD] });
-    expect(plan.thread).toBe(THREAD);
-    expect(plan.direction).not.toContain(wb.GENTLE_DIRECTION);
-  });
-
-  it('a slow source is left out within the wait', async () => {
-    const never = new Promise<string[]>(() => {
-      // never settles
-    });
-    const material = await wb.loadWelcomeBack(
-      'u1',
-      'ferni',
-      { daysSince: 8 },
-      {
-        env: { WELCOME_BACK_BOTH_SIDES: 'on' },
-        waitMs: 20,
-        sources: { followUps: () => never, lifeUpdate: async () => UPDATE },
-      }
-    );
-    expect(material).toEqual({ followUps: [], lifeUpdate: UPDATE });
   });
 });
 
@@ -147,31 +56,10 @@ describe('sensitive threads match whole words', () => {
   });
 });
 
-describe('precedence: one opening thread per call', () => {
-  const material = { followUps: [THREAD], lifeUpdate: UPDATE };
-
-  it('a pondered follow-up (PONDERING) takes the opening; welcome-back keeps only the no-gap rule', () => {
-    const plan = wb.planWelcomeBack(material, { pondered: 'the martial arts classes' });
-    expect(plan).toEqual({ direction: wb.NO_GAP_DIRECTION });
-    const facts = wb.welcomeBackFacts(
-      { 'last time you talked': 'about 2 weeks ago', 'their name': 'Sam' },
-      plan
-    );
-    expect(facts).toEqual({ 'their name': 'Sam' });
-  });
-
-  it('their check-in is the one thread: no second thread, the update stays', () => {
-    const plan = wb.planWelcomeBack(material, { checkIn: 'start running again' });
-    expect(plan.thread).toBeUndefined();
-    expect(plan.lifeUpdate).toBe(UPDATE);
-    expect(plan.direction).not.toMatch(/one thing of theirs/);
-  });
-});
-
 describe('system prompt line for when they last talked', () => {
   const off = { RECENT_CALL_RESTRAINT: 'off' };
 
-  it('flags off: the same lines as before', () => {
+  it('restraint off: the same lines as before', () => {
     expect(wb.lastTalkedAwareness(0, off)).toEqual(['You talked earlier today.']);
     expect(wb.lastTalkedAwareness(1, off)).toEqual(['You talked yesterday.']);
     expect(wb.lastTalkedAwareness(3, off)).toEqual(['Last talked 3 days ago.']);
@@ -181,14 +69,6 @@ describe('system prompt line for when they last talked', () => {
     expect(wb.lastTalkedAwareness(60, off)).toEqual([
       "It's been a while - about 2 months since you last talked.",
     ]);
-  });
-
-  it('welcome back on after 5+ days: adds never bring up the gap', () => {
-    const on = { WELCOME_BACK_BOTH_SIDES: 'on', ...off };
-    expect(wb.lastTalkedAwareness(4, on)).toHaveLength(1);
-    const lines = wb.lastTalkedAwareness(12, on);
-    expect(lines).toHaveLength(2);
-    expect(lines[1]).toMatch(/Never bring up how long it has been, that you missed them/);
   });
 
   // Live call 10-17, second call that day: the first reply led with the earlier call's
@@ -209,10 +89,7 @@ describe('system prompt line for when they last talked', () => {
     const lines = wb.lastTalkedAwareness(3, {});
     expect(lines).toHaveLength(2);
     expect(lines[1]).toMatch(/^Let them lead/);
-    // A welcome back keeps its own one-thread rules instead.
-    const back = wb.lastTalkedAwareness(12, { WELCOME_BACK_BOTH_SIDES: 'on' });
-    expect(back[1]).toMatch(/Never bring up how long/);
-    expect(back).toHaveLength(2);
+    expect(wb.lastTalkedAwareness(12, {})[1]).toMatch(/^Let them lead/);
   });
 });
 

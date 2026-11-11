@@ -18,6 +18,7 @@ import { callerCityTools } from './caller-city-tools.js';
 import { callerCityMemoryOn, resolveSearchLocation } from './caller-city.js';
 
 import {
+  findRestaurantsReply,
   formatResults,
   isLocalSearchAvailable,
   LOCAL_SEARCH_UNAVAILABLE,
@@ -75,8 +76,6 @@ const searchLocalBusinessesDef: ToolDefinition = {
         const location = await resolveSearchLocation(requested, opts, ctx);
         if (!location) return LOCATION_UNKNOWN;
         try {
-          log.info({ query, location, userId: ctx.userId }, '🔍 Searching local businesses');
-
           const results = await unifiedSearch(query, location, { openNow });
 
           return formatResults(results, query, location);
@@ -115,28 +114,7 @@ const findRestaurantsDef: ToolDefinition = {
         if (!isLocalSearchAvailable()) return LOCAL_SEARCH_UNAVAILABLE;
         const location = await resolveSearchLocation(requested, opts, ctx);
         if (!location) return LOCATION_UNKNOWN;
-        try {
-          const cleanCuisine = (cuisine || '').trim();
-          const query = cleanCuisine ? `${cleanCuisine} restaurant` : 'restaurant';
-          log.info({ query, location, userId: ctx.userId }, '🍽️ Finding restaurants');
-
-          const results = await unifiedSearch(query, location, {
-            openNow,
-            restaurantsOnly: true,
-          });
-
-          if (results.length === 0) {
-            return `I couldn't find ${cleanCuisine || 'any'} restaurants in ${location}. Try a different area or cuisine?`;
-          }
-
-          let response = `**${cleanCuisine || 'Restaurant'} Options near ${location}**\n\n`;
-          response += formatResults(results, cleanCuisine || 'restaurants', location);
-
-          return response;
-        } catch (error) {
-          log.error({ error: String(error) }, 'Restaurant search failed');
-          return 'I had trouble finding restaurants. Let me try again.';
-        }
+        return findRestaurantsReply(location, cuisine, openNow);
       },
     });
   },

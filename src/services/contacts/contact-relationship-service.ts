@@ -21,9 +21,10 @@ import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { cleanForFirestore, toSafeDate } from '../../utils/firestore-utils.js';
 import { onContactChange, onContactInteractionChange } from '../data-layer/hooks/contacts-hooks.js';
 import { createExpiringMarks } from '../../utils/expiring-marks.js';
-import { isRememberedContact, type InMemory } from './remembered-contacts.js';
+import { isRememberedContact } from './remembered-contacts.js';
 import { RELATIONSHIP_ALIASES } from './relationship-aliases.js';
 import { daysSinceLastInteraction, formatDaysAgo, interactionFields } from './last-interaction.js';
+import { contactIdForLog } from './contact-log-id.js';
 export { daysSinceLastInteraction, formatDaysAgo } from './last-interaction.js';
 
 const log = getLogger();
@@ -60,7 +61,6 @@ export interface ContactRelationship {
   topics: ContactTopic[];
   recentContext: string[]; // Last 5 interaction summaries
 
-  inMemory?: InMemory; // Someone the user has lost, as they marked it (CONTACT_IN_MEMORY)
   importantDates?: Array<{
     date: string; // MM-DD or YYYY-MM-DD
     type: 'birthday' | 'anniversary' | 'memorial' | 'custom';
@@ -321,7 +321,7 @@ export async function upsertContact(
   contactCache.set(userId, contacts);
   await persistContact(saved);
 
-  log.info({ userId, contactId: saved.contactId, name: saved.name }, 'Contact saved');
+  log.info({ userId, id: contactIdForLog(saved.id), hasName: !!saved.name }, 'Contact saved');
   return saved;
 }
 
@@ -511,7 +511,7 @@ export async function recordInteraction(
   log.info(
     {
       userId,
-      contactId: interaction.contactId,
+      contactId: contactIdForLog(interaction.contactId),
       type: interaction.type,
       isStreak: streakInfo.isStreak,
       streakCount: streakInfo.streakCount,
@@ -532,7 +532,7 @@ export async function setFollowUp(
 ): Promise<void> {
   const contact = await getContact(userId, contactId);
   if (!contact) {
-    log.warn({ userId, contactId }, 'Contact not found for follow-up');
+    log.warn({ userId, contactId: contactIdForLog(contactId) }, 'Contact not found for follow-up');
     return;
   }
 
@@ -543,7 +543,7 @@ export async function setFollowUp(
   contact.updatedAt = new Date();
 
   await persistContact(contact);
-  log.info({ userId, contactId, dueDate: followUp.dueDate }, 'Follow-up reminder set');
+  log.info({ userId, dueDate: followUp.dueDate }, 'Follow-up reminder set'); // no contact id
 }
 
 /**
@@ -731,10 +731,7 @@ export async function searchContacts(
         if (mainContact.phones?.[0]?.number || mainContact.emails?.[0]?.address) {
           const converted = fromSavedContact(mainContact);
           results.push(converted);
-          log.info(
-            { userId, query, contactName: converted.name, phone: converted.phone },
-            '📇 Found contact in main contacts service (fallback)'
-          );
+          log.info({ userId }, '📇 Found contact in main contacts service (fallback)'); // no who
         }
       }
     } catch (fallbackErr) {
@@ -844,7 +841,8 @@ export async function getInteractionHistory(
       } as InteractionRecord;
     });
   } catch (error) {
-    log.warn({ error: String(error), userId, contactId }, 'Failed to get interaction history');
+    const id = contactIdForLog(contactId);
+    log.warn({ error: String(error), userId, contactId: id }, 'Failed to get interaction history');
     return [];
   }
 }

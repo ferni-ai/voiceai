@@ -107,7 +107,6 @@ import {
 import {
   runDeepAnalysis,
   getLatestDeepAnalysis,
-  getDeepAnalysisContextForTurn,
   runBatchDeepAnalysis,
   recordDeepAnalysisFeedback,
   type DeepAnalysisResult,
@@ -616,13 +615,7 @@ export async function getPredictiveIntelligenceContext(
   const sections: string[] = [];
 
   try {
-    // 1. Get deep analysis insights (pre-computed)
-    const deepContext = await getDeepAnalysisContextForTurn(userId);
-    if (deepContext) {
-      sections.push(deepContext);
-    }
-
-    // 2. Get real-time predictions
+    // 1. Get real-time predictions
     const predictions = await getAllPredictions(userId, context);
 
     const needsSupport = predictions.get('needs_support_now');
@@ -654,7 +647,7 @@ export async function getPredictiveIntelligenceContext(
       sections.push(...highConfidencePredictions);
     }
 
-    // 3. Get sequence predictions (if we have current emotion state)
+    // 2. Get sequence predictions (if we have current emotion state)
     if (context.currentEmotion) {
       // Map emotion string to ObservableState (string union type like 'emotion:anxious')
       const emotionMap: Record<string, ObservableState | undefined> = {
@@ -687,49 +680,49 @@ export async function getPredictiveIntelligenceContext(
     // BETTER THAN HUMAN v4 - SUPERHUMAN CAPABILITIES
     // ========================================================================
 
-    // 4. Avoidance Intelligence - What they're NOT saying
+    // 3. Avoidance Intelligence - What they're NOT saying
     const avoidanceContext = buildAvoidanceContext(userId);
     if (avoidanceContext) {
       sections.push('');
       sections.push(avoidanceContext);
     }
 
-    // 5. Breakthrough Intelligence - Insights forming
+    // 4. Breakthrough Intelligence - Insights forming
     const breakthroughContext = buildBreakthroughContext(userId);
     if (breakthroughContext) {
       sections.push('');
       sections.push(breakthroughContext);
     }
 
-    // 6. Pre-Trajectory Intelligence - Weather before the storm
+    // 5. Pre-Trajectory Intelligence - Weather before the storm
     const trajectoryContext = buildPreTrajectoryContext(userId);
     if (trajectoryContext) {
       sections.push('');
       sections.push(trajectoryContext);
     }
 
-    // 7. Life Phase Intelligence - Their personal season
+    // 6. Life Phase Intelligence - Their personal season
     const phaseContext = buildPhaseContext(userId);
     if (phaseContext) {
       sections.push('');
       sections.push(phaseContext);
     }
 
-    // 8. Cognitive Fingerprint - Their unique pattern
+    // 7. Cognitive Fingerprint - Their unique pattern
     const fingerprintContext = buildFingerprintContext(userId);
     if (fingerprintContext) {
       sections.push('');
       sections.push(fingerprintContext);
     }
 
-    // 9. Ripple Intelligence - Cross-domain cascades
+    // 8. Ripple Intelligence - Cross-domain cascades
     const rippleContext = buildRippleContext(userId);
     if (rippleContext) {
       sections.push('');
       sections.push(rippleContext);
     }
 
-    // 10. Intervention Timing - Right moment for each type
+    // 9. Intervention Timing - Right moment for each type
     const timingContext = buildInterventionTimingContext(userId, {
       emotionalState: context.currentEmotion,
       topic: context.currentTopic,
@@ -739,7 +732,7 @@ export async function getPredictiveIntelligenceContext(
       sections.push(timingContext);
     }
 
-    // 11. Conversation Preparation - What they'll need
+    // 10. Conversation Preparation - What they'll need
     const prepContext = buildConversationPrepContext(userId);
     if (prepContext) {
       sections.push('');
@@ -832,7 +825,6 @@ export {
   // Deep Analysis (LLM-powered)
   runDeepAnalysis,
   getLatestDeepAnalysis,
-  getDeepAnalysisContextForTurn,
   runBatchDeepAnalysis,
   recordDeepAnalysisFeedback,
   // ============================================================================

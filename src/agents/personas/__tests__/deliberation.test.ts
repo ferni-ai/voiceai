@@ -211,10 +211,11 @@ describe('Deliberator', () => {
 describe('on the live reply path (gatedReply)', () => {
   const PATTERNS_ONLY = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'off' };
   const sessions: object[] = [];
+  let calls = 0;
   afterEach(() => sessions.splice(0).forEach((s) => setDeliberator(s, null)));
 
   const sessionWith = (d: Deliberator) => {
-    const session = { userData: undefined };
+    const session = { userData: { services: { sessionId: `deliberation-${++calls}` } } };
     setDeliberator(session, d);
     sessions.push(session);
     return session;

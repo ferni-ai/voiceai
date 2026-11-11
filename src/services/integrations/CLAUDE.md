@@ -7,7 +7,6 @@ Central module for managing all external API integrations in Ferni.
 The Integration Hub provides:
 - **Unified OAuth**: Single flow for connecting all OAuth-based services
 - **Rate Limiting**: Per-user, per-integration rate limiting
-- **Webhook Routing**: Central router for incoming webhooks
 - **API Client**: Authenticated requests to external APIs
 
 ## Architecture
@@ -18,8 +17,7 @@ integrations/
 ├── types.ts              # Shared types
 ├── integration-hub.ts    # Central registry and API client
 ├── oauth-manager.ts      # OAuth2 flows
-├── rate-limiter.ts       # Rate limiting
-└── webhook-router.ts     # Webhook handling
+└── rate-limiter.ts       # Rate limiting
 ```
 
 ## Supported Integrations
@@ -89,22 +87,6 @@ if (response.success) {
 }
 ```
 
-### Register Webhook Handler
-
-```typescript
-import { getWebhookRouter } from './integrations/index.js';
-
-const router = getWebhookRouter();
-
-router.registerHandler({
-  integrationId: 'uber',
-  eventType: 'ride.status_changed',
-  handler: async (event) => {
-    console.log('Ride status changed:', event.payload);
-  },
-});
-```
-
 ## Environment Variables
 
 Each integration requires credentials set via environment variables:
@@ -120,10 +102,6 @@ LYFT_CLIENT_SECRET=xxx
 GOOGLE_MAPS_API_KEY=xxx
 PLAID_API_KEY=xxx
 
-# Webhook secrets
-UBER_WEBHOOK_SECRET=xxx
-TWILIO_WEBHOOK_SECRET=xxx
-
 # OAuth redirect base
 OAUTH_REDIRECT_BASE_URI=https://app.ferni.ai
 ```
@@ -132,6 +110,5 @@ OAUTH_REDIRECT_BASE_URI=https://app.ferni.ai
 
 1. Add config to `INTEGRATIONS` in `integration-hub.ts`
 2. Add OAuth config to `OAUTH_CONFIGS` in `oauth-manager.ts` (if OAuth)
-3. Add webhook config to `WEBHOOK_CONFIGS` in `webhook-router.ts` (if webhooks)
-4. Set environment variables
-5. Test the full flow
+3. Set environment variables
+4. Test the full flow

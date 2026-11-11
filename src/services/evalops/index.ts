@@ -147,7 +147,6 @@ export {
   onFlaggedResponse,
 
   // Conversation hooks
-  afterTurn,
   quickVoiceCheck,
   evalopsHook,
 

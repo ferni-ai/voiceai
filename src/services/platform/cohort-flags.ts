@@ -31,6 +31,8 @@
 import { createHash } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
+import { latencyArmPercent, withLatencyArm } from './latency-arm.js';
+import { MEMORY_COHORT_FLAGS } from './memory-cohort-flags.js';
 import {
   firestoreCohortStore,
   firestoreFlagHolders,
@@ -55,6 +57,8 @@ export const COHORT_FLAGS = [
   'RECALL_VECTOR_INDEX',
   'FACT_SUPERSESSION',
   'EXTRACTION_CONTEXT',
+  // After-call extractors ask per person (personFlagOn): fact-sweep-register.ts, deep extraction.
+  'FACT_SUBJECT_GUARD',
   'OPENER_FOLLOW_UP',
   'LIVE_SUMMARIES', // asked per person: readCallSummaries (call-summaries.ts) via personFlagOn
   'COACH_FOLLOW_THROUGH',
@@ -126,10 +130,12 @@ export const COHORT_FLAGS = [
   'FORGET_DELETES',
   'COACH_WINS', // greeting (winFor); wins.ts records a win via personFlagOn on any server
   'FRIEND_CELEBRATIONS', // greeting: anniversaryFor (friendship-anniversary.ts)
+  'PERSONA_GROWTH', // after the call via envForCaller; recall hook per call (persona-growth-recall.ts)
   'REVIVED_INTELLIGENCE', // turn hook built at setup, then each turn (revived-intelligence.ts)
   'CALL_JOURNAL', // tool build + per turn (call-journal.ts); needs the agent's JOURNAL_ONE_STORE=on
   'FOLLOW_THROUGH_IMPORT', // after the call, through envForCaller (follow-through-import.ts)
   'PONDERING', // greeting (ponderFor); the hourly ponder-job.ts ponders usersWithFlag too
+  'PERSON_MODEL', // UI server's nightly call-sheet job only: usersWithFlag + flagForUser (person-model-job.ts)
   'MORNING_BRIEF', // UI server's briefing job only, never a call: usersWithFlag (brief-job.ts)
   // Read per call, never at boot: as applied mid-call, envForCaller after it, flagForUser on the UI server.
   'COMMITMENT_SINGLE_WRITER',
@@ -144,13 +150,31 @@ export const COHORT_FLAGS = [
   // Crisis lane, owner first (Seth signed off 2026-10-30): read per turn by the crisis classifier
   // after applyCallerFlags, so one person can try it before the agent's own flag goes on.
   'CRISIS_IMMINENT_NEEDS_AGREEMENT',
+  // "Send email as me" for one person before Google verifies gmail.send: the web server's
+  // connect routes ask flagForUser (servers/api/routes/gmail-send.ts, oauth-start.ts); the
+  // agent's send reads it at tool time, after applyCallerFlags (gmail-send-as-user.ts).
+  'GMAIL_SEND_AS_USER',
+  // Read each time a quiet stretch is decided mid-call, never at boot (quiet-presence.ts);
+  // needs the agent's LISTEN_FIRST=on.
+  'QUIET_AFTER_QUESTION',
+  // Memory at the right moment (docs/plans/2026-10-31-right-moment-memory.md §5.6). The hello's
+  // call news is read at the greeting build (callNewsFor). Not CALL_REPORT_REACHES_YOU: its
+  // result-capture reads (unified-result-capture.ts) run outside the call.
+  'CALL_NEWS_OPENER',
+  // Read on each turn's retrieval, never at boot (turn-memory-scale.ts, turn-memory-rerank.ts).
+  'TURN_MEMORY_RRF_SCALE',
+  'TURN_MEMORY_RERANK',
+  // No reader yet: the caller card at call start, dates in the hello at the greeting build.
+  'CALLER_CARD',
+  'DATES_IN_HELLO',
+  ...MEMORY_COHORT_FLAGS, // memory-cohort-flags.ts says when each is read
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
 const ON_OFF: readonly string[] = ['on', 'off'];
 /** The flags that are not on/off switches, and the values they may take. */
 const MODES: Partial<Record<CohortFlag, readonly string[]>> = {
-  TURN_LENGTH: ['learned', 'off'],
+  TURN_LENGTH: ['learned', 'adaptive', 'off'],
   TURN_TEXTURE: ['learned', 'off'],
   PREEMPT_STABLE_CONTEXT: ['on', 'defer', 'off'],
 };
@@ -171,6 +195,9 @@ export const COHORT_FLAG_NEEDS: Partial<Record<CohortFlag, CohortFlag[]>> = {
   WORLD_FACTS_IN_CALL: ['WORLD_MODEL_TEMPORAL'],
   FOLLOW_THROUGH_TEXTS: ['FOLLOW_THROUGH_IMPORT'], // texts send follow-ups the import wrote
   OUTREACH_PONDERED_NOTES: ['PONDERING'], // notes send what pondering wrote
+  TURN_MEMORY_RERANK: ['TURN_MEMORY_RRF_SCALE'], // the judge reads the rescaled cosines
+  DATES_IN_HELLO: ['DATES_THAT_MATTER', 'WORLD_MODEL_TEMPORAL'], // the hello raises dates they store
+  FACTS_DUAL_WRITE: ['MEMORY_FACTS'], // the writer proposes nothing while the facts store is off
 };
 
 /** Flags set on whose prerequisites are not: "RECALL_EPISODES needs SEMANTIC_RECALL". */
@@ -314,22 +341,32 @@ export async function envForCaller(
 }
 
 /**
- * At call start: apply the caller's cohort flags, if this is on and safe.
+ * At call start: apply the caller's cohort flags, if this is on and safe, and
+ * the call's latency A/B arm (latency-arm.ts), drawn from `sessionId`, which
+ * reaches callers who are not members too. The caller's own values beat the arm.
  * Never throws and never waits longer than READ_TIMEOUT_MS; on any failure
- * the call runs with the agent's own flags.
+ * the call runs with the agent's own flags, plus its arm.
  */
 export async function applyCallerFlags(
   userId: string | undefined,
-  opts: { store?: CohortStore; env?: NodeJS.ProcessEnv; timeoutMs?: number } = {}
+  opts: {
+    store?: CohortStore;
+    env?: NodeJS.ProcessEnv;
+    timeoutMs?: number;
+    sessionId?: string;
+  } = {}
 ): Promise<string[]> {
   const env = opts.env ?? process.env;
-  if (!cohortFlagsEnabled(env)) return [];
+  const cohorts = cohortFlagsEnabled(env);
+  if (!cohorts && latencyArmPercent(env) <= 0) return [];
   if (!oneCallPerProcess(env)) {
     log.warn('Cohort flags skipped: a worker can run several calls at once');
     return [];
   }
+  const apply = (flags: Record<string, string>): string[] =>
+    applyFlags(withLatencyArm(opts.sessionId, flags, env), env);
   // The previous caller's flags go back to the agent's own even if this caller has none.
-  if (!isMemberIdentity(userId)) return applyFlags({}, env);
+  if (!cohorts || !isMemberIdentity(userId)) return apply({});
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const caller = await Promise.race([
@@ -343,17 +380,21 @@ export async function applyCallerFlags(
         { userId: userId.slice(0, 8) },
         'Cohort flags not read in time; agent defaults apply'
       );
-      return applyFlags({}, env);
+      return apply({});
     }
-    const { flags, cohorts, overridden } = caller;
-    const applied = applyFlags(flags, env);
+    const { flags, cohorts: ids, overridden } = caller;
+    const applied = apply(flags);
     // Cohort ids name the audience (seth, friends-and-family), never a member.
-    if (applied.length > 0)
-      log.info({ userId: userId.slice(0, 8), cohorts, overridden, flags }, 'Cohort flags applied');
+    // The caller's own flags only: an arm-only call logs nothing here, as on main.
+    if (applied.some((flag) => flag in flags))
+      log.info(
+        { userId: userId.slice(0, 8), cohorts: ids, overridden, flags },
+        'Cohort flags applied'
+      );
     return applied;
   } catch (error) {
     log.warn({ error: String(error) }, 'Cohort flags not read; agent defaults apply');
-    return applyFlags({}, env);
+    return apply({});
   } finally {
     if (timer) clearTimeout(timer);
   }

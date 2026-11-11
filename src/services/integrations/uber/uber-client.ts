@@ -65,7 +65,7 @@ export interface UberFareEstimate {
   };
 }
 
-export type UberRideStatus =
+type UberRideStatus =
   | 'processing'
   | 'no_drivers_available'
   | 'accepted'
@@ -75,7 +75,7 @@ export type UberRideStatus =
   | 'rider_canceled'
   | 'completed';
 
-export interface UberRide {
+interface UberRide {
   requestId: string;
   status: UberRideStatus;
   product: {
@@ -108,7 +108,7 @@ export interface UberRide {
   createdAt: Date;
 }
 
-export interface UberReceipt {
+interface UberReceipt {
   requestId: string;
   chargeAdjustments: Array<{ name: string; amount: number }>;
   subtotal: number;

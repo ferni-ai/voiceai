@@ -194,7 +194,7 @@ export function validateTranscript(
   // =========================================================================
   for (const pattern of NOISE_PATTERNS) {
     if (pattern.test(trimmed)) {
-      log.debug('Transcript rejected: noise marker', { transcript: trimmed.slice(0, 30) });
+      log.debug('Transcript rejected: noise marker', { transcriptLen: trimmed.length });
       return {
         isValid: false,
         reason: 'noise_marker',
@@ -219,7 +219,7 @@ export function validateTranscript(
     for (const pattern of LIKELY_NOISE_WORDS) {
       if (pattern.test(trimmed)) {
         log.debug('Transcript rejected: likely noise word', {
-          transcript: trimmed,
+          transcriptLen: trimmed.length,
           pattern: pattern.source,
           expectedLang,
         });
@@ -240,7 +240,7 @@ export function validateTranscript(
   // For short transcripts (< 15 chars), foreign characters are suspicious
   if (trimmed.length < 15 && foreignCharCount > 0) {
     log.debug('Transcript rejected: foreign characters in short transcript', {
-      transcript: trimmed.slice(0, 30),
+      transcriptLen: trimmed.length,
       foreignCount: foreignCharCount,
       length: trimmed.length,
       expectedLang,
@@ -256,7 +256,7 @@ export function validateTranscript(
   // For longer transcripts, if more than 15% foreign characters, likely noise
   if (foreignRatio > 0.15) {
     log.debug('Transcript rejected: too many foreign characters', {
-      transcript: trimmed.slice(0, 30),
+      transcriptLen: trimmed.length,
       foreignRatio: foreignRatio.toFixed(2),
       expectedLang,
     });
@@ -286,7 +286,7 @@ export function validateTranscript(
   // Catches: ".", "..", "...", "!", "?", "...", etc.
   // =========================================================================
   if (PUNCTUATION_ONLY_PATTERN.test(trimmed)) {
-    log.debug('Transcript rejected: punctuation only', { transcript: trimmed });
+    log.debug('Transcript rejected: punctuation only', { transcriptLen: trimmed.length });
     return {
       isValid: false,
       reason: 'single_char', // Reuse reason - semantically similar
@@ -302,7 +302,7 @@ export function validateTranscript(
   // =========================================================================
   const isWhitelistedPhrase = VALID_SHORT_PHRASES.some((pattern) => pattern.test(trimmed));
   if (isWhitelistedPhrase) {
-    log.debug('Transcript whitelisted: common greeting/phrase', { transcript: trimmed });
+    log.debug('Transcript whitelisted: common greeting/phrase', { transcriptLen: trimmed.length });
     return {
       isValid: true,
       confidence: 1.0,
@@ -317,7 +317,7 @@ export function validateTranscript(
   const inEchoWindow = context.timeSinceAgentSpoke < ECHO_VIGILANCE_WINDOW_MS;
   if (inEchoWindow && trimmed.length < MIN_ECHO_WINDOW_LENGTH) {
     log.debug('Transcript rejected: too short during echo window', {
-      transcript: trimmed,
+      transcriptLen: trimmed.length,
       length: trimmed.length,
       timeSinceAgentSpoke: context.timeSinceAgentSpoke,
     });
@@ -358,7 +358,7 @@ export function validateTranscript(
     for (const pattern of LIKELY_ECHO_PATTERNS) {
       if (pattern.test(trimmed)) {
         log.debug('Transcript rejected: likely garbled echo pattern', {
-          transcript: trimmed.slice(0, 50),
+          transcriptLen: trimmed.length,
           pattern: pattern.source,
           timeSinceAgentSpoke: context.timeSinceAgentSpoke,
         });
@@ -381,7 +381,7 @@ export function validateTranscript(
     const wordCount = trimmed.split(/\s+/).filter((w) => w.length > 0).length;
     if (wordCount < 2) {
       log.debug('Transcript rejected: too few words during agent speech', {
-        transcript: trimmed,
+        transcriptLen: trimmed.length,
         wordCount,
       });
       return {

@@ -118,7 +118,7 @@ struct CallCaptions: View {
         switch call.phase {
         case .connecting: return String(localized: "Calling \(name)…")
         case .waitingForFerni: return String(localized: "\(name)'s on the way…")
-        case .reconnecting: return String(localized: "Reconnecting…")
+        case .reconnecting, .rejoining: return String(localized: "Reconnecting…")
         case .live:
             if call.isOnHold { return String(localized: "On hold") }
             if call.isMuted { return String(localized: "You're muted") }
@@ -138,7 +138,7 @@ struct CallCaptions: View {
 enum CallAnnouncement {
     static func text(phase: CallSession.Phase, onHold: Bool) -> String? {
         switch phase {
-        case .reconnecting: String(localized: "Reconnecting…")
+        case .reconnecting, .rejoining: String(localized: "Reconnecting…")
         case .live where onHold: String(localized: "On hold")
         case .failed(let problem): problem.message
         default: nil
@@ -205,7 +205,7 @@ struct CallControls: View {
                     .buttonStyle(.plain)
                     .glassEffect(.regular.tint(FerniColor.error).interactive(), in: .circle)
                     .glassEffectID("talk", in: glass)
-                    .accessibilityLabel(call.phase == .live || call.phase == .reconnecting ? "End call" : "Cancel")
+                    .accessibilityLabel([.live, .reconnecting, .rejoining].contains(call.phase) ? "End call" : "Cancel")
                     .keyboardShortcut(".", modifiers: .command)
 
                     circle("ellipsis", muted: false, label: "More", action: more)
@@ -280,6 +280,9 @@ struct CallMoreSheet: View {
                 Section {
                     Link(destination: URL(string: "tel:988")!) {
                         Label("Get help now (988)", systemImage: "phone.arrow.up.right")
+                    }
+                    Link(destination: URL(string: "sms:988")!) {
+                        Label("Text 988", systemImage: "message")
                     }
                 } footer: {
                     Text("988 is the Suicide & Crisis Lifeline in the US, free and open all day and night.")

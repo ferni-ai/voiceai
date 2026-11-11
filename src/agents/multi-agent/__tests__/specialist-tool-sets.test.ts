@@ -47,6 +47,10 @@ describe('specialist tool lists', () => {
   it.each(LISTS)(
     '%s: every tool is registered, in the domain the list gives',
     async (_, set) => {
+      // getSleepSummary is on Maya's list but registered only with its flag and the Oura app credentials
+      vi.stubEnv('OURA_SLEEP_TOOL', 'on');
+      vi.stubEnv('OURA_CLIENT_ID', 'test-oura-id');
+      vi.stubEnv('OURA_CLIENT_SECRET', 'test-oura-secret');
       await loadToolDomainsLazy([...new Set(Object.values(set))]);
       const wrong = Object.entries(set)
         .map(([name, domain]) => [name, domain, toolRegistry.get(name)?.domain] as const)

@@ -5,7 +5,8 @@
  * Keep the state in the test file (vi.hoisted) and pass it in, so it survives
  * vi.resetModules. Covers what services/social/shared-records uses: doc
  * get/set/delete, collection queries (where '==' or '>', orderBy, limit,
- * count), and runTransaction (get/set/delete) with
+ * count; each document found carries its ref, for batch deletes), and
+ * runTransaction (get/set/delete) with
  * Firestore's optimistic concurrency: if a document a transaction read was
  * written by someone else before it commits, the transaction runs again. A
  * read-then-write outside a transaction gets no such protection, so racing
@@ -56,6 +57,7 @@ export function createFakeFirestore(state: FakeFirestoreState) {
     const data = state.docs.get(path);
     return {
       id: path.split('/').pop() ?? '',
+      ref: ref(path),
       exists: data !== undefined,
       data: () => (data ? structuredClone(data) : undefined),
     };

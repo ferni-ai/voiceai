@@ -104,8 +104,9 @@ one hears about it in the queue rather than at PR time.
   `src/agents/multi-agent/__tests__/family-table.test.ts`,
   `src/tools/domains/information/__tests__/web-search.test.ts`,
   `src/agents/outbound-call/__tests__/call-screener.test.ts`. Stage
-  directions: `src/tests/stage-direction-*.test.ts` in
-  `.github/workflows/stage-direction-tests.yml` (path-filtered and optional).
+  directions: `src/tests/stage-direction-*.test.ts` in Integration Tests
+  (ci.yml: merge queue and nightly) and
+  `src/speech/__tests__/ssml-tagger.test.ts` in Unit Tests.
   Everything else: manual.
 - **Scope:** spoken text.
 

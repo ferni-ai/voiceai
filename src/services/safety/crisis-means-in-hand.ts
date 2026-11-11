@@ -18,6 +18,7 @@
  * @module CrisisMeansInHand
  */
 
+import { meansLookback } from './crisis-means-lookback.js';
 import { explicitModifier } from './crisis-modifiers.js';
 
 export type MeansInHandMode = 'off' | 'shadow' | 'live';
@@ -53,6 +54,15 @@ const EVERYDAY_AFTER_AND = String.raw`(?:we'?re|we are|we'?ll|then (?:go|going|h
 /** Run-on speech-to-text has no punctuation: a goodbye or a plea right after still ends it. */
 const RUN_ON = String.raw`goodbye|bye|i love you|love you|i'?m sorry|sorry|i'?m scared|please|forgive me|don'?t (?:call|tell|try|come|stop)|tell (?:my|everyone|them|him|her)|nobody|no one|i can'?t|i'?m done|it'?s over`;
 const CLAUSE_END = String.raw`(?= *(?:$|[.!?;]|,(?! *${EVERYDAY_AFTER_COMMA})|and\b(?! ${EVERYDAY_AFTER_AND})|but\b|now\b|right now\b|ready\b|loaded\b|it'?s\b|already\b|just now\b|(?:${RUN_ON})\b))`;
+/** Rope work or play said right after it: "... for the boat", "..., see you at the crag". */
+const ROPE_EVERYDAY = String.raw`(?! (?:for|to|off)\b)(?! (?:at|on|in) (?:the|my) (?:gym|crag|dock|barn|boat|canoe|kayak|tent|campsite|park|beach|lake|pool|yard|truck|trailer)\b)(?!,? *(?:see (?:you|ya|u) at\b|(?:the|my) (?:boat|tent|dog|kayak|canoe|truck)\b|(?:climbing|camping|sailing|boating|hiking|belaying|towing)\b))`;
+/**
+ * A rope or noose made ready: "i have the rope ready", "the noose is tied", "a rope ready in the
+ * garage". Ropes for play or work (PLAY_ROPE: "the climbing rope") and rope work said right after
+ * (ROPE_EVERYDAY) stay out. The explicit patterns read it (crisis-patterns.ts), so ropes have one
+ * set of carve-outs.
+ */
+export const ROPE_READY = String.raw`(?:\b(?:i have|i'?ve got|i got)|(?:^|[.!?,] ?)got) (?:the|a|my)(?: [\w-]+)? ${PLAY_ROPE}(?:rope|noose) (?:ready|tied|set up)\b${ROPE_EVERYDAY}|\bthe noose is (?:ready|tied|up)\b${ROPE_EVERYDAY}`;
 const SELF_HARM_DONE = String.raw`(?:bleeding|blood everywhere|overdos\w*|took (?:all )?(?:the|my) (?:pills|meds)|took them all|swallowed (?:them|the|all|my)|(?:pills|meds) are (?:working|kicking in)|noose|the rope (?:held|is around)|cut my wrists?)`;
 const DID_IT = String.raw`\bi (?:just |finally |actually |already )?(?:did it|went through with it)\b`;
 /**
@@ -157,6 +167,16 @@ const FORMS: readonly MeansForm[] = [
   },
 ];
 
+/**
+ * "i already have the pills." said as a whole sentence, with nothing after it. Beside ending words
+ * in the same turn ("i want to die. i have the pills.") it is the means at hand, with no WHERE
+ * word; "i have the pills for my headache" carries on, so it is not this. The caller's own
+ * medication ("i have my meds.") is how a check-in is said, as in PAIRED_MEANS.
+ */
+const MEANS_HAD = new RegExp(
+  String.raw`(?:^|[.!?] *)(?:i (?:already |still )?(?:have|got)|i'?ve (?:already )?got|(?:already )?got) (?:(?:the|all (?:of )?my|all the) (?:pills|meds)|(?:the|my|a) (?:gun|pistol|rope|noose|razor|blade|knife))(?: (?:already|ready|now|right now|right here))?(?= *(?:$|[.!?]))`,
+  'g'
+);
 /** The means at hand, beside the caller's own ending words. */
 const MEANS_AT_HAND =
   /\b(pills|gun|rope|razor|blade|knot)\b[^.!?]{0,25}\b(ready|in my hand|in my lap|loaded|next to me|right here)\b/;
@@ -187,15 +207,14 @@ const REPORTED =
   /\b(he|she|they|my (\w+ )?(friend|brother|sister|mom|mother|dad|father|son|daughter|kid|child|wife|husband|partner|boyfriend|girlfriend|cousin|roommate|coworker|neighbor))('s| is| was)? (said|says|texted|texts|wrote|writes|told me|posted|messaged|keeps saying|just said)\b/;
 /** A quote opened after the reporting words and still open where the match starts. */
 const QUOTED = new RegExp(String.raw`${REPORTED.source}[^"]*"[^"]*$`);
-/** Softened in a way the shared modifiers miss: negated means, or not happening. */
-function meansSoftened(text: string, start: number, end: number): boolean {
-  const span = text.slice(start, end);
-  const clause =
-    text
-      .slice(0, start)
-      .split(/[.!?;,]|\bbut\b|\band\b|\bso\b/)
-      .pop() ?? '';
-  const sentence = text.slice(0, start).split(/[.!?]/).pop() ?? '';
+/**
+ * Softened in a way the shared modifiers miss: negated means, or not happening. The clause and the
+ * sentence are the words before the match (crisis-means-lookback.ts, found once per turn).
+ */
+function meansSoftened(
+  span: string,
+  { clause, sentence }: { clause: string; sentence: string }
+): boolean {
   return (
     NEGATED_VERB.test(span) ||
     NO_MEANS.test(clause + span) ||
@@ -205,6 +224,20 @@ function meansSoftened(text: string, start: number, end: number): boolean {
     REPORTED.test(clause) ||
     QUOTED.test(sentence)
   );
+}
+
+/**
+ * A match is free when no pattern softened it and nothing around it softens it. The breaks are
+ * found on the first check and kept for the turn, so many matches cost one pass, not one each.
+ */
+function freeOf(
+  text: string,
+  softened: ReadonlyArray<readonly [number, number]>
+): (start: number, end: number) => boolean {
+  let before: ReturnType<typeof meansLookback> | undefined;
+  return (start, end) =>
+    !softened.some(([s, e]) => start < e && end > s) &&
+    !meansSoftened(text.slice(start, end), (before ??= meansLookback(text))(start));
 }
 
 /**
@@ -231,11 +264,11 @@ export function meansInHandRead(
   text: string,
   indicators: readonly string[],
   softened: ReadonlyArray<readonly [number, number]>,
-  forms: MeansForms
+  forms: MeansForms,
+  endingOutside: (spans: ReadonlyArray<readonly [number, number]>) => boolean
 ): { tag: 'suicidal' | 'self_harm'; form: MeansFormName } | null {
   if (forms === 'none') return null;
-  const free = (start: number, end: number): boolean =>
-    !softened.some(([s, e]) => start < e && end > s) && !meansSoftened(text, start, end);
+  const free = freeOf(text, softened);
   const read = (form: MeansForm): { tag: 'suicidal' | 'self_harm'; form: MeansFormName } | null => {
     for (const m of text.matchAll(new RegExp(form.re.source, 'g'))) {
       const end = m.index + m[0].length;
@@ -251,14 +284,23 @@ export function meansInHandRead(
     const hit = LIVE_FORMS.has(form.name) ? read(form) : null;
     if (hit) return hit;
   }
-  const ending =
-    (forms === 'all' || LIVE_FORMS.has('ending_beside_means')) &&
-    (indicators.includes('explicit_crisis_language') || indicators.includes('plan_or_means'));
-  for (const m of ending ? text.matchAll(new RegExp(MEANS_AT_HAND.source, 'g')) : []) {
+  const ending = forms === 'all' || LIVE_FORMS.has('ending_beside_means');
+  const said =
+    indicators.includes('explicit_crisis_language') || indicators.includes('plan_or_means');
+  for (const m of ending && said ? text.matchAll(new RegExp(MEANS_AT_HAND.source, 'g')) : []) {
     if (free(m.index, m.index + m[0].length)) {
       return { tag: 'suicidal', form: 'ending_beside_means' };
     }
   }
+  // The sentence alone names no hand or lap, and its own words make the plan_or_means read, so
+  // the ending words must be other words in the turn (#3564). Every free sentence is blanked at
+  // once and the rest read once, so a turn of a thousand such sentences costs one more read.
+  const had = ending
+    ? [...text.matchAll(MEANS_HAD)]
+        .map((m): [number, number] => [m.index, m.index + m[0].length])
+        .filter(([start, end]) => free(start, end))
+    : [];
+  if (had.length > 0 && endingOutside(had)) return { tag: 'suicidal', form: 'ending_beside_means' };
   if (forms !== 'all') return null;
   for (const form of FORMS) {
     const hit = LIVE_FORMS.has(form.name) ? null : read(form);

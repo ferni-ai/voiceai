@@ -22,20 +22,18 @@ const llm = vi.hoisted(() => ({
 vi.mock('../../agents/shared/tool-dispatcher.js', () => ({ executeTool }));
 
 // Native function call so /api/chat/message reaches the dispatcher.
-vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: class {
-    getGenerativeModel(opts: { tools?: Array<{ functionDeclarations: Array<{ name: string }> }> }) {
-      llm.offered = (opts.tools?.[0]?.functionDeclarations ?? []).map((d) => d.name);
-      return {
-        generateContent: async () => ({
-          response: {
-            text: () => 'Looking that up.',
-            functionCalls: () => llm.calls,
-          },
-        }),
-      };
-    }
-  },
+vi.mock('../../config/gemini-config.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../config/gemini-config.js')>()),
+  getGeminiClient: async () => ({
+    models: {
+      generateContent: async (req: {
+        config?: { tools?: Array<{ functionDeclarations: Array<{ name: string }> }> };
+      }) => {
+        llm.offered = (req.config?.tools?.[0]?.functionDeclarations ?? []).map((d) => d.name);
+        return { text: 'Looking that up.', functionCalls: llm.calls };
+      },
+    },
+  }),
 }));
 
 // The verifier: "Bearer <uid>" is a verified token for <uid>; admin-uid is an admin.
@@ -53,7 +51,6 @@ vi.mock('../auth-middleware.js', () => ({
   }),
 }));
 
-process.env.GOOGLE_API_KEY = 'test-key';
 const { handleChatRoutes } = await import('../chat-routes.js');
 
 let lastBody: unknown;
@@ -92,6 +89,7 @@ function ranAs(): unknown[] {
 describe('chat API tool identity', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv('WEB_CHAT_MESSAGE', 'on'); // the route is off by default
     executeTool.mockResolvedValue({ success: true, result: 'ok' });
     llm.calls = [{ name: 'recallFromMemory', args: { query: 'birthday' } }];
   });
@@ -130,6 +128,7 @@ describe('chat API tool identity', () => {
 describe('chat API tool access', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv('WEB_CHAT_MESSAGE', 'on'); // the route is off by default
     executeTool.mockResolvedValue({ success: true, result: 'ok' });
   });
 

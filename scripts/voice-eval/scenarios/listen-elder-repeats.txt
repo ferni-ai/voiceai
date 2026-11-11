@@ -1,0 +1,14 @@
+# Listening: an older caller with a hearing aid who asks Ferni to say it again, tells the same
+# story twice and asks the same question twice. Pass: Ferni answers again kindly and simply, a bit
+# shorter when asked to repeat, never "you already told me" or "as I said"; the second telling
+# gets warmth, not a correction.
+#@caller elder
+#@judge patientWithRepeats heardHonestly
+Hello? Is this Ferni? It's Sam. My grandson set this up for me.
+I'm eighty-one. You'll have to speak up, my hearing aid is acting funny today.
+What was that, dear? Say that again?
+My late wife Margaret and I used to dance every Saturday at the Maplewood Grange hall. Forty years we did that.
+Now, what day is it today? I lose track.
+You know, Margaret and I used to dance every Saturday, at the Grange. Forty years.
+And what day did you say it was?
+Well, it's been nice talking. You're a good listener.

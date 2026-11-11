@@ -25,10 +25,8 @@
 
 import { llm } from '@livekit/agents';
 import { callerUserId } from '../local-search/caller-city.js';
-import { notCalling, ownerRefusal } from '../../../utils/consent-port.js';
 import { z } from 'zod';
 import {
-  directSendHeld,
   guardedThirdPartySend,
   sendEmail,
   sendSMS,
@@ -52,17 +50,14 @@ import {
   validatePhone,
 } from '../../validation.js';
 
-// Twilio for phone calls
-const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
-const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || '';
-
 // Cartesia for voice message TTS
 const CARTESIA_API_KEY = process.env.CARTESIA_API_KEY || '';
 
 // Import voice registry for consistent voice ID resolution
 import { getVoiceId } from '../../../personas/voice-registry.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { getUserName } from '../../utils/tool-helpers.js';
+import { makePhoneCall } from './phone-call.js';
 import { getCallUserPort } from '../proactive/outreach/call-user-port.js';
 // Get Alex's voice ID from the registry (single source of truth)
 const getAlexVoiceId = () => getVoiceId('alex-chen');
@@ -204,72 +199,6 @@ async function sendTextReal(to: string, message: string, userId: string): Promis
   }
   const phone = validation.sanitized as string;
   return guardedThirdPartySend(phone, message, userId, () => sendSMS(phone, message, { userId }));
-}
-
-// ===== PHONE CALL FUNCTIONS (Twilio Programmable Voice) =====
-
-/** Outbound Twilio call. Both ids are the session's, never a model arg: consent, then the hold. */
-async function makePhoneCall(
-  to: string,
-  purpose: string,
-  ownerUid: string | undefined,
-  holdUid?: string
-): Promise<string> {
-  const validation = validatePhone(to);
-  if (!validation.valid) {
-    return `I need a valid phone number to make a call. Can you double-check "${to}"?`;
-  }
-
-  const validPhone = validation.sanitized as string;
-  // MESSAGING_PIPELINE: the owner's own number, or someone who gave this owner a call grant.
-  const refused = await ownerRefusal(ownerUid, validPhone, 'call');
-  if (refused) return notCalling(refused);
-  if (await directSendHeld(validPhone, 'call', { userId: holdUid })) return 'Not calling: held.';
-
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
-    getLogger().warn('Twilio not configured for calls');
-    return `I'd love to make that call, but my phone service isn't fully set up yet. Let me send a text instead?`;
-  }
-
-  try {
-    const defaultTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="alice">Hi! This is a call from Alex, your communication assistant. ${purpose}. Have a great day!</Say>
-</Response>`;
-
-    const response = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Calls.json`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64')}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          To: validPhone,
-          From: TWILIO_PHONE_NUMBER,
-          Twiml: defaultTwiml,
-        }),
-        signal: AbortSignal.timeout(15000),
-      }
-    );
-
-    if (response.ok) {
-      const data = (await response.json()) as { sid?: string };
-      getLogger().info(
-        { to: sanitizePhoneForLog(validPhone), callSid: data.sid },
-        '📞 Call initiated'
-      );
-      return `Done! Calling ${sanitizePhoneForLog(validPhone)} now. They'll get a brief voice message about: "${purpose}"`;
-    } else {
-      const errorBody = await response.text();
-      getLogger().error({ status: response.status, body: errorBody }, 'Twilio call error');
-      return `I had trouble starting that call. Let me send a text instead?`;
-    }
-  } catch (error) {
-    getLogger().error({ error }, 'Phone call error');
-    return `Something went wrong with the call. Would a text work instead?`;
-  }
 }
 
 // ===== VOICE MESSAGE FUNCTIONS (Cartesia TTS + Twilio MMS) =====
@@ -535,7 +464,8 @@ export function createCommunicationTools() {
         message: z.string().describe('Message to deliver in the call'),
       }),
       execute: async ({ phoneNumber, message }, opts) => {
-        return makePhoneCall(phoneNumber, message, callerUserId(opts), reminderOwner(opts.ctx));
+        const [ownerUid, holdUid] = [callerUserId(opts), reminderOwner(opts.ctx)];
+        return makePhoneCall(phoneNumber, message, ownerUid, holdUid, getUserName(opts));
       },
     }),
 
@@ -610,7 +540,9 @@ export function createCommunicationTools() {
         // Only the caller's own reminder, by its full id or the short id we read out.
         const id = reminderId.trim();
         const owner = reminderOwner(ctx);
-        const mine = owner ? getPendingReminders(owner).find((r) => id && r.id.endsWith(id)) : undefined;
+        const mine = owner
+          ? getPendingReminders(owner).find((r) => id && r.id.endsWith(id))
+          : undefined;
         const success = mine ? await cancelReminder(mine.id) : false;
 
         if (success) {
@@ -839,7 +771,9 @@ export function createCommunicationTools() {
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userId = reminderOwner(ctx);
-        const pendingEmails = [...own(emailDrafts, ctx).values()].filter((e) => e.status === 'draft');
+        const pendingEmails = [...own(emailDrafts, ctx).values()].filter(
+          (e) => e.status === 'draft'
+        );
         const upcomingCalls = [...own(scheduledCalls, ctx).values()].filter(
           (c) => c.status === 'scheduled' && c.scheduledTime > new Date()
         );

@@ -26,6 +26,16 @@ function calendarDateUtc(ms: number, timeZone?: string): number {
   }
 }
 
+/**
+ * The calendar date `instant` falls on in `timeZone`, as YYYY-MM-DD (UTC for
+ * none or unknown; '' for an invalid instant). Two instants are on the same
+ * day for the user when their keys match.
+ */
+export function localDayKey(instant: Date | number, timeZone?: string): string {
+  const day = calendarDateUtc(new Date(instant).getTime(), timeZone);
+  return Number.isFinite(day) ? new Date(day).toISOString().slice(0, 10) : '';
+}
+
 /** 0 = same calendar day, 1 = yesterday, ...; never negative. */
 export function calendarDaysSince(
   from: Date | number | string,

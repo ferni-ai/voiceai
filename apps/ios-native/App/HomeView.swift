@@ -40,6 +40,7 @@ struct HomeView: View {
                         if inCall { NameChip(personaID: call.avatar.personaID) }
                         avatar(call: call, size: inCall ? 240 : 200)
                             .padding(.top, inCall ? FerniSpace.breath : FerniSpace.silence)
+                            .zIndex(1) // Ferni and his shadow stay over the words' paper
                         if inCall {
                             CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
                         } else {
@@ -55,6 +56,9 @@ struct HomeView: View {
                             }
                             if call.phase == .idle, let note = model.homeLine.current?.note {
                                 NoteCard(note: note) { model.talk(aboutNote: note) }
+                            }
+                            if let prompt = SignInPrompt.shown(model.account.state) {
+                                SignInPromptView(prompt: prompt) { model.isSigningIn = true }
                             }
                             TeamRow(team: model.team)
                         }
@@ -115,9 +119,13 @@ struct HomeView: View {
                         model.isAskingConsent = false
                         Task { await model.agreeAndTalk() }
                     },
-                    onNotNow: { model.notNow() }
+                    onNotNow: { model.notNow() },
+                    account: model.account
                 )
                 .presentationDetents([.large])
+            }
+            .sheet(isPresented: $model.isSigningIn, onDismiss: { model.signInFinished() }) {
+                SignInView(account: model.account)
             }
         }
     }
@@ -127,7 +135,7 @@ struct HomeView: View {
         // smaller sheets (More, Report) leave him in view.
         CallAvatar(call: call, covered: model.isShowingSettings || model.isAskingConsent, wake: model.wakeCount) { model.feedback.play($0) }
             .frame(width: size, height: size)
-            .opacity(call.phase == .reconnecting ? 0.5 : 1)
+            .opacity(call.phase == .reconnecting || call.phase == .rejoining ? 0.5 : 1)
     }
 
     private var controls: some View {
@@ -167,6 +175,8 @@ private struct RestingLine: View {
             }
         }
         .multilineTextAlignment(.center)
+        // The words sit on the paper, not on Ferni's light (see RoomPaper).
+        .onRoomPaper(date: now)
     }
 
     @ViewBuilder private func greeting(_ headline: String, _ detail: String) -> some View {

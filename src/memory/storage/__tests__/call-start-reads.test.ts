@@ -16,6 +16,8 @@ const fake = vi.hoisted(() => {
     }
   );
   const db = {
+    runTransaction: async (fn: never) =>
+      (await import('../../../tests/helpers/fake-transaction.js')).fakeRunTransaction(fn),
     collection: (_name: string) => ({
       doc: (id: string) => ({
         get: () => get(id),
@@ -94,7 +96,8 @@ describe('call-start root-doc reads', () => {
     const after = await store.getProfile('u-save');
 
     expect(after?.name).toBe('Ana Maria');
-    expect(fake.get).toHaveBeenCalledTimes(2);
+    // the read before, the save's own erasure check (profile-write-unless-erased.ts), the read after
+    expect(fake.get).toHaveBeenCalledTimes(3);
   });
 
   it('reads again after a language preference is saved', async () => {

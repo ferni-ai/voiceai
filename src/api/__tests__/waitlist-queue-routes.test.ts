@@ -9,14 +9,18 @@ import { memoryStore } from '../../services/waitlist/__tests__/memory-store.js';
 const { world } = vi.hoisted(() => ({
   world: {
     token: null as null | { email: string; emailVerified: boolean },
+    unchecked: false, // the token's account couldn't be checked (Auth down, token-revocation.ts)
     store: null as unknown,
   },
 }));
 vi.mock('../../services/identity/firebase-auth.js', () => ({
-  verifyFirebaseToken: async () =>
-    world.token
+  verifyFirebaseToken: async () => {
+    if (world.unchecked)
+      throw Object.assign(new Error('unchecked'), { code: 'auth/revocation-check-unavailable' });
+    return world.token
       ? { uid: 'u1', isAnonymous: false, claims: {}, expiresAt: 0, ...world.token }
-      : null,
+      : null;
+  },
   isVerifiedToken: (t: unknown) => !!t && typeof t === 'object' && 'uid' in t,
 }));
 vi.mock('../../utils/firestore-utils.js', async (orig) => ({
@@ -35,10 +39,15 @@ async function call(method: 'GET' | 'POST', path: string, body?: unknown) {
     headers: { host: 'localhost', ...(world.token ? { authorization: 'Bearer a.b.c' } : {}) },
   });
   let status = 0;
+  let headers: Record<string, string> = {};
   let text = '';
-  const res = { writeHead: (s: number) => void (status = s), end: (b: string) => void (text = b) };
+  const res = {
+    writeHead: (s: number, h?: Record<string, string>) => void ((status = s), (headers = h ?? {})),
+    end: (b: string) => void (text = b),
+  };
   const handled = await handleWaitlistQueueRoutes(req as never, res as never, path);
-  return { handled, status, body: text ? (JSON.parse(text) as Record<string, unknown>) : {} };
+  const parsed = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+  return { handled, status, headers, body: parsed };
 }
 
 let s: ReturnType<typeof memoryStore>;
@@ -46,9 +55,23 @@ beforeEach(() => {
   s = memoryStore();
   world.store = s.store;
   world.token = null;
+  world.unchecked = false;
 });
 
 describe('waitlist queue routes', () => {
+  it("answers 503 with Retry-After, never 401, when the token's account couldn't be checked", async () => {
+    world.token = { email: 'pat@example.com', emailVerified: true };
+    world.unchecked = true;
+    for (const [method, path] of [
+      ['GET', '/api/waitlist/me'],
+      ['POST', '/api/waitlist/join'],
+    ] as const) {
+      const { status, headers } = await call(method, path, {});
+      expect(status).toBe(503);
+      expect(headers['Retry-After']).toBe('5');
+    }
+  });
+
   it('/me needs a sign-in with a verified email', async () => {
     expect((await call('GET', '/api/waitlist/me')).status).toBe(401);
     world.token = { email: 'pat@example.com', emailVerified: false };

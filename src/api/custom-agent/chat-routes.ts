@@ -12,12 +12,27 @@
  * scene (roleplay, coaching, a task) is context the person never sees as their message.
  */
 import type { IncomingMessage, ServerResponse } from 'http';
+import { flagOn } from '../../config/env-flag.js';
+import type * as CrisisGateText from '../../agents/personas/crisis-gate-text.js';
 import { callLLM } from '../../services/llm-utils.js';
+import {
+  buildLiveCustomAgentPrompt,
+  CUSTOM_AGENT_NAME_MAX,
+  customAgentToPersonaConfig,
+  sanitizeOwnerText,
+} from '../../services/custom-agent/index.js';
 import { getCustomAgent } from '../../services/custom-agent/custom-agent-persistence-service.js';
 import type { CustomAgent } from '../../types/custom-agent-api.js';
 import { parseBody } from '../helpers.js';
 import { sendJson } from './helpers.js';
 import { generateSystemPrompt } from './prompt-routes.js';
+
+// The voice crisis gate, loaded when a chat arrives rather than with this module: its graph
+// reaches the memory store, which light importers of these routes (the web app's contract
+// tests) can't resolve. The server has it loaded already through journal-routes.ts.
+async function loadCrisisGateText(): Promise<typeof CrisisGateText> {
+  return import('../../agents/personas/crisis-gate-text.js');
+}
 
 export interface ChatTurn {
   from: 'person' | 'agent';
@@ -39,10 +54,12 @@ export function readChatRequest(
   const scene = text(input.scene);
   if (!message && !scene) return null;
   const history = (Array.isArray(input.history) ? input.history : [])
-    .filter((turn): turn is ChatTurn =>
-      typeof turn === 'object' && turn !== null &&
-      ((turn as ChatTurn).from === 'person' || (turn as ChatTurn).from === 'agent') &&
-      typeof (turn as ChatTurn).text === 'string'
+    .filter(
+      (turn): turn is ChatTurn =>
+        typeof turn === 'object' &&
+        turn !== null &&
+        ((turn as ChatTurn).from === 'person' || (turn as ChatTurn).from === 'agent') &&
+        typeof (turn as ChatTurn).text === 'string'
     )
     .slice(-MAX_TURNS)
     .map((turn) => ({ from: turn.from, text: text(turn.text) }));
@@ -54,18 +71,30 @@ export function buildAgentChatPrompt(
   agent: CustomAgent,
   history: ChatTurn[],
   message: string,
-  scene: string
+  scene: string,
+  env: Record<string, string | undefined> = process.env
 ): string {
-  const name = agent.displayName || agent.name;
-  const stories = [...(agent.memories?.stories ?? []), ...(agent.memories?.wisdom ?? [])]
-    .map((memory) => memory.content)
-    .filter(Boolean)
-    .slice(0, 8);
+  // CUSTOM_AGENT_CHAT_HONESTY: the live call's prompt (owner text kept as data, honest when
+  // sincerely asked whether it's an AI) instead of one that pastes the owner's text raw.
+  // The name is owner text too and lands after the profile, so it is cleaned the same way.
+  const honest = flagOn('CUSTOM_AGENT_CHAT_HONESTY', env);
+  const rawName = agent.displayName || agent.name;
+  const name = honest
+    ? sanitizeOwnerText(rawName, CUSTOM_AGENT_NAME_MAX) || 'your character'
+    : rawName;
+  const stories = honest
+    ? []
+    : [...(agent.memories?.stories ?? []), ...(agent.memories?.wisdom ?? [])]
+        .map((memory) => memory.content)
+        .filter(Boolean)
+        .slice(0, 8);
   return [
-    generateSystemPrompt(agent),
+    honest
+      ? buildLiveCustomAgentPrompt(customAgentToPersonaConfig(agent), 'text')
+      : generateSystemPrompt(agent),
     stories.length ? `## What you remember\n${stories.map((s) => `- ${s}`).join('\n')}` : '',
     scene ? `## This conversation\n${scene}` : '',
-    `Reply as ${name} only: one or two short paragraphs of what ${name} says, in character, with no stage notes about being an AI.`,
+    `Reply as ${name} only: one or two short paragraphs of what ${name} says, in character, with no stage notes${honest ? '' : ' about being an AI'}.`,
     history.length || message ? '## Conversation so far' : '',
     ...history.map((turn) => `${turn.from === 'person' ? 'Them' : name}: ${turn.text}`),
     message ? `Them: ${message}` : `(${name} opens the conversation.)`,
@@ -87,13 +116,28 @@ export async function handleAgentChat(
     sendJson(res, 400, { error: 'A message or a scene is needed' });
     return true;
   }
+  // The voice turn's crisis gate, before the agent is read or the model asked. The scene
+  // holds the person's own typing too (a coaching context, a custom roleplay setting), so
+  // it is read as their turn: their opening words when there's no message, else their first.
+  const { readTypedMessageForCrisis } = await loadCrisisGateText();
+  const opening = !request.message;
+  const sceneTurn: ChatTurn[] = request.scene ? [{ from: 'person', text: request.scene }] : [];
+  const crisis = opening
+    ? await readTypedMessageForCrisis(request.scene, request.history)
+    : await readTypedMessageForCrisis(request.message, [...sceneTurn, ...request.history]);
+  if (crisis.action === 'replace') {
+    sendJson(res, 200, { reply: crisis.reply, crisis: true });
+    return true;
+  }
   const agent = await getCustomAgent(userId, agentId);
   if (!agent) {
     sendJson(res, 404, { error: 'Agent not found' });
     return true;
   }
   const reply = await callLLM(
-    buildAgentChatPrompt(agent, request.history, request.message, request.scene),
+    opening
+      ? buildAgentChatPrompt(agent, request.history, '', crisis.message)
+      : buildAgentChatPrompt(agent, request.history, crisis.message, request.scene),
     { maxTokens: 400, temperature: 0.8 }
   );
   if (!reply?.trim()) {

@@ -7,6 +7,7 @@
  * - PUT /api/account/profile - Update profile info
  * - POST /api/account/apple-authorization - Keep a Sign in with Apple grant to revoke on delete
  * - GET|POST|DELETE /api/account/processing-consent - Third-party processing consent
+ * - GET|POST|DELETE /api/account/call-capture-consent - Help shape Ferni (CALL_CAPTURE_CONSENT)
  *
  * @module AccountRoutes
  */
@@ -14,6 +15,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getStore } from '../memory/store-factory.js';
 import { deleteOAuthLinkStatesFor } from '../servers/token/oauth-link-state.js';
+import { deleteConnectInvitesFor } from '../services/connect-moments/connect-invites.js';
 import {
   exchangeAuthorizationCode,
   revokeAppleSignIn,
@@ -23,7 +25,11 @@ import { tombstoneTransactionOwnersFor } from '../services/billing/apple-signed-
 import { eraseMusicalSocialData } from '../services/musical-you/social.js';
 import { eraseSocialChallengesFor } from '../services/social/challenges.js';
 import { eraseSocialStatsFor } from '../services/social/leaderboards.js';
-import { deleteFirebaseUser, getFirebaseUser } from '../services/identity/firebase-auth.js';
+import { getFirebaseUser } from '../services/identity/firebase-auth.js';
+import {
+  deleteSignInAfterErasure,
+  eraseWithSignInOff,
+} from '../services/identity/erasure-sign-in.js';
 import { eraseDevicesFor } from '../services/push-devices.js';
 import { erasePushRecordsFor } from '../services/push-endpoint-owners.js';
 import { recordSecurityEvent } from '../services/security-events.js';
@@ -35,6 +41,7 @@ import { rateLimit, requireAuth } from './auth-middleware.js';
 import { parseBody, sendError, sendJSON } from './helpers.js';
 import { sendUserFacingError } from './user-facing-error.js';
 import { handleProcessingConsent } from './processing-consent-routes.js';
+import { handleCallCaptureConsent } from './call-capture-consent-routes.js';
 
 // Alias for compatibility
 const sendJson = sendJSON;
@@ -66,7 +73,7 @@ export async function handleAccountRoutes(
   }
 
   // All account routes require authentication
-  const auth = await requireAuth(req, res);
+  const auth = await requireAuth(req, res, { strict: true }); // deletion and consent
   if (!auth) return true;
 
   const { userId } = auth;
@@ -76,6 +83,9 @@ export async function handleAccountRoutes(
     // GET|POST|DELETE /api/account/processing-consent - third-party processing consent
     if (pathname === '/api/account/processing-consent') {
       return await handleProcessingConsent(req, res, auth);
+    }
+    if (pathname === '/api/account/call-capture-consent') {
+      return await handleCallCaptureConsent(req, res, auth); // 404 while CALL_CAPTURE_CONSENT is off
     }
 
     // GET /api/account - Get account info
@@ -183,7 +193,7 @@ async function handleGetAccount(
 
 /**
  * Records about the user kept outside their own documents (keyed by an
- * endpoint or device-token hash, an OAuth state hash, an Apple transaction id, a challenge id
+ * endpoint or device-token hash, an OAuth state or connect-invite hash, an Apple transaction id, a challenge id
  * or a leaderboard), so the deleteAllData sweep can't reach them. Challenge
  * sweeps also free the other party's open-challenge slot.
  */
@@ -191,6 +201,7 @@ const LINKED_RECORDS: ReadonlyArray<readonly [string, (userId: string) => Promis
   ['push_subscriptions', erasePushRecordsFor],
   ['push_devices', eraseDevicesFor],
   ['oauth_link_states', deleteOAuthLinkStatesFor],
+  ['connect_invites', deleteConnectInvitesFor],
   ['apple_transaction_owners', tombstoneTransactionOwnersFor],
   ['musical_challenges_and_leaderboards', eraseMusicalSocialData],
   ['social_challenges', eraseSocialChallengesFor],
@@ -256,7 +267,10 @@ async function handleDeleteAccount(
 
   try {
     const { getDataExportService } = await import('../services/data-export.js');
-    assertErased(await getDataExportService().deleteAllData(userId));
+    const erase = async () => getDataExportService().deleteAllData(userId);
+    // The sign-in goes off before any data does, so no instance reads the account as live
+    if (firebaseUid) await eraseWithSignInOff(firebaseUid, erase);
+    else assertErased(await erase());
   } catch (error) {
     log.error(
       { error: erasureErrorCode(error), userId },
@@ -275,7 +289,7 @@ async function handleDeleteAccount(
   const appleSignIn = await revokeAppleSignIn(userId);
   const failures = await eraseLinkedRecords(userId);
 
-  const firebaseDeleted = firebaseUid ? await deleteFirebaseUser(firebaseUid) : false;
+  const firebaseDeleted = firebaseUid ? await deleteSignInAfterErasure(firebaseUid) : false;
   if (firebaseUid && !firebaseDeleted) {
     log.error({ userId }, 'Data erased but Firebase user deletion failed');
     sendError(res, "Your data was deleted, but we couldn't close your sign-in. Try again?", 500);

@@ -23,11 +23,27 @@
 
 export { detectCrisis, getHighestSeverityCrisis, isCrisisActive } from './crisis-detection.js';
 /** The crisis guard's scoring of the caller's words alone: quiet, no logging (heavy-moment.ts). */
-export { detectCrisis as scoreCrisisLanguage, IN_DANGER_NOW } from './crisis-guard.js';
+export {
+  CRISIS_SEVERITY,
+  detectCrisis as scoreCrisisLanguage,
+  IN_DANGER_NOW,
+} from './crisis-guard.js';
+export { EMERGENCY_FOR_THEM } from './crisis-guard-replies.js';
+// assessSafety's escalate-only phrase floor, read after the guard (crisis-coaching-floor.ts).
+export { coachingFloorRead, type CoachingFloorRead } from './crisis-coaching-floor.js';
 export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.js';
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
-export { crisisRiskThisCall } from './crisis-call-risk.js';
+// Whether a crisis read is still out on a call: handoff arrival lines stay as today (arrival-once.ts).
+export { crisisReadInFlight, crisisRiskThisCall } from './crisis-call-risk.js';
 export { offersCrisisLine } from './crisis-line-speech.js';
+// What Ferni never dials (911, 988, N11 in any spelling), for callers outside the safety layer.
+export { emergencyDialRefusal } from '../../utils/dialable-number.js';
+// A turn whose crisis read the provider blocked (CRISIS_CLASSIFIER_BLOCKED_SIGNAL, turn-crisis.ts).
+export { blockedReadGuidance } from './crisis-classifier-blocked.js';
+export { resolveCrisisClassifierTimeoutMs } from './crisis-classifier.js';
+// CRISIS_GRADED_RESPONSE=shadow: the graded crisis response, measured first (crisis-graded-shadow.ts).
+export { mainOf } from './crisis-graded-response.js';
+export { noteSpokenLifeline, shadowGrade, shadowPipelineGrade } from './crisis-graded-shadow.js';
 
 export type {
   CrisisDetectionResult,
@@ -38,6 +54,13 @@ export type {
 
 // Whether crisis handling may touch a turn (handoff transfer aliases)
 export { crisisGuidedTurn, markCrisisTurn, unmarkCrisisTurn } from './crisis-turn-mark.js';
+// A caller under 18 telling of sexual harm (MINOR_ABUSE_DISCLOSURE, turn-crisis.ts, turn-handler.ts).
+export {
+  minorAbuseGuidance,
+  withMinorAbuseDisclosure,
+  withMinorAbuseRead,
+} from './minor-abuse-disclosure.js';
+export { SOFT_CRISIS_CHECK } from './crisis-agreement.js';
 
 // ============================================================================
 // CRISIS RESPONSE
@@ -56,6 +79,18 @@ export type {
   CrisisResponseContent,
   CrisisResponseContext,
 } from './crisis-response.js';
+export { EMERGENCY_NUMBER, EMERGENCY_SERVICE } from './emergency-number.js';
+export { isCareTalk, isSafetyTalk, reachesHelp } from './safety-talk.js';
+export * as crisisLines from './crisis-lines.js';
+// Someone hurting the caller (ABUSE_DISCLOSURE_PATTERNS, turn-crisis.ts and turn-handler.ts).
+export {
+  abuseCallRisk,
+  abuseGuidance,
+  disclosureGuidance,
+  withAbuseRead,
+} from './abuse-disclosure-turn.js';
+export { abuseOnlyRead } from './abuse-disclosure.js';
+export { abuseHoldNow, abuseHoldsOutreach, trackAbuseRead } from './abuse-outreach-hold.js';
 
 // ============================================================================
 // ESCALATION PATHWAYS

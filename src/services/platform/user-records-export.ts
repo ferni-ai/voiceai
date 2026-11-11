@@ -95,6 +95,8 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'persona_interactions',
     'persona_life_updates',
     'persona_told',
+    // the call sheet built from the stores here, and the copy it replaced (person-model-store.ts)
+    'person_model',
     'personality_profiles',
     'personality_resonance',
     'planning_coordination',
@@ -214,6 +216,7 @@ export const KNOWN_USER_STORES: readonly string[] = [
   'bogle_users/{uid}/mind_model', // what Ferni understands about them (THEORY_OF_MIND)
   'bogle_users/{uid}/activity', // the activity ledger (ACTIVITY_LEDGER)
   'bogle_users/{uid}/facts', // bi-temporal facts (MEMORY_FACTS)
+  'bogle_users/{uid}/person_model', // the call sheet (PERSON_MODEL)
   'users/{uid}/calendar_events', // What's Ahead
   'users/{uid}/life_automation', // What I Do For You
   'users/{uid}/shared_memories',

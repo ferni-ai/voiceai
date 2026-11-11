@@ -17,6 +17,10 @@ enum UITestScenario: String {
     case settings
     /// A live call: Ferni speaking, with a line of captions each.
     case call
+    /// The January 2026 App Review rejection: the system takes the call and
+    /// never starts its audio, and the app can't either. Never a silent
+    /// "live": the problem in words and Try again.
+    case silentAudio
 
     static let current: UITestScenario? = value(after: "-FerniUITest").flatMap(UITestScenario.init(rawValue:))
 
@@ -33,13 +37,37 @@ enum UITestScenario: String {
         UserDefaults.standard.set(false, forKey: CallFeedback.soundsKey)
     }
 
-    @MainActor static func callSession(avatar: AvatarModel, level: AudioLevelMeter) -> CallSession {
-        CallSession(
+    @MainActor static func callSession(_ scenario: UITestScenario, avatar: AvatarModel, level: AudioLevelMeter) -> CallSession {
+        let silent = scenario == .silentAudio
+        return CallSession(
             fetchToken: { _ in CallToken(token: "t", url: "wss://127.0.0.1:9", room: "ios-uitest", agentDispatched: true) },
             makeRoom: { ScriptedRoom() },
-            audio: SilentAudio(),
+            audio: SilentAudio(refusesOwnAudio: silent),
             avatar: avatar,
+            lifecycle: silent ? MuteSystemCall() : nil,
             agentLevel: level
+        )
+    }
+
+    /// `-FerniAccount anonymous|needsSignIn`: an account that can sign in,
+    /// with a stand-in for Firebase (any number; the code is 123456).
+    @MainActor static func account() -> AccountStore? {
+        guard current != nil, let kind = value(after: "-FerniAccount") else { return nil }
+        let realBefore = kind == "needsSignIn"
+        let backend = UITestAuthBackend(anonymous: kind == "anonymous")
+        return AccountStore(backend: backend, memory: AccountMemory(get: { realBefore }, set: { _ in }))
+    }
+
+    /// A UI test's stand-in for pressing "Get help now" on the Home Screen
+    /// icon (which XCUITest can't reach reliably): a Darwin notification,
+    /// handed to the same `FerniAppDelegate.onShortcut` as FerniSceneDelegate.
+    static let helpShortcutNotification = "com.sethdford.ferni.uitest.helpShortcut"
+
+    static func listenForHelpShortcut() {
+        CFNotificationCenterAddObserver(
+            CFNotificationCenterGetDarwinNotifyCenter(), nil,
+            { _, _, _, _, _ in Task { @MainActor in FerniAppDelegate.onShortcut?(AppModel.helpShortcut) } },
+            helpShortcutNotification as CFString, nil, .deliverImmediately
         )
     }
 
@@ -50,6 +78,26 @@ enum UITestScenario: String {
     }
 
     private static func flag(_ name: String) -> Bool { value(after: name) == "YES" }
+}
+
+/// Firebase's stand-in for UI tests: signs in to "uitest-real" with code 123456.
+private final class UITestAuthBackend: AuthBackend, @unchecked Sendable {
+    private var user: AccountUser?
+
+    init(anonymous: Bool) {
+        user = anonymous ? AccountUser(uid: "uitest-anon", isAnonymous: true) : nil
+    }
+
+    func currentUser() async -> AccountUser? { user }
+    func signInAnonymously() async throws -> AccountUser { throw URLError(.notConnectedToInternet) }
+    func idToken(forceRefresh: Bool) async throws -> String? { user.map { "uitest-\($0.uid)" } }
+    func sendPhoneCode(to phoneNumber: String) async throws -> String { "uitest-verification" }
+    func linkOrSignIn(_ credential: SignInCredential) async throws -> SignInResult {
+        if case .phone(_, let code) = credential, code != "123456" { throw SignInError.invalidCode }
+        user = AccountUser(uid: "uitest-real", isAnonymous: false, providerIDs: ["phone"])
+        return SignInResult(user: user!, leftBehind: nil)
+    }
+    func signOut() async throws { user = nil }
 }
 
 /// Ferni arrives speaking and the call stays up until it's ended.
@@ -75,13 +123,27 @@ private final class ScriptedRoom: VoiceRoom, @unchecked Sendable {
     func disconnect() async { continuation.finish() }
 }
 
-/// No audio session, no permission prompt.
+/// No audio session, no permission prompt. `refusesOwnAudio`: the app
+/// can't start the call's audio itself either (`silentAudio`).
 private final class SilentAudio: CallAudio, @unchecked Sendable {
     let interruptions = AsyncStream<AudioInterruption> { _ in }
+    private let refusesOwnAudio: Bool
+    init(refusesOwnAudio: Bool) { self.refusesOwnAudio = refusesOwnAudio }
     func requestMicrophone() async -> Bool { true }
-    func activate(systemOwned: Bool) throws {}
+    func activate(systemOwned: Bool) throws {
+        if refusesOwnAudio, !systemOwned { throw CocoaError(.featureUnsupported) }
+    }
     func deactivate(systemOwned: Bool) {}
     func systemAudio(active: Bool) {}
+}
+
+/// A system call that begins and never activates its audio (`silentAudio`).
+private final class MuteSystemCall: CallLifecycle, @unchecked Sendable {
+    let requests = AsyncStream<LifecycleRequest> { _ in }
+    func begin(id: UUID, name: String) async throws {}
+    func connected(id: UUID) {}
+    func setMuted(id: UUID, muted: Bool) async {}
+    func ended(id: UUID, failed: Bool) async {}
 }
 
 extension UITestScenario {

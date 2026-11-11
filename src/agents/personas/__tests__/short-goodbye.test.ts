@@ -22,7 +22,7 @@ const reminder = (said: string): string => {
   ctx.addMessage({ role: 'user', content: 'Hey, how was your day?' });
   ctx.addMessage({ role: 'assistant', content: 'Pretty good. Yours?' });
   ctx.addMessage({ role: 'user', content: said });
-  const out = withTurnReminder(ctx, {});
+  const out = withTurnReminder(ctx, { userData: { services: { sessionId: 'short-goodbye' } } });
   return (out.items[out.items.length - 1] as { textContent?: string }).textContent ?? '';
 };
 

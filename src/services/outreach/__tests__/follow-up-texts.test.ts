@@ -26,7 +26,16 @@ vi.mock('../quiet-hours.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   isSavedQuietNow: savedQuiet,
 }));
+// FOLLOW_THROUGH_RUN lines only (utils/job-run.ts).
+const runLines = vi.hoisted(() => [] as Array<Record<string, unknown>>);
+vi.mock('../../../utils/job-run.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  logJobRun: vi.fn((_log: unknown, job: string, counts: object, extra: object = {}) => {
+    runLines.push({ job, ...extra, ...counts });
+  }),
+}));
 beforeEach(() => {
+  runLines.length = 0;
   logPromiseOutcome.mockClear();
   logPromiseJobRun.mockClear();
   savedQuiet.mockReset().mockResolvedValue(false);
@@ -351,5 +360,41 @@ describe('followUpText and the kill switch', () => {
   it('is off unless FOLLOW_THROUGH_JOB is on', () => {
     expect(followUpJobOn({})).toBe(false);
     expect(followUpJobOn({ FOLLOW_THROUGH_JOB: 'on' })).toBe(true);
+  });
+});
+
+describe('FOLLOW_THROUGH_RUN', () => {
+  it('counts the person texted, and says why a due one waits for the next call', async () => {
+    // Texted since it was due: the right moment is now the next call.
+    const asked = followUp({
+      id: 'f2',
+      dueAt: '2026-10-13T15:00:00.000Z',
+      surfaced: [{ via: 'text', at: '2026-10-13T15:30:00.000Z' }],
+    } as Partial<FollowUp>);
+    const { d } = deps([followUp(), asked]);
+    await sendDueFollowUpTexts(d, { now: NOW });
+    expect(d.sendText).toHaveBeenCalledTimes(1);
+    expect(runLines).toEqual([
+      expect.objectContaining({
+        job: 'FOLLOW_THROUGH',
+        considered: 1,
+        eligible: 1,
+        sent: 1,
+        skippedBy: { 'next-call': 1 },
+        due: 2,
+      }),
+    ]);
+  });
+
+  it('nobody opted in by their own flag: considered, not eligible, not-in-cohort', async () => {
+    const { d } = deps([followUp()], { cohort: [] });
+    await sendDueFollowUpTexts(d, { now: NOW });
+    expect(d.sendText).not.toHaveBeenCalled();
+    expect(runLines[0]).toMatchObject({
+      considered: 1,
+      eligible: 0,
+      sent: 0,
+      skippedBy: { 'not-in-cohort': 1 },
+    });
   });
 });

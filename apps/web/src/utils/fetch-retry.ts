@@ -9,6 +9,7 @@
  */
 
 import { createLogger } from './logger.js';
+import { fetchWithDeadline } from './request-deadline.js';
 
 const log = createLogger('FetchRetry');
 
@@ -126,28 +127,6 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Fetch with timeout using AbortController.
- */
-async function fetchWithTimeout(
-  url: string,
-  options: RequestInit,
-  timeout: number
-): Promise<Response> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-    });
-    return response;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-/**
  * Fetch with automatic retry and exponential backoff.
  */
 export async function fetchWithRetry<T>(
@@ -170,7 +149,7 @@ export async function fetchWithRetry<T>(
 
   for (let attempt = 0; attempt <= opts.maxRetries; attempt++) {
     try {
-      const response = await fetchWithTimeout(url, options, opts.timeout);
+      const response = await fetchWithDeadline(url, options, opts.timeout);
       lastStatus = response.status;
 
       // Success
@@ -198,12 +177,8 @@ export async function fetchWithRetry<T>(
       lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
       break;
     } catch (error) {
+      // A timeout arrives as RequestTimeoutError ("Request timeout after <ms>ms")
       lastError = error instanceof Error ? error : new Error(String(error));
-
-      // Check if it's an abort error (timeout)
-      if (lastError.name === 'AbortError') {
-        lastError = new Error(`Request timeout after ${opts.timeout}ms`);
-      }
 
       // Retry on network errors if configured
       if (opts.retryOnNetworkError && attempt < opts.maxRetries) {

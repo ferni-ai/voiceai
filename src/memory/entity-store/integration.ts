@@ -744,7 +744,7 @@ export async function retrieveMemoriesUnified(
     log.debug(
       {
         userId: userId.substring(0, 8),
-        query: query.substring(0, 50),
+        queryLen: query.length,
         resultsCount: enrichedResults.length,
         graphExpanded: graphRagResult.debug?.graphExpanded || 0,
         latencyMs,

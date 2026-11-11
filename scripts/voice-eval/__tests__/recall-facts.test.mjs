@@ -67,7 +67,7 @@ describe('recall-facts', () => {
     const good = checkRun(
       run([
         ['agent', 'About fifty, and my knees remind me every morning.'],
-        ['agent', 'A handful of old ones. Ken and I still ski, and Jim keeps me up arguing.'],
+        ['agent', 'A handful of old ones. Owen and I still ski, and Hollis keeps me up arguing.'],
         ['agent', "I said I'd help you figure it out, and I meant it."],
       ]),
       avoids
@@ -91,6 +91,55 @@ describe('recall-facts', () => {
     const interview = said(read('facts-seed')).find((l) => /\binterview\b/i.test(l));
     expect(interview).toMatch(/\b(?:had|today|yesterday)\b/i);
     expect(interview).not.toMatch(/\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|next)\b/i);
+  });
+
+  it('the seed pottery class is dated relative to the call, never by weekday', () => {
+    // 2026-11-04..06 nightlies: "First one is Thursday" was raised on Wednesday (the class was the next day),
+    // held for confirmation on Thursday (a bare weekday said on that weekday is ambiguous) and outside the
+    // 1-day reminder window on Friday (six days out). The recall score swung with the weekday, not with memory.
+    const said = readFileSync(new URL('../scenarios/facts-seed.txt', import.meta.url), 'utf8')
+      .split('\n')
+      .filter((l) => l.trim() && !l.startsWith('#'));
+    const pottery = said.filter((l) => /\bpottery\b/i.test(l)).join(' ');
+    expect(pottery).toMatch(/\btomorrow\b/i);
+    expect(pottery).not.toMatch(/\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i);
+  });
+});
+
+describe('the shipped recall facts', () => {
+  const factOf = (scenario, id) =>
+    parseChecks(readFileSync(new URL(`../scenarios/${scenario}.txt`, import.meta.url), 'utf8')).filter(
+      (c) => c.kind === 'fact' && c.id === id
+    );
+  const recalled = (scenario, id, line) => checkRun(run([['agent', line]]), factOf(scenario, id)).facts[0].recalled;
+
+  it.each(['facts-recall', 'facts-natural'])('%s: the seed STT mishear "Strike" counts as the interview', (sc) => {
+    expect(recalled(sc, 'interview', 'So how did the final round at Strike go?')).toBe(true);
+    expect(recalled(sc, 'interview', 'Strike? Did you hear back from them?')).toBe(true);
+  });
+
+  it.each(['facts-recall', 'facts-natural'])('%s: naming the system design round counts as the interview', (sc) => {
+    // 2026-11-06 nightly: two of three facts-recall misses were Ferni opening with exactly this.
+    expect(recalled(sc, 'interview', 'Did you hear back about that system design round?')).toBe(true);
+    expect(recalled(sc, 'interview', 'Want a little design system for the chores?')).toBe(false);
+  });
+
+  it.each(['facts-recall', 'facts-natural'])('%s: other words near "strike" do not', (sc) => {
+    for (const line of [
+      'You have to strike a balance somewhere.',
+      "Let's strike up a plan for the week.",
+      'Are the buses on strike again?',
+      'That strikes me as a good week.',
+      'You found your stride, then.',
+      'Did you watch the striker last night?',
+      'Love the stripes on that sweater.',
+    ])
+      expect([line, recalled(sc, 'interview', line)]).toEqual([line, false]);
+  });
+
+  it("first-call-return: the name fact is the seeded caller's name, Jess, not the old metadata Sam", () => {
+    expect(recalled('first-call-return', 'name', 'Hey Jess, good to hear you again.')).toBe(true);
+    expect(recalled('first-call-return', 'name', 'Hey Sam, good to hear you again.')).toBe(false);
   });
 });
 

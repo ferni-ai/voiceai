@@ -601,7 +601,7 @@ export function extractPreferences(text: string): ExtractedPreference[] {
   }
 
   if (preferences.length > 0) {
-    log.debug({ count: preferences.length, text: text.substring(0, 50) }, 'Extracted preferences');
+    log.debug({ count: preferences.length, textLen: text.length }, 'Extracted preferences');
   }
 
   return preferences;

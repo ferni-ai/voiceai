@@ -12,8 +12,8 @@ apps/ios-native/
 ├── Packages/
 │   ├── FerniKit/         configuration, the account (Firebase: anonymous first, then
 │   │                     Sign in with Apple), the server API (Bearer ID token), team, plans
-│   ├── FerniVoice/       a call: CallSession (token, join, wait ≤10 s for Ferni, one
-│   │                     retry, captions, mute, rejoin), agent signals, expressions
+│   ├── FerniVoice/       a call: CallSession (token, join, ≤20 s per attempt for Ferni,
+│   │                     one retry, captions, mute, rejoin), agent signals, expressions
 │   └── FerniDesign/      color/type/spacing tokens from design-system/tokens, window avatar
 ├── project.yml           XcodeGen spec; Ferni.xcodeproj is generated AND committed
 └── Ferni.storekit        StoreKit test configuration (plans are off: PaidPlans.isOffered)
@@ -48,8 +48,13 @@ target alike (the app, FerniLive, the Watch app and its widgets all read
 xcodebuild archive -project Ferni.xcodeproj -scheme Ferni -configuration Release \
   -destination 'generic/platform=iOS' -archivePath build/Ferni.xcarchive \
   CURRENT_PROJECT_VERSION="$(scripts/build-number.sh)"
-scripts/check-archive.sh build/Ferni.xcarchive   # one version everywhere, stamped, English only
+scripts/check-archive.sh build/Ferni.xcarchive   # one version everywhere, stamped, English only, dSYMs
 ```
+
+Sentry is linked as the `Sentry-Dynamic` product: same SDK and module, but
+its xcframework ships dSYMs (the static `Sentry` product ships none), so
+Sentry frames symbolicate. LiveKitWebRTC ships no dSYMs at all; Xcode's
+"missing dSYM" warning for it on upload is expected.
 
 `scripts/testflight.sh` (the TestFlight lane) does both. The project's own
 `CURRENT_PROJECT_VERSION` is a placeholder for local runs and is refused in

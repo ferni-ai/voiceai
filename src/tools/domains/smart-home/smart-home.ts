@@ -8,13 +8,12 @@
  * - Circuit breakers prevent cascading failures to smart home platforms
  * - Automatic retry with exponential backoff
  * - Graceful degradation when devices are offline
- * - Sonos and HomeKit support
+ * - Sonos support
  *
  * Supported Platforms:
  * - Philips Hue (direct API for lights)
  * - LIFX (direct API for lights)
  * - Sonos (speakers)
- * - HomeKit (via iOS bridge)
  * - Ecobee (thermostats)
  *
  * @module tools/smart-home
@@ -31,7 +30,6 @@ import {
   type SmartHomeCredentials,
 } from '../../../services/smart-home/user-credentials.js';
 import * as sonos from '../../../services/smart-home/sonos.js';
-import * as homekit from '../../../services/smart-home/homekit-bridge.js';
 import {
   getThermostatStatus,
   setTemperature as setEcobeeTemperature,
@@ -58,8 +56,7 @@ export interface SmartDevice {
     | 'other';
   state: string;
   attributes?: Record<string, unknown>;
-  platform:
-    'hue' | 'lifx' | 'nest' | 'sonos' | 'homekit' | 'ecobee';
+  platform: 'hue' | 'lifx' | 'nest' | 'sonos' | 'ecobee';
   room?: string;
 }
 
@@ -268,45 +265,6 @@ async function controlSonos(
 }
 
 // ============================================================================
-// HOMEKIT API (via bridge)
-// ============================================================================
-
-async function getHomeKitDevices(userId: string): Promise<SmartDevice[]> {
-  try {
-    const devices = await homekit.getDevices(userId);
-
-    return devices.map((device) => ({
-      id: `homekit_${device.id}`,
-      name: device.name,
-      type: device.type === 'tv' ? 'media' : device.type,
-      state: device.state.on ? 'on' : device.state.reachable ? 'off' : 'offline',
-      attributes: device.state as unknown as Record<string, unknown>,
-      platform: 'homekit' as const,
-      room: device.room,
-    }));
-  } catch (error) {
-    getLogger().warn({ error: String(error) }, 'Failed to get HomeKit devices');
-    return [];
-  }
-}
-
-async function controlHomeKit(
-  userId: string,
-  deviceId: string,
-  changes: Partial<homekit.HomeKitDeviceState>
-): Promise<boolean> {
-  const id = deviceId.replace('homekit_', '');
-
-  try {
-    await homekit.queueDeviceCommand(userId, id, changes);
-    return true;
-  } catch (error) {
-    getLogger().warn({ error: String(error), deviceId }, 'Failed to control HomeKit device');
-    return false;
-  }
-}
-
-// ============================================================================
 // ECOBEE API
 // ============================================================================
 
@@ -379,26 +337,17 @@ export async function getAllDevices(userId?: string): Promise<SmartDevice[]> {
         hue: null,
         lifx: null,
         sonos: null,
-        homeKit: null,
       };
 
   // Gather from all configured platforms in parallel
-  const [hueDevices, lifxDevices, sonosDevices, homekitDevices, ecobeeDevices] =
-    await Promise.all([
-      credentials.hue ? getHueLights(credentials) : Promise.resolve([]),
-      credentials.lifx ? getLifxLights(credentials) : Promise.resolve([]),
-      credentials.sonos ? getSonosDevices(credentials) : Promise.resolve([]),
-      userId ? getHomeKitDevices(userId) : Promise.resolve([]),
-      getEcobeeDevices(userId),
-    ]);
+  const [hueDevices, lifxDevices, sonosDevices, ecobeeDevices] = await Promise.all([
+    credentials.hue ? getHueLights(credentials) : Promise.resolve([]),
+    credentials.lifx ? getLifxLights(credentials) : Promise.resolve([]),
+    credentials.sonos ? getSonosDevices(credentials) : Promise.resolve([]),
+    getEcobeeDevices(userId),
+  ]);
 
-  devices.push(
-    ...hueDevices,
-    ...lifxDevices,
-    ...sonosDevices,
-    ...homekitDevices,
-    ...ecobeeDevices
-  );
+  devices.push(...hueDevices, ...lifxDevices, ...sonosDevices, ...ecobeeDevices);
 
   return devices;
 }
@@ -416,7 +365,6 @@ export async function controlDevice(
         hue: null,
         lifx: null,
         sonos: null,
-        homeKit: null,
       };
 
   // Find device by name (fuzzy) or ID
@@ -467,19 +415,6 @@ export async function controlDevice(
       }
       break;
 
-    case 'homekit':
-      if (userId) {
-        const changes: Partial<homekit.HomeKitDeviceState> = {};
-        if (action === 'on') changes.on = true;
-        else if (action === 'off') changes.on = false;
-        else if (action === 'set' && typeof value === 'number') {
-          changes.on = true;
-          changes.brightness = value;
-        }
-        success = await controlHomeKit(userId, device.id, changes);
-      }
-      break;
-
     case 'ecobee':
       if (device.type === 'thermostat' && typeof value === 'number' && userId) {
         success = await controlEcobee(userId, value);
@@ -516,7 +451,6 @@ Open **Set the Mood** in the app's menu to connect:
 • **LIFX** - Smart lights  
 • **Sonos** - Speakers and music
 • **Ecobee** - Smart thermostat
-• **HomeKit** - Apple devices (via iOS app)
 
 Once connected, you can say things like:
 • "Turn off the living room lights"
@@ -622,13 +556,6 @@ export async function setLightsForVibe(
           brightness,
           colorTemperature
         );
-        break;
-      case 'homekit':
-        success = await controlHomeKit(userId, light.id, {
-          on: brightness > 0,
-          brightness,
-          colorTemperature,
-        });
         break;
     }
 

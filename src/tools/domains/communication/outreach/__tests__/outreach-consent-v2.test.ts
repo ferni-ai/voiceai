@@ -9,7 +9,6 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ToolDefinition } from '../../../../registry/types.js';
 import { consentUserText, setConsentAsk, type ConsentAsk } from '../consent-judge.js';
 import { cancel, reopenClosed } from '../consent-loop.js';
 import { readBackUserText, setReadBackAsk, vetoed, type ActionFacts } from '../consent-readback.js';
@@ -17,83 +16,20 @@ import {
   confirmationState,
   isClearYes,
   judgeConfirmation,
-  outreachConfirmListeners,
   pendingFor,
-  PLAN_ONLY,
-  withOutreachConfirmation,
   type ConfirmEvent,
-  type ConfirmSpec,
   type PendingAction,
   type SessionLog,
 } from '../outreach-confirm.js';
+import {
+  alwaysReadBack,
+  alwaysYes,
+  DAD,
+  fairJudge,
+  liveCall,
+  sends,
+} from './consent-call-harness.js';
 
-const DAD = '+15551230002';
-const sends: Array<Record<string, unknown>> = [];
-
-const def = (id: string): ToolDefinition => ({
-  id,
-  name: id,
-  description: 'reach someone',
-  domain: 'communication',
-  create: () =>
-    ({
-      execute: async (args: Record<string, unknown>) => {
-        if (PLAN_ONLY in args) return 'plan';
-        sends.push(args);
-        return 'Calling Dad now.';
-      },
-    }) as never,
-});
-const spec = (what: string): ConfirmSpec => ({
-  prepare: async (args) => ({
-    args: { ...args, phoneNumber: DAD },
-    readBack: `${what} to Dad at 555-123-0002, right now`,
-  }),
-});
-
-function liveCall(toolId = 'callOnBehalf', what = 'a call') {
-  const session = { agentState: 'listening' };
-  const on = outreachConfirmListeners(session, () => true);
-  const tool = withOutreachConfirmation(def(toolId), spec(what)).create({
-    userId: 'owner-1',
-    agentId: 'ferni',
-    agentDisplayName: 'Ferni',
-  }) as { execute: (a: unknown, o: unknown) => Promise<unknown> };
-  return {
-    session,
-    /** The model calls the tool; its output then reaches the model. */
-    call: async (callId: string, args: Record<string, unknown> = { contactQuery: 'my dad' }) => {
-      const out = await tool.execute(args, { ctx: { session }, toolCallId: callId });
-      on.onToolsExecuted({ functionCalls: [{ callId }] });
-      return String(out);
-    },
-    owner: (text: string) => on.onTranscript({ transcript: text, isFinal: true }),
-    ownerOver: (text: string) => {
-      session.agentState = 'speaking';
-      on.onTranscript({ transcript: text, isFinal: true });
-      session.agentState = 'listening';
-    },
-    ferni: (text: string) =>
-      on.onItemAdded({ item: { role: 'assistant', type: 'message', textContent: text } }),
-    otherTool: (callId: string) => on.onToolsExecuted({ functionCalls: [{ callId }] }),
-  };
-}
-
-/** A judge that reads the window the way the prompt asks, deterministically. */
-const fairJudge: ConsentAsk = async (_system, input) => {
-  const said = input.split("Owner's reply, in order:")[1].toLowerCase();
-  const textWaiting = input.startsWith('Read-back: a text');
-  if (/\b(call (you|me|us)|check in with me|instead|later|tomorrow|her\b|mom)/.test(said))
-    return '{"verdict":"unclear","reason":"redirect"}';
-  if (textWaiting && /\bcall\b/.test(said)) return '{"verdict":"unclear","reason":"other_channel"}';
-  if (/\b(no|don't|not)\b/.test(said)) return '{"verdict":"no","reason":"declined"}';
-  if (/\b(yes|yeah|yep|okay|sure)\b/.test(said)) return '{"verdict":"yes","reason":"agreed"}';
-  return '{"verdict":"unclear","reason":"off_topic"}';
-};
-const alwaysYes: ConsentAsk = async () => '{"verdict":"yes","reason":"agreed"}';
-
-/** Ferni's turn classifier stubbed to always say read-back: only the vetoes take it away. */
-const alwaysReadBack: ConsentAsk = async () => '{"kind":"readback"}';
 beforeEach(() => setReadBackAsk(alwaysReadBack));
 afterEach(() => {
   setConsentAsk(undefined);
@@ -1491,5 +1427,469 @@ describe('round 10: text outside the allow-list is never dropped before it is ch
       expect(await call.call('c2'), mixed).toMatch(asksOnce);
       expect(sends, mixed).toHaveLength(0);
     }
+  });
+});
+
+describe('OUTREACH_NO_ANSWERS_READBACK: a no declines, except a no that answers nothing', () => {
+  const READ =
+    "I'm ready to dial Dad at the number ending 0002. Should I go ahead and call him now?";
+  const ASK = 'Just to be sure: call Dad now?';
+  // After the read-back, the owner asks about something else and Ferni answers it.
+  const RAIN: Step[] = [
+    ['owner', 'Is it going to rain?'],
+    ['ferni', 'No rain, just clouds.'],
+  ];
+  const OTHER_QUESTION: Step[] = [
+    ['owner', 'Hmm.'],
+    ['ferni', 'Are you doing anything fun this weekend?'],
+  ];
+  // Where a turn is said: A right after the read-back, B after the talk moved on, C as the answer
+  // to Ferni's other question.
+  const PLACES: Array<[string, Step[]]> = [
+    ['right after the read-back', []],
+    ['after the talk moved on', RAIN],
+    ["to Ferni's other question", OTHER_QUESTION],
+  ];
+  type Step = ['owner' | 'over' | 'ferni', string];
+  // `before`: owner turns said before the call was asked for, so before the read-back was stored.
+  const play = async (steps: Step[], before: string[] = []) => {
+    const call = liveCall();
+    for (const text of before) call.owner(text);
+    await call.call('c1');
+    call.ferni(READ);
+    for (const [who, text] of steps)
+      (who === 'owner' ? call.owner : who === 'over' ? call.ownerOver : call.ferni)(text);
+    return call;
+  };
+  const everywhere = (lines: string[]): Array<[string, string, Step[]]> =>
+    lines.flatMap((line) =>
+      PLACES.map(([where, steps]): [string, string, Step[]] => [line, where, steps])
+    );
+  const declines = async (steps: Step[]) => {
+    const call = await play(steps);
+    expect(pendingFor(call.session)).toBeUndefined();
+    expect(await call.call('c2')).not.toContain(ASK);
+    expect(sends).toHaveLength(0);
+  };
+  const asksOnce = async (steps: Step[], before: string[] = []) => {
+    const call = await play(steps, before);
+    expect(pendingFor(call.session)).toBeDefined();
+    expect(await call.call('c2')).toContain(ASK);
+    expect(sends).toHaveLength(0);
+  };
+  beforeEach(() => {
+    vi.stubEnv('OUTREACH_NO_ANSWERS_READBACK', 'on');
+    setConsentAsk(fairJudge);
+  });
+
+  it.each<[string, Step[]]>([
+    ['"No." right after the read-back', [['owner', 'No.']]],
+    ['"Nope." right after', [['owner', 'Nope.']]],
+    ['a no through filler', [['owner', 'Um, no.']]],
+    ['a no over Ferni', [['over', 'No.']]],
+    ['a no that names the call', [['owner', "No, don't call him."]]],
+    [
+      'a no after a detail question',
+      [
+        ['owner', 'Wait, which number?'],
+        ['ferni', 'It ends in 0002.'],
+        ['owner', 'No.'],
+      ],
+    ],
+    [
+      'a no after "did you call him?"',
+      [
+        ['owner', 'Did you call him yet?'],
+        ['ferni', 'Not yet.'],
+        ['owner', 'No.'],
+      ],
+    ],
+    ['moved on, then a no that names him', [...RAIN, ['owner', 'No, not Dad.']]],
+    ['moved on, then a fresh read-back', [...RAIN, ['ferni', READ], ['owner', 'No problem.']]],
+    [
+      'moved on, then a question about the call (a read-back, maybe)',
+      [...RAIN.slice(0, 1), ['ferni', 'No rain. Should I call him now?'], ['owner', 'No problem.']],
+    ],
+    ['moved on, then a deferral', [...RAIN, ['owner', 'Not now.']]],
+    ['moved on, then someone else', [...RAIN, ['owner', 'Call my sister instead.']]],
+  ])('declines at once: %s', async (_name, steps) => {
+    await declines(steps);
+  });
+
+  // The 15 nos that round 2's refusal list missed: any reply that opens with a no declines,
+  // wherever it is said.
+  const HARD_NOS = [
+    'No, please stop.',
+    "No, please don't.",
+    "No, really, don't.",
+    'No, do not.',
+    'No, I do not want you to.',
+    'No, I said no.',
+    'No, absolutely not.',
+    'Nope, never.',
+    'No, skip it.',
+    'No, hold off.',
+    'Nah, leave it.',
+    'No, leave him alone.',
+    "No, let's not.",
+    "No, I'd rather not.",
+    "No, I'll do it myself.",
+  ];
+  it.each(everywhere(HARD_NOS))('a hard no declines: %j %s', async (no, _where, steps) => {
+    await declines([...steps, ['owner', no]]);
+  });
+
+  // Soft nos decline as on main.
+  const SOFT_NOS = [
+    'No thanks.',
+    "No, I'm good.",
+    "Nah, I'm good.",
+    "No, it's fine.",
+    "No, that's okay.",
+    'No, no need.',
+    "No, don't worry about it.",
+    "No, I don't think so.",
+    'No no no.',
+  ];
+  it.each(everywhere(SOFT_NOS))('a soft no declines: %j %s', async (no, _where, steps) => {
+    await declines([...steps, ['owner', no]]);
+  });
+
+  // Stop, cancel, never mind and don't, a no that says more, and a no over Ferni decline too. A
+  // refusal that opens otherwise ("Forget it.", "I don't want you to.") is read as on main: the
+  // judge's no declines, else Ferni asks once (outreach-refusal-and-split-crisis.test.ts).
+  const REFUSALS = [
+    'Stop.',
+    'STOP',
+    'Cancel.',
+    'Never mind.',
+    "Don't.",
+    "No, I'm just checking.",
+    'Nah.',
+    'No way.',
+    'No, really?',
+  ];
+  it.each(everywhere(REFUSALS))(
+    'declines wherever it is said: %j %s',
+    async (no, _where, steps) => {
+      await declines([...steps, ['owner', no]]);
+    }
+  );
+  it('a no over Ferni after the talk moved on declines', async () => {
+    await declines([...RAIN, ['over', 'No, I know.']]);
+  });
+
+  // The closed allow-list (NON_ANSWERS in consent-words.ts): said to Ferni's other question, with
+  // nothing but filler from the owner before it, it answers nothing, so the call waits, nothing is
+  // sent, and Ferni asks once.
+  const NON_ANSWERS = ['No problem.', 'No worries.', 'Um, no problem.', 'No worries, thanks.'];
+  it.each(NON_ANSWERS)(
+    "a non-answer to Ferni's other question keeps it waiting and asks once: %j",
+    async (line) => {
+      await asksOnce([...OTHER_QUESTION, ['owner', line]]);
+    }
+  );
+  // After the owner's own question (B), the owner has said something, so it declines, as on main.
+  it.each(NON_ANSWERS)('after the talk moved on, %j declines, as on main', async (line) => {
+    await declines([...RAIN, ['owner', line]]);
+  });
+  it.each(['No problem.', 'No worries.'])(
+    'right after the read-back, %j still declines (it answers the read-back)',
+    async (line) => {
+      await declines([['owner', line]]);
+    }
+  );
+
+  // "No wait, …" is not on the list: what follows it can be any decline, so it declines wherever
+  // it is said, as on main.
+  const NO_WAITS = [
+    'No wait, let me grab a pen.',
+    'No, wait.',
+    "No wait, that's a bad idea.",
+    "No wait, that's a terrible idea.",
+    'No wait, bad idea.',
+    "No wait, I'd prefer you didn't.",
+    "No wait, I'll handle it.",
+    "No wait, I'm good.",
+    "No wait, it's fine.",
+    "No wait, that's okay.",
+    "No wait, it's too late.",
+    "No wait, I've got it.",
+    "No wait, I'm scared.",
+    "No wait, he's sick.",
+    "No wait, he'll be asleep.",
+  ];
+  it.each(everywhere(NO_WAITS))('a "no wait" declines: %j %s', async (no, _where, steps) => {
+    await declines([...steps, ['owner', no]]);
+  });
+
+  // A non-answer with anything that is not filler after it is not on the list: it declines.
+  const BOUNDARY = [
+    "No worries, don't call him.",
+    'No problem, cancel it.',
+    "No worries, don't.",
+    'No problem, skip it.',
+    'No wait, skip it.',
+    'No wait, never mind.',
+    'No wait, I changed my mind.',
+  ];
+  it.each(everywhere(BOUNDARY))(
+    'past the allow-list it declines: %j %s',
+    async (no, _where, steps) => {
+      await declines([...steps, ['owner', no]]);
+    }
+  );
+
+  // "No, go ahead." names the call, so it is not on the list: it ends this ask and Ferni reads the
+  // call back again, as on main. Nothing is sent.
+  it.each(PLACES)('"No, go ahead." %s: read back again, nothing sent', async (_where, steps) => {
+    const call = await play([...steps, ['owner', 'No, go ahead.']]);
+    expect(await call.call('c2')).toContain('NOT SENT YET. Read this');
+    expect(sends).toHaveLength(0);
+  });
+
+  // A fresh read-back the classifier has settled on brings the talk back: a non-answer to it declines.
+  it('after a settled, classified fresh read-back, a non-answer declines', async () => {
+    const call = await play([...RAIN, ['ferni', READ]]);
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 20);
+    });
+    call.owner('No problem.');
+    expect(pendingFor(call.session)).toBeUndefined();
+    expect(sends).toHaveLength(0);
+  });
+
+  // A crisis turn ends it wherever it is said.
+  const CRISIS = [
+    "No, I don't want to be here anymore.",
+    'No, I want to die.',
+    'No wait, I want to die.',
+    'No wait, I want to end my life.',
+    "No wait, I'm thinking about suicide.",
+    'No wait, I want to end it all.',
+    'No wait, I wish I was dead.',
+  ];
+  it.each(everywhere(CRISIS))('a crisis turn declines: %j %s', async (no, _where, steps) => {
+    await declines([...steps, ['owner', no]]);
+  });
+
+  // Owner turns before the read-back was stored are not in the window: the no is matched to its
+  // own turn, so to Ferni's other question a non-answer still asks once.
+  it('owner turns before the read-back do not shift which turn a no is', async () => {
+    await asksOnce(
+      [...OTHER_QUESTION, ['owner', 'No problem.']],
+      ['Can you call my dad?', 'The one in Maplewood.']
+    );
+  });
+
+  // The lead's row: read-back, a yes, another turn, then Ferni asks something unrelated. A
+  // non-answer leaves it waiting and asked again; a "No." declines. Nothing is dialled either way.
+  it.each<[string, (call: ReturnType<typeof liveCall>) => void]>([
+    ['another Ferni turn', (call) => call.ferni('Okay, one moment.')],
+    ['another tool', (call) => call.otherTool('weather-1')],
+  ])(
+    'read-back, "yeah", %s, an unrelated question, then a no: nothing dialled',
+    async (_n, between) => {
+      const waits = await play([['owner', 'yeah']]);
+      between(waits);
+      waits.ferni('Are you doing anything fun this weekend?');
+      waits.owner('No worries.');
+      expect(pendingFor(waits.session)).toBeDefined();
+      const out = await waits.call('c2');
+      expect(out).not.toContain('Calling Dad now');
+      expect(out).toMatch(/Just to be sure: call Dad now\?|NOT SENT YET/);
+      const ends = await play([['owner', 'yeah']]);
+      between(ends);
+      ends.ferni('Are you doing anything fun this weekend?');
+      ends.owner('No.');
+      expect(pendingFor(ends.session)).toBeUndefined();
+      await ends.call('d2');
+      expect(sends).toHaveLength(0);
+    }
+  );
+
+  it('after it asks once, a no declines and a yes places once', async () => {
+    const no = await play([...OTHER_QUESTION, ['owner', 'No problem.']]);
+    expect(await no.call('c2')).toContain(ASK);
+    no.ferni(ASK);
+    no.owner('No.');
+    expect(pendingFor(no.session)).toBeUndefined();
+    const yes = await play([...OTHER_QUESTION, ['owner', 'No problem.']]);
+    expect(await yes.call('d2')).toContain(ASK);
+    yes.ferni(ASK);
+    yes.owner('Yes.');
+    await yes.call('d3');
+    expect(sends).toHaveLength(1);
+  });
+
+  it.each(['on', 'off'])(
+    "flag %s: a yes to an unrelated question of Ferni's still asks again",
+    async (flag) => {
+      vi.stubEnv('OUTREACH_NO_ANSWERS_READBACK', flag);
+      for (const yes of ['Yes.', 'Um, yeah, sure.']) {
+        const call = await play([...OTHER_QUESTION, ['owner', yes]]);
+        expect(await call.call('c2')).toContain(ASK);
+      }
+      expect(sends).toHaveLength(0);
+    }
+  );
+
+  it.each(
+    NON_ANSWERS.flatMap((line): Array<[string, string, Step[]]> => [
+      [line, 'after the talk moved on', RAIN],
+      [line, "to Ferni's other question", OTHER_QUESTION],
+    ])
+  )('flag off: any no declines, as before: %j %s', async (line, _where, steps) => {
+    vi.stubEnv('OUTREACH_NO_ANSWERS_READBACK', 'off');
+    const call = await play([...steps, ['owner', line]]);
+    expect(pendingFor(call.session)).toBeUndefined();
+  });
+
+  // STT splits one line into several finals. A non-answer waits only as the owner's last turn,
+  // and a turn the crisis reader flags, alone or with the owner's other turns joined, ends it.
+  // Every row below kept the call pending at B or C before this fix. All text is fictional.
+  const MOVED_ON = PLACES.slice(1);
+  const SPLIT_CRISIS: string[][] = [
+    ['No worries.', 'I want to die.'],
+    ['No problem.', 'I want to kill myself.'],
+    ['No worries, thanks.', "Doesn't matter, I wish I was dead."],
+    ['No problem.', "I won't be here anyway."],
+    ['No problem.', 'I want to', 'kill', 'myself.'],
+    ['I want to', 'kill', 'myself.', 'No worries.'],
+    ['I want to die.', 'No worries.'],
+    ['No worries.', 'I want to die.', 'No problem.'],
+  ];
+  const owner = (turns: string[]): Step[] => turns.map((t): Step => ['owner', t]);
+  const SAFE_YEAH: Step[] = [
+    ['ferni', 'Are you somewhere safe right now?'],
+    ['owner', 'Yeah.'],
+  ];
+  const splitRows = SPLIT_CRISIS.flatMap((turns) =>
+    MOVED_ON.map(([where, steps]): [string, string, Step[]] => [
+      turns.join(' | '),
+      where,
+      [...steps, ...owner(turns)],
+    ])
+  );
+  it.each(splitRows)('a split crisis line declines: %s %s', async (_turns, _where, steps) => {
+    await declines(steps);
+  });
+  it.each(splitRows)(
+    'a split crisis line, then "Yeah." to a safety question, declines: %s %s',
+    async (_turns, _where, steps) => {
+      await declines([...steps, ...SAFE_YEAH]);
+    }
+  );
+  it.each(splitRows)(
+    'flag off: a split crisis line declines, as on main: %s %s',
+    async (_t, _w, steps) => {
+      vi.stubEnv('OUTREACH_NO_ANSWERS_READBACK', 'off');
+      await declines(steps);
+    }
+  );
+
+  // Round 2: a non-answer waits only as the owner's sole turn since the talk moved on, with every
+  // other owner turn since the read-back CONTENT_FREE ("Hmm.", "Yeah."). Any other owner words make
+  // it a no, as on main: the crisis reader misses some lines.
+  const NOT_SOLE: Array<[string, Step[]]> = [
+    ['"Cool." then "No worries."', [...RAIN, ...owner(['Cool.', 'No worries.'])]],
+    [
+      'a tired day, then "No problem."',
+      [...RAIN, ...owner(["I'm so tired today.", 'No problem.'])],
+    ],
+    [
+      'an answer to Ferni, then "No worries."',
+      [...OTHER_QUESTION, ...owner(['Just relaxing.', 'No worries.'])],
+    ],
+  ];
+  it.each(NOT_SOLE)(
+    'with other owner words since the read-back, it declines: %s',
+    async (_n, steps) => {
+      await declines(steps);
+    }
+  );
+  // Lines the crisis reader does not flag, then a non-answer: main declines, so this does too.
+  const MISSED = [
+    ["Whatever, I'm going to end it.", 'No worries.'],
+    ["I'm just going to end it.", 'No problem, thanks.'],
+  ].flatMap((turns) =>
+    PLACES.map(([where, steps]): [string, string, Step[]] => [
+      turns.join(' | '),
+      where,
+      [...steps, ...owner(turns)],
+    ])
+  );
+  it.each(MISSED)(
+    'a missed crisis line, then a non-answer, declines: %s %s',
+    async (_t, _w, steps) => {
+      await declines(steps);
+    }
+  );
+  // Reported speech split by STT: the per-turn crisis read flags it (the joined read does not).
+  it.each(PLACES)('"My mom said" | "want to die" %s declines', async (_where, steps) => {
+    await declines([...steps, ...owner(['My mom said', 'want to die'])]);
+  });
+  // Free text BEFORE the talk moved on: a missed crisis line, then Ferni's other question or the
+  // owner's own question, then a non-answer. Main declines, so this does too, at every place.
+  const ENDS = ["Whatever, I'm going to end it.", "I'm just going to end it."];
+  const ASKED: Step[] = [['ferni', 'Are you doing anything fun this weekend?']];
+  const PRE = ENDS.flatMap((line) =>
+    [
+      ['then a question of Ferni', ASKED],
+      ['then a question of the owner', RAIN],
+    ].flatMap(([how, moved]) =>
+      PLACES.map(([where, steps]): [string, string, string, Step[]] => [
+        line,
+        how as string,
+        where,
+        [...steps, ['owner', line], ...(moved as Step[]), ['owner', 'No worries.']],
+      ])
+    )
+  );
+  it.each(PRE)('%j, %s, then "No worries." %s declines', async (_l, _h, _w, steps) => {
+    await declines(steps);
+  });
+  // The same lines as questions, which Ferni answers, then a non-answer: declines as on main.
+  const QUESTIONS = [
+    "Will anyone even notice when I'm gone?",
+    "Why does it even matter, I won't be here anyway?",
+  ].flatMap((line) =>
+    PLACES.map(([where, steps]): [string, string, Step[]] => [
+      line,
+      where,
+      [
+        ...steps,
+        ['owner', line],
+        ['ferni', 'I hear you, that sounds really hard.'],
+        ['owner', 'No worries.'],
+      ],
+    ])
+  );
+  it.each(QUESTIONS)('%j, answered, then "No worries." %s declines', async (_l, _w, steps) => {
+    await declines(steps);
+  });
+  // CONTENT_FREE is matched on the whole turn: filler that opens a line is not filler.
+  it.each(PLACES)(
+    '"yeah, I won\'t be here anyway", a question, then a no %s declines',
+    async (_w, steps) => {
+      await declines([
+        ...steps,
+        ['owner', "yeah, I won't be here anyway"],
+        ...ASKED,
+        ['owner', 'No worries.'],
+      ]);
+    }
+  );
+  const [hmm, q] = [owner(['Hmm.']), ASKED];
+  it.each<[string, Step[]]>([
+    ['"Sure." is not CONTENT_FREE', [...owner(['Sure.']), ...q, ...owner(['No worries.'])]],
+    ['two owner turns since the talk moved on', [...hmm, ...q, ...owner(['Yeah.', 'No worries.'])]],
+    ['a non-answer that is not the last turn', [...hmm, ...q, ...owner(['No worries.', 'Okay.'])]],
+  ])('%s: declines', async (_n, steps) => {
+    await declines(steps);
+  });
+  // Filler only, then a non-answer: still waits and asks once, as the "yeah" rows above do.
+  it('"Okay.", a question of Ferni, then "No worries.": asks once', async () => {
+    await asksOnce([['owner', 'Okay.'], ...ASKED, ['owner', 'No worries.']]);
   });
 });

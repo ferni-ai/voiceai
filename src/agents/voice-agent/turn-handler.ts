@@ -23,7 +23,7 @@ import { getGracefulErrorResponse } from '../../intelligence/conversation-qualit
 import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
-import { SOFT_CRISIS_CHECK } from '../../services/safety/crisis-agreement.js';
+import { disclosureGuidance, SOFT_CRISIS_CHECK } from '../../services/safety/index.js';
 import { buildCrisisGuidance } from '../safety/crisis-guard.js';
 import type { SessionServices } from '../../services/index.js';
 import { getContextAwareThinkingFiller } from '../../speech/persona-phrases.js';
@@ -67,8 +67,6 @@ import {
 } from '../realtime/emotion-event-dispatcher.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
-// "AGI-like" action approval detection (voice confirmation for autonomous actions)
-import { handleActionApprovalIntent } from '../shared/action-approval-handler.js';
 // Centralized emotion thresholds (BTH refactor)
 import {
   STRESS_NEEDS_SPACE,
@@ -199,7 +197,7 @@ export interface TurnHandlerContext {
   turnCtx: llm.ChatContext;
   /** User message text */
   userText: string;
-  /** Build context only: no tool routing, commands or action approvals (background run). */
+  /** Build context only: no tool routing or commands (background run). */
   contextOnly?: boolean;
   /** Current persona config */
   persona: PersonaConfig;
@@ -544,28 +542,6 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     });
     if (slashResult.handled) {
       return; // Slash command fully handled
-    }
-  }
-
-  // ================================================================
-  // AGI-LIKE: Check for action approval intent
-  // If user is responding to a pending action ("yes", "do it", etc.),
-  // handle it and skip normal turn processing
-  // ================================================================
-  if (services.userId && !contextOnly) {
-    try {
-      const approvalResult = await handleActionApprovalIntent(services.userId, userText);
-      if (approvalResult.handled) {
-        diag.state('🎯 Action approval handled', {
-          actionId: approvalResult.action?.id,
-          approved: approvalResult.approved,
-          actionType: approvalResult.action?.actionType,
-        });
-        return; // Action approval fully handled, skip normal processing
-      }
-    } catch (approvalErr) {
-      // Non-fatal - continue with normal turn processing
-      diag.warn('Action approval check failed (non-fatal)', { error: String(approvalErr) });
     }
   }
 
@@ -938,7 +914,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
           });
           await dispatchMicroExpression('insider', sendDataMessage, 0.75);
           diag.state('😄 BTH: Inside joke callback triggered', {
-            memoryHint: humorContent.slice(0, 40),
+            memoryHintLen: humorContent.length,
           });
         }, 'bth-inside-joke');
       }
@@ -1013,7 +989,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
             intensity: Math.min(delightResult.confidence, result.emotional.intensity ?? 0.8),
           });
           diag.state('🎉 BTH: Spontaneous delight triggered', {
-            userText: userText.slice(0, 50),
+            userTextLen: userText.length,
             emotionIntensity: result.emotional.intensity,
             confidence: delightResult.confidence,
           });
@@ -1021,7 +997,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       } else if (delightResult.rejectionReason && delightResult.rejectionReason !== 'no_match') {
         // Log filtered false positives for debugging (helps tune patterns)
         diag.debug('🎉 BTH: Delight detection filtered', {
-          userText: userText.slice(0, 50),
+          userTextLen: userText.length,
           rejectionReason: delightResult.rejectionReason,
         });
       }
@@ -1059,7 +1035,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
           });
           await dispatchMicroExpression('warmth_pulse', sendDataMessage, 0.8);
           diag.state('🤝 BTH: Meta-relationship moment triggered', {
-            userText: userText.slice(0, 50),
+            userTextLen: userText.length,
           });
         }, 'bth-meta-relationship');
       }
@@ -1084,7 +1060,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
           });
           diag.state('🤔 BTH: Visible vulnerability triggered', {
             type: isPhilosophical ? 'philosophical_question' : 'advice_seeking',
-            userText: userText.slice(0, 50),
+            userTextLen: userText.length,
           });
         }, 'bth-visible-vulnerability');
       }
@@ -1114,7 +1090,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
             trajectory: intervention.trajectory,
             guidance:
               typeof intervention.guidance === 'string'
-                ? intervention.guidance.slice(0, 100)
+                ? intervention.guidance.length
                 : undefined,
           });
           // Dispatch to frontend for avatar adjustment
@@ -1371,7 +1347,7 @@ ${result.crisis.suggestedResponse}`
 
       result.context.injections.unshift({
         category: 'crisis_response',
-        content: buildCrisisGuidance(result.crisis),
+        content: disclosureGuidance(result.crisis) ?? buildCrisisGuidance(result.crisis), // ABUSE + MINOR
         priority: 100,
       });
     } else if (result.crisis?.softCheck) {
@@ -2079,7 +2055,7 @@ ${result.crisis.suggestedResponse}`
           .trim();
 
         logger.info(
-          { greetingPreview: cleanGreeting.slice(0, 50) },
+          { greetingLen: cleanGreeting.length },
           '🎤 Greeting context injected - LLM now knows what it said'
         );
 

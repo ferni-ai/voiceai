@@ -1,0 +1,12 @@
+# Speaking: names with tricky pronunciation; the caller says each name and how it sounds. Pass:
+# Ferni uses the names as given (or asks how to say one), doesn't spell them back letter by letter
+# unprompted or "correct" the spelling, and keeps replies short.
+# NOT measurable from captions: whether the voice SAID them right. Listen to the call's mix (.wav);
+# the judge and the predicates see text only.
+#@judge spokenNaturally
+Hey Ferni. I'm hosting a dinner Saturday and I'm nervous about names.
+My coworker is Siobhan, it's said shiv-AWN. Her husband is Joaquin, wah-KEEN.
+And my neighbor, Mister Nguyen, like "win". And Priya's partner is Saoirse, SEER-sha.
+Can you say all four back to me so I can hear them?
+Okay, how would you introduce Siobhan to Saoirse? Just one sentence.
+That's great. Thanks.

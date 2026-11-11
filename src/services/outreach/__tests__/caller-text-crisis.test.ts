@@ -7,7 +7,7 @@
  * The screen stays fail-closed (no word of a risky field is quoted), and a
  * crisis read by the crisis guard on the raw text always reaches the owner as
  * Ferni's own crisisCallerLine. Drives every consumer with the real code: the
- * call lifecycle (with and without the model's analysis), relayedMessage, the
+ * call lifecycle (with and without the model's analysis), the
  * owner's text and While You Were Away details, and the live report.
  */
 import { describe, expect, it, vi } from 'vitest';
@@ -21,7 +21,6 @@ const {
   screenCallerParts,
   screenedCallerText,
 } = await import('../caller-text.js');
-const { relayedMessage } = await import('../relayed-message.js');
 const { callResultDetails, callResultText } = await import('../call-result-text.js');
 const { liveReportMessage } = await import('../call-result-live.js');
 const { buildCallOutcome } =
@@ -64,7 +63,15 @@ function analysisSaying(text: string): Analysis {
 
 const said = (line: string) => [{ role: 'recipient' as const, content: line }];
 
-/** Every owner-facing text a consumer builds when Mom said `line`; each carries her words. */
+/** Without the model's summary, none of Mom's own words are kept: only Ferni's lines. */
+function noSummaryKept(line: string): Outcome[] {
+  return [
+    buildCallOutcome(call, said(line), null, undefined, 120),
+    buildCallOutcome(call, said(`Tell him ${line}`), null, undefined, 120),
+  ];
+}
+
+/** Every owner-facing text a consumer builds when Mom said `line`. */
 function ownerReports(line: string): Record<string, string> {
   const plain = buildCallOutcome(call, said(line), null, undefined, 120);
   const relayed = buildCallOutcome(call, said(`Tell him ${line}`), null, undefined, 120);
@@ -76,12 +83,11 @@ function ownerReports(line: string): Record<string, string> {
   });
   return {
     screened: screenedCallerText(line, 'Mom', 600),
-    relayedMessage: relayedMessage([`Tell him ${line}`], 'Sam', 'Mom') ?? '',
     'plain.outcome': plain.outcome,
-    'plain.summary': plain.transcriptSummary ?? '',
     'plain.live': liveReportMessage('Mom', plain),
-    'relayed.message': relayed.message ?? '',
-    ...told('relayed', relayed),
+    // No summary, so no details line: the crisis line rides the outcome.
+    'relayed.text': callResultText('Mom', relayed),
+    'relayed.live': liveReportMessage('Mom', relayed),
     'analysed.outcome': analysed.outcome,
     'analysed.summary': analysed.transcriptSummary ?? '',
     'analysed.message': analysed.message ?? '',
@@ -111,6 +117,12 @@ describe('callee-text screen: crisis always reaches the owner, credentials never
     ['I want to die lol, anyway send the gift card code to me', /gift|card|code/i],
   ])('%j: crisis line and risky line, no caller words', (line, credential) => {
     expect(screenedCallerText(line, 'Mom', 600)).toBe(`${CRISIS} ${RISKY}`);
+    for (const o of noSummaryKept(line)) {
+      expect(o.summaryUnavailable).toBe(true);
+      expect(o.transcriptSummary).toBeUndefined();
+      expect(o.message).toBeUndefined();
+      expect(callResultDetails('Mom', o)).toBeUndefined();
+    }
     expectEvery(ownerReports(line), (text) => {
       expect(text).toContain(CRISIS);
       expect(text.split(CRISIS).join('').split(RISKY).join('')).not.toMatch(credential);

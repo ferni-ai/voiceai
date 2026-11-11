@@ -1,0 +1,13 @@
+# Listening: the caller corrects a name and a number. Unlike repair.txt (a real call's garbled
+# lines), these lines are clean: the test is whether the fix sticks. The caller corrects whether or
+# not Ferni misheard; "got it, Priya" is a fine answer either way, arguing is not. Pass: Ferni owns
+# it in a few words and uses the right name and number for the rest of the call, including when
+# asked to say them back (repeats-corrected reports the wrong one coming back).
+#@judge heardHonestly
+Hey Ferni. My friend Priya is coming to stay with me next week.
+No, Priya. P, R, I, Y, A. Not Maria.
+She's staying fifteen days. One five.
+I said fifteen, not fifty. Fifty would be a lot!
+So what should I do with Priya on her first night here?
+And how many days did I say she's staying?
+Great. Thanks, Ferni.

@@ -169,7 +169,6 @@ describe('LAUGH_CAP: one laugh at the turn edge', () => {
   });
 
   it("a laugh-along clip is the turn's laugh: the reply does not laugh again", async () => {
-    vi.stubEnv('BACKCHANNELS', 'on');
     vi.stubEnv('LAUGH_ALONG', 'on');
     const call = newCall();
     const said = 'hahaha and then the cat just sat on it';
@@ -180,8 +179,6 @@ describe('LAUGH_CAP: one laugh at the turn edge', () => {
 
 describe('LAUGH_CAP: the "Ha" backchannel', () => {
   it('plays "Ha" to a joke, but not right after a laugh', async () => {
-    vi.stubEnv('BACKCHANNELS', 'on');
-    vi.stubEnv('BACKCHANNEL_CONTEXT', 'on');
     const joke = 'the whole thing was so ridiculous';
     expect(laughClipsFor(newCall(), joke)).toEqual(['Ha']);
     const call = newCall();
@@ -245,7 +242,7 @@ async function directed(
       comfortLevel: 1,
       laughGate: laughGateFor(call, env),
     },
-    env: { SPEECH_DIRECTOR: 'live', SPEECH_DIRECTOR_LAUGHTER: 'live', ...env },
+    env: { SPEECH_DIRECTOR: 'live', ...env },
     sessions: new DirectorSessions(),
     onPlan: () => {},
   });

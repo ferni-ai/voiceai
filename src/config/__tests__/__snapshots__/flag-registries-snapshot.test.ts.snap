@@ -94,7 +94,7 @@ exports[`feature-flags.ts resolved values > match the values recorded before the
 }
 `;
 
-exports[`voice-humanization-flags.ts resolved values > match the recorded values for NODE_ENV=development, BACKCHANNELS=on 1`] = `
+exports[`voice-humanization-flags.ts resolved values > match the recorded values for NODE_ENV=development 1`] = `
 {
   "cacheConfidenceThreshold": 0.5,
   "enableAmbientAwareness": true,
@@ -120,33 +120,7 @@ exports[`voice-humanization-flags.ts resolved values > match the recorded values
 }
 `;
 
-exports[`voice-humanization-flags.ts resolved values > match the recorded values for NODE_ENV=development, BACKCHANNELS=undefined 1`] = `
-{
-  "cacheConfidenceThreshold": 0.5,
-  "enableAmbientAwareness": true,
-  "enableEmotionalArcTts": true,
-  "enableEmotionalContagion": true,
-  "enableEnhancedTurnPrediction": true,
-  "enableEnhancedVoiceFingerprinting": true,
-  "enableFftAnalysis": true,
-  "enableLLMBackchannels": false,
-  "enableLaughterDetection": true,
-  "enableLiveBackchanneling": false,
-  "enableMetrics": true,
-  "enableMicroInterruptions": true,
-  "enableMultiSignalLaughter": true,
-  "enableProsodyTurnPrediction": true,
-  "enableResponseAnticipation": true,
-  "enableRhythmMirroring": true,
-  "enableVerboseLogging": true,
-  "enableVoiceAuthentication": true,
-  "enableWordTimingRhythm": true,
-  "rolloutPercentage": 100,
-  "useCachedResponses": true,
-}
-`;
-
-exports[`voice-humanization-flags.ts resolved values > match the recorded values for NODE_ENV=production, BACKCHANNELS=on 1`] = `
+exports[`voice-humanization-flags.ts resolved values > match the recorded values for NODE_ENV=production 1`] = `
 {
   "cacheConfidenceThreshold": 0.55,
   "enableAmbientAwareness": true,
@@ -172,33 +146,7 @@ exports[`voice-humanization-flags.ts resolved values > match the recorded values
 }
 `;
 
-exports[`voice-humanization-flags.ts resolved values > match the recorded values for NODE_ENV=production, BACKCHANNELS=undefined 1`] = `
-{
-  "cacheConfidenceThreshold": 0.55,
-  "enableAmbientAwareness": true,
-  "enableEmotionalArcTts": true,
-  "enableEmotionalContagion": true,
-  "enableEnhancedTurnPrediction": true,
-  "enableEnhancedVoiceFingerprinting": true,
-  "enableFftAnalysis": true,
-  "enableLLMBackchannels": false,
-  "enableLaughterDetection": true,
-  "enableLiveBackchanneling": false,
-  "enableMetrics": true,
-  "enableMicroInterruptions": true,
-  "enableMultiSignalLaughter": true,
-  "enableProsodyTurnPrediction": true,
-  "enableResponseAnticipation": true,
-  "enableRhythmMirroring": true,
-  "enableVerboseLogging": false,
-  "enableVoiceAuthentication": true,
-  "enableWordTimingRhythm": true,
-  "rolloutPercentage": 100,
-  "useCachedResponses": true,
-}
-`;
-
-exports[`voice-humanization-flags.ts resolved values > match the recorded values for NODE_ENV=staging, BACKCHANNELS=on 1`] = `
+exports[`voice-humanization-flags.ts resolved values > match the recorded values for NODE_ENV=staging 1`] = `
 {
   "cacheConfidenceThreshold": 0.5,
   "enableAmbientAwareness": true,
@@ -210,32 +158,6 @@ exports[`voice-humanization-flags.ts resolved values > match the recorded values
   "enableLLMBackchannels": false,
   "enableLaughterDetection": true,
   "enableLiveBackchanneling": true,
-  "enableMetrics": true,
-  "enableMicroInterruptions": true,
-  "enableMultiSignalLaughter": true,
-  "enableProsodyTurnPrediction": true,
-  "enableResponseAnticipation": true,
-  "enableRhythmMirroring": true,
-  "enableVerboseLogging": true,
-  "enableVoiceAuthentication": true,
-  "enableWordTimingRhythm": true,
-  "rolloutPercentage": 100,
-  "useCachedResponses": true,
-}
-`;
-
-exports[`voice-humanization-flags.ts resolved values > match the recorded values for NODE_ENV=staging, BACKCHANNELS=undefined 1`] = `
-{
-  "cacheConfidenceThreshold": 0.5,
-  "enableAmbientAwareness": true,
-  "enableEmotionalArcTts": true,
-  "enableEmotionalContagion": true,
-  "enableEnhancedTurnPrediction": true,
-  "enableEnhancedVoiceFingerprinting": true,
-  "enableFftAnalysis": true,
-  "enableLLMBackchannels": false,
-  "enableLaughterDetection": true,
-  "enableLiveBackchanneling": false,
   "enableMetrics": true,
   "enableMicroInterruptions": true,
   "enableMultiSignalLaughter": true,

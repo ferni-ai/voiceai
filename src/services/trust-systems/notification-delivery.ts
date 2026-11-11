@@ -125,8 +125,8 @@ export async function deliverPush(item: OutreachItem, pushToken: string): Promis
 
   try {
     // Firebase Admin SDK for push notifications
-    const admin = await getFirebaseAdmin();
-    if (!admin) {
+    const messaging = await loadFirebaseMessaging();
+    if (!messaging) {
       log.warn('Firebase Admin not configured, cannot send push');
       return {
         success: false,
@@ -136,7 +136,7 @@ export async function deliverPush(item: OutreachItem, pushToken: string): Promis
       };
     }
 
-    const response = await admin.messaging().send({
+    const response = await messaging.getMessaging().send({
       token: pushToken,
       notification: {
         title: payload.title,
@@ -617,17 +617,17 @@ function isRetryableError(error: unknown): boolean {
 // ============================================================================
 
 /**
- * Get Firebase Admin SDK (lazy loaded)
+ * The firebase-admin messaging module, with the default app initialized (lazy loaded)
  */
-async function getFirebaseAdmin(): Promise<typeof import('firebase-admin') | null> {
+async function loadFirebaseMessaging(): Promise<typeof import('firebase-admin/messaging') | null> {
   try {
-    const admin = (await import('firebase-admin')).default;
+    const { getApps, initializeApp } = await import('firebase-admin/app');
     // Check if already initialized
-    if (admin.apps.length === 0) {
+    if (getApps().length === 0) {
       // Will use GOOGLE_APPLICATION_CREDENTIALS
-      admin.initializeApp();
+      initializeApp();
     }
-    return admin;
+    return await import('firebase-admin/messaging');
   } catch (error) {
     log.warn({ error }, 'Firebase Admin not available');
     return null;

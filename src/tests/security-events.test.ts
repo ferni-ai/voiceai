@@ -58,30 +58,6 @@ vi.mock('../config/environment.js', () => ({
   }),
 }));
 
-// Mock firebase-admin
-vi.mock('firebase-admin', () => ({
-  default: {
-    apps: [],
-    initializeApp: vi.fn(),
-    firestore: vi.fn(() => ({
-      collection: vi.fn(() => ({
-        doc: vi.fn(() => ({
-          set: vi.fn(() => Promise.resolve()),
-        })),
-      })),
-    })),
-  },
-  apps: [],
-  initializeApp: vi.fn(),
-  firestore: vi.fn(() => ({
-    collection: vi.fn(() => ({
-      doc: vi.fn(() => ({
-        set: vi.fn(() => Promise.resolve()),
-      })),
-    })),
-  })),
-}));
-
 describe('Security Events Service', () => {
   beforeEach(() => {
     // Clean up any state between tests

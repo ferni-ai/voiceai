@@ -8,9 +8,11 @@
  */
 
 import type { ServerResponse } from 'http';
+import { logJobRun, type JobRunCounts } from '../../utils/job-run.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { readCallSummaries } from '../../memory/storage/call-summaries.js';
 import { sendJson } from './helpers.js';
+import type { PonderJobResult } from '../../intelligence/pondering/ponder-job.js';
 
 const log = createLogger({ module: 'IntelligenceJobs' });
 
@@ -261,6 +263,25 @@ export async function handleDeepAnalysis(res: ServerResponse): Promise<void> {
 }
 
 /**
+ * PONDERING_RUN counts: `sent` is a pondering stored (its notes go out on the
+ * proactive run); everyone else in the cohort is counted by why. flag-off: nobody has it on.
+ */
+function ponderingRunCounts(stats: Omit<PonderJobResult, 'results'>): JobRunCounts {
+  const skippedBy: Record<string, number> = {};
+  const add = (why: string, n: number): void => {
+    if (n > 0) skippedBy[why] = n;
+  };
+  for (const [why, n] of Object.entries(stats.skipped)) add(why, n);
+  const skipped = Object.values(stats.skipped).reduce((a, n) => a + n, 0);
+  add('not-due', stats.cohort - skipped - stats.due - stats.errors);
+  add('nothing', stats.nothing);
+  add('error', stats.errors);
+  add('out-of-budget', stats.due - stats.stored - stats.nothing - stats.errors);
+  if (stats.status === 'off') skippedBy['flag-off'] = 1;
+  return { considered: stats.cohort, eligible: stats.due, sent: stats.stored, skippedBy };
+}
+
+/**
  * Nightly pondering (intelligence/pondering/ponder-job.ts): hourly poll that
  * ponders the cohort's callers whose night slot has come. Off unless
  * PONDERING=on, here or in the person's own cohort flags.
@@ -281,6 +302,7 @@ export async function handlePondering(res: ServerResponse): Promise<void> {
     });
     const durationMs = Date.now() - startTime;
     log.info({ ...stats, durationMs }, 'Pondering poll completed');
+    logJobRun(log, 'PONDERING', ponderingRunCounts(stats), { status: stats.status });
     sendJson(res, 200, {
       success: true,
       job: 'pondering',
