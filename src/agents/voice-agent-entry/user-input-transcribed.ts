@@ -32,8 +32,18 @@ export function createUserInputTranscribedHandler(input: {
       if (transcript) {
         const wordCount = transcript.split(/\s+/).filter((w: string) => w.length > 0).length;
         const estimatedDurationSeconds = (wordCount / 150) * 60;
-        finops.recordSTTCost({ durationSeconds: Math.max(1, estimatedDurationSeconds), userId: userId ?? undefined, sessionId });
-        const dynamicVAD = computeDynamicVADDuration(sessionId, transcript, undefined, userData.emotionalState as string | undefined);
+        finops.recordSTTCost({
+          provider: 'cartesia',
+          durationSeconds: Math.max(1, estimatedDurationSeconds),
+          userId: userId ?? undefined,
+          sessionId,
+        });
+        const dynamicVAD = computeDynamicVADDuration(
+          sessionId,
+          transcript,
+          undefined,
+          userData.emotionalState as string | undefined
+        );
         process.stderr.write(`[VAD] semantic=${dynamicVAD}ms for turn ${userData.turnCount}\n`);
       }
     }
