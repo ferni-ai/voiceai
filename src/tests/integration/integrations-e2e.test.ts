@@ -294,7 +294,7 @@ describe('Biometrics Integration API', () => {
         expect(authUrl).not.toContain(testUserId);
       }
 
-      console.log(`✅ Auth URL generation works for ${platforms.length} platforms`);
+      console.log(`✅ Auth URL generation works for ${Object.keys(platforms).length} platforms`);
     });
 
     it('POST /sync - should handle sync requests', async () => {
