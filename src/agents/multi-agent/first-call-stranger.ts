@@ -14,7 +14,7 @@
  */
 
 import { returningOnceLoaded } from '../../services/session/deferred-profile.js';
-import type { Env } from '../../config/env-flag.js';
+import { flagOn, type Env } from '../../config/env-flag.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { isFirstCall } from '../personas/first-call-rapport.js';
 import type { CallerHistory } from './greeting-direction.js';
@@ -57,7 +57,7 @@ export const EASY_QUESTION =
 
 /** The stranger's (or unplaced caller's) hello direction, with the easy question when the flag is on. */
 export function easyStrangerDirection(base: string, env: Env = process.env): string {
-  return env.STRANGER_GREETING_EASY === 'on' ? base.replace(MIND_QUESTION, EASY_QUESTION) : base;
+  return flagOn('STRANGER_GREETING_EASY', env) ? base.replace(MIND_QUESTION, EASY_QUESTION) : base;
 }
 
 /** The fact that says so, beside the time of day and their name. */
