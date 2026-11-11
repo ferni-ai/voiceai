@@ -112,6 +112,7 @@
         "src/tools/domains/proactive/outreach/owner-message-content.ts",
         "src/agents/multi-agent/caller-card/index.ts",
         "src/agents/multi-agent/caller-card/wiring.ts",
+        "src/agents/multi-agent/call-sheet/wiring.ts",
         "src/agents/multi-agent/greeting-date.ts",
         "src/memory/recall/proactive-budget.ts",
         "src/memory/recall/opener-claim.ts",

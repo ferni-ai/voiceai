@@ -147,6 +147,7 @@
 /src/tools/domains/proactive/outreach/owner-message-content.ts @sethdford
 /src/agents/multi-agent/caller-card/index.ts @sethdford
 /src/agents/multi-agent/caller-card/wiring.ts @sethdford
+/src/agents/multi-agent/call-sheet/wiring.ts @sethdford
 /src/agents/multi-agent/greeting-date.ts @sethdford
 /src/memory/recall/proactive-budget.ts @sethdford
 /src/memory/recall/opener-claim.ts @sethdford

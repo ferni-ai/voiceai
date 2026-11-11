@@ -55,6 +55,7 @@ import {
 } from '../shared/openai-health-monitor.js';
 import * as forgotten from '../../memory/recall/forget-every-reader.js';
 import { setupProfileReader } from './setup-profile.js';
+import { startCallSheet } from './call-sheet/index.js';
 
 // ============================================================================
 // CRITICAL PATH IMPORTS - Hoisted to module level for faster startup
@@ -337,6 +338,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   let modelBaseInstructions: string;
   // The model-level text before this call's date, time and caller are added.
   let stableBase = '';
+  // PERSON_MODEL_READ: the call sheet loads alongside setup and is taken, never awaited, below
+  const callSheet = startCallSheet(sessionId, services.userId, { phoneCall: config.phoneCaller });
   try {
     mark('load_prompts_start');
     // Both levels in parallel; ALEX_CHIEF_OF_STAFF=on adds Alex's role (chief-of-staff-role.ts)
@@ -1135,6 +1138,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     `${modelProvider.getLogPrefix()} Creating LLM model via ${modelProvider.displayName}`
   );
 
+  if (callSheet) modelBaseInstructions += callSheet.take(); // call-sheet/: whatever has settled
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const llmModel: any = await modelProvider.createLLMModel({
     model: VOICE_MODEL,
