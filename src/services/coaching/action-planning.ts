@@ -343,7 +343,7 @@ export function createAction(
   profile.actions.push(item);
   profile.stats.totalCreated++;
 
-  log.info({ userId, actionId: item.id, action: item.action.slice(0, 50) }, '📋 Action created');
+  log.info({ userId, actionId: item.id, actionLen: item.action.length }, '📋 Action created');
 
   return item;
 }

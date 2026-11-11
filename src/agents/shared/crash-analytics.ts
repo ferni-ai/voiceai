@@ -25,7 +25,7 @@ export interface CrashContext {
   userId?: string;
   personaId?: string;
   turnCount?: number;
-  lastUserMessage?: string;
+  lastUserMessageLen?: number; // the caller's words stay out of crash records (#3215)
   lastAgentMessage?: string;
   connectionState?: string;
   uptimeMs?: number;
@@ -288,7 +288,7 @@ export function recordCrash(
       sessionId: sessionId || 'unknown',
       ...additionalContext,
       turnCount: session?.turnCount,
-      lastUserMessage: messages?.lastUserMessage?.slice(0, 200), // Truncate for logging
+      lastUserMessageLen: messages?.lastUserMessage?.length,
       lastAgentMessage: messages?.lastAgentMessage?.slice(0, 200),
       connectionState: session?.state,
       uptimeMs: session ? Date.now() - new Date(session.timestamp).getTime() : undefined,
@@ -318,7 +318,7 @@ export function recordCrash(
       personaId: crashEvent.context.personaId,
       roomName: crashEvent.context.roomName,
       turnCount: crashEvent.context.turnCount,
-      lastUserMessage: crashEvent.context.lastUserMessage,
+      lastUserMessageLen: crashEvent.context.lastUserMessageLen,
       pendingOperations: session?.pendingOperations,
       uptimeMs: crashEvent.context.uptimeMs,
       memoryMb: crashEvent.context.memoryUsageMb,

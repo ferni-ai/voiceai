@@ -234,10 +234,7 @@ export function addCrossPersonaItem(
     createdAt: new Date(),
   });
 
-  log.info(
-    { userId, item: item.slice(0, 50), origin: originPersona },
-    '📌 Cross-persona item added'
-  );
+  log.info({ userId, itemLen: item.length, origin: originPersona }, '📌 Cross-persona item added');
 }
 
 // ============================================================================

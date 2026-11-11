@@ -149,7 +149,7 @@ export async function integrateCommitment(
   }
 
   log.debug(
-    { userId, entityId: entity.id, description: commitment.description.slice(0, 50) },
+    { userId, entityId: entity.id, descriptionLen: commitment.description.length },
     'Integrated commitment into knowledge graph'
   );
 

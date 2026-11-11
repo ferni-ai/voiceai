@@ -662,7 +662,6 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
                     diag.session('🔮 Proactive insight: commitments due soon', {
                       userId,
                       dueCount: dueCommitments.length,
-                      commitments: dueCommitments.map((c) => c.description.slice(0, 50)),
                     });
                   }
                 }

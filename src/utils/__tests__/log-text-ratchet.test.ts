@@ -1,41 +1,23 @@
 /**
- * #2689 ratchet: no log call carries conversation text. Two shapes are a leak:
- * - a slice of text: `.slice(...)` / `.substring(...)` / `.substr(...)` of a turn,
- *   transcript, message, reply, query or other spoken text, from any start
- *   (`text.slice(-30)` too) and through a wrapper (`String(reflection).slice(0, 50)`);
- * - a content field logged whole: a key named text, content, utterance, transcript,
- *   speech, starter or reflection (or ending in one: userText, ttsText) whose value
- *   is not a length, count or yes/no (log-guard's SHAPE).
- * Log `.length` instead. Ids (`userId.slice(0, 8)`) and error text stay allowed.
+ * #2689 / #3215 ratchet: no log call carries conversation text or a memory record's
+ * words. log-text-shapes.ts says which calls do: a slice of text, a content key, a
+ * text value under any key or interpolated, and a memory record's words (a goal's
+ * title, a commitment's description, an entity's name). Log `.length`, a count or an
+ * id instead. Ids (`userId.slice(0, 8)`) and error text stay allowed.
  *
  * It reads logger calls with call-log-surface-guard's reader (log-guard.ts), over
- * every production file, and counts each leaking call once. ALLOWED lists the
- * reviewed calls per file. A new one fails, and so does a count that drops (lower
- * it here).
+ * every production file. ALLOWED lists reviewed calls per file; PENDING_3215B lists
+ * the calls PR (b) of #3215 fixes, each by what it logs. A new call fails, and so
+ * does a count that drops or a pending call that is gone (remove it here).
  */
 import { readdirSync, readFileSync } from 'fs';
 import { join, relative } from 'path';
 import { describe, expect, it } from 'vitest';
-import {
-  CALL,
-  closing,
-  logged,
-  SHAPE,
-} from '../../agents/voice-agent-entry/__tests__/log-guard.js';
+import { type Leak, textLeaksInLogs } from './log-text-shapes.js';
 
 const ROOT = join(__dirname, '..', '..', '..');
 const SKIP_DIR = /^(__tests__|__mocks__|node_modules|tests|cli)$/;
 const SKIP_FILE = /\.(test|spec)\.ts$|\.d\.ts$/;
-
-/** A slice of a name, from any start, bare or wrapped: `t.slice(-30)`, `String(t).slice(0, 9)`. */
-const SLICE = /([A-Za-z_$][\w$]*)\s*\)?\??\.(?:slice|substring|substr)\(/g;
-/** Names that hold what someone said or what Ferni says back. */
-const TEXT_NAME =
-  /content|text|transcript|utterance|message|reply|response|said|speech|spoken|greeting|goodbye|opener|query|question|answer|summary|phrase|chunk|thought|input|advice|normalized|trimmed|cleaned|starter|reflection|observation|complaint|intention|guidance|statement|banter|callerline|callback|insight|sentence|belief|resolution|memory|lower/i;
-const NOT_WORDS = /^(?:err|error)|(?:Id|Ids|Url|Key|Hash|Token)$/;
-/** A field that holds the words themselves. */
-const WHOLE_KEY =
-  /^(?:text|content|utterance|transcript|speech|starter|reflection)$|(?:Text|Content|Utterance|Transcript|Speech|Starter|Reflection)$/;
 
 /** Reviewed calls per file. Each group says why its calls may stay. */
 const PENDING_2656: Record<string, number> = {
@@ -78,42 +60,155 @@ const NOT_ANYONES_WORDS: Record<string, number> = {
   'src/agents/shared/performance/reply-audio-stage.ts': 1, // speech: a sample rate
   'src/agents/voice-agent/turn-handler.ts': 1, // hasGrowthReflection: a boolean
   'src/audio/music-transition-analytics.ts': 1, // timeToSpeech: ms
+  // #3215: the wider shapes also match these. None holds anything a caller said or a record of it.
+  'src/agents/session/event-cleanup-registry.ts': 1, // a cleanup handler's label, set in code
+  'src/agents/shared/conversation-priming.ts': 1, // the fixed label of a synthetic priming turn
+  'src/agents/shared/disconnect-diagnostics.ts': 1, // the fixed text for a disconnect reason
+  'src/agents/integrations/unified-intelligence-integration.ts': 1, // milestone catalog title ('One Week')
+  'src/services/superhuman/relationship-milestones.ts': 1, // the same milestone catalog
+  'src/api/monetization-routes.ts': 1, // a JOURNEY_MILESTONES catalog title
+  'src/api/scheduled-jobs/brand-jobs.ts': 1, // a company brand milestone, not a user's
+  'src/intelligence/context-builders/humanization/humanizing-debug.ts': 1, // stage and mood enums
+  'src/intelligence/context-builders/personas/physical-presence.ts': 1, // a persona's stage direction
+  'src/services/custom-agent/voice-clone-service.ts': 1, // clip.speech: seconds of audio
+  'src/services/data-layer/index.ts': 1, // context.summary: counts and totals
+  'src/services/data-layer/session-integration.ts': 1, // the same counts
+};
+/**
+ * #3215 PR (b) fixes these and then deletes this list: memory-record words and caller text
+ * logged whole, each listed by what it logs (log-text-shapes' Leak.what), not by line, so
+ * edits elsewhere in a file don't move it. Never move one of these to NOT_ANYONES_WORDS.
+ */
+const PENDING_3215B: Record<string, string[]> = {
+  'src/agents/processors/injection-builders/safety-coaching-builders.ts': [
+    'goal: coachingAnalysis.goalText',
+  ],
+  'src/agents/processors/injection-builders/trust-builders.ts': [
+    'description: trustContext.celebrationOpportunity.win.description',
+  ],
+  'src/agents/processors/turn-processor/process-turn.ts': ['topic: reflectionMoment.topic'],
+  'src/api/habit-routes.ts': ['name: habit.name'],
+  'src/conversation/curiosity-engine.ts': ['detail: detail.content'],
+  'src/conversation/superhuman/story-continuity.ts': ['name: person.name'],
+  'src/diagnostics/memory-pipeline-diagnostics.ts': ['summary: moment.summary'],
+  'src/intelligence/coaching/dynamic-questions.ts': ['context.recentTopics.slice('],
+  'src/intelligence/collective/agent-evolution.ts': ['trigger: adjustment.trigger.description'],
+  'src/intelligence/context-builders/memory/memory-enhancement.ts': [
+    'topic: thinkingMoment.record.topic',
+    'name: followUp.mention.name',
+    'topic: tonalInsight.topic',
+    'topic: growthMoment.record.topic',
+  ],
+  'src/intelligence/context-builders/memory/thinking-of-you.ts': [
+    'topic: thinkingMoment.record.topic',
+  ],
+  'src/intelligence/context-builders/session/cross-session-reflection.ts': [
+    'topic: newMoment.topic',
+  ],
+  'src/intelligence/context-builders/superhuman/conversational-superpowers.ts': [
+    'person: person.name',
+    'person: followUp.person.name',
+  ],
+  'src/intelligence/data-capture/index.ts': [
+    'name: contact.name || contact.relationship',
+    'name: contact.name',
+    'name: contact.name',
+    'name: contact.name',
+  ],
+  'src/intelligence/deep-understanding/life-rhythm.ts': ['description: anniversary.description'],
+  'src/intelligence/deep-understanding/relationships.ts': [
+    'personName: person.name',
+    'personName: mentionedPerson.name',
+  ],
+  'src/intelligence/tracking/cross-session.ts': ['topic: thread.topic', 'topic: thread.topic'],
+  'src/intelligence/triggers/temporal-pattern-detector.ts': [
+    'nearDate: result.nearSignificantDate?.description',
+  ],
+  'src/intelligence/triggers/voice-agent-integration.ts': [
+    'nearSignificantDate: temporalBoost.nearSignificantDate?.description',
+  ],
+  'src/intelligence/user-learning-engine/engine.ts': ['summary: moment.summary'],
+  'src/memory/dynamic/fast-capture.ts': [
+    'entities: mentionedEntities.map((e) => e.name).slice(0, 5)',
+  ],
+  'src/memory/dynamic/stm-promotion.ts': ['entity: entity.name'],
+  'src/memory/entity-store/entity-resolver.ts': ['input: nameOrText'],
+  'src/memory/knowledge-graph/services/knowledge-capture.ts': [
+    'entityNames: entityExtractionResult.entities.map((e) => e.name).slice(0, 5)',
+  ],
+  'src/memory/knowledge-graph/storage/thread-store.ts': ['topic: thread.topic'],
+  'src/memory/spanner-graph/client.ts': ['name: entity.name'],
+  'src/personas/bundles/ferni/superhuman-memory-integration.ts': ['topic: insight.topic'],
+  'src/scripts/query-threads.ts': ['d?.summary', '${content}'],
+  'src/services/coaching/goal-tracking.ts': [
+    'title: goal.title',
+    'title: goal.title',
+    'title: milestone.title',
+  ],
+  'src/services/concierge/outreach/phone-caller.ts': ['summary: result.summary'],
+  'src/services/contacts/personalized-outreach.ts': ['contactName: context.contact.name'],
+  'src/services/creative-you/intelligent-curator.ts': ['this.userContext.recentTopics.slice('],
+  'src/services/goal-outreach-integration.ts': ['title: goal.title'],
+  'src/services/identity/google-calendar-oauth.ts': ['summary: event.summary'],
+  'src/services/outreach/context-aggregator.ts': [
+    'description: win.description',
+    'description: struggle.description',
+  ],
+  'src/services/outreach/conversation-extractor.ts': [
+    'event: event.description',
+    'extraction.topics.slice(',
+    'milestone: milestone.description',
+    'progress: milestone.description',
+    'anniversary: milestone.description',
+    'count: milestone.description',
+  ],
+  'src/services/outreach/superhuman-outreach-bridge.ts': [
+    'commitment: commitment.summary',
+    'commitment: commitment.summary',
+    'topic: insight.topic',
+    'commitment: commitment.summary',
+  ],
+  'src/services/outreach/superhuman-outreach-integration.ts': ['struggle: memory.content'],
+  'src/services/outreach/timing-intelligence.ts': [
+    'rule: rule.description',
+    'period: period.description',
+    'event: event.description',
+  ],
+  'src/services/persona/per-persona-relationship.ts': ['data?.frequentTopics.slice('],
+  'src/services/stores/life-data-store.ts': ['name: milestone.name', 'title: goal.title'],
+  'src/services/superhuman/commitment-calendar-integration.ts': ['commitment: commitment.text'],
+  'src/services/superhuman/commitment-keeper.ts': [
+    'commitment: commitment.summary',
+    'summary: commitment.summary',
+  ],
+  'src/services/superhuman/relationship-network.ts': ['personName: newPerson.name'],
+  'src/services/superhuman/semantic-intelligence/relationship-graph.ts': ['person: person.name'],
+  'src/services/trust-systems/small-wins.ts': ['intention: intentionText'],
+  'src/tools/domains/communication/outreach/multi-outreach.ts': [
+    'contact: contact.name',
+    'contact: contact.name',
+  ],
+  'src/tools/domains/communication/outreach/unified-outreach.ts': [
+    'contactName: contact.name',
+    'contactName: contact.name',
+  ],
+  'src/tools/domains/habits/habits.ts': ['name: habit.name'],
+  'src/tools/domains/information/relationships/storage.ts': [
+    'name: relationship.name',
+    'description: date.description',
+  ],
+  'src/tools/domains/life-planning/milestone-proactive.ts': ['milestone: milestone.name'],
+  'src/tools/domains/research/superhuman-tools/predictive-modeling.ts': [
+    'goal: goal.name',
+    'habit: habit.name',
+  ],
+  'src/tools/domains/research/user-data/user-data-service.ts': ['goalName: goal.name'],
 };
 const ALLOWED: Record<string, number> = {
   ...PENDING_2656,
   ...FERNI_SPOKEN_TEXT,
   ...NOT_ANYONES_WORDS,
 };
-
-function slicesText(call: string): boolean {
-  return [...call.matchAll(SLICE)].some(
-    (m) => TEXT_NAME.test(m[1] ?? '') && !NOT_WORDS.test(m[1] ?? '')
-  );
-}
-
-function logsTextWhole(call: string): boolean {
-  return logged(call).some(
-    (v) =>
-      (v.kind === 'field' || v.kind === 'interpolation') &&
-      !!v.key &&
-      WHOLE_KEY.test(v.key) &&
-      !/^err/i.test(v.key) &&
-      !SHAPE.test(v.value.trim())
-  );
-}
-
-/** Line numbers of the logger calls in `source` that carry conversation text, one per call. */
-export function textLeaksInLogs(source: string): number[] {
-  const lines: number[] = [];
-  for (const m of source.matchAll(CALL)) {
-    const open = (m.index ?? 0) + m[0].length - 1;
-    const call = source.slice(open, closing(source, open) + 1);
-    if (slicesText(call) || logsTextWhole(call)) {
-      lines.push(source.slice(0, open).split('\n').length);
-    }
-  }
-  return lines;
-}
 
 function productionFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -125,6 +220,41 @@ function productionFiles(dir: string, out: string[] = []): string[] {
   }
   return out;
 }
+
+/**
+ * What the ratchet reports for `found` (every leaking call, per file): a call no list
+ * covers, a per-file count that dropped, and a pending call that is no longer there.
+ */
+export function unreviewed(
+  found: Record<string, Leak[]>,
+  allowed: Record<string, number>,
+  pending: Record<string, string[]>
+): string[] {
+  const out: string[] = [];
+  for (const [rel, leaks] of Object.entries(found)) {
+    const waiting = [...(pending[rel] ?? [])];
+    const rest = leaks.filter((leak) => {
+      const at = waiting.indexOf(leak.what);
+      if (at === -1) return true;
+      waiting.splice(at, 1);
+      return false;
+    });
+    out.push(...waiting.map((what) => `${rel}: '${what}' is gone, remove it from PENDING_3215B`));
+    if (rest.length !== (allowed[rel] ?? 0)) {
+      out.push(...rest.map((leak) => `${rel}:${leak.line} ${leak.what}`));
+    }
+  }
+  for (const rel of Object.keys(allowed)) {
+    if (!found[rel]?.length) out.push(`${rel}: prune from ALLOWED`);
+  }
+  for (const [rel, whats] of Object.entries(pending)) {
+    if (!found[rel]?.length)
+      out.push(...whats.map((w) => `${rel}: '${w}' is gone, remove it from PENDING_3215B`));
+  }
+  return out;
+}
+
+const lines = (code: string): number[] => textLeaksInLogs(code).map((leak) => leak.line);
 
 describe('textLeaksInLogs', () => {
   it.each([
@@ -151,8 +281,31 @@ describe('textLeaksInLogs', () => {
     "log.info({ utterance: u, speech: s }, 'u');",
     "log.info({ ttsText: truncateForLog(buffer, 300) }, 'tts');",
     'log.info({ content: `${memory.content}!` }, "interp");',
+    // #3215: a slice behind a fallback or a call, and of a record's words
+    "log.info({ t: (text || '').slice(0, 40) }, 'fallback');",
+    "log.info({ t: userText.trim().toLowerCase().slice(0, 40) }, 'chain');",
+    "log.debug({ description: commitment.description.slice(0, 50) }, 'commitment');",
+    "log.info({ action: item.action.slice(0, 50) }, 'Action created');",
+    "log.info({ item: item.slice(0, 50) }, 'Cross-persona item added');",
+    "log.info({ subject: sanitizedSubject.slice(0, 50) }, 'Email sent');",
+    "log.warn({ bodyPreview: result.body.slice(0, 100) }, 'Invalid JSON body');",
+    "log.info({ topics: extraction.topics.slice(0, 5) }, 'Topics extracted');",
+    "log.info({ commitments: due.map((c) => c.description.slice(0, 50)) }, 'due');",
+    // #3215: a text value under a key that doesn't say so, or interpolated
+    "log.info({ preview: userText }, 'heard');",
+    'log.info(`heard ${userTranscript}`);',
+    "log.error({ lastUserMessage: ctx.lastUserMessage }, 'crash');",
+    // #3215: a memory record's words, logged whole or mapped into a list
+    "log.info({ userId, goalId: goal.id, title: goal.title }, 'Goal created');",
+    "log.info({ userId, personName: person.name }, 'Person tracked');",
+    "log.info({ topic: thread.topic }, 'Thread resumed');",
+    "log.info({ s: moment.summary }, 'Key moment');",
+    "log.info({ d: win.description }, 'Added win');",
+    "log.info({ entities: mentionedEntities.map((e) => e.name).slice(0, 5) }, 'capture');",
+    "log.info({ names: entities.map((e) => e.name) }, 'entities');",
+    "log.info({ name: contact.name || contact.relationship }, 'contact');",
   ])('flags %s', (code) => {
-    expect(textLeaksInLogs(code)).toEqual([1]);
+    expect(lines(code)).toEqual([1]);
   });
 
   it.each([
@@ -160,32 +313,90 @@ describe('textLeaksInLogs', () => {
     "log.info({ userId: userId.slice(0, 8), key: key.slice(0, 8) }, 'hit');",
     "log.warn({ error: errorText.slice(0, 200) }, 'vendor error');",
     'const preview = content.slice(0, 40); doSomething(preview);',
-    "log.info({ topics: topics.slice(0, 3) }, 'topics');",
     "log.info({ context, contentType: 'json', textLen: text.length }, 'shape');",
     "log.info({ hasText: !text, transcriptLen: t?.length ?? 0 }, 'shape');",
+    // an id at the end of a chain whose owner's name looks like text (personality-context)
+    "log.warn({ userId: input.services?.userId?.slice(0, 8) }, 'builder failed');",
+    "log.info({ ids: extraction.ids.slice(0, 3), n: interactions.slice(0, 3).length }, 'x');",
+    // a persona or an identity is not a person or an entity
+    'log.info(`instructions restored to ${hostPersona.name}`);',
+    "log.info({ personaName: persona.manifest.identity.name }, 'draft');",
+    // lengths and ids of a record
+    "log.info({ goalId: goal.id, titleLen: goal.title.length }, 'Goal created');",
+    "log.debug({ descriptionLen: commitment.description.length }, 'commitment');",
+    "log.error({ lastUserMessageLen: ctx.lastUserMessageLen }, 'crash');",
   ])('leaves %s alone', (code) => {
-    expect(textLeaksInLogs(code)).toEqual([]);
+    expect(lines(code)).toEqual([]);
+  });
+
+  it('keys each call by what it logs, not by its line', () => {
+    const code = "\n\nlog.info({ userId, title: goal.title }, 'Goal created');";
+    expect(textLeaksInLogs(code)).toEqual([{ line: 3, what: 'title: goal.title' }]);
   });
 });
 
-describe('log calls in src/ carry no conversation text (#2689)', () => {
-  it('has no call outside the reviewed lists, and every listed count is exact', () => {
-    const found: Record<string, number> = {};
-    const where: string[] = [];
+describe('unreviewed', () => {
+  const leak = (what: string, line = 1): Leak => ({ line, what });
+
+  it('fails a pending list that grows past the calls it names', () => {
+    const found = { 'src/a.ts': [leak('title: goal.title'), leak('topic: thread.topic', 9)] };
+    expect(unreviewed(found, {}, { 'src/a.ts': ['title: goal.title'] })).toEqual([
+      'src/a.ts:9 topic: thread.topic',
+    ]);
+  });
+
+  it('fails a pending call that is already fixed', () => {
+    const found = { 'src/a.ts': [leak('title: goal.title')] };
+    const pending = {
+      'src/a.ts': ['title: goal.title', 'name: habit.name'],
+      'src/b.ts': ['x: y.title'],
+    };
+    expect(unreviewed(found, {}, pending)).toEqual([
+      "src/a.ts: 'name: habit.name' is gone, remove it from PENDING_3215B",
+      "src/b.ts: 'x: y.title' is gone, remove it from PENDING_3215B",
+    ]);
+  });
+
+  it('covers only the call a pending entry names, not another in the same file', () => {
+    const found = { 'src/a.ts': [leak('topic: thread.topic', 4)] };
+    expect(unreviewed(found, {}, { 'src/a.ts': ['title: goal.title'] })).toEqual([
+      "src/a.ts: 'title: goal.title' is gone, remove it from PENDING_3215B",
+      'src/a.ts:4 topic: thread.topic',
+    ]);
+  });
+
+  it('counts a pending call once per listing, so a copy of it fails', () => {
+    const found = { 'src/a.ts': [leak('title: goal.title'), leak('title: goal.title', 7)] };
+    expect(unreviewed(found, {}, { 'src/a.ts': ['title: goal.title'] })).toEqual([
+      'src/a.ts:7 title: goal.title',
+    ]);
+  });
+
+  it('passes when every call is listed exactly', () => {
+    const found = { 'src/a.ts': [leak('title: goal.title')], 'src/c.ts': [leak('text')] };
+    expect(unreviewed(found, { 'src/c.ts': 1 }, { 'src/a.ts': ['title: goal.title'] })).toEqual([]);
+  });
+});
+
+describe('log calls in src/ carry no conversation text (#2689, #3215)', () => {
+  it('has no call outside the reviewed lists, and every listed call is still there', () => {
+    const found: Record<string, Leak[]> = {};
     for (const file of productionFiles(join(ROOT, 'src'))) {
-      const lines = textLeaksInLogs(readFileSync(file, 'utf8'));
-      if (lines.length === 0) continue;
-      const rel = relative(ROOT, file);
-      found[rel] = lines.length;
-      if (lines.length !== ALLOWED[rel]) where.push(...lines.map((n) => `${rel}:${n}`));
+      const leaks = textLeaksInLogs(readFileSync(file, 'utf8'));
+      if (leaks.length) found[relative(ROOT, file)] = leaks;
     }
-    for (const rel of Object.keys(ALLOWED)) {
-      if (!found[rel]) where.push(`${rel}: prune from ALLOWED`);
-    }
-    expect(where).toEqual([]);
+    expect(unreviewed(found, ALLOWED, PENDING_3215B)).toEqual([]);
   });
 
   it('holds exactly the 18 calls call-log-surface-guard keeps pending (#2656)', () => {
     expect(Object.values(PENDING_2656).reduce((a, b) => a + b, 0)).toBe(18);
+  });
+
+  it('holds exactly the 82 calls #3215 PR (b) fixes: lower it as they go, never raise it', () => {
+    expect(Object.values(PENDING_3215B).flat()).toHaveLength(82);
+  });
+
+  it('keeps pending calls out of the other lists', () => {
+    expect(Object.keys(PENDING_3215B).filter((rel) => rel in ALLOWED)).toEqual([]);
   });
 });
