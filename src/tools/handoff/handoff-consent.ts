@@ -24,6 +24,7 @@ import type { llm } from '@livekit/agents';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { latestUserText } from '../retrieval/turn-tool-retrieval.js';
 import { crisisGuidedTurn } from '../../services/safety/index.js';
+import { isCoach } from '../../personas/index.js';
 import { aliasesInTransfer } from './transfer-aliases.js';
 import { misheardTeammates, teammateHeardAs } from './teammate-names.js';
 
@@ -82,6 +83,23 @@ const ASKS_BY_PRONOUN =
 /** How many of Ferni's lines a pronoun can point back to */
 const NAMED_LATELY_LINES = 3;
 
+/**
+ * HANDOFF_HELD_TRUTHFUL: Ferni offering someone by pronoun: "want me to wake him up and
+ * bring him in?", "I can bring her in", "should I get them on?", "I'll hand you over to
+ * him". A yes to it is a yes to the one teammate named just before (soleTeammateNamed).
+ * It needs an offer verb: "he's probably asleep" offers nothing.
+ */
+const OFFERS_BY_PRONOUN =
+  /\b(bring|get|put|patch|loop)\s+(him|her|them)\s+(in|on|over|through)\b|\b(grab|wake)\s+(him|her|them)\b|\b(hand|pass|send|transfer)\s+you\s+(over\s+|off\s+)?to\s+(him|her|them)\b/i;
+
+/**
+ * How many lines, from either speaker, a pronoun offer can point back to. Two exchanges:
+ * the caller often says the name and Ferni answers with "he" ("what's Alex up to?",
+ * "he's probably asleep, want me to bring him in?", #3755). Further back, "him" may be
+ * someone else.
+ */
+const SAID_LATELY_MESSAGES = 4;
+
 function heldTruthful(env: Env = process.env): boolean {
   return flagOn('HANDOFF_HELD_TRUTHFUL', env);
 }
@@ -105,6 +123,64 @@ function agentLinesBefore(chatCtx: llm.ChatContext, count: number): string[] {
 }
 
 /**
+ * The last `count` lines from either speaker before the caller's latest turn (which may
+ * span several messages), latest first.
+ */
+function linesBefore(chatCtx: llm.ChatContext, count: number): string[] {
+  const lines: string[] = [];
+  let reached: 'after' | 'turn' | 'before' = 'after';
+  for (let i = chatCtx.items.length - 1; i >= 0 && lines.length < count; i--) {
+    const item = chatCtx.items[i];
+    if (item.type !== 'message' || (item.role !== 'user' && item.role !== 'assistant')) continue;
+    if (reached !== 'before') {
+      if (item.role === 'user') {
+        reached = 'turn';
+        continue;
+      }
+      if (reached === 'after') continue;
+      reached = 'before';
+    }
+    lines.push(item.textContent ?? '');
+  }
+  return lines;
+}
+
+/**
+ * Whether `agentName` is the one teammate named in `lines`, by Ferni or the caller (any
+ * other teammate's first name, or its STT spelling, as a whole word). With two named
+ * ("Alex or Maya?" / "want me to bring them in?") a yes is for no one we can tell.
+ */
+function soleTeammateNamed(lines: string[], agentName: string): boolean {
+  if (!lines.some((line) => names(line, agentName))) return false;
+  const target = teammateHeardAs(agentName.split(/\s+/)[0] ?? '');
+  const other = (word: string): boolean => {
+    const id = teammateHeardAs(word);
+    return id !== null && id !== target && !isCoach(id);
+  };
+  return !lines.some((line) => (line.match(/[a-z]+/gi) ?? []).some(other));
+}
+
+/**
+ * HANDOFF_HELD_TRUTHFUL: `said` is a yes to Ferni's `previous` line offering someone by
+ * pronoun, and `agentName` is the one teammate named lately.
+ */
+function yesToPronounOffer(
+  chatCtx: llm.ChatContext,
+  said: string,
+  previous: string,
+  agentName: string,
+  env: Env
+): boolean {
+  return (
+    heldTruthful(env) &&
+    YES.test(said) &&
+    !NO.test(said) &&
+    OFFERS_BY_PRONOUN.test(previous) &&
+    soleTeammateNamed(linesBefore(chatCtx, SAID_LATELY_MESSAGES), agentName)
+  );
+}
+
+/**
  * Whether the caller asked to talk to `agentName`, said yes to an offer of them,
  * or neither. With `allowAliases`, a transfer-only alias ("talk to 9") may count,
  * read with `env`; never allow it on a call with crisis handling.
@@ -123,6 +199,7 @@ export function handoffConsent(
     agentLinesBefore(chatCtx, NAMED_LATELY_LINES).some((line) => names(line, agentName));
   if (heldTruthful(env) && ASKS_BY_PRONOUN.test(said) && namedLately()) return 'asked';
   if (YES.test(said) && !NO.test(said) && names(previous, agentName)) return 'agreed';
+  if (yesToPronounOffer(chatCtx, said, previous, agentName, env)) return 'agreed';
   return 'none';
 }
 
