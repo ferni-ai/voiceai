@@ -25,8 +25,10 @@ const SONIC_CREDITS_PER_CHARACTER = 1;
 const INK_CREDITS_PER_SECOND = 3;
 
 /**
- * Cost per unit for each service. `models` names the model ids (or a family
- * prefix: `sonic-3.6` covers `sonic-3.6-2026-08-27`) a speech row prices.
+ * Cost per unit for each service. `models` names the exact model ids a speech
+ * row prices. The Sonic id is written out rather than read from
+ * CARTESIA_SNAPSHOT (config/voice-ids.ts) on purpose: when the pin moves, the
+ * finops test fails until someone checks the new model's price here.
  */
 export const PRICING = {
   // Vertex AI, Standard, Global endpoint (the cascade's default location), per 1M tokens:
@@ -41,7 +43,7 @@ export const PRICING = {
   tts: {
     cartesia: {
       perCharacter: SONIC_CREDITS_PER_CHARACTER * CARTESIA_DOLLARS_PER_CREDIT,
-      models: ['sonic-3.6'],
+      models: ['sonic-3.6-2026-08-27'],
     },
     // 'sonata' (tts-gateway/providers/sonata.ts) is self-hosted with no list price,
     // so it lands here, charged at the Sonic rate.

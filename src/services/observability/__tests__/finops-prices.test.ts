@@ -14,9 +14,9 @@ import {
 import { CARTESIA_SNAPSHOT } from '../../../config/voice-ids.js';
 import { PRICING, endSession, recordSTTCost, startSession } from '../finops.js';
 
-/** A row's `models` lists exact ids or a family prefix (`sonic-3.6` prices `sonic-3.6-2026-08-27`). */
+/** A speech row's `models` lists the exact model ids it prices. */
 function pricesModel(row: { models?: readonly string[] }, model: string): boolean {
-  return (row.models ?? []).some((m) => model === m || model.startsWith(`${m}-`));
+  return (row.models ?? []).includes(model);
 }
 
 describe('finops prices the default cascade', () => {
