@@ -7,8 +7,8 @@
  * and the probes (forget-probe-*.test.ts) then expect zero surfaces from it.
  *
  * forget-readers-coverage.test.ts keeps this honest: every non-test file that touches a memory
- * store must be a reader here, in NOT_A_READER with a reason, or in UNCLASSIFIED, a list that may
- * only shrink. Tracking: https://github.com/ferni-ai/voiceai/issues/3682
+ * store must be a reader here, in NOT_A_READER with a reason, in DEAD_PATH (reachable only through
+ * the context-builder registry step 6 deletes), or in UNCLASSIFIED, a list that may only shrink. Tracking: https://github.com/ferni-ai/voiceai/issues/3682
  *
  * @module memory/recall/__tests__/forget-readers
  */
@@ -355,14 +355,6 @@ export const FORGET_READERS: readonly ForgetReader[] = [
     fix: 'PR2a',
   },
   {
-    id: 'prompt.conversationRecap',
-    file: 'src/intelligence/context-builders/session/conversation-recap.ts',
-    site: 'lastConversationSummary',
-    reaches: 'prompt',
-    check: 'none',
-    fix: 'PR2a',
-  },
-  {
     id: 'prompt.sharedContent',
     file: 'src/personas/shared/content-injector.ts',
     site: 'context.lastConversationSummary',
@@ -371,23 +363,15 @@ export const FORGET_READERS: readonly ForgetReader[] = [
     fix: 'PR2a',
   },
   {
-    id: 'prompt.crossSessionThreading',
-    file: 'src/intelligence/context-builders/session/cross-session-threading.ts',
-    site: 'getConversationStarter',
+    id: 'prompt.semanticThreads',
+    file: 'src/services/superhuman/semantic-intelligence/cross-session-threading.ts',
+    site: 'semantic_threads',
     reaches: 'prompt',
     check: 'none',
     fix: 'PR2a',
   },
 
   // ── Not checked: PR2b ──────────────────────────────────────────────────────
-  {
-    id: 'prompt.sessionPrimer',
-    file: 'src/memory/orchestrator.ts',
-    site: 'generatePrimingContext',
-    reaches: 'prompt',
-    check: 'none',
-    fix: 'PR2b',
-  },
   {
     id: 'prompt.recallTriggerGaps',
     file: 'src/intelligence/triggers/recall-trigger-engine.ts',
@@ -538,7 +522,7 @@ export const NOT_A_READER: Readonly<Record<string, string>> = {
   'src/services/session/last-mood-note.ts': 'comment only',
   'src/services/session/last-summary.ts': 'writes the last summary, checking forget',
   'src/services/session/session-manager.ts':
-    'loads the profile; refills go through profile.lastSummaryRefill',
+    'loads the profile; refills go through profile.lastSummaryRefill, and session-priming topics reach the prompt only through handoff.summary',
   'src/services/memory/realtime-memory.ts':
     'store behind profile.lastSummaryRefill and web.voiceAuthMemory',
   'src/services/stores/follow-through-sources.ts': 'imports commitments, checking forget',
@@ -554,8 +538,25 @@ export const NOT_A_READER: Readonly<Record<string, string>> = {
   'src/conversation/proactive-starters.ts':
     'renders the profile greeting-handler passes (greeting.singleAgent)',
   'src/personas/greetings.ts': 'renders the profile greeting-handler passes (greeting.singleAgent)',
+};
+
+/**
+ * Readers whose memory text reaches the prompt only through the dead context-builder registry
+ * (context-builders/core/builder-imports.ts: buildConversationContext has no production caller).
+ * Memory plan step 6 deletes that registry, so they get no forget check. They may stop existing;
+ * they may not also be listed as a reader, NOT_A_READER or UNCLASSIFIED.
+ */
+export const DEAD_PATH: Readonly<Record<string, string>> = {
+  'src/intelligence/context-builders/session/conversation-recap.ts':
+    'loaded only by builder-imports.ts; deleted by step 6',
+  'src/intelligence/context-builders/session/cross-session-threading.ts':
+    'loaded only by builder-imports.ts (revived-builders.ts names it in a comment); deleted by step 6. The live cross-session reader is prompt.semanticThreads',
   'src/intelligence/context-builders/engagement/shared-content.ts':
-    'passes the profile to content-injector (prompt.sharedContent)',
+    'loaded only by builder-imports.ts; deleted by step 6. content-injector stays live through src/context (prompt.sharedContent)',
+  'src/intelligence/context-builders/memory/unified-memory-orchestrator.ts':
+    'loaded only by the builder registry; deleted by step 6',
+  'src/memory/orchestrator.ts':
+    'its session-priming text reaches the prompt only through unified-memory-orchestrator; the live persona briefings call getMemoryHealth (counts). The live session primer is session-manager → handoff.summary',
 };
 
 /**
@@ -607,7 +608,7 @@ export const UNCLASSIFIED: readonly string[] = [
  */
 export const STORE_SIGNATURE = new RegExp(
   [
-    `collection\\(['"](?:summaries|conversation_summaries|conversation_threads|memories|unified_memories|dynamic_facts|extracted_facts|facts|world_facts|commitments|ferni_commitments|turns|person_model|entity_store|dynamic_entities|follow_ups|vectors)['"]\\)`,
+    `collection\\(['"](?:summaries|conversation_summaries|conversation_threads|semantic_threads|memories|unified_memories|dynamic_facts|extracted_facts|facts|world_facts|commitments|ferni_commitments|turns|person_model|entity_store|dynamic_entities|follow_ups|vectors)['"]\\)`,
     'lastConversationSummary',
     'lastCallerSummary',
     'readCallSummaries\\(',
