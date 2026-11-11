@@ -3,7 +3,7 @@
  * boot that must not block a healthy one for good.
  */
 import { describe, expect, it } from 'vitest';
-import { BootCollector, newSealer, snapshotOf } from '../secrets-parity-lib.js';
+import { BootCollector, exitCode, newSealer, snapshotOf } from '../secrets-parity-lib.js';
 
 const isFlag = (n: string) => n === 'X_FLAG';
 const T0 = Date.parse('2026-10-23T09:00:00.000Z');
@@ -20,8 +20,12 @@ function snap(names: string[], lines: string[], seal = newSealer()) {
   return snapshotOf('prod', { names, newest: T0 - MIN }, c.result());
 }
 
-const rolling = (s: { problems: readonly string[] }) =>
-  s.problems.some((p) => p.includes('too close'));
+/** Flagged as a rolling restart, and so never CLEAN. */
+const rolling = (s: ReturnType<typeof snap>) => {
+  const flagged = s.problems.some((p) => p.includes('too close'));
+  expect(exitCode([], s, s)).toBe(flagged ? 2 : 0);
+  return flagged;
+};
 
 describe('rolling restart', () => {
   it('flags boots whose lines interleave even when they started more than 2 min apart', () => {
@@ -46,7 +50,18 @@ describe('rolling restart', () => {
   it('does not let an old half-logged boot block a healthy boot an hour later', () => {
     const crashed = snap([], [line(T0, 'hX', 1, 2), line(T0 + 60 * MIN, 'hB')]);
     expect(crashed.problems).toEqual([]);
+    expect(rolling(crashed)).toBe(false);
     const midBoot = snap([], [line(T0, 'hX', 2, 2), line(T0 + 60 * MIN, 'hB')]); // backlog began mid-boot
     expect(midBoot.problems).toEqual([]);
+  });
+
+  it('leaves a newer half-logged boot to the partial check, still never CLEAN', () => {
+    const s = snap([], [line(T0, 'hA'), line(T0 + 60 * MIN, 'hB', 1, 2)]);
+    expect(s.problems.join()).toMatch(/newer boot .*partly/);
+    expect(exitCode([], s, s)).toBe(2);
+  });
+
+  it('does not flag the same settings booting twice in a row', () => {
+    expect(rolling(snap([], [line(T0, 'hA'), line(T0 + 30_000, 'hA')]))).toBe(false);
   });
 });

@@ -41,7 +41,7 @@ export function newSealer(): Sealer {
 
 export interface Secrets {
   readonly names: string[];
-  /** Latest `updatedAt` (ms) among the agent's secrets, null when none is given. */
+  /** Latest `updatedAt` (ms) among the agent's secrets; null unless every secret gives one. */
   readonly newest: number | null;
 }
 
@@ -54,11 +54,14 @@ export function parseSecrets(json: string): Secrets {
     throw new Error('lk agent secrets --json did not return JSON'); // never echo the input
   }
   if (!Array.isArray(list)) throw new Error('lk agent secrets --json returned no "secrets" list');
-  const rows = list as Array<{ name?: unknown; updatedAt?: unknown }>;
-  const times = rows.map((s) => Date.parse(String(s.updatedAt))).filter((t) => !Number.isNaN(t));
+  const rows = (list as Array<{ name?: unknown; updatedAt?: unknown }>).filter(
+    (s): s is { name: string; updatedAt?: unknown } => typeof s?.name === 'string'
+  );
+  // One undated secret could be the latest change, so a partial list can't bound freshness.
+  const times = rows.map((s) => Date.parse(String(s.updatedAt)));
   return {
-    names: rows.map((s) => s.name).filter((n): n is string => typeof n === 'string'),
-    newest: times.length ? Math.max(...times) : null,
+    names: rows.map((s) => s.name),
+    newest: times.length && !times.some(Number.isNaN) ? Math.max(...times) : null,
   };
 }
 
@@ -74,14 +77,13 @@ interface Boot {
 }
 
 /**
- * Lines of `b` and of the finished boot `chosen` mix in the log. An unfinished `b` counts only
- * when it began while `chosen` was logging: a crashed boot from before, or one whose start the
- * backlog cut off, must not block every later boot.
+ * Lines of the finished boots `b` and `chosen` mix in the log. An unfinished `b` never counts
+ * here: one that began after `chosen` is `partialNewer`, and a crashed boot from before (or one
+ * whose start the backlog cut off) must not block every later boot.
  */
 function interleaved(b: Boot, chosen: Boot): boolean {
-  const end = chosen.done ?? 0;
-  if (b.done === null) return b.first > chosen.first && b.first < end;
-  return b.first < end && chosen.first < b.done;
+  if (b.done === null || chosen.done === null) return false;
+  return b.first < chosen.done && chosen.first < b.done;
 }
 
 export interface BootResult {
@@ -207,7 +209,7 @@ export function snapshotOf(label: string, secrets: Secrets, boot: BootResult): S
     );
   }
   if (secrets.names.length > 0 && secrets.newest === null) {
-    problems.push('lk gave no updatedAt for the secrets, so boot freshness was not checked');
+    problems.push('lk gave no updatedAt for some secrets, so boot freshness was not checked');
   }
   if (boot.commit !== null && boot.at === null) problems.push('boot time unknown');
   if (boot.at !== null && secrets.newest !== null && boot.at < secrets.newest) {
