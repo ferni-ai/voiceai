@@ -6,7 +6,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { getDisplayName } from '../../personas/persona-ids.js';
+import { historyDisplayName } from '../../personas/persona-ids.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { getEngagementStore } from '../engagement/engagement-store.js';
 import { getStore } from '../../memory/store-factory.js';
@@ -325,7 +325,7 @@ async function readAgentCalls(userId: string, limit: number): Promise<AgentCall[
         id: doc.id,
         date: new Date(startMs).toISOString(),
         personaId,
-        personaName: getDisplayName(personaId),
+        personaName: historyDisplayName(personaId),
         duration: endMs !== undefined ? Math.max(0, Math.round((endMs - startMs) / 60_000)) : 0,
         messageCount: typeof data.turnCount === 'number' ? data.turnCount : 0,
         insights: [],

@@ -1678,7 +1678,6 @@ export function getRecommendedPreset(personaId: string): keyof typeof PostTTSPre
     maya: 'warmIntimate',
     // Peter (research analyst) - clear and energetic for data presentation
     'peter-john': 'clearEnergetic',
-    'peter-lynch': 'clearEnergetic', // Legacy alias
     peter: 'clearEnergetic',
     // Jordan (life planning) - clear and celebratory
     'jordan-barnes': 'clearEnergetic',

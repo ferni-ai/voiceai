@@ -331,7 +331,7 @@ async function manifestToFrontendPersona(
   // Derive transition config
   const transitionStyle = deriveTransitionStyle(manifest);
   
-  // Some bundles (john-bogle, peter-lynch) have a tagline but no description.
+  // Some bundles (john-bogle) have a tagline but no description.
   const description = manifest.identity.description ?? manifest.identity.tagline ?? '';
 
   return {
@@ -410,7 +410,7 @@ async function loadAllBundles(legends: Bundles = new Map()): Promise<Bundles> {
       const content = await readFile(manifestPath, 'utf-8');
       const manifest = JSON.parse(content) as PersonaManifest;
       // The web app shows Ferni's team only. Other teams (financial-legends:
-      // john-bogle, peter-lynch, joel-dickson) are separate products; without
+      // john-bogle, joel-dickson) are separate products; without
       // this they were added to the web roster.
       if (isFinancialLegend(manifest)) legends.set(entry.name, { manifest, path: bundlePath });
       if (!isWebTeamMember(manifest)) {

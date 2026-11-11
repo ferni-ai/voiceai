@@ -111,8 +111,8 @@ export interface TurnCrisisUserData {
   lastAgentResponse?: string;
   /** The call's turn count: the second read's turn (crisis-second-read-turn.ts). */
   turnCount?: number;
-  /** False on the background turn's voice (turn-intelligence.ts): it never sets the subject. */
-  voiceMaySetSubject?: boolean;
+  /** False on the background turn's voice (turn-intelligence.ts): it never adds the caller check. */
+  voiceCallerCheck?: boolean;
 }
 
 type Settled = { crisis: CrisisDetectionResult; soft: boolean; guidance?: string };
@@ -176,7 +176,7 @@ export function startTurnCrisis(
   const voice = toGuardVoiceEmotion(userData?.voiceEmotion as ProsodyEmotionLike | undefined);
   const crisisOptions = {
     recentMessages: userData?.recentTranscripts,
-    ...(userData?.voiceMaySetSubject === false ? { voiceMaySetSubject: false } : {}),
+    ...(userData?.voiceCallerCheck === false ? { voiceCallerCheck: false } : {}),
   };
   const found = detectCrisis(userText, voice, crisisOptions);
   // CRISIS_MEANS_IN_HAND (#2697): log the tier and form any means form would give; no read changes.

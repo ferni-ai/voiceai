@@ -61,10 +61,16 @@ export function hasTwinProfile(profile: unknown): profile is TwinResponseRequest
  * through callLLM (Vertex first, as the other custom agents' chat does): prod
  * has no OPENAI_API_KEY, so the OpenAI-only path never answered.
  */
-export async function generateTwinResponse(request: TwinResponseRequest): Promise<string | null> {
+export async function generateTwinResponse(
+  request: TwinResponseRequest,
+  // The crisis read's guidance (readTypedMessageForCrisis), read last, after the style line.
+  // An argument, never a request field, so no request body can set it.
+  guidanceNote = ''
+): Promise<string | null> {
   const { userMessage, profile, relevantJournals, keyThemes } = request;
   const systemPrompt = buildTwinSystemPrompt(profile, relevantJournals, keyThemes);
-  const prompt = `${systemPrompt}\n\n## They say to you now\n${userMessage}\n\nReply as yourself, in your own voice:`;
+  const ask = `${systemPrompt}\n\n## They say to you now\n${userMessage}\n\nReply as yourself, in your own voice:`;
+  const prompt = guidanceNote ? `${ask}\n\n${guidanceNote}` : ask;
   const reply = await callLLM(prompt, { maxTokens: MAX_TOKENS_SHORT, temperature: TEMP_CONTENT });
   if (!reply?.trim()) {
     log.warn('Twin response unavailable: no model answered');

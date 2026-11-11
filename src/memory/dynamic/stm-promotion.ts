@@ -15,6 +15,7 @@
 import { deepRemoveUndefined, getFirestoreDb } from '../../utils/firestore-utils.js';
 import { emitInfraEvent } from '../../utils/infra-events.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { endProactiveCall } from '../recall/proactive-budget.js';
 import { extractHumanSignals } from '../human-signal-extractor.js';
 import { persistHumanSignals } from '../human-signal-persistence.js';
 import {
@@ -596,12 +597,7 @@ async function bridgeCrossPersonaEntities(sessionId: string, userId: string): Pr
       await import('../cross-persona/shared-memory-api.js');
     const buffer = getSTMBuffer(sessionId, userId);
     const personaId = (buffer?.turns[0]?.personaId || 'ferni') as
-      | 'ferni'
-      | 'peter'
-      | 'maya'
-      | 'jordan'
-      | 'alex'
-      | 'nayan';
+      'ferni' | 'peter' | 'maya' | 'jordan' | 'alex' | 'nayan';
 
     const frequentEntities = getFrequentEntities(sessionId, 10);
     let sharedCount = 0;
@@ -639,13 +635,11 @@ async function bridgeCrossPersonaEntities(sessionId: string, userId: string): Pr
 }
 
 /**
- * Hook to call at session end
- *
- * This should be called from session cleanup handlers.
- * Order is critical: buffer-dependent work BEFORE promoteSessionToFirestore
- * (which calls cleanupSession and wipes STM).
+ * Session end, from the cleanup handlers. Order is critical: buffer-dependent work BEFORE
+ * promoteSessionToFirestore (which calls cleanupSession and wipes STM).
  */
 export async function onSessionEnd(sessionId: string, userId: string): Promise<void> {
+  endProactiveCall(sessionId); // PROACTIVE_BUDGET: the call's proactive slot ends with it
   log.info({ sessionId, userId }, '🧠 [MEMORY-AUDIT] onSessionEnd called');
 
   // 1–2. Buffer-dependent work FIRST (cleanup happens inside promote)

@@ -399,7 +399,7 @@ function performPersonaIdleAnimation(profile: PersonaAnimationProfile): void {
       break;
 
     case 'rapid-process':
-      // Tom Brannigan (peter-lynch) - Quick, energetic micro-movements
+      // Quick, energetic micro-movements
       keyframes = [
         { transform: 'rotate(0deg)' },
         { transform: 'rotate(2deg) translateY(-1px)' },

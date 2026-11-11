@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CRISIS_CONTEXTUAL } from '../../../agents/__tests__/fixtures/crisis-contextual.js';
-import { CRISIS_HELDOUT } from '../../../agents/__tests__/fixtures/crisis-heldout.js';
+import { CRISIS_HELDOUT_RETIRED } from '../../../agents/__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_TEST_BLIND } from '../../../agents/__tests__/fixtures/crisis-test-blind.js';
 import { CRISIS_TEST_CASES } from '../../superhuman/validation/crisis-test-cases.js';
 import {
@@ -72,7 +72,12 @@ describe('isPresenceReply', () => {
         'utf8'
       )
     ) as Array<{ text: string; label: string }>;
-    const positives = [...CRISIS_HELDOUT, ...CRISIS_TEST_BLIND, ...CRISIS_CONTEXTUAL, ...redteam]
+    const positives = [
+      ...CRISIS_HELDOUT_RETIRED,
+      ...CRISIS_TEST_BLIND,
+      ...CRISIS_CONTEXTUAL,
+      ...redteam,
+    ]
       .filter((c) => c.label !== 'none')
       .map((c) => c.text)
       .concat(CRISIS_TEST_CASES.filter((c) => c.expectedResult.shouldDetect).map((c) => c.input));
@@ -363,7 +368,7 @@ describe('agreementOutcome after a downbeat Ferni line (the 2026-10-11 dev call)
       )
     ) as typeof redteam;
     const positives = [
-      ...CRISIS_HELDOUT,
+      ...CRISIS_HELDOUT_RETIRED,
       ...CRISIS_TEST_BLIND,
       ...CRISIS_CONTEXTUAL,
       ...redteam,

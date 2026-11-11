@@ -6,6 +6,7 @@ import {
   createCallAlertSpeaker,
   HEARD_AFTER_MS,
   MAX_ALERT_ATTEMPTS,
+  REPLY_WAIT_MS,
 } from '../call-alerts.js';
 
 /** A LiveKit SpeechHandle as the speaker sees it. */
@@ -44,6 +45,7 @@ function fakeSession() {
     on: (e: string, fn: (ev: unknown) => void) =>
       listeners.set(e, (listeners.get(e) ?? new Set()).add(fn)),
     off: (e: string, fn: (ev: unknown) => void) => listeners.get(e)?.delete(fn),
+    listenerCount: (e: string) => listeners.get(e)?.size ?? 0,
     emit: (e: string, ev: unknown = {}) => [...(listeners.get(e) ?? [])].forEach((fn) => fn(ev)),
     /** LiveKit's agent state; the event carries the new state. */
     setAgent(state: string) {
@@ -361,6 +363,88 @@ describe('call alerts', () => {
     expect(s.generateReply).not.toHaveBeenCalled();
     expect(msgs()).toEqual(['CALL_ALERT_DROPPED']);
     expect(logs[0].fields).toMatchObject({ reason: 'call_ended' });
+  });
+
+  it('the first attempt waits out the endpointing delay of a stop that came before the alert (#2545)', async () => {
+    const s = fakeSession();
+    s._activity.endpointingOpts.maxDelay = 600;
+    s.agentState = 'listening';
+    s.userState = 'speaking';
+    const { speak } = speaker(s);
+    s.setUser('listening'); // the caller stops talking...
+    await tick(200);
+    void speak(timer); // ...and the timer fires 200 ms later
+    await tick();
+    expect(s.generateReply).not.toHaveBeenCalled(); // their turn may still commit
+    await tick(399);
+    expect(s.generateReply).not.toHaveBeenCalled();
+    await tick(1);
+    expect(s.generateReply).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops watching the caller once the call closes', async () => {
+    const s = fakeSession();
+    speaker(s);
+    const listeners = () => s.listenerCount(voice.AgentSessionEventTypes.UserStateChanged);
+    expect(listeners()).toBe(1);
+    s.close();
+    expect(listeners()).toBe(0);
+  });
+
+  it('a reply cut by the call closing logs only DROPPED call_ended, no RETRY (#2545)', async () => {
+    const s = fakeSession();
+    s.agentState = 'listening';
+    const { speak, msgs, logs } = speaker(s);
+    const done = speak(timer);
+    await tick();
+    s.close();
+    s.handles[0].finish(true);
+    await done;
+    expect(msgs()).toEqual(['CALL_ALERT_DROPPED']);
+    expect(logs[0].fields).toMatchObject({ reason: 'call_ended', attempt: 1 });
+    expect(s.generateReply).toHaveBeenCalledTimes(1);
+  });
+
+  it('the call closing while a reply never finishes settles the alert (#2545)', async () => {
+    const s = fakeSession();
+    s.agentState = 'listening';
+    const { speak, msgs, logs } = speaker(s);
+    let settled = false;
+    void speak(timer).then(() => (settled = true));
+    await tick();
+    s.close(); // the handle never calls back
+    await tick();
+    expect(settled).toBe(true);
+    expect(msgs()).toEqual(['CALL_ALERT_DROPPED']);
+    expect(logs[0].fields).toMatchObject({ reason: 'call_ended' });
+  });
+
+  it(`a reply that neither plays nor ends within ${REPLY_WAIT_MS} ms is dropped (#2545)`, async () => {
+    const s = fakeSession();
+    s.agentState = 'listening';
+    const { speak, msgs, logs } = speaker(s);
+    let settled = false;
+    void speak(timer).then(() => (settled = true));
+    await tick(REPLY_WAIT_MS - 1);
+    expect(settled).toBe(false);
+    await tick(1);
+    expect(settled).toBe(true);
+    expect(msgs()).toEqual(['CALL_ALERT_DROPPED']);
+    expect(logs[0].fields).toMatchObject({ reason: 'reply_failed', error: 'reply_timeout' });
+    expect(s.generateReply).toHaveBeenCalledTimes(1);
+  });
+
+  it('a reply heard before the cap is not dropped by it', async () => {
+    const s = fakeSession();
+    s.agentState = 'listening';
+    const { speak, msgs } = speaker(s);
+    const done = speak(timer);
+    await tick();
+    s.play();
+    await tick(HEARD_AFTER_MS);
+    await done;
+    await tick(REPLY_WAIT_MS);
+    expect(msgs()).toEqual(['CALL_ALERT_SPOKEN']);
   });
 
   it('gives Ferni the facts, not canned words', () => {

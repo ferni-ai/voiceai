@@ -10,7 +10,12 @@
  *   later lookup, strict or not, overwrites it, because during an erasure the Firebase
  *   user still exists. 'gone' is never downgraded (a revoke after it changes nothing)
  *   and, like 'revoked', is kept apart from the bounded cache, so no amount of other
- *   traffic evicts it (#3228). Another server instance learns within the minute.
+ *   traffic evicts it (#3228). Another server instance learns within the minute. A
+ *   lookup's read never replaces a newer one, so a slow lookup settling late can't undo
+ *   a revoke a newer lookup saw; of two started together, the more refusing read is kept.
+ * - One lookup at a time: lax checks of an account that arrive while its lookup is in
+ *   flight wait for that lookup instead of starting their own (JOIN_MS), so the app's
+ *   burst of authed calls on load spends one budget token, not one each.
  * - Stale state: only when Auth itself fails (a transport error, a timeout, a 5xx) is an
  *   account state under an hour old used (logged auth_revocation_stale). With none, or
  *   for any other failure, the answer is 'unavailable': a 503, try again. Never a 401,
@@ -59,6 +64,8 @@ export interface CheckedToken {
 
 type AccountState =
   { gone: true } | { gone: false; disabled: boolean; validAfterMs: number; noProvider: boolean };
+/** A lookup's outcome: the account's state, or why it couldn't be read */
+type Found = AccountState | { failed: unknown };
 
 export interface Limits {
   normal: Rate;
@@ -85,6 +92,14 @@ const STALE_MS = 60 * 60_000;
  * past FRESH_MS, a stale one past STALE_MS) a lookup refuses the same tokens.
  */
 const REVOKED_KEEP_MS = STALE_MS + FRESH_MS;
+/**
+ * How old an in-flight lookup a lax check may wait on. The web app fires several authed
+ * calls at once on load; each one missing the cache used to spend its own token, so past
+ * normalPerAccount's burst of 3 the rest were 503s. A lookup started under JOIN_MS ago is
+ * fresher than the cache minute lax checks already accept; an older one may be hung, so a
+ * check past it starts (and pays for) its own.
+ */
+const JOIN_MS = 10_000;
 const LOG_EVERY_MS = 60_000;
 const AUTH_FAILURES = [
   'app/network-error',
@@ -117,6 +132,17 @@ function countedLog(event: string, message: string) {
   };
 }
 
+/**
+ * Whether `a` refuses more tokens than `b`: 'gone' and disabled refuse every token; then a
+ * later tokensValidAfterTime refuses more, and an account with a provider gets no anonymous skip
+ */
+function refusesMore(a: AccountState, b: AccountState): boolean {
+  if (a.gone || b.gone) return a.gone && !b.gone;
+  if (a.disabled !== b.disabled) return a.disabled;
+  if (a.validAfterMs !== b.validAfterMs) return a.validAfterMs > b.validAfterMs;
+  return !a.noProvider && b.noProvider;
+}
+
 /** A check with its own cache and budgets (one per process; tests make their own) */
 export function revocationCheck(limits: Limits = LIMITS) {
   const accounts = boundedMap<{ state: AccountState; at: number }>();
@@ -139,11 +165,20 @@ export function revocationCheck(limits: Limits = LIMITS) {
     'auth_revocation_unavailable: answering 503'
   );
 
+  // A read is cached by its lookup's START, and replaces only an older read: a slow lookup
+  // settling after a newer one must not put back its read from before a revoke. Two reads
+  // from the same start keep the one that refuses more, whichever settles first.
+  const remember = (uid: string, state: AccountState, at: number): void => {
+    const held = accounts.get(uid);
+    const replaces = !held || held.at < at || (held.at === at && refusesMore(state, held.state));
+    if (replaces) accounts.set(uid, { state, at });
+  };
+
   const lookUp = async (
     uid: string,
     lookup: (uid: string) => Promise<AccountRecord>,
     now: number
-  ): Promise<AccountState | { failed: unknown }> => {
+  ): Promise<Found> => {
     try {
       const account = await lookup(uid);
       const validAfter = account.tokensValidAfterTime
@@ -155,13 +190,26 @@ export function revocationCheck(limits: Limits = LIMITS) {
         validAfterMs: validAfter || 0,
         noProvider: (account.providerData ?? []).length === 0,
       };
-      accounts.set(uid, { state, at: now });
+      remember(uid, state, now);
       return state;
     } catch (error) {
       if (codeOf(error) !== 'auth/user-not-found') return { failed: error };
-      accounts.set(uid, { state: { gone: true }, at: now });
+      remember(uid, { gone: true }, now);
       return { gone: true };
     }
+  };
+
+  // Lax lookups in flight, per account (strict checks neither join nor share one). The
+  // entry goes when its lookup settles, success or failure, so a failed lookup is never
+  // handed to a later check; lookUp never rejects.
+  const inFlight = new Map<string, { found: Promise<Found>; at: number }>();
+  const shared = (uid: string, found: Promise<Found>, now: number) => {
+    const entry = { found, at: now };
+    inFlight.set(uid, entry);
+    void found.finally(() => {
+      if (inFlight.get(uid) === entry) inFlight.delete(uid);
+    });
+    return found;
   };
 
   /** The account's state (stale, or skipped for an anonymous one); 'unavailable' when unknown */
@@ -179,12 +227,22 @@ export function revocationCheck(limits: Limits = LIMITS) {
     if (cached && anonymousSignIn && stillAnonymous && age < STALE_MS) {
       return { state: cached.state, stale: false, skipped: true };
     }
-    const kind = anonymousSignIn ? 'anonymous' : strict ? 'strict' : 'normal';
-    if (!budgets[kind](token.uid, now)) {
-      unavailable(now, `${kind}-budget`);
-      return 'unavailable'; // a refused lookup is never a stale pass
+    const pending = strict ? undefined : inFlight.get(token.uid);
+    let found: Found;
+    if (pending && now - pending.at < JOIN_MS) {
+      // Its token is already spent. A joiner never writes the cache: lookUp wrote it at the
+      // lookup's START (pending.at), so the entry expires FRESH_MS after that start, however
+      // late the joiner arrived, and a revoke landing mid-lookup is seen by then.
+      found = await pending.found;
+    } else {
+      const kind = anonymousSignIn ? 'anonymous' : strict ? 'strict' : 'normal';
+      if (!budgets[kind](token.uid, now)) {
+        unavailable(now, `${kind}-budget`);
+        return 'unavailable'; // a refused lookup is never a stale pass
+      }
+      const own = lookUp(token.uid, lookup, now);
+      found = await (strict ? own : shared(token.uid, own, now));
     }
-    const found = await lookUp(token.uid, lookup, now);
     if (!('failed' in found)) return { state: found, stale: false, skipped: false };
     if (cached && age < STALE_MS && authFailed(found.failed)) {
       stale(now, codeOf(found.failed));

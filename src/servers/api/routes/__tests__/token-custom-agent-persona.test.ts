@@ -1,10 +1,12 @@
 /**
  * A token's persona_id may name a custom agent only if the caller owns it;
- * otherwise the room is dispatched with Ferni.
+ * otherwise the room is dispatched with Ferni. Both routes keep only built-in
+ * personas (canonical ids); any other id gets Ferni (personas/persona-ids.ts livePersonaId).
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ALL_CANONICAL_IDS } from '../../../../personas/persona-ids.js';
 
 const createRoomWithAgent = vi.fn();
 vi.mock('../../../token/livekit.js', () => ({
@@ -70,10 +72,18 @@ vi.mock('../../../token/demo-rate-limit.js', () => ({
 
 const { handleTokenRoutes } = await import('../token.js');
 
-async function request(path: '/token' | '/demo-token', personaId: string): Promise<number> {
-  const url = new URL(
-    `http://localhost${path}?room=voice-1&username=Sam&device_id=d1&persona_id=${personaId}`
-  );
+const PROTOTYPE_KEYS = [
+  '__proto__',
+  '__PROTO__',
+  'constructor',
+  'toString',
+  'hasOwnProperty',
+  'valueOf',
+];
+
+async function request(path: '/token' | '/demo-token', personaId?: string): Promise<number> {
+  const url = new URL(`http://localhost${path}?room=voice-1&username=Sam&device_id=d1`);
+  if (personaId !== undefined) url.searchParams.set('persona_id', personaId);
   const req = {
     method: 'GET',
     headers: { authorization: 'Bearer firebase-id-token' },
@@ -119,3 +129,61 @@ describe('persona_id that names a custom agent', () => {
     expect(dispatchedPersona()).toBe('ferni');
   });
 });
+
+describe.each(['/token', '/demo-token'] as const)(
+  '%s starts on a built-in persona or Ferni',
+  (path) => {
+    beforeEach(() => {
+      createRoomWithAgent.mockReset();
+      createRoomWithAgent.mockResolvedValue({ roomReady: true, agentDispatched: true });
+    });
+
+    it('an id that is not a built-in persona is not dispatched; the call is with Ferni', async () => {
+      expect(await request(path, 'test-companion')).toBe(200);
+      expect(dispatchedPersona()).toBe('ferni');
+    });
+
+    it.each([...ALL_CANONICAL_IDS])('built-in persona %s passes through unchanged', async (id) => {
+      await request(path, id);
+      expect(dispatchedPersona()).toBe(id);
+    });
+
+    it.each(['wellness-coach', 'generic-advisor'])(
+      'registry persona %s passes through unchanged, as on main',
+      async (id) => {
+        await request(path, id);
+        expect(dispatchedPersona()).toBe(id);
+      }
+    );
+
+    it('an alias of a built-in persona is sent as its canonical id', async () => {
+      await request(path, 'maya');
+      expect(dispatchedPersona()).toBe('maya-santos');
+    });
+
+    it('no persona_id gives the default, Ferni', async () => {
+      await request(path);
+      expect(dispatchedPersona()).toBe('ferni');
+    });
+
+    // The prompt each one then gets is pinned in token-demo-persona.test.ts.
+    it.each(PROTOTYPE_KEYS)('%s is sent as Ferni', async (id) => {
+      expect(await request(path, id)).toBe(200);
+      expect(dispatchedPersona()).toBe('ferni');
+    });
+
+    // Tom, the stock-picking legend, is retired: his id and every name that used to reach him.
+    it.each([
+      'peter-lynch',
+      'Peter-Lynch',
+      'tom',
+      'brannigan',
+      'tom-brannigan',
+      'stock-picker',
+      'tom brannigan',
+    ])('%s (retired) is sent as Ferni', async (id) => {
+      expect(await request(path, id)).toBe(200);
+      expect(dispatchedPersona()).toBe('ferni');
+    });
+  }
+);

@@ -88,9 +88,9 @@ export function greetingDirection(
   const playful = personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env);
   const careful = last.tender === true || isHeavyMoment([last.topic]);
   const base = last.firstCall
-    ? stranger.STRANGER_GREETING_DIRECTION
+    ? stranger.easyStrangerDirection(stranger.STRANGER_GREETING_DIRECTION, env)
     : last.unplaced
-      ? stranger.UNPLACED_GREETING_DIRECTION
+      ? stranger.easyStrangerDirection(stranger.UNPLACED_GREETING_DIRECTION, env)
       : playful && !careful
         ? PLAYFUL_GREETING_DIRECTION
         : GREETING_DIRECTION;
@@ -456,7 +456,7 @@ export async function directedGreeting(
   // One follow-up per call opener (greeting-claim.ts): the first recall note won't ask it again.
   if (!unknown && userData?.userId && directed.source === 'actor' && spoken === directed.text) {
     const threads = { checkIn, pondered: ask?.text, lastTopic: told?.lastTopic };
-    claimIfAsked(userData.userId, spoken, { ...threads, userName: userData.userName });
+    claimIfAsked(userData.userId, spoken, { ...threads, userName: userData.userName }, sessionId);
     // Only a topic the hello was given: a same-day return or a date still ahead holds it back.
     const given = hold.history?.lastTopic;
     if (given && raisesTopic(spoken, given, userData.userName))

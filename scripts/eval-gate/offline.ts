@@ -13,7 +13,7 @@
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { detectCrisis, guardPreResponse } from '../../src/agents/safety/crisis-guard.js';
 import { CRISIS_CONTEXTUAL } from '../../src/agents/__tests__/fixtures/crisis-contextual.js';
-import { CRISIS_HELDOUT } from '../../src/agents/__tests__/fixtures/crisis-heldout.js';
+import { CRISIS_HELDOUT_RETIRED } from '../../src/agents/__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_RELAY } from '../../src/agents/__tests__/fixtures/crisis-relay.js';
 import { CRISIS_TEST_BLIND } from '../../src/agents/__tests__/fixtures/crisis-test-blind.js';
 import {
@@ -47,7 +47,7 @@ export function patternGuard(cases: readonly Labelled[]) {
 export function measureOffline(): Record<string, number> {
   const out: Record<string, number> = {};
   const sets = {
-    heldout: CRISIS_HELDOUT,
+    heldout: CRISIS_HELDOUT_RETIRED,
     blind: CRISIS_TEST_BLIND,
     contextual: CRISIS_CONTEXTUAL,
     relay: CRISIS_RELAY,

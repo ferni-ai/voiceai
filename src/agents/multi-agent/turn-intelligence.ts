@@ -39,12 +39,14 @@ import { backgroundTurnVoice } from './background-voice-emotion.js';
 import { deferralForSession, noteUserTurn } from './first-turn-defer.js';
 import { firstTurnWarmOn, yieldIfFirstTurnWarm } from './first-turn-warm.js';
 import { TURN_CONTEXT_FOR, TURN_CONTEXT_HEADER } from './turn-context-header.js';
-import { carriesSafety } from '../processors/turn-processor/safety-note.js';
+import { carriesSafety, carriesCrisisOverride } from '../processors/turn-processor/safety-note.js';
 import { heldForPreemptive } from './preempt-stable-context.js';
 import {
   pushedNotesText,
   safetyOnlyNote,
+  safetyText,
   TURN_CONTEXT_SAFETY,
+  type TurnNote,
   withHeldSafety,
 } from './pushed-notes.js';
 
@@ -157,8 +159,8 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
               }
             : {}),
           // For the voice-vs-words and crisis reads, as the synchronous turn's userData carries it.
-          // Here the voice only raises a crisis read's severity, never its subject (turn-crisis.ts).
-          ...(voice ? { voiceEmotion: voice.view, voiceMaySetSubject: false } : {}),
+          // Here the voice only raises a crisis read's severity, never its reply (turn-crisis.ts).
+          ...(voice ? { voiceEmotion: voice.view, voiceCallerCheck: false } : {}),
         },
         voiceEmotion: voice
           ? voice.summary
@@ -356,7 +358,7 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
   let userSpeaking = false;
 
   let pendingFor = '';
-  let pendingSafety: string[] = []; // its crisis or safety notes (safety-note.ts), whole
+  let pendingSafety: TurnNote[] = []; // its crisis or safety notes (safety-note.ts), whole
 
   const tryPush = async (): Promise<void> => {
     if (!pending || !agentListening || userSpeaking) return;
@@ -364,7 +366,7 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
     const retry = () => void tryPush();
     if (pendingSafety.length === 0 && heldForPreemptive(agent, 'turn-context', retry)) return;
     const content = `${TURN_CONTEXT_HEADER}\n${pending}`;
-    const safety = pendingSafety.join('\n\n');
+    const safety = safetyText(pendingSafety);
     const extra = {
       [TURN_CONTEXT_FOR]: pendingFor,
       ...(safety && { [TURN_CONTEXT_SAFETY]: safety }),
@@ -416,14 +418,15 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
       const notes = scratch.items
         .map((item) => ({
           safety: carriesSafety(item as never),
+          override: carriesCrisisOverride(item as never),
           text: (item as { textContent?: string }).textContent?.trim() ?? '',
         }))
         .filter((note) => note.text !== '');
       if (notes.length === 0) return;
       // Safety guidance still waiting goes ahead of a later note, never replaced by it (#2642).
       const all = withHeldSafety(pendingSafety, notes);
-      pending = pushedNotesText(all); // safety guidance first and never cut (#2618)
-      pendingSafety = all.filter((note) => note.safety).map((note) => note.text);
+      pending = pushedNotesText(all); // safety guidance last and never cut, the override last of all
+      pendingSafety = all.filter((note) => note.safety);
       pendingFor = forText;
       await tryPush();
     },

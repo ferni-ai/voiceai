@@ -21,6 +21,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
 import { runAfterCall } from './after-call-tasks.js';
 import { memoryHeld } from '../../utils/minor-care.js';
+import { wordsNeverLogged } from '../identity/owner-write-gate.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 
@@ -48,6 +49,7 @@ import { loadSessionProfile, savable } from './load-session-profile.js';
 
 // Real-time memory - persist turns as they happen, never lose data
 import * as realtimeMemory from '../memory/realtime-memory.js';
+import { lastCallSummary } from '../memory/index.js';
 
 // Voice authentication - household identification
 import { getActiveSession, startHouseholdSession } from '../voice/voice-household.js';
@@ -296,14 +298,11 @@ export async function createSessionServices(
         }
       }, 0);
 
-      // Enrich with realtime memory context (background)
-      realtimeMemory
-        .getLastConversationContext(validatedUserId)
-        .then((lastContext) => {
-          if (lastContext && userProfile && userProfile.lastConversationSummary === undefined) {
-            const summary =
-              lastContext.summary || realtimeMemory.buildQuickSummary(lastContext.turns);
-            if (summary) userProfile.lastConversationSummary = summary;
+      // A missing "last time" from realtime memory, never a forgotten topic (background).
+      lastCallSummary(validatedUserId)
+        .then((summary) => {
+          if (summary && userProfile && userProfile.lastConversationSummary === undefined) {
+            userProfile.lastConversationSummary = summary;
           }
         })
         .catch(() => {
@@ -820,12 +819,9 @@ export async function createSessionServices(
 
       learningEngine.processUserTurn(
         message,
-        {
-          emotion: analysis.emotion,
-          intent: analysis.intent,
-          state: analysis.state,
-        },
-        userProfile
+        { emotion: analysis.emotion, intent: analysis.intent, state: analysis.state },
+        userProfile,
+        { logsWords: !wordsNeverLogged(userId) }
       );
 
       // Memory pipeline diagnostics - log what was analyzed
@@ -2275,13 +2271,10 @@ export async function createSessionServices(
             // Non-critical
           }
 
-          void realtimeMemory
-            .getLastConversationContext(validatedUserId)
-            .then((lastContext) => {
-              if (lastContext && services.userProfile && !services.userProfile.lastConversationSummary) {
-                const summary =
-                  lastContext.summary || realtimeMemory.buildQuickSummary(lastContext.turns);
-                if (summary) services.userProfile.lastConversationSummary = summary;
+          void lastCallSummary(validatedUserId)
+            .then((summary) => {
+              if (summary && services.userProfile && !services.userProfile.lastConversationSummary) {
+                services.userProfile.lastConversationSummary = summary;
               }
             })
             .catch(() => {

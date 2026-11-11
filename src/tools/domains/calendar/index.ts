@@ -2,7 +2,6 @@
  * Calendar Domain Tools
  *
  * Tools for scheduling, appointments, reservations, and contact management.
- * This domain provides properly-routed tools that dispatch to correct functions.
  *
  * DOMAIN: calendar
  * TOOLS:
@@ -19,6 +18,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 import { askWhereFirst } from '../local-search/caller-city.js';
+import { LOCAL_SEARCH_UNAVAILABLE } from '../local-search/unified-search.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 
 /**
@@ -198,7 +198,7 @@ function getAppointmentToolDefinitions(): ToolDefinition[] {
               .describe('Special requests (outdoor, birthday, allergies)'),
           }),
           execute: async (params) => {
-            log.info({ action: params.action, query: params.query }, '🍽️ Restaurant tool called');
+            log.info({ action: params.action }, '🍽️ Restaurant tool called');
 
             try {
               if (params.action === 'search') {
@@ -217,7 +217,6 @@ function getAppointmentToolDefinitions(): ToolDefinition[] {
                   {
                     restaurantName: params.restaurantName || params.query || '',
                     restaurantPhone: params.restaurantPhone,
-                    location: params.location,
                     dateTime: params.dateTime || '',
                     partySize: params.partySize || 2,
                     specialRequests: params.specialRequests,
@@ -399,7 +398,7 @@ function getPlacesToolDefinitions(): ToolDefinition[] {
             purpose: z.string().optional().describe('Purpose for calling'),
           }),
           execute: async (params) => {
-            log.info({ action: params.action, query: params.query }, '📍 Business tool called');
+            log.info({ action: params.action }, '📍 Business tool called');
 
             try {
               switch (params.action) {
@@ -446,7 +445,7 @@ function getPlacesToolDefinitions(): ToolDefinition[] {
               }
             } catch (error) {
               log.error({ action: params.action, error: String(error) }, '📍 Business tool error');
-              return `I had trouble finding that business. ${String(error)}`;
+              return LOCAL_SEARCH_UNAVAILABLE;
             }
           },
         }),

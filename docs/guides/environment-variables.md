@@ -55,7 +55,6 @@ Environment variables override manifest defaults.
 | -------------------------- | ------------- | ---------------------- |
 | `JACK_B_VOICE_ID`          | Ferni         | Main life coach voice  |
 | `JACK_BOGLE_VOICE_ID`      | Jack Bogle    | Investment sage voice  |
-| `PETER_LYNCH_VOICE_ID`     | Peter Lynch   | Stock researcher voice |
 | `COMM_SPECIALIST_VOICE_ID` | Alex Chen     | Communications voice   |
 | `SPEND_SAVE_VOICE_ID`      | Maya Santos   | Budget coach voice     |
 | `EVENT_PLANNER_VOICE_ID`   | Jordan Taylor | Life planner voice     |
@@ -239,15 +238,10 @@ See [GOOGLE-CALENDAR-SETUP.md](./GOOGLE-CALENDAR-SETUP.md) for detailed setup gu
 
 ### Restaurant Reservations
 
-Optional APIs for instant online reservations (without phone calls):
-
-| Variable            | Description                                          |
-| ------------------- | ---------------------------------------------------- |
-| `OPENTABLE_API_KEY` | OpenTable Partner API key                            |
-| `RESY_API_KEY`      | Resy API key                                         |
-| `YELP_API_KEY`      | Yelp Fusion API key (for search + some reservations) |
-
-Without these, reservations fall back to phone calls via Twilio.
+No variables. Restaurant search uses Google Places (`GOOGLE_PLACES_API_KEY`, else
+`GOOGLE_API_KEY`). Booking is a call to the restaurant on the user's behalf. The
+OpenTable, Resy and Yelp integrations were removed on 2026-10-30: none offers a
+booking or search API that a voice LLM may use.
 
 ### Plaid (Banking)
 
@@ -569,4 +563,3 @@ echo $TWILIO_ACCOUNT_SID
 
 - [ ] `PLAID_*` (banking)
 - [ ] `SPOTIFY_*` (music)
-- [ ] `OPENTABLE_API_KEY`, `RESY_API_KEY`, `YELP_API_KEY` (reservations)

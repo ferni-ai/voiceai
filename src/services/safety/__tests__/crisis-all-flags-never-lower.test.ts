@@ -387,6 +387,8 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   CRISIS_READ_JOINED_TURN: 'src/agents/personas/__tests__/crisis-read-joined-turn.test.ts',
   CRISIS_SAME_CALL_NOTE_FADES: 'src/agents/multi-agent/__tests__/call-report-after-crisis.test.ts',
   CRISIS_TRANSFER_EVERYDAY: 'src/services/safety/__tests__/crisis-transfer-request.test.ts',
+  // The typed agent chat's prompt; its crisis read runs first either way (chat-routes-crisis).
+  CUSTOM_AGENT_CHAT_HONESTY: 'src/api/custom-agent/__tests__/chat-routes.test.ts',
   DATES_IN_HELLO: 'src/agents/multi-agent/__tests__/greeting-date-arbiter.test.ts',
   EOT_CONTINUED_MERGE: 'src/agents/personas/__tests__/late-words.test.ts',
   // Read by deep-extraction-worker.ts: adds one subject rule to the fact prompt, nothing dropped.
@@ -400,6 +402,7 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   FRIEND_REPAIR: 'src/agents/personas/__tests__/friend-repair.test.ts',
   GOODBYE_ENDS_CALL: 'src/agents/shared/__tests__/call-wrap-up-quiet.test.ts',
   GROUNDED_CLAIMS: 'src/agents/personas/__tests__/grounded-claims-verify.test.ts',
+  HANDOFF_ARRIVAL_ONCE: 'src/agents/multi-agent/__tests__/handoff-arrival-once.sdk.test.ts',
   HANDOFF_ASK_FIRST: 'src/tools/handoff/__tests__/handoff-consent.test.ts',
   HANDOFF_FAILED_SAY_SO: 'src/agents/multi-agent/__tests__/llm-handoff.test.ts',
   HANDOFF_HELD_TRUTHFUL: 'src/tools/handoff/__tests__/handoff-held-truthful.test.ts',
@@ -415,6 +418,11 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   OPENER_GATE: 'src/agents/personas/__tests__/crisis-gate.test.ts',
   OPEN_PROMISE_TRIGGERS:
     'src/services/outreach/proactive-channels/__tests__/open-promise-triggers-path.test.ts',
+  // Read only by the call read-back's consent window, which no reader above calls. That file
+  // stubs it on and shows a turn the crisis reader flags, whole or split across turns, ends the
+  // pending call at every place it pins, with nothing sent.
+  OUTREACH_NO_ANSWERS_READBACK:
+    'src/tools/domains/communication/outreach/__tests__/outreach-consent-v2.test.ts',
   OUTREACH_PONDERED_NOTES:
     'src/services/outreach/proactive-channels/__tests__/grounded-path.test.ts',
   PERSONA_GROWTH: 'src/agents/multi-agent/__tests__/persona-growth-recall.test.ts',
@@ -422,6 +430,8 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   PHRASE_LOOP_GUARD: 'src/agents/personas/__tests__/phrase-loops.test.ts',
   // A crisis or safety note is pushed at once, never held behind a preemptive reply.
   PREEMPT_STABLE_CONTEXT: 'src/agents/multi-agent/__tests__/preempt-stable-context.sdk.test.ts',
+  // A crisis turn's follow-up decision and log equal off; a crisis after the claim drops the line.
+  PROACTIVE_BUDGET: 'src/agents/voice-agent/__tests__/commitment-follow-up-gate.test.ts',
   QUESTION_PACE: 'src/agents/personas/__tests__/question-pace-wiring.test.ts',
   QUIET_AFTER_QUESTION: 'src/agents/voice-agent/__tests__/quiet-presence.test.ts',
   REJECTED_TRANSCRIPT_KEEPS_SPEECH:

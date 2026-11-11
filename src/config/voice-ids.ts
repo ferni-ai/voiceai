@@ -125,8 +125,6 @@ export const VOICE_IDS = {
   // (2026-10-11). The constant names are the persona ids, which predate them.
   // Nate Holloway (joel-dickson): "Ben - Helpful Man", warm, slightly raspy, middle-aged
   JOEL_DICKSON: 'bbee10a8-4f08-4c5c-8282-e69299115055',
-  // Tom Brannigan (peter-lynch): "Hugh - Confident Veteran", seasoned, lively
-  PETER_LYNCH: '4cf80313-54dc-4ca9-a17c-3e5b8f68a78c',
   // Henry Caldwell (john-bogle): "Carl - Steady Storyteller", mature, calm, measured
   JOHN_BOGLE: 'ed82c17b-4704-4d34-be43-5d19065acdf1',
 
@@ -199,7 +197,6 @@ export function getVoiceIdForPersona(personaId: string): string {
     'nayan-patel': process.env.NAYAN_PATEL_VOICE_ID || process.env.NAYAN_VOICE_ID,
     'joel-dickson': process.env.JOEL_DICKSON_VOICE_ID,
     // Financial Legends
-    'peter-lynch': process.env.PETER_LYNCH_VOICE_ID,
     'john-bogle': process.env.JOHN_BOGLE_VOICE_ID,
     'generic-advisor': process.env.GENERIC_ADVISOR_VOICE_ID,
   };
@@ -253,13 +250,6 @@ export function getVoiceIdForPersona(personaId: string): string {
     holloway: VOICE_IDS.JOEL_DICKSON,
     'nate-holloway': VOICE_IDS.JOEL_DICKSON,
     'life-mentor': VOICE_IDS.JOEL_DICKSON,
-
-    // Tom Brannigan aliases (id peter-lynch)
-    'peter-lynch': VOICE_IDS.PETER_LYNCH,
-    tom: VOICE_IDS.PETER_LYNCH,
-    brannigan: VOICE_IDS.PETER_LYNCH,
-    'tom-brannigan': VOICE_IDS.PETER_LYNCH,
-    'stock-picker': VOICE_IDS.PETER_LYNCH,
 
     // Henry Caldwell aliases (id john-bogle)
     'john-bogle': VOICE_IDS.JOHN_BOGLE,
@@ -332,7 +322,6 @@ export function logVoiceIdAssignments(): void {
     'jordan-taylor',
     'nayan-patel',
     'joel-dickson',
-    'peter-lynch',
     'john-bogle',
   ];
 
