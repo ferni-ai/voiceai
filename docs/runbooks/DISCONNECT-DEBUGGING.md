@@ -13,8 +13,8 @@ curl http://34.134.186.63:8080/health/ready
 # Check crash analytics
 curl http://34.134.186.63:8080/api/crash-analytics | jq
 
-# Check call quality (disconnect rates, etc)
-curl http://34.134.186.63:8080/api/observability | jq '.callQuality'
+# Check call quality (disconnect rates, etc; admin only, like every diagnostic route)
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" http://34.134.186.63:8080/api/observability | jq '.callQuality'
 
 # View recent logs
 pnpm ops:logs
@@ -117,10 +117,10 @@ pnpm ops:logs | grep -i "Entry waited"
 **Diagnosis:**
 ```bash
 # Check memory usage
-curl http://34.134.186.63:8080/api/observability | jq '.system.memoryMb'
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" http://34.134.186.63:8080/api/observability | jq '.system.memoryMb'
 
 # Check error rates
-curl http://34.134.186.63:8080/api/observability | jq '.errors'
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" http://34.134.186.63:8080/api/observability | jq '.errors'
 ```
 
 ---
@@ -178,7 +178,7 @@ LiveKit worker connection is dead. Container passes health checks but cannot rec
 ### Via /api/observability
 
 ```bash
-curl http://34.134.186.63:8080/api/observability | jq '{
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" http://34.134.186.63:8080/api/observability | jq '{
   callQuality: .callQuality.qualityScore,
   disconnectRate: .callQuality.disconnectRate,
   connectionSuccessRate: .callQuality.connectionSuccessRate,

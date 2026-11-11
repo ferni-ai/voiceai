@@ -6,7 +6,7 @@
  *
  * Used by ALL agents regardless of persona.
  *
- * Endpoints:
+ * Endpoints (public: /, /health, /health/ready, /health/warmup; the rest admin only):
  * - GET /health - Liveness check (always returns 200 if server is up)
  * - GET /health/ready - Readiness check (200 only when workers can accept calls)
  * - GET /health/workers - Background worker stats (trust, analytics, predictions, etc.)
@@ -29,6 +29,7 @@
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { createLogger } from '../../utils/safe-logger.js';
+import { adminOnlyRoute } from './admin-only-routes.js';
 import {
   getReadinessState,
   markHealthServerReady,
@@ -121,11 +122,16 @@ async function initWebSocketServer(httpServer: Server) {
   }
 }
 
+/** False once the 401 (no or a bad token) or 403 (not an admin) is sent. */
+async function isVerifiedAdmin(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
+  const { requireAdmin } = await import('../../api/auth-middleware.js');
+  return (await requireAdmin(req, res)) !== null;
+}
+
 /** Cognitive state/history: every user's events (as /ws/cognitive), so admin only (401/403). */
 async function handleCognitiveAPI(req: IncomingMessage, res: ServerResponse): Promise<void> {
   setMonitoringCorsHeaders(res);
-  const { requireAdmin } = await import('../../api/auth-middleware.js');
-  if (!(await requireAdmin(req, res))) return;
+  if (!(await isVerifiedAdmin(req, res))) return;
   const url = req.url || '/';
   const broadcast = await getCognitiveBroadcast();
 
@@ -205,15 +211,15 @@ async function handleCacheAPI(url: string, res: ServerResponse): Promise<void> {
 /**
  * Handle memory monitoring API requests
  */
-async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> {
+async function handleMemoryAPI(req: IncomingMessage, res: ServerResponse): Promise<void> {
   setMonitoringCorsHeaders(res);
+  const url = req.url || '/';
 
   try {
     const { getMemoryMonitor } = await import('../../services/memory/memory-monitor.js');
     const monitor = getMemoryMonitor();
 
     if (url === '/api/memory' || url === '/api/memory/metrics') {
-      // Current memory metrics
       const metrics = await monitor.getMetrics();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
@@ -223,7 +229,6 @@ async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> 
     }
 
     if (url === '/api/memory/history') {
-      // Memory metrics history
       const history = monitor.getHistory();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
@@ -233,7 +238,6 @@ async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> 
     }
 
     if (url === '/api/memory/alerts') {
-      // Alert history
       const alerts = monitor.getAlerts();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, data: alerts, timestamp: new Date().toISOString() }));
@@ -241,7 +245,12 @@ async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> 
     }
 
     if (url === '/api/memory/cleanup') {
-      // Force cleanup
+      // It changes state, so a plain GET (a link, a crawler) doesn't run it.
+      if (req.method !== 'POST') {
+        res.writeHead(405, { 'Content-Type': 'application/json', Allow: 'POST' });
+        res.end(JSON.stringify({ error: 'Use POST' }));
+        return;
+      }
       const result = await monitor.forceCleanup();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
@@ -807,7 +816,6 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): Server {
       if (url === '/health/ready') {
         const readiness: ReadinessState = getReadinessState();
 
-        // Return 200 if ready, 503 if not
         const statusCode = readiness.ready ? 200 : 503;
 
         res.writeHead(statusCode, { 'Content-Type': 'application/json' });
@@ -822,6 +830,9 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): Server {
         return;
       }
 
+      // The diagnostic routes from here on answer only an admin (admin-only-routes.ts).
+      if (adminOnlyRoute(url) && !(await isVerifiedAdmin(req, res))) return;
+
       // Worker health check - Aggregated stats from all background workers
       if (url === '/health/workers') {
         try {
@@ -831,7 +842,6 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): Server {
           const workerStats = getWorkerStats();
           const asyncStats = AsyncEvents.getStats();
 
-          // Determine overall worker health
           let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
 
           // Check for degraded conditions
@@ -877,7 +887,6 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): Server {
       // Shows which Rust accelerated functions are being used and performance gains
       if (url === '/health/native') {
         try {
-          // Import native module metrics
           const [perfModule, fftModule] = await Promise.all([
             import('../../memory/rust-accelerator.js').catch(() => null),
             import('../../speech/fft-analyzer/native-fft.js').catch(() => null),
@@ -946,7 +955,6 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): Server {
             };
           }
 
-          // Calculate overall status
           const modules = nativeStatus.modules as Record<string, { available: boolean }>;
           const perfAvailable = modules['rust-perf']?.available ?? false;
           const audioAvailable = modules['rust-audio']?.available ?? false;
@@ -992,7 +1000,6 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): Server {
           const { getGeminiHealthMetrics } = await import('./function-call-telemetry.js');
           const metrics = getGeminiHealthMetrics();
 
-          // Return 200 for healthy/degraded, 503 for unhealthy
           const statusCode = metrics.status === 'unhealthy' ? 503 : 200;
 
           res.writeHead(statusCode, { 'Content-Type': 'application/json' });
@@ -1016,37 +1023,31 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): Server {
         return;
       }
 
-      // Cognitive API endpoints
       if (url.startsWith('/api/cognitive')) {
         await handleCognitiveAPI(req, res);
         return;
       }
 
-      // Persistence metrics API endpoints
       if (url.startsWith('/api/metrics')) {
         await handleMetricsAPI(url, res);
         return;
       }
 
-      // Cache stats API endpoints (SessionDataManager)
       if (url.startsWith('/api/cache')) {
         await handleCacheAPI(url, res);
         return;
       }
 
-      // Memory monitoring API endpoints
       if (url.startsWith('/api/memory')) {
-        await handleMemoryAPI(url, res);
+        await handleMemoryAPI(req, res);
         return;
       }
 
-      // Watchdog API endpoint (container health monitoring)
       if (url === '/api/watchdog' || url === '/api/watchdog/status') {
         await handleWatchdogAPI(res);
         return;
       }
 
-      // Prometheus metrics endpoint
       if (url === '/metrics') {
         await handlePrometheusMetrics(res);
         return;
@@ -1058,7 +1059,6 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): Server {
         return;
       }
 
-      // Session metrics API endpoints
       if (url.startsWith('/api/session-metrics')) {
         await handleSessionMetricsAPI(url, res);
         return;
