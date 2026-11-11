@@ -1,0 +1,1534 @@
+{
+  "apps/web/src/admin/admin-events.ts": {
+    "colour": 17,
+    "easing": 1
+  },
+  "apps/web/src/admin/AdminPortal.ts": {
+    "colour": 56,
+    "shadow": 1,
+    "duration": 1,
+    "fontSize": 25,
+    "important": 22
+  },
+  "apps/web/src/admin/sections/AgentsSection.ts": {
+    "colour": 20,
+    "fontSize": 7
+  },
+  "apps/web/src/admin/sections/ApiDocsSection.ts": {
+    "colour": 38,
+    "fontSize": 9
+  },
+  "apps/web/src/admin/sections/AvatarSoulSection.ts": {
+    "colour": 34,
+    "shadow": 2,
+    "easing": 2,
+    "duration": 10,
+    "fontSize": 11
+  },
+  "apps/web/src/admin/sections/BlindEvaluationPanel.ts": {
+    "fontSize": 2
+  },
+  "apps/web/src/admin/sections/BTHValidationSection.ts": {
+    "fontSize": 7
+  },
+  "apps/web/src/admin/sections/BusinessMetricsSection.ts": {
+    "colour": 2,
+    "duration": 3,
+    "fontSize": 9
+  },
+  "apps/web/src/admin/sections/DashboardSection.ts": {
+    "colour": 42,
+    "shadow": 3,
+    "duration": 1,
+    "fontSize": 13
+  },
+  "apps/web/src/admin/sections/DesignSystemSection.ts": {
+    "colour": 47,
+    "easing": 6,
+    "duration": 9,
+    "fontSize": 17
+  },
+  "apps/web/src/admin/sections/DiagnosticsSection.ts": {
+    "colour": 25,
+    "shadow": 3,
+    "duration": 1,
+    "fontSize": 9
+  },
+  "apps/web/src/admin/sections/EvalOpsSection.ts": {
+    "colour": 25,
+    "fontSize": 12
+  },
+  "apps/web/src/admin/sections/ExperimentsSection.ts": {
+    "colour": 23,
+    "duration": 1,
+    "fontSize": 1
+  },
+  "apps/web/src/admin/sections/FinOpsSection.ts": {
+    "colour": 24,
+    "duration": 3,
+    "fontSize": 20
+  },
+  "apps/web/src/admin/sections/FlagsSection.ts": {
+    "colour": 17,
+    "fontSize": 7
+  },
+  "apps/web/src/admin/sections/HumanListeningSection.ts": {
+    "colour": 52,
+    "duration": 2,
+    "fontSize": 22
+  },
+  "apps/web/src/admin/sections/ModelConfigSection.ts": {
+    "colour": 32,
+    "fontSize": 10
+  },
+  "apps/web/src/admin/sections/MoreDashboardsSection.ts": {
+    "colour": 16,
+    "duration": 2,
+    "fontSize": 4
+  },
+  "apps/web/src/admin/sections/OperationsSection.ts": {
+    "colour": 46,
+    "shadow": 3,
+    "duration": 1,
+    "fontSize": 15
+  },
+  "apps/web/src/admin/sections/SemanticRoutingSection.ts": {
+    "colour": 3,
+    "duration": 3,
+    "fontSize": 14
+  },
+  "apps/web/src/admin/sections/SpeechMetricsSection.ts": {
+    "colour": 32,
+    "duration": 1,
+    "fontSize": 7
+  },
+  "apps/web/src/admin/sections/TrustSection.ts": {
+    "colour": 43,
+    "shadow": 2,
+    "duration": 4,
+    "fontSize": 20
+  },
+  "apps/web/src/app.ts": {
+    "colour": 2,
+    "fontSize": 1
+  },
+  "apps/web/src/components/base/modal.ts": {
+    "colour": 18,
+    "duration": 1,
+    "fontSize": 3
+  },
+  "apps/web/src/components/base/panel.ts": {
+    "colour": 15,
+    "duration": 1,
+    "fontSize": 1,
+    "important": 1
+  },
+  "apps/web/src/config/adaptive-theming.generated.ts": {
+    "colour": 12
+  },
+  "apps/web/src/config/animation-constants.generated.ts": {
+    "easing": 20
+  },
+  "apps/web/src/config/cameo-config.ts": {
+    "colour": 24
+  },
+  "apps/web/src/config/color-generator.ts": {
+    "colour": 4
+  },
+  "apps/web/src/config/expressions.generated.css": {
+    "easing": 16,
+    "duration": 16
+  },
+  "apps/web/src/config/persona-colors.generated.ts": {
+    "colour": 119
+  },
+  "apps/web/src/config/persona-colors.ts": {
+    "colour": 7
+  },
+  "apps/web/src/config/semantic-colors.ts": {
+    "colour": 57
+  },
+  "apps/web/src/config/sequences.generated.ts": {
+    "colour": 3
+  },
+  "apps/web/src/emotion/emotion-state.ts": {
+    "colour": 70
+  },
+  "apps/web/src/eq/bridge/humanization-bridge.ts": {
+    "colour": 18
+  },
+  "apps/web/src/eq/capabilities/concern-detection.ts": {
+    "colour": 1
+  },
+  "apps/web/src/eq/capabilities/micro-expressions.ts": {
+    "colour": 3
+  },
+  "apps/web/src/services/agents.service.ts": {
+    "colour": 5
+  },
+  "apps/web/src/services/celebration.service.ts": {
+    "colour": 9,
+    "shadow": 9
+  },
+  "apps/web/src/services/circadian-manager.ts": {
+    "colour": 1,
+    "duration": 2,
+    "important": 1
+  },
+  "apps/web/src/services/cosmetics.service.ts": {
+    "colour": 8
+  },
+  "apps/web/src/services/founders.service.ts": {
+    "colour": 9
+  },
+  "apps/web/src/services/glow-controller.service.ts": {
+    "colour": 8
+  },
+  "apps/web/src/services/latency-logger.service.ts": {
+    "colour": 7,
+    "fontSize": 2
+  },
+  "apps/web/src/services/marketplace.service.ts": {
+    "colour": 12
+  },
+  "apps/web/src/services/persona-aura.ts": {
+    "colour": 33,
+    "duration": 1
+  },
+  "apps/web/src/services/warmth-manager.ts": {
+    "colour": 4,
+    "duration": 3,
+    "important": 1
+  },
+  "apps/web/src/styles/call-room.css": {
+    "important": 1
+  },
+  "apps/web/src/styles/inline-styles.css": {
+    "colour": 590,
+    "shadow": 97,
+    "easing": 61,
+    "duration": 272,
+    "fontSize": 79,
+    "important": 331
+  },
+  "apps/web/src/styles/tap-target-size.css": {
+    "important": 2
+  },
+  "apps/web/src/styles/touch-input-size.css": {
+    "fontSize": 1,
+    "important": 1
+  },
+  "apps/web/src/systems/emotional-color.ts": {
+    "colour": 1
+  },
+  "apps/web/src/systems/imperfection.ts": {
+    "easing": 1,
+    "duration": 5
+  },
+  "apps/web/src/systems/micro-interactions.ts": {
+    "colour": 4
+  },
+  "apps/web/src/systems/moment-orchestrator.ts": {
+    "easing": 4
+  },
+  "apps/web/src/systems/overlapping-action.ts": {
+    "duration": 1
+  },
+  "apps/web/src/systems/physics.ts": {
+    "easing": 1
+  },
+  "apps/web/src/systems/secondary-action.ts": {
+    "colour": 2,
+    "shadow": 1
+  },
+  "apps/web/src/systems/transcendent.css": {
+    "colour": 1,
+    "shadow": 1,
+    "easing": 7,
+    "duration": 39,
+    "important": 4
+  },
+  "apps/web/src/systems/voice-typography.ts": {
+    "duration": 8
+  },
+  "apps/web/src/theme/index.ts": {
+    "colour": 2
+  },
+  "apps/web/src/ui/accent-settings.ui.ts": {
+    "colour": 63,
+    "shadow": 3,
+    "duration": 1,
+    "fontSize": 9,
+    "important": 1
+  },
+  "apps/web/src/ui/action-confirmation.ui.ts": {
+    "colour": 8,
+    "duration": 1
+  },
+  "apps/web/src/ui/activity.ui.ts": {
+    "colour": 3,
+    "duration": 1,
+    "fontSize": 9
+  },
+  "apps/web/src/ui/add-person.ui.ts": {
+    "colour": 39,
+    "shadow": 3
+  },
+  "apps/web/src/ui/admin.ui.ts": {
+    "colour": 72,
+    "shadow": 2,
+    "easing": 3,
+    "duration": 16,
+    "fontSize": 28,
+    "important": 5
+  },
+  "apps/web/src/ui/after-call/call-feedback.ts": {
+    "colour": 6
+  },
+  "apps/web/src/ui/agent-page-builder.ui.ts": {
+    "colour": 11,
+    "shadow": 1,
+    "duration": 1
+  },
+  "apps/web/src/ui/agent-particles.ui.ts": {
+    "colour": 1
+  },
+  "apps/web/src/ui/ambient-effects.ui.ts": {
+    "colour": 2,
+    "duration": 1
+  },
+  "apps/web/src/ui/analytics-dashboard.ui.ts": {
+    "colour": 13,
+    "duration": 2,
+    "fontSize": 2
+  },
+  "apps/web/src/ui/animation-orchestrator.ui.ts": {
+    "colour": 2,
+    "easing": 1
+  },
+  "apps/web/src/ui/apple-health-settings.ui.ts": {
+    "colour": 25,
+    "duration": 2
+  },
+  "apps/web/src/ui/avatar-feedback.ui.ts": {
+    "colour": 26,
+    "shadow": 10,
+    "easing": 4
+  },
+  "apps/web/src/ui/avatar-lamp.ui.ts": {
+    "easing": 1
+  },
+  "apps/web/src/ui/avatar-sidekicks.ui.ts": {
+    "colour": 22,
+    "shadow": 2,
+    "important": 1
+  },
+  "apps/web/src/ui/avatar-soul.ui.ts": {
+    "colour": 39,
+    "shadow": 3,
+    "duration": 4,
+    "important": 1
+  },
+  "apps/web/src/ui/avatar-tap-reactions.ui.ts": {
+    "colour": 1,
+    "duration": 5
+  },
+  "apps/web/src/ui/bookmark.ui.ts": {
+    "colour": 2,
+    "shadow": 1,
+    "duration": 2
+  },
+  "apps/web/src/ui/breathing-guide.ui.ts": {
+    "colour": 11,
+    "duration": 5,
+    "fontSize": 4
+  },
+  "apps/web/src/ui/bth-analytics-dashboard.ui.ts": {
+    "colour": 42,
+    "duration": 4,
+    "fontSize": 13
+  },
+  "apps/web/src/ui/calendar-conflicts.ui.ts": {
+    "colour": 47,
+    "duration": 1
+  },
+  "apps/web/src/ui/calendar-selection.ui.ts": {
+    "colour": 57,
+    "duration": 1,
+    "fontSize": 3
+  },
+  "apps/web/src/ui/calendar-settings.ui.ts": {
+    "colour": 110,
+    "duration": 2
+  },
+  "apps/web/src/ui/calendar-view.ui.ts": {
+    "colour": 236,
+    "shadow": 1,
+    "duration": 9,
+    "fontSize": 3
+  },
+  "apps/web/src/ui/cameo-roster.ui.ts": {
+    "colour": 4,
+    "shadow": 6,
+    "duration": 2,
+    "fontSize": 3,
+    "important": 10
+  },
+  "apps/web/src/ui/capability-card.ui.ts": {
+    "colour": 17,
+    "duration": 1,
+    "fontSize": 7
+  },
+  "apps/web/src/ui/captions/live-captions.styles.ts": {
+    "shadow": 1,
+    "duration": 1
+  },
+  "apps/web/src/ui/celebration.ui.ts": {
+    "colour": 12,
+    "fontSize": 2
+  },
+  "apps/web/src/ui/celebrations.ui.ts": {
+    "colour": 1,
+    "shadow": 5,
+    "duration": 9
+  },
+  "apps/web/src/ui/character-sheet.ui.ts": {
+    "colour": 5,
+    "fontSize": 11
+  },
+  "apps/web/src/ui/chronicle-entries.ui.ts": {
+    "fontSize": 3
+  },
+  "apps/web/src/ui/chronicle.ui.ts": {
+    "colour": 84,
+    "shadow": 1,
+    "easing": 3,
+    "duration": 21,
+    "fontSize": 24
+  },
+  "apps/web/src/ui/cli-auth.ui.ts": {
+    "colour": 16,
+    "shadow": 1,
+    "duration": 1,
+    "fontSize": 6
+  },
+  "apps/web/src/ui/coach.ui.ts": {
+    "easing": 1
+  },
+  "apps/web/src/ui/coaching-mode.ui.ts": {
+    "colour": 1,
+    "shadow": 1,
+    "fontSize": 12
+  },
+  "apps/web/src/ui/cognitive-insights-overlay.ts": {
+    "colour": 10,
+    "shadow": 1,
+    "duration": 3,
+    "important": 1
+  },
+  "apps/web/src/ui/cognitive-insights.ui.ts": {
+    "colour": 22,
+    "shadow": 1,
+    "important": 3
+  },
+  "apps/web/src/ui/color/mood-palette.ts": {
+    "colour": 18,
+    "duration": 1
+  },
+  "apps/web/src/ui/color/persona-harmony.ts": {
+    "colour": 18,
+    "easing": 2,
+    "duration": 1
+  },
+  "apps/web/src/ui/color/time-fading.ts": {
+    "colour": 9
+  },
+  "apps/web/src/ui/commands.ui.ts": {
+    "colour": 1,
+    "duration": 1
+  },
+  "apps/web/src/ui/components/empty-state.ts": {
+    "colour": 8,
+    "fontSize": 5,
+    "important": 2
+  },
+  "apps/web/src/ui/components/panel-loading-shell.ts": {
+    "duration": 4
+  },
+  "apps/web/src/ui/confirm-modal.ui.ts": {
+    "colour": 9,
+    "fontSize": 3
+  },
+  "apps/web/src/ui/connect-invite-page.ui.ts": {
+    "colour": 1
+  },
+  "apps/web/src/ui/connected-life.ui.ts": {
+    "colour": 33,
+    "shadow": 1,
+    "fontSize": 8
+  },
+  "apps/web/src/ui/connection-quality.ui.ts": {
+    "colour": 14,
+    "shadow": 1,
+    "duration": 2
+  },
+  "apps/web/src/ui/contact-settings-phone.ts": {
+    "colour": 1,
+    "fontSize": 3
+  },
+  "apps/web/src/ui/contact-settings.ui.ts": {
+    "colour": 31,
+    "shadow": 4,
+    "easing": 3,
+    "duration": 7,
+    "fontSize": 18
+  },
+  "apps/web/src/ui/contextual-feedback.ui.ts": {
+    "colour": 17,
+    "duration": 1,
+    "fontSize": 1
+  },
+  "apps/web/src/ui/conversation-cost.ui.ts": {
+    "colour": 15,
+    "shadow": 1,
+    "fontSize": 6
+  },
+  "apps/web/src/ui/conversation-history.ui.ts": {
+    "colour": 14,
+    "shadow": 3,
+    "fontSize": 1,
+    "important": 3
+  },
+  "apps/web/src/ui/conversation-memory.ui.ts": {
+    "colour": 69,
+    "shadow": 1,
+    "duration": 10,
+    "fontSize": 24
+  },
+  "apps/web/src/ui/conversation-starters.ui.ts": {
+    "colour": 44,
+    "shadow": 1,
+    "duration": 1
+  },
+  "apps/web/src/ui/creative-you-dashboard.ui.ts": {
+    "colour": 5
+  },
+  "apps/web/src/ui/creative-you/styles.ts": {
+    "colour": 2
+  },
+  "apps/web/src/ui/custom-agent-editor.ui.ts": {
+    "colour": 27,
+    "shadow": 3,
+    "duration": 1,
+    "fontSize": 24
+  },
+  "apps/web/src/ui/custom-agent-wizard.ui.ts": {
+    "colour": 32,
+    "shadow": 5,
+    "duration": 2,
+    "fontSize": 32
+  },
+  "apps/web/src/ui/data-export.ui.ts": {
+    "colour": 39,
+    "shadow": 1
+  },
+  "apps/web/src/ui/design-system-integration.ts": {
+    "colour": 2
+  },
+  "apps/web/src/ui/dev-panel.ui.ts": {
+    "colour": 279,
+    "shadow": 15,
+    "easing": 11,
+    "duration": 13,
+    "fontSize": 55,
+    "important": 5
+  },
+  "apps/web/src/ui/digital-twin-profile.ui.ts": {
+    "colour": 24,
+    "shadow": 2,
+    "duration": 1,
+    "fontSize": 32
+  },
+  "apps/web/src/ui/digital-twin.ui.ts": {
+    "colour": 123,
+    "shadow": 7,
+    "easing": 1,
+    "duration": 2,
+    "fontSize": 18,
+    "important": 1
+  },
+  "apps/web/src/ui/easter-eggs.ui.ts": {
+    "colour": 12,
+    "shadow": 1,
+    "duration": 3,
+    "fontSize": 4
+  },
+  "apps/web/src/ui/edit-person.ui.ts": {
+    "colour": 54,
+    "shadow": 3
+  },
+  "apps/web/src/ui/emotional-springs.ui.ts": {
+    "easing": 6
+  },
+  "apps/web/src/ui/empty-state.ui.ts": {
+    "colour": 43,
+    "fontSize": 11
+  },
+  "apps/web/src/ui/engagement-components.ts": {
+    "colour": 1,
+    "duration": 5,
+    "important": 4
+  },
+  "apps/web/src/ui/engagement-trigger.ui.ts": {
+    "colour": 17,
+    "shadow": 5,
+    "easing": 2,
+    "duration": 9,
+    "fontSize": 1
+  },
+  "apps/web/src/ui/engagement.ui.ts": {
+    "colour": 2,
+    "duration": 1,
+    "important": 3
+  },
+  "apps/web/src/ui/evalops-dashboard.ui.ts": {
+    "colour": 17,
+    "duration": 1,
+    "fontSize": 24
+  },
+  "apps/web/src/ui/face/face-renderer.ts": {
+    "colour": 2
+  },
+  "apps/web/src/ui/family-identities.ui.ts": {
+    "colour": 41,
+    "duration": 1,
+    "fontSize": 15
+  },
+  "apps/web/src/ui/feature-hints.ui.ts": {
+    "colour": 32,
+    "shadow": 7,
+    "duration": 1
+  },
+  "apps/web/src/ui/feedback-insights-panel.ui.ts": {
+    "colour": 16,
+    "duration": 3
+  },
+  "apps/web/src/ui/ferni-awakens.ui.ts": {
+    "colour": 7,
+    "duration": 1,
+    "fontSize": 5
+  },
+  "apps/web/src/ui/ferni-birthday.ui.ts": {
+    "colour": 3,
+    "shadow": 2,
+    "duration": 2
+  },
+  "apps/web/src/ui/ferni-care/dashboard.ui.ts": {
+    "colour": 25,
+    "easing": 1,
+    "duration": 9,
+    "fontSize": 11
+  },
+  "apps/web/src/ui/ferni-care/ideas-gallery.ui.ts": {
+    "colour": 22,
+    "easing": 1,
+    "duration": 7,
+    "fontSize": 11
+  },
+  "apps/web/src/ui/ferni-care/routine-builder.ui.ts": {
+    "colour": 29,
+    "easing": 1,
+    "duration": 9,
+    "fontSize": 15
+  },
+  "apps/web/src/ui/ferni-expressions.ui.ts": {
+    "colour": 8,
+    "shadow": 2,
+    "duration": 1
+  },
+  "apps/web/src/ui/ferni-fund.styles.ts": {
+    "colour": 28,
+    "shadow": 1,
+    "duration": 2,
+    "fontSize": 39
+  },
+  "apps/web/src/ui/ferni-fund.ui.ts": {
+    "colour": 3
+  },
+  "apps/web/src/ui/ferni-hub-states.ts": {
+    "fontSize": 1
+  },
+  "apps/web/src/ui/ferni-hub-tracked.ts": {
+    "fontSize": 1
+  },
+  "apps/web/src/ui/ferni-hub.ui.ts": {
+    "colour": 27,
+    "duration": 4,
+    "fontSize": 18,
+    "important": 4
+  },
+  "apps/web/src/ui/ferni-logo.ui.ts": {
+    "colour": 12,
+    "duration": 7
+  },
+  "apps/web/src/ui/ferni-milestones.ui.ts": {
+    "colour": 15,
+    "shadow": 1,
+    "duration": 1
+  },
+  "apps/web/src/ui/ferni-moments.ui.ts": {
+    "colour": 21,
+    "shadow": 4,
+    "duration": 1,
+    "important": 1
+  },
+  "apps/web/src/ui/founders-journey/styles.ts": {
+    "colour": 26,
+    "shadow": 10,
+    "duration": 1,
+    "fontSize": 49
+  },
+  "apps/web/src/ui/future-insights.ui.ts": {
+    "colour": 49,
+    "shadow": 1,
+    "duration": 8,
+    "fontSize": 14
+  },
+  "apps/web/src/ui/game-board.ui.ts": {
+    "colour": 2,
+    "duration": 1
+  },
+  "apps/web/src/ui/game-picker.ui.ts": {
+    "colour": 36,
+    "shadow": 1,
+    "fontSize": 17
+  },
+  "apps/web/src/ui/garden-dashboard.ui.ts": {
+    "colour": 15,
+    "shadow": 1,
+    "duration": 3,
+    "important": 2
+  },
+  "apps/web/src/ui/gift-seeds.ui.ts": {
+    "colour": 39,
+    "shadow": 1,
+    "duration": 5
+  },
+  "apps/web/src/ui/gift-suggestions.ui.ts": {
+    "colour": 52,
+    "shadow": 1,
+    "duration": 1
+  },
+  "apps/web/src/ui/group-coaching.ui.ts": {
+    "colour": 13,
+    "duration": 1,
+    "fontSize": 1,
+    "important": 4
+  },
+  "apps/web/src/ui/group-conversation.ui.ts": {
+    "colour": 1,
+    "duration": 1,
+    "fontSize": 13
+  },
+  "apps/web/src/ui/growth-journal.ui.ts": {
+    "colour": 26,
+    "shadow": 2,
+    "fontSize": 1
+  },
+  "apps/web/src/ui/household-manager.ui.ts": {
+    "colour": 69,
+    "shadow": 4,
+    "duration": 1,
+    "fontSize": 22
+  },
+  "apps/web/src/ui/hub-promises.ui.ts": {
+    "fontSize": 1
+  },
+  "apps/web/src/ui/import-contacts.ui.ts": {
+    "colour": 44,
+    "shadow": 1,
+    "duration": 1,
+    "fontSize": 9
+  },
+  "apps/web/src/ui/important-dates.ui.ts": {
+    "colour": 48,
+    "shadow": 1
+  },
+  "apps/web/src/ui/insights-debug-panel.ui.ts": {
+    "colour": 32,
+    "shadow": 1,
+    "duration": 2,
+    "fontSize": 14
+  },
+  "apps/web/src/ui/insights-view.ui.ts": {
+    "colour": 37,
+    "shadow": 1,
+    "duration": 3,
+    "important": 4
+  },
+  "apps/web/src/ui/integrations-settings.ui.ts": {
+    "colour": 91,
+    "shadow": 1,
+    "fontSize": 1,
+    "important": 2
+  },
+  "apps/web/src/ui/intelligence-insights.ui.ts": {
+    "duration": 1,
+    "fontSize": 8
+  },
+  "apps/web/src/ui/journey.ui.ts": {
+    "colour": 5
+  },
+  "apps/web/src/ui/journey/styles.ts": {
+    "colour": 242,
+    "shadow": 12,
+    "duration": 4,
+    "fontSize": 7
+  },
+  "apps/web/src/ui/keyboard-shortcuts.ui.ts": {
+    "colour": 10
+  },
+  "apps/web/src/ui/keyboard.ui.ts": {
+    "colour": 12,
+    "shadow": 1,
+    "duration": 2,
+    "fontSize": 2
+  },
+  "apps/web/src/ui/kinetic-typography.ui.ts": {
+    "easing": 2,
+    "duration": 1
+  },
+  "apps/web/src/ui/knowledge-quiz.ui.ts": {
+    "colour": 35,
+    "duration": 1,
+    "fontSize": 2
+  },
+  "apps/web/src/ui/legacy-share.ui.ts": {
+    "colour": 1,
+    "shadow": 1,
+    "fontSize": 16
+  },
+  "apps/web/src/ui/legacy-stories.ui.ts": {
+    "colour": 8,
+    "shadow": 1,
+    "fontSize": 12
+  },
+  "apps/web/src/ui/life-context-dashboard.ui.ts": {
+    "colour": 37,
+    "shadow": 1,
+    "duration": 8,
+    "fontSize": 27
+  },
+  "apps/web/src/ui/linkedin-settings.ui.ts": {
+    "colour": 4,
+    "duration": 3,
+    "fontSize": 14
+  },
+  "apps/web/src/ui/living-logo.ui.ts": {
+    "duration": 2,
+    "important": 1
+  },
+  "apps/web/src/ui/loading-skeleton.ui.ts": {
+    "colour": 13,
+    "duration": 2
+  },
+  "apps/web/src/ui/loading-states.ui.ts": {
+    "colour": 1,
+    "duration": 1
+  },
+  "apps/web/src/ui/location-prompt.ui.ts": {
+    "colour": 13,
+    "fontSize": 4
+  },
+  "apps/web/src/ui/log-moment.ui.ts": {
+    "colour": 56,
+    "shadow": 3
+  },
+  "apps/web/src/ui/luxo-expressions.ui.ts": {
+    "easing": 1
+  },
+  "apps/web/src/ui/manage-subscription.ui.ts": {
+    "colour": 50,
+    "shadow": 4,
+    "fontSize": 9,
+    "important": 2
+  },
+  "apps/web/src/ui/marketplace-admin.ui.ts": {
+    "colour": 2,
+    "duration": 1,
+    "fontSize": 15
+  },
+  "apps/web/src/ui/marketplace-permission-consent.ui.ts": {
+    "colour": 5,
+    "shadow": 1,
+    "fontSize": 13
+  },
+  "apps/web/src/ui/marketplace.ui.ts": {
+    "colour": 2
+  },
+  "apps/web/src/ui/marketplace/components/agent-card.ts": {
+    "shadow": 2
+  },
+  "apps/web/src/ui/marketplace/components/custom-agent-card.ts": {
+    "shadow": 2
+  },
+  "apps/web/src/ui/marketplace/styles/base.ts": {
+    "colour": 6,
+    "shadow": 3,
+    "fontSize": 10
+  },
+  "apps/web/src/ui/marketplace/styles/cards.ts": {
+    "colour": 2,
+    "shadow": 2,
+    "duration": 11,
+    "fontSize": 13
+  },
+  "apps/web/src/ui/marketplace/styles/creations.ts": {
+    "shadow": 2,
+    "fontSize": 17
+  },
+  "apps/web/src/ui/marketplace/styles/detail.ts": {
+    "colour": 5,
+    "shadow": 1,
+    "fontSize": 21
+  },
+  "apps/web/src/ui/marketplace/styles/index.ts": {
+    "important": 1
+  },
+  "apps/web/src/ui/marketplace/styles/team.ts": {
+    "duration": 5,
+    "fontSize": 24
+  },
+  "apps/web/src/ui/memory-feedback.ui.ts": {
+    "colour": 13,
+    "shadow": 1,
+    "fontSize": 2
+  },
+  "apps/web/src/ui/memory-input-modal.ui.ts": {
+    "colour": 7,
+    "shadow": 1,
+    "fontSize": 7
+  },
+  "apps/web/src/ui/memory-lane.ui.ts": {
+    "colour": 49,
+    "important": 2
+  },
+  "apps/web/src/ui/memory/known-view.styles.ts": {
+    "fontSize": 11
+  },
+  "apps/web/src/ui/memory/memory-correction.ui.ts": {
+    "colour": 1
+  },
+  "apps/web/src/ui/mentor-teachings.ui.ts": {
+    "colour": 8,
+    "shadow": 1,
+    "fontSize": 13
+  },
+  "apps/web/src/ui/micro-interactions.ui.ts": {
+    "colour": 6,
+    "shadow": 4
+  },
+  "apps/web/src/ui/milestone-card.ui.ts": {
+    "colour": 23
+  },
+  "apps/web/src/ui/mobile-bottom-sheet.styles.ts": {
+    "colour": 7,
+    "shadow": 2,
+    "easing": 1,
+    "duration": 4,
+    "fontSize": 2,
+    "important": 1
+  },
+  "apps/web/src/ui/mobile-delights.ui.ts": {
+    "colour": 6,
+    "shadow": 1,
+    "duration": 1,
+    "fontSize": 6,
+    "important": 21
+  },
+  "apps/web/src/ui/moments/constants.ts": {
+    "colour": 10,
+    "shadow": 6
+  },
+  "apps/web/src/ui/moments/manager.ts": {
+    "easing": 1
+  },
+  "apps/web/src/ui/moments/styles.ts": {
+    "colour": 51,
+    "shadow": 1,
+    "duration": 3,
+    "fontSize": 8,
+    "important": 5
+  },
+  "apps/web/src/ui/moments/trophy-room.ts": {
+    "colour": 40,
+    "fontSize": 14,
+    "important": 2
+  },
+  "apps/web/src/ui/mood-backgrounds.ui.ts": {
+    "colour": 8,
+    "important": 1
+  },
+  "apps/web/src/ui/mood.ui.ts": {
+    "colour": 18,
+    "easing": 3,
+    "duration": 1,
+    "fontSize": 1
+  },
+  "apps/web/src/ui/music-dashboard.ui.ts": {
+    "duration": 1
+  },
+  "apps/web/src/ui/music-history.ui.ts": {
+    "colour": 21,
+    "duration": 5,
+    "fontSize": 1
+  },
+  "apps/web/src/ui/next-checkin.ui.ts": {
+    "colour": 17,
+    "fontSize": 5
+  },
+  "apps/web/src/ui/notification-settings.ui.ts": {
+    "colour": 126,
+    "shadow": 1,
+    "duration": 8,
+    "fontSize": 3
+  },
+  "apps/web/src/ui/notifications.ui.ts": {
+    "shadow": 1,
+    "duration": 1
+  },
+  "apps/web/src/ui/now-playing.ui.ts": {
+    "colour": 7,
+    "shadow": 4,
+    "duration": 8,
+    "fontSize": 3,
+    "important": 10
+  },
+  "apps/web/src/ui/offline-banner.ui.ts": {
+    "easing": 1,
+    "duration": 2,
+    "fontSize": 1
+  },
+  "apps/web/src/ui/onboarding.ui.ts": {
+    "colour": 29,
+    "shadow": 4,
+    "duration": 1,
+    "important": 2
+  },
+  "apps/web/src/ui/oura-settings.ui.ts": {
+    "colour": 27,
+    "shadow": 1,
+    "duration": 1
+  },
+  "apps/web/src/ui/outreach-preferences.ui.ts": {
+    "colour": 40,
+    "shadow": 3,
+    "fontSize": 8
+  },
+  "apps/web/src/ui/outreach-schedule.ui.ts": {
+    "colour": 58,
+    "shadow": 4,
+    "duration": 11,
+    "fontSize": 19
+  },
+  "apps/web/src/ui/overlay/dialog.styles.ts": {
+    "colour": 1,
+    "fontSize": 3
+  },
+  "apps/web/src/ui/overlay/toast-region.styles.ts": {
+    "fontSize": 2
+  },
+  "apps/web/src/ui/pattern-insights.ui.ts": {
+    "colour": 24,
+    "fontSize": 1,
+    "important": 1
+  },
+  "apps/web/src/ui/persona-intro.ui.ts": {
+    "colour": 47,
+    "shadow": 3,
+    "duration": 1,
+    "fontSize": 2,
+    "important": 1
+  },
+  "apps/web/src/ui/persona-transition.ui.ts": {
+    "colour": 13
+  },
+  "apps/web/src/ui/personalize.ui.ts": {
+    "colour": 24,
+    "shadow": 2,
+    "fontSize": 11
+  },
+  "apps/web/src/ui/practice-experience.ui.ts": {
+    "colour": 53,
+    "shadow": 3,
+    "easing": 1,
+    "duration": 18,
+    "fontSize": 13
+  },
+  "apps/web/src/ui/practice-suggestions.ui.ts": {
+    "colour": 1,
+    "fontSize": 2
+  },
+  "apps/web/src/ui/prediction-tracker.ui.ts": {
+    "colour": 42,
+    "shadow": 1,
+    "duration": 1
+  },
+  "apps/web/src/ui/predictions.ui.ts": {
+    "colour": 17,
+    "shadow": 2,
+    "duration": 1,
+    "important": 3
+  },
+  "apps/web/src/ui/predictive-insights.ui.ts": {
+    "colour": 2,
+    "duration": 1,
+    "fontSize": 4
+  },
+  "apps/web/src/ui/proactive-messages.styles.ts": {
+    "colour": 27,
+    "duration": 6,
+    "fontSize": 5
+  },
+  "apps/web/src/ui/proactive-messages.ui.ts": {
+    "duration": 1
+  },
+  "apps/web/src/ui/proactive-outreach.ui.ts": {
+    "colour": 17,
+    "fontSize": 5
+  },
+  "apps/web/src/ui/professional-tasks.ui.ts": {
+    "colour": 5,
+    "shadow": 1,
+    "fontSize": 9
+  },
+  "apps/web/src/ui/progress-indicator.ui.ts": {
+    "colour": 39,
+    "shadow": 4,
+    "fontSize": 3,
+    "important": 5
+  },
+  "apps/web/src/ui/record-gift.ui.ts": {
+    "colour": 49,
+    "shadow": 4
+  },
+  "apps/web/src/ui/referral.ui.ts": {
+    "colour": 26,
+    "shadow": 1,
+    "duration": 3
+  },
+  "apps/web/src/ui/relationship-card.ui.ts": {
+    "colour": 98,
+    "shadow": 1
+  },
+  "apps/web/src/ui/relationship-insights.ui.ts": {
+    "colour": 55,
+    "shadow": 1,
+    "duration": 1
+  },
+  "apps/web/src/ui/ritual-builder.ui.ts": {
+    "colour": 40,
+    "important": 1
+  },
+  "apps/web/src/ui/roadmap-panel.ui.ts": {
+    "colour": 315,
+    "shadow": 3,
+    "duration": 8,
+    "fontSize": 16,
+    "important": 1
+  },
+  "apps/web/src/ui/roleplay-mode.ui.ts": {
+    "colour": 6,
+    "shadow": 2,
+    "fontSize": 12
+  },
+  "apps/web/src/ui/routing-stats.ui.ts": {
+    "colour": 14,
+    "fontSize": 6
+  },
+  "apps/web/src/ui/sanctuary.ui.ts": {
+    "colour": 61,
+    "shadow": 2,
+    "duration": 5,
+    "fontSize": 18
+  },
+  "apps/web/src/ui/seed-payment-form.ui.ts": {
+    "fontSize": 1
+  },
+  "apps/web/src/ui/seeds-display.ui.ts": {
+    "colour": 30,
+    "duration": 1,
+    "fontSize": 11
+  },
+  "apps/web/src/ui/semantic-intelligence-panel.ui.ts": {
+    "colour": 51,
+    "duration": 14,
+    "fontSize": 63
+  },
+  "apps/web/src/ui/send-message.ui.ts": {
+    "colour": 42,
+    "shadow": 3
+  },
+  "apps/web/src/ui/service-health.ui.ts": {
+    "duration": 2,
+    "fontSize": 5
+  },
+  "apps/web/src/ui/settings-menu.ui.ts": {
+    "colour": 143,
+    "shadow": 10,
+    "duration": 12,
+    "fontSize": 9,
+    "important": 4
+  },
+  "apps/web/src/ui/sign-in-gate.ui.ts": {
+    "colour": 26,
+    "shadow": 1,
+    "duration": 1,
+    "fontSize": 10
+  },
+  "apps/web/src/ui/sign-in-provider-icons.ts": {
+    "colour": 4
+  },
+  "apps/web/src/ui/skeleton.ui.ts": {
+    "colour": 13,
+    "duration": 4
+  },
+  "apps/web/src/ui/sleep-mode.ui.ts": {
+    "colour": 1,
+    "duration": 3
+  },
+  "apps/web/src/ui/sleep-settings.ui.ts": {
+    "colour": 39,
+    "shadow": 2,
+    "fontSize": 4
+  },
+  "apps/web/src/ui/smart-home-settings.ui.ts": {
+    "colour": 53,
+    "duration": 2,
+    "fontSize": 17
+  },
+  "apps/web/src/ui/speaker-change-indicator.ui.ts": {
+    "colour": 16,
+    "duration": 5,
+    "fontSize": 4
+  },
+  "apps/web/src/ui/speaker-cues-styles.ts": {
+    "duration": 4,
+    "fontSize": 1
+  },
+  "apps/web/src/ui/speaking-system.ui.ts": {
+    "colour": 1
+  },
+  "apps/web/src/ui/stage-celebration.ui.ts": {
+    "colour": 103,
+    "shadow": 7,
+    "duration": 10,
+    "important": 1
+  },
+  "apps/web/src/ui/status-island-connection.ts": {
+    "fontSize": 2
+  },
+  "apps/web/src/ui/streak-celebrations.ui.ts": {
+    "colour": 6
+  },
+  "apps/web/src/ui/subscription-badge.ui.ts": {
+    "colour": 24,
+    "shadow": 1,
+    "duration": 1,
+    "fontSize": 2
+  },
+  "apps/web/src/ui/subscription.ui.ts": {
+    "colour": 74,
+    "shadow": 7,
+    "duration": 3,
+    "fontSize": 19
+  },
+  "apps/web/src/ui/support-ferni.ui.ts": {
+    "colour": 19,
+    "shadow": 11,
+    "duration": 10,
+    "fontSize": 24,
+    "important": 5
+  },
+  "apps/web/src/ui/support/venmo-chip-in.ui.ts": {
+    "fontSize": 1
+  },
+  "apps/web/src/ui/talk-to-twin.ui.ts": {
+    "colour": 11,
+    "duration": 3,
+    "fontSize": 6
+  },
+  "apps/web/src/ui/task-mode.ui.ts": {
+    "colour": 5,
+    "shadow": 2,
+    "fontSize": 11
+  },
+  "apps/web/src/ui/team-insights.ui.ts": {
+    "colour": 46,
+    "shadow": 5,
+    "duration": 10,
+    "fontSize": 24
+  },
+  "apps/web/src/ui/team-intro.ui.ts": {
+    "colour": 9,
+    "shadow": 1,
+    "fontSize": 7
+  },
+  "apps/web/src/ui/team-unlock-celebration.ui.ts": {
+    "colour": 28,
+    "shadow": 2,
+    "duration": 1,
+    "fontSize": 9
+  },
+  "apps/web/src/ui/team.ui.ts": {
+    "colour": 19,
+    "shadow": 2,
+    "duration": 1,
+    "fontSize": 1
+  },
+  "apps/web/src/ui/teaser-preview.ui.ts": {
+    "colour": 70,
+    "fontSize": 35,
+    "important": 1
+  },
+  "apps/web/src/ui/theme-language-settings.ui.ts": {
+    "colour": 39,
+    "shadow": 3,
+    "easing": 1,
+    "duration": 5,
+    "fontSize": 6
+  },
+  "apps/web/src/ui/thinking.ui.ts": {
+    "easing": 2
+  },
+  "apps/web/src/ui/trigger-debug-panel.ui.ts": {
+    "colour": 28,
+    "fontSize": 12
+  },
+  "apps/web/src/ui/trust-dashboard-together.ts": {
+    "fontSize": 5
+  },
+  "apps/web/src/ui/trust-dashboard.ui.ts": {
+    "colour": 4,
+    "duration": 1,
+    "fontSize": 12
+  },
+  "apps/web/src/ui/trust-journey/styles.ts": {
+    "colour": 97,
+    "shadow": 1,
+    "duration": 6,
+    "important": 2
+  },
+  "apps/web/src/ui/trust-signals-config.ts": {
+    "colour": 6
+  },
+  "apps/web/src/ui/trust-signals.ui.ts": {
+    "colour": 23,
+    "shadow": 2,
+    "important": 1
+  },
+  "apps/web/src/ui/typography/mood-weight.ts": {
+    "easing": 1
+  },
+  "apps/web/src/ui/typography/persona-voice-type.ts": {
+    "easing": 5,
+    "duration": 1
+  },
+  "apps/web/src/ui/unified-indicator.ui.ts": {
+    "colour": 37,
+    "shadow": 7,
+    "important": 1
+  },
+  "apps/web/src/ui/value-capture.ui.ts": {
+    "colour": 28,
+    "shadow": 1,
+    "duration": 8,
+    "fontSize": 13
+  },
+  "apps/web/src/ui/vibe-controller.ui.ts": {
+    "colour": 92,
+    "duration": 1,
+    "fontSize": 27
+  },
+  "apps/web/src/ui/video-settings.ui.ts": {
+    "colour": 10,
+    "shadow": 1,
+    "duration": 1,
+    "fontSize": 1,
+    "important": 1
+  },
+  "apps/web/src/ui/visualization-storytelling.ts": {
+    "colour": 23
+  },
+  "apps/web/src/ui/visualizations/builders/actions-taken.ts": {
+    "colour": 18,
+    "fontSize": 4
+  },
+  "apps/web/src/ui/visualizations/builders/burnout-gauge.ts": {
+    "colour": 3,
+    "fontSize": 2
+  },
+  "apps/web/src/ui/visualizations/builders/celebration-wheel.ts": {
+    "colour": 23,
+    "fontSize": 13
+  },
+  "apps/web/src/ui/visualizations/builders/data-ink-optimizer.ts": {
+    "important": 3
+  },
+  "apps/web/src/ui/visualizations/builders/emotional-arcs.ts": {
+    "colour": 25,
+    "shadow": 1,
+    "duration": 4,
+    "fontSize": 10
+  },
+  "apps/web/src/ui/visualizations/builders/energy-rings.ts": {
+    "colour": 1
+  },
+  "apps/web/src/ui/visualizations/builders/energy-wave.ts": {
+    "colour": 3,
+    "fontSize": 4
+  },
+  "apps/web/src/ui/visualizations/builders/growth-radar.ts": {
+    "colour": 24,
+    "shadow": 1,
+    "easing": 1,
+    "duration": 3,
+    "fontSize": 4
+  },
+  "apps/web/src/ui/visualizations/builders/life-timeline.ts": {
+    "colour": 5
+  },
+  "apps/web/src/ui/visualizations/builders/micro-trend.ts": {
+    "duration": 1
+  },
+  "apps/web/src/ui/visualizations/builders/mood-calendar.ts": {
+    "shadow": 1,
+    "fontSize": 1
+  },
+  "apps/web/src/ui/visualizations/builders/open-loops.ts": {
+    "colour": 5
+  },
+  "apps/web/src/ui/visualizations/builders/relationship-network.ts": {
+    "colour": 48,
+    "shadow": 5,
+    "duration": 1,
+    "fontSize": 15
+  },
+  "apps/web/src/ui/visualizations/builders/social-battery.ts": {
+    "colour": 5,
+    "fontSize": 11
+  },
+  "apps/web/src/ui/visualizations/native/index.ts": {
+    "colour": 26
+  },
+  "apps/web/src/ui/visualizations/styles/visualization.css.ts": {
+    "colour": 114,
+    "shadow": 4,
+    "easing": 17,
+    "duration": 18,
+    "fontSize": 1,
+    "important": 4
+  },
+  "apps/web/src/ui/visualizations/types.ts": {
+    "colour": 53
+  },
+  "apps/web/src/ui/voice-clone-recorder.ui.ts": {
+    "colour": 29,
+    "shadow": 6,
+    "duration": 2,
+    "fontSize": 16
+  },
+  "apps/web/src/ui/voice-enrollment.ui.ts": {
+    "colour": 36,
+    "shadow": 2,
+    "duration": 2,
+    "fontSize": 11
+  },
+  "apps/web/src/ui/voice-journal/insights.ts": {
+    "colour": 16
+  },
+  "apps/web/src/ui/voice-journal/recording.ts": {
+    "colour": 2
+  },
+  "apps/web/src/ui/voice-journal/styles.ts": {
+    "colour": 56,
+    "shadow": 3,
+    "duration": 1,
+    "fontSize": 41,
+    "important": 2
+  },
+  "apps/web/src/ui/voice-library-picker.ts": {
+    "fontSize": 1
+  },
+  "apps/web/src/ui/waiting-screen.ui.ts": {
+    "shadow": 1,
+    "duration": 2,
+    "fontSize": 5,
+    "important": 1
+  },
+  "apps/web/src/ui/waveform.ui.ts": {
+    "colour": 2
+  },
+  "apps/web/src/ui/wearable-settings.ui.ts": {
+    "colour": 48,
+    "shadow": 1,
+    "duration": 1,
+    "fontSize": 1,
+    "important": 1
+  },
+  "apps/web/src/ui/weather-effects.ui.ts": {
+    "colour": 13,
+    "shadow": 2,
+    "important": 1
+  },
+  "apps/web/src/ui/webhook-settings.ui.ts": {
+    "colour": 1,
+    "fontSize": 13
+  },
+  "apps/web/src/ui/wellbeing-dashboard.ui.ts": {
+    "colour": 102,
+    "shadow": 12,
+    "easing": 7,
+    "duration": 35,
+    "fontSize": 23
+  },
+  "apps/web/src/ui/while-you-were-away.ui.ts": {
+    "colour": 18,
+    "duration": 3,
+    "fontSize": 4
+  },
+  "apps/web/src/ui/winter-solstice.ui.ts": {
+    "colour": 28,
+    "shadow": 3,
+    "duration": 1,
+    "fontSize": 3
+  },
+  "apps/web/src/ui/your-people.ui.ts": {
+    "colour": 69,
+    "shadow": 4
+  },
+  "apps/web/src/ui/your-story-dashboard.ui.ts": {
+    "colour": 163,
+    "easing": 29,
+    "duration": 37,
+    "fontSize": 28,
+    "important": 35
+  },
+  "apps/web/src/ui/your-story-status.ts": {
+    "fontSize": 2
+  },
+  "apps/web/src/ui/your-year-with-ferni.ui.ts": {
+    "colour": 78,
+    "shadow": 1,
+    "easing": 1,
+    "duration": 3,
+    "fontSize": 2
+  },
+  "apps/web/src/utils/accessibility.ts": {
+    "colour": 1,
+    "important": 9
+  },
+  "apps/web/src/utils/gsap-animations.ts": {
+    "shadow": 1
+  }
+}
