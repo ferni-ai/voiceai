@@ -37,6 +37,7 @@ import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { goodbyeReadGate } from './goodbye-read.js';
 import { isSessionClosing } from './session-closing-tracker.js';
 import { farewellRisk } from './farewell-risk.js';
+import { goodbyeWatchTally, type GoodbyeWatchTallyOptions } from './goodbye-watch-summary.js';
 import { callerAsksToHangUp, callerSaysGoodbye, ferniSaysGoodbye } from './goodbye-phrases.js';
 
 export {
@@ -156,6 +157,8 @@ export function watchFarewell(
     crisis?: () => boolean;
     /** The classifier reads each caller turn (default: its mode isn't off; goodbye-read.ts). */
     readsExpected?: () => boolean;
+    /** The call's GOODBYE_WATCH_SUMMARY, reported once when it closes (goodbye-watch-summary.ts). */
+    summary?: GoodbyeWatchTallyOptions;
   }
 ): () => void {
   const { sessionId } = opts;
@@ -181,6 +184,7 @@ export function watchFarewell(
   let agent = 'initializing';
   let user = 'listening';
   let timer: unknown = null;
+  const tally = goodbyeWatchTally(sessionId, opts.summary);
 
   const cancel = (): void => {
     if (timer !== null) clearT(timer);
@@ -189,15 +193,20 @@ export function watchFarewell(
   const arm = (): void => {
     cancel();
     if (!farewellSaid(sessionId) || isSessionClosing(sessionId)) return;
-    if (agent !== 'listening' || user === 'speaking') return;
+    tally.farewell();
+    if (agent !== 'listening') return tally.blocked(`agent_${agent}`);
+    if (user === 'speaking') return tally.blocked('user_speaking');
+    tally.armed();
     timer = setT(() => {
       timer = null;
       if (!farewellSaid(sessionId) || isSessionClosing(sessionId)) return;
       if (crisis()) {
+        tally.held('crisis');
         log.info({ sessionId }, 'GOODBYE_END_HELD crisis risk on this call; it stays open');
         return;
       }
       if (gate.unread()) {
+        tally.held('unread');
         log.info({ sessionId }, 'GOODBYE_END_HELD no read of the goodbye after a reopen');
         return;
       }
@@ -205,6 +214,7 @@ export function watchFarewell(
         { sessionId, hangUpAsked },
         'GOODBYE_ENDS_CALL quiet after goodbye; ending the call'
       );
+      tally.fired();
       opts.onIdle();
     }, opts.idleMs ?? IDLE_AFTER_GOODBYE_MS);
   };
@@ -220,6 +230,7 @@ export function watchFarewell(
     // A goodbye carrying risk ("I won't be here tomorrow. Bye.") is never one: it carries on
     const risky = farewellRisk(text);
     callerSaidBye = !risky && callerSaysGoodbye(text);
+    tally.sawCallerBye(callerSaidBye);
     if (isSessionClosing(sessionId)) return;
     if (callerSaidBye) {
       gate.goodbye(text);
@@ -236,6 +247,7 @@ export function watchFarewell(
   };
   const onFerni = (text: string): void => {
     ferniSaidBye = ferniSaysGoodbye(text);
+    tally.sawFerniBye(ferniSaidBye);
     if (callerSaidBye && ferniSaidBye) {
       markFarewell(sessionId, 'goodbyes');
       arm();
@@ -261,6 +273,8 @@ export function watchFarewell(
 
   const stop = (): void => {
     cancel();
+    if (farewellSaid(sessionId)) tally.farewell();
+    tally.close();
     clearFarewell(sessionId);
     resets.delete(sessionId);
     gate.stop();
