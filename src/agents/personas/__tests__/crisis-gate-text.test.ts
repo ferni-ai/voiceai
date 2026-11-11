@@ -47,14 +47,14 @@ describe('readTypedMessageForCrisis', () => {
     expect(read).toEqual({ action: 'replace', reply: voice.action === 'replace' && voice.script });
   });
 
-  it("lower tier: the message carries the voice turn's guidance, after their words", async () => {
+  it("lower tier: their words as typed, and the voice turn's guidance as a note for the route to put last", async () => {
     const voice = voiceDecision(GUIDE);
     expect(voice.action).toBe('guide');
-    const read = await readTypedMessageForCrisis(GUIDE);
-    expect(read.action).toBe('guide');
-    const message = read.action === 'guide' ? read.message : '';
-    expect(message.startsWith(GUIDE)).toBe(true);
-    expect(message).toContain(`(${voice.action === 'guide' && voice.guidance})`);
+    expect(await readTypedMessageForCrisis(GUIDE)).toEqual({
+      action: 'guide',
+      message: GUIDE,
+      guidanceNote: `(${voice.action === 'guide' && voice.guidance})`,
+    });
   });
 
   it('no crisis: the message is unchanged', async () => {
