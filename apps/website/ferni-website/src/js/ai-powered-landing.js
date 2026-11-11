@@ -904,6 +904,318 @@
     styles.id = 'ferni-ai-landing-styles';
     styles.textContent = `
       /* ═══════════════════════════════════════════════════════════════════════════
+         LIVE CHAT WIDGET
+         Uses CSS variables from _tokens.css for brand compliance
+         ═══════════════════════════════════════════════════════════════════════════ */
+      
+      #ferni-live-chat {
+        position: fixed;
+        bottom: var(--space-6, 24px);
+        right: var(--space-6, 24px);
+        z-index: 9998;
+        font-family: var(--font-display, 'Plus Jakarta Sans', -apple-system, sans-serif);
+      }
+      
+      .ferni-chat-trigger {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 10px);
+        padding: var(--space-3, 12px) var(--space-5, 20px);
+        background: linear-gradient(135deg, var(--color-ferni, #5a7751) 0%, var(--color-ferni-secondary, #4a6741) 100%);
+        color: var(--color-text-inverse, white);
+        border: none;
+        border-radius: var(--radius-full, 100px);
+        cursor: pointer;
+        font-weight: 600;
+        font-size: var(--text-sm, 14px);
+        box-shadow: 0 8px 32px var(--color-ferni-glow, rgba(74, 103, 65, 0.4));
+        transition: all var(--duration-slow, 0.3s) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+      }
+      
+      .ferni-chat-trigger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px var(--color-ferni-glow, rgba(74, 103, 65, 0.5));
+      }
+      
+      .ferni-chat-trigger__avatar {
+        width: 28px;
+        height: 28px;
+        background: rgba(255,255,255,0.2);
+        border-radius: var(--radius-full, 50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: var(--text-2xs, 10px);
+        font-weight: 700;
+      }
+      
+      #ferni-live-chat.is-open .ferni-chat-trigger {
+        opacity: 0;
+        pointer-events: none;
+      }
+      
+      /* Chat Panel */
+      .ferni-chat-panel {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 380px;
+        max-height: 600px;
+        background: var(--color-bg-primary, #faf8f5);
+        border-radius: var(--radius-2xl, 24px);
+        box-shadow: var(--shadow-2xl, 0 20px 60px rgba(0, 0, 0, 0.2));
+        display: flex;
+        flex-direction: column;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(20px) scale(0.95);
+        transition: all var(--duration-slow, 0.3s) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+      }
+      
+      .ferni-chat-panel.is-open {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0) scale(1);
+      }
+      
+      .ferni-chat-panel__header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3, 12px);
+        padding: var(--space-4, 16px) var(--space-5, 20px);
+        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      }
+      
+      .ferni-chat-panel__persona {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 10px);
+        flex: 1;
+      }
+      
+      .ferni-chat-panel__avatar {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, var(--color-ferni, #5a7751), var(--color-ferni-secondary, #4a6741));
+        border-radius: var(--radius-full, 50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-text-inverse, white);
+        font-size: var(--text-xs, 12px);
+        font-weight: 700;
+      }
+      
+      .ferni-chat-panel__name {
+        font-weight: 600;
+        color: var(--color-text-primary, #2c2520);
+        display: block;
+      }
+      
+      .ferni-chat-panel__status {
+        font-size: var(--text-xs, 12px);
+        color: var(--color-ferni, #4a6741);
+      }
+      
+      .ferni-chat-panel__remaining {
+        font-size: var(--text-2xs, 11px);
+        color: var(--color-text-muted, #a89b8c);
+        background: var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        padding: var(--space-1, 4px) var(--space-2, 10px);
+        border-radius: var(--radius-lg, 12px);
+      }
+      
+      .ferni-chat-panel__count {
+        font-weight: 600;
+        color: var(--color-ferni, #4a6741);
+      }
+      
+      .ferni-chat-panel__count.is-low {
+        color: var(--color-jordan, #c4856a);
+      }
+      
+      .ferni-chat-panel__close {
+        width: 32px;
+        height: 32px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--color-text-muted, #a89b8c);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-full, 50%);
+        transition: background var(--duration-fast, 0.2s);
+      }
+      
+      .ferni-chat-panel__close:hover {
+        background: var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      }
+      
+      .ferni-chat-panel__close svg {
+        width: 18px;
+        height: 18px;
+      }
+      
+      /* Messages */
+      .ferni-chat-panel__messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: var(--space-5, 20px);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3, 12px);
+        min-height: 300px;
+        max-height: 400px;
+        /* Accessibility: ARIA live region for screen readers */
+      }
+      
+      .ferni-chat-message {
+        max-width: 85%;
+        animation: chatMessageIn 0.3s ease;
+      }
+      
+      @keyframes chatMessageIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      
+      .ferni-chat-message p {
+        margin: 0;
+        padding: 12px 16px;
+        border-radius: 18px;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      
+      .ferni-chat-message--user {
+        align-self: flex-end;
+      }
+      
+      .ferni-chat-message--user p {
+        background: linear-gradient(135deg, var(--color-ferni, #5a7751), var(--color-ferni-secondary, #4a6741));
+        color: var(--color-text-inverse, white);
+        border-bottom-right-radius: var(--radius-xs, 4px);
+      }
+      
+      .ferni-chat-message--ai p {
+        background: var(--color-bg-elevated, white);
+        color: var(--color-text-primary, #2c2520);
+        border-bottom-left-radius: var(--radius-xs, 4px);
+        box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.05));
+      }
+      
+      /* Typing indicator */
+      .ferni-chat-typing {
+        display: flex;
+        gap: var(--space-1, 4px);
+        padding: var(--space-4, 16px);
+        align-self: flex-start;
+      }
+      
+      .ferni-chat-typing__dot {
+        width: 8px;
+        height: 8px;
+        background: var(--color-ferni, #4a6741);
+        border-radius: var(--radius-full, 50%);
+        animation: typingDot 1.4s ease-in-out infinite;
+      }
+      
+      .ferni-chat-typing__dot:nth-child(2) { animation-delay: 0.2s; }
+      .ferni-chat-typing__dot:nth-child(3) { animation-delay: 0.4s; }
+      
+      @keyframes typingDot {
+        0%, 100% { opacity: 0.3; transform: scale(0.8); }
+        50% { opacity: 1; transform: scale(1); }
+      }
+      
+      /* Input area */
+      .ferni-chat-panel__input-area {
+        display: flex;
+        gap: var(--space-2, 8px);
+        padding: var(--space-4, 16px) var(--space-5, 20px);
+        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      }
+      
+      .ferni-chat-panel__input {
+        flex: 1;
+        padding: var(--space-3, 12px) var(--space-4, 16px);
+        border: 1px solid var(--color-border, rgba(44, 37, 32, 0.12));
+        border-radius: var(--radius-xl, 24px);
+        font-size: var(--text-sm, 14px);
+        background: white;
+        transition: border-color var(--duration-fast, 0.2s);
+      }
+      
+      .ferni-chat-panel__input:focus {
+        outline: none;
+        border-color: var(--color-ferni, #4a6741);
+        box-shadow: 0 0 0 3px var(--color-accent-glow, rgba(61, 90, 69, 0.15));
+      }
+      
+      .ferni-chat-panel__send {
+        width: 44px;
+        height: 44px;
+        background: linear-gradient(135deg, var(--color-ferni, #5a7751), var(--color-ferni-secondary, #4a6741));
+        border: none;
+        border-radius: var(--radius-full, 50%);
+        cursor: pointer;
+        color: var(--color-text-inverse, white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform var(--duration-fast, 0.2s);
+      }
+      
+      .ferni-chat-panel__send:hover {
+        transform: scale(1.05);
+      }
+      
+      .ferni-chat-panel__send svg {
+        width: 18px;
+        height: 18px;
+      }
+      
+      /* Footer */
+      .ferni-chat-panel__footer {
+        padding: var(--space-3, 12px) var(--space-5, 20px);
+        text-align: center;
+        background: var(--color-bg-subtle, rgba(44, 37, 32, 0.03));
+        border-radius: 0 0 var(--radius-xl, 24px) var(--radius-xl, 24px);
+      }
+      
+      .ferni-chat-panel__upgrade {
+        font-size: var(--text-xs, 12px);
+        color: var(--color-ferni, #4a6741);
+        text-decoration: none;
+        font-weight: 500;
+      }
+      
+      .ferni-chat-panel__upgrade:hover {
+        text-decoration: underline;
+      }
+      
+      /* Upgrade prompt */
+      .ferni-chat-upgrade-prompt {
+        background: linear-gradient(135deg, var(--color-ferni-glow, rgba(74, 103, 65, 0.1)), rgba(90, 119, 81, 0.1));
+        padding: var(--space-5, 20px);
+        border-radius: var(--radius-lg, 16px);
+        text-align: center;
+      }
+      
+      .ferni-chat-upgrade-prompt p {
+        margin: 0 0 var(--space-3, 12px);
+        color: var(--color-text-primary, #2c2520);
+        font-weight: 500;
+      }
+      
+      /* ═══════════════════════════════════════════════════════════════════════════
          PERSONA PREVIEW CARDS
          ═══════════════════════════════════════════════════════════════════════════ */
       
@@ -1354,6 +1666,25 @@
          ═══════════════════════════════════════════════════════════════════════════ */
       
       @media (max-width: 768px) {
+        #ferni-live-chat {
+          bottom: 80px;
+          right: 16px;
+        }
+        
+        .ferni-chat-trigger__text {
+          display: none;
+        }
+        
+        .ferni-chat-trigger {
+          padding: 14px;
+          border-radius: 50%;
+        }
+        
+        .ferni-chat-panel {
+          width: calc(100vw - 32px);
+          max-height: calc(100vh - 120px);
+        }
+        
         .memory-demo__visualization {
           grid-template-columns: 1fr;
         }
@@ -1376,10 +1707,17 @@
          ═══════════════════════════════════════════════════════════════════════════ */
       
       @media (prefers-reduced-motion: reduce) {
+        .ferni-chat-panel,
+        .ferni-chat-message,
         .ferni-hover-preview,
         .is-personalized {
           animation: none !important;
           transition: opacity 0.1s !important;
+        }
+        
+        .ferni-chat-typing__dot {
+          animation: none;
+          opacity: 0.5;
         }
       }
     `;

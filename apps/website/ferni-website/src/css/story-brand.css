@@ -4628,6 +4628,17 @@ html {
   transform: translateY(100%);
 }
 
+/* Lift the floating chat pill above the banner so it never covers Accept */
+body:has(.cookie-banner.is-visible) #ferni-live-chat {
+  bottom: calc(81px + var(--space-6));
+}
+
+@media (max-width: 768px) {
+  body:has(.cookie-banner.is-visible) #ferni-live-chat {
+    bottom: calc(145px + var(--space-4));
+  }
+}
+
 .cookie-banner__content {
   max-width: 1120px;
   margin: 0 auto;

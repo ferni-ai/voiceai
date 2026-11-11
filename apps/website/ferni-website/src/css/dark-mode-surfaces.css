@@ -167,6 +167,8 @@
   :root:root .two-am__quote,
   :root:root .assistant-phone__time,
   :root:root .assistant-phone__signal,
+  :root:root .ferni-chat-trigger,
+  :root:root .ferni-chat-trigger__text,
   :root:root .story-page__section--dark .story-page__subhead {
     color: #f4efe6 !important;
   }
@@ -264,7 +266,8 @@
     color: #14110e;
   }
 
-  :root:root .persona-voice-input input {
+  :root:root .persona-voice-input input,
+  :root:root .ferni-chat-panel__input {
     background: #1e1a16;
     color: #f4efe6;
     border-color: rgba(244, 239, 230, 0.16);

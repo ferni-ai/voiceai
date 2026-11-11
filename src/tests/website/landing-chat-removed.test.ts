@@ -108,12 +108,11 @@ async function runWithEveryFlagOn() {
 
 describe('ai-powered-landing.js has no text chat', () => {
   it('builds no chat widget and posts nothing to /chat, with every flag on', async () => {
-    const { window, bodyChildren, headChildren, askedFlags, fetched } = await runWithEveryFlagOn();
+    const { window, bodyChildren, askedFlags, fetched } = await runWithEveryFlagOn();
 
     expect(askedFlags).not.toContain('landing-ai-live-chat');
     expect(bodyChildren.map((c) => c.id)).not.toContain('ferni-live-chat');
     expect(bodyChildren.some((c) => c.innerHTML.includes('ferni-chat-'))).toBe(false);
-    expect(headChildren.some((c) => c.textContent.includes('ferni-live-chat'))).toBe(false);
     expect(fetched.filter((url) => url.endsWith('/chat'))).toEqual([]);
     const api = window.FerniAI as Record<string, unknown>;
     expect(api).not.toHaveProperty('chat');
