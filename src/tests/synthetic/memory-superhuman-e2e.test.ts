@@ -385,7 +385,6 @@ describe('Injected Memory Extraction', () => {
         },
       ],
       metadata: {
-        spannerAvailable: true,
         capsuleFound: true,
         retrievalTimeMs: 50,
         threadCount: 1,
