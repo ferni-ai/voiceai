@@ -39,14 +39,19 @@ function specifiers(file: string): string[] {
   return out;
 }
 
-/** Repo-relative paths of every module `entry` (repo-relative) can load, itself included. */
-export function reachableFrom(entry: string): Set<string> {
+/**
+ * Repo-relative paths of every module `entry` (repo-relative) can load, itself included.
+ * A file matching `stopAt` is recorded but not walked: once a forbidden module is reached the
+ * answer is known, and walking on (memory/index alone loads most of src) timed the suite out.
+ */
+export function reachableFrom(entry: string, stopAt?: (rel: string) => boolean): Set<string> {
   const seen = new Set<string>();
   const queue = [join(ROOT, entry)];
   for (let file = queue.pop(); file !== undefined; file = queue.pop()) {
     const rel = relative(ROOT, file);
     if (seen.has(rel)) continue;
     seen.add(rel);
+    if (stopAt?.(rel)) continue;
     for (const spec of specifiers(file)) {
       const next = resolve(file, spec);
       if (next) queue.push(next);
