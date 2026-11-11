@@ -1,10 +1,11 @@
 /**
  * On a crisis-guided turn the crisis guidance is the last thing the model reads, through the
- * real PersonaVoiceAgent.llmNode: gatedReply puts it on the caller's turn, and withCallerTurn
- * (caller-turn.ts, CALLER_TURN_NOTE on by default) must not add its note after it when the
- * request ends on the model's turn. The SDK's own llmNode is stubbed to record each request.
+ * real PersonaVoiceAgent.llmNode: gatedReply puts it on the last caller turn, adding one after a
+ * tool call or a tool's output (withTrailingCallerTurn, caller-turn.ts), so neither the output
+ * nor llmNode's own caller-turn note (withCallerTurn) follows it. The SDK's own llmNode is
+ * stubbed to record each request; the last test runs the real Google format on what it got.
  */
-import { llm, voice } from '@livekit/agents';
+import { initializeLogger, llm, voice } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -34,14 +35,27 @@ import { OpenerGate } from '../opener-gate.js';
 const WORDS = "I hope I don't wake up tomorrow"; // the patterns guide these
 const CALM = 'long day at work'; // only the classifier finds a crisis here
 const GUIDANCE = buildCrisisGuidance(detectCrisis(WORDS));
+const TOOL_OUTPUT = '{"result":"tool output"}';
 
 /** The caller's turn, then the model's: an assistant line or a tool call not yet answered. */
-function request(endsOn: 'assistant' | 'function_call', words = WORDS): llm.ChatContext {
+function request(
+  endsOn: 'assistant' | 'function_call' | 'function_call_output',
+  words = WORDS
+): llm.ChatContext {
   const ctx = llm.ChatContext.empty();
   ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
   ctx.addMessage({ role: 'user', content: words });
   if (endsOn === 'assistant') ctx.addMessage({ role: 'assistant', content: 'I am here.' });
   else ctx.insert(llm.FunctionCall.create({ callId: 'c1', name: 'lookup', args: '{}' }));
+  if (endsOn === 'function_call_output')
+    ctx.insert(
+      llm.FunctionCallOutput.create({
+        callId: 'c1',
+        name: 'lookup',
+        output: TOOL_OUTPUT,
+        isError: false,
+      })
+    );
   return ctx;
 }
 
@@ -72,6 +86,7 @@ function readOrder(ctx: llm.ChatContext | undefined): string[] {
     if (item.type === 'message')
       return item.content.filter((part): part is string => typeof part === 'string');
     if (item.type === 'function_call') return [`${item.name}(${item.args})`];
+    if (item.type === 'function_call_output') return [`=> ${item.output}`];
     return [];
   });
 }
@@ -110,6 +125,79 @@ describe('the crisis guidance is the last thing the model reads (llmNode, withCa
     expect(again.filter((text) => text === NO_NEW_WORDS_NOTE)).toHaveLength(1);
     expect(again.at(-2)).toBe(NO_NEW_WORDS_NOTE);
     expect(again.at(-1)).toMatch(/^\n\n\(\[CRITICAL - USER SAFETY\]/);
+  });
+
+  it('when the request ends on a tool output, the guidance comes after the output', async () => {
+    const requests = await sent(request('function_call_output'));
+    expect(requests).toHaveLength(1);
+    const read = readOrder(requests[0]);
+    expect(read.filter((text) => text.includes(GUIDANCE))).toHaveLength(1);
+    expect(read.slice(-3)).toEqual([`=> ${TOOL_OUTPUT}`, NO_NEW_WORDS_NOTE, `\n\n(${GUIDANCE})`]);
+  });
+
+  it('when the classifier asks again after a tool output, its guidance comes after the output', async () => {
+    vi.stubEnv('CRISIS_CLASSIFIER_MODE', 'live');
+    verdict.text = '{"risk":"crisis","subject":"self"}';
+    const requests = await sent(request('function_call_output', CALM));
+    expect(requests).toHaveLength(2);
+    // The held first reply is unguided and unchanged: it ends on the tool output.
+    expect(readOrder(requests[0]).at(-1)).toBe(`=> ${TOOL_OUTPUT}`);
+    const again = readOrder(requests[1]);
+    expect(again.filter((text) => text.includes('[CRITICAL - USER SAFETY]'))).toHaveLength(1);
+    expect(again.slice(-3, -1)).toEqual([`=> ${TOOL_OUTPUT}`, NO_NEW_WORDS_NOTE]);
+    expect(again.at(-1)).toMatch(/^\n\n\(\[CRITICAL - USER SAFETY\]/);
+  });
+
+  it('after parallel tool calls, the guidance comes after every output', async () => {
+    const ctx = request('function_call');
+    ctx.insert(llm.FunctionCall.create({ callId: 'c2', name: 'weather', args: '{}' }));
+    for (const callId of ['c1', 'c2'])
+      ctx.insert(
+        llm.FunctionCallOutput.create({ callId, name: 'tool', output: callId, isError: false })
+      );
+    const read = readOrder((await sent(ctx))[0]);
+    expect(read.slice(-4)).toEqual(['=> c1', '=> c2', NO_NEW_WORDS_NOTE, `\n\n(${GUIDANCE})`]);
+  });
+
+  it('after a tool output and a second, unanswered call, the guidance comes last', async () => {
+    const ctx = request('function_call_output');
+    ctx.insert(llm.FunctionCall.create({ callId: 'c2', name: 'weather', args: '{}' }));
+    const read = readOrder((await sent(ctx))[0]);
+    expect(read.filter((text) => text === NO_NEW_WORDS_NOTE)).toHaveLength(1);
+    expect(read.slice(-3)).toEqual(['weather({})', NO_NEW_WORDS_NOTE, `\n\n(${GUIDANCE})`]);
+  });
+
+  it('a turn with no crisis that ends on a tool output is sent as it is: no caller turn added', async () => {
+    const requests = await sent(request('function_call_output', CALM));
+    expect(requests).toHaveLength(1);
+    const items = requests[0]?.items ?? [];
+    expect(items.at(-1)).toMatchObject({ type: 'function_call_output', output: TOOL_OUTPUT });
+    expect(readOrder(requests[0])).not.toContain(NO_NEW_WORDS_NOTE);
+    expect(readOrder(requests[0]).some((text) => text.includes('[CRITICAL'))).toBe(false);
+  });
+
+  it.each(['function_call', 'function_call_output'] as const)(
+    'with CALLER_TURN_NOTE off, the guidance still comes last after a %s',
+    async (endsOn) => {
+      vi.stubEnv('CALLER_TURN_NOTE', 'off');
+      const read = readOrder((await sent(request(endsOn)))[0]);
+      expect(read.slice(-2)).toEqual([NO_NEW_WORDS_NOTE, `\n\n(${GUIDANCE})`]);
+    }
+  );
+
+  it('Gemini reads the guidance as its own caller turn after the function response', async () => {
+    initializeLogger({ pretty: false, level: 'silent' });
+    const [request0] = await sent(request('function_call_output'));
+    const [turns] = await (request0 as llm.ChatContext).toProviderFormat('google');
+    const tail = (turns as Array<{ role: string; parts: Array<Record<string, unknown>> }>).slice(
+      -2
+    );
+    expect(tail.map((turn) => turn.role)).toEqual(['user', 'user']);
+    expect(tail[0]?.parts.map((part) => Object.keys(part))).toEqual([['functionResponse']]);
+    expect(tail[1]?.parts.map((part) => part.text)).toEqual([
+      NO_NEW_WORDS_NOTE,
+      `\n\n(${GUIDANCE})`,
+    ]);
   });
 
   it('when the request ends on an assistant line, nothing follows any guidance it carries', async () => {

@@ -94,7 +94,7 @@ import { withHeldRead } from './crisis-read-joined-turn.js';
 import { getDeliberator } from './deliberation.js';
 import { brightOpenerInvited } from './ferni-playful.js';
 import { noteTurn } from './move-log.js';
-import { withCallerTurn } from './caller-turn.js';
+import { withTrailingCallerTurn } from './caller-turn.js';
 import { firstNameOf, withNameGate, type HistoryItem } from './name-gate.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { withLookupBridge } from './lookup-bridge.js';
@@ -445,10 +445,10 @@ export async function gatedReply(
       closeLoop: false,
       youth: guidance !== SOFT_CRISIS_CHECK && guidance !== GROUNDED_LIGHT_TOUCH && (about ?? true),
     });
-  // The guidance is the last thing the model reads: a request ending on the model's turn (a tool
-  // call) gets its caller-turn note first (caller-turn.ts), so llmNode's adds nothing after it.
+  // The guidance is the last thing the model reads: a request not ending on the caller's turn (a
+  // tool call or its output) gets a caller turn first (caller-turn.ts), and the guidance rides on it.
   const guidedRequest = (decision: GuideDecision): llm.ChatContext =>
-    withTurnStyleReminder(withCallerTurn(plain(decision), env), decision.guidance);
+    withTurnStyleReminder(withTrailingCallerTurn(plain(decision)), decision.guidance);
   const ctx =
     gate?.decision.action === 'guide'
       ? guidedRequest(gate.decision)
