@@ -1378,7 +1378,7 @@ const INSTANT_GREETINGS: Record<string, string[]> = {
     '<break time="40ms"/>[breath]<break time="50ms"/><speed ratio="0.92"/><emotion value="affectionate"/>Hey.<break time="140ms"/><speed ratio="1.0"/>Talk to me.<break time="450ms"/>',
     '<break time="30ms"/><speed ratio="0.95"/><emotion value="curious"/>Hey!<break time="110ms"/><speed ratio="1.0"/>What\'s going on?<break time="400ms"/>',
   ],
-  ...LEGEND_INSTANT_GREETINGS, // john-bogle, peter-lynch
+  ...LEGEND_INSTANT_GREETINGS, // john-bogle
 } satisfies Record<CanonicalPersonaId, string[]>;
 
 // Humanized defaults - used when persona isn't recognized

@@ -12,6 +12,7 @@ import {
   isKnownId,
   isSamePersona,
   isTeamMember,
+  livePersonaId,
   toCanonical,
 } from '../persona-ids.js';
 
@@ -33,6 +34,11 @@ describe('persona-ids lookups ignore inherited object keys', () => {
     expect(isSamePersona('constructor', 'ferni')).toBe(false);
     expect(isSamePersona('__proto__', 'constructor')).toBe(false);
     for (const key of INHERITED) expect(isTeamMember(key), key).toBe(false);
+  });
+
+  it('livePersonaId starts a call on Ferni for inherited keys, never on a non-string', () => {
+    expect(livePersonaId('constructor')).toBe('ferni');
+    for (const key of INHERITED) expect(livePersonaId(key), key).toBe('ferni');
   });
 
   it("said-by's personaName returns an unknown id as its own name, never a non-string", () => {

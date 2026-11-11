@@ -64,7 +64,7 @@ function normalizePersonaId(id: string | undefined): NormalizedPersonaId | null 
   if ([CANONICAL_IDS.SAGE, 'nayan'].includes(lower)) return 'nayan';
 
   // Peter aliases
-  if ([CANONICAL_IDS.RESEARCHER, 'peter', 'stock-picker'].includes(lower)) return 'peter';
+  if ([CANONICAL_IDS.RESEARCHER, 'peter'].includes(lower)) return 'peter';
 
   // Maya aliases
   if (['maya', 'spend-save', CANONICAL_IDS.BUDGETER, 'budgeting'].includes(lower)) return 'maya';
