@@ -1,35 +1,42 @@
 /**
  * Memory Continuity Service
  *
- * Implements dual-write to Firestore (fast) and Spanner (durable) for
- * long-term memory continuity. Creates "memory capsules" for fast
- * session start hydration.
- *
- * Architecture:
- * - Firestore: Fast reads for first-turn hydration (< 100ms)
- * - Spanner: Durable thread state + anchors for weeks/months recall
+ * Writes a "memory capsule" to Firestore at session end for fast
+ * session start hydration (< 100ms reads).
  *
  * @module memory/dynamic/memory-continuity
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
-import {
-  upsertMemoryThread,
-  insertMemoryAnchor,
-  getMemoryThreadByTheme,
-  isSpannerReady,
-  type MemoryThread,
-  type MemoryAnchor,
-  type MemoryAnchorType,
-} from '../spanner-graph/index.js';
-import { indexMemoriesBatch, type MemorySourceType } from '../retrieval/semantic-memory-search.js';
+import { indexMemoriesBatch } from '../retrieval/semantic-memory-search.js';
 
 const log = createLogger({ module: 'MemoryContinuity' });
 
 // ============================================================================
 // TYPES
 // ============================================================================
+
+/** Kinds of significant moment a session can leave in the capsule. */
+export type MemoryAnchorType =
+  | 'breakthrough' // Major insight or realization
+  | 'commitment' // Promise or commitment made
+  | 'milestone' // Life milestone or achievement
+  | 'vulnerability' // Moment of vulnerability shared
+  | 'growth' // Evidence of personal growth
+  | 'pattern' // Recurring pattern identified
+  | 'relationship' // Significant relationship event
+  | 'emotional_peak'; // High emotional intensity moment
+
+/** A significant moment detected at session end; the capsule keeps its type, summary and score. */
+interface DetectedAnchor {
+  anchorId: string;
+  userId: string;
+  anchorType: MemoryAnchorType;
+  payload: { summary: string; context?: string; emotionalTone?: string; keywords?: string[] };
+  significanceScore: number;
+  sourceSessionId?: string;
+}
 
 /**
  * Compact memory capsule for fast first-turn hydration.
@@ -97,92 +104,14 @@ export interface SessionContinuityData {
 }
 
 // ============================================================================
-// THREAD MANAGEMENT
-// ============================================================================
-
-/**
- * Extract themes from topics for thread tracking
- */
-function extractThemesFromTopics(topics: string[]): string[] {
-  // Normalize and deduplicate themes
-  const themes = new Set<string>();
-  for (const topic of topics) {
-    // Simple theme extraction - could be enhanced with LLM
-    const normalized = topic.toLowerCase().trim();
-    if (normalized.length > 2 && normalized.length < 100) {
-      themes.add(normalized);
-    }
-  }
-  return Array.from(themes).slice(0, 5);
-}
-
-/**
- * Update or create memory threads based on session topics
- */
-async function updateMemoryThreads(data: SessionContinuityData): Promise<MemoryThread[]> {
-  const themes = extractThemesFromTopics(data.mainTopics);
-  const updatedThreads: MemoryThread[] = [];
-  const now = new Date();
-
-  for (const theme of themes) {
-    try {
-      // Check if thread exists
-      const existingThread = await getMemoryThreadByTheme(data.userId, theme);
-
-      if (existingThread) {
-        // Update existing thread
-        const updatedThread: Omit<MemoryThread, 'createdAt'> = {
-          ...existingThread,
-          rollingSummary: data.naturalSummary
-            ? `${existingThread.rollingSummary || ''}\n\n[${now.toISOString().split('T')[0]}] ${data.naturalSummary}`.slice(
-                -4000
-              )
-            : existingThread.rollingSummary,
-          lastEmotionalArc: data.emotionalArc || existingThread.lastEmotionalArc,
-          confidence: Math.min(existingThread.confidence + 0.05, 0.95),
-          sessionCount: existingThread.sessionCount + 1,
-          lastSessionId: data.sessionId,
-          lastUpdated: now,
-        };
-        await upsertMemoryThread(updatedThread);
-        updatedThreads.push({ ...updatedThread, createdAt: existingThread.createdAt });
-      } else {
-        // Create new thread
-        const newThread: Omit<MemoryThread, 'createdAt'> = {
-          threadId: `thread_${data.userId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-          userId: data.userId,
-          theme,
-          rollingSummary: data.naturalSummary,
-          lastEmotionalArc: data.emotionalArc,
-          confidence: 0.5,
-          sessionCount: 1,
-          firstSessionId: data.sessionId,
-          lastSessionId: data.sessionId,
-          firstMentioned: now,
-          lastUpdated: now,
-        };
-        await upsertMemoryThread(newThread);
-        updatedThreads.push({ ...newThread, createdAt: now });
-      }
-    } catch (error) {
-      log.warn({ error: String(error), theme }, 'Failed to update memory thread');
-    }
-  }
-
-  return updatedThreads;
-}
-
-// ============================================================================
 // ANCHOR DETECTION
 // ============================================================================
 
 /**
  * Detect anchors (significant memories) from session data
  */
-function detectAnchors(
-  data: SessionContinuityData
-): Array<Omit<MemoryAnchor, 'createdAt' | 'recallCount'>> {
-  const anchors: Array<Omit<MemoryAnchor, 'createdAt' | 'recallCount'>> = [];
+function detectAnchors(data: SessionContinuityData): DetectedAnchor[] {
+  const anchors: DetectedAnchor[] = [];
   const now = new Date();
 
   // 1. Breakthroughs from insights
@@ -279,53 +208,6 @@ function detectAnchors(
   return anchors.slice(0, 5); // Limit to 5 anchors per session
 }
 
-/**
- * Write detected anchors to Spanner and index for semantic search
- */
-async function writeAnchors(
-  anchors: Array<Omit<MemoryAnchor, 'createdAt' | 'recallCount'>>
-): Promise<number> {
-  let written = 0;
-  const anchorsToIndex: Array<{
-    text: string;
-    source: MemorySourceType;
-    sourceId: string;
-    metadata?: Record<string, unknown>;
-  }> = [];
-
-  for (const anchor of anchors) {
-    try {
-      // Write to Spanner
-      await insertMemoryAnchor(anchor);
-      written++;
-
-      // Prepare for semantic indexing
-      anchorsToIndex.push({
-        text: `${anchor.payload.summary}${anchor.payload.context ? ` - ${anchor.payload.context}` : ''}`,
-        source: 'anchor',
-        sourceId: anchor.anchorId,
-        metadata: {
-          anchorType: anchor.anchorType,
-          significanceScore: anchor.significanceScore,
-          keywords: anchor.payload.keywords,
-          sessionId: anchor.sourceSessionId,
-        },
-      });
-    } catch (error) {
-      log.warn({ error: String(error), anchorId: anchor.anchorId }, 'Failed to write anchor');
-    }
-  }
-
-  // Index all anchors for semantic search (non-blocking)
-  if (anchorsToIndex.length > 0 && anchors[0]?.userId) {
-    indexMemoriesBatch(anchors[0].userId, anchorsToIndex).catch((err) => {
-      log.debug({ error: String(err) }, 'Failed to index anchors for semantic search');
-    });
-  }
-
-  return written;
-}
-
 // ============================================================================
 // MEMORY CAPSULE
 // ============================================================================
@@ -336,8 +218,7 @@ async function writeAnchors(
  */
 async function updateMemoryCapsule(
   data: SessionContinuityData,
-  threads: MemoryThread[],
-  anchors: Array<Omit<MemoryAnchor, 'createdAt' | 'recallCount'>>
+  anchors: DetectedAnchor[]
 ): Promise<void> {
   const db = getFirestoreDb();
   if (!db) {
@@ -364,17 +245,10 @@ async function updateMemoryCapsule(
         ? `${existingCapsule.rollingSummary}\n\n---\n\n${data.naturalSummary}`.slice(-2000)
         : data.naturalSummary;
 
-      // Merge threads
+      // Keep the existing threads (one per theme), newest first
       const existingThreadMap = new Map(
         (existingCapsule?.activeThreads || []).map((t) => [t.theme, t])
       );
-      for (const thread of threads) {
-        existingThreadMap.set(thread.theme, {
-          theme: thread.theme,
-          lastUpdated: thread.lastUpdated.toISOString(),
-          sessionCount: thread.sessionCount,
-        });
-      }
       const activeThreads = Array.from(existingThreadMap.values())
         .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
         .slice(0, 10);
@@ -450,11 +324,10 @@ export interface ContinuityWriteResult {
   threadsUpdated: number;
   anchorsCreated: number;
   capsuleUpdated: boolean;
-  spannerAvailable: boolean;
 }
 
 /**
- * Main entry point: Write session data to both Firestore and Spanner
+ * Main entry point: write session data to the Firestore memory capsule
  *
  * Call this at session end after summary generation.
  *
@@ -468,7 +341,6 @@ export async function writeSessionContinuity(
     threadsUpdated: 0,
     anchorsCreated: 0,
     capsuleUpdated: false,
-    spannerAvailable: false,
   };
 
   // Skip empty or trivial sessions
@@ -477,24 +349,10 @@ export async function writeSessionContinuity(
     return result;
   }
 
-  result.spannerAvailable = isSpannerReady();
-
-  // 1. Update memory threads in Spanner
-  let threads: MemoryThread[] = [];
-  if (result.spannerAvailable && data.mainTopics.length > 0) {
-    threads = await updateMemoryThreads(data);
-    result.threadsUpdated = threads.length;
-  }
-
-  // 2. Detect and write anchors to Spanner
+  // Detect anchors and update the memory capsule in Firestore
   const anchors = detectAnchors(data);
-  if (result.spannerAvailable && anchors.length > 0) {
-    result.anchorsCreated = await writeAnchors(anchors);
-  }
-
-  // 3. Update memory capsule in Firestore (always, for fast reads)
   try {
-    await updateMemoryCapsule(data, threads, anchors);
+    await updateMemoryCapsule(data, anchors);
     result.capsuleUpdated = true;
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to update memory capsule');
@@ -507,7 +365,6 @@ export async function writeSessionContinuity(
       threadsUpdated: result.threadsUpdated,
       anchorsCreated: result.anchorsCreated,
       capsuleUpdated: result.capsuleUpdated,
-      spannerAvailable: result.spannerAvailable,
     },
     '🔗 Session continuity written'
   );
