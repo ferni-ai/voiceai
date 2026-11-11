@@ -602,7 +602,6 @@
   "src/tests/e2e/tool-routing-e2e.test.ts",
   "src/tests/error-messages.test.ts",
   "src/tests/gifts-record-route.test.ts",
-  "src/tests/integration/memory-pipeline-integration.test.ts",
   "src/tests/integration/phone-identity-flow.test.ts",
   "src/tests/memory-persistence.test.ts",
   "src/tests/memory.test.ts",
