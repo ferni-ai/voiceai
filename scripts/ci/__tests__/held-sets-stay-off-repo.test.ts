@@ -21,6 +21,8 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = join(__dirname, '../../..');
 const HELD_OUT_NAME = /held[-_]?out/i;
+// Deliberately broad: any path containing "sealed" counts, "unsealed" included. A false
+// positive costs one allowlist entry; a missed sealed set costs the set.
 const SEALED_NAME = /sealed/i;
 
 /** Held-out-named files that predate this guard (2026-11-09). Do not add to this list. */
@@ -76,6 +78,7 @@ describe('no in-repo held-out sets', () => {
         'scripts/x/SEALED-probes.json',
         'src/a/sealed-retired.ts',
         'src/x/sealed/rows.json',
+        'src/x/sea-level.ts',
         'src/agents/__tests__/fixtures/crisis-heldout-retired.ts',
         'src/agents/__tests__/fixtures/crisis-test-blind.ts',
         ...EXISTING,
