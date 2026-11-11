@@ -467,7 +467,7 @@ export const stockTool: SemanticToolDefinition = {
       /^(?:stock\s+)?(?:price|quote)\s+(?:for\s+)?(.+)/i,
       /^how(?:'s| is)\s+(?:the\s+)?market(?:\s+today)?$/i,
       /^(?:s&p|dow|nasdaq)(?:\s+500)?(?:\s+today)?$/i,
-      /^(.+?)\s+(?:stock\s+)?(?:price|quote|today)/i,
+      /^(.+?)\s+(?:stock\s+(?:price|quote|today)|price|quote)\b/i,
     ],
     keywords: [
       { word: 'stock', weight: 1.0 },
