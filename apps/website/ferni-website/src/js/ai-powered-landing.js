@@ -4,7 +4,6 @@
  *
  * Comprehensive AI interactions for the Ferni landing page:
  *
- * 1. LIVE TEXT CHAT - Real AI conversation without signup
  * 2. PERSONALIZED HERO - AI-generated headlines based on context
  * 3. PERSONA PREVIEW CARDS - Interactive team member demos
  * 4. MEMORY VISUALIZATION - Interactive memory demonstration
@@ -27,7 +26,6 @@
     apiBase: '/api/landing/ai',
     // Feature flags - these get updated by loadFeatureFlags()
     // Client-side only features (no API needed) default to true
-    enableChat: false, // Requires backend API
     enablePersonalizedHero: false, // Requires backend API
     enablePersonaPreviews: false, // Requires backend API
     enableSmartFAQ: false, // Requires backend API
@@ -41,7 +39,6 @@
 
   // Feature flag mapping: server flag ID -> CONFIG key
   const FLAG_MAP = {
-    'landing-ai-live-chat': 'enableChat',
     'landing-ai-personalized-hero': 'enablePersonalizedHero',
     'landing-ai-persona-previews': 'enablePersonaPreviews',
     'landing-ai-smart-faq': 'enableSmartFAQ',
@@ -92,10 +89,6 @@
 
   const state = {
     visitorId: null,
-    chatOpen: false,
-    chatMessages: [],
-    messagesRemaining: 10,
-    currentPersona: 'ferni',
     sentiment: 0.5,
     initialized: false,
   };
@@ -119,11 +112,6 @@
   // ═══════════════════════════════════════════════════════════════════════════
 
   const OFFLINE_FALLBACKS = {
-    '/chat': (body) => ({
-      response: getFerniOfflineResponse(body?.message || ''),
-      emotion: 'warm',
-      persona: 'ferni'
-    }),
     '/personalized-hero': () => ({
       headline: 'Finally, someone who gets it.',
       subheadline: 'Someone who remembers your whole story, hears what you\'re not saying, and shows up at 2am with the same presence as noon.',
@@ -147,20 +135,6 @@
       tone: 'warm'
     })
   };
-
-  function getFerniOfflineResponse(message) {
-    const lower = message.toLowerCase();
-    if (lower.includes('stress') || lower.includes('anxious') || lower.includes('worried')) {
-      return "I hear you. That weight you're carrying? It's valid. Let's breathe through this together. What's the one thing that feels heaviest right now?";
-    }
-    if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
-      return "Hey there. I'm glad you're here. What's on your mind today?";
-    }
-    if (lower.includes('help') || lower.includes('need')) {
-      return "I'm here. Whatever you're going through, you don't have to figure it out alone. What would feel most helpful right now?";
-    }
-    return "I'm listening. Tell me more about what's going on for you.";
-  }
 
   function getPersonaGreeting(personaId) {
     const greetings = {
@@ -219,238 +193,6 @@
       return null;
     }
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 1. LIVE TEXT CHAT
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const LiveChat = {
-    container: null,
-    panel: null,
-    messagesContainer: null,
-    input: null,
-    sendButton: null,
-
-    init() {
-      if (!CONFIG.enableChat) return;
-
-      this.createChatWidget();
-      this.bindEvents();
-
-      if (CONFIG.debugMode) {
-        // eslint-disable-next-line no-console -- debug output, printed only when debug mode is on
-        console.log('[LiveChat] Initialized');
-      }
-    },
-
-    createChatWidget() {
-      // Check if widget already exists
-      if (document.getElementById('ferni-live-chat')) return;
-
-      const widget = document.createElement('div');
-      widget.id = 'ferni-live-chat';
-      widget.innerHTML = `
-        <button class="ferni-chat-trigger" aria-label="Chat with Ferni">
-          <div class="ferni-chat-trigger__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
-          <span class="ferni-chat-trigger__text">Chat with Ferni</span>
-        </button>
-        
-        <div class="ferni-chat-panel" aria-hidden="true">
-          <div class="ferni-chat-panel__header">
-            <div class="ferni-chat-panel__persona">
-              <div class="ferni-chat-panel__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
-              <div class="ferni-chat-panel__info">
-                <span class="ferni-chat-panel__name">Ferni</span>
-                <span class="ferni-chat-panel__status">● Online</span>
-              </div>
-            </div>
-            <div class="ferni-chat-panel__remaining">
-              <span class="ferni-chat-panel__count">${state.messagesRemaining}</span> messages left
-            </div>
-            <button class="ferni-chat-panel__close" aria-label="Close">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 6L6 18M6 6l12 12"/>
-              </svg>
-            </button>
-          </div>
-          
-          <div class="ferni-chat-panel__messages" role="log" aria-live="polite" aria-label="Chat messages">
-            <div class="ferni-chat-message ferni-chat-message--ai">
-              <p>Hey! I'm Ferni. Want to see what it's like to talk to someone who actually listens? Try me—no signup needed.</p>
-            </div>
-          </div>
-          
-          <div class="ferni-chat-panel__input-area">
-            <input 
-              type="text" 
-              class="ferni-chat-panel__input" 
-              placeholder="What's on your mind?"
-              maxlength="500"
-            />
-            <button class="ferni-chat-panel__send" aria-label="Send">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
-              </svg>
-            </button>
-          </div>
-          
-          <div class="ferni-chat-panel__footer">
-            <a href="https://app.ferni.ai" class="ferni-chat-panel__upgrade">
-              Create free account for unlimited access →
-            </a>
-          </div>
-        </div>
-      `;
-
-      document.body.appendChild(widget);
-
-      this.container = widget;
-      this.panel = widget.querySelector('.ferni-chat-panel');
-      this.messagesContainer = widget.querySelector('.ferni-chat-panel__messages');
-      this.input = widget.querySelector('.ferni-chat-panel__input');
-      this.sendButton = widget.querySelector('.ferni-chat-panel__send');
-    },
-
-    bindEvents() {
-      const trigger = this.container.querySelector('.ferni-chat-trigger');
-      const closeBtn = this.container.querySelector('.ferni-chat-panel__close');
-
-      trigger.addEventListener('click', () => this.togglePanel());
-      closeBtn.addEventListener('click', () => this.closePanel());
-
-      this.input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          this.sendMessage();
-        }
-      });
-
-      this.sendButton.addEventListener('click', () => this.sendMessage());
-
-      // Close on escape
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && state.chatOpen) {
-          this.closePanel();
-        }
-      });
-    },
-
-    togglePanel() {
-      state.chatOpen ? this.closePanel() : this.openPanel();
-    },
-
-    openPanel() {
-      state.chatOpen = true;
-      this.panel.classList.add('is-open');
-      this.panel.setAttribute('aria-hidden', 'false');
-      this.container.classList.add('is-open');
-      this.input.focus();
-
-      // Track
-      window.FerniExperiments?.trackConversionForAll('chat_opened');
-    },
-
-    closePanel() {
-      state.chatOpen = false;
-      this.panel.classList.remove('is-open');
-      this.panel.setAttribute('aria-hidden', 'true');
-      this.container.classList.remove('is-open');
-    },
-
-    async sendMessage() {
-      const message = this.input.value.trim();
-      if (!message) return;
-
-      // Clear input
-      this.input.value = '';
-
-      // Add user message to UI
-      this.addMessage(message, 'user');
-
-      // Show typing indicator
-      this.showTyping();
-
-      // Send to API
-      const result = await apiCall('/chat', {
-        method: 'POST',
-        body: {
-          visitorId: state.visitorId,
-          message,
-          persona: state.currentPersona,
-        },
-      });
-
-      // Hide typing
-      this.hideTyping();
-
-      if (result) {
-        this.addMessage(result.response, 'ai');
-        state.messagesRemaining = result.messagesRemaining;
-        this.updateRemainingCount();
-
-        // If out of messages, show upgrade prompt
-        if (result.messagesRemaining === 0) {
-          this.showUpgradePrompt();
-        }
-      } else {
-        this.addMessage("Sorry, I couldn't respond right now. Try again?", 'ai');
-      }
-    },
-
-    addMessage(content, type) {
-      const msg = document.createElement('div');
-      msg.className = `ferni-chat-message ferni-chat-message--${type}`;
-      msg.innerHTML = `<p>${this.escapeHtml(content)}</p>`;
-
-      this.messagesContainer.appendChild(msg);
-      this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
-    },
-
-    showTyping() {
-      const typing = document.createElement('div');
-      typing.className = 'ferni-chat-typing';
-      typing.innerHTML = `
-        <div class="ferni-chat-typing__dot"></div>
-        <div class="ferni-chat-typing__dot"></div>
-        <div class="ferni-chat-typing__dot"></div>
-      `;
-      this.messagesContainer.appendChild(typing);
-      this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
-    },
-
-    hideTyping() {
-      const typing = this.messagesContainer.querySelector('.ferni-chat-typing');
-      if (typing) typing.remove();
-    },
-
-    updateRemainingCount() {
-      const countEl = this.container.querySelector('.ferni-chat-panel__count');
-      if (countEl) {
-        countEl.textContent = state.messagesRemaining;
-        if (state.messagesRemaining <= 3) {
-          countEl.classList.add('is-low');
-        }
-      }
-    },
-
-    showUpgradePrompt() {
-      const prompt = document.createElement('div');
-      prompt.className = 'ferni-chat-upgrade-prompt';
-      prompt.innerHTML = `
-        <p>You've used all your demo messages!</p>
-        <a href="https://app.ferni.ai" class="btn btn--primary btn--sm">
-          Create free account to continue
-        </a>
-      `;
-      this.messagesContainer.appendChild(prompt);
-    },
-
-    escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    },
-  };
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 2. PERSONALIZED HERO
@@ -2000,10 +1742,6 @@
     // Initialize modules based on feature flags
     const enabledFeatures = [];
 
-    if (CONFIG.enableChat) {
-      LiveChat.init();
-      enabledFeatures.push('Live Text Chat');
-    }
     if (CONFIG.enablePersonaPreviews) {
       PersonaPreviews.init();
       enabledFeatures.push('Persona Previews');
@@ -2044,7 +1782,6 @@
 
   window.FerniAI = {
     init,
-    chat: LiveChat,
     hero: PersonalizedHero,
     personas: PersonaPreviews,
     memory: MemoryDemo,

@@ -153,7 +153,8 @@ against:
 
 ## Code conventions that aren't obvious from the code
 
-- **Logging**: `createLogger` from `src/utils/logger.js`, never `console.*`.
+- **Logging**: `createLogger` from `src/utils/safe-logger.js` (the web app's
+  is `apps/web/src/utils/logger.ts`), never `console.*`.
   Never swallow an error (`.catch(() => {})`); log it with context.
   A linked account's token read calls `noteLinkedTokenUse(provider, uid, state)`
   (`src/utils/linked-token-use.ts`; the shared `user-oauth-store` already does),

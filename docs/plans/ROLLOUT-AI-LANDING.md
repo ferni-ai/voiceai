@@ -1,5 +1,8 @@
 # 🚀 AI-Powered Landing Page Rollout Plan
 
+> The live chat widget and its `landing-ai-live-chat` flag were removed on 2026-11-10
+> (#3683). Its rows and steps below are history, not instructions.
+
 ## Overview
 
 10 new AI-powered features for the landing page, designed to demonstrate Ferni's "Better than Human" capabilities before visitors even sign up.

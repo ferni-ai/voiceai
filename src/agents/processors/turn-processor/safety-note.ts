@@ -28,7 +28,30 @@ export function carriesSafety(item: { extra?: Record<string, unknown> } | undefi
   return item?.extra?.[SAFETY_NOTE] === true;
 }
 
-/** A safety note written straight into the turn's context (the crisis override). */
+/** A safety note written straight into the turn's context. */
 export function addSafetyNote(chatCtx: llm.ChatContext, content: string): void {
   chatCtx.addMessage({ role: 'system', content, extra: { [SAFETY_NOTE]: true } });
+}
+
+/** The key, in a chat message's `extra`, that marks the crisis override ("Do NOT deviate"). */
+const CRISIS_OVERRIDE = 'crisisOverride';
+
+/**
+ * The crisis override: a safety note that must have the final word. The turn may append
+ * notes after it (behavior events such as late_night_detected, injections, briefings,
+ * calendar and phone-ask notes); the pushed note puts it last of all (pushed-notes.ts).
+ */
+export function addCrisisOverride(chatCtx: llm.ChatContext, content: string): void {
+  chatCtx.addMessage({
+    role: 'system',
+    content,
+    extra: { [SAFETY_NOTE]: true, [CRISIS_OVERRIDE]: true },
+  });
+}
+
+/** It carries the crisis override marker (addCrisisOverride). Reads a marker; the crisis decision was made upstream. */
+export function carriesCrisisOverride(
+  item: { extra?: Record<string, unknown> } | undefined
+): boolean {
+  return item?.extra?.[CRISIS_OVERRIDE] === true;
 }

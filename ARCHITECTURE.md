@@ -21,8 +21,9 @@ folder's own `CLAUDE.md` has the details. The layer table at the bottom is gener
   (`FIRESTORE_DATABASE`). Almost all state lives here; adapters are in L1 below.
 - **BigQuery** `ferni_events`: product and per-turn analytics rows, written by
   `src/services/analytics/bq-events.ts`, off unless `BQ_EVENTS` is on.
-- **Spanner graph** (`ferni-memory` / `knowledge_graph`): the memory graph in
-  `src/memory/spanner-graph/`. Dev skips its writes unless `GRAPH_WRITES_ON_DEV_DB` is on.
+- **Spanner graph**: not running. No Spanner instance exists, the agent turns the sync off at
+  startup (`src/agents/gce/process-runtime.ts`), and only tests call `initializeSpanner()`.
+  The client code is still in `src/memory/spanner-graph/`.
 - **Redis**, only when `REDIS_URL` or `REDIS_HOST` is set (rate limits, cache).
 - **Cloud Storage** for uploads and synthesized outreach audio.
 

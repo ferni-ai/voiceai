@@ -67,7 +67,8 @@ export default defineConfig({
     // because no import edge leads from a test to them: the setup files, the
     // lockfile and tsconfig, pnpm-workspace.yaml (its overrides change what installs,
     // like the lockfile), and non-code files under src/ that code reads from disk
-    // at runtime (persona bundles, prompt and data files).
+    // at runtime (persona bundles, prompt and data files), and the scheduler yaml the
+    // scheduler parity test reads from disk.
     forceRerunTriggers: [
       ...configDefaults.forceRerunTriggers,
       '**/src/tests/setup.ts',
@@ -76,6 +77,7 @@ export default defineConfig({
       '**/pnpm-workspace.yaml',
       '**/tsconfig*.json',
       '**/src/**/*.{md,json,yaml,yml,txt,csv}',
+      '**/infra/cloud-scheduler-*.yaml',
     ],
   },
 });
