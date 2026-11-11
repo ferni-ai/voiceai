@@ -50,6 +50,7 @@ import {
   blockedReadGuidance,
   noteMeansInHandShadow,
   resolveCrisisClassifierTimeoutMs,
+  resolveMeansInHandMode,
   shadowPipelineGrade,
   trackAbuseRead,
   withAbuseRead,
@@ -176,6 +177,7 @@ export function startTurnCrisis(
   const voice = toGuardVoiceEmotion(userData?.voiceEmotion as ProsodyEmotionLike | undefined);
   const crisisOptions = {
     recentMessages: userData?.recentTranscripts,
+    meansInHand: resolveMeansInHandMode(options.env), // this turn's env, not process.env
     ...(userData?.voiceCallerCheck === false ? { voiceCallerCheck: false } : {}),
   };
   const found = detectCrisis(userText, voice, crisisOptions);

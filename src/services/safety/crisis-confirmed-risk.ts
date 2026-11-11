@@ -47,6 +47,7 @@ import {
   detectCrisis,
   type CrisisDetectionResult,
 } from './crisis-guard.js';
+import { resolveMeansInHandMode } from './crisis-means-in-hand.js';
 
 const log = createLogger({ module: 'CrisisConfirmedRisk' });
 
@@ -193,7 +194,8 @@ async function ineligible(args: LoneRead, call: string): Promise<string | null> 
   const earlier: readonly unknown[] = input.earlier ?? [];
   if (![input.latest, ...earlier].every((line) => typeof line === 'string')) return 'error';
   if (mayBeMinor(call, [input.latest, ...(earlier as string[])])) return 'minor';
-  if ((earlier as string[]).some((line) => found(detectCrisis(line)))) {
+  const meansInHand = resolveMeansInHandMode(env); // this read's env, not process.env
+  if ((earlier as string[]).some((line) => found(detectCrisis(line, undefined, { meansInHand })))) {
     kept.confirmed = true;
     return 'earlier_pattern';
   }

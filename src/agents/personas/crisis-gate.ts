@@ -69,7 +69,12 @@ import {
   loneImminentGoodbye,
 } from '../../services/safety/crisis-lone-imminent.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { disclosureGuidance, mainOf, shadowGrade } from '../../services/safety/index.js';
+import {
+  disclosureGuidance,
+  mainOf,
+  resolveMeansInHandMode,
+  shadowGrade,
+} from '../../services/safety/index.js';
 import {
   applyClassifierVerdict,
   buildCrisisGuidance,
@@ -165,7 +170,8 @@ export function startCrisisGate(
   const voice = toGuardVoiceEmotion(
     (userData as { voiceEmotion?: ProsodyEmotionLike } | undefined)?.voiceEmotion
   );
-  const found = detectCrisis(latest, voice, { recentMessages: earlier });
+  const meansInHand = resolveMeansInHandMode(env); // this request's env, as every gate flag
+  const found = detectCrisis(latest, voice, { recentMessages: earlier, meansInHand });
   // The answer to a grounded release's direct question: not a clear no is a gentle 988 offer,
   // or crisis guidance when the answer carries risk content (crisis-grounded-screen.ts).
   const screen = screenAnswer(sessionScope(userData), { latest, companion, ferni });
