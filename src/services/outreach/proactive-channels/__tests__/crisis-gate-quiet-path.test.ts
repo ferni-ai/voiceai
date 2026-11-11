@@ -55,6 +55,10 @@ vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getFirestoreDb: () => db(),
 }));
+vi.mock('../../../trust-systems/trust-doc.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getTrustDb: () => db(),
+}));
 vi.mock('../../../workflows/scheduled-actions.js', () => ({
   deliverDueScheduledActions: vi.fn(async () => ({ due: 0, delivered: 0 })),
 }));
@@ -81,11 +85,14 @@ const { CRISIS_QUIET_DAYS, crisisFromSignal, hadCrisisWithin, releaseQuietHere }
 const { getCrisisHistory, hadRecentCrisis, forgetRecentCrisis } =
   await import('../../../human-transfer/index.js');
 const { decisionFor, gatedReply } = await import('../../../../agents/personas/crisis-gate.js');
-const { RETRY_MS, quietLevelOf, resetQuietAfterCrisis } =
+const { RETRY_MS, quietAfterCrisis, quietLevelOf, resetQuietAfterCrisis } =
   await import('../../../../agents/safety/crisis-quiet-window.js');
 const { signalGateDecisions } = await import('../../../../agents/safety/crisis-gate-signal.js');
 const { holdSession, resetMinorCare } = await import('../../../../utils/minor-care.js');
 const { heldFromBackgroundJobs } = await import('../../minor-care-background-read.js');
+const { firestoreHoldStore, recordQuietHold } = await import('../../minor-care-shared-hold.js');
+const { markHeldWindowsScrubbed, noteHeldWindow, resetHeldWindows } =
+  await import('../../../trust-systems/held-window.js');
 
 const UID = 'member-uid-quiet';
 const PHONE = '+15555550142';
@@ -247,6 +254,30 @@ describe('CRISIS_QUIET_FROM_GATE on', () => {
     expect(signalDocs()).toHaveLength(1);
   });
 
+  it('the stored tier says which script: self-harm, or suicidal ideation', async () => {
+    const script = (crisisType: string) =>
+      ({ action: 'replace', script: '988', kind: { crisisType, severity: 'high' } }) as never;
+    quietAfterCrisis(call(), script('self_harm'));
+    await settle();
+    const [[, harm]] = signalDocs();
+    expect(harm!.signals).toMatchObject({
+      severity: 9,
+      selfHarmIndicators: true,
+      suicidalIdeation: false,
+    });
+
+    docs.clear();
+    forgetRecentCrisis(UID);
+    quietAfterCrisis(call(), script('suicidal_ideation'));
+    await settle();
+    const [[, ideation]] = signalDocs();
+    expect(ideation!.signals).toMatchObject({
+      severity: 9,
+      selfHarmIndicators: false,
+      suicidalIdeation: true,
+    });
+  });
+
   it('one doc per call however many turns hear the script', async () => {
     const session = call();
     await speak(session);
@@ -375,6 +406,59 @@ describe('CRISIS_QUIET_FROM_GATE off or shadow', () => {
     // unreadable: true (fails closed)
     const broken = { collection: () => ({}) } as never;
     expect(await hadCrisisWithin(broken, UID, CRISIS_QUIET_DAYS, CALL_AT)).toBe(true);
+  });
+});
+
+describe("recordQuietHold on a held caller's existing hold doc", () => {
+  it('adds quietUntil and keeps heldUntil, the purge windows and keepUntil', async () => {
+    const heldUntil = CALL_AT.getTime() + 6 * HOUR;
+    const windows = [{ start: CALL_AT.getTime() - 2 * HOUR, end: heldUntil, scrubbed: true }];
+    const keepUntil = CALL_AT.getTime() + 90 * DAY;
+    docs.set(HOLD, { heldUntil, v: 1, windows, keepUntil, expireAt: new Date(keepUntil) });
+    const quietUntil = CALL_AT.getTime() + CRISIS_QUIET_DAYS * DAY;
+
+    await recordQuietHold(UID, quietUntil);
+
+    expect(docs.get(HOLD)).toEqual({
+      heldUntil,
+      v: 1,
+      windows,
+      keepUntil,
+      quietUntil,
+      expireAt: new Date(keepUntil), // never before the kept windows, nor the quiet
+    });
+    expect(await heldFromBackgroundJobs(UID)).toBe(true); // still held: the hold was not overwritten
+  });
+});
+
+describe("the hold doc's other writers never let the TTL come before a crisis quietUntil", () => {
+  const quietUntil = CALL_AT.getTime() + CRISIS_QUIET_DAYS * DAY;
+
+  it('a held call writing heldUntil (the shared-hold writer) keeps quietUntil and the TTL after it', async () => {
+    docs.set(HOLD, { quietUntil, expireAt: new Date(quietUntil) });
+    const heldUntil = CALL_AT.getTime() + 6 * HOUR;
+
+    await firestoreHoldStore.write(UID, { heldUntil, v: 1 });
+
+    expect(docs.get(HOLD)).toEqual({ heldUntil, v: 1, quietUntil, expireAt: new Date(quietUntil) });
+  });
+
+  it('the purge marking its window scrubbed (the held-window writer) sets the TTL no earlier', async () => {
+    resetHeldWindows();
+    // A purge 80 days back: its 90-day keep ends 10 days from now, before the 14-day quiet
+    const end = CALL_AT.getTime() - 80 * DAY;
+    const start = end - HOUR;
+    noteHeldWindow(UID, start, end);
+    docs.set(HOLD, { windows: [{ start, end, scrubbed: false }], quietUntil, expireAt: null });
+
+    expect(await markHeldWindowsScrubbed(UID)).toBe(true);
+
+    const hold = docs.get(HOLD)!;
+    expect(hold.windows).toEqual([{ start, end, scrubbed: true }]);
+    expect(hold.keepUntil).toBe(end + 90 * DAY);
+    expect(hold.quietUntil).toBe(quietUntil);
+    expect(hold.expireAt).toEqual(new Date(quietUntil)); // not keepUntil, which comes first
+    resetHeldWindows();
   });
 });
 

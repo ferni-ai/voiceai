@@ -38,6 +38,9 @@ export type CrisisType =
   | 'eating_disorder_crisis'
   | 'sexual_assault';
 
+/** Whether a crisis is self-harm: code outside the kernel asks this rather than spelling the type. */
+export const isSelfHarm = (type: CrisisType | undefined): boolean => type === 'self_harm';
+
 export type CrisisSeverity = 'low' | 'medium' | 'high' | 'critical';
 
 export interface CrisisSignal {
@@ -83,7 +86,10 @@ type PatternCrisisType = Exclude<CrisisType, 'suicidal_ideation' | 'self_harm'>;
  * Pattern definitions for crisis detection.
  * Organized by crisis type with severity gradients.
  */
-const CRISIS_PATTERNS: Record<PatternCrisisType, { patterns: RegExp[]; severity: CrisisSeverity }[]> = {
+const CRISIS_PATTERNS: Record<
+  PatternCrisisType,
+  { patterns: RegExp[]; severity: CrisisSeverity }[]
+> = {
   domestic_abuse: [
     {
       patterns: [
