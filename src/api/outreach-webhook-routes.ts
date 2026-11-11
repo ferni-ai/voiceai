@@ -227,7 +227,8 @@ export async function handleOutreachWebhookRoutes(
       // A "call me" text keeps its call; the one crisis text says so (Seth, 2026-11-06).
       // The handler's own TwiML only: `twiml` already holds the crisis reply when it threw.
       if (crisis) twiml = withCrisisReply(result?.twiml, smsCrisisReplyFor(result?.called), text);
-      if (signed) await recordSignedInbound(body, text, !!crisis);
+      // SMS_REPLY: the reply's own crisis read counts too (no START or YES from that text).
+      if (signed) await recordSignedInbound(body, text, !!crisis || result?.crisis === true);
 
       // Empty TwiML: no reply.
       sendTwiML(res, twiml ?? '<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
