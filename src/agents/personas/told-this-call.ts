@@ -48,6 +48,8 @@ export interface Told {
   askedAboutFerni: boolean;
   /** PHRASE_LOOP_GUARD=on: stock phrases in two or more recent replies; absent when off. */
   loops?: PhraseLoop[];
+  /** Quotes pointing back to a help line said earlier in this call (keptTold drops them). */
+  pointersBack?: string[];
 }
 
 /** Capitalized words that are grammar or filler, not something Ferni brought up. */
@@ -173,6 +175,18 @@ const PAST_IRREGULAR = new Set(
   wrote written laid made`.split(/\s+/)
 );
 const isPast = (w = ''): boolean => PAST_IRREGULAR.has(w) || /^[a-z]{2,}[^e]ed$/.test(w);
+/** Describing words a referent can carry: "the trained listeners", "those warm, patient folks". */
+const ADJECTIVES = new Set(
+  `kind warm real good great nice calm gentle patient friendly caring loving local national
+  confidential professional different actual amazing lovely`.split(/\s+/)
+);
+const isAdjective = (w = ''): boolean =>
+  ADJECTIVES.has(w) || /^[a-z]{3,}(?:ed|ful|ive|ous|ible|able|less)$/.test(w);
+/** A verb's particle, between it and its object: "calling back the line", "ring up those folks". */
+const PARTICLES = new Set(['back', 'up', 'out', 'over']);
+/** The start of this call: "at the start", "from the beginning of our talk". */
+const CALL_START = new Set(['start', 'beginning', 'top', 'outset']);
+const CALL_ITSELF = new Set(['talk', 'call', 'conversation', 'chat']);
 /** Words allowed between a referent and the words pointing back to it. */
 const BACK_WINDOW = 4;
 const PLACING_WINDOW = 6;
@@ -193,8 +207,12 @@ function backRefs(words: string[]): Array<[number, number]> {
     if (demonstrative && (HELP_MODIFIERS.has(words[i + 1]) || words[i - 1] === 'on'))
       spans.push([i, i]);
     if (w === 'from' && words[i + 1] === 'before') spans.push([i, i + 1]);
-    if (w === 'at' && words[i + 1] === 'the' && /^(?:start|beginning)$/.test(words[i + 2] ?? ''))
-      spans.push([i, i + 2]);
+    // "at the start", "from the very beginning of our talk", "from our call"
+    let k = i + 1;
+    while (DETERMINERS.has(words[k]) || POSSESSIVES.has(words[k]) || isAdjective(words[k])) k++;
+    const own = ['our', 'this'].includes(words[k - 1]) && CALL_ITSELF.has(words[k]);
+    if (['at', 'from', 'since', 'near'].includes(w) && CALL_START.has(words[k])) spans.push([i, k]);
+    if (w === 'from' && own) spans.push([i, k]);
     const verb = ADVERBS.has(words[i + 1] ?? '') ? i + 2 : i + 1;
     if (SUBJECTS.has(w) && isPast(words[verb])) spans.push([i, verb]);
   });
@@ -204,7 +222,7 @@ function backRefs(words: string[]): Array<[number, number]> {
 /** The content word a preposition or verb at `at` takes, past any determiner. */
 function objectAt(words: string[], at: number): string | undefined {
   let k = at + 1;
-  while (DETERMINERS.has(words[k]) || POSSESSIVES.has(words[k])) k++;
+  while (PARTICLES.has(words[k]) || DETERMINERS.has(words[k]) || POSSESSIVES.has(words[k])) k++;
   const w = words[k];
   return w && !FUNCTION_WORDS.has(w) && !IN_THIS_CALL.has(w) ? w : undefined;
 }
@@ -239,7 +257,9 @@ function placedElsewhere(words: string[], at: number): boolean {
  * door"). "the bus line", "my phone number", "the customer service line" are not.
  */
 function standsForHelp(words: string[], at: number): boolean {
-  const [before, noun, after] = [words[at - 1], words[at], words[at + 1]];
+  let b = at - 1; // past up to two describing words: "the kind, trained volunteers"
+  while (b > at - 3 && isAdjective(words[b])) b--;
+  const [before, noun, after] = [words[b], words[at], words[at + 1]];
   if (!REFERENTS.has(noun)) return false;
   const headed = !after || FUNCTION_WORDS.has(after) || DETERMINERS.has(after) || isPast(after);
   const modified =
@@ -274,28 +294,51 @@ function pointsBack(text: string): boolean {
 }
 
 /**
- * Safety wording: a way to reach help (services/safety/safety-talk.ts reachesHelp),
- * a line of the safety scripts or on safety, harm or help (phrase-loops.ts
- * isSafetyLine: "In Canada you can call Talk Suicide Canada any time."), or a
- * sentence pointing back to a help line already given. Not care wording on its
- * own (isCareTalk): it fires on everyday words like "please" and "tonight", and
- * care lines stay quotable, as on main.
+ * A help line: a way to reach help (services/safety/safety-talk.ts reachesHelp), or a
+ * line on safety, harm or help (phrase-loops.ts isSafetyLine) that asks to call or text
+ * ("In Canada you can call Talk Suicide Canada any time."). isSafetyLine alone also
+ * reads "I hear you." and "Take your time.", which would open the gate on nearly every
+ * call. Not care wording (isCareTalk): it fires on everyday words like "please".
  */
-const isSafetyWording = (text: string): boolean =>
-  reachesHelp(text) || isSafetyLine(text) || pointsBack(text);
+const isHelpLine = (text: string): boolean =>
+  reachesHelp(text) ||
+  (isSafetyLine(text) &&
+    plainWords(text)
+      .split(' ')
+      .some((w) => CALLING.has(w)));
 
 /**
- * Whether a name or phrase is safety wording, or every sentence of Ferni's that
- * holds it is. Listed, it would ask the model to leave a help line ("You've
- * brought up Amitie", from "SOS Amitie listens day and night."). A pointer back is
- * read from the whole sentence: a phrase cut from "My phone number from before
- * changed" has lost the "My".
+ * Which of Ferni's sentences (oldest first, by index) point back to a help line: only a
+ * sentence said after a help line earlier in this call. With no help line before it,
+ * a sentence is read as main reads it, so "the number I mentioned was twelve" stays
+ * quotable on a call that never gave one.
  */
-function onlyInSafetyTalk(text: string, sentences: string[]): boolean {
-  if (reachesHelp(text) || isSafetyLine(text)) return true;
-  const holding = sentences.filter((s) => plainWords(s).includes(plainWords(text)));
-  if (holding.length === 0) return pointsBack(text);
-  return holding.every(isSafetyWording);
+function pointerBackAt(sentences: string[]): (i: number) => boolean {
+  const help = sentences.findIndex(isHelpLine);
+  return (i) => help >= 0 && help < i && pointsBack(sentences[i]);
+}
+
+/** A way to reach help, or a line of the safety scripts or on safety, harm or help. */
+const isSafetyWording = (text: string): boolean => reachesHelp(text) || isSafetyLine(text);
+
+/**
+ * Whether a name or phrase is safety wording, or every sentence of Ferni's that holds
+ * it is safety wording or a pointer back to a help line. Listed, it would ask the model to leave a
+ * help line ("You've brought up Amitie", from "SOS Amitie listens day and night."). A
+ * pointer back is read from the whole sentence: a phrase cut from "My phone number
+ * from before changed" has lost the "My".
+ */
+function onlyInSafetyTalk(
+  text: string,
+  sentences: string[],
+  pointerBack: (i: number) => boolean
+): boolean {
+  if (isSafetyWording(text)) return true;
+  const holding = sentences.flatMap((s, i) =>
+    plainWords(s).includes(plainWords(text)) ? [i] : []
+  );
+  if (holding.length === 0) return sentences.some((_, i) => pointerBack(i)) && pointsBack(text);
+  return holding.every((i) => isSafetyWording(sentences[i]) || pointerBack(i));
 }
 
 function quote(sentence: string): string {
@@ -336,12 +379,13 @@ export function toldThisCall(lines: Line[], userName?: string, speaking?: string
     inReply.forEach((n) => counts.set(n, (counts.get(n) ?? 0) + 1));
   });
   const sentences = replies.flat();
+  const pointerBack = pointerBackAt(sentences);
   // Capped first, so a name left out is never replaced by one more.
   const names = [...counts]
     .map(([name, n]) => ({ name, replies: n }))
     .sort((a, b) => b.replies - a.replies)
     .slice(0, MAX_NAMES)
-    .filter((n) => !onlyInSafetyTalk(n.name, sentences));
+    .filter((n) => !onlyInSafetyTalk(n.name, sentences, pointerBack));
 
   // A sentence sharing a six-word run with another reply's sentence, once per repeated run.
   const repeated: Array<{ sentence: string; runs: Set<string> }> = [];
@@ -367,6 +411,12 @@ export function toldThisCall(lines: Line[], userName?: string, speaking?: string
         !repeated.some((q) => q.sentence === s)
     );
 
+  // Quotes that are, or repeat, a sentence pointing back to a help line given before it.
+  const pointing = sentences.filter((_, i) => pointerBack(i));
+  const pointersBack = [...repeated.map((q) => q.sentence), ...recentLines].filter((s) =>
+    pointing.some((p) => p === s || [...runsOf(p)].some((r) => runsOf(s).has(r)))
+  );
+
   const lastUser = [...lines].reverse().find((l) => l.speaker === 'user');
   return {
     names,
@@ -375,8 +425,13 @@ export function toldThisCall(lines: Line[], userName?: string, speaking?: string
     recentLines,
     askedAboutFerni: Boolean(lastUser && ASKS_ABOUT_FERNI.test(lastUser.text)),
     ...(phraseLoopGuardOn()
-      ? { loops: phraseLoops(lines).filter((l) => !onlyInSafetyTalk(l.phrase, sentences)) }
+      ? {
+          loops: phraseLoops(lines).filter(
+            (l) => !onlyInSafetyTalk(l.phrase, sentences, pointerBack)
+          ),
+        }
       : {}),
+    ...(pointersBack.length ? { pointersBack } : {}),
   };
 }
 
@@ -411,8 +466,9 @@ export function formatTold(told: Told): string {
  * (crisis-call-risk.ts). A line of the safety scripts is never quoted on any call
  * (#2797: "Don't say again" had quoted "Are you somewhere safe right now?"), nor
  * is any other safety wording: a way to reach help ("You can text HOME any time."),
- * or a pointer back to a line already given, which the caller may still need to
- * hear. The quotes are only ever main's, fewer.
+ * or a pointer back to a help line given earlier in this call, which the caller may
+ * still need to hear (toldThisCall pointersBack). The quotes are only ever main's,
+ * fewer.
  */
 export function keptTold(told: Told, keep: (text: string) => boolean, sessionId?: string): Told {
   const { loops: all, ...rest } = told;
@@ -425,7 +481,8 @@ export function keptTold(told: Told, keep: (text: string) => boolean, sessionId?
       .filter((line) => !crisis && keep(line) && !isSafetyLine(line))
       .slice(0, MAX_QUOTES)
   );
-  const quotable = (line: string): boolean => shown.has(line) && !isSafetyWording(line);
+  const quotable = (line: string): boolean =>
+    shown.has(line) && !reachesHelp(line) && !told.pointersBack?.includes(line);
   return {
     ...rest,
     names: told.names.filter((n) => keep(n.name)),

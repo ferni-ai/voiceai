@@ -31,6 +31,13 @@ const distressCall: Line[] = [
 ];
 
 const keepAll = (): boolean => true;
+/** #3604 r3: a pointer back is read only after a help line given earlier in the call. */
+const HELP_LINE = 'You can call or text 988 any time, day or night.';
+const afterHelp = (lines: Line[]): Line[] => [
+  user('It is a lot tonight.'),
+  ferni(HELP_LINE),
+  ...lines,
+];
 
 beforeEach(() => resetCrisisCallRisk());
 afterEach(() => resetCrisisCallRisk());
@@ -272,9 +279,12 @@ describe('safety lines the talk reader misses, and pointers back to a line (#359
     expect(await toldNote(saidThrice(MEANS))).not.toMatch(/pills|another room|for a while/);
   });
 
-  it.each(POINTING_BACK)('never quotes or loops %s, said in three replies', async (line) => {
-    expect(await toldNote(saidThrice(line))).toBe('');
-  });
+  it.each(POINTING_BACK)(
+    'never quotes or loops %s, said in three replies after a help line',
+    async (line) => {
+      expect(await toldNote(afterHelp(saidThrice(line)))).toBe('');
+    }
+  );
 
   it('never quotes a line main cut at the cap when safety talk took its place', async () => {
     const help = ['You can text HOME any time.', 'The Trevor Project is there all night.'];
@@ -343,14 +353,17 @@ describe('pointers back to a safety line, in any word order (#3592 r3)', () => {
     'My phone number from before changed when I moved across town last spring.',
   ];
 
-  it.each(POINTING_BACK)('never quotes or loops %s, said in three replies', async (line) => {
-    // Precondition: the call records it, so the unfiltered note would quote it.
-    expect(formatTold(toldThisCall(saidThrice(line)))).toContain(`"${line}"`);
-    expect(await toldNote(saidThrice(line))).toBe('');
-  });
+  it.each(POINTING_BACK)(
+    'never quotes or loops %s, said in three replies after a help line',
+    async (line) => {
+      // Precondition: the call records it, so the unfiltered note would quote it.
+      expect(formatTold(toldThisCall(afterHelp(saidThrice(line))))).toContain(`"${line}"`);
+      expect(await toldNote(afterHelp(saidThrice(line)))).toBe('');
+    }
+  );
 
   it.each(EVERYDAY)('still quotes %s said in three replies, as main does', async (line) => {
-    expect(await toldNote(saidThrice(line))).toContain(`"${line}"`);
+    expect(await toldNote(afterHelp(saidThrice(line)))).toContain(`"${line}"`);
   });
 });
 
@@ -386,13 +399,16 @@ describe('pointers back to help in wording no list foresaw (#3604 r2)', () => {
     'Call the plumber at the number I left you, any time before noon.',
   ];
 
-  it.each(POINTING_BACK)('never quotes or loops %s, said in three replies', async (line) => {
-    expect(formatTold(toldThisCall(saidThrice(line)))).toContain(`"${line}"`);
-    expect(isSafetyLine(line) || reachesHelp(line), line).toBe(false); // the matcher reads it
-    expect(await toldNote(saidThrice(line))).toBe('');
-  });
+  it.each(POINTING_BACK)(
+    'never quotes or loops %s, said in three replies after a help line',
+    async (line) => {
+      expect(formatTold(toldThisCall(afterHelp(saidThrice(line))))).toContain(`"${line}"`);
+      expect(isSafetyLine(line) || reachesHelp(line), line).toBe(false); // the matcher reads it
+      expect(await toldNote(afterHelp(saidThrice(line)))).toBe('');
+    }
+  );
 
   it.each(EVERYDAY)('still quotes %s said in three replies, as main does', async (line) => {
-    expect(await toldNote(saidThrice(line))).toContain(`"${line}"`);
+    expect(await toldNote(afterHelp(saidThrice(line)))).toContain(`"${line}"`);
   });
 });
