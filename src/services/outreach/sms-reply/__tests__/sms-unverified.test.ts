@@ -1,13 +1,34 @@
 /**
- * SMS_REPLY_UNVERIFIED's rules: Seth's words, once per number per 24 hours, nothing after an
- * opt-out, a pause or an unreadable consent record. Fake consent and lock stores; fictional
- * numbers only.
+ * SMS_REPLY_UNVERIFIED's rules: Seth's words, once per number per 24 hours (a slot in
+ * rate_limits that its TTL policy deletes), nothing after an opt-out, a pause or an unreadable
+ * consent record. Fake consent store and an in-memory Firestore; fictional numbers only.
  */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const logs = vi.hoisted(() => [] as unknown[][]);
 vi.mock('../../../../utils/safe-logger.js', () => ({
   createLogger: () => ({ info: (...a: unknown[]) => logs.push(a), warn: vi.fn(), debug: vi.fn() }),
+}));
+/** Firestore docs by `collection/id`, behind the transaction surface the slot uses. */
+const docs = vi.hoisted(() => new Map<string, Record<string, unknown>>());
+const firestore = vi.hoisted(() => ({ down: false }));
+vi.mock('../../../../utils/firestore-utils.js', () => ({
+  getFirestoreDb: () =>
+    firestore.down
+      ? null
+      : {
+          collection: (c: string) => ({ doc: (id: string) => ({ path: `${c}/${id}` }) }),
+          runTransaction: async <T>(work: (tx: object) => Promise<T>) =>
+            work({
+              get: async (ref: { path: string }) => ({
+                get: (f: string) => docs.get(ref.path)?.[f],
+              }),
+              set: (ref: { path: string }, data: Record<string, unknown>) =>
+                docs.set(ref.path, data),
+            }),
+        },
 }));
 
 import {
@@ -23,22 +44,18 @@ const start = new Date('2026-11-12T18:00:00Z');
 function world(
   consentDoc: () => Promise<Record<string, unknown> | undefined> = async () => undefined
 ) {
-  const held = new Map<string, string>();
   const clock = { at: start.getTime() };
   const deps: UnverifiedDeps = {
     consent: { isOptedOut: async () => false, consentDoc: vi.fn(consentDoc) },
-    locks: {
-      lock: async (id, at) => (held.has(id) ? false : (held.set(id, at), true)),
-      lockedAt: async (id) => held.get(id),
-      unlock: async (id) => void held.delete(id),
-    },
     now: () => new Date(clock.at),
-    env: { LOG_HASH_SECRET: 'example-secret' },
+    env: { LOG_HASH_SECRET: 'example-only' },
   };
-  return { deps, held, clock };
+  return { deps, clock };
 }
 
 beforeEach(() => {
+  docs.clear();
+  firestore.down = false;
   logs.length = 0;
   vi.stubEnv('SMS_REPLY_UNVERIFIED', 'on');
   vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
@@ -75,7 +92,7 @@ describe('a text from an unverified number', () => {
     expect(await smsUnverifiedReply(PHONE, paused.deps)).toBeNull();
     const unread = world(async () => Promise.reject(new Error('Firestore unavailable')));
     expect(await smsUnverifiedReply(PHONE, unread.deps)).toBeNull();
-    expect([...out.held, ...paused.held, ...unread.held]).toEqual([]);
+    expect([...docs.keys()]).toEqual([]);
   });
 
   it('flag off, or the crisis screen not on: nothing, and nothing read', async () => {
@@ -97,5 +114,33 @@ describe('a text from an unverified number', () => {
     await smsUnverifiedReply(PHONE, deps);
     expect(logs.map((l) => (l[0] as { outcome: string }).outcome)).toEqual(['no-hash', 'sent']);
     expect(JSON.stringify(logs)).not.toMatch(/555|0188/);
+  });
+
+  it('the slot: one rate_limits doc per number, its expireAt (the TTL field) 24 h out, no number', async () => {
+    const { deps } = world();
+    await smsUnverifiedReply(PHONE, deps);
+    const [[path, doc]] = [...docs];
+    expect(path).toMatch(/^rate_limits\/sms-unverified:[0-9a-f]{64}$/);
+    expect(doc).toEqual({
+      at: start.toISOString(),
+      expireAt: new Date(start.getTime() + 24 * HOUR),
+    });
+    expect(JSON.stringify([...docs])).not.toMatch(/555|0188/);
+  });
+
+  it('prod deletes the slots: firestore.indexes.json keeps the TTL policy on rate_limits.expireAt', () => {
+    const file = JSON.parse(
+      readFileSync(join(process.cwd(), 'firestore.indexes.json'), 'utf8')
+    ) as {
+      fieldOverrides: Array<{ collectionGroup: string; fieldPath: string; ttl?: boolean }>;
+    };
+    const ttl = file.fieldOverrides.find((o) => o.collectionGroup === 'rate_limits');
+    expect(ttl).toMatchObject({ fieldPath: 'expireAt', ttl: true });
+  });
+
+  it('Firestore unavailable: rejects (the route sends nothing)', async () => {
+    firestore.down = true;
+    const { deps } = world();
+    await expect(smsUnverifiedReply(PHONE, deps)).rejects.toThrow('Firestore unavailable');
   });
 });

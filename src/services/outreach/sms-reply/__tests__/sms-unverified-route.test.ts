@@ -11,7 +11,7 @@ const h = vi.hoisted(() => ({
   handler: vi.fn(),
   checkin: vi.fn(async (): Promise<string | null> => null),
   yes: vi.fn(async (): Promise<string[] | null> => null),
-  code: vi.fn(async () => false),
+  code: vi.fn(async (): Promise<boolean | 'wrong-code'> => false),
   screen: vi.fn(async (): Promise<string | null> => null),
   reply: vi.fn(async (): Promise<string | null> => 'Hi, this is Ferni.'),
 }));
@@ -68,12 +68,14 @@ describe('a text from an unverified number at the route', () => {
     expect(h.code.mock.invocationCallOrder[0]).toBeLessThan(h.reply.mock.invocationCallOrder[0]!);
   });
 
-  it('a check-in reply, a contact YES (even one granting nothing) or a holder code: nothing', async () => {
+  it('a check-in reply, a contact YES (even one granting nothing) or a holder code, right or wrong: nothing', async () => {
     h.checkin.mockResolvedValueOnce('checkin-1');
     expect(await post()).toBe(EMPTY);
     h.yes.mockResolvedValueOnce([]);
     expect(await post()).toBe(EMPTY);
     h.code.mockResolvedValueOnce(true);
+    expect(await post()).toBe(EMPTY);
+    h.code.mockResolvedValueOnce('wrong-code');
     expect(await post()).toBe(EMPTY);
     expect(h.reply).not.toHaveBeenCalled();
   });
