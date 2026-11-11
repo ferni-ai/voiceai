@@ -75,9 +75,9 @@ const AGREED: Row[] = [
   ['"Should I get him?"', 'Alex Chen', askedThen("He's around. Should I get him?", GO_AHEAD)],
   ['"I can put you through to him."', 'Alex Chen', askedThen('I can put you through to him.')],
   [
-    '"Want me to connect you with her?"',
+    '"Should I connect you with her?"',
     'Maya Santos',
-    askedThen('Want me to connect you with her?', SURE, askedMaya),
+    askedThen('Should I connect you with her?', SURE, askedMaya),
   ],
   ['"Want to talk to him?"', 'Alex Chen', askedThen('Want to talk to him?', GO_AHEAD)],
   ['"Should I pull him in?"', 'Alex Chen', askedThen('Should I pull him in?')],

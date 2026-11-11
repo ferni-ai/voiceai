@@ -41,7 +41,7 @@ describe('pronounOffered', () => {
     ['Want me to grab him?', 'him'],
     ['Should I get him?', 'him'],
     ['I can put you through to him.', 'him'],
-    ['Want me to connect you with her?', 'her'],
+    ['Should I connect you with her?', 'her'],
     ['Want to talk to him?', 'him'],
     ['Should I pull him in?', 'him'],
     ["Want me to see if she's free?", 'she'],
