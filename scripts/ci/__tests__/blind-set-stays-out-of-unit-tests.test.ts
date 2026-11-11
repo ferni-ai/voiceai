@@ -41,8 +41,8 @@ const ALLOWED: Readonly<Record<string, string>> = {
   // The eval: pattern-guard recall floors on the blind set, run as a test (counts only).
   'src/agents/__tests__/crisis-guard-eval.test.ts': 'the eval: pattern-guard floors',
   // Needs lines the patterns miss; an open fixture replaces it, then this entry goes.
-  // https://github.com/ferni-ai/voiceai/issues/3673
-  'src/agents/personas/__tests__/non-core-persona-crisis.test.ts': 'until its open fixture lands',
+  'src/agents/personas/__tests__/non-core-persona-crisis.test.ts':
+    'stopgap until the open-fixture follow-up (https://github.com/ferni-ai/voiceai/issues/3673)',
 };
 
 const MESSAGE =

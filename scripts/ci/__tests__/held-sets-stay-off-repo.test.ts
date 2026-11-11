@@ -9,10 +9,11 @@
  *
  * This fails when a file under src/ or scripts/ is named like a held-out set (heldout,
  * held-out, held_out) unless its name says "retired" or it is on the list below. It also
- * fails for any file named "sealed" (any case): a sealed set is held off-repo the same way,
- * and "retired" does not excuse it. The list holds the files that existed on 2026-11-09, by
+ * fails for any file whose repo path contains "sealed" (any case), so a sealed/ directory of
+ * plainly named files counts too: a sealed set is held off-repo the same way, and "retired"
+ * does not excuse it. The list holds the files that existed on 2026-11-09, by
  * name; it may only shrink, so an entry whose file is gone fails too. No sealed-named file
- * existed on 2026-11-10, so none is listed.
+ * path existed on 2026-11-10, so none is listed.
  */
 import { execFileSync } from 'child_process';
 import { basename, join } from 'path';
@@ -51,7 +52,7 @@ function heldOutOffenders(files: readonly string[]): string[] {
   return files.filter((path) => {
     const name = basename(path);
     if (EXISTING.includes(path)) return false;
-    return SEALED_NAME.test(name) || (HELD_OUT_NAME.test(name) && !/retired/i.test(name));
+    return SEALED_NAME.test(path) || (HELD_OUT_NAME.test(name) && !/retired/i.test(name));
   });
 }
 
@@ -74,6 +75,7 @@ describe('no in-repo held-out sets', () => {
         'src/agents/__tests__/fixtures/crisis-sealed-new.ts',
         'scripts/x/SEALED-probes.json',
         'src/a/sealed-retired.ts',
+        'src/x/sealed/rows.json',
         'src/agents/__tests__/fixtures/crisis-heldout-retired.ts',
         'src/agents/__tests__/fixtures/crisis-test-blind.ts',
         ...EXISTING,
@@ -85,6 +87,7 @@ describe('no in-repo held-out sets', () => {
       'src/agents/__tests__/fixtures/crisis-sealed-new.ts',
       'scripts/x/SEALED-probes.json',
       'src/a/sealed-retired.ts',
+      'src/x/sealed/rows.json',
     ]);
   });
 });
