@@ -69,14 +69,7 @@ import {
   loneImminentGoodbye,
 } from '../../services/safety/crisis-lone-imminent.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import {
-  disclosureGuidance,
-  mainOf,
-  shadowGrade,
-  timeoutCheckin,
-  TIMEOUT_CHECKIN,
-  withCheckinEnding,
-} from '../../services/safety/index.js';
+import { checkin, disclosureGuidance, mainOf, shadowGrade } from '../../services/safety/index.js';
 import {
   applyClassifierVerdict,
   buildCrisisGuidance,
@@ -306,14 +299,7 @@ export function startCrisisGate(
     if (!options.noReply) shadowGrade({ source: 'gate', ...at, detection, verdict, ...said }, env);
     return stronger;
   };
-  // CRISIS_TIMEOUT_CHECKIN: a failed read on safety words is a check-in (crisis-timeout-checkin.ts).
-  const checkin = (verdict: CrisisVerdict | null): string | null =>
-    timeoutCheckin({ verdict, decision, reask, latest }, env);
-  const escalation = verdictRead.then(async (v) => {
-    if (v === undefined) return null;
-    const words = checkin(v);
-    return words ? guide(words) : escalate(v);
-  });
+  const escalation = checkin.escalation(verdictRead, { decision, reask, latest, env }, escalate);
   return { decision, escalation, reask };
 }
 
@@ -503,14 +489,11 @@ export async function gatedReply(
     if (decision.action !== 'pass') holdAfterCrisis(session);
     if (decision.action === 'replace') return textReply(script(decision.script));
     if (decision.action === 'pass') return null;
-    const guided = await ask(
-      guidedRequest(decision),
-      burst === undefined ? undefined : false,
-      true
+    const guided = checkin.ending(
+      await ask(guidedRequest(decision), burst === undefined ? undefined : false, true),
+      decision,
+      callerWords(chatCtx) // CRISIS_TIMEOUT_CHECKIN: code adds the question or 988 it lacks
     );
-    // CRISIS_TIMEOUT_CHECKIN: never silent; code adds the question or 988 the reply lacks.
-    if (decision.guidance === TIMEOUT_CHECKIN)
-      return withCheckinEnding(guided, callerWords(chatCtx));
     return asking(guided, decision.guidance === GROUNDED_LIGHT_TOUCH);
   });
 }

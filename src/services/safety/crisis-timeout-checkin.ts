@@ -114,3 +114,31 @@ export function withCheckinEnding<T>(
     return `${said.trim() ? ' ' : ''}${missing.join(' ')}`;
   });
 }
+
+type GateTurn = Omit<Parameters<typeof timeoutCheckin>[0], 'verdict'> & { env?: Env };
+
+/**
+ * The voice gate's two touch points (crisis-gate.ts), one call each. `escalation`: once the read
+ * is in, a failed read (null) on check-in words is the check-in and every other read goes to
+ * `escalate`; no live read (undefined) escalates nothing. `ending`: on the check-in's reply only,
+ * code says what the reply lacks; every other reply passes untouched.
+ */
+export const checkin = {
+  async escalation<D>(
+    read: Promise<CrisisVerdict | null | undefined>,
+    turn: GateTurn,
+    escalate: (verdict: CrisisVerdict | null) => Promise<D | null>
+  ): Promise<D | { action: 'guide'; guidance: string } | null> {
+    const verdict = await read;
+    if (verdict === undefined) return null;
+    const guidance = timeoutCheckin({ ...turn, verdict }, turn.env);
+    return guidance ? { action: 'guide' as const, guidance } : escalate(verdict);
+  },
+  ending<T>(
+    reply: ReadableStream<T> | null,
+    decision: { guidance?: string },
+    caller: { latest: string }
+  ): ReadableStream<T | string> | null {
+    return decision.guidance === TIMEOUT_CHECKIN ? withCheckinEnding(reply, caller) : reply;
+  },
+};

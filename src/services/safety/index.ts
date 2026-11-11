@@ -41,7 +41,7 @@ export { emergencyDialRefusal } from '../../utils/dialable-number.js';
 // A turn whose crisis read the provider blocked (CRISIS_CLASSIFIER_BLOCKED_SIGNAL, turn-crisis.ts).
 export { blockedReadGuidance } from './crisis-classifier-blocked.js';
 // A failed crisis read on safety words: the check-in (CRISIS_TIMEOUT_CHECKIN, crisis-gate.ts).
-export { TIMEOUT_CHECKIN, timeoutCheckin, withCheckinEnding } from './crisis-timeout-checkin.js';
+export { checkin } from './crisis-timeout-checkin.js';
 export { resolveCrisisClassifierTimeoutMs } from './crisis-classifier.js';
 // CRISIS_GRADED_RESPONSE=shadow: the graded crisis response, measured first (crisis-graded-shadow.ts).
 export { mainOf } from './crisis-graded-response.js';
