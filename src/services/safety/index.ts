@@ -28,7 +28,12 @@ export {
   detectCrisis as scoreCrisisLanguage,
   IN_DANGER_NOW,
 } from './crisis-guard.js';
-export { EMERGENCY_FOR_THEM } from './crisis-guard-replies.js';
+export {
+  EMERGENCY_FOR_THEM,
+  getCrisisResponse,
+  LATE_911_LINE,
+  namesCrisisLine,
+} from './crisis-guard-replies.js';
 // assessSafety's escalate-only phrase floor, read after the guard (crisis-coaching-floor.ts).
 export { coachingFloorRead, type CoachingFloorRead } from './crisis-coaching-floor.js';
 export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.js';
@@ -40,7 +45,13 @@ export { offersCrisisLine } from './crisis-line-speech.js';
 export { emergencyDialRefusal } from '../../utils/dialable-number.js';
 // A turn whose crisis read the provider blocked (CRISIS_CLASSIFIER_BLOCKED_SIGNAL, turn-crisis.ts).
 export { blockedReadGuidance } from './crisis-classifier-blocked.js';
-export { resolveCrisisClassifierTimeoutMs } from './crisis-classifier.js';
+// A voice turn the patterns answer with the 988 script still asks it (crisis-script-imminent.ts).
+export {
+  resolveCrisisClassifierTimeoutMs,
+  startCrisisClassifier,
+  type CrisisClassifierInput,
+  type StartCrisisClassifierOptions,
+} from './crisis-classifier.js';
 // CRISIS_GRADED_RESPONSE=shadow: the graded crisis response, measured first (crisis-graded-shadow.ts).
 export { mainOf } from './crisis-graded-response.js';
 export { noteSpokenLifeline, shadowGrade, shadowPipelineGrade } from './crisis-graded-shadow.js';
