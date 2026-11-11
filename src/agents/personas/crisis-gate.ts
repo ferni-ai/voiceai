@@ -63,6 +63,11 @@ import {
   screenReply,
 } from '../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
+import {
+  timeoutCheckin,
+  withCheckinEnding,
+  TIMEOUT_CHECKIN,
+} from '../../services/safety/crisis-timeout-checkin.js';
 import { startWhoRead } from '../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
 import {
   callRiskBeforeTurn,
@@ -213,6 +218,12 @@ export function startCrisisGate(
   const verdictRead = wait ? wait.then(async (go) => (go ? read() : undefined)) : read();
   if (!verdictRead) return { decision, escalation: null, reask };
   const escalate = async (verdict: CrisisVerdict | null): Promise<CrisisGateDecision | null> => {
+    // CRISIS_TIMEOUT_CHECKIN: no read, safety words in the caller's line (crisis-timeout-checkin.ts).
+    const checkin = timeoutCheckin({ verdict, decision, reask, latest }, env);
+    if (checkin) {
+      log.info({ action: 'guide', source: 'timeout_checkin' }, 'CRISIS_GATE');
+      return guide(checkin);
+    }
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
     if (loneImminentGoodbye({ detection, verdict, latest, earlier, companion, priorRisk })) {
       log.info({ action: 'guide', source: 'lone_imminent_goodbye' }, 'CRISIS_GATE');
@@ -494,6 +505,10 @@ export async function gatedReply(
       burst === undefined ? undefined : false,
       true
     );
+    // CRISIS_TIMEOUT_CHECKIN: never silent; code adds the question or 988 the reply lacks.
+    if (decision.guidance === TIMEOUT_CHECKIN) {
+      return withCheckinEnding(guided ?? textReply(''), callerWords(chatCtx).latest);
+    }
     return asking(guided, decision.guidance === GROUNDED_LIGHT_TOUCH);
   });
 }
