@@ -141,6 +141,8 @@ const RESOLVERS: Readonly<Record<string, Resolve>> = {
   CRISIS_EVENT_RECORD: (env) => flagModeOf('CRISIS_EVENT_RECORD' as FlagName, env),
   SEXUAL_TOPIC_BOUNDARY: (env) => onOff(flagOn('SEXUAL_TOPIC_BOUNDARY' as FlagName, env)),
   MINOR_CARE: (env) => flagModeOf('MINOR_CARE' as FlagName, env),
+  // ownerExempt (minor-care.ts) is private; its whole read of the flag is this flagOn call.
+  MINOR_CARE_OWNERS: (env) => onOff(flagOn('MINOR_CARE_OWNERS' as FlagName, env)),
   CRISIS_GRADED_RESPONSE: (env) => resolveGradedResponseMode(env),
   CRISIS_READ_JOINED_TURN: readJoinedTurnMode,
   MINOR_CRISIS_CARE: (env) => onOff(flagOn('MINOR_CRISIS_CARE' as FlagName, env)),
@@ -155,7 +157,10 @@ const RESOLVERS: Readonly<Record<string, Resolve>> = {
   CRISIS_ADJUDICATOR_TIMEOUT_MS: (env) => String(resolveCrisisAdjudicatorTimeoutMs(env)),
 };
 
-/** prod-2026-11-11's flags prod had no value for: each must be its code default. */
+/** prod-2026-11-11's flags set in prod that 11-01 left out. */
+const PROD_SET_2026_11_11 = ['MINOR_CARE_OWNERS'] as const;
+
+/** prod-2026-11-11's flags absent from or unset in prod: each must be its code default. */
 const PROD_NO_VALUE_2026_11_11 = [
   'CRISIS_GRADED_RESPONSE',
   'CRISIS_READ_JOINED_TURN',
@@ -205,19 +210,17 @@ describe('full-path profiles: every value is a mode its resolver returns', () =>
     }
   );
 
-  it('prod-2026-11-11 is prod-2026-11-01 with means in hand live, plus code defaults', () => {
+  it('prod-2026-11-11 is prod-2026-11-01 with means in hand live, prod additions and defaults', () => {
     const { CRISIS_MEANS_IN_HAND: was, ...rest11 } = entry(PROFILES, 'prod-2026-11-01');
     const { CRISIS_MEANS_IN_HAND: now, ...rest } = entry(PROFILES, 'prod-2026-11-11');
     expect([was, now]).toEqual(['shadow', 'live']);
+    const added: readonly string[] = [...PROD_SET_2026_11_11, ...PROD_NO_VALUE_2026_11_11];
     const carried = Object.fromEntries(
-      Object.entries(rest).filter(
-        ([flag]) => !(PROD_NO_VALUE_2026_11_11 as readonly string[]).includes(flag)
-      )
+      Object.entries(rest).filter(([flag]) => !added.includes(flag))
     );
     expect(carried).toEqual(rest11);
-    expect(Object.keys(rest).filter((flag) => !(flag in rest11))).toEqual([
-      ...PROD_NO_VALUE_2026_11_11,
-    ]);
+    expect(Object.keys(rest).filter((flag) => !(flag in rest11))).toEqual(added);
+    expect(rest.MINOR_CARE_OWNERS).toBe('on');
   });
 
   it.each(PROD_NO_VALUE_2026_11_11)(
