@@ -87,6 +87,32 @@ describe('planNextThread: holds read through ports fail closed', () => {
     ['the holds read rejects', 'hold', { holds: async () => boom() }],
     ['the forgotten list is unreadable', 'forgotten', { forgotten: async () => null }],
     ['the forgotten read rejects', 'forgotten', { forgotten: async () => boom() }],
+    // A port that answers undefined (a broken or half-wired read) holds too: only `false` passes.
+    [
+      'the this-call read answers undefined',
+      'crisis',
+      { crisis: { thisCall: () => undefined as unknown as boolean, within: async () => false } },
+    ],
+    [
+      'the 72 h read answers undefined',
+      'crisis',
+      { crisis: { thisCall: () => false, within: async () => undefined as unknown as boolean } },
+    ],
+    [
+      'the minor-care read answers undefined',
+      'minor-care',
+      { minorCare: () => undefined as unknown as boolean },
+    ],
+    [
+      'the holds read answers undefined',
+      'hold',
+      { holds: async () => undefined as unknown as boolean },
+    ],
+    [
+      'the forgotten read answers undefined',
+      'forgotten',
+      { forgotten: async () => undefined as unknown as null },
+    ],
   ])('%s blocks with %s', async (_name, gate, over) => {
     const { plan } = await planNextThread(CALL, ports(over), NOW);
     expect(plan).toEqual({ pick: null, blockedBy: gate, dropped: {} });

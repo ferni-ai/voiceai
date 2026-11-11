@@ -6,7 +6,8 @@
  * shadow and on are the same: nothing reaches a prompt, is marked asked, is
  * stored, scheduled or sent.
  *
- * - Holds fail closed: a read that throws holds; an unreadable forgotten list blocks (G4).
+ * - Holds fail closed: a read that throws, or answers anything but `false`, holds; an
+ *   unreadable or missing forgotten matcher blocks (G4).
  * - Asks: until B3 writes them, every `surfaced` entry (opener, in-call, text)
  *   and `asks` (#2084) entry on follow-ups changed in the last 7 days, closed included.
  * - Appetite: nothing stores it yet, so every caller has the prior (three a week) until B5.
@@ -50,6 +51,13 @@ export interface PlanPorts {
 /** No Ferni-started ask within this long after a call where crisis risk fired (§8). */
 const CRISIS_WAIT_HOURS = 72;
 
+/** A hold read passes only on a strict `false`; undefined, null or anything else holds. */
+const heldUnlessFalse = (answer: unknown): boolean => answer !== false;
+
+/** A forgotten matcher, or null (unreadable, G4 stops the plan) when the port gave no function. */
+const matcherOrNull = (answer: unknown): ((text: string) => boolean) | null =>
+  typeof answer === 'function' ? (answer as (text: string) => boolean) : null;
+
 /** The read's answer, or `unreadable` when it throws or rejects. */
 async function readOr<T>(read: () => T | Promise<T>, unreadable: T): Promise<T> {
   try {
@@ -83,11 +91,14 @@ export async function planNextThread(
   const { userId, sessionId } = call;
   const [crisisNow, crisisRecent, minorCare, held, forgotten, candidates, history, appetite] =
     await Promise.all([
-      readOr(async () => ports.crisis.thisCall(sessionId), true),
-      readOr(async () => ports.crisis.within(userId, CRISIS_WAIT_HOURS, now), true),
-      readOr(async () => ports.minorCare(userId, sessionId), true),
-      readOr(async () => ports.holds(userId, sessionId), true),
-      readOr(async () => ports.forgotten(userId), null),
+      readOr(async () => heldUnlessFalse(await ports.crisis.thisCall(sessionId)), true),
+      readOr(
+        async () => heldUnlessFalse(await ports.crisis.within(userId, CRISIS_WAIT_HOURS, now)),
+        true
+      ),
+      readOr(async () => heldUnlessFalse(await ports.minorCare(userId, sessionId)), true),
+      readOr(async () => heldUnlessFalse(await ports.holds(userId, sessionId)), true),
+      readOr(async () => matcherOrNull(await ports.forgotten(userId)), null),
       ports.followUps(userId),
       ports.askHistory(userId, new Date(now.getTime() - WEEK_MS), new Date(now.getTime() + 1)),
       ports.appetite?.(userId) ?? PRIOR_APPETITE,
