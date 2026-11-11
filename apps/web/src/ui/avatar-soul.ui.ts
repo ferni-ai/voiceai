@@ -38,11 +38,11 @@ import { gsap } from '../utils/gsap-setup.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { onThinkingTurns } from './avatar-motion/thinking-glance.js';
+import { crisisAffectAllows } from './face/crisis-face-hold.js';
 import { ferniExpressions } from './ferni-expressions.ui.js';
 
 const log = createLogger('AvatarSoul');
 
-// FIX BUG: Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
@@ -962,7 +962,7 @@ export function setExpressionWithAnticipation(
  * Golden flash when recognizing shared history or inside jokes.
  */
 export function triggerMemorySpark(): void {
-  if (!memorySparkElement || state.reducedMotion) return;
+  if (!memorySparkElement || state.reducedMotion || !crisisAffectAllows('sparkle')) return;
 
   const sparkCore = memorySparkElement.querySelector('.spark-core') as HTMLElement;
   const sparkRing = memorySparkElement.querySelector('.spark-ring') as HTMLElement;

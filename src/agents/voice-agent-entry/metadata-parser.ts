@@ -17,6 +17,7 @@ import { errorClass } from '../../utils/error-class.js';
 import { errorText } from '../../utils/error-text.js';
 import { jobMetadataLine } from './startup-log.js';
 import { flagOn } from '../../config/env-flag.js';
+import { livePersonaId } from '../../personas/index.js';
 
 // What a dispatch carries is the caller's (why Ferni calls, what to ask a
 // doctor, the last talk): logged as kinds and lengths only, through the safe
@@ -100,7 +101,10 @@ export function parseJobMetadata(ctx: JobContext): ParsedMetadata {
   }
 
   const callType = metadata.type as string | undefined;
-  const personaId = (metadata.persona_id as string) || process.env.PERSONA_ID || 'ferni';
+  // A retired persona's id can still sit in stored state (a scheduled check-in): Ferni takes the call.
+  const personaId = livePersonaId(
+    (metadata.persona_id as string) || process.env.PERSONA_ID || 'ferni'
+  );
   const publisherId = (metadata.publisher_id as string) || undefined;
 
   process.stderr.write(`[voice-agent-entry] Resolved personaId: ${personaId}\n`);
@@ -350,7 +354,7 @@ export async function setupCallTypeContexts(
           'warm',
         suggestedOpener: metadata.suggestedOpener as string | undefined,
         avoidances: metadata.avoidances as string[] | undefined,
-        initiatingPersona: (metadata.persona_id as string) || 'ferni',
+        initiatingPersona: livePersonaId((metadata.persona_id as string) || 'ferni'),
         ...(movedFrom && { movedFrom }),
       };
 

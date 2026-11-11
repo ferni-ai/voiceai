@@ -70,20 +70,20 @@ describe('handoffConsent', () => {
 
   it('is agreed when the caller says yes right after Ferni offered that teammate', () => {
     const ctx = chat(
-      ['assistant', 'Want me to grab Tom? He lives for this stuff.'],
+      ['assistant', 'Want me to grab Henry? He lives for this stuff.'],
       ['user', 'yeah sure']
     );
-    expect(handoffConsent(ctx, 'Tom Brannigan')).toBe('agreed');
+    expect(handoffConsent(ctx, 'Henry Caldwell')).toBe('agreed');
   });
 
   it('is none when the caller turns the offer down, even with a yes word in it', () => {
     const ctx = chat(['assistant', 'Want me to grab Peter?'], ['user', 'yeah no, not now']);
-    expect(handoffConsent(ctx, 'Tom Brannigan')).toBe('none');
+    expect(handoffConsent(ctx, 'Henry Caldwell')).toBe('none');
   });
 
   it('is none for a yes to something other than an offer of that teammate', () => {
     const ctx = chat(['assistant', 'Want to keep going on the budget?'], ['user', 'yeah sure']);
-    expect(handoffConsent(ctx, 'Tom Brannigan')).toBe('none');
+    expect(handoffConsent(ctx, 'Henry Caldwell')).toBe('none');
   });
 
   it('reads the whole current turn when the caller paused mid-request', () => {

@@ -51,7 +51,7 @@ describe('updateAgentTools on a real SDK agent', () => {
     // The dynamic loader's catalog carries every persona's handoff, Ferni's own
     // included, and its handoffToPeter goes elsewhere.
     await updateAgentTools(agent, {
-      handoffToPeter: makeTool('peter-lynch'),
+      handoffToPeter: makeTool('catalog-peter'),
       handoffToFerni: makeTool('ferni'),
       handoffToAlex: makeTool('alex-chen'),
       recallFromMemory: makeTool('b'),

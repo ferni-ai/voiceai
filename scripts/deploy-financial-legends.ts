@@ -3,8 +3,8 @@
  * Deploy Financial Legends Page to Production
  *
  * Generates and deploys the Financial Legends multi-advisor landing page
- * featuring Tom Brannigan, Henry Caldwell and Nate Holloway (fictional characters
- * inspired by investing philosophies; ids peter-lynch, john-bogle, joel-dickson).
+ * featuring Henry Caldwell and Nate Holloway (fictional characters inspired by
+ * investing philosophies; ids john-bogle, joel-dickson).
  *
  * Usage:
  *   npx tsx scripts/deploy-financial-legends.ts              # Generate and deploy
@@ -14,7 +14,8 @@
  * @module scripts/deploy-financial-legends
  */
 
-import { generateMultiAdvisorPage, type MultiAdvisorPageConfig } from '../src/services/page-generator/index.js';
+import { generateMultiAdvisorPage } from '../src/services/page-generator/index.js';
+import { FINANCIAL_LEGENDS_PAGE as config } from './financial-legends-page.js';
 import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { writeFileSync, mkdirSync } from 'fs';
@@ -35,65 +36,6 @@ if (getApps().length === 0 && !isDryRun) {
     console.log('Firebase Admin SDK not initialized - using dry-run mode');
   }
 }
-
-// =============================================================================
-// FINANCIAL LEGENDS CONFIGURATION
-// =============================================================================
-
-const config: MultiAdvisorPageConfig = {
-  title: 'Financial Legends',
-  description: 'Three fictional mentors, each inspired by a great investing philosophy, ready to guide your financial journey.',
-
-  advisors: [
-    {
-      id: 'peter-lynch',
-      name: 'Tom Brannigan',
-      initials: 'TB',
-      tagline: 'The Stock Picker',
-      description: 'Inspired by invest-in-what-you-know stock picking. Finds great companies by paying attention to what people actually buy.',
-      color: '#1a5f2a', // Growth green
-      icon: '📈',
-      voiceId: '4cf80313-54dc-4ca9-a17c-3e5b8f68a78c', // Cartesia stock voice "Hugh - Confident Veteran"
-    },
-    {
-      id: 'john-bogle',
-      name: 'Henry Caldwell',
-      initials: 'HC',
-      tagline: 'The Index Investor',
-      description: 'Inspired by index investing. Champion of low-cost, long-term investing for everyday investors.',
-      color: '#8b0000', // Deep red
-      icon: '🏛️',
-      voiceId: 'ed82c17b-4704-4d34-be43-5d19065acdf1', // Cartesia stock voice "Carl - Steady Storyteller"
-    },
-    {
-      id: 'joel-dickson',
-      name: 'Nate Holloway',
-      initials: 'NH',
-      tagline: 'The Life Mentor',
-      description: 'Inspired by evidence-based planning and behavioral coaching. Helps navigate life decisions, career changes, and finding purpose.',
-      color: '#96151D', // Burgundy
-      icon: '🧭',
-      voiceId: 'bbee10a8-4f08-4c5c-8282-e69299115055', // Cartesia stock voice "Ben - Helpful Man"
-    },
-  ],
-
-  brand: {
-    primary: '#1a365d', // Deep financial blue
-    secondary: '#2c5282',
-  },
-
-  theme: 'zen',
-
-  deployment: {
-    environment: 'production',
-  },
-
-  seo: {
-    title: 'Financial Legends - Investment Wisdom, Three Philosophies',
-    description: 'Get personalized guidance from Tom, Henry and Nate: fictional mentors inspired by stock picking, index investing and behavioral coaching.',
-    twitterCard: 'summary_large_image',
-  },
-};
 
 // =============================================================================
 // DEPLOYMENT
@@ -202,7 +144,6 @@ async function deploy() {
 
   // Handoff info
   console.log('\n🔄 Handoff Triggers:');
-  console.log('   "I want to pick stocks"       → Tom Brannigan');
   console.log('   "Tell me about index funds"   → Henry Caldwell');
   console.log('   "I\'m thinking about my career" → Nate Holloway');
 

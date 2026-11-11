@@ -87,10 +87,8 @@ describe("the first Ferni agent's handoff tools", () => {
       'handoffToNate',
       'handoffToNayan',
       'handoffToPeter',
-      'handoffToTom',
     ]);
     expect(description('handoffToPeter')).toMatch(/^Transfer conversation to Peter John, /);
-    expect(description('handoffToTom')).toMatch(/^Transfer conversation to Tom Brannigan, /);
     expect(description('handoffToHenry')).toMatch(/^Transfer conversation to Henry Caldwell, /);
   }, 60_000);
 });

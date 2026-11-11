@@ -21,7 +21,7 @@ import { handleInboundSMS as routeInboundSMS } from '../../conversation-thread/i
 import { handleProactiveSmsReply } from '../proactive-channels/sms-replies.js';
 import { isMemberIdentity } from '../../identity/member-identity.js';
 import { inboundKeyword, keywordReply } from '../../messaging/sms-keywords.js';
-import { heldSender, last4 } from '../checkin-replies.js';
+import { heldSenderStrict, last4 } from '../checkin-replies.js';
 import { answerCallMe, CALL_SCHEDULED, CALLING, NO_CALL } from '../sms-call-me.js';
 import { smsMemberReply } from '../sms-reply/sms-reply.js';
 import { findAccountByVerifiedPhone } from './sms-sender-account.js';
@@ -392,7 +392,7 @@ export async function handleInboundSMSWebhook(
   if (isMemberIdentity(userId)) {
     try {
       const stop = said?.kind === 'maybe-opt-out';
-      const held = await heldSender(userId, From); // MINOR_CARE_SHARED_HOLD: answered, not kept
+      const held = await heldSenderStrict(userId, From); // MINOR_CARE: answered, not kept
       const routeResult = await routeInboundSMS(userId, From, Body, stop, held);
 
       log.info(

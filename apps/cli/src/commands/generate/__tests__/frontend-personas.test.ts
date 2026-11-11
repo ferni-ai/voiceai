@@ -24,22 +24,21 @@ describe('frontend persona roster', () => {
 
 describe('Financial Legends (generated so the web can show who is speaking)', () => {
   it('are recognised by their team, and only them', () => {
-    expect(isFinancialLegend(manifestOf('peter-lynch'))).toBe(true);
     expect(isFinancialLegend(manifestOf('john-bogle'))).toBe(true);
     expect(isFinancialLegend(manifestOf('peter-john'))).toBe(false);
   });
 
   it('build a speaker card from the bundle: own name, initials and title, not a team member', async () => {
-    const tom = await manifestToLegend(manifestOf('peter-lynch'), bundle('peter-lynch'));
-    expect(tom).toMatchObject({
-      id: 'peter-lynch',
-      name: 'Tom Brannigan',
-      initials: 'TB',
-      subtitle: 'Stock Picking Guide',
+    const henry = await manifestToLegend(manifestOf('john-bogle'), bundle('john-bogle'));
+    expect(henry).toMatchObject({
+      id: 'john-bogle',
+      name: 'Henry Caldwell',
+      initials: 'HC',
+      subtitle: 'Index Investing Mentor',
       role: 'standalone',
       skills: [],
     });
-    expect(tom.transition.emoji).toBe('');
+    expect(henry.transition.emoji).toBe('');
     const joel = await manifestToLegend(manifestOf('joel-dickson'), bundle('joel-dickson'));
     expect(joel.subtitle).toBe('Life Mentor');
   });

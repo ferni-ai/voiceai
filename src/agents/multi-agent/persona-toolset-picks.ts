@@ -118,7 +118,6 @@ export const PERSONA_TOOL_PICKS: Readonly<Record<string, PersonaToolPicks>> = {
       'savingsCalc',
     ],
   },
-  'peter-lynch': MONEY_EDUCATION,
   'john-bogle': MONEY_EDUCATION,
   'joel-dickson': MONEY_EDUCATION,
 };

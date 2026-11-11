@@ -72,7 +72,7 @@ export type HandoffEventType =
  * Event fired when agents hand off to each other.
  *
  * Backend may send various agent ID formats:
- * - Full IDs: 'jack-bogle', 'peter-lynch', 'comm-specialist', 'spend-save', 'event-planner'
+ * - Full IDs: 'jack-bogle', 'comm-specialist', 'spend-save', 'event-planner'
  * - Short aliases: 'jack', 'peter', 'alex', 'maya', 'jordan'
  * - Coach: 'jack-b'
  */

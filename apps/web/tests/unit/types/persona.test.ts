@@ -6,13 +6,28 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import generated from '../../../src/config/personas.generated.json' with { type: 'json' };
 import {
   isValidPersonaId,
+  isLegendId,
   DEFAULT_PERSONA_ID,
   ALL_PERSONA_IDS,
+  LEGEND_IDS,
 } from '../../../src/types/persona.js';
 
 describe('Persona Types', () => {
+  // The legends come from the persona bundles (personas.generated.json): the hand
+  // list must be exactly those, so a retired legend (Tom) can't linger in it.
+  describe('LEGEND_IDS', () => {
+    it('is exactly the generated legends', () => {
+      expect([...LEGEND_IDS].sort()).toEqual(Object.keys(generated.legends).sort());
+    });
+
+    it("does not take Tom's retired id", () => {
+      expect(isLegendId('peter-lynch')).toBe(false);
+    });
+  });
+
   describe('isValidPersonaId', () => {
     it('should return true for valid persona IDs', () => {
       expect(isValidPersonaId('ferni')).toBe(true);
