@@ -307,6 +307,7 @@ export function bubbles(_options: {
  * First connection - warm welcome, not a party.
  */
 export function celebrateFirstConnection(): void {
+  if (!crisisAffectAllows('celebration')) return; // no "first connection" party on a crisis call
   connectionWarmth();
 
   // Also add a subtle glow to the app

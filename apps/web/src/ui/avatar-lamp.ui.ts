@@ -371,7 +371,7 @@ export function nod(count: number = 2, speed: 'slow' | 'normal' | 'fast' = 'norm
  * The "aha!" moment.
  */
 export function perkUp(): void {
-  if (!coachAvatar) return;
+  if (!coachAvatar || !crisisAffectAllows('lamp')) return;
 
   pauseBreathingFor(600);
 

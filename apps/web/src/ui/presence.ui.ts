@@ -1053,7 +1053,7 @@ export function curiousTilt(): void {
  * Joy expression - warm, happy glow
  */
 export function joy(): void {
-  if (!avatarContainer || !avatarElement) return;
+  if (!avatarContainer || !avatarElement || !crisisAffectAllows('sparkle')) return;
   
   // Quick brightening pulse
   avatarElement.animate([

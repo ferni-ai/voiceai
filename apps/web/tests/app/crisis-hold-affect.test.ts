@@ -35,20 +35,27 @@ import {
 import { onCallEnded } from '../../src/app/call-end.js';
 import { handleDataMessage } from '../../src/app/data-message-handlers.js';
 import { CRISIS_CALM_AFFECT } from '../../src/config/crisis-faces.js';
+import { initBetterThanHumanSignalHandlers } from '../../src/eq/bridge/humanization-bridge.js';
+import { t } from '../../src/i18n/index.js';
+import { delightService } from '../../src/services/delight.service.js';
 import { appState } from '../../src/state/app.state.js';
 import type { DataMessage } from '../../src/types/events.js';
 import { avatarFeedback } from '../../src/ui/avatar-feedback.ui.js';
 import { avatarLamp, initAvatarLamp } from '../../src/ui/avatar-lamp.ui.js';
+import { initAvatarSoul } from '../../src/ui/avatar-soul.ui.js';
 import { avatarTapReactionsUI } from '../../src/ui/avatar-tap-reactions.ui.js';
 import { CelebrationUI } from '../../src/ui/celebration.ui.js';
 import { celebrationsUI } from '../../src/ui/celebrations.ui.js';
 import { coachUI, initCoachUI } from '../../src/ui/coach.ui.js';
 import { isCrisisFaceHeld } from '../../src/ui/face/crisis-face-hold.js';
 import { ferniExpressions } from '../../src/ui/ferni-expressions.ui.js';
+import { ferniMilestones } from '../../src/ui/ferni-milestones.ui.js';
 import { getMomentsManager } from '../../src/ui/moments/manager.js';
 import { resetToastRegion } from '../../src/ui/overlay/toast-region.js';
 import { presenceUI } from '../../src/ui/presence.ui.js';
+import { soundUI } from '../../src/ui/sound.ui.js';
 import { initWaveformUI, waveformUI } from '../../src/ui/waveform.ui.js';
+import { haptics } from '../../src/utils/haptics.js';
 
 /** Room double: what the agent publishes is delivered to the web's handler. */
 function roomWiredToWeb(): DataMessageRoom {
@@ -83,7 +90,8 @@ root.innerHTML = `
   </div>
   <span id="personaName"></span>
   <span id="personaSubtitle"></span>
-  <div id="waveformContainer"></div>`;
+  <div id="waveformContainer"></div>
+  <div id="app"></div>`;
 const byId = (id: string): HTMLElement => root.querySelector<HTMLElement>(`#${id}`)!;
 const avatarContainer = (): HTMLElement => root.querySelector<HTMLElement>('.avatar-container')!;
 const coach = (): HTMLElement => byId('coach');
@@ -110,6 +118,7 @@ function classesDuring(el: Element, prefix: string, play: () => void): string[] 
 }
 
 const originalAnimate = Element.prototype.animate;
+const originalGetAnimations = Element.prototype.getAnimations;
 
 beforeAll(() => {
   Element.prototype.animate = function (this: Element, keyframes: unknown) {
@@ -123,12 +132,15 @@ beforeAll(() => {
       commitStyles: () => undefined,
     } as unknown as Animation;
   } as typeof Element.prototype.animate;
+  Element.prototype.getAnimations = () => []; // jsdom has none
   document.body.appendChild(root);
   initCoachUI();
   presenceUI.init();
   avatarFeedback.init();
   initAvatarLamp();
   initWaveformUI();
+  initAvatarSoul(); // the memory spark
+  initBetterThanHumanSignalHandlers(); // name lift and temporal insight reach the soul through it
   ferniExpressions.setExpression('neutral'); // creates the lid overlay and the sparkle layer
 });
 
@@ -150,6 +162,7 @@ afterEach(() => {
 
 afterAll(() => {
   Element.prototype.animate = originalAnimate;
+  Element.prototype.getAnimations = originalGetAnimations;
   vi.useRealTimers();
 });
 
@@ -401,5 +414,323 @@ describe('the coach ring', () => {
     expect(
       classesDuring(coach(), 'tap-reaction-', () => avatarTapReactionsUI.playReaction('wink'))
     ).toEqual(['tap-reaction-wink']);
+  });
+});
+
+// The crisis lead's second list (2026-11-10): ten more playful affects the hold
+// keeps still, four calm ones it lets play.
+describe('more playful affect held during a crisis', () => {
+  it('the presence joy flash plays, then not during a crisis', async () => {
+    expect(animationsOn(byId('coachAvatar'), () => presenceUI.joy())).toBe(1);
+    await sendCrisis();
+    expect(animationsOn(byId('coachAvatar'), () => presenceUI.joy())).toBe(0);
+  });
+
+  it('the realization double-take pops, then not during a crisis', async () => {
+    expect(tweensOn(avatarContainer(), () => ferniExpressions.realization())).toBeGreaterThan(0);
+    gsap.killTweensOf(avatarContainer());
+    await sendCrisis();
+    expect(tweensOn(avatarContainer(), () => ferniExpressions.realization())).toBe(0);
+  });
+
+  it('the lamp perks up (directly, on a memory callback, surprised or proud), then not during a crisis', async () => {
+    const avatar = byId('coachAvatar');
+    const memoryCallback = (): void => {
+      document.dispatchEvent(new CustomEvent('ferni:memory-callback'));
+    };
+    expect(tweensOn(avatar, () => avatarLamp.perkUp())).toBeGreaterThan(0);
+    expect(tweensOn(avatar, memoryCallback)).toBeGreaterThan(0);
+    expect(tweensOn(avatar, () => avatarLamp.express('surprised'))).toBeGreaterThan(0);
+    gsap.killTweensOf(avatar);
+
+    await sendCrisis();
+    expect(tweensOn(avatar, () => avatarLamp.perkUp())).toBe(0);
+    expect(tweensOn(avatar, memoryCallback)).toBe(0);
+    expect(tweensOn(avatar, () => avatarLamp.express('surprised'))).toBe(0);
+    expect(tweensOn(avatar, () => avatarLamp.express('proud'))).toBe(0);
+  });
+
+  it('the laugh, happy and surprise reactions play, then not during a crisis', async () => {
+    const playful = ['laugh', 'happy', 'surprise'] as const;
+    for (const reaction of playful) {
+      expect(classesDuring(coach(), 'reaction-', () => avatarFeedback.react(reaction))).toEqual([
+        `reaction-${reaction}`,
+      ]);
+      vi.advanceTimersByTime(1_000);
+    }
+
+    await sendCrisis();
+    for (const reaction of playful) {
+      expect(classesDuring(coach(), 'reaction-', () => avatarFeedback.react(reaction))).toEqual([]);
+    }
+    // The calm ones still play.
+    expect(classesDuring(coach(), 'reaction-', () => avatarFeedback.react('empathy'))).toEqual([
+      'reaction-empathy',
+    ]);
+    vi.advanceTimersByTime(1_000);
+  });
+
+  it('the avatar dances to music, then not during a crisis', async () => {
+    expect(animationsOn(byId('coachAvatar'), () => avatarFeedback.musicPresence())).toBeGreaterThan(
+      0
+    );
+    expect(avatarFeedback.isDancing()).toBe(true);
+    avatarFeedback.stopDancing();
+
+    await sendCrisis();
+    expect(animationsOn(byId('coachAvatar'), () => avatarFeedback.musicPresence())).toBe(0);
+    expect(avatarFeedback.isDancing()).toBe(false);
+  });
+
+  it('a celebration message buzzes, then not during a crisis', async () => {
+    const buzz = vi.spyOn(delightService, 'haptic').mockImplementation(() => undefined);
+    await send('celebration', { celebrationType: 'good_news' });
+    await send('celebration', { celebrationType: 'milestone', message: 'ten calls' });
+    expect(buzz.mock.calls).toEqual([['light'], ['light']]);
+    vi.advanceTimersByTime(2_000);
+    buzz.mockClear();
+
+    await sendCrisis();
+    await send('celebration', { celebrationType: 'good_news' });
+    await send('celebration', { celebrationType: 'aha_moment' });
+    await send('celebration', { celebrationType: 'milestone', message: 'ten calls' });
+    expect(buzz).not.toHaveBeenCalled();
+    buzz.mockRestore();
+  });
+
+  it("the waveform's laugh particles burst, then not during a crisis", async () => {
+    const particles = (): number => root.querySelectorAll('.waveform-particles > *').length;
+    waveformUI.burstCelebration();
+    expect(particles()).toBeGreaterThan(0);
+    vi.advanceTimersByTime(5_000);
+    root.querySelectorAll('.waveform-particles > *').forEach((p) => p.remove());
+
+    await sendCrisis();
+    waveformUI.burstCelebration();
+    expect(particles()).toBe(0);
+  });
+
+  describe('the memory spark', () => {
+    const sparkParts = (): Element[] => {
+      const spark = root.querySelector('.soul-memory-spark')!;
+      return [spark, ...spark.querySelectorAll('*')];
+    };
+    const sparkTweens = (): number => gsap.getTweensOf(sparkParts()).length;
+
+    // Each humanization signal type has a 3 s cooldown on the wall clock.
+    let now = 9_000_000;
+    let clock: ReturnType<typeof vi.spyOn>;
+    beforeEach(() => {
+      clock = vi.spyOn(Date, 'now').mockImplementation(() => (now += 5_000));
+    });
+    afterEach(() => clock.mockRestore());
+
+    /** Tweens the spark gained from `fire` (GSAP's ticker does not run here, so old ones stay). */
+    async function sparkOn(fire: () => void | Promise<void>): Promise<number> {
+      const before = sparkTweens();
+      await fire();
+      // The name lift and temporal insight import the soul first: let that resolve.
+      for (let i = 0; i < 10; i++) await new Promise((resolve) => setImmediate(resolve));
+      const n = sparkTweens() - before;
+      await vi.advanceTimersByTimeAsync(10_000);
+      avatarContainer().removeAttribute('data-name-lift'); // a lift never plays over another
+      return n;
+    }
+
+    const paths: Array<[string, () => void | Promise<void>]> = [
+      [
+        'a memory callback',
+        () => void document.dispatchEvent(new CustomEvent('ferni:memory-callback')),
+      ],
+      [
+        'a name lift',
+        () => send('humanization_signal', { signalType: 'name_lift', effect: 'brighten' }),
+      ],
+      [
+        'a temporal insight',
+        () => send('humanization_signal', { signalType: 'temporal_insight', intensity: 0.8 }),
+      ],
+      ['an inside joke', () => void document.dispatchEvent(new CustomEvent('ferni:inside-joke'))],
+    ];
+
+    for (const [name, fire] of paths) {
+      it(`flashes on ${name}, then not during a crisis`, async () => {
+        expect(await sparkOn(fire)).toBeGreaterThan(0);
+        await sendCrisis();
+        expect(await sparkOn(fire)).toBe(0);
+      });
+    }
+  });
+
+  describe('the ferni milestone celebration', () => {
+    let sound: ReturnType<typeof vi.spyOn>;
+    let bigWin: ReturnType<typeof vi.spyOn>;
+    let celebrated: number;
+    const onCelebrated = (): void => {
+      celebrated++;
+    };
+    const celebrations = (): number =>
+      sound.mock.calls.length + bigWin.mock.calls.length + celebrated;
+
+    beforeEach(() => {
+      resetToastRegion();
+      ferniMilestones.resetMilestones();
+      sound = vi.spyOn(soundUI, 'play').mockImplementation(() => undefined);
+      bigWin = vi.spyOn(haptics, 'bigWin').mockImplementation(() => undefined);
+      celebrated = 0;
+      window.addEventListener('ferni:milestone-celebrated', onCelebrated);
+    });
+    afterEach(async () => {
+      window.removeEventListener('ferni:milestone-celebrated', onCelebrated);
+      appState.set('connection', 'disconnected');
+      appState.set('audio', 'idle');
+      await vi.advanceTimersByTimeAsync(5_000); // let a celebration finish before the next test
+      sound.mockRestore();
+      bigWin.mockRestore();
+      ferniMilestones.resetMilestones();
+    });
+
+    it('plays its sound, big-win buzz and moment outside a crisis', async () => {
+      ferniMilestones.triggerMilestone('one-year');
+      await vi.advanceTimersByTimeAsync(100);
+      expect(sound).toHaveBeenCalledWith('celebrate');
+      expect(bigWin).toHaveBeenCalledTimes(1);
+      expect(celebrated).toBe(1);
+    });
+
+    it('a milestone crossed during the hold is dropped, and never plays after the call ends', async () => {
+      await sendCrisis();
+      ferniMilestones.triggerMilestone('one-year');
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(celebrations()).toBe(0);
+
+      onCallEnded();
+      ferniMilestones.triggerMilestone('one-year');
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(celebrations()).toBe(0);
+      expect(ferniMilestones.getMilestones().find((m) => m.id === 'one-year')?.celebrated).toBe(
+        true
+      );
+    });
+
+    // While Ferni speaks a milestone waits in the queue and is tried again later.
+    async function queueWhileSpeaking(): Promise<void> {
+      appState.set('connection', 'connected');
+      appState.set('audio', 'speaking');
+      ferniMilestones.triggerMilestone('one-year');
+      await vi.advanceTimersByTimeAsync(10);
+      expect(sound).not.toHaveBeenCalled();
+    }
+
+    it('a milestone waiting while Ferni speaks plays once he stops', async () => {
+      await queueWhileSpeaking();
+      appState.set('audio', 'idle');
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(sound).toHaveBeenCalledWith('celebrate');
+    });
+
+    it('a milestone still waiting when the hold starts is dropped', async () => {
+      await queueWhileSpeaking();
+      await sendCrisis();
+      appState.set('audio', 'idle');
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(sound).not.toHaveBeenCalled();
+      expect(bigWin).not.toHaveBeenCalled();
+
+      onCallEnded();
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(sound).not.toHaveBeenCalled();
+    });
+  });
+
+  it('the first-connection celebration plays, then not during a crisis', async () => {
+    const shown = (): string[] =>
+      [
+        byId('app').classList.contains('first-connection') && 'first-connection',
+        avatarContainer().classList.contains('connection-warmth') && 'connection-warmth',
+      ].filter((c): c is string => Boolean(c));
+    celebrationsUI.celebrateFirstConnection();
+    expect(shown()).toEqual(['first-connection', 'connection-warmth']);
+    vi.advanceTimersByTime(10_000);
+    expect(shown()).toEqual([]);
+
+    await sendCrisis();
+    celebrationsUI.celebrateFirstConnection();
+    expect(shown()).toEqual([]);
+  });
+
+  it('the "tickles" whisper plays on 5+ rapid taps, then not during a crisis', async () => {
+    let now = 5_000_000;
+    const clock = vi.spyOn(Date, 'now').mockImplementation(() => (now += 2_000)); // past the cooldown
+    const whisper = vi.spyOn(avatarFeedback, 'whisper');
+    const tickles = (): number =>
+      whisper.mock.calls.filter(([text]) => text === t('avatarTapReactions.tickles')).length;
+    avatarTapReactionsUI.init();
+
+    for (let i = 0; i < 6; i++) byId('coachAvatar').click();
+    vi.advanceTimersByTime(2_000);
+    expect(tickles()).toBe(1);
+    vi.advanceTimersByTime(2_000);
+
+    await sendCrisis();
+    for (let i = 0; i < 6; i++) byId('coachAvatar').click();
+    vi.advanceTimersByTime(2_000);
+    expect(tickles()).toBe(1);
+
+    avatarTapReactionsUI.dispose();
+    whisper.mockRestore();
+    clock.mockRestore();
+  });
+});
+
+describe('calm affect that still plays during a crisis', () => {
+  beforeEach(async () => {
+    await sendCrisis();
+  });
+
+  it('the presence nod, shake, pulse and curious tilt', () => {
+    for (const play of [
+      presenceUI.nod,
+      presenceUI.shake,
+      presenceUI.pulse,
+      presenceUI.curiousTilt,
+    ]) {
+      expect(animationsOn(avatarContainer(), play)).toBe(1);
+    }
+  });
+
+  it('the lamp tilt and nod', () => {
+    const avatar = byId('coachAvatar');
+    expect(tweensOn(avatar, () => avatarLamp.tilt('right', 0.6))).toBeGreaterThan(0);
+    expect(tweensOn(avatar, () => avatarLamp.nod(1, 'slow'))).toBeGreaterThan(0);
+  });
+
+  it('the connection warmth', () => {
+    celebrationsUI.connectionWarmth();
+    expect(avatarContainer().classList.contains('connection-warmth')).toBe(true);
+    vi.advanceTimersByTime(10_000);
+  });
+
+  it('the soft acknowledgement', () => {
+    celebrationsUI.softAcknowledge();
+    expect(avatarContainer().classList.contains('soft-acknowledge')).toBe(true);
+    vi.advanceTimersByTime(10_000);
+  });
+});
+
+describe('the coach ring when a face layer throws', () => {
+  it('still goes back to calm', async () => {
+    coachUI.setEmotion('excited');
+    expect(coach().classList.contains('emotion-excited')).toBe(true);
+    const broken = vi.spyOn(presenceUI, 'setVoiceEmotion').mockImplementation(() => {
+      throw new Error('glow layer failed');
+    });
+
+    await sendCrisis();
+    broken.mockRestore();
+    const ring = [...coach().classList].filter(
+      (c) => c.startsWith('emotion-') || c === 'persona-transitioning'
+    );
+    expect(ring).toEqual(['emotion-calm']);
   });
 });

@@ -40,10 +40,14 @@ function isCrisisSignal(message: DataMessage): boolean {
 
 /** Puts the safety face on every layer that draws one, so nothing showing before stays. */
 function showSafetyFace(): void {
-  presenceUI.setVoiceEmotion('empathetic'); // glow and the legacy data-emotion eyes
-  luxoExpressions.setExpression('empathetic'); // data-expression, which luxo also mirrors to data-emotion
-  ferniExpressions.setExpression(CRISIS_CALM_FACES[0], DURATION.MODERATE); // lids, or the face engine
-  coachUI.resetRingToCalm(); // a joy, excited or sparkling ring from before the crisis goes calm
+  try {
+    presenceUI.setVoiceEmotion('empathetic'); // glow and the legacy data-emotion eyes
+    luxoExpressions.setExpression('empathetic'); // data-expression, which luxo also mirrors to data-emotion
+    ferniExpressions.setExpression(CRISIS_CALM_FACES[0], DURATION.MODERATE); // lids, or the face engine
+  } finally {
+    // A joy, excited or sparkling ring from before the crisis goes calm, even if a layer above threw
+    coachUI.resetRingToCalm();
+  }
 }
 
 /** Start (or renew) the crisis face hold when a crisis or safety message arrives. */

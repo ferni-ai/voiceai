@@ -22,11 +22,11 @@ export const CRISIS_CALM_FACES = ['holdingSpace', 'empathetic', 'attentive', 'li
 export type CrisisAffect =
   | 'warm'
   | 'glow'
-  | 'squash' // squash-and-stretch hops, jumps and bounces
-  | 'sparkle'
-  | 'lamp' // the lamp's bounce and laugh shake
-  | 'tap-reaction' // laugh, wink and giggle when the avatar is tapped
-  | 'celebration'; // celebration overlays, confetti, the milestone pulse
+  | 'squash' // hops, bounces, the double-take, the laugh/happy/surprise reactions, dancing to music
+  | 'sparkle' // sparkles, the joy flash, the memory spark, the waveform's laugh particles
+  | 'lamp' // the lamp's bounce, laugh shake and perk-up
+  | 'tap-reaction' // laugh, wink and giggle when the avatar is tapped, and the rapid-tap "tickles"
+  | 'celebration'; // overlays, confetti, the milestone pulse and celebrations, the celebration buzz
 
 /** The only affect the crisis hold allows (the crisis lead, 2026-11-09). */
 export const CRISIS_CALM_AFFECT: readonly CrisisAffect[] = ['warm', 'glow'];

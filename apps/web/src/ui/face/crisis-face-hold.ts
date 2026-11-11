@@ -11,10 +11,10 @@
  * - the legacy data-emotion eyes and glow (presence) and the coach's emotion
  *   reactions, which never reach the engine.
  *
- * Every playful affect asks `crisisAffectAllows(kind)` the same way: the
- * squash-and-stretch hops (presence, coach, held poses, pixar and gentle
- * bounces), sparkles, the lamp's bounce and laugh shake, tap reactions and
- * celebration overlays. Only warmth and glow play during the hold.
+ * Every playful affect asks `crisisAffectAllows(kind)` the same way (the kinds
+ * are listed in config/crisis-faces.ts): hops and bounces, sparkles and flashes,
+ * the lamp's bounce, shake and perk-up, tap reactions, and celebrations. Only
+ * warmth and glow play during the hold, with the calm nods, tilts and pulses.
  *
  * Only the call's end releases the hold. No message does: the server sends no
  * "crisis over" signal, so a missing, unknown or malformed signal, or a

@@ -27,6 +27,7 @@ import { soundUI } from './sound.ui.js';
 import { isToastRegionEnabled } from './overlay/toast-flag.js';
 import { showToast } from './overlay/toast-region.js';
 import { getCategoryIcon } from './ferni-milestone-icons.js';
+import { crisisAffectAllows } from './face/crisis-face-hold.js';
 
 const log = createLogger('FerniMilestones');
 
@@ -730,14 +731,12 @@ function checkAndCelebrate(milestoneId: MilestoneType): void {
   milestone.celebrated = true;
   milestone.celebratedAt = Date.now();
 
-  celebrationQueue.push(milestone);
-  processQueue();
-
-  window.dispatchEvent(
-    new CustomEvent('ferni:milestone-celebrated', {
-      detail: { milestone },
-    })
-  );
+  // Crossed during a crisis hold: dropped, so it never celebrates, then or later
+  if (crisisAffectAllows('celebration')) {
+    celebrationQueue.push(milestone);
+    processQueue();
+    window.dispatchEvent(new CustomEvent('ferni:milestone-celebrated', { detail: { milestone } }));
+  }
 
   // Send push notification - Better than human: we celebrate even when you're away
   sendMilestoneNotification(milestone);
@@ -816,6 +815,7 @@ function sendMilestoneNotification(milestone: Milestone): void {
 }
 
 function processQueue(): void {
+  if (!crisisAffectAllows('celebration')) celebrationQueue.length = 0; // queued before the hold: dropped
   if (isCelebrating || celebrationQueue.length === 0) return;
 
   // Don't land on the call's opening or while Ferni speaks: wait and try again

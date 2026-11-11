@@ -838,9 +838,8 @@ export function feedbackStopThinking(): void {
  * Halo stays static - no movement, just the avatar responds.
  */
 export function feedbackMusicPresence(): void {
-  if (!avatarContainer || !avatar) return;
+  if (!avatarContainer || !avatar || !crisisAffectAllows('squash')) return;
 
-  // FIX BUG: Respect reduced motion preference
   if (prefersReducedMotion()) return;
 
   // Don't double-start
@@ -1019,6 +1018,7 @@ export function isAvatarDancing(): boolean {
 // ============================================================================
 
 type ReactionType = 'happy' | 'curious' | 'empathy' | 'laugh' | 'surprise';
+const PLAYFUL_REACTIONS = new Set<ReactionType>(['happy', 'laugh', 'surprise']); // held in a crisis
 
 /**
  * Pixar-style reaction type - uses CSS keyframe animations
@@ -1084,7 +1084,7 @@ export function playPixarReaction(type: PixarReactionType): void {
  */
 export function triggerReaction(reaction: ReactionType): void {
   const coach = document.getElementById('coach');
-  if (!coach) return;
+  if (!coach || (PLAYFUL_REACTIONS.has(reaction) && !crisisAffectAllows('squash'))) return;
 
   // Remove any existing reaction classes
   coach.classList.remove(

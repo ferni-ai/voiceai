@@ -342,7 +342,7 @@ export function getLidBasePaths(): { top: string; bottom: string } | null {
 export function playRealization(): void {
   const coachAvatar = document.getElementById('coachAvatar');
   const avatarContainer = document.querySelector('.avatar-container') as HTMLElement;
-  if (!coachAvatar || !avatarContainer) return;
+  if (!coachAvatar || !avatarContainer || !crisisAffectAllows('squash')) return; // its double-take pop
   
   // Cancel any existing reaction
   if (reactionTimeline) reactionTimeline.kill();

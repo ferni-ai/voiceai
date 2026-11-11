@@ -786,7 +786,7 @@ function createRipple(): void {
  * Like confetti or joy bubbles!
  */
 function createParticleBurst(): void {
-  if (!particleContainer || !barsContainer) return;
+  if (!particleContainer || !barsContainer || !crisisAffectAllows('sparkle')) return;
 
   // Check for reduced motion
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
