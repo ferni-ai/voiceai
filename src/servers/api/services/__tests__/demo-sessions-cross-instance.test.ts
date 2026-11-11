@@ -195,6 +195,17 @@ describe('demo sessions across instances (#1759)', () => {
     expect(claim.success).toBe(false);
   });
 
+  it('a claim returns a conversation written between its read and its write', async () => {
+    between = () => Object.assign(remote.get(ROOM)!.conversation, { topics: ['gardening'] });
+
+    const claim = await a.claimDemoSession(claimToken, 'uid-sam');
+
+    expect(remote.get(ROOM)).toMatchObject({ claimed: true, claimedBy: 'uid-sam' });
+    expect(claim.success).toBe(true);
+    expect(claim.session?.conversation.topics).toEqual(['gardening']);
+    expect(claim.session?.claimed).toBe(true);
+  });
+
   it('a write to a demo deleted elsewhere reports missing and does not recreate it', async () => {
     await a.getDemoSession(ROOM);
     remote.delete(ROOM);

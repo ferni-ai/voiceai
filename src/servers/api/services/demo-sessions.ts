@@ -286,7 +286,13 @@ export async function claimDemoSession(
     return { success: false, error: 'Could not claim the demo session, try again' };
   }
 
-  const claimed: DemoSession = { ...session, ...claim };
+  // A conversation write can commit between the fresh read above and the claim, so
+  // the claim answers with what is stored now. Once claimed, conversation writes are
+  // refused, so this read is final. If it fails, the earlier read is the best we have.
+  const claimed: DemoSession = (await getDemoSession(session.roomName, { fresh: true })) ?? {
+    ...session,
+    ...claim,
+  };
   demoSessions.set(session.roomName, claimed);
   log.info(
     { roomName: session.roomName, firebaseUidPrefix: firebaseUid.substring(0, 8) },
