@@ -74,7 +74,6 @@ const VIEWPORTS = {
 const OVERLAYS = [
   '#cookieBanner',
   '.ferni-chat-widget',
-  '#ferni-live-chat',
   '.ferni-toast',
   '.helpful-nudge',
   '.ai-hover-insight',
