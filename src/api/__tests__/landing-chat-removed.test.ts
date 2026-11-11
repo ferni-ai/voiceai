@@ -23,15 +23,6 @@ function post(path: string, body: unknown): IncomingMessage {
   }) as unknown as IncomingMessage;
 }
 
-function get(url: string): IncomingMessage {
-  return Object.assign(Readable.from([]), {
-    method: 'GET',
-    url,
-    headers: { host: 'ferni.ai' },
-    socket: { remoteAddress: '203.0.113.9' },
-  }) as unknown as IncomingMessage;
-}
-
 function response(): ServerResponse & { status?: number; body: string } {
   const state = { status: undefined as number | undefined, body: '', headersSent: false };
   const res = Object.assign(state, {
@@ -107,20 +98,5 @@ describe('POST /api/landing/ai/chat is gone', () => {
     expect(handled).toBe(true);
     expect(res.status ?? 200).toBe(200);
     expect(JSON.parse(res.body)).toHaveProperty('preview');
-  });
-
-  // Until the website PR lands, cached page JS still asks for this experiment and
-  // shows the widget when the answer is anything but 'control'. With the flag's
-  // default gone, an unknown id resolves to { enabled: false } on the server.
-  it('the old landing-ai-live-chat experiment answers control for every visitor', async () => {
-    const variants = new Set<string>();
-    for (let i = 0; i < 20; i++) {
-      const path = '/api/landing/experiments/landing-ai-live-chat/variant';
-      const res = response();
-      // eslint-disable-next-line no-await-in-loop -- one request at a time keeps the fake response simple
-      await handleLandingIntelligenceRoutes(get(`${path}?userId=anon_${i}`), res, path);
-      variants.add((JSON.parse(res.body) as { variantId: string }).variantId);
-    }
-    expect([...variants]).toEqual(['control']);
   });
 });

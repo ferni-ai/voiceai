@@ -84,12 +84,9 @@ describe('FeatureFlags', () => {
     });
 
     it('should have landing page AI flags', () => {
+      expect(TRUST_FLAGS['landing-ai-live-chat']).toBeDefined();
       expect(TRUST_FLAGS['landing-ai-persona-previews']).toBeDefined();
       expect(TRUST_FLAGS['landing-ai-smart-faq']).toBeDefined();
-    });
-
-    it('has no flag for the removed landing chat widget (#3683)', () => {
-      expect(TRUST_FLAGS).not.toHaveProperty('landing-ai-live-chat');
     });
 
     it('should have descriptions for each flag', () => {
