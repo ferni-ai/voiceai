@@ -23,7 +23,8 @@ import { describe, expect, it } from 'vitest';
 const ROOT = join(__dirname, '../../..');
 // Split so this file's own samples below never read as a use of the set.
 const BLIND = 'crisis-test-' + 'blind';
-const EXPORT = new RegExp(`\\b${'CRISIS_TEST_' + 'BLIND'}\\b`);
+const EXPORT_NAME = 'CRISIS_TEST_' + 'BLIND';
+const EXPORT = new RegExp(`\\b${EXPORT_NAME}\\b`);
 const FIXTURE = `src/agents/__tests__/fixtures/${BLIND}.ts`;
 const SOURCE = /\.(?:[cm]?[jt]s|tsx|jsx)$/;
 
@@ -58,6 +59,8 @@ function repoFiles(): string[] {
 
 /** True when `source` reads the blind set's rows (a type-only import does not). */
 function readsBlindSet(source: string): boolean {
+  // Every check below needs one of these two substrings, so most files stop here unparsed.
+  if (!source.includes(BLIND) && !source.includes(EXPORT_NAME)) return false;
   const code = source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '');
   if (EXPORT.test(code)) return true;
   const from = /\b(import|export)\s+(type\s+)?([^;]*?)\bfrom\s*['"]([^'"]+)['"]/g;
@@ -77,14 +80,18 @@ function readers(files: readonly string[], read: (path: string) => string): stri
 
 const fromDisk = (path: string): string => readFileSync(join(ROOT, path), 'utf8');
 
+// Both repo-wide tests share one walk of the ~10k source files.
+let onDisk: string[] | undefined;
+const readersOnDisk = (): string[] => (onDisk ??= readers(repoFiles(), fromDisk));
+
 describe('the blind crisis set stays out of unit tests', () => {
   it('only the listed evals import it', () => {
-    const offenders = readers(repoFiles(), fromDisk).filter((path) => !(path in ALLOWED));
+    const offenders = readersOnDisk().filter((path) => !(path in ALLOWED));
     expect(offenders, MESSAGE).toEqual([]);
   });
 
   it('every listed file still imports it (the list only shrinks)', () => {
-    const now = new Set(readers(repoFiles(), fromDisk));
+    const now = new Set(readersOnDisk());
     expect(Object.keys(ALLOWED).filter((path) => !now.has(path))).toEqual([]);
   });
 
