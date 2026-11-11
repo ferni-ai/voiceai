@@ -1,8 +1,8 @@
 /**
  * SB 243: a minor under care who texts Ferni is told it is an AI, on the first reply and
- * again once 3 hours have passed since the last reminder. One cadence for every SMS reply
- * path, keyed by the member's id (or, for a held number with no account, its hold id: a
- * keyed hash, never the number).
+ * again once 3 hours have passed since the last reminder. The cadence lives here, keyed by
+ * the member's id (or, for a held number with no account, its hold id: a keyed hash, never
+ * the number), so other SMS reply paths can share it rather than keep their own.
  *
  * The route's crisis screen uses withHeldMinorAiReminder: the crisis reply goes out whole,
  * in its order, and the reminder follows it at the end of the last message.
@@ -16,7 +16,7 @@ import { escapeXml } from './twilio-ssml.js';
 import { findAccountByVerifiedPhone } from './webhooks/sms-sender-account.js';
 
 export const SMS_AI_REMINDER = "(just a reminder, I'm an AI)";
-export const AI_REMINDER_EVERY_MS = 3 * 3_600_000;
+const AI_REMINDER_EVERY_MS = 3 * 3_600_000;
 /** Past this, the crisis reply goes out as it is, without the reminder. */
 export const AI_REMINDER_DECIDE_MS = 2_000;
 
@@ -24,12 +24,12 @@ const LAST_MESSAGE_END = '</Message></Response>';
 const remindedAt = new Map<string, number>();
 
 /** True when `key` has had no reminder in the last 3 hours. */
-export function aiReminderDue(key: string, now: number): boolean {
+function aiReminderDue(key: string, now: number): boolean {
   for (const [k, at] of remindedAt) if (now - at >= AI_REMINDER_EVERY_MS) remindedAt.delete(k);
   return !remindedAt.has(key);
 }
 
-export function markAiReminded(key: string, at: number): void {
+function markAiReminded(key: string, at: number): void {
   remindedAt.set(key, at);
 }
 
