@@ -97,7 +97,7 @@ const NAP = String.raw`(?!(?:son|daughter|kid|niece|nephew|grandson|granddaughte
  * who collapsed is 911 first, always): "my uncle collapsed", "my neighbor fainted".
  */
 const CLOSE = String.raw`(?:my|our) (?:best )?${NAP}(?:dad|mom|mum|father|mother|grandma|grandmother|grandpa|grandfather|brother|sister|son|daughter|kid|wife|husband|partner|boyfriend|girlfriend|friend|roommate|uncle|aunt|auntie|cousin|niece|nephew|grandson|granddaughter|neighbor|neighbour|coworker)`;
-const PLACE = String.raw`(?:on|onto|in|into|at|down|off|outside|by|near) (?:the |a |an |his |her |their |our |my )?(?:floor|ground|kitchen|bathroom|shower|tub|bathtub|stairs|staircase|steps|driveway|yard|backyard|garden|garage|hallway|hall|bedroom|living room|street|sidewalk|road|parking lot|store|shop|office|work|gym|church|toilet|porch|deck|patio|basement|attic|lobby|restaurant|bus|train|car)(?: floor)?`;
+const PLACE = String.raw`(?:(?:back|over|out|in|right) there|(?:on|onto|in|into|at|down|off|outside|by|near) (?:the |a |an |his |her |their |our |my )?(?:floor|ground|kitchen|bathroom|shower|tub|bathtub|stairs|staircase|steps|driveway|yard|backyard|garden|garage|hallway|hall|bedroom|living room|street|sidewalk|road|parking lot|store|shop|office|work|gym|church|toilet|porch|deck|patio|basement|attic|lobby|restaurant|bus|train|car)(?: floor)?)`;
 /** Long enough ago that the fall is a story: "last year", "a few years ago", "back in 2019". */
 const LONG_AGO = String.raw`last (?:week|month|year|summer|winter|spring|fall|autumn|christmas)|(?:a|one|two|three|four|five|a few|a couple(?: of)?|several|\d+) (?:weeks?|months?|years?) (?:ago|back)|(?:weeks|months|years) ago|a while (?:ago|back)|(?:back )?in (?:19|20)\d\d`;
 const WHEN = String.raw`just now|right now|again|hard|today|tonight|this (?:morning|afternoon|evening)|earlier(?: today)?|yesterday|last night|(?:(?:a|an|a few|a couple(?: of)?) )?(?:seconds?|minutes?|moments?|hours?) ago|${LONG_AGO}`;
@@ -113,17 +113,23 @@ const CLAUSE_END = String.raw`(?=$|[,;:]| (?:and|but|then|now|please|help|oh|um|
  * get up". Never a fall long ago or one they are fine from ("my dad fell last year and he's fine
  * now"), never a maybe ("if my mom fainted"), never a fall with an object or a direction after
  * it ("passed out flyers", "went down to the store"), and never one an everyday idiom later in the
- * sentence explains. Floor, ground or a not-getting-up word still reads it again unmasked.
+ * sentence explains. Floor, ground or a not-getting-up word still reads it again unmasked. A fall
+ * "just now" or "right now" reads whatever follows ("my dad collapsed just now in the kitchen in
+ * march heat"), and "back there" is a place.
  */
 const CLOSE_WENT_DOWN = new RegExp(
-  String.raw`(?<!\b(?:if|whether|case) |'s )\b${CLOSE}(?:(?:'s| has)(?: just)? (?:fallen|collapsed|passed out|fainted|blacked out|gone down)|(?: just)? (?:${DOWN}(?: down| over)?|went down))(?!(?: ${PLACE})? (?:${LONG_AGO})\b)(?: ${PLACE}| (?:${WHEN})){0,2}${CLAUSE_END}`,
+  String.raw`(?<!\b(?:if|whether|case) |'s )\b${CLOSE}(?:(?:'s| has)(?: just)? (?:fallen|collapsed|passed out|fainted|blacked out|gone down)|(?: just)? (?:${DOWN}(?: down| over)?|went down))(?!(?: ${PLACE})? (?:${LONG_AGO})\b)(?:(?: ${PLACE}| (?:${WHEN})){0,2}${CLAUSE_END}|(?: ${PLACE})? (?:just now|right now)\b)`,
   'g'
 );
 const RECOVERED_LATER = new RegExp(RECOVERED, 'g');
 /** A date long enough ago that the fall is a memory: "in march", "in 2019", "last year", "years ago". */
 const DATED = String.raw`(?:in|last) (?:january|february|march|april|may|june|july|august|september|october|november|december)|in (?:19|20)\d\d|last year|years ago`;
-/** Up to four words between the time words and the fall, none starting a new clause. */
-const LEAD_IN = String.raw`(?: (?!(?:and|but|then|so|now|today|tonight)\b)[a-z']+){0,4} $`;
+/**
+ * Up to four words between the time words and the fall, none of them a new subject, a call for
+ * help or a word of now: "last year sucked help my dad collapsed" and "years ago i was suicidal my
+ * dad collapsed" are two clauses, and the fall is today (security review, 2026-11-11).
+ */
+const LEAD_IN = String.raw`(?: (?!(?:and|but|then|so|now|today|tonight|i|he|she|they|we|it|you|help|oh|please|wait|just|right)\b)[a-z']+){0,4} $`;
 /** "ever since my dad collapsed", "back when my mom fainted": told from long after, anywhere. */
 const SINCE_BEFORE = new RegExp(String.raw`\b(?:ever since|back when)${LEAD_IN}`);
 /** A sentence that opens on the date: "in march my mom collapsed", "two years ago, my dad fainted". */
@@ -131,21 +137,29 @@ const DATED_OPENING = new RegExp(
   String.raw`^ *(?:(?:about|around|almost|nearly|over|maybe|like|so|well|um|uh|a|an|one|two|three|four|five|six|seven|eight|nine|ten|few|couple|of|several|many|\d+) )*(?:${DATED}),?${LEAD_IN}`
 );
 /**
- * The same fall carried on to a date: "my mom collapsed and passed away in march", "...and died
- * years ago". Only "and" plus words with no new subject, so "my dad collapsed and he had a stroke
- * last year" and "my dad collapsed again, like last year" stay as they read.
+ * The same fall carried on to a death and then a date: "my mom collapsed and passed away in
+ * march", "...and died years ago". A date after the fall counts only beside an explicit death, so
+ * "my dad just collapsed, in march he had surgery" and "my dad collapsed and he had a stroke last
+ * year" stay as they read (security review, 2026-11-11: a bare date after a comma read as grief).
  */
 const DATED_AFTER = new RegExp(
-  String.raw`^(?:,? (?:back )?|,? and (?:then )?(?:(?!(?:he|she|they|i|we|it|you|and|but|so|now)\b)[a-z']+ ){0,5})(?:${DATED})\b`
+  String.raw`^,? and (?:then )?(?:died|passed away|passed on)(?: (?!(?:he|she|they|i|we|it|you|and|but|so|now|just|today|tonight)\b)[a-z']+){0,4} (?:${DATED})\b`
 );
+/** A word of now in the fall itself: "my dad just collapsed", "...collapsed just now", "...today". */
+const NOW_IN_FALL = /\b(?:just|right now|today|tonight)\b/;
+/** Anything in the sentence that says it is happening now: "right now", "isn't breathing", "won't wake up". */
+const STILL_HAPPENING = new RegExp(String.raw`\b(?:right now|just now|today|tonight|${NOT_UP})`);
 /** Time words read on each side of a fall, at most this far: each check stays linear in the text. */
 const NEAR = 120;
 /**
  * Grief, not an emergency (fe, 2026-11-11): time words that set the fall long ago drop the 911
  * for them. "Died" or "passed away" alone never does: "my dad just collapsed and he died" still
- * reads. The caller's own words are read elsewhere, so their 988 script stays.
+ * reads. A word of now in the fall always wins over a date; the sentence's own emergency words
+ * (stillHere) are read once per sentence by the caller. The caller's own words are read
+ * elsewhere, so their 988 script stays.
  */
 const toldLongAfter = (said: string, start: number, end: number): boolean => {
+  if (NOW_IN_FALL.test(said.slice(start, end))) return false;
   const before = said.slice(Math.max(0, start - NEAR), start);
   const window = start > NEAR ? before.slice(before.indexOf(' ')) : before;
   return (
@@ -158,14 +172,18 @@ const toldLongAfter = (said: string, start: number, end: number): boolean => {
  * Read in two plain passes, never a lookahead (#3587: a lookahead re-scanned the rest of the
  * sentence at every "my dad fell and", quadratic on a long message). The fall reads when it is
  * told after the last "he's fine now" or masked idiom in its sentence, never before one, and not
- * when time words set it long ago (toldLongAfter).
+ * when time words set it long ago (toldLongAfter) while nothing in the sentence says it is
+ * happening now or is an emergency (read once, the first time a fall needs it).
  */
 const closeWentDownIn = (said: string): boolean => {
   let explained = said.lastIndexOf(IDIOM_LATER);
   for (const later of said.matchAll(RECOVERED_LATER)) explained = Math.max(explained, later.index);
+  let stillHere: boolean | undefined;
   for (const down of said.matchAll(CLOSE_WENT_DOWN)) {
     const end = down.index + down[0].length;
-    if (end > explained && !toldLongAfter(said, down.index, end)) return true;
+    if (end <= explained) continue;
+    stillHere ??= STILL_HAPPENING.test(said) || STILL_EMERGENCY.test(said);
+    if (stillHere || !toldLongAfter(said, down.index, end)) return true;
   }
   return false;
 };

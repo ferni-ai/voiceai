@@ -200,3 +200,16 @@ describe("grief beside the caller's own words: their 988 script, no 911 for them
     expect911Then988('i was suicidal years ago, my dad collapsed');
   });
 });
+
+describe("a date that opens the caller's own clause keeps the 911 for them (security review, 2026-11-11)", () => {
+  it('years ago i was suicidal my dad collapsed: 911 first, then 988, first and mid-call', () => {
+    const line = 'years ago i was suicidal my dad collapsed';
+    expect911Then988(line);
+    const mid =
+      guardFromDetection(
+        detectCrisis(line, undefined, { recentMessages: ['hey, can I tell you something?'] })
+      ).replacementResponse ?? '';
+    expect(mid.startsWith(CALL_911), line).toBe(true);
+    expect(mid.indexOf('911'), line).toBeLessThan(mid.indexOf('988'));
+  });
+});

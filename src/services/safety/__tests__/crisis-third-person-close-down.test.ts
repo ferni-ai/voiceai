@@ -238,3 +238,24 @@ describe('grief: time words that set the fall long ago drop the 911 for them (fe
     'ever since march things were hard and today my dad collapsed',
   ])('still reads 911 first, first and mid-call: %s', expectEmergencyForThem);
 });
+
+describe('a date never hides a fall that is happening now (security review, 2026-11-11)', () => {
+  it.each([
+    // A bare date after a comma is not grief; only "and died / passed away ... in march" is.
+    'my dad just collapsed, in march he had surgery',
+    'my mom collapsed back there, last year she was fine',
+    // A word of now in the fall wins over a date later in the sentence.
+    'my dad collapsed just now in the kitchen in march heat',
+    // The date opens another clause, so the fall is today.
+    'last year sucked help my dad collapsed',
+    'in 2019 we moved, oh god my mom just collapsed',
+    // A word of now in the fall itself ("just") wins over a date that opens the sentence.
+    'last year my mom just fainted at work',
+    'in march my dad just collapsed',
+    // An emergency or not-getting-up word after the fall: never grief.
+    "ever since my dad collapsed he isn't breathing",
+    "ever since my mom fainted she's not responding",
+    'ever since my grandpa collapsed he will not wake up',
+    'ever since my dad collapsed he is bleeding',
+  ])('reads 911 first, first and mid-call: %s', expectEmergencyForThem);
+});
