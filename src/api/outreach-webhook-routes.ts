@@ -29,6 +29,7 @@ import {
   smsReplyTwiml,
   withCrisisReply,
 } from '../services/outreach/sms-crisis-screen.js';
+import { smsUnverifiedReply } from '../services/outreach/sms-reply/sms-unverified.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { isSignedByTwilio, twilioSignedUrl } from './twilio-callback-signature.js';
 
@@ -116,23 +117,27 @@ async function afterScreen<T>(
  * The four records a signed inbound text writes, each caught on its own (afterScreen).
  * MESSAGING_PIPELINE: STOP/START from any text lands in the one consent record. A crisis
  * text never grants consent (no START, resume or YES to the last ask); a STOP in it lands.
+ * True when a check-in, contact YES or holder code record used the text (or a step threw).
  */
 async function recordSignedInbound(
   body: Record<string, unknown>,
   text: string,
   crisisRead: boolean
-): Promise<void> {
+): Promise<boolean> {
   const { From, Body, MessageSid } = body;
   const said = crisisRead ? inboundKeyword(text)?.kind : undefined;
-  await afterScreen('checkin', crisisRead, () => recordCheckinReply(From, Body, MessageSid));
+  const checkin = await afterScreen('checkin', crisisRead, () =>
+    recordCheckinReply(From, Body, MessageSid)
+  );
   if (!crisisRead || said === 'opt-out' || said === 'maybe-opt-out') {
     await afterScreen('consent', crisisRead, () => recordInboundSmsConsent(From, Body));
   }
-  if (!crisisRead) {
-    // A YES to the last text, an ask.
-    await afterScreen('contactYes', false, () => recordContactYes(From, Body, MessageSid));
-  }
-  await afterScreen('holderCode', crisisRead, () => recordHolderCode(From, Body));
+  // A YES to the last text, an ask.
+  const yes = crisisRead
+    ? null
+    : await afterScreen('contactYes', false, () => recordContactYes(From, Body, MessageSid));
+  const code = await afterScreen('holderCode', crisisRead, () => recordHolderCode(From, Body));
+  return checkin !== null || yes !== null || code !== false;
 }
 
 // ============================================================================
@@ -227,7 +232,13 @@ export async function handleOutreachWebhookRoutes(
       // A "call me" text keeps its call; the one crisis text says so (Seth, 2026-11-06).
       // The handler's own TwiML only: `twiml` already holds the crisis reply when it threw.
       if (crisis) twiml = withCrisisReply(result?.twiml, smsCrisisReplyFor(result?.called), text);
-      if (signed) await recordSignedInbound(body, text, !!crisis);
+      const used = signed && (await recordSignedInbound(body, text, !!crisis));
+      // SMS_REPLY_UNVERIFIED: a stranger's text that no crisis read or record answered.
+      if (signed && !used && !crisis && result?.unverified) {
+        const from = String(body.From ?? '');
+        const reply = await afterScreen('unverified', false, () => smsUnverifiedReply(from));
+        if (reply) twiml = smsReplyTwiml(reply);
+      }
 
       // Empty TwiML: no reply.
       sendTwiML(res, twiml ?? '<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
