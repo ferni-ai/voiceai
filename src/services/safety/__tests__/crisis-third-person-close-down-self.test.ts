@@ -182,3 +182,21 @@ describe('a long message reads in time linear in its length (#3587 round 1 ReDoS
     expect(best(() => spokeOfSelf(text))).toBeLessThanOrEqual(2 * yardstick + 5);
   });
 });
+
+describe("grief beside the caller's own words: their 988 script, no 911 for them (fe, 2026-11-11)", () => {
+  it.each([
+    ['ever since my dad collapsed and died i want to die', 'i want to die'],
+    ['my mom collapsed and passed away in march and i want to die', 'i want to die'],
+    ['two years ago my dad collapsed and died. i want to kill myself', 'i want to kill myself'],
+  ])('%s', (line, own) => {
+    const guard = replyTo(line);
+    expect(guard.shouldBlock, line).toBe(true);
+    expect(guard.replacementResponse, line).toBe(replyTo(own).replacementResponse);
+    expect(guard.replacementResponse ?? '', line).not.toContain(CALL_911);
+    expect(detectCrisis(line).subject, line).toBe('self');
+  });
+
+  it('a date that belongs to the caller\'s words keeps the 911 for them: "i was suicidal years ago, my dad collapsed"', () => {
+    expect911Then988('i was suicidal years ago, my dad collapsed');
+  });
+});

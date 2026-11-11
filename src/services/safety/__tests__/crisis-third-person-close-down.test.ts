@@ -201,3 +201,40 @@ describe('a fall long ago, or one they are fine from, is not imminent (owner, 20
     'if my dad fell on the kitchen floor',
   ])('%s', expectNothing);
 });
+
+describe('grief: time words that set the fall long ago drop the 911 for them (fe, 2026-11-11)', () => {
+  it.each([
+    // After the fall, carried on with "and": a month, a year, "last year", "years ago".
+    'my mom collapsed and passed away in march',
+    'my wife collapsed and passed away last march',
+    'my dad collapsed and passed away in 2019',
+    'my dad collapsed and died last year',
+    'my mom collapsed and died years ago',
+    // A sentence that opens on the date.
+    'in march my mom collapsed and passed away',
+    'in 2019 my grandma fainted',
+    'last year my dad collapsed at work',
+    'two years ago, my dad collapsed and died',
+    // Told from long after.
+    'ever since my mom collapsed i cannot sleep',
+    'back when my grandpa collapsed we were all so scared',
+    'back when my dad fainted at church',
+  ])('%s', expectNothing);
+
+  it.each([
+    // "Died" or "passed away" alone is never a time word.
+    'my dad just collapsed and he died',
+    'my dad collapsed and died',
+    "my mom collapsed and isn't breathing",
+    // "in" with a place, not a date.
+    'my mom collapsed in the kitchen',
+    'my dad collapsed in the bathroom',
+    // A month name that isn't a date, and time words that belong to another clause.
+    'my dad collapsed and may not be breathing',
+    'my dad collapsed and he had a stroke last year',
+    'my dad collapsed, he did that last year too',
+    'my mom collapsed and is not moving, just like in march',
+    'last year was rough and now my dad collapsed',
+    'ever since march things were hard and today my dad collapsed',
+  ])('still reads 911 first, first and mid-call: %s', expectEmergencyForThem);
+});

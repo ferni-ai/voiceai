@@ -120,16 +120,53 @@ const CLOSE_WENT_DOWN = new RegExp(
   'g'
 );
 const RECOVERED_LATER = new RegExp(RECOVERED, 'g');
+/** A date long enough ago that the fall is a memory: "in march", "in 2019", "last year", "years ago". */
+const DATED = String.raw`(?:in|last) (?:january|february|march|april|may|june|july|august|september|october|november|december)|in (?:19|20)\d\d|last year|years ago`;
+/** Up to four words between the time words and the fall, none starting a new clause. */
+const LEAD_IN = String.raw`(?: (?!(?:and|but|then|so|now|today|tonight)\b)[a-z']+){0,4} $`;
+/** "ever since my dad collapsed", "back when my mom fainted": told from long after, anywhere. */
+const SINCE_BEFORE = new RegExp(String.raw`\b(?:ever since|back when)${LEAD_IN}`);
+/** A sentence that opens on the date: "in march my mom collapsed", "two years ago, my dad fainted". */
+const DATED_OPENING = new RegExp(
+  String.raw`^ *(?:(?:about|around|almost|nearly|over|maybe|like|so|well|um|uh|a|an|one|two|three|four|five|six|seven|eight|nine|ten|few|couple|of|several|many|\d+) )*(?:${DATED}),?${LEAD_IN}`
+);
+/**
+ * The same fall carried on to a date: "my mom collapsed and passed away in march", "...and died
+ * years ago". Only "and" plus words with no new subject, so "my dad collapsed and he had a stroke
+ * last year" and "my dad collapsed again, like last year" stay as they read.
+ */
+const DATED_AFTER = new RegExp(
+  String.raw`^(?:,? (?:back )?|,? and (?:then )?(?:(?!(?:he|she|they|i|we|it|you|and|but|so|now)\b)[a-z']+ ){0,5})(?:${DATED})\b`
+);
+/** Time words read on each side of a fall, at most this far: each check stays linear in the text. */
+const NEAR = 120;
+/**
+ * Grief, not an emergency (fe, 2026-11-11): time words that set the fall long ago drop the 911
+ * for them. "Died" or "passed away" alone never does: "my dad just collapsed and he died" still
+ * reads. The caller's own words are read elsewhere, so their 988 script stays.
+ */
+const toldLongAfter = (said: string, start: number, end: number): boolean => {
+  const before = said.slice(Math.max(0, start - NEAR), start);
+  const window = start > NEAR ? before.slice(before.indexOf(' ')) : before;
+  return (
+    SINCE_BEFORE.test(window) ||
+    (start <= NEAR && DATED_OPENING.test(before)) ||
+    DATED_AFTER.test(said.slice(end, end + NEAR))
+  );
+};
 /**
  * Read in two plain passes, never a lookahead (#3587: a lookahead re-scanned the rest of the
  * sentence at every "my dad fell and", quadratic on a long message). The fall reads when it is
- * told after the last "he's fine now" or masked idiom in its sentence, never before one.
+ * told after the last "he's fine now" or masked idiom in its sentence, never before one, and not
+ * when time words set it long ago (toldLongAfter).
  */
 const closeWentDownIn = (said: string): boolean => {
   let explained = said.lastIndexOf(IDIOM_LATER);
   for (const later of said.matchAll(RECOVERED_LATER)) explained = Math.max(explained, later.index);
-  for (const down of said.matchAll(CLOSE_WENT_DOWN))
-    if (down.index + down[0].length > explained) return true;
+  for (const down of said.matchAll(CLOSE_WENT_DOWN)) {
+    const end = down.index + down[0].length;
+    if (end > explained && !toldLongAfter(said, down.index, end)) return true;
+  }
   return false;
 };
 
