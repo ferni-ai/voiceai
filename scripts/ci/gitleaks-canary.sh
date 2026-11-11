@@ -29,12 +29,10 @@ git -C "$canary" add settings.ini
 git -C "$canary" -c user.name=canary -c user.email=canary@example.com \
   commit --quiet -m canary
 
-set +e
 # Its own exit code for a finding, so a config gitleaks can't load (exit 1) isn't
 # mistaken for the planted key being found. The last --exit-code given wins.
-gitleaks git "$@" --exit-code 9 "$canary" >/dev/null 2>&1
-canary_rc=$?
-set -e
+canary_rc=0
+gitleaks git "$@" --exit-code 9 "$canary" >/dev/null 2>&1 || canary_rc=$?
 if [ "$canary_rc" -ne 9 ]; then
   echo "::error::gitleaks did not report a planted fake key (exit $canary_rc), so it can't catch a real one"
   exit 1

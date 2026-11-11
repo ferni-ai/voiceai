@@ -66,12 +66,10 @@ bash "$here/gitleaks-canary.sh" "${flags[@]}"
 # checkout is every remote branch.
 report="$work/report.json"
 log_opts="--remerge-diff --no-textconv $rev"
-set +e
+rc=0
 gitleaks git "${flags[@]}" --exit-code 9 --log-level warn \
   --report-format json --report-path "$report" \
-  --log-opts="$log_opts" "$(git rev-parse --absolute-git-dir)" 2>"$work/log"
-rc=$?
-set -e
+  --log-opts="$log_opts" "$(git rev-parse --absolute-git-dir)" 2>"$work/log" || rc=$?
 cat "$work/log" >&2
 case $rc in
   0 | 9) ;;
