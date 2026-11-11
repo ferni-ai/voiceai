@@ -109,8 +109,12 @@ describe('ai-powered-landing.js has no text chat', () => {
     expect(askedFlags).not.toContain('landing-ai-live-chat');
     expect(bodyChildren.map((c) => c.id)).not.toContain('ferni-live-chat');
     expect(bodyChildren.some((c) => c.innerHTML.includes('ferni-chat-'))).toBe(false);
-    expect(headChildren.some((c) => c.textContent.includes('ferni-live-chat'))).toBe(false);
-    expect(headChildren.some((c) => c.textContent.includes('ferni-chat-'))).toBe(false);
+    // The chat-rule checks below only mean something if the stylesheet was captured.
+    const styles = headChildren.find((c) => c.id === 'ferni-ai-landing-styles');
+    expect(styles?.textContent.length ?? 0).toBeGreaterThan(0);
+    const css = styles?.textContent ?? '';
+    expect(css).not.toContain('ferni-live-chat');
+    expect(css).not.toContain('ferni-chat-');
     const api = window.FerniAI as Record<string, unknown>;
     expect(api).not.toHaveProperty('chat');
   });
