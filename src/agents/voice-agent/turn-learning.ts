@@ -79,6 +79,8 @@ export interface LearningContext {
   lastStoryId?: string;
   /** Whether a story was told in the previous turn */
   wasStoryTold?: boolean;
+  /** The crisis read guided, replaced or soft-checked this turn (crisis-turn-memory.ts) */
+  crisisTurn?: boolean;
 }
 
 export interface LearningResult {
@@ -309,7 +311,7 @@ function calculateEngagementScore(
  * This is the main entry point for recording learning data during turn processing.
  * Also triggers:
  * - Temporal pattern learning (when the user engages, what topics at what times)
- * - Shared moment detection (inside jokes, meaningful phrases, callbacks)
+ * - Shared moment detection (inside jokes, meaningful phrases, callbacks), never of a crisis turn
  */
 export async function recordAllLearningData(ctx: LearningContext): Promise<LearningResult> {
   const logger = log();
@@ -320,8 +322,7 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
     recordCollectiveLearning(ctx),
   ]);
 
-  // Better Than Human learning (new) - fire and forget to not block turn processing
-  // PERFORMANCE: Rate-limited writes to avoid Firestore costs and latency
+  // Better Than Human learning: fire and forget, rate-limited to keep Firestore writes down
   if (ctx.userId) {
     // 🔧 User Correction Detection - learn from mistakes (every turn)
     void detectAndRecordCorrections(ctx).catch((err) => {
@@ -334,8 +335,7 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
         logger.debug({ error: String(err) }, 'Implicit preference detection (non-critical)');
       });
     }
-    // Learn temporal patterns every 5 turns (saves 80% of writes)
-    // Patterns are aggregated, so we don't need every single turn
+    // Learn temporal patterns every 5 turns: patterns are aggregated (saves 80% of writes)
     if (ctx.turnCount % 5 === 0) {
       void learnTemporalPattern(ctx.userId, {
         emotion: ctx.emotionalResult.primary || 'neutral',
@@ -345,7 +345,7 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
       });
     }
 
-    // Shared moments (phrases, jokes, meaningful exchanges): high-emotion turns, every 3rd turn
+    // Shared moments, breakthroughs, Our Songs: high-emotion turns, every 3rd, never a crisis turn
     const isHighEmotionTurn =
       ctx.emotionalResult.intensity > 0.6 ||
       ctx.injections.some(
@@ -355,7 +355,7 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
           i.content.includes('meaningful')
       );
 
-    if (isHighEmotionTurn && ctx.turnCount % 3 === 0) {
+    if (isHighEmotionTurn && ctx.turnCount % 3 === 0 && !ctx.crisisTurn) {
       void recordSharedMoment(ctx.userId, {
         type: 'callback_moment',
         content: ctx.emotionalResult.primary || 'connection',
