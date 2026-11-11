@@ -36,11 +36,30 @@ const CALM: ReadonlySet<string> = new Set(CRISIS_CALM_FACES);
 const CALM_AFFECT: ReadonlySet<CrisisAffect> = new Set(CRISIS_CALM_AFFECT);
 
 let held = false;
+const holdStartListeners = new Set<() => void>();
+
+/**
+ * Run `listener` each time a hold starts, for state that must be dropped then
+ * rather than checked later (a celebration already waiting in a queue).
+ * Returns a function that stops listening.
+ */
+export function onCrisisHoldStart(listener: () => void): () => void {
+  holdStartListeners.add(listener);
+  return () => holdStartListeners.delete(listener);
+}
 
 /** A crisis or safety message arrived: hold the calm faces until the call ends. */
 export function holdCrisisFace(): void {
-  if (!held) log.info('Crisis face hold on until the call ends');
-  held = true;
+  if (held) return;
+  held = true; // first, so a listener that throws cannot stop the hold
+  log.info('Crisis face hold on until the call ends');
+  for (const listener of holdStartListeners) {
+    try {
+      listener();
+    } catch (error) {
+      log.warn('Crisis hold start listener failed', { error: String(error) });
+    }
+  }
 }
 
 /** The call ended: faces are free again for the next call. */

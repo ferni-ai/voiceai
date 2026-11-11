@@ -51,6 +51,7 @@ import { isCrisisFaceHeld } from '../../src/ui/face/crisis-face-hold.js';
 import { ferniExpressions } from '../../src/ui/ferni-expressions.ui.js';
 import { ferniMilestones } from '../../src/ui/ferni-milestones.ui.js';
 import { getMomentsManager } from '../../src/ui/moments/manager.js';
+import { noteConnectionState } from '../../src/ui/milestone-placement.js';
 import { resetToastRegion } from '../../src/ui/overlay/toast-region.js';
 import { presenceUI } from '../../src/ui/presence.ui.js';
 import { soundUI } from '../../src/ui/sound.ui.js';
@@ -641,6 +642,61 @@ describe('more playful affect held during a crisis', () => {
       await vi.advanceTimersByTimeAsync(10_000);
       expect(sound).not.toHaveBeenCalled();
     });
+
+    // Queued before the hold, and the call ends before the queue's next retry:
+    // the hold has lifted by then, so only a drop at hold start keeps it silent.
+    const queuedBeforeTheCallEnds = [
+      {
+        window: 'the speaking retry: queued while Ferni speaks, call ends 1 s later',
+        queue: queueWhileSpeaking,
+        crisisAfterMs: 0,
+        endAfterMs: 1_000,
+      },
+      {
+        window: 'the opening settle: queued at connect, crisis at 5 s, call ends at 10 s',
+        queue: async (): Promise<void> => {
+          appState.set('connection', 'connected');
+          noteConnectionState('connected'); // what the milestones' connection listener records
+          appState.set('audio', 'idle');
+          ferniMilestones.triggerMilestone('one-year');
+          await vi.advanceTimersByTimeAsync(10);
+          expect(sound).not.toHaveBeenCalled();
+        },
+        crisisAfterMs: 5_000,
+        endAfterMs: 5_000,
+      },
+    ];
+
+    async function endTheCall(afterMs: number): Promise<void> {
+      await vi.advanceTimersByTimeAsync(afterMs);
+      appState.set('connection', 'disconnected');
+      noteConnectionState('disconnected');
+      onCallEnded();
+    }
+
+    for (const { window: name, queue, crisisAfterMs, endAfterMs } of queuedBeforeTheCallEnds) {
+      describe(name, () => {
+        it('with no crisis, it still celebrates after the call ends', async () => {
+          await queue();
+          await vi.advanceTimersByTimeAsync(crisisAfterMs);
+          await endTheCall(endAfterMs);
+          await vi.advanceTimersByTimeAsync(60_000);
+          expect(sound).toHaveBeenCalledWith('celebrate');
+          expect(bigWin).toHaveBeenCalledTimes(1);
+        });
+
+        it('with a crisis, it is dropped and never plays after the call ends', async () => {
+          await queue();
+          await vi.advanceTimersByTimeAsync(crisisAfterMs);
+          await sendCrisis();
+          await endTheCall(endAfterMs);
+          expect(isCrisisFaceHeld()).toBe(false);
+          await vi.advanceTimersByTimeAsync(60_000); // past every retry and the opening settle
+          expect(sound).not.toHaveBeenCalledWith('celebrate');
+          expect(bigWin).not.toHaveBeenCalled();
+        });
+      });
+    }
   });
 
   it('the first-connection celebration plays, then not during a crisis', async () => {

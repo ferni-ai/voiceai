@@ -27,7 +27,7 @@ import { soundUI } from './sound.ui.js';
 import { isToastRegionEnabled } from './overlay/toast-flag.js';
 import { showToast } from './overlay/toast-region.js';
 import { getCategoryIcon } from './ferni-milestone-icons.js';
-import { crisisAffectAllows } from './face/crisis-face-hold.js';
+import { crisisAffectAllows, onCrisisHoldStart } from './face/crisis-face-hold.js';
 
 const log = createLogger('FerniMilestones');
 
@@ -429,6 +429,7 @@ let progress: MilestoneProgress = {
 
 let isInitialized = false;
 const celebrationQueue: Milestone[] = [];
+onCrisisHoldStart(() => celebrationQueue.splice(0)); // queued before a crisis hold: dropped as it starts
 let isCelebrating = false;
 
 // ============================================================================
@@ -730,7 +731,6 @@ function checkAndCelebrate(milestoneId: MilestoneType): void {
 
   milestone.celebrated = true;
   milestone.celebratedAt = Date.now();
-
   // Crossed during a crisis hold: dropped, so it never celebrates, then or later
   if (crisisAffectAllows('celebration')) {
     celebrationQueue.push(milestone);
