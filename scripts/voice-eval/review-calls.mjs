@@ -4,10 +4,11 @@
 //
 // usage: review-calls.mjs [--env prod|dev|both] [--since ISO] [--until ISO] [--out DIR]
 //                         [--database ID]
+// env: REVIEW_OWNER_UID (required, set outside the repo): the owner's uid.
 // Opt-in flags are read from each env's Firestore database (eval-database.mjs:
 // prod '(default)', dev 'ferni-dev' or EVAL_DEV_DATABASE); --database forces one for every env.
 //
-// Only these callers are ever reviewed: Seth (REVIEW_OWNER_UID), eval accounts
+// Only these callers are ever reviewed: the owner (REVIEW_OWNER_UID), eval accounts
 // (uid starts with voice-eval-) and anyone whose bogle_users doc has
 // callReviewOptIn: true (absent means false). Other users' sessions are
 // dropped before anything is kept, and lines without a sessionId are kept only
@@ -30,7 +31,6 @@ import { join } from 'node:path';
 
 import { documentsUrl, evalDatabase } from './eval-database.mjs';
 
-export const SETH_UID = 'vdSfkCCXaiXpnVCvgKxHMYrNFr72';
 export const WORKERS = { prod: 'ca-gefvepsnxlsf', dev: 'ca-sitdmheba4fg' };
 const PROJECT = process.env.GCP_PROJECT ?? 'johnb-2025';
 const LOG = `projects/${PROJECT}/logs/cloud-agents`;
@@ -85,7 +85,8 @@ export function indexSessions(lines) {
 /** Who a caller is for review purposes, or null when they must not be reviewed. */
 export function userKind(uid, optedIn = new Set()) {
   if (!uid) return null;
-  if (uid === (process.env.REVIEW_OWNER_UID ?? SETH_UID)) return 'owner';
+  const owner = process.env.REVIEW_OWNER_UID;
+  if (owner && uid === owner) return 'owner';
   if (uid.startsWith('voice-eval-')) return 'eval';
   if (optedIn.has(uid)) return 'opt-in';
   return null;
@@ -322,6 +323,7 @@ function optedIn(uids, database) {
 }
 
 async function main() {
+  if (!process.env.REVIEW_OWNER_UID) throw new Error('REVIEW_OWNER_UID is required');
   const args = process.argv.slice(2);
   const opt = (k, d) => (args.includes(k) ? args[args.indexOf(k) + 1] : d);
   const until = opt('--until', new Date().toISOString());

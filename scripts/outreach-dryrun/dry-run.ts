@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 /**
- * Outreach dry run: the check-ins Ferni would send Seth between calls over
- * the next 7 days, each judged by Gemini (and later, on a sample, a local
- * model: the GPU is shared). Three arms:
+ * Outreach dry run: the check-ins Ferni would send one consenting caller
+ * between calls over the next 7 days, each judged by Gemini (and later, on a
+ * sample, a local model: the GPU is shared). Three arms:
  *
  * - live: the daily outreach run as deployed (automated-scheduler.ts, 09:00
  *   Los Angeles). Its text is what production sends: john-bogle-ui has no
@@ -14,9 +14,11 @@
  *
  * --replay adds past days (as if it were that evening); --passes re-runs the
  * sampled pondering pass per day. Assumes no new calls in the week. READ ONLY,
- * Seth only: other uids are refused, Firestore writes throw, nothing is sent.
+ * and only for a uid listed in MEMORY_EVAL_ALLOWED_UIDS (set outside the repo;
+ * ../lib/allowed-uid.ts): other uids are refused, Firestore writes throw,
+ * nothing is sent.
  *
- *   pnpm tsx scripts/outreach-dryrun/dry-run.ts [--now ISO] [--replay 2026-01-12,...]
+ *   pnpm tsx scripts/outreach-dryrun/dry-run.ts --uid <uid> [--now ISO] [--replay 2026-01-12,...]
  *     [--passes 1] [--out f.json]
  *   pnpm tsx scripts/outreach-dryrun/dry-run.ts --rejudge-local f.json [--per-arm 4]
  */
@@ -30,7 +32,7 @@ import * as cadence from '../../src/services/outreach/outreach-cadence.js';
 import { generatePersonalizedContent } from '../../src/services/outreach/llm-content-generator.js';
 import { atLocal, planCheckIns } from '../../src/services/outreach/grounded-checkin.js';
 import * as pondered from '../../src/services/outreach/proactive-channels/pondered-triggers.js';
-import { SOAK_OWNER_UID } from '../pondering/soak-lib.js';
+import { assertAllowedUid } from '../lib/allowed-uid.js';
 import { judgeGemini, judgeLocal, means, type JudgeInput, type Scores } from './judge.js';
 import { getAdminFirestore } from '../../src/utils/firebase-admin-app.js';
 
@@ -220,8 +222,7 @@ async function rejudgeLocal(file: string, perArm: number): Promise<void> {
 async function main(): Promise<void> {
   const rejudge = arg('rejudge-local');
   if (rejudge) return rejudgeLocal(rejudge, Number(arg('per-arm') ?? 4));
-  const uid = arg('uid') ?? SOAK_OWNER_UID;
-  if (uid !== SOAK_OWNER_UID) throw new Error(`Refusing ${uid}: Seth's own account only.`);
+  const uid = assertAllowedUid(arg('uid'));
   const now = new Date(arg('now') ?? Date.now());
   const passes = Number(arg('passes') ?? 1);
   const out = arg('out') ?? 'outreach-dryrun.json';
@@ -288,6 +289,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  console.error(String(error));
-  process.exitCode = 1;
+  console.error(error instanceof Error ? error.message : String(error));
+  // Imported clients hold the event loop open, so exitCode alone never exits.
+  process.exit(1);
 });

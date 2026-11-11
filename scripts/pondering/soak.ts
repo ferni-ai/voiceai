@@ -1,11 +1,11 @@
 #!/usr/bin/env tsx
 /**
- * Pondering soak: runs the real pondering pass for allowlisted callers (Seth
- * and the voice-eval seed users) so its output can be read before PONDERING
- * goes on anywhere. Dry run by default: it prints what would be stored and
- * writes nothing.
+ * Pondering soak: runs the real pondering pass for allowlisted callers (uids
+ * in MEMORY_EVAL_ALLOWED_UIDS, and the voice-eval seed users) so its output
+ * can be read before PONDERING goes on anywhere. Dry run by default: it
+ * prints what would be stored and writes nothing.
  *
- *   pnpm tsx scripts/pondering/soak.ts                     # Seth, dry run
+ *   pnpm tsx scripts/pondering/soak.ts --uid <uid>         # one listed caller, dry run
  *   pnpm tsx scripts/pondering/soak.ts --eval-users        # the voice-eval seed users too
  *   pnpm tsx scripts/pondering/soak.ts --write             # store results (checks prod first)
  *   pnpm tsx scripts/pondering/soak.ts --purge             # delete what the soak stored
@@ -135,6 +135,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  console.error(String(error));
-  process.exitCode = 1;
+  console.error(error instanceof Error ? error.message : String(error));
+  // Imported clients hold the event loop open, so exitCode alone never exits.
+  process.exit(1);
 });

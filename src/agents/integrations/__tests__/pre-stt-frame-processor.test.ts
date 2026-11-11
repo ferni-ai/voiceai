@@ -50,7 +50,7 @@ describe('isPhoneParticipant', () => {
   it('leaves app callers alone', () => {
     expect(
       isPhoneParticipant({
-        identity: 'vdSfkCCXaiXpnVCvgKxHMYrNFr72',
+        identity: 'testOwnerUid0000000000000000',
         kind: ParticipantKind.STANDARD,
       })
     ).toBe(false);

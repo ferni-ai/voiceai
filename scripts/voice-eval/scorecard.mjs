@@ -7,10 +7,11 @@
 //   (default out: ~/Documents/voiceai-evidence/scorecard/scorecard.json)
 //   --database: the Firestore database holding the owner's records (default
 //   '(default)', prod; FIRESTORE_DATABASE is ignored, see scorecardDatabase).
+// env: REVIEW_OWNER_UID (required, set outside the repo): the owner's uid.
 //
 // Sources, all local except follow-through:
 // - call-reviews/<date>/calls.json (review-calls.mjs + judge-calls.mjs):
-//   prodReal = prod calls from Seth or opted-in callers, devEval = dev calls
+//   prodReal = prod calls from the owner or opted-in callers, devEval = dev calls
 //   from voice-eval accounts;
 // - eval runs in voiceai-evidence/<dir>/*.json (run.sh/converse.mjs) with
 //   their .judge.json and .score.json: feeling and recall on dev, and
@@ -55,7 +56,7 @@ import { documentsUrl, evalDatabase } from './eval-database.mjs';
 import { checkRun, parseChecks } from './recall-facts.mjs';
 
 const EVIDENCE = process.env.VOICE_EVIDENCE ?? join(homedir(), 'Documents/voiceai-evidence');
-const OWNER = process.env.REVIEW_OWNER_UID ?? 'vdSfkCCXaiXpnVCvgKxHMYrNFr72';
+const OWNER = process.env.REVIEW_OWNER_UID;
 const PROJECT = process.env.GCP_PROJECT ?? 'johnb-2025';
 const SCENARIOS = new URL('./scenarios/', import.meta.url);
 const MIN_CALLER_TURNS = 4;
@@ -562,6 +563,10 @@ function panelReports(since) {
 }
 
 function main() {
+  if (!OWNER) {
+    console.error('REVIEW_OWNER_UID is required');
+    process.exit(1);
+  }
   const args = process.argv.slice(2);
   const opt = (k, d) => (args.includes(k) ? args[args.indexOf(k) + 1] : d);
   const days = Number(opt('--days', 14));

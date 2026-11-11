@@ -199,7 +199,7 @@ describe('guards and helpers', () => {
     '%j may not recall',
     (id) => expect(mayRecall(id)).toBe(false)
   );
-  it('a verified uid may', () => expect(mayRecall('vdSfkCCXaiXpnVCvgKxHMYrNFr72')).toBe(true));
+  it('a verified uid may', () => expect(mayRecall('testOwnerUid0000000000000000')).toBe(true));
   it('names the person, not the possessive', () =>
     expect(queryWords('my Father Sam')).toEqual(['dad', 'sam']));
   it.each([

@@ -3,26 +3,22 @@
  * gcloud, no clock.
  *
  * The soak runs the real pondering pass against real call summaries, so it
- * may only touch callers who agreed to be test subjects: Seth, and the
- * voice-eval seed users. Everyone else is refused, by id, before anything is
- * read.
+ * may only touch callers who agreed to be test subjects: the uids listed in
+ * MEMORY_EVAL_ALLOWED_UIDS (set outside the repo; ../lib/allowed-uid.ts) and
+ * the voice-eval seed users. Everyone else is refused before anything is read.
  */
 import { EVAL_PREFIX } from '../voice-eval/eval-users.js';
+import { REFUSED, isAllowedUid } from '../lib/allowed-uid.js';
 
-/** Seth's own account. The only real person the soak may ponder. */
-export const SOAK_OWNER_UID = 'vdSfkCCXaiXpnVCvgKxHMYrNFr72';
+type Env = Record<string, string | undefined>;
 
-export function isSoakAllowed(uid: string): boolean {
-  return uid === SOAK_OWNER_UID || (uid.startsWith(EVAL_PREFIX) && uid.length > EVAL_PREFIX.length);
+export function isSoakAllowed(uid: string, env: Env = process.env): boolean {
+  return isAllowedUid(uid, env) || (uid.startsWith(EVAL_PREFIX) && uid.length > EVAL_PREFIX.length);
 }
 
-/** Throws for any id outside the allowlist. */
-export function assertSoakAllowed(uids: readonly string[]): void {
-  const refused = uids.filter((u) => !isSoakAllowed(u));
-  if (refused.length > 0)
-    throw new Error(
-      `Refusing ${refused.length} caller(s) outside the soak allowlist: ${refused.join(', ')}`
-    );
+/** Throws for any id outside the allowlist, without naming it. */
+export function assertSoakAllowed(uids: readonly string[], env: Env = process.env): void {
+  if (uids.some((u) => !isSoakAllowed(u, env))) throw new Error(REFUSED);
 }
 
 export interface SoakArgs {
@@ -36,7 +32,7 @@ export interface SoakArgs {
   job: boolean;
 }
 
-export function parseSoakArgs(argv: readonly string[]): SoakArgs {
+export function parseSoakArgs(argv: readonly string[], env: Env = process.env): SoakArgs {
   const args: SoakArgs = {
     uids: [],
     evalUsers: false,
@@ -62,8 +58,12 @@ export function parseSoakArgs(argv: readonly string[]): SoakArgs {
   }
   if (args.write && args.purge) throw new Error('--write and --purge are separate runs');
   if (args.job && (args.write || args.purge)) throw new Error('--job is a dry run only');
-  if (args.uids.length === 0 && !args.evalUsers) args.uids.push(SOAK_OWNER_UID);
-  assertSoakAllowed(args.uids);
+  if (args.uids.length === 0 && !args.evalUsers && !args.job) {
+    throw new Error(
+      'pass --uid <uid> (listed in MEMORY_EVAL_ALLOWED_UIDS), --eval-users, or --job'
+    );
+  }
+  assertSoakAllowed(args.uids, env);
   return args;
 }
 

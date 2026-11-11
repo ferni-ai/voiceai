@@ -69,7 +69,7 @@ import { callOutcomeUnheard } from '../../../../agents/personas/call-narration.j
 import { getHonestyInjection } from '../../../../intelligence/context-builders/safety/honesty-guardrail.js';
 import { telephonyExecutor } from '../../../../agents/shared/tool-executors/telephony-executor.js';
 
-const SETH = 'vdSfkCCXaiXpnVCvgKxHMYrNFr72';
+const SETH = 'testOwnerUid0000000000000000';
 const ASKED_DAD = Date.parse('2026-10-26T21:46:05Z');
 // Seth's 21:46 callOnBehalf, as the model sent it (the number is the one he gave at 18:47).
 const DAD_CALL = {

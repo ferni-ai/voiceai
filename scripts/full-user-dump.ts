@@ -1,11 +1,22 @@
 #!/usr/bin/env npx tsx
 /**
- * Full dump of everything Ferni knows about a user
+ * Full dump of everything Ferni knows about a user.
+ *
+ *   FERNI_USER_ID=<uid> MEMORY_EVAL_ALLOWED_UIDS=<uid> npx tsx scripts/full-user-dump.ts
+ *
+ * FERNI_USER_ID is required, and the run is refused unless it is listed in
+ * MEMORY_EVAL_ALLOWED_UIDS (set outside the repo; see lib/allowed-uid.ts).
  */
 
 import { getFirestoreDb } from '../src/services/superhuman/firestore-utils.js';
+import { assertAllowedUid } from './lib/allowed-uid.js';
 
 async function fullUserDump() {
+  // Checked before anything is printed or read.
+  const userId = process.env.FERNI_USER_ID;
+  if (!userId) throw new Error('FERNI_USER_ID is required');
+  assertAllowedUid(userId);
+
   console.log('═══════════════════════════════════════════════════════════════');
   console.log('  📋 COMPLETE FERNI DATA DUMP');
   console.log('═══════════════════════════════════════════════════════════════\n');
@@ -16,7 +27,6 @@ async function fullUserDump() {
     return;
   }
 
-  const userId = process.env.FERNI_USER_ID || 'vdSfkCCXaiXpnVCvgKxHMYrNFr72';
   console.log(`👤 User ID: ${userId}\n`);
 
   // Get main profile
@@ -190,4 +200,7 @@ async function fullUserDump() {
   console.log('\n═══════════════════════════════════════════════════════════════\n');
 }
 
-fullUserDump().catch(console.error);
+fullUserDump().catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+});
