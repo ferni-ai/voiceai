@@ -88,7 +88,7 @@ const pctOf = (rs, field, pct) => {
 /** A metric over a set of runs: { value, n } (value null = nothing measured it). extra holds
  *  measurements that aren't calls: toolChoice (choice-score.mjs output). */
 export function metric(check, all, caps, extra = {}) {
-  const runs = forPersona(check, all); // check.persona: only calls with that persona (#3752)
+  const runs = forPersona(check, all, caps); // check.persona: ferni or teammate calls (#3752)
   const re =
     check.pattern &&
     new RegExp(check.pattern === 'crisis' ? caps.crisisPattern : check.pattern, 'i');
@@ -130,8 +130,8 @@ export function metric(check, all, caps, extra = {}) {
       const bad = j.filter((r) => (r.judge.inventedHistory ?? []).length > 0).length;
       return { value: j.length ? round(bad / j.length) : null, n: j.length };
     }
-    case 'judgedAs': // persona-scope.mjs: judged as another persona than the scenario's
-      return judgedAsOther(runs);
+    case 'judgedAs': // persona-scope.mjs: teammate-lane calls not positively that teammate
+      return judgedAsOther(runs, caps);
     case 'judgeMean': {
       const v = runs
         .map((r) =>

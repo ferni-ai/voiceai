@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { calledPersona, scenarioPersona } from '../persona-scope.mjs';
+import { isTeammateCall, scenarioPersona } from '../persona-scope.mjs';
 import { loadNight, metric, scoreNight } from '../scorecard.mjs';
 import { loadBar, scoreBar } from '../superhuman.mjs';
 
@@ -42,19 +42,17 @@ describe('which persona a call was with', () => {
     expect(scenarioPersona('no-such-scenario')).toBeNull();
   });
 
-  it('prefers meta.persona, then the judged persona, then the scenario line, then ferni', () => {
-    expect(calledPersona({ scenario: 'timer', run: { meta: { persona: 'alex-chen' } } })).toBe(
-      'alex-chen'
-    );
+  it('is a teammate call only with a listed scenario and a recorded persona that matches it', () => {
+    const r = (scenario, meta, judge) => ({ scenario, run: { meta }, judge });
+    expect(isTeammateCall(r('teammate-maya', { persona: 'maya-santos' }, null), caps)).toBe(true);
+    expect(isTeammateCall(r('teammate-maya', {}, { persona: 'maya-santos' }), caps)).toBe(true);
+    // Nothing recorded, a disagreeing verdict, another teammate, a Ferni scenario: not teammate.
+    expect(isTeammateCall(r('teammate-maya', {}, null), caps)).toBe(false);
     expect(
-      calledPersona({
-        scenario: 'teammate-maya',
-        run: { meta: {} },
-        judge: { persona: 'alex-chen' },
-      })
-    ).toBe('alex-chen');
-    expect(calledPersona({ scenario: 'teammate-maya', run: { meta: {} } })).toBe('maya-santos');
-    expect(calledPersona({ scenario: 'timer', run: { meta: {} } })).toBe('ferni');
+      isTeammateCall(r('teammate-maya', { persona: 'maya-santos' }, { persona: 'ferni' }), caps)
+    ).toBe(false);
+    expect(isTeammateCall(r('teammate-maya', { persona: 'alex-chen' }, null), caps)).toBe(false);
+    expect(isTeammateCall(r('timer', { persona: 'maya-santos' }, null), caps)).toBe(false);
   });
 });
 
@@ -86,12 +84,17 @@ describe('the teammate capability', () => {
     expect(card.diff.regressions).toEqual([]);
   });
 
-  it("is no data, not a PASS, when the verdicts don't name a persona", () => {
-    const runs = team().map((r) => ({ ...r, judge: { ...r.judge, persona: undefined } }));
+  it('counts a lane call with no recorded persona as run as someone else, not a teammate', () => {
+    const quiet = (r) => ({ ...r, run: { meta: { scenario: r.scenario } } });
+    const noVerdictPersona = team().map((r) => ({
+      ...r,
+      judge: { ...r.judge, persona: undefined },
+    }));
+    expect(check(scoreNight(noVerdictPersona, caps), 'teammate', 'judged-as-other').value).toBe(0);
+    const runs = team().map((r) => quiet({ ...r, judge: { ...r.judge, persona: undefined } }));
     expect(check(scoreNight(runs, caps), 'teammate', 'judged-as-other')).toMatchObject({
-      value: null,
+      value: 5,
       verdict: 'WARN',
-      reason: 'no data',
     });
   });
 });
@@ -225,7 +228,7 @@ describe('teammate calls never move a Ferni gate (#3756 review)', () => {
         cap.checks
           .filter((c) => c.scope === 'all' || cap.scenarios.some(teammateScenario))
           .filter((c) => [c.fail, c.warn, c.maxDrop].some((t) => t !== null && t !== undefined))
-          .filter((c) => !c.persona && !ALLOW[`${id}.${c.id}`])
+          .filter((c) => c.persona !== 'ferni' && !ALLOW[`${id}.${c.id}`])
           .map((c) => `${id}.${c.id}`)
       );
     expect(unscoped).toEqual([]);
