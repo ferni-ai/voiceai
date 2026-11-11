@@ -59,7 +59,7 @@ export function endsOnModelTurn(items: readonly llm.ChatItem[]): boolean {
 }
 
 /** True when the caller's turn is the last thing in the request: no model turn or tool result follows it. */
-export function endsOnCallerTurn(items: readonly llm.ChatItem[]): boolean {
+function endsOnCallerTurn(items: readonly llm.ChatItem[]): boolean {
   return lastTurn(items) === 'caller';
 }
 
