@@ -5,7 +5,8 @@
  * frontend publisher but never registered the call's frontend signal; only the
  * single-agent path did. So every idle-after-goodbye end sent `conversation_end`
  * to no one (dev logged `sent: false` on every one) and the app never hung up.
- * The signal is now bound by initializeFrontendPublisher itself, so these tests
+ * The signal is now bound by initializeFrontendPublisher itself (APP_HANGUP_SIGNAL,
+ * a kill switch, default on), so these tests
  * call only that, never initFrontendSignal.
  */
 import { afterEach, describe, expect, it } from 'vitest';
@@ -100,6 +101,27 @@ describe('the call publisher carries its frontend signals', () => {
     await sendFrontendSignal('conversation_end', { reason: 'idle_after_goodbye' }, a);
     expect(roomA.received.map((m) => m.type)).toEqual(['conversation_end']);
     expect(roomB.received).toEqual([]);
+  });
+});
+
+describe('APP_HANGUP_SIGNAL (kill switch, default on)', () => {
+  it('binds no signal when switched off, as before the fix', async () => {
+    const id = sessionId();
+    const room = fakeRoom();
+    initializeFrontendPublisher(id, room, undefined, { APP_HANGUP_SIGNAL: 'off' });
+
+    expect(await sendFrontendSignal('conversation_end', { reason: 'r' }, id)).toBe(false);
+    expect(room.received).toEqual([]);
+  });
+
+  it('binds the signal when unset (the manifest default) or on', async () => {
+    for (const env of [{}, { APP_HANGUP_SIGNAL: 'on' }]) {
+      const id = sessionId();
+      const room = fakeRoom();
+      initializeFrontendPublisher(id, room, undefined, env);
+      expect(await sendFrontendSignal('conversation_end', { reason: 'r' }, id)).toBe(true);
+      expect(room.received.map((m) => m.type)).toEqual(['conversation_end']);
+    }
   });
 });
 

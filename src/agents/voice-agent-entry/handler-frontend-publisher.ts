@@ -16,6 +16,12 @@ export async function setupFrontendPublisher(
     // Ferni's introduction of a teammate shows in the app as it finishes
     cleanupHandlers.push(forwardCameoReveals(ctx.room, sessionId));
 
+    const { initFrontendSignal, resetFrontendSignal } =
+      await import('../../services/frontend-signal.js');
+    initFrontendSignal(sessionId, async (type, data) => {
+      if (publisher.isConnected()) await publisher.sendData(type, data ?? {});
+    });
+    cleanupHandlers.push(() => resetFrontendSignal(sessionId));
     process.stderr.write(`[voice-agent-entry] 📤 Frontend publisher initialized\n`);
 
     try {
