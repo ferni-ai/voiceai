@@ -3086,7 +3086,7 @@
   "tryFirst": {
     "subtitle": "Say hello first. Sign in whenever you want to keep the conversation.",
     "talkNow": "Talk to Ferni",
-    "noAccount": "No account needed. Just say hello.",
+    "noAccount": "No account needed. Nothing from this call is saved, except a short safety note if it sounded like you might be in danger. It never includes your words.",
     "connecting": "Calling {name}…",
     "inCall": "You're talking with Ferni. Say whatever's on your mind.",
     "endCall": "End call",
