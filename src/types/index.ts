@@ -46,7 +46,6 @@ export {
   isSessionIdLike,
   // Type guards
   isUserIdLike,
-  isValidPersonaId,
   unsafeAsEventId,
   unsafeAsGoalId,
   unsafeAsMemoryId,
