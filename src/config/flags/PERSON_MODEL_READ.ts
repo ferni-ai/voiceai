@@ -6,7 +6,7 @@ export const PERSON_MODEL_READ = {
   owner: 'memory',
   kind: 'experiment',
   expires: '2027-02-08',
-  issue: 'TBD',
+  issue: 'https://github.com/ferni-ai/voiceai/issues/3682',
   context:
     'Keep if the natural-use eval rises with leaks at 0 and first-word timing unchanged; else delete.',
 } as const satisfies FlagSpec;
