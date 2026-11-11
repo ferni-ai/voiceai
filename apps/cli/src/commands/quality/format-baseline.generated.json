@@ -395,8 +395,6 @@
   "src/personas/bundles/nayan-patel/content/stories/river-walk.json",
   "src/personas/bundles/peter-john/content/prompts/_assembly.json",
   "src/personas/bundles/peter-john/content/voice/micro-expressions.json",
-  "src/personas/bundles/peter-lynch/content/behaviors/coaching-modes.json",
-  "src/personas/bundles/peter-lynch/content/behaviors/trust-phrases.json",
   "src/personas/bundles/runtime.ts",
   "src/personas/bundles/types/cognitive.ts",
   "src/personas/bundles/types/core.ts",

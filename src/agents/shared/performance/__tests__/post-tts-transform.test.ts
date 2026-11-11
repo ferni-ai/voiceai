@@ -449,7 +449,6 @@ describe('Persona Humanization Config', () => {
     });
 
     it('should return clearEnergetic for peter', () => {
-      expect(getRecommendedPreset('peter-lynch')).toBe('clearEnergetic');
       expect(getRecommendedPreset('peter')).toBe('clearEnergetic');
     });
 

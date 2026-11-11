@@ -70,7 +70,7 @@ describe('runtime JSON content parses', () => {
   });
 
   it('covers the files whose loaders skip a parse error without failing', () => {
-    expect(bundleFiles.length).toBeGreaterThan(700);
+    expect(bundleFiles.length).toBeGreaterThan(690);
     expect(bundlePaths.filter((p) => p.endsWith('/_assembly.json')).length).toBeGreaterThanOrEqual(
       7
     );

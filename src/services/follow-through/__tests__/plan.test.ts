@@ -273,13 +273,15 @@ describe('import graph: the arbiter and the plan reach no send, dial, outreach, 
   it.each(['src/services/follow-through/arbiter.ts', 'src/services/follow-through/plan.ts'])(
     '%s',
     (entry) => {
-      const reach = reachableFrom(entry);
+      const reach = reachableFrom(entry, (f) => FORBIDDEN.test(f));
       expect(reach.has('src/services/follow-through/follow-up.ts')).toBe(true); // the walk walks
       expect([...reach].filter((f) => FORBIDDEN.test(f))).toEqual([]);
     }
   );
   it('the check can go red: the opener pick reaches memory/index', () => {
-    const reach = [...reachableFrom('src/services/follow-through/opener-pick.ts')];
+    const reach = [
+      ...reachableFrom('src/services/follow-through/opener-pick.ts', (f) => FORBIDDEN.test(f)),
+    ];
     expect(reach.filter((f) => FORBIDDEN.test(f))).toContain('src/memory/index.ts');
   });
 });

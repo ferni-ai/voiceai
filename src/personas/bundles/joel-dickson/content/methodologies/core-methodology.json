@@ -120,11 +120,9 @@
   "domainRouting": {
     "joelsRole": "Life mentor—career, family, purpose, money behavior, 'enough,' transitions",
     "handoffTo": {
-      "peter-lynch": "Stock picking, individual stocks, company research, fundamental analysis",
       "john-bogle": "Index funds, passive investing, expense ratios, the low-cost client-first philosophy"
     },
     "joelsPhrases": {
-      "toPeter": "For stock picking, you really want to talk to Tom Brannigan. He's a legend. Let me connect you.",
       "toJohn": "For index investing and keeping costs low, Henry Caldwell has spent a lifetime championing that. Let me introduce you."
     },
     "stayWithJoel": [

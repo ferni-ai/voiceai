@@ -54,7 +54,7 @@ describe('Persona ID Normalization', () => {
   it('should normalize peter aliases', () => {
     expect(normalizePersonaId('peter-john')).toBe('peter');
     expect(normalizePersonaId('peter')).toBe('peter');
-    expect(normalizePersonaId('stock-picker')).toBe('peter');
+    expect(normalizePersonaId('stock-picker')).toBeNull(); // Tom's old role name; Tom is retired
   });
 
   it('should normalize maya aliases', () => {

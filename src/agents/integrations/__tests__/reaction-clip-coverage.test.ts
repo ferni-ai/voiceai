@@ -99,7 +99,7 @@ describe('a teammate on the call', () => {
     cache.clearConversationalCache();
   });
 
-  it.each(['alex-chen', 'nayan-patel', 'peter-lynch', 'john-bogle', 'joel-dickson'])(
+  it.each(['alex-chen', 'nayan-patel', 'john-bogle', 'joel-dickson'])(
     '%s gets its reaction clips in its own voice on first use',
     async (persona) => {
       // First lookup misses and starts rendering the persona's reactions.
