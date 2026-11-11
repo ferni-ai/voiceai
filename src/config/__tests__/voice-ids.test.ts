@@ -31,7 +31,6 @@ describe('Voice IDs', () => {
     'EVENT_PLANNER_VOICE_ID',
     'NAYAN_PATEL_VOICE_ID',
     'NAYAN_VOICE_ID',
-    'PETER_LYNCH_VOICE_ID',
     'GENERIC_ADVISOR_VOICE_ID',
   ];
 

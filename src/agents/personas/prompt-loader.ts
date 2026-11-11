@@ -150,7 +150,6 @@ const PERSONA_BUNDLES: Record<string, string> = {
   nayan: 'nayan-patel',
   'joel-dickson': 'joel-dickson',
   joel: 'joel-dickson',
-  'peter-lynch': 'peter-lynch',
   'john-bogle': 'john-bogle',
 };
 

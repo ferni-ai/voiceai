@@ -26,16 +26,12 @@ export const CHARACTER_FILE = 'identity/character.md';
 export const SPARK_FILE = 'identity/character-spark.md';
 
 /**
- * Bundles whose character sheet came with PERSONA_SPARK: the three legends had
- * only legacy system prompts, two with "Things You DO Say" lines the model
+ * Bundles whose character sheet came with PERSONA_SPARK: the legends had only
+ * legacy system prompts, Henry's with "Things You DO Say" lines the model
  * repeats. Off, they keep the legacy prompt, so a legend call doesn't change
  * until the flag flips.
  */
-export const SHEET_WITH_SPARK: ReadonlySet<string> = new Set([
-  'joel-dickson',
-  'peter-lynch',
-  'john-bogle',
-]);
+export const SHEET_WITH_SPARK: ReadonlySet<string> = new Set(['joel-dickson', 'john-bogle']);
 
 const BUNDLES = join(dirname(fileURLToPath(import.meta.url)), '../../personas/bundles');
 

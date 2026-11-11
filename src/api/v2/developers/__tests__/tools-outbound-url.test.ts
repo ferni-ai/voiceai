@@ -7,7 +7,15 @@
 import dns from 'node:dns';
 import { EventEmitter } from 'events';
 import type { IncomingMessage, ServerResponse } from 'http';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+
+// The outbound guard sends through undici's own fetch, not the global one, so that is the spy.
+// No implementation by default: a request nothing stubbed fails instead of reaching the network.
+vi.mock('undici', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('undici')>()),
+  fetch: vi.fn(),
+}));
+const guardedFetch = vi.mocked((await import('undici')).fetch) as unknown as Mock<typeof fetch>;
 
 const docs = new Map<string, Record<string, unknown>>();
 
@@ -77,7 +85,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
-  vi.unstubAllGlobals();
+  guardedFetch.mockReset();
 });
 
 const PRIVATE_URLS = [
@@ -135,7 +143,7 @@ describe('POST /tools/:id/test', () => {
           headers: { 'content-type': 'application/json' },
         })
     );
-    vi.stubGlobal('fetch', fetchSpy);
+    guardedFetch.mockImplementation(fetchSpy);
 
     const res = await call('POST', `${BASE}/tool_1/test`, { params: {} });
 
@@ -152,7 +160,7 @@ describe('POST /tools/:id/test', () => {
   it('refuses a private URL stored before the rule, without fetching it', async () => {
     storeTool('https://169.254.169.254/computeMetadata/v1/');
     const fetchSpy = vi.fn(async () => new Response(METADATA_LIKE_BODY, { status: 200 }));
-    vi.stubGlobal('fetch', fetchSpy);
+    guardedFetch.mockImplementation(fetchSpy);
 
     const res = await call('POST', `${BASE}/tool_1/test`, { params: {} });
 
