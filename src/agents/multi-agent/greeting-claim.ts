@@ -42,6 +42,7 @@ export function claimIfAsked(
   userId: string,
   spoken: string,
   threads: GreetingThreads,
+  sessionId?: string,
   env: Record<string, string | undefined> = process.env
 ): void {
   const given = threads.checkIn ?? threads.pondered;
@@ -51,5 +52,5 @@ export function claimIfAsked(
     : lineFollows &&
       threads.lastTopic !== undefined &&
       asksAboutTopic(spoken, threads.lastTopic, threads.userName);
-  if (asked) claimOpenerFollowUp(userId, 'greeting');
+  if (asked) claimOpenerFollowUp(userId, 'greeting', sessionId);
 }

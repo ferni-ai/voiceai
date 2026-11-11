@@ -167,16 +167,18 @@ export function generateUrgentNotification(record: CheckinAlertInput): string | 
   const crisis = needsCrisisLine(desc, act, both, what, next);
   // The screen reads the alert as main built it, with Ferni's check-in line in the closing slot:
   // the money line is Ferni's own words, and a name like Loan would trip the screen's
-  // "loan ... money" read on them.
+  // "loan ... money" read on them. The name is the sponsor's, so its punctuation
+  // ("Mary_Ann", "St.Clair") is not read as a handle or a link.
   const read = alert(what, next, crisis);
   const sent = money ? alert(what, riskyCallerLine(name), crisis) : read;
   const screened = both.length <= SCREEN_WINDOW && read.length <= SCREEN_WINDOW;
-  if (screened && !isRiskyCallerText(read)) return sent;
+  if (screened && !isRiskyCallerText(read, name)) return sent;
   // Too long to screen in full, or the joined fields formed something risky:
   // pass neither on, so their words are withheld and crisisCallerLine goes. The
   // money line only when the screen read something risky in either field alone, the
   // alert, or the joined fields; length alone is neutral. Each field is read alone
   // because the joined text is read only up to the screen's window.
-  const risky = desc.risky || act.risky || isRiskyCallerText(read) || isRiskyCallerText(both);
+  const risky =
+    desc.risky || act.risky || isRiskyCallerText(read, name) || isRiskyCallerText(both, name);
   return alert(risky ? riskyCallerLine(name) : withheldCallerLine(name), CHECK_IN_ACTION, true);
 }

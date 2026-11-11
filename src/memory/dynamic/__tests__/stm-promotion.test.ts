@@ -21,6 +21,11 @@ import {
   getEmotionalTrajectory,
 } from '../stm-buffer.js';
 import type { FastCaptureResult } from '../fast-capture.js';
+import {
+  claimProactiveSlot,
+  clearProactiveSlots,
+  proactiveSlotCount,
+} from '../../recall/proactive-budget.js';
 
 // ============================================================================
 // MOCKS
@@ -714,6 +719,15 @@ describe('STM Promotion', () => {
       );
       // After onSessionEnd, STM turns are gone (getSTMBuffer recreates empty shell)
       expect(getSTMBuffer(testSessionId, testUserId)?.turns ?? []).toHaveLength(0);
+    });
+
+    it("ends each call's proactive slot (PROACTIVE_BUDGET condition 6)", async () => {
+      clearProactiveSlots();
+      const calls = Array.from({ length: 40 }, (_, i) => `${testSessionId}-slot-${i}`);
+      for (const id of calls) expect(claimProactiveSlot(id, 'follow-up')).toEqual({ ok: true });
+      expect(proactiveSlotCount()).toBe(40);
+      for (const id of calls) await onSessionEnd(id, testUserId);
+      expect(proactiveSlotCount()).toBe(0);
     });
   });
 
