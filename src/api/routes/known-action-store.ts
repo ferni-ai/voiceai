@@ -6,7 +6,7 @@
  * @module api/routes/known-action-store
  */
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
-import { forgetForCaller } from '../../memory/recall/forget.js';
+import { bumpForgetGeneration, forgetForCaller } from '../../memory/recall/forget.js';
 import { correctRemembered, forgetRemembered } from '../../memory/recall/memory-control.js';
 import { firestoreMemoryControlStore } from '../../memory/storage/memory-control-store.js';
 import { createFirestoreWorldFactStore } from '../../intelligence/world-model/temporal/store.js';
@@ -70,7 +70,10 @@ export const firestoreActionStore: ActionStore = {
       return doc?.exists ? { ...(doc.data() as TemporalFact), id: doc.id } : null;
     },
     async forget(userId, id, at, wrong) {
-      await worldDoc(userId, id)?.update({ validTo: at, forgottenAt: at, ...(wrong && { wrong }) });
+      const doc = worldDoc(userId, id);
+      if (!doc) return;
+      await doc.update({ validTo: at, forgottenAt: at, ...(wrong && { wrong }) });
+      await bumpForgetGeneration(getFirestoreDb(), userId);
     },
   },
   updateMind: async (userId, change) =>
