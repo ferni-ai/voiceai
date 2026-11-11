@@ -14,8 +14,10 @@ export function scenarioPersona(scenario, dir = SCENARIOS) {
   return readFileSync(file, 'utf8').match(/^#@persona[ \t]+(\S+)/m)?.[1] ?? null;
 }
 
-/** Who answered: meta.persona (run.sh records it), else the scenario's line, else ferni. */
-export const calledPersona = (r) => r.run?.meta?.persona || scenarioPersona(r.scenario) || 'ferni';
+/** Who answered, from what was recorded at call time first: meta.persona (run.sh), then the
+ *  judge verdict's persona; the scenario file's line only when neither is set; else ferni. */
+export const calledPersona = (r) =>
+  r.run?.meta?.persona || r.judge?.persona || scenarioPersona(r.scenario) || 'ferni';
 
 /** The runs a check with a `persona` field scores (every run without one). */
 export const forPersona = (check, runs) =>

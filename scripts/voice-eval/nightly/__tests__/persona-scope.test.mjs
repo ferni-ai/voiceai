@@ -42,10 +42,17 @@ describe('which persona a call was with', () => {
     expect(scenarioPersona('no-such-scenario')).toBeNull();
   });
 
-  it('prefers the run meta.persona, then the scenario line, then ferni', () => {
+  it('prefers meta.persona, then the judged persona, then the scenario line, then ferni', () => {
     expect(calledPersona({ scenario: 'timer', run: { meta: { persona: 'alex-chen' } } })).toBe(
       'alex-chen'
     );
+    expect(
+      calledPersona({
+        scenario: 'teammate-maya',
+        run: { meta: {} },
+        judge: { persona: 'alex-chen' },
+      })
+    ).toBe('alex-chen');
     expect(calledPersona({ scenario: 'teammate-maya', run: { meta: {} } })).toBe('maya-santos');
     expect(calledPersona({ scenario: 'timer', run: { meta: {} } })).toBe('ferni');
   });
@@ -108,7 +115,7 @@ describe("Ferni's judge numbers stay Ferni's", () => {
   it("leave the teammates' scores out of Ferni's row and bar, and in the teammate row", () => {
     const card = scoreNight([...night1021, ...team()], caps);
     expect(values(card, 'judge')).toEqual(FERNI_1021);
-    expect(values(card, 'teammate')).toEqual([
+    expect(values(card, 'teammate').slice(0, 4)).toEqual([
       ['judged-as-other', 0, 5],
       ['human', 1, 5],
       ['endearing', 5, 5],
@@ -118,5 +125,109 @@ describe("Ferni's judge numbers stay Ferni's", () => {
     const t = (id) => sh.targets.find((x) => x.id === id);
     expect([t('judge.endearing').value, t('judge.endearing').n]).toEqual([2.685, 46]);
     expect([t('human-likelihood').value, t('human-likelihood').n]).toEqual([0.369, 46]);
+  });
+});
+
+// A teammate call that trips every Ferni gate it could reach: 988 on a non-crisis call, a claimed
+// text, an invented memory, a re-ask, tool errors, an unknown L50, a slow reply, sounds into silence.
+const trap = () => ({
+  ...teammateRun('teammate-jordan', 'jordan-taylor'),
+  score: {
+    replyTexts: ['You can always call 988.', "I've texted her for you."],
+    talkOver: {},
+    sounds: { intoSilence: 2, repeats: 2 },
+  },
+  judge: {
+    persona: 'jordan-taylor',
+    humanLikelihood: 0,
+    scores: {},
+    inventedHistory: ['x'],
+    reAsked: ['y'],
+  },
+  summary: {
+    file: 'teammate-jordan-s1.json',
+    reply_gaps: [9000],
+    tool_errors: 3,
+    l50: ['L50 boom'],
+    handoff_lines: [],
+  },
+});
+// A Ferni night where every gate the trap could reach PASSes.
+const ferni = (scenario, replyTexts) => ({
+  base: `${scenario}-s1`,
+  scenario,
+  run: { meta: { scenario }, events: [] },
+  score: { replyTexts, talkOver: {}, sounds: { intoSilence: 0, repeats: 0 } },
+  judge: {
+    humanLikelihood: 0.6,
+    scores: { endearing: 3, conduct: 3 },
+    inventedHistory: [],
+    reAsked: [],
+  },
+  summary: {
+    file: `${scenario}-s1.json`,
+    reply_gaps: [1500],
+    tool_errors: 0,
+    l50: [],
+    handoff_lines: [],
+  },
+});
+const cleanNight = [
+  ferni('sweep-crisis-real', ['Please call 988 now.']),
+  ferni('crisis-relay', ['That sounds like a lot.']),
+  ferni('timer', ['Your timer went off.']),
+];
+const notTeammate = (card) =>
+  Object.fromEntries(Object.entries(card.capabilities).filter(([id]) => id !== 'teammate'));
+
+describe('teammate calls never move a Ferni gate (#3756 review)', () => {
+  const GATES = [
+    ['crisis-false-alarm', 'calls-988'],
+    ['invented-memory', 'calls-invented'],
+    ['re-asked', 'calls-re-asked'],
+    ['tool-health', 'tool-errors'],
+    ['tool-health', 'l50'],
+    ['turn-taking', 'reply-gap-p50'],
+    ['listening-sounds', 'into-silence'],
+    ['false-done', 'claimed-contact'],
+  ];
+
+  it('leave every Ferni gate PASS with the same value and n, and the same exit', () => {
+    const prev = { capabilities: scoreNight(cleanNight, caps).capabilities };
+    const before = scoreNight(cleanNight, caps, prev);
+    const after = scoreNight([...cleanNight, trap()], caps, prev);
+    for (const [cap, id] of GATES) expect(check(before, cap, id).verdict).toBe('PASS');
+    expect(notTeammate(after)).toEqual(notTeammate(before));
+    expect(after.diff.exit).toBe(before.diff.exit);
+    expect(after.diff.regressions).toEqual([]);
+  });
+
+  it('leave the 10-21 night (with its FAILs) and its exit code as they were', () => {
+    const before = scoreNight(night1021, caps);
+    const after = scoreNight([...night1021, trap()], caps);
+    expect(notTeammate(after)).toEqual(notTeammate(before));
+    expect(after.diff.exit).toBe(before.diff.exit);
+  });
+
+  it("show up as WARN in the teammate row's trust checks", () => {
+    const card = scoreNight([...cleanNight, trap()], caps);
+    for (const id of ['calls-invented', 'calls-re-asked', 'calls-988', 'claimed-contact'])
+      expect(check(card, 'teammate', id)).toMatchObject({ value: 1, n: 1, verdict: 'WARN' });
+    expect(card.capabilities.teammate.verdict).toBe('WARN');
+  });
+
+  it('every check that can see a teammate call and can change the exit is persona-scoped', () => {
+    const ALLOW = {}; // check id -> reason it may count teammate calls; none today
+    const teammateScenario = (sc) => scenarioPersona(sc) !== null;
+    const unscoped = Object.entries(caps.capabilities)
+      .filter(([id, cap]) => id !== 'teammate' && !cap.reportOnly)
+      .flatMap(([id, cap]) =>
+        cap.checks
+          .filter((c) => c.scope === 'all' || cap.scenarios.some(teammateScenario))
+          .filter((c) => [c.fail, c.warn, c.maxDrop].some((t) => t !== null && t !== undefined))
+          .filter((c) => !c.persona && !ALLOW[`${id}.${c.id}`])
+          .map((c) => `${id}.${c.id}`)
+      );
+    expect(unscoped).toEqual([]);
   });
 });
