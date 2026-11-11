@@ -20,12 +20,14 @@
  * once more after Ferni answers the caller (MAX_ALERT_ATTEMPTS), and an alert
  * that still isn't heard is logged as CALL_ALERT_DROPPED with the reason.
  * Heard means HEARD_AFTER_MS of playout: a pause for the caller's voice stops
- * the count. Each attempt also waits LiveKit's endpointing delay after the
- * caller last stopped (watched for the whole call, so the first attempt knows
+ * the count, and so does a soft pause (BARGE_IN_SOFT_PAUSE, playout-hold.ts).
+ * Each attempt also waits LiveKit's endpointing delay after the caller last stopped (watched for the whole call, so the first attempt knows
  * it too), so a turn of theirs still to be committed can't cut it, and a call
  * that ends meanwhile drops it (call_ended) without asking for it. A reply
- * that neither plays nor ends within REPLY_WAIT_MS is dropped (reply_timeout).
- * Such a reply ends on Ferni's turn, so it stays on the main model (fast-lane.ts).
+ * that neither plays nor ends within REPLY_WAIT_MS is dropped (reply_timeout);
+ * if it is heard later after all, onSpoken still runs (CALL_ALERT_SPOKEN late),
+ * so a live call report the owner heard isn't told again at the next opener.
+ * An alert's reply ends on Ferni's turn, so it stays on the main model (fast-lane.ts).
  *
  * @module agents/shared/call-alerts
  */
@@ -33,6 +35,7 @@
 import { voice } from '@livekit/agents';
 import type { VoiceCallback } from '../../tools/domains/simple-utilities/voice-callbacks.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { onPlayoutHeldChange, playoutHeld } from './playout-hold.js';
 
 const log = createLogger({ module: 'CallAlerts' });
 
@@ -46,6 +49,8 @@ export const HEARD_AFTER_MS = 600;
 export const ANSWER_START_MS = 5000;
 /** Longest an attempt waits for its reply to be heard or to end. */
 export const REPLY_WAIT_MS = 30_000;
+/** After a reply_timeout drop, how long the reply is still watched in case it plays. */
+export const LATE_PLAY_WAIT_MS = 120_000;
 
 /** The parts of LiveKit's SpeechHandle the speaker watches. */
 export interface AlertSpeech {
@@ -172,24 +177,30 @@ type Outcome = 'played' | 'requested' | 'cut' | { failed: string };
 
 /**
  * Ask for the alert's reply and settle once HEARD_AFTER_MS of it has played ('played'),
- * or when it ends sooner ('cut'). Playout is the time LiveKit has it 'speaking': a pause
- * for the caller's voice (speaking -> listening) stops the count, a resume restarts it.
- * A reply that finished uninterrupted counts as played. The call closing settles it as
- * 'cut' (the caller then sees call_ended); a reply that does neither within `maxMs`
- * fails as reply_timeout, so a handle that never finishes can't hold the alert.
+ * or when it ends sooner ('cut'). Playout is the time LiveKit has it 'speaking' and no
+ * soft pause holds it (playout-hold.ts): a pause for the caller's voice stops the count,
+ * a resume restarts it. A reply that finished uninterrupted counts as played. The call
+ * closing settles it as 'cut' (the caller then sees call_ended); a reply that does
+ * neither within `maxMs` fails as reply_timeout, so a handle that never finishes can't
+ * hold the alert. With `onLatePlay`, a timed-out reply is still watched for up to
+ * `lateMs`: if it is heard after all (by the same rule), `onLatePlay` runs once.
  */
 async function sayOnce(
   session: AlertSession,
   cb: VoiceCallback,
-  maxMs = REPLY_WAIT_MS
+  maxMs = REPLY_WAIT_MS,
+  late?: { onLatePlay: () => void; lateMs?: number }
 ): Promise<Outcome> {
   return new Promise((resolve) => {
     let handle: unknown;
+    let speaking = false;
     let playedMs = 0;
     let since: number | undefined;
     let heard: ReturnType<typeof setTimeout> | undefined;
-    const onState = (ev: unknown): void => {
-      const playing = newState(ev) === 'speaking';
+    let timedOut = false;
+    let over = false;
+    const count = (): void => {
+      const playing = speaking && !playoutHeld(session);
       if (playing && since === undefined && handle !== undefined) {
         if (session._activity?.currentSpeech !== handle) return;
         since = Date.now();
@@ -200,14 +211,29 @@ async function sayOnce(
         clearTimeout(heard);
       }
     };
+    const onState = (ev: unknown): void => {
+      speaking = newState(ev) === 'speaking';
+      count();
+    };
+    const offHold = onPlayoutHeldChange(session, count);
     const onClose = (): void => settle('cut');
-    const cap = setTimeout(() => settle({ failed: 'reply_timeout' }), maxMs);
+    let cap = setTimeout(() => {
+      if (!late) return settle({ failed: 'reply_timeout' });
+      // Dropped now; a reply that is heard later still counts (onLatePlay).
+      timedOut = true;
+      resolve({ failed: 'reply_timeout' });
+      cap = setTimeout(() => settle('cut'), late.lateMs ?? LATE_PLAY_WAIT_MS);
+    }, maxMs);
     const settle = (outcome: Outcome): void => {
+      if (over) return;
+      over = true;
       clearTimeout(heard);
       clearTimeout(cap);
       session.off(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+      offHold();
       session._closingSignal?.removeEventListener('abort', onClose);
-      resolve(outcome);
+      if (!timedOut) resolve(outcome);
+      else if (outcome === 'played') late?.onLatePlay();
     };
     session.on(voice.AgentSessionEventTypes.AgentStateChanged, onState);
     session._closingSignal?.addEventListener('abort', onClose);
@@ -234,6 +260,7 @@ export function createCallAlertSpeaker(
     quietWaitMs?: number;
     answerStartMs?: number;
     replyWaitMs?: number;
+    latePlayWaitMs?: number;
     /** CALL_ALERT_SPOKEN / CALL_ALERT_RETRY / CALL_ALERT_DROPPED lines; the module log by default. */
     log?: (msg: string, fields: Record<string, unknown>) => void;
   } = {}
@@ -272,7 +299,14 @@ export function createCallAlertSpeaker(
       if (callEnded(session)) return say('CALL_ALERT_DROPPED', { ...fields, reason: 'call_ended' });
       if (cb.holdIf?.()) return say('CALL_ALERT_DROPPED', { ...fields, reason: 'held' });
       // eslint-disable-next-line no-await-in-loop -- one attempt at a time, by design
-      const outcome = await sayOnce(session, cb, opts.replyWaitMs);
+      const outcome = await sayOnce(session, cb, opts.replyWaitMs, {
+        lateMs: opts.latePlayWaitMs,
+        // Heard after the drop: a live call report is then delivered, not told again later.
+        onLatePlay: () => {
+          cb.onSpoken?.();
+          say('CALL_ALERT_SPOKEN', { ...fields, late: true });
+        },
+      });
       if (outcome === 'played') {
         cb.onSpoken?.();
         return say('CALL_ALERT_SPOKEN', fields);
