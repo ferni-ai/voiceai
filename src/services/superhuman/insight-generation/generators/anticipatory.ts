@@ -236,6 +236,10 @@ function buildAnticipatoryInsight(data: AnticipatoryData, userId: string): Gener
     .replace(/{trigger}/g, data.trigger || data.event)
     .replace(/{goal}/g, data.goal || 'make a change')
     .replace(/{condition}/g, data.condition || 'the time was right');
+  // An empty {reason} leaves ". ." behind, and a template that opens with a placeholder
+  // can start with a lower-case fallback ("this time").
+  message = message.replace(/\.\s+\./g, '.');
+  message = message.charAt(0).toUpperCase() + message.slice(1);
 
   const priorityByDays = data.daysUntil <= 3 ? 'high' : data.daysUntil <= 7 ? 'medium' : 'low';
 

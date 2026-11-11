@@ -618,50 +618,39 @@ describe('Outreach Webhooks (Twilio)', () => {
       console.log('Inbound SMS handled');
     });
 
-    it('should handle opt-out keywords', async () => {
+    // STOP and START are Twilio's own keywords: Twilio sends the confirmation, so
+    // the app returns no TwiML (a second message would double it). The app answers
+    // the opt-out phrases Twilio doesn't know (messaging/sms-keywords.ts).
+    const sendSms = async (Body: string) => {
       const { handleInboundSMSWebhook } =
         await import('../../services/outreach/webhooks/twilio-webhooks.js');
-
       const payload = {
-        MessageSid: `SM-optout-${Date.now()}`,
-        Body: 'STOP',
+        MessageSid: `SM-keyword-${Date.now()}`,
+        Body,
         From: '+15551234567',
         To: '+15559876543',
         NumMedia: '0',
         AccountSid: 'ACtest',
       };
-      const result = await handleInboundSMSWebhook(
-        payload,
-        signTwilioPayload(payload),
-        TWILIO_TEST_URL
-      );
+      return handleInboundSMSWebhook(payload, signTwilioPayload(payload), TWILIO_TEST_URL);
+    };
 
+    it("leaves Twilio's STOP confirmation to Twilio", async () => {
+      const result = await sendSms('STOP');
       expect(result.success).toBe(true);
-      expect(result.twiml).toContain('unsubscribed');
-      console.log('Opt-out handled with TwiML response');
+      expect(result.twiml).toBeUndefined();
     });
 
-    it('should handle opt-in keyword', async () => {
-      const { handleInboundSMSWebhook } =
-        await import('../../services/outreach/webhooks/twilio-webhooks.js');
-
-      const payload = {
-        MessageSid: `SM-optin-${Date.now()}`,
-        Body: 'START',
-        From: '+15551234567',
-        To: '+15559876543',
-        NumMedia: '0',
-        AccountSid: 'ACtest',
-      };
-      const result = await handleInboundSMSWebhook(
-        payload,
-        signTwilioPayload(payload),
-        TWILIO_TEST_URL
-      );
-
+    it('confirms an opt-out phrase Twilio does not handle', async () => {
+      const result = await sendSms('please stop texting me');
       expect(result.success).toBe(true);
-      expect(result.twiml).toContain('Welcome back');
-      console.log('Opt-in handled with TwiML response');
+      expect(result.twiml).toContain('unsubscribed');
+    });
+
+    it("leaves Twilio's START confirmation to Twilio", async () => {
+      const result = await sendSms('START');
+      expect(result.success).toBe(true);
+      expect(result.twiml).toBeUndefined();
     });
   });
 
