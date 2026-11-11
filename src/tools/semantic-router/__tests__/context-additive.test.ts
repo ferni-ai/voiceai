@@ -68,6 +68,7 @@ afterEach(() => vi.unstubAllEnvs());
 
 describe('ROUTER_CONTEXT_ADDITIVE off (default) averages the boost in', () => {
   it('a crisis history drops crisis_support for a keyword-only crisis turn', () => {
+    vi.stubEnv('ROUTER_CONTEXT_ADDITIVE', 'off');
     for (const text of KEYWORD_CRISIS) {
       expect(crisisScore(text), text).toBeGreaterThan(0);
       expect(crisisScore(text, CRISIS_HISTORY), text).toBeUndefined();
