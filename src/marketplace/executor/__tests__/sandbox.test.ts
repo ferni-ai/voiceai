@@ -3,7 +3,7 @@
  */
 
 import dns from 'node:dns';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 // Mock logger - must include both getLogger and createLogger
 vi.mock('../../../utils/safe-logger.js', () => {
@@ -22,9 +22,14 @@ vi.mock('../../../utils/safe-logger.js', () => {
   };
 });
 
-// Mock fetch. Endpoints go through the outbound URL guard, so DNS answers a public address.
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
+// The outbound guard sends through undici's own fetch, not the global one, so that is the spy.
+// No implementation by default: a request nothing stubbed fails instead of reaching the network.
+vi.mock('undici', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('undici')>()),
+  fetch: vi.fn(),
+}));
+const mockFetch = vi.mocked((await import('undici')).fetch) as unknown as Mock<typeof fetch>;
+// Endpoints go through the outbound URL guard, so DNS answers a public address.
 vi.spyOn(dns.promises, 'lookup').mockImplementation((async () => [
   { address: '93.184.215.14', family: 4 },
 ]) as unknown as typeof dns.promises.lookup);

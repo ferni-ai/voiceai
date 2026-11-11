@@ -6,7 +6,7 @@
 import dns from 'node:dns';
 import { EventEmitter } from 'events';
 import type { IncomingMessage, ServerResponse } from 'http';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 vi.mock('@google-cloud/firestore', () => ({
   FieldValue: { delete: () => undefined },
@@ -22,6 +22,14 @@ vi.mock('../../../../api/auth-middleware.js', () => ({
   requireAdmin: vi.fn(() => null),
   rateLimit: vi.fn(() => false),
 }));
+
+// The outbound guard sends through undici's own fetch, not the global one, so that is the spy.
+// No implementation by default: a request nothing stubbed fails instead of reaching the network.
+vi.mock('undici', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('undici')>()),
+  fetch: vi.fn(),
+}));
+const guardedFetch = vi.mocked((await import('undici')).fetch) as unknown as Mock<typeof fetch>;
 
 const { handleWebhookRoutes } = await import('../webhooks.js');
 
@@ -79,7 +87,7 @@ afterEach(() => {
   if (savedHashSecret === undefined) delete process.env.LOG_HASH_SECRET;
   else process.env.LOG_HASH_SECRET = savedHashSecret;
   vi.restoreAllMocks();
-  vi.unstubAllGlobals();
+  guardedFetch.mockReset();
 });
 
 // Create has no inline guard call of its own: validateWebhookInput sends the URL through
@@ -158,7 +166,7 @@ describe('POST /api/webhooks/:id/test', () => {
           headers: { 'content-type': 'application/json' },
         })
     );
-    vi.stubGlobal('fetch', fetchSpy);
+    guardedFetch.mockImplementation(fetchSpy);
 
     const res = await call('POST', `/api/webhooks/${id}/test`);
 
