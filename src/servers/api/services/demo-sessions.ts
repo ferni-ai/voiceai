@@ -113,16 +113,23 @@ export async function createDemoSession(
 }
 
 /**
- * Get a demo session by room name.
+ * Get a demo session by room name. `fresh` reads Firestore even when this
+ * instance has it cached: another instance may have written it since.
  */
-export async function getDemoSession(roomName: string): Promise<DemoSession | null> {
+export async function getDemoSession(
+  roomName: string,
+  options?: { fresh?: boolean }
+): Promise<DemoSession | null> {
   // Check in-memory cache first
-  let session = demoSessions.get(roomName);
+  let session = options?.fresh ? undefined : demoSessions.get(roomName);
 
   // If not in cache, try to load from Firestore
   if (!session) {
     try {
-      session = (await sessionStore.get(roomName)) ?? undefined;
+      session =
+        (await (options?.fresh
+          ? sessionStore.load(roomName, { fresh: true })
+          : sessionStore.get(roomName))) ?? undefined;
       if (session) {
         demoSessions.set(roomName, session);
         claimTokenIndex.set(session.claimToken, roomName);
@@ -132,7 +139,10 @@ export async function getDemoSession(roomName: string): Promise<DemoSession | nu
     }
   }
 
-  if (!session) return null;
+  if (!session) {
+    if (options?.fresh) forget(roomName); // gone from Firestore: stop serving the cached copy
+    return null;
+  }
 
   // Check if expired
   if (Date.now() > session.expiresAt) {
@@ -143,31 +153,18 @@ export async function getDemoSession(roomName: string): Promise<DemoSession | nu
   return session;
 }
 
-/**
- * Get a demo session by claim token.
- */
-export async function getDemoSessionByToken(claimToken: string): Promise<DemoSession | null> {
-  // Check index first
-  const roomName = claimTokenIndex.get(claimToken);
-  if (roomName) {
-    return getDemoSession(roomName);
-  }
-
-  // If not in index, we need to search (expensive, but rare)
-  // This happens after server restart when cache is empty
-  // The session will be found when getDemoSession loads from Firestore
-  return null;
+/** Drop a demo from this instance's cache only. */
+function forget(roomName: string): void {
+  const session = demoSessions.get(roomName);
+  if (session) claimTokenIndex.delete(session.claimToken);
+  demoSessions.delete(roomName);
 }
 
 /**
  * Delete a demo session
  */
 async function deleteDemoSession(roomName: string): Promise<void> {
-  const session = demoSessions.get(roomName);
-  if (session) {
-    claimTokenIndex.delete(session.claimToken);
-  }
-  demoSessions.delete(roomName);
+  forget(roomName);
 
   try {
     await sessionStore.delete(roomName);
@@ -180,97 +177,130 @@ async function deleteDemoSession(roomName: string): Promise<void> {
   }
 }
 
+/** What a conversation write did; the route answers 200, 404, 409 or 503. */
+export type DemoUpdateResult = 'updated' | 'missing' | 'claimed' | 'failed';
+
+/** The conversation as JSON, to tell whether Firestore still holds what a write merged onto. */
+const sameConversation = (a: DemoSession, b: DemoSession): boolean =>
+  JSON.stringify(a.conversation) === JSON.stringify(b.conversation);
+
 /**
  * Update demo session with conversation data.
- * Called by voice agent via webhook when conversation ends.
+ *
+ * Merges onto the session as Firestore has it, not as this instance cached it,
+ * and writes only `conversation`: a full-document write from a stale cache used
+ * to put `claimed: false` back over a claim made on another instance (#1759).
+ * The write is refused if the demo was claimed, deleted or rewritten since it
+ * was read.
  */
 export async function updateDemoSessionConversation(
   roomName: string,
   conversationData: Partial<DemoSession['conversation']>
-): Promise<boolean> {
-  const session = await getDemoSession(roomName);
+): Promise<DemoUpdateResult> {
+  const session = await getDemoSession(roomName, { fresh: true });
   if (!session) {
     log.warn({ roomName }, 'Demo session not found for update');
-    return false;
+    return 'missing';
   }
+  if (session.claimed) return 'claimed';
 
-  session.conversation = {
-    ...session.conversation,
-    ...conversationData,
-  };
-
-  // Update cache
-  demoSessions.set(roomName, session);
-
-  // Persist to Firestore
+  const conversation = { ...session.conversation, ...conversationData };
+  let result: Awaited<ReturnType<typeof sessionStore.updateIfUnchanged>>;
   try {
-    await sessionStore.setImmediate(roomName, session);
-    log.info(
-      { roomName, highlightCount: session.conversation.highlights?.length || 0 },
-      'Demo session updated'
+    result = await sessionStore.updateIfUnchanged(
+      roomName,
+      (current) => !current.claimed && sameConversation(current, session),
+      { conversation }
     );
   } catch (err) {
     log.error({ error: (err as Error).message, roomName }, 'Failed to persist demo session update');
+    return 'failed';
   }
 
-  return true;
+  if (result === 'missing') {
+    forget(roomName);
+    return 'missing';
+  }
+  if (result === 'changed') {
+    // Claimed or rewritten elsewhere since the read; the next read is fresh anyway
+    const now = await getDemoSession(roomName, { fresh: true });
+    log.warn({ roomName, claimed: now?.claimed ?? null }, 'Demo session changed during update');
+    return now?.claimed ? 'claimed' : 'failed';
+  }
+
+  demoSessions.set(roomName, { ...session, conversation });
+  log.info(
+    { roomName, highlightCount: conversation.highlights?.length || 0 },
+    'Demo session updated'
+  );
+  return 'updated';
 }
 
 /**
  * Claim a demo session for a Firebase user.
  * Returns the session data for migration.
+ *
+ * Reads the session from Firestore and writes only the claim fields, on the
+ * condition that nobody claimed it since: a claim from a stale cache used to
+ * put an empty conversation back over one written on another instance, hand
+ * that empty conversation to the user, and let two instances both claim (#1759).
  */
 export async function claimDemoSession(
   claimToken: string,
   firebaseUid: string
 ): Promise<ClaimResult> {
-  // First try to get from index
+  // Only the token's index knows the room. A miss happens after a restart or on
+  // an instance that never saw this demo, and is answered as not found.
   const roomName = claimTokenIndex.get(claimToken);
-  let session: DemoSession | null = null;
-
-  if (roomName) {
-    session = await getDemoSession(roomName);
-  } else {
-    // Search Firestore for session with this claim token
-    // This is a fallback for when the server has restarted and cache is empty
-    session = await getDemoSessionByToken(claimToken);
-  }
+  const session = roomName ? await getDemoSession(roomName, { fresh: true }) : null;
 
   if (!session) {
     return { success: false, error: 'Session not found or expired' };
   }
 
-  if (session.claimed) {
-    // If already claimed by same user, return success
-    if (session.claimedBy === firebaseUid) {
-      return { success: true, session, alreadyClaimed: true };
-    }
-    return { success: false, error: 'Session already claimed by another user' };
-  }
+  if (session.claimed) return alreadyClaimedResult(session, firebaseUid);
 
-  // Mark as claimed
-  session.claimed = true;
-  session.claimedBy = firebaseUid;
-  session.claimedAt = Date.now();
-
-  // Update cache
-  demoSessions.set(session.roomName, session);
-
-  // Persist to Firestore
+  const claim = { claimed: true, claimedBy: firebaseUid, claimedAt: Date.now() };
+  let result: Awaited<ReturnType<typeof sessionStore.updateIfUnchanged>>;
   try {
-    await sessionStore.setImmediate(session.roomName, session);
-    log.info(
-      { roomName: session.roomName, firebaseUidPrefix: firebaseUid.substring(0, 8) },
-      'Demo session claimed'
+    result = await sessionStore.updateIfUnchanged(
+      session.roomName,
+      (current) => !current.claimed,
+      claim
     );
   } catch (err) {
     log.error(
       { error: (err as Error).message, roomName: session.roomName },
       'Failed to persist claimed session'
     );
+    return { success: false, error: 'Could not claim the demo session, try again' };
   }
 
-  return { success: true, session };
+  if (result === 'missing') {
+    forget(session.roomName);
+    return { success: false, error: 'Session not found or expired' };
+  }
+  if (result === 'changed') {
+    const now = await getDemoSession(session.roomName, { fresh: true });
+    if (now?.claimed) return alreadyClaimedResult(now, firebaseUid);
+    return { success: false, error: 'Could not claim the demo session, try again' };
+  }
+
+  const claimed: DemoSession = { ...session, ...claim };
+  demoSessions.set(session.roomName, claimed);
+  log.info(
+    { roomName: session.roomName, firebaseUidPrefix: firebaseUid.substring(0, 8) },
+    'Demo session claimed'
+  );
+  return { success: true, session: claimed };
+}
+
+/** A claimed demo: the same user gets it back, anyone else is refused. */
+function alreadyClaimedResult(session: DemoSession, firebaseUid: string): ClaimResult {
+  if (session.claimedBy === firebaseUid) {
+    return { success: true, session, alreadyClaimed: true };
+  }
+  return { success: false, error: 'Session already claimed by another user' };
 }
 
 /**
