@@ -135,7 +135,7 @@ describe('sign-in gate with try-first on', () => {
     );
     // What is kept is stated plainly: no words, only a safety note when the call sounded risky.
     expect(gate.querySelector('.try-first-note')?.textContent).toBe(
-      'No account needed. Nothing from this call is saved, except a short safety note if it sounded like you might be in danger. It never includes your words.'
+      'No account needed. Nothing you say is saved, except a short safety note if it sounded like you might be in danger, so if you make an account, Ferni can be gentle and careful with you. The note never includes your words.'
     );
   });
 
