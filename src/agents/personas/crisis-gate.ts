@@ -63,18 +63,20 @@ import {
   screenReply,
 } from '../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
-import {
-  timeoutCheckin,
-  withCheckinEnding,
-  TIMEOUT_CHECKIN,
-} from '../../services/safety/crisis-timeout-checkin.js';
 import { startWhoRead } from '../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
 import {
   callRiskBeforeTurn,
   loneImminentGoodbye,
 } from '../../services/safety/crisis-lone-imminent.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { disclosureGuidance, mainOf, shadowGrade } from '../../services/safety/index.js';
+import {
+  disclosureGuidance,
+  mainOf,
+  shadowGrade,
+  timeoutCheckin,
+  TIMEOUT_CHECKIN,
+  withCheckinEnding,
+} from '../../services/safety/index.js';
 import {
   applyClassifierVerdict,
   buildCrisisGuidance,
@@ -218,12 +220,6 @@ export function startCrisisGate(
   const verdictRead = wait ? wait.then(async (go) => (go ? read() : undefined)) : read();
   if (!verdictRead) return { decision, escalation: null, reask };
   const escalate = async (verdict: CrisisVerdict | null): Promise<CrisisGateDecision | null> => {
-    // CRISIS_TIMEOUT_CHECKIN: no read, safety words in the caller's line (crisis-timeout-checkin.ts).
-    const checkin = timeoutCheckin({ verdict, decision, reask, latest }, env);
-    if (checkin) {
-      log.info({ action: 'guide', source: 'timeout_checkin' }, 'CRISIS_GATE');
-      return guide(checkin);
-    }
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
     if (loneImminentGoodbye({ detection, verdict, latest, earlier, companion, priorRisk })) {
       log.info({ action: 'guide', source: 'lone_imminent_goodbye' }, 'CRISIS_GATE');
@@ -310,7 +306,14 @@ export function startCrisisGate(
     if (!options.noReply) shadowGrade({ source: 'gate', ...at, detection, verdict, ...said }, env);
     return stronger;
   };
-  const escalation = verdictRead.then(async (v) => (v === undefined ? null : escalate(v)));
+  // CRISIS_TIMEOUT_CHECKIN: a failed read on safety words is a check-in (crisis-timeout-checkin.ts).
+  const checkin = (verdict: CrisisVerdict | null): string | null =>
+    timeoutCheckin({ verdict, decision, reask, latest }, env);
+  const escalation = verdictRead.then(async (v) => {
+    if (v === undefined) return null;
+    const words = checkin(v);
+    return words ? guide(words) : escalate(v);
+  });
   return { decision, escalation, reask };
 }
 
@@ -506,9 +509,8 @@ export async function gatedReply(
       true
     );
     // CRISIS_TIMEOUT_CHECKIN: never silent; code adds the question or 988 the reply lacks.
-    if (decision.guidance === TIMEOUT_CHECKIN) {
-      return withCheckinEnding(guided ?? textReply(''), callerWords(chatCtx).latest);
-    }
+    if (decision.guidance === TIMEOUT_CHECKIN)
+      return withCheckinEnding(guided, callerWords(chatCtx));
     return asking(guided, decision.guidance === GROUNDED_LIGHT_TOUCH);
   });
 }

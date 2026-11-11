@@ -32,6 +32,9 @@ const FAILED: Record<string, CrisisGenerateFn> = {
   'returns nothing': async () => '',
   'returns garbage': async () => 'sure, here is my answer',
 };
+const THROWS = async (): Promise<string> => {
+  throw new Error('provider down');
+};
 const ANSWERED: Record<string, CrisisGenerateFn> = {
   none: async () => '{"risk":"none","subject":"self"}',
   crisis: async () => '{"risk":"crisis","subject":"self"}',
@@ -107,14 +110,14 @@ describe('CRISIS_TIMEOUT_CHECKIN: a failed read on a line with safety words', ()
         expect(off.spoken).not.toContain('988');
         // With the flag on: the held reply is dropped and the model asked with the check-in last.
         expect(on.asked).toHaveLength(2);
-        expect(on.asked[1]!.endsWith(`(${TIMEOUT_CHECKIN})`)).toBe(true);
+        expect(on.asked[1]?.endsWith(`(${TIMEOUT_CHECKIN})`)).toBe(true);
         expect(on.spoken).toContain('Are you safe right now?');
         expect(on.spoken).toContain('988');
         expect(on.spoken).not.toContain('Sounds good.');
       });
 
   it('says 988 itself when the guided reply lacks it', async () => {
-    const on = await turn(PILLS, ON, FAILED.throws!, (ctx) =>
+    const on = await turn(PILLS, ON, THROWS, (ctx) =>
       guidedModel(ctx) === 'Sounds good.' ? 'Sounds good.' : "I'm here. Are you safe right now?"
     );
     expect(on.spoken).toBe(
@@ -123,20 +126,20 @@ describe('CRISIS_TIMEOUT_CHECKIN: a failed read on a line with safety words', ()
   });
 
   it('asks the safety question itself when the guided reply lacks it', async () => {
-    const on = await turn(PILLS, ON, FAILED.throws!, (ctx) =>
+    const on = await turn(PILLS, ON, THROWS, (ctx) =>
       guidedModel(ctx) === 'Sounds good.' ? 'Sounds good.' : 'You can call or text 988 any time.'
     );
     expect(on.spoken).toBe('You can call or text 988 any time. Are you safe right now?');
   });
 
   it('says both when the guided reply has neither, or nothing at all', async () => {
-    const plain = await turn(UNSAFE, ON, FAILED.throws!, (ctx) =>
+    const plain = await turn(UNSAFE, ON, THROWS, (ctx) =>
       guidedModel(ctx) === 'Sounds good.' ? 'Sounds good.' : "That's a lot to carry."
     );
     expect(plain.spoken).toBe(
       "That's a lot to carry. Are you safe right now? You can also call or text 988 to talk to someone immediately."
     );
-    const silent = await turn(UNSAFE, ON, FAILED.throws!, (ctx) =>
+    const silent = await turn(UNSAFE, ON, THROWS, (ctx) =>
       guidedModel(ctx) === 'Sounds good.' ? 'Sounds good.' : ''
     );
     expect(silent.spoken).toBe(
@@ -145,7 +148,7 @@ describe('CRISIS_TIMEOUT_CHECKIN: a failed read on a line with safety words', ()
   });
 
   it('says them in Spanish to a caller speaking Spanish', async () => {
-    const es = await turn('no estoy a salvo esta noche', ON, FAILED.throws!, (ctx) =>
+    const es = await turn('no estoy a salvo esta noche', ON, THROWS, (ctx) =>
       guidedModel(ctx) === 'Sounds good.' ? 'Claro.' : 'Estoy aquí contigo.'
     );
     expect(es.spoken).toBe(
@@ -154,8 +157,8 @@ describe('CRISIS_TIMEOUT_CHECKIN: a failed read on a line with safety words', ()
   });
 
   it('the next ordinary turn is ordinary', async () => {
-    await turn(PILLS, ON, FAILED.throws!, guidedModel);
-    const next = await turn(ORDINARY, ON, FAILED.throws!, guidedModel);
+    await turn(PILLS, ON, THROWS, guidedModel);
+    const next = await turn(ORDINARY, ON, THROWS, guidedModel);
     expect(next.spoken).toBe('Sounds good.');
     expect(next.asked).toHaveLength(1);
   });
@@ -163,39 +166,37 @@ describe('CRISIS_TIMEOUT_CHECKIN: a failed read on a line with safety words', ()
 
 describe('CRISIS_TIMEOUT_CHECKIN: everything else reads as with the flag off', () => {
   it('reads the flag from the gate env: unset is off, and off is main', async () => {
-    const unset = await turn(PILLS, BASE, FAILED.throws!, guidedModel);
-    const off = await turn(PILLS, OFF, FAILED.throws!, guidedModel);
+    const unset = await turn(PILLS, BASE, THROWS, guidedModel);
+    const off = await turn(PILLS, OFF, THROWS, guidedModel);
     expect(off).toEqual(unset);
     expect(off.asked.join('')).not.toContain(TIMEOUT_CHECKIN);
   });
 
+  /** The same turn with the flag on and off: the check-in must not change it. */
+  const unchanged = async (said: string, generate: CrisisGenerateFn): Promise<Turn> => {
+    const on = await turn(said, ON, generate, guidedModel);
+    expect(on).toEqual(await turn(said, OFF, generate, guidedModel));
+    expect(on.asked.join('')).not.toContain(TIMEOUT_CHECKIN);
+    return on;
+  };
+
   for (const [how, generate] of Object.entries(FAILED))
-    it(`a failed read on a line without safety words (${how})`, async () => {
-      for (const line of [ORDINARY, "my phone is dead and i'm dying to see that movie"]) {
-        expect(await turn(line, ON, generate, guidedModel)).toEqual(
-          await turn(line, OFF, generate, guidedModel)
-        );
-      }
-    });
+    for (const line of [ORDINARY, "my phone is dead and i'm dying to see that movie"])
+      it(`a failed read (${how}) on a line without safety words: "${line}"`, async () => {
+        await unchanged(line, generate);
+      });
 
   for (const [risk, generate] of Object.entries(ANSWERED))
-    it(`a classifier that answered ${risk}, on a line with safety words`, async () => {
-      for (const line of [PILLS, UNSAFE]) {
-        const on = await turn(line, ON, generate, guidedModel);
-        expect(on).toEqual(await turn(line, OFF, generate, guidedModel));
-        expect(on.asked.join('')).not.toContain(TIMEOUT_CHECKIN);
-      }
-    });
+    for (const line of [PILLS, UNSAFE])
+      it(`a classifier that answered ${risk}, on safety words: "${line}"`, async () => {
+        await unchanged(line, generate);
+      });
 
-  it('a line the patterns already read: the floor stands, unchanged', async () => {
-    for (const line of [
-      "I hope I don't wake up tomorrow", // guide
-      'I want to kill myself tonight', // replace
-    ]) {
-      const on = await turn(line, ON, FAILED.throws!, guidedModel);
-      expect(on).toEqual(await turn(line, OFF, FAILED.throws!, guidedModel));
-      expect(on.asked.join('')).not.toContain(TIMEOUT_CHECKIN);
-    }
+  it.each([
+    "I hope I don't wake up tomorrow", // the patterns guide
+    'I want to kill myself tonight', // the patterns replace
+  ])('a line the patterns already read stands unchanged: "%s"', async (line) => {
+    await unchanged(line, THROWS);
   });
 
   it('only the latest caller line counts', async () => {
@@ -204,8 +205,8 @@ describe('CRISIS_TIMEOUT_CHECKIN: everything else reads as with the flag off', (
       ['assistant', 'I hear you.'],
       ['user', 'anyway, what should I cook tonight?']
     );
-    const on = await turn(ctx, ON, FAILED.throws!, guidedModel);
-    expect(on).toEqual(await turn(ctx, OFF, FAILED.throws!, guidedModel));
+    const on = await turn(ctx, ON, THROWS, guidedModel);
+    expect(on).toEqual(await turn(ctx, OFF, THROWS, guidedModel));
     expect(on.asked.join('')).not.toContain(TIMEOUT_CHECKIN);
     // The same call, with the safety words in the latest line, checks in.
     const latest = request(
@@ -213,6 +214,6 @@ describe('CRISIS_TIMEOUT_CHECKIN: everything else reads as with the flag off', (
       ['assistant', 'Pasta?'],
       ['user', PILLS]
     );
-    expect((await turn(latest, ON, FAILED.throws!, guidedModel)).spoken).toContain('988');
+    expect((await turn(latest, ON, THROWS, guidedModel)).spoken).toContain('988');
   });
 });

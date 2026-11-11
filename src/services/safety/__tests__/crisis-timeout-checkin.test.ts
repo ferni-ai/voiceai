@@ -86,7 +86,7 @@ describe('timeoutCheckin', () => {
 
 describe('withCheckinEnding', () => {
   const said = async (latest: string, ...chunks: string[]) =>
-    (await spoken(withCheckinEnding(streamOf(...chunks), latest))).join('');
+    (await spoken(withCheckinEnding(streamOf(...chunks), { latest }))).join('');
 
   it('adds nothing when the reply asked about safety and said 988', async () => {
     expect(await said('unsafe', 'Are you safe right now? ', 'Call or text 988.')).toBe(
@@ -140,7 +140,9 @@ describe('false alarms on the public non-crisis corpora', () => {
       .trim()
       .split('\n')
       .map((row) => JSON.parse(row) as Record<string, string>);
-  type Turns = { calls: Array<{ turns: Array<{ label: string; text: string }> }> };
+  interface Turns {
+    calls: Array<{ turns: Array<{ label: string; text: string }> }>;
+  }
   const turnsOf = (path: string, label?: string) =>
     (json(path) as Turns).calls
       .flatMap((call) => call.turns)
@@ -174,12 +176,12 @@ describe('false alarms on the public non-crisis corpora', () => {
     ],
     [
       'router hard negatives',
-      () => lines('apps/ml-training/router/data/hard_negatives_v6.jsonl').map((r) => r.query!),
+      () => lines('apps/ml-training/router/data/hard_negatives_v6.jsonl').map((r) => r.query ?? ''),
       0,
     ],
     [
       'FTIS hard negatives',
-      () => lines('data/ftis-training/hard_negatives.jsonl').map((r) => r.query!),
+      () => lines('data/ftis-training/hard_negatives.jsonl').map((r) => r.query ?? ''),
       0,
     ],
     [

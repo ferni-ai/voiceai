@@ -16,11 +16,14 @@
  * @module CrisisTimeoutCheckin
  */
 
-import type { ReadableStream } from 'node:stream/web';
+import { ReadableStream } from 'node:stream/web';
 import { flagOn } from '../../config/env-flag.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import type { CrisisVerdict } from './crisis-classifier.js';
 import { TALK_TO_988, TALK_TO_988_ES } from './crisis-guard-replies.js';
 import { withReplyEnding } from './crisis-grounded-screen.js';
+
+const log = createLogger({ module: 'CrisisTimeoutCheckin' });
 
 type Env = Record<string, string | undefined>;
 
@@ -86,7 +89,9 @@ export function timeoutCheckin(
 ): string | null {
   if (!flagOn('CRISIS_TIMEOUT_CHECKIN', env) || turn.verdict !== null) return null;
   if (turn.decision.action !== 'pass' || turn.reask) return null;
-  return checkinWordsIn(turn.latest) ? TIMEOUT_CHECKIN : null;
+  if (!checkinWordsIn(turn.latest)) return null;
+  log.info({ action: 'guide', source: 'timeout_checkin' }, 'CRISIS_GATE'); // counts, never words
+  return TIMEOUT_CHECKIN;
 }
 
 /**
@@ -95,11 +100,12 @@ export function timeoutCheckin(
  * nothing.
  */
 export function withCheckinEnding<T>(
-  reply: ReadableStream<T>,
-  latest: string
+  reply: ReadableStream<T> | null,
+  caller: { latest: string }
 ): ReadableStream<T | string> {
-  const lang = checkinWordsIn(latest) === 'es' ? 'es' : 'en';
-  return withReplyEnding(reply, (said) => {
+  const lang = checkinWordsIn(caller.latest) === 'es' ? 'es' : 'en';
+  const empty = new ReadableStream<T>({ start: (controller) => controller.close() });
+  return withReplyEnding(reply ?? empty, (said) => {
     const missing = [
       ASKED_SAFE.test(said) ? '' : SAFETY_QUESTION[lang],
       SAID_988.test(said) ? '' : LINE_988[lang],
