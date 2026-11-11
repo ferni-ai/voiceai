@@ -17,8 +17,17 @@
  * also lapses after CLAIM_MS. Claims live in the agent process, where both
  * the greeting and recall run for a call.
  *
+ * With PROACTIVE_BUDGET on, both wrap the call's one slot (proactive-budget.ts), keyed by
+ * sessionId: a claim takes it, the recall note reads it without giving it back. No
+ * sessionId claims nothing. Off: as before.
+ *
  * @module memory/recall/opener-claim
  */
+
+import { flagOn } from '../../config/env-flag.js';
+import { claimProactiveSlot, clearProactiveSlots, peekProactiveSlot } from './proactive-budget.js';
+
+export * from './proactive-budget.js';
 
 /** Longer than any greeting-to-first-turn gap; short enough that a stray claim can't linger. */
 export const CLAIM_MS = 10 * 60_000;
@@ -29,15 +38,29 @@ export type OpenerAsker = 'greeting' | 'greeting-date' | 'recall-thread';
 const claims = new Map<string, { by: OpenerAsker; at: number }>();
 
 /** The greeting asked a follow-up for this caller's call. */
-export function claimOpenerFollowUp(userId: string, by: OpenerAsker, now = Date.now()): void {
-  claims.set(userId, { by, at: now });
+export function claimOpenerFollowUp(
+  userId: string,
+  by: OpenerAsker,
+  sessionId?: string,
+  now = Date.now()
+): void {
+  if (!flagOn('PROACTIVE_BUDGET')) return void claims.set(userId, { by, at: now });
+  if (sessionId) claimProactiveSlot(sessionId, by, now);
 }
 
 /**
  * Who already asked a follow-up on this call, if anyone, and clears it: the
  * recall hook calls this once, with the call's first note.
  */
-export function takeOpenerClaim(userId: string, now = Date.now()): OpenerAsker | undefined {
+export function takeOpenerClaim(
+  userId: string,
+  sessionId?: string,
+  now = Date.now()
+): OpenerAsker | undefined {
+  if (flagOn('PROACTIVE_BUDGET')) {
+    const held = sessionId ? peekProactiveSlot(sessionId) : undefined;
+    return held === 'greeting' || held === 'greeting-date' ? held : undefined;
+  }
   const claim = claims.get(userId);
   claims.delete(userId);
   return claim && now - claim.at < CLAIM_MS ? claim.by : undefined;
@@ -46,4 +69,5 @@ export function takeOpenerClaim(userId: string, now = Date.now()): OpenerAsker |
 /** For tests. */
 export function clearOpenerClaims(): void {
   claims.clear();
+  clearProactiveSlots();
 }
