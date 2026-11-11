@@ -3,6 +3,7 @@ name: Eval Gate
 # Regressions in recall, crisis reads and tool retrieval fail the PR instead of
 # reaching calls. Each suite is compared with evals/baselines/*.json (value and
 # allowed band per metric); re-baselining is a deliberate diff to those files.
+# The persona suite (scripts/eval-gate/persona.ts) gates the persona voices the same way.
 #
 # Gemini cost: the model job's crisis suite is ~1,260 Flash Lite calls a run. It
 # ran on every push to every PR matching the paths below (65-190 runs a day), so
@@ -114,7 +115,8 @@ jobs:
     name: Model evals (Vertex)
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 15 -> 20 for the persona step: 215-559 s a run locally (2026-11-11), its child is cut at 12 min.
+    timeout-minutes: 20
     # Keyless: an OIDC token, accepted by the eval-gate provider only for this
     # repo and this workflow path (keep the file name), impersonating a service
     # account that holds roles/aiplatform.user and nothing else.
@@ -186,11 +188,20 @@ jobs:
           LOG_LEVEL: silent
 
       - name: Compare with evals/baselines/model.json
-        if: steps.decide.outputs.suites != ''
+        if: steps.decide.outputs.suites != '' && steps.decide.outputs.suites != 'persona'
         run: pnpm tsx scripts/eval-gate/model.ts
         env:
           GOOGLE_CLOUD_PROJECT: johnb-2025
           LOG_LEVEL: silent
           EVAL_GATE_SUITES: ${{ steps.decide.outputs.suites }}
           # Labels these calls on the Gemini bill (label support: #2888).
+          GEMINI_BILLING_JOB: ci_eval_gate
+
+      # The persona bar, single-turn, one judge: 552 Flash calls, 215-559 s a run (2026-11-11).
+      - name: Compare with evals/baselines/persona.json
+        if: contains(steps.decide.outputs.suites, 'persona')
+        run: pnpm tsx scripts/eval-gate/persona.ts
+        env:
+          GOOGLE_CLOUD_PROJECT: johnb-2025
+          LOG_LEVEL: silent
           GEMINI_BILLING_JOB: ci_eval_gate

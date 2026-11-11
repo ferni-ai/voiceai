@@ -1,0 +1,30 @@
+{
+  "suite": "persona: bar single-turn, judge gemini-3.5-flash (Vertex)",
+  "update": "GOOGLE_CLOUD_PROJECT=<project> pnpm tsx scripts/eval-gate/persona.ts --write-baseline --runs 5",
+  "measuredOn": "97d6b856a",
+  "runs": 3,
+  "metrics": {
+    "persona.distinctness": {
+      "value": 0.2181,
+      "maxDrop": 0.0745,
+      "runs": [0.2333, 0.2083, 0.2125]
+    },
+    "persona.insight_natural": {
+      "value": 0.9352,
+      "maxDrop": 0.0831,
+      "runs": [0.9306, 0.9444, 0.9306]
+    },
+    "persona.insight_forced": { "value": 0, "maxRise": 0.0383, "runs": [0, 0, 0] },
+    "persona.copy": { "value": 0.0875, "maxRise": 0.0517, "runs": [0.1, 0.0833, 0.0792] },
+    "persona.tell_question": {
+      "value": 0.8595,
+      "maxRise": 0.0635,
+      "runs": [0.8667, 0.8375, 0.8745]
+    },
+    "persona.tell_opener": { "value": 0.1335, "maxRise": 0.0614, "runs": [0.1375, 0.1292, 0.1339] },
+    "persona.tell_checkin": { "value": 0.032, "maxRise": 0.034, "runs": [0.0542, 0.0208, 0.0209] },
+    "persona.tell_exclaim": { "value": 0.0209, "maxRise": 0.0268, "runs": [0.025, 0.0208, 0.0167] },
+    "persona.empty_replies": { "value": 0, "maxRise": 5, "runs": [0, 0, 0] },
+    "persona.judge_failures": { "value": 0, "maxRise": 5, "runs": [0, 0, 0] }
+  }
+}
