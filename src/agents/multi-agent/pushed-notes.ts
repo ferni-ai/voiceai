@@ -23,13 +23,13 @@ const log = createLogger({ module: 'PushedNotes' });
 export interface TurnNote {
   /** It carries crisis or safety guidance (safety-note.ts carriesSafety). */
   safety?: boolean;
-  /** It is the crisis override (safety-note.ts isCrisisOverride), which always goes last. */
+  /** It is the crisis override (safety-note.ts carriesCrisisOverride), which always goes last. */
   override?: boolean;
   text: string;
 }
 
 /** The safety notes among these, in order, with the crisis override moved last. */
-export const safetyNotes = (notes: readonly TurnNote[]): TurnNote[] => {
+const safetyNotes = (notes: readonly TurnNote[]): TurnNote[] => {
   const safety = notes.filter((note) => note.safety);
   return [...safety.filter((note) => !note.override), ...safety.filter((note) => note.override)];
 };

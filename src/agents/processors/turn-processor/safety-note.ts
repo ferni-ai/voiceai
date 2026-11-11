@@ -34,7 +34,7 @@ export function addSafetyNote(chatCtx: llm.ChatContext, content: string): void {
 }
 
 /** The key, in a chat message's `extra`, that marks the crisis override ("Do NOT deviate"). */
-export const CRISIS_OVERRIDE = 'crisisOverride';
+const CRISIS_OVERRIDE = 'crisisOverride';
 
 /**
  * The crisis override: a safety note that must have the final word. The turn may append
@@ -49,6 +49,9 @@ export function addCrisisOverride(chatCtx: llm.ChatContext, content: string): vo
   });
 }
 
-export function isCrisisOverride(item: { extra?: Record<string, unknown> } | undefined): boolean {
+/** It carries the crisis override marker (addCrisisOverride). Reads a marker; the crisis decision was made upstream. */
+export function carriesCrisisOverride(
+  item: { extra?: Record<string, unknown> } | undefined
+): boolean {
   return item?.extra?.[CRISIS_OVERRIDE] === true;
 }

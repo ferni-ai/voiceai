@@ -39,7 +39,7 @@ import { backgroundTurnVoice } from './background-voice-emotion.js';
 import { deferralForSession, noteUserTurn } from './first-turn-defer.js';
 import { firstTurnWarmOn, yieldIfFirstTurnWarm } from './first-turn-warm.js';
 import { TURN_CONTEXT_FOR, TURN_CONTEXT_HEADER } from './turn-context-header.js';
-import { carriesSafety, isCrisisOverride } from '../processors/turn-processor/safety-note.js';
+import { carriesSafety, carriesCrisisOverride } from '../processors/turn-processor/safety-note.js';
 import { heldForPreemptive } from './preempt-stable-context.js';
 import {
   pushedNotesText,
@@ -418,7 +418,7 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
       const notes = scratch.items
         .map((item) => ({
           safety: carriesSafety(item as never),
-          override: isCrisisOverride(item as never),
+          override: carriesCrisisOverride(item as never),
           text: (item as { textContent?: string }).textContent?.trim() ?? '',
         }))
         .filter((note) => note.text !== '');
