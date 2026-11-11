@@ -7,9 +7,9 @@
  * getAgentByHandoffTool('handoffToPeter') all gave whichever bundle loaded
  * last. The handoff tools (#264) say Peter is Peter John.
  *
- * The Financial Legends are fictional characters: Henry Caldwell (john-bogle),
- * Tom Brannigan (peter-lynch) and Nate Holloway (joel-dickson). No real
- * person's name resolves to any persona.
+ * The Financial Legends are fictional characters: Henry Caldwell (john-bogle)
+ * and Nate Holloway (joel-dickson). No real person's name resolves to any
+ * persona.
  */
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { createHandoffTools } from '../../../tools/handoff/handoff-factory.js';
@@ -46,8 +46,6 @@ describe('alias resolution against the real bundles', () => {
     expect(await AgentRegistry.resolveAgentId('Peter')).toBe('peter-john');
     expect((await AgentRegistry.getAgent('peter')).id).toBe('peter-john');
     expect(await AgentRegistry.resolveAgentId('peter john')).toBe('peter-john');
-    expect(await AgentRegistry.resolveAgentId('tom brannigan')).toBe('peter-lynch');
-    expect(await AgentRegistry.resolveAgentId('tom')).toBe('peter-lynch');
     expect(await AgentRegistry.resolveAgentId('henry caldwell')).toBe('john-bogle');
     expect(await AgentRegistry.resolveAgentId('henry')).toBe('john-bogle');
   });
@@ -70,17 +68,14 @@ describe('alias resolution against the real bundles', () => {
 
   it('resolves handoff tool names the way the handoff tools are named', async () => {
     expect(await AgentRegistry.resolveAgentId('handoffToPeter')).toBe('peter-john');
-    expect(await AgentRegistry.resolveAgentId('handoffToTom')).toBe('peter-lynch');
     expect(await AgentRegistry.resolveAgentId('handoffToHenry')).toBe('john-bogle');
     expect((await AgentRegistry.getAgentByHandoffTool('handoffToPeter'))?.id).toBe('peter-john');
-    expect((await AgentRegistry.getAgentByHandoffTool('handoffToTom'))?.id).toBe('peter-lynch');
-    expect(await AgentRegistry.getHandoffToolName('peter-lynch')).toBe('handoffToTom');
     expect(await AgentRegistry.getHandoffToolName('john-bogle')).toBe('handoffToHenry');
   });
 
   it('agrees with every tool the handoff factory builds', async () => {
     const { tools } = await createHandoffTools();
-    expect(tools.length).toBeGreaterThanOrEqual(9);
+    expect(tools.length).toBeGreaterThanOrEqual(8);
     for (const tool of tools) {
       expect(await AgentRegistry.resolveAgentId(tool.name), tool.name).toBe(tool.agentId);
       expect((await AgentRegistry.getAgentByHandoffTool(tool.name))?.id, tool.name).toBe(
@@ -99,7 +94,6 @@ describe('alias resolution against the real bundles', () => {
       }
     }
     expect(disagreements).toEqual([]);
-    expect(toCanonical('tom brannigan')).toBe('peter-lynch');
     expect(toCanonical('henry caldwell')).toBe('john-bogle');
     expect(toCanonical('nate holloway')).toBe('joel-dickson');
     expect(toCanonical('peter')).toBe('peter-john');

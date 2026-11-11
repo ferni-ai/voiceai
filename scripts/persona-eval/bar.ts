@@ -1,12 +1,12 @@
 /**
  * The persona eval bar: the numbers every "directed, not scripted" change has
  * to beat. For one arm (prod persona flags from a file, plus overrides), each
- * persona with a bundle (the core six and the three legends, roster.ts)
+ * persona with a bundle (the core six and the two legends, roster.ts)
  * answers every caller line through the live text path, and the replies are
  * scored on:
  *
  *   distinctness  a blind judge, one reply at a time, guesses which persona
- *                 spoke (chance 1/9)
+ *                 spoke (chance 1/8)
  *   humanness     pairwise against a baseline arm: same persona and line, the
  *                 two replies in seeded random order; which sounds more like a
  *                 real friend on the phone. Win rate with a 95% Wilson interval
@@ -125,8 +125,6 @@ const DESCRIPTIONS: Record<string, string> = {
     'energy that builds as she talks, pictures the celebration, widest range, drops to slow and quiet for hard news, laughs at herself',
   'nayan-patel':
     'slow, says the least, leaves room, answers the question under the question, rarely asks anything, gentle sideways humor',
-  'peter-lynch':
-    'curious and down to earth, lights up at a store or product people love, explains with baseball and the corner store, disagrees plainly, listens more than he talks',
   'john-bogle':
     'warm and grandfatherly, a patient teacher, asks how you are really doing before money, strong convictions shared gently, comfortable with a pause',
   'joel-dickson':

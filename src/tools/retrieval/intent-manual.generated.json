@@ -9596,19 +9596,6 @@
       ],
       "descriptionHash": "6fbf3bbf1d"
     },
-    "handoffToTom": {
-      "domain": "handoff",
-      "description": "Transfer conversation to Tom Brannigan, who specializes in Stock picking and investment education - finding great companies by investing in what you know.",
-      "queries": [
-        "I want to talk to Tom about picking individual stocks.",
-        "Put me on the line with Tom Brannigan please.",
-        "I keep noticing a store that's always packed, is Tom Brannigan around to help me research the company?",
-        "Can you transfer me to Tom Brannigan?",
-        "I need the stock picker, the one who finds companies by paying attention.",
-        "Talk to Tom Brannigan."
-      ],
-      "descriptionHash": "b19a53ffb2"
-    },
     "headlineWriter": {
       "domain": "reflection-games",
       "description": "Start a Headline Writer game. User writes newspaper headlines about their life - past, present, or future. Based on narrative therapy techniques. Great for perspective-taking, life review, and goal visualization.",

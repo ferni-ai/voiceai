@@ -19,7 +19,7 @@ import { answerTeammateRequest, lockedTeammates, unlockViewFor } from '../locked
 import { teamByNeedNote } from '../team-by-need-note.js';
 
 const CORE = ['maya-santos', 'peter-john', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
-const LEGENDS = ['john-bogle', 'peter-lynch', 'joel-dickson'];
+const LEGENDS = ['john-bogle', 'joel-dickson'];
 /** Signed up a minute ago: no conversations, no streak, no subscription. */
 const newcomer = { id: 'u1', totalConversations: 0 } as unknown as UserProfile;
 const userData = { personaId: 'ferni', services: { userProfile: newcomer } };
@@ -149,7 +149,7 @@ describe('the per-turn team note', () => {
   it('lists the legends when the caller is talking about investing', () => {
     byNeed(true);
     expect(teamByNeedNote('ferni', 'should I move my 401k into index funds?')).toMatch(
-      /legends can join too: Henry Caldwell for .*Tom Brannigan for .*Nate Holloway for /
+      /legends can join too: Henry Caldwell for .*Nate Holloway for /
     );
   });
 
