@@ -6,8 +6,8 @@
 import dns from 'node:dns';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { Agent } from 'undici';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { Agent, fetch as undiciFetch } from 'undici';
+import { afterEach, describe, expect, it, vi, type Mock } from 'vitest';
 import {
   assertSafeOutboundUrl,
   checkOutboundUrl,
@@ -19,6 +19,15 @@ import {
   guardedStreamFetch,
   safeOutboundFetch,
 } from '../outbound-url-guard.js';
+
+// The guard fetches with undici's own fetch (its Agent's API must match the fetch's). A spy
+// that passes through to the real one, so the connect-time tests still open real sockets.
+vi.mock('undici', async (importOriginal) => {
+  const real = await importOriginal<typeof import('undici')>();
+  return { ...real, fetch: vi.fn(real.fetch) };
+});
+const { fetch: realFetch } = await vi.importActual<typeof import('undici')>('undici');
+const guardedFetch = vi.mocked(undiciFetch) as unknown as Mock<typeof fetch>;
 
 const PUBLIC_V4 = '93.184.215.14';
 
@@ -46,6 +55,7 @@ function resolveTo(map: Record<string, string>) {
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.mocked(undiciFetch).mockReset().mockImplementation(realFetch);
 });
 
 describe('checkOutboundUrl: literal destinations', () => {
@@ -147,7 +157,7 @@ describe('safeOutboundFetch: redirects', () => {
       async (_url: unknown, _init?: RequestInit) =>
         new Response(null, { status: 302, headers: { location: 'https://169.254.169.254/x' } })
     );
-    vi.stubGlobal('fetch', fetchSpy);
+    guardedFetch.mockImplementation(fetchSpy);
 
     await expect(safeOutboundFetch('https://hooks.example.com/start')).rejects.toThrow(
       /redirect target not allowed/
@@ -164,7 +174,7 @@ describe('safeOutboundFetch: redirects', () => {
         new Response(null, { status: 301, headers: { location: 'https://cdn.example.net/y' } })
       )
       .mockResolvedValueOnce(new Response('ok', { status: 200 }));
-    vi.stubGlobal('fetch', fetchSpy);
+    guardedFetch.mockImplementation(fetchSpy);
 
     const res = await safeOutboundFetch('https://hooks.example.com/start', {
       headers: { authorization: 'Bearer t' },
@@ -176,7 +186,7 @@ describe('safeOutboundFetch: redirects', () => {
 
   it('refuses a private URL without making any request', async () => {
     const fetchSpy = vi.fn();
-    vi.stubGlobal('fetch', fetchSpy);
+    guardedFetch.mockImplementation(fetchSpy);
     await expect(safeOutboundFetch('https://[::1]/')).rejects.toThrow(OutboundUrlBlockedError);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
@@ -186,7 +196,7 @@ describe('guardedStreamFetch', () => {
   it('refuses a name that resolves to a private address without fetching', async () => {
     resolveTo({ 'mcp.example.com': '192.168.1.4' });
     const fetchSpy = vi.fn();
-    vi.stubGlobal('fetch', fetchSpy);
+    guardedFetch.mockImplementation(fetchSpy);
     await expect(guardedStreamFetch('https://mcp.example.com/sse')).rejects.toThrow(
       OutboundUrlBlockedError
     );
@@ -196,7 +206,7 @@ describe('guardedStreamFetch', () => {
   it('adds no timeout, refuses redirects and connects through the guarded agent', async () => {
     resolveTo({ 'mcp.example.com': PUBLIC_V4 });
     const fetchSpy = vi.fn(async (_url: unknown, _init?: RequestInit) => new Response('ok'));
-    vi.stubGlobal('fetch', fetchSpy);
+    guardedFetch.mockImplementation(fetchSpy);
     await guardedStreamFetch(new URL('https://mcp.example.com/sse'), { method: 'GET' });
     const init = fetchSpy.mock.calls[0]?.[1] as RequestInit & { dispatcher?: unknown };
     expect(init).toMatchObject({ method: 'GET', redirect: 'error' });
@@ -247,9 +257,9 @@ describe('connect-time lookup (DNS rebinding)', () => {
   it('the guarded dispatcher will not open a socket to a rebound private address', async () => {
     // Pre-flight skipped on purpose: this is the socket lookup on its own.
     resolveTo({ 'rebind.example.com': '127.0.0.1' });
-    const failure = await fetch('https://rebind.example.com/', {
+    const failure = await realFetch('https://rebind.example.com/', {
       dispatcher: getGuardedAgent(),
-    } as RequestInit).catch((e: unknown) => e as Error & { cause?: unknown });
+    }).catch((e: unknown) => e as Error & { cause?: unknown });
     expect(failure).toBeInstanceOf(Error);
     expect((failure as { cause?: unknown }).cause).toBeInstanceOf(OutboundUrlBlockedError);
   });
@@ -362,9 +372,9 @@ describe('connect-time lookup: no socket reaches a private listener', () => {
     const agent = unguardedAgent();
     try {
       resolveTo({ 'rebind.example.test': '127.0.0.1' });
-      const res = await fetch(`http://rebind.example.test:${srv.port}/`, {
+      const res = await realFetch(`http://rebind.example.test:${srv.port}/`, {
         dispatcher: agent,
-      } as RequestInit);
+      });
       expect(await res.text()).toBe('reached');
       expect(srv.connections()).toBe(1);
     } finally {
@@ -377,9 +387,9 @@ describe('connect-time lookup: no socket reaches a private listener', () => {
     const srv = await listener('127.0.0.1');
     try {
       resolveTo({ 'rebind.example.test': '127.0.0.1' });
-      const failure = await fetch(`http://rebind.example.test:${srv.port}/`, {
+      const failure = await realFetch(`http://rebind.example.test:${srv.port}/`, {
         dispatcher: getGuardedAgent(),
-      } as RequestInit).catch((e: unknown) => e as Error & { cause?: unknown });
+      }).catch((e: unknown) => e as Error & { cause?: unknown });
       expect((failure as { cause?: unknown }).cause).toBeInstanceOf(OutboundUrlBlockedError);
       expect(srv.connections()).toBe(0);
     } finally {
@@ -394,11 +404,11 @@ describe('connect-time lookup: no socket reaches a private listener', () => {
     try {
       resolveTo({ 'rebind.example.test': '::ffff:127.0.0.1' });
       const url = `http://rebind.example.test:${srv.port}/`;
-      const control = await fetch(url, { dispatcher: agent } as RequestInit);
+      const control = await realFetch(url, { dispatcher: agent });
       expect(await control.text()).toBe('reached');
       expect(srv.connections()).toBe(1);
 
-      const failure = await fetch(url, { dispatcher: getGuardedAgent() } as RequestInit).catch(
+      const failure = await realFetch(url, { dispatcher: getGuardedAgent() }).catch(
         (e: unknown) => e as Error & { cause?: unknown }
       );
       expect((failure as { cause?: unknown }).cause).toBeInstanceOf(OutboundUrlBlockedError);
@@ -424,9 +434,12 @@ describe('connect-time lookup: no socket reaches a private listener', () => {
     });
     const originPort = (origin.address() as AddressInfo).port;
     const agent = unguardedAgent();
-    const realFetch = globalThis.fetch;
-    vi.stubGlobal('fetch', (_url: unknown, init: RequestInit) =>
-      realFetch(`http://127.0.0.1:${originPort}/sse`, { ...init, dispatcher: agent } as RequestInit)
+    guardedFetch.mockImplementation(
+      (_url: unknown, init?: RequestInit) =>
+        realFetch(`http://127.0.0.1:${originPort}/sse`, {
+          ...(init as object),
+          dispatcher: agent,
+        }) as unknown as Promise<Response>
     );
     try {
       resolveTo({ 'mcp.example.test': PUBLIC_V4, 'rebind.example.test': '127.0.0.1' });

@@ -5,9 +5,17 @@
  * fetch are spies, no network.
  */
 import dns from 'node:dns';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { connectToMCPServer, disconnectAllMCPServers } from '../mcp-loader.js';
 import type { BundleMCPServer } from '../types/commands.js';
+
+// The outbound guard sends through undici's own fetch, not the global one, so that is the spy.
+// No implementation by default: a request nothing stubbed fails instead of reaching the network.
+vi.mock('undici', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('undici')>()),
+  fetch: vi.fn(),
+}));
+const guardedFetch = vi.mocked((await import('undici')).fetch) as unknown as Mock<typeof fetch>;
 
 function resolveTo(address: string) {
   vi.spyOn(dns.promises, 'lookup').mockImplementation((async () => [
@@ -21,14 +29,14 @@ const server = (id: string): BundleMCPServer =>
 afterEach(async () => {
   await disconnectAllMCPServers();
   vi.restoreAllMocks();
-  vi.unstubAllGlobals();
+  guardedFetch.mockReset();
 });
 
 describe('connectToMCPServer: developer http endpoints', () => {
   it('refuses an endpoint that resolves to a private address, without fetching it', async () => {
     resolveTo('10.0.0.7');
     const fetchSpy = vi.fn();
-    vi.stubGlobal('fetch', fetchSpy);
+    guardedFetch.mockImplementation(fetchSpy);
 
     const connection = await connectToMCPServer(server('private-mcp'));
     expect(connection.status).toBe('error');
@@ -40,7 +48,7 @@ describe('connectToMCPServer: developer http endpoints', () => {
     const fetchSpy = vi.fn(
       async (_url: unknown, _init?: RequestInit) => new Response('no', { status: 503 })
     );
-    vi.stubGlobal('fetch', fetchSpy);
+    guardedFetch.mockImplementation(fetchSpy);
 
     await connectToMCPServer(server('public-mcp'));
     expect(fetchSpy).toHaveBeenCalled();
