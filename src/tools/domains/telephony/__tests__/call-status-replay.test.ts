@@ -71,7 +71,7 @@ import { telephonyExecutor } from '../../../../agents/shared/tool-executors/tele
 
 const SETH = 'vdSfkCCXaiXpnVCvgKxHMYrNFr72';
 const ASKED_DAD = Date.parse('2026-10-26T21:46:05Z');
-// Seth's 21:46 callOnBehalf, as the model sent it (the number is the one he gave at 18:47).
+// Rowan's 21:46 callOnBehalf, as the model sent it (the number is the one he gave at 18:47).
 const DAD_CALL = {
   contactQuery: 'Sam',
   phoneNumber: '312 555 0142',
