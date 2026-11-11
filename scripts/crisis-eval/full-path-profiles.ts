@@ -9,6 +9,15 @@
  *
  * `prod-2026-11-01`: the same, from the prod worker's boot settings for release
  * rc2 (53bb669b4) on 2026-11-01.
+ *
+ * `prod-2026-11-11`: prod-2026-11-01 with CRISIS_MEANS_IN_HAND live (prod flipped it
+ * shadow → live on 2026-11-10 ~23:44Z). Every other value is carried from 11-01, not
+ * re-read from tonight's boot settings.
+ *
+ * Every value is the exact mode its flag's resolver returns for it (full-path-profiles.test.ts):
+ * a value a resolver doesn't know falls back to off or shadow without a word, so `on` where a
+ * flag only knows `live` quietly ran it in shadow (CRISIS_MEANS_IN_HAND) or off
+ * (THIRD_PARTY_SELF_HARM) in `all-on`.
  */
 
 export type FlagSet = Readonly<Record<string, string>>;
@@ -43,6 +52,11 @@ const PROD_2026_11_01: FlagSet = {
   MINOR_CARE: 'on',
 };
 
+const PROD_2026_11_11: FlagSet = {
+  ...PROD_2026_11_01,
+  CRISIS_MEANS_IN_HAND: 'live',
+};
+
 /** Every crisis brake that exists, on. The adjudicator's live mode is blocked in code. */
 const ALL_ON: FlagSet = {
   ...PROD_2026_10_31,
@@ -55,15 +69,16 @@ const ALL_ON: FlagSet = {
   CRISIS_TRANSFER_EVERYDAY: 'on',
   CRISIS_SAME_CALL_NOTE_FADES: 'on',
   CRISIS_SIGHT_NEEDS_CUE: 'on',
-  CRISIS_MEANS_IN_HAND: 'on',
+  CRISIS_MEANS_IN_HAND: 'live',
   SAFETY_WHOLE_WORD_SITES: 'on',
   EARLY_WARNING_WORD_BOUNDARY: 'on',
-  THIRD_PARTY_SELF_HARM: 'on',
+  THIRD_PARTY_SELF_HARM: 'live',
 };
 
 export const PROFILES: Readonly<Record<string, FlagSet>> = {
   'prod-2026-10-31': PROD_2026_10_31,
   'prod-2026-11-01': PROD_2026_11_01,
+  'prod-2026-11-11': PROD_2026_11_11,
   'all-on': ALL_ON,
 };
 
