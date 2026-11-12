@@ -7,7 +7,7 @@ import {
   allowedUids,
   assertAllowedUid,
   isAllowedUid,
-} from '../allowed-uid.js';
+} from '../allowed-uid.mjs';
 
 // Fictional ids of the same shape as a real uid; no real person's data is named here.
 const LISTED = 'testOwnerUid0000000000000000';
@@ -38,38 +38,73 @@ describe('allowed-uid', () => {
   });
 });
 
-/** Runs a script as a CLI with only the given env added; returns exit code and all output. */
+/**
+ * Runs a script as a CLI, as from a plain shell: only PATH, HOME and TMPDIR plus the given
+ * env. The test runner's own env (NODE_ENV=test, VITEST) quiets the app logger, which would
+ * hide a config line logged before the refusal.
+ */
 function run(script: string, args: string[], env: Record<string, string>) {
-  const clean = { ...process.env };
-  delete clean[ALLOWLIST_ENV];
-  delete clean.FERNI_USER_ID;
-  delete clean.GOOGLE_CLOUD_PROJECT;
+  const base: Record<string, string> = {};
+  for (const k of ['PATH', 'HOME', 'TMPDIR']) if (process.env[k]) base[k] = process.env[k]!;
   const res = spawnSync(
     process.execPath,
     ['--import', 'tsx', join(import.meta.dirname, '../..', script), ...args],
-    { env: { ...clean, ...env }, encoding: 'utf8', timeout: 30_000, killSignal: 'SIGKILL' }
+    { env: { ...base, ...env }, encoding: 'utf8', timeout: 30_000, killSignal: 'SIGKILL' }
   );
   return { status: res.status, output: `${res.stdout}${res.stderr}` };
 }
 
-describe("scripts that read one person's data check the allowlist first", () => {
-  const cases: Array<{ script: string; args: string[]; env: Record<string, string> }> = [
-    {
-      script: 'memory-eval/build-private-cases.ts',
-      args: ['--uid', UNLISTED, '--name', NAME],
-      env: {},
-    },
-    { script: 'full-user-dump.ts', args: [], env: { FERNI_USER_ID: UNLISTED } },
-  ];
+// Every runnable script behind the allowlist. Nothing may load or log before the refusal,
+// so the whole output of a refused run is the one line.
+const SCRIPTS: Array<{
+  script: string;
+  /** With no env and no arguments: the one line it prints. */
+  bare: string;
+  /** Points the script at a uid. */
+  target: (uid: string) => { args: string[]; env: Record<string, string> };
+}> = [
+  {
+    script: 'full-user-dump.ts',
+    bare: 'FERNI_USER_ID is required',
+    target: (uid) => ({ args: [], env: { FERNI_USER_ID: uid } }),
+  },
+  {
+    script: 'memory-eval/build-private-cases.ts',
+    bare: REFUSED,
+    target: (uid) => ({ args: ['--uid', uid, '--name', NAME], env: {} }),
+  },
+  {
+    script: 'voice-eval/review-calls.mjs',
+    bare: 'REVIEW_OWNER_UID is required',
+    target: (uid) => ({ args: [], env: { REVIEW_OWNER_UID: uid } }),
+  },
+  {
+    script: 'voice-eval/scorecard.mjs',
+    bare: 'REVIEW_OWNER_UID is required',
+    target: (uid) => ({ args: [], env: { REVIEW_OWNER_UID: uid } }),
+  },
+  {
+    script: 'outreach-dryrun/dry-run.ts',
+    bare: REFUSED,
+    target: (uid) => ({ args: ['--uid', uid], env: {} }),
+  },
+  {
+    script: 'pondering/soak.ts',
+    bare: 'pass --uid <uid> (listed in MEMORY_EVAL_ALLOWED_UIDS), --eval-users, or --job',
+    target: (uid) => ({ args: ['--uid', uid], env: {} }),
+  },
+];
 
-  for (const { script, args, env } of cases) {
-    it(`${script} refuses with the allowlist unset, printing only the refusal`, () => {
-      const { status, output } = run(script, args, env);
+describe("scripts that read one person's data check the allowlist first", () => {
+  for (const { script, bare, target } of SCRIPTS) {
+    it(`${script} with no env prints only "${bare}"`, () => {
+      const { status, output } = run(script, [], {});
       expect(status).toBe(1);
-      expect(output.trim()).toBe(REFUSED);
+      expect(output.trim()).toBe(bare);
     }, 30_000);
 
-    it(`${script} refuses an unlisted uid without printing the uid or the name`, () => {
+    it(`${script} refuses an unlisted uid, printing only the refusal`, () => {
+      const { args, env } = target(UNLISTED);
       const { status, output } = run(script, args, { ...env, [ALLOWLIST_ENV]: LISTED });
       expect(status).toBe(1);
       expect(output.trim()).toBe(REFUSED);

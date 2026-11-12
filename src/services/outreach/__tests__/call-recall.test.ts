@@ -176,19 +176,21 @@ describe('recallFrom', () => {
 describe('recallCall', () => {
   it("reads 30 days of the asking owner's records only", async () => {
     const load = vi.fn(async (uid: string) =>
-      uid === 'seth' ? records([], [MOM_RESULT]) : records()
+      uid === 'owner-1' ? records([], [MOM_RESULT]) : records()
     );
     const calls: CallRecords = { load };
-    expect((await recallCall('seth', { words: ['mom'] }, [], NOW, calls)) as object).toMatchObject({
+    expect(
+      (await recallCall('owner-1', { words: ['mom'] }, [], NOW, calls)) as object
+    ).toMatchObject({
       state: 'done',
     });
     expect(await recallCall('someone-else', { words: ['mom'] }, [], NOW, calls)).toBeUndefined();
-    expect(load).toHaveBeenCalledWith('seth', new Date(NOW - 30 * 24 * HOUR));
+    expect(load).toHaveBeenCalledWith('owner-1', new Date(NOW - 30 * 24 * HOUR));
   });
 
   it('a failed read is unread, never "no call"', async () => {
     const calls: CallRecords = { load: vi.fn(async () => Promise.reject(new Error('down'))) };
-    const call = await recallCall('seth', { words: ['mom'] }, [], NOW, calls);
+    const call = await recallCall('owner-1', { words: ['mom'] }, [], NOW, calls);
     expect(call).toBe('unread');
     expect(recallLine(call, 'mom', NOW)).toMatch(/couldn't read the call records/);
   });

@@ -18,14 +18,14 @@
  *     [--histories 4] [--calls 4] [--out ~/Documents/ferni-private-bench]
  *
  * MEMORY_EVAL_ALLOWED_UIDS (comma-separated, set outside the repo) lists the
- * callers who agreed to their calls being used this way (../lib/allowed-uid.ts).
+ * callers who agreed to their calls being used this way (../lib/allowed-uid.mjs).
  */
 import { mkdirSync, chmodSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { callerZone, localDay } from './longmem-lib.js';
 import { assertVertexOnly, isInside, writePrivate } from './real-data.js';
-import { assertAllowedUid } from '../lib/allowed-uid.js';
+import { assertAllowedUid } from '../lib/allowed-uid.mjs';
 import {
   caseFile,
   generationPrompt,

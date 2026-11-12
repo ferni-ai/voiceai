@@ -4,7 +4,8 @@
 //
 // usage: review-calls.mjs [--env prod|dev|both] [--since ISO] [--until ISO] [--out DIR]
 //                         [--database ID]
-// env: REVIEW_OWNER_UID (required, set outside the repo): the owner's uid.
+// env: REVIEW_OWNER_UID (required, set outside the repo): the owner's uid. It must also be
+// listed in MEMORY_EVAL_ALLOWED_UIDS (../lib/allowed-uid.mjs), or the run is refused.
 // Opt-in flags are read from each env's Firestore database (eval-database.mjs:
 // prod '(default)', dev 'ferni-dev' or EVAL_DEV_DATABASE); --database forces one for every env.
 //
@@ -29,6 +30,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
+import { assertAllowedUid } from '../lib/allowed-uid.mjs';
 import { documentsUrl, evalDatabase } from './eval-database.mjs';
 
 export const WORKERS = { prod: 'ca-gefvepsnxlsf', dev: 'ca-sitdmheba4fg' };
@@ -324,6 +326,7 @@ function optedIn(uids, database) {
 
 async function main() {
   if (!process.env.REVIEW_OWNER_UID) throw new Error('REVIEW_OWNER_UID is required');
+  assertAllowedUid(process.env.REVIEW_OWNER_UID);
   const args = process.argv.slice(2);
   const opt = (k, d) => (args.includes(k) ? args[args.indexOf(k) + 1] : d);
   const until = opt('--until', new Date().toISOString());

@@ -7,7 +7,8 @@
 //   (default out: ~/Documents/voiceai-evidence/scorecard/scorecard.json)
 //   --database: the Firestore database holding the owner's records (default
 //   '(default)', prod; FIRESTORE_DATABASE is ignored, see scorecardDatabase).
-// env: REVIEW_OWNER_UID (required, set outside the repo): the owner's uid.
+// env: REVIEW_OWNER_UID (required, set outside the repo): the owner's uid. It must also be
+// listed in MEMORY_EVAL_ALLOWED_UIDS (../lib/allowed-uid.mjs), or the run is refused.
 //
 // Sources, all local except follow-through:
 // - call-reviews/<date>/calls.json (review-calls.mjs + judge-calls.mjs):
@@ -52,6 +53,7 @@ import {
 } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { REFUSED, isAllowedUid } from '../lib/allowed-uid.mjs';
 import { documentsUrl, evalDatabase } from './eval-database.mjs';
 import { checkRun, parseChecks } from './recall-facts.mjs';
 
@@ -565,6 +567,10 @@ function panelReports(since) {
 function main() {
   if (!OWNER) {
     console.error('REVIEW_OWNER_UID is required');
+    process.exit(1);
+  }
+  if (!isAllowedUid(OWNER)) {
+    console.error(REFUSED);
     process.exit(1);
   }
   const args = process.argv.slice(2);

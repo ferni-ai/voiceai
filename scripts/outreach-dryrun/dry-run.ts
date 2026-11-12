@@ -15,7 +15,7 @@
  * --replay adds past days (as if it were that evening); --passes re-runs the
  * sampled pondering pass per day. Assumes no new calls in the week. READ ONLY,
  * and only for a uid listed in MEMORY_EVAL_ALLOWED_UIDS (set outside the repo;
- * ../lib/allowed-uid.ts): other uids are refused, Firestore writes throw,
+ * ../lib/allowed-uid.mjs): other uids are refused, Firestore writes throw,
  * nothing is sent.
  *
  *   pnpm tsx scripts/outreach-dryrun/dry-run.ts --uid <uid> [--now ISO] [--replay 2026-01-12,...]
@@ -23,18 +23,40 @@
  *   pnpm tsx scripts/outreach-dryrun/dry-run.ts --rejudge-local f.json [--per-arm 4]
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { getApps, initializeApp } from 'firebase-admin/app';
-import * as fs from 'firebase-admin/firestore';
-import { callLLM } from '../../src/services/llm-utils.js';
-import { ponder, type PonderSummary } from '../../src/intelligence/pondering/pondering.js';
-import { SUMMARIES_READ, toPonderSummary } from '../../src/intelligence/pondering/ponder-user.js';
-import * as cadence from '../../src/services/outreach/outreach-cadence.js';
-import { generatePersonalizedContent } from '../../src/services/outreach/llm-content-generator.js';
-import { atLocal, planCheckIns } from '../../src/services/outreach/grounded-checkin.js';
-import * as pondered from '../../src/services/outreach/proactive-channels/pondered-triggers.js';
-import { assertAllowedUid } from '../lib/allowed-uid.js';
-import { judgeGemini, judgeLocal, means, type JudgeInput, type Scores } from './judge.js';
-import { getAdminFirestore } from '../../src/utils/firebase-admin-app.js';
+import type { DocumentReference } from 'firebase-admin/firestore';
+import type { PonderSummary } from '../../src/intelligence/pondering/pondering.js';
+import { assertAllowedUid } from '../lib/allowed-uid.mjs';
+import type { JudgeInput, Scores } from './judge.js';
+
+// Everything below loads in loadModules(), after the allowlist check: some of these
+// modules log their config as they load, and a refused run prints only the refusal.
+let getApps: (typeof import('firebase-admin/app'))['getApps'];
+let initializeApp: (typeof import('firebase-admin/app'))['initializeApp'];
+let fs: typeof import('firebase-admin/firestore');
+let callLLM: (typeof import('../../src/services/llm-utils.js'))['callLLM'];
+let ponder: (typeof import('../../src/intelligence/pondering/pondering.js'))['ponder'];
+let ponderUserMod: typeof import('../../src/intelligence/pondering/ponder-user.js');
+let cadence: typeof import('../../src/services/outreach/outreach-cadence.js');
+let generatePersonalizedContent: (typeof import('../../src/services/outreach/llm-content-generator.js'))['generatePersonalizedContent'];
+let grounded: typeof import('../../src/services/outreach/grounded-checkin.js');
+let pondered: typeof import('../../src/services/outreach/proactive-channels/pondered-triggers.js');
+let judge: typeof import('./judge.js');
+let getAdminFirestore: (typeof import('../../src/utils/firebase-admin-app.js'))['getAdminFirestore'];
+
+async function loadModules(): Promise<void> {
+  ({ getApps, initializeApp } = await import('firebase-admin/app'));
+  fs = await import('firebase-admin/firestore');
+  ({ callLLM } = await import('../../src/services/llm-utils.js'));
+  ({ ponder } = await import('../../src/intelligence/pondering/pondering.js'));
+  ponderUserMod = await import('../../src/intelligence/pondering/ponder-user.js');
+  cadence = await import('../../src/services/outreach/outreach-cadence.js');
+  ({ generatePersonalizedContent } =
+    await import('../../src/services/outreach/llm-content-generator.js'));
+  grounded = await import('../../src/services/outreach/grounded-checkin.js');
+  pondered = await import('../../src/services/outreach/proactive-channels/pondered-triggers.js');
+  judge = await import('./judge.js');
+  ({ getAdminFirestore } = await import('../../src/utils/firebase-admin-app.js'));
+}
 
 const DAY = 86_400_000;
 const LA = 'America/Los_Angeles';
@@ -81,9 +103,9 @@ const fmt = (at: number, tz: string): string =>
   }).format(at);
 /** The daily-outreach scheduler slot, 09:00 Los Angeles, `n` days after `now`. */
 const dailySlot = (now: Date, n: number): Date =>
-  atLocal(dayIn(now.getTime() + n * DAY, LA), 9, LA);
+  grounded.atLocal(dayIn(now.getTime() + n * DAY, LA), 9, LA);
 
-/** The live daily run over the week: which days it picks Seth, which type, which text. */
+/** The live daily run over the week: which days it picks the caller, which type, which text. */
 async function liveArm(user: Record<string, unknown>, now: Date): Promise<DryItem[]> {
   delete process.env.GOOGLE_API_KEY; // as on john-bogle-ui
   delete process.env.GEMINI_API_KEY;
@@ -128,7 +150,7 @@ async function liveArm(user: Record<string, unknown>, now: Date): Promise<DryIte
 }
 
 interface Window {
-  ref: fs.DocumentReference;
+  ref: DocumentReference;
   tz: string;
   name?: string;
   now: Date;
@@ -162,7 +184,7 @@ async function ponderedArms(w: Window, summaries: PonderSummary[], passes: numbe
     callDate: calls.get(f.basis)?.date,
     eventDate: f.when,
   }));
-  const plan = planCheckIns(followUps, {
+  const plan = grounded.planCheckIns(followUps, {
     ...w,
     timezone: w.tz,
     lastTalkedAt: w.lastTalked,
@@ -200,7 +222,10 @@ const scoresOf = (items: DryItem[]) =>
       const arm = items.filter((i) => i.arm === a);
       return [
         a,
-        { gemini: means(arm.map((i) => i.gemini)), local: means(arm.map((i) => i.local)) },
+        {
+          gemini: judge.means(arm.map((i) => i.gemini)),
+          local: judge.means(arm.map((i) => i.local)),
+        },
       ];
     })
   );
@@ -211,7 +236,7 @@ async function rejudgeLocal(file: string, perArm: number): Promise<void> {
   for (const a of ARMS) {
     for (const it of report.items.filter((i) => i.arm === a && i.judge).slice(0, perArm)) {
       // eslint-disable-next-line no-await-in-loop
-      it.local = await judgeLocal(it.judge as JudgeInput).catch(() => undefined);
+      it.local = await judge.judgeLocal(it.judge as JudgeInput).catch(() => undefined);
     }
   }
   report.scores = scoresOf(report.items);
@@ -221,8 +246,12 @@ async function rejudgeLocal(file: string, perArm: number): Promise<void> {
 
 async function main(): Promise<void> {
   const rejudge = arg('rejudge-local');
-  if (rejudge) return rejudgeLocal(rejudge, Number(arg('per-arm') ?? 4));
+  if (rejudge) {
+    await loadModules();
+    return rejudgeLocal(rejudge, Number(arg('per-arm') ?? 4));
+  }
   const uid = assertAllowedUid(arg('uid'));
+  await loadModules();
   const now = new Date(arg('now') ?? Date.now());
   const passes = Number(arg('passes') ?? 1);
   const out = arg('out') ?? 'outreach-dryrun.json';
@@ -238,15 +267,15 @@ async function main(): Promise<void> {
       .collection('summaries')
       .where('timestamp', '<=', at.toISOString())
       .orderBy('timestamp', 'desc')
-      .limit(SUMMARIES_READ)
+      .limit(ponderUserMod.SUMMARIES_READ)
       .get();
-    return snap.docs.map((d) => toPonderSummary(d.id, d.data()));
+    return snap.docs.map((d) => ponderUserMod.toPonderSummary(d.id, d.data()));
   };
   const lastTalked = cadence.lastTalkedAt(user) ?? now.getTime();
   const windows: Window[] = [{ ref, tz, name, now, lastTalked, window: 'now' }];
   for (const day of (arg('replay') ?? '').split(',').filter(Boolean)) {
     // As if it were 23:00 that day, their time, after the day's calls.
-    const at = atLocal(day, 23, tz);
+    const at = grounded.atLocal(day, 23, tz);
     windows.push({ ref, tz, name, now: at, lastTalked: at.getTime() - 3_600_000, window: day });
   }
 
@@ -266,7 +295,7 @@ async function main(): Promise<void> {
         callerLines: arms.linesOf(it.text),
         recentCalls: summaries.slice(0, 5).map((s) => `${s.date}: ${s.topics.join('; ')}`),
       };
-      it.gemini = await judgeGemini(it.judge);
+      it.gemini = await judge.judgeGemini(it.judge);
     }
     items.push(...mine);
     dropped.push(...arms.dropped);

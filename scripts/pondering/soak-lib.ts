@@ -4,11 +4,11 @@
  *
  * The soak runs the real pondering pass against real call summaries, so it
  * may only touch callers who agreed to be test subjects: the uids listed in
- * MEMORY_EVAL_ALLOWED_UIDS (set outside the repo; ../lib/allowed-uid.ts) and
+ * MEMORY_EVAL_ALLOWED_UIDS (set outside the repo; ../lib/allowed-uid.mjs) and
  * the voice-eval seed users. Everyone else is refused before anything is read.
  */
 import { EVAL_PREFIX } from '../voice-eval/eval-users.js';
-import { REFUSED, isAllowedUid } from '../lib/allowed-uid.js';
+import { REFUSED, isAllowedUid } from '../lib/allowed-uid.mjs';
 
 type Env = Record<string, string | undefined>;
 

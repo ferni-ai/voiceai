@@ -35,16 +35,22 @@ describe('which callers get it', () => {
 
 describe('isPhoneParticipant', () => {
   // Shaped like the prod outbound call AJ_6gTw8RUcxwBC (dialed via trunk ST_AEE6NnKE84XP).
-  const sethAttributes = { 'sip.callStatus': 'active', 'sip.phoneNumber': '+15550100' };
+  const callerAttributes = { 'sip.callStatus': 'active', 'sip.phoneNumber': '+15550100' };
 
   it('catches the outbound-dialed caller however LiveKit describes them', () => {
-    const seth = { identity: 'phone_seth', kind: ParticipantKind.SIP, attributes: sethAttributes };
-    expect(isPhoneParticipant(seth)).toBe(true);
-    expect(isPhoneParticipant({ ...seth, kind: undefined })).toBe(true);
-    expect(isPhoneParticipant({ identity: 'phone_seth' })).toBe(true);
-    expect(isPhoneParticipant({ identity: 'u1', attributes: sethAttributes })).toBe(true);
+    const caller = {
+      identity: 'phone_caller',
+      kind: ParticipantKind.SIP,
+      attributes: callerAttributes,
+    };
+    expect(isPhoneParticipant(caller)).toBe(true);
+    expect(isPhoneParticipant({ ...caller, kind: undefined })).toBe(true);
+    expect(isPhoneParticipant({ identity: 'phone_caller' })).toBe(true);
+    expect(isPhoneParticipant({ identity: 'u1', attributes: callerAttributes })).toBe(true);
     expect(isPhoneParticipant({ identity: 'sip_+15550100' })).toBe(true);
-    expect(wantsPhonePreStt({ identity: 'phone_seth', attributes: sethAttributes }, {})).toBe(true);
+    expect(wantsPhonePreStt({ identity: 'phone_caller', attributes: callerAttributes }, {})).toBe(
+      true
+    );
   });
 
   it('leaves app callers alone', () => {

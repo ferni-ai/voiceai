@@ -4,12 +4,11 @@
  * gets it), the real callStatus and callOnBehalf, the real records reader.
  * Mocked only at the edges: Firestore (per-uid documents), the contact store.
  *
- * - 2026-10-26 21:46 UTC, "I don't know. Did you call my dad?": Ferni ran
- *   callOnBehalf and read back a fresh call (Sam, ***0142, "check in on him
- *   after his stroke"). It had read that call back at 18:48 and never got a yes.
- * - 2026-10-25 15:54 and 2026-10-26 18:46, "Did you call my mom?": her call
- *   had been answered at about 15:01 on the 25th (onbehalf_1792940418192_6vrey,
- *   marked delivered at context build), and Ferni said it hadn't placed it.
+ * - The owner asked "Did you call my dad?" after asking Ferni to check in on a
+ *   family member. Ferni ran callOnBehalf again and read back a fresh call, though
+ *   it had already read that call back earlier and never got a yes.
+ * - The owner asked "Did you call my mom?" after that call had been answered and
+ *   marked delivered at context build, and Ferni said it hadn't placed it.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -69,13 +68,13 @@ import { callOutcomeUnheard } from '../../../../agents/personas/call-narration.j
 import { getHonestyInjection } from '../../../../intelligence/context-builders/safety/honesty-guardrail.js';
 import { telephonyExecutor } from '../../../../agents/shared/tool-executors/telephony-executor.js';
 
-const SETH = 'testOwnerUid0000000000000000';
+const OWNER_UID = 'testOwnerUid0000000000000000';
 const ASKED_DAD = Date.parse('2026-10-26T21:46:05Z');
-// Seth's 21:46 callOnBehalf, as the model sent it (the number is the one he gave at 18:47).
+// Rowan's callOnBehalf, as the model sent it (the number is the one he gave earlier).
 const DAD_CALL = {
   contactQuery: 'Sam',
   phoneNumber: '312 555 0142',
-  purpose: 'check in on him after his stroke',
+  purpose: 'check in on him after his move',
   recordingConsent: true,
 };
 const DAD_REQUEST = { contactQuery: 'Sam', contactName: 'Sam', contactPhone: '+13125550142' };
@@ -83,10 +82,10 @@ const dadAnswered = {
   callId: 'call_dad_1850',
   capturedAt: '2026-10-26T18:50:00.000Z',
   request: DAD_REQUEST,
-  outcome: { status: 'completed', transcriptSummary: "He's resting after the stroke and says hi." },
+  outcome: { status: 'completed', transcriptSummary: "He's settled in and says hi." },
 };
 const momAnswered = {
-  callId: 'onbehalf_1792940418192_6vrey',
+  callId: 'onbehalf_1700000000000_abcde',
   capturedAt: '2026-10-25T15:01:40.000Z',
   delivered: true,
   request: { contactQuery: 'Mom', contactName: 'Mom', contactPhone: '+18015553303' },
@@ -102,7 +101,7 @@ const dadHeld = {
 };
 
 /** A live call; `owner` is its speaker check (live-call-behaviors.ts), null when none ran. */
-function liveCall(userId = SETH, owner: (() => boolean) | null = () => true) {
+function liveCall(userId = OWNER_UID, owner: (() => boolean) | null = () => true) {
   const registry = new ToolRegistry();
   for (const def of getTelephonyToolDefinitions()) registry.register(def);
   const ctx: ToolContext = { userId, agentId: 'ferni', agentDisplayName: 'Ferni' };
@@ -123,7 +122,7 @@ function liveCall(userId = SETH, owner: (() => boolean) | null = () => true) {
   };
 }
 
-describe('"Did you call my dad?" (2026-10-26 21:46) and "my mom" (10-25, 10-26)', () => {
+describe('"Did you call my dad?" and "Did you call my mom?"', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(ASKED_DAD);
@@ -146,12 +145,12 @@ describe('"Did you call my dad?" (2026-10-26 21:46) and "my mom" (10-25, 10-26)'
   });
 
   it('a completed dad call: status from callStatus, and callOnBehalf tells it instead of a new read-back', async () => {
-    fs.users[SETH] = { on_behalf_calls: [dadAnswered] };
+    fs.users[OWNER_UID] = { on_behalf_calls: [dadAnswered] };
     const call = liveCall();
     call.caller("I don't know. Did you call my dad?");
     const status = await call.call('callStatus', { contactQuery: 'dad' }, 's1');
     expect(status).toMatch(/^Ferni called Sam about 3 hours ago, and they answered\./);
-    expect(status).toContain("> He's resting after the stroke and says hi.");
+    expect(status).toContain("> He's settled in and says hi.");
     // The 21:46 turn exactly: the model reached for callOnBehalf.
     const out = await call.call('callOnBehalf', DAD_CALL, 'c1');
     expect(out).not.toContain('NOT SENT YET');
@@ -182,7 +181,7 @@ describe('"Did you call my dad?" (2026-10-26 21:46) and "my mom" (10-25, 10-26)'
     );
     const out = await call.call('callOnBehalf', DAD_CALL, 'c1');
     expect(out).toMatch(/^Nothing new was read back\. Not called:/);
-    expect(live).toHaveBeenCalledWith(SETH);
+    expect(live).toHaveBeenCalledWith(OWNER_UID);
   });
 
   it("a read-back still waiting on this call's yes is told by callStatus as waiting", async () => {
@@ -195,7 +194,7 @@ describe('"Did you call my dad?" (2026-10-26 21:46) and "my mom" (10-25, 10-26)'
   });
 
   it('a dad call held for calling hours: set for 9 AM their time, no new read-back', async () => {
-    fs.users[SETH] = { deferred_calls: [dadHeld] };
+    fs.users[OWNER_UID] = { deferred_calls: [dadHeld] };
     const call = liveCall();
     expect(await call.call('callStatus', { contactQuery: 'dad' }, 's1')).toMatch(
       /^Not called yet: the call to Sam is set for tomorrow at 9:00\sAM their time/
@@ -208,7 +207,7 @@ describe('"Did you call my dad?" (2026-10-26 21:46) and "my mom" (10-25, 10-26)'
     ['2026-10-26T18:46:30Z', /^Ferni called Mom yesterday, and they answered\./],
   ])('mom, answered and already "delivered", asked at %s: never denied', async (at, line) => {
     vi.setSystemTime(Date.parse(at));
-    fs.users[SETH] = { on_behalf_calls: [momAnswered] };
+    fs.users[OWNER_UID] = { on_behalf_calls: [momAnswered] };
     const status = await liveCall().call('callStatus', { contactQuery: 'mom' }, 's1');
     expect(status).toMatch(line);
     expect(status).toContain('> She misses you and hopes to see you at church.');
@@ -216,7 +215,7 @@ describe('"Did you call my dad?" (2026-10-26 21:46) and "my mom" (10-25, 10-26)'
   });
 
   it("another owner's calls are never read, and a 31-day-old call is not on record", async () => {
-    fs.users[SETH] = { on_behalf_calls: [momAnswered] };
+    fs.users[OWNER_UID] = { on_behalf_calls: [momAnswered] };
     expect(
       await liveCall('someone-else-uid').call('callStatus', { contactQuery: 'mom' }, 's1')
     ).toMatch(/^No call to mom in the last 30 days/);
@@ -227,8 +226,8 @@ describe('"Did you call my dad?" (2026-10-26 21:46) and "my mom" (10-25, 10-26)'
   });
 
   it('never for the callee on an onbehalf: session, nor with the kill switch off', async () => {
-    fs.users[SETH] = { on_behalf_calls: [momAnswered] };
-    const callee = 'onbehalf:onbehalf_1792940418192_6vrey';
+    fs.users[OWNER_UID] = { on_behalf_calls: [momAnswered] };
+    const callee = 'onbehalf:onbehalf_1700000000000_abcde';
     expect(await liveCall(callee).call('callStatus', { contactQuery: 'mom' }, 's1')).toMatch(
       /^Nothing to report/
     );
@@ -240,25 +239,25 @@ describe('"Did you call my dad?" (2026-10-26 21:46) and "my mom" (10-25, 10-26)'
   });
 
   it('call_history (FTIS) answers the status, not "voicemail isn\'t set up"', async () => {
-    fs.users[SETH] = { on_behalf_calls: [momAnswered] };
+    fs.users[OWNER_UID] = { on_behalf_calls: [momAnswered] };
     vi.setSystemTime(Date.parse('2026-10-26T18:46:30Z'));
     const { session } = liveCall();
-    const release = noteLiveSession(session, 'session-seth');
+    const release = noteLiveSession(session, 'session-owner');
     const ask = (sessionId?: string) =>
       telephonyExecutor.execute(
         'call_history',
         { contactQuery: 'mom' },
-        { userId: SETH, sessionId }
+        { userId: OWNER_UID, sessionId }
       );
-    expect(String(await ask('session-seth'))).toMatch(/^Ferni called Mom yesterday/);
+    expect(String(await ask('session-owner'))).toMatch(/^Ferni called Mom yesterday/);
     release();
     // No live call to prove the owner (chat, a job): fails closed.
-    expect(String(await ask('session-seth'))).toMatch(/^Nothing to report/);
+    expect(String(await ask('session-owner'))).toMatch(/^Nothing to report/);
     expect(String(await ask(undefined))).toMatch(/^Nothing to report/);
   });
 
   it('with no records side installed (no live call in this process) it says it cannot check', async () => {
-    fs.users[SETH] = { on_behalf_calls: [momAnswered] };
+    fs.users[OWNER_UID] = { on_behalf_calls: [momAnswered] };
     setCallRecallPort(undefined);
     expect(await liveCall().call('callStatus', { contactQuery: 'mom' }, 's1')).toMatch(
       /can't check/
@@ -267,23 +266,23 @@ describe('"Did you call my dad?" (2026-10-26 21:46) and "my mom" (10-25, 10-26)'
   });
 
   it('fails closed: no session, a speaker who is not the owner, or one never checked', async () => {
-    fs.users[SETH] = { on_behalf_calls: [momAnswered] };
+    fs.users[OWNER_UID] = { on_behalf_calls: [momAnswered] };
     vi.setSystemTime(Date.parse('2026-10-26T18:46:30Z'));
     const deny = /^Nothing to report: only the account owner/;
-    expect(await callStatusReply(SETH, 'mom')).toMatch(deny);
+    expect(await callStatusReply(OWNER_UID, 'mom')).toMatch(deny);
     expect(
-      await liveCall(SETH, () => false).call('callStatus', { contactQuery: 'mom' }, 's1')
+      await liveCall(OWNER_UID, () => false).call('callStatus', { contactQuery: 'mom' }, 's1')
     ).toMatch(deny);
-    expect(await liveCall(SETH, null).call('callStatus', { contactQuery: 'mom' }, 's2')).toMatch(
-      deny
-    );
-    expect(await liveCall(SETH).call('callStatus', { contactQuery: 'mom' }, 's3')).toMatch(
+    expect(
+      await liveCall(OWNER_UID, null).call('callStatus', { contactQuery: 'mom' }, 's2')
+    ).toMatch(deny);
+    expect(await liveCall(OWNER_UID).call('callStatus', { contactQuery: 'mom' }, 's3')).toMatch(
       /^Ferni called Mom/
     );
     // callOnBehalf's status before a read-back follows the same rule: an unproven speaker hears none.
-    fs.users[SETH] = { on_behalf_calls: [dadAnswered] };
+    fs.users[OWNER_UID] = { on_behalf_calls: [dadAnswered] };
     vi.setSystemTime(ASKED_DAD);
-    expect(await liveCall(SETH, null).call('callOnBehalf', DAD_CALL, 'c1')).toContain(
+    expect(await liveCall(OWNER_UID, null).call('callOnBehalf', DAD_CALL, 'c1')).toContain(
       'NOT SENT YET'
     );
   });
