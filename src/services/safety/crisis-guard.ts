@@ -99,6 +99,8 @@ export interface CrisisDetectionOptions {
    * severity, so a third-party read keeps its guidance, as on main.
    */
   voiceCallerCheck?: boolean;
+  /** The request's env for flags this read checks (CRISIS_SELF_HARM_911_LINE); default process.env. */
+  env?: Record<string, string | undefined>;
 }
 
 export const CRISIS_SEVERITY = SEVERITY; // the tiers, for callers that weigh a read (caller-text.ts)
@@ -357,7 +359,7 @@ export function detectCrisis(
   const imminent = !callerCheck && indicators.includes('imminent_danger');
   const script = emergency
     ? EMERGENCY_FOR_THEM
-    : getCrisisResponse(severity, subject, score.language, imminent);
+    : getCrisisResponse(severity, subject, score.language, imminent, options?.env);
 
   return {
     isCrisis,

@@ -3,14 +3,12 @@
  * caller's severe crisis script that is not imminent, for suicide and self-harm alike, keeps 988
  * first and whole and then says to call 911 if they've already hurt themselves or are about to.
  * The imminent, someone-else, Spanish and check-in replies are unchanged, and off is main.
- * The flag is read from process.env (crisis-guard's reads are), never the gate's options.env.
+ * The flag is read from the gate's env (options.env), so a request's env decides it, not process.env.
  * All lines are fictional.
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-  getCrisisResponse,
-  SELF_HARM_911_LINE,
-} from '../../../services/safety/crisis-guard-replies.js';
+import { SELF_HARM_911_LINE } from '../../../services/safety/crisis-script-lines.js';
+import { getCrisisResponse } from '../../../services/safety/crisis-guard-replies.js';
 import { detectCrisis } from '../../../services/safety/crisis-guard.js';
 import { YOUTH_SCRIPT_LINE } from '../../../utils/minor-crisis-care.js';
 import { NON_COMPLIANT, stubbedGateReply } from './caller-check-gate.js';
@@ -47,10 +45,11 @@ const THIRD_PARTY = 'my brother keeps talking about killing himself';
 const SPANISH = 'quiero matarme esta noche';
 const CONTROL = "i'm thinking about going to the gym tonight";
 
+/** The gate's reply with the flag in its env; process.env holds the opposite, so only the gate's env can decide. */
 const reply = async (line: string, flag: 'on' | 'off' | undefined): Promise<string> => {
-  if (flag === undefined) delete process.env[FLAG];
-  else process.env[FLAG] = flag;
-  return (await stubbedGateReply(line, undefined, 'patterns')).text;
+  process.env[FLAG] = flag === 'on' ? 'off' : 'on';
+  const env: Record<string, string> = flag === undefined ? {} : { [FLAG]: flag };
+  return (await stubbedGateReply(line, undefined, 'patterns', env)).text;
 };
 
 afterEach(() => {
@@ -108,11 +107,13 @@ describe('CRISIS_SELF_HARM_911_LINE through gatedReply', () => {
     expect(await reply(CONTROL, 'on')).toBe(NON_COMPLIANT);
   });
 
-  it("the gate's options.env does not toggle it; process.env does", async () => {
-    delete process.env[FLAG];
-    const viaOptions = await stubbedGateReply(SELF_HARM, undefined, 'patterns', { [FLAG]: 'on' });
-    expect(viaOptions.text).toBe(MAIN_SEVERE);
-    expect(await reply(SELF_HARM, 'on')).toBe(SEVERE_WITH_LINE);
+  it("the gate's env decides it, never process.env", async () => {
+    process.env[FLAG] = 'off';
+    const on = await stubbedGateReply(SELF_HARM, undefined, 'patterns', { [FLAG]: 'on' });
+    expect(on.text).toBe(SEVERE_WITH_LINE);
+    process.env[FLAG] = 'on';
+    const off = await stubbedGateReply(SELF_HARM, undefined, 'patterns', { [FLAG]: 'off' });
+    expect(off.text).toBe(MAIN_SEVERE);
   });
 });
 

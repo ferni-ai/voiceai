@@ -5,7 +5,8 @@
  * @module CrisisGuardReplies
  */
 
-import { flagOn, type Env } from '../../config/env-flag.js';
+import type { Env } from '../../config/env-flag.js';
+import { SELF_HARM_911_LINE, selfHarm911LineOn } from './crisis-script-lines.js';
 import type { CrisisSubject } from './crisis-guard.js';
 import { SEVERITY } from './crisis-severity.js';
 
@@ -15,12 +16,6 @@ export const IN_DANGER_NOW =
 
 /** The caller's own 988 line, in the in-danger reply's words (the caller check speaks it). */
 export const TALK_TO_988 = IN_DANGER_NOW.slice(IN_DANGER_NOW.indexOf('You can also'));
-
-/**
- * CRISIS_SELF_HARM_911_LINE (owner, 2026-11-11): after 988 in the caller's severe script that is
- * not imminent, for suicide and self-harm alike. 988 stays first and whole.
- */
-export const SELF_HARM_911_LINE = "If you've already hurt yourself or you're about to, call 911.";
 
 /**
  * Someone else is down and not getting up, or won't wake (owner, 2026-11-02): an emergency for
@@ -66,7 +61,7 @@ Estoy aquí contigo. ¿Me cuentas qué está pasando?`;
   }
   if (severity >= SEVERITY.block) {
     // Severe crisis - immediate support + resources
-    const after988 = flagOn('CRISIS_SELF_HARM_911_LINE', env) ? ` ${SELF_HARM_911_LINE}` : '';
+    const after988 = selfHarm911LineOn(env) ? ` ${SELF_HARM_911_LINE}` : ''; // CRISIS_SELF_HARM_911_LINE
     return `I hear how much pain you're in right now, and I'm really glad you're sharing this with me. What you're feeling matters, and you don't have to carry this alone.
 
 If you're in crisis or having thoughts of suicide, please reach out to the 988 Suicide & Crisis Lifeline by calling or texting 988. They have trained counselors available 24/7.${after988}
