@@ -18,6 +18,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const { rememberVerifiedUid } = await import('../rate-limit-identity.js');
 const { handleMigrationRoutes } = await import('../migration-routes.js');
 const { handleGDPRRoutes } = await import('../gdpr-routes.js');
+const { limitServerRequest, API_GLOBAL_LIMIT, OUTSIDE_API_LIMIT } =
+  await import('../global-rate-limit.js');
+const { handlePlaidRoutes } = await import('../../servers/api/routes/plaid.js');
+const { handleTokenRoutes } = await import('../../servers/api/routes/token.js');
 
 const MIGRATE_PER_HOUR = 5;
 const GDPR_PER_MINUTE = 10;
@@ -91,5 +95,53 @@ describe('per-route rate-limit buckets', () => {
     const migrate = await statuses(MIGRATE_PER_HOUR, () => migrateStatus(uid));
     expect(migrate.slice(0, MIGRATE_PER_HOUR - 1)).not.toContain(429);
     expect(migrate[MIGRATE_PER_HOUR - 1]).toBe(429);
+  });
+});
+
+/** The server's order for one request: its global limit, then the route (with its own). */
+async function serverStatus(uid: string, method: string, path: string): Promise<number> {
+  const req = request(uid, method, path);
+  const res = response();
+  if (limitServerRequest(req, res, path)) return res.statusCode;
+  const url = new URL(`http://localhost${path}`);
+  if (path.startsWith('/plaid')) await handlePlaidRoutes(req, res, path, url);
+  else if (path.startsWith('/api/')) await handleGDPRRoutes(req, res, path);
+  else await handleTokenRoutes(req, res, path, url);
+  return res.statusCode;
+}
+
+describe('global limits on the routes served outside /api/', () => {
+  it('one caller using up the outside-/api/ budget is refused /plaid/exchange and /demo-claim', async () => {
+    const uid = 'uid-route-buckets-c';
+    // /demo-status needs no services before its limit; it only spends the shared budget here
+    for (let i = 0; i < OUTSIDE_API_LIMIT.maxRequests; i++) {
+      expect(
+        limitServerRequest(request(uid, 'GET', '/demo-status'), response(), '/demo-status')
+      ).toBe(false);
+    }
+    // Neither route has spent any of its own budget (5 and 10 a minute)
+    expect(await serverStatus(uid, 'POST', '/plaid/exchange')).toBe(429);
+    expect(await serverStatus(uid, 'POST', '/demo-claim')).toBe(429);
+  });
+
+  it('using up the /api/ budget does not block /plaid/exchange', async () => {
+    const uid = 'uid-route-buckets-d';
+    const apiCall = () =>
+      limitServerRequest(request(uid, 'GET', '/api/rituals'), response(), '/api/rituals');
+    for (let i = 0; i < API_GLOBAL_LIMIT.maxRequests; i++) expect(apiCall()).toBe(false);
+    expect(apiCall()).toBe(true);
+    // Past both limits, the exchange route's own auth check answers (no token sent)
+    expect(await serverStatus(uid, 'POST', '/plaid/exchange')).toBe(401);
+  });
+
+  it('an /api/ route does not spend or check the outside-/api/ budget', async () => {
+    const uid = 'uid-route-buckets-e';
+    for (let i = 0; i < OUTSIDE_API_LIMIT.maxRequests; i++) {
+      limitServerRequest(request(uid, 'GET', '/token-url'), response(), '/token-url');
+    }
+    expect(await serverStatus(uid, 'POST', '/plaid/exchange')).toBe(429);
+    expect(
+      limitServerRequest(request(uid, 'GET', '/api/rituals'), response(), '/api/rituals')
+    ).toBe(false);
   });
 });
