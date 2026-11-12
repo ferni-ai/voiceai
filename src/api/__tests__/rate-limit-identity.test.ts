@@ -1,7 +1,7 @@
 /**
  * Route rate limits count signed-in people, not the address they share.
  *
- * ~70 routes call rateLimit() with its default key. The synchronous
+ * ~70 routes call rateLimit() with its default per-person key. The synchronous
  * authenticate() behind it can't verify Firebase tokens, so every signed-in
  * person was keyed by IP, and most routes share that one key: everyone behind an
  * office or carrier address drew from a single bucket across routes. The e2e
@@ -42,7 +42,8 @@ async function signedIn(name: string, ip: string) {
   return req;
 }
 /** rateLimit's verdict for this request: true when it was turned away */
-const limited = (req: IncomingMessage) => rateLimit(req, response(), { maxRequests: 3, windowMs: 60_000 });
+const limited = (req: IncomingMessage) =>
+  rateLimit(req, response(), { maxRequests: 3, windowMs: 60_000, keyPrefix: 'identity-test' });
 
 describe('route rate limits', () => {
   it('know the person the server verified at the door', async () => {
