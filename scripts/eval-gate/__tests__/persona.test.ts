@@ -99,7 +99,7 @@ describe('baselineFrom', () => {
   });
 });
 
-/** Fictional protection values: the real ones live only in repository variables. */
+/** Fictional protection values: the real ones live only in repository secrets. */
 const ENV = { PATH: '/bin', CRISIS_MEANS_IN_HAND: 'test-a', MINOR_CARE: 'test-b' };
 interface Seen {
   args: string[];
@@ -130,7 +130,7 @@ describe('a bar run that produced nothing fails', () => {
     expect(() => runBar(tmp(), spawned(0), ENV)).toThrow(/wrote no/);
   });
 
-  it('refuses to start without either protection, naming its repository variable', () => {
+  it('refuses to start without either protection, naming its repository secret', () => {
     for (const name of PROTECTIONS) {
       expect(() => protectionsFrom({ ...ENV, [name]: undefined })).toThrow(`PERSONA_GATE_${name}`);
       expect(() => protectionsFrom({ ...ENV, [name]: ' ' })).toThrow(`PERSONA_GATE_${name}`);
@@ -206,5 +206,16 @@ describe('committed files', () => {
     expect(Object.keys(b.metrics).sort()).toEqual(Object.keys(metricsOf(result(60))).sort());
     for (const m of Object.values(b.metrics)) expect(m.maxDrop ?? m.maxRise).toBeGreaterThan(0);
     expect(b.runs).toBeGreaterThanOrEqual(5);
+  });
+
+  it('the workflow maps each protection from a repository secret, masked in the log, never a variable or a literal', () => {
+    // A step's env block is printed at the start of its log: secrets show as ***, variables in full.
+    const workflow = readFileSync(new URL('../../../.github/workflows/eval-gate.yml', import.meta.url), 'utf8'); // prettier-ignore
+    for (const name of PROTECTIONS) {
+      const mapped = workflow.split('\n').filter((line) => line.trim().startsWith(`${name}:`));
+      expect(mapped.map((line) => line.trim())).toEqual([
+        `${name}: \${{ secrets.PERSONA_GATE_${name} }}`,
+      ]);
+    }
   });
 });

@@ -47,7 +47,7 @@ const UPDATE = 'GOOGLE_CLOUD_PROJECT=<project> CRISIS_MEANS_IN_HAND=<prod> MINOR
 
 /**
  * Protections bar reads whose prod values stay out of this public repo: the workflow maps each
- * from a repository variable (PERSONA_GATE_<name>). They reach bar through the environment, not
+ * from a repository secret (PERSONA_GATE_<name>), masked in the Actions log. They reach bar through the environment, not
  * --set, so bar's printed overrides never show them.
  */
 export const PROTECTIONS = ['CRISIS_MEANS_IN_HAND', 'MINOR_CARE'] as const;
@@ -59,7 +59,7 @@ export function protectionsFrom(env: NodeJS.ProcessEnv): Record<string, string> 
       const value = env[name];
       if (!value?.trim())
         throw new Error(
-          `${name} is not set: the persona step maps it from the repository variable PERSONA_GATE_${name}, which must be set (the gate never falls back to a default)`
+          `${name} is not set: the persona step maps it from the repository secret PERSONA_GATE_${name}, which must be set (the gate never falls back to a default)`
         );
       return [name, value];
     })
