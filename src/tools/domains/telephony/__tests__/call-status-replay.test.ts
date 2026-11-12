@@ -69,7 +69,7 @@ import { getHonestyInjection } from '../../../../intelligence/context-builders/s
 import { telephonyExecutor } from '../../../../agents/shared/tool-executors/telephony-executor.js';
 
 const OWNER_UID = 'testOwnerUid0000000000000000';
-const ASKED_DAD = Date.parse('2025-10-27T21:46:05Z');
+const ASKED_DAD = Date.parse('2025-10-27T23:46:05Z');
 // Rowan's callOnBehalf, as the model sent it (the number is the one he gave earlier).
 const DAD_CALL = {
   contactQuery: 'Sam',
@@ -79,24 +79,24 @@ const DAD_CALL = {
 };
 const DAD_REQUEST = { contactQuery: 'Sam', contactName: 'Sam', contactPhone: '+13125550142' };
 const dadAnswered = {
-  callId: 'call_dad_1850',
-  capturedAt: '2025-10-27T18:50:00.000Z',
+  callId: 'call_dad_answered',
+  capturedAt: '2025-10-27T20:50:00.000Z',
   request: DAD_REQUEST,
   outcome: { status: 'completed', transcriptSummary: "He's settled in and says hi." },
 };
 const momAnswered = {
   callId: 'onbehalf_1700000000000_abcde',
-  capturedAt: '2025-10-26T15:01:40.000Z',
+  capturedAt: '2025-10-26T17:01:40.000Z',
   delivered: true,
   request: { contactQuery: 'Mom', contactName: 'Mom', contactPhone: '+18015553303' },
-  outcome: { status: 'completed', message: 'She misses you and hopes to see you at church.' },
+  outcome: { status: 'completed', message: 'Thanks for calling, talk soon.' },
 };
 const dadHeld = {
   kind: 'on_behalf',
   status: 'pending',
   scheduledFor: '2025-10-28T15:00:00.000Z',
   timezone: 'America/Denver',
-  createdAt: '2025-10-27T21:40:00.000Z',
+  createdAt: '2025-10-27T23:40:00.000Z',
   request: { contactQuery: 'dad', resolvedContact: { name: 'Sam', phone: '+13125550142' } },
 };
 
@@ -165,7 +165,7 @@ describe('"Did you call my dad?" and "Did you call my mom?"', () => {
     const live = vi.fn(async () => [
       {
         text: 'Call Sam',
-        createdAt: '2025-10-27T18:48:18.000Z',
+        createdAt: '2025-10-27T20:48:18.000Z',
         source: { store: 'outreach_confirm', ref: 'r1' },
         action: { tool: 'callOnBehalf', waitingOn: 'you' },
       },
@@ -203,14 +203,14 @@ describe('"Did you call my dad?" and "Did you call my mom?"', () => {
   });
 
   it.each([
-    ['2025-10-26T15:54:30Z', /^Ferni called Mom 53 minutes ago, and they answered\./],
-    ['2025-10-27T18:46:30Z', /^Ferni called Mom yesterday, and they answered\./],
+    ['2025-10-26T17:54:30Z', /^Ferni called Mom 53 minutes ago, and they answered\./],
+    ['2025-10-27T20:46:30Z', /^Ferni called Mom yesterday, and they answered\./],
   ])('mom, answered and already "delivered", asked at %s: never denied', async (at, line) => {
     vi.setSystemTime(Date.parse(at));
     fs.users[OWNER_UID] = { on_behalf_calls: [momAnswered] };
     const status = await liveCall().call('callStatus', { contactQuery: 'mom' }, 's1');
     expect(status).toMatch(line);
-    expect(status).toContain('> She misses you and hopes to see you at church.');
+    expect(status).toContain('> Thanks for calling, talk soon.');
     expect(status).not.toMatch(/haven't|not yet/i);
   });
 
@@ -219,7 +219,7 @@ describe('"Did you call my dad?" and "Did you call my mom?"', () => {
     expect(
       await liveCall('someone-else-uid').call('callStatus', { contactQuery: 'mom' }, 's1')
     ).toMatch(/^No call to mom in the last 30 days/);
-    vi.setSystemTime(Date.parse('2025-11-26T16:00:00Z'));
+    vi.setSystemTime(Date.parse('2025-11-26T18:00:00Z'));
     expect(await liveCall().call('callStatus', { contactQuery: 'mom' }, 's2')).toMatch(
       /^No call to mom/
     );
@@ -240,7 +240,7 @@ describe('"Did you call my dad?" and "Did you call my mom?"', () => {
 
   it('call_history (FTIS) answers the status, not "voicemail isn\'t set up"', async () => {
     fs.users[OWNER_UID] = { on_behalf_calls: [momAnswered] };
-    vi.setSystemTime(Date.parse('2025-10-27T18:46:30Z'));
+    vi.setSystemTime(Date.parse('2025-10-27T20:46:30Z'));
     const { session } = liveCall();
     const release = noteLiveSession(session, 'session-owner');
     const ask = (sessionId?: string) =>
@@ -267,7 +267,7 @@ describe('"Did you call my dad?" and "Did you call my mom?"', () => {
 
   it('fails closed: no session, a speaker who is not the owner, or one never checked', async () => {
     fs.users[OWNER_UID] = { on_behalf_calls: [momAnswered] };
-    vi.setSystemTime(Date.parse('2025-10-27T18:46:30Z'));
+    vi.setSystemTime(Date.parse('2025-10-27T20:46:30Z'));
     const deny = /^Nothing to report: only the account owner/;
     expect(await callStatusReply(OWNER_UID, 'mom')).toMatch(deny);
     expect(
