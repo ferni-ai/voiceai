@@ -6,7 +6,8 @@
  *
  * Used by ALL agents regardless of persona.
  *
- * Endpoints:
+ * Endpoints (public: /, /health, /health/ready, /health/warmup, /api/warmup;
+ * every other route answers only an admin, see public-routes.ts):
  * - GET /health - Liveness check (always returns 200 if server is up)
  * - GET /health/ready - Readiness check (200 only when workers can accept calls)
  * - GET /health/workers - Background worker stats (trust, analytics, predictions, etc.)
@@ -29,6 +30,7 @@
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isPublicRoute } from './public-routes.js';
 import {
   getReadinessState,
   markHealthServerReady,
@@ -121,11 +123,16 @@ async function initWebSocketServer(httpServer: Server) {
   }
 }
 
+/** False once the 401 (no or a bad credential) or 403 (not an admin) is sent. */
+async function isVerifiedAdmin(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
+  const { requireAdmin } = await import('../../api/auth-middleware.js');
+  return (await requireAdmin(req, res)) !== null;
+}
+
 /** Cognitive state/history: every user's events (as /ws/cognitive), so admin only (401/403). */
 async function handleCognitiveAPI(req: IncomingMessage, res: ServerResponse): Promise<void> {
   setMonitoringCorsHeaders(res);
-  const { requireAdmin } = await import('../../api/auth-middleware.js');
-  if (!(await requireAdmin(req, res))) return;
+  if (!(await isVerifiedAdmin(req, res))) return;
   const url = req.url || '/';
   const broadcast = await getCognitiveBroadcast();
 
@@ -237,21 +244,6 @@ async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> 
       const alerts = monitor.getAlerts();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, data: alerts, timestamp: new Date().toISOString() }));
-      return;
-    }
-
-    if (url === '/api/memory/cleanup') {
-      // Force cleanup
-      const result = await monitor.forceCleanup();
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          success: true,
-          data: result,
-          message: `Cleaned ${result.cleaned} items, freed ~${result.freedMB.toFixed(2)}MB`,
-          timestamp: new Date().toISOString(),
-        })
-      );
       return;
     }
 
@@ -787,6 +779,9 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): Server {
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     void (async () => {
       const url = req.url || '/';
+
+      // Deny by default: only the probes in public-routes.ts answer without an admin.
+      if (!isPublicRoute(url) && !(await isVerifiedAdmin(req, res))) return;
 
       // Liveness check - Cloud Run uses this to know the process is alive
       // Always returns 200 if the server is running
