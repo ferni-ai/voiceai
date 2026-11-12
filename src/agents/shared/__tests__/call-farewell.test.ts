@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   callerAsksToHangUp,
   callerSaysGoodbye,
+  callerSignsOff,
   clearFarewell,
   farewellSaid,
   ferniSaysGoodbye,
@@ -130,6 +131,13 @@ describe('callerSaysGoodbye on long or hostile turns', () => {
   it('looks no further back than MAX_CALLER_CHARS', () => {
     expect(callerSaysGoodbye(`bye, ${'ok, '.repeat(10)}`)).toBe(true);
     expect(callerSaysGoodbye(`bye, ${'ok, '.repeat(60)}`)).toBe(false);
+  });
+
+  it('the cap is exactly MAX_CALLER_CHARS: a sign-off that long counts, one more does not', () => {
+    const atCap = 'bye. '.repeat(MAX_CALLER_CHARS / 5);
+    expect(atCap.length).toBe(MAX_CALLER_CHARS);
+    expect(callerSignsOff(atCap)).toBe(true);
+    expect(callerSignsOff(`${atCap}.`)).toBe(false);
   });
 
   it('drops the word the length cap cut through', () => {
