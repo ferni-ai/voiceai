@@ -29,8 +29,11 @@ let calls = 0;
 let CALL = '';
 const open = () => ({ sessionId: CALL, skipUnlockCheck: true, skipRateLimit: true });
 
-/** A call with Ferni on it, where the SDK drops the swap for every persona in `dropped` */
-function callWhereSwapsDrop(dropped: string[]) {
+/**
+ * A call with Ferni on it, where the SDK drops the swap for every persona in `dropped`. For
+ * a persona in `failsLate` the swap goes through and a later step (the greeting) fails.
+ */
+function callWhereSwapsDrop(dropped: string[], failsLate: string[] = []) {
   let current = 'ferni';
   const parts = {
     orchestrator: { getCurrentPersonaId: () => current },
@@ -53,6 +56,7 @@ function callWhereSwapsDrop(dropped: string[]) {
           return { success: false, error: "The handoff tool didn't swap within 8000ms" };
         }
         current = target;
+        if (failsLate.includes(target)) return { success: false, error: 'The greeting failed' };
         return { success: true };
       }
     ),
@@ -117,6 +121,29 @@ describe('a swap that is dropped after the handoff tool was told it worked', () 
     await call.settled();
 
     expect(getCurrentAgent()).toBe('maya-santos');
+    expect(getHandoffHistory()).toHaveLength(1);
+  });
+
+  it('after a real handoff to Maya, goes back to Maya and keeps that handoff', async () => {
+    const call = callWhereSwapsDrop(['alex-chen']);
+    await executeHandoff('maya-santos', 'Habits', open());
+    await call.settled();
+    expect(call.onCall()).toBe('maya-santos');
+
+    await executeHandoff('alex-chen', 'Their to-do list', open());
+    await call.settled();
+
+    expect(getCurrentAgent()).toBe('maya-santos');
+    expect(getHandoffHistory().map((h) => h.to)).toEqual(['maya-santos']);
+  });
+
+  it('leaves the tools alone when the swap went through and a later step failed', async () => {
+    const call = callWhereSwapsDrop([], ['alex-chen']);
+    await executeHandoff('alex-chen', 'Their to-do list', open());
+    await call.settled();
+
+    expect(call.onCall()).toBe('alex-chen'); // the teammate is on the call
+    expect(getCurrentAgent()).toBe('alex-chen');
     expect(getHandoffHistory()).toHaveLength(1);
   });
 

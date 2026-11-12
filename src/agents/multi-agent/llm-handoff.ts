@@ -159,7 +159,9 @@ async function reportFailure(
   });
   if (!failed.toldItWorked) return; // the tool heard the failure and put its own state back
   const sessionId = String(call.services.sessionId);
-  if (rollbackTo) handoffUndone(sessionId, rollbackTo, targetPersonaId);
+  // Who is on the call now, from the orchestrator: the swap may have gone through before the failure
+  const onCall = call.orchestrator.getCurrentPersonaId() ?? rollbackTo;
+  if (onCall) handoffUndone(sessionId, onCall, targetPersonaId);
   if (handoffFailedSaySo()) {
     await sayHandoffFailed(call.orchestrator.getActiveAgent(), targetPersonaId, sessionId);
   }

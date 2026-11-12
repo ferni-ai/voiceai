@@ -46,15 +46,17 @@ export function handoffNotConfirmed(h: UnconfirmedHandoff): HandoffResult {
 }
 
 /**
- * The swap was dropped after the tool had been told it worked (multi-agent/llm-handoff.ts).
- * The tool returned success, so the executor put nothing back: this names the persona
- * still on the call as current again and takes the handoff back out of the history, so the
- * next ask for the same teammate isn't refused as "Already with" them. Does nothing when
- * the tools no longer name `target` (someone else came on since).
+ * A handoff was reported failed after the tool had been told it worked
+ * (multi-agent/llm-handoff.ts). The tool returned success, so the executor put nothing
+ * back: this names `onCall`, the persona the orchestrator has on the call, as current again
+ * and takes the handoff back out of the history, so the next ask for the same teammate
+ * isn't refused as "Already with" them. Does nothing when `target` is the one on the call
+ * (the swap went through and a later step failed), or when the tools no longer name
+ * `target` (someone else came on since).
  */
-export function handoffUndone(sessionId: string, stillOn: string, target: string): void {
-  if (!isSameAgent(getCurrentAgent(), target)) return;
-  if (hasSessionState(sessionId)) setSessionAgent(getSessionState(sessionId), stillOn as AgentId);
-  setCurrentAgent(stillOn as AgentId);
+export function handoffUndone(sessionId: string, onCall: string, target: string): void {
+  if (isSameAgent(onCall, target) || !isSameAgent(getCurrentAgent(), target)) return;
+  if (hasSessionState(sessionId)) setSessionAgent(getSessionState(sessionId), onCall as AgentId);
+  setCurrentAgent(onCall as AgentId);
   takeBackHandoff(target as AgentId);
 }
