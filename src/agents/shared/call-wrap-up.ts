@@ -134,6 +134,11 @@ export interface WrapUpCall {
   now?: () => number;
   /** Watch the call for quiet after it reopened (reopen-idle.ts). */
   onReopen?: () => void;
+  /**
+   * CALL_ME_MOVES_TO_PHONE: the caller is with Ferni on the phone now, so a minor-care hold
+   * doesn't keep this leg open (crisis risk still does).
+   */
+  movedToPhone?: boolean;
 }
 
 /** Calls whose wrap-up has started and not yet closed the room. */
@@ -157,7 +162,7 @@ export async function wrapUpCall(
   wrapping.add(sessionId);
   markFarewell(sessionId, 'end_call');
   log.info({ sessionId, reason }, 'CALL_WRAP_UP started');
-  const minorCare = minorCareHoldReason(sessionId); // read while the goodbye plays
+  const minorCare = call.movedToPhone ? null : minorCareHoldReason(sessionId); // read during the goodbye
   try {
     await playout?.();
   } catch (error) {
@@ -165,7 +170,7 @@ export async function wrapUpCall(
     log.warn({ sessionId, error: String(error) }, 'CALL_WRAP_UP playout did not finish');
   }
   // Crisis risk that appeared while the goodbye played, or a care-held minor: the call carries on
-  const minorCareWhy = await minorCareHoldAfterGoodbye(sessionId, minorCare);
+  const minorCareWhy = minorCare && (await minorCareHoldAfterGoodbye(sessionId, minorCare));
   if (minorCareWhy) {
     log.warn({ sessionId, reason, why: minorCareWhy }, 'CALL_WRAP_UP_HELD');
     onHeld?.(minorCareWhy);
@@ -312,13 +317,13 @@ export const MOVED_END_MS = 300;
  * nothing may play over it) and ends on the goodbye path within MOVED_END_MS
  * (call-me-moves-to-phone.ts). No caller watch: the app's mic can still hear
  * them talking on the phone, which must not reopen it. Crisis risk on the call
- * still holds it open.
+ * still holds it open; a minor-care hold doesn't, since they're with Ferni on the phone.
  */
 export function attachPhoneMoveEnd(
   session: object,
   call: Pick<WrapUpCall, 'sessionId' | 'roomName' | 'callerInRoom' | 'hangUp' | 'setTimer'>
 ): void {
-  const wrap: WrapUpCall = { ...call, graceMs: MOVED_END_MS };
+  const wrap: WrapUpCall = { ...call, graceMs: MOVED_END_MS, movedToPhone: true };
   setPhoneMoveEnd(session, async () => {
     if (crisisRiskThisCall(call.sessionId)) return false;
     try {

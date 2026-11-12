@@ -36,7 +36,13 @@ import {
   setHoldStore,
   firestoreHoldStore,
 } from '../../../../services/outreach/minor-care-shared-hold.js';
-import { bindSessionUser, holdSession, resetMinorCare } from '../../../../utils/minor-care.js';
+import {
+  bindSessionUser,
+  holdSession,
+  resetMinorCare,
+  userHeld,
+} from '../../../../utils/minor-care.js';
+import { holdForSexualTopic, resetSexualTopicHold } from '../../../../utils/sexual-topic-hold.js';
 
 let n = 0;
 const STEP_AWAY = /step away|quick break|reconnect|be right back/i;
@@ -61,6 +67,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
   resetCrisisCallRisk();
   resetMinorCare();
+  resetSexualTopicHold();
   resetFrontendSignal();
   setHoldStore(firestoreHoldStore);
 });
@@ -73,6 +80,33 @@ describe('step-away exit: a plain caller (unchanged)', () => {
     expect(spoken.lines).toHaveLength(1);
     expect(spoken.lines[0]).toMatch(STEP_AWAY);
     expect(c.ended()).toHaveLength(1);
+  });
+});
+
+describe('step-away exit: holds that are not about age step away as before', () => {
+  it('an anonymous try-first caller', async () => {
+    const c = liveCall();
+    bindSessionUser(c.sessionId, 'device:demo_1700000000000_eval2');
+    await triggerGracefulExit(c.sessionId);
+    expect(c.ended()).toHaveLength(1);
+  });
+
+  it('an adult whose memory is held for a sexual topic', async () => {
+    vi.stubEnv('SEXUAL_TOPIC_BOUNDARY', 'on');
+    const c = liveCall();
+    bindSessionUser(c.sessionId, 'eval-sexual-topic-adult-2');
+    holdForSexualTopic(`${c.sessionId}-earlier`, 'eval-sexual-topic-adult-2');
+    expect(userHeld('eval-sexual-topic-adult-2')).toBe(true);
+    await triggerGracefulExit(c.sessionId);
+    expect(c.ended()).toHaveLength(1);
+  });
+
+  it('a try-first caller who sounds under 18 on this call is held', async () => {
+    const c = liveCall();
+    bindSessionUser(c.sessionId, 'device:demo_1700000000000_eval3');
+    holdSession(c.sessionId);
+    await triggerGracefulExit(c.sessionId);
+    expect(c.ended()).toHaveLength(0);
   });
 });
 

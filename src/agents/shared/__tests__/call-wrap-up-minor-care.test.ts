@@ -12,7 +12,16 @@ import {
   firestoreHoldStore,
   setHoldStore,
 } from '../../../services/outreach/minor-care-shared-hold.js';
-import { bindSessionUser, holdSession, resetMinorCare } from '../../../utils/minor-care.js';
+import {
+  bindSessionUser,
+  holdSession,
+  resetMinorCare,
+  userHeld,
+} from '../../../utils/minor-care.js';
+import { holdForSexualTopic, resetSexualTopicHold } from '../../../utils/sexual-topic-hold.js';
+
+/** An anonymous try-first visitor (isAnonymousDemoUser). */
+const TRY_FIRST = 'device:demo_1700000000000_eval1';
 
 const used: string[] = [];
 let n = 0;
@@ -55,6 +64,7 @@ afterEach(() => {
   });
   vi.unstubAllEnvs();
   resetMinorCare();
+  resetSexualTopicHold();
   setHoldStore(firestoreHoldStore);
 });
 
@@ -67,7 +77,35 @@ describe('wrapUpCall: a caller with no hold (unchanged)', () => {
   });
 });
 
+describe('wrapUpCall: holds that are not about age end the call as before', () => {
+  it('an anonymous try-first caller', async () => {
+    const c = appCall(TRY_FIRST);
+    expect(userHeld(TRY_FIRST)).toBe(true); // held for keeping data, not for ending
+    expect(await wrapUpCall(c.call, 'goodbye_complete')).toBe(true);
+    await settle();
+    expect(c.events).toEqual(['conversation_end', 'deleted']);
+  });
+
+  it('an adult whose memory is held for a sexual topic', async () => {
+    vi.stubEnv('SEXUAL_TOPIC_BOUNDARY', 'on');
+    const c = appCall('eval-sexual-topic-adult');
+    holdForSexualTopic(`${c.sessionId}-earlier`, 'eval-sexual-topic-adult');
+    expect(userHeld('eval-sexual-topic-adult')).toBe(true); // held for keeping data, not for ending
+    expect(await wrapUpCall(c.call, 'goodbye_complete')).toBe(true);
+    await settle();
+    expect(c.events).toEqual(['conversation_end', 'deleted']);
+  });
+});
+
 describe('wrapUpCall: held for a care-held minor', () => {
+  it('a try-first caller who sounds under 18 on this call', async () => {
+    const c = appCall(TRY_FIRST);
+    holdSession(c.sessionId);
+    expect(await wrapUpCall(c.call, 'goodbye_complete')).toBe(false);
+    await settle();
+    expect(c.events).toEqual([]);
+  });
+
   async function expectHeld(c: ReturnType<typeof appCall>) {
     expect(await wrapUpCall(c.call, 'goodbye_complete')).toBe(false);
     await settle();

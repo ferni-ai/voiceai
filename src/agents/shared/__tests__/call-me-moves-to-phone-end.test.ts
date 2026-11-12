@@ -4,7 +4,8 @@
  * stops speaking at once (nothing plays over the phone at their ear) and ends
  * on the goodbye path within 300 ms: conversation_end with a reason
  * the app treats as a planned goodbye (planned-goodbye.ts), then the room.
- * Crisis risk on the call holds it open; a phone caller gets no ender.
+ * Crisis risk on the call holds it open; a minor-care hold doesn't (they're with Ferni on the
+ * phone). A phone caller gets no ender.
  */
 import { ParticipantKind } from '@livekit/rtc-node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -15,6 +16,10 @@ import {
   initFrontendSignal,
   resetFrontendSignal,
 } from '../../../services/communication/frontend-signal.js';
+import {
+  firestoreHoldStore,
+  setHoldStore,
+} from '../../../services/outreach/minor-care-shared-hold.js';
 import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import {
   callMovingToPhone,
@@ -22,6 +27,7 @@ import {
   TRYING_PHONE,
 } from '../../../tools/domains/proactive/outreach/call-me-moves-to-phone.js';
 import type { CallUserPort } from '../../../tools/domains/proactive/outreach/call-user-port.js';
+import { holdSession, resetMinorCare } from '../../../utils/minor-care.js';
 
 const used: string[] = [];
 afterEach(() => {
@@ -31,6 +37,9 @@ afterEach(() => {
   });
   resetFrontendSignal();
   resetCrisisCallRisk();
+  vi.unstubAllEnvs();
+  resetMinorCare();
+  setHoldStore(firestoreHoldStore);
 });
 
 let n = 0;
@@ -124,6 +133,20 @@ describe('an answered "call me" ends the app call', () => {
     expect(c.events).toEqual([]); // not even interrupted: the call carries on
     expect(c.session.interrupt).not.toHaveBeenCalled();
     expect(isSessionClosing(c.id)).toBe(false);
+  });
+
+  it('a care-held minor is ended too: they are with Ferni on the phone', async () => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    vi.stubEnv('MINOR_CARE_SHARED_HOLD', 'on');
+    setHoldStore({ heldUntil: async () => Date.now() + 60_000, write: async () => {} });
+    const c = await call();
+    holdSession(c.id);
+    await callMovingToPhone(answeredPort, request, { session: c.session });
+    await vi.waitFor(() =>
+      expect(c.events).toContain('conversation_end goodbye_complete closing=true')
+    );
+    await c.runTimers();
+    expect(c.events.at(-1)).toBe(`deleted room-${c.id}`);
   });
 
   it('a phone caller gets no ender: the trying-your-phone line, and nothing ends', async () => {

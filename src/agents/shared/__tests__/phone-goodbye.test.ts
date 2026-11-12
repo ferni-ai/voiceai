@@ -281,6 +281,13 @@ describe('phone goodbye for a care-held minor', () => {
     expect(events).toEqual(['goodbye played']);
   });
 
+  it('hangs up an anonymous try-first caller as before', async () => {
+    const { a, events } = await phoneCall('s-try-first');
+    bindSessionUser('s-try-first', 'device:demo_1700000000000_eval4');
+    expect(await callEndCall(a, events)).toContain('The call has ended.');
+    expect(events).toEqual(['goodbye played', 'hung up room-s-try-first']);
+  });
+
   it('does not hang up when the hold lands while the goodbye plays', async () => {
     const { a, events } = await phoneCall('s-minor-late');
     bindSessionUser('s-minor-late', 'eval-late-teen');

@@ -3,15 +3,17 @@
  * (gateway/step-away-crisis-hold.ts) and not the goodbye wrap-up (call-wrap-up.ts). The caller
  * can still end it themselves.
  *
- * The hold is read the way the caller card reads it (caller-card/wiring.ts): this session's hold
- * (minorHeld), then the account hold (userHeld, then sharedHeldStrict, where an unreadable or late
- * record means held).
+ * Only an age hold ends nothing: this session's (minorHeld), then a signed-in caller's account
+ * hold (userAgeHeld, then the shared record, where an unreadable or late record means held). An
+ * anonymous try-first caller has no account hold, and a sexual-topic hold (a data hold, not an
+ * age one) doesn't keep a call open: both end as any call does, unless this session is held.
  *
  * @module agents/shared/minor-care-end-hold
  */
 import type { Env } from '../../config/env-flag.js';
-import { sharedHeldStrict } from '../../services/outreach/minor-care-shared-hold.js';
-import { minorHeld, sessionUser, userHeld } from '../../utils/minor-care.js';
+import { sharedRecordHeldStrict } from '../../services/outreach/minor-care-shared-hold.js';
+import { minorHeld, sessionUser, userAgeHeld } from '../../utils/minor-care.js';
+import { isAnonymousDemoUser } from '../../utils/synthetic-user.js';
 
 /** This caller's account-level minor-care hold, failing closed. */
 export type AccountHeld = (userId: string | undefined, env: Env) => Promise<boolean>;
@@ -20,15 +22,20 @@ export type AccountHeld = (userId: string | undefined, env: Env) => Promise<bool
 export const MINOR_CARE_HOLD =
   "Don't hang up: stay on the line with them. The call ends when they hang up.";
 
+/** A caller with an account: an anonymous try-first visitor has none to hold. */
+const signedIn = (userId: string | undefined): userId is string =>
+  !!userId && !isAnonymousDemoUser(userId);
+
 /** The in-process part of the hold, read with no wait: this session's, then the account's. */
 function heldInProcess(sessionId: string, env: Env): MinorCareHoldReason | null {
   if (minorHeld(sessionId, env)) return 'minor_care';
-  return userHeld(sessionUser(sessionId), env) ? 'minor_care_account' : null;
+  const userId = sessionUser(sessionId);
+  return signedIn(userId) && userAgeHeld(userId, env) ? 'minor_care_account' : null;
 }
 
-/** The caller card's check: in-process first, then the shared record. */
+/** A signed-in caller's age hold: in-process first, then the shared record. */
 const accountHeldStrict: AccountHeld = async (userId, env) =>
-  userHeld(userId, env) || sharedHeldStrict(userId, env);
+  signedIn(userId) && (userAgeHeld(userId, env) || sharedRecordHeldStrict(userId, env));
 
 export type MinorCareHoldReason = 'minor_care' | 'minor_care_account' | 'minor_care_unreadable';
 
