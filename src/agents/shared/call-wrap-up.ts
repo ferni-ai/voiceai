@@ -66,6 +66,7 @@ import {
   watchFarewell,
 } from './call-farewell.js';
 import { holdWhileBusy, waitForQuiet, watchCaller, type CallerWatch } from './caller-activity.js';
+import { minorCareHoldReason } from './minor-care-end-hold.js';
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { setPhoneMoveEnd } from '../../tools/domains/proactive/outreach/call-me-moves-to-phone.js';
 import { coordinatedSay } from '../../speech/coordination/session-integration.js';
@@ -136,8 +137,9 @@ const wrapping = new Set<string>();
 /**
  * Ends the call: playout, closing, `conversation_end`, then the room after a
  * grace period. Returns false, doing nothing, when the call is already ending,
- * or ending nothing when crisis risk appeared while the goodbye played or the
- * call reopened while `conversation_end` went out.
+ * or ending nothing when crisis risk appeared while the goodbye played, the
+ * caller is under a minor-care hold (minor-care-end-hold.ts), or the call
+ * reopened while `conversation_end` went out.
  */
 export async function wrapUpCall(
   call: WrapUpCall,
@@ -149,14 +151,17 @@ export async function wrapUpCall(
   wrapping.add(sessionId);
   markFarewell(sessionId, 'end_call');
   log.info({ sessionId, reason }, 'CALL_WRAP_UP started');
+  const minorCare = minorCareHoldReason(sessionId); // read while the goodbye plays
   try {
     await playout?.();
   } catch (error) {
     // End anyway: a cut-off goodbye beats a room left open
     log.warn({ sessionId, error: String(error) }, 'CALL_WRAP_UP playout did not finish');
   }
-  // Crisis risk that appeared while the goodbye played: the call carries on
-  if (holdEndCallForCrisis(sessionId, 'app', 'after_playout')) {
+  // Crisis risk that appeared while the goodbye played, or a care-held minor: the call carries on
+  const minorCareWhy = await minorCare;
+  if (minorCareWhy) log.warn({ sessionId, reason, why: minorCareWhy }, 'CALL_WRAP_UP_HELD');
+  if (holdEndCallForCrisis(sessionId, 'app', 'after_playout') || minorCareWhy) {
     wrapping.delete(sessionId);
     clearFarewell(sessionId);
     return false;

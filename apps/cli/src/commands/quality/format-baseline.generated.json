@@ -73,7 +73,6 @@
   "src/agents/shared/cameo-handler.ts",
   "src/agents/shared/crash-analytics.ts",
   "src/agents/shared/e2e-latency-tracker.ts",
-  "src/agents/shared/gateway/reconnection.ts",
   "src/agents/shared/gateway/session-state.ts",
   "src/agents/shared/generate-reply-gateway.ts",
   "src/agents/shared/handoff/cached-modules.ts",

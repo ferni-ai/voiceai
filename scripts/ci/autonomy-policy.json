@@ -53,6 +53,7 @@
         "src/agents/shared/call-wrap-up.ts",
         "src/agents/shared/caller-activity.ts",
         "src/agents/shared/farewell-risk.ts",
+        "src/agents/shared/gateway/reconnection.ts",
         "src/agents/shared/goodbye-read.ts",
         "src/agents/shared/phone-goodbye.ts",
         "src/agents/shared/tts-wrapper.ts",
