@@ -24,7 +24,7 @@
  */
 
 import { ASK_SPACING_MS, isClosed, type FollowUp } from '../../follow-through/index.js';
-import { isSafetyItem } from '../../safety/safety-item.js';
+import { isSafetyItem } from '../../safety/index.js';
 import type { ItemMention } from '../../stores/item-mentions.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
