@@ -52,7 +52,7 @@ export async function handleActionRoutes(
   const route = pathname.replace(ACTIONS_PREFIX, '');
 
   // Apply rate limiting
-  if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })) {
+  if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000, keyPrefix: 'actions' })) {
     return true;
   }
 

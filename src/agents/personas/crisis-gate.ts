@@ -166,7 +166,7 @@ export function startCrisisGate(
   const voice = toGuardVoiceEmotion(
     (userData as { voiceEmotion?: ProsodyEmotionLike } | undefined)?.voiceEmotion
   );
-  const found = detectCrisis(latest, voice, { recentMessages: earlier });
+  const found = detectCrisis(latest, voice, { recentMessages: earlier, env });
   // The answer to a grounded release's direct question: not a clear no is a gentle 988 offer,
   // or crisis guidance when the answer carries risk content (crisis-grounded-screen.ts).
   const screen = screenAnswer(sessionScope(userData), { latest, companion, ferni });

@@ -125,7 +125,7 @@ export async function handleEngagementRoutes(
   }
 
   // Apply rate limiting (100 requests per minute per IP)
-  if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })) {
+  if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000, keyPrefix: 'engagement' })) {
     return true; // Rate limited
   }
 

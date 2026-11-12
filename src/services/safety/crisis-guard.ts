@@ -99,6 +99,8 @@ export interface CrisisDetectionOptions {
   recentMessages?: readonly string[];
   /** Overrides CRISIS_MEANS_IN_HAND for this read; 'all' is the shadow log's (crisis-means-shadow.ts). */
   meansInHand?: 'off' | 'shadow' | 'live' | 'all';
+  /** Read for CRISIS_MEANS_IN_HAND when meansInHand is unset; default process.env. */
+  env?: Record<string, string | undefined>;
   /**
    * Whether the voice may add the caller check (crisis-caller-check.ts), which replaces the reply.
    * Default true. The background turn passes false (turn-crisis.ts): there the voice only raises
@@ -307,7 +309,7 @@ export function detectCrisis(
   options?: CrisisDetectionOptions
 ): CrisisDetectionResult {
   const text = normalize(userMessage);
-  const forms = meansFormsOf(options?.meansInHand ?? resolveMeansInHandMode());
+  const forms = meansFormsOf(options?.meansInHand ?? resolveMeansInHandMode(options?.env));
   const score = withCloseDown(text, scoreText(text, forms));
   const indicators = [...score.indicators];
   let { severity, subject } = score;
