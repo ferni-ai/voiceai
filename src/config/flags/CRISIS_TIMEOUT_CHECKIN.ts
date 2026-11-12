@@ -6,6 +6,6 @@ export const CRISIS_TIMEOUT_CHECKIN = {
   owner: 'intelligence',
   kind: 'experiment',
   expires: '2027-02-09',
-  issue: 'TBD',
+  issue: 'https://github.com/ferni-ai/voiceai/issues/3794',
   context: 'a crisis eval with a forced-failing classifier, then a dev on/off trial, decides it',
 } as const satisfies FlagSpec;
