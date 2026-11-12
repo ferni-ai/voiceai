@@ -282,8 +282,8 @@ let defaultGenerate: CrisisGenerateFn | null = null;
 
 /**
  * One turn can reach the classifier more than once: a preemptive LLM request
- * and the final one, and the background turn handler. Identical input within
- * RECENT_RUN_TTL_MS shares one call. In memory only.
+ * and the final one, and the background turn handler. Identical input and
+ * deadline within RECENT_RUN_TTL_MS share one call. In memory only.
  */
 const RECENT_RUN_TTL_MS = 30_000;
 const RECENT_RUN_MAX = 32;
@@ -442,6 +442,7 @@ export function startCrisisClassifier(
     normalized.earlier,
     normalized.companion ?? '',
     prompt.length,
+    waitMs,
     second.key,
     ...agreementCacheScope(env, options.call),
   ]);

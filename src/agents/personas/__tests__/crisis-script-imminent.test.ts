@@ -29,6 +29,8 @@ vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
 
 import {
   resetCrisisClassifierCache,
+  startCrisisClassifier,
+  turnVerdicts,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { getCrisisResponse, LATE_911_LINE } from '../../../services/safety/crisis-guard-replies.js';
@@ -404,5 +406,47 @@ describe('scriptReply', () => {
     const found = { read: 'imminent', imminent: true, script: leads } as const;
     const out = await collect(scriptReply(SEVERE, read(found), (t) => t, ON));
     expect(out).toBe(`${OPENER}${leads}`);
+  });
+});
+
+describe("the script read's long deadline stays its own", () => {
+  const said = { latest: SUPPLY_NOW, earlier: [] };
+  const at = {
+    pattern: 'block',
+    scope: 'call-a',
+    call: 'call-a',
+    generate: answer('never'),
+  } as const;
+  /** When a promise settled on the fake clock, in ms from now; null while it has not. */
+  const settledAt = (promise: Promise<unknown>): { ms: number | null } => {
+    const startedAt = Date.now();
+    const out: { ms: number | null } = { ms: null };
+    void promise.then(() => (out.ms = Date.now() - startedAt));
+    return out;
+  };
+  // Through process.env, as live turns are, so a deadline written there would show too.
+  beforeEach(() => {
+    for (const [name, value] of Object.entries(ON)) vi.stubEnv(name, value);
+  });
+
+  it("a same-words read during a script read settles at the gate's 1000 ms deadline", async () => {
+    const script = scriptRead(said, detectCrisis(SUPPLY_NOW), { action: 'replace' }, at);
+    const other = startCrisisClassifier(said, { ...at, pattern: 'crisis' });
+    const scriptDone = settledAt(script!);
+    const otherDone = settledAt(other!.verdict);
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(otherDone.ms).toBe(1000);
+    expect(scriptDone.ms).toBe(HOLD_MS + REST_SAY_MS);
+    expect(process.env.CRISIS_CLASSIFIER_TIMEOUT_MS).toBeUndefined();
+  });
+
+  it("the turn's other readers never wait on the script read", async () => {
+    const script = scriptRead(said, detectCrisis(SUPPLY_NOW), { action: 'replace' }, at);
+    const reads = settledAt(turnVerdicts('call-a', said));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(reads.ms).toBe(0);
+    const scriptDone = settledAt(script!);
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(scriptDone.ms).toBe(HOLD_MS + REST_SAY_MS);
   });
 });

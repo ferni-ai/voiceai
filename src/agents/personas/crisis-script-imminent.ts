@@ -93,7 +93,9 @@ export function scriptRead(
   const window = timesOf(detection.suggestedResponse ?? '');
   const waitMs = Math.max(resolveCrisisClassifierTimeoutMs(env), window.holdMs + window.lateMs);
   const readEnv = { ...env, CRISIS_CLASSIFIER_TIMEOUT_MS: String(waitMs) };
-  const run = startCrisisClassifier(said, { ...at, env: readEnv, readBlocked: true });
+  // Not one of the turn's reads (no scope): the turn's other readers never wait out this deadline.
+  const options = { ...at, scope: undefined, env: readEnv, readBlocked: true };
+  const run = startCrisisClassifier(said, options);
   if (run?.mode !== 'live') return undefined;
   return run.verdict.then(
     (verdict): ScriptRead => {
