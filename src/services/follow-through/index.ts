@@ -12,6 +12,7 @@ export {
   isClosed,
   nextOccurrence,
   ASK_ANSWERS,
+  ASK_SPACING_MS,
   ASK_TYPES,
   CLOSE_REASONS,
   EVENT_PRECISIONS,
@@ -47,6 +48,7 @@ export {
 } from './promise-outcomes.js';
 export { releaseForgotten } from './release-forgotten.js';
 export { closeFromSource } from './close-from-source.js';
+export { isSafetyItem } from './safety-item.js';
 export {
   toHeldItem,
   whatFerniHolds,
