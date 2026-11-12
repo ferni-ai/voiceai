@@ -18,11 +18,10 @@
  *
  * Turns come from the `ferni:avatar-turn` window event. The avatar rect is
  * cached and refreshed on resize and scroll, never read per frame. Under
- * prefers-reduced-motion there are no saccades or glances: the eyes hold on
- * you (or up and right while thinking) and move without a transition. While
- * the crisis face is held (motion-allowed.ts) the eyes hold steady on you in
- * every phase: no saccades, look-aways, thinking look or pointer pull. A hold
- * that starts mid-glance brings the eyes straight back.
+ * prefers-reduced-motion, and while the crisis face is held (motion-allowed.ts),
+ * the eyes hold steady on you in every phase: no saccades, look-aways,
+ * thinking point or pointer pull. Under reduced motion they also move without
+ * a transition. A hold that starts mid-glance brings the eyes straight back.
  *
  * Off by default: the gaze switch in config/motion-flags.ts.
  *
@@ -89,7 +88,7 @@ export interface GazeDeps {
   /** Runs `fn` after `ms`; returns a cancel function. */
   schedule(fn: () => void, ms: number): () => void;
   reducedMotion(): boolean;
-  /** Whether the eyes must hold steady on the caller (the crisis hold). Defaults to false. */
+  /** Whether the eyes must hold steady on the caller (the crisis hold). Defaults to false; reduced motion holds them steady too. */
   steady?(): boolean;
 }
 
@@ -154,7 +153,7 @@ export function createGaze(deps: GazeDeps): GazeController {
   let phase: GazePhase = 'idle';
   let pointer: GazePoint | null = null;
   let cancel: (() => void) | null = null;
-  const steady = (): boolean => deps.steady?.() ?? false;
+  const steady = (): boolean => (deps.steady?.() ?? false) || deps.reducedMotion();
 
   const clear = (): void => {
     cancel?.();
@@ -193,7 +192,6 @@ export function createGaze(deps: GazeDeps): GazeController {
 
   const enter = (next: GazePhase, prev: GazePhase): void => {
     clear();
-    if (deps.reducedMotion()) return look(next === 'thinking' ? THINKING_GAZE : AT_USER);
     if (steady()) return look(AT_USER);
     switch (next) {
       case 'idle':
@@ -219,7 +217,7 @@ export function createGaze(deps: GazeDeps): GazeController {
     },
     setPointerBias(point) {
       pointer = point;
-      if (phase === 'idle' && !deps.reducedMotion() && !steady()) look(point ?? AT_USER);
+      if (phase === 'idle' && !steady()) look(point ?? AT_USER);
     },
     phase: () => phase,
     refresh: () => enter(phase, phase),

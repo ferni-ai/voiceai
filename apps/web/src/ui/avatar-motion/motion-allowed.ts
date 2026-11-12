@@ -9,10 +9,12 @@
  *   so during the hold Ferni still blinks at a calm pace, keeps his eyes
  *   steady on the caller and nods gently, and nothing else moves.
  *
- * Each motion source asks `avatarMotionAllowed(kind)` at its own call site,
- * right before it moves, so a hold that starts mid-call stops it at the next
- * frame or cue. New motion (the expressive eyes' lid and brow motion, say)
- * should pick the closest kind here or add one, not read the hold itself.
+ * The hold covers all of Ferni's motion, not only the delight switches. Each
+ * motion source asks `avatarMotionAllowed(kind)` at its own call site, right
+ * before it moves, so a hold that starts mid-call stops it at the next frame
+ * or cue. New motion (the expressive eyes' lid and brow motion, say) should
+ * pick the closest kind here or add one, not read the hold itself. Only the
+ * admin preview buttons move the avatar without asking.
  *
  * @module ui/avatar-motion/motion-allowed
  */
@@ -26,9 +28,16 @@ export type AvatarMotionKind =
   | 'blinkFlourish'
   /** The body settling after a blink. */
   | 'bodyDip'
-  /** Saccades, look-aways and following the pointer. Without it the eyes rest on the caller. */
+  /**
+   * Saccades, look-aways and following the pointer: the gaze switch's eyes and
+   * the avatar soul's micro-saccades. Without it the eyes rest on the caller.
+   */
   | 'gazeShift'
-  /** The thinking gaze point and the thinking glance. */
+  /**
+   * Looking away to think or recall: the gaze switch's thinking point, the
+   * thinking glance, the contemplation micro-expression's glance and the
+   * superhuman observation's glance.
+   */
   | 'thinkingLook'
   /** Head beats on stressed syllables. */
   | 'speechBeat'
