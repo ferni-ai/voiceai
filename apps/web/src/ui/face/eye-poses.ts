@@ -109,8 +109,8 @@ export const EYE_POSES = {
   shifting: both({ top: 0.08 }, {}, -1),
   settling: both({ top: 0.2, arch: 0.2 }, { lift: -0.2 }, 0, 0.5),
   // Crisis faces: calm by rule (see above).
-  holdingSpace: both({ top: 0.2, arch: 0.25, tilt: 0.15 }, { lift: 0.2, inner: 1.5 }, 0, 1),
-  empathetic: both({ top: 0.16, arch: 0.3, tilt: 0.2 }, { lift: 0.4, inner: 2 }, 0, 0.8),
+  holdingSpace: both({ top: 0.1, arch: 0.25, tilt: 0.15 }, { lift: 0.2, inner: 1.5 }, 0, 1),
+  empathetic: both({ top: 0.1, arch: 0.3, tilt: 0.2 }, { lift: 0.4, inner: 2 }, 0, 0.8),
   attentive: both({ top: 0.03 }, { lift: 0.8, inner: 0.6 }),
   // Listening and presence.
   absorbing: both({ top: 0.22, bottom: 0.08 }, { lift: 0.2, inner: 2.4 }, 0, 1),
