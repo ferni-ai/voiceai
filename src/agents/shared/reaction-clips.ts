@@ -31,7 +31,6 @@ export const CLIP_PERSONAS: readonly string[] = [
   ...Object.keys(EXTRAS),
   'joel-dickson',
   'john-bogle',
-  'peter-lynch',
 ];
 
 /** A persona's full clip list: the shared reactions plus its own extras. */

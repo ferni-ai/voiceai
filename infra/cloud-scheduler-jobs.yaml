@@ -3,13 +3,14 @@
 # These jobs replace in-process setInterval calls that run in the voice agent.
 # Moving them to Cloud Scheduler improves reliability and prevents memory leaks.
 #
-# Removed jobs with no API handler (audit 2026-02-23):
-# - daily-admin-report (target: /api/jobs/daily-admin-report — no handler)
-# - community-insights-aggregation (target: /api/jobs/aggregate-community-insights — no handler)
-# - persona-metrics-rollup (target: /api/jobs/rollup-persona-metrics — no handler)
-# - semantic-router-learning (target: /api/jobs/semantic-router-learning — no handler)
-# - trust-profile-sync (target: /api/jobs/sync-trust-profiles — no handler)
-# Re-add when handlers are implemented.
+# Removed in the 2026-02-23 audit, when they had no API handler. Each has a handler
+# now (JOB_PATHS) but is not re-added here; UNSCHEDULED in
+# scripts/ops/scheduler-parity-lib.ts records why (#3679):
+# - daily-admin-report (target: /api/jobs/daily-admin-report)
+# - community-insights-aggregation (target: /api/jobs/aggregate-community-insights)
+# - persona-metrics-rollup (target: /api/jobs/rollup-persona-metrics)
+# - semantic-router-learning (target: /api/jobs/semantic-router-learning)
+# - trust-profile-sync (target: /api/jobs/sync-trust-profiles)
 #
 # To apply:
 #   gcloud scheduler jobs create http <job-name> \
@@ -75,34 +76,6 @@ data:
     # BACKGROUND TASK JOBS
     # ==========================================================================
     
-    - name: background-task-processor
-      description: "Process pending background tasks (replaces in-process setInterval)"
-      schedule: "* * * * *"  # Every minute
-      timezone: "America/Los_Angeles"
-      uri: "https://ui-server-xxxxx.run.app/api/jobs/process-background-tasks"
-      httpMethod: POST
-      retryConfig:
-        retryCount: 2
-        minBackoffDuration: "10s"
-        
-    - name: scheduled-job-checker
-      description: "Check and trigger scheduled jobs"
-      schedule: "* * * * *"  # Every minute
-      timezone: "America/Los_Angeles"
-      uri: "https://ui-server-xxxxx.run.app/api/jobs/check-scheduled"
-      httpMethod: POST
-      
-    # ==========================================================================
-    # SESSION CLEANUP JOBS
-    # ==========================================================================
-    
-    - name: session-cleanup
-      description: "Clean up orphaned sessions to prevent memory leaks"
-      schedule: "*/5 * * * *"  # Every 5 minutes
-      timezone: "America/Los_Angeles"
-      uri: "https://ui-server-xxxxx.run.app/api/jobs/cleanup-sessions"
-      httpMethod: POST
-      
     - name: old-task-cleanup
       description: "Clean up old completed/failed tasks"
       schedule: "0 3 * * *"  # 3 AM daily
@@ -146,14 +119,6 @@ data:
     # HEALTH & MONITORING JOBS
     # ==========================================================================
     
-    - name: voice-agent-health-check
-      description: "Health check voice agent (external monitoring)"
-      schedule: "*/5 * * * *"  # Every 5 minutes
-      timezone: "America/Los_Angeles"
-      uri: "http://34.134.186.63:8080/health/ready"
-      httpMethod: GET
-      attemptDeadline: "30s"
-      
     - name: worker-health-check
       description: "Health check async workers"
       schedule: "*/5 * * * *"  # Every 5 minutes

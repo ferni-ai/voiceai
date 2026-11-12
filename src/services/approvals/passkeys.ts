@@ -56,14 +56,19 @@ export function isPasskeysEnabled(env: Record<string, string | undefined> = proc
   return isApprovalsPageEnabled(env) && env.APPROVALS_PASSKEYS === 'on';
 }
 
-/** The relying party: the app's host, and the origins a ceremony may come from. */
+/**
+ * The relying party: the app's host, and the origins a ceremony may come from.
+ * A browser's origin never ends in "/", and @simplewebauthn/server 14.1+ throws
+ * on an expected origin that does, so a configured "https://host/" becomes
+ * "https://host".
+ */
 export function relyingParty(env: Record<string, string | undefined> = process.env): {
   rpID: string;
   origins: string[];
 } {
   const origins = (env.WEBAUTHN_ORIGINS || APP_URL)
     .split(',')
-    .map((o) => o.trim())
+    .map((o) => o.trim().replace(/\/+$/, ''))
     .filter(Boolean);
   return { rpID: env.WEBAUTHN_RP_ID || new URL(origins[0] ?? APP_URL).hostname, origins };
 }

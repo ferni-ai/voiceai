@@ -139,7 +139,7 @@ describe('safety guidance in the pushed note is never lost (#2642)', () => {
     call.say('assistant', "I'm really glad you told me. I'm here with you.");
     await call.pusher.onAgentState('listening');
     call.say('user', 'I just feel so tired');
-    expect(call.sent()).toEqual([`${TURN_CONTEXT_HEADER}\n${GUIDANCE}\n\n${MEMORY}`]);
+    expect(call.sent()).toEqual([`${TURN_CONTEXT_HEADER}\n${MEMORY}\n\n${GUIDANCE}`]);
   });
 
   it('carried safety guidance is released once pushed: a later note without safety carries none', async () => {
@@ -168,7 +168,7 @@ describe('safety guidance in the pushed note is never lost (#2642)', () => {
     await call.pusher.onFinalTranscript(CRISIS); // pushed at once
     call.say('user', `${CRISIS} sorry I mean like everything`); // the note is now stale
     const before = call.pushed();
-    expect(before).toEqual([`${TURN_CONTEXT_HEADER}\n${GUIDANCE}\n\n${MEMORY}`]);
+    expect(before).toEqual([`${TURN_CONTEXT_HEADER}\n${MEMORY}\n\n${GUIDANCE}`]);
     expect(call.sent()).toEqual([`${TURN_CONTEXT_HEADER}\n${GUIDANCE}`]); // cut for the request
     expect(call.pushed()).toEqual(before); // and the agent's context still holds the whole note
   });

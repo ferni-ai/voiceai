@@ -94,16 +94,6 @@ export const GENERATED_PERSONA_COLORS: Record<string, PersonaColorConfig> = {
     description: 'Burgundy red - distinguished, trustworthy mentor (Nate, id joel-dickson)',
   },
 
-  'lynch': {
-    primary: '#1a5f2a',
-    secondary: '#154c22',
-    text: '#ffffff',
-    glow: 'rgba(26, 95, 42, 0.28)',
-    tint: 'rgba(26, 95, 42, 0.06)',
-    gradient: 'linear-gradient(135deg, #154c22 0%, #1a5f2a 100%)',
-    description: 'Tom Brannigan (Financial Legend, id peter-lynch) - forest green, from his bundle avatar colour',
-  },
-
   'bogle': {
     primary: '#8b0000',
     secondary: '#6f0000',
@@ -197,7 +187,6 @@ export const GENERATED_PERSONA_IDS = [
   "jordan",
   "nayan",
   "joel",
-  "lynch",
   "bogle",
   "eli",
   "marcus",

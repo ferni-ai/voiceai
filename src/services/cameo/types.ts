@@ -20,7 +20,7 @@ import type { CanonicalPersonaId } from '../../personas/persona-ids.js';
  */
 export type CameoPersonaId = Exclude<
   CanonicalPersonaId,
-  'ferni' | 'jack-b' | 'generic-advisor' | 'joel-dickson' | 'peter-lynch' | 'john-bogle'
+  'ferni' | 'jack-b' | 'generic-advisor' | 'joel-dickson' | 'john-bogle'
 >;
 
 /**

@@ -15,79 +15,17 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { sendJson } from './helpers.js';
 import { verifySchedulerRequest } from './scheduler-auth.js';
 import { runScheduledJob } from './job-run-guard.js';
+import { JOB_PATHS } from './job-paths.js';
 
 const log = createLogger({ module: 'ScheduledJobs' });
 
 // This server acts for many people: their own cohort flags, never process.env (person-flag.ts).
 usePersonFlagLookup(flagForUser);
 
-/** Every job route below; auth is checked only for these, so unknown paths still 404. */
-export const JOB_PATHS: ReadonlySet<string> = new Set([
-  '/api/jobs/process-background-tasks',
-  '/api/jobs/check-scheduled',
-  '/api/jobs/cleanup-sessions',
-  '/api/jobs/cleanup-old-tasks',
-  '/api/jobs/aggregate-community-insights',
-  '/api/jobs/rollup-persona-metrics',
-  '/api/jobs/sync-trust-profiles',
-  '/api/jobs/cleanup-transcripts',
-  '/api/jobs/daily-outreach',
-  '/api/jobs/evaluate-thinking-of-you',
-  '/api/jobs/run-predictive-analysis',
-  '/api/jobs/rollup-outreach-analytics',
-  '/api/jobs/reset-weekly-counters',
-  '/api/jobs/better-than-human-outreach',
-  '/api/jobs/process-insight-actions',
-  '/api/jobs/family-checkin-calls',
-  '/api/jobs/run-deep-analysis',
-  '/api/jobs/flush-ml-state',
-  '/api/jobs/semantic-router-learning',
-  '/api/jobs/cleanup-orphaned-uploads',
-  '/api/jobs/ttl-cleanup',
-  '/api/jobs/ttl-backfill',
-  '/api/jobs/bq-erasure',
-  '/api/jobs/daily-admin-report',
-  '/api/jobs/memory-consolidation',
-  '/api/jobs/memory-decay',
-  '/api/jobs/memory-deduplication',
-  '/api/jobs/memory-health-check',
-  '/api/jobs/deliver-reminders',
-  '/api/jobs/deliver-scheduled-actions',
-  '/api/jobs/execute-scheduled-outreach',
-  '/api/jobs/calendar-triggers',
-  '/api/jobs/calendar-briefing',
-  '/api/jobs/follow-through',
-  '/api/jobs/retry-pending-revocations',
-  '/api/jobs/held-scrub-sweep',
-  '/api/jobs/deep-analysis',
-  '/api/jobs/pondering',
-  '/api/jobs/person-model',
-  '/api/jobs/knowledge-graph-insights',
-  '/api/jobs/knowledge-graph-consolidation',
-  '/api/jobs/knowledge-graph-thread-maintenance',
-  '/api/jobs/knowledge-graph-entity-decay',
-  '/api/jobs/brand-award-deadline-check',
-  '/api/jobs/brand-story-review-reminder',
-  '/api/jobs/brand-workstream-progress',
-  '/api/jobs/brand-milestone-check',
-  '/api/jobs/brand-ambassador-engagement',
-  '/api/jobs/brand-metrics-collection',
-  '/api/jobs/brand-weekly-report',
-  '/api/jobs/brand-publish-stories',
-  '/api/jobs/gtm-daily-publishing',
-  '/api/jobs/gtm-weekly-content',
-  '/api/jobs/semantic-router-retrain',
-  '/api/jobs/semantic-router-volume-check',
-  '/api/jobs/semantic-router-quality-check',
-  '/api/jobs/semantic-router-health',
-  '/api/jobs/reply-reports-summary',
-]);
+export { JOB_PATHS };
 
 // Background task handlers
 import {
-  handleProcessBackgroundTasks,
-  handleCheckScheduled,
-  handleCleanupSessions,
   handleCleanupOldTasks,
   handleAggregateCommunityInsights,
   handleRollupPersonaMetrics,
@@ -212,18 +150,6 @@ async function dispatchJob(
   path: string
 ): Promise<boolean> {
   switch (path) {
-    case '/api/jobs/process-background-tasks':
-      await handleProcessBackgroundTasks(res);
-      return true;
-
-    case '/api/jobs/check-scheduled':
-      await handleCheckScheduled(res);
-      return true;
-
-    case '/api/jobs/cleanup-sessions':
-      await handleCleanupSessions(res);
-      return true;
-
     case '/api/jobs/cleanup-old-tasks':
       await handleCleanupOldTasks(res);
       return true;
