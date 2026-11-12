@@ -24,7 +24,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import type { ConversationTurn, MatchLayer } from './types.js';
 
 /** Most the context layer can add: two keyword mentions, or one same-category recent tool. */
-export const CONTEXT_BONUS_CAP = 0.1;
+const CONTEXT_BONUS_CAP = 0.1;
 
 /** Top score for anything short of a perfect pattern match (as matcher.ts's multi-layer bonus). */
 const NON_PERFECT_MAX = 0.99;

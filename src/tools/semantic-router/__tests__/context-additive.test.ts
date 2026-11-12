@@ -12,12 +12,10 @@ import { getToolRegistry, resetToolRegistry } from '../registry.js';
 import { allToolDefinitions } from '../tool-definitions/index.js';
 import { mergeLocaleIntoTools } from '../i18n/index.js';
 import { DEFAULT_ROUTER_CONFIG, type ConversationTurn } from '../types.js';
-import {
-  CONTEXT_BONUS_CAP,
-  addContextBonus,
-  historyBeforeTurn,
-  scoreWithoutContext,
-} from '../context-additive.js';
+import { addContextBonus, historyBeforeTurn, scoreWithoutContext } from '../context-additive.js';
+
+/** CONTEXT_BONUS_CAP in context-additive.ts, pinned here so changing the cap is a test change. */
+const BONUS_CAP = 0.1;
 
 const turns = (...texts: string[]): ConversationTurn[] =>
   texts.map((text) => ({ role: 'user', text, timestamp: new Date(0) }));
@@ -98,7 +96,7 @@ describe('ROUTER_CONTEXT_ADDITIVE=on', () => {
         const withHistory = scoresOf(text, history);
         for (const [tool, score] of Object.entries(alone)) {
           expect(withHistory[tool], `${tool} on "${text}"`).toBeGreaterThanOrEqual(score);
-          expect((withHistory[tool] ?? 0) - score).toBeLessThanOrEqual(CONTEXT_BONUS_CAP + 1e-9);
+          expect((withHistory[tool] ?? 0) - score).toBeLessThanOrEqual(BONUS_CAP + 1e-9);
         }
       }
     }
@@ -129,7 +127,7 @@ describe('context-additive helpers', () => {
   it('addContextBonus adds at most the cap, never lowers, and only to a tool the turn names', () => {
     const kw = (context: number) => ({ context, pattern: 0, keyword: 0.8 });
     expect(addContextBonus(0.5, kw(0.05), true)).toBeCloseTo(0.55);
-    expect(addContextBonus(0.5, kw(0.4), true)).toBeCloseTo(0.5 + CONTEXT_BONUS_CAP);
+    expect(addContextBonus(0.5, kw(0.4), true)).toBeCloseTo(0.5 + BONUS_CAP);
     expect(addContextBonus(0.95, { context: 0.4, pattern: 0.95, keyword: 0 }, true)).toBeCloseTo(
       0.99
     );
