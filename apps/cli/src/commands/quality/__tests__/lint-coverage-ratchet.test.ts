@@ -4,6 +4,7 @@ import {
   readEslintRun,
   ignoredFiles,
   lintGroups,
+  lintOne,
   lowered,
   regressions,
   staleSuppressions,
@@ -66,6 +67,22 @@ describe('lint-coverage ratchet', () => {
     expect(read).toEqual({ failure: expect.stringContaining('Frame19') });
     expect(crashLines(stderr).split('\n')).toHaveLength(6);
     expect(crashLines('a\nb')).toBe('a\nb');
+  });
+
+  it('lintOne throws a named crash, not a JSON error, when its ESLint child dies mid-output', () => {
+    const heap =
+      'FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory';
+    const crash = () => ({ status: 134, signal: null, stdout: '[{"filePath":"/x', stderr: heap });
+    expect(() => lintOne('eslint-coverage', ['src/a.ts'], crash)).toThrow(
+      /^eslint-coverage: eslint crashed .*heap out of memory/s
+    );
+    const file = { filePath: '/repo/src/a.ts', errorCount: 2, warningCount: 0, messages: [] };
+    const ok = (_command: string, args: string[], env: NodeJS.ProcessEnv) => {
+      expect(args).toContain('src/a.ts');
+      expect(env.NODE_OPTIONS).toBe('--max-old-space-size=8192');
+      return { status: 1, signal: null, stdout: JSON.stringify([file]), stderr: '' };
+    };
+    expect(lintOne('eslint-coverage', ['src/a.ts'], ok)).toEqual({ results: [file], stderr: '' });
   });
 
   it('fails a file whose error count grew', () => {

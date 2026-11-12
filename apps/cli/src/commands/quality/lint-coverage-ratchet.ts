@@ -172,21 +172,34 @@ function lint(files: string[]): { results: EslintFile[]; stderr: string } {
   };
 }
 
-function lintOne(cacheName: string, files: string[]): { results: EslintFile[]; stderr: string } {
+/** What lintOne needs from a finished child process (spawnSync's result, narrowed). */
+export interface SpawnResult {
+  status: number | null;
+  signal: string | null;
+  stdout: string | null;
+  stderr: string | null;
+  error?: Error;
+}
+
+/** Runs ESLint on one group in its own process. `spawn` is a seam so a test can stand in a crash. */
+export function lintOne(
+  cacheName: string,
+  files: string[],
+  spawn: (command: string, args: string[], env: NodeJS.ProcessEnv) => SpawnResult = (
+    command,
+    args,
+    env
+  ) => spawnSync(command, args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, env })
+): { results: EslintFile[]; stderr: string } {
   // Run ESLint's binary directly, not through `npx`: npx joins the paths into one shell
   // argument (about 214 KB), which Linux rejects (E2BIG). Spawned directly, each path is its own argument.
   // One cache per group: each run would otherwise drop the other group's entries.
   const cache = join(ROOT, 'node_modules/.cache', cacheName);
   const eslint = join(ROOT, 'node_modules/eslint/bin/eslint.js');
-  const run = spawnSync(
+  const run = spawn(
     process.execPath,
     [eslint, '--cache', '--cache-location', cache, '--format', 'json', ...files],
-    {
-      cwd: ROOT,
-      encoding: 'utf8',
-      maxBuffer: 256 * 1024 * 1024,
-      env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=8192' },
-    }
+    { ...process.env, NODE_OPTIONS: '--max-old-space-size=8192' }
   );
   const read = readEslintRun({
     status: run.status,
