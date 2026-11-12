@@ -202,24 +202,26 @@ describe('a fall long ago, or one they are fine from, is not imminent (owner, 20
   ])('%s', expectNothing);
 });
 
-describe('grief: time words that set the fall long ago drop the 911 for them (fe, 2026-11-11)', () => {
+describe('grief: the fall goes on to a death and then a date (fe, 2026-11-11; deny by default, 2026-11-12)', () => {
   it.each([
-    // After the fall, carried on with "and": a month, a year, "last year", "years ago".
     'my mom collapsed and passed away in march',
     'my wife collapsed and passed away last march',
     'my dad collapsed and passed away in 2019',
     'my dad collapsed and died last year',
     'my mom collapsed and died years ago',
-    // A sentence that opens on the date.
+  ])('%s', expectNothing);
+
+  it.each([
+    // Deny by default: a date earlier in the sentence, "ever since" or "back when" is not enough.
+    // These read 911 first until fe and Seth decide (2026-11-12).
     'in march my mom collapsed and passed away',
     'in 2019 my grandma fainted',
     'last year my dad collapsed at work',
     'two years ago, my dad collapsed and died',
-    // Told from long after.
     'ever since my mom collapsed i cannot sleep',
     'back when my grandpa collapsed we were all so scared',
     'back when my dad fainted at church',
-  ])('%s', expectNothing);
+  ])('reads 911 first, first and mid-call: %s', expectEmergencyForThem);
 
   it.each([
     // "Died" or "passed away" alone is never a time word.
@@ -257,5 +259,34 @@ describe('a date never hides a fall that is happening now (security review, 2026
     "ever since my mom fainted she's not responding",
     'ever since my grandpa collapsed he will not wake up',
     'ever since my dad collapsed he is bleeding',
+    // A date that opens the sentence never governs a later fall (v3701, 2026-11-12).
+    'last year sucked my dad collapsed',
+    'last year was awful my dad collapsed',
+    "two years ago, my dad collapsed and he isn't breathing",
+    // A recent time anywhere in the sentence wins over any date.
+    'last year my mom got sick my dad collapsed a few minutes ago',
+    'last year my mom got sick my dad collapsed yesterday',
+    'last year my mom got sick my dad collapsed earlier today',
+    'in march my dad collapsed this morning',
+    'in march my dad collapsed yesterday',
+    'in march my dad collapsed earlier today',
+    // A second fall, even told with "he".
+    "back when my dad collapsed he wasn't moving, and now he collapsed again",
+  ])('reads 911 first, first and mid-call: %s', expectEmergencyForThem);
+});
+
+describe('a grief clause never outweighs a word of now in its sentence (deny by default, 2026-11-12)', () => {
+  it.each([
+    // A recent time.
+    'my mom collapsed and passed away in march, it happened a few minutes ago',
+    'my dad collapsed and died in 2019, it happened again',
+    // "now" or "just".
+    "my mom collapsed and passed away in march and now i'm scared",
+    'i just heard my dad collapsed and died last year',
+    // Not getting up, or a still-emergency word.
+    "my dad collapsed and died in 2019 and my grandpa won't respond",
+    'my dad collapsed and died last year, there was so much blood',
+    // A second fall, even told with "he".
+    'my dad collapsed and died in 2019, my brother says he fainted',
   ])('reads 911 first, first and mid-call: %s', expectEmergencyForThem);
 });

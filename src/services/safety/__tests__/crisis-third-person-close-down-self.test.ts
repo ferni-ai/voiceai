@@ -184,17 +184,23 @@ describe('a long message reads in time linear in its length (#3587 round 1 ReDoS
 });
 
 describe("grief beside the caller's own words: their 988 script, no 911 for them (fe, 2026-11-11)", () => {
+  it.each([['my mom collapsed and passed away in march and i want to die', 'i want to die']])(
+    '%s',
+    (line, own) => {
+      const guard = replyTo(line);
+      expect(guard.shouldBlock, line).toBe(true);
+      expect(guard.replacementResponse, line).toBe(replyTo(own).replacementResponse);
+      expect(guard.replacementResponse ?? '', line).not.toContain(CALL_911);
+      expect(detectCrisis(line).subject, line).toBe('self');
+    }
+  );
+
+  // Deny by default (2026-11-12): no death-then-date clause, so the 911 for them leads, then the
+  // caller's 988. These read so until fe and Seth decide.
   it.each([
-    ['ever since my dad collapsed and died i want to die', 'i want to die'],
-    ['my mom collapsed and passed away in march and i want to die', 'i want to die'],
-    ['two years ago my dad collapsed and died. i want to kill myself', 'i want to kill myself'],
-  ])('%s', (line, own) => {
-    const guard = replyTo(line);
-    expect(guard.shouldBlock, line).toBe(true);
-    expect(guard.replacementResponse, line).toBe(replyTo(own).replacementResponse);
-    expect(guard.replacementResponse ?? '', line).not.toContain(CALL_911);
-    expect(detectCrisis(line).subject, line).toBe('self');
-  });
+    'ever since my dad collapsed and died i want to die',
+    'two years ago my dad collapsed and died. i want to kill myself',
+  ])('911 first, then 988: %s', expect911Then988);
 
   it('a date that belongs to the caller\'s words keeps the 911 for them: "i was suicidal years ago, my dad collapsed"', () => {
     expect911Then988('i was suicidal years ago, my dad collapsed');
