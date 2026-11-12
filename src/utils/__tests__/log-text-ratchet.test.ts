@@ -73,6 +73,9 @@ const NOT_ANYONES_WORDS: Record<string, number> = {
   'src/services/custom-agent/voice-clone-service.ts': 1, // clip.speech: seconds of audio
   'src/services/data-layer/index.ts': 1, // context.summary: counts and totals
   'src/services/data-layer/session-integration.ts': 1, // the same counts
+  // #3724: the topic shape also matches these, which are no one's words
+  'src/services/pubsub/pubsub-workers.ts': 1, // Pub/Sub topic names, set in code
+  'src/services/gtm/content-generator.ts': 1, // a GTM marketing brief's topic
 };
 /**
  * #3215 PR (b) fixes these and then deletes this list: memory-record words and caller text
@@ -85,12 +88,16 @@ const PENDING_3215B: Record<string, string[]> = {
   ],
   'src/agents/processors/injection-builders/trust-builders.ts': [
     'description: trustContext.celebrationOpportunity.win.description',
+    'topic: vuln.topic',
   ],
   'src/agents/processors/turn-processor/process-turn.ts': ['topic: reflectionMoment.topic'],
   'src/api/habit-routes.ts': ['name: habit.name'],
   'src/conversation/curiosity-engine.ts': ['detail: detail.content'],
   'src/conversation/superhuman/story-continuity.ts': ['name: person.name'],
-  'src/diagnostics/memory-pipeline-diagnostics.ts': ['summary: moment.summary'],
+  'src/diagnostics/memory-pipeline-diagnostics.ts': [
+    'summary: moment.summary',
+    'topics: analysis.topics',
+  ],
   'src/intelligence/coaching/dynamic-questions.ts': ['context.recentTopics.slice('],
   'src/intelligence/collective/agent-evolution.ts': ['trigger: adjustment.trigger.description'],
   'src/intelligence/context-builders/memory/memory-enhancement.ts': [
@@ -101,6 +108,7 @@ const PENDING_3215B: Record<string, string[]> = {
   ],
   'src/intelligence/context-builders/memory/thinking-of-you.ts': [
     'topic: thinkingMoment.record.topic',
+    'topic: callback.topic',
   ],
   'src/intelligence/context-builders/session/cross-session-reflection.ts': [
     'topic: newMoment.topic',
@@ -132,7 +140,10 @@ const PENDING_3215B: Record<string, string[]> = {
     'entities: mentionedEntities.map((e) => e.name).slice(0, 5)',
   ],
   'src/memory/dynamic/stm-promotion.ts': ['entity: entity.name'],
-  'src/memory/entity-store/entity-resolver.ts': ['input: nameOrText'],
+  'src/memory/entity-store/entity-resolver.ts': [
+    'input: nameOrText',
+    'name: newEntity.canonicalName',
+  ],
   'src/memory/knowledge-graph/services/knowledge-capture.ts': [
     'entityNames: entityExtractionResult.entities.map((e) => e.name).slice(0, 5)',
   ],
@@ -153,6 +164,7 @@ const PENDING_3215B: Record<string, string[]> = {
   'src/services/outreach/context-aggregator.ts': [
     'description: win.description',
     'description: struggle.description',
+    'topics: conversation.topics',
   ],
   'src/services/outreach/conversation-extractor.ts': [
     'event: event.description',
@@ -167,6 +179,7 @@ const PENDING_3215B: Record<string, string[]> = {
     'commitment: commitment.summary',
     'topic: insight.topic',
     'commitment: commitment.summary',
+    'topic: roundtable.topic',
   ],
   'src/services/outreach/superhuman-outreach-integration.ts': ['struggle: memory.content'],
   'src/services/outreach/timing-intelligence.ts': [
@@ -202,7 +215,71 @@ const PENDING_3215B: Record<string, string[]> = {
     'goal: goal.name',
     'habit: habit.name',
   ],
-  'src/tools/domains/research/user-data/user-data-service.ts': ['goalName: goal.name'],
+  'src/tools/domains/research/user-data/user-data-service.ts': [
+    'goalName: goal.name',
+    'topic: gap.topic',
+    'topic: gap.topic',
+  ],
+  // #3724: the topic, canonicalName and bound-name shapes found these as well
+  'src/agents/group-conversation/group-conversation-manager.ts': ['topic: config.topic'],
+  'src/agents/group-conversation/team-roundtable.ts': ['topic: config.roundtable.topic'],
+  'src/agents/group-conversation/voice-integration.ts': ['topic: message.topic'],
+  'src/agents/processors/injection-builders/better-than-human-builders.ts': [
+    'topic: boundary.topic',
+  ],
+  'src/agents/voice-agent/turn-learning.ts': ['topic: learningContext.topic'],
+  'src/conversation/emotional-arc/momentum/tracker.ts': ['topic: turningPoint.topic'],
+  'src/intelligence/collective/community-insights.ts': ['context: signal.context.topic'],
+  'src/intelligence/context-builders/awareness/career-awareness.ts': [
+    'topics: careerDetection.topics',
+  ],
+  'src/intelligence/context-builders/coaching/topic-guidance.ts': [
+    'topic: bestMatch.trigger.topic',
+  ],
+  'src/intelligence/context-builders/personas/jordan-milestone-insights/index.ts': [
+    'handoffTopic: handoffBriefing?.topic',
+  ],
+  'src/intelligence/context-builders/personas/mortality-perspective.ts': ['topic: relevance.topic'],
+  'src/intelligence/context-builders/personas/peter-research-insights/index.ts': [
+    'handoffTopic: handoffBriefing?.topic',
+  ],
+  'src/intelligence/context-builders/session/natural-discovery.ts': [
+    'topics: prompts.map((p) => p.topic)',
+  ],
+  'src/intelligence/predictive/conversation-preparation.ts': ['topic: entry.topic'],
+  'src/intelligence/predictive/embeddings/breakthrough-embeddings.ts': [
+    'topic: breakthrough.topic',
+  ],
+  'src/intelligence/predictive/embeddings/entity-embedding-sync.ts': [
+    'entityName: entity.canonicalName',
+    'entityName: entity.canonicalName',
+  ],
+  'src/intelligence/predictive/index.ts': ['topic: params.topic'],
+  'src/intelligence/predictive/signal-integration.ts': ['topic: breakthrough.topic'],
+  'src/memory/entity-store/integration.ts': ['name: resolved.entity.canonicalName'],
+  'src/memory/entity-store/migration.ts': ['name: entityData.canonicalName'],
+  'src/memory/entity-store/storage.ts': ['name: fullEntity.canonicalName'],
+  'src/memory/operations/memory-lifecycle.ts': ['topic: consolidated.topic'],
+  'src/personas/bundles/runtime.ts': ['context: context.topic'],
+  'src/services/conversation-thread/group-outreach.ts': ['topic: options.topic'],
+  'src/services/data-layer/integrations/trust-integration.ts': [
+    'topic: boundary.topic',
+    'topic: thinking.topic',
+  ],
+  'src/services/handoff/handoff-state.ts': ['topics: state.conversationContext.topics'],
+  'src/services/humanization/relationship-artifacts.ts': ['topic: bt.topic'],
+  'src/services/intelligence/cross-agent-awareness.ts': ['topics: summary.topics'],
+  'src/services/memory/voice-conversation-memory.ts': ['topics: conversation.topics'],
+  'src/services/personal-journey/seasonal-memory.ts': ['topics: data.topics'],
+  'src/services/superhuman/protective-silence.ts': ['topic: boundary.topic'],
+  'src/services/trust-systems/between-session-thinking.ts': ['topic: record.topic'],
+  'src/services/trust-systems/thinking-of-you.ts': ['topic: share.topic'],
+  'src/tools/domains/communication/superhuman-tools/unsaid-words-detector.ts': [
+    'topic: topic.topic',
+  ],
+  'src/tools/domains/research/superhuman-tools/external-data.ts': ['topic: params.topic'],
+  'src/tools/domains/research/superhuman-tools/research-synthesis.ts': ['topic: params.topic'],
+  'src/workers/analytics-worker.ts': ['topic: data.topic'],
 };
 const ALLOWED: Record<string, number> = {
   ...PENDING_2656,
@@ -304,6 +381,13 @@ describe('textLeaksInLogs', () => {
     "log.info({ entities: mentionedEntities.map((e) => e.name).slice(0, 5) }, 'capture');",
     "log.info({ names: entities.map((e) => e.name) }, 'entities');",
     "log.info({ name: contact.name || contact.relationship }, 'contact');",
+    // #3724 verify row 4: a topic under any owner, an entity's canonical name, and a bare
+    // `{ name }` bound from names extracted from the turn
+    "diag.debug('Frequent topics', { topics: frequentTopics.map((t) => t.topic) });",
+    "log.info({ userId, topic: context.topic, from: context.sharedBy }, 'Context shared');",
+    "log.debug({ userId, entityId: entity.id, name: entity.canonicalName }, 'Integrated');",
+    "for (const { name, context } of turn.extractedNames) { log.warn({ error: String(error), name }, 'Failed'); }",
+    "const name = person.fullName; log.info({ name }, 'tracked');",
   ])('flags %s', (code) => {
     expect(lines(code)).toEqual([1]);
   });
@@ -325,6 +409,12 @@ describe('textLeaksInLogs', () => {
     "log.info({ goalId: goal.id, titleLen: goal.title.length }, 'Goal created');",
     "log.debug({ descriptionLen: commitment.description.length }, 'commitment');",
     "log.error({ lastUserMessageLen: ctx.lastUserMessageLen }, 'crash');",
+    // counts of topics, and a bare `{ name }` bound from a tool, a worker or a persona
+    "diag.debug('Frequent topics', { topicCount: frequentTopics.length });",
+    "const name = tool.name; log.info({ name }, 'tool ran');",
+    "for (const { name } of workers) { log.info({ name, status }, 'worker'); }",
+    "for (const { name } of personas) { log.info({ name }, 'persona loaded'); }",
+    "log.info({ entityId: entity.id, nameLen: entity.canonicalName.length }, 'Integrated');",
   ])('leaves %s alone', (code) => {
     expect(lines(code)).toEqual([]);
   });
@@ -392,8 +482,9 @@ describe('log calls in src/ carry no conversation text (#2689, #3215)', () => {
     expect(Object.values(PENDING_2656).reduce((a, b) => a + b, 0)).toBe(18);
   });
 
-  it('holds exactly the 82 calls #3215 PR (b) fixes: lower it as they go, never raise it', () => {
-    expect(Object.values(PENDING_3215B).flat()).toHaveLength(82);
+  // 82 at first, plus 47 found by the topic, canonicalName and bound-name shapes (#3724)
+  it('holds exactly the 129 calls #3215 PR (b) fixes: lower it as they go, never raise it', () => {
+    expect(Object.values(PENDING_3215B).flat()).toHaveLength(129);
   });
 
   it('keeps pending calls out of the other lists', () => {

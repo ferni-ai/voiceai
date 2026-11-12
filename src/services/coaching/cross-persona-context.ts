@@ -167,10 +167,7 @@ export function shareContext(userId: string, context: Omit<SharedContext, 'share
     userContext.sharedContexts = userContext.sharedContexts.slice(-20);
   }
 
-  log.info(
-    { userId, topic: context.topic, from: context.sharedBy },
-    '🔗 Context shared across personas'
-  );
+  log.info({ userId, from: context.sharedBy }, '🔗 Context shared across personas');
 }
 
 /**

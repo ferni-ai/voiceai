@@ -539,7 +539,6 @@ export async function processTranscriptForBetterThanHuman(
       }
 
       diag.state('💎 First-time vulnerability detected', {
-        category: vulnerabilityResult.topic,
         level: vulnerabilityResult.vulnerabilityLevel,
       });
     }
@@ -579,7 +578,6 @@ export async function processTranscriptForBetterThanHuman(
 
       diag.state('🎭 Emotional contradiction detected', {
         emotions: contradictionResult.emotions.join(' + '),
-        topic: contradictionResult.topic,
       });
     }
 

@@ -7,7 +7,7 @@
  * whole (`{ transcript }`). #3215 found what that missed, all of it in use:
  * - memory records built from the conversation: a commitment's description, a goal's
  *   title, an action, a topic, an entity's name; sliced, logged whole under any key,
- *   or mapped into a list (`entities.map((e) => e.name)`);
+ *   mapped into a list (`entities.map((e) => e.name)`), or a `{ name }` bound from one;
  * - a slice behind a call or a fallback: `(text || '').slice(...)`, `text.trim().slice(...)`;
  * - a text value under a key that doesn't say so (`{ preview: userText }`) or
  *   interpolated into a message (`${userText}`).
@@ -34,10 +34,10 @@ export const WHOLE_KEY =
   /^(?:text|content|utterance|transcript|speech|starter|reflection)$|(?:Text|Content|Utterance|Transcript|Speech|Starter|Reflection|UserMessage|CallerMessage)$/;
 
 /** A field of a memory record that is the record's words, whatever holds it. */
-const RECORD_TEXT = /^(?:description|summary|struggle|utterance|transcript)$/;
+const RECORD_TEXT = /^(?:description|summary|struggle|utterance|transcript|topic|topics)$/;
 /** A field that is the record's words when it belongs to a memory record. */
 const RECORD_FIELD =
-  /^(?:title|name|names|action|topic|topics|content|text|note|notes|fact|facts|detail|details|story|quote)$/;
+  /^(?:title|name|names|canonicalName|fullName|firstName|lastName|nickname|action|content|text|note|notes|fact|facts|detail|details|story|quote)$/;
 /** What a memory record built from the conversation is called (not a persona or an identity). */
 const RECORD =
   /commitment|goal|(?<!id)entit|person(?!a)|people|contact|relationship|milestone|struggle|promise|follow-?up|insight|memor|fact|thread|moment|story|habit|intention|cross-?persona/i;
@@ -154,13 +154,36 @@ export interface Leak {
   what: string;
 }
 
+/** Where a name was last bound before a call: `const name = x`, `{ name } = x`, `{ name } of x`. */
+const NAME_BINDING =
+  /\{[^{}]*\bnames?\b[^{}]*\}\s*(?:=(?!=)|\bof\b)\s*([^;\n]+)|(?<![\w$.])names?\s*=(?!=)\s*([^;\n]+)/g;
+/** What a person's name is pulled from when it isn't a record: names found in the turn. */
+const FROM_TURN = /extracted|mention/i;
+
+/**
+ * A bare `{ name }` (or `{ names }`) whose last binding before the call is a person or
+ * entity record, or names extracted from the turn:
+ * `for (const { name } of turn.extractedNames) { log.warn({ name }) }`.
+ */
+function boundRecordName(source: string, open: number, call: string): string | null {
+  // a shorthand `{ name }` is a field whose key is its value
+  const bare = logged(call).find(
+    (v) => v.kind === 'field' && v.key === v.value && /^names?$/.test(v.key)
+  );
+  if (!bare) return null;
+  const bindings = [...source.slice(0, open).matchAll(NAME_BINDING)];
+  const last = bindings[bindings.length - 1];
+  const from = last?.[1] ?? last?.[2] ?? '';
+  return RECORD.test(from) || FROM_TURN.test(from) ? bare.value : null;
+}
+
 /** The logger calls in `source` that carry conversation text or a memory record's words. */
 export function textLeaksInLogs(source: string): Leak[] {
   const leaks: Leak[] = [];
   for (const m of source.matchAll(CALL)) {
     const open = (m.index ?? 0) + m[0].length - 1;
     const call = source.slice(open, closing(source, open) + 1);
-    const what = slicedText(call) ?? wholeText(call);
+    const what = slicedText(call) ?? wholeText(call) ?? boundRecordName(source, open, call);
     if (what) leaks.push({ line: source.slice(0, open).split('\n').length, what: squash(what) });
   }
   return leaks;

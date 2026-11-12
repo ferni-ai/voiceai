@@ -2115,7 +2115,6 @@ function processTeamHuddleDetection(
 
       diag.info('Team huddle trigger sent', {
         triggerType: trigger.type,
-        topic: trigger.data?.topic,
       });
     }
   } catch (err) {

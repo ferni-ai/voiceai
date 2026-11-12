@@ -98,7 +98,7 @@ export const socialRelationshipsBuilder: ContextBuilder = {
         analysis.emotion.intensity || 0.5
       );
 
-      log.debug({ userId, name, sentiment }, 'Recorded person mention');
+      log.debug({ userId, sentiment }, 'Recorded person mention');
     }
 
     // Generate social insights

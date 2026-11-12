@@ -523,7 +523,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
             type: 'acquaintance',
             context,
           });
-          diag.state('📇 Recorded person mention', { name });
+          diag.state('📇 Recorded person mention');
         }
       },
       { context: 'relationship-network-extraction' }
