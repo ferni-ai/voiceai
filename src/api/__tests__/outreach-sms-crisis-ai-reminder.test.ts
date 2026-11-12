@@ -48,15 +48,23 @@ import {
   SMS_CRISIS_REPLY,
   smsReplyTwiml,
 } from '../../services/outreach/sms-crisis-screen.js';
-import { AI_REMINDER_DECIDE_MS, SMS_AI_REMINDER } from '../../services/outreach/sms-ai-reminder.js';
 
 const PATH = '/api/outreach/webhooks/twilio/sms-inbound';
 const HANDLER_TWIML = '<?xml version="1.0"?><Response><Message>Open Ferni</Message></Response>';
 const STOP_TWIML =
   '<?xml version="1.0"?><Response><Message>You are unsubscribed</Message></Response>';
+// The test's own copies, so the module keeps these private.
+const SMS_AI_REMINDER = "(just a reminder, I'm an AI)";
+const DECIDE_MS = 2_000;
 const MAIN_CRISIS = smsReplyTwiml(SMS_CRISIS_REPLY);
 const MINOR_CRISIS = smsReplyTwiml(`${SMS_CRISIS_REPLY} ${SMS_AI_REMINDER}`);
 const HOUR = 3_600_000;
+const READ_MS = 25;
+const HANDLER_MS = 60;
+const after = <T>(ms: number, value: T): Promise<T> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms, value);
+  });
 const messageOf = (twiml: string): string => /<Message>([\s\S]*)<\/Message>/.exec(twiml)?.[1] ?? '';
 
 async function text(body: string): Promise<string> {
@@ -179,7 +187,16 @@ describe('the route crisis screen and the SB 243 reminder', () => {
     expect(await text('crisis row')).toBe(MAIN_CRISIS);
   });
 
-  it(`the lookup does not answer within ${AI_REMINDER_DECIDE_MS} ms: the crisis reply goes out, whole`, async () => {
+  it('the hold read rejects while the handler still runs: nothing goes unhandled, the reply goes out whole', async () => {
+    member(true);
+    heldSenderStrict.mockRejectedValue(new Error('store down'));
+    handleInboundSMSWebhook.mockImplementation(async () =>
+      after(HANDLER_MS, { success: true, twiml: HANDLER_TWIML })
+    );
+    expect(await text('crisis row')).toBe(MAIN_CRISIS);
+  });
+
+  it(`the lookup does not answer within ${DECIDE_MS} ms: the crisis reply goes out, whole`, async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     const neverAnswers = (): void => {
       // The lookup hangs: this promise never settles.
@@ -187,7 +204,52 @@ describe('the route crisis screen and the SB 243 reminder', () => {
     findAccountByVerifiedPhone.mockImplementation(async () => new Promise<string>(neverAnswers));
     heldSenderStrict.mockResolvedValue(true);
     const sent = text('crisis row');
-    await vi.advanceTimersByTimeAsync(AI_REMINDER_DECIDE_MS);
+    await vi.advanceTimersByTimeAsync(DECIDE_MS);
     expect(await sent).toBe(MAIN_CRISIS);
+  });
+  it(`the ${DECIDE_MS} ms bound counts from the screen: a slow handler does not add to it`, async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const neverAnswers = (): void => {
+      // The lookup hangs: this promise never settles.
+    };
+    findAccountByVerifiedPhone.mockImplementation(async () => new Promise<string>(neverAnswers));
+    handleInboundSMSWebhook.mockImplementation(async () =>
+      after(1_500, { success: true, twiml: HANDLER_TWIML })
+    );
+    let sent: string | undefined;
+    void text('crisis row').then((twiml) => {
+      sent = twiml;
+    });
+    await vi.advanceTimersByTimeAsync(DECIDE_MS);
+    expect(sent).toBe(MAIN_CRISIS);
+  });
+
+  it(`an adult's crisis reply waits about 0 ms on the lookup (each read ${READ_MS} ms, beside the handler)`, async () => {
+    handleInboundSMSWebhook.mockImplementation(async () =>
+      after(HANDLER_MS, { success: true, twiml: HANDLER_TWIML })
+    );
+    const adultTakes = async (): Promise<number> => {
+      n += 1;
+      const userId = `uid-sam-${n}`;
+      findAccountByVerifiedPhone.mockImplementation(async () => after(READ_MS, userId));
+      heldSenderStrict.mockImplementation(async () => after(READ_MS, false));
+      const startedAt = performance.now();
+      expect(await text('crisis row')).toBe(MAIN_CRISIS);
+      return performance.now() - startedAt;
+    };
+    // The fastest of five runs, so a busy machine slows both sides alike.
+    const fastest = async (): Promise<number> => {
+      const runs: number[] = [];
+      for (let i = 0; i < 5; i += 1) runs.push(await adultTakes());
+      return Math.min(...runs);
+    };
+    vi.stubEnv('MINOR_CARE_SHARED_HOLD', 'off');
+    const handlerAlone = await fastest();
+    expect(findAccountByVerifiedPhone).not.toHaveBeenCalled();
+    vi.stubEnv('MINOR_CARE_SHARED_HOLD', 'on');
+    const withLookup = await fastest();
+    expect(heldSenderStrict).toHaveBeenCalled();
+    // Both reads one after the other take 2 x 25 ms; run after the handler, they would add that.
+    expect(withLookup - handlerAlone).toBeLessThan(READ_MS);
   });
 });
