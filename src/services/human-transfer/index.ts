@@ -270,13 +270,14 @@ export { followUpCrisis } from './crisis-signals.js';
  * Every crisis record is kept permanently, a member's or not (2026-11-11): none carries an
  * expireAt, and crisis_signals has no TTL policy. Signing in copies it to the account as is.
  *
- * @param _transcript ignored: no words are stored. Kept so a positional caller's line can't
+ * @param _unusedTranscript ignored and never stored. Kept so a positional caller's line can't
  *   shift into sessionId (both are strings, so the compiler would not catch it).
  */
 export async function logCrisisSignal(
   userId: string,
   signals: CrisisSignals,
-  _transcript?: string,
+  /** @deprecated Ignored: never stored, anywhere. Pass undefined. */
+  _unusedTranscript?: string,
   sessionId?: string,
   turn?: number
 ): Promise<void> {

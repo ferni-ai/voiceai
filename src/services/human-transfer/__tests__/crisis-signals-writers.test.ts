@@ -171,6 +171,22 @@ describe('logCrisisSignal', () => {
     }
   );
 
+  it.each(['AbCdEfGhIjKlMnOpQrStUvWxYz12', 'anon:call-7f3a'])(
+    'the ignored transcript argument (%s) is stored nowhere',
+    async (userId) => {
+      const unused = 'fictional-unused-value-q9z'; // written for this test
+      docs.clear();
+      await logCrisisSignal(userId, SIGNALS, unused, 'session-u-1', 4);
+      const [doc, ...more] = [...docs.values()];
+      expect(more).toEqual([]);
+      expect(doc).toBeDefined();
+      expect(Object.values(doc!)).not.toContain(unused);
+      expect(doc!.sessionId).not.toBe(unused);
+      expect([undefined, 'session-u-1']).toContain(doc!.sessionId);
+      expect(JSON.stringify(doc)).not.toContain(unused);
+    }
+  );
+
   it('a shared placeholder id stores nothing', async () => {
     expect(await written('anon:')).toEqual([]);
     expect(docs.size).toBe(0);
