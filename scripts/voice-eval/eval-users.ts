@@ -18,7 +18,10 @@ export interface EvalUserSelection {
   /** Fixed ids from older runs, selected only with includeLegacy. */
   legacy: string[];
   /** Ids left alone, with the reason. */
-  kept: Array<{ id: string; reason: 'always-kept' | 'too-recent' | 'legacy-not-included' }>;
+  kept: Array<{
+    id: string;
+    reason: 'always-kept' | 'too-recent' | 'legacy-not-included' | 'not-in-ids';
+  }>;
 }
 
 /** The local start time encoded in a generated id, or null for any other id. */
@@ -31,7 +34,14 @@ export function generatedAt(id: string): Date | null {
 
 export function selectEvalUsers(
   ids: readonly string[],
-  opts: { now: Date; minAgeMs: number; includeLegacy: boolean; keep?: readonly string[] }
+  opts: {
+    now: Date;
+    minAgeMs: number;
+    includeLegacy: boolean;
+    keep?: readonly string[];
+    /** With --ids: only these ids may be selected; every other id is kept. */
+    only?: ReadonlySet<string>;
+  }
 ): EvalUserSelection {
   const keep = new Set([...ALWAYS_KEEP, ...(opts.keep ?? [])]);
   const out: EvalUserSelection = { generated: [], legacy: [], kept: [] };
@@ -39,6 +49,10 @@ export function selectEvalUsers(
     if (!id.startsWith(EVAL_PREFIX)) continue;
     if (keep.has(id)) {
       out.kept.push({ id, reason: 'always-kept' });
+      continue;
+    }
+    if (opts.only && !opts.only.has(id)) {
+      out.kept.push({ id, reason: 'not-in-ids' });
       continue;
     }
     const at = generatedAt(id);
@@ -52,4 +66,23 @@ export function selectEvalUsers(
     }
   }
   return out;
+}
+
+/** An --ids file, read: one id per line; blank lines and `#` comments skipped. */
+export interface IdList {
+  ids: Set<string>;
+  /** Lines that aren't a voice-eval id: the whole file is refused when any exist. */
+  invalid: string[];
+}
+
+export function parseIdList(text: string): IdList {
+  const ids = new Set<string>();
+  const invalid: string[] = [];
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    if (line.startsWith(EVAL_PREFIX) && /^[A-Za-z0-9-]+$/.test(line)) ids.add(line);
+    else invalid.push(line);
+  }
+  return { ids, invalid };
 }
