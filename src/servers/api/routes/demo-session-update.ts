@@ -9,6 +9,9 @@
  * time, an unknown room answers like a wrong token (403, so rooms can't be
  * probed), and a demo that has been claimed is closed to writes (409).
  *
+ * The conversation takes only its five known fields, each type-checked and
+ * size-capped (#1759); anything else is a 400.
+ *
  * @module servers/api/routes/demo-session-update
  */
 
@@ -35,6 +38,65 @@ interface UpdateBody {
   roomName?: string;
   claimToken?: string;
   conversation?: Conversation;
+  /** The conversation field that was refused, when one was */
+  rejected?: string;
+}
+
+/** Caps per field; the body itself is capped at MAX_BODY_BYTES. */
+const CONVERSATION_LIMITS = {
+  messages: 200,
+  messageBytes: 4 * 1024,
+  listItems: 50,
+  listItemChars: 500,
+  userMoodChars: 64,
+  ferniNotesChars: 4000,
+} as const;
+
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+
+const shortString = (v: unknown, max: number): v is string =>
+  typeof v === 'string' && v.length <= max;
+
+const stringList = (v: unknown): v is string[] =>
+  Array.isArray(v) &&
+  v.length <= CONVERSATION_LIMITS.listItems &&
+  v.every((item) => shortString(item, CONVERSATION_LIMITS.listItemChars));
+
+const messageList = (v: unknown): v is unknown[] =>
+  Array.isArray(v) &&
+  v.length <= CONVERSATION_LIMITS.messages &&
+  v.every(
+    (m) =>
+      isPlainObject(m) &&
+      Buffer.byteLength(JSON.stringify(m), 'utf8') <= CONVERSATION_LIMITS.messageBytes
+  );
+
+const FIELD_CHECKS: Record<keyof Conversation, (v: unknown) => boolean> = {
+  messages: messageList,
+  highlights: stringList,
+  topics: stringList,
+  userMood: (v) => v === null || shortString(v, CONVERSATION_LIMITS.userMoodChars),
+  ferniNotes: (v) => shortString(v, CONVERSATION_LIMITS.ferniNotesChars),
+};
+
+/**
+ * The conversation with only its known fields, or the name of the first field
+ * that is unknown or has the wrong type or size. Names only: never the value.
+ */
+function readConversation(
+  raw: Record<string, unknown>
+): { conversation: Conversation } | { rejected: string } {
+  const conversation: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    const check = Object.hasOwn(FIELD_CHECKS, key)
+      ? FIELD_CHECKS[key as keyof Conversation]
+      : undefined;
+    if (!check) return { rejected: 'unknown field' };
+    if (!check(value)) return { rejected: key };
+    conversation[key] = value;
+  }
+  return { conversation: conversation as Conversation };
 }
 
 function parseBody(body: string): UpdateBody {
@@ -49,14 +111,14 @@ function parseBody(body: string): UpdateBody {
   const record = parsed as Record<string, unknown>;
   const str = (v: unknown): string | undefined =>
     typeof v === 'string' && v.length > 0 ? v : undefined;
-  const { conversation } = record;
+  const read = isPlainObject(record['conversation'])
+    ? readConversation(record['conversation'])
+    : undefined;
   return {
     roomName: str(record['room_name']),
     claimToken: str(record['claim_token']),
-    conversation:
-      typeof conversation === 'object' && conversation !== null && !Array.isArray(conversation)
-        ? (conversation as Conversation)
-        : undefined,
+    conversation: read && 'conversation' in read ? read.conversation : undefined,
+    rejected: read && 'rejected' in read ? read.rejected : undefined,
   };
 }
 
@@ -69,7 +131,11 @@ export function claimTokenMatches(given: string, expected: unknown): boolean {
 }
 
 async function update(body: string, res: ServerResponse): Promise<void> {
-  const { roomName, claimToken, conversation } = parseBody(body);
+  const { roomName, claimToken, conversation, rejected } = parseBody(body);
+  if (rejected) {
+    sendJson(res, 400, { error: 'Invalid conversation field', field: rejected });
+    return;
+  }
   if (!roomName || !conversation) {
     sendJson(res, 400, { error: 'Missing room_name or conversation data' });
     return;
@@ -91,12 +157,16 @@ async function update(body: string, res: ServerResponse): Promise<void> {
     return;
   }
 
-  const success = await demoSessions.updateDemoSessionConversation(roomName, conversation);
-  if (!success) {
+  const result = await demoSessions.updateDemoSessionConversation(roomName, conversation);
+  if (result === 'missing') {
     sendJson(res, 404, { error: 'Demo session not found' });
-    return;
+  } else if (result === 'claimed') {
+    sendJson(res, 409, { error: 'Demo session already claimed' });
+  } else if (result === 'failed') {
+    sendJson(res, 503, { error: 'Could not save the conversation, try again' });
+  } else {
+    sendJson(res, 200, { success: true });
   }
-  sendJson(res, 200, { success: true });
 }
 
 /** Handle POST /demo-session-update. Always answers the request. Rate limit: 30/min. */
