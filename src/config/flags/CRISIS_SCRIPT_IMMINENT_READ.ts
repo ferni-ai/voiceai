@@ -6,7 +6,7 @@ export const CRISIS_SCRIPT_IMMINENT_READ = {
   owner: 'intelligence',
   kind: 'experiment',
   expires: '2027-02-11',
-  issue: 'TBD',
+  issue: 'https://github.com/ferni-ai/voiceai/issues/3812',
   context:
     'Shadow first (imminent reads per scripted turn, would-swap rate), then on after the held-out run and the owner yes; then make it the default.',
 } as const satisfies FlagSpec;

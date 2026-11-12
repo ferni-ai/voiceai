@@ -168,6 +168,7 @@ export const SAFETY_WORDING: readonly string[] = [
   './crisis-guard.js',
   'please call 911 or get to the nearest emergency room. You can also call or text 988 to talk to someone immediately.',
   'You can also',
+  "And if you're in danger right now, call 911.",
   'That sounds like an emergency. Please call 911 right now, and put them on speaker so you can stay with them.',
   "If they're not breathing or not responding, tell the dispatcher; they'll walk you through what to do until help gets there.",
   "I'm right here with you. Is anyone else there who can help?",
