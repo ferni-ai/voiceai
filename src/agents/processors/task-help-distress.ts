@@ -6,9 +6,9 @@
  * holds its crisis face for the rest of the call and the turn switches to holding space. That
  * score also feeds safety context builders, so it stays as it is. Instead, once per turn
  * (process-turn.ts), this module decides whether the humanization layer may read it lower:
- * only when every "help" in the turn asks for help with a task AND nothing else backs the
- * distress up. A bare cry for help ("help", "please help me", "help, my dad isn't breathing")
- * is never lowered.
+ * only when the whole line is an everyday ask built from a closed vocabulary AND nothing else
+ * backs the distress up. Any other line, a bare cry for help ("help", "please help me") among
+ * them, keeps its full reading.
  *
  * @module agents/processors/task-help-distress
  */
@@ -22,101 +22,77 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { EmotionDetector, type EmotionResult } from '../../intelligence/detectors/index.js';
 
 /**
- * Verbs that make "help (me) <verb> …" a request for help with a task. Narrow on purpose:
- * each takes a concrete object (a dinner, a gift, a toast, a trip). Verbs that take a process
- * or an abstract complement (get, make, find, figure out, decide) are left out, because
- * "help me make it stop" or "help me find a way to end it" must keep the crisis reading.
+ * The only words a capped turn may use: the line must be an everyday ask built from this set
+ * ("can you help me plan dinner for Sam"). Any other word keeps the full reading, so a line
+ * the list doesn't foresee is never lowered. Adding a word needs a never-lower row for it in
+ * task-help-distress.test.ts. "letter", "note" and a bare "card" or "list" stay out on purpose.
  */
-const TASK_HELP_VERBS = [
-  'plan',
-  'pick',
-  'choose',
-  'write',
-  'draft',
-  'book',
-  'send',
-  'finish',
-  'set up',
-  'learn',
-] as const;
+const TASK_HELP_VOCABULARY = {
+  help: ['help', 'ayuda', 'ayúdame'],
+  taskVerbs: ['write', 'plan', 'pick', 'choose', 'find', 'fix', 'draft', 'make', 'edit', 'check'],
+  moreTaskVerbs: ['book', 'cook', 'organize', 'set up'],
+  determiners: ['a', 'an', 'the', 'my', 'our', 'this'],
+  prepositions: ['with', 'for', 'on', 'to', 'about'],
+  politeness: ['please', 'can', 'could', 'you', 'me', 'us', 'i', 'need', 'want', 'out'],
+  everydayTasks: [
+    'email',
+    'emails',
+    'dinner',
+    'lunch',
+    'gift',
+    'toast',
+    'recipe',
+    'resume',
+    'homework',
+    'essay',
+    'slides',
+    'schedule',
+    'trip',
+    'party',
+    'playlist',
+    'grocery list',
+    'shopping list',
+    'birthday card',
+    'thank-you card',
+  ],
+} as const;
 
-/** People the caller may need help with: "help me with my dad" is not a task. */
-const RELATIONS = [
-  'mom',
-  'mother',
-  'dad',
-  'father',
-  'husband',
-  'wife',
-  'partner',
-  'boyfriend',
-  'girlfriend',
-  'ex',
-  'son',
-  'daughter',
-  'kid',
-  'kids',
-  'child',
-  'brother',
-  'sister',
-  'family',
-  'friend',
-  'roommate',
-  'boss',
-] as const;
-
-/**
- * Words that keep a task-help request at its full reading when they follow the task verb or
- * "with": an ending or an escape ("help me write a note so they understand why"), or a person
- * or the caller themself ("help me with my dad", "help me with myself").
- */
-const TASK_HELP_NEVER_LOWER = [
-  'it',
-  'through',
-  'away',
-  'a way',
-  'how to',
-  'whether',
-  'why',
-  'goodbye',
-  'note',
-  'letter',
-  'him',
-  'her',
-  'them',
-  'myself',
-  'me',
-  ...RELATIONS.map((relation) => `my ${relation}`),
-] as const;
+const HELP_WORDS = new Set<string>(TASK_HELP_VOCABULARY.help);
+const TASK_WORDS = new Set<string>(TASK_HELP_VOCABULARY.everydayTasks);
+const ALLOWED = new Set<string>(Object.values(TASK_HELP_VOCABULARY).flat());
+/** One person may be named, directly after "for": "a gift for Riley". */
+const NAME = /^\p{Lu}\p{Ll}+$/u;
 
 /** Above this distress the turn reads as a heavy topic (turn-events.ts, humanizing-context-builder.ts). */
 const HEAVY_DISTRESS = 0.6;
 
-const words = (list: readonly string[]): string =>
-  list.map((w) => w.replace(/ /g, '\\s+')).join('|');
 const HELP_WORD = /\bhelp\b/gi;
-/** "help (me|us) (out) with|on" or "help (me|us) (to) <task verb>", from the clause start. */
-const TASK_HELP_PREFIX = new RegExp(
-  `^help(?:\\s+(?:me|us))?(?:\\s+out)?\\s+(?:(?:with|on)(?=\\s+\\S)|(?:to\\s+)?(?:${words(TASK_HELP_VERBS)})\\b)`,
-  'i'
-);
-/** An empty list guards nothing (an empty alternation would match everywhere). */
-const NEVER_LOWER =
-  TASK_HELP_NEVER_LOWER.length > 0
-    ? new RegExp(`\\b(?:${words(TASK_HELP_NEVER_LOWER)})\\b`, 'i')
-    : /(?!)/;
-/** A clause ends at punctuation or a joining word, so "help me plan dinner, I can't cope" is two. */
-const CLAUSE_END = /[,.;:!?]|\b(?:and|but|because|cause|so)\b/i;
 
-/** Every "help" in the text asks for help with a task, in its own clause. */
+/**
+ * The line is an everyday ask for help with a task: every word is in TASK_HELP_VOCABULARY
+ * (two-word entries count as one), apart from at most one name after "for", and it names a
+ * help word and an everyday task.
+ */
 function isTaskHelpOnly(text: string): boolean {
-  const helps = [...text.matchAll(HELP_WORD)];
-  if (helps.length === 0) return false;
-  return helps.every(({ index }) => {
-    const clause = text.slice(index).split(CLAUSE_END)[0] ?? '';
-    const prefix = TASK_HELP_PREFIX.exec(clause);
-    return prefix !== null && !NEVER_LOWER.test(clause.slice(prefix[0].length));
-  });
+  const tokens = text.split(/[^\p{L}\p{N}'-]+/u).filter(Boolean);
+  let named = false;
+  let help = false;
+  let task = false;
+  for (let i = 0; i < tokens.length; i++) {
+    const word = tokens[i].toLowerCase();
+    const pair = i + 1 < tokens.length ? `${word} ${tokens[i + 1].toLowerCase()}` : '';
+    const entry = ALLOWED.has(pair) ? pair : word;
+    if (entry === pair) i++;
+    if (ALLOWED.has(entry)) {
+      help ||= HELP_WORDS.has(entry);
+      task ||= TASK_WORDS.has(entry);
+    } else if (!named && tokens[i - 1]?.toLowerCase() === 'for' && NAME.test(tokens[i])) {
+      named = true;
+    } else {
+      return false;
+    }
+  }
+  return help && task;
 }
 
 export interface TurnDistress {
@@ -152,9 +128,12 @@ export function taskHelpDistressCapped(turn: TurnDistress, env: Env = process.en
 /** The turn's final crisis summary (classifier included) has a signal: the cap comes off. */
 export function keepCapUnlessCrisis<T extends { distressCapped?: boolean }>(
   state: T,
-  crisisSignal: boolean
+  crisisSignal: boolean,
+  /** Redoes what was decided under the cap (the persona mood) from the full reading. */
+  onLift: () => void = () => undefined
 ): T {
   if (!state.distressCapped || !crisisSignal) return state;
+  onLift();
   const uncapped = { ...state };
   delete uncapped.distressCapped;
   return uncapped;

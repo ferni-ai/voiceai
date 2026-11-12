@@ -87,7 +87,7 @@ import { checkEasterEggs } from '../easter-egg-handler.js';
 import { buildEmotionalState } from '../emotional-state-builder.js';
 import { buildResponseGuidance } from '../response-guidance-builder.js';
 import { buildIdentityContext } from '../identity-context-builder.js';
-import { buildHumanizingContextForTurn } from '../humanizing-context-builder.js';
+import { buildHumanizingContextForTurn, settleTurnMood } from '../humanizing-context-builder.js';
 import { processBundleRuntime } from '../bundle-runtime-processor.js';
 import { processAdvancedHumanization } from '../advanced-humanization.js';
 import { keepCapUnlessCrisis, taskHelpDistressCapped } from '../task-help-distress.js';
@@ -1498,7 +1498,8 @@ If they're just conversing, respond naturally without a tool call.`,
     },
     emotional: keepCapUnlessCrisis(
       emotionalState,
-      hasCrisisSignal(finalCrisis) || finalCrisis.softCheck === true
+      hasCrisisSignal(finalCrisis) || finalCrisis.softCheck === true,
+      () => settleTurnMood(ctx, humanizingResult, analysisResult.analysis.emotion)
     ),
     response: responseGuidance,
     identity: identityContext,

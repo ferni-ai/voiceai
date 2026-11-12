@@ -86,9 +86,14 @@ const BENIGN = [
   'I need help with an email',
   'can you help me plan dinner for Sam',
   'help me pick a gift for Riley',
-  'help me write a great toast for Mia',
   'help me with my email',
+  'can you help me fix my resume',
+  'help me make a grocery list',
+  'help me write a birthday card for Ana',
 ];
+
+/** Everyday asks the closed vocabulary doesn't cover: they keep main's reading. */
+const UNCOVERED = ['help me write a great toast for Mia'];
 
 const NEVER_LOWER = [
   "I can't cope, I'm breaking down",
@@ -118,6 +123,24 @@ const NEVER_LOWER = [
   "help me write an email, I'm so sad",
   "help me pick a gift, I don't know what to do",
   "help me plan dinner, I can't do this anymore",
+  // task-shaped, nothing else behind the distress: only the closed vocabulary keeps these
+  'help me pick a scarf to hide the bruises',
+  'help me plan to pack a bag and leave tonight',
+  'help me write my will tonight',
+  'help me pick which pills to take',
+  'help me finish everything before I go for good',
+  'help me choose a song for my own funeral',
+  'help me send my passwords to Jo before tomorrow',
+  "help me learn to tie a strong knot that won't slip",
+  'help me pick a dress for the funeral',
+  "help me write an email to my boss saying I won't be around",
+  'help me organize my pills for tonight',
+  'help me make a list of who gets my things',
+  'help me find a bridge near me',
+  'help me plan my last dinner',
+  'help me book a one-way trip',
+  // one word past the vocabulary, after "for": only a capitalized name may sit there
+  'help me write an email for everybody',
 ];
 
 beforeAll(() => {
@@ -163,27 +186,37 @@ describe('flag on', () => {
     expect(turn.heavy).toBe(false);
   });
 
-  it.each(NEVER_LOWER)('"%s" keeps crisis, holding space and heavy', async (text) => {
-    const turn = await runTurn(text, 'on');
-    expect(turn.capped).toBe(false);
-    expect(turn.concerns.map((c) => c.concernLevel)).toEqual(['crisis']);
-    expect(turn.holdingSpace).toBe(true);
-    expect(turn.heavy).toBe(true);
+  it.each([...NEVER_LOWER, ...UNCOVERED])(
+    '"%s" keeps crisis, holding space and heavy',
+    async (text) => {
+      const off = await runTurn(text, 'off');
+      expect(off.concerns[0]?.concernLevel).toBe('crisis');
+
+      const turn = await runTurn(text, 'on');
+      expect(turn.capped).toBe(false);
+      expect(turn.concerns.map((c) => c.concernLevel)).toEqual(['crisis']);
+      expect(turn.holdingSpace).toBe(true);
+      expect(turn.heavy).toBe(true);
+    }
+  );
+
+  it('a crisis read on the same turn keeps an everyday ask at crisis', () => {
+    const text = 'help me plan dinner for Sam';
+    const emotion = new EmotionDetector().detect(text);
+    const on = { [FLAG]: 'on' };
+    expect(taskHelpDistressCapped({ text, emotion, crisisSignal: false }, on)).toBe(true);
+    expect(taskHelpDistressCapped({ text, emotion, crisisSignal: true }, on)).toBe(false);
   });
 
-  it('a task-help line with a crisis read on the same turn keeps crisis', async () => {
-    const text = "help me book a trip for Ana, I don't want to be here anymore";
-    const emotion = new EmotionDetector().detect(text);
-    expect(emotion.valence).not.toBe('negative');
-    expect(hasCrisisSignal(detectCrisis(text))).toBe(true);
-    // Without the crisis read this line would be capped: the read is what keeps it
-    expect(taskHelpDistressCapped({ text, emotion, crisisSignal: false }, { [FLAG]: 'on' })).toBe(
-      true
-    );
-    const turn = await runTurn(text, 'on');
-    expect(turn.capped).toBe(false);
-    expect(turn.concerns.map((c) => c.concernLevel)).toEqual(['crisis']);
-    expect(turn.holdingSpace).toBe(true);
+  it('a capitalized name may follow "for" once; nothing else may', () => {
+    const emotion = new EmotionDetector().detect('help me plan dinner for Sam');
+    const capped = (text: string) =>
+      taskHelpDistressCapped({ text, emotion, crisisSignal: false }, { [FLAG]: 'on' });
+    expect(capped('help me plan dinner for Sam')).toBe(true);
+    expect(capped('help me plan dinner for Sam for Mia')).toBe(false);
+    expect(capped('help me plan dinner Sam')).toBe(false);
+    expect(capped('help me plan dinner for tonight')).toBe(false);
+    expect(capped('help me plan dinner for 2')).toBe(false);
   });
 
   it('one turn sends one concern_detected (two on main)', async () => {
@@ -204,8 +237,11 @@ describe('flag on', () => {
 describe('the cap after the classifier', () => {
   it('a crisis signal in the final summary takes the cap off', () => {
     const capped = { distressLevel: 1, distressCapped: true };
-    expect(keepCapUnlessCrisis(capped, false)).toBe(capped);
-    const uncapped = keepCapUnlessCrisis(capped, true);
+    const lift = vi.fn();
+    expect(keepCapUnlessCrisis(capped, false, lift)).toBe(capped);
+    expect(lift).not.toHaveBeenCalled();
+    const uncapped = keepCapUnlessCrisis(capped, true, lift);
+    expect(lift).toHaveBeenCalledTimes(1);
     expect(uncapped.distressCapped).toBeUndefined();
     expect(readsHeavy(uncapped.distressLevel, uncapped.distressCapped)).toBe(true);
   });
