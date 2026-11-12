@@ -53,6 +53,12 @@ const askedThen = (offer: string, yes: Turn = SURE, asked = ASKED_ABOUT_ALEX): T
   yes,
 ];
 const askedMaya: Turn = ['user', "Is Maya around? I'm stuck on my morning routine."];
+const answered = (text: string): Turn[] => askedThen(PRONOUN_OFFER[1], ['user', text]);
+const exchange = (caller: string, ferni: string, reply: string): Turn[] => [
+  ['user', caller],
+  ['assistant', ferni],
+  ['user', reply],
+];
 
 type Row = [label: string, agentName: string, turns: Turn[]];
 
@@ -71,20 +77,24 @@ const AGREED: Row[] = [
     'Alex Chen',
     askedThen(PRONOUN_OFFER[1], ['user', 'Um, sounds good.']),
   ],
-  ['"Want me to grab him?"', 'Alex Chen', askedThen('Want me to grab him?')],
-  ['"Should I get him?"', 'Alex Chen', askedThen("He's around. Should I get him?", GO_AHEAD)],
-  ['"I can put you through to him."', 'Alex Chen', askedThen('I can put you through to him.')],
+  // Plain agreeing replies (round 2)
+  ['the call, "Mm-hmm."', 'Alex Chen', answered('Mm-hmm.')],
+  ['the call, "Uh huh."', 'Alex Chen', answered('Uh huh.')],
+  ['the call, "All right then."', 'Alex Chen', answered('All right then.')],
+  ['the call, "Yes please do."', 'Alex Chen', answered('Yes please do.')],
+  ['the call, "Okay, let\'s do that."', 'Alex Chen', answered("Okay, let's do that.")],
+  ['the call, "Yeah, I would."', 'Alex Chen', answered('Yeah, I would.')],
+  ['the call, "I would love that."', 'Alex Chen', answered('I would love that.')],
+  ['the call, "Yeah, sure, bring him in."', 'Alex Chen', answered('Yeah, sure, bring him in.')],
+  ['the call, "Yes, bring him in."', 'Alex Chen', answered('Yes, bring him in.')],
+  // Join phrases that only make sense for someone joining this call
+  ['"Should I bring him on?"', 'Alex Chen', askedThen('Should I bring him on?')],
+  ['"I can have him hop on."', 'Alex Chen', askedThen('I can have him hop on.', GO_AHEAD)],
+  ['"He could join us if you like?"', 'Alex Chen', askedThen('He could join us if you like?')],
   [
-    '"Should I connect you with her?"',
+    '"Should I pass you over to her?"',
     'Maya Santos',
-    askedThen('Should I connect you with her?', SURE, askedMaya),
-  ],
-  ['"Want to talk to him?"', 'Alex Chen', askedThen('Want to talk to him?', GO_AHEAD)],
-  ['"Should I pull him in?"', 'Alex Chen', askedThen('Should I pull him in?')],
-  [
-    '"Want me to see if she\'s free?"',
-    'Maya Santos',
-    askedThen("Want me to see if she's free?", GO_AHEAD, askedMaya),
+    askedThen('Should I pass you over to her?', SURE, askedMaya),
   ],
   [
     'the caller also says "Ferni"',
@@ -104,7 +114,7 @@ const AGREED: Row[] = [
       ['assistant', 'Hmm.'],
       ['assistant', 'Let me think.'],
       ['assistant', "He's asleep."],
-      ['assistant', 'Want me to wake him?'],
+      ['assistant', 'Want me to bring him in?'],
       SURE,
     ],
   ],
@@ -121,6 +131,160 @@ const AGREED: Row[] = [
 ];
 
 const NONE: Row[] = [
+  // Round 2: the verifier's over-matching probes on 369451e5fd
+  [
+    'a truncated line',
+    'Alex Chen',
+    askedThen("He's been on your budget all week. I could bring him in, and he could walk", [
+      'user',
+      'Okay.',
+    ]),
+  ],
+  ['"Okay?"', 'Alex Chen', answered('Okay?')],
+  [
+    'reported speech',
+    'Alex Chen',
+    askedThen('Your mom called earlier and asked me, should I bring him in?', ['user', 'Okay.']),
+  ],
+  [
+    '"get him on the phone" (the dentist)',
+    'Alex Chen',
+    exchange(
+      'Alex said I should call my dentist, Dr. Lee.',
+      'Want me to get him on the phone?',
+      'Yes please.'
+    ),
+  ],
+  [
+    '"talk to him about the trip" (Jordan the country)',
+    'Jordan Taylor',
+    exchange(
+      "We're going to Jordan. My brother's coming.",
+      'Do you want to talk to him about the trip first?',
+      'Yeah.'
+    ),
+  ],
+  [
+    '"talk to him about it" (coworker Alex)',
+    'Alex Chen',
+    exchange(
+      'My coworker Alex keeps taking credit for my work.',
+      'That is so frustrating. Do you want to talk to him about it?',
+      'Yeah.'
+    ),
+  ],
+  [
+    '"talk to him about it" (friend Pete)',
+    'Peter John',
+    exchange('Pete keeps texting me at midnight.', 'Want to talk to him about it?', 'Yeah.'),
+  ],
+  [
+    '"see if they\'re free Saturday" (neighbors)',
+    'Jordan Taylor',
+    exchange(
+      'Jordan said I should have the neighbors over.',
+      "Love that. Want me to see if they're free Saturday?",
+      'Sure.'
+    ),
+  ],
+  [
+    '"get them for you" (tickets)',
+    'Alex Chen',
+    exchange(
+      'Alex said the concert tickets go on sale today.',
+      'Want me to get them for you?',
+      'Yes please.'
+    ),
+  ],
+  [
+    '"talk to her about it" (mom)',
+    'Maya Santos',
+    exchange(
+      'Maya said I should be honest with my mom.',
+      "That's brave. Do you want to talk to her about it?",
+      'Yeah.'
+    ),
+  ],
+  [
+    '"talk to him about what happened" (dad)',
+    'Alex Chen',
+    exchange(
+      'Alex said I should call my dad more.',
+      'Would you like to talk to him about what happened?',
+      'Yeah.'
+    ),
+  ],
+  [
+    '"talk to them tonight" (kids)',
+    'Jordan Taylor',
+    exchange(
+      'Jordan thinks the kids are hiding something.',
+      'Hmm. Do you want to talk to them tonight?',
+      'Yeah.'
+    ),
+  ],
+  [
+    '"put them on" (songs)',
+    'Alex Chen',
+    exchange('Alex picked some songs for my run.', 'Nice. Want me to put them on?', 'Sure.'),
+  ],
+  [
+    '"talk to him for you" (landlord)',
+    'Alex Chen',
+    exchange('Alex said my landlord owes me a refund.', 'Ugh. I can talk to him for you.', 'Okay.'),
+  ],
+  [
+    '"wake him" (the baby)',
+    'Maya Santos',
+    exchange(
+      'Maya said the baby should nap by two.',
+      "It's three now. Do you want to wake him?",
+      'Yeah.'
+    ),
+  ],
+  [
+    '"Skip Alex", then "get him on the line"',
+    'Alex Chen',
+    exchange(
+      "Skip Alex, he's exhausting. Who else is good with money?",
+      'I could get him on the line.',
+      'Okay.'
+    ),
+  ],
+  [
+    '"Skip Alex", then a join offer',
+    'Alex Chen',
+    exchange(
+      "Skip Alex, he's exhausting. Who else is good with money?",
+      'I could bring him in.',
+      'Okay.'
+    ),
+  ],
+  ['"Yes, 5."', 'Alex Chen', answered('Yes, 5.')],
+  ['"Thanks."', 'Alex Chen', answered('Thanks.')],
+  ['"Thank you."', 'Alex Chen', answered('Thank you.')],
+  // Offers that do not say the person joins this call: missed on purpose (round 2)
+  ['"Want me to grab him?"', 'Alex Chen', askedThen('Want me to grab him?')],
+  ['"Should I get him?"', 'Alex Chen', askedThen("He's around. Should I get him?", GO_AHEAD)],
+  ['"I can put you through to him."', 'Alex Chen', askedThen('I can put you through to him.')],
+  [
+    '"Should I connect you with her?"',
+    'Maya Santos',
+    askedThen('Should I connect you with her?', SURE, askedMaya),
+  ],
+  ['"Want to talk to him?"', 'Alex Chen', askedThen('Want to talk to him?', GO_AHEAD)],
+  ['"Should I pull him in?"', 'Alex Chen', askedThen('Should I pull him in?')],
+  [
+    '"Want me to see if she\'s free?"',
+    'Maya Santos',
+    askedThen("Want me to see if she's free?", GO_AHEAD, askedMaya),
+  ],
+  ['"Want me to wake him?"', 'Alex Chen', askedThen('Want me to wake him?')],
+  [
+    'an alternative before the join',
+    'Alex Chen',
+    askedThen('Do you want to keep going, or should I bring him in?'),
+  ],
   // Not a bare yes
   [
     '"Okay so anyway, about my mom."',

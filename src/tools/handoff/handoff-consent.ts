@@ -27,7 +27,7 @@ import { crisisGuidedTurn } from '../../services/safety/index.js';
 import { isCoach } from '../../personas/index.js';
 import { aliasesInTransfer } from './transfer-aliases.js';
 import { misheardTeammates, teammateHeardAs } from './teammate-names.js';
-import { bareYes, pronounOffered } from './pronoun-offer.js';
+import { pronounOffered, yesToJoin } from './pronoun-offer.js';
 
 export function handoffAskFirstEnabled(
   env: Record<string, string | undefined> = process.env
@@ -151,12 +151,12 @@ function soleTeammateNamed(lines: string[], agentName: string): boolean {
   return !lines.some((line) => (line.match(/[a-z]+/gi) ?? []).some(other));
 }
 
-/** "I don't want to talk to Alex right now", "Not Alex": the caller turned them down. */
-const TURNS_DOWN = /\b(not|no|nah|nope|never|don'?t)\b/i;
+/** "I don't want to talk to Alex right now", "Not Alex", "Skip Alex": the caller turned them down. */
+const TURNS_DOWN = /\b(not|no|nah|nope|never|don'?t|skip)\b/i;
 
 /**
- * HANDOFF_HELD_TRUTHFUL: the caller's whole turn is a yes (bareYes) to Ferni's last
- * sentence offering to put them through to "him", "her" or "them" (pronounOffered), and
+ * HANDOFF_HELD_TRUTHFUL: the caller's whole turn is a yes (yesToJoin) to Ferni's last
+ * sentence offering to bring "him", "her" or "them" into the call (pronounOffered), and
  * `agentName` is the one teammate named in that exchange, not turned down there. Whether
  * "her" fits the teammate is not checked: the pronoun table (personas/persona-pronouns.ts)
  * is not exported from the personas context's index.ts.
@@ -167,7 +167,7 @@ function yesToPronounOffer(
   agentName: string,
   env: Env
 ): boolean {
-  if (!heldTruthful(env) || !bareYes(said)) return false;
+  if (!heldTruthful(env) || !yesToJoin(said)) return false;
   const { caller, ferni } = offerExchange(chatCtx);
   const pronoun = pronounOffered(ferni.find((line) => line.trim() !== '') ?? '');
   if (pronoun === null) return false;

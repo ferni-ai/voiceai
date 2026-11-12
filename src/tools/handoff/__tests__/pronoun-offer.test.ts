@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { bareYes, pronounOffered } from '../pronoun-offer.js';
+import { pronounOffered, yesToJoin } from '../pronoun-offer.js';
 
-describe('bareYes', () => {
+describe('yesToJoin: a bare yes', () => {
   it.each([
     'Sure.',
     'Yeah, go ahead.',
@@ -13,8 +13,15 @@ describe('bareYes', () => {
     "Let's do it.",
     'Sure. Go for it.',
     'Of course, thank you.',
+    'Mm-hmm.',
+    'Uh huh.',
+    'All right then.',
+    'Yes please do.',
+    "Okay, let's do that.",
+    'Yeah, I would.',
+    'I would love that.',
   ])('"%s" is a yes and nothing else', (said) => {
-    expect(bareYes(said)).toBe(true);
+    expect(yesToJoin(said)).toBe(true);
   });
 
   it.each([
@@ -27,8 +34,34 @@ describe('bareYes', () => {
     'yeah no',
     '',
     'Um.',
+    'Okay?',
+    'Yes, 5.',
+    'Thanks.',
+    'Thank you.',
   ])('"%s" is not a bare yes', (said) => {
-    expect(bareYes(said)).toBe(false);
+    expect(yesToJoin(said)).toBe(false);
+  });
+});
+
+describe('yesToJoin', () => {
+  it.each([
+    'Sure.',
+    'Yeah, sure, bring him in.',
+    'Yes, bring him in.',
+    'Okay, go ahead and loop her in.',
+    'Bring them in.',
+  ])('"%s" agrees to the join', (said) => {
+    expect(yesToJoin(said)).toBe(true);
+  });
+
+  it.each([
+    'Sure, go ahead and grab him.',
+    'Yeah, get him.',
+    'Bring him in?',
+    'Yes, bring him in later.',
+    'No, bring him in tomorrow.',
+  ])('"%s" does not', (said) => {
+    expect(yesToJoin(said)).toBe(false);
   });
 });
 
@@ -38,16 +71,12 @@ describe('pronounOffered', () => {
       "Well, he's probably fast asleep right now, but he's usually ready to jump in. Did you want me to wake him up and bring him in?",
       'him',
     ],
-    ['Want me to grab him?', 'him'],
-    ['Should I get him?', 'him'],
-    ['I can put you through to him.', 'him'],
-    ['Should I connect you with her?', 'her'],
-    ['Want to talk to him?', 'him'],
-    ['Should I pull him in?', 'him'],
-    ["Want me to see if she's free?", 'she'],
-    ['Should I get them on?', 'them'],
-    ['Shall I get him on the line?', 'him'],
     ['I could hand you over to her.', 'her'],
+    ['Should I bring him on?', 'him'],
+    ['I can have him hop on.', 'him'],
+    ['He could join us if you like?', 'he'],
+    ['Okay, want me to loop them in?', 'them'],
+    ['Should I pass you to her?', 'her'],
   ])('"%s" offers %s', (line, pronoun) => {
     expect(pronounOffered(line)).toBe(pronoun);
   });
@@ -67,6 +96,19 @@ describe('pronounOffered', () => {
     'I can bring him in, or I can just read it to you.',
     'Want me to bring him in? Anyway, how was the trip?',
     'Bring him in.',
+    'Do you want to keep going, or should I bring him in?',
+    'Want me to grab him?',
+    'Should I get him?',
+    'I can put you through to him.',
+    'Should I connect you with her?',
+    'Want to talk to him?',
+    'Should I pull him in?',
+    "Want me to see if she's free?",
+    'Shall I get him on the line?',
+    'Want me to get them for you?',
+    'Do you want to wake him?',
+    "He's been on your budget all week. I could bring him in, and he could walk",
+    'Your mom called earlier and asked me, should I bring him in?',
   ])('"%s" offers no one', (line) => {
     expect(pronounOffered(line)).toBeNull();
   });
