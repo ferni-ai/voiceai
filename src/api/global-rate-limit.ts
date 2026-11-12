@@ -20,7 +20,7 @@ export const API_GLOBAL_LIMIT = { maxRequests: 100, windowMs: 60_000, keyPrefix:
  * The token, demo and Plaid routes are served outside /api/, so the /api/ limit never
  * counted them; their own total cap keeps a caller from adding up every route limit.
  */
-export const OUTSIDE_API_LIMIT = {
+const OUTSIDE_API_LIMIT = {
   maxRequests: 100,
   windowMs: 60_000,
   keyPrefix: 'outside-api',

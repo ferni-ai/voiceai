@@ -18,8 +18,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const { rememberVerifiedUid } = await import('../rate-limit-identity.js');
 const { handleMigrationRoutes } = await import('../migration-routes.js');
 const { handleGDPRRoutes } = await import('../gdpr-routes.js');
-const { limitServerRequest, API_GLOBAL_LIMIT, OUTSIDE_API_LIMIT } =
-  await import('../global-rate-limit.js');
+const { limitServerRequest, API_GLOBAL_LIMIT } = await import('../global-rate-limit.js');
 const { handlePlaidRoutes } = await import('../../servers/api/routes/plaid.js');
 const { handleTokenRoutes } = await import('../../servers/api/routes/token.js');
 
@@ -110,35 +109,33 @@ async function serverStatus(uid: string, method: string, path: string): Promise<
   return res.statusCode;
 }
 
+/** Calls the global limit on `path` until it refuses; the number of calls it let through. */
+function useUpGlobalBudget(uid: string, path: string): number {
+  for (let allowed = 0; allowed < 1000; allowed++) {
+    if (limitServerRequest(request(uid, 'GET', path), response(), path)) return allowed;
+  }
+  throw new Error(`the global limit never refused ${path}`);
+}
+
 describe('global limits on the routes served outside /api/', () => {
   it('one caller using up the outside-/api/ budget is refused /plaid/exchange and /demo-claim', async () => {
     const uid = 'uid-route-buckets-c';
-    // /demo-status needs no services before its limit; it only spends the shared budget here
-    for (let i = 0; i < OUTSIDE_API_LIMIT.maxRequests; i++) {
-      expect(
-        limitServerRequest(request(uid, 'GET', '/demo-status'), response(), '/demo-status')
-      ).toBe(false);
-    }
-    // Neither route has spent any of its own budget (5 and 10 a minute)
+    // More calls than either route allows itself (5 and 10 a minute), none of them spent there
+    expect(useUpGlobalBudget(uid, '/demo-status')).toBeGreaterThan(10);
     expect(await serverStatus(uid, 'POST', '/plaid/exchange')).toBe(429);
     expect(await serverStatus(uid, 'POST', '/demo-claim')).toBe(429);
   });
 
   it('using up the /api/ budget does not block /plaid/exchange', async () => {
     const uid = 'uid-route-buckets-d';
-    const apiCall = () =>
-      limitServerRequest(request(uid, 'GET', '/api/rituals'), response(), '/api/rituals');
-    for (let i = 0; i < API_GLOBAL_LIMIT.maxRequests; i++) expect(apiCall()).toBe(false);
-    expect(apiCall()).toBe(true);
+    expect(useUpGlobalBudget(uid, '/api/rituals')).toBe(API_GLOBAL_LIMIT.maxRequests);
     // Past both limits, the exchange route's own auth check answers (no token sent)
     expect(await serverStatus(uid, 'POST', '/plaid/exchange')).toBe(401);
   });
 
   it('an /api/ route does not spend or check the outside-/api/ budget', async () => {
     const uid = 'uid-route-buckets-e';
-    for (let i = 0; i < OUTSIDE_API_LIMIT.maxRequests; i++) {
-      limitServerRequest(request(uid, 'GET', '/token-url'), response(), '/token-url');
-    }
+    useUpGlobalBudget(uid, '/token-url');
     expect(await serverStatus(uid, 'POST', '/plaid/exchange')).toBe(429);
     expect(
       limitServerRequest(request(uid, 'GET', '/api/rituals'), response(), '/api/rituals')
